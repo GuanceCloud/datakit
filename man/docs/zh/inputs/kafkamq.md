@@ -16,7 +16,7 @@ Datakit 支持从 kafka 中订阅消息采集链路、指标和日志信息。�
 === "主机安装"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
-
+    
     ```toml
     {{ CodeBlock .InputSample 4 }}
     ```
@@ -29,15 +29,15 @@ Datakit 支持从 kafka 中订阅消息采集链路、指标和日志信息。�
 
 ---
 
-> 自 v1.6.0 开始全部支持采样和速率限制。
+> 注意：自 v1.6.0 开始全部支持采样和速率限制，之前的版本只有自定义消息支持。
 
 配置文件注意的地方：
 1. `kafka_version`: 长度为 3，例如：1.0.0，1.2.1 等等。
 2. `offsets`: 注意是 Newest 还是 Oldest 。
-3. `SASL` :如果开启了安全认证，请正确配置用户和密码，如果 kafka 监听地址是域名形式，请在 `/etc/hosts` 添加映射 IP 。
+3. `SASL` : 如果开启了安全认证，请正确配置用户和密码，如果 kafka 监听地址是域名形式，请在 `/etc/hosts` 添加映射 IP 。
 
 ## SkyWalking {#kafkamq-SkyWalking}
-kafka 插件默认会将 `traces`, `JVM metrics`, `logging`, `Instance Properties`, and `profiled snapshots` 发送到 kafka 集群中。
+kafka 插件默认会将 `traces`, `JVM metrics`, `logging`, `Instance Properties`, and `profiled snapshots` 发送到 kafka 集群中。 
 
 该功能默认是关闭的。需要将 `kafka-reporter-plugin-x.y.z.jar`, 从 `agent/optional-reporter-plugins` 放到 `agent/plugins` 才会生效.
 
@@ -60,7 +60,7 @@ kafka 插件默认会将 `traces`, `JVM metrics`, `logging`, `Instance Propertie
     namespace = ""
 ```
 
-将注释打开即可开启订阅，订阅的主题在 skywalking agent 配置文件 `config/agent.config` 中。
+将注释打开即可开启订阅，订阅的主题在 skywalking agent 配置文件 `config/agent.config` 中。 
 
 注意： 该采集器只是将订阅的数据转发到 datakit skywalking 采集器中，请打开 [skywalking](skywalking.md) 采集器，并将 dk_endpoint 注释打开 ！
 
@@ -74,7 +74,7 @@ kafka 插件默认会将 `traces`, `JVM metrics`, `logging`, `Instance Propertie
     ## Required！ ipv6 is "[::1]:9529"
     dk_endpoint="http://localhost:9529"
 
-    ## Required！ topics
+    ## Required！ topics 
     topics=["jaeger-spans","jaeger-my-spans"]
 ```
 
@@ -90,13 +90,21 @@ kafka 插件默认会将 `traces`, `JVM metrics`, `logging`, `Instance Propertie
 ```toml
   ## user custom message with PL script.
   [inputs.kafkamq.custom]
-    log_topics=["apm"]
-    log_pl="log.p"
-    metric_topic=["metric1"]
-    metric_pl="kafka_metric.p"
+    [inputs.kafkamq.custom.log_topic_map]
+      "log_topic"="log.p"
+      "log"="rum_apm.p"
+    [inputs.kafkamq.custom.metric_topic_map]
+      "metric_topic"="rum_apm.p"
+      
+    [inputs.kafkamq.custom.rum_topic_map]
+      "rum"="rum.p"
+      
 
     #spilt_json_body = true
 ```
+
+注意：metric 的 pl 脚本应该放在 `pipeline/metric/` 目录下，rum 的 pl 脚本应该放到 `pipeline/rum/` 目录下。
+
 理论上每一个消息体应该是一条日志或者一个指标，如果您的消息是多条日志可以使用 `spilt_json_body` 打开切割数组功能： 当数据是数组并且符合json格式，可以设置为 true,配合 PL 可以将数组切割成单个日志或者指标数据。
 
 ### 示例 {#example}

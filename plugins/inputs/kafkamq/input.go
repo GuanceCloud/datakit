@@ -67,11 +67,15 @@ const mqSampleConfig = `
 
   ## user custom message with PL script.
   #[inputs.kafkamq.custom]
-    #group_id="datakit"
-    #log_topics=["apm"]
-    #log_pl="log.p"
-    #metric_topic=["metric1"]
-    #metric_pl="kafka_metric.p"
+    #[inputs.kafkamq.custom.log_topic_map]
+    #  "log_topic"="log.p"
+    #  "log01"="log_01.p"
+    #[inputs.kafkamq.custom.metric_topic_map]
+    #  "metric_topic"="metric.p"
+    #  "metric01"="rum_apm.p"
+    #[inputs.kafkamq.custom.rum_topic_map]
+    #  "rum_topic"="rum_01.p"
+    #  "rum_02"="rum_02.p"
 
     #spilt_json_body = true
 

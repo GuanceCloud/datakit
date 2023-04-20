@@ -25,24 +25,28 @@ var (
 
 // Custom : 自定义消息的处理对象.
 type Custom struct {
-	GroupID      string   `toml:"group_id"`
+	// old config
 	LogTopics    []string `toml:"log_topics"`
 	LogPl        string   `toml:"log_pl"`
 	MetricTopics []string `toml:"metric_topic"`
 	MetricPl     string   `toml:"metric_pl"`
-	SpiltBody    bool     `toml:"spilt_json_body"`
 
-	logTopicsMap    map[string]string
-	metricTopicsMap map[string]string
-	feeder          dkio.Feeder
+	// since v1.6.0
+	LogTopicsMap    map[string]string `toml:"log_topic_map"`
+	MetricTopicsMap map[string]string `toml:"metric_topic_map"`
+	RumTopicsMap    map[string]string `toml:"rum_topic_map"`
+
+	SpiltBody bool `toml:"spilt_json_body"`
+	feeder    dkio.Feeder
 }
 
 // Init :初始化消息.
 func (mq *Custom) Init() error {
 	log = logger.SLogger("kafkamq.custom")
 
-	mq.withTopic(mq.LogTopics, mq.LogPl, mq.MetricTopics, mq.MetricPl)
-	if len(mq.LogTopics) == 0 && len(mq.MetricTopics) == 0 {
+	mq.initMap()
+
+	if len(mq.LogTopicsMap) == 0 && len(mq.MetricTopicsMap) == 0 && len(mq.RumTopicsMap) == 0 {
 		log.Warnf("no custom topics")
 		return fmt.Errorf("no custom topics")
 	}
@@ -55,7 +59,24 @@ func (mq *Custom) SetFeeder(feeder dkio.Feeder) {
 
 // GetTopics :TopicProcess implement.
 func (mq *Custom) GetTopics() []string {
-	return append(mq.LogTopics, mq.MetricTopics...)
+	topics := make([]string, 0)
+	if len(mq.LogTopicsMap) > 0 {
+		for t := range mq.LogTopicsMap {
+			topics = append(topics, t)
+		}
+	}
+	if len(mq.MetricTopicsMap) > 0 {
+		for t := range mq.MetricTopicsMap {
+			topics = append(topics, t)
+		}
+	}
+	if len(mq.RumTopicsMap) > 0 {
+		for t := range mq.RumTopicsMap {
+			topics = append(topics, t)
+		}
+	}
+
+	return topics
 }
 
 // Process :TopicProcess implement.
@@ -64,7 +85,7 @@ func (mq *Custom) Process(msg *sarama.ConsumerMessage) {
 		log.Warnf("feeder is nil,return")
 		return
 	}
-	pl := ""
+	topic := msg.Topic
 	msgs := make([]string, 0)
 	category := point.Logging
 	opts := make([]point.Option, 0)
@@ -95,42 +116,57 @@ func (mq *Custom) Process(msg *sarama.ConsumerMessage) {
 		tags := map[string]string{"type": MsgType}
 		msgLen := len(msgStr)
 		fields := map[string]interface{}{pipeline.FieldStatus: pipeline.DefaultStatus, "message_len": msgLen}
-		if p, ok := mq.logTopicsMap[msg.Topic]; ok {
-			pl = p
+		plMap := map[string]string{}
+		if p, ok := mq.LogTopicsMap[topic]; ok {
 			fields[pipeline.FieldMessage] = msgStr
+			plMap[topic] = p
 		}
-		if p, ok := mq.metricTopicsMap[msg.Topic]; ok {
-			pl = p
+		if p, ok := mq.MetricTopicsMap[topic]; ok {
 			category = point.Metric
 			tags[pipeline.FieldMessage] = msgStr
+			plMap[topic] = p
 		}
-		if pl == "" {
-			log.Warnf("can not find [%s] pipeline script", msg.Topic)
+
+		if p, ok := mq.RumTopicsMap[topic]; ok {
+			category = point.RUM
+			fields[pipeline.FieldMessage] = msgStr
+			tags["app_id"] = topic     // 这里只是一个占位符，没有实际意义，但是 rum 数据中的 app_id 是必须要有的字段。
+			plMap[topic+"_"+topic] = p // 这也是 pl 中要必须的格式： app_id_xxx。
+		}
+		if len(plMap) == 0 {
+			log.Warnf("can not find [%s] pipeline script", topic)
 			return
 		}
 
-		pt := point.NewPointV2([]byte(msg.Topic),
-			append(point.NewTags(tags), point.NewKVs(fields)...),
-			opts...)
+		pt := point.NewPointV2([]byte(topic), append(point.NewTags(tags), point.NewKVs(fields)...), opts...)
 
-		err := mq.feeder.Feed(msg.Topic, category, []*point.Point{pt}, &dkio.Option{PlScript: map[string]string{msg.Topic: pl}})
+		err := mq.feeder.Feed(topic, category, []*point.Point{pt}, &dkio.Option{PlScript: plMap})
 		if err != nil {
 			log.Warnf("feed io err=%v", err)
 		}
 	}
 }
 
-func (mq *Custom) withTopic(logTopics []string, lpl string, metricTopics []string, mpl string) {
-	if mq.logTopicsMap == nil {
-		mq.logTopicsMap = make(map[string]string)
+func (mq *Custom) initMap() {
+	if mq.LogTopicsMap == nil {
+		mq.LogTopicsMap = make(map[string]string)
 	}
-	if mq.metricTopicsMap == nil {
-		mq.metricTopicsMap = make(map[string]string)
+	if mq.MetricTopicsMap == nil {
+		mq.MetricTopicsMap = make(map[string]string)
 	}
-	for _, topic := range logTopics {
-		mq.logTopicsMap[topic] = lpl
+	if mq.RumTopicsMap == nil {
+		mq.RumTopicsMap = make(map[string]string)
 	}
-	for _, topic := range metricTopics {
-		mq.metricTopicsMap[topic] = mpl
+
+	if mq.LogTopics != nil {
+		for _, topic := range mq.LogTopics {
+			mq.LogTopicsMap[topic] = mq.LogPl
+		}
+	}
+
+	if mq.MetricTopics != nil {
+		for _, topic := range mq.MetricTopics {
+			mq.MetricTopicsMap[topic] = mq.MetricPl
+		}
 	}
 }

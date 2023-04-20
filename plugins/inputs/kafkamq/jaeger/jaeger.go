@@ -22,13 +22,10 @@ var (
 
 type Consumer struct {
 	DKEndpoint string   `toml:"dk_endpoint"`
-	GroupID    string   `toml:"group_id"`
-	LimitSec   int      `toml:"limit_sec"`
 	Topics     []string `toml:"topics"`
 
 	dkURL     string
 	transport http.RoundTripper
-	ready     chan bool
 }
 
 func (mq *Consumer) Init() error {
@@ -41,7 +38,6 @@ func (mq *Consumer) Init() error {
 
 	newURL := baseURL.ResolveReference(&url.URL{Path: jaegerPath})
 	mq.dkURL = newURL.String()
-	mq.ready = make(chan bool)
 	mq.transport = http.DefaultTransport
 	return nil
 }

@@ -71,8 +71,8 @@ func TestCustom_Process(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mq := &Custom{
 				SpiltBody:       tt.fields.SpiltBody,
-				logTopicsMap:    tt.fields.logTopicsMap,
-				metricTopicsMap: tt.fields.metricTopicsMap,
+				LogTopicsMap:    tt.fields.logTopicsMap,
+				MetricTopicsMap: tt.fields.metricTopicsMap,
 				feeder:          tt.fields.feeder,
 			}
 			mq.Process(tt.args.msg)
