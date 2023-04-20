@@ -324,6 +324,7 @@ func (ep *endPoint) writePointData(b *body, w *writer) error {
 	}
 
 	httpCodeStr = http.StatusText(resp.StatusCode)
+	httpCode = resp.StatusCode
 
 	log.Debugf("post %d bytes to %s...", len(b.buf), requrl)
 
