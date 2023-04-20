@@ -39,3 +39,31 @@ func TestInput_getKafkaVersion(t *testing.T) {
 		})
 	}
 }
+
+func Test_newSaramaConfig(t *testing.T) {
+	type args struct {
+		opts []option
+	}
+	tests := []struct {
+		name string
+		args args
+		want *sarama.Config
+	}{
+		{
+			name: "case_offset_new",
+			args: args{opts: []option{withOffset(-1), withAssignors(""), withVersion("2.0.0")}},
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := newSaramaConfig(tt.args.opts...)
+			if got.Version != sarama.V2_0_0_0 {
+				t.Errorf("with version error")
+			}
+			if got.Consumer.Offsets.Initial != sarama.OffsetNewest {
+				t.Errorf("offset must be: newest")
+			}
+		})
+	}
+}

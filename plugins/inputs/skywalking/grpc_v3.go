@@ -10,12 +10,19 @@ import (
 	"errors"
 	"io"
 	"net"
+	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	commonv3old "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/v8.3.0/common/v3"
 	agentv3old "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/v8.3.0/language/agent/v3"
 	profilev3old "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/v8.3.0/language/profile/v3"
 	mgmtv3old "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/v8.3.0/management/v3"
 
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	configv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/v9.3.0/agent/configuration/v3"
 	commonv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/v9.3.0/common/v3"
 	eventv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/v9.3.0/event/v3"
@@ -24,6 +31,7 @@ import (
 	loggingv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/v9.3.0/logging/v3"
 	mgmtv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/v9.3.0/management/v3"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 )
 
 func runGRPCV3(addr string) {
@@ -74,65 +82,56 @@ func (*TraceReportServerV3Old) Collect(tsr agentv3old.TraceSegmentReportService_
 		}
 		log.Debugf("### TraceReportServerV3Old:Collect SegmentObject:%#v", segobj)
 
-		newSegObj := agentv3.SegmentObject{
-			TraceId:         segobj.TraceId,
-			TraceSegmentId:  segobj.TraceSegmentId,
-			Spans:           make([]*agentv3.SpanObject, len(segobj.Spans)),
-			Service:         segobj.Service,
-			ServiceInstance: segobj.ServiceInstance,
-			IsSizeLimited:   segobj.IsSizeLimited,
+		bts, err := proto.Marshal(segobj)
+		if err != nil {
+			log.Error(err.Error())
+			continue
 		}
-		for i := range segobj.Spans {
-			newSegObj.Spans[i] = &agentv3.SpanObject{
-				SpanId:        segobj.Spans[i].SpanId,
-				ParentSpanId:  segobj.Spans[i].ParentSpanId,
-				StartTime:     segobj.Spans[i].StartTime,
-				EndTime:       segobj.Spans[i].EndTime,
-				Refs:          make([]*agentv3.SegmentReference, len(segobj.Spans[i].Refs)),
-				OperationName: segobj.Spans[i].OperationName,
-				Peer:          segobj.Spans[i].Peer,
-				SpanType:      agentv3.SpanType(segobj.Spans[i].SpanType),
-				SpanLayer:     agentv3.SpanLayer(segobj.Spans[i].SpanLayer),
-				ComponentId:   segobj.Spans[i].ComponentId,
-				IsError:       segobj.Spans[i].IsError,
-				Tags:          make([]*commonv3.KeyStringValuePair, len(segobj.Spans[i].Tags)),
-				Logs:          make([]*agentv3.Log, len(segobj.Spans[i].Logs)),
-				SkipAnalysis:  segobj.Spans[i].SkipAnalysis,
+
+		if localCache == nil || !localCache.Enabled() {
+			newSegObj := &agentv3.SegmentObject{}
+			if err = proto.Unmarshal(bts, newSegObj); err != nil {
+				log.Error(err.Error())
+				continue
 			}
-			for j := range segobj.Spans[i].Refs {
-				newSegObj.Spans[i].Refs[j] = &agentv3.SegmentReference{
-					RefType:                  agentv3.RefType(segobj.Spans[i].Refs[j].RefType),
-					TraceId:                  segobj.Spans[i].Refs[j].TraceId,
-					ParentTraceSegmentId:     segobj.Spans[i].Refs[j].ParentTraceSegmentId,
-					ParentSpanId:             segobj.Spans[i].Refs[j].ParentSpanId,
-					ParentService:            segobj.Spans[i].Refs[j].ParentService,
-					ParentServiceInstance:    segobj.Spans[i].Refs[j].ParentServiceInstance,
-					ParentEndpoint:           segobj.Spans[i].Refs[j].ParentEndpoint,
-					NetworkAddressUsedAtPeer: segobj.Spans[i].Refs[j].NetworkAddressUsedAtPeer,
-				}
+			dktrace := parseSegmentObjectV3(newSegObj)
+			if len(dktrace) != 0 && afterGatherRun != nil {
+				afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace}, false)
 			}
-			for j := range segobj.Spans[i].Tags {
-				newSegObj.Spans[i].Tags[j] = &commonv3.KeyStringValuePair{Key: segobj.Spans[i].Tags[j].Key, Value: segobj.Spans[i].Tags[j].Value}
-			}
-			for j := range segobj.Spans[i].Logs {
-				newSegObj.Spans[i].Logs[j] = &agentv3.Log{
-					Time: segobj.Spans[i].Logs[j].Time,
-					Data: make([]*commonv3.KeyStringValuePair, len(segobj.Spans[i].Logs[j].Data)),
-				}
-				for k := range segobj.Spans[i].Logs[j].Data {
-					newSegObj.Spans[i].Logs[j].Data[k] = &commonv3.KeyStringValuePair{
-						Key:   segobj.Spans[i].Logs[j].Data[k].Key,
-						Value: segobj.Spans[i].Logs[j].Data[k].Value,
-					}
-				}
+		} else {
+			if err = localCache.Put(storage.SKY_WALKING_GRPC_KEY, bts); err != nil {
+				log.Error(err.Error())
 			}
 		}
-		api.ProcessSegment(&newSegObj)
 	}
 }
 
-func (*TraceReportServerV3Old) CollectInSync(ctx context.Context, seg *agentv3old.SegmentCollection) (*commonv3old.Commands, error) {
-	log.Debugf("### TraceReportServerV3Old:CollectInSync SegmentCollection: %#v", seg)
+func (*TraceReportServerV3Old) CollectInSync(ctx context.Context, col *agentv3old.SegmentCollection) (*commonv3old.Commands, error) {
+	log.Debugf("### TraceReportServerV3Old:CollectInSync SegmentCollection: %#v", col)
+
+	for _, segobj := range col.Segments {
+		bts, err := proto.Marshal(segobj)
+		if err != nil {
+			log.Error(err.Error())
+			continue
+		}
+
+		if localCache == nil || !localCache.Enabled() {
+			newSegObj := &agentv3.SegmentObject{}
+			if err = proto.Unmarshal(bts, newSegObj); err != nil {
+				log.Error(err.Error())
+				continue
+			}
+			dktrace := parseSegmentObjectV3(newSegObj)
+			if len(dktrace) != 0 && afterGatherRun != nil {
+				afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace}, false)
+			}
+		} else {
+			if err = localCache.Put(storage.SKY_WALKING_GRPC_KEY, bts); err != nil {
+				log.Error(err.Error())
+			}
+		}
+	}
 
 	return &commonv3old.Commands{}, nil
 }
@@ -144,30 +143,26 @@ type JVMMetricReportServerV3Old struct {
 func (*JVMMetricReportServerV3Old) Collect(ctx context.Context, jvm *agentv3old.JVMMetricCollection) (*commonv3old.Commands, error) {
 	log.Debugf("### JVMMetricReportServerV3Old:Collect %#v", jvm)
 
-	newJVM := agentv3.JVMMetricCollection{
-		Metrics:         make([]*agentv3.JVMMetric, len(jvm.Metrics)),
-		Service:         jvm.Service,
-		ServiceInstance: jvm.ServiceInstance,
+	start := time.Now()
+	bts, err := proto.Marshal(jvm)
+	if err != nil {
+		log.Error(err.Error())
+
+		return &commonv3old.Commands{}, err
 	}
-	for i := range jvm.Metrics {
-		newJVM.Metrics[i] = &agentv3.JVMMetric{
-			Time:       jvm.Metrics[i].Time,
-			Memory:     make([]*agentv3.Memory, len(jvm.Metrics[i].Memory)),
-			MemoryPool: make([]*agentv3.MemoryPool, len(jvm.Metrics[i].MemoryPool)),
-			Gc:         make([]*agentv3.GC, len(jvm.Metrics[i].Gc)),
-		}
-		if jvm.Metrics[i].Cpu != nil {
-			newJVM.Metrics[i].Cpu = &commonv3.CPU{UsagePercent: jvm.Metrics[i].Cpu.UsagePercent}
-		}
-		if jvm.Metrics[i].Thread != nil {
-			newJVM.Metrics[i].Thread = &agentv3.Thread{
-				LiveCount:   jvm.Metrics[i].Thread.LiveCount,
-				DaemonCount: jvm.Metrics[i].Thread.DaemonCount,
-				PeakCount:   jvm.Metrics[i].Thread.PeakCount,
-			}
+	newjvm := &agentv3.JVMMetricCollection{}
+	if err = proto.Unmarshal(bts, newjvm); err != nil {
+		log.Error(err.Error())
+
+		return &commonv3old.Commands{}, err
+	}
+
+	metrics := processMetricsV3(newjvm, start)
+	if len(metrics) != 0 {
+		if err := inputs.FeedMeasurement(jvmMetricName, datakit.Metric, metrics, &dkio.Option{CollectCost: time.Since(start)}); err != nil {
+			dkio.FeedLastError(jvmMetricName, err.Error())
 		}
 	}
-	api.ProcessMetrics(&newJVM)
 
 	return &commonv3old.Commands{}, nil
 }
@@ -206,7 +201,7 @@ func (*ProfileTaskServerV3Old) CollectSnapshot(psrv profilev3old.ProfileTask_Col
 		if profile.Stack != nil {
 			newProfile.Stack = &profilev3.ThreadStack{CodeSignatures: profile.Stack.CodeSignatures}
 		}
-		api.ProcessProfile(&newProfile)
+		processProfileV3(&newProfile)
 	}
 }
 
@@ -249,12 +244,43 @@ func (*TraceReportServerV3) Collect(tsr agentv3.TraceSegmentReportService_Collec
 		}
 		log.Debugf("### TraceReportServerV3:Collect SegmentObject: %#v", segobj)
 
-		api.ProcessSegment(segobj)
+		if localCache == nil || !localCache.Enabled() {
+			dktrace := parseSegmentObjectV3(segobj)
+			if len(dktrace) != 0 && afterGatherRun != nil {
+				afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace}, false)
+			}
+		} else {
+			if bts, err := proto.Marshal(segobj); err != nil {
+				log.Error(err.Error())
+			} else {
+				if err = localCache.Put(storage.SKY_WALKING_GRPC_KEY, bts); err != nil {
+					log.Error(err.Error())
+				}
+			}
+		}
 	}
 }
 
-func (*TraceReportServerV3) CollectInSync(ctx context.Context, seg *agentv3.SegmentCollection) (*commonv3.Commands, error) {
-	log.Debugf("### TraceReportServerV3:CollectInSync SegmentCollection: %#v", seg)
+func (*TraceReportServerV3) CollectInSync(ctx context.Context, col *agentv3.SegmentCollection) (*commonv3.Commands, error) {
+	log.Debugf("### TraceReportServerV3:CollectInSync SegmentCollection: %#v", col)
+
+	for _, segobj := range col.Segments {
+		if localCache == nil || !localCache.Enabled() {
+			dktrace := parseSegmentObjectV3(segobj)
+			if len(dktrace) != 0 && afterGatherRun != nil {
+				afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace}, false)
+			}
+		} else {
+			if bts, err := proto.Marshal(segobj); err != nil {
+				log.Error(err.Error())
+				continue
+			} else {
+				if err = localCache.Put(storage.SKY_WALKING_GRPC_KEY, bts); err != nil {
+					log.Error(err.Error())
+				}
+			}
+		}
+	}
 
 	return &commonv3.Commands{}, nil
 }
@@ -274,6 +300,7 @@ func (*EventServerV3) Collect(esrv eventv3.EventService_CollectServer) error {
 
 			return err
 		}
+
 		log.Debugf("### EventServerV3:Collect Event: %#v", event)
 	}
 }
@@ -285,7 +312,13 @@ type JVMMetricReportServerV3 struct {
 func (*JVMMetricReportServerV3) Collect(ctx context.Context, jvm *agentv3.JVMMetricCollection) (*commonv3.Commands, error) {
 	log.Debugf("### JVMMetricReportServerV3:Collect JVMMetricCollection: %#v", jvm)
 
-	api.ProcessMetrics(jvm)
+	start := time.Now()
+	metrics := processMetricsV3(jvm, start)
+	if len(metrics) != 0 {
+		if err := inputs.FeedMeasurement(jvmMetricName, datakit.Metric, metrics, &dkio.Option{CollectCost: time.Since(start)}); err != nil {
+			dkio.FeedLastError(jvmMetricName, err.Error())
+		}
+	}
 
 	return &commonv3.Commands{}, nil
 }
@@ -307,7 +340,13 @@ func (*LoggingServerV3) Collect(server loggingv3.LogReportService_CollectServer)
 		}
 		log.Debugf("### LoggingServerV3:Collect LogData: %#v", logData)
 
-		api.ProcessLog(logData)
+		if pt, err := processLogV3(logData); err != nil {
+			log.Error(err.Error())
+		} else {
+			if err = dkio.Feed(logData.Service, datakit.Logging, []*point.Point{pt}, nil); err != nil {
+				log.Error(err.Error())
+			}
+		}
 	}
 }
 
@@ -334,7 +373,7 @@ func (*ProfileTaskServerV3) CollectSnapshot(psrv profilev3.ProfileTask_CollectSn
 		}
 		log.Debugf("### ProfileTaskServerV3:CollectSnapshot ThreadSnapshot: %#v", profile)
 
-		api.ProcessProfile(profile)
+		processProfileV3(profile)
 	}
 }
 

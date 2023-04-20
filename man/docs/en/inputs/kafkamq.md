@@ -6,103 +6,97 @@
 
 ---
 
-Datakit supports subscribing messages from kafka to gather link, metric, and log information. Currently, only `SkyWalking` and custom topic are supported.
-
-## SkyWalking {#kafkamq-SkyWalking}
-
-### java Agent Startup Configuration {#agent}
-
-By default, the kafka plug-in sends `traces`, `JVM metrics`, `logging`, `Instance Properties`, and `profiled snapshots` to the kafka cluster. This feature is turned off by default. You need to put `kafka-reporter-plugin-x.y.z.jar` from `agent/optional-reporter-plugins` to `agent/plugins` to take effect.
-
-
-Modify the configuration file agent/config/agent.config
-```txt
-# Service name: Eventually displayed in the UI, making sure it is unique
-agent.service_name=${SW_AGENT_NAME:myApp}
-
-# kafka address
-plugin.kafka.bootstrap_servers=${SW_KAFKA_BOOTSTRAP_SERVERS:<ip>:<port>}
-
-```
-
-> Make sure kafka is started before starting.
-
-Or through environment variables
-```shell
--Dskywalking.agent.service_name=myApp 
--Dskywalking.plugin.kafka.bootstrap_servers=10.200.14.114:9092
-```
-
-
-Start a java project (start as a jar package)
-
-- Linux Tomcat 7, Tomcat 8, Tomcat 9  
-  Change the first line of `tomcat/bin/catalina.sh`.
-
-```shell
-CATALINA_OPTS="$CATALINA_OPTS -javaagent:/path/to/skywalking-agent/skywalking-agent.jar"; export CATALINA_OPTS
-```
-
-- Windows Tomcat 7, Tomcat 8, Tomcat 9  
-  Change the first line of `tomcat/bin/catalina.bat`.
-
-```shell
-set "CATALINA_OPTS=-javaagent:/path/to/skywalking-agent/skywalking-agent.jar"
-```
-
-- JAR file  
-  Add `-javaagent` argument to command line in which you start your app. eg:
-
- ```shell
- java -javaagent:/path/to/skywalking-agent/skywalking-agent.jar -jar yourApp.jar
- ```
-
-- Jetty  
-  Modify `jetty.sh`, add `-javaagent` argument to command line in which you start your app. eg:
-
-```shell
-export JAVA_OPTIONS="${JAVA_OPTIONS} -javaagent:/path/to/skywalking-agent/skywalking-agent.jar"
-```
-
+Datakit supports subscribing messages from kafka to gather link, metric, and log information. Currently, only `SkyWalking`,`Jaeger` and custom topic are supported.
 
 ### Configure datakit {#datakit-config}
 Copy configuration files and modify
 
-```txt
-cd /usr/local/datakit/conf.d/kafkamq
-cp kafkamq.conf.sample kafkamq.conf
+=== "Host deployment"
 
-```
+    Go to the `conf.d/kafkamq` directory under the DataKit installation directory, copy `kafka.conf.sample` and name it `kafka.conf`. Examples are as follows:
+    
+    ``` toml
+    [[inputs.kafkamq]]
+    addrs = ["localhost:9092"]
+    # your kafka version:0.8.2 ~ 3.2.0
+    kafka_version = "2.0.0"
+    group_id = "datakit-group"
+    # consumer group partition assignment strategy (range, roundrobin, sticky)
+    assignor = "roundrobin"
+    
+    ## rate limit.
+    #limit_sec = 100
+    ## sample
+    # sampling_rate = 1.0
+    
+    ## kafka tls config
+    # tls_enable = true
+    # tls_security_protocol = "SASL_PLAINTEXT"
+    # tls_sasl_mechanism = "PLAIN"
+    # tls_sasl_plain_username = "user"
+    # tls_sasl_plain_password = "pw"
+    
+    ## -1:Offset Newest, -2:Offset Oldest
+    offsets=-1
+    
+    ## skywalking custom
+    #[inputs.kafkamq.skywalking]
+    ## Required！send to datakit skywalking input.
+    #dk_endpoint="http://localhost:9529"
+    
+        #topics = [
+        #  "skywalking-metrics",
+        #  "skywalking-profilings",
+        #  "skywalking-segments",
+        #  "skywalking-managements",
+        #  "skywalking-meters",
+        #  "skywalking-logging",
+        #]
+        #namespace = ""
+    
+    ## Jaeger from kafka. Please make sure your Datakit Jaeger collector is open ！！！
+    #[inputs.kafkamq.jaeger]
+    ## Required！ ipv6 is "[::1]:9529"
+    #dk_endpoint="http://localhost:9529"
 
-Profile description
+      ## Required！ topics 
+      #topics=["jaeger-spans","jaeger-my-spans"]
+    
+    ## user custom message with PL script.
+    #[inputs.kafkamq.custom]
+      #group_id="datakit"
+      #log_topics=["apm"]
+      #log_pl="log.p"
+      #metric_topic=["metric1"]
+      #metric_pl="kafka_metric.p"
+    
+      #spilt_json_body = true   
+    ```
+
+=== "Kubernetes/Docker/Containerd"
+
+    The collector can now be turned on by [ConfigMap Injection Collector Configuration](datakit-daemonset-deploy.md#configmap-setting).   
+
+
+Notes on configuration files:
+1. `kafka_version`: The version length is 3, such as 1.0.0, 1.2.1, and so on.
+2. `offsets`: note: Newest or Oldest.
+3. `SASL`: If security authentication is enabled, please configure the user and password correctly.
+
+
+
+## SkyWalking {#kafkamq-SkyWalking}
+The kafka plugin will send `traces`, `JVM metrics`, `logging`, `Instance Properties`, and `profiled snapshots` to the kafka cluster by default.
+
+This feature is disabled by default. Need to put `kafka-reporter-plugin-x.y.z.jar` from `agent/optional-reporter-plugins` into `agent/plugins` to take effect.
+
+config:
 ```toml
-[[inputs.kafkamq]]
-  addrs = ["localhost:9092"]
-  # your kafka version:0.8.2.0 ~ 2.8.0
-  kafka_version = "2.8.0"
-  group_id = "datakit-group"
-  plugins = ["db.type"]
-  # Consumer group partition assignment strategy (range, roundrobin, sticky)
-  assignor = "roundrobin"
-
-  ## kafka tls config
-  # tls_enable = true
-  # tls_security_protocol = "text"
-  # tls_sasl_mechanism = "mechanism"
-  # tls_sasl_plain_username = "user"
-  # tls_sasl_plain_password = "pw"
-
-  ## -1:Offset Newest, -2:Offset Oldest
-  offsets=-1
-
-  # customer_tags = ["key1", "key2", ...]
-
-  ## Keep rare tracing resources list switch.
-  ## If some resources are rare enough(not presend in 1 hour), those resource will always send
-  ## to data center and do not consider samplers and filters.
-  # keep_rare_resource = false
-
+  ## skywalking custom
   [inputs.kafkamq.skywalking]
+    ## Required！send to datakit skywalking input.
+    dk_endpoint="http://localhost:9529"
+
     topics = [
       "skywalking-metrics",
       "skywalking-profilings",
@@ -112,159 +106,46 @@ Profile description
       "skywalking-logging",
     ]
     namespace = ""
-
-  ## Ignore tracing resources map like service:[resources...].
-  ## The service name is the full service name in current application.
-  ## The resource list is regular expressions uses to block resource names.
-  ## If you want to block some resources universally under all services, you can set the
-  ## service name as "*". Note: double quotes "" cannot be omitted.
-  # [inputs.kafkamq.close_resource]
-    # service1 = ["resource1", "resource2", ...]
-    # service2 = ["resource1", "resource2", ...]
-    # "*" = ["close_resource_under_all_services"]
-    # ...
-
-  ## Sampler config uses to set global sampling strategy.
-  ## sampling_rate used to set global sampling rate.
-  # [inputs.kafkamq.sampler]
-    # sampling_rate = 1.0
-
-  # [inputs.kafkamq.tags]
-    # key1 = "value1"
-    # key2 = "value2"
-    # ...
-
-  ## Storage config a local storage space in hard dirver to cache trace data.
-  ## path is the local file path used to cache data.
-  ## capacity is total space size(MB) used to store data.
-  # [inputs.kafkamq.storage]
-    # path = "./skywalking_storage"
-    # capacity = 5120
-
-  ## user custom message with PL script.
-  ## Currently only log and metrics are supported, topic and pl are required
-  [inputs.kafkamq.custom]
-  #group_id="datakit"
-  #log_topics=["apm"]
-  #log_pl="log.p"
-  #metric_topic=["metric1"]
-  #metric_pl="kafka_metric.p"
-  ## rate limit. Speed limit: rate/sec
-  #limit_sec = 100
-  ## sample rate
-  # sampling_rate = 1.0
-  #spilt_json_body = true
-
-  ## todo: add other input-mq
- 
 ```
 
-Notes on configuration files:
-1. `kafka_version`: The version length is 3, such as 1.0.0, 1.2.1, and so on.
-2. `offsets`: note: Newest or Oldest.
-3. `spilt_json_body`: When the data is an array and conforms to JSON format, it can be set to true and will be automatically cut into multiple rows of logs.
+Open the comment to start the subscription. The subscribed topic is in the skywalking agent configuration file `config/agent.config`.
 
-Restart datakit
+Note: This collector just forwards the subscribed data to the datakit skywalking collector, please open the [skywalking](skywalking.md) collector and open the dk_endpoint comment!
 
-## Send log to kafka {#log-to-kafka}
+## Jaeger {#jaeger}
 
-- log4j2
+Configuration：
+```toml
+  ## Jaeger from kafka. Please make sure your Datakit Jaeger collector is open ！！！
+  [inputs.kafkamq.jaeger]
+    ## Required！ ipv6 is "[::1]:9529"
+    dk_endpoint="http://localhost:9529"
 
-The toolkit dependency package is added to the maven or gradle.
-```xml
-	<dependency>
-      	<groupId>org.apache.skywalking</groupId>
-      	<artifactId>apm-toolkit-log4j-2.x</artifactId>
-      	<version>{project.release.version}</version>
-	</dependency>
+    ## Required！ topics 
+    topics=["jaeger-spans","jaeger-my-spans"]
 ```
 
-Print trace ID in log
-
-```xml
-    <Configuration>
-        <Appenders>
-            <Console name="Console" target="SYSTEM_OUT">
-                <PatternLayout pattern="%d [%traceId] %-5p %c{1}:%L - %m%n"/>
-            </Console>
-        </Appenders>
-        <Loggers>
-            <AsyncRoot level="INFO">
-                <AppenderRef ref="Console"/>
-            </AsyncRoot>
-        </Loggers>
-    </Configuration>
-```
-
-Send log to kafka
-```xml
-<GRPCLogClientAppender name="grpc-log">
-        <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
-    </GRPCLogClientAppender>
-```
-
-Overall configuration:
-```xml
-<Configuration status="WARN">
-    <Appenders>
-        <Console name="Console" target="SYSTEM_OUT">
-            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%traceId] [%t] %-5level %logger{36} %msg%n"/>
-        </Console>
-        <GRPCLogClientAppender name="grpc-log">
-            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%traceId] [%t] %-5level %logger{36} %msg%n"/>
-        </GRPCLogClientAppender>
-        <RandomAccessFile name="fileAppender" fileName="${sys:user.home}/tmp/skywalking-logs/log4j2/e2e-service-provider.log" immediateFlush="true" append="true">
-            <PatternLayout>
-                <Pattern>[%sw_ctx] [%p] %d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %c:%L - %m%n</Pattern>
-            </PatternLayout>
-        </RandomAccessFile>
-    </Appenders>
-
-    <Loggers>
-        <Root level="info">
-            <AppenderRef ref="Console"/>
-            <AppenderRef ref="grpc-log"/>
-        </Root>
-        <Logger name="fileLogger" level="info" additivity="false">
-            <AppenderRef ref="fileAppender"/>
-        </Logger>
-    </Loggers>
-</Configuration>
-```
-
-At this point, the agent will send the log to kafka.
-
-How to configure more logs:
-
-- [log4j-1.x](https://github.com/apache/skywalking-java/blob/main/docs/en/setup/service-agent/java-agent/Application-toolkit-log4j-1.x.md){:target="_blank"}
-- [logback-1.x](https://github.com/apache/skywalking-java/blob/main/docs/en/setup/service-agent/java-agent/Application-toolkit-logback-1.x.md){:target="_blank"}
-
-Logs collected from kafka do not need to be processed by pipeline. It's all cut.
+Note: This collector just forwards the subscribed data to the datakit Jaeger collector, please open the [jaeger](jaeger.md) collector and open the `dk_endpoint` comment!
 
 ## Custom Topic {#kafka-custom}
 
 Sometimes users don't use common tools in the market, and some tripartite libraries are not open source, and the data structure is not public. This requires manual processing according to the collected data structure, which reflects the power of pipeline, and users can subscribe and consume messages through custom configuration.
 
-Profile:
+Configuration:
 ```toml
  ...
-  ## 《复制时注意中文！》 
-  ## user custom message with PL script.
-  ## 目前仅支持 log 和 metrics， topic 和 pl 是必填
+ ## user custom message with PL script.
   [inputs.kafkamq.custom]
-  group_id="datakit"
-  log_topics=["apm"]
-  log_pl="log.p"
-  metric_topic=["metric1"]
-  metric_pl="kafka_metric.p"
-  ## rate limit. 限速：速率/秒
-  limit_sec = 100
-  ## sample 采样率
-  sampling_rate = 1.0
+    log_topics=["apm"]
+    log_pl="log.p"
+    metric_topic=["metric1"]
+    metric_pl="kafka_metric.p"
 
- ...
-
+    #spilt_json_body = true
 ```
+
+Theoretically, each message body should be a log or an indicator. If your message is multiple logs, you can use `spilt_json_body` to enable the function of splitting arrays: When the data is an array and conforms to the json format, it can be set to true, and PL can be used to Arrays are sliced into individual log or metric data.
+
 
 ### Example {#example}
 
@@ -307,7 +188,24 @@ Place the file in the directory `/usr/local/datakit/pipeline/metric/`.
 
 Configure the PL script and restart datakit.
 
-### Troubleshooting {#some_problems}
+## benchmark {#benchmark}
+
+The consumption capability of messages is limited by the network and bandwidth, so the benchmark test only tests the consumption capability of DK rather than the IO capability. The machine configuration for this test is 4 cores, 8 threads, and 16G memory.
+
+
+| message num | time  | num/Second |
+|-------------|-------|------------|
+| 100k        | 5s~7s | 16k        |
+| 1000k       | 1m30s | 11k        |
+
+## load balancing {#load balancing}
+When the amount of messages is large and the consumption capacity of one datakit is insufficient, multiple datakits can be added for consumption. Here are three points to note:
+
+1. Make sure that the topic partition is not one (at least 2), which can be viewed through the tool [kafka-map](https://github.com/dushixiang/kafka-map/releases)
+1. Make sure that the configuration of the kafkamq collector is assignor = "roundrobin" (a type of load balancing strategy), group_id="datakit" (group names must be consistent, otherwise consumption will be repeated)
+1. Make sure that the producer of the message sends the message to multiple partitions. The method is different for different languages. The code is not listed here, and you can google it yourself.
+
+## Troubleshooting {#some_problems}
 
 Script test command to see if cutting is correct:
 

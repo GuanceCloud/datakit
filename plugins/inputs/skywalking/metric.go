@@ -3,55 +3,43 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-// Package skywalkingapi handle SkyWalking tracing metrics.
-package skywalkingapi
+package skywalking
 
 import (
 	"strings"
 	"time"
 
-	clipt "github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	commonv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/v9.3.0/common/v3"
 	agentv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/v9.3.0/language/agent/v3"
 )
 
-const jvmMetricName = "skywalking_jvm"
-
-func (api *SkyAPI) ProcessMetrics(jvm *agentv3.JVMMetricCollection) {
-	var (
-		m     []inputs.Measurement
-		start = time.Now()
-	)
+func processMetricsV3(jvm *agentv3.JVMMetricCollection, start time.Time) []inputs.Measurement {
+	var metrics []inputs.Measurement
 	for _, jm := range jvm.Metrics {
 		if jm.Cpu != nil {
-			m = append(m, extractJVMCpuMetric(jvm.Service, start, jm.Cpu))
+			metrics = append(metrics, extractJVMCpuMetric(jvm.Service, start, jm.Cpu))
 		}
 		if len(jm.Memory) != 0 {
-			m = append(m, extractJVMMemoryMetrics(jvm.Service, start, jm.Memory)...)
+			metrics = append(metrics, extractJVMMemoryMetrics(jvm.Service, start, jm.Memory)...)
 		}
 		if len(jm.MemoryPool) != 0 {
-			m = append(m, extractJVMMemoryPoolMetrics(jvm.Service, start, jm.MemoryPool)...)
+			metrics = append(metrics, extractJVMMemoryPoolMetrics(jvm.Service, start, jm.MemoryPool)...)
 		}
 		if len(jm.Gc) != 0 {
-			m = append(m, extractJVMGCMetrics(jvm.Service, start, jm.Gc)...)
+			metrics = append(metrics, extractJVMGCMetrics(jvm.Service, start, jm.Gc)...)
 		}
 		if jm.Thread != nil {
-			m = append(m, extractJVMThread(jvm.Service, start, jm.Thread))
+			metrics = append(metrics, extractJVMThread(jvm.Service, start, jm.Thread))
 		}
 		if jm.Clazz != nil {
-			m = append(m, extractJVMClass(jvm.Service, start, jm.Clazz))
+			metrics = append(metrics, extractJVMClass(jvm.Service, start, jm.Clazz))
 		}
 	}
 
-	if len(m) != 0 {
-		if err := inputs.FeedMeasurement(jvmMetricName, datakit.Metric, m, &dkio.Option{CollectCost: time.Since(start)}); err != nil {
-			dkio.FeedLastError(jvmMetricName, err.Error(), clipt.Tracing)
-		}
-	}
+	return metrics
 }
 
 type jvmMeasurement struct {

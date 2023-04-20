@@ -28,7 +28,7 @@ func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) 
 }
 
 func handleZipkinTraceV1(resp http.ResponseWriter, req *http.Request) {
-	log.Debugf("### received tracing data from path: %s", req.URL.Path)
+	log.Debugf("### receiving trace data from path: %s", req.URL.Path)
 
 	pbuf := bufpool.GetBuffer()
 	defer bufpool.PutBuffer(pbuf)
@@ -98,7 +98,7 @@ func parseZipkinTraceV1(param *itrace.TraceParameters) error {
 }
 
 func handleZipkinTraceV2(resp http.ResponseWriter, req *http.Request) {
-	log.Debugf("### received tracing data from path: %s", req.URL.Path)
+	log.Debugf("### receiving trace data from path: %s", req.URL.Path)
 
 	pbuf := bufpool.GetBuffer()
 	defer bufpool.PutBuffer(pbuf)
