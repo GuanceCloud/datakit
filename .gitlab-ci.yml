@@ -31,19 +31,6 @@ ci_lint_only:
   tags:
     - cloudcare-ft
 
-ci_lint_and_unit_test:
-  stage: deploy
-  resource_group: production
-  only:
-    - /^\d+-iss.*$/
-  script:
-    # run lint & unit-testing
-    - make clean
-    - make lint_nofix
-    - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY"
-  tags:
-    - cloudcare-ft
-
 test-datakit-production:
   stage: test
   resource_group: production

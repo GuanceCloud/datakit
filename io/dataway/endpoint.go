@@ -324,6 +324,7 @@ func (ep *endPoint) writePointData(b *body, w *writer) error {
 	}
 
 	httpCodeStr = http.StatusText(resp.StatusCode)
+	httpCode = resp.StatusCode
 
 	log.Debugf("post %d bytes to %s...", len(b.buf), requrl)
 
@@ -439,11 +440,10 @@ func (ep *endPoint) datakitPull(args string) ([]byte, error) {
 	return body, nil
 }
 
-var (
-	// user-agent format. See
-	// 	 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
-	DatakitUserAgent = fmt.Sprintf("datakit-%s-%s/%s", runtime.GOOS, runtime.GOARCH, git.Version)
-)
+// DatakitUserAgent define HTTP User-Agent header.
+// user-agent format. See
+// 	 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
+var DatakitUserAgent = fmt.Sprintf("datakit-%s-%s/%s", runtime.GOOS, runtime.GOARCH, git.Version)
 
 func (ep *endPoint) sendReq(req *http.Request) (*http.Response, error) {
 	log.Debugf("send request %q, proxy: %q, cli: %p, timeout: %s",

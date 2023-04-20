@@ -9,9 +9,8 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"github.com/GuanceCloud/cliutils/point"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 func (ipt *input) gather() {
@@ -87,15 +86,12 @@ func (ipt *input) gather() {
 		ipt.sets = make(map[string]cachedset)
 	}
 
-	l.Debugf("feed %d points...", len(ipt.acc.points))
-	if len(ipt.acc.points) > 0 {
-		if err := inputs.FeedMeasurement(inputName,
-			datakit.Metric,
-			ipt.acc.points,
-			&io.Option{CollectCost: time.Since(now)}); err != nil {
+	l.Debugf("feed %d points...", len(ipt.acc.measurements))
+	if len(ipt.acc.measurements) > 0 {
+		if err := ipt.feeder.Feed(inputName, point.Metric, ipt.acc.measurements, &dkio.Option{CollectCost: time.Since(now)}); err != nil {
 			l.Error(err)
 		} else {
-			ipt.acc.points = ipt.acc.points[:0]
+			ipt.acc.measurements = ipt.acc.measurements[:0]
 		}
 	}
 

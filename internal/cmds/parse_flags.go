@@ -43,7 +43,7 @@ var (
 	fsDQL      = pflag.NewFlagSet(fsDQLName, pflag.ContinueOnError)
 	fsDQLUsage = func() {
 		fmt.Printf("usage: datakit dql [options]\n\n")
-		fmt.Printf("DQL used to query data from DataFlux. If no option specified, query interactively. Other available options:\n\n")
+		fmt.Printf("DQL used to query data. If no option specified, query interactively. Other available options:\n\n")
 		fmt.Println(fsDQL.FlagUsagesWrapped(0))
 	}
 

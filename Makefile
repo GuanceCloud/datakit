@@ -300,8 +300,8 @@ pub_conf_samples:
 # testing/production downloads config samples from different oss bucket.
 check_testing_conf_compatible:
 	@CGO_CFLAGS=$(CGO_FLAGS) go run cmd/make/make.go -download-samples -release testing
-	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-config --config-dir samples
-	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-sample
+	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit check --config --config-dir samples
+	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit check --sample
 
 check_production_conf_compatible:
 	@CGO_CFLAGS=$(CGO_FLAGS) go run cmd/make/make.go -download-samples -release production
@@ -370,11 +370,17 @@ test_deps: prepare gofmt lfparser_disable_line vet
 
 lint: deps check_man copyright_check
 	@truncate -s 0 lint.err
-	$(GOLINT_BINARY) run --fix --allow-parallel-runners | tee -a lint.err
+	$(GOLINT_BINARY) run --fix --allow-parallel-runners | tee -a lint.err;
+	@if [ $$? != 0 ]; then \
+		exit -1; \
+	fi
 
 lint_nofix: deps check_man copyright_check
 	@truncate -s 0 lint.err
-	$(GOLINT_BINARY) run --allow-parallel-runners | tee -a lint_nofix.err
+	$(GOLINT_BINARY) run --allow-parallel-runners | tee -a lint_nofix.err;
+	@if [ $$? != 0 ]; then \
+		exit -1; \
+	fi
 
 lfparser_disable_line:
 	@rm -rf io/parser/gram_y.go
