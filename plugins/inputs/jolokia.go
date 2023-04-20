@@ -52,6 +52,7 @@ type JolokiaAgent struct {
 	Password        string
 	ResponseTimeout time.Duration `toml:"response_timeout"`
 	Interval        string        `toml:"interval"`
+	Election        bool          `toml:"election"`
 
 	tls.ClientConfig
 
@@ -229,6 +230,8 @@ func (j *JolokiaMeasurement) Point() *point.Point {
 
 	if j.election {
 		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	} else {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
 	}
 
 	return point.NewPointV2([]byte(j.name),
@@ -319,16 +322,41 @@ func (g *Gatherer) gatherResponses(responses []ReadResponse, tags map[string]str
 				continue
 			}
 
+			tag := mergeTags(point.Tags, tags)
+
+			var hostURL string
+			if len(tag["jolokia_agent_url"]) > 0 {
+				hostURL = tag["jolokia_agent_url"]
+			} else if len(tag["jolokia_proxy_url"]) > 0 {
+				hostURL = tag["jolokia_proxy_url"]
+			}
+			if len(hostURL) > 0 {
+				if host, err := getHostFromURL(hostURL); err != nil {
+					return err
+				} else {
+					tag["host"] = host
+				}
+			}
+
 			metric := &JolokiaMeasurement{
-				name:   measurement,
-				tags:   mergeTags(point.Tags, tags),
-				fields: field,
-				ts:     time.Now(),
+				name:     measurement,
+				tags:     tag,
+				fields:   field,
+				ts:       time.Now(),
+				election: j.Election,
 			}
 			j.collectCache = append(j.collectCache, metric.Point())
 		}
 	}
 	return nil
+}
+
+func getHostFromURL(urlStr string) (string, error) {
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return "", err
+	}
+	return u.Host, nil
 }
 
 // generatePoints creates points for the supplied metric from the ReadResponse

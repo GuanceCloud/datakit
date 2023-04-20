@@ -115,6 +115,7 @@ func (*JavaRuntimeMemt) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
+			"host":              inputs.TagInfo{Desc: "The hostname of the Jolokia agent/proxy running on."},
 		},
 	}
 }
@@ -164,6 +165,7 @@ func (*JavaMemoryMemt) Info() *inputs.MeasurementInfo {
 
 		Tags: map[string]interface{}{
 			"jolokia_agent_url": inputs.NewTagInfo("jolokia agent url path"),
+			"host":              inputs.NewTagInfo("The hostname of the Jolokia agent/proxy running on."),
 		},
 	}
 }
@@ -205,6 +207,7 @@ func (*JavaGcMemt) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"jolokia_agent_url": inputs.NewTagInfo("jolokia agent url path"),
 			"name":              inputs.NewTagInfo("the name of GC generation"),
+			"host":              inputs.NewTagInfo("The hostname of the Jolokia agent/proxy running on."),
 		},
 	}
 }
@@ -271,6 +274,7 @@ func (*JavaThreadMemt) Info() *inputs.MeasurementInfo {
 
 		Tags: map[string]interface{}{
 			"jolokia_agent_url": inputs.NewTagInfo("jolokia agent url path"),
+			"host":              inputs.NewTagInfo("The hostname of the Jolokia agent/proxy running on."),
 		},
 	}
 }
@@ -312,6 +316,7 @@ func (*JavaClassLoadMemt) Info() *inputs.MeasurementInfo {
 
 		Tags: map[string]interface{}{
 			"jolokia_agent_url": inputs.NewTagInfo("jolokia agent url path"),
+			"host":              inputs.NewTagInfo("The hostname of the Jolokia agent/proxy running on."),
 		},
 	}
 }
@@ -360,6 +365,7 @@ func (*JavaMemoryPoolMemt) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"jolokia_agent_url": inputs.NewTagInfo("jolokia agent url path"),
 			"name":              inputs.NewTagInfo("the name of space"),
+			"host":              inputs.NewTagInfo("The hostname of the Jolokia agent/proxy running on."),
 		},
 	}
 }

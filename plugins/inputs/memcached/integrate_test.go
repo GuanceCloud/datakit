@@ -275,6 +275,10 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
+				Cmd:        cs.cmd,
+
+				ExposedPorts: cs.exposedPorts,
+				PortBindings: cs.getPortBindings(),
 			},
 
 			func(c *docker.HostConfig) {

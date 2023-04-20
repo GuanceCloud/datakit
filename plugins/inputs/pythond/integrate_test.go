@@ -59,7 +59,7 @@ func TestPythondInput(t *testing.T) {
 				tc.cr.Status = testutils.TestFailed
 				tc.cr.FailedMessage = err.Error()
 
-				assert.NoError(t, err)
+				panic(err)
 			} else {
 				tc.cr.Status = testutils.TestPassed
 			}
