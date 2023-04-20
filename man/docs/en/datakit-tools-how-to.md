@@ -76,19 +76,6 @@ datakit tool --test-snmp /usr/local/datakit/conf.d/snmp/snmp.conf
 ......
 ```
 
-## View Help Document {#man}
-
-To facilitate viewing DataKit help documents on the server side, DataKit provides the following interactive document viewing entry (which is not supported by Windows):
-
-```shell
-datakit --man
-man > nginx
-(Display Nginx collection documents)
-man > mysql
-(Display MySQL collection documents)
-man > Q               # Enter Q or exit
-```
-
 ## View Workspace Information {#workspace-info}
 
 To facilitate you to view workspace information on the server side, DataKit provides the following commands:

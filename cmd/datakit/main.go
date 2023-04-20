@@ -17,12 +17,12 @@ import (
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/gitrepo"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/checkutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dnswatcher"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/election"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
@@ -99,13 +99,9 @@ func main() {
 }
 
 func applyFlags() {
-	inputs.TODO = cmds.FlagTODO
-
-	if cmds.FlagDocker /* Deprecated */ || *cmds.FlagRunInContainer {
+	if *cmds.FlagRunInContainer {
 		datakit.Docker = true
 	}
-
-	cmds.RunCmds()
 }
 
 func serviceEntry() {

@@ -3,7 +3,6 @@
 
 本文介绍如何使用 helm 来管理 DataKit 的环境变量和采集配置。我们可以通过维护 helm 管理 DataKit 的配置变更。
 
-
 ## 安装和修改配置 {#instal-config}
 
 ### helm 下载 DataKit Charts 包 {#dowbload-config}

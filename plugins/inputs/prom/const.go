@@ -21,7 +21,7 @@ const sampleCfg = `
 
   ## Collect data output.
   # Fill this when want to collect the data to local file nor center.
-  # After filling, could use 'datakit --prom-conf /path/to/this/conf' to debug local storage measurement set.
+  # After filling, could use 'datakit debug --prom-conf /path/to/this/conf' to debug local storage measurement set.
   # Using '--prom-conf' when priority debugging data in 'output' path.
   # output = "/abs/path/to/file"
 
@@ -65,6 +65,9 @@ const sampleCfg = `
 
   # disable setting instance tag for this input
   disable_instance_tag = false
+
+  # disable info tag for this input
+  disable_info_tag = false
 
   # Ignore tags. Multi supported.
   # The matched tags would be dropped, but the item would still be sent.

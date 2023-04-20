@@ -261,10 +261,10 @@ dist/
 └── datakit-darwin-amd64
     └── datakit          # 将该 datakit 替换掉已有的 datakit 二进制，一般在 /usr/local/datakit/datakit
 
-sudo datakit --stop                                             # 停掉现有 datakit
+sudo datakit service -T                                         # 停掉现有 datakit
 sudo truncate -s 0 /var/log/datakit/log                         # 清空日志
 sudo cp -r dist/datakit-darwin-amd64/datakit /usr/local/datakit # 覆盖二进制
-sudo datakit --start                                            # 重启 datakit
+sudo datakit service -S                                         # 重启 datakit
 datakit monitor                                                 # datakit 运行情况监测
 ```
 
@@ -441,6 +441,30 @@ ddk debug --ipinfo 1.2.3.4
 	 country: AU
 	     isp: unknown
 	      ip: 1.2.3.4
+```
+
+## 测试 {#testing}
+
+Datakit 中测试主要分成两类，一类是集成测试，一类是单元测试，它们本质上并无太大区别。只是集成测试需要更多的外部环境。
+
+一般情况下，运行 `make ut` 即可运行所有的测试用例。但这些测试用例中，包括集成测试和单元测试。而集成测试需要有 Docker 参与，这里提供一个开发过程中跑测试的例子。
+
+- 配置一个远端的 Docker，或者本机有安装 Docker 也行，如果是远端 Docker，需[配置其远程连接功能](https://medium.com/@ssmak/how-to-enable-docker-remote-api-on-docker-host-7b73bd3278c6){:target="_blank"}。
+- 做一个 shell alias，在其中启动 `make ut`：
+
+```shell
+alias ut='REMOTE_HOST=<YOUR-DOCKER-REMOTE-HOST> make ut'
+```
+
+额外的配置：
+
+- 如果要排除部分 package 的测试（它可能临时无法通过测试），在 `make ut` 后面增加对应 package 名称即可，例如：`UT_EXCLUDE="gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/snmp"`
+- 如果要将测试的指标发送到观测云，添加一个 Dataway 地址以及对应工作空间的 token 即可，比如 `DATAWAY_URL="https://openway.guance.com/v1/write/logging?token=<YOUR-TOKEN>"`
+
+完整的例子如下：
+
+```shell
+alias ut='REMOTE_HOST=<YOUR-DOCKER-REMOTE-HOST> make ut UT_EXCLUDE="<package-name>" DATAWAY_URL="https://openway.guance.com/v1/write/logging?token=<YOUR-TOKEN>"'
 ```
 
 ## 版本发布 {#release}
@@ -662,7 +686,7 @@ Generating report in profile001.pdf
 ### 检查 sample config 是否正确 {#check-sample-config}
 
 ```shell
-datakit --check-sample
+datakit check --sample
 ------------------------
 checked 52 sample, 0 ignored, 51 passed, 0 failed, 0 unknown, cost 10.938125ms
 ```
@@ -673,15 +697,7 @@ checked 52 sample, 0 ignored, 51 passed, 0 failed, 0 unknown, cost 10.938125ms
 
 ```shell
 man_version=`git tag -l | sort -nr | head -n 1` # 获取最近发布的 tag 版本
-datakit --export-manuals /path/to/doc --man-version $man_version --TODO "-" --ignore demo
-```
-
-### 集成导出 {#export-integrations}
-
-将集成内容导出到指定目录，一般这个目录是另一个 git-repo（当前是 [dataflux-integration](https://gitee.com/dataflux/dataflux-integration.git){:target="_blank"}）
-
-```shell
-datakit --ignore demo,tailf --export-integration /path/to/integration/git/repo
+datakit doc --export-docs /path/to/doc --version $man_version --TODO "-" --ignore demo
 ```
 
 ## 延伸阅读 {#more-readings}

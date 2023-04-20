@@ -84,11 +84,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		dockerFileText string // Empty if not build image.
 		exposedPorts   []string
 		cmd            []string
-		// optsDB           []inputs.PointCheckOption
-		// optsDBStats      []inputs.PointCheckOption
-		// optsDBColStats   []inputs.PointCheckOption
-		// optsDBShardStats []inputs.PointCheckOption
-		// optsDBTopStats   []inputs.PointCheckOption
 	}{
 		{
 			name: "memcached:1.5",
@@ -280,10 +275,6 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				Cmd:        cs.cmd,
-
-				ExposedPorts: cs.exposedPorts,
-				PortBindings: cs.getPortBindings(),
 			},
 
 			func(c *docker.HostConfig) {

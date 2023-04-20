@@ -132,6 +132,8 @@ At this point, Annotations has been added. DataKit later reads the Pod's Annotat
 
 ## Automatically Discover the Service Exposure Metrics Interface {#auto-discovery-metrics-with-prometheus}
 
+[:octicons-tag-24: Version-1.5.10](changelog.md#cl-1.5.10)
+
 Based on the specified Annotations of Pod or Service, a HTTP URL is constructed and Prometheus metric collection is created.
 
 This feature is disabled by default. To enable it in Datakit, the following two environment variables need to be added as needed, see [container documentation](container.md):

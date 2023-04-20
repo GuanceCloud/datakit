@@ -61,6 +61,7 @@ DATAKIT_EBPF_ARCHS   ?= linux/arm64,linux/amd64
 IGN_EBPF_INSTALL_ERR ?= 0
 RACE_DETECTION       ?= "off"
 PKGEBPF              ?= "false"
+UT_EXCLUDE           ?= ""
 
 PKGEBPF_FLAG = ""
 ifneq ($(PKGEBPF),"false")
@@ -146,7 +147,7 @@ define publish
 		-name $(NAME)            \
 		-build-dir $(BUILD_DIR)  \
 		-archs $(4)              \
-		$(PKGEBPF_FLAG)
+		-pkg-ebpf $(PKGEBPF)
 endef
 
 define pub_ebpf
@@ -218,10 +219,6 @@ define build_ip2isp
 	rm -rf china-operator-ip
 	git clone -b ip-lists https://github.com/gaoyifan/china-operator-ip.git
 	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go -build-isp
-endef
-
-define do_lint
-	$(GOLINT_BINARY) run --fix --allow-parallel-runners | tee -a lint.err
 endef
 
 ##############################################################################
@@ -334,7 +331,9 @@ vet:
 	@go vet ./...
 
 ut: deps
-	CGO_CFLAGS=$(CGO_FLAGS) GO111MODULE=off CGO_ENABLED=1 go run cmd/make/make.go -ut -dataway-url "$(DATAWAY_URL)"; \
+	CGO_CFLAGS=$(CGO_FLAGS) GO111MODULE=off CGO_ENABLED=1 \
+						 go run cmd/make/make.go -ut -ut-exclude "$(UT_EXCLUDE)" \
+						 -dataway-url "$(DATAWAY_URL)"; \
 		if [ $$? != 0 ]; then \
 			exit 1; \
 		else \
@@ -371,7 +370,11 @@ test_deps: prepare gofmt lfparser_disable_line vet
 
 lint: deps check_man copyright_check
 	@truncate -s 0 lint.err
-	$(call do_lint)
+	$(GOLINT_BINARY) run --fix --allow-parallel-runners | tee -a lint.err
+
+lint_nofix: deps check_man copyright_check
+	@truncate -s 0 lint.err
+	$(GOLINT_BINARY) run --allow-parallel-runners | tee -a lint_nofix.err
 
 lfparser_disable_line:
 	@rm -rf io/parser/gram_y.go
