@@ -3,31 +3,28 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-// Package skywalkingapi handle SkyWalking tracing metrics.
-package skywalkingapi
+package skywalking
 
 import (
+	"errors"
 	"strconv"
 	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	loggingv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/v9.3.0/logging/v3"
 )
 
-func (api *SkyAPI) ProcessLog(plog *loggingv3.LogData) {
-	source := plog.Service
+func processLogV3(plog *loggingv3.LogData) (*point.Point, error) {
 	extraTags := make(map[string]string)
-
 	extraTags["endpoint"] = plog.Endpoint
-	extraTags["service"] = source
+	extraTags["service"] = plog.Service
 	extraTags["service_instance"] = plog.ServiceInstance
 	if plog.Layer != "" {
 		extraTags["layer"] = plog.Layer
 	}
-	for k, v := range api.tags {
+	for k, v := range tags {
 		extraTags[k] = v
 	}
 	for _, datum := range plog.GetTags().Data {
@@ -57,19 +54,11 @@ func (api *SkyAPI) ProcessLog(plog *loggingv3.LogData) {
 		line = i.Yaml.GetYaml()
 	}
 	if line == "" {
-		return
+		return nil, errors.New("unknown log data body")
 	}
-	pt, err := point.NewPoint(source, extraTags,
+
+	return point.NewPoint(plog.Service, extraTags,
 		map[string]interface{}{
 			pipeline.FieldMessage: line,
 		}, &point.PointOption{Category: datakit.Logging, DisableGlobalTags: true})
-	if err != nil {
-		api.log.Errorf("mew point err=%v", err)
-		return
-	}
-
-	err = dkio.Feed(source, datakit.Logging, []*point.Point{pt}, nil)
-	if err != nil {
-		api.log.Errorf("feed logging err=%v", err)
-	}
 }

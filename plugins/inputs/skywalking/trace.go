@@ -3,8 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-// Package skywalkingapi handle SkyWalking tracing metrics.
-package skywalkingapi
+package skywalking
 
 import (
 	"encoding/json"
@@ -12,28 +11,12 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	commonv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/v9.3.0/common/v3"
 	agentv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/compiled/v9.3.0/language/agent/v3"
-	"google.golang.org/protobuf/proto"
 )
 
-func (api *SkyAPI) ProcessSegment(segment *agentv3.SegmentObject) {
-	if api.localCache == nil || !api.localCache.Enabled() {
-		api.parseSegmentObject(segment)
-	} else {
-		if buf, err := proto.Marshal(segment); err != nil {
-			api.log.Error(err.Error())
-		} else {
-			if err = api.localCache.Put(storage.SKY_WALKING_GRPC_KEY, buf); err != nil {
-				api.log.Error(err.Error())
-			}
-		}
-	}
-}
-
-func (api *SkyAPI) parseSegmentObject(segment *agentv3.SegmentObject) {
+func parseSegmentObjectV3(segment *agentv3.SegmentObject) itrace.DatakitTrace {
 	var dktrace itrace.DatakitTrace
 	for _, span := range segment.Spans {
 		if span == nil {
@@ -46,7 +29,7 @@ func (api *SkyAPI) parseSegmentObject(segment *agentv3.SegmentObject) {
 			Service:    segment.Service,
 			Resource:   span.OperationName,
 			Operation:  span.OperationName,
-			Source:     api.inputName,
+			Source:     inputName,
 			SourceType: itrace.SPAN_SOURCE_CUSTOMER,
 			Start:      span.StartTime * int64(time.Millisecond),
 			Duration:   (span.EndTime - span.StartTime) * int64(time.Millisecond),
@@ -63,7 +46,7 @@ func (api *SkyAPI) parseSegmentObject(segment *agentv3.SegmentObject) {
 						Service:    span.Refs[0].ParentService,
 						Resource:   span.Refs[0].ParentEndpoint,
 						Operation:  span.Refs[0].ParentEndpoint,
-						Source:     api.inputName,
+						Source:     inputName,
 						SpanType:   itrace.SPAN_TYPE_ENTRY,
 						SourceType: itrace.SPAN_SOURCE_WEB,
 						Start:      dkspan.Start - int64(time.Millisecond),
@@ -101,8 +84,8 @@ func (api *SkyAPI) parseSegmentObject(segment *agentv3.SegmentObject) {
 			dkspan.SpanType = itrace.SPAN_TYPE_ENTRY
 		}
 
-		for i := range api.plugins {
-			if value, ok := getTagValue(span.Tags, api.plugins[i]); ok {
+		for i := range plugins {
+			if value, ok := getTagValue(span.Tags, plugins[i]); ok {
 				dkspan.Service = value
 				dkspan.SpanType = itrace.SPAN_TYPE_ENTRY
 				dkspan.SourceType = mapToSpanSourceType(span.SpanLayer)
@@ -124,13 +107,13 @@ func (api *SkyAPI) parseSegmentObject(segment *agentv3.SegmentObject) {
 		for _, tag := range span.Tags {
 			sourceTags[tag.Key] = tag.Value
 		}
-		dkspan.Tags = itrace.MergeInToCustomerTags(api.customerKeys, api.tags, sourceTags)
+		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
 		if span.Peer != "" {
 			dkspan.Tags[itrace.TAG_ENDPOINT] = span.Peer
 		}
 
 		if buf, err := json.Marshal(span); err != nil {
-			api.log.Warn(err.Error())
+			log.Warn(err.Error())
 		} else {
 			dkspan.Content = string(buf)
 		}
@@ -142,9 +125,7 @@ func (api *SkyAPI) parseSegmentObject(segment *agentv3.SegmentObject) {
 		dktrace[0].Metrics[itrace.FIELD_PRIORITY] = itrace.PRIORITY_AUTO_KEEP
 	}
 
-	if len(dktrace) != 0 && api.afterGatherRun != nil {
-		api.afterGatherRun.Run(api.inputName, itrace.DatakitTraces{dktrace}, false)
-	}
+	return dktrace
 }
 
 func getTagValue(tags []*commonv3.KeyStringValuePair, key string) (value string, ok bool) {

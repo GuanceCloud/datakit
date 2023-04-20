@@ -8,7 +8,6 @@ package kafkamq
 
 import (
 	"os"
-	"strings"
 
 	"github.com/Shopify/sarama"
 )
@@ -33,6 +32,69 @@ func getKafkaVersion(ver string) sarama.KafkaVersion {
 	return version
 }
 
+type option func(con *sarama.Config)
+
+func withVersion(version string) option {
+	v, err := sarama.ParseKafkaVersion(version)
+	if err != nil {
+		log.Infof("can not get version from conf:[%s], use default version:%s", version, sarama.DefaultVersion.String())
+		v = sarama.DefaultVersion
+	}
+	return func(con *sarama.Config) {
+		con.Version = v
+	}
+}
+
+func withAssignors(balance string) option {
+	var bt sarama.BalanceStrategy
+	if assignor, ok := assignors[balance]; ok {
+		bt = assignor
+	} else {
+		log.Infof("can not find assignor, use default `roundrobin`")
+		bt = defaultAssignors
+	}
+
+	return func(con *sarama.Config) {
+		con.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{bt}
+	}
+}
+
+func withOffset(offset int64) option {
+	return func(con *sarama.Config) {
+		con.Consumer.Offsets.Initial = sarama.OffsetOldest
+		if offset == sarama.OffsetNewest {
+			con.Consumer.Offsets.Initial = sarama.OffsetNewest
+		}
+	}
+}
+
+func withSASL(enable bool, mechanism, username, pw string) option {
+	return func(config *sarama.Config) {
+		if enable {
+			config.Net.SASL.Enable = true
+			config.Net.SASL.User = username
+			config.Net.SASL.Password = pw
+			config.Net.SASL.Mechanism = sarama.SASLMechanism(mechanism)
+			config.Net.SASL.Version = sarama.SASLHandshakeV1
+		}
+	}
+}
+
+func newSaramaConfig(opts ...option) *sarama.Config {
+	conf := sarama.NewConfig()
+	conf.Consumer.Return.Errors = false
+	conf.Consumer.Offsets.Initial = sarama.OffsetOldest // 未找到组消费位移的时候从哪边开始消费
+
+	conf.Consumer.Offsets.Retry.Max = 10
+	name, _ := os.Hostname()
+	conf.ClientID = name
+
+	for _, opt := range opts {
+		opt(conf)
+	}
+	return conf
+}
+
 func getAddrs(addr string, addrs []string) []string {
 	kafkaAddress := make([]string, 0)
 	if addr != "" {
@@ -42,41 +104,4 @@ func getAddrs(addr string, addrs []string) []string {
 		kafkaAddress = append(kafkaAddress, addrs...)
 	}
 	return kafkaAddress
-}
-
-func getAssignors(balance string) sarama.BalanceStrategy {
-	if assignor, ok := assignors[balance]; ok {
-		return assignor
-	}
-	log.Infof("can not find assignor, use default `roundrobin`")
-	return defaultAssignors
-}
-
-func newConfig(version sarama.KafkaVersion, balance sarama.BalanceStrategy, offset int64) *sarama.Config {
-	config := sarama.NewConfig() // auto commit
-	config.Consumer.Return.Errors = false
-	config.Version = version                              // specify appropriate version
-	config.Consumer.Offsets.Initial = sarama.OffsetOldest // 未找到组消费位移的时候从哪边开始消费
-	if offset == sarama.OffsetNewest {
-		config.Consumer.Offsets.Initial = sarama.OffsetNewest
-	}
-
-	config.Consumer.Group.Rebalance.Strategy = balance
-	config.Consumer.Offsets.Retry.Max = 10
-	name, _ := os.Hostname()
-	config.ClientID = name
-
-	return config
-}
-
-func sasl(config *sarama.Config, enable bool, mechanism, username, pw string) *sarama.Config {
-	mechanism = strings.ToUpper(mechanism)
-	if enable {
-		config.Net.SASL.Enable = true
-		config.Net.SASL.User = username
-		config.Net.SASL.Password = pw
-		config.Net.SASL.Mechanism = sarama.SASLMechanism(mechanism)
-	}
-
-	return config
 }

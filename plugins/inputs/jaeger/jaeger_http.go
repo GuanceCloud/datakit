@@ -25,7 +25,7 @@ func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) 
 }
 
 func handleJaegerTrace(resp http.ResponseWriter, req *http.Request) {
-	log.Debugf("### received tracing data from path: %s", req.URL.Path)
+	log.Debugf("### receiving trace data from path: %s", req.URL.Path)
 
 	pbuf := bufpool.GetBuffer()
 	defer bufpool.PutBuffer(pbuf)
