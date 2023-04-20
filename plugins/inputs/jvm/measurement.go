@@ -65,6 +65,8 @@ func (m *JvmMeasurement) Point() *point.Point {
 
 	if m.election {
 		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	} else {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
 	}
 
 	return point.NewPointV2([]byte(m.name),
@@ -89,6 +91,8 @@ func (m *JavaRuntimeMemt) Point() *point.Point {
 
 	if m.election {
 		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	} else {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
 	}
 
 	return point.NewPointV2([]byte(m.name),
@@ -128,6 +132,8 @@ func (m *JavaMemoryMemt) Point() *point.Point {
 
 	if m.election {
 		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	} else {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
 	}
 
 	return point.NewPointV2([]byte(m.name),
@@ -178,6 +184,8 @@ func (m *JavaGcMemt) Point() *point.Point {
 
 	if m.election {
 		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	} else {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
 	}
 
 	return point.NewPointV2([]byte(m.name),
@@ -220,6 +228,8 @@ func (*JavaGcMemt) Info() *inputs.MeasurementInfo {
 
 // 	if m.election {
 // 		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+// 	} else {
+// 	 	opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
 // 	}
 
 // 	return point.NewPointV2([]byte(m.name),
@@ -244,6 +254,8 @@ func (m *JavaThreadMemt) Point() *point.Point {
 
 	if m.election {
 		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	} else {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
 	}
 
 	return point.NewPointV2([]byte(m.name),
@@ -287,6 +299,8 @@ func (m *JavaClassLoadMemt) Point() *point.Point {
 
 	if m.election {
 		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	} else {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
 	}
 
 	return point.NewPointV2([]byte(m.name),
@@ -329,6 +343,8 @@ func (m *JavaMemoryPoolMemt) Point() *point.Point {
 
 	if m.election {
 		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	} else {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
 	}
 
 	return point.NewPointV2([]byte(m.name),

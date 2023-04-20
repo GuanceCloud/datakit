@@ -3,9 +3,11 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package tomcat
+package rabbitmq
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -28,11 +30,10 @@ import (
 )
 
 // ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
-// Reference: https://jolokia.org/reference/html/agents.html#jvm-agent
 
 var mCount map[string]struct{} = make(map[string]struct{}) // Length of got measurements.
 
-func TestTomcatInput(t *testing.T) {
+func TestRabbitmqInput(t *testing.T) {
 	start := time.Now()
 	cases, err := buildCases(t)
 	if err != nil {
@@ -86,89 +87,52 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 	remote := testutils.GetRemote()
 
 	bases := []struct {
-		name                             string // Also used as build image name:tag.
-		conf                             string
-		dockerFileText                   string // Empty if not build image.
-		exposedPorts                     []string
-		optsTomcatGlobalRequestProcessor []inputs.PointCheckOption
-		optsTomcatJspMonitor             []inputs.PointCheckOption
-		optsTomcatThreadPool             []inputs.PointCheckOption
-		optsTomcatServlet                []inputs.PointCheckOption
-		optsTomcatCache                  []inputs.PointCheckOption
-		mPathCount                       map[string]int
+		name         string // Also used as build image name:tag.
+		conf         string
+		exposedPorts []string
 	}{
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/tomcat:8-jolokia",
-			conf: fmt.Sprintf(`username = "jolokia_user"
-			password = "123456@secPassWd"
-			urls = ["http://%s:8080/jolokia"]
-			[[metric]]
-			  name     = "tomcat_global_request_processor"
-			  mbean    = '''Catalina:name="*",type=GlobalRequestProcessor'''
-			  paths    = ["requestCount","bytesReceived","bytesSent","processingTime","errorCount"]
-			  tag_keys = ["name"]
-			[[metric]]
-			  name     = "tomcat_jsp_monitor"
-			  mbean    = "Catalina:J2EEApplication=*,J2EEServer=*,WebModule=*,name=jsp,type=JspMonitor"
-			  paths    = ["jspReloadCount","jspCount","jspUnloadCount"]
-			  tag_keys = ["J2EEApplication","J2EEServer","WebModule"]
-			[[metric]]
-			  name     = "tomcat_thread_pool"
-			  mbean    = "Catalina:name=\"*\",type=ThreadPool"
-			  paths    = ["maxThreads","currentThreadCount","currentThreadsBusy"]
-			  tag_keys = ["name"]
-			[[metric]]
-			  name     = "tomcat_servlet"
-			  mbean    = "Catalina:J2EEApplication=*,J2EEServer=*,WebModule=*,j2eeType=Servlet,name=*"
-			  paths    = ["processingTime","errorCount","requestCount"]
-			  tag_keys = ["name","J2EEApplication","J2EEServer","WebModule"]
-			[[metric]]
-			  name     = "tomcat_cache"
-			  mbean    = "Catalina:context=*,host=*,name=Cache,type=WebResourceRoot"
-			  paths    = ["hitCount","lookupCount"]
-			  tag_keys = ["context","host"]
-			  tag_prefix = "tomcat_"`, remote.Host),
-			exposedPorts: []string{"8080/tcp"},
-			mPathCount: map[string]int{
-				"/": 100,
-			},
+			name: "rabbitmq:3.8-management-alpine",
+			conf: fmt.Sprintf(`url = "http://%s:15672"
+			username = "guest"
+			password = "guest"
+			interval = "1s"
+			insecure_skip_verify = false
+			election = true`, remote.Host),
+			exposedPorts: []string{"15672/tcp"},
 		},
 
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/tomcat:9-jolokia",
-			conf: fmt.Sprintf(`username = "jolokia_user"
-			password = "123456@secPassWd"
-			urls = ["http://%s:8080/jolokia"]
-			[[metric]]
-			  name     = "tomcat_global_request_processor"
-			  mbean    = '''Catalina:name="*",type=GlobalRequestProcessor'''
-			  paths    = ["requestCount","bytesReceived","bytesSent","processingTime","errorCount"]
-			  tag_keys = ["name"]
-			[[metric]]
-			  name     = "tomcat_jsp_monitor"
-			  mbean    = "Catalina:J2EEApplication=*,J2EEServer=*,WebModule=*,name=jsp,type=JspMonitor"
-			  paths    = ["jspReloadCount","jspCount","jspUnloadCount"]
-			  tag_keys = ["J2EEApplication","J2EEServer","WebModule"]
-			[[metric]]
-			  name     = "tomcat_thread_pool"
-			  mbean    = "Catalina:name=\"*\",type=ThreadPool"
-			  paths    = ["maxThreads","currentThreadCount","currentThreadsBusy"]
-			  tag_keys = ["name"]
-			[[metric]]
-			  name     = "tomcat_servlet"
-			  mbean    = "Catalina:J2EEApplication=*,J2EEServer=*,WebModule=*,j2eeType=Servlet,name=*"
-			  paths    = ["processingTime","errorCount","requestCount"]
-			  tag_keys = ["name","J2EEApplication","J2EEServer","WebModule"]
-			[[metric]]
-			  name     = "tomcat_cache"
-			  mbean    = "Catalina:context=*,host=*,name=Cache,type=WebResourceRoot"
-			  paths    = ["hitCount","lookupCount"]
-			  tag_keys = ["context","host"]
-			  tag_prefix = "tomcat_"`, remote.Host),
-			exposedPorts: []string{"8080/tcp"},
-			mPathCount: map[string]int{
-				"/": 100,
-			},
+			name: "rabbitmq:3.9-management-alpine",
+			conf: fmt.Sprintf(`url = "http://%s:15672"
+			username = "guest"
+			password = "guest"
+			interval = "1s"
+			insecure_skip_verify = false
+			election = true`, remote.Host),
+			exposedPorts: []string{"15672/tcp"},
+		},
+
+		{
+			name: "rabbitmq:3.10-management-alpine",
+			conf: fmt.Sprintf(`url = "http://%s:15672"
+			username = "guest"
+			password = "guest"
+			interval = "1s"
+			insecure_skip_verify = false
+			election = true`, remote.Host),
+			exposedPorts: []string{"15672/tcp"},
+		},
+
+		{
+			name: "rabbitmq:3.11-management-alpine",
+			conf: fmt.Sprintf(`url = "http://%s:15672"
+			username = "guest"
+			password = "guest"
+			interval = "1s"
+			insecure_skip_verify = false
+			election = true`, remote.Host),
+			exposedPorts: []string{"15672/tcp"},
 		},
 	}
 
@@ -179,7 +143,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		feeder := io.NewMockedFeeder()
 
 		ipt := defaultInput()
-		ipt.Feeder = feeder
+		ipt.feeder = feeder
 
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)
@@ -194,16 +158,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			repo:    repoTag[0],
 			repoTag: repoTag[1],
 
-			dockerFileText: base.dockerFileText,
-			exposedPorts:   base.exposedPorts,
-
-			optsTomcatGlobalRequestProcessor: base.optsTomcatGlobalRequestProcessor,
-			optsTomcatJspMonitor:             base.optsTomcatJspMonitor,
-			optsTomcatThreadPool:             base.optsTomcatThreadPool,
-			optsTomcatServlet:                base.optsTomcatServlet,
-			optsTomcatCache:                  base.optsTomcatCache,
-
-			mPathCount: base.mPathCount,
+			exposedPorts: base.exposedPorts,
 
 			cr: &testutils.CaseResult{
 				Name:        t.Name(),
@@ -229,17 +184,12 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 type caseSpec struct {
 	t *testing.T
 
-	name                             string
-	repo                             string
-	repoTag                          string
-	dockerFileText                   string
-	exposedPorts                     []string
-	optsTomcatGlobalRequestProcessor []inputs.PointCheckOption
-	optsTomcatJspMonitor             []inputs.PointCheckOption
-	optsTomcatThreadPool             []inputs.PointCheckOption
-	optsTomcatServlet                []inputs.PointCheckOption
-	optsTomcatCache                  []inputs.PointCheckOption
-	mPathCount                       map[string]int
+	name           string
+	repo           string
+	repoTag        string
+	dockerFileText string
+	exposedPorts   []string
+	opts           []inputs.PointCheckOption
 
 	ipt    *Input
 	feeder *io.MockedFeeder
@@ -253,14 +203,14 @@ type caseSpec struct {
 func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 	var opts []inputs.PointCheckOption
 	opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
+	opts = append(opts, cs.opts...)
 
 	for _, pt := range pts {
 		measurement := string(pt.Name())
 
 		switch measurement {
-		case TomcatGlobalRequestProcessor:
-			opts = append(opts, cs.optsTomcatGlobalRequestProcessor...)
-			opts = append(opts, inputs.WithDoc(&TomcatGlobalRequestProcessorM{}))
+		case ExchangeMetric:
+			opts = append(opts, inputs.WithDoc(&ExchangeMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
 
@@ -273,28 +223,10 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
-			mCount[TomcatGlobalRequestProcessor] = struct{}{}
+			mCount[ExchangeMetric] = struct{}{}
 
-		case TomcatJspMonitor:
-			opts = append(opts, cs.optsTomcatJspMonitor...)
-			opts = append(opts, inputs.WithDoc(&TomcatJspMonitorM{}))
-
-			msgs := inputs.CheckPoint(pt, opts...)
-
-			for _, msg := range msgs {
-				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-			}
-
-			// TODO: error here
-			if len(msgs) > 0 {
-				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-			}
-
-			mCount[TomcatJspMonitor] = struct{}{}
-
-		case TomcatThreadPool:
-			opts = append(opts, cs.optsTomcatThreadPool...)
-			opts = append(opts, inputs.WithDoc(&TomcatThreadPoolM{}))
+		case NodeMetric:
+			opts = append(opts, inputs.WithDoc(&NodeMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
 
@@ -307,28 +239,10 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
-			mCount[TomcatThreadPool] = struct{}{}
+			mCount[NodeMetric] = struct{}{}
 
-		case TomcatServlet:
-			opts = append(opts, cs.optsTomcatServlet...)
-			opts = append(opts, inputs.WithDoc(&TomcatServletM{}))
-
-			msgs := inputs.CheckPoint(pt, opts...)
-
-			for _, msg := range msgs {
-				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-			}
-
-			// TODO: error here
-			if len(msgs) > 0 {
-				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-			}
-
-			mCount[TomcatServlet] = struct{}{}
-
-		case TomcatCache:
-			opts = append(opts, cs.optsTomcatCache...)
-			opts = append(opts, inputs.WithDoc(&TomcatCacheM{}))
+		case OverviewMetric:
+			opts = append(opts, inputs.WithDoc(&OverviewMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
 
@@ -341,7 +255,23 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
-			mCount[TomcatCache] = struct{}{}
+			mCount[OverviewMetric] = struct{}{}
+
+		case QueueMetric:
+			opts = append(opts, inputs.WithDoc(&QueueMeasurement{}))
+
+			msgs := inputs.CheckPoint(pt, opts...)
+
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
+
+			// TODO: error here
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
+
+			mCount[QueueMetric] = struct{}{}
 
 		default: // TODO: check other measurement
 			panic("not implement")
@@ -406,7 +336,6 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				// Env:        []string{"JOLOKIA_PORT=59090"},
 
 				ExposedPorts: cs.exposedPorts,
 				PortBindings: cs.getPortBindings(),
@@ -427,7 +356,6 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				// Env:        []string{"JOLOKIA_PORT=59090"},
 
 				ExposedPorts: cs.exposedPorts,
 				PortBindings: cs.getPortBindings(),
@@ -455,7 +383,7 @@ func (cs *caseSpec) run() error {
 
 	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
 
-	cs.runHTTPTests(r)
+	createQueue(r.Host)
 
 	var wg sync.WaitGroup
 
@@ -470,7 +398,7 @@ func (cs *caseSpec) run() error {
 	// wait data
 	start = time.Now()
 	cs.t.Logf("wait points...")
-	pts, err := cs.feeder.NPoints(50, 5*time.Minute)
+	pts, err := cs.feeder.AnyPoints(5 * time.Minute)
 	if err != nil {
 		return err
 	}
@@ -486,7 +414,7 @@ func (cs *caseSpec) run() error {
 	cs.t.Logf("stop input...")
 	cs.ipt.Terminate()
 
-	require.Equal(cs.t, 5, len(mCount))
+	require.Equal(cs.t, 4, len(mCount))
 
 	cs.t.Logf("exit...")
 	wg.Wait()
@@ -568,28 +496,47 @@ func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
 	return nil
 }
 
-// Launch large amount of HTTP requests to remote nginx.
-func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) {
-	for path, count := range cs.mPathCount {
-		newURL := fmt.Sprintf("http://%s%s", net.JoinHostPort(r.Host, "8080"), path)
+////////////////////////////////////////////////////////////////////////////////
 
-		var wg sync.WaitGroup
-		wg.Add(count)
+// curl -i -u guest:guest -H "content-type:application/json" \
+//     -XPUT -d'{"durable":true,"arguments":{"x-dead-letter-exchange":"", "x-dead-letter-routing-key": "my.queue.dead-letter"}}' \
+//     http://localhost:15672/api/queues/%2f/my.queue
 
-		for i := 0; i < count; i++ {
-			go func() {
-				defer wg.Done()
-
-				resp, err := http.Get(newURL)
-				if err != nil {
-					panic(err)
-				}
-				if err := resp.Body.Close(); err != nil {
-					panic(err)
-				}
-			}()
-		}
-
-		wg.Wait()
-	}
+type Payload struct {
+	Durable   bool      `json:"durable"`
+	Arguments Arguments `json:"arguments"`
 }
+type Arguments struct {
+	XDeadLetterExchange   string `json:"x-dead-letter-exchange"`
+	XDeadLetterRoutingKey string `json:"x-dead-letter-routing-key"`
+}
+
+func createQueue(remoteHost string) error {
+	data := Payload{
+		// fill struct
+	}
+	payloadBytes, err := json.Marshal(data)
+	if err != nil {
+		// handle err
+		return err
+	}
+	body := bytes.NewReader(payloadBytes)
+
+	req, err := http.NewRequest("PUT", "http://"+net.JoinHostPort(remoteHost, "15672")+"/api/queues/%2f/my.queue", body)
+	if err != nil {
+		// handle err
+		return err
+	}
+	req.SetBasicAuth("guest", "guest")
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		// handle err
+		return err
+	}
+	defer resp.Body.Close()
+	return nil
+}
+
+////////////////////////////////////////////////////////////////////////////////

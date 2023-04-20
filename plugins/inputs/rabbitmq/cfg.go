@@ -14,16 +14,18 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/influxdata/telegraf/plugins/common/tls"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (
 	inputName    = `rabbitmq`
 	l            = logger.DefaultSLogger(inputName)
-	collectCache []inputs.Measurement
+	collectCache []*point.Point
 	minInterval  = time.Second
 	maxInterval  = time.Second * 30
 	lock         sync.Mutex
@@ -104,6 +106,7 @@ type Input struct {
 	pauseCh  chan bool
 
 	semStop *cliutils.Sem // start stop signal
+	feeder  dkio.Feeder
 }
 
 type rabbitmqlog struct {
@@ -309,7 +312,7 @@ func newByteFieldInfo(desc string) *inputs.FieldInfo {
 	}
 }
 
-func metricAppend(metric inputs.Measurement) {
+func metricAppend(metric *point.Point) {
 	lock.Lock()
 	collectCache = append(collectCache, metric)
 	lock.Unlock()

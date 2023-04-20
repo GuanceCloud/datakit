@@ -26,6 +26,8 @@ func (m *NginxMeasurement) Point() *point.Point {
 
 	if m.election {
 		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	} else {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
 	}
 
 	return point.NewPointV2([]byte(m.name),

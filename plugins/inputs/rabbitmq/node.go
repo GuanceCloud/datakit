@@ -6,9 +6,11 @@
 package rabbitmq
 
 import (
+	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"github.com/GuanceCloud/cliutils/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -44,6 +46,8 @@ func getNode(n *Input) {
 			"sockets_used":      node.SocketsUsed,
 			"io_write_avg_time": node.IoWriteAvgTime,
 			"io_read_avg_time":  node.IoReadAvgTime,
+			"io_sync_avg_time":  node.IoSyncAvgTime,
+			"io_seek_avg_time":  node.IoSeekAvgTime,
 		}
 		metric := &NodeMeasurement{
 			name:     NodeMetric,
@@ -52,7 +56,7 @@ func getNode(n *Input) {
 			ts:       ts,
 			election: n.Election,
 		}
-		metricAppend(metric)
+		metricAppend(metric.Point())
 	}
 }
 
@@ -64,8 +68,24 @@ type NodeMeasurement struct {
 	election bool
 }
 
-func (m *NodeMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+// Point implement MeasurementV2.
+func (m *NodeMeasurement) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	} else {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
+	}
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *NodeMeasurement) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -93,6 +113,7 @@ func (m *NodeMeasurement) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"url":       inputs.NewTagInfo("rabbitmq url"),
 			"node_name": inputs.NewTagInfo("rabbitmq node name"),
+			"host":      inputs.NewTagInfo("Hostname of rabbitmq running on."),
 		},
 	}
 }

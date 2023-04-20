@@ -109,6 +109,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 // Point implement MeasurementV2.
 func (ipt *loggingMeasurement) Point() *point.Point {
 	opts := point.DefaultLoggingOptions()
+	opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
 
 	return point.NewPointV2([]byte(ipt.name),
 		append(point.NewTags(ipt.tags), point.NewKVs(ipt.fields)...),
