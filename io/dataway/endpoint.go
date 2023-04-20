@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"net/http/httptrace"
 	"net/url"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -22,6 +23,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	rhttp "github.com/hashicorp/go-retryablehttp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	dnet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
@@ -159,7 +161,7 @@ func (ep *endPoint) setupHTTP() error {
 	return nil
 }
 
-func (ep endPoint) writeBody(w *writer, b *body) {
+func (ep *endPoint) writeBody(w *writer, b *body) {
 	w.gzip = b.gzon
 
 	// if send failed, do nothing.
@@ -291,9 +293,7 @@ func (ep *endPoint) writePointData(b *body, w *writer) error {
 		req.Header.Set("Content-Encoding", "gzip")
 	}
 
-	for k, v := range ExtraHeaders {
-		req.Header.Set(k, v)
-	}
+	req.Header.Set("X-Points", fmt.Sprintf("%d", b.npts))
 
 	resp, err := ep.sendReq(req)
 	if err != nil {
@@ -324,6 +324,7 @@ func (ep *endPoint) writePointData(b *body, w *writer) error {
 	}
 
 	httpCodeStr = http.StatusText(resp.StatusCode)
+	httpCode = resp.StatusCode
 
 	log.Debugf("post %d bytes to %s...", len(b.buf), requrl)
 
@@ -439,6 +440,12 @@ func (ep *endPoint) datakitPull(args string) ([]byte, error) {
 	return body, nil
 }
 
+var (
+	// user-agent format. See
+	// 	 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
+	DatakitUserAgent = fmt.Sprintf("datakit-%s-%s/%s", runtime.GOOS, runtime.GOARCH, git.Version)
+)
+
 func (ep *endPoint) sendReq(req *http.Request) (*http.Response, error) {
 	log.Debugf("send request %q, proxy: %q, cli: %p, timeout: %s",
 		req.URL.String(), ep.proxy, ep.httpCli.HTTPClient.Transport, ep.httpTimeout)
@@ -447,6 +454,8 @@ func (ep *endPoint) sendReq(req *http.Request) (*http.Response, error) {
 		start       = time.Now()
 		httpCodeStr = "unknown"
 	)
+
+	req.Header.Set("User-Agent", DatakitUserAgent)
 
 	defer func() {
 		apiCounterVec.WithLabelValues(req.URL.Path, httpCodeStr).Inc()
