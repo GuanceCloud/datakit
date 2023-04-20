@@ -51,7 +51,6 @@ var (
 		datakit.ProfilingUpload,
 	}
 
-	ExtraHeaders               = map[string]string{}
 	AvailableDataways          = []string{}
 	log                        = logger.DefaultSLogger("dataway")
 	datawayListIntervalDefault = 60
