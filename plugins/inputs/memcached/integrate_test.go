@@ -3,13 +3,11 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package beats_output
+package memcached
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -27,7 +25,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-func TestBeatsInput(t *testing.T) {
+func TestMemcachedInput(t *testing.T) {
 	start := time.Now()
 	cases, err := buildCases(t)
 	if err != nil {
@@ -85,22 +83,23 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		conf           string
 		dockerFileText string // Empty if not build image.
 		exposedPorts   []string
-		opts           []inputs.PointCheckOption
+		cmd            []string
 	}{
 		{
-			name:           "elastic/filebeat:7.17.9-logstash",
-			conf:           `listen = "tcp://0.0.0.0:5044"`,
-			dockerFileText: getDockerfile("7.17.9"),
+			name: "memcached:1.5",
+			conf: fmt.Sprintf(`servers = ["%s:11211"]
+			interval = "3s"
+		[tags]
+			tag1 = "val1"`, remote.Host),
+			exposedPorts: []string{"11211/tcp"},
 		},
 		{
-			name:           "elastic/filebeat:7.17.6-logstash",
-			conf:           `listen = "tcp://0.0.0.0:5044"`,
-			dockerFileText: getDockerfile("7.17.6"),
-		},
-		{
-			name:           "elastic/filebeat:8.6.2-logstash",
-			conf:           `listen = "tcp://0.0.0.0:5044"`,
-			dockerFileText: getDockerfile("8.6.2"),
+			name: "memcached:1.6",
+			conf: fmt.Sprintf(`servers = ["%s:11211"]
+			interval = "3s"
+		[tags]
+			tag1 = "val1"`, remote.Host),
+			exposedPorts: []string{"11211/tcp"},
 		},
 	}
 
@@ -128,7 +127,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 			dockerFileText: base.dockerFileText,
 			exposedPorts:   base.exposedPorts,
-			opts:           base.opts,
+			cmd:            base.cmd,
 
 			cr: &testutils.CaseResult{
 				Name:        t.Name(),
@@ -159,7 +158,7 @@ type caseSpec struct {
 	repoTag        string
 	dockerFileText string
 	exposedPorts   []string
-	opts           []inputs.PointCheckOption
+	cmd            []string
 
 	ipt    *Input
 	feeder *io.MockedFeeder
@@ -173,14 +172,13 @@ type caseSpec struct {
 func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 	var opts []inputs.PointCheckOption
 	opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
-	opts = append(opts, cs.opts...)
 
 	for _, pt := range pts {
 		measurement := string(pt.Name())
 
 		switch measurement {
-		case measurementName:
-			opts = append(opts, inputs.WithDoc(&loggingMeasurement{}))
+		case inputName:
+			opts = append(opts, inputs.WithDoc(&inputMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
 
@@ -246,11 +244,6 @@ func (cs *caseSpec) run() error {
 	}
 	defer os.RemoveAll(dockerFileDir)
 
-	extIP, err := externalIP()
-	if err != nil {
-		return err
-	}
-
 	var resource *dockertest.Resource
 
 	if len(cs.dockerFileText) == 0 {
@@ -261,7 +254,8 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP)},
+				Env:        []string{"MONGO_INITDB_ROOT_USERNAME=root", "MONGO_INITDB_ROOT_PASSWORD=example"},
+				Cmd:        cs.cmd,
 
 				ExposedPorts: cs.exposedPorts,
 				PortBindings: cs.getPortBindings(),
@@ -269,7 +263,7 @@ func (cs *caseSpec) run() error {
 
 			func(c *docker.HostConfig) {
 				c.RestartPolicy = docker.RestartPolicy{Name: "no"}
-				c.AutoRemove = true
+				// c.AutoRemove = true
 			},
 		)
 	} else {
@@ -282,7 +276,8 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP)},
+				Env:        []string{"MONGO_INITDB_ROOT_USERNAME=root", "MONGO_INITDB_ROOT_PASSWORD=example"},
+				Cmd:        cs.cmd,
 
 				ExposedPorts: cs.exposedPorts,
 				PortBindings: cs.getPortBindings(),
@@ -290,13 +285,12 @@ func (cs *caseSpec) run() error {
 
 			func(c *docker.HostConfig) {
 				c.RestartPolicy = docker.RestartPolicy{Name: "no"}
-				c.AutoRemove = true
+				// c.AutoRemove = true
 			},
 		)
 	}
 
 	if err != nil {
-		cs.t.Logf("%s", err.Error())
 		return err
 	}
 
@@ -310,8 +304,6 @@ func (cs *caseSpec) run() error {
 	}
 
 	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
-
-	// cs.runHTTPTests(r)
 
 	var wg sync.WaitGroup
 
@@ -333,6 +325,10 @@ func (cs *caseSpec) run() error {
 
 	cs.cr.AddField("point_latency", int64(time.Since(start)))
 	cs.cr.AddField("point_count", len(pts))
+
+	for _, v := range pts {
+		cs.t.Logf("pt = %s", v.LineProto())
+	}
 
 	cs.t.Logf("get %d points", len(pts))
 	if err := cs.checkPoint(pts); err != nil {
@@ -423,71 +419,3 @@ func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-
-func externalIP() (string, error) {
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return "", err
-	}
-	for _, iface := range ifaces {
-		if iface.Flags&net.FlagUp == 0 {
-			continue // interface down
-		}
-		if iface.Flags&net.FlagLoopback != 0 {
-			continue // loopback interface
-		}
-		addrs, err := iface.Addrs()
-		if err != nil {
-			return "", err
-		}
-		for _, addr := range addrs {
-			var ip net.IP
-			switch v := addr.(type) {
-			case *net.IPNet:
-				ip = v.IP
-			case *net.IPAddr:
-				ip = v.IP
-			}
-			if ip == nil || ip.IsLoopback() {
-				continue
-			}
-			ip = ip.To4()
-			if ip == nil {
-				continue // not an ipv4 address
-			}
-			return ip.String(), nil
-		}
-	}
-	return "", errors.New("are you connected to the network?")
-}
-
-func getDockerfile(version string) string {
-	replacePair := map[string]string{
-		"VERSION":      version,
-		"a":            "$a",
-		"DATAKIT_HOST": "${DATAKIT_HOST}",
-	}
-
-	return os.Expand(dockerFileLogstash, func(k string) string { return replacePair[k] })
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-// Dockerfiles.
-
-const dockerFileLogstash = `FROM elastic/filebeat:${VERSION}
-
-USER root
-
-RUN sed -i '10,13d' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a output.logstash:' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a \  hosts: ["${DATAKIT_HOST}:5044"]' /usr/share/filebeat/filebeat.yml \
-    && echo "" >> /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a filebeat.inputs:' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a - type: filestream' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a \  id: my-filestream-id' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a \  enabled: true' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a \  paths:' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a \    - /var/log/*.log' /usr/share/filebeat/filebeat.yml
-
-USER filebeat`
