@@ -56,9 +56,6 @@ const (
 	TAG_CONTAINER_HOST   = "container_host"
 	TAG_ENDPOINT         = "endpoint"
 	TAG_ENV              = "env"
-	TAG_ERR_MESSAGE      = "error_message"
-	TAG_ERR_STACK        = "error_stack"
-	TAG_ERR_TYPE         = "error_type"
 	TAG_HTTP_HOST        = "http_host"
 	TAG_HTTP_METHOD      = "http_method"
 	TAG_HTTP_ROUTE       = "http_route"
@@ -83,6 +80,10 @@ const (
 	FIELD_SPANID      = "span_id"
 	FIELD_START       = "start"
 	FIELD_TRACEID     = "trace_id"
+	FIELD_ERR_MESSAGE = "error_message"
+	FIELD_ERR_STACK   = "error_stack"
+	FIELD_ERR_TYPE    = "error_type"
+	FIELD_CALL_TREE   = "calling_tree"
 )
 
 // nolint:stylecheck
@@ -321,9 +322,9 @@ func MergeInToCustomerTags(customerKeys []string, datakitTags, sourceTags map[st
 	for k, v := range datakitTags {
 		merged[k] = v
 	}
-	for i := range customerKeys {
-		if v, ok := sourceTags[customerKeys[i]]; ok {
-			merged[customerKeys[i]] = v
+	for _, k := range customerKeys {
+		if v, ok := sourceTags[k]; ok {
+			merged[k] = v
 		}
 	}
 

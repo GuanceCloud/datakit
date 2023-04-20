@@ -37,7 +37,7 @@ require (
 	github.com/gdamore/tcell/v2 v2.4.1-0.20210905002822-f057f0a857a1
 	github.com/gin-gonic/gin v1.9.0
 	github.com/go-git/go-git/v5 v5.4.2
-	github.com/go-ole/go-ole v1.2.5
+	github.com/go-ole/go-ole v1.2.6
 	github.com/go-ping/ping v1.1.0
 	github.com/go-redis/redis/v8 v8.11.3
 	github.com/go-sourcemap/sourcemap v2.1.3+incompatible
@@ -82,7 +82,7 @@ require (
 	github.com/rivo/tview v0.0.0-20220129131435-1f7581b67bd1
 	github.com/schollz/progressbar/v3 v3.9.0
 	github.com/shirou/gopsutil v3.21.8+incompatible
-	github.com/shirou/gopsutil/v3 v3.20.12
+	github.com/shirou/gopsutil/v3 v3.22.7
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cast v1.5.0
 	github.com/spf13/pflag v1.0.5
@@ -305,8 +305,8 @@ require (
 	github.com/stretchr/objx v0.5.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
-	github.com/tklauser/go-sysconf v0.3.9 // indirect
-	github.com/tklauser/numcpus v0.3.0 // indirect
+	github.com/tklauser/go-sysconf v0.3.10 // indirect
+	github.com/tklauser/numcpus v0.4.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
@@ -360,7 +360,12 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 )
 
-require github.com/pierrec/lz4/v4 v4.1.17 // indirect
+require (
+	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
+	github.com/pierrec/lz4/v4 v4.1.17 // indirect
+	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
+	github.com/yusufpapurcu/wmi v1.2.2 // indirect
+)
 
 // replace
 replace (

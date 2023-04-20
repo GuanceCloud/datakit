@@ -143,8 +143,11 @@ nav:
       - 'Zipkin':
         - zipkin.md
 
-      - 'Jaeger' :
+      - 'Jaeger':
         - jaeger.md
+
+      - 'Pinpoint':
+        -  pinpoint.md
 
     - 用户访问监测（RUM）:
       - rum.md
