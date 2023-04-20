@@ -6,14 +6,27 @@
 package jvm
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"fmt"
+
+	"github.com/GuanceCloud/cliutils/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+const (
+	javaRuntime          = "java_runtime"
+	javaMemory           = "java_memory"
+	javaGarbageCollector = "java_garbage_collector"
+	javaThreading        = "java_threading"
+	javaClassLoading     = "java_class_loading"
+	javaMemoryPool       = "java_memory_pool"
+)
+
 type JvmMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	election bool
 }
 
 type JavaRuntimeMemt struct {
@@ -28,9 +41,9 @@ type JavaGcMemt struct {
 	JvmMeasurement
 }
 
-type JavaLastGcMemt struct {
-	JvmMeasurement
-}
+// type JavaLastGcMemt struct {
+// 	JvmMeasurement
+// }
 
 type JavaThreadMemt struct {
 	JvmMeasurement
@@ -44,39 +57,93 @@ type JavaMemoryPoolMemt struct {
 	JvmMeasurement
 }
 
-func (j *JvmMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
+////////////////////////////////////////////////////////////////////////////////
+
+// Point implement MeasurementV2.
+func (m *JvmMeasurement) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	}
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
 }
 
-func (j *JvmMeasurement) Info() *inputs.MeasurementInfo {
+func (*JvmMeasurement) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
+	return nil, fmt.Errorf("not implement")
+}
+
+func (*JvmMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{}
 }
 
-func (j *JavaRuntimeMemt) LineProto() (*point.Point, error) {
-	return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
+////////////////////////////////////////////////////////////////////////////////
+
+// Point implement MeasurementV2.
+func (m *JavaRuntimeMemt) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	}
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (*JavaRuntimeMemt) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
-func (j *JavaRuntimeMemt) Info() *inputs.MeasurementInfo {
+func (*JavaRuntimeMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "java_runtime",
+		Name: javaRuntime,
 		Fields: map[string]interface{}{
 			"Uptime": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.DurationMS, Desc: "The total runtime."},
+
+			"CollectionUsageinit":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of memory in bytes that the Java virtual machine initially requests from the operating system for memory management."},
+			"CollectionUsagecommitted": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of memory in bytes that is committed for the Java virtual machine to use."},
+			"CollectionUsagemax":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The maximum amount of memory in bytes that can be used for memory management."},
+			"CollectionUsageused":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of used memory in bytes."},
 		},
 		Tags: map[string]interface{}{
 			"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
+			"host":              inputs.TagInfo{Desc: "The hostname of the Jolokia agent/proxy running on."},
 		},
 	}
 }
 
-func (j *JavaMemoryMemt) LineProto() (*point.Point, error) {
-	return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
+////////////////////////////////////////////////////////////////////////////////
+
+// Point implement MeasurementV2.
+func (m *JavaMemoryMemt) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	}
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (*JavaMemoryMemt) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
-func (j *JavaMemoryMemt) Info() *inputs.MeasurementInfo {
+func (*JavaMemoryMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "java_memory",
+		Name: javaMemory,
 		Fields: map[string]interface{}{
 			"HeapMemoryUsageinit":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The initial Java heap memory allocated."},
 			"HeapMemoryUsageused":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total Java heap memory used."},
@@ -89,91 +156,195 @@ func (j *JavaMemoryMemt) Info() *inputs.MeasurementInfo {
 			"NonHeapMemoryUsagecommitted": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total Java non-heap memory committed to be used."},
 
 			"ObjectPendingFinalizationCount": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The count of object pending finalization."},
+
+			"CollectionUsageinit":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of memory in bytes that the Java virtual machine initially requests from the operating system for memory management."},
+			"CollectionUsagecommitted": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of memory in bytes that is committed for the Java virtual machine to use."},
+			"CollectionUsagemax":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The maximum amount of memory in bytes that can be used for memory management."},
+			"CollectionUsageused":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of used memory in bytes."},
 		},
 
 		Tags: map[string]interface{}{
 			"jolokia_agent_url": inputs.NewTagInfo("jolokia agent url path"),
+			"host":              inputs.NewTagInfo("The hostname of the Jolokia agent/proxy running on."),
 		},
 	}
 }
 
-func (j *JavaGcMemt) LineProto() (*point.Point, error) {
-	return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
+////////////////////////////////////////////////////////////////////////////////
+
+// Point implement MeasurementV2.
+func (m *JavaGcMemt) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	}
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (*JavaGcMemt) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
-func (j *JavaGcMemt) Info() *inputs.MeasurementInfo {
+func (*JavaGcMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "java_garbage_collector",
+		Name: javaGarbageCollector,
 		Fields: map[string]interface{}{
 			"CollectionTime":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The approximate GC collection time elapsed."},
 			"CollectionCount": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of GC that have occurred."},
+
+			"CollectionUsageinit":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of memory in bytes that the Java virtual machine initially requests from the operating system for memory management."},
+			"CollectionUsagecommitted": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of memory in bytes that is committed for the Java virtual machine to use."},
+			"CollectionUsagemax":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The maximum amount of memory in bytes that can be used for memory management."},
+			"CollectionUsageused":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of used memory in bytes."},
 		},
 
 		Tags: map[string]interface{}{
 			"jolokia_agent_url": inputs.NewTagInfo("jolokia agent url path"),
 			"name":              inputs.NewTagInfo("the name of GC generation"),
+			"host":              inputs.NewTagInfo("The hostname of the Jolokia agent/proxy running on."),
 		},
 	}
 }
 
-func (j *JavaLastGcMemt) LineProto() (*point.Point, error) {
-	return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
+////////////////////////////////////////////////////////////////////////////////
+
+// Point implement MeasurementV2.
+// func (m *JavaLastGcMemt) Point() *point.Point {
+// 	opts := point.DefaultMetricOptions()
+
+// 	if m.election {
+// 		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+// 	}
+
+// 	return point.NewPointV2([]byte(m.name),
+// 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+// 		opts...)
+// }
+
+// func (*JavaLastGcMemt) LineProto() (*dkpt.Point, error) {
+// 	// return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
+// 	return nil, fmt.Errorf("not implement")
+// }
+
+// func (*JavaLastGcMemt) Info() *inputs.MeasurementInfo {
+// 	return &inputs.MeasurementInfo{}
+// }
+
+////////////////////////////////////////////////////////////////////////////////
+
+// Point implement MeasurementV2.
+func (m *JavaThreadMemt) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	}
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
 }
 
-func (j *JavaLastGcMemt) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{}
-}
-
-func (j *JavaThreadMemt) LineProto() (*point.Point, error) {
-	return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
+func (*JavaThreadMemt) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
-func (j *JavaThreadMemt) Info() *inputs.MeasurementInfo {
+func (*JavaThreadMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "java_threading",
+		Name: javaThreading,
 		Fields: map[string]interface{}{
 			"DaemonThreadCount":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The count of daemon thread."},
 			"PeakThreadCount":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The peak count of thread."},
 			"ThreadCount":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The count of thread."},
 			"TotalStartedThreadCount": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The total count of started thread."},
+
+			"CollectionUsageinit":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of memory in bytes that the Java virtual machine initially requests from the operating system for memory management."},
+			"CollectionUsagecommitted": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of memory in bytes that is committed for the Java virtual machine to use."},
+			"CollectionUsagemax":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The maximum amount of memory in bytes that can be used for memory management."},
+			"CollectionUsageused":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of used memory in bytes."},
 		},
 
 		Tags: map[string]interface{}{
 			"jolokia_agent_url": inputs.NewTagInfo("jolokia agent url path"),
+			"host":              inputs.NewTagInfo("The hostname of the Jolokia agent/proxy running on."),
 		},
 	}
 }
 
-func (j *JavaClassLoadMemt) LineProto() (*point.Point, error) {
-	return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
+////////////////////////////////////////////////////////////////////////////////
+
+// Point implement MeasurementV2.
+func (m *JavaClassLoadMemt) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	}
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (*JavaClassLoadMemt) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
-func (j *JavaClassLoadMemt) Info() *inputs.MeasurementInfo {
+func (*JavaClassLoadMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "java_class_loading",
+		Name: javaClassLoading,
 		Fields: map[string]interface{}{
 			"LoadedClassCount":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The count of loaded class."},
 			"TotalLoadedClassCount": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The total count of loaded class."},
 			"UnloadedClassCount":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The count of unloaded class."},
+
+			"CollectionUsageinit":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of memory in bytes that the Java virtual machine initially requests from the operating system for memory management."},
+			"CollectionUsagecommitted": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of memory in bytes that is committed for the Java virtual machine to use."},
+			"CollectionUsagemax":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The maximum amount of memory in bytes that can be used for memory management."},
+			"CollectionUsageused":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of used memory in bytes."},
 		},
 
 		Tags: map[string]interface{}{
 			"jolokia_agent_url": inputs.NewTagInfo("jolokia agent url path"),
+			"host":              inputs.NewTagInfo("The hostname of the Jolokia agent/proxy running on."),
 		},
 	}
 }
 
-func (j *JavaMemoryPoolMemt) LineProto() (*point.Point, error) {
-	return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
+////////////////////////////////////////////////////////////////////////////////
+
+// Point implement MeasurementV2.
+func (m *JavaMemoryPoolMemt) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	}
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (*JavaMemoryPoolMemt) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
-func (j *JavaMemoryPoolMemt) Info() *inputs.MeasurementInfo {
+func (*JavaMemoryPoolMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "java_memory_pool",
+		Name: javaMemoryPool,
 		Fields: map[string]interface{}{
 			"Usageinit":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The initial Java memory pool allocated"},
 			"Usagemax":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The maximum Java  memory pool available."},
@@ -184,11 +355,19 @@ func (j *JavaMemoryPoolMemt) Info() *inputs.MeasurementInfo {
 			"PeakUsagemax":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The maximum peak Java  memory pool available."},
 			"PeakUsagecommitted": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total peak Java memory pool committed to be used"},
 			"PeakUsageused":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total peak Java memory pool used."},
+
+			"CollectionUsageinit":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of memory in bytes that the Java virtual machine initially requests from the operating system for memory management."},
+			"CollectionUsagecommitted": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of memory in bytes that is committed for the Java virtual machine to use."},
+			"CollectionUsagemax":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The maximum amount of memory in bytes that can be used for memory management."},
+			"CollectionUsageused":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of used memory in bytes."},
 		},
 
 		Tags: map[string]interface{}{
 			"jolokia_agent_url": inputs.NewTagInfo("jolokia agent url path"),
 			"name":              inputs.NewTagInfo("the name of space"),
+			"host":              inputs.NewTagInfo("The hostname of the Jolokia agent/proxy running on."),
 		},
 	}
 }
+
+////////////////////////////////////////////////////////////////////////////////
