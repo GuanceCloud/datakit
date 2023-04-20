@@ -116,7 +116,9 @@ func (kc *kafkaConsumer) start() {
 			if ctx.Err() != nil {
 				return
 			}
+			log.Infof("group:[%s] Re-election, consumer starts consuming messages", kc.groupID)
 			time.Sleep(time.Second) // 防止频率太快 造成的日志太大.
+			kc.ready = make(chan bool)
 		}
 	}()
 

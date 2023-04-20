@@ -6,71 +6,76 @@
 
 ---
 
-Datakit supports subscribing messages from kafka to gather link, metric, and log information. Currently, only `SkyWalking`,`Jaeger` and custom topic are supported.
+Datakit supports subscribing messages from kafka to gather link, metric, and log information. Currently, only `SkyWalking`,`Jaeger` and `custom topic` are supported.
 
 ### Configure datakit {#datakit-config}
 Copy configuration files and modify
 
 === "Host deployment"
 
-    Go to the `conf.d/kafkamq` directory under the DataKit installation directory, copy `kafka.conf.sample` and name it `kafka.conf`. Examples are as follows:
+    Go to the `conf.d/kafkamq` directory under the DataKit installation directory, copy `kafkamq.conf.sample` and name it `kafkamq.conf`. Examples are as follows:
     
     ``` toml
     [[inputs.kafkamq]]
-    addrs = ["localhost:9092"]
-    # your kafka version:0.8.2 ~ 3.2.0
-    kafka_version = "2.0.0"
-    group_id = "datakit-group"
-    # consumer group partition assignment strategy (range, roundrobin, sticky)
-    assignor = "roundrobin"
-    
-    ## rate limit.
-    #limit_sec = 100
-    ## sample
-    # sampling_rate = 1.0
-    
-    ## kafka tls config
-    # tls_enable = true
-    # tls_security_protocol = "SASL_PLAINTEXT"
-    # tls_sasl_mechanism = "PLAIN"
-    # tls_sasl_plain_username = "user"
-    # tls_sasl_plain_password = "pw"
-    
-    ## -1:Offset Newest, -2:Offset Oldest
-    offsets=-1
-    
-    ## skywalking custom
-    #[inputs.kafkamq.skywalking]
-    ## Required！send to datakit skywalking input.
-    #dk_endpoint="http://localhost:9529"
-    
-        #topics = [
-        #  "skywalking-metrics",
-        #  "skywalking-profilings",
-        #  "skywalking-segments",
-        #  "skywalking-managements",
-        #  "skywalking-meters",
-        #  "skywalking-logging",
-        #]
-        #namespace = ""
-    
-    ## Jaeger from kafka. Please make sure your Datakit Jaeger collector is open ！！！
-    #[inputs.kafkamq.jaeger]
-    ## Required！ ipv6 is "[::1]:9529"
-    #dk_endpoint="http://localhost:9529"
+      addrs = ["localhost:9092"]
+      # your kafka version:0.8.2 ~ 3.2.0
+      kafka_version = "2.0.0"
+      group_id = "datakit-group"
+      # consumer group partition assignment strategy (range, roundrobin, sticky)
+      assignor = "roundrobin"
+      
+      ## rate limit.
+      #limit_sec = 100
+      ## sample
+      # sampling_rate = 1.0
+      
+      ## kafka tls config
+      # tls_enable = true
+      # tls_security_protocol = "SASL_PLAINTEXT"
+      # tls_sasl_mechanism = "PLAIN"
+      # tls_sasl_plain_username = "user"
+      # tls_sasl_plain_password = "pw"
+      
+      ## -1:Offset Newest, -2:Offset Oldest
+      offsets=-1
+      
+      ## skywalking custom
+      #[inputs.kafkamq.skywalking]
+      ## Required！send to datakit skywalking input.
+      #dk_endpoint="http://localhost:9529"
+      
+          #topics = [
+          #  "skywalking-metrics",
+          #  "skywalking-profilings",
+          #  "skywalking-segments",
+          #  "skywalking-managements",
+          #  "skywalking-meters",
+          #  "skywalking-logging",
+          #]
+          #namespace = ""
+      
+      ## Jaeger from kafka. Please make sure your Datakit Jaeger collector is open ！！！
+      #[inputs.kafkamq.jaeger]
+      ## Required！ ipv6 is "[::1]:9529"
+      #dk_endpoint="http://localhost:9529"
+  
+        ## Required！ topics 
+        #topics=["jaeger-spans","jaeger-my-spans"]
+      
+      ## user custom message with PL script.
+      #[inputs.kafkamq.custom]
+        #[inputs.kafkamq.custom]
+          #[inputs.kafkamq.custom.log_topic_map]
+          #  "log_topic"="log.p"
+          #  "log01"="log_01.p"
+          #[inputs.kafkamq.custom.metric_topic_map]
+          #  "metric_topic"="metric.p"
+          #  "metric01"="rum_apm.p"
+          #[inputs.kafkamq.custom.rum_topic_map]
+          #  "rum_topic"="rum_01.p"
+          #  "rum_02"="rum_02.p"
 
-      ## Required！ topics 
-      #topics=["jaeger-spans","jaeger-my-spans"]
-    
-    ## user custom message with PL script.
-    #[inputs.kafkamq.custom]
-      #group_id="datakit"
-      #log_topics=["apm"]
-      #log_pl="log.p"
-      #metric_topic=["metric1"]
-      #metric_pl="kafka_metric.p"
-    
-      #spilt_json_body = true   
+         #spilt_json_body = true
     ```
 
 === "Kubernetes/Docker/Containerd"
@@ -134,15 +139,22 @@ Sometimes users don't use common tools in the market, and some tripartite librar
 Configuration:
 ```toml
  ...
- ## user custom message with PL script.
+  ## user custom message with PL script.
   [inputs.kafkamq.custom]
-    log_topics=["apm"]
-    log_pl="log.p"
-    metric_topic=["metric1"]
-    metric_pl="kafka_metric.p"
+    [inputs.kafkamq.custom.log_topic_map]
+      "log_topic"="log.p"
+      "log"="rum_apm.p"
+    [inputs.kafkamq.custom.metric_topic_map]
+      "metric_topic"="rum_apm.p"
+      
+    [inputs.kafkamq.custom.rum_topic_map]
+      "rum"="rum.p"
+      
 
     #spilt_json_body = true
 ```
+
+Note: The pl script of metric should be placed in the `pipeline/metric/` directory, and the pl script of rum should be placed in the `pipeline/rum/` directory.
 
 Theoretically, each message body should be a log or an indicator. If your message is multiple logs, you can use `spilt_json_body` to enable the function of splitting arrays: When the data is an array and conforms to the json format, it can be set to true, and PL can be used to Arrays are sliced into individual log or metric data.
 

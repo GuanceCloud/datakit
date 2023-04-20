@@ -61,9 +61,9 @@ func withAssignors(balance string) option {
 
 func withOffset(offset int64) option {
 	return func(con *sarama.Config) {
-		con.Consumer.Offsets.Initial = sarama.OffsetOldest
-		if offset == sarama.OffsetNewest {
-			con.Consumer.Offsets.Initial = sarama.OffsetNewest
+		con.Consumer.Offsets.Initial = sarama.OffsetNewest
+		if offset == sarama.OffsetOldest {
+			con.Consumer.Offsets.Initial = sarama.OffsetOldest
 		}
 	}
 }
@@ -83,7 +83,6 @@ func withSASL(enable bool, mechanism, username, pw string) option {
 func newSaramaConfig(opts ...option) *sarama.Config {
 	conf := sarama.NewConfig()
 	conf.Consumer.Return.Errors = false
-	conf.Consumer.Offsets.Initial = sarama.OffsetOldest // 未找到组消费位移的时候从哪边开始消费
 
 	conf.Consumer.Offsets.Retry.Max = 10
 	name, _ := os.Hostname()
