@@ -88,7 +88,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		{
 			name: "memcached:1.5",
 			conf: fmt.Sprintf(`servers = ["%s:11211"]
-			interval = "3s"
+			interval = "1s"
 		[tags]
 			tag1 = "val1"`, remote.Host),
 			exposedPorts: []string{"11211/tcp"},
@@ -96,7 +96,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		{
 			name: "memcached:1.6",
 			conf: fmt.Sprintf(`servers = ["%s:11211"]
-			interval = "3s"
+			interval = "1s"
 		[tags]
 			tag1 = "val1"`, remote.Host),
 			exposedPorts: []string{"11211/tcp"},
@@ -254,7 +254,6 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				Env:        []string{"MONGO_INITDB_ROOT_USERNAME=root", "MONGO_INITDB_ROOT_PASSWORD=example"},
 				Cmd:        cs.cmd,
 
 				ExposedPorts: cs.exposedPorts,
@@ -276,7 +275,6 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				Env:        []string{"MONGO_INITDB_ROOT_USERNAME=root", "MONGO_INITDB_ROOT_PASSWORD=example"},
 				Cmd:        cs.cmd,
 
 				ExposedPorts: cs.exposedPorts,

@@ -3,36 +3,34 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package pythond
+package apache
 
 import (
-	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"github.com/gin-gonic/gin"
-	"github.com/ory/dockertest/v3"
+	"github.com/GuanceCloud/cliutils/point"
+	dockertest "github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-func TestPythondInput(t *testing.T) {
+// ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
+
+func TestApacheInput(t *testing.T) {
 	start := time.Now()
 	cases, err := buildCases(t)
 	if err != nil {
@@ -90,10 +88,17 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		conf           string
 		dockerFileText string // Empty if not build image.
 		exposedPorts   []string
-		opts           []inputs.PointCheckOption
+		mPathCount     map[string]int
 	}{
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/python:3-datakit_framework",
+			name: "httpd:server-status",
+			conf: fmt.Sprintf(`url = "http://%s/server-status?auto"
+			interval = "1s"`, remote.Host),
+			dockerFileText: getDockerfile("2.4"),
+			exposedPorts:   []string{"80/tcp"},
+			mPathCount: map[string]int{
+				"/": 100,
+			},
 		},
 	}
 
@@ -101,7 +106,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 	// compose cases
 	for _, base := range bases {
-		feeder := dkio.NewMockedFeeder()
+		feeder := io.NewMockedFeeder()
 
 		ipt := defaultInput()
 		ipt.feeder = feeder
@@ -121,7 +126,8 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 			dockerFileText: base.dockerFileText,
 			exposedPorts:   base.exposedPorts,
-			opts:           base.opts,
+			// opts:           base.opts,
+			mPathCount: base.mPathCount,
 
 			cr: &testutils.CaseResult{
 				Name:        t.Name(),
@@ -153,9 +159,10 @@ type caseSpec struct {
 	dockerFileText string
 	exposedPorts   []string
 	opts           []inputs.PointCheckOption
+	mPathCount     map[string]int
 
 	ipt    *Input
-	feeder *dkio.MockedFeeder
+	feeder *io.MockedFeeder
 
 	pool     *dockertest.Pool
 	resource *dockertest.Resource
@@ -163,117 +170,54 @@ type caseSpec struct {
 	cr *testutils.CaseResult
 }
 
-var (
-	done      chan struct{}
-	lock      sync.RWMutex
-	errorMsgs []string
-	count     uint32
-)
+func (cs *caseSpec) checkPoint(pts []*point.Point) error {
+	var opts []inputs.PointCheckOption
+	opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
+	opts = append(opts, cs.opts...)
 
-type FeedMeasurementBody []struct {
-	Measurement string                 `json:"measurement"`
-	Tags        map[string]string      `json:"tags"`
-	Fields      map[string]interface{} `json:"fields"`
-}
+	for _, pt := range pts {
+		measurement := string(pt.Name())
 
-func addErrorMsgs(str string) {
-	lock.RLock()
-	defer lock.RUnlock()
-	errorMsgs = append(errorMsgs, str)
-}
+		switch measurement {
+		case inputName:
+			opts = append(opts, inputs.WithDoc(&Measurement{}))
 
-func (cs *caseSpec) addErrorMsgs(str string) {
-	addErrorMsgs(str)
-}
+			msgs := inputs.CheckPoint(pt, opts...)
 
-func (cs *caseSpec) handler(c *gin.Context) {
-	uri, err := url.ParseRequestURI(c.Request.URL.RequestURI())
-	if err != nil {
-		cs.t.Logf("%s", err.Error())
-		return
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
+
+			// TODO: error here
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
+
+		default: // TODO: check other measurement
+			panic("not implement")
+		}
+
+		// check if tag appended
+		if len(cs.ipt.Tags) != 0 {
+			cs.t.Logf("checking tags %+#v...", cs.ipt.Tags)
+
+			tags := pt.Tags()
+			for k, expect := range cs.ipt.Tags {
+				if v := tags.Get([]byte(k)); v != nil {
+					got := string(v.GetD())
+					if got != expect {
+						return fmt.Errorf("expect tag value %s, got %s", expect, got)
+					}
+				} else {
+					return fmt.Errorf("tag %s not found, got %v", k, tags)
+				}
+			}
+		}
 	}
 
-	body, err := ioutil.ReadAll(c.Request.Body)
-	defer c.Request.Body.Close()
-	if err != nil {
-		cs.t.Logf("%s", err.Error())
-		return
-	}
-	str := string(body)
-	cs.t.Logf(str)
-	cs.t.Logf("\n")
+	// TODO: some other checking on @pts, such as `if some required measurements exist'...
 
-	switch uri.Path {
-	case "/v1/write/metrics":
-	case "/v1/write/metric":
-		atomic.AddUint32(&count, 1)
-		if uri.RawQuery == "input=py_from_docker" {
-			if str != `[{"measurement": "measurement1", "tags": {"tag_name": "tag_value"}, "fields": {"count": 1}}]` {
-				cs.addErrorMsgs("[ERROR] 10001")
-			}
-		} else {
-			if str != `[{"measurement": "measurement2", "tags": {"tag1": "val1", "tag2": "val2"}, "fields": {"custom_field1": "val1", "custom_field2": 1000, "custom_key1": "custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}, "time": null}]` {
-				cs.addErrorMsgs("[ERROR] 10002")
-			}
-		}
-	case "/v1/write/network":
-	case "/v1/write/keyevent":
-		atomic.AddUint32(&count, 1)
-		parsedBody := FeedMeasurementBody{}
-		if err := json.Unmarshal(body, &parsedBody); err != nil {
-			cs.t.Logf("json.Unmarshal failed: %s", err.Error())
-			return
-		}
-		if len(parsedBody) == 0 {
-			cs.t.Logf("parse body failed: body length 0")
-			return
-		}
-		src, ok := parsedBody[0].Fields["df_source"]
-		if !ok {
-			cs.t.Logf("parse body failed: no df_source")
-			return
-		}
-		srcStr, ok := src.(string)
-		if !ok {
-			cs.t.Logf("parse body failed: df_source not string")
-			return
-		}
-		switch srcStr {
-		case "user":
-			if str != `[{"measurement": "measurement", "tags": {"tag1": "val1", "tag2": "val2"}, "fields": {"df_date_range": 10, "df_source": "user", "df_user_id": "user_id", "df_status": "info", "df_event_id": "event_id", "df_title": "title", "df_message": "message", "custom_key1": "custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}}]` {
-				cs.addErrorMsgs("[ERROR] 10007")
-			}
-		case "monitor":
-			if str != `[{"measurement": "measurement", "tags": {"tag1": "val1", "tag2": "val2"}, "fields": {"df_date_range": 10, "df_source": "monitor", "df_dimension_tags": "{\"host\":\"web01\"}", "df_status": "info", "df_event_id": "event_id", "df_title": "title", "df_message": "message", "custom_key1": "custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}}]` {
-				cs.addErrorMsgs("[ERROR] 10005")
-			}
-		case "system":
-			if str != `[{"measurement": "measurement", "tags": {"tag1": "val1", "tag2": "val2"}, "fields": {"df_date_range": 10, "df_source": "system", "df_status": "info", "df_event_id": "event_id", "df_title": "feed_system_event", "df_message": "message", "custom_key1": "custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}}]` {
-				cs.addErrorMsgs("[ERROR] 10006")
-			}
-		}
-	case "/v1/write/object":
-		atomic.AddUint32(&count, 1)
-		if str != `[{"measurement": "measurement4", "tags": {"tag1": "val1", "tag2": "val2", "name": "name"}, "fields": {"custom_field1": "val1", "custom_field2": 1000, "custom_key1": "custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}, "time": null}]` {
-			cs.addErrorMsgs("[ERROR] 10004")
-		}
-	case "/v1/write/custom_object":
-	case "/v1/write/logging":
-		atomic.AddUint32(&count, 1)
-		if str != `[{"measurement": "measurement3", "tags": {"tag1": "val1", "tag2": "val2"}, "fields": {"message": "This is the message for testing", "custom_key1": "custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}, "time": null}]` {
-			cs.addErrorMsgs("[ERROR] 10003")
-		}
-	case "/v1/write/tracing":
-	case "/v1/write/rum":
-	case "/v1/write/security":
-	case "/v1/write/profiling":
-	}
-
-	val := atomic.LoadUint32(&count)
-	if val == 7 {
-		atomic.SwapUint32(&count, 0)
-		done <- struct{}{}
-	}
+	return nil
 }
 
 func (cs *caseSpec) run() error {
@@ -281,32 +225,6 @@ func (cs *caseSpec) run() error {
 	dockerTCP := r.TCPURL()
 
 	cs.t.Logf("get remote: %+#v, TCP: %s", r, dockerTCP)
-
-	router := gin.New()
-	router.POST("/v1/write/metrics", cs.handler)
-	router.POST("/v1/write/metric", cs.handler)
-	router.POST("/v1/write/network", cs.handler)
-	router.POST("/v1/write/keyevent", cs.handler)
-	router.POST("/v1/write/object", cs.handler)
-	router.POST("/v1/write/custom_object", cs.handler)
-	router.POST("/v1/write/logging", cs.handler)
-	router.POST("/v1/write/tracing", cs.handler)
-	router.POST("/v1/write/rum", cs.handler)
-	router.POST("/v1/write/security", cs.handler)
-	router.POST("/v1/write/profiling", cs.handler)
-
-	srv := &http.Server{
-		Addr:    ":59529",
-		Handler: router,
-	}
-
-	go func() {
-		done = nil
-		done = make(chan struct{})
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			panic(err)
-		}
-	}()
 
 	start := time.Now()
 
@@ -343,7 +261,7 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), "DATAKIT_PORT=59529"},
+				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP)},
 
 				ExposedPorts: cs.exposedPorts,
 				PortBindings: cs.getPortBindings(),
@@ -364,7 +282,7 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), "DATAKIT_PORT=59529"},
+				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP)},
 
 				ExposedPorts: cs.exposedPorts,
 				PortBindings: cs.getPortBindings(),
@@ -378,7 +296,6 @@ func (cs *caseSpec) run() error {
 	}
 
 	if err != nil {
-		cs.t.Logf("%s", err.Error())
 		return err
 	}
 
@@ -393,32 +310,39 @@ func (cs *caseSpec) run() error {
 
 	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
 
-	tick := time.NewTicker(time.Second * 30)
-	out := false
-	for {
-		if out {
-			break
-		}
+	cs.runHTTPTests(r)
 
-		select {
-		case <-tick.C:
-			out = true
-		case <-done:
-			out = true
-		}
+	var wg sync.WaitGroup
+
+	// start input
+	cs.t.Logf("start input...")
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		cs.ipt.Run()
+	}()
+
+	// wait data
+	start = time.Now()
+	cs.t.Logf("wait points...")
+	pts, err := cs.feeder.AnyPoints(5 * time.Minute)
+	if err != nil {
+		return err
 	}
 
-	if len(errorMsgs) > 0 {
-		return fmt.Errorf("errorMsgs: %#v", errorMsgs)
+	cs.cr.AddField("point_latency", int64(time.Since(start)))
+	cs.cr.AddField("point_count", len(pts))
+
+	cs.t.Logf("get %d points", len(pts))
+	if err := cs.checkPoint(pts); err != nil {
+		return err
 	}
-	errorMsgs = errorMsgs[:0]
+
+	cs.t.Logf("stop input...")
+	cs.ipt.Terminate()
 
 	cs.t.Logf("exit...")
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil && errors.Is(err, http.ErrServerClosed) {
-		cs.t.Logf("Shutdown failed: %v", err)
-	}
+	wg.Wait()
 
 	return nil
 }
@@ -437,6 +361,10 @@ func (cs *caseSpec) getPool(endpoint string) (*dockertest.Pool, error) {
 }
 
 func (cs *caseSpec) getDockerFilePath() (dirName string, fileName string, err error) {
+	if len(cs.dockerFileText) == 0 {
+		return
+	}
+
 	tmpDir, err := ioutil.TempDir("", "dockerfiles_")
 	if err != nil {
 		cs.t.Logf("ioutil.TempDir failed: %s", err.Error())
@@ -493,6 +421,32 @@ func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
 	return nil
 }
 
+// Launch large amount of HTTP requests to remote nginx.
+func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) {
+	for path, count := range cs.mPathCount {
+		newURL := fmt.Sprintf("http://%s%s", r.Host, path)
+
+		var wg sync.WaitGroup
+		wg.Add(count)
+
+		for i := 0; i < count; i++ {
+			go func() {
+				defer wg.Done()
+
+				resp, err := http.Get(newURL)
+				if err != nil {
+					panic(err)
+				}
+				if err := resp.Body.Close(); err != nil {
+					panic(err)
+				}
+			}()
+		}
+
+		wg.Wait()
+	}
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 func externalIP() (string, error) {
@@ -531,3 +485,26 @@ func externalIP() (string, error) {
 	}
 	return "", errors.New("are you connected to the network?")
 }
+
+func getDockerfile(version string) string {
+	replacePair := map[string]string{
+		"VERSION":  version,
+		"a":        "$a",
+		"ALLOW_IP": "${DATAKIT_HOST}",
+	}
+
+	return os.Expand(dockerFileServerStatus, func(k string) string { return replacePair[k] })
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+// Dockerfiles.
+
+const dockerFileServerStatus = `FROM httpd:${VERSION}
+
+RUN sed -i '$a <Location /server-status>' /usr/local/apache2/conf/httpd.conf \
+  && sed -i '$a SetHandler server-status' /usr/local/apache2/conf/httpd.conf \
+  && sed -i '$a Order Deny,Allow' /usr/local/apache2/conf/httpd.conf \
+  && sed -i '$a Deny from all' /usr/local/apache2/conf/httpd.conf \
+  && sed -i '$a Allow from ${ALLOW_IP}' /usr/local/apache2/conf/httpd.conf \
+  && sed -i '$a </Location>' /usr/local/apache2/conf/httpd.conf`

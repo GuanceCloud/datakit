@@ -10,9 +10,9 @@ Apache collector can collect the number of requests, connections and others from
 
 ## Preconditions {#requirements}
 
-- Apache version >= 2.4.46 (Unix)
-- Typical Linux distributions come with Apache. [See](https://httpd.apache.org/download.cgi){:target="_blank"} for download.
-- Default configuration path: `/etc/apache2/apache2.conf`,`/etc/apache2/httpd.conf`
+- Apache version >= 2.4.46 (Unix). Already tested versions: `2.4.46 (Unix)` ~ `2.4.52 (Unix)`;
+- Typical Linux distributions come with Apache. [See](https://httpd.apache.org/download.cgi){:target="_blank"} for download;
+- Default configuration path: `/etc/apache2/apache2.conf`, `/etc/apache2/httpd.conf`, `/usr/local/apache2/conf/httpd.conf`;
 - Open Apache `mod_status` and add the followings in Apache profile:
 
 ```xml
@@ -21,7 +21,7 @@ SetHandler server-status
 
 Order Deny,Allow
 Deny from all
-Allow from your_ip
+Allow from [YOUR_IP]
 </Location>
 ```
 
