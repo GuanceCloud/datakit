@@ -19,12 +19,14 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 )
 
+// nolint: stylecheck
 const (
-	HTTP_KEY             uint8 = iota + 1 // nolint: stylecheck
-	OTEL_GRPC_KEY                         // nolint: stylecheck
-	SKY_WALKING_GRPC_KEY                  // nolint: stylecheck
-	ZIPKIN_HTTP_V1_KEY                    // nolint: stylecheck
-	ZIPKIN_HTTP_V2_KEY                    // nolint: stylecheck
+	HTTP_KEY uint8 = iota + 1
+	OTEL_GRPC_KEY
+	SKY_WALKING_GRPC_KEY
+	ZIPKIN_HTTP_V1_KEY
+	ZIPKIN_HTTP_V2_KEY
+	PINPOINT_GRPC_KEY
 )
 
 type StorageConfig struct {
@@ -75,7 +77,7 @@ func (s *Storage) RunConsumeWorker() error {
 		return errors.New("local-cache is already enabled")
 	}
 
-	g := goroutine.NewGroup(goroutine.Option{Name: "internal_trace"})
+	g := goroutine.NewGroup(goroutine.Option{Name: "internal_storage"})
 	g.Go(func(ctx context.Context) error {
 		for {
 			select {
@@ -99,6 +101,7 @@ func (s *Storage) RunConsumeWorker() error {
 			consumer, ok := s.consumers[key]
 			if !ok {
 				s.log.Errorf("consumer of key: %d not found", key)
+				time.Sleep(time.Second)
 				continue
 			}
 			if err = consumer(buf); err != nil {

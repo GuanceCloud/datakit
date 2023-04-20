@@ -259,9 +259,7 @@ func (ipt *Input) RegHTTPHandler() {
 }
 
 func (ipt *Input) Run() {
-	for i := range ipt.CustomerTags {
-		customerKeys = append(customerKeys, ipt.CustomerTags[i])
-	}
+	customerKeys = ipt.CustomerTags
 	tags = ipt.Tags
 
 	log.Debugf("### %s agent is running...", inputName)

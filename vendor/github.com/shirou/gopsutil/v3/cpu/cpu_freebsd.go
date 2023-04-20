@@ -3,7 +3,6 @@ package cpu
 import (
 	"context"
 	"fmt"
-	"os/exec"
 	"reflect"
 	"regexp"
 	"runtime"
@@ -12,31 +11,27 @@ import (
 	"unsafe"
 
 	"github.com/shirou/gopsutil/v3/internal/common"
+	"github.com/tklauser/go-sysconf"
 	"golang.org/x/sys/unix"
 )
 
-var ClocksPerSec = float64(128)
-var cpuMatch = regexp.MustCompile(`^CPU:`)
-var originMatch = regexp.MustCompile(`Origin\s*=\s*"(.+)"\s+Id\s*=\s*(.+)\s+Family\s*=\s*(.+)\s+Model\s*=\s*(.+)\s+Stepping\s*=\s*(.+)`)
-var featuresMatch = regexp.MustCompile(`Features=.+<(.+)>`)
-var featuresMatch2 = regexp.MustCompile(`Features2=[a-f\dx]+<(.+)>`)
-var cpuEnd = regexp.MustCompile(`^Trying to mount root`)
-var cpuCores = regexp.MustCompile(`FreeBSD/SMP: (\d*) package\(s\) x (\d*) core\(s\)`)
-var cpuTimesSize int
-var emptyTimes cpuTimes
+var (
+	ClocksPerSec   = float64(128)
+	cpuMatch       = regexp.MustCompile(`^CPU:`)
+	originMatch    = regexp.MustCompile(`Origin\s*=\s*"(.+)"\s+Id\s*=\s*(.+)\s+Family\s*=\s*(.+)\s+Model\s*=\s*(.+)\s+Stepping\s*=\s*(.+)`)
+	featuresMatch  = regexp.MustCompile(`Features=.+<(.+)>`)
+	featuresMatch2 = regexp.MustCompile(`Features2=[a-f\dx]+<(.+)>`)
+	cpuEnd         = regexp.MustCompile(`^Trying to mount root`)
+	cpuCores       = regexp.MustCompile(`FreeBSD/SMP: (\d*) package\(s\) x (\d*) core\(s\)`)
+	cpuTimesSize   int
+	emptyTimes     cpuTimes
+)
 
 func init() {
-	getconf, err := exec.LookPath("getconf")
-	if err != nil {
-		return
-	}
-	out, err := invoke.Command(getconf, "CLK_TCK")
+	clkTck, err := sysconf.Sysconf(sysconf.SC_CLK_TCK)
 	// ignore errors
 	if err == nil {
-		i, err := strconv.ParseFloat(strings.TrimSpace(string(out)), 64)
-		if err == nil {
-			ClocksPerSec = float64(i)
-		}
+		ClocksPerSec = float64(clkTck)
 	}
 }
 
