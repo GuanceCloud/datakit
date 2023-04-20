@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -380,6 +381,33 @@ func (ipt *Input) resolveWebSourceMap(p influxm.Point, sdkName string) (influxm.
 	return p, nil
 }
 
+func runAtosCMD(atosCMDPath, symbolFile, loadAddress string, addresses []string) ([]string, error) {
+	args := []string{
+		"-o", symbolFile, "-l", loadAddress,
+	}
+	args = append(args, addresses...)
+	cmd := exec.Command(atosCMDPath, args...) //nolint:gosec
+	cmd.Env = []string{"HOME=/root"}          // run the tool "atosl" must set this env, why?
+	log.Infof("%s %s", atosCMDPath, strings.Join(args, " "))
+	stdout, err := cmd.Output()
+	if err != nil {
+		var ee *exec.ExitError
+		if errors.As(err, &ee) {
+			log.Errorf("run atos tool fail: %s, err: %s", string(ee.Stderr), err)
+		} else {
+			log.Errorf("run atos tool fail: %s", err)
+		}
+		return nil, fmt.Errorf("unable to run atosl command: %w, stdout: %s", err, string(stdout))
+	}
+
+	// adapt different os newLine
+	stdoutStr := strings.ReplaceAll(string(stdout), "\r\n", "\n")
+	stdoutStr = strings.ReplaceAll(stdoutStr, "\r", "\n")
+	stdoutStr = strings.Trim(stdoutStr, "\n")
+	symbols := strings.Split(stdoutStr, "\n")
+	return symbols, nil
+}
+
 func (ipt *Input) resolveIOSSourceMap(p influxm.Point, sdkName string) (influxm.Point, error) {
 	fields, err := p.Fields()
 	if err != nil {
@@ -437,37 +465,41 @@ func (ipt *Input) resolveIOSSourceMap(p influxm.Point, sdkName string) (influxm.
 		for moduleName, moduleCrashes := range crashAddress {
 			symbolFile, err := scanModuleSymbolFile(zipFileAbsDir, moduleName)
 			if err != nil {
-				log.Errorf("scan symbol file fail: %s", err)
+				log.Warnf("scan symbol file fail: %s", err)
 				continue
 			}
-			for startAddr, addresses := range moduleCrashes {
-				for _, addr := range addresses {
-					args := []string{
-						"-o",
-						symbolFile,
-						"-l",
-						startAddr,
-						addr.end,
-					}
-					cmd := exec.Command(atosBinPath, args...) //nolint:gosec
-					cmd.Env = []string{"HOME=/root"}          // run the tool "atosl" must set this env, why?
-					log.Infof("%s %s", atosBinPath, strings.Join(args, " "))
-					stdout, err := cmd.Output()
-					if err != nil {
-						if ee, ok := err.(*exec.ExitError); ok { // nolint:errorlint
-							log.Errorf("run atos tool fail: %s, output: [%s], err: %s", string(ee.Stderr), string(stdout), err)
-						} else {
-							log.Errorf("run atos tool fail: %s", err)
-						}
-						continue
-					}
+			for loadAddress, addresses := range moduleCrashes {
+				if len(addresses) == 0 {
+					continue
+				}
 
-					// adapt varies os newLine
-					stdoutStr := strings.ReplaceAll(string(stdout), "\r\n", "\n")
-					stdoutStr = strings.ReplaceAll(stdoutStr, "\r", "\n")
-					stdoutStr = strings.Trim(stdoutStr, "\n")
-					// symbols := strings.Split(stdoutStr, "\n")
-					originStackTrace = strings.ReplaceAll(originStackTrace, addr.originStr, stdoutStr)
+				addrs := make([]string, 0, len(addresses))
+				for _, addr := range addresses {
+					addrs = append(addrs, addr.end)
+				}
+
+				// try resolve batch
+				symbols, err := runAtosCMD(atosBinPath, symbolFile, loadAddress, addrs)
+				if err != nil {
+					continue
+				}
+
+				if len(symbols) == len(addresses) {
+					for i, addr := range addresses {
+						originStackTrace = strings.ReplaceAll(originStackTrace, addr.originStr, symbols[i])
+					}
+				} else if len(symbols) > 0 && len(addresses) > 1 {
+					log.Errorf("resolved symbols count[%d] not equals addresses count[%d], try one by one", len(symbols), len(addresses))
+					// try resolve one by one
+					for _, addr := range addresses {
+						addrs = addrs[:0]
+						addrs = append(addrs, addr.end)
+						symbols, err := runAtosCMD(atosBinPath, symbolFile, loadAddress, addrs)
+						if err != nil || len(symbols) != 1 {
+							continue
+						}
+						originStackTrace = strings.ReplaceAll(originStackTrace, addr.originStr, symbols[0])
+					}
 				}
 			}
 		}
