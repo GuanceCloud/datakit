@@ -39,6 +39,8 @@ func (p *Prom) getMetricTypeName(familyType dto.MetricType) string {
 	case dto.MetricType_GAUGE_HISTOGRAM:
 		// TODO
 		// passed lint
+	case dto.MetricType_INFO:
+		metricTypeName = "info"
 	}
 	return metricTypeName
 }
