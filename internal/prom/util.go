@@ -160,14 +160,20 @@ func (p *Prom) getTags(labels []*dto.LabelPair, measurementName string, u string
 		setInstanceTag(tags, u)
 	}
 
+	if !p.opt.DisableInfoTag {
+		for k, v := range p.infoTags {
+			tags[k] = v
+		}
+	}
+
 	// Add custom tags.
 	for k, v := range p.opt.Tags {
 		tags[k] = v
 	}
 
 	// Add prometheus labels as tags.
-	for _, lab := range labels {
-		tags[lab.GetName()] = lab.GetValue()
+	for _, l := range labels {
+		tags[l.GetName()] = l.GetValue()
 	}
 
 	p.removeIgnoredTags(tags)
@@ -287,9 +293,8 @@ func (p *Prom) filterMetricFamilies(metricFamilies map[string]*dto.MetricFamily)
 	return filteredMetricFamilies
 }
 
-// text2Metrics converts raw prometheus metric text to line protocol points.
-// It handles the case in which the same kind of comment for a metric name appears repeatedly.
-// E.g. multiple '# TYPE node_network_info gauge' appears in one piece of text.
+// text2Metrics converts raw prometheus metric text to line protocol points. It handles the case in which the same
+// kind of comment (either HELP or TYPE) for a metric name appears repeatedly.
 func (p *Prom) text2Metrics(in io.Reader, u string) ([]*point.Point, error) {
 	var (
 		buf         []byte
@@ -311,13 +316,15 @@ func (p *Prom) text2Metrics(in io.Reader, u string) ([]*point.Point, error) {
 			if tkn == "HELP" || tkn == "TYPE" {
 				// If the token is HELP, at least one more token is expected, which is the metric name. If the token is
 				// TYPE, exactly two more tokens are expected. The first is the metric name, and the second is either
-				// counter, gauge, histogram, summary, or untyped, defining the type for the metric of that name. In
+				// counter, gauge, histogram, summary, info, or untyped, defining the type for the metric of that name. In
 				// both cases, # is followed by token HELP or TYPE, and followed by at least one more token which is the
 				// metric name. If it reaches end of line before reading out metric name, This line is treated as a
 				// common comment.
 				metricName := ti.readNextToken()
 				if metricName != "" {
 					if _, has := comment[tkn+metricName]; has {
+						// The same comment for a metric has already appeared. We need to split the text so that the
+						// parser doesn't complain.
 						split = true
 					} else {
 						comment[tkn+metricName] = struct{}{}
@@ -352,6 +359,11 @@ func (p *Prom) text2Metrics(in io.Reader, u string) ([]*point.Point, error) {
 		}
 		points = append(points, pts...)
 	}
+
+	for k := range p.infoTags {
+		delete(p.infoTags, k)
+	}
+
 	return points, nil
 }
 
@@ -529,6 +541,15 @@ func (p *Prom) doText2Metrics(in io.Reader, u string) (pts []*point.Point, lastE
 		case dto.MetricType_GAUGE_HISTOGRAM:
 			// TODO
 			// passed lint
+		case dto.MetricType_INFO:
+			// Info metrics are used to expose textual information which SHOULD NOT change during process lifetime.
+			// Info may be used to encode ENUMs whose values do not change over time, such as the type of a network interface.
+			// https://github.com/OpenObservability/OpenMetrics/blob/main/specification/OpenMetrics.md#info
+			for _, m := range value.GetMetric() {
+				for _, l := range m.GetLabel() {
+					p.infoTags[l.GetName()] = l.GetValue()
+				}
+			}
 		}
 	}
 	if lastErr != nil {

@@ -21,7 +21,7 @@ var (
 	_services     = []string{"login", "game", "fire_gun", "march", "kill", "logout"}
 	_resources    = []string{"/get_user/name", "/push/data", "/check/security", "/fetch/data_source", "/pull/all_data", "/list/user_name"}
 	_source       = []string{"ddtrace", "jaeger", "opentelemetry", "skywalking", "zipkin"}
-	_span_types   = []string{SPAN_TYPE_ENTRY, SPAN_TYPE_LOCAL, SPAN_TYPE_EXIT, SPAN_TYPE_UNKNOW}
+	_span_types   = []string{SPAN_TYPE_ENTRY, SPAN_TYPE_LOCAL, SPAN_TYPE_EXIT, SPAN_TYPE_UNKNOWN}
 	_source_types = []string{SPAN_SOURCE_APP, SPAN_SOURCE_CACHE, SPAN_SOURCE_CUSTOMER, SPAN_SOURCE_DB, SPAN_SOURCE_WEB}
 	_http_methods = []string{
 		http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut, http.MethodPatch,

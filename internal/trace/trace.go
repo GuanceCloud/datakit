@@ -11,7 +11,6 @@ import (
 	"compress/gzip"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -24,10 +23,11 @@ import (
 // nolint:stylecheck
 const (
 	// datakit tracing customer tags.
-	CONTAINER_HOST = "container_host"
-	ENV            = "env"
-	PROJECT        = "project"
-	VERSION        = "version"
+	UNKNOWN_SERVICE = "unknown_service"
+	CONTAINER_HOST  = "container_host"
+	ENV             = "env"
+	PROJECT         = "project"
+	VERSION         = "version"
 
 	// span status.
 	STATUS_OK       = "ok"
@@ -38,10 +38,10 @@ const (
 	STATUS_CRITICAL = "critical"
 
 	// span position in trace.
-	SPAN_TYPE_ENTRY  = "entry"
-	SPAN_TYPE_LOCAL  = "local"
-	SPAN_TYPE_EXIT   = "exit"
-	SPAN_TYPE_UNKNOW = "unknow"
+	SPAN_TYPE_ENTRY   = "entry"
+	SPAN_TYPE_LOCAL   = "local"
+	SPAN_TYPE_EXIT    = "exit"
+	SPAN_TYPE_UNKNOWN = "unknown"
 
 	// span source type.
 	SPAN_SOURCE_APP       = "app"
@@ -357,10 +357,6 @@ func ParseTracerRequest(req *http.Request) (contentType, encode string, buf []by
 	contentType = ihttp.GetHeader(req, "Content-Type")
 
 	return
-}
-
-func UnknowServiceName(dkspan *DatakitSpan) string {
-	return fmt.Sprintf("unknow-service-%s", dkspan.Source)
 }
 
 type TraceParameters struct {
