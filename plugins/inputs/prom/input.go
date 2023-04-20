@@ -69,6 +69,7 @@ type Input struct {
 	Tags               map[string]string `toml:"tags" json:"tags"`
 	DisableHostTag     bool              `toml:"disable_host_tag" json:"disable_host_tag"`
 	DisableInstanceTag bool              `toml:"disable_instance_tag" json:"disable_instance_tag"`
+	DisableInfoTag     bool              `toml:"disable_info_tag" json:"disable_info_tag"`
 
 	Auth map[string]string `toml:"auth" json:"auth"`
 
@@ -306,6 +307,7 @@ func (i *Input) Init() error {
 		HTTPHeaders:        i.HTTPHeaders,
 		DisableHostTag:     i.DisableHostTag,
 		DisableInstanceTag: i.DisableInstanceTag,
+		DisableInfoTag:     i.DisableInfoTag,
 
 		RenameTags:  i.TagsRename,
 		AsLogging:   i.AsLogging,

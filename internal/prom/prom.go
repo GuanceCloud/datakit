@@ -83,6 +83,7 @@ type Option struct {
 
 	DisableHostTag     bool
 	DisableInstanceTag bool
+	DisableInfoTag     bool
 
 	Election bool
 	pointOpt *point.PointOption
@@ -128,9 +129,10 @@ const (
 )
 
 type Prom struct {
-	opt    *Option
-	client *http.Client
-	parser expfmt.TextParser
+	opt      *Option
+	client   *http.Client
+	parser   expfmt.TextParser
+	infoTags map[string]string
 }
 
 func NewProm(opt *Option) (*Prom, error) {
@@ -161,7 +163,7 @@ func NewProm(opt *Option) (*Prom, error) {
 		timeout = httpTimeout
 	}
 
-	p := Prom{opt: opt}
+	p := Prom{opt: opt, infoTags: make(map[string]string)}
 
 	var dialContext func(_ context.Context, _ string, _ string) (net.Conn, error)
 	if p.opt.UDSPath != "" {
