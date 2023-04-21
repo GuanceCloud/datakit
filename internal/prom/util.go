@@ -23,6 +23,11 @@ import (
 
 const statusInfo = "INFO"
 
+type nameAndFamily struct {
+	metricName string
+	metricFamily *dto.MetricFamily
+}
+
 func (p *Prom) getMetricTypeName(familyType dto.MetricType) string {
 	var metricTypeName string
 	switch familyType {
@@ -285,11 +290,21 @@ func (p *Prom) renameTags(tags map[string]string) {
 	}
 }
 
-func (p *Prom) filterMetricFamilies(metricFamilies map[string]*dto.MetricFamily) map[string]*dto.MetricFamily {
-	filteredMetricFamilies := make(map[string]*dto.MetricFamily)
+func (p *Prom) swapTypeInfoToFront(nf []nameAndFamily) {
+	var i int
+	for j := 0; j < len(nf); j++ {
+		if nf[j].metricFamily.GetType() == dto.MetricType_INFO {
+			nf[i], nf[j] = nf[j], nf[i]
+			i++
+		}
+	}
+}
+
+func (p *Prom) filterMetricFamilies(metricFamilies map[string]*dto.MetricFamily) []nameAndFamily {
+	var filteredMetricFamilies []nameAndFamily
 	for name, value := range metricFamilies {
 		if p.validMetricName(name) && p.validMetricType(value.GetType()) {
-			filteredMetricFamilies[name] = value
+			filteredMetricFamilies = append(filteredMetricFamilies, nameAndFamily{metricName: name, metricFamily: value})
 		}
 	}
 	return filteredMetricFamilies
@@ -407,8 +422,10 @@ func (p *Prom) doText2Metrics(in io.Reader, u string) (pts []*point.Point, lastE
 	}
 
 	filteredMetricFamilies := p.filterMetricFamilies(metricFamilies)
+	p.swapTypeInfoToFront(filteredMetricFamilies)
 
-	for name, value := range filteredMetricFamilies {
+	for _, nf := range filteredMetricFamilies {
+		name, value := nf.metricName, nf.metricFamily
 		measurementName, fieldName := p.getNames(name)
 
 		switch value.GetType() {
