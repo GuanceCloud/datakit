@@ -488,9 +488,8 @@ func externalIP() (string, error) {
 
 func getDockerfile(version string) string {
 	replacePair := map[string]string{
-		"VERSION":  version,
-		"a":        "$a",
-		"ALLOW_IP": "${DATAKIT_HOST}",
+		"VERSION": version,
+		"a":       "$a",
 	}
 
 	return os.Expand(dockerFileServerStatus, func(k string) string { return replacePair[k] })
@@ -502,9 +501,8 @@ func getDockerfile(version string) string {
 
 const dockerFileServerStatus = `FROM httpd:${VERSION}
 
-RUN sed -i '$a <Location /server-status>' /usr/local/apache2/conf/httpd.conf \
-  && sed -i '$a SetHandler server-status' /usr/local/apache2/conf/httpd.conf \
-  && sed -i '$a Order Deny,Allow' /usr/local/apache2/conf/httpd.conf \
-  && sed -i '$a Deny from all' /usr/local/apache2/conf/httpd.conf \
-  && sed -i '$a Allow from ${ALLOW_IP}' /usr/local/apache2/conf/httpd.conf \
-  && sed -i '$a </Location>' /usr/local/apache2/conf/httpd.conf`
+  RUN sed -i '$a <Location /server-status>' /usr/local/apache2/conf/httpd.conf \
+	&& sed -i '$a SetHandler server-status' /usr/local/apache2/conf/httpd.conf \
+	&& sed -i '$a Order Allow,Deny' /usr/local/apache2/conf/httpd.conf \
+	&& sed -i '$a Allow from all' /usr/local/apache2/conf/httpd.conf \
+	&& sed -i '$a </Location>' /usr/local/apache2/conf/httpd.conf`
