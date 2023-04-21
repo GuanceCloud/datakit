@@ -205,7 +205,13 @@ func (cs *caseSpec) handler(c *gin.Context) {
 
 	switch uri.Path {
 	case "/v1/write/metrics":
+		cs.t.Logf("/v1/write/metrics")
+		cs.t.Logf(str)
+		cs.t.Logf("\n")
 	case "/v1/write/metric":
+		cs.t.Logf("/v1/write/metric")
+		cs.t.Logf(str)
+		cs.t.Logf("\n")
 		atomic.AddUint32(&count, 1)
 		if uri.RawQuery == "input=py_from_docker" {
 			if str != `[{"measurement": "measurement1", "tags": {"tag_name": "tag_value"}, "fields": {"count": 1}}]` {
@@ -217,7 +223,13 @@ func (cs *caseSpec) handler(c *gin.Context) {
 			}
 		}
 	case "/v1/write/network":
+		cs.t.Logf("/v1/write/network")
+		cs.t.Logf(str)
+		cs.t.Logf("\n")
 	case "/v1/write/keyevent":
+		cs.t.Logf("/v1/write/keyevent")
+		cs.t.Logf(str)
+		cs.t.Logf("\n")
 		atomic.AddUint32(&count, 1)
 		parsedBody := FeedMeasurementBody{}
 		if err := json.Unmarshal(body, &parsedBody); err != nil {
@@ -253,20 +265,41 @@ func (cs *caseSpec) handler(c *gin.Context) {
 			}
 		}
 	case "/v1/write/object":
+		cs.t.Logf("/v1/write/object")
+		cs.t.Logf(str)
+		cs.t.Logf("\n")
 		atomic.AddUint32(&count, 1)
 		if str != `[{"measurement": "measurement4", "tags": {"tag1": "val1", "tag2": "val2", "name": "name"}, "fields": {"custom_field1": "val1", "custom_field2": 1000, "custom_key1": "custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}, "time": null}]` {
 			cs.addErrorMsgs("[ERROR] 10004")
 		}
 	case "/v1/write/custom_object":
+		cs.t.Logf("/v1/write/custom_object")
+		cs.t.Logf(str)
+		cs.t.Logf("\n")
 	case "/v1/write/logging":
+		cs.t.Logf("/v1/write/logging")
+		cs.t.Logf(str)
+		cs.t.Logf("\n")
 		atomic.AddUint32(&count, 1)
 		if str != `[{"measurement": "measurement3", "tags": {"tag1": "val1", "tag2": "val2"}, "fields": {"message": "This is the message for testing", "custom_key1": "custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}, "time": null}]` {
 			cs.addErrorMsgs("[ERROR] 10003")
 		}
 	case "/v1/write/tracing":
+		cs.t.Logf("/v1/write/tracing")
+		cs.t.Logf(str)
+		cs.t.Logf("\n")
 	case "/v1/write/rum":
+		cs.t.Logf("/v1/write/rum")
+		cs.t.Logf(str)
+		cs.t.Logf("\n")
 	case "/v1/write/security":
+		cs.t.Logf("/v1/write/security")
+		cs.t.Logf(str)
+		cs.t.Logf("\n")
 	case "/v1/write/profiling":
+		cs.t.Logf("/v1/write/profiling")
+		cs.t.Logf(str)
+		cs.t.Logf("\n")
 	}
 
 	val := atomic.LoadUint32(&count)
@@ -351,7 +384,7 @@ func (cs *caseSpec) run() error {
 
 			func(c *docker.HostConfig) {
 				c.RestartPolicy = docker.RestartPolicy{Name: "no"}
-				c.AutoRemove = true
+				// c.AutoRemove = true
 			},
 		)
 	} else {
@@ -372,7 +405,7 @@ func (cs *caseSpec) run() error {
 
 			func(c *docker.HostConfig) {
 				c.RestartPolicy = docker.RestartPolicy{Name: "no"}
-				c.AutoRemove = true
+				// c.AutoRemove = true
 			},
 		)
 	}

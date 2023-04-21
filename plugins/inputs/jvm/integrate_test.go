@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
-	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -96,11 +96,10 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		optsThreading        []inputs.PointCheckOption
 		optsClassLoading     []inputs.PointCheckOption
 		optsMemoryPool       []inputs.PointCheckOption
-		mPathCount           map[string]int
 	}{
 		{
 			name: "pubrepo.jiagouyun.com/image-repo-for-testing/java:jvm-jolokia-8",
-			conf: fmt.Sprintf(`urls = ["http://%s:59090/jolokia"]
+			conf: fmt.Sprintf(`urls = ["http://%s/jolokia"]
 			interval   = "1s"
 			[[metric]]
 			  name  = "java_runtime"
@@ -127,8 +126,8 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			  name     = "java_memory_pool"
 			  mbean    = "java.lang:name=*,type=MemoryPool"
 			  paths    = ["Usage", "PeakUsage", "CollectionUsage"]
-			  tag_keys = ["name"]`, remote.Host),
-			exposedPorts: []string{"8080/tcp", "59090/tcp"},
+			  tag_keys = ["name"]`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
+			exposedPorts: []string{"59090/tcp"},
 			optsJavaRuntime: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
 			},
@@ -146,15 +145,12 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 			optsMemoryPool: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
-			},
-			mPathCount: map[string]int{
-				"/": 100,
 			},
 		},
 
 		{
 			name: "pubrepo.jiagouyun.com/image-repo-for-testing/java:jvm-jolokia-11",
-			conf: fmt.Sprintf(`urls = ["http://%s:59090/jolokia"]
+			conf: fmt.Sprintf(`urls = ["http://%s/jolokia"]
 			interval   = "1s"
 			[[metric]]
 			  name  = "java_runtime"
@@ -181,8 +177,8 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			  name     = "java_memory_pool"
 			  mbean    = "java.lang:name=*,type=MemoryPool"
 			  paths    = ["Usage", "PeakUsage", "CollectionUsage"]
-			  tag_keys = ["name"]`, remote.Host),
-			exposedPorts: []string{"8080/tcp", "59090/tcp"},
+			  tag_keys = ["name"]`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
+			exposedPorts: []string{"59090/tcp"},
 			optsJavaRuntime: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
 			},
@@ -200,15 +196,12 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 			optsMemoryPool: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
-			},
-			mPathCount: map[string]int{
-				"/": 100,
 			},
 		},
 
 		{
 			name: "pubrepo.jiagouyun.com/image-repo-for-testing/java:jvm-jolokia-17",
-			conf: fmt.Sprintf(`urls = ["http://%s:59090/jolokia"]
+			conf: fmt.Sprintf(`urls = ["http://%s/jolokia"]
 			interval   = "1s"
 			[[metric]]
 			  name  = "java_runtime"
@@ -235,8 +228,8 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			  name     = "java_memory_pool"
 			  mbean    = "java.lang:name=*,type=MemoryPool"
 			  paths    = ["Usage", "PeakUsage", "CollectionUsage"]
-			  tag_keys = ["name"]`, remote.Host),
-			exposedPorts: []string{"8080/tcp", "59090/tcp"},
+			  tag_keys = ["name"]`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
+			exposedPorts: []string{"59090/tcp"},
 			optsJavaRuntime: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
 			},
@@ -254,15 +247,12 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 			optsMemoryPool: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
-			},
-			mPathCount: map[string]int{
-				"/": 100,
 			},
 		},
 
 		{
 			name: "pubrepo.jiagouyun.com/image-repo-for-testing/java:jvm-jolokia-20",
-			conf: fmt.Sprintf(`urls = ["http://%s:59090/jolokia"]
+			conf: fmt.Sprintf(`urls = ["http://%s/jolokia"]
 			interval   = "1s"
 			[[metric]]
 			  name  = "java_runtime"
@@ -289,8 +279,8 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			  name     = "java_memory_pool"
 			  mbean    = "java.lang:name=*,type=MemoryPool"
 			  paths    = ["Usage", "PeakUsage", "CollectionUsage"]
-			  tag_keys = ["name"]`, remote.Host),
-			exposedPorts: []string{"8080/tcp", "59090/tcp"},
+			  tag_keys = ["name"]`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
+			exposedPorts: []string{"59090/tcp"},
 			optsJavaRuntime: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
 			},
@@ -308,9 +298,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 			optsMemoryPool: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
-			},
-			mPathCount: map[string]int{
-				"/": 100,
 			},
 		},
 	}
@@ -327,6 +314,9 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)
 
+		uURL, err := url.Parse(ipt.URLs[0])
+		require.NoError(t, err, "parse %s failed: %s", ipt.URLs[0], err)
+
 		repoTag := strings.Split(base.name, ":")
 
 		cases = append(cases, &caseSpec{
@@ -339,6 +329,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 			dockerFileText: base.dockerFileText,
 			exposedPorts:   base.exposedPorts,
+			serverPorts:    []string{uURL.Port()},
 
 			optsJavaRuntime:      base.optsJavaRuntime,
 			optsJavaMemory:       base.optsJavaMemory,
@@ -346,8 +337,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			optsThreading:        base.optsThreading,
 			optsClassLoading:     base.optsClassLoading,
 			optsMemoryPool:       base.optsMemoryPool,
-
-			mPathCount: base.mPathCount,
 
 			cr: &testutils.CaseResult{
 				Name:        t.Name(),
@@ -378,13 +367,13 @@ type caseSpec struct {
 	repoTag              string
 	dockerFileText       string
 	exposedPorts         []string
+	serverPorts          []string
 	optsJavaRuntime      []inputs.PointCheckOption
 	optsJavaMemory       []inputs.PointCheckOption
 	optsGarbageCollector []inputs.PointCheckOption
 	optsThreading        []inputs.PointCheckOption
 	optsClassLoading     []inputs.PointCheckOption
 	optsMemoryPool       []inputs.PointCheckOption
-	mPathCount           map[string]int
 
 	ipt    *Input
 	feeder *io.MockedFeeder
@@ -617,8 +606,6 @@ func (cs *caseSpec) run() error {
 
 	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
 
-	cs.runHTTPTests(r)
-
 	var wg sync.WaitGroup
 
 	// start input
@@ -714,44 +701,22 @@ func (cs *caseSpec) getContainterName() string {
 func (cs *caseSpec) getPortBindings() map[docker.Port][]docker.PortBinding {
 	portBindings := make(map[docker.Port][]docker.PortBinding)
 
-	for _, v := range cs.exposedPorts {
-		portBindings[docker.Port(v)] = []docker.PortBinding{{HostIP: "0.0.0.0", HostPort: docker.Port(v).Port()}}
+	// check ports' mapping.
+	require.Equal(cs.t, len(cs.exposedPorts), len(cs.serverPorts))
+
+	for k, v := range cs.exposedPorts {
+		// portBindings[docker.Port(v)] = []docker.PortBinding{{HostIP: "0.0.0.0", HostPort: docker.Port(cs.serverPorts[k]).Port()}}
+		portBindings[docker.Port(v)] = []docker.PortBinding{{HostPort: docker.Port(cs.serverPorts[k]).Port()}}
 	}
 
 	return portBindings
 }
 
 func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
-	for _, v := range cs.exposedPorts {
+	for _, v := range cs.serverPorts {
 		if !r.PortOK(docker.Port(v).Port(), time.Minute) {
 			return fmt.Errorf("service checking failed")
 		}
 	}
 	return nil
-}
-
-// Launch large amount of HTTP requests to remote nginx.
-func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) {
-	for path, count := range cs.mPathCount {
-		newURL := fmt.Sprintf("http://%s%s", net.JoinHostPort(r.Host, "8080"), path)
-
-		var wg sync.WaitGroup
-		wg.Add(count)
-
-		for i := 0; i < count; i++ {
-			go func() {
-				defer wg.Done()
-
-				resp, err := http.Get(newURL)
-				if err != nil {
-					panic(err)
-				}
-				if err := resp.Body.Close(); err != nil {
-					panic(err)
-				}
-			}()
-		}
-
-		wg.Wait()
-	}
 }
