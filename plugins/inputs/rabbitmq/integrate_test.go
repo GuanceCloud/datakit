@@ -528,14 +528,14 @@ func (cs *caseSpec) createQueue(remoteHost string) error {
 		}
 		payloadBytes, err := json.Marshal(data)
 		if err != nil {
-			// handle err
+			cs.t.Logf("json.Marshal failed: %v", err)
 			return err
 		}
 		body := bytes.NewReader(payloadBytes)
 
 		req, err := http.NewRequest("PUT", "http://"+net.JoinHostPort(remoteHost, v)+"/api/queues/%2f/my.queue", body)
 		if err != nil {
-			// handle err
+			cs.t.Logf("http PUT failed: %v", err)
 			return err
 		}
 		req.SetBasicAuth("guest", "guest")
@@ -543,7 +543,7 @@ func (cs *caseSpec) createQueue(remoteHost string) error {
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
-			// handle err
+			cs.t.Logf("http Do failed: %v", err)
 			return err
 		}
 		defer resp.Body.Close()

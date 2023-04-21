@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -101,7 +102,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			name: "pubrepo.jiagouyun.com/image-repo-for-testing/tomcat:8-jolokia",
 			conf: fmt.Sprintf(`username = "jolokia_user"
 			password = "123456@secPassWd"
-			urls = ["http://%s:8080/jolokia"]
+			urls = ["http://%s/jolokia"]
 			[[metric]]
 			  name     = "tomcat_global_request_processor"
 			  mbean    = '''Catalina:name="*",type=GlobalRequestProcessor'''
@@ -127,7 +128,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			  mbean    = "Catalina:context=*,host=*,name=Cache,type=WebResourceRoot"
 			  paths    = ["hitCount","lookupCount"]
 			  tag_keys = ["context","host"]
-			  tag_prefix = "tomcat_"`, remote.Host),
+			  tag_prefix = "tomcat_"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
 			exposedPorts: []string{"8080/tcp"},
 			mPathCount: map[string]int{
 				"/": 100,
@@ -138,7 +139,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			name: "pubrepo.jiagouyun.com/image-repo-for-testing/tomcat:9-jolokia",
 			conf: fmt.Sprintf(`username = "jolokia_user"
 			password = "123456@secPassWd"
-			urls = ["http://%s:8080/jolokia"]
+			urls = ["http://%s/jolokia"]
 			[[metric]]
 			  name     = "tomcat_global_request_processor"
 			  mbean    = '''Catalina:name="*",type=GlobalRequestProcessor'''
@@ -164,7 +165,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			  mbean    = "Catalina:context=*,host=*,name=Cache,type=WebResourceRoot"
 			  paths    = ["hitCount","lookupCount"]
 			  tag_keys = ["context","host"]
-			  tag_prefix = "tomcat_"`, remote.Host),
+			  tag_prefix = "tomcat_"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
 			exposedPorts: []string{"8080/tcp"},
 			mPathCount: map[string]int{
 				"/": 100,
@@ -184,6 +185,9 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)
 
+		uURL, err := url.Parse(ipt.URLs[0])
+		require.NoError(t, err, "parse %s failed: %s", ipt.URLs[0], err)
+
 		repoTag := strings.Split(base.name, ":")
 
 		cases = append(cases, &caseSpec{
@@ -196,6 +200,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 			dockerFileText: base.dockerFileText,
 			exposedPorts:   base.exposedPorts,
+			serverPorts:    []string{uURL.Port()},
 
 			optsTomcatGlobalRequestProcessor: base.optsTomcatGlobalRequestProcessor,
 			optsTomcatJspMonitor:             base.optsTomcatJspMonitor,
@@ -234,6 +239,7 @@ type caseSpec struct {
 	repoTag                          string
 	dockerFileText                   string
 	exposedPorts                     []string
+	serverPorts                      []string
 	optsTomcatGlobalRequestProcessor []inputs.PointCheckOption
 	optsTomcatJspMonitor             []inputs.PointCheckOption
 	optsTomcatThreadPool             []inputs.PointCheckOption
@@ -552,15 +558,19 @@ func (cs *caseSpec) getContainterName() string {
 func (cs *caseSpec) getPortBindings() map[docker.Port][]docker.PortBinding {
 	portBindings := make(map[docker.Port][]docker.PortBinding)
 
-	for _, v := range cs.exposedPorts {
-		portBindings[docker.Port(v)] = []docker.PortBinding{{HostIP: "0.0.0.0", HostPort: docker.Port(v).Port()}}
+	// check ports' mapping.
+	require.Equal(cs.t, len(cs.exposedPorts), len(cs.serverPorts))
+
+	for k, v := range cs.exposedPorts {
+		// portBindings[docker.Port(v)] = []docker.PortBinding{{HostIP: "0.0.0.0", HostPort: docker.Port(cs.serverPorts[k]).Port()}}
+		portBindings[docker.Port(v)] = []docker.PortBinding{{HostPort: docker.Port(cs.serverPorts[k]).Port()}}
 	}
 
 	return portBindings
 }
 
 func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
-	for _, v := range cs.exposedPorts {
+	for _, v := range cs.serverPorts {
 		if !r.PortOK(docker.Port(v).Port(), time.Minute) {
 			return fmt.Errorf("service checking failed")
 		}
@@ -570,26 +580,28 @@ func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
 
 // Launch large amount of HTTP requests to remote nginx.
 func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) {
-	for path, count := range cs.mPathCount {
-		newURL := fmt.Sprintf("http://%s%s", net.JoinHostPort(r.Host, "8080"), path)
+	for _, v := range cs.serverPorts {
+		for path, count := range cs.mPathCount {
+			newURL := fmt.Sprintf("http://%s%s", net.JoinHostPort(r.Host, v), path)
 
-		var wg sync.WaitGroup
-		wg.Add(count)
+			var wg sync.WaitGroup
+			wg.Add(count)
 
-		for i := 0; i < count; i++ {
-			go func() {
-				defer wg.Done()
+			for i := 0; i < count; i++ {
+				go func() {
+					defer wg.Done()
 
-				resp, err := http.Get(newURL)
-				if err != nil {
-					panic(err)
-				}
-				if err := resp.Body.Close(); err != nil {
-					panic(err)
-				}
-			}()
+					resp, err := http.Get(newURL)
+					if err != nil {
+						panic(err)
+					}
+					if err := resp.Body.Close(); err != nil {
+						panic(err)
+					}
+				}()
+			}
+
+			wg.Wait()
 		}
-
-		wg.Wait()
 	}
 }

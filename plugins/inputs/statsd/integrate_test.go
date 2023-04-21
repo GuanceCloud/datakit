@@ -108,7 +108,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			datadog_distributions = true
 			allowed_pending_messages = 10000
 			percentile_limit = 1000`,
-			exposedPorts: []string{"8080/tcp"},
+			// exposedPorts: []string{"8080/tcp"},
 			opts: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("heap_memory", "heap_memory_committed", "heap_memory_init", "heap_memory_max", "non_heap_memory", "non_heap_memory_committed", "non_heap_memory_init", "non_heap_memory_max", "thread_count", "gc_cms_count", "gc_major_collection_count", "gc_minor_collection_count", "gc_parnew_time", "gc_major_collection_time", "gc_minor_collection_time", "os_open_file_descriptors", "gc_eden_size", "gc_old_gen_size", "buffer_pool_direct_used", "buffer_pool_direct_capacity", "cpu_load_system", "buffer_pool_mapped_capacity", "buffer_pool_mapped_count", "cpu_load_process", "gc_survivor_size", "buffer_pool_direct_count", "gc_metaspace_size", "loaded_classes", "buffer_pool_mapped_used"), //nolint:lll
 				inputs.WithOptionalTags("name"), //nolint:lll
@@ -135,7 +135,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			datadog_distributions = true
 			allowed_pending_messages = 10000
 			percentile_limit = 1000`,
-			exposedPorts: []string{"8080/tcp"},
+			// exposedPorts: []string{"8080/tcp"},
 			opts: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("heap_memory", "heap_memory_committed", "heap_memory_init", "heap_memory_max", "non_heap_memory", "non_heap_memory_committed", "non_heap_memory_init", "non_heap_memory_max", "thread_count", "gc_cms_count", "gc_major_collection_count", "gc_minor_collection_count", "gc_parnew_time", "gc_major_collection_time", "gc_minor_collection_time", "os_open_file_descriptors", "gc_eden_size", "gc_old_gen_size", "buffer_pool_direct_used", "buffer_pool_direct_capacity", "cpu_load_system", "buffer_pool_mapped_capacity", "buffer_pool_mapped_count", "cpu_load_process", "gc_survivor_size", "buffer_pool_direct_count", "gc_metaspace_size", "loaded_classes", "buffer_pool_mapped_used"), //nolint:lll
 				inputs.WithOptionalTags("name"), //nolint:lll
@@ -162,7 +162,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			datadog_distributions = true
 			allowed_pending_messages = 10000
 			percentile_limit = 1000`,
-			exposedPorts: []string{"8080/tcp"},
+			// exposedPorts: []string{"8080/tcp"},
 			opts: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("heap_memory", "heap_memory_committed", "heap_memory_init", "heap_memory_max", "non_heap_memory", "non_heap_memory_committed", "non_heap_memory_init", "non_heap_memory_max", "thread_count", "gc_cms_count", "gc_major_collection_count", "gc_minor_collection_count", "gc_parnew_time", "gc_major_collection_time", "gc_minor_collection_time", "os_open_file_descriptors", "gc_eden_size", "gc_old_gen_size", "buffer_pool_direct_used", "buffer_pool_direct_capacity", "cpu_load_system", "buffer_pool_mapped_capacity", "buffer_pool_mapped_count", "cpu_load_process", "gc_survivor_size", "buffer_pool_direct_count", "gc_metaspace_size", "loaded_classes", "buffer_pool_mapped_used"), //nolint:lll
 				inputs.WithOptionalTags("name"), //nolint:lll
@@ -189,7 +189,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			datadog_distributions = true
 			allowed_pending_messages = 10000
 			percentile_limit = 1000`,
-			exposedPorts: []string{"8080/tcp"},
+			// exposedPorts: []string{"8080/tcp"},
 			opts: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("heap_memory", "heap_memory_committed", "heap_memory_init", "heap_memory_max", "non_heap_memory", "non_heap_memory_committed", "non_heap_memory_init", "non_heap_memory_max", "thread_count", "gc_cms_count", "gc_major_collection_count", "gc_minor_collection_count", "gc_parnew_time", "gc_major_collection_time", "gc_minor_collection_time", "os_open_file_descriptors", "gc_eden_size", "gc_old_gen_size", "buffer_pool_direct_used", "buffer_pool_direct_capacity", "cpu_load_system", "buffer_pool_mapped_capacity", "buffer_pool_mapped_count", "cpu_load_process", "gc_survivor_size", "buffer_pool_direct_count", "gc_metaspace_size", "loaded_classes", "buffer_pool_mapped_used"), //nolint:lll
 				inputs.WithOptionalTags("name"), //nolint:lll

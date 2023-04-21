@@ -98,7 +98,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			exposedPorts:   []string{"80/tcp"},
 			opts:           []inputs.PointCheckOption{inputs.WithOptionalFields("load_timestamp"), inputs.WithOptionalTags("nginx_version")},
 			mPathCount: map[string]int{
-				"/": 100,
+				"/": 10,
 			},
 		},
 
@@ -112,9 +112,9 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
-				"/1": 100,
-				"/2": 100,
-				"/3": 100,
+				"/1": 10,
+				"/2": 10,
+				"/3": 10,
 			},
 		},
 
@@ -128,9 +128,9 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
-				"/1": 100,
-				"/2": 100,
-				"/3": 100,
+				"/1": 10,
+				"/2": 10,
+				"/3": 10,
 			},
 		},
 
@@ -144,9 +144,9 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
-				"/1": 100,
-				"/2": 100,
-				"/3": 100,
+				"/1": 10,
+				"/2": 10,
+				"/3": 10,
 			},
 		},
 
@@ -160,9 +160,9 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
-				"/1": 100,
-				"/2": 100,
-				"/3": 100,
+				"/1": 10,
+				"/2": 10,
+				"/3": 10,
 			},
 		},
 	}
@@ -543,7 +543,18 @@ func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) {
 				go func() {
 					defer wg.Done()
 
-					resp, err := http.Get(newURL)
+					netTransport := &http.Transport{
+						Dial: (&net.Dialer{
+							Timeout: 10 * time.Second,
+						}).Dial,
+						TLSHandshakeTimeout: 10 * time.Second,
+					}
+					netClient := &http.Client{
+						Timeout:   time.Second * 20,
+						Transport: netTransport,
+					}
+
+					resp, err := netClient.Get(newURL)
 					if err != nil {
 						panic(err)
 					}
