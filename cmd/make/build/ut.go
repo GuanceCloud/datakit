@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
@@ -50,9 +51,11 @@ func UnitTestDataKit() error {
 		}
 	}
 
-	for _, p := range pkgs {
+	start := time.Now()
+
+	for i, p := range pkgs {
 		fmt.Printf("=======================\n")
-		fmt.Printf("testing %s...\n", p)
+		fmt.Printf("testing(%03d/%d) %s...\n", i, len(pkgs), p)
 
 		if excludes[p] {
 			fmt.Printf("%s excluded\n", p)
@@ -65,6 +68,7 @@ func UnitTestDataKit() error {
 			OS:        runtime.GOOS,
 			Arch:      runtime.GOARCH,
 			GoVersion: runtime.Version(),
+			Branch:    git.Branch,
 			TestID:    utID,
 		}
 
@@ -132,6 +136,22 @@ func UnitTestDataKit() error {
 		if err := tu.Flush(mr); err != nil {
 			fmt.Printf("[E] flush metric failed: %s\n", err)
 		}
+	}
+
+	mr := &tu.ModuleResult{
+		// remove prefix for human readable
+		Name:      "datakit-ut",
+		OS:        runtime.GOOS,
+		Arch:      runtime.GOARCH,
+		GoVersion: runtime.Version(),
+		Branch:    git.Branch,
+		TestID:    utID,
+		Coverage:  coverTotal / float64(len(passedPkgs)),
+		Message:   fmt.Sprintf("done, total cost: %s", time.Since(start)),
+	}
+
+	if err := tu.Flush(mr); err != nil {
+		fmt.Printf("[E] flush metric failed: %s\n", err)
 	}
 
 	fmt.Printf("============ %d package passed(avg %.2f%%) ================\n",
