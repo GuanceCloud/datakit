@@ -490,7 +490,6 @@ func (cs *caseSpec) getPortBindings() map[docker.Port][]docker.PortBinding {
 	require.Equal(cs.t, len(cs.exposedPorts), len(cs.serverPorts))
 
 	for k, v := range cs.exposedPorts {
-		// portBindings[docker.Port(v)] = []docker.PortBinding{{HostIP: "0.0.0.0", HostPort: docker.Port(cs.serverPorts[k]).Port()}}
 		portBindings[docker.Port(v)] = []docker.PortBinding{{HostPort: docker.Port(cs.serverPorts[k]).Port()}}
 	}
 

@@ -131,7 +131,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			  tag_prefix = "tomcat_"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
 			exposedPorts: []string{"8080/tcp"},
 			mPathCount: map[string]int{
-				"/": 100,
+				"/": 10,
 			},
 		},
 
@@ -168,7 +168,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			  tag_prefix = "tomcat_"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
 			exposedPorts: []string{"8080/tcp"},
 			mPathCount: map[string]int{
-				"/": 100,
+				"/": 10,
 			},
 		},
 	}
@@ -453,7 +453,7 @@ func (cs *caseSpec) run() error {
 	cs.pool = p
 	cs.resource = resource
 
-	cs.t.Logf("check service(%s:%v)...", r.Host, cs.exposedPorts)
+	cs.t.Logf("check service(%s:%v)...", r.Host, cs.serverPorts)
 
 	if err := cs.portsOK(r); err != nil {
 		return err
@@ -562,7 +562,6 @@ func (cs *caseSpec) getPortBindings() map[docker.Port][]docker.PortBinding {
 	require.Equal(cs.t, len(cs.exposedPorts), len(cs.serverPorts))
 
 	for k, v := range cs.exposedPorts {
-		// portBindings[docker.Port(v)] = []docker.PortBinding{{HostIP: "0.0.0.0", HostPort: docker.Port(cs.serverPorts[k]).Port()}}
 		portBindings[docker.Port(v)] = []docker.PortBinding{{HostPort: docker.Port(cs.serverPorts[k]).Port()}}
 	}
 
@@ -591,7 +590,18 @@ func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) {
 				go func() {
 					defer wg.Done()
 
-					resp, err := http.Get(newURL)
+					netTransport := &http.Transport{
+						Dial: (&net.Dialer{
+							Timeout: 10 * time.Second,
+						}).Dial,
+						TLSHandshakeTimeout: 10 * time.Second,
+					}
+					netClient := &http.Client{
+						Timeout:   time.Second * 20,
+						Transport: netTransport,
+					}
+
+					resp, err := netClient.Get(newURL)
 					if err != nil {
 						panic(err)
 					}

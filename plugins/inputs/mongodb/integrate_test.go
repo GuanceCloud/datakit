@@ -8,6 +8,8 @@ package mongodb
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,7 +21,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	dockertest "github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -59,7 +61,7 @@ func TestMongoInput(t *testing.T) {
 
 			tc.cr.Cost = time.Since(caseStart)
 
-			assert.NoError(t, testutils.Flush(tc.cr))
+			require.NoError(t, testutils.Flush(tc.cr))
 
 			t.Cleanup(func() {
 				// clean remote docker resources
@@ -67,7 +69,7 @@ func TestMongoInput(t *testing.T) {
 					return
 				}
 
-				assert.NoError(t, tc.pool.Purge(tc.resource))
+				require.NoError(t, tc.pool.Purge(tc.resource))
 			})
 		})
 	}
@@ -92,8 +94,8 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 	}{
 		{
 			name: "mongo:3.0",
-			conf: fmt.Sprintf(`interval = "10s"
-			servers = ["mongodb://root:example@%s:27017"]
+			conf: fmt.Sprintf(`interval = "1s"
+			servers = ["mongodb://root:example@%s"]
 			gather_replica_set_stats = false
 			gather_cluster_stats = false
 			gather_per_db_stats = true
@@ -102,7 +104,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			gather_top_stat = true
 			election = true
 		[tags]
-			tag1 = "val1"`, remote.Host),
+			tag1 = "val1"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
 			exposedPorts: []string{"27017/tcp"},
 			cmd:          []string{"docker-entrypoint.sh", "mongod", "--smallfiles"},
 			optsDB: []inputs.PointCheckOption{
@@ -112,8 +114,8 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 		{
 			name: "mongo:4.0",
-			conf: fmt.Sprintf(`interval = "10s"
-			servers = ["mongodb://root:example@%s:27017"]
+			conf: fmt.Sprintf(`interval = "1s"
+			servers = ["mongodb://root:example@%s"]
 			gather_replica_set_stats = false
 			gather_cluster_stats = false
 			gather_per_db_stats = true
@@ -122,7 +124,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			gather_top_stat = true
 			election = true
 		[tags]
-			tag1 = "val1"`, remote.Host),
+			tag1 = "val1"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
 			exposedPorts: []string{"27017/tcp"},
 			optsDB: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("non-mapped_megabytes", "mapped_megabytes", "page_faults_per_sec"), // nolint:lll
@@ -134,8 +136,8 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 		{
 			name: "mongo:5.0",
-			conf: fmt.Sprintf(`interval = "10s"
-			servers = ["mongodb://root:example@%s:27017"]
+			conf: fmt.Sprintf(`interval = "1s"
+			servers = ["mongodb://root:example@%s"]
 			gather_replica_set_stats = false
 			gather_cluster_stats = false
 			gather_per_db_stats = true
@@ -144,7 +146,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			gather_top_stat = true
 			election = true
 		[tags]
-			tag1 = "val1"`, remote.Host),
+			tag1 = "val1"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
 			exposedPorts: []string{"27017/tcp"},
 			optsDB: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("non-mapped_megabytes", "mapped_megabytes", "page_faults_per_sec"), // nolint:lll
@@ -156,8 +158,8 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 		{
 			name: "mongo:6.0",
-			conf: fmt.Sprintf(`interval = "10s"
-			servers = ["mongodb://root:example@%s:27017"]
+			conf: fmt.Sprintf(`interval = "1s"
+			servers = ["mongodb://root:example@%s"]
 			gather_replica_set_stats = false
 			gather_cluster_stats = false
 			gather_per_db_stats = true
@@ -166,7 +168,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			gather_top_stat = true
 			election = true
 		[tags]
-			tag1 = "val1"`, remote.Host),
+			tag1 = "val1"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
 			exposedPorts: []string{"27017/tcp"},
 			optsDB: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("non-mapped_megabytes", "mapped_megabytes", "page_faults_per_sec"), // nolint:lll
@@ -187,7 +189,11 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		ipt.feeder = feeder
 
 		_, err := toml.Decode(base.conf, ipt)
-		assert.NoError(t, err)
+		require.NoError(t, err)
+
+		addr := strings.TrimPrefix(ipt.Servers[0], "mongodb://root:example@")
+		addrPort, err := netip.ParseAddrPort(addr)
+		require.NoError(t, err, "parse %s failed: %s", addr, err)
 
 		repoTag := strings.Split(base.name, ":")
 
@@ -201,6 +207,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 			dockerFileText: base.dockerFileText,
 			exposedPorts:   base.exposedPorts,
+			serverPorts:    []string{fmt.Sprintf("%d", addrPort.Port())},
 			cmd:            base.cmd,
 
 			optsDB:           base.optsDB,
@@ -238,6 +245,7 @@ type caseSpec struct {
 	repoTag          string
 	dockerFileText   string
 	exposedPorts     []string
+	serverPorts      []string
 	optsDB           []inputs.PointCheckOption
 	optsDBStats      []inputs.PointCheckOption
 	optsDBColStats   []inputs.PointCheckOption
@@ -443,7 +451,7 @@ func (cs *caseSpec) run() error {
 	cs.pool = p
 	cs.resource = resource
 
-	cs.t.Logf("check service(%s:%v)...", r.Host, cs.exposedPorts)
+	cs.t.Logf("check service(%s:%v)...", r.Host, cs.serverPorts)
 
 	if err := cs.portsOK(r); err != nil {
 		return err
@@ -548,15 +556,18 @@ func (cs *caseSpec) getContainterName() string {
 func (cs *caseSpec) getPortBindings() map[docker.Port][]docker.PortBinding {
 	portBindings := make(map[docker.Port][]docker.PortBinding)
 
-	for _, v := range cs.exposedPorts {
-		portBindings[docker.Port(v)] = []docker.PortBinding{{HostIP: "0.0.0.0", HostPort: docker.Port(v).Port()}}
+	// check ports' mapping.
+	require.Equal(cs.t, len(cs.exposedPorts), len(cs.serverPorts))
+
+	for k, v := range cs.exposedPorts {
+		portBindings[docker.Port(v)] = []docker.PortBinding{{HostPort: docker.Port(cs.serverPorts[k]).Port()}}
 	}
 
 	return portBindings
 }
 
 func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
-	for _, v := range cs.exposedPorts {
+	for _, v := range cs.serverPorts {
 		if !r.PortOK(docker.Port(v).Port(), time.Minute) {
 			return fmt.Errorf("service checking failed")
 		}

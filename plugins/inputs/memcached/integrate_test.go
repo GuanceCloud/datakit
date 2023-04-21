@@ -8,6 +8,8 @@ package memcached
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,7 +21,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	dockertest "github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -59,7 +61,7 @@ func TestMemcachedInput(t *testing.T) {
 
 			tc.cr.Cost = time.Since(caseStart)
 
-			assert.NoError(t, testutils.Flush(tc.cr))
+			require.NoError(t, testutils.Flush(tc.cr))
 
 			t.Cleanup(func() {
 				// clean remote docker resources
@@ -67,7 +69,7 @@ func TestMemcachedInput(t *testing.T) {
 					return
 				}
 
-				assert.NoError(t, tc.pool.Purge(tc.resource))
+				require.NoError(t, tc.pool.Purge(tc.resource))
 			})
 		})
 	}
@@ -87,18 +89,18 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 	}{
 		{
 			name: "memcached:1.5",
-			conf: fmt.Sprintf(`servers = ["%s:11211"]
+			conf: fmt.Sprintf(`servers = ["%s"]
 			interval = "1s"
 		[tags]
-			tag1 = "val1"`, remote.Host),
+			tag1 = "val1"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
 			exposedPorts: []string{"11211/tcp"},
 		},
 		{
 			name: "memcached:1.6",
-			conf: fmt.Sprintf(`servers = ["%s:11211"]
+			conf: fmt.Sprintf(`servers = ["%s"]
 			interval = "1s"
 		[tags]
-			tag1 = "val1"`, remote.Host),
+			tag1 = "val1"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
 			exposedPorts: []string{"11211/tcp"},
 		},
 	}
@@ -113,7 +115,10 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		ipt.feeder = feeder
 
 		_, err := toml.Decode(base.conf, ipt)
-		assert.NoError(t, err)
+		require.NoError(t, err)
+
+		addrPort, err := netip.ParseAddrPort(ipt.Servers[0])
+		require.NoError(t, err, "parse %s failed: %s", ipt.Servers[0], err)
 
 		repoTag := strings.Split(base.name, ":")
 
@@ -127,6 +132,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 			dockerFileText: base.dockerFileText,
 			exposedPorts:   base.exposedPorts,
+			serverPorts:    []string{fmt.Sprintf("%d", addrPort.Port())},
 			cmd:            base.cmd,
 
 			cr: &testutils.CaseResult{
@@ -158,6 +164,7 @@ type caseSpec struct {
 	repoTag        string
 	dockerFileText string
 	exposedPorts   []string
+	serverPorts    []string
 	cmd            []string
 
 	ipt    *Input
@@ -295,7 +302,7 @@ func (cs *caseSpec) run() error {
 	cs.pool = p
 	cs.resource = resource
 
-	cs.t.Logf("check service(%s:%v)...", r.Host, cs.exposedPorts)
+	cs.t.Logf("check service(%s:%v)...", r.Host, cs.serverPorts)
 
 	if err := cs.portsOK(r); err != nil {
 		return err
@@ -400,15 +407,18 @@ func (cs *caseSpec) getContainterName() string {
 func (cs *caseSpec) getPortBindings() map[docker.Port][]docker.PortBinding {
 	portBindings := make(map[docker.Port][]docker.PortBinding)
 
-	for _, v := range cs.exposedPorts {
-		portBindings[docker.Port(v)] = []docker.PortBinding{{HostIP: "0.0.0.0", HostPort: docker.Port(v).Port()}}
+	// check ports' mapping.
+	require.Equal(cs.t, len(cs.exposedPorts), len(cs.serverPorts))
+
+	for k, v := range cs.exposedPorts {
+		portBindings[docker.Port(v)] = []docker.PortBinding{{HostPort: docker.Port(cs.serverPorts[k]).Port()}}
 	}
 
 	return portBindings
 }
 
 func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
-	for _, v := range cs.exposedPorts {
+	for _, v := range cs.serverPorts {
 		if !r.PortOK(docker.Port(v).Port(), time.Minute) {
 			return fmt.Errorf("service checking failed")
 		}
