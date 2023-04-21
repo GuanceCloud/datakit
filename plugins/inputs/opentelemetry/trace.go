@@ -17,82 +17,68 @@ func parseResourceSpans(resspans []*tracepb.ResourceSpans) itrace.DatakitTraces 
 	var dktraces itrace.DatakitTraces
 	spanIDs, parentIDs := getSpanIDsAndParentIDs(resspans)
 	for _, spans := range resspans {
-		var service, version, containerName, pid string
-		if attr, ok := getAttribute(otelResourceServiceKey, spans.Resource.Attributes); ok {
-			service = attr.Value.GetStringValue()
-		}
-		if attr, ok := getAttribute(otelResourceServiceVersionKey, spans.Resource.Attributes); ok {
-			version = attr.Value.GetStringValue()
-		}
-		if attr, ok := getAttribute(otelResourceContainerNameKey, spans.Resource.Attributes); ok {
-			containerName = attr.Value.GetStringValue()
-		}
-		if attr, ok := getAttribute(otelResourceProcessIDKey, spans.Resource.Attributes); ok {
-			pid = attr.Value.GetStringValue()
-		}
-
-		restags, resfiedls := extractAtrribute(spans.Resource.Attributes)
-		restags = itrace.MergeTags(tags, restags)
+		resattrs := extractAtrributes(spans.Resource.Attributes)
 
 		var dktrace itrace.DatakitTrace
 		for _, scopeSpans := range spans.ScopeSpans {
-			scopetags, scopefields := extractAtrribute(scopeSpans.Scope.Attributes)
-			scopetags = itrace.MergeTags(restags, scopetags)
-			scopefields = itrace.MergeFields(resfiedls, scopefields)
+			scpattrs := extractAtrributes(scopeSpans.Scope.Attributes)
 
 			for _, span := range scopeSpans.Spans {
+				spattrs := extractAtrributes(span.Attributes)
+
 				dkspan := &itrace.DatakitSpan{
 					TraceID:   hex.EncodeToString(span.GetTraceId()),
 					ParentID:  byteToString(span.GetParentSpanId()),
 					SpanID:    byteToString(span.GetSpanId()),
-					Service:   service,
 					Resource:  span.Name,
 					Operation: span.Name,
 					Source:    inputName,
+					Tags:      make(map[string]string),
+					Metrics:   make(map[string]interface{}),
 					Start:     int64(span.StartTimeUnixNano),
 					Duration:  int64(span.EndTimeUnixNano - span.StartTimeUnixNano),
-					// TODO: optimize status check
-					Status: getDKSpanStatus(span.GetStatus()),
+					Status:    getDKSpanStatus(span.GetStatus()),
 				}
 				dkspan.SpanType = itrace.FindSpanTypeStrSpanID(dkspan.SpanID, dkspan.ParentID, spanIDs, parentIDs)
 
-				// set all attributes into dk span
-				spantags, spanfields := extractAtrribute(span.Attributes)
-				spantags = itrace.MergeTags(scopetags, spantags)
-				spanfields = itrace.MergeFields(scopefields, spanfields)
-				for i := range span.Events {
-					eventtags, eventfields := extractAtrribute(span.Events[i].Attributes)
-					spantags = itrace.MergeTags(spantags, eventtags)
-					spanfields = itrace.MergeFields(spanfields, eventfields)
+				attrs := newAttributes(resattrs).merge(scpattrs...).merge(spattrs...)
+				if kv, i := attrs.find(otelResourceServiceKey); i != -1 {
+					dkspan.Service = kv.Value.GetStringValue()
 				}
-				dkspan.Tags = spantags
-				dkspan.Metrics = spanfields
-
-				dkspan.SourceType = getSourceType(dkspan.Tags)
-
-				dkspan.Tags[itrace.TAG_VERSION] = version
-				dkspan.Tags[itrace.TAG_CONTAINER_HOST] = containerName
-				dkspan.Tags[itrace.TAG_PID] = pid
-
-				if attr, ok := getAttribute(otelHTTPMethodKey, span.Attributes); ok {
-					dkspan.Tags[itrace.TAG_HTTP_METHOD] = attr.Value.GetStringValue()
+				if kv, i := attrs.find(otelResourceServiceVersionKey); i != -1 {
+					dkspan.Tags[itrace.TAG_VERSION] = kv.Value.GetStringValue()
 				}
-				if attr, ok := getAttribute(otelHTTPStatusCodeKey, span.Attributes); ok {
-					dkspan.Tags[itrace.TAG_HTTP_STATUS_CODE] = attr.Value.GetStringValue()
+				if kv, i := attrs.find(otelResourceProcessIDKey); i != -1 {
+					dkspan.Tags[itrace.TAG_PID] = kv.Value.GetStringValue()
+				}
+				if kv, i := attrs.find(otelResourceContainerNameKey); i != -1 {
+					dkspan.Tags[itrace.TAG_CONTAINER_HOST] = kv.Value.GetStringValue()
+				}
+				if kv, i := attrs.find(otelHTTPMethodKey); i != -1 {
+					dkspan.Tags[itrace.TAG_HTTP_METHOD] = kv.Value.GetStringValue()
+					attrs.remove(otelHTTPMethodKey)
+				}
+				if kv, i := attrs.find(otelHTTPStatusCodeKey); i != -1 {
+					dkspan.Tags[itrace.TAG_HTTP_STATUS_CODE] = kv.Value.GetStringValue()
+					attrs.remove(otelHTTPStatusCodeKey)
 				}
 
 				for i := range span.Events {
 					if span.Events[i].Name == ExceptionEventName {
 						for o, d := range otelErrKeyToDkErrKey {
 							if attr, ok := getAttribute(o, span.Events[i].Attributes); ok {
-								delete(dkspan.Tags, o)
-								delete(dkspan.Metrics, o)
 								dkspan.Metrics[d] = attr.Value.GetStringValue()
 							}
 						}
 						break
 					}
 				}
+
+				attrtags, attrfields := attrs.splite()
+				dkspan.Tags = itrace.MergeTags(tags, dkspan.Tags, attrtags)
+				dkspan.Metrics = itrace.MergeFields(dkspan.Metrics, attrfields)
+
+				dkspan.SourceType = getSourceType(dkspan.Tags)
 
 				if buf, err := json.Marshal(span); err != nil {
 					log.Warn(err.Error())

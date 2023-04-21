@@ -8,7 +8,9 @@ package nginx
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -20,7 +22,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	dockertest "github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -62,7 +64,7 @@ func TestNginxInput(t *testing.T) {
 
 			tc.cr.Cost = time.Since(caseStart)
 
-			assert.NoError(t, testutils.Flush(tc.cr))
+			require.NoError(t, testutils.Flush(tc.cr))
 
 			t.Cleanup(func() {
 				// clean remote docker resources
@@ -70,7 +72,7 @@ func TestNginxInput(t *testing.T) {
 					return
 				}
 
-				assert.NoError(t, tc.pool.Purge(tc.resource))
+				require.NoError(t, tc.pool.Purge(tc.resource))
 			})
 		})
 	}
@@ -91,12 +93,12 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 	}{
 		{
 			name:           "nginx:http_stub_status_module",
-			conf:           fmt.Sprintf(`url = "http://%s/server_status"`, remote.Host),
+			conf:           fmt.Sprintf(`url = "http://%s/server_status"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
 			dockerFileText: dockerFileHTTPStubStatusModule,
 			exposedPorts:   []string{"80/tcp"},
 			opts:           []inputs.PointCheckOption{inputs.WithOptionalFields("load_timestamp"), inputs.WithOptionalTags("nginx_version")},
 			mPathCount: map[string]int{
-				"/": 100,
+				"/": 10,
 			},
 		},
 
@@ -106,13 +108,13 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			conf: fmt.Sprintf(`
 		url = "http://%s/status/format/json"
 		use_vts = true`,
-				remote.Host),
+				net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
 
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
-				"/1": 100,
-				"/2": 100,
-				"/3": 100,
+				"/1": 10,
+				"/2": 10,
+				"/3": 10,
 			},
 		},
 
@@ -122,13 +124,13 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			conf: fmt.Sprintf(`
 		url = "http://%s/status/format/json"
 		use_vts = true`,
-				remote.Host),
+				net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
 
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
-				"/1": 100,
-				"/2": 100,
-				"/3": 100,
+				"/1": 10,
+				"/2": 10,
+				"/3": 10,
 			},
 		},
 
@@ -138,13 +140,13 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			conf: fmt.Sprintf(`
 		url = "http://%s/status/format/json"
 		use_vts = true`,
-				remote.Host),
+				net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
 
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
-				"/1": 100,
-				"/2": 100,
-				"/3": 100,
+				"/1": 10,
+				"/2": 10,
+				"/3": 10,
 			},
 		},
 
@@ -154,13 +156,13 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			conf: fmt.Sprintf(`
 		url = "http://%s/status/format/json"
 		use_vts = true`,
-				remote.Host),
+				net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
 
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
-				"/1": 100,
-				"/2": 100,
-				"/3": 100,
+				"/1": 10,
+				"/2": 10,
+				"/3": 10,
 			},
 		},
 	}
@@ -175,7 +177,10 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		ipt.feeder = feeder
 
 		_, err := toml.Decode(base.conf, ipt)
-		assert.NoError(t, err)
+		require.NoError(t, err)
+
+		uURL, err := url.Parse(ipt.URL)
+		require.NoError(t, err, "parse %s failed: %s", ipt.URL, err)
 
 		repoTag := strings.Split(base.name, ":")
 
@@ -189,6 +194,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 			dockerFileText: base.dockerFileText,
 			exposedPorts:   base.exposedPorts,
+			serverPorts:    []string{uURL.Port()},
 			opts:           base.opts,
 			mPathCount:     base.mPathCount,
 
@@ -221,6 +227,7 @@ type caseSpec struct {
 	repoTag        string
 	dockerFileText string
 	exposedPorts   []string
+	serverPorts    []string
 	opts           []inputs.PointCheckOption
 	mPathCount     map[string]int
 
@@ -400,7 +407,7 @@ func (cs *caseSpec) run() error {
 	cs.pool = p
 	cs.resource = resource
 
-	cs.t.Logf("check service(%s:%v)...", r.Host, cs.exposedPorts)
+	cs.t.Logf("check service(%s:%v)...", r.Host, cs.serverPorts)
 
 	if err := cs.portsOK(r); err != nil {
 		return err
@@ -459,6 +466,10 @@ func (cs *caseSpec) getPool(endpoint string) (*dockertest.Pool, error) {
 }
 
 func (cs *caseSpec) getDockerFilePath() (dirName string, fileName string, err error) {
+	if len(cs.dockerFileText) == 0 {
+		return
+	}
+
 	tmpDir, err := ioutil.TempDir("", "dockerfiles_")
 	if err != nil {
 		cs.t.Logf("ioutil.TempDir failed: %s", err.Error())
@@ -499,15 +510,18 @@ func (cs *caseSpec) getContainterName() string {
 func (cs *caseSpec) getPortBindings() map[docker.Port][]docker.PortBinding {
 	portBindings := make(map[docker.Port][]docker.PortBinding)
 
-	for _, v := range cs.exposedPorts {
-		portBindings[docker.Port(v)] = []docker.PortBinding{{HostIP: "0.0.0.0", HostPort: docker.Port(v).Port()}}
+	// check ports' mapping.
+	require.Equal(cs.t, len(cs.exposedPorts), len(cs.serverPorts))
+
+	for k, v := range cs.exposedPorts {
+		portBindings[docker.Port(v)] = []docker.PortBinding{{HostPort: docker.Port(cs.serverPorts[k]).Port()}}
 	}
 
 	return portBindings
 }
 
 func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
-	for _, v := range cs.exposedPorts {
+	for _, v := range cs.serverPorts {
 		if !r.PortOK(docker.Port(v).Port(), time.Minute) {
 			return fmt.Errorf("service checking failed")
 		}
@@ -517,27 +531,40 @@ func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
 
 // Launch large amount of HTTP requests to remote nginx.
 func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) {
-	for path, count := range cs.mPathCount {
-		newURL := fmt.Sprintf("http://%s%s", r.Host, path)
+	for _, v := range cs.serverPorts {
+		for path, count := range cs.mPathCount {
+			newURL := fmt.Sprintf("http://%s%s", net.JoinHostPort(r.Host, v), path)
 
-		var wg sync.WaitGroup
-		wg.Add(count)
+			var wg sync.WaitGroup
+			wg.Add(count)
 
-		for i := 0; i < count; i++ {
-			go func() {
-				defer wg.Done()
+			for i := 0; i < count; i++ {
+				go func() {
+					defer wg.Done()
 
-				resp, err := http.Get(newURL)
-				if err != nil {
-					panic(err)
-				}
-				if err := resp.Body.Close(); err != nil {
-					panic(err)
-				}
-			}()
+					netTransport := &http.Transport{
+						Dial: (&net.Dialer{
+							Timeout: 10 * time.Second,
+						}).Dial,
+						TLSHandshakeTimeout: 10 * time.Second,
+					}
+					netClient := &http.Client{
+						Timeout:   time.Second * 20,
+						Transport: netTransport,
+					}
+
+					resp, err := netClient.Get(newURL)
+					if err != nil {
+						panic(err)
+					}
+					if err := resp.Body.Close(); err != nil {
+						panic(err)
+					}
+				}()
+			}
+
+			wg.Wait()
 		}
-
-		wg.Wait()
 	}
 }
 

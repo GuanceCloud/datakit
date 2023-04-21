@@ -1,11 +1,14 @@
+//go:build openbsd
 // +build openbsd
 
 package process
 
 import (
-	"C"
+	"bytes"
 	"context"
-	"os/exec"
+	"encoding/binary"
+	"fmt"
+	"io"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -66,6 +69,10 @@ func (p *Process) NameWithContext(ctx context.Context) (string, error) {
 	return name, nil
 }
 
+func (p *Process) CwdWithContext(ctx context.Context) (string, error) {
+	return "", common.ErrNotImplementedError
+}
+
 func (p *Process) ExeWithContext(ctx context.Context) (string, error) {
 	return "", common.ErrNotImplementedError
 }
@@ -73,24 +80,53 @@ func (p *Process) ExeWithContext(ctx context.Context) (string, error) {
 func (p *Process) CmdlineSliceWithContext(ctx context.Context) ([]string, error) {
 	mib := []int32{CTLKern, KernProcArgs, p.Pid, KernProcArgv}
 	buf, _, err := common.CallSyscall(mib)
-
 	if err != nil {
 		return nil, err
 	}
 
-	argc := 0
-	argvp := unsafe.Pointer(&buf[0])
-	argv := *(**C.char)(unsafe.Pointer(argvp))
-	size := unsafe.Sizeof(argv)
+	/* From man sysctl(2):
+	The buffer pointed to by oldp is filled with an array of char
+	pointers followed by the strings themselves. The last char
+	pointer is a NULL pointer. */
 	var strParts []string
-
-	for argv != nil {
-		strParts = append(strParts, C.GoString(argv))
-
-		argc++
-		argv = *(**C.char)(unsafe.Pointer(uintptr(argvp) + uintptr(argc)*size))
+	r := bytes.NewReader(buf)
+	baseAddr := uintptr(unsafe.Pointer(&buf[0]))
+	for {
+		argvp, err := readPtr(r)
+		if err != nil {
+			return nil, err
+		}
+		if argvp == 0 { // check for a NULL pointer
+			break
+		}
+		offset := argvp - baseAddr
+		length := uintptr(bytes.IndexByte(buf[offset:], 0))
+		str := string(buf[offset : offset+length])
+		strParts = append(strParts, str)
 	}
+
 	return strParts, nil
+}
+
+// readPtr reads a pointer data from a given reader. WARNING: only little
+// endian architectures are supported.
+func readPtr(r io.Reader) (uintptr, error) {
+	switch sizeofPtr {
+	case 4:
+		var p uint32
+		if err := binary.Read(r, binary.LittleEndian, &p); err != nil {
+			return 0, err
+		}
+		return uintptr(p), nil
+	case 8:
+		var p uint64
+		if err := binary.Read(r, binary.LittleEndian, &p); err != nil {
+			return 0, err
+		}
+		return uintptr(p), nil
+	default:
+		return 0, fmt.Errorf("unsupported pointer size")
+	}
 }
 
 func (p *Process) CmdlineWithContext(ctx context.Context) (string, error) {
@@ -103,10 +139,6 @@ func (p *Process) CmdlineWithContext(ctx context.Context) (string, error) {
 
 func (p *Process) createTimeWithContext(ctx context.Context) (int64, error) {
 	return 0, common.ErrNotImplementedError
-}
-
-func (p *Process) ParentWithContext(ctx context.Context) (*Process, error) {
-	return nil, common.ErrNotImplementedError
 }
 
 func (p *Process) StatusWithContext(ctx context.Context) ([]string, error) {
@@ -134,11 +166,7 @@ func (p *Process) StatusWithContext(ctx context.Context) ([]string, error) {
 func (p *Process) ForegroundWithContext(ctx context.Context) (bool, error) {
 	// see https://github.com/shirou/gopsutil/issues/596#issuecomment-432707831 for implementation details
 	pid := p.Pid
-	ps, err := exec.LookPath("ps")
-	if err != nil {
-		return false, err
-	}
-	out, err := invoke.CommandWithContext(ctx, ps, "-o", "stat=", "-p", strconv.Itoa(int(pid)))
+	out, err := invoke.CommandWithContext(ctx, "ps", "-o", "stat=", "-p", strconv.Itoa(int(pid)))
 	if err != nil {
 		return false, err
 	}
@@ -281,7 +309,6 @@ func ProcessesWithContext(ctx context.Context) ([]*Process, error) {
 	results := []*Process{}
 
 	buf, length, err := callKernProcSyscall(KernProcAll, 0)
-
 	if err != nil {
 		return results, err
 	}

@@ -25,6 +25,17 @@ Currently DDTrace has added the following extensions to the technology stack：
 
 ## changelog {#changelog}
 
+## v1.12.0 (2023/4/20) {#cl-1.10.2}
+
+### fix {#cl-1.12.0-new}
+
+- Merge ddtrace tag:1.12.0.
+- Support [当当网 dubbox](https://github.com/GuanceCloud/dd-trace-java/issues/32).
+- Solve the confusion between jax-rs and dubbo traces [problem Issue](https://github.com/GuanceCloud/dd-trace-java/issues/34).
+- Solve the problem that the order of dubbo trace topology map is wrong [problem](https://github.com/GuanceCloud/dd-trace-java/issues/35).
+- Solve the conflict between RocketMQ and customer-defined trace data [problem](https://github.com/GuanceCloud/dd-trace-java/issues/29).
+- Modify RocketMQ resource name[github-issue](https://github.com/GuanceCloud/dd-trace-java/issues/33).
+
 ## v1.10.2 (2023/4/10) {#cl-1.10.2}
 
 ### fix {#cl-1.10.2-new}

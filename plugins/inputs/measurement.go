@@ -18,7 +18,7 @@ import (
 
 var (
 	MonofontOnTagFieldName = true
-	TODO                   = "TODO" // global todo string
+	TODO                   = "-" // global todo string
 )
 
 const (

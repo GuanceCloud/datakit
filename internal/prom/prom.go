@@ -19,10 +19,13 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/prometheus/common/expfmt"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dnet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	inpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 type Rule struct {
@@ -83,9 +86,10 @@ type Option struct {
 
 	DisableHostTag     bool
 	DisableInstanceTag bool
+	DisableInfoTag     bool
 
 	Election bool
-	pointOpt *point.PointOption
+	pointOpt *dkpt.PointOption
 
 	TLSOpen bool   `toml:"tls_open"`
 	UDSPath string `toml:"uds_path"`
@@ -128,9 +132,10 @@ const (
 )
 
 type Prom struct {
-	opt    *Option
-	client *http.Client
-	parser expfmt.TextParser
+	opt      *Option
+	client   *http.Client
+	parser   expfmt.TextParser
+	infoTags map[string]string
 }
 
 func NewProm(opt *Option) (*Prom, error) {
@@ -161,7 +166,7 @@ func NewProm(opt *Option) (*Prom, error) {
 		timeout = httpTimeout
 	}
 
-	p := Prom{opt: opt}
+	p := Prom{opt: opt, infoTags: make(map[string]string)}
 
 	var dialContext func(_ context.Context, _ string, _ string) (net.Conn, error)
 	if p.opt.UDSPath != "" {
@@ -199,9 +204,9 @@ func NewProm(opt *Option) (*Prom, error) {
 	}
 
 	if p.opt.AsLogging != nil && p.opt.AsLogging.Enable {
-		p.opt.pointOpt = point.LOptElectionV2(p.opt.Election)
+		p.opt.pointOpt = dkpt.LOptElectionV2(p.opt.Election)
 	} else {
-		p.opt.pointOpt = point.MOptElectionV2(p.opt.Election)
+		p.opt.pointOpt = dkpt.MOptElectionV2(p.opt.Election)
 	}
 
 	return &p, nil
@@ -252,11 +257,26 @@ func (p *Prom) Request(url string) (*http.Response, error) {
 	return r, nil
 }
 
-func (p *Prom) CollectFromHTTP(u string) ([]*point.Point, error) {
+// CollectFromHTTPV2 convert point from old format to new format.
+func (p *Prom) CollectFromHTTPV2(u string) ([]*point.Point, error) {
+	// Here got old format point.
+	dkPts, err := p.CollectFromHTTP(u)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert
+	pts := inpt.Dkpt2point(dkPts...)
+
+	return pts, nil
+}
+
+// CollectFromHTTP Deprecated: use CollectFromHTTPV2.
+func (p *Prom) CollectFromHTTP(u string) ([]*dkpt.Point, error) {
 	resp, err := p.Request(u)
 	if err != nil {
 		if p.opt.IgnoreReqErr {
-			return []*point.Point{}, nil
+			return []*dkpt.Point{}, nil
 		} else {
 			return nil, fmt.Errorf("collect from %s: %w", u, err)
 		}
@@ -269,7 +289,22 @@ func (p *Prom) CollectFromHTTP(u string) ([]*point.Point, error) {
 	return pts, nil
 }
 
-func (p *Prom) CollectFromFile(filepath string) ([]*point.Point, error) {
+// CollectFromFileV2 convert point from old format to new format.
+func (p *Prom) CollectFromFileV2(filepath string) ([]*point.Point, error) {
+	// Here got old format point.
+	dkPts, err := p.CollectFromFile(filepath)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert
+	pts := inpt.Dkpt2point(dkPts...)
+
+	return pts, nil
+}
+
+// CollectFromFile Deprecated: use CollectFromFileV2.
+func (p *Prom) CollectFromFile(filepath string) ([]*dkpt.Point, error) {
 	f, err := os.OpenFile(filepath, os.O_RDONLY, 0o600) //nolint:gosec
 	if err != nil {
 		return nil, err

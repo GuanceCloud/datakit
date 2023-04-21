@@ -11,6 +11,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestExternalIP(t *T.T) {
+	t.Run("external-ip", func(t *T.T) {
+		ip, err := ExternalIP()
+
+		assert.NoError(t, err)
+
+		t.Logf("external IP: %s", ip)
+	})
+}
+
 func TestGetPort(t *T.T) {
 	t.Run("base-100", func(t *T.T) {
 		for i := 0; i < 10; i++ {

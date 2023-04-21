@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"net/http/httputil"
 	"net/url"
+	"strconv"
 	T "testing"
 	"time"
 
@@ -43,6 +44,14 @@ func TestEndpoint(t *T.T) {
 			assert.NoError(t, err)
 
 			defer r.Body.Close()
+
+			npts, err := strconv.ParseInt(r.Header.Get("X-Points"), 10, 64)
+			assert.NoError(t, err)
+			assert.True(t, npts > 0)
+
+			for k := range r.Header {
+				t.Logf("%s: %s", k, r.Header.Get(k))
+			}
 
 			x, err := uhttp.Unzip(body)
 			assert.NoError(t, err)
@@ -120,7 +129,9 @@ test-2 f1=1i,f2=false 123`), x)
 			defer r.Body.Close()
 			assert.NoError(t, err)
 
-			t.Logf("request headers: %+#v", r.Header)
+			for k := range r.Header {
+				t.Logf("%s: %s", k, r.Header.Get(k))
+			}
 
 			x, err := uhttp.Unzip(body)
 			assert.NoError(t, err)

@@ -75,6 +75,8 @@ type VirtualMemoryStat struct {
 	VmallocChunk   uint64 `json:"vmallocChunk"`
 	HugePagesTotal uint64 `json:"hugePagesTotal"`
 	HugePagesFree  uint64 `json:"hugePagesFree"`
+	HugePagesRsvd  uint64 `json:"hugePagesRsvd"`
+	HugePagesSurp  uint64 `json:"hugePagesSurp"`
 	HugePageSize   uint64 `json:"hugePageSize"`
 }
 
@@ -91,7 +93,7 @@ type SwapMemoryStat struct {
 
 	// Linux specific numbers
 	// https://www.kernel.org/doc/Documentation/cgroup-v2.txt
-	PgMajFault  uint64  `json:"pgMajFault"`
+	PgMajFault uint64 `json:"pgMajFault"`
 }
 
 func (m VirtualMemoryStat) String() string {
@@ -100,6 +102,17 @@ func (m VirtualMemoryStat) String() string {
 }
 
 func (m SwapMemoryStat) String() string {
+	s, _ := json.Marshal(m)
+	return string(s)
+}
+
+type SwapDevice struct {
+	Name      string `json:"name"`
+	UsedBytes uint64 `json:"usedBytes"`
+	FreeBytes uint64 `json:"freeBytes"`
+}
+
+func (m SwapDevice) String() string {
 	s, _ := json.Marshal(m)
 	return string(s)
 }

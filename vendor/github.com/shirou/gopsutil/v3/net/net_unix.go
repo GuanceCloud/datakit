@@ -1,3 +1,4 @@
+//go:build freebsd || darwin
 // +build freebsd darwin
 
 package net
@@ -63,7 +64,7 @@ func ConnectionsPidWithContext(ctx context.Context, kind string, pid int32) ([]C
 	case "udp":
 		args = append(args, "udp")
 	case "udp4":
-		args = append(args, "6udp")
+		args = append(args, "4udp")
 	case "udp6":
 		args = append(args, "6udp")
 	case "unix":
@@ -80,7 +81,6 @@ func ConnectionsPidWithContext(ctx context.Context, kind string, pid int32) ([]C
 		}
 		n, err := parseNetLine(rr)
 		if err != nil {
-
 			continue
 		}
 

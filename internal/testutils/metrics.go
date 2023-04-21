@@ -65,7 +65,8 @@ type ModuleResult struct {
 
 	OS,
 	Arch,
-	GoVersion string
+	GoVersion,
+	Branch string
 
 	Cost     time.Duration
 	Status   TestStatus
@@ -78,12 +79,13 @@ type ModuleResult struct {
 
 func (mr *ModuleResult) LineProtocol() string {
 	tags := map[string]string{
+		"arch":    mr.Arch,
+		"branch":  mr.Branch,
+		"go":      mr.GoVersion,
+		"host":    hostname,
 		"name":    mr.Name,
 		"os":      mr.OS,
-		"arch":    mr.Arch,
-		"go":      mr.GoVersion,
 		"status":  mr.Status.String(),
-		"host":    hostname,
 		"test_id": mr.TestID,
 	}
 

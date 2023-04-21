@@ -1,5 +1,7 @@
 ### `agg_metric()` {#fn-agg-metric}
 
+[:octicons-tag-24: Version-1.5.10](../datakit/changelog.md#cl-1.5.10)
+
 Function prototype: `fn agg_metric(bucket: str, new_field: str, agg_fn: str, agg_by: []string, agg_field: str)`
 
 Function description: According to the field name in the input data, the value is automatically taken as the label of the aggregated data, and the aggregated data is stored in the corresponding bucket.

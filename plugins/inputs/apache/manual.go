@@ -6,9 +6,11 @@
 package apache
 
 import (
+	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"github.com/GuanceCloud/cliutils/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -20,8 +22,24 @@ type Measurement struct {
 	election bool
 }
 
-func (m *Measurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+// Point implement MeasurementV2.
+func (m *Measurement) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	} else {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
+	}
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *Measurement) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -53,9 +71,10 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 			openSlot:                 newCountFieldInfo("The amount of workers that Apache can still start before hitting the maximum number of workers"),
 		},
 		Tags: map[string]interface{}{
-			"url":            inputs.NewTagInfo("apache server status url"),
-			"server_version": inputs.NewTagInfo("apache server version"),
-			"server_mpm":     inputs.NewTagInfo("apache server Multi-Processing Module,prefork、worker and event"),
+			"url":            inputs.NewTagInfo("Apache server status url."),
+			"server_version": inputs.NewTagInfo("Apache server version."),
+			"server_mpm":     inputs.NewTagInfo("Apache server Multi-Processing Module,prefork、worker and event."),
+			"host":           inputs.NewTagInfo("Hostname of the DataKit."),
 		},
 	}
 }

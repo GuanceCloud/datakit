@@ -141,29 +141,34 @@ func (aga *AfterGather) BuildPointsBatch(dktraces DatakitTraces, strict bool) []
 	return pts
 }
 
+func processUnknown(dkspan *DatakitSpan) {
+	if dkspan != nil {
+		if dkspan.Service == "" {
+			dkspan.Service = UNKNOWN_SERVICE
+		}
+		if dkspan.SourceType == "" {
+			dkspan.SourceType = SPAN_SOURCE_CUSTOMER
+		}
+		if dkspan.SpanType == "" {
+			dkspan.SpanType = SPAN_TYPE_UNKNOWN
+		}
+	}
+}
+
 // BuildPoint builds point from DatakitSpan.
 func BuildPoint(dkspan *DatakitSpan, strict bool) (*point.Point, error) {
-	if dkspan.Service == "" {
-		dkspan.Service = UnknowServiceName(dkspan)
-	}
+	processUnknown(dkspan)
 
 	tags := map[string]string{
 		TAG_SERVICE:     dkspan.Service,
 		TAG_OPERATION:   dkspan.Operation,
 		TAG_SOURCE_TYPE: dkspan.SourceType,
+		TAG_SPAN_TYPE:   dkspan.SpanType,
 		TAG_SPAN_STATUS: dkspan.Status,
-	}
-	if dkspan.SourceType == "" {
-		tags[TAG_SOURCE_TYPE] = SPAN_SOURCE_CUSTOMER
 	}
 	for k, v := range dkspan.Tags {
 		tags[strings.ReplaceAll(k, ".", "_")] = v
 	}
-	// exclude span_type in tags, span_type is crucial in data display
-	if dkspan.SpanType == "" {
-		dkspan.SpanType = SPAN_TYPE_UNKNOW
-	}
-	tags[TAG_SPAN_TYPE] = dkspan.SpanType
 
 	fields := map[string]interface{}{
 		FIELD_TRACEID:  dkspan.TraceID,

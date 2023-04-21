@@ -1,4 +1,3 @@
-postgres://postgres:********@localhost/test{{.CSS}}
 # 各种其它工具使用
 ---
 
@@ -8,53 +7,30 @@ DataKit 内置很多不同的小工具，便于大家日常使用。可通过如
 datakit help
 ```
 
->注意：因不同平台的差异，具体帮助内容会有差别。
+> 注意：因不同平台的差异，具体帮助内容会有差别。
 
-## DataKit 自动命令补全 {#completion}
-
-> DataKit 1.2.12 才支持该补全，且只测试了 Ubuntu 和 CentOS 两个 Linux 发行版。其它 Windows 跟 Mac 均不支持。
-
-在使用 DataKit 命令行的过程中，因为命令行参数很多，此处我们添加了命令提示和补全功能。
-
-主流的 Linux 基本都有命令补全支持，以 Ubuntu 和 CentOS 为例，如果要使用命令补全功能，可额外安装如下软件包：
-
-- Ubuntu：`apt install bash-completion`
-- CentOS: `yum install bash-completion bash-completion-extras`
-
-如果安装 DataKit 之前，这些软件已经安装好了，则 DataKit 安装时会自动带上命令补全功能。如果这些软件包是在 DataKit 安装之后才更新的，可执行如下操作来安装 DataKit 命令补全功能：
+如果要查看具体某个命令如何使用（比如 `dql`），可以用如下命令：
 
 ```shell
-datakit tool --setup-completer-script
-```
+$ datakit help dql
+usage: datakit dql [options]
 
-补全使用示例：
+DQL used to query data. If no option specified, query interactively. Other available options:
 
-```shell
-$ datakit <tab> # 输入 \tab 即可提示如下命令
-dql       help      install   monitor   pipeline  run       service   tool
-
-$ datakit dql <tab> # 输入 \tab 即可提示如下选项
---auto-json   --csv         -F,--force    --host        -J,--json     --log         -R,--run      -T,--token    -V,--verbose
-```
-
-以下提及的所有命令，均可使用这一方式来操作。
-
-### 获取自动补全脚本 {#get-completion}
-
-如果大家的 Linux 系统不是 Ubuntu 和 CentOS，可通过如下命令获取补全脚本，然后再按照对应平台的 shell 补全方式，一一添加即可。
-
-```shell
-# 导出补全脚本到本地 datakit-completer.sh 文件中
-datakit tool --completer-script > datakit-completer.sh
+      --auto-json      pretty output string if field/tag value is JSON
+      --csv string     Specify the directory
+  -F, --force          overwrite csv if file exists
+  -H, --host string    specify datakit host to query
+  -J, --json           output in json format
+      --log string     log path (default "/dev/null")
+  -R, --run string     run single DQL
+  -T, --token string   run query for specific token(workspace)
+  -V, --verbose        verbosity mode
 ```
 
 ## 查看 DataKit 运行情况 {#using-monitor}
 
-> 当前的 monitor 查看方式已经废弃（仍然可用，不久将废弃），新的 monitor 功能[参见这里](datakit-monitor.md)
-
-在终端即可查看 DataKit 运行情况，其效果跟浏览器端 monitor 页面相似：
-
-DataKit 新的 monitor 用法[参见这里](datakit-monitor.md)。
+monitor 用法[参见这里](datakit-monitor.md)
 
 ## 检查采集器配置是否正确 {#check-conf}
 
@@ -74,19 +50,6 @@ checked 13 conf, all passing, cost 22.27455ms
 datakit tool --test-snmp /usr/local/datakit/conf.d/snmp/snmp.conf
 # 以下会打印采集到的信息...
 ......
-```
-
-## 查看帮助文档 {#man}
-
-为便于大家在服务端查看 DataKit 帮助文档，DataKit 提供如下交互式文档查看入口（Windows 不支持）：
-
-```shell
-datakit --man
-man > nginx
-(显示 Nginx 采集文档)
-man > mysql
-(显示 MySQL 采集文档)
-man > Q               # 输入 Q 或 exit 退出
 ```
 
 ## 查看工作空间信息 {#workspace-info}
@@ -471,4 +434,42 @@ datakit tool --parse-lp /path/to/file --json
   "point": 202,        # 总点数
   "time_serial": 201   # 总时间线数
 }
+```
+
+## DataKit 自动命令补全 {#completion}
+
+> DataKit 1.2.12 才支持该补全，且只测试了 Ubuntu 和 CentOS 两个 Linux 发行版。其它 Windows 跟 Mac 均不支持。
+
+在使用 DataKit 命令行的过程中，因为命令行参数很多，此处我们添加了命令提示和补全功能。
+
+主流的 Linux 基本都有命令补全支持，以 Ubuntu 和 CentOS 为例，如果要使用命令补全功能，可额外安装如下软件包：
+
+- Ubuntu：`apt install bash-completion`
+- CentOS: `yum install bash-completion bash-completion-extras`
+
+如果安装 DataKit 之前，这些软件已经安装好了，则 DataKit 安装时会自动带上命令补全功能。如果这些软件包是在 DataKit 安装之后才更新的，可执行如下操作来安装 DataKit 命令补全功能：
+
+```shell
+datakit tool --setup-completer-script
+```
+
+补全使用示例：
+
+```shell
+$ datakit <tab> # 输入 \tab 即可提示如下命令
+dql       help      install   monitor   pipeline  run       service   tool
+
+$ datakit dql <tab> # 输入 \tab 即可提示如下选项
+--auto-json   --csv         -F,--force    --host        -J,--json     --log         -R,--run      -T,--token    -V,--verbose
+```
+
+以下提及的所有命令，均可使用这一方式来操作。
+
+### 获取自动补全脚本 {#get-completion}
+
+如果大家的 Linux 系统不是 Ubuntu 和 CentOS，可通过如下命令获取补全脚本，然后再按照对应平台的 shell 补全方式，一一添加即可。
+
+```shell
+# 导出补全脚本到本地 datakit-completer.sh 文件中
+datakit tool --completer-script > datakit-completer.sh
 ```

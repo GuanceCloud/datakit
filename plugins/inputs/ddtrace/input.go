@@ -35,7 +35,7 @@ const (
 [[inputs.ddtrace]]
   ## DDTrace Agent endpoints register by version respectively.
   ## Endpoints can be skipped listen by remove them from the list.
-  ## Default value set as below. DO NOT MODIFY THESE ENDPOINTS if not necessary.
+  ## NOTE: DO NOT EDIT.
   endpoints = ["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]
 
   ## customer_tags is a list of keys contains keys set by client code like span.SetTag(key, value)
@@ -259,9 +259,7 @@ func (ipt *Input) RegHTTPHandler() {
 }
 
 func (ipt *Input) Run() {
-	for i := range ipt.CustomerTags {
-		customerKeys = append(customerKeys, ipt.CustomerTags[i])
-	}
+	customerKeys = ipt.CustomerTags
 	tags = ipt.Tags
 
 	log.Debugf("### %s agent is running...", inputName)

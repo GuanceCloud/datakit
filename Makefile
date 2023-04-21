@@ -61,6 +61,8 @@ DATAKIT_EBPF_ARCHS   ?= linux/arm64,linux/amd64
 IGN_EBPF_INSTALL_ERR ?= 0
 RACE_DETECTION       ?= "off"
 PKGEBPF              ?= "false"
+UT_EXCLUDE           ?= ""
+DOCKER_REMOTE_HOST   ?= "0.0.0.0" # default use localhost as docker server
 
 PKGEBPF_FLAG = ""
 ifneq ($(PKGEBPF),"false")
@@ -220,10 +222,6 @@ define build_ip2isp
 	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go -build-isp
 endef
 
-define do_lint
-	$(GOLINT_BINARY) run --fix --allow-parallel-runners | tee -a lint.err
-endef
-
 ##############################################################################
 # Rules in the Makefile
 ##############################################################################
@@ -303,13 +301,13 @@ pub_conf_samples:
 # testing/production downloads config samples from different oss bucket.
 check_testing_conf_compatible:
 	@CGO_CFLAGS=$(CGO_FLAGS) go run cmd/make/make.go -download-samples -release testing
-	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-config --config-dir samples
-	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-sample
+	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit check --config --config-dir samples
+	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit check --sample
 
 check_production_conf_compatible:
 	@CGO_CFLAGS=$(CGO_FLAGS) go run cmd/make/make.go -download-samples -release production
-	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-config --config-dir samples
-	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-sample
+	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit check --config --config-dir samples
+	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit check --sample
 
 # 没有传参的日志，我们认为其日志信息是不够完整的，日志的意义也相对不大
 shame_logging:
@@ -334,7 +332,10 @@ vet:
 	@go vet ./...
 
 ut: deps
-	CGO_CFLAGS=$(CGO_FLAGS) GO111MODULE=off CGO_ENABLED=1 go run cmd/make/make.go -ut -dataway-url "$(DATAWAY_URL)"; \
+	CGO_CFLAGS=$(CGO_FLAGS) GO111MODULE=off CGO_ENABLED=1 \
+						 REMOTE_HOST=$(DOCKER_REMOTE_HOST) \
+						 go run cmd/make/make.go -ut -ut-exclude $(UT_EXCLUDE) \
+						 -dataway-url $(DATAWAY_URL); \
 		if [ $$? != 0 ]; then \
 			exit 1; \
 		else \
@@ -371,7 +372,17 @@ test_deps: prepare gofmt lfparser_disable_line vet
 
 lint: deps check_man copyright_check
 	@truncate -s 0 lint.err
-	$(call do_lint)
+	$(GOLINT_BINARY) run --fix --allow-parallel-runners | tee -a lint.err;
+	@if [ $$? != 0 ]; then \
+		exit -1; \
+	fi
+
+lint_nofix: deps check_man copyright_check
+	@truncate -s 0 lint.err
+	$(GOLINT_BINARY) run --allow-parallel-runners | tee -a lint_nofix.err;
+	@if [ $$? != 0 ]; then \
+		exit -1; \
+	fi
 
 lfparser_disable_line:
 	@rm -rf io/parser/gram_y.go

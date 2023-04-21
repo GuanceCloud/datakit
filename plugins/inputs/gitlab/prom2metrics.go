@@ -54,6 +54,8 @@ func promTextToMetrics(data io.Reader) ([]*samplePoint, error) {
 			l.Debugf("ignore untyped")
 		case dto.MetricType_GAUGE_HISTOGRAM:
 			l.Debugf("ignore gauge histogram")
+		case dto.MetricType_INFO:
+			l.Debugf("ignore info")
 		}
 	}
 

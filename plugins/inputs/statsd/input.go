@@ -20,7 +20,7 @@ import (
 	"github.com/influxdata/telegraf/plugins/parsers/graphite"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -53,25 +53,25 @@ type input struct {
 	Protocol string `toml:"protocol"`
 
 	// Address & Port to serve from
-	ServiceAddress string
+	ServiceAddress string `toml:"service_address"`
 
 	// Number of messages allowed to queue up in between calls to Gather. If this
 	// fills up, packets will get dropped until the next Gather interval is ran.
-	AllowedPendingMessages int
+	AllowedPendingMessages int `toml:"allowed_pending_messages"`
 
 	// Percentiles specifies the percentiles that will be calculated for timing
 	// and histogram stats.
-	Percentiles     []float64
-	PercentileLimit int
+	Percentiles     []float64 `toml:"percentiles"`
+	PercentileLimit int       `toml:"percentile_limit"`
 
-	DeleteGauges   bool
-	DeleteCounters bool
-	DeleteSets     bool
-	DeleteTimings  bool
+	DeleteGauges   bool `toml:"delete_gauges"`
+	DeleteCounters bool `toml:"delete_counters"`
+	DeleteSets     bool `toml:"delete_sets"`
+	DeleteTimings  bool `toml:"delete_timings"`
 	ConvertNames   bool
 
 	// MetricSeparator is the separator between parts of the metric name.
-	MetricSeparator string
+	MetricSeparator string `toml:"metric_separator"`
 	// This flag enables parsing of tags in the dogstatsd extension to the
 	// statsd protocol (http://docs.datadoghq.com/guides/dogstatsd/)
 	ParseDataDogTags bool // depreciated in 1.10; use datadog_extensions
@@ -150,6 +150,7 @@ type input struct {
 	bufPool sync.Pool
 
 	semStop *cliutils.Sem // start stop signal
+	feeder  dkio.Feeder
 }
 
 type job struct {
@@ -371,7 +372,7 @@ func (ipt *input) Run() {
 		}
 
 		if err := ipt.setup(); err != nil {
-			io.FeedLastError(inputName, err.Error())
+			ipt.feeder.FeedLastError(inputName, err.Error())
 			time.Sleep(time.Second * 5)
 			continue
 		}
@@ -616,6 +617,7 @@ func defaultInput() *input {
 		DeleteTimings:          true,
 
 		semStop: cliutils.NewSem(),
+		feeder:  dkio.DefaultFeeder(),
 	}
 }
 

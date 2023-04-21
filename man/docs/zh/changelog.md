@@ -29,6 +29,52 @@ branch changelog
 
 -->
 
+## 1.6.0(2023/04/20) {#cl-1.6.0}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.6.0-new}
+
+- 新增 [Pinpoint](pinpoint.md) API 接入(#973)
+
+### 功能优化 {#cl-1.6.0-opt}
+
+- 优化 Windows 安装脚本和升级脚本输出方式，便于在终端直接黏贴复制(#1557)
+- 优化 Datakit 自身文档构建流程(#1578)
+- 优化 OpenTelemetry 字段处理(#1514)
+- [Prom](prom.md) 采集器支持采集 `info` 类型的 label 并将其追加到所有关联指标上（默认开启）(#1544)
+- 在 [system 采集器](system.md)中，新增 CPU 和内存占用百分比指标(#1565)
+- Datakit 在发送的数据中，增加数据点数标记（`X-Points`），便于中心相关指标构建(#1410)
+    - 另外优化了 Datakit HTTP 的 `User-Agent` 标记，改为 `datakit-<os>-<arch>/<version>` 这种形态
+- [KafkaMQ](kafkamq.md)：
+    - 支持处理 Jaeger 数据(#1526)
+    - 优化 SkyWalking 数据的处理流程(#1530)
+    - 新增第三方 RUM 接入功能(#1581)
+- [SkyWalking](skywalking.md) 新增 HTTP 接入功能(#1533)
+- 增加如下集成测试：
+    - [Apache](apache.md)(#1553)
+    - [JVM](jvm.md)(#1559)
+    - [Memcached](memcached.md)(#1552)
+    - [MongoDB](mongodb.md)(#1525)
+    - [RabbitMQ](rabbitmq.md)(#1560)
+    - [Statsd](statsd.md)(#1562)
+    - [Tomcat](tomcat.md)(#1566)
+    - [etcd](etcd.md)(#1434)
+
+### 问题修复 {#cl-1.6.0-fix}
+
+- 修复 [JSON 格式](apis.md#api-json-example)写入数据时无法识别时间精度的问题(#1567)
+- 修复拨测采集器不工作的问题(#1582)
+- 修复 eBPF 在欧拉系统上验证器问题(#1568)
+- 修复 RUM sourcemap 段错误问题(#1458)
+<!-- - 修复进程对象采集器可能导致高 CPU 问题，默认情况下关闭了部分高消耗字段（listen 端口）的采集(#1543) -->
+
+### 兼容调整 {#cl-1.6.0-brk}
+
+- 移除老的命令行风格，比如，原来的 `datakit --version` 将不再生效，须以 `datakit version` 代之。详见[各种命令的用法](datakit-tools-how-to.md)
+
+---
+
 ## 1.5.10(2023/04/13) {#cl-1.5.10}
 
 本次发布属于紧急发布，主要有如下更新：
@@ -1313,13 +1359,13 @@ volumes:
 - Linux/Mac:
 
 ```shell
-DK_UPGRADE=1 bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+{{ InstallCmd 0 (.WithPlatform "unix") }}
 ```
 
 - Windows
 
 ```powershell
-$env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+{{ InstallCmd 0 (.WithPlatform "windows") }}
 ```
 
 ---

@@ -51,7 +51,7 @@ func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) 
 }
 
 func handleDDTraces(resp http.ResponseWriter, req *http.Request) {
-	log.Debugf("### received tracing data from path: %s", req.URL.Path)
+	log.Debugf("### receiving trace data from path: %s", req.URL.Path)
 
 	if req.Header.Get("Content-Length") == "0" || req.Header.Get("X-Datadog-Trace-Count") == "0" {
 		log.Debug("empty request body")
@@ -251,13 +251,13 @@ func pickupMeta(dkspan *itrace.DatakitSpan, ddspan *DDSpan, keys ...string) {
 
 	if dkspan.Status == itrace.STATUS_ERR || dkspan.Status == itrace.STATUS_CRITICAL {
 		if errType, ok := ddspan.Meta["error.type"]; ok {
-			dkspan.Metrics[itrace.TAG_ERR_TYPE] = errType
+			dkspan.Metrics[itrace.FIELD_ERR_TYPE] = errType
 		}
 		if errStack, ok := ddspan.Meta["error.stack"]; ok {
-			dkspan.Metrics[itrace.TAG_ERR_STACK] = errStack
+			dkspan.Metrics[itrace.FIELD_ERR_STACK] = errStack
 		}
 		if errMsg, ok := ddspan.Meta["error.msg"]; ok {
-			dkspan.Metrics[itrace.TAG_ERR_MESSAGE] = errMsg
+			dkspan.Metrics[itrace.FIELD_ERR_MESSAGE] = errMsg
 		}
 	}
 }

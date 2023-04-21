@@ -11,7 +11,7 @@ Specify the pipeline script name and enter a piece of text to determine whether 
 > The pipeline script must be placed in the *[Datakit 安装目录]/pipeline* directory.
 
 ```shell
-$ datakit pipeline your_pipeline.p -T '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
+$ datakit pipeline -P your_pipeline.p -T '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
 Extracted data(cost: 421.705µs): # Indicate successful cutting
 {
 	"code"   : "io/io.go: 458",       # Corresponding code position
@@ -26,7 +26,7 @@ Extracted data(cost: 421.705µs): # Indicate successful cutting
 Extraction failure example (only `message` is left, indicating that other fields have not been extracted):
 
 ```shell
-$ datakit pipeline other_pipeline.p -T '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms'
+$ datakit pipeline -P other_pipeline.p -T '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms'
 {
 	"message": "2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms"
 }
@@ -35,7 +35,7 @@ $ datakit pipeline other_pipeline.p -T '2021-01-11T17:43:51.887+0800  DEBUG io  
 > If the debug text is complex, you can write it to a file (sample.log) and debug it as follows:
 
 ```shell
-$ datakit pipeline your_pipeline.p -F sample.log
+$ datakit pipeline -P your_pipeline.p -F sample.log
 ```
 
 For more Pipeline debugging commands, see `datakit help pipeline`.
@@ -98,7 +98,7 @@ drop_origin_data()
 Save the above multi-line log as *multi-line.log* and debug it:
 
 ```shell
-$ datakit --pl test.p --txt "$(<multi-line.log)"
+$ datakit pipeline -P test.p -T "$(<multi-line.log)"
 ```
 
 The following cutting results are obtained:
@@ -123,13 +123,13 @@ In all the fields cut out by Pipeline, they are a field rather than a tag. We sh
 
 In addition, all collected logs have the following reserved fields. We should not override these fields, otherwise the data may not appear properly on the observer page.
 
-| Field Name    | Type          | Description                                  |
-| ---       | ----          | ----                                  |
-| `source`  | string(tag)   | Log source                              |
-| `service` | string(tag)   | The service corresponding to the log is the same as the `service` by default |
-| `status`  | string(tag)   | The [level](logging.md#status)  corresponding to the log  |
-| `message` | string(field) | Original log                              |
-| `time`    | int           | Timestamp corresponding to log          |
+| Field Name | Type          | Description                                                                  |
+| ---        | ----          | ----                                                                         |
+| `source`   | string(tag)   | Log source                                                                   |
+| `service`  | string(tag)   | The service corresponding to the log is the same as the `service` by default |
+| `status`   | string(tag)   | The [level](logging.md#status)  corresponding to the log                     |
+| `message`  | string(field) | Original log                                                                 |
+| `time`     | int           | Timestamp corresponding to log                                               |
 
 
 ???+ tip
@@ -184,7 +184,7 @@ Now that you have the pipeline and its referenced pattern, you can cut this line
 
 ```Shell
 # Extract successful examples
-$ ./datakit --pl dklog_pl.p --txt '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
+$ ./datakit pipeline -P dklog_pl.p -T '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
 Extracted data(cost: 421.705µs):
 {
     "code": "io/io.go:458",
@@ -229,7 +229,7 @@ See [Basic syntax rules of Pipeline](pipeline.md#basic-syntax)
 The order is as follows:
 
 ```shell
-$ datakit pipeline test.p -T "..."
+$ datakit pipeline -P test.p -T "..."
 [E] get pipeline failed: stat /usr/local/datakit/pipeline/test.p: no such file or directory
 ```
 

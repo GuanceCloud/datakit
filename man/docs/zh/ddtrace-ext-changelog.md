@@ -39,6 +39,18 @@
 
 --->
 
+## v1.12.0 (2023/4/20) {#cl-1.10.2}
+
+### 修复 {#cl-1.12.0-new}
+
+- 合并最新 ddtrace tag:1.12.0.
+- 当当网 [dubbox 支持](https://github.com/GuanceCloud/dd-trace-java/issues/32).
+- 解决 jax-rs 与 dubbo 链路产生混淆的[问题](https://github.com/GuanceCloud/dd-trace-java/issues/34).
+- 解决 dubbo 链路拓扑图顺序不对的[问题](https://github.com/GuanceCloud/dd-trace-java/issues/35).
+- 解决 RocketMQ 与客户自定义链路数据冲突[问题](https://github.com/GuanceCloud/dd-trace-java/issues/29).
+- 解决 RocketMQ resource name[问题](https://github.com/GuanceCloud/dd-trace-java/issues/33).
+
+
 ## v1.10.2 (2023/4/10) {#cl-1.10.2}
 
 ### 修复 {#cl-1.10.2-new}

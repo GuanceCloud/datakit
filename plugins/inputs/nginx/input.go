@@ -30,8 +30,7 @@ var (
 	l           = logger.DefaultSLogger(inputName)
 	minInterval = time.Second
 	maxInterval = time.Second * 30
-	sample      = `
-[[inputs.nginx]]
+	sample      = `[[inputs.nginx]]
 	# Nginx status URL.
 	# (Default) If not use with VTS, the formula is like this: "http://localhost:80/nginx_status".
 	# If using with VTS, the formula is like this: "http://localhost:80/status/format/json".

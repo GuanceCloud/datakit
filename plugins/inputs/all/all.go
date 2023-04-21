@@ -51,6 +51,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/nvidiasmi"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/oracle"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/pinpoint"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/postgresql"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/process"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/profile"
@@ -76,9 +77,9 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/system"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tdengine"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tomcat"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zipkin"
 
 	// only windows.
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/winevent"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zipkin"
 	// deprecated.
 )

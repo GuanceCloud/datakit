@@ -37,7 +37,7 @@ adjust_timezone(time)
 
 ```
 
-执行 `datakit pipeline <name>.p -F <input_file_name>  --date`:
+执行 `datakit pipeline -P <name>.p -F <input_file_name>  --date`:
 
 ```json
 # 输出 1
