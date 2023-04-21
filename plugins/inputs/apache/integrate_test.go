@@ -6,11 +6,10 @@
 package apache
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
-	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -22,7 +21,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	dockertest "github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -64,7 +63,7 @@ func TestApacheInput(t *testing.T) {
 
 			tc.cr.Cost = time.Since(caseStart)
 
-			assert.NoError(t, testutils.Flush(tc.cr))
+			require.NoError(t, testutils.Flush(tc.cr))
 
 			t.Cleanup(func() {
 				// clean remote docker resources
@@ -72,7 +71,7 @@ func TestApacheInput(t *testing.T) {
 					return
 				}
 
-				assert.NoError(t, tc.pool.Purge(tc.resource))
+				require.NoError(t, tc.pool.Purge(tc.resource))
 			})
 		})
 	}
@@ -93,9 +92,9 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		{
 			name: "httpd:server-status",
 			conf: fmt.Sprintf(`url = "http://%s/server-status?auto"
-			interval = "1s"`, remote.Host),
-			dockerFileText: getDockerfile("2.4"),
+			interval = "1s"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
 			exposedPorts:   []string{"80/tcp"},
+			dockerFileText: getDockerfile("2.4"),
 			mPathCount: map[string]int{
 				"/": 100,
 			},
@@ -112,7 +111,10 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		ipt.feeder = feeder
 
 		_, err := toml.Decode(base.conf, ipt)
-		assert.NoError(t, err)
+		require.NoError(t, err)
+
+		uURL, err := url.Parse(ipt.URL)
+		require.NoError(t, err, "parse %s failed: %s", ipt.URL, err)
 
 		repoTag := strings.Split(base.name, ":")
 
@@ -126,8 +128,8 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 			dockerFileText: base.dockerFileText,
 			exposedPorts:   base.exposedPorts,
-			// opts:           base.opts,
-			mPathCount: base.mPathCount,
+			serverPorts:    []string{uURL.Port()},
+			mPathCount:     base.mPathCount,
 
 			cr: &testutils.CaseResult{
 				Name:        t.Name(),
@@ -158,6 +160,7 @@ type caseSpec struct {
 	repoTag        string
 	dockerFileText string
 	exposedPorts   []string
+	serverPorts    []string
 	opts           []inputs.PointCheckOption
 	mPathCount     map[string]int
 
@@ -246,7 +249,7 @@ func (cs *caseSpec) run() error {
 	}
 	defer os.RemoveAll(dockerFileDir)
 
-	extIP, err := externalIP()
+	extIP, err := testutils.ExternalIP()
 	if err != nil {
 		return err
 	}
@@ -302,15 +305,13 @@ func (cs *caseSpec) run() error {
 	cs.pool = p
 	cs.resource = resource
 
-	cs.t.Logf("check service(%s:%v)...", r.Host, cs.exposedPorts)
+	cs.t.Logf("check service(%s:%v)...", r.Host, cs.serverPorts)
 
 	if err := cs.portsOK(r); err != nil {
 		return err
 	}
 
 	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
-
-	cs.runHTTPTests(r)
 
 	var wg sync.WaitGroup
 
@@ -405,15 +406,19 @@ func (cs *caseSpec) getContainterName() string {
 func (cs *caseSpec) getPortBindings() map[docker.Port][]docker.PortBinding {
 	portBindings := make(map[docker.Port][]docker.PortBinding)
 
-	for _, v := range cs.exposedPorts {
-		portBindings[docker.Port(v)] = []docker.PortBinding{{HostIP: "0.0.0.0", HostPort: docker.Port(v).Port()}}
+	// check ports' mapping.
+	require.Equal(cs.t, len(cs.exposedPorts), len(cs.serverPorts))
+
+	for k, v := range cs.exposedPorts {
+		// portBindings[docker.Port(v)] = []docker.PortBinding{{HostIP: "0.0.0.0", HostPort: docker.Port(cs.serverPorts[k]).Port()}}
+		portBindings[docker.Port(v)] = []docker.PortBinding{{HostPort: docker.Port(cs.serverPorts[k]).Port()}}
 	}
 
 	return portBindings
 }
 
 func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
-	for _, v := range cs.exposedPorts {
+	for _, v := range cs.serverPorts {
 		if !r.PortOK(docker.Port(v).Port(), time.Minute) {
 			return fmt.Errorf("service checking failed")
 		}
@@ -421,70 +426,7 @@ func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
 	return nil
 }
 
-// Launch large amount of HTTP requests to remote nginx.
-func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) {
-	for path, count := range cs.mPathCount {
-		newURL := fmt.Sprintf("http://%s%s", r.Host, path)
-
-		var wg sync.WaitGroup
-		wg.Add(count)
-
-		for i := 0; i < count; i++ {
-			go func() {
-				defer wg.Done()
-
-				resp, err := http.Get(newURL)
-				if err != nil {
-					panic(err)
-				}
-				if err := resp.Body.Close(); err != nil {
-					panic(err)
-				}
-			}()
-		}
-
-		wg.Wait()
-	}
-}
-
 ////////////////////////////////////////////////////////////////////////////////
-
-func externalIP() (string, error) {
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return "", err
-	}
-	for _, iface := range ifaces {
-		if iface.Flags&net.FlagUp == 0 {
-			continue // interface down
-		}
-		if iface.Flags&net.FlagLoopback != 0 {
-			continue // loopback interface
-		}
-		addrs, err := iface.Addrs()
-		if err != nil {
-			return "", err
-		}
-		for _, addr := range addrs {
-			var ip net.IP
-			switch v := addr.(type) {
-			case *net.IPNet:
-				ip = v.IP
-			case *net.IPAddr:
-				ip = v.IP
-			}
-			if ip == nil || ip.IsLoopback() {
-				continue
-			}
-			ip = ip.To4()
-			if ip == nil {
-				continue // not an ipv4 address
-			}
-			return ip.String(), nil
-		}
-	}
-	return "", errors.New("are you connected to the network?")
-}
 
 func getDockerfile(version string) string {
 	replacePair := map[string]string{
