@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -93,45 +94,45 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 	}{
 		{
 			name: "rabbitmq:3.8-management-alpine",
-			conf: fmt.Sprintf(`url = "http://%s:15672"
+			conf: fmt.Sprintf(`url = "http://%s"
 			username = "guest"
 			password = "guest"
 			interval = "1s"
 			insecure_skip_verify = false
-			election = true`, remote.Host),
+			election = true`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
 			exposedPorts: []string{"15672/tcp"},
 		},
 
 		{
 			name: "rabbitmq:3.9-management-alpine",
-			conf: fmt.Sprintf(`url = "http://%s:15672"
+			conf: fmt.Sprintf(`url = "http://%s"
 			username = "guest"
 			password = "guest"
 			interval = "1s"
 			insecure_skip_verify = false
-			election = true`, remote.Host),
+			election = true`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
 			exposedPorts: []string{"15672/tcp"},
 		},
 
 		{
 			name: "rabbitmq:3.10-management-alpine",
-			conf: fmt.Sprintf(`url = "http://%s:15672"
+			conf: fmt.Sprintf(`url = "http://%s"
 			username = "guest"
 			password = "guest"
 			interval = "1s"
 			insecure_skip_verify = false
-			election = true`, remote.Host),
+			election = true`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
 			exposedPorts: []string{"15672/tcp"},
 		},
 
 		{
 			name: "rabbitmq:3.11-management-alpine",
-			conf: fmt.Sprintf(`url = "http://%s:15672"
+			conf: fmt.Sprintf(`url = "http://%s"
 			username = "guest"
 			password = "guest"
 			interval = "1s"
 			insecure_skip_verify = false
-			election = true`, remote.Host),
+			election = true`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
 			exposedPorts: []string{"15672/tcp"},
 		},
 	}
@@ -148,6 +149,9 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)
 
+		uURL, err := url.Parse(ipt.URL)
+		require.NoError(t, err, "parse %s failed: %s", ipt.URL, err)
+
 		repoTag := strings.Split(base.name, ":")
 
 		cases = append(cases, &caseSpec{
@@ -159,6 +163,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			repoTag: repoTag[1],
 
 			exposedPorts: base.exposedPorts,
+			serverPorts:  []string{uURL.Port()},
 
 			cr: &testutils.CaseResult{
 				Name:        t.Name(),
@@ -189,6 +194,7 @@ type caseSpec struct {
 	repoTag        string
 	dockerFileText string
 	exposedPorts   []string
+	serverPorts    []string
 	opts           []inputs.PointCheckOption
 
 	ipt    *Input
@@ -375,7 +381,7 @@ func (cs *caseSpec) run() error {
 	cs.pool = p
 	cs.resource = resource
 
-	cs.t.Logf("check service(%s:%v)...", r.Host, cs.exposedPorts)
+	cs.t.Logf("check service(%s:%v)...", r.Host, cs.serverPorts)
 
 	if err := cs.portsOK(r); err != nil {
 		return err
@@ -383,7 +389,7 @@ func (cs *caseSpec) run() error {
 
 	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
 
-	createQueue(r.Host)
+	cs.createQueue(r.Host)
 
 	var wg sync.WaitGroup
 
@@ -480,15 +486,19 @@ func (cs *caseSpec) getContainterName() string {
 func (cs *caseSpec) getPortBindings() map[docker.Port][]docker.PortBinding {
 	portBindings := make(map[docker.Port][]docker.PortBinding)
 
-	for _, v := range cs.exposedPorts {
-		portBindings[docker.Port(v)] = []docker.PortBinding{{HostIP: "0.0.0.0", HostPort: docker.Port(v).Port()}}
+	// check ports' mapping.
+	require.Equal(cs.t, len(cs.exposedPorts), len(cs.serverPorts))
+
+	for k, v := range cs.exposedPorts {
+		// portBindings[docker.Port(v)] = []docker.PortBinding{{HostIP: "0.0.0.0", HostPort: docker.Port(cs.serverPorts[k]).Port()}}
+		portBindings[docker.Port(v)] = []docker.PortBinding{{HostPort: docker.Port(cs.serverPorts[k]).Port()}}
 	}
 
 	return portBindings
 }
 
 func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
-	for _, v := range cs.exposedPorts {
+	for _, v := range cs.serverPorts {
 		if !r.PortOK(docker.Port(v).Port(), time.Minute) {
 			return fmt.Errorf("service checking failed")
 		}
@@ -511,31 +521,34 @@ type Arguments struct {
 	XDeadLetterRoutingKey string `json:"x-dead-letter-routing-key"`
 }
 
-func createQueue(remoteHost string) error {
-	data := Payload{
-		// fill struct
-	}
-	payloadBytes, err := json.Marshal(data)
-	if err != nil {
-		// handle err
-		return err
-	}
-	body := bytes.NewReader(payloadBytes)
+func (cs *caseSpec) createQueue(remoteHost string) error {
+	for _, v := range cs.serverPorts {
+		data := Payload{
+			// fill struct
+		}
+		payloadBytes, err := json.Marshal(data)
+		if err != nil {
+			// handle err
+			return err
+		}
+		body := bytes.NewReader(payloadBytes)
 
-	req, err := http.NewRequest("PUT", "http://"+net.JoinHostPort(remoteHost, "15672")+"/api/queues/%2f/my.queue", body)
-	if err != nil {
-		// handle err
-		return err
-	}
-	req.SetBasicAuth("guest", "guest")
-	req.Header.Set("Content-Type", "application/json")
+		req, err := http.NewRequest("PUT", "http://"+net.JoinHostPort(remoteHost, v)+"/api/queues/%2f/my.queue", body)
+		if err != nil {
+			// handle err
+			return err
+		}
+		req.SetBasicAuth("guest", "guest")
+		req.Header.Set("Content-Type", "application/json")
 
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		// handle err
-		return err
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			// handle err
+			return err
+		}
+		defer resp.Body.Close()
 	}
-	defer resp.Body.Close()
+
 	return nil
 }
 
