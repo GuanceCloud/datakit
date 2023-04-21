@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
-	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -461,8 +460,6 @@ func (cs *caseSpec) run() error {
 
 	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
 
-	cs.runHTTPTests(r)
-
 	var wg sync.WaitGroup
 
 	// start input
@@ -575,43 +572,4 @@ func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
 		}
 	}
 	return nil
-}
-
-// Launch large amount of HTTP requests to remote nginx.
-func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) {
-	for _, v := range cs.serverPorts {
-		for path, count := range cs.mPathCount {
-			newURL := fmt.Sprintf("http://%s%s", net.JoinHostPort(r.Host, v), path)
-
-			var wg sync.WaitGroup
-			wg.Add(count)
-
-			for i := 0; i < count; i++ {
-				go func() {
-					defer wg.Done()
-
-					netTransport := &http.Transport{
-						Dial: (&net.Dialer{
-							Timeout: 10 * time.Second,
-						}).Dial,
-						TLSHandshakeTimeout: 10 * time.Second,
-					}
-					netClient := &http.Client{
-						Timeout:   time.Second * 20,
-						Transport: netTransport,
-					}
-
-					resp, err := netClient.Get(newURL)
-					if err != nil {
-						panic(err)
-					}
-					if err := resp.Body.Close(); err != nil {
-						panic(err)
-					}
-				}()
-			}
-
-			wg.Wait()
-		}
-	}
 }

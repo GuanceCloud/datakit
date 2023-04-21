@@ -389,6 +389,7 @@ func (cs *caseSpec) run() error {
 
 	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
 
+	time.Sleep(10 * time.Second) // wait for ready.
 	cs.createQueue(r.Host)
 
 	var wg sync.WaitGroup
