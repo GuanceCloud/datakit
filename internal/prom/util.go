@@ -24,7 +24,7 @@ import (
 const statusInfo = "INFO"
 
 type nameAndFamily struct {
-	metricName string
+	metricName   string
 	metricFamily *dto.MetricFamily
 }
 
