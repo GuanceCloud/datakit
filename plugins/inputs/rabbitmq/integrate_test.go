@@ -537,6 +537,7 @@ func (cs *caseSpec) createQueue(remoteHost string) error {
 			cs.t.Logf("http PUT failed: %v", err)
 			return err
 		}
+		req.Close = true // https://stackoverflow.com/a/19006050
 		req.SetBasicAuth("guest", "guest")
 		req.Header.Set("Content-Type", "application/json")
 
