@@ -306,8 +306,8 @@ check_testing_conf_compatible:
 
 check_production_conf_compatible:
 	@CGO_CFLAGS=$(CGO_FLAGS) go run cmd/make/make.go -download-samples -release production
-	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-config --config-dir samples
-	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-sample
+	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit check --config --config-dir samples
+	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit check --sample
 
 # 没有传参的日志，我们认为其日志信息是不够完整的，日志的意义也相对不大
 shame_logging:

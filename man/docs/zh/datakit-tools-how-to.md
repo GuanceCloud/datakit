@@ -37,7 +37,7 @@ monitor 用法[参见这里](datakit-monitor.md)
 编辑完采集器的配置文件后，可能某些配置有误（如配置文件格式错误），通过如下命令可检查是否正确：
 
 ```shell
-datakit tool --check-config
+datakit check --config
 ------------------------
 checked 13 conf, all passing, cost 22.27455ms
 ```

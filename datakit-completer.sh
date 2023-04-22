@@ -35,8 +35,8 @@ _datakit()
 				;;
 
 			tool)
-				COMPREPLY=( $(compgen -W '--check-config --check-sample --default-main-conf --dump-samples
-				--ipinfo --log --show-cloud-info --upload-log --workspace-info --setup-completer-script' -- "${cur_word}") )
+				COMPREPLY=( $(compgen -W '--default-main-conf --dump-samples --ipinfo --log
+				--show-cloud-info --upload-log --workspace-info --setup-completer-script' -- "${cur_word}") )
 				;;
 
 			help)

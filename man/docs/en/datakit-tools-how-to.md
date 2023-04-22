@@ -61,7 +61,7 @@ DataKit's new monitor usage [see here](datakit-monitor.md).
 After editing the collector's configuration file, there may be some configuration errors (such as the configuration file format error), which can be checked by the following command:
 
 ```shell
-datakit tool --check-config
+datakit check --config
 ------------------------
 checked 13 conf, all passing, cost 22.27455ms
 ```
