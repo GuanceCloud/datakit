@@ -328,7 +328,7 @@ func TestRedisInput(t *testing.T) {
 
 			t.Logf("testing %s...", tc.name)
 
-			if err := tc.run(); err != nil {
+			if err := tu.RetryTestRun(tc.run); err != nil {
 				tc.cr.Status = tu.TestFailed
 				tc.cr.FailedMessage = err.Error()
 

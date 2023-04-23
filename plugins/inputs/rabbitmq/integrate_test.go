@@ -57,7 +57,7 @@ func TestRabbitmqInput(t *testing.T) {
 
 			t.Logf("testing %s...", tc.name)
 
-			if err := tc.run(); err != nil {
+			if err := testutils.RetryTestRun(tc.run); err != nil {
 				tc.cr.Status = testutils.TestFailed
 				tc.cr.FailedMessage = err.Error()
 
@@ -523,33 +523,56 @@ type Arguments struct {
 
 func (cs *caseSpec) createQueue(remoteHost string) error {
 	for _, v := range cs.serverPorts {
-		data := Payload{
-			// fill struct
-		}
-		payloadBytes, err := json.Marshal(data)
-		if err != nil {
-			cs.t.Logf("json.Marshal failed: %v", err)
-			return err
-		}
-		body := bytes.NewReader(payloadBytes)
+		iter := time.NewTicker(time.Second)
+		defer iter.Stop()
 
-		req, err := http.NewRequest("PUT", "http://"+net.JoinHostPort(remoteHost, v)+"/api/queues/%2f/my.queue", body)
-		if err != nil {
-			cs.t.Logf("http PUT failed: %v", err)
-			return err
-		}
-		req.Close = true // https://stackoverflow.com/a/19006050
-		req.SetBasicAuth("guest", "guest")
-		req.Header.Set("Content-Type", "application/json")
+		timeout := time.NewTicker(2 * time.Minute)
+		defer timeout.Stop()
 
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			cs.t.Logf("http Do failed: %v", err)
-			return err
+		for {
+			select {
+			case <-timeout.C:
+				return fmt.Errorf("container network timeout.")
+
+			case <-iter.C:
+				cs.t.Logf("creating rabbitmq queue (%s, %s)...", remoteHost, v)
+				if err := cs.createQueueWork(remoteHost, v); err == nil {
+					cs.t.Logf("createQueueWork ok.")
+					return nil
+				}
+			}
 		}
-		defer resp.Body.Close()
 	}
 
+	return nil
+}
+
+func (cs *caseSpec) createQueueWork(remoteHost, serverPort string) error {
+	data := Payload{
+		// fill struct
+	}
+	payloadBytes, err := json.Marshal(data)
+	if err != nil {
+		cs.t.Logf("json.Marshal failed: %v", err)
+		return err
+	}
+	body := bytes.NewReader(payloadBytes)
+
+	req, err := http.NewRequest("PUT", "http://"+net.JoinHostPort(remoteHost, serverPort)+"/api/queues/%2f/my.queue", body)
+	if err != nil {
+		cs.t.Logf("http PUT failed: %v", err)
+		return err
+	}
+	req.Close = true // https://stackoverflow.com/a/19006050
+	req.SetBasicAuth("guest", "guest")
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		cs.t.Logf("http Do failed: %v", err)
+		return err
+	}
+	defer resp.Body.Close()
 	return nil
 }
 
