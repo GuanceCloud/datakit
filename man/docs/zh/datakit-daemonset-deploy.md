@@ -248,6 +248,7 @@ spec:
 | `ENV_ENABLE_ELECTION_NAMESPACE_TAG` | bool        | -         | 否     | 开启该选项后，所有选举类的采集均会带上 `election_namespace=<your-election-namespace>` 的额外 tag，这可能会导致一些时间线的增长（[:octicons-tag-24: Version-1.4.7](changelog.md#cl-1.4.7)） |
 | `ENV_GLOBAL_ELECTION_TAGS`          | string-list | 无        | 否     | 全局选举 tag，多个 tag 之间以英文逗号分割，如 `tag1=val,tag2=val2`。ENV_GLOBAL_ENV_TAGS 将被弃用                                                                                           |
 | `ENV_CLUSTER_NAME_K8S`              | string      | -         | 否     | DataKit 所在的 cluster，如果非空，会在 `global_election_tags` 添加一个指定 tag，key 是 `cluster_name_k8s`，value 是环境变量的值。（[:octicons-tag-24: Version-1.5.8](changelog.md#cl-1.5.8)）|
+
 ### HTTP/API 相关环境变量 {#env-http-api}
 
 | 环境变量名称                     | 类型        | 默认值            | 必须   | 说明                                                                                                                                                                                                        |
@@ -357,7 +358,7 @@ DK_SINKER="[ { \"categories\": [\"L\", \"M\"], \"filters\": [ \"{measurement='cp
 }
 ```
 
-### DCA {#env-dca}
+### DCA 相关环境变量 {#env-dca}
 
 | 环境变量名称         | 类型   | 默认值         | 必须   | 说明                                                                                                 |
 | ---------:           | ----:  | ---:           | ------ | ----                                                                                                 |
