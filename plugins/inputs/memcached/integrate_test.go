@@ -50,7 +50,7 @@ func TestMemcachedInput(t *testing.T) {
 
 			t.Logf("testing %s...", tc.name)
 
-			if err := tc.run(); err != nil {
+			if err := testutils.RetryTestRun(tc.run); err != nil {
 				tc.cr.Status = testutils.TestFailed
 				tc.cr.FailedMessage = err.Error()
 
