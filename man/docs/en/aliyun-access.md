@@ -11,7 +11,7 @@ If your Guance Cloud access system is deployed on Alibaba Cloud, this guide will
 Advantages of establishing private network connection:
 
 - **Higher Bandwidth**: It realizes higher bandwidth through the virtual Internet without occupying the public network bandwidth of the business system.
-- **Safer**: The data does not pass through the public network, but completely flows in Alibaba Cloud's private network, leading to safer data. 
+- **Safer**: The data does not pass through the public network, but completely flows in Alibaba Cloud's private network, leading to safer data.
 - **Lower Cost**: Compared with the high cost of public network bandwidth, the cost of virtual Internet is lower.
 
 At present, the services that have been released are **cn-hangzhou and cn-beijing**, and those in other regions will be put on shelves soon. The structure is as follows:

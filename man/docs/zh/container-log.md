@@ -1,5 +1,6 @@
-{{.CSS}}
+
 # 容器日志
+
 ---
 
 容器/Pod 上的日志采集，相比主机上的日志采集，有很大的不同，其配置方式、采集机制都有差异。从数据来源来说，可以分为两部分：
@@ -20,6 +21,7 @@ stdout/stderr 日志采集的主要配置有以下两种方式：
 
 默认情况下，DataKit 会收集所在机器/Node 上所有容器/Pod 的 stdout/stderr 日志，这可能不是大家的预期行为。某些时候，我们希望只采集（或不采集）部分容器/Pod 的日志，这里可以通过镜像名称来间接指代目标容器/Pod。
 
+<!-- markdownlint-disable MD046 -->
 === "主机安装"
 
     ``` toml
@@ -29,8 +31,8 @@ stdout/stderr 日志采集的主要配置有以下两种方式：
     container_exclude_logging = ["image:*"]
     ```
     
-    - `container_include` 和 `container_exclude` 必须以 `image` 开头，格式为一种[类正则的 Glob 通配][1]：`"image:<glob规则>"`
-    
+    - `container_include` 和 `container_exclude` 必须以 `image` 开头，格式为一种[类正则的 Glob 通配](https://en.wikipedia.org/wiki/Glob_(programming)){:target="_blank"}：`"image:<glob规则>"`
+
 === "Kubernetes"
 
     可通过如下环境变量 
@@ -53,7 +55,7 @@ stdout/stderr 日志采集的主要配置有以下两种方式：
     ```
 
 ???+ tip "如何查看镜像"
-    
+
     Docker：
 
     ``` shell
@@ -65,6 +67,8 @@ stdout/stderr 日志采集的主要配置有以下两种方式：
     ``` shell
     echo `kubectl get pod -o=jsonpath="{.items[0].spec.containers[0].image}"`
     ```
+
+<!-- markdownlint-enable -->
 
 ### 通过 Annotation/Label 调整容器日志采集 {#logging-with-annotation-or-label}
 
@@ -103,7 +107,7 @@ Value 字段说明：
 | `service`          | N    | 字符串           | 无     | 日志隶属的服务，默认值为日志来源（source）                                                                                                                       |
 | `pipeline`         | N    | 字符串           | 无     | 适用该日志的 Pipeline 脚本，默认值为与日志来源匹配的脚本名（`<source>.p`）                                                                                       |
 | `only_images`      | N    | 字符串数组       | 无     | 针对 Pod 内部多容器情景，如果填写了任何 image 通配，则只采集能匹配这些 image 的容器的日志，类似白名单功能；如果字段为空，即认为采集该 Pod 中所有容器的日志       |
-| `enable_diskcache` | N    | true/false       | fasle  | 是否开启磁盘缓存，可以有效避免采集延迟，有一定的性能开销，建议只在日志量超过 3000 条/秒再开启                                                                    |
+| `enable_diskcache` | N    | true/false       | false  | 是否开启磁盘缓存，可以有效避免采集延迟，有一定的性能开销，建议只在日志量超过 3000 条/秒再开启                                                                    |
 | `multiline_match`  | N    | 正则表达式字符串 | 无     | 用于[多行日志匹配](logging.md#multiline)时的首行识别，例如 `"multiline_match":"^\\d{4}"` 表示行首是4个数字，在正则表达式规则中`\d` 是数字，前面的 `\` 是用来转义 |
 | `tags`             | N    | key/value 键值对 | 无     | 添加额外的 tags，如果已经存在同名的 key 将以此为准（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) ）                                                  |
 
@@ -111,6 +115,7 @@ Value 字段说明：
 
 可以通过配置容器的 Label 或 Pod 的 Annotation 来指定日志采集配置。
 
+<!-- markdownlint-disable MD046 -->
 === "Docker"
 
     Docker 容器添加 Label 的方法，参见[这里](https://docs.docker.com/engine/reference/commandline/run/#set-metadata-on-container--l---label---label-file){:target="_blank"}。
@@ -150,7 +155,7 @@ Value 字段说明：
 
 ???+ attention
 
-    - 如无必要，不要轻易在 Annotation/Label 中配置 pipeline，一般情况下，通过 `source` 字段自动推导即可。
+    - 如无必要，不要轻易在 Annotation/Label 中配置 Pipeline，一般情况下，通过 `source` 字段自动推导即可。
     - 如果是在配置文件或终端命令行添加 Labels/Annotations，两边是英文状态双引号，需要添加转义字符。
 
     `multiline_match` 的值是双重转义，4 根斜杠才能表示实际的 1 根，例如 `\"multiline_match\":\"^\\\\d{4}\"` 等价 `"multiline_match":"^\d{4}"`，示例：
@@ -158,6 +163,8 @@ Value 字段说明：
     ```shell
     kubectl annotate pods my-pod datakit/logs="[{\"disable\":false,\"source\":\"testing-source\",\"service\":\"testing-service\",\"pipeline\":\"test.p\",\"only_images\":[\"image:<your_image_regexp>\"],\"multiline_match\":\"^\\\\d{4}-\\\\d{2}\"}]"
     ``` 
+
+<!-- markdownlint-enable -->
 
 ## 非 stdout/stderr 日志采集 {#logging-not-stdout}
 
@@ -173,11 +180,14 @@ Value 字段说明：
 
 在该容器上添加 Label 指定文件路径，由 Datakit 采集对应的文件。
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     - 此方式只在 Datakit 主机部署时生效，Kubernetes DaemonSet 部署则不生效
-    - 只支持 Docker runtime，暂不支持 Contaienrd
+    - 只支持 Docker runtime，暂不支持 containerd
     - 只支持 GraphDriver 是 `overlay2` 的容器
+
+<!-- markdownlint-enable -->
 
 在容器 Label 中，标注有特定的 Key（`datakit/logs/inside`），其 Value 是一个 JSON 字符串，示例如下：
 
@@ -214,7 +224,7 @@ Value 字段说明：
 
 创建 Dockerfile 内容如下：
 
-```
+```dockerfile
 FROM ubuntu:18.04 AS base
 
 RUN  echo 'i=0          \n\
@@ -232,9 +242,9 @@ CMD ["/bin/bash","/root/s.sh"]
 
 创建 image 和容器：
 
-```
-$ docker build -t testing-image:v1 .
-$ docker run -d testing-image:v1
+```shell
+docker build -t testing-image:v1 .
+docker run -d testing-image:v1
 ```
 
 Datakit 在发现这个容器后，会根据其 `datakit/logs/inside` 的配置创建日志采集。
@@ -245,12 +255,12 @@ Datakit 在发现这个容器后，会根据其 `datakit/logs/inside` 的配置�
 
 容器日志可能会包含一些不可读的字节码（比如终端输出的颜色等），可以
 
-- 将 `logging_remove_ansi_escape_codes` 设置为 `true` 
+- 将 `logging_remove_ansi_escape_codes` 设置为 `true`
 - DataKit DaemonSet 部署时，将 `ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES` 置为 `true`
 
 此配置会影响日志的处理性能，基准测试结果如下：
 
-```
+``` shell
 goos: linux
 goarch: amd64
 pkg: gitlab.jiagouyun.com/cloudcare-tools/test
@@ -277,5 +287,3 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 
 - [Pipeline：文本数据处理](../developers/pipeline.md)
 - [DataKit 日志采集综述](datakit-logging.md)
-
-[1]: https://en.wikipedia.org/wiki/Glob_(programming)

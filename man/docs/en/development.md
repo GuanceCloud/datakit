@@ -82,7 +82,7 @@ sudo datakit service -S                                         # restart dataki
 - Check the collector condition by executing the following command:
 
 ```shell
-sudo datakit tool --check-config # Check whether the collector configuration file is normal
+sudo datakit check --config # Check whether the collector configuration file is normal
 datakit -M --vvv            # Check the operation of all collectors
 ```
 

@@ -1,5 +1,6 @@
-{{.CSS}}
+
 # Redis
+
 ---
 
 {{.AvailableArchs}}
@@ -10,16 +11,15 @@ Redis 指标采集器，采集以下数据：
 
 - 开启 AOF 数据持久化，会收集相关指标
 - RDB 数据持久化指标
-- Slowlog 监控指标
-- bigkey scan 监控
-- 主从replication
+- Slow Log 监控指标
+- Big Key scan 监控
+- 主从 Replication
 
 ## 前置条件 {#reqirement}
 
 - Redis 版本 v5.0+
 - 在采集主从架构下数据时，请配置从节点的主机信息进行数据采集，可以得到主从相关的指标信息。
-- 创建监控用户<br/>
-    redis6.0+ 进入redis-cli命令行，创建用户并且授权。
+- 创建监控用户：redis 6.0+ 进入 `redis-cli` 命令行，创建用户并且授权：
 
 ```sql
 ACL SETUSER username >password
@@ -29,6 +29,7 @@ ACL SETUSER username on +ping
 
 ## 配置 {#config}
 
+<!-- markdownlint-disable MD046 -->
 === "主机安装"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
@@ -48,6 +49,7 @@ ACL SETUSER username on +ping
 ???+ attention
 
     如果是阿里云 Redis，且设置了对应的用户名密码，conf 中的 `<PASSWORD>` 应该设置成 `your-user:your-password`，如 `datakit:Pa55W0rd`
+<!-- markdownlint-enable -->
 
 ## 指标集 {#reqirement}
 
@@ -85,6 +87,7 @@ ACL SETUSER username on +ping
 
 [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)
 
+<!-- markdownlint-disable MD024 -->
 {{ range $i, $m := .Measurements }}
 
 {{if eq $m.Type "logging"}}
@@ -103,6 +106,7 @@ ACL SETUSER username on +ping
 {{end}}
 
 {{ end }}
+<!-- markdownlint-enable -->
 
 ## 日志采集 {#redis-logging}
 
@@ -114,17 +118,19 @@ ACL SETUSER username on +ping
     files = ["/var/log/redis/*.log"]
 ```
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     在配置日志采集时，需要将 DataKit 安装在 Redis 服务同一台主机中，或使用其它方式将日志挂载到 DataKit 所在机器。
 
     在 K8s 中，可以将 Redis 日志暴露到 stdout，DataKit 能自动找到其对应的日志。
+<!-- markdownlint-enable -->
 
 ### Pipeline 日志切割 {#pipeline}
 
 原始日志为
 
-```
+```log
 122:M 14 May 2019 19:11:40.164 * Background saving terminated with success
 ```
 
