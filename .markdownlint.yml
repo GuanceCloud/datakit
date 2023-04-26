@@ -1,4 +1,11 @@
 # Example markdownlint YAML configuration with all properties set to their default value
+#
+# nolint exceptions
+#<!-- markdownlint-disable MD046 -->
+#<!-- markdownlint-enable -->
+#
+#<!-- markdownlint-disable MD024 -->
+#<!-- markdownlint-enable -->
 
 # Default state for all rules
 default: true
@@ -33,7 +40,7 @@ MD006: true
 # MD007/ul-indent - Unordered list indentation
 MD007:
   # Spaces for indent
-  indent: 2
+  indent: 4
   # Whether to indent the first level of the list
   start_indented: false
   # Spaces for first level indent (when start_indented is set)
@@ -55,7 +62,7 @@ MD010:
   # Fenced code languages to ignore
   ignore_code_languages: []
   # Number of spaces for each hard tab
-  spaces_per_tab: 1
+  spaces_per_tab: 4
 
 # MD011/no-reversed-links - Reversed link syntax
 MD011: true
@@ -70,7 +77,7 @@ MD013:
   # Number of characters
   line_length: 800000 # not limited
   # Number of characters for headings
-  heading_line_length: 32
+  heading_line_length: 50
   # Number of characters for code blocks
   code_block_line_length: 800000
   # Include code blocks
@@ -102,9 +109,9 @@ MD021: true
 # MD022/blanks-around-headings/blanks-around-headers - Headings should be surrounded by blank lines
 MD022:
   # Blank lines above heading
-  lines_above: 1
+  lines_above: 0
   # Blank lines below heading
-  lines_below: 1
+  lines_below: 0
 
 # MD023/heading-start-left/header-start-left - Headings must start at the beginning of the line
 MD023: true
@@ -161,7 +168,12 @@ MD032: true
 # MD033/no-inline-html - Inline HTML
 MD033:
   # Allowed elements
-  allowed_elements: []
+  allowed_elements: [
+    "figure",
+    "figcaption",
+    "div",
+    "br",
+  ]
 
 # MD034/no-bare-urls - Bare URL used
 MD034: true
@@ -201,18 +213,23 @@ MD042: true
 # MD043/required-headings/required-headers - Required heading structure
 MD043:
   # List of headings
-  headings: []
+  headings: [ "*" ]
   # List of headings
   headers: []
 
 # MD044/proper-names - Proper names should have the correct capitalization
 MD044:
   # List of proper names
-  names: []
+  names: [
+    # "Datakit",
+    # "DataKit",
+    # "Dataway",
+    # "DataWay",
+  ]
   # Include code blocks
-  code_blocks: true
+  code_blocks: false
   # Include HTML elements
-  html_elements: true
+  html_elements: false
 
 # MD045/no-alt-text - Images should have alternate text (alt text)
 MD045: true
@@ -220,7 +237,7 @@ MD045: true
 # MD046/code-block-style - Code block style
 MD046:
   # Block style
-  style: "consistent"
+  style: "fenced"
 
 # MD047/single-trailing-newline - Files should end with a single newline character
 MD047: true

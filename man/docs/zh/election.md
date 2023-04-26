@@ -1,4 +1,4 @@
-{{.CSS}}
+
 # DataKit 选举
 ---
 
@@ -10,7 +10,8 @@
 
 ## 选举配置 {#config}
 
-=== "datakit.conf"
+<!-- markdownlint-disable MD046 -->
+=== "*datakit.conf*"
 
     编辑 `conf.d/datakit.conf`，选举有关的配置如下：
     
@@ -37,17 +38,18 @@
 
     `conf.d/datakit.conf` 中开启选举后，在需要参加选举的采集器中配置 `election = true`（目前支持选举的采集器的配置文件中都带有 `election` 项）
 
-    注意：支持选举但配置为 `election = false` 的采集器不参与选举，其采集行为、tag 设置均不受选举影响；如果 datakit.conf 关闭选举，但采集器开启选举，其采集行为、tag 设置均与关闭选举相同。
+    注意：支持选举但配置为 `election = false` 的采集器不参与选举，其采集行为、tag 设置均不受选举影响；如果 *datakit.conf* 关闭选举，但采集器开启选举，其采集行为、tag 设置均与关闭选举相同。
 
 === "Kubernetes"
 
     参见[这里](datakit-daemonset-deploy.md#env-elect)
+<!-- markdownlint-enable -->
 
 ## 选举状态查看 {#status}
 
 配置完选举后，通过[查看 monitor](datakit-monitor.md#view) 即可知道当前 Datakit 的选举状态，在 `Basic Info` 栏中，有如下行：
 
-```
+```not-set
 Elected default::success|MacBook-Pro.local(elected: 4m40.554909s)
 ```
 
@@ -59,7 +61,7 @@ Elected default::success|MacBook-Pro.local(elected: 4m40.554909s)
 
 如果是如下显示，则表示当前 Datakit 未被选上，但会显示当前是哪个主机被选上：
 
-```
+```not-set
 Elected default::defeat|host-abc
 ```
 
@@ -71,20 +73,21 @@ Elected default::defeat|host-abc
 
 ## 选举原理 {#how}
 
-以 MySQL 为例，在同一个集群（如 k8s cluster）中，假定有 10 DataKit、2 个 MySQL 实例，且 DataKit 都开启了选举（Daemonset 模式下，每个 DataKit 的配置都是一样的）以及 MySQL 采集器：
+以 MySQL 为例，在同一个集群（如 K8s cluster）中，假定有 10 Datakit、2 个 MySQL 实例，且 Datakit 都开启了选举（DaemonSet 模式下，每个 Datakit 的配置都是一样的）以及 MySQL 采集器：
 
-- 一旦某个 DataKit 被选举上，那么所有 MySQL （其它选举类的采集也一样）的数据采集，都将由该 DataKit 来采集，不管被采集对象是一个还是多个，赢者通吃。其它未选上的 DataKit 出于待命状态。
-- 观测云中心会判断当前选上的 DataKit 是否正常，如果异常，则强行踢掉该 DataKit，其它待命状态的 DataKit 将替代它
-- 未开启选举的 DataKit（可能它不在当前集群中），如果也配置了 MySQL 采集，不受选举约束，它仍然会去采集 MySQL 的数据
-- 选举的范围是 `工作空间+命名空间` 级别的，单个 `工作空间+命名空间` 中，一次最多只能有一个 DataKit 被选上
-    - 关于工作空间，在 datakit.conf 中，通过 DataWay 地址串中的 `token` URL 参数来表示，每个工作空间，都有其对应 token
-    - 关于选举的命名空间，在 datakit.conf 中，通过 `namespace` 配置项来表示。一个工作空间可以配置多个命名空间
+- 一旦某个 Datakit 被选举上，那么所有 MySQL （其它选举类的采集也一样）的数据采集，都将由该 Datakit 来采集，不管被采集对象是一个还是多个，赢者通吃。其它未选上的 Datakit 出于待命状态。
+- 观测云中心会判断当前选上的 Datakit 是否正常，如果异常，则强行踢掉该 Datakit，其它待命状态的 Datakit 将替代它
+- 未开启选举的 Datakit（可能它不在当前集群中），如果也配置了 MySQL 采集，不受选举约束，它仍然会去采集 MySQL 的数据
+- 选举的范围是 `工作空间+命名空间` 级别的，单个 `工作空间+命名空间` 中，一次最多只能有一个 Datakit 被选上
+    - 关于工作空间，在 *datakit.conf* 中，通过 Dataway 地址串中的 `token` URL 参数来表示，每个工作空间，都有其对应 token
+    - 关于选举的命名空间，在 *datakit.conf* 中，通过 `namespace` 配置项来表示。一个工作空间可以配置多个命名空间
 
 ## 选举类采集器的全局 tag 设置 {#global-tags}
 
-=== "datakit.conf"
+<!-- markdownlint-disable MD046 -->
+=== "*datakit.conf*"
 
-    在 `conf.d/datakit.conf` 开启选举的条件下，开启了选举的采集器采集到的数据，均会尝试追加 datakit.conf 中的 global-env-tag：
+    在 `conf.d/datakit.conf` 开启选举的条件下，开启了选举的采集器采集到的数据，均会尝试追加 *datakit.conf* 中的 `global_election_tag`：
     
     ```toml
     [global_election_tags]
@@ -94,8 +97,7 @@ Elected default::defeat|host-abc
 
     如果原始数据上就带有了 `global_election_tags` 中的相应 tag，则以原始数据中带有的 tag 为准，此处不会覆盖。
 
-    如果没有开启选举，则选举采集器采集到的数据中，均会带上 datakit.conf 中配置的 `global_host_tags`（跟非选举类采集器一样）：[:octicons-tag-24: Version-1.4.8](changelog.md#cl-1.4.8) ·
-
+    如果没有开启选举，则选举采集器采集到的数据中，均会带上 *datakit.conf* 中配置的 `global_host_tags`（跟非选举类采集器一样）：[:octicons-tag-24: Version-1.4.8](changelog.md#cl-1.4.8) ·
 
     ```toml
     [global_host_tags]
@@ -106,6 +108,7 @@ Elected default::defeat|host-abc
 === "Kubernetes"
 
     Kubernetes 中选举的配置参见[这里](datakit-daemonset-deploy.md#env-elect)，全局 tag 的设置参见[这里](datakit-daemonset-deploy.md#env-common)。
+<!-- markdownlint-enable -->
 
 ## 支持选举的采集列表 {#inputs}
 
@@ -113,7 +116,7 @@ Elected default::defeat|host-abc
 
 - [Apache](apache.md)
 - [ElasticSearch](elasticsearch.md)
-- [Gitlab](gitlab.md)
+- [GitLab](gitlab.md)
 - [InfluxDB](influxdb.md)
 - [Container](container.md)
 - [MongoDB](mongodb.md)

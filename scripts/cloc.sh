@@ -1,7 +1,7 @@
 printf ">>>>>>>>>>>>>>>>>>>>>>>>>>\n"
 printf ">>> total code\n"
 printf ">>>>>>>>>>>>>>>>>>>>>>>>>>\n"
-cloc . --exclude-dir=vendor,tests
+cloc . --exclude-dir=vendor
 
 printf ">>>>>>>>>>>>>>>>>>>>>>>>>>\n"
 printf ">>> testing code\n"

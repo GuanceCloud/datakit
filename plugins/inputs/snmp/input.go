@@ -1167,7 +1167,7 @@ func (ipt *Input) initializeDevice(deviceIP, subnet string) (*deviceInfo, error)
 	return di, nil
 }
 
-// only for command "datakit tool --test-snmp".
+// only for command "datakit check --test-snmp".
 
 func SetLog() {
 	onceSetLog.Do(func() {

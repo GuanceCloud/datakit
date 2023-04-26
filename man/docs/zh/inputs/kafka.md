@@ -1,4 +1,4 @@
-{{.CSS}}
+
 # Kafka
 ---
 
@@ -10,9 +10,9 @@
 
 ## 前置条件 {#requirements}
 
-安装或下载 [Jolokia](https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-jvm/1.6.2/jolokia-jvm-1.6.2-agent.jar){:target="_blank"}。DataKit 安装目录下的 `data` 目录中已经有下载好的 Jolokia jar 包。 
+安装或下载 [Jolokia](https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-jvm/1.6.2/jolokia-jvm-1.6.2-agent.jar){:target="_blank"}。DataKit 安装目录下的 `data` 目录中已经有下载好的 Jolokia jar 包。
 
-Jolokia 是作为 Kafka 的 java agent，基于 HTTP 协议提供了一个使用 json 作为数据格式的外部接口，提供给 DataKit 使用。 Kafka 启动时，先配置 `KAFKA_OPTS` 环境变量：(port 可根据实际情况修改成可用端口）
+Jolokia 是作为 Kafka 的 Java agent，基于 HTTP 协议提供了一个使用 JSON 作为数据格式的外部接口，提供给 DataKit 使用。 Kafka 启动时，先配置 `KAFKA_OPTS` 环境变量：(port 可根据实际情况修改成可用端口）
 
 ```shell
 export KAFKA_OPTS="$KAFKA_OPTS -javaagent:/usr/local/datakit/data/jolokia-jvm-agent.jar=host=*,port=8080"
@@ -26,7 +26,7 @@ java -jar </path/to/jolokia-jvm-agent.jar> --host 127.0.0.1 --port=8080 start <K
 
 在开启 Kafka 服务后，如需采集 Producer/Consumer/Connector 指标，则需分别为其配置 Jolokia。
 
-参考 [KAFKA QUICKSTART](https://kafka.apache.org/quickstart){:target="_blank"} ，以 Producer 为例，先配置 `KAFKA_OPTS` 环境变量，示例如下：
+参考 [Kafka Quick Start](https://kafka.apache.org/quickstart){:target="_blank"} ，以 Producer 为例，先配置 `KAFKA_OPTS` 环境变量，示例如下：
 
 ```shell
 export KAFKA_OPTS="-javaagent:/usr/local/datakit/data/jolokia-jvm-agent.jar=host=127.0.0.1,port=8090"
@@ -58,6 +58,7 @@ bin/kafka-console-producer.sh --topic quickstart-events --bootstrap-server local
 
 ## 配置 {#config}
 
+<!-- markdownlint-disable MD046 -->
 === "主机安装"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
@@ -71,6 +72,7 @@ bin/kafka-console-producer.sh --topic quickstart-events --bootstrap-server local
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+<!-- markdownlint-enable -->
 
 ## 指标集 {#measurements}
 
@@ -87,7 +89,7 @@ bin/kafka-console-producer.sh --topic quickstart-events --bootstrap-server local
 
 ### `{{$m.Name}}`
 
--  标签
+- 标签
 
 {{$m.TagsMarkdownTable}}
 
@@ -96,7 +98,6 @@ bin/kafka-console-producer.sh --topic quickstart-events --bootstrap-server local
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
-
 
 ## 日志采集 {#logging}
 
@@ -109,14 +110,13 @@ bin/kafka-console-producer.sh --topic quickstart-events --bootstrap-server local
     files = ["/usr/local/var/log/kafka/error.log","/usr/local/var/log/kafka/kafka.log"]
 ```
 
-
 开启日志采集以后，默认会产生日志来源（`source`）为 `kafka` 的日志。
 
->注意：必须将 DataKit 安装在 Kafka 所在主机才能采集 Kafka 日志
+> 注意：必须将 DataKit 安装在 Kafka 所在主机才能采集 Kafka 日志
 
 切割日志示例：
 
-```
+``` log
 [2020-07-07 15:04:29,333] DEBUG Progress event: HTTP_REQUEST_COMPLETED_EVENT, bytes: 0 (io.confluent.connect.s3.storage.S3OutputStream:286)
 ```
 

@@ -7,6 +7,7 @@ before_script:
   - echo $DK_BPF_KERNEL_SRC_PATH
   - export PATH=/usr/local/go1.18.3/bin:$PATH
   - export GOROOT=/usr/local/go1.18.3
+  - nvm use v16.14.0
   - go version
 
 variables:
@@ -28,6 +29,8 @@ ci_lint_only:
     # only run lint
     - make clean
     - make lint_nofix
+    - make md_lint # check markdown
+    - make cspell  # check document spelling
   tags:
     - cloudcare-ft
 
@@ -53,6 +56,8 @@ test-datakit-production:
     - make clean
     - make production_notify GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"
     - make lint_nofix
+    - make md_lint # check markdown
+    - make cspell  # check document spelling
     - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" DOCKER_REMOTE_HOST=$TESTING_DOCKER_HOST UT_EXCLUDE=$UT_EXCLUDE GIT_BRANCH=$CI_COMMIT_BRANCH
   tags:
     - cloudcare-ft

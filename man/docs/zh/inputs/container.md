@@ -1,4 +1,4 @@
-{{.CSS}}
+
 # 容器基础采集
 ---
 
@@ -14,6 +14,7 @@
 - 采集 Kubernetes 数据需要 DataKit 以 [DaemonSet 方式部署](datakit-daemonset-deploy.md)。
 - 采集 Kubernetes Pod 指标数据，[需要 Kubernetes 安装 Metrics-Server 组件](https://github.com/kubernetes-sigs/metrics-server#installation){:target="_blank"}。
 
+<!-- markdownlint-disable MD046 -->
 ???+ info
 
     - 容器采集支持 Docker 和 Containerd 两种运行时[:octicons-tag-24: Version-1.5.7](changelog.md#cl-1.5.7)，且默认都开启采集。
@@ -29,7 +30,7 @@
     ``` toml
     {{ CodeBlock .InputSample 4 }}
     ```
-    
+
 === "Kubernetes"
 
     Kubernetes 中容器采集器一般默认自动开启，无需通过 *container.conf* 来配置。但可以通过如下环境变量来调整配置参数：
@@ -72,13 +73,12 @@
     
     - ENV_INPUT_CONTAINER_LOGGING_SOURCE_MULTILINE_MAP_JSON：用来指定 source 到多行配置的映射，如果某个日志没有配置 `multiline_match`，就会根据它的 source 来此处查找和使用对应的 `multiline_match`。因为 `multiline_match` 值是正则表达式较为复杂，所以 value 格式是 JSON 字符串，可以使用 [json.cn](https://www.json.cn/){:target="_blank"} 辅助编写并压缩成一行。
 
-
 ???+ attention
 
     - 对象数据采集间隔是 5 分钟，指标数据采集间隔是 20 秒，暂不支持配置
     - 采集到的日志, 单行（包括经过 `multiline_match` 处理后）最大长度为 32MB，超出部分会被截断且丢弃
 
-#### Docker 和 Containerd sock 文件配置 {#docker-containerd-sock}
+### Docker 和 Containerd sock 文件配置 {#docker-containerd-sock}
 
 如果 Docker 或 Containerd 的 sock 路径不是默认的，则需要指定一下 sock 文件路径，根据 DataKit 不同部署方式，其方式有所差别，以 Containerd 为例：
 
@@ -88,7 +88,7 @@
 
 === "Kubernetes"
 
-    更改 datakit.yaml 的 volumes `containerd-socket`，将新路径 mount 到 DataKit 中，同时配置环境变量 `ENV_INPUT_CONTAINER_CONTAINERD_ADDRESS`：
+    更改 *datakit.yaml* 的 volumes `containerd-socket`，将新路径 mount 到 Datakit 中，同时配置环境变量 `ENV_INPUT_CONTAINER_CONTAINERD_ADDRESS`：
 
     ``` yaml hl_lines="3 4 7 14"
     # 添加 env
@@ -107,15 +107,18 @@
         path: /path/to/new/containerd/containerd.sock
       name: containerd-socket
     ```
+<!-- markdownlint-enable -->
+
 ---
 
 ## 日志采集 {#logging-config}
 
 日志采集的相关配置详见[此处](container-log.md)。
 
-### Prometheuse Exporter 指标采集 {#k8s-prom-exporter}
+### Prometheus Exporter 指标采集 {#k8s-prom-exporter}
 
-如果 Pod/容器有暴露 Prometheuse 指标，有两种方式可以采集，参见[这里](kubernetes-prom.md)
+<!-- markdownlint-disable MD024 -->
+如果 Pod/容器有暴露 Prometheus 指标，有两种方式可以采集，参见[这里](kubernetes-prom.md)
 
 ## 指标集 {#measurements}
 
@@ -190,10 +193,13 @@
 {{end}}
 
 {{ end }}
+<!-- markdownlint-enable -->
 
 ## FAQ {#faq}
 
+<!-- markdownlint-disable MD013 -->
 ### :material-chat-question: Kubernetes YAML 敏感字段屏蔽 {#yaml-secret}
+<!-- markdownlint-enable -->
 
 Datakit 会采集 Kubernetes Pod 或 Service 等资源的 yaml 配置，并存储到对象数据的 `yaml` 字段中。如果该 yaml 中包含敏感数据（例如密码），Datakit 暂不支持手动配置屏蔽敏感字段，推荐使用 Kubernetes 官方的做法，即使用 ConfigMap 或者 Secret 来隐藏敏感字段。
 
@@ -205,7 +211,7 @@ Datakit 会采集 Kubernetes Pod 或 Service 等资源的 yaml 配置，并存�
       image: redis
       env:
         - name: SECRET_PASSWORD
-	  value: password123
+      value: password123
 ```
 
 在编排 yaml 配置会将密码明文存储，这是很不安全的。可以使用 Kubernetes Secret 实现隐藏，方法如下：
@@ -237,7 +243,7 @@ kubectl apply -f mysecret.yaml
       image: redis
       env:
         - name: SECRET_PASSWORD
-	  valueFrom:
+      valueFrom:
           secretKeyRef:
             name: mysecret
             key: password
@@ -249,5 +255,5 @@ kubectl apply -f mysecret.yaml
 ## 延伸阅读 {#more-reading}
 
 - [eBPF 采集器：支持容器环境下的流量采集](ebpf.md)
-- [正确使用正则表达式来配置](datakit-input-conf.md#debug-regex) 
+- [正确使用正则表达式来配置](datakit-input-conf.md#debug-regex)
 - [Kubernetes 下 DataKit 的几种配置方式](k8s-config-how-to.md)

@@ -1,5 +1,6 @@
-{{.CSS}}
+
 # Prometheus Remote Write 支持
+
 ---
 
 {{.AvailableArchs}}
@@ -10,7 +11,7 @@
 
 ## 前置条件 {#requirements}
 
-开启 Prometheus Remote Write 功能，在 prometheus.yml 添加如下配置：
+开启 Prometheus Remote Write 功能，在 *prometheus.yml* 添加如下配置：
 
 ```yml
 remote_write:
@@ -19,6 +20,7 @@ remote_write:
 
 ## 配置 {#config}
 
+<!-- markdownlint-disable MD046 -->
 === "主机安装"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
@@ -32,6 +34,7 @@ remote_write:
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+<!-- markdownlint-enable -->
 
 ### tags 添加、忽略及重命名 {#tag-ops}
 
@@ -92,7 +95,7 @@ datakit service -R
 这时执行如下命令，即可调试 *prom_remote_write.conf*
 
 ```shell
-datakit tool --prom-conf prom_remote_write.conf
+datakit debug --prom-conf prom_remote_write.conf
 ```
 
 参数说明：
@@ -101,7 +104,7 @@ datakit tool --prom-conf prom_remote_write.conf
 
 输出示例：
 
-```
+``` not-set
 ================= Line Protocol Points ==================
 
  prometheus,instance=localhost:9090,job=prometheus,monitor=codelab-monitor target_scrapes_sample_out_of_order_total=0 1634548272855000000
@@ -145,16 +148,10 @@ Total line protocol points: 487
 Total measurements: 6 (prometheus, promhttp, up, scrape, go, node)
 ```
 
-
-
 输出说明：
 
 - Line Protocol Points： 产生的行协议点
-
-- Summary： 汇总结果 
-
-- - Total time series: 时间线数量
-
-- - Total line protocol points: 行协议点数
-
-- - Total measurements: 指标集个数及其名称。
+- Summary： 汇总结果
+    - Total time series: 时间线数量
+    - Total line protocol points: 行协议点数
+    - Total measurements: 指标集个数及其名称。

@@ -1,4 +1,4 @@
-{{.CSS}}
+
 # 主机对象
 ---
 
@@ -6,7 +6,7 @@
 
 ---
 
-hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗等。
+主机对象采集器用于收集主机基本信息，如硬件型号、基础资源消耗等。
 
 ## 前置条件 {#requirements}
 
@@ -14,6 +14,7 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 
 ## 配置 {#config}
 
+<!-- markdownlint-disable MD046 -->
 === "主机安装"
 
     一般情况下，主机对象是默认开启的，无需配置。
@@ -39,6 +40,7 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
     | `ENV_INPUT_HOSTOBJECT_EXCLUDE_DEVICE`                      | `exclude_device`                | 忽略的device                                | `"/dev/loop0","/dev/loop1"` 以英文逗号隔开                      |
     | `ENV_INPUT_HOSTOBJECT_EXTRA_DEVICE`                        | `extra_device`                  | 额外增加的device                            | `"/nfsdata"` 以英文逗号隔开                      |
     | `ENV_CLOUD_PROVIDER`                                 | `tags`                          | 指定云服务商                                                       | `aliyun/aws/tencent/hwcloud/azure`                                                                         |
+<!-- markdownlint-enable -->
 
 ## 开启云同步 {#cloudinfo}
 
@@ -50,7 +52,7 @@ Datakit 默认开启云同步，目前支持阿里云/腾讯云/AWS/华为云/�
   cloud_provider = "aliyun"
 ```
 
-可以通过在 hostobject 配置文件中配置 `disable_cloud_provider_sync = true` 关闭云同步功能。
+可以通过在配置文件中配置 `disable_cloud_provider_sync = true` 关闭云同步功能。
 
 ## 指标集 {#measurements}
 
@@ -69,7 +71,7 @@ Datakit 默认开启云同步，目前支持阿里云/腾讯云/AWS/华为云/�
 
 ### `{{$m.Name}}`
 
--  标签
+- 标签
 
 {{$m.TagsMarkdownTable}}
 
@@ -95,7 +97,6 @@ Datakit 默认开启云同步，目前支持阿里云/腾讯云/AWS/华为云/�
 | `private_ip`            | 实例私网 IP    | string |
 | `zone_id`               | 实例 Zone ID   | string |
 | `region`                | 实例 Region ID | string |
-
 
 ### `message` 指标字段结构 {#message-struct}
 
@@ -182,12 +183,13 @@ Datakit 默认开启云同步，目前支持阿里云/腾讯云/AWS/华为云/�
 | `elected`   | 选举状态 | string |
 | `namespace` | 选举空间 | string |
 
-
 #### `host.conntrack` {#host-conntrack}
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     `conntrack` 仅 Linux 平台支持
+<!-- markdownlint-enable -->
 
 | 字段名                | 描述                                           | 类型  |
 | ---                   | ---                                            | :---: |
@@ -204,9 +206,11 @@ Datakit 默认开启云同步，目前支持阿里云/腾讯云/AWS/华为云/�
 
 #### `host.filefd` {#host-filefd}
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     `filefd` 仅 Linux 平台支持
+<!-- markdownlint-enable -->
 
 | 字段名         | 描述                                                 | 类型  |
 | ---            | ---                                                  | :---: |

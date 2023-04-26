@@ -1,10 +1,11 @@
-# Mkdocs 文档撰写
+
+# MkDocs 文档撰写
 ---
 
 本文主要阐述以下几个问题：
 
-- DataKit 相关的文档编写步骤
-- 如何用 Mkdocs 写出更好的文档
+- Datakit 相关的文档编写步骤
+- 如何用 MkDocs 写出更好的文档
 
 ## DataKit 相关编写步骤 {#steps}
 
@@ -15,20 +16,20 @@
     - 一类是 DataKit 内置采集器相关的文档
     - 一类是衍生出来的数据采集文档，它们不通过 DataKit 生成，只是简单的添加在 man/docs 目录下。这些采集器的数据采集，一般通过 DataKit 已有采集器（比如 prom 等）来采集
 
-对于一篇新的文档，作者应该辨明应该存放在哪个文档库中，在 mkdocs.sh 脚本中，对文档分成了三类，这三类分别对应上述三类文档：
+对于一篇新的文档，作者应该辨明应该存放在哪个文档库中，在 *mkdocs.sh* 脚本中，对文档分成了三类，这三类分别对应上述三类文档：
 
 - `datakit_docs`
 - `integrations_files_from_datakit`
 - `integrations_extra_files`
 
-文档作者确定了具体文档的归属后，将其添加到这三个数组中即可，mkdocs.sh 脚本会自动将文档发布到正确的文档库。故新文档的撰写步骤为：
+文档作者确定了具体文档的归属后，将其添加到这三个数组中即可，*mkdocs.sh* 脚本会自动将文档发布到正确的文档库。故新文档的撰写步骤为：
 
 1. 文档编写
 2. 确定归属
 3. 将文档路径添加到上述三种文档之一中
-4. 执行 mkdocs.sh 脚本
+4. 执行 *mkdocs.sh* 脚本
 
-## Mkdocs 技巧分享 {#mkdocs-tips}
+## MkDocs 技巧分享 {#mkdocs-tips}
 
 ### 标记实验性功能 {#experimental}
 
@@ -109,8 +110,7 @@
 
 ### 在文档中增加注意事项 {#note}
 
-部分文档的编写，需提供一些警告信息，比如某功能的使用，需额外满足某些条件，或者给出一些技巧性的说明。这种情况下，我们可以使用 Mkdocs
-的 markdown 扩展，比如 
+部分文档的编写，需提供一些警告信息，比如某功能的使用，需额外满足某些条件，或者给出一些技巧性的说明。这种情况下，我们可以使用 MKDocs 的 markdown 扩展，比如：
 
 ```markdown
 ??? attention
@@ -126,7 +126,7 @@
 
 而不仅仅只是一个简单的说明:
 
-```
+```markdown
 > 这里是一个简陋的说明...
 ```
 
@@ -136,13 +136,15 @@
 
 某些具体的功能，在不同的场景下其使用方式可能不同，一般的做法是在文档中分别罗列，这样会开起来文档冗长，一种更好的方式是将不同场景的使用以 tag 排版的方式组织一下，这样文档页面会非常简洁：
 
+<!-- markdownlint-disable MD046 -->
 === "A 情况下这么使用"
-     
-    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla et euismod nulla. Curabitur feugiat, tortor non consequat finibus, justo purus auctor massa, nec semper lorem quam in massa.
+
+    在 A 情况下...
 
 === "B 情况下这么使用"
 
-    .assam ni mauq merol repmes cen ,assam rotcua surup otsuj ,subinif tauqesnoc non rotrot ,taiguef rutibaruC .allun domsiue te alluN .tile gnicsipida rutetcesnoc ,tema tis rolod muspi meroL
+    在 B 情况下...
+<!-- markdownlint-enable -->
 
 具体用法，参见[这里](https://squidfunk.github.io/mkdocs-material/reference/content-tabs/){:target="_blank"}
 
@@ -165,4 +167,4 @@
 
 ## 更多阅读 {#more-reading}
 
-- [Material for  Mkdocs](https://squidfunk.github.io/mkdocs-material/reference/admonitions/){:target="_blank"}
+- [Material for  MkDocs](https://squidfunk.github.io/mkdocs-material/reference/admonitions/){:target="_blank"}

@@ -1,4 +1,4 @@
-{{.CSS}}
+
 # etcd
 ---
 
@@ -10,12 +10,13 @@ etcd 采集器可以从 etcd 实例中采取很多指标，比如etcd服务器�
 
 ## 前置条件 {#requirements}
 
-- etcd 版本  >=3
+- etcd 版本 >= 3
 
 - 开启 etcd，默认的 metrics 接口是 `http://localhost:2379/metrics`，也可以自行在配置文件中修改。
 
 ## 配置 {#config}
 
+<!-- markdownlint-disable MD046 -->
 === "主机安装"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
@@ -29,6 +30,7 @@ etcd 采集器可以从 etcd 实例中采取很多指标，比如etcd服务器�
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+<!-- markdownlint-enable -->
 
 ## 指标集 {#measurements}
 
@@ -36,7 +38,7 @@ etcd 采集器可以从 etcd 实例中采取很多指标，比如etcd服务器�
 
 ### `{{$m.Name}}`
 
--  标签
+- 标签
 
 {{$m.TagsMarkdownTable}}
 
