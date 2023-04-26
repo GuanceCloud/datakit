@@ -48,7 +48,7 @@
 
 - 通过在请求中告知 DataKit 如何配置日志处理
 
-通过 HTTP 请求 DataKit 的 [logstreaming](logstreaming.md) 服务，在请求中带上各种请求参数，以告知 DataKit 如何处理收到的日志数据。 
+通过 HTTP 请求 DataKit 的 [Log Streaming](logstreaming.md) 服务，在请求中带上各种请求参数，以告知 Datakit 如何处理收到的日志数据。
 
 - 在被采集对象（比如容器/Pod）上做特定的标注，告知 DataKit 如何处理它们产生的日志
 
@@ -98,18 +98,18 @@ spec:
 
 从外部读取（接收）到日志后，采集阶段会进行基本的处理。这些处理包括日志分割（将大段文本分成多条独立的裸日志）、编解码（统一转成 UTF8 编码）、剔除一些干扰性的颜色字符等
 
-- 单条日志切割 
+- 单条日志切割
 
 如果对应的日志有配置 Pipeline 切割，那么每一条日志（含单条多行日志）都会通过 Pipeline 切割，Pipeline 主要又分为两个步骤：
 
-  1. Grok/Json 切割：通过 Grok/Json，将单条 Raw 日志切割成结构化数据
-	1. 对提取出来的字段，再精细处理：比如[补全 IP 信息](../developers/pipeline.md#fn-geoip)，[日志脱敏](../developers/pipeline.md#fn-cover)等
+1. Grok/JSON 切割：通过 Grok/JSON，将单条 Raw 日志切割成结构化数据
+1. 对提取出来的字段，再精细处理：比如[补全 IP 信息](../developers/pipeline.md#fn-geoip)，[日志脱敏](../developers/pipeline.md#fn-cover)等
 
 - 黑名单（Filter）
 
 [Filter 是一组过滤器](datakit-filter.md)，它接收一组结构化数据，通过一定的逻辑判断，决定数据是否丢弃。Filter 是中心下发（DataKit 主动拉取）的一组逻辑运算规则，其形式大概如下：
 
-```
+``` not-set
 { source = 'datakit' AND bar IN [ 1, 2, 3] }
 ```
 

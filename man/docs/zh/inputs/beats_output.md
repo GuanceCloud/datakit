@@ -1,4 +1,4 @@
-{{.CSS}}
+
 # Filebeat 日志数据接入
 ---
 
@@ -15,6 +15,7 @@
 
 ## 配置采集器 {#config-input}
 
+<!-- markdownlint-disable MD046 -->
 === "主机安装"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
@@ -30,10 +31,11 @@
     目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 
 ---
-    
+
 ???+ attention
 
     上面配置的 `inputs.beats_output.tags` 中如果与原始 fields 中的 key 同名重复，则会被原始数据覆盖。
+<!-- markdownlint-enable -->
 
 ### 配置 Filebeat {#config-filebeat}
 
@@ -319,7 +321,7 @@ processors:
 
 {{$m.Desc}}
 
--  标签
+- 标签
 
 {{$m.TagsMarkdownTable}}
 
@@ -327,7 +329,7 @@ processors:
 
 {{$m.FieldsMarkdownTable}}
 
-{{ end }} 
+{{ end }}
 
 ## 其它 {#others}
 

@@ -1,4 +1,4 @@
-{{.CSS}}
+
 # Cloudprober 接入
 ---
 
@@ -17,6 +17,7 @@ curl -O https://github.com/google/cloudprober/releases/download/v0.11.2/cloudpro
 ```
 
 解压缩
+
 ```shell
 unzip cloudprober-v0.11.2-ubuntu-x86_64.zip
 ```
@@ -25,7 +26,7 @@ unzip cloudprober-v0.11.2-ubuntu-x86_64.zip
 
 以探测百度为例,创建一个 `cloudprober.cfg` 文件并写入：
 
-```
+``` conf
 probe {
   name: "baidu_homepage"
   type: HTTP
@@ -45,6 +46,7 @@ probe {
 
 ## 开启采集器 {#enable-input}
 
+<!-- markdownlint-disable MD046 -->
 === "主机安装"
 
     进入 DataKit 安装目录下的 `conf.d/cloudprober` 目录，复制 `cloudprober.conf.sample` 并命名为 `cloudprober.conf`。示例如下：
@@ -67,12 +69,11 @@ probe {
     
         [inputs.cloudprober.tags]
           # a = "b"`
-    
     ```
-    
-    
+
     配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
 
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+<!-- markdownlint-enable -->

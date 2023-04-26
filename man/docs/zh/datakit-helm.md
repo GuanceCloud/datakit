@@ -1,3 +1,4 @@
+
 # 使用 Helm 管理配置
 ---
 
@@ -13,8 +14,11 @@ helm pull datakit --repo https://pubrepo.guance.com/chartrepo/datakit --untar
 
 ### 修改 values.yaml {#values-configuration}
 
+<!-- markdownlint-disable MD046 -->
 ???+ warning "Attention"
+
      `values.yaml` 在 `datakit` 目录下。
+<!-- markdownlint-enable -->
 
 #### 修改 `dataway url`  {#helm-dataway}
 
@@ -45,6 +49,7 @@ datakit:
 #### 添加全局 tag {#helm-tag}
 
 添加 `cluster_name_k8s` 全局 tag。
+
 ```yaml
 datakit:
   ...
@@ -56,7 +61,6 @@ datakit:
 #### 添加 DataKit 环境变量 {#helm-env}
 
 更多环境变量可参考[容器环境变量](datakit-daemonset-deploy.md#using-k8-env)
-
 
 ```yaml
 # @param extraEnvs - array - optional
@@ -98,9 +102,9 @@ dkconfig:
        [inputs.logging.tags]
 ```
 
-#### 挂载 pipeline  {#helm-pipeline}
+#### 挂载 Pipeline  {#helm-pipeline}
 
-以 `test.p` 为例，`path` 为配置文件绝对路径，必须在 `/usr/local/datakit/pipeline/` 下。`name` 为 pipeline 名称。`value` 为 pipeline 内容。
+以 `test.p` 为例，`path` 为配置文件绝对路径，必须在 */usr/local/datakit/pipeline/* 下。`name` 为 Pipeline 名称。`value` 为 Pipeline 内容。
 
 ```yaml
 dkconfig:
@@ -144,7 +148,6 @@ NOTES:
   kubectl --namespace datakit port-forward $POD_NAME 9527:$CONTAINER_PORT
 ```
 
-
 ## 指定版本安装 {#version-install}
 
 ```shell
@@ -157,9 +160,11 @@ helm install datakit datakit \
 
 ## 升级 {#datakit-upgrade}
 
+<!-- markdownlint-disable MD046 -->
 ???+ info
 
     如果 values.yaml 丢失，可执行 `helm -n datakit get  values datakit -o yaml > values.yaml` 获取。
+<!-- markdownlint-enable -->
 
 ```shell
 helm upgrade datakit datakit \
@@ -168,46 +173,48 @@ helm upgrade datakit datakit \
          -f values.yaml
 ```
 
-
 ## 卸载 {#datakit-uninstall}
 
 ```shell
 helm uninstall datakit -n datakit 
 ```
 
-
 ## 配置文件参考 {#config-reference}
 
-???- note "values.yaml" 
-    ```yaml hl_lines='11 14 17 94-98 142-174'
+<!-- markdownlint-disable MD046 -->
+???- note "values.yaml"
+
+    ```yaml
     # Default values for datakit.
     # This is a YAML-formatted file.
     # Declare variables to be passed into your templates.
 
-
-    #
     datakit:
       # Datakit will send the indicator data to dataway. Please be sure to change the parameters
       # @param dataway_url - string - optional - default: 'https://guance.com'
       # The host of the DataKit intake server to send Agent data to, only set this option
       dataway_url: https://openway.guance.com?token=tkn_xxxxxxxxxx
+
       # @param global_tags - string - optional - default: 'host=__datakit_hostname,host_ip=__datakit_ip'
       # It supports filling in global tags in the installation phase. The format example is: Project = ABC, owner = Zhang San (multiple tags are separated by English commas)
       global_tags: host=__datakit_hostname,host_ip=__datakit_ip,cluster_name_k8s=government-prod
+
       # @param default_enabled_inputs - string
       # The default open collector list, format example: input1, input2, input3
       default_enabled_inputs: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,rum
+
       # @param enabled_election - boolean
       # When the election is enabled, it is enabled by default. If it needs to be enabled, you can give any non empty string value to the environment variable. (e.g. true / false)
       enabled_election: true
+
       # @param log - string
       # Set logging verbosity, valid log levels are:
       # info, debug, stdout, warn, error, critical, and off
       log_level: info
+
       # @param http_listen - string
       # It supports specifying the network card bound to the Datakit HTTP service in the installation phase (default localhost)
       http_listen: 0.0.0.0:9529
-
 
     image:
       # @param repository - string - required
@@ -235,6 +242,7 @@ helm uninstall datakit -n datakit
       # You Can Set git@github.com:path/to/repository.git or http://username:password@github.com/path/to/repository.git.
       # see https://docs.guance.com/best-practices/insight/datakit-daemonset/#git
       git_url: "-"
+
       # @param git_key_path - string - optional
       # The Git Ssh Key Content,
       # For details,
@@ -242,12 +250,15 @@ helm uninstall datakit -n datakit
       # ---xxxxx---
       #--END OPENSSH PRIVATE KEY-----
       git_key_path: "-"
+
       # @param git_key_pw - string - optional
       # The ssh Key Password
       git_key_pw: "-"
+
       # @param git_url - string - required
       # Specifies the branch to pull. If it is blank, it is the default. The default is the main branch specified remotely, usually the master.
       git_branch: "master"
+
       # @param git_url - string - required
       # Timed pull interval. (e.g. 1m)
       git_interval: "1m"
@@ -267,7 +278,6 @@ helm uninstall datakit -n datakit
         # Define the Cluster-Agent version to use.
         #
         tag: "1.0"
-
 
     # @param extraEnvs - array - optional
     # extra env Add env for customization
@@ -301,7 +311,6 @@ helm uninstall datakit -n datakit
     # Override name of app.
     #
     fullnameOverride: ""
-
 
     podAnnotations:
       datakit/logs: |
@@ -361,6 +370,5 @@ helm uninstall datakit -n datakit
     # If true, deploys the metrics-server deployment.
     # ref: https://github.com/kubernetes-sigs/metrics-server/tree/master/charts/metrics-server
     MetricsServerEnabled: false
-
     ```
-
+<!-- markdownlint-enable -->

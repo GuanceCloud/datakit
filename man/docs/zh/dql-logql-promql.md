@@ -1,3 +1,4 @@
+
 # DQL 与其它几种查询语言的对比
 ---
 
@@ -5,7 +6,7 @@ DQL 是观测云统一的查询语言，为便于大家学习这种语言，下�
 
 这里我们暂时选择 [PromQL](https://prometheus.io/docs/prometheus/latest/querying/basics/){:target="_blank"} 和 [LogQL](https://grafana.com/docs/loki/latest/logql/){:target="_blank"} 俩种语言。大家较为熟知的 SQL 语句因为其形式、功能等与 DQL 大相庭径，此处暂略。
 
-PromQL 是 [Prometheuse](https://prometheus.io/){:target="_blank"} 中用于查询其时序数据的一种查询语言；LogQL 是用于 [Grafana Loki](https://grafana.com/oss/loki/){:target="_blank"} 的一种日志查询语言，它跟 DQL 一样，借鉴了 PromQL 的语法结构。总体上，这三种语言的结构类似，但细微处各有不同。下文将从如下几个方面加以阐述：
+PromQL 是 [Prometheus](https://prometheus.io/){:target="_blank"} 中用于查询其时序数据的一种查询语言；LogQL 是用于 [Grafana Loki](https://grafana.com/oss/loki/){:target="_blank"} 的一种日志查询语言，它跟 DQL 一样，借鉴了 PromQL 的语法结构。总体上，这三种语言的结构类似，但细微处各有不同。下文将从如下几个方面加以阐述：
 
 - 基本语法结构的差异
 - 支持的常用预定义函数
@@ -23,21 +24,21 @@ PromQL 是 [Prometheuse](https://prometheus.io/){:target="_blank"} 中用于查�
 
 ### PromQL {#p}
 
-在 Prometheuse 中，相关指标是离散形式组织的。在其查询中，可直接查找对应的指标，如：
+在 Prometheus 中，相关指标是离散形式组织的。在其查询中，可直接查找对应的指标，如：
 
-```
+``` not-set
 http_requests_total{environment="prometheus", method!="GET"}
 ```
 
 此处即查找指标 `http_requests_total`，通过指定其 label 限制条件（`environment` 和 `method`）来过滤数据。
 
-> 注：PromeQL 称这里的 label 限制条件为 Label Matchers。
+> 注：PromQL 称这里的 label 限制条件为 Label Matchers。
 
 ### LogQL {#l}
 
 顾名思义，LogQL 主要用于日志内容查询，如：
 
-```
+``` not-set
 {container="query-frontend", namespace="loki-dev"} |= "metrics.go" | logfmt | duration > 10s and throughput_mb < 500
 ```
 
@@ -45,7 +46,7 @@ http_requests_total{environment="prometheus", method!="GET"}
 
 ### DQL {#d}
 
-DQL 覆盖面较为全面，相比于 PromQL 只能用于查找 Prometheuse 中的时序数据、LogQL 只能用于查找日志数据，DQL 作为全平台数据查询语言，其主要查询如下几种数据：
+DQL 覆盖面较为全面，相比于 PromQL 只能用于查找 Prometheus 中的时序数据、LogQL 只能用于查找日志数据，DQL 作为全平台数据查询语言，其主要查询如下几种数据：
 
 - 时序数据
 - 日志数据
@@ -64,7 +65,7 @@ namespace::measurement:(field-or-tag-list) { where-conditions } [time-range] BY-
 
 如：
 
-```
+``` not-set
 metric::cpu:(usage_system, usage_user) { usage_idle > 0.9 } [2d:1d:1h] BY hostname
 ```
 
@@ -72,7 +73,7 @@ metric::cpu:(usage_system, usage_user) { usage_idle > 0.9 } [2d:1d:1h] BY hostna
 
 更多示例：
 
-```
+```not-set
 # 查询 K8s 中的 pod 对象（object）
 object::kubelet_pod:(name, age) { cpu_usage > 30.0 } [10m] BY namespace
 
@@ -87,7 +88,7 @@ T::my_service { duration > 1000 } [10m] BY operation
 
 | 查询语言  | 主要领域                | 支持时序查询       | 支持日志查询 | 是否支持 HTTP API                                                  | 是否支持 Pipeline 切割              | 支持时间范围查找 | 支持 group by 聚合 |
 | --------- | -------                 | ---                | -----        | ---------                                                          | ----                                | -----            | ---                |
-| PromQL    | Prometheuse 指标查询    | 支持               | 不支持       | [支持](https://prometheus.io/docs/prometheus/latest/querying/api/){:target="_blank"} | 不支持                              | 支持             | [支持](https://prometheus.io/docs/prometheus/latest/querying/operators/#aggregation-operators){:target="_blank"}               |
+| PromQL    | Prometheus 指标查询    | 支持               | 不支持       | [支持](https://prometheus.io/docs/prometheus/latest/querying/api/){:target="_blank"} | 不支持                              | 支持             | [支持](https://prometheus.io/docs/prometheus/latest/querying/operators/#aggregation-operators){:target="_blank"}               |
 | LogQL     | 主要用于查询日志        | 支持从日志生成指标 | 支持         | [支持](https://grafana.com/docs/loki/latest/api/){:target="_blank"}                  | 支持                                | 支持             | [支持](https://grafana.com/docs/loki/latest/logql/#aggregation-operators){:target="_blank"}               |
 | DQL       | DataFlux 全平台数据查询 | 支持               | 支持         | [支持](apis.md#api-raw-query){:target="_blank"}       | 不支持（在 DataKit 端已预先切割好） | 支持             | 支持               |
 
@@ -101,7 +102,7 @@ T::my_service { duration > 1000 } [10m] BY operation
 
 ### 普通数据查询及过滤 {#q-filter}
 
-```
+```not-set
 # LogQL
 {cluster="ops-tools1", namespace="dev", job="query-frontend"} |= "metrics.go" !="out of order" | logfmt | duration > 30s or status_code!="200"
 

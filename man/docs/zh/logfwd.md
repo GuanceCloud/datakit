@@ -1,5 +1,6 @@
-{{.CSS}}
+
 # 通过 Sidecar 方式采集 Pod 日志
+
 ---
 
 ":material-kubernetes:"
@@ -14,7 +15,7 @@
 
 ### DataKit 配置 {#datakit-conf}
 
-
+<!-- markdownlint-disable MD046 -->
 === "主机安装"
 
     需要先开启 [logfwdserver](logfwdserver.md)，进入 DataKit 安装目录下的 `conf.d/log` 目录，复制 `logfwdserver.conf.sample` 并命名为 `logfwdserver.conf`。示例如下：
@@ -34,6 +35,7 @@
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入 logfwdserver 采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+<!-- markdownlint-enable -->
 
 ### logfwd 使用和配置 {#config}
 
@@ -72,8 +74,8 @@ logfwd 主配置是 JSON 格式，以下是配置示例：
     - `logfiles` 日志文件列表，可以指定绝对路径，支持使用 glob 规则进行批量指定，推荐使用绝对路径
     - `ignore` 文件路径过滤，使用 glob 规则，符合任意一条过滤条件将不会对该文件进行采集
     - `source` 数据来源，如果为空，则默认使用 'default'
-    - `service` 新增标记 tag，如果为空，则默认使用 $source
-    - `pipeline` pipeline 脚本路径，如果为空将使用 $source.p，如果 $source.p 不存在将不使用 pipeline（此脚本文件存在于 DataKit 端）
+    - `service` 新增标记 tag，如果为空，则默认使用 `$source`
+    - `pipeline` Pipeline 脚本路径，如果为空将使用 `$source.p`，如果 `$source.p` 不存在将不使用 Pipeline（此脚本文件存在于 Datakit 端）
     - `character_encoding` # 选择编码，如果编码有误会导致数据无法查看，默认为空即可。支持`utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030` or ""
     - `multiline_match` 多行匹配，与 [logging](logging.md) 该项配置一样，注意因为是 JSON 格式所以不支持 3 个单引号的“不转义写法”，正则 `^\d{4}` 需要添加转义写成 `^\\d{4}`
     - `remove_ansi_escape_codes` 是否删除 ANSI 转义码，例如标准输出的文本颜色等，值为 `true` 或 `false`
@@ -96,7 +98,7 @@ logfwd 主配置是 JSON 格式，以下是配置示例：
 
 logfwd 在 Kubernetes 的部署配置分为两部分，一是 Kubernetes Pod 创建 `spec.containers` 的配置，包括注入环境变量和挂载目录。配置如下：
 
-```
+```yaml
 spec:
   containers:
   - name: logfwd
@@ -144,14 +146,13 @@ spec:
   - configMap:
       name: logfwd-conf
     name: logfwd-config
-
 ```
 
 第二份配置为 logfwd 实际运行的配置，即前文提到的 JSON 格式的主配置，在 Kubernetes 中以 ConfigMap 形式存在。
 
 根据 logfwd 配置示例，按照实际情况修改 `config`。`ConfigMap` 格式如下：
 
-```
+```yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -282,7 +283,7 @@ data:
 
 - 环境：
 
-```
+```shell
 goos: linux
 goarch: amd64
 cpu: Intel(R) Core(TM) i5-7500 CPU @ 3.40GHz
@@ -290,7 +291,7 @@ cpu: Intel(R) Core(TM) i5-7500 CPU @ 3.40GHz
 
 - 日志文件内容为 1000w 条 nginx 日志，文件大小 2.2GB：
 
-```
+```not-set
 192.168.17.1 - - [06/Jan/2022:16:16:37 +0000] "GET /google/company?test=var1%20Pl HTTP/1.1" 401 612 "http://www.google.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36" "-"
 ```
 
@@ -300,7 +301,7 @@ cpu: Intel(R) Core(TM) i5-7500 CPU @ 3.40GHz
 
 单核心 CPU 使用率峰值为 42%，以下是当时的 `top` 记录：
 
-```
+```shell
 top - 16:32:46 up 52 days,  7:28, 17 users,  load average: 2.53, 0.96, 0.59
 Tasks: 464 total,   2 running, 457 sleeping,   0 stopped,   5 zombie
 %Cpu(s): 30.3 us, 33.7 sy,  0.0 ni, 34.3 id,  0.1 wa,  0.0 hi,  1.5 si,  0.0 st

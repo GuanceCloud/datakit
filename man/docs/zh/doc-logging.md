@@ -10,7 +10,7 @@
 
 最常见的例子就是查看 Docker 日志，当执行 `docker logs -f CONTAIENR_NAME` 命令时，Docker 会启动一个单独的进程并连接到主进程，接收主进程发送过来的数据输出到终端。虽然 Docker 日志进程和主进程在同一台主机，但是它们的交互是通过本地环回网络。
 
-更加复杂的网络日志场景比如 Kubenetes 集群，它们的日志分布在不同 Node 上面，需要以 api-server 进行中转，比 Docker 的单一访问链路复杂一倍。
+更加复杂的网络日志场景比如 Kubernetes 集群，它们的日志分布在不同 Node 上面，需要以 api-server 进行中转，比 Docker 的单一访问链路复杂一倍。
 
 但是大部分通过网络获取日志都存在一个问题 —— 无法指定日志位置。日志接收端只能选择从首部开始接收日志，有多少收多少，可能一次收到几十万条；或从尾部开始，类似 `tail -f` 只接收当前产生的最新的数据，如果日志接收端的进程重启，那么这期间的日志就丢失了。
 
@@ -30,40 +30,40 @@ Datakit 的容器日志采集最初是使用网络接收的方式，被上述问
 
 补充，Datakit 日志采集执行流如下，涵盖和细分了上述的 “三个方面” ：
 
-```
-    glob 发现文件       Docker API 发现文件      Containerd（CRI）发现文件
-         |                       |                            |
-         ------------------------------------------------------
-                                 |
-                   添加到日志调度器，分配到指定 lines
-                                 |
-         ---------------------------------------------------
-         |                |                |               |
-       line1            line2            line3          line4
-                          |
-                          |              |- 采集数据，分行
-                          |              |
-                          |              |- 数据转码
-               |----->    |              |
-               |          |              |- 特殊字符处理
-               |          |-  文件 A      |
-               |          | 一个采集周期   |- 多行处理
-               |          |              |
-               |          |              |- Pipeline 处理
-               |          |              |
-               |          |              |- 发送
-               |          |              |
-               |          |              |- 同步文件采集位置
-               |          |              |
-               | 流水线    |              |- 文件状态检测
-               | 循环      |
-               |          |
-               |          |-  文件 B |-
-               |          |
-               |          |
-               |          |-  文件 C |-
-               |          |
-               |----------|
+``` not-set
+glob 发现文件       Docker API 发现文件      Containerd（CRI）发现文件
+     |                       |                            |
+     `-----------------------+----------------------------`
+                             |
+               添加到日志调度器，分配到指定 lines
+                             |
+     .-----------------------+-------------------------.
+     |                |                |               |
+   line1            line2            line3          line4
+                      |
+                      |              +- 采集数据，分行
+                      |              |
+                      |              +- 数据转码
+           .----->    |              |
+           |          |              +- 特殊字符处理
+           |          |-  文件 A     |
+           |          | 一个采集周期 +- 多行处理
+           |          |              |
+           |          |              +- Pipeline 处理
+           |          |              |
+           |          |              +- 发送
+           |          |              |
+           |          |              +- 同步文件采集位置
+           |          |              |
+           | 流水线   |              `- 文件状态检测
+           | 循环     |
+           |          |
+           |          +-  文件 B |-
+           |          |
+           |          |
+           |          +-  文件 C |-
+           |          |
+           +----------+
 ```
 
 ## 发现和定位日志文件 {#discovery}
@@ -72,7 +72,7 @@ Datakit 的容器日志采集最初是使用网络接收的方式，被上述问
 
 - 普通日志文件
 - Docker Stdout/Stderr，由 Docker 服务本身进行日志管理和落盘（Datakit 目前只支持解析 `json-file` 驱动）
-- Containerd Stdout/Stderr，Containerd 没有输出日志的策略，现阶段的 Containerd Stdout/Stderr 都是由 Kubenetes 的 kubelet 组件进行管理，后续会统称为 `Containerd（CRI）`
+- Containerd Stdout/Stderr，Containerd 没有输出日志的策略，现阶段的 Containerd Stdout/Stderr 都是由 Kubernetes 的 kubelet 组件进行管理，后续会统称为 `Containerd（CRI）`
 
 ### 发现普通日志文件 {#discovery-log}
 
@@ -84,8 +84,9 @@ Datakit 的容器日志采集最初是使用网络接收的方式，被上述问
 
 举个例子，现在有以下的文件：
 
-```
-$ tree /tmp
+``` shell
+tree /tmp
+
 /tmp
 ├── datakit
 │   ├── datakit-01.log
@@ -103,9 +104,9 @@ $ tree /tmp
 - 采集 `datakit` 目录下所有文件，glob 为`/tmp/datakit/*`
 - 采集所有带有 `datakit` 名字的文件，对应的 glob 为`/tmp/datakit/datakit-*log`
 - 采集 `mysql.log`，但是中间有 `mysql.d` 和 `mysql` 两层目录，有好几种方法定位到 `mysql.log` 文件：
-   - 直接指定：`/tmp/mysql.d/mysql/mysql.log`
-   - 单星号指定：`/tmp/*/*/mysql.log`，这种方法基本用不到
-   - 双星号（`double star`）：`/tmp/**/mysql.log`，使用双星号 `**` 代替中间的多层目录结构，是较为简洁、常用的一种方式
+    - 直接指定：`/tmp/mysql.d/mysql/mysql.log`
+    - 单星号指定：`/tmp/*/*/mysql.log`，这种方法基本用不到
+    - 双星号（`double star`）：`/tmp/**/mysql.log`，使用双星号 `**` 代替中间的多层目录结构，是较为简洁、常用的一种方式
 
 在配置文件中使用 glob 指定文件路径后，Datakit 会定期在磁盘中搜寻符合规则的文件，如果发现没有在采集列表中，便将其添加并进行采集。
 
@@ -118,8 +119,9 @@ $ tree /tmp
 
 Datakit 通过连接 Docker 或 Containerd 的 sock 文件，访问它们的 API 获取指定容器的 `LogPath`，类似在命令行执行 `docker inspect --format='{{`{{.LogPath}}`}}' $INSTANCE_ID`：
 
-```
-$ docker inspect --format='{{`{{.LogPath}}`}}' cf681e
+``` shell
+docker inspect --format='{{`{{.LogPath}}`}}' cf681e
+
 /var/lib/docker/containers/cf681eXXXX/cf681eXXXX-json.log
 ```
 
@@ -160,8 +162,8 @@ $ docker inspect --format='{{`{{.LogPath}}`}}' cf681e
 
 “特殊字符” 在此处代指数据中的颜色字符，比如以下命令会在命令行终端输出一个红色 `rea` 单词：
 
-```
-$ RED='\033[0;31m' && NC='\033[0m' && print "${RED}red${NC}"
+``` not-set
+RED='\033[0;31m' && NC='\033[0m' && print "${RED}red${NC}"
 ```
 
 如果不进行处理，不删除颜色字符，那么最终日志数据也会带有 `\033[0;31m`，不仅缺乏美观、占用存储，而且可能对后续的数据处理产生负影响。所以要在此处筛除特殊颜色字符。
@@ -174,18 +176,24 @@ $ RED='\033[0;31m' && NC='\033[0m' && print "${RED}red${NC}"
 
 “解析行数据” 主要是针对容器 Stdout/Stderr 日志。容器 runtime 管理和落盘日志时会添加一些额外的信息字段，比如产生时间，来源是 `stdout` 还是 `stderr`，本条日志是否被截断等等。Datakit 需要对这种数据做解析，提取对应字段。
 
-- Docker json-file 日志单条格式如下，是 JSON 格式，正文在 `log` 字段中。如果 `log` 内容的结尾是 `\n` 表示这一行数据是完整的，没有被截断；如果不是 `\n`，则表明数据太长超过 16KB 被截断了，其剩余部分在下一个 JSON 中。
-    ```
-    {"log":"2022/09/14 15:11:11 Bash For Loop Examples. Hello, world! Testing output.\n","stream":"stdout","time":"2022-09-14T15:11:11.125641305Z"}
-    ```
-- Containerd（CRI）单条日志格式如下，各项字段以空格分割。和 Docker 相同的是，Containerd（CRI）也有日志截断的标记，即第三个字段 `P`，此外还有 `F`。`P` 表示 `Partial`，即不完整的、被截断的；`F` 表示 `Full`。 
-    ```
-    2016-10-06T00:17:09.669794202Z stdout P log content 1
-    2016-10-06T00:17:09.669794202Z stdout F log content 2
-    ```
-    拼接之后的日志数据是 `log content 1 log content 2`。
+- Docker JSON file 日志单条格式如下，是 JSON 格式，正文在 `log` 字段中。如果 `log` 内容的结尾是 `\n` 表示这一行数据是完整的，没有被截断；如果不是 `\n`，则表明数据太长超过 16KB 被截断了，其剩余部分在下一个 JSON 中。
 
-通过解析行数据，可以获得日志正文、stdout/sterr 等信息，根据标记确定是否是不完整的截断日志，要进行日志拼接。在普通日志文件中不存在截断，文件中的单行数据理论上可以无限长。
+``` json
+{"log":"2022/09/14 15:11:11 Bash For Loop Examples. Hello, world! Testing output.\n","stream":"stdout","time":"2022-09-14T15:11:11.125641305Z"}
+```
+
+- Containerd（CRI）单条日志格式如下，各项字段以空格分割。和 Docker 相同的是，Containerd（CRI）也有日志截断的标记，即第三个字段 `P`，此外还有 `F`。`P` 表示 `Partial`，即不完整的、被截断的；`F` 表示 `Full`。
+
+``` log
+2016-10-06T00:17:09.669794202Z stdout P log content 1
+2016-10-06T00:17:09.669794202Z stdout F log content 2
+```
+
+拼接之后的日志数据是 `log content 1 log content 2`。
+
+---
+
+通过解析行数据，可以获得日志正文、stdout/stderr 等信息，根据标记确定是否是不完整的截断日志，要进行日志拼接。在普通日志文件中不存在截断，文件中的单行数据理论上可以无限长。
 
 此外，日志单行被截断，拼接之后也属于一行日志，而不是下文要提到的多行日志，这是两个不同的概念。
 
@@ -193,7 +201,7 @@ $ RED='\033[0;31m' && NC='\033[0m' && print "${RED}red${NC}"
 
 多行处理是日志采集非常重要的一项，它将一些不符合特征的数据，在不丢失数据的前提下变得符合特征。比如日志文件中有以下数据，这是一段常见的 Python 栈打印：
 
-```
+``` log
 2020-10-23 06:41:56,688 INFO demo.py 1.0
 2020-10-23 06:54:20,164 ERROR /usr/local/lib/python3.6/dist-packages/flask/app.py Exception on /0 [GET]
 Traceback (most recent call last):
@@ -206,7 +214,7 @@ Traceback (most recent call last):
 
 如果经过有效的多行处理，这 7 行数据会变成 3 行，结果如下：
 
-```
+``` log
 2020-10-23 06:41:56,688 INFO demo.py 1.0
 2020-10-23 06:54:20,164 ERROR /usr/local/lib/python3.6/dist-packages/flask/app.py Exception on /0 [GET]\nTraceback (most recent call last):\n  File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app\n    response = self.full_dispatch_request()
 2020-10-23 06:41:56,688 INFO demo.py 5.0
@@ -232,11 +240,11 @@ Pipeline 的实现比较复杂，它由抽象语法树（AST）和一系列内�
 
 只看使用场景，举个简单的例子，原文如下：
 
-```
+``` not-set
 2020-10-23 06:41:56,688 INFO demo.py 1.0
 ```
 
-pipeline 脚本：
+Pipeline 脚本：
 
 ```python
 grok(_, "%{date:time} %{NOTSPACE:status} %{GREEDYDATA:msg}")
@@ -254,7 +262,7 @@ default_time(time)
 }
 ```
 
-*注意：Pipeline 切割后的 `status` 字段是 `INFO`，但是 Datakit 有做映射处理，所以严谨起见显示为小写的 `info`*
+> 注意：Pipeline 切割后的 `status` 字段是 `INFO`，但是 Datakit 有做映射处理，所以严谨起见显示为小写的 `info`
 
 Pipeline 是日志数据处理最后一步，Datakit 会使用 Pipeline 的结果构建行协议，序列化对象并准备打包发送给 Dataway。
 
@@ -289,7 +297,7 @@ Datakit 开启日志采集时，使用 `文件绝对路径 + 文件 inode + 文�
 
 - 文件发生反转（rotate）：
     - 文件 rotate 是一个很复杂的逻辑，通俗一点来说就是文件名不变，但是文件名指向的具体文件发生改变，比如它的 inode。典型的例子就是 Docker 日志落盘。
-    
+
 Datakit 会定期检查当前正在采集的文件是否发生 rotate，检查的逻辑是：使用此文件名打开一个新的文件句柄，调用类似 `SameFile()` 的函数，判断两个句柄是否指向一致，如果不一致表示当前这个文件名已经发生 rotate。
 
 一旦检测到文件发生 rotate，Datakit 会将当前文件的剩余数据（直到 EOF）采集完，再重新打开文件，此时已经是一个新的文件，然后操作流程一切照旧。

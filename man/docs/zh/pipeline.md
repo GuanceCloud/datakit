@@ -1,5 +1,6 @@
-{{.CSS}}
+
 # Pipeline 手册
+
 ---
 
 以下是 Pipeline 数据处理器语言定义。随着不同语法的逐步支持，该文档会做不同程度的调整和增删。
@@ -58,49 +59,51 @@ a = 3
 
 #### 基本类型 {#basic-type}
 
-**整型(int)**
+##### 整型 {#int}
 
 整型的类型长度为 64bit，有符号，当前仅支持以十进制的方式编写整数字面量,如 `-1`, `0`, `1`, `+19`
 
-**浮点类型(float)**
+##### 浮点类型 {#float}
 
 浮点型的类型长度为 64bit，有符号，当前仅支持以十进制的方式编写浮点数字面量,如 `-1.00001`, `0.0`, `1.0`, `+19.0`
 
-**布尔类型(bool)**
+##### 布尔类型 {#bool}
 
 布尔类型值仅有 `true` 和 `false` 两种
 
-**字符串类型(str)**
+##### 字符串类型 {#str}
 
 字符串值可用双引号或单引号，多行字符串可以使用三双引号或三单引号将内容括起来进行编写
-  * `"hello world"`
 
-  * `'hello world'`
+- 双引号字符串 `"hello world"`
+- 单引号字符串 `'hello world'`
+- 多行字符串
 
-  * ```
-    """hello
-    world"""
-    ```
+```python
+"""hello
+world"""
+```
 
-  * ```
-    '''
-    hello
-    world
-    '''
-    ```
+- 单引号形式的多行字符串
 
-**nil 类型(nil)**
-  nil 为一种特殊的数据类型，表示空，当一个变量未赋值就使用时，其值为 nil
+```python
+'''
+hello
+world
+'''
+```
+
+##### nil 类型 {#nil}
+
+nil 为一种特殊的数据类型，表示空，当一个变量未赋值就使用时，其值为 nil
 
 #### 复合类型 {#composite-type}
 
 字典类型与列表类型与基本类型不同，多个变量可以指向同一个 map 或 list对象，在赋值时并不会进行列表或字典的内存拷贝，而是进行引用
 
-**字典类型(map)**
+- 字典类型(map)
 
-字典类型为 key-value 结构，只有字符串类型才能作为 key，不限制 value 的数据类型
-
-其可通过索引表达式读写 map 中的元素
+字典类型为 key-value 结构，只有字符串类型才能作为 key，不限制 value 的数据类型，其可通过索引表达式读写 map 中的元素：
 
 ```python
 a = {
@@ -113,13 +116,12 @@ a = {
 # 由于 a["1"] 是列表，此时 b 只是引用了 a["1"] 的值
 b = a["1"]
 
-"""
-此时 a 的这一值也变为 1.1
-"""
+
+# 此时 a 的这一值也变为 1.1
 b[0] = 1.1
 ```
 
-**列表类型(list)**
+- 列表类型(list)
 
 列表类型可以在列表中存储任意数量、任意类型的值
 其可通过索引表达式读写 list 中的元素
@@ -132,7 +134,7 @@ a = a[0] # a == 1
 
 ## 快速开始 {#quick-start}
 
-- 在 DataKit 中配置 pipeline，编写如下 pipeline 文件，假定名为 *nginx.p*。将其存放在 `<datakit安装目录>/pipeline` 目录下。
+- 在 DataKit 中配置 Pipeline，编写如下 Pipeline 文件，假定名为 *nginx.p*。将其存放在 *[datakit安装目录]/pipeline* 目录下。
 
 ```python
 # 假定输入是一个 Nginx 日志（以下字段都是 yy 的...）
@@ -154,11 +156,13 @@ group_between(status_code, [200, 300], "HTTP_OK", "http_status")
 drop_origin_data()
 ```
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     切割过程中，需避免[可能出现的跟 tag key 重名的问题](datakit-pl-how-to.md#naming)
+<!-- markdownlint-enable -->
 
-- 配置对应的采集器来使用上面的 pipeline
+- 配置对应的采集器来使用上面的 Pipeline
 
 以 logging 采集器为例，配置字段 `pipeline_path` 即可，注意，这里配置的是 pipeline 的脚本名称，而不是路径。所有这里引用的 pipeline 脚本，必须存放在 `<DataKit 安装目录/pipeline>` 目录下：
 
@@ -180,16 +184,18 @@ drop_origin_data()
 
 重启采集器，即可切割对应的日志。
 
+<!-- markdownlint-disable MD046 -->
 ???+ info
 
     关于 Pipeline 编写、调试以及注意事项，参见[这里](datakit-pl-how-to.md)。
+<!-- markdownlint-enable -->
 
 ## Grok 模式分类 {#grok}
 
 DataKit 中 grok 模式可以分为两类：
 
-- 全局模式：*pattern* 目录下的模式文件都是全局模式，所有 pipeline 脚本都可使用
-- 局部模式：在 pipeline 脚本中通过 [add_pattern()](pipeline.md#fn-add-pattern) 函数新增的模式为局部模式，只针对当前 pipeline 脚本有效
+- 全局模式：*pattern* 目录下的模式文件都是全局模式，所有 Pipeline 脚本都可使用
+- 局部模式：在 Pipeline 脚本中通过 [add_pattern()](pipeline.md#fn-add-pattern) 函数新增的模式为局部模式，只针对当前 Pipeline 脚本有效
 
 以下以 Nginx access-log 为例，说明一下如何编写对应的 grok，原始 nginx access log 如下：
 
@@ -255,99 +261,106 @@ add_pattern(time, "([^0-9]?)%{HOUR:hour}:%{MINUTE:minute}(?::%{SECOND:second})([
 grok(_, %{time})
 ```
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     - 如果出现同名模式，则以局部模式优先（即局部模式覆盖全局模式）
-    - pipeline 脚本中，[add_pattern()](pipeline.md#fn-add-pattern) 需在 [grok()](pipeline.md#fn-grok) 函数前面调用，否则会导致第一条数据提取失败
+    - Pipeline 脚本中，[add_pattern()](pipeline.md#fn-add-pattern) 需在 [grok()](pipeline.md#fn-grok) 函数前面调用，否则会导致第一条数据提取失败
+<!-- markdownlint-enable -->
 
 ### 内置的 Pattern 列表 {#builtin-patterns}
 
 DataKit 内置了一些常用的 Pattern，我们在使用 Grok 切割的时候，可以直接使用：
 
-```
-USERNAME             : [a-zA-Z0-9._-]+
-USER                 : %{USERNAME}
-EMAILLOCALPART       : [a-zA-Z][a-zA-Z0-9_.+-=:]+
-EMAILADDRESS         : %{EMAILLOCALPART}@%{HOSTNAME}
-HTTPDUSER            : %{EMAILADDRESS}|%{USER}
-INT                  : (?:[+-]?(?:[0-9]+))
-BASE10NUM            : (?:[+-]?(?:[0-9]+(?:\.[0-9]+)?)|\.[0-9]+)
-NUMBER               : (?:%{BASE10NUM})
-BASE16NUM            : (?:0[xX]?[0-9a-fA-F]+)
-POSINT               : \b(?:[1-9][0-9]*)\b
-NONNEGINT            : \b(?:[0-9]+)\b
-WORD                 : \b\w+\b
-NOTSPACE             : \S+
-SPACE                : \s*
-DATA                 : .*?
-GREEDYDATA           : .*
-GREEDYLINES          : (?s).*
-QUOTEDSTRING         : "(?:[^"\\]*(?:\\.[^"\\]*)*)"|\'(?:[^\'\\]*(?:\\.[^\'\\]*)*)\'
-UUID                 : [A-Fa-f0-9]{8}-(?:[A-Fa-f0-9]{4}-){3}[A-Fa-f0-9]{12}
-MAC                  : (?:%{CISCOMAC}|%{WINDOWSMAC}|%{COMMONMAC})
-CISCOMAC             : (?:(?:[A-Fa-f0-9]{4}\.){2}[A-Fa-f0-9]{4})
-WINDOWSMAC           : (?:(?:[A-Fa-f0-9]{2}-){5}[A-Fa-f0-9]{2})
-COMMONMAC            : (?:(?:[A-Fa-f0-9]{2}:){5}[A-Fa-f0-9]{2})
-IPV6                 : (?:(?:(?:[0-9A-Fa-f]{1,4}:){7}(?:[0-9A-Fa-f]{1,4}|:))|(?:(?:[0-9A-Fa-f]{1,4}:){6}(?::[0-9A-Fa-f]{1,4}|(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(?:(?:[0-9A-Fa-f]{1,4}:){5}(?:(?:(?::[0-9A-Fa-f]{1,4}){1,2})|:(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(?:(?:[0-9A-Fa-f]{1,4}:){4}(?:(?:(?::[0-9A-Fa-f]{1,4}){1,3})|(?:(?::[0-9A-Fa-f]{1,4})?:(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(?:(?:[0-9A-Fa-f]{1,4}:){3}(?:(?:(?::[0-9A-Fa-f]{1,4}){1,4})|(?:(?::[0-9A-Fa-f]{1,4}){0,2}:(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(?:(?:[0-9A-Fa-f]{1,4}:){2}(?:(?:(?::[0-9A-Fa-f]{1,4}){1,5})|(?:(?::[0-9A-Fa-f]{1,4}){0,3}:(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(?:(?:[0-9A-Fa-f]{1,4}:){1}(?:(?:(?::[0-9A-Fa-f]{1,4}){1,6})|(?:(?::[0-9A-Fa-f]{1,4}){0,4}:(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(?::(?:(?:(?::[0-9A-Fa-f]{1,4}){1,7})|(?:(?::[0-9A-Fa-f]{1,4}){0,5}:(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:)))(?:%.+)?
-IPV4                 : (?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)
-IP                   : (?:%{IPV6}|%{IPV4})
-HOSTNAME             : \b(?:[0-9A-Za-z][0-9A-Za-z-]{0,62})(?:\.(?:[0-9A-Za-z][0-9A-Za-z-]{0,62}))*(?:\.?|\b)
-HOST                 : %{HOSTNAME}
-IPORHOST             : (?:%{IP}|%{HOSTNAME})
-HOSTPORT             : %{IPORHOST}:%{POSINT}
-PATH                 : (?:%{UNIXPATH}|%{WINPATH})
-UNIXPATH             : (?:/[\w_%!$@:.,-]?/?)(?:\S+)?
-TTY                  : (?:/dev/(?:pts|tty(?:[pq])?)(?:\w+)?/?(?:[0-9]+))
-WINPATH              : (?:[A-Za-z]:|\\)(?:\\[^\\?*]*)+
-URIPROTO             : [A-Za-z]+(?:\+[A-Za-z+]+)?
-URIHOST              : %{IPORHOST}(?::%{POSINT:port})?
-URIPATH              : (?:/[A-Za-z0-9$.+!*'(){},~:;=@#%_\-]*)+
-URIPARAM             : \?[A-Za-z0-9$.+!*'|(){},~@#%&/=:;_?\-\[\]<>]*
-URIPATHPARAM         : %{URIPATH}(?:%{URIPARAM})?
-URI                  : %{URIPROTO}://(?:%{USER}(?::[^@]*)?@)?(?:%{URIHOST})?(?:%{URIPATHPARAM})?
-MONTH                : \b(?:Jan(?:uary|uar)?|Feb(?:ruary|ruar)?|M(?:a|ä)?r(?:ch|z)?|Apr(?:il)?|Ma(?:y|i)?|Jun(?:e|i)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|O(?:c|k)?t(?:ober)?|Nov(?:ember)?|De(?:c|z)(?:ember)?)\b
-MONTHNUM             : (?:0?[1-9]|1[0-2])
-MONTHNUM2            : (?:0[1-9]|1[0-2])
-MONTHDAY             : (?:(?:0[1-9])|(?:[12][0-9])|(?:3[01])|[1-9])
-DAY                  : (?:Mon(?:day)?|Tue(?:sday)?|Wed(?:nesday)?|Thu(?:rsday)?|Fri(?:day)?|Sat(?:urday)?|Sun(?:day)?)
-YEAR                 : (\d\d){1,2}
-HOUR                 : (?:2[0123]|[01]?[0-9])
-MINUTE               : (?:[0-5][0-9])
-SECOND               : (?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?)
-TIME                 : (?:[^0-9]?)%{HOUR}:%{MINUTE}(?::%{SECOND})(?:[^0-9]?)
-DATE_US              : %{MONTHNUM}[/-]%{MONTHDAY}[/-]%{YEAR}
-DATE_EU              : %{MONTHDAY}[./-]%{MONTHNUM}[./-]%{YEAR}
-ISO8601_TIMEZONE     : (?:Z|[+-]%{HOUR}(?::?%{MINUTE}))
-ISO8601_SECOND       : (?:%{SECOND}|60)
-TIMESTAMP_ISO8601    : %{YEAR}-%{MONTHNUM}-%{MONTHDAY}[T ]%{HOUR}:?%{MINUTE}(?::?%{SECOND})?%{ISO8601_TIMEZONE}?
-DATE                 : %{DATE_US}|%{DATE_EU}
-DATESTAMP            : %{DATE}[- ]%{TIME}
-TZ                   : (?:[PMCE][SD]T|UTC)
-DATESTAMP_RFC822     : %{DAY} %{MONTH} %{MONTHDAY} %{YEAR} %{TIME} %{TZ}
-DATESTAMP_RFC2822    : %{DAY}, %{MONTHDAY} %{MONTH} %{YEAR} %{TIME} %{ISO8601_TIMEZONE}
-DATESTAMP_OTHER      : %{DAY} %{MONTH} %{MONTHDAY} %{TIME} %{TZ} %{YEAR}
-DATESTAMP_EVENTLOG   : %{YEAR}%{MONTHNUM2}%{MONTHDAY}%{HOUR}%{MINUTE}%{SECOND}
-HTTPDERROR_DATE      : %{DAY} %{MONTH} %{MONTHDAY} %{TIME} %{YEAR}
-SYSLOGTIMESTAMP      : %{MONTH} +%{MONTHDAY} %{TIME}
-PROG                 : [\x21-\x5a\x5c\x5e-\x7e]+
-SYSLOGPROG           : %{PROG:program}(?:\[%{POSINT:pid}\])?
-SYSLOGHOST           : %{IPORHOST}
-SYSLOGFACILITY       : <%{NONNEGINT:facility}.%{NONNEGINT:priority}>
-HTTPDATE             : %{MONTHDAY}/%{MONTH}/%{YEAR}:%{TIME} %{INT}
-QS                   : %{QUOTEDSTRING}
-SYSLOGBASE           : %{SYSLOGTIMESTAMP:timestamp} (?:%{SYSLOGFACILITY} )?%{SYSLOGHOST:logsource} %{SYSLOGPROG}:
-COMMONAPACHELOG      : %{IPORHOST:clientip} %{HTTPDUSER:ident} %{USER:auth} \[%{HTTPDATE:timestamp}\] "(?:%{WORD:verb} %{NOTSPACE:request}(?: HTTP/%{NUMBER:httpversion})?|%{DATA:rawrequest})" %{NUMBER:response} (?:%{NUMBER:bytes}|-)
-COMBINEDAPACHELOG    : %{COMMONAPACHELOG} %{QS:referrer} %{QS:agent}
-HTTPD20_ERRORLOG     : \[%{HTTPDERROR_DATE:timestamp}\] \[%{LOGLEVEL:loglevel}\] (?:\[client %{IPORHOST:clientip}\] ){0,1}%{GREEDYDATA:errormsg}
-HTTPD24_ERRORLOG     : \[%{HTTPDERROR_DATE:timestamp}\] \[%{WORD:module}:%{LOGLEVEL:loglevel}\] \[pid %{POSINT:pid}:tid %{NUMBER:tid}\]( \(%{POSINT:proxy_errorcode}\)%{DATA:proxy_errormessage}:)?( \[client %{IPORHOST:client}:%{POSINT:clientport}\])? %{DATA:errorcode}: %{GREEDYDATA:message}
-HTTPD_ERRORLOG       : %{HTTPD20_ERRORLOG}|%{HTTPD24_ERRORLOG}
-LOGLEVEL             : (?:[Aa]lert|ALERT|[Tt]race|TRACE|[Dd]ebug|DEBUG|[Nn]otice|NOTICE|[Ii]nfo|INFO|[Ww]arn?(?:ing)?|WARN?(?:ING)?|[Ee]rr?(?:or)?|ERR?(?:OR)?|[Cc]rit?(?:ical)?|CRIT?(?:ICAL)?|[Ff]atal|FATAL|[Ss]evere|SEVERE|EMERG(?:ENCY)?|[Ee]merg(?:ency)?)
-COMMONENVOYACCESSLOG : \[%{TIMESTAMP_ISO8601:timestamp}\] \"%{DATA:method} (?:%{URIPATH:uri_path}(?:%{URIPARAM:uri_param})?|%{DATA:}) %{DATA:protocol}\" %{NUMBER:status_code} %{DATA:response_flags} %{NUMBER:bytes_received} %{NUMBER:bytes_sent} %{NUMBER:duration} (?:%{NUMBER:upstream_service_time}|%{DATA:tcp_service_time}) \"%{DATA:forwarded_for}\" \"%{DATA:user_agent}\" \"%{DATA:request_id}\" \"%{DATA:authority}\" \"%{DATA:upstream_service}\"
-```
+<!-- markdownlint-disable MD046 -->
+???- "内置 Patterns"
+
+    ``` not-set
+    USERNAME             : [a-zA-Z0-9._-]+
+    USER                 : %{USERNAME}
+    EMAILLOCALPART       : [a-zA-Z][a-zA-Z0-9_.+-=:]+
+    EMAILADDRESS         : %{EMAILLOCALPART}@%{HOSTNAME}
+    HTTPDUSER            : %{EMAILADDRESS}|%{USER}
+    INT                  : (?:[+-]?(?:[0-9]+))
+    BASE10NUM            : (?:[+-]?(?:[0-9]+(?:\.[0-9]+)?)|\.[0-9]+)
+    NUMBER               : (?:%{BASE10NUM})
+    BASE16NUM            : (?:0[xX]?[0-9a-fA-F]+)
+    POSINT               : \b(?:[1-9][0-9]*)\b
+    NONNEGINT            : \b(?:[0-9]+)\b
+    WORD                 : \b\w+\b
+    NOTSPACE             : \S+
+    SPACE                : \s*
+    DATA                 : .*?
+    GREEDYDATA           : .*
+    GREEDYLINES          : (?s).*
+    QUOTEDSTRING         : "(?:[^"\\]*(?:\\.[^"\\]*)*)"|\'(?:[^\'\\]*(?:\\.[^\'\\]*)*)\'
+    UUID                 : [A-Fa-f0-9]{8}-(?:[A-Fa-f0-9]{4}-){3}[A-Fa-f0-9]{12}
+    MAC                  : (?:%{CISCOMAC}|%{WINDOWSMAC}|%{COMMONMAC})
+    CISCOMAC             : (?:(?:[A-Fa-f0-9]{4}\.){2}[A-Fa-f0-9]{4})
+    WINDOWSMAC           : (?:(?:[A-Fa-f0-9]{2}-){5}[A-Fa-f0-9]{2})
+    COMMONMAC            : (?:(?:[A-Fa-f0-9]{2}:){5}[A-Fa-f0-9]{2})
+    IPV6                 : (?:(?:(?:[0-9A-Fa-f]{1,4}:){7}(?:[0-9A-Fa-f]{1,4}|:))|(?:(?:[0-9A-Fa-f]{1,4}:){6}(?::[0-9A-Fa-f]{1,4}|(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(?:(?:[0-9A-Fa-f]{1,4}:){5}(?:(?:(?::[0-9A-Fa-f]{1,4}){1,2})|:(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(?:(?:[0-9A-Fa-f]{1,4}:){4}(?:(?:(?::[0-9A-Fa-f]{1,4}){1,3})|(?:(?::[0-9A-Fa-f]{1,4})?:(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(?:(?:[0-9A-Fa-f]{1,4}:){3}(?:(?:(?::[0-9A-Fa-f]{1,4}){1,4})|(?:(?::[0-9A-Fa-f]{1,4}){0,2}:(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(?:(?:[0-9A-Fa-f]{1,4}:){2}(?:(?:(?::[0-9A-Fa-f]{1,4}){1,5})|(?:(?::[0-9A-Fa-f]{1,4}){0,3}:(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(?:(?:[0-9A-Fa-f]{1,4}:){1}(?:(?:(?::[0-9A-Fa-f]{1,4}){1,6})|(?:(?::[0-9A-Fa-f]{1,4}){0,4}:(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(?::(?:(?:(?::[0-9A-Fa-f]{1,4}){1,7})|(?:(?::[0-9A-Fa-f]{1,4}){0,5}:(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:)))(?:%.+)?
+    IPV4                 : (?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)
+    IP                   : (?:%{IPV6}|%{IPV4})
+    HOSTNAME             : \b(?:[0-9A-Za-z][0-9A-Za-z-]{0,62})(?:\.(?:[0-9A-Za-z][0-9A-Za-z-]{0,62}))*(?:\.?|\b)
+    HOST                 : %{HOSTNAME}
+    IPORHOST             : (?:%{IP}|%{HOSTNAME})
+    HOSTPORT             : %{IPORHOST}:%{POSINT}
+    PATH                 : (?:%{UNIXPATH}|%{WINPATH})
+    UNIXPATH             : (?:/[\w_%!$@:.,-]?/?)(?:\S+)?
+    TTY                  : (?:/dev/(?:pts|tty(?:[pq])?)(?:\w+)?/?(?:[0-9]+))
+    WINPATH              : (?:[A-Za-z]:|\\)(?:\\[^\\?*]*)+
+    URIPROTO             : [A-Za-z]+(?:\+[A-Za-z+]+)?
+    URIHOST              : %{IPORHOST}(?::%{POSINT:port})?
+    URIPATH              : (?:/[A-Za-z0-9$.+!*'(){},~:;=@#%_\-]*)+
+    URIPARAM             : \?[A-Za-z0-9$.+!*'|(){},~@#%&/=:;_?\-\[\]<>]*
+    URIPATHPARAM         : %{URIPATH}(?:%{URIPARAM})?
+    URI                  : %{URIPROTO}://(?:%{USER}(?::[^@]*)?@)?(?:%{URIHOST})?(?:%{URIPATHPARAM})?
+    MONTH                : \b(?:Jan(?:uary|uar)?|Feb(?:ruary|ruar)?|M(?:a|ä)?r(?:ch|z)?|Apr(?:il)?|Ma(?:y|i)?|Jun(?:e|i)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|O(?:c|k)?t(?:ober)?|Nov(?:ember)?|De(?:c|z)(?:ember)?)\b
+    MONTHNUM             : (?:0?[1-9]|1[0-2])
+    MONTHNUM2            : (?:0[1-9]|1[0-2])
+    MONTHDAY             : (?:(?:0[1-9])|(?:[12][0-9])|(?:3[01])|[1-9])
+    DAY                  : (?:Mon(?:day)?|Tue(?:sday)?|Wed(?:nesday)?|Thu(?:rsday)?|Fri(?:day)?|Sat(?:urday)?|Sun(?:day)?)
+    YEAR                 : (\d\d){1,2}
+    HOUR                 : (?:2[0123]|[01]?[0-9])
+    MINUTE               : (?:[0-5][0-9])
+    SECOND               : (?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?)
+    TIME                 : (?:[^0-9]?)%{HOUR}:%{MINUTE}(?::%{SECOND})(?:[^0-9]?)
+    DATE_US              : %{MONTHNUM}[/-]%{MONTHDAY}[/-]%{YEAR}
+    DATE_EU              : %{MONTHDAY}[./-]%{MONTHNUM}[./-]%{YEAR}
+    ISO8601_TIMEZONE     : (?:Z|[+-]%{HOUR}(?::?%{MINUTE}))
+    ISO8601_SECOND       : (?:%{SECOND}|60)
+    TIMESTAMP_ISO8601    : %{YEAR}-%{MONTHNUM}-%{MONTHDAY}[T ]%{HOUR}:?%{MINUTE}(?::?%{SECOND})?%{ISO8601_TIMEZONE}?
+    DATE                 : %{DATE_US}|%{DATE_EU}
+    DATESTAMP            : %{DATE}[- ]%{TIME}
+    TZ                   : (?:[PMCE][SD]T|UTC)
+    DATESTAMP_RFC822     : %{DAY} %{MONTH} %{MONTHDAY} %{YEAR} %{TIME} %{TZ}
+    DATESTAMP_RFC2822    : %{DAY}, %{MONTHDAY} %{MONTH} %{YEAR} %{TIME} %{ISO8601_TIMEZONE}
+    DATESTAMP_OTHER      : %{DAY} %{MONTH} %{MONTHDAY} %{TIME} %{TZ} %{YEAR}
+    DATESTAMP_EVENTLOG   : %{YEAR}%{MONTHNUM2}%{MONTHDAY}%{HOUR}%{MINUTE}%{SECOND}
+    HTTPDERROR_DATE      : %{DAY} %{MONTH} %{MONTHDAY} %{TIME} %{YEAR}
+    SYSLOGTIMESTAMP      : %{MONTH} +%{MONTHDAY} %{TIME}
+    PROG                 : [\x21-\x5a\x5c\x5e-\x7e]+
+    SYSLOGPROG           : %{PROG:program}(?:\[%{POSINT:pid}\])?
+    SYSLOGHOST           : %{IPORHOST}
+    SYSLOGFACILITY       : <%{NONNEGINT:facility}.%{NONNEGINT:priority}>
+    HTTPDATE             : %{MONTHDAY}/%{MONTH}/%{YEAR}:%{TIME} %{INT}
+    QS                   : %{QUOTEDSTRING}
+    SYSLOGBASE           : %{SYSLOGTIMESTAMP:timestamp} (?:%{SYSLOGFACILITY} )?%{SYSLOGHOST:logsource} %{SYSLOGPROG}:
+    COMMONAPACHELOG      : %{IPORHOST:clientip} %{HTTPDUSER:ident} %{USER:auth} \[%{HTTPDATE:timestamp}\] "(?:%{WORD:verb} %{NOTSPACE:request}(?: HTTP/%{NUMBER:httpversion})?|%{DATA:rawrequest})" %{NUMBER:response} (?:%{NUMBER:bytes}|-)
+    COMBINEDAPACHELOG    : %{COMMONAPACHELOG} %{QS:referrer} %{QS:agent}
+    HTTPD20_ERRORLOG     : \[%{HTTPDERROR_DATE:timestamp}\] \[%{LOGLEVEL:loglevel}\] (?:\[client %{IPORHOST:clientip}\] ){0,1}%{GREEDYDATA:errormsg}
+    HTTPD24_ERRORLOG     : \[%{HTTPDERROR_DATE:timestamp}\] \[%{WORD:module}:%{LOGLEVEL:loglevel}\] \[pid %{POSINT:pid}:tid %{NUMBER:tid}\]( \(%{POSINT:proxy_errorcode}\)%{DATA:proxy_errormessage}:)?( \[client %{IPORHOST:client}:%{POSINT:clientport}\])? %{DATA:errorcode}: %{GREEDYDATA:message}
+    HTTPD_ERRORLOG       : %{HTTPD20_ERRORLOG}|%{HTTPD24_ERRORLOG}
+    LOGLEVEL             : (?:[Aa]lert|ALERT|[Tt]race|TRACE|[Dd]ebug|DEBUG|[Nn]otice|NOTICE|[Ii]nfo|INFO|[Ww]arn?(?:ing)?|WARN?(?:ING)?|[Ee]rr?(?:or)?|ERR?(?:OR)?|[Cc]rit?(?:ical)?|CRIT?(?:ICAL)?|[Ff]atal|FATAL|[Ss]evere|SEVERE|EMERG(?:ENCY)?|[Ee]merg(?:ency)?)
+    COMMONENVOYACCESSLOG : \[%{TIMESTAMP_ISO8601:timestamp}\] \"%{DATA:method} (?:%{URIPATH:uri_path}(?:%{URIPARAM:uri_param})?|%{DATA:}) %{DATA:protocol}\" %{NUMBER:status_code} %{DATA:response_flags} %{NUMBER:bytes_received} %{NUMBER:bytes_sent} %{NUMBER:duration} (?:%{NUMBER:upstream_service_time}|%{DATA:tcp_service_time}) \"%{DATA:forwarded_for}\" \"%{DATA:user_agent}\" \"%{DATA:request_id}\" \"%{DATA:authority}\" \"%{DATA:upstream_service}\"
+    ```
+<!-- markdownlint-enable -->
 
 ## if/else 分支 {#if-else}
 
-pipeline 支持 `if/elif/else` 语法，`if` 后面的语句仅支持条件表达式，即 `<`、`<=`、`==`、`>`、`>=` 和 `!=`， 且支持小括号优先级和多个条件表达式的 `AND` 和 `OR` 连接。
+Pipeline 支持 `if/elif/else` 语法，`if` 后面的语句仅支持条件表达式，即 `<`、`<=`、`==`、`>`、`>=` 和 `!=`， 且支持小括号优先级和多个条件表达式的 `AND` 和 `OR` 连接。
+
 表达式两边可以是已存在的 key 或固定值（数值、布尔值、字符串和 nil ），例如：
 
 ```python
@@ -376,7 +389,7 @@ if name == "法外狂徒" {
 
 注意：如果是进行数值比较，需要先用 `cast()` 进行类型转换，比如：
 
-```
+``` python
 # status_code 是 grok 切出来的 string 类型
 cast(status_code, "int")
 
@@ -423,8 +436,8 @@ add_key(d)
 Pipeline 的目录搜索优先级是:
 
 1. Remote Pipeline 目录
-2. Git 管理的 pipeline 目录
-3. 内置的 pipeline 目录
+2. Git 管理的 *pipeline* 目录
+3. 内置的 *pipeline* 目录
 
 由 1 往 3 方向查找，匹配到了直接返回。
 
@@ -434,7 +447,7 @@ Pipeline 的目录搜索优先级是:
 
 在 Datakit 的安装目录下面的 `pipeline_remote` 目录下，目录结构如下所示:
 
-```
+```shell
 .
 ├── conf.d
 ├── datakit
@@ -454,11 +467,11 @@ Pipeline 的目录搜索优先级是:
 └── ...
 ```
 
-### Git 管理的 pipeline 目录 {#git-pl}
+### Git 管理的 Pipeline 目录 {#git-pl}
 
 在 `gitrepos` 目录下的 `项目名/pipeline` 目录下，目录结构如上所示。
 
-### 内置的 pipeline 目录 {#internal-pl}
+### 内置的 Pipeline 目录 {#internal-pl}
 
 在 Datakit 的安装目录下面的 `pipeline` 目录下，目录结构如上所示。
 
@@ -466,7 +479,7 @@ Pipeline 的目录搜索优先级是:
 
 所有类别的数据在被 Pipeline 脚本处理前均会封装成 Point 结构，其结构大致为：
 
-```
+``` not-set
 struct Point {
     Name:    str
     Tags:    map[str]str
@@ -477,7 +490,7 @@ struct Point {
 
 以一条 nginx 日志数据为例，其被日志采集器采集到后生成的数据作为 Pipeline 脚本的输入大致为：
 
-```
+``` not-set
 Point {
     Name: "nginx"
     Tags: map[str]str {
@@ -503,9 +516,9 @@ Point {
 函数参数说明：
 
 - 函数参数中，匿名参数（`_`）指原始的输入文本数据
-- json 路径，直接表示成 `x.y.z` 这种形式，无需其它修饰。例如 `{"a":{"first":2.3, "second":2, "third":"abc", "forth":true}, "age":47}`，json 路径为 `a.thrid` 表示待操作数据为 `abc`
+- JSON 路径，直接表示成 `x.y.z` 这种形式，无需其它修饰。例如 `{"a":{"first":2.3, "second":2, "third":"abc", "forth":true}, "age":47}`，json 路径为 `a.thrid` 表示待操作数据为 `abc`
 - 所有函数参数的相对顺序，都是固定的，引擎会对其做具体检查
 - 以下提到的所有 `key` 参数，都指已经过初次提取（通过 `grok()` 或 `json()`）之后，生成的 `key`
-- 待处理json的路径，支持标识符的写法，不能使用字符串，如果是生成新key，需要使用字符串
+- 待处理 JSON 的路径，支持标识符的写法，不能使用字符串，如果是生成新 key，需要使用字符串
 
 {{.PipelineFuncs}}

@@ -1,5 +1,6 @@
-{{.CSS}}
+
 # Windows 事件
+
 ---
 
 {{.AvailableArchs}}
@@ -37,7 +38,7 @@ Windows 事件日志采集是采集应用程序、安全、系统等 Windows 事
 
 ### `{{$m.Name}}`
 
--  标签
+- 标签
 
 {{$m.TagsMarkdownTable}}
 
@@ -45,6 +46,4 @@ Windows 事件日志采集是采集应用程序、安全、系统等 Windows 事
 
 {{$m.FieldsMarkdownTable}}
 
-{{ end }} 
-
-
+{{ end }}

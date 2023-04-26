@@ -55,10 +55,10 @@ If you choose v3 version, you need to provide `username`, `authentication algori
 
 ???+ tip
 
-    Once the above configuration is complete, you can use the `datakit tool --test-snmp` command to test if the configuration is correct, as shown in the following example:
+    Once the above configuration is complete, you can use the `datakit check --test-snmp` command to test if the configuration is correct, as shown in the following example:
 
     ```sh
-    sudo datakit tool --test-snmp /usr/local/datakit/conf.d/snmp/snmp.conf
+    sudo datakit check --test-snmp /usr/local/datakit/conf.d/snmp/snmp.conf
     ```
 
     If correct the line protocol information would print out in output, otherwise no line protocol information is seen.

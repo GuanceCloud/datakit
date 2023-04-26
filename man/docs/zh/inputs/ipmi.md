@@ -1,11 +1,13 @@
-{{.CSS}}
+
 # IPMI
 
-- 操作系统支持：{{.AvailableArchs}} | *Author：张连山*
+---
+
+{{.AvailableArchs}}
 
 IPMI 指标展示被监测设备的电流、电压、功耗、占用率、风扇转速、温度以及设备状态等信息。
 
-### IPMI 介绍 {#introduction}
+## IPMI 介绍 {#introduction}
 
 IPMI 是智能型平台管理接口（Intelligent Platform Management Interface）的缩写，是管理基于 Intel 结构的企业系统中所使用的外围设备采用的一种工业标准，该标准由英特尔、惠普、NEC、美国戴尔电脑和 SuperMicro 等公司制定。用户可以利用 IPMI 监视服务器的物理健康特征，如温度、电压、风扇工作状态、电源状态等。
 
@@ -15,13 +17,15 @@ IPMI 可以让运维系统**无侵入**获得被监控服务器等设备的运�
 
 - 安装 `ipmitool` 工具包
 
-DataKit 是通过 [ipmitool][1] 这个工具来采集 IPMI 数据的，故需要机器上安装这个工具。可通过如下命令安装：
+Datakit 是通过 [`ipmitool`][1] 这个工具来采集 IPMI 数据的，故需要机器上安装这个工具。可通过如下命令安装：
 
 ```shell
 # CentOS
 yum -y install ipmitool
+
 # Ubuntu
 sudo apt-get update && sudo apt -y install ipmitool
+
 # macOS
 brew install ipmitool # macOS
 ```
@@ -52,6 +56,7 @@ Temp             | 0Fh | ok  |  3.2 | 45 degrees C
 ... more
 ```
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     1. IP地址指的是被您远程管理服务器的 IPMI 口 IP 地址
@@ -73,7 +78,7 @@ Temp             | 0Fh | ok  |  3.2 | 45 degrees C
 
 === "Kubernetes"
 
-    Kubernetes 中支持以环境变量的方式修改配置参数（只在 DataKit 以 K8s daemonset 方式运行时生效，主机部署的 DataKit 不支持此功能）：
+    Kubernetes 中支持以环境变量的方式修改配置参数（只在 DataKit 以 K8s DaemonSet 方式运行时生效，主机部署的 DataKit 不支持此功能）：
 
     | 环境变量名                          | 对应的配置参数项     | 参数示例                                                     |
     | :------------------------           | ---                  | ---                                                          |
@@ -97,12 +102,13 @@ Temp             | 0Fh | ok  |  3.2 | 45 degrees C
     | `ENV_INPUT_IPMI_REGEXP_USAGE`       | `regexp_usage`       | `["usage"]`                                                  |
     | `ENV_INPUT_IPMI_REGEXP_COUNT`       | `regexp_count`       | `[]`                                                         |
     | `ENV_INPUT_IPMI_REGEXP_STATUS`      | `regexp_status`      | `["fan"]`                                                    |
-    
+
 ???+ tip "配置提示"
 
     - 各个参数归类的关键词，一律用小写
     - 参考 `ipmitool -I ...` 指令返回的数据，合理配置关键词
 
+<!-- markdownlint-enable -->
 
 <!--
 ## 选举配置 {#election-config}
@@ -141,7 +147,7 @@ IPMI 采集器支持选举功能，当多台机器运行 DataKit 时，通过选
 
 {{ range $i, $m := .Measurements }}
 
--  标签
+- 标签
 
 {{$m.TagsMarkdownTable}}
 
@@ -153,10 +159,10 @@ IPMI 采集器支持选举功能，当多台机器运行 DataKit 时，通过选
 
 ## 被监测设备退服告警通知配置 {#warning-config}
 
-```
- [监控] -> [监控器] -> [新建监控器] 选 [阈值检测] -> 输入[规则名称]
- [指标] 选 [指标] -> [指标集] 选 [ipmi] -> [具体指标]选 [warning] -> 下一栏选 [Max] -> by[检测维度] 选 [host]
- [紧急] 填写 [999] -> [重要] 填写 [1] -> [警告] 填写 [888] -> [正常] 填写 [N]
+``` not-set
+[监控] -> [监控器] -> [新建监控器] 选 [阈值检测] -> 输入[规则名称]
+[指标] 选 [指标] -> [指标集] 选 [ipmi] -> [具体指标]选 [warning] -> 下一栏选 [Max] -> by[检测维度] 选 [host]
+[紧急] 填写 [999] -> [重要] 填写 [1] -> [警告] 填写 [888] -> [正常] 填写 [N]
 ```
 
 [1]: https://github.com/ipmitool/ipmitool

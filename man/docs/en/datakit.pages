@@ -1,85 +1,116 @@
 nav:
   - index.md
   - changelog.md
-  - 'Using DataKit':
-    - 'DataKit Architecture': datakit-arch.md
-    - 'Collector Configuration':
-      - datakit-input-conf.md
-      - git-config-how-to.md
-      - confd.md
-    - datakit-conf.md
-    - datakit-service-how-to.md
-    - election.md
-    - datakit-dql-how-to.md
-    - datakit-monitor.md
-    - datakit-tools-how-to.md
-    - proxy.md
-    - doc-logging.md
-    - aliyun-access.md
-    - dca.md
-    - 'Sinker Configuration':
-      - 'Sink': datakit-sink-guide.md
-      - datakit-sink-influxdb.md
-      - datakit-sink-logstash.md
-      - datakit-sink-m3db.md
-      - datakit-sink-otel-jaeger.md
-      - datakit-sink-dataway.md
-    - why-no-data.md
-  - 'Install DataKit':
-    - 'Host Installing': datakit-install.md
-    - datakit-offline-install.md
-    - datakit-batch-deploy.md
-    - datakit-update.md
-    - datakit-daemonset-deploy.md
-  - 'Development':
-    - 'Development Manual': development.md
-    - datakit-filter.md
-    - apis.md
-    - datakit-sink-dev.md
-    - common-tags.md
-    - 'Writing Docs':
-      - mkdocs-howto.md
-  - 'Collectors':
-    - 'Host':
-      - 'DataKit Metrics': self.md
-      - hostobject.md
-      - host_processes.md
-      - 'Host Metrics':
-        - 'CPU': cpu.md
+
+  - 'DataKit Intro': 
+    - 'Intro to Overall Architecture': datakit-arch.md
+
+  - 'DataKit Installation':
+    - 'Host Installation': datakit-install.md
+    - 'K8s Installation': datakit-daemonset-deploy.md
+    - 'Offline Installation': datakit-offline-install.md
+    - 'Batch Installation': datakit-batch-deploy.md
+
+  - 'Using DataKit': 
+    - Service Management: datakit-service-how-to.md
+    - Status Management: datakit-monitor.md
+    - 'Update': datakit-update.md
+    - 'DQL Query': datakit-dql-how-to.md
+    - 'Other Commands': datakit-tools-how-to.md
+    - 'Virtual Internet Access': aliyun-access.md
+    - 'Troubleshooting': why-no-data.md
+
+  - 'DataKit Configuration': 
+    - 'Major Configuration': datakit-conf.md
+    - 'Election Configuration': election.md
+    - 'Proxy Configuration': proxy.md
+    - 'Operator Configuration': datakit-operator.md
+    - 'Other Configurations':
+      - 'Configuration Overview': k8s-config-how-to.md
+      - 'DCA': dca.md
+      - 'Git': git-config-how-to.md
+      - 'Configuration Support': confd.md
+
+  - 'DataKit Collectors':
+    - datakit-input-conf.md
+    - Host:
+      - Default Collection:
+        - 'DataKit': self.md 
+        - cpu.md
         - disk.md
         - diskio.md
         - mem.md
         - swap.md
-        - net.md
-        - netstat.md
-        - socket.md
         - system.md
-        - hostdir.md
-        - ssh.md
-        - gpu_smi.md
-        - Windows:
-          - 'Windows Event': windows_event.md
-          - iis.md
+        - net.md
+        - host_processes.md
+        - hostobject.md
+      - netstat.md
+      - socket.md
+      - hostdir.md
+      - ssh.md
+      - gpu_smi.md
+      - About Windows:
+        - 'Windows Event': windows_event.md
+        - iis.md
 
-    - 'Cloud Native':
-      - 'Container': container.md
-      - container-log.md
-      - k8s-config-how-to.md
-      - kubernetes-crd.md
-      - logfwd.md
-      - kubernetes-prom.md
-      - kubernetes-prometheus-operator-crd.md
+    - Middleware:
+      - 'Storage':
+        - 'MySQL': mysql.md
+        - clickhousev1.md
+        - oracle.md
+        - sqlserver.md
+        - postgresql.md
+        - redis.md
+        - memcached.md
+        - etcd.md
+        - mongodb.md
+        - influxdb.md
+        - tdengine.md
+        - elasticsearch.md
+        - solr.md
+
+      - 'Messaging Queue':
+        - kafka.md
+        - nsq.md
+        - rabbitmq.md
+
+      - 'Web Server':
+        - 'Nginx': nginx.md
+        - apache.md
+
+      - 'Java':
+        - 'JVM': jvm.md
+        - tomcat.md
+
+      - 'Others':
+        - 'Flink': flinkv1.md
+        - consul.md
+        - coredns.md
+        - jenkins.md
+        - gitlab.md
+        - snmp.md
+
+    - Cloud Native:
+      - 'Metric Collection': container.md
+      - 'Log Collection':
+        - container-log.md
+        - 'Sidecar Log Collection': logfwd.md
+      - 'CRD': kubernetes-crd.md
+      - 'Prometheus':
+        - 'Exportor': kubernetes-prom.md
+        - 'CRD': kubernetes-prometheus-operator-crd.md
 
     - APM:
-      - 'Datakit Tracing Overview': datakit-tracing.md
+      - Tracing Overview': datakit-tracing.md
       - datakit-tracing-struct.md
 
       - 'Profiling':
-        - 'Profile Collection Configuration': profile.md
-        - 'Tools for Languages':
-          - 'Java': profile-java.md
-          - 'Python': profile-python.md
-          - 'Go': profile-go.md
+        - profile.md
+        - 'Java': profile-java.md 
+        - 'Python': profile-python.md
+        - 'Go': profile-go.md
+        - 'C/C++': profile-cpp.md
 
       - 'DDTrace':
         - ddtrace.md
@@ -102,78 +133,57 @@ nav:
           - 'jmx metric to DK': ddtrace-jmxfetch.md
 
       - 'SkyWalking':
-        - 'SkyWalking': skywalking.md
+        - skywalking.md
 
       - 'OpenTelemetry':
-        - 'OpenTelemetry 采集配置': opentelemetry.md
+        - opentelemetry.md
         - opentelemetry-go.md
         - opentelemetry-java.md
 
       - 'Zipkin':
-        - 'Zipkin': zipkin.md
+        - zipkin.md
 
       - 'Jaeger' :
-        - 'Jaeger': jaeger.md
+        - jaeger.md
 
-    - 'Logging':
-      - 'File Log': logging.md
-      - logging_socket.md
-      - 'Third-Party Logging':
+    - RUM:
+      - rum.md
+
+    - logs:
+      - 'Log Collection Overview': datakit-logging.md
+      - 'Log Process Overview': datakit-logging-how.md
+      - 'Log Collection':
+        - logging.md
+        - 'Socket Access Example': logging_socket.md
+      - 'Other Log Access':
         - 'LogStreaming': logstreaming.md
-      - datakit-logging.md
-      - datakit-logging-how.md
 
-    - 'RUM':
-      - 'Configuration': rum.md
+    - 'Dialtesting':
+      - dialtesting.md
+      - 'Custom Dialtesting': dialtesting_json.md
 
-    - Middlewares:
-      - 'ClickHouse': clickhousev1.md
-      - mysql.md
-      - oracle.md
-      - sqlserver.md
-      - postgresql.md
-      - redis.md
-      - memcached.md
-      - mongodb.md
-      - influxdb.md
-      - tdengine.md
-      - elasticsearch.md
-      - solr.md
-      - flinkv1.md
-      - nsq.md
-      - rabbitmq.md
-      - kafka.md
-      - etcd.md
-      - consul.md
-      - coredns.md
-      - jenkins.md
-      - gitlab.md
-      - nginx.md
-      - apache.md
-      - 'Java':
-        - 'JVM': jvm.md
-        - tomcat.md
-      - snmp.md
+    - 'Third-party Data Access':
+      - "Prometheus":
+        - "Exportor": prom.md
+        - "Remote Write": prom_remote_write.md
+      - 'Kafka Subscribe': kafkamq.md
+      - 'Promtail': promtail.md
+      - 'Statsd': statsd.md
+      - 'Filebeat': beats_output.md
+      - 'Cloudprober': cloudprober.md
+      - 'Telegraf': telegraf.md
+      - 'Scheck': sec-checker.md
 
-    - 'Dial Testing':
-      - 'Configuration': dialtesting.md
-      - dialtesting_json.md
-
-    - 'eBPF':
-      - 'eBPF Configuration': ebpf.md
-
-    - 'Third-Party Collectors':
-      - 'Prometheus Exporter': prom.md
-      - prom_remote_write.md
-      - kafkamq.md
-      - promtail.md
-      - statsd.md
-      - beats_output.md
-      - cloudprober.md
-      - telegraf.md
-      - sec-checker.md
-
-    - 'Others':
-      - sensors.md
+    - 'Other Collectors':
+      - eBPF: ebpf.md
+      - Sensors: sensors.md
       - smart.md
       - ipmi.md
+
+  - 'DataKit Dev Manual':
+    - development.md
+    - datakit-filter.md
+    - apis.md
+    - common-tags.md
+    - 'Doc Editing':
+      - mkdocs-howto.md
