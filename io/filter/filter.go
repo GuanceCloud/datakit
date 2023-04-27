@@ -178,13 +178,6 @@ func FilterPts(category string, pts []*dkpt.Point) []*dkpt.Point {
 func (f *filter) start() {
 	defer f.tick.Stop()
 
-	switch f.puller.(type) {
-	case *localFilter:
-		f.source = "local"
-	default:
-		f.source = "remote"
-	}
-
 	what := "filters=true"
 
 	// Try pull rules ASAP.
@@ -227,9 +220,13 @@ func StartFilter(p IPuller) {
 	defaultFilter = newFilter(p)
 	defaultFilter.dumpDir = datakit.DataDir
 
-	switch p.(type) {
+	switch x := p.(type) {
 	case *localFilter:
-		defaultFilter.source = sourceLocal
+		if len(x.filters) > 0 {
+			defaultFilter.source = sourceLocal
+		} else {
+			defaultFilter.source = sourceRemote
+		}
 	default:
 		defaultFilter.source = sourceRemote
 	}
