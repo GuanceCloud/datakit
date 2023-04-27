@@ -33,8 +33,9 @@ branch changelog
 
 本次发布属于 Hotfix 发布，修复如下问题：
 
-- 老版本升级上来可能导致黑名单不生效
-- [Prom](prom.md) 采集 `info` 类数据问题
+- 老版本升级上来可能导致黑名单不生效(#1603)
+- [Prom](prom.md) 采集 `info` 类数据问题(#1544)
+- 修复 Dataway Sinker 模块可能导致的数据丢失问题(#1606)
 
 ---
 
