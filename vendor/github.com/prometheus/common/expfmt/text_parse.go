@@ -496,10 +496,10 @@ func (p *TextParser) startTimestamp() stateFn {
 // readingHelp represents the state where the last byte read (now in
 // p.currentByte) is the first byte of the docstring after 'HELP'.
 func (p *TextParser) readingHelp() stateFn {
-	if p.currentMF.Help != nil {
-		p.parseError(fmt.Sprintf("second HELP line for metric name %q", p.currentMF.GetName()))
-		return nil
-	}
+	// if p.currentMF.Help != nil {
+	// 	p.parseError(fmt.Sprintf("second HELP line for metric name %q", p.currentMF.GetName()))
+	// 	return nil
+	// }
 	// Rest of line is the docstring.
 	if p.readTokenUntilNewline(true); p.err != nil {
 		return nil // Unexpected end of input.
@@ -511,10 +511,10 @@ func (p *TextParser) readingHelp() stateFn {
 // readingType represents the state where the last byte read (now in
 // p.currentByte) is the first byte of the type hint after 'HELP'.
 func (p *TextParser) readingType() stateFn {
-	if p.currentMF.Type != nil {
-		p.parseError(fmt.Sprintf("second TYPE line for metric name %q, or TYPE reported after samples", p.currentMF.GetName()))
-		return nil
-	}
+	// if p.currentMF.Type != nil {
+	// 	p.parseError(fmt.Sprintf("second TYPE line for metric name %q, or TYPE reported after samples", p.currentMF.GetName()))
+	// 	return nil
+	// }
 	// Rest of line is the type.
 	if p.readTokenUntilNewline(false); p.err != nil {
 		return nil // Unexpected end of input.
@@ -525,6 +525,14 @@ func (p *TextParser) readingType() stateFn {
 		return nil
 	}
 	p.currentMF.Type = dto.MetricType(metricType).Enum()
+	if p.currentMF.GetType() == dto.MetricType_INFO {
+		// Add suffix _info if metric name does not end with it.
+		if !strings.HasSuffix(*p.currentMF.Name, "_info") {
+			delete(p.metricFamiliesByName, *p.currentMF.Name)
+			p.currentMF.Name = proto.String(*p.currentMF.Name + "_info")
+			p.metricFamiliesByName[*p.currentMF.Name] = p.currentMF
+		}
+	}
 	return p.startOfLine
 }
 
