@@ -6,10 +6,8 @@
 package prom
 
 import (
-	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"net"
 	"net/url"
@@ -415,7 +413,7 @@ func newTokenIterator(text []byte, start int) tokenIterator {
 }
 
 // doText2Metrics converts raw prometheus metric text to line protocol point.
-func (p *Prom) doText2Metrics(in io.Reader, u string) (pts []*point.Point, lastErr error) {
+func (p *Prom) text2Metrics(in io.Reader, u string) (pts []*point.Point, lastErr error) {
 	metricFamilies, err := p.parser.TextToMetricFamilies(in)
 	if err != nil {
 		return nil, err
@@ -423,6 +421,12 @@ func (p *Prom) doText2Metrics(in io.Reader, u string) (pts []*point.Point, lastE
 
 	filteredMetricFamilies := p.filterMetricFamilies(metricFamilies)
 	p.swapTypeInfoToFront(filteredMetricFamilies)
+
+	defer func() {
+		for k := range p.infoTags {
+			delete(p.infoTags, k)
+		}
+	}()
 
 	for _, nf := range filteredMetricFamilies {
 		name, value := nf.metricName, nf.metricFamily

@@ -11,7 +11,7 @@ before_script:
 
 variables:
   PROJECT: "datakit"
-  CI_VERSION: "1.6.0"
+  CI_VERSION: "1.6.1"
   TEST_VERSION: "1.999.0"
 
 stages:
@@ -68,7 +68,6 @@ test-datakit-testing:
   resource_group: production
   only:
     - testing
-    - hotfix
     - /^testing-.*$/
   script:
     - make clean
@@ -84,7 +83,6 @@ release-ebpf-amd64-testing:
   image: vircoys/datakit-developer:1.5
   only:
     - testing
-    - hotfix
     - /^testing-.*$/
   script:
     - make clean
@@ -99,7 +97,6 @@ release-ebpf-aarch64-testing:
   image: vircoys/datakit-developer:1.5
   only:
     - testing
-    - hotfix
     - /^testing-.*$/
   script:
     - make clean
@@ -146,7 +143,6 @@ release-testing:
     ]
   only:
     - testing
-    - hotfix
     - /^testing-.*$/
   script:
     # building && publish testing
