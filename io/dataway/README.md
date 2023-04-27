@@ -35,12 +35,13 @@ dataway 模块由如下三个部分组成：
 
 Dataway 模块暴露如下 metrics：
 
-| 指标                                 | 类型    | 说明                                                                                     | labels          |
-| ---                                  | ---     | ---                                                                                      | ---             |
-| datakit_io_dataway_api_request_total | count   | dataway HTTP request processed, partitioned by status code and HTTP API(url path)        | api,status      |
-| datakit_io_dataway_point_total       | count   | dataway uploaded points, partitioned by category and send status(HTTP status)            | category,status |
-| datakit_io_dataway_point_bytes_total | count   | dataway uploaded points bytes, partitioned by category and pint send status(HTTP status) | category,status |
-| datakit_io_dataway_sink_total        | count   | dataway sink count, partitioned by category.                                             | category        |
-| datakit_io_dataway_sink_point_total  | count   | dataway sink points, partitioned by category and point send status(HTTP status)          | category,status |
-| datakit_io_dataway_api_latency       | summary | dataway HTTP request latency(ms) partitioned by HTTP API(url path) and HTTP status       | api,status      |
-| datakit_io_flush_failcache_bytes     | summary | IO flush fail-cache bytes(in gzip) summary                                               | category        |
+| 指标                                    | 类型    | 说明                                                                                     | labels          |
+| ---                                     | ---     | ---                                                                                      | ---             |
+| datakit_io_dataway_api_request_total    | count   | dataway HTTP request processed, partitioned by status code and HTTP API(url path)        | api,status      |
+| datakit_io_dataway_point_total          | count   | dataway uploaded points, partitioned by category and send status(HTTP status)            | category,status |
+| datakit_io_dataway_point_bytes_total    | count   | dataway uploaded points bytes, partitioned by category and pint send status(HTTP status) | category,status |
+| datakit_io_dataway_sink_total           | count   | dataway sink count, partitioned by category.                                             | category        |
+| datakit_io_dataway_sink_point_total     | count   | dataway sink points, partitioned by category and point send status(HTTP status)          | category,status |
+| datakit_io_dataway_not_sink_point_total | count   | dataway not-sinked points(condition or category not match)                               | category        |
+| datakit_io_dataway_api_latency          | summary | dataway HTTP request latency(ms) partitioned by HTTP API(url path) and HTTP status       | api,status      |
+| datakit_io_flush_failcache_bytes        | summary | IO flush fail-cache bytes(in gzip) summary                                               | category        |
