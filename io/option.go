@@ -30,7 +30,9 @@ func WithDataway(dw dataway.IDataway) IOOption {
 // WithFilters used to setup point filter.
 func WithFilters(filters map[string]filter.FilterConditions) IOOption {
 	return func(x *dkIO) {
-		x.filters = filters
+		if len(filters) > 0 {
+			x.filters = filters
+		}
 	}
 }
 
