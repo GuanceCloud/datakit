@@ -61,11 +61,6 @@ func (s *Sinker) expectedCategory(cat point.Category) bool {
 }
 
 func (s *Sinker) sink(cat point.Category, pts []*dkpt.Point) (remainIndices []int, err error) {
-	if !s.expectedCategory(cat) {
-		log.Debugf("category %q not expected for my categories %v", cat, s.Categories)
-		return nil, nil
-	}
-
 	var (
 		sinkPts []*dkpt.Point
 		fok     bool
@@ -73,10 +68,18 @@ func (s *Sinker) sink(cat point.Category, pts []*dkpt.Point) (remainIndices []in
 
 	defer func() {
 		sinkCounterVec.WithLabelValues(cat.String()).Inc()
-		if len(sinkPts) == 0 {
-			return
+		if len(remainIndices) > 0 {
+			notSinkPtsVec.WithLabelValues(cat.String()).Add(float64(len(remainIndices)))
 		}
 	}()
+
+	if !s.expectedCategory(cat) {
+		log.Debugf("category %q not expected for my categories %v", cat, s.Categories)
+		for i := range pts {
+			remainIndices = append(remainIndices, i)
+		}
+		return
+	}
 
 	// Unconditional: all points send to the sinker
 	if len(s.conditions) == 0 {
