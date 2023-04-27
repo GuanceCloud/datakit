@@ -14,19 +14,20 @@ import (
 	"syscall"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/gitrepo"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/checkutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmds"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dnswatcher"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/election"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dnswatcher"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	plRemote "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/remote"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
@@ -39,7 +40,6 @@ var (
 	// injected during building: -X.
 	InputsReleaseType = ""
 	ReleaseVersion    = ""
-	DownloadAddr      = ""
 )
 
 func main() {
@@ -48,10 +48,6 @@ func main() {
 	datakit.Version = ReleaseVersion
 	if ReleaseVersion != "" {
 		datakit.Version = ReleaseVersion
-	}
-
-	if DownloadAddr != "" {
-		datakit.DownloadAddr = DownloadAddr
 	}
 
 	cmds.ReleaseVersion = ReleaseVersion
@@ -103,13 +99,9 @@ func main() {
 }
 
 func applyFlags() {
-	inputs.TODO = cmds.FlagTODO
-
-	if cmds.FlagDocker /* Deprecated */ || *cmds.FlagRunInContainer {
+	if *cmds.FlagRunInContainer {
 		datakit.Docker = true
 	}
-
-	cmds.RunCmds()
 }
 
 func serviceEntry() {
@@ -126,7 +118,7 @@ func run() {
 		}
 
 	case datakit.ModeDev:
-		startDKHttp()
+		startHTTP()
 
 	default:
 		return
@@ -178,15 +170,40 @@ func tryLoadConfig() {
 	l.Infof("datakit run ID: %s, version: %s", cliutils.XID("dkrun_"), datakit.Version)
 }
 
-func doRun() error {
-	// check io start
-	checkutil.CheckConditionExit(func() bool {
-		if err := io.Start(); err != nil {
-			return false
-		}
+func startIO() {
+	c := config.Cfg.IO
+	opts := []dkio.IOOption{
+		dkio.WithDataway(config.Cfg.Dataway),
+		dkio.WithFeedCap(c.FeedChanSize),
+		dkio.WithMaxCacheCount(c.MaxCacheCount),
+		dkio.WithOutputFile(c.OutputFile),
+		dkio.WithOutputFileOnInputs(c.OutputFileInputs),
+		dkio.WithDiskCache(c.EnableCache),
+		dkio.WithDiskCacheSize(c.CacheSizeGB),
+		dkio.WithFilters(c.Filters),
+		dkio.WithCacheAll(c.CacheAll),
+		dkio.WithFlushWorkers(c.FlushWorkers),
+	}
 
-		return true
-	})
+	du, err := time.ParseDuration(c.FlushInterval)
+	if err != nil {
+	} else {
+		opts = append(opts, dkio.WithFlushInterval(du))
+	}
+
+	du, err = time.ParseDuration(c.CacheCleanInterval)
+	if err != nil {
+		l.Warnf("parse CacheCleanInterval failed: %s, use default 5s", err)
+	} else {
+		opts = append(opts, dkio.WithDiskCacheCleanInterval(du))
+	}
+
+	dkio.Start(opts...)
+}
+
+func doRun() error {
+	startIO()
+
 	checkutil.CheckConditionExit(func() bool {
 		if err := dnswatcher.StartWatch(); err != nil {
 			return false
@@ -195,16 +212,19 @@ func doRun() error {
 		return true
 	})
 
-	if config.Cfg.DataWay != nil {
-		if config.Cfg.Election.Enable {
-			election.Start(config.Cfg.Election.Namespace, config.Cfg.Hostname, config.Cfg.DataWay)
-		}
+	if config.Cfg.Dataway != nil {
+		election.Start(
+			election.WithElectionEnabled(config.Cfg.Election.Enable),
+			election.WithID(config.Cfg.Hostname),
+			election.WithNamespace(config.Cfg.Election.Namespace),
+			election.WithPuller(config.Cfg.Dataway),
+		)
 
-		if len(config.Cfg.DataWayCfg.URLs) == 1 {
+		if len(config.Cfg.Dataway.URLs) == 1 {
 			// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/524
-			plRemote.StartPipelineRemote(config.Cfg.DataWayCfg.URLs)
+			plRemote.StartPipelineRemote(config.Cfg.Dataway.URLs)
 		} else {
-			io.FeedLastError(datakit.DatakitInputName, "dataway empty or multi, not run pipeline remote")
+			dkio.FeedLastError(datakit.DatakitInputName, "dataway empty or multi, not run pipeline remote")
 		}
 	} else {
 		l.Warn("Ignore election or pipeline remote because dataway is not set")
@@ -238,12 +258,12 @@ func doRun() error {
 	}
 
 	// NOTE: Should we wait all inputs ok, then start http server?
-	startDKHttp()
+	startHTTP()
 
 	return nil
 }
 
-func startDKHttp() {
+func startHTTP() {
 	dkhttp.Start(&dkhttp.Option{
 		APIConfig:      config.Cfg.HTTPAPI,
 		DCAConfig:      config.Cfg.DCAConfig,
@@ -252,7 +272,7 @@ func startDKHttp() {
 		GinRotate:      config.Cfg.Logging.Rotate,
 		GinReleaseMode: strings.ToLower(config.Cfg.Logging.Level) != "debug",
 
-		DataWay:     config.Cfg.DataWay,
+		DataWay:     config.Cfg.Dataway,
 		PProf:       config.Cfg.EnablePProf,
 		PProfListen: config.Cfg.PProfListen,
 	})

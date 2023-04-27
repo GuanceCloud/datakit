@@ -36,7 +36,7 @@
 具体的国家/地域以及 ISP 选择，可按照下图所示方式来选择（注意，不要真的新建「自建节点」，此处只是提供一个可供选择的来源）：
 
 <figure markdown>
-![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dialtesting-select-country-city-isp.png){ width="800" }
+![](https://static.guance.com/images/datakit/dialtesting-select-country-city-isp.png){ width="800" }
 </figure>
     
 ### 配置拨测任务 {#config-task}
@@ -113,7 +113,7 @@
 }
 ```
 
->  编辑完这个 JSON 后，建议找一些在线工具（[这个](https://www.json.cn/){:target="_blank"}或[这个](https://jsonformatter.curiousconcept.com/#){:target="_blank"}）验证下 JSON 格式是不是正确。如果 JSON 格式不对，那么会导致拨测不生效。
+>  编辑完这个 JSON 后，建议找一些[在线工具](https://www.json.cn/){:target="_blank"}验证下 JSON 格式是不是正确。如果 JSON 格式不对，那么会导致拨测不生效。
 
 配置好后，重启 DataKit 即可。
 

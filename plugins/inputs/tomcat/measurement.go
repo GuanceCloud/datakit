@@ -6,18 +6,46 @@
 package tomcat
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"fmt"
+
+	"github.com/GuanceCloud/cliutils/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+const (
+	TomcatGlobalRequestProcessor = "tomcat_global_request_processor"
+	TomcatJspMonitor             = "tomcat_jsp_monitor"
+	TomcatThreadPool             = "tomcat_thread_pool"
+	TomcatServlet                = "tomcat_servlet"
+	TomcatCache                  = "tomcat_cache"
+)
+
 type measurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	election bool
 }
 
-func (m *measurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+// Point implement MeasurementV2.
+func (m *measurement) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	} else {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
+	}
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *measurement) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+	return nil, fmt.Errorf("not implement")
 }
 
 type TomcatGlobalRequestProcessorM struct{ measurement }
@@ -30,98 +58,184 @@ type TomcatServletM struct{ measurement }
 
 type TomcatCacheM struct{ measurement }
 
+////////////////////////////////////////////////////////////////////////////////
+
+// Point implement MeasurementV2.
+func (m *TomcatGlobalRequestProcessorM) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	} else {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
+	}
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
 //nolint:lll
 func (m *TomcatGlobalRequestProcessorM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "tomcat_global_request_processor",
+		Name: TomcatGlobalRequestProcessor,
 		Fields: map[string]interface{}{
-			"requestCount":   newFielInfoCount("Number of requests processed"),
-			"bytesReceived":  newFielInfoCount("Amount of data received, in bytes"),
-			"bytesSent":      newFielInfoCount("Amount of data sent, in bytes"),
-			"processingTime": newFielInfoInt("Total time to process the requests"),
-			"errorCount":     newFielInfoCount("Number of errors"),
+			"requestCount":   newFielInfoCount("Number of requests processed."),
+			"bytesReceived":  newFielInfoCount("Amount of data received, in bytes."),
+			"bytesSent":      newFielInfoCount("Amount of data sent, in bytes."),
+			"processingTime": newFielInfoInt("Total time to process the requests."),
+			"errorCount":     newFielInfoCount("Number of errors."),
 		},
 		Tags: map[string]interface{}{
-			"name":              inputs.NewTagInfo("protocol handler name"),
-			"jolokia_agent_url": inputs.NewTagInfo("jolokia agent url"),
-			"host":              inputs.NewTagInfo("hostname"),
+			"name":              inputs.NewTagInfo("Protocol handler name."),
+			"jolokia_agent_url": inputs.NewTagInfo("Jolokia agent url."),
+			"host":              inputs.NewTagInfo("System hostname."),
 		},
 	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+// Point implement MeasurementV2.
+func (m *TomcatJspMonitorM) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	} else {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
+	}
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
 }
 
 //nolint:lll
 func (m *TomcatJspMonitorM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "tomcat_jsp_monitor",
+		Name: TomcatJspMonitor,
 		Fields: map[string]interface{}{
-			"jspCount":       newFielInfoCount("The number of JSPs that have been loaded into a webapp"),
-			"jspReloadCount": newFielInfoCount("The number of JSPs that have been reloaded"),
-			"jspUnloadCount": newFielInfoCount("The number of JSPs that have been unloaded"),
+			"jspCount":       newFielInfoCount("The number of JSPs that have been loaded into a webapp."),
+			"jspReloadCount": newFielInfoCount("The number of JSPs that have been reloaded."),
+			"jspUnloadCount": newFielInfoCount("The number of JSPs that have been unloaded."),
 		},
 		Tags: map[string]interface{}{
-			"J2EEApplication":   inputs.NewTagInfo("J2EE Application"),
-			"J2EEServer":        inputs.NewTagInfo("J2EE Server"),
-			"WebModule":         inputs.NewTagInfo("Web Module"),
-			"jolokia_agent_url": inputs.NewTagInfo("jolokia agent url"),
-			"host":              inputs.NewTagInfo("hostname"),
+			"J2EEApplication":   inputs.NewTagInfo("J2EE Application."),
+			"J2EEServer":        inputs.NewTagInfo("J2EE Servers."),
+			"WebModule":         inputs.NewTagInfo("Web Module."),
+			"jolokia_agent_url": inputs.NewTagInfo("Jolokia agent url."),
+			"host":              inputs.NewTagInfo("System hostname."),
 		},
 	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+// Point implement MeasurementV2.
+func (m *TomcatThreadPoolM) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	} else {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
+	}
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
 }
 
 //nolint:lll
 func (m *TomcatThreadPoolM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "tomcat_thread_pool",
+		Name: TomcatThreadPool,
 		Fields: map[string]interface{}{
-			"maxThreads":         newFielInfoCount("maxThreads"),
-			"currentThreadCount": newFielInfoCount("currentThreadCount"),
-			"currentThreadsBusy": newFielInfoCount("currentThreadsBusy"),
+			"maxThreads":         newFielInfoCountFloat("MaxThreads."),
+			"currentThreadCount": newFielInfoCount("CurrentThreadCount."),
+			"currentThreadsBusy": newFielInfoCount("CurrentThreadsBusy."),
 		},
 		Tags: map[string]interface{}{
-			"name":              inputs.NewTagInfo("protocol handler name"),
-			"jolokia_agent_url": inputs.NewTagInfo("jolokia agent url"),
-			"host":              inputs.NewTagInfo("hostname"),
+			"name":              inputs.NewTagInfo("Protocol handler name."),
+			"jolokia_agent_url": inputs.NewTagInfo("Jolokia agent url."),
+			"host":              inputs.NewTagInfo("System hostname."),
 		},
 	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+// Point implement MeasurementV2.
+func (m *TomcatServletM) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	} else {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
+	}
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
 }
 
 //nolint:lll
 func (m *TomcatServletM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "tomcat_servlet",
+		Name: TomcatServlet,
 		Fields: map[string]interface{}{
-			"processingTime": newFielInfoInt("Total execution time of the servlet's service method"),
-			"errorCount":     newFielInfoCount("Error count"),
-			"requestCount":   newFielInfoCount("Number of requests processed by this wrapper"),
+			"processingTime": newFielInfoInt("Total execution time of the servlet's service method."),
+			"errorCount":     newFielInfoCount("Error count."),
+			"requestCount":   newFielInfoCount("Number of requests processed by this wrapper."),
 		},
 		Tags: map[string]interface{}{
-			"J2EEApplication":   inputs.NewTagInfo("J2EE Application"),
-			"J2EEServer":        inputs.NewTagInfo("J2EE Server"),
-			"WebModule":         inputs.NewTagInfo("Web Module"),
-			"host":              inputs.NewTagInfo("hostname"),
-			"jolokia_agent_url": inputs.NewTagInfo("jolokia agent url"),
-			"name":              inputs.NewTagInfo(" "),
+			"J2EEApplication":   inputs.NewTagInfo("J2EE Application."),
+			"J2EEServer":        inputs.NewTagInfo("J2EE Server."),
+			"WebModule":         inputs.NewTagInfo("Web Module."),
+			"host":              inputs.NewTagInfo("System hostname."),
+			"jolokia_agent_url": inputs.NewTagInfo("Jolokia agent url."),
+			"name":              inputs.NewTagInfo("Name"),
 		},
 	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+// Point implement MeasurementV2.
+func (m *TomcatCacheM) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	} else {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
+	}
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
 }
 
 //nolint:lll
 func (m *TomcatCacheM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Desc: "",
-		Name: "tomcat_cache",
+		Name: TomcatCache,
 		Fields: map[string]interface{}{
-			"hitCount":    newFielInfoCount("The number of requests for resources that were served from the cache"),
-			"lookupCount": newFielInfoCount("The number of requests for resources"),
+			"hitCount":    newFielInfoCount("The number of requests for resources that were served from the cache."),
+			"lookupCount": newFielInfoCount("The number of requests for resources."),
 		},
 		Tags: map[string]interface{}{
-			"tomcat_context":    inputs.NewTagInfo("tomcat context"),
-			"tomcat_host":       inputs.NewTagInfo("tomcat host"),
-			"host":              inputs.NewTagInfo("hostname"),
-			"jolokia_agent_url": inputs.NewTagInfo("jolokia agent url"),
+			"tomcat_context":    inputs.NewTagInfo("Tomcat context."),
+			"tomcat_host":       inputs.NewTagInfo("Tomcat host."),
+			"host":              inputs.NewTagInfo("System hostname."),
+			"jolokia_agent_url": inputs.NewTagInfo("Jolokia agent url."),
 		},
 	}
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 func newFielInfoInt(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
@@ -136,6 +250,15 @@ func newFielInfoCount(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		Type:     inputs.Gauge,
 		DataType: inputs.Int,
+		Unit:     inputs.NCount,
+		Desc:     desc,
+	}
+}
+
+func newFielInfoCountFloat(desc string) *inputs.FieldInfo {
+	return &inputs.FieldInfo{
+		Type:     inputs.Gauge,
+		DataType: inputs.Float,
 		Unit:     inputs.NCount,
 		Desc:     desc,
 	}

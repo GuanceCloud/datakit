@@ -12,7 +12,7 @@
 
 具备“实时更新”的功能，就是用来解决传统的“静态化配置”的问题。线上系统需要调整参数的时候，只需要在配置中心动态修改即可。
 
-datakit 支持 etcdv3 consul redis zookeeper file 等多种配置中心，并且可以同时采用多种配置中心协同工作。
+datakit 支持 `etcdv3` `consul` `redis` `zookeeper` `aws secrets manager` `nacos` `file` 等多种配置中心，并且可以同时采用多种配置中心协同工作。
 当配置中心数据发生变化，datakit 可以自动更改配置，增加或删除采集器，相关采集器进行必要的重启。
 
 ## 引入配置中心 {#Configuration-Center-Import}
@@ -54,15 +54,28 @@ datakit 支持 etcdv3 consul redis zookeeper file 等多种配置中心，并且
 	  # basic_auth = "可选"
 	  # username = "可选"
 	  # password = "可选"
-	# 不推荐  
 	[[confds]]
-	  enable = false
-	  backend = "file"
-	  file = ["/文件1路径/文件1","/文件2路径/文件2"...]
+	  enable = true
+	  backend = "aws"
+	  region = "cn-north-1"
+	  # Access key ID    : must use the key file `/root/.aws/config` or `ENV`
+	  # Secret access key: must use the key file `/root/.aws/config` or `ENV`
+	  circle_interval = 60
+    [[confds]]
+      enable = true
+      backend = "nacos"
+      nodes = ["http://IP地址:8848","https://IP地址2:8848"...]
+      # username = "可选"
+      # password = "可选"
+      circle_interval = 60 
+      confd_namespace =    "confd namespace ID"
+      pipeline_namespace = "pipeline namespace ID"
 	# 原有的其他配置信息...
 	```
+    ???+ attention
 
-	可以同时配置多个数据中心后端，每个后端的数据的配置信息会合并注入datakit。任何一个后端的信息变化，都会被 datakit 检测到，datakit 会自动更新相关的配置，重启对应的采集器。
+    	如果配置多个的数据中心后端，只有排列第一的配置内容会生效。
+
 
 === "Kubernates引入"
 
@@ -78,10 +91,18 @@ datakit 支持 etcdv3 consul redis zookeeper file 等多种配置中心，并且
 
 	```shell
 	# Linux/Mac
-	DK_CONFD_BACKEND="etcdv3" DK_CONFD_BACKEND_NODES="[127.0.0.1:2379]" DK_DATAWAY="https://openway.guance.com?token=<TOKEN>" bash -c "$	(curl -L https://static.guance.com/datakit/install.sh)"
+{{ InstallCmd 4
+(.WithPlatform "unix")
+(.WithEnvs "DK_CONFD_BACKEND" "etcd3")
+(.WithEnvs "DK_CONFD_BACKEND_NODES" "[127.0.0.1:2379]")
+}}
 
 	# Windows
-	$env:DK_CONFD_BACKEND="etcdv3";$env:DK_CONFD_BACKEND_NODES="[127.0.0.1:2379]"; $env:DK_DATAWAY="https://openway.guance.com?	token=<TOKEN>"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://	static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+{{ InstallCmd 4
+(.WithPlatform "windows")
+(.WithEnvs "DK_CONFD_BACKEND" "etcd3")
+(.WithEnvs "DK_CONFD_BACKEND_NODES" "[127.0.0.1:2379]")
+}}
 	```
 
 	两种环境变量的设置格式为：
@@ -150,9 +171,24 @@ func zookeeperDo(index int) {
 	}
 	defer conn.Close()
 	// 创建一级目录节点
+	add(conn, "/datakit", "")
+	// 创建二级目录节点
 	add(conn, "/datakit/confd", "")
+	add(conn, "/datakit/pipeline", "")
+	// 创建三级目录节点
+	add(conn, "/datakit/pipeline/metrics", "")
+	add(conn, "/datakit/pipeline/metric", "")
+	add(conn, "/datakit/pipeline/network", "")
+	add(conn, "/datakit/pipeline/keyevent", "")
+	add(conn, "/datakit/pipeline/object", "")
+	add(conn, "/datakit/pipeline/custom_object", "")
+	add(conn, "/datakit/pipeline/logging", "")
+	add(conn, "/datakit/pipeline/tracing", "")
+	add(conn, "/datakit/pipeline/rum", "")
+	add(conn, "/datakit/pipeline/security", "")
+	add(conn, "/datakit/pipeline/profiling", "")
 	// 创建一个节点
-	key := "/datakit/confd/netstat"
+	key := "/datakit/confd/netstat.conf"
 	value := `
 [[inputs.netstat]]
   ##(optional) collect interval, default is 10 seconds
@@ -162,7 +198,6 @@ func zookeeperDo(index int) {
   # some_tag = "some_value"
   # more_tag = "some_other_value"
 `
-
 	add(conn, key, value)
 }
 
@@ -217,7 +252,8 @@ func etcdv3Do(index int) {
 		fmt.Println(" error: ", err)
 	}
 	defer cli.Close()
-	key := "/datakit/confd/netstat"
+	key := "/datakit/confd/host/netstat.conf"
+	// key := "/datakit/pipeline/metric/netstat.p"
 	value := `
 [[inputs.netstat]]
   ##(optional) collect interval, default is 10 seconds
@@ -257,7 +293,8 @@ func redisDo(index int) {
 	})
 
 	// 操作redis
-	key := "/datakit/confd/netstat"
+	key := "/datakit/confd/host/netstat.conf"
+	// key := "/datakit/pipeline/metric/netstat.p"
 	value := `
 [[inputs.netstat]]
   ##(optional) collect interval, default is 10 seconds
@@ -304,7 +341,8 @@ func consulDo(index int) {
 	kv := client.KV()
   
     // 注意 datakit 前面 没有 /
-	key := "datakit/confd/netstat"
+	key := "/datakit/confd/host/netstat.conf"
+	// key := "/datakit/pipeline/metric/netstat.p"
 	value := `
 [[inputs.netstat]]
   ##(optional) collect interval, default is 10 seconds
@@ -330,9 +368,71 @@ func consulDo(index int) {
 }
 ```
 
+### aws secrets manager  {#update-aws}
+
+```
+import (
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	"github.com/aws/smithy-go"
+)
+
+func consulDo(index int) {
+	// 创建终端
+	region := "cn-north-1"
+	config, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(《AccessKeyID》, 《SecretAccessKey》, "")),
+		config.WithRegion(region),
+	)
+	// will use secret file like ~/.aws/config
+	// config, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
+	if err != nil {
+		fmt.Printf("ERROR config.LoadDefaultConfig : %v\n", err)
+	}
+
+	// 获得KV句柄
+	conn := secretsmanager.NewFromConfig(config)
+  
+	key := "/datakit/confd/host/netstat.conf"
+	// key := "/datakit/pipeline/metric/netstat.p"
+	value := `
+[[inputs.netstat]]
+  ##(optional) collect interval, default is 10 seconds
+  interval = '10s'
+
+[inputs.netstat.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
+`
+
+	// 写入数据
+	input := &secretsmanager.CreateSecretInput{
+		// Description:  aws.String(""),
+		Name:         aws.String(key),
+		SecretString: aws.String(value),
+	}
+
+	result, err := conn.CreateSecret(context.TODO(), input)
+	if err != nil {
+		fmt.Println(" error: ", err)
+	}
+}
+```
+
+### nacos {#update-nacos}
+
+  1. 通过网址登入`nacos`管理页面。
+  2. 创建`/datakit/confd`和`/datakit/pipeline`两个空间。
+  3. 分组名按照`datakit/conf.d`和`datakit/pipeline`子目录的样式创建。
+  4. `dataID`按照`.conf`文件和`.p`文件的规则创建。(不可省略后缀)。
+  5. 通过管理页面增/删/改`dataID`即可。
+
+
 ## 配置中心更新Pipeline {#update-config-pipeline}
 
-参考 [配置中心如何更新配置](#update-config)
+参考 [配置中心如何更新配置](confd.md#update-config)
 
 键名 `datakit/confd` 字样改为 `datakit/pipeline` ，再加上 `类型/文件名` 即可。
 
@@ -340,7 +440,7 @@ func consulDo(index int) {
 
 键值 就是 pipeline 的文本。
 
-更新 Pipeline 支持 etcdv3 consul redis zookeeper， 不支持 file 后端。
+更新`Pipeline`支持`etcdv3` `consul` `redis` `zookeeper` `aws secrets manager` `nacos`， 不支持 file 作为后端。
 
 ## 后端数据源软件版本说明 {#backend-version}
 
@@ -349,3 +449,5 @@ func consulDo(index int) {
 - ETCD: v3.3.0 
 - CONSUL: v1.13.2
 - ZOOKEEPER: v3.7.0
+- NACOS: v2.1.2
+- 

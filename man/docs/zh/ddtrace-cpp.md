@@ -134,7 +134,7 @@ LD_LIBRARY_PATH=/usr/local/lib64  DD_AGENT_HOST=localhost DD_TRACE_AGENT_PORT=95
 程序运行一段时间后，即可在观测云看到类似如下 trace 数据：
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/cpp-ddtrace-example.png){ width="800"}
+  ![](https://static.guance.com/images/datakit/cpp-ddtrace-example.png){ width="800"}
   <figcaption>C++ trace 数据展示</figcaption>
 </figure>
 
@@ -163,7 +163,7 @@ DD_XXX=<env-value> DD_YYY=<env-value> ./demo
 [1]: https://static.guance.com/gfw/cmake-3.24.2.tar.gz
 [2]: https://static.guance.com/gfw/cmake-3.24.2-windows-x86_64.msi
 [3]: https://cmake.org/download/
-[4]: /datakit/datakit-conf/#config-http-server
+[4]: datakit-conf.md#config-http-server
 [5]: https://static.guance.com/gfw/dd-cpp-include.tar.gz
 [6]: https://static.guance.com/gfw/libdd_opentracing.so
 [7]: https://docs.datadoghq.com/tracing/trace_collection/library_config/cpp/

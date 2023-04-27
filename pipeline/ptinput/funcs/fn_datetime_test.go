@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	tu "github.com/GuanceCloud/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ptinput"
 )
 
@@ -33,7 +33,6 @@ func TestDateTime(t *testing.T) {
 	`,
 			outkey: "a.timestamp",
 			expect: "Tue Nov 30 14:25:18 2021",
-			fail:   false,
 		},
 		{
 			name: "ANSIC ms",
@@ -44,7 +43,6 @@ func TestDateTime(t *testing.T) {
 	`,
 			outkey: "a.timestamp",
 			expect: "Tue Nov 30 14:25:18 2021",
-			fail:   false,
 		},
 		{
 			name: "UnixDate s",
@@ -55,7 +53,6 @@ func TestDateTime(t *testing.T) {
 	`,
 			outkey: "a.timestamp",
 			expect: "Tue Nov 30 14:25:18 CST 2021",
-			fail:   false,
 		},
 		{
 			name: "UnixDate ms",
@@ -66,7 +63,6 @@ func TestDateTime(t *testing.T) {
 	`,
 			outkey: "a.timestamp",
 			expect: "Tue Nov 30 14:25:18 CST 2021",
-			fail:   false,
 		},
 		{
 			name: "RubyDate ms",
@@ -77,7 +73,6 @@ func TestDateTime(t *testing.T) {
 	`,
 			outkey: "a.timestamp",
 			expect: "Tue Nov 30 14:25:18 +0800 2021",
-			fail:   false,
 		},
 		{
 			name: "RubyDate s",
@@ -88,7 +83,6 @@ func TestDateTime(t *testing.T) {
 	`,
 			outkey: "a.timestamp",
 			expect: "Tue Nov 30 14:25:18 +0800 2021",
-			fail:   false,
 		},
 		{
 			name: "RFC822 ms",
@@ -99,7 +93,6 @@ func TestDateTime(t *testing.T) {
 	`,
 			outkey: "a.timestamp",
 			expect: "30 Nov 21 14:25 CST",
-			fail:   false,
 		},
 		{
 			name: "RFC822 s",
@@ -110,7 +103,6 @@ func TestDateTime(t *testing.T) {
 	`,
 			outkey: "a.timestamp",
 			expect: "30 Nov 21 14:25 CST",
-			fail:   false,
 		},
 		{
 			name: "RFC822Z ms",
@@ -121,7 +113,6 @@ func TestDateTime(t *testing.T) {
 	`,
 			outkey: "a.timestamp",
 			expect: "30 Nov 21 14:25 +0800",
-			fail:   false,
 		},
 		{
 			name: "RFC822Z s",
@@ -132,7 +123,6 @@ func TestDateTime(t *testing.T) {
 	`,
 			outkey: "a.timestamp",
 			expect: "30 Nov 21 14:25 +0800",
-			fail:   false,
 		},
 		{
 			name: "RFC850 ms",
@@ -143,7 +133,6 @@ func TestDateTime(t *testing.T) {
 	`,
 			outkey: "a.timestamp",
 			expect: "Tuesday, 30-Nov-21 14:25:18 CST",
-			fail:   false,
 		},
 		{
 			name: "RFC850 s",
@@ -154,7 +143,6 @@ func TestDateTime(t *testing.T) {
 	`,
 			outkey: "a.timestamp",
 			expect: "Tuesday, 30-Nov-21 14:25:18 CST",
-			fail:   false,
 		},
 		{
 			name: "RFC1123 ms",
@@ -165,7 +153,6 @@ func TestDateTime(t *testing.T) {
 	`,
 			outkey: "a.timestamp",
 			expect: "Tue, 30 Nov 2021 14:25:18 CST",
-			fail:   false,
 		},
 		{
 			name: "RFC1123 s",
@@ -176,7 +163,6 @@ func TestDateTime(t *testing.T) {
 	`,
 			outkey: "a.timestamp",
 			expect: "Tue, 30 Nov 2021 14:25:18 CST",
-			fail:   false,
 		},
 		{
 			name: "RFC1123Z ms",
@@ -187,7 +173,6 @@ func TestDateTime(t *testing.T) {
 	`,
 			outkey: "a.timestamp",
 			expect: "Tue, 30 Nov 2021 14:25:18 +0800",
-			fail:   false,
 		},
 		{
 			name: "RFC1123Z s",
@@ -198,7 +183,6 @@ func TestDateTime(t *testing.T) {
 	`,
 			outkey: "a.timestamp",
 			expect: "Tue, 30 Nov 2021 14:25:18 +0800",
-			fail:   false,
 		},
 		{
 			name: "RFC3339 s",
@@ -209,7 +193,6 @@ func TestDateTime(t *testing.T) {
 	`,
 			outkey: "a.timestamp",
 			expect: "2021-01-18T17:03:25+08:00",
-			fail:   false,
 		},
 		{
 			name: "RFC3339 ms",
@@ -220,7 +203,6 @@ func TestDateTime(t *testing.T) {
 	`,
 			outkey: "a.timestamp",
 			expect: "2021-01-18T17:03:25+08:00",
-			fail:   false,
 		},
 		{
 			name: "RFC3339Nano s",
@@ -231,7 +213,6 @@ func TestDateTime(t *testing.T) {
 	`,
 			outkey: "a.timestamp",
 			expect: "2021-01-18T17:03:25+08:00",
-			fail:   false,
 		},
 		{
 			name: "RFC3339Nano ms",
@@ -242,7 +223,6 @@ func TestDateTime(t *testing.T) {
 	`,
 			outkey: "a.timestamp",
 			expect: "2021-01-18T17:03:25.001+08:00",
-			fail:   false,
 		},
 		{
 			name: "Kitchen ms",
@@ -253,7 +233,6 @@ func TestDateTime(t *testing.T) {
 	`,
 			outkey: "a.timestamp",
 			expect: "5:03PM",
-			fail:   true,
 		},
 		{
 			name: "Kitchen s",
@@ -264,13 +243,65 @@ func TestDateTime(t *testing.T) {
 	`,
 			outkey: "a.timestamp",
 			expect: "5:03PM",
-			fail:   true,
+		},
+		{
+			name: "udef_ms",
+			in:   `{"a":{"timestamp": "1610960605000", "second":2},"age":47}`,
+			pl: `
+	json(_, a.timestamp)
+	datetime(a.timestamp, 'ms', '%Y-%m-%d')
+	`,
+			outkey: "a.timestamp",
+			expect: "2021-01-18",
+		},
+		{
+			name: "udef_us",
+			in:   `{"a":{"timestamp": "1610960605000000", "second":2},"age":47}`,
+			pl: `
+	json(_, a.timestamp)
+	datetime(a.timestamp, 'us', '%Y-%m-%d %H:%M:%S')
+	`,
+			outkey: "a.timestamp",
+			expect: "2021-01-18 17:03:25",
+		},
+		{
+			name: "udef_ns",
+			in:   `{"a":{"timestamp": "1610960605000000000", "second":2},"age":47}`,
+			pl: `
+	json(_, a.timestamp)
+	datetime(a.timestamp, 'ns', '%Y-%m-%d %H:%M:%S')
+	`,
+			outkey: "a.timestamp",
+			expect: "2021-01-18 17:03:25",
+		},
+		{
+			name: "udef_ns_tz_1",
+			in:   `{"a":{"timestamp": "1610960605000000000", "second":2},"age":47}`,
+			pl: `
+	json(_, a.timestamp)
+	datetime(a.timestamp, 'ns', '%Y-%m-%d %H:%M:%S', tz="Asia/Tokyo")
+	`,
+			outkey: "a.timestamp",
+			expect: "2021-01-18 18:03:25",
+		},
+		{
+			name: "udef_ns_tz_2",
+			in:   `{"a":{"timestamp": 1610960605000000000, "second":2},"age":47}`,
+			pl: `
+	json(_, a.timestamp)
+	datetime(a.timestamp, 'ns', fmt='%Y-%m-%d %H:%M:%S', tz="UTC")
+	`,
+			outkey: "a.timestamp",
+			expect: "2021-01-18 09:03:25",
 		},
 	}
 
 	for idx, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			runner, err := NewTestingRunner(tc.pl)
+			if tc.fail && err == nil {
+				t.Error("unknown error")
+			}
 			if err != nil {
 				if tc.fail {
 					t.Logf("[%d]expect error: %s", idx, err)

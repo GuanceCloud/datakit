@@ -7,12 +7,8 @@ package installer
 
 import (
 	"os"
-	"os/exec"
-	"path/filepath"
-	"runtime"
-	"strings"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
@@ -43,7 +39,7 @@ func Upgrade() error {
 	}
 
 	// build datakit main config
-	if err := mc.InitCfg(datakit.MainConfPath); err != nil {
+	if err := mc.TryUpgradeCfg(datakit.MainConfPath); err != nil {
 		l.Fatalf("failed to init datakit main config: %s", err.Error())
 	}
 
@@ -53,38 +49,14 @@ func Upgrade() error {
 		}
 	}
 
-	installExternals := map[string]struct{}{}
-	for _, v := range strings.Split(InstallExternals, ",") {
-		installExternals[v] = struct{}{}
-	}
-
-	updateEBPF := false
-	if runtime.GOOS == datakit.OSLinux && (runtime.GOARCH == "amd64" || runtime.GOARCH == "arm64") {
-		if _, err := os.Stat(filepath.Join(datakit.InstallDir, "externals", "datakit-ebpf")); err == nil {
-			updateEBPF = true
-		}
-		if _, ok := installExternals["ebpf"]; ok {
-			updateEBPF = true
-		}
-	}
-
-	if updateEBPF {
-		cp.Infof("upgrade DataKit eBPF plugin...\n")
-		// nolint:gosec
-		cmd := exec.Command(filepath.Join(datakit.InstallDir, "datakit"), "install", "--ebpf")
-		if msg, err := cmd.CombinedOutput(); err != nil {
-			l.Warnf("upgrade external input plugin %s failed: %s msg: %s", "ebpf", err.Error(), msg)
-		}
-	}
-
 	return nil
 }
 
 func upgradeMainConfig(c *config.Config) *config.Config {
 	// setup dataway
-	if c.DataWayCfg != nil {
-		c.DataWayCfg.DeprecatedURL = ""
-		c.DataWayCfg.HTTPProxy = Proxy
+	if c.Dataway != nil {
+		c.Dataway.DeprecatedURL = ""
+		c.Dataway.HTTPProxy = Proxy
 	}
 
 	cp.Infof("Set log to %s\n", c.Logging.Log)
@@ -124,30 +96,30 @@ func upgradeMainConfig(c *config.Config) *config.Config {
 
 	// upgrade IO settings
 	if c.IOCacheCountDeprecated != 0 {
-		c.IOConf.MaxCacheCount = c.IOCacheCountDeprecated
+		c.IO.MaxCacheCount = c.IOCacheCountDeprecated
 		c.IOCacheCountDeprecated = 0
 	}
 
-	if c.IOConf.MaxCacheCount < 1000 {
-		c.IOConf.MaxCacheCount = 1000
+	if c.IO.MaxCacheCount < 1000 {
+		c.IO.MaxCacheCount = 1000
 	}
 
 	if c.OutputFileDeprecated != "" {
-		c.IOConf.OutputFile = c.OutputFileDeprecated
+		c.IO.OutputFile = c.OutputFileDeprecated
 		c.OutputFileDeprecated = ""
 	}
 
 	if c.IntervalDeprecated != "" {
-		c.IOConf.FlushInterval = c.IntervalDeprecated
+		c.IO.FlushInterval = c.IntervalDeprecated
 		c.IntervalDeprecated = ""
 	}
 
-	if c.IOConf.FeedChanSize > 1 {
-		c.IOConf.FeedChanSize = 1 // reset to 1
+	if c.IO.FeedChanSize > 1 {
+		c.IO.FeedChanSize = 1 // reset to 1
 	}
 
-	if c.IOConf.MaxDynamicCacheCountDeprecated > 0 {
-		c.IOConf.MaxDynamicCacheCountDeprecated = 0 // clear the config
+	if c.IO.MaxDynamicCacheCountDeprecated > 0 {
+		c.IO.MaxDynamicCacheCountDeprecated = 0 // clear the config
 	}
 
 	// upgrade election settings
@@ -177,6 +149,17 @@ func upgradeMainConfig(c *config.Config) *config.Config {
 	}
 
 	c.InstallVer = DataKitVersion
+
+	// move sinkers under dataway
+	if c.SinkersDeprecated != nil && len(c.SinkersDeprecated.Arr) > 0 {
+		for _, x := range c.SinkersDeprecated.Arr {
+			if x.URL != "" && len(x.Categories) > 0 { // make sure it's a valid(at lease seems like) sinker
+				c.Dataway.Sinkers = append(c.Dataway.Sinkers, x)
+			}
+		}
+
+		c.SinkersDeprecated = nil // clear
+	}
 
 	return c
 }

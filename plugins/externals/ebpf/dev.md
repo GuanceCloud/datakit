@@ -1,14 +1,14 @@
 # datakit_ebpf
 
-## 注意
+## Notice
 
-* 在低版本内核(源码编译), 如 Linux Kernel 4.4.1 中：
-  * 需要初始化局部变量, 由于这可能导致 BPF 验证器提示如 invalid indirect read from stack 等;
-  * bpfmap 的 value 无法作为另一个 bpfmap 的 key, 需要先拷贝至局部变量;
+* In low-version kernel (source code compilation), such as Linux Kernel 4.4.1:
+   * Local variables need to be initialized, because this may lead to BPF validator prompts such as invalid indirect read from stack, etc.;
+   * The value of bpfmap cannot be used as the key of another bpfmap, it needs to be copied to a local variable first;
 
-开发环境配置参考
+Development environment configuration reference
 
-vscode settings.json 参考配置
+vscode settings.json reference configuration
 
 ```json
 {

@@ -25,19 +25,13 @@ type node struct {
 	client    k8sClientX
 	extraTags map[string]string
 	items     []v1.Node
-	host      string
 }
 
-func newNode(client k8sClientX, extraTags map[string]string, host string) *node {
+func newNode(client k8sClientX, extraTags map[string]string) *node {
 	return &node{
 		client:    client,
 		extraTags: extraTags,
-		host:      host,
 	}
-}
-
-func (n *node) getHost() string {
-	return n.host
 }
 
 func (n *node) name() string {
@@ -69,9 +63,6 @@ func (n *node) metric(election bool) (inputsMeas, error) {
 			},
 			fields:   map[string]interface{}{},
 			election: election,
-		}
-		if n.host != "" {
-			met.tags["host"] = n.host
 		}
 		// t := item.Status.LastScheduleTime
 		// met.fields["node.age"] = int64(time.Since(*t).Seconds())
@@ -110,9 +101,6 @@ func (n *node) metric(election bool) (inputsMeas, error) {
 			fields:   map[string]interface{}{"count": c},
 			election: election,
 		}
-		if n.host != "" {
-			met.tags["host"] = n.host
-		}
 		met.tags.append(n.extraTags)
 		res = append(res, met)
 	}
@@ -139,9 +127,6 @@ func (n *node) object(election bool) (inputsMeas, error) {
 				"kubelet_version": item.Status.NodeInfo.KubeletVersion,
 			},
 			election: election,
-		}
-		if n.host != "" {
-			obj.tags["host"] = n.host
 		}
 
 		if _, ok := item.Labels["node-role.kubernetes.io/master"]; ok {
@@ -209,7 +194,7 @@ func (n *nodeMetric) LineProto() (*point.Point, error) {
 func (*nodeMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "kube_node",
-		Desc: "Kubernetes Node 指标数据",
+		Desc: "The metric of the Kubernetes Node.",
 		Type: "metric",
 		Tags: map[string]interface{}{
 			"node":      inputs.NewTagInfo("Name must be unique within a namespace. (depercated)"),
@@ -243,7 +228,7 @@ func (n *nodeObject) LineProto() (*point.Point, error) {
 func (*nodeObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "kubernetes_nodes",
-		Desc: "Kubernetes node 对象数据",
+		Desc: "The object of the Kubernetes Node.",
 		Type: "object",
 		Tags: map[string]interface{}{
 			"name":        inputs.NewTagInfo("UID"),
@@ -264,11 +249,11 @@ func (*nodeObject) Info() *inputs.MeasurementInfo {
 
 //nolint:gochecknoinits
 func init() {
-	registerK8sResourceMetric(func(c k8sClientX, m map[string]string, host string) k8sResourceMetricInterface {
-		return newNode(c, m, host)
+	registerK8sResourceMetric(func(c k8sClientX, m map[string]string) k8sResourceMetricInterface {
+		return newNode(c, m)
 	})
-	registerK8sResourceObject(func(c k8sClientX, m map[string]string, host string) k8sResourceObjectInterface {
-		return newNode(c, m, host)
+	registerK8sResourceObject(func(c k8sClientX, m map[string]string) k8sResourceObjectInterface {
+		return newNode(c, m)
 	})
 	registerMeasurement(&nodeMetric{})
 	registerMeasurement(&nodeObject{})

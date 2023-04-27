@@ -45,6 +45,7 @@ type discovery struct {
 	localNodeName         string
 	extractK8sLabelAsTags bool
 
+	enablePrometheusPodAnnotations     bool
 	enablePrometheusServiceAnnotations bool
 	enablePrometheusPodMonitors        bool
 	enablePrometheusServiceMonitors    bool
@@ -151,8 +152,11 @@ func (d *discovery) election() bool {
 
 func (d *discovery) updateRunners() []*discoveryRunner {
 	runners := []*discoveryRunner{}
-	runners = append(runners, d.fetchPromInputsFromPodAnnotations()...)
+	runners = append(runners, d.fetchInputsFromPodAnnotations()...)
 	runners = append(runners, d.fetchInputsFromDatakitCRD()...)
+	if d.enablePrometheusPodAnnotations {
+		runners = append(runners, d.fetchPromInputsFromPodAnnotations()...)
+	}
 	if d.enablePrometheusPodMonitors {
 		runners = append(runners, d.fetchPromInputsForPodMonitors()...)
 	}
@@ -162,7 +166,7 @@ func (d *discovery) updateRunners() []*discoveryRunner {
 func (d *discovery) updateElectionRunners() []*discoveryRunner {
 	runners := []*discoveryRunner{}
 	if d.enablePrometheusServiceAnnotations {
-		runners = append(runners, d.fetchPromInputsFromService()...)
+		runners = append(runners, d.fetchPromInputsFromServiceAnnotations()...)
 	}
 	if d.enablePrometheusServiceMonitors {
 		runners = append(runners, d.fetchPromInputsForServiceMonitors()...)
@@ -170,70 +174,38 @@ func (d *discovery) updateElectionRunners() []*discoveryRunner {
 	return runners
 }
 
-func (d *discovery) fetchPromInputsFromService() []*discoveryRunner {
+func (d *discovery) fetchPromInputsFromPodAnnotations() []*discoveryRunner {
 	var res []*discoveryRunner
 
-	list, err := d.client.getServices().List(context.Background(), metaV1ListOption)
+	opt := metav1.ListOptions{FieldSelector: "spec.nodeName=" + d.localNodeName}
+	list, err := d.client.getPods().List(context.Background(), opt)
 	if err != nil {
-		l.Warnf("autodiscovery: failed to get service, err: %s, retry in a minute", d.localNodeName, err)
+		l.Warnf("autodiscovery: failed to get pods, err: %s, retry in a minute", d.localNodeName, err)
 		return nil
 	}
 
 	for _, item := range list.Items {
-		scrape, ok := item.Annotations[annotationPrometheusioScrape]
-		if !ok {
+		if !parseScrapeFromProm(item.Annotations[annotationPrometheusioScrape]) {
 			continue
 		}
-		b, err := strconv.ParseBool(scrape)
+
+		promInput, err := newPromInput(item.Status.PodIP, // podIP:port
+			item.Annotations[annotationPrometheusioPort],
+			item.Annotations[annotationPrometheusioScheme],
+			item.Annotations[annotationPrometheusioPath])
 		if err != nil {
-			l.Warnf("autodiscovery: service %s parse %s err: %s, skip", item.Name, scrape, err)
-			continue
-		}
-		if !b {
+			l.Warnf("autodiscovery: failed to new PromInput of Pod %s, err: %s, retry in a minute", item.Name, err)
 			continue
 		}
 
-		port, ok := item.Annotations[annotationPrometheusioPort]
-		if !ok {
-			l.Warnf("autodiscovery: not found port from service %s, skip", item.Name)
-			continue
-		}
-		if _, err := strconv.Atoi(port); err != nil {
-			l.Warnf("autodiscovery: invalid port %s from service %s, skip", port, item.Name)
-			continue
-		}
+		l.Infof("autodiscovery: created PromInput of Pod %s, url %s", item.Name, promInput.URLs)
 
-		u := url.URL{
-			Scheme: defaultPromScheme,
-			Path:   defaultPromPath,
-			Host:   fmt.Sprintf("%s.%s:%s", item.Name, item.Namespace, port), // service_name.service_namespace:port
-		}
-
-		if s, ok := item.Annotations[annotationPrometheusioScheme]; ok {
-			if s == "https" {
-				u.Scheme = s
-			} else {
-				l.Warnf("autodiscovery: invalid scheme %s from service %s, use default 'http'", s, item.Name)
-			}
-		}
-
-		if p, ok := item.Annotations[annotationPrometheusioPath]; ok {
-			u.Path = p
-		}
-
-		l.Infof("autodiscovery: new promInput for service %s, url %s", item.Name, u.String())
-
-		promInput := prom.NewProm()
-		promInput.Source = "k8s.service/" + item.Name
-		promInput.Interval = defaultPrometheusioInterval
-		promInput.Election = false
-		promInput.MetricTypes = []string{"counter", "gauge"}
-		promInput.URLs = []string{u.String()}
+		promInput.Source = "k8s.pod/" + item.Name
 		for k, v := range d.extraTags {
 			promInput.Tags[k] = v
 		}
+		promInput.Tags["pod_name"] = item.Name
 		promInput.Tags["namespace"] = item.Namespace
-		promInput.Tags["service"] = item.Name
 
 		res = append(res, &discoveryRunner{
 			runner:   promInput,
@@ -245,7 +217,49 @@ func (d *discovery) fetchPromInputsFromService() []*discoveryRunner {
 	return res
 }
 
-func (d *discovery) fetchPromInputsFromPodAnnotations() []*discoveryRunner {
+func (d *discovery) fetchPromInputsFromServiceAnnotations() []*discoveryRunner {
+	var res []*discoveryRunner
+
+	list, err := d.client.getServices().List(context.Background(), metaV1ListOption)
+	if err != nil {
+		l.Warnf("autodiscovery: failed to get services, err: %s, retry in a minute", d.localNodeName, err)
+		return nil
+	}
+
+	for _, item := range list.Items {
+		if !parseScrapeFromProm(item.Annotations[annotationPrometheusioScrape]) {
+			continue
+		}
+
+		promInput, err := newPromInput(fmt.Sprintf("%s.%s", item.Name, item.Namespace), // service_name.service_namespace:port
+			item.Annotations[annotationPrometheusioPort],
+			item.Annotations[annotationPrometheusioScheme],
+			item.Annotations[annotationPrometheusioPath])
+		if err != nil {
+			l.Warnf("autodiscovery: failed to new PromInput of Service %s, err: %s, retry in a minute", item.Name, err)
+			continue
+		}
+
+		l.Infof("autodiscovery: created PromInput of Service %s, url %s", item.Name, promInput.URLs)
+
+		promInput.Source = "k8s.service/" + item.Name
+		for k, v := range d.extraTags {
+			promInput.Tags[k] = v
+		}
+		promInput.Tags["service_name"] = item.Name
+		promInput.Tags["namespace"] = item.Namespace
+
+		res = append(res, &discoveryRunner{
+			runner:   promInput,
+			source:   item.Name,
+			lastTime: time.Now(),
+		})
+	}
+
+	return res
+}
+
+func (d *discovery) fetchInputsFromPodAnnotations() []*discoveryRunner {
 	var res []*discoveryRunner
 
 	opt := metav1.ListOptions{FieldSelector: "spec.nodeName=" + d.localNodeName}
@@ -286,17 +300,8 @@ func (d *discovery) fetchInputsFromDatakitCRD() []*discoveryRunner {
 		res = append(res, runner...)
 	}
 
-	err := d.processCRDWithPod(fn)
-	if err != nil {
-		// TODO:
-		// 对 error 内容进行子串判定，不再打印这个错误
-		// 避免因为 k8s 客户端没有 datakits resource 而获取失败，频繁报错
-		// “could not find the requested resource” 为 k8s api 实际返回的 error message，可能会因为版本不同而变更
-		// errors.Is()
-		if strings.Contains(err.Error(), "could not find the requested resource") {
-			return nil
-		}
-		l.Warnf("autodiscovery: failed to get datakits, err: %s, retry in a minute", err)
+	if err := d.processCRDWithPod(fn); err != nil {
+		l.Debugf("autodiscovery: failed to get datakits, err: %s, retry in a minute", err)
 		return nil
 	}
 
@@ -374,7 +379,7 @@ func (d *discovery) fetchPromInputsForPodMonitors() []*discoveryRunner {
 					promInput.Tags[k] = v
 				}
 				if metricsEndpoints.Interval != "" {
-					promInput.Interval = string(metricsEndpoints.Interval)
+					promInput.Interval = metricsEndpoints.Interval
 				}
 				promInput.Tags["namespace"] = pod.Namespace
 				promInput.Tags["service"] = pod.Name
@@ -473,7 +478,7 @@ func (d *discovery) fetchPromInputsForServiceMonitors() []*discoveryRunner {
 					promInput.Tags[k] = v
 				}
 				if endpoint.Interval != "" {
-					promInput.Interval = string(endpoint.Interval)
+					promInput.Interval = endpoint.Interval
 				}
 				promInput.Tags["namespace"] = service.Namespace
 				promInput.Tags["service"] = service.Name
@@ -515,15 +520,11 @@ func (d *discovery) updateGlobalCRDLogsConfList() {
 	globalCRDLogsConfList.list = make(map[string]string)
 	defer globalCRDLogsConfList.mu.Unlock()
 
-	err := d.processCRDWithPod(fn)
-	if err != nil {
-		if strings.Contains(err.Error(), "could not find the requested resource") {
-			return
-		}
-		l.Warnf("autodiscovery: failed to get datakits, err: %s, retry in a minute", err)
+	if err := d.processCRDWithPod(fn); err != nil {
+		return
 	}
 
-	l.Debugf("autodiscovery: find CRD datakit/logs len %d, map<uid:conf>: %v", len(globalCRDLogsConfList.list), globalCRDLogsConfList.list)
+	l.Debugf("autodiscovery: find CRD datakit/logs len %d, list: %v", len(globalCRDLogsConfList.list), globalCRDLogsConfList.list)
 }
 
 type datakitCRDHandler func(kubev1guancebeta1.DatakitInstance, *podMeta)
@@ -831,4 +832,39 @@ func mergePromConfig(c1 *prom.Input, c2 *promConfig) *prom.Input {
 	}
 
 	return c3
+}
+
+func newPromInput(host, port, scheme, path string) (*prom.Input, error) {
+	if _, err := strconv.Atoi(port); err != nil {
+		return nil, fmt.Errorf("invalid port %s", port)
+	}
+
+	u := url.URL{
+		Scheme: defaultPromScheme,
+		Path:   defaultPromPath,
+		Host:   fmt.Sprintf("%s:%s", host, port),
+	}
+
+	if scheme == "https" {
+		u.Scheme = scheme
+	}
+
+	if path != "" {
+		u.Path = path
+	}
+
+	promInput := prom.NewProm()
+	promInput.Interval = defaultPrometheusioInterval
+	promInput.Election = false
+	promInput.MetricTypes = []string{"counter", "gauge"}
+	promInput.URLs = []string{u.String()}
+	return promInput, nil
+}
+
+func parseScrapeFromProm(scrape string) bool {
+	if scrape == "" {
+		return false
+	}
+	b, _ := strconv.ParseBool(scrape)
+	return b
 }

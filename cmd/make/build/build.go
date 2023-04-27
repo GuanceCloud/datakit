@@ -17,8 +17,9 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/upgrader/upgrader"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
@@ -70,10 +71,12 @@ var (
 
 	ReleaseType string
 
-	// Where to publish install packages.
-	DownloadAddr string
-	BuildDir     = "build"
-	PubDir       = "pub"
+	// Where to publish/download install packages.
+	DownloadCDN string
+	UploadAddr  string
+
+	BuildDir = "build"
+	PubDir   = "pub"
 
 	// InputsReleaseType defined which inputs are available
 	// during current release:
@@ -135,7 +138,7 @@ func prepare() {
 
 const archSep = ","
 
-func parseArchs(s string) (archs []string) {
+func ParseArchs(s string) (archs []string) {
 	switch s {
 	case ALL:
 
@@ -172,7 +175,7 @@ func Compile() error {
 
 	prepare()
 
-	curArchs = parseArchs(Archs)
+	curArchs = ParseArchs(Archs)
 
 	for _, arch := range curArchs {
 		parts := strings.Split(arch, "/")
@@ -196,8 +199,13 @@ func Compile() error {
 			return err
 		}
 
-		if err := compileArch(AppBin, goos, goarch, dir); err != nil {
+		if err := compileArch(AppBin, goos, goarch, dir, MainEntry); err != nil {
 			return err
+		}
+
+		upgraderDir := fmt.Sprintf("%s/%s-%s-%s", BuildDir, upgrader.BuildBinName, goos, goarch)
+		if err := compileArch(upgrader.BuildBinName, goos, goarch, upgraderDir, upgrader.BuildEntranceFile); err != nil {
+			return fmt.Errorf("unable to build %s : %w", upgrader.BuildBinName, err)
 		}
 
 		// build externals
@@ -219,7 +227,7 @@ func Compile() error {
 	return nil
 }
 
-func compileArch(bin, goos, goarch, dir string) error {
+func compileArch(bin, goos, goarch, dir, mainEntranceFile string) error {
 	output := filepath.Join(dir, bin)
 	if goos == datakit.OSWindows {
 		output += winBinSuffix
@@ -247,9 +255,8 @@ func compileArch(bin, goos, goarch, dir string) error {
 	cmdArgs = append(cmdArgs, []string{
 		"-o", output,
 		"-ldflags",
-		fmt.Sprintf("-w -s -X main.InputsReleaseType=%s -X main.ReleaseVersion=%s -X main.DownloadAddr=%s",
-			InputsReleaseType, ReleaseVersion, DownloadAddr),
-		MainEntry,
+		fmt.Sprintf("-w -s -X main.InputsReleaseType=%s -X main.ReleaseVersion=%s", InputsReleaseType, ReleaseVersion),
+		mainEntranceFile,
 	}...)
 
 	var envs []string
@@ -259,66 +266,19 @@ func compileArch(bin, goos, goarch, dir string) error {
 			"GOARCH=" + goarch,
 			`GO111MODULE=off`,
 			"CGO_ENABLED=on",
+			"CGO_CFLAGS=-Wno-undef-prefix",
 		}
 	} else {
 		envs = []string{
 			"GOOS=" + goos,
 			"GOARCH=" + goarch,
 			`GO111MODULE=off`,
+			"CGO_CFLAGS=-Wno-undef-prefix",
 			"CGO_ENABLED=" + cgoEnabled,
 		}
 	}
 
-	l.Debugf("building %s", fmt.Sprintf("%s-%s/%s", goos, goarch, bin))
-	msg, err := runEnv(cmdArgs, envs)
-	if err != nil {
-		return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s", cmdArgs, envs, err, string(msg))
-	}
-	return nil
-}
-
-func buildInstaller(outdir, goos, goarch string) error {
-	l.Debugf("building %s-%s/installer...", goos, goarch)
-
-	installerExe := fmt.Sprintf("installer-%s-%s", goos, goarch)
-	if goos == datakit.OSWindows {
-		installerExe += winBinSuffix
-	}
-
-	var cmdArgs []string
-	if RaceDetection && runtime.GOOS == goos && runtime.GOARCH == goarch {
-		l.Infof("race deteciton enabled")
-		cmdArgs = []string{
-			"go", "build", "-race",
-		}
-	} else {
-		cmdArgs = []string{
-			"go", "build",
-		}
-	}
-
-	cmdArgs = append(cmdArgs, []string{
-		"-o", filepath.Join(outdir, installerExe),
-		"-ldflags",
-		fmt.Sprintf("-w -s -X main.DataKitBaseURL=%s -X main.DataKitVersion=%s", DownloadAddr, ReleaseVersion),
-		"cmd/installer/main.go",
-	}...)
-
-	var envs []string
-	if RaceDetection && runtime.GOOS == goos && runtime.GOARCH == goarch {
-		envs = []string{
-			"GOOS=" + goos,
-			"GOARCH=" + goarch,
-			"CGO_ENABLED=on",
-		}
-	} else {
-		envs = []string{
-			"GOOS=" + goos,
-			"GOARCH=" + goarch,
-			"CGO_ENABLED=off",
-		}
-	}
-
+	l.Debugf("building %q with %v", fmt.Sprintf("%s-%s/%s", goos, goarch, bin), cmdArgs)
 	msg, err := runEnv(cmdArgs, envs)
 	if err != nil {
 		return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s", cmdArgs, envs, err, string(msg))

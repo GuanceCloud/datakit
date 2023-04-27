@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	tu "github.com/GuanceCloud/cliutils/testutil"
 )
 
 type funcCase struct {

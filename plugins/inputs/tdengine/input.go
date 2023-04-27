@@ -11,8 +11,8 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
@@ -127,10 +127,6 @@ func (i *Input) PipelineConfig() map[string]string {
 func (i *Input) RunPipeline() {
 	if len(i.LogFiles) == 0 {
 		return
-	}
-
-	if i.Pipeline == "" {
-		i.Pipeline = inputName
 	}
 
 	opt := &tailer.Option{

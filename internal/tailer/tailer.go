@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 )
 
@@ -22,7 +22,6 @@ const (
 	scanNewFileInterval = time.Second * 10
 
 	defaultSource    = "default"
-	maxFieldsLength  = 32 * 1024 * 1024
 	minflushInterval = time.Second * 5
 )
 
@@ -215,6 +214,8 @@ func (t *Tailer) scan() {
 		if t.inFileList(filename) {
 			continue
 		}
+
+		t.opt.log.Infof("new logging file %s with source %s", filename, t.opt.Source)
 
 		func(filename string) {
 			g.Go(func(ctx context.Context) error {

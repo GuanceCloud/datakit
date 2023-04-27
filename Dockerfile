@@ -9,8 +9,7 @@ COPY dist/datakit-linux-${TARGETARCH}/ /usr/local/datakit/
 
 RUN sed -i 's/\(archive\|security\|ports\).ubuntu.com/mirrors.aliyun.com/' /etc/apt/sources.list \
     && apt-get update \
-    && apt-get install -y libaio-dev libaio1 unzip wget curl \
-    && /usr/local/datakit/datakit install --ebpf
+    && apt-get install -y libaio-dev libaio1 unzip wget curl
 
 # download 3rd party libraries
 RUN \
@@ -26,4 +25,4 @@ RUN \
 RUN wget -q -O data.tar.gz https://static.guance.com/datakit/data.tar.gz \
     && tar -xzf data.tar.gz -C /usr/local/datakit && rm -rf data.tar.gz
 
-CMD ["/usr/local/datakit/datakit", "--docker"]
+CMD ["/usr/local/datakit/datakit", "run", "-C"]

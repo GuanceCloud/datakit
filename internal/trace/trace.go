@@ -11,7 +11,6 @@ import (
 	"compress/gzip"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -24,10 +23,11 @@ import (
 // nolint:stylecheck
 const (
 	// datakit tracing customer tags.
-	CONTAINER_HOST = "container_host"
-	ENV            = "env"
-	PROJECT        = "project"
-	VERSION        = "version"
+	UNKNOWN_SERVICE = "unknown_service"
+	CONTAINER_HOST  = "container_host"
+	ENV             = "env"
+	PROJECT         = "project"
+	VERSION         = "version"
 
 	// span status.
 	STATUS_OK       = "ok"
@@ -38,10 +38,10 @@ const (
 	STATUS_CRITICAL = "critical"
 
 	// span position in trace.
-	SPAN_TYPE_ENTRY  = "entry"
-	SPAN_TYPE_LOCAL  = "local"
-	SPAN_TYPE_EXIT   = "exit"
-	SPAN_TYPE_UNKNOW = "unknow"
+	SPAN_TYPE_ENTRY   = "entry"
+	SPAN_TYPE_LOCAL   = "local"
+	SPAN_TYPE_EXIT    = "exit"
+	SPAN_TYPE_UNKNOWN = "unknown"
 
 	// span source type.
 	SPAN_SOURCE_APP       = "app"
@@ -56,9 +56,6 @@ const (
 	TAG_CONTAINER_HOST   = "container_host"
 	TAG_ENDPOINT         = "endpoint"
 	TAG_ENV              = "env"
-	TAG_ERR_MESSAGE      = "error_message"
-	TAG_ERR_STACK        = "error_stack"
-	TAG_ERR_TYPE         = "error_type"
 	TAG_HTTP_HOST        = "http_host"
 	TAG_HTTP_METHOD      = "http_method"
 	TAG_HTTP_ROUTE       = "http_route"
@@ -83,6 +80,10 @@ const (
 	FIELD_SPANID      = "span_id"
 	FIELD_START       = "start"
 	FIELD_TRACEID     = "trace_id"
+	FIELD_ERR_MESSAGE = "error_message"
+	FIELD_ERR_STACK   = "error_stack"
+	FIELD_ERR_TYPE    = "error_type"
+	FIELD_CALL_TREE   = "calling_tree"
 )
 
 // nolint:stylecheck
@@ -107,17 +108,24 @@ const (
 
 var (
 	sourceTypes = map[string]string{
-		"consul":        SPAN_SOURCE_APP,
-		"django":        SPAN_SOURCE_FRAMEWORK,
-		"express":       SPAN_SOURCE_FRAMEWORK,
-		"flask":         SPAN_SOURCE_FRAMEWORK,
-		"go-gin":        SPAN_SOURCE_FRAMEWORK,
-		"laravel":       SPAN_SOURCE_FRAMEWORK,
-		"spring":        SPAN_SOURCE_FRAMEWORK,
-		".net":          SPAN_SOURCE_FRAMEWORK,
-		"cache":         SPAN_SOURCE_CACHE,
-		"memcached":     SPAN_SOURCE_CACHE,
-		"redis":         SPAN_SOURCE_CACHE,
+		"consul": SPAN_SOURCE_APP,
+
+		".net":        SPAN_SOURCE_FRAMEWORK,
+		"datanucleus": SPAN_SOURCE_FRAMEWORK,
+		"django":      SPAN_SOURCE_FRAMEWORK,
+		"express":     SPAN_SOURCE_FRAMEWORK,
+		"flask":       SPAN_SOURCE_FRAMEWORK,
+		"go-gin":      SPAN_SOURCE_FRAMEWORK,
+		"graphql":     SPAN_SOURCE_FRAMEWORK,
+		"hibernate":   SPAN_SOURCE_FRAMEWORK,
+		"laravel":     SPAN_SOURCE_FRAMEWORK,
+		"soap":        SPAN_SOURCE_FRAMEWORK,
+		"spring":      SPAN_SOURCE_FRAMEWORK,
+
+		"cache":     SPAN_SOURCE_CACHE,
+		"memcached": SPAN_SOURCE_CACHE,
+		"redis":     SPAN_SOURCE_CACHE,
+
 		"aerospike":     SPAN_SOURCE_DB,
 		"cassandra":     SPAN_SOURCE_DB,
 		"db":            SPAN_SOURCE_DB,
@@ -128,28 +136,28 @@ var (
 		"mysql":         SPAN_SOURCE_DB,
 		"pymysql":       SPAN_SOURCE_DB,
 		"sql":           SPAN_SOURCE_DB,
-		"go-nsq":        SPAN_SOURCE_MSGQUE,
-		"kafka":         SPAN_SOURCE_MSGQUE,
-		"mqtt":          SPAN_SOURCE_MSGQUE,
-		"rabbitmq":      SPAN_SOURCE_MSGQUE,
-		"dns":           SPAN_SOURCE_WEB,
-		"grpc":          SPAN_SOURCE_WEB,
-		"http":          SPAN_SOURCE_WEB,
-		"http2":         SPAN_SOURCE_WEB,
-		"rpc":           SPAN_SOURCE_WEB,
-		"web":           SPAN_SOURCE_WEB,
-		"":              SPAN_SOURCE_CUSTOMER,
-		"benchmark":     SPAN_SOURCE_CUSTOMER,
-		"build":         SPAN_SOURCE_CUSTOMER,
-		"custom":        SPAN_SOURCE_CUSTOMER,
-		"datanucleus":   SPAN_SOURCE_CUSTOMER,
-		"graphql":       SPAN_SOURCE_CUSTOMER,
-		"hibernate":     SPAN_SOURCE_CUSTOMER,
-		"queue":         SPAN_SOURCE_CUSTOMER,
-		"soap":          SPAN_SOURCE_CUSTOMER,
-		"template":      SPAN_SOURCE_CUSTOMER,
-		"test":          SPAN_SOURCE_CUSTOMER,
-		"worker":        SPAN_SOURCE_CUSTOMER,
+
+		"go-nsq":   SPAN_SOURCE_MSGQUE,
+		"kafka":    SPAN_SOURCE_MSGQUE,
+		"mqtt":     SPAN_SOURCE_MSGQUE,
+		"queue":    SPAN_SOURCE_MSGQUE,
+		"rabbitmq": SPAN_SOURCE_MSGQUE,
+		"rocketmq": SPAN_SOURCE_MSGQUE,
+
+		"dns":   SPAN_SOURCE_WEB,
+		"grpc":  SPAN_SOURCE_WEB,
+		"http":  SPAN_SOURCE_WEB,
+		"http2": SPAN_SOURCE_WEB,
+		"rpc":   SPAN_SOURCE_WEB,
+		"web":   SPAN_SOURCE_WEB,
+
+		"":          SPAN_SOURCE_CUSTOMER,
+		"benchmark": SPAN_SOURCE_CUSTOMER,
+		"build":     SPAN_SOURCE_CUSTOMER,
+		"custom":    SPAN_SOURCE_CUSTOMER,
+		"template":  SPAN_SOURCE_CUSTOMER,
+		"test":      SPAN_SOURCE_CUSTOMER,
+		"worker":    SPAN_SOURCE_CUSTOMER,
 	}
 	priorityRules = map[int]string{
 		PRIORITY_RULE_SAMPLER_REJECT: "PRIORITY_RULE_SAMPLER_REJECT",
@@ -314,9 +322,9 @@ func MergeInToCustomerTags(customerKeys []string, datakitTags, sourceTags map[st
 	for k, v := range datakitTags {
 		merged[k] = v
 	}
-	for i := range customerKeys {
-		if v, ok := sourceTags[customerKeys[i]]; ok {
-			merged[customerKeys[i]] = v
+	for _, k := range customerKeys {
+		if v, ok := sourceTags[k]; ok {
+			merged[k] = v
 		}
 	}
 
@@ -352,13 +360,31 @@ func ParseTracerRequest(req *http.Request) (contentType, encode string, buf []by
 	return
 }
 
-func UnknowServiceName(dkspan *DatakitSpan) string {
-	return fmt.Sprintf("unknow-service-%s", dkspan.Source)
-}
-
 type TraceParameters struct {
 	URLPath string
 	Media   string
 	Encode  string
 	Body    *bytes.Buffer
+}
+
+func MergeTags(input ...map[string]string) map[string]string {
+	tags := make(map[string]string)
+	for i := range input {
+		for k, v := range input[i] {
+			tags[k] = v
+		}
+	}
+
+	return tags
+}
+
+func MergeFields(input ...map[string]interface{}) map[string]interface{} {
+	fields := make(map[string]interface{})
+	for i := range input {
+		for k, v := range input[i] {
+			fields[k] = v
+		}
+	}
+
+	return fields
 }

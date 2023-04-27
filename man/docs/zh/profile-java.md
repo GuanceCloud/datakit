@@ -132,13 +132,19 @@ Done
   以下操作默认地址为 `http://localhost:9529`。如果不是，需要修改为实际的 DataKit 服务地址。
 
 - [开启 Profile 采集器](profile.md) 
+- java 应用注入服务名称 (`service`)（可选）
+
+  默认会自动获取程序名称作为 `servie` 上报观测云，如果需要自定义，可以程序启动时注入 service 名称:
+
+  ```shell
+  java -Ddk.service=<service-name> ... -jar <your-jar>
 
 **整合步骤**
 
 整合方式，可以分为两种：
 
-- [自动化脚本 (推荐)](#script)
-- [手动操作](#manual) 
+- [自动化脚本 (推荐)](profile-java.md#script)
+- [手动操作](profile-java.md#manual) 
 
 **1. 自动化脚本**
 
@@ -236,7 +242,19 @@ profile_collect() {
 	jfr_file=$runtime_dir/profiler_$uuid.jfr
 	event_json_file=$runtime_dir/event_$uuid.json
   
-  process_name=$(jps | grep $process_id | awk '{print $2}')
+  arr=($(jps -v | grep "^$process_id"))
+
+  process_name="default"
+
+  for (( i = 0; i < ${#arr[@]}; i++ ))
+  do
+    value=${arr[$i]}
+    if [ $i == 1 ]; then
+      process_name=$value
+    elif [[ $value =~ "-Ddk.service=" ]]; then
+      service_name=${value/-Ddk.service=/} 
+    fi
+  done
   
 	start_time=$(date +%FT%T.%N%:z)
 	./profiler.sh -d $profiling_duration --fdtransfer -e $profiling_event -o jfr -f $jfr_file $process_id 
@@ -322,7 +340,7 @@ $ bash collect.sh
 
 脚本支持如下环境变量:
 
-- `DATAKIT_URL`: DataKit url 地址，默认为 http://localhost:9529
+- `DATAKIT_URL`: DataKit url 地址，默认为 `http://localhost:9529`
 - `APP_ENV`: 当前应用环境，如 `dev | prod | test` 等
 - `APP_VERSION`: 当前应用版本
 - `HOST_NAME`: 主机名称

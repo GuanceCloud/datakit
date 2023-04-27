@@ -404,7 +404,7 @@ func sendToIO(profileID string) error {
 	pt := pointCache.drop(profileID)
 
 	if pt != nil {
-		if err := dkio.Feed(inputName,
+		if err := dkio.Feed(inputName+"/"+pt.Tags()[TagLanguage],
 			datakit.Profiling,
 			[]*point.Point{pt},
 			&dkio.Option{CollectCost: time.Since(pt.Time())}); err != nil {

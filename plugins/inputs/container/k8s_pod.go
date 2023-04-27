@@ -8,6 +8,7 @@ package container
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
@@ -30,19 +31,13 @@ type pod struct {
 	extraTags             map[string]string
 	items                 []v1.Pod
 	extractK8sLabelAsTags bool
-	host                  string
 }
 
-func newPod(client k8sClientX, extraTags map[string]string, host string) *pod {
+func newPod(client k8sClientX, extraTags map[string]string) *pod {
 	return &pod{
 		client:    client,
 		extraTags: extraTags,
-		host:      host,
 	}
-}
-
-func (p *pod) getHost() string {
-	return p.host
 }
 
 func (p *pod) name() string {
@@ -91,9 +86,6 @@ func (p *pod) metric(election bool) (inputsMeas, error) {
 			},
 			election: election,
 		}
-		if p.host != "" {
-			met.tags["host"] = p.host
-		}
 
 		// extract pod lables to tags, not overwrite the existed tags
 		if p.extractK8sLabelAsTags {
@@ -115,7 +107,7 @@ func (p *pod) metric(election bool) (inputsMeas, error) {
 		if cli, ok := p.client.(*k8sClient); ok && cli.metricsClient != nil {
 			podMet, err := gatherPodMetrics(cli.metricsClient, item.Namespace, item.Name)
 			if err != nil {
-				l.Debugf("unable get pod metric %s, namespace %s, name %s, ignored", err, item.Namespace, item.Name)
+				l.Debugf("unable get pod-metric %s, namespace %s, name %s, ignored", err, item.Namespace, item.Name)
 			} else if podMet != nil {
 				met.fields["cpu_usage"] = podMet.cpuUsage
 				met.fields["memory_usage_bytes"] = podMet.memoryUsageBytes
@@ -132,9 +124,6 @@ func (p *pod) metric(election bool) (inputsMeas, error) {
 			tags:     map[string]string{"namespace": ns},
 			fields:   map[string]interface{}{"count": c},
 			election: election,
-		}
-		if p.host != "" {
-			met.tags["host"] = p.host
 		}
 		met.tags.append(p.extraTags)
 		res = append(res, met)
@@ -187,9 +176,6 @@ func (p *pod) object(election bool) (inputsMeas, error) {
 			},
 			election: election,
 		}
-		if p.host != "" {
-			obj.tags["host"] = p.host
-		}
 
 		if y, err := yaml.Marshal(item); err != nil {
 			l.Debugf("failed to get pod yaml %s, namespace %s, name %s, ignored", err, item.Namespace, item.Name)
@@ -203,8 +189,11 @@ func (p *pod) object(election bool) (inputsMeas, error) {
 				break
 			}
 		}
-		if deployment := getDeployment(item.Labels["app"], item.Namespace); deployment != "" {
-			obj.tags["deployment"] = deployment
+
+		if podTemplateHash := item.Labels["pod-template-hash"]; podTemplateHash != "" {
+			if r := obj.tags["replica_set"]; r != "" {
+				obj.tags["deployment"] = strings.TrimSuffix(r, "-"+podTemplateHash)
+			}
 		}
 
 		for _, containerStatus := range item.Status.ContainerStatuses {
@@ -224,18 +213,13 @@ func (p *pod) object(election bool) (inputsMeas, error) {
 		}
 		obj.fields["ready"] = containerReadyCount
 
-		restartCount := 0
-		for _, containerStatus := range item.Status.InitContainerStatuses {
-			restartCount += int(containerStatus.RestartCount)
-		}
+		maxRestarts := 0
 		for _, containerStatus := range item.Status.ContainerStatuses {
-			restartCount += int(containerStatus.RestartCount)
+			if int(containerStatus.RestartCount) > maxRestarts {
+				maxRestarts = int(containerStatus.RestartCount)
+			}
 		}
-		for _, containerStatus := range item.Status.EphemeralContainerStatuses {
-			restartCount += int(containerStatus.RestartCount)
-		}
-		obj.fields["restart"] = restartCount
-		obj.fields["restarts"] = restartCount
+		obj.fields["restarts"] = maxRestarts
 
 		obj.fields.addMapWithJSON("annotations", item.Annotations)
 		obj.fields.addLabel(item.Labels)
@@ -316,7 +300,7 @@ func (p *podMetric) LineProto() (*point.Point, error) {
 func (*podMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "kube_pod",
-		Desc: "Kubernetes pod 指标数据",
+		Desc: "The metric of the Kubernetes Pod.",
 		Type: "metric",
 		Tags: map[string]interface{}{
 			"pod":         inputs.NewTagInfo("Name must be unique within a namespace."),
@@ -347,7 +331,7 @@ func (p *podObject) LineProto() (*point.Point, error) {
 func (*podObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "kubelet_pod",
-		Desc: "Kubernetes pod 对象数据",
+		Desc: "The object of the Kubernetes Pod.",
 		Type: "object",
 		Tags: map[string]interface{}{
 			"name":        inputs.NewTagInfo("UID"),
@@ -377,11 +361,11 @@ func (*podObject) Info() *inputs.MeasurementInfo {
 
 //nolint:gochecknoinits
 func init() {
-	registerK8sResourceMetric(func(c k8sClientX, m map[string]string, host string) k8sResourceMetricInterface {
-		return newPod(c, m, host)
+	registerK8sResourceMetric(func(c k8sClientX, m map[string]string) k8sResourceMetricInterface {
+		return newPod(c, m)
 	})
-	registerK8sResourceObject(func(c k8sClientX, m map[string]string, host string) k8sResourceObjectInterface {
-		return newPod(c, m, host)
+	registerK8sResourceObject(func(c k8sClientX, m map[string]string) k8sResourceObjectInterface {
+		return newPod(c, m)
 	})
 	registerMeasurement(&podMetric{})
 	registerMeasurement(&podObject{})

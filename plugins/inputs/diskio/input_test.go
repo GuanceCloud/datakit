@@ -271,7 +271,6 @@ func TestF(t *testing.T) {
 
 func assertMeasurement(t *testing.T, expectMeasurement []*diskioMeasurement, actualMeasurement []inputs.Measurement, flag int) {
 	t.Helper()
-	// 取长度最短的
 	lenE := len(expectMeasurement)
 	lenA := len(actualMeasurement)
 	if lenE != lenA {

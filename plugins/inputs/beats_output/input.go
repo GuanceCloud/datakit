@@ -15,12 +15,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	v2 "github.com/elastic/go-lumber/server/v2"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -28,7 +29,8 @@ import (
 //------------------------------------------------------------------------------
 
 const (
-	inputName = "beats_output"
+	inputName       = "beats_output"
+	measurementName = "default"
 
 	sampleCfg = `
 [[inputs.beats_output]]
@@ -66,6 +68,8 @@ type Input struct {
 	MaximumLength int               `toml:"maximum_length,omitempty"`
 	Tags          map[string]string `toml:"tags"`
 
+	feeder io.Feeder
+
 	semStop *cliutils.Sem // start stop signal
 	stopped bool
 }
@@ -102,23 +106,35 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func (ipt *loggingMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(ipt.name, ipt.tags, ipt.fields, point.LOpt())
+// Point implement MeasurementV2.
+func (ipt *loggingMeasurement) Point() *point.Point {
+	opts := point.DefaultLoggingOptions()
+	opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
+
+	return point.NewPointV2([]byte(ipt.name),
+		append(point.NewTags(ipt.tags), point.NewKVs(ipt.fields)...),
+		opts...)
+}
+
+func (ipt *loggingMeasurement) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(ipt.name, ipt.tags, ipt.fields, point.LOpt())
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
 func (*loggingMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "Elastic Beats 接收器",
+		Name: measurementName,
 		Type: "logging",
-		Desc: "使用配置文件中的 `source` 字段值，如果该值为空，则默认为 `default`",
+		Desc: "Using `source` field in the config file, default is `default`.",
 		Tags: map[string]interface{}{
-			"filepath": inputs.NewTagInfo(`此条记录来源的文件名，全路径`), // log.file.path
-			"host":     inputs.NewTagInfo(`主机名`),            // host.name
-			"service":  inputs.NewTagInfo("service 名称，对应配置文件中的 `service` 字段值"),
+			"filepath": inputs.NewTagInfo(`This item source file, full path.`), // log.file.path
+			"host":     inputs.NewTagInfo(`Host name.`),                        // host.name
+			"service":  inputs.NewTagInfo("Service name, equal to `service` field in the config file."),
 		},
 		Fields: map[string]interface{}{
-			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "记录正文，默认存在，可以使用 pipeline 删除此字段"}, // message
+			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Message text, existed when default. Could use pipeline to delete this field."}, // message
+			"status":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Log status."},
 		},
 	}
 }
@@ -233,19 +249,22 @@ func (ipt *Input) feed(pending []*DataStruct) {
 		newTags := ipt.getNewTags(v)
 		l.Debugf("newTags = %#v", newTags)
 
-		pt, err := point.NewPoint(ipt.Source, newTags,
-			map[string]interface{}{
-				pipeline.FieldMessage: v.Message,
-				pipeline.FieldStatus:  pipeline.DefaultStatus,
-			}, point.LOpt())
-		if err != nil {
-			l.Error(err)
-			continue
+		logging := &loggingMeasurement{
+			name:   ipt.Source,
+			tags:   newTags,
+			fields: v.Fields,
 		}
-		pts = append(pts, pt)
+
+		if logging.fields == nil {
+			logging.fields = make(map[string]interface{})
+		}
+		logging.fields[pipeline.FieldMessage] = v.Message
+		logging.fields[pipeline.FieldStatus] = pipeline.DefaultStatus
+
+		pts = append(pts, logging.Point())
 	}
 	if len(pts) > 0 {
-		if err := io.Feed(inputName+"/"+ipt.Listen, datakit.Logging, pts, &io.Option{
+		if err := ipt.feeder.Feed(inputName+"/"+ipt.Listen, point.Logging, pts, &io.Option{
 			PlScript: map[string]string{
 				ipt.Source: ipt.Pipeline,
 			},
@@ -372,11 +391,16 @@ func getDataPieceFromEvent(event interface{}) *DataStruct {
 
 //------------------------------------------------------------------------------
 
+func defaultInput() *Input {
+	return &Input{
+		Tags:    make(map[string]string),
+		feeder:  io.DefaultFeeder(),
+		semStop: cliutils.NewSem(),
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{
-			Tags:    make(map[string]string),
-			semStop: cliutils.NewSem(),
-		}
+		return defaultInput()
 	})
 }

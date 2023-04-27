@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/DataDog/ebpf/manager"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/c"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/k8sinfo"
@@ -72,7 +72,7 @@ type IPPortRecord struct {
 	TS time.Time
 }
 
-// 辅助 httpflow 判断 server ip.
+// Assist httpflow to judge server ip.
 type srcIPPortRecorder struct {
 	sync.RWMutex
 	Record map[[4]uint32]IPPortRecord
@@ -128,7 +128,7 @@ func (record *srcIPPortRecorder) AutoClean() {
 func NewNetFlowManger(constEditor []manager.ConstantEditor, closedEventHandler func(cpu int, data []byte,
 	perfmap *manager.PerfMap, manager *manager.Manager),
 ) (*manager.Manager, error) {
-	// 部分 kretprobe 类型程序需设置 maxactive， https://www.kernel.org/doc/Documentation/kprobes.txt.
+	// Some kretprobe type programs need to set maxactive， https://www.kernel.org/doc/Documentation/kprobes.txt.
 	m := &manager.Manager{
 		Probes: []*manager.Probe{
 			{
@@ -379,8 +379,8 @@ func SwapU16(v uint16) uint16 {
 func U32BEToIPv6Array(addr [4]uint32) [8]uint16 {
 	var ip [8]uint16
 	for x := 0; x < 4; x++ {
-		ip[(x * 2)] = SwapU16(uint16(addr[x] & 0xffff))         // uint32 低16位
-		ip[(x*2)+1] = SwapU16(uint16((addr[x] >> 16) & 0xffff)) //	高16位
+		ip[(x * 2)] = SwapU16(uint16(addr[x] & 0xffff))
+		ip[(x*2)+1] = SwapU16(uint16((addr[x] >> 16) & 0xffff))
 	}
 	return ip
 }
@@ -401,11 +401,11 @@ func U32BEToIP(addr [4]uint32, isIPv6 bool) net.IP {
 	return ip
 }
 
-// ConnNotNeedToFilter 规则: 1. 过滤源 IP 和目标 IP 相同的连接;
-// 2. 过滤 loopback ip 的连接;
-// 3. 过滤一个采集周期内的无数据收发的连接;
-// 4. 过滤端口 为 0 或 ip address 为 :: or 0.0.0.0 的连接;
-// 需过滤，函数返回 False.
+// ConnNotNeedToFilter rules: 1. Filter connections with the same source IP and destination IP;
+// 2. Filter the connection of loopback ip;
+// 3. Filter connections without data sending and receiving within a collection cycle;
+// 4. Filter connections with port 0 or ip address :: or 0.0.0.0;
+// Need to filter, the function returns False.
 func ConnNotNeedToFilter(conn *ConnectionInfo, connStats *ConnFullStats) bool {
 	if (conn.Saddr[0]|conn.Saddr[1]|conn.Saddr[2]|conn.Saddr[3]) == 0 ||
 		(conn.Daddr[0]|conn.Daddr[1]|conn.Daddr[2]|conn.Daddr[3]) == 0 ||
@@ -427,7 +427,7 @@ func ConnNotNeedToFilter(conn *ConnectionInfo, connStats *ConnFullStats) bool {
 		}
 	}
 
-	// 过滤上一周期的无变化的连接
+	// Filter connections that have not changed in the previous cycle
 	if connStats.Stats.RecvBytes == 0 && connStats.Stats.SentBytes == 0 &&
 		connStats.TotalClosed == 0 && connStats.TotalEstablished == 0 {
 		return false

@@ -17,35 +17,13 @@ import (
 	"text/template"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
 )
 
 //nolint:lll
 var (
-	installNotifyTemplate = map[string]string{
-		`linux/386`:   `DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\" bash -c \"$(curl -L https://{{.DownloadAddr}}/install-{{.Version}}.sh)\"`,
-		`linux/amd64`: `DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\" bash -c \"$(curl -L https://{{.DownloadAddr}}/install-{{.Version}}.sh)\"`,
-		`linux/arm`:   `DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\" bash -c \"$(curl -L https://{{.DownloadAddr}}/install-{{.Version}}.sh)\"`,
-		`linux/arm64`: `DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\" bash -c \"$(curl -L https://{{.DownloadAddr}}/install-{{.Version}}.sh)\"`,
-
-		`darwin/amd64`: `DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\" bash -c \"$(curl -L https://{{.DownloadAddr}}/install-{{.Version}}.sh)\"`,
-
-		`windows/amd64`: `$env:DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\";Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://{{.DownloadAddr}}/install-{{.Version}}.ps1 -destination .install.ps1; powershell .install.ps1;`,
-		`windows/386`:   `$env:DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\";Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://{{.DownloadAddr}}/install-{{.Version}}.ps1 -destination .install.ps1; powershell .install.ps1;`,
-	}
-
-	upgradeNotifyTemplate = map[string]string{
-		`linux/386`:   `DK_UPGRADE=1 bash -c \"$(curl -L https://{{.DownloadAddr}}/install-{{.Version}}.sh)\"`,
-		`linux/amd64`: `DK_UPGRADE=1 bash -c \"$(curl -L https://{{.DownloadAddr}}/install-{{.Version}}.sh)\"`,
-		`linux/arm`:   `DK_UPGRADE=1 bash -c \"$(curl -L https://{{.DownloadAddr}}/install-{{.Version}}.sh)\"`,
-		`linux/arm64`: `DK_UPGRADE=1 bash -c \"$(curl -L https://{{.DownloadAddr}}/install-{{.Version}}.sh)\"`,
-
-		`darwin/amd64`: `DK_UPGRADE=1 bash -c \"$(curl -L https://{{.DownloadAddr}}/install-{{.Version}}.sh)\"`,
-
-		`windows/amd64`: `$env:DK_UPGRADE=\"1\"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://{{.DownloadAddr}}/install-{{.Version}}.ps1 -destination .install.ps1; powershell .install.ps1;`,
-		`windows/386`:   `$env:DK_UPGRADE=\"1\"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://{{.DownloadAddr}}/install-{{.Version}}.ps1 -destination .install.ps1; powershell .install.ps1;`,
-	}
-
-	k8sDaemonsetTemplete = "wget https://{{.DownloadAddr}}/datakit.yaml"
+	k8sDaemonsetTemplete = "wget https://{{.DownloadCDN}}/datakit.yaml"
+	NotifyOnly           = false
 )
 
 var (
@@ -174,11 +152,11 @@ func NotifyPubDone() {
 	}
 
 	x := struct {
-		Uploader, Version, DownloadAddr string
+		Uploader, Version, DownloadCDN string
 	}{
-		Uploader:     git.Uploader,
-		Version:      ReleaseVersion,
-		DownloadAddr: DownloadAddr,
+		Uploader:    git.Uploader,
+		Version:     ReleaseVersion,
+		DownloadCDN: DownloadCDN,
 	}
 
 	switch ReleaseType {
@@ -186,14 +164,44 @@ func NotifyPubDone() {
 
 		content := func() []string {
 			x := []string{
-				fmt.Sprintf(`{{.Uploader}} 「私自」发布了 DataKit %d 个平台测试版({{.Version}})。`, len(curArchs)),
+				fmt.Sprintf(`{{.Uploader}} 发布了 Datakit %d 个平台测试版({{.Version}})`, len(curArchs)),
 			}
 			for _, arch := range curArchs {
 				x = append(x, "--------------------------")
 				x = append(x, fmt.Sprintf("%s 安装/升级：", arch))
-				x = append(x, installNotifyTemplate[arch])
+
+				p := &man.Params{}
+
+				platform := ""
+				switch arch {
+				case `linux/386`,
+					`linux/amd64`,
+					`linux/arm`,
+					`linux/arm64`,
+					`darwin/amd64`:
+					platform = "unix"
+
+				case "windows/amd64",
+					"windows/386":
+					platform = "windows"
+				}
+
+				x = append(x, man.InstallCommand(
+					p.WithPlatform(platform),
+					p.WithSourceURL("https://"+DownloadCDN),
+					p.WithJSON(true),
+					p.WithVersion("-"+ReleaseVersion),
+				).String())
+
 				x = append(x, "\n")
-				x = append(x, upgradeNotifyTemplate[arch])
+
+				x = append(x, man.InstallCommand(
+					p.WithUpgrade(true),
+					p.WithPlatform(platform),
+					p.WithSourceURL("https://"+DownloadCDN),
+					p.WithJSON(true),
+					p.WithVersion("-"+ReleaseVersion),
+				).String())
 			}
 
 			// under testing release, add k8s daemonset yaml
@@ -211,7 +219,7 @@ func NotifyPubDone() {
 	"msgtype": "text",
 	"text": {
 		"content": "%s"
-		}
+	}
 }`, strings.Join(content, "\n"))
 
 		var buf bytes.Buffer
@@ -224,6 +232,7 @@ func NotifyPubDone() {
 			l.Fatal(err)
 		}
 		notify(NotifyToken, &buf)
+
 	case ReleaseProduction:
 		notify(NotifyToken, bytes.NewBufferString(CIOnlineNewVersion))
 	}
@@ -235,11 +244,11 @@ func NotifyPubEBpfDone() {
 	}
 
 	x := struct {
-		Uploader, Version, DownloadAddr string
+		Uploader, Version, DownloadCDN string
 	}{
-		Uploader:     git.Uploader,
-		Version:      ReleaseVersion,
-		DownloadAddr: DownloadAddr,
+		Uploader:    git.Uploader,
+		Version:     ReleaseVersion,
+		DownloadCDN: DownloadCDN,
 	}
 
 	switch ReleaseType {
@@ -252,7 +261,7 @@ func NotifyPubEBpfDone() {
 			for _, arch := range curEBpfArchs {
 				x = append(x, "--------------------------")
 				x = append(x, fmt.Sprintf("%s 下载地址：", arch))
-				x = append(x, "https://"+filepath.Join(DownloadAddr, fmt.Sprintf(
+				x = append(x, "https://"+filepath.Join(DownloadCDN, fmt.Sprintf(
 					"datakit-ebpf-%s-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH, ReleaseVersion)))
 			}
 			return x

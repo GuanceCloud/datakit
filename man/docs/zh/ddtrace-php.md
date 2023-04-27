@@ -46,7 +46,7 @@ ini 可以进行全局配置，例如：使用 php.ini 配置特定的 web serve
 
 **Apache**
 
-Apache 搭配 php-fpm, 在 www.conf 配置文件中配置环境变量。
+Apache 搭配 php-fpm, 在 `www.conf` 配置文件中配置环境变量。
 
 ```ini
 ; Example of passing the host environment variable SOME_ENV
@@ -70,7 +70,7 @@ php_value datadog.service my-app
 
 **NGINX**
 
-Nginx 搭配 php-fpm, 在 www.conf 配置文件中配置环境变量。
+Nginx 搭配 php-fpm, 在 `www.conf` 配置文件中配置环境变量。
 
 ```ini
 ; Example of passing the host environment variable SOME_ENV

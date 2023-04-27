@@ -6,6 +6,7 @@ DataKit 支持手动更新和自动更新两种方式。
 
 ## 前置条件 {#req}
 
+- 远程更新要求 Datakit 版本 >= 1.5.9
 - 自动更新要求 DataKit 版本 >= 1.1.6-rc1
 - 手动更新暂无版本要求
 
@@ -33,7 +34,7 @@ DataKit 支持手动更新和自动更新两种方式。
     Online version available: 1.2.9, commit 9f5ac898be (release at 2022-03-10 12:03:12)
     
     Upgrade:
-        DK_UPGRADE=1 bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+{{ InstallCmd 4 (.WithPlatform "unix") (.WithUpgrade true) }}
     ```
 
 === "Windows"
@@ -53,7 +54,7 @@ DataKit 支持手动更新和自动更新两种方式。
     Online version available: 1.2.9, commit 9f5ac898be (release at 2022-03-10 12:03:12)
     
     Upgrade:
-        $env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; Remove-item .install.ps1 -erroraction silentlycontinue; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+{{ InstallCmd 4 (.WithPlatform "windows") (.WithUpgrade true) }}
     ```
 ---
 
@@ -87,9 +88,6 @@ DataKit 支持手动更新和自动更新两种方式。
 
 otalog=/usr/local/datakit/ota-update.log
 installer=https://static.guance.com/datakit/installer-linux-amd64
-
-# 注意：如果不希望更新 RC 版本的 DataKit，可移除 `--accept-rc-version`
-/usr/local/datakit/datakit --check-update --accept-rc-version --update-log $otalog
 
 if [[ $? == 42 ]]; then
 	echo "update now..."
@@ -154,22 +152,85 @@ service cron restart
 ...
 ``` 
 
-## DataKit 版本回退 {#downgrade}
+## 远程更新 {#remote}
 
-如果新版本有不尽人意的地方，急于回退老版本恢复功能，可以通过如下方式直接逆向升级：
+[:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9) · [:octicons-beaker-24: Experimental](index.md#experimental)
+
+如果有大批量的 Datakit 需要更新，可以通过 HTTP API 的方式来升级 Datakit。同时在安装或升级新版 Datakit 时，需设置环境变量 `DK_UPGRADE_MANAGER=1`，例如：
+
+```shell
+DK_UPGRADE=1 \
+  DK_UPGRADE_MANAGER=1 \
+  bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+```
+
+远程升级服务目前提供两个 API：
+
+- **查看当前 Datakit 版本及可用的升级版本**
+
+| API                                                   | 请求方式 |
+| ---                                                   | ---      |
+| `http://<datakit-ip-or-host>:9539/v1/datakit/version` | `GET`    |
+
+请求示例：
+
+```shell
+$ curl 'http://127.0.0.1:9539/v1/datakit/version'
+{
+    "Version": "1.5.7",
+    "Commit": "1a9xxxxxxx",
+    "Branch": "master",
+    "BuildAtUTC": "2023-03-29 07:03:35",
+    "GoVersion": "go version go1.18.3 darwin/arm64",
+    "Uploader": "someone",
+    "ReleasedInputs": "all",
+    "AvailableUpgrades": [
+        {
+            "version": "1.5.8",
+            "commit": "d8d2218354",
+            "date_utc": "2023-03-24 11:12:54",
+            "download_url": "https://static.guance.com/datakit/install.sh",
+            "version_type": "Online"
+        }
+    ]
+}
+```
+
+- **把当前 Datakit 升级到最新版本**
+
+| API                                                   | 请求方式 |
+| ---                                                   | ---      |
+| `http://<datakit-ip-or-host>:9539/v1/datakit/upgrade` | `POST`   |
+
+请求示例：
+
+```shell
+$ curl -X POST 'http://127.0.0.1:9539/v1/datakit/upgrade'
+{"msg":"success"}
+```
+
+???+ info
+    
+    升级过程根据网络带宽情况，可能耗时较长，请耐心等待 API 返回。
+
+## 更新到指定版本 {#downgrade}
+
+如果需要升级或回退到指定版本，可以通过如下命令进行操作：
 
 === "Linux/macOS"
 
     ```shell
-    DK_UPGRADE=1 bash -c "$(curl -L https://static.guance.com/datakit/install-<版本号>.sh)"
+{{ InstallCmd 4 (.WithPlatform "unix") (.WithUpgrade true) (.WithVersion "-1.2.3") }}
     ```
 === "Windows"
 
     ```powershell
-    $env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; Remove-item .install.ps1 -erroraction silentlycontinue; start-bitstransfer -source https://static.guance.com/datakit/install-<版本号>.ps1 -destination .install.ps1; powershell .install.ps1;
+{{ InstallCmd 4 (.WithPlatform "windows") (.WithUpgrade true) (.WithVersion "-1.2.3") }}
     ```
 
-这里的版本号，可以从 [DataKit 的发布历史](changelog.md)页面找到。目前只支持退回到 [1.2.0](changelog.md#cl-1.2.0) 以后的版本，之前的 rc 版本不建议回退。回退版本后，可能会碰到一些新版本中才有的配置，无法在回退后的版本中解析，这个暂时只能手动调整配置，适配老版本的 DataKit。
+上述命令中的`<版本号>`，可以从 [DataKit 的发布历史](changelog.md)页面找到。
+
+若要回退 DataKit 版本，目前只支持退回到 [1.2.0](changelog.md#cl-1.2.0) 以后的版本，之前的 rc 版本不建议回退。
 
 ## 版本检测失败的处理 {#version-check-failed}
 

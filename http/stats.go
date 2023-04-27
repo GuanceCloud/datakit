@@ -6,84 +6,31 @@
 package http
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"runtime"
 	"sort"
 	"strings"
-	"text/template"
 	"time"
 
-	humanize "github.com/dustin/go-humanize"
-	"github.com/gin-gonic/gin"
-	"github.com/gomarkdown/markdown"
-	"github.com/gomarkdown/markdown/html"
-	"github.com/gomarkdown/markdown/parser"
+	"github.com/GuanceCloud/cliutils/metrics"
+	dto "github.com/prometheus/client_model/go"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/filter"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
+	dkm "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	plstats "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/stats"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-const (
-	StatInfoType   = "info"
-	StatMetricType = "metric"
-)
-
-type enabledInput struct {
-	Input     string `json:"input"`
-	Instances int    `json:"instances"`
-	Panics    int    `json:"panic"`
-}
-
-type runtimeInfo struct {
-	Goroutines int     `json:"goroutines"`
-	HeapAlloc  uint64  `json:"heap_alloc"`
-	Sys        uint64  `json:"total_sys"`
-	CPUUsage   float64 `json:"cpu_usage"`
-
-	GCPauseTotal uint64        `json:"gc_pause_total"`
-	GCNum        uint32        `json:"gc_num"`
-	GCAvgCost    time.Duration `json:"gc_avg_bytes"`
-}
-
-func getRuntimeInfo() *runtimeInfo {
-	var m runtime.MemStats
-	runtime.ReadMemStats(&m)
-
-	var usage float64
-	if u, err := cgroup.GetCPUPercent(0); err != nil {
-		l.Warnf("get CPU usage failed: %s, ignored", err.Error())
-	} else {
-		usage = u
-	}
-
-	return &runtimeInfo{
-		Goroutines: runtime.NumGoroutine(),
-		HeapAlloc:  m.HeapAlloc,
-		Sys:        m.Sys,
-		CPUUsage:   usage,
-
-		GCPauseTotal: m.PauseTotalNs,
-		GCNum:        m.NumGC,
-	}
-}
-
 type DatakitStats struct {
-	GoroutineStats *goroutine.Summary `json:"goroutine_stats"`
+	GoroutineStats *goroutineSummary `json:"goroutine_stats"`
 
 	EnabledInputsDeprecated []*enabledInput          `json:"enabled_inputs,omitempty"`
 	EnabledInputs           map[string]*enabledInput `json:"enabled_input_list"`
 
-	GolangRuntime *runtimeInfo `json:"golang_runtime"`
+	GolangRuntime *RuntimeInfo `json:"golang_runtime"`
 
 	AvailableInputs []string `json:"available_inputs"`
 
@@ -100,449 +47,695 @@ type DatakitStats struct {
 
 	OpenFiles int `json:"open_files"`
 
-	InputsStats map[string]*io.InputsStat  `json:"inputs_status"`
-	IOStats     *io.Stats                  `json:"io_stats"`
-	PLStats     []plstats.ScriptStatsROnly `json:"pl_stats"`
 	HTTPMetrics map[string]*APIStat        `json:"http_metrics"`
+	InputsStats map[string]inputsStat      `json:"inputs_status"`
+	IOStats     *Stats                     `json:"io_stats"`
+	PLStats     []plstats.ScriptStatsROnly `json:"pl_stats"`
+	FilterStats *FilterStats               `json:"filter_stats"`
 
-	WithinDocker bool                `json:"docker"`
-	AutoUpdate   bool                `json:"auto_update"`
-	FilterStats  *filter.FilterStats `json:"filter_stats"`
+	WithinDocker bool `json:"docker"`
+	AutoUpdate   bool `json:"auto_update"`
 
 	// markdown options
 	DisableMonofont bool `json:"-"`
 }
 
-var (
-	part1 = `
-## 基本信息
+type goroutineSummary struct {
+	Total        int64 `json:"finished_goroutines"`
+	RunningTotal int64 `json:"running_goroutines"`
+	CostTime     int64 `json:"total_cost_time"`
+	AvgCostTime  int64 `json:"avg_cost_time"`
 
-**请使用 'datakit monitor' 来查看 monitor 信息**
+	Items map[string]goroutine.RunningStatInfo
+}
+type ScriptStatsROnly struct {
+	Pt, PtDrop, PtError uint64
 
-- 主机名     ：{{.HostName}}
-- 版本       : {{.Version}}
-- 运行时间   : {{.Uptime}}
-- 发布日期   : {{.BuildAt}}
-- 分支       : {{.Branch}}
-- 系统类型   : {{.OSArch}}
-- 容器运行   : {{.WithinDocker}}
-- IO 消耗统计: {{.IOChanStat}}
-- 自动更新   ：{{.AutoUpdate}}
-- 选举状态   ：{{.Elected}}
-	`
+	RunLastErrs []string
 
-	part2 = `
-## 采集器运行情况
+	TotalCost int64 // ns
+	MetaTS    time.Time
 
-{{.InputsStatsTable}}
-`
+	Script            string
+	FirstTS           time.Time
+	ScriptTS          time.Time
+	ScriptUpdateTimes uint64
 
-	part3 = `
-## 采集器配置情况
+	Category, NS, Name string
 
-{{.InputsConfTable}}
-`
-
-	part4 = `
-## Goroutine运行情况
-
-{{.GoroutineStatTable}}
-`
-
-	verboseMonitorTmpl = `
-{{.CSS}}
-
-# DataKit 运行展示
-` + part1 + part2 + part3 + part4
-
-	monitorTmpl = `
-{{.CSS}}
-
-# DataKit 运行展示
-` + part1 + part2
-)
-
-func (x *DatakitStats) InputsConfTable() string {
-	const (
-		tblHeader = `
-| 采集器 | 实例个数 | 奔溃次数 |
-| ----   | :----:   |  :----:  |
-`
-	)
-
-	rowFmt := "|`%s`|%d|%d|"
-	if x.DisableMonofont {
-		rowFmt = "|%s|%d|%d|"
-	}
-
-	if len(x.EnabledInputs) == 0 {
-		return "没有开启任何采集器"
-	}
-
-	rows := []string{}
-	for _, v := range x.EnabledInputs {
-		rows = append(rows, fmt.Sprintf(rowFmt,
-			v.Input,
-			v.Instances,
-			v.Panics,
-		))
-	}
-
-	sort.Strings(rows)
-	return tblHeader + strings.Join(rows, "\n")
+	Enable       bool
+	Deleted      bool
+	CompileError string
 }
 
-func (x *DatakitStats) InputsStatsTable() string {
-	const (
-		//nolint:lll
-		tblHeader = `
-| 采集器 | 数据类型 | 频率   | 平均 IO 大小 | 总次数 | 点数  | 首次采集 | 最近采集 | 平均采集消耗 | 最大采集消耗 | 当前错误(时间) |
-| ----   | :----:   | :----: | :----:       | :----: | :---: | :----:   | :---:    | :----:       | :---:        | :----:         |
-`
-	)
+type Stats struct {
+	ChanUsage map[string][2]int `json:"chan_usage"`
 
-	rowFmt := "|`%s`|`%s`|%s|%d|%d|%d|%s|%s|%s|%s|`%s`(%s)|"
-	if x.DisableMonofont {
-		rowFmt = "|%s|%s|%s|%d|%d|%d|%s|%s|%s|%s|%s(%s)|"
-	}
+	COSendPts uint64 `json:"CO_send_pts"`
+	ESendPts  uint64 `json:"E_send_pts"`
+	LSendPts  uint64 `json:"L_send_pts"`
+	MSendPts  uint64 `json:"M_send_pts"`
+	NSendPts  uint64 `json:"N_chan_pts"`
+	OSendPts  uint64 `json:"O_send_pts"`
+	PSendPts  uint64 `json:"P_chan_pts"`
+	RSendPts  uint64 `json:"R_send_pts"`
+	SSendPts  uint64 `json:"S_send_pts"`
+	TSendPts  uint64 `json:"T_send_pts"`
 
-	if len(x.InputsStats) == 0 {
-		return "暂无采集器统计数据"
-	}
+	COFailPts uint64 `json:"CO_fail_pts"`
+	EFailPts  uint64 `json:"E_fail_pts"`
+	LFailPts  uint64 `json:"L_fail_pts"`
+	MFailPts  uint64 `json:"M_fail_pts"`
+	NFailPts  uint64 `json:"N_fail_pts"`
+	OFailPts  uint64 `json:"O_fail_pts"`
+	PFailPts  uint64 `json:"P_fail_pts"`
+	RFailPts  uint64 `json:"R_fail_pts"`
+	SFailPts  uint64 `json:"S_fail_pts"`
+	TFailPts  uint64 `json:"T_fail_pts"`
 
-	now := time.Now()
+	FeedDropPts uint64 `json:"drop_pts"`
 
-	rows := []string{}
+	// 0: ok, others: beyond usage
+	BeyondUsage uint64 `json:"beyond_usage"`
 
-	for k, s := range x.InputsStats {
-		firstIO := humanize.RelTime(s.First, now, "ago", "")
-		lastIO := humanize.RelTime(s.Last, now, "ago", "")
+	// TODO: add disk cache stats
+}
+type FilterStats struct {
+	RuleStats map[string]*ruleStat `json:"rule_stats"`
 
-		lastErr := "-"
-		if s.LastErr != "" {
-			lastErr = s.LastErr
-		}
+	PullCount    int           `json:"pull_count"`
+	PullInterval time.Duration `json:"pull_interval"`
+	PullFailed   int           `json:"pull_failed"`
 
-		lastErrTime := "-"
-		if s.LastErr != "" {
-			lastErrTime = humanize.RelTime(s.LastErrTS, now, "ago", "")
-		}
+	RuleSource  string        `json:"rule_source"`
+	PullCost    time.Duration `json:"pull_cost"`
+	PullCostAvg time.Duration `json:"pull_cost_avg"`
+	PullCostMax time.Duration `json:"pull_cost_max"`
 
-		freq := "-"
-		if s.Frequency != "" {
-			freq = s.Frequency
-		}
-
-		category := "-"
-		if s.Category != "" {
-			category = datakit.CategoryMap[s.Category]
-		}
-
-		rows = append(rows,
-			fmt.Sprintf(rowFmt,
-				k,
-				category,
-				freq,
-				s.AvgSize,
-				s.Count,
-				s.Total,
-				firstIO,
-				lastIO,
-				s.AvgCollectCost,
-				s.MaxCollectCost,
-				lastErr,
-				lastErrTime,
-			))
-	}
-
-	sort.Strings(rows)
-	return tblHeader + strings.Join(rows, "\n")
+	LastUpdate  time.Time `json:"last_update"`
+	LastErr     string    `json:"last_err"`
+	LastErrTime time.Time `json:"last_err_time"`
 }
 
-func (x *DatakitStats) GoroutineStatTable() string {
-	const (
-		summaryFmt = `
-- 已完成: %d
-- 运行中: %d
-- 总消耗: %s
-- 平均消耗: %s
-`
-		tblHeader = `
-| 名称 | 已完成 | 运行中 | 总消耗 | 最小消耗 | 最大消耗 | 失败次数 |
-| ----   | :----:   |  :----:  |  :----:  |  :----:  |  :----:  |  :----:  |
-`
-	)
+type ruleStat struct {
+	Total        int64         `json:"total"`
+	Filtered     int64         `json:"filtered"`
+	Cost         time.Duration `json:"cost"`
+	CostPerPoint time.Duration `json:"cost_per_point"`
+	Conditions   int           `json:"conditions"`
+}
+type inputsStat struct {
+	// Name      string    `json:"name"`
+	Category       string        `json:"category"`
+	Frequency      string        `json:"frequency,omitempty"`
+	AvgSize        int64         `json:"avg_size"`
+	Total          int64         `json:"total"`
+	Count          int64         `json:"count"`
+	Filtered       int64         `json:"filtered"`
+	First          time.Time     `json:"first"`
+	Last           time.Time     `json:"last"`
+	LastErr        string        `json:"last_error,omitempty"`
+	LastErrTS      time.Time     `json:"last_error_ts,omitempty"`
+	Version        string        `json:"version,omitempty"`
+	MaxCollectCost time.Duration `json:"max_collect_cost"`
+	AvgCollectCost time.Duration `json:"avg_collect_cost"`
+}
 
-	rowFmt := "|%s|%d|%d|%s|%s|%s|%d|"
+type RuntimeInfo struct {
+	Goroutines int     `json:"goroutines"`
+	HeapAlloc  uint64  `json:"heap_alloc"`
+	Sys        uint64  `json:"total_sys"`
+	CPUUsage   float64 `json:"cpu_usage"`
 
-	rows := []string{}
+	GCPauseTotal uint64        `json:"gc_pause_total"`
+	GCNum        uint32        `json:"gc_num"`
+	GCAvgCost    time.Duration `json:"gc_avg_bytes"`
+}
 
-	s := x.GoroutineStats
+type enabledInput struct {
+	Input     string `json:"input"`
+	Instances int    `json:"instances"`
+	Panics    int    `json:"panic"`
+}
 
-	summary := fmt.Sprintf(summaryFmt, s.Total, s.RunningTotal, s.CostTime, s.AvgCostTime)
-	if len(s.Items) == 0 {
-		return summary
+type APIStat struct {
+	TotalCount     int     `json:"total_count"`
+	Limited        int     `json:"limited"`
+	LimitedPercent float64 `json:"limited_percent"`
+
+	Status2xx int `json:"2xx"`
+	Status3xx int `json:"3xx"`
+	Status4xx int `json:"4xx"`
+	Status5xx int `json:"5xx"`
+
+	MaxLatency   time.Duration `json:"max_latency"`
+	AvgLatency   time.Duration `json:"avg_latency"`
+	totalLatency time.Duration
+}
+
+const categoryKey = "category"
+
+func getRuntimeInfo() *RuntimeInfo {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+
+	var usage float64
+	if u, err := cgroup.MyCPUPercent(0); err != nil {
+		l.Warnf("get CPU usage failed: %s, ignored", err.Error())
+	} else {
+		usage = u
 	}
 
-	for name, item := range s.Items {
-		rows = append(rows, fmt.Sprintf(rowFmt,
-			name,
-			item.Total,
-			item.RunningTotal,
-			item.CostTime,
-			item.MaxCostTime,
-			item.MaxCostTime,
-			item.ErrCount,
-		))
-	}
+	return &RuntimeInfo{
+		Goroutines: runtime.NumGoroutine(),
+		HeapAlloc:  m.HeapAlloc,
+		Sys:        m.Sys,
+		CPUUsage:   usage,
 
-	sort.Strings(rows)
-	return summary + "\n" + tblHeader + strings.Join(rows, "\n")
+		GCPauseTotal: m.PauseTotalNs,
+		GCNum:        m.NumGC,
+	}
 }
 
 func GetStats() (*DatakitStats, error) {
-	now := time.Now()
-	elected, ns, who := election.Elected()
-	if ns == "" {
-		ns = "<default>"
+	var err error
+	family, err := metrics.Gather()
+	if err != nil {
+		return nil, err
 	}
+
+	now := time.Now()
+	elecMetric := election.GetElectionInfo(family)
 
 	stats := &DatakitStats{
 		Version:       datakit.Version,
 		BuildAt:       git.BuildAt,
 		Branch:        git.Branch,
-		Uptime:        fmt.Sprintf("%v", now.Sub(uptime)),
+		Uptime:        fmt.Sprintf("%v", now.Sub(dkm.Uptime)),
 		OSArch:        fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 		WithinDocker:  datakit.Docker,
-		Elected:       fmt.Sprintf("%s::%s|%s", ns, elected, who),
+		Elected:       fmt.Sprintf("%s::%s|%s", elecMetric.Status, elecMetric.Namespace, elecMetric.WhoElected),
 		AutoUpdate:    datakit.AutoUpdate,
 		HostName:      datakit.DatakitHostName,
-		EnabledInputs: map[string]*enabledInput{},
+		Cgroup:        cgroup.Info(),
+		OpenFiles:     datakit.OpenFiles(),
+		GolangRuntime: getRuntimeInfo(),
+
+		IOStats:         &Stats{ChanUsage: make(map[string][2]int, 5)},
+		AvailableInputs: []string{},
+		FilterStats:     &FilterStats{},
+		GoroutineStats:  &goroutineSummary{Items: make(map[string]goroutine.RunningStatInfo, 10)},
+		PLStats:         []plstats.ScriptStatsROnly{},
+		HTTPMetrics:     make(map[string]*APIStat),
+		InputsStats:     make(map[string]inputsStat),
+		EnabledInputs:   make(map[string]*enabledInput),
 	}
 
-	l.Debugf("io.GetStats()...")
-	stats.IOStats = io.GetIOStats()
+	prefix := "datakit_"
 
-	l.Debugf("plstats.ReadStats()...")
-	stats.PLStats = plstats.ReadStats()
+	for _, mfamily := range family {
+		name := mfamily.GetName()
+		pts := mfamily.GetMetric()
 
-	l.Debugf("cgroup.Info()...")
-	stats.Cgroup = cgroup.Info()
+		if strings.HasPrefix(name, prefix+"io_dataway_") || strings.HasPrefix(name, prefix+"io_chan_") {
+			l.Debugf("get io stats...")
+			switch name {
+			case "datakit_io_dataway_point_total":
+				getDatawayPointTotal(name, stats, pts)
 
-	l.Debugf("goroutine.GetStat()...")
-	stats.GoroutineStats = goroutine.GetStat()
+			case "datakit_io_dataway_api_latency":
+			case "datakit_io_dataway_api_request_total":
+			case "datakit_io_dataway_point_bytes_total":
+			case "datakit_io_chan_usage":
+				getIOChanUsage(name, stats, pts)
 
-	l.Debugf("http.getMetrics()...")
-	stats.HTTPMetrics = GetMetrics()
+			case "datakit_io_chan_capacity":
+				getIOChanCap(name, stats, pts)
+			}
+			continue
+		}
 
-	l.Debugf("getRuntimeInfo()...")
-	stats.GolangRuntime = getRuntimeInfo()
+		if strings.HasPrefix(name, prefix+"goroutine_") {
+			l.Debugf("get stat...")
+			getGoroutineStats(name, stats, pts)
+			continue
+		}
 
-	l.Debugf("io.GetFilterStats()...")
-	stats.FilterStats = filter.GetFilterStats()
+		if strings.HasPrefix(name, prefix+"http_api") {
+			l.Debugf("get http stats...")
+			getHTTPStats(name, stats, pts)
+			continue
+		}
 
-	l.Debugf("OpenFiles()...")
-	stats.OpenFiles = datakit.OpenFiles()
+		if strings.HasPrefix(name, prefix+"filter_") {
+			l.Debugf("get filter stats...")
+			getFilterStats(name, stats, pts)
+			continue
+		}
 
-	var err error
+		if strings.HasPrefix(name, prefix+"io_") || strings.HasPrefix(name, prefix+"input_collect_latency") || strings.HasPrefix(name, "last_err") {
+			l.Debugf("get inputs stats...")
+			getInputsStats(name, stats, pts)
+			continue
+		}
 
-	l.Debugf("io.GetStats()...")
-	stats.InputsStats, err = io.GetInputsStats() // get all inputs stats
-	if err != nil {
-		return nil, err
-	}
+		if strings.HasPrefix(name, prefix+"inputs_instance") {
+			l.Debugf("get avaliabel inputs...")
+			getInputsList(name, stats, pts)
+			continue
+		}
 
-	l.Debugf("get inputs info...")
-	for k := range inputs.InputsInfo {
-		n := inputs.InputEnabled(k)
-		npanic := inputs.GetPanicCnt(k)
-		if n > 0 {
-			stats.EnabledInputs[k] = &enabledInput{Input: k, Instances: n, Panics: npanic}
+		if strings.HasPrefix(name, prefix+"election_status") {
+			mm := mfamily.GetMetric()
+			stats.Elected = mm[0].String()
+			continue
 		}
 	}
 
-	for k := range inputs.Inputs {
-		stats.AvailableInputs = append(stats.AvailableInputs, fmt.Sprintf("[D] %s", k))
-	}
+	stats.PLStats = plstats.ReadStats()
 
-	// add available inputs(datakit) stats
-	stats.AvailableInputs = append(stats.AvailableInputs, fmt.Sprintf("tatal %d, datakit %d",
-		len(stats.AvailableInputs), len(inputs.Inputs)))
-
-	sort.Strings(stats.AvailableInputs)
 	return stats, nil
 }
 
-func (x *DatakitStats) Markdown(css string, verbose bool) ([]byte, error) {
-	tmpl := monitorTmpl
-	if verbose {
-		tmpl = verboseMonitorTmpl
+func getIOChanUsage(name string, stats *DatakitStats, pts []*dto.Metric) {
+	if stats.IOStats == nil {
+		stats.IOStats = &Stats{ChanUsage: make(map[string][2]int)}
 	}
 
-	temp, err := template.New("").Parse(tmpl)
-	if err != nil {
-		return nil, fmt.Errorf("parse markdown template failed: %w", err)
-	}
+	for _, pt := range pts {
+		label := ""
+		for _, la := range pt.GetLabel() {
+			if la.GetName() == categoryKey {
+				label = la.GetValue()
+			}
+		}
+		if len(label) == 0 {
+			continue
+		}
 
-	if css != "" {
-		x.CSS = css
-	}
+		if _, ok := chanUsage[label]; !ok {
+			stats.IOStats.ChanUsage[label] = [2]int{}
+		}
 
-	var buf bytes.Buffer
-	if err := temp.Execute(&buf, x); err != nil {
-		return nil, fmt.Errorf("execute markdown template failed: %w", err)
+		s := stats.IOStats.ChanUsage[label]
+		s[0] = int(pt.GetCounter().GetValue())
+		stats.IOStats.ChanUsage[label] = s
 	}
-
-	return buf.Bytes(), nil
 }
 
-func apiGetDatakitMonitor(c *gin.Context) {
-	s, err := GetStats()
-	if err != nil {
-		c.Data(http.StatusInternalServerError, "text/html", []byte(err.Error()))
-		return
+func getIOChanCap(name string, stats *DatakitStats, pts []*dto.Metric) {
+	if stats.IOStats == nil {
+		stats.IOStats = &Stats{ChanUsage: make(map[string][2]int)}
 	}
 
-	mdbytes, err := s.Markdown(man.MarkdownCSS, true)
-	if err != nil {
-		c.Data(http.StatusInternalServerError, "text/html", []byte(err.Error()))
-		return
+	for _, pt := range pts {
+		label := ""
+		for _, la := range pt.GetLabel() {
+			if la.GetName() == categoryKey {
+				label = la.GetValue()
+			}
+		}
+		if len(label) == 0 {
+			continue
+		}
+
+		if _, ok := chanUsage[label]; !ok {
+			stats.IOStats.ChanUsage[label] = [2]int{}
+		}
+
+		s := stats.IOStats.ChanUsage[label]
+		s[1] = int(pt.GetCounter().GetValue())
+		stats.IOStats.ChanUsage[label] = s
+	}
+}
+
+func getInputsList(name string, stats *DatakitStats, pts []*dto.Metric) {
+	if stats.AvailableInputs == nil {
+		stats.AvailableInputs = []string{}
+	}
+	if stats.EnabledInputs == nil {
+		stats.EnabledInputs = make(map[string]*enabledInput)
+	}
+	input := map[string]struct{}{}
+
+	for _, pt := range pts {
+		inputName := pt.GetLabel()[0].GetValue()
+		in, ok := stats.EnabledInputs[inputName]
+		if !ok {
+			in = &enabledInput{Input: inputName}
+		}
+
+		if name == "datakit_inputs_instance" {
+			in.Instances = int(pt.GetGauge().GetValue())
+		} else if name == "datakit_inputs_crash_total" {
+			in.Panics = int(pt.GetCounter().GetValue())
+		}
+
+		stats.EnabledInputs[inputName] = in
+		input[inputName] = struct{}{}
 	}
 
-	mdext := parser.CommonExtensions
-	psr := parser.NewWithExtensions(mdext)
-
-	htmlFlags := html.CommonFlags | html.HrefTargetBlank | html.CompletePage
-	opts := html.RendererOptions{Flags: htmlFlags}
-	// opts := html.RendererOptions{Flags: htmlFlags, Head: headerScript}
-	renderer := html.NewRenderer(opts)
-
-	out := markdown.ToHTML(mdbytes, psr, renderer)
-
-	c.Data(http.StatusOK, "text/html; charset=UTF-8", out)
+	if len(input) > 0 {
+		for name := range input {
+			stats.AvailableInputs = append(stats.AvailableInputs, fmt.Sprintf("[D] %s", name))
+		}
+		sort.Strings(stats.AvailableInputs)
+		stats.AvailableInputs = append(stats.AvailableInputs, fmt.Sprintf("total %d, datakit %d",
+			len(stats.AvailableInputs), len(inputs.Inputs)))
+	}
 }
 
-func apiGetDatakitStats(w http.ResponseWriter, r *http.Request, x ...interface{}) (interface{}, error) {
-	s, err := GetStats()
-	if err != nil {
-		return nil, err
+func getInputsStats(name string, stats *DatakitStats, pts []*dto.Metric) {
+	if stats.InputsStats == nil {
+		stats.InputsStats = make(map[string]inputsStat, 0)
 	}
 
-	body, err := json.MarshalIndent(s, "", "    ")
-	if err != nil {
-		return nil, err
+	feedCost := map[string]float64{}
+
+	for _, pt := range pts {
+		labels := pt.GetLabel()
+		if len(labels) == 0 {
+			break
+		}
+
+		inputName, cat, err := "", "", ""
+		for _, la := range labels {
+			switch la.GetName() {
+			case "name":
+				inputName = la.GetValue()
+			case "source":
+				inputName = la.GetValue()
+			case "category":
+				cat = la.GetValue()
+			case "error":
+				err = la.GetValue()
+			}
+		}
+
+		if len(inputName) == 0 {
+			continue
+		}
+
+		item, ok := stats.InputsStats[inputName]
+		if !ok {
+			item = inputsStat{Category: cat}
+		}
+
+		switch name {
+		case "datakit_io_feed_total":
+			item.Total = int64(pt.GetCounter().GetValue())
+		case "datakit_io_input_filter_point_total":
+			item.Filtered = int64(pt.GetCounter().GetValue())
+		case "datakit_io_last_feed":
+			item.Last = time.Unix(int64(pt.GetGauge().GetValue()), 0)
+		case "datakit_last_err":
+			item.LastErr = err
+			item.LastErrTS = time.Unix(int64(pt.GetGauge().GetValue()), 0)
+		case "datakit_input_collect_latency":
+			cost := pt.GetCounter().GetValue()
+			if item.MaxCollectCost > time.Duration(cost) {
+				item.MaxCollectCost = time.Duration(cost)
+			}
+			feedCost[inputName] += cost
+		}
+
+		stats.InputsStats[inputName] = item
 	}
 
-	return body, nil
+	if len(feedCost) > 0 {
+		for n, val := range feedCost {
+			item := stats.InputsStats[n]
+			item.AvgCollectCost = time.Duration(val / float64(stats.InputsStats[n].Total))
+		}
+	}
 }
 
-type ResponseJSON struct {
-	Code      int         `json:"code"`
-	Content   interface{} `json:"content"`
-	ErrorCode string      `json:"errorCode"`
-	ErrorMsg  string      `json:"errorMsg"`
-	Success   bool        `json:"success"`
+func getFilterStats(name string, stats *DatakitStats, pts []*dto.Metric) {
+	for _, pt := range pts {
+		switch name {
+		case "datakit_filter_point_total":
+			stats.FilterStats.PullCount = int(pt.GetCounter().GetValue())
+
+		case "datakit_filter_point_dropped_total":
+			stats.FilterStats.PullFailed = int(pt.GetCounter().GetValue())
+
+		case "datakit_filter_avg_cost":
+		case "datakit_filter_max_cost":
+		case "datakit_filter_last_update":
+			stats.FilterStats.LastUpdate = time.Unix(int64(pt.GetGauge().GetValue()), 0)
+		}
+	}
 }
 
-// StatInfo contains datakit stat info which not changes over time.
-type StatInfo struct {
-	EnabledInputs   map[string]*enabledInput  `json:"enabled_input_list"`
-	AvailableInputs []string                  `json:"available_inputs"`
-	HostName        string                    `json:"hostname"`
-	Version         string                    `json:"version"`
-	BuildAt         string                    `json:"build_at"`
-	Branch          string                    `json:"branch"`
-	OSArch          string                    `json:"os_arch"`
-	WithinDocker    bool                      `json:"docker"`
-	AutoUpdate      bool                      `json:"auto_update"`
-	Cgroup          string                    `json:"cgroup"`
-	ConfigInfo      map[string]*inputs.Config `json:"config_info"`
+func getHTTPStats(name string, stats *DatakitStats, pts []*dto.Metric) {
+	if stats.HTTPMetrics == nil {
+		stats.HTTPMetrics = make(map[string]*APIStat)
+	}
+	for _, pt := range pts {
+		labels := pt.GetLabel()
+		if len(labels) > 0 {
+			api := ""
+			status := 0
+
+			for _, label := range labels {
+				switch label.GetName() {
+				case "api":
+					api = label.GetValue()
+				case "status":
+					status = statusContextToStatusCode[label.GetValue()]
+				}
+			}
+
+			if _, ok := stats.HTTPMetrics[api]; !ok {
+				stats.HTTPMetrics[api] = &APIStat{}
+			}
+
+			hm := stats.HTTPMetrics[api]
+
+			switch status / 100 {
+			case 2:
+				hm.Status2xx++
+			case 3:
+				hm.Status3xx++
+			case 4:
+				hm.Status4xx++
+			case 5:
+				hm.Status5xx++
+			}
+
+			switch name {
+			case "datakit_http_api_total":
+				hm.TotalCount += int(pt.GetCounter().GetValue())
+			case "datakit_http_api_elapsed":
+				// 单位 ms
+				la := time.Duration(pt.GetSummary().GetSampleCount())
+				if la > hm.MaxLatency {
+					hm.MaxLatency = la
+				}
+				hm.totalLatency += la
+			}
+		}
+	}
 }
 
-// StatMetric contains datakit stat metric which changes over time.
-type StatMetric struct {
-	GoroutineStats *goroutine.Summary         `json:"goroutine_stats"`
-	GolangRuntime  *runtimeInfo               `json:"golang_runtime"`
-	Elected        string                     `json:"elected"`
-	OpenFiles      int                        `json:"open_files"`
-	InputsStats    map[string]*io.InputsStat  `json:"inputs_status"`
-	IOStats        *io.Stats                  `json:"io_stats"`
-	PLStats        []plstats.ScriptStatsROnly `json:"pl_stats"`
-	HTTPMetrics    map[string]*APIStat        `json:"http_metrics"`
-	FilterStats    *filter.FilterStats        `json:"filter_stats"`
-}
-
-// getStatInfo return stat info.
-func getStatInfo() *StatInfo {
-	infoStat := &StatInfo{}
-	s, err := GetStats()
-	if err != nil {
-		l.Warnf("get stats error: %s", err.Error())
-	} else {
-		infoStat.EnabledInputs = s.EnabledInputs
-		infoStat.AvailableInputs = s.AvailableInputs
-		infoStat.HostName = s.HostName
-		infoStat.Version = s.Version
-		infoStat.BuildAt = s.BuildAt
-		infoStat.Branch = s.Branch
-		infoStat.OSArch = s.OSArch
-		infoStat.WithinDocker = s.WithinDocker
-		infoStat.AutoUpdate = s.AutoUpdate
-		infoStat.Cgroup = s.Cgroup
-		infoStat.ConfigInfo = inputs.ConfigInfo
+func getGoroutineStats(name string, stats *DatakitStats, pts []*dto.Metric) {
+	if stats.GoroutineStats == nil {
+		stats.GoroutineStats = &goroutineSummary{Items: make(map[string]goroutine.RunningStatInfo, 10)}
 	}
 
-	return infoStat
-}
+	for _, pt := range pts {
+		labels := pt.GetLabel()
+		if len(labels) > 0 {
+			item, ok := stats.GoroutineStats.Items[labels[0].GetValue()]
+			if !ok {
+				item = goroutine.RunningStatInfo{}
+			}
 
-// getStatMetric return stat metric.
-func getStatMetric() *StatMetric {
-	metricStat := &StatMetric{}
-	s, err := GetStats()
-	if err != nil {
-		l.Warnf("get stats error: %s", err.Error())
-	} else {
-		metricStat.GoroutineStats = s.GoroutineStats
-		metricStat.GolangRuntime = s.GolangRuntime
-		metricStat.Elected = s.Elected
-		metricStat.OpenFiles = s.OpenFiles
-		metricStat.InputsStats = s.InputsStats
-		metricStat.IOStats = s.IOStats
-		metricStat.PLStats = s.PLStats
-		metricStat.HTTPMetrics = s.HTTPMetrics
-		metricStat.FilterStats = s.FilterStats
-	}
+			switch name {
+			case "datakit_goroutine_stopped_total":
+				item.Total = int64(pt.GetCounter().GetValue())
+				stats.GoroutineStats.Total += item.Total
 
-	return metricStat
-}
+			case "datakit_goroutine_alive":
+				item.RunningTotal = int64(pt.GetGauge().GetValue())
+				stats.GoroutineStats.RunningTotal += item.RunningTotal
 
-func apiGetDatakitStatsByType(w http.ResponseWriter, r *http.Request, x ...interface{}) (interface{}, error) {
-	var stat interface{}
+			case "datakit_goroutine_total_cost_time":
+				item.CostTime = fmt.Sprintf("%v", (pt.GetCounter().GetValue()))
+				stats.GoroutineStats.CostTime += int64(pt.GetCounter().GetValue())
 
-	statType := r.URL.Query().Get("type")
+			case "datakit_goroutine_min_cost_time":
+				item.MinCostTime = fmt.Sprintf("%v", (pt.GetCounter().GetValue()))
 
-	switch statType {
-	case StatMetricType:
-		stat = getStatMetric()
-	case StatInfoType:
-		stat = getStatInfo()
-	default:
-		stat = getStatInfo()
-	}
+			case "datakit_goroutine_max_cost_time":
+				item.MaxCostTime = fmt.Sprintf("%v", (pt.GetCounter().GetValue()))
 
-	if stat == nil {
-		stat = ResponseJSON{
-			Code:      400,
-			ErrorCode: "param.invalid",
-			ErrorMsg:  fmt.Sprintf("invalid type, which should be '%s' or '%s'", StatInfoType, StatMetricType),
-			Success:   false,
+			case "datakit_goroutine_err_count":
+				item.ErrCount = int64(pt.GetCounter().GetValue())
+
+			case "datakit_goroutine_cost":
+				item.CostTimeDuration = time.Duration(pt.GetSummary().GetSampleCount())
+
+			case "datakit_goroutine_min_cost_time_ns":
+				item.MinCostTimeDuration = time.Duration(pt.GetCounter().GetValue())
+
+			case "datakit_goroutine_max_cost_time_ns":
+				item.MaxCostTimeDuration = time.Duration(pt.GetCounter().GetValue())
+
+				// case "datakit_goroutine_cost":
+				// item.CostTime = fmt.Sprintf("%v", pt.GetSummary().GetSampleCount())
+			}
+
+			stats.GoroutineStats.Items[labels[0].GetValue()] = item
 		}
 	}
 
-	body, err := json.MarshalIndent(stat, "", "    ")
-	if err != nil {
-		return nil, err
+	if stats.GoroutineStats.Total != 0 {
+		stats.GoroutineStats.AvgCostTime = stats.GoroutineStats.CostTime / stats.GoroutineStats.Total
+	}
+}
+
+func getDatawayPointTotal(name string, stats *DatakitStats, pts []*dto.Metric) {
+	if stats.IOStats == nil {
+		stats.IOStats = &Stats{ChanUsage: make(map[string][2]int, 5)}
 	}
 
-	return body, nil
+	for _, pt := range pts {
+		cat, status := "", ""
+
+		labels := pt.GetLabel()
+		for _, label := range labels {
+			switch label.GetName() {
+			case "category":
+				cat = label.GetValue()
+			case "status":
+				status = label.GetValue()
+			}
+		}
+
+		v := uint64(pt.GetCounter().GetValue())
+
+		switch cat {
+		case "/v1/write/custom_object":
+			assignUint64Pts(v, &stats.IOStats.COSendPts, &stats.IOStats.COFailPts, &stats.IOStats.FeedDropPts, status)
+
+		case "/v1/write/metric":
+			assignUint64Pts(v, &stats.IOStats.MSendPts, &stats.IOStats.MFailPts, &stats.IOStats.FeedDropPts, status)
+
+		case "/v1/write/network":
+			assignUint64Pts(v, &stats.IOStats.NSendPts, &stats.IOStats.NFailPts, &stats.IOStats.FeedDropPts, status)
+
+		case "/v1/write/keyevent":
+			assignUint64Pts(v, &stats.IOStats.ESendPts, &stats.IOStats.EFailPts, &stats.IOStats.FeedDropPts, status)
+
+		case "/v1/write/object":
+			assignUint64Pts(v, &stats.IOStats.OSendPts, &stats.IOStats.OFailPts, &stats.IOStats.FeedDropPts, status)
+
+		case "/v1/write/logging":
+			assignUint64Pts(v, &stats.IOStats.LSendPts, &stats.IOStats.LFailPts, &stats.IOStats.FeedDropPts, status)
+
+		case "/v1/write/tracing":
+			assignUint64Pts(v, &stats.IOStats.TSendPts, &stats.IOStats.TFailPts, &stats.IOStats.FeedDropPts, status)
+
+		case "/v1/write/rum":
+			assignUint64Pts(v, &stats.IOStats.RSendPts, &stats.IOStats.RFailPts, &stats.IOStats.FeedDropPts, status)
+
+		case "/v1/write/security":
+			assignUint64Pts(v, &stats.IOStats.SSendPts, &stats.IOStats.SFailPts, &stats.IOStats.FeedDropPts, status)
+
+			// case "/v1/upload/profiling":
+		case "/v1/write/profiling":
+			assignUint64Pts(v, &stats.IOStats.PSendPts, &stats.IOStats.PFailPts, &stats.IOStats.FeedDropPts, status)
+		}
+	}
+}
+
+func assignUint64Pts(count uint64, send, fail, drop *uint64, status string) {
+	switch status {
+	case "ok":
+		*send = count
+	case "failed":
+		*fail = count
+	case "drroped":
+		*drop += count
+	}
+}
+
+var statusContextToStatusCode = map[string]int{
+	"Continue":                        100,
+	"Switching Protocols":             101,
+	"Processing":                      102,
+	"Early Hints":                     103,
+	"OK":                              200,
+	"Created":                         201,
+	"Accepted":                        202,
+	"Non-Authoritative Information":   203,
+	"No Content":                      204,
+	"Reset Content":                   205,
+	"Partial Content":                 206,
+	"Multi-Status":                    207,
+	"Already Reported":                208,
+	"IM Used":                         226,
+	"Multiple Choices":                300,
+	"Moved Permanently":               301,
+	"Found":                           302,
+	"See Other":                       303,
+	"Not Modified":                    304,
+	"Use Proxy":                       305,
+	"Temporary Redirect":              307,
+	"Permanent Redirect":              308,
+	"Bad Request":                     400,
+	"Unauthorized":                    401,
+	"Payment Required":                402,
+	"Forbidden":                       403,
+	"Not Found":                       404,
+	"Method Not Allowed":              405,
+	"Not Acceptable":                  406,
+	"Proxy Authentication Required":   407,
+	"Request Timeout":                 408,
+	"Conflict":                        409,
+	"Gone":                            410,
+	"Length Required":                 411,
+	"Precondition Failed":             412,
+	"Request Entity Too Large":        413,
+	"Request URI Too Long":            414,
+	"Unsupported Media Type":          415,
+	"Requested Range Not Satisfiable": 416,
+	"Expectation Failed":              417,
+	"I'm a teapot":                    418,
+	"Misdirected Request":             421,
+	"Unprocessable Entity":            422,
+	"Locked":                          423,
+	"Failed Dependency":               424,
+	"Too Early":                       425,
+	"Upgrade Required":                426,
+	"Precondition Required":           428,
+	"Too Many Requests":               429,
+	"Request Header Fields Too Large": 431,
+	"Unavailable For Legal Reasons":   451,
+	"Internal Server Error":           500,
+	"Not Implemented":                 501,
+	"Bad Gateway":                     502,
+	"Service Unavailable":             503,
+	"Gateway Timeout":                 504,
+	"HTTP Version Not Supported":      505,
+	"Variant Also Negotiates":         506,
+	"Insufficient Storage":            507,
+	"Loop Detected":                   508,
+	"Not Extended":                    510,
+	"Network Authentication Required": 511,
+}
+
+var chanUsage = map[string]string{
+	"metric":        "/v1/write/metric",
+	"metrics":       "/v1/write/metrics",
+	"network":       "/v1/write/network",
+	"event":         "/v1/write/event",
+	"object":        "/v1/write/object",
+	"custom_object": "/v1/write/custom_object",
+	"logging":       "/v1/write/logging",
+	"tracing":       "/v1/write/tracing",
+	"rum":           "/v1/write/rum",
+	"security":      "/v1/write/security",
+	"profiling":     "/v1/write/profiling",
 }

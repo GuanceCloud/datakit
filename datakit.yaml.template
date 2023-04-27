@@ -2,82 +2,76 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: datakit
+
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: datakit
 rules:
-- apiGroups:
-  - rbac.authorization.k8s.io
-  resources:
-  - clusterroles
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - nodes
-  - nodes/proxy
-  - namespaces
-  - pods
-  - pods/log
-  - events
-  - services
-  - endpoints
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - apps
-  resources:
-  - deployments
-  - daemonsets
-  - statefulsets
-  - replicasets
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - batch
-  resources:
-  - jobs
-  - cronjobs
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - guance.com
-  resources:
-  - datakits
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - monitoring.coreos.com
-  resources:
-  - podmonitors
-  - servicemonitors
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - metrics.k8s.io
-  resources:
-  - pods
-  - nodes
-  verbs:
-  - get
-  - list
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["clusterroles"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["nodes", "nodes/proxy", "namespaces", "pods", "pods/log", "events", "services", "endpoints"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "daemonsets", "statefulsets", "replicasets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["batch"]
+  resources: ["jobs", "cronjobs"]
+  verbs: [ "get", "list", "watch"]
+- apiGroups: ["guance.com"]
+  resources: ["datakits"]
+  verbs: ["get","list"]
+- apiGroups: ["monitoring.coreos.com"]
+  resources: ["podmonitors", "servicemonitors"]
+  verbs: ["get", "list"]
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["pods", "nodes"]
+  verbs: ["get", "list"]
 - nonResourceURLs: ["/metrics"]
   verbs: ["get"]
+
+---
+
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: datakits.guance.com
+spec:
+  group: guance.com
+  versions:
+    - name: v1beta1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                instances:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      k8sNamespace:
+                        type: string
+                      k8sDeployment:
+                        type: string
+                      datakit/logs:
+                        type: string
+                      inputConf:
+                        type: string
+  scope: Namespaced
+  names:
+    plural: datakits
+    singular: datakit
+    kind: Datakit
+    shortNames:
+    - dk
 
 ---
 
@@ -155,7 +149,7 @@ spec:
         - name: ENV_GLOBAL_TAGS
           value: host=__datakit_hostname,host_ip=__datakit_ip
         - name: ENV_DEFAULT_ENABLED_INPUTS
-          value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container
+          value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container,self
         - name: ENV_ENABLE_ELECTION
           value: enable
         - name: ENV_LOG
@@ -188,6 +182,13 @@ spec:
           hostPort: 9529
           name: port
           protocol: TCP
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "128Mi"
+          limits:
+            cpu: "2000m"
+            memory: "4Gi"
         securityContext:
           privileged: true
         volumeMounts:
@@ -201,8 +202,8 @@ spec:
         - mountPath: /sys/kernel/debug
           name: debugfs
         # # ---iploc-start
-        # - mountPath: /usr/local/datakit/data/ipdb/iploc/
-        #   name: datakit-ipdb
+        #- mountPath: /usr/local/datakit/data/ipdb/iploc/
+        #  name: datakit-ipdb
         # # ---iploc-end
         #- mountPath: /usr/local/datakit/conf.d/db/mysql.conf
         #  name: datakit-conf
@@ -214,19 +215,19 @@ spec:
         #  readOnly: true
         workingDir: /usr/local/datakit
       # # ---iploc-start
-      # initContainers:
-      #   - args:
-      #       - tar -xf /opt/iploc.tar.gz -C /usr/local/datakit/data/ipdb/iploc/
-      #     command:
-      #       - bash
-      #       - -c
-      #     image: pubrepo.jiagouyun.com/datakit/iploc:1.0
-      #     imagePullPolicy: IfNotPresent
-      #     name: init-volume
-      #     resources: {}
-      #     volumeMounts:
-      #       - mountPath: /usr/local/datakit/data/ipdb/iploc/
-      #         name: datakit-ipdb
+      #initContainers:
+      #  - args:
+      #      - tar -xf /opt/iploc.tar.gz -C /usr/local/datakit/data/ipdb/iploc/
+      #    command:
+      #      - bash
+      #      - -c
+      #    image: pubrepo.jiagouyun.com/datakit/iploc:1.0
+      #    imagePullPolicy: IfNotPresent
+      #    name: init-volume
+      #    resources: {}
+      #    volumeMounts:
+      #      - mountPath: /usr/local/datakit/data/ipdb/iploc/
+      #        name: datakit-ipdb
       # # ---iploc-end
       hostIPC: true
       hostPID: true
@@ -252,8 +253,8 @@ spec:
           path: /sys/kernel/debug
         name: debugfs
       # # ---iploc-start
-      # - emptyDir: {}
-      #   name: datakit-ipdb
+      #- emptyDir: {}
+      #  name: datakit-ipdb
       # # ---iploc-end
   updateStrategy:
     rollingUpdate:

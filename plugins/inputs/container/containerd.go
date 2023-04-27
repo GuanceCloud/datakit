@@ -120,6 +120,10 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 	l.Debugf("containerd linux_namespaces: %v", nsList)
 
 	for _, ns := range nsList {
+		// ignore docker
+		if ns == "moby" {
+			continue
+		}
 		ctx := namespaces.WithNamespace(context.Background(), ns)
 		cList, err := c.client.Containers(ctx)
 		if err != nil {
@@ -241,12 +245,6 @@ func (c *containerdInput) watchNewLogs() error {
 			l.Debugf("containerd-status: %#v", status)
 			continue
 		}
-
-		name := container.Id
-		if m := status.GetMetadata(); m != nil {
-			name = m.Name
-		}
-		l.Infof("add container log, containerName: %s image: %s", name, container.Image)
 
 		func(status *cri.ContainerStatus) {
 			g.Go(func(ctx context.Context) error {
@@ -399,7 +397,7 @@ func newContainerdObject(info *containers.Container) *containerdObject {
 func isPauseContainerd(info *containers.Container) bool {
 	_, imageShortName, _ := ParseImage(info.Image)
 	// ex: pause@sha256
-	return strings.HasPrefix(imageShortName, "pause")
+	return strings.Contains(imageShortName, "pause")
 }
 
 type containerdMetric struct {

@@ -15,7 +15,9 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/netip"
 	"path/filepath"
+	"strings"
 
 	// nolint:gosec
 	_ "net/http/pprof"
@@ -23,13 +25,16 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/gin-contrib/timeout"
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/metrics"
+	uhttp "github.com/GuanceCloud/cliutils/network/http"
+	"github.com/GuanceCloud/timeout"
 	"github.com/gin-gonic/gin"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	dkm "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 	lumberjack "gopkg.in/natefinch/lumberjack.v2"
 )
@@ -47,9 +52,7 @@ var (
 
 	enableRequestLogger = false
 
-	uptime = time.Now()
-
-	dw        dataway.DataWay
+	dw        = &dataway.Dataway{}
 	apiConfig = &APIConfig{}
 	dcaConfig *DCAConfig
 
@@ -68,7 +71,7 @@ type Option struct {
 	GinLog    string
 	GinRotate int
 	APIConfig *APIConfig
-	DataWay   dataway.DataWay
+	DataWay   *dataway.Dataway
 	DCAConfig *DCAConfig
 
 	GinReleaseMode bool
@@ -151,6 +154,7 @@ func Start(o *Option) {
 			Addr: pprofListen,
 		}
 
+		l.Infof("start pprof on %s", pprofListen)
 		g.Go(func(ctx context.Context) error {
 			tryStartServer(pprofSrv, true, semReload, semReloadCompleted)
 			l.Info("pprof server exit")
@@ -189,12 +193,20 @@ func page404(c *gin.Context) {
 	}
 
 	buf := &bytes.Buffer{}
-	w.Uptime = fmt.Sprintf("%v", time.Since(uptime))
+	w.Uptime = fmt.Sprintf("%v", time.Since(dkm.Uptime))
 	if err := t.Execute(buf, w); err != nil {
 		l.Error("build html failed: %s", err.Error())
 		uhttp.HttpErr(c, err)
 		return
 	}
+
+	apiCountVec.WithLabelValues("404-page",
+		c.Request.Method,
+		http.StatusText(http.StatusNotFound)).Inc()
+
+	apiReqSizeVec.WithLabelValues("404-page",
+		c.Request.Method,
+		http.StatusText(http.StatusNotFound)).Observe(float64(approximateRequestSize(c.Request)))
 
 	c.String(http.StatusNotFound, buf.String())
 }
@@ -246,7 +258,7 @@ func setupRouter() *gin.Engine {
 
 	// use whitelist config
 	if len(apiConfig.PublicAPIs) != 0 {
-		router.Use(loopbackWhiteList)
+		router.Use(getAPIWhiteListMiddleware())
 	}
 
 	router.Use(setVersionInfo)
@@ -270,42 +282,52 @@ func setupRouter() *gin.Engine {
 
 	applyHTTPRoute(router)
 
-	router.GET("/stats", rawHTTPWraper(reqLimiter, apiGetDatakitStats))
+	router.GET("/stats", rawHTTPWraper(reqLimiter, apiGetDatakitStats)) // Deprecated, use /metrics
+
+	// limit metrics
+	router.GET("/metrics", ginLimiter(reqLimiter), metrics.HTTPGinHandler(promhttp.HandlerOpts{}))
+
 	router.GET("/stats/:type", rawHTTPWraper(reqLimiter, apiGetDatakitStatsByType))
-	router.GET("/monitor", apiGetDatakitMonitor)
+	// router.GET("/stats/input", rawHTTPWraper(reqLimiter, apiGetInputStats))
+
 	router.GET("/restart", apiRestart)
 
-	router.GET("/v1/workspace", apiWorkspace)
+	router.GET("/v1/workspace", ginLimiter(reqLimiter), apiWorkspace)
 	router.GET("/v1/ping", rawHTTPWraper(reqLimiter, apiPing))
-	router.POST("/v1/lasterror", apiGetDatakitLastError)
+	router.POST("/v1/lasterror", ginLimiter(reqLimiter), apiGetDatakitLastError)
 
 	router.POST("/v1/write/:category", rawHTTPWraper(reqLimiter, apiWrite, &apiWriteImpl{}))
 
-	router.POST("/v1/query/raw", apiQueryRaw)
-	router.POST("/v1/object/labels", apiCreateOrUpdateObjectLabel)
-	router.DELETE("/v1/object/labels", apiDeleteObjectLabel)
+	router.POST("/v1/query/raw", ginLimiter(reqLimiter), apiQueryRaw)
+	router.POST("/v1/object/labels", ginLimiter(reqLimiter), apiCreateOrUpdateObjectLabel)
+	router.DELETE("/v1/object/labels", ginLimiter(reqLimiter), apiDeleteObjectLabel)
 
 	router.POST("/v1/pipeline/debug", rawHTTPWraper(reqLimiter, apiPipelineDebugHandler))
 	router.POST("/v1/dialtesting/debug", rawHTTPWraper(reqLimiter, apiDebugDialtestingHandler))
 	return router
 }
 
-// TODO: we should wrap this handler.
-func loopbackWhiteList(c *gin.Context) {
-	cliIP := net.ParseIP(c.ClientIP())
+func getAPIWhiteListMiddleware() gin.HandlerFunc {
+	publicAPITable := make(map[string]struct{}, len(apiConfig.PublicAPIs))
+	for _, apiPath := range apiConfig.PublicAPIs {
+		apiPath = strings.TrimSpace(apiPath)
+		if len(apiPath) > 0 && apiPath[0] != '/' {
+			apiPath = "/" + apiPath
+		}
+		publicAPITable[apiPath] = struct{}{}
+	}
 
-	for _, urlPath := range apiConfig.PublicAPIs {
-		// TODO: other 404 API still blocked by this whitelist, this should be a 404 status, but got 403
-		if c.Request.URL.Path != urlPath && !cliIP.IsLoopback() { // not public API and not loopback client
+	return func(c *gin.Context) {
+		cliIP := net.ParseIP(c.ClientIP())
+		if _, ok := publicAPITable[c.Request.URL.Path]; !ok && !cliIP.IsLoopback() {
 			uhttp.HttpErr(c, uhttp.Errorf(ErrPublicAccessDisabled,
 				"api %s disabled from IP %s, only loopback(localhost) allowed",
 				c.Request.URL.Path, cliIP.String()))
 			c.Abort()
 			return
 		}
+		c.Next()
 	}
-
-	c.Next()
 }
 
 func HTTPStart() {
@@ -319,12 +341,6 @@ func HTTPStart() {
 	if apiConfig.CloseIdleConnection {
 		srv.ReadTimeout = apiConfig.timeoutDuration
 	}
-
-	g.Go(func(ctx context.Context) error {
-		l.Info("start HTTP metric goroutine")
-		metrics()
-		return nil
-	})
 
 	g.Go(func(ctx context.Context) error {
 		tryStartServer(srv, true, semReload, semReloadCompleted)
@@ -428,7 +444,12 @@ func tryStartServer(srv *http.Server, canReload bool, semReload, semReloadComple
 		time.Sleep(time.Second)
 	}
 
-	listener, err := parseListen(srv.Addr)
+	listener, err := initListener(srv.Addr)
+	if err != nil {
+		l.Errorf("initListener failed: %v", err)
+		return
+	}
+
 	closeListener := func() {
 		if listener != nil {
 			err = listener.Close()
@@ -437,29 +458,24 @@ func tryStartServer(srv *http.Server, canReload bool, semReload, semReloadComple
 			}
 		}
 	}
+
 	defer closeListener()
-	if err != nil {
-		l.Errorf("parseListen failed: %v", err)
-		return
-	}
 
 	for {
 		l.Infof("try start server at %s(retrying %d)...", srv.Addr, retryCnt)
-		if listener != nil {
-			err = srv.Serve(listener)
-		} else {
-			err = srv.ListenAndServe()
-		}
+		if err = srv.Serve(listener); err != nil {
+			if !errors.Is(err, http.ErrServerClosed) {
+				l.Warnf("start server at %s failed: %s, retrying(%d)...", srv.Addr, err.Error(), retryCnt)
+				retryCnt++
+			} else {
+				l.Debugf("server(%s) stopped on: %s", srv.Addr, err.Error())
+				closeListener()
+				break
+			}
 
-		if !errors.Is(err, http.ErrServerClosed) {
-			l.Warnf("start server at %s failed: %s, retrying(%d)...", srv.Addr, err.Error(), retryCnt)
-			retryCnt++
-		} else {
-			l.Debugf("server(%s) stopped on: %s", srv.Addr, err.Error())
-			closeListener()
-			break
+			// retry
+			time.Sleep(time.Second)
 		}
-		time.Sleep(time.Second)
 	}
 }
 
@@ -491,17 +507,44 @@ func checkToken(r *http.Request) error {
 	return nil
 }
 
-func parseListen(lsn string) (net.Listener, error) {
-	var listener net.Listener
+func initListener(lsn string) (net.Listener, error) {
+	var (
+		listener net.Listener
+		err      error
+	)
 
 	if filepath.IsAbs(lsn) {
-		err := os.RemoveAll(lsn)
-		if err != nil {
-			return nil, err
+		if err = os.RemoveAll(lsn); err != nil {
+			return nil, fmt.Errorf("os.RemoveAll: %w", err)
 		}
-		listener, err = net.Listen("unix", lsn)
-		if err != nil {
-			return nil, err
+
+		if listener, err = net.Listen("unix", lsn); err != nil {
+			return nil, fmt.Errorf(`net.Listen("unix"): %w`, err)
+		}
+		return listener, nil
+	}
+
+	// netip.ParseAddrPort can't parse `localhost', see:
+	//  https://pkg.go.dev/net/netip#ParseAddrPort
+	if strings.Contains(lsn, "localhost") {
+		lsn = strings.ReplaceAll(lsn, "localhost", "127.0.0.1")
+	}
+
+	// ipv6 or ipv6
+	if addrPort, err := netip.ParseAddrPort(lsn); err != nil {
+		return nil, fmt.Errorf("netip.ParseAddrPort: %w", err)
+	} else {
+		switch {
+		case addrPort.Addr().Is6():
+			listener, err = net.Listen("tcp6", lsn)
+			if err != nil {
+				return nil, fmt.Errorf("net.Listen(tcp6): %w", err)
+			}
+		default: // ipv4 or ipv6:
+			listener, err = net.Listen("tcp", lsn)
+			if err != nil {
+				return nil, fmt.Errorf("net.Listen(tcp): %w", err)
+			}
 		}
 	}
 

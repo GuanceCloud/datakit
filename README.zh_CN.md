@@ -6,6 +6,7 @@
 
 [![Slack Status](https://img.shields.io/badge/slack-join_chat-orange?logo=slack&style=plastic)](https://app.slack.com/client/T032YB4B6TA/)
 [![MIT License](https://img.shields.io/badge/license-MIT-green?style=plastic)](LICENSE)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FGuanceCloud%2Fdatakit.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FGuanceCloud%2Fdatakit?ref=badge_shield)
 
 <h2>
   <a href="https://datakit.tools">官网</a>
@@ -58,7 +59,13 @@ DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>" bash -c "$(curl -L ht
 - Windows
 
 ```powershell
-$env:DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>";Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+Remove-Item -ErrorAction SilentlyContinue Env:DK_*;
+$env:DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>";
+Set-ExecutionPolicy Bypass -scope Process -Force;
+Import-Module bitstransfer;
+start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1;
+powershell .install.ps1;
+Remove-Item .install.ps1;
 ```
 
 - [Kubernetes DaemonSet](https://www.yuque.com/dataflux/datakit/datakit-daemonset-deploy)
@@ -100,9 +107,9 @@ export PATH=$GOROOT/bin:~/go/bin:$PATH
 - lint 相关
   - lint: `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.42.1`
 - eBPF 相关（eBPF 不是编译 DataKit 本身必须的，如果不安装它们，只会导致 eBPF 部分编译失败）
-	- clang 10.0+: `apt-get install clang`
-	- llvm 10.0+: `apt-get install llvm`
-	- kernel headers: `apt-get install -y linux-headers-$(uname -r)`
+    - clang 10.0+: `apt-get install clang`
+    - llvm 10.0+: `apt-get install llvm`
+    - kernel headers: `apt-get install -y linux-headers-$(uname -r)`
 - 文档相关: [waque 1.13.1+](https://github.com/yesmeck/waque)
   - 文档工具也不是必须的，可不安装
 
@@ -140,7 +147,7 @@ dist
 │   └── [ 228]  version
 └── [4.0K]  standalone
     └── [4.0K]  datakit-ebpf-linux-amd64
-		        └── [ 38M]  datakit-ebpf
+                └── [ 38M]  datakit-ebpf
 ```
 
 如果要编译全平台版本，执行：
@@ -167,3 +174,6 @@ datakit help
 ## 文档
 
 - [DataKit 文档库](https://docs.guance.com/datakit/)
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FGuanceCloud%2Fdatakit.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FGuanceCloud%2Fdatakit?ref=badge_large)

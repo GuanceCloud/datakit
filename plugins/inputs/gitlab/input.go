@@ -9,18 +9,19 @@ package gitlab
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -88,9 +89,9 @@ type Input struct {
 	reqMemo requestMemo
 
 	// For testing purpose.
-	feed func(name, category string, pts []*point.Point, opt *iod.Option) error
+	feed func(name, category string, pts []*dkpt.Point, opt *iod.Option) error
 
-	feedLastError func(inputName string, err string)
+	feedLastError func(inputName string, err string, cat ...point.Category)
 }
 
 func (ipt *Input) ElectionEnabled() bool {
@@ -223,7 +224,7 @@ func (ipt *Input) gather() {
 	}
 }
 
-func (ipt *Input) gatherMetrics() ([]*point.Point, error) {
+func (ipt *Input) gatherMetrics() ([]*dkpt.Point, error) {
 	resp, err := ipt.httpClient.Get(ipt.URL)
 	if err != nil {
 		return nil, err
@@ -235,7 +236,7 @@ func (ipt *Input) gatherMetrics() ([]*point.Point, error) {
 		return nil, err
 	}
 
-	var points []*point.Point
+	var points []*dkpt.Point
 
 	for _, m := range metrics {
 		measurement := inputName
@@ -248,19 +249,17 @@ func (ipt *Input) gatherMetrics() ([]*point.Point, error) {
 			measurement = inputName + "_http"
 		}
 
-		if host := getHost(ipt.URL); host != "" {
-			m.tags["host"] = host
-		}
+		setHostTagIfNotLoopback(m.tags, ipt.URL)
 		for k, v := range ipt.Tags {
 			m.tags[k] = v
 		}
 
-		point, err := point.NewPoint(measurement, m.tags, m.fields, point.MOptElectionV2(ipt.Election))
+		pt, err := dkpt.NewPoint(measurement, m.tags, m.fields, dkpt.MOptElectionV2(ipt.Election))
 		if err != nil {
 			l.Warn(err)
 			continue
 		}
-		points = append(points, point)
+		points = append(points, pt)
 	}
 
 	return points, nil
@@ -282,16 +281,20 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func getHost(rawURL string) string {
-	if strings.Contains(rawURL, "127.0.0.1") || strings.Contains(rawURL, "localhost") {
-		return ""
-	}
-	u, err := url.Parse(rawURL)
+func setHostTagIfNotLoopback(tags map[string]string, u string) {
+	uu, err := url.Parse(u)
 	if err != nil {
-		l.Errorf("failed to get host from url: %v", err)
-		return ""
+		l.Errorf("parse url: %v", err)
+		return
 	}
-	return u.Host
+	host, _, err := net.SplitHostPort(uu.Host)
+	if err != nil {
+		l.Errorf("split host and port: %v", err)
+		return
+	}
+	if host != "localhost" && !net.ParseIP(host).IsLoopback() {
+		tags["host"] = host
+	}
 }
 
 func init() { //nolint:gochecknoinits

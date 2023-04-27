@@ -11,8 +11,8 @@ import (
 	"net"
 	"path/filepath"
 
+	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/oschwald/geoip2-golang"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb"
 )

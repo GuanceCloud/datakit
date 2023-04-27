@@ -11,13 +11,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 var (
 	MonofontOnTagFieldName = true
-	TODO                   = "TODO" // global todo string
+	TODO                   = "-" // global todo string
 )
 
 const (
@@ -79,8 +80,13 @@ const (
 )
 
 type Measurement interface {
-	LineProto() (*point.Point, error)
+	LineProto() (*dkpt.Point, error)
 	Info() *MeasurementInfo
+}
+
+type MeasurementV2 interface {
+	Measurement
+	Point() *point.Point
 }
 
 type FieldInfo struct {
@@ -111,7 +117,7 @@ type CommonMeasurement struct {
 
 func (m *MeasurementInfo) FieldsMarkdownTable() string {
 	const tableHeader = `
-| 指标 | 描述| 数据类型 | 单位   |
+| Metric | Descrition | Type | Unit |
 | ---- |---- | :---:    | :----: |`
 	const monoRowfmt = "|`%s`|%s|%s|%s|" // 指标/标签列等宽字体展示
 	const normalRowfmt = "|%s|%s|%s|%s|"
@@ -141,11 +147,11 @@ func (m *MeasurementInfo) FieldsMarkdownTable() string {
 
 func (m *MeasurementInfo) TagsMarkdownTable() string {
 	if len(m.Tags) == 0 {
-		return "暂无"
+		return "NA"
 	}
 
 	tableHeader := `
-| 标签名 | 描述    |
+| Tag | Descrition |
 |  ----  | --------|`
 
 	rows := []string{tableHeader}
@@ -182,8 +188,8 @@ func FeedMeasurement(name, category string, measurements []Measurement, opt *io.
 	return io.Feed(name, category, pts, opt)
 }
 
-func GetPointsFromMeasurement(measurements []Measurement) ([]*point.Point, error) {
-	var pts []*point.Point
+func GetPointsFromMeasurement(measurements []Measurement) ([]*dkpt.Point, error) {
+	var pts []*dkpt.Point
 	for _, m := range measurements {
 		if pt, err := m.LineProto(); err != nil {
 			l.Warnf("make point failed: %v, ignore", err)

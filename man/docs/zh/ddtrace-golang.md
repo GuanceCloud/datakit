@@ -4,13 +4,26 @@
 
 ---
 
+> 本文档主要从 dd-trace-go 官方的 [github 页面](https://github.com/DataDog/dd-trace-go){:target="_blank"}摘取了部分信息便于大家直接上手，如果碰到一些过不去的问题，可能是本文档更新滞后，建议参考原始文档。
+
 ## 安装依赖 {#dependence}
 
-安装 ddtrace golang library 在开发目录下运行
+安装 ddtrace golang SDK：
 
 ```shell
-go get -v github.com/DataDog/dd-trace-go
+# 安装 tracing 库
+go get gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer
+
+# 安装 profiling 库
+go get gopkg.in/DataDog/dd-trace-go.v1/profiler
+
+# 其它跟组件有关的库，视情况而定，比如：
+go get gopkg.in/DataDog/dd-trace-go.v1/contrib/gorilla/mux
+go get gopkg.in/DataDog/dd-trace-go.v1/contrib/net/http
+go get gopkg.in/DataDog/dd-trace-go.v1/contrib/database/sql
 ```
+
+我们可以从 [contrib list](https://github.com/DataDog/dd-trace-go/tree/main/contrib){:target="_blank"} 找到更多可用的 tracing SDK。
 
 ## 设置 DataKit {#set-datakit}
 
@@ -116,7 +129,7 @@ func runAppWithError() {
 程序运行一段时间后，即可在观测云看到类似如下 trace 数据：
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/golang-ddtrace-example.png){ width="800"}
+  ![](https://static.guance.com/images/datakit/golang-ddtrace-example.png){ width="800"}
   <figcaption>Golang 程序 trace 数据展示</figcaption>
 </figure>
 
@@ -149,8 +162,8 @@ DD_XXX=<env-value> DD_YYY=<env-value> ./my-app
 | `DD_TRACE_ENABLED`        | `true`      | 开启 trace 开关。如果手动将该开关关闭，则不会产生任何 trace 数据                                                                                                                                                                                                                                                                                                                                                                                     |
 | `DD_SERVICE_MAPPING`      | -           | 动态重命名服务名，各个服务名映射之间可用空格和英文逗号分割，如 `mysql:mysql-service-name,postgres:postgres-service-name`，`mysql:mysql-service-name postgres:postgres-service-name`                                                                                                                                                                                                                                                                  |
 
-[1]: /datakit/datakit-install/
-[2]: /datakit/datakit-service-how-to/
-[3]: /datakit/ddtrace/#config
-[4]: /datakit/datakit-conf/#config-http-server
-[5]: /datakit/statsd/
+[1]: datakit-install.md
+[2]: datakit-service-how-to.md
+[3]: ddtrace.md#config
+[4]: datakit-conf.md#config-http-server
+[5]: statsd.md

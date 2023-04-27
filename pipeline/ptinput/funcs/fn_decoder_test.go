@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	tu "github.com/GuanceCloud/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ptinput"
 	"golang.org/x/text/encoding/simplifiedchinese"
 )
@@ -20,6 +20,7 @@ type funcCase struct {
 	script   string
 	expected interface{}
 	key      string
+	fail     bool
 }
 
 func TestDecode(t *testing.T) {

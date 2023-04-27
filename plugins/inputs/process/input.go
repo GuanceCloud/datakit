@@ -16,11 +16,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/shirou/gopsutil/host"
 	pr "github.com/shirou/gopsutil/v3/process"
 	"github.com/tweekmonster/luser"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -440,7 +441,7 @@ func (p *Input) WriteObject(processList []*pr.Process, procRec *procRecorder, tn
 	if len(collectCache) == 0 {
 		return
 	}
-	if err := inputs.FeedMeasurement(inputName+"-object",
+	if err := inputs.FeedMeasurement(inputName+"/object",
 		datakit.Object,
 		collectCache,
 		&io.Option{CollectCost: time.Since(tn)}); err != nil {
@@ -449,7 +450,7 @@ func (p *Input) WriteObject(processList []*pr.Process, procRec *procRecorder, tn
 	}
 
 	if p.lastErr != nil {
-		io.FeedLastError(inputName, p.lastErr.Error())
+		io.FeedLastError(inputName, p.lastErr.Error(), point.Object)
 		p.lastErr = nil
 	}
 }
@@ -484,7 +485,7 @@ func (p *Input) WriteMetric(processList []*pr.Process, procRec *procRecorder, tn
 	if len(collectCache) == 0 {
 		return
 	}
-	if err := inputs.FeedMeasurement(inputName+"-metric",
+	if err := inputs.FeedMeasurement(inputName+"/metric",
 		datakit.Metric,
 		collectCache,
 		&io.Option{CollectCost: time.Since(tn)}); err != nil {
@@ -492,7 +493,7 @@ func (p *Input) WriteMetric(processList []*pr.Process, procRec *procRecorder, tn
 		p.lastErr = err
 	}
 	if p.lastErr != nil {
-		io.FeedLastError(inputName, p.lastErr.Error())
+		io.FeedLastError(inputName, p.lastErr.Error(), point.Metric)
 		p.lastErr = nil
 	}
 }

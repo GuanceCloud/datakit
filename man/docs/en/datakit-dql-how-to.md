@@ -1,49 +1,48 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
-# 通过 DQL 查询数据
+
+# Query Data Through DQL
 ---
 
-DataKit 支持以交互式方式执行 DQL 查询，在交互模式下，DataKit 自带语句补全功能：
+DataKit supports interactive execution of DQL queries. In interactive mode, DataKit comes with statement completion function:
 
-> 通过 datakit help dql 可获取更多命令行参数帮助。
+> More command-line parameter help is available through datakit help dql.
 
 ```shell
-datakit dql      # 或者 datakit -Q
+datakit dql      # or datakit -Q
 ```
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dk-dql-gif.gif){ width="800" }
-  <figcaption> DQL 交互执行示例 </figcaption>
+  ![](https://static.guance.com/images/datakit/dk-dql-gif.gif){ width="800" }
+  <figcaption> Example of DQL Interaction Execution </figcaption>
 </figure>
 
 Tips：
 
-- 输入 `echo_explain` 即可看到后端查询语句
-- 为避免显示太多 `nil` 查询结果，可通过 `disable_nil/enable_nil` 来开关
-- 支持查询语句模糊搜，如 `echo_explain` 只需要输入 `echo` 或 `exp` 即可弹出提示，==通过制表符（Tab）即可选择下拉提示==
-- DataKit 会自动保存前面多次运行的 DQL 查询历史（最大 5000 条），可通过上下方向键来选择
+- Enter `echo_explain` to see the back-end query statement
+- To avoid displaying too many `nil` uery results, you can switch it through `disable_nil/enable_nil`.
+- Support fuzzy search of query statement. For example, `echo_explain` only needs to input `echo` or `exp` to pop up a prompt, Drop-down prompt can be selected through Tab
+- DataKit automatically saves the previous DQL query history (up to 5000 queries), which can be selected by the up and down arrow keys
 
-> 注：Windows 下，请在 Powershell 中执行 `datakit dql`
+> Note: Under Windows, execute `datakit dql` in Powershell.
 
-#### 单次执行 DQL 查询 {#dql-once}
+#### Execute DQL query {#dql-once}
 
-关于 DQL 查询，DataKit 支持运行单条 DQL 语句的功能：
+With regard to DQL queries, DataKit supports the ability to run a single DQL statement:
 
 ```shell
-# 单次执行一条查询语句
+# Execute one query statement at a time
 datakit dql --run 'cpu limit 1'
 
-# 将执行结果写入 CSV 文件
+# Write the execution results to the CSV file
 datakit dql --run 'O::HOST:(os, message)' --csv="path/to/your.csv"
 
-# 强制覆盖已有 CSV 文件
+# Force overwrite of existing CSV files
 datakit dql --run 'O::HOST:(os, message)' --csv /path/to/xxx.csv --force
 
-# 将结果写入 CSV 的同时，在终端也显示查询结果
+# When the result is written into CSV, the query result is also displayed at the terminal
 datakit dql --run 'O::HOST:(os, message)' --csv="path/to/your.csv" --vvv
 ```
 
-导出的 CSV 文件样式示例：
+Example of exported CSV file style:
 
 ```shell
 name,active,available,available_percent,free,host,time
@@ -52,28 +51,28 @@ mem,2007961600,2032476160,23.661136627197266,30900224,achen.local,1635242534385
 mem,2014437376,2077097984,24.18060302734375,73502720,achen.local,1635242544382
 ```
 
-注意：
+Note:
 
-- 第一列是查询的指标集名称
-- 之后各列是该采集器对应的各项数据
-- 当字段为空时，对应列也为空
+- The first column is the measurement name of the query.
+- The following columns are the data corresponding to the collector.
+- When the field is empty, the corresponding column is also empty.
 
-#### DQL 查询结果 JSON 化 {#json-result}
+#### DQL Query Leading to JSON Result {#json-result}
 
-以 JSON 形式输出结果，但 JSON 模式下，不会输出一些统计信息，如返回行数、时间消耗等（以保证 JSON 可直接解析）
+Output results in JSON, but there is no statistics in JSON mode, such as the number of rows returned and time consumption (to ensure that JSON can be parsed directly).
 
 ```shell
 datakit dql --run 'O::HOST:(os, message)' --json
 
-# 如果字段值是 JSON 字符串，则自动做 JSON 美化（注意：JSON 模式下（即 --json），`--auto-json` 选项无效）
+# Automatically do json beautification if the field value is a json string (note: in json mode (that is,--json), the `--auto-json` option is invalid).
 datakit dql --run 'O::HOST:(os, message)' --auto-json
 -----------------[ r1.HOST.s1 ]-----------------
-message ----- json -----  # JSON 开始处有明显标志，此处 message 为字段名
+message ----- json -----  # JSON is clearly marked at the beginning, where message is the field name.
 {
   "host": {
     "meta": {
       "host_name": "www",
-  ....                    # 此处省略长文本
+  ....                    # Omit long text here
   "config": {
     "ip": "10.100.64.120",
     "enable_dca": false,
@@ -81,16 +80,16 @@ message ----- json -----  # JSON 开始处有明显标志，此处 message 为�
     "api_token": "tkn_f2b9920f05d84d6bb5b14d9d39db1dd3"
   }
 }
------ end of json -----   # JSON 结束处有明显标志
+----- end of json -----   # There is a clear sign at the end of JSON
      os 'darwin'
    time 2021-09-13 16:56:22 +0800 CST
 ---------
 8 rows, 1 series, cost 4ms
 ```
 
-#### 查询特定工作空间的数据 {#query-on-wksp}
+#### Query Data for a Specific Workspace {#query-on-wksp}
 
-通过指定不同的 Token 来查询其它工作空间的数据：
+Query the data of other workspaces by specifying different Token:
 
 ```shell
 datakit dql --run 'O::HOST:(os, message)' --token <your-token>

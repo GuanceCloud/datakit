@@ -17,15 +17,16 @@ import (
 	// it will use this embedded information in time/tzdata.
 	_ "time/tzdata"
 
+	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/grok"
 	plruntime "github.com/GuanceCloud/platypus/pkg/engine/runtime"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb/geoip"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb/iploc"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/plmap"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ptinput"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ptinput/funcs"
 	plrefertable "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/refertable"
@@ -108,7 +109,9 @@ type Pipeline struct {
 	Script *plscript.PlScript
 }
 
-func (p *Pipeline) Run(pt *point.Point, plOpt *plscript.Option, ioPtOpt *point.PointOption, signal plruntime.Signal) (*point.Point, bool, error) {
+func (p *Pipeline) Run(pt *point.Point, plOpt *plscript.Option, ioPtOpt *point.PointOption,
+	signal plruntime.Signal, buks ...*plmap.AggBuckets,
+) (*point.Point, bool, error) {
 	if p.Script == nil || p.Script.Engine() == nil {
 		return nil, false, fmt.Errorf("pipeline engine not initialized")
 	}
@@ -125,6 +128,9 @@ func (p *Pipeline) Run(pt *point.Point, plOpt *plscript.Option, ioPtOpt *point.P
 	plpt := &ptinput.Point{}
 
 	plpt = ptinput.InitPt(plpt, pt.Name(), pt.Tags(), fields, ioPtOpt.Time)
+	if len(buks) > 0 {
+		p.Script.SetAggBuks(buks[0])
+	}
 
 	if err := p.Script.Run(plpt, signal, plOpt); err != nil {
 		return nil, false, err
@@ -181,7 +187,7 @@ func InitIPdb(pipelineCfg *PipelineCfg) (ipdb.IPdb, error) {
 		ipdbInstance.Init(datakit.DataDir, pipelineCfg.IPdbAttr)
 		funcs.InitIPdb(ipdbInstance)
 		if pipelineCfg.IPdbType != "geolite2" {
-			ip2isp.InitIPdb(ipdbInstance)
+			ip2isp.InitIPDB(ipdbInstance)
 		}
 	} else { // invalid ipdb type, then use the default iploc to ignore the error.
 		l.Warnf("invalid ipdb_type %s", pipelineCfg.IPdbType)

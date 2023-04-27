@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
+	"github.com/GuanceCloud/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
@@ -42,4 +42,13 @@ func TestProcRec(t *testing.T) {
 			t.Log(rec.calculatePercentTop(v, tn))
 		}
 	}
+}
+
+// go test -run=^$ -bench=. -cpuprofile cpupprof.out
+func BenchmarkWriteObject(b *testing.B) {
+	in := &Input{}
+	processList := in.getProcesses(false)
+	procRecorder := newProcRecorder()
+	tn := time.Now().UTC()
+	in.WriteObject(processList, procRecorder, tn)
 }

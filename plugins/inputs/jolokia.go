@@ -20,13 +20,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/influxdata/telegraf/plugins/common/tls"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	dkpoint "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 // --------------------------------------------------------------------
@@ -50,7 +51,8 @@ type JolokiaAgent struct {
 	Username        string
 	Password        string
 	ResponseTimeout time.Duration `toml:"response_timeout"`
-	Interval        string
+	Interval        string        `toml:"interval"`
+	Election        bool          `toml:"election"`
 
 	tls.ClientConfig
 
@@ -58,7 +60,8 @@ type JolokiaAgent struct {
 	gatherer *Gatherer
 	clients  []*Client
 
-	collectCache []Measurement
+	// collectCache []Measurement
+	collectCache []*point.Point
 	PluginName   string `toml:"-"`
 	L            *logger.Logger
 
@@ -66,19 +69,23 @@ type JolokiaAgent struct {
 	Types map[string]string `toml:"-"`
 
 	SemStop *cliutils.Sem `toml:"-"` // start stop signal
+	Feeder  dkio.Feeder   `toml:"-"`
 }
 
 func (j *JolokiaAgent) Collect() {
 	log = logger.SLogger("jolokia")
-
-	if j.SemStop == nil {
-		j.SemStop = cliutils.NewSem()
-	}
-
 	if j.L == nil {
 		j.L = log
 	}
 	j.L.Infof("%s input started...", j.PluginName)
+
+	if j.SemStop == nil {
+		j.SemStop = cliutils.NewSem()
+	}
+	if j.Feeder == nil {
+		j.Feeder = dkio.DefaultFeeder()
+	}
+
 	j = j.Adaptor()
 
 	duration, err := time.ParseDuration(j.Interval)
@@ -95,15 +102,16 @@ func (j *JolokiaAgent) Collect() {
 		case <-tick.C:
 			start := time.Now()
 			if err := j.Gather(); err != nil {
-				io.FeedLastError(j.PluginName, err.Error())
+				// dkio.FeedLastError(j.PluginName, err.Error(), point.Metric)
+				j.Feeder.FeedLastError(j.PluginName, err.Error(), point.Metric)
 			}
 
 			if len(j.collectCache) > 0 {
-				if err := FeedMeasurement(j.PluginName, datakit.Metric, j.collectCache,
-					&io.Option{
+				if err := j.Feeder.Feed(j.PluginName, point.Metric, j.collectCache,
+					&dkio.Option{
 						CollectCost: time.Since(start),
 					}); err != nil {
-					j.L.Errorf("io.FeedMeasurement: %s, ignored", err.Error())
+					j.L.Errorf("Feed: %s, ignored", err.Error())
 				}
 
 				j.collectCache = j.collectCache[:0] // NOTE: do not forget to clean cache
@@ -209,14 +217,31 @@ func (j *JolokiaAgent) Adaptor() *JolokiaAgent {
 const defaultFieldName = "value"
 
 type JolokiaMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	ts       time.Time
+	election bool
 }
 
-func (j *JolokiaMeasurement) LineProto() (*dkpoint.Point, error) {
-	return dkpoint.NewPoint(j.name, j.tags, j.fields, dkpoint.MOpt())
+// Point implement MeasurementV2.
+func (j *JolokiaMeasurement) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if j.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	} else {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
+	}
+
+	return point.NewPointV2([]byte(j.name),
+		append(point.NewTags(j.tags), point.NewKVs(j.fields)...),
+		opts...)
+}
+
+func (j *JolokiaMeasurement) LineProto() (*dkpt.Point, error) {
+	// return dkpt.NewPoint(j.name, j.tags, j.fields, dkpt.MOpt())
+	return nil, fmt.Errorf("not implement")
 }
 
 func (j *JolokiaMeasurement) Info() *MeasurementInfo {
@@ -297,15 +322,41 @@ func (g *Gatherer) gatherResponses(responses []ReadResponse, tags map[string]str
 				continue
 			}
 
-			j.collectCache = append(j.collectCache, &JolokiaMeasurement{
-				measurement,
-				mergeTags(point.Tags, tags),
-				field,
-				time.Now(),
-			})
+			tag := mergeTags(point.Tags, tags)
+
+			var hostURL string
+			if len(tag["jolokia_agent_url"]) > 0 {
+				hostURL = tag["jolokia_agent_url"]
+			} else if len(tag["jolokia_proxy_url"]) > 0 {
+				hostURL = tag["jolokia_proxy_url"]
+			}
+			if len(hostURL) > 0 {
+				if host, err := getHostFromURL(hostURL); err != nil {
+					return err
+				} else {
+					tag["host"] = host
+				}
+			}
+
+			metric := &JolokiaMeasurement{
+				name:     measurement,
+				tags:     tag,
+				fields:   field,
+				ts:       time.Now(),
+				election: j.Election,
+			}
+			j.collectCache = append(j.collectCache, metric.Point())
 		}
 	}
 	return nil
+}
+
+func getHostFromURL(urlStr string) (string, error) {
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return "", err
+	}
+	return u.Host, nil
 }
 
 // generatePoints creates points for the supplied metric from the ReadResponse

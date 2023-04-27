@@ -7,21 +7,23 @@
 package system
 
 import (
+	"errors"
 	"runtime"
 	"strings"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/host"
 	"github.com/shirou/gopsutil/load"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	conntrackutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hostutil/conntrack"
 	filefdutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hostutil/filefd"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mem"
 )
 
 var (
@@ -147,6 +149,22 @@ func (ipt *Input) Collect() error {
 		}
 	}
 
+	cpuTotal, err := cpu.Percent(0, false)
+	if err != nil {
+		l.Warnf("CPU stat error: %s, ignored", err.Error())
+	}
+	if len(cpuTotal) == 0 {
+		return errors.New("get CPU stat fail")
+	}
+
+	vm, err := mem.VirtualMemoryStat()
+	if err != nil {
+		l.Warnf("error getting virtual memory info: %w", err)
+	}
+	if vm == nil {
+		return errors.New("get virtual memory stat fail")
+	}
+
 	sysM := systemMeasurement{
 		name: metricNameSystem,
 		fields: map[string]interface{}{
@@ -157,6 +175,8 @@ func (ipt *Input) Collect() error {
 			"load5_per_core":  loadAvg.Load5 / float64(numCPUs),
 			"load15_per_core": loadAvg.Load15 / float64(numCPUs),
 			"n_cpus":          numCPUs,
+			"cpu_total_usage": cpuTotal[0],
+			"memory_usage":    vm.UsedPercent,
 		},
 		tags: tags,
 		ts:   ts,
@@ -219,8 +239,9 @@ func (ipt *Input) Terminate() {
 }
 
 // ReadEnv support envs：
-//   ENV_INPUT_SYSTEM_TAGS : "a=b,c=d"
-//   ENV_INPUT_SYSTEM_INTERVAL : datakit.Duration
+//
+//	ENV_INPUT_SYSTEM_TAGS : "a=b,c=d"
+//	ENV_INPUT_SYSTEM_INTERVAL : datakit.Duration
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	if tagsStr, ok := envs["ENV_INPUT_SYSTEM_TAGS"]; ok {
 		tags := config.ParseGlobalTags(tagsStr)

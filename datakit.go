@@ -16,9 +16,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/shirou/gopsutil/v3/process"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
@@ -43,18 +43,19 @@ const (
 	// TODO: If you add a category, please add the relevant content in the function CategoryList.
 
 	// data category, aka API /v1/write/category.
-	MetricDeprecated = "/v1/write/metrics"
-	Metric           = "/v1/write/metric"
-	Network          = "/v1/write/network"
-	KeyEvent         = "/v1/write/keyevent"
-	Object           = "/v1/write/object"
-	CustomObject     = "/v1/write/custom_object"
-	Logging          = "/v1/write/logging"
-	Tracing          = "/v1/write/tracing"
-	RUM              = "/v1/write/rum"
-	Security         = "/v1/write/security"
-	Profiling        = "/v1/write/profiling"  // write profiling metadata.
-	ProfilingUpload  = "/v1/upload/profiling" // upload profiling binary.
+	MetricDeprecated    = "/v1/write/metrics"
+	Metric              = "/v1/write/metric"
+	Network             = "/v1/write/network"
+	KeyEvent            = "/v1/write/keyevent"
+	Object              = "/v1/write/object"
+	CustomObject        = "/v1/write/custom_object"
+	Logging             = "/v1/write/logging"
+	Tracing             = "/v1/write/tracing"
+	RUM                 = "/v1/write/rum"
+	SessionReplayUpload = "/v1/write/rum/replay"
+	Security            = "/v1/write/security"
+	Profiling           = "/v1/write/profiling"  // write profiling metadata.
+	ProfilingUpload     = "/v1/upload/profiling" // upload profiling binary.
 
 	DynamicDatawayCategory = "dynamicDatawayCategory"
 
@@ -122,8 +123,6 @@ var (
 	Docker     = false
 	Version    = git.Version
 	AutoUpdate = false
-
-	DownloadAddr = ""
 
 	InstallDir = optionalInstallDir[runtime.GOOS+"/"+runtime.GOARCH]
 
@@ -267,6 +266,7 @@ func SetWorkDir(dir string) {
 
 	MainConfPathDeprecated = filepath.Join(InstallDir, StrDefaultConfFile)
 	MainConfPath = filepath.Join(ConfdDir, StrDefaultConfFile)
+	MainConfSamplePath = filepath.Join(ConfdDir, "datakit.conf.sample")
 
 	PipelineDir = filepath.Join(InstallDir, "pipeline")
 	PipelinePatternDir = filepath.Join(PipelineDir, "pattern")
@@ -290,6 +290,7 @@ func InitDirs() {
 		PipelineDir,
 		PipelinePatternDir,
 		GitReposDir,
+		PythonDDir,
 		PipelineRemoteDir,
 		CacheDir,
 	} {

@@ -1,55 +1,54 @@
-<!-- This file required to translate to EN. -->
-# Kubernetes 环境下的 DataKit 配置综述
+# Overview of DataKit Configuration in Kubernetes Environment
 ---
 
-在 k8s 环境下，由于可能存在多种采集器的配置方式，大家在配置采集器的过程中，容易混淆不同配置方式之间的差异，本文简单介绍一下 K8s 环境下配置的最佳实践。
+In K8s environment, because there may be many configuration modes of collectors, it is easy to confuse the differences between different configuration modes in the process of configuring collectors. This paper briefly introduces the best practices of configuration in K8s environment.
 
-## K8s 环境下的配置方式 {#intro}
+## Configuration Mode in K8s Environment {#intro}
 
-目前版本(>1.2.0)的 DataKit 支持如下几种方式的配置：
+The current version (> 1.2. 0) of DataKit supports the following configurations:
 
-- 通过 [conf](datakit-daemonset-deploy.md#configmap-setting)  配置
-- 通过 [ENV](datakit-daemonset-deploy.md#using-k8-env) 配置
-- 通过 [Annotation](container-log.md#logging-with-annotation-or-label) 配置
-- 通过 [CRD](kubernetes-crd.md)配置
-- 通过 [Git](datakit-conf.md#using-gitrepo) 配置
-- 通过 [DCA](dca.md) 配置
+- Configure with [conf](datakit-daemonset-deploy.md#configmap-setting)
+- Configure with [ENV](datakit-daemonset-deploy.md#using-k8-env)
+- Configure with [Annotation](container-log.md#logging-with-annotation-or-label)
+- Configure with [CRD](kubernetes-crd.md)
+- Configure with [Git](datakit-conf.md#using-gitrepo)
+- Configure with [DCA](dca.md)
 
-如果进一步归纳，又可以分为两种类型：
+If further summarized, it can be divided into two types:
 
-- 基于 DataKit 的配置
+- DataKit-based configuration
 	- conf
 	- ENV
 	- Git
 	- DCA
-- 基于**被采集实体**的配置
+- Configuration based on **collected entity**
 	- Annotation
 
-由于存在这么多不同的配置方式，不同配置方式之间还存在优先级关系，下文以优先级从低到高的顺序，开始逐个分解。
+Because there are so many different configuration modes, there are priority relationships among different configuration modes, which are decomposed one by one in the order of priority from low to high.
 
-### 通过 configmap 配置 {#via-configmap-conf}
+### Configmap {#via-configmap-conf}
 
-DataKit 运行在 K8s 环境中时，实际上跟运行在主机上并无太大差异，它仍然会去读取 _.conf_ 目录下的采集器配置。所以，通过 ConfigMap 等方式注入采集器配置是完全可行的，有的时候，甚至是唯一的方式，比如，在当前的 DataKit 版本中，MySQL 采集器的开启，只能通过注入 ConfigMap 方式。
+When DataKit runs in the K8s environment, it is actually not much different from running on the host, and it will still read the collector configuration in the _.conf_ directory. Therefore, it is completely feasible to inject collector configuration through ConfigMap, and sometimes it is even the only way. For example, in the current DataKit version, MySQL collector can only be opened by injecting ConfigMap.
 
-### 通过 ENV 配置 {#via-env-config}
+### Configure via ENV {#via-env-config}
 
-在 K8s 中，我们启动 DataKit 时，是可以在其 yaml 中[注入很多环境变量的](datakit-daemonset-deploy.md#using-k8-env)。除了 DataKit 的行为可以通过注入环境变量来干预，部分采集器也支持注入**专用的环境变量**，它们命名一般如下：
+In K8s, when we start DataKit, we can [inject many environment variables](datakit-daemonset-deploy.md#using-k8-env) into its yaml. In addition to the fact that DataKit's behavior can be intervened by injecting environment variables, some collectors also support injecting **specific environment variables**, which are generally named as follows:
 
 ```shell
 ENV_INPUT_XXX_YYY
 ```
 
-此处 `XXX` 指采集器名字，`YYY` 即该采集器配置中的特定配置字段，比如 `ENV_INPUT_CPU_PERCPU` 用来调整 [CPU 采集器](cpu.md) _是否采集每个 CPU 核心的指标_（默认情况下，该选项是默认关闭的，即不采集每个核心的 CPU 指标）
+Here `XXX` refers to the collector name, and `YYY` is a specific configuration field in the collector configuration, such as `ENV_INPUT_CPU_PERCPU` to adjust whether [CPU collector](cpu.md) _collects metrics per CPU core_ (by default, this option is turned off by default, that is, CPU metrics per core are not collected)
 
-需要注意的是，目前并不是所有的采集器都支持 ENV 注入。支持 ENV 注入的采集器，一般都是[默认开启的采集器](datakit-input-conf.md#default-enabled-inputs)。通过 ConfigMap 开启的采集器，也支持 ENV 注入的（具体看该采集器是否支持），而且**默认以 ENV 注入的为准**。
+It should be noted that not all collectors support ENV injection at present. The collector that supports ENV injection is generally [the collector that is turned on by default](datakit-input-conf.md#default-enabled-inputs). The collector opened through ConfigMap also supports ENV injection (see if the collector supports it), and **the default is based on ENV injection**.
 
-> 环境变量注入的方式，一般只应用在 K8s 模式下，主机安装方式目前无法注入环境变量。
+> Environment variable injection mode, generally only applied in K8s mode, host installation mode cannot inject environment variables at present.
 
-### 通过 Annotation 配置 {#annotation}
+### Configure through Annotation {#annotation}
 
-目前 Annotation 配置的方式支持面较之 ENV 方式更为狭窄，它主要用来**标记被采集实体**，比如_是否需要开启/关闭某实体的采集（含日志采集、指标采集等）_
+At present, Annotation configuration is more narrowly supported than ENV. It is mainly used to **mark the collected entity**, such as _whether it is necessary to turn on/off the collection of an entity (including log collection, indicator collection, etc.)_
 
-通过 Annotation 来干预采集器配置的场景比较特殊，比如在容器（Pod）日志采集器中，如果禁止采集所有日志（在容器采集器中 `container_exclude_log = [image:*]`），但只希望开启特定某些 Pod 的日志采集，那么就可以在特定的这些 Pod 上追加 Annotation 加以标记：
+The scenario of interfering with collector configuration through Annotation is quite special. For example, in the container (Pod) log collector, if collecting all logs is prohibited (in the container collector, `container_exclude_log = [image:*]`), but you only want to turn on log collection for certain Pods, you can append Annotation to certain Pods to mark them:
 
 ```yaml
 apiVersion: apps/v1
@@ -75,42 +74,42 @@ spec:
 	...
 ```
 
-> 注意：目前 Annotation 方式还不支持主流的采集器开启（目前只支持 [Prom](prom.md)）。后续会增加更多采集器。
+> Note: Currently, the Annotation mode does not support the mainstream collector opening (currently only [Prom](prom.md)) is supported). More collectors will be added later.
 
-到此为止，目前 DataKit 中，主流的几种 K8s 环境下的配置方式就这三种，它们优先级逐次提升，即 conf 方式优先级最低，ENV 次之，Annotation 方式优先级最高。
+So far, in DataKit, there are only three mainstream configuration modes in K8s environment, and their priorities are gradually improved, that is, conf mode has the lowest priority, ENV takes the second place, and Annotation mode has the highest priority.
 
-- 通过 CRD 配置
+- Configuration via CRD
 
-CRD 是 Kubernetes 一种广泛使用的配置方式，相比 Annotation，CRD 无需更改被采集对象的部署，相比而言，它的侵入性更小。详见 [DataKit CRD 使用文档](kubernetes-crd.md)。
+CRD is a widely used configuration method of Kubernetes. Compared with Annotation, CRD does not need to change the deployment of collected objects, and it is less invasive. See [DataKit CRD Usage Documentation](kubernetes-crd.md).
 
-### Git 配置方式 {#git}
+### Git configuration {#git}
 
-Git 方式在主机模式和 K8s 模式下均支持，它本质上是一种 conf 配置，只是它的 conf 文件不是在默认的 _conf.d_ 目录下，而是在 DataKit 安装目录的 _gitrepo_ 目录下。如果开启了 Git 模式，那么默认的 _conf.d_ 目录下的**采集器配置将不再生效**（除了 _datakit.conf_ 这个主配置之外），但原来的 _pipeline_ 目录以及 _pythond_ 目录依然有效。从这一点可以看出，Git 主要用来管理 DataKit 上的各种文本配置，包括各种采集器配置、Pipeline 脚本以及 Python 脚本。
+Git mode is supported in both host mode and K8s mode, and is essentially a conf configuration, except that its conf file is not in the default _conf. d_ directory, but in the _gitrepo_ directory of the DataKit installation directory. If Git mode is turned on, the default **collector configuration in the _conf.d_ directory is no longer valid** (except for the main configuration of _datakit.conf_), but the original _pipeline_ directory and _pythond_ directory are still valid. As you can see from this, Git is mainly used to manage various text configurations on DataKit, including various collector configurations, Pipeline scripts and Python scripts.
 
-> 注意：DataKit 主配置（_datakit.conf_）不能通过 Git 来管理。
+> Note: The DataKit master configuration (_datakit.conf_) cannot be managed by Git.
 
-#### Git 模式下默认采集器的配置 {#def-inputs-under-git}
+#### Configuration of Default Collector in Git Mode {#def-inputs-under-git}
 
-在 Git 模式下，有一个非常重要的特征，即那些[默认开启的采集器](datakit-input-conf.md#default-enabled-inputs) 的 **conf 文件是隐身的**，不管是 K8s 模式还是主机模式，故将这些默认开启的采集器配置文件用 Git 管理起来，需要做一些额外的工作，不然这会导致它们被**重复采集**。
+In Git mode, there is a very important feature, that is, **conf files of [default collector](datakit-input-conf.md#default-enabled-inputs) are stealthy**, whether in K8s mode or host mode, so it needs some extra work to manage these collector configuration files with Git, otherwise it will cause them to be **collected repeatedly**.
 
-在 Git 模式下，如果要调整默认采集器的配置（不想开启或要对其做对应的配置），有几种方式：
+In Git mode, if you want to adjust the configuration of the default collector (you don't want to turn it on or configure it accordingly), there are several ways:
 
-- 可将它们从 _datakit.conf_ 或者 _datakit.yaml_ 中移除掉。**此时它们就不是默认开启的采集器了**。
--	如果要修改特定采集器的配置，有如下几种方式：
-	- 将它们的 conf 通过 Git 管理起来
-	- 通过上文提及的 ENV 注入（具体要看该采集器是否支持 ENV 注入）
-	- 如果该采集器支持 Annotation 标记，也可以通过该方式来调整
+- You can remove them from _datakit.conf_ or _datakit.yaml_ . **At this time, they are not the collectors turned on by default**.
+-	If you want to modify the configuration of a specific collector, there are several ways:
+	- Manage their conf through Git
+	- Through the ENV injection mentioned above (depending on whether the collector supports ENV injection)
+	- If the collector supports Annotation tags, it can also be adjusted in this way.
 
-### DCA 配置方式 {#dca}
+### DCA Configuration {#dca}
 
-[DCA](dca.md) 配置方式实际上跟 Git 有点类似，它们都只能影响 DataKit 上的 conf/pipeline/pythond 文件配置。只是对 DCA 而言，它的功能没有 Git 强大，一般只用于小范围管理几台 DataKit 上的文件。
+The [DCA](dca.md) configuration is actually a bit like Git, and they all affect the conf/pipeline/python file configuration on the DataKit. Just for DCA, its function is not as powerful as Git, and it is generally only used to manage files on several DataKits in a small scope.
 
-## 总结 {#summary}
+## Summary {#summary}
 
-至此，DataKit 上的几种配置方式都做了基本介绍，具体采集器是否支持特定的配置方式，还需要参考采集器文档。
+So far, several configuration modes on DataKit have been basically introduced. Whether the specific collector supports specific configuration modes still needs to refer to the collector documents.
 
-## 延伸阅读 {#more-readings}
+## Extended Reading {#more-readings}
 
-- [DataKit 配置](datakit-conf.md) 
-- [DataKit 采集器配置](datakit-input-conf.md) 
-- [Daemonset 安装 DataKit](datakit-daemonset-deploy.md)
+- [DataKit Configuration](datakit-conf.md) 
+- [DataKit Collector Configuration](datakit-input-conf.md) 
+- [Daemonset Installs DataKit](datakit-daemonset-deploy.md)

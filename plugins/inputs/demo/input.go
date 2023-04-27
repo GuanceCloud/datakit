@@ -14,8 +14,8 @@ import (
 	"runtime"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -101,7 +101,9 @@ func (ipt *Input) Run() {
 				l.Error(err)
 			} else {
 				if err := inputs.FeedMeasurement(inputName, datakit.Metric, ipt.collectCache,
-					&io.Option{CollectCost: time.Since(start), HighFreq: (n%2 == 0)}); err != nil {
+					&io.Option{
+						CollectCost: time.Since(start),
+					}); err != nil {
 					l.Errorf("FeedMeasurement: %s", err.Error())
 				}
 

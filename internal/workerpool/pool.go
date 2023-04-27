@@ -11,8 +11,8 @@ import (
 	"errors"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 )
 
@@ -95,7 +95,7 @@ func (wkp *WorkerPool) Start() error {
 		return errors.New("worker-pool is already enabled")
 	}
 
-	g := goroutine.NewGroup(goroutine.Option{Name: "internal_trace"})
+	g := goroutine.NewGroup(goroutine.Option{Name: "internal_worker_pool"})
 	for i := 0; i < wkp.wkpConf.Threads; i++ {
 		g.Go(func(ctx context.Context) error {
 			wkp.worker()
@@ -109,7 +109,11 @@ func (wkp *WorkerPool) Start() error {
 }
 
 func (wkp *WorkerPool) Shutdown() {
-	close(wkp.jobs)
+	select {
+	case <-wkp.jobs:
+	default:
+		close(wkp.jobs)
+	}
 	wkp.enabled = false
 }
 

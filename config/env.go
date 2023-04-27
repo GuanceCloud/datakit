@@ -12,57 +12,26 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/sinkfuncs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/parser"
 )
 
-func (c *Config) loadSinkEnvs() error {
-	sinkMetric := datakit.GetEnv("ENV_SINK_M")
-	sinkNetwork := datakit.GetEnv("ENV_SINK_N")
-	sinkKeyEvent := datakit.GetEnv("ENV_SINK_K")
-	sinkObject := datakit.GetEnv("ENV_SINK_O")
-	sinkCustomObject := datakit.GetEnv("ENV_SINK_CO")
-	sinkLogging := datakit.GetEnv("ENV_SINK_L")
-	sinkTracing := datakit.GetEnv("ENV_SINK_T")
-	sinkRUM := datakit.GetEnv("ENV_SINK_R")
-	sinkSecurity := datakit.GetEnv("ENV_SINK_S")
-	sinkProfiling := datakit.GetEnv("ENV_SINK_P")
-
-	categoryShorts := []string{
-		datakit.SinkCategoryMetric,
-		datakit.SinkCategoryNetwork,
-		datakit.SinkCategoryKeyEvent,
-		datakit.SinkCategoryObject,
-		datakit.SinkCategoryCustomObject,
-		datakit.SinkCategoryLogging,
-		datakit.SinkCategoryTracing,
-		datakit.SinkCategoryRUM,
-		datakit.SinkCategorySecurity,
-		datakit.SinkCategoryProfiling,
+// LoadSink unmarshal sinker JSON string to dataway's sinker.
+func (c *Config) LoadSink(v string) {
+	if c.Dataway == nil {
+		c.Dataway = &dataway.Dataway{}
 	}
 
-	args := []string{
-		sinkMetric,
-		sinkNetwork,
-		sinkKeyEvent,
-		sinkObject,
-		sinkCustomObject,
-		sinkLogging,
-		sinkTracing,
-		sinkRUM,
-		sinkSecurity,
-		sinkProfiling,
+	var arr []dataway.Sinker
+	if err := json.Unmarshal([]byte(v), &arr); err != nil {
+		l.Warnf("invalid env key ENV_SINKER, value %q: %s", v, err)
+		return
+	} else {
+		for i := range arr {
+			c.Dataway.Sinkers = append(c.Dataway.Sinkers, &arr[i])
+		}
 	}
-
-	sinks, err := sinkfuncs.GetSinkFromEnvs(categoryShorts, args)
-	if err != nil {
-		return err
-	}
-	c.Sinks.Sink = sinks
-
-	return nil
 }
 
 func (c *Config) loadElectionEnvs() {
@@ -81,6 +50,10 @@ func (c *Config) loadElectionEnvs() {
 		// add to global-env-tags
 		c.Election.EnableNamespaceTag = true
 		c.Election.Tags["election_namespace"] = c.Election.Namespace
+	}
+
+	if v := datakit.GetEnv("ENV_CLUSTER_NAME_K8S"); v != "" {
+		c.Election.Tags["cluster_name_k8s"] = v
 	}
 
 	for _, x := range []string{
@@ -106,14 +79,19 @@ func (c *Config) loadIOEnvs() {
 				l.Warnf("reset cache count from %d to %d", val, 1000)
 			} else {
 				l.Infof("set cache count to %d", val)
-				c.IOConf.MaxCacheCount = int(val)
+				c.IO.MaxCacheCount = int(val)
 			}
 		}
 	}
 
 	if v := datakit.GetEnv("ENV_IO_ENABLE_CACHE"); v != "" {
 		l.Info("ENV_IO_ENABLE_CACHE enabled")
-		c.IOConf.EnableCache = true
+		c.IO.EnableCache = true
+	}
+
+	if v := datakit.GetEnv("ENV_IO_CACHE_ALL"); v != "" {
+		l.Info("ENV_IO_CACHE_ALL enabled")
+		c.IO.CacheAll = true
 	}
 
 	if v := datakit.GetEnv("ENV_IO_CACHE_MAX_SIZE_GB"); v != "" {
@@ -122,7 +100,7 @@ func (c *Config) loadIOEnvs() {
 			l.Warnf("invalid env key ENV_IO_CACHE_MAX_SIZE_GB, value %s, err: %s ignored", v, err)
 		} else {
 			l.Infof("set ENV_IO_CACHE_MAX_SIZE_GB to %d", val)
-			c.IOConf.CacheSizeGB = int(val)
+			c.IO.CacheSizeGB = int(val)
 		}
 	}
 
@@ -132,7 +110,17 @@ func (c *Config) loadIOEnvs() {
 			l.Warnf("invalid env key ENV_IO_FLUSH_INTERVAL, value %s, err: %s ignored", v, err)
 		} else {
 			l.Infof("set ENV_IO_FLUSH_INTERVAL to %s", du)
-			c.IOConf.FlushInterval = v
+			c.IO.FlushInterval = v
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_IO_FLUSH_WORKERS"); v != "" {
+		n, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			l.Warnf("invalid env key ENV_IO_FLUSH_WORKERS, value %s, err: %s ignored", v, err)
+		} else {
+			l.Infof("set ENV_IO_FLUSH_WORKERS to %d", n)
+			c.IO.FlushWorkers = int(n)
 		}
 	}
 
@@ -142,15 +130,15 @@ func (c *Config) loadIOEnvs() {
 			l.Warnf("invalid env key ENV_IO_CACHE_CLEAN_INTERVAL, value %s, err: %s ignored", v, err)
 		} else {
 			l.Infof("set ENV_IO_CACHE_CLEAN_INTERVAL to %s", du)
-			c.IOConf.CacheCleanInterval = v
+			c.IO.CacheCleanInterval = v
 		}
 	}
 }
 
 //nolint:funlen
 func (c *Config) LoadEnvs() error {
-	if c.IOConf == nil {
-		c.IOConf = &io.IOConfig{}
+	if c.IO == nil {
+		c.IO = &IOConf{}
 	}
 
 	c.loadIOEnvs()
@@ -231,47 +219,43 @@ func (c *Config) LoadEnvs() error {
 	}
 
 	// 多个 dataway 支持 ',' 分割
+	// c.Dataway should not nil
 	if v := datakit.GetEnv("ENV_DATAWAY"); v != "" {
-		if c.DataWayCfg == nil {
-			c.DataWayCfg = &dataway.DataWayCfg{}
-		}
-		c.DataWayCfg.URLs = strings.Split(v, ",")
+		c.Dataway.URLs = strings.Split(v, ",")
 	}
 
 	if v := datakit.GetEnv("ENV_DATAWAY_TIMEOUT"); v != "" {
-		if c.DataWayCfg == nil {
-			c.DataWayCfg = &dataway.DataWayCfg{}
-		}
 		_, err := time.ParseDuration(v)
 		if err != nil {
 			l.Warnf("invalid ENV_DATAWAY_TIMEOUT: %s", v)
-			c.DataWayCfg.HTTPTimeout = "30s"
+			c.Dataway.HTTPTimeout = "30s"
 		} else {
-			c.DataWayCfg.HTTPTimeout = v
+			c.Dataway.HTTPTimeout = v
 		}
 	}
 
 	if v := datakit.GetEnv("ENV_DATAWAY_ENABLE_HTTPTRACE"); v != "" {
-		c.DataWayCfg.EnableHTTPTrace = true
+		c.Dataway.EnableHTTPTrace = true
 	}
 
 	if v := datakit.GetEnv("ENV_DATAWAY_HTTP_PROXY"); v != "" {
-		c.DataWayCfg.HTTPProxy = v
-		c.DataWayCfg.Proxy = true
+		c.Dataway.HTTPProxy = v
+		c.Dataway.Proxy = true
 	}
 
 	if v := datakit.GetEnv("ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST"); v != "" {
-		if c.DataWayCfg == nil {
-			c.DataWayCfg = &dataway.DataWayCfg{}
-		}
 		value, err := strconv.ParseInt(v, 10, 64)
 		if err == nil {
 			if value <= 0 {
 				l.Warnf("invalid ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST: %s", v)
 			} else {
-				c.DataWayCfg.MaxIdleConnsPerHost = int(value)
+				c.Dataway.MaxIdleConnsPerHost = int(value)
 			}
 		}
+	}
+
+	if v := datakit.GetEnv("ENV_SINKER"); v != "" {
+		c.LoadSink(v)
 	}
 
 	if v := datakit.GetEnv("ENV_HOSTNAME"); v != "" {
@@ -301,7 +285,8 @@ func (c *Config) LoadEnvs() error {
 
 	// filters
 	if v := datakit.GetEnv("ENV_IO_FILTERS"); v != "" {
-		var x map[string][]string
+		var x map[string]filter.FilterConditions
+
 		if err := json.Unmarshal([]byte(v), &x); err != nil {
 			l.Warnf("json.Unmarshal: %s, ignored", err)
 		} else {
@@ -315,7 +300,7 @@ func (c *Config) LoadEnvs() error {
 				}
 			}
 
-			c.IOConf.Filters = x
+			c.IO.Filters = x
 		}
 	}
 
@@ -359,26 +344,30 @@ func (c *Config) LoadEnvs() error {
 		"ENV_ENABLE_INPUTS", // Deprecated
 	} {
 		if v := datakit.GetEnv(x); v != "" {
-			c.DefaultEnabledInputs = strings.Split(v, ",")
+			if v == "-" {
+				l.Warnf("no default inputs enabled!")
+			} else {
+				c.DefaultEnabledInputs = strings.Split(v, ",")
+			}
 			break
 		}
 	}
 
-	// k8s 环境变量配置 confd 后台源
+	// k8s ENV confd
 	if backend := datakit.GetEnv("ENV_CONFD_BACKEND"); backend != "" {
 		authToken := datakit.GetEnv("ENV_CONFD_AUTH_TOKEN")
 		authType := datakit.GetEnv("ENV_CONFD_AUTH_TYPE")
-		basicAuthBool := datakit.GetEnv("ENV_CONFD_BASIC_AUTH")    // 可选
-		clientCaKeys := datakit.GetEnv("ENV_CONFD_CLIENT_CA_KEYS") // 可选
-		clientCert := datakit.GetEnv("ENV_CONFD_CLIENT_CERT")      // 可选
-		clientKey := datakit.GetEnv("ENV_CONFD_CLIENT_KEY")        // 可选
+		basicAuthBool := datakit.GetEnv("ENV_CONFD_BASIC_AUTH")
+		clientCaKeys := datakit.GetEnv("ENV_CONFD_CLIENT_CA_KEYS")
+		clientCert := datakit.GetEnv("ENV_CONFD_CLIENT_CERT")
+		clientKey := datakit.GetEnv("ENV_CONFD_CLIENT_KEY")
 		clientInsecureBool := datakit.GetEnv("ENV_CONFD_CLIENT_INSECURE")
-		backendNodesArry := datakit.GetEnv("ENV_CONFD_BACKEND_NODES") // 后端源地址
-		password := datakit.GetEnv("ENV_CONFD_PASSWORD")              // 可选
-		scheme := datakit.GetEnv("ENV_CONFD_SCHEME")                  // 可选
+		backendNodesArry := datakit.GetEnv("ENV_CONFD_BACKEND_NODES")
+		password := datakit.GetEnv("ENV_CONFD_PASSWORD")
+		scheme := datakit.GetEnv("ENV_CONFD_SCHEME")
 		table := datakit.GetEnv("ENV_CONFD_TABLE")
-		separator := datakit.GetEnv("ENV_CONFD_SEPARATOR") // 可选默认0
-		username := datakit.GetEnv("ENV_CONFD_USERNAME")   // 可选
+		separator := datakit.GetEnv("ENV_CONFD_SEPARATOR")
+		username := datakit.GetEnv("ENV_CONFD_USERNAME")
 		appID := datakit.GetEnv("ENV_CONFD_APP_ID")
 		userID := datakit.GetEnv("ENV_CONFD_USER_ID")
 		roleID := datakit.GetEnv("ENV_CONFD_ROLE_ID")
@@ -386,15 +375,20 @@ func (c *Config) LoadEnvs() error {
 		filter := datakit.GetEnv("ENV_CONFD_FILTER")
 		path := datakit.GetEnv("ENV_CONFD_PATH")
 		role := datakit.GetEnv("ENV_CONFD_ROLE")
+		accessKey := datakit.GetEnv("ENV_CONFD_ACCESS_KEY")
+		secretKey := datakit.GetEnv("ENV_CONFD_SECRET_KEY")
+		circleIntervalInt := datakit.GetEnv("ENV_CONFD_CIRCLE_INTERVAL")
+		confdNamespace := datakit.GetEnv("ENV_CONFD_CONFD_NAMESPACE")
+		pipelineNamespace := datakit.GetEnv("ENV_CONFD_PIPELINE_NAMESPACE")
+		region := datakit.GetEnv("ENV_CONFD_REGION")
 
-		// 个别数据类型需要转换
-		if i := strings.Index(backendNodesArry, "["); i > -1 {
-			backendNodesArry = backendNodesArry[i+1:]
+		// some data types need to be converted
+		var backendNodes []string
+		err := json.Unmarshal([]byte(backendNodesArry), &backendNodes)
+		if err != nil {
+			l.Warnf("parse ENV_CONFD_BACKEND_NODES: %s, ignore", err)
+			backendNodes = make([]string, 0)
 		}
-		if i := strings.Index(backendNodesArry, "]"); i > -1 {
-			backendNodesArry = backendNodesArry[:i]
-		}
-		backendNodes := strings.Split(backendNodesArry, ",")
 		basicAuth := false
 		if basicAuthBool == "true" {
 			basicAuth = true
@@ -403,30 +397,42 @@ func (c *Config) LoadEnvs() error {
 		if clientInsecureBool == "true" {
 			clientInsecure = true
 		}
+		circleInterval := 60
+		if interval, err := strconv.Atoi(circleIntervalInt); err == nil {
+			circleInterval = interval
+		} else {
+			l.Warnf("parse ENV_CONFD_CIRCLE_INTERVAL: %s, ignore", err)
+		}
 
 		c.Confds = append(c.Confds, &ConfdCfg{
-			Enable:         true,
-			Backend:        backend,
-			AuthToken:      authToken,
-			AuthType:       authType,
-			BasicAuth:      basicAuth,
-			ClientCaKeys:   clientCaKeys,
-			ClientCert:     clientCert,
-			ClientKey:      clientKey,
-			ClientInsecure: clientInsecure,
-			BackendNodes:   append(backendNodes[0:0], backendNodes...),
-			Password:       password,
-			Scheme:         scheme,
-			Table:          table,
-			Separator:      separator,
-			Username:       username,
-			AppID:          appID,
-			UserID:         userID,
-			RoleID:         roleID,
-			SecretID:       secretID,
-			Filter:         filter,
-			Path:           path,
-			Role:           role,
+			Enable:            true,
+			Backend:           backend,
+			AuthToken:         authToken,
+			AuthType:          authType,
+			BasicAuth:         basicAuth,
+			ClientCaKeys:      clientCaKeys,
+			ClientCert:        clientCert,
+			ClientKey:         clientKey,
+			ClientInsecure:    clientInsecure,
+			BackendNodes:      append(backendNodes[0:0], backendNodes...),
+			Password:          password,
+			Scheme:            scheme,
+			Table:             table,
+			Separator:         separator,
+			Username:          username,
+			AppID:             appID,
+			UserID:            userID,
+			RoleID:            roleID,
+			SecretID:          secretID,
+			Filter:            filter,
+			Path:              path,
+			Role:              role,
+			AccessKey:         accessKey,
+			SecretKey:         secretKey,
+			CircleInterval:    circleInterval,
+			ConfdNamespace:    confdNamespace,
+			PipelineNamespace: pipelineNamespace,
+			Region:            region,
 		})
 	}
 
@@ -445,17 +451,9 @@ func (c *Config) LoadEnvs() error {
 					SSHPrivateKeyPath:     keyPath,
 					SSHPrivateKeyPassword: keyPasswd,
 					Branch:                branch,
-				}, // GitRepository
-			}, // Repos
-		} // GitRepost
-	}
-
-	if err := c.loadSinkEnvs(); err != nil {
-		l.Fatalf("loadSinkEnvs failed: %v", err)
-		return err
-	}
-	if v := datakit.GetEnv("ENV_LOG_SINK_DETAIL"); v != "" {
-		c.LogSinkDetail = true
+				},
+			},
+		}
 	}
 
 	if v := datakit.GetEnv("ENV_ULIMIT"); v != "" {

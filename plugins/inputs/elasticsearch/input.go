@@ -14,15 +14,14 @@ import (
 	internalIo "io"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"regexp"
 	"sort"
 	"strings"
 	"sync"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
@@ -498,10 +497,6 @@ func (i *Input) RunPipeline() {
 		return
 	}
 
-	if i.Log.Pipeline == "" {
-		i.Log.Pipeline = inputName + ".p" // use default
-	}
-
 	opt := &tailer.Option{
 		Source:            inputName,
 		Service:           inputName,
@@ -644,9 +639,7 @@ func (i *Input) gatherIndicesStats(url string, clusterName string) error {
 		}
 
 		tags := map[string]string{"index_name": "_all", "cluster_name": clusterName}
-		if host := getHost(url); host != "" {
-			tags["host"] = host
-		}
+		setHostTagIfNotLoopback(tags, url)
 		i.extendSelfTag(tags)
 
 		metric := &indicesStatsMeasurement{
@@ -687,9 +680,7 @@ func (i *Input) gatherIndicesStats(url string, clusterName string) error {
 				}
 			}
 
-			if host := getHost(url); host != "" {
-				indexTag["host"] = host
-			}
+			setHostTagIfNotLoopback(indexTag, url)
 			i.extendSelfTag(indexTag)
 			metric := &indicesStatsMeasurement{
 				elasticsearchMeasurement: elasticsearchMeasurement{
@@ -782,9 +773,7 @@ func (i *Input) gatherNodeStats(url string) (string, error) {
 			}
 		}
 
-		if host := getHost(url); host != "" {
-			tags["host"] = host
-		}
+		setHostTagIfNotLoopback(tags, url)
 		i.extendSelfTag(tags)
 		metric := &nodeStatsMeasurement{
 			elasticsearchMeasurement: elasticsearchMeasurement{
@@ -836,9 +825,7 @@ func (i *Input) gatherClusterStats(url string) error {
 		}
 	}
 
-	if host := getHost(url); host != "" {
-		tags["host"] = host
-	}
+	setHostTagIfNotLoopback(tags, url)
 	i.extendSelfTag(tags)
 	metric := &clusterStatsMeasurement{
 		elasticsearchMeasurement: elasticsearchMeasurement{
@@ -979,9 +966,7 @@ func (i *Input) gatherClusterHealth(url string, serverURL string) error {
 		"cluster_status": healthStats.Status,
 	}
 
-	if host := getHost(url); host != "" {
-		tags["host"] = host
-	}
+	setHostTagIfNotLoopback(tags, url)
 	i.extendSelfTag(tags)
 	metric := &clusterHealthMeasurement{
 		elasticsearchMeasurement: elasticsearchMeasurement{
@@ -1203,18 +1188,6 @@ func (i *Input) Resume() error {
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
 	}
-}
-
-func getHost(rawURL string) string {
-	if strings.Contains(rawURL, "127.0.0.1") || strings.Contains(rawURL, "localhost") {
-		return ""
-	}
-	u, err := url.Parse(rawURL)
-	if err != nil {
-		l.Errorf("failed to get host from url: %v", err)
-		return ""
-	}
-	return u.Host
 }
 
 func init() { //nolint:gochecknoinits

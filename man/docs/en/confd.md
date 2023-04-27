@@ -1,126 +1,133 @@
-<!-- This file required to translate to EN. -->
-# 通过配置中心分发配置
+# Distribute Configuration through Configuration Center
 ---
 
-## 配置中心介绍 {#intro}
+## Introduction to Configuration Center {#intro}
 
-配置中心的思路就是把项目中各种配置、各种参数、各种开关，全部都放到一个集中的地方进行统一管理，并提供一套标准的接口。当各个服务需要获取配置的时候，就来配置中心的接口拉取。
-当配置中心中的各种参数有更新的时候，也能通知到各个服务实时的过来同步最新的信息，使之动态更新。
+The idea of configuration center is to put all kinds of configurations, parameters and switches in a centralized place for unified management and provide a set of standard interfaces. 
+When each service needs to obtain configuration, it will configure the interface pull of the center. When various parameters in the configuration center are updated, it can also inform each service to synchronize the latest information in real time, so that it can be dynamically updated.
 
-采用“配置集中管理”，可以很好的解决传统的“配置文件过于分散”的问题。所有的配置都集中在配置中心这一个地方管理，不需要每一个项目都自带一个，这样极大的减轻了开发成本。
+Adopting "centralized configuration management" can solve the traditional problem of "too scattered configuration files". All configurations are centralized in the configuration center, which does not need to bring one for each project, thus greatly reducing the development cost.
 
-采用“配置与应用分离”，可以很好的解决传统的“配置文件无法区分环境”的问题，配置并不跟着环境走，当不同环境有不同需求的时候，就到配置中心获取即可，极大的减轻了运维部署成本。
+Adopting "separation of configuration and application" can solve the problem that the traditional "configuration file can't distinguish the environment". Configuration does not follow the environment. When different environments have different requirements, it can be obtained from the configuration center, which greatly reduces the operation and maintenance deployment cost.
 
-具备“实时更新”的功能，就是用来解决传统的“静态化配置”的问题。线上系统需要调整参数的时候，只需要在配置中心动态修改即可。
+With the function of "real-time update", it is used to solve the problem of traditional "static configuration". When the online system needs to adjust the parameters, it only needs to be dynamically modified in the configuration center.
 
-datakit 支持 etcdv3 consul redis zookeeper file 等多种配置中心，并且可以同时采用多种配置中心协同工作。
-当配置中心数据发生变化，datakit 可以自动更改配置，增加或删除采集器，相关采集器进行必要的重启。
+Datakit supports multiple configuration centers, such as etcdv3 consul redis zookeeper file, and can work together with multiple configuration centers at the same time. 
+When the configuration center data changes, datakit can automatically change the configuration, add or delete collectors, and relevant collectors are restarted as necessary.
 
-## 引入配置中心 {#Configuration-Center-Import}
+## Introducing Configuration Center {#Configuration-Center-Import}
 
-=== "datakit.conf引入"
+=== "datakit.conf introduced"
 
-	datakit 通过修改 `/datakit/conf.d/datakit.conf` 引入配置中心的资源。例如：
-
+	Datakit introduces resources in the configuration center by modifying `/datakit/conf.d/datakit.conf '. For example: 
+	
 	```
-	# 原有的其他配置信息...
+	# Other existing configuration information...
 	[[confds]]
 	  enable = true
 	  backend = "zookeeper"
-	  nodes = ["IP地址:2181","IP地址2:2181"...]
+	  nodes = ["IP address:2181","IP address2:2181"...]
 	[[confds]]
 	  enable = true
 	  backend = "etcdv3"
-	  nodes = ["IP地址:2379","IP地址2:2379"...]
-	  # client_cert = "可选"
-	  # client_key = "可选"
-	  # client_ca_keys = "可选"
-	  # basic_auth = "可选"
-	  # username = "可选"
-	  # password = "可选"
+	  nodes = ["IP address:2379","IP address2:2379"...]
+	  # client_cert = "optional"
+	  # client_key = "optional"
+	  # client_ca_keys = "optional"
+	  # basic_auth = "optional"
+	  # username = "optional"
+	  # password = "optional"
 	[[confds]]
 	  enable = true
 	  backend = "redis"
-	  nodes = ["IP地址:6379","IP地址2:6379"...]
-	  # client_key = "可选"
-	  # separator = "可选|默认是0"
+	  nodes = ["IP address:6379","IP address2:6379"...]
+	  # client_key = "optional"
+	  # separator = "optional|0 by default"
 	[[confds]]
 	  enable = true
 	  backend = "consul"
-	  nodes = ["IP地址:8500","IP地址2:8500"...]
-	  # scheme = "可选"
-	  # client_cert = "可选"
-	  # client_key = "可选"
-	  # client_ca_keys = "可选"
-	  # basic_auth = "可选"
-	  # username = "可选"
-	  # password = "可选"
-	# 不推荐  
+	  nodes = ["IP address:8500","IP address 2:8500"...]
+	  # scheme = "optional"
+	  # client_cert = "optional"
+	  # client_key = "optional"
+	  # client_ca_keys = "optional"
+	  # basic_auth = "optional"
+	  # username = "optional"
+	  # password = "optional"
+	# Not recommended  
 	[[confds]]
 	  enable = false
 	  backend = "file"
-	  file = ["/文件1路径/文件1","/文件2路径/文件2"...]
-	# 原有的其他配置信息...
+	  file = ["/file1access/file1","/file2路径/文件2"...]
+	# Other existing configuration information...
 	```
-
-	可以同时配置多个数据中心后端，每个后端的数据的配置信息会合并注入datakit。任何一个后端的信息变化，都会被 datakit 检测到，datakit 会自动更新相关的配置，重启对应的采集器。
-
-=== "Kubernates引入"
-
-	由于 Kubernates 环境的特殊性，采用环境变量传递的安装/配置方式最为简单。
 	
-	在 Kubernates 里面安装的时候需要设置如下的环境变量，把 Confd 配置信息带进去:
+	Multiple datacenter backends can be configured at the same time, and the data configuration information of each backend is merged and injected into datakit. Any back-end information changes will be detected by datakit, and datakit will automatically update the relevant configuration and restart the corresponding collector.
+
+=== "Kubernates introduced"
+
+	Because of the particularity of Kubernates environment, the installation/configuration mode with environment variable passing is the simplest.
 	
-	具体参见[Kubernetes文档](datakit-daemonset-deploy.md#env-confd)
+	When installing in Kubernates, you need to set the following environment variables to bring Confd configuration information into it:
+	
+	See [Kubernetes document](datakit-daemonset-deploy.md#env-confd) for more details.
 
-=== "程序安装时引入"
+=== "Introduced during program installation"
 
-	如果需要在安装阶段定义一些 DataKit 配置，可在安装命令中增加环境变量，在 DK_DATAWAY 前面追加即可。如：
-
+	If you need to define some DataKit configuration during the installation phase, you can add environment variables to the installation command, just append them before DK_DATAWAY. Such as:
+	
 	```shell
 	# Linux/Mac
-	DK_CONFD_BACKEND="etcdv3" DK_CONFD_BACKEND_NODES="[127.0.0.1:2379]" DK_DATAWAY="https://openway.guance.com?token=<TOKEN>" bash -c "$	(curl -L https://static.guance.com/datakit/install.sh)"
-
+{{ InstallCmd 4
+(.WithPlatform "unix")
+(.WithEnvs "DK_CONFD_BACKEND" "etcdv3")
+(.WithEnvs "DK_CONFD_BACKEND_NODES" "[127.0.0.1:2379]")
+}}
+	
 	# Windows
-	$env:DK_CONFD_BACKEND="etcdv3";$env:DK_CONFD_BACKEND_NODES="[127.0.0.1:2379]"; $env:DK_DATAWAY="https://openway.guance.com?	token=<TOKEN>"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://	static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+{{ InstallCmd 4
+(.WithPlatform "windows")
+(.WithEnvs "DK_CONFD_BACKEND" "etcdv3")
+(.WithEnvs "DK_CONFD_BACKEND_NODES" "[127.0.0.1:2379]")
+}}
 	```
-
-	两种环境变量的设置格式为：
-
+	
+	The two environment variables are formatted as:
+	
 	```shell
-	# Windows: 多个环境变量之间以分号分割
+	# Windows: multiple environment variables are divided by semicolons
 	$env:NAME1="value1"; $env:Name2="value2"
-
-	# Linux/Mac: 多个环境变量之间以空格分割
+	
+	# Linux/Mac: multiple environment variables are divided by spaces
 	NAME1="value1" NAME2="value2"
 	```
+	
+	See [host installation documentation](datakit-install.md#env-confd) for more information.
 
-	具体参见[主机安装文档](datakit-install.md#env-confd)
+## Collector Turned on by Default {#default-enabled-inputs}
+After DataKit is installed, a batch of host-related collectors will be turned on by default without manual configuration, such as:
 
-## 默认开启的采集器 {#default-enabled-inputs}
-DataKit 安装完成后，会默认开启一批主机相关的采集器，无需手动配置，如：
+cpu, disk, diskio, memand so on. See [Collector Configuration](datakit-input-conf.md#default-enabled-inputs) for details.
 
-cpu、disk、diskio、mem、等。具体参见[采集器配置](datakit-input-conf.md#default-enabled-inputs)
+Configuration Center can modify the configuration of these collectors, but cannot delete or stop these collectors.
 
-配置中心可以修改这些采集器的配置，但是无法删除、停止这些采集器。
+If you want to delete the default collector, you can open the datakit.conf file in the DataKit conf.d directory and delete the collector in default_enabled_inputs.
 
-若你要删除默认采集器，可以在 DataKit conf.d目录下，打开datakit.conf文件，在default_enabled_inputs中删除该采集器。
+Self can neither delete, stop, nor modify the configuration.
 
-self 既不能删除、停止，也不能修改配置。
+## Collector Singleton Run Control {#input-singleton}
 
-## 采集器单例运行控制 {#input-singleton}
+Some collectors only need to run singletons, such as all default open collectors, netstat, etc. Some can be run in multiple instances, such as nginx, nvidia_smi... and so on.
 
-有些采集器，只需要单例运行，例如全部的默认开启采集器、netstat... 等。有些是可以多例运行的，例如nginx、nvidia_smi... 等。
+In the collector configuration of single case operation, only the data ranked first is accepted, and the latter is automatically discarded.
 
-单例运行的采集器配置，只有排序第一的资料被采信，后面的自动废弃。
+## Data Format {#data-format}
 
-## 数据格式 {#data-format}
+Datakit configuration information is stored in the data center as a Key-Value.
 
-datakit 配置信息以 Key-Value 形式存储在数据中心。
+The prefix of Key must be `/datakit/`, such as  `/datakit/XXX` , `XXX` is not duplicated. It is recommended to use the corresponding collector name, such as `/datakit/netstat`.
 
-Key 的前缀必须是 `/datakit/` ，例如  `/datakit/XXX` , `XXX` 不重复就可，推荐使用对应的采集器的名名字，例如 `/datakit/netstat` 。
-
-Value 的内容就是 conf.d 子目录下各种配置文件的完整内容。例如：
+The contents of Value are the full contents of the various configuration files in the conf. d subdirectory. For example:
 ```
 `
 [[inputs.netstat]]
@@ -132,9 +139,9 @@ Value 的内容就是 conf.d 子目录下各种配置文件的完整内容。例
   # more_tag = "some_other_value"
 `
 ```
-file 模式，file文件内容就是原有的 .conf 文件内容。
+file mode: the contents of the. conf file are the contents of the original. conf file.
 
-## 配置中心如何更新配置(golang为例) {#update-config}
+## How the Configuration Center Updates the Configuration(Take golang as an Example) {#update-config}
 
 ### zookeeper {#update-zookeeper}
 
@@ -150,9 +157,9 @@ func zookeeperDo(index int) {
 		fmt.Println("conn, _, err := zk.Connect error: ", err)
 	}
 	defer conn.Close()
-	// 创建一级目录节点
+	// Create a first-level directory node
 	add(conn, "/datakit/confd", "")
-	// 创建一个节点
+	// Create a node
 	key := "/datakit/confd/netstat"
 	value := `
 [[inputs.netstat]]
@@ -167,7 +174,7 @@ func zookeeperDo(index int) {
 	add(conn, key, value)
 }
 
-// 增
+// add
 func add(conn *zk.Conn, path, value string) {
 	if path == "" {
 		return
@@ -178,14 +185,14 @@ func add(conn *zk.Conn, path, value string) {
 	acls := zk.WorldACL(zk.PermAll)
 	s, err := conn.Create(path, data, flags, acls)
 	if err != nil {
-		fmt.Println("创建 error: ", err)
+		fmt.Println("creat error: ", err)
 		modify(conn, path, value)
 		return
 	}
-	fmt.Println("创建成功", s)
+	fmt.Println("successfully created", s)
 }
 
-// 改
+// modify
 func modify(conn *zk.Conn, path, value string) {
 	if path == "" {
 		return
@@ -194,10 +201,10 @@ func modify(conn *zk.Conn, path, value string) {
 	_, sate, _ := conn.Get(path)
 	s, err := conn.Set(path, data, sate.Version)
 	if err != nil {
-		fmt.Println("修改 error: ", err)
+		fmt.Println("modify error: ", err)
 		return
 	}
-	fmt.Println("修改成功", s)
+	fmt.Println("successfully modified", s)
 }
 
 ```
@@ -247,17 +254,17 @@ import (
 )
 
 func redisDo(index int) {
-	// 初始化context
+	// initialize context
 	ctx := context.Background()
 
-	// 初始化redis客户端
+	// initialize redis client end
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     ip + ":6379",
 		Password: "654123", // no password set
 		DB:       0,        // use default DB
 	})
 
-	// 操作redis
+	// operate redis
 	key := "/datakit/confd/netstat"
 	value := `
 [[inputs.netstat]]
@@ -269,13 +276,13 @@ func redisDo(index int) {
   # more_tag = "some_other_value"
 `
 
-	// 写
+	// write
 	err := rdb.Set(ctx, key, value, 0).Err()
 	if err != nil {
 		panic(err)
 	}
 
-	// 发布订阅
+	// publish Subscription
 	n, err := rdb.Publish(ctx, "__keyspace@0__:/datakit*", "set").Result()
 	if err != nil {
 		fmt.Println(err)
@@ -293,7 +300,7 @@ import (
 )
 
 func consulDo(index int) {
-	// 创建终端
+	// create terminal
 	client, err := api.NewClient(&api.Config{
 		Address: "http://" + ip + ":8500",
 	})
@@ -301,10 +308,10 @@ func consulDo(index int) {
 		fmt.Println(" error: ", err)
 	}
 
-	// 获得KV句柄
+	// get a KV handle
 	kv := client.KV()
   
-    // 注意 datakit 前面 没有 /
+    // note that datakit is not preceded by /
 	key := "datakit/confd/netstat"
 	value := `
 [[inputs.netstat]]
@@ -316,7 +323,7 @@ func consulDo(index int) {
   # more_tag = "some_other_value"
 `
 
-	// 写入数据
+	// write data
 	p := &api.KVPair{Key: key, Value: []byte(data), Flags: 32}
 	_, err = kv.Put(p, nil)
 	if err != nil {
@@ -331,21 +338,82 @@ func consulDo(index int) {
 }
 ```
 
-## 配置中心更新Pipeline {#update-config-pipeline}
+### aws secrets manager  {#update-aws}
 
-参考 [配置中心如何更新配置](#update-config)
+```
+import (
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	"github.com/aws/smithy-go"
+)
 
-键名 `datakit/confd` 字样改为 `datakit/pipeline` ，再加上 `类型/文件名` 即可。
+func consulDo(index int) {
+	// creat terminal
+	region := "cn-north-1"
+	config, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(《AccessKeyID》, 《SecretAccessKey》, "")),
+		config.WithRegion(region),
+	)
+	// will use secret file like ~/.aws/config
+	// config, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
+	if err != nil {
+		fmt.Printf("ERROR config.LoadDefaultConfig : %v\n", err)
+	}
 
-例如 `datakit/pipeline/logging/nginx.p` 。
+	// obtain a KV handle
+	conn := secretsmanager.NewFromConfig(config)
+  
+	key := "/datakit/confd/host/netstat.conf"
+	// key := "/datakit/pipeline/metric/netstat.p"
+	value := `
+[[inputs.netstat]]
+  ##(optional) collect interval, default is 10 seconds
+  interval = '10s'
 
-键值 就是 pipeline 的文本。
+[inputs.netstat.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
+`
 
-更新 Pipeline 支持 etcdv3 consul redis zookeeper， 不支持 file 后端。
+	// write in data
+	input := &secretsmanager.CreateSecretInput{
+		// Description:  aws.String(""),
+		Name:         aws.String(key),
+		SecretString: aws.String(value),
+	}
 
-## 后端数据源软件版本说明 {#backend-version}
+	result, err := conn.CreateSecret(context.TODO(), input)
+	if err != nil {
+		fmt.Println(" error: ", err)
+	}
+}
+```
 
-在开发、测试过程中，后端数据源软件使用了如下版本。
+### nacos {#update-nacos}
+
+    1. Log in to the `nacos` management page through the URL.
+    2. Create two spaces: `/datakit/confd` and `/datakit/pipeline`.
+    3. Group names are created in the style of `datakit/conf.d` and `datakit/pipeline`.
+    4. `dataID` is created according to the rules of `.conf` and `.p` files. (The suffix cannot be omitted).
+    5. Add/delete/change `dataID` through the management page.
+
+## Updating Pipeline in Configuration Center  {#update-config-pipeline}
+
+Refer to [how Configuration Center updates configuration](#update-config)
+
+Change the key name `datakit/confd` to `datakit/pipeline`, plus the `type/file name`.
+
+For example,  `datakit/pipeline/logging/nginx.p`.
+
+The key value is the text of the pipeline.
+
+Update Pipeline supports etcdv3 consul redis zookeeper, not file backend.
+
+## Backend Data Source Software Version Description {#backend-version}
+
+In the process of development and testing, the back-end data source software uses the following version.
 - REDIS: v6.0.16
 - ETCD: v3.3.0 
 - CONSUL: v1.13.2

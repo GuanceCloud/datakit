@@ -86,3 +86,5 @@ func (c *ConsulClient) WatchPrefix(prefix string, keys []string, waitIndex uint6
 		return r.waitIndex, r.err
 	}
 }
+
+func (c *ConsulClient) Close() {}

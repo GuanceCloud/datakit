@@ -6,45 +6,29 @@
 package http
 
 import (
-	"encoding/json"
+	"errors"
 	"net/http"
 	"reflect"
 	"strings"
 	"time"
 
-	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
-	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	lp "github.com/GuanceCloud/cliutils/lineproto"
+	uhttp "github.com/GuanceCloud/cliutils/network/http"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
-type IApiWrite interface {
-	sendToIO(string, string, []*point.Point, *io.Option) error
+type IAPIWrite interface {
+	feed(string, point.Category, []*point.Point, ...*io.Option) error
 	geoInfo(string) map[string]string
 }
 
 type apiWriteImpl struct{}
 
-type jsonPoint struct {
-	Measurement string                 `json:"measurement"`
-	Tags        map[string]string      `json:"tags,omitempty"`
-	Fields      map[string]interface{} `json:"fields"`
-	Time        int64                  `json:"time,omitempty"`
-}
-
-// convert json point to lineproto point.
-func (jp *jsonPoint) point(opt *lp.Option) (*point.Point, error) {
-	p, err := lp.MakeLineProtoPoint(jp.Measurement, jp.Tags, jp.Fields, opt)
-	if err != nil {
-		return nil, err
-	}
-
-	return &point.Point{Point: p}, nil
-}
-
-func (x *apiWriteImpl) sendToIO(input, category string, pts []*point.Point, opt *io.Option) error {
-	return io.Feed(input, category, pts, opt)
+func (x *apiWriteImpl) feed(input string, category point.Category, pts []*point.Point, opt ...*io.Option) error {
+	f := io.DefaultFeeder()
+	return f.Feed(input, category, pts, opt...)
 }
 
 func (x *apiWriteImpl) geoInfo(ip string) map[string]string {
@@ -58,10 +42,16 @@ const (
 	ArgIgnoreGlobalTags     = "ignore_global_tags"      // deprecated, use IGNORE_GLOBAL_HOST_TAGS
 	ArgIgnoreGlobalHostTags = "ignore_global_host_tags" // default enabled
 	ArgGlobalElectionTags   = "global_election_tags"    // default disabled
-	ArgEchoLineProto        = "echo_line_proto"
-	ArgVersion              = "version"
-	ArgPipelineSource       = "source"
-	ArgLoose                = "loose"
+
+	// echo point in line-protocol or JSON for debugging.
+	ArgEchoLineProto = "echo_line_proto"
+	ArgEchoJSON      = "echo_json"
+
+	ArgVersion        = "version"
+	ArgPipelineSource = "source"
+
+	ArgLoose  = "loose" // Deprecated: default are loose mode
+	ArgStrict = "strict"
 
 	defaultInput     = "datakit-http" // 当 API 调用方未亮明自己身份时，默认它作为数据源名称
 	DefaultPrecision = "n"
@@ -76,81 +66,52 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 		return nil, ErrInvalidAPIHandler
 	}
 
-	h, ok := x[0].(IApiWrite)
+	h, ok := x[0].(IAPIWrite)
 	if !ok {
 		l.Errorf("not IApiWrite, got %s", reflect.TypeOf(x).String())
 		return nil, ErrInvalidAPIHandler
 	}
 
 	input := defaultInput
-	category := req.URL.Path
-	opt := lp.NewDefaultOption()
+	categoryURL := req.URL.Path
 
-	// extra tags comes from global-host-tag or global-env-tags
-	opt.ExtraTags = map[string]string{}
-	opt.Precision = DefaultPrecision
-	opt.Time = time.Now()
+	opts := []point.Option{
+		point.WithPrecision(point.NS),
+		point.WithTime(time.Now()),
+	}
 
-	switch category {
-	case datakit.Metric,
-		datakit.Network,
-		datakit.Logging,
-		datakit.Object,
-		datakit.Tracing,
-		datakit.KeyEvent:
+	switch categoryURL {
+	// set specific options on them
+	case point.Metric.URL():
+		opts = append(opts, point.DefaultMetricOptions()...)
+	case point.Logging.URL():
+		opts = append(opts, point.DefaultLoggingOptions()...)
+	case point.Object.URL():
+		opts = append(opts, point.DefaultObjectOptions()...)
 
-		opt.MaxFieldValueLen = point.MaxFieldValueLen
-		opt.MaxTagKeyLen = point.MaxTagKeyLen
-		opt.MaxFieldKeyLen = point.MaxFieldKeyLen
-		opt.MaxTagValueLen = point.MaxTagValueLen
+	case point.Network.URL(),
+		point.Tracing.URL(),
+		point.KeyEvent.URL(): // pass
 
-		if category == datakit.Metric {
-			opt.EnablePointInKey = true
-			opt.DisableStringField = true
-		}
-
-	case datakit.CustomObject:
+		// set input-name for them
+	case point.CustomObject.URL():
 		input = "custom_object"
-
-	case datakit.Security:
+	case point.Security.URL():
 		input = "scheck"
+
 	default:
-		l.Debugf("invalid category: %s", category)
+		l.Debugf("invalid category: %q", categoryURL)
 		return nil, ErrInvalidCategory
 	}
 
 	q := req.URL.Query()
-
-	opt.Strict = (q.Get(ArgLoose) == "")
 
 	if x := q.Get(ArgInput); x != "" {
 		input = x
 	}
 
 	if x := q.Get(ArgPrecision); x != "" {
-		opt.Precision = x
-	}
-
-	for _, arg := range []string{
-		ArgIgnoreGlobalHostTags,
-		ArgIgnoreGlobalTags, // deprecated
-	} {
-		if x := q.Get(arg); x != "" {
-			opt.ExtraTags = map[string]string{}
-			break
-		} else {
-			for k, v := range point.GlobalHostTags() {
-				l.Debugf("arg=%s, add host tag %s: %s", arg, k, v)
-				opt.ExtraTags[k] = v
-			}
-		}
-	}
-
-	if x := q.Get(ArgGlobalElectionTags); x != "" {
-		for k, v := range point.GlobalEnvTags() {
-			l.Debugf("add env tag %s: %s", k, v)
-			opt.ExtraTags[k] = v
-		}
+		opts = append(opts, point.WithPrecision(point.PrecStr(x)))
 	}
 
 	var version string
@@ -161,13 +122,6 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 	var pipelineSource string
 	if x := q.Get(ArgPipelineSource); x != "" {
 		pipelineSource = x
-	}
-
-	switch opt.Precision {
-	case "h", "m", "s", "ms", "u", "n":
-	default:
-		l.Warnf("invalid precision %s", opt.Precision)
-		return nil, ErrInvalidPrecision
 	}
 
 	body, err = uhttp.ReadBody(req)
@@ -181,95 +135,111 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 
 	isjson := (strings.Contains(req.Header.Get("Content-Type"), "application/json"))
 
-	var pts []*point.Point
-
-	pts, err = handleWriteBody(body, isjson, opt)
+	pts, err := handleWriteBody(body, isjson, opts...)
 	if err != nil {
-		return nil, err
-	}
-
-	// check if object is ok
-	if category == datakit.Object {
-		for _, pt := range pts {
-			if err := checkObjectPoint(pt); err != nil {
-				return nil, err
-			}
+		if errors.Is(err, point.ErrInvalidLineProtocol) {
+			return nil, uhttp.Errorf(ErrInvalidLinePoint, "%s: body(%d bytes)", err.Error(), len(body))
 		}
+		return nil, err
 	}
 
 	if len(pts) == 0 {
 		return nil, ErrNoPoints
 	}
 
-	l.Debugf("received %d(%s) points from %s, pipeline source: %v", len(pts), category, input, pipelineSource)
+	// add extra tags
+	ignoreGlobalTags := false
+	for _, arg := range []string{
+		ArgIgnoreGlobalHostTags,
+		ArgIgnoreGlobalTags, // deprecated
+	} {
+		if x := q.Get(arg); x != "" {
+			ignoreGlobalTags = true
+		}
+	}
+
+	if !ignoreGlobalTags {
+		appendTags(pts, dkpt.GlobalHostTags())
+	}
+
+	if x := q.Get(ArgGlobalElectionTags); x != "" {
+		appendTags(pts, dkpt.GlobalElectionTags())
+	}
+
+	l.Debugf("received %d(%s) points from %s, pipeline source: %v",
+		len(pts), categoryURL, input, pipelineSource)
+
+	// under strict mode, any point warning are errors
+	strict := false
+	if q.Get(ArgStrict) != "" {
+		strict = true
+	}
+	if strict {
+		for _, pt := range pts {
+			if arr := pt.Warns(); len(arr) > 0 {
+				if isjson {
+					return nil, uhttp.Errorf(ErrInvalidJSONPoint, "%s: %s", arr[0].Type, arr[0].Msg)
+				} else {
+					return nil, uhttp.Errorf(ErrInvalidLinePoint, "%s: %s", arr[0].Type, arr[0].Msg)
+				}
+			}
+		}
+	}
 
 	feedOpt := &io.Option{Version: version}
 	if pipelineSource != "" {
 		feedOpt.PlScript = map[string]string{pipelineSource: pipelineSource + ".p"}
 	}
 
-	if err := h.sendToIO(input, category, pts, feedOpt); err != nil {
-		return nil, err
+	if err := h.feed(input, point.CatURL(categoryURL), pts, feedOpt); err != nil {
+		return err, nil
 	}
 
 	if q.Get(ArgEchoLineProto) != "" {
-		res := []*point.JSONPoint{}
-		for _, pt := range pts {
-			x, err := pt.ToJSON()
-			if err != nil {
-				l.Warnf("ToJSON: %s, ignored", err)
-				continue
-			}
-			res = append(res, x)
+		var arr []string
+		for _, x := range pts {
+			arr = append(arr, x.LineProto())
 		}
 
-		return res, nil
+		return strings.Join(arr, "\n"), nil
+	}
+
+	if q.Get(ArgEchoJSON) != "" {
+		return pts, nil
 	}
 
 	return nil, nil
 }
 
-func handleWriteBody(body []byte, isJSON bool, opt *lp.Option) ([]*point.Point, error) {
-	switch isJSON {
-	case true:
-		return jsonPoints(body, opt)
-
-	default:
-		pts, err := lp.ParsePoints(body, opt)
-		if err != nil {
-			return nil, uhttp.Error(ErrInvalidLinePoint, err.Error())
+func appendTags(pts []*point.Point, tags map[string]string) {
+	for k, v := range tags {
+		for _, pt := range pts {
+			pt.AddTag([]byte(k), []byte(v))
 		}
-
-		return point.WrapPoint(pts), nil
 	}
 }
 
-func jsonPoints(body []byte, opt *lp.Option) ([]*point.Point, error) {
-	var jps []jsonPoint
-	err := json.Unmarshal(body, &jps)
-	if err != nil {
-		l.Error(err)
-		return nil, ErrInvalidJSONPoint
-	}
+func handleWriteBody(body []byte,
+	isJSON bool,
+	opts ...point.Option,
+) ([]*point.Point, error) {
+	switch isJSON {
+	case true:
+		dec := point.GetDecoder(point.WithDecEncoding(point.JSON))
+		defer point.PutDecoder(dec)
 
-	if opt == nil {
-		opt = lp.DefaultOption
-	}
-
-	var pts []*point.Point
-	for _, jp := range jps {
-		if jp.Time != 0 { // use time from json point
-			opt.Time = getTimeFromInt64(jp.Time, opt)
-		}
-
-		if p, err := jp.point(opt); err != nil {
-			l.Error(err)
-			return nil, uhttp.Error(ErrInvalidJSONPoint, err.Error())
+		if pts, err := dec.Decode(body, opts...); err != nil {
+			return nil, uhttp.Errorf(ErrInvalidJSONPoint, "%s", err)
 		} else {
-			pts = append(pts, p)
+			return pts, nil
 		}
+
+	default:
+		dec := point.GetDecoder(point.WithDecEncoding(point.LineProtocol))
+		defer point.PutDecoder(dec)
+
+		return dec.Decode(body, opts...)
 	}
-	return pts, nil
 }
 
 func getTimeFromInt64(n int64, opt *lp.Option) time.Time {
@@ -291,12 +261,4 @@ func getTimeFromInt64(n int64, opt *lp.Option) time.Time {
 
 	// nanoseconds
 	return time.Unix(0, n).UTC()
-}
-
-func checkObjectPoint(p *point.Point) error {
-	tags := p.Point.Tags()
-	if _, ok := tags["name"]; !ok {
-		return ErrInvalidObjectPoint
-	}
-	return nil
 }

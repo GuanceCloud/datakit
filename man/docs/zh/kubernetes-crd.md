@@ -253,7 +253,7 @@ $ datakit monitor
 ```
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/datakit-crd-ingress.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/datakit-crd-ingress.png){ width="800" }
   <figcaption> Ingress 数据采集 </figcaption>
 </figure>
 
@@ -261,7 +261,7 @@ $ datakit monitor
 
 ## FAQ {#faq}
 
-### 目前存在的问题 {#issue}
+### :material-chat-question: 目前存在的问题 {#issue}
 
 无法将 `datakit/logs` 的配置，动态应用到正在采集的日志。举例如下：
 

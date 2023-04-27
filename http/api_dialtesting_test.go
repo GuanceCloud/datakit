@@ -11,9 +11,9 @@ import (
 	"net/http"
 	"testing"
 
-	dt "gitlab.jiagouyun.com/cloudcare-tools/cliutils/dialtesting"
-	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	dt "github.com/GuanceCloud/cliutils/dialtesting"
+	uhttp "github.com/GuanceCloud/cliutils/network/http"
+	tu "github.com/GuanceCloud/cliutils/testutil"
 )
 
 type debugDialtestingMock struct{}
@@ -121,7 +121,7 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 			name: "test dial success3",
 			t: &dialtestingDebugRequest{
 				TaskType: "TCP",
-				Task:     &dt.TcpTask{},
+				Task:     &dt.TCPTask{},
 			},
 			errInit:   nil,
 			expectRes: map[string]interface{}{"Status": "success"},
@@ -130,7 +130,7 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 			name: "test dial success4",
 			t: &dialtestingDebugRequest{
 				TaskType: "ICMP",
-				Task:     &dt.IcmpTask{},
+				Task:     &dt.ICMPTask{},
 			},
 			errInit:   nil,
 			expectRes: map[string]interface{}{"Status": "success"},

@@ -2,6 +2,8 @@
 # Tue Aug 10 22:47:16 PDT 2021
 # Author: tanb
 
+Set-ExecutionPolicy Bypass -scope Process -Force
+
 # See https://stackoverflow.com/a/4647985/342348
 function Write-COutput($ForegroundColor) {
     # save the current color
@@ -75,6 +77,20 @@ if ($x -ne $null) {
 	Write-COutput green ("* set upgrade" )
 }
 
+$upgrade_manager = "0"
+$x = [Environment]::GetEnvironmentVariable("DK_UPGRADE_MANAGER")
+if ( ($x -ne $null) -and ($x -gt 0) ) {
+	$upgrade_manager = "1"
+	Write-COutput green ("* set upgrade_manager" )
+}
+
+$x = [Environment]::GetEnvironmentVariable("DK_UPGRADE_IP_WHITELIST")
+if ($x -ne $null) {
+	$upgrade_ip_whitelist = $x
+	Write-COutput green ("* set upgrade_ip_whitelist" )
+}
+
+
 $x = [Environment]::GetEnvironmentVariable("DK_DATAWAY") 
 if ($x -ne $null) {
 	$dataway = $x
@@ -107,6 +123,13 @@ $x = [Environment]::GetEnvironmentVariable("DK_CLOUD_PROVIDER")
 if ($x -ne $null) {
 	$cloud_provider = $x
 	Write-COutput green "* set cloud provider to $x" 
+}
+
+$def_inputs=""
+$x = [Environment]::GetEnvironmentVariable("DK_DEF_INPUTS") 
+if ($x -ne $null) {
+	$def_inputs = $x
+	Write-COutput green "* set default-enabled inputs to $x" 
 }
 
 $proxy=""
@@ -196,7 +219,7 @@ if ($x -ne $null) {
 	$dca_enable = $x
 	Write-COutput yellow "* enable DCA server"
 	if ($dca_white_list -eq $null) {
-		Write-COutput red "DCA service is enabled, but white list is not set in DK_DCA_WHITE_LIST!"
+		Write-COutput red "* DCA service is enabled, but white list is not set in DK_DCA_WHITE_LIST!"
 		Exit
 	}
 }
@@ -223,42 +246,27 @@ if ($x -ne $null) {
 }
 
 $confd_backend=""
-$confd_auth_token=""
-$confd_auth_type=""
 $confd_basic_auth=""
 $confd_client_ca_keys=""
 $confd_client_cert=""
 $confd_client_key=""
-$confd_client_insecure=""
 $confd_backend_nodes=""
 $confd_password=""
 $confd_scheme=""
-$confd_table=""
 $confd_separator=""
 $confd_username=""
-$confd_app_id=""
-$confd_user_id=""
-$confd_role_id=""
-$confd_secret_id=""
-$confd_filter=""
-$confd_path=""
-$confd_role=""
+$confd_access_key=""
+$confd_secret_key=""
+$confd_circle_interval=0
+$confd_confd_namespace=""
+$confd_pipeline_namespace=""
+$confd_region=""
 
 $x = [Environment]::GetEnvironmentVariable("DK_CONFD_BACKEND")
 if ($x -ne $null) {
 	$confd_backend = $x
 	Write-COutput yellow "* set confd backend"
 
-	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_AUTH_TOKEN")
-	if ($x -ne $null) { 
-		$confd_auth_token = $x
-		Write-COutput yellow "* set confd_auth_token     "
-	}
-	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_AUTH_TYPE")
-	if ($x -ne $null) { 
-		$confd_auth_type = $x
-		Write-COutput yellow "* set confd_auth_type"
-	}
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_BASIC_AUTH")
 	if ($x -ne $null) { 
 		$confd_basic_auth = $x
@@ -279,11 +287,6 @@ if ($x -ne $null) {
 		$confd_client_key = $x
 		Write-COutput yellow "* set confd_client_key"
 	}
-	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_CLIENT_INSECURE")
-	if ($x -ne $null) { 
-		$confd_client_insecure = $x
-		Write-COutput yellow "* set confd_client_insecure"
-	}
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_BACKEND_NODES")
 	if ($x -ne $null) { 
 		$confd_backend_nodes = $x
@@ -299,11 +302,6 @@ if ($x -ne $null) {
 		$confd_scheme = $x
 		Write-COutput yellow "* set confd_scheme"
 	}
-	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_TABLE")
-	if ($x -ne $null) { 
-		$confd_table = $x
-		Write-COutput yellow "* set confd_table"
-	}
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_SEPARATOR")
 	if ($x -ne $null) { 
 		$confd_separator = $x
@@ -314,40 +312,35 @@ if ($x -ne $null) {
 		$confd_username = $x
 		Write-COutput yellow "* set confd_username"
 	}
-	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_APP_ID")
+	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_ACCESS_KEY")
 	if ($x -ne $null) { 
-		$confd_app_id = $x
-		Write-COutput yellow "* set confd_app_id"
+		$confd_access_key = $x
+		Write-COutput yellow "* set confd_access_key"
 	}
-	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_USER_ID")
+	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_SECRET_KEY")
 	if ($x -ne $null) { 
-		$confd_user_id = $x
-		Write-COutput yellow "* set confd_user_id"
+		$confd_secret_key = $x
+		Write-COutput yellow "* set confd_secret_key"
 	}
-	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_ROLE_ID")
+	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_CIRCLE_INTERVAL")
 	if ($x -ne $null) { 
-		$confd_role_id = $x
-		Write-COutput yellow "* set confd_role_id"
+		$confd_circle_interval = $x
+		Write-COutput yellow "* set confd_circle_interval"
 	}
-	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_SECRET_ID")
+	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_CONFD_NAMESPACE")
 	if ($x -ne $null) { 
-		$confd_secret_id = $x
-		Write-COutput yellow "* set confd_secret_id"
+		$confd_confd_namespace = $x
+		Write-COutput yellow "* set confd_confd_namespace"
 	}
-	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_FILTER")
+	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_PIPELINE_NAMESPACE")
 	if ($x -ne $null) { 
-		$confd_filter = $x
-		Write-COutput yellow "* set confd_filter"
+		$confd_pipeline_namespace = $x
+		Write-COutput yellow "* set confd_pipeline_namespace"
 	}
-	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_PATH")
+	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_REGION")
 	if ($x -ne $null) { 
-		$confd_path = $x
-		Write-COutput yellow "* set confd_path"
-	}
-	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_ROLE")
-	if ($x -ne $null) { 
-		$confd_role = $x
-		Write-COutput yellow "* set confd_role"
+		$confd_region = $x
+		Write-COutput yellow "* set confd_region"
 	}
 }
 
@@ -397,7 +390,7 @@ $disable_404page=""
 $x = [Environment]::GetEnvironmentVariable("DK_DISABLE_404PAGE")
 if ($x -ne $null) {
 	$disable_404page = $x
-	Write-COutput yellow "* set disable 404 page"
+	Write-COutput yellow "* set 404 page disabled"
 }
 
 $rum_origin_ip_header=""
@@ -435,81 +428,11 @@ if ($x -ne $null) {
 	Write-COutput yellow "* set ipdb type"
 }
 
-$sink_metric=""
-$x = [Environment]::GetEnvironmentVariable("DK_SINK_M")
+$sinker=""
+$x = [Environment]::GetEnvironmentVariable("DK_SINKER")
 if ($x -ne $null) {
-	$sink_metric = $x
-	Write-COutput yellow "* set sink metric"
-}
-
-$sink_network=""
-$x = [Environment]::GetEnvironmentVariable("DK_SINK_N")
-if ($x -ne $null) {
-	$sink_network = $x
-	Write-COutput yellow "* set sink network"
-}
-
-$sink_keyevent=""
-$x = [Environment]::GetEnvironmentVariable("DK_SINK_K")
-if ($x -ne $null) {
-	$sink_keyevent = $x
-	Write-COutput yellow "* set sink keyevent"
-}
-
-$sink_object=""
-$x = [Environment]::GetEnvironmentVariable("DK_SINK_O")
-if ($x -ne $null) {
-	$sink_object = $x
-	Write-COutput yellow "* set sink object"
-}
-
-$sink_custom_object=""
-$x = [Environment]::GetEnvironmentVariable("DK_SINK_CO")
-if ($x -ne $null) {
-	$sink_custom_object = $x
-	Write-COutput yellow "* set sink custom object"
-}
-
-$sink_logging=""
-$x = [Environment]::GetEnvironmentVariable("DK_SINK_L")
-if ($x -ne $null) {
-	$sink_logging = $x
-	Write-COutput yellow "* set sink logging"
-}
-
-$sink_tracing=""
-$x = [Environment]::GetEnvironmentVariable("DK_SINK_T")
-if ($x -ne $null) {
-	$sink_tracing = $x
-	Write-COutput yellow "* set sink tracing"
-}
-
-$sink_rum=""
-$x = [Environment]::GetEnvironmentVariable("DK_SINK_R")
-if ($x -ne $null) {
-	$sink_rum = $x
-	Write-COutput yellow "* set sink rum"
-}
-
-$sink_security=""
-$x = [Environment]::GetEnvironmentVariable("DK_SINK_S")
-if ($x -ne $null) {
-	$sink_security = $x
-	Write-COutput yellow "* set sink security"
-}
-
-$sink_profile=""
-$x = [Environment]::GetEnvironmentVariable("DK_SINK_P")
-if ($x -ne $null) {
-	$sink_profile = $x
-	Write-COutput yellow "* set sink profiling"
-}
-
-$log_sink_detail=""
-$x = [Environment]::GetEnvironmentVariable("DK_LOG_SINK_DETAIL")
-if ($x -ne $null) {
-	$log_sink_detail = $x
-	Write-COutput yellow "* set sink log detail"
+	$sinker= $x
+	Write-COutput yellow "* set sinker"
 }
 
 ##########################
@@ -526,7 +449,7 @@ $installer=".dk-installer.exe"
 ##########################
 # try install...
 ##########################
-Write-COutput green "* Downloading $installer_url..."
+Write-COutput green "* downloading $installer_url..."
 
 if (Test-Path $installer) {
 	Remove-Item $installer
@@ -541,20 +464,72 @@ if ($proxy -ne "") {
 Invoke-Expression $dl_installer_action
 
 if ($upgrade -ne $null) { # upgrade
-	$action = "$installer --install-log=${install_log} --upgrade --proxy=${proxy} --installer_base_url=${installer_base_url}"
+	$action = @(
+			"$installer",
+			"--upgrade",
+			"--upgrade-manager='${upgrade_manager}'", # for update DK upgrade service
+			"--upgrade-ip-whitelist='${upgrade_ip_whitelist}'",
+			"--install-log='${install_log}'",
+			"--proxy='${proxy}'",
+			"--installer_base_url='${installer_base_url}'"
+			)
 } else { # install new datakit
-	$action = "$installer --install-log=${install_log} --dataway=$dataway --listen=$http_listen --installer_base_url=${installer_base_url} --port=${http_port} --proxy=${proxy} --namespace=${namespace} --env_hostname=${env_hostname} --cloud-provider=${cloud_provider} --global-host-tags='${global_host_tags}' --global-election-tags='${global_election_tags}' --dca-enable=$dca_enable --dca-listen=$dca_listen --dca-white-list=$dca_white_list --confd-backend='${confd_backend}' --confd-auth-token='${confd_auth_token}' --confd-auth-type='${confd_auth_type}' --confd-basic-auth='${confd_basic_auth}' --confd-client-ca-keys='${confd_client_ca_keys}' --confd-client-cert='${confd_client_cert}' --confd-client-key='${confd_client_key}' --confd-client-insecure='${confd_client_insecure}' --confd-backend-nodes='${confd_backend_nodes}' --confd-password='${confd_password}' --confd-scheme='${confd_scheme}' --confd-table='${confd_table}' --confd-separator='${confd_separator}' --confd-username='${confd_username}' --confd-app-id='${confd_app_id}' --confd-user-id='${confd_user_id}' --confd-role-id='${confd_role_id}' --confd-secret-id='${confd_secret_id}' --confd-filter='${confd_filter}' --confd-path='${confd_path}' --confd-role='${confd_role}' --git-url='${git_url}' --git-key-path='${git_key_path}' --git-key-pw='${git_key_pw}' --git-branch='${git_branch}' --git-pull-interval='${git_pull_interval}' --install-only='${install_only}' --enable-election='${enable_election}' --rum-origin-ip-header='${rum_origin_ip_header}' --disable-404page='${disable_404page}' --log-level='${log_level}' --log='${log}' --gin-log='${gin_log}' --ipdb-type='${ipdb_type}' --enable-pprof='${enable_pprof}' --pprof-listen='${pprof_listen}' --sink-metric='${sink_metric}' --sink-network='${sink_network}' --sink-keyevent='${sink_keyevent}' --sink-object='${sink_object}' --sink-custom-object='${sink_custom_object}' --sink-logging='${sink_logging}' --sink-tracing='${sink_tracing}' --sink-rum='${sink_rum}' --sink-security='${sink_security}' --sink-profile='${sink_profile}' --log-sink-detail='${log_sink_detail}'"
+	$action = @(
+			"$installer",
+			"--enable-inputs='${def_inputs}'",
+			"--install-log='${install_log}'",                          
+			"--dataway='${dataway}'",
+			"--listen=${http_listen}",
+			"--installer_base_url='${installer_base_url}'",
+			"--port=${http_port}",
+			"--proxy='${proxy}'",
+			"--namespace='${namespace}'",
+			"--env_hostname='${env_hostname}'",
+			"--cloud-provider='${cloud_provider}'",
+			"--global-host-tags='${global_host_tags}'",
+			"--global-election-tags='${global_election_tags}'",
+			"--dca-enable='${dca_enable}'",
+			"--dca-listen='${dca_listen}'",
+			"--dca-white-list='${dca_white_list}'",
+			"--confd-backend='${confd_backend}'",
+			"--confd-basic-auth='${confd_basic_auth}'",
+			"--confd-client-ca-keys='${confd_client_ca_keys}'",
+			"--confd-client-cert='${confd_client_cert}'",
+			"--confd-client-key='${confd_client_key}'",
+			"--confd-backend-nodes='${confd_backend_nodes}'",
+			"--confd-password='${confd_password}'",
+			"--confd-scheme='${confd_scheme}'",
+			"--confd-separator='${confd_separator}'",
+			"--confd-username='${confd_username}'", 
+			"--confd-access-key='${confd_access_key}'",
+			"--confd-secret-key='${confd_secret_key}'",
+			"--confd-circle-interval='${confd_circle_interval}'",
+			"--confd-confd-namespace='${confd_confd_namespace}'",
+			"--confd-pipeline-namespace='${confd_pipeline_namespace}'",
+			"--confd-region='${confd_region}'",
+			"--git-url='${git_url}'",
+			"--git-key-path='${git_key_path}'",
+			"--git-key-pw='${git_key_pw}'",
+			"--git-branch='${git_branch}'",
+			"--git-pull-interval='${git_pull_interval}'",
+			"--install-only='${install_only}'",
+			"--enable-election='${enable_election}'",
+			"--rum-origin-ip-header='${rum_origin_ip_header}'",
+			"--disable-404page='${disable_404page}'",
+			"--log-level='${log_level}'",
+			"--log='${log}'",
+			"--gin-log='${gin_log}'",
+			"--ipdb-type='${ipdb_type}'",
+			"--enable-pprof='${enable_pprof}'",
+			"--pprof-listen='${pprof_listen}'",
+			"--upgrade-ip-whitelist='${upgrade_ip_whitelist}'",
+			"--sinker='${sinker}'" # Do NOT add trailing `,' here!
+				)
 }
 
-Write-COutput green "action: $action"
-Invoke-Expression $action
+Write-COutput green "* action: $action"
+$action -join " " | Invoke-Expression
 
-# remove installer
+# remove installer and the script.
 Remove-Item -Force -ErrorAction SilentlyContinue $installer
-Remove-Item -Force -ErrorAction SilentlyContinue .\installer.ps1
-
-# clean envs
-$optional_envs="DK_DATAWAY","DK_UPGRADE","HTTP_PROXY","HTTP_PROXY","DK_HTTP_PORT","DK_HOSTNAME","DK_HTTP_LISTEN","DK_INSTALL_ONLY","DK_DCA_ENABLE","DK_DCA_WHITE_LIST","DK_PROXY_TYPE","DK_NGINX_IP","DK_GIT_URL","DK_GIT_KEY_PATH","DK_GIT_KEY_PW","DK_GIT_BRANCH","DK_GIT_INTERVAL","DK_ENABLE_ELECTION","DK_DISABLE_404PAGE","DK_RUM_ORIGIN_IP_HEADER","DK_LOG_LEVEL","DK_LOG","DK_GIN_LOG","DK_INSTALL_IPDB","DK_ENABLE_PPROF","DK_PPROF_LISTEN","DK_SINK_M","DK_SINK_N","DK_SINK_K","DK_SINK_O","DK_SINK_CO","DK_SINK_L","DK_SINK_T","DK_SINK_R","DK_SINK_S","DK_SINK_P","DK_LOG_SINK_DETAIL","DK_INSTALLER_BASE_URL"
-foreach ($env in $optional_envs) {
-	Remove-Item -ErrorAction SilentlyContinue Env:$env
-}
+Remove-Item $PSCommandPath -Force

@@ -14,15 +14,19 @@ import (
 	"path/filepath"
 	"time"
 
+	pbpoint "github.com/GuanceCloud/cliutils/point"
 	"github.com/pborman/ansi"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/diskcache"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/multiline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/register"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
+	"google.golang.org/protobuf/proto"
 	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
@@ -49,6 +53,8 @@ type Single struct {
 
 	partialContentBuff bytes.Buffer
 
+	enableDiskCache bool
+
 	tags map[string]string
 }
 
@@ -66,6 +72,8 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 		}
 		filename = filename2
 	}
+
+	_ = logtail.InitDefault()
 
 	var err error
 	if opt.CharacterEncoding != "" {
@@ -111,47 +119,52 @@ func (t *Single) Close() {
 }
 
 func (t *Single) seekOffset() error {
-	if err := register.Init(logtailCachePath); err != nil {
-		t.opt.log.Infof("init logtail.cache error %s, ignored", err)
-		return nil
-	}
-
 	if t.file == nil {
 		return fmt.Errorf("unreachable, invalid file pointer")
 	}
 
-	// check if from begine
-	if !t.opt.FromBeginning {
-		ret, err := t.file.Seek(0, io.SeekEnd)
-		if err != nil {
-			return err
+	var ret int64
+	var err error
+
+	if pos := t.getPosition(); pos != -1 {
+		ret, err = t.file.Seek(pos, io.SeekStart)
+		t.opt.log.Debugf("setting position %d to filename %s", pos, t.filepath)
+	} else {
+		if t.opt.FromBeginning {
+			ret, err = t.file.Seek(0, io.SeekStart)
+			t.opt.log.Debugf("setting 'from_beginning' to filename %s", t.filepath)
+		} else {
+			ret, err = t.file.Seek(0, io.SeekEnd)
 		}
-		t.offset = ret
 	}
+
+	t.offset = ret
+	return err
+}
+
+func (t *Single) getPosition() (pos int64) {
+	// default -1
+	pos = -1
 
 	data := register.Get(getFileKey(t.filepath))
 	if data == nil {
 		t.opt.log.Infof("not found logtail cache for file %s, skip", t.filepath)
-		return nil
+		return
 	}
-
 	t.opt.log.Debugf("hit offset %d from filename %s", data.Offset, t.filepath)
 
 	stat, err := t.file.Stat()
 	if err != nil {
-		return err
+		t.opt.log.Warnf("open file %s err %s, ignored", t.filepath, err)
+		return
 	}
 
-	if data.Offset <= stat.Size() {
-		ret, err := t.file.Seek(data.Offset, io.SeekStart)
-		if err != nil {
-			return err
-		}
-		t.offset = ret
-		t.opt.log.Debugf("setting primary offset %d to filename %s", t.offset, t.filepath)
+	if size := stat.Size(); data.Offset > size {
+		t.opt.log.Infof("position %d larger than the file size %d, may be truncated", data.Offset, size)
+		return
 	}
 
-	return nil
+	return data.Offset
 }
 
 func (t *Single) recordingCache() {
@@ -227,17 +240,11 @@ func (t *Single) forwardMessage() {
 			}
 
 		case <-checkTicker.C:
-			if !FileIsActive(t.filepath, t.opt.IgnoreDeadLog) {
-				t.opt.log.Infof("file %s is not active, larger than %s, exit", t.filepath, t.opt.IgnoreDeadLog)
-				return
-			}
+			did, _ := DidRotate(t.file, t.offset)
+			exist := FileExists(t.filepath)
 
-			did, err := DidRotate(t.file, t.offset)
-			if err != nil {
-				t.opt.log.Warnf("didrotate err: %s", err)
-			}
-			if did {
-				t.opt.log.Infof("file %s has rotated, current offset %d, try to read EOF", t.filepath, t.offset)
+			if did || !exist {
+				t.opt.log.Infof("file %s has been rotated or removed, current offset %d, try to read EOF", t.filepath, t.offset)
 				for {
 					b.buf, readNum, err = t.read()
 					if err != nil {
@@ -266,15 +273,20 @@ func (t *Single) forwardMessage() {
 					}
 					// 数据处理完成，再记录 offset
 					t.offset += int64(readNum)
-					// 记录 cache
-					t.recordingCache()
 				}
+			}
 
-				t.opt.log.Infof("file %s has rotated, try to reopen file", t.filepath)
+			if did { // 只有文件 rotated 才会 reopen
+				t.opt.log.Infof("reopen the file %s", t.filepath)
 				if err = t.reopen(); err != nil {
-					t.opt.log.Warnf("failed to reopen file %s, err: %s", t.filepath, err)
+					t.opt.log.Warnf("failed to reopen the file %s, err: %s", t.filepath, err)
 					return
 				}
+			}
+
+			if !FileIsActive(t.filepath, t.opt.IgnoreDeadLog) {
+				t.opt.log.Infof("file %s has been inactive for larger than %s or has been removed, exit", t.filepath, t.opt.IgnoreDeadLog)
+				return
 			}
 
 		default: // nil
@@ -310,8 +322,6 @@ func (t *Single) forwardMessage() {
 
 		// 数据处理完成，再记录 offset
 		t.offset += int64(readNum)
-		// 记录 cache
-		t.recordingCache()
 	}
 }
 
@@ -454,7 +464,17 @@ func (t *Single) feed(pending []string) {
 		return
 	}
 
-	// flush to io
+	// 记录 cache
+	defer t.recordingCache()
+
+	if t.enableDiskCache {
+		err := t.feedToCache(pending)
+		if err == nil {
+			return
+		}
+		t.opt.log.Warnf("failed of save cache, err: %s, retry feed to io", err)
+	}
+
 	t.feedToIO(pending)
 }
 
@@ -467,24 +487,86 @@ func (t *Single) feedToRemote(pending []string) {
 	}
 }
 
+func (t *Single) feedToCache(pending []string) error {
+	res := []*pbpoint.Point{}
+	// -1ns
+	timeNow := time.Now().Add(-time.Duration(len(pending)))
+
+	for i, cnt := range pending {
+		t.readLines++
+
+		fields := map[string]interface{}{
+			"log_read_lines":      t.readLines,
+			"log_read_offset":     t.offset,
+			"log_read_time":       t.readTime.UnixNano(),
+			"message_length":      len(cnt),
+			pipeline.FieldMessage: cnt,
+			pipeline.FieldStatus:  pipeline.DefaultStatus,
+		}
+
+		pt := pbpoint.NewPointV2(
+			[]byte(t.opt.Source),
+			append(pbpoint.NewTags(t.tags), pbpoint.NewKVs(fields)...),
+			pbpoint.WithTime(timeNow.Add(time.Duration(i))),
+		)
+		res = append(res, pt)
+	}
+
+	if len(res) == 0 {
+		return nil
+	}
+
+	encoder := pbpoint.GetEncoder(pbpoint.WithEncBatchSize(0), pbpoint.WithEncEncoding(pbpoint.Protobuf))
+
+	ptsDatas, err := encoder.Encode(res)
+	if err != nil {
+		return err
+	}
+	if len(ptsDatas) != 1 {
+		err := fmt.Errorf("invalid pbpoints")
+		return err
+	}
+
+	pbdata := &diskcache.PBData{
+		Points: ptsDatas[0],
+		Config: &diskcache.PBConfig{
+			Source:                t.opt.Source,
+			Pipeline:              t.opt.Pipeline,
+			Blocking:              t.opt.BlockingMode,
+			DisableAddStatusField: t.opt.DisableAddStatusField,
+			IgnoreStatus:          t.opt.IgnoreStatus,
+		},
+	}
+
+	b, err := proto.Marshal(pbdata)
+	if err != nil {
+		return err
+	}
+
+	return diskcache.Put(b)
+}
+
 func (t *Single) feedToIO(pending []string) {
 	res := []*point.Point{}
 	// -1ns
 	timeNow := time.Now().Add(-time.Duration(len(pending)))
 	for i, cnt := range pending {
 		t.readLines++
-		pt, err := point.NewPoint(t.opt.Source, t.tags,
+		pt, err := point.NewPoint(
+			t.opt.Source,
+			t.tags,
 			map[string]interface{}{
 				"log_read_lines":      t.readLines,
 				"log_read_offset":     t.offset,
-				"log_read_time":       t.readTime.Unix(),
+				"log_read_time":       t.readTime.UnixNano(),
 				"message_length":      len(cnt),
 				pipeline.FieldMessage: cnt,
 				pipeline.FieldStatus:  pipeline.DefaultStatus,
 			},
-			&point.PointOption{Time: timeNow.Add(time.Duration(i)), Category: datakit.Logging})
+			&point.PointOption{Time: timeNow.Add(time.Duration(i)), Category: datakit.Logging, Strict: true},
+		)
 		if err != nil {
-			t.opt.log.Error(err)
+			t.opt.log.Warn(err)
 			continue
 		}
 		res = append(res, pt)
@@ -497,7 +579,6 @@ func (t *Single) feedToIO(pending []string) {
 	if err := iod.Feed("logging/"+t.opt.Source, datakit.Logging, res, &iod.Option{
 		PlScript: map[string]string{t.opt.Source: t.opt.Pipeline},
 		PlOption: &script.Option{
-			MaxFieldValLen:        maxFieldsLength,
 			DisableAddStatusField: t.opt.DisableAddStatusField,
 			IgnoreStatus:          t.opt.IgnoreStatus,
 		},

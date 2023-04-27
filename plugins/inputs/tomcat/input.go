@@ -10,13 +10,12 @@ import (
 	"context"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -103,10 +102,6 @@ func (i *Input) RunPipeline() {
 		return
 	}
 
-	if i.Log.Pipeline == "" {
-		i.Log.Pipeline = inputName + ".p" // use default
-	}
-
 	opt := &tailer.Option{
 		Source:            inputName,
 		Service:           inputName,
@@ -122,7 +117,7 @@ func (i *Input) RunPipeline() {
 	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
 	if err != nil {
 		l.Errorf("NewTailer: %s", err)
-		io.FeedLastError(inputName, err.Error())
+		i.JolokiaAgent.Feeder.FeedLastError(inputName, err.Error())
 		return
 	}
 
@@ -151,12 +146,16 @@ func (i *Input) Terminate() {
 	}
 }
 
+func defaultInput() *Input {
+	return &Input{
+		JolokiaAgent: inputs.JolokiaAgent{
+			SemStop: cliutils.NewSem(),
+		},
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{
-			JolokiaAgent: inputs.JolokiaAgent{
-				SemStop: cliutils.NewSem(),
-			},
-		}
+		return defaultInput()
 	})
 }

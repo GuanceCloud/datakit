@@ -1,54 +1,53 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
-# C++ 示例
+
+# C++ Examples
 ---
 
-在 C++ 代码中应用 DDTrace，需要修改业务代码，需手动在现有业务代码中进行埋点。本文档以一个简单的读取文件 demo 来演示如何在 C++ 代码中进行埋点。
+Applying DDTrace in C + + code requires modifying business code and manually embedding points in existing business code. This document demonstrates how to bury points in C + + code with a simple read file demo.
 
-## 安装库和依赖 {#dependence}
+## Install Libraries and Dependencies {#dependence}
 
 === "Linux/macOS"
 
-    - 下载 DDTrace-C++ SDK
+    - Download DDTrace-C++ SDK
     
     ```shell
     git clone https://github.com/DataDog/dd-opentracing-cpp
     ```
     
-    - 编译、安装 SDK
+    - Compile and install the SDK
     
     ```shell
-    # 安装依赖
+    # Install dependencies
     cd dd-opentracing-cpp && sudo scripts/install_dependencies.sh
     
-    # 编译并安装
+    # Compile and install
     mkdir .build && cd .build && cmake .. && make && make install
     ```
 
-    如果编译 SDK 过程中有问题，可临时用观测云已经准备好的[头文件][5]以及 [动态库][6] 来测试。
+    If you have problems compiling the SDK, you can temporarily test it with the prepared header file [5] and dynamic library [6] of Guance Cloud.
 
 === "Windows"
 
     Comming Soon...
 
-???+ attention "cmake 安装"
+???+ attention "cmake installation"
 
-    cmake 可能无法通过 yum 或 apt-get 安装到较高的版本，建议直接去其[官网][3]{:target="_blank"}下载最新版本。也可以直接使用观测云托管的[源码][1]或[Windows 二进制][2]。
+    Cmake may not be installed to a higher version through yum or apt-get. It is recommended to download the latest version directly from its [official website][3]{:target="_blank"}. You can also use the observation cloud hosted [source] [1] or [Windows binary] [2] directly.
     
     ```shell
-    # 从源码安装 cmake
+    # Install cmake from source
     wget https://static.guance.com/gfw/cmake-3.24.2.tar.gz
     tar -zxvf cmake-3.24.2.tar.gz
     ./bootstrap --prefix=/usr/local
     make
     make install
 
-    # 验证一下当前版本
+    # Verify the current version
     cmake --version
     cmake version 3.24.2
     ```
 
-    gcc 安装 7.x 的版本：
+    Gcc install version 7. x:
 
     ```shell
     yum install centos-release-scl
@@ -58,9 +57,9 @@
     gcc --version
     ```
 
-## C++ 代码示例 {#simple-example}
+## C++ Code Sample {#simple-example}
 
-以下 C++ 代码演示了基本的 trace 埋点操作，其模拟的业务是一个读取本地磁盘文件的操作。
+The following C + + code demonstrates the basic trace burial operation, which simulates a business that reads a local disk file.
 
 ```cpp
 #include <datadog/opentracing.h>
@@ -120,44 +119,44 @@ int main(int argc, char* argv[]) {
 } 
 ```
 
-### 编译运行 {#build-run}
+### Compile and Run {#build-run}
 
 ```shell
 LD_LIBRARY_PATH=/usr/local/lib64 g++ -std=c++14 -o demo demo.cc -ldd_opentracing -I ./dd-opentracing-cpp/deps/include
 LD_LIBRARY_PATH=/usr/local/lib64  DD_AGENT_HOST=localhost DD_TRACE_AGENT_PORT=9529 ./demo
 ```
 
-此处可以将 *libdd_opentracing.so* 以及对应的头文件放到任意目录，然后调整 `LD_LIBRARY_PATH` 以及 `-I` 参数即可。
+Here you can put *libdd_opentracing.so* and the corresponding header file into any directory and adjust the `LD_LIBRARY_PATH` and `-I` parameters.
 
 
-程序运行一段时间后，即可在观测云看到类似如下 trace 数据：
+After running the program for a period of time, you can see trace data similar to the following in Guance Cloud:
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/cpp-ddtrace-example.png){ width="800"}
-  <figcaption>C++ trace 数据展示</figcaption>
+  ![](https://static.guance.com/images/datakit/cpp-ddtrace-example.png){ width="800"}
+  <figcaption>C++ trace data display</figcaption>
 </figure>
 
-## 环境变量支持 {#envs}
+## Environment Variable Support {#envs}
 
-## 支持的环境变量 {#start-options}
+## Supported Environment Variables {#start-options}
 
-以下环境变量支持在启动程序的时候指定 ddtrace 的一些配置参数，其基本形式为：
+The following environment variables support specifying some configuration parameters of ddtrace when starting the program, and their basic form is:
 
 ```shell
 DD_XXX=<env-value> DD_YYY=<env-value> ./demo
 ```
 
-常用的几个 ENV 如下。更多 ENV 支持，可参见 [DDTrace 原始文档][7]{:target="_blank"}。
+Several commonly used ENVs are as follows. For more ENV support, see [DDTrace Original][7]{:target="_blank"}.
 
-| Key                       | 默认值      | 说明                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Key                       | Default Value      | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | ---:                      | ---         | ---                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| `DD_VERSION`              | -           | 设置应用程序版本，如 *1.2.3*、*2022.02.13*                                                                                                                                                                                                                                                                                                                                                                                                              |
-| `DD_AGENT_HOST`           | `localhost` | 设置 DataKit 地址                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| `DD_TRACE_AGENT_PORT`     | -           | 设置 DataKit trace 数据的接收端口。这里需手动指定 [DataKit 的 HTTP 端口][4]（一般为 9529）                                                                                                                                                                                                                                                                                                                                                              |
-| `DD_ENV`                  | -           | 设置应用当前的环境，如 prod、pre-prod 等                                                                                                                                                                                                                                                                                                                                                                                                                |
-| `DD_SERVICE`              | -           | 设置应用服务名                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| `DD_TRACE_SAMPLING_RULES` | -           | 这里用 JSON 数组来表示采样设置（采样率应用以数组顺序为准），其中 `sample_rate` 为采样率，取值范围为 `[0.0, 1.0]`。<br> **示例一**：设置全局采样率为 20%：`DD_TRACE_SAMPLE_RATE='[{"sample_rate": 0.2}]' ./my-app` <br>**示例二**：服务名通配 `app1.*`、且 span 名称为 `abc`的，将采样率设置为 10%，除此之外，采样率设置为 20%：`DD_TRACE_SAMPLE_RATE='[{"service": "app1.*", "name": "b", "sample_rate": 0.1}, {"sample_rate": 0.2}]' ./my-app` <br> |
-| `DD_TAGS`                 | -           | 这里可注入一组全局 tag，这些 tag 会出现在每个 span 和 profile 数据中。多个 tag 之间可以用空格和英文逗号分割，例如 `layer:api,team:intake`、`layer:api team:intake`                                                                                                                                                                                                                                                                                   |
+| `DD_VERSION`              | -           | Set the application version, such as *1.2.3*、*2022.02.13*                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `DD_AGENT_HOST`           | `localhost` | Set DataKit address                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `DD_TRACE_AGENT_PORT`     | -           | Set the receiving port for DataKit trace data. You need to manually specify [HTTP port for DataKit] [4] (typically 9529)                                                                                                                                                                                                                                                                                                                                                              |
+| `DD_ENV`                  | -           | Set the current application environment, such as prod, pre-prod, etc.                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `DD_SERVICE`              | -           | Set the application service name                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `DD_TRACE_SAMPLING_RULES` | -           | Here, a JSON array is used to represent the sampling setting (the sampling rate is applied in the order of the array), where `sample_rate` is the sampling rate and the value range is `[0.0, 1.0]`。<br> **Example 1**: Set the global sampling rate to 20%: `DD_TRACE_SAMPLE_RATE='[{"sample_rate": 0.2}]' ./my-app` <br>**Example 2**: If the service name is generic `app1.*`, and the span name is `abc`, the sampling rate is set to 10%, except that the sampling rate is set to 20%: `DD_TRACE_SAMPLE_RATE='[{"service": "app1.*", "name": "b", "sample_rate": 0.1}, {"sample_rate": 0.2}]' ./my-app` <br> |
+| `DD_TAGS`                 | -           | Here you can inject a set of global tags that will appear in each span and profile data. Multiple tags can be separated by spaces and English commas, such as `layer:api,team:intake`、`layer:api team:intake`                                                                                                                                                                                                                                                                                   |
 
 [1]: https://static.guance.com/gfw/cmake-3.24.2.tar.gz
 [2]: https://static.guance.com/gfw/cmake-3.24.2-windows-x86_64.msi

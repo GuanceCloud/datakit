@@ -25,19 +25,13 @@ type replicaset struct {
 	client    k8sClientX
 	extraTags map[string]string
 	items     []v1.ReplicaSet
-	host      string
 }
 
-func newReplicaset(client k8sClientX, extraTags map[string]string, host string) *replicaset {
+func newReplicaset(client k8sClientX, extraTags map[string]string) *replicaset {
 	return &replicaset{
 		client:    client,
 		extraTags: extraTags,
-		host:      host,
 	}
-}
-
-func (r *replicaset) getHost() string {
-	return r.host
 }
 
 func (r *replicaset) name() string {
@@ -73,9 +67,6 @@ func (r *replicaset) metric(election bool) (inputsMeas, error) {
 			},
 			election: election,
 		}
-		if r.host != "" {
-			met.tags["host"] = r.host
-		}
 
 		for _, ref := range item.OwnerReferences {
 			if ref.Kind == "Deployment" {
@@ -94,9 +85,6 @@ func (r *replicaset) metric(election bool) (inputsMeas, error) {
 			tags:     map[string]string{"namespace": ns},
 			fields:   map[string]interface{}{"count": c},
 			election: election,
-		}
-		if r.host != "" {
-			met.tags["host"] = r.host
 		}
 		met.tags.append(r.extraTags)
 		res = append(res, met)
@@ -124,9 +112,6 @@ func (r *replicaset) object(election bool) (inputsMeas, error) {
 				"available": item.Status.AvailableReplicas,
 			},
 			election: election,
-		}
-		if r.host != "" {
-			obj.tags["host"] = r.host
 		}
 
 		for _, ref := range item.OwnerReferences {
@@ -186,7 +171,7 @@ func (r *replicasetMetric) LineProto() (*point.Point, error) {
 func (*replicasetMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "kube_replicaset",
-		Desc: "Kubernetes replicaset 指标数据",
+		Desc: "The metric of the Kubernetes ReplicaSet.",
 		Type: "metric",
 		Tags: map[string]interface{}{
 			"replica_set": inputs.NewTagInfo("Name must be unique within a namespace."),
@@ -217,7 +202,7 @@ func (r *replicasetObject) LineProto() (*point.Point, error) {
 func (*replicasetObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "kubernetes_replica_sets",
-		Desc: "Kubernetes replicaset 对象数据",
+		Desc: "The object of the Kubernetes ReplicaSet.",
 		Type: "object",
 		Tags: map[string]interface{}{
 			"name":             inputs.NewTagInfo("UID"),
@@ -236,11 +221,11 @@ func (*replicasetObject) Info() *inputs.MeasurementInfo {
 
 //nolint:gochecknoinits
 func init() {
-	registerK8sResourceMetric(func(c k8sClientX, m map[string]string, host string) k8sResourceMetricInterface {
-		return newReplicaset(c, m, host)
+	registerK8sResourceMetric(func(c k8sClientX, m map[string]string) k8sResourceMetricInterface {
+		return newReplicaset(c, m)
 	})
-	registerK8sResourceObject(func(c k8sClientX, m map[string]string, host string) k8sResourceObjectInterface {
-		return newReplicaset(c, m, host)
+	registerK8sResourceObject(func(c k8sClientX, m map[string]string) k8sResourceObjectInterface {
+		return newReplicaset(c, m)
 	})
 	registerMeasurement(&replicasetMetric{})
 	registerMeasurement(&replicasetObject{})

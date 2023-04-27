@@ -11,8 +11,8 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/multiline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
@@ -52,9 +52,10 @@ type Input struct {
 	K8sBearerTokenString                              string `toml:"bearer_token_string"`
 	DisableK8sEvents                                  bool   `toml:"disable_k8s_events"`
 	ExtractK8sLabelAsTags                             bool   `toml:"extract_k8s_label_as_tags"`
-	EnableAutoDiscoveryOfPrometheusServierAnnotations bool   `toml:"enable_autdo_discovery_of_prometheus_service_annotations"`
-	EnableAutoDiscoveryOfPrometheusPodMonitors        bool   `toml:"enable_autdo_discovery_of_prometheus_pod_monitors"`
-	EnableAutoDiscoveryOfPrometheusServiceMonitors    bool   `toml:"enable_autdo_discovery_of_prometheus_service_monitors"`
+	EnableAutoDiscoveryOfPrometheusPodAnnotations     bool   `toml:"enable_auto_discovery_of_prometheus_pod_annotations"`
+	EnableAutoDiscoveryOfPrometheusServiceAnnotations bool   `toml:"enable_auto_discovery_of_prometheus_service_annotations"`
+	EnableAutoDiscoveryOfPrometheusPodMonitors        bool   `toml:"enable_auto_discovery_of_prometheus_pod_monitors"`
+	EnableAutoDiscoveryOfPrometheusServiceMonitors    bool   `toml:"enable_auto_discovery_of_prometheus_service_monitors"`
 
 	ContainerIncludeLog               []string          `toml:"container_include_log"`
 	ContainerExcludeLog               []string          `toml:"container_exclude_log"`
@@ -133,13 +134,14 @@ func (i *Input) ElectionEnabled() bool {
 func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 
-	l.Info("container input startd")
-
-	if i.setup() {
-		return
+	l.Info("container input started")
+	i.setup()
+	if i.dockerInput != nil {
+		l.Info("docker collector started")
 	}
-
-	l.Debugf("container input, dockerInput: %#v, containerdInput: %#v", i.dockerInput, i.containerdInput)
+	if i.containerdInput != nil {
+		l.Info("containerd collector started")
+	}
 
 	objectTick := time.NewTicker(objectInterval)
 	defer objectTick.Stop()
@@ -193,14 +195,12 @@ func (i *Input) Run() {
 			return
 
 		case <-metricTick.C:
-			l.Debug("collect mertric")
 			i.collectMetric()
 
 		case <-loggingTick.C:
 			i.collectLogging()
 
 		case <-objectTick.C:
-			l.Debug("collect object")
 			i.collectObject()
 
 		case i.pause = <-i.chPause:
@@ -248,8 +248,6 @@ func (i *Input) collectObject() {
 		return
 	}
 
-	l.Debug("collect k8s resource object")
-
 	if err := i.gatherK8sResourceObject(); err != nil {
 		l.Errorf("failed to collect resource object: %s", err)
 	}
@@ -285,8 +283,6 @@ func (i *Input) collectMetric() {
 		return
 	}
 
-	l.Debug("collect k8s-pod metric")
-
 	if err := i.gatherK8sResourceMetric(); err != nil {
 		l.Errorf("failed to collect resource metric: %s", err)
 	}
@@ -310,17 +306,21 @@ func (i *Input) gatherDockerContainerMetric() error {
 	if i.dockerInput == nil {
 		return nil
 	}
+
+	l.Debug("collect docker metric")
 	start := time.Now()
 
 	res, err := i.dockerInput.gatherMetric()
 	if err != nil {
 		return err
 	}
+
 	if len(res) == 0 {
 		l.Debug("container metric: no point")
 		return nil
 	}
 
+	l.Debugf("feed docker metric, len(%d)", len(res))
 	return inputs.FeedMeasurement("container-metric", datakit.Metric, res,
 		&io.Option{CollectCost: time.Since(start)})
 }
@@ -329,6 +329,8 @@ func (i *Input) gatherDockerContainerObject() error {
 	if i.dockerInput == nil {
 		return nil
 	}
+
+	l.Debug("collect docker object")
 	start := time.Now()
 
 	res, err := i.dockerInput.gatherObject()
@@ -340,6 +342,7 @@ func (i *Input) gatherDockerContainerObject() error {
 		return nil
 	}
 
+	l.Debugf("feed docker object, len(%d)", len(res))
 	return inputs.FeedMeasurement("container-object", datakit.Object, res,
 		&io.Option{CollectCost: time.Since(start)})
 }
@@ -348,6 +351,8 @@ func (i *Input) gatherContainerdMetric() error {
 	if i.containerdInput == nil {
 		return nil
 	}
+
+	l.Debug("collect containerd metric")
 	start := time.Now()
 
 	res, err := i.containerdInput.gatherMetric()
@@ -359,6 +364,7 @@ func (i *Input) gatherContainerdMetric() error {
 		return nil
 	}
 
+	l.Debugf("feed containerd metric, len(%d)", len(res))
 	return inputs.FeedMeasurement("containerd-metric", datakit.Metric, res,
 		&io.Option{CollectCost: time.Since(start)})
 }
@@ -367,6 +373,8 @@ func (i *Input) gatherContainerdObject() error {
 	if i.containerdInput == nil {
 		return nil
 	}
+
+	l.Debug("collect conrtainerd object")
 	start := time.Now()
 
 	res, err := i.containerdInput.gatherObject()
@@ -378,6 +386,7 @@ func (i *Input) gatherContainerdObject() error {
 		return nil
 	}
 
+	l.Debugf("feed containerd object, len(%d)", len(res))
 	return inputs.FeedMeasurement("containerd-object", datakit.Object, res,
 		&io.Option{CollectCost: time.Since(start)})
 }
@@ -390,11 +399,17 @@ func (i *Input) watchNewContainerdLogs() error {
 }
 
 func (i *Input) gatherK8sResourceMetric() error {
+	l.Debug("collect k8s-pod metric")
 	start := time.Now()
 
 	metricMeas, err := i.k8sInput.gatherResourceMetric()
 	if err != nil {
-		return err
+		l.Warnf("failed to collect k8s-metric: %s", err)
+	}
+
+	if len(metricMeas) == 0 {
+		l.Info("k8s-metric: no point")
+		return nil
 	}
 
 	return inputs.FeedMeasurement("k8s-metric", datakit.Metric, metricMeas,
@@ -402,11 +417,17 @@ func (i *Input) gatherK8sResourceMetric() error {
 }
 
 func (i *Input) gatherK8sResourceObject() error {
+	l.Debug("collect k8s-pod object")
 	start := time.Now()
 
 	objectMeas, err := i.k8sInput.gatherResourceObject()
 	if err != nil {
-		return err
+		l.Warnf("failed to collect k8s-object: %s", err)
+	}
+
+	if len(objectMeas) == 0 {
+		l.Info("k8s-object: no point")
+		return nil
 	}
 
 	return inputs.FeedMeasurement("k8s-object", datakit.Object, objectMeas,
@@ -424,65 +445,59 @@ func (i *Input) watchingK8sEventLog() {
 	i.k8sInput.watchingEventLog(i.semStop.Wait())
 }
 
-func (i *Input) setup() bool {
+func (i *Input) setup() {
 	if i.DepercatedEndpoint != "" && i.DepercatedEndpoint != i.DockerEndpoint {
 		i.DockerEndpoint = i.DepercatedEndpoint
 	}
 
-	for {
-		select {
-		case <-datakit.Exit.Wait():
-			l.Info("exit")
-			return true
-		default:
-			// nil
-		}
-
-		time.Sleep(time.Second)
-
-		if d, err := newDockerInput(i); err != nil {
-			l.Warnf("create docker input err: %s", err)
-		} else {
-			i.dockerInput = d
-		}
-
-		if i.dockerInput == nil {
-			if c, err := newContainerdInput(i); err != nil {
-				l.Warnf("create containerd input err: %s", err)
-			} else {
-				i.containerdInput = c
-			}
-		}
-
-		if datakit.Docker {
-			if k, err := newKubernetesInput(i); err != nil {
-				l.Errorf("create k8s input err: %s", err)
-				continue
-			} else {
-				i.k8sInput = k
-
-				i.discovery = newDiscovery(i.k8sInput.client, i.semStop.Wait())
-				i.discovery.extraTags = i.Tags
-				i.discovery.extractK8sLabelAsTags = i.ExtractK8sLabelAsTags
-				i.discovery.prometheusMonitoringExtraConfig = i.prometheusMonitoringExtraConfig
-
-				i.discovery.enablePrometheusServiceAnnotations = i.EnableAutoDiscoveryOfPrometheusServierAnnotations
-				i.discovery.enablePrometheusPodMonitors = i.EnableAutoDiscoveryOfPrometheusPodMonitors
-				i.discovery.enablePrometheusServiceMonitors = i.EnableAutoDiscoveryOfPrometheusServiceMonitors
-
-				if i.dockerInput != nil {
-					i.dockerInput.k8sClient = i.k8sInput.client
-				}
-				if i.containerdInput != nil {
-					i.containerdInput.k8sClient = i.k8sInput.client
-				}
-			}
-		}
-
-		break
+	if d, err := newDockerInput(i); err != nil {
+		l.Warnf("create docker input err: %s", err)
+	} else {
+		i.dockerInput = d
 	}
 
-	return false
+	if c, err := newContainerdInput(i); err != nil {
+		l.Warnf("create containerd input err: %s", err)
+	} else {
+		i.containerdInput = c
+	}
+
+	if !datakit.Docker {
+		return
+	}
+
+	if k, err := newKubernetesInput(i); err != nil {
+		l.Errorf("create k8s input err: %s", err)
+	} else {
+		i.k8sInput = k
+
+		i.discovery = newDiscovery(i.k8sInput.client, i.semStop.Wait())
+		i.discovery.extraTags = i.Tags
+		i.discovery.extractK8sLabelAsTags = i.ExtractK8sLabelAsTags
+		i.discovery.prometheusMonitoringExtraConfig = i.prometheusMonitoringExtraConfig
+
+		i.discovery.enablePrometheusPodAnnotations = i.EnableAutoDiscoveryOfPrometheusPodAnnotations
+		i.discovery.enablePrometheusServiceAnnotations = i.EnableAutoDiscoveryOfPrometheusServiceAnnotations
+		i.discovery.enablePrometheusPodMonitors = i.EnableAutoDiscoveryOfPrometheusPodMonitors
+		i.discovery.enablePrometheusServiceMonitors = i.EnableAutoDiscoveryOfPrometheusServiceMonitors
+
+		if i.dockerInput != nil {
+			i.dockerInput.k8sClient = i.k8sInput.client
+		}
+		if i.containerdInput != nil {
+			i.containerdInput.k8sClient = i.k8sInput.client
+		}
+		if i.EnablePodMetric {
+			l.Info("pod-metric on")
+			if err := i.k8sInput.client.kubeStateMetrics(); err != nil {
+				l.Warnf("failed to connect kube-state-metrics server, error: %s", err)
+			} else {
+				l.Info("connect kube-state-metrics server")
+			}
+		} else {
+			l.Info("pod-metric off")
+		}
+	}
 }
 
 func (i *Input) Terminate() {

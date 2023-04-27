@@ -109,10 +109,11 @@ func getContainerInfo(container *types.Container, k8sClient k8sClientX) tagsType
 	return tags
 }
 
-const streamStats = false
-
 func getContainerStats(client dockerClientX, containerID string) (fieldsType, error) {
-	resp, err := client.ContainerStats(context.TODO(), containerID, streamStats)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	resp, err := client.ContainerStatsOneShot(ctx, containerID)
 	if err != nil {
 		return nil, err
 	}
@@ -126,6 +127,7 @@ func getContainerStats(client dockerClientX, containerID string) (fieldsType, er
 	if err := json.NewDecoder(resp.Body).Decode(&v); err != nil {
 		return nil, err
 	}
+
 	return calculateContainerStats(v), nil
 }
 
@@ -204,36 +206,36 @@ func (c *containerMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: dockerContainerName,
 		Type: "metric",
-		Desc: "容器指标数据，只采集正在运行的容器",
+		Desc: "The metric of containers, only supported Running status.",
 		Tags: map[string]interface{}{
-			"container_id":           inputs.NewTagInfo(`容器 ID`),
-			"container_name":         inputs.NewTagInfo(`k8s 命名的容器名（在 labels 中取 'io.kubernetes.container.name'），如果值为空则跟 container_runtime_name 相同`),
-			"container_runtime_name": inputs.NewTagInfo(`由 runtime 命名的容器名（例如 docker ps 查看），如果值为空则默认是 unknown（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）`),
-			"docker_image":           inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0` （Depercated, use image）"),
-			"linux_namespace":        inputs.NewTagInfo(`该容器所在的 [linux namespace](https://man7.org/linux/man-pages/man7/namespaces.7.html)`),
-			"image":                  inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0`"),
-			"image_name":             inputs.NewTagInfo("镜像名称，例如 `nginx.org/nginx`"),
-			"image_short_name":       inputs.NewTagInfo("镜像名称精简版，例如 `nginx`"),
-			"image_tag":              inputs.NewTagInfo("镜像 tag，例如 `1.21.0`"),
-			"container_type":         inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker/containerd`),
-			"state":                  inputs.NewTagInfo(`运行状态，running（containerd 缺少此字段）`),
-			"pod_name":               inputs.NewTagInfo(`pod 名称（容器由 k8s 创建时存在）`),
-			"namespace":              inputs.NewTagInfo(`pod 的 k8s 命名空间（k8s 创建容器时，会打上一个形如 'io.kubernetes.pod.namespace' 的 label，DataKit 将其命名为 'namespace'）`),
-			"deployment":             inputs.NewTagInfo(`deployment 名称（容器由 k8s 创建时存在，containerd 缺少此字段）`),
+			"container_id":           inputs.NewTagInfo(`Container ID`),
+			"container_name":         inputs.NewTagInfo(`Container name from k8s (label 'io.kubernetes.container.name'). If empty then use $container_runtime_name.`),
+			"container_runtime_name": inputs.NewTagInfo(`Container name from runtime (like 'docker ps'). If empty then use 'unknown' ([:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)).`),
+			"docker_image":           inputs.NewTagInfo("The full name of the container image, example `nginx.org/nginx:1.21.0` (Depercated, use image)."),
+			"linux_namespace":        inputs.NewTagInfo(`The [linux namespace](https://man7.org/linux/man-pages/man7/namespaces.7.html) where this container is located.`),
+			"image":                  inputs.NewTagInfo("The full name of the container image, example `nginx.org/nginx:1.21.0`."),
+			"image_name":             inputs.NewTagInfo("The name of the container image, example `nginx.org/nginx`."),
+			"image_short_name":       inputs.NewTagInfo("The short name of the container image, example `nginx`."),
+			"image_tag":              inputs.NewTagInfo("The tag of the container image, example `1.21.0`."),
+			"container_type":         inputs.NewTagInfo(`The type of the container (this container is created by kubernetes/docker/containerd).`),
+			"state":                  inputs.NewTagInfo(`Container status (only Running, unsupported containerd).`),
+			"pod_name":               inputs.NewTagInfo(`The pod name of the container (label 'io.kubernetes.pod.name').`),
+			"namespace":              inputs.NewTagInfo(`The pod namespace of the container (label 'io.kubernetes.pod.namespace').`),
+			"deployment":             inputs.NewTagInfo(`The deployment name of the container's pod (unsupported containerd).`),
 		},
 		Fields: map[string]interface{}{
-			"cpu_usage":          &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "CPU 占主机总量的使用率"},
-			"cpu_delta":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationNS, Desc: "容器 CPU 增量（containerd 缺少此字段）"},
-			"cpu_system_delta":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationNS, Desc: "系统 CPU 增量，仅支持 Linux（containerd 缺少此字段）"},
-			"cpu_numbers":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "CPU 核心数（containerd 缺少此字段）"},
-			"mem_limit":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "内存可用总量，如果未对容器做内存限制，则为主机内存容量"},
-			"mem_usage":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "内存使用量"},
-			"mem_used_percent":   &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "内存使用率，使用量除以可用总量"},
-			"mem_failed_count":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "内存分配失败的次数（containerd 缺少此字段）"},
-			"network_bytes_rcvd": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "从网络接收到的总字节数（containerd 缺少此字段）"},
-			"network_bytes_sent": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "向网络发送出的总字节数（containerd 缺少此字段）"},
-			"block_read_byte":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "从容器文件系统读取的总字节数（containerd 缺少此字段）"},
-			"block_write_byte":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "向容器文件系统写入的总字节数（containerd 缺少此字段）"},
+			"cpu_usage":          &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage usage of CPU on system host."},
+			"cpu_delta":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationNS, Desc: "The delta of the CPU (unsupported containerd)."},
+			"cpu_system_delta":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationNS, Desc: "The delta of the system CPU, only supported Linux (unsupported containerd)."},
+			"cpu_numbers":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of the CPU core (unsupported containerd)."},
+			"mem_limit":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The available usage of the memory, if there is container limit, use host memory."},
+			"mem_usage":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The usage of the memory."},
+			"mem_used_percent":   &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage usage of the memory."},
+			"mem_failed_count":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The count of memory allocation failures (unsupported containerd)."},
+			"network_bytes_rcvd": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "Total number of bytes received from the network (unsupported containerd)."},
+			"network_bytes_sent": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "Total number of bytes send to the network (unsupported containerd)."},
+			"block_read_byte":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "Total number of bytes read from the container file system (unsupported containerd)."},
+			"block_write_byte":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "Total number of bytes wrote to the container file system (unsupported containerd)."},
 		},
 	}
 }

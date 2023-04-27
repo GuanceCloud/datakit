@@ -21,7 +21,7 @@ DataKit 是一款开源、一体式的数据采集 Agent，它提供全平台操
     - [Statsd](statsd.md)
     - [Fluentd](logstreaming.md)
     - [Filebeats](beats_output.md)
-    - [Function](../dataflux-func/write-data-via-datakit.md)
+    - [Function](https://func.guance.com/doc/practice-write-data-via-datakit/){:target="_blank"}
     - Tracing 相关
         - [OpenTelemetry](opentelemetry.md)
         - [DDTrace](ddtrace.md)
@@ -53,3 +53,4 @@ DataKit 发布的时候，会带上一些实验性功能，这些功能往往是
 | ---                                                                                                                        | ---                                                           |
 | :fontawesome-solid-flag-checkered:                                                                                         | 表示该采集器支持选举                                          |
 | :fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple: :material-kubernetes: :material-docker: | 例分别用来表示 Linux、Windows、macOS、 Kubernetes 以及 Docker |
+| :octicons-beaker-24: | 表示实验性功能（参见[实验性功能的描述](index.md#experimental)） |

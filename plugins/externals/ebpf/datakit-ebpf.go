@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -15,10 +17,12 @@ import (
 	"syscall"
 	"time"
 
+	_ "net/http/pprof" // nolint:gosec
+
 	"github.com/DataDog/ebpf/manager"
+	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/jessevdk/go-flags"
 	"github.com/shirou/gopsutil/process"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkbash "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/bashhistory"
 	dkdns "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/dnsflow"
@@ -70,6 +74,8 @@ type Option struct {
 
 	IPv6Disabled string `long:"ipv6-disabled" description:"ipv6 is not enabled on the system"`
 
+	PProfPort string `long:"pprof-port" description:"pprof port" default:""`
+
 	Service string `long:"service" description:"service" default:"ebpf"`
 }
 
@@ -79,13 +85,14 @@ type Option struct {
 // 		K8sBearerTokenString string
 
 const (
-	inputName        = "ebpf"
-	inputNameNet     = "ebpf-net"
-	inputNameNetNet  = "ebpf-net(netflow)"
-	inputNameNetDNS  = "ebpf-net(dnsflow)"
-	inputNameNetHTTP = "ebpf-net(httpflow)"
+	inputName = "ebpf"
 
+	inputNameNet  = "ebpf-net"
 	inputNameBash = "ebpf-bash"
+
+	inputNameNetNet  = "ebpf-net/netflow"
+	inputNameNetDNS  = "ebpf-net/dnsflow"
+	inputNameNetHTTP = "ebpf-net/httpflow"
 )
 
 var (
@@ -116,7 +123,8 @@ func main() {
 
 	dkout.DataKitAPIServer = opt.DataKitAPIServer
 
-	ebpfBashPostURL := fmt.Sprintf("http://%s%s?input="+inputNameBash, dkout.DataKitAPIServer, datakit.Logging)
+	ebpfBashPostURL := fmt.Sprintf("http://%s%s?input="+url.QueryEscape(inputNameBash),
+		dkout.DataKitAPIServer, datakit.Logging)
 
 	logOpt := logger.Option{
 		Path:  opt.Log,
@@ -130,6 +138,12 @@ func main() {
 
 	l = logger.SLogger(inputName)
 
+	if opt.PProfPort != "" {
+		go func() {
+			_ = http.ListenAndServe(fmt.Sprintf(":%s", opt.PProfPort), nil)
+		}()
+	}
+
 	dkout.Init(l)
 	dknetflow.SetLogger(l)
 	dkdns.SetLogger(l)
@@ -138,7 +152,7 @@ func main() {
 	dkhttpflow.SetLogger(l)
 	dksysmonitor.SetLogger(l)
 
-	// duration 介于 10s ～ 30min，若非，取边界数值.
+	// duration is between 10s and 30min, if not, take the boundary value.
 	if tmp, err := time.ParseDuration(opt.Interval); err == nil {
 		if tmp < minInterval {
 			tmp = minInterval
@@ -223,13 +237,14 @@ func main() {
 			l.Error(err)
 		} else {
 			dnsTracer := dkdns.NewDNSFlowTracer()
-			go dnsTracer.Run(ctx, tp, gTags, dnsRecord, fmt.Sprintf("http://%s%s?input="+inputNameNetDNS,
-				dkout.DataKitAPIServer, datakit.Network))
+			go dnsTracer.Run(ctx, tp, gTags, dnsRecord, fmt.Sprintf("http://%s%s?input=",
+				dkout.DataKitAPIServer, datakit.Network)+url.QueryEscape(inputNameNetDNS))
 		}
 
 		// run netflow
-		err = netflowTracer.Run(ctx, ebpfNetManger, fmt.Sprintf("http://%s%s?input="+inputNameNetNet,
-			dkout.DataKitAPIServer, datakit.Network), gTags, interval)
+		err = netflowTracer.Run(ctx, ebpfNetManger, fmt.Sprintf("http://%s%s?input=",
+			dkout.DataKitAPIServer, datakit.Network)+
+			url.QueryEscape(inputNameNetNet), gTags, interval)
 		if err != nil {
 			err = fmt.Errorf("run netflow: %w", err)
 			feedLastErrorLoop(err, signaIterrrupt)
@@ -248,8 +263,8 @@ func main() {
 				return
 			}
 
-			tracer := dkhttpflow.NewHTTPFlowTracer(gTags, fmt.Sprintf("http://%s%s?input="+inputNameNetHTTP,
-				dkout.DataKitAPIServer, datakit.Network))
+			tracer := dkhttpflow.NewHTTPFlowTracer(gTags, fmt.Sprintf("http://%s%s?input=",
+				dkout.DataKitAPIServer, datakit.Network)+url.QueryEscape(inputNameNetHTTP))
 			if err := tracer.Run(ctx, constEditor, bpfMapSockFD, enableHTTPFlowTLS, interval); err != nil {
 				l.Error(err)
 			}
@@ -481,7 +496,7 @@ func isRuning() bool {
 	var p *process.Process
 
 	cont, err := ioutil.ReadFile(filepath.Clean(pidFile))
-	// pid文件不存在
+	// pid file does not exist
 	if err != nil {
 		return false
 	}

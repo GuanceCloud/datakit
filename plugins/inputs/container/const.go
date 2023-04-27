@@ -6,6 +6,8 @@
 package container
 
 import (
+	"time"
+
 	timex "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -16,6 +18,8 @@ const (
 
 	dockerEndpoint    = "unix:///var/run/docker.sock"
 	containerdAddress = "/var/run/containerd/containerd.sock"
+
+	timeout = time.Second * 3
 )
 
 var measurements = []inputs.Measurement{}
@@ -31,13 +35,14 @@ const sampleCfg = `
 
   enable_container_metric = true
   enable_k8s_metric = true
-  enable_pod_metric = true
+  enable_pod_metric = false
   extract_k8s_label_as_tags = false
 
   ## Auto-Discovery of PrometheusMonitoring Annotations/CRDs
-  enable_autdo_discovery_of_prometheus_service_annotations = false
-  enable_autdo_discovery_of_prometheus_pod_monitors = false
-  enable_autdo_discovery_of_prometheus_service_monitors = false
+  enable_auto_discovery_of_prometheus_pod_annotations = false
+  enable_auto_discovery_of_prometheus_service_annotations = false
+  enable_auto_discovery_of_prometheus_pod_monitors = false
+  enable_auto_discovery_of_prometheus_service_monitors = false
 
 
   ## Containers logs to include and exclude, default collect all containers. Globs accepted.

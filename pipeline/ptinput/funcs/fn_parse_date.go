@@ -17,7 +17,7 @@ import (
 )
 
 func ParseDateChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
-	if err := reIndexFuncArgs(funcExpr, []string{
+	if err := reindexFuncArgs(funcExpr, []string{
 		"key", "yy", "MM", "dd", "hh", "mm", "ss", "ms", "us", "ns", "zone",
 	}, 0); err != nil {
 		return runtime.NewRunError(ctx, err.Error(), funcExpr.NamePos)

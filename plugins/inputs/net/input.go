@@ -14,9 +14,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
+	clipt "github.com/GuanceCloud/cliutils/point"
 	psNet "github.com/shirou/gopsutil/net"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -88,7 +89,7 @@ func (m *netMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: netMetricName,
 		Fields: map[string]interface{}{
-			"bytes_sent":       NewFieldsInfoIByte("The number of bytes sent by the interface ."),
+			"bytes_sent":       NewFieldsInfoIByte("The number of bytes sent by the interface."),
 			"bytes_sent/sec":   NewFieldsInfoIBytePerSec("The number of bytes sent by the interface per second."),
 			"bytes_recv":       NewFieldsInfoIByte("The number of bytes received by the interface."),
 			"bytes_recv/sec":   NewFieldsInfoIBytePerSec("The number of bytes received by the interface per second."),
@@ -103,9 +104,9 @@ func (m *netMeasurement) Info() *inputs.MeasurementInfo {
 			// linux only
 			"tcp_insegs":       NewFieldsInfoCount("The number of packets received by the TCP layer."),
 			"tcp_insegs/sec":   NewFieldsInfoCountPerSec("The number of packets received by the TCP layer per second."),
-			"tcp_outsegs":      NewFieldsInfoCount("The number of packets sent by the TCP layer. "),
+			"tcp_outsegs":      NewFieldsInfoCount("The number of packets sent by the TCP layer."),
 			"tcp_outsegs/sec":  NewFieldsInfoCountPerSec("The number of packets sent by the TCP layer per second."),
-			"tcp_activeopens":  NewFieldsInfoCount("It means the TCP layer sends a SYN, and come into the SYN-SENT state. "),
+			"tcp_activeopens":  NewFieldsInfoCount("It means the TCP layer sends a SYN, and come into the SYN-SENT state."),
 			"tcp_passiveopens": NewFieldsInfoCount("It means the TCP layer receives a SYN, replies a SYN+ACK, come into the SYN-RCVD state."),
 			"tcp_estabresets": NewFieldsInfoCount("The number of times TCP connections have made a " +
 				"direct transition to the CLOSED state from either " +
@@ -121,14 +122,14 @@ func (m *netMeasurement) Info() *inputs.MeasurementInfo {
 				"is, the number of TCP segments transmitted " +
 				"containing one or more previously transmitted" +
 				"octets."),
-			"tcp_inerrs":           NewFieldsInfoCount("The number of incoming TCP segments in error"),
-			"tcp_incsumerrors":     NewFieldsInfoCount("The number of incoming TCP segments in checksum error"),
+			"tcp_inerrs":           NewFieldsInfoCount("The number of incoming TCP segments in error."),
+			"tcp_incsumerrors":     NewFieldsInfoCount("The number of incoming TCP segments in checksum error."),
 			"tcp_rtoalgorithm":     NewFieldsInfoCount("The algorithm used to determine the timeout value used for retransmitting unacknowledged octets."),
 			"tcp_rtomin":           NewFieldsInfoMS("The minimum value permitted by a TCP implementation for the retransmission timeout, measured in milliseconds."),
 			"tcp_rtomax":           NewFieldsInfoMS("The maximum value permitted by a TCP implementation for the retransmission timeout, measured in milliseconds."),
 			"tcp_maxconn":          NewFieldsInfoCount("The limit on the total number of TCP connections the entity can support."),
 			"tcp_currestab":        NewFieldsInfoCount("The number of TCP connections for which the current state is either ESTABLISHED or CLOSE-WAIT."),
-			"udp_incsumerrors":     NewFieldsInfoCount("The number of incoming UDP datagrams in checksum error"),
+			"udp_incsumerrors":     NewFieldsInfoCount("The number of incoming UDP datagrams in checksum error.s"),
 			"udp_indatagrams":      NewFieldsInfoCount("The number of UDP datagrams delivered to UDP users."),
 			"udp_indatagrams/sec":  NewFieldsInfoCountPerSec("The number of UDP datagrams delivered to UDP users per second."),
 			"udp_outdatagrams":     NewFieldsInfoCount("The number of UDP datagrams sent from this entity."),
@@ -136,12 +137,12 @@ func (m *netMeasurement) Info() *inputs.MeasurementInfo {
 			"udp_rcvbuferrors":     NewFieldsInfoCount("The number of receive buffer errors."),
 			"udp_noports":          NewFieldsInfoCount("The number of packets to unknown port received."),
 			"udp_sndbuferrors":     NewFieldsInfoCount("The number of send buffer errors."),
-			"udp_inerrors":         NewFieldsInfoCount("The number of packet receive errors"),
-			"udp_ignoredmulti":     NewFieldsInfoCount("IgnoredMulti"),
+			"udp_inerrors":         NewFieldsInfoCount("The number of packet receive errors."),
+			"udp_ignoredmulti":     NewFieldsInfoCount("IgnoredMulti."),
 		},
 		Tags: map[string]interface{}{
-			"host":      &inputs.TagInfo{Desc: "主机名"},
-			"interface": &inputs.TagInfo{Desc: "网络接口名"},
+			"host":      &inputs.TagInfo{Desc: "System hostname."},
+			"interface": &inputs.TagInfo{Desc: "Network interface name."},
 		},
 	}
 }
@@ -300,11 +301,11 @@ func (i *Input) Run() {
 			if err := i.Collect(); err == nil {
 				if errFeed := inputs.FeedMeasurement(netMetricName, datakit.Metric, i.collectCache,
 					&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
-					io.FeedLastError(inputName, errFeed.Error())
+					io.FeedLastError(inputName, errFeed.Error(), clipt.Metric)
 					l.Error(errFeed)
 				}
 			} else {
-				io.FeedLastError(inputName, err.Error())
+				io.FeedLastError(inputName, err.Error(), clipt.Metric)
 				l.Error(err)
 			}
 		case <-datakit.Exit.Wait():

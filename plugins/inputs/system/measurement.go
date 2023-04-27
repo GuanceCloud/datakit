@@ -38,21 +38,21 @@ func (m *conntrackMeasurement) LineProto() (*point.Point, error) {
 func (m *conntrackMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNameConntrack,
-		Desc: "系统网络连接指标（仅 Linux 支持）",
+		Desc: "Conntrack metrics (Linux only).",
 		Fields: map[string]interface{}{
-			"entries":             newFieldInfoCount("当前连接数量"),
-			"entries_limit":       newFieldInfoCount("连接跟踪表的大小"),
-			"stat_found":          newFieldInfoCount("成功的搜索条目数目"),
-			"stat_invalid":        newFieldInfoCount("不能被跟踪的包数目"),
-			"stat_ignore":         newFieldInfoCount("已经被跟踪的报数目"),
-			"stat_insert":         newFieldInfoCount("插入的包数目"),
-			"stat_insert_failed":  newFieldInfoCount("插入失败的包数目"),
-			"stat_drop":           newFieldInfoCount("跟踪失败被丢弃的包数目"),
-			"stat_early_drop":     newFieldInfoCount("由于跟踪表满而导致部分已跟踪包条目被丢弃的数目"),
-			"stat_search_restart": newFieldInfoCount("由于hash表大小修改而导致跟踪表查询重启的数目"),
+			"entries":             newFieldInfoCount("Current number of connections."),
+			"entries_limit":       newFieldInfoCount("The size of the connection tracking table."),
+			"stat_found":          newFieldInfoCount("The number of successful search entries."),
+			"stat_invalid":        newFieldInfoCount("The number of packets that cannot be tracked."),
+			"stat_ignore":         newFieldInfoCount("The number of reports that have been tracked."),
+			"stat_insert":         newFieldInfoCount("The number of packets inserted."),
+			"stat_insert_failed":  newFieldInfoCount("The number of packages that failed to insert."),
+			"stat_drop":           newFieldInfoCount("The number of packets dropped due to connection tracking failure."),
+			"stat_early_drop":     newFieldInfoCount("The number of partially tracked packet entries dropped due to connection tracking table full."),
+			"stat_search_restart": newFieldInfoCount("The number of connection tracking table query restarts due to hash table size modification."),
 		},
 		Tags: map[string]interface{}{
-			"host": &inputs.TagInfo{Desc: "主机名"},
+			"host": &inputs.TagInfo{Desc: "hostname"},
 		},
 	}
 }
@@ -67,14 +67,13 @@ func (m *filefdMeasurement) LineProto() (*point.Point, error) {
 func (m *filefdMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNameFilefd,
-		Desc: "系统文件句柄指标（仅 Linux 支持）",
+		Desc: "System file handle metrics (Linux only).",
 		Fields: map[string]interface{}{
-			"allocated": newFieldInfoCount("已分配文件句柄的数目"),
-			// "maximum":      newFieldInfoCount("文件句柄的最大数目； 当值为 2^63-1 则页面显示 9223372036854776000(若大于此值，均会造成精度损失)"),
-			"maximum_mega": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount, Desc: "文件句柄的最大数目, 单位 M(10^6)"},
+			"allocated":    newFieldInfoCount("The number of allocated file handles."),
+			"maximum_mega": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount, Desc: "The maximum number of file handles, unit M(10^6)."},
 		},
 		Tags: map[string]interface{}{
-			"host": &inputs.TagInfo{Desc: "主机名"},
+			"host": &inputs.TagInfo{Desc: "hostname"},
 		},
 	}
 }
@@ -85,20 +84,22 @@ type systemMeasurement measurement
 func (m *systemMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNameSystem,
-		Desc: "系统运行基础信息",
+		Desc: "Basic information about system operation.",
 		Fields: map[string]interface{}{
-			"load1":           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "过去 1 分钟的 CPU 平均负载"},
-			"load5":           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "过去 5 分钟的 CPU 平均负载"},
-			"load15":          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "过去 15 分钟的 CPU 平均负载"},
-			"load1_per_core":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "每个核心过去 1 分钟的 CPU 平均负载"},
-			"load5_per_core":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "每个核心过去 5 分钟的 CPU 平均负载"},
-			"load15_per_core": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "每个核心过去 15 分钟的 CPU 平均负载"},
-			"n_cpus":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "CPU 逻辑核心数"},
-			"n_users":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "用户数"},
-			"uptime":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationSecond, Desc: "系统运行时间"},
+			"load1":           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "CPU load average over the past 1 minute."},
+			"load5":           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "CPU load average over the past 5 minutes."},
+			"load15":          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "CPU load average over the past 15 minutes."},
+			"load1_per_core":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "CPU single core load average over the past 1 minute."},
+			"load5_per_core":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "CPU single core load average over the last 5 minutes."},
+			"load15_per_core": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "CPU single core load average over the past 15 minutes."},
+			"n_cpus":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "CPU logical core count."},
+			"n_users":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "User number."},
+			"uptime":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationSecond, Desc: "System uptime."},
+			"memory_usage":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "The percentage of used memory."},
+			"cpu_total_usage": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "The percentage of used CPU."},
 		},
 		Tags: map[string]interface{}{
-			"host": &inputs.TagInfo{Desc: "主机名"},
+			"host": &inputs.TagInfo{Desc: "hostname"},
 		},
 	}
 }

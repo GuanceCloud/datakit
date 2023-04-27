@@ -14,8 +14,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/go-redis/redis/v8"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -28,8 +29,8 @@ type replicaMeasurement struct {
 	election bool
 }
 
-func (m *replicaMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+func (m *replicaMeasurement) LineProto() (*dkpt.Point, error) {
+	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElectionV2(m.election))
 }
 
 //nolint:lll
@@ -52,7 +53,7 @@ func (m *replicaMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (i *Input) collectReplicaMeasurement() ([]inputs.Measurement, error) {
+func (i *Input) collectReplicaMeasurement() ([]*point.Point, error) {
 	m := &replicaMeasurement{
 		client:   i.client,
 		resData:  make(map[string]interface{}),
@@ -62,9 +63,7 @@ func (i *Input) collectReplicaMeasurement() ([]inputs.Measurement, error) {
 	}
 
 	m.name = "redis_replica"
-	if !strings.Contains(i.Host, "127.0.0.1") && !strings.Contains(i.Host, "localhost") {
-		m.tags["host"] = i.Host
-	}
+	setHostTagIfNotLoopback(m.tags, i.Host)
 
 	if err := m.getData(); err != nil {
 		return nil, err
@@ -73,8 +72,16 @@ func (i *Input) collectReplicaMeasurement() ([]inputs.Measurement, error) {
 	if err := m.submit(); err != nil {
 		l.Errorf("submit: %s", err)
 	}
-
-	return []inputs.Measurement{m}, nil
+	var collectCache []*point.Point
+	var opts []point.Option
+	if m.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	}
+	pt := point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+	collectCache = append(collectCache, pt)
+	return collectCache, nil
 }
 
 // 数据源获取数据.

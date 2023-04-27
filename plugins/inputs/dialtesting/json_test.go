@@ -3,12 +3,15 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
+//go:build !windows
+// +build !windows
+
 package dialtesting
 
 import (
 	"testing"
 
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	tu "github.com/GuanceCloud/cliutils/testutil"
 )
 
 func TestJSONTaskFile(t *testing.T) {

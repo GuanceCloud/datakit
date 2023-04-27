@@ -47,17 +47,14 @@
     * Kubernetes >= 1.14
     * Helm >= 3.0+
     
-    添加 DataKit Helm 仓库：
+    Helm 安装 Datakit（注意修改 `datakit.dataway_url` 参数）, 其中开启了很多[默认采集器](datakit-input-conf.md#default-enabled-inputs)，无需配置。更多 Helm 相关可参考 [Helm 管理配置](datakit-helm.md)
     
-    ```shell 
-    $ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit
-    $ helm repo update 
-    ```
-    
-    Helm 安装 Datakit（注意修改 `datakit.dataway_url` 参数）
     
     ```shell
-    $ helm install datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" --create-namespace 
+    $ helm install datakit datakit \
+         --repo  https://pubrepo.guance.com/chartrepo/datakit \
+         -n datakit --create-namespace \
+         --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" 
     ```
     
     查看部署状态：
@@ -69,8 +66,11 @@
     可以通过如下命令来升级：
     
     ```shell
-    $ helm repo update 
-    $ helm upgrade datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" 
+    $ helm -n datakit get  values datakit -o yaml > values.yaml
+    $ helm upgrade datakit datakit \
+        --repo  https://pubrepo.guance.com/chartrepo/datakit \
+        -n datakit \
+        -f values.yaml
     ```
     
     可以通过如下命令来卸载：
@@ -78,6 +78,46 @@
     ```shell
     $ helm uninstall datakit -n datakit
     ```
+
+## 资源限制 {#requests-limits}
+
+DataKit 默认设置了 Requests 和 Limits，如果 DataKit 容器状态变为 OOMKilled ，可自定义修改配置。
+
+=== "Yaml"
+
+    datakit.yaml 中其大概格式为
+    
+    ```yaml
+    ...
+            resources:
+              requests:
+                cpu: "200m"
+                memory: "128Mi"
+              limits:
+                cpu: "2000m"
+                memory: "4Gi"
+    ...
+    ```
+
+
+=== "Helm"
+
+    Helm values.yaml 中其大概格式为
+    
+    ```yaml
+    ...
+    resources:
+      requests:
+        cpu: "200m"
+        memory: "128Mi"
+      limits:
+        cpu: "2000m"
+        memory: "4Gi"
+    ...
+    ```
+ 
+具体配置，参见[官方文档](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#requests-and-limits){:target="_blank"}。
+
 
 ## Kubernetes 污点容忍度配置 {#toleration}
 
@@ -159,7 +199,7 @@ spec:
 - json：一些较为复杂的配置，需要以 json 字符串形式来设置环境变量
 - bool：开关类型，给定**任何非空字符串**即表示开启该功能，建议均以 `"on"` 作为其开启时的取值。如果不开启，必须将其删除或注释掉。
 - string-list：以英文逗号分割的字符串，一般用于表示列表
-- duration：一种字符串形式的时间长度表示，比如 `10s` 表示 10 秒，这里的单位支持 h/m/s/ms/us/ns。==不要给负值==。
+- duration：一种字符串形式的时间长度表示，比如 `10s` 表示 10 秒，这里的单位支持 h/m/s/ms/us/ns。**不要给负数**。
 - int：整数类型
 - float：浮点类型
 
@@ -167,11 +207,13 @@ spec:
 
 ### 最常用环境变量 {#env-common}
 
-| 环境变量名称                 | 类型        | 默认值 | 必须   | 说明                                                                                                                                     |
-| ---------:                   | ----:       | ---:   | ------ | ----                                                                                                                                     |
-| `ENV_DATAWAY`                | string      | 无     | 是     | 配置 DataWay 地址，如 `https://openway.guance.com?token=xxx`                                                                             |
-| `ENV_DEFAULT_ENABLED_INPUTS` | string-list | 无     | 否     | 默认开启[采集器列表](datakit-input-conf.md#default-enabled-inputs)，以英文逗号分割，如 `cpu,mem,disk`，老的 `ENV_ENABLE_INPUTS` 将被废弃 |
-| `ENV_GLOBAL_HOST_TAGS`       | string-list | 无     | 否     | 全局 tag，多个 tag 之间以英文逗号分割，如 `tag1=val,tag2=val2`。老的 `ENV_GLOBAL_TAGS` 将被废弃                                          |
+| 环境变量名称                              | 类型        | 默认值 | 必须   | 说明                                                                                                  |
+| ---------:                                | ----:       | ---:   | ------ | ----                                                                                                  |
+| `ENV_DATAWAY`                             | string      | 无     | 是     | 配置 DataWay 地址，如 `https://openway.guance.com?token=xxx`                                          |
+| `ENV_DEFAULT_ENABLED_INPUTS`              | string-list | 无     | 否     | 默认开启[采集器列表](datakit-input-conf.md#default-enabled-inputs)，以英文逗号分割，如 `cpu,mem,disk` |
+| `ENV_ENABLE_INPUTS` :fontawesome-solid-x: | string-list | 无     | 否     | 同 ENV_DEFAULT_ENABLED_INPUTS，将废弃                                                                 |
+| `ENV_GLOBAL_HOST_TAGS`                    | string-list | 无     | 否     | 全局 tag，多个 tag 之间以英文逗号分割，如 `tag1=val,tag2=val2`                                        |
+| `ENV_GLOBAL_TAGS` :fontawesome-solid-x:   | string-list | 无     | 否     | 同 ENV_GLOBAL_HOST_TAGS，将废弃                                                                       |
 
 ???+ note "区分*全局主机 tag* 和*全局选举 tag*"
 
@@ -205,14 +247,14 @@ spec:
 | `ENV_NAMESPACE`                     | string      | `default` | 否     | DataKit 所在的命名空间，默认为空表示不区分命名空间，接收任意非空字符串，如 `dk-namespace-example`。如果开启了选举，可以通过此环境变量指定工作空间。                                        |
 | `ENV_ENABLE_ELECTION_NAMESPACE_TAG` | bool        | -         | 否     | 开启该选项后，所有选举类的采集均会带上 `election_namespace=<your-election-namespace>` 的额外 tag，这可能会导致一些时间线的增长（[:octicons-tag-24: Version-1.4.7](changelog.md#cl-1.4.7)） |
 | `ENV_GLOBAL_ELECTION_TAGS`          | string-list | 无        | 否     | 全局选举 tag，多个 tag 之间以英文逗号分割，如 `tag1=val,tag2=val2`。ENV_GLOBAL_ENV_TAGS 将被弃用                                                                                           |
-
+| `ENV_CLUSTER_NAME_K8S`              | string      | -         | 否     | DataKit 所在的 cluster，如果非空，会在 `global_election_tags` 添加一个指定 tag，key 是 `cluster_name_k8s`，value 是环境变量的值。（[:octicons-tag-24: Version-1.5.8](changelog.md#cl-1.5.8)）|
 ### HTTP/API 相关环境变量 {#env-http-api}
 
 | 环境变量名称                     | 类型        | 默认值            | 必须   | 说明                                                                                                                                                                                                        |
 | ---------:                       | ----:       | ---:              | ------ | ----                                                                                                                                                                                                        |
 | `ENV_DISABLE_404PAGE`            | bool        | -                 | 否     | 禁用 DataKit 404 页面（公网部署 DataKit RUM 时常用）                                                                                                                                                        |
-| `ENV_HTTP_LISTEN`                | string      | localhost:9529    | 否     | 可修改地址，使得外部可以调用 [DataKit 接口](apis)                                                                                                                                                           |
-| `ENV_HTTP_PUBLIC_APIS`           | string-list | 无                | 否     | 允许外部访问的 DataKit [API 列表](apis)，多个 API 之间以英文逗号分割。当 DataKit 部署在公网时，用来禁用部分 API                                                                                             |
+| `ENV_HTTP_LISTEN`                | string      | localhost:9529    | 否     | 可修改地址，使得外部可以调用 [DataKit 接口](apis.md)                                                                                                                                                           |
+| `ENV_HTTP_PUBLIC_APIS`           | string-list | 无                | 否     | 允许外部访问的 DataKit [API 列表](apis.md)，多个 API 之间以英文逗号分割。当 DataKit 部署在公网时，用来禁用部分 API                                                                                             |
 | `ENV_HTTP_TIMEOUT`               | duration    | 30s               | 否     | 设置 9529 HTTP API 服务端超时时间 [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental)                                                     |
 | `ENV_HTTP_CLOSE_IDLE_CONNECTION` | bool        | -                 | 否     | 如果开启，则 9529 HTTP server 会主动关闭闲置连接（闲置时间等同于 `ENV_HTTP_TIMEOUT`） [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental) |
 | `ENV_REQUEST_RATE_LIMIT`         | float       | 无                | 否     | 限制 9529 [API 每秒请求数](datakit-conf.md#set-http-api-limit)                                                                                                                                              |
@@ -223,16 +265,22 @@ spec:
 
 | 环境变量名                 | 类型   | 适用场景            | 说明     | 样例值 |
 | ----                     | ----   | ----               | ----     | ---- |
-| ENV_CONFD_BACKEND        | string |  全部              | 后端源类型  | `etcdv3`或`zookeeper`或`redis`或`consul` |
-| ENV_CONFD_BASIC_AUTH     | string | `etcdv3`或`consul` | 可选      | |
-| ENV_CONFD_CLIENT_CA_KEYS | string | `etcdv3`或`consul` | 可选      | |
-| ENV_CONFD_CLIENT_CERT    | string | `etcdv3`或`consul` | 可选      | |
-| ENV_CONFD_CLIENT_KEY     | string | `etcdv3`或`consul`或`redis` | 可选      | |
-| ENV_CONFD_BACKEND_NODES  | string |  全部              | 后端源地址 | `[IP地址:2379,IP地址2:2379]` |
-| ENV_CONFD_PASSWORD       | string | `etcdv3`或`consul` | 可选      |  |
-| ENV_CONFD_SCHEME         | string | `etcdv3`或`consul` | 可选      |  |
-| ENV_CONFD_SEPARATOR      | string | `redis`            | 可选默认0 |  |
-| ENV_CONFD_USERNAME       | string | `etcdv3`或`consul` | 可选      |  |
+| `ENV_CONFD_BACKEND`        | string |  全部              | 后端源类型  | `etcdv3`或`zookeeper`或`redis`或`consul` |
+| `ENV_CONFD_BASIC_AUTH`     | string | `etcdv3`或`consul` | 可选      | |
+| `ENV_CONFD_CLIENT_CA_KEYS` | string | `etcdv3`或`consul` | 可选      | |
+| `ENV_CONFD_CLIENT_CERT`    | string | `etcdv3`或`consul` | 可选      | |
+| `ENV_CONFD_CLIENT_KEY`     | string | `etcdv3`或`consul`或`redis` | 可选      | |
+| `ENV_CONFD_BACKEND_NODES`  | string |  全部              | 后端源地址 | `["IP地址:2379","IP地址2:2379"]` (nacos 加 http://) |
+| `ENV_CONFD_PASSWORD`       | string | `etcdv3`或`consul`或`nacos` | 可选      |  |
+| `ENV_CONFD_SCHEME`         | string | `etcdv3`或`consul` | 可选      |  |
+| `ENV_CONFD_SEPARATOR`      | string | `redis`            | 可选默认0 |  |
+| `ENV_CONFD_USERNAME`       | string | `etcdv3`或`consul`或`nacos` | 可选      |  |
+| `ENV_CONFD_ACCESS_KEY`         | string | `nacos`或`aws` | 可选                    |          |
+| `ENV_CONFD_SECRET_KEY`         | string | `nacos`或`aws` | 可选                    |          |
+| `ENV_CONFD_CIRCLE_INTERVAL`    | string | `nacos`或`aws` | 可选                    | 默认 60   |
+| `ENV_CONFD_CONFD_NAMESPACE`    | string | `nacos` | 配置信息空间ID        | `6aa36e0e-bd57-4483-9937-e7c0ccf59599` |
+| `ENV_CONFD_PIPELINE_NAMESPACE` | string | `nacos` | `pipeline`信息空间ID | `d10757e6-aa0a-416f-9abf-e1e1e8423497` |
+| `ENV_CONFD_REGION`             | string | `aws`   | AWS 服务区           | `cn-north-1` |
 
 ### Git 配置相关环境变量 {#env-git}
 
@@ -246,39 +294,49 @@ spec:
 
 ### Sinker 配置相关环境变量 {#env-sinker}
 
-| 环境变量名称  | 类型   | 默认值 | 必须   | 说明                            |
-| ---------:    | ----:  | ---:   | ------ | ----                            |
-| `ENV_SINK_M`  | string | 无     | 否     | 安装时指定 Metric 的 sink       |
-| `ENV_SINK_N`  | string | 无     | 否     | 安装时指定 Network 的 sink      |
-| `ENV_SINK_K`  | string | 无     | 否     | 安装时指定 KeyEvent 的 sink     |
-| `ENV_SINK_O`  | string | 无     | 否     | 安装时指定 Object 的 sink       |
-| `ENV_SINK_CO` | string | 无     | 否     | 安装时指定 CustomObject 的 sink |
-| `ENV_SINK_L`  | string | 无     | 否     | 安装时指定 Logging 的 sink      |
-| `ENV_SINK_T`  | string | 无     | 否     | 安装时指定 Tracing 的 sink      |
-| `ENV_SINK_R`  | string | 无     | 否     | 安装时指定 RUM 的 sink          |
-| `ENV_SINK_S`  | string | 无     | 否     | 安装时指定 Security 的 sink     |
-| `ENV_SINK_P`  | string | 无     | 否     | 安装时指定 Profiling 的 sink    |
+| 环境变量名称 | 类型         | 默认值 | 必须   | 说明                             |
+| ---------:   | ----:        | ---:   | ------ | ----                             |
+| `ENV_SINKER` | string(JSON) | 无     | 否     | 安装时指定 Dataway Sinker 的配置 |
 
-<!-- | `ENV_LOG_SINK_DETAIL` | string | 无     | 否     | 安装时指定开启 sink 详细日志(开启后会产生大量日志, 仅供调试, 不建议在生产环境中使用)。例: "yes"。 | -->
+Sinker 用来指定 [dataway 的 sinker 配置](datakit-sink-dataway.md)，它是一个形如下面的 JSON 格式：
 
-如果单个数据类型要配置多个 sink 地址，sink 地址可以用 `||` 分割，如：
+```json
+[
+	{
+		"categories": ["L", "M"],
+		"filters": [
+			"{measurement='cpu' and tag='some-host'}"
+		],
+		"proxy": "",
+		"url": "http://openway.guance.com?token=<YOUR-TOKEN>"
+	}
+]
+```
+
+在配置 ENV 时，我们需要将其变成一行：
+
+```json
+[ { "categories": ["L", "M"], "filters": [ "{measurement='cpu' and tag='some-host'}" ], "url": "http://openway.guance.com?token=<YOUR-TOKEN>" } ]
+```
+
+如果将这一行 JSON 应用在命令行中，需要对其中的 `"` 进行转义，如：
 
 ```shell
-ENV_SINK_M = "dataway://?url=https://openway.guance.com&token=<TOKEN-1>&filters={host='user-ubuntu'}||dataway://?url=https://openway.guance.com&token=<TOKEN-2>&filters={host='user-centos'}"
-
-ENV_SINK_M = "influxdb://host1:8087?protocol=http&database=db1&precision=ns&timeout=15s||influxdb://host2:8087?protocol=http&database=db1&precision=ns&timeout=15s"
+DK_SINKER="[ { \"categories\": [\"L\", \"M\"], \"filters\": [ \"{measurement='cpu' and tag='some-host'}\" ], \"url\": \"http://openway.guance.com?token=<YOUR-TOKEN>\" } ]"
 ```
 
 ### IO 模块配置相关环境变量 {#env-io}
 
-| 环境变量名称                  | 类型     | 默认值 | 必须   | 说明                                  |
-| ---------:                    | ---:     | ---:   | ------ | ----                                  |
-| `ENV_IO_FILTERS`              | json     | 无     | 否     | 添加[行协议过滤器](datakit-filter.md) |
-| `ENV_IO_FLUSH_INTERVAL`       | duration | 10s    | 否     | IO 发送时间频率                       |
-| `ENV_IO_MAX_CACHE_COUNT`      | int      | 1000   | 否     | 发送 buffer（点数）大小               |
-| `ENV_IO_ENABLE_CACHE`         | bool     | -      | 否     | 是否开启发送失败的磁盘缓存            |
-| `ENV_IO_CACHE_MAX_SIZE_GB`    | int      | 10     | 否     | 发送失败缓存的磁盘大小（单位 GB）     |
-| `ENV_IO_CACHE_CLEAN_INTERVAL` | duration | 5s     | 否     | 定期发送缓存在磁盘内的失败任务        |
+| 环境变量名称                  | 类型     | 默认值             | 必须   | 说明                                                                         |
+| ---------:                    | ---:     | ---:               | ------ | ----                                                                         |
+| `ENV_IO_FILTERS`              | json     | 无                 | 否     | 添加[行协议过滤器](datakit-filter.md)                                        |
+| `ENV_IO_FLUSH_INTERVAL`       | duration | 10s                | 否     | IO 发送时间频率                                                              |
+| `ENV_IO_FLUSH_WORKERS`        | int      | `cpu_core * 2 + 1` | 否     | IO 发送 worker 数（:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9)） |
+| `ENV_IO_MAX_CACHE_COUNT`      | int      | 1000               | 否     | 发送 buffer（点数）大小                                                      |
+| `ENV_IO_ENABLE_CACHE`         | bool     | false              | 否     | 是否开启发送失败的磁盘缓存                                                   |
+| `ENV_IO_CACHE_ALL`            | bool     | false              | 否     | 是否 cache 所有发送失败的数据                                                |
+| `ENV_IO_CACHE_MAX_SIZE_GB`    | int      | 10                 | 否     | 发送失败缓存的磁盘大小（单位 GB）                                            |
+| `ENV_IO_CACHE_CLEAN_INTERVAL` | duration | 5s                 | 否     | 定期发送缓存在磁盘内的失败任务                                               |
 
 ???+ note "关于 buffer 和 queue 的说明"
 
@@ -308,12 +366,12 @@ ENV_SINK_M = "influxdb://host1:8087?protocol=http&database=db1&precision=ns&time
 
 ### Refer Table 有关环境变量 {#env-reftab}
 
-| 环境变量名称                    | 类型   | 默认值 | 必须   | 说明                          |
-| ---------:                      | ----:  | ---:   | ------ | ----                          |
-| `ENV_REFER_TABLE_URL`           | string | 无     | 否     | 设置数据源 URL                |
-| `ENV_REFER_TABLE_PULL_INTERVAL` | string | 5m     | 否     | 设置数据源 URL 的请求时间间隔 |
-| `ENV_REFER_TABLE_USE_SQLITE` | bool | false | 否 | 设置是否使用 SQLite 保存数据 |
-| `ENV_REFER_TABLE_SQLITE_MEM_MODE` | bool | false | 否 | 当使用 SQLite 保存数据时，使用 SQLite 内存模式/磁盘模式 |
+| 环境变量名称                      | 类型   | 默认值 | 必须   | 说明                                                    |
+| ---------:                        | ----:  | ---:   | ------ | ----                                                    |
+| `ENV_REFER_TABLE_URL`             | string | 无     | 否     | 设置数据源 URL                                          |
+| `ENV_REFER_TABLE_PULL_INTERVAL`   | string | 5m     | 否     | 设置数据源 URL 的请求时间间隔                           |
+| `ENV_REFER_TABLE_USE_SQLITE`      | bool   | false  | 否     | 设置是否使用 SQLite 保存数据                            |
+| `ENV_REFER_TABLE_SQLITE_MEM_MODE` | bool   | false  | 否     | 当使用 SQLite 保存数据时，使用 SQLite 内存模式/磁盘模式 |
 
 ### 其它杂项 {#env-others}
 

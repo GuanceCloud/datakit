@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
+	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/influxdata/influxdb1-client/models"
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
 func TestMetaGet(t *testing.T) {

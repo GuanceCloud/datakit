@@ -1,197 +1,196 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
-# 行协议过滤器
+
+# Line Protocol Filter
 ---
 
-本文档主要描述 DataKit Filter 基本使用以及注意事项。
+This document mainly describes the basic use and considerations of DataKit Filter.
 
-## 简介 {#intro}
+## Introduction {#intro}
 
-DataKit Filter 用于对采集到的行协议数据进行筛选，用于过滤掉一些不想要的数据，它的功能跟 Pipeline 有一点类似，但有所区别：
+DataKit Filter is used to filter the collected line protocol data and filter out some unwanted data. Its function is similar to Pipeline, but there is a difference:
 
-| 数据处理组件 | 支持本地配置 | 支持中心下发 | 支持数据丢弃 | 支持数据改写 | 使用方法                                                        |
-| ----         | ----         | ----         | ----         | ----         | ----                                                            |
-| Pipeline     | Y            | Y            | Y            | Y            | 通过在采集器中配置 Pipeline 或者在观测云 Studio 编写 Pipeline   |
-| Filter       | Y            | Y            | Y            | N            | 在观测云 Studio 编写 Pipeline 或者在 datakit.conf 中配置 filter |
+| Data Processing Component | Support Local Configuration | Distributed by Support Center | Support Data Discarding | Support data rewriting | Instruction                                                                         |
+| ----                      | ----                        | ----                          | ----                    | ----                   | ----                                                                                |
+| Pipeline                  | :material-check:            | :material-check:              | :material-check:        | :material-check:       | By configuring Pipeline in the collector or writing Pipeline in Guance Cloud Studio |
+| Filter                    | :material-check:            | :material-check:              | :material-check:        | :octicons-x-16:  | Write Pipeline in Guance Cloud Studio or configure filter in datakit.conf           |
 
-从表中可以看出，相比 Pipeline，如果只是简单的过滤掉部分数据，那么 Filter 是一种更便捷的数据筛选工具。
+It can be seen from the table that Filter is a more convenient data filtering tool than Pipeline if only some data is simply filtered out.
 
-## Filter 具体使用方法 {#howto}
+## How to use Filter {#howto}
 
-Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛选条件，对采集到的数据进行判定，符合筛选条件的数据，将被丢弃。
+The main function of Filter is data filtering, which is based on judging the collected data through certain screening conditions, and the data that meets the screening conditions will be discarded.
 
-过滤器的基本语法模式为：
+The basic syntax pattern for filters is:
 
 ```
 { conditions [AND/OR conditons] }
 ```
 
-其中 `conditions` 又可以是其它各种条件的组合。以下是一些过滤器示例：
+Among them, `conditions` can be a combination of other conditions. Here are some examples of filters:
 
 ```python
-# 这条一般针对日志数据，用于判定所有日志类型，将其中符合条件的 key1/key2 过滤掉
-# 注意，这里的 key1 和 key2 均为行协议字段中的 tag 或 field
+# This article is generally aimed at log data. It is used to determine all log types and filter out key1/key2 that meet the requirements
+# Note that key1 and key2 here are both tag or field in the row protocol field
 { source = re('.*')  AND ( key1 = "abc" OR key2 = "def") }
 
-# 这条一般针对 Tracing 数据，用于名为 app1 的 service，将其中符合条件的 key1/key2 过滤掉
+# This one typically for Tracing data, is used for a service named app1 that filters out eligible key1/key2
 { service = "app-1"  AND ( key1 = "abc" OR key2 = "def") }
 ```
 
-### 过滤器操作的数据范围 {#spec}
+### Data Range for Filter Action {#spec}
 
-由于 DataKit 采集到的（绝大部分）数据均以行协议的方式上报，故所有过滤器均工作于行协议之上。过滤器支持在如下数据上做数据筛选：
+As (most) data collected by DataKit is reported in the form of line protocol, all filters work on top of line protocol. Filters support data filtering on the following data:
 
-- 指标集名称：对于不同类型的数据，指标集的业务归属有所不同，分别如下：
-  - 对时序数据（M）而言，在过滤器运行的时候，会在其 tag 列表中注入一个 `measurement` 的 tag，故可以这样来写基于指标集的过滤器：`{measurement = re('abc.*') AND ( tag1='def' and field2 = 3.14)}`
-  - 对对象数据（O）而言，在过滤器运行的时候，会在其 tag 列表中注入一个 `class` 的 tag，故可以这样来写基于对象的过滤器：`{class = re('abc.*') AND ( tag1='def' and field2 = 3.14)}`
-  - 对日志数据（L）而言，在过滤器运行的时候，会在其 tag 列表中注入一个 `source` 的 tag，故可以这样来写基于对象的过滤器：`{source = re('abc.*') AND ( tag1='def' and field2 = 3.14)}`
+- Measurement name: For different types of data, the business attribution of measurement is different, as follows:
+  - For time series data (M), a `measurement` tag is injected into its tag list when the filter is running, so you can write a metric set-based filter as follows:`{  measurement = re('abc.*') AND ( tag1='def' and field2 = 3.14)}`.
+  - For object data (O), when the filter runs, a `class` tag is injected into its tag list, so an object-based filter can be written like this: `{  class = re('abc.*') AND ( tag1='def' and field2 = 3.14)}`
+  - For log data (L), when the filter runs, a `source` tag is injected into its tag list, so an object-based filter can be written like this: `{  trace = re('abc.*') AND ( tag1='def' and field2 = 3.14)}`
 
-> 如果原来 tag 中就存在一个名为 `measurement/class/source` 的 tag，那么**在过滤器运行过程中，原来的 measurement/class/source 这些 tag 值将不存在**
+> If there is a tag named `measurement/class/source` **in the original tag, the tag values of the original measurement/class/source will not exist during the filter running**
 
-- Tag（标签）：对所有的数据类型，均可以在其 Tag 上执行过滤。
-- Field（指标）：对所有的数据类型，均可以在其 Field 上执行过滤。
+- Tag: All data types can be filtered on their tags.
+- Field: Filtering can be performed on all data types on their Field.
 
-### DataKit 中手动配置 filter {#manual}
+### Manual Configuration of Filter in DataKit {#manual}
 
-在 `datakt.conf` 中，可手动配置黑名单过滤，示例如下：
+In `datakt.conf`, you can manually configure blacklist filtering, as shown in the following example:
 
 ```toml
 [io]
   [io.Filters]
-    logging = [ # 针对日志数据的过滤
+    logging = [ # Filtering for log data
       "{ source = 'datakit' or f1 IN [ 1, 2, 3] }"
     ]
-    metric = [ # 针对指标的过滤
+    metric = [ # Filtering for metrics
       "{ measurement IN ['datakit', 'disk'] }",
       "{ measurement MATCH ['host.*', 'swap'] }",
     ]
-    object = [ # 针对对象过滤
+    object = [ # Filtering for objects
       "{ class MATCH ['host_.*'] }",
     ]
-    tracing = [ # 针对 tracing 过滤
+    tracing = [ # Filtering for tracing
       "{ service = re("abc.*") AND some_tag MATCH ['def_.*'] }",
     ]
-    network = [ # 针对 Network 过滤
+    network = [ # Filtering for Network
       "{ source = 'netflow' or f1 IN [ 1, 2, 3] }"
     ]
-    keyevent = [ # 针对 KeyEvent 过滤
+    keyevent = [ # Filtering for KeyEvent
       "{ source = 'datakit' or f1 IN [ 1, 2, 3] }"
     ]
-    custom_object = [ # 针对 CustomObject 过滤
+    custom_object = [ # Filtering for CustomObject
       "{ class MATCH ['host_.*'] }",
     ]
-    rum = [ # 针对 RUM 过滤
+    rum = [ # Filtering for RUM
       "{ source = 'resource' or app_id = 'appid_xxx' or f1 IN [ 1, 2, 3] }"
     ]
-    security = [ # 针对 Security 过滤
+    security = [ # Filtering for Security
       "{ category = 'datakit' or f1 IN [ 1, 2, 3] }"
     ]
-    profiling = [ # 针对 Profiling 过滤
+    profiling = [ # Filtering for Profiling
       "{ service = re("abc.*") AND some_tag MATCH ['def_.*'] }",
     ]
 ```
 
-一旦 *datakit.conf* 中配置了过滤器，那么则以该过滤器为准，**观测云 Studio 配置的过滤器将不再生效**。
+Once the filter is configured in *datakit.conf* , the filter configured by **Guance Cloud Studio will no longer take effect**.
 
-这里的配置需遵循如下规则：
+The configuration here should follow the following rules:
 
-- 具体的一组过滤器，**必须指定它所过滤的数据类型**
-- 同一个数据类型，不要配置多个入口（即配置了多组 logging 过滤器），否则 *datakit.conf* 会解析报错，导致 DataKit 无法启动
-- 单个数据类型下，能配置多个过滤器（如上例中的 metric）
-- 对于语法错误的过滤器，DataKit 默认忽略，它将不生效，但不影响 DataKit 其它功能
+- A specific set of filters that must **specify the type of data it filters**
+- Do not configure multiple entries for the same data type (i.e. multiple sets of logging filters are configured), otherwise *datakit.conf* will parse an error and cause the DataKit to fail to start
+- Under a single data type, multiple filters can be configured (metric in the above example)
+- Filters with syntax errors are ignored by DataKit by default, which will not take effect, but will not affect other functions of DataKit
 
-## 过滤器基本语法规则 {#syntax}
+## Basic Syntax Rules for Filters {#syntax}
 
-### 基本语法规则 {#basic}
+### Basic Grammar Rules {#basic}
 
-过滤器基本语法规则，跟 Pipeline 基本一致，参见[这里](../developers/pipeline.md#basic-syntax)。
+The basic syntax rules of filter are basically the same as Pipeline, see [here](../developers/pipeline.md#basic-syntax).
 
-### 操作符 {#operator}
+### Operator {#operator}
 
-支持基本的数值比较操作：
+Support basic numerical comparison operations:
 
-- 判断相等
+- Judge equality
   - `=`
   - `!=`
 
-- 判断数值大小
+- Judge the value
   - `>`
   - `>=`
   - `<`
   - `<=`
 
-- 括号表达式：用于任意关系之间的逻辑组合，如
+- Parenthesis expression: Used for logical combination between arbitrary relationships, such as:
 
 ```python
 { service = re('.*') AND ( abc IN [1,2,'foo', 2.3] OR def MATCH ['foo.*', 'bar.*']) }
 ```
 
-除此之外，还支持如下列表操作：
+In addition, the following list operations are supported:
 
-| 操作符              | 支持数值类型   | 说明                                                   | 示例                              |
+| Operator              | Support Numeric Types   | Description                                                   | Example                              |
 | ----                | ----           | ----                                                   | ----                              |
-| `IN`, `NOTIN`       | 数值列表列表   | 指定的字段是否在列表中，列表中支持多类型混杂           | `{ abc IN [1,2, "foo", 3.5]}`     |
-| `MATCH`, `NOTMATCH` | 正则表达式列表 | 指定的字段是否匹配列表中的正则，该列表只支持字符串类型 | `{ abc MATCH ["foo.*", "bar.*"]}` |
+| `IN`, `NOTIN`       | Numeric list   | Whether the specified field is in a list, and multi-type cluttering is supported in the list           | `{ abc IN [1,2, "foo", 3.5]}`     |
+| `MATCH`, `NOTMATCH` | Regular expression list | Whether the specified field matches the regular in the list, which only supports string types | `{ abc MATCH ["foo.*", "bar.*"]}` |
 
 ???+ attention
 
-    列表中**只能出现普通的数据类型**，如字符串、整数、浮点，其它表达式均不支持。 
-
-    `IN/NOTIN/MATCH/NOTMATCH` 这些关键字**大小写不敏感**，即 `in` 和 `IN` 以及 `In` 效果是一样的。除此之外，其它操作数的大小写都是敏感的，比如如下几个过滤器表达的意思不同：
-
+    **Only ordinary data types** such as string, integer, floating point can appear in the list. Other expressions are not supported.
+    
+    The keywords `IN/NOTIN/MATCH/NOTMATCH` **are case insensitive**, meaning `in`, `IN` and `In` have the same effect. In addition, other operands are case sensitive, for example, the following filters express different meanings:
+    
     ``` python
-    { abc IN [1,2, "foo", 3.5]} # 字段 abc（tag 或 field）是否在列表中
-    { abc IN [1,2, "FOO", 3.5]} # FOO 并不等价于 foo
-    { ABC IN [1,2, "foo", 3.5]} # ABC 和 abe 也不等价
+    { abc IN [1,2, "foo", 3.5]} # whether field abc（tag or field）is in the list
+    { abc IN [1,2, "FOO", 3.5]} # FOO is not equal to foo
+    { ABC IN [1,2, "foo", 3.5]} # ABC is not equal to abe 
     ```
+    
+    In line protocol, all fields of **and their values are case-sensitive**.
 
-    在行协议中，**所有字段以及其值都是大小写敏感的**。
+## Usage Example {#usage}
 
-## 用法示例 {#usage}
-
-使用 `datakit monitor -V` 命令可以查看过滤情况：
+You can view the filtering using the `datakit monitor -V` command:
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/filter-monitor.png){ width="800" }
-  <figcaption>查看 filter 过滤情况</figcaption>
+  ![](https://static.guance.com/images/datakit/filter-monitor.png){ width="800" }
+  <figcaption>View filter filtering</figcaption>
 </figure>
 
 ### Network {#n}
 
-需要开启 [eBPF 采集器](ebpf.md)。假设我们要过滤掉目标端口为 `443` 的网络通讯，配置文件可以这样写:
+The [eBPF collector](ebpf.md) needs to be turned on. Suppose we want to filter out network traffic with destination port `443`, the configuration file can read as follows:
 
 ```toml
 [io]
   ...
   [io.filters]
-    network = [ # 针对 Network 过滤
+    network = [ # Filtering for Network
       "{ source = 'netflow' and dst_port IN [ '443' ] }"
     ]
 ```
 
-用 `curl` 命令触发网络通讯 `curl https://www.baidu.com:443`，可以看到目标端口为 `443` 的网络通讯被过滤掉了。
+Using the `curl` command to trigger the network traffic `curl https://www.baidu.com:443`, you can see that the network traffic with the target port `443` has been filtered out.
 
 ### Profiling {#p}
 
-配置文件如下:
+The configuration file is as follows:
 
 ```toml
 [io]
   ...
   [io.Filters]
-    profiling = [ # 针对 Profiling 过滤
+    profiling = [ # Filtering for Profiling
       "{ service = 'python-profiling-manual' }",
     ]
 ```
 
-开 2 个 Profiling:
+Open 2 Profilings:
 
 ```
 $ DD_ENV=testing DD_SERVICE=python-profiling-manual DD_VERSION=7.8.9 python3 profiling_test.py
 $ DD_ENV=testing DD_SERVICE=2-profiling-python DD_VERSION=7.8.9 python3 profiling_test.py
 ```
 
-python 源码文件 `profiling_test.py`:
+Python source code file `profiling_test.py`:
 
 ```python
 import time
@@ -214,43 +213,43 @@ while True:
     time.sleep(1)
 ```
 
-可以看到 `python-profiling-manual` 被过滤掉了。
+You can see that `python-profiling-manual` is filtered out.
 
-### Scheck 安全巡检 {#s}
+### Scheck {#s}
 
-假设我们要过滤掉 log level 为 `warn` 的，配置可以这样写:
+Suppose we want to filter out log level `warn`, the configuration can be written as follows:
 
 ```toml
 [io]
   ...
   [io.filters]
-    security = [ # 针对 Security 过滤
+    security = [ # Filtering for Security
       "{ category = 'system' AND level='warn' }"
     ]
 ```
 
-过段时间可以在中心看到 log level 为 `warn` 的被过滤掉了。
+After a while, you can see in the center that the log level `warn` is filtered out.
 
 ### RUM {#r}
 
->温馨提示: 如果你安装了 AdBlock 类广告插件可能会对中心汇报拦截。你可以在测试的时候临时关闭 AdBlock 类插件。
+>Warm Tip: If you install AdBlock advertising plugin, you may report interception to the center. You can temporarily close the AdBlock class plug-in while testing.
 
-我们这里可以用三种浏览器 Chrome、Firefox、Safari 访问网站，假设我们要过滤掉 Chome 浏览器的访问，配置文件可以这样写:
+We can use three browsers, Chrome, Firefox and Safari, to access the website. Suppose we want to filter out the access of Chome browser, and the configuration file can read as follows:
 
 ```toml
 [io]
   ...
   [io.filters]
-    rum = [ # 针对 RUM 过滤
+    rum = [ # Filtering for RUM
       "{ app_id = 'appid_JtcMjz7Kzg5n8eifTjyU6w' AND browser='Chrome' }"
     ]
 ```
 
-#### 配置本地 nginx {#nginx}
+#### Configure Local Nginx {#nginx}
 
-配置本地测试域名 `/etc/hosts`: `127.0.0.1 www.mac.my`
+Configure the local test domain name `/etc/hosts`: `127.0.0.1 www.mac.my`
 
-网页文件源码 `index.html`:
+Web file source `index.html`:
 
 ```html
 <!DOCTYPE html>
@@ -266,12 +265,12 @@ while True:
   window.DATAFLUX_RUM &&
     window.DATAFLUX_RUM.init({
       applicationId: 'appid_JtcMjz7Kzg5n8eifTjyU6w',
-      datakitOrigin: 'http://127.0.0.1:9529', // 协议（包括：//），域名（或IP地址）[和端口号]
+      datakitOrigin: 'http://127.0.0.1:9529', // Protocol (including://), domain name (or IP address) [and port number]
       env: 'production',
       version: '1.0.0',
       trackInteractions: true,
-      traceType: 'ddtrace', // 非必填，默认为ddtrace，目前支持 ddtrace、zipkin、skywalking_v3、jaeger、zipkin_single_header、w3c_traceparent 6种类型
-      allowedTracingOrigins: ['http://www.mac.my:8080', 'http://www.mac.my', 'http://mac.my:8080', 'http://127.0.0.1:9529/'],  // 非必填，允许注入trace采集器所需header头部的所有请求列表。可以是请求的origin，也可以是是正则
+      traceType: 'ddtrace', // It is not required and defaults to ddtrace. Currently, it supports 6 types: ddtrace, zipkin, skywalking_v3, jaeger, zipkin_single_header and w3c_traceparent
+      allowedTracingOrigins: ['http://www.mac.my:8080', 'http://www.mac.my', 'http://mac.my:8080', 'http://127.0.0.1:9529/'],  // It is not required and allows all requests to be injected into the header header required by the trace collector. It can be the origin of the request or it can be regular
     })
 </script>
 <body>
@@ -280,22 +279,22 @@ while True:
 </html>
 ```
 
-随后，我们使用以上三种浏览器访问，可以看到 Chrome 的访问记录没有增加。
+Then, using the above three browsers, we can see that Chrome's access record has not increased.
 
 ### KeyEvent {#e}
 
-KeyEvent 通过 API 形式来进行测试。假设我们要过滤掉 `source` 为 `user`，`df_date_range` 为 `10`，配置文件如下：
+KeyEvent is tested in the form of an API. Suppose we want to filter out `source` for `user`, `df_date_range` for `10`, and the configuration file is as follows:
 
 ```toml
 [io]
   ...
   [io.filters]
-    keyevent = [ # 针对 KeyEvent 过滤
+    keyevent = [ # Filtering for KeyEvent
       "{ source = 'user' AND df_date_range IN [ '10' ] }"
     ]
 ```
 
-然后使用 curl 进行 POST 请求:
+Then use curl to make a POST request:
 
 ```shell
 curl --location --request POST 'http://localhost:9529/v1/write/keyevent' \
@@ -307,11 +306,11 @@ curl --location --request POST 'http://localhost:9529/v1/write/keyevent' \
 --data-raw 'user create_time=1656383652424,df_date_range="9",df_event_id="event-21946fc19eaf4c5cb1a698f659bf74ca",df_message="【xxx】(xxx@xx.com)进入了工作空间",df_status="info",df_title="【xxx】(xxx@xx.com)进入了工作空间",df_user_id="acnt_a5d6130c19524a6b9fe91d421eaf8603",user_email="xxx@xx.com",user_name="xxx" 1658040035652416000'
 ```
 
-可以在 datakit monitor 里面看到 `df_date_range` 为 `10` 的被过滤掉了。
+You can see in the datakit monitor that the `df_date_range` for `10` is filtered out.
 
 ### Custom Object {#co}
 
-Custom Object 通过 API 形式来进行测试。假设我们要过滤掉 `class` 为 `aliyun_ecs`，`regionid` 为 `cn-qingdao`，配置文件如下：
+The Custom Object is tested in the form of an API. Suppose we want to filter out `class` as `aliyun_ecs`, `regionid` as `cn-qingdao`, and the configuration file is as follows:
 
 ```toml
 [io]
@@ -322,7 +321,7 @@ Custom Object 通过 API 形式来进行测试。假设我们要过滤掉 `class
     ]
 ```
 
-然后使用 curl 进行 POST 请求:
+Then use curl to make a POST request:
 
 ```shell
 curl --location --request POST 'http://localhost:9529/v1/write/custom_object' \
@@ -334,15 +333,15 @@ curl --location --request POST 'http://localhost:9529/v1/write/custom_object' \
 --data-raw 'aliyun_ecs,name="ecs_name",host="ecs_host" instanceid="ecs_instanceid",os="ecs_os",status="ecs_status",creat_time="ecs_creat_time",publicip="1.1.1.1",regionid="cn-qinghai",privateip="192.168.1.12",cpu="ecs_cpu",memory=204800000000'
 ```
 
-可以在 datakit monitor 里面看到 `regionid` 为 `cn-qingdao` 的被过滤掉了。
+You can see in the datakit monitor that `regionid` for `cn-qingdao` is filtered out.
 
 ## FAQ {#faq}
 
-### 查看同步下来的过滤器 {#debug-filter}
+### :material-chat-question: View Synchronized Filters {#debug-filter}
 
 [:octicons-tag-24: Version-1.4.2](changelog.md#cl-1.4.2)
 
-对于从中心同步下来的过滤器，DataKit 记录了一份到 *<DataKit 安装目录>/data/.pull* 中，可直接查看
+For filters synchronized from the center, DataKit records a copy to *<DataKit Installation Directory>/data/.pull*, which can be viewed directly.
 
 ```shell
 $ cat .filters  | jq
@@ -358,4 +357,4 @@ $ cat .filters  | jq
 }
 ```
 
-这里 JSON 中的 `filters` 字段就是拉取到的过滤器，目前里面只有针对日志的黑名单。
+Here, the `filters` field in JSON is the filter that is pulled, and there is only a blacklist for logs at present.

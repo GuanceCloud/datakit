@@ -74,9 +74,12 @@ func (di *deviceInfo) initialize() error {
 	return nil
 }
 
-//------------------------------------------------------------------------------
-
-// bool: reachable    []string: tags    *snmputil.ResultValueStore: values    bool: isErrClosed
+// getValuesAndTags gets SNMP device metrics' values and tags.
+// Return values:
+//     bool:                       reachable
+//     []string:                   tags
+//     *snmputil.ResultValueStore: values
+//     bool:                       isErrClosed
 func (di *deviceInfo) getValuesAndTags() (bool, []string, *snmputil.ResultValueStore, error, bool) {
 	var deviceReachable bool
 	var checkErrors, tags []string
@@ -186,10 +189,8 @@ func (di *deviceInfo) doAutodetectProfile() error {
 	return nil
 }
 
-//------------------------------------------------------------------------------
-
 type deviceMetaData struct {
-	collectMeta bool
+	collectMeta bool // collect meta is needed when collecting object.
 	data        []string
 }
 
@@ -280,5 +281,3 @@ func (di *deviceInfo) getDeviceIDTags() []string {
 	sort.Strings(tags)
 	return tags
 }
-
-//------------------------------------------------------------------------------

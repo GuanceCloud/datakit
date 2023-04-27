@@ -9,17 +9,18 @@ package rabbitmq
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/url"
-	"strings"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -66,10 +67,6 @@ func (n *Input) RunPipeline() {
 		return
 	}
 
-	if n.Log.Pipeline == "" {
-		n.Log.Pipeline = "rabbitmq.p" // use default
-	}
-
 	opt := &tailer.Option{
 		Source:            "rabbitmq",
 		Service:           "rabbitmq",
@@ -84,7 +81,7 @@ func (n *Input) RunPipeline() {
 	n.tail, err = tailer.NewTailer(n.Log.Files, opt, n.Log.IgnoreStatus)
 	if err != nil {
 		l.Errorf("NewTailer: %s", err)
-		io.FeedLastError(inputName, err.Error())
+		n.feeder.FeedLastError(inputName, err.Error())
 		return
 	}
 
@@ -99,7 +96,7 @@ func (n *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("rabbitmq start")
 	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
-	if err := n.setHost(); err != nil {
+	if err := n.setHostIfNotLoopback(); err != nil {
 		l.Errorf("failed to set host from url: %v", err)
 	}
 	client, err := n.createHTTPClient()
@@ -117,15 +114,13 @@ func (n *Input) Run() {
 			n.getMetric()
 
 			if n.lastErr != nil {
-				io.FeedLastError(inputName, n.lastErr.Error())
+				n.feeder.FeedLastError(inputName, n.lastErr.Error())
 				n.lastErr = nil
 			}
 
 			if len(collectCache) > 0 {
-				if err := inputs.FeedMeasurement(inputName,
-					datakit.Metric,
-					collectCache,
-					&io.Option{CollectCost: time.Since(n.start)}); err != nil {
+				if err := n.feeder.Feed(inputName, point.Metric, collectCache,
+					&dkio.Option{CollectCost: time.Since(n.start)}); err != nil {
 					l.Errorf("FeedMeasurement: %s", err.Error())
 				}
 
@@ -154,15 +149,18 @@ func (n *Input) Run() {
 	}
 }
 
-func (n *Input) setHost() error {
-	if strings.Contains(n.URL, "127.0.0.1") || strings.Contains(n.URL, "localhost") {
-		return nil
-	}
+func (n *Input) setHostIfNotLoopback() error {
 	uu, err := url.Parse(n.URL)
 	if err != nil {
 		return err
 	}
-	n.host = uu.Host
+	host, _, err := net.SplitHostPort(uu.Host)
+	if err != nil {
+		return err
+	}
+	if host != "localhost" && !net.ParseIP(host).IsLoopback() {
+		n.host = host
+	}
 	return nil
 }
 
@@ -227,15 +225,18 @@ func (n *Input) Resume() error {
 	}
 }
 
+func defaultInput() *Input {
+	return &Input{
+		Interval: datakit.Duration{Duration: time.Second * 10},
+		pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
+		Election: true,
+		semStop:  cliutils.NewSem(),
+		feeder:   dkio.DefaultFeeder(),
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		s := &Input{
-			Interval: datakit.Duration{Duration: time.Second * 10},
-			pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
-			Election: true,
-
-			semStop: cliutils.NewSem(),
-		}
-		return s
+		return defaultInput()
 	})
 }

@@ -13,9 +13,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/gin-gonic/gin"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
@@ -170,10 +170,6 @@ func (n *Input) Terminate() {
 func (n *Input) RunPipeline() {
 	if n.Log == nil || len(n.Log.Files) == 0 {
 		return
-	}
-
-	if n.Log.Pipeline == "" {
-		n.Log.Pipeline = inputName + ".p" // use default
 	}
 
 	opt := &tailer.Option{

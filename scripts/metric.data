@@ -297,3 +297,4 @@ kube_node,node=foo,node_name=foo age=42i,count=42i,cpu_allocatable=42i,cpu_capac
 kube_cronjob,cronjob=foo,namespace=foo count=42i,duration_since_last_schedule=42i,spec_suspend="foo" 1661846357368258000
 kube_job,job=foo,namespace=foo completion_failed=42i,completion_succeeded=42i,count=42i,failed=42i,succeeded=42i 1661846357368263000
 system,host=foo load1=42.42,load15=42.42,load15_per_core=42.42,load1_per_core=42.42,load5=42.42,load5_per_core=42.42,n_cpus=42i,n_users=42i,uptime=42i 1661846357368272000
+

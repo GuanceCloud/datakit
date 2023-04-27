@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
@@ -162,7 +162,7 @@ func (sl *socketLogger) toReceive() {
 
 			func(conn net.Conn) {
 				g.Go(func(ctx context.Context) error {
-					sl.doSocket(conn)
+					sl.doSocketUDP(conn)
 					return nil
 				})
 			}(s.conn)
@@ -180,11 +180,25 @@ func (sl *socketLogger) accept(listener net.Listener) {
 			sl.opt.log.Warnf("Error accepting:%s", err.Error())
 			continue
 		}
-
 		g.Go(func(ctx context.Context) error {
 			sl.doSocket(conn)
 			return nil
 		})
+	}
+}
+
+func (sl *socketLogger) doSocketUDP(conn net.Conn) {
+	for {
+		data := make([]byte, sl.socketBufferLen)
+		n, err := conn.Read(data)
+		// see:$GOROOT/src/io/io.go:83
+		if err != nil && n == 0 {
+			l.Error("err not nil err=%v", err)
+			return
+		}
+		l.Debugf("data len =%d", n)
+		pipDate := strings.Split(string(data[:n]), "\n")
+		sl.feed(pipDate)
 	}
 }
 
@@ -195,8 +209,10 @@ func (sl *socketLogger) doSocket(conn net.Conn) {
 		n, err := conn.Read(data)
 		// see:$GOROOT/src/io/io.go:83
 		if err != nil && n == 0 {
+			l.Error("err not nil err=%v", err)
 			return
 		}
+		l.Debugf("data len =%d", n)
 		var pipDate []string
 		var cacheM string
 		pipDate, cacheM = sl.spiltBuffer(cacheLine, string(data[:n]), n == sl.socketBufferLen)
@@ -214,13 +230,12 @@ func (sl *socketLogger) spiltBuffer(fromCache string, date string, full bool) (p
 		fromCache += lines[0]
 		return pipdata, fromCache
 	}
-	lines[0] = fromCache + lines[0]
-	if strings.HasSuffix(date, "\n") {
-		pipdata = append(pipdata, lines[0:len(lines)-1]...)
-	} else {
+	if full && !strings.HasSuffix(date, "\n") {
 		cacheDate = lines[logLen-1]
-		pipdata = append(pipdata, lines[0:logLen-1]...)
+		logLen -= 1
 	}
+	lines[0] = fromCache + lines[0]
+	pipdata = append(pipdata, lines[0:logLen]...)
 	return pipdata, cacheDate
 }
 
@@ -251,7 +266,6 @@ func (sl *socketLogger) feed(pending []string) {
 		ioOpt = &iod.Option{
 			PlScript: map[string]string{sl.opt.Source: sl.opt.Pipeline},
 			PlOption: &script.Option{
-				MaxFieldValLen:        maxFieldsLength,
 				DisableAddStatusField: sl.opt.DisableAddStatusField,
 				IgnoreStatus:          sl.ignorePatterns,
 			},

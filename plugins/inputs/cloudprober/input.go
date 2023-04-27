@@ -12,9 +12,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/prometheus/common/expfmt"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -46,7 +47,7 @@ func (n *Input) Run() {
 	for {
 		n.getMetric()
 		if n.lastErr != nil {
-			iod.FeedLastError(inputName, n.lastErr.Error())
+			iod.FeedLastError(inputName, n.lastErr.Error(), point.Metric)
 		}
 
 		select {

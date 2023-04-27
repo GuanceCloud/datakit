@@ -1,65 +1,64 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
-# 各种其它工具使用
+
+# Use of Various Other Tools
 ---
 
-DataKit 内置很多不同的小工具，便于大家日常使用。可通过如下命令来查看 DataKit 的命令行帮助：
+DataKit has built-in many different gadgets, which are convenient for everyone to use everyday. Command-line help for DataKit can be viewed with the following command:
 
 ```shell
 datakit help
 ```
 
->注意：因不同平台的差异，具体帮助内容会有差别。
+>Note: The specific help content will be different due to the differences of different platforms.
 
-## DataKit 自动命令补全 {#completion}
+## DataKit Automatic Command Completion {#completion}
 
-> DataKit 1.2.12 才支持该补全，且只测试了 Ubuntu 和 CentOS 两个 Linux 发行版。其它 Windows 跟 Mac 均不支持。
+> DataKit 1.2. 12 supported this completion, and only two Linux distributions, Ubuntu and CentOS, were tested. Other Windows and Mac are not supported.
 
-在使用 DataKit 命令行的过程中，因为命令行参数很多，此处我们添加了命令提示和补全功能。
+In the process of using DataKit command line, because there are many command line parameters, we added command prompt and completion functions here.
 
-主流的 Linux 基本都有命令补全支持，以 Ubuntu 和 CentOS 为例，如果要使用命令补全功能，可额外安装如下软件包：
+Mainstream Linux basically has command completion support. Take Ubuntu and CentOS as examples. If you want to use command completion function, you can install the following additional software packages:
 
 - Ubuntu：`apt install bash-completion`
 - CentOS: `yum install bash-completion bash-completion-extras`
 
-如果安装 DataKit 之前，这些软件已经安装好了，则 DataKit 安装时会自动带上命令补全功能。如果这些软件包是在 DataKit 安装之后才更新的，可执行如下操作来安装 DataKit 命令补全功能：
+If the software is already installed before the DataKit is installed, the DataKit is automatically installed with command completion. If these packages are updated after the DataKit installation, do the following to install the DataKit Command Completion feature:
 
 ```shell
 datakit tool --setup-completer-script
 ```
 
-补全使用示例：
+Examples of completion use:
 
 ```shell
-$ datakit <tab> # 输入 \tab 即可提示如下命令
+$ datakit <tab> # Enter \tab to prompt the following command
 dql       help      install   monitor   pipeline  run       service   tool
 
-$ datakit dql <tab> # 输入 \tab 即可提示如下选项
+$ datakit dql <tab> # Enter \tab to prompt the following options
 --auto-json   --csv         -F,--force    --host        -J,--json     --log         -R,--run      -T,--token    -V,--verbose
 ```
 
-以下提及的所有命令，均可使用这一方式来操作。
+All the commands mentioned below can be operated in this way.
 
-### 获取自动补全脚本 {#get-completion}
+### Get Auto-completion Script {#get-completion}
 
-如果大家的 Linux 系统不是 Ubuntu 和 CentOS，可通过如下命令获取补全脚本，然后再按照对应平台的 shell 补全方式，一一添加即可。
+If your Linux system is not Ubuntu and CentOS, you can get the completion script through the following command, and then add it one by one according to the shell completion method of the corresponding platform.
 
 ```shell
-# 导出补全脚本到本地 datakit-completer.sh 文件中
+# Export the completion script to the local datakit-completer.sh file
 datakit tool --completer-script > datakit-completer.sh
 ```
 
-## 查看 DataKit 运行情况 {#using-monitor}
+## View DataKit Running {#using-monitor}
 
-> 当前的 monitor 查看方式已经废弃（仍然可用，不久将废弃），新的 monitor 功能[参见这里](datakit-monitor.md)
+> Current monitor viewing has been deprecated (still available and will be deprecated soon), new monitor functionality [see here](datakit-monitor.md).
 
-在终端即可查看 DataKit 运行情况，其效果跟浏览器端 monitor 页面相似：
+You can view the running status of DataKit on the terminal, and its effect is similar to that of the monitor page on the browser side:
 
-DataKit 新的 monitor 用法[参见这里](datakit-monitor.md)。
+DataKit's new monitor usage [see here](datakit-monitor.md).
 
-## 检查采集器配置是否正确 {#check-conf}
+## Check Whether the Collector is Configured Correctly {#check-conf}
 
-编辑完采集器的配置文件后，可能某些配置有误（如配置文件格式错误），通过如下命令可检查是否正确：
+After editing the collector's configuration file, there may be some configuration errors (such as the configuration file format error), which can be checked by the following command:
 
 ```shell
 datakit tool --check-config
@@ -67,32 +66,19 @@ datakit tool --check-config
 checked 13 conf, all passing, cost 22.27455ms
 ```
 
-### 采集一次 SNMP 配置 {#check-snmp}
+### Collect SNMP Configuration Once {#check-snmp}
 
-编辑完 SNMP 采集器的配置文件后，可能某些配置有误（如配置文件格式错误），通过如下命令可以采集一次 SNMP 设备用于检查是否正确：
+After editing the configuration file of the SNMP collector, there may be some configuration errors (such as the configuration file format error). You can collect the SNMP device once to check whether it is correct by the following command:
 
 ```shell
 datakit tool --test-snmp /usr/local/datakit/conf.d/snmp/snmp.conf
-# 以下会打印采集到的信息...
+# The collected information will be printed below...
 ......
 ```
 
-## 查看帮助文档 {#man}
+## View Workspace Information {#workspace-info}
 
-为便于大家在服务端查看 DataKit 帮助文档，DataKit 提供如下交互式文档查看入口（Windows 不支持）：
-
-```shell
-datakit --man
-man > nginx
-(显示 Nginx 采集文档)
-man > mysql
-(显示 MySQL 采集文档)
-man > Q               # 输入 Q 或 exit 退出
-```
-
-## 查看工作空间信息 {#workspace-info}
-
-为便于大家在服务端查看工作空间信息，DataKit 提供如下命令查看：
+To facilitate you to view workspace information on the server side, DataKit provides the following commands:
 
 ```shell
 datakit tool --workspace-info
@@ -120,9 +106,9 @@ datakit tool --workspace-info
 }
 ```
 
-## 查看 DataKit 相关事件 {#event}
+## View DataKit Related Events {#event}
 
-DataKit 运行过程中，一些关键事件会以日志的形式进行上报，比如 DataKit 的启动、采集器的运行错误等。在命令行终端，可以通过 dql 进行查询。
+During the running of DataKit, some key events will be reported in the form of logs, such as the startup of DataKit and the running errors of collector. You can query through dql at the command line terminal.
 
 ```shell
 datakit dql
@@ -163,31 +149,31 @@ create_time 1639657028706
           ...       
 ```
 
-**部分字段说明**
- - category: 类别，默认为`default`, 还可取值为`input`， 表明是与采集器 (`input`) 相关
- - status: 事件等级，可取值为 `info`, `warning`, `error`
+**Partial field description**
+ - category: default to `default`, or an alternative value of `input`, indicating that it is associated with a collector (`input`)
+ - status: Event level, and the desirable values are `info`, `warning` and `error`
 
-## DataKit 更新 IP 数据库文件 {#install-ipdb}
+## DataKit Update IP Database File {#install-ipdb}
 
-=== "主机安装"
+=== "Host Installation"
 
-    - 可直接使用如下命令安装/更新 IP 地理信息库（此处可选择另一个 IP 地址库 `geolite2`，只需把 `iploc` 换成 `geolite2` 即可）：
+    - You can install/update the IP Geographic Repository directly using the following command (here you can select another IP Address Repository `geolite2` by simply replacing  `iploc` with `geolite2`):
     
     ```shell
     datakit install --ipdb iploc
     ```
     
-    - 更新完 IP 地理信息库后，修改 datakit.conf 配置：
+    - Modify the datakit.conf configuration after updating the IP geo-repository:
     
     ``` toml
     [pipeline]
       ipdb_type = "iploc"
     ```
     
-    - 重启 DataKit 生效
-
-    - 测试 IP 库是否生效
-
+    - Restart DataKit to take effect
+    
+    - Test the IP library for effectiveness
+    
     ```shell
     $ datakit tool --ipinfo 1.2.3.4
             ip: 1.2.3.4
@@ -196,8 +182,8 @@ create_time 1639657028706
        country: AU
            isp: unknown
     ```
-
-    如果安装失败，其输出如下：
+    
+    If the installation fails, the output is as follows:
     
     ```shell
     $ datakit tool --ipinfo 1.2.3.4
@@ -210,7 +196,7 @@ create_time 1639657028706
 
 === "Kubernetes(yaml)"
 
-    - 修改 *datakit.yaml*，打开如下注释掉的高亮内容即可：
+    - Modify *datakit.yaml* and open the following highlighted content commented out:
     
     ```yaml hl_lines="2 3"
         # ---iploc-start  
@@ -219,17 +205,17 @@ create_time 1639657028706
         # ---iploc-end      
     ```
     
-    - 重新安装 DataKit：
+    - Restart DataKit：
     
     ```shell
     $ kubectl apply -f datakit.yaml
     
-    # 确保 DataKit 容器启动
+    # Make sure the DataKit container starts
     $ kubectl get pod -n datakit
     ```
-
-    - 进入容器，测试 IP 库是否生效
-
+    
+    - Enter the container and test whether the IP library is effective
+    
     ```shell
     $ datakit tool --ipinfo 1.2.3.4
             ip: 1.2.3.4
@@ -238,8 +224,8 @@ create_time 1639657028706
        country: AU
            isp: unknown
     ```
-
-    如果安装失败，其输出如下：
+    
+    If the installation fails, the output is as follows:
     
     ```shell
     $ datakit tool --ipinfo 1.2.3.4
@@ -249,10 +235,10 @@ create_time 1639657028706
       province:
        country:
     ```
-    
+
 === "Kubernetes(helm)"
 
-    - helm 部署添加 `--set iploc.enable`
+    - helm deploy add `--set iploc.enable`
     
     ```shell
     $ helm install datakit datakit/datakit -n datakit \
@@ -261,10 +247,10 @@ create_time 1639657028706
     --create-namespace 
     ```
     
-    关于 helm 的部署事项，参见[这里](datakit-daemonset-deploy.md/#__tabbed_1_2)。
+    For helm deployment, see [here](datakit-daemonset-deploy.md/#__tabbed_1_2).
     
-    - 进入容器，测试 IP 库是否生效
-
+    - Enter the container and test whether the IP library is effective
+    
     ```shell
     $ datakit tool --ipinfo 1.2.3.4
             ip: 1.2.3.4
@@ -273,8 +259,8 @@ create_time 1639657028706
        country: AU
            isp: unknown
     ```
-
-    如果安装失败，其输出如下：
+    
+    If the installation fails, the output is as follows:
     
     ```shell
     $ datakit tool --ipinfo 1.2.3.4
@@ -285,19 +271,19 @@ create_time 1639657028706
        country:
     ```
 
-## DataKit 安装第三方软件 {#extras}
+## DataKit Installing Third-party Software {#extras}
 
-### Telegraf 集成 {#telegraf}
+### Telegraf Integration {#telegraf}
 
-> 注意：建议在使用 Telegraf 之前，先确 DataKit 是否能满足期望的数据采集。如果 DataKit 已经支持，不建议用 Telegraf 来采集，这可能会导致数据冲突，从而造成使用上的困扰。
+> Note: It is recommended that you make sure that DataKit satisfies the desired data collection before using Telegraf. If DataKit is already supported, Telegraf is not recommended for collection, which may lead to data conflicts and cause problems in use.
 
-安装 Telegraf 集成
+Installing Telegraf integration
 
 ```shell
 datakit install --telegraf
 ```
 
-启动 Telegraf
+Start Telegraf
 
 ```shell
 cd /etc/telegraf
@@ -305,42 +291,127 @@ cp telegraf.conf.sample telegraf.conf
 telegraf --config telegraf.conf
 ```
 
-关于 Telegraf 的使用事项，参见[这里](telegraf.md)。
+See [here](telegraf.md) for the use of Telegraf.
 
-### Security Checker 集成 {#scheck}
+### Security Checker Integration {#scheck}
 
-安装 Security Checker
+Installing Security Checker
 
 ```shell
 datakit install --scheck
 ```
 
-安装成功后会自动运行，Security Checker 具体使用，参见[这里](../scheck/scheck-install.md)
+It will run automatically after successful installation, and Security Checker is used in [here](../scheck/scheck-install.md).
 
-### DataKit eBPF 集成 {#ebpf}
+### DataKit eBPF Integration {#ebpf}
 
-安装 DataKit eBPF 采集器, 当前只支持 `linux/amd64 | linux/arm64` 平台，采集器使用说明见 [DataKit eBPF 采集器](ebpf.md)
+The DataKit eBPF collector currently only supports `linux/amd64 | linux/arm64` platform. See [DataKit eBPF collector](ebpf.md) for instructions on how to use the collector.
 
 ```shell
 datakit install --ebpf
 ```
 
-如若提示 `open /usr/local/datakit/externals/datakit-ebpf: text file busy`，停止 DataKit 服务后再执行该命令
+If you are prompted `open /usr/local/datakit/externals/datakit-ebpf: text file busy`, stop the DataKit service before executing the command.
 
-## 上传 DataKit 运行日志 {#upload-log}
+???+ warning
 
-排查 DataKit 问题时，通常需要检查 DataKit 运行日志，为了简化日志搜集过程，DataKit 支持一键上传日志文件：
+    The install command has been remove in [:octicons-tag-24: Version-1.5.6](changelog.md#cl-1.5.6-brk).
+
+## Upload DataKit Run Log {#upload-log}
+
+When troubleshooting DataKit problems, it is usually necessary to check the DataKit running log. To simplify the log collection process, DataKit supports one-click uploading of log files:
 
 ```shell
 datakit tool --upload-log
-log info: path/to/tkn_xxxxx/your-hostname/datakit-log-2021-11-08-1636340937.zip # 将这个路径信息发送给我们工程师即可
+log info: path/to/tkn_xxxxx/your-hostname/datakit-log-2021-11-08-1636340937.zip # Just send this path information to our engineers
 ```
 
-运行命令后，会将日志目录下的所有日志文件进行打包压缩，然后上传至指定的存储。我们的工程师会根据上传日志的主机名以及 Token 传找到对应文件，进而排查 DataKit 问题。
+After running the command, all log files in the log directory are packaged and compressed, and then uploaded to the specified store. Our engineers will find the corresponding file according to the hostname and Token of the uploaded log, and then troubleshoot the DataKit problem.
 
-## 查看云属性数据 {#cloudinfo}
+## Collect DataKit Running information {#bug-report}
 
-如果安装 DataKit 所在的机器是一台云服务器（目前支持 `aliyun/tencent/aws/hwcloud/azure` 这几种），可通过如下命令查看部分云属性数据，如（标记为 `-` 表示该字段无效）：
+[:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9) · [:octicons-beaker-24: Experimental](index.md#experimental)
+
+When troubleshooting issues with DataKit, it is necessary to manually collect various relevant information such as logs, configuration files, and monitoring data. This process can be cumbersome. To simplify this process, DataKit provides a command that can retrieve all the relevant information at once and package it into a file. Usage is as follows:
+
+```shell
+datakit tool --bug-report
+```
+
+After successful execution, a zip file will be generated in the current directory with the naming format of `info-<timestamp in milliseconds>.zip`。
+
+The list of files is as follows:
+
+```shell
+
+├── config
+│   ├── container
+│   │   └── container.conf
+│   ├── datakit.conf
+│   ├── db
+│   │   ├── kafka.conf
+│   │   ├── mysql.conf
+│   │   └── sqlserver.conf
+│   ├── host
+│   │   ├── cpu.conf
+│   │   ├── disk.conf
+│   │   └── system.conf
+│   ├── network
+│   │   └── dialtesting.conf
+│   ├── profile
+│   │   └── profile.conf
+│   ├── pythond
+│   │   └── pythond.conf
+│   └── rum
+│       └── rum.conf
+├── env.txt
+├── metrics 
+│   ├── metric-1680513455403 
+│   ├── metric-1680513460410
+│   └── metric-1680513465416 
+├── log
+│   ├── gin.log
+│   └── log
+└── profile
+    ├── allocs
+    ├── heap
+    └── profile
+
+```
+
+Document Explanation
+
+| name      | dir  | description                                                                                            |
+| ---:      | ---: | ---:                                                                                                   |
+| `config`  | yes  | Configuration file, including the main configuration and the configuration of the enabled collectors.  |
+| `env.txt` | no   | The environment variables of the runtime.                                                              |
+| `log`     | yes  | Latest log files, such as log and gin log, not supporting `stdout` currently                           |
+| `profile` | yes  | When pprof is enabled, it will collect profile data.                                                   |
+| `metrics` | yes  | The data returned by the `/metrics` API is named in the format of `metric-<timestamp in milliseconds>` |
+
+**Mask sensitive information**
+
+When collecting information, sensitive information (such as tokens, passwords, etc.) will be automatically filtered and replaced. The specific rules are as follows:
+
+- Environment variables
+
+Only retrieve environment variables starting with `ENV_`, and mask environment variables containing `password`, `token`, `key`, `key_pw`, `secret` in their names by replacing them with `******`.
+
+- Configuration files 
+
+Perform the following regular expression replacement on the contents of the configuration file, for example:
+
+```
+https://openway.guance.com?token=tkn_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` => `https://openway.guance.com?token=******
+pass = "1111111"` => `pass = "******"
+postgres://postgres:123456@localhost/test` => `postgres://postgres:******@localhost/test
+```
+
+After the above treatment, most sensitive information can be removed. Nevertheless, if there is still some sensitive information in the exported file, you can manually remove it.
+
+## View Cloud Property Data {#cloudinfo}
+
+If the DataKit is installed on a cloud server (currently supports `aliyun/tencent/aws/hwcloud/azure`), you can view some of the cloud attribute data with the following commands, such as (marked `-` to indicate that the field is invalid):
 
 ```shell
 datakit tool --show-cloud-info aws
@@ -357,4 +428,35 @@ datakit tool --show-cloud-info aws
                    region: cn-northwest-1
         security_group_id: launch-wizard-1
                   zone_id: cnnw1-az2
+```
+
+## Parse Line Protocols {#parse-lp}
+
+[:octicons-tag-24: Version-1.5.6](changelog.md#cl-1.5.6)
+
+You can run the following command to parse the line protocol data:
+
+```shell
+datakit tool --parse-lp /path/to/file
+Parse 201 points OK, with 2 measurements and 201 time series
+```
+
+It can be output in JSON:
+
+```shell
+datakit tool --parse-lp /path/to/file --json
+{
+  "measurements": {  # Measurement list
+    "testing": {
+      "points": 7,
+      "time_series": 6
+    },
+    "testing_module": {
+      "points": 195,
+      "time_series": 195
+    }
+  },
+  "point": 202,      # Total points
+  "time_serial": 201 # Total time series
+}
 ```

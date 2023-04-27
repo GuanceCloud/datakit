@@ -548,7 +548,7 @@ func TestRecord(t *testing.T) {
 		TotalEstablished: 0,
 	}
 
-	// test updateLastActive, 设定上一周期存在两个未关闭的连接
+	// test updateLastActive, set two unclosed connections in the previous cycle
 	netflowTracer.connStatsRecord.updateLastActive(conninfo, connFullStats)
 	assert.Equal(t, netflowTracer.connStatsRecord.lastActiveConns[conninfo], connFullStatsResult)
 	netflowTracer.connStatsRecord.updateLastActive(conninfo2, connFullStats)
@@ -556,7 +556,7 @@ func TestRecord(t *testing.T) {
 	assert.Equal(t, 2, len(netflowTracer.connStatsRecord.lastActiveConns))
 
 	// ==================================================================
-	// 存在一个上一周期未关闭的连接，接收到一个 closed event，调用 ClosedEventHandler
+	// There is a connection that was not closed in the previous cycle, a closed event is received, and the ClosedEventHandler is called.
 
 	closedEvent := ConncetionClosedInfoC{
 		conn_info: _Ctype_struct_connection_info{
@@ -619,7 +619,7 @@ func TestRecord(t *testing.T) {
 	assert.Equal(t, connClosedFullStatsResult, netflowTracer.connStatsRecord.closedConns[connInfo])
 
 	// ===================================
-	// 一个已关闭连接的再次建立，并被关闭，接收 closed event，调用 closedEventHandler
+	// A closed connection is re-established and closed, receive closed event, call closedEventHandler
 	netflowTracer.ClosedEventHandler(1, data, nil, nil)
 	event = <-netflowTracer.closedEventCh
 	netflowTracer.connStatsRecord.updateClosedUseEvent(event)
@@ -642,7 +642,7 @@ func TestRecord(t *testing.T) {
 	assert.Equal(t, connClosedFullStatsResult2, netflowTracer.connStatsRecord.closedConns[connInfo])
 
 	// =================================
-	// 一个本周期内建立后关闭的连接，调用 closedEventHandler, 首次记录
+	// A connection closed after establishment within this period, calling closedEventHandler, the first record
 
 	closedEvent = ConncetionClosedInfoC{
 		conn_info: _Ctype_struct_connection_info{
@@ -706,9 +706,9 @@ func TestRecord(t *testing.T) {
 	assert.Equal(t, connClosedFullStatsResult, netflowTracer.connStatsRecord.closedConns[connInfo])
 
 	// ================================
-	// 模拟从 bpfmap 中获取当前 active 的连接，并 merge 记录的 lastActive、closed
+	// Simulate getting the current active connection from bpfmap, and merge the recorded lastActive and closed
 
-	// 存在于 lastActiveConns, stats op = "-"
+	// present in lastActiveConns, stats op = "-"
 	connFullStats.Stats.RecvBytes += 1
 	ar := netflowTracer.connStatsRecord.mergeWithClosedLastActive(conninfo2, connFullStats)
 	er := ConnFullStats{
@@ -730,7 +730,7 @@ func TestRecord(t *testing.T) {
 
 	// =================
 
-	// 存在于 closedConns, stats op = "+"
+	// present in closedConns, stats op = "+"
 	ar = netflowTracer.connStatsRecord.mergeWithClosedLastActive(conninfo, connFullStats)
 	er = ConnFullStats{
 		Stats: ConnectionStats{
@@ -749,7 +749,7 @@ func TestRecord(t *testing.T) {
 	assert.Equal(t, er, ar)
 
 	// ================
-	// 首次建立
+	// First established
 	ar = netflowTracer.connStatsRecord.mergeWithClosedLastActive(conninfo3, connFullStats)
 	er = connFullStats
 	assert.Equal(t, er, ar)

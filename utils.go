@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"io/ioutil"
 	"net"
 	"net/netip"
@@ -29,7 +30,7 @@ import (
 	pr "github.com/shirou/gopsutil/v3/process"
 	"golang.org/x/crypto/ssh"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
+	"github.com/GuanceCloud/cliutils"
 )
 
 func TrimSuffixAll(s, sfx string) string {
@@ -627,4 +628,61 @@ func getData(addr, command, username, password, rsa string, timeout time.Duratio
 
 	// get data
 	return session.Output(command)
+}
+
+// RebuildFolder rebuild folder. if exists, remove and rebuild.
+func RebuildFolder(path string, perm fs.FileMode) error {
+	isExists, _, err := IsPathExists(path)
+	if err != nil {
+		return err
+	}
+
+	if isExists {
+		err = os.RemoveAll(path)
+		if err != nil {
+			return fmt.Errorf("remove %v: %w", path, err)
+		}
+	}
+
+	if err := os.MkdirAll(path, perm); err != nil {
+		return fmt.Errorf("create %s failed: %w", path, err)
+	}
+
+	return nil
+}
+
+// IsPathExists Check if the given path exists and if is folder.
+func IsPathExists(path string) (isExists, isDir bool, err error) {
+	s, err := os.Stat(path)
+	if err == nil {
+		return true, s.IsDir(), nil
+	}
+
+	if os.IsNotExist(err) {
+		return false, false, nil
+	}
+
+	return false, false, fmt.Errorf("cheack %v: %w", path, err)
+}
+
+// SaveStringToFile Save string to file. If exists, remove and rebuild.
+func SaveStringToFile(path string, value string) error {
+	// Create a file
+	// #nosec
+	f, err := os.Create(path)
+	if err != nil {
+		l.Errorf("os.Create(%v): %v", path, err)
+		return err
+	}
+	// nolint:errcheck,gosec
+	defer f.Close()
+
+	n, err := io.WriteString(f, value)
+	if err != nil {
+		l.Errorf("os.WriteString(%v): %v", path, err)
+		return err
+	}
+	l.Info("os.WriteString(%v) success: %d bytes", path, n)
+
+	return nil
 }

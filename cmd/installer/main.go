@@ -22,13 +22,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/kardianos/service"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/installer"
+	upgrader2 "gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/upgrader"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/upgrader/upgrader"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmds"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	dl "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/downloader"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
@@ -43,7 +45,9 @@ var (
 	DataKitBaseURL = ""
 	DataKitVersion = ""
 	dataURL        = "https://" + path.Join(DataKitBaseURL, "data.tar.gz")
-	datakitURL     = "https://" + path.Join(DataKitBaseURL,
+	dkUpgraderURL  = "https://" + path.Join(DataKitBaseURL,
+		fmt.Sprintf("%s-%s-%s.tar.gz", upgrader.BuildBinName, runtime.GOOS, runtime.GOARCH))
+	datakitURL = "https://" + path.Join(DataKitBaseURL,
 		fmt.Sprintf("datakit-%s-%s-%s.tar.gz",
 			runtime.GOOS,
 			runtime.GOARCH,
@@ -59,10 +63,12 @@ var (
 	flagDownloadOnly,
 	flagInfo bool
 
+	flagUpgradeServIPWhiteList,
 	flagUserName,
 	flagInstallLog,
 	flagSrc string
 
+	flagUpgradeManagerService,
 	flagInstallOnly int
 )
 
@@ -73,6 +79,8 @@ const (
 //nolint:gochecknoinits,lll
 func init() {
 	flag.BoolVar(&flagDKUpgrade, "upgrade", false, "")
+	flag.IntVar(&flagUpgradeManagerService, "upgrade-manager", 0, "whether we should upgrade the Datakit upgrade service")
+	flag.StringVar(&flagUpgradeServIPWhiteList, "upgrade-ip-whitelist", "", "set datakit upgrade http service allowed request client ip, split by ','")
 	flag.StringVar(&flagInstallLog, "install-log", "install.log", "install log")
 	flag.StringVar(&flagSrc, "srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./data.tar.gz", runtime.GOOS, runtime.GOARCH, DataKitVersion), `local path of install files`)
 	flag.IntVar(&flagInstallOnly, "install-only", 0, "install only, not start")
@@ -112,34 +120,29 @@ func init() {
 	flag.StringVar(&installer.CloudProvider, "cloud-provider", "", "specify cloud provider(accept aliyun/tencent/aws)")
 
 	// confd flags
-	flag.StringVar(&installer.ConfdBackend, "confd-backend", "", "confd-backend")
-	flag.StringVar(&installer.ConfdAuthToken, "confd-auth-token", "", "confd-auth-token")
-	flag.StringVar(&installer.ConfdAuthType, "confd-auth-type", "", "confd-auth-type")
-	flag.StringVar(&installer.ConfdBasicAuth, "confd-basic-auth", "", "confd-basic-auth")
-	flag.StringVar(&installer.ConfdClientCaKeys, "confd-client-ca-keys", "", "confd-client-ca-keys")
-	flag.StringVar(&installer.ConfdClientCert, "confd-client-cert", "", "confd-client-cert")
-	flag.StringVar(&installer.ConfdClientKey, "confd-client-key", "", "confd-client-key")
-	flag.StringVar(&installer.ConfdClientInsecure, "confd-client-insecure", "", "confd-client-insecure")
-	flag.StringVar(&installer.ConfdBackendNodes, "confd-backend-nodes", "", "confd-backend-nodes")
-	flag.StringVar(&installer.ConfdPassword, "confd-password", "", "confd-password")
-	flag.StringVar(&installer.ConfdScheme, "confd-scheme", "", "confd-scheme")
-	flag.StringVar(&installer.ConfdTable, "confd-table", "", "confd-table")
-	flag.StringVar(&installer.ConfdSeparator, "confd-separator", "", "confd-separator")
-	flag.StringVar(&installer.ConfdUsername, "confd-username", "", "confd-username")
-	flag.StringVar(&installer.ConfdAppID, "confd-app-id", "", "confd-app-id")
-	flag.StringVar(&installer.ConfdUserID, "confd-user-id", "", "confd-user-id")
-	flag.StringVar(&installer.ConfdRoleID, "confd-role-id", "", "confd-role-id")
-	flag.StringVar(&installer.ConfdSecretID, "confd-secret-id", "", "confd-secret-id")
-	flag.StringVar(&installer.ConfdFilter, "confd-filter", "", "confd-filter")
-	flag.StringVar(&installer.ConfdPath, "confd-path", "", "confd-path")
-	flag.StringVar(&installer.ConfdRole, "confd-role", "", "confd-role")
+	flag.StringVar(&installer.ConfdBackend, "confd-backend", "", "backend kind")
+	flag.StringVar(&installer.ConfdBasicAuth, "confd-basic-auth", "", "if backend need auth")
+	flag.StringVar(&installer.ConfdClientCaKeys, "confd-client-ca-keys", "", "backend ca key")
+	flag.StringVar(&installer.ConfdClientCert, "confd-client-cert", "", "backend cert key")
+	flag.StringVar(&installer.ConfdClientKey, "confd-client-key", "", "backend cert key id")
+	flag.StringVar(&installer.ConfdBackendNodes, "confd-backend-nodes", "", "backend nodes ip")
+	flag.StringVar(&installer.ConfdPassword, "confd-password", "", "backend login password")
+	flag.StringVar(&installer.ConfdScheme, "confd-scheme", "", "backend scheme")
+	flag.StringVar(&installer.ConfdSeparator, "confd-separator", "", "backend separator")
+	flag.StringVar(&installer.ConfdUsername, "confd-username", "", "backend login username")
+	flag.StringVar(&installer.ConfdAccessKey, "confd-access-key", "", "backend access key id")
+	flag.StringVar(&installer.ConfdSecretKey, "confd-secret-key", "", "backend secret key")
+	flag.StringVar(&installer.ConfdConfdNamespace, "confd-confd-namespace", "", "confd config namespace id")
+	flag.StringVar(&installer.ConfdPipelineNamespace, "confd-pipeline-namespace", "", "pipeline config namespace id")
+	flag.StringVar(&installer.ConfdRegion, "confd-region", "", "aws region")
+	flag.IntVar(&installer.ConfdCircleInterval, "confd-circle-interval", 60, "backend loop search interval second")
 
 	// gitrepo flags
-	flag.StringVar(&installer.GitURL, "git-url", "", "git repo url")
-	flag.StringVar(&installer.GitKeyPath, "git-key-path", "", "git repo access private key path")
-	flag.StringVar(&installer.GitKeyPW, "git-key-pw", "", "git repo access private use password")
-	flag.StringVar(&installer.GitBranch, "git-branch", "", "git repo branch name")
-	flag.StringVar(&installer.GitPullInterval, "git-pull-interval", "", "git repo pull interval")
+	flag.StringVar(&installer.GitURL, "git-url", "", "git repository url")
+	flag.StringVar(&installer.GitKeyPath, "git-key-path", "", "git repository access private key path")
+	flag.StringVar(&installer.GitKeyPW, "git-key-pw", "", "git repository access private use password")
+	flag.StringVar(&installer.GitBranch, "git-branch", "", "git repository branch name")
+	flag.StringVar(&installer.GitPullInterval, "git-pull-interval", "", "git repository pull interval")
 
 	// rum flags
 	flag.StringVar(&installer.RumOriginIPHeader, "rum-origin-ip-header", "", "rum only")
@@ -154,18 +157,8 @@ func init() {
 	flag.StringVar(&installer.EnablePProf, "enable-pprof", "", "enable pprof")
 	flag.StringVar(&installer.PProfListen, "pprof-listen", "", "pprof listen")
 
-	// sink flags
-	flag.StringVar(&installer.SinkMetric, "sink-metric", "", "sink for Metric")
-	flag.StringVar(&installer.SinkNetwork, "sink-network", "", "sink for Network")
-	flag.StringVar(&installer.SinkKeyEvent, "sink-keyevent", "", "sink for Key Event")
-	flag.StringVar(&installer.SinkObject, "sink-object", "", "sink for Object")
-	flag.StringVar(&installer.SinkCustomObject, "sink-custom-object", "", "sink for CustomObject")
-	flag.StringVar(&installer.SinkLogging, "sink-logging", "", "sink for Logging")
-	flag.StringVar(&installer.SinkTracing, "sink-tracing", "", "sink for Tracing")
-	flag.StringVar(&installer.SinkRUM, "sink-rum", "", "sink for RUM")
-	flag.StringVar(&installer.SinkSecurity, "sink-security", "", "sink for Security")
-	flag.StringVar(&installer.SinkProfiling, "sink-profile", "", "sink for Profiling")
-	flag.StringVar(&installer.LogSinkDetail, "log-sink-detail", "", "log sink detail")
+	// sinker flags
+	flag.StringVar(&installer.Sinker, "sinker", "", "sinker configures")
 
 	// cgroup flags
 	flag.IntVar(&installer.CgroupDisabled, "cgroup-disabled", 0, "enable disable cgroup(Linux) limits for CPU and memory")
@@ -203,6 +196,17 @@ func downloadFiles(to string) error {
 		return err
 	}
 
+	// We will not upgrade dk-upgrader default when upgrading Datakit except for setting flagUpgradeManagerService flag
+	if !flagDKUpgrade || (flagDKUpgrade && flagUpgradeManagerService == 1) || flagDownloadOnly {
+		if !flagDownloadOnly {
+			to = upgrader.InstallDir
+		}
+		dl.CurDownloading = upgrader.BuildBinName
+		if err := dl.Download(cli, dkUpgraderURL, to, true, flagDownloadOnly); err != nil {
+			return fmt.Errorf("unable to download %s from [%s]: %w", upgrader.BuildBinName, dkUpgraderURL, err)
+		}
+	}
+
 	if installer.IPDBType != "" {
 		fmt.Printf("\n")
 		baseURL := "https://" + DataKitBaseURL
@@ -225,7 +229,7 @@ func applyFlags() {
 
 	// setup logging
 	if flagInstallLog == "stdout" {
-		cp.Infof("Set log file to stdout")
+		cp.Infof("Set log file to stdout\n")
 
 		if err = logger.InitRoot(
 			&logger.Option{
@@ -330,7 +334,7 @@ Data           : %s
 
 	// fix user name.
 	var userName, groupAdd, userAdd string
-	if len(flagUserName) > 0 && flagUserName != "root" {
+	if runtime.GOOS == datakit.OSLinux && len(flagUserName) > 0 && flagUserName != "root" {
 		// check add group and user command.
 		groupAdd, userAdd, err = checkUserGroupCmdOK()
 		if err != nil {
@@ -338,8 +342,9 @@ Data           : %s
 			return
 		}
 		userName = builtInUserName // set as 'datakit'(default).
+
+		cp.Infof("datakit service run as user: '%s'\n", userName)
 	}
-	cp.Infof("datakit service run as user: '%s' (default/empty is 'root'. details: DK_USER_NAME = '%s')\n", userName, flagUserName)
 
 	svc, err := dkservice.NewService(userName)
 	if err != nil {
@@ -368,6 +373,10 @@ Data           : %s
 		}
 	}
 
+	if !flagDKUpgrade || flagUpgradeManagerService == 1 {
+		upgrader2.StopUpgradeService(userName)
+	}
+
 	applyFlags()
 
 	// 迁移老版本 datakit 数据目录
@@ -393,6 +402,8 @@ Data           : %s
 
 __downloadOK:
 	datakit.InitDirs()
+
+	upgrader2.InstallUpgradeService(userName, flagDKUpgrade, flagInstallOnly, flagUpgradeManagerService, flagUpgradeServIPWhiteList)
 
 	if flagDKUpgrade { // upgrade new version
 		cp.Infof("Upgrading to version %s...\n", DataKitVersion)
@@ -571,6 +582,17 @@ func setupUserGroup(userName, groupName, groupAdd, userAdd string) {
 	}
 	// chmod.
 	if err := executeCmd("chmod", "-R", "755", installDir, defaultLogDir); err != nil {
+		l.Errorf("chmod failed: %v", err)
+		return
+	}
+
+	// chown.
+	if err := executeCmd("chown", "-R", fmt.Sprintf("%s:%s", userName, groupName), upgrader.InstallDir, upgrader.DefaultLogDir); err != nil {
+		l.Errorf("chown failed: %v", err)
+		return
+	}
+	// chmod.
+	if err := executeCmd("chmod", "-R", "755", upgrader.InstallDir, upgrader.DefaultLogDir); err != nil {
 		l.Errorf("chmod failed: %v", err)
 		return
 	}

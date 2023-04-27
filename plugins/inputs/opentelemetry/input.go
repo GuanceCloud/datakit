@@ -3,8 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-// Package opentelemetry is input for opentelemetry
-
+// Package opentelemetry handle OTEL APM trace
 package opentelemetry
 
 import (
@@ -13,11 +12,10 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strings"
+	"regexp"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
@@ -26,7 +24,7 @@ import (
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/workerpool"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/collector"
+	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -39,13 +37,11 @@ const (
 	inputName    = "opentelemetry"
 	sampleConfig = `
 [[inputs.opentelemetry]]
-  ## 在创建'trace',Span','resource'时，会加入很多标签，这些标签最终都会出现在'Span'中
-  ## 当您不希望这些标签太多造成网络上不必要的流量损失时，可选择忽略掉这些标签
-  ## 支持正则表达，注意:将所有的'.'替换成'_'
-  ## When creating 'trace', 'span' and 'resource', many labels will be added, and these labels will eventually appear in all 'spans'
+  ## During creating 'trace', 'span' and 'resource', many labels will be added, and these labels will eventually appear in all 'spans'
   ## When you don't want too many labels to cause unnecessary traffic loss on the network, you can choose to ignore these labels
-  ## Support regular expression. Note!!!: all '.' Replace with '_'
-  # ignore_attribute_keys = ["os_*","process_*"]
+  ## with setting up an regular expression list.
+  ## Note: ignore_attribute_keys will be effected on both trace and metrics if setted up.
+  # ignore_attribute_keys = ["os_*", "process_*"]
 
   ## Keep rare tracing resources list switch.
   ## If some resources are rare enough(not presend in 1 hour), those resource will always send
@@ -91,59 +87,72 @@ const (
     # path = "./otel_storage"
     # capacity = 5120
 
-  [inputs.opentelemetry.expectedHeaders]
-  # 如有header配置 则请求中必须要携带 否则返回状态码500
-  ## 可作为安全检测使用,必须全部小写
-  # ex_version = xxx
-  # ex_name = xxx
-  # ...
-
-  ## grpc
-  [inputs.opentelemetry.grpc]
-  ## trace for grpc
-  trace_enable = true
-
-  ## metric for grpc
-  metric_enable = true
-
-  ## grpc listen addr
-  addr = "127.0.0.1:4317"
-
-  ## http
+  ## OTEL agent HTTP config for trace and metrics
+  ## If enable set to be true, trace and metrics will be received on path respectively:
+  ## trace : /otel/v1/trace
+  ## metric: /otel/v1/metric
+  ## and the client side should be configured properly with Datakit listening port(default: 9529)
+  ## for example http://127.0.0.1:9529/otel/v1/trace
+  ## The acceptable http_status_ok values will be 200 or 202.
   [inputs.opentelemetry.http]
-  ## if enable=true
-  ## http path (do not edit):
-  ##	trace : /otel/v1/trace
-  ##	metric: /otel/v1/metric
-  ## use as : http://127.0.0.1:9529/otel/v1/trace . Method = POST
-  enable = true
-  ## return to client status_ok_code :200/202
-  http_status_ok = 200
+   enable = true
+   http_status_ok = 200
+
+  ## OTEL agent GRPC config for trace and metrics.
+  ## GRPC services for trace and metrics can be enabled respectively as setting either to be true.
+  ## add is the listening on address for GRPC server.
+  [inputs.opentelemetry.grpc]
+   trace_enable = true
+   metric_enable = true
+   addr = "127.0.0.1:4317"
+
+  ## If 'expectedHeaders' is well configed, then the obligation of sending certain wanted HTTP headers is on the client side,
+  ## otherwise HTTP status code 400(bad request) will be provoked.
+  ## Note: expectedHeaders will be effected on both trace and metrics if setted up.
+  # [inputs.opentelemetry.expectedHeaders]
+  # ex_version = "1.2.3"
+  # ex_name = "env_resource_name"
+  # ...
 `
 )
 
 var (
-	log         = logger.DefaultSLogger(inputName)
-	spanStorage *collector.SpansStorage
-	wkpool      *workerpool.WorkerPool
-	localCache  *storage.Storage
+	log               = logger.DefaultSLogger(inputName)
+	statusOK          = 200
+	afterGatherRun    itrace.AfterGatherHandler
+	ignoreKeyRegExps  []*regexp.Regexp
+	getAttribute      getAttributeFunc
+	extractAtrributes extractAttributesFunc
+	tags              map[string]string
+	wkpool            *workerpool.WorkerPool
+	localCache        *storage.Storage
+	otelSvr           *grpc.Server
 )
+
+type httpConfig struct {
+	Enabled      bool `toml:"enable"`
+	StatusCodeOK int  `toml:"http_status_ok"`
+}
+
+type grpcConfig struct {
+	TraceEnabled  bool   `toml:"trace_enable"`
+	MetricEnabled bool   `toml:"metric_enable"`
+	Address       string `toml:"addr"`
+}
 
 type Input struct {
 	Pipelines           map[string]string            `toml:"pipelines"` // deprecated
-	GRPCCol             *otlpGrpcCollector           `toml:"grpc"`
-	HTTPCol             *otlpHTTPCollector           `toml:"http"`
+	HTTPConfig          *httpConfig                  `toml:"http"`
+	GRPCConfig          *grpcConfig                  `toml:"grpc"`
+	ExpectedHeaders     map[string]string            `toml:"expectedHeaders"`
+	IgnoreAttributeKeys []string                     `toml:"ignore_attribute_keys"`
 	KeepRareResource    bool                         `toml:"keep_rare_resource"`
 	CloseResource       map[string][]string          `toml:"close_resource"`
 	OmitErrStatus       []string                     `toml:"omit_err_status"`
 	Sampler             *itrace.Sampler              `toml:"sampler"`
-	IgnoreAttributeKeys []string                     `toml:"ignore_attribute_keys"`
 	Tags                map[string]string            `toml:"tags"`
 	WPConfig            *workerpool.WorkerPoolConfig `toml:"threads"`
 	LocalCacheConfig    *storage.StorageConfig       `toml:"storage"`
-	ExpectedHeaders     map[string]string            `toml:"expectedHeaders"`
-	inputName           string
-	semStop             *cliutils.Sem // start stop signal
 }
 
 func (*Input) Catalog() string { return inputName }
@@ -157,7 +166,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (ipt *Input) RegHTTPHandler() {
-	log = logger.SLogger(ipt.inputName)
+	log = logger.SLogger(inputName)
 
 	var err error
 	if ipt.WPConfig != nil {
@@ -197,7 +206,7 @@ func (ipt *Input) RegHTTPHandler() {
 					if req.URL, err = url.Parse(reqpb.Url); err != nil {
 						log.Errorf("### parse raw URL: %s failed: %s", reqpb.Url, err.Error())
 					}
-					ipt.HTTPCol.apiOtlpTrace(&ihttp.NopResponseWriter{}, req)
+					handleOTELTrace(&ihttp.NopResponseWriter{}, req)
 
 					log.Debugf("### process status: buffer-size: %dkb, cost: %dms, err: %v", len(reqpb.Body)>>10, time.Since(start)/time.Millisecond, err)
 
@@ -216,6 +225,7 @@ func (ipt *Input) RegHTTPHandler() {
 	} else {
 		afterGather = itrace.NewAfterGather(itrace.WithLogger(log))
 	}
+	afterGatherRun = afterGather
 
 	// add filters: the order of appending filters into AfterGather is important!!!
 	// the order of appending represents the order of that filter executes.
@@ -242,60 +252,57 @@ func (ipt *Input) RegHTTPHandler() {
 	}
 	afterGather.AppendFilter(sampler.Sample)
 
-	spanStorage = collector.NewSpansStorage(afterGather)
-	spanStorage.GlobalTags = ipt.Tags
-	if len(ipt.IgnoreAttributeKeys) > 0 {
-		spanStorage.RegexpString = strings.Join(ipt.IgnoreAttributeKeys, "|")
+	expectedHeaders := map[string][]string{"Content-Type": {"application/x-protobuf", "application/json"}}
+	for k, v := range ipt.ExpectedHeaders {
+		expectedHeaders[k] = append(expectedHeaders[k], v)
 	}
 
-	log.Infof("### register handler for /otel/v1/trace of agent %s", inputName)
-	log.Infof("### register handler for /otel/v1/metric of agent %s", inputName)
+	if ipt.HTTPConfig == nil || !ipt.HTTPConfig.Enabled {
+		log.Debugf("### HTTP server in OpenTelemetry are not enabled")
+
+		return
+	}
+
+	log.Debugf("### register handler for /otel/v1/trace of agent %s", inputName)
+	statusOK = ipt.HTTPConfig.StatusCodeOK
 	dkhttp.RegHTTPHandler("POST", "/otel/v1/trace",
-		workerpool.HTTPWrapper(httpStatusRespFunc, wkpool,
-			storage.HTTPWrapper(storage.HTTP_KEY, httpStatusRespFunc, localCache, ipt.HTTPCol.apiOtlpTrace)))
-	dkhttp.RegHTTPHandler("POST", "/otel/v1/metric", ipt.HTTPCol.apiOtlpMetric)
+		ihttp.CheckExpectedHeaders(
+			workerpool.HTTPWrapper(httpStatusRespFunc, wkpool,
+				storage.HTTPWrapper(storage.HTTP_KEY, httpStatusRespFunc, localCache, handleOTELTrace)), log, expectedHeaders))
+
+	log.Debugf("### register handler for /otel/v1/metric of agent %s", inputName)
+	dkhttp.RegHTTPHandler("POST", "/otel/v1/metric", ihttp.CheckExpectedHeaders(handleOTElMetrics, log, expectedHeaders))
 }
 
 func (ipt *Input) Run() {
-	log.Infof("### %s agent is running...", inputName)
+	if (ipt.HTTPConfig == nil || !ipt.HTTPConfig.Enabled) &&
+		(ipt.GRPCConfig == nil || (!ipt.GRPCConfig.MetricEnabled && !ipt.GRPCConfig.TraceEnabled)) {
+		log.Debugf("### All OpenTelemetry web protocol are not enabled")
 
-	open := false
-	if ipt.HTTPCol.Enable {
-		ipt.HTTPCol.spanStorage = spanStorage
-		ipt.HTTPCol.ExpectedHeaders = ipt.ExpectedHeaders
-		open = true
+		return
 	}
+
+	tags = ipt.Tags
+	for i := range ipt.IgnoreAttributeKeys {
+		ignoreKeyRegExps = append(ignoreKeyRegExps, regexp.MustCompile(ipt.IgnoreAttributeKeys[i]))
+	}
+	getAttribute = getAttrWrapper(ignoreKeyRegExps)
+	extractAtrributes = extractAttrsWrapper(ignoreKeyRegExps)
 
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_opentelemetry"})
-	if ipt.GRPCCol.TraceEnable || ipt.GRPCCol.MetricEnable {
-		open = true
-		ipt.GRPCCol.ExpectedHeaders = ipt.ExpectedHeaders
-		func(spanStorage *collector.SpansStorage) {
-			g.Go(func(ctx context.Context) error {
-				ipt.GRPCCol.run(spanStorage)
+	g.Go(func(ctx context.Context) error {
+		runGRPCV1(ipt.GRPCConfig.Address)
 
-				return nil
-			})
-		}(spanStorage)
-	}
-	if open {
-		g.Go(func(ctx context.Context) error {
-			spanStorage.Run()
+		return nil
+	})
 
-			return nil
-		})
-		select {
-		case <-datakit.Exit.Wait():
-			log.Infof("### %s exit", ipt.inputName)
-		case <-ipt.semStop.Wait():
-			log.Infof("### %s return", ipt.inputName)
-		}
-		ipt.exit()
-	}
+	log.Debugf("### %s agent is running...", inputName)
+
+	<-datakit.Exit.Wait()
+	ipt.Terminate()
 }
 
-func (ipt *Input) exit() {
-	ipt.GRPCCol.stop()
+func (ipt *Input) Terminate() {
 	if wkpool != nil {
 		wkpool.Shutdown()
 		log.Info("### workerpool closed")
@@ -306,22 +313,13 @@ func (ipt *Input) exit() {
 		}
 		log.Info("### storage closed")
 	}
-	if spanStorage != nil {
-		spanStorage.Stop()
-	}
-}
-
-func (ipt *Input) Terminate() {
-	if ipt.semStop != nil {
-		ipt.semStop.Close()
+	if otelSvr != nil {
+		otelSvr.GracefulStop()
 	}
 }
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{
-			inputName: inputName,
-			semStop:   cliutils.NewSem(),
-		}
+		return &Input{}
 	})
 }

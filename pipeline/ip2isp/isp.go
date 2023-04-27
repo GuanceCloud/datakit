@@ -38,18 +38,18 @@ var IspValid = map[string]string{
 	"googlecn": "谷歌中国",
 }
 
-func InitIPdb(instance ipdb.IPdb) {
+func InitIPDB(instance ipdb.IPdb) {
 	ipdbInstance = instance
 }
 
-func SearchIsp(ip string) string {
+func SearchISP(ip string) string {
 	if ipdbInstance != nil {
 		return ipdbInstance.SearchIsp(ip)
 	}
 	return "unknown"
 }
 
-func MergeIsp(from, to string) error {
+func MergeISP(from, to string) error {
 	files, err := ioutil.ReadDir(from)
 	if err != nil {
 		return err

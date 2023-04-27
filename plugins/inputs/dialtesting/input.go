@@ -3,6 +3,9 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
+//go:build !windows
+// +build !windows
+
 // Package dialtesting implement API dial testing.
 // nolint:gosec
 package dialtesting
@@ -21,11 +24,11 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	dt "gitlab.jiagouyun.com/cloudcare-tools/cliutils/dialtesting"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
+	"github.com/GuanceCloud/cliutils"
+	dt "github.com/GuanceCloud/cliutils/dialtesting"
+	"github.com/GuanceCloud/cliutils/logger"
+	uhttp "github.com/GuanceCloud/cliutils/network/http"
+	"github.com/GuanceCloud/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -47,8 +50,8 @@ var (
 	inputName = "dialtesting"
 	l         = logger.DefaultSLogger(inputName)
 
-	MaxFails               = 100
-	MaxSendFailCount int32 = 16
+	MaxFails         = 100
+	MaxSendFailCount = 16
 )
 
 const (
@@ -121,7 +124,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (*Input) AvailableArchs() []string {
-	return datakit.AllOS
+	return []string{datakit.OSLabelLinux, datakit.OSLabelMac, datakit.LabelK8s, datakit.LabelDocker}
 }
 
 func (d *Input) Terminate() {
@@ -141,7 +144,7 @@ func (d *Input) Run() {
 	}
 
 	if d.MaxSendFailCount > 0 {
-		MaxSendFailCount = d.MaxSendFailCount
+		MaxSendFailCount = int(d.MaxSendFailCount)
 	}
 
 	reqURL, err := url.Parse(d.Server)
@@ -394,11 +397,11 @@ func (d *Input) dispatchTasks(j []byte) error {
 				l.Warnf("DNS task deprecated, ignored")
 				continue
 			case dt.ClassTCP:
-				t = &dt.TcpTask{}
+				t = &dt.TCPTask{}
 			case dt.ClassWebsocket:
 				t = &dt.WebsocketTask{}
 			case dt.ClassICMP:
-				t = &dt.IcmpTask{}
+				t = &dt.ICMPTask{}
 			case dt.ClassOther:
 				// TODO
 				l.Warnf("OTHER task deprecated, ignored")
@@ -419,8 +422,8 @@ func (d *Input) dispatchTasks(j []byte) error {
 			}
 
 			if err := json.Unmarshal([]byte(j), &t); err != nil {
-				l.Errorf(`json.Unmarshal: %s`, err.Error())
-				return err
+				l.Warnf("json.Unmarshal task(%s) failed: %s, task json(%d bytes): '%s'", k, err.Error(), len(j), j)
+				continue
 			}
 
 			l.Debugf("unmarshal task: %+#v", t)

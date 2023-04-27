@@ -9,7 +9,7 @@
 
 ---
 
-DCA 主要用于管理 DataKit，如 DataKit 列表查看、配置文件管理、Pipeline 管理以及帮助文档的查看等功能。目前支持两种使用方式，即桌面端和网页端。
+DCA 主要用于管理 DataKit，如 DataKit 列表查看、配置文件管理、Pipeline 管理以及帮助文档的查看等功能。
 
 ## 开启 DCA 服务 {#config}
 
@@ -62,27 +62,148 @@ DCA 主要用于管理 DataKit，如 DataKit 列表查看、配置文件管理�
 
     不同版本的 DataKit 接口可能存在差异，为了更好地使用 DCA，建议升级 DataKit 为最新版本。另外，Web 版的 DCA 跟桌面版之间还存在一些功能的缺失，后面会慢慢增补进来，*并逐步弃用现在的桌面版*。
 
-DCA web 是 DCA 客户端的 web 版本，它通过部署一个后端服务来提供 DataKit 的接口代理，并提供前端 Web 页面来实现对 DataKit 的访问。目前服务仅支持 Docker 镜像安装，可参考文档[安装 Docker](https://docs.docker.com/desktop/install/linux-install/)。
+DCA web 是 DCA 客户端的 web 版本，它通过部署一个后端服务来提供 DataKit 的接口代理，并提供前端 Web 页面来实现对 DataKit 的访问。
 
-- 下载镜像
+=== "Docker"
 
-运行容器之前，首先通过 `docker pull` 下载 DCA 镜像。
+    Docker 安装，可参考[文档](https://docs.docker.com/desktop/install/linux-install/)。
 
-```shell
-$ docker pull pubrepo.guance.com/tools/dca
-```
+    - 下载镜像
 
-- 运行容器
+    运行容器之前，首先通过 `docker pull` 下载 DCA 镜像。
 
-通过 `docker run` 命令来创建和启动 DCA 容器，容器默认暴露访问端口是 80。
+    ```shell
+    $ docker pull pubrepo.guance.com/tools/dca:latest
+    ```
 
-```shell
-$ docker run -d --name dca -p 8000:80 pubrepo.guance.com/tools/dca
-```
+    - 运行容器
 
-- 测试
+    通过 `docker run` 命令来创建和启动 DCA 容器，容器默认暴露访问端口是 80。
 
-容器运行成功后，可以通过浏览器进行访问：http://localhost:8000
+    ```shell
+    $ docker run -d --name dca -p 8000:80 pubrepo.guance.com/tools/dca
+    ```
+
+    - 测试
+
+    容器运行成功后，可以通过浏览器进行访问：`http://localhost:8000`
+
+=== "k8s"
+
+    创建 `dca.yaml` 文件，内容如下：
+
+    ```yaml
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        app: utils-dca
+      name: dca
+      namespace: datakit
+    spec:
+      replicas: 1
+      revisionHistoryLimit: 10
+      selector:
+        matchLabels:
+          app: utils-dca
+      strategy:
+        rollingUpdate:
+          maxSurge: 25%
+          maxUnavailable: 25%
+        type: RollingUpdate
+      template:
+        metadata:
+          labels:
+            app: utils-dca
+        spec:
+          affinity: {}
+          containers:
+            - env:
+                - name: DCA_INNER_HOST
+                  # 杭州 https://auth-api.guance.com
+                  # 宁夏 https://aws-auth-api.guance.com
+                  # 广州 https://cn4-auth-api.guance.com
+                  # 俄勒冈 https://us1-auth-api.guance.com
+                  value: https://auth-api.guance.com
+                - name: DCA_FRONT_HOST
+                  # 杭州 https://console-api.guance.com
+                  # 宁夏 https://aws-console-api.guance.com/
+                  # 广州 https://cn4-console-api.guance.com
+                  # 俄勒冈 https://us1-console-api.guance.com
+                  value: https://console-api.guance.com
+                - name: DCA_LOG_ENABLE_STDOUT
+                  value: 'true'
+              image: pubrepo.guance.com/tools/dca:0.0.6
+              imagePullPolicy: Always
+              name: dca
+              ports:
+                - containerPort: 80
+                  name: http
+                  protocol: TCP
+              resources:
+                limits:
+                  cpu: 500m
+                  memory: 256Mi   
+                requests:
+                  cpu: 250m
+                  memory: 100Mi              
+              resources: {}
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+          dnsPolicy: ClusterFirst
+          restartPolicy: Always
+          schedulerName: default-scheduler
+          securityContext: {}
+          terminationGracePeriodSeconds: 30
+
+    ---
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: dca
+      namespace: datakit
+    spec:
+      ports:
+        - name: web
+          port: 80
+          protocol: TCP
+          targetPort: 80
+      selector:
+        app: utils-dca
+      sessionAffinity: None
+      type: ClusterIP
+
+    ---
+    apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: dca
+      namespace: datakit
+    spec:
+      rules:
+        - host: dca.xxxx.com
+          http:
+            paths:
+              - backend:
+                  service:
+                    name: dca
+                    port:
+                      number: 80
+                path: /
+                pathType: Prefix
+      # tls:
+      #   - hosts:
+      #       - dca.xxxx.com
+      #     secretName: xxxx
+
+    ```
+
+    应用 `dca.yaml` 文件到 Kubernetes 集群中
+
+    ```shell
+    $ kubectl apply -f dca.yaml
+    $ kubectl get pod -n datakit
+    ```
 
 ### 环境变量配置 {#envs}
 
@@ -92,7 +213,8 @@ $ docker run -d --name dca -p 8000:80 pubrepo.guance.com/tools/dca
 | ---------:              | ----:  | ---:                           | ------                                                                                          |
 | `DCA_INNER_HOST`        | string | https://auth-api.guance.com    | 观测云的 auth API 地址                                                                          |
 | `DCA_FRONT_HOST`        | string | https://console-api.guance.com | 观测云 console API 地址                                                                         |
-| `DCA_LOG_LEVEL`         | string |                                | 日志等级，取值为 NONE/DEBUG/INFO/WARN/ERROR，如果不需要记录日志，可设置为 NONE                  |
+| `DCA_CONSOLE_PROXY`     | string | 无                              | 观测云 API 代理，不代理 DataKit 接口                                             |
+| `DCA_LOG_LEVEL`         | string | INFO                           | 日志等级，取值为 NONE/DEBUG/INFO/WARN/ERROR，如果不需要记录日志，可设置为 NONE                  |
 | `DCA_LOG_ENABLE_STDOUT` | bool   | false                          | 日志会输出至文件中，位于 `/usr/src/dca/logs` 下。如果需要将日志写到 `stdout`，可以设置为 `true` |
 
 示例：
@@ -106,7 +228,7 @@ $ docker run -d --name dca -p 8000:80 -e DCA_LOG_ENABLE_STDOUT=true -e DCA_LOG_L
 DCA 开启和安装以后，即可在浏览器输入地址 `localhost:8000` 打开 DCA  Web 端，登录账号，即可开始使用。若无账号，可先注册 [观测云账号](https://auth.guance.com/register?channel=帮助文档)。
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dca_2_2.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dca-login.png){ width="800" }
 </figure>
 
 登录到 DCA 后，可在左上角选择工作空间管理其对应 DataKit 及采集器，支持通过搜索关键字快速筛选需要查看和管理的主机名称。
@@ -119,32 +241,31 @@ DCA 开启和安装以后，即可在浏览器输入地址 `localhost:8000` 打�
 
 #### 查看 DataKit 运行情况 {#view-runtime}
 
-登录到 DCA 后，选择工作空间，即可查看该工作空间下所有已经安装 DataKit 的主机名和 IP 信息。点击 DataKit 主机，即可远程连接到 DataKit ，查看该主机上 DataKit 的运行情况，包括版本、运行时间、发布日期、采集器运行情况等。
+登录到 DCA 后，选择工作空间，即可查看该工作空间下所有已经安装 DataKit 的主机名和 IP 信息。点击 DataKit 主机，即可远程连接到 DataKit ，查看该主机上 DataKit 的运行情况，包括版本、运行时间、发布日期、采集器运行情况等，以及可以对 DataKit 进行重启操作。
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dca_2_3.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dca-run-info.png){ width="800" }
 </figure>
 
-#### 查看采集器配置 {#view-inputs-conf}
+#### 采集器配置管理 {#view-inputs-conf}
 
 远程连接到 DataKit 以后，点击「采集器配置」，即可查看已经配置的采集器列表和 Sample 列表（当前 DataKit 支持配置的所有 Sample 文件）。
 
-- 已配置列表：可查看其下所有的 conf 文件。
-- Sample 列表：可查看其下所有的 sample 文件。
+- 已配置列表：可查看，编辑和删除其下所有的 conf 文件。
+- Sample 列表：可查看和编辑其下所有的 sample 文件。
 - 帮助：可查看对应的采集器帮助文档
 
-注意：DCA 目前不支持配置采集器，需远程登陆到主机进行配置操作。
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dca_2_4.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dca-input-conf.png){ width="800" }
 </figure>
 
-#### 查看日志 Pipeline {#view-pipeline}
+#### Pipelines 管理 {#view-pipeline}
 
-远程连接到 DataKit 以后，点击「Pipelines」，即可查看 DataKit 默认自带的 pipeline 文件。关于 pipeline 可参考文档 [文本数据处理](pipeline.md) 。
+远程连接到 DataKit 以后，点击「Pipelines」，即可查看，编辑和测试 DataKit 默认自带的 pipeline 文件。关于 pipeline 可参考文档 [文本数据处理](pipeline.md) 。
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dca_2_5.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dca-pipeline.png){ width="800" }
 </figure>
 
 #### 查看黑名单 {#view-filters}
@@ -154,7 +275,15 @@ DCA 开启和安装以后，即可在浏览器输入地址 `localhost:8000` 打�
 注意：通过观测云创建的黑名单文件统一保存在路径：`/usr/local/datakit/data/.pull` 。
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dca_2_8.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dca-filter.png){ width="800" }
+</figure>
+
+#### 查看日志 {#view-log}
+
+远程连接到 DataKit 以后，点击「日志」，即可实时查看 DataKit 的日志，并且可以导出相应的日志到本地。
+
+<figure markdown>
+  ![](https://static.guance.com/images/datakit/dca-log.png){ width="800" }
 </figure>
 
 #### 查看采集器帮助 {#view-input-helper}
@@ -164,5 +293,5 @@ DCA 开启和安装以后，即可在浏览器输入地址 `localhost:8000` 打�
 关于如何查看更多采集器的帮助文档，可参考文档 [采集器](hostobject.md) 。
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dca_2_6.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dca-help.png){ width="800" }
 </figure>

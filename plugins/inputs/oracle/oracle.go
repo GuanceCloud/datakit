@@ -7,7 +7,7 @@
 package oracle
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/external"
@@ -83,10 +83,14 @@ func (i *Input) AvailableArchs() []string {
 	return []string{datakit.OSLabelLinux, datakit.LabelElection}
 }
 
+func defaultInput() *Input {
+	return &Input{
+		ExternalInput: *external.NewExternalInput(),
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{
-			ExternalInput: *external.NewExternalInput(),
-		}
+		return defaultInput()
 	})
 }

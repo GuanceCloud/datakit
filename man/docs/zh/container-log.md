@@ -1,5 +1,5 @@
 {{.CSS}}
-# 容器日志采集
+# 容器日志
 ---
 
 容器/Pod 上的日志采集，相比主机上的日志采集，有很大的不同，其配置方式、采集机制都有差异。从数据来源来说，可以分为两部分：
@@ -29,7 +29,7 @@ stdout/stderr 日志采集的主要配置有以下两种方式：
     container_exclude_logging = ["image:*"]
     ```
     
-    - `container_include` 和 `container_exclude` 必须以 `image` 开头，格式为一种[类正则的 Glob 通配](https://en.wikipedia.org/wiki/Glob_(programming)){:target="_blank"}： `"image:<glob规则>"`
+    - `container_include` 和 `container_exclude` 必须以 `image` 开头，格式为一种[类正则的 Glob 通配][1]：`"image:<glob规则>"`
     
 === "Kubernetes"
 
@@ -79,11 +79,11 @@ stdout/stderr 日志采集的主要配置有以下两种方式：
     "source"   : "testing-source",
     "service"  : "testing-service",
     "pipeline" : "test.p",
+    "multiline_match" : "^\\d{4}-\\d{2}",
+    "enable_diskcache" : false,
 
     # 用法和上文的 `根据 image 过滤容器` 完全相同，`image:` 后面填写正则表达式
     "only_images"  : ["image:<your_image_regexp>"],
-
-    "multiline_match" : "^\\d{4}-\\d{2}",
 
     # 可以给该容器/Pod 日志打上额外的标签
     "tags" : {
@@ -96,15 +96,16 @@ stdout/stderr 日志采集的主要配置有以下两种方式：
 
 Value 字段说明：
 
-| 字段名            | 必填 | 取值             | 默认值 | 说明                                                                                                                                                             |
-| -----             | ---- | ----             | ----   | ----                                                                                                                                                             |
-| `disable`         | N    | true/false       | false  | 是否禁用该 pod/容器的日志采集                                                                                                                                    |
-| `source`          | N    | 字符串           | 无     | 日志来源，参见[容器日志采集的 source 设置](container.md#config-logging-source)                                                                                   |
-| `service`         | N    | 字符串           | 无     | 日志隶属的服务，默认值为日志来源（source）                                                                                                                       |
-| `pipeline`        | N    | 字符串           | 无     | 适用该日志的 Pipeline 脚本，默认值为与日志来源匹配的脚本名（`<source>.p`）                                                                                       |
-| `only_images`     | N    | 字符串数组       | 无     | 针对 Pod 内部多容器情景，如果填写了任何 image 通配，则只采集能匹配这些 image 的容器的日志，类似白名单功能；如果字段为空，即认为采集该 Pod 中所有容器的日志       |
-| `multiline_match` | N    | 正则表达式字符串 | 无     | 用于[多行日志匹配](logging.md#multiline)时的首行识别，例如 `"multiline_match":"^\\d{4}"` 表示行首是4个数字，在正则表达式规则中`\d` 是数字，前面的 `\` 是用来转义 |
-| `tags`            | N    | key/value 键值对 | 无     | 添加额外的 tags，如果已经存在同名的 key 将以此为准（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) ）                                       |
+| 字段名             | 必填 | 取值             | 默认值 | 说明                                                                                                                                                             |
+| -----              | ---- | ----             | ----   | ----                                                                                                                                                             |
+| `disable`          | N    | true/false       | false  | 是否禁用该 pod/容器的日志采集                                                                                                                                    |
+| `source`           | N    | 字符串           | 无     | 日志来源，参见[容器日志采集的 source 设置](container.md#config-logging-source)                                                                                   |
+| `service`          | N    | 字符串           | 无     | 日志隶属的服务，默认值为日志来源（source）                                                                                                                       |
+| `pipeline`         | N    | 字符串           | 无     | 适用该日志的 Pipeline 脚本，默认值为与日志来源匹配的脚本名（`<source>.p`）                                                                                       |
+| `only_images`      | N    | 字符串数组       | 无     | 针对 Pod 内部多容器情景，如果填写了任何 image 通配，则只采集能匹配这些 image 的容器的日志，类似白名单功能；如果字段为空，即认为采集该 Pod 中所有容器的日志       |
+| `enable_diskcache` | N    | true/false       | fasle  | 是否开启磁盘缓存，可以有效避免采集延迟，有一定的性能开销，建议只在日志量超过 3000 条/秒再开启                                                                    |
+| `multiline_match`  | N    | 正则表达式字符串 | 无     | 用于[多行日志匹配](logging.md#multiline)时的首行识别，例如 `"multiline_match":"^\\d{4}"` 表示行首是4个数字，在正则表达式规则中`\d` 是数字，前面的 `\` 是用来转义 |
+| `tags`             | N    | key/value 键值对 | 无     | 添加额外的 tags，如果已经存在同名的 key 将以此为准（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) ）                                                  |
 
 #### 配置示例 {#logging-annotation-label-example}
 
@@ -240,7 +241,7 @@ Datakit 在发现这个容器后，会根据其 `datakit/logs/inside` 的配置�
 
 ## FAQ {#faq}
 
-### 容器日志的特殊字节码过滤 {#special-char-filter}
+### :material-chat-question: 容器日志的特殊字节码过滤 {#special-char-filter}
 
 容器日志可能会包含一些不可读的字节码（比如终端输出的颜色等），可以
 
@@ -262,7 +263,7 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 
 每一条文本的处理耗时将额外增加 `1616 ns` 不等。如果日志中不带有颜色等修饰，不要开启该功能。
 
-### 容器日志采集的 source 设置 {#config-logging-source}
+### :material-chat-question: 容器日志采集的 source 设置 {#config-logging-source}
 
 在容器环境下，日志来源（`source`）设置是一个很重要的配置项，它直接影响在页面上的展示效果。但如果挨个给每个容器的日志配置一个 source 未免残暴。如果不手动配置容器日志来源，DataKit 有如下规则（优先级递减）用于自动推断容器日志的来源：
 
@@ -276,3 +277,5 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 
 - [Pipeline：文本数据处理](../developers/pipeline.md)
 - [DataKit 日志采集综述](datakit-logging.md)
+
+[1]: https://en.wikipedia.org/wiki/Glob_(programming)

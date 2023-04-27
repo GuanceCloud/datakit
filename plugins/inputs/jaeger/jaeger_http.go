@@ -25,7 +25,7 @@ func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) 
 }
 
 func handleJaegerTrace(resp http.ResponseWriter, req *http.Request) {
-	log.Debugf("### received tracing data from path: %s", req.URL.Path)
+	log.Debugf("### receiving trace data from path: %s", req.URL.Path)
 
 	pbuf := bufpool.GetBuffer()
 	defer bufpool.PutBuffer(pbuf)
@@ -163,9 +163,7 @@ func gatherSpansInfo(trace []*jaeger.Span) (parentIDs map[uint64]bool, spanIDs m
 			continue
 		}
 		spanIDs[uint64(span.SpanId)] = true
-		if span.ParentSpanId != 0 {
-			parentIDs[uint64(span.ParentSpanId)] = true
-		}
+		parentIDs[uint64(span.ParentSpanId)] = true
 	}
 
 	return spanIDs, parentIDs

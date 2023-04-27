@@ -13,8 +13,8 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
@@ -75,10 +75,6 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 func (i *Input) RunPipeline() {
 	if i.Log == nil || len(i.Log.Files) == 0 {
 		return
-	}
-
-	if i.Log.Pipeline == "" {
-		i.Log.Pipeline = "iis.p"
 	}
 
 	opt := &tailer.Option{
@@ -185,7 +181,7 @@ func (i *Input) Collect() error {
 			// measurement name -> instance name -> metric name -> counter query handle list index
 			indexMap := map[string]map[string]map[string]int{mName: {}}
 
-			// counter name 被本地化，无法使用
+			// counter name is localized and cannot be used
 			instanceList, _, ret := pdh.PdhEnumObjectItems(objName)
 			if ret != uint32(windows.ERROR_SUCCESS) {
 				return fmt.Errorf("failed to enumerate the instance and counter of object %s", objName)

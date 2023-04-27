@@ -16,7 +16,7 @@ datakit:
   ## The default open collector list, format example: input1, input2, input3
   default_enabled_inputs: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container
   ## @param enabled_election - boolean
-  ## When the election is enabled, it is not enabled by default. If it needs to be enabled, you can give any non empty string value to the environment variable. (e.g. true / false)
+  ## When the election is enabled, it is enabled by default. If it needs to be enabled, you can give any non empty string value to the environment variable. (e.g. true / false)
   enabled_election: true
   ## @param log - string
   ## Set logging verbosity, valid log levels are:
@@ -43,7 +43,7 @@ image:
   #
   pullPolicy: Always
 
-# https://www.yuque.com/dataflux/datakit/datakit-install#f9858758
+# https://docs.guance.com/datakit/datakit-daemonset-deploy/
 
 git_repos:
   # use git management DataKit input
@@ -51,7 +51,7 @@ git_repos:
 
   ## @param git_url - string - required
   ## You Can Set git@github.com:path/to/repository.git or http://username:password@github.com/path/to/repository.git.
-  ## see https://www.yuque.com/dataflux/datakit/datakit-conf#90362fd0
+  ## see https://docs.guance.com/best-practices/insight/datakit-daemonset/#git
   git_url: "-"
   ## @param git_key_path - string - optional
   ## The Git Ssh Key Content,
@@ -89,10 +89,22 @@ iploc:
 
 ## @param extraEnvs - array - optional
 ## extra env Add env for customization
-## more, see: https://www.yuque.com/dataflux/datakit/datakit-install#f9858758
-extraEnvs: []
+## more, see: https://docs.guance.com/datakit/datakit-daemonset-deploy/#using-k8-env
+## You can add more than one parameter
+extraEnvs:
+#  - name: ENV_NAMESPACE # electoral
+#    value: k8s
 #  - name: "NODE_OPTIONS"
 #    value: "--max-old-space-size=1800"
+
+
+resources:
+  requests:
+    cpu: "200m"
+    memory: "128Mi"
+  limits:
+    cpu: "2000m"
+    memory: "4Gi"
 
 ## @param nameOverride - string - optional
 ## Override name of app.
@@ -152,6 +164,6 @@ kubeStateMetricsEnabled: true
 
 ## If true, deploys the metrics-server deployment.
 ## ref: https://github.com/kubernetes-sigs/metrics-server/tree/master/charts/metrics-server
-MetricsServerEnabled: true
+MetricsServerEnabled: false
 
 

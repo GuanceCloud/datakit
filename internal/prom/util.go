@@ -11,6 +11,7 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
+	"net"
 	"net/url"
 	"regexp"
 	"strings"
@@ -19,6 +20,13 @@ import (
 	dto "github.com/prometheus/client_model/go"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
+
+const statusInfo = "INFO"
+
+type nameAndFamily struct {
+	metricName   string
+	metricFamily *dto.MetricFamily
+}
 
 func (p *Prom) getMetricTypeName(familyType dto.MetricType) string {
 	var metricTypeName string
@@ -33,6 +41,11 @@ func (p *Prom) getMetricTypeName(familyType dto.MetricType) string {
 		metricTypeName = "summary"
 	case dto.MetricType_UNTYPED:
 		metricTypeName = "untyped"
+	case dto.MetricType_GAUGE_HISTOGRAM:
+		// TODO
+		// passed lint
+	case dto.MetricType_INFO:
+		metricTypeName = "info"
 	}
 	return metricTypeName
 }
@@ -146,8 +159,18 @@ func (p *Prom) tagKVMatched(tags map[string]string) bool {
 func (p *Prom) getTags(labels []*dto.LabelPair, measurementName string, u string) map[string]string {
 	tags := map[string]string{}
 
-	if host := getHost(u); host != "" {
-		tags["host"] = host
+	if !p.opt.DisableHostTag {
+		setHostTagIfNotLoopback(tags, u)
+	}
+
+	if !p.opt.DisableInstanceTag {
+		setInstanceTag(tags, u)
+	}
+
+	if !p.opt.DisableInfoTag {
+		for k, v := range p.infoTags {
+			tags[k] = v
+		}
 	}
 
 	// Add custom tags.
@@ -156,8 +179,8 @@ func (p *Prom) getTags(labels []*dto.LabelPair, measurementName string, u string
 	}
 
 	// Add prometheus labels as tags.
-	for _, lab := range labels {
-		tags[lab.GetName()] = lab.GetValue()
+	for _, l := range labels {
+		tags[l.GetName()] = l.GetValue()
 	}
 
 	p.removeIgnoredTags(tags)
@@ -175,15 +198,39 @@ func (p *Prom) getTags(labels []*dto.LabelPair, measurementName string, u string
 	return tags
 }
 
-func getHost(u string) string {
-	if u == "" || strings.Contains(u, "127.0.0.1") || strings.Contains(u, "localhost") {
-		return ""
-	}
+func setInstanceTag(tags map[string]string, u string) {
 	uu, err := url.Parse(u)
 	if err != nil {
-		return ""
+		return
 	}
-	return uu.Host
+	tags["instance"] = uu.Host
+}
+
+func setHostTagIfNotLoopback(tags map[string]string, u string) {
+	uu, err := url.Parse(u)
+	if err != nil {
+		return
+	}
+	host, _, err := net.SplitHostPort(uu.Host)
+	if err != nil {
+		return
+	}
+	if host != "localhost" && !net.ParseIP(host).IsLoopback() {
+		tags["host"] = host
+	}
+}
+
+func shouldDisableGlobalHostTag(u string) bool {
+	uu, err := url.Parse(u)
+	if err != nil {
+		return false
+	}
+	host, _, err := net.SplitHostPort(uu.Host)
+	if err != nil {
+		return false
+	}
+	// disable global host tag if ip is not a loopback address
+	return host == "localhost" || net.ParseIP(host).IsLoopback()
 }
 
 func (p *Prom) getTagsWithLE(labels []*dto.LabelPair, measurementName string, b *dto.Bucket) map[string]string {
@@ -243,19 +290,28 @@ func (p *Prom) renameTags(tags map[string]string) {
 	}
 }
 
-func (p *Prom) filterMetricFamilies(metricFamilies map[string]*dto.MetricFamily) map[string]*dto.MetricFamily {
-	filteredMetricFamilies := make(map[string]*dto.MetricFamily)
+func (p *Prom) swapTypeInfoToFront(nf []nameAndFamily) {
+	var i int
+	for j := 0; j < len(nf); j++ {
+		if nf[j].metricFamily.GetType() == dto.MetricType_INFO {
+			nf[i], nf[j] = nf[j], nf[i]
+			i++
+		}
+	}
+}
+
+func (p *Prom) filterMetricFamilies(metricFamilies map[string]*dto.MetricFamily) []nameAndFamily {
+	var filteredMetricFamilies []nameAndFamily
 	for name, value := range metricFamilies {
 		if p.validMetricName(name) && p.validMetricType(value.GetType()) {
-			filteredMetricFamilies[name] = value
+			filteredMetricFamilies = append(filteredMetricFamilies, nameAndFamily{metricName: name, metricFamily: value})
 		}
 	}
 	return filteredMetricFamilies
 }
 
-// text2Metrics converts raw prometheus metric text to line protocol points.
-// It handles the case in which the same kind of comment for a metric name appears repeatedly.
-// E.g. multiple '# TYPE node_network_info gauge' appears in one piece of text.
+// text2Metrics converts raw prometheus metric text to line protocol points. It handles the case in which the same
+// kind of comment (either HELP or TYPE) for a metric name appears repeatedly.
 func (p *Prom) text2Metrics(in io.Reader, u string) ([]*point.Point, error) {
 	var (
 		buf         []byte
@@ -277,13 +333,15 @@ func (p *Prom) text2Metrics(in io.Reader, u string) ([]*point.Point, error) {
 			if tkn == "HELP" || tkn == "TYPE" {
 				// If the token is HELP, at least one more token is expected, which is the metric name. If the token is
 				// TYPE, exactly two more tokens are expected. The first is the metric name, and the second is either
-				// counter, gauge, histogram, summary, or untyped, defining the type for the metric of that name. In
+				// counter, gauge, histogram, summary, info, or untyped, defining the type for the metric of that name. In
 				// both cases, # is followed by token HELP or TYPE, and followed by at least one more token which is the
 				// metric name. If it reaches end of line before reading out metric name, This line is treated as a
 				// common comment.
 				metricName := ti.readNextToken()
 				if metricName != "" {
 					if _, has := comment[tkn+metricName]; has {
+						// The same comment for a metric has already appeared. We need to split the text so that the
+						// parser doesn't complain.
 						split = true
 					} else {
 						comment[tkn+metricName] = struct{}{}
@@ -318,6 +376,11 @@ func (p *Prom) text2Metrics(in io.Reader, u string) ([]*point.Point, error) {
 		}
 		points = append(points, pts...)
 	}
+
+	for k := range p.infoTags {
+		delete(p.infoTags, k)
+	}
+
 	return points, nil
 }
 
@@ -359,8 +422,10 @@ func (p *Prom) doText2Metrics(in io.Reader, u string) (pts []*point.Point, lastE
 	}
 
 	filteredMetricFamilies := p.filterMetricFamilies(metricFamilies)
+	p.swapTypeInfoToFront(filteredMetricFamilies)
 
-	for name, value := range filteredMetricFamilies {
+	for _, nf := range filteredMetricFamilies {
+		name, value := nf.metricName, nf.metricFamily
 		measurementName, fieldName := p.getNames(name)
 
 		switch value.GetType() {
@@ -374,10 +439,17 @@ func (p *Prom) doText2Metrics(in io.Reader, u string) (pts []*point.Point, lastE
 				fields := map[string]interface{}{
 					fieldName: v,
 				}
+				if p.opt.AsLogging != nil && p.opt.AsLogging.Enable {
+					fields["status"] = statusInfo
+				}
 				tags := p.getTags(m.GetLabel(), measurementName, u)
 
 				if !p.tagKVMatched(tags) {
-					pt, err := point.NewPoint(measurementName, tags, fields, point.MOptElectionV2(p.opt.Election))
+					pointOpt := *p.opt.pointOpt
+					if shouldDisableGlobalHostTag(u) {
+						pointOpt.DisableGlobalTags = true
+					}
+					pt, err := point.NewPoint(measurementName, tags, fields, &pointOpt)
 					if err != nil {
 						lastErr = err
 					} else {
@@ -392,11 +464,17 @@ func (p *Prom) doText2Metrics(in io.Reader, u string) (pts []*point.Point, lastE
 					fieldName + "_count": float64(m.GetSummary().GetSampleCount()),
 					fieldName + "_sum":   m.GetSummary().GetSampleSum(),
 				}
-
+				if p.opt.AsLogging != nil && p.opt.AsLogging.Enable {
+					fields["status"] = statusInfo
+				}
 				tags := p.getTags(m.GetLabel(), measurementName, u)
 
 				if !p.tagKVMatched(tags) {
-					pt, err := point.NewPoint(measurementName, tags, fields, point.MOptElectionV2(p.opt.Election))
+					pointOpt := *p.opt.pointOpt
+					if shouldDisableGlobalHostTag(u) {
+						pointOpt.DisableGlobalTags = true
+					}
+					pt, err := point.NewPoint(measurementName, tags, fields, &pointOpt)
 					if err != nil {
 						lastErr = err
 					} else {
@@ -408,12 +486,19 @@ func (p *Prom) doText2Metrics(in io.Reader, u string) (pts []*point.Point, lastE
 					fields := map[string]interface{}{
 						fieldName: q.GetValue(),
 					}
+					if p.opt.AsLogging != nil && p.opt.AsLogging.Enable {
+						fields["status"] = statusInfo
+					}
 
 					tags := p.getTags(m.GetLabel(), measurementName, u)
 					tags["quantile"] = fmt.Sprint(q.GetQuantile())
 
 					if !p.tagKVMatched(tags) {
-						pt, err := point.NewPoint(measurementName, tags, fields, point.MOptElectionV2(p.opt.Election))
+						pointOpt := *p.opt.pointOpt
+						if shouldDisableGlobalHostTag(u) {
+							pointOpt.DisableGlobalTags = true
+						}
+						pt, err := point.NewPoint(measurementName, tags, fields, &pointOpt)
 						if err != nil {
 							lastErr = err
 						} else {
@@ -429,11 +514,18 @@ func (p *Prom) doText2Metrics(in io.Reader, u string) (pts []*point.Point, lastE
 					fieldName + "_count": float64(m.GetHistogram().GetSampleCount()),
 					fieldName + "_sum":   m.GetHistogram().GetSampleSum(),
 				}
+				if p.opt.AsLogging != nil && p.opt.AsLogging.Enable {
+					fields["status"] = statusInfo
+				}
 
 				tags := p.getTags(m.GetLabel(), measurementName, u)
 
 				if !p.tagKVMatched(tags) {
-					pt, err := point.NewPoint(measurementName, tags, fields, point.MOptElectionV2(p.opt.Election))
+					pointOpt := *p.opt.pointOpt
+					if shouldDisableGlobalHostTag(u) {
+						pointOpt.DisableGlobalTags = true
+					}
+					pt, err := point.NewPoint(measurementName, tags, fields, &pointOpt)
 					if err != nil {
 						lastErr = err
 					} else {
@@ -445,17 +537,36 @@ func (p *Prom) doText2Metrics(in io.Reader, u string) (pts []*point.Point, lastE
 					fields := map[string]interface{}{
 						fieldName + "_bucket": b.GetCumulativeCount(),
 					}
+					if p.opt.AsLogging != nil && p.opt.AsLogging.Enable {
+						fields["status"] = statusInfo
+					}
 
 					tags := p.getTagsWithLE(m.GetLabel(), measurementName, b)
 
 					if !p.tagKVMatched(tags) {
-						pt, err := point.NewPoint(measurementName, tags, fields, point.MOptElectionV2(p.opt.Election))
+						pointOpt := *p.opt.pointOpt
+						if shouldDisableGlobalHostTag(u) {
+							pointOpt.DisableGlobalTags = true
+						}
+						pt, err := point.NewPoint(measurementName, tags, fields, &pointOpt)
 						if err != nil {
 							lastErr = err
 						} else {
 							pts = append(pts, pt)
 						}
 					}
+				}
+			}
+		case dto.MetricType_GAUGE_HISTOGRAM:
+			// TODO
+			// passed lint
+		case dto.MetricType_INFO:
+			// Info metrics are used to expose textual information which SHOULD NOT change during process lifetime.
+			// Info may be used to encode ENUMs whose values do not change over time, such as the type of a network interface.
+			// https://github.com/OpenObservability/OpenMetrics/blob/main/specification/OpenMetrics.md#info
+			for _, m := range value.GetMetric() {
+				for _, l := range m.GetLabel() {
+					p.infoTags[l.GetName()] = l.GetValue()
 				}
 			}
 		}

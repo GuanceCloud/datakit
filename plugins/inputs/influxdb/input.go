@@ -11,14 +11,14 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"reflect"
-	"strings"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
@@ -133,10 +133,6 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 func (i *Input) RunPipeline() {
 	if i.Log == nil || len(i.Log.Files) == 0 {
 		return
-	}
-
-	if i.Log.Pipeline == "" {
-		i.Log.Pipeline = "influxdb.p" // use default
 	}
 
 	opt := &tailer.Option{
@@ -288,9 +284,7 @@ func (i *Input) Collect() error {
 			if point.Tags == nil {
 				point.Tags = make(map[string]string)
 			}
-			if host := getHost(i.URL); host != "" {
-				point.Tags["host"] = host
-			}
+			setHostTagIfNotLoopback(point.Tags, i.URL)
 			for k, v := range i.Tags {
 				point.Tags[k] = v
 			}
@@ -306,16 +300,20 @@ func (i *Input) Collect() error {
 	return nil
 }
 
-func getHost(rawURL string) string {
-	if strings.Contains(rawURL, "127.0.0.1") || strings.Contains(rawURL, "localhost") {
-		return ""
-	}
-	u, err := url.Parse(rawURL)
+func setHostTagIfNotLoopback(tags map[string]string, u string) {
+	uu, err := url.Parse(u)
 	if err != nil {
-		l.Errorf("failed to get host from url: %v", err)
-		return ""
+		l.Errorf("parse url: %v", err)
+		return
 	}
-	return u.Host
+	host, _, err := net.SplitHostPort(uu.Host)
+	if err != nil {
+		l.Errorf("split host and port: %v", err)
+		return
+	}
+	if host != "localhost" && !net.ParseIP(host).IsLoopback() {
+		tags["host"] = host
+	}
 }
 
 func (i *Input) Pause() error {

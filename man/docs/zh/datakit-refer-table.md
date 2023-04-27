@@ -44,7 +44,7 @@
 
 === "Kubernetes"
 
-    [参见这里](datakit-daemonset-deploy.md#env-reftab)
+    [参见这里](../datakit/datakit-daemonset-deploy.md#env-reftab)
 
 ---
 
@@ -174,7 +174,7 @@ cd /usr/local/datakit/pipeline/logging
 
 vim refer_table_for_test.p
 
-datakit pipeline refer_table_for_test.p -T '{"table": "table_abc", "key": "col2", "value": 1234.0}' --date
+datakit pipeline -P refer_table_for_test.p -T '{"table": "table_abc", "key": "col2", "value": 1234.0}' --date
 ```
 
 由以下输出结果可知，表中列的 col, col2, col3, col4 成功被追加到输出的结果中：

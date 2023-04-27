@@ -13,16 +13,18 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
+	lp "github.com/GuanceCloud/cliutils/lineproto"
+	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 	"github.com/GuanceCloud/platypus/pkg/token"
-	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
-	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/plmap"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/transform"
 )
@@ -77,7 +79,7 @@ type pipelineResult struct {
 }
 
 func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever ...interface{}) (interface{}, error) {
-	tid := req.Header.Get(uhttp.XTraceId)
+	tid := req.Header.Get(uhttp.XTraceID)
 
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
@@ -161,9 +163,13 @@ func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever 
 	var runResult []pipelineResult
 
 	start := time.Now()
+
+	ptsLi := &pldebugFeed{}
+
+	buks := plmap.NewAggBuks(ptsLi.uploadfn)
 	for _, pt := range pts {
 		// run pipeline
-		pt, drop, err := plRunner.Run(pt, nil, opt, newPlTestSingal())
+		pt, drop, err := plRunner.Run(pt, nil, opt, newPlTestSingal(), buks)
 
 		if err != nil {
 			plerr, ok := err.(*errchain.PlError) //nolint:errorlint
@@ -196,6 +202,25 @@ func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever 
 				Dropped: drop,
 			})
 		}
+	}
+	buks.StopAllBukScanner()
+	ptsLi.Lock()
+	defer ptsLi.Unlock()
+	for _, pt := range ptsLi.d {
+		fields, err := pt.Fields()
+		if err != nil {
+			l.Errorf("Fields: %s", err.Error())
+			return nil, err
+		}
+		runResult = append(runResult, pipelineResult{
+			Point: &PlRetPoint{
+				Name:   pt.Name(),
+				Tags:   pt.Tags(),
+				Fields: fields,
+				Time:   pt.Time().Unix(),
+				TimeNS: int64(pt.Time().Nanosecond()),
+			},
+		})
 	}
 
 	var benchmarkInfo string
@@ -318,6 +343,13 @@ func decodeDataAndConv2Point(category, name, encode string, data []string) ([]*p
 				return nil, err
 			}
 			result = append(result, pt)
+		case datakit.Metric:
+			pts, err := lp.ParsePoints([]byte(line), &lp.Option{EnablePointInKey: true})
+			if err != nil {
+				return nil, err
+			}
+			newPts := point.WrapPoint(pts)
+			result = append(result, newPts...)
 		default:
 			pts, err := lp.ParsePoints([]byte(line), nil)
 			if err != nil {
@@ -391,4 +423,23 @@ func newPlTestSingal() *plTestSignal {
 		tn:      time.Now(),
 		timeout: time.Millisecond * 500,
 	}
+}
+
+type pldebugFeed struct {
+	d []*point.Point
+	sync.Mutex
+}
+
+func (f *pldebugFeed) uploadfn(name string, data any) error {
+	f.Lock()
+	defer f.Unlock()
+
+	if v, ok := data.([]*point.Point); ok {
+		for _, v := range v {
+			if v != nil {
+				f.d = append(f.d, v)
+			}
+		}
+	}
+	return nil
 }

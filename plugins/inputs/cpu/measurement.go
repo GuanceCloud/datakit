@@ -89,8 +89,8 @@ func (m *cpuMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
-			"host": &inputs.TagInfo{Desc: "主机名"},
-			"cpu":  &inputs.TagInfo{Desc: "CPU 核心"},
+			"host": &inputs.TagInfo{Desc: "System hostname."},
+			"cpu":  &inputs.TagInfo{Desc: "CPU core ID. For `cpu-total`, it means *all-CPUs-in-one-tag*. If you want every CPU's metric, please enable `percpu` option in *cpu.conf* or set `ENV_INPUT_CPU_PERCPU` under K8s"},
 		},
 	}
 }

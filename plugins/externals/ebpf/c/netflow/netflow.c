@@ -119,7 +119,7 @@ int kretprobe__do_sendfile(struct pt_regs *ctx)
 // ===============================================
 
 // TCP_ESTABLISHED；
-// 记录 TCP_CLOSE 后将导致 kprobe__tcp_close 清除的 tcp 连接信息被重新写入 bpfmap,
+// After recording TCP_CLOSE, the tcp connection information cleared by kprobe__tcp_close will be rewritten into bpfmap.
 // https://elixir.bootlin.com/linux/latest/source/net/ipv4/tcp.c#L2707 .
 SEC("kprobe/tcp_set_state")
 int kprobe__tcp_set_state(struct pt_regs *ctx)
@@ -196,7 +196,7 @@ int kprobe__inet_csk_listen_stop(struct pt_regs *ctx)
         return 0;
     }
     struct port_bind pb = {};
-    pb.netns = read_netns(&sk->sk_net);
+    pb.netns = read_netns(sk);
     pb.port = port;
 
     bpf_map_delete_elem(&bpfmap_port_bind, &pb);
@@ -226,7 +226,7 @@ int kprobe__tcp_close(struct pt_regs *ctx)
 
     __u64 pid_tgid = bpf_get_current_pid_tgid();
 
-    struct connection_info conn;
+    struct connection_info conn = {};
     __builtin_memset(&conn, 0, sizeof(conn));
 
     if (read_connection_info(sk, &conn, pid_tgid, CONN_L4_TCP) != 0)
@@ -424,7 +424,7 @@ int kprobe__ip6_make_skb(struct pt_regs *ctx)
         size_t size = (size_t)PT_REGS_PARM4(ctx);
         __u64 pid_tgid = bpf_get_current_pid_tgid();
         size -= sizeof(struct udphdr);
-        struct connection_info conn;
+        struct connection_info conn = {};
         __builtin_memset(&conn, 0, sizeof(conn));
         if (read_connection_info(sk, &conn, pid_tgid, CONN_L4_UDP) != 0)
         {
@@ -455,7 +455,7 @@ int kprobe__ip6_make_skb(struct pt_regs *ctx)
         size_t size = (size_t)PT_REGS_PARM4(ctx);
         __u64 pid_tgid = bpf_get_current_pid_tgid();
         size -= sizeof(struct udphdr);
-        struct connection_info conn;
+        struct connection_info conn  = {};
         __builtin_memset(&conn, 0, sizeof(conn));
         if (read_connection_info(sk, &conn, pid_tgid, CONN_L4_UDP) != 0)
         {

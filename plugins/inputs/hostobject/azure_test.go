@@ -12,11 +12,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	tu "github.com/GuanceCloud/cliutils/testutil"
 )
 
 var (
-	Azure     = &azure{}
+	az        = &azure{}
 	Azuredata = `{
   "compute": {
     "azEnvironment": "AzurePublicCloud",
@@ -151,13 +151,13 @@ func testGetAzure() *httptest.Server {
 			fmt.Fprintf(w, "bad response")
 		}
 	}))
-	Azure.baseURL = ts.URL
+	az.baseURL = ts.URL
 	return ts
 }
 
 func parseAzureData() *azureMetaData {
 	ts := testGetAzure()
-	resp := metadataGetByHeader(Azure.baseURL + "/metadata/instance?api-version=2021-02-01")
+	resp := metadataGetByHeader(az.baseURL + "/metadata/instance?api-version=2021-02-01")
 	defer ts.Close()
 	model := &azureMetaData{}
 	err := json.Unmarshal(resp, &model)
@@ -195,14 +195,14 @@ func TestAzure_Region(t *testing.T) {
 
 func TestAzure_PrivateIP(t *testing.T) {
 	ts := testGetAzure()
-	resp := metadataGetByHeader(Azure.baseURL + "/metadata/instance/network/interface/0/ipv4/ipAddress/0/privateIpAddress?api-version=2021-02-01")
+	resp := metadataGetByHeader(az.baseURL + "/metadata/instance/network/interface/0/ipv4/ipAddress/0/privateIpAddress?api-version=2021-02-01")
 	defer ts.Close()
 	tu.Assert(t, string(resp) == "10.0.0.4", "Azure_PrivateIP")
 }
 
 func TestAzure_InstanceChargeType(t *testing.T) {
 	ts := testGetAzure()
-	resp := metadataGetByHeader(Azure.baseURL + "/metadata/instance?api-version=2021-02-01")
+	resp := metadataGetByHeader(az.baseURL + "/metadata/instance?api-version=2021-02-01")
 	defer ts.Close()
 	model := struct {
 		AzureInstanceChargeType string
@@ -216,7 +216,7 @@ func TestAzure_InstanceChargeType(t *testing.T) {
 
 func TestAzure_WrongRouter(t *testing.T) {
 	ts := testGetAzure()
-	resp := metadataGetByHeader(Azure.baseURL + "/metadata/instance?api-version=2021-02-01/wrongCase")
+	resp := metadataGetByHeader(az.baseURL + "/metadata/instance?api-version=2021-02-01/wrongCase")
 	defer ts.Close()
 	tu.Assert(t, string(resp) == "bad response", "Azure_WrongRouter")
 }

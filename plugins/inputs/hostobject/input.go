@@ -12,13 +12,16 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/metrics"
+	"github.com/GuanceCloud/cliutils/point"
+	dto "github.com/prometheus/client_model/go"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -49,11 +52,14 @@ type Input struct {
 
 	DisableCloudProviderSync bool              `toml:"disable_cloud_provider_sync"`
 	CloudInfo                map[string]string `toml:"cloud_info,omitempty"`
+	lastSync                 time.Time
 
 	collectData *hostMeasurement
 
 	semStop    *cliutils.Sem // start stop signal
 	isTestMode bool
+
+	mfs []*dto.MetricFamily
 }
 
 func (ipt *Input) Singleton() {
@@ -86,11 +92,11 @@ func (ipt *Input) Run() {
 		l.Debugf("start collecting...")
 		start := time.Now()
 		if err := ipt.doCollect(); err != nil {
-			io.FeedLastError(InputName, err.Error())
+			io.FeedLastError(InputName, err.Error(), point.Object)
 		} else if err := inputs.FeedMeasurement(InputName,
 			datakit.Object, []inputs.Measurement{ipt.collectData},
 			&io.Option{CollectCost: time.Since(start)}); err != nil {
-			io.FeedLastError(InputName, err.Error())
+			io.FeedLastError(InputName, err.Error(), point.Object)
 		}
 
 		select {
@@ -198,8 +204,8 @@ func (hm *hostMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (hm *hostMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(hm.name, hm.tags, hm.fields, point.OOpt())
+func (hm *hostMeasurement) LineProto() (*dkpt.Point, error) {
+	return dkpt.NewPoint(hm.name, hm.tags, hm.fields, dkpt.OOpt())
 }
 
 func (ipt *Input) SampleMeasurement() []inputs.Measurement {
@@ -213,6 +219,10 @@ func (ipt *Input) AvailableArchs() []string {
 }
 
 func (ipt *Input) doCollect() error {
+	if mfs, err := metrics.Gather(); err == nil {
+		ipt.mfs = mfs
+	}
+
 	message, err := ipt.getHostObjectMessage()
 	if err != nil {
 		return err
@@ -281,21 +291,21 @@ func (ipt *Input) doCollect() error {
 	return nil
 }
 
-func (ipt *Input) Collect() (map[string][]*point.Point, error) {
+func (ipt *Input) Collect() (map[string][]*dkpt.Point, error) {
 	ipt.isTestMode = true
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 	if err := ipt.doCollect(); err != nil {
 		return nil, err
 	}
 
-	var pts []*point.Point
+	var pts []*dkpt.Point
 	if pt, err := ipt.collectData.LineProto(); err != nil {
 		return nil, err
 	} else {
 		pts = append(pts, pt)
 	}
 
-	mpts := make(map[string][]*point.Point)
+	mpts := make(map[string][]*dkpt.Point)
 	mpts[datakit.Object] = pts
 
 	return mpts, nil

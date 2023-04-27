@@ -12,9 +12,9 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/pkg/sftp"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -197,7 +197,7 @@ func (ipt *Input) gather() {
 
 		if len(collectCache) != 0 {
 			if err := inputs.FeedMeasurement(inputName, datakit.Metric, collectCache,
-				&io.Option{CollectCost: time.Since(start), HighFreq: false}); err != nil {
+				&io.Option{CollectCost: time.Since(start)}); err != nil {
 				l.Errorf("FeedMeasurement: %s", err.Error())
 			}
 		}

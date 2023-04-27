@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
@@ -141,31 +141,33 @@ func (aga *AfterGather) BuildPointsBatch(dktraces DatakitTraces, strict bool) []
 	return pts
 }
 
+func processUnknown(dkspan *DatakitSpan) {
+	if dkspan != nil {
+		if dkspan.Service == "" {
+			dkspan.Service = UNKNOWN_SERVICE
+		}
+		if dkspan.SourceType == "" {
+			dkspan.SourceType = SPAN_SOURCE_CUSTOMER
+		}
+		if dkspan.SpanType == "" {
+			dkspan.SpanType = SPAN_TYPE_UNKNOWN
+		}
+	}
+}
+
 // BuildPoint builds point from DatakitSpan.
 func BuildPoint(dkspan *DatakitSpan, strict bool) (*point.Point, error) {
-	if dkspan.Service == "" {
-		dkspan.Service = UnknowServiceName(dkspan)
-	}
+	processUnknown(dkspan)
 
 	tags := map[string]string{
 		TAG_SERVICE:     dkspan.Service,
 		TAG_OPERATION:   dkspan.Operation,
 		TAG_SOURCE_TYPE: dkspan.SourceType,
-		TAG_SPAN_STATUS: dkspan.Status,
 		TAG_SPAN_TYPE:   dkspan.SpanType,
-	}
-	if dkspan.SpanType == "" {
-		tags[TAG_SPAN_TYPE] = SPAN_TYPE_UNKNOW
-	}
-	if dkspan.SourceType == "" {
-		tags[TAG_SOURCE_TYPE] = SPAN_SOURCE_CUSTOMER
+		TAG_SPAN_STATUS: dkspan.Status,
 	}
 	for k, v := range dkspan.Tags {
-		if strings.Contains(k, ".") {
-			tags[strings.ReplaceAll(k, ".", "_")] = v
-		} else {
-			tags[k] = v
-		}
+		tags[strings.ReplaceAll(k, ".", "_")] = v
 	}
 
 	fields := map[string]interface{}{
@@ -178,7 +180,7 @@ func BuildPoint(dkspan *DatakitSpan, strict bool) (*point.Point, error) {
 		FIELD_MESSAGE:  dkspan.Content,
 	}
 	for k, v := range dkspan.Metrics {
-		fields[k] = v
+		fields[strings.ReplaceAll(k, ".", "_")] = v
 	}
 
 	return point.NewPoint(dkspan.Source, tags, fields, &point.PointOption{

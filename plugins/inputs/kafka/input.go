@@ -9,8 +9,8 @@ package kafka
 import (
 	"context"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
@@ -59,10 +59,6 @@ func (i *Input) Run() {
 func (i *Input) RunPipeline() {
 	if i.Log == nil || len(i.Log.Files) == 0 {
 		return
-	}
-
-	if i.Log.Pipeline == "" {
-		i.Log.Pipeline = inputName + ".p" // use default
 	}
 
 	opt := &tailer.Option{

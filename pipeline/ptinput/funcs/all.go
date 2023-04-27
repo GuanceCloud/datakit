@@ -7,8 +7,8 @@
 package funcs
 
 import (
+	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/platypus/pkg/engine/runtime"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
 
 var l = logger.DefaultSLogger("funcs")
@@ -18,10 +18,13 @@ func InitLog() {
 }
 
 var FuncsMap = map[string]runtime.FuncCall{
+	"agg_create":            AggCreate,
+	"agg_metric":            AggAddMetric,
 	"append":                Append,
 	"cidr":                  CIDR,
 	"grok":                  Grok,
 	"add_key":               AddKey,
+	"delete":                DeleteMapItem,
 	"adjust_timezone":       AdjustTimezone,
 	"json":                  JSON,
 	"add_pattern":           AddPattern,
@@ -39,6 +42,7 @@ var FuncsMap = map[string]runtime.FuncCall{
 	"get_key":               Getkey,
 	"group_between":         Group,
 	"group_in":              GroupIn,
+	"kv_split":              KVSplit,
 	"lowercase":             Lowercase,
 	"len":                   Len,
 	"load_json":             LoadJSON,
@@ -48,6 +52,7 @@ var FuncsMap = map[string]runtime.FuncCall{
 	"set_measurement":       SetMeasurement,
 	"strfmt":                Strfmt,
 	"trim":                  Trim,
+	"timestamp":             Timestamp,
 	"uppercase":             Uppercase,
 	"use":                   Use,
 	"url_decode":            URLDecode,
@@ -70,10 +75,13 @@ var FuncsMap = map[string]runtime.FuncCall{
 }
 
 var FuncsCheckMap = map[string]runtime.FuncCheck{
+	"agg_create":            AggCreateChecking,
+	"agg_metric":            AggAddMetricChecking,
 	"append":                AppendChecking,
 	"cidr":                  CIDRChecking,
 	"grok":                  GrokChecking,
 	"add_key":               AddkeyChecking,
+	"delete":                DeleteMapItemChecking,
 	"adjust_timezone":       AdjustTimezoneChecking,
 	"json":                  JSONChecking,
 	"add_pattern":           AddPatternChecking,
@@ -91,6 +99,7 @@ var FuncsCheckMap = map[string]runtime.FuncCheck{
 	"get_key":               GetkeyChecking,
 	"group_between":         GroupChecking,
 	"group_in":              GroupInChecking,
+	"kv_split":              KVSplitChecking,
 	"len":                   LenChecking,
 	"load_json":             LoadJSONChecking,
 	"lowercase":             LowercaseChecking,
@@ -100,6 +109,7 @@ var FuncsCheckMap = map[string]runtime.FuncCheck{
 	"set_tag":               SetTagChecking,
 	"strfmt":                StrfmtChecking,
 	"trim":                  TrimChecking,
+	"timestamp":             TimestampChecking,
 	"uppercase":             UppercaseChecking,
 	"use":                   UseChecking,
 	"url_decode":            URLDecodeChecking,

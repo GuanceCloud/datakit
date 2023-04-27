@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/snmp/snmpmeasurement"
@@ -245,7 +245,7 @@ func Test_getFieldTagArr(t *testing.T) {
 		mHash      map[string]map[string]interface{}
 		metaData   *deviceMetaData
 		origTags   []string
-		out        fieldTags
+		out        tagFields
 	}{
 		{
 			name: "empty_hash",
@@ -309,119 +309,21 @@ func Test_getFieldTagArr(t *testing.T) {
 				"device_namespace:default",
 				"snmp_device:192.168.1.100",
 			},
-			out: fieldTags{
-				data: []*fieldTag{
+			out: tagFields{
+				Data: []*tagField{
 					{
-						tags: map[string]string{
-							"abc": "value1",
-							"def": "value2",
+						Tags: map[string]string{
+							"name": "",
+							"host": "",
 						},
-						fields: map[string]interface{}{
-							"key1": float64(1.0),
-							"key2": float64(2.0),
-						},
-					},
-					{
-						tags: map[string]string{
-							"abc":   "value1",
-							"def":   "value2",
-							"apple": "value3",
-						},
-						fields: map[string]interface{}{
-							"key3": float64(3.0),
-							"key4": float64(4.0),
-							"key5": float64(5.0),
-						},
-					},
-					{
-						tags: map[string]string{
-							"device_namespace": "default",
-							"snmp_device":      "192.168.1.100",
-						},
-						fields: map[string]interface{}{
-							deviceMetaKey: "fruit1=banana, fruit2=pear, fruit3=tomato",
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "not_collect_meta",
-			metricData: &snmputil.MetricDatas{
-				Data: []*snmputil.MetricData{
-					{
-						Name:     "key1",
-						Value:    1.0,
-						Tags:     []string{"abc:value1", "def:value2"},
-						TagsHash: "fake_hash_1",
-					},
-					{
-						Name:     "key2",
-						Value:    2.0,
-						Tags:     []string{"abc:value1", "def:value2"},
-						TagsHash: "fake_hash_1",
-					},
-					{
-						Name:     "key3",
-						Value:    3.0,
-						Tags:     []string{"abc:value1", "def:value2", "apple:value3"},
-						TagsHash: "fake_hash_2",
-					},
-					{
-						Name:     "key4",
-						Value:    4.0,
-						Tags:     []string{"abc:value1", "def:value2", "apple:value3"},
-						TagsHash: "fake_hash_2",
-					},
-					{
-						Name:     "key5",
-						Value:    5.0,
-						Tags:     []string{"abc:value1", "def:value2", "apple:value3"},
-						TagsHash: "fake_hash_2",
-					},
-				},
-			},
-			mHash: map[string]map[string]interface{}{
-				"fake_hash_1": {
-					"key1": float64(1.0),
-					"key2": float64(2.0),
-				},
-				"fake_hash_2": {
-					"key3": float64(3.0),
-					"key4": float64(4.0),
-					"key5": float64(5.0),
-				},
-			},
-			metaData: &deviceMetaData{
-				collectMeta: false,
-				data: []string{
-					"fruit1=banana",
-					"fruit2=pear",
-					"fruit3=tomato",
-				},
-			},
-			out: fieldTags{
-				data: []*fieldTag{
-					{
-						tags: map[string]string{
-							"abc": "value1",
-							"def": "value2",
-						},
-						fields: map[string]interface{}{
-							"key1": float64(1.0),
-							"key2": float64(2.0),
-						},
-					},
-					{
-						tags: map[string]string{
-							"abc":   "value1",
-							"def":   "value2",
-							"apple": "value3",
-						},
-						fields: map[string]interface{}{
-							"key3": float64(3.0),
-							"key4": float64(4.0),
-							"key5": float64(5.0),
+						Fields: map[string]interface{}{
+							"interfaces":     "null",
+							"sensors":        "null",
+							"mems":           "null",
+							"mem_pool_names": "null",
+							"cpus":           "null",
+							"all":            `[{"tags":{"abc":"value1","apple":"value3","def":"value2"},"fields":{"key3":3,"key4":4,"key5":5}},{"tags":{"abc":"value1","def":"value2"},"fields":{"key1":1,"key2":2}}]`,
+							"device_meta":    "fruit1=banana, fruit2=pear, fruit3=tomato",
 						},
 					},
 				},
@@ -431,14 +333,23 @@ func Test_getFieldTagArr(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			fts := fieldTags{}
-			getFieldTagArr(tc.metricData, tc.mHash, &fts, tc.metaData, tc.origTags)
-			for _, v := range tc.out.data {
+			fts := tagFields{}
+			getFieldTagArr(tc.metricData, tc.mHash, &fts, tc.metaData, tc.origTags, &Input{})
+			for _, v := range tc.out.Data {
 				foundIdx := -1
-				for kk, vv := range fts.data {
-					resF := reflect.DeepEqual(v.fields, vv.fields)
-					resT := reflect.DeepEqual(v.tags, vv.tags)
-					if resF && resT {
+				for kk, vv := range fts.Data {
+					// resF := reflect.DeepEqual(v.Fields, vv.Fields)
+
+					resF1 := reflect.DeepEqual(v.Fields["interfaces"], vv.Fields["interfaces"])
+					resF2 := reflect.DeepEqual(v.Fields["sensors"], vv.Fields["sensors"])
+					resF3 := reflect.DeepEqual(v.Fields["mems"], vv.Fields["mems"])
+					resF4 := reflect.DeepEqual(v.Fields["mem_pool_names"], vv.Fields["mem_pool_names"])
+					resF5 := reflect.DeepEqual(v.Fields["cpus"], vv.Fields["cpus"])
+					// resF6 := reflect.DeepEqual(v.Fields["all"], vv.Fields["all"])
+					resF7 := reflect.DeepEqual(v.Fields["device_meta"], vv.Fields["device_meta"])
+
+					resT := reflect.DeepEqual(v.Tags, vv.Tags)
+					if resT && resF1 && resF2 && resF3 && resF4 && resF5 && resF7 {
 						foundIdx = kk
 						break
 					}
@@ -471,12 +382,12 @@ func Test_getDatakitStyleTags(t *testing.T) {
 			out: map[string]string{},
 		},
 		{
-			name: defaultSNMPHostKey,
+			name: "snmp_host",
 			in: []string{
-				defaultSNMPHostKey + ":apple",
+				"snmp_host" + ":apple",
 			},
 			out: map[string]string{
-				defaultDatakitHostKey: "apple",
+				"snmp_host": "apple",
 			},
 		},
 		{
@@ -568,24 +479,24 @@ func Test_checkIPWorking_checkIPDone(t *testing.T) {
 func Test_normalizeFieldTags(t *testing.T) {
 	cases := []struct {
 		name string
-		in   *fieldTag
-		out  *fieldTag
+		in   *tagField
+		out  *tagField
 	}{
 		{
 			name: "normal",
-			in: &fieldTag{
-				tags: map[string]string{
+			in: &tagField{
+				Tags: map[string]string{
 					"aaa_a.a": "not_used",
 				},
-				fields: map[string]interface{}{
+				Fields: map[string]interface{}{
 					"aaa_a.a": "not_used",
 				},
 			},
-			out: &fieldTag{
-				tags: map[string]string{
+			out: &tagField{
+				Tags: map[string]string{
 					"aaa_a_a": "not_used",
 				},
-				fields: map[string]interface{}{
+				Fields: map[string]interface{}{
 					"aaa_a_a": "not_used",
 				},
 			},

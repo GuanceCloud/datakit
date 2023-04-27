@@ -8,6 +8,7 @@ package inputs
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"os"
@@ -16,8 +17,8 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
+	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -169,8 +170,28 @@ func (ii *inputInfo) Run() {
 	}
 }
 
+func GetInput() ([]byte, error) {
+	inputs := make(map[string][]Input)
+
+	mtx.Lock()
+	defer mtx.Unlock()
+
+	for name, info := range InputsInfo {
+		for _, ii := range info {
+			inputs[name] = append(inputs[name], ii.input)
+		}
+	}
+
+	b, err := json.Marshal(inputs)
+	if err != nil {
+		l.Errorf("marshal error:%s", err)
+		return nil, err
+	}
+	return b, nil
+}
+
 // AddConfigInfoPath add or update input info.
-//  if fp is empty, add new config when inputName not exist, or set ConfigPaths empty when not exist.
+//  if fp is empty, add new config when inputName not exist, or set ConfigPaths empty when exist.
 func AddConfigInfoPath(inputName string, fp string, loaded int8) {
 	if c, ok := ConfigInfo[inputName]; ok {
 		if len(fp) == 0 {
@@ -197,6 +218,19 @@ func AddConfigInfoPath(inputName string, fp string, loaded int8) {
 				config.ConfigPaths = append(config.ConfigPaths, &ConfigPathStat{Loaded: loaded, Path: fp})
 			}
 			ConfigInfo[inputName] = config
+		}
+	}
+}
+
+// DeleteConfigInfoPath remove fp from config paths of selected input.
+func DeleteConfigInfoPath(inputName, fp string) {
+	mtx.Lock()
+	defer mtx.Unlock()
+	if i, ok := ConfigInfo[inputName]; ok {
+		for j, f := range i.ConfigPaths {
+			if f.Path == fp {
+				i.ConfigPaths = append(i.ConfigPaths[:j], i.ConfigPaths[j+1:]...)
+			}
 		}
 	}
 }
@@ -238,17 +272,17 @@ func RemoveInput(name string, input Input) {
 	l.Debugf("remove input %s, current total %d", name, len(InputsInfo[name]))
 }
 
-func AddSelf() {
-	if i, ok := Inputs[datakit.DatakitInputName]; ok {
-		AddInput(datakit.DatakitInputName, i())
-	}
-}
-
 func ResetInputs() {
 	mtx.Lock()
 	defer mtx.Unlock()
 	InputsInfo = map[string][]*inputInfo{}
-	ConfigInfo = map[string]*Config{}
+
+	// only reset input config path
+	for _, v := range ConfigInfo {
+		v.ConfigPaths = v.ConfigPaths[0:0]
+		v.ConfigDir = datakit.ConfdDir
+	}
+
 	ConfigFileHash = map[string]struct{}{}
 }
 
@@ -282,6 +316,7 @@ func RunInputs() error {
 			}
 		}
 
+		inputInstanceVec.WithLabelValues(name).Set(float64(len(arr)))
 		for _, ii := range arr {
 			if ii.input == nil {
 				l.Debugf("skip non-datakit-input %s", name)
@@ -303,11 +338,19 @@ func RunInputs() error {
 			func(name string, ii *inputInfo) {
 				g.Go(func(ctx context.Context) error {
 					// NOTE: 让每个采集器间歇运行，防止每个采集器扎堆启动，导致主机资源消耗出现规律性的峰值
-					time.Sleep(time.Duration(rand.Int63n(int64(10 * time.Second)))) //nolint:gosec
-					l.Infof("starting input %s ...", name)
+					tick := time.NewTicker(time.Duration(rand.Int63n(int64(10 * time.Second)))) //nolint:gosec
+					defer tick.Stop()
+					select {
+					case <-tick.C:
+						l.Infof("starting input %s ...", name)
 
-					protectRunningInput(name, ii)
-					l.Infof("input %s exited", name)
+						protectRunningInput(name, ii)
+
+						l.Infof("input %s exited", name)
+						return nil
+					case <-datakit.Exit.Wait():
+						l.Infof("start input %s interrupted", name)
+					}
 					return nil
 				})
 			}(name, ii)
@@ -367,24 +410,19 @@ func protectRunningInput(name string, ii *inputInfo) {
 			l.Warnf("input %s panic err: %v", name, err)
 			l.Warnf("input %s panic trace:\n%s", name, string(trace))
 
+			inputsPanicVec.WithLabelValues(name).Inc()
+
 			crashTime = append(crashTime, fmt.Sprintf("%v", time.Now()))
 			addPanic(name)
 
-			io.FeedEventLog(&io.DKEvent{
-				Status:   "error",
-				Message:  string(trace),
-				Category: "input",
-			})
+			io.FeedLastError("crach_"+name, string(trace))
 
 			if len(crashTime) >= MaxCrash {
 				l.Warnf("input %s crash %d times(at %+#v), exit now.",
 					name, len(crashTime), strings.Join(crashTime, "\n"))
 
-				io.FeedEventLog(&io.DKEvent{
-					Message:  fmt.Sprintf("input '%s' has exceeded the max crash times %v and it will be stopped.", name, MaxCrash),
-					Status:   "error",
-					Category: "input",
-				})
+				io.FeedLastError("crash_"+name,
+					fmt.Sprintf("input '%s' has exceeded the max crash times %v and it will be stopped.", name, MaxCrash))
 
 				return
 			}

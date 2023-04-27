@@ -1,77 +1,76 @@
-<!-- This file required to translate to EN. -->
 {{.CSS}}
-# 如何排查无数据问题
+# How to Troubleshoot No Data Problems
 ---
 
-大家在部署完数据采集之后（通过 DataKit 或 Function 采集），有时候在观测云的页面上看不到对应的数据更新，每次排查起来都心力憔悴，为了缓解这一状况，可按照如下的一些步骤，来逐步围歼「为啥没有数据」这一问题。
+After deploying data collection (collected through DataKit or Function), sometimes you can't see the corresponding data update on the page of Guance Cloud, and you are tired every time you check it. In order to alleviate this situation, you can adopt the following steps to gradually encircle the problem of "why there is no data".
 
-## 检查 DataWay 连接是否正常 {#check-connection}
+## Check whether the DataWay connection is normal  {#check-connection}
 
 ```shell
 curl http[s]://your-dataway-addr:port
 ```
 
-对 SAAS 而言，一般这样：
+For SAAS, this is generally the case:
 
 ```shell
 curl https://openway.guance.com
 ```
 
-如果得到如下结果，则表示网络是有问题的：
+If the following results are obtained, the network is problematic:
 
 ```
 curl: (6) Could not resolve host: openway.guance.com
 ```
 
-如果发现如下这样的错误日志，则说明跟 DataWay 的连接出现了一些问题，可能是防火墙做了限制：
+If you find an error log such as the following, it indicates that there is something wrong with the connection with DataWay, which may be restricted by the firewall:
 
 ```shell
 request url https://openway.guance.com/v1/write/xxx/token=tkn_xxx failed:  ... context deadline exceeded...
 ```
 
-## 检查机器时间 {#check-local-time}
+## Check Machine Time {#check-local-time}
 
-在 Linux/Mac 上，输入 `date` 即可查看当前系统时间：
+On Linux/Mac, enter `date` to view the current system time:
 
 ```shell
 date
 Wed Jul 21 16:22:32 CST 2021
 ```
 
-有些情况下，这里可能显示成这样：
+In some cases, this may appear as follows:
 
 ```
 Wed Jul 21 08:22:32 UTC 2021
 ```
 
-这是因为，前者是中国东八区时间，后者是格林威治时间，两者相差 8 小时，但实际上，这两个时间的时间戳是一样的。
+This is because the former is China's East Eight District Time, while the latter is Greenwich Mean Time, with a difference of 8 hours, but in fact, the timestamps of these two times are the same.
 
-如果当前系统的时间跟你的手机时间相差甚远，特别是，它如果超前了，那么观测云上是看不到这些「将来」的数据的。
+If the time of the current system is far from that of your mobile phone, especially if it is ahead of time, there is no "future" data on Guance Cloud.
 
-另外，如果时间滞后，你会看到一些老数据，不要以为发生了灵异事件，事实上，极有可能是 DataKit 所在机器的时间还停留在过去。
+In addition, if the time lag, you will see some old data. Don't think that paranormal happened. In fact, it is very likely that the time of DataKit's machine is still in the past.
 
-## 查看数据是否被黑名单过滤或 Pipeline 丢弃 {#filter-pl}
+## See if the data is blacklisted or discarded by Pipeline {#filter-pl}
 
-如果配置了[黑名单](datakit-filter)（如日志黑名单），新采集的数据可能会被黑名单过滤掉。
+If [a blacklist](datakit-filter)(such as a log blacklist) is configured, newly collected data may be filtered out by the blacklist.
 
-同理，如果 Pipeline 中对数据进行了一些[丢弃操作](pipeline#fb024a10)，那么也可能导致中心看不到这些数据。
+Similarly, if data is [discarded](pipeline#fb024a10) in Pipeline, it may also cause the center to see the data.
 
-## 查看 Monitor 页面 {#monitor}
+## View monitor page {#monitor}
 
-参见[这里](datakit-monitor.md)
+See [here](datakit-monitor.md)
 
-## 通过 DQL 查看是否有数据产生 {#dql}
+## Check whether there is data generated through dql {#dql}
 
-在 Windows/Linux/Mac 上，这一功能均支持，其中 Windows 需在 Powershell 中执行
+This function is supported on Windows/Linux/Mac, where Windows needs to be executed in Powershell.
 
-> DataKit [1.1.7-rc7](changelog#cl-1.1.7-rc7) 才支持这一功能
+> This feature is supported only in DataKit [1.1.7-rc7](changelog#cl-1.1.7-rc7).
 
 ```shell
 datakit dql
-> 这里即可输入 DQL 查询语句...
+> Here you can enter the DQL query statement...
 ```
 
-对于无数据排查，建议对照着采集器文档，看对应的指标集叫什么名字，以 MySQL 采集器为例，目前文档中有如下几个指标集：
+For non-data investigation, it is recommended to compare the collector document to see the name of the corresponding indicator set. Take MySQL collector as an example. At present, there are the following indicator sets in the document:
 
 - `mysql`
 - `mysql_schema`
@@ -79,32 +78,32 @@ datakit dql
 - `mysql_table_schema`
 - `mysql_user_status`
 
-如果 MySQL 这个采集器没数据，可检查 `mysql` 这个指标集是否有数据：
+If mysql does not have data, check whether `mysql` has data:
 
 ``` python
 #
-# 查看 mysql 采集器上，指定主机上（这里是 tan-air.local）的最近一条 mysql 的指标
+# Look at the metrics of the most recent mysql on the mysql collector, specifying the host (in this case tan-air.local)
 #
 M::mysql {host='tan-air.local'} order by time desc limit 1
 ```
 
-查看某个主机对象是不是上报了，这里的 `tan-air.local` 就是预期的主机名：
+To see if a host object has been reported, where `tan-air.local` is the expected host name:
 
 ```python
 O::HOST {host='tan-air.local'}
 ```
 
-查看已有的 APM（tracing）数据分类：
+View the existing APM (tracing) data classification:
 
 ```python
 show_tracing_service()
 ```
 
-以此类推，如果数据确实上报了，那么通过 DQL 总能找到，至于前端不显示，可能是其它过滤条件给挡掉了。通过 DQL，不管是 DataKit 采集的数据，还是其它手段（如 Function）采集的数据，都可以零距离查看原式数据，特别便于 Debug。
+By analogy, if the data is reported, it can always be found through DQL. As for the front end, it may be blocked by other filtering conditions. Through DQL, no matter the data collected by DataKit or other means (such as Function), the original data can be viewed at zero distance, which is especially convenient for Debug.
 
-## 查看 DataKit 程序日志是否有异常 {#check-log}
+## Check the DataKit program log for exceptions {#check-log}
 
-通过 Shell/Powershell 给出最近 10 个 ERROR, WARN 级别的日志
+The last 10 ERROR and WARN logs are given through Shell/Powershell
 
 ```shell
 # Shell
@@ -114,12 +113,12 @@ cat /var/log/datakit/log | grep "WARN\|ERROR" | tail -n 10
 Select-String -Path 'C:\Program Files\datakit\log' -Pattern "ERROR", "WARN"  | Select-Object Line -Last 10
 ```
 
-- 如果日志中发现诸如 `Beyond...` 这样的描述，一般情况下，是因为数据量超过了免费额度。
-- 如果出现一些 `ERROR/WARN` 等字样，一般情况下，都表明 DataKit 遇到了一些问题。
+- If a description such as `Beyond...` is found in the log, it is generally because the amount of data exceeds the free amount.
+- If some words such as `ERROR/WARN` appear, it indicates that DataKit has encountered some problems in general.
 
-### 查看单个采集器的运行日志 {#check-input-log}
+### View the running log of a single collector {#check-input-log}
 
-如果没有发现什么异常，可直接查看单个采集器的运行日志：
+If no exception is found, you can directly view the operation log of a single collector:
 
 ```shell
 # shell
@@ -129,7 +128,7 @@ tail -f /var/log/datakit/log | grep "<采集器名称>" | grep "WARN\|ERROR"
 Get-Content -Path "C:\Program Files\datakit\log" -Wait | Select-String "<采集器名称>" | Select-String "ERROR", "WARN"
 ```
 
-也可以去掉 `ERROR/WARN` 等过滤，直接查看对应采集器日志。如果日志不够，可将 `datakit.conf` 中的调试日志打开，查看更多日志：
+也You can also remove the filter such as `ERROR/WARN` and directly view the corresponding collector log. If you don't have enough logs, open the debug log in `datakit.conf` to see more logs:
 
 ```
 # DataKit >= 1.1.8-rc0
@@ -142,9 +141,9 @@ Get-Content -Path "C:\Program Files\datakit\log" -Wait | Select-String "<采集�
 log_level = "debug"
 ```
 
-### 查看 gin.log {#check-gin-log}
-
-对于远程给 DataKit 打数据的采集，可查看 gin.log 来查看是否有远程数据发送过来：
+### View gin.log {#check-gin-log}
+ 
+For remote data collection to DataKit, you can check gin.log to see if there is remote data sent: 
 
 ```shell
 tail -f /var/log/datakit/gin.log

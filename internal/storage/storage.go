@@ -12,19 +12,21 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	cache "gitlab.jiagouyun.com/cloudcare-tools/cliutils/diskcache"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils"
+	dc "github.com/GuanceCloud/cliutils/diskcache"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 )
 
+// nolint: stylecheck
 const (
-	HTTP_KEY             uint8 = iota + 1 // nolint: stylecheck
-	OTEL_GRPC_KEY                         // nolint: stylecheck
-	SKY_WALKING_GRPC_KEY                  // nolint: stylecheck
-	ZIPKIN_HTTP_V1_KEY                    // nolint: stylecheck
-	ZIPKIN_HTTP_V2_KEY                    // nolint: stylecheck
+	HTTP_KEY uint8 = iota + 1
+	OTEL_GRPC_KEY
+	SKY_WALKING_GRPC_KEY
+	ZIPKIN_HTTP_V1_KEY
+	ZIPKIN_HTTP_V2_KEY
+	PINPOINT_GRPC_KEY
 )
 
 type StorageConfig struct {
@@ -36,7 +38,7 @@ type ConsumerFunc func(buf []byte) error
 
 type Storage struct {
 	path      string
-	cache     *cache.DiskCache
+	cache     *dc.DiskCache
 	log       *logger.Logger
 	exit      *cliutils.Sem
 	consumers map[uint8]ConsumerFunc
@@ -48,7 +50,9 @@ func NewStorage(config *StorageConfig, log *logger.Logger) (*Storage, error) {
 		return nil, errors.New("storage config error")
 	}
 
-	cache, err := cache.Open(datakit.JoinToCacheDir(config.Path), &cache.Option{Capacity: int64(config.Capacity) << 20})
+	cache, err := dc.Open(
+		dc.WithPath(datakit.JoinToCacheDir(config.Path)),
+		dc.WithCapacity(int64(config.Capacity)<<20))
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +77,7 @@ func (s *Storage) RunConsumeWorker() error {
 		return errors.New("local-cache is already enabled")
 	}
 
-	g := goroutine.NewGroup(goroutine.Option{Name: "internal_trace"})
+	g := goroutine.NewGroup(goroutine.Option{Name: "internal_storage"})
 	g.Go(func(ctx context.Context) error {
 		for {
 			select {
@@ -86,7 +90,7 @@ func (s *Storage) RunConsumeWorker() error {
 
 			key, buf, err := s.Get()
 			if err != nil {
-				if errors.Is(err, cache.ErrEOF) {
+				if errors.Is(err, dc.ErrEOF) {
 					s.log.Debug("local-cache empty")
 					time.Sleep(time.Second)
 					continue
@@ -97,6 +101,7 @@ func (s *Storage) RunConsumeWorker() error {
 			consumer, ok := s.consumers[key]
 			if !ok {
 				s.log.Errorf("consumer of key: %d not found", key)
+				time.Sleep(time.Second)
 				continue
 			}
 			if err = consumer(buf); err != nil {
@@ -141,14 +146,15 @@ func (s *Storage) Get() (key uint8, buf []byte, err error) {
 }
 
 func (s *Storage) RegisterConsumer(key uint8, consumer ConsumerFunc) {
-	if consumer == nil {
-		return
+	if consumer != nil {
+		s.consumers[key] = consumer
 	}
-	s.consumers[key] = consumer
 }
 
 func (s *Storage) Close() error {
-	s.exit.Close()
+	if s.exit != nil {
+		s.exit.Close()
+	}
 	if s.cache != nil {
 		return s.cache.Close()
 	}

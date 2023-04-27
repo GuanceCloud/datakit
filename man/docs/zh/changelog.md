@@ -12,14 +12,292 @@
 # 外链的添加方式
 [some text](http://external-host.com){:target="_blank"}
 
+## x.x.x(YY/MM/DD) {#cl-x.x.x}
+
 本次发布属于迭代发布，主要有如下更新：
 
-### 新加功能 {#cl-1.4.19-new}
-### 问题修复 {#cl-1.4.19-fix}
-### 功能优化 {#cl-1.4.19-opt}
-### 兼容调整 {#cl-1.4.19-brk}
+### 新加功能 {#cl-x.x.x-new}
+### 问题修复 {#cl-x.x.x-fix}
+### 功能优化 {#cl-x.x.x-opt}
+### 兼容调整 {#cl-x.x.x-brk}
+
+branch changelog
+
+- 由于一些编译限制，拨测采集器不再支持在 Windows 上运行
+- 重构 sinker 实现，仅仅保留 Dataway 上的 Sinker 功能，同时将 datakit.conf 中 sinker 顶级配置挪到 dataway 配置字段下面（升级过程中会平滑修改掉）
+- Datakit 自身指标支持 Prometheus 指标体系，通过 curl 其 /metrics API 即可获取 Datakit 自身各种指标
+
 -->
 
+## 1.6.0(2023/04/20) {#cl-1.6.0}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.6.0-new}
+
+- 新增 [Pinpoint](pinpoint.md) API 接入(#973)
+
+### 功能优化 {#cl-1.6.0-opt}
+
+- 优化 Windows 安装脚本和升级脚本输出方式，便于在终端直接黏贴复制(#1557)
+- 优化 Datakit 自身文档构建流程(#1578)
+- 优化 OpenTelemetry 字段处理(#1514)
+- [Prom](prom.md) 采集器支持采集 `info` 类型的 label 并将其追加到所有关联指标上（默认开启）(#1544)
+- 在 [system 采集器](system.md)中，新增 CPU 和内存占用百分比指标(#1565)
+- Datakit 在发送的数据中，增加数据点数标记（`X-Points`），便于中心相关指标构建(#1410)
+    - 另外优化了 Datakit HTTP 的 `User-Agent` 标记，改为 `datakit-<os>-<arch>/<version>` 这种形态
+- [KafkaMQ](kafkamq.md)：
+    - 支持处理 Jaeger 数据(#1526)
+    - 优化 SkyWalking 数据的处理流程(#1530)
+    - 新增第三方 RUM 接入功能(#1581)
+- [SkyWalking](skywalking.md) 新增 HTTP 接入功能(#1533)
+- 增加如下集成测试：
+    - [Apache](apache.md)(#1553)
+    - [JVM](jvm.md)(#1559)
+    - [Memcached](memcached.md)(#1552)
+    - [MongoDB](mongodb.md)(#1525)
+    - [RabbitMQ](rabbitmq.md)(#1560)
+    - [Statsd](statsd.md)(#1562)
+    - [Tomcat](tomcat.md)(#1566)
+    - [etcd](etcd.md)(#1434)
+
+### 问题修复 {#cl-1.6.0-fix}
+
+- 修复 [JSON 格式](apis.md#api-json-example)写入数据时无法识别时间精度的问题(#1567)
+- 修复拨测采集器不工作的问题(#1582)
+- 修复 eBPF 在欧拉系统上验证器问题(#1568)
+- 修复 RUM sourcemap 段错误问题(#1458)
+<!-- - 修复进程对象采集器可能导致高 CPU 问题，默认情况下关闭了部分高消耗字段（listen 端口）的采集(#1543) -->
+
+### 兼容调整 {#cl-1.6.0-brk}
+
+- 移除老的命令行风格，比如，原来的 `datakit --version` 将不再生效，须以 `datakit version` 代之。详见[各种命令的用法](datakit-tools-how-to.md)
+
+---
+
+## 1.5.10(2023/04/13) {#cl-1.5.10}
+
+本次发布属于紧急发布，主要有如下更新：
+
+### 新加功能 {#cl-1.5.10-new}
+
+- 支持自动发现并采集 [Pod 上的 Prometheus 指标](kubernetes-prom.md#auto-discovery-metrics-with-prometheus)(#1564)
+- Pipeline 新增聚合类函数(#1554)
+    - [agg_create()](../developers/pipeline.md#fn-agg-create)
+    - [agg_metric()](../developers/pipeline.md#fn-agg-metric)
+
+### 功能优化 {#cl-1.5.10-opt}
+
+- 优化了 Pipeline 执行性能，大约有 30% 左右性能提升
+- 优化日志采集中历史位置记录操作(#1550)
+
+---
+
+## 1.5.9(2023/04/06) {#cl-1.5.9}
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.5.9-new}
+
+- 新增[伺服服务](datakit-update.md#remote)，用来管理 Datakit 升级(#1441)
+- 新增[故障排查功能](datakit-tools-how-to.md#bug-report)(#1377)
+
+### 问题修复 {#cl-1.5.9-fix}
+
+- 修复 datakit 自身 CPU 指标获取，保持 monitor 和 `top` 命令获取到的 CPU 同步(#1547)
+- 修复 RUM 采集器 panic 错误(#1548)
+
+### 功能优化 {#cl-1.5.9-opt}
+
+- 优化升级功能，避免 *datakit.conf* 文件被破坏(#1449)
+- 优化 [cgroup 配置](datakit-conf.md#enable-cgroup)，移除 CPU 最小值限制(#1538)
+- 优化 *self* 采集器，我们能选择是否开启该采集器，同时对其采集性能做了一些优化(#1386)
+- 由于有了新的故障排查手段，简化了现有 monitor 展示(#1505)
+- [Prom 采集器](prom.md)允许增加 *instance tag*，以保持跟原生 Prometheus 体系一致(#1517)
+- [DCA](dca.md) 增加 Kubernetes 部署方式(#1522)
+- 优化日志采集的磁盘缓存性能(#1487)
+- 优化 Datakit 自身指标体系，暴露更多 [Prometheus 指标](apis.md#api-metrics)(#1492)
+- 优化 [/v1/write](apis.md#api-v1-write)(#1523)
+- 优化安装过程中 token 出错提示(#1541)
+- monitor 支持自动从 *datakit.conf* 中获取连接地址(#1547)
+- 取消 eBPF 对内核版本的强制检查，尽量支持更多的内核版本(#1542)
+- [Kafka 订阅采集](kafkamq.md)支持多行 json 功能(#1549)
+- 新增一大批集成测试(#1479/#1460/#1436/#1428/#1407)
+- 优化 IO 模块的配置，新增上传 worker 数配置字段(#1536)
+    - [Kubernetes](datakit-daemonset-deploy.md#env-io)
+    - [datakit.conf](datakit-conf.md#io-tuning)
+
+### 兼容调整 {#cl-1.5.9-brk}
+
+- 本次移除了大部分 Sinker 功能，只保留了 [Dataway 上的 Sinker 功能](datakit-sink-dataway.md)(#1444)。同时 sinker 的[主机安装配置](datakit-install.md#env-sink)以及 [Kubernetes 安装配置](datakit-daemonset-deploy.md#env-sinker)都做了调整，其中的配置方式也跟之前不同，请大家升级的时候，注意调整
+- 老版本的[发送失败磁盘缓存](datakit-conf.md#io-disk-cache)由于性能问题，我们替换了实现方式。新的实现方式，其缓存的二进制格式不再兼容，如果升级的话，老的数据将不被识别。建议先**手动删除老的缓存数据**（老数据可能会影响新版本磁盘缓存），然后再升级新版本的 Datakit。尽管如此，新版本的磁盘缓存，仍然是一个实验性功能，请谨慎使用
+- Datakit 自身指标体系做了更新，原有 DCA 获取到的指标将有一定的缺失，但不影响 DCA 本身功能的运行
+
+---
+
+## 1.5.8(2023/03/24) {#cl-1.5.8}
+本次发布属于迭代发布，主要是一些问题修复和功能完善。
+
+### 问题修复 {#cl-1.5.8-fix}
+
+- 修复容器日志采集可能丢失的问题(#1520)
+- Datakit 启动后自动创建 Pythond 目录(#1484)
+- 移除 [hostdir](hostdir.md) 采集器单例限制(#1498)
+- 修复一个 eBPF 数值构造的问题(#1509)
+- 修复 Datakit monitor 参数识别问题(#1506)
+
+### 功能优化 {#cl-1.5.8-opt}
+
+- 补全 Jenkins 采集器内存有关的指标(#1489)
+- 完善 [cgroup v2](datakit-conf.md#enable-cgroup) 支持(#1494)
+- Kubernetes 安装时增加环境变量（`ENV_CLUSTER_K8S_NAME`）来配置 cluster 名称(#1504)
+- Pipeline
+    - [`kv_split()`](../developers/pipeline.md#fn-kv_split) 函数增加强制保护措施，避免数据膨胀(#1510)
+    - 关于 JSON 的处理，优化了 [`json()`](../developers/pipeline.md#fn-json) 和 [`delete()`](../developers/pipeline.md#fn-delete) 删除 key 的功能。
+- 其它工程上的优化(#1500)
+
+### 文档调整 {#cl-1.5.8-doc}
+
+- 增加 Kubernetes 全离线安装[文档](datakit-offline-install.md#k8s-offline)(#1480)
+- 完善 statsd 以及 ddtrace-java 有关的文档(#1481/#1507)
+- 补充 TDEngine 有关的文档(#1486)
+- 移除 disk 采集器文档中的过时字段描述(#1488)
+- 完善 Oracle 采集器文档(#1519)
+
+## 1.5.7(2023/03/09) {#cl-1.5.7}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.5.7-new}
+
+- Pipeline
+    - `json` 函数增加 [key 删除](../developers/pipeline.md#fn-json) 功能(#1465)
+    - 增加函数 [`kv_split()`](../developers/pipeline.md#fn-kv_split)(#1414)
+    - 增加[时间函数](../developers/pipeline.md#fn-datetime)(#1411)
+- 增加 [IPv6 支持](datakit-conf.md#config-http-server)(#1454)
+- diskio 支持 [io wait 扩展指标](diskio.md#extend)(#1472)
+- 容器采集支持 [Docker 和 Containerd 共存](container.md#requrements)(#1401)
+- 整合 [Datakit Operator 配置文档](datakit-operator.md)(#1482)
+
+### 问题修复 {#cl-1.5.7-fix}
+
+- 修复 Pipeline Bugs(#1476/#1469/#1471/#1466)
+- 修复 datakit.yaml 缺少 request 导致的容器 pending(#1470)
+- 修复云同步过程中反复探测问题(#1443)
+- 修复日志磁盘缓存的编码错误(#1474)
+
+### 功能优化 {#cl-1.5.7-opt}
+
+- 优化 Point Checker(#1478)
+- 优化 Pipeline [`replace()`](../developers/pipeline.md#fn-replace.md) 性能(#1477)
+- 优化 Windows 下 Datakit 安装流程(#1404)
+- 优化 [confd](confd.md) 配置处理流程(#1402)
+- 添加 [Filebeat](beats_output.md) 集成测试能力(#1459)
+- 添加 [Nginx](nginx.md) 集成测试能力(#1399)
+- 重构 [otel agent](opentelemetry.md)(#1409)
+- 重构 [Datakit Monitor 信息](datakit-monitor.md#specify-module)(#1261)
+
+---
+
+## 1.5.6(2023/02/23) {#cl-1.5.6}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.5.6-new}
+
+- 命令行增加[解析行协议功能](datakit-tools-how-to.md#parse-lp)(#1412)
+- Datakit yaml 和 helm 支持资源 limit 配置(#1416)
+- Datakit yaml 和 helm 支持 CRD 部署(#1415)
+- 添加 SQLServer 集成测试(#1406)
+- RUM 支持 [resource CDN 标注](rum.md#cdn-resolve)(#1384)
+
+### 问题修复 {#cl-1.5.6-fix}
+
+- 修复 RUM 请求返回 5xx 问题(#1412)
+- 修复日志采集路径错误问题(#1447)
+- 修复 K8s Pod(`restarts`) 字段问题(#1446)
+- 修复 DataKit filter 模块崩溃问题(#1422)
+- 修复 Point 构建中 tag key 命名问题(#1413#1408)
+- 修复 Datakit Monitor 字符集问题(#1405)
+- 修复 OTEL tag 覆盖问题(#1396)
+- 修复 public API 白名单问题(#1467)
+
+### 功能优化 {#cl-1.5.6-opt}
+
+- 优化拨测中无效任务的处理(#1421)
+- 优化 Windows 下安装提示(#1404)
+- 优化 Windows 中 Powershell 安装脚本模板(#1403)
+- 优化 K8s 中 Pod/ReplicaSet/Deployment 的关联方法(#1368)
+- 重构 point 数据结构及功能(#1400)
+- Datakit 自带 [eBPF](ebpf.md) 采集器二进制安装(#1448)
+- 安装程序地址改成 CDN 地址，优化下载问题(#1457)
+
+### 兼容调整 {#cl-1.5.6-brk}
+
+- 由于内置了 eBPF 采集器，移除多余命令 `datakit install --datakit-ebpf`(#1400)
+
+---
+
+## 1.5.5(2023/02/09) {#cl-1.5.5}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.5.5-new}
+
+- Datakit 主机安装可自定义默认采集器开启(#1392)
+- 提供 OTEL 的错误追踪(#1309)
+- 提供 RUM Session 回放能力(#1283)
+
+### 问题修复 {#cl-1.5.5-fix}
+
+- 修复日志堆积问题(#1394)
+- 修复 conf.d 重复启动采集器问题(#1385)
+- 修复 OTEL 数据关联问题(#1364)
+- 修复 OTEL 采集数据字段覆盖问题(#1383)
+- 修复 Nginx Host 识别错误(#1379)
+- 修复拨测超时(#1378)
+- 修复云厂商实例识别(#1382)
+
+### 功能优化 {#cl-1.5.5-opt}
+
+- Datakit pyroscope profiling 多程序语言识别(#1374)
+- 优化 CPU,Disk,eBPF,Net 等中英文文档(#1375)
+- 优化 elasticsearch, postgresql, dialtesting 等英文文档(#1373)
+- 优化 DCA,Profiling 文档(#1371#1372)
+- 优化日志采集流程(#1366)
+- [iploc yaml](datakit-tools-how-to.md) 配置方法文档支持(#1370)
+
+---
+
+## 1.5.4(2023/01/13) {#cl-1.5.4}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.5.4-new}
+
+- [confd 增加 Nacos 后端](confd.md)(#1315#1327)
+- 日志采集器添加 LocalCache 特性(#1326)
+- 支持 [C/C++ Profiling](profile-cpp.md)(#1320)
+- RUM Session Replay 文件上报(#1283)
+- WEB DCA 支持远程更新 config(#1284)
+
+### 问题修复 {#cl-1.5.4-fix}
+
+- 修复 K8S 采集失败数据丢失(#1362)
+- 修复 K8S Host 字段错误(#1351)
+- 修复 K8S Metrics Server 超时(#1353)
+- 修复 Containerd 环境下 annotation 配置问题(#1352)
+- 修复 Datakit 重新加载过程中采集器崩溃(#1359)
+- 修复 Golang Profiler 函数执行时间计算错误(#1335)
+- 修复 Datakit Monitor 字符集问题(#1321)
+- 修复 async-profiler 服务现实问题(#1290)
+- 修复 Redis 采集器 slowlog 问题(#1360)
+
+### 功能优化 {#cl-1.5.4-opt}
+
+- 优化 SQL 数据资源占用较高问题(#1358)
+- 优化 Datakit Monitor(#1222)
+
+---
 
 ## 1.5.3(2022/12/29) {#cl-1.5.3}
 
@@ -35,6 +313,8 @@
 - 修复 netstat 采集器链接数问题(#1276/#1336)
 - 修复 Go profiler 差值问题(#1328)
 - 修复 Datakit 重启超时问题(#1297)
+- 修复 Kafka 订阅消息被截断问题(#1338)
+- 修复 Pipeline `drop()` 函数无效问题(#1343)
 
 ### 功能优化 {#cl-1.5.3-opt}
 
@@ -43,6 +323,7 @@
 - 优化 Pythond 使用封装(#1304)
 - Pipeline 提供更详细的操作报错信息(#1262)
 - Pipeline reftable 提供基于 SQLite 的本地化存储实现(#1158)
+- 优化 SQLServer 时间线问题(#1345)
 
 ---
 
@@ -306,7 +587,7 @@
 - 调整 Pipeline 有关的文档，将其移到「自定义开发」目录下：
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/cl-1.4.14-dk-docs.gif){ width="300"}
+  ![](https://static.guance.com/images/datakit/cl-1.4.14-dk-docs.gif){ width="300"}
 </figure>
 
 ---
@@ -347,25 +628,25 @@
 - 采集器文档从原来「集成」移到 「DataKit」文档库(#1060)
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/cl-1.4.13-dk-docs.gif){ width="300"}
+  ![](https://static.guance.com/images/datakit/cl-1.4.13-dk-docs.gif){ width="300"}
 </figure>
 
 - DataKit 文档目录结构调整，减少了目录层级
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/cl-1.4.13-dk-doc-dirs.gif){ width="300"}
+  ![](https://static.guance.com/images/datakit/cl-1.4.13-dk-doc-dirs.gif){ width="300"}
 </figure>
 
 - 几乎每个采集器都增加了 k8s 配置入口
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/cl-1.4.13-install-selector.gif){ width="800" }
+  ![](https://static.guance.com/images/datakit/cl-1.4.13-install-selector.gif){ width="800" }
 </figure>
 
 - 调整文档头部显示，除了操作系统标识外，对支持选举的采集器，增加选举标识
 
 <figure markdown>
-  ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/cl-1.4.13-doc-header.gif){ width="800" }
+  ![](https://static.guance.com/images/datakit/cl-1.4.13-doc-header.gif){ width="800" }
 </figure>
 
 ---
@@ -1071,20 +1352,20 @@ volumes:
     - 新功能预计会发布在非稳定版上，待新功能稳定后，会发布新的稳定版本。如 1.3.x 新功能稳定后，会发布 1.4.0 稳定版，以合并 1.3.x 上的新功能
     - 非稳定版不支持直接升级，比如，不能升级到 1.3.x 这样的版本，只能直接安装非稳定版
 
-### Breaking Changes {cl-1.2.0-break-changes}
+### Breaking Changes {#cl-1.2.0-break-changes}
 
 **老版本的 DataKit 通过 `datakit --version` 已经无法推送新升级命令**，直接使用如下命令：
 
 - Linux/Mac:
 
 ```shell
-DK_UPGRADE=1 bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+{{ InstallCmd 0 (.WithPlatform "unix") }}
 ```
 
 - Windows
 
 ```powershell
-$env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+{{ InstallCmd 0 (.WithPlatform "windows") }}
 ```
 
 ---

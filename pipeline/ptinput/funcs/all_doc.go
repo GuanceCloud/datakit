@@ -22,10 +22,13 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"add_key()":            &addKeyMarkdown,
 	"add_pattern()":        &addPatternMarkdown,
 	"adjust_timezone()":    &adjustTimezoneMarkdown,
+	"agg_create()":         &aggCreateMarkdown,
+	"agg_metric()":         &aggMetricMarkdown,
 	"append()":             &appendMarkdown,
 	"b64dec()":             &b64decMarkdown,
 	"b64enc()":             &b64encMarkdown,
 	"cast()":               &castMarkdown,
+	"delete()":             &deleteMarkdown,
 	"cidr()":               &cidrMarkdown,
 	"cover()":              &coverMarkdown,
 	"datetime()":           &datetimeMarkdown,
@@ -41,6 +44,7 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"grok()":               &grokMarkdown,
 	"group_between()":      &groupBetweenMarkdown,
 	"group_in()":           &groupInMarkdown,
+	"kv_split()":           &kvSplitMarkdown,
 	"json()":               &jsonMarkdown,
 	"len()":                &lenMarkdown,
 	"load_json()":          &loadJSONMarkdown,
@@ -65,10 +69,72 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"xml()":                &xmlMarkdown,
 	"sample()":             &sampleMarkdown,
 	"url_parse()":          &urlParseMarkdown,
+	"timestamp()":          &timestampMarkdown,
+}
+
+var PipelineFunctionDocsEN = map[string]*PLDoc{
+	"add_key()":            &addKeyMarkdownEN,
+	"add_pattern()":        &addPatternMarkdownEN,
+	"adjust_timezone()":    &adjustTimezoneMarkdownEN,
+	"agg_create()":         &aggCreateMarkdownEN,
+	"agg_metric()":         &aggMetricMarkdownEN,
+	"append()":             &appendMarkdownEN,
+	"b64dec()":             &b64decMarkdownEN,
+	"b64enc()":             &b64encMarkdownEN,
+	"cast()":               &castMarkdownEN,
+	"delete()":             &deleteMarkdownEN,
+	"cidr()":               &cidrMarkdownEN,
+	"cover()":              &coverMarkdownEN,
+	"datetime()":           &datetimeMarkdownEN,
+	"decode":               &decodeMarkdownEN,
+	"default_time()":       &defaultTimeMarkdownEN,
+	"drop()":               &dropMarkdownEN,
+	"drop_key()":           &dropKeyMarkdownEN,
+	"drop_origin_data()":   &dropOriginDataMarkdownEN,
+	"duration_precision()": &durationPrecisionMarkdownEN,
+	"exit()":               &exitMarkdownEN,
+	"geoip()":              &geoIPMarkdownEN,
+	"get_key()":            &getKeyMarkdownEN,
+	"grok()":               &grokMarkdownEN,
+	"group_between()":      &groupBetweenMarkdownEN,
+	"group_in()":           &groupInMarkdownEN,
+	"kv_split()":           &kvSplitMarkdownEN,
+	"json()":               &jsonMarkdownEN,
+	"len()":                &lenMarkdownEN,
+	"load_json()":          &loadJSONMarkdownEN,
+	"lowercase()":          &lowercaseMarkdownEN,
+	"nullif()":             &nullIfMarkdownEN,
+	"parse_date()":         &parseDateMarkdownEN,
+	"parse_duration()":     &parseDurationMarkdownEN,
+	"query_refer_table()":  &queryReferTableMarkdownEN,
+	"match()":              &matchMarkdownEN,
+	"mquery_refer_table()": &mQueryReferTableMarkdownEN,
+	"rename()":             &renameMarkdownEN,
+	"replace()":            &replaceMarkdownEN,
+	"set_measurement()":    &setMeasurementMarkdownEN,
+	"set_tag()":            &setTagMarkdownEN,
+	"sql_cover":            &sqlCoverMarkdownEN,
+	"strfmt()":             &strfmtMarkdownEN,
+	"trim()":               &trimMarkdownEN,
+	"uppercase()":          &uppercaseMarkdownEN,
+	"url_decode()":         &URLDecodeMarkdownEN,
+	"use()":                &useMarkdownEN,
+	"user_agent()":         &userAgentMarkdownEN,
+	"xml()":                &xmlMarkdownEN,
+	"sample()":             &sampleMarkdownEN,
+	"url_parse()":          &urlParseMarkdownEN,
+	"timestamp()":          &timestampMarkdownEN,
 }
 
 // embed docs.
 var (
+
+	//go:embed md/agg_create.md
+	docAggCreate string
+
+	//go:embed md/agg_metric.md
+	docAggMetric string
+
 	//go:embed md/add_pattern.md
 	docAddPattern string
 
@@ -113,6 +179,9 @@ var (
 
 	//go:embed md/cast.md
 	docCast string
+
+	//go:embed md/delete.md
+	docDelete string
 
 	//go:embed md/get_key.md
 	docGetKey string
@@ -206,6 +275,12 @@ var (
 
 	//go:embed md/url_parse.md
 	docURLParse string
+
+	//go:embed md/timestamp.md
+	docTimestamp string
+
+	//go:embed md/kv_split.md
+	docKVSplit string
 )
 
 const (
@@ -225,6 +300,7 @@ const (
 	cStringOp        = "字符串操作"
 	cDesensitization = "脱敏"
 	cSample          = "采样"
+	ea               = "聚合"
 	cOther           = "其他"
 )
 
@@ -241,6 +317,19 @@ var (
 			langTagZhCN: {cMeasurementOp},
 		},
 	}
+	aggCreateMarkdown = PLDoc{
+		Doc: docAggCreate, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {ea},
+		},
+	}
+	aggMetricMarkdown = PLDoc{
+		Doc: docAggMetric, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {ea},
+		},
+	}
+
 	addPatternMarkdown = PLDoc{
 		Doc: docAddPattern, Deprecated: false,
 		FnCategory: map[string][]string{
@@ -275,6 +364,12 @@ var (
 		Doc: docCast, Deprecated: false,
 		FnCategory: map[string][]string{
 			langTagZhCN: {cTypeCast},
+		},
+	}
+	deleteMarkdown = PLDoc{
+		Doc: docDelete, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cJSON, cOther},
 		},
 	}
 	cidrMarkdown = PLDoc{
@@ -504,6 +599,19 @@ var (
 		Doc: docURLParse, Deprecated: false,
 		FnCategory: map[string][]string{
 			langTagZhCN: {cNetwork, cEncodeDecode},
+		},
+	}
+	timestampMarkdown = PLDoc{
+		Doc: docTimestamp, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cTimeOp},
+		},
+	}
+
+	kvSplitMarkdown = PLDoc{
+		Doc: docKVSplit, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cRegExp},
 		},
 	}
 )

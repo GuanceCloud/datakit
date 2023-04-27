@@ -1,0 +1,9 @@
+a.out
+lint.err
+coverage.out
+.Test*
+.vscode
+.idea
+gen/
+dist/
+*.exe

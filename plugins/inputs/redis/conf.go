@@ -37,9 +37,14 @@ const (
   #
   # warn_on_missing_keys = true
   
-  ## @param slow_log - boolean - optional - default: false
+  ## @param slow_log - boolean - optional - default: true
   slow_log = true
   
+  ## @param all_slow_log - boolean - optional - default: false
+  ## Collect all slowlogs returned by Redis. When set to false, will only collect slowlog 
+  ## that are generated after this input starts, and collect the same slowlog only once.
+  all_slow_log = false
+
   ## @param slowlog-max-len - integer - optional - default: 128
   slowlog-max-len = 128
   

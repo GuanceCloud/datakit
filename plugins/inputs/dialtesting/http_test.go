@@ -3,6 +3,9 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
+//go:build !windows
+// +build !windows
+
 package dialtesting
 
 import (
@@ -18,10 +21,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
+	dt "github.com/GuanceCloud/cliutils/dialtesting"
+	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/gin-gonic/gin"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	dt "gitlab.jiagouyun.com/cloudcare-tools/cliutils/dialtesting"
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
 var httpCases = []struct {

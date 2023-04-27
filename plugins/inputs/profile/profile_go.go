@@ -9,23 +9,22 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"mime/multipart"
 	"net/http"
-	"net/textproto"
 	"net/url"
 	"path/filepath"
-	"strconv"
 	"time"
 
 	pprofile "github.com/google/pprof/profile"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+)
+
+const (
+	goReportFamily = "golang"
+	goReportFormat = "pprof"
 )
 
 // GoProfiler pull go pprof data.
@@ -53,8 +52,10 @@ type GoProfiler struct {
 }
 
 type profileData struct {
-	fileName string
-	buf      *bytes.Buffer
+	fileName  string
+	buf       *bytes.Buffer
+	startTime time.Time
+	endTime   time.Time
 }
 
 type valueType struct {
@@ -181,33 +182,63 @@ func (g *GoProfiler) run(i *Input) error {
 }
 
 func (g *GoProfiler) pullProfile() {
-	profileDatas := []*profileData{}
-	startTime := time.Now()
+	deletaDatas := []*profileData{}
 	for _, k := range g.EnabledTypes {
 		if p, ok := profileConfigMap[k]; ok {
-			if profileData, err := g.pullProfileItem(k, p); err != nil {
+			if pData, err := g.pullProfileItem(k, p); err != nil {
 				log.Warnf("profile for %s error: %s", k, err.Error())
-			} else if profileData != nil {
-				profileDatas = append(profileDatas, profileData)
+			} else if pData != nil {
+				if p.deltaValues != nil {
+					deletaDatas = append(deletaDatas, pData)
+				} else if err := pushProfileData(
+					&pushProfileDataOpt{
+						startTime:       pData.startTime,
+						endTime:         pData.endTime,
+						profiledatas:    []*profileData{pData},
+						reportFamily:    goReportFamily,
+						reportFormat:    goReportFormat,
+						endPoint:        g.url.String(),
+						inputTags:       g.tags,
+						election:        g.input.Election,
+						inputNameSuffix: "/go",
+					},
+				); err != nil {
+					log.Warnf("push profile data error: %s", err.Error())
+				}
 			}
 		} else {
 			log.Warnf("invalid profile type: %s", k)
 		}
 	}
-	endTime := time.Now()
 
-	if len(profileDatas) > 0 {
-		if err := g.pushProfileData(startTime, endTime, profileDatas); err != nil {
-			log.Warnf("push profile data error: %s", err.Error())
+	// push delta profiles together
+	if len(deletaDatas) > 0 {
+		pData := deletaDatas[0]
+		if err := pushProfileData(
+			&pushProfileDataOpt{
+				startTime:       pData.startTime,
+				endTime:         pData.endTime,
+				profiledatas:    deletaDatas,
+				reportFamily:    goReportFamily,
+				reportFormat:    goReportFormat,
+				endPoint:        g.url.String(),
+				inputTags:       g.tags,
+				election:        g.input.Election,
+				inputNameSuffix: "/go",
+			},
+		); err != nil {
+			log.Warnf("push delta profile data error: %s", err.Error())
 		}
 	}
 }
 
 func (g *GoProfiler) pullProfileItem(profileType string, item ProfileItem) (*profileData, error) {
+	startTime := time.Now()
 	buf, err := g.pullProfileData(item.path, item.params)
 	if err != nil {
 		return nil, fmt.Errorf("pull profile data error: %w", err)
 	}
+	endTime := time.Now()
 
 	if len(item.deltaValues) > 0 {
 		curProf, err := pprofile.ParseData(buf.Bytes())
@@ -236,14 +267,18 @@ func (g *GoProfiler) pullProfileItem(profileType string, item ProfileItem) (*pro
 		}
 
 		return &profileData{
-			fileName: item.fileName,
-			buf:      deltaBuf,
+			fileName:  item.fileName,
+			buf:       deltaBuf,
+			startTime: time.UnixMicro(prevProf.TimeNanos / 1000),
+			endTime:   time.UnixMicro(curProf.TimeNanos / 1000),
 		}, nil
 	}
 
 	return &profileData{
-		fileName: item.fileName,
-		buf:      buf,
+		fileName:  item.fileName,
+		buf:       buf,
+		startTime: startTime,
+		endTime:   endTime,
 	}, nil
 }
 
@@ -289,132 +324,6 @@ func (g *GoProfiler) pullProfileData(path string, params url.Values) (*bytes.Buf
 	}
 
 	return dst, nil
-}
-
-func (g *GoProfiler) pushProfileData(startTime, endTime time.Time, profiledatas []*profileData) error {
-	b := new(bytes.Buffer)
-	mw := multipart.NewWriter(b)
-
-	for _, profileData := range profiledatas {
-		if ff, err := mw.CreateFormFile(profileData.fileName, profileData.fileName); err != nil {
-			continue
-		} else {
-			if _, err = io.Copy(ff, profileData.buf); err != nil {
-				continue
-			}
-		}
-	}
-
-	h := make(textproto.MIMEHeader)
-	h.Set("Content-Disposition", "form-data; name=\"event\"; filename=\"event.json\"")
-	h.Set("Content-Type", "application/json")
-	f, err := mw.CreatePart(h)
-	if err != nil {
-		return err
-	}
-	eventJSONString := `
-		{
-			"family": "golang",
-			"format": "pprof"
-	  }
-	`
-	if _, err := io.Copy(f, bytes.NewReader([]byte(eventJSONString))); err != nil {
-		return err
-	}
-	if err := mw.Close(); err != nil {
-		return err
-	}
-
-	profileID := randomProfileID()
-
-	URL, err := profilingProxyURL()
-	if err != nil {
-		return err
-	}
-
-	req, err := http.NewRequest("POST", URL.String(), b)
-	if err != nil {
-		return err
-	}
-
-	wsID, err := queryWorkSpaceUUID()
-	if err != nil {
-		log.Errorf("query workspace id fail: %s", err)
-	}
-	req.Header.Set("Content-Type", mw.FormDataContentType())
-	req.Header.Set("X-Datakit-Workspace", wsID)
-	req.Header.Set("X-Datakit-Profileid", profileID)
-	req.Header.Set("X-Datakit-Unixnano", strconv.FormatInt(startTime.UnixNano(), 10))
-
-	client := &http.Client{Timeout: 15 * time.Second}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close() //nolint:errcheck
-
-	bo, _ := ioutil.ReadAll(resp.Body)
-	if resp.StatusCode == http.StatusOK {
-		var resp uploadResponse
-
-		if err := json.Unmarshal(bo, &resp); err != nil {
-			return fmt.Errorf("json unmarshal upload profile binary response err: %w", err)
-		}
-
-		if resp.Content == nil || resp.Content.ProfileID == "" {
-			return fmt.Errorf("fetch profile upload response profileID fail")
-		}
-
-		if err := g.writeProfilePoint(profileID, startTime, endTime); err != nil {
-			return fmt.Errorf("write profile point failed: %w", err)
-		}
-	} else {
-		return fmt.Errorf("push profile data failed, response status: %s", resp.Status)
-	}
-	return nil
-}
-
-func (g *GoProfiler) writeProfilePoint(profileID string, startTime, endTime time.Time) error {
-	pointTags := map[string]string{
-		TagEndPoint: g.url.String(),
-		TagLanguage: "golang",
-	}
-
-	// extend custom tags
-	for k, v := range g.tags {
-		if _, ok := pointTags[k]; !ok {
-			pointTags[k] = v
-		}
-	}
-
-	pointFields := map[string]interface{}{
-		FieldProfileID:  profileID,
-		FieldFormat:     "pprof",
-		FieldDatakitVer: datakit.Version,
-		FieldStart:      startTime.UnixNano(),
-		FieldEnd:        endTime.UnixNano(),
-		FieldDuration:   endTime.Sub(startTime).Nanoseconds(),
-	}
-
-	pt, err := point.NewPoint(inputName, pointTags, pointFields, &point.PointOption{
-		Time:               startTime,
-		Category:           datakit.Profiling,
-		Strict:             false,
-		GlobalElectionTags: g.input.Election,
-	})
-	if err != nil {
-		return fmt.Errorf("build profile point fail: %w", err)
-	}
-
-	if err := dkio.Feed(inputName,
-		datakit.Profiling,
-		[]*point.Point{pt},
-		&dkio.Option{CollectCost: time.Since(pt.Time())}); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (g *GoProfiler) createHTTPClient() (*http.Client, error) {

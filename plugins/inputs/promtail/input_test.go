@@ -15,8 +15,8 @@ import (
 	"strings"
 	"testing"
 
+	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/stretchr/testify/assert"
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
 // GZip source string and return compressed string

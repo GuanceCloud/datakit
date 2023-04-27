@@ -33,7 +33,7 @@ enum {
   HTTP_METHOD_OPTIONS,
   HTTP_METHOD_PATCH,
 
-  // TODO 解析此类 HTTP 数据
+  // TODO: parse such HTTP data.
   HTTP_METHOD_CONNECT,
   HTTP_METHOD_TRACE
 };
@@ -51,11 +51,10 @@ static __always_inline int copy_data_from_iovec(struct iovec *vec, __u64 vlen,
     struct iovec v = {0};
     bpf_probe_read(&v, sizeof(v), vec + i);
 
-    count &= L7_BUFFER_SIZE_MASK;  // 使其始终为正数
+    count &= L7_BUFFER_SIZE_MASK;  // make it always positive
 
     if (count < sizeof(to_buf)) {
-      // 每次从 +offest 开始拷贝定长数据，长度为 buffer 的总长度，直到写满
-      // buffer
+      // Copy fixed-length data each time starting from +offest, and the length is the total length of the buffer until the buffer is full.
       bpf_probe_read(to_buf->payload + count, L7_BUFFER_SIZE, v.iov_base);
     }
 
@@ -373,7 +372,7 @@ static __always_inline req_resp_t checkHTTP(struct socket *skt, __u8 *buf,
   __u8 tmp_buffer[32] = {0};
   bpf_probe_read(&tmp_buffer, sizeof(tmp_buffer), buf);
 
-  // 判断请求/响应以及是否为服务端
+  // Determine request/response and whether it is a server.
   return parse_layer7_http1(tmp_buffer, stats);
 }
 
@@ -382,7 +381,7 @@ static __always_inline int parse_http1x(void *ctx, struct l7_buffer *l7buffer,
                                         struct connection_info *conn,
                                         struct layer7_http *stats,
                                         req_resp_t req_type, enum MSG_RW rw) {
-  // 判断请求/响应以及是否为服务端
+  // Determine request/response and whether it is a server.
   switch (req_type) {
     case HTTP_REQ_REQ:
       stats->req_ts = k_time;

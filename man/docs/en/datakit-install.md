@@ -1,215 +1,226 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
-# 主机安装
+
+# Host Installation
 ---
 
-本文介绍 DataKit 的基本安装。
+This article describes the basic installation of DataKit.
 
-## 注册/登陆观测云 {#login-guance}
+## Register/log in to Guance Cloud {#login-guance}
 
-浏览器访问 [观测云注册入口](https://auth.guance.com/redirectpage/register){:target="_blank"}，填写对应信息之后，即可[登陆观测云](https://console.guance.com/pageloading/login){:target="_blank"}
+The browser visits the [Guance Cloud registration](https://auth.guance.com/redirectpage/register){:target="_blank"} portal, fills in the corresponding information, and then [logs in to Guance Cloud](https://console.guance.com/pageloading/login){:target="_blank"}.
 
-## 获取安装命令 {#get-install}
+## Get the Installation Command {#get-install}
 
-登陆工作空间，点击左侧「集成」选择顶部「Datakit」，即可看到各种平台的安装命令。
+Log in to the workspace, click "Integration" on the left and select "Datakit" at the top, and you can see the installation commands of various platforms.
 
-> 注意，以下 Linux/Mac/Windows 安装程序，能自动识别硬件平台（arm/x86, 32bit/64bit），无需做硬件平台选择。
+> Note that the following Linux/Mac/Windows installer can automatically identify the hardware platform (arm/x86, 32bit/64bit) without making a hardware platform selection.
 
-=== "Linux"
+=== "Linux/macOS"
 
-    命令大概如下：
-
+    The order is roughly as follows:
+    
     ```shell
-    DK_DATAWAY=https://openway.guance.com?token=<TOKEN> bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+{{ InstallCmd 4 (.WithPlatform "unix") }} 
     ```
-
-    安装完成后，在终端会看到安装成功的提示。
-
-=== "Mac"
-
-    Mac 下安装命令跟 Linux 基本一样：
-
-    ```shell
-    DK_DATAWAY=https://openway.guance.com?token=<TOKEN> bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
-    ```
-
-    安装完成后，在终端会看到安装成功的提示。
+    
+    After the installation is completed, you will see a prompt that the installation is successful at the terminal.
 
 === "Windows"
 
-    Windows 上安装需在 Powershell 命令行安装，且必须以管理员身份运行 Powershell。按下 Windows 键，输入 powershell 即可看到弹出的 powershell 图标，右键选择「以管理员身份运行」即可。
-
+    Installation on Windows requires a Powershell command line installation and must run Powershell as an administrator. Press the Windows key, enter powershell to see the pop-up powershell icon, and right-click and select "Run as an administrator".
+    
     ```powershell
-    $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; Remove-item .install.ps1 -erroraction silentlycontinue; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+{{ InstallCmd 4 (.WithPlatform "windows") }} 
     ```
 
-???+ attention "Mac 安装问题"
+### Install Specific Version {#version-install}
 
-    Mac 上安装时，如果安装/升级过程中出现
-
-    ```shell
-    "launchctl" failed with stderr: /Library/LaunchDaemons/cn.dataflux.datakit.plist: Service is disabled
-    # 或者
-    "launchctl" failed with stderr: /Library/LaunchDaemons/com.guance.datakit.plist: Service is disabled
-    ```
-
-    执行
-
-    ```shell
-    sudo launchctl enable system/datakit
-    ```
-
-    然后再执行如下命令即可
-
-    ```shell
-    sudo launchctl load -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
-    # 或者
-    sudo launchctl load -w /Library/LaunchDaemons/com.guance.datakit.plist
-    ```
-
-## 额外支持的安装变量 {#extra-envs}
-
-如果需要在安装阶段定义一些 DataKit 配置，可在安装命令中增加环境变量，在 `DK_DATAWAY` 前面追加即可。如追加 `DK_NAMESPACE` 设置：
+We can install specific datakit version, for example 1.2.3:
 
 ```shell
-# Linux/Mac
-DK_NAMESPACE="<namespace>" DK_DATAWAY="https://openway.guance.com?token=<TOKEN>" bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
-
-# Windows
-$env:DK_NAMESPACE="<namespace>"; $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+{{ InstallCmd 0 (.WithPlatform "unix") (.WithVersion "-1.2.3") }}
 ```
 
-俩种环境变量的设置格式为：
+And the same as Windows:
+
+```powershell
+{{ InstallCmd 0 (.WithPlatform "windows") (.WithVersion "-1.2.3") }}
+```
+
+## Additional Supported Installation Variable {#extra-envs}
+
+If you need to define some DataKit configuration during the installation phase, you can add environment variables to the installation command, just append them before `DK_DATAWAY` For example, append the `DK_NAMESPACE` setting:
+
+=== "Linux/macOS"
+
+    ```shell
+{{ InstallCmd 4 (.WithPlatform "unix") (.WithEnvs "DK_NAMESPACE" "<namespace>" ) }}
+    ```
+    
+=== "Windows"
+
+    ```powershell
+{{ InstallCmd 4 (.WithPlatform "windows") (.WithEnvs "DK_NAMESPACE" "<namespace>" ) }}
+    ```
+---
+
+The setting format of the two environment variables is:
 
 ```shell
-# Windows: 多个环境变量之间以分号分割
+# Windows: Multiple environment variables are divided by semicolons
 $env:NAME1="value1"; $env:Name2="value2"
 
-# Linux/Mac: 多个环境变量之间以空格分割
+# Linux/Mac: Multiple environment variables are divided by spaces
 NAME1="value1" NAME2="value2"
 ```
 
-安装脚本支持的环境变量如下（全平台支持）。
+The environment variables supported by the installation script are as follows (supported by the whole platform).
 
 ???+ attention
 
-    [全离线安装](datakit-offline-install.md#offline)不支持这些环境变量设置。但可以通过[代理](datakit-offline-install.md#with-datakit)以及[设置本地安装地址](datakit-offline-install.md#with-nginx)方式来设置这些环境变量。
+    These environment variable settings are not supported for [full offline installation](datakit-offline-install.md#offline). However, these environment variables can be set by [proxy](datakit-offline-install.md#with-datakit) and [setting local installation address](datakit-offline-install.md#with-nginx).
 
-### 最常用环境变量 {#common-envs}
+### Most Commonly Used Environment Variables {#common-envs}
 
-- `DK_DATAWAY`：指定 DataWay 地址，目前 DataKit 安装命令已经默认带上
-- `DK_GLOBAL_TAGS`：已弃用，改用 DK_GLOBAL_HOST_TAGS
-- `DK_GLOBAL_HOST_TAGS`：支持安装阶段填写全局主机 tag，格式范例：`host=__datakit_hostname,host_ip=__datakit_ip`（多个 tag 之间以英文逗号分隔）
-- `DK_GLOBAL_ELECTION_TAGS`：支持安装阶段填写全局选举 tag，格式范例：`project=my-porject,cluster=my-cluster`（多个 tag 之间以英文逗号分隔）
-- `DK_DEF_INPUTS`：默认开启的采集器名称列表，格式范例：`cpu,mem,disk`
-  - 由于[默认会开启很多采集器](datakit-input-conf.md#default-enabled-inputs)，这个环境变量用于调整这个默认的采集器列表，比如，可以选择只开启 cpu,mem,disk 三个采集的话，传入 `DK_DEF_INPUTS="cpu,mem,disk"` 即可
-- `DK_CLOUD_PROVIDER`：支持安装阶段填写云厂商(`aliyun/aws/tencent/hwcloud/azure`)
+- `DK_DATAWAY`: Specify the DataWay address, and the DataKit installation command has been brought by default
+- `DK_GLOBAL_TAGS`: Deprecated, DK_GLOBAL_HOST_TAGS instead
+- `DK_GLOBAL_HOST_TAGS`: Support the installation phase to fill in the global host tag, format example: `host=__datakit_hostname,host_ip=__datakit_ip` (multiple tags are separated by English commas)
+- `DK_GLOBAL_ELECTION_TAGS`: Support filling in the global election tag during the installation phase，format example: `project=my-porject,cluster=my-cluster` (support filling in the global election tag during the installation phase)
+- `DK_DEF_INPUTS`: List of collector names opened by default, format example: `cpu,mem,disk`
+- `DK_CLOUD_PROVIDER`: Support filling in cloud vendors during installation (`aliyun/aws/tencent/hwcloud/azure`)
 
-### DataKit 自身日志相关 {#env-logging}
+???+ tip "Disable all default inputs[:octicons-tag-24: Version-1.5.5](changelog.md#cl-1.5.5)"
 
-- `DK_LOG_LEVEL`: 可选值 info/debug
-- `DK_LOG`: 如果改成 stdout, 日志将不写文件, 而是终端输出
-- `DK_GIN_LOG`: 如果改成 stdout, 日志将不写文件, 而是终端输出
+    We can set `DK_DEF_INPUTS` to `-` to disable all default inputs:
 
-### DataKit pprof 相关 {#env-pprof}
+    ```shell
+    DK_DEF_INPUTS="-" \
+    DK_DATAWAY=https://openway.guance.com?token=<TOKEN> \
+    bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+    ```
 
-- `DK_ENABLE_PPROF`: 是否开启 `pprof`
-- `DK_PPROF_LISTEN`: `pprof`服务监听地址
+    Beside, if Datakit has been installed before, we must delete all default inputs *.conf* files manually. During installing, Datakit able to add new inputs configure, not cant delete them.
 
-### DataKit 选举相关 {#env-election}
+### On DataKit's Own Log  {#env-logging}
 
-- `DK_ENABLE_ELECTION`: 开启选举, 默认不开启, 如需开启, 给该环境变量任意一个非空字符串值即可。（如 `True`/`False`）
-- `DK_NAMESPACE`：支持安装阶段指定命名空间(选举用)
+- `DK_LOG_LEVEL`: Optional info/debug
+- `DK_LOG`: If changed to stdout, the log will not be written to the file, but will be output by the terminal.
+- `DK_GIN_LOG`: If changed to stdout, the log will not be written to the file, but will be output by the terminal.
 
-### HTTP/API 相关环境变量 {#env-http-api}
-- `DK_HTTP_LISTEN`：支持安装阶段指定 DataKit HTTP 服务绑定的网卡（默认 `localhost`）
-- `DK_HTTP_PORT`：支持安装阶段指定 DataKit HTTP 服务绑定的端口（默认 `9529`）
-- `DK_RUM_ORIGIN_IP_HEADER`: RUM 专用
-- `DK_DISABLE_404PAGE`: 禁用 DataKit 404 页面 (公网部署 DataKit RUM 时常用.如 `True`/`False`)
-- `DK_INSTALL_IPDB`: 安装时指定IP库(当前仅支持`iploc`, `geolite2`)
+### On DataKit pprof  {#env-pprof}
 
-### DCA 相关 {#env-dca}
-- `DK_DCA_ENABLE`：支持安装阶段开启 DCA 服务（默认未开启）
-- `DK_DCA_LISTEN`：支持安装阶段自定义配置 DCA 服务的监听地址和端口（默认`0.0.0.0:9531`）
-- `DK_DCA_WHITE_LIST`: 支持安装阶段设置访问 DCA 服务白名单，多个白名单以 `,` 分割 (如：`192.168.0.1/24,10.10.0.1/24`)
+- `DK_ENABLE_PPROF`: whether to turn on `pprof`
+- `DK_PPROF_LISTEN`: `pprof` service listening address
 
-### 外部采集器相关 {#env-external-inputs}
-- `DK_INSTALL_EXTERNALS`: 可用于安装如 ebpf 等未与 DataKit 一起打包的外部采集器
+### On DataKit Election  {#env-election}
 
-### Confd 配置相关 {#env-connfd}
+- `DK_ENABLE_ELECTION`: Open the election, not by default. If you need to open it, give any non-empty string value to the environment variable. (eg `True`/`False`)
+- `DK_NAMESPACE`: Supports namespaces specified during installation (for election)
 
-| 环境变量名                 | 类型   | 适用场景            | 说明     | 样例值 |
+### On HTTP/API  Environment {#env-http-api}
+- `DK_HTTP_LISTEN`: Support the installation-stage specified DataKit HTTP service binding network card (default `localhost`)
+- `DK_HTTP_PORT`: Support specifying the port of the DataKit HTTP service binding during installation (default `9529`)
+- `DK_RUM_ORIGIN_IP_HEADER`: RUM-specific
+- `DK_DISABLE_404PAGE`: Disable the DataKit 404 page (commonly used when deploying DataKit RUM on the public network. Such as `True`/`False`)
+- `DK_INSTALL_IPDB`: Specify the IP library at installation time (currently only `iploc` and `geolite2` is supported)
+- `DK_UPGRADE_IP_WHITELIST`: Starting from Datakit [1.5.9](changelog.md#cl-1.5.9), we can upgrade Datakit by access remote http API. This environment variable is used to set the IP whitelist of clients that can be accessed remotely(multiple IPs could be separated by commas `,`). Access outside the whitelist will be denied (default not restricted).
+
+### On DCA  {#env-dca}
+- `DK_DCA_ENABLE`: Support DCA service to be turned on during installation (not turned on by default)
+- `DK_DCA_LISTEN`: Support custom configuration of DCA service listening addresses and ports during installation (default `0.0.0.0:9531`）
+- `DK_DCA_WHITE_LIST`: Support setup of DCA service access whitelist, multiple whitelists split (e.g. `192.168.0.1/24,10.10.0.1/24`)
+
+### On External Collector  {#env-external-inputs}
+- `DK_INSTALL_EXTERNALS`: Used to install external collectors not packaged with DataKit
+
+### On Confd Configuration  {#env-connfd}
+
+| Environment Variable Name                 | Type   | Applicable Scenario            | Description     | Sample Value |
 | ----                     | ----   | ----               | ----     | ---- |
-| DK_CONFD_BACKEND        | string |  全部              | 后端源类型  | `etcdv3`或`zookeeper`或`redis`或`consul` |
-| DK_CONFD_BASIC_AUTH     | string | `etcdv3`或`consul` | 可选      | |
-| DK_CONFD_CLIENT_CA_KEYS | string | `etcdv3`或`consul` | 可选      | |
-| DK_CONFD_CLIENT_CERT    | string | `etcdv3`或`consul` | 可选      | |
-| DK_CONFD_CLIENT_KEY     | string | `etcdv3`或`consul`或`redis` | 可选      | |
-| DK_CONFD_BACKEND_NODES  | string |  全部              | 后端源地址 | `[IP地址:2379,IP地址2:2379]` |
-| DK_CONFD_PASSWORD       | string | `etcdv3`或`consul` | 可选      |  |
-| DK_CONFD_SCHEME         | string | `etcdv3`或`consul` | 可选      |  |
-| DK_CONFD_SEPARATOR      | string | `redis`            | 可选默认0 |  |
-| DK_CONFD_USERNAME       | string | `etcdv3`或`consul` | 可选      |  |
+| DK_CONFD_BACKEND        | string |  All              | Backend Source Type  | `etcdv3`, `zookeeper`, `redis` or `consul` |
+| DK_CONFD_BASIC_AUTH     | string | `etcdv3`, `consul` | Optional      | |
+| DK_CONFD_CLIENT_CA_KEYS | string | `etcdv3`, `consul` | Optional      | |
+| DK_CONFD_CLIENT_CERT    | string | `etcdv3`, `consul` | Optional      | |
+| DK_CONFD_CLIENT_KEY     | string | `etcdv3`, `consul` or `redis` | Optional      | |
+| DK_CONFD_BACKEND_NODES  | string |  All              | Backend Source Address | `[IP地址:2379,IP address 2:2379]` |
+| DK_CONFD_PASSWORD       | string | `etcdv3`, `consul` | Optional      |  |
+| DK_CONFD_SCHEME         | string | `etcdv3`, `consul` | Optional      |  |
+| DK_CONFD_SEPARATOR      | string | `redis`            | Optional default 0 |  |
+| DK_CONFD_USERNAME       | string | `etcdv3`, `consul` | Optional      |  |
 
-### Git 配置相关 {#env-gitrepo}
+### On Git Configuration {#env-gitrepo}
 
-- `DK_GIT_URL`: 管理配置文件的远程 git repo 地址。（如 `http://username:password@github.com/username/repository.git`）
-- `DK_GIT_KEY_PATH`: 本地 PrivateKey 的全路径。（如 `/Users/username/.ssh/id_rsa`）
-- `DK_GIT_KEY_PW`: 本地 PrivateKey 的使用密码。（如 `passwd`）
-- `DK_GIT_BRANCH`: 指定拉取的分支。<stong>为空则是默认</strong>，默认是远程指定的主分支，一般是 `master`。
-- `DK_GIT_INTERVAL`: 定时拉取的间隔。（如 `1m`）
+- `DK_GIT_URL`: The remote git repo address for managing configuration files. (e.g. `http://username:password@github.com/username/repository.git`）
+- `DK_GIT_KEY_PATH`: The full path of the local PrivateKey. (e.g.  `/Users/username/.ssh/id_rsa`）
+- `DK_GIT_KEY_PW`: The password to use the local PrivateKey. (e.g.  `passwd`）
+- `DK_GIT_BRANCH`: Specify the branch to pull. <stong>If it is empty, it is the default</strong>, and the default is the remotely specified main branch, which is usually `master`.
+- `DK_GIT_INTERVAL`: The interval of the timed pull. (e.g. `1m`)
 
-### Sinker 相关配置 {#env-sink}
+### On Sinker Configuration {#env-sink}
 
-- `DK_SINK_M`:  安装时指定 Metric 的 sink。
-- `DK_SINK_N`:  安装时指定 Network 的 sink。
-- `DK_SINK_K`:  安装时指定 KeyEvent 的 sink。
-- `DK_SINK_O`:  安装时指定 Object 的 sink。
-- `DK_SINK_CO`: 安装时指定 CustomObject 的 sink。
-- `DK_SINK_L`:  安装时指定 Logging 的 sink。
-- `DK_SINK_T`:  安装时指定 Tracing 的 sink。
-- `DK_SINK_R`:  安装时指定 RUM 的 sink。
-- `DK_SINK_S`:  安装时指定 Security 的 sink。
-- `DK_SINK_P`:  安装时指定 Profiling 的 sink。
-- `DK_LOG_SINK_DETAIL`:  安装时指定开启 sink 详细日志(开启后会产生大量日志, 仅供调试, 不建议在生产环境中使用)。例: "yes"。
+- `DK_SINKER`: Used to setup Dataway sinker, it's a JSON string, please refer to [here](datakit-daemonset-deploy.md#env-sinker) for more info.
 
-参见 [M3DB 示例](datakit-sink-m3db.md)
+See [M3DB example](datakit-sink-m3db.md)
 
-### cgroup 配置相关 {#env-cgroup}
+### On Cgroup Configuration {#env-cgroup}
 
-以下安装选项仅 Linux 平台支持：
+The following installation options are supported only on Linux platforms:
 
-- `DK_CGROUP_DISABLED`：Linux 系统下关闭 Cgroup 功能（默认开启）
-- `DK_LIMIT_CPUMAX`：Linux 系统下支持 CPU 的最大功率，默认 30.0
-- `DK_LIMIT_CPUMIN`：Linux 系统下支持 CPU 的最小功率，默认 5.0
-- `DK_LIMIT_MEMMAX`：Linux 系统下限制内存（含 swap）最大用量，默认 4096（4GB）
+- `DK_CGROUP_DISABLED`: Turn off Cgroup function on Linux system (on by default)
+- `DK_LIMIT_CPUMAX`: Maximum CPU power supported on Linux system, default 30.0
+- `DK_LIMIT_CPUMIN`: Minimum CPU power supported on Linux system, default 5.0
+- `DK_LIMIT_MEMMAX`: Limit memory (including swap) on Linux, default 4096 (4GB)
 
-### 其它安装选项 {#env-others}
+### Other Installation Options {#env-others}
 
-- `DK_INSTALL_ONLY`：仅安装，不运行
-- `DK_HOSTNAME`:支持安装阶段自定义配置主机名
-- `DK_UPGRADE`：升级到最新版本（注：一旦开启该选项，其它选项均无效）
-- `DK_INSTALLER_BASE_URL`：可选择不同环境的安装脚本，默认为 `https://static.guance.com/datakit`
-- `HTTPS_PROXY`：通过 Datakit 代理安装
-- `DK_PROXY_TYPE`：代理类型。选项有: "datakit" 或 "nginx"，均为小写
-- `DK_NGINX_IP`：代理服务器 IP 地址（只需要填 IP 不需要填端口）。这个与上面的 "HTTP_PROXY" 和 "HTTPS_PROXY" 互斥，而且优先级最高，会覆盖以上两者
-- `DK_INSTALL_LOG`：设置安装程序日志路径，默认为当前目录下的 *install.log*，如果设置为 `stdout` 则输出到命令行终端
+- `DK_INSTALL_ONLY`: Install only, not run
+- `DK_HOSTNAME`: Support custom configuration hostname during installation
+- `DK_UPGRADE`: Upgrade to the latest version (Note: Once this option is turned on, all other options except `DK_UPGRADE_MANAGER` are invalid)
+- `DK_UPGRADE_MANAGER`: Whether we upgrade the **Remote Upgrade Service** when upgrading Datakit, it's used in conjunction with `DK_UPGRADE`, supported start from [1.5.9](changelog.md#cl-1.5.9)
+- `DK_INSTALLER_BASE_URL`: You can choose the installation script for different environments, default to `https://static.guance.com/datakit`
+- `DK_PROXY_TYPE`: Proxy type. The options are: "datakit" or "nginx", both lowercase
+- `DK_NGINX_IP`: Proxy server IP address (only need to fill in IP but not port). With highest priority, this is mutually exclusive with the above "HTTP_PROXY" and "HTTPS_PROXY" and will override both.
+- `DK_INSTALL_LOG`: Set the setup log path, default to *install.log* in the current directory, if set to `stdout`, output to the command line terminal.
+- `HTTPS_PROXY`: Installed through the Datakit agent
 
 ## FAQ {#faq}
 
-### 如何应付不友好的主机名 {#bad-hostname}
+### :material-chat-question: How to Deal with the Unfriendly Host Name {#bad-hostname}
 
-由于 DataKit 使用主机名（Hostname）作为数据串联的依据，某些情况下，一些主机名取得不是很友好，比如 `iZbp141ahn....`，但由于某些原因，又不能修改这些主机名，这给使用带来一定的困扰。在 DataKit 中，可在主配置中覆盖这个不友好的主机名。
+Because DataKit uses Hostname as the basis for data concatenation, in some cases, some host names are not very friendly, such as  `iZbp141ahn....`, but for some reasons, these host names cannot be modified, which brings some troubles to use. In DataKit, this unfriendly host name can be overwritten in the main configuration.
 
-在 `datakit.conf` 中，修改如下配置，DataKit 将读取 `ENV_HOSTNAME` 来覆盖当前的真实主机名：
+In `datakit.conf`, modify the following configuration and the DataKit will read `ENV_HOSTNAME` to overwrite the current real hostname:
 
 ```toml
 [environments]
 	ENV_HOSTNAME = "your-fake-hostname-for-datakit"
 ```
 
-> 注意：如果之前某个主机已经采集了一段时间的数据，更改主机名后，这些历史数据将不再跟新的主机名关联。更改主机名，相当于新增了一台全新的主机。
+> Note: If a host has collected data for a period of time, after changing the host name, the historical data will no longer be associated with the new host name. Changing the host name is equivalent to adding a brand-new host.
 
-## 扩展阅读 {#more-reading}
+### :material-chat-question: Issue on macOS installation {#mac-failed}
 
-- [DataKit 使用入门](datakit-service-how-to.md)
+If it appears during the installation/upgrade process when installing on macOS:
+
+```shell
+"launchctl" failed with stderr: /Library/LaunchDaemons/cn.dataflux.datakit.plist: Service is disabled
+# or
+"launchctl" failed with stderr: /Library/LaunchDaemons/com.guance.datakit.plist: Service is disabled
+```
+
+Execute:
+
+```shell
+sudo launchctl enable system/datakit
+```
+
+Then execute the following command:
+
+```shell
+sudo launchctl load -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
+# or
+sudo launchctl load -w /Library/LaunchDaemons/com.guance.datakit.plist
+```
+
+## :material-chat-question: More Readings {#more-reading}
+
+- [Getting started with DataKit](datakit-service-how-to.md)

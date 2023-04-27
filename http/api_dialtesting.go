@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	dt "gitlab.jiagouyun.com/cloudcare-tools/cliutils/dialtesting"
-	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
+	dt "github.com/GuanceCloud/cliutils/dialtesting"
+	uhttp "github.com/GuanceCloud/cliutils/network/http"
 )
 
 type dialtestingDebugRequest struct {
@@ -32,7 +32,7 @@ type dialtestingDebugResponse struct {
 
 func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatever ...interface{}) (interface{}, error) {
 	var (
-		tid        = req.Header.Get(uhttp.XTraceId)
+		tid        = req.Header.Get(uhttp.XTraceID)
 		start      = time.Now()
 		t          dt.Task
 		traceroute string
@@ -50,11 +50,11 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 	case dt.ClassHTTP:
 		t = &dt.HTTPTask{}
 	case dt.ClassTCP:
-		t = &dt.TcpTask{}
+		t = &dt.TCPTask{}
 	case dt.ClassWebsocket:
 		t = &dt.WebsocketTask{}
 	case dt.ClassICMP:
-		t = &dt.IcmpTask{}
+		t = &dt.ICMPTask{}
 	default:
 		l.Errorf("unknown task type: %s", taskType)
 		return nil, uhttp.Error(ErrInvalidRequest, fmt.Sprintf("unknown task type:%s", taskType))

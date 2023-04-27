@@ -4,7 +4,7 @@ issues-exit-code = 1
 skip-files = ["packrd"]
 go = "1.18"
 skip-dirs = [
-	# TODO: we should add lint check on the package
+# TODO: we should add lint check on the package
 	"internal/obfuscate",
 ]
 
@@ -13,17 +13,18 @@ skip-dirs = [
 [linters-settings.govet]
 check-shadowing = false
 
+[linters-settings.loggercheck]
+zap = true
+
 [linters-settings.golint]
 min-confidence = 0.0
 
-[linters-settings.gocyclo]
-min-complexity = 14.0
-
+# See https://github.com/uudashr/gocognit
 [linters-settings.gocognit]
-min-complexity = 14.0
+min-complexity = 50.0
 
 [linters-settings.cyclo]
-min-complexity = 14.0
+min-complexity = 20.0
 
 [linters-settings.maligned]
 suggest-new = true
@@ -62,16 +63,19 @@ kubeerror = "k8s.io/apimachinery/pkg/api/errors"
 
 [linters-settings.gomoddirectives]
 replace-allow-list = [
-  "github.com/abbot/go-http-auth",
-  "github.com/go-check/check",
-  "github.com/gorilla/mux",
-  "github.com/mailgun/minheap",
-  "github.com/mailgun/multibuf",
+	"github.com/abbot/go-http-auth",
+	"github.com/go-check/check",
+	"github.com/gorilla/mux",
+	"github.com/mailgun/minheap",
+	"github.com/mailgun/multibuf",
 ]
 
 [linters-settings.lll]
 line-length = 150
 tab-width = 2
+
+[linters-settings.staticcheck]
+checks = ["all", "-SA1019"] # disable `Deprecated warnings`
 
 [linters]
 enable-all = true
@@ -79,7 +83,7 @@ disable = [
   # 权且放开他们
   "testpackage",      # Too strict
   "wrapcheck",        # 不便于错误处理
-  "tagliatelle",      # 跟现有 json tag 命名方式
+  "tagliatelle",      # 跟现有 json tag 命名方式冲突
   "paralleltest",     # 可开启，改动范围较大
   "noctx",            # 要求 HTTP 请求都用 context 形式，改动较大
   "nlreturn",         # 要求 return 语句前有一个空行
@@ -91,21 +95,27 @@ disable = [
   "gochecknoglobals", # 不能搞全局变量
   "exhaustivestruct", # 结构体初始化字段是否完整
   "golint",           # Too strict
-  "interfacer",
   "scopelint",        # obsoluted: https://github.com/kyoh86/scopelint#obsoleted
 
-
-  # 代码太复杂
-  "gocognit",
+  # 以下俩个 link 检查代码(函数)复杂度
+  "gocognit", 
   "gocyclo",
 
   "dupl",     # 还不允许有相似代码
   "maligned", # deprecated: https://github.com/mdempsky/maligned
 
+	# go1.18 disabled
+	"bodyclose", "nilerr", "rowserrcheck", "sqlclosecheck", "structcheck", "tparallel", "unparam", "wastedassign",
+
   "cyclop",
   "gomoddirectives", # used `replace' in go.mod
   "nolintlint",
   "revive",
+
+  #############################3
+	# go1.18 disabled
+  #############################3
+	"bodyclose", "nilerr", "rowserrcheck", "sqlclosecheck", "structcheck", "tparallel", "unparam", "wastedassign", "interfacer",
   "exhaustruct",     # [升级 Go1.18 后加入] 要求结构体每次务必每个字段都要填
   "varnamelen",      # [升级 Go1.18 后加入] 变量名长度检查
   "nonamedreturns",  # [升级 Go1.18 后加入] 不允许函数有名返回
@@ -127,4 +137,19 @@ exclude = []
 
 [[issues.exclude-rules]]
 path = "(.+)_test.go"
-linters = ["errcheck", "goconst", "funlen", "godot", "lll", "gosec", "stylecheck", "wsl", "unused", "deadcode", "unparam", "varcheck"]
+linters = [
+	"errcheck",
+	"goconst",
+	"funlen", 
+	"godot",
+	"lll",
+	"gosec",
+	"stylecheck",
+	"wsl",
+	"unused",
+	"deadcode",
+	"unparam",
+	"varcheck",
+	"gocognit",
+	"gocyclo",
+]

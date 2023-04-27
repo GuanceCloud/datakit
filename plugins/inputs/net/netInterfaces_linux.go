@@ -18,7 +18,7 @@ func VirtualInterfaces(mockData ...string) (map[string]bool, error) {
 	cardVirtual := make(map[string]bool)
 	var data string
 	// mock data
-	if len(mockData) == 1 {
+	if len(mockData) > 0 {
 		data = mockData[0]
 	} else {
 		b, err := exec.Command("ls", "/sys/devices/virtual/net/").CombinedOutput()

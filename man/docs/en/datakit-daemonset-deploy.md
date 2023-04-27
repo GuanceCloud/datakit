@@ -1,41 +1,39 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
 # Kubernetes
 ---
 
-本文档介绍如何在 K8s 中通过 DaemonSet 方式安装 DataKit。
+This document describes how to install DataKit in K8s via DaemonSet.
 
-## 安装 {#install}
+## Installation {#install}
 
 === "Daemonset"
 
-    先下载 [datakit.yaml](https://static.guance.com/datakit/datakit.yaml){:target="_blank"}，其中开启了很多[默认采集器](datakit-input-conf.md#default-enabled-inputs)，无需配置。
+    Download [datakit.yaml](https://static.guance.com/datakit/datakit.yaml){:target="_blank"}, in which many [default collectors](datakit-input-conf.md#default-enabled-inputs) are turned on without configuration.
     
     ???+ attention
     
-        如果要修改这些采集器的默认配置，可通过 [Configmap 方式挂载单独的 conf](k8s-config-how-to.md#via-configmap-conf) 来配置。部分采集器可以直接通过环境变量的方式来调整，具体参见具体采集器的文档。总而言之，不管是默认开启的采集器，还是其它采集器，在 DaemonSet 方式部署 DataKit 时，通过 [Configmap](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/){:target="_blank"} 来配置采集器总是生效的。
+        If you want to modify the default configuration of these collectors, you can configure them by [mounting a separate conf in Configmap mode](k8s-config-how-to.md#via-configmap-conf). Some collectors can be adjusted directly by means of environment variables. See the documents of specific collectors for details. All in all, configuring the collector through [Configmap](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/){:target="_blank"} is always effective when deploying the DataKit in DaemonSet mode, whether it is a collector turned on by default or other collectors.
     
-    修改 `datakit.yaml` 中的 dataway 配置
+    Modify the dataway configuration in `datakit.yaml`
     
     ```yaml
     	- name: ENV_DATAWAY
-    		value: https://openway.guance.com?token=<your-token> # 此处填上 DataWay 真实地址
+    		value: https://openway.guance.com?token=<your-token> # Fill in the real address of DataWay here
     ```
     
-    如果选择的是其它节点，此处更改对应的 DataWay 地址即可，如 AWS 节点：
+    If you choose another node, change the corresponding DataWay address here, such as AWS node:
     
     ```yaml
     	- name: ENV_DATAWAY
     		value: https://aws-openway.guance.com?token=<your-token> 
     ```
     
-    安装 yaml
+    Install yaml
     
     ```shell
     $ kubectl apply -f datakit.yaml
     ```
     
-    安装完后，会创建一个 datakit 的 DaemonSet 部署：
+    After installation, a DaemonSet deployment of datakit is created:
     
     ```shell
     $ kubectl get pod -n datakit
@@ -43,62 +41,61 @@
 
 === "Helm"
 
-    前提条件
+    Precondition:
     
     * Kubernetes >= 1.14
     * Helm >= 3.0+
     
-    添加 DataKit Helm 仓库：
-    
-    ```shell 
-    $ helm repo add datakit  https://pubrepo.guance.com/chartrepo/datakit
-    $ helm repo update 
-    ```
-    
-    Helm 安装 Datakit（注意修改 `datakit.dataway_url` 参数）
+    Helm installs Datakit (note modifying the `datakit.dataway_url` parameter)，in which many [default collectors](datakit-input-conf.md#default-enabled-inputs) are turned on without configuration.
     
     ```shell
-    $ helm install datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" --create-namespace 
+    $ helm install datakit datakit \
+               --repo  https://pubrepo.guance.com/chartrepo/datakit \
+               -n datakit --create-namespace \
+               --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" 
     ```
     
-    查看部署状态：
+    View deployment status:
     
     ```shell
     $ helm -n datakit list
     ```
     
-    可以通过如下命令来升级：
+    You can upgrade with the following command:
     
     ```shell
-    $ helm repo update 
-    $ helm upgrade datakit datakit/datakit -n datakit --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" 
+    $ helm -n datakit get  values datakit -o yaml > values.yaml
+    $ helm upgrade datakit datakit \
+        --repo  https://pubrepo.guance.com/chartrepo/datakit \
+        -n datakit \
+        -f values.yaml
     ```
     
-    可以通过如下命令来卸载：
+    You can uninstall it with the following command:
     
     ```shell
     $ helm uninstall datakit -n datakit
     ```
 
-## Kubernetes 污点容忍度配置 {#toleration}
+## Kubernetes Tolerance Configuration {#toleration}
 
-DataKit 默认会在 Kubernetes 集群的所有 node 上部署（即忽略所有污点），如果 Kubernetes 中某些 node 节点添加了污点调度，且不希望在其上部署 DataKit，可修改 datakit.yaml，调整其中的污点容忍度：
+DataKit is deployed on all nodes in the Kubernetes cluster by default (that is, all stains are ignored). If some node nodes in Kubernetes have added stain scheduling and do not want to deploy DataKit on them, you can modify datakit.yaml to adjust the stain tolerance:
 
 ```yaml
       tolerations:
-      - operator: Exists    <--- 修改这里的污点容忍度
+      - operator: Exists    <--- Modify the stain tolerance here
 ```
 
-具体绕过策略，参见[官方文档](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration){:target="_blank"}。
+For specific bypass strategies, see [official doc](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration){:target="_blank"}。
 
-## ConfigMap 设置 {#configmap-setting}
+## ConfigMap Settings {#configmap-setting}
 
-部分采集器的开启，需通过 ConfigMap 来注入。以下是 MySQL 和 Redis 采集器的注入示例：
+The opening of some collectors needs to be injected through ConfigMap. The following is an injection example of MySQL and Redis collectors:
 
 ```yaml
 # datakit.yaml
 
-volumeMounts: # datakit.yaml 中已有该配置，直接搜索即可定位到
+volumeMounts: #  this configuration have existed in datakit.yaml, and you can locate it by searching directly
 - mountPath: /usr/local/datakit/conf.d/db/mysql.conf
   name: datakit-conf
   subPath: mysql.conf
@@ -108,7 +105,7 @@ volumeMounts: # datakit.yaml 中已有该配置，直接搜索即可定位到
   subPath: redis.conf
 	readOnly: true
 
-# 直接在 datakit.yaml 底部追加
+# append directly to the bottom of datakit.yaml
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -124,13 +121,13 @@ data:
 			   ...
 ```
 
-## DataKit 中其它环境变量设置 {#using-k8-env}
+## Settings of Other Environment Variables in DataKit {#using-k8-env}
 
-> 注意： ENV_LOG 如果配置成 `stdout`，则不要将 ENV_LOG_LEVEL 设置成 `debug`，否则可能循环产生日志，产生大量日志数据。
+> Note: If ENV_LOG is configured to `stdout`, do not set ENV_LOG_LEVEL to `debug`, otherwise looping logs may result in large amounts of log data.
 
-在 DaemonSet 模式中，DataKit 支持多个环境变量配置
+In DaemonSet mode, DataKit supports multiple environment variable configurations.
 
-- datakit.yaml 中其大概格式为
+- The approximate format in datakit.yaml is
 
 ```yaml
 spec:
@@ -142,7 +139,7 @@ spec:
       value: YYY
 ```
 
-- Helm values.yaml 中其大概格式为
+- The approximate format in Helm values.yaml is
 
 ```yaml
   extraEnvs: 
@@ -152,140 +149,151 @@ spec:
       value: "YYY"    
 ```
 
-### 环境变量类型说明 {#env-types}
+### Description of Environment Variable Type {#env-types}
 
-以下环境变量的取值分为如下几种数据类型：
+The values of the following environment variables are divided into the following data types:
 
-- string：字符串类型
-- json：一些较为复杂的配置，需要以 json 字符串形式来设置环境变量
-- bool：开关类型，给定**任何非空字符串**即表示开启该功能，建议均以 `"on"` 作为其开启时的取值。如果不开启，必须将其删除或注释掉。
-- string-list：以英文逗号分割的字符串，一般用于表示列表
-- duration：一种字符串形式的时间长度表示，比如 `10s` 表示 10 秒，这里的单位支持 h/m/s/ms/us/ns。==不要给负值==。
-- int：整数类型
-- float：浮点类型
+- string: string type
+- json: some of the more complex configurations that require setting environment variables in the form of a json string
+- bool: switch type. Given **any non-empty string** , this function is turned on. It is recommended to use `"on"` as its value when turned on. If it is not opened, it must be deleted or commented out.
+- string-list: a string separated by an English comma, commonly used to represent a list
+- duration: a string representation of the length of time, such as `10s` for 10 seconds, where the unit supports h/m/s/ms/us/ns. **Don't give a negative value**.
+- int: integer type
+- float: floating point type
 
-对于 string/bool/string-list/duration，建议都用双引号修饰一下，避免 k8s 解析 yaml 可能导致的问题。
+For string/bool/string-list/duration, it is recommended to use double quotation marks to avoid possible problems caused by k8s parsing yaml.
 
-### 最常用环境变量 {#env-common}
+### Most Commonly Used Environment Variables {#env-common}
 
-| 环境变量名称                 | 类型        | 默认值 | 必须   | 说明                                                                                                                                     |
-| ---------:                   | ----:       | ---:   | ------ | ----                                                                                                                                     |
-| `ENV_DATAWAY`                | string      | 无     | 是     | 配置 DataWay 地址，如 `https://openway.guance.com?token=xxx`                                                                             |
-| `ENV_DEFAULT_ENABLED_INPUTS` | string-list | 无     | 否     | 默认开启[采集器列表](datakit-input-conf.md#default-enabled-inputs)，以英文逗号分割，如 `cpu,mem,disk`，老的 `ENV_ENABLE_INPUTS` 将被废弃 |
-| `ENV_GLOBAL_HOST_TAGS`       | string-list | 无     | 否     | 全局 tag，多个 tag 之间以英文逗号分割，如 `tag1=val,tag2=val2`。老的 `ENV_GLOBAL_TAGS` 将被废弃                                          |
+| Environment Variable Name                 | Type        | Default Value | Required   | Description                                                                                                                                     |
+| :---------                   | :---:       | :---   | :----: | :---                                                                                                                                     |
+| `ENV_DATAWAY`                | string      | None     | Yes     | Configure the DataWay address, such as `https://openway.guance.com?token=xxx`                                                                             |
+| `ENV_DEFAULT_ENABLED_INPUTS` | string-list | None     | No     |[The list of collectors](datakit-input-conf.md#default-enabled-inputs) is opened by default, divided by English commas, such as `cpu,mem,disk`, and the old  `ENV_ENABLE_INPUTS` will be discarded. |
+| `ENV_GLOBAL_HOST_TAGS`       | string-list | None     | No     | Global tag, multiple tags are divided by English commas, such as `tag1=val,tag2=val2`. The old `ENV_GLOBAL_TAGS` will be discarded.                                          |
 
-???+ note "区分*全局主机 tag* 和*全局选举 tag*"
+???+ note "Distinguish between *global host tag*  and *global election tag*"
 
-    `ENV_GLOBAL_HOST_TAGS` 用来指定主机类全局 tag，这些 tag 的值一般跟随主机变迁，比如主机名、主机 IP 等。当然，其它不跟随主机变迁的 tag 也能加进来。所有非选举类采集器，会默认带上 `ENV_GLOBAL_HOST_TAGS` 中指定的 tag。
+    `ENV_GLOBAL_HOST_TAGS` is used to specify host class global tags whose values generally follow host transitions, such as host name and host IP. Of course, other tags that do not follow the host changes can also be added. All collectors of non-elective classes are taken by default with the tag specified in `ENV_GLOBAL_HOST_TAGS`.
+    
+    And `ENV_GLOBAL_ELECTION_TAGS` recommends adding only tags that do not change with host switching, such as cluster name, project name, etc. For [election collector](election.md#inputs), only the tag specified in `ENV_GLOBAL_ELECTION_TAGS` will be added, not the tag specified in `ENV_GLOBAL_HOST_TAGS`.
+    
+    Whether it is a host class global tag or an environment class global tag, if there is already a corresponding tag in the original data, the existing tag will not be appended, and we think that the tag in the original data should be used.
 
-    而 `ENV_GLOBAL_ELECTION_TAGS` 建议只添加不随主机切换而变迁的 tags，如集群名、项目名等。对于[参与选举的采集器](election.md#inputs)，只会添加 `ENV_GLOBAL_ELECTION_TAGS` 中指定的 tag，不会增加 `ENV_GLOBAL_HOST_TAGS` 中指定的 tag。
+### Log Configuration Related Environment Variables {#env-log}
 
-    不管是主机类全局 tag 还是环境类全局 tag，如果原始数据中已经有对应 tag，则不会追加已存在的 tag，我们认为应该沿用原始数据中的 tag。
+| Environment Variable Name            | Type   | Default Value                     | Required   | Description                                                             |
+| :---------              | :----  | :---                       | :----- | :---                                                             |
+| `ENV_GIN_LOG`           | string | */var/log/datakit/gin.log* | No     | If it is changed to `stdout`, the DataKit's own gin log will not be written to the file, but will be output by the terminal. |
+| `ENV_LOG`               | string | */var/log/datakit/log*     | No     | If it is changed to `stdout`, DataKit's own log will not be written to the file, but will be output by the terminal.      |
+| `ENV_LOG_LEVEL`         | string | info                       | No     | Set DataKit's own log level, optional `info/debug`.                     |
+| `ENV_DISABLE_LOG_COLOR` | bool   | -                          | No     | Turn off log colors                                             |
 
-### 日志配置相关环境变量 {#env-log}
+###  Something about DataKit pprof {#env-pprof}
 
-| 环境变量名称            | 类型   | 默认值                     | 必须   | 说明                                                             |
-| ---------:              | ----:  | ---:                       | ------ | ----                                                             |
-| `ENV_GIN_LOG`           | string | */var/log/datakit/gin.log* | 否     | 如果改成 `stdout`，DataKit 自身 gin 日志将不写文件，而是终端输出 |
-| `ENV_LOG`               | string | */var/log/datakit/log*     | 否     | 如果改成 `stdout`，DatakIt 自身日志将不写文件，而是终端输出      |
-| `ENV_LOG_LEVEL`         | string | info                       | 否     | 设置 DataKit 自身日志等级，可选 `info/debug`                     |
-| `ENV_DISABLE_LOG_COLOR` | bool   | -                          | 否     | 关闭日志颜色                                                     |
+| Environment Variable Name       | Type   | Default Value | Required   | Description                |
+| :---------         | :----  | :---   | :----- | :---                |
+| `ENV_ENABLE_PPROF` | bool   | -      | No     | Whether to start `pprof`    |
+| `ENV_PPROF_LISTEN` | string | None     | No     | `pprof` service listening address |
 
-###  DataKit pprof 相关 {#env-pprof}
+### Election-related Environmental Variables {#env-elect}
 
-| 环境变量名称       | 类型   | 默认值 | 必须   | 说明                |
-| ---------:         | ----:  | ---:   | ------ | ----                |
-| `ENV_ENABLE_PPROF` | bool   | -      | 否     | 是否开启 `pprof`    |
-| `ENV_PPROF_LISTEN` | string | 无     | 否     | `pprof`服务监听地址 |
+| Environment Variable Name	                        | Type        | Default Value    | Required   | Description                                                                                                                                                                                       |
+| :---------                          | :----       | :---      | :----- | :---                                                                                                                                                                                       |
+| `ENV_ENABLE_ELECTION`               | bool        | -         | No     | If you want to open the [election](election.md), it will not be opened by default. If you want to open it, you can give any non-empty string value to the environment variable.                                                                                                        |
+| `ENV_NAMESPACE`                     | string      | `default` | No     | The namespace in which the DataKit resides, which defaults to null to indicate that it is namespace-insensitive and accepts any non-null string, such as `dk-namespace-example`. If the election is turned on, you can specify the workspace through this environment variable.                                        |
+| `ENV_ENABLE_ELECTION_NAMESPACE_TAG` | bool        | -         | No     | When this option is turned on, all election classes are collected with an extra tag of `election_namespace=<your-election-namespace>`, which may result in some timeline growth. ([:octicons-tag-24: Version-1.4.7](changelog.md#cl-1.4.7)) |
+| `ENV_GLOBAL_ELECTION_TAGS`          | string-list |         | No     | Tags are elected globally, and multiple tags are divided by English commas, such as `tag1=val,tag2=val2`. ENV_GLOBAL_ENV_TAGS will be discarded.                                                                                           |
+| `ENV_CLUSTER_NAME_K8S`              | string      | -         | No     | The cluster name in which the Datakit residers, if the cluster is not empty, a specified tag will be added to `global_election_tags`, the key is `cluster_name_k8s` and the value is the environment variable. ([:octicons-tag-24: Version-1.5.8](changelog.md#cl-1.5.8))               |
 
-### 选举相关环境变量 {#env-elect}
+### HTTP/API Related Environment Variables {#env-http-api}
 
-| 环境变量名称                        | 类型        | 默认值    | 必须   | 说明                                                                                                                                                                                       |
-| ---------:                          | ----:       | ---:      | ------ | ----                                                                                                                                                                                       |
-| `ENV_ENABLE_ELECTION`               | bool        | -         | 否     | 开启[选举](election.md)，默认不开启，如需开启，给该环境变量任意一个非空字符串值即可                                                                                                        |
-| `ENV_NAMESPACE`                     | string      | `default` | 否     | DataKit 所在的命名空间，默认为空表示不区分命名空间，接收任意非空字符串，如 `dk-namespace-example`。如果开启了选举，可以通过此环境变量指定工作空间。                                        |
-| `ENV_ENABLE_ELECTION_NAMESPACE_TAG` | bool        | -         | 否     | 开启该选项后，所有选举类的采集均会带上 `election_namespace=<your-election-namespace>` 的额外 tag，这可能会导致一些时间线的增长（[:octicons-tag-24: Version-1.4.7](changelog.md#cl-1.4.7)） |
-| `ENV_GLOBAL_ELECTION_TAGS`          | string-list | 无        | 否     | 全局选举 tag，多个 tag 之间以英文逗号分割，如 `tag1=val,tag2=val2`。ENV_GLOBAL_ENV_TAGS 将被弃用                                                                                           |
+| Environment Variable Name                     | Type        | Default Value            | Required   | Description                                                                                                                                                                                                        |
+| :---------                       | :----       | :---              | :----- | :---                                                                                                                                                                                                        |
+| `ENV_DISABLE_404PAGE`            | bool        | -                 | No     | Disable the DataKit 404 page (commonly used when deploying DataKit RUM on the public network).                                                                                                                                                        |
+| `ENV_HTTP_LISTEN`                | string      | localhost:9529    | No     | The address can be modified so that the [DataKit interface](apis) can be called externally.                                                                                                                                                          |
+| `ENV_HTTP_PUBLIC_APIS`           | string-list | None                | No     | [API list](apis) that allow external access, separated by English commas between multiple APIs. When DataKit is deployed on the public network, it is used to disable some APIs.                                                                                             |
+| `ENV_HTTP_TIMEOUT`               | duration    | 30s               | No     | Setting the 9529 HTTP API Server Timeout [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental).                                                     |
+| `ENV_HTTP_CLOSE_IDLE_CONNECTION` | bool        | -                 | No     | If turned on, the 9529 HTTP server actively closes idle connections (idle time equal to `ENV_HTTP_TIMEOUT`） [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental). |
+| `ENV_REQUEST_RATE_LIMIT`         | float       | None                | No     | Limit 9529 [API requests per second](datakit-conf.md#set-http-api-limit).                                                                                                                                              |
+| `ENV_RUM_ORIGIN_IP_HEADER`       | string      | `X-Forwarded-For` | No     | RUM dedicated                                                                                                                                                                                                    |
+| `ENV_RUM_APP_ID_WHITE_LIST`      | string      | None                | No     | RUM app-id white list, split by `,`,  such as `appid-1,appid-2`.                                                                                                                                                    |
 
-### HTTP/API 相关环境变量 {#env-http-api}
+### Confd Configures Related Environment Variables {#env-confd}
 
-| 环境变量名称                     | 类型        | 默认值            | 必须   | 说明                                                                                                                                                                                                        |
-| ---------:                       | ----:       | ---:              | ------ | ----                                                                                                                                                                                                        |
-| `ENV_DISABLE_404PAGE`            | bool        | -                 | 否     | 禁用 DataKit 404 页面（公网部署 DataKit RUM 时常用）                                                                                                                                                        |
-| `ENV_HTTP_LISTEN`                | string      | localhost:9529    | 否     | 可修改地址，使得外部可以调用 [DataKit 接口](apis)                                                                                                                                                           |
-| `ENV_HTTP_PUBLIC_APIS`           | string-list | 无                | 否     | 允许外部访问的 DataKit [API 列表](apis)，多个 API 之间以英文逗号分割。当 DataKit 部署在公网时，用来禁用部分 API                                                                                             |
-| `ENV_HTTP_TIMEOUT`               | duration    | 30s               | 否     | 设置 9529 HTTP API 服务端超时时间 [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental)                                                     |
-| `ENV_HTTP_CLOSE_IDLE_CONNECTION` | bool        | -                 | 否     | 如果开启，则 9529 HTTP server 会主动关闭闲置连接（闲置时间等同于 `ENV_HTTP_TIMEOUT`） [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental) |
-| `ENV_REQUEST_RATE_LIMIT`         | float       | 无                | 否     | 限制 9529 [API 每秒请求数](datakit-conf.md#set-http-api-limit)                                                                                                                                              |
-| `ENV_RUM_ORIGIN_IP_HEADER`       | string      | `X-Forwarded-For` | 否     | RUM 专用                                                                                                                                                                                                    |
-| `ENV_RUM_APP_ID_WHITE_LIST`      | string      | 无                | 否     | RUM app-id 白名单列表，以 `,` 分割，如 `appid-1,appid-2`                                                                                                                                                    |
+| Environment Variable Name                 | Type   | Applicable Scenario            | Description     | Sample Value |
+| ----                       | ----   | ----               | ----     | ---- |
+| `ENV_CONFD_BACKEND`        | string |  All              | Backend source type  | `etcdv3` or `zookeeper` or `redis` or `consul` |
+| `ENV_CONFD_BASIC_AUTH`     | string | `etcdv3` or `consul` | Optional      | |
+| `ENV_CONFD_CLIENT_CA_KEYS` | string | `etcdv3` or `consul` | Optional      | |
+| `ENV_CONFD_CLIENT_CERT`    | string | `etcdv3` or `consul` | Optional      | |
+| `ENV_CONFD_CLIENT_KEY`     | string | `etcdv3` or `consul` or `redis` | Optional      | |
+| `ENV_CONFD_BACKEND_NODES`  | string |  All              | Backend source address | `[IP address:2379,IP address2:2379]` |
+| `ENV_CONFD_PASSWORD`       | string | `etcdv3` or `consul` | Optional      |  |
+| `ENV_CONFD_SCHEME`         | string | `etcdv3` or `consul` | Optional      |  |
+| `ENV_CONFD_SEPARATOR`      | string | `redis`            | Optional default 0 |  |
+| `ENV_CONFD_USERNAME`       | string | `etcdv3` or `consul` | Optional      |  |
 
-### Confd 配置相关环境变量 {#env-confd}
+### Git Configuration Related Environment Variable {#env-git}
 
-| 环境变量名                 | 类型   | 适用场景            | 说明     | 样例值 |
-| ----                     | ----   | ----               | ----     | ---- |
-| ENV_CONFD_BACKEND        | string |  全部              | 后端源类型  | `etcdv3`或`zookeeper`或`redis`或`consul` |
-| ENV_CONFD_BASIC_AUTH     | string | `etcdv3`或`consul` | 可选      | |
-| ENV_CONFD_CLIENT_CA_KEYS | string | `etcdv3`或`consul` | 可选      | |
-| ENV_CONFD_CLIENT_CERT    | string | `etcdv3`或`consul` | 可选      | |
-| ENV_CONFD_CLIENT_KEY     | string | `etcdv3`或`consul`或`redis` | 可选      | |
-| ENV_CONFD_BACKEND_NODES  | string |  全部              | 后端源地址 | `[IP地址:2379,IP地址2:2379]` |
-| ENV_CONFD_PASSWORD       | string | `etcdv3`或`consul` | 可选      |  |
-| ENV_CONFD_SCHEME         | string | `etcdv3`或`consul` | 可选      |  |
-| ENV_CONFD_SEPARATOR      | string | `redis`            | 可选默认0 |  |
-| ENV_CONFD_USERNAME       | string | `etcdv3`或`consul` | 可选      |  |
+| Environment Variable Name       | Type     | Default Value | Required   | Description                                                                                                   |
+| :---------         | :----    | :---   | :----- | :---                                                                                                   |
+| `ENV_GIT_BRANCH`   | string   | None     | No     | Specifies the branch to pull. <stong>If it is empty, it is the default.</strong> And the default is the remotely specified main branch, which is usually `master`.                |
+| `ENV_GIT_INTERVAL` | duration | None     | No     | The interval of timed pull. (e.g. `1m`)                                                                            |
+| `ENV_GIT_KEY_PATH` | string   | None     | No     | The full path of the local PrivateKey. (e.g. `/Users/username/.ssh/id_rsa`）                                         |
+| `ENV_GIT_KEY_PW`   | string   | None     | No     | Use password of local PrivateKey. (e.g. `passwd`）                                                            |
+| `ENV_GIT_URL`      | string   | None     | No     | Manage the remote git repo address of the configuration file. (e.g. `http://username:password@github.com/username/repository.git`） |
 
-### Git 配置相关环境变量 {#env-git}
+### Sinker Configuring Related Environment Variables {#env-sinker}
 
-| 环境变量名称       | 类型     | 默认值 | 必须   | 说明                                                                                                   |
-| ---------:         | ----:    | ---:   | ------ | ----                                                                                                   |
-| `ENV_GIT_BRANCH`   | string   | 无     | 否     | 指定拉取的分支。<stong>为空则是默认</strong>，默认是远程指定的主分支，一般是 `master`。                |
-| `ENV_GIT_INTERVAL` | duration | 无     | 否     | 定时拉取的间隔。（如 `1m`）                                                                            |
-| `ENV_GIT_KEY_PATH` | string   | 无     | 否     | 本地 PrivateKey 的全路径。（如 `/Users/username/.ssh/id_rsa`）                                         |
-| `ENV_GIT_KEY_PW`   | string   | 无     | 否     | 本地 PrivateKey 的使用密码。（如 `passwd`）                                                            |
-| `ENV_GIT_URL`      | string   | 无     | 否     | 管理配置文件的远程 git repo 地址。（如 `http://username:password@github.com/username/repository.git`） |
+| Environment Variable Name | Type         | Default Value | Required | Description                                    |
+| :---------                | :----        | :---          | :-----   | :---                                           |
+| `ENV_SINKER`              | string(JSON) | None          | No       | Specify Dataway sinker on different categories |
 
-### Sinker 配置相关环境变量 {#env-sinker}
+ENV_SINKER used to configure [dataway sinker](datakit-sink-dataway.md), it's a JSON string like this:
 
-| 环境变量名称  | 类型   | 默认值 | 必须   | 说明                            |
-| ---------:    | ----:  | ---:   | ------ | ----                            |
-| `ENV_SINK_M`  | string | 无     | 否     | 安装时指定 Metric 的 sink       |
-| `ENV_SINK_N`  | string | 无     | 否     | 安装时指定 Network 的 sink      |
-| `ENV_SINK_K`  | string | 无     | 否     | 安装时指定 KeyEvent 的 sink     |
-| `ENV_SINK_O`  | string | 无     | 否     | 安装时指定 Object 的 sink       |
-| `ENV_SINK_CO` | string | 无     | 否     | 安装时指定 CustomObject 的 sink |
-| `ENV_SINK_L`  | string | 无     | 否     | 安装时指定 Logging 的 sink      |
-| `ENV_SINK_T`  | string | 无     | 否     | 安装时指定 Tracing 的 sink      |
-| `ENV_SINK_R`  | string | 无     | 否     | 安装时指定 RUM 的 sink          |
-| `ENV_SINK_S`  | string | 无     | 否     | 安装时指定 Security 的 sink     |
-| `ENV_SINK_P`  | string | 无     | 否     | 安装时指定 Profiling 的 sink    |
-
-<!-- | `ENV_LOG_SINK_DETAIL` | string | 无     | 否     | 安装时指定开启 sink 详细日志(开启后会产生大量日志, 仅供调试, 不建议在生产环境中使用)。例: "yes"。 | -->
-
-如果单个数据类型要配置多个 sink 地址，sink 地址可以用 `||` 分割，如：
-
-```shell
-ENV_SINK_M = "dataway://?url=https://openway.guance.com&token=<TOKEN-1>&filters={host='user-ubuntu'}||dataway://?url=https://openway.guance.com&token=<TOKEN-2>&filters={host='user-centos'}"
-
-ENV_SINK_M = "influxdb://host1:8087?protocol=http&database=db1&precision=ns&timeout=15s||influxdb://host2:8087?protocol=http&database=db1&precision=ns&timeout=15s"
+```json
+[
+	{
+		"categories": ["L", "M"],
+		"filters": [
+			"{measurement='cpu' and tag='some-host'}"
+		],
+		"proxy": "",
+		"url": "http://openway.guance.com?token=<YOUR-TOKEN>"
+	}
+]
 ```
 
-### IO 模块配置相关环境变量 {#env-io}
+while set the ENV, we must convert the JSON into single line:
 
-| 环境变量名称                  | 类型     | 默认值 | 必须   | 说明                               |
-| ---------:                    | ---:     | ---:   | ------ | ----                               |
-| `ENV_IO_FILTERS`              | json     | 无     | 否     | 添加[行协议过滤器](datakit-filter) |
-| `ENV_IO_FLUSH_INTERVAL`       | duration | 10s    | 否     | IO 发送时间频率                    |
-| `ENV_IO_MAX_CACHE_COUNT`      | int      | 1000   | 否     | 发送 buffer（点数）大小            |
-| `ENV_IO_ENABLE_CACHE`         | bool     | -      | 否     | 是否开启发送失败的磁盘缓存         |
-| `ENV_IO_CACHE_MAX_SIZE_GB`    | int      | 10     | 否     | 发送失败缓存的磁盘大小（单位 GB）  |
-| `ENV_IO_CACHE_CLEAN_INTERVAL` | duration | 5s     | 否     | 定期发送缓存在磁盘内的失败任务     |
+```json
+[ { "categories": ["L", "M"], "filters": [ "{measurement='cpu' and tag='some-host'}" ], "url": "http://openway.guance.com?token=<YOUR-TOKEN>" } ]
+```
 
-???+ note "关于 buffer 和 queue 的说明"
+If the one-line JSON applied in command line(such as Shell), we have to escape `"`:
 
-    `ENV_IO_MAX_CACHE_COUNT` 用来控制数据的发送策略，即当内存中 cache 的（行协议）点数超过该数值的时候，就会尝试将内存中当前 cache 的点数发送到中心。如果该 cache 的阈值调的太大，数据就都堆积在内存，导致内存飙升，但会提高 GZip 的压缩效果。如果太小，可能影响发送吞吐率。
+```shell
+DK_SINKER="[ { \"categories\": [\"L\", \"M\"], \"filters\": [ \"{measurement='cpu' and tag='some-host'}\" ], \"url\": \"http://openway.guance.com?token=<YOUR-TOKEN>\" } ]"
+```
 
-`ENV_IO_FILTERS` 是一个 json 字符串，示例如下:
+### IO Module Configuring Related Environment Variables {#env-io}
+
+| Environment Variable Name     | Type     | Default Value      | Required | Description                                                               |
+| :---------                    | :---     | :---               | :-----   | :---                                                                      |
+| `ENV_IO_FILTERS`              | json     | None               | No       | Add [row protocol filter](datakit-filter)                                 |
+| `ENV_IO_FLUSH_INTERVAL`       | duration | 10s                | No       | IO transmission time frequency                                            |
+| `ENV_IO_FLUSH_WORKERS`        | int      | `cpu_core * 2 + 1` | No       | IO flush workers(:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9)) |
+| `ENV_IO_MAX_CACHE_COUNT`      | int      | 1000               | No       | Send buffer size                                                          |
+| `ENV_IO_ENABLE_CACHE`         | bool     | false              | No       | Whether to open the disk cache that failed to send                        |
+| `ENV_IO_CACHE_ALL`            | bool     | false              | 否       | cache failed data points of all categories                                |
+| `ENV_IO_CACHE_MAX_SIZE_GB`    | int      | 10                 | No       | Disk size of send failure cache (in GB)                                   |
+| `ENV_IO_CACHE_CLEAN_INTERVAL` | duration | 5s                 | No       | Periodically send failed tasks cached on disk                             |
+
+???+ note "description on buffer and queue"
+
+    `ENV_IO_MAX_CACHE_COUNT` is used to control the data sending policy, that is, when the number of (row protocol) points of the cache in memory exceeds this value, an attempt is made to send the number of points of the current cache in memory to the center. If the threshold of the cache is set too high, the data will accumulate in memory, causing memory to soar, but will improve the compression effect of GZip. If it is too small, it may affect the transmission throughput.
+
+`ENV_IO_FILTERS` is a json string, as shown below:
 
 ```json
 {
@@ -302,37 +310,37 @@ ENV_SINK_M = "influxdb://host1:8087?protocol=http&database=db1&precision=ns&time
 
 ### DCA {#env-dca}
 
-| 环境变量名称         | 类型   | 默认值         | 必须   | 说明                                                                                                 |
-| ---------:           | ----:  | ---:           | ------ | ----                                                                                                 |
-| `ENV_DCA_LISTEN`     | string | localhost:9531 | 否     | 可修改改地址，使得 [DCA](dca.md) 客户端能管理该 DataKit，一旦开启 ENV_DCA_LISTEN 即默认启用 DCA 功能 |
-| `ENV_DCA_WHITE_LIST` | string | 无             | 否     | 配置 DCA 白名单，以英文逗号分隔                                                                      |
+| Environment Variable Name         | Type   | Default Value         | Required   | Description                                                                                                 |
+| :---------           | :----  | :---           | :----- | :---                                                                                                 |
+| `ENV_DCA_LISTEN`     | string | localhost:9531 | No     | The address can be modified so that the [DCA](dca.md) client can manage the DataKit. Once ENV_DCA_LISTEN is turned on, the DCA function is enabled by default |
+| `ENV_DCA_WHITE_LIST` | string | None             | No     | Configure DCA white list, separated by English commas                                                                      |
 
-### Refer Table 有关环境变量 {#env-reftab}
+### Refer Table About Environment Variables {#env-reftab}
 
-| 环境变量名称                    | 类型   | 默认值 | 必须   | 说明                          |
-| ---------:                      | ----:  | ---:   | ------ | ----                          |
-| `ENV_REFER_TABLE_URL`           | string | 无     | 否     | 设置数据源 URL                |
-| `ENV_REFER_TABLE_PULL_INTERVAL` | string | 5m     | 否     | 设置数据源 URL 的请求时间间隔 |
+| Environment Variable Name                    | Type   | Default Value | Required   | Description                          |
+| :---------                      | :----  | :---   | :----- | :---                          |
+| `ENV_REFER_TABLE_URL`           | string | None     | No     | Set the data source URL                |
+| `ENV_REFER_TABLE_PULL_INTERVAL` | string | 5m     | No     | Set the request interval for the data source URL |
 
-### 其它杂项 {#env-others}
+### Others {#env-others}
 
-| 环境变量名称                    | 类型     | 默认值 | 必须   | 说明                                                       |
-| ---------:                      | ----:    | ---:   | ------ | ----                                                       |
-| `ENV_CLOUD_PROVIDER`            | string   | 无     | 否     | 支持安装阶段填写云厂商(`aliyun/aws/tencent/hwcloud/azure`) |
-| `ENV_HOSTNAME`                  | string   | 无     | 否     | 默认为本地主机名，可安装时指定，如， `dk-your-hostname`    |
-| `ENV_IPDB`                      | string   | 无     | 否     | 指定 IP 信息库类型，目前只支持 `iploc/geolite2` 两种       |
-| `ENV_ULIMIT`                    | int      | 无     | 否     | 指定 Datakit 最大的可打开文件数                            |
-| `ENV_DATAWAY_TIMEOUT`           | duration | 30s    | 否     | 设置 DataKit 请求 DataWay 的超时时间                       |
-| `ENV_DATAWAY_ENABLE_HTTPTRACE`  | bool     | false  | 否     | 在 debug 日志中输出 dataway HTTP 请求的网络日志            |
-| `ENV_DATAWAY_HTTP_PROXY`        | string   | 无     | 否     | 设置 DataWay HTTP 代理                                     |
+| Environment Variable Name                    | Type     | Default Value | Required   | Description                                                       |
+| :---------                      | :----    | :---   | :----- | :---                                                       |
+| `ENV_CLOUD_PROVIDER`            | string   | None     | No     | Support filling in cloud suppliers during installation(`aliyun/aws/tencent/hwcloud/azure`) |
+| `ENV_HOSTNAME`                  | string   | None     | No     | The default is the local host name, which can be specified at installation time, such as, `dk-your-hostname`    |
+| `ENV_IPDB`                      | string   | None     | No     | Specify the IP repository type, currently only supports `iploc/geolite2`      |
+| `ENV_ULIMIT`                    | int      | None     | No     | Specify the maximum number of open files for Datakit                            |
+| `ENV_DATAWAY_TIMEOUT`           | duration | 30s    | No     | Set the timeout for DataKit to request DataWay                       |
+| `ENV_DATAWAY_ENABLE_HTTPTRACE`  | bool     | false  | No     | Output the weblog of the dataway HTTP request in the debug log            |
+| `ENV_DATAWAY_HTTP_PROXY`        | string   | None     | No     | Set up the DataWay HTTP Proxy                                     |
 
-### 特殊环境变量 {#env-special}
+### Special Environment Variable {#env-special}
 
 #### ENV_K8S_NODE_NAME {#env_k8s_node_name}
 
-当 k8s node 名称跟其对应的主机名不同时，可将 k8s 的 node 名称顶替默认采集到的主机名，在 *datakit.yaml* 中增加环境变量：
+When the k8s node name is different from its corresponding host name, the k8s node name can be replaced by the default collected host name, and the environment variable can be added in *datakit.yaml*:
 
-> [1.2.19](changelog.md#cl-1.2.19) 版本的 datakit.yaml 中默认就带了这个配置，如果是从老版本的 yaml 直接升级而来，需要对 *datakit.yaml* 做如下手动改动。
+> This configuration is included by default in datakit.yaml version  [1.2.19](changelog.md#cl-1.2.19). If you upgrade directly from the old version of yaml, you need to make the following manual changes to *datakit.yaml*.
 
 ```yaml
 - env:
@@ -343,11 +351,11 @@ ENV_SINK_M = "influxdb://host1:8087?protocol=http&database=db1&precision=ns&time
 				fieldPath: spec.nodeName
 ```
 
-### 各个采集器专用环境变量 {#inputs-envs}
+### Individual Collector-specific Environment Variable {#inputs-envs}
 
-部分采集器支持外部注入环境变量，以调整采集器自身的默认配置。具体参见各个具体的采集器文档。
+Some collectors support external injection of environment variables to adjust the default configuration of the collector itself. See each specific collector document for details.
 
-## 延伸阅读 {#more-readings}
+## Extended Readings {#more-readings}
 
-- [DataKit 选举](election.md)
-- [DataKit 的几种配置方式](k8s-config-how-to.md)
+- [DataKit election](election.md)
+- [Several Configuration Methods of DataKit](k8s-config-how-to.md)

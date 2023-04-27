@@ -1,27 +1,26 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
-# Prometheus Exportor 指标采集
+
+# Prometheus Exporter Metric Collection
 ---
 
 :fontawesome-brands-linux: :material-kubernetes:
 
 ---
 
-## 介绍 {#intro}
+## Introduction {#intro}
 
-本文档介绍如何采集 Kubernetes 集群中自定义 Pod 暴露出来的 Prometheus 指标，有两种方式：
+This document describes how to capture Prometheus metrics exposed by custom Pods in Kubernetes clusters in two ways:
 
-- 通过 Annotations 方式将指标接口暴露给 DataKit
-- 通过自动发现 Kubernetes endpoint services 到 prometheus，将指标接口暴露给 DataKit
+- Expose the pointer interface to the DataKit through Annotations
+- Expose the metric interface to the DataKit by automatically discovering Kubernetes endpoint services to prometheus
 
-以下会详细说明两种方式的用法。
+The usage of the two methods will be explained in detail below.
 
-## 使用 Annotations 开放指标接口 {#annotations-of-prometheus}
+## Open Metrics Interface with Annotations {#annotations-of-prometheus}
 
-需要在 Kubernetes deployment 上添加特定的 template annotations，来采集由其创建的 Pod 暴露出来的指标。Annotations 要求如下：
+You need to add specific template annotations to the Kubernetes deployment to capture the metrics exposed by the Pod it creates. Annotations requires the following:
 
-- Key 为固定的 `datakit/prom.instances`
-- Value 为 [prom 采集器](prom.md)完整配置，例如：
+- Key is fixed `datakit/prom.instances`
+- Value is the full configuration of [prom collector](prom.md), for example:
 
 ```toml
 [[inputs.prom]]
@@ -48,16 +47,16 @@
     # node_name = "$NODENAME"
 ```
 
-其中支持如下几个通配符：
+The following wildcard characters are supported:
 
-- `$IP`：通配 Pod 的内网 IP
-- `$NAMESPACE`：Pod Namespace
-- `$PODNAME`：Pod Name
-- `$NODENAME`：Pod 所在的 Node 名称
+- `$IP`: Intranet IP of the Pod
+- `$NAMESPACE`: Pod Namespace
+- `$PODNAME`: Pod Name
+- `$NODENAME`: The name of the Node where the Pod is located
 
 !!! tip
 
-    Prom 采集器不会自动添加诸如 `namespace` 和 `pod_name` 等 tags，可以在上面的 config 中使用通配符添加额外 tags，例如：
+    Instead of automatically adding tags such as `namespace` and `pod_name`, the Prom collector can add additional tags using wildcards in the config above, for example:
 
     ``` toml
       [inputs.prom.tags]
@@ -66,19 +65,19 @@
         node_name = "$NODENAME"
     ```
 
-### 选择指定 Pod IP {#pod-ip}
+### Select Specified Pod IP {#pod-ip}
 
-某些情况下， Pod 上会存在多个 IP，此时仅仅通过 `$IP` 来获取 Exporter 地址是不准确的。支持通过配置 Annotations 选择 Pod IP。
+In some cases, there will be multiple IPs on the Pod, and it is inaccurate to get the Exporter address only by `$IP`. Selecting Pod IP by configuring Annotations is supported.
 
-- Key 为固定的 `datakit/prom.instances.ip_index`
-- Value 是自然数，例如 `0` `1` `2` 等，是要使用的 IP 在整个 IP 数组（Pod IPs）中的位置下标。
+- Key is fixed `datakit/prom.instances.ip_index`
+- Value is a natural number, such as `0` `1` `2` and so on, which is the subscript of the IP to be used in the entire IP array (Pod IPs).
 
-如果没有此 Annotations Key，则使用默认 Pod IP。
+If this Annotations Key is not available, the default Pod IP is used.
 
-### 操作步骤 {#steps}
+### Action Steps {#steps}
 
-- 登录到 Kubernetes 所在主机
-- 打开 `deployment.yaml`，添加 template annotations 示例如下：
+- Log on to Kubernetes' host
+- Open `deployment.yaml` and add the template annotations example as follows:
 
 ```yaml
 apiVersion: apps/v1
@@ -120,22 +119,33 @@ spec:
 
 ???+ attention
 
-    `annotations` 一定添加在 `template` 字段下，这样 *deployment.yaml* 创建的 Pod 才会携带 `datakit/prom.instances`。
+    The `annotations` must be added under the `template` field so that the Pod created by *deployment.yaml* carries `datakit/prom.instances`.
 
 
-- 使用新的 yaml 创建资源
+- Create a resource with the new yaml
 
 ```shell
 kubectl apply -f deployment.yaml
 ```
 
-至此，Annotations 已经添加完成。DataKit 稍后会读取到 Pod 的 Annotations，并采集 `url` 上暴露出来的指标。
+At this point, Annotations has been added. DataKit later reads the Pod's Annotations and collects the metrics exposed on `url`.
 
-## 自动发现 Service 暴露指标接口 {#auto-discovery-of-service-prometheus}
+## Automatically Discover the Service Exposure Metrics Interface {#auto-discovery-metrics-with-prometheus}
 
-需要在 Pod 上绑定 Service，且 Service 添加指定的 Annotations，由 Datakit 自动发现并访问 Service 以获取 prometheus 指标。
+[:octicons-tag-24: Version-1.5.10](changelog.md#cl-1.5.10)
 
-例如，使用以下 yaml 配置，创建 Pod 和 Service，并在 Service 添加 `prometheus.io/scrape` 等 Annotations：
+Based on the specified Annotations of Pod or Service, a HTTP URL is constructed and Prometheus metric collection is created.
+
+This feature is disabled by default. To enable it in Datakit, the following two environment variables need to be added as needed, see [container documentation](container.md):
+
+- `ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_ANNOTATIONS`: `"true"`
+- `ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_ANNOTATIONS`: `"true"`
+
+**Note that this feature may generate a large amount of timeline data.**
+
+### Example {#auto-discovery-metrics-with-prometheu-example}
+
+Take adding Annotations in Service as an example. Use the following yaml configuration to create Pod and Service, and add `prometheus.io/scrape` and other Annotations in Service:
 
 ```yaml
 apiVersion: v1
@@ -172,32 +182,35 @@ spec:
     targetPort: http-web-svc
 ```
 
-Datakit 会自动发现带有 `prometheus.io/scrape: "true"` 的 Service，并根据其另外的配置项，构建 prom 采集：
+Datakit automatically discovers a Service with `prometheus.io/scrape: "true"` and builds a prom collection based on its additional configuration items:
 
-- `prometheus.io/scrape`：只采集为 "true "的 Service，必选项
-- `prometheus.io/port`：指定 metrics 端口，必选项
-- `prometheus.io/scheme`：根据 metrics endpoint 选择 `https` 和 `http`，默认是 `http`
-- `prometheus.io/path`：配置 metrics path，默认是 `/metrics`
+- `prometheus.io/scrape`: Only services as "true" are collected, required
+- `prometheus.io/port`: Specify the metrics port, required
+- `prometheus.io/scheme`: Select `https` and `http` according to metrics endpoint, default is `http`
+- `prometheus.io/path`: Configure the metrics path, default to `/metrics`
 
-以上文的 Service yaml 配置为例，最终 Datakit 会访问 `http://nginx-service.ns-testing:8080/metrics` 采集 prometheus 指标。
+Eventually Datakit accesses `http://nginx-service.ns-testing:8080/metrics` to collect prometheus metrics, taking the Service yaml configuration above as an example.
 
-采集间隔为 1 分钟。
+The collection interval is 1 minute.
 
-### 指标集和 tags {#measurement-and-tags}
+### Measurements and Tags {#measurement-and-tags}
 
-自动发现 Service prometheus，其指标集名称是由 Datakit 解析所得，默认会将指标名称以下划线 `_` 进行切割，切割后的第一个字段作为指标集名称，剩下字段作为当前指标名称。
+Automatically discover Service prometheus, whose measurement name is parsed by Datakit. By default, the metric name will be cut with an underscore `_`. The first field after cutting will be the measurement name, and the remaining fields will be the current metric name.
 
-例如以下的 prometheus 原数据：
+For example, the following prometheus raw data:
 
 ```
 # TYPE promhttp_metric_handler_errors_total counter
 promhttp_metric_handler_errors_total{cause="encoding"} 0
 ```
 
-以第一根下划线做区分，左边 `promhttp` 是指标集名称，右边 `metric_handler_errors_total` 是字段名。
+Distinguished by the first underscore, `promhttp` on the left is the metric set name, and `metric_handler_errors_total` on the right is the field name.
 
-此外，Datakit 会添加 `service` 和 `namespace` 两个 tags，其值为 Service 名字和 Service 的 Namespace，用以在 Kubernetes 集群中定位这个 Service。
+Datakit will add additional tags to locate this resource in a Kubernetes cluster:
 
-## 延伸阅读 {#more-readings}
+- For `Service`, two tags `namespace` and `service_name` will be added.
+- For `Pod`, two tags `namespace` and `pod_name` will be added.
 
-- [Prometheus Exportor 数据采集](prom.md)
+## Extended Reading {#more-readings}
+
+- [Prometheus Exporter Data Collection](prom.md)

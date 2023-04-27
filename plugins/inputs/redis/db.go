@@ -11,7 +11,8 @@ import (
 	"strconv"
 	"strings"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"github.com/GuanceCloud/cliutils/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -23,8 +24,8 @@ type dbMeasurement struct {
 	election bool
 }
 
-func (m *dbMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+func (m *dbMeasurement) LineProto() (*dkpt.Point, error) {
+	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElectionV2(m.election))
 }
 
 func (m *dbMeasurement) Info() *inputs.MeasurementInfo {
@@ -56,7 +57,7 @@ func (m *dbMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (i *Input) collectDBMeasurement() ([]inputs.Measurement, error) {
+func (i *Input) collectDBMeasurement() ([]*point.Point, error) {
 	// 获取数据
 	ctx := context.Background()
 	list, err := i.client.Info(ctx, "Keyspace").Result()
@@ -72,9 +73,9 @@ func (i *Input) collectDBMeasurement() ([]inputs.Measurement, error) {
 }
 
 // ParseInfoData 解析数据并返回指定的数据.
-func (i *Input) ParseInfoData(list string) ([]inputs.Measurement, error) {
+func (i *Input) ParseInfoData(list string) ([]*point.Point, error) {
 	rdr := strings.NewReader(list)
-	var collectCache []inputs.Measurement
+	var collectCache []*point.Point
 	scanner := bufio.NewScanner(rdr)
 	dbIndexSlice := i.DBS
 	// 配置定义了db，加入dbIndexSlice
@@ -106,9 +107,7 @@ func (i *Input) ParseInfoData(list string) ([]inputs.Measurement, error) {
 		// cmdstat_get:calls=2,usec=16,usec_per_call=8.00
 		db := parts[0]
 		m.name = "redis_db"
-		if !strings.Contains(i.Host, "127.0.0.1") && !strings.Contains(i.Host, "localhost") {
-			m.tags["host"] = i.Host
-		}
+		setHostTagIfNotLoopback(m.tags, i.Host)
 		m.tags["db_name"] = db
 		itemStrs := strings.Split(parts[1], ",")
 
@@ -123,7 +122,14 @@ func (i *Input) ParseInfoData(list string) ([]inputs.Measurement, error) {
 			if err := m.submit(); err != nil {
 				return nil, err
 			}
-			collectCache = append(collectCache, m)
+			var opts []point.Option
+			if m.election {
+				opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+			}
+			pt := point.NewPointV2([]byte(m.name),
+				append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+				opts...)
+			collectCache = append(collectCache, pt)
 		} else {
 			dbIndex, err := strconv.Atoi(db[2:])
 			// 解析db出错，把没出错的信息和错误返回
@@ -135,7 +141,14 @@ func (i *Input) ParseInfoData(list string) ([]inputs.Measurement, error) {
 				if err := m.submit(); err != nil {
 					return nil, err
 				}
-				collectCache = append(collectCache, m)
+				var opts []point.Option
+				if m.election {
+					opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+				}
+				pt := point.NewPointV2([]byte(m.name),
+					append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+					opts...)
+				collectCache = append(collectCache, pt)
 			}
 		}
 	}

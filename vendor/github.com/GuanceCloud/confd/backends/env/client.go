@@ -1,11 +1,8 @@
 package env
 
 import (
-	"fmt"
 	"os"
 	"strings"
-
-	"github.com/GuanceCloud/confd/log"
 )
 
 var replacer = strings.NewReplacer("/", "_")
@@ -36,7 +33,7 @@ func (c *Client) GetValues(keys []string) (map[string]string, error) {
 		}
 	}
 
-	log.Debug(fmt.Sprintf("Key Map: %#v", vars))
+	// log.Debug(fmt.Sprintf("Key Map: %#v", vars))
 
 	return vars, nil
 }
@@ -57,3 +54,5 @@ func (c *Client) WatchPrefix(prefix string, keys []string, waitIndex uint64, sto
 	<-stopChan
 	return 0, nil
 }
+
+func (c *Client) Close() {}

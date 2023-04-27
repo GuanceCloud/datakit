@@ -15,10 +15,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
+	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/stretchr/testify/assert"
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 const (
@@ -707,7 +708,7 @@ func TestServeHTTP(t *testing.T) {
 
 func TestFailToFeed(t *testing.T) {
 	ipt := getInput(30 * time.Second)
-	ipt.feed = func(name, category string, pts []*point.Point, opt *io.Option) error {
+	ipt.feed = func(name, category string, pts []*dkpt.Point, opt *io.Option) error {
 		return fmt.Errorf("mock error")
 	}
 	r := getPipelineRequest(pipelineJson1)
@@ -761,10 +762,10 @@ func TestAddExtraTags(t *testing.T) {
 
 func getInput(expired time.Duration) *Input {
 	ipt := newInput()
-	ipt.feed = func(name, category string, pts []*point.Point, opt *io.Option) error {
+	ipt.feed = func(name, category string, pts []*dkpt.Point, opt *io.Option) error {
 		return nil
 	}
-	ipt.feedLastError = func(inputName string, err string) {}
+	ipt.feedLastError = func(inputName string, err string, cat ...point.Category) {}
 	go ipt.reqMemo.memoMaintainer(expired)
 	return ipt
 }

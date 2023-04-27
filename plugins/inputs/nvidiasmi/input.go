@@ -13,8 +13,8 @@ import (
 	"strconv"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -37,36 +37,36 @@ const (
 	sampleCfg = `
 [[inputs.gpu_smi]]
 
-  ##(optional) collect interval, default is 10 seconds
+  ##(Optional) Collect interval, default is 10 seconds
   interval = "10s"
 
-  ##the binPath of gpu-smi 
+  ##The binPath of gpu-smi 
 
-  ##if nvidia GPU
-  #(example & default) bin_paths = ["/usr/bin/nvidia-smi"]
-  #(example windows) bin_paths = ["nvidia-smi"]
+  ##If nvidia GPU
+  #(Example & default) bin_paths = ["/usr/bin/nvidia-smi"]
+  #(Example windows) bin_paths = ["nvidia-smi"]
 
-  ##if lluvatar GPU
-  #(example) bin_paths = ["/usr/local/corex/bin/ixsmi"]
-  #(example) envs = [ "LD_LIBRARY_PATH=/usr/local/corex/lib/:$LD_LIBRARY_PATH" ]
-  ##(optional) exec gpu-smi envs, default is []
+  ##If lluvatar GPU
+  #(Example) bin_paths = ["/usr/local/corex/bin/ixsmi"]
+  #(Example) envs = [ "LD_LIBRARY_PATH=/usr/local/corex/lib/:$LD_LIBRARY_PATH" ]
+  ##(Optional) Exec gpu-smi envs, default is []
   #envs = [ "LD_LIBRARY_PATH=/usr/local/corex/lib/:$LD_LIBRARY_PATH" ]
 
-  ##if remote GPU servers collected
-  ##if use remote GPU servers, election must be true
-  ##if use remote GPU servers, bin_paths should be shielded
-  #(example) remote_addrs = ["192.168.1.1:22"]
-  #(example) remote_users = ["remote_login_name"]
-  ##if use remote_rsa_path, remote_passwords should be shielded
-  #(example) remote_passwords = ["remote_login_password"]
-  #(example) remote_rsa_paths = ["/home/your_name/.ssh/id_rsa"]
-  #(example) remote_command = "nvidia-smi -x -q"
+  ##If remote GPU servers collected
+  ##If use remote GPU servers, election must be true
+  ##If use remote GPU servers, bin_paths should be shielded
+  #(Example) remote_addrs = ["192.168.1.1:22"]
+  #(Example) remote_users = ["remote_login_name"]
+  ##If use remote_rsa_path, remote_passwords should be shielded
+  #(Example) remote_passwords = ["remote_login_password"]
+  #(Example) remote_rsa_paths = ["/home/your_name/.ssh/id_rsa"]
+  #(Example) remote_command = "nvidia-smi -x -q"
 
-  ##(optional) exec gpu-smi timeout, default is 5 seconds
+  ##(Optional) Exec gpu-smi timeout, default is 5 seconds
   timeout = "5s"
-  ##(optional) Feed how much log data for ProcessInfos, default is 10. (0: 0 ,-1: all)
+  ##(Optional) Feed how much log data for ProcessInfos, default is 10. (0: 0 ,-1: all)
   process_info_max_len = 10
-  ##(optional) GPU drop card warning delay, default is 300 seconds
+  ##(Optional) GPU drop card warning delay, default is 300 seconds
   gpu_drop_warning_delay = "300s"
 
   ## Set true to enable election
@@ -149,14 +149,14 @@ func (n *nvidiaSmiMeasurement) Info() *inputs.MeasurementInfo {
 		},
 
 		Tags: map[string]interface{}{
-			"host":           &inputs.TagInfo{Desc: "主机名"},
-			"pstate":         &inputs.TagInfo{Desc: "GPU 性能状态"},
-			"name":           &inputs.TagInfo{Desc: "GPU 板卡型号"},
+			"host":           &inputs.TagInfo{Desc: "Host name"},
+			"pstate":         &inputs.TagInfo{Desc: "GPU performance level"},
+			"name":           &inputs.TagInfo{Desc: "GPU card model"},
 			"uuid":           &inputs.TagInfo{Desc: "UUID"},
-			"compute_mode":   &inputs.TagInfo{Desc: "计算模式"},
-			"pci_bus_id":     &inputs.TagInfo{Desc: "pci 插槽 id"},
-			"driver_version": &inputs.TagInfo{Desc: "驱动版本"},
-			"cuda_version":   &inputs.TagInfo{Desc: "CUDA 版本"},
+			"compute_mode":   &inputs.TagInfo{Desc: "Compute mode"},
+			"pci_bus_id":     &inputs.TagInfo{Desc: "PCI bus id"},
+			"driver_version": &inputs.TagInfo{Desc: "Driver version"},
+			"cuda_version":   &inputs.TagInfo{Desc: "CUDA version"},
 		},
 	}
 }

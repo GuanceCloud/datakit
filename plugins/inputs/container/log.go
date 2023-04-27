@@ -11,13 +11,14 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
 
-const ignoreDeadLogDuration = time.Hour * 12
+const ignoreDeadLogDuration = time.Hour * 48
 
 type containerLogBasisInfo struct {
 	name, id              string
@@ -115,6 +116,8 @@ func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) (*ta
 		// extract pod labels to tags
 		if info.extractK8sLabelAsTags {
 			for k, v := range meta.Labels {
+				// replace dot
+				k := strings.ReplaceAll(k, ".", "_")
 				if _, ok := opt.GlobalTags[k]; !ok {
 					opt.GlobalTags[k] = v
 				}
@@ -192,7 +195,7 @@ func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) (*ta
 		opt.MultilinePatterns = []string{multilineMatch}
 	} else if len(info.autoMultilinePatterns) != 0 {
 		opt.MultilinePatterns = info.autoMultilinePatterns
-		l.Infof("source %s, filename %s, automatic-multiline on, patterns %v", opt.Source, info.logPath, info.autoMultilinePatterns)
+		l.Debugf("source %s, filename %s, automatic-multiline on, patterns %v", opt.Source, info.logPath, info.autoMultilinePatterns)
 	}
 
 	if logconf != nil && len(logconf.Paths) != 0 {

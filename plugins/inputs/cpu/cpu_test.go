@@ -11,8 +11,8 @@ import (
 	"runtime"
 	"testing"
 
+	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/shirou/gopsutil/cpu"
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 

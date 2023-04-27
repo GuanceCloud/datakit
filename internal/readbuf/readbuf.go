@@ -62,5 +62,6 @@ func (r *ReadBuffer) ReadLines() ([][]byte, error) {
 	if len(lines[len(lines)-1]) == 0 {
 		return lines[:len(lines)-1], nil
 	}
+
 	return lines, nil
 }

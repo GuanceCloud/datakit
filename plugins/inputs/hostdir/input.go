@@ -10,15 +10,13 @@ import (
 	"runtime"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
-
-var _ inputs.Singleton = (*Input)(nil)
 
 func (i *Input) SampleConfig() string {
 	return sample
@@ -149,7 +147,4 @@ func init() { //nolint:gochecknoinits
 		}
 		return s
 	})
-}
-
-func (i *Input) Singleton() {
 }

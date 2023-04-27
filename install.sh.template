@@ -137,6 +137,16 @@ if [ -n "$DK_UPGRADE" ]; then
 	upgrade=$DK_UPGRADE
 fi
 
+upgrade_manager=0
+if [ -n "$DK_UPGRADE_MANAGER" ]; then
+    upgrade_manager=$DK_UPGRADE_MANAGER
+fi
+
+upgrade_ip_whitelist=
+if [ -n "$DK_UPGRADE_IP_WHITELIST" ]; then
+    upgrade_ip_whitelist=$DK_UPGRADE_IP_WHITELIST
+fi
+
 def_inputs=
 if [ -n "$DK_DEF_INPUTS" ]; then
 	# shellcheck disable=SC2034
@@ -279,88 +289,84 @@ if [ -n "$DK_INSTALL_LOG" ]; then
 fi
 
 confd_backend=""
-confd_auth_token=""
-confd_auth_type=""
 confd_basic_auth=""
 confd_client_ca_keys=""
 confd_client_cert=""
 confd_client_key=""
-confd_client_insecure=""
 confd_backend_nodes=""
 confd_password=""
 confd_scheme=""
-confd_table=""
 confd_separator=""
 confd_username=""
-confd_app_id=""
-confd_user_id=""
-confd_role_id=""
-confd_secret_id=""
-confd_filter=""
-confd_path=""
-confd_role=""
+confd_access_key=""
+confd_secret_key=""
+confd_circle_interval=0
+confd_confd_namespace=""
+confd_pipeline_namespace=""
+confd_region=""
+
 if [ -n "$DK_CONFD_BACKEND" ]; then
 	confd_backend=$DK_CONFD_BACKEND
 fi
-if [ -n "$DK_CONFD_AUTH_TOKEN" ]; then
-    confd_auth_token=$DK_CONFD_AUTH_TOKEN
-fi
-if [ -n "$DK_CONFD_AUTH_TYPE" ]; then
-    confd_auth_type=$DK_CONFD_AUTH_TYPE
-fi
+
 if [ -n "$DK_CONFD_BASIC_AUTH" ]; then
-    confd_basic_auth=$DK_CONFD_BASIC_AUTH
+	confd_basic_auth=$DK_CONFD_BASIC_AUTH
 fi
+
 if [ -n "$DK_CONFD_CLIENT_CA_KEYS" ]; then
-    confd_client_ca_keys=$DK_CONFD_CLIENT_CA_KEYS
+	confd_client_ca_keys=$DK_CONFD_CLIENT_CA_KEYS
 fi
+
 if [ -n "$DK_CONFD_CLIENT_CERT" ]; then
-    confd_client_cert=$DK_CONFD_CLIENT_CERT
+	confd_client_cert=$DK_CONFD_CLIENT_CERT
 fi
+
 if [ -n "$DK_CONFD_CLIENT_KEY" ]; then
-    confd_client_key=$DK_CONFD_CLIENT_KEY
+	confd_client_key=$DK_CONFD_CLIENT_KEY
 fi
-if [ -n "$DK_CONFD_CLIENT_INSECURE" ]; then
-    confd_client_insecure=$DK_CONFD_CLIENT_INSECURE
-fi
+
 if [ -n "$DK_CONFD_BACKEND_NODES" ]; then
-    confd_backend_nodes=$DK_CONFD_BACKEND_NODES
+	confd_backend_nodes=$DK_CONFD_BACKEND_NODES
 fi
+
 if [ -n "$DK_CONFD_PASSWORD" ]; then
-    confd_password=$DK_CONFD_PASSWORD
+	confd_password=$DK_CONFD_PASSWORD
 fi
+
 if [ -n "$DK_CONFD_SCHEME" ]; then
-    confd_scheme=$DK_CONFD_SCHEME
+	confd_scheme=$DK_CONFD_SCHEME
 fi
-if [ -n "$DK_CONFD_TABLE" ]; then
-    confd_table=$DK_CONFD_TABLE
-fi
+
 if [ -n "$DK_CONFD_SEPARATOR" ]; then
-    confd_separator=$DK_CONFD_SEPARATOR
+	confd_separator=$DK_CONFD_SEPARATOR
 fi
+
 if [ -n "$DK_CONFD_USERNAME" ]; then
-    confd_username=$DK_CONFD_USERNAME
+	confd_username=$DK_CONFD_USERNAME
 fi
-if [ -n "$DK_CONFD_APP_ID" ]; then
-    confd_app_id=$DK_CONFD_APP_ID
+
+if [ -n "$DK_CONFD_ACCESS_KEY" ]; then
+	confd_role=$DK_CONFD_ACCESS_KEY
 fi
-if [ -n "$DK_CONFD_USER_ID" ]; then
-    confd_user_id=$DK_CONFD_USER_ID
+
+if [ -n "$DK_CONFD_SECRET_KEY" ]; then
+	confd_role=$DK_CONFD_SECRET_KEY
 fi
-if [ -n "$DK_CONFD_ROLE_ID" ]; then
-    confd_role_id=$DK_CONFD_ROLE_ID
+
+if [ -n "$DK_CONFD_CIRCLE_INTERVAL" ]; then
+	confd_role=$DK_CONFD_CIRCLE_INTERVAL
 fi
-if [ -n "$DK_CONFD_SECRET_ID" ]; then
-    confd_secret_id=$DK_CONFD_SECRET_ID
+
+if [ -n "$DK_CONFD_CONFD_NAMESPACE" ]; then
+	confd_role=$DK_CONFD_CONFD_NAMESPACE   
 fi
-if [ -n "$DK_CONFD_FILTER" ]; then
-    confd_filter=$DK_CONFD_FILTER
+
+if [ -n "$DK_CONFD_PIPELINE_NAMESPACE" ]; then
+	confd_role=$DK_CONFD_PIPELINE_NAMESPACE
 fi
-if [ -n "$DK_CONFD_PATH" ]; then
-    confd_path=$DK_CONFD_PATH
-fi
-if [ -n "$DK_CONFD_ROLE" ]; then
-    confd_role=$DK_CONFD_ROLE
+
+if [ -n "$DK_CONFD_REGION" ]; then
+	confd_role=$DK_CONFD_REGION
 fi
 
 git_url=""
@@ -419,59 +425,9 @@ if [ -n "$DK_GIN_LOG" ]; then
 fi
 
 
-sink_metric=""
-if [ -n "$DK_SINK_M" ]; then
-	sink_metric=$DK_SINK_M
-fi
-
-sink_network=""
-if [ -n "$DK_SINK_N" ]; then
-	sink_network=$DK_SINK_N
-fi
-
-sink_keyevent=""
-if [ -n "$DK_SINK_K" ]; then
-	sink_keyevent=$DK_SINK_K
-fi
-
-sink_object=""
-if [ -n "$DK_SINK_O" ]; then
-	sink_object=$DK_SINK_O
-fi
-
-sink_custom_object=""
-if [ -n "$DK_SINK_CO" ]; then
-	sink_custom_object=$DK_SINK_CO
-fi
-
-sink_logging=""
-if [ -n "$DK_SINK_L" ]; then
-	sink_logging=$DK_SINK_L
-fi
-
-sink_tracing=""
-if [ -n "$DK_SINK_T" ]; then
-	sink_tracing=$DK_SINK_T
-fi
-
-sink_rum=""
-if [ -n "$DK_SINK_R" ]; then
-	sink_rum=$DK_SINK_R
-fi
-
-sink_security=""
-if [ -n "$DK_SINK_S" ]; then
-	sink_security=$DK_SINK_S
-fi
-
-sink_profile=""
-if [ -n "$DK_SINK_P" ]; then
-	sink_profile=$DK_SINK_P
-fi
-
-log_sink_detail=""
-if [ -n "$DK_LOG_SINK_DETAIL" ]; then
-	log_sink_detail=$DK_LOG_SINK_DETAIL
+sinker=""
+if [ -n "$DK_SINKER" ]; then
+	sinker=$DK_SINKER
 fi
 
 user_name=""
@@ -503,14 +459,15 @@ if [ "$upgrade" ]; then
 	printf "\n* Upgrading DataKit...\n"
 	$sudo_cmd $installer \
 		--install-log=${install_log} \
-		--upgrade --proxy="${proxy}" --installer_base_url="$installer_base_url"
+		--upgrade --upgrade-manager="${upgrade_manager}" --upgrade-ip-whitelist="${upgrade_ip_whitelist}" --proxy="${proxy}" --installer_base_url="$installer_base_url"
 else
-	printf "\n* Installing DataKit...\n"
-		$sudo_cmd $installer \
+printf "\n* Installing DataKit...\n"
+$sudo_cmd $installer \
 		--install-log="${install_log}" \
 		--install-only="${install_only}" \
 		--installer_base_url="${installer_base_url}" \
 		--dataway="${dataway}" \
+		--enable-inputs="${def_inputs}" \
 		--global-host-tags="${global_host_tags}" \
 		--global-election-tags="${global_election_tags}" \
 		--cloud-provider="${cloud_provider}" \
@@ -525,36 +482,22 @@ else
 		--enable-pprof="${enable_pprof}" \
 		--pprof-listen="${pprof_listen}" \
 		--install-externals="${install_externals}" \
-        --confd-backend="${confd_backend}" \
-        --confd-auth-token="${confd_auth_token}" \
-        --confd-auth-type="${confd_auth_type}" \
-        --confd-basic-auth="${confd_basic_auth}" \
-        --confd-client-ca-keys="${confd_client_ca_keys}" \
-        --confd-client-cert="${confd_client_cert}" \
-        --confd-client-key="${confd_client_key}" \
-        --confd-client-insecure="${confd_client_insecure}" \
-        --confd-backend-nodes="${confd_backend_nodes}" \
-        --confd-password="${confd_password}" \
-        --confd-scheme="${confd_scheme}" \
-        --confd-table="${confd_table}" \
-        --confd-separator="${confd_separator}" \
-        --confd-username="${confd_username}" \
-        --confd-app-id="${confd_app_id}" \
-        --confd-user-id="${confd_user_id}" \
-        --confd-role-id="${confd_role_id}" \
-        --confd-secret-id="${confd_secret_id}" \
-        --confd-filter="${confd_filter}" \
-        --confd-path="${confd_path}" \
-        --confd-role="${confd_role}" \
-        --confd-basic-auth="${confd_basic_auth}" \
-        --confd-client-ca-keys="${confd_client_ca_keys}" \
-        --confd-client-cert="${confd_client_cert}" \
-        --confd-client-key="${confd_client_key}" \
-        --confd-backend-nodes="${confd_backend_nodes}" \
-        --confd-password="${confd_password}" \
-        --confd-scheme="${confd_scheme}" \
-        --confd-separator="${confd_separator}" \
-        --confd-username="${confd_username}" \
+		--confd-backend="${confd_backend}" \
+		--confd-basic-auth="${confd_basic_auth}" \
+		--confd-client-ca-keys="${confd_client_ca_keys}" \
+		--confd-client-cert="${confd_client_cert}" \
+		--confd-client-key="${confd_client_key}" \
+		--confd-backend-nodes="${confd_backend_nodes}" \
+		--confd-password="${confd_password}" \
+		--confd-scheme="${confd_scheme}" \
+		--confd-separator="${confd_separator}" \
+		--confd-username="${confd_username}" \
+		--confd-access-key="${confd_access_key}" \
+		--confd-secret-key="${confd_secret_key}" \
+		--confd-circle-interval="${confd_circle_interval}" \
+		--confd-confd-namespace="${confd_confd_namespace}" \
+		--confd-pipeline-namespace="${confd_pipeline_namespace}" \
+		--confd-region="${confd_region}" \
 		--git-url="${git_url}" \
 		--git-key-path="${git_key_path}" \
 		--git-key-pw="${git_key_pw}" \
@@ -570,20 +513,11 @@ else
 		--log-level="${log_level}" \
 		--log="${log}" \
 		--ipdb-type="${ipdb_type}" \
-		--sink-metric="${sink_metric}" \
-		--sink-network="${sink_network}" \
-		--sink-keyevent="${sink_keyevent}" \
-		--sink-object="${sink_object}" \
-		--sink-custom-object="${sink_custom_object}" \
-		--sink-logging="${sink_logging}" \
-		--sink-tracing="${sink_tracing}" \
-		--sink-rum="${sink_rum}" \
-		--sink-security="${sink_security}" \
-		--sink-profile="${sink_profile}" \
-		--log-sink-detail="${log_sink_detail}" \
+		--sinker="${sinker}" \
 		--user-name="${user_name}" \
+		--upgrade-ip-whitelist="${upgrade_ip_whitelist}" \
 		--gin-log="${gin_log}"
-fi
+		fi
 rm -rf $installer
 
 # install completion

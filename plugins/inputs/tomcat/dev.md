@@ -1,11 +1,11 @@
-# Tomcat 采集器
+# Tomcat collector
 
-通过 jolokia 采集
+Collected by jolokia
 
-安装或下载 [Jolokia](http://repo1.maven.org/maven2/org/jolokia/jolokia-war/1.2.3/jolokia-war-1.2.3.war), 重命名为 jolokia.war, 并放置于 tomcat 的 webapps 目录下。
-编辑 tomcat 的 conf 目录下的 tomcat-users.xml，增加 role 为 jolokia 的用户。
+Install or download [Jolokia](http://repo1.maven.org/maven2/org/jolokia/jolokia-war/1.2.3/jolokia-war-1.2.3.war), rename it to jolokia.war, and Placed in the webapps directory of tomcat.
+Edit tomcat-users.xml under the conf directory of tomcat, and add a user whose role is jolokia.
 
-以 apache-tomcat-9.0.45 为例（示例中的 jolokia user 的 username 和 password 请务必修改！！！）:
+Take apache-tomcat-9.0.45 as an example (the username and password of jolokia user in the example must be modified!!!):
 
 ```ssh
 $ cd apache-tomcat-9.0.45/
@@ -36,10 +36,10 @@ $ ./$tomcat_dir/bin/startup.sh
  Tomcat started.
 ```
 
-前往 http://localhost:8080/jolokia 查看是否配置成功
+Go to http://localhost:8080/jolokia to check if the configuration is successful
 
 
-配置示例
+Configuration example
 
 ```toml
 [[inputs.tomcat]]
@@ -71,11 +71,11 @@ $ ./$tomcat_dir/bin/startup.sh
     # tag1 = "a"
 ```
 
-## Tomcat 指标采集
+## Tomcat metrics collection
 
 * tomcat_global_request_processor
 
-    |指标|描述|数据类型|单位|
+    |Metric|Description|Data Type|Unit|
     |:-- | - | - | -|
     |bytesReceived|Amount of data received, in bytes|int|count|
     |bytesSent|Amount of data sent, in bytes|int|count|
@@ -85,7 +85,7 @@ $ ./$tomcat_dir/bin/startup.sh
 
 * tomcat_jsp_monitor
 
-    |指标|描述|数据类型|单位|
+    |Metric|Description|Data Type|Unit|
     |:-- | - | - | -|
     |jspCount|The number of JSPs that have been loaded into a webapp|int|count|
     |jspReloadCount|The number of JSPs that have been reloaded|int|count|
@@ -93,7 +93,7 @@ $ ./$tomcat_dir/bin/startup.sh
 
 * tomcat_thread_pool
 
-    |指标|描述|数据类型|单位|
+    |Metric|Description|Data Type|Unit|
     |:-- | - | - | -|
     |currentThreadCount|currentThreadCount|int|count|
     |currentThreadsBusy|currentThreadsBusy|int|count|
@@ -101,7 +101,7 @@ $ ./$tomcat_dir/bin/startup.sh
 
 * tomcat_servlet
 
-    |指标|描述|数据类型|单位|
+    |Metric|Description|Data Type|Unit|
     |:-- | - | - | -|
     |errorCount|Error|count|int|count|
     |processingTime|Totalexecutiontime of the servlet’s service method|int|-|
@@ -109,7 +109,7 @@ $ ./$tomcat_dir/bin/startup.sh
 
 * tomcat_cache
 
-    |指标|描述|数据类型|单位|
+    |Metric|Description|Data Type|Unit|
     |:-- | - | - | -|
     |hitCount|The number of requests for resources that were served from the cache|int|count|
     |lookupCount|The number of requests for resources|int|count|

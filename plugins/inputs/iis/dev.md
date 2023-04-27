@@ -1,8 +1,8 @@
-# Windows IIS 采集器
+# Windows IIS Collector
 
-通过 Performance Data Helper (PDH) 获取 
+Available through Performance Data Helper (PDH)
 
-用于性能数据采集的对象和计数器为：
+The objects and counters used for performance data collection are:
 
 * Web Service
   * Service Uptime

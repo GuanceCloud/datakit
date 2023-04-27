@@ -10,7 +10,8 @@ import (
 	"net/url"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"github.com/GuanceCloud/cliutils/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -70,7 +71,7 @@ func getQueues(n *Input) {
 			ts:       ts,
 			election: n.Election,
 		}
-		metricAppend(metric)
+		metricAppend(metric.Point())
 	}
 }
 
@@ -92,8 +93,24 @@ type QueueMeasurement struct {
 	election bool
 }
 
-func (m *QueueMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+// Point implement MeasurementV2.
+func (m *QueueMeasurement) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	} else {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
+	}
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *QueueMeasurement) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -105,7 +122,7 @@ func (m *QueueMeasurement) Info() *inputs.MeasurementInfo {
 			"consumer_utilization":         newRateFieldInfo("Number of consumers"),
 			"head_message_timestamp":       newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.TimestampMS, "Timestamp of the head message of the queue. Shown as millisecond"),
 			"memory":                       newByteFieldInfo("Bytes of memory consumed by the Erlang process associated with the queue, including stack, heap and internal structures"),
-			"message":                      newCountFieldInfo("Count of the total messages in the queue"),
+			"messages":                     newCountFieldInfo("Count of the total messages in the queue"),
 			"messages_rate":                newRateFieldInfo("Count per second of the total messages in the queue"),
 			"messages_ready":               newCountFieldInfo("Number of messages ready to be delivered to clients"),
 			"messages_ready_rate":          newRateFieldInfo("Number per second of messages ready to be delivered to clients"),
@@ -128,6 +145,7 @@ func (m *QueueMeasurement) Info() *inputs.MeasurementInfo {
 			"url":        inputs.NewTagInfo("rabbitmq url"),
 			"node_name":  inputs.NewTagInfo("rabbitmq node name"),
 			"queue_name": inputs.NewTagInfo("rabbitmq queue name"),
+			"host":       inputs.NewTagInfo("Hostname of rabbitmq running on."),
 		},
 	}
 }

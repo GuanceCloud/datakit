@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package dataway;
+
+option go_package = "./;dataway";
+
+// fail-cache proto message.
+message CacheData {
+  int32 category = 1;
+  int32 payloadType = 2;
+  bytes payload = 3;
+}
+
+// Generate command: protoc --go_out=.  *.proto

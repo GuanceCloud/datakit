@@ -11,7 +11,7 @@ before_script:
 
 variables:
   PROJECT: "datakit"
-  CI_VERSION: "1.5.3"
+  CI_VERSION: "1.6.0"
   TEST_VERSION: "1.999.0"
 
 stages:
@@ -19,16 +19,27 @@ stages:
   - deploy_ebpf
   - deploy
 
-ci_lint_and_unit_test:
+ci_lint_only:
   stage: deploy
   resource_group: production
   only:
-    - /^\d+-iss.*$/
+    - /.*/
   script:
-    # only run lint and unit-testing
+    # only run lint
     - make clean
-    - make lint
-    - make all_test
+    - make lint_nofix
+  tags:
+    - cloudcare-ft
+
+ci_ut_only:
+  stage: deploy
+  resource_group: production
+  only:
+    - /^ut-.*$/
+  script:
+    # only run lint
+    - make clean
+    - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY"
   tags:
     - cloudcare-ft
 
@@ -41,8 +52,8 @@ test-datakit-production:
   script:
     - make clean
     - make production_notify GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"
-    - make lint
-    - make all_test
+    - make lint_nofix
+    - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" DOCKER_REMOTE_HOST=$TESTING_DOCKER_HOST UT_EXCLUDE=$UT_EXCLUDE GIT_BRANCH=$CI_COMMIT_BRANCH
   tags:
     - cloudcare-ft
 
@@ -56,8 +67,7 @@ test-datakit-testing:
   script:
     - make clean
     - make testing_notify GIT_BRANCH=$CI_COMMIT_BRANCH
-    - make lint
-    - make all_test
+    - make lint_nofix
   tags:
     - cloudcare-ft
 
@@ -91,8 +101,6 @@ release-ebpf-aarch64-testing:
   tags:
     - dk-arm-docker-runner
 
-
-
 release-ebpf-amd64-production:
   stage: deploy_ebpf
   resource_group: production
@@ -106,7 +114,6 @@ release-ebpf-amd64-production:
     - make pub_ebpf_production DATAKIT_EBPF_ARCHS="linux/amd64" GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"
   tags:
     - cloudcare-ft-docker
-
 
 release-ebpf-aarch64-production:
   stage: deploy_ebpf
@@ -125,7 +132,12 @@ release-ebpf-aarch64-production:
 release-testing:
   stage: deploy
   resource_group: production
-  needs: [test-datakit-testing, release-ebpf-amd64-testing, release-ebpf-aarch64-testing]
+  needs:
+    [
+      test-datakit-testing,
+      release-ebpf-amd64-testing,
+      release-ebpf-aarch64-testing,
+    ]
   only:
     - testing
     - hotfix
@@ -133,7 +145,7 @@ release-testing:
   script:
     # building && publish testing
     - make clean
-    - make testing GIT_BRANCH=$CI_COMMIT_BRANCH # do not set VERSION here, use git version
+    - make testing GIT_BRANCH=$CI_COMMIT_BRANCH PKGEBPF=true # do not set VERSION here, use git version
     - make check_testing_conf_compatible
     - make testing_image IGN_EBPF_INSTALL_ERR=1
   tags:
@@ -142,12 +154,17 @@ release-testing:
 release-stable:
   stage: deploy
   resource_group: production
-  needs: [test-datakit-production, release-ebpf-amd64-production, release-ebpf-aarch64-production]
+  needs:
+    [
+      test-datakit-production,
+      release-ebpf-amd64-production,
+      release-ebpf-aarch64-production,
+    ]
   only:
     - master
   script:
     - make clean
-    - make production GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION" # update the version on each release
+    - make production GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION" PKGEBPF=true # update the version on each release
     - make check_production_conf_compatible
     - make pub_conf_samples
     - make production_image GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"

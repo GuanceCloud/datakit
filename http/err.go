@@ -9,7 +9,7 @@ import (
 	"errors"
 	"net/http"
 
-	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
+	uhttp "github.com/GuanceCloud/cliutils/network/http"
 )
 
 var OK = newErr(nil, http.StatusOK)
@@ -33,7 +33,6 @@ var (
 	ErrUnknownRUMMeasurement  = newErr(errors.New("unknown RUM measurement"), http.StatusBadRequest)
 	ErrRUMAppIDNotInWhiteList = newErr(errors.New("RUM app_id not in the white list"), http.StatusForbidden)
 	ErrInvalidAPIHandler      = newErr(errors.New("invalid API handler"), http.StatusInternalServerError)
-	ErrInvalidObjectPoint     = newErr(errors.New("invalid object point"), http.StatusBadRequest)
 	ErrPublicAccessDisabled   = newErr(errors.New("public access disabled"), http.StatusForbidden)
 	ErrReachLimit             = newErr(errors.New("reach max API limit"), http.StatusTooManyRequests)
 

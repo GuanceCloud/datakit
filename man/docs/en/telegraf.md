@@ -1,6 +1,5 @@
-<!-- This file required to translate to EN. -->
 {{.CSS}}
-# Telegraf 数据接入
+# Telegraf Data Access
 ---
 
 :fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
@@ -9,15 +8,15 @@
 
 ???+ attention
 
-    建议在使用 Telegraf 之前，先确 DataKit 是否能满足期望的数据采集。如果 DataKit 已经支持，不建议用 Telegraf 来采集，这可能会导致数据冲突，从而造成使用上的困扰。
+    Before using Telegraf, it is recommended to determine whether DataKit can meet the expected data collection. If DataKit is already supported, Telegraf is not recommended for collection, which may lead to data conflicts and cause problems in use.
 
-Telegraf 是一个开源的数据采集工具。DataKit 通过简单的配置即可接入 Telegraf 采集的数据集。
+Telegraf is an open source data collection tool. DataKit can access the data set collected by Telegraf through simple configuration.
 
-## Telegraf 安装 {#install}
+## Telegraf Installation {#install}
 
-以 Ubuntu 为例，其他系统 [参见](https://docs.influxdata.com/telegraf/v1.18/introduction/installation/){:target="_blank"}：
+Take Ubuntu as an example. For other systems, [see](https://docs.influxdata.com/telegraf/v1.18/introduction/installation/){:target="_blank"}：
 
-添加安装源
+Add installation source
 
 ```shell
 curl -s https://repos.influxdata.com/influxdb.key | sudo apt-key add -
@@ -25,23 +24,23 @@ source /etc/lsb-release
 echo "deb https://repos.influxdata.com/${DISTRIB_ID,,} ${DISTRIB_CODENAME} stable" | sudo tee /etc/apt/sources.list.d/influxdb.list
 ```
 
-安装 Telegraf
+Install Telegraf
 
 ```shell
 sudo apt-get update && sudo apt-get install telegraf
 ```
 
-### Telegraf 配置 {#config}
+### Telegraf Configuration {#config}
 
-默认配置文件路径：
+Default profile path:
 
 - Mac: `/usr/local/etc/telegraf.conf`
 - Linux: `/etc/telegraf/telegraf.conf`
-- Windows：配置文件就在 Telegraf 二进制同级目录（视具体安装情况而定）
+- Windows: The configuration file is in the Telegraf binary sibling directory (depending on the specific installation) 
 
-> 注意： Mac 下，如果通过 [`datakit --install telegraf` 安装](datakit-tools-how-to#extras)，配置目录和 Linux 一样。
+> Note: Under Mac, if you [install through `datakit install --telegraf`](datakit-tools-how-to#extras), the configuration directory is the same as Linux.
 
-修改配置文件如下：
+Modify the configuration file as follows:
 
 ```toml
 [agent]
@@ -57,7 +56,7 @@ sudo apt-get update && sudo apt-get install telegraf
     logfile                   = "your_path.log"
     logfile_rotation_interval = ""
 
-# 此处可配置 Telegraf 所采集数据的全局 tag 
+# Here you can configure the global tag of the data collected by Telegraf
 [global_tags]
   name = "zhangsan"
 
@@ -65,12 +64,12 @@ sudo apt-get update && sudo apt-get install telegraf
     ## URL is the address to send metrics to DataKit ,required
     url         = "http://localhost:9529/v1/write/metric?input=telegraf"
     method      = "POST"
-    data_format = "influx" # 此处必须选择 `influx`，不然 DataKit 无法解析数据
+    data_format = "influx" # You must select `influx` here, otherwise DataKit cannot parse the data
 
-# 更多其它配置 ...
+# More other configurations ...
 ```
 
-如果 [DataKit API 位置有调整](datakit-conf#config-http-server)，需调整如下配置，将 `url` 设置到 DataKit API 真实的地址即可：
+If the [DataKit API location is adjusted](datakit-conf#config-http-server), you need to adjust the following configuration by setting the `url` to the real address of the DataKit API:
 
 ```toml
 [[outputs.http]]
@@ -78,7 +77,7 @@ sudo apt-get update && sudo apt-get install telegraf
    url = "http://127.0.0.1:9529/v1/write/metric?input=telegraf"
 ```
 
-Telegraf 的采集配置跟 DataKit 类似，也是 [Toml 格式](https://toml.io/cn){:target="_blank"}，具体每个采集器基本都是以 `[[inputs.xxxx]]` 作为入口，这里以开启 `nvidia_smi` 采集为例：
+Telegraf's collection configuration is similar to DataKit, and it is also in [Toml format](https://toml.io/cn){:target="_blank"}Specifically, each collector basically takes `[[inputs.xxxx]]` as the entrance. Here, take `nvidia_smi` collection as an example:
 
 ```toml
 [[inputs.nvidia_smi]]
@@ -89,7 +88,7 @@ Telegraf 的采集配置跟 DataKit 类似，也是 [Toml 格式](https://toml.i
   timeout = "5s"
 ```
 
-## 更多阅读 {#more-reading}
+## More Reading {#more-reading}
 
-- [Telegraf 采集器的详细配置](https://docs.influxdata.com/telegraf){:target="_blank"}
-- [更多 Telegraf 插件](https://github.com/influxdata/telegraf#input-plugins){:target="_blank"}
+- [Detailed configuration of Telegraf collector](https://docs.influxdata.com/telegraf){:target="_blank"}
+- [More Telegraf plug-ins](https://github.com/influxdata/telegraf#input-plugins){:target="_blank"}

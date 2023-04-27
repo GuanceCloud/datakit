@@ -21,9 +21,9 @@ import (
 	"testing"
 	"time"
 
+	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/elazarl/goproxy"
 	"github.com/gin-gonic/gin"
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
@@ -328,25 +328,16 @@ func TestClientConnections(t *testing.T) {
 	}
 }
 
-func hello(w http.ResponseWriter, req *http.Request) {
-	time.Sleep(time.Millisecond)
-	fmt.Fprintf(w, "hello\n")
-}
-
 func TestClientTimeWait(t *testing.T) {
-	http.HandleFunc("/hello", hello)
+	r := gin.New()
+	r.GET("/hello", func(c *gin.Context) {
+		time.Sleep(time.Millisecond)
+		fmt.Fprintf(c.Writer, "hello\n")
+	})
 
-	server := &http.Server{
-		Addr: ":8090",
-	}
-
-	go func() {
-		if err := server.ListenAndServe(); err != nil {
-			t.Log(err)
-		}
-	}()
-
-	time.Sleep(time.Second) // wait server ok
+	ts := httptest.NewServer(r)
+	defer ts.Close()
+	time.Sleep(time.Second)
 
 	n := 10
 	wg := sync.WaitGroup{}
@@ -368,7 +359,7 @@ func TestClientTimeWait(t *testing.T) {
 
 			for j := 0; j < 1; j++ {
 				for u, m := range reqs {
-					req, err := http.NewRequest(m, "http://:8090"+u, nil)
+					req, err := http.NewRequest(m, ts.URL+u, nil)
 					if err != nil {
 						t.Error(err)
 					}
@@ -393,11 +384,6 @@ func TestClientTimeWait(t *testing.T) {
 	}
 
 	wg.Wait()
-
-	time.Sleep(time.Second * 8)
-	if err := server.Shutdown(context.Background()); err != nil {
-		t.Log(err)
-	}
 }
 
 // test what error if client request timeout

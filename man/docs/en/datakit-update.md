@@ -1,27 +1,27 @@
-<!-- This file required to translate to EN. -->
-{{.CSS}}
-# DataKit 更新
+
+# DataKit Update
 ---
 
-DataKit 支持手动更新和自动更新两种方式。
+DataKit supports both manual and automatic updates.
 
-## 前置条件 {#req}
+## Preconditions {#req}
 
-- 自动更新要求 DataKit 版本 >= 1.1.6-rc1
-- 手动更新暂无版本要求
+- Automatic updates require DataKit version >= 1.1.6-rc1
+- There is no version requirement for manual update
 
-## 手动更新 {#manual}
+## Manually Update {#manual}
 
-直接执行如下命令查看当前 DataKit 版本。如果线上有最新版本，则会提示对应的更新命令，如：
+Directly execute the following command to view the current DataKit version. If the latest version is available online, the corresponding update command will be prompted, such as:
 
-> - 如果 [DataKit < 1.2.7](changelog.md#cl-1.2.7)，此处只能用 `datakit --version`
-> - 如果 DataKit < 1.2.0，请[直接使用更新命令](changelog.md#cl-1.2.0-break-changes)
+> - For remote upgrade, you must upgrade Datakit to [1.5.9](changelog.md#cl-1.5.9)+
+> - If [DataKit < 1.2.7](changelog.md#cl-1.2.7), you can only use `datakit --version`
+> - If DataKit < 1.2.0, [use the update command directly](changelog.md#cl-1.2.0-break-changes)
 
 === "Linux/macOS"
 
     ``` shell
     $ datakit version
-
+    
            Version: 1.2.8
             Commit: e9ccdfbae4
             Branch: testing
@@ -30,18 +30,18 @@ DataKit 支持手动更新和自动更新两种方式。
           Uploader: xxxxxxxxxxxxx/xxxxxxx/xxxxxxx
     ReleasedInputs: all
     ---------------------------------------------------
-
+    
     Online version available: 1.2.9, commit 9f5ac898be (release at 2022-03-10 12:03:12)
-
+    
     Upgrade:
-        DK_UPGRADE=1 bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+{{ InstallCmd 4 (.WithPlatform "unix") (.WithUpgrade true) }}
     ```
 
 === "Windows"
 
     ``` powershell
     $ datakit.exe version
-
+    
            Version: 1.2.8
             Commit: e9ccdfbae4
             Branch: testing
@@ -50,15 +50,15 @@ DataKit 支持手动更新和自动更新两种方式。
           Uploader: xxxxxxxxxxxxx/xxxxxxx/xxxxxxx
     ReleasedInputs: all
     ---------------------------------------------------
-
+    
     Online version available: 1.2.9, commit 9f5ac898be (release at 2022-03-10 12:03:12)
-
+    
     Upgrade:
-        $env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; Remove-item .install.ps1 -erroraction silentlycontinue; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+{{ InstallCmd 4 (.WithPlatform "windows") (.WithUpgrade true) }}
     ```
 ---
 
-如果当前 DataKit 处于被代理模式，自动更新的提示命令中，会自动加上代理设置：
+If the DataKit is currently in proxy mode, the proxy settings will be automatically added to the prompt command of automatic update:
 
 === "Linux/macOS"
 
@@ -72,15 +72,15 @@ DataKit 支持手动更新和自动更新两种方式。
     $env:HTTPS_PROXY="http://10.100.64.198:9530"; $env:DK_UPGRADE="1" ...
     ```
 
-## 自动更新 {#auto}
+## Auto Update {#auto}
 
-在 Linux 中，为便于 DataKit 实现自动更新，可通过 crontab 方式添加任务，实现定期更新。
+In Linux, in order to facilitate the automatic update of DataKit, tasks can be added through crontab to realize regular update.
 
-> 注：目前自动更新只支持 Linux，且暂不支持代理模式。
+> Note: Currently, automatic updates only support Linux, and proxy mode is not supported for the time being.
 
-### 准备更新脚本 {#prepare}
+### Prepare to Update Script {#prepare}
 
-将如下脚本内容复制到 DataKit 所在机器的安装目录下，保存 `datakit-update.sh`（名称随意）
+Copy the following script contents to the installation directory of the machine where the DataKit is located and save `datakit-update.sh` (name optional).
 
 ```bash
 #!/bin/bash
@@ -89,56 +89,53 @@ DataKit 支持手动更新和自动更新两种方式。
 otalog=/usr/local/datakit/ota-update.log
 installer=https://static.guance.com/datakit/installer-linux-amd64
 
-# 注意：如果不希望更新 RC 版本的 DataKit，可移除 `--accept-rc-version`
-/usr/local/datakit/datakit --check-update --accept-rc-version --update-log $otalog
-
 if [[ $? == 42 ]]; then
 	echo "update now..."
 	DK_UPGRADE=1 bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
 fi
 ```
 
-### 添加 crontab 任务 {#add-crontab}
+### Add Crontab Task {#add-crontab}
 
-执行如下命令，进入 crontab 规则添加界面：
+Execute the following command to enter the crontab rule addition interface:
 
 ```shell
 crontab -u root -e
 ```
 
-添加如下规则：
+Add the following rule:
 
 ```shell
-# 意即每天凌晨尝试一下新版本更新
+# Mean to try the new version update every morning
 0 0 * * * bash /path/to/datakit-update.sh
 ```
 
-Tips: crontab 基本语法如下
+Tips: crontab, The basic syntax is as follows
 
 ```
 *   *   *   *   *     <command to be execute>
 ^   ^   ^   ^   ^
 |   |   |   |   |
 |   |   |   |   +----- day of week(0 - 6) (Sunday=0)
-|   |   |   +--------- month (1 - 12)
+|   |   |   +--------- month (1 - 12)   
 |   |   +------------- day of month (1 - 31)
-|   +----------------- hour (0 - 23)
+|   +----------------- hour (0 - 23)   
 +--------------------- minute (0 - 59)
 ```
 
-执行如下命令确保 crontab 安装成功：
+Execute the following command to ensure that crontab is installed successfully:
 
 ```shell
 crontab -u root -l
 ```
 
-确保 crontab 服务启动：
+Make sure the crontab service starts:
 
 ```shell
 service cron restart
 ```
 
-如果安装成功且有尝试更新，则在 `update_log` 中能看到类似如下日志：
+If the installation is successful and an update is attempted, you can see logs like the following in `update_log`:
 
 ```
 2021-05-10T09:49:06.083+0800 DEBUG	ota-update datakit/main.go:201	get online version...
@@ -146,7 +143,7 @@ service cron restart
 2021-05-10T09:49:07.728+0800 INFO	ota-update datakit/main.go:224	Up to date(1.1.6-rc0-62-g7a1d0956)
 ```
 
-如果确实发生了更新，会看到类似如下的更新日志：
+If an update does occur, you will see an update log similar to the following:
 
 ```
 2021-05-10T09:52:18.352+0800 DEBUG ota-update datakit/main.go:201 get online version...
@@ -155,40 +152,109 @@ service cron restart
 ...
 ```
 
-## DataKit 版本回退 {#downgrade}
+## Remote Upgrade {#remote}
 
-如果新版本有不尽人意的地方，急于回退老版本恢复功能，可以通过如下方式直接逆向升级：
+[:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9) · [:octicons-beaker-24: Experimental](index.md#experimental)
+
+If there are many Datakit need to upgrade, we can use remote upgrade via HTTP request. Before we use remote upgrade, we first need to upgrade or install with option `DK_UPGRADE_MANAGER=1`:
+
+```shell
+DK_UPGRADE=1 \
+  DK_UPGRADE_MANAGER=1 \
+  bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+```
+
+The remote upgrade service currently provides two http APIs:
+
+- **View the current Datakit version and available upgrade versions**
+
+| API                                                   | Method |
+| ---                                                   | ---    |
+| `http://<datakit-ip-or-host>:9539/v1/datakit/version` | `GET`  |
+
+
+Example：
+
+```shell
+$ curl 'http://127.0.0.1:9539/v1/datakit/version'
+{
+    "Version": "1.5.7",
+    "Commit": "1a9xxxxxxx",
+    "Branch": "master",
+    "BuildAtUTC": "2023-03-29 07:03:35",
+    "GoVersion": "go version go1.18.3 darwin/arm64",
+    "Uploader": "someone",
+    "ReleasedInputs": "all",
+    "AvailableUpgrades": [
+        {
+            "version": "1.5.8",
+            "commit": "d8d2218354",
+            "date_utc": "2023-03-24 11:12:54",
+            "download_url": "https://static.guance.com/datakit/install.sh",
+            "version_type": "Online"
+        }
+    ]
+}
+```
+
+
+- **Upgrade the current Datakit to the latest version**
+
+| API                                                   | Method |
+| ---                                                   | ---    |
+| `http://<datakit-ip-or-host>:9539/v1/datakit/upgrade` | `POST` |
+
+Example：
+
+```shell
+$ curl -X POST 'http://127.0.0.1:9539/v1/datakit/upgrade'
+{"msg":"success"}
+```
+
+???+ info
+
+    The upgrade process may take a long time.
+
+## DataKit Version Downgrade {#downgrade}
+
+If the new version is unsatisfactory and eager to roll back the recovery function of the old version, you can directly reverse upgrade in the following ways:
 
 === "Linux/macOS"
 
     ```shell
-    DK_UPGRADE=1 bash -c "$(curl -L https://static.guance.com/datakit/install-<版本号>.sh)"
+{{ InstallCmd 4 (.WithPlatform "unix") (.WithUpgrade true) (.WithVersion "版本号") }}
     ```
 === "Windows"
 
     ```powershell
-    $env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install-<版本号>.ps1 -destination .install.ps1; powershell .install.ps1;
+{{ InstallCmd 4 (.WithPlatform "windows") (.WithUpgrade true) (.WithVersion "版本号") }}
     ```
 
-这里的版本号，可以从 [DataKit 的发布历史](changelog.md)页面找到。目前只支持退回到 [1.2.0](changelog.md#cl-1.2.0) 以后的版本，之前的 rc 版本不建议回退。回退版本后，可能会碰到一些新版本中才有的配置，无法在回退后的版本中解析，这个暂时只能手动调整配置，适配老版本的 DataKit。
+The version number here can be found on the [DataKit release history](changelog.md) page. Currently, only rollback to [1.2.0](changelog.md#cl-1.2.0) is supported, and previous rc versions do not recommend rollback. After rolling back the version, you may encounter some configurations that are only available in the new version, which cannot be resolved in the rolled back version. For the time being, you can only manually adjust the configuration to adapt to the old version of DataKit.
 
-## 版本检测失败的处理 {#version-check-failed}
+## Version Detection Failed Processing {#version-check-failed}
 
-在 DataKit 安装/升级过程中，安装程序会对当前运行的 DataKit 版本进行检测，以确保当前运行的 DataKit 版本就是升级后的版本。
+During the DataKit installation/upgrade process, the installer detects the currently running version of the DataKit to ensure that the version is the upgraded version.
 
-但是某些情况下，老版本的 DataKit 服务并未卸载成功，导致检测过程中中发现，当前运行的 DataKit 版本号还是老的版本号：
+However, in some cases, the older version of the DataKit service did not uninstall successfully, resulting in the detection process discovering that the current running DataKit version number is still the older version number:
 
 ```shell
 2022-09-22T21:20:35.967+0800    ERROR   installer  installer/main.go:374  checkIsNewVersion: current version: 1.4.13, expect 1.4.16
 ```
 
-此时我们可以强制停止老版本的 DataKit，并重启 DataKit：
+At this point, we can force the old version of DataKit to stop and restart the DataKit:
 
 ``` shell
-datakit service -T # 停止服务
-datakit service -S # 启动新的服务
+datakit service -T # Stop service
+datakit service -S # Start a new service
 
-datakit version # 确保当前运行的 DataKit 已经是最新的版本
+# If not, uninstall the DataKit service and then reinstall the service
+datakit service -U # uninstall service
+datakit service -I # reinstall service
+
+# After the above operations are completed, confirm whether the next DataKit version is the latest version
+
+datakit version # Confirm that the current running DataKit is the latest version
 
        Version: 1.4.16
         Commit: 1357544bd6

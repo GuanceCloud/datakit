@@ -10,8 +10,8 @@ import (
 	"runtime"
 	"testing"
 
+	tu "github.com/GuanceCloud/cliutils/testutil"
 	psNet "github.com/shirou/gopsutil/net"
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
 func TestCollect(t *testing.T) {
@@ -70,7 +70,7 @@ func TestFilterInterface(t *testing.T) {
 		{Index: 4, MTU: 1500, Name: "docker0", HardwareAddr: []byte("c2:42:b7:2d:e8:a5"), Flags: 19},
 	}
 
-	// 包含虚拟接口、使用正则
+	// contains virtual interfaces, using regex
 	// "docker0", "enp2s0", "wlp3s0",
 	exprs := []string{
 		"lp\\d+",
@@ -83,7 +83,7 @@ func TestFilterInterface(t *testing.T) {
 			t.Error("match failed")
 		}
 	}
-	// 包含虚拟接口、不使用正则
+	// contains virtual interfaces, does not use regex
 	// "docker0", "enp2s0", "wlp3s0",
 	exprs = []string{}
 	enableVirtual = true
@@ -95,7 +95,7 @@ func TestFilterInterface(t *testing.T) {
 	}
 
 	if runtime.GOOS == "linux" {
-		// 不含虚拟接口、使用正则
+		// does not contain virtual interface, use regular
 		// "docker0", "enp2s0", "wlp3s0",
 		exprs = []string{
 			"lp\\d+",
@@ -109,7 +109,7 @@ func TestFilterInterface(t *testing.T) {
 			}
 		}
 
-		// 不含虚拟接口、不使用正则
+		// does not contain virtual interfaces, does not use regular expressions
 		// "docker0", "enp2s0", "wlp3s0",
 		exprs = []string{}
 		enableVirtual = false

@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"path/filepath"
 	"reflect"
@@ -22,9 +23,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/logger"
 	_ "github.com/godror/godror"
 	"github.com/jessevdk/go-flags"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"golang.org/x/net/context/ctxhttp"
@@ -40,6 +41,7 @@ type Option struct {
 	Password        string `long:"password" description:"oracle password"`
 	ServiceName     string `long:"service-name" description:"oracle service name"`
 	Tags            string `long:"tags" description:"additional tags in 'a=b,c=d,...' format"`
+	DatakitHTTPHost string `long:"datakit-http-host" description:"DataKit HTTP server host" default:"localhost"`
 	DatakitHTTPPort int    `long:"datakit-http-port" description:"DataKit HTTP server port" default:"9529"`
 	Election        bool   `long:"election" description:"whether election of this input is enabled"`
 
@@ -50,7 +52,7 @@ type Option struct {
 
 var (
 	opt            Option
-	l              *logger.Logger
+	l              = logger.DefaultSLogger("oracle")
 	datakitPostURL = ""
 )
 
@@ -65,6 +67,7 @@ type monitor struct {
 	serviceName string
 	tags        map[string]string
 	election    bool
+	loopback    bool
 
 	db               *sql.DB
 	intervalDuration time.Duration
@@ -83,6 +86,8 @@ func buildMonitor() *monitor {
 		tags:        make(map[string]string),
 		election:    opt.Election,
 	}
+
+	m.loopback = m.host == "localhost" || net.ParseIP(m.host).IsLoopback()
 
 	items := strings.Split(opt.Tags, ";")
 	for _, item := range items {
@@ -151,7 +156,7 @@ func main() {
 		Level: opt.LogLevel,
 		Flags: logger.OPT_DEFAULT,
 	}); err != nil {
-		l.Errorf("set root log faile: %s", err.Error())
+		l.Errorf("set root log failed: %s", err.Error())
 	}
 
 	if opt.InstanceDesc != "" { // add description to logger
@@ -162,14 +167,16 @@ func main() {
 
 	l.Debugf("election: %t", opt.Election)
 
+	l.Infof("datakit: host=%s, port=%d", opt.DatakitHTTPHost, opt.DatakitHTTPPort)
+
 	var (
 		ignoreGlobalHostTags = "ignore_global_host_tags=true"
 		globalEnvTags        = "global_env_tags=true"
 	)
 	if opt.Election {
-		datakitPostURL = fmt.Sprintf("http://0.0.0.0:%d/v1/write/metric?input=oracle&%s&%s", opt.DatakitHTTPPort, ignoreGlobalHostTags, globalEnvTags) //nolint:lll
+		datakitPostURL = fmt.Sprintf("http://%s:%d/v1/write/metric?input=oracle&%s&%s", opt.DatakitHTTPHost, opt.DatakitHTTPPort, ignoreGlobalHostTags, globalEnvTags) //nolint:lll,nosprintfhostport
 	} else {
-		datakitPostURL = fmt.Sprintf("http://0.0.0.0:%d/v1/write/metric?input=oracle", opt.DatakitHTTPPort) //nolint:lll
+		datakitPostURL = fmt.Sprintf("http://%s:%d/v1/write/metric?input=oracle", opt.DatakitHTTPHost, opt.DatakitHTTPPort) //nolint:lll,nosprintfhostport
 	}
 	l.Debugf("post to datakit URL: %s", datakitPostURL)
 
@@ -226,7 +233,7 @@ func handleResponse(m *monitor, metricName string, tagsKeys []string, response [
 	for _, item := range response {
 		tags := map[string]string{}
 
-		if !strings.Contains(m.host, "127.0.0.1") && !strings.Contains(m.host, "localhost") {
+		if !m.loopback {
 			tags["host"] = m.host
 		}
 		tags["oracle_service"] = m.serviceName

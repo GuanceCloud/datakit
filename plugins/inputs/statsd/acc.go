@@ -6,31 +6,51 @@
 package statsd
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
-	dkpoint "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"github.com/GuanceCloud/cliutils/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type point struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	tm     time.Time
+type statsdMeasurement struct {
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	tm       time.Time
+	election bool
 }
 
-func (p *point) LineProto() (*dkpoint.Point, error) {
-	return dkpoint.NewPoint(p.name, p.tags, p.fields, dkpoint.MOpt())
+// Point implement MeasurementV2.
+func (m *statsdMeasurement) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	} else {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
+	}
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
 }
 
-func (p *point) Info() *inputs.MeasurementInfo {
+func (m *statsdMeasurement) LineProto() (*dkpt.Point, error) {
+	// return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOpt())
+	return nil, fmt.Errorf("not implement")
+}
+
+func (m *statsdMeasurement) Info() *inputs.MeasurementInfo {
 	return nil
 }
 
 type accumulator struct {
-	ref    *input
-	points []inputs.Measurement
+	ref *input
+	// measurements []inputs.Measurement
+	measurements []*point.Point
 }
 
 func (a *accumulator) addFields(name string, fields map[string]interface{}, tags map[string]string, ts time.Time) {
@@ -78,12 +98,14 @@ func (a *accumulator) addFields(name string, fields map[string]interface{}, tags
 	}
 
 	l.Debugf("addFields: %s|%s", metricName, fieldKey)
-	a.points = append(a.points, &point{
+
+	metric := &statsdMeasurement{
 		name: metricName,
 		fields: map[string]interface{}{
 			fieldKey: fval,
 		},
 		tags: tags,
 		tm:   ts,
-	})
+	}
+	a.measurements = append(a.measurements, metric.Point())
 }

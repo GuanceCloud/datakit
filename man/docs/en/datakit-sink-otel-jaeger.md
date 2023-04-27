@@ -1,26 +1,25 @@
-<!-- This file required to translate to EN. -->
 # OpenTelemetry/Jaeger
 ---
 
-OpenTelemetry(OTEL) 提供了多种 Export 将链路数据发送到多个采集终端中，例如：Jaeger、otlp、zipkin、prometheus。
+OpenTelemetry (OTEL) provides a variety of Export to send link data to multiple collection terminals, such as Jaeger, otlp, zipkin and prometheus.
 
-本篇介绍如何使用 sink 将链路数据发送到 otel-collector 和 Jaeger 中。
+This article describes how to use sink to send link data to the otel-collector and Jaeger.
 
-## 通过配置文件指定 sink 类型 {#config}
+## Specify Sink Type Through Configuration File {#config}
 
-### 将链路数据发送到 otel-collector 中 {#apm-otel}
+### Send Link Data to Otel-collector {#apm-otel}
 
-1. 修改配置 datakit 配置文件
+1. Modify the configuration datakit configuration file
 
 ``` shell 
 vim /usr/local/datakit/conf/datakit.conf
 ```
 
-2. 修改 sink 配置，注意 如果从没有配置过 sink 相关，新增一个配置项即可
+2. Modify the sink configuration. Note that if sink correlation has never been configured, you can add a configuration item.
 
-otel 有两种 export：http 和 grpc。只能选择其中的一种。
+Otel has two types of export: http and grpc. You can only choose one of them.
 
-http配置：
+http configuration:
 
 ``` toml
 [sinks]
@@ -29,12 +28,12 @@ http配置：
     host = "localhost"
     port = "8889"
     path = "/api/traces"
-    categories = ["T"] # 目前仅支持 Trace 类型
+    categories = ["T"] # only Trace is supported for mow
     target = "otel"
 ```
 
 
-grpc 配置：
+grpc configuration:
 
 ``` toml
 [sinks]
@@ -42,40 +41,40 @@ grpc 配置：
     scheme = "grpc"
     host = "localhost"
     port = "4317"
-    #使用 grpc 协议时，不需要 path
+    # When using grpc protocol, path is not required
     path = ""
-    # 目前仅支持 Trace 类型  
+    # Only Trace types are currently supported
     categories = ["T"] 
     target = "otel"
 ```
 
-### 将链路数据发送到 Jaeger {#apm-jaeger}
+### Send Link Data to Jaeger {#apm-jaeger}
 
-Sink Jaeger 支持将链路数据发送到 `jaeger.colletcor` 和 `jaeger.agent`.支持使用 `HTTP` 和 `gRPC` 两种协议。
+Sink Jaeger supports sending link data to `jaeger.colletcor` and `jaeger.agent`. Both `HTTP` and `gRPC` protocols are supported.
 
-Colletcor 端口整理
+Colletcor port finishing
 
-- 14267 tcp agent发送jaeger.thrift格式数据
-- 14250 tcp agent发送proto格式数据（背后gRPC)
-- 14268 http 直接接受客户端数据(datakit 使用 HTTP 发送到 collector)
-- 14269 http 健康检查
+- 14267 tcp agent sends jaeger.thrift format data
+- 14250 tcp agent sends proto format data (behind gRPC)
+- 14268 HTTP accepts client data directly (datakit sends to collector using HTTP)
+- 14269 http health check
 
-Agent 端口整理
+Agent port collation
 
-- 5775 UDP协议，接收兼容zipkin的协议数据
-- 6831 UDP协议，接收兼容jaeger的兼容协议(datakit 使用gRPC 将链路数据发送)
-- 6832 UDP协议，接收jaeger的二进制协议
-- 5778 HTTP协议，数据量大不建议使用
+- 5775 UDP protocol for receiving zipkin-compatible protocol data
+- 6831 UDP protocol that receives jaeger-compliant protocols (datakit uses gRPC to send link data)
+- 6832 UDP protocol, binary protocol for receiving jaeger
+- 5778 HTTP protocol, not recommended for large data volume
 
-datakit config 文件配置示例：
+Sample datakit config file configuration:
 
-打开配置文件 
+Open configuration file 
 
 ``` shell 
 vim /usr/local/datakit/conf/datakit.conf
 ```
 
-HTTP 配置
+HTTP configuration
 
 ``` toml
 [sinks]
@@ -84,12 +83,12 @@ HTTP 配置
     host = "localhost"
     port = "14268"
     path = "/api/traces"
-    # 目前仅支持 Trace 类型，故使用"T"
+    # Currently, only Trace type is supported, so "T" is used
     categories = ["T"] 
     target = "jaeger"
 ```
 
-grpc 配置：
+grpc configuration
 
 ``` toml
 [sinks]
@@ -97,18 +96,18 @@ grpc 配置：
     scheme = "grpc"
     host = "localhost"
     port = "6831"
-    #使用 grpc 协议时，不需要 path
+    # When using grpc protocol, path is not required
     path = ""
-    # 目前仅支持 Trace 类型  
+    # Only Trace types are currently supported前仅支持 Trace 类型  
     categories = ["T"] 
     target = "jaeger"
 ```
 
-配置完成之后重启 datakit
+Restart datakit after configuration is complete.
 
 ---
 
-## 安装阶段通过环境变量形式指定 Sink {#install}
+## Specifying Sink as an Environment Variable during Installation Phase {#install}
 
 ```shell
 # jaeger-collector
@@ -117,4 +116,4 @@ DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>" \
 bash -c "$(curl -L https://static.guance.com/datakit/community/install.sh)"
 ```
 
-通过环境变量安装的 Datakit，会在自动在配置文件中生成相应的配置，在之后的服务重启时会以配置文件为准。
+Datakit installed through environment variables automatically generates the corresponding configuration in the configuration file, which will prevail when the service restarts later.

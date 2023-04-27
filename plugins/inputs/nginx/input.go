@@ -12,14 +12,14 @@ import (
 	"net/http"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -30,9 +30,12 @@ var (
 	l           = logger.DefaultSLogger(inputName)
 	minInterval = time.Second
 	maxInterval = time.Second * 30
-	sample      = `
-[[inputs.nginx]]
-	url = "http://localhost:80/server_status"
+	sample      = `[[inputs.nginx]]
+	# Nginx status URL.
+	# (Default) If not use with VTS, the formula is like this: "http://localhost:80/nginx_status".
+	# If using with VTS, the formula is like this: "http://localhost:80/status/format/json".
+	url = "http://localhost:80/nginx_status"
+
 	# ##(optional) collection interval, default is 30s
 	# interval = "30s"
 	use_vts = false
@@ -143,10 +146,6 @@ func (n *Input) RunPipeline() {
 		return
 	}
 
-	if n.Log.Pipeline == "" {
-		n.Log.Pipeline = "nginx.p" // use default
-	}
-
 	opt := &tailer.Option{
 		Source:     inputName,
 		Service:    inputName,
@@ -180,20 +179,15 @@ func (n *Input) Run() {
 		if n.pause {
 			l.Debugf("not leader, skipped")
 		} else {
-			mpts, err := n.Collect()
+			points, err := n.Collect()
 			if err != nil {
 				l.Errorf("Collect failed: %v", err)
-			} else {
-				for category, points := range mpts {
-					if len(points) > 0 {
-						if err := io.Feed(inputName, category, points,
-							&io.Option{CollectCost: time.Since(n.start)}); err != nil {
-							l.Errorf(err.Error())
-							io.FeedLastError(inputName, err.Error())
-						} else {
-							n.collectCache = n.collectCache[:0]
-						}
-					}
+			} else if len(points) > 0 {
+				if err := n.feeder.Feed(inputName, point.Metric, points, &io.Option{CollectCost: time.Since(n.start)}); err != nil {
+					l.Errorf(err.Error())
+					n.feeder.FeedLastError(inputName, err.Error())
+				} else {
+					n.collectCache = n.collectCache[:0]
 				}
 			}
 		}
@@ -307,40 +301,32 @@ func (n *Input) setup() error {
 	return nil
 }
 
-func (n *Input) Collect() (map[string][]*point.Point, error) {
+func (n *Input) Collect() ([]*point.Point, error) {
 	if err := n.setup(); err != nil {
-		return map[string][]*point.Point{}, err
+		return nil, err
 	}
 
 	n.getMetric()
 
 	if len(n.collectCache) == 0 {
-		return map[string][]*point.Point{}, fmt.Errorf("no points")
+		return nil, fmt.Errorf("no points")
 	}
 
-	pts, err := inputs.GetPointsFromMeasurement(n.collectCache)
-	if err != nil {
-		return map[string][]*point.Point{}, err
-	}
-
-	mpts := make(map[string][]*point.Point)
-	mpts[datakit.Metric] = pts
-
-	return mpts, nil
+	return n.collectCache, nil
 }
 
-func NewNginx() *Input {
+func defaultInput() *Input {
 	return &Input{
 		Interval: datakit.Duration{Duration: time.Second * 10},
 		pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
 		Election: true,
-
-		semStop: cliutils.NewSem(),
+		feeder:   io.DefaultFeeder(),
+		semStop:  cliutils.NewSem(),
 	}
 }
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return NewNginx()
+		return defaultInput()
 	})
 }

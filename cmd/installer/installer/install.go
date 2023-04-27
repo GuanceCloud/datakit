@@ -10,9 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -21,7 +18,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/sinkfuncs"
 )
 
 var InstallExternals = ""
@@ -55,11 +51,16 @@ func Install(svc service.Service) {
 	// prepare dataway info and check token format
 	if len(Dataway) != 0 {
 		var err error
-		mc.DataWay, err = getDataWay()
+		mc.Dataway, err = getDataway()
 		if err != nil {
+			cp.Errorf("%s\n", err.Error())
 			l.Fatal(err)
 		}
 		cp.Infof("Set dataway to %s\n", Dataway)
+	}
+
+	if Sinker != "" {
+		mc.LoadSink(Sinker)
 	}
 
 	if OTA {
@@ -105,16 +106,8 @@ func Install(svc service.Service) {
 	if CgroupDisabled != 1 && runtime.GOOS == datakit.OSLinux {
 		mc.Cgroup.Enable = true
 
-		if LimitCPUMin > 0 {
-			mc.Cgroup.CPUMin = LimitCPUMin
-		}
-
 		if LimitCPUMax > 0 {
 			mc.Cgroup.CPUMax = LimitCPUMax
-		}
-
-		if mc.Cgroup.CPUMax < mc.Cgroup.CPUMin {
-			l.Fatalf("invalid CGroup CPU limit, max should larger than min")
 		}
 
 		if LimitMemMax > 0 {
@@ -124,8 +117,8 @@ func Install(svc service.Service) {
 			l.Infof("cgroup max memory not set")
 		}
 
-		l.Infof("croups enabled under %s, cpu: [%f, %f], mem: %dMB",
-			runtime.GOOS, mc.Cgroup.CPUMin, mc.Cgroup.CPUMin, mc.Cgroup.MemMax)
+		l.Infof("croups enabled under %s, cpu: %f, mem: %dMB",
+			runtime.GOOS, mc.Cgroup.CPUMax, mc.Cgroup.MemMax)
 	} else {
 		mc.Cgroup.Enable = false
 		l.Infof("cgroup disabled, OS: %s", runtime.GOOS)
@@ -208,43 +201,11 @@ func Install(svc service.Service) {
 		mc.Logging.GinLog = GinLog
 	}
 
-	// parse sink
-	if err := parseSinkArgs(mc); err != nil {
-		mc.Sinks.Sink = []map[string]interface{}{{}} // clear
-		l.Fatalf("parseSinkArgs failed: %s", err.Error())
-	}
-	if LogSinkDetail != "" {
-		l.Info("set enable log sink detail.")
-		mc.LogSinkDetail = true
-	}
-
 	writeDefInputToMainCfg(mc)
 
 	// build datakit main config
 	if err := mc.InitCfg(datakit.MainConfPath); err != nil {
 		l.Fatalf("failed to init datakit main config: %s", err.Error())
-	}
-
-	installExts := map[string]struct{}{}
-	for _, v := range strings.Split(InstallExternals, ",") {
-		installExts[v] = struct{}{}
-	}
-	updateEBPF := false
-	if runtime.GOOS == datakit.OSLinux && (runtime.GOARCH == "amd64" || runtime.GOARCH == "arm64") {
-		if _, err := os.Stat(filepath.Join(datakit.InstallDir, "externals", "datakit-ebpf")); err == nil {
-			updateEBPF = true
-		}
-		if _, ok := installExts["ebpf"]; ok {
-			updateEBPF = true
-		}
-	}
-	if updateEBPF {
-		cp.Infof("Install DataKit eBPF plugin...")
-		// nolint:gosec
-		cmd := exec.Command(filepath.Join(datakit.InstallDir, "datakit"), "install", "--ebpf")
-		if msg, err := cmd.CombinedOutput(); err != nil {
-			l.Errorf("upgradde external input plugin %s failed: %s msg: %s", "ebpf", err.Error(), msg)
-		}
 	}
 
 	cp.Infof("Installing service %s...\n", dkservice.Name)
@@ -273,78 +234,25 @@ func addConfdConfig(mcPrt *config.Config) {
 		if ConfdBasicAuth == "true" {
 			basicAuth = true
 		}
-		clientInsecure := false
-		if ConfdClientInsecure == "true" {
-			clientInsecure = true
-		}
 
 		mcPrt.Confds = []*config.ConfdCfg{{
-			Enable:         true,
-			Backend:        ConfdBackend,
-			AuthToken:      ConfdAuthToken,
-			AuthType:       ConfdAuthType,
-			BasicAuth:      basicAuth,
-			ClientCaKeys:   ConfdClientCaKeys,
-			ClientCert:     ConfdClientCert,
-			ClientKey:      ConfdClientKey,
-			ClientInsecure: clientInsecure,
-			BackendNodes:   append(backendNodes[0:0], backendNodes...),
-			Password:       ConfdPassword,
-			Scheme:         ConfdScheme,
-			Table:          ConfdTable,
-			Separator:      ConfdSeparator,
-			Username:       ConfdUsername,
-			AppID:          ConfdAppID,
-			UserID:         ConfdUserID,
-			RoleID:         ConfdRoleID,
-			SecretID:       ConfdSecretID,
-			Filter:         ConfdFilter,
-			Path:           ConfdPath,
-			Role:           ConfdRole,
+			Enable:            true,
+			Backend:           ConfdBackend,
+			BasicAuth:         basicAuth,
+			ClientCaKeys:      ConfdClientCaKeys,
+			ClientCert:        ConfdClientCert,
+			ClientKey:         ConfdClientKey,
+			BackendNodes:      append(backendNodes[0:0], backendNodes...),
+			Password:          ConfdPassword,
+			Scheme:            ConfdScheme,
+			Separator:         ConfdSeparator,
+			Username:          ConfdUsername,
+			AccessKey:         ConfdAccessKey,
+			SecretKey:         ConfdSecretKey,
+			ConfdNamespace:    ConfdConfdNamespace,
+			PipelineNamespace: ConfdPipelineNamespace,
+			Region:            ConfdRegion,
+			CircleInterval:    ConfdCircleInterval,
 		}}
 	}
-}
-
-func parseSinkArgs(mc *config.Config) error {
-	if mc == nil {
-		return fmt.Errorf("invalid main config")
-	}
-
-	if mc.Sinks == nil {
-		return fmt.Errorf("invalid main config sinks")
-	}
-
-	categoryShorts := []string{
-		datakit.SinkCategoryMetric,
-		datakit.SinkCategoryNetwork,
-		datakit.SinkCategoryKeyEvent,
-		datakit.SinkCategoryObject,
-		datakit.SinkCategoryCustomObject,
-		datakit.SinkCategoryLogging,
-		datakit.SinkCategoryTracing,
-		datakit.SinkCategoryRUM,
-		datakit.SinkCategorySecurity,
-		datakit.SinkCategoryProfiling,
-	}
-
-	args := []string{
-		SinkMetric,
-		SinkNetwork,
-		SinkKeyEvent,
-		SinkObject,
-		SinkCustomObject,
-		SinkLogging,
-		SinkTracing,
-		SinkRUM,
-		SinkSecurity,
-		SinkProfiling,
-	}
-
-	sinks, err := sinkfuncs.GetSinkFromEnvs(categoryShorts, args)
-	if err != nil {
-		return err
-	}
-
-	mc.Sinks.Sink = sinks
-	return nil
 }

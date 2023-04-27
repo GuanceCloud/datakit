@@ -16,7 +16,7 @@ Go 内置了性能分析 (profiling) 工具 pprof，可以采集程序运行中�
 
 收集到的数据，可以通过官方 [pprof](https://github.com/google/pprof/blob/main/doc/README.md) 工具进行分析。
 
-DataKit 可通过[主动拉取](#pull-mode) (pull) 或[被动推送](#push-mode) (push) 的方式来获取这些数据。
+DataKit 可通过[主动拉取](profile-go.md#pull-mode) (pull) 或[被动推送](profile-go.md#push-mode) (push) 的方式来获取这些数据。
 
 ## push 方式 {#push-mode}
 
@@ -163,7 +163,7 @@ runtime.SetBlockProfileRate(rate)
   enabled_types = ["cpu","goroutine","heap","mutex","block"]
 
 [inputs.profile.go.tags]
-  # tag1 = xxxxx
+  # tag1 = "val1"
 ```
 
 > 注意： 如果不需要开启 Profile 的 HTTP 服务，可将 endpoints 字段注释掉。

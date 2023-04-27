@@ -39,9 +39,6 @@ func ReleaseFiles() error {
 	if err := releaseEmbedFile(datakit.PythonCoreDir, "datakit_framework.py", &pyDatakitFramework); err != nil {
 		return err
 	}
-	if err := releaseEmbedFile(datakit.PythonCoreDir, "demo.py", &pyDemo); err != nil {
-		return err
-	}
 
 	return nil
 }
@@ -50,9 +47,6 @@ func ReleaseFiles() error {
 
 //go:embed pys/datakit_framework.py
 var pyDatakitFramework embed.FS
-
-//go:embed pys/demo.py
-var pyDemo embed.FS
 
 //go:embed pys/cli.py
 var pyCli string

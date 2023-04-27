@@ -15,6 +15,11 @@ import (
 
 const (
 	Unavailable = "-"
+	Aliyun      = "aliyun"
+	AWS         = "aws"
+	Tencent     = "tencent"
+	Azure       = "azure"
+	Hwcloud     = "hwcloud"
 )
 
 var cloudCli = &http.Client{Timeout: 100 * time.Millisecond}
@@ -39,21 +44,21 @@ func (*Input) SyncCloudInfo(provider string) (map[string]interface{}, error) {
 	defer cloudCli.CloseIdleConnections()
 
 	switch provider {
-	case "aliyun":
+	case Aliyun:
 		p := &aliyun{baseURL: "http://100.100.100.200/latest/meta-data"}
 		return p.Sync()
 
-	case "aws":
+	case AWS:
 		p := &aws{baseURL: "http://169.254.169.254/latest/meta-data"}
 		return p.Sync()
 
-	case "tencent":
+	case Tencent:
 		p := &tencent{baseURL: "http://metadata.tencentyun.com/latest/meta-data"}
 		return p.Sync()
-	case "azure":
+	case Azure:
 		p := &azure{baseURL: "http://169.254.169.254/metadata/instance"}
 		return p.Sync()
-	case "hwcloud":
+	case Hwcloud:
 		p := &hwcloud{baseURL: "http://169.254.169.254/latest/meta-data"}
 		return p.Sync()
 	default:
@@ -62,23 +67,27 @@ func (*Input) SyncCloudInfo(provider string) (map[string]interface{}, error) {
 }
 
 func (ipt *Input) matchCloudProvider(cloudProvider string) bool {
-	fields, _ := ipt.SyncCloudInfo(cloudProvider)
-	for k, v := range fields {
-		if k == "cloud_provider" {
-			continue
-		}
-		if v != Unavailable {
-			return true
-		}
+	fields, err := ipt.SyncCloudInfo(cloudProvider)
+	if err != nil {
+		return false
 	}
-	return false
+	instanceID, has := fields["instance_id"]
+	if !has || instanceID == Unavailable {
+		return false
+	}
+	if cloudProvider == Hwcloud || cloudProvider == AWS {
+		// Both of hwcloud and aws use the same URL. They can be distinguished by
+		// field 'availability-zone-id', which is present in aws but not hwcloud.
+		if metaGet("http://169.254.169.254/latest/meta-data/placement/availability-zone-id") == Unavailable {
+			return cloudProvider == Hwcloud
+		}
+		return cloudProvider == AWS
+	}
+	return true
 }
 
-func (ipt *Input) SetCloudProviderIfAbsent() error {
-	if _, has := ipt.Tags["cloud_provider"]; has {
-		return nil
-	}
-	cloudProviders := []string{"aliyun", "aws", "tencent", "azure", "hwcloud"}
+func (ipt *Input) SetCloudProvider() error {
+	cloudProviders := []string{Aliyun, AWS, Tencent, Azure, Hwcloud}
 	for _, cp := range cloudProviders {
 		if ipt.matchCloudProvider(cp) {
 			ipt.Tags["cloud_provider"] = cp

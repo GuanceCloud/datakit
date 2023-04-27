@@ -9,7 +9,7 @@ package jvm
 import (
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -150,8 +150,12 @@ func (i *Input) AvailableArchs() []string {
 	return datakit.AllOS
 }
 
+func defaultInput() *Input {
+	return &Input{}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{}
+		return defaultInput()
 	})
 }
