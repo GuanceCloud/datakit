@@ -1,12 +1,13 @@
-{{.CSS}}
+
 # Solr
+
 ---
 
 {{.AvailableArchs}}
 
 ---
 
-solr 采集器，用于采集 solr cache 和 request times 等的统计信息。
+Solr 采集器，用于采集 Solr Cache 和 Request Times 等的统计信息。
 
 ## 前置条件 {#requrements}
 
@@ -15,6 +16,7 @@ solr 采集器，用于采集 solr cache 和 request times 等的统计信息。
 
 ## 配置 {#config}
 
+<!-- markdownlint-disable MD046 -->
 === "主机安装"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
@@ -25,10 +27,10 @@ solr 采集器，用于采集 solr cache 和 request times 等的统计信息。
     
     配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
 
-
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+<!-- markdownlint-enable -->
 
 ## 指标集 {#measurements}
 
@@ -45,7 +47,7 @@ solr 采集器，用于采集 solr cache 和 request times 等的统计信息。
 
 ### `{{$m.Name}}`
 
--  标签
+- 标签
 
 {{$m.TagsMarkdownTable}}
 
@@ -67,15 +69,15 @@ solr 采集器，用于采集 solr cache 和 request times 等的统计信息。
 
 切割日志示例：
 
-```
+```log
 2013-10-01 12:33:08.319 INFO (org.apache.solr.core.SolrCore) [collection1] webapp.reporter
 ```
 
 切割后字段：
 
-| 字段名   | 字段值                        |
-| -------- | ----------------------------- |
-| Reporter | webapp.reporter               |
-| status   | INFO                          |
-| thread   | org.apache.solr.core.SolrCore |
-| time     | 1380630788319000000           |
+| 字段名     | 字段值                          |
+| --------   | -----------------------------   |
+| `Reporter` | `webapp.reporter`               |
+| `status`   | `INFO`                          |
+| `thread`   | `org.apache.solr.core.SolrCore` |
+| `time`     | `1380630788319000000`           |

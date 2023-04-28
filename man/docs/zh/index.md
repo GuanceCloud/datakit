@@ -5,7 +5,6 @@ icon: zy/datakit
 # DataKit
 ---
 
-
 ## 概述 {#intro}
 
 DataKit 是一款开源、一体式的数据采集 Agent，它提供全平台操作系统（Linux/Windows/macOS）支持，拥有全面数据采集能力，涵盖主机、容器、中间件、Tracing、日志以及安全巡检等各种场景。
@@ -20,14 +19,14 @@ DataKit 是一款开源、一体式的数据采集 Agent，它提供全平台操
     - [Prometheus](prom.md)
     - [Statsd](statsd.md)
     - [Fluentd](logstreaming.md)
-    - [Filebeats](beats_output.md)
+    - [Filebeat](beats_output.md)
     - [Function](https://func.guance.com/doc/practice-write-data-via-datakit/){:target="_blank"}
     - Tracing 相关
         - [OpenTelemetry](opentelemetry.md)
         - [DDTrace](ddtrace.md)
         - [Zipkin](zipkin.md)
         - [Jaeger](jaeger.md)
-        - [Skywalking](skywalking.md)
+        - [SkyWalking](skywalking.md)
 
 ## 说明 {#spec}
 
@@ -43,14 +42,14 @@ DataKit 发布的时候，会带上一些实验性功能，这些功能往往是
 
 在使用实验性功能的过程中，相关问题可以提交到 issue 中：
 
-- [Gitlab](https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/new?issue%5Bmilestone_id%5D=){:target="_blank"} 
-- [Github](https://github.com/GuanceCloud/datakit/issues/new){:target="_blank"}
+- [GitLab](https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/new?issue%5Bmilestone_id%5D=){:target="_blank"}
+- [GitHub](https://github.com/GuanceCloud/datakit/issues/new){:target="_blank"}
 - [极狐](https://jihulab.com/guance-cloud/datakit/-/issues/new){:target="_blank"}
 
 ### 图例说明 {#legends}
 
-| 图例                                                                                                                       | 说明                                                          |
-| ---                                                                                                                        | ---                                                           |
-| :fontawesome-solid-flag-checkered:                                                                                         | 表示该采集器支持选举                                          |
-| :fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple: :material-kubernetes: :material-docker: | 例分别用来表示 Linux、Windows、macOS、 Kubernetes 以及 Docker |
-| :octicons-beaker-24: | 表示实验性功能（参见[实验性功能的描述](index.md#experimental)） |
+| 图例                                                                                                                       | 说明                                                            |
+| ---                                                                                                                        | ---                                                             |
+| :fontawesome-solid-flag-checkered:                                                                                         | 表示该采集器支持选举                                            |
+| :fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple: :material-kubernetes: :material-docker: | 例分别用来表示 Linux、Windows、macOS、 Kubernetes 以及 Docker   |
+| :octicons-beaker-24:                                                                                                       | 表示实验性功能（参见[实验性功能的描述](index.md#experimental)） |

@@ -1,4 +1,4 @@
-{{.CSS}}
+
 # DataKit 开发手册
 ---
 
@@ -12,30 +12,30 @@
 ```golang
 // 统一命名为 Input
 type Input struct {
-	// 采集周期间隔
-	Interval datakit.Duration
-	// 用户自定义 tag
-	Tags map[string]string
-	// (可选)采集到的指标缓存，在每个采集周期必须重新 make
-	collectCache []inputs.Measurement
-	// (可选)采集到的日志缓存，在每个采集周期必须重新 make
-	loggingCache []*point.Point
-	// 操作系统类型
-	platform string
-	// 触发停止采集器
-	semStop *cliutils.Sem
-	// (可选)和选举功能有关
-	Election bool `toml:"election"`
-	// (可选)和选举功能有关，json:"-" 是为了比对采集器不误判
-	pause bool `json:"-"`
-	// (可选)和选举功能有关，json:"-" 是为了比对采集器不误判
-	pauseCh chan bool `json:"-"`
+    // 采集周期间隔
+    Interval datakit.Duration
+    // 用户自定义 tag
+    Tags map[string]string
+    // (可选)采集到的指标缓存，在每个采集周期必须重新 make
+    collectCache []inputs.Measurement
+    // (可选)采集到的日志缓存，在每个采集周期必须重新 make
+    loggingCache []*point.Point
+    // 操作系统类型
+    platform string
+    // 触发停止采集器
+    semStop *cliutils.Sem
+    // (可选)和选举功能有关
+    Election bool `toml:"election"`
+    // (可选)和选举功能有关，json:"-" 是为了比对采集器不误判
+    pause bool `json:"-"`
+    // (可选)和选举功能有关，json:"-" 是为了比对采集器不误判
+    pauseCh chan bool `json:"-"`
 }
 ```
 
 - 该结构体实现如下几个接口，具体示例，参见 `demo` 采集器：
 
-```Golang
+```golang
 // 采集器分类，比如 MySQL 采集器属于 `db` 分类
 Catalog() string                  
 // 采集器入口函数，一般会在这里进行数据采集，并且将数据发送给 `io` 模块
@@ -58,54 +58,55 @@ Pause() error
 Resume() error
 // (可选)选举功能，设定该采集器是否参与选举。
 ElectionEnabled() bool
-
 ```
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     由于不断会新增一些采集器功能，新增的采集器应该尽可能实现 plugins/inputs/inputs.go 中的所有 interface。
+<!-- markdownlint-enable -->
 
 - 建议 `Run()` 方法的结构：
 
 ```Golang
 func (ipt *Input) Run() {
 
-	// (可选) ...连接资源、准备资源
+    // (可选) ...连接资源、准备资源
 
-	tick := time.NewTicker(ipt.Interval.Duration)
-	defer tick.Stop()
+    tick := time.NewTicker(ipt.Interval.Duration)
+    defer tick.Stop()
 
-	// 主要的采集循环流程
-	for {
-		select {
-		// case ipt.pause = <-ipt.pauseCh: // 选举才需要
-		case <-datakit.Exit.Wait():
-			return
-		case <-ipt.semStop.Wait():
-			// ...其他关闭连接、资源操作
-			return
-		default:
-		}
+    // 主要的采集循环流程
+    for {
+        select {
+        // case ipt.pause = <-ipt.pauseCh: // 选举才需要
+        case <-datakit.Exit.Wait():
+            return
+        case <-ipt.semStop.Wait():
+            // ...其他关闭连接、资源操作
+            return
+        default:
+        }
 
-		start := time.Now()
-		// if ipt.pause { // 如果开选举，需要的代码
-		// 	l.Debugf("not leader, skipped") // 如果开选举，需要的代码
-		// } else { // 如果开选举，需要的代码
-		// 采集数据
-		ipt.collectCache = make([]inputs.Measurement, 0) // 也可以放到 Collect()
-		ipt.loggingCache = make([]*point.Point, 0)       // 也可以放到 Collect()
-		if err := ipt.Collect(); err != nil {
-			l.Errorf("Collect: %s", err)
-			io.FeedLastError(inputName, err.Error())
-		}
+        start := time.Now()
+        // if ipt.pause { // 如果开选举，需要的代码
+        //     l.Debugf("not leader, skipped") // 如果开选举，需要的代码
+        // } else { // 如果开选举，需要的代码
+        // 采集数据
+        ipt.collectCache = make([]inputs.Measurement, 0) // 也可以放到 Collect()
+        ipt.loggingCache = make([]*point.Point, 0)       // 也可以放到 Collect()
+        if err := ipt.Collect(); err != nil {
+            l.Errorf("Collect: %s", err)
+            io.FeedLastError(inputName, err.Error())
+        }
 
-		// ... 上传指标和日志
+        // ... 上传指标和日志
 
-		// } // 如果开选举，需要的代码
+        // } // 如果开选举，需要的代码
 
-		// 控制循环间隔
-		<-tick.C
-	}
+        // 控制循环间隔
+        <-tick.C
+    }
 }
 ```
 
@@ -114,42 +115,42 @@ func (ipt *Input) Run() {
 ```Golang
 func (ipt *Input) Run() {
 
-	// (可选) ...连接资源、准备资源
+    // (可选) ...连接资源、准备资源
 
-	tick := time.NewTicker(ipt.Interval.Duration)
-	defer tick.Stop()
+    tick := time.NewTicker(ipt.Interval.Duration)
+    defer tick.Stop()
 
-	// 主要的采集循环流程
-	for {
-		select {
-		// case ipt.pause = <-ipt.pauseCh: // 选举才需要
-		case <-datakit.Exit.Wait():
-			return
-		case <-ipt.semStop.Wait():
-			// ...其他关闭连接、资源操作
-			return
-		default:
-		}
+    // 主要的采集循环流程
+    for {
+        select {
+        // case ipt.pause = <-ipt.pauseCh: // 选举才需要
+        case <-datakit.Exit.Wait():
+            return
+        case <-ipt.semStop.Wait():
+            // ...其他关闭连接、资源操作
+            return
+        default:
+        }
 
-		start := time.Now()
-		// if ipt.pause { // 如果开选举，需要的代码
-		// 	l.Debugf("not leader, skipped") // 如果开选举，需要的代码
-		// } else { // 如果开选举，需要的代码
-		// 采集数据
-		ipt.collectCache = make([]inputs.Measurement, 0) // 也可以放到 Collect()
-		ipt.loggingCache = make([]*point.Point, 0)       // 也可以放到 Collect()
-		if err := ipt.Collect(); err != nil {
-			l.Errorf("Collect: %s", err)
-			io.FeedLastError(inputName, err.Error())
-		}
+        start := time.Now()
+        // if ipt.pause { // 如果开选举，需要的代码
+        //     l.Debugf("not leader, skipped") // 如果开选举，需要的代码
+        // } else { // 如果开选举，需要的代码
+        // 采集数据
+        ipt.collectCache = make([]inputs.Measurement, 0) // 也可以放到 Collect()
+        ipt.loggingCache = make([]*point.Point, 0)       // 也可以放到 Collect()
+        if err := ipt.Collect(); err != nil {
+            l.Errorf("Collect: %s", err)
+            io.FeedLastError(inputName, err.Error())
+        }
 
-		// ... 上传指标和日志
+        // ... 上传指标和日志
 
-		// } // 如果开选举，需要的代码
+        // } // 如果开选举，需要的代码
 
-		// 控制循环间隔
-		<-tick.C
-	}
+        // 控制循环间隔
+        <-tick.C
+    }
 }
 ```
 
@@ -158,42 +159,42 @@ func (ipt *Input) Run() {
 ```Golang
 func (ipt *Input) Run() {
 
-	// (可选) ...连接资源、准备资源
+    // (可选) ...连接资源、准备资源
 
-	tick := time.NewTicker(ipt.Interval.Duration)
-	defer tick.Stop()
+    tick := time.NewTicker(ipt.Interval.Duration)
+    defer tick.Stop()
 
-	// 主要的采集循环流程
-	for {
-		select {
-		// case ipt.pause = <-ipt.pauseCh: // 选举才需要
-		case <-datakit.Exit.Wait():
-			return
-		case <-ipt.semStop.Wait():
-			// ...其他关闭连接、资源操作
-			return
-		default:
-		}
+    // 主要的采集循环流程
+    for {
+        select {
+        // case ipt.pause = <-ipt.pauseCh: // 选举才需要
+        case <-datakit.Exit.Wait():
+            return
+        case <-ipt.semStop.Wait():
+            // ...其他关闭连接、资源操作
+            return
+        default:
+        }
 
-		start := time.Now()
-		// if ipt.pause { // 如果开选举，需要的代码
-		// 	l.Debugf("not leader, skipped") // 如果开选举，需要的代码
-		// } else { // 如果开选举，需要的代码
-		// 采集数据
-		ipt.collectCache = make([]inputs.Measurement, 0) // 也可以放到 Collect()
-		ipt.loggingCache = make([]*point.Point, 0)       // 也可以放到 Collect()
-		if err := ipt.Collect(); err != nil {
-			l.Errorf("Collect: %s", err)
-			io.FeedLastError(inputName, err.Error())
-		}
+        start := time.Now()
+        // if ipt.pause { // 如果开选举，需要的代码
+        //     l.Debugf("not leader, skipped") // 如果开选举，需要的代码
+        // } else { // 如果开选举，需要的代码
+        // 采集数据
+        ipt.collectCache = make([]inputs.Measurement, 0) // 也可以放到 Collect()
+        ipt.loggingCache = make([]*point.Point, 0)       // 也可以放到 Collect()
+        if err := ipt.Collect(); err != nil {
+            l.Errorf("Collect: %s", err)
+            io.FeedLastError(inputName, err.Error())
+        }
 
-		// ... 上传指标和日志
+        // ... 上传指标和日志
 
-		// } // 如果开选举，需要的代码
+        // } // 如果开选举，需要的代码
 
-		// 控制循环间隔
-		<-tick.C
-	}
+        // 控制循环间隔
+        <-tick.C
+    }
 }
 ```
 
@@ -201,50 +202,54 @@ func (ipt *Input) Run() {
 
 ```Golang
 func init() {
-	inputs.Add("zhangsan", func() inputs.Input {
-		return &Input{
-			// 这里可初始化一堆该采集器的默认配置参数
+    inputs.Add("zhangsan", func() inputs.Input {
+        return &Input{
+            // 这里可初始化一堆该采集器的默认配置参数
             platform:       runtime.GOOS,
-			Interval:       datakit.Duration{Duration: time.Second * 10},
-			semStop:        cliutils.NewSem(),
-			Tags:           make(map[string]string),
+            Interval:       datakit.Duration{Duration: time.Second * 10},
+            semStop:        cliutils.NewSem(),
+            Tags:           make(map[string]string),
             // (可选)选举功能
-			pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
+            pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
             // (可选)选举功能
-			Election: true,
-		}
-	})
+            Election: true,
+        }
+    })
 }
 ```
 
 - 开放选举功能，除了上述不同，还需要修改以下位置：
 
-LineProto() 要修改
-```Golang
+`LineProto()` 要修改
+
+```golang
 func (m *zhangsanMeasurement) LineProto() (*point.Point, error) {
-  // 不选举用这个
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
-  // 选举用这个
-	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+    // 不选举用这个
+    return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
+
+    // 选举用这个
+    return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
 }
 ```
 
-AvailableArchs() 要修改，使得文档展示`选举`图标
-```Golang
+`AvailableArchs()` 要修改，使得文档展示`选举`图标
+
+```golang
 func (*Input) AvailableArchs() []string { return datakit.AllOSWithElection }
 ```
 
-本采集器的配置文件 `zhangsan.conf` 要加上
-```Golang
-  election = true
+本采集器的配置文件 *zhangsan.conf* 要加上
+
+```golang
+election = true
 ```
 
 - 在 `plugins/inputs/all/all.go` 中新增 `import`：
 
 ```Golang
 import (
-	... // 其它已有采集器
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zhangsan"
+    ... // 其它已有采集器
+    _ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zhangsan"
 )
 ```
 
@@ -280,12 +285,14 @@ datakit -M --vvv            # 检查所有采集器的运行情况
 - 增加 `man/docs/zh/zhangsan.md` 文档，这个可参考 `demo.md`，安装里面的模板来写即可
 
 - 对于文档中的指标集，默认是将所有能采集到的指标集以及各自的指标都列在文档中。某些特殊的指标集或指标，如果有前置条件，需在文档中做说明。
-  - 如果某个指标集需满足特定的条件，那么应该在指标集的 `MeasurementInfo.Desc` 中做说明
-  - 如果是指标集的某个指标有特定前置条件，应该在 `FieldInfo.Desc` 上做说明。
+    - 如果某个指标集需满足特定的条件，那么应该在指标集的 `MeasurementInfo.Desc` 中做说明
+    - 如果是指标集的某个指标有特定前置条件，应该在 `FieldInfo.Desc` 上做说明
 
 - 建议通过执行 `./b.sh` 进行测试版本编译发布，交付测试岗位进行测试
+
 ## 编译环境搭建 {#setup-compile-env}
 
+<!-- markdownlint-disable MD046 -->
 === "Linux"
 
     #### 安装 Golang
@@ -329,25 +336,19 @@ datakit -M --vvv            # 检查所有采集器的运行情况
     export RELEASE_OSS_HOST='oss-cn-hangzhou-internal.aliyuncs.com'
     ```
     
-    #### 安装 packr2
-    
-    安装 [packr2](https://github.com/gobuffalo/packr/tree/master/v2){:target="_blank"}（可能需要翻墙）
-    
-    `go install github.com/gobuffalo/packr/v2/packr2@v2.8.3`
-    
     #### 安装常见工具
     
-    - tree
-    - make
-    - [goyacc](https://gist.github.com/tlightsky/9a163e59b6f3b05dbac8fc6b459a43c0): `go install golang.org/x/tools/cmd/goyacc@master`
-    - [golangci-lint](https://golangci-lint.run/usage/install/#local-installation): `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.2`
-    - gofumpt: `go install mvdan.cc/gofumpt@v0.1.1`
-    - wget
-    - docker
-    - curl
-    - [llvm](https://apt.llvm.org/): 版本 >= 10.0
-    - clang: 版本 >= 10.0
-    - linux 内核（>= 5.4.0-99-generic）头文件：`apt-get install -y linux-headers-$(uname -r)` 
+    - `tree`
+    - `make`
+    - [`goyacc`](https://gist.github.com/tlightsky/9a163e59b6f3b05dbac8fc6b459a43c0): `go install golang.org/x/tools/cmd/goyacc@master`
+    - [`golangci-lint`](https://golangci-lint.run/usage/install/#local-installation): `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.2`
+    - `gofumpt`: `go install mvdan.cc/gofumpt@v0.1.1`
+    - `wget`
+    - Docker
+    - `curl`
+    - [LLVM](https://apt.llvm.org/): 版本 >= 10.0
+    - Clang: 版本 >= 10.0
+    - Linux 内核（>= 5.4.0-99-generic）头文件：`apt-get install -y linux-headers-$(uname -r)` 
     
     #### 安装第三方库
     
@@ -367,6 +368,7 @@ datakit -M --vvv            # 检查所有采集器的运行情况
 === "Windows"
 
     暂不支持
+<!-- markdownlint-enable -->
 
 ## 安装、升级测试 {#install-upgrade-testing}
 
@@ -379,31 +381,31 @@ DataKit 新功能发布，大家最好做全套测试，包括安装、升级等
 - AK: `LTAIxxxxxxxxxxxxxxxxxxxx`
 - SK: `nRr1xxxxxxxxxxxxxxxxxxxxxxxxxx`
 
-在这个 OSS bucket 中，我们规定，每个开发人员，都有一个子目录，用于存放其 DataKit 测试文件。具体脚本在源码 `scripts/build.sh` 中。将其 copy 到 datakit 源码根目录，稍作修改，即可用于本地编译、发布。
+在这个 OSS bucket 中，我们规定，每个开发人员，都有一个子目录，用于存放其 Datakit 测试文件。具体脚本在源码 *scripts/build.sh* 中。将其拷贝到 Datakit 源码根目录，稍作修改，即可用于本地编译、发布。
 
 ### 自定义目录运行 DataKit {#customize-workdir}
 
-默认情况下，DataKit 以服务的形式，运行在指定的目录（Linux 下为 /usr/local/datakit），但通过额外的方式，可以自定义 DataKit 工作目录，让它以非服务的方式运行，且从指定的目录读取配置和数据，主要用于开发的过程中调试 DataKit 的功能。
+默认情况下，Datakit 以服务的形式，运行在指定的目录（Linux 下为 */usr/local/datakit*），但通过额外的方式，可以自定义 Datakit 工作目录，让它以非服务的方式运行，且从指定的目录读取配置和数据，主要用于开发的过程中调试 DataKit 的功能。
 
-1. 更新最新的代码(dev 分支) 
-1. 编译
-1. 创建预期的 DataKit 工作目录，比如 `mkdir -p ~/datakit/conf.d`
-1. 生成默认 datakit.conf 配置文件。以 Linux 为例，执行
+- 更新最新的代码(dev 分支)
+- 编译
+- 创建预期的 DataKit 工作目录，比如 `mkdir -p ~/datakit/conf.d`
+- 生成默认 *datakit.conf* 配置文件。以 Linux 为例，执行
 
 ```shell
 ./dist/datakit-linux-amd64/datakit tool --default-main-conf > ~/datakit/conf.d/datakit.conf
 ```
 
-1. 修改上面生成的 datakit.conf：
+- 修改上面生成的 *datakit.conf*：
 
-	- 填写 `default_enabled_inputs`，加入希望开启的采集器列表，一般是 `cpu,disk,mem` 等这些
-	- `http_api.listen` 地址改一下
-	- `dataway.urls` 里面的 token 改一下
-	- 如有必要，logging 目录/level 都改一下
-	- 没有了
+    - 填写 `default_enabled_inputs`，加入希望开启的采集器列表，一般是 `cpu,disk,mem` 等这些
+    - `http_api.listen` 地址改一下
+    - `dataway.urls` 里面的 token 改一下
+    - 如有必要，logging 目录/level 都改一下
+    - 没有了
 
-1. 启动 DataKit，以 Linux 为例：`DK_DEBUG_WORKDIR=~/datakit ./dist/datakit-linux-amd64/datakit`
-1. 可在本地 bash 中新加个 alias，这样每次编译完 DataKit 后，直接运行 `ddk` 即可（即 Debugging-DataKit）
+- 启动 DataKit，以 Linux 为例：`DK_DEBUG_WORKDIR=~/datakit ./dist/datakit-linux-amd64/datakit`
+- 可在本地 bash 中新加个 alias，这样每次编译完 DataKit 后，直接运行 `ddk` 即可（即 Debugging-DataKit）
 
 ```shell
 echo 'alias ddk="DK_DEBUG_WORKDIR=~/datakit ./dist/datakit-linux-amd64/datakit"' >> ~/.bashrc
@@ -420,12 +422,12 @@ $ ddk
  - using env:   export GIN_MODE=release
   - using code:  gin.SetMode(gin.ReleaseMode)
 
-	[GIN-debug] GET    /stats                    --> gitlab.jiagouyun.com/cloudcare-tools/datakit/http.HttpStart.func1 (4 handlers)
-	[GIN-debug] GET    /monitor                  --> gitlab.jiagouyun.com/cloudcare-tools/datakit/http.HttpStart.func2 (4 handlers)
-	[GIN-debug] GET    /man                      --> gitlab.jiagouyun.com/cloudcare-tools/datakit/http.HttpStart.func3 (4 handlers)
-	[GIN-debug] GET    /man/:name                --> gitlab.jiagouyun.com/cloudcare-tools/datakit/http.HttpStart.func4 (4 handlers)
-	[GIN-debug] GET    /restart                  --> gitlab.jiagouyun.com/cloudcare-tools/datakit/http.HttpStart.func5 (4 handlers)
-	...
+    [GIN-debug] GET    /stats                    --> gitlab.jiagouyun.com/cloudcare-tools/datakit/http.HttpStart.func1 (4 handlers)
+    [GIN-debug] GET    /monitor                  --> gitlab.jiagouyun.com/cloudcare-tools/datakit/http.HttpStart.func2 (4 handlers)
+    [GIN-debug] GET    /man                      --> gitlab.jiagouyun.com/cloudcare-tools/datakit/http.HttpStart.func3 (4 handlers)
+    [GIN-debug] GET    /man/:name                --> gitlab.jiagouyun.com/cloudcare-tools/datakit/http.HttpStart.func4 (4 handlers)
+    [GIN-debug] GET    /restart                  --> gitlab.jiagouyun.com/cloudcare-tools/datakit/http.HttpStart.func5 (4 handlers)
+    ...
 ```
 
 也可以直接用  ddk 执行一些命令行工具：
@@ -436,11 +438,35 @@ ddk install --ipdb iploc
 
 # 查询 IP 信息
 ddk debug --ipinfo 1.2.3.4
-	    city: Brisbane
-	province: Queensland
-	 country: AU
-	     isp: unknown
-	      ip: 1.2.3.4
+        city: Brisbane
+    province: Queensland
+     country: AU
+         isp: unknown
+          ip: 1.2.3.4
+```
+
+## 测试 {#testing}
+
+Datakit 中测试主要分成两类，一类是集成测试，一类是单元测试，它们本质上并无太大区别。只是集成测试需要更多的外部环境。
+
+一般情况下，运行 `make ut` 即可运行所有的测试用例。但这些测试用例中，包括集成测试和单元测试。而集成测试需要有 Docker 参与，这里提供一个开发过程中跑测试的例子。
+
+- 配置一个远端的 Docker，或者本机有安装 Docker 也行，如果是远端 Docker，需[配置其远程连接功能](https://medium.com/@ssmak/how-to-enable-docker-remote-api-on-docker-host-7b73bd3278c6){:target="_blank"}。
+- 做一个 shell alias，在其中启动 `make ut`：
+
+```shell
+alias ut='REMOTE_HOST=<YOUR-DOCKER-REMOTE-HOST> make ut'
+```
+
+额外的配置：
+
+- 如果要排除部分 package 的测试（它可能临时无法通过测试），在 `make ut` 后面增加对应 package 名称即可，例如：`UT_EXCLUDE="gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/snmp"`
+- 如果要将测试的指标发送到观测云，添加一个 Dataway 地址以及对应工作空间的 token 即可，比如 `DATAWAY_URL="https://openway.guance.com/v1/write/logging?token=<YOUR-TOKEN>"`
+
+完整的例子如下：
+
+```shell
+alias ut='REMOTE_HOST=<YOUR-DOCKER-REMOTE-HOST> make ut UT_EXCLUDE="<package-name>" DATAWAY_URL="https://openway.guance.com/v1/write/logging?token=<YOUR-TOKEN>"'
 ```
 
 ## 测试 {#testing}
@@ -476,7 +502,7 @@ DataKit 版本发布包含俩部分：
 
 ### DataKit 版本发布 {#release-dk}
 
-DataKit 当前的版本发布，是在 gitlab 中实现的，一旦特定分支的代码被推送到 GitLab，就会触发对应的版本发布，详见 _.gitlab-ci.yml_。
+Datakit 当前的版本发布，是在 GitLab 中实现的，一旦特定分支的代码被推送到 GitLab，就会触发对应的版本发布，详见 *.gitlab-ci.yml*。
 
 在 1.2.6(含) 以前的版本中，DataKit 版本发布依赖于命令 `git describe --tags` 的输出。自 1.2.7 之后，DataKit 版本不再依赖这个机制，而是通过手动指定版本号，其步骤如下：
 
@@ -511,11 +537,11 @@ make pub_production_mac VERSION=<the-new-version>
 
 ### 文档发布 {#release-docs}
 
-文档的发布，只能在开发机器上发布，需安装 [mkdocs](https://www.mkdocs.org/){:target="_blank"}。其流程如下：
+文档的发布，只能在开发机器上发布，需安装 [MkDocs](https://www.mkdocs.org/){:target="_blank"}。其流程如下：
 
-- 执行 mkdocs.sh
+- 执行 *mkdocs.sh*
 
-```
+``` shell
 ./mkdocs.sh <the-new-version>
 ```
 
@@ -525,7 +551,7 @@ make pub_production_mac VERSION=<the-new-version>
 
 ## 关于代码规范 {#coding-rules}
 
-这里不强调具体的代码规范，现有工具能帮助我们规范各自的代码习惯，目前引入 golint 工具，可单独检查现有代码：
+这里不强调具体的代码规范，现有工具能帮助我们规范各自的代码习惯，目前引入 *golint* 工具，可单独检查现有代码：
 
 ```golang
 make lint
@@ -538,17 +564,17 @@ make lint
 // mnd: Magic number: 16, in <return> detected (gomnd)
 // 但此处可加后缀来屏蔽这个检查
 func digitVal(ch rune) int {
-	switch {
-	case '0' <= ch && ch <= '9':
-		return int(ch - '0')
-	case 'a' <= ch && ch <= 'f':
-		return int(ch - 'a' + 10)
-	case 'A' <= ch && ch <= 'F':
-		return int(ch - 'A' + 10)
-	}
+    switch {
+    case '0' <= ch && ch <= '9':
+        return int(ch - '0')
+    case 'a' <= ch && ch <= 'f':
+        return int(ch - 'a' + 10)
+    case 'A' <= ch && ch <= 'F':
+        return int(ch - 'A' + 10)
+    }
 
-	// larger than any legal digit val
-	return 16 //nolint:gomnd
+    // larger than any legal digit val
+    return 16 //nolint:gomnd
 }
 ```
 
@@ -563,6 +589,7 @@ func digitVal(ch rune) int {
 // cmd/datakit/cmds/monitor.go
 cmd := exec.Command("/bin/bash", "-c", string(body)) //nolint:gosec
 ```
+
 - 其它可能确实需要关闭检查的地方，慎重对待
 
 ## 排查 DATA RACE 问题 {#data-race}
@@ -585,13 +612,13 @@ cmd := exec.Command("/bin/bash", "-c", string(body)) //nolint:gosec
 WARNING: DATA RACE
 Read at 0x00c000d40160 by goroutine 33:
   gitlab.jiagouyun.com/cloudcare-tools/datakit/vendor/github.com/GuanceCloud/cliutils/dialtesting.(*HTTPTask).GetResults()
-	  /Users/tanbiao/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit/vendor/github.com/GuanceCloud/cliutils/dialtesting/http.go:208 +0x103c
-	...
+      /Users/tanbiao/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit/vendor/github.com/GuanceCloud/cliutils/dialtesting/http.go:208 +0x103c
+    ...
 
 Previous write at 0x00c000d40160 by goroutine 74:
   gitlab.jiagouyun.com/cloudcare-tools/datakit/vendor/github.com/GuanceCloud/cliutils/dialtesting.(*HTTPTask).Run.func2()
-	  /Users/tanbiao/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit/vendor/github.com/GuanceCloud/cliutils/dialtesting/http.go:306 +0x8c
-	...
+      /Users/tanbiao/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit/vendor/github.com/GuanceCloud/cliutils/dialtesting/http.go:306 +0x8c
+    ...
 ```
 
 通过这两个信息，即可得知两处的代码共同操作了某个数据对象，且其中至少有一个是 Write 操作。但要注意的是，这里打印的只是 WARNING 信息，即表示这段代码不一定会导致数据问题，最终的问题还需需要我们人工来甄别，比如以下的代码并不会有数据问题：
@@ -601,25 +628,25 @@ Previous write at 0x00c000d40160 by goroutine 74:
 a = setupObject()
 
 go func() {
-	for {
-		updateObject(a)
-	}
+    for {
+        updateObject(a)
+    }
 }()
 ```
 
 ## 排查 DataKit 内存泄露 {#mem-leak}
 
-编辑 datakit.conf，顶部增加如下配置字段即可开启 DataKit 远程 pprof 功能：
+编辑 *datakit.conf*，顶部增加如下配置字段即可开启 DataKit 远程 pprof 功能：
 
 ```toml
 enable_pprof = true
 ```
 
-> 如果是 DaemonSet 安装 datakit，可注入环境变量:
+> 如果是 DaemonSet 安装 Datakit，可注入环境变量:
 
 ```yaml
-        - name: ENV_ENABLE_PPROF
-          value: true
+- name: ENV_ENABLE_PPROF
+  value: true
 ```
 
 重启 DataKit 生效。
@@ -671,7 +698,7 @@ Generating report in profile001.pdf
 
 > 通过 `go tool pprof -sample_index=inuse_objects heap` 可看对象的分配情况，详询 `go tool pprof -help`。
 
-用同样的方式，可查看总分配内存 pprof 文件 allocs。PDF 的效果大概如下：
+用同样的方式，可查看总分配内存 pprof 文件 `allocs`。PDF 的效果大概如下：
 
 <figure markdown>
   ![](https://static.guance.com/images/datakit/datakit-pprof-pdf.png){ width="800" }

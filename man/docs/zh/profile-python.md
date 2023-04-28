@@ -1,16 +1,16 @@
 # Python
 
-目前 DataKit Python profiling 支持 [ddtrace](https://github.com/DataDog/dd-trace-py){:target="_blank"} 和 [py-spy](https://github.com/benfred/py-spy){:target="_blank"} 两种性能分析器。
+目前 DataKit Python profiling 支持 [DDTrace](https://github.com/DataDog/dd-trace-py){:target="_blank"} 和 [py-spy](https://github.com/benfred/py-spy){:target="_blank"} 两种性能分析器。
 
 ## 前置条件 {#py-spy-requirement}
 
 已安装 [DataKit](https://www.guance.com){:target="_blank"} 并且已开启 [profile](profile.md#config) 采集器。
 
-## ddtrace 接入 {#ddtrace}
+## DDTrace 接入 {#ddtrace}
 
 `ddtrace` 是由 DataDog 推出的链路跟踪和性能分析开源库，能够收集 `CPU`、`内存`、`锁争用`等指标，功能较全面。
 
-- 安装 Python ddtrace 库
+- 安装 Python DDTrace 库
 
 ```shell
 pip3 install ddtrace
@@ -56,12 +56,11 @@ DD_ENV=testing DD_SERVICE=python-profiling-manual DD_VERSION=1.2.3 python3 app.p
 
 ### 查看 Profile {#view}
 
-程序启动后，ddtrace会定期（默认1分钟上报一次）收集数据并上报给 DataKit，稍等几分钟后就可以在观测云空间[应用性能监测 -> Profile](https://console.guance.com/tracing/profile) 查看相应数据。
+程序启动后，DDTrace 会定期（默认 1 分钟上报一次）收集数据并上报给 Datakit，稍等几分钟后就可以在观测云空间[应用性能监测 -> Profile](https://console.guance.com/tracing/profile) 查看相应数据。
 
-## py-spy 接入 {#py-spy}
+## `py-spy` 接入 {#py-spy}
 
-`py-spy` 是由开源社区提供的一款无侵入式的 Python 性能指标采样工具，具有单独运行和对目标程序负载影响低等优点。
-默认情况下 `py-spy` 会根据指定的参数输出不同格式的采样数据到本地文件，为简化 `py-spy` 和 DataKit的集成， 观测云提供了一个分支版本 [py-spy-for-datakit](https://github.com/GuanceCloud/py-spy-for-datakit)， 在原版本基础上做了少量修改，支持自动把 profiling
+`py-spy` 是由开源社区提供的一款无侵入式的 Python 性能指标采样工具，具有单独运行和对目标程序负载影响低等优点。默认情况下 `py-spy` 会根据指定的参数输出不同格式的采样数据到本地文件，为简化 `py-spy` 和 DataKit 的集成，观测云提供了一个分支版本 [`py-spy-for-datakit`](https://github.com/GuanceCloud/py-spy-for-datakit)， 在原版本基础上做了少量修改，支持自动把 profiling
 数据发送到 DataKit。
 
 - 安装
@@ -94,7 +93,7 @@ cargo install py-spy-for-datakit
 
 - 使用
 
-py-spy-for-datakit 在 `py-spy` 原有子命令的基础上增加了 `datakit` 命令，专门用于把采样数据发送给 DataKit，可以输入 `py-spy-for-datakit help datakit` 来查看使用帮助：
+`py-spy-for-datakit` 在 `py-spy` 原有子命令的基础上增加了 `datakit` 命令，专门用于把采样数据发送给 DataKit，可以输入 `py-spy-for-datakit help datakit` 来查看使用帮助：
 
 | 参数                 | 说明                                                                           | 默认值                            |
 | -------------------- | ----------------------------------------------                                 | --------------------              |
@@ -109,7 +108,7 @@ py-spy-for-datakit 在 `py-spy` 原有子命令的基础上增加了 `datakit` �
 | -s, --subprocesses   | 是否分析子进程                                                                 | false                             |
 | -i, --idle           | 是否采样非运行状态的线程                                                       | false                             |
 
-py-spy-for-datakit 可以分析当前正在运行的程序，使用 `--pid <PID>` 或 `-p <PID>` 参数把正在运行的Python程序的进程 PID 传递给 py-spy-for-datakit 即可。
+`py-spy-for-datakit` 可以分析当前正在运行的程序，使用 `--pid <PID>` 或 `-p <PID>` 参数把正在运行的Python程序的进程 PID 传递给 `py-spy-for-datakit` 即可。
 
 假设你的Python应用当前运行的进程 PID 为 12345， DataKit 监听在 127.0.0.1:9529，则使用命令类似如下：
 
@@ -126,7 +125,7 @@ py-spy-for-datakit datakit \
 
 如果提示需要 `sudo` 权限，请在命令前加上 `sudo` 即可。
 
-py-spy-for-datakit 同时也支持直接跟 Python 项目的启动命令，这样就无须指定进程 PID，同时程序启动时就会进行数据采样，这时的运行命令类似：
+`py-spy-for-datakit` 同时也支持直接跟 Python 项目的启动命令，这样就无须指定进程 PID，同时程序启动时就会进行数据采样，这时的运行命令类似：
 
 ```shell
 py-spy-for-datakit datakit \

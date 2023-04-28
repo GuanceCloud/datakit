@@ -15,6 +15,7 @@ var (
 	ptsCounterVec,
 	bytesCounterVec,
 	sinkCounterVec,
+	notSinkPtsVec,
 	sinkPtsVec *prometheus.CounterVec
 
 	flushFailCacheVec,
@@ -29,6 +30,7 @@ func Metrics() []prometheus.Collector {
 		bytesCounterVec,
 		apiSumVec,
 		sinkCounterVec,
+		notSinkPtsVec,
 		sinkPtsVec,
 		flushFailCacheVec,
 	}
@@ -42,6 +44,7 @@ func metricsReset() {
 
 	sinkCounterVec.Reset()
 	flushFailCacheVec.Reset()
+	notSinkPtsVec.Reset()
 	sinkPtsVec.Reset()
 }
 
@@ -54,6 +57,7 @@ func doRegister() {
 
 		flushFailCacheVec,
 		sinkCounterVec,
+		notSinkPtsVec,
 		sinkPtsVec,
 	)
 }
@@ -116,6 +120,18 @@ func init() {
 			Subsystem: "io",
 			Name:      "dataway_sink_total",
 			Help:      "dataway sink count, partitioned by category.",
+		},
+		[]string{
+			"category",
+		},
+	)
+
+	notSinkPtsVec = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "io",
+			Name:      "dataway_not_sink_point_total",
+			Help:      "dataway not-sinked points(condition or category not match)",
 		},
 		[]string{"category"},
 	)

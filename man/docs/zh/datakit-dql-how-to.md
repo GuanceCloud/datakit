@@ -1,10 +1,10 @@
-{{.CSS}}
+
 # 通过 DQL 查询数据
 ---
 
 DataKit 支持以交互式方式执行 DQL 查询，在交互模式下，DataKit 自带语句补全功能：
 
-> 通过 datakit help dql 可获取更多命令行参数帮助。
+> 通过 `datakit help dql` 可获取更多命令行参数帮助。
 
 ```shell
 datakit dql      # 或者 datakit -Q
@@ -24,7 +24,7 @@ Tips：
 
 > 注：Windows 下，请在 Powershell 中执行 `datakit dql`
 
-#### 单次执行 DQL 查询 {#dql-once}
+## 单次执行 DQL 查询 {#dql-once}
 
 关于 DQL 查询，DataKit 支持运行单条 DQL 语句的功能：
 
@@ -57,7 +57,7 @@ mem,2014437376,2077097984,24.18060302734375,73502720,achen.local,1635242544382
 - 之后各列是该采集器对应的各项数据
 - 当字段为空时，对应列也为空
 
-#### DQL 查询结果 JSON 化 {#json-result}
+## DQL 查询结果 JSON 化 {#json-result}
 
 以 JSON 形式输出结果，但 JSON 模式下，不会输出一些统计信息，如返回行数、时间消耗等（以保证 JSON 可直接解析）
 
@@ -87,7 +87,7 @@ message ----- json -----  # JSON 开始处有明显标志，此处 message 为�
 8 rows, 1 series, cost 4ms
 ```
 
-#### 查询特定工作空间的数据 {#query-on-wksp}
+## 查询特定工作空间的数据 {#query-on-wksp}
 
 通过指定不同的 Token 来查询其它工作空间的数据：
 

@@ -1,5 +1,6 @@
-{{.CSS}}
+
 # 内存
+
 ---
 
 {{.AvailableArchs}}
@@ -14,6 +15,7 @@ mem 采集器用于收集系统内存信息，一些通用的指标如主机总�
 
 ## 配置 {#config}
 
+<!-- markdownlint-disable MD046 -->
 === "主机安装"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
@@ -32,6 +34,7 @@ mem 采集器用于收集系统内存信息，一些通用的指标如主机总�
     | :---                     | ---              | ---                                                          |
     | `ENV_INPUT_MEM_TAGS`     | `tags`           | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
     | `ENV_INPUT_MEM_INTERVAL` | `interval`       | `10s`                                                        |
+<!-- markdownlint-enable -->
 
 ## 指标集 {#measurements}
 
@@ -48,7 +51,7 @@ mem 采集器用于收集系统内存信息，一些通用的指标如主机总�
 
 ### `{{$m.Name}}`
 
--  标签
+- 标签
 
 {{$m.TagsMarkdownTable}}
 

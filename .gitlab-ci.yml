@@ -11,7 +11,7 @@ before_script:
 
 variables:
   PROJECT: "datakit"
-  CI_VERSION: "1.6.0"
+  CI_VERSION: "1.6.1"
   TEST_VERSION: "1.999.0"
 
 stages:
@@ -28,6 +28,9 @@ ci_lint_only:
     # only run lint
     - make clean
     - make lint_nofix
+    - nvm use v16.14.0
+    - make md_lint # check markdown
+    - make cspell  # check document spelling
   tags:
     - cloudcare-ft
 
@@ -53,6 +56,9 @@ test-datakit-production:
     - make clean
     - make production_notify GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"
     - make lint_nofix
+    - nvm use v16.14.0
+    - make md_lint # check markdown
+    - make cspell  # check document spelling
     - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" DOCKER_REMOTE_HOST=$TESTING_DOCKER_HOST UT_EXCLUDE=$UT_EXCLUDE GIT_BRANCH=$CI_COMMIT_BRANCH
   tags:
     - cloudcare-ft
@@ -62,7 +68,6 @@ test-datakit-testing:
   resource_group: production
   only:
     - testing
-    - hotfix
     - /^testing-.*$/
   script:
     - make clean
@@ -78,7 +83,6 @@ release-ebpf-amd64-testing:
   image: vircoys/datakit-developer:1.5
   only:
     - testing
-    - hotfix
     - /^testing-.*$/
   script:
     - make clean
@@ -93,7 +97,6 @@ release-ebpf-aarch64-testing:
   image: vircoys/datakit-developer:1.5
   only:
     - testing
-    - hotfix
     - /^testing-.*$/
   script:
     - make clean
@@ -140,7 +143,6 @@ release-testing:
     ]
   only:
     - testing
-    - hotfix
     - /^testing-.*$/
   script:
     # building && publish testing

@@ -1,5 +1,6 @@
-{{.CSS}}
+
 # 采集器配置
+
 ---
 
 {{.AvailableArchs}}
@@ -30,6 +31,7 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
 
 ## 配置 {#config}
 
+<!-- markdownlint-disable MD046 -->
 === "主机安装"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
@@ -48,12 +50,13 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
 
 === "Kubernetes"
 
-    在 datakit.yaml 中，环境变量 `ENV_DEFAULT_ENABLED_INPUTS` 增加 rum 采集器名称（如下 `value` 中第一个所示）：
+    在 *datakit.yaml* 中，环境变量 `ENV_DEFAULT_ENABLED_INPUTS` 增加 `rum` 采集器名称（如下 `value` 中第一个所示）：
 
     ```yaml
     - name: ENV_DEFAULT_ENABLED_INPUTS
       value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container,self
     ```
+<!-- markdownlint-enable -->
 
 ## 安全限制 {#security-setting}
 
@@ -104,7 +107,7 @@ DataKit 支持这种源代码文件信息的映射，方法是将对应符号表
 
 ### 安装 sourcemap 工具集 {#install-tools}
 
-首先需要安装相应的符号还原工具，datakit 提供了一键安装命令来简化工具的安装：
+首先需要安装相应的符号还原工具，Datakit 提供了一键安装命令来简化工具的安装：
 
 ```shell
 sudo datakit install --symbol-tools
@@ -112,9 +115,9 @@ sudo datakit install --symbol-tools
 
 如果安装过程中出现某个软件安装失败的情况，你可能需要根据错误提示手动安装对应的软件
 
-
 ### Zip 包打包说明 {#zip}
 
+<!-- markdownlint-disable MD046 -->
 === "Web"
 
     将js文件经 webpack 混淆和压缩后生成的 `.map` 文件进行 zip 压缩打包，再拷贝到 `<DataKit安装目录>/data/rum/web`目录下，必须要保证该压缩包解压后的文件路径与`error_stack`中 URL 的路径一致。 假设如下 `error_stack`：
@@ -146,7 +149,7 @@ sudo datakit install --symbol-tools
     ```
 
 === "Android"
-    
+
     Android 目前存在两种 `sourcemap` 文件，一种是 Java 字节码经 `R8`/`Proguard` 压缩混淆后产生的 mapping 文件，另一种为 C/C++ 原生代码编译时未清除符号表和调试信息的（unstripped） `.so` 文件，如果你的安卓应用同时包含这两种 `sourcemap` 文件， 打包时需要把这两种文件都打包进 zip 包中，之后再把 zip 包拷贝到 `<DataKit安装目录>/data/rum/android` 目录下，zip 包解压后的目录结构类似：
     
     ```
@@ -271,6 +274,7 @@ sudo datakit install --symbol-tools
                     └── App
     
     ```
+<!-- markdownlint-enable -->
 
 ### 文件上传和删除 {#upload-delete}
 
@@ -297,13 +301,14 @@ curl -X DELETE '<dca_address>/v1/rum/sourcemap?app_id=<app_id>&env=<env>&version
 - `<platform>` 应用平台，当前支持 `web`/ `android` / `ios`
 - `<sourcemap_path>`: 待上传的`sourcemap` 压缩包文件路径
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     - 该转换过程，只针对 `error` 指标集
     - 当前只支持 Javascript/Android/iOS 的 sourcemap 转换
     - 如果未找到对应的 sourcemap 文件，将不进行转换
     - 通过接口上传的 sourcemap 压缩包，不需要重启 DataKit 即可生效。但如果是手动上传，需要重启 DataKit，方可生效
-
+<!-- markdownlint-enable -->
 
 ## CDN 标注 {#cdn-resolve}
 
@@ -326,7 +331,6 @@ DataKit 内置了一个主流 CDN 厂家信息列表，如果发现你所使用�
 
 可以简单复制 [内置CDN配置列表](built-in_cdn_dict_config.md){:target="_blank"} 并修改后直接粘贴到配置文件中，修改完需要重启 DataKit。
 
-
 ## RUM 会话重放 {#rum-session-replay}
 
 从 Datakit [:octicons-tag-24: Version-1.5.5](changelog.md#cl-1.5.5) 版本开始支持采集 RUM 会话重放数据，该功能需要修改 RUM 采集器配置，增加配置项 `session_replay_endpoints` 并重启 Datakit。
@@ -344,6 +348,8 @@ DataKit 内置了一个主流 CDN 厂家信息列表，如果发现你所使用�
   ...
 ```
 
+<!-- markdownlint-disable MD046 -->
 ???+ info
 
     RUM 配置文件默认位于 `/usr/local/datakit/conf.d/rum/rum.conf`，具体根据你所使用的操作系统和 Datakit 安装位置确定。
+<!-- markdownlint-enable -->

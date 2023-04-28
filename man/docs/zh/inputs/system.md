@@ -1,5 +1,6 @@
-{{.CSS}}
+
 # System
+
 ---
 
 {{.AvailableArchs}}
@@ -14,6 +15,7 @@ system 采集器收集系统负载、正常运行时间、CPU 核心数量以及
 
 ## 配置 {#config}
 
+<!-- markdownlint-disable MD046 -->
 === "主机安装"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
@@ -32,6 +34,8 @@ system 采集器收集系统负载、正常运行时间、CPU 核心数量以及
     | :---                    | ---              | ---                                                          |
     | `ENV_INPUT_SYSTEM_TAGS` | `tags`           | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
     | `ENV_INPUT_SYSTEM_INTERVAL` | `interval` | `10s` |
+
+<!-- markdownlint-enable -->
 
 ---
 
@@ -52,7 +56,7 @@ system 采集器收集系统负载、正常运行时间、CPU 核心数量以及
 
 {{$m.Desc}}
 
--  标签
+- 标签
 
 {{$m.TagsMarkdownTable}}
 

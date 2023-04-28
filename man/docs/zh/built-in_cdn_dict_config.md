@@ -1,3 +1,5 @@
+<!-- markdownlint-disable -->
+
 ```toml
   cdn_map='''
   [

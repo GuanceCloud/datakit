@@ -1,4 +1,4 @@
-.PHONY: default testing local deps prepare
+.PHONY: default testing local deps prepare cspell
 
 default: local
 
@@ -401,19 +401,31 @@ copyright_check:
 copyright_check_auto_fix:
 	@python3 copyright.py --fix
 
-md_lint:
-	# markdownlint install: https://github.com/igorshubovych/markdownlint-cli
-	@markdownlint man/docs 2>&1 > md.lint
-	@if [ $$? != 0 ]; then \
-		cat md.lint; \
-		exit -1; \
-	fi
-
 # All document's section must attached with tag(exclude changelog.md)
 check_man:
 	@grep --color=always --exclude *changelog.md -nr '^##' man/docs/* | grep -vE ' {#' | grep -vE '{{' && \
 		{ echo "[E] some bad docs"; exit -1; } || \
 		{ echo "all docs ok"; exit 0; }
+
+md_lint: check_man
+	# markdownlint install: https://github.com/igorshubovych/markdownlint-cli
+	@markdownlint man/docs/zh 2>&1 | tee md.lint
+	@if [ -s md.lint ]; then \
+		cat md.lint; \
+		exit -1; \
+	fi
+
+# check spell on ZH docs
+cspell:
+	#cspell lint -c cspell/cspell.json --no-progress man/docs/**/*.md | tee cspell.lint
+	cspell lint -c cspell/cspell.json --no-progress man/docs/zh/*.md man/docs/zh/**/*.md | tee cspell.lint
+	@if [ -s cspell.lint ]; then \
+		cat cspell.lint; \
+		exit -1; \
+	fi
+
+project_words:
+	cspell -c cspell/cspell.json --words-only --unique man/docs/zh/** | sort --ignore-case >> project-words.txt
 
 code_stat:
 	cloc --exclude-dir=vendor,tests --exclude-lang=JSON,HTML .
