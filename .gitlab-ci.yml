@@ -43,6 +43,7 @@ ci_ut_only:
     # only run lint
     - make clean
     - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY"
+    - make # try build basic binaries
   tags:
     - cloudcare-ft
 
