@@ -144,7 +144,7 @@ DataKit supports debugging the configuration file of prom collector directly fro
 Debug `prom.conf` by executing the following command
 
 ```shell
-datakit tool --prom-conf prom.conf
+datakit debug --prom-conf prom.conf
 ```
 
 Parameter description:
