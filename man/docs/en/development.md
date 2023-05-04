@@ -156,6 +156,8 @@ datakit -M --vvv            # Check the operation of all collectors
     - [llvm](https://apt.llvm.org/): version >= 10.0
     - clang: version >= 10.0
     - linux kernel（>= 5.4.0-99-generic）header file: `apt-get install -y linux-headers-$(uname -r)` 
+    - cspell: https://cspell.org/
+    - markdownlint-cli：https://github.com/igorshubovych/markdownlint-cli
     
     #### Installing third-party libraries
     

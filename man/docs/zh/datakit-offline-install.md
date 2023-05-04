@@ -28,7 +28,7 @@
 
 - 或者准备配置好正向代理的 Nginx
 
-<!-- markdownlint-disable MD046 -->
+<!-- markdownlint-disable MD046 MD034 -->
 === "Linux/Mac"
 
     - 使用 Datakit 代理

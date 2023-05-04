@@ -349,6 +349,8 @@ datakit -M --vvv            # 检查所有采集器的运行情况
     - [LLVM](https://apt.llvm.org/): 版本 >= 10.0
     - Clang: 版本 >= 10.0
     - Linux 内核（>= 5.4.0-99-generic）头文件：`apt-get install -y linux-headers-$(uname -r)` 
+    - cspell: https://cspell.org/
+    - markdownlint-cli：https://github.com/igorshubovych/markdownlint-cli
     
     #### 安装第三方库
     

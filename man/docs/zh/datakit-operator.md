@@ -1,4 +1,4 @@
-# Datakit-Operator 使用说明
+# Datakit Operator
 
 ---
 
@@ -8,22 +8,22 @@
 
 ## 概述和安装 {#datakit-operator-overview-and-install}
 
-Datakit-Operator 是 Datakit 在 Kubernetes 编排的联动项目，旨在协助 Datakit 更方便的部署，以及其他诸如验证、注入的功能。
+Datakit Operator 是 Datakit 在 Kubernetes 编排的联动项目，旨在协助 Datakit 更方便的部署，以及其他诸如验证、注入的功能。
 
 目前 Datakit-Operator 提供以下功能：
 
-- 提供注入 `dd-lib` 文件和 environment 的功能，参见[文档](datakit-operator.md#datakit-operator-inject-lib)
-- 提供注入 `logfwd` 程序并开启日志采集的功能，参见[文档](datakit-operator.md#datakit-operator-inject-logfwd)
+- 注入 DDTrace SDK（Java/Python/JavaScript）以及对应环境变量信息，参见[文档](datakit-operator.md#datakit-operator-inject-lib)
+- 注入 Sidecar logfwd 服务以采集容器内日志，参见[文档](datakit-operator.md#datakit-operator-inject-logfwd)
 
 先决条件：
 
-- 推荐 Kubernetes v1.24.1 及以上版本，且能够访问互联网（下载 yaml 文件和 pull Image）。
-- 确保启用 MutatingAdmissionWebhook 和 ValidatingAdmissionWebhook [控制器](https://kubernetes.io/zh-cn/docs/reference/access-authn-authz/extensible-admission-controllers/#prerequisites)。
-- 确保启用了 `admissionregistration.k8s.io/v1` API。
+- 推荐 Kubernetes v1.24.1 及以上版本，且能够访问互联网（下载 yaml 文件并拉取对应镜像）
+- 确保启用 `MutatingAdmissionWebhook` 和 `ValidatingAdmissionWebhook` [控制器](https://kubernetes.io/zh-cn/docs/reference/access-authn-authz/extensible-admission-controllers/#prerequisites)
+- 确保启用了 `admissionregistration.k8s.io/v1` API
 
 ### 安装步骤 {#datakit-operator-install}
 
-*datakit-operator.yaml* [下载地址](https://static.guance.com/datakit-operator/datakit-operator.yaml)，步骤如下：
+下载 [*datakit-operator.yaml*](https://static.guance.com/datakit-operator/datakit-operator.yaml)，步骤如下：
 
 ``` shell
 kubectl create namespace datakit
@@ -45,7 +45,7 @@ datakit-operator-f948897fb-5w5nm   1/1     Running   0          15s
     - 如果出现 `InvalidImageName` 报错，可以手动 pull 镜像。
 <!-- markdownlint-enable -->
 
-## 使用 Datakit-Operator 注入文件和程序 {#datakit-operator-inject-sidecar}
+## 使用 Datakit Operator 注入文件和程序 {#datakit-operator-inject-sidecar}
 
 在大型 Kubernetes 集群中，批量修改配置是比较麻烦的事情。Datakit-Operator 会根据 Annotation 配置，决定是否对其修改或注入。
 

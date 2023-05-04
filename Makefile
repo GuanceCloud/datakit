@@ -52,6 +52,8 @@ GO_PATCH_VERSION       := $(shell go version | cut -c 14- | cut -d' ' -f1 | cut 
 BUILDER_GOOS_GOARCH    := $(shell go env GOOS)-$(shell go env GOARCH)
 GOLINT_VERSION         := $(shell $(GOLINT_BINARY) --version | cut -c 27- | cut -d' ' -f1)
 GOLINT_VERSION_ERR_MSG := golangci-lint version($(GOLINT_VERSION)) is not supported, please use version $(SUPPORTED_GOLINT_VERSION)
+MARKDOWNLINT_VERSION   := $(shell markdownlint --version)
+CSPELL_VERSION         := $(shell cspell --version)
 
 # These can be override at runtime by make variables
 VERSION              ?= $(shell git describe --always --tags)
@@ -408,7 +410,8 @@ check_man:
 		{ echo "all docs ok"; exit 0; }
 
 md_lint: check_man
-	# markdownlint install: https://github.com/igorshubovych/markdownlint-cli
+	@# markdownlint install: https://github.com/igorshubovych/markdownlint-cli
+	@echo 'markdownlint version: $(MARKDOWNLINT_VERSION)'
 	@markdownlint man/docs/zh 2>&1 | tee md.lint
 	@if [ -s md.lint ]; then \
 		cat md.lint; \
@@ -418,6 +421,7 @@ md_lint: check_man
 # check spell on ZH docs
 cspell:
 	#cspell lint -c cspell/cspell.json --no-progress man/docs/**/*.md | tee cspell.lint
+	@echo 'cspell version: $(CSPELL_VERSION)'
 	cspell lint -c cspell/cspell.json --no-progress man/docs/zh/*.md man/docs/zh/**/*.md | tee cspell.lint
 	@if [ -s cspell.lint ]; then \
 		cat cspell.lint; \
