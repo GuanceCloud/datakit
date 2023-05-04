@@ -469,30 +469,6 @@ alias ut='REMOTE_HOST=<YOUR-DOCKER-REMOTE-HOST> make ut'
 alias ut='REMOTE_HOST=<YOUR-DOCKER-REMOTE-HOST> make ut UT_EXCLUDE="<package-name>" DATAWAY_URL="https://openway.guance.com/v1/write/logging?token=<YOUR-TOKEN>"'
 ```
 
-## 测试 {#testing}
-
-Datakit 中测试主要分成两类，一类是集成测试，一类是单元测试，它们本质上并无太大区别。只是集成测试需要更多的外部环境。
-
-一般情况下，运行 `make ut` 即可运行所有的测试用例。但这些测试用例中，包括集成测试和单元测试。而集成测试需要有 Docker 参与，这里提供一个开发过程中跑测试的例子。
-
-- 配置一个远端的 Docker，或者本机有安装 Docker 也行，如果是远端 Docker，需[配置其远程连接功能](https://medium.com/@ssmak/how-to-enable-docker-remote-api-on-docker-host-7b73bd3278c6){:target="_blank"}。
-- 做一个 shell alias，在其中启动 `make ut`：
-
-```shell
-alias ut='REMOTE_HOST=<YOUR-DOCKER-REMOTE-HOST> make ut'
-```
-
-额外的配置：
-
-- 如果要排除部分 package 的测试（它可能临时无法通过测试），在 `make ut` 后面增加对应 package 名称即可，例如：`UT_EXCLUDE="gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/snmp"`
-- 如果要将测试的指标发送到观测云，添加一个 Dataway 地址以及对应工作空间的 token 即可，比如 `DATAWAY_URL="https://openway.guance.com/v1/write/logging?token=<YOUR-TOKEN>"`
-
-完整的例子如下：
-
-```shell
-alias ut='REMOTE_HOST=<YOUR-DOCKER-REMOTE-HOST> make ut UT_EXCLUDE="<package-name>" DATAWAY_URL="https://openway.guance.com/v1/write/logging?token=<YOUR-TOKEN>"'
-```
-
 ## 版本发布 {#release}
 
 DataKit 版本发布包含俩部分：

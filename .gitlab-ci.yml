@@ -27,10 +27,8 @@ ci_lint_only:
   script:
     # only run lint
     - make clean
-    - make lint_nofix
     - nvm use v16.14.0
-    - make md_lint # check markdown
-    - make cspell  # check document spelling
+    - make lint_nofix
   tags:
     - cloudcare-ft
 
@@ -56,10 +54,8 @@ test-datakit-production:
   script:
     - make clean
     - make production_notify GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"
-    - make lint_nofix
     - nvm use v16.14.0
-    - make md_lint # check markdown
-    - make cspell  # check document spelling
+    - make lint_nofix
     - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" DOCKER_REMOTE_HOST=$TESTING_DOCKER_HOST UT_EXCLUDE=$UT_EXCLUDE GIT_BRANCH=$CI_COMMIT_BRANCH
   tags:
     - cloudcare-ft
