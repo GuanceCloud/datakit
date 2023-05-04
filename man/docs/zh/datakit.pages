@@ -24,7 +24,7 @@ nav:
     - '主配置': datakit-conf.md
     - '选举配置': election.md
     - '代理配置': proxy.md
-    - 'Operator配置': datakit-operator.md
+    - 'Datakit Operator': datakit-operator.md
     - '其它配置方式':
       - '配置综述': k8s-config-how-to.md
       - 'DCA': dca.md

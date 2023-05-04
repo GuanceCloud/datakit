@@ -3,7 +3,7 @@
 
 ---
 
-":material-kubernetes:"
+:material-kubernetes:
 
 ---
 
