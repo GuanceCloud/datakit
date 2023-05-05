@@ -26,8 +26,8 @@ ci_lint_only:
     - /.*/
   script:
     # only run lint
-    - make clean
     - nvm use v16.14.0
+    - make clean
     - make lint_nofix
   tags:
     - cloudcare-ft

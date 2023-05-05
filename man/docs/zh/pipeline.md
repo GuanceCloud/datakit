@@ -26,7 +26,7 @@
 
 - `` `1abc` ``
 - `` `@some-variable` ``
-- `` `这是一个表情包变量👍` ``
+- `` `this-is-a-emoji-👍` ``
 
 #### 特殊标识符 {#special-identifier}
 
@@ -99,7 +99,7 @@ nil 为一种特殊的数据类型，表示空，当一个变量未赋值就使�
 
 #### 复合类型 {#composite-type}
 
-字典类型与列表类型与基本类型不同，多个变量可以指向同一个 map 或 list对象，在赋值时并不会进行列表或字典的内存拷贝，而是进行引用
+字典类型与列表类型与基本类型不同，多个变量可以指向同一个 map 或 list 对象，在赋值时并不会进行列表或字典的内存拷贝，而是进行引用
 
 - 字典类型(map)
 
@@ -134,7 +134,7 @@ a = a[0] # a == 1
 
 ## 快速开始 {#quick-start}
 
-- 在 DataKit 中配置 Pipeline，编写如下 Pipeline 文件，假定名为 *nginx.p*。将其存放在 *[datakit安装目录]/pipeline* 目录下。
+- 在 DataKit 中配置 Pipeline，编写如下 Pipeline 文件，假定名为 *nginx.p*。将其存放在 *[Datakit 安装目录]/pipeline* 目录下。
 
 ```python
 # 假定输入是一个 Nginx 日志（以下字段都是 yy 的...）
@@ -142,7 +142,7 @@ a = a[0] # a == 1
 
 grok(_, "some-grok-patterns")  # 对输入的文本，进行 grok 提取
 rename('client_ip', ip)        # 将 ip 字段改名成 client_ip
-rename("网络协议", protocol)   # 将 protocol 字段改名成 `网络协议`
+rename("网络协议", protocol)   # 将 protocol 字段改名成 '网络协议'
 
 # 将时间戳(如 1610967131)换成 RFC3339 日期格式：2006-01-02T15:04:05Z07:00
 datetime(access_time, "s", "RFC3339")
@@ -243,9 +243,9 @@ default_time(time)
 grok 本质是预定义一些正则表达式来进行文本匹配提取，并且给预定义的正则表达式进行命名，方便使用与嵌套引用扩展出无数个新模式。比如 DataKit 有 3 个如下内置模式：
 
 ```python
-_second (?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?)    #匹配秒数，_second为模式名
-_minute (?:[0-5][0-9])                            #匹配分钟数，_minute为模式名
-_hour (?:2[0123]|[01]?[0-9])                      #匹配年份，_hour为模式名
+_second (?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?)    # 匹配秒数，_second 为模式名
+_minute (?:[0-5][0-9])                            # 匹配分钟数，_minute 为模式名
+_hour (?:2[0123]|[01]?[0-9])                      # 匹配年份，_hour 为模式名
 ```
 
 基于上面三个内置模式，可以扩展出自己内置模式且命名为 `time`:
@@ -469,11 +469,11 @@ Pipeline 的目录搜索优先级是:
 
 ### Git 管理的 Pipeline 目录 {#git-pl}
 
-在 `gitrepos` 目录下的 `项目名/pipeline` 目录下，目录结构如上所示。
+在 *gitrepos* 目录下的 *project-name/pipeline* 目录下，目录结构如上所示。
 
 ### 内置的 Pipeline 目录 {#internal-pl}
 
-在 Datakit 的安装目录下面的 `pipeline` 目录下，目录结构如上所示。
+在 Datakit 的安装目录下面的 *pipeline* 目录下，目录结构如上所示。
 
 ## 脚本输入数据结构 {#input-data}
 

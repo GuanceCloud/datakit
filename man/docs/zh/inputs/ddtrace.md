@@ -163,7 +163,7 @@ Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing �
 DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.py
 ```
 
-- 在 *ddtrace.conf* 中直接配置自定义标签。这种方式会影响__所有__发送给 Datakit tracing 服务的数据，需慎重考虑：
+- 在 _ddtrace.conf_ 中直接配置自定义标签。这种方式会影响所有发送给 Datakit tracing 服务的数据，需慎重考虑：
 
 ```toml
 # tags is ddtrace configed key value pairs

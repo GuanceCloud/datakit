@@ -7,13 +7,13 @@
 
 ## Java {#java}
 
-在配置log4j的时候需要注意，log4j v1，默认是使用 *.properties* 文件进行配置；而目前 log4j-v2 使用 XML 文件进行配置。
+在配置 log4j 的时候需要注意，log4j v1，默认是使用 *.properties* 文件进行配置；而目前 log4j-v2 使用 XML 文件进行配置。
 
 虽然文件名有区别，但是 log4j 查找配置文件时，都是去 Class Path 目录下查找，按照规范：v1 的配置在 *resources/log4j.properties*，v2 配置在 *resources/log4j.xml*。
 
 ### log4j(v2) {#log4j-v2}
 
-在 Maven 的配置中导入log4j 2.x 的jar包:
+在 Maven 的配置中导入 log4j 2.x 的 jar 包:
 
 ``` xml
 <dependency>
@@ -34,18 +34,18 @@
 ``` xml
  <!-- Socket appender socket 配置日志传输到本机 9540 端口，protocol 默认 TCP -->
  <Socket name="socketname" host="localHost" port="9540" charset="utf8">
-     <!-- 自定义 输出格式  序列布局-->
+     <!-- 自定义输出格式和序列布局 -->
      <PatternLayout pattern="%d{yyyy.MM.dd 'at' HH:mm:ss z} %-5level %class{36} %L %M - %msg%xEx%n"/>
 
      <!--注意：不要开启序列化传输到 socket 采集器上，目前 DataKit 无法反序列化，请使用纯文本形式传输-->
      <!-- <SerializedLayout/>-->
 
-     <!-- 注意: 配置 compact eventEol 一定要是true  这样单条日志输出为一行-->
-     <!-- 将日志发送到观测云上后会自动将json展开 所以在这里建议您将日志单条单行输出 -->
+     <!-- 注意: 配置 compact eventEol 一定要是 true  这样单条日志输出为一行-->
+     <!-- 将日志发送到观测云上后会自动将 JSON 展开，所以在这里建议您将日志单条单行输出 -->
      <!-- <JsonLayout  properties="true" compact="true" complete="false" eventEol="true"/>-->
  </Socket>
 
- <!-- 然后定义logger，只有定义了logger并引入的appender，appender才会生效 -->
+ <!-- 然后定义 logger，只有定义了 logger 并引入的 appender，appender 才会生效 -->
  <loggers>
       <root level="trace">
           <appender-ref ref="Console"/>
@@ -73,7 +73,7 @@ public class logdemo {
 
         try {
             int i = 0;
-            int a = 5 / i; // 除0异常
+            int a = 5 / i; // 除 0 异常
         } catch (Exception e) {
             StringWriter sw = new StringWriter();
             e.printStackTrace(new PrintWriter(sw));
@@ -86,7 +86,7 @@ public class logdemo {
 
 ### log4j(v1) {#log4j-v1}
 
-在maven的配置中导入log4j 1.x 的jar包
+在 maven 的配置中导入 log4j 1.x 的 jar 包
 
 ``` xml
  <dependency>
@@ -96,7 +96,7 @@ public class logdemo {
  </dependency>
 ```
 
-到 resources 目录下 创建log4j.properties文件
+到 resources 目录下 创建 log4j.properties 文件
 
 ``` text
 log4j.rootLogger=INFO,server
@@ -107,7 +107,7 @@ log4j.appender.server.Port=<dk socket port>
 log4j.appender.server.RemoteHost=<dk socket ip>
 log4j.appender.server.ReconnectionDelay=10000
 
-# 可配置成json格式
+# 可配置成 JSON 格式
 # log4j.appender.server.layout=net.logstash.log4j.JSONEventLayout
 ...
 ```
@@ -180,9 +180,9 @@ func zapcal() {
 import logging
 import logging.handlers
 
-logger = logging.getLogger("") # 实例化logging
+logger = logging.getLogger("") # 实例化 logging
 
-#自定义class 并重写makePickle方法
+#自定义 class 并重写 makePickle 方法
 class PlainTextTcpHandler(logging.handlers.SocketHandler):
     """ Sends plain text log message over TCP channel """
 
@@ -192,12 +192,12 @@ class PlainTextTcpHandler(logging.handlers.SocketHandler):
 
 
 def logging_init():
-    # 创建文件handler
+    # 创建文件 handler
     fh = logging.FileHandler("test.log", encoding="utf-8")
-    #创建自定义handler
+    # 创建自定义 handler
     plain = PlainTextTcpHandler("10.200.14.226", 9540)
 
-    # 设置logger日志等级
+    # 设置 logger 日志等级
     logger.setLevel(logging.INFO)
 
     # 设置输出日志格式
@@ -205,17 +205,16 @@ def logging_init():
         fmt="%(asctime)s - %(filename)s line:%(lineno)d - %(levelname)s: %(message)s"
     )
 
-    # 为handler指定输出格式，注意大小写
+    # 为 handler 指定输出格式，注意大小写
     fh.setFormatter(formatter)
     plain.setFormatter(formatter)
   
     
-    # 为logger添加的日志处理器
+    # 为 logger 添加的日志处理器
     logger.addHandler(fh)
     logger.addHandler(plain)
     
     return True
-    
 
 if __name__ == '__main__':
     logging_init()

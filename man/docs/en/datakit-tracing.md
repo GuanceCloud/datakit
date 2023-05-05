@@ -97,7 +97,7 @@ Filters (Sampler is also a Filter) in the current version of Datakit are execute
 
 ### Datakit Samplers {#samplers}
 
-Currently, Datakit respects client sampling priority, [DDTrace Sampling Rules](https://docs.datadoghq.com/tracing/faq/trace_sampling_and_storage)。
+Currently, Datakit respects client sampling priority, [DDTrace Sampling Rules](https://docs.datadoghq.com/tracing/faq/trace_sampling_and_storage){:target="_blank"}。
 
 - Case one
 

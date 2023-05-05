@@ -101,8 +101,8 @@ tree /tmp
 
 在 Datakit logging 采集器中可以通过配置 `logfiles` 参数项，指定要采集的日志文件，比如：
 
-- 采集 `datakit` 目录下所有文件，glob 为`/tmp/datakit/*`
-- 采集所有带有 `datakit` 名字的文件，对应的 glob 为`/tmp/datakit/datakit-*log`
+- 采集 `datakit` 目录下所有文件，glob 为 `/tmp/datakit/*`
+- 采集所有带有 `datakit` 名字的文件，对应的 glob 为 `/tmp/datakit/datakit-*log`
 - 采集 `mysql.log`，但是中间有 `mysql.d` 和 `mysql` 两层目录，有好几种方法定位到 `mysql.log` 文件：
     - 直接指定：`/tmp/mysql.d/mysql/mysql.log`
     - 单星号指定：`/tmp/*/*/mysql.log`，这种方法基本用不到
@@ -282,7 +282,7 @@ Pipeline 是日志数据处理最后一步，Datakit 会使用 Pipeline 的结�
 
 功能实现并不复杂：
 
-Datakit 开启日志采集时，使用 `文件绝对路径 + 文件 inode + 文件首部的 N 个字节` 拼凑成一个专属的 key 值，使用这个 key 去指定路径的文件中找寻 position
+Datakit 开启日志采集时，使用「文件绝对路径 + 文件 inode + 文件首部的 N 个字节」拼凑成一个专属的 key 值，使用这个 key 去指定路径的文件中找寻 position
 
 - 如果能找到 position，表示这个文件上次已经被采集过，会从当前 position 再进行读取
 - 如果没有找到 position，说明这是一个新的文件，会根据情况选择从文件首部读取，还是文件尾部读取
@@ -308,9 +308,9 @@ Datakit 会定期检查当前正在采集的文件是否发生 rotate，检查�
 
 补充链接：
 
-- [glob 模式介绍](https://en.wikipedia.org/wiki/Glob_(programming))
-- [Datakit 自动多行配置](https://docs.guance.com/integrations/logging/#auto-multiline)
-- [Datakit Pipeline 处理](https://docs.guance.com/datakit/pipeline/)
-- [Docker 截断超过 16KiB 日志的讨论](https://github.com/moby/moby/issues/34855)
-- [Docker 截断超过 16KiB 的源码](https://github.com/nalind/docker/blob/master/daemon/logger/copier.go#L13)
-- [Docker logging driver](https://docs.docker.com/config/containers/logging/local/)
+- [glob 模式介绍](https://en.wikipedia.org/wiki/Glob_(programming)){:target="_blank"}
+- [Datakit 自动多行配置](https://docs.guance.com/integrations/logging/#auto-multiline){:target="_blank"}
+- [Datakit Pipeline 处理](https://docs.guance.com/datakit/pipeline/){:target="_blank"}
+- [Docker 截断超过 16KiB 日志的讨论](https://github.com/moby/moby/issues/34855){:target="_blank"}
+- [Docker 截断超过 16KiB 的源码](https://github.com/nalind/docker/blob/master/daemon/logger/copier.go#L13){:target="_blank"}
+- [Docker logging driver](https://docs.docker.com/config/containers/logging/local/){:target="_blank"}

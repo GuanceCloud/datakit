@@ -82,7 +82,7 @@ remote_write:
 
 DataKit 提供一个简单的调试 `prom.conf` 的工具，如果不断调整 `prom.conf` 的配置，可以实现只采集符合一定名称规则的 Prometheus 指标的目的。
 
-Datakit 支持命令行直接调试本采集器的配置文件。在配置 `conf.d/prom` 下 `prom_remote_write.conf` 的 `output` 项，将其配置为一个本地文件路径，之后`prom_remote_write.conf` 会将采集到的数据写到文件中，数据就不会上传到中心。
+Datakit 支持命令行直接调试本采集器的配置文件。在配置 `conf.d/prom` 下 `prom_remote_write.conf` 的 `output` 项，将其配置为一个本地文件路径，之后 `prom_remote_write.conf` 会将采集到的数据写到文件中，数据就不会上传到中心。
 
 重启 Datakit，让配置文件生效：
 

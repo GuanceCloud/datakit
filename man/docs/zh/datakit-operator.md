@@ -18,12 +18,12 @@ Datakit Operator 是 Datakit 在 Kubernetes 编排的联动项目，旨在协助
 先决条件：
 
 - 推荐 Kubernetes v1.24.1 及以上版本，且能够访问互联网（下载 yaml 文件并拉取对应镜像）
-- 确保启用 `MutatingAdmissionWebhook` 和 `ValidatingAdmissionWebhook` [控制器](https://kubernetes.io/zh-cn/docs/reference/access-authn-authz/extensible-admission-controllers/#prerequisites)
+- 确保启用 `MutatingAdmissionWebhook` 和 `ValidatingAdmissionWebhook` [控制器](https://kubernetes.io/zh-cn/docs/reference/access-authn-authz/extensible-admission-controllers/#prerequisites){:target="_blank"}
 - 确保启用了 `admissionregistration.k8s.io/v1` API
 
 ### 安装步骤 {#datakit-operator-install}
 
-下载 [*datakit-operator.yaml*](https://static.guance.com/datakit-operator/datakit-operator.yaml)，步骤如下：
+下载 [*datakit-operator.yaml*](https://static.guance.com/datakit-operator/datakit-operator.yaml){:target="_blank"}，步骤如下：
 
 ``` shell
 kubectl create namespace datakit
@@ -189,7 +189,7 @@ Datakit-Operator 的 dd-lib 镜像统一存放在 `pubrepo.jiagouyun.com/datakit
     - `source` 数据来源，如果为空，则默认使用 'default'
     - `service` 新增标记 tag，如果为空，则默认使用 $source
     - `pipeline` Pipeline 脚本路径，如果为空将使用 $source.p，如果 $source.p 不存在将不使用 Pipeline（此脚本文件存在于 DataKit 端）
-    - `character_encoding` # 选择编码，如果编码有误会导致数据无法查看，默认为空即可。支持`utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030` or ""
+    - `character_encoding` 选择编码，如果编码有误会导致数据无法查看，默认为空即可。支持 `utf-8/utf-16le/utf-16le/gbk/gb18030`
     - `multiline_match` 多行匹配，详见 [Datakit 日志多行配置](logging.md#multiline)，注意因为是 JSON 格式所以不支持 3 个单引号的“不转义写法”，正则 `^\d{4}` 需要添加转义写成 `^\\d{4}`
     - `tags` 添加额外 `tag`，书写格式是 JSON map，例如 `{ "key1":"value1", "key2":"value2" }`
 
@@ -252,4 +252,4 @@ Datakit Operator 支持以下的环境变量（在 *datakit-operator.yaml* 中�
 
 补充：
 
-- Datakit-Operator 使用 Kubernetes Admission Controller 功能进行资源注入，详细机制请查看[官方文档](https://kubernetes.io/zh-cn/docs/reference/access-authn-authz/admission-controllers/)
+- Datakit-Operator 使用 Kubernetes Admission Controller 功能进行资源注入，详细机制请查看[官方文档](https://kubernetes.io/zh-cn/docs/reference/access-authn-authz/admission-controllers/){:target="_blank"}

@@ -130,9 +130,9 @@ sudo apachectl restart
 | 字段名         | 字段值                | 说明                         |
 | ---            | ---                   | ---                          |
 | `status`       | `info`                | 日志等级                     |
-| `ip_or_host`   | `127.0.0.1`           | 请求方ip或者host             |
+| `ip_or_host`   | `127.0.0.1`           | 请求方 IP 或者 host          |
 | `http_code`    | `200`                 | http status code             |
 | `http_method`  | `GET`                 | http 请求类型                |
-| `http_url`     | `/`                   | http 请求url                 |
+| `http_url`     | `/`                   | http 请求 URL                |
 | `http_version` | `1.1`                 | http version                 |
 | `time`         | `1621205469000000000` | 纳秒时间戳（作为行协议时间） |

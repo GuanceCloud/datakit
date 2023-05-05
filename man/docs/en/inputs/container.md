@@ -244,7 +244,7 @@ Using Secret in env:
             optional: false
 ```
 
-See [doc](https://kubernetes.io/zh-cn/docs/concepts/configuration/secret/#using-secrets-as-environment-variables).
+See [doc](https://kubernetes.io/zh-cn/docs/concepts/configuration/secret/#using-secrets-as-environment-variables){:target="_blank"}.
 
 ## More Readings {#more-reading}
 

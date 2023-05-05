@@ -24,9 +24,9 @@ Here we mainly introduce some extended functions of DDTrace-java. List of main f
 
 **Specific functions** need to be defined and declared through specific parameters. Currently, ddtrace provides two ways to trace specific functions:
 
-1. Marked by startup parameters: -Ddd.trace.methods ，reference documents： [Class or method injection Trace](https://docs.guance.com/integrations/apm/ddtrace/ddtrace-skill-param/#5-trace)
+1. Marked by startup parameters: -Ddd.trace.methods ，reference documents： [Class or method injection Trace](https://docs.guance.com/integrations/apm/ddtrace/ddtrace-skill-param/#5-trace){:target="_blank"}
 
-2. By introducing the SDK, use @Trace to mark, refer to the document [function level burying point](https://docs.guance.com/integrations/apm/ddtrace/ddtrace-skill-api/#2)
+2. By introducing the SDK, use @Trace to mark, refer to the document [function level burying point](https://docs.guance.com/integrations/apm/ddtrace/ddtrace-skill-api/#2){:target="_blank"}
 
 After the declaration is made in the above way, the corresponding method will be marked as trace, and the corresponding Span information will be generated at the same time, including the input parameter information of the function (input parameter name, type, value).
 

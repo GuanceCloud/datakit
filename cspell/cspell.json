@@ -1,7 +1,7 @@
 {
     "$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
     "version": "0.2",
-		"caseSensitive": true,
+    "caseSensitive": true,
     "dictionaryDefinitions": [
         {
             "name": "glossary",
@@ -13,19 +13,19 @@
         "glossary"
     ],
 
-		"languageSettings": [
-      {
-          "languageId": "markdown",
-          "ignoreRegExpList": [
-              "/^\\s*```[\\s\\S]*?^\\s*```/gm",
-              "/`.*`/gm",
-              "/:.*:/gm",
-              "/_.*_/gm",
-              "/\\*.*\\*/gm",
-							"/ {#[-a-z0-9.]*}/gm",
-							"/{{[^{}]*}}/gm",
-							"^icon: .*"
-          ]
-      }
-  ]
+    "languageSettings": [
+        {
+            "languageId": "markdown",
+            "ignoreRegExpList": [
+                "/^\\s*```[\\s\\S]*?^\\s*```/gm",
+                "/`.*`/gm",
+                "/:.*:/gm",
+                "/_.*_/gm",
+                "/\\*.*\\*/gm",
+                "/ {#[-a-z0-9.]*}/gm",
+                "/{{[^{}]*}}/gm",
+                "^icon: .*"
+            ]
+        }
+    ]
 }

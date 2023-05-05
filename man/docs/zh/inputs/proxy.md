@@ -104,7 +104,7 @@ http {
 
 ```shell
 nginx -t        # 测试配置
-nginx -s reload # reload配置
+nginx -s reload # reload 配置
 ```
 
 # 配置 `Datakit` 被代理机器上的域名

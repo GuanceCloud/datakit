@@ -18,7 +18,7 @@ Currently, Datakit Operator provides the following functions:
 Prerequisites:
 
 - Recommended Kubernetes version 1.24.1 or above and internet access (to download yaml file and pull images).
-- Ensure `MutatingAdmissionWebhook` and `ValidatingAdmissionWebhook` [controllers](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#prerequisites) are enabled.
+- Ensure `MutatingAdmissionWebhook` and `ValidatingAdmissionWebhook` [controllers](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#prerequisites){:target="_blank"} are enabled.
 - Ensure admissionregistration.k8s.io/v1 API is enabled.
 
 ### Installation Steps {#datakit-operator-install}

@@ -8,11 +8,11 @@
 
 DataKit 目前支持 Linux/Windows/Mac 三种主流平台：
 
-| 操作系统                            | 架构                | 安装路径                                                                   |
-| ---------                           | ---:                | ------                                                                     |
-| Linux 内核 2.6.23 或更高版本        | amd64/386/arm/arm64 | `/usr/local/datakit`                                                       |
-| macOS 10.13 或更高版本[^1]          | amd64               | `/usr/local/datakit`                                                       |
-| Windows 7, Server 2008R2 或更高版本 | amd64/386           | 64位：`C:\Program Files\datakit`<br />32位：`C:\Program Files(32)\datakit` |
+| 操作系统                            | 架构                | 安装路径                                                                       |
+| ---------                           | ---:                | ------                                                                         |
+| Linux 内核 2.6.23 或更高版本        | amd64/386/arm/arm64 | `/usr/local/datakit`                                                           |
+| macOS 10.13 或更高版本[^1]          | amd64               | `/usr/local/datakit`                                                           |
+| Windows 7, Server 2008R2 或更高版本 | amd64/386           | 64-bit：`C:\Program Files\datakit`<br />32-bit：`C:\Program Files(32)\datakit` |
 
 [^1]: Golang 1.18 要求 macOS-amd64 版本为 10.13。
 
@@ -42,7 +42,7 @@ DataKit 目前支持 Linux/Windows/Mac 三种主流平台：
 ???+ tip "查看内核版本"
 
     - Linux/Mac：`uname -r`
-    - Windows：执行 `cmd` 命令（按住 Win键 + `r`，输入 `cmd` 回车），输入 `winver` 即可获取系统版本信息
+    - Windows：执行 `cmd` 命令（按住 Win 键 + `r`，输入 `cmd` 回车），输入 `winver` 即可获取系统版本信息
 <!-- markdownlint-enable -->
 
 ## Datakit 服务管理 {#manage-service}

@@ -124,13 +124,13 @@ http {
 
 | 字段名       | 字段值                                   | 说明                         |
 | ---          | ---                                      | ---                          |
-| status       | error                                    | 日志等级(alert转成了error)   |
-| client_ip    | 120.204.196.129                          | client ip地址                |
+| status       | error                                    | 日志等级(alert 转成了 error) |
+| client_ip    | 120.204.196.129                          | client IP 地址               |
 | server       | localhost                                | server 地址                  |
 | http_method  | GET                                      | http 请求方式                |
-| http_url     | /                                        | http 请求url                 |
+| http_url     | /                                        | http 请求 URL                |
 | http_version | 1.1                                      | http version                 |
-| ip_or_host   | 47.98.103.73                             | 请求方ip或者host             |
+| ip_or_host   | 47.98.103.73                             | 请求方 IP 或者 host          |
 | msg          | 7#7: *168 write()...host: \"47.98.103.73 | 日志内容                     |
 | time         | 1618968244000000000                      | 纳秒时间戳（作为行协议时间） |
 
@@ -164,7 +164,7 @@ http {
 | `status`       | `ok`                           | 日志等级                         |
 | `status_code`  | `200`                          | HTTP Code                        |
 | `http_method`  | `GET`                          | HTTP 请求方式                    |
-| `http_url`     | `/basic_status`                | HTTP 请求url                     |
+| `http_url`     | `/basic_status`                | HTTP 请求 URL                    |
 | `http_version` | `1.1`                          | HTTP Version                     |
 | `agent`        | `Mozilla/5.0... Safari/537.36` | User-Agent                       |
 | `browser`      | `Chrome`                       | 浏览器                           |

@@ -10,7 +10,7 @@
 在 pom.xml 中添加依赖
 
 ``` xml
-<!-- 加入opentelemetry  -->
+<!-- 加入 opentelemetry  -->
 <dependency>
     <groupId>io.opentelemetry</groupId>
     <artifactId>opentelemetry-sdk</artifactId>
@@ -73,7 +73,7 @@ CATALINA_OPTS="$CATALINA_OPTS -javaagent:PATH/TO/opentelemetry-javaagent.jar -Do
 # 重启 Tomcat
 ```
 
-在配置字段 `exporter.otlp.endpoint` 时，可以不用配置并使用默认值(localhost:4317)，因为 Datakit 与 Java 程序在一台主机上，默认的端口也是4317.
+在配置字段 `exporter.otlp.endpoint` 时，可以不用配置并使用默认值(localhost:4317)，因为 Datakit 与 Java 程序在一台主机上，默认的端口也是 4317。
 
 ## Java 2:代码注入形式 {#with-code}
 
@@ -96,14 +96,13 @@ import io.opentelemetry.sdk.trace.export.BatchSpanProcessor;
 import java.util.concurrent.TimeUnit;
 import static java.lang.Thread.sleep;
 
-
 public class otlpdemo {
     public static void main(String[] args) {
         try {
             OtlpGrpcSpanExporter grpcSpanExporter = OtlpGrpcSpanExporter.builder()
-                    .setEndpoint("http://127.0.0.1:4317")   //配置.setEndpoint参数时，必须添加https或者http
+                    .setEndpoint("http://127.0.0.1:4317")   //配置 .setEndpoint 参数时，必须添加 https 或者 http
                     .setTimeout(2, TimeUnit.SECONDS)
-                    //.addHeader("header1", "1") // 添加header
+                    //.addHeader("header1", "1") // 添加 header
                     .build();
 
             String s = grpcSpanExporter.toString();
@@ -132,19 +131,19 @@ public class otlpdemo {
                     .startSpan();
             childSpan.setAttribute("tagsA", "vllelel");
             // do stuff
-            sleep(500);    //延时1秒
+            sleep(500);    //延时 1 秒
             for (int i = 0; i < 10; i++) {
                 Span childSpan1 = tracer.spanBuilder("child")
                         .setParent(Context.current().with(parentSpan))
                         .startSpan();
-                sleep(1000);    //延时1秒
+                sleep(1000);    //延时 1 秒
                 System.out.println(i);
                 childSpan1.end();
             }
             childSpan.end();
             childSpan.end(0, TimeUnit.NANOSECONDS);
             System.out.println("span end");
-            sleep(1000);    //延时1秒
+            sleep(1000);    // 延时 1 秒
             parentSpan.end();
             tracerProvider.shutdown();
 
@@ -159,7 +158,7 @@ public class otlpdemo {
 
 ## 查看效果 {#view}
 
-登录 [观测云](https://console.guance.com/tracing/service/table?time=15m){:target="_blank"} 后查看 `应用性能监测` -> `链路` -> 点击单条 `链路`
+登录 [观测云](https://console.guance.com/tracing/service/table?time=15m){:target="_blank"} 后查看 「应用性能监测 -> 链路 -> 点击单条链路」
 
 ![avatar](imgs/otel-java-example.png)
 

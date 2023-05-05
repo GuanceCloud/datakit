@@ -42,4 +42,4 @@ dkid_facc219347e914506d25
     - `ENV_DATAWAY`：DataKit 地址
     - `ENV_WITHIN_DOCKER`：这个必须指定，否则容器中的 DataKit 运行方式会不同
     - `ENV_ENABLE_INPUTS`：指定默认开启的采集器（即无需额外配置即可生效），可按照实际需求增删。但某些采集器必须配置，就不适合做成默认开启的，比如 MySQL/Nginx 等采集器，因为它们需要一些额外的配置，如用户名、密码等。
-    - `ENV_GLOBAL_TAGS`：注入 global-tag，即给所有采集的数据添加全局 tags，支持多对`key=value`，用英文逗号分隔
+    - `ENV_GLOBAL_TAGS`：注入 global-tag，即给所有采集的数据添加全局 tags，支持多对 `key=value`，用英文逗号分隔

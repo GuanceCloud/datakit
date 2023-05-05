@@ -33,7 +33,7 @@ source_name,key1=value1,key2=value2 field1=value1,field2=value2 ts
 | Tag     | runtime_os   |      | os                                   |
 | Tag     | runtime_arch |      | cpu architecture                     |
 | Field   | profile_id   |      | profiling ID                         |
-| Field   | agent_ver    |      | 客户端agent版本                      |
+| Field   | agent_ver    |      | 客户端 agent 版本                    |
 | Field   | start        | 微秒 | profiling start timestamp            |
 | Field   | end          | 微秒 | profiling end timestamp              |
 | Field   | duration     | 微秒 | profiling duration                   |
@@ -45,36 +45,36 @@ source_name,key1=value1,key2=value2 field1=value1,field2=value2 ts
 
 Datakit Profiling 是 Datakit 使用的用于表示 profiling 的结构。
 
-| Field Name  | Data Type               | Unit | Description                                                        | Correspond To                 |
-| ---         | ---                     | ---  | ---                                                                | ----                          |
-| ProfileId   | `string`                |      | profiling 唯一id                                                   | `dkproto.fields.profile_id`   |
-| AgentVer    | `string`                |      | profiling agent 库版本                                             | `dkproto.fields.agent_ver`    |
-| Endpoint    | `string`                |      | 通信端                                                             | `dkproto.fields.endpoint`     |
-| Service     | `string`                |      | Service Name                                                       | `dkproto.tags.service`        |
-| Env         | `string`                |      | Environment Variables                                              | `dkproto.tags.env`            |
-| Version     | `string`                |      | App 版本号                                                         | `dkproto.tags.version`        |
-| Start       | `int64`                 | 纳秒 | profiling 采样开始时间                                             | `dkproto.fields.start`        |
-| End         | `int64`                 | 纳秒 | profiling 采样结束时间                                             | `dkproto.fields.end`          |
-| Duration    | `int64`                 | 纳秒 | 本次采样持续时间，通常为1min                                       | `dkproto.fields.duration`     |
-| Host        | `string`                |      | 主机/容器 hostname                                                 | `dkproto.tags.host`           |
-| PID         | `string`                |      | Process ID                                                         | `dkproto.fields.pid`          |
-| Language    | `string`                |      | 程序语言                                                           | `dkproto.fields.language`     |
-| LanguageVer | `string`                |      | 程序语言版本                                                       | `dkproto.fields.language_ver` |
-| Runtime     | `string`                |      | 运行时环境，`jvm/cpython/...`                                      | `dkproto.fields.runtime`      |
-| RuntimeOs   | `string`                |      | 操作系统                                                           | `dkproto.tags.runtime_os`     |
-| RuntimeArch | `string`                |      | CPU架构：amd64, arm64...                                           | `dkproto.tags.runtime_arch`   |
-| Format      | `string`                |      | profiling 二进制文件采用的格式，jfr, pprof...                      | `dkproto.fields.format`       |
-| Tags        | `map[string]string`     |      | profiling Tags                                                     | `dkproto.tags`                |
-| OssPath     | `[]string`              |      | 原始 profiling 二进制文件存储在oss的路径, 用于后续解析和供用户下载 | `dkproto.fields.oss_path`     |
-| Metrics     | `map[string]string`     |      | 从 profiling 二进制文件中解析出的 相关指标                         | `dkproto.fields.metrics`      |
-| Samples     | `map[EventType]*Sample` |      | profiling 相关采样性能指标                                         | `dkproto.fields.samples`      |
+| Field Name  | Data Type               | Unit | Description                                                          | Correspond To                 |
+| ---         | ---                     | ---  | ---                                                                  | ----                          |
+| ProfileId   | `string`                |      | profiling 唯一 ID                                                    | `dkproto.fields.profile_id`   |
+| AgentVer    | `string`                |      | profiling agent 库版本                                               | `dkproto.fields.agent_ver`    |
+| Endpoint    | `string`                |      | 通信端                                                               | `dkproto.fields.endpoint`     |
+| Service     | `string`                |      | Service Name                                                         | `dkproto.tags.service`        |
+| Env         | `string`                |      | Environment Variables                                                | `dkproto.tags.env`            |
+| Version     | `string`                |      | App 版本号                                                           | `dkproto.tags.version`        |
+| Start       | `int64`                 | 纳秒 | profiling 采样开始时间                                               | `dkproto.fields.start`        |
+| End         | `int64`                 | 纳秒 | profiling 采样结束时间                                               | `dkproto.fields.end`          |
+| Duration    | `int64`                 | 纳秒 | 本次采样持续时间，通常为 1min                                        | `dkproto.fields.duration`     |
+| Host        | `string`                |      | 主机/容器 hostname                                                   | `dkproto.tags.host`           |
+| PID         | `string`                |      | Process ID                                                           | `dkproto.fields.pid`          |
+| Language    | `string`                |      | 程序语言                                                             | `dkproto.fields.language`     |
+| LanguageVer | `string`                |      | 程序语言版本                                                         | `dkproto.fields.language_ver` |
+| Runtime     | `string`                |      | 运行时环境，`jvm/cpython/...`                                        | `dkproto.fields.runtime`      |
+| RuntimeOs   | `string`                |      | 操作系统                                                             | `dkproto.tags.runtime_os`     |
+| RuntimeArch | `string`                |      | CPU 架构：amd64, arm64...                                            | `dkproto.tags.runtime_arch`   |
+| Format      | `string`                |      | profiling 二进制文件采用的格式，jfr, pprof...                        | `dkproto.fields.format`       |
+| Tags        | `map[string]string`     |      | profiling Tags                                                       | `dkproto.tags`                |
+| OssPath     | `[]string`              |      | 原始 profiling 二进制文件存储在 OSS 的路径, 用于后续解析和供用户下载 | `dkproto.fields.oss_path`     |
+| Metrics     | `map[string]string`     |      | 从 profiling 二进制文件中解析出的 相关指标                           | `dkproto.fields.metrics`      |
+| Samples     | `map[EventType]*Sample` |      | profiling 相关采样性能指标                                           | `dkproto.fields.samples`      |
 
 ### Sample Structure {#sample-struct}
 
 | Field Name    | Data Type         | Description               |
 | ---           | ---               | ---                       |
 | Values        | []SampleValue     | 指标值                    |
-| SpanId        | string            | 相关联的trace span id     |
+| SpanId        | string            | 相关联的 trace span id    |
 | RootSpanId    | string            | 关联的 trace root span id |
 | TraceEndpoint | string            | trace resource            |
 | Labels        | map[string]string | tag                       |
@@ -122,7 +122,7 @@ Datakit Profiling 是 Datakit 使用的用于表示 profiling 的结构。
 | Library    | string    | 代码库       |
 | Package    | string    | 包名         |
 | Class      | string    | 类名         |
-| SubFrame   | []Frame   | 下级frame    |
+| SubFrame   | []Frame   | 下级 frame   |
 
 ### Flame Graph 响应 JSON 示例 {#flamegraph-json-example}
 

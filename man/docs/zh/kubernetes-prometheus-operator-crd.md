@@ -15,7 +15,7 @@ Prometheus 有一套完善的 Kubernetes 应用指标采集方案，流程简述
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    Prometheus-Operator [官方链接](https://github.com/prometheus-operator/prometheus-operator) 和 [应用示例](https://alexandrev.medium.com/prometheus-concepts-servicemonitor-and-podmonitor-8110ce904908)。
+    Prometheus-Operator [官方链接](https://github.com/prometheus-operator/prometheus-operator){:target="_blank"} 和 [应用示例](https://alexandrev.medium.com/prometheus-concepts-servicemonitor-and-podmonitor-8110ce904908){:target="_blank"}。
 <!-- markdownlint-enable -->
 
 在此处，Datakit 扮演了第 3 步的角色，由 Datakit 来监听和发现 Prometheus-Operator CRD，并根据配置开启指标采集，最终上传到观测云。
@@ -114,7 +114,7 @@ $ kubectl apply -f pod-monitor.yaml
 - port: client
 - path: `/nacos/actuator/prometheus`
 
-配置参数[文档](https://doc.crds.dev/github.com/prometheus-operator/kube-prometheus/monitoring.coreos.com/PodMonitor/v1@v0.7.0)，目前 Datakit 只支持 require 部分，暂不支持诸如 `baseAuth` `bearerToeknSecret` 和 `tlsConfig` 等认证配置。
+配置参数[文档](https://doc.crds.dev/github.com/prometheus-operator/kube-prometheus/monitoring.coreos.com/PodMonitor/v1@v0.7.0){:target="_blank"}，目前 Datakit 只支持 require 部分，暂不支持诸如 `baseAuth` `bearerToeknSecret` 和 `tlsConfig` 等认证配置。
 
 ### 开启 Datakit 采集功能 {#config}
 
@@ -191,7 +191,7 @@ $ kubectl apply -f pod-monitor.yaml
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    matchLabels 和 matchExpressions 是 Kubernetes 通用的 match 方式，详见[文档](https://kubernetes.io/zh-cn/docs/concepts/overview/working-with-objects/labels/#label-selectors)。
+    matchLabels 和 matchExpressions 是 Kubernetes 通用的 match 方式，详见[文档](https://kubernetes.io/zh-cn/docs/concepts/overview/working-with-objects/labels/#label-selectors){:target="_blank"}。
 
 ???+ attention
 
@@ -232,8 +232,8 @@ $ kubectl apply -f pod-monitor.yaml
         - name: ENV_INPUT_CONTAINER_PROMETHEUS_MONITORING_MATCHES_CONFIG
           valueFrom:
             configMapKeyRef:
-              name: datakit-prom-crd  # configmap的名称
-              key: prom-match-config # configmap的主键名称
+              name: datakit-prom-crd  # configmap 的名称
+              key: prom-match-config # configmap 的主键名称
               optional: false
     ```
 <!-- markdownlint-enable -->

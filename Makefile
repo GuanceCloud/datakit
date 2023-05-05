@@ -54,6 +54,7 @@ GOLINT_VERSION         := $(shell $(GOLINT_BINARY) --version | cut -c 27- | cut 
 GOLINT_VERSION_ERR_MSG := golangci-lint version($(GOLINT_VERSION)) is not supported, please use version $(SUPPORTED_GOLINT_VERSION)
 MARKDOWNLINT_VERSION   := $(shell markdownlint --version)
 CSPELL_VERSION         := $(shell cspell --version)
+GREP_VERSION           := $(shell grep --version)
 
 # These can be override at runtime by make variables
 VERSION              ?= $(shell git describe --always --tags)
@@ -403,11 +404,17 @@ copyright_check:
 copyright_check_auto_fix:
 	@python3 copyright.py --fix
 
-# All document's section must attached with tag(exclude changelog.md)
+# Additional checkings on documents
 check_man:
+	@echo 'checking Unicode/ASCCI format...'
+	@go run cmd/make/make.go -mdm man/docs/zh/ && \
+	 { echo "\n------\n[E] Some bad docs got invalid format on Unicode/ASCII. See https://docs.guance.com/datakit/mkdocs-howto/#zh-en-mix\n"; exit -1; } || { echo 'Unicode/ASCII format ok.'; }
+	@echo 'checking section tags...'
 	@grep --color=always --exclude *changelog.md -nr '^##' man/docs/* | grep -vE ' {#' | grep -vE '{{' && \
-		{ echo "[E] some bad docs"; exit -1; } || \
-		{ echo "all docs ok"; exit 0; }
+	 { echo "\n------\n[E] Some bad docs that missing section tags. See https://docs.guance.com/datakit/mkdocs-howto/#set-links"; exit -1; } || { echo 'section tags ok.'; }
+	@echo 'checking external links...'
+	@grep --color=always -nr '\[.*\](http' man/docs/zh/ man/docs/en | grep -vE 'static.guance.com|_blank' && \
+	 { echo "\n------\n[E] Some bad docs got invalid external links. See https://docs.guance.com/datakit/mkdocs-howto/#outer-linkers\n"; exit -1; } || { echo 'external links ok.'; }
 
 md_lint: check_man
 	@# markdownlint install: https://github.com/igorshubovych/markdownlint-cli

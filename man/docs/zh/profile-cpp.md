@@ -10,7 +10,7 @@ Pyroscope 采用 C/S 架构，运行模式分为 [Pyroscope Agent](https://pyros
 
 这里需要的是 Pyroscope Agent 模式。DataKit 已经集成了 Pyroscope Server 功能，通过对外暴露 HTTP 接口的方式，可以接收 Pyroscope Agent 上报的 profiling 数据。
 
-profiling 数据流向: `Pyroscope Agent 采集 profiling 数据 -> Datakit -> 观测云`。
+Profiling 数据流向: 「Pyroscope Agent 采集 Profiling 数据 -> Datakit -> 观测云」。
 
 ### 前置条件 {#pyroscope-requirement}
 

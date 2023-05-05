@@ -22,8 +22,8 @@
 
 特定函数主要是指业务指定的函数，来获取对应的入参情况。特定函数需要通过特定的参数进行定义声明，目前 DDTrace 提供了两种方式对特定的函数进行 trace 声明：
 
-1. 通过启动参数标记 `-Ddd.trace.methods`，参考 [类或方法注入 Trace](https://docs.guance.com/integrations/apm/ddtrace/ddtrace-skill-param/#5-trace)
-1. 通过引入 SDK 的方式，使用 `@Trace` 进行标记，参考 [函数级别埋点](https://docs.guance.com/integrations/apm/ddtrace/ddtrace-skill-api/#2)
+1. 通过启动参数标记 `-Ddd.trace.methods`，参考 [类或方法注入 Trace](https://docs.guance.com/integrations/apm/ddtrace/ddtrace-skill-param/#5-trace){:target="_blank"}
+1. 通过引入 SDK 的方式，使用 `@Trace` 进行标记，参考 [函数级别埋点](https://docs.guance.com/integrations/apm/ddtrace/ddtrace-skill-api/#2){:target="_blank"}
 
 通过上述方式进行声明后，会将对应的方法标记为 trace，同时生成对应的 Span 信息并包含函数（方法）的入参信息（入参名称、类型、值）。
 
@@ -63,7 +63,7 @@ Redis 的链路中的 Resource 只会显示 `redis.command` 信息，并不会�
 
 ## HSF {#hsf}
 
-[HSF](https://help.aliyun.com/document_detail/100087.html) 是在阿里巴巴广泛使用的分布式 RPC 服务框架。
+[HSF](https://help.aliyun.com/document_detail/100087.html){:target="_blank"} 是在阿里巴巴广泛使用的分布式 RPC 服务框架。
 
 支持版本：
 
@@ -132,7 +132,7 @@ DDTrace 默认会将 SQL 中参数转化为 `?`，这导致用户在排查问题
 
 ## xxl-jobs 支持 {#xxl-jobs}
 
-[xxl-jobs](https://github.com/xuxueli/xxl-job) 是一个 Java 开发的分布式任务调度框架。
+[xxl-jobs](https://github.com/xuxueli/xxl-job){:target="_blank"} 是一个 Java 开发的分布式任务调度框架。
 
 支持版本：
 
@@ -149,7 +149,7 @@ Dubbo 是阿里云的一个开源框架，目前已经支持 Dubbo2 以及 Dubbo
 
 ## RocketMQ {#rocketmq}
 
-RocketMQ 是阿里云贡献 Apache 基金会的开源消息队列框架。注意：阿里云 RocketMQ 5.0 与 Apache基金会的是两个不同的库。
+RocketMQ 是阿里云贡献 Apache 基金会的开源消息队列框架。注意：阿里云 RocketMQ 5.0 与 Apache 基金会的是两个不同的库。
 
 引用库时有区别，`apache rocketmq artifactId: rocketmq-client`, 而阿里云 RocketMQ 5.0 的 `artifactId：rocketmq-client-java`
 

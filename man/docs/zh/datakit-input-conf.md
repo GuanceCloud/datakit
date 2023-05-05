@@ -24,7 +24,7 @@ DataKit 中采集器配置均使用 [Toml 格式](https://toml.io/cn){:target="_
 <!-- markdownlint-disable MD046 -->
 ???+ tip
 
-    由于 DataKit 只会搜索 `conf.d/` 目录下以 `.conf` 为扩展的文件，故所有采集器配置 **必须放在 `conf.d` 目录下（或其下层子目录下），且必须以 `.conf`作为文件后缀**。否则，DataKit 会忽略处理该配置文件。
+    由于 DataKit 只会搜索 `conf.d/` 目录下以 `.conf` 为扩展的文件，故所有采集器配置 **必须放在 `conf.d` 目录下（或其下层子目录下），且必须以 `.conf` 作为文件后缀**。否则，DataKit 会忽略处理该配置文件。
 <!-- markdownlint-enable -->
 
 ## 默认开启的采集器 {#default-enabled-inputs}

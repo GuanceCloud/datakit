@@ -108,7 +108,7 @@ func web(w http.ResponseWriter, r *http.Request) {
     w.Write([]byte("ok"))
 }
 
-// service 调用service层 处理业务
+// service 调用 service 层处理业务
 func service(ctx context.Context) {
     log.Println("service")
     ctx1, iSpan := tracer.Start(ctx, "Sample-service")
@@ -151,7 +151,7 @@ func main() {
 
 ## 效果查看 {#view}
 
-登录 [观测云](https://console.guance.com/tracing/service/table?time=15m){:target="_blank"} 后查看 `应用性能监测` -> `链路` -> 点击单条 `链路`
+登录 [观测云](https://console.guance.com/tracing/service/table?time=15m){:target="_blank"} 后查看「应用性能监测 -> 链路 -> 点击单条链路」
 
 ![not-set](imgs/otel-go-example.png)
 

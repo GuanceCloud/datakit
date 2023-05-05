@@ -117,7 +117,7 @@ NAME1="value1" NAME2="value2"
 ### DataKit pprof 相关 {#env-pprof}
 
 - `DK_ENABLE_PPROF`: 是否开启 `pprof`
-- `DK_PPROF_LISTEN`: `pprof`服务监听地址
+- `DK_PPROF_LISTEN`: `pprof` 服务监听地址
 
 ### DataKit 选举相关 {#env-election}
 
@@ -130,13 +130,13 @@ NAME1="value1" NAME2="value2"
 - `DK_HTTP_PORT`：支持安装阶段指定 DataKit HTTP 服务绑定的端口（默认 `9529`）
 - `DK_RUM_ORIGIN_IP_HEADER`: RUM 专用
 - `DK_DISABLE_404PAGE`: 禁用 DataKit 404 页面 (公网部署 DataKit RUM 时常用.如 `True`/`False`)
-- `DK_INSTALL_IPDB`: 安装时指定IP库(当前仅支持`iploc`, `geolite2`)
-- `DK_UPGRADE_IP_WHITELIST`: 从 Datakit [1.5.9](changelog.md#cl-1.5.9) 开始，支持远程访问 API 的方式来升级 Datakit，此环境变量用于设置可以远程访问的客户端 IP 白名单（多个 IP 用逗号`,`分隔），不在白名单内的访问将被拒绝（默认是不做 IP 限制）。
+- `DK_INSTALL_IPDB`: 安装时指定 IP 库(当前仅支持 `iploc/geolite2`)
+- `DK_UPGRADE_IP_WHITELIST`: 从 Datakit [1.5.9](changelog.md#cl-1.5.9) 开始，支持远程访问 API 的方式来升级 Datakit，此环境变量用于设置可以远程访问的客户端 IP 白名单（多个 IP 用逗号 `,` 分隔），不在白名单内的访问将被拒绝（默认是不做 IP 限制）。
 
 ### DCA 相关 {#env-dca}
 
 - `DK_DCA_ENABLE`：支持安装阶段开启 DCA 服务（默认未开启）
-- `DK_DCA_LISTEN`：支持安装阶段自定义配置 DCA 服务的监听地址和端口（默认`0.0.0.0:9531`）
+- `DK_DCA_LISTEN`：支持安装阶段自定义配置 DCA 服务的监听地址和端口（默认 `0.0.0.0:9531`）
 - `DK_DCA_WHITE_LIST`: 支持安装阶段设置访问 DCA 服务白名单，多个白名单以 `,` 分割 (如：`192.168.0.1/24,10.10.0.1/24`)
 
 ### 外部采集器相关 {#env-external-inputs}
@@ -145,18 +145,18 @@ NAME1="value1" NAME2="value2"
 
 ### Confd 配置相关 {#env-connfd}
 
-| 环境变量名                 | 类型   | 适用场景            | 说明     | 样例值 |
-| ----                     | ----   | ----               | ----     | ---- |
-| DK_CONFD_BACKEND        | string |  全部              | 后端源类型  | `etcdv3`或`zookeeper`或`redis`或`consul` |
-| DK_CONFD_BASIC_AUTH     | string | `etcdv3`或`consul` | 可选      | |
-| DK_CONFD_CLIENT_CA_KEYS | string | `etcdv3`或`consul` | 可选      | |
-| DK_CONFD_CLIENT_CERT    | string | `etcdv3`或`consul` | 可选      | |
-| DK_CONFD_CLIENT_KEY     | string | `etcdv3`或`consul`或`redis` | 可选      | |
-| DK_CONFD_BACKEND_NODES  | string |  全部              | 后端源地址 | `[IP地址:2379,IP地址2:2379]` |
-| DK_CONFD_PASSWORD       | string | `etcdv3`或`consul` | 可选      |  |
-| DK_CONFD_SCHEME         | string | `etcdv3`或`consul` | 可选      |  |
-| DK_CONFD_SEPARATOR      | string | `redis`            | 可选默认0 |  |
-| DK_CONFD_USERNAME       | string | `etcdv3`或`consul` | 可选      |  |
+| 环境变量名              | 类型   | 适用场景                        | 说明       | 样例值                                         |
+| ----                    | ----   | ----                            | ----       | ----                                           |
+| DK_CONFD_BACKEND        | string | 全部                            | 后端源类型 | `etcdv3` 或 `zookeeper` 或 `redis` 或 `consul` |
+| DK_CONFD_BASIC_AUTH     | string | `etcdv3` 或 `consul`            | 可选       |                                                |
+| DK_CONFD_CLIENT_CA_KEYS | string | `etcdv3` 或 `consul`            | 可选       |                                                |
+| DK_CONFD_CLIENT_CERT    | string | `etcdv3` 或 `consul`            | 可选       |                                                |
+| DK_CONFD_CLIENT_KEY     | string | `etcdv3` 或 `consul` 或 `redis` | 可选       |                                                |
+| DK_CONFD_BACKEND_NODES  | string | 全部                            | 后端源地址 | `[IP:2379, IP2:2379]`                          |
+| DK_CONFD_PASSWORD       | string | `etcdv3` 或 `consul`            | 可选       |                                                |
+| DK_CONFD_SCHEME         | string | `etcdv3` 或 `consul`            | 可选       |                                                |
+| DK_CONFD_SEPARATOR      | string | `redis`                         | 可选默认 0 |                                                |
+| DK_CONFD_USERNAME       | string | `etcdv3` 或 `consul`            | 可选       |                                                |
 
 ### Git 配置相关 {#env-gitrepo}
 

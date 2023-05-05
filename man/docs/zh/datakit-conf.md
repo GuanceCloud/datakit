@@ -56,7 +56,7 @@ DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基
     [http_api]
        listen = "/tmp/datakit.sock"
     ```
-    配置完成后可以使用 `curl` 命令测试是否配置成功: `sudo curl --no-buffer -XGET --unix-socket /tmp/datakit.sock http:/localhost/v1/ping`。更多关于 `curl` 的测试命令的信息可以参阅[这里](https://superuser.com/a/925610)。
+    配置完成后可以使用 `curl` 命令测试是否配置成功: `sudo curl --no-buffer -XGET --unix-socket /tmp/datakit.sock http:/localhost/v1/ping`。更多关于 `curl` 的测试命令的信息可以参阅[这里](https://superuser.com/a/925610){:target="_blank"}。
     
     ### HTTP 请求频率控制 {#set-http-api-limit}
     
@@ -113,7 +113,7 @@ DataKit 允许给其采集的所有数据配置全局标签，全局标签分为
 
 ### 全局 Tag 在远程采集时的设置 {#notice-global-tags}
 
-因为 DataKit 会默认给采集到的所有数据追加标签 `host=<DataKit所在主机名>`，但某些情况这个默认追加的 `host` 会带来困扰。
+因为 DataKit 会默认给采集到的所有数据追加标签 `host=<DataKit 所在主机名>`，但某些情况这个默认追加的 `host` 会带来困扰。
 
 以 MySQL 为例，如果 MySQL 不在 DataKit 所在机器，但又希望这个 `host` 标签是被采集的 MySQL 的真实主机名（或云数据库的其它标识字段），而非 DataKit 所在的主机名。
 

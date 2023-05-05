@@ -241,7 +241,7 @@ spec:
 | 环境变量名称       | 类型   | 默认值 | 必须   | 说明                |
 | ---------:         | ----:  | ---:   | ------ | ----                |
 | `ENV_ENABLE_PPROF` | bool   | -      | 否     | 是否开启 `pprof`    |
-| `ENV_PPROF_LISTEN` | string | 无     | 否     | `pprof`服务监听地址 |
+| `ENV_PPROF_LISTEN` | string | 无     | 否     | `pprof` 服务监听地址|
 
 ### 选举相关环境变量 {#env-elect}
 
@@ -268,24 +268,24 @@ spec:
 
 ### Confd 配置相关环境变量 {#env-confd}
 
-| 环境变量名                     | 类型   | 适用场景                    | 说明                 | 样例值                                                |
-| ----                           | ----   | ----                        | ----                 | ----                                                  |
-| `ENV_CONFD_BACKEND`            | string | 全部                        | 后端源类型           | `etcdv3`或`zookeeper`或`redis`或`consul`              |
-| `ENV_CONFD_BASIC_AUTH`         | string | `etcdv3`或`consul`          | 可选                 |                                                       |
-| `ENV_CONFD_CLIENT_CA_KEYS`     | string | `etcdv3`或`consul`          | 可选                 |                                                       |
-| `ENV_CONFD_CLIENT_CERT`        | string | `etcdv3`或`consul`          | 可选                 |                                                       |
-| `ENV_CONFD_CLIENT_KEY`         | string | `etcdv3`或`consul`或`redis` | 可选                 |                                                       |
-| `ENV_CONFD_BACKEND_NODES`      | string | 全部                        | 后端源地址           | `["IP地址:2379","IP地址2:2379"]` (Nacos 加 `http://`) |
-| `ENV_CONFD_PASSWORD`           | string | `etcdv3`或`consul`或`nacos` | 可选                 |                                                       |
-| `ENV_CONFD_SCHEME`             | string | `etcdv3`或`consul`          | 可选                 |                                                       |
-| `ENV_CONFD_SEPARATOR`          | string | `redis`                     | 可选默认0            |                                                       |
-| `ENV_CONFD_USERNAME`           | string | `etcdv3`或`consul`或`nacos` | 可选                 |                                                       |
-| `ENV_CONFD_ACCESS_KEY`         | string | `nacos`或`aws`              | 可选                 |                                                       |
-| `ENV_CONFD_SECRET_KEY`         | string | `nacos`或`aws`              | 可选                 |                                                       |
-| `ENV_CONFD_CIRCLE_INTERVAL`    | string | `nacos`或`aws`              | 可选                 | 默认 60                                               |
-| `ENV_CONFD_CONFD_NAMESPACE`    | string | `nacos`                     | 配置信息空间ID       | `6aa36e0e-bd57-4483-9937-e7c0ccf59599`                |
-| `ENV_CONFD_PIPELINE_NAMESPACE` | string | `nacos`                     | `pipeline`信息空间ID | `d10757e6-aa0a-416f-9abf-e1e1e8423497`                |
-| `ENV_CONFD_REGION`             | string | `aws`                       | AWS 服务区           | `cn-north-1`                                          |
+| 环境变量名                     | 类型   | 适用场景                        | 说明                   | 样例值                                         |
+| ----                           | ----   | ----                            | ----                   | ----                                           |
+| `ENV_CONFD_BACKEND`            | string | 全部                            | 后端源类型             | `etcdv3` 或 `zookeeper` 或 `redis` 或 `consul` |
+| `ENV_CONFD_BASIC_AUTH`         | string | `etcdv3` 或 `consul`            | 可选                   |                                                |
+| `ENV_CONFD_CLIENT_CA_KEYS`     | string | `etcdv3` 或 `consul`            | 可选                   |                                                |
+| `ENV_CONFD_CLIENT_CERT`        | string | `etcdv3` 或 `consul`            | 可选                   |                                                |
+| `ENV_CONFD_CLIENT_KEY`         | string | `etcdv3` 或 `consul` 或 `redis` | 可选                   |                                                |
+| `ENV_CONFD_BACKEND_NODES`      | string | 全部                            | 后端源地址             | `["IP:2379","IP2:2379"]` (Nacos 加 `http://`)  |
+| `ENV_CONFD_PASSWORD`           | string | `etcdv3` 或 `consul` 或 `nacos` | 可选                   |                                                |
+| `ENV_CONFD_SCHEME`             | string | `etcdv3` 或 `consul`            | 可选                   |                                                |
+| `ENV_CONFD_SEPARATOR`          | string | `redis`                         | 可选默认 0             |                                                |
+| `ENV_CONFD_USERNAME`           | string | `etcdv3` 或 `consul` 或 `nacos` | 可选                   |                                                |
+| `ENV_CONFD_ACCESS_KEY`         | string | `nacos` 或 `aws`                | 可选                   |                                                |
+| `ENV_CONFD_SECRET_KEY`         | string | `nacos` 或 `aws`                | 可选                   |                                                |
+| `ENV_CONFD_CIRCLE_INTERVAL`    | string | `nacos` 或 `aws`                | 可选                   | 默认 60                                        |
+| `ENV_CONFD_CONFD_NAMESPACE`    | string | `nacos`                         | 配置信息空间 ID        | `6aa36e0e-bd57-4483-9937-e7c0ccf59599`         |
+| `ENV_CONFD_PIPELINE_NAMESPACE` | string | `nacos`                         | `pipeline` 信息空间 ID | `d10757e6-aa0a-416f-9abf-e1e1e8423497`         |
+| `ENV_CONFD_REGION`             | string | `aws`                           | AWS 服务区             | `cn-north-1`                                   |
 
 ### Git 配置相关环境变量 {#env-git}
 

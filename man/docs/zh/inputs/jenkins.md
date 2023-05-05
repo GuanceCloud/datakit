@@ -6,7 +6,7 @@
 
 ---
 
-Jenkins 采集器是通过插件 `Metrics` 采集数据监控 Jenkins，包括但不限于任务数，系统 cpu 使用，`jvm cpu`使用等
+Jenkins 采集器是通过插件 Metrics 采集数据监控 Jenkins，包括但不限于任务数、系统 CPU 使用、JVM CPU 使用等。
 
 ## 前置条件 {#requirements}
 

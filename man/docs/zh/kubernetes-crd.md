@@ -238,7 +238,7 @@ spec:
           namespace = "$NAMESPACE"
 ```
 
-> !!! 注意`namespace` 可自定义，`k8sDeployment` 和 `k8sNamespace` 则必须准确
+> !!! 注意 `namespace` 可自定义，`k8sDeployment` 和 `k8sNamespace` 则必须准确
 
 查看部署情况：
 
