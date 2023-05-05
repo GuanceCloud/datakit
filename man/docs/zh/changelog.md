@@ -1682,7 +1682,7 @@ volumes:
 - 完善[主机名覆盖功能](datakit-install#987d5f91)
 - 优化 Pipeline 处理性能（约 15 倍左右，视不同 Pipeline 复杂度而定）
 - 加强[行协议数据检查](apis#2fc2526a)
-- `system` 采集器，增加 [`conntrack`以及`filefd`](system) 两个指标集
+- `system` 采集器，增加 [`conntrack` 以及 `filefd`](system) 两个指标集
 - `datakit.conf` 增加 IO 调参入口，便于用户对 DataKit 网络出口流量做优化（参见下面的 Breaking Changes）
 - DataKit 支持[服务卸载和恢复](datakit-service-how-to#9e00a535)
 - Windows 平台的服务支持通过[命令行管理](datakit-service-how-to#147762ed)
@@ -1699,14 +1699,14 @@ volumes:
 
 ```toml
 [io]
-  feed_chan_size                 = 1024  # IO管道缓存大小
-  hight_frequency_feed_chan_size = 2048  # 高频IO管道缓存大小
-  max_cache_count                = 1024  # 本地缓存最大值，原主配置中 io_cache_count [此数值与max_dynamic_cache_count同时小于等于零将无限使用内存]
+  feed_chan_size                 = 1024  # IO 管道缓存大小
+  hight_frequency_feed_chan_size = 2048  # 高频 IO 管道缓存大小
+  max_cache_count                = 1024  # 本地缓存最大值，原主配置中 io_cache_count [此数值与 max_dynamic_cache_count 同时小于等于零将无限使用内存]
   cache_dump_threshold         = 512   # 本地缓存推送后清理剩余缓存阈值 [此数值小于等于零将不清理缓存，如遇网络中断可导致内存大量占用]
-  max_dynamic_cache_count      = 1024  # HTTP缓存最大值，[此数值与max_cache_count同时小于等于零将无限使用内存]
-  dynamic_cache_dump_threshold = 512   # HTTP缓存推送后清理剩余缓存阈值，[此数值小于等于零将不清理缓存，如遇网络中断可导致内存大量占用]
+  max_dynamic_cache_count      = 1024  # HTTP 缓存最大值，[此数值与 max_cache_count 同时小于等于零将无限使用内存]
+  dynamic_cache_dump_threshold = 512   # HTTP 缓存推送后清理剩余缓存阈值，[此数值小于等于零将不清理缓存，如遇网络中断可导致内存大量占用]
   flush_interval               = "10s" # 推送时间间隔
-  output_file                  = ""    # 输出io数据到本地文件，原主配置中 output_file
+  output_file                  = ""    # 输出 io 数据到本地文件，原主配置中 output_file
 
 [http_api]
 	listen          = "localhost:9529" # 原 http_listen
@@ -1971,7 +1971,7 @@ volumes:
 - 调整 docker 日志采集的[过滤方式](docker#a487059d)
 - [DataKit 支持选举](election)
 - 修复拨测历史数据清理问题
-- 大量文档[发布到语雀](https://www.yuque.com/dataflux/datakit)
+- 大量文档[发布到语雀](https://www.yuque.com/dataflux/datakit){:target="_blank"}
 - [DataKit 支持命令行集成 Telegraf](datakit-tools-how-to#d1b3b29b)
 - DataKit 单实例运行检测
 - DataKit [自动更新功能](datakit-update-crontab)

@@ -127,7 +127,7 @@ create_time 1639657028706
 
 部分字段说明
 
-- `category`: 类别，默认为`default`, 还可取值为`input`， 表明是与采集器 (`input`) 相关
+- `category`: 类别，默认为 `default`, 还可取值为 `input`， 表明是与采集器 (`input`) 相关
 - `status`: 事件等级，可取值为 `info`, `warning`, `error`
 
 ## DataKit 更新 IP 数据库文件 {#install-ipdb}
@@ -365,7 +365,7 @@ datakit debug --bug-report
 
 ### 敏感信息处理 {#sensitive}
 
-信息收集时，敏感信息（如token、密码等）会被自动过滤替换，具体规则如下：
+信息收集时，敏感信息（如 token、密码等）会被自动过滤替换，具体规则如下：
 
 - 环境变量
 

@@ -44,7 +44,7 @@
       # 数据来源，如果为空，则默认使用 'default'
       source = ""
       
-      # 新增标记tag，如果为空，则默认使用 $source
+      # 新增标记 tag，如果为空，则默认使用 $source
       service = ""
       
       # pipeline 脚本路径，如果为空将使用 $source.p，如果 $source.p 不存在将不使用 pipeline
@@ -60,7 +60,7 @@
       
       ## 设置正则表达式，例如 ^\d{4}-\d{2}-\d{2} 行首匹配 YYYY-MM-DD 时间格式
       ## 符合此正则匹配的数据，将被认定为有效数据，否则会累积追加到上一条有效数据的末尾
-      ## 使用3个单引号 '''this-regexp''' 避免转义
+      ## 使用 3 个单引号 '''this-regexp''' 避免转义
       ## 正则表达式链接：https://golang.org/pkg/regexp/syntax/#hdr-Syntax
       # multiline_match = '''^\S'''
 

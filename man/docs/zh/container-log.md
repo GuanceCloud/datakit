@@ -31,7 +31,7 @@ stdout/stderr 日志采集的主要配置有以下两种方式：
     container_exclude_logging = ["image:*"]
     ```
     
-    - `container_include` 和 `container_exclude` 必须以 `image` 开头，格式为一种[类正则的 Glob 通配](https://en.wikipedia.org/wiki/Glob_(programming)){:target="_blank"}：`"image:<glob规则>"`
+    - `container_include` 和 `container_exclude` 必须以 `image` 开头，格式为一种[类正则的 Glob 通配](https://en.wikipedia.org/wiki/Glob_(programming)){:target="_blank"}：`"image:<glob 规则>"`
 
 === "Kubernetes"
 
@@ -86,7 +86,7 @@ stdout/stderr 日志采集的主要配置有以下两种方式：
     "multiline_match" : "^\\d{4}-\\d{2}",
     "enable_diskcache" : false,
 
-    # 用法和上文的 `根据 image 过滤容器` 完全相同，`image:` 后面填写正则表达式
+    # 用法和上文的「根据 image 过滤容器」完全相同，`image:` 后面填写正则表达式
     "only_images"  : ["image:<your_image_regexp>"],
 
     # 可以给该容器/Pod 日志打上额外的标签
@@ -100,16 +100,16 @@ stdout/stderr 日志采集的主要配置有以下两种方式：
 
 Value 字段说明：
 
-| 字段名             | 必填 | 取值             | 默认值 | 说明                                                                                                                                                             |
-| -----              | ---- | ----             | ----   | ----                                                                                                                                                             |
-| `disable`          | N    | true/false       | false  | 是否禁用该 pod/容器的日志采集                                                                                                                                    |
-| `source`           | N    | 字符串           | 无     | 日志来源，参见[容器日志采集的 source 设置](container.md#config-logging-source)                                                                                   |
-| `service`          | N    | 字符串           | 无     | 日志隶属的服务，默认值为日志来源（source）                                                                                                                       |
-| `pipeline`         | N    | 字符串           | 无     | 适用该日志的 Pipeline 脚本，默认值为与日志来源匹配的脚本名（`<source>.p`）                                                                                       |
-| `only_images`      | N    | 字符串数组       | 无     | 针对 Pod 内部多容器情景，如果填写了任何 image 通配，则只采集能匹配这些 image 的容器的日志，类似白名单功能；如果字段为空，即认为采集该 Pod 中所有容器的日志       |
-| `enable_diskcache` | N    | true/false       | false  | 是否开启磁盘缓存，可以有效避免采集延迟，有一定的性能开销，建议只在日志量超过 3000 条/秒再开启                                                                    |
-| `multiline_match`  | N    | 正则表达式字符串 | 无     | 用于[多行日志匹配](logging.md#multiline)时的首行识别，例如 `"multiline_match":"^\\d{4}"` 表示行首是4个数字，在正则表达式规则中`\d` 是数字，前面的 `\` 是用来转义 |
-| `tags`             | N    | key/value 键值对 | 无     | 添加额外的 tags，如果已经存在同名的 key 将以此为准（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) ）                                                  |
+| 字段名             | 必填 | 取值             | 默认值 | 说明                                                                                                                                                                |
+| -----              | ---- | ----             | ----   | ----                                                                                                                                                                |
+| `disable`          | N    | true/false       | false  | 是否禁用该 pod/容器的日志采集                                                                                                                                       |
+| `source`           | N    | 字符串           | 无     | 日志来源，参见[容器日志采集的 source 设置](container.md#config-logging-source)                                                                                      |
+| `service`          | N    | 字符串           | 无     | 日志隶属的服务，默认值为日志来源（source）                                                                                                                          |
+| `pipeline`         | N    | 字符串           | 无     | 适用该日志的 Pipeline 脚本，默认值为与日志来源匹配的脚本名（`<source>.p`）                                                                                          |
+| `only_images`      | N    | 字符串数组       | 无     | 针对 Pod 内部多容器情景，如果填写了任何 image 通配，则只采集能匹配这些 image 的容器的日志，类似白名单功能；如果字段为空，即认为采集该 Pod 中所有容器的日志          |
+| `enable_diskcache` | N    | true/false       | false  | 是否开启磁盘缓存，可以有效避免采集延迟，有一定的性能开销，建议只在日志量超过 3000 条/秒再开启                                                                       |
+| `multiline_match`  | N    | 正则表达式字符串 | 无     | 用于[多行日志匹配](logging.md#multiline)时的首行识别，例如 `"multiline_match":"^\\d{4}"` 表示行首是 4 个数字，在正则表达式规则中 `\d` 是数字，前面的 `\` 是用来转义 |
+| `tags`             | N    | key/value 键值对 | 无     | 添加额外的 tags，如果已经存在同名的 key 将以此为准（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) ）                                                     |
 
 #### 配置示例 {#logging-annotation-label-example}
 
@@ -217,7 +217,7 @@ Value 字段说明：
 | `service`         | N    | 字符串           | 无     | 日志隶属的服务，默认值为日志来源（source）                                                                                                                       |
 | `pipeline`        | N    | 字符串           | 无     | 适用该日志的 Pipeline 脚本，默认值为与日志来源匹配的脚本名（`<source>.p`）                                                                                       |
 | `paths`           | N    | 字符串数组       | 无     | 配置多个文件路径，支持通配符，通配用法详见[此处](logging.md#grok-rules)                                                                                          |
-| `multiline_match` | N    | 正则表达式字符串 | 无     | 用于[多行日志匹配](logging.md#multiline)时的首行识别，例如 `"multiline_match":"^\\d{4}"` 表示行首是4个数字，在正则表达式规则中`\d` 是数字，前面的 `\` 是用来转义 |
+| `multiline_match` | N    | 正则表达式字符串 | 无     | 用于[多行日志匹配](logging.md#multiline)时的首行识别，例如 `"multiline_match":"^\\d{4}"` 表示行首是 4 个数字，在正则表达式规则中 `\d` 是数字，前面的 `\` 是用来转义 |
 | `tags`            | N    | key/value 键值对 | 无     | 添加额外的 tags，如果已经存在同名的 key 将以此为准（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) ）                                                  |
 
 #### 配置示例 {#logging-inside-example}

@@ -117,9 +117,9 @@ dbm = true
 
 ```
 
-- MySQL配置
+- MySQL 配置
 
-修改配置文件(如`mysql.conf`)，开启 `MySQL Performance Schema`， 并配置相关参数：
+修改配置文件(如 *mysql.conf*)，开启 `MySQL Performance Schema`， 并配置相关参数：
 
 ```toml
 [mysqld]
@@ -157,7 +157,7 @@ GRANT EXECUTE ON datakit.* to datakit@'%';
 GRANT CREATE TEMPORARY TABLES ON datakit.* TO datakit@'%';
 ```
 
-创建存储过程 `explain_statement`，用于获取 sql 执行计划
+创建存储过程 `explain_statement`，用于获取 SQL 执行计划
 
 ```sql
 DELIMITER $$
@@ -188,7 +188,7 @@ DELIMITER ;
 GRANT EXECUTE ON PROCEDURE <数据库名称>.explain_statement TO datakit@'%';
 ```
 
-- `consumers`配置
+- `consumers` 配置
 
 方法一（推荐）：通过 `DataKit` 动态配置 `performance_schema.events_*`，需要创建以下存储过程：
 
@@ -315,13 +315,13 @@ SELECT * FROM fruit f1, fruit f2, fruit f3, fruit f4, fruit f5
 | ---                 | ---                                                                                         | ---                            |
 | `bytes_sent`        | `123456`                                                                                    | 发送字节数                     |
 | `db_host`           | `localhost`                                                                                 | hostname                       |
-| `db_ip`             | `1.2.3.4`                                                                                   | ip                             |
-| `db_slow_statement` | `SET timestamp=1574851393;\nSELECT * FROM fruit f1, fruit f2, fruit f3, fruit f4, fruit f5` | 慢查询 sql                     |
+| `db_ip`             | `1.2.3.4`                                                                                   | IP                             |
+| `db_slow_statement` | `SET timestamp=1574851393;\nSELECT * FROM fruit f1, fruit f2, fruit f3, fruit f4, fruit f5` | 慢查询 SQL                     |
 | `db_user`           | `root[root]`                                                                                | 用户                           |
 | `lock_time`         | `0.000184`                                                                                  | 锁时间                         |
-| `query_id`          | `35`                                                                                        | 查询 id                        |
+| `query_id`          | `35`                                                                                        | 查询 ID                        |
 | `query_time`        | `0.2l4922`                                                                                  | SQL 执行所消耗的时间           |
 | `rows_examined`     | `72`                                                                                        | 为了返回查询的数据所读取的行数 |
 | `rows_sent`         | `248832`                                                                                    | 查询返回的行数                 |
-| `thread_id`         | `55`                                                                                        | 线程 id                        |
+| `thread_id`         | `55`                                                                                        | 线程 ID                        |
 | `time`              | `1514520249954078000`                                                                       | 纳秒时间戳（作为行协议时间）   |

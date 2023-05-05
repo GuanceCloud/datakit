@@ -100,7 +100,7 @@ Datakit backend 负责按照配置来操作链路数据，目前支持的操作�
 
 ### Datakit Samplers {#samplers}
 
-目前 Datakit 尊重客户端的采样优先级配, [DDTrace Sampling Rules](https://docs.datadoghq.com/tracing/faq/trace_sampling_and_storage)。
+目前 Datakit 尊重客户端的采样优先级配, [DDTrace Sampling Rules](https://docs.datadoghq.com/tracing/faq/trace_sampling_and_storage){:target="_blank"}。
 
 - 情况一
 

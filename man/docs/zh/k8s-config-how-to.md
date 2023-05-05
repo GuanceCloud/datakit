@@ -38,7 +38,7 @@ DataKit 运行在 K8s 环境中时，实际上跟运行在主机上并无太大�
 ENV_INPUT_XXX_YYY
 ```
 
-此处 `XXX` 指采集器名字，`YYY` 即该采集器配置中的特定配置字段，比如 `ENV_INPUT_CPU_PERCPU` 用来调整 [CPU 采集器](cpu.md) _是否采集每个 CPU 核心的指标_（默认情况下，该选项是默认关闭的，即不采集每个核心的 CPU 指标）
+此处 `XXX` 指采集器名字，`YYY` 即该采集器配置中的特定配置字段，比如 `ENV_INPUT_CPU_PERCPU` 用来调整 [CPU 采集器](cpu.md) 「是否采集每个 CPU 核心的指标」（默认情况下，该选项是默认关闭的，即不采集每个核心的 CPU 指标）
 
 需要注意的是，目前并不是所有的采集器都支持 ENV 注入。支持 ENV 注入的采集器，一般都是[默认开启的采集器](datakit-input-conf.md#default-enabled-inputs)。通过 ConfigMap 开启的采集器，也支持 ENV 注入的（具体看该采集器是否支持），而且**默认以 ENV 注入的为准**。
 
@@ -46,7 +46,7 @@ ENV_INPUT_XXX_YYY
 
 ### 通过 Annotation 配置 {#annotation}
 
-目前 Annotation 配置的方式支持面较之 ENV 方式更为狭窄，它主要用来**标记被采集实体**，比如_是否需要开启/关闭某实体的采集（含日志采集、指标采集等）_
+目前 Annotation 配置的方式支持面较之 ENV 方式更为狭窄，它主要用来**标记被采集实体**，比如「是否需要开启/关闭某实体的采集（含日志采集、指标采集等）」
 
 通过 Annotation 来干预采集器配置的场景比较特殊，比如在容器（Pod）日志采集器中，如果禁止采集所有日志（在容器采集器中 `container_exclude_log = [image:*]`），但只希望开启特定某些 Pod 的日志采集，那么就可以在特定的这些 Pod 上追加 Annotation 加以标记：
 

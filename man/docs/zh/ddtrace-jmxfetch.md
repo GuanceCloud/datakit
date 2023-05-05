@@ -27,9 +27,9 @@ tcp6       0     0 :::9000                 :::*                   LISTEN     937
 
 JMXFetch 是从 JMX 服务器收集指标以 statsD 数据结构形式向外发送。本身集成在 *dd-java-agent* 中。
 
-默认会采集 JVM 信息：JVM CPU、JVM Mem、JVM Thread、Class等。 具体[指标集列表列表](jvm.md#dd-jvm-measurement)
+默认会采集 JVM 信息：JVM CPU、JVM Mem、JVM Thread、Class 等。 具体[指标集列表列表](jvm.md#dd-jvm-measurement)
 
-默认情况下采集到的指标信息发送到 `localhost:8125` 确定已经[开启 statsd采集器](statsd.md)是开启的。
+默认情况下采集到的指标信息发送到 `localhost:8125` 确定已经[开启 statsd 采集器](statsd.md)是开启的。
 
 如果是 k8s 环境下，需要配置 StatsD host 和 port：
 

@@ -237,7 +237,7 @@ $ curl -X POST 'http://127.0.0.1:9539/v1/datakit/upgrade'
     ```
 <!-- markdownlint-enable -->
 
-上述命令中的`<版本号>`，可以从 [DataKit 的发布历史](changelog.md)页面找到。
+上述命令中的 `<版本号>`，可以从 [DataKit 的发布历史](changelog.md)页面找到。
 
 若要回退 DataKit 版本，目前只支持退回到 [1.2.0](changelog.md#cl-1.2.0) 以后的版本，之前的 rc 版本不建议回退。
 

@@ -22,21 +22,21 @@
 
 ### 服务部署链接 {#service-dep}
 
-| **接入站点**     | **您的服务器所在 Region** | **计算巢部署链接**                                                                                                                                                            |
-| --------         | ----------------------    | -----------                                                                                                                                                                   |
-| 中国区1（杭州）  | `cn-hangzhou` (杭州)      | [观测云数据网关虚拟私网-杭州](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-68c8fee7f0554d6b9baa){:target="_blank"}         |
-| 中国区1（杭州）  | `cn-beijing` (北京)       | [观测云数据网关虚拟私网-北京到杭州](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-af3b4511d9214c9ebaba){:target="_blank"}   |
-| 中国区3（张家口) | `cn-beijing` (北京)       | [观测云数据网关虚拟私网-北京到张家口](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-a22bc59ed53c4946b8ce){:target="_blank"} |
-| 中国区3（张家口) | `cn-hangzhou` (杭州)      | [观测云数据网关虚拟私网-杭州到张家口](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-87a611279d9a42ceaeb2){:target="_blank"} |
+| **接入站点**      | **您的服务器所在 Region** | **计算巢部署链接**                                                                                                                                                            |
+| --------          | ----------------------    | -----------                                                                                                                                                                   |
+| 中国区 1（杭州）  | `cn-hangzhou` (杭州)      | [观测云数据网关虚拟私网-杭州](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-68c8fee7f0554d6b9baa){:target="_blank"}         |
+| 中国区 1（杭州）  | `cn-beijing` (北京)       | [观测云数据网关虚拟私网-北京到杭州](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-af3b4511d9214c9ebaba){:target="_blank"}   |
+| 中国区 3（张家口) | `cn-beijing` (北京)       | [观测云数据网关虚拟私网-北京到张家口](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-a22bc59ed53c4946b8ce){:target="_blank"} |
+| 中国区 3（张家口) | `cn-hangzhou` (杭州)      | [观测云数据网关虚拟私网-杭州到张家口](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-87a611279d9a42ceaeb2){:target="_blank"} |
 
 ### 不同 Region 的私网数据网关默认 Endpoint {#region-endpoint}
 
-| **接入站点**     | **您的服务器所在 Region** | **Endpoint**                         |
-| --------         | ----------------------    | -----------                          |
-| 中国区1（杭州）  | `cn-hangzhou` (杭州)        | `https://openway.guance.com`         |
-| 中国区1（杭州）  | `cn-beijing` (北京)         | `https://beijing-openway.guance.com` |
-| 中国区3（张家口) | `cn-beijing` (北京)         | `https://cn3-openway.guance.com`     |
-| 中国区3（张家口) | `cn-hangzhou` (杭州)        | `https://cn3-openway.guance.com`     |
+| **接入站点**      | **您的服务器所在 Region** | **Endpoint**                         |
+| --------          | ----------------------    | -----------                          |
+| 中国区 1（杭州）  | `cn-hangzhou` (杭州)      | `https://openway.guance.com`         |
+| 中国区 1（杭州）  | `cn-beijing` (北京)       | `https://beijing-openway.guance.com` |
+| 中国区 3（张家口) | `cn-beijing` (北京)       | `https://cn3-openway.guance.com`     |
+| 中国区 3（张家口) | `cn-hangzhou` (杭州)      | `https://cn3-openway.guance.com`     |
 
 **其他地域的虚拟互联网服务即将上线。**
 

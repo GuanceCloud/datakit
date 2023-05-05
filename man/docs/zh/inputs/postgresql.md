@@ -51,12 +51,12 @@ PostgreSQL 采集器可以从 PostgreSQL 实例中采集实例运行状态指标
 
 ## 日志采集 {#logging}
 
-- PostgreSQL 日志默认是输出至`stderr`，如需开启文件日志，可在 PostgreSQL 的配置文件 `/etc/postgresql/<VERSION>/main/postgresql.conf` ， 进行如下配置:
+- PostgreSQL 日志默认是输出至 `stderr`，如需开启文件日志，可在 PostgreSQL 的配置文件 `/etc/postgresql/<VERSION>/main/postgresql.conf` ， 进行如下配置:
 
 ```toml
 logging_collector = on    # 开启日志写入文件功能
 
-log_directory = 'pg_log'  # 设置文件存放目录，绝对路径或相对路径(相对PGDATA)
+log_directory = 'pg_log'  # 设置文件存放目录，绝对路径或相对路径(相对 PGDATA)
 
 log_filename = 'pg.log'   # 日志文件名称
 log_statement = 'all'     # 记录所有查询
@@ -71,7 +71,7 @@ log_file_mode = 0644
 
 更多配置，请参考[官方文档](https://www.postgresql.org/docs/11/runtime-config-logging.html){:target="_blank"}。
 
-- PostgreSQL 采集器默认是未开启日志采集功能，可在 `conf.d/{{.Catalog}}/{{.InputName}}.conf` 中 将 `files` 打开，并写入 PostgreSQL 日志文件的绝对路径。比如:
+- PostgreSQL 采集器默认是未开启日志采集功能，可在 *conf.d/{{.Catalog}}/{{.InputName}}.conf* 中 将 `files` 打开，并写入 PostgreSQL 日志文件的绝对路径。比如:
 
 ```toml
 [[inputs.postgresql]]
@@ -82,7 +82,7 @@ log_file_mode = 0644
   files = ["/tmp/pgsql/postgresql.log"]
 ```
 
-开启日志采集后，默认会产生日志来源(`source`)为`postgresql`的日志。
+开启日志采集后，默认会产生日志来源（`source`）为 PostgreSQL 的日志。
 
 > 注意：日志采集仅支持已安装 DataKit 主机上的日志。
 
@@ -105,9 +105,9 @@ log_file_mode = 0644
 | ---                | ---                       | ---                                                       |
 | `application_name` | `pgAdmin 4 - DB:postgres` | 连接当前数据库的应用的名称                                |
 | `db_name`          | `test`                    | 访问的数据库                                              |
-| `process_id`       | `74305`                   | 当前连接的客户端进程ID                                    |
+| `process_id`       | `74305`                   | 当前连接的客户端进程 ID                                   |
 | `remote_host`      | `127.0.0.1`               | 客户端的地址                                              |
-| `session_id`       | `60b48f01.12241`          | 当前会话的ID                                              |
+| `session_id`       | `60b48f01.12241`          | 当前会话的 ID                                             |
 | `user`             | `postgres`                | 当前访问用户名                                            |
 | `status`           | `LOG`                     | 当前日志的级别(LOG,ERROR,FATAL,PANIC,WARNING,NOTICE,INFO) |
 | `time`             | `1622445825110000000`     | 日志产生时间                                              |

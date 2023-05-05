@@ -232,7 +232,7 @@ func (m *zhangsanMeasurement) LineProto() (*point.Point, error) {
 }
 ```
 
-`AvailableArchs()` 要修改，使得文档展示`选举`图标
+`AvailableArchs()` 要修改，使得文档展示「选举」图标
 
 ```golang
 func (*Input) AvailableArchs() []string { return datakit.AllOSWithElection }
@@ -297,7 +297,7 @@ datakit -M --vvv            # 检查所有采集器的运行情况
 
     #### 安装 Golang
     
-    当前 Go 版本 [1.18.3](https://golang.org/dl/go1.18.3.linux-amd64.tar.gz)
+    当前 Go 版本 [1.18.3](https://golang.org/dl/go1.18.3.linux-amd64.tar.gz){:target="_blank"}
     
     #### CI 设置
     
@@ -340,13 +340,13 @@ datakit -M --vvv            # 检查所有采集器的运行情况
     
     - `tree`
     - `make`
-    - [`goyacc`](https://gist.github.com/tlightsky/9a163e59b6f3b05dbac8fc6b459a43c0): `go install golang.org/x/tools/cmd/goyacc@master`
-    - [`golangci-lint`](https://golangci-lint.run/usage/install/#local-installation): `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.2`
+    - [`goyacc`](https://gist.github.com/tlightsky/9a163e59b6f3b05dbac8fc6b459a43c0){:target="_blank"}: `go install golang.org/x/tools/cmd/goyacc@master`
+    - [`golangci-lint`](https://golangci-lint.run/usage/install/#local-installation){:target="_blank"}: `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.2`
     - `gofumpt`: `go install mvdan.cc/gofumpt@v0.1.1`
     - `wget`
     - Docker
     - `curl`
-    - [LLVM](https://apt.llvm.org/): 版本 >= 10.0
+    - [LLVM](https://apt.llvm.org/){:target="_blank"}: 版本 >= 10.0
     - Clang: 版本 >= 10.0
     - Linux 内核（>= 5.4.0-99-generic）头文件：`apt-get install -y linux-headers-$(uname -r)` 
     - cspell: https://cspell.org/

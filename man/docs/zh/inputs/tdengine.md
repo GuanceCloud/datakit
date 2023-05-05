@@ -31,7 +31,7 @@ TDengine 采集器需要的连接 `taos_adapter` 才可以正常工作，taosAda
 ???+ tip
 
     - 连接 taoAdapter 之前请先确定端口是开放的。并且连接用户需要有 read 权限。
-    - 若仍连接失败，[请参考此处](https://docs.taosdata.com/2.6/train-faq/faq/)。
+    - 若仍连接失败，[请参考此处](https://docs.taosdata.com/2.6/train-faq/faq/){:target="_blank"}。
 <!-- markdownlint-enable -->
 
 ### TDengine 仪表板 {#td-dashboard}

@@ -101,3 +101,5 @@ golangci
 !json
 !Json
 !sink
+!github
+!sql

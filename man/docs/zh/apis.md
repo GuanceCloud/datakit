@@ -262,14 +262,14 @@ Content-Type: application/json
 {
     "queries":[
         {
-            "query": "cpu:(usage_idle) LIMIT 1",  # dql查询语句（必填）
-            "conditions": "",                     # 追加dql查询条件
+            "query": "cpu:(usage_idle) LIMIT 1",  # DQL 查询语句（必填）
+            "conditions": "",                     # 追加 DQL 查询条件
             "max_duration": "1d",                 # 最大时间范围
             "max_point": 0,                       # 最大点数
             "time_range": [],                     #
             "orderby": [],                        #
-            "disable_slimit": true,               # 禁用默认SLimit，当为true时，将不添加默认SLimit值，否则会强制添加SLimit 20
-            "disable_multiple_field": true        # 禁用多字段。当为true时，只能查询单个字段的数据（不包括time字段）
+            "disable_slimit": true,               # 禁用默认 SLimit，当为 true 时，将不添加默认 SLimit 值，否则会强制添加 SLimit 20
+            "disable_multiple_field": true        # 禁用多字段。当为 true 时，只能查询单个字段的数据（不包括 time 字段）
         }
     ],
     "echo_explain":true
@@ -280,7 +280,7 @@ Content-Type: application/json
 
 | 名称                     | 说明                                                                                                                                                                                                                       |
 | :----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `conditions`             | 额外添加条件表达式，使用 DQL 语法，例如`hostname="cloudserver01" OR system="ubuntu"`。与现有 `query` 中的条件表达式成 `AND` 关系，且会在最外层添加括号避免与其混乱                                                         |
+| `conditions`             | 额外添加条件表达式，使用 DQL 语法，例如 `hostname="cloudserver01" OR system="ubuntu"`。与现有 `query` 中的条件表达式成 `AND` 关系，且会在最外层添加括号避免与其混乱                                                         |
 | `disable_multiple_field` | 是否禁用多字段。当为 true 时，只能查询单个字段的数据（不包括 time 字段），默认为 `false`                                                                                                                                   |
 | `disable_slimit`         | 是否禁用默认 SLimit，当为 true 时，将不添加默认 SLimit 值，否则会强制添加 SLimit 20，默认为 `false`                                                                                                                        |
 | `echo_explain`           | 是否返回最终执行语句（返回 JSON 数据中的 `raw_query` 字段）                                                                                                                                                                |
@@ -289,7 +289,7 @@ Content-Type: application/json
 | `max_duration`           | 限制最大查询时间，支持单位 `ns/us/ms/s/m/h/d/w/y` ，例如 `3d` 是 3 天，`2w` 是 2 周，`1y` 是 1 年。默认是 1 年，此参数同样会限制 `time_range` 参数                                                                         |
 | `max_point`              | 限制聚合最大点数。在使用聚合函数时，如果聚合密度过小导致点数太多，则会以 `(end_time-start_time)/max_point` 得到新的聚合间隔将其替换                                                                                        |
 | `offset`                 | 一般跟 limit 配置使用，用于结果分页                                                                                                                                                                                        |
-| `orderby`                | 指定`order by`参数，内容格式为 `map[string]string` 数组，`key` 为要排序的字段名，`value` 只能是排序方式即 `asc` 和 `desc`，例如 `[ { "column01" : "asc" }, { "column02" : "desc" } ]`。此条会替换原查询语句中的 `order by` |
+| `orderby`                | 指定 `order by` 参数，内容格式为 `map[string]string` 数组，`key` 为要排序的字段名，`value` 只能是排序方式即 `asc` 和 `desc`，例如 `[ { "column01" : "asc" }, { "column02" : "desc" } ]`。此条会替换原查询语句中的 `order by` |
 | `queries`                | 基础查询模块，包含查询语句和各项附加参数                                                                                                                                                                                   |
 | `query`                  | DQL 查询语句（DQL [文档](../dql/define.md)）                                                                                                                                                                               |
 | `search_after`           | 深度分页，第一次调用分页的时候，传入空列表：`"search_after": []`，成功后服务端会返回一个列表，客户端直接复用这个列表的值再次通过 `search_after` 参数回传给后续的查询即可                                                   |
@@ -331,7 +331,7 @@ Content-Type: application/json
 
 创建或者更新对象的 `labels`
 
-`request body`说明
+`request body` 说明
 
 |           参数 | 描述                                                                          | 类型       |
 | -------------: | ----------------------------------------------------------------------------- | ---------- |
@@ -384,7 +384,7 @@ status_code: 500
 |           参数 | 描述                                                                          | 类型     |
 | -------------: | ----------------------------------------------------------------------------- | -------- |
 | `object_class` | 表示 `labels` 所关联的 `object` 类型，如 `HOST`                               | `string` |
-|  `object_name` | 表示 `labels` 所关联的 `object`名称，如 `host-123`                            | `string` |
+|  `object_name` | 表示 `labels` 所关联的 `object` 名称，如 `host-123`                           | `string` |
 |          `key` | 表示 `labels` 所关联的 `object` 的具体字段名，如进程名字段 `process_name`     | `string` |
 |        `value` | 表示 `labels` 所关联的 `object` 的具体字段值，如进程名为 `systemsoundserverd` | `void`   |
 
@@ -543,7 +543,7 @@ Content-Type: application/json
         "post_url":"",
         "cur_status":"",
         "frequency":"",
-        "enable_traceroute":true,//true代表勾选，tcp，icmp才有用
+        "enable_traceroute":true, // true 代表勾选，tcp，icmp 才有用
         "success_when_logic":"",
         "SuccessWhen":[]*HTTPSuccess ,
         "tags":map[string]string ,

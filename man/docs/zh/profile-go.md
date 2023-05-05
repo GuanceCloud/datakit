@@ -17,7 +17,7 @@ Go 内置了性能分析 (Profiling) 工具 `pprof`，可以采集程序运行�
 - `block`: 阻塞分析
 - `mutex`: 互斥锁分析
 
-收集到的数据，可以通过官方 [`pprof`](https://github.com/google/pprof/blob/main/doc/README.md) 工具进行分析。
+收集到的数据，可以通过官方 [`pprof`](https://github.com/google/pprof/blob/main/doc/README.md){:target="_blank"} 工具进行分析。
 
 DataKit 可通过[主动拉取](profile-go.md#pull-mode) (pull) 或[被动推送](profile-go.md#push-mode) (push) 的方式来获取这些数据。
 
@@ -37,7 +37,7 @@ DataKit 开启 [profile](profile.md#config)  采集器，注册 profile http 服
 
 ### Go 应用配置 {#push-app-config}
 
-集成 DataDog 开源库 [dd-trace-go](https://github.com/DataDog/dd-trace-go)，采集应用性能数据并发送至 DataKit。 代码参考如下：
+集成 DataDog 开源库 [dd-trace-go](https://github.com/DataDog/dd-trace-go){:target="_blank"}，采集应用性能数据并发送至 DataKit。 代码参考如下：
 
 ```go
 package main
@@ -126,7 +126,7 @@ runtime.SetMutexProfileFraction(rate)
 runtime.SetBlockProfileRate(rate)
 ```
 
-`rate` 设置采集频率，即 1 / rate 的事件被采集， 如设置为 0或小于 0 的数值，是不进行采集的。
+`rate` 设置采集频率，即 1/rate 的事件被采集， 如设置为 0 或小于 0 的数值，是不进行采集的。
 
 ### DataKit 配置 {#datakit-config}
 

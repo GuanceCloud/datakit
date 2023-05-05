@@ -92,7 +92,7 @@ diskperf -Y
 
 ```
 
-- 安装 `sar` 命令, 具体参考 [https://github.com/sysstat/sysstat#installation](https://github.com/sysstat/sysstat#installation)
+- 安装 `sar` 命令, 具体参考 [https://github.com/sysstat/sysstat#installation](https://github.com/sysstat/sysstat#installation){:target="_blank"}
 
 ubuntu 安装参考如下
 
@@ -135,7 +135,7 @@ Average:     dev253-1      0.00      0.00      0.00      0.00      0.00      0.0
 
 ### 采集脚本 {#py-script}
 
-新建文件 `<DataKit目录>/python.d/diskio/diskio.py`，脚本内容如下：
+新建文件 *<DataKit 目录>/python.d/diskio/diskio.py*，脚本内容如下：
 
 ```python
 import subprocess
@@ -229,7 +229,7 @@ class DiskIO(DataKitFramework):
 
 ### 指标列表 {#ext-metrics}
 
-`sar` 命令可以获取很多有用的[磁盘指标](https://man7.org/linux/man-pages/man1/sar.1.html)，上述脚本只采集了 `await` 和 `svctm`，如果需要采集额外的指标，可以对脚本进行相应修改。
+`sar` 命令可以获取很多有用的[磁盘指标](https://man7.org/linux/man-pages/man1/sar.1.html){:target="_blank"}，上述脚本只采集了 `await` 和 `svctm`，如果需要采集额外的指标，可以对脚本进行相应修改。
 
 | Metric  | Description                                                                                                                                                                      | Type  | Unit |
 | ----    | ----                                                                                                                                                                             | ----  | ---- |

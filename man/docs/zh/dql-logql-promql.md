@@ -16,9 +16,9 @@ PromQL 是 [Prometheus](https://prometheus.io/){:target="_blank"} 中用于查�
 
 | 查询语言  | 基本结构 |
 | --------- | -------  |
-| PromQL    | `指标 {条件过滤列表} [起始时间:结束时间]`
+| PromQL    | `metric-name {conditions} [start-time:end-time]`
 | LogQL     | `{stream-selector} log-pipeline` |
-| DQL       | `namespace::指标集:(指标列表) [起始时间:结束时间:分组间隔] { 条件过滤列表 } GROUP-BY-clause ORDER-BY-clause` |
+| DQL       | `namespace::measurement:(metric-list) [start-time:end-time:time-interval] { conditions } GROUP-BY-clause ORDER-BY-clause` |
 
 下面分别加以说明。
 

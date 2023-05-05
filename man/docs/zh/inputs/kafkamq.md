@@ -145,7 +145,7 @@ set_tag(bk_biz_id,bkzid)
 
 add_key(cpu_usage_pct,data["metrics"]["cpu_usage_pct"])
 
-# 注意 此处为行协议缺省值，pl脚本通过之后 这个 message_len 就可以删掉了。
+# 注意 此处为行协议缺省值，Pipeline 脚本通过之后 这个 message_len 就可以删掉了。
 drop_key(message_len)
 ```
 
@@ -157,7 +157,7 @@ drop_key(message_len)
 
 ### 基准测试 {#benchmark}
 
-消息的消费能力受限于网络和带宽的限制，所以基准测试只是测试 Datakit 的消费能力而不是 IO 能力。本次测试的机器配置是 4 核 8 线程、16G 内存。测试过程中 CPU 峰值 60%~70%，内存增加10%。
+消息的消费能力受限于网络和带宽的限制，所以基准测试只是测试 Datakit 的消费能力而不是 IO 能力。本次测试的机器配置是 4 核 8 线程、16G 内存。测试过程中 CPU 峰值 60%~70%，内存增加 10%。
 
 | 消息数量 | 用时    | 每秒消费能力（条） |
 | -------  | ------- | -----------        |
@@ -187,7 +187,7 @@ datakit pipeline -P metric.p -T '{"time": 1666492218,"dimensions":{"bk_biz_id": 
 ```shell
 vim conf/datakit.conf
 
-# 设置为本地文件，就不会输出到io，测试结束之后赋值为空即可。
+# 设置为本地文件，就不会输出到 io，测试结束之后赋值为空即可。
 output_file = "/usr/local/datakit/out.pts"
 # 查看文件 out.pts 是否正确
 ```

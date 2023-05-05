@@ -26,11 +26,11 @@ Datakit 支持 `etcd-v3` `consul` `redis` `zookeeper` `aws secrets manager` `nac
     [[confds]]
       enable = true
       backend = "zookeeper"
-      nodes = ["IP地址:2181","IP地址2:2181"...]
+      nodes = ["IP:2181","IP2:2181"...]
     [[confds]]
       enable = true
       backend = "etcdv3"
-      nodes = ["IP地址:2379","IP地址2:2379"...]
+      nodes = ["IP:2379","IP2:2379"...]
       # client_cert = "可选"
       # client_key = "可选"
       # client_ca_keys = "可选"
@@ -40,13 +40,13 @@ Datakit 支持 `etcd-v3` `consul` `redis` `zookeeper` `aws secrets manager` `nac
     [[confds]]
       enable = true
       backend = "redis"
-      nodes = ["IP地址:6379","IP地址2:6379"...]
+      nodes = ["IP:6379","IP2:6379"...]
       # client_key = "可选"
-      # separator = "可选|默认是0"
+      # separator = "可选|默认是 0"
     [[confds]]
       enable = true
       backend = "consul"
-      nodes = ["IP地址:8500","IP地址2:8500"...]
+      nodes = ["IP:8500","IP2:8500"...]
       # scheme = "可选"
       # client_cert = "可选"
       # client_key = "可选"
@@ -58,13 +58,13 @@ Datakit 支持 `etcd-v3` `consul` `redis` `zookeeper` `aws secrets manager` `nac
       enable = true
       backend = "aws"
       region = "cn-north-1"
-      # Access key ID    : must use the key file `/root/.aws/config` or `ENV`
-      # Secret access key: must use the key file `/root/.aws/config` or `ENV`
+      # Access key ID    : must use the key file /root/.aws/config or ENV
+      # Secret access key: must use the key file /root/.aws/config or ENV
       circle_interval = 60
     [[confds]]
       enable = true
       backend = "nacos"
-      nodes = ["http://IP地址:8848","https://IP地址2:8848"...]
+      nodes = ["http://IP:8848","https://IP2:8848"...]
       # username = "可选"
       # password = "可选"
       circle_interval = 60 
@@ -143,9 +143,9 @@ Value 的内容就是 *conf.d* 子目录下各种配置文件的完整内容。�
   # more_tag = "some_other_value"
 ```
 
-file 模式，file文件内容就是原有的 .conf 文件内容。
+file 模式，file 文件内容就是原有的 *.conf* 文件内容。
 
-## 配置中心如何更新配置(golang为例) {#update-config}
+## 配置中心如何更新配置(Golang 为例) {#update-config}
 
 ### zookeeper {#update-zookeeper}
 
@@ -271,19 +271,18 @@ import (
 )
 
 func redisDo(index int) {
-    // 初始化context
+    // 初始化 context
     ctx := context.Background()
 
-    // 初始化redis客户端
+    // 初始化 Redis 客户端
     rdb := redis.NewClient(&redis.Options{
         Addr:     ip + ":6379",
         Password: "654123", // no password set
         DB:       0,        // use default DB
     })
 
-    // 操作redis
+    // 操作 Redis
     key := "/datakit/confd/host/netstat.conf"
-    // key := "/datakit/pipeline/metric/netstat.p"
     value := `
 [[inputs.netstat]]
   ##(optional) collect interval, default is 10 seconds
@@ -325,12 +324,11 @@ func consulDo(index int) {
         fmt.Println(" error: ", err)
     }
 
-    // 获得KV句柄
+    // 获得 KV 句柄
     kv := client.KV()
   
     // 注意 datakit 前面 没有 /
     key := "/datakit/confd/host/netstat.conf"
-    // key := "/datakit/pipeline/metric/netstat.p"
     value := `
 [[inputs.netstat]]
   ##(optional) collect interval, default is 10 seconds
@@ -340,7 +338,6 @@ func consulDo(index int) {
   # some_tag = "some_value"
   # more_tag = "some_other_value"
 `
-
     // 写入数据
     p := &api.KVPair{Key: key, Value: []byte(data), Flags: 32}
     _, err = kv.Put(p, nil)
@@ -380,7 +377,7 @@ func consulDo(index int) {
         fmt.Printf("ERROR config.LoadDefaultConfig : %v\n", err)
     }
 
-    // 获得KV句柄
+    // 获得 KV 句柄
     conn := secretsmanager.NewFromConfig(config)
   
     key := "/datakit/confd/host/netstat.conf"
@@ -411,17 +408,17 @@ func consulDo(index int) {
 
 ### Nacos {#update-nacos}
 
-1. 通过网址登入`nacos`管理页面。
-2. 创建`/datakit/confd`和`/datakit/pipeline`两个空间。
-3. 分组名按照`datakit/conf.d`和`datakit/pipeline`子目录的样式创建。
-4. `dataID`按照`.conf`文件和`.p`文件的规则创建。(不可省略后缀)。
-5. 通过管理页面增/删/改`dataID`即可。
+1. 通过网址登入 Nacos 管理页面
+1. 创建 `/datakit/confd` 和 `/datakit/pipeline` 两个空间
+1. 分组名按照 `datakit/conf.d` 和 `datakit/pipeline` 子目录的样式创建
+1. `dataID` 按照 `.conf` 文件和 `.p` 文件的规则创建。不可省略后缀
+1. 通过管理页面增/删/改 `dataID` 即可
 
-## 配置中心更新Pipeline {#update-config-pipeline}
+## 配置中心更新 Pipeline {#update-config-pipeline}
 
 参考 [配置中心如何更新配置](confd.md#update-config)
 
-键名 `datakit/confd` 字样改为 `datakit/pipeline` ，再加上 `类型/文件名` 即可。例如 *datakit/pipeline/logging/nginx.p* 键值就是 Pipeline 的文本。
+键名 `datakit/confd` 字样改为 `datakit/pipeline` ，再加上「类型/文件名」即可。例如 *datakit/pipeline/logging/nginx.p* 键值就是 Pipeline 的文本。
 
 更新 Pipeline 支持 etcdV3/Consul/Redis/Zookeeper/AWS Secrets Manager/Nacos。
 

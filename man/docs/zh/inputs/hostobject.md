@@ -37,8 +37,8 @@
     | `ENV_INPUT_HOSTOBJECT_ENABLE_ZERO_BYTES_DISK`        | `ignore_zero_bytes_disk`        | 忽略大小为 0 的磁盘                                                | `true`/`false`                                                                                             |
     | `ENV_INPUT_HOSTOBJECT_TAGS`                          | `tags`                          | 增加额外标签                                                       | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它                                               |
     | `ENV_INPUT_HOSTOBJECT_ONLY_PHYSICAL_DEVICE`          | `only_physical_device`          | 忽略非物理磁盘（如网盘、NFS 等，只采集本机硬盘/CD ROM/USB 磁盘等） | 任意给一个字符串值即可                                                                                     |
-    | `ENV_INPUT_HOSTOBJECT_EXCLUDE_DEVICE`                      | `exclude_device`                | 忽略的device                                | `"/dev/loop0","/dev/loop1"` 以英文逗号隔开                      |
-    | `ENV_INPUT_HOSTOBJECT_EXTRA_DEVICE`                        | `extra_device`                  | 额外增加的device                            | `"/nfsdata"` 以英文逗号隔开                      |
+    | `ENV_INPUT_HOSTOBJECT_EXCLUDE_DEVICE`                      | `exclude_device`                | 忽略的 device                                | `"/dev/loop0","/dev/loop1"` 以英文逗号隔开                      |
+    | `ENV_INPUT_HOSTOBJECT_EXTRA_DEVICE`                        | `extra_device`                  | 额外增加的 device                            | `"/nfsdata"` 以英文逗号隔开                      |
     | `ENV_CLOUD_PROVIDER`                                 | `tags`                          | 指定云服务商                                                       | `aliyun/aws/tencent/hwcloud/azure`                                                                         |
 <!-- markdownlint-enable -->
 
@@ -176,7 +176,7 @@ Datakit 默认开启云同步，目前支持阿里云/腾讯云/AWS/华为云/�
 
 #### `host.election` {#host-election}
 
-> 注意：当配置文件中 `enable_election`选项关闭时，该字段为null
+> 注意：当配置文件中 `enable_election` 选项关闭时，该字段为 null
 
 | 字段名      | 描述     | 类型   |
 | ---         | ----     | :---:  |
@@ -202,7 +202,7 @@ Datakit 默认开启云同步，目前支持阿里云/腾讯云/AWS/华为云/�
 | `stat_insert_failed`  | 插入失败的包数目                               | int   |
 | `stat_drop`           | 跟踪失败被丢弃的包数目                         | int   |
 | `stat_early_drop`     | 由于跟踪表满而导致部分已跟踪包条目被丢弃的数目 | int   |
-| `stat_search_restart` | 由于hash表大小修改而导致跟踪表查询重启的数目   | int   |
+| `stat_search_restart` | 由于 hash 表大小修改而导致跟踪表查询重启的数目 | int   |
 
 #### `host.filefd` {#host-filefd}
 

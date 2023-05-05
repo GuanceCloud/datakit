@@ -40,7 +40,7 @@ modprobe ipmi_devintf
 安装成功后，运行如下命令，即可以看到 ipmi 服务器输出的信息：
 
 ```shell
-ipmitool -I lanplus -H <IP地址> -U <用户名> -P <密码> sdr elist
+ipmitool -I lanplus -H <IP 地址> -U <用户名> -P <密码> sdr elist
 
 SEL              | 72h | ns  |  7.1 | No Reading
 Intrusion        | 73h | ok  |  7.1 | 
@@ -59,10 +59,10 @@ Temp             | 0Fh | ok  |  3.2 | 45 degrees C
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    1. IP地址指的是被您远程管理服务器的 IPMI 口 IP 地址
-    1. 服务器的 `IPMI设置 -> 启用 LAN 上的 IPMI` 需要勾选
-    1. 服务器 `信道权限级别限制` 操作员级别需要和 `<用户名>` 保持级别一致
-    1. `ipmitool` 工具包是安装到运行 DataKit 的机器里。
+    1. IP 地址指的是被您远程管理服务器的 IPMI 口 IP 地址
+    1. 服务器的「IPMI 设置 -> 启用 LAN 上的 IPMI」需要勾选
+    1. 服务器「信道权限级别限制」操作员级别需要和「用户名」保持级别一致
+    1. `ipmitool` 工具包是安装到运行 Datakit 的机器里。
 
 ## 配置  {#input-config}
 
@@ -115,7 +115,7 @@ Temp             | 0Fh | ok  |  3.2 | 45 degrees C
 
 IPMI 采集器支持选举功能，当多台机器运行 DataKit 时，通过选举，防止大家重复采集数据。
 
-`/conf.d/datakit.conf`文件打开`选举`功能：
+`/conf.d/datakit.conf` 文件打开选举功能：
 ```
 [election]
   # 开启选举
@@ -127,7 +127,7 @@ IPMI 采集器支持选举功能，当多台机器运行 DataKit 时，通过选
   # 允许在数据上追加选举空间的 tag
   enable_namespace_tag = false
 ```
-`conf.d/{{.Catalog}}/{{.InputName}}.conf`文件打开`选举`功能：
+`conf.d/{{.Catalog}}/{{.InputName}}.conf` 文件打开选举功能：
 ```
   ## Set true to enable election
   election = true

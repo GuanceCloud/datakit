@@ -41,7 +41,7 @@ DCA 主要用于管理 Datakit，如 Datakit 列表查看、配置文件管理�
         # 监听地址和端口
         listen = "0.0.0.0:9531"
 
-        # 白名单，支持指定IP地址或者 CIDR 格式网络地址
+        # 白名单，支持指定 IP 地址或者 CIDR 格式网络地址
         white_list = ["0.0.0.0/0", "192.168.1.0/24"]
     ```
 
@@ -80,7 +80,7 @@ DCA web 是 DCA 客户端的 web 版本，它通过部署一个后端服务来�
 <!-- markdownlint-disable MD046 -->
 === "Docker"
 
-    Docker 安装，可参考[文档](https://docs.docker.com/desktop/install/linux-install/)。
+    Docker 安装，可参考[文档](https://docs.docker.com/desktop/install/linux-install/){:target="_blank"}。
 
     - 下载镜像
 
@@ -240,7 +240,7 @@ docker run -d --name dca -p 8000:80 -e DCA_LOG_ENABLE_STDOUT=true -e DCA_LOG_LEV
 
 ### 登录 DCA {#login}
 
-DCA 开启和安装以后，即可在浏览器输入地址 `localhost:8000` 打开 DCA  Web 端，登录账号，即可开始使用。若无账号，可先注册 [观测云账号](https://auth.guance.com/register?channel=帮助文档)。
+DCA 开启和安装以后，即可在浏览器输入地址 `localhost:8000` 打开 DCA  Web 端，登录账号，即可开始使用。若无账号，可先注册 [观测云账号](https://auth.guance.com/register?channel=帮助文档){:target="_blank"}。
 
 <figure markdown>
   ![](https://static.guance.com/images/datakit/dca-login.png){ width="800" }

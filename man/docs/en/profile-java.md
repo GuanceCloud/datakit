@@ -1,6 +1,6 @@
 # Java profiling
 
-DataKit 支持两种方式来采集 Java profiling 数据，即 [ddtrace](https://github.com/DataDog/dd-trace-go) 和 [async-profiler](https://github.com/jvm-profiling-tools/async-profiler#async-profiler)。
+DataKit 支持两种方式来采集 Java profiling 数据，即 [ddtrace](https://github.com/DataDog/dd-trace-go) 和 [async-profiler](https://github.com/jvm-profiling-tools/async-profiler#async-profiler){:target="_blank"}。
 
 ## ddtrace {#ddtrace}
 
@@ -41,11 +41,11 @@ async-profiler 可以收集以下几种事件：
 
 官网提供了不同平台的安装包的下载(当前版本 2.8.3):
 
- - Linux x64 (glibc): [async-profiler-2.8.3-linux-x64.tar.gz](https://github.com/jvm-profiling-tools/async-profiler/releases/download/v2.8.3/async-profiler-2.8.3-linux-x64.tar.gz)
- - Linux x64 (musl): [async-profiler-2.8.3-linux-musl-x64.tar.gz](https://github.com/jvm-profiling-tools/async-profiler/releases/download/v2.8.3/async-profiler-2.8.3-linux-musl-x64.tar.gz)
- - Linux arm64: [async-profiler-2.8.3-linux-arm64.tar.gz](https://github.com/jvm-profiling-tools/async-profiler/releases/download/v2.8.3/async-profiler-2.8.3-linux-arm64.tar.gz)
- - macOS x64/arm64: [async-profiler-2.8.3-macos.zip](https://github.com/jvm-profiling-tools/async-profiler/releases/download/v2.8.3/async-profiler-2.8.3-macos.zip)
- - 不同格式文件转换器: [converter.jar](https://github.com/jvm-profiling-tools/async-profiler/releases/download/v2.8.3/converter.jar)  
+ - Linux x64 (glibc): [async-profiler-2.8.3-linux-x64.tar.gz](https://github.com/jvm-profiling-tools/async-profiler/releases/download/v2.8.3/async-profiler-2.8.3-linux-x64.tar.gz){:target="_blank"}
+ - Linux x64 (musl): [async-profiler-2.8.3-linux-musl-x64.tar.gz](https://github.com/jvm-profiling-tools/async-profiler/releases/download/v2.8.3/async-profiler-2.8.3-linux-musl-x64.tar.gz){:target="_blank"}
+ - Linux arm64: [async-profiler-2.8.3-linux-arm64.tar.gz](https://github.com/jvm-profiling-tools/async-profiler/releases/download/v2.8.3/async-profiler-2.8.3-linux-arm64.tar.gz){:target="_blank"}
+ - macOS x64/arm64: [async-profiler-2.8.3-macos.zip](https://github.com/jvm-profiling-tools/async-profiler/releases/download/v2.8.3/async-profiler-2.8.3-macos.zip){:target="_blank"}
+ - 不同格式文件转换器: [converter.jar](https://github.com/jvm-profiling-tools/async-profiler/releases/download/v2.8.3/converter.jar){:target="_blank"}
 
  下载相应的安装包，并解压。
 

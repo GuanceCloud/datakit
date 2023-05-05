@@ -46,7 +46,7 @@ wget https://download.oracle.com/otn_software/linux/instantclient/211000/instant
 unzip instantclient-basiclite-linux.x64-21.1.0.0.0.zip
 ```
 
-将解压后的目录文件路径添加到以下配置信息中的`LD_LIBRARY_PATH`环境变量路径中。
+将解压后的目录文件路径添加到以下配置信息中的 `LD_LIBRARY_PATH` 环境变量路径中。
 
 > 也可以直接下载我们预先准备好的依赖包：
 

@@ -66,7 +66,7 @@ DCA Web is the Web version of DCA client, which provides the interface proxy of 
 
 === "Docker"
 
-    Docker installation can be found in the document [installing Docker](https://docs.docker.com/desktop/install/linux-install/).
+    Docker installation can be found in the document [installing Docker](https://docs.docker.com/desktop/install/linux-install/){:target="_blank"}.
 
     - Download image
 
@@ -225,7 +225,7 @@ $ docker run -d --name dca -p 8000:80 -e DCA_LOG_ENABLE_STDOUT=true -e DCA_LOG_L
 
 ### Log in to DCA {#login}
 
-After DCA is opened and installed, you can enter the address `localhost:8000` in the browser to open DCA Web, log in to your account, and start using it. If you don't have an account, you can register [Guance Cloud Account](https://auth.guance.com/register?channel=帮助文档).
+After DCA is opened and installed, you can enter the address `localhost:8000` in the browser to open DCA Web, log in to your account, and start using it. If you don't have an account, you can register [Guance Cloud Account](https://auth.guance.com/register?channel=帮助文档){:target="_blank"}.
 
 <figure markdown>
   ![](https://static.guance.com/images/datakit/dca_2_2.png){ width="800" }
