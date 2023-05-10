@@ -336,7 +336,7 @@ DK_SINKER="[ { \"categories\": [\"L\", \"M\"], \"filters\": [ \"{measurement='cp
 | ---------:                    | ---:     | ---:               | ------ | ----                                                                         |
 | `ENV_IO_FILTERS`              | JSON     | 无                 | 否     | 添加[行协议过滤器](datakit-filter.md)                                        |
 | `ENV_IO_FLUSH_INTERVAL`       | duration | 10s                | 否     | IO 发送时间频率                                                              |
-| `ENV_IO_FLUSH_WORKERS`        | int      | `cpu_core * 2 + 1` | 否     | IO 发送 worker 数（:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9)） |
+| `ENV_IO_FLUSH_WORKERS`        | int      | `cpu_core * 2 + 1` | 否     | IO 发送 worker 数（[:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9)）|
 | `ENV_IO_MAX_CACHE_COUNT`      | int      | 1000               | 否     | 发送 buffer（点数）大小                                                      |
 | `ENV_IO_ENABLE_CACHE`         | bool     | false              | 否     | 是否开启发送失败的磁盘缓存                                                   |
 | `ENV_IO_CACHE_ALL`            | bool     | false              | 否     | 是否 cache 所有发送失败的数据                                                |
