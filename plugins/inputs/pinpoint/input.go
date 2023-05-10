@@ -27,7 +27,7 @@ const (
 	inputName    = "pinpoint"
 	sampleConfig = `
 [[inputs.pinpoint]]
-  ## Pinpoint GRPC service endpoint for
+  ## Pinpoint service endpoint for
   ## - Span Server
   ## - Agent Server(unimplemented, for service intactness and compatibility)
   ## - Metadata Server(unimplemented, for service intactness and compatibility)
@@ -75,7 +75,7 @@ var (
 	tags           map[string]string
 	reqMetaTab     = &sync.Map{}
 	agentMetaData  = &AgentMetaData{}
-	ppsvr          *grpc.Server
+	gsvr           *grpc.Server
 	localCache     *storage.Storage
 	spanSender     *itrace.SpanSender
 )
@@ -171,8 +171,8 @@ func (*Input) Terminate() {
 		}
 		log.Debug("### local storage closed")
 	}
-	if ppsvr != nil {
-		ppsvr.Stop()
+	if gsvr != nil {
+		gsvr.Stop()
 	}
 }
 

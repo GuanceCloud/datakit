@@ -16,7 +16,7 @@ require (
 	github.com/Shopify/sarama v1.38.1
 	github.com/aliyun/aliyun-oss-go-sdk v2.2.6+incompatible
 	github.com/antchfx/xmlquery v1.3.12
-	github.com/apache/thrift v0.13.0
+	github.com/apache/thrift v0.16.0
 	github.com/araddon/dateparse v0.0.0-20201001162425-8aadafed4dc4
 	github.com/bmatcuk/doublestar/v4 v4.6.0
 	github.com/c-bata/go-prompt v0.2.5
