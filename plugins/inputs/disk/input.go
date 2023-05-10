@@ -9,6 +9,7 @@ package disk
 import (
 	"fmt"
 	"math"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -101,13 +102,17 @@ func (m *diskMeasurement) Info() *inputs.MeasurementInfo {
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
 				Desc: "Used disk size in percent.",
 			},
+			"inodes_used_percent": &inputs.FieldInfo{
+				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
+				Desc: "Inode used percent",
+			},
 			"inodes_total": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
 				Desc: "Total Inode(**DEPRECATED: use inodes_total_mb instead**).",
 			},
 			"inodes_total_mb": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "Total Inode(in MB).",
+				Desc: "Total Inode(need to multiply by 10^6).",
 			},
 			"inodes_free": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
@@ -115,11 +120,11 @@ func (m *diskMeasurement) Info() *inputs.MeasurementInfo {
 			},
 			"inodes_free_mb": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "Free Inode(in MB).",
+				Desc: "Free Inode(need to multiply by 10^6).",
 			},
 			"inodes_used_mb": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "Used Inode(in MB).",
+				Desc: "Used Inode(need to multiply by 10^6).",
 			},
 			"inodes_used": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
@@ -210,19 +215,26 @@ func (ipt *Input) Collect() error {
 		atomic.StoreUint64(&hostobject.DiskFree, du.Free)
 
 		fields := map[string]interface{}{
-			"total":           du.Total,
-			"free":            du.Free,
-			"used":            du.Used,
-			"used_percent":    usedPercent,
-			"inodes_total_mb": du.InodesTotal / (1024 * 1024),
-			"inodes_free_mb":  du.InodesFree / (1024 * 1024),
-			"inodes_used_mb":  du.InodesUsed / (1024 * 1024),
+			"total":        du.Total,
+			"free":         du.Free,
+			"used":         du.Used,
+			"used_percent": usedPercent,
+		}
+
+		switch runtime.GOOS {
+		case datakit.OSLinux, datakit.OSDarwin:
+			fields["inodes_total_mb"] = du.InodesTotal / 1_000_000
+			fields["inodes_free_mb"] = du.InodesFree / 1_000_000
+			fields["inodes_used_mb"] = du.InodesUsed / 1_000_000
+
+			fields["inodes_used_percent"] = du.InodesUsedPercent // float64
 
 			// Deprecated
-			"inodes_total": wrapUint64(du.InodesTotal),
-			"inodes_free":  wrapUint64(du.InodesFree),
-			"inodes_used":  wrapUint64(du.InodesUsed),
+			fields["inodes_total"] = wrapUint64(du.InodesTotal)
+			fields["inodes_free"] = wrapUint64(du.InodesFree)
+			fields["inodes_used"] = wrapUint64(du.InodesUsed)
 		}
+
 		ipt.appendMeasurement(metricName, tags, fields, ts)
 	}
 
@@ -235,7 +247,6 @@ func wrapUint64(x uint64) int64 {
 	}
 	return int64(x)
 }
-
 func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("disk input started")
