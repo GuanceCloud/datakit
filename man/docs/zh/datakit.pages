@@ -148,6 +148,8 @@ nav:
 
       - 'Pinpoint':
         -  pinpoint.md
+        -  pinpoint-java.md
+        -  pinpoint-go.md
 
     - 用户访问监测（RUM）:
       - rum.md
