@@ -82,14 +82,13 @@ type Input struct {
 
 const sample = `
 [[inputs.dialtesting]]
-  # 中心任务存储的服务地址，即df_dialtesting center service。
-  # 此处同时可配置成本地json 文件全路径 "file:///your/dir/json-file-name", 为task任务的json字符串。
+  # We can also configure a JSON path like "file:///your/dir/json-file-name"
   server = "https://dflux-dial.guance.com"
 
-  # require，节点惟一标识ID
+  # [require] node ID
   region_id = "default"
 
-  # 若server配为中心任务服务地址时，需要配置相应的ak或者sk
+  # if server are dflux-dial.guance.com, ak/sk required
   ak = ""
   sk = ""
 
@@ -98,7 +97,6 @@ const sample = `
   time_out = "1m"
   workers = 6
 
-  # 发送数据失败最大次数，根据任务的post_url进行累计，超过最大次数后，发送至该地址的拨测任务将退出
   max_send_fail_count = 16
 
   [inputs.dialtesting.tags]

@@ -58,7 +58,7 @@ func (m *ServerZoneMeasurement) Info() *inputs.MeasurementInfo {
 			"nginx_server":  inputs.NewTagInfo("nginx server host"),
 			"nginx_port":    inputs.NewTagInfo("nginx server port"),
 			"server_zone":   inputs.NewTagInfo("server zone"),
-			"host":          inputs.NewTagInfo("host mame which installed nginx"),
+			"host":          inputs.NewTagInfo("host name which installed nginx"),
 			"nginx_version": inputs.NewTagInfo("nginx version"),
 		},
 	}
@@ -110,7 +110,7 @@ func (m *UpstreamZoneMeasurement) Info() *inputs.MeasurementInfo {
 			"nginx_port":      inputs.NewTagInfo("nginx server port"),
 			"upstream_zone":   inputs.NewTagInfo("upstream zone"),
 			"upstream_server": inputs.NewTagInfo("upstream server"),
-			"host":            inputs.NewTagInfo("host mame which installed nginx"),
+			"host":            inputs.NewTagInfo("host name which installed nginx"),
 			"nginx_version":   inputs.NewTagInfo("nginx version"),
 		},
 	}
@@ -165,7 +165,7 @@ func (m *CacheZoneMeasurement) Info() *inputs.MeasurementInfo {
 			"nginx_server":  inputs.NewTagInfo("nginx server host"),
 			"nginx_port":    inputs.NewTagInfo("nginx server port"),
 			"cache_zone":    inputs.NewTagInfo("cache zone"),
-			"host":          inputs.NewTagInfo("host mame which installed nginx"),
+			"host":          inputs.NewTagInfo("host name which installed nginx"),
 			"nginx_version": inputs.NewTagInfo("nginx version"),
 		},
 	}

@@ -7,7 +7,7 @@
 
 ---
 
-{{.InputName}} 是定时触发用户自定义 python 采集脚本的一整套方案。
+PythonD 是定时触发用户自定义 Python 采集脚本的一整套方案。
 
 ## 前置条件 {#reqirement}
 
@@ -275,7 +275,7 @@ class Demo(DataKitFramework):
 
 ## 配置 {#config}
 
-进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+进入 DataKit 安装目录下的 *conf.d/{{.Catalog}}* 目录，复制 *{{.InputName}}.conf.sample* 并命名为 *{{.InputName}}.conf*。示例如下：
 
 ```toml
 {{.InputSample}}
@@ -360,7 +360,7 @@ class MyTest(DataKitFramework):
     │   ├── test.py
 ```
 
-第三步：配置 {{.InputName}}.conf:
+第三步：配置 *{{.InputName}}.conf*:
 
 ```toml
 [[inputs.pythond]]

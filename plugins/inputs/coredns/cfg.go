@@ -39,13 +39,13 @@ func (m *ACLMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Int,
 				Type:     inputs.Count,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "被拦截的DNS请求个数",
+				Desc:     "被拦截的 DNS 请求个数",
 			},
 			"acl_allowed_requests_total": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Count,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "被放行的DNS请求个数",
+				Desc:     "被放行的 DNS 请求个数",
 			},
 		},
 		Tags: map[string]interface{}{
@@ -75,7 +75,7 @@ func (m *CacheMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Int,
 				Type:     inputs.Count,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "缓存miss个数",
+				Desc:     "缓存 miss 个数",
 			},
 			"cache_prefetch_total": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -111,19 +111,19 @@ func (m *DNSSecMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Int,
 				Type:     inputs.Count,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "dnssec缓存总数",
+				Desc:     "dnssec 缓存总数",
 			},
 			"dnssec_cache_hits_total": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Count,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "dnssec缓存命中个数",
+				Desc:     "dnssec 缓存命中个数",
 			},
 			"dnssec_cache_misses_total": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Count,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "dnssec缓存miss个数",
+				Desc:     "dnssec 缓存 miss 个数",
 			},
 		},
 		Tags: map[string]interface{}{
@@ -147,7 +147,7 @@ func (m *ForwardMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Int,
 				Type:     inputs.Count,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "从每个上游得到的RCODE响应个数",
+				Desc:     "从每个上游得到的 `RCODE` 响应个数",
 			},
 			"forward_request_duration_seconds": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -176,7 +176,7 @@ func (m *ForwardMeasurement) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"to":    inputs.NewTagInfo("上游服务器"),
-			"rcode": inputs.NewTagInfo("上游返回的RCODE"),
+			"rcode": inputs.NewTagInfo("上游返回的 `RCODE`"),
 			"proto": inputs.NewTagInfo("传输协议"),
 		},
 	}
@@ -190,24 +190,24 @@ func (m *GrpcMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
 				Unit:     inputs.DurationSecond,
-				Desc:     "grpc与上游交互时长",
+				Desc:     "grpc 与上游交互时长",
 			},
 			"grpc_requests_total": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Count,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "grpc在每个上游查询个数",
+				Desc:     "grpc 在每个上游查询个数",
 			},
 			"grpc_responses_total": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Count,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "grpc在每个上游得到的RCODE响应个数",
+				Desc:     "grpc 在每个上游得到的 `RCODE` 响应个数",
 			},
 		},
 		Tags: map[string]interface{}{
 			"to":    inputs.NewTagInfo("上游服务器"),
-			"rcode": inputs.NewTagInfo("上游返回的RCODE"),
+			"rcode": inputs.NewTagInfo("上游返回的 `RCODE`"),
 		},
 	}
 }
@@ -220,13 +220,13 @@ func (m *HostsMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "hosts总条数",
+				Desc:     "hosts 总条数",
 			},
 			"hosts_reload_timestamp_seconds": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
 				Unit:     inputs.TimestampSec,
-				Desc:     "最后一次重载hosts文件的时间戳",
+				Desc:     "最后一次重载 hosts 文件的时间戳",
 			},
 		},
 		Tags: map[string]interface{}{},
@@ -247,7 +247,7 @@ func (m *TemplateMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Int,
 				Type:     inputs.Count,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "Go模板失败次数",
+				Desc:     "Go 模板失败次数",
 			},
 			"template_rr_failures_total": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -285,19 +285,19 @@ func (m *PromMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.SizeByte,
-				Desc:     "请求大小(以byte计)",
+				Desc:     "请求大小(以 byte 计)",
 			},
 			"dns_responses_total": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Count,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "对每个zone和RCODE的响应总数",
+				Desc:     "对每个 zone 和 `RCODE` 的响应总数",
 			},
 			"dns_response_size_bytes": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.SizeByte,
-				Desc:     "响应大小(以byte计)",
+				Desc:     "响应大小(以 byte 计)",
 			},
 		},
 		Tags: map[string]interface{}{
@@ -305,8 +305,8 @@ func (m *PromMeasurement) Info() *inputs.MeasurementInfo {
 			"zone":   inputs.NewTagInfo("请求所属区域"),
 			"type":   inputs.NewTagInfo("查询类型"),
 			"proto":  inputs.NewTagInfo("传输协议"),
-			"family": inputs.NewTagInfo("IP地址家族"),
-			"rcode":  inputs.NewTagInfo("上游返回的RCODE"),
+			"family": inputs.NewTagInfo("IP 地址家族"),
+			"rcode":  inputs.NewTagInfo("上游返回的 `RCODE`"),
 		},
 	}
 }

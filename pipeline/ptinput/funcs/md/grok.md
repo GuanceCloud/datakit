@@ -20,7 +20,7 @@ grok(key, pattern)  # 对之前已经提取出来的某个 key，做再次 grok
 ```python
 # 待处理数据: "12/01/2021 21:13:14.123"
 
-# pipline脚本
+# pipline 脚本
 add_pattern("_second", "(?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?)")
 add_pattern("_minute", "(?:[0-5][0-9])")
 add_pattern("_hour", "(?:2[0123]|[01]?[0-9])")

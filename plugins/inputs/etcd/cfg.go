@@ -57,7 +57,7 @@ func (m *ServerMeasurement) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"host":              inputs.NewTagInfo("主机名称"),
-			"server_has_leader": inputs.NewTagInfo("领导者是否存在。1是存在。0是不存在"),
+			"server_has_leader": inputs.NewTagInfo("领导者是否存在。1 是存在。0 是不存在"),
 		},
 	}
 }

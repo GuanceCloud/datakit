@@ -2,12 +2,12 @@
 
 Function prototype: `fn json(input: str, json_path, newkey, trim_space: bool = true)`
 
-Function description: Extract the specified field in json and name it as a new field.
+Function description: Extract the specified field in JSON and name it as a new field.
 
 Function parameters:
 
-- `input`: The json to be extracted can be the original text (`_`) or a `key` after the initial extraction
-- `json_path`: json path information
+- `input`: The JSON to be extracted can be the original text (`_`) or a `key` after the initial extraction
+- `json_path`: JSON path information
 - `newkey`：Write the data to the new key after extraction
 - `trim_space`: Delete the leading and trailing blank characters in the extracted characters, the default value is true
 - `delete_after_extract`: After extract delete the extracted info from input. Only map key and map value are deletable, list(array) are not supported. Default is `false'.  [:octicons-tag-24: Version-1.5.7](../datakit/changelog.md#cl-1.5.7)

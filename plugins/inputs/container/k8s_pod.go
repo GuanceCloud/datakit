@@ -165,7 +165,7 @@ func (p *pod) object(election bool) (inputsMeas, error) {
 				"host":      item.Spec.NodeName, // 指向 pod 所在的 node，便于关联
 				"phase":     fmt.Sprintf("%v", item.Status.Phase),
 				"qos_class": fmt.Sprintf("%v", item.Status.QOSClass),
-				"state":     fmt.Sprintf("%v", item.Status.Phase), // Depercated
+				"state":     fmt.Sprintf("%v", item.Status.Phase), // Deprecated
 				"status":    fmt.Sprintf("%v", item.Status.Phase),
 				"namespace": defaultNamespace(item.Namespace),
 			},
@@ -198,7 +198,7 @@ func (p *pod) object(election bool) (inputsMeas, error) {
 
 		for _, containerStatus := range item.Status.ContainerStatuses {
 			if containerStatus.State.Waiting != nil {
-				obj.tags["state"] = containerStatus.State.Waiting.Reason // Depercated
+				obj.tags["state"] = containerStatus.State.Waiting.Reason // Deprecated
 				obj.tags["status"] = containerStatus.State.Waiting.Reason
 				break
 			}
@@ -304,7 +304,7 @@ func (*podMetric) Info() *inputs.MeasurementInfo {
 		Type: "metric",
 		Tags: map[string]interface{}{
 			"pod":         inputs.NewTagInfo("Name must be unique within a namespace."),
-			"pod_name":    inputs.NewTagInfo("Name must be unique within a namespace. (depercated)"),
+			"pod_name":    inputs.NewTagInfo("Name must be unique within a namespace. (Deprecated)"),
 			"namespace":   inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 			"[POD_LABEL]": inputs.NewTagInfo("The pod labels will be extracted as tags if `extract_k8s_label_as_tags` is enabled."),
 		},
@@ -339,7 +339,7 @@ func (*podObject) Info() *inputs.MeasurementInfo {
 			"node_name":   inputs.NewTagInfo("NodeName is a request to schedule this pod onto a specific node."),
 			"namespace":   inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 			"phase":       inputs.NewTagInfo("The phase of a Pod is a simple, high-level summary of where the Pod is in its lifecycle.(Pending/Running/Succeeded/Failed/Unknown)"),
-			"state":       inputs.NewTagInfo("Reason the container is not yet running. (Depercated, use status)"),
+			"state":       inputs.NewTagInfo("Reason the container is not yet running. (Deprecated: use status)"),
 			"status":      inputs.NewTagInfo("Reason the container is not yet running."),
 			"qos_class":   inputs.NewTagInfo("The Quality of Service (QOS) classification assigned to the pod based on resource requirements"),
 			"deployment":  inputs.NewTagInfo("The name of the deployment which the object belongs to. (Probably empty)"),
@@ -348,7 +348,7 @@ func (*podObject) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{
 			"age":                &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "age (seconds)"},
 			"create_time":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampMS, Desc: "CreationTimestamp is a timestamp representing the server time when this object was created.(milliseconds)"},
-			"restart":            &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of times the container has been restarted. (Depercated, use restarts)"},
+			"restart":            &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of times the container has been restarted. (Deprecated: use restarts)"},
 			"restarts":           &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of times the container has been restarted."},
 			"ready":              &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Describes whether the pod is ready to serve requests."},
 			"available":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Number of containers"},

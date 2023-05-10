@@ -106,7 +106,7 @@ func (m *diskioMeasurement) Info() *inputs.MeasurementInfo {
 			"write_time":       newFieldsInfoMS("Time spent writing."),
 			"io_time":          newFieldsInfoMS("Time spent doing I/Os."),
 			"weighted_io_time": newFieldsInfoMS("Weighted time spent doing I/Os."),
-			"iops_in_progress": newFieldsInfoCount("I/Os currently in progres."),
+			"iops_in_progress": newFieldsInfoCount("I/Os currently in progress."),
 			"merged_reads":     newFieldsInfoCount("The number of merged read requests."),
 			"merged_writes":    newFieldsInfoCount("The number of merged write requests."),
 		},

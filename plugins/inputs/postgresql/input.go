@@ -38,18 +38,18 @@ var (
 const sampleConfig = `
 [[inputs.postgresql]]
   ## 服务器地址
-  # URI格式
+  # URI 格式
   # postgres://[pqgotest[:password]]@localhost[/dbname]?sslmode=[disable|verify-ca|verify-full]
   # 简单字符串格式
   # host=localhost user=pqgotest password=... sslmode=... dbname=app_production
 
   address = "postgres://postgres@localhost/test?sslmode=disable"
 
-  ## 配置采集的数据库，默认会采集所有的数据库，当同时设置ignored_databases和databases会忽略databases
+  ## 配置采集的数据库，默认会采集所有的数据库，当同时设置 ignored_databases 和 databases 会忽略 databases
   # ignored_databases = ["db1"]
   # databases = ["db1"]
 
-  ## 设置服务器Tag，默认是基于服务器地址生成
+  ## 设置服务器 Tag，默认是基于服务器地址生成
   # outputaddress = "db01"
 
   ## 采集间隔
@@ -64,7 +64,7 @@ const sampleConfig = `
   # files = []
   # pipeline = "postgresql.p"
 
-  ## 自定义Tag
+  ## 自定义 Tag
   [inputs.postgresql.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"

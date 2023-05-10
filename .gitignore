@@ -1,3 +1,4 @@
+local-docs
 md.lint
 cspell.lint
 project-words.txt

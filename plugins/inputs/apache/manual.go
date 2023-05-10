@@ -73,7 +73,7 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"url":            inputs.NewTagInfo("Apache server status url."),
 			"server_version": inputs.NewTagInfo("Apache server version."),
-			"server_mpm":     inputs.NewTagInfo("Apache server Multi-Processing Module,prefork、worker and event."),
+			"server_mpm":     inputs.NewTagInfo("Apache server Multi-Processing Module, `prefork`, `worker` and `event`."),
 			"host":           inputs.NewTagInfo("Hostname of the DataKit."),
 		},
 	}

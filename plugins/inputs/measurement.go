@@ -69,7 +69,7 @@ const (
 
 	// TODO: add more...
 	BytesPerSec    = "B/S"
-	RequestsPerSec = "reqps"
+	RequestsPerSec = "req/s"
 	Celsius        = "C"
 	Ampere         = "ampere"
 	Watt           = "watt"
@@ -117,7 +117,7 @@ type CommonMeasurement struct {
 
 func (m *MeasurementInfo) FieldsMarkdownTable() string {
 	const tableHeader = `
-| Metric | Descrition | Type | Unit |
+| Metric | Description | Type | Unit |
 | ---- |---- | :---:    | :----: |`
 	const monoRowfmt = "|`%s`|%s|%s|%s|" // 指标/标签列等宽字体展示
 	const normalRowfmt = "|%s|%s|%s|%s|"
@@ -151,7 +151,7 @@ func (m *MeasurementInfo) TagsMarkdownTable() string {
 	}
 
 	tableHeader := `
-| Tag | Descrition |
+| Tag | Description |
 |  ----  | --------|`
 
 	rows := []string{tableHeader}

@@ -49,13 +49,13 @@ func (m *clusterMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NCount,
-				Desc:     "Number of hash slots mapping to a node not in FAIL or PFAIL state.",
+				Desc:     "Number of hash slots mapping to a node not in `FAIL` or `PFAIL` state.",
 			},
 			"cluster_slots_pfail": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NCount,
-				Desc:     "Number of hash slots mapping to a node in PFAIL state. Note that those hash slots still work correctly, as long as the PFAIL state is not promoted to FAIL by the failure detection algorithm. PFAIL only means that we are currently not able to talk with the node, but may be just a transient error.",
+				Desc:     "Number of hash slots mapping to a node in `PFAIL` state. Note that those hash slots still work correctly, as long as the `PFAIL` state is not promoted to FAIL by the failure detection algorithm. `PFAIL` only means that we are currently not able to talk with the node, but may be just a transient error.",
 			},
 			"cluster_slots_fail": &inputs.FieldInfo{
 				DataType: inputs.Int,

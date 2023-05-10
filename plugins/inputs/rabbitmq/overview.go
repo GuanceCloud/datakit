@@ -142,10 +142,10 @@ func (m *OverviewMeasurement) Info() *inputs.MeasurementInfo {
 			"queue_totals_messages_unacknowledged_rate":  newRateFieldInfo("Rate of number of unacknowledged messages"),
 		},
 		Tags: map[string]interface{}{
-			"url":              inputs.NewTagInfo("rabbitmq url"),
-			"rabbitmq_version": inputs.NewTagInfo("rabbitmq version"),
-			"cluster_name":     inputs.NewTagInfo("rabbitmq cluster name"),
-			"host":             inputs.NewTagInfo("Hostname of rabbitmq running on."),
+			"url":              inputs.NewTagInfo("RabbitMQ url"),
+			"rabbitmq_version": inputs.NewTagInfo("RabbitMQ version"),
+			"cluster_name":     inputs.NewTagInfo("RabbitMQ cluster name"),
+			"host":             inputs.NewTagInfo("Hostname of RabbitMQ running on."),
 		},
 	}
 }

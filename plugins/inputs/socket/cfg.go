@@ -29,7 +29,8 @@ var (
 	maxInterval = time.Second * 60
 	sample      = `
 [[inputs.socket]]
-  ## support tcp, udp.If the quantity to be detected is too large, it is recommended to open more collectors
+  ## Support TCP/UDP.
+  ## If the quantity to be detected is too large, it is recommended to open more collectors
   dest_url = ["tcp://host:port", "udp://host:port"]
 
   ## @param interval - number - optional - default: 30
@@ -82,22 +83,22 @@ func (m *TCPMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "tcp",
 		Tags: map[string]interface{}{
-			"dest_host": &inputs.TagInfo{Desc: "示例 wwww.baidu.com"},
+			"dest_host": &inputs.TagInfo{Desc: "示例 `wwww.baidu.com`"},
 			"dest_port": &inputs.TagInfo{Desc: "示例 80"},
-			"proto":     &inputs.TagInfo{Desc: "示例 tcp"},
+			"proto":     &inputs.TagInfo{Desc: "示例 `tcp`"},
 		},
 		Fields: map[string]interface{}{
 			"response_time": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.DurationUS,
-				Desc:     "TCP 连接时间, 单位us",
+				Desc:     "TCP 连接时间, 单位 us",
 			},
 			"response_time_with_dns": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.DurationUS,
-				Desc:     "连接时间（含DNS解析）, 单位us",
+				Desc:     "连接时间（含 DNS 解析）, 单位 us",
 			},
 			"success": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -121,9 +122,9 @@ func (m *UDPMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
-			"dest_host": &inputs.TagInfo{Desc: "目的主机的host"},
+			"dest_host": &inputs.TagInfo{Desc: "目的主机的 host"},
 			"dest_port": &inputs.TagInfo{Desc: "目的主机的端口号"},
-			"proto":     &inputs.TagInfo{Desc: "示例 udp"},
+			"proto":     &inputs.TagInfo{Desc: "示例 `udp`"},
 		},
 	}
 }

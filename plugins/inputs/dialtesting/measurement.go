@@ -28,8 +28,8 @@ func (m *httpMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "http_dial_testing",
 		Tags: map[string]interface{}{
-			"name":               &inputs.TagInfo{Desc: "示例：拨测名称,百度测试"},
-			"url":                &inputs.TagInfo{Desc: "示例 http://wwww.baidu.com"},
+			"name":               &inputs.TagInfo{Desc: "示例：拨测名称，百度测试"},
+			"url":                &inputs.TagInfo{Desc: "示例 `http://wwww.baidu.com`"},
 			"dest_ip":            &inputs.TagInfo{Desc: "示例 目标 IP, 如 127.0.0.1"},
 			"country":            &inputs.TagInfo{Desc: "示例 中国"},
 			"province":           &inputs.TagInfo{Desc: "示例 浙江"},
@@ -113,7 +113,7 @@ func (m *tcpMeasurement) Info() *inputs.MeasurementInfo {
 			"internal":  &inputs.TagInfo{Desc: "示例 true（国内 true /海外 false）"},
 			"isp":       &inputs.TagInfo{Desc: "示例 电信/移动/联通"},
 			"status":    &inputs.TagInfo{Desc: "示例 OK/FAIL 两种状态 "},
-			"proto":     &inputs.TagInfo{Desc: "示例 tcp"},
+			"proto":     &inputs.TagInfo{Desc: "示例 `tcp`"},
 		},
 		Fields: map[string]interface{}{
 			"message": &inputs.FieldInfo{
@@ -126,7 +126,7 @@ func (m *tcpMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "路由跟踪数据文本(JSON格式)",
+				Desc:     "路由跟踪数据文本(JSON 格式)",
 			},
 			"fail_reason": &inputs.FieldInfo{
 				DataType: inputs.String,
@@ -144,7 +144,7 @@ func (m *tcpMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.DurationUS,
-				Desc:     "连接时间（含DNS解析）",
+				Desc:     "连接时间（含 DNS 解析）",
 			},
 			"success": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -171,22 +171,22 @@ func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "icmp_dial_testing",
 		Tags: map[string]interface{}{
-			"name":      &inputs.TagInfo{Desc: "示例 拨测名称,百度测试"},
-			"dest_host": &inputs.TagInfo{Desc: "示例 wwww.baidu.com"},
+			"name":      &inputs.TagInfo{Desc: "示例 百度测试"},
+			"dest_host": &inputs.TagInfo{Desc: "示例 `wwww.baidu.com`"},
 			"country":   &inputs.TagInfo{Desc: "示例 中国"},
 			"province":  &inputs.TagInfo{Desc: "示例 浙江"},
 			"city":      &inputs.TagInfo{Desc: "示例 杭州"},
 			"internal":  &inputs.TagInfo{Desc: "示例 true（国内 true /海外 false）"},
 			"isp":       &inputs.TagInfo{Desc: "示例 电信/移动/联通"},
 			"status":    &inputs.TagInfo{Desc: "示例 OK/FAIL 两种状态 "},
-			"proto":     &inputs.TagInfo{Desc: "示例 icmp"},
+			"proto":     &inputs.TagInfo{Desc: "示例 `icmp`"},
 		},
 		Fields: map[string]interface{}{
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "包括平均RTT时间(average_round_trip_time)/错误原因(fail_reason)",
+				Desc:     "包括平均 RTT 时间(average_round_trip_time)/错误原因(fail_reason)",
 			},
 			"fail_reason": &inputs.FieldInfo{
 				DataType: inputs.String,
@@ -198,7 +198,7 @@ func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "路由跟踪数据文本(JSON格式)",
+				Desc:     "路由跟踪数据文本(JSON 格式)",
 			},
 			"average_round_trip_time": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -336,7 +336,7 @@ func (m *websocketMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.DurationUS,
-				Desc:     "连接时间（含DNS解析）",
+				Desc:     "连接时间（含 DNS 解析）",
 			},
 			"success": &inputs.FieldInfo{
 				DataType: inputs.Int,

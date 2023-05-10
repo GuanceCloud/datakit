@@ -38,7 +38,7 @@ func (m *conntrackMeasurement) LineProto() (*point.Point, error) {
 func (m *conntrackMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNameConntrack,
-		Desc: "Conntrack metrics (Linux only).",
+		Desc: "Connection track metrics (Linux only).",
 		Fields: map[string]interface{}{
 			"entries":             newFieldInfoCount("Current number of connections."),
 			"entries_limit":       newFieldInfoCount("The size of the connection tracking table."),

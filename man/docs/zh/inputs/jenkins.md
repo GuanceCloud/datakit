@@ -20,7 +20,7 @@ Jenkins 采集器是通过插件 Metrics 采集数据监控 Jenkins，包括但�
 <!-- markdownlint-disable MD046 -->
 === "主机安装"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    进入 DataKit 安装目录下的 *conf.d/{{.Catalog}}* 目录，复制 *{{.InputName}}.conf.sample* 并命名为 *{{.InputName}}.conf*。示例如下：
     
     ```toml
     {{ CodeBlock .InputSample 4 }}
@@ -83,7 +83,7 @@ Jenkins CI Visibility 开启方法：
 
 ## 日志采集 {#logging}
 
-如需采集 JenKins 的日志，可在 {{.InputName}}.conf 中 将 `files` 打开，并写入 JenKins 日志文件的绝对路径。比如：
+如需采集 JenKins 的日志，可在 *{{.InputName}}.conf* 中 将 `files` 打开，并写入 JenKins 日志文件的绝对路径。比如：
 
 ```toml
 [[inputs.JenKins]]

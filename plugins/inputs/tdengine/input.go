@@ -39,24 +39,23 @@ const (
   user = "<userName>"
   password = "<pw>"
 
-  ##    ## log_files: TdEngine log file path or dirName (optional).
+  ## log_files: TdEngine log file path or dirName (optional).
   ## log_files = ["tdengine_log_path.log"]
   ## pipeline = "tdengine.p"
 
   ## Set true to enable election
   election = true
-	
+
   ## add tag (optional)
   [inputs.tdengine.tags]
-	## Different clusters can be distinguished by tag. Such as testing,product,local ,default is 'testing'
-	## cluster_name = "testing"
+  ## Different clusters can be distinguished by tag. Such as testing,product,local ,default is 'testing'
+  # cluster_name = "testing"
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"`
 
-    # some_tag = "some_value"
-    # more_tag = "some_other_value"
-`
 	//nolint:lll
 	pipelineCfg = `
-grok(_, '%{GREEDYDATA:temp}%{SPACE}TAOS_%{NOTSPACE:module}%{SPACE}%{NOTSPACE:level}%{SPACE}%{GREEDYDATA:http_url}')                   
+grok(_, '%{GREEDYDATA:temp}%{SPACE}TAOS_%{NOTSPACE:module}%{SPACE}%{NOTSPACE:level}%{SPACE}%{GREEDYDATA:http_url}')
 
 if level != 'error' {
   grok(http_url,'"\\|%{SPACE}%{NOTSPACE:code}%{SPACE}\\|%{SPACE}%{NOTSPACE:cost_time}%{SPACE}\\|%{SPACE}%{NOTSPACE:client_ip}%{SPACE}\\|%{SPACE}%{NOTSPACE:method}%{SPACE}\\|%{SPACE}%{NOTSPACE:uri}%{SPACE}"')
