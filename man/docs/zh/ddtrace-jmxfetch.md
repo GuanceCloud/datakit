@@ -3,27 +3,9 @@
 
 ---
 
-## 前置条件 {#requrements}
-
-从 JMX 服务中采集指标前必须开启 JMX 服务以及开启端口。开启参数可参考：
-
-```shell
-# 由于是 agent 形式,端口可以本地开启
--Dcom.sun.management.jmxremote \
--Dcom.sun.management.jmxremote.port=9000 \
--Dcom.sun.management.jmxremote.ssl=false \
--Dcom.sun.management.jmxremote.authenticate=false
-```
-
-在启动服务之后先验证一下端口是否开放：
-
-```shell
-netstat -anlp |grep 9000
-
-tcp6       0     0 :::9000                 :::*                   LISTEN     9372/java
-```
-
 ## JMXFetch {#ddtrace-jmxfetch}
+
+DDTrace 以 agent 形式运行时，不需要用户特意的开通 jmx 端口，如果没有开通端口的话， agent 会随机打开一个本地端口。
 
 JMXFetch 是从 JMX 服务器收集指标以 statsD 数据结构形式向外发送。本身集成在 *dd-java-agent* 中。
 

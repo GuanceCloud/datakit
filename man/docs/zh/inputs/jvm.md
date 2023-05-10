@@ -8,7 +8,7 @@
 
 这里我们提供俩类 JVM 指标采集方式，一种方案是 Jolokia，一种是 DDTrace。选择方式的建议如下：
 
-- 如果采集诸如 Kafka 等 Java 开发的中间件 JVM 指标，推荐 Jolokia 方案。DDTrace 偏重于链路追踪（APM），且有一定的运行开销，对于中间件而言，链路追踪意义不大。
+- 推荐使用 DDTrace 进行采集 JVM 指标，Jolokia 也是可以的，用起来比较麻烦所以不推荐使用。
 - 如果采集自己开发的 Java 应用 JVM 指标，推荐 DDTrace 方案，除了能采集 JVM 指标外，还能实现链路追踪（APM）数据采集。
 
 ## 通过 DDTrace 采集 JVM 指标 {#jvm-ddtrace}
