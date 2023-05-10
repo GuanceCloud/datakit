@@ -44,11 +44,8 @@ func getBody(lines [][]byte, idxBegin, idxEnd, curPartSize int) (*body, error) {
 	gzbuf, err := datakit.GZip(out.buf)
 	if err != nil {
 		log.Errorf("gz: %s", err.Error())
-
 		return nil, err
 	} else {
-		log.Debugf("gzip %d/%d(ratio: %f) bytes, %d lines ok",
-			len(gzbuf), len(out.buf), float64(len(gzbuf))/float64(len(out.buf)), len(lines))
 		out.buf = gzbuf
 		out.gzon = true
 	}

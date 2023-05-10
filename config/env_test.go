@@ -8,6 +8,7 @@ package config
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
@@ -94,6 +95,8 @@ func TestLoadEnv(t *testing.T) {
 					HTTPProxy:           "http://1.2.3.4:1234",
 					Proxy:               true,
 					EnableHTTPTrace:     true,
+					IdleTimeout:         90 * time.Second,
+					HTTPTimeout:         30 * time.Second,
 				}
 
 				cfg.HTTPAPI.RUMOriginIPHeader = "not-set"
@@ -286,10 +289,14 @@ func TestLoadEnv(t *testing.T) {
 		},
 
 		{
-			name: "test-ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST",
+			name: "test-ENV_DATAWAY*",
 			envs: map[string]string{
 				"ENV_DATAWAY":                         "http://host1.org,http://host2.com",
 				"ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST": "-1",
+				"ENV_DATAWAY_TIMEOUT":                 "1m",
+				"ENV_DATAWAY_ENABLE_HTTPTRACE":        "on",
+				"ENV_DATAWAY_MAX_IDLE_CONNS":          "100",
+				"ENV_DATAWAY_IDLE_TIMEOUT":            "100s",
 			},
 
 			expect: func() *Config {
@@ -298,6 +305,10 @@ func TestLoadEnv(t *testing.T) {
 				cfg.Dataway = &dataway.Dataway{
 					URLs:                []string{"http://host1.org", "http://host2.com"},
 					MaxIdleConnsPerHost: 0,
+					MaxIdleConns:        100,
+					EnableHTTPTrace:     true,
+					IdleTimeout:         100 * time.Second,
+					HTTPTimeout:         time.Minute,
 				}
 
 				return cfg

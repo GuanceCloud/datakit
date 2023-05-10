@@ -436,6 +436,11 @@ project_words:
 code_stat:
 	cloc --exclude-dir=vendor,tests --exclude-lang=JSON,HTML .
 
+# promlinter: show prometheuse metrics defined in Datakit.
+# go install github.com/yeya24/promlinter/cmd/promlinter@latest
+show_metrics:
+	@promlinter list . --add-position --add-help
+
 clean:
 	@rm -rf build/*
 	@rm -rf io/parser/gram_y.go

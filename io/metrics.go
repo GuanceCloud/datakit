@@ -79,7 +79,7 @@ func metricsSetup() {
 		prometheus.CounterOpts{
 			Namespace: "datakit",
 			Name:      "error_total",
-			Help:      "total errors, only count on error source, not include error message",
+			Help:      "Total errors, only count on error source, not include error message",
 		},
 		[]string{
 			"source",

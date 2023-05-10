@@ -159,10 +159,14 @@ ulimit = 64000
   urls = ["https://openway.guance.com?token=tkn_xxxxxxxxxxx"]
 
   # Dataway HTTP timeout
-  timeout = "5s"
+  timeout_v2 = "30s"
 
   # HTTP Proxy(IP:Port)
   http_proxy = ""
+
+  max_idle_conns   = 0       # limit idle TCP connections for HTTP request to Dataway
+  enable_httptrace = false   # enable trace HTTP metrics(connection/NDS/TLS and so on)
+  idle_timeout     = "90s"   # not-set, default 90s
 
   # Sinkers: DataKit are able to upload data point to multiple workspace
   #[[dataway.sinkers]]

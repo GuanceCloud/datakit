@@ -25,7 +25,7 @@ func TestDWInit(t *T.T) {
 		require.NoError(t, dw.doInit())
 
 		assert.Len(t, dw.eps, 2)
-		assert.Equal(t, dw.httpTimeout, time.Second*30)
+		assert.Equal(t, dw.HTTPTimeout, time.Second*30)
 		assert.Equal(t, dw.MaxIdleConnsPerHost, 64)
 	})
 
@@ -35,11 +35,10 @@ func TestDWInit(t *T.T) {
 				"https://host.com?token=tkn_11111111111111111111",
 				"https://host.com?token=tkn_22222222222222222222",
 			},
-			HTTPTimeout: "invalid-duration",
+			HTTPTimeout: -30 * time.Second,
 		}
 
-		err := dw.doInit()
-		require.Error(t, err)
-		t.Logf("doInit: %s", err)
+		require.NoError(t, dw.doInit())
+		assert.Equal(t, 30*time.Second, dw.HTTPTimeout)
 	})
 }

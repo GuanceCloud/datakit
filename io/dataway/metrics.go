@@ -15,11 +15,21 @@ var (
 	ptsCounterVec,
 	bytesCounterVec,
 	sinkCounterVec,
+	httpRetry,
 	notSinkPtsVec,
+	httpTCPConn,
 	sinkPtsVec *prometheus.CounterVec
 
 	flushFailCacheVec,
 	apiSumVec *prometheus.SummaryVec
+
+	// HTTP trace metrics.
+	httpDNSCost,
+	httpTLSHandshakeCost,
+	httpConnectCost,
+	httpGotFirstResponseByteCost prometheus.Summary
+	httpConnReusedFromIdle prometheus.Counter
+	httpConnIdleTime       prometheus.Summary
 )
 
 // Metrics get all metrics aboud dataway.
@@ -30,9 +40,19 @@ func Metrics() []prometheus.Collector {
 		bytesCounterVec,
 		apiSumVec,
 		sinkCounterVec,
+		httpRetry,
 		notSinkPtsVec,
 		sinkPtsVec,
 		flushFailCacheVec,
+
+		httpDNSCost,
+		httpTLSHandshakeCost,
+		httpConnectCost,
+		httpGotFirstResponseByteCost,
+
+		httpTCPConn,
+		httpConnReusedFromIdle,
+		httpConnIdleTime,
 	}
 }
 
@@ -41,8 +61,10 @@ func metricsReset() {
 	ptsCounterVec.Reset()
 	bytesCounterVec.Reset()
 	apiSumVec.Reset()
+	httpTCPConn.Reset()
 
 	sinkCounterVec.Reset()
+	httpRetry.Reset()
 	flushFailCacheVec.Reset()
 	notSinkPtsVec.Reset()
 	sinkPtsVec.Reset()
@@ -57,13 +79,91 @@ func doRegister() {
 
 		flushFailCacheVec,
 		sinkCounterVec,
+		httpRetry,
 		notSinkPtsVec,
 		sinkPtsVec,
+
+		httpDNSCost,
+		httpTLSHandshakeCost,
+		httpConnectCost,
+		httpGotFirstResponseByteCost,
+
+		httpTCPConn,
+		httpConnReusedFromIdle,
+		httpConnIdleTime,
 	)
 }
 
 // nolint:gochecknoinits
 func init() {
+	httpTCPConn = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "io",
+			Name:      "http_tcp_conn_total",
+			Help:      "Dataway HTTP TCP connection count",
+		},
+		[]string{
+			"remote",
+			"type",
+		},
+	)
+
+	httpConnReusedFromIdle = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "datakit",
+		Subsystem: "io",
+		Name:      "http_conn_reused_from_idle_total",
+		Help:      "Dataway HTTP connection reused from idle count",
+	})
+
+	httpConnIdleTime = prometheus.NewSummary(prometheus.SummaryOpts{
+		Namespace: "datakit",
+		Subsystem: "io",
+		Name:      "http_conn_idle_time",
+		Help:      "Dataway HTTP connection idle time(ms)",
+	})
+
+	httpDNSCost = prometheus.NewSummary(
+		prometheus.SummaryOpts{
+			Namespace: "datakit",
+			Subsystem: "io",
+			Name:      "http_dns_cost",
+			Help:      "Dataway HTTP DNS cost(ms)",
+		})
+
+	httpTLSHandshakeCost = prometheus.NewSummary(
+		prometheus.SummaryOpts{
+			Namespace: "datakit",
+			Subsystem: "io",
+			Name:      "http_tls_handshake",
+			Help:      "Dataway TLS handshake cost(ms)",
+		})
+
+	httpConnectCost = prometheus.NewSummary(
+		prometheus.SummaryOpts{
+			Namespace: "datakit",
+			Subsystem: "io",
+			Name:      "http_connect_cost",
+			Help:      "Dataway HTTP connect cost(ms)",
+		})
+
+	httpGotFirstResponseByteCost = prometheus.NewSummary(
+		prometheus.SummaryOpts{
+			Namespace: "datakit",
+			Subsystem: "io",
+			Name:      "http_got_first_resp_byte_cost",
+			Help:      "Dataway got first response byte cost(ms)",
+
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.75: 0.0075,
+				0.95: 0.005,
+			},
+
+			MaxAge:     prometheus.DefMaxAge, // 10min
+			AgeBuckets: prometheus.DefAgeBuckets,
+		})
+
 	flushFailCacheVec = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
 			Namespace: "datakit",
@@ -79,7 +179,7 @@ func init() {
 			Namespace: "datakit",
 			Subsystem: "io",
 			Name:      "dataway_api_request_total",
-			Help:      "dataway HTTP request processed, partitioned by status code and HTTP API(url path)",
+			Help:      "Dataway HTTP request processed, partitioned by status code and HTTP API(url path)",
 		},
 		[]string{"api", "status"},
 	)
@@ -89,7 +189,7 @@ func init() {
 			Namespace: "datakit",
 			Subsystem: "io",
 			Name:      "dataway_point_total",
-			Help:      "dataway uploaded points, partitioned by category and send status(HTTP status)",
+			Help:      "Dataway uploaded points, partitioned by category and send status(HTTP status)",
 		},
 		[]string{"category", "status"},
 	)
@@ -99,9 +199,9 @@ func init() {
 			Namespace: "datakit",
 			Subsystem: "io",
 			Name:      "dataway_point_bytes_total",
-			Help:      "dataway uploaded points bytes, partitioned by category and pint send status(HTTP status)",
+			Help:      "Dataway uploaded points bytes, partitioned by category and pint send status(HTTP status)",
 		},
-		[]string{"category", "status"},
+		[]string{"category", "enc", "status"},
 	)
 
 	apiSumVec = prometheus.NewSummaryVec(
@@ -109,7 +209,17 @@ func init() {
 			Namespace: "datakit",
 			Subsystem: "io",
 			Name:      "dataway_api_latency",
-			Help:      "dataway HTTP request latency(ms) partitioned by HTTP API(method@url) and HTTP status",
+			Help:      "Dataway HTTP request latency(ms) partitioned by HTTP API(method@url) and HTTP status",
+		},
+		[]string{"api", "status"},
+	)
+
+	httpRetry = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "io",
+			Name:      "http_retry_total",
+			Help:      "Dataway HTTP retried count",
 		},
 		[]string{"api", "status"},
 	)
@@ -119,7 +229,7 @@ func init() {
 			Namespace: "datakit",
 			Subsystem: "io",
 			Name:      "dataway_sink_total",
-			Help:      "dataway sink count, partitioned by category.",
+			Help:      "Dataway sink count, partitioned by category.",
 		},
 		[]string{
 			"category",
@@ -131,7 +241,7 @@ func init() {
 			Namespace: "datakit",
 			Subsystem: "io",
 			Name:      "dataway_not_sink_point_total",
-			Help:      "dataway not-sinked points(condition or category not match)",
+			Help:      "Dataway not-sinked points(condition or category not match)",
 		},
 		[]string{"category"},
 	)
@@ -141,7 +251,7 @@ func init() {
 			Namespace: "datakit",
 			Subsystem: "io",
 			Name:      "dataway_sink_point_total",
-			Help:      "dataway sink points, partitioned by category and point send status(ok/failed/dropped)",
+			Help:      "Dataway sink points, partitioned by category and point send status(ok/failed/dropped)",
 		},
 		[]string{"category", "status"},
 	)

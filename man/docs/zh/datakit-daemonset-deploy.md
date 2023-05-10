@@ -227,6 +227,17 @@ spec:
     不管是主机类全局 tag 还是环境类全局 tag，如果原始数据中已经有对应 tag，则不会追加已存在的 tag，我们认为应该沿用原始数据中的 tag。
 <!-- markdownlint-enable -->
 
+### Dataway 配置相关环境变量 {#env-dataway}
+
+| 环境变量名称                   | 类型     | 默认值 | 必须   | 说明                                                         |
+| ---------:                     | ----:    | ---:   | ------ | ----                                                         |
+| `ENV_DATAWAY`                  | string   | 无     | 是     | 配置 DataWay 地址，如 `https://openway.guance.com?token=xxx` |
+| `ENV_DATAWAY_TIMEOUT`          | duration | "30s"  | 否     | 配置 DataWay 请求超时                                        |
+| `ENV_DATAWAY_ENABLE_HTTPTRACE` | bool     | -      | 否     | 开启 DataWay 请求时 HTTP 层面的指标暴露                      |
+| `ENV_DATAWAY_HTTP_PROXY`       | string   | 无     | 否     | 设置 DataWay HTTP 代理                                       |
+| `ENV_DATAWAY_MAX_IDLE_CONNS`   | int      | 无     | 否     | 设置 DataWay HTTP 连接池大小（[:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0)）|
+| `ENV_DATAWAY_IDLE_TIMEOUT`     | duration | "90s"  | 否     | 设置 DataWay HTTP Keep-Alive 时长（[:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0)）|
+
 ### 日志配置相关环境变量 {#env-log}
 
 | 环境变量名称            | 类型   | 默认值                     | 必须   | 说明                                                             |
@@ -388,9 +399,6 @@ DK_SINKER="[ { \"categories\": [\"L\", \"M\"], \"filters\": [ \"{measurement='cp
 | `ENV_HOSTNAME`                  | string   | 无     | 否     | 默认为本地主机名，可安装时指定，如， `dk-your-hostname`    |
 | `ENV_IPDB`                      | string   | 无     | 否     | 指定 IP 信息库类型，目前只支持 `iploc/geolite2` 两种       |
 | `ENV_ULIMIT`                    | int      | 无     | 否     | 指定 Datakit 最大的可打开文件数                            |
-| `ENV_DATAWAY_TIMEOUT`           | duration | 30s    | 否     | 设置 Datakit 请求 DataWay 的超时时间                       |
-| `ENV_DATAWAY_ENABLE_HTTPTRACE`  | bool     | false  | 否     | 在 debug 日志中输出 Dataway HTTP 请求的网络日志            |
-| `ENV_DATAWAY_HTTP_PROXY`        | string   | 无     | 否     | 设置 DataWay HTTP 代理                                     |
 
 ### 特殊环境变量 {#env-special}
 
