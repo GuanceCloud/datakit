@@ -3,6 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
+// Package zipkin handle Zipkin APM traces.
 package zipkin
 
 import (
@@ -16,7 +17,7 @@ import (
 	zpkprotov2 "github.com/openzipkin/zipkin-go/proto/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zipkin/corev1"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zipkin/compiled/thrift-0.16.0/zipkincore"
 )
 
 func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) {
@@ -74,7 +75,7 @@ func parseZipkinTraceV1(param *itrace.TraceParameters) error {
 	var dktrace itrace.DatakitTrace
 	switch param.Media {
 	case "application/x-thrift":
-		var zspans []*corev1.Span
+		var zspans []*zipkincore.Span
 		if zspans, err = unmarshalZipkinThriftV1(body); err == nil {
 			dktrace = thriftV1SpansToDkTrace(zspans)
 		}

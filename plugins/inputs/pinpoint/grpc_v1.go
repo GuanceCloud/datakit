@@ -16,6 +16,7 @@ import (
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	v1 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/pinpoint/compiled/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
@@ -23,17 +24,16 @@ import (
 func runGRPCV1(addr string) {
 	if localCache != nil {
 		localCache.RegisterConsumer(istorage.PINPOINT_GRPC_KEY, func(buf []byte) error {
-			span := &v1.PSpanMessage{}
-			if err := proto.Unmarshal(buf, span); err != nil {
+			spanw := &v1.PSpanWrapper{}
+			if err := proto.Unmarshal(buf, spanw); err != nil {
 				return err
 			}
 
-			dktrace, err := parsePPSpanMessage(span)
+			dktrace, err := parsePPSpanMessage(makeMeta(spanw.Meta), spanw.SpanMessage)
 			if err != nil {
 				return err
 			}
 			if spanSender != nil {
-				log.Debugf("### span: %#v", dktrace)
 				spanSender.Append(dktrace...)
 			}
 
@@ -43,20 +43,20 @@ func runGRPCV1(addr string) {
 
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
-		log.Errorf("### grpc server v1 listening on %s failed: %v", addr, err)
+		log.Errorf("### grpc server v1 listening on %s failed: %s", addr, err.Error())
 
 		return
 	}
 	log.Debugf("### grpc server v1 listening on: %s", addr)
 
-	ppsvr = grpc.NewServer()
-	v1.RegisterAgentServer(ppsvr, &AgentServer{})
-	v1.RegisterMetadataServer(ppsvr, &MetadataServer{})
-	v1.RegisterProfilerCommandServiceServer(ppsvr, &ProfilerCommandServiceServer{})
-	v1.RegisterStatServer(ppsvr, &StatServer{})
-	v1.RegisterSpanServer(ppsvr, &SpanServer{})
+	gsvr = grpc.NewServer()
+	v1.RegisterAgentServer(gsvr, &AgentServer{})
+	v1.RegisterMetadataServer(gsvr, &MetadataServer{})
+	v1.RegisterProfilerCommandServiceServer(gsvr, &ProfilerCommandServiceServer{})
+	v1.RegisterStatServer(gsvr, &StatServer{})
+	v1.RegisterSpanServer(gsvr, &SpanServer{})
 
-	if err = ppsvr.Serve(listener); err != nil {
+	if err = gsvr.Serve(listener); err != nil {
 		log.Error(err.Error())
 	}
 	log.Debug("### grpc server v1 exits")
@@ -111,10 +111,7 @@ func (agtsvr *AgentServer) RequestAgentInfo(ctx context.Context, agInfo *v1.PAge
 		})
 	}
 
-	log.Debugf("### agent meta: %#v", agentMetaData)
-	for _, v := range agentMetaData.ServiceInfo {
-		log.Debugf("### service info: %#v", v)
-	}
+	log.Debugf("### agent meta: %s", agInfo.String())
 
 	return &v1.PResult{Success: true, Message: "ok"}, nil
 }
@@ -228,27 +225,17 @@ type StatServer struct {
 
 func (*StatServer) SendAgentStat(statSvr v1.Stat_SendAgentStatServer) error {
 	for {
-		select {
-		case <-statSvr.Context().Done():
-			if err := statSvr.Context().Err(); err != nil {
-				if errors.Is(err, io.EOF) {
-					return statSvr.SendAndClose(&emptypb.Empty{})
-				}
-				log.Debug(err.Error())
-
-				return err
-			}
-		default:
-		}
-
 		msg, err := statSvr.Recv()
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				return statSvr.SendAndClose(&emptypb.Empty{})
+			}
 			log.Debug(err.Error())
 
 			return err
 		}
 
-		log.Debugf("### stat: %#v", msg.GetAgentStat())
+		log.Debugf("### stat: %s", msg.String())
 	}
 }
 
@@ -258,6 +245,8 @@ type SpanServer struct {
 
 func (*SpanServer) SendSpan(spanSvr v1.Span_SendSpanServer) error {
 	for {
+		md, _ := metadata.FromIncomingContext(spanSvr.Context())
+
 		msg, err := spanSvr.Recv()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
@@ -269,7 +258,7 @@ func (*SpanServer) SendSpan(spanSvr v1.Span_SendSpanServer) error {
 		}
 
 		if localCache == nil || !localCache.Enabled() {
-			dktrace, err := parsePPSpanMessage(msg)
+			dktrace, err := parsePPSpanMessage(md, msg)
 			if err != nil {
 				log.Debug(err.Error())
 				continue
@@ -279,7 +268,11 @@ func (*SpanServer) SendSpan(spanSvr v1.Span_SendSpanServer) error {
 				spanSender.Append(dktrace...)
 			}
 		} else {
-			buf, err := proto.Marshal(msg)
+			spanw := &v1.PSpanWrapper{
+				Meta:        makePSpanMeta(md),
+				SpanMessage: msg,
+			}
+			buf, err := proto.Marshal(spanw)
 			if err != nil {
 				log.Error(err.Error())
 				continue
@@ -292,12 +285,12 @@ func (*SpanServer) SendSpan(spanSvr v1.Span_SendSpanServer) error {
 	}
 }
 
-func parsePPSpanMessage(msg *v1.PSpanMessage) (itrace.DatakitTrace, error) {
+func parsePPSpanMessage(meta metadata.MD, msg *v1.PSpanMessage) (itrace.DatakitTrace, error) {
 	var trace itrace.DatakitTrace
 	if ppspan := msg.GetSpan(); ppspan != nil {
-		trace = ppspan.ConvertToDKTrace(inputName, reqMetaTab)
+		trace = ppspan.ConvertToDKTrace(inputName, meta, reqMetaTab)
 	} else if ppchunk := msg.GetSpanChunk(); ppchunk != nil {
-		trace = ppchunk.ConvertToDKTrace(inputName, reqMetaTab)
+		trace = ppchunk.ConvertToDKTrace(inputName, meta, reqMetaTab)
 	} else {
 		return nil, errors.New("### empty span message")
 	}
@@ -315,4 +308,30 @@ func parsePPSpanMessage(msg *v1.PSpanMessage) (itrace.DatakitTrace, error) {
 	}
 
 	return trace, nil
+}
+
+func makePSpanMeta(md metadata.MD) map[string]*v1.StringSlice {
+	if len(md) == 0 {
+		return nil
+	}
+
+	spmd := make(map[string]*v1.StringSlice)
+	for k, v := range md {
+		spmd[k] = &v1.StringSlice{Values: v}
+	}
+
+	return spmd
+}
+
+func makeMeta(spmd map[string]*v1.StringSlice) metadata.MD {
+	if len(spmd) == 0 {
+		return nil
+	}
+
+	md := make(metadata.MD)
+	for k, v := range spmd {
+		md[k] = v.Values
+	}
+
+	return md
 }
