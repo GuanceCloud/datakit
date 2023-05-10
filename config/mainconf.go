@@ -8,6 +8,7 @@ package config
 import (
 	"path/filepath"
 	"runtime"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/tracer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -130,7 +131,9 @@ func DefaultConfig() *Config {
 		},
 
 		Dataway: &dataway.Dataway{
-			URLs: []string{"not-set"},
+			URLs:        []string{"not-set"},
+			HTTPTimeout: 30 * time.Second,
+			IdleTimeout: 90 * time.Second,
 		},
 
 		ProtectMode: true,

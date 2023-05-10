@@ -59,8 +59,10 @@ var (
 type Dataway struct {
 	URLs []string `toml:"urls"`
 
-	HTTPTimeout string `toml:"timeout"`
-	HTTPProxy   string `toml:"http_proxy"`
+	DeprecatedHTTPTimeout string        `toml:"timeout,omitempty"`
+	HTTPTimeout           time.Duration `toml:"timeout_v2"`
+
+	HTTPProxy string `toml:"http_proxy"`
 
 	Hostname string `toml:"-"`
 
@@ -72,13 +74,13 @@ type Dataway struct {
 	DeprecatedToken  string `toml:"token,omitempty"`
 	DeprecatedURL    string `toml:"url,omitempty"`
 
-	MaxIdleConnsPerHost int `toml:"max_idle_conns_per_host,omitempty"`
-
-	httpTimeout time.Duration
+	MaxIdleConnsPerHost int           `toml:"max_idle_conns_per_host,omitempty"`
+	MaxIdleConns        int           `toml:"max_idle_conns"`
+	IdleTimeout         time.Duration `toml:"idle_timeout"`
 
 	Proxy bool `toml:"proxy,omitempty"`
 
-	EnableHTTPTrace bool `toml:"enable_httptrace,omitempty"`
+	EnableHTTPTrace bool `toml:"enable_httptrace"`
 
 	eps        []*endPoint
 	locker     sync.RWMutex
@@ -140,19 +142,13 @@ func (dw *Dataway) doInit() error {
 		return fmt.Errorf("dataway not set: urls is empty")
 	}
 
-	if dw.HTTPTimeout == "" {
-		dw.HTTPTimeout = "30s"
+	if dw.HTTPTimeout <= time.Duration(0) {
+		dw.HTTPTimeout = time.Second * 30
 	}
 
 	if dw.MaxIdleConnsPerHost == 0 {
 		dw.MaxIdleConnsPerHost = 64
 	}
-
-	du, err := time.ParseDuration(dw.HTTPTimeout)
-	if err != nil {
-		return err
-	}
-	dw.httpTimeout = du
 
 	for _, s := range dw.Sinkers {
 		if err := s.Setup(); err != nil {
@@ -164,9 +160,11 @@ func (dw *Dataway) doInit() error {
 		ep, err := newEndpoint(u,
 			withProxy(dw.HTTPProxy),
 			withAPIs(dwAPIs),
-			withHTTPTimeout(dw.httpTimeout),
+			withHTTPTimeout(dw.HTTPTimeout),
 			withHTTPTrace(dw.EnableHTTPTrace),
 			withMaxHTTPIdleConnectionPerHost(dw.MaxIdleConnsPerHost),
+			withMaxHTTPConnections(dw.MaxIdleConns),
+			withHTTPIdleTimeout(dw.IdleTimeout),
 		)
 		if err != nil {
 			log.Errorf("init dataway url %s failed: %s", u, err.Error())

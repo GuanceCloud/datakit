@@ -69,7 +69,7 @@ type runtimeInfoCollector struct{}
 var (
 	riGoroutineDesc = p8s.NewDesc(
 		"datakit_goroutines",
-		"goroutine count within Datakit",
+		"Goroutine count within Datakit",
 		nil, nil,
 	)
 

@@ -6,13 +6,36 @@
 package config
 
 import (
-	"testing"
+	T "testing"
+	"time"
 
 	bstoml "github.com/BurntSushi/toml"
 	"github.com/influxdata/toml"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestTOMLParse(t *testing.T) {
+func TestDuration(t *T.T) {
+	t.Run("duration", func(t *T.T) {
+		type Some struct {
+			Duration  time.Duration   `toml:"duration"`
+			Durations []time.Duration `toml:"durations"`
+		}
+
+		var x Some
+
+		_, err := bstoml.Decode(string(`
+		duration = "1m"
+		durations = ["1m", "3h"]
+`), &x)
+		assert.NoError(t, err)
+
+		assert.Equal(t, time.Minute, x.Duration)
+		assert.Equal(t, time.Minute, x.Durations[0])
+		assert.Equal(t, time.Hour*3, x.Durations[1])
+	})
+}
+
+func TestTOMLParse(t *T.T) {
 	cases := []struct {
 		name string
 		data []byte
@@ -83,7 +106,7 @@ func TestTOMLParse(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *T.T) {
 			_, err1 := toml.Parse(tc.data)
 			if err1 != nil {
 				t.Logf("influx TOML parse: %s", err1)

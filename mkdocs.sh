@@ -26,6 +26,7 @@ usage() {
 	echo "              -B: Do not build datakit" 1>&2;
 	echo "              -C: Check exported docs" 1>&2;
 	echo "              -L: Specify language(zh/en)" 1>&2;
+	echo "              -C: check(lint) generated docs" 1>&2;
 	echo "              -p: Specify local port(default 8000)" 1>&2;
 	echo "              -b: Specify local bind(default 0.0.0.0)" 1>&2;
 	echo "              -h: Show help" 1>&2;
@@ -53,6 +54,10 @@ while getopts "V:D:L:p:b:BCh" arg; do
 
 		B)
 			no_build=true;
+			;;
+
+		C)
+			do_check=true;
 			;;
 
 		h)

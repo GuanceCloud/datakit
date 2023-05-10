@@ -7,6 +7,7 @@ package installer
 
 import (
 	"testing"
+	"time"
 
 	bstoml "github.com/BurntSushi/toml"
 	"github.com/stretchr/testify/assert"
@@ -20,6 +21,36 @@ func TestUpgradeMainConfig(t *testing.T) {
 		old,
 		expect *config.Config
 	}{
+		{
+			name: "upgrade-http-timeout",
+			old: func() *config.Config {
+				c := config.DefaultConfig()
+				c.Dataway.DeprecatedHTTPTimeout = "10m"
+				return c
+			}(),
+
+			expect: func() *config.Config {
+				c := config.DefaultConfig()
+				c.Dataway.HTTPTimeout = 10 * time.Minute
+				return c
+			}(),
+		},
+
+		{
+			name: "upgrade-invalid-http-timeout",
+			old: func() *config.Config {
+				c := config.DefaultConfig()
+				c.Dataway.DeprecatedHTTPTimeout = "10min"
+				return c
+			}(),
+
+			expect: func() *config.Config {
+				c := config.DefaultConfig()
+				c.Dataway.HTTPTimeout = 30 * time.Second // use default
+				return c
+			}(),
+		},
+
 		{
 			name: "upgrade-election",
 

@@ -57,7 +57,7 @@ func TestWriteWithCache(t *T.T) {
 		dw := &Dataway{
 			URLs:            []string{fmt.Sprintf("%s?token=tkn_11111111111111111111", ts.URL)},
 			EnableHTTPTrace: true,
-			HTTPTimeout:     "10ms", // easy timeout
+			HTTPTimeout:     10 * time.Millisecond, // easy timeout
 		}
 		assert.NoError(t, dw.Init())
 

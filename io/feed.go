@@ -236,7 +236,13 @@ func (x *dkIO) doFeed(pts []*dkpt.Point, category, from string, opt *Option) err
 		ch = x.chans[datakit.DynamicDatawayCategory]
 	}
 
-	ioChanLen.WithLabelValues(point.CatURL(category).String()).Set(float64(len(ch)))
+	if opt.HTTPHost != "" {
+		// dial-testing feed to logging channel, but we changed the label to dynamic-dataway.
+		// On command datakit monitor, we need to show dial-testing IO metrics.
+		ioChanLen.WithLabelValues(point.DynamicDWCategory.String()).Set(float64(len(ch)))
+	} else {
+		ioChanLen.WithLabelValues(point.CatURL(category).String()).Set(float64(len(ch)))
+	}
 
 	job := &iodata{
 		category: category,

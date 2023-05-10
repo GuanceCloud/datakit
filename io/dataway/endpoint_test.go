@@ -19,12 +19,67 @@ import (
 	"github.com/GuanceCloud/cliutils/metrics"
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/avast/retry-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
+
+func TestEndpointRetry(t *T.T) {
+	t.Skip() // for feature test
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+
+	urlstr := fmt.Sprintf("%s?token=abc", ts.URL)
+	ep, err := newEndpoint(urlstr, withHTTPTrace(true))
+	assert.NoError(t, err)
+
+	req, err := http.NewRequest("POST", urlstr, nil)
+	assert.NoError(t, err)
+
+	retry.Do(
+		func() error {
+			resp, err := ep.sendReq(req)
+			if err != nil {
+				return err
+			}
+
+			if resp.StatusCode/100 == 5 { // server-side error
+				t.Logf("status: %s", resp.Status)
+				return fmt.Errorf("5XX: %s", resp.Status)
+			}
+
+			time.Sleep(time.Second)
+			return nil
+		},
+		retry.Attempts(4),
+		retry.Delay(time.Second*1),
+	)
+}
+
+func TestEndpointFailedRequest(t *T.T) {
+	t.Skip() // only for feature test
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+
+	urlstr := fmt.Sprintf("%s?token=abc", ts.URL)
+	ep, err := newEndpoint(urlstr, withHTTPTrace(true))
+	assert.NoError(t, err)
+
+	req, err := http.NewRequest("POST", urlstr, nil)
+	assert.NoError(t, err)
+	for {
+		resp, err := ep.sendReq(req)
+		t.Logf("sendReq: %v, resp: %+#v", err, resp)
+		time.Sleep(time.Second)
+	}
+}
 
 func TestEndpoint(t *T.T) {
 	t.Run("new", func(t *T.T) {
