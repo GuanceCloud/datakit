@@ -103,7 +103,6 @@ func (app *monitorAPP) renderIOTable(mfs map[string]*dto.MetricFamily, colArr []
 		}
 
 		if dwBytesTotal != nil {
-
 			var bytesOk, bytesTotal, bytesGzipTotal float64
 			if x := metricWithLabel(dwBytesTotal,
 				point.CatString(cat).String(), "raw", http.StatusText(http.StatusOK)); x != nil {

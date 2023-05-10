@@ -382,7 +382,7 @@ lint: deps copyright_check md_lint
 
 lint_nofix: deps copyright_check md_lint
 	@truncate -s 0 lint.err
-	$(GOLINT_BINARY) run --allow-parallel-runners | tee -a lint_nofix.err;
+	$(GOLINT_BINARY) run --allow-parallel-runners;
 	@if [ $$? != 0 ]; then \
 		exit -1; \
 	fi
@@ -428,7 +428,7 @@ md_lint:
 	@grep --color=always -nr '\[.*\](http' man/docs/zh/ man/docs/en | grep -vE 'static.guance.com|_blank' && \
 	 { echo "\n------\n[E] Some bad docs got invalid external links. See https://docs.guance.com/datakit/mkdocs-howto/#outer-linkers\n"; exit -1; } || { echo 'external links ok.'; }
 	@#check generated docs
-	@bash mkdocs.sh -D ./local-docs -C
+	@bash mkdocs.sh -D ./local-docs -C -V 9.9.9
 
 project_words:
 	cspell -c cspell/cspell.json --words-only --unique man/docs/zh/** | sort --ignore-case >> project-words.txt

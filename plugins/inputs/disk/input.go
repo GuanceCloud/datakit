@@ -247,6 +247,7 @@ func wrapUint64(x uint64) int64 {
 	}
 	return int64(x)
 }
+
 func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("disk input started")
