@@ -194,7 +194,7 @@ for _lang in "${i18n[@]}"; do
 		fi
 
 		printf "${GREEN}> mdm %s...${CLR}\n" $base_docs_dir/${_lang}/datakit
-		CGO_CFLAGS="-Wno-undef-prefix -Wno-deprecated-declarations"	go run cmd/make/make.go -mdm $base_docs_dir/${_lang}/datakit &>/dev/null && \
+		CGO_CFLAGS="-Wno-undef-prefix -Wno-deprecated-declarations"	go run cmd/make/make.go -mdm $base_docs_dir/${_lang}/datakit && \
 			{ echo "\n------\n[E] Some bad docs got invalid format on Unicode/ASCII. See https://docs.guance.com/datakit/mkdocs-howto/#zh-en-mix\n"; exit -1; } || \
 				{ echo 'Unicode/ASCII format ok.'; };
 		exit 0;
