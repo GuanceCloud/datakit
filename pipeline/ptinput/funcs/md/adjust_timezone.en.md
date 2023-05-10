@@ -50,8 +50,10 @@ Execute `datakit pipeline -P <name>.p -F <input_file_name>  --date`:
 
 local time: `2022-07-11T20:55:10.521+08:00`
 
-The times obtained by using only default_time and parsing according to the default local time zone (UTC+8) are:
- - Output result of input 1： `2022-07-11T12:49:20.937+08:00`
+The times obtained by using only `default_time` and parsing according to the default local time zone (UTC+8) are:
 
-After using adjust_timezone will get:
- - Output result of input 1： `2022-07-11T20:49:20.937+08:00`
+- Output result of input 1： `2022-07-11T12:49:20.937+08:00`
+
+After using `adjust_timezone` will get:
+
+- Output result of input 1： `2022-07-11T20:49:20.937+08:00`

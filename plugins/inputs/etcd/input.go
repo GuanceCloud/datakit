@@ -21,7 +21,7 @@ const (
   url = "http://127.0.0.1:2379/metrics"
 
   ## Collector alias.
-	source = "etcd"
+  source = "etcd"
 
   ## Metrics type whitelist. Optional: counter, gauge, histogram, summary
   # Default only collect 'counter' and 'gauge'.

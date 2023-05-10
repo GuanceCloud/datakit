@@ -30,7 +30,7 @@ var (
   # UNIX-like example: /usr/local/
   dir = "" # required
 
-	# optional, i.e., "*.exe", "*.so"
+  # optional, i.e., "*.exe", "*.so"
   exclude_patterns = []
 
 [inputs.hostdir.tags]

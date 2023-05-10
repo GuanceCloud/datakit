@@ -57,7 +57,7 @@ func (m *NginxMeasurement) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"nginx_server":  inputs.NewTagInfo("nginx server host"),
 			"nginx_port":    inputs.NewTagInfo("nginx server port"),
-			"host":          inputs.NewTagInfo("host mame which installed nginx"),
+			"host":          inputs.NewTagInfo("host name which installed nginx"),
 			"nginx_version": inputs.NewTagInfo("nginx version, exist when using vts"),
 		},
 	}

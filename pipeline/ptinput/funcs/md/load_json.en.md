@@ -1,8 +1,8 @@
-### `load_json()` {#fn-load_json}
+### `load_json()` {#fn-load_JSON}
 
 Function prototype: `fn load_json(val: str) nil|bool|float|map|list`
 
-Function description: Convert the json string to one of map, list, nil, bool, float, and the value can be obtained and modified through the index expression.
+Function description: Convert the JSON string to one of map, list, nil, bool, float, and the value can be obtained and modified through the index expression.
 
 Function parameters:
 

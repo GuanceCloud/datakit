@@ -72,7 +72,7 @@ func (m *cpuMeasurement) Info() *inputs.MeasurementInfo {
 
 			"usage_guest_nice": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
-				Desc: "% CPU spent running a niced guest(virtual CPU for guest operating systems).",
+				Desc: "% CPU spent running a nice guest(virtual CPU for guest operating systems).",
 			},
 
 			"usage_total": &inputs.FieldInfo{

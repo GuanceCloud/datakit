@@ -45,7 +45,7 @@ RabbitMQ 采集器是通过插件 `rabbitmq-management` 采集数据监控 Rabbi
 <!-- markdownlint-disable MD046 -->
 === "主机安装"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    进入 DataKit 安装目录下的 *conf.d/{{.Catalog}}* 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
     
     ```toml
     {{ CodeBlock .InputSample 4 }}
@@ -91,7 +91,7 @@ RabbitMQ 采集器是通过插件 `rabbitmq-management` 采集数据监控 Rabbi
     必须将 DataKit 安装在 RabbitMQ 所在主机才能采集 RabbitMQ 日志
 <!-- markdownlint-enable -->
 
-如需采集 RabbitMQ 的日志，可在 {{.InputName}}.conf 中 将 `files` 打开，并写入 RabbitMQ 日志文件的绝对路径。比如：
+如需采集 RabbitMQ 的日志，可在 *{{.InputName}}.conf* 中 将 `files` 打开，并写入 RabbitMQ 日志文件的绝对路径。比如：
 
 ```toml
 [[inputs.rabbitmq]]

@@ -1,8 +1,8 @@
-### `load_json()` {#fn-load_json}
+### `load_json()` {#fn-load_JSON}
 
 函数原型：`fn load_json(val: str) nil|bool|float|map|list`
 
-函数说明：将 json 字符串转换成 map、list、nil、bool、float 的其中一种，可通过 index 表达式取值及修改值。
+函数说明：将 JSON 字符串转换成 map、list、nil、bool、float 的其中一种，可通过 index 表达式取值及修改值。
 
 参数:
 

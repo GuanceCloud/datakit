@@ -186,7 +186,7 @@ func (m *TomcatServletM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: TomcatServlet,
 		Fields: map[string]interface{}{
-			"processingTime": newFielInfoInt("Total execution time of the servlet's service method."),
+			"processingTime": newFielInfoInt("Total execution time of the Servlet's service method."),
 			"errorCount":     newFielInfoCount("Error count."),
 			"requestCount":   newFielInfoCount("Number of requests processed by this wrapper."),
 		},

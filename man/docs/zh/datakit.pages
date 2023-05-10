@@ -71,7 +71,7 @@ nav:
         - solr.md
 
       - '消息队列':
-        - kafka.md
+        - 'Kafka': kafka.md
         - nsq.md
         - rabbitmq.md
 

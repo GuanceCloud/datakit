@@ -109,8 +109,8 @@ type indexStat struct {
 //nolint:lll
 const sampleConfig = `
 [[inputs.elasticsearch]]
-  ## Elasticsearch服务器配置
-  # 支持Basic认证:
+  ## Elasticsearch 服务器配置
+  # 支持 Basic 认证:
   # servers = ["http://user:pass@localhost:9200"]
   servers = ["http://localhost:9200"]
 
@@ -118,34 +118,34 @@ const sampleConfig = `
   # 单位 "ns", "us" (or "µs"), "ms", "s", "m", "h"
   interval = "10s"
 
-  ## HTTP超时设置
+  ## HTTP 超时设置
   http_timeout = "5s"
 
-  ## 发行版本: elasticsearch, opendistro, opensearch
+  ## 发行版本: elasticsearch/opendistro/opensearch
   distribution = "elasticsearch"
 
-  ## 默认local是开启的，只采集当前Node自身指标，如果需要采集集群所有Node，需要将local设置为false
+  ## 默认 local 是开启的，只采集当前 Node 自身指标，如果需要采集集群所有 Node，需要将 local 设置为 false
   local = true
 
-  ## 设置为true可以采集cluster health
+  ## 设置为 true 可以采集 cluster health
   cluster_health = false
 
   ## cluster health level 设置，indices (默认) 和 cluster
   # cluster_health_level = "indices"
 
-  ## 设置为true时可以采集cluster stats.
+  ## 设置为 true 时可以采集 cluster stats.
   cluster_stats = false
 
-  ## 只从master Node获取cluster_stats，这个前提是需要设置 local = true
+  ## 只从 master Node 获取 cluster_stats，这个前提是需要设置 local = true
   cluster_stats_only_from_master = true
 
-  ## 需要采集的Indices, 默认为 _all
+  ## 需要采集的 Indices, 默认为 _all
   indices_include = ["_all"]
 
-  ## indices级别，可取值："shards", "cluster", "indices"
+  ## indices 级别，可取值：shards/cluster/indices
   indices_level = "shards"
 
-  ## node_stats可支持配置选项有"indices", "os", "process", "jvm", "thread_pool", "fs", "transport", "http", "breaker"
+  ## node_stats 可支持配置选项有 indices/os/process/jvm/thread_pool/fs/transport/http/breaker
   # 默认是所有
   # node_stats = ["jvm", "http"]
 

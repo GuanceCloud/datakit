@@ -139,19 +139,19 @@ func (m *tablespaceMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
 				Unit:     inputs.SizeByte,
-				Desc:     "Tablespace size",
+				Desc:     "Table space size",
 			},
 			"in_use": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NCount,
-				Desc:     "Tablespace in-use",
+				Desc:     "Table space in-use",
 			},
 			"off_use": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NCount,
-				Desc:     "Tablespace offline",
+				Desc:     "Table space offline",
 			},
 		},
 		Tags: map[string]interface{}{

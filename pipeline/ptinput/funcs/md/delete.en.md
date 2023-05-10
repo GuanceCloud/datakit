@@ -4,7 +4,7 @@
 
 Function prototype: `fn delete(src: map[string]any, key: str)`
 
-Function description: Delete the key in the json map
+Function description: Delete the key in the JSON map
 
 ```python
 

@@ -191,7 +191,7 @@ func (c *cronjobObject) LineProto() (*point.Point, error) {
 func (*cronjobObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "kubernetes_cron_jobs",
-		Desc: "The obejct of the Kubernetes CronJob.",
+		Desc: "The object of the Kubernetes CronJob.",
 		Type: "object",
 		Tags: map[string]interface{}{
 			"name":          inputs.NewTagInfo("UID"),
@@ -200,7 +200,7 @@ func (*cronjobObject) Info() *inputs.MeasurementInfo {
 		},
 		Fields: map[string]interface{}{
 			"age":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "age (seconds)"},
-			"schedule":    &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The schedule in Cron format, see https://en.wikipedia.org/wiki/Cron"},
+			"schedule":    &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: `The schedule in Cron format, see [docs](https://en.wikipedia.org/wiki/Cron){:target="_blank"}`},
 			"active_jobs": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of pointers to currently running jobs."},
 			"suspend":     &inputs.FieldInfo{DataType: inputs.Bool, Unit: inputs.UnknownUnit, Desc: "This flag tells the controller to suspend subsequent executions, it does not apply to already started executions."},
 			"message":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "object details"},

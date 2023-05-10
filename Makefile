@@ -373,14 +373,14 @@ all_test: deps
 
 test_deps: prepare gofmt lfparser_disable_line vet
 
-lint: deps check_man copyright_check md_lint cspell
+lint: deps copyright_check md_lint
 	@truncate -s 0 lint.err
 	$(GOLINT_BINARY) run --fix --allow-parallel-runners | tee -a lint.err;
 	@if [ $$? != 0 ]; then \
 		exit -1; \
 	fi
 
-lint_nofix: deps check_man copyright_check md_lint cspell
+lint_nofix: deps copyright_check md_lint
 	@truncate -s 0 lint.err
 	$(GOLINT_BINARY) run --allow-parallel-runners | tee -a lint_nofix.err;
 	@if [ $$? != 0 ]; then \
@@ -404,10 +404,22 @@ copyright_check:
 copyright_check_auto_fix:
 	@python3 copyright.py --fix
 
-# Additional checkings on documents
-check_man:
+md_lint:
+	@# markdownlint install: https://github.com/igorshubovych/markdownlint-cli
+	@echo 'markdownlint version: $(MARKDOWNLINT_VERSION)'
+	@markdownlint man/docs/zh 2>&1 | tee md.lint
+	@if [ -s md.lint ]; then \
+		exit -1; \
+	fi
+	@# check spell on ZH docs
+	@echo 'cspell version: $(CSPELL_VERSION)'
+	cspell lint -c cspell/cspell.json --no-progress man/docs/zh/*.md man/docs/zh/**/*.md | tee cspell.lint
+	@if [ -s cspell.lint ]; then \
+		exit -1; \
+	fi
+	@# Additional checkings on documents
 	@echo 'checking Unicode/ASCCI format...'
-	@go run cmd/make/make.go -mdm man/docs/zh/ && \
+	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run cmd/make/make.go -mdm man/docs/zh/ && \
 	 { echo "\n------\n[E] Some bad docs got invalid format on Unicode/ASCII. See https://docs.guance.com/datakit/mkdocs-howto/#zh-en-mix\n"; exit -1; } || { echo 'Unicode/ASCII format ok.'; }
 	@echo 'checking section tags...'
 	@grep --color=always --exclude *changelog.md -nr '^##' man/docs/* | grep -vE ' {#' | grep -vE '{{' && \
@@ -415,25 +427,8 @@ check_man:
 	@echo 'checking external links...'
 	@grep --color=always -nr '\[.*\](http' man/docs/zh/ man/docs/en | grep -vE 'static.guance.com|_blank' && \
 	 { echo "\n------\n[E] Some bad docs got invalid external links. See https://docs.guance.com/datakit/mkdocs-howto/#outer-linkers\n"; exit -1; } || { echo 'external links ok.'; }
-
-md_lint: check_man
-	@# markdownlint install: https://github.com/igorshubovych/markdownlint-cli
-	@echo 'markdownlint version: $(MARKDOWNLINT_VERSION)'
-	@markdownlint man/docs/zh 2>&1 | tee md.lint
-	@if [ -s md.lint ]; then \
-		cat md.lint; \
-		exit -1; \
-	fi
-
-# check spell on ZH docs
-cspell:
-	#cspell lint -c cspell/cspell.json --no-progress man/docs/**/*.md | tee cspell.lint
-	@echo 'cspell version: $(CSPELL_VERSION)'
-	cspell lint -c cspell/cspell.json --no-progress man/docs/zh/*.md man/docs/zh/**/*.md | tee cspell.lint
-	@if [ -s cspell.lint ]; then \
-		cat cspell.lint; \
-		exit -1; \
-	fi
+	@#check generated docs
+	@bash mkdocs.sh -D ./local-docs -C
 
 project_words:
 	cspell -c cspell/cspell.json --words-only --unique man/docs/zh/** | sort --ignore-case >> project-words.txt

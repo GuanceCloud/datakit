@@ -146,7 +146,7 @@ var connectFields = map[string]interface{}{
 }
 
 var connectTags = map[string]interface{}{
-	"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
+	"jolokia_agent_url": inputs.TagInfo{Desc: "Jolokia agent url path"},
 	"type":              inputs.TagInfo{Desc: "metric type"},
 	"client_id":         inputs.TagInfo{Desc: "client id"},
 	"task":              inputs.TagInfo{Desc: "task"},
@@ -228,7 +228,7 @@ var producerFields = map[string]interface{}{
 }
 
 var producerTags = map[string]interface{}{
-	"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
+	"jolokia_agent_url": inputs.TagInfo{Desc: "Jolokia agent url path"},
 	"type":              inputs.TagInfo{Desc: "metric type"},
 	"client_id":         inputs.TagInfo{Desc: "client id"},
 }
@@ -317,7 +317,7 @@ var consumerFields = map[string]interface{}{
 }
 
 var consumerTags = map[string]interface{}{
-	"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
+	"jolokia_agent_url": inputs.TagInfo{Desc: "Jolokia agent url path"},
 	"type":              inputs.TagInfo{Desc: "metric type"},
 	"client_id":         inputs.TagInfo{Desc: "client id"},
 }
@@ -346,7 +346,7 @@ var logFields = map[string]interface{}{
 }
 
 var logTags = map[string]interface{}{
-	"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
+	"jolokia_agent_url": inputs.TagInfo{Desc: "Jolokia agent url path"},
 	"type":              inputs.TagInfo{Desc: "metric type"},
 }
 
@@ -372,7 +372,7 @@ var networkFields = map[string]interface{}{
 }
 
 var networkTags = map[string]interface{}{
-	"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
+	"jolokia_agent_url": inputs.TagInfo{Desc: "Jolokia agent url path"},
 	"type":              inputs.TagInfo{Desc: "metric type"},
 }
 
@@ -400,7 +400,7 @@ var requestHandlerFields = map[string]interface{}{
 }
 
 var requestHandlerTags = map[string]interface{}{
-	"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
+	"jolokia_agent_url": inputs.TagInfo{Desc: "Jolokia agent url path"},
 }
 
 func (j *KafkaRequestHandlerMment) Info() *inputs.MeasurementInfo {
@@ -431,7 +431,7 @@ var zooKeeperFields = map[string]interface{}{
 }
 
 var zooKeeperTags = map[string]interface{}{
-	"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
+	"jolokia_agent_url": inputs.TagInfo{Desc: "Jolokia agent url path"},
 }
 
 func (j *KafkaZooKeeperMment) Info() *inputs.MeasurementInfo {
@@ -810,7 +810,7 @@ var controllerFields = map[string]interface{}{
 }
 
 var controllerTags = map[string]interface{}{
-	"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
+	"jolokia_agent_url": inputs.TagInfo{Desc: "Jolokia agent url path"},
 }
 
 func (j *KafkaControllerMment) LineProto() (*point.Point, error) {
@@ -826,7 +826,7 @@ func (j *KafkaControllerMment) Info() *inputs.MeasurementInfo { //nolint:funlen
 }
 
 var replicationTags = map[string]interface{}{
-	"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
+	"jolokia_agent_url": inputs.TagInfo{Desc: "Jolokia agent url path"},
 }
 
 //nolint:lll
@@ -877,7 +877,7 @@ func (j *KafkaReplicaMment) Info() *inputs.MeasurementInfo {
 }
 
 var purgatoryTags = map[string]interface{}{
-	"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
+	"jolokia_agent_url": inputs.TagInfo{Desc: "Jolokia agent url path"},
 }
 
 //nolint:lll
@@ -1023,7 +1023,7 @@ var requestFields = map[string]interface{}{
 }
 
 var requestTags = map[string]interface{}{
-	"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
+	"jolokia_agent_url": inputs.TagInfo{Desc: "Jolokia agent url path"},
 }
 
 func (j *KafkaRequestMment) Info() *inputs.MeasurementInfo {
@@ -1186,7 +1186,7 @@ var topicsFields = map[string]interface{}{
 }
 
 var topicsTags = map[string]interface{}{
-	"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
+	"jolokia_agent_url": inputs.TagInfo{Desc: "Jolokia agent url path"},
 }
 
 func (j *KafkaTopicsMment) Info() *inputs.MeasurementInfo {
@@ -1245,7 +1245,7 @@ var topicFields = map[string]interface{}{
 }
 
 var topicTags = map[string]interface{}{
-	"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
+	"jolokia_agent_url": inputs.TagInfo{Desc: "Jolokia agent url path"},
 	"topic":             inputs.TagInfo{Desc: "topic name"},
 }
 
@@ -1271,7 +1271,7 @@ var partitionFields = map[string]interface{}{
 }
 
 var partitionTags = map[string]interface{}{
-	"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
+	"jolokia_agent_url": inputs.TagInfo{Desc: "Jolokia agent url path"},
 	"partition":         inputs.TagInfo{Desc: "partition number"},
 	"topic":             inputs.TagInfo{Desc: "topic name"},
 }

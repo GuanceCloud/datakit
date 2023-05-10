@@ -28,11 +28,11 @@ func (m *datakitMeasurement) Info() *inputs.MeasurementInfo {
 		Type: "metric",
 		Tags: map[string]interface{}{
 			"arch":              &inputs.TagInfo{Desc: "Architecture of the DataKit"},
-			"os":                &inputs.TagInfo{Desc: "Operation System of the DataKit, such as linux/mac/windows"},
+			"os":                &inputs.TagInfo{Desc: "Operation System of the DataKit, such as Linux/macOS/Windows"},
 			"os_version_detail": &inputs.TagInfo{Desc: "Operation System release of the DataKit, such as Ubuntu 20.04.2 LTS, macOS 10.15 Catalina"},
 			"host":              &inputs.TagInfo{Desc: "Hostname of the DataKit"},
 			"uuid":              &inputs.TagInfo{Desc: "**Deprecated**, currently use `hostname` as DataKit's UUID"},
-			"namespace":         &inputs.TagInfo{Desc: "Election namespace(datakit.conf/namespace) of DataKit, may be not set"},
+			"namespace":         &inputs.TagInfo{Desc: "Election namespace(`datakit.conf/namespace`) of DataKit, may be not set"},
 			"version":           &inputs.TagInfo{Desc: "DataKit version"},
 		},
 
@@ -41,7 +41,7 @@ func (m *datakitMeasurement) Info() *inputs.MeasurementInfo {
 				Type:     inputs.Gauge,
 				DataType: inputs.Float,
 				Unit:     inputs.Percent,
-				Desc:     "CPU usage of current datakit(same as `top`)",
+				Desc:     "CPU usage of current Datakit(same as `top`)",
 			},
 
 			"cpu_usage_top": &inputs.FieldInfo{
@@ -139,19 +139,19 @@ func (m *datakitMeasurement) Info() *inputs.MeasurementInfo {
 				Type:     inputs.Gauge,
 				DataType: inputs.Int,
 				Unit:     inputs.NCount,
-				Desc:     "Number of goroutines that currently exitst",
+				Desc:     "Number of Goroutine that currently exists",
 			},
 			"max_num_goroutines": &inputs.FieldInfo{
 				Type:     inputs.Gauge,
 				DataType: inputs.Int,
 				Unit:     inputs.NCount,
-				Desc:     "Max number of goroutines since DataKit start",
+				Desc:     "Max number of Goroutine since DataKit start",
 			},
 			"min_num_goroutines": &inputs.FieldInfo{
 				Type:     inputs.Gauge,
 				DataType: inputs.Int,
 				Unit:     inputs.NCount,
-				Desc:     "Minimal number of goroutines since DataKit start",
+				Desc:     "Minimal number of Goroutine since DataKit start",
 			},
 
 			"pid": &inputs.FieldInfo{

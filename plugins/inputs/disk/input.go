@@ -58,7 +58,7 @@ var (
 
   ## Deprecated
   # fs = ["ext2", "ext3", "ext4", "NTFS"]
-  
+
   ## We collect all devices prefixed with dev by default,If you want to collect additional devices, it's in extra_device add
   # extra_device = ["/nfsdata"]
 
@@ -103,27 +103,27 @@ func (m *diskMeasurement) Info() *inputs.MeasurementInfo {
 			},
 			"inodes_total": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "Total inodes(**DEPRECATED: use inodes_total_mb instead**).",
+				Desc: "Total Inode(**DEPRECATED: use inodes_total_mb instead**).",
 			},
 			"inodes_total_mb": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "Total inodes(in MB).",
+				Desc: "Total Inode(in MB).",
 			},
 			"inodes_free": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "Free inodes(**DEPRECATED: use inodes_free_mb instead**).",
+				Desc: "Free Inode(**DEPRECATED: use inodes_free_mb instead**).",
 			},
 			"inodes_free_mb": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "Free inodes(in MB).",
+				Desc: "Free Inode(in MB).",
 			},
 			"inodes_used_mb": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "Used inodes(in MB).",
+				Desc: "Used Inode(in MB).",
 			},
 			"inodes_used": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "Used inodes(**DEPRECATED: use inodes_used_mb instead**).",
+				Desc: "Used Inode(**DEPRECATED: use inodes_used_mb instead**).",
 			},
 		},
 		Tags: map[string]interface{}{

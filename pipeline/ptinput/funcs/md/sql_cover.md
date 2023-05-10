@@ -2,7 +2,7 @@
 
 函数原型：`fn sql_cover(sql_test: str)`
 
-函数说明：脱敏sql语句
+函数说明：脱敏 SQL 语句
 
 ```python
 # in << {"select abc from def where x > 3 and y < 5"}

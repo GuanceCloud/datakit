@@ -34,7 +34,7 @@ var (
 )
 
 type Input struct {
-	DepercatedEndpoint string `toml:"endpoint"`
+	DeprecatedEndpoint string `toml:"endpoint"`
 	DockerEndpoint     string `toml:"docker_endpoint"`
 	ContainerdAddress  string `toml:"containerd_address"`
 
@@ -72,7 +72,7 @@ type Input struct {
 	TLSCert            string `toml:"tls_cert"`
 	TLSKey             string `toml:"tls_key"`
 	InsecureSkipVerify bool   `toml:"insecure_skip_verify"`
-	DepercatedConf
+	DeprecatedConf
 
 	semStop *cliutils.Sem // start stop signal
 
@@ -446,8 +446,8 @@ func (i *Input) watchingK8sEventLog() {
 }
 
 func (i *Input) setup() {
-	if i.DepercatedEndpoint != "" && i.DepercatedEndpoint != i.DockerEndpoint {
-		i.DockerEndpoint = i.DepercatedEndpoint
+	if i.DeprecatedEndpoint != "" && i.DeprecatedEndpoint != i.DockerEndpoint {
+		i.DockerEndpoint = i.DeprecatedEndpoint
 	}
 
 	if d, err := newDockerInput(i); err != nil {

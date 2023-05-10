@@ -150,7 +150,7 @@ func (*serviceObject) Info() *inputs.MeasurementInfo {
 			"age":                     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "age (seconds)"},
 			"cluster_ip":              &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "clusterIP is the IP address of the service and is usually assigned randomly by the master."},
 			"external_ips":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "externalIPs is a list of IP addresses for which nodes in the cluster will also accept traffic for this service."},
-			"external_name":           &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "externalName is the external reference that kubedns or equivalent will return as a CNAME record for this service."},
+			"external_name":           &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "externalName is the external reference that Kube-DNS or equivalent will return as a CNAME record for this service."},
 			"external_traffic_policy": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "externalTrafficPolicy denotes if this Service desires to route external traffic to node-local or cluster-wide endpoints."},
 			"session_affinity":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: `Supports "ClientIP" and "None".`},
 			"message":                 &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "object details"},

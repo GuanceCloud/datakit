@@ -24,6 +24,7 @@ usage() {
 	echo "  ./mkdocs.sh -V string: Set version, such as 1.2.3" 1>&2;
 	echo "              -D string: Set workdir, such as my-test" 1>&2;
 	echo "              -B: Do not build datakit" 1>&2;
+	echo "              -C: Check exported docs" 1>&2;
 	echo "              -L: Specify language(zh/en)" 1>&2;
 	echo "              -p: Specify local port(default 8000)" 1>&2;
 	echo "              -b: Specify local bind(default 0.0.0.0)" 1>&2;
@@ -32,7 +33,7 @@ usage() {
 	exit 1;
 }
 
-while getopts "V:D:L:p:b:Bh" arg; do
+while getopts "V:D:L:p:b:BCh" arg; do
 	case "${arg}" in
 		V)
 			version="${OPTARG}"
@@ -40,6 +41,15 @@ while getopts "V:D:L:p:b:Bh" arg; do
 		L)
 		 lang="${OPTARG}"
 		 ;;
+
+		D)
+			mkdocs_dir="${OPTARG}"
+			printf "${YELLOW}> Set workdir to '%s'${CLR}\n" $mkdocs_dir
+			;;
+
+		C)
+			check_doc=true;
+			;;
 
 		B)
 			no_build=true;
@@ -67,7 +77,7 @@ shift $((OPTIND-1))
 
 # detect workdir
 if [ ! -d $mkdocs_dir ]; then
-	echo "${mkdocs_dir} not exist, exit now"
+	mkdir -p ${mkdocs_dir}/docs/{datakit,developers}
 fi
 
 # if -v not set...
@@ -147,7 +157,7 @@ fi
 # copy docs to different mkdocs sub-dirs
 ######################################
 printf "${GREEN}> Copy docs...${CLR}\n"
-for _lang  in "${i18n[@]}"; do
+for _lang in "${i18n[@]}"; do
 	# copy .pages
 	printf "${GREEN}> Copy pages(%s) to repo datakit ...${CLR}\n" $_lang
 	cp man/docs/$_lang/datakit.pages $base_docs_dir/$_lang/datakit/.pages
@@ -163,6 +173,27 @@ for _lang  in "${i18n[@]}"; do
 	# copy specific docs to datakit
 	printf "${GREEN}> Copy docs(%s) to repo datakit ...${CLR}\n" $_lang
 	cp $tmp_doc_dir/${_lang}/*.md $base_docs_dir/${_lang}/datakit/
+
+	# NOTE: Only check Chinese documents.
+	if [[ $check_doc && ${_lang} == "zh" ]]; then
+		printf "${GREEN}> markdownlint %s...${CLR}\n" $base_docs_dir/${_lang}/datakit
+		markdownlint $base_docs_dir/${_lang}/datakit 2>&1 | tee md.lint
+		if [ -s md.lint ]; then
+			exit -1;
+		fi
+
+		printf "${GREEN}> cspell %s...${CLR}\n" $base_docs_dir/${_lang}/datakit
+		cspell lint -c cspell/cspell.json --no-progress $base_docs_dir/${_lang}/datakit | tee cspell.lint
+		if [ -s cspell.lint ]; then
+			exit -1;
+		fi
+
+		printf "${GREEN}> mdm %s...${CLR}\n" $base_docs_dir/${_lang}/datakit
+		CGO_CFLAGS="-Wno-undef-prefix -Wno-deprecated-declarations"	go run cmd/make/make.go -mdm $base_docs_dir/${_lang}/datakit &>/dev/null && \
+			{ echo "\n------\n[E] Some bad docs got invalid format on Unicode/ASCII. See https://docs.guance.com/datakit/mkdocs-howto/#zh-en-mix\n"; exit -1; } || \
+				{ echo 'Unicode/ASCII format ok.'; };
+		exit 0;
+	fi
 done
 
 ######################################

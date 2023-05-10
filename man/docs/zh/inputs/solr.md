@@ -59,7 +59,7 @@ Solr 采集器，用于采集 Solr Cache 和 Request Times 等的统计信息。
 
 ## 日志采集 {#logging}
 
-如需采集 Solr 的日志，可在 {{.InputName}}.conf 中 将 `files` 打开，并写入 Solr 日志文件的绝对路径。比如：
+如需采集 Solr 的日志，可在 *{{.InputName}}.conf* 中 将 `files` 打开，并写入 Solr 日志文件的绝对路径。比如：
 
 ```toml
 [inputs.solr.log]

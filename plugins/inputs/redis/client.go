@@ -69,7 +69,7 @@ func (m *clientMeasurement) Info() *inputs.MeasurementInfo {
 				Desc: "Server addr",
 			},
 			"name": &inputs.TagInfo{
-				Desc: "The name set by the client with CLIENT SETNAME, default unknown",
+				Desc: "The name set by the client with `CLIENT SETNAME`, default unknown",
 			},
 			"id": &inputs.TagInfo{
 				Desc: "AN unique 64-bit client ID",

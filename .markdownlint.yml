@@ -70,7 +70,7 @@ MD011: true
 # MD012/no-multiple-blanks - Multiple consecutive blank lines
 MD012:
   # Consecutive blank lines
-  maximum: 1
+  maximum: 10000 # not limited
 
 # MD013/line-length - Line length
 MD013:
