@@ -2,7 +2,6 @@
 
 ---
 
-
 ## Install Dependency {#dependence}
 
 Download the latest ddtrace agent dd-java-agent.jar, see [Download Instructions](ddtrace.md#doc-example).
