@@ -447,7 +447,7 @@ func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) error {
 		default:
 			resp, err := http.Get("http://" + net.JoinHostPort(r.Host, cs.serverPorts[0]) + "/login")
 			if err != nil {
-				return err
+				continue
 			}
 			defer resp.Body.Close()
 			if resp.StatusCode >= 200 && resp.StatusCode < 300 {

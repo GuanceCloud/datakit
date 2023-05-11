@@ -81,13 +81,15 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 	bases := []struct {
 		name               string // Also used as build image name:tag.
 		conf               string
+		opts               []inputs.PointCheckOption
 		globalHostTags     map[string]string
 		globalElectionTags map[string]string
 	}{
 		{
 			name: "hostobject_TestMode",
 			conf: `ignore_zero_bytes_disk = true
-			interval = "10s"`, // set conf URL later.
+			interval = "10s"
+			disable_cloud_provider_sync = true`, // set conf URL later.
 			globalHostTags: map[string]string{"host": "linux"},
 		},
 	}
@@ -110,6 +112,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			ipt:                ipt,
 			name:               base.name,
 			feeder:             feeder,
+			opts:               base.opts,
 			globalHostTags:     base.globalHostTags,
 			globalElectionTags: base.globalElectionTags,
 
