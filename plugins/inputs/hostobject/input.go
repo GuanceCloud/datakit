@@ -208,7 +208,7 @@ func (*hostMeasurement) Info() *inputs.MeasurementInfo {
 		},
 		Fields: map[string]interface{}{
 			"message":                    &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Summary of all host information"},
-			"start_time":                 &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "Host startup time (Unix timestamp)"},
+			"start_time":                 &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationMS, Desc: "Host startup time (Unix timestamp)"},
 			"datakit_ver":                &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "collector version"},
 			"cpu_usage":                  &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent, Desc: "CPU usage"},
 			"mem_used_percent":           &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent, Desc: "memory usage"},
@@ -261,7 +261,7 @@ func (ipt *Input) doCollect() error {
 		name: hostObjMeasurementName,
 		fields: map[string]interface{}{
 			"message":                    string(messageData),
-			"start_time":                 message.Host.HostMeta.BootTime,
+			"start_time":                 message.Host.HostMeta.BootTime * 1000,
 			"datakit_ver":                datakit.Version,
 			"cpu_usage":                  message.Host.cpuPercent,
 			"mem_used_percent":           message.Host.Mem.usedPercent,
