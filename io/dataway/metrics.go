@@ -20,6 +20,9 @@ var (
 	httpTCPConn,
 	sinkPtsVec *prometheus.CounterVec
 
+	httpConnReusedFromIdle prometheus.Counter
+	httpConnIdleTime       prometheus.Summary
+
 	flushFailCacheVec,
 	apiSumVec *prometheus.SummaryVec
 
@@ -28,8 +31,6 @@ var (
 	httpTLSHandshakeCost,
 	httpConnectCost,
 	httpGotFirstResponseByteCost prometheus.Summary
-	httpConnReusedFromIdle prometheus.Counter
-	httpConnIdleTime       prometheus.Summary
 )
 
 // Metrics get all metrics aboud dataway.
@@ -63,6 +64,7 @@ func metricsReset() {
 	apiSumVec.Reset()
 	httpTCPConn.Reset()
 
+	httpRetry.Reset()
 	sinkCounterVec.Reset()
 	httpRetry.Reset()
 	flushFailCacheVec.Reset()
