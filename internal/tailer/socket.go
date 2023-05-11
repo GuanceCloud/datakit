@@ -16,9 +16,9 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 )
@@ -47,6 +47,7 @@ type socketLogger struct {
 	stop chan struct{}
 
 	servers []*server
+	feeder  dkio.Feeder
 }
 
 func NewWithOpt(opt *Option, ignorePatterns ...[]string) (sl *socketLogger, err error) {
@@ -87,6 +88,9 @@ func (sl *socketLogger) Start() {
 	if len(sl.opt.Sockets) == 0 {
 		sl.opt.log.Warnf("logging sockets is empty")
 		return
+	}
+	if sl.feeder == nil {
+		sl.feeder = dkio.DefaultFeeder()
 	}
 	for _, socket := range sl.opt.Sockets {
 		s, err := mkServer(socket)
@@ -249,21 +253,22 @@ func (sl *socketLogger) feed(pending []string) {
 
 	// -1ns
 	timeNow := time.Now().Add(-time.Duration(len(pending)))
-	res := []*point.Point{}
+	res := make([]*point.Point, 0)
+
 	for i, cnt := range taskCnt {
-		pt, err := point.NewPoint(sl.opt.Source, sl.tags,
-			map[string]interface{}{pipeline.FieldMessage: cnt, pipeline.FieldStatus: pipeline.DefaultStatus},
-			&point.PointOption{Time: timeNow.Add(time.Duration(i)), Category: datakit.Logging})
-		if err != nil {
-			l.Error(err)
-			continue
-		}
+		fieles := map[string]interface{}{pipeline.FieldMessage: cnt, pipeline.FieldStatus: pipeline.DefaultStatus}
+
+		pt := point.NewPointV2(
+			[]byte(sl.opt.Source),
+			append(point.NewTags(sl.tags), point.NewKVs(fieles)...),
+			point.WithTime(timeNow.Add(time.Duration(i))))
+
 		res = append(res, pt)
 	}
 
-	var ioOpt *iod.Option
+	var ioOpt *dkio.Option
 	if sl.opt.Pipeline != "" {
-		ioOpt = &iod.Option{
+		ioOpt = &dkio.Option{
 			PlScript: map[string]string{sl.opt.Source: sl.opt.Pipeline},
 			PlOption: &script.Option{
 				DisableAddStatusField: sl.opt.DisableAddStatusField,
@@ -272,7 +277,7 @@ func (sl *socketLogger) feed(pending []string) {
 		}
 	}
 	if len(res) > 0 {
-		if err := iod.Feed("socklogging/"+sl.opt.InputName, datakit.Logging, res, ioOpt); err != nil {
+		if err := sl.feeder.Feed("socklogging/"+sl.opt.InputName, point.Logging, res, ioOpt); err != nil {
 			l.Error(err)
 		}
 	}
