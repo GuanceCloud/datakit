@@ -8,7 +8,6 @@ before_script:
   - export PATH=/usr/local/go1.18.3/bin:$PATH
   - export GOROOT=/usr/local/go1.18.3
   - go version
-  - nvm use v16.14.0
 
 variables:
   PROJECT: "datakit"
@@ -27,6 +26,7 @@ ci_lint_only:
     - /.*/
   script:
     # only run lint
+    - nvm use v16.14.0
     - make clean
     - make lint_nofix
   tags:
@@ -56,6 +56,7 @@ test-datakit-production:
     - unstable
     - master
   script:
+    - nvm use v16.14.0
     - make clean
     - make production_notify GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"
     - make lint_nofix
@@ -71,6 +72,7 @@ test-datakit-testing:
     - testing
     - /^testing-.*$/
   script:
+    - nvm use v16.14.0
     - make clean
     - make testing_notify GIT_BRANCH=$CI_COMMIT_BRANCH
     - make lint_nofix
