@@ -41,6 +41,7 @@ func TestTaskElectionBuildRequest(t *testing.T) {
 		ID:                "id",
 		Timestamp:         timeNow().UnixMilli(),
 		ApplicationInputs: map[string]int{"fake_input01": 1, "fake_input02": 2},
+		RunningInputs:     []string{"fake_input01", "fake_input02"},
 	}
 
 	actualRequ := task.buildRequest()
