@@ -11,7 +11,7 @@ When there is only one collected object (such as Kubernetes) in the cluster, but
 Datakit has two election modes:
 
 - Datakit self-election: In the same election namespace, the elected Datakit is responsible for all data collection, while other Datakits are in a pending state. The advantage is that the configuration is simple and there is no need to deploy additional applications. However, the disadvantage is that the elected Datakit has a higher resource utilization as all collectors run on this Datakit, which increases system resource usage.
-- Collector task election[:octicons-tag-24: Version-1.6.2](changelog.md#cl-1.6.2): This mode is only applicable to Kubernetes environment. By deploying the [Datakit Operator](datakit-operator.md#datakit-operator-overview-and-install) program, task distribution can be achieved among various collectors of Datakit. The advantage is that the resource utilization of each Datakit is more balanced. However, the disadvantage is that an additional program needs to be deployed in the cluster.
+- Collector task election[:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0): This mode is only applicable to Kubernetes environment. By deploying the [Datakit Operator](datakit-operator.md#datakit-operator-overview-and-install) program, task distribution can be achieved among various collectors of Datakit. The advantage is that the resource utilization of each Datakit is more balanced. However, the disadvantage is that an additional program needs to be deployed in the cluster.
 
 ## Collector Task Election Mode {#plugins-election}
 

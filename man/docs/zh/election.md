@@ -11,7 +11,7 @@
 Datakit 有两种选举模式，即：
 
 - Datakit 自选举：在同一个选举命名空间下，当选的 Datakit 负责全部采集，其他 Datakit 处于待定状态。优点是配置简单，不需要额外部署应用；缺点是对当选者的资源占用较大，所有的采集器都在这台 Datakit 上运行，系统资源占用增多。
-- 采集器任务选举[:octicons-tag-24: Version-1.6.2](changelog.md#cl-1.6.2)：只适用于 Kubernetes 环境，通过部署 [Datakit Operator](datakit-operator.md#datakit-operator-overview-and-install) 程序，实现对 Datakit 各个采集器的任务分发。优点是各个 Datakit 的资源占用较为平均，缺点是需要在本集群额外部署一个程序。
+- 采集器任务选举[:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0)：只适用于 Kubernetes 环境，通过部署 [Datakit Operator](datakit-operator.md#datakit-operator-overview-and-install) 程序，实现对 Datakit 各个采集器的任务分发。优点是各个 Datakit 的资源占用较为平均，缺点是需要在本集群额外部署一个程序。
 
 ## 采集器任务选举模式 {#plugins-election}
 
