@@ -4,6 +4,7 @@
 // Copyright 2021-present Guance, Inc.
 
 // Package consul collect consul metrics by using input prom
+//
 //nolint:lll
 package consul
 
@@ -81,10 +82,7 @@ func (*Input) AvailableArchs() []string {
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
-		&HostMeasurement{},
-		&ServiceMeasurement{},
-		&HealthMeasurement{},
-		&MemberMeasurement{},
+		&ConsulMeasurement{},
 	}
 }
 
