@@ -299,8 +299,27 @@ func (m *PromMeasurement) Info() *inputs.MeasurementInfo {
 				Unit:     inputs.SizeByte,
 				Desc:     "响应大小(以 byte 计)",
 			},
+			"hosts_reload_timestamp_seconds": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "上次重新加载主机文件的时间戳",
+			},
+			"forward_healthcheck_broken_total": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "健康检查完全失败次数",
+			},
+			"forward_max_concurrent_rejects_total": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "由于并发查询达到最大值而被拒绝的查询数",
+			},
 		},
 		Tags: map[string]interface{}{
+			"host":   inputs.NewTagInfo("主机"),
 			"server": inputs.NewTagInfo("监听服务地址"),
 			"zone":   inputs.NewTagInfo("请求所属区域"),
 			"type":   inputs.NewTagInfo("查询类型"),
