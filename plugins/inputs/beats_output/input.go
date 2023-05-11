@@ -72,6 +72,7 @@ type Input struct {
 
 	semStop *cliutils.Sem // start stop signal
 	stopped bool
+	opt     point.Option
 }
 
 // Make sure Input implements the inputs.InputV2 interface.
@@ -98,6 +99,8 @@ type loggingMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
+	ts     time.Time
+	ipt    *Input
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
@@ -107,16 +110,16 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 // Point implement MeasurementV2.
-func (ipt *loggingMeasurement) Point() *point.Point {
+func (m *loggingMeasurement) Point() *point.Point {
 	opts := point.DefaultLoggingOptions()
-	opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
+	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
 
-	return point.NewPointV2([]byte(ipt.name),
-		append(point.NewTags(ipt.tags), point.NewKVs(ipt.fields)...),
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
 }
 
-func (ipt *loggingMeasurement) LineProto() (*dkpt.Point, error) {
+func (*loggingMeasurement) LineProto() (*dkpt.Point, error) {
 	// return point.NewPoint(ipt.name, ipt.tags, ipt.fields, point.LOpt())
 	return nil, fmt.Errorf("not implement")
 }
@@ -161,7 +164,10 @@ func (ipt *Input) Run() {
 	server, _ := v2.NewWithListener(opServer.Listener)
 	defer server.Close() //nolint:errcheck
 
-	l.Debug("listening...")
+	// no election.
+	ipt.opt = point.WithExtraTags(dkpt.GlobalHostTags())
+
+	l.Debug("listening " + ipt.Listen + "...")
 	ipt.stopped = false
 
 	g.Go(func(ctx context.Context) error {
@@ -241,6 +247,7 @@ func (ipt *Input) getNewTags(dataPiece *DataStruct) map[string]string {
 
 func (ipt *Input) feed(pending []*DataStruct) {
 	pts := []*point.Point{}
+	now := time.Now()
 	for _, v := range pending {
 		if len(v.Message) == 0 {
 			continue
@@ -253,6 +260,8 @@ func (ipt *Input) feed(pending []*DataStruct) {
 			name:   ipt.Source,
 			tags:   newTags,
 			fields: v.Fields,
+			ts:     now,
+			ipt:    ipt,
 		}
 
 		if logging.fields == nil {

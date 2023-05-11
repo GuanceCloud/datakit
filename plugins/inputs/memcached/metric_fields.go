@@ -15,35 +15,30 @@ import (
 )
 
 type inputMeasurement struct {
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	ts       time.Time
-	election bool
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+	ipt    *Input
 }
 
 // Point implement MeasurementV2.
 func (m *inputMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-
-	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
+	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
 }
 
-func (m inputMeasurement) LineProto() (*dkpt.Point, error) {
+func (*inputMeasurement) LineProto() (*dkpt.Point, error) {
 	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
 	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
-func (m inputMeasurement) Info() *inputs.MeasurementInfo {
+func (*inputMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   inputName,
 		Fields: memFields,

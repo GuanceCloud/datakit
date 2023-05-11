@@ -50,33 +50,28 @@ func getNode(n *Input) {
 			"io_seek_avg_time":  node.IoSeekAvgTime,
 		}
 		metric := &NodeMeasurement{
-			name:     NodeMetric,
-			tags:     tags,
-			fields:   fields,
-			ts:       ts,
-			election: n.Election,
+			name:   NodeMetric,
+			tags:   tags,
+			fields: fields,
+			ts:     ts,
+			ipt:    n,
 		}
 		metricAppend(metric.Point())
 	}
 }
 
 type NodeMeasurement struct {
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	ts       time.Time
-	election bool
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+	ipt    *Input
 }
 
 // Point implement MeasurementV2.
 func (m *NodeMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-
-	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
+	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),

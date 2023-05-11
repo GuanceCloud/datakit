@@ -10,7 +10,14 @@ Apache collector can collect the number of requests, connections and others from
 
 ## Preconditions {#requirements}
 
-- Apache version >= 2.4.46 (Unix). Already tested versions: `2.4.46 (Unix)` ~ `2.4.52 (Unix)`;
+- Apache version >= `2.4.6 (Unix)`. Already tested version:
+    - [x] 2.4.56
+    - [x] 2.4.54
+    - [x] 2.4.41
+    - [x] 2.4.38
+    - [x] 2.4.29
+    - [x] 2.4.6
+
 - Typical Linux distributions come with Apache. [See](https://httpd.apache.org/download.cgi){:target="_blank"} for download;
 - Default configuration path: `/etc/apache2/apache2.conf`, `/etc/apache2/httpd.conf`, `/usr/local/apache2/conf/httpd.conf`;
 - Open Apache `mod_status` and add the followings in Apache profile:

@@ -16,9 +16,9 @@ Oracle 监控指标采集，具有以下数据收集功能
 
 已测试的版本:
 
-- [x] Oracle 11g
-- [x] Oracle 12c
 - [x] Oracle 19c
+- [x] Oracle 12c
+- [x] Oracle 11g
 
 ## 前置条件 {#reqirement}
 

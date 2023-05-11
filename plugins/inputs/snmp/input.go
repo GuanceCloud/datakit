@@ -23,6 +23,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/snmp/snmpmeasurement"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/snmp/snmprefiles"
@@ -204,6 +205,7 @@ type Input struct {
 	jobs                 chan Job
 	autodetectProfile    bool
 	feeder               io.Feeder
+	opt                  point.Option
 }
 
 type TrapsConfig struct {
@@ -232,6 +234,12 @@ func (ipt *Input) Run() {
 			l.Errorf("snmp release prefiles failed: %v", err)
 		}
 	})
+
+	if ipt.Election {
+		ipt.opt = point.WithExtraTags(dkpt.GlobalElectionTags())
+	} else {
+		ipt.opt = point.WithExtraTags(dkpt.GlobalHostTags())
+	}
 
 	// starting traps server
 	if ipt.Traps.Enable {
@@ -547,11 +555,11 @@ func (ipt *Input) CollectingMeasurements(deviceIP string, device *deviceInfo, tn
 
 		for _, data := range fts.Data {
 			sobj := &snmpmeasurement.SNMPObject{
-				Name:     snmpmeasurement.SNMPObjectName,
-				Tags:     data.Tags,
-				Fields:   data.Fields,
-				TS:       tn,
-				Election: ipt.Election,
+				Name:   snmpmeasurement.SNMPObjectName,
+				Tags:   data.Tags,
+				Fields: data.Fields,
+				TS:     tn,
+				Opt:    ipt.opt,
 			}
 			pts = append(pts, sobj.Point())
 		}
@@ -560,11 +568,11 @@ func (ipt *Input) CollectingMeasurements(deviceIP string, device *deviceInfo, tn
 
 		for _, data := range fts.Data {
 			smtc := &snmpmeasurement.SNMPMetric{
-				Name:     snmpmeasurement.SNMPMetricName,
-				Tags:     data.Tags,
-				Fields:   data.Fields,
-				TS:       tn,
-				Election: ipt.Election,
+				Name:   snmpmeasurement.SNMPMetricName,
+				Tags:   data.Tags,
+				Fields: data.Fields,
+				TS:     tn,
+				Opt:    ipt.opt,
 			}
 			pts = append(pts, smtc.Point())
 		}

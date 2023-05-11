@@ -115,10 +115,11 @@ func (n *Input) getStubStatusModuleMetric() {
 		"connection_waiting":  waiting,
 	}
 	metric := &NginxMeasurement{
-		name:     nginx,
-		tags:     tags,
-		fields:   fields,
-		election: n.Election,
+		name:   nginx,
+		tags:   tags,
+		fields: fields,
+		ts:     time.Now(),
+		ipt:    n,
 	}
 	n.collectCache = append(n.collectCache, metric.Point())
 }
@@ -188,10 +189,11 @@ func (n *Input) makeConnectionsLine(vtsResp NginxVTSResponse, t time.Time) {
 		"connection_waiting":  vtsResp.Connections.Waiting,
 	}
 	metric := &NginxMeasurement{
-		name:     nginx,
-		tags:     tags,
-		fields:   fields,
-		election: n.Election,
+		name:   nginx,
+		tags:   tags,
+		fields: fields,
+		ts:     t,
+		ipt:    n,
 	}
 	n.collectCache = append(n.collectCache, metric.Point())
 }
@@ -215,10 +217,11 @@ func (n *Input) makeServerZoneLine(vtsResp NginxVTSResponse, t time.Time) {
 			"response_5xx": v.Responses.FiveXx,
 		}
 		metric := &NginxMeasurement{
-			name:     ServerZone,
-			tags:     tags,
-			fields:   fields,
-			election: n.Election,
+			name:   ServerZone,
+			tags:   tags,
+			fields: fields,
+			ts:     t,
+			ipt:    n,
 		}
 		n.collectCache = append(n.collectCache, metric.Point())
 	}
@@ -245,10 +248,11 @@ func (n *Input) makeUpstreamZoneLine(vtsResp NginxVTSResponse, t time.Time) {
 				"response_5xx": upstream.Responses.FiveXx,
 			}
 			metric := &UpstreamZoneMeasurement{
-				name:     UpstreamZone,
-				tags:     tags,
-				fields:   fields,
-				election: n.Election,
+				name:   UpstreamZone,
+				tags:   tags,
+				fields: fields,
+				ts:     t,
+				ipt:    n,
 			}
 			n.collectCache = append(n.collectCache, metric.Point())
 		}
@@ -278,10 +282,11 @@ func (n *Input) makeCacheZoneLine(vtsResp NginxVTSResponse, t time.Time) {
 			"responses_scarce":      cacheZone.Responses.Scarce,
 		}
 		metric := &CacheZoneMeasurement{
-			name:     CacheZone,
-			tags:     tags,
-			fields:   fields,
-			election: n.Election,
+			name:   CacheZone,
+			tags:   tags,
+			fields: fields,
+			ts:     t,
+			ipt:    n,
 		}
 		n.collectCache = append(n.collectCache, metric.Point())
 	}

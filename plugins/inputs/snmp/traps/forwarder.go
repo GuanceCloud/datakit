@@ -11,8 +11,10 @@ import (
 	"net"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/snmp/snmpmeasurement"
 )
@@ -25,17 +27,24 @@ type TrapForwarder struct {
 	trapsIn   PacketsChannel
 	formatter Formatter
 	stopChan  chan struct{}
-	Election  bool
+	opt       point.Option
 }
 
 // NewTrapForwarder creates a simple TrapForwarder instance.
 func NewTrapForwarder(formatter Formatter, packets PacketsChannel, election bool) (*TrapForwarder, error) {
-	return &TrapForwarder{
+	trapForwarder := &TrapForwarder{
 		trapsIn:   packets,
 		formatter: formatter,
 		stopChan:  make(chan struct{}),
-		Election:  election,
-	}, nil
+	}
+
+	if election {
+		trapForwarder.opt = point.WithExtraTags(dkpt.GlobalElectionTags())
+	} else {
+		trapForwarder.opt = point.WithExtraTags(dkpt.GlobalHostTags())
+	}
+
+	return trapForwarder, nil
 }
 
 // Start the TrapForwarder instance. Need to Stop it manually.
@@ -92,11 +101,11 @@ func (tf *TrapForwarder) sendTrap(packet *SnmpPacket) {
 	tn := time.Now().UTC()
 	var measurements []inputs.Measurement
 	measurements = append(measurements, &snmpmeasurement.SNMPObject{
-		Name:     "traps",
-		Tags:     tags,
-		Fields:   Fields,
-		TS:       tn,
-		Election: tf.Election,
+		Name:   "traps",
+		Tags:   tags,
+		Fields: Fields,
+		TS:     tn,
+		Opt:    tf.opt,
 	})
 
 	if err := inputs.FeedMeasurement("traps-object",

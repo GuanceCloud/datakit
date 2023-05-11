@@ -70,32 +70,27 @@ func getOverview(n *Input) {
 		"queue_totals_messages_unacknowledged_rate":  overview.QueueTotals.MessagesUnacknowledgedDetail.Rate,
 	}
 	metric := &OverviewMeasurement{
-		name:     OverviewMetric,
-		tags:     tags,
-		fields:   fields,
-		ts:       ts,
-		election: n.Election,
+		name:   OverviewMetric,
+		tags:   tags,
+		fields: fields,
+		ts:     ts,
+		ipt:    n,
 	}
 	metricAppend(metric.Point())
 }
 
 type OverviewMeasurement struct {
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	ts       time.Time
-	election bool
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+	ipt    *Input
 }
 
 // Point implement MeasurementV2.
 func (m *OverviewMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-
-	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
+	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),

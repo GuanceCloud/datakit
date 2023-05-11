@@ -12,7 +12,6 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -86,6 +85,10 @@ func TestRabbitmqInput(t *testing.T) {
 	}
 }
 
+func getConfAccessPoint(host, port string) string {
+	return fmt.Sprintf("http://%s", net.JoinHostPort(host, port))
+}
+
 func buildCases(t *testing.T) ([]*caseSpec, error) {
 	t.Helper()
 
@@ -98,45 +101,45 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 	}{
 		{
 			name: "rabbitmq:3.8-management-alpine",
-			conf: fmt.Sprintf(`url = "http://%s"
+			conf: `url = ""
 			username = "guest"
 			password = "guest"
 			interval = "1s"
 			insecure_skip_verify = false
-			election = true`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
+			election = true`, // set conf URL later.
 			exposedPorts: []string{"15672/tcp"},
 		},
 
 		{
 			name: "rabbitmq:3.9-management-alpine",
-			conf: fmt.Sprintf(`url = "http://%s"
+			conf: `url = ""
 			username = "guest"
 			password = "guest"
 			interval = "1s"
 			insecure_skip_verify = false
-			election = true`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
+			election = true`, // set conf URL later.
 			exposedPorts: []string{"15672/tcp"},
 		},
 
 		{
 			name: "rabbitmq:3.10-management-alpine",
-			conf: fmt.Sprintf(`url = "http://%s"
+			conf: `url = ""
 			username = "guest"
 			password = "guest"
 			interval = "1s"
 			insecure_skip_verify = false
-			election = true`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
+			election = true`, // set conf URL later.
 			exposedPorts: []string{"15672/tcp"},
 		},
 
 		{
 			name: "rabbitmq:3.11-management-alpine",
-			conf: fmt.Sprintf(`url = "http://%s"
+			conf: `url = ""
 			username = "guest"
 			password = "guest"
 			interval = "1s"
 			insecure_skip_verify = false
-			election = true`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
+			election = true`, // set conf URL later.
 			exposedPorts: []string{"15672/tcp"},
 		},
 	}
@@ -153,9 +156,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)
 
-		uURL, err := url.Parse(ipt.URL)
-		require.NoError(t, err, "parse %s failed: %s", ipt.URL, err)
-
 		repoTag := strings.Split(base.name, ":")
 
 		cases = append(cases, &caseSpec{
@@ -167,7 +167,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			repoTag: repoTag[1],
 
 			exposedPorts: base.exposedPorts,
-			serverPorts:  []string{uURL.Port()},
 
 			cr: &testutils.CaseResult{
 				Name:        t.Name(),
@@ -348,7 +347,6 @@ func (cs *caseSpec) run() error {
 				Tag:        cs.repoTag,
 
 				ExposedPorts: cs.exposedPorts,
-				PortBindings: cs.getPortBindings(),
 			},
 
 			func(c *docker.HostConfig) {
@@ -368,7 +366,6 @@ func (cs *caseSpec) run() error {
 				Tag:        cs.repoTag,
 
 				ExposedPorts: cs.exposedPorts,
-				PortBindings: cs.getPortBindings(),
 			},
 
 			func(c *docker.HostConfig) {
@@ -384,6 +381,11 @@ func (cs *caseSpec) run() error {
 
 	cs.pool = p
 	cs.resource = resource
+
+	if err := cs.getMappingPorts(); err != nil {
+		return err
+	}
+	cs.ipt.URL = getConfAccessPoint(r.Host, cs.serverPorts[0]) // set conf URL here.
 
 	cs.t.Logf("check service(%s:%v)...", r.Host, cs.serverPorts)
 
@@ -426,6 +428,7 @@ func (cs *caseSpec) run() error {
 	cs.ipt.Terminate()
 
 	require.Equal(cs.t, 4, len(mCount))
+	mCount = map[string]struct{}{} // clear.
 
 	cs.t.Logf("exit...")
 	wg.Wait()
@@ -488,17 +491,17 @@ func (cs *caseSpec) getContainterName() string {
 	return name
 }
 
-func (cs *caseSpec) getPortBindings() map[docker.Port][]docker.PortBinding {
-	portBindings := make(map[docker.Port][]docker.PortBinding)
-
-	// check ports' mapping.
-	require.Equal(cs.t, len(cs.exposedPorts), len(cs.serverPorts))
-
+func (cs *caseSpec) getMappingPorts() error {
+	cs.serverPorts = make([]string, len(cs.exposedPorts))
 	for k, v := range cs.exposedPorts {
-		portBindings[docker.Port(v)] = []docker.PortBinding{{HostPort: docker.Port(cs.serverPorts[k]).Port()}}
+		mapStr := cs.resource.GetHostPort(v)
+		_, port, err := net.SplitHostPort(mapStr)
+		if err != nil {
+			return err
+		}
+		cs.serverPorts[k] = port
 	}
-
-	return portBindings
+	return nil
 }
 
 func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {

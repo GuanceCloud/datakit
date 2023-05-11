@@ -27,22 +27,17 @@ const (
 
 // SNMPObject ...
 type SNMPObject struct {
-	Name     string
-	Tags     map[string]string
-	Fields   map[string]interface{}
-	TS       time.Time
-	Election bool
+	Name   string
+	Tags   map[string]string
+	Fields map[string]interface{}
+	TS     time.Time
+	Opt    point.Option
 }
 
 // Point implement MeasurementV2.
 func (m *SNMPObject) Point() *point.Point {
 	opts := point.DefaultObjectOptions()
-
-	if m.Election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
+	opts = append(opts, point.WithTime(m.TS), m.Opt)
 
 	return point.NewPointV2([]byte(m.Name),
 		append(point.NewTags(m.Tags), point.NewKVs(m.Fields)...),
@@ -84,22 +79,17 @@ func (m *SNMPObject) Info() *inputs.MeasurementInfo {
 
 // SNMPMetric ...
 type SNMPMetric struct {
-	Name     string
-	Tags     map[string]string
-	Fields   map[string]interface{}
-	TS       time.Time
-	Election bool
+	Name   string
+	Tags   map[string]string
+	Fields map[string]interface{}
+	TS     time.Time
+	Opt    point.Option
 }
 
 // Point implement MeasurementV2.
 func (m *SNMPMetric) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-
-	if m.Election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
+	opts = append(opts, point.WithTime(m.TS), m.Opt)
 
 	return point.NewPointV2([]byte(m.Name),
 		append(point.NewTags(m.Tags), point.NewKVs(m.Fields)...),

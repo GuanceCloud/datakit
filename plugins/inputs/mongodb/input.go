@@ -14,11 +14,13 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -129,6 +131,7 @@ type Input struct {
 	pauseCh  chan bool
 	semStop  *cliutils.Sem // start stop signal
 	feeder   dkio.Feeder
+	opt      point.Option
 }
 
 func (*Input) Catalog() string { return catalogName }
@@ -233,10 +236,9 @@ func (ipt *Input) Run() {
 				host = strings.TrimPrefix(v, "mongodb://")
 			}
 			ipt.mgoSvrs = append(ipt.mgoSvrs, &MongodbServer{
-				host:     host,
-				cli:      mgocli,
-				election: ipt.Election,
-				feeder:   ipt.feeder,
+				host: host,
+				cli:  mgocli,
+				ipt:  ipt,
 			})
 		}
 	}
@@ -244,6 +246,12 @@ func (ipt *Input) Run() {
 		log.Errorf("connect to all Mongodb servers failed")
 
 		return
+	}
+
+	if ipt.Election {
+		ipt.opt = point.WithExtraTags(dkpt.GlobalElectionTags())
+	} else {
+		ipt.opt = point.WithExtraTags(dkpt.GlobalHostTags())
 	}
 
 	tick := time.NewTicker(ipt.Interval.Duration)

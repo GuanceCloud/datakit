@@ -15,23 +15,25 @@ import (
 )
 
 func (ipt *input) setupUDPServer() error {
-	address, err := net.ResolveUDPAddr(ipt.Protocol, ipt.ServiceAddress)
-	if err != nil {
-		l.Error(err)
-		return err
-	}
+	if ipt.UDPlistener == nil {
+		address, err := net.ResolveUDPAddr(ipt.Protocol, ipt.ServiceAddress)
+		if err != nil {
+			l.Error(err)
+			return err
+		}
 
-	conn, err := net.ListenUDP(ipt.Protocol, address)
-	if err != nil {
-		l.Error(err)
-		return err
-	}
+		conn, err := net.ListenUDP(ipt.Protocol, address)
+		if err != nil {
+			l.Error(err)
+			return err
+		}
 
-	l.Infof("UDP listening on %q", conn.LocalAddr().String())
-	ipt.UDPlistener = conn
+		l.Infof("UDP listening on %q", conn.LocalAddr().String())
+		ipt.UDPlistener = conn
+	}
 
 	g.Go(func(ctx context.Context) error {
-		if err := ipt.udpListen(conn); err != nil {
+		if err := ipt.udpListen(ipt.UDPlistener); err != nil {
 			l.Warnf("udpListen: %s, ignored", err.Error())
 		}
 		return nil

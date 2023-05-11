@@ -184,6 +184,13 @@ JVM 采集器可以通过 JMX 来采取很多指标，并将指标采集到观�
 java -javaagent:/path/to/jolokia-jvm-agent.jar=port=8080,host=localhost -jar your_app.jar
 ```
 
+已测试的版本:
+
+- [x] JDK 20
+- [x] JDK 17
+- [x] JDK 11
+- [x] JDK 8
+
 ### 配置 {#jolokia-config}
 
 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：

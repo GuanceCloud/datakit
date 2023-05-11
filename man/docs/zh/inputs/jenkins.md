@@ -10,7 +10,9 @@ Jenkins 采集器是通过插件 Metrics 采集数据监控 Jenkins，包括但�
 
 ## 前置条件 {#requirements}
 
-- JenKins 版本 >= 2.277.4
+- JenKins 版本 >= `2.332.1`; 已测试的版本:
+    - [x] 2.332.1
+
 - 安装 JenKins [参见](https://www.jenkins.io/doc/book/installing/){:target="_blank"}
 - 下载 `Metric` 插件，[管理插件页面](https://www.jenkins.io/doc/book/managing/plugins/){:target="_blank"},[Metric 插件页面](https://plugins.jenkins.io/metrics/){:target="_blank"}
 - 在 JenKins 管理页面 `your_manage_host/configure` 生成 `Metric Access keys`

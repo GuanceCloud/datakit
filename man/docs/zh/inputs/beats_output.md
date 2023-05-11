@@ -11,7 +11,17 @@
 - [Filebeat](https://www.elastic.co/beats/filebeat/){:target="_blank"}
 - [下载地址](http://www.elastic.co/cn/downloads/past-releases/filebeat-7-17-3){:target="_blank"}
 
-已测试的版本: `7.17.6`, `7.17.9`, `8.6.2`。
+已测试的版本:
+
+- [x] 8.6.2
+- [x] 7.17.9
+- [x] 7.17.6
+- [x] 6.0.0
+- [x] 5.0.0
+- [x] 1.3.0
+- [x] 1.2.0
+- [x] 1.1.0
+- [x] 1.0.0
 
 ## 配置采集器 {#config-input}
 

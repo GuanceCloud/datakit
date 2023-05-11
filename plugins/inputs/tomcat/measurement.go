@@ -7,6 +7,7 @@ package tomcat
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
@@ -22,21 +23,17 @@ const (
 )
 
 type measurement struct {
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	election bool
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+	opt    point.Option
 }
 
 // Point implement MeasurementV2.
 func (m *measurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-
-	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
+	opts = append(opts, point.WithTime(m.ts), m.opt)
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -63,12 +60,7 @@ type TomcatCacheM struct{ measurement }
 // Point implement MeasurementV2.
 func (m *TomcatGlobalRequestProcessorM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-
-	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
+	opts = append(opts, point.WithTime(m.ts), m.opt)
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -99,12 +91,7 @@ func (m *TomcatGlobalRequestProcessorM) Info() *inputs.MeasurementInfo {
 // Point implement MeasurementV2.
 func (m *TomcatJspMonitorM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-
-	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
+	opts = append(opts, point.WithTime(m.ts), m.opt)
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -135,12 +122,7 @@ func (m *TomcatJspMonitorM) Info() *inputs.MeasurementInfo {
 // Point implement MeasurementV2.
 func (m *TomcatThreadPoolM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-
-	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
+	opts = append(opts, point.WithTime(m.ts), m.opt)
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -169,12 +151,7 @@ func (m *TomcatThreadPoolM) Info() *inputs.MeasurementInfo {
 // Point implement MeasurementV2.
 func (m *TomcatServletM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-
-	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
+	opts = append(opts, point.WithTime(m.ts), m.opt)
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -206,12 +183,7 @@ func (m *TomcatServletM) Info() *inputs.MeasurementInfo {
 // Point implement MeasurementV2.
 func (m *TomcatCacheM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-
-	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
+	opts = append(opts, point.WithTime(m.ts), m.opt)
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),

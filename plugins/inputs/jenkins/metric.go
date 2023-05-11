@@ -9,7 +9,8 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"github.com/GuanceCloud/cliutils/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -42,17 +43,34 @@ type Metric struct {
 	Gauges  map[string]map[string]interface{} `json:"gauges"`
 }
 
-type jenkinsPipelineMeasurement struct{}
+type jenkinsPipelineMeasurement struct {
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+	ipt    *Input
+}
 
-func (j *jenkinsPipelineMeasurement) LineProto() (*point.Point, error) {
-	return nil, nil
+// Point implement MeasurementV2.
+func (m *jenkinsPipelineMeasurement) Point() *point.Point {
+	opts := point.DefaultLoggingOptions()
+	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (*jenkinsPipelineMeasurement) LineProto() (*dkpt.Point, error) {
+	// return nil, nil
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
-func (j *jenkinsPipelineMeasurement) Info() *inputs.MeasurementInfo {
+func (*jenkinsPipelineMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "jenkins_pipeline",
-		Desc: "Jenkins Pipeline Event 相关指标",
+		Desc: "Jenkins Pipeline Event Metrics",
 		Fields: map[string]interface{}{
 			"pipeline_id":    &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Pipeline id"},
 			"duration":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationUS, Desc: "Pipeline 持续时长（微秒）"},
@@ -76,17 +94,34 @@ func (j *jenkinsPipelineMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type jenkinsJobMeasurement struct{}
+type jenkinsJobMeasurement struct {
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+	ipt    *Input
+}
 
-func (j *jenkinsJobMeasurement) LineProto() (*point.Point, error) {
-	return nil, nil
+// Point implement MeasurementV2.
+func (m *jenkinsJobMeasurement) Point() *point.Point {
+	opts := point.DefaultLoggingOptions()
+	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (*jenkinsJobMeasurement) LineProto() (*dkpt.Point, error) {
+	// return nil, nil
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
-func (j *jenkinsJobMeasurement) Info() *inputs.MeasurementInfo {
+func (*jenkinsJobMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "jenkins_job",
-		Desc: "Jenkins Job Event 相关指标",
+		Desc: "Jenkins Job Event Metrics",
 		Fields: map[string]interface{}{
 			"build_id":             &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "build id"},
 			"build_started_at":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampMS, Desc: "build 开始的毫秒时间戳"},
@@ -147,7 +182,14 @@ func (n *Input) getPluginMetric() {
 		n.lastErr = err
 		return
 	}
-	n.collectCache = append(n.collectCache, &Measurement{fields: fields, tags: tags, ts: ts, name: inputName})
+	measurement := &Measurement{
+		name:   inputName,
+		fields: fields,
+		tags:   tags,
+		ts:     ts,
+		ipt:    n,
+	}
+	n.collectCache = append(n.collectCache, measurement.Point())
 	l.Debug(n.collectCache[0])
 }
 
@@ -156,10 +198,22 @@ type Measurement struct {
 	tags   map[string]string
 	fields map[string]interface{}
 	ts     time.Time
+	ipt    *Input
 }
 
-func (m *Measurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
+// Point implement MeasurementV2.
+func (m *Measurement) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *Measurement) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -191,8 +245,8 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 			"vm_blocked_count":          newCountFieldInfo("The number of threads in the Jenkins JVM that are currently blocked waiting for a monitor lock."),
 			"vm_count":                  newCountFieldInfo("The total number of threads in the Jenkins JVM. This is the sum of: vm.blocked.count, vm.new.count, vm.runnable.count, vm.terminated.count, vm.timed_waiting.count and vm.waiting.count"),
 			"vm_cpu_load":               newRateFieldInfo("The rate of CPU time usage by the JVM per unit time on the Jenkins controller. This is equivalent to the number of CPU cores being used by the Jenkins JVM."),
-			"vm_memory_total_used":      newByteFieldInfo("The total amount of memory that the Jenkins JVM is currently using.(Units of measurement: bytes)"),
-			"vm_memory_total_committed": newByteFieldInfo("The total amount of memory that is guaranteed by the operating system as available for use by the Jenkins JVM. (Units of measurement: bytes)"),
+			"vm_memory_total_used":      newCountFieldInfo("The total amount of memory that the Jenkins JVM is currently using.(Units of measurement: bytes)"),
+			"vm_memory_total_committed": newCountFieldInfo("The total amount of memory that is guaranteed by the operating system as available for use by the Jenkins JVM. (Units of measurement: bytes)"),
 		},
 	}
 }
