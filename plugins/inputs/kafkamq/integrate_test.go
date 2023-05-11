@@ -42,6 +42,10 @@ var (
 )
 
 func Test_kafkaConsumer_start(t *testing.T) {
+	if !testutils.CheckIntegrationTestingRunning() {
+		t.Skip()
+	}
+
 	// 创建镜像启动。
 	// 接口实现 topicHandler
 	// 数据对比

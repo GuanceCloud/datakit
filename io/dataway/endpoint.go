@@ -321,6 +321,13 @@ func (ep *endPoint) writePointData(b *body, w *writer) error {
 	req.Header.Set("X-Points", fmt.Sprintf("%d", b.npts))
 
 	resp, err := ep.sendReq(req)
+
+	// NOTE: resp maybe not nil, we need HTTP status info to fill HTTP metrics before exit.
+	if resp != nil {
+		httpCodeStr = http.StatusText(resp.StatusCode)
+		httpCode = resp.StatusCode
+	}
+
 	if err != nil {
 		log.Errorf("sendReq: request url %s failed(proxy: %s): %s, resp: %v", requrl, ep.proxy, err, resp)
 		return err
@@ -332,9 +339,6 @@ func (ep *endPoint) writePointData(b *body, w *writer) error {
 		log.Errorf("ioutil.ReadAll: %s", err)
 		return err
 	}
-
-	httpCodeStr = http.StatusText(resp.StatusCode)
-	httpCode = resp.StatusCode
 
 	log.Debugf("post %d bytes to %s...", len(b.buf), requrl)
 
@@ -496,7 +500,7 @@ func (ep *endPoint) sendReq(req *http.Request) (resp *http.Response, err error) 
 			httpRetry.WithLabelValues(req.URL.Path, status).Inc()
 		}),
 	); err != nil {
-		return nil, err
+		return resp, err
 	}
 
 	return resp, err

@@ -81,16 +81,16 @@ func TestWriteWithCache(t *T.T) {
 		m := metrics.GetMetricOnLabels(mfs,
 			`datakit_io_dataway_point_total`,
 			point.Metric.String(),
-			http.StatusText(http.StatusInternalServerError))
+			http.StatusText(http.StatusServiceUnavailable))
 		assert.NotNil(t, m)
-		assert.Equal(t, float64(100), m.GetCounter().GetValue())
+		assert.Equalf(t, float64(100), m.GetCounter().GetValue(), metrics.MetricFamily2Text(mfs))
 
 		m = metrics.GetMetricOnLabels(mfs,
 			`datakit_io_dataway_point_total`,
 			point.DynamicDWCategory.String(),
-			http.StatusText(http.StatusInternalServerError))
+			http.StatusText(http.StatusServiceUnavailable))
 		assert.NotNil(t, m)
-		assert.Equal(t, float64(100), m.GetCounter().GetValue())
+		assert.Equal(t, float64(100), m.GetCounter().GetValue(), metrics.MetricFamily2Text(mfs))
 
 		t.Cleanup(func() {
 			assert.NoError(t, fc.Close())

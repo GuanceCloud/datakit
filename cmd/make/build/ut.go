@@ -55,7 +55,7 @@ func UnitTestDataKit() error {
 
 	for i, p := range pkgs {
 		fmt.Printf("=======================\n")
-		fmt.Printf("testing(%03d/%d) %s...\n", i, len(pkgs), p)
+		fmt.Printf("[%s] testing(%03d/%d) %s...\n", utID, i, len(pkgs), p)
 
 		if excludes[p] {
 			fmt.Printf("%s excluded\n", p)
