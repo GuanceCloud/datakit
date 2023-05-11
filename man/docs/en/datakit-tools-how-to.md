@@ -66,16 +66,6 @@ datakit check --config
 checked 13 conf, all passing, cost 22.27455ms
 ```
 
-### Collect SNMP Configuration Once {#check-snmp}
-
-After editing the configuration file of the SNMP collector, there may be some configuration errors (such as the configuration file format error). You can collect the SNMP device once to check whether it is correct by the following command:
-
-```shell
-datakit check --test-snmp /usr/local/datakit/conf.d/snmp/snmp.conf
-# The collected information will be printed below...
-......
-```
-
 ## View Workspace Information {#workspace-info}
 
 To facilitate you to view workspace information on the server side, DataKit provides the following commands:

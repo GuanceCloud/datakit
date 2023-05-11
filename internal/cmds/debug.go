@@ -46,6 +46,7 @@ func runDebugFlags() error {
 		if err := inputDebugger(*flagDebugTestInput); err != nil {
 			l.Errorf("inputDebugger: %s", err)
 		}
+		os.Exit(0)
 	}
 
 	return fmt.Errorf("unknown debug option: %s", os.Args[1])

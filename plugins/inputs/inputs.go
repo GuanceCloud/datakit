@@ -18,11 +18,12 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/GuanceCloud/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 const (
@@ -128,8 +129,13 @@ type ReadEnv interface {
 	ReadEnv(map[string]string)
 }
 
+// DEPRECATED.
 type InputOnceRunnableCollect interface {
-	Collect() (map[string][]*point.Point, error)
+	Collect() (map[string][]*dkpt.Point, error)
+}
+
+type InputOnceRunnableCollectV2 interface {
+	Collect() (map[point.Category][]*point.Point, error)
 }
 
 type InputOnceRunnable interface {

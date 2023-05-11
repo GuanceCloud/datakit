@@ -57,10 +57,10 @@ Datakit 支持以上所有版本。
 
 ???+ tip
 
-    上述配置完成后，可以使用 `datakit tool --test-snmp` 命令来测试配置是否正确，示例如下:
+    上述配置完成后，可以使用 `datakit debug --test-input` 命令来测试配置是否正确，示例如下:
 
     ```sh
-    sudo datakit tool --test-snmp /usr/local/datakit/conf.d/snmp/snmp.conf
+    sudo datakit debug --test-input /usr/local/datakit/conf.d/snmp/snmp.conf
     ```
 
     如果正确会输出行协议信息，否则看不到行协议信息。
