@@ -137,12 +137,13 @@ func (m *mockProcess) GetTopics() []string {
 	return m.topics
 }
 
-func (m *mockProcess) Process(msg *sarama.ConsumerMessage) {
+func (m *mockProcess) Process(msg *sarama.ConsumerMessage) error {
 	m.t.Logf("message topic=%s message=%s", msg.Topic, string(msg.Value))
 	m.count++
 	if m.send.sendNum == m.count {
 		m.checkOK <- true
 	}
+	return nil
 }
 
 func beforeTest(t *testing.T) (err error) {

@@ -101,7 +101,7 @@ func (sky *SkyConsumer) GetTopics() []string {
 	return sky.topics
 }
 
-func (sky *SkyConsumer) Process(msg *sarama.ConsumerMessage) {
+func (sky *SkyConsumer) Process(msg *sarama.ConsumerMessage) error {
 	u, ok := sky.dkURLs[msg.Topic]
 	if !ok {
 		log.Warnf("can not find Topic:[%s] url", msg.Topic)
@@ -109,18 +109,21 @@ func (sky *SkyConsumer) Process(msg *sarama.ConsumerMessage) {
 	r, err := http.NewRequest(http.MethodPost, u, bytes.NewBuffer(msg.Value))
 	if err != nil {
 		log.Errorf("new request err=%v", err)
-		return
+		return err
 	}
 	r.Header.Add("Content-Type", "application/x-protobuf")
 	resp, err := sky.client.RoundTrip(r)
 	if err != nil {
 		log.Warnf("Error sending request: %v", err)
-		return
+		return err
 	}
 	defer resp.Body.Close() //nolint:errcheck
 	if resp.StatusCode != 200 {
-		log.Debugf("url=%s  statusCode not 200, code=%d", u, resp.StatusCode)
+		err = fmt.Errorf("url=%s  statusCode not 200, code=%d", u, resp.StatusCode)
+		log.Warn(err)
+		return err
 	} else {
 		log.Debugf("Response status code: %d", resp.StatusCode)
 	}
+	return nil
 }
