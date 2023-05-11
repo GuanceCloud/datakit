@@ -49,6 +49,7 @@ var (
 		datakit.LogUpload,
 		datakit.PipelinePull,
 		datakit.ProfilingUpload,
+		datakit.TokenCheck,
 	}
 
 	AvailableDataways          = []string{}
