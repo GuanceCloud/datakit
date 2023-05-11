@@ -282,6 +282,10 @@ func handleSystem(m *monitor, metricName string, response []map[string]interface
 	tags := make(map[string]string)
 	fields := make(map[string]interface{})
 	for _, item := range response {
+		if !m.loopback {
+			tags["host"] = m.host
+		}
+
 		tags["oracle_service"] = m.serviceName
 		tags["oracle_server"] = fmt.Sprintf("%s:%s", m.host, m.port)
 

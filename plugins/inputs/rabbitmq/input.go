@@ -21,6 +21,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -105,6 +106,12 @@ func (n *Input) Run() {
 		return
 	}
 	n.client = client
+
+	if n.Election {
+		n.opt = point.WithExtraTags(dkpt.GlobalElectionTags())
+	} else {
+		n.opt = point.WithExtraTags(dkpt.GlobalHostTags())
+	}
 
 	tick := time.NewTicker(n.Interval.Duration)
 	defer tick.Stop()

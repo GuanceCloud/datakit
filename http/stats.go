@@ -306,8 +306,14 @@ func GetStats() (*DatakitStats, error) {
 		}
 
 		if strings.HasPrefix(name, prefix+"election_status") {
-			mm := mfamily.GetMetric()
-			stats.Elected = mm[0].String()
+			if ei := election.MetricElectionInfo(mfamily); ei != nil {
+				if ei.ElectedTime > 0 {
+					stats.Elected = fmt.Sprintf("%s::%s|%s(elected: %s)",
+						ei.Namespace, ei.Status, ei.WhoElected, ei.ElectedTime.String())
+				} else {
+					stats.Elected = fmt.Sprintf("%s::%s|%s", ei.Namespace, ei.Status, ei.WhoElected)
+				}
+			}
 			continue
 		}
 	}

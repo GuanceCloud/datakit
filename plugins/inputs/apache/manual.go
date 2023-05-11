@@ -15,22 +15,17 @@ import (
 )
 
 type Measurement struct {
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	ts       time.Time
-	election bool
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+	ipt    *Input
 }
 
 // Point implement MeasurementV2.
 func (m *Measurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-
-	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
+	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -50,7 +45,7 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{
 			"idle_workers":           newCountFieldInfo("The number of idle workers"),
 			"busy_workers":           newCountFieldInfo("The number of workers serving requests."),
-			"cpu_load":               newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "The percent of CPU used,windows not support"),
+			"cpu_load":               newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "The percent of CPU used,windows not support. Optional."),
 			"uptime":                 newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.DurationSecond, "The amount of time the server has been running"),
 			"net_bytes":              newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.SizeByte, "The total number of bytes served."),
 			"net_hits":               newCountFieldInfo("The total number of requests performed"),
@@ -72,8 +67,8 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"url":            inputs.NewTagInfo("Apache server status url."),
-			"server_version": inputs.NewTagInfo("Apache server version."),
-			"server_mpm":     inputs.NewTagInfo("Apache server Multi-Processing Module,prefork、worker and event."),
+			"server_version": inputs.NewTagInfo("Apache server version. Optional."),
+			"server_mpm":     inputs.NewTagInfo("Apache server Multi-Processing Module, `prefork`, `worker` and `event`. Optional."),
 			"host":           inputs.NewTagInfo("Hostname of the DataKit."),
 		},
 	}

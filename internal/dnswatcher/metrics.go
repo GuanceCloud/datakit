@@ -52,7 +52,7 @@ func init() {
 			Namespace: "datakit",
 			Subsystem: "dns",
 			Name:      "watch_run_total",
-			Help:      "watch run counter",
+			Help:      "Watch run counter",
 		},
 		[]string{
 			"interval",

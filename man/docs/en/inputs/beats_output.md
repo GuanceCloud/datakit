@@ -11,7 +11,17 @@ This document focuses on [Elastic Beats](https://www.elastic.co/products/beats/)
 - [Filebeat](https://www.elastic.co/beats/filebeat/){:target="_blank"}
 - [Download Address](http://www.elastic.co/cn/downloads/past-releases/filebeat-7-17-3){:target="_blank"}
 
-Already tested version: `7.17.6`, `7.17.9`, `8.6.2`.
+Already tested version:
+
+- [x] 8.6.2
+- [x] 7.17.9
+- [x] 7.17.6
+- [x] 6.0.0
+- [x] 5.0.0
+- [x] 1.3.0
+- [x] 1.2.0
+- [x] 1.1.0
+- [x] 1.0.0
 
 ## Configure the Collector {#config-input}
 

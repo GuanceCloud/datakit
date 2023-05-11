@@ -14,7 +14,7 @@
 ```python
 # 待处理数据: "11,abc,end1", "22,abc,end1", "33,abc,end3"
 
-# pipline脚本
+# pipline 脚本
 add_pattern("aa", "\\d{2}")
 grok(_, "%{aa:aa}")
 if false {
@@ -28,7 +28,7 @@ if false {
         # 此处使用 pattern cc 将导致编译失败: no pattern found for %{cc}
         grok(_, "%{aa:aa},%{bb:bb},%{INT:cc}")
     } elif aa == "33" {
-        add_pattern("bb", "[\\d]{5}")	# 此处覆盖 bb 失败
+        add_pattern("bb", "[\\d]{5}") # 此处覆盖 bb 失败
         add_pattern("cc", "end3")
         grok(_, "%{aa:aa},%{bb:bb},%{cc:cc}")
     }
@@ -43,7 +43,7 @@ if false {
 }
 {
     "aa":      "22"
-	 "message": "22,abc,end1"
+    "message": "22,abc,end1"
 }
 {
     "aa":      "33"

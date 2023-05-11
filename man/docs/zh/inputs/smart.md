@@ -1,5 +1,6 @@
-{{.CSS}}
+
 # 磁盘 S.M.A.R.T
+
 ---
 
 {{.AvailableArchs}}
@@ -10,17 +11,32 @@
 
 ## 前置条件 {#requrements}
 
-安装 smartmontools
+安装 `smartmontools`
 
 - Linux: `sudo apt install smartmontools -y`
 
-	如果固态硬盘，符合  nvme 标准，建议安装 nvme-cli 以得到更多 nvme 信息：`sudo apt install nvme-cli -y`
+如果固态硬盘，符合 NVMe 标准，建议安装 `nvme-cli` 以得到更多 NVMe 信息：
 
-- MacOS: `brew install smartmontools -y`
-- WinOS: 下载 [Windows 版本](https://www.smartmontools.org/wiki/Download#InstalltheWindowspackage){:target="_blank"}
+<!-- markdownlint-disable MD046 -->
+=== "Linux"
+
+    ```shell
+    sudo apt install nvme-cli -y
+    ```
+
+=== "macOS"
+
+    ```shell
+    brew install smartmontools -y
+    ```
+=== "Windows"
+
+    下载 [Windows 版本](https://www.smartmontools.org/wiki/Download#InstalltheWindowspackage){:target="_blank"}
+<!-- markdownlint-enable -->
 
 ## 配置 {#config}
 
+<!-- markdownlint-disable MD046 -->
 === "主机安装"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
@@ -34,6 +50,7 @@
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+<!-- markdownlint-enable -->
 
 ## 指标集 {#requrements}
 

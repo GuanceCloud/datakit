@@ -59,7 +59,7 @@ metrics.reporter.prom.port: 9250-9260 # The port range of each node is different
 
 - Start Flink: `./bin/start-cluster.sh` (This command is for reference only, and the specific command may vary depending on the actual environment)
 
-- Hosts with access to external networks <[Install Datakit](https://www.yuque.com/dataflux/datakit/datakit-install)>
+- Hosts with access to external networks [Install Datakit](https://www.yuque.com/dataflux/datakit/datakit-install){:target="_blank"}
 - Change the Flink configuration and add the following to turn on Prometheus collection.
 
 ```bash
@@ -74,7 +74,7 @@ metrics.reporter.prom.port: 9250-9260
 
 ## Measurements {#measurements}
 
-Flink collects multiple metrics by default, and these [metrics](https://nightlies.apache.org/flink/flink-docs-release-1.14/docs/ops/metrics/#system-metrics) provide insight into the current state.
+Flink collects multiple metrics by default, and these [metrics](https://nightlies.apache.org/flink/flink-docs-release-1.14/docs/ops/metrics/#system-metrics){:target="_blank"} provide insight into the current state.
 
 {{ range $i, $m := .Measurements }}
 

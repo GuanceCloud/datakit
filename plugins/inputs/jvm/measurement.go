@@ -7,6 +7,7 @@ package jvm
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
@@ -23,10 +24,11 @@ const (
 )
 
 type JvmMeasurement struct {
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	election bool
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+	ipt    *Input
 }
 
 type JavaRuntimeMemt struct {
@@ -40,10 +42,6 @@ type JavaMemoryMemt struct {
 type JavaGcMemt struct {
 	JvmMeasurement
 }
-
-// type JavaLastGcMemt struct {
-// 	JvmMeasurement
-// }
 
 type JavaThreadMemt struct {
 	JvmMeasurement
@@ -62,12 +60,7 @@ type JavaMemoryPoolMemt struct {
 // Point implement MeasurementV2.
 func (m *JvmMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-
-	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
+	opts = append(opts, point.WithTime(m.ts), m.ipt.Opt)
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -88,12 +81,7 @@ func (*JvmMeasurement) Info() *inputs.MeasurementInfo {
 // Point implement MeasurementV2.
 func (m *JavaRuntimeMemt) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-
-	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
+	opts = append(opts, point.WithTime(m.ts), m.ipt.Opt)
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -118,7 +106,7 @@ func (*JavaRuntimeMemt) Info() *inputs.MeasurementInfo {
 			"CollectionUsageused":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of used memory in bytes."},
 		},
 		Tags: map[string]interface{}{
-			"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
+			"jolokia_agent_url": inputs.TagInfo{Desc: "Jolokia agent url path"},
 			"host":              inputs.TagInfo{Desc: "The hostname of the Jolokia agent/proxy running on."},
 		},
 	}
@@ -129,12 +117,7 @@ func (*JavaRuntimeMemt) Info() *inputs.MeasurementInfo {
 // Point implement MeasurementV2.
 func (m *JavaMemoryMemt) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-
-	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
+	opts = append(opts, point.WithTime(m.ts), m.ipt.Opt)
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -170,7 +153,7 @@ func (*JavaMemoryMemt) Info() *inputs.MeasurementInfo {
 		},
 
 		Tags: map[string]interface{}{
-			"jolokia_agent_url": inputs.NewTagInfo("jolokia agent url path"),
+			"jolokia_agent_url": inputs.NewTagInfo("Jolokia agent url path"),
 			"host":              inputs.NewTagInfo("The hostname of the Jolokia agent/proxy running on."),
 		},
 	}
@@ -181,12 +164,7 @@ func (*JavaMemoryMemt) Info() *inputs.MeasurementInfo {
 // Point implement MeasurementV2.
 func (m *JavaGcMemt) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-
-	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
+	opts = append(opts, point.WithTime(m.ts), m.ipt.Opt)
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -213,7 +191,7 @@ func (*JavaGcMemt) Info() *inputs.MeasurementInfo {
 		},
 
 		Tags: map[string]interface{}{
-			"jolokia_agent_url": inputs.NewTagInfo("jolokia agent url path"),
+			"jolokia_agent_url": inputs.NewTagInfo("Jolokia agent url path"),
 			"name":              inputs.NewTagInfo("the name of GC generation"),
 			"host":              inputs.NewTagInfo("The hostname of the Jolokia agent/proxy running on."),
 		},
@@ -223,40 +201,9 @@ func (*JavaGcMemt) Info() *inputs.MeasurementInfo {
 ////////////////////////////////////////////////////////////////////////////////
 
 // Point implement MeasurementV2.
-// func (m *JavaLastGcMemt) Point() *point.Point {
-// 	opts := point.DefaultMetricOptions()
-
-// 	if m.election {
-// 		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-// 	} else {
-// 	 	opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-// 	}
-
-// 	return point.NewPointV2([]byte(m.name),
-// 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
-// 		opts...)
-// }
-
-// func (*JavaLastGcMemt) LineProto() (*dkpt.Point, error) {
-// 	// return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
-// 	return nil, fmt.Errorf("not implement")
-// }
-
-// func (*JavaLastGcMemt) Info() *inputs.MeasurementInfo {
-// 	return &inputs.MeasurementInfo{}
-// }
-
-////////////////////////////////////////////////////////////////////////////////
-
-// Point implement MeasurementV2.
 func (m *JavaThreadMemt) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-
-	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
+	opts = append(opts, point.WithTime(m.ts), m.ipt.Opt)
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -285,7 +232,7 @@ func (*JavaThreadMemt) Info() *inputs.MeasurementInfo {
 		},
 
 		Tags: map[string]interface{}{
-			"jolokia_agent_url": inputs.NewTagInfo("jolokia agent url path"),
+			"jolokia_agent_url": inputs.NewTagInfo("Jolokia agent url path"),
 			"host":              inputs.NewTagInfo("The hostname of the Jolokia agent/proxy running on."),
 		},
 	}
@@ -296,12 +243,7 @@ func (*JavaThreadMemt) Info() *inputs.MeasurementInfo {
 // Point implement MeasurementV2.
 func (m *JavaClassLoadMemt) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-
-	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
+	opts = append(opts, point.WithTime(m.ts), m.ipt.Opt)
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -329,7 +271,7 @@ func (*JavaClassLoadMemt) Info() *inputs.MeasurementInfo {
 		},
 
 		Tags: map[string]interface{}{
-			"jolokia_agent_url": inputs.NewTagInfo("jolokia agent url path"),
+			"jolokia_agent_url": inputs.NewTagInfo("Jolokia agent url path"),
 			"host":              inputs.NewTagInfo("The hostname of the Jolokia agent/proxy running on."),
 		},
 	}
@@ -340,12 +282,7 @@ func (*JavaClassLoadMemt) Info() *inputs.MeasurementInfo {
 // Point implement MeasurementV2.
 func (m *JavaMemoryPoolMemt) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-
-	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
+	opts = append(opts, point.WithTime(m.ts), m.ipt.Opt)
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -379,7 +316,7 @@ func (*JavaMemoryPoolMemt) Info() *inputs.MeasurementInfo {
 		},
 
 		Tags: map[string]interface{}{
-			"jolokia_agent_url": inputs.NewTagInfo("jolokia agent url path"),
+			"jolokia_agent_url": inputs.NewTagInfo("Jolokia agent url path"),
 			"name":              inputs.NewTagInfo("the name of space"),
 			"host":              inputs.NewTagInfo("The hostname of the Jolokia agent/proxy running on."),
 		},

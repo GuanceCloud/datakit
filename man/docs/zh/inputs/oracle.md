@@ -1,5 +1,6 @@
-{{.CSS}}
+
 # Oracle
+
 ---
 
 {{.AvailableArchs}}
@@ -8,12 +9,16 @@
 
 Oracle 监控指标采集，具有以下数据收集功能
 
-- process 相关
-- tablespace 相关数据
-- system 数据采集
+- Process 相关
+- Table Space 相关数据
+- System 数据采集
 - 自定义查询数据采集
 
-已测试的版本: `11g`, `12c`, `19c`。
+已测试的版本:
+
+- [x] Oracle 19c
+- [x] Oracle 12c
+- [x] Oracle 11g
 
 ## 前置条件 {#reqirement}
 
@@ -41,14 +46,14 @@ wget https://download.oracle.com/otn_software/linux/instantclient/211000/instant
 unzip instantclient-basiclite-linux.x64-21.1.0.0.0.zip
 ```
 
-将解压后的目录文件路径添加到以下配置信息中的`LD_LIBRARY_PATH`环境变量路径中。
+将解压后的目录文件路径添加到以下配置信息中的 `LD_LIBRARY_PATH` 环境变量路径中。
 
 > 也可以直接下载我们预先准备好的依赖包：
 
 ```shell
 wget -q https://static.guance.com/otn_software/instantclient/instantclient-basiclite-linux.x64-19.8.0.0.0dbru.zip \
-			-O /usr/local/datakit/externals/instantclient-basiclite-linux.zip \
-			&& unzip /usr/local/datakit/externals/instantclient-basiclite-linux.zip -d /opt/oracle;
+    -O /usr/local/datakit/externals/instantclient-basiclite-linux.zip \
+    && unzip /usr/local/datakit/externals/instantclient-basiclite-linux.zip -d /opt/oracle;
 ```
 
 另外，可能还需要安装额外的依赖库：
@@ -59,6 +64,7 @@ apt-get install -y libaio-dev libaio1
 
 ## 配置 {#config}
 
+<!-- markdownlint-disable MD046 -->
 === "主机安装"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
@@ -72,6 +78,7 @@ apt-get install -y libaio-dev libaio1
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+<!-- markdownlint-enable -->
 
 ## 指标集 {#measurements}
 
@@ -88,7 +95,7 @@ apt-get install -y libaio-dev libaio1
 
 ### `{{$m.Name}}`
 
--  标签
+- 标签
 
 {{$m.TagsMarkdownTable}}
 
@@ -100,6 +107,7 @@ apt-get install -y libaio-dev libaio1
 
 ## FAQ {#faq}
 
+<!-- markdownlint-disable MD013 -->
 ### :material-chat-question: 如何查看 Oracle 采集器的运行日志？ {#faq-logging}
 
 由于 Oracle 采集器是外部采集器，其日志是单独存放在 *[Datakit 安装目录]/externals/oracle.log* 中。
@@ -118,11 +126,11 @@ apt-get install -y libaio-dev libaio1
 
 ```shell
 $ ldd <DataKit 安装目录>/externals/oracle
-	linux-vdso.so.1 (0x00007ffed33f9000)
-	libdl.so.2 => /lib/x86_64-linux-gnu/libdl.so.2 (0x00007f70144e1000)
-	libpthread.so.0 => /lib/x86_64-linux-gnu/libpthread.so.0 (0x00007f70144be000)
-	libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f70142cc000)
-	/lib64/ld-linux-x86-64.so.2 (0x00007f70144fc000)
+    linux-vdso.so.1 (0x00007ffed33f9000)
+    libdl.so.2 => /lib/x86_64-linux-gnu/libdl.so.2 (0x00007f70144e1000)
+    libpthread.so.0 => /lib/x86_64-linux-gnu/libpthread.so.0 (0x00007f70144be000)
+    libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f70142cc000)
+    /lib64/ld-linux-x86-64.so.2 (0x00007f70144fc000)
 ```
 
 如果有报告如下信息，则基本是当前机器上的 glibc 版本较低导致：
@@ -138,3 +146,5 @@ externals/oracle: /lib64/libc.so.6: version  `GLIBC_2.14` not found (required by
 ### 为什么看不到 `oracle_system` 指标集? {#faq-no-system}
 
 与 Oracle 数据库的版本有关。 `12c` 之前的版本，需要数据库运行起来之后，过几分钟才能看到。
+
+<!-- markdownlint-enable -->

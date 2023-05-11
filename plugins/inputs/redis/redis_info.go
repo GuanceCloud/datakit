@@ -139,13 +139,13 @@ func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NCount,
-				Desc:     "Number of connections rejected because of maxclients limit",
+				Desc:     "Number of connections rejected because of Max-Clients limit",
 			},
 			"blocked_clients": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NCount,
-				Desc:     "Number of clients pending on a blocking call (BLPOP, BRPOP, BRPOPLPUSH, BLMOVE, BZPOPMIN, BZPOPMAX)",
+				Desc:     "Number of clients pending on a blocking call (`BLPOP/BRPOP/BRPOPLPUSH/BLMOVE/BZPOPMIN/BZPOPMAX`)",
 			},
 			"client_biggest_input_buf": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -163,7 +163,7 @@ func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NCount,
-				Desc:     "Number of evicted keys due to maxmemory limit",
+				Desc:     "Number of evicted keys due to Max-Memory limit",
 			},
 			"expired_keys": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -199,7 +199,7 @@ func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NCount,
-				Desc:     "Refers to the number of operations that produced some kind of changes in the dataset since the last time either SAVE or BGSAVE was called.",
+				Desc:     "Refers to the number of operations that produced some kind of changes in the dataset since the last time either `SAVE` or `BGSAVE` was called.",
 			},
 			"rdb_last_bgsave_time_sec": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -253,7 +253,7 @@ func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
 				Unit:     inputs.SizeByte,
-				Desc:     "The value of the maxmemory configuration directive",
+				Desc:     "The value of the Max Memory configuration directive",
 			},
 			"master_last_io_seconds_ago": &inputs.FieldInfo{
 				DataType: inputs.Int,

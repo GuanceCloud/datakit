@@ -64,33 +64,28 @@ func getExchange(n *Input) {
 			"message_return_unroutable_count_rate": exchange.MessageStats.ReturnUnroutableDetails.Rate,
 		}
 		metric := &ExchangeMeasurement{
-			name:     ExchangeMetric,
-			tags:     tags,
-			fields:   fields,
-			ts:       ts,
-			election: n.Election,
+			name:   ExchangeMetric,
+			tags:   tags,
+			fields: fields,
+			ts:     ts,
+			ipt:    n,
 		}
 		metricAppend(metric.Point())
 	}
 }
 
 type ExchangeMeasurement struct {
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	ts       time.Time
-	election bool
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+	ipt    *Input
 }
 
 // Point implement MeasurementV2.
 func (m *ExchangeMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-
-	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
+	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -121,19 +116,19 @@ func (m *ExchangeMeasurement) Info() *inputs.MeasurementInfo {
 			"message_publish_out_rate":             newRateFieldInfo("Rate of messages published from this exchange into queues per second"),
 			"message_redeliver_count":              newCountFieldInfo("Count of subset of messages in exchanges in deliver_get which had the redelivered flag set"),
 			"message_redeliver_rate":               newRateFieldInfo("Rate of subset of messages in exchanges in deliver_get which had the redelivered flag set per second"),
-			"message_return_unroutable_count_rate": newRateFieldInfo("Rate of messages in exchanges returned to publisher as unroutable per second"),
-			"message_return_unroutable_count":      newCountFieldInfo("Count of messages in exchanges returned to publisher as unroutable"),
+			"message_return_unroutable_count_rate": newRateFieldInfo("Rate of messages in exchanges returned to publisher as un-routable per second"),
+			"message_return_unroutable_count":      newCountFieldInfo("Count of messages in exchanges returned to publisher as un-routable"),
 		},
 
 		Tags: map[string]interface{}{
-			"url":           inputs.NewTagInfo("rabbitmq url"),
-			"exchange_name": inputs.NewTagInfo("rabbitmq exchange name"),
-			"type":          inputs.NewTagInfo("rabbitmq exchange type"),
-			"vhost":         inputs.NewTagInfo("rabbitmq exchange virtual hosts"),
+			"url":           inputs.NewTagInfo("RabbitMQ host URL"),
+			"exchange_name": inputs.NewTagInfo("RabbitMQ exchange name"),
+			"type":          inputs.NewTagInfo("RabbitMQ exchange type"),
+			"vhost":         inputs.NewTagInfo("RabbitMQ exchange virtual hosts"),
 			"internal":      inputs.NewTagInfo("If set, the exchange may not be used directly by publishers, but only when bound to other exchanges. Internal exchanges are used to construct wiring that is not visible to applications"),
 			"durable":       inputs.NewTagInfo("If set when creating a new exchange, the exchange will be marked as durable. Durable exchanges remain active when a server restarts. Non-durable exchanges (transient exchanges) are purged if/when a server restarts."),
 			"auto_delete":   inputs.NewTagInfo("If set, the exchange is deleted when all queues have finished using it"),
-			"host":          inputs.NewTagInfo("Hostname of rabbitmq running on."),
+			"host":          inputs.NewTagInfo("Hostname of RabbitMQ running on."),
 		},
 	}
 }

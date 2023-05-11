@@ -46,19 +46,20 @@ func (mq *Consumer) GetTopics() []string {
 	return mq.Topics
 }
 
-func (mq *Consumer) Process(msg *sarama.ConsumerMessage) {
+func (mq *Consumer) Process(msg *sarama.ConsumerMessage) error {
 	r, err := http.NewRequest(http.MethodPost, mq.dkURL, bytes.NewBuffer(msg.Value))
 	if err != nil {
 		log.Errorf("new request err=%v", err)
-		return
+		return err
 	}
 	r.Header.Add("Content-Type", "application/x-protobuf")
 	resp, err := mq.transport.RoundTrip(r)
 	if err != nil {
 		log.Warnf("Error sending request: %v", err)
-		return
+		return err
 	}
 	defer resp.Body.Close() //nolint:errcheck
 
 	log.Debugf("Response status code: %d", resp.StatusCode)
+	return nil
 }

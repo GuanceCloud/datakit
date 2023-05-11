@@ -1,4 +1,4 @@
-.PHONY: default testing local deps prepare
+.PHONY: default testing local deps prepare cspell
 
 default: local
 
@@ -52,6 +52,9 @@ GO_PATCH_VERSION       := $(shell go version | cut -c 14- | cut -d' ' -f1 | cut 
 BUILDER_GOOS_GOARCH    := $(shell go env GOOS)-$(shell go env GOARCH)
 GOLINT_VERSION         := $(shell $(GOLINT_BINARY) --version | cut -c 27- | cut -d' ' -f1)
 GOLINT_VERSION_ERR_MSG := golangci-lint version($(GOLINT_VERSION)) is not supported, please use version $(SUPPORTED_GOLINT_VERSION)
+MARKDOWNLINT_VERSION   := $(shell markdownlint --version)
+CSPELL_VERSION         := $(shell cspell --version)
+GREP_VERSION           := $(shell grep --version)
 
 # These can be override at runtime by make variables
 VERSION              ?= $(shell git describe --always --tags)
@@ -370,16 +373,16 @@ all_test: deps
 
 test_deps: prepare gofmt lfparser_disable_line vet
 
-lint: deps check_man copyright_check
+lint: deps copyright_check md_lint
 	@truncate -s 0 lint.err
-	$(GOLINT_BINARY) run --fix --allow-parallel-runners | tee -a lint.err;
+	$(GOLINT_BINARY) run --fix --allow-parallel-runners;
 	@if [ $$? != 0 ]; then \
 		exit -1; \
 	fi
 
-lint_nofix: deps check_man copyright_check
+lint_nofix: deps copyright_check md_lint
 	@truncate -s 0 lint.err
-	$(GOLINT_BINARY) run --allow-parallel-runners | tee -a lint_nofix.err;
+	$(GOLINT_BINARY) run --allow-parallel-runners;
 	@if [ $$? != 0 ]; then \
 		exit -1; \
 	fi
@@ -402,21 +405,41 @@ copyright_check_auto_fix:
 	@python3 copyright.py --fix
 
 md_lint:
-	# markdownlint install: https://github.com/igorshubovych/markdownlint-cli
-	@markdownlint man/docs 2>&1 > md.lint
-	@if [ $$? != 0 ]; then \
-		cat md.lint; \
+	@# markdownlint install: https://github.com/igorshubovych/markdownlint-cli
+	@echo 'markdownlint version: $(MARKDOWNLINT_VERSION)'
+	@markdownlint man/docs/zh 2>&1 | tee md.lint
+	@if [ -s md.lint ]; then \
 		exit -1; \
 	fi
-
-# All document's section must attached with tag(exclude changelog.md)
-check_man:
+	@# check spell on ZH docs
+	@echo 'cspell version: $(CSPELL_VERSION)'
+	cspell lint -c cspell/cspell.json --no-progress man/docs/zh/*.md man/docs/zh/**/*.md | tee cspell.lint
+	@if [ -s cspell.lint ]; then \
+		exit -1; \
+	fi
+	@# Additional checkings on documents
+	@echo 'checking Unicode/ASCCI format...'
+	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run cmd/make/make.go -mdm man/docs/zh/ && \
+	 { echo "\n------\n[E] Some bad docs got invalid format on Unicode/ASCII. See https://docs.guance.com/datakit/mkdocs-howto/#zh-en-mix\n"; exit -1; } || { echo 'Unicode/ASCII format ok.'; }
+	@echo 'checking section tags...'
 	@grep --color=always --exclude *changelog.md -nr '^##' man/docs/* | grep -vE ' {#' | grep -vE '{{' && \
-		{ echo "[E] some bad docs"; exit -1; } || \
-		{ echo "all docs ok"; exit 0; }
+	 { echo "\n------\n[E] Some bad docs that missing section tags. See https://docs.guance.com/datakit/mkdocs-howto/#set-links"; exit -1; } || { echo 'section tags ok.'; }
+	@echo 'checking external links...'
+	@grep --color=always -nr '\[.*\](http' man/docs/zh/ man/docs/en | grep -vE 'static.guance.com|_blank' && \
+	 { echo "\n------\n[E] Some bad docs got invalid external links. See https://docs.guance.com/datakit/mkdocs-howto/#outer-linkers\n"; exit -1; } || { echo 'external links ok.'; }
+	@#check generated docs
+	@bash mkdocs.sh -D ./local-docs -C -V 9.9.9
+
+project_words:
+	cspell -c cspell/cspell.json --words-only --unique man/docs/zh/** | sort --ignore-case >> project-words.txt
 
 code_stat:
 	cloc --exclude-dir=vendor,tests --exclude-lang=JSON,HTML .
+
+# promlinter: show prometheuse metrics defined in Datakit.
+# go install github.com/yeya24/promlinter/cmd/promlinter@latest
+show_metrics:
+	@promlinter list . --add-position --add-help
 
 clean:
 	@rm -rf build/*

@@ -107,13 +107,14 @@ type Input struct {
 	tail    *tailer.Tailer
 	start   time.Time
 	db      *sql.DB
-	feeder  dkio.Feeder
 
 	Election bool `toml:"election"`
 	pauseCh  chan bool
 	pause    bool
 
 	semStop *cliutils.Sem // start stop signal
+	feeder  dkio.Feeder
+	opt     point.Option
 }
 
 type sqlserverlog struct {

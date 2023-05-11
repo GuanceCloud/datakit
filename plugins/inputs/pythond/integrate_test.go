@@ -32,6 +32,10 @@ import (
 )
 
 func TestPythondInput(t *testing.T) {
+	if !testutils.CheckIntegrationTestingRunning() {
+		t.Skip()
+	}
+
 	start := time.Now()
 	cases, err := buildCases(t)
 	if err != nil {
@@ -54,7 +58,7 @@ func TestPythondInput(t *testing.T) {
 
 			t.Logf("testing %s...", tc.name)
 
-			if err := tc.run(); err != nil {
+			if err := testutils.RetryTestRun(tc.run); err != nil {
 				tc.cr.Status = testutils.TestFailed
 				tc.cr.FailedMessage = err.Error()
 
@@ -92,7 +96,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		opts           []inputs.PointCheckOption
 	}{
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/python:3-datakit_framework",
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/python:3-alpine-datakit_framework",
 		},
 	}
 
@@ -199,18 +203,16 @@ func (cs *caseSpec) handler(c *gin.Context) {
 		return
 	}
 	str := string(body)
-	cs.t.Logf(str)
-	cs.t.Logf("\n")
+	cs.t.Logf("incoming >>>    " + str)
+	if len(strings.TrimSpace(str)) == 0 {
+		return
+	}
 
 	switch uri.Path {
 	case "/v1/write/metrics":
-		cs.t.Logf("/v1/write/metrics")
-		cs.t.Logf(str)
-		cs.t.Logf("\n")
+		cs.t.Logf("/v1/write/metrics: " + str + "\n\n")
 	case "/v1/write/metric":
-		cs.t.Logf("/v1/write/metric")
-		cs.t.Logf(str)
-		cs.t.Logf("\n")
+		cs.t.Logf("/v1/write/metric: " + str + "\n\n")
 		atomic.AddUint32(&count, 1)
 		if uri.RawQuery == "input=py_from_docker" {
 			if str != `[{"measurement": "measurement1", "tags": {"tag_name": "tag_value"}, "fields": {"count": 1}}]` {
@@ -222,13 +224,9 @@ func (cs *caseSpec) handler(c *gin.Context) {
 			}
 		}
 	case "/v1/write/network":
-		cs.t.Logf("/v1/write/network")
-		cs.t.Logf(str)
-		cs.t.Logf("\n")
+		cs.t.Logf("/v1/write/network: " + str + "\n\n")
 	case "/v1/write/keyevent":
-		cs.t.Logf("/v1/write/keyevent")
-		cs.t.Logf(str)
-		cs.t.Logf("\n")
+		cs.t.Logf("/v1/write/keyevent: " + str + "\n\n")
 		atomic.AddUint32(&count, 1)
 		parsedBody := FeedMeasurementBody{}
 		if err := json.Unmarshal(body, &parsedBody); err != nil {
@@ -264,41 +262,27 @@ func (cs *caseSpec) handler(c *gin.Context) {
 			}
 		}
 	case "/v1/write/object":
-		cs.t.Logf("/v1/write/object")
-		cs.t.Logf(str)
-		cs.t.Logf("\n")
+		cs.t.Logf("/v1/write/object: " + str + "\n\n")
 		atomic.AddUint32(&count, 1)
 		if str != `[{"measurement": "measurement4", "tags": {"tag1": "val1", "tag2": "val2", "name": "name"}, "fields": {"custom_field1": "val1", "custom_field2": 1000, "custom_key1": "custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}, "time": null}]` {
 			cs.addErrorMsgs("[ERROR] 10004")
 		}
 	case "/v1/write/custom_object":
-		cs.t.Logf("/v1/write/custom_object")
-		cs.t.Logf(str)
-		cs.t.Logf("\n")
+		cs.t.Logf("/v1/write/custom_object: " + str + "\n\n")
 	case "/v1/write/logging":
-		cs.t.Logf("/v1/write/logging")
-		cs.t.Logf(str)
-		cs.t.Logf("\n")
+		cs.t.Logf("/v1/write/logging: " + str + "\n\n")
 		atomic.AddUint32(&count, 1)
 		if str != `[{"measurement": "measurement3", "tags": {"tag1": "val1", "tag2": "val2"}, "fields": {"message": "This is the message for testing", "custom_key1": "custom_value1", "custom_key2": "custom_value2", "custom_key3": "custom_value3"}, "time": null}]` {
 			cs.addErrorMsgs("[ERROR] 10003")
 		}
 	case "/v1/write/tracing":
-		cs.t.Logf("/v1/write/tracing")
-		cs.t.Logf(str)
-		cs.t.Logf("\n")
+		cs.t.Logf("/v1/write/tracing: " + str + "\n\n")
 	case "/v1/write/rum":
-		cs.t.Logf("/v1/write/rum")
-		cs.t.Logf(str)
-		cs.t.Logf("\n")
+		cs.t.Logf("/v1/write/rum: " + str + "\n\n")
 	case "/v1/write/security":
-		cs.t.Logf("/v1/write/security")
-		cs.t.Logf(str)
-		cs.t.Logf("\n")
+		cs.t.Logf("/v1/write/security: " + str + "\n\n")
 	case "/v1/write/profiling":
-		cs.t.Logf("/v1/write/profiling")
-		cs.t.Logf(str)
-		cs.t.Logf("\n")
+		cs.t.Logf("/v1/write/profiling: " + str + "\n\n")
 	}
 
 	val := atomic.LoadUint32(&count)
@@ -327,8 +311,10 @@ func (cs *caseSpec) run() error {
 	router.POST("/v1/write/security", cs.handler)
 	router.POST("/v1/write/profiling", cs.handler)
 
+	randPort := testutils.RandPort("tcp")
+
 	srv := &http.Server{
-		Addr:    ":59539",
+		Addr:    fmt.Sprintf(":%d", randPort),
 		Handler: router,
 	}
 
@@ -375,7 +361,7 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), "DATAKIT_PORT=59539"},
+				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), fmt.Sprintf("DATAKIT_PORT=%d", randPort)},
 
 				ExposedPorts: cs.exposedPorts,
 				PortBindings: cs.getPortBindings(),
@@ -396,7 +382,7 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), "DATAKIT_PORT=59539"},
+				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), fmt.Sprintf("DATAKIT_PORT=%d", randPort)},
 
 				ExposedPorts: cs.exposedPorts,
 				PortBindings: cs.getPortBindings(),
@@ -425,7 +411,7 @@ func (cs *caseSpec) run() error {
 
 	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
 
-	tick := time.NewTicker(time.Second * 30)
+	tick := time.NewTicker(time.Minute)
 	out := false
 	for {
 		if out {

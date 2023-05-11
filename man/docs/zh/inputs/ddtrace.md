@@ -1,4 +1,4 @@
-{{.CSS}}
+
 # DDTrace
 ---
 
@@ -10,6 +10,7 @@ Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing �
 
 ## DDTrace 文档和示例 {#doc-example}
 
+<!-- markdownlint-disable MD046 MD032 MD030 -->
 <div class="grid cards" markdown>
 -   :fontawesome-brands-python: __Python__
 
@@ -114,12 +115,13 @@ Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing �
     ```
 
     不要只注释 `sampling_rate = 1.0` 这一行，必须连同 `[inputs.ddtrace.sampler]` 也一并注释掉，否则采集器会认为 `sampling_rate` 被置为 0.0，从而导致所有数据都被丢弃。
+<!-- markdownlint-enable -->
 
 ### HTTP 设置 {#http}
 
 如果 Trace 数据是跨机器发送过来的，那么需要设置 [DataKit 的 HTTP 设置](datakit-conf.md#config-http-server)。
 
-如果有 ddtrace 数据发送给 DataKit，那么在 [DataKit 的 monitor](datakit-monitor.md) 上能看到：
+如果有 DDTrace 数据发送给 Datakit，那么在 [DataKit 的 monitor](datakit-monitor.md) 上能看到：
 
 <figure markdown>
   ![](https://static.guance.com/images/datakit/input-ddtrace-monitor.png){ width="800" }
@@ -161,7 +163,7 @@ Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing �
 DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.py
 ```
 
-- 在 ddtrace.conf 中直接配置自定义标签。这种方式会影响**所有**发送给 DataKit tracing 服务的数据，需慎重考虑：
+- 在 _ddtrace.conf_ 中直接配置自定义标签。这种方式会影响所有发送给 Datakit tracing 服务的数据，需慎重考虑：
 
 ```toml
 # tags is ddtrace configed key value pairs
@@ -184,10 +186,12 @@ customer_tags = [
 
 注意，这些 tag-key 中不能包含英文字符 '.'，带 `.` 的 tag-key 会替换为 `_`。
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention "应用代码中添加业务 tag 注意事项"
 
-    - 在应用代码中添加了对应的 tag 后，必须在 ddtrace.conf 的 `customer_tags` 中也同步添加对应的 tag-key 列表，否则 DataKit 不会对这些业务 tag 进行提取
-    - 在开启了采样的情况下，部分添加了 tag 的 span 有可能被舍弃
+    - 在应用代码中添加了对应的 Tag 后，必须在 *ddtrace.conf* 的 `customer_tags` 中也同步添加对应的 Tag-Key 列表，否则 Datakit 不会对这些业务 Tag 进行提取
+    - 在开启了采样的情况下，部分添加了 Tag 的 Span 有可能被舍弃
+<!-- markdownlint-enable -->
 
 ## 指标集 {#measurements}
 
@@ -214,4 +218,4 @@ customer_tags = [
 
 - [DataKit Tracing 字段定义](datakit-tracing-struct.md)
 - [DataKit 通用 Tracing 数据采集说明](datakit-tracing.md)
-- [正确使用正则表达式来配置](datakit-input-conf.md#debug-regex) 
+- [正确使用正则表达式来配置](datakit-input-conf.md#debug-regex)

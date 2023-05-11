@@ -1,18 +1,21 @@
-{{.CSS}}
+
 # 用 Python 开发自定义采集器
+
 ---
 
 {{.AvailableArchs}}
 
 ---
 
-{{.InputName}} 是定时触发用户自定义 python 采集脚本的一整套方案。
+PythonD 是定时触发用户自定义 Python 采集脚本的一整套方案。
 
 ## 前置条件 {#reqirement}
 
 ### Python 环境 {#req-python}
 
-目前处于 alpha 阶段，**只兼容 Python 3+**。已测试的版本: `3.10.1`。
+目前处于 alpha 阶段，**只兼容 Python 3+**。已测试的版本:
+
+- [x] 3.10.1
 
 需要安装以下依赖库:
 
@@ -41,7 +44,7 @@ py -m ensurepip --upgrade
 
 以包名 `Demo` 为例，其路径结构如下。其中 `demo.py` 为 Python 脚本，Python 脚本的文件名可以自定义:
 
-```
+```shell
 datakit
    └── python.d
        ├── Demo
@@ -50,9 +53,11 @@ datakit
 
 Python 脚本需要用户继承 `DataKitFramework` 类，然后对 `run` 方法进行改写。
 
->`DataKitFramework` 类的源代码文件路径是 `datakit_framework.py` 在 `datakit/python.d/core/datakit_framework.py`。
+> `DataKitFramework` 类的源代码文件路径是 `datakit_framework.py` 在 `datakit/python.d/core/datakit_framework.py`。
 
-??? note "Python 脚本源码参考示例"
+<!-- markdownlint-disable MD046 -->
+???- note "Python 脚本源码参考示例"
+
     ```python
     #encoding: utf-8
 
@@ -174,6 +179,7 @@ Python 脚本需要用户继承 `DataKitFramework` 类，然后对 `run` 方法�
         #         **kwargs
         #         )
     ```
+<!-- markdownlint-enable -->
 
 Python SDK API 定义(详情参见 `datakit_framework.py`):
 
@@ -271,7 +277,7 @@ class Demo(DataKitFramework):
 
 ## 配置 {#config}
 
-进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+进入 DataKit 安装目录下的 *conf.d/{{.Catalog}}* 目录，复制 *{{.InputName}}.conf.sample* 并命名为 *{{.InputName}}.conf*。示例如下：
 
 ```toml
 {{.InputSample}}
@@ -281,7 +287,7 @@ class Demo(DataKitFramework):
 
 支持使用 git repo，一旦开启 git repo 功能，则 conf 里面的 args 里面填写的路径是相对于 `gitrepos` 的路径。比如下面这种情况，args 就填写 `mytest`:
 
-```
+```shell
 ├── datakit
 └── gitrepos
     └── myconf
@@ -350,13 +356,13 @@ class MyTest(DataKitFramework):
 
 第二步：我们这里不开启 git repo 功能。将 `test.py` 放到 `python.d` 的 `mytest` 文件夹下:
 
-```
+```shell
 └── python.d
     ├── mytest
     │   ├── test.py
 ```
 
-第三步：配置 {{.InputName}}.conf:
+第三步：配置 *{{.InputName}}.conf*:
 
 ```toml
 [[inputs.pythond]]

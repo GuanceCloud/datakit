@@ -194,7 +194,7 @@ func (p *Params) WithSourceURL(url string) InstallOpt {
 func DefaultInstallCmd() *installCmd {
 	return &installCmd{
 		dwURL:     "https://openway.guance.com",
-		sourceURL: "https://static.guance.com",
+		sourceURL: "https://static.guance.com/datakit",
 		envs:      map[string]string{},
 	}
 }

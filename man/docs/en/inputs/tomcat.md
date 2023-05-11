@@ -10,6 +10,10 @@ Collect tomcat metrics
 
 ## Preconditions {#requrements}
 
+- Already tested version:
+    - [x] 9
+    - [x] 8
+
 Download [Jolokia](https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-war/1.6.2/jolokia-war-1.6.2.war){:target="_blank"}, rename it to jolokia.war, and place it in tomcat's webapps directory. You can also get the jolokia war package from the data directory under the Datakit installation directory. Edit tomcat-users.xml in tomcat's conf directory and add the user whose role is jolokia.
 
 Take apache-tomcat-9. 0.45 as an example (the username and password of the jolokia user in the example must be modified) :

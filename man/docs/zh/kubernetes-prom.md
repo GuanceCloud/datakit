@@ -1,5 +1,6 @@
-{{.CSS}}
+
 # Prometheus Exporter 指标采集
+
 ---
 
 :fontawesome-brands-linux: :material-kubernetes:
@@ -54,6 +55,7 @@
 - `$PODNAME`：Pod Name
 - `$NODENAME`：Pod 所在的 Node 名称
 
+<!-- markdownlint-disable MD046 -->
 !!! tip
 
     Prom 采集器不会自动添加诸如 `namespace` 和 `pod_name` 等 tags，可以在上面的 config 中使用通配符添加额外 tags，例如：
@@ -64,6 +66,7 @@
         pod_name = "$PODNAME"
         node_name = "$NODENAME"
     ```
+<!-- markdownlint-enable -->
 
 ### 选择指定 Pod IP {#pod-ip}
 
@@ -117,10 +120,11 @@ spec:
             #node_name = "$NODENAME"
 ```
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     `annotations` 一定添加在 `template` 字段下，这样 *deployment.yaml* 创建的 Pod 才会携带 `datakit/prom.instances`。
-
+<!-- markdownlint-enable -->
 
 - 使用新的 yaml 创建资源
 
@@ -130,7 +134,9 @@ kubectl apply -f deployment.yaml
 
 至此，Annotations 已经添加完成。DataKit 稍后会读取到 Pod 的 Annotations，并采集 `url` 上暴露出来的指标。
 
-## 自动发现 Pod/Service 的 Prometheus Annotations 配置并采集指标 {#auto-discovery-metrics-with-prometheus}
+## 自动发现 Pod/Service 的 Prometheus 指标 {#auto-discovery-metrics-with-prometheus}
+
+[:octicons-tag-24: Version-1.5.10](changelog.md#cl-1.5.10)
 
 [:octicons-tag-24: Version-1.5.10](changelog.md#cl-1.5.10)
 
@@ -199,7 +205,7 @@ Datakit 会自动发现带有 `prometheus.io/scrape: "true"` 的 Service，并�
 
 例如以下的 Prometheus 原数据：
 
-```
+```not-set
 # TYPE promhttp_metric_handler_errors_total counter
 promhttp_metric_handler_errors_total{cause="encoding"} 0
 ```

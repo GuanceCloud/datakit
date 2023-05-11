@@ -35,17 +35,15 @@ type MongodbData struct {
 	ColData       []ColData
 	TopStatsData  []DBData
 	collectCache  []*point.Point
-	election      bool
-	feeder        dkio.Feeder
+	ipt           *Input
 }
 
-func NewMongodbData(statLine *StatLine, tags map[string]string, election bool, feeder dkio.Feeder) *MongodbData {
+func NewMongodbData(statLine *StatLine, tags map[string]string, ipt *Input) *MongodbData {
 	return &MongodbData{
 		StatLine: statLine,
 		Tags:     tags,
 		Fields:   make(map[string]interface{}),
-		election: election,
-		feeder:   feeder,
+		ipt:      ipt,
 	}
 }
 
@@ -172,11 +170,11 @@ func (d *MongodbData) add(key string, val interface{}) {
 func (d *MongodbData) append() {
 	now := time.Now()
 	metric := &mongodbMeasurement{
-		name:     MongoDB,
-		tags:     copyTags(d.Tags),
-		fields:   d.Fields,
-		ts:       now,
-		election: d.election,
+		name:   MongoDB,
+		tags:   copyTags(d.Tags),
+		fields: d.Fields,
+		ts:     now,
+		ipt:    d.ipt,
 	}
 	d.collectCache = append(d.collectCache, metric.Point())
 
@@ -184,11 +182,11 @@ func (d *MongodbData) append() {
 		tmp := copyTags(d.Tags)
 		tmp["db_name"] = db.Name
 		metric := &mongodbDBMeasurement{
-			name:     MongoDBStats,
-			tags:     tmp,
-			fields:   db.Fields,
-			ts:       now,
-			election: d.election,
+			name:   MongoDBStats,
+			tags:   tmp,
+			fields: db.Fields,
+			ts:     now,
+			ipt:    d.ipt,
 		}
 		d.collectCache = append(d.collectCache, metric.Point())
 	}
@@ -198,11 +196,11 @@ func (d *MongodbData) append() {
 		tmp["collection"] = col.Name
 		tmp["db_name"] = col.DBName
 		metric := &mongodbColMeasurement{
-			name:     MongoDBColStats,
-			tags:     tmp,
-			fields:   col.Fields,
-			ts:       now,
-			election: d.election,
+			name:   MongoDBColStats,
+			tags:   tmp,
+			fields: col.Fields,
+			ts:     now,
+			ipt:    d.ipt,
 		}
 		d.collectCache = append(d.collectCache, metric.Point())
 	}
@@ -211,11 +209,11 @@ func (d *MongodbData) append() {
 		tmp := copyTags(d.Tags)
 		tmp["hostname"] = host.Name
 		metric := &mongodbShardMeasurement{
-			name:     MongoDBShardStats,
-			tags:     tmp,
-			fields:   host.Fields,
-			ts:       now,
-			election: d.election,
+			name:   MongoDBShardStats,
+			tags:   tmp,
+			fields: host.Fields,
+			ts:     now,
+			ipt:    d.ipt,
 		}
 		d.collectCache = append(d.collectCache, metric.Point())
 	}
@@ -224,11 +222,11 @@ func (d *MongodbData) append() {
 		tmp := copyTags(d.Tags)
 		tmp["collection"] = col.Name
 		metric := &mongodbTopMeasurement{
-			name:     MongoDBTopStats,
-			tags:     tmp,
-			fields:   col.Fields,
-			ts:       now,
-			election: d.election,
+			name:   MongoDBTopStats,
+			tags:   tmp,
+			fields: col.Fields,
+			ts:     now,
+			ipt:    d.ipt,
 		}
 		d.collectCache = append(d.collectCache, metric.Point())
 	}
@@ -236,9 +234,9 @@ func (d *MongodbData) append() {
 
 func (d *MongodbData) flush(cost time.Duration) {
 	if len(d.collectCache) > 0 {
-		if err := d.feeder.Feed(inputName, point.Metric, d.collectCache, &dkio.Option{CollectCost: cost}); err != nil {
+		if err := d.ipt.feeder.Feed(inputName, point.Metric, d.collectCache, &dkio.Option{CollectCost: cost}); err != nil {
 			log.Errorf(err.Error())
-			d.feeder.FeedLastError(inputName, err.Error())
+			d.ipt.feeder.FeedLastError(inputName, err.Error())
 		}
 	}
 }

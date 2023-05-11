@@ -1,5 +1,6 @@
-{{.CSS}}
+
 # TDengine
+
 ---
 
 {{.AvailableArchs}}
@@ -12,8 +13,8 @@ TDengine 采集器需要的连接 `taos_adapter` 才可以正常工作，taosAda
 
 ## 配置  {#config}
 
+<!-- markdownlint-disable MD046 -->
 === "主机安装"
-
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
     
@@ -23,21 +24,19 @@ TDengine 采集器需要的连接 `taos_adapter` 才可以正常工作，taosAda
 
     配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
 
-
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 
-
 ???+ tip
 
     - 连接 taoAdapter 之前请先确定端口是开放的。并且连接用户需要有 read 权限。
-    - 若仍连接失败，[请参考此处](https://docs.taosdata.com/2.6/train-faq/faq/)。
+    - 若仍连接失败，[请参考此处](https://docs.taosdata.com/2.6/train-faq/faq/){:target="_blank"}。
+<!-- markdownlint-enable -->
 
 ### TDengine 仪表板 {#td-dashboard}
 
 目前观测云已提供内置的 TDengine 仪表板，可在「观测云控制台」-「场景」-「新建仪表板」，搜索并选择 TDengine 仪表板。
-
 
 ## 指标集 {#td-metrics}
 
@@ -47,7 +46,7 @@ TDengine 采集器需要的连接 `taos_adapter` 才可以正常工作，taosAda
 
 {{$m.Desc}}
 
--  标签
+- 标签
 
 {{$m.TagsMarkdownTable}}
 

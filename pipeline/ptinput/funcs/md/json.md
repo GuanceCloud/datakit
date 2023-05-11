@@ -2,18 +2,18 @@
 
 函数原型：`fn json(input: str, json_path, newkey, trim_space: bool = true, delete_after_extract = false)`
 
-函数说明：提取 json 中的指定字段，并可将其命名成新的字段。
+函数说明：提取 JSON 中的指定字段，并可将其命名成新的字段。
 
 参数:
 
-- `input`: 待提取 json，可以是原始文本（`_`）或经过初次提取之后的某个 `key`
-- `json_path`: json 路径信息
+- `input`: 待提取 JSON，可以是原始文本（`_`）或经过初次提取之后的某个 `key`
+- `json_path`: JSON 路径信息
 - `newkey`：提取后数据写入新 key
 - `trim_space`: 删除提取出的字符中的空白首尾字符，默认值为 `true`
 - `delete_after_extract`: 在提取结束后删除当前对象，在重新序列化后回写待提取对象；只能应用于 map 的 key 与 value 的删除，不能用于删除 list 的元素；默认值为 `false`，不进行任何操作[:octicons-tag-24: Version-1.5.7](../datakit/changelog.md#cl-1.5.7)
 
 ```python
-# 直接提取原始输入 json 中的x.y字段，并可将其命名成新字段abc
+# 直接提取原始输入 JSON 中的 x.y 字段，并可将其命名成新字段 abc
 json(_, x.y, abc)
 
 # 已提取出的某个 `key`，对其再提取一次 `x.y`，提取后字段名为 `x.y`
@@ -70,7 +70,7 @@ json(_, name) json(name, first)
 #            {"first": "Jane", "last": "Murphy", "age": 47, "nets": ["ig", "tw"]}
 #    ]
     
-# 处理脚本, json数组处理:
+# 处理脚本, json 数组处理:
 json(_, [0].nets[-1])
 ```
 

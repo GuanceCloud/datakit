@@ -1,5 +1,6 @@
-{{.CSS}}
+
 # DataKit 自身指标
+
 ---
 
 {{.AvailableArchs}}

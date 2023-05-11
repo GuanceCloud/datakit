@@ -17,6 +17,7 @@ import (
 	dt "github.com/GuanceCloud/cliutils/dialtesting"
 	_ "github.com/go-ping/ping"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
 
@@ -32,7 +33,8 @@ type dialer struct {
 	tags     map[string]string
 	updateCh chan dt.Task
 
-	category string
+	category   string
+	regionName string
 
 	failCnt int
 	done    <-chan interface{}
@@ -75,14 +77,45 @@ func (d *dialer) getSendFailCount() int {
 func (d *dialer) run() error {
 	d.ticker = d.task.Ticker()
 
+	taskGauge.WithLabelValues(d.regionName, d.class).Inc()
+
+	defer func() {
+		taskGauge.WithLabelValues(d.regionName, d.class).Dec()
+	}()
+
 	l.Debugf("dialer: %+#v", d)
 
 	defer d.ticker.Stop()
 	defer close(d.updateCh)
 
+	if parts, err := url.Parse(d.task.PostURLStr()); err != nil {
+		taskInvalidCounter.WithLabelValues(d.regionName, d.class, "invalid_post_url").Inc()
+		return fmt.Errorf("invalid post url")
+	} else {
+		params := parts.Query()
+		if tokens, ok := params["token"]; ok {
+			// check token
+			if len(tokens) >= 1 {
+				if isValid, err := config.Cfg.Dataway.CheckToken(tokens[0], parts.Scheme, parts.Host); err != nil {
+					l.Warnf("check token error: %s", err.Error())
+				} else if !isValid {
+					taskInvalidCounter.WithLabelValues(d.regionName, d.class, "invalid_token").Inc()
+					return fmt.Errorf("invalid token")
+				}
+			} else {
+				taskInvalidCounter.WithLabelValues(d.regionName, d.class, "token_empty").Inc()
+				return fmt.Errorf("token is required")
+			}
+		} else {
+			taskInvalidCounter.WithLabelValues(d.regionName, d.class, "token_empty").Inc()
+			return fmt.Errorf("token is required")
+		}
+	}
+
 	for {
 		failCount := d.getSendFailCount()
 		if failCount > MaxSendFailCount {
+			taskInvalidCounter.WithLabelValues(d.regionName, d.class, "exceed_max_failure_count").Inc()
 			l.Warnf("dial testing %s send data failed %d times", d.task.ID(), failCount)
 			return nil
 		}
@@ -94,7 +127,9 @@ func (d *dialer) run() error {
 		case dt.ClassHeadless:
 			return fmt.Errorf("headless task deprecated")
 		default:
+			startTime := time.Now()
 			_ = d.task.Run() //nolint:errcheck
+			taskRunCostSummary.WithLabelValues(d.regionName, d.class).Observe(float64(time.Since(startTime)))
 		}
 
 		// dialtesting start
@@ -128,7 +163,6 @@ func (d *dialer) run() error {
 }
 
 func (d *dialer) feedIO() error {
-	// 考虑到推送至不同的dataway地址
 	u, err := url.Parse(d.task.PostURLStr())
 	if err != nil {
 		l.Warn("get invalid url, ignored")

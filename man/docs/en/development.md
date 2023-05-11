@@ -82,7 +82,7 @@ sudo datakit service -S                                         # restart dataki
 - Check the collector condition by executing the following command:
 
 ```shell
-sudo datakit tool --check-config # Check whether the collector configuration file is normal
+sudo datakit check --config # Check whether the collector configuration file is normal
 datakit -M --vvv            # Check the operation of all collectors
 ```
 
@@ -98,7 +98,7 @@ datakit -M --vvv            # Check the operation of all collectors
 
     #### Install Golang
     
-    the current Go version [1.18.3](https://golang.org/dl/go1.18.3.linux-amd64.tar.gz)
+    the current Go version [1.18.3](https://golang.org/dl/go1.18.3.linux-amd64.tar.gz){:target="_blank"}
     
     #### CI Settings
     
@@ -147,15 +147,17 @@ datakit -M --vvv            # Check the operation of all collectors
     
     - tree
     - make
-    - [goyacc](https://gist.github.com/tlightsky/9a163e59b6f3b05dbac8fc6b459a43c0): `go install golang.org/x/tools/cmd/goyacc@master`
-    - [golangci-lint](https://golangci-lint.run/usage/install/#local-installation): `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.2`
+    - [goyacc](https://gist.github.com/tlightsky/9a163e59b6f3b05dbac8fc6b459a43c0){:target="_blank"}: `go install golang.org/x/tools/cmd/goyacc@master`
+    - [golangci-lint](https://golangci-lint.run/usage/install/#local-installation){:target="_blank"}: `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.2`
     - gofumpt: `go install mvdan.cc/gofumpt@v0.1.1`
     - wget
     - docker
     - curl
-    - [llvm](https://apt.llvm.org/): version >= 10.0
+    - [llvm](https://apt.llvm.org/){:target="_blank"}: version >= 10.0
     - clang: version >= 10.0
     - linux kernel（>= 5.4.0-99-generic）header file: `apt-get install -y linux-headers-$(uname -r)` 
+    - [cspell](https://cspell.org/){:target="_blank"}
+    - [markdownlint-cli](https://github.com/igorshubovych/markdownlint-cli){:target="_blank"}
     
     #### Installing third-party libraries
     

@@ -21,7 +21,7 @@ func (e electionStatus) String() string {
 }
 
 const (
-	statusDisabled = electionStatus(0)
-	statusSuccess  = electionStatus(1)
-	statusFail     = electionStatus(2)
+	statusDisabled electionStatus = iota
+	statusSuccess
+	statusFail
 )

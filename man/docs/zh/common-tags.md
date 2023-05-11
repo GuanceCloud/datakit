@@ -11,48 +11,48 @@
 
 | Tag                | 描述                                                                                                |
 | ---                | ---                                                                                                 |
-| host               | 主机名，daemonset 安装和主机安装都能带上这个 tag，在某些特定的情况下，用户可以 rename 这个 tag 的值 |
+| host               | 主机名，DaemonSet 安装和主机安装都能带上这个 tag，在某些特定的情况下，用户可以 rename 这个 tag 的值 |
 | project            | 项目名，一般都是由用户设置                                                                          |
-| cluster            | 集群名，一般在 daemonset 安装中，由用户设置                                                         |
+| cluster            | 集群名，一般在 DaemonSet 安装中，由用户设置                                                         |
 | election_namespace | 选举所在的命名空间，默认不追加，详见[文档](datakit-daemonset-deploy.md#env-elect)                   |
 | version            | 版本号，所有涉及版本信息的 tag 字段，都应该以该 tag 来表示                                          |
 
-### Kubernates/容器常见 Tag {#k8s-tags}
+### Kubernetes/容器常见 Tag {#k8s-tags}
 
 这些 tag 在采集到的数据中，一般都会有追加，但涉及时序采集的时候，默认会忽略一些多变的 tag（比如 `pod_name`），以节约时间线。
 
-| Tag            | 描述                    |
-| ---            | ---                     |
-| pod_name       | pod 名称                |
-| deployment     | k8s 中 Deployment 名称  |
-| service        | k8s 中 Service 名称     |
-| namespace      | k8s 中 Namespace 名称   |
-| job            | k8s 中 Job 名称         |
-| image          | k8s 中 镜像全称         |
-| image_name     | k8s 中镜像名简称        |
-| container_name | ks8/容器中的容器名      |
-| cronjob        | k8s 中 CronJob 名称     |
-| daemonset      | k8s 中 Daemonset 名称   |
-| replica_set    | k8s 中 ReplicaSet 名称 |
-| node_name      | k8s 中 Node 名称        |
-| node_ip        | k8s 中 Node IP          |
+| Tag              | 描述                   |
+| ---              | ---                    |
+| `pod_name`       | Pod 名称               |
+| `deployment`     | K8s 中 Deployment 名称 |
+| `service`        | K8s 中 Service 名称    |
+| `namespace`      | K8s 中 Namespace 名称  |
+| `job`            | K8s 中 Job 名称        |
+| `image`          | K8s 中 镜像全称        |
+| `image_name`     | K8s 中镜像名简称       |
+| `container_name` | Ks8/容器中的容器名     |
+| `cronjob`        | K8s 中 CronJob 名称    |
+| `daemonset`      | K8s 中 DaemonSet 名称  |
+| `replica_set`    | K8s 中 ReplicaSet 名称 |
+| `node_name`      | K8s 中 Node 名称       |
+| `node_ip`        | K8s 中 Node IP         |
 
 ## 按特定数据类型的 Tag 分类 {#tag-classes}
 
 ### 日志 {#L}
 
-| Tag                | 描述                                                                                                |
-| ---                | ---                                                                                                 |
-| source | 日志来源，在行协议上，它并不是以 tag 形式存在，而是作为指标集名称，但中心将其作为 tag 存为日志的 source 字段 |
-| service | 日志的 service 名称，如果不填写，其值等同于 source 字段 |
-| status | 日志等级，如果不填写，采集器会默认将其值置为 `unknown`，常见的 status 列表在[这里](logging.md#status) |
+| Tag     | 描述                                                                                                         |
+| ---     | ---                                                                                                          |
+| source  | 日志来源，在行协议上，它并不是以 tag 形式存在，而是作为指标集名称，但中心将其作为 tag 存为日志的 source 字段 |
+| service | 日志的 service 名称，如果不填写，其值等同于 source 字段                                                      |
+| status  | 日志等级，如果不填写，采集器会默认将其值置为 `unknown`，常见的 status 列表在[这里](logging.md#status)        |
 
 ### 对象 {#O}
 
-| Tag                | 描述                                                                                                |
-| ---                | ---                                                                                                 |
+| Tag   | 描述                                                                                                        |
+| ---   | ---                                                                                                         |
 | class | 对象分类，在行协议上，它并不是以 tag 形式存在，而是作为指标集名称，但中心将其作为 tag 存为对象的 class 字段 |
-| name | 对象名称，中心会结合 hash(class + name) 来唯一确定某个工作空间中的对象 |
+| name  | 对象名称，中心会结合 hash(class + name) 来唯一确定某个工作空间中的对象                                      |
 
 ### 指标 {#M}
 

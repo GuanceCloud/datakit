@@ -60,7 +60,6 @@ type JolokiaAgent struct {
 	gatherer *Gatherer
 	clients  []*Client
 
-	// collectCache []Measurement
 	collectCache []*point.Point
 	PluginName   string `toml:"-"`
 	L            *logger.Logger
@@ -70,6 +69,7 @@ type JolokiaAgent struct {
 
 	SemStop *cliutils.Sem `toml:"-"` // start stop signal
 	Feeder  dkio.Feeder   `toml:"-"`
+	Opt     point.Option
 }
 
 func (j *JolokiaAgent) Collect() {
@@ -84,6 +84,12 @@ func (j *JolokiaAgent) Collect() {
 	}
 	if j.Feeder == nil {
 		j.Feeder = dkio.DefaultFeeder()
+	}
+
+	if j.Election {
+		j.Opt = point.WithExtraTags(dkpt.GlobalElectionTags())
+	} else {
+		j.Opt = point.WithExtraTags(dkpt.GlobalHostTags())
 	}
 
 	j = j.Adaptor()
@@ -102,7 +108,6 @@ func (j *JolokiaAgent) Collect() {
 		case <-tick.C:
 			start := time.Now()
 			if err := j.Gather(); err != nil {
-				// dkio.FeedLastError(j.PluginName, err.Error(), point.Metric)
 				j.Feeder.FeedLastError(j.PluginName, err.Error(), point.Metric)
 			}
 
@@ -139,6 +144,7 @@ func (j *JolokiaAgent) Terminate() {
 func (j *JolokiaAgent) Gather() error {
 	if j.gatherer == nil {
 		j.gatherer = NewGatherer(j.createMetrics())
+		j.gatherer.opt = j.Opt
 	}
 
 	// Initialize clients once
@@ -217,40 +223,36 @@ func (j *JolokiaAgent) Adaptor() *JolokiaAgent {
 const defaultFieldName = "value"
 
 type JolokiaMeasurement struct {
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	ts       time.Time
-	election bool
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+	opt    point.Option
 }
 
 // Point implement MeasurementV2.
-func (j *JolokiaMeasurement) Point() *point.Point {
+func (m *JolokiaMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(m.ts), m.opt)
 
-	if j.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
-
-	return point.NewPointV2([]byte(j.name),
-		append(point.NewTags(j.tags), point.NewKVs(j.fields)...),
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
 }
 
-func (j *JolokiaMeasurement) LineProto() (*dkpt.Point, error) {
+func (*JolokiaMeasurement) LineProto() (*dkpt.Point, error) {
 	// return dkpt.NewPoint(j.name, j.tags, j.fields, dkpt.MOpt())
 	return nil, fmt.Errorf("not implement")
 }
 
-func (j *JolokiaMeasurement) Info() *MeasurementInfo {
+func (*JolokiaMeasurement) Info() *MeasurementInfo {
 	return &MeasurementInfo{}
 }
 
 type Gatherer struct {
 	metrics  []Metric
 	requests []ReadRequest
+	opt      point.Option
 }
 
 func NewGatherer(metrics []Metric) *Gatherer {
@@ -339,11 +341,11 @@ func (g *Gatherer) gatherResponses(responses []ReadResponse, tags map[string]str
 			}
 
 			metric := &JolokiaMeasurement{
-				name:     measurement,
-				tags:     tag,
-				fields:   field,
-				ts:       time.Now(),
-				election: j.Election,
+				name:   measurement,
+				tags:   tag,
+				fields: field,
+				ts:     time.Now(),
+				opt:    g.opt,
 			}
 			j.collectCache = append(j.collectCache, metric.Point())
 		}

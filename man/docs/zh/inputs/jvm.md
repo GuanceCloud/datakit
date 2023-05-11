@@ -1,4 +1,4 @@
-{{.CSS}}
+
 # JVM
 ---
 
@@ -6,21 +6,21 @@
 
 ---
 
-这里我们提供俩类 JVM 指标采集方式，一种方案是 Jolokia，一种是 ddtrace。选择方式的建议如下：
+这里我们提供俩类 JVM 指标采集方式，一种方案是 Jolokia，一种是 DDTrace。选择方式的建议如下：
 
-- 如果采集诸如 Kafka 等 java 开发的中间件 JVM 指标，推荐 Jolokia 方案。ddtrace 偏重于链路追踪（APM），且有一定的运行开销，对于中间件而言，链路追踪意义不大。
-- 如果采集自己开发的 java 应用 JVM 指标，推荐 ddtrace 方案，除了能采集 JVM 指标外，还能实现链路追踪（APM）数据采集。
+- 推荐使用 DDTrace 进行采集 JVM 指标，Jolokia 也是可以的，用起来比较麻烦所以不推荐使用。
+- 如果采集自己开发的 Java 应用 JVM 指标，推荐 DDTrace 方案，除了能采集 JVM 指标外，还能实现链路追踪（APM）数据采集。
 
-## 通过 ddtrace 采集 JVM 指标 {#jvm-ddtrace}
+## 通过 DDTrace 采集 JVM 指标 {#jvm-ddtrace}
 
-DataKit 内置了 [statsd 采集器](statsd.md)，用于接收网络上发送过来的 statsd 协议的数据。此处我们利用 ddtrace 来采集 JVM 的指标数据，并通过 statsd 协议发送给 DataKit。
+DataKit 内置了 [StatsD 采集器](statsd.md)，用于接收网络上发送过来的 StatsD 协议的数据。此处我们利用 DDTrace 来采集 JVM 的指标数据，并通过 StatsD 协议发送给 Datakit。
 
 ### 准备 statsd 配置 {#statsd}
 
-
+<!-- markdownlint-disable MD046 -->
 === "主机安装"
 
-    这里推荐使用如下的 statsd 配置来采集 ddtrace JVM 指标。将其拷贝到 `conf.d/statsd` 目录下，并命名为 `ddtrace-jvm-statsd.conf`：
+    这里推荐使用如下的 StatsD 配置来采集 DDTrace JVM 指标。将其拷贝到 `conf.d/statsd` 目录下，并命名为 `ddtrace-jvm-statsd.conf`：
 
     ```toml
     [[inputs.statsd]]
@@ -79,34 +79,35 @@ DataKit 内置了 [statsd 采集器](statsd.md)，用于接收网络上发送过
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+<!-- markdownlint-enable -->
 
 ---
 
 关于这里的配置说明：
 
-- `service_address` 此处设置成 `:8125`，指 ddtrace 将 jvm 指标发送出来的目标地址
+- `service_address` 此处设置成 `:8125`，指 DDTrace 将 jvm 指标发送出来的目标地址
 - `drop_tags` 此处我们将 `runtime-id` 丢弃，因为其可能导致时间线爆炸。如确实需要该字段，将其从 `drop_tags` 中移除即可
 - `metric_mapping` 在 ddtrace 发送出来的原始数据中，有俩类指标，它们的指标名称分别以 `jvm_` 和 `datadog_tracer_` 开头，故我们将它们统一规约到俩类指标集中，一个是 `jvm`，一个是 `ddtrace` 自身运行指标
 
-### 启动 java 应用 {#start-app}
+### 启动 Java 应用 {#start-app}
 
 一种可行的 JVM 部署方式如下：
 
 ```shell
 java -javaagent:dd-java-agent.jar \
-	-Ddd.profiling.enabled=true \
-	-Ddd.logs.injection=true \
-	-Ddd.trace.sample.rate=1 \
-	-Ddd.service=my-app \
-	-Ddd.env=staging \
-	-Ddd.agent.host=localhost \
-	-Ddd.agent.port=9529 \
-	-Ddd.jmxfetch.enabled=true \
-	-Ddd.jmxfetch.check-period=1000 \
-	-Ddd.jmxfetch.statsd.host=127.0.0.1  \
-	-Ddd.jmxfetch.statsd.port=8125 \
-	-Ddd.version=1.0 \
-	-jar your-app.jar
+    -Ddd.profiling.enabled=true \
+    -Ddd.logs.injection=true \
+    -Ddd.trace.sample.rate=1 \
+    -Ddd.service=my-app \
+    -Ddd.env=staging \
+    -Ddd.agent.host=localhost \
+    -Ddd.agent.port=9529 \
+    -Ddd.jmxfetch.enabled=true \
+    -Ddd.jmxfetch.check-period=1000 \
+    -Ddd.jmxfetch.statsd.host=127.0.0.1  \
+    -Ddd.jmxfetch.statsd.port=8125 \
+    -Ddd.version=1.0 \
+    -jar your-app.jar
 ```
 
 注意：
@@ -114,28 +115,30 @@ java -javaagent:dd-java-agent.jar \
 - 关于 `dd-jave-agent.jar` 包的下载，参见 [这里](ddtrace.md)
 - 建议给如下几个字段命名：
     - `service` 用于表示该 JVM 数据来自哪个应用
-    - `env` 用于表示该 JVM 数据来自某个应用的哪个环境（如 prod/testing/preprod 等）
+    - `env` 用于表示该 JVM 数据来自某个应用的哪个环境（如 `prod/testing/preprod` 等）
 
 - 此处几个选项的意义：
     - `-Ddd.jmxfetch.check-period` 表示采集频率，单位为毫秒
-    - `-Ddd.jmxfetch.statsd.host=127.0.0.1` 表示 DataKit 上 statsd 采集器的连接地址
-    - `-Ddd.jmxfetch.statsd.port=8125` 表示 DataKit 上 statsd 采集器的 UDP 连接端口，默认为 8125
-    - `-Ddd.trace.health.xxx` ddtrace 自身指标数据采集和发送设置
+    - `-Ddd.jmxfetch.statsd.host=127.0.0.1` 表示 Datakit 上 StatsD 采集器的连接地址
+    - `-Ddd.jmxfetch.statsd.port=8125` 表示 DataKit 上 StatsD 采集器的 UDP 连接端口，默认为 8125
+    - `-Ddd.trace.health.xxx` DDTrace 自身指标数据采集和发送设置
     - 如果要开启链路追踪（APM）可追加如下两个参数（DataKit HTTP 地址）
         - `-Ddd.agent.host=localhost`
         - `-Ddd.agent.port=9529`
 
 开启后，就能采集到 DDTrace 暴露出来的 jvm  指标。
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     实际采集到的指标，以 [DataDog 的文档](https://docs.datadoghq.com/tracing/metrics/runtime_metrics/java/#data-collected){:target="_blank"} 为准。
+<!-- markdownlint-enable -->
 
 ### `jvm` {#dd-jvm-measurement}
 
--  标签
+- 标签
 
-其中每个指标有如下 tags （实际 tags 受 java 启动参数以及 statsd 配置影响）
+其中每个指标有如下 tags （实际 tags 受 Java 启动参数以及 StatsD 配置影响）
 
 | 标签名        | 描述          |
 | ----          | --------      |
@@ -181,6 +184,13 @@ JVM 采集器可以通过 JMX 来采取很多指标，并将指标采集到观�
 java -javaagent:/path/to/jolokia-jvm-agent.jar=port=8080,host=localhost -jar your_app.jar
 ```
 
+已测试的版本:
+
+- [x] JDK 20
+- [x] JDK 17
+- [x] JDK 11
+- [x] JDK 8
+
 ### 配置 {#jolokia-config}
 
 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
@@ -206,7 +216,7 @@ java -javaagent:/path/to/jolokia-jvm-agent.jar=port=8080,host=localhost -jar you
 
 #### `{{$m.Name}}`
 
--  标签
+- 标签
 
 {{$m.TagsMarkdownTable}}
 
@@ -220,4 +230,4 @@ java -javaagent:/path/to/jolokia-jvm-agent.jar=port=8080,host=localhost -jar you
 
 - [DDTrace Java 示例](ddtrace-java.md)
 - [SkyWalking](skywalking.md)
-- [Opentelemetry Java 示例](opentelemetry-java.md)
+- [OpenTelemetry Java 示例](opentelemetry-java.md)

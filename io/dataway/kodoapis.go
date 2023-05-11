@@ -25,6 +25,59 @@ func (dw *Dataway) GetLogFilter() ([]byte, error) {
 	return dw.eps[0].getLogFilter()
 }
 
+type checkTokenResult struct {
+	Code      int    `json:"code"`
+	ErrorCode string `json:"errorCode"`
+	Message   string `json:"message"`
+}
+
+func (dw *Dataway) CheckToken(token, scheme, host string) (bool, error) {
+	if len(dw.eps) == 0 {
+		return false, fmt.Errorf("no dataway available")
+	}
+
+	dc := dw.eps[0]
+
+	if len(scheme) == 0 {
+		scheme = dc.scheme
+	}
+
+	if len(host) == 0 {
+		host = dc.host
+	}
+	reqURL := fmt.Sprintf("%s://%s%s/%s", scheme, host, datakit.TokenCheck, token)
+
+	req, err := http.NewRequest("GET", reqURL, nil)
+	if err != nil {
+		return false, err
+	}
+
+	resp, err := dc.sendReq(req)
+	if err != nil {
+		return false, err
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Error(err)
+		return false, err
+	}
+
+	defer resp.Body.Close() //nolint:errcheck
+
+	result := checkTokenResult{}
+
+	if err := json.Unmarshal(body, &result); err != nil {
+		return false, fmt.Errorf("invalid JSON body content")
+	}
+
+	if result.Code == 200 {
+		return true, nil
+	} else {
+		return false, nil
+	}
+}
+
 func (dw *Dataway) WorkspaceQuery(body []byte) (*http.Response, error) {
 	if len(dw.eps) == 0 {
 		return nil, fmt.Errorf("no dataway available")
@@ -64,7 +117,7 @@ func (dw *Dataway) DQLQuery(body []byte) (*http.Response, error) {
 	return dw.eps[0].sendReq(req)
 }
 
-func (dw *Dataway) Election(namespace, id string) ([]byte, error) {
+func (dw *Dataway) Election(namespace, id string, reqBody io.Reader) ([]byte, error) {
 	if len(dw.eps) == 0 {
 		return nil, fmt.Errorf("no dataway available")
 	}
@@ -84,7 +137,7 @@ func (dw *Dataway) Election(namespace, id string) ([]byte, error) {
 
 	log.Debugf("election sending %s", requrl)
 
-	req, err := http.NewRequest("POST", requrl, nil)
+	req, err := http.NewRequest("POST", requrl, reqBody)
 	if err != nil {
 		log.Error(err)
 		return nil, err
@@ -113,7 +166,7 @@ func (dw *Dataway) Election(namespace, id string) ([]byte, error) {
 	}
 }
 
-func (dw *Dataway) ElectionHeartbeat(namespace, id string) ([]byte, error) {
+func (dw *Dataway) ElectionHeartbeat(namespace, id string, reqBody io.Reader) ([]byte, error) {
 	if len(dw.eps) == 0 {
 		return nil, fmt.Errorf("no dataway available")
 	}
@@ -133,7 +186,7 @@ func (dw *Dataway) ElectionHeartbeat(namespace, id string) ([]byte, error) {
 
 	log.Debugf("election sending heartbeat %s", requrl)
 
-	req, err := http.NewRequest("POST", requrl, nil)
+	req, err := http.NewRequest("POST", requrl, reqBody)
 	if err != nil {
 		log.Error(err)
 		return nil, err

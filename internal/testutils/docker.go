@@ -13,6 +13,7 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -138,6 +139,39 @@ func portInUse(proto string, p int) bool {
 	return true
 }
 
+// RandPortUDP return random UDP port after offset baseOffset.
+func RandPortUDP() (*net.UDPConn, int, error) {
+	if v := os.Getenv("TESTING_BASE_PORT"); v != "" {
+		i, err := strconv.ParseInt(v, 10, 64)
+		if err == nil {
+			baseOffset = int(i)
+		}
+	}
+
+	for {
+		r := rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec
+		p := ((r.Int() % baseOffset) + baseOffset) % maxPort
+		if conn, err := udpPortInUse(p); err == nil {
+			return conn, p, nil
+		}
+	}
+}
+
+func udpPortInUse(port int) (*net.UDPConn, error) {
+	s, err := net.ResolveUDPAddr("udp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		return nil, err
+	}
+
+	conn, err := net.ListenUDP("udp", s)
+	if err != nil {
+		return nil, err
+	}
+
+	return conn, nil
+}
+
+// ExternalIP returns running host's external IP address.
 func ExternalIP() (string, error) {
 	ifaces, err := net.Interfaces()
 	if err != nil {
@@ -173,4 +207,45 @@ func ExternalIP() (string, error) {
 		}
 	}
 	return "", errors.New("are you connected to the network?")
+}
+
+// RetryTestRun retries function under specificed conditions.
+//nolint:lll
+func RetryTestRun(f func() error) error {
+	retryCount := 0
+	var errMsgs []string
+
+	for {
+		retryCount++
+		if retryCount > 3 {
+			return fmt.Errorf("exceeded retry count: %v", errMsgs)
+		}
+
+		if err := f(); err != nil {
+			switch {
+			case strings.Contains(err.Error(), "already"):
+				// API error (500): driver failed programming external connectivity on endpoint memcached (7bdcaf6b4a5dba4fa54c118e455a9f0220f9d3514e682f0dfdb92fddebc6823f): Error starting userland proxy: listen tcp4 0.0.0.0:10828: bind: address already in use
+				// API error (500): driver failed programming external connectivity on endpoint java (7a26eeed3d3eefb86e7f043661f55e19f80ed5ed60a8d27f4663dc0ff87b404f): Bind for 0.0.0.0:8080 failed: port is already allocated
+				fallthrough
+			case strings.Contains(err.Error(), "timeout"):
+				errMsgs = append(errMsgs, err.Error()) // not return, retry.
+			default:
+				return err // other conditions return error immediately.
+			}
+		} else {
+			return nil
+		}
+	}
+}
+
+const envIntegrationTesting = "UT_EXCLUDE_INTEGRATION_TESTING"
+
+// CheckIntegrationTestingRunning returns whether performing the integration testing.
+// Default is running.
+func CheckIntegrationTestingRunning() bool {
+	if val := os.Getenv(envIntegrationTesting); len(val) > 0 {
+		return false
+	}
+
+	return true
 }

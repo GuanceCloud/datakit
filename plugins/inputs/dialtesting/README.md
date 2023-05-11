@@ -1,3 +1,20 @@
+# dialtesting 模块设计
+
+dialtesting 模块主要负责从拨测中心或则本地文件中拉取拨测任务，执行拨测数据收集，并将拨测结果上报观测云。
+
+## Prometheus Metrics
+
+http 模块暴露如下 metrics：
+
+| 指标                               | 类型      | 说明                              | labels            |
+| ---                                | ---       | ---                               | ---               |
+| datakit_dialtesting_task_check_cost  | summary | Task check cost time          | protocol,region,status |
+| datakit_dialtesting_task_invalid_total  | count | The number of the invalid tasks | protocol,region,fail_reason |
+| datakit_dialtesting_task_number | gauge | The number of the running tasks | protocol,region |
+| datakit_dialtesting_task_run_cost | summary | The cost time of the running tasks | protocol,region |
+| datakit_dialtesting_pull_cost | summary | The cost time to the pull tasks | region,is_first |
+| datakit_dialtesting_task_synchronized_total | count | The total number of the synchronized tasks| protocol,region |
+
 # 网络拨测功能定义
 
 全局定义：

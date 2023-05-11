@@ -1,59 +1,56 @@
-{{.CSS}}
+
 # GPU
-
----
-## SMI指标 {#SMI-tag}
 ---
 
-- 操作系统支持：{{.AvailableArchs}}
+{{.AvailableArchs}}
 
-SMI 指标展示：包括 GPU 卡温度、时钟、GPU占用率、内存占用率、GPU内每个运行程序的内存占用等。
+## SMI 指标 {#SMI-tag}
 
-### 使用SMI指标前置条件 {#SMI-precondition}
+SMI 指标展示：包括 GPU 卡温度、时钟、GPU 占用率、内存占用率、GPU 内每个运行程序的内存占用等。
 
-#### 安装 驱动及CUDA工具包 {#SMI-install-driver}
-参考网址 [https://www.nvidia.com/Download/index.aspx](https://www.nvidia.com/Download/index.aspx)
+### 使用 SMI 指标前置条件 {#SMI-precondition}
 
-### SMI指标配置 {#SMI-input-config}
+#### 安装 驱动及 CUDA 工具包 {#SMI-install-driver}
+
+参考网址 [https://www.nvidia.com/Download/index.aspx](https://www.nvidia.com/Download/index.aspx){:target="_blank"}
+
+### SMI 指标配置 {#SMI-input-config}
 
 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
 ```toml
 {{.InputSample}}
 ```
-
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    1. `datakit`可以通过 SSH 远程采集 GPU 服务器的指标。(开启远程采集后，本地采集配置将失效)。
-    2. `remote_addrs`配置的个数可以多于`remote_users` `remote_passwords` `remote_rsa_paths`个数，不够的匹配排位第一的数值。
-    3. 可以通过`remote_addrs`+`remote_users`+`remote_passwords`采集。
-    4. 也可以通过`remote_addrs`+`remote_users`+`remote_rsa_paths`采集。(配置 RSA 公钥后，`remote_passwords`将失效)。
-    5. 开启远程采集后，必须开启选举。(防止多个 datakit 上传重复数据)。
-    6. 出于安全考虑，可以变更 SSH 端口号，也可以单独为 GPU 远程采集创建专用的账户。 
-
-
+    1. Datakit 可以通过 SSH 远程采集 GPU 服务器的指标。(开启远程采集后，本地采集配置将失效)。
+    1. `remote_addrs` 配置的个数可以多于 `remote_users` `remote_passwords` `remote_rsa_paths` 个数，不够的匹配排位第一的数值。
+    1. 可以通过 `remote_addrs`+`remote_users`+`remote_passwords` 采集。
+    1. 也可以通过 `remote_addrs`+`remote_users`+`remote_rsa_paths` 采集。(配置 RSA 公钥后，`remote_passwords` 将失效)。
+    1. 开启远程采集后，必须开启选举。(防止多个 Datakit 上传重复数据)。
+    1. 出于安全考虑，可以变更 SSH 端口号，也可以单独为 GPU 远程采集创建专用的账户。 
+<!-- markdownlint-enable -->
 
 配置好后，重启 DataKit 即可。
 
+支持以环境变量的方式修改配置参数（只在 Datakit 以 K8s DaemonSet 方式运行时生效，主机部署的 Datakit 不支持此功能）：
 
-
-支持以环境变量的方式修改配置参数（只在 DataKit 以 K8s daemonset 方式运行时生效，主机部署的 DataKit 不支持此功能）：
-
-| 环境变量名                        | 对应的配置参数项 | 参数示例                                                     |
-|:-----------------------------| ---              | ---                                                          |
-| `ENV_INPUT_GPUSMI_TAGS`   | `tags`           | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
-| `ENV_INPUT_GPUSMI_INTERVAL` | `interval`       | `10s`                                                        |
-| `ENV_INPUT_GPUSMI_BIN_PATHS`            | `bin_paths`              | `["/usr/bin/nvidia-smi"]`         |
-| `ENV_INPUT_GPUSMI_TIMEOUT`              | `timeout`                | `"5s"`                            |
-| `ENV_INPUT_GPUSMI_PROCESS_INFO_MAX_LEN` | `process_info_max_len`   | `10`                              |
-| `ENV_INPUT_GPUSMI_DROP_WARNING_DELAY`   | `gpu_drop_warning_delay` | `"300s"`                          |
+| 环境变量名                              | 对应的配置参数项         | 参数示例                                                     |
+| :-----------------------------          | ---                      | ---                                                          |
+| `ENV_INPUT_GPUSMI_TAGS`                 | `tags`                   | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
+| `ENV_INPUT_GPUSMI_INTERVAL`             | `interval`               | `10s`                                                        |
+| `ENV_INPUT_GPUSMI_BIN_PATHS`            | `bin_paths`              | `["/usr/bin/nvidia-smi"]`                                    |
+| `ENV_INPUT_GPUSMI_TIMEOUT`              | `timeout`                | `"5s"`                                                       |
+| `ENV_INPUT_GPUSMI_PROCESS_INFO_MAX_LEN` | `process_info_max_len`   | `10`                                                         |
+| `ENV_INPUT_GPUSMI_DROP_WARNING_DELAY`   | `gpu_drop_warning_delay` | `"300s"`                                                     |
 | `ENV_INPUT_GPUSMI_ENVS`                 | `envs`                   | `["LD_LIBRARY_PATH=/usr/local/corex/lib/:$LD_LIBRARY_PATH"]` |
-| `ENV_INPUT_GPUSMI_REMOTE_ADDRS`         | `remote_addrs`           | `["192.168.1.1:22"]`              |
-| `ENV_INPUT_GPUSMI_REMOTE_USERS`         | `remote_users`           | `["remote_login_name"]`           |
-| `ENV_INPUT_GPUSMI_REMOTE_RSA_PATHS`     | `remote_rsa_paths`       | `["/home/your_name/.ssh/id_rsa"]` |
-| `ENV_INPUT_GPUSMI_REMOTE_COMMAND`       | `remote_command`         | `"nvidia-smi -x -q"`              |
+| `ENV_INPUT_GPUSMI_REMOTE_ADDRS`         | `remote_addrs`           | `["192.168.1.1:22"]`                                         |
+| `ENV_INPUT_GPUSMI_REMOTE_USERS`         | `remote_users`           | `["remote_login_name"]`                                      |
+| `ENV_INPUT_GPUSMI_REMOTE_RSA_PATHS`     | `remote_rsa_paths`       | `["/home/your_name/.ssh/id_rsa"]`                            |
+| `ENV_INPUT_GPUSMI_REMOTE_COMMAND`       | `remote_command`         | `"nvidia-smi -x -q"`                                         |
 
-### SMI指标集 {#SMI-measurements}
+### SMI 指标集 {#SMI-measurements}
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
@@ -68,7 +65,7 @@ SMI 指标展示：包括 GPU 卡温度、时钟、GPU占用率、内存占用�
 
 #### `{{$m.Name}}`
 
--  标签
+- 标签
 
 {{$m.TagsMarkdownTable}}
 
@@ -78,46 +75,42 @@ SMI 指标展示：包括 GPU 卡温度、时钟、GPU占用率、内存占用�
 
 {{ end }}
 
+### GPU 掉卡以及上卡信息 {#SMI-drop-card}
 
-### GPU掉卡 && 上卡信息 {#SMI-drop-card}
+| 时间                  | 信息描述             | UUID                                       |
+| --------------------- | -------------------- | ------------------------------------------ |
+| 09/13 09:56:54.567    | Warning! GPU drop!   | GPU-06e04616-0ed5-4069-5ebc-345349a0d4f3   |
+| 09/13 15:04:17.321    | Info! GPU online!    | GPU-06e04616-0ed5-4069-5ebc-345349a0d4f3   |
 
-| 时间                  | 信息描述|UUID                                    |
-|---------------------|--------------------|------------------------------------------|
-| 09/13 09:56:54.567  | Warning! GPU drop! | GPU-06e04616-0ed5-4069-5ebc-345349a0d4f3 |
-| 09/13 15:04:17.321  | Info! GPU online!  | GPU-06e04616-0ed5-4069-5ebc-345349a0d4f3 |
+### GPU 进程排行榜 {#SMI-process-list}
 
-
-### GPU进程排行榜 {#SMI-process-list}
-
-| 时间                 | UUID       | 进程程序名  | 占用GPU内存（MB）                                   |
-|--------------------|------------|--------|-----------------------------------------------|
-| 09/13 14:56:46.955 |GPU-06e04616-0ed5-4069-5ebc-345349a0d4f3|ProcessName=Xorg|UsedMemory= 59 MiB|
-| 09/13 14:56:46.955 |GPU-06e04616-0ed5-4069-5ebc-345349a0d4f3|ProcessName=firefox|UsedMemory= 1 MiB|
+| 时间                 | UUID                                     | 进程程序名            | 占用 GPU 内存（MB）                             |
+| -------------------- | ------------                             | --------              | ----------------------------------------------- |
+| 09/13 14:56:46.955   | GPU-06e04616-0ed5-4069-5ebc-345349a0d4f3 | `ProcessName=Xorg`    | UsedMemory= 59 MiB                              |
+| 09/13 14:56:46.955   | GPU-06e04616-0ed5-4069-5ebc-345349a0d4f3 | `ProcessName=firefox` | UsedMemory= 1 MiB                               |
 
 观察技巧
+
+``` not-set
+[日志] -> [快捷筛选] -> [编辑] -> [搜索或添加字段] 选 [uuid]和[pci_bus_id] -> [关闭]。
+[快捷筛选]栏会多出来[uuid]和[pci_bus_id]筛选，可以只看单卡进程排行榜信息。
 ```
-
- [日志] -> [快捷筛选] -> [编辑] -> [搜索或添加字段] 选 [uuid]和[pci_bus_id] -> [关闭]。
- [快捷筛选]栏会多出来[uuid]和[pci_bus_id]筛选，可以只看单卡进程排行榜信息。
-
-```
-
 
 ---
-## DCGM指标 {#DCGM-tag}
+## DCGM 指标 {#DCGM-tag}
 ---
 
 - 操作系统支持：:fontawesome-brands-linux: :material-kubernetes:
 
-DCGM 指标展示：包括 GPU 卡温度、时钟、GPU占用率、内存占用率 等。
+DCGM 指标展示：包括 GPU 卡温度、时钟、GPU 占用率、内存占用率等。
 
-### DCGM指标前置条件 {#DCGM-precondition}
+### DCGM 指标前置条件 {#DCGM-precondition}
 
-#### 安装 dcgm-exporter {#DCGM-install-driver}
+#### 安装 `dcgm-exporter` {#DCGM-install-driver}
 
-参考网址 [https://github.com/NVIDIA/dcgm-exporter](https://github.com/NVIDIA/dcgm-exporter)
+参考网址 [https://github.com/NVIDIA/dcgm-exporter](https://github.com/NVIDIA/dcgm-exporter){:target="_blank"}
 
-### DCGM指标配置 {#DCGM-input-config}
+### DCGM 指标配置 {#DCGM-input-config}
 
 进入 DataKit 安装目录下的 `conf.d/Prom` 目录，复制 `prom.conf.sample` 并命名为 `prom.conf`。示例如下：
 
@@ -128,7 +121,7 @@ DCGM 指标展示：包括 GPU 卡温度、时钟、GPU占用率、内存占用�
   # Exporter URLs
   # urls = ["http://127.0.0.1:9100/metrics", "http://127.0.0.1:9200/metrics"]
   urls = ["http://127.0.0.1:9400/metrics"]
-  # 忽略对 url 的请求错误
+  # 忽略对 URL 的请求错误
   ignore_req_err = false
 
   # 采集器别名
@@ -137,13 +130,13 @@ DCGM 指标展示：包括 GPU 卡温度、时钟、GPU占用率、内存占用�
   # 采集数据输出源
   # 配置此项，可以将采集到的数据写到本地文件而不将数据打到中心
   # 之后可以直接用 datakit debug --prom-conf /path/to/this/conf 命令对本地保存的指标集进行调试
-  # 如果已经将 url 配置为本地文件路径，则 --prom-conf 优先调试 output 路径的数据
+  # 如果已经将 URL 配置为本地文件路径，则 --prom-conf 优先调试 output 路径的数据
   # output = "/abs/path/to/file"
 
   # 采集数据大小上限，单位为字节
   # 将数据输出到本地文件时，可以设置采集数据大小上限
   # 如果采集数据的大小超过了此上限，则采集的数据将被丢弃
-  # 采集数据大小上限默认设置为32MB
+  # 采集数据大小上限默认设置为 32MB
   # max_file_size = 0
 
   # 指标类型过滤, 可选值为 counter, gauge, histogram, summary, untyped
@@ -161,9 +154,9 @@ DCGM 指标展示：包括 GPU 卡温度、时钟、GPU占用率、内存占用�
   measurement_prefix = "gpu_"
 
   # 指标集名称
-  # 默认会将指标名称以下划线"_"进行切割，切割后的第一个字段作为指标集名称，剩下字段作为当前指标名称
-  # 如果配置measurement_name, 则不进行指标名称的切割
-  # 最终的指标集名称会添加上measurement_prefix前缀
+  # 默认会将指标名称以下划线 "_" 进行切割，切割后的第一个字段作为指标集名称，剩下字段作为当前指标名称
+  # 如果配置 measurement_name, 则不进行指标名称的切割
+  # 最终的指标集名称会添加上 measurement_prefix 前缀
   measurement_name = "dcgm"
 
   # TLS 配置
@@ -175,7 +168,7 @@ DCGM 指标展示：包括 GPU 卡温度、时钟、GPU占用率、内存占用�
   ## 设置为 true 以开启选举功能
   election = true
 
-  # 过滤 tags, 可配置多个tag
+  # 过滤 tags, 可配置多个 tag
   # 匹配的 tag 将被忽略，但对应的数据仍然会上报上来
   # tags_ignore = ["xxxx"]
   #tags_ignore = ["host"]
@@ -222,7 +215,7 @@ DCGM 指标展示：包括 GPU 卡温度、时钟、GPU占用率、内存占用�
     enable = false
     service = "service_name"
 
-  # 自定义Tags
+  # 自定义 Tags
   [inputs.prom.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
@@ -230,36 +223,34 @@ DCGM 指标展示：包括 GPU 卡温度、时钟、GPU占用率、内存占用�
 
 配置好后，重启 DataKit 即可。
 
-### DCGM指标集 {#DCGM-measurements}
-
-gpu_dcgm
+### DCGM 指标集 {#DCGM-measurements}
 
 ### 指标列表 {#DCGM-measurements-list}
-| 指标 | 描述 | 数据类型 |
-| --- | --- | --- |
-|  DCGM_FI_DEV_DEC_UTIL                |  gauge, Decoder utilization (in %).                                | int |
-|  DCGM_FI_DEV_ENC_UTIL                |  gauge, Encoder utilization (in %).                                | int |
-|  DCGM_FI_DEV_FB_FREE                 |  gauge, Framebuffer memory free (in MiB).                          | int |
-|  DCGM_FI_DEV_FB_USED                 |  gauge, Framebuffer memory used (in MiB).                          | int |
-|  DCGM_FI_DEV_GPU_TEMP                |  gauge, GPU temperature (in C).                                    | int |
-|  DCGM_FI_DEV_GPU_UTIL                |  gauge, GPU utilization (in %).                                    | int |
-|  DCGM_FI_DEV_MEM_CLOCK               |  gauge, Memory clock frequency (in MHz).                           | int |
-|  DCGM_FI_DEV_MEM_COPY_UTIL           |  gauge, Memory utilization (in %).                                 | int |
-|  DCGM_FI_DEV_NVLINK_BANDWIDTH_TOTAL  |  counter, Total number of NVLink bandwidth counters for all lanes. | int |
-|  DCGM_FI_DEV_PCIE_REPLAY_COUNTER     |  counter, Total number of PCIe retries.                            | int |
-|  DCGM_FI_DEV_SM_CLOCK                |  gauge, SM clock frequency (in MHz).                               | int |
-|  DCGM_FI_DEV_VGPU_LICENSE_STATUS     |  gauge, vGPU License status                                        | int |
-|  DCGM_FI_DEV_XID_ERRORS              |  gauge, Value of the last XID error encountered.                   | int |
 
+| 指标                               | 描述                                                              | 数据类型 |
+| ---                                | ---                                                               | ---      |
+| DCGM_FI_DEV_DEC_UTIL               | gauge, Decoder utilization (in %).                                | int      |
+| DCGM_FI_DEV_ENC_UTIL               | gauge, Encoder utilization (in %).                                | int      |
+| DCGM_FI_DEV_FB_FREE                | gauge, Frame buffer memory free (in MiB).                          | int      |
+| DCGM_FI_DEV_FB_USED                | gauge, Frame buffer memory used (in MiB).                          | int      |
+| DCGM_FI_DEV_GPU_TEMP               | gauge, GPU temperature (in C).                                    | int      |
+| DCGM_FI_DEV_GPU_UTIL               | gauge, GPU utilization (in %).                                    | int      |
+| DCGM_FI_DEV_MEM_CLOCK              | gauge, Memory clock frequency (in MHz).                           | int      |
+| DCGM_FI_DEV_MEM_COPY_UTIL          | gauge, Memory utilization (in %).                                 | int      |
+| DCGM_FI_DEV_NVLINK_BANDWIDTH_TOTAL | counter, Total number of NVLink bandwidth counters for all lanes. | int      |
+| DCGM_FI_DEV_PCIE_REPLAY_COUNTER    | counter, Total number of PCIe retries.                            | int      |
+| DCGM_FI_DEV_SM_CLOCK               | gauge, SM clock frequency (in MHz).                               | int      |
+| DCGM_FI_DEV_VGPU_LICENSE_STATUS    | gauge, vGPU License status                                        | int      |
+| DCGM_FI_DEV_XID_ERRORS             | gauge, Value of the last XID error encountered.                   | int      |
 
 ---
+
 ## 掉卡告警通知配置 {#warning-config-tag}
+
 ---
 
-```
-
- [监控] -> [监控器] -> [新建监控器] 选 [阈值检测] -> 输入[规则名称]
- [指标] 选 [日志] -> [指标集] 选 [gpu_smi] -> 第4栏选 [status_gpu] -> 第5栏选 [Max] -> by[检测维度] 选 [host]+[uuid]
- [紧急] 填写 [999] -> [重要] 填写 [2] -> [警告] 填写 [999]
-
+```not-set
+[监控] -> [监控器] -> [新建监控器] 选 [阈值检测] -> 输入[规则名称]
+[指标] 选 [日志] -> [指标集] 选 [gpu_smi] -> 第 4 栏选 [status_gpu] -> 第 5 栏选 [Max] -> by[检测维度] 选 [host]+[uuid]
+[紧急] 填写 [999] -> [重要] 填写 [2] -> [警告] 填写 [999]
 ```

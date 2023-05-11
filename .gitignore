@@ -1,3 +1,7 @@
+local-docs
+md.lint
+cspell.lint
+project-words.txt
 __debug_bin
 !cmd/make/build
 .cl.md

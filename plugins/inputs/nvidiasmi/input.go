@@ -40,7 +40,7 @@ const (
   ##(Optional) Collect interval, default is 10 seconds
   interval = "10s"
 
-  ##The binPath of gpu-smi 
+  ##The binPath of gpu-smi
 
   ##If nvidia GPU
   #(Example & default) bin_paths = ["/usr/bin/nvidia-smi"]
@@ -126,8 +126,8 @@ func (n *nvidiaSmiMeasurement) Info() *inputs.MeasurementInfo {
 		Name: metricName,
 		Fields: map[string]interface{}{
 			"fan_speed":                     &inputs.FieldInfo{Type: inputs.Rate, DataType: inputs.Int, Unit: inputs.RPMPercent, Desc: "Fan speed."},
-			"memory_total":                  &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeMB, Desc: "Framebuffer memory total."},
-			"memory_used":                   &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeMB, Desc: "Framebuffer memory used."},
+			"memory_total":                  &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeMB, Desc: "Frame buffer memory total."},
+			"memory_used":                   &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeMB, Desc: "Frame buffer memory used."},
 			"temperature_gpu":               &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.Celsius, Desc: "GPU temperature."},
 			"utilization_gpu":               &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.Percent, Desc: "GPU utilization."},
 			"utilization_memory":            &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.Percent, Desc: "Memory utilization."},

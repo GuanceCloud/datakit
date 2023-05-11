@@ -1,26 +1,24 @@
-{{.CSS}}
-
-- 操作系统支持：:fontawesome-brands-linux:
 
 # 简介
+
+---
 
 本文介绍如何在容器环境安装 DataKit。
 
 ## Docker 安装 {#install}
 
-
 容器启动命令如下：
 
 ```shell
 sudo docker run -d \
-	-v "/path/to/your/local/conf/dir":"/usr/local/cloudcare/guance/datakit/conf.d" \
-	-e ENV_DATAWAY="${dataway}" \
-	-e ENV_WITHIN_DOCKER=1 \
-	-e ENV_ENABLE_INPUTS='cpu,mem,disk,diskio,swap,system,net' \
-	-e ENV_UUID="<your-datakit-uuid>" \
-	--privileged \
-	--publish 9529:9529 \
-	pubrepo.jiagouyun.com/datakit/datakit:v1.1.6-rc1
+    -v "/path/to/your/local/conf/dir":"/usr/local/cloudcare/guance/datakit/conf.d" \
+    -e ENV_DATAWAY="${dataway}" \
+    -e ENV_WITHIN_DOCKER=1 \
+    -e ENV_ENABLE_INPUTS='cpu,mem,disk,diskio,swap,system,net' \
+    -e ENV_UUID="<your-datakit-uuid>" \
+    --privileged \
+    --publish 9529:9529 \
+    pubrepo.jiagouyun.com/datakit/datakit:v1.1.6-rc1
 ```
 
 几点说明：
@@ -41,7 +39,7 @@ dkid_facc219347e914506d25
 
 - DataKit 启动过程中，支持如下几个环境变量读取：
 
-	- `ENV_DATAWAY`：DataKit 地址
-	- `ENV_WITHIN_DOCKER`：这个必须指定，否则容器中的 DataKit 运行方式会不同
-	- `ENV_ENABLE_INPUTS`：指定默认开启的采集器（即无需额外配置即可生效），可按照实际需求增删。但某些采集器必须配置，就不适合做成默认开启的，比如 MySQL/Nginx 等采集器，因为它们需要一些额外的配置，如用户名、密码等。
-	- `ENV_GLOBAL_TAGS`：注入 global-tag，即给所有采集的数据添加全局 tags，支持多对`key=value`，用英文逗号分隔
+    - `ENV_DATAWAY`：DataKit 地址
+    - `ENV_WITHIN_DOCKER`：这个必须指定，否则容器中的 DataKit 运行方式会不同
+    - `ENV_ENABLE_INPUTS`：指定默认开启的采集器（即无需额外配置即可生效），可按照实际需求增删。但某些采集器必须配置，就不适合做成默认开启的，比如 MySQL/Nginx 等采集器，因为它们需要一些额外的配置，如用户名、密码等。
+    - `ENV_GLOBAL_TAGS`：注入 global-tag，即给所有采集的数据添加全局 tags，支持多对 `key=value`，用英文逗号分隔

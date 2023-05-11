@@ -1,4 +1,4 @@
-{{.CSS}}
+
 # 主机目录
 ---
 
@@ -6,7 +6,7 @@
 
 ---
 
-hostdir 采集器用于目录文件的采集，例如文件个数，所有文件大小等。
+主机目录采集器用于目录文件的采集，例如文件个数、所有文件大小等。
 
 ## 前置条件 {#requrements}
 
@@ -14,6 +14,7 @@ hostdir 采集器用于目录文件的采集，例如文件个数，所有文件
 
 ## 配置 {#config}
 
+<!-- markdownlint-disable MD046 -->
 === "主机安装"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
@@ -27,7 +28,7 @@ hostdir 采集器用于目录文件的采集，例如文件个数，所有文件
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
-
+<!-- markdownlint-enable -->
 
 ## 指标集 {#measurements}
 
@@ -44,7 +45,7 @@ hostdir 采集器用于目录文件的采集，例如文件个数，所有文件
 
 ### `{{$m.Name}}`
 
--  标签
+- 标签
 
 {{$m.TagsMarkdownTable}}
 

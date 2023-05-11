@@ -54,9 +54,9 @@ type Input struct {
 	pause    bool
 	pauseCh  chan bool
 
-	feeder dkio.Feeder
-
 	semStop *cliutils.Sem // start stop signal
+	feeder  dkio.Feeder
+	opt     point.Option
 }
 
 type NginxVTSResponse struct {

@@ -5,28 +5,50 @@
 
 package election
 
-type ElectionOption func(c *candidate)
+type option struct {
+	enabled       bool
+	namespace, id string
+	puller        Puller
+	mode          electionMode
+}
+
+type ElectionOption func(opt *option)
 
 func WithElectionEnabled(on bool) ElectionOption {
-	return func(c *candidate) {
-		c.enabled = on
+	return func(opt *option) {
+		opt.enabled = on
 	}
 }
 
 func WithID(id string) ElectionOption {
-	return func(c *candidate) {
-		c.id = id
+	return func(opt *option) {
+		opt.id = id
 	}
 }
 
 func WithNamespace(ns string) ElectionOption {
-	return func(c *candidate) {
-		c.namespace = ns
+	return func(opt *option) {
+		opt.namespace = ns
 	}
 }
 
-func WithPuller(p Puller) ElectionOption {
-	return func(c *candidate) {
-		c.puller = p
+func WithDatawayPuller(p Puller) ElectionOption {
+	return func(opt *option) {
+		opt.puller = p
+		opt.mode = modeDataway
 	}
 }
+
+func WithOperatorPuller(p Puller) ElectionOption {
+	return func(opt *option) {
+		opt.puller = p
+		opt.mode = modeOperator
+	}
+}
+
+type electionMode int
+
+const (
+	modeDataway electionMode = iota + 1
+	modeOperator
+)

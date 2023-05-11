@@ -237,7 +237,7 @@ func (m *dbmSampleMeasurement) Info() *inputs.MeasurementInfo {
 			"plan_definition":   &inputs.TagInfo{Desc: "The plan definition of JSON format."},
 			"plan_signature":    &inputs.TagInfo{Desc: "The hash value computed from plan definition."},
 			"query_signature":   &inputs.TagInfo{Desc: "The hash value computed from digest_text."},
-			"resource_hash":     &inputs.TagInfo{Desc: "The hash value computed from sql text."},
+			"resource_hash":     &inputs.TagInfo{Desc: "The hash value computed from SQL text."},
 			"query_truncated":   &inputs.TagInfo{Desc: "It indicates whether the query is truncated."},
 			"network_client_ip": &inputs.TagInfo{Desc: "The ip address of the client"},
 			"digest": &inputs.TagInfo{

@@ -37,19 +37,9 @@ monitor 用法[参见这里](datakit-monitor.md)
 编辑完采集器的配置文件后，可能某些配置有误（如配置文件格式错误），通过如下命令可检查是否正确：
 
 ```shell
-datakit tool --check-config
+datakit check --config
 ------------------------
 checked 13 conf, all passing, cost 22.27455ms
-```
-
-### 采集一次 SNMP 配置 {#check-snmp}
-
-编辑完 SNMP 采集器的配置文件后，可能某些配置有误（如配置文件格式错误），通过如下命令可以采集一次 SNMP 设备用于检查是否正确：
-
-```shell
-datakit tool --test-snmp /usr/local/datakit/conf.d/snmp/snmp.conf
-# 以下会打印采集到的信息...
-......
 ```
 
 ## 查看工作空间信息 {#workspace-info}
@@ -125,12 +115,14 @@ create_time 1639657028706
           ...       
 ```
 
-**部分字段说明**
- - category: 类别，默认为`default`, 还可取值为`input`， 表明是与采集器 (`input`) 相关
- - status: 事件等级，可取值为 `info`, `warning`, `error`
+部分字段说明
+
+- `category`: 类别，默认为 `default`, 还可取值为 `input`， 表明是与采集器 (`input`) 相关
+- `status`: 事件等级，可取值为 `info`, `warning`, `error`
 
 ## DataKit 更新 IP 数据库文件 {#install-ipdb}
 
+<!-- markdownlint-disable MD046 -->
 === "主机安装"
 
     - 可直接使用如下命令安装/更新 IP 地理信息库（此处可选择另一个 IP 地址库 `geolite2`，只需把 `iploc` 换成 `geolite2` 即可）：
@@ -139,7 +131,7 @@ create_time 1639657028706
     datakit install --ipdb iploc
     ```
     
-    - 更新完 IP 地理信息库后，修改 datakit.conf 配置：
+    - 更新完 IP 地理信息库后，修改 *datakit.conf* 配置：
     
     ``` toml
     [pipeline]
@@ -151,7 +143,7 @@ create_time 1639657028706
     - 测试 IP 库是否生效
 
     ```shell
-    $ datakit tool --ipinfo 1.2.3.4
+    datakit tool --ipinfo 1.2.3.4
             ip: 1.2.3.4
           city: Brisbane
       province: Queensland
@@ -162,7 +154,7 @@ create_time 1639657028706
     如果安装失败，其输出如下：
     
     ```shell
-    $ datakit tool --ipinfo 1.2.3.4
+    datakit tool --ipinfo 1.2.3.4
            isp: unknown
             ip: 1.2.3.4
           city: 
@@ -177,16 +169,16 @@ create_time 1639657028706
     - 重新安装 DataKit：
     
     ```shell
-    $ kubectl apply -f datakit.yaml
+    kubectl apply -f datakit.yaml
     
     # 确保 DataKit 容器启动
-    $ kubectl get pod -n datakit
+    kubectl get pod -n datakit
     ```
 
     - 进入容器，测试 IP 库是否生效
 
     ```shell
-    $ datakit tool --ipinfo 1.2.3.4
+    datakit tool --ipinfo 1.2.3.4
             ip: 1.2.3.4
           city: Brisbane
       province: Queensland
@@ -197,23 +189,23 @@ create_time 1639657028706
     如果安装失败，其输出如下：
     
     ```shell
-    $ datakit tool --ipinfo 1.2.3.4
+    datakit tool --ipinfo 1.2.3.4
            isp: unknown
             ip: 1.2.3.4
           city: 
       province:
        country:
     ```
-    
-=== "Kubernetes(helm)"
+
+=== "Kubernetes(Helm)"
 
     - helm 部署添加 `--set iploc.enable`
     
     ```shell
-    $ helm install datakit datakit/datakit -n datakit \
-    --set datakit.dataway_url="https://openway.guance.com?token=<YOUR-TOKEN>" \
-    --set iploc.enable true \
-    --create-namespace 
+    helm install datakit datakit/datakit -n datakit \
+        --set datakit.dataway_url="https://openway.guance.com?token=<YOUR-TOKEN>" \
+        --set iploc.enable true \
+        --create-namespace 
     ```
     
     关于 helm 的部署事项，参见[这里](datakit-daemonset-deploy.md/#__tabbed_1_2)。
@@ -221,7 +213,7 @@ create_time 1639657028706
     - 进入容器，测试 IP 库是否生效
 
     ```shell
-    $ datakit tool --ipinfo 1.2.3.4
+    datakit tool --ipinfo 1.2.3.4
             ip: 1.2.3.4
           city: Brisbane
       province: Queensland
@@ -232,13 +224,14 @@ create_time 1639657028706
     如果安装失败，其输出如下：
     
     ```shell
-    $ datakit tool --ipinfo 1.2.3.4
+    datakit tool --ipinfo 1.2.3.4
            isp: unknown
             ip: 1.2.3.4
           city: 
       province:
        country:
     ```
+<!-- markdownlint-enable -->
 
 ## DataKit 安装第三方软件 {#extras}
 
@@ -282,10 +275,11 @@ datakit install --ebpf
 
 如若提示 `open /usr/local/datakit/externals/datakit-ebpf: text file busy`，停止 DataKit 服务后再执行该命令
 
+<!-- markdownlint-disable MD046 -->
 ???+ warning
 
     该命令在 [:octicons-tag-24: Version-1.5.6](changelog.md#cl-1.5.6-brk) 已经被移除。新版本默认就内置了 eBPF 集成。
-
+<!-- markdownlint-enable -->
 
 ## 上传 DataKit 运行日志 {#upload-log}
 
@@ -294,7 +288,7 @@ datakit install --ebpf
 排查 DataKit 问题时，通常需要检查 DataKit 运行日志，为了简化日志搜集过程，DataKit 支持一键上传日志文件：
 
 ```shell
-datakit tool --upload-log
+datakit debug --upload-log
 log info: path/to/tkn_xxxxx/your-hostname/datakit-log-2021-11-08-1636340937.zip # 将这个路径信息发送给我们工程师即可
 ```
 
@@ -306,9 +300,8 @@ log info: path/to/tkn_xxxxx/your-hostname/datakit-log-2021-11-08-1636340937.zip 
 
 在排查 DataKit 故障原因时，需要手动收集各种相关信息（如日志、配置文件和监控数据等），这通常比较繁琐。为了简化这个过程，DataKit 提供了一个命令，可以一次性获取所有相关信息并将其打包到一个文件中。使用方式如下：
 
-
 ```shell
-datakit tool --bug-report
+datakit debug --bug-report
 ```
 
 执行成功后，在当前目录下生成一个 zip 文件，命名格式为 `info-<时间戳毫秒数>.zip`。
@@ -316,7 +309,6 @@ datakit tool --bug-report
 解压后的文件列表参考如下：
 
 ```shell
-
 ├── config
 │   ├── container
 │   │   └── container.conf
@@ -349,7 +341,6 @@ datakit tool --bug-report
     ├── allocs
     ├── heap
     └── profile
-
 ```
 
 文件说明
@@ -362,9 +353,9 @@ datakit tool --bug-report
 | `profile` | 是       | pprof 开启时，会采集 profile 数据                             |
 | `metrics` | 是       | `/metrics` 接口返回的数据，命名格式为 `metric-<时间戳毫秒数>` |
 
-**敏感信息处理**
+### 敏感信息处理 {#sensitive}
 
-信息收集时，敏感信息（如token、密码等）会被自动过滤替换，具体规则如下：
+信息收集时，敏感信息（如 token、密码等）会被自动过滤替换，具体规则如下：
 
 - 环境变量
 
@@ -372,11 +363,9 @@ datakit tool --bug-report
 
 - 配置文件
 
-配置文件内容进行正则替换处理：
+配置文件内容进行正则替换处理，如：
 
-如：
-
-```
+``` not-set
 https://openway.guance.com?token=tkn_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` => `https://openway.guance.com?token=******
 pass = "1111111"` => `pass = "******"
 postgres://postgres:123456@localhost/test` => `postgres://postgres:******@localhost/test

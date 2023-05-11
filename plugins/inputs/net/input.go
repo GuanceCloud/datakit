@@ -84,7 +84,7 @@ type netMeasurement struct {
 // https://tools.ietf.org/html/rfc1213#page-48
 // https://www.kernel.org/doc/html/latest/networking/snmp_counter.html
 // https://sourceforge.net/p/net-tools/code/ci/master/tree/statistics.c#l178
-//nolint:lll
+// nolint:lll
 func (m *netMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: netMetricName,
@@ -102,26 +102,16 @@ func (m *netMeasurement) Info() *inputs.MeasurementInfo {
 			"drop_in":          NewFieldsInfoCount("The number of received packets dropped by the interface."),
 			"drop_out":         NewFieldsInfoCount("The number of transmitted packets dropped by the interface."),
 			// linux only
-			"tcp_insegs":       NewFieldsInfoCount("The number of packets received by the TCP layer."),
-			"tcp_insegs/sec":   NewFieldsInfoCountPerSec("The number of packets received by the TCP layer per second."),
-			"tcp_outsegs":      NewFieldsInfoCount("The number of packets sent by the TCP layer."),
-			"tcp_outsegs/sec":  NewFieldsInfoCountPerSec("The number of packets sent by the TCP layer per second."),
-			"tcp_activeopens":  NewFieldsInfoCount("It means the TCP layer sends a SYN, and come into the SYN-SENT state."),
-			"tcp_passiveopens": NewFieldsInfoCount("It means the TCP layer receives a SYN, replies a SYN+ACK, come into the SYN-RCVD state."),
-			"tcp_estabresets": NewFieldsInfoCount("The number of times TCP connections have made a " +
-				"direct transition to the CLOSED state from either " +
-				"the ESTABLISHED state or the CLOSE-WAIT state."),
-			"tcp_attemptfails": NewFieldsInfoCount("The number of times TCP connections have made a " +
-				"direct transition to the CLOSED state from either " +
-				"the SYN-SENT state or the SYN-RCVD state, plus the " +
-				"number of times TCP connections have made a direct " +
-				"transition to the LISTEN state from the SYN-RCVD " +
-				"state."),
-			"tcp_outrsts": NewFieldsInfoCount("The number of TCP segments sent containing the RST flag."),
-			"tcp_retranssegs": NewFieldsInfoCount("The total number of segments retransmitted - that " +
-				"is, the number of TCP segments transmitted " +
-				"containing one or more previously transmitted" +
-				"octets."),
+			"tcp_insegs":           NewFieldsInfoCount("The number of packets received by the TCP layer."),
+			"tcp_insegs/sec":       NewFieldsInfoCountPerSec("The number of packets received by the TCP layer per second."),
+			"tcp_outsegs":          NewFieldsInfoCount("The number of packets sent by the TCP layer."),
+			"tcp_outsegs/sec":      NewFieldsInfoCountPerSec("The number of packets sent by the TCP layer per second."),
+			"tcp_activeopens":      NewFieldsInfoCount("It means the TCP layer sends a SYN, and come into the SYN-SENT state."),
+			"tcp_passiveopens":     NewFieldsInfoCount("It means the TCP layer receives a SYN, replies a SYN+ACK, come into the SYN-RCVD state."),
+			"tcp_estabresets":      NewFieldsInfoCount("The number of times TCP connections have made a direct transition to the CLOSED state from either the ESTABLISHED state or the CLOSE-WAIT state."),
+			"tcp_attemptfails":     NewFieldsInfoCount("The number of times TCP connections have made a direct transition to the CLOSED state from either the SYN-SENT state or the SYN-RCVD state, plus the number of times TCP connections have made a direct transition to the LISTEN state from the SYN-RCVD state."),
+			"tcp_outrsts":          NewFieldsInfoCount("The number of TCP segments sent containing the RST flag."),
+			"tcp_retranssegs":      NewFieldsInfoCount("The total number of segments re-transmitted - that is, the number of TCP segments transmitted containing one or more previously transmitted octets."),
 			"tcp_inerrs":           NewFieldsInfoCount("The number of incoming TCP segments in error."),
 			"tcp_incsumerrors":     NewFieldsInfoCount("The number of incoming TCP segments in checksum error."),
 			"tcp_rtoalgorithm":     NewFieldsInfoCount("The algorithm used to determine the timeout value used for retransmitting unacknowledged octets."),
@@ -129,16 +119,16 @@ func (m *netMeasurement) Info() *inputs.MeasurementInfo {
 			"tcp_rtomax":           NewFieldsInfoMS("The maximum value permitted by a TCP implementation for the retransmission timeout, measured in milliseconds."),
 			"tcp_maxconn":          NewFieldsInfoCount("The limit on the total number of TCP connections the entity can support."),
 			"tcp_currestab":        NewFieldsInfoCount("The number of TCP connections for which the current state is either ESTABLISHED or CLOSE-WAIT."),
-			"udp_incsumerrors":     NewFieldsInfoCount("The number of incoming UDP datagrams in checksum error.s"),
-			"udp_indatagrams":      NewFieldsInfoCount("The number of UDP datagrams delivered to UDP users."),
-			"udp_indatagrams/sec":  NewFieldsInfoCountPerSec("The number of UDP datagrams delivered to UDP users per second."),
-			"udp_outdatagrams":     NewFieldsInfoCount("The number of UDP datagrams sent from this entity."),
-			"udp_outdatagrams/sec": NewFieldsInfoCountPerSec("The number of UDP datagrams sent from this entity per second."),
+			"udp_incsumerrors":     NewFieldsInfoCount("The number of incoming UDP datagram in checksum error.s"),
+			"udp_indatagrams":      NewFieldsInfoCount("The number of UDP datagram delivered to UDP users."),
+			"udp_indatagrams/sec":  NewFieldsInfoCountPerSec("The number of UDP datagram delivered to UDP users per second."),
+			"udp_outdatagrams":     NewFieldsInfoCount("The number of UDP datagram sent from this entity."),
+			"udp_outdatagrams/sec": NewFieldsInfoCountPerSec("The number of UDP datagram sent from this entity per second."),
 			"udp_rcvbuferrors":     NewFieldsInfoCount("The number of receive buffer errors."),
 			"udp_noports":          NewFieldsInfoCount("The number of packets to unknown port received."),
 			"udp_sndbuferrors":     NewFieldsInfoCount("The number of send buffer errors."),
 			"udp_inerrors":         NewFieldsInfoCount("The number of packet receive errors."),
-			"udp_ignoredmulti":     NewFieldsInfoCount("IgnoredMulti."),
+			"udp_ignoredmulti":     NewFieldsInfoCount(inputs.TODO),
 		},
 		Tags: map[string]interface{}{
 			"host":      &inputs.TagInfo{Desc: "System hostname."},

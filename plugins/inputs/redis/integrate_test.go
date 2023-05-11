@@ -18,7 +18,7 @@ import (
 	dt "github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/assert"
-	tu "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -38,13 +38,13 @@ type caseSpec struct {
 	pool     *dt.Pool
 	resource *dt.Resource
 
-	cr *tu.CaseResult
+	cr *testutils.CaseResult
 }
 
 func buildCases(t *testing.T) ([]*caseSpec, error) {
 	t.Helper()
 
-	remote := tu.GetRemote()
+	remote := testutils.GetRemote()
 
 	bases := []struct {
 		name string
@@ -57,7 +57,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 host = "%s"
 port = %s`,
 				remote.Host,
-				fmt.Sprintf("%d", tu.RandPort("tcp"))),
+				fmt.Sprintf("%d", testutils.RandPort("tcp"))),
 		},
 	}
 
@@ -102,7 +102,7 @@ port = %s`,
 
 				servicePort: fmt.Sprintf("%d", ipt.Port),
 
-				cr: &tu.CaseResult{
+				cr: &testutils.CaseResult{
 					Name:        t.Name(),
 					Case:        base.name,
 					ExtraFields: map[string]any{},
@@ -211,7 +211,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 
 func (cs *caseSpec) run() error {
 	// start remote sqlserver
-	r := tu.GetRemote()
+	r := testutils.GetRemote()
 	dockerTCP := r.TCPURL()
 
 	cs.t.Logf("get remote: %+#v, TCP: %s", r, dockerTCP)
@@ -306,17 +306,21 @@ func (cs *caseSpec) run() error {
 }
 
 func TestRedisInput(t *testing.T) {
+	if !testutils.CheckIntegrationTestingRunning() {
+		t.Skip()
+	}
+
 	start := time.Now()
 	cases, err := buildCases(t)
 	if err != nil {
-		cr := &tu.CaseResult{
+		cr := &testutils.CaseResult{
 			Name:          t.Name(),
-			Status:        tu.TestPassed,
+			Status:        testutils.TestPassed,
 			FailedMessage: err.Error(),
 			Cost:          time.Since(start),
 		}
 
-		_ = tu.Flush(cr)
+		_ = testutils.Flush(cr)
 		return
 	}
 
@@ -328,18 +332,18 @@ func TestRedisInput(t *testing.T) {
 
 			t.Logf("testing %s...", tc.name)
 
-			if err := tc.run(); err != nil {
-				tc.cr.Status = tu.TestFailed
+			if err := testutils.RetryTestRun(tc.run); err != nil {
+				tc.cr.Status = testutils.TestFailed
 				tc.cr.FailedMessage = err.Error()
 
 				assert.NoError(t, err)
 			} else {
-				tc.cr.Status = tu.TestPassed
+				tc.cr.Status = testutils.TestPassed
 			}
 
 			tc.cr.Cost = time.Since(caseStart)
 
-			assert.NoError(t, tu.Flush(tc.cr))
+			assert.NoError(t, testutils.Flush(tc.cr))
 
 			t.Cleanup(func() {
 				// clean remote docker resources

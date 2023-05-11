@@ -182,7 +182,7 @@ func (m *MetricMeasurement) LineProto() (*point.Point, error) {
 func (*MetricMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: jvmMetricName,
-		Desc: "jvm metrics collected by skywalking language agent.",
+		Desc: "jvm metrics collected by SkyWalking language agent.",
 		Type: "metric",
 		Tags: map[string]interface{}{"service": &inputs.TagInfo{Desc: "service name"}},
 		Fields: map[string]interface{}{

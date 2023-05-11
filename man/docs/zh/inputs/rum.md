@@ -1,5 +1,6 @@
-{{.CSS}}
+
 # 采集器配置
+
 ---
 
 {{.AvailableArchs}}
@@ -11,12 +12,12 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
 ## 接入方式 {#supported-platforms}
 
 <div class="grid cards" markdown>
-- :material-web: [__JavaScript__](../real-user-monitoring/web/app-access.md)
-- :material-wechat: [__微信小程序__](../real-user-monitoring/miniapp/app-access.md)
-- :material-android: [__Android__](../real-user-monitoring/android/app-access.md)
-- :material-apple-ios: [__iOS__](../real-user-monitoring/ios/app-access.md)
-- [__Flutter__](../real-user-monitoring/flutter/app-access.md)
-- :material-react:[__ReactNative__](../real-user-monitoring/react-native/app-access.md)
+- :material-web: [JavaScript](../real-user-monitoring/web/app-access.md)
+- :material-wechat: [微信小程序](../real-user-monitoring/miniapp/app-access.md)
+- :material-android: [Android](../real-user-monitoring/android/app-access.md)
+- :material-apple-ios: [iOS](../real-user-monitoring/ios/app-access.md)
+- [Flutter](../real-user-monitoring/flutter/app-access.md)
+- :material-react:[ReactNative](../real-user-monitoring/react-native/app-access.md)
 </div>
 
 ## 前置条件 {#requirements}
@@ -30,6 +31,7 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
 
 ## 配置 {#config}
 
+<!-- markdownlint-disable MD046 -->
 === "主机安装"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
@@ -48,12 +50,13 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
 
 === "Kubernetes"
 
-    在 datakit.yaml 中，环境变量 `ENV_DEFAULT_ENABLED_INPUTS` 增加 rum 采集器名称（如下 `value` 中第一个所示）：
+    在 *datakit.yaml* 中，环境变量 `ENV_DEFAULT_ENABLED_INPUTS` 增加 `rum` 采集器名称（如下 `value` 中第一个所示）：
 
     ```yaml
     - name: ENV_DEFAULT_ENABLED_INPUTS
       value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container,self
     ```
+<!-- markdownlint-enable -->
 
 ## 安全限制 {#security-setting}
 
@@ -98,13 +101,13 @@ RUM 采集器默认会采集如下几个指标集：
 
 ## Sourcemap 转换 {#sourcemap}
 
-通常生产环境的 js 文件或移动端App代码会经过混淆和压缩以减小应用的尺寸，发生错误时的调用堆栈与开发时的源代码差异较大，不便于排错(`troubleshoot`)。如果需要定位错误至源码中，就得借助于`sourcemap`文件。
+通常生产环境的 js 文件或移动端 App 代码会经过混淆和压缩以减小应用的尺寸，发生错误时的调用堆栈与开发时的源代码差异较大，不便于排错(`troubleshoot`)。如果需要定位错误至源码中，就得借助于 sourcemap 文件。
 
-DataKit 支持这种源代码文件信息的映射，方法是将对应符号表文件进行 zip 压缩打包，命名格式为 `<app_id>-<env>-<version>.zip`，上传至`<DataKit安装目录>/data/rum/<platform>`，这样就可以对上报的`error`指标集数据自动进行转换，并追加 `error_stack_source` 字段至该指标集中。
+DataKit 支持这种源代码文件信息的映射，方法是将对应符号表文件进行 zip 压缩打包，命名格式为 *[app_id]-[env]-[version].zip*，上传至 *[DataKit 安装目录]/data/rum/[platform]*，这样就可以对上报的 `error` 指标集数据自动进行转换，并追加 `error_stack_source` 字段至该指标集中。
 
 ### 安装 sourcemap 工具集 {#install-tools}
 
-首先需要安装相应的符号还原工具，datakit 提供了一键安装命令来简化工具的安装：
+首先需要安装相应的符号还原工具，Datakit 提供了一键安装命令来简化工具的安装：
 
 ```shell
 sudo datakit install --symbol-tools
@@ -112,12 +115,12 @@ sudo datakit install --symbol-tools
 
 如果安装过程中出现某个软件安装失败的情况，你可能需要根据错误提示手动安装对应的软件
 
-
 ### Zip 包打包说明 {#zip}
 
+<!-- markdownlint-disable MD046 -->
 === "Web"
 
-    将js文件经 webpack 混淆和压缩后生成的 `.map` 文件进行 zip 压缩打包，再拷贝到 `<DataKit安装目录>/data/rum/web`目录下，必须要保证该压缩包解压后的文件路径与`error_stack`中 URL 的路径一致。 假设如下 `error_stack`：
+    将 js 文件经 webpack 混淆和压缩后生成的 *.map* 文件进行 zip 压缩打包，再拷贝到 *<DataKit 安装目录>/data/rum/web* 目录下，必须要保证该压缩包解压后的文件路径与 `error_stack` 中 URL 的路径一致。 假设如下 `error_stack`：
 
     ```
     ReferenceError
@@ -126,7 +129,7 @@ sudo datakit install --symbol-tools
       at <anonymous> @ http://localhost:8080/static/js/app.7fb548e3d065d1f48f74.js:1:1174
     ```
 
-    需要转换的路径是`/static/js/app.7fb548e3d065d1f48f74.js`，与其对应的`sourcemap`路径为`/static/js/app.7fb548e3d065d1f48f74.js.map`，那么对应压缩包解压后的目录结构如下：
+    需要转换的路径是 */static/js/app.7fb548e3d065d1f48f74.js*，与其对应的 sourcemap 路径为 */static/js/app.7fb548e3d065d1f48f74.js.map*，那么对应压缩包解压后的目录结构如下：
 
     ```
     static/
@@ -135,7 +138,7 @@ sudo datakit install --symbol-tools
     
     ```
 
-    转换后的`error_stack_source`：
+    转换后的 `error_stack_source`：
     
     ```
     
@@ -145,9 +148,13 @@ sudo datakit install --symbol-tools
       at <anonymous> @ webpack:///src/components/header/header.vue:101:0
     ```
 
+=== "小程序"
+
+    同 Web
+
 === "Android"
-    
-    Android 目前存在两种 `sourcemap` 文件，一种是 Java 字节码经 `R8`/`Proguard` 压缩混淆后产生的 mapping 文件，另一种为 C/C++ 原生代码编译时未清除符号表和调试信息的（unstripped） `.so` 文件，如果你的安卓应用同时包含这两种 `sourcemap` 文件， 打包时需要把这两种文件都打包进 zip 包中，之后再把 zip 包拷贝到 `<DataKit安装目录>/data/rum/android` 目录下，zip 包解压后的目录结构类似：
+
+    Android 目前存在两种 `sourcemap` 文件，一种是 Java 字节码经 `R8`/`Proguard` 压缩混淆后产生的 mapping 文件，另一种为 C/C++ 原生代码编译时未清除符号表和调试信息的（unstripped） `.so` 文件，如果你的安卓应用同时包含这两种 `sourcemap` 文件， 打包时需要把这两种文件都打包进 zip 包中，之后再把 zip 包拷贝到 *<DataKit 安装目录>/data/rum/android* 目录下，zip 包解压后的目录结构类似：
     
     ```
     <app_id>-<env>-<version>/
@@ -170,7 +177,7 @@ sudo datakit install --symbol-tools
         └── libvideocodec.so
     ```
 
-    默认情况下，`mapping` 文件将位于： `<项目文件夹>/<Module>/build/outputs/mapping/<build-type>/`，`.so` 文件在用CMake编译项目时位于： `<项目文件夹>/<Module>/build/intermediates/cmake/debug/obj/`，用NDK编译时位于：`<项目文件夹>/<Module>/build/intermediates/ndk/debug/obj/`（debug编译） 或 `<项目文件夹>/<Module>/build/intermediates/ndk/release/obj/`（release编译）。
+    默认情况下，mapping 文件将位于： *<项目文件夹>/<Module>/build/outputs/mapping/<build-type>/*，`.so` 文件在用 CMake 编译项目时位于： *<项目文件夹>/<Module>/build/intermediates/cmake/debug/obj/*，用 NDK 编译时位于：*<项目文件夹>/<Module>/build/intermediates/ndk/debug/obj/*（debug 编译）或 *<项目文件夹>/<Module>/build/intermediates/ndk/release/obj/*（release 编译）。
 
     转换的效果如下：
 
@@ -234,9 +241,9 @@ sudo datakit install --symbol-tools
 
 === "iOS"
 
-    iOS平台上的 `sourcemap` 文件是以 `.dSYM` 为后缀的带有调试信息的符号表文件，一般情况下，项目编译完和 `.app` 文件在同一个目录下，如下所示：
+    iOS 平台上的 `sourcemap` 文件是以 `.dSYM` 为后缀的带有调试信息的符号表文件，一般情况下，项目编译完和 `.app` 文件在同一个目录下，如下所示：
 
-    ```
+    ``` shell
     $ ls -l Build/Products/Debug-iphonesimulator/
     total 0
     drwxr-xr-x   6 zy  staff  192  8  9 15:27 Fishing.app
@@ -245,14 +252,14 @@ sudo datakit install --symbol-tools
     drwxr-xr-x   6 zy  staff  192  8  9 13:55 Fishing.swiftmodule
     ```
 
-    需要注意，XCode Release编译默认会生成 `.dSYM` 文件，而Debug编译默认不会生成，需要对 XCode 做如下相应的设置：
+    需要注意，XCode Release 编译默认会生成 `.dSYM` 文件，而 Debug 编译默认不会生成，需要对 XCode 做如下相应的设置：
 
-    ```
+    ```not-set
     Build Settings -> Code Generation -> Generate Debug Symbols -> Yes
     Build Settings -> Build Option -> Debug Information Format -> DWARF with dSYM File
     ```
 
-    进行 zip 打包时，把相应的 `.dSYM` 文件打包进 zip 包即可，如果你的项目涉及多个 `.dSYM` 文件，需要一起打包到 zip 包内，之后再把 zip 包拷贝到 `<DataKit安装目录>/data/rum/ios` 目录下，zip 包解压后的目录结构类似如下(`.dSYM` 文件本质上是一个目录，和macOS下的可执行程序 `.app` 文件类似)：
+    进行 zip 打包时，把相应的 `.dSYM` 文件打包进 zip 包即可，如果你的项目涉及多个 `.dSYM` 文件，需要一起打包到 zip 包内，之后再把 zip 包拷贝到 *<DataKit 安装目录>/data/rum/ios* 目录下，zip 包解压后的目录结构类似如下(`.dSYM` 文件本质上是一个目录，和 macOS 下的可执行程序 *.app* 文件类似)：
 
 
     ```
@@ -271,6 +278,7 @@ sudo datakit install --symbol-tools
                     └── App
     
     ```
+<!-- markdownlint-enable -->
 
 ### 文件上传和删除 {#upload-delete}
 
@@ -294,16 +302,17 @@ curl -X DELETE '<dca_address>/v1/rum/sourcemap?app_id=<app_id>&env=<env>&version
 - `<app_id>`: 对应 RUM 的 `applicationId`
 - `<env>`: 对应 RUM 的 `env`
 - `<version>`: 对应 RUM 的 `version`
-- `<platform>` 应用平台，当前支持 `web`/ `android` / `ios`
-- `<sourcemap_path>`: 待上传的`sourcemap` 压缩包文件路径
+- `<platform>` 应用平台，当前支持 web/android/ios
+- `<sourcemap_path>`: 待上传的 `sourcemap` 压缩包文件路径
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     - 该转换过程，只针对 `error` 指标集
     - 当前只支持 Javascript/Android/iOS 的 sourcemap 转换
     - 如果未找到对应的 sourcemap 文件，将不进行转换
     - 通过接口上传的 sourcemap 压缩包，不需要重启 DataKit 即可生效。但如果是手动上传，需要重启 DataKit，方可生效
-
+<!-- markdownlint-enable -->
 
 ## CDN 标注 {#cdn-resolve}
 
@@ -317,15 +326,14 @@ DataKit 内置了一个主流 CDN 厂家信息列表，如果发现你所使用�
 [
   {
     "domain": "alicdn.com",
-    "name": "阿里云CDN",
+    "name": "阿里云 CDN",
     "website": "https://www.aliyun.com"
   },
   ...
 ]
 ```
 
-可以简单复制 [内置CDN配置列表](built-in_cdn_dict_config.md){:target="_blank"} 并修改后直接粘贴到配置文件中，修改完需要重启 DataKit。
-
+可以简单复制 [内置 CDN 配置列表](built-in_cdn_dict_config.md){:target="_blank"} 并修改后直接粘贴到配置文件中，修改完需要重启 DataKit。
 
 ## RUM 会话重放 {#rum-session-replay}
 
@@ -344,6 +352,8 @@ DataKit 内置了一个主流 CDN 厂家信息列表，如果发现你所使用�
   ...
 ```
 
+<!-- markdownlint-disable MD046 -->
 ???+ info
 
     RUM 配置文件默认位于 `/usr/local/datakit/conf.d/rum/rum.conf`，具体根据你所使用的操作系统和 Datakit 安装位置确定。
+<!-- markdownlint-enable -->

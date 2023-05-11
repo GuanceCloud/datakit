@@ -23,6 +23,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/snmp/snmpmeasurement"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/snmp/snmprefiles"
@@ -204,6 +205,7 @@ type Input struct {
 	jobs                 chan Job
 	autodetectProfile    bool
 	feeder               io.Feeder
+	opt                  point.Option
 }
 
 type TrapsConfig struct {
@@ -224,7 +226,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (ipt *Input) Run() {
-	SetLog()
+	setLog()
 	l.Info("Run entry")
 
 	onceReleasePrefiles.Do(func() {
@@ -232,6 +234,12 @@ func (ipt *Input) Run() {
 			l.Errorf("snmp release prefiles failed: %v", err)
 		}
 	})
+
+	if ipt.Election {
+		ipt.opt = point.WithExtraTags(dkpt.GlobalElectionTags())
+	} else {
+		ipt.opt = point.WithExtraTags(dkpt.GlobalHostTags())
+	}
 
 	// starting traps server
 	if ipt.Traps.Enable {
@@ -547,11 +555,11 @@ func (ipt *Input) CollectingMeasurements(deviceIP string, device *deviceInfo, tn
 
 		for _, data := range fts.Data {
 			sobj := &snmpmeasurement.SNMPObject{
-				Name:     snmpmeasurement.SNMPObjectName,
-				Tags:     data.Tags,
-				Fields:   data.Fields,
-				TS:       tn,
-				Election: ipt.Election,
+				Name:   snmpmeasurement.SNMPObjectName,
+				Tags:   data.Tags,
+				Fields: data.Fields,
+				TS:     tn,
+				Opt:    ipt.opt,
 			}
 			pts = append(pts, sobj.Point())
 		}
@@ -560,11 +568,11 @@ func (ipt *Input) CollectingMeasurements(deviceIP string, device *deviceInfo, tn
 
 		for _, data := range fts.Data {
 			smtc := &snmpmeasurement.SNMPMetric{
-				Name:     snmpmeasurement.SNMPMetricName,
-				Tags:     data.Tags,
-				Fields:   data.Fields,
-				TS:       tn,
-				Election: ipt.Election,
+				Name:   snmpmeasurement.SNMPMetricName,
+				Tags:   data.Tags,
+				Fields: data.Fields,
+				TS:     tn,
+				Opt:    ipt.opt,
 			}
 			pts = append(pts, smtc.Point())
 		}
@@ -1167,9 +1175,41 @@ func (ipt *Input) initializeDevice(deviceIP, subnet string) (*deviceInfo, error)
 	return di, nil
 }
 
-// only for command "datakit tool --test-snmp".
+// only for command "datakit --test-input".
 
-func SetLog() {
+func (ipt *Input) Collect() (map[point.Category][]*point.Point, error) {
+	setLog()
+
+	if err := ipt.CheckTestSNMP(); err != nil {
+		return nil, err
+	}
+
+	if err := ipt.ValidateConfig(); err != nil {
+		return nil, err
+	}
+
+	if err := ipt.Initialize(); err != nil {
+		return nil, err
+	}
+
+	l.Infof("Start collecting snmp...\n")
+	mpts := make(map[point.Category][]*point.Point)
+
+	specificDevices := ipt.GetSpecificDevices()
+	for deviceIP, deviceInfo := range specificDevices {
+		tn := time.Now().UTC()
+		points := ipt.CollectingMeasurements(deviceIP, deviceInfo, tn, true)
+		mpts[point.Object] = append(mpts[point.Object], points...)
+
+		tn = time.Now().UTC()
+		points = ipt.CollectingMeasurements(deviceIP, deviceInfo, tn, false)
+		mpts[point.Metric] = append(mpts[point.Metric], points...)
+	}
+
+	return mpts, nil
+}
+
+func setLog() {
 	onceSetLog.Do(func() {
 		l = logger.SLogger(snmpmeasurement.InputName)
 	})

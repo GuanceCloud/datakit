@@ -20,14 +20,37 @@
 ### 问题修复 {#cl-x.x.x-fix}
 ### 功能优化 {#cl-x.x.x-opt}
 ### 兼容调整 {#cl-x.x.x-brk}
-
-branch changelog
-
-- 由于一些编译限制，拨测采集器不再支持在 Windows 上运行
-- 重构 sinker 实现，仅仅保留 Dataway 上的 Sinker 功能，同时将 datakit.conf 中 sinker 顶级配置挪到 dataway 配置字段下面（升级过程中会平滑修改掉）
-- Datakit 自身指标支持 Prometheus 指标体系，通过 curl 其 /metrics API 即可获取 Datakit 自身各种指标
-
 -->
+
+## 1.7.0(2023/05/11) {#cl-1.7.0}
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.7.0-new}
+
+- RUM Sourcemap 增加小程序支持（#1608）
+- 增加新的采集选举策略，支持在 K8s 环境中进行 Cluster 级别的选举（#1534）
+
+### 问题修复 {#cl-1.7.0-fix}
+
+- Datakit 上传时，如果中心返回 5XX 状态码会导致四层连接数增加。本版本修复了该问题，同时在 [*datakit.conf*](datakit-conf.md#maincfg-example)（K8s 中可通过[环境变量配置](datakit-daemonset-deploy.md#env-dataway)）  中暴露更多连接有关的配置参数（DK001-15）
+
+### 功能优化 {#cl-1.7.0-opt}
+
+- 优化进程对象采集，默认关闭部分可能导致高消耗的字段（比如打开文件数/端口数）采集，这些字段通过采集器配置或者环境变量均可手动开启。这些字段可能很重要，但默认情况下我们还是认为，不应该因此导致主机上意外的性能开销（#1543）
+- Datakit 自身指标优化：
+    - 拨测采集器增加 Prometheuse 指标暴露，便于排查拨测采集器自身一些潜在问题（#1591）
+    - 增加 Datakit 上报时 HTTP 层面指标暴露（#1597）
+    - 增加 KafkaMQ 采集时的指标暴露
+- 优化 PostgreSQL 指标采集，增加了更多相关指标（#1596）
+- 优化 JVM 有关的指标采集，主要是文档更新（#1600）
+- Pinpoint
+    - 增加更多开发者文档（#1601）
+    - Pinpoint 修复 gRPC Service 支持（#1605）
+- 优化磁盘指标采集在不同平台上的差异（#1607）
+- 其它工程优化（#1621/#1611/#1610）
+- 增加若干集成测试（#1438/#1561/#1585/#1435/#1513）
+
+---
 
 ## 1.6.1(2023/04/27) {#cl-1.6.1}
 
@@ -85,6 +108,8 @@ branch changelog
 
 ---
 
+<!-- markdownlint-disable -->
+
 ## 1.5.10(2023/04/13) {#cl-1.5.10}
 
 本次发布属于紧急发布，主要有如下更新：
@@ -113,7 +138,7 @@ branch changelog
 
 ### 问题修复 {#cl-1.5.9-fix}
 
-- 修复 datakit 自身 CPU 指标获取，保持 monitor 和 `top` 命令获取到的 CPU 同步(#1547)
+- 修复 Datakit 自身 CPU 指标获取，保持 monitor 和 `top` 命令获取到的 CPU 同步(#1547)
 - 修复 RUM 采集器 panic 错误(#1548)
 
 ### 功能优化 {#cl-1.5.9-opt}
@@ -130,11 +155,11 @@ branch changelog
 - 优化安装过程中 token 出错提示(#1541)
 - monitor 支持自动从 *datakit.conf* 中获取连接地址(#1547)
 - 取消 eBPF 对内核版本的强制检查，尽量支持更多的内核版本(#1542)
-- [Kafka 订阅采集](kafkamq.md)支持多行 json 功能(#1549)
+- [Kafka 订阅采集](kafkamq.md)支持多行 JSON 功能(#1549)
 - 新增一大批集成测试(#1479/#1460/#1436/#1428/#1407)
 - 优化 IO 模块的配置，新增上传 worker 数配置字段(#1536)
     - [Kubernetes](datakit-daemonset-deploy.md#env-io)
-    - [datakit.conf](datakit-conf.md#io-tuning)
+    - [*datakit.conf*](datakit-conf.md#io-tuning)
 
 ### 兼容调整 {#cl-1.5.9-brk}
 
@@ -151,7 +176,7 @@ branch changelog
 
 - 修复容器日志采集可能丢失的问题(#1520)
 - Datakit 启动后自动创建 Pythond 目录(#1484)
-- 移除 [hostdir](hostdir.md) 采集器单例限制(#1498)
+- 移除 [主机目录](hostdir.md) 采集器单例限制(#1498)
 - 修复一个 eBPF 数值构造的问题(#1509)
 - 修复 Datakit monitor 参数识别问题(#1506)
 
@@ -168,7 +193,7 @@ branch changelog
 ### 文档调整 {#cl-1.5.8-doc}
 
 - 增加 Kubernetes 全离线安装[文档](datakit-offline-install.md#k8s-offline)(#1480)
-- 完善 statsd 以及 ddtrace-java 有关的文档(#1481/#1507)
+- 完善 StatsD 以及 DDTrace-Java 有关的文档(#1481/#1507)
 - 补充 TDEngine 有关的文档(#1486)
 - 移除 disk 采集器文档中的过时字段描述(#1488)
 - 完善 Oracle 采集器文档(#1519)
@@ -184,14 +209,14 @@ branch changelog
     - 增加函数 [`kv_split()`](../developers/pipeline.md#fn-kv_split)(#1414)
     - 增加[时间函数](../developers/pipeline.md#fn-datetime)(#1411)
 - 增加 [IPv6 支持](datakit-conf.md#config-http-server)(#1454)
-- diskio 支持 [io wait 扩展指标](diskio.md#extend)(#1472)
-- 容器采集支持 [Docker 和 Containerd 共存](container.md#requrements)(#1401)
+- 磁盘 IO 采集支持 [io wait 扩展指标](diskio.md#extend)(#1472)
+- 容器采集支持 [Docker 和 containerd 共存](container.md#requrements)(#1401)
 - 整合 [Datakit Operator 配置文档](datakit-operator.md)(#1482)
 
 ### 问题修复 {#cl-1.5.7-fix}
 
 - 修复 Pipeline Bugs(#1476/#1469/#1471/#1466)
-- 修复 datakit.yaml 缺少 request 导致的容器 pending(#1470)
+- 修复 *datakit.yaml* 缺少 `request` 导致的容器 Pending(#1470)
 - 修复云同步过程中反复探测问题(#1443)
 - 修复日志磁盘缓存的编码错误(#1474)
 
@@ -200,10 +225,10 @@ branch changelog
 - 优化 Point Checker(#1478)
 - 优化 Pipeline [`replace()`](../developers/pipeline.md#fn-replace.md) 性能(#1477)
 - 优化 Windows 下 Datakit 安装流程(#1404)
-- 优化 [confd](confd.md) 配置处理流程(#1402)
+- 优化 [配置中心](confd.md) 的配置处理流程(#1402)
 - 添加 [Filebeat](beats_output.md) 集成测试能力(#1459)
 - 添加 [Nginx](nginx.md) 集成测试能力(#1399)
-- 重构 [otel agent](opentelemetry.md)(#1409)
+- 重构 [OpenTelemetry Agent](opentelemetry.md)(#1409)
 - 重构 [Datakit Monitor 信息](datakit-monitor.md#specify-module)(#1261)
 
 ---
@@ -269,12 +294,12 @@ branch changelog
 
 ### 功能优化 {#cl-1.5.5-opt}
 
-- Datakit pyroscope profiling 多程序语言识别(#1374)
+- Datakit Pyroscope Profiling 多程序语言识别(#1374)
 - 优化 CPU,Disk,eBPF,Net 等中英文文档(#1375)
-- 优化 elasticsearch, postgresql, dialtesting 等英文文档(#1373)
+- 优化 ElasticSearch, PostgreSQL, DialTesting 等英文文档(#1373)
 - 优化 DCA,Profiling 文档(#1371#1372)
 - 优化日志采集流程(#1366)
-- [iploc yaml](datakit-tools-how-to.md) 配置方法文档支持(#1370)
+- [IP 库安装文档更新](datakit-tools-how-to.md) 配置方法文档支持(#1370)
 
 ---
 
@@ -284,7 +309,7 @@ branch changelog
 
 ### 新加功能 {#cl-1.5.4-new}
 
-- [confd 增加 Nacos 后端](confd.md)(#1315#1327)
+- [Confd 增加 Nacos 后端](confd.md)(#1315#1327)
 - 日志采集器添加 LocalCache 特性(#1326)
 - 支持 [C/C++ Profiling](profile-cpp.md)(#1320)
 - RUM Session Replay 文件上报(#1283)
@@ -300,7 +325,7 @@ branch changelog
 - 修复 Golang Profiler 函数执行时间计算错误(#1335)
 - 修复 Datakit Monitor 字符集问题(#1321)
 - 修复 async-profiler 服务现实问题(#1290)
-- 修复 Redis 采集器 slowlog 问题(#1360)
+- 修复 Redis 采集器 `slowlog` 问题(#1360)
 
 ### 功能优化 {#cl-1.5.4-opt}
 
@@ -328,11 +353,11 @@ branch changelog
 
 ### 功能优化 {#cl-1.5.3-opt}
 
-- 优化 eBPF 中 httpflow 协议判定(#1318)
+- 优化 eBPF 中 `httpflow` 协议判定(#1318)
 - 优化 Windows 下 Datakit 安装升级命令(#1316)
 - 优化 Pythond 使用封装(#1304)
 - Pipeline 提供更详细的操作报错信息(#1262)
-- Pipeline reftable 提供基于 SQLite 的本地化存储实现(#1158)
+- Pipeline Ref-Table 提供基于 SQLite 的本地化存储实现(#1158)
 - 优化 SQLServer 时间线问题(#1345)
 
 ---
@@ -358,8 +383,8 @@ branch changelog
 - trace 采集器：
     - 优化 error-stack/error-message 格式问题(#1307)
     - SkyWalking 兼容性调整，支持 8.X 全序列(#1296)
-- eBPF httpflow 增加 `pid/process_name` 字段(#1218/#1124)，优化内核版本支持(#1277)
-- datakit.yaml 有调整，建议更新新的 yaml(#1253)
+- eBPF `httpflow` 增加 `pid/process_name` 字段(#1218/#1124)，优化内核版本支持(#1277)
+- *datakit.yaml* 有调整，建议更新新的 yaml(#1253)
 - GPU 显卡采集支持远程模式(#1312)
 - 其它细节优化(#1311/#1260/#1301/#1291/#1298/#1305)
 
@@ -514,7 +539,7 @@ branch changelog
 
 ### 新功能 {#cl-1.4.17-new-features}
 
-- 新增 [promtail 采集器](promtail.md)(#644)
+- 新增 [Promtail 采集器](promtail.md)(#644)
 - 新增 [NVIDIA GPU 指标采集器](nvidia_smi.md)(#1005)
 - 支持发现（需手动开启） Kubernetes 集群中带有 Prometheus Service 的服务，并对之实施 Prometheus 指标采集(#1123)
 - 支持从 Kafka 中订阅基于 SkyWalking 的指标、日志、Trace 类数据，并将其分别以对应的数据类型上传到观测云(#1127)
@@ -593,7 +618,7 @@ branch changelog
 - 修正磁盘采集器在 Windows 上采集不到指标的问题(#1114)
 - 修复 Git 管理配置的情况下，部分资源泄露导致的数据重复采集问题(#1107)
 - 修复 [SQLServer 采集器](sqlserver.md) 复杂密码导致无法连接的问题(#1119)
-- 修复 [DQL API 请求](apis.md#api-raw-query)丢失 applicaiton/json Content-Type 问题(#1119)
+- 修复 [DQL API 请求](apis.md#api-raw-query)丢失 `application/json` Content-Type 问题(#1119)
 - 调整 Pipeline 有关的文档，将其移到「自定义开发」目录下：
 
 <figure markdown>
@@ -612,12 +637,12 @@ branch changelog
 - MySQL 采集器增加 `mysql_dbm_activity` 指标集(#1047)
 - 增加 [netstat 采集器](netstat.md)(#1051)
 - TDengine 增加日志采集(#1057/#1076)
-- 优化磁盘采集器中的 fstype 过滤，默认只采集常见的文件系统（#1063/#1066）
+- 优化磁盘采集器中的 `fstype` 过滤，默认只采集常见的文件系统（#1063/#1066）
 - 日志采集器中，针对每条日志，增加字段 `message_length` 表示当前日志长度，便于通过长度来过滤日志(#1086)
 - CRD 支持通过 DaemonSet 来定位 Pod 范围(#1064)
-- eBPF 移除 go-bindata 依赖（#1062）
+- eBPF 移除 `go-bindata` 依赖（#1062）
 - 容器采集器中默认会打开 [k8s 和容器相关的指标](container.md#metrics)，这在一定程度上会消耗额外的时间线（#1095）
-- DataKit 自带 ddtrace-java SDK 已更新最新版本（*<DataKit 安装目录>/data/dd-java-agent-0.107.1.jar*）
+- Datakit 自带 DDTrace-Java SDK 已更新最新版本（*[Datakit 安装目录]/data/dd-java-agent-0.107.1.jar*）
 
 ### Bug 修复 {#cl-1.4.13-bugfix}
 
@@ -634,7 +659,7 @@ branch changelog
 ### 文档调整 {#cl-1.4.13-docs}
 
 - 几乎每个章节都增加了跳转标签，便于其它文档永久性引用
-- pythond 文档已转移到开发者目录
+- Pythond 文档已转移到开发者目录
 - 采集器文档从原来「集成」移到 「DataKit」文档库(#1060)
 
 <figure markdown>
@@ -666,13 +691,13 @@ branch changelog
 本次发布属于 Hotfix 发布，主要有如下更新：
 
 - 调整 Windows 下 CPU 采集的取值，以跟 Windows 进程监视器上的数值保持一致(#1002)
-- 调整发送 dataway 时的加锁行为，该行为可能导致数据发送变慢的问题
+- 调整发送 Dataway 时的加锁行为，该行为可能导致数据发送变慢的问题
 - 日志采集：
     - io 行为默认改成阻塞形式
     - 默认开启多行识别
     - 调整文件 rotate 尾部采集策略，避免可能出现的巨大数据包(#1072)
     - 调整环境变量相关的文档说明(#1071)
-    - 日志的行协议中增加 `log_read_time` 字段，用来记录采集时的 Unix 时间戳(#1077)
+    - 日志的行协议中增加 `log_read_time` 字段，用来记录采集时的 UNIX 时间戳(#1077)
 
 ### Breaking Changes
 
@@ -684,7 +709,7 @@ branch changelog
 
 ### 新功能 {#cl-1.4.11-newfeature}
 
-- Pipeline 中新增 [reftable 功能](../developers/datakit-refer-table.md)(#967)
+- Pipeline 中新增 [Ref-Table 功能](../developers/datakit-refer-table.md)(#967)
 - DataKit 9529 HTTP [支持绑定到 domain socket](datakit-conf.md#uds)(#925)
     - 对应的 [eBPF 采集](ebpf.md) 和 [Oracle 采集](oracle.md)，其配置方式也需做对应变更。
 - RUM sourcemap 增加 Android R8 支持(#1040)
@@ -704,13 +729,13 @@ branch changelog
 - DDTrace 采集器在[开启磁盘缓存](ddtrace.md#disk-cache)后，默认变成阻塞式 IO feed(#1038)
 - [eBPF](ebpf.md#measurements) 增加进程名（`process_name`）字段(#1045)
 - [DCA](dca.md) 新版本发布
-- 日志类 HTTP 数据写入（logstreaming/Jaeger/OpenTelemetry/Zipkin）均增加队列支持(#971)
+- 日志类 HTTP 数据写入（Log Streaming/Jaeger/OpenTelemetry/Zipkin）均增加队列支持(#971)
 - 日志采集增加自动多行支持(#1024)
 
 ### Bug 修复 {#cl-1.4.11-bugs}
 
 - 修复 [MySQL 采集器](mysql.md) 连接泄露问题(#1041)
-- 修复 Pipeline Json 取值问题(#1036)
+- 修复 Pipeline JSON 取值问题(#1036)
 - 修复 macOS 上 ulimit 设置无效问题(#1032)
 - 修复 sinker-Dataway 在 Kubernetes 中无效问题(#1031)
 - 修复 [HTTP 数据写入类接口](apis.md#api-v1-write)数据校验问题(#1046)
@@ -723,7 +748,7 @@ branch changelog
 本次发布属于迭代发布，主要有如下更新：
 
 - 部分数据类型发送失败后，支持缓存到磁盘，延后再发送(#945)
-- 支持通过不同的 dataway 地址，将满足条件的数据发送到不同的工作空间(#896)
+- 支持通过不同的 Dataway 地址，将满足条件的数据发送到不同的工作空间(#896)
 - Sourcemap 增加 Android 和 iOS 支持(#886)
 
 - 容器采集器相关更新：
@@ -733,7 +758,7 @@ branch changelog
 
 - Pipeline 相关更新：
     - 优化 Pipeline 执行步骤(#1007)
-    - [grok()](../developers/pipeline.md#fn-grok) 和 [json()](../developers/pipeline.md#fn-json) 函数默认执行 trim-space 操作(#1001)
+    - [`grok()`](../developers/pipeline.md#fn-grok) 和 [`json()`](../developers/pipeline.md#fn-json) 函数默认执行 trim-space 操作(#1001)
 
 - DDTrace 相关更新：
     - 修复潜在的 goroutine 泄露问题(#1008)
@@ -753,10 +778,10 @@ branch changelog
 
 本次发布属于 Hotfix 发布，主要有如下更新：
 
-- eBPF httpflow 增加 Linux 4.5 及以上内核版本支持(#985)
+- eBPF `httpflow` 增加 Linux 4.5 及以上内核版本支持(#985)
 - 修复 external 类采集器选举模式下的问题(#976/#946)
 - 修复容器采集器导致的奔溃问题(#956/#979/#980)
-- 修复 Redis slowlog 采集问题(#986)
+- 修复 Redis `slowlog` 采集问题(#986)
 
 ---
 
@@ -774,14 +799,14 @@ branch changelog
     - 修复对环境变量 `NODE_NAME` 的不兼容问题(#957)
     - k8s 自动发现的 prom 采集器改为串行式的分散采集，每个 k8s node 只采集自己机器上的 prom 指标(#811/#957)
     - 添加日志 source 和多行的的[映射配置](container.md#env-config)(#937)
-    - 修复容器日志替换 source 后还使用之前的 multiline 和 pipeline 的 bug(#934/#923)
+    - 修复容器日志替换 source 后还使用之前的 multiline 和 Pipeline 的 bug(#934/#923)
     - 修正容器日志，设置文件活跃时长是 12 小时(#930)
     - 优化 docker 容器日志的 image 字段(#929)
     - 优化 k8s pod 对象的 host 字段(#924)
     - 修复容器指标和对象采集没有添加 host tag 的问题(#962)
 
 - eBPF 相关：
-    - 修复 uprobe event name 命名冲突问题
+    - 修复 Uprobe event name 命名冲突问题
     - 增加更多[环境变量配置](ebpf.md#config)，便于 k8s 环境的部署
 
 - 优化 APM 数据接收接口的数据处理，缓解卡死客户端以及内存占用问题(#902)
@@ -808,7 +833,7 @@ branch changelog
 - 选举有关
     - 修复 `election_namespace` 设置错误的问题(#915)
     - `enable_election_namespace` 这个 tag 的设置默认关闭，需[手动开启](election.md#config)
-    - datakit.conf 中 `namespace` 字段将被弃用（仍然可用），改名为 `election_namespace`
+    - *datakit.conf* 中 `namespace` 字段将被弃用（仍然可用），改名为 `election_namespace`
 
 - 修复采集器堵塞问题(#916)
     - DataKit 移除调用中心的心跳接口
@@ -829,7 +854,7 @@ branch changelog
     - [dbm 指标集名字](mysql.md#logging)调整(#898)
     - `service` 字段冲突问题(#895)
 - [容器对象](container.md#docker_containers)增加字段 `container_runtime_name` 以区分不同层次的容器名(#891)
-- Redis 调整 [slowlog 采集](redis.md#redis_slowlog)，将其数据改为日志存储(#885)
+- Redis 调整 [`slowlog` 采集](redis.md#redis_slowlog)，将其数据改为日志存储(#885)
 - 优化 [TDEngine 采集](tdengine.md)(#877)
 - 完善 Containerd 日志采集，支持默认格式的日志自动解析(#869)
 - [Pipeline](../developers/pipeline.md) 增加 [Profiling 类数据](profile.md)支持(#866)
@@ -868,8 +893,8 @@ branch changelog
 
 本次发布属于迭代发布，主要更新如下内容：
 
-- gitrepo 支持无密码模式(#845)
-- prom 采集器
+- Git 同步配置支持无密码模式(#845)
+- Prom 采集器
     - 支持日志模式采集(#844)
     - 支持配置 HTTP 请求头(#832)
 - 支持超 16KB 长度的容器日志采集(#836)
@@ -880,7 +905,7 @@ branch changelog
     - 支持 Pipeline 通过 `use()` 函数调用外部 Pipeline 脚本(#824)
 - 新增 IP 库（MaxMindIP）支持(#799)
 - 新增 DDTrace Profiling 集成(#656)
-- Containerd 日志采集支持通过 image 和 K8s Annotation 配置过滤规则(#849)
+- containerd 日志采集支持通过 image 和 K8s Annotation 配置过滤规则(#849)
 - 文档库整体切换到 MkDocs(#745)
 - 其它杂项(#822)
 
@@ -888,7 +913,7 @@ branch changelog
 
 - 修复 socket 采集器奔溃问题(#858)
 - 修复部分采集器配置中空 tags 配置导致的奔溃问题(#852)
-- 修复 ipdb 更新命令问题(#854)
+- 修复 IPDB 更新命令问题(#854)
 - Kubernetes Pod 日志和对象上增加 `pod_ip` 字段(848)
 - DDTrace 采集器恢复识别 trace SDK 上的采样设定(#834)
 - 修复 DaemonSet 模式下，外部采集器（eBPF/Oracle）上的 `host` 字段可能跟 DataKit 自身不一致的问题(#843)
@@ -904,7 +929,7 @@ branch changelog
 - 支持接收 SkyWalking 指标数据(#780)
 - 优化日志黑名单调试功能：
     - 在 Monitor 中会展示被过滤掉的点数(#827)
-    - 在 datakit/data 目录下会增加一个 *.pull* 文件，用来记录拉取到的过滤器
+    - 在 *datakit/data* 目录下会增加一个 *.pull* 文件，用来记录拉取到的过滤器
 - Monitor 中增加 DataKit 打开文件数显示(#828)
 - DataKit 编译器升级到 Golang 1.18.3(#674)
 
@@ -939,7 +964,7 @@ branch changelog
 - 修复默认 Pipeline 加载问题(#796)
 - 修复 Pipeline 中关于日志 status 的处理(#800)
 - 修复 [Filebeat](beats_output) 奔溃问题(#805)
-- 修复 [logstreaming](logstreaming) 导致的脏数据问题(#802)
+- 修复 [Log Streaming](logstreaming) 导致的脏数据问题(#802)
 
 ----
 
@@ -951,7 +976,7 @@ branch changelog
     - 所有数据类型，均可通过配置 Pipeline 来额外处理数据(#761/#739)
     - [grok()](pipeline#965ead3c) 支持直接将字段提取为指定类型，无需再额外通过 `cast()` 函数进行类型转换(#760)
     - Pipeline 增加[多行字符串支持](pipeline#3ab24547)，对于很长的字符串（比如 grok 中的正则切割），可以通过将它们写成多行，提升了可读性(#744)
-    - 每个 Pipeline 的运行情况，通过 datakit monitor -V 可直接查看(#701)
+    - 每个 Pipeline 的运行情况，通过 `datakit monitor -V` 可直接查看(#701)
 - 增加 Kubernetes [Pod 对象](container#23ae0855-1) CPU/内存指标(#770)
 - Helm 增加更多 Kubernetes 版本安装适配(#783)
 - 优化 [OpenTelemetry](opentelemetry)，HTTP 协议增加 JSON 支持(#781)
@@ -982,7 +1007,7 @@ branch changelog
 
 - 修复 Pipeline 中的 [decode](pipeline#837c4e09) 函数问题(#769)
 - OpenTelemetry gRPC 方式支持 gzip(#774)
-- 修复 [filebeat](beats_output) 采集器不能设置 service 的问题(#767)
+- 修复 [Filebeat](beats_output) 采集器不能设置 service 的问题(#767)
 
 ### Breaking changes {#cl.1.2.20-bc}
 
@@ -1012,7 +1037,7 @@ volumes:
 - DataKit 主配置增加示例配置(#715)
 - [Prometheus Remote Write](prom_remote_write) 支持 tag 重命名(#731)
 - 修复 DCA 客户端获取工作空间不全的问题(#747)
-- 合并社区版 DataKit 已有的功能，主要包含 Sinker 功能以及 [filebeat](beats_output) 采集器(#754)
+- 合并社区版 DataKit 已有的功能，主要包含 Sinker 功能以及 [Filebeat](beats_output) 采集器(#754)
 - 调整容器日志采集，DataKit 直接支持 containerd 下容器 stdout/stderr 日志采集(#756)
 - 修复 ElasticSearch 采集器超时问题(#762)
 - 修复安装程序检查过于严格的问题(#763)
@@ -1026,9 +1051,9 @@ volumes:
 
 本次发布属于 hotfix 发布，主要修复如下问题：
 
-- [进程采集器](host_processes)的过滤功能仅作用于指标采集，对象采集不受影响(#740)
+- [进程采集器](host_processes.md)的过滤功能仅作用于指标采集，对象采集不受影响(#740)
 - 缓解 DataKit 发送 DataWay 超时问题(#741)
-- [Gitlab 采集器](gitlab) 稍作调整(#742)
+- [GitLab 采集器](gitlab.md) 稍作调整(#742)
 - 修复日志采集截断的问题(#749)
 - 修复各种 trace 采集器 reload 后部分配置不生效的问题(#750)
 
@@ -1041,9 +1066,9 @@ volumes:
 - [容器采集器](container#7e687515)增加更多指标（`kube_` 开头）采集(#668)
 - DDTrace 和 OpenTelemetry 采集器支持通过 HTTP Status Code（`omit_err_status`）来过滤部分错误的 trace
 - 修复几个 Trace 采集器（DDtrace/OpenTelemetry/Zipkin/SkyWalking/Jaeger）在 git 模式下配置 reload 不生效的问题(#725)
-- 修复 Gitlab 采集器不能 tag 导致的奔溃问题(#730)
+- 修复 GitLab 采集器不能 tag 导致的奔溃问题(#730)
 - 修复 Kubernetes 下 eBPF 采集器对 Pod 标签（tag）不更新的问题(#736)
-- [prom 采集器](prom) 支持 [Tag 重命名](prom#e42139cb)(#719)
+- [prom 采集器](prom.md) 支持 [Tag 重命名](prom#e42139cb)(#719)
 - 完善部分文档描述
 
 ----
@@ -1095,8 +1120,8 @@ volumes:
 - 修复主机进程采集器奔溃问题(#700)
 - 日志采集器采集选项 `ignore_dead_log = '10m'` 默认开启(#698)
 - 优化 Git 管理的配置同步逻辑(#696)
-- eBPF 修复 netflow 中错误的 ip 协议字段(#694)
-- 丰富 Gitlab 采集器字段
+- eBPF 修复 `netflow` 中错误的 IP 协议字段(#694)
+- 丰富 GitLab 采集器字段
 
 ---
 
@@ -1107,16 +1132,16 @@ volumes:
 - 增加宿主机运行时的[内存限制](datakit-conf#4e7ff8f3)(#641)
     - 安装阶段即支持[内存限制配置](datakit-install#03be369a)
 - CPU 采集器增加 [load5s 指标](cpu#13e60209)(#606)
-- 完善 datakit.yaml 示例(#678)
+- 完善 *datakit.yaml* 示例(#678)
 - 支持主机安装时通过 [cgroup 限制内存](datakit-conf#4e7ff8f3)使用(#641)
-- 完善日志黑名单功能，新增 contain/notcontain 判定规则(#665)
-    - 支持在 datakit.conf 中[配置日志/对象/Tracing/时序指标这几类黑名单](datakit-filter#045b45e3)
+- 完善日志黑名单功能，新增 `contain/notcontain` 判定规则(#665)
+    - 支持在 *datakit.conf* 中[配置日志/对象/Tracing/时序指标这几类黑名单](datakit-filter#045b45e3)
     - 注意：升级该版本，要求 DataWay 升级到 1.2.1+
 - 进一步完善 [containerd 下的容器采集](container)(#402)
 - 调整 monitor 布局，增加黑名单过滤情况展示(#634)
 - DaemonSet 安装增加 [Helm 支持](datakit-daemonset-deploy)(#653)
     - 新增 [DaemonSet 安装最佳实践](datakit-daemonset-bp)(#673)
-- 完善 [Gitlab 采集器](gitlab)(#661)
+- 完善 [GitLab 采集器](gitlab)(#661)
 - 增加 [ulimit 配置项](datakit-conf#8f9f4364)用于配置文件打开数限制(#667)
 - Pipeline [脱敏函数](pipeline#52a4c41c)有更新，新增 [SQL 脱敏函数](pipeline#711d6fe4)(#670)
 - 进程对象和时序指标[新增 `cpu_usage_top` 字段](host_processes#a30fc2c1-1)，以跟 `top` 命令的结果对应(#621)
@@ -1156,7 +1181,7 @@ volumes:
 
 - 修复 Tracing 采集器资源过滤（`close_resource`）的算法问题，将过滤机制下放到 Entry Span 级别，而非之前的 Root Span
 - 修复[日志采集器](logging)文件句柄泄露问题(#658)，同时新增配置（`ignore_dead_log`），以忽略不再更新（删除）的文件
-- 新增[DataKit 自身指标文档](self)
+- 新增[Datakit 自身指标文档](self)
 - DaemonSet 安装时
     - [支持安装 IPDB](datakit-tools-how-to#11f01544)(#659)
     - 支持[设定 HTTP 限流（ENV_REQUEST_RATE_LIMIT）](datakit-daemonset-deploy#00c8a780)(#654)
@@ -1194,7 +1219,7 @@ volumes:
 
 本次发布属于 hotfix 修复，内容如下：
 
-- DaemonSet 模式部署时， datakit.yaml 添加[污点容忍度配置](datakit-daemonset-deploy#e29e678e)(#635)
+- DaemonSet 模式部署时，*datakit.yaml* 添加[污点容忍度配置](datakit-daemonset-deploy#e29e678e)(#635)
 - 修复 Remote Pipeline 拉取更新时的 bug(#630)
 - 修复 DataKit IO 模块卡死导致的内存泄露(#646)
 - 在 Pipeline 中允许修改 `service` 字段(#645)
@@ -1211,13 +1236,13 @@ volumes:
 - Pipeline
     - Grok 中增加[动态多行 pattern](datakit-pl-how-to#88b72768)，便于处理动态多行切割(#615)
     - 支持中心下发 Pipeline(#524)，这样一来，Pipeline 将有[三种存放路径](pipeline#6ee232b2)
-    - DataKit HTTP API 增加 Pipeline 调试接口 [/v1/pipeline/debug](apis#539fb60e)
+    - DataKit HTTP API 增加 Pipeline 调试接口 [`/v1/pipeline/debug`](apis#539fb60e)
 
 <!--
 - APM 功能调整(#610)
 	- 重构现有常见的 Tracing 数据接入
 	- 增加 APM 指标计算
-	- 新增 [otel(OpenTelemetry)数据接入]()
+	- 新增 [OTEL(OpenTelemetry)数据接入]()
 
 !!! Delay
 -->
@@ -1236,7 +1261,7 @@ volumes:
 ### 其它 Bug 修复
 
 - 修复 Windows 下安装脚本问题(#617)
-- 调整 datakit.yaml 中的 ConfigMap 设定(#603)
+- 调整 *datakit.yaml* 中的 ConfigMap 设定(#603)
 - 修复 Git 模式下 Reload 导致部分 HTTP 服务异常的问题(#596)
 - 修复安装包 isp 文件丢失问题(#584/#585/#560)
 - 修复 Pod annotation 中日志多行匹配不生效的问题(#620)
@@ -1297,7 +1322,7 @@ volumes:
 
 ## 1.2.3(2022/01/10)
 
-- 修复 datakit.yaml 格式错误问题(#544)
+- 修复 *datakit.yaml* 格式错误问题(#544)
 - 修复 [MySQL 采集器](mysql)选举问题(#543)
 - 修复因 Pipeline 不配置导致日志不采集的问题(#546)
 
@@ -1331,7 +1356,7 @@ volumes:
 - [Redis 采集器](redis.md)
     - 支持配置 [Redis 用户名](redis.md)(#260)
     - 增加 Latency 以及 Cluster 指标集(#396)
-- [Kafka 采集器](kafka.md)增强，支持 topic/broker/consumer/connnetion 等维度的指标(#397)
+- [Kafka 采集器](kafka.md)增强，支持 topic/broker/consumer/connection 等维度的指标(#397)
 - 新增 [ClickHouse](clickhousev1.md) 以及 [Flink](flinkv1.md) 采集器(#458/#459)
 - [主机对象采集器](hostobject)
     - 支持从 [`ENV_CLOUD_PROVIDER`](hostobject#224e2ccd) 读取云同步配置(#501)
@@ -1343,7 +1368,7 @@ volumes:
 
 ### Bug 修复
 
-- 修复 [Statsd](statsd)/[Rabbitmq](rabbitmq) 指标问题(#497)
+- 修复 [Statsd](statsd)/[RabbitMQ](rabbitmq) 指标问题(#497)
 - 修复 [Windows Event](windows_event) 采集数据问题(#521)
 
 ### 其它
@@ -1353,7 +1378,7 @@ volumes:
     - 增加 [`set_tag()`](pipeline#6e8c5285) 函数(#444)
     - 增加 [`drop()`](pipeline#fb024a10) 函数(#498)
 - Git 模式
-    - 在 DaemonSet 模式下的 Git，支持识别 `ENV_DEFAULT_ENABLED_INPUTS` 并将其生效，非 DaemonSet 模式下，会自动开启 datakit.conf 中默认开启的采集器(#501)
+    - 在 DaemonSet 模式下的 Git，支持识别 `ENV_DEFAULT_ENABLED_INPUTS` 并将其生效，非 DaemonSet 模式下，会自动开启 *datakit.conf* 中默认开启的采集器(#501)
     - 调整 Git 模式下文件夹[存放策略]()(#509)
 - 推行新的版本号机制(#484)
     - 新的版本号形式为 1.2.3，此处 `1` 为 major 版本号，`2` 为 minor 版本号，`3` 为 patch 版本号
@@ -1404,11 +1429,11 @@ volumes:
     - DataKit 支持自身事件上报（以日志形式）(#463)
     - [ElasticSearch](elasticsearch) 采集器指标集下增加 `indices_lifecycle_error_count` 指标（注意： 采集该指标，需在 ES [增加 `ilm` 角色](elasticsearch#852abae7)）
     - DataKit 安装完成后自动增加 [cgroup 限制](datakit-conf#4e7ff8f3)
-    - 部分跟中心对接的接口升级到了 v2 版本，故对接**非 SAAS 节点**的 DataKit，如果升级到当前版本，其对应的 DataWay 以及 Kodo 也需要升级，否则部分接口会报告 404 错误
+    - 部分跟中心对接的接口升级到了 v2 版本，故对接**非 SAAS 节点**的 Datakit，如果升级到当前版本，其对应的 DataWay 以及 Kodo 也需要升级，否则部分接口会报告 404 错误
 
 ### Breaking Changes
 
-处理 json 数据时，如果最顶层是数组，需要使用下标方式进行选择，例如 JSON
+处理 JSON 数据时，如果最顶层是数组，需要使用下标方式进行选择，例如 JSON
 
 ```
 [
@@ -1441,34 +1466,34 @@ volumes:
 ## 1.1.9-rc6(2021/11/30)
 
 - 针对 Pipeline 做了一点紧急修复：
-    - 移除 `json_all()` 函数，这个函数对于异常的 json 有严重的数据问题，故选择禁用之(#457)
+    - 移除 `json_all()` 函数，这个函数对于异常的 JSON 有严重的数据问题，故选择禁用之(#457)
     - 修正 `default_time()` 函数时区设置问题(#434)
-- 解决 [prom](prom) 采集器在 Kubernetes 环境下 HTTPS 访问问题(#447)
+- 解决 [`Prom`](prom) 采集器在 Kubernetes 环境下 HTTPS 访问问题(#447)
 - DataKit DaemonSet 安装的 [yaml 文件](https://static.guance.com/datakit/datakit.yaml){:target="_blank"} 公网可直接下载
 
 ---
 
 ## 1.1.9-rc5.1(2021/11/26)
 
-- 修复 ddtrace 采集器因脏数据挂掉的问题
+- 修复 DDTrace 采集器因脏数据挂掉的问题
 
 ---
 
 ## 1.1.9-rc5(2021/11/23)
 
-- 增加 [pythond(alpha)](pythond) ，便于用 Python3 编写自定义采集器(#367)
+- 增加 [Pythond(alpha)](pythond) ，便于用 Python3 编写自定义采集器(#367)
 <!-- - 支持 source map 文件处理，便于 RUM 采集器收集 JavaScript 调用栈信息(#267) -->
 - [SkyWalking V3](skywalking) 已支持到 8.5.0/8.6.0/8.7.0 三个版本(#385)
 - DataKit 初步支持[磁盘数据缓存(alpha)](datakit-conf#caa0869c)(#420)
 - DataKit 支持选举状态上报(#427)
-- DataKit 支持 scheck 状态上报(#428)
+- DataKit 支持 Scheck 状态上报(#428)
 - 调整 DataKit 使用入门文档，新的分类更便于找到具体文档
 
 ---
 
 ## 1.1.9-rc4.3(2021/11/19)
 
-- 修复容器日志采集器因 pipeline 配置失当无法启动的问题
+- 修复容器日志采集器因 Pipeline 配置失当无法启动的问题
 
 ---
 
@@ -1571,7 +1596,7 @@ volumes:
 - 选举功能已经覆盖到如下采集器：(#288)
     - [Kubernetes](kubernetes)
     - [Prom](prom)
-    - [Gitlab](gitlab)
+    - [GitLab](gitlab)
     - [NSQ](nsq)
     - [Apache](apache)
     - [InfluxDB](influxdb)
@@ -1594,9 +1619,9 @@ volumes:
 
 ## 1.1.8-rc3(2021/09/10)
 
-- ddtrace 增加 [resource 过滤](ddtrace#224e2ccd)功能(#328)
+- DDTrace 增加 [resource 过滤](ddtrace#224e2ccd)功能(#328)
 - 新增 [NSQ](nsq) 采集器(#312)
-- K8s daemonset 部署时，部分采集器支持通过环境变量来变更默认配置，以[CPU 为例](cpu#1b85f981)(#309)
+- K8s DaemonSet 部署时，部分采集器支持通过环境变量来变更默认配置，以[CPU 为例](cpu#1b85f981)(#309)
 - 初步支持 [SkyWalkingV3](skywalking)(alpha)(#335)
 
 ### Bugs
@@ -1626,7 +1651,7 @@ volumes:
 
 ## 1.1.8-rc2.2(2021/08/26)
 
-- 修复 [hostdir](hostdir) 配置文件不存在问题
+- 修复 [`hostdir`](hostdir) 配置文件不存在问题
 
 ---
 
@@ -1646,8 +1671,8 @@ volumes:
 - [ElasticSearch](elasticsearch) 采集器完善(#275)
 - 新增[主机目录](hostdir)采集器(#264)
 - [CPU](cpu) 采集器支持单个 CPU 指标采集(#317)
-- [ddtrace](ddtrace) 支持多路由配置(#310)
-- [ddtrace](ddtrace#fb3a6e17) 支持自定义业务 tag 提取(#316)
+- [DDTrace](ddtrace) 支持多路由配置(#310)
+- [DDTrace](ddtrace#fb3a6e17) 支持自定义业务 tag 提取(#316)
 - [主机对象](hostobject)上报的采集器错误，只上报最近 30s(含)以内的错误(#318)
 - [DCA 客户端](dca)发布
 - 禁用 Windows 下部分命令行帮助(#319)
@@ -1659,7 +1684,7 @@ volumes:
 - 从环境变量 `ENV_HOSTNAME` 获取主机名的功能已移除（1.1.7-rc8 支持），可通过[主机名覆盖功能](datakit-install#987d5f91) 来实现
 - 移除命令选项 `--reload`
 - 移除 DataKit API `/reload`，代之以 `/restart`
-- 由于调整了命令行选项，之前的查看 monitor 的命令，也需要 sudo 权限运行（因为要读取 datakit.conf 自动获取 DataKit 的配置）
+- 由于调整了命令行选项，之前的查看 monitor 的命令，也需要 sudo 权限运行（因为要读取 *datakit.conf* 自动获取 Datakit 的配置）
 
 ---
 
@@ -1687,7 +1712,7 @@ volumes:
 - 完善[主机名覆盖功能](datakit-install#987d5f91)
 - 优化 Pipeline 处理性能（约 15 倍左右，视不同 Pipeline 复杂度而定）
 - 加强[行协议数据检查](apis#2fc2526a)
-- `system` 采集器，增加 [`conntrack`以及`filefd`](system) 两个指标集
+- `system` 采集器，增加 [`conntrack` 以及 `filefd`](system) 两个指标集
 - `datakit.conf` 增加 IO 调参入口，便于用户对 DataKit 网络出口流量做优化（参见下面的 Breaking Changes）
 - DataKit 支持[服务卸载和恢复](datakit-service-how-to#9e00a535)
 - Windows 平台的服务支持通过[命令行管理](datakit-service-how-to#147762ed)
@@ -1704,14 +1729,14 @@ volumes:
 
 ```toml
 [io]
-  feed_chan_size                 = 1024  # IO管道缓存大小
-  hight_frequency_feed_chan_size = 2048  # 高频IO管道缓存大小
-  max_cache_count                = 1024  # 本地缓存最大值，原主配置中 io_cache_count [此数值与max_dynamic_cache_count同时小于等于零将无限使用内存]
+  feed_chan_size                 = 1024  # IO 管道缓存大小
+  hight_frequency_feed_chan_size = 2048  # 高频 IO 管道缓存大小
+  max_cache_count                = 1024  # 本地缓存最大值，原主配置中 io_cache_count [此数值与 max_dynamic_cache_count 同时小于等于零将无限使用内存]
   cache_dump_threshold         = 512   # 本地缓存推送后清理剩余缓存阈值 [此数值小于等于零将不清理缓存，如遇网络中断可导致内存大量占用]
-  max_dynamic_cache_count      = 1024  # HTTP缓存最大值，[此数值与max_cache_count同时小于等于零将无限使用内存]
-  dynamic_cache_dump_threshold = 512   # HTTP缓存推送后清理剩余缓存阈值，[此数值小于等于零将不清理缓存，如遇网络中断可导致内存大量占用]
+  max_dynamic_cache_count      = 1024  # HTTP 缓存最大值，[此数值与 max_cache_count 同时小于等于零将无限使用内存]
+  dynamic_cache_dump_threshold = 512   # HTTP 缓存推送后清理剩余缓存阈值，[此数值小于等于零将不清理缓存，如遇网络中断可导致内存大量占用]
   flush_interval               = "10s" # 推送时间间隔
-  output_file                  = ""    # 输出io数据到本地文件，原主配置中 output_file
+  output_file                  = ""    # 输出 io 数据到本地文件，原主配置中 output_file
 
 [http_api]
 	listen          = "localhost:9529" # 原 http_listen
@@ -1740,7 +1765,7 @@ volumes:
 - 安装阶段支持填写云服务商、命名空间以及网卡绑定
 - 多命名空间的选举支持
 - 新增 [InfluxDB 采集器](influxdb)
-- datakit DQL 增加历史命令存储
+- Datakit DQL 增加历史命令存储
 - 其它一些细节 bug 修复
 
 ---
@@ -1778,13 +1803,13 @@ volumes:
 
 - 日志性能优化（对各个采集器自带的日志采集而言，目前仅针对 nginx/MySQL/Redis 做了适配，后续将适配其它各个自带日志收集的采集器）
 
-- 主机对象采集器，增加 [conntrack](hostobject#2300b531) 和 [filefd](hostobject#697f87e2) 俩类指标
+- 主机对象采集器，增加 [`conntrack`](hostobject#2300b531) 和 [`filefd`](hostobject#697f87e2) 俩类指标
 - 应用性能指标采集，支持[采样率设置](ddtrace#c59ce95c)
 - K8s 集群 Prometheus 指标采集[通用方案](kubernetes-prom)
 
 ### Breaking Changes
 
-- 在 datakit.conf 中配置的 `global_tags` 中，`host` tag 将不生效，此举主要为了避免大家在配置 host 时造成一些误解（即配置了 `host`，但可能跟实际的主机名不同，造成一些数据误解）
+- 在 *datakit.conf* 中配置的 `global_tags` 中，`host` tag 将不生效，此举主要为了避免大家在配置 host 时造成一些误解（即配置了 `host`，但可能跟实际的主机名不同，造成一些数据误解）
 
 ---
 
@@ -1857,9 +1882,9 @@ volumes:
 - 新增 [SQL Server 采集器](sqlserver)
 - 新增 [PostgreSQL 采集器](postgresql)
 - 新增 [statsd 采集器](statsd)，以支持采集从网络上发送过来的 statsd 数据
-- [JVM 采集器](jvm) 优先采用 ddtrace + statsd 采集
+- [JVM 采集器](jvm) 优先采用 DDTrace/StatsD 采集
 - 新增[容器采集器](container)，增强对 k8s 节点（Node）采集，以替代原有 [docker 采集器](docker)（原 docker 采集器仍可用）
-- [拨测采集器](dialtesting)支持 Headleass 模式
+- [拨测采集器](dialtesting)支持 Headless 模式
 - [Mongodb 采集器](mongodb) 支持采集 Mongodb 自身日志
 - DataKit 新增 DQL HTTP [API 接口](apis) `/v1/query/raw`
 - 完善部分采集器文档，增加中间件（如 MySQL/Redis/ES 等）日志采集相关文档
@@ -1883,7 +1908,7 @@ volumes:
 
 - [Apache](apache)
 - [Cloudprober 接入](cloudprober)
-- [Gitlab](gitlab)
+- [GitLab](gitlab)
 - [Jenkins](jenkins)
 - [Memcached](memcached)
 - [Mongodb](mongodb)
@@ -1976,7 +2001,7 @@ volumes:
 - 调整 docker 日志采集的[过滤方式](docker#a487059d)
 - [DataKit 支持选举](election)
 - 修复拨测历史数据清理问题
-- 大量文档[发布到语雀](https://www.yuque.com/dataflux/datakit)
+- 大量文档[发布到语雀](https://www.yuque.com/dataflux/datakit){:target="_blank"}
 - [DataKit 支持命令行集成 Telegraf](datakit-tools-how-to#d1b3b29b)
 - DataKit 单实例运行检测
 - DataKit [自动更新功能](datakit-update-crontab)
@@ -1993,12 +2018,12 @@ volumes:
 - Pipeline 增加脱敏函数 `cover()`
 - 优化命令行参数，更加便捷
 - 主机对象采集，默认过滤虚拟设备（仅 Linux 支持）
-- datakit 命令支持 `--start/--stop/--restart/--reload` 几个命令（需 root 权限），更加便于大家管理 DataKit 服务
+- Datakit 命令支持 `--start/--stop/--restart/--reload` 几个命令（需 root 权限），更加便于大家管理 DataKit 服务
 - 安装/升级完成后，默认开启进程对象采集器（目前默认开启列表为 `cpu/disk/diskio/mem/swap/system/hostobject/net/host_processes`）
 - 日志采集器 `tailf` 改名为 `logging`，原有的 `tailf` 名称继续可用
 - 支持接入 Security 数据
 - 移除 Telegraf 安装集成。如果需要 Telegraf 功能，可查看 :9529/man 页面，有专门针对 Telegraf 安装使用的文档
-- 增加 datakit-how-to 文档，便于大家初步入门（:9529/man 页面可看到）
+- 增加 Datakit How To 文档，便于大家初步入门（:9529/man 页面可看到）
 - 其它一些采集器的指标采集调整
 
 ---
@@ -2017,7 +2042,7 @@ volumes:
 
 ### Bug 修复
 
-- 修复 tailf 采集器配置文件兼容性问题，该问题导致 tailf 采集器无法运行
+- 修复 `tailf` 采集器配置文件兼容性问题，该问题导致 `tailf` 采集器无法运行
 
 ---
 
@@ -2036,18 +2061,18 @@ volumes:
 | `cpu`           | DataKit 内置 CPU 采集器，移除 Telegraf CPU 采集器，配置文件保持兼容。另外，Mac 平台暂不支持 CPU 采集，后续会补上                                                                          |
 | `disk`          | DataKit 内置磁盘采集器                                                                                                                                                                    |
 | `docker`        | 重新开发了 docker 采集器，同时支持容器对象、容器日志以及容器指标采集（额外增加对 K8s 容器采集）                                                                                           |
-| `elasticsearch` | DataKit 内置 ES 采集器，同时移除 Telegraf 中的 ES 采集器。另外，可在该采集器中直接配置采集 ES 日志                                                                                        |
-| `jvm`           | DataKit 内置 JVM 采集器                                                                                                                                                                   |
-| `kafka`         | DataKit 内置 Kafka 指标采集器，可在该采集器中直接采集 Kafka 日志                                                                                                                          |
-| `mem`           | DataKit 内置内存采集器，移除 Telegraf 内存采集器，配置文件保持兼容                                                                                                                        |
-| `mysql`         | DataKit 内置 MySQL 采集器，移除 Telegraf MySQL 采集器。可在该采集器中直接采集 MySQL 日志                                                                                                  |
-| `net`           | DataKit 内置网络采集器，移除 Telegraf 网络采集器。在 Linux 上，对于虚拟网卡设备，默认不再采集（需手动开启）                                                                               |
-| `nginx`         | DataKit 内置 Nginx 采集器，移除 Telegraf Ngxin 采集器。可在该采集器中直接采集 Nginx 日志                                                                                                  |
-| `oracle`        | DataKit 内置 Oracle 采集器。可在该采集器中直接采集 Oracle 日志                                                                                                                            |
-| `rabbitmq`      | DataKit 内置 RabbitMQ 采集器。可在该采集器中直接采集 RabbitMQ 日志                                                                                                                        |
-| `redis`         | DataKit 内置 Redis 采集器。可在该采集器中直接采集 Redis 日志                                                                                                                              |
-| `swap`          | DataKit 内置内存 swap 采集器                                                                                                                                                              |
-| `system`        | DataKit 内置 system 采集器，移除 Telegraf system 采集器。内置的 system 采集器新增三个指标： `load1_per_core/load5_per_core/load15_per_core`，便于客户端直接显示单核平均负载，无需额外计算 |
+| `elasticsearch` | Datakit 内置 ES 采集器，同时移除 Telegraf 中的 ES 采集器。另外，可在该采集器中直接配置采集 ES 日志                                                                                        |
+| `jvm`           | Datakit 内置 JVM 采集器                                                                                                                                                                   |
+| `kafka`         | Datakit 内置 Kafka 指标采集器，可在该采集器中直接采集 Kafka 日志                                                                                                                          |
+| `mem`           | Datakit 内置内存采集器，移除 Telegraf 内存采集器，配置文件保持兼容                                                                                                                        |
+| `mysql`         | Datakit 内置 MySQL 采集器，移除 Telegraf MySQL 采集器。可在该采集器中直接采集 MySQL 日志                                                                                                  |
+| `net`           | Datakit 内置网络采集器，移除 Telegraf 网络采集器。在 Linux 上，对于虚拟网卡设备，默认不再采集（需手动开启）                                                                               |
+| `nginx`         | Datakit 内置 NGINX 采集器，移除 Telegraf NGINX 采集器。可在该采集器中直接采集 NGINX 日志                                                                                                  |
+| `oracle`        | Datakit 内置 Oracle 采集器。可在该采集器中直接采集 Oracle 日志                                                                                                                            |
+| `rabbitmq`      | Datakit 内置 RabbitMQ 采集器。可在该采集器中直接采集 RabbitMQ 日志                                                                                                                        |
+| `redis`         | Datakit 内置 Redis 采集器。可在该采集器中直接采集 Redis 日志                                                                                                                              |
+| `swap`          | Datakit 内置内存 swap 采集器                                                                                                                                                              |
+| `system`        | Datakit 内置 system 采集器，移除 Telegraf system 采集器。内置的 system 采集器新增三个指标： `load1_per_core/load5_per_core/load15_per_core`，便于客户端直接显示单核平均负载，无需额外计算 |
 
 以上采集器的更新，非主机类型的采集器，绝大部分涉均有指标集、指标名的更新，具体参考各个采集器文档。
 
@@ -2127,13 +2152,7 @@ volumes:
 ### Bug 修复
 
 - 修复进程采集器部分空字段（进程用户以及进程命令缺失）问题
-- 修复 kubernetes 采集器内存占用率计算可能 panic 的问题
-
-<!--
-### 新增功能
-- `http://datakit:9529/reload` 会自动跳转到 `http://datakit:9529/stats`，便于查看 reload 后 datakit 的运行情况
-- `http://datakit:9529/reload` 页面增加每分钟采集频率（`frequency`）以及每次采集的数据量大小统计
-- `kubernetes` 指标采集器增加 node 的内存使用率（`mem_usage_percent`）采集 -->
+- 修复 Kubernetes 采集器内存占用率计算可能 panic 的问题
 
 ---
 
@@ -2142,7 +2161,7 @@ volumes:
 ### Bug 修复
 
 - 修复进程对象采集器 `name` 字段命名问题，以 `hostname + pid` 来命名 `name` 字段
-- 修正华为云对象采集器 pipeline 问题
+- 修正华为云对象采集器 Pipeline 问题
 - 修复 Nginx/MySQL/Redis 日志采集器升级后的兼容性问题
 
 ---
@@ -2177,7 +2196,7 @@ volumes:
     - 原来对于 uint64 的处理，将其自动转成了 string，这会导致使用过程中困扰。实际上可以更为精确的控制这个整数移除的问题
     - 对于超过 max-int64 的 uint 整数，采集器会丢弃这样的指标，因为目前 influx1.7 不支持 uint64 的指标
 
-- 移除部分原 dkctrl 命令执行功能，配置管理功能后续不再依赖该方式实现
+- 移除部分原 `dkctrl` 命令执行功能，配置管理功能后续不再依赖该方式实现
 
 ---
 
@@ -2186,13 +2205,13 @@ volumes:
 ### 功能改进
 
 - 容器安装时，必须注入 `ENV_UUID` 环境变量
-- 从旧版本升级后，会自动开启主机采集器（原 datakit.conf 会备份一个）
+- 从旧版本升级后，会自动开启主机采集器（原 *datakit.conf* 会备份一个）
 - 添加缓存功能，当出现网络抖动的情况下，不至于丢失采集到的数据（当长时间网络瘫痪的情况下，数据还是会丢失）
-- 所有使用 tailf 采集的日志，必须在 pipeline 中用 `time` 字段来指定切割出来的时间字段，否则日志存入时间字段会跟日志实际时间有出入
+- 所有使用 `tailf` 采集的日志，必须在 Pipeline 中用 `time` 字段来指定切割出来的时间字段，否则日志存入时间字段会跟日志实际时间有出入
 
 ### Bug 修复
 
-- 修复 zipkin 中时间单位问题
+- 修复 Zipkin 中时间单位问题
 - 主机对象出采集器中添加 `state` 字段
 
 ---
@@ -2201,7 +2220,7 @@ volumes:
 
 ### Bug 修复
 
-- 修复 mysqlmonitor 采集器 status/variable 字段均为 string 类型的问题。回退至原始字段类型。同时对 int64 溢出问题做了保护。
+- 修复 Mysql Monitor 采集器 `status/variable` 字段均为 string 类型的问题。回退至原始字段类型。同时对 int64 溢出问题做了保护。
 - 更改进程采集器部分字段命名，使其跟主机采集器命名一致
 
 ---
@@ -2210,7 +2229,7 @@ volumes:
 
 ### 发布说明
 
-本版本主要涉及部分采集器的 bug 修复以及 datakit 主配置的调整。
+本版本主要涉及部分采集器的 bug 修复以及 Datakit 主配置的调整。
 
 ### Breaking Changes
 
@@ -2220,20 +2239,20 @@ volumes:
 - 原 `pattern` 目录转移到 `pipeline` 目录下
 - 原 grok 中内置的 pattern，如 `%{space}` 等，都改成大写形式 `%{SPACE}`。**之前写好的 grok 需全量替换**
 - 移除 `datakit.conf` 中 `uuid` 字段，单独用 `.id` 文件存放，便于统一 DataKit 所有配置文件
-- 移除 ansible 采集器事件数据上报
+- 移除 Ansible 采集器事件数据上报
 
 ### Bug 修复
 
 - 修复 `prom`、`oraclemonitor` 采集不到数据的问题
 - `self` 采集器将主机名字段 hostname 改名成 host，并置于 tag 上
 - 修复 `mysqlMonitor` 同时采集 MySQL 和 MariaDB 类型冲突问题
-- 修复 Skywalking 采集器日志不切分导致磁盘爆满问题
+- 修复 SkyWalking 采集器日志不切分导致磁盘爆满问题
 
 ### 特性
 
 - 新增采集器/主机黑白名单功能（暂不支持正则）
 - 重构主机、进程、容器等对象采集器采集器
-- 新增 pipeline/grok 调试工具
+- 新增 Pipeline/Grok 调试工具
 - `-version` 参数除了能看当前版本，还将提示线上新版本信息以及更新命令
 - 支持 DDTrace 数据接入
 - `tailf` 采集器新日志匹配改成正向匹配

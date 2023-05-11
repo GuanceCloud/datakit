@@ -1,4 +1,4 @@
-{{.CSS}}
+
 # Apache
 ---
 
@@ -10,7 +10,14 @@ Apache 采集器可以从 Apache 服务中采集请求数、连接数等，并�
 
 ## 前置条件 {#requirements}
 
-- Apache 版本 >= `2.4.46 (Unix)`。已测试版本: `2.4.46 (Unix)` ~ `2.4.52 (Unix)`;
+- Apache 版本 >= `2.4.6 (Unix)`。已测试版本:
+    - [x] 2.4.56
+    - [x] 2.4.54
+    - [x] 2.4.41
+    - [x] 2.4.38
+    - [x] 2.4.29
+    - [x] 2.4.6
+
 - 一般发行版 Linux 会自带 Apache,如需下载[参见](https://httpd.apache.org/download.cgi){:target="_blank"};
 - 默认配置路径: `/etc/apache2/apache2.conf`, `/etc/apache2/httpd.conf`, `/usr/local/apache2/conf/httpd.conf`;
 - 开启 Apache `mod_status`，在 Apache 配置文件中添加:
@@ -33,6 +40,7 @@ sudo apachectl restart
 
 ## 配置 {#config}
 
+<!-- markdownlint-disable MD046 -->
 === "主机安装"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
@@ -46,6 +54,7 @@ sudo apachectl restart
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+<!-- markdownlint-enable -->
 
 ## 指标集 {#measurements}
 
@@ -64,7 +73,7 @@ sudo apachectl restart
 
 {{$m.Desc}}
 
--  标签
+- 标签
 
 {{$m.TagsMarkdownTable}}
 
@@ -72,7 +81,7 @@ sudo apachectl restart
 
 {{$m.FieldsMarkdownTable}}
 
-{{ end }} 
+{{ end }}
 
 ## 日志采集 {#logging}
 
@@ -90,17 +99,19 @@ sudo apachectl restart
 
 开启日志采集以后，默认会产生日志来源（`source`）为 `apache` 的日志。
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     必须将 DataKit 安装在 Apache 所在主机才能采集 Apache 日志
+<!-- markdownlint-enable -->
 
-## 日志 pipeline 功能切割字段说明 {#pipeline}
+## 日志 Pipeline 功能切割字段说明 {#pipeline}
 
 - Apache 错误日志切割
 
 错误日志文本示例：
 
-```
+``` log
 [Tue May 19 18:39:45.272121 2021] [access_compat:error] [pid 9802] [client ::1:50547] AH01797: client denied by server configuration: /Library/WebServer/Documents/server-status
 ```
 
@@ -117,7 +128,7 @@ sudo apachectl restart
 
 访问日志文本示例:
 
-``` 
+``` log
 127.0.0.1 - - [17/May/2021:14:51:09 +0800] "GET /server-status?auto HTTP/1.1" 200 917
 ```
 
@@ -126,9 +137,9 @@ sudo apachectl restart
 | 字段名         | 字段值                | 说明                         |
 | ---            | ---                   | ---                          |
 | `status`       | `info`                | 日志等级                     |
-| `ip_or_host`   | `127.0.0.1`           | 请求方ip或者host             |
+| `ip_or_host`   | `127.0.0.1`           | 请求方 IP 或者 host          |
 | `http_code`    | `200`                 | http status code             |
 | `http_method`  | `GET`                 | http 请求类型                |
-| `http_url`     | `/`                   | http 请求url                 |
+| `http_url`     | `/`                   | http 请求 URL                |
 | `http_version` | `1.1`                 | http version                 |
 | `time`         | `1621205469000000000` | 纳秒时间戳（作为行协议时间） |

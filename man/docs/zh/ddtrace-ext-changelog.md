@@ -10,6 +10,7 @@
 
 当前 DDTrace 已增加了如下技术栈的扩展：
 
+<!-- markdownlint-disable MD046 MD030 -->
 <div class="grid cards" markdown>
 
 -   :material-language-java: __Java__
@@ -22,12 +23,13 @@
     [:octicons-history-16:](https://github.com/GuanceCloud/dd-trace-java/releases){:target="_blank"}
 
 </div>
+<!-- markdownlint-enable -->
 
 ## 更新历史 {#changelog}
 
 <!--
 
-更新历史可以参考 datakit 的基本范式：
+更新历史可以参考 Datakit 的基本范式：
 
 ## 1.2.3(2022/12/12) {#cl-1.2.3}
 本次发布主要有如下更新：
@@ -39,70 +41,75 @@
 
 --->
 
-## v1.12.0 (2023/4/20) {#cl-1.10.2}
+## v1.12.1-guance (2023/5/11) {#cl-1.12.1-guance}
+
+### 修复 {#cl-1.12.1-guance-new}
+
+- 支持 MongoDB 脱敏， [MongoDB 脱敏问题](https://github.com/GuanceCloud/dd-trace-java/issues/38){:target="_blank"}
+- [支持达梦国产数据库](https://github.com/GuanceCloud/dd-trace-java/issues/39){:target="_blank"}
+
+
+## v1.12.0 (2023/4/20) {#cl-1.12.0}
 
 ### 修复 {#cl-1.12.0-new}
 
-- 合并最新 ddtrace tag:1.12.0.
-- 当当网 [dubbox 支持](https://github.com/GuanceCloud/dd-trace-java/issues/32).
-- 解决 jax-rs 与 dubbo 链路产生混淆的[问题](https://github.com/GuanceCloud/dd-trace-java/issues/34).
-- 解决 dubbo 链路拓扑图顺序不对的[问题](https://github.com/GuanceCloud/dd-trace-java/issues/35).
-- 解决 RocketMQ 与客户自定义链路数据冲突[问题](https://github.com/GuanceCloud/dd-trace-java/issues/29).
-- 解决 RocketMQ resource name[问题](https://github.com/GuanceCloud/dd-trace-java/issues/33).
-
+- 合并最新 DDTrace Tag:1.12.0
+- 当当网 [Dubbox 支持](https://github.com/GuanceCloud/dd-trace-java/issues/32){:target="_blank"}
+- 解决 [jax-rs 与 Dubbo 链路产生混淆的问题](https://github.com/GuanceCloud/dd-trace-java/issues/34){:target="_blank"}
+- 解决 [Dubbo 链路拓扑图顺序不对的问题](https://github.com/GuanceCloud/dd-trace-java/issues/35){:target="_blank"}
+- 解决 [RocketMQ 与客户自定义链路数据冲突问题](https://github.com/GuanceCloud/dd-trace-java/issues/29){:target="_blank"}
+- 解决 [RocketMQ Resource Name 问题](https://github.com/GuanceCloud/dd-trace-java/issues/33){:target="_blank"}
 
 ## v1.10.2 (2023/4/10) {#cl-1.10.2}
 
 ### 修复 {#cl-1.10.2-new}
 
-- 合并最新 ddtrace tag:1.10.
-- 修复 dubbo 探针不支持 @DubboReference 嵌套.
-- 修复 Rocketmq 链路客户自定义 context 之后获取失败问题.
-
+- 合并最新 DDTrace Tag: 1.10
+- 修复 Dubbo 探针不支持 `@DubboReference` 嵌套
+- 修复 RocketMQ 链路客户自定义 context 之后获取失败问题
 
 ## v1.8.0，v1.8.1，v1.8.3(2023/2/27) {#cl-1.8.0}
 
 ### 新加功能 {#cl-1.8.0-new}
 
-- 合并最新 ddtrace 分支.
+- 合并最新 DDTrace 分支
 - 增加功能 [获取特定函数的入参信息](https://github.com/GuanceCloud/dd-trace-java/issues/26){:target="_blank"}
 
 ## v1.4.1(2023/2/27) {#cl-1.4.1}
 
 ### 新加功能 {#cl-1.4.1-new}
 
-- 增加支持阿里云 RocketMQ 4.0系列.
+- 增加支持阿里云 RocketMQ 4.0 系列
 
 ## v1.4.0(2023/1/12) {#cl-1.4.0}
 
 ### 新加功能 {#cl-1.4.0-new}
 
-- 合并最新 ddtrace 最新分支v1.4.0.
+- 合并最新 DDTrace 最新分支 v1.4.0
 
 ## v1.3.2(2023/1/12) {#cl-1.3.2}
 
 ### 新加功能 {#cl-1.3.2-new}
 
-- 增加 redis 查看参数功能 [github-#19](https://github.com/GuanceCloud/dd-trace-java/issues/19){:target="_blank"})
-- 修改 dd-java-agent 默认端口 [github-#18](https://github.com/GuanceCloud/dd-trace-java/issues/18){:target="_blank"})
-- 阿里云 RocketMQ 单端为链路问题修正 [github-#22](https://github.com/GuanceCloud/dd-trace-java/issues/22){:target="_blank"})
+- 增加 Redis [查看参数功能](https://github.com/GuanceCloud/dd-trace-java/issues/19){:target="_blank"})
+- 修改 DDTrace-Java-Agent [默认端口](https://github.com/GuanceCloud/dd-trace-java/issues/18){:target="_blank"})
+- 阿里云 RocketMQ 单端为链路[问题修正](https://github.com/GuanceCloud/dd-trace-java/issues/22){:target="_blank"})
 
 ## v1.3.0(2022/12/28) {#cl-1.3.0}
 
 ### 新加功能 {#cl-1.3.0-new}
 
-- 合并最新 datadog 最新分支 v1.3.0.
-- 增加log patten支持.
-- 增加 hsf 框架支持.
-- 增加 axis1.4支持.
-- 增加阿里云 rocketmq 5.0 支持.
-
+- 合并最新 DataDog 最新分支 v1.3.0
+- 增加 Log Patten 支持
+- 增加 HSF 框架支持
+- 增加 Axis 1.4 支持
+- 增加阿里云 RocketMQ 5.0 支持
 
 ## v1.0.1(2022/12/23) {#cl-1.0.1}
 
 ### 新加功能 {#cl-1.0.1-new}
 
-- 合并最新 datadog 最新分支 v1.0.1.
+- 合并最新 DataDog 最新分支 v1.0.1.
 - 合并 attach 定制内容.
 
 ## v0.113.0-attach(2022/11/16) {#cl-0.113.0}
@@ -113,20 +120,19 @@
 
 ## 0.113.0(2022-10-25) {#cl-0.113.0}
 
-- [github下载地址](https://github.com/GuanceCloud/dd-trace-java/releases/tag/v0.113.0-guance){:target="_blank"}
+- [GitHub 下载地址](https://github.com/GuanceCloud/dd-trace-java/releases/tag/v0.113.0-guance){:target="_blank"}
 
 ### 功能调整说明 {#cl-0.113.0-new}
 
-- 以0.113.0 tag 为基准，合并之前的代码
+- 以 0.113.0 tag 为基准，合并之前的代码
 
-- 修复thrift TMultipexedProtocol 模型支持
-
+- 修复 Thrift `TMultipexedProtocol` 模型支持
 
 ## 0.108.1(2022-10-14) {#cl-0.118.0}
 
-合并 DataDog v0.108.1版本，进行编译同时保留了0.108.1
+合并 DataDog v0.108.1 版本，进行编译同时保留了 0.108.1
 
-- [github 下载地址](https://github.com/GuanceCloud/dd-trace-java/releases/tag/v0.108.1){:target="_blank"}
+- [GitHub 下载地址](https://github.com/GuanceCloud/dd-trace-java/releases/tag/v0.108.1){:target="_blank"}
 
 ### 功能调整说明 {#cl-0.118.0-new}
 
@@ -136,9 +142,9 @@
 
 ## 0.108.1(2022-09-06) {#cl-0.108.1}
 
-合并 DataDog v0.108.1版本，进行编译。
+合并 DataDog v0.108.1 版本，进行编译。
 
-- [github下载地址](https://github.com/GuanceCloud/dd-trace-java/releases/tag/v0.108.1)
+- [GitHub 下载地址](https://github.com/GuanceCloud/dd-trace-java/releases/tag/v0.108.1){:target="_blank"}
 
 ### 功能调整说明 {#cl-0.108.1-new}
 
@@ -150,17 +156,16 @@
 
 合并 DataDog 107 版本，进行编译。
 
-- [github下载地址](https://github.com/GuanceCloud/dd-trace-java/releases/tag/guance-107)
+- [GitHub 下载地址](https://github.com/GuanceCloud/dd-trace-java/releases/tag/guance-107){:target="_blank"}
 
 ---
 
 ## guance-0.105.0(2022-08-23) {#cl-0.105.0}
 
-[github下载地址](https://static.guance.com/ddtrace/dd-java-agent-guance-0.106.0-SNAPSHOT.jar)
+[GitHub 下载地址](https://static.guance.com/ddtrace/dd-java-agent-guance-0.106.0-SNAPSHOT.jar){:target="_blank"}
 
 ### 功能调整说明 {#cl-0.105.0}
 
-- 增加 RocketMq 探针 支持的版本(不低于4.8.0)。
-- 增加 Dubbo 探针 支持的版本(不低于2.7.0)。
-- 增加 Sql 脱敏功能：开启后将原始的 sql 语句添加到链路中以方便排查问题，启动 Agent 时增加配置参数 `-Ddd.jdbc.sql.obfuscation=true`
-
+- 增加 RocketMq 探针 支持的版本(不低于 4.8.0)。
+- 增加 Dubbo 探针 支持的版本(不低于 2.7.0)。
+- 增加 SQL 脱敏功能：开启后将原始的 SQL 语句添加到链路中以方便排查问题，启动 Agent 时增加配置参数 `-Ddd.jdbc.sql.obfuscation=true`

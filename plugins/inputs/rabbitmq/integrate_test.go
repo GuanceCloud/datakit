@@ -12,7 +12,6 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -35,6 +34,10 @@ import (
 var mCount map[string]struct{} = make(map[string]struct{}) // Length of got measurements.
 
 func TestRabbitmqInput(t *testing.T) {
+	if !testutils.CheckIntegrationTestingRunning() {
+		t.Skip()
+	}
+
 	start := time.Now()
 	cases, err := buildCases(t)
 	if err != nil {
@@ -57,7 +60,7 @@ func TestRabbitmqInput(t *testing.T) {
 
 			t.Logf("testing %s...", tc.name)
 
-			if err := tc.run(); err != nil {
+			if err := testutils.RetryTestRun(tc.run); err != nil {
 				tc.cr.Status = testutils.TestFailed
 				tc.cr.FailedMessage = err.Error()
 
@@ -82,6 +85,10 @@ func TestRabbitmqInput(t *testing.T) {
 	}
 }
 
+func getConfAccessPoint(host, port string) string {
+	return fmt.Sprintf("http://%s", net.JoinHostPort(host, port))
+}
+
 func buildCases(t *testing.T) ([]*caseSpec, error) {
 	t.Helper()
 
@@ -94,45 +101,45 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 	}{
 		{
 			name: "rabbitmq:3.8-management-alpine",
-			conf: fmt.Sprintf(`url = "http://%s"
+			conf: `url = ""
 			username = "guest"
 			password = "guest"
 			interval = "1s"
 			insecure_skip_verify = false
-			election = true`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
+			election = true`, // set conf URL later.
 			exposedPorts: []string{"15672/tcp"},
 		},
 
 		{
 			name: "rabbitmq:3.9-management-alpine",
-			conf: fmt.Sprintf(`url = "http://%s"
+			conf: `url = ""
 			username = "guest"
 			password = "guest"
 			interval = "1s"
 			insecure_skip_verify = false
-			election = true`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
+			election = true`, // set conf URL later.
 			exposedPorts: []string{"15672/tcp"},
 		},
 
 		{
 			name: "rabbitmq:3.10-management-alpine",
-			conf: fmt.Sprintf(`url = "http://%s"
+			conf: `url = ""
 			username = "guest"
 			password = "guest"
 			interval = "1s"
 			insecure_skip_verify = false
-			election = true`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
+			election = true`, // set conf URL later.
 			exposedPorts: []string{"15672/tcp"},
 		},
 
 		{
 			name: "rabbitmq:3.11-management-alpine",
-			conf: fmt.Sprintf(`url = "http://%s"
+			conf: `url = ""
 			username = "guest"
 			password = "guest"
 			interval = "1s"
 			insecure_skip_verify = false
-			election = true`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
+			election = true`, // set conf URL later.
 			exposedPorts: []string{"15672/tcp"},
 		},
 	}
@@ -149,9 +156,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)
 
-		uURL, err := url.Parse(ipt.URL)
-		require.NoError(t, err, "parse %s failed: %s", ipt.URL, err)
-
 		repoTag := strings.Split(base.name, ":")
 
 		cases = append(cases, &caseSpec{
@@ -163,7 +167,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			repoTag: repoTag[1],
 
 			exposedPorts: base.exposedPorts,
-			serverPorts:  []string{uURL.Port()},
 
 			cr: &testutils.CaseResult{
 				Name:        t.Name(),
@@ -344,7 +347,6 @@ func (cs *caseSpec) run() error {
 				Tag:        cs.repoTag,
 
 				ExposedPorts: cs.exposedPorts,
-				PortBindings: cs.getPortBindings(),
 			},
 
 			func(c *docker.HostConfig) {
@@ -364,7 +366,6 @@ func (cs *caseSpec) run() error {
 				Tag:        cs.repoTag,
 
 				ExposedPorts: cs.exposedPorts,
-				PortBindings: cs.getPortBindings(),
 			},
 
 			func(c *docker.HostConfig) {
@@ -380,6 +381,11 @@ func (cs *caseSpec) run() error {
 
 	cs.pool = p
 	cs.resource = resource
+
+	if err := cs.getMappingPorts(); err != nil {
+		return err
+	}
+	cs.ipt.URL = getConfAccessPoint(r.Host, cs.serverPorts[0]) // set conf URL here.
 
 	cs.t.Logf("check service(%s:%v)...", r.Host, cs.serverPorts)
 
@@ -422,6 +428,7 @@ func (cs *caseSpec) run() error {
 	cs.ipt.Terminate()
 
 	require.Equal(cs.t, 4, len(mCount))
+	mCount = map[string]struct{}{} // clear.
 
 	cs.t.Logf("exit...")
 	wg.Wait()
@@ -484,17 +491,17 @@ func (cs *caseSpec) getContainterName() string {
 	return name
 }
 
-func (cs *caseSpec) getPortBindings() map[docker.Port][]docker.PortBinding {
-	portBindings := make(map[docker.Port][]docker.PortBinding)
-
-	// check ports' mapping.
-	require.Equal(cs.t, len(cs.exposedPorts), len(cs.serverPorts))
-
+func (cs *caseSpec) getMappingPorts() error {
+	cs.serverPorts = make([]string, len(cs.exposedPorts))
 	for k, v := range cs.exposedPorts {
-		portBindings[docker.Port(v)] = []docker.PortBinding{{HostPort: docker.Port(cs.serverPorts[k]).Port()}}
+		mapStr := cs.resource.GetHostPort(v)
+		_, port, err := net.SplitHostPort(mapStr)
+		if err != nil {
+			return err
+		}
+		cs.serverPorts[k] = port
 	}
-
-	return portBindings
+	return nil
 }
 
 func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
@@ -523,33 +530,56 @@ type Arguments struct {
 
 func (cs *caseSpec) createQueue(remoteHost string) error {
 	for _, v := range cs.serverPorts {
-		data := Payload{
-			// fill struct
-		}
-		payloadBytes, err := json.Marshal(data)
-		if err != nil {
-			cs.t.Logf("json.Marshal failed: %v", err)
-			return err
-		}
-		body := bytes.NewReader(payloadBytes)
+		iter := time.NewTicker(time.Second)
+		defer iter.Stop()
 
-		req, err := http.NewRequest("PUT", "http://"+net.JoinHostPort(remoteHost, v)+"/api/queues/%2f/my.queue", body)
-		if err != nil {
-			cs.t.Logf("http PUT failed: %v", err)
-			return err
-		}
-		req.Close = true // https://stackoverflow.com/a/19006050
-		req.SetBasicAuth("guest", "guest")
-		req.Header.Set("Content-Type", "application/json")
+		timeout := time.NewTicker(2 * time.Minute)
+		defer timeout.Stop()
 
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			cs.t.Logf("http Do failed: %v", err)
-			return err
+		for {
+			select {
+			case <-timeout.C:
+				return fmt.Errorf("container network timeout.")
+
+			case <-iter.C:
+				cs.t.Logf("creating rabbitmq queue (%s, %s)...", remoteHost, v)
+				if err := cs.createQueueWork(remoteHost, v); err == nil {
+					cs.t.Logf("createQueueWork ok.")
+					return nil
+				}
+			}
 		}
-		defer resp.Body.Close()
 	}
 
+	return nil
+}
+
+func (cs *caseSpec) createQueueWork(remoteHost, serverPort string) error {
+	data := Payload{
+		// fill struct
+	}
+	payloadBytes, err := json.Marshal(data)
+	if err != nil {
+		cs.t.Logf("json.Marshal failed: %v", err)
+		return err
+	}
+	body := bytes.NewReader(payloadBytes)
+
+	req, err := http.NewRequest("PUT", "http://"+net.JoinHostPort(remoteHost, serverPort)+"/api/queues/%2f/my.queue", body)
+	if err != nil {
+		cs.t.Logf("http PUT failed: %v", err)
+		return err
+	}
+	req.Close = true // https://stackoverflow.com/a/19006050
+	req.SetBasicAuth("guest", "guest")
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		cs.t.Logf("http Do failed: %v", err)
+		return err
+	}
+	defer resp.Body.Close()
 	return nil
 }
 

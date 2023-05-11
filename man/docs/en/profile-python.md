@@ -57,12 +57,12 @@ DD_ENV=testing DD_SERVICE=python-profiling-manual DD_VERSION=1.2.3 python3 app.p
 
 ### 查看 Profile {#view}
 
-程序启动后，ddtrace会定期（默认1分钟上报一次）收集数据并上报给 DataKit，稍等几分钟后就可以在观测云空间[应用性能监测 -> Profile](https://console.guance.com/tracing/profile) 查看相应数据。
+程序启动后，ddtrace会定期（默认1分钟上报一次）收集数据并上报给 DataKit，稍等几分钟后就可以在观测云空间[应用性能监测 -> Profile](https://console.guance.com/tracing/profile){:target="_blank"} 查看相应数据。
 
 ## py-spy 接入 {#py-spy}
 
 `py-spy` 是由开源社区提供的一款无侵入式的 Python 性能指标采样工具，具有单独运行和对目标程序负载影响低等优点。
-默认情况下 `py-spy` 会根据指定的参数输出不同格式的采样数据到本地文件，为简化 `py-spy` 和 DataKit的集成， 观测云提供了一个分支版本 [py-spy-for-datakit](https://github.com/GuanceCloud/py-spy-for-datakit)， 在原版本基础上做了少量修改，支持自动把 profiling
+默认情况下 `py-spy` 会根据指定的参数输出不同格式的采样数据到本地文件，为简化 `py-spy` 和 DataKit的集成， 观测云提供了一个分支版本 [py-spy-for-datakit](https://github.com/GuanceCloud/py-spy-for-datakit){:target="_blank"}， 在原版本基础上做了少量修改，支持自动把 profiling
 数据发送到 DataKit。
 
 - 安装
@@ -73,7 +73,7 @@ DD_ENV=testing DD_SERVICE=python-profiling-manual DD_VERSION=1.2.3 python3 app.p
 pip3 install py-spy-for-datakit
 ```
 
-此外，[Github Release](https://github.com/GuanceCloud/py-spy-for-datakit/releases) 页面上提供了部分主流平台的预编译版本，你也可以下载之后
+此外，[Github Release](https://github.com/GuanceCloud/py-spy-for-datakit/releases){:target="_blank"} 页面上提供了部分主流平台的预编译版本，你也可以下载之后
 用 pip 安装，下面以 Linux x86_64 平台为例（其他平台类似），介绍一下预编译版本的安装步骤
 
 ```shell
@@ -140,4 +140,4 @@ py-spy-for-datakit datakit \
   -- python3 server.py  # 注意这里 python3 之前需额外加一个空格
 ```
 
-如果没有发生错误，稍等一两分钟后即可在观测云平台 [应用性能监测 -> Profile](https://console.guance.com/tracing/profile) 页面查看具体的性能指标数据。
+如果没有发生错误，稍等一两分钟后即可在观测云平台 [应用性能监测 -> Profile](https://console.guance.com/tracing/profile){:target="_blank"} 页面查看具体的性能指标数据。

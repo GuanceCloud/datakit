@@ -19,14 +19,24 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+// ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
+
+var mCount map[string]struct{} = make(map[string]struct{}) // Length of got measurements.
+
+const jvm = "jvm"
+
 func TestStatsdInput(t *testing.T) {
+	if !testutils.CheckIntegrationTestingRunning() {
+		t.Skip()
+	}
+
 	start := time.Now()
 	cases, err := buildCases(t)
 	if err != nil {
@@ -49,7 +59,7 @@ func TestStatsdInput(t *testing.T) {
 
 			t.Logf("testing %s...", tc.name)
 
-			if err := tc.run(); err != nil {
+			if err := testutils.RetryTestRun(tc.run); err != nil {
 				tc.cr.Status = testutils.TestFailed
 				tc.cr.FailedMessage = err.Error()
 
@@ -60,7 +70,7 @@ func TestStatsdInput(t *testing.T) {
 
 			tc.cr.Cost = time.Since(caseStart)
 
-			assert.NoError(t, testutils.Flush(tc.cr))
+			require.NoError(t, testutils.Flush(tc.cr))
 
 			t.Cleanup(func() {
 				// clean remote docker resources
@@ -68,7 +78,7 @@ func TestStatsdInput(t *testing.T) {
 					return
 				}
 
-				assert.NoError(t, tc.pool.Purge(tc.resource))
+				require.NoError(t, tc.pool.Purge(tc.resource))
 			})
 		})
 	}
@@ -89,7 +99,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		{
 			name: "pubrepo.jiagouyun.com/image-repo-for-testing/java:jvm-ddtrace-statsd-8",
 			conf: `protocol = "udp"
-			service_address = ":58125"
+			service_address = ":"
 			metric_separator = "_"
 			drop_tags = ["runtime-id"]
 			metric_mapping = [
@@ -105,8 +115,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			datadog_extensions = true
 			datadog_distributions = true
 			allowed_pending_messages = 10000
-			percentile_limit = 1000`,
-			// exposedPorts: []string{"8080/tcp"},
+			percentile_limit = 1000`, // set conf address later.
 			opts: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("heap_memory", "heap_memory_committed", "heap_memory_init", "heap_memory_max", "non_heap_memory", "non_heap_memory_committed", "non_heap_memory_init", "non_heap_memory_max", "thread_count", "gc_cms_count", "gc_major_collection_count", "gc_minor_collection_count", "gc_parnew_time", "gc_major_collection_time", "gc_minor_collection_time", "os_open_file_descriptors", "gc_eden_size", "gc_old_gen_size", "buffer_pool_direct_used", "buffer_pool_direct_capacity", "cpu_load_system", "buffer_pool_mapped_capacity", "buffer_pool_mapped_count", "cpu_load_process", "gc_survivor_size", "buffer_pool_direct_count", "gc_metaspace_size", "loaded_classes", "buffer_pool_mapped_used"), //nolint:lll
 				inputs.WithOptionalTags("name"), //nolint:lll
@@ -116,7 +125,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		{
 			name: "pubrepo.jiagouyun.com/image-repo-for-testing/java:jvm-ddtrace-statsd-11",
 			conf: `protocol = "udp"
-			service_address = ":58125"
+			service_address = ":"
 			metric_separator = "_"
 			drop_tags = ["runtime-id"]
 			metric_mapping = [
@@ -132,8 +141,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			datadog_extensions = true
 			datadog_distributions = true
 			allowed_pending_messages = 10000
-			percentile_limit = 1000`,
-			// exposedPorts: []string{"8080/tcp"},
+			percentile_limit = 1000`, // set conf address later.
 			opts: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("heap_memory", "heap_memory_committed", "heap_memory_init", "heap_memory_max", "non_heap_memory", "non_heap_memory_committed", "non_heap_memory_init", "non_heap_memory_max", "thread_count", "gc_cms_count", "gc_major_collection_count", "gc_minor_collection_count", "gc_parnew_time", "gc_major_collection_time", "gc_minor_collection_time", "os_open_file_descriptors", "gc_eden_size", "gc_old_gen_size", "buffer_pool_direct_used", "buffer_pool_direct_capacity", "cpu_load_system", "buffer_pool_mapped_capacity", "buffer_pool_mapped_count", "cpu_load_process", "gc_survivor_size", "buffer_pool_direct_count", "gc_metaspace_size", "loaded_classes", "buffer_pool_mapped_used"), //nolint:lll
 				inputs.WithOptionalTags("name"), //nolint:lll
@@ -143,7 +151,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		{
 			name: "pubrepo.jiagouyun.com/image-repo-for-testing/java:jvm-ddtrace-statsd-17",
 			conf: `protocol = "udp"
-			service_address = ":58125"
+			service_address = ":"
 			metric_separator = "_"
 			drop_tags = ["runtime-id"]
 			metric_mapping = [
@@ -159,8 +167,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			datadog_extensions = true
 			datadog_distributions = true
 			allowed_pending_messages = 10000
-			percentile_limit = 1000`,
-			// exposedPorts: []string{"8080/tcp"},
+			percentile_limit = 1000`, // set conf address later.
 			opts: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("heap_memory", "heap_memory_committed", "heap_memory_init", "heap_memory_max", "non_heap_memory", "non_heap_memory_committed", "non_heap_memory_init", "non_heap_memory_max", "thread_count", "gc_cms_count", "gc_major_collection_count", "gc_minor_collection_count", "gc_parnew_time", "gc_major_collection_time", "gc_minor_collection_time", "os_open_file_descriptors", "gc_eden_size", "gc_old_gen_size", "buffer_pool_direct_used", "buffer_pool_direct_capacity", "cpu_load_system", "buffer_pool_mapped_capacity", "buffer_pool_mapped_count", "cpu_load_process", "gc_survivor_size", "buffer_pool_direct_count", "gc_metaspace_size", "loaded_classes", "buffer_pool_mapped_used"), //nolint:lll
 				inputs.WithOptionalTags("name"), //nolint:lll
@@ -170,7 +177,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		{
 			name: "pubrepo.jiagouyun.com/image-repo-for-testing/java:jvm-ddtrace-statsd-20",
 			conf: `protocol = "udp"
-			service_address = ":58125"
+			service_address = ":"
 			metric_separator = "_"
 			drop_tags = ["runtime-id"]
 			metric_mapping = [
@@ -186,8 +193,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			datadog_extensions = true
 			datadog_distributions = true
 			allowed_pending_messages = 10000
-			percentile_limit = 1000`,
-			// exposedPorts: []string{"8080/tcp"},
+			percentile_limit = 1000`, // set conf address later.
 			opts: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("heap_memory", "heap_memory_committed", "heap_memory_init", "heap_memory_max", "non_heap_memory", "non_heap_memory_committed", "non_heap_memory_init", "non_heap_memory_max", "thread_count", "gc_cms_count", "gc_major_collection_count", "gc_minor_collection_count", "gc_parnew_time", "gc_major_collection_time", "gc_minor_collection_time", "os_open_file_descriptors", "gc_eden_size", "gc_old_gen_size", "buffer_pool_direct_used", "buffer_pool_direct_capacity", "cpu_load_system", "buffer_pool_mapped_capacity", "buffer_pool_mapped_count", "cpu_load_process", "gc_survivor_size", "buffer_pool_direct_count", "gc_metaspace_size", "loaded_classes", "buffer_pool_mapped_used"), //nolint:lll
 				inputs.WithOptionalTags("name"), //nolint:lll
@@ -205,7 +211,13 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		ipt.feeder = feeder
 
 		_, err := toml.Decode(base.conf, ipt)
-		assert.NoError(t, err)
+		require.NoError(t, err)
+
+		conn, randPort, err := testutils.RandPortUDP()
+		require.NoError(t, err)
+		randPortStr := fmt.Sprintf("%d", randPort)
+		ipt.ServiceAddress += randPortStr // :8125
+		ipt.UDPlistener = conn
 
 		repoTag := strings.Split(base.name, ":")
 
@@ -219,6 +231,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 			dockerFileText: base.dockerFileText,
 			exposedPorts:   base.exposedPorts,
+			serverPorts:    []string{randPortStr},
 			opts:           base.opts,
 
 			cr: &testutils.CaseResult{
@@ -239,7 +252,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-
 // caseSpec.
 
 type caseSpec struct {
@@ -250,6 +262,7 @@ type caseSpec struct {
 	repoTag        string
 	dockerFileText string
 	exposedPorts   []string
+	serverPorts    []string
 	opts           []inputs.PointCheckOption
 
 	ipt    *input
@@ -272,21 +285,17 @@ type FeedMeasurementBody []struct {
 ////////////////////////////////////////////////////////////////////////////////
 
 type jvmMeasurement struct {
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	election bool
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+	ipt    *input
 }
 
 // Point implement MeasurementV2.
 func (m *jvmMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-
-	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
+	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -301,7 +310,7 @@ func (j *jvmMeasurement) LineProto() (*dkpt.Point, error) {
 // From: https://docs.datadoghq.com/tracing/metrics/runtime_metrics/java/#data-collected
 func (j *jvmMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "jvm",
+		Name: jvm,
 		Fields: map[string]interface{}{
 			"heap_memory":                 &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
 			"heap_memory_committed":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
@@ -357,7 +366,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 		measurement := string(pt.Name())
 
 		switch measurement {
-		case "jvm":
+		case jvm:
 			opts = append(opts, inputs.WithDoc(&jvmMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
@@ -370,6 +379,8 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			if len(msgs) > 0 {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
+
+			mCount[jvm] = struct{}{}
 
 		default: // TODO: check other measurement
 			panic("not implement")
@@ -441,10 +452,7 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), "UDP_PORT=58125"},
-
-				ExposedPorts: cs.exposedPorts,
-				PortBindings: cs.getPortBindings(),
+				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), "UDP_PORT=" + cs.serverPorts[0]},
 			},
 
 			func(c *docker.HostConfig) {
@@ -462,10 +470,7 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), "UDP_PORT=58125"},
-
-				ExposedPorts: cs.exposedPorts,
-				PortBindings: cs.getPortBindings(),
+				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), "UDP_PORT=" + cs.serverPorts[0]},
 			},
 
 			func(c *docker.HostConfig) {
@@ -483,7 +488,7 @@ func (cs *caseSpec) run() error {
 	cs.pool = p
 	cs.resource = resource
 
-	cs.t.Logf("check service(%s:%v)...", r.Host, cs.exposedPorts)
+	cs.t.Logf("listening: %v, remote = %s", cs.serverPorts, r.Host)
 
 	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
 
@@ -520,6 +525,9 @@ func (cs *caseSpec) run() error {
 
 	cs.t.Logf("stop input...")
 	cs.ipt.Terminate()
+
+	require.Equal(cs.t, 1, len(mCount))
+	mCount = map[string]struct{}{} // clear.
 
 	cs.t.Logf("exit...")
 	wg.Wait()
@@ -580,14 +588,4 @@ func (cs *caseSpec) getContainterName() string {
 	nameTag := strings.Split(cs.name, ":")
 	name := filepath.Base(nameTag[0])
 	return name
-}
-
-func (cs *caseSpec) getPortBindings() map[docker.Port][]docker.PortBinding {
-	portBindings := make(map[docker.Port][]docker.PortBinding)
-
-	for _, v := range cs.exposedPorts {
-		portBindings[docker.Port(v)] = []docker.PortBinding{{HostIP: "0.0.0.0", HostPort: docker.Port(v).Port()}}
-	}
-
-	return portBindings
 }

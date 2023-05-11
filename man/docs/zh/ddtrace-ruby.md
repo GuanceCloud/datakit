@@ -1,4 +1,3 @@
-{{.CSS}}
 
 # Ruby
 
@@ -6,29 +5,29 @@
 
 ## 安装依赖 {#dependence}
 
-**RAILS APPLICATIONS**
+### Rails Applications {#rails-app}
 
-- 添加 ddtrace gem 到你的 Gemfile：
+- 添加 DDTrace gem 到你的 Gemfile：
 
 ```shell
 source 'https://rubygems.org'
 gem 'ddtrace', require: 'ddtrace/auto_instrument'
 ```
 
-- 使用 bundle install 安装 gem
+- 使用 `bundle install` 安装 `gem`
 
-- 创建配置文件 config/initializers/datadog.rb：
+- 创建配置文件 *config/initializers/datadog.rb*：
 
-```rb
+```ruby
 Datadog.configure do |c|
   # Add additional configuration here.
   # Activate integrations, change tracer settings, etc...
 end
 ```
 
-**RUBY APPLICATIONS**
+### Ruby Applications {#ruby-app}
 
-- 添加 ddtrace gem 到你的 Gemfile：
+- 添加 DDTrace gem 到你的 Gemfile：
 
 ```shell
 source 'https://rubygems.org'
@@ -41,7 +40,7 @@ gem 'ddtrace'
 
 > 需要在所有 library 和 framework 加载后再加载。
 
-```rb
+```ruby
 # Example frameworks and libraries
 require 'sinatra'
 require 'faraday'
@@ -59,9 +58,9 @@ Datadog.configure do |c|
 end
 ```
 
-**CONFIGURING OPENTRACING**
+### Configuring OpenTracing {#open-tracing}
 
-- 添加 ddtrace gem 到你的 Gemfile：
+- 添加 DDTrace gem 到你的 Gemfile：
 
 ```shell
 source 'https://rubygems.org'
@@ -94,11 +93,11 @@ Datadog.configure do |c|
 end
 ```
 
-**INTEGRATION INSTRUMENTATION**
+### Integration Instrumentation {#integration}
 
 很多 libraries and frameworks 支持开箱即用的自动检测功能。通过简单配置即可打开自动检测。使用 Datadog.configure API：
 
-```rb
+```ruby
 Datadog.configure do |c|
 
 # Activates and configures an integration
@@ -119,7 +118,7 @@ ruby your_ruby_script.rb
 
 也可以通过配置 Datadog.configure 代码块：
 
-```rb
+```ruby
 Datadog.configure do |c|
   c.agent.host = '127.0.0.1'
   c.agent.port = 9529

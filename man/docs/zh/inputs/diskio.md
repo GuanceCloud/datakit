@@ -1,4 +1,4 @@
-{{.CSS}}
+
 # DiskIO
 ---
 
@@ -6,7 +6,7 @@
 
 ---
 
-diskio 采集器用于磁盘流量和时间的指标的采集
+磁盘 IO 采集器用于磁盘流量和时间的指标的采集。
 
 ## 前置条件 {#requests}
 
@@ -22,6 +22,7 @@ diskperf -Y
 
 ## 配置 {#config}
 
+<!-- markdownlint-disable MD046 -->
 === "主机安装"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
@@ -44,6 +45,7 @@ diskperf -Y
     | `ENV_INPUT_DISKIO_DEVICES`            | `devices`            | `'''^sdb\d*'''`                                              |
     | `ENV_INPUT_DISKIO_DEVICE_TAGS`        | `device_tags`        | `"ID_FS_TYPE", "ID_FS_USAGE"` 以英文逗号隔开                 |
     | `ENV_INPUT_DISKIO_NAME_TEMPLATES`     | `name_templates`     | `"$ID_FS_LABEL", "$DM_VG_NAME/$DM_LV_NAME"` 以英文逗号隔开   |
+<!-- markdownlint-enable -->
 
 ## 指标集 {#measurements}
 
@@ -53,7 +55,7 @@ diskperf -Y
 
 ### `{{$m.Name}}`
 
--  标签
+- 标签
 
 {{$m.TagsMarkdownTable}}
 
@@ -69,16 +71,11 @@ diskperf -Y
 
 ### Linux 平台下采集磁盘 `await` {#linux-await}
 
-默认情况下，DataKit 无法采集磁盘 `await` 指标，如果需要获取该指标，可以通过[自定义 Python 采集器](../../developers/pythond/)的方式来采集。
-
-**前置条件**
-
-- [开启 pythond](../../developers/pythond/) 
+默认情况下，DataKit 无法采集磁盘 `await` 指标，如果需要获取该指标，可以通过[自定义 Python 采集器](../developers/pythond.md)的方式来采集。
 
 进入 DataKit 安装目录，复制 `pythond.conf.sample` 文件并将其命名为 `pythond.conf`。修改相应配置如下：
 
 ```toml
-
 [[inputs.pythond]]
 
     # Python 采集器名称
@@ -95,7 +92,7 @@ diskperf -Y
 
 ```
 
-- 安装 `sar` 命令, 具体参考 [https://github.com/sysstat/sysstat#installation](https://github.com/sysstat/sysstat#installation)
+- 安装 `sar` 命令, 具体参考 [https://github.com/sysstat/sysstat#installation](https://github.com/sysstat/sysstat#installation){:target="_blank"}
 
 ubuntu 安装参考如下
 
@@ -134,12 +131,11 @@ Average:          DEV       tps  rd_sec/s  wr_sec/s  avgrq-sz  avgqu-sz     awai
 Average:       dev8-0      0.00      0.00      0.00      0.00      0.00      0.00      0.00      0.00
 Average:     dev253-0      0.00      0.00      0.00      0.00      0.00      0.00      0.00      0.00
 Average:     dev253-1      0.00      0.00      0.00      0.00      0.00      0.00      0.00      0.00
-
 ```
 
-**采集脚本**
+### 采集脚本 {#py-script}
 
-新建文件 `<DataKit目录>/python.d/diskio/diskio.py`，脚本内容如下：
+新建文件 *<DataKit 目录>/python.d/diskio/diskio.py*，脚本内容如下：
 
 ```python
 import subprocess
@@ -227,16 +223,15 @@ class DiskIO(DataKitFramework):
                     stat_info[name] = stat[index]
                 stats.append(stat_info) 
         return stats
-
 ```
 
 文件保存后，重启 DataKit，稍后即可在观测云平台看到相应的指标。
 
-**指标列表**
+### 指标列表 {#ext-metrics}
 
-`sar` 命令可以获取很多有用的[磁盘指标](https://man7.org/linux/man-pages/man1/sar.1.html)，上述脚本只采集了 `await` 和 `svctm`，如果需要采集额外的指标，可以对脚本进行相应修改。
+`sar` 命令可以获取很多有用的[磁盘指标](https://man7.org/linux/man-pages/man1/sar.1.html){:target="_blank"}，上述脚本只采集了 `await` 和 `svctm`，如果需要采集额外的指标，可以对脚本进行相应修改。
 
-| Metric | Description | Type | Unit |
-| ---- | ---- | ---- | ---- |
-| `await` | The average time (in milliseconds) for I/O requests issued to the device to be served.  This includes the time spent by the requests in queue and the time spent servicing them. | float | ms |
-| `svctm` | awaitThe average service time (in milliseconds) for I/O requests that were issued to the device. | float | ms |
+| Metric  | Description                                                                                                                                                                      | Type  | Unit |
+| ----    | ----                                                                                                                                                                             | ----  | ---- |
+| `await` | The average time (in milliseconds) for I/O requests issued to the device to be served.  This includes the time spent by the requests in queue and the time spent servicing them. | float | ms   |
+| `svctm` | awaitThe average service time (in milliseconds) for I/O requests that were issued to the device.                                                                                 | float | ms   |

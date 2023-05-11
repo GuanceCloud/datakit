@@ -17,16 +17,16 @@
 如果进一步归纳，又可以分为两种类型：
 
 - 基于 DataKit 的配置
-	- conf
-	- ENV
-	- Git
-	- DCA
+    - conf
+    - ENV
+    - Git
+    - DCA
 - 基于**被采集实体**的配置
-	- Annotation
+    - Annotation
 
 由于存在这么多不同的配置方式，不同配置方式之间还存在优先级关系，下文以优先级从低到高的顺序，开始逐个分解。
 
-### 通过 configmap 配置 {#via-configmap-conf}
+### 通过 ConfigMap 配置 {#via-configmap-conf}
 
 DataKit 运行在 K8s 环境中时，实际上跟运行在主机上并无太大差异，它仍然会去读取 _.conf_ 目录下的采集器配置。所以，通过 ConfigMap 等方式注入采集器配置是完全可行的，有的时候，甚至是唯一的方式，比如，在当前的 DataKit 版本中，MySQL 采集器的开启，只能通过注入 ConfigMap 方式。
 
@@ -38,7 +38,7 @@ DataKit 运行在 K8s 环境中时，实际上跟运行在主机上并无太大�
 ENV_INPUT_XXX_YYY
 ```
 
-此处 `XXX` 指采集器名字，`YYY` 即该采集器配置中的特定配置字段，比如 `ENV_INPUT_CPU_PERCPU` 用来调整 [CPU 采集器](cpu.md) _是否采集每个 CPU 核心的指标_（默认情况下，该选项是默认关闭的，即不采集每个核心的 CPU 指标）
+此处 `XXX` 指采集器名字，`YYY` 即该采集器配置中的特定配置字段，比如 `ENV_INPUT_CPU_PERCPU` 用来调整 [CPU 采集器](cpu.md) 「是否采集每个 CPU 核心的指标」（默认情况下，该选项是默认关闭的，即不采集每个核心的 CPU 指标）
 
 需要注意的是，目前并不是所有的采集器都支持 ENV 注入。支持 ENV 注入的采集器，一般都是[默认开启的采集器](datakit-input-conf.md#default-enabled-inputs)。通过 ConfigMap 开启的采集器，也支持 ENV 注入的（具体看该采集器是否支持），而且**默认以 ENV 注入的为准**。
 
@@ -46,7 +46,7 @@ ENV_INPUT_XXX_YYY
 
 ### 通过 Annotation 配置 {#annotation}
 
-目前 Annotation 配置的方式支持面较之 ENV 方式更为狭窄，它主要用来**标记被采集实体**，比如_是否需要开启/关闭某实体的采集（含日志采集、指标采集等）_
+目前 Annotation 配置的方式支持面较之 ENV 方式更为狭窄，它主要用来**标记被采集实体**，比如「是否需要开启/关闭某实体的采集（含日志采集、指标采集等）」
 
 通过 Annotation 来干预采集器配置的场景比较特殊，比如在容器（Pod）日志采集器中，如果禁止采集所有日志（在容器采集器中 `container_exclude_log = [image:*]`），但只希望开启特定某些 Pod 的日志采集，那么就可以在特定的这些 Pod 上追加 Annotation 加以标记：
 
@@ -71,7 +71,7 @@ spec:
               "pipeline": "test.p"          # 设置该 Pod 日志的 Pipeline
             }
           ]
-	...
+    ...
 ```
 
 > 注意：目前 Annotation 方式还不支持主流的采集器开启（目前只支持 [Prom](prom.md)）。后续会增加更多采集器。
@@ -95,14 +95,14 @@ Git 方式在主机模式和 K8s 模式下均支持，它本质上是一种 conf
 在 Git 模式下，如果要调整默认采集器的配置（不想开启或要对其做对应的配置），有几种方式：
 
 - 可将它们从 _datakit.conf_ 或者 _datakit.yaml_ 中移除掉。**此时它们就不是默认开启的采集器了**。
--	如果要修改特定采集器的配置，有如下几种方式：
-	- 将它们的 conf 通过 Git 管理起来
-	- 通过上文提及的 ENV 注入（具体要看该采集器是否支持 ENV 注入）
-	- 如果该采集器支持 Annotation 标记，也可以通过该方式来调整
+- 如果要修改特定采集器的配置，有如下几种方式：
+    - 将它们的 conf 通过 Git 管理起来
+    - 通过上文提及的 ENV 注入（具体要看该采集器是否支持 ENV 注入）
+    - 如果该采集器支持 Annotation 标记，也可以通过该方式来调整
 
 ### DCA 配置方式 {#dca}
 
-[DCA](dca.md) 配置方式实际上跟 Git 有点类似，它们都只能影响 DataKit 上的 conf/pipeline/pythond 文件配置。只是对 DCA 而言，它的功能没有 Git 强大，一般只用于小范围管理几台 DataKit 上的文件。
+[DCA](dca.md) 配置方式实际上跟 Git 有点类似，它们都只能影响 DataKit 上的采集器配置、Pipeline 配置以及 Pythond 配置。只是对 DCA 而言，它的功能没有 Git 强大，一般只用于小范围管理几台 DataKit 上的文件。
 
 ## 总结 {#summary}
 
@@ -110,6 +110,6 @@ Git 方式在主机模式和 K8s 模式下均支持，它本质上是一种 conf
 
 ## 延伸阅读 {#more-readings}
 
-- [DataKit 配置](datakit-conf.md) 
-- [DataKit 采集器配置](datakit-input-conf.md) 
-- [Daemonset 安装 DataKit](datakit-daemonset-deploy.md)
+- [DataKit 配置](datakit-conf.md)
+- [DataKit 采集器配置](datakit-input-conf.md)
+- [DaemonSet 安装 Datakit](datakit-daemonset-deploy.md)

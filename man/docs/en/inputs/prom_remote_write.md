@@ -92,7 +92,7 @@ The *prom_remote_write* collector will then write the collected data to the loca
 You can debug *prom_remote_write.conf* by executing the following command.
 
 ```shell
-datakit tool --prom-conf prom_remote_write.conf
+datakit debug --prom-conf prom_remote_write.conf
 ```
 
 Parameter description:

@@ -1,4 +1,4 @@
-{{.CSS}}
+
 # 采集器配置
 ---
 
@@ -9,22 +9,23 @@ DataKit 中采集器配置均使用 [Toml 格式](https://toml.io/cn){:target="_
 - Linux/Mac：`/usr/local/datakit/conf.d/`
 - Windows：`C:\Program Files\datakit\conf.d\`
 
-
 一个典型的配置采集器文件，其结构大概如下：
 
 ```toml
 [[inputs.some_name]] # 这一行是必须的，它表明这个 toml 文件是哪一个采集器的配置
-	key = value
-	...
+    key = value
+    ...
 
 [[inputs.some_name.other_options]] # 这一行则可选，有些采集器配置有这一行，有些则没有
-	key = value
-	...
+    key = value
+    ...
 ```
 
+<!-- markdownlint-disable MD046 -->
 ???+ tip
 
-    由于 DataKit 只会搜索 `conf.d/` 目录下以 `.conf` 为扩展的文件，故所有采集器配置 **必须放在 `conf.d` 目录下（或其下层子目录下），且必须以 `.conf`作为文件后缀**。否则，DataKit 会忽略处理该配置文件。
+    由于 DataKit 只会搜索 `conf.d/` 目录下以 `.conf` 为扩展的文件，故所有采集器配置 **必须放在 `conf.d` 目录下（或其下层子目录下），且必须以 `.conf` 作为文件后缀**。否则，DataKit 会忽略处理该配置文件。
+<!-- markdownlint-enable -->
 
 ## 默认开启的采集器 {#default-enabled-inputs}
 
@@ -34,17 +35,17 @@ DataKit 安装完成后，默认会开启一批采集器，无需手动开启。
 
 | 采集器名称                          | 说明                                                                           |
 | ---                                 | ---                                                                            |
-| [cpu](cpu.md)                       | 采集主机的 CPU 使用情况                                                        |
-| [disk](disk.md)                     | 采集磁盘占用情况                                                               |
-| [diskio](diskio.md)                 | 采集主机的磁盘 IO 情况                                                         |
-| [mem](mem.md)                       | 采集主机的内存使用情况                                                         |
-| [swap](swap.md)                     | 采集 Swap 内存使用情况                                                         |
-| [system](system.md)                 | 采集主机操作系统负载                                                           |
-| [net](net.md)                       | 采集主机网络流量情况                                                           |
-| [host_processes](host_processes.md) | 采集主机上常驻（存活 10min 以上）进程列表                                      |
-| [hostobject](hostobject.md)         | 采集主机基础信息（如操作系统信息、硬件信息等）                                 |
-| [container](container.md)           | 采集主机上可能的容器或 Kubernetes 数据，假定主机上没有容器，则采集器会直接退出 |
-| [self](self.md)                     | 采集 datakit 自己的运行情况，包括 CPU、Memory 等等 |
+| [CPU](cpu.md)                       | 采集主机的 CPU 使用情况                                                        |
+| [Disk](disk.md)                     | 采集磁盘占用情况                                                               |
+| [磁盘 IO](diskio.md)                 | 采集主机的磁盘 IO 情况                                                         |
+| [内存](mem.md)                       | 采集主机的内存使用情况                                                         |
+| [Swap](swap.md)                     | 采集 Swap 内存使用情况                                                         |
+| [System](system.md)                 | 采集主机操作系统负载                                                           |
+| [Net](net.md)                       | 采集主机网络流量情况                                                           |
+| [主机进程](host_processes.md) | 采集主机上常驻（存活 10min 以上）进程列表                                      |
+| [主机对象](hostobject.md)         | 采集主机基础信息（如操作系统信息、硬件信息等）                                 |
+| [容器](container.md)           | 采集主机上可能的容器或 Kubernetes 数据，假定主机上没有容器，则采集器会直接退出 |
+| [Datakit](self.md)                     | 采集 Datakit 自己的运行情况，包括 CPU、Memory 等等 |
 
 ## 修改采集器配置 {#modify-input-conf}
 
@@ -52,16 +53,9 @@ DataKit 安装完成后，默认会开启一批采集器，无需手动开启。
 
 以 MySQL 为例，如果要配置多个不同 MySQL 采集，有两种方式：
 
-???+ tip "两种方式对比"
+- 方式一： 新加一个 `conf` 文件，比如 `mysql-2.conf`，可以将其跟已有的 `mysql.conf` 放在同一目录中。
 
-    - 方式一，可能导致配置目录混乱。
-    - 方式二，管理起来较为简单。它将所有的同名采集器，都用同一个 `conf` 管理起来。
-
-- 方式一：<br>
-  新加一个 `conf` 文件，比如 `mysql-2.conf`，可以将其跟已有的 `mysql.conf` 放在同一目录中。
-
-- 方式二：<br>
-  在已有的 `mysql.conf` 中，新增一段，如下所示：
+- 方式二： 在已有的 `mysql.conf` 中，新增一段，如下所示：
 
 ```toml
 # 第一个 MySQL 采集
@@ -102,7 +96,7 @@ DataKit 安装完成后，默认会开启一批采集器，无需手动开启。
 # 下面继续再加一个
 #-----------------------------------------
 [[inputs.mysql]]
-	...
+    ...
 ```
 
 方式二多采集配置结构实际上是一个 Toml 的数组结构，**适用于所有采集器的多配置情况**，结构如下：
@@ -116,11 +110,18 @@ DataKit 安装完成后，默认会开启一批采集器，无需手动开启。
    ...
 ```
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     - 内容完全相同的两个采集器配置文件（文件名可以不同）为了防止误配置，只会应用其中一个。
     - 不建议将多个不同采集器（比如 MySQL 和 Nginx）配置到一个 `conf` 中，可能导致一些奇怪的问题，也不便于管理。
     - 部分采集器被限制为单实例运行，具体请查看 [只允许单实例运行的采集器](#input-singleton)。
+
+???+ tip "两种方式对比"
+
+    - 方式一，可能导致配置目录混乱。
+    - 方式二，管理起来较为简单。它将所有的同名采集器，都用同一个 `conf` 管理起来。
+<!-- markdownlint-enable -->
 
 ### 单实例采集器 {#input-singleton}
 
@@ -128,33 +129,32 @@ DataKit 安装完成后，默认会开启一批采集器，无需手动开启。
 
 | 采集器名称                            | 说明                                                                           |
 | ------------------------------------- | -----------------------------------------------                                |
-| [cpu](cpu.md)                         | 采集主机的 CPU 使用情况                                                        |
-| [disk](disk.md)                       | 采集磁盘占用情况                                                               |
-| [diskio](diskio.md)                   | 采集主机的磁盘 IO 情况                                                         |
-| [ebpf](ebpf.md)                       | 采集主机网络 TCP、UDP 连接信息，Bash 执行日志等                                |
-| [mem](mem.md)                         | 采集主机的内存使用情况                                                         |
-| [swap](swap.md)                       | 采集 Swap 内存使用情况                                                         |
-| [system](system.md)                   | 采集主机操作系统负载                                                           |
-| [net](net.md)                         | 采集主机网络流量情况                                                           |
-| [netstat](netstat.md)                 | 采集网络连接情况，包括 TCP/UDP 连接数、等待连接、等待处理请求等                |
-| [host_processes](host_processes.md)   | 采集主机上常驻（存活 10min 以上）进程列表                                      |
-| [hostobject](hostobject.md)           | 采集主机基础信息（如操作系统信息、硬件信息等）                                 |
-| [container](container.md)             | 采集主机上可能的容器或 Kubernetes 数据，假定主机上没有容器，则采集器会直接退出 |
-| [self](self.md)                       | 采集 datakit 自己的运行情况，包括 CPU、Memory 等等 |
+| [CPU](cpu.md)                         | 采集主机的 CPU 使用情况                                                        |
+| [`disk`](disk.md)                     | 采集磁盘占用情况                                                               |
+| [`diskio`](diskio.md)                 | 采集主机的磁盘 IO 情况                                                         |
+| [eBPF](ebpf.md)                       | 采集主机网络 TCP、UDP 连接信息，Bash 执行日志等                                |
+| [内存](mem.md)                        | 采集主机的内存使用情况                                                         |
+| [`swap`](swap.md)                     | 采集 Swap 内存使用情况                                                         |
+| [`system`](system.md)                 | 采集主机操作系统负载                                                           |
+| [`net`](net.md)                       | 采集主机网络流量情况                                                           |
+| [`netstat`](netstat.md)               | 采集网络连接情况，包括 TCP/UDP 连接数、等待连接、等待处理请求等                |
+| [主机进程](host_processes.md)         | 采集主机上常驻（存活 10min 以上）进程列表                                      |
+| [主机对象](hostobject.md)             | 采集主机基础信息（如操作系统信息、硬件信息等）                                 |
+| [容器](container.md)                  | 采集主机上可能的容器或 Kubernetes 数据，假定主机上没有容器，则采集器会直接退出 |
+| [Datakit](self.md)                    | 采集 Datakit 自己的运行情况，包括 CPU、Memory 等等                             |
 
 ### 关闭具体采集器 {#disable-inputs}
 
 关闭某个具体的采集器，有两种方式：
 
+<!-- markdownlint-disable MD046 -->
 ???+ tip "两种方式对比"
 
     - 方式一，更简单粗暴。
     - 方式二，需小心修改，可能会导致 Toml 配置错误。
 
-- 方式一：<br/>
-  将对应的采集器 `conf` 重命名，比如 `mysql.conf` 改成 `mysql.conf.bak`，**只要保证文件后缀不是 `conf` 即可**。
-- 方式二：<br/>
-  在 `conf` 中，注释掉对应的采集配置，如：
+- 方式一： 将对应的采集器 `conf` 重命名，比如 `mysql.conf` 改成 `mysql.conf.bak`，**只要保证文件后缀不是 `conf` 即可**。
+- 方式二： 在 `conf` 中，注释掉对应的采集配置，如：
 
 ```toml
 
@@ -190,7 +190,8 @@ DataKit 安装完成后，默认会开启一批采集器，无需手动开启。
   [inputs.mysql.tags]
   
     # 省略其它配置项...
-``` 
+```
+<!-- markdownlint-enable -->
 
 ### 采集器配置中的正则表达式 {#debug-regex}
 

@@ -68,11 +68,11 @@ Tracing system mainly solves two problems:
 
 Program Performance Monitoring (APM): The ability to track programs in the market can be said to be indispensable. Here is a brief introduction to several common solutions in the market.
 
-[DataDog](https://docs.datadoghq.com/tracing/)
+[DataDog](https://docs.datadoghq.com/tracing/){:target="_blank"}
 
 : Presently the most complete APM solution provider, providing monitoring and deep visualization capabilities for applications in production environments. Provide out-of-the-box performance monitoring dashboards for network services, message queues, and databases to monitor all program events. Tracing link data can be seamlessly linked across services and containers to sessions, logs, system profiles, comprehensive inspection, networks, processes, and system basic measurements. In DataDog, you can directly locate the code causing the problem when investigating a slow link caused by a system bottleneck.
 
-[Jaeger](https://www.jaegertracing.io/docs/)
+[Jaeger](https://www.jaegertracing.io/docs/){:target="_blank"}
 
 : Jaeger is an open source distributed program tracing system, inspired by Dapper and OpenZipkin, released by Uber Technologies, especially suitable for monitoring systems based on microservice architecture. It provides the following capabilities
 :  - Distributed context propagation
@@ -80,13 +80,13 @@ Program Performance Monitoring (APM): The ability to track programs in the marke
 :  - Analytical ability to trace the source
 :  - Service dependency analysis
 :  - Performance optimization
-: If you are interested in Jaeger, you can refer to the [internal practice](https://www.uber.com/blog/distributed-tracing/) of Uber's technical team.
+: If you are interested in Jaeger, you can refer to the [internal practice](https://www.uber.com/blog/distributed-tracing/){:target="_blank"} of Uber's technical team.
 
-[OpenTelemetry](https://opentelemetry.io/docs/)
+[OpenTelemetry](https://opentelemetry.io/docs/){:target="_blank"}
 
 : OpenTelemetry (OTeL) is an open source program visualization framework developed based on third-party tracking protocols that detects, generates, collects, and pumps monitoring data such as tracking links, metrics, logs, etc. As an industry standard, it is natively supported by many service providers.
 
-[Skywalking](https://skywalking.apache.org/docs/)
+[Skywalking](https://skywalking.apache.org/docs/){:target="_blank"}
 
 : Skywalking is an open source APM system, which provides distributed cloud-based systems with monitoring, tracking, diagnosis and other capabilities. The core capabilities are as follows.
 : - Server-side measurement analysis
@@ -102,11 +102,11 @@ Program Performance Monitoring (APM): The ability to track programs in the marke
 : - Infrastructure monitoring provides support for main streaming cloud vendors
 : - System Alarm
 
-[Zipkin](https://zipkin.io/pages/quickstart.html)
+[Zipkin](https://zipkin.io/pages/quickstart.html){:target="_blank"}
 
 : Zipkin is a distributed tracing system that collects sequential data for system monitoring and discovery of service-level system problems. Zipkin provides a solution that includes data collection and data query. You can jump directly from log to link based on a TraceID in Zipkin UI and provide retrieval capability based on diversified data.
 
-[Datakit](https://docs.guance.com/datakit/datakit-tracing/)
+[Datakit](https://docs.guance.com/datakit/datakit-tracing/){:target="_blank"}
 
 : Different from the above tracking systems, the solution provided by Datakit does not generate any program execution state data (Span) or change the data organization form. Datakit listens to receive link data sent by major tracking systems on network ports. Datakit's tracing module not only provides out-of-the-box capability, but also is almost zero configuration, and users can transition to Datakit without friction from any other tracing system.
 
@@ -121,7 +121,7 @@ Program Performance Monitoring (APM): The ability to track programs in the marke
 : - Highly flexible and configurable, you can use Datakit's link data capability with zero configuration, and you can customize the various link computing capabilities provided by Datakit including sampling, rare link picking and resource closing through simple configuration.
 : - Efficient and distributed consistent sampling algorithm.
 : - A variety of data processing filters in the front section of data processing meet the daily data processing needs.
-: - Data processing back-end Pipeline support, which allows you to customize data before it is sent to the hub with the help of [the powerful Pipeline script provided by Guance Cloud](https://docs.guance.com/logs/pipelines/text-processing/).
+: - Data processing back-end Pipeline support, which allows you to customize data before it is sent to the hub with the help of [the powerful Pipeline script provided by Guance Cloud](https://docs.guance.com/logs/pipelines/text-processing/){:target="_blank"}.
 
 ## Summary {#conclude}
 

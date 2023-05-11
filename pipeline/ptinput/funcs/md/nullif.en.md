@@ -28,7 +28,7 @@ json(_, first) json(_, second) nullif(first, "1")
 
 ```python
 if first == "1" {
-	drop_key(first)
+    drop_key(first)
 }
 ```
 

@@ -3,7 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package etcd
+package consul
 
 import (
 	"fmt"
@@ -34,7 +34,9 @@ type caseSpec struct {
 	repo        string // docker name
 	repoTag     string // docker tag
 	envs        []string
-	servicePort string // port (rand)
+	servicePort string // port (rand)）
+
+	opts []inputs.PointCheckOption
 
 	ipt    *prom.Input // This is real prom
 	feeder *io.MockedFeeder
@@ -50,19 +52,12 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 		measurement := string(pt.Name())
 
 		switch measurement {
-		case "etcd_network":
-			msgs := inputs.CheckPoint(pt, inputs.WithDoc(&ServerMeasurement{}), inputs.WithExtraTags(cs.ipt.Tags))
-
-			for _, msg := range msgs {
-				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-			}
-
-			if len(msgs) > 0 {
-				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-			}
-
-		case "etcd_server":
-			msgs := inputs.CheckPoint(pt, inputs.WithDoc(&NetworkMeasurement{}), inputs.WithExtraTags(cs.ipt.Tags))
+		case "consul":
+			var opts []inputs.PointCheckOption
+			opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
+			opts = append(opts, inputs.WithDoc(&ConsulMeasurement{}))
+			opts = append(opts, cs.opts...)
+			msgs := inputs.CheckPoint(pt, opts...)
 
 			for _, msg := range msgs {
 				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
@@ -133,7 +128,7 @@ func (cs *caseSpec) run() error {
 
 		// port binding
 		PortBindings: map[docker.Port][]docker.PortBinding{
-			"2379/tcp": {{HostIP: "0.0.0.0", HostPort: cs.servicePort}},
+			"9107/tcp": {{HostIP: "0.0.0.0", HostPort: cs.servicePort}},
 		},
 
 		Name: containerName,
@@ -200,34 +195,34 @@ func buildCases(t *T.T) ([]*caseSpec, error) {
 	bases := []struct {
 		name string
 		conf string
+		opts []inputs.PointCheckOption
 	}{
 		{
-			name: "remote-etcd",
+			name: "remote-consul",
 
 			conf: fmt.Sprintf(`
-source = "etcd"
-metric_name_filter = ["etcd_server_proposals","etcd_server_leader","etcd_server_has","etcd_network_client"]
-interval = "10s"
-url = "http://%s/metrics"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", tu.RandPort("tcp")))),
-		},
-		{
-			name: "remote-etcd",
-
-			conf: fmt.Sprintf(`
-source = "etcd"
-metric_name_filter = ["etcd_server_proposals","etcd_server_leader","etcd_server_has","etcd_network_client"]
+source = "consul"
+metric_name_filter = ["consul_raft_leader", "consul_raft_peers", "consul_serf_lan_members", "consul_catalog_service", "consul_catalog_service_node_healthy", "consul_health_node_status", "consul_serf_lan_member_status"]
+tags_ignore = ["check"]
 interval = "10s"
 url = "http://%s/metrics"
+
 [tags]
   tag1 = "some_value"
   tag2 = "some_other_value"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", tu.RandPort("tcp")))),
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalTags("status", "member", "node", "service_id", "service_name", "instance"),
+				inputs.WithOptionalFields("health_node_status", "serf_lan_member_status", "raft_leader", "raft_peers", "serf_lan_members", "catalog_service_node_healthy", "catalog_services"), // nolint:lll
+				inputs.WithTypeChecking(false),
+				inputs.WithExtraTags(map[string]string{"instance": "", "tag1": "", "tag2": ""}),
+			},
 		},
 	}
 
 	images := [][2]string{
-		{"pubrepo.jiagouyun.com/image-repo-for-testing/bitnami/etcd", "3.3.27"},
-		{"pubrepo.jiagouyun.com/image-repo-for-testing/bitnami/etcd", "3.4.24"},
-		{"pubrepo.jiagouyun.com/image-repo-for-testing/bitnami/etcd", "3.5.7"},
+		{"pubrepo.jiagouyun.com/image-repo-for-testing/consul/consul", "1.15.0"},
+		{"pubrepo.jiagouyun.com/image-repo-for-testing/consul/consul", "1.14.4"},
+		{"pubrepo.jiagouyun.com/image-repo-for-testing/consul/consul", "1.13.6"},
 	}
 
 	// TODO: add per-image configs
@@ -248,26 +243,21 @@ url = "http://%s/metrics"
 			_, err := toml.Decode(base.conf, ipt)
 			assert.NoError(t, err)
 
-			envs := []string{
-				"ALLOW_NONE_AUTHENTICATION=yes",
-			}
-			url, err := url.Parse(ipt.URL) // http://127.0.0.1:2379/metric --> 127.0.0.1:2379
+			url, err := url.Parse(ipt.URL) // http://127.0.0.1:9107/metric --> 127.0.0.1:9107
 			assert.NoError(t, err)
 
 			ipport, err := netip.ParseAddrPort(url.Host)
 			assert.NoError(t, err, "parse %s failed: %s", ipt.URL, err)
 
 			cases = append(cases, &caseSpec{
-				t:      t,
-				ipt:    ipt,
-				name:   base.name,
-				feeder: feeder,
-				envs:   envs,
-
-				repo:    img[0], // docker name
-				repoTag: img[1], // docker tag
-
+				t:           t,
+				ipt:         ipt,
+				name:        base.name,
+				feeder:      feeder,
+				repo:        img[0], // docker name
+				repoTag:     img[1], // docker tag
 				servicePort: fmt.Sprintf("%d", ipport.Port()),
+				opts:        base.opts,
 
 				// Test case result.
 				cr: &tu.CaseResult{
@@ -286,7 +276,10 @@ url = "http://%s/metrics"
 	return cases, nil
 }
 
-func TestEtcdInput(t *T.T) {
+func TestConsulInput(t *T.T) {
+	if !tu.CheckIntegrationTestingRunning() {
+		t.Skip()
+	}
 	start := time.Now()
 	cases, err := buildCases(t)
 	if err != nil {

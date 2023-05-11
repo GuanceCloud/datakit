@@ -151,7 +151,7 @@ func (c *ptChecker) checkOnPoint(pt *point.Point) {
 	}
 
 	if len(c.expTags) != len(c.gotTags) {
-		c.addMsg(fmt.Sprintf("expect %d tags got %d", len(c.expTags), len(c.gotTags)))
+		c.addMsg(fmt.Sprintf("(checkOnPoint) expect %d tags got %d", len(c.expTags), len(c.gotTags)))
 	}
 
 	if len(c.expFields) != len(c.gotFields) {
@@ -199,6 +199,10 @@ func (c *ptChecker) checkOnDoc(pt *point.Point) {
 		c.addMsg(fmt.Sprintf("expect %d tags got %d",
 			len(c.mInfo.Tags)+len(c.extraTags),
 			len(c.gotTags)+len(c.optionalTags)))
+
+		c.addMsg(fmt.Sprintf("c.mInfo.Tags = %v", c.mInfo.Tags))
+		c.addMsg(fmt.Sprintf("c.extraTags = %v", c.extraTags))
+		c.addMsg(fmt.Sprintf("mGotTags = %v", mGotTags))
 	}
 
 	// check field key count
@@ -222,7 +226,8 @@ func (c *ptChecker) checkOnDoc(pt *point.Point) {
 			right = append(right, k)
 		}
 		diff := Difference(left, right)
-		_ = diff
+
+		c.addMsg(fmt.Sprintf("diff = %v", diff))
 
 		c.addMsg(fmt.Sprintf("expect %d fields got %d(%d keys optional)",
 			len(c.mInfo.Fields), len(c.gotFields), len(c.optionalFields)))

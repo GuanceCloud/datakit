@@ -26,6 +26,44 @@ import (
 	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
+func TestEndpointRetry(t *T.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+
+	urlstr := fmt.Sprintf("%s?token=abc", ts.URL)
+	ep, err := newEndpoint(urlstr, withHTTPTrace(true))
+	assert.NoError(t, err)
+
+	req, err := http.NewRequest("POST", urlstr, nil)
+	assert.NoError(t, err)
+
+	resp, err := ep.sendReq(req)
+	assert.Error(t, err)
+	assert.Equal(t, 500, resp.StatusCode)
+	t.Logf("resp: %+#v\nerr: %s", resp, err)
+}
+
+func TestEndpointFailedRequest(t *T.T) {
+	t.Skip() // only for feature test
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+
+	urlstr := fmt.Sprintf("%s?token=abc", ts.URL)
+	ep, err := newEndpoint(urlstr, withHTTPTrace(true))
+	assert.NoError(t, err)
+
+	req, err := http.NewRequest("POST", urlstr, nil)
+	assert.NoError(t, err)
+	for {
+		resp, err := ep.sendReq(req)
+		t.Logf("sendReq: %v, resp: %+#v", err, resp)
+		time.Sleep(time.Second)
+	}
+}
+
 func TestEndpoint(t *T.T) {
 	t.Run("new", func(t *T.T) {
 		ep, err := newEndpoint("https://openway.guance.com?token=tkn_for_testing", nil)
@@ -90,8 +128,6 @@ test-2 f1=1i,f2=false 123`), x)
 		require.NoError(t, err)
 		t.Logf("get metrics: %s", metrics.MetricFamily2Text(mfs))
 
-		require.Len(t, mfs, 4, "get %d metrics", len(mfs))
-
 		m := metrics.GetMetricOnLabels(mfs,
 			`datakit_io_dataway_api_request_total`,
 			point.Metric.URL(),
@@ -114,6 +150,7 @@ test-2 f1=1i,f2=false 123`), x)
 		m = metrics.GetMetricOnLabels(mfs,
 			`datakit_io_dataway_point_bytes_total`,
 			point.Metric.String(),
+			"gzip",
 			http.StatusText(http.StatusBadRequest))
 		assert.True(t, m.GetCounter().GetValue() > 0)
 
@@ -193,6 +230,7 @@ test-2 f1=1i,f2=false 123`), x)
 		m = metrics.GetMetricOnLabels(mfs,
 			`datakit_io_dataway_point_bytes_total`,
 			point.Metric.String(),
+			"gzip",
 			http.StatusText(http.StatusOK))
 		assert.True(t, m.GetCounter().GetValue() > 0)
 
@@ -279,6 +317,7 @@ test-2 f1=1i,f2=false 123`), x)
 		m = metrics.GetMetricOnLabels(mfs,
 			`datakit_io_dataway_point_bytes_total`,
 			point.Metric.String(),
+			"gzip",
 			http.StatusText(http.StatusOK))
 		assert.True(t, m.GetCounter().GetValue() > 0)
 

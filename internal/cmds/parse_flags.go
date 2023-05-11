@@ -164,8 +164,7 @@ var (
 	flagCheckConfigDir = fsCheck.String("config-dir", "", "check configures under specified path")
 	flagCheckSample    = fsCheck.Bool("sample", false,
 		"check all inputs config sample, to ensure all sample are valid TOML")
-	flagCheckSNMP = fsCheck.String("test-snmp", "", "test snmp device")
-	fsCheckUsage  = func() {
+	fsCheckUsage = func() {
 		fmt.Printf("usage: datakit check [options]\n\n")
 		fmt.Printf("Various check tools for DataKit\n\n")
 		fmt.Println(fsCheck.FlagUsagesWrapped(0))

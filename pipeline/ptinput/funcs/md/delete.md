@@ -3,7 +3,7 @@
 
 函数原型：`fn delete(src: map[string]any, key: str)`
 
-函数说明： 删除 json map 中的 key
+函数说明： 删除 JSON map 中的 key
 
 ```python
 

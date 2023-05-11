@@ -17,7 +17,7 @@ import (
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/samuel/go-zookeeper/zk"
 	"github.com/stretchr/testify/assert"
-	tu "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
 var (
@@ -38,10 +38,14 @@ var (
 	NetworkID  string
 
 	testTopic    = "apm"
-	dockerRemote = tu.GetRemote()
+	dockerRemote = testutils.GetRemote()
 )
 
 func Test_kafkaConsumer_start(t *testing.T) {
+	if !testutils.CheckIntegrationTestingRunning() {
+		t.Skip()
+	}
+
 	// 创建镜像启动。
 	// 接口实现 topicHandler
 	// 数据对比
@@ -133,12 +137,13 @@ func (m *mockProcess) GetTopics() []string {
 	return m.topics
 }
 
-func (m *mockProcess) Process(msg *sarama.ConsumerMessage) {
+func (m *mockProcess) Process(msg *sarama.ConsumerMessage) error {
 	m.t.Logf("message topic=%s message=%s", msg.Topic, string(msg.Value))
 	m.count++
 	if m.send.sendNum == m.count {
 		m.checkOK <- true
 	}
+	return nil
 }
 
 func beforeTest(t *testing.T) (err error) {

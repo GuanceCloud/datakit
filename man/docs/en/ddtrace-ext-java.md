@@ -18,15 +18,32 @@ Here we mainly introduce some extended functions of DDTrace-java. List of main f
 - Support Alibaba Cloud RocketMQ 5.0
 - redis trace parameters
 - Get the input parameter information of a specific function
+- MongoDB obfuscation
+- Supported DM8 Database
+
+## supported MongoDB obfuscation {#mongo-obfuscation}
+Use startup parameter `-DDd.mongo.obfuscation=true` or environment variable `DD_MONGO_OBFUSION` Turn on desensitization. This way, a specific command can be seen from the observation cloud.
+
+Currently, the types that can achieve desensitization include Int32, Int64, Boolean, Double, and String. The remaining ones have no reference significance, so they are currently not supported.
+
+supported version：
+
+- [x] all
+
+## supported DM8 Database {#dameng-db}
+Add DM8 Database trace information.
+supported version：
+
+- [x] v8
 
 ## Get the input parameter information of a specific function {#dd_trace_methods}
 **Specific function** mainly refers to the function specified by the business to obtain the corresponding input parameters.
 
 **Specific functions** need to be defined and declared through specific parameters. Currently, ddtrace provides two ways to trace specific functions:
 
-1. Marked by startup parameters: -Ddd.trace.methods ，reference documents： [Class or method injection Trace](https://docs.guance.com/integrations/apm/ddtrace/ddtrace-skill-param/#5-trace)
+1. Marked by startup parameters: -Ddd.trace.methods ，reference documents： [Class or method injection Trace](https://docs.guance.com/integrations/apm/ddtrace/ddtrace-skill-param/#5-trace){:target="_blank"}
 
-2. By introducing the SDK, use @Trace to mark, refer to the document [function level burying point](https://docs.guance.com/integrations/apm/ddtrace/ddtrace-skill-api/#2)
+2. By introducing the SDK, use @Trace to mark, refer to the document [function level burying point](https://docs.guance.com/integrations/apm/ddtrace/ddtrace-skill-api/#2){:target="_blank"}
 
 After the declaration is made in the above way, the corresponding method will be marked as trace, and the corresponding Span information will be generated at the same time, including the input parameter information of the function (input parameter name, type, value).
 

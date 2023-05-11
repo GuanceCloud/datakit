@@ -51,7 +51,7 @@ DataKit opens an HTTP service to receive external data or provide basic data ser
     [http_api]
        listen = "/tmp/datakit.sock"
     ```
-    After the configuration is complete, you can use the `curl` command to test whether the configuration is successful: `sudo curl --no-buffer -XGET --unix-socket /tmp/datakit.sock http:/localhost/v1/ping`. For more information on the test commands for `curl`, see [here](https://superuser.com/a/925610).
+    After the configuration is complete, you can use the `curl` command to test whether the configuration is successful: `sudo curl --no-buffer -XGET --unix-socket /tmp/datakit.sock http:/localhost/v1/ping`. For more information on the test commands for `curl`, see [here](https://superuser.com/a/925610){:target="_blank"}.
     
     ### HTTP Request Frequency Control {#set-http-api-limit}
     

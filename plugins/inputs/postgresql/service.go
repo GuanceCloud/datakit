@@ -9,7 +9,21 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/coreos/go-semver/semver"
 	_ "github.com/lib/pq"
+)
+
+var (
+	V83  = semver.New("8.3.0")
+	V90  = semver.New("9.0.0")
+	V91  = semver.New("9.1.0")
+	V92  = semver.New("9.2.0")
+	V94  = semver.New("9.4.0")
+	V96  = semver.New("9.6.0")
+	V100 = semver.New("10.0.0")
+	V120 = semver.New("12.0.0")
+	V130 = semver.New("13.0.0")
+	V140 = semver.New("14.0.0")
 )
 
 type DB interface {

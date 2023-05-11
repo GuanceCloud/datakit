@@ -11,9 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"github.com/GuanceCloud/cliutils/point"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 type ciEventType byte
@@ -80,8 +79,8 @@ func (n *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		l.Debugf("empty Jenkins CI point array")
 		return
 	}
-	if err := io.Feed("jenkins_ci", datakit.Logging, pts, &io.Option{}); err != nil {
-		io.FeedLastError("jenkins_ci", err.Error())
+	if err := n.feeder.Feed("jenkins_ci", point.Logging, pts, &dkio.Option{}); err != nil {
+		n.feeder.FeedLastError("jenkins_ci", err.Error())
 		resp.WriteHeader(http.StatusInternalServerError)
 	}
 }
@@ -127,14 +126,28 @@ func (n *Input) getPipelinePoint(span *ddSpan) (*point.Point, error) {
 	measurementName := "jenkins_pipeline"
 	tags := getPipelineTags(span)
 	n.putExtraTags(tags)
-	return point.NewPoint(measurementName, tags, getPipelineFields(span), point.LOptElection())
+	measurement := &jenkinsPipelineMeasurement{
+		name:   measurementName,
+		tags:   tags,
+		fields: getPipelineFields(span),
+		ts:     time.Now(),
+		ipt:    n,
+	}
+	return measurement.Point(), nil
 }
 
 func (n *Input) getJobPoint(span *ddSpan) (*point.Point, error) {
 	measurementName := "jenkins_job"
 	tags := getJobTags(span)
 	n.putExtraTags(tags)
-	return point.NewPoint(measurementName, tags, getJobFields(span), point.LOptElection())
+	measurement := &jenkinsJobMeasurement{
+		name:   measurementName,
+		tags:   tags,
+		fields: getJobFields(span),
+		ts:     time.Now(),
+		ipt:    n,
+	}
+	return measurement.Point(), nil
 }
 
 func getPipelineTags(span *ddSpan) map[string]string {

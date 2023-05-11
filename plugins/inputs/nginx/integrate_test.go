@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -30,7 +29,18 @@ import (
 
 // ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
 
+var (
+	mCount  map[string]struct{} = make(map[string]struct{}) // Length of got measurements.
+	mExpect                     = map[string]struct{}{
+		nginx: {},
+	}
+)
+
 func TestNginxInput(t *testing.T) {
+	if !testutils.CheckIntegrationTestingRunning() {
+		t.Skip()
+	}
+
 	start := time.Now()
 	cases, err := buildCases(t)
 	if err != nil {
@@ -48,12 +58,12 @@ func TestNginxInput(t *testing.T) {
 	t.Logf("testing %d cases...", len(cases))
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.savedName, func(t *testing.T) {
 			caseStart := time.Now()
 
 			t.Logf("testing %s...", tc.name)
 
-			if err := tc.run(); err != nil {
+			if err := testutils.RetryTestRun(tc.run); err != nil {
 				tc.cr.Status = testutils.TestFailed
 				tc.cr.FailedMessage = err.Error()
 
@@ -78,37 +88,48 @@ func TestNginxInput(t *testing.T) {
 	}
 }
 
+// nginx:vts-1.8.0-alpine >>> using vts --> nginx:vts-1.8.0-alpine, nginx:vts-1.8.0-alpine >>> using vts
+func getAmendName(name string) (string, string) {
+	ndx := strings.Index(name, "____")
+	return name[:ndx], name
+}
+
+func getConfAccessPointWithoutVTS(host, port string) string {
+	return fmt.Sprintf("http://%s/server_status", net.JoinHostPort(host, port))
+}
+
+func getConfAccessPointWithVTS(host, port string) string {
+	return fmt.Sprintf("http://%s/status/format/json", net.JoinHostPort(host, port))
+}
+
+// https://webtechsurvey.com/technology/nginx/versions
+// https://w3techs.com/technologies/history_details/ws-nginx/1
 func buildCases(t *testing.T) ([]*caseSpec, error) {
 	t.Helper()
 
 	remote := testutils.GetRemote()
 
 	bases := []struct {
-		name           string // Also used as build image name:tag.
-		conf           string
-		dockerFileText string // Empty if not build image.
-		exposedPorts   []string
-		opts           []inputs.PointCheckOption
-		mPathCount     map[string]int
+		name         string // Also used as build image name:tag.
+		savedName    string
+		conf         string
+		exposedPorts []string
+		opts         []inputs.PointCheckOption
+		mPathCount   map[string]int
 	}{
 		{
-			name:           "nginx:http_stub_status_module",
-			conf:           fmt.Sprintf(`url = "http://%s/server_status"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
-			dockerFileText: dockerFileHTTPStubStatusModule,
-			exposedPorts:   []string{"80/tcp"},
-			opts:           []inputs.PointCheckOption{inputs.WithOptionalFields("load_timestamp"), inputs.WithOptionalTags("nginx_version")},
+			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.23.2-alpine____http-stub-status-module",
+			conf:         `url = ""`, // set conf URL later.
+			exposedPorts: []string{"80/tcp"},
+			opts:         []inputs.PointCheckOption{inputs.WithOptionalFields("load_timestamp"), inputs.WithOptionalTags("nginx_version")},
 			mPathCount: map[string]int{
 				"/": 10,
 			},
 		},
-
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx/nginx:vts-1.20.2",
-
-			conf: fmt.Sprintf(`
-		url = "http://%s/status/format/json"
-		use_vts = true`,
-				net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.23.2-alpine____using-vts",
+			conf: `url = ""
+		use_vts = true`, // set conf URL later.
 
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
@@ -119,12 +140,18 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		},
 
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx/nginx:vts-1.21.6",
-
-			conf: fmt.Sprintf(`
-		url = "http://%s/status/format/json"
-		use_vts = true`,
-				net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
+			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.22.1-alpine____http-stub-status-module",
+			conf:         `url = ""`, // set conf URL later.
+			exposedPorts: []string{"80/tcp"},
+			opts:         []inputs.PointCheckOption{inputs.WithOptionalFields("load_timestamp"), inputs.WithOptionalTags("nginx_version")},
+			mPathCount: map[string]int{
+				"/": 10,
+			},
+		},
+		{
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.22.1-alpine____using-vts",
+			conf: `url = ""
+		use_vts = true`, // set conf URL later.
 
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
@@ -135,12 +162,18 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		},
 
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx/nginx:vts-1.22.1",
-
-			conf: fmt.Sprintf(`
-		url = "http://%s/status/format/json"
-		use_vts = true`,
-				net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
+			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.21.6-alpine____http-stub-status-module",
+			conf:         `url = ""`, // set conf URL later.
+			exposedPorts: []string{"80/tcp"},
+			opts:         []inputs.PointCheckOption{inputs.WithOptionalFields("load_timestamp"), inputs.WithOptionalTags("nginx_version")},
+			mPathCount: map[string]int{
+				"/": 10,
+			},
+		},
+		{
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.21.6-alpine____using-vts",
+			conf: `url = ""
+		use_vts = true`, // set conf URL later.
 
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
@@ -151,12 +184,62 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		},
 
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx/nginx:vts-1.23.3",
+			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.18.0-alpine____http-stub-status-module",
+			conf:         `url = ""`, // set conf URL later.
+			exposedPorts: []string{"80/tcp"},
+			opts:         []inputs.PointCheckOption{inputs.WithOptionalFields("load_timestamp"), inputs.WithOptionalTags("nginx_version")},
+			mPathCount: map[string]int{
+				"/": 10,
+			},
+		},
+		{
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.18.0-alpine____using-vts",
+			conf: `url = ""
+		use_vts = true`, // set conf URL later.
 
-			conf: fmt.Sprintf(`
-		url = "http://%s/status/format/json"
-		use_vts = true`,
-				net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
+			exposedPorts: []string{"80/tcp"},
+			mPathCount: map[string]int{
+				"/1": 10,
+				"/2": 10,
+				"/3": 10,
+			},
+		},
+
+		{
+			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.14.2-alpine____http-stub-status-module",
+			conf:         `url = ""`, // set conf URL later.
+			exposedPorts: []string{"80/tcp"},
+			opts:         []inputs.PointCheckOption{inputs.WithOptionalFields("load_timestamp"), inputs.WithOptionalTags("nginx_version")},
+			mPathCount: map[string]int{
+				"/": 10,
+			},
+		},
+		{
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.14.2-alpine____using-vts",
+			conf: `url = ""
+		use_vts = true`, // set conf URL later.
+
+			exposedPorts: []string{"80/tcp"},
+			mPathCount: map[string]int{
+				"/1": 10,
+				"/2": 10,
+				"/3": 10,
+			},
+		},
+
+		{
+			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.8.0-alpine____http-stub-status-module",
+			conf:         `url = ""`, // set conf URL later.
+			exposedPorts: []string{"80/tcp"},
+			opts:         []inputs.PointCheckOption{inputs.WithOptionalFields("load_timestamp"), inputs.WithOptionalTags("nginx_version")},
+			mPathCount: map[string]int{
+				"/": 10,
+			},
+		},
+		{
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.8.0-alpine____using-vts",
+			conf: `url = ""
+		use_vts = true`, // set conf URL later.
 
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
@@ -179,24 +262,22 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)
 
-		uURL, err := url.Parse(ipt.URL)
-		require.NoError(t, err, "parse %s failed: %s", ipt.URL, err)
+		base.name, base.savedName = getAmendName(base.name)
 
 		repoTag := strings.Split(base.name, ":")
 
 		cases = append(cases, &caseSpec{
-			t:       t,
-			ipt:     ipt,
-			name:    base.name,
-			feeder:  feeder,
-			repo:    repoTag[0],
-			repoTag: repoTag[1],
+			t:         t,
+			name:      base.name,
+			savedName: base.savedName,
+			ipt:       ipt,
+			feeder:    feeder,
+			repo:      repoTag[0],
+			repoTag:   repoTag[1],
 
-			dockerFileText: base.dockerFileText,
-			exposedPorts:   base.exposedPorts,
-			serverPorts:    []string{uURL.Port()},
-			opts:           base.opts,
-			mPathCount:     base.mPathCount,
+			exposedPorts: base.exposedPorts,
+			opts:         base.opts,
+			mPathCount:   base.mPathCount,
 
 			cr: &testutils.CaseResult{
 				Name:        t.Name(),
@@ -223,6 +304,7 @@ type caseSpec struct {
 	t *testing.T
 
 	name           string
+	savedName      string
 	repo           string
 	repoTag        string
 	dockerFileText string
@@ -263,6 +345,8 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
+			mCount[nginx] = struct{}{}
+
 		case ServerZone:
 			opts = append(opts, inputs.WithDoc(&ServerZoneMeasurement{}))
 
@@ -276,6 +360,8 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			if len(msgs) > 0 {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
+
+			mCount[ServerZone] = struct{}{}
 
 		case UpstreamZone:
 			opts = append(opts, inputs.WithDoc(&UpstreamZoneMeasurement{}))
@@ -291,6 +377,8 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
+			mCount[UpstreamZone] = struct{}{}
+
 		case CacheZone:
 			opts = append(opts, inputs.WithDoc(&CacheZoneMeasurement{}))
 
@@ -304,6 +392,8 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			if len(msgs) > 0 {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
+
+			mCount[CacheZone] = struct{}{}
 
 		default: // TODO: check other measurement
 			panic("not implement")
@@ -370,7 +460,6 @@ func (cs *caseSpec) run() error {
 				Tag:        cs.repoTag,
 
 				ExposedPorts: cs.exposedPorts,
-				PortBindings: cs.getPortBindings(),
 			},
 
 			func(c *docker.HostConfig) {
@@ -390,7 +479,6 @@ func (cs *caseSpec) run() error {
 				Tag:        cs.repoTag,
 
 				ExposedPorts: cs.exposedPorts,
-				PortBindings: cs.getPortBindings(),
 			},
 
 			func(c *docker.HostConfig) {
@@ -406,6 +494,15 @@ func (cs *caseSpec) run() error {
 
 	cs.pool = p
 	cs.resource = resource
+
+	if err := cs.getMappingPorts(); err != nil {
+		return err
+	}
+	if cs.ipt.UseVts {
+		cs.ipt.URL = getConfAccessPointWithVTS(r.Host, cs.serverPorts[0]) // set conf URL here.
+	} else {
+		cs.ipt.URL = getConfAccessPointWithoutVTS(r.Host, cs.serverPorts[0]) // set conf URL here.
+	}
 
 	cs.t.Logf("check service(%s:%v)...", r.Host, cs.serverPorts)
 
@@ -445,6 +542,13 @@ func (cs *caseSpec) run() error {
 
 	cs.t.Logf("stop input...")
 	cs.ipt.Terminate()
+
+	if strings.Contains(cs.savedName, "http-stub-status-module") {
+		require.Equal(cs.t, mExpect, mCount)
+	} else {
+		require.Equal(cs.t, 4, len(mCount))
+	}
+	mCount = make(map[string]struct{}) // clear.
 
 	cs.t.Logf("exit...")
 	wg.Wait()
@@ -507,17 +611,17 @@ func (cs *caseSpec) getContainterName() string {
 	return name
 }
 
-func (cs *caseSpec) getPortBindings() map[docker.Port][]docker.PortBinding {
-	portBindings := make(map[docker.Port][]docker.PortBinding)
-
-	// check ports' mapping.
-	require.Equal(cs.t, len(cs.exposedPorts), len(cs.serverPorts))
-
+func (cs *caseSpec) getMappingPorts() error {
+	cs.serverPorts = make([]string, len(cs.exposedPorts))
 	for k, v := range cs.exposedPorts {
-		portBindings[docker.Port(v)] = []docker.PortBinding{{HostPort: docker.Port(cs.serverPorts[k]).Port()}}
+		mapStr := cs.resource.GetHostPort(v)
+		_, port, err := net.SplitHostPort(mapStr)
+		if err != nil {
+			return err
+		}
+		cs.serverPorts[k] = port
 	}
-
-	return portBindings
+	return nil
 }
 
 func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
@@ -567,13 +671,3 @@ func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) {
 		}
 	}
 }
-
-////////////////////////////////////////////////////////////////////////////////
-
-// Dockerfiles.
-
-const dockerFileHTTPStubStatusModule = `FROM nginx:latest
-
-RUN sed -i "/location \/ {/i\    location = /server_status {" /etc/nginx/conf.d/default.conf \
-    && sed -i "/location \/ {/i\        stub_status;" /etc/nginx/conf.d/default.conf \
-    && sed -i "/location \/ {/i\    }\n" /etc/nginx/conf.d/default.conf`

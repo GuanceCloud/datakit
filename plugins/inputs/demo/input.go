@@ -145,8 +145,8 @@ func (*Input) SampleConfig() string {
   election = true
 
 [inputs.demo.tags] # 所有采集器，都应该有 tags 配置项
-	# tag_a = "val1"
-	# tag_b = "val2"
+  # tag_a = "val1"
+  # tag_b = "val2"
 `
 }
 

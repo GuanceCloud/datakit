@@ -16,7 +16,7 @@ require (
 	github.com/Shopify/sarama v1.38.1
 	github.com/aliyun/aliyun-oss-go-sdk v2.2.6+incompatible
 	github.com/antchfx/xmlquery v1.3.12
-	github.com/apache/thrift v0.13.0
+	github.com/apache/thrift v0.16.0
 	github.com/araddon/dateparse v0.0.0-20201001162425-8aadafed4dc4
 	github.com/bmatcuk/doublestar/v4 v4.6.0
 	github.com/c-bata/go-prompt v0.2.5
@@ -133,7 +133,7 @@ require (
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
-	github.com/avast/retry-go v2.7.0+incompatible // indirect
+	github.com/avast/retry-go v2.7.0+incompatible
 	github.com/aws/aws-sdk-go v1.44.175 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.17.3 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.18.8 // indirect

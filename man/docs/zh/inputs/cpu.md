@@ -1,4 +1,4 @@
-{{.CSS}}
+
 # CPU
 ---
 
@@ -14,6 +14,7 @@ CPU 采集器用于系统 CPU 使用率的采集。
 
 ## 配置  {#input-config}
 
+<!-- markdownlint-disable MD046 -->
 === "主机部署"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
@@ -36,6 +37,7 @@ CPU 采集器用于系统 CPU 使用率的采集。
     | `ENV_INPUT_CPU_INTERVAL`                    | `interval`                    | `10s`                                                                                 |
     | `ENV_INPUT_CPU_DISABLE_TEMPERATURE_COLLECT` | `disable_temperature_collect` | `false/true`。给任意字符串就认为是 `true`，没定义就是 `false`。                       |
     | `ENV_INPUT_CPU_ENABLE_LOAD5S`               | `enable_load5s`               | `false/true`。给任意字符串就认为是。给任意字符串就认为是 `true`，没定义就是 `false`。 |
+<!-- markdownlint-enable -->
 
 ---
 
@@ -56,7 +58,7 @@ CPU 采集器用于系统 CPU 使用率的采集。
 
 {{$m.Desc}}
 
--  标签
+- 标签
 
 {{$m.TagsMarkdownTable}}
 

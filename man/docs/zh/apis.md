@@ -1,4 +1,6 @@
+
 # DataKit API
+
 ---
 
 本文档主要描述 DataKit 开放出来 HTTP API 接口。
@@ -38,20 +40,20 @@ HTTP body 支持行协议以及 JSON 俩种形式。关于数据结构（不管�
 
 DataKit 中主要有如下数据类型（以简称字母序排列）：
 
-| 简称 | 名称          | URL 表示                | 说明               |
-| ---- | ----          | ----                    | ---                |
-| CO   | custom_object | /v1/write/custom_object | 自定义对象数据     |
-| E    | keyevent      | /v1/write/keyevent      | Event 数据         |
-| L    | logging       | /v1/write/logging       | 日志数据           |
-| M    | metric        | /v1/write/metric        | 时序数据           |
-| N    | network       | /v1/write/network       | 一般指 eBPF 数据   |
-| O    | object        | /v1/write/object        | 对象数据           |
-| P    | profiling     | /v1/write/profiling     | Profiling 数据     |
-| R    | rum           | /v1/write/rum           | RUM 数据           |
-| S    | security      | /v1/write/security      | 安全巡检数据       |
-| T    | tracing       | /v1/write/tracing       | APM（Tracing）数据 |
+| 简称 | 名称            | URL 表示                  | 说明               |
+| ---- | ----            | ----                      | ---                |
+| CO   | `custom_object` | `/v1/write/custom_object` | 自定义对象数据     |
+| E    | `keyevent`      | `/v1/write/keyevent`      | Event 数据         |
+| L    | `logging`       | `/v1/write/logging`       | 日志数据           |
+| M    | `metric`        | `/v1/write/metric`        | 时序数据           |
+| N    | `network`       | `/v1/write/network`       | 一般指 eBPF 数据   |
+| O    | `object`        | `/v1/write/object`        | 对象数据           |
+| P    | `profiling`     | `/v1/write/profiling`     | Profiling 数据     |
+| R    | `rum`           | `/v1/write/rum`           | RUM 数据           |
+| S    | `security`      | `/v1/write/security`      | 安全巡检数据       |
+| T    | `tracing`       | `/v1/write/tracing`       | APM（Tracing）数据 |
 
-不同的数据类型，其处理方式不一样，在观测云的用法也不尽相同。在 Datait 的配置和使用过程中，有时候会穿插使用某个类型的不同形式（比如在 sinker 配置中用简写，在 API 请求中则用其 URL 表示）
+不同的数据类型，其处理方式不一样，在观测云的用法也不尽相同。在 Datakit 的配置和使用过程中，有时候会穿插使用某个类型的不同形式（比如在 sinker 配置中用简写，在 API 请求中则用其 URL 表示）
 
 ### JSON Body 示例 {#api-json-example}
 
@@ -100,7 +102,7 @@ DataKit 中主要有如下数据类型（以简称字母序排列）：
 - 如果是 JSON body，需在请求头上标注 `Content-Type: application/json`，否则当做普通行协议处理
 - 目前 `any-basic-type` 指通俗意义上的 `int/float/bool/string`，不考虑不同编程语言差异
 - 关于数值类型的 field，在 JSON 中，由于数值不区分 float/int，导致对于 `{"a" : 123}` 这段 JSON，目前难以判断其 int 还是 float，基于此，API 对数值处理，统一翻译成 float 类型。这种做法，可能造成存储上的类型冲突（如之前是用行协议 body，后面采用 JSON body）
-  - 行协议中，对 int/float 有明显的标识，如 `123i` 为 int，而 `123` 为 float
+    - 行协议中，对 int/float 有明显的标识，如 `123i` 为 int，而 `123` 为 float
 - 相比行协议的 Body，JSON 形式的 body 性能较差，大概有 7~8 倍的差距。同等数据量前提下，粗略的 Benchmark 对比：
 
 ```shell
@@ -148,15 +150,17 @@ rds,name=yyy,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 slb,name=zzz,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 ```
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     对象数据必须有 `name` 这个 tag，否则协议报错。
 
     对象数据最好有 `message` 字段，主要便于做全文搜索。
+<!-- markdownlint-enable -->
 
 ### 自定义对象数据示例 {#api-custom-object-example}
 
-自定义对象跟对象几乎一致，只是后者是 DataKit 自主采集的，前者是用户通过 datakit API 创建的对象。
+自定义对象跟对象几乎一致，只是后者是 Datakit 自主采集的，前者是用户通过 Datakit API 创建的对象。
 
 ```http
 POST /v1/write/custom_object?precision=n&input=my-sample-logger&ignore_global_tags=123 HTTP/1.1
@@ -166,11 +170,13 @@ rds,name=yyy,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 slb,name=zzz,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 ```
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     自定义对象数据必须有 `name` 这个 tag，否则协议报错
     
     自定义对象数据最好有 `message` 字段，主要便于做全文搜索
+<!-- markdownlint-enable -->
 
 ### RUM {#api-rum}
 
@@ -186,10 +192,10 @@ GET /v1/ping HTTP/1.1
 HTTP/1.1 200 OK
 
 {
-	"content":{
-		"version":"1.1.6-rc0",
-			"uptime":"1.022205003s"
-	}
+    "content":{
+        "version":"1.1.6-rc0",
+            "uptime":"1.022205003s"
+    }
 }
 ```
 
@@ -202,8 +208,8 @@ POST /v1/lasterror HTTP/1.1
 Content-Type: application/json
 
 {
-	"input":"redis",
-	"err_content":"Cache avalanche"
+    "input":"redis",
+    "err_content":"Cache avalanche"
 }
 ```
 
@@ -256,14 +262,14 @@ Content-Type: application/json
 {
     "queries":[
         {
-            "query": "cpu:(usage_idle) LIMIT 1",  # dql查询语句（必填）
-            "conditions": "",                     # 追加dql查询条件
+            "query": "cpu:(usage_idle) LIMIT 1",  # DQL 查询语句（必填）
+            "conditions": "",                     # 追加 DQL 查询条件
             "max_duration": "1d",                 # 最大时间范围
             "max_point": 0,                       # 最大点数
             "time_range": [],                     #
             "orderby": [],                        #
-            "disable_slimit": true,               # 禁用默认SLimit，当为true时，将不添加默认SLimit值，否则会强制添加SLimit 20
-            "disable_multiple_field": true        # 禁用多字段。当为true时，只能查询单个字段的数据（不包括time字段）
+            "disable_slimit": true,               # 禁用默认 SLimit，当为 true 时，将不添加默认 SLimit 值，否则会强制添加 SLimit 20
+            "disable_multiple_field": true        # 禁用多字段。当为 true 时，只能查询单个字段的数据（不包括 time 字段）
         }
     ],
     "echo_explain":true
@@ -274,7 +280,7 @@ Content-Type: application/json
 
 | 名称                     | 说明                                                                                                                                                                                                                       |
 | :----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `conditions`             | 额外添加条件表达式，使用 DQL 语法，例如`hostname="cloudserver01" OR system="ubuntu"`。与现有 `query` 中的条件表达式成 `AND` 关系，且会在最外层添加括号避免与其混乱                                                         |
+| `conditions`             | 额外添加条件表达式，使用 DQL 语法，例如 `hostname="cloudserver01" OR system="ubuntu"`。与现有 `query` 中的条件表达式成 `AND` 关系，且会在最外层添加括号避免与其混乱                                                         |
 | `disable_multiple_field` | 是否禁用多字段。当为 true 时，只能查询单个字段的数据（不包括 time 字段），默认为 `false`                                                                                                                                   |
 | `disable_slimit`         | 是否禁用默认 SLimit，当为 true 时，将不添加默认 SLimit 值，否则会强制添加 SLimit 20，默认为 `false`                                                                                                                        |
 | `echo_explain`           | 是否返回最终执行语句（返回 JSON 数据中的 `raw_query` 字段）                                                                                                                                                                |
@@ -283,11 +289,11 @@ Content-Type: application/json
 | `max_duration`           | 限制最大查询时间，支持单位 `ns/us/ms/s/m/h/d/w/y` ，例如 `3d` 是 3 天，`2w` 是 2 周，`1y` 是 1 年。默认是 1 年，此参数同样会限制 `time_range` 参数                                                                         |
 | `max_point`              | 限制聚合最大点数。在使用聚合函数时，如果聚合密度过小导致点数太多，则会以 `(end_time-start_time)/max_point` 得到新的聚合间隔将其替换                                                                                        |
 | `offset`                 | 一般跟 limit 配置使用，用于结果分页                                                                                                                                                                                        |
-| `orderby`                | 指定`order by`参数，内容格式为 `map[string]string` 数组，`key` 为要排序的字段名，`value` 只能是排序方式即 `asc` 和 `desc`，例如 `[ { "column01" : "asc" }, { "column02" : "desc" } ]`。此条会替换原查询语句中的 `order by` |
+| `orderby`                | 指定 `order by` 参数，内容格式为 `map[string]string` 数组，`key` 为要排序的字段名，`value` 只能是排序方式即 `asc` 和 `desc`，例如 `[ { "column01" : "asc" }, { "column02" : "desc" } ]`。此条会替换原查询语句中的 `order by` |
 | `queries`                | 基础查询模块，包含查询语句和各项附加参数                                                                                                                                                                                   |
 | `query`                  | DQL 查询语句（DQL [文档](../dql/define.md)）                                                                                                                                                                               |
 | `search_after`           | 深度分页，第一次调用分页的时候，传入空列表：`"search_after": []`，成功后服务端会返回一个列表，客户端直接复用这个列表的值再次通过 `search_after` 参数回传给后续的查询即可                                                   |
-| `slimit`                 | 限制时间线个数，将覆盖 DQL 中存在的 slimit                                                                                                                                                                                 |
+| `slimit`                 | 限制时间线个数，将覆盖 DQL 中存在的 `slimit`                                                                                                                                                                                 |
 | `time_range`             | 限制时间范围，采用时间戳格式，单位为毫秒，数组大小为 2 的 int，如果只有一个元素则认为是起始时间，会覆盖原查询语句中的查询时间区间                                                                                          |
 
 返回数据示例：
@@ -325,7 +331,7 @@ Content-Type: application/json
 
 创建或者更新对象的 `labels`
 
-`request body`说明
+`request body` 说明
 
 |           参数 | 描述                                                                          | 类型       |
 | -------------: | ----------------------------------------------------------------------------- | ---------- |
@@ -339,14 +345,14 @@ Content-Type: application/json
 
 ``` shell
 curl -XPOST "127.0.0.1:9529/v1/object/labels" \
-	-H 'Content-Type: application/json'  \
-	-d'{
-			"object_class": "host_processes",
-			"object_name": "ubuntu20-dev_49392",
-			"key": "host",
-			"value": "ubuntu20-dev",
-			"labels": ["l1","l2"]
-		}'
+    -H 'Content-Type: application/json'  \
+    -d'{
+            "object_class": "host_processes",
+            "object_name": "ubuntu20-dev_49392",
+            "key": "host",
+            "value": "ubuntu20-dev",
+            "labels": ["l1","l2"]
+        }'
 ```
 
 成功返回示例:
@@ -354,9 +360,9 @@ curl -XPOST "127.0.0.1:9529/v1/object/labels" \
 ``` json
 status_code: 200
 {
-	"content": {
-		"_id": "375370265b0641xxxxxxxxxxxxxxxxxxxxxxxxxx"
-	}
+    "content": {
+        "_id": "375370265b0641xxxxxxxxxxxxxxxxxxxxxxxxxx"
+    }
 }
 ```
 
@@ -365,7 +371,7 @@ status_code: 200
 ``` json
 status_code: 500
 {
-	"errorCode":"some-internal-error"
+    "errorCode":"some-internal-error"
 }
 ```
 
@@ -378,7 +384,7 @@ status_code: 500
 |           参数 | 描述                                                                          | 类型     |
 | -------------: | ----------------------------------------------------------------------------- | -------- |
 | `object_class` | 表示 `labels` 所关联的 `object` 类型，如 `HOST`                               | `string` |
-|  `object_name` | 表示 `labels` 所关联的 `object`名称，如 `host-123`                            | `string` |
+|  `object_name` | 表示 `labels` 所关联的 `object` 名称，如 `host-123`                           | `string` |
 |          `key` | 表示 `labels` 所关联的 `object` 的具体字段名，如进程名字段 `process_name`     | `string` |
 |        `value` | 表示 `labels` 所关联的 `object` 的具体字段值，如进程名为 `systemsoundserverd` | `void`   |
 
@@ -386,13 +392,13 @@ status_code: 500
 
 ``` shell
 curl -XPOST "127.0.0.1:9529/v1/object/labels"  \
-	-H 'Content-Type: application/json'  \
-	-d'{
-			"object_class": "host_processes",
-			"object_name": "ubuntu20-dev_49392",
-			"key": "host",
-			"value": "ubuntu20-dev"
-		}'
+    -H 'Content-Type: application/json'  \
+    -d'{
+            "object_class": "host_processes",
+            "object_name": "ubuntu20-dev_49392",
+            "key": "host",
+            "value": "ubuntu20-dev"
+        }'
 ```
 
 成功返回示例:
@@ -400,9 +406,9 @@ curl -XPOST "127.0.0.1:9529/v1/object/labels"  \
 ``` json
 status_code: 200
 {
-	"content": {
-		"msg": "delete success!"
-	}
+    "content": {
+        "msg": "delete success!"
+    }
 }
 ```
 
@@ -411,7 +417,7 @@ status_code: 200
 ``` json
 status_code: 500
 {
-	"errorCode": "some-internal-error"
+    "errorCode": "some-internal-error"
 }
 ```
 
@@ -419,22 +425,24 @@ status_code: 500
 
 提供远程调试 PL 的功能。
 
-
 错误信息 PlError 结构:
+
 ```go
 type Position struct {
-	File string `json:"file"`
-	Ln   int    `json:"ln"`
-	Col  int    `json:"col"`
-	Pos  int    `json:"pos"`
+    File string `json:"file"`
+    Ln   int    `json:"ln"`
+    Col  int    `json:"col"`
+    Pos  int    `json:"pos"`
 }
 
 type PlError struct {
-	PosChain []Position `json:"pos_chain"`
-	Err      string     `json:"error"`
+    PosChain []Position `json:"pos_chain"`
+    Err      string     `json:"error"`
 }
 ```
-错误信息 json 示例:
+
+错误信息 JSON 示例:
+
 ```json
 {
   "pos_chain": [
@@ -455,7 +463,6 @@ type PlError struct {
   "error": "error msg"
 }
 ```
-
 
 请求示例：
 
@@ -508,7 +515,7 @@ HTTP/1.1 200 OK
 
 错误返回示例:
 
-```
+``` http
 HTTP Code: 400
 
 {
@@ -519,7 +526,7 @@ HTTP Code: 400
 
 ## `/v1/dialtesting/debug` | `POST` {#api-debug-dt}
 
-提供远程调试 dialtesting 的功能。
+提供远程调试拨测的功能。
 
 请求示例 ：
 
@@ -536,7 +543,7 @@ Content-Type: application/json
         "post_url":"",
         "cur_status":"",
         "frequency":"",
-        "enable_traceroute":true,//true代表勾选，tcp，icmp才有用
+        "enable_traceroute":true, // true 代表勾选，tcp，icmp 才有用
         "success_when_logic":"",
         "SuccessWhen":[]*HTTPSuccess ,
         "tags":map[string]string ,

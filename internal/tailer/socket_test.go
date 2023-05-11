@@ -6,8 +6,12 @@
 package tailer
 
 import (
+	"net"
 	"reflect"
 	"testing"
+	"time"
+
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 func Test_spiltBuffer(t *testing.T) {
@@ -128,5 +132,66 @@ func Test_mkServer(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func Test_socketLogger_Start(t *testing.T) {
+	// 启动socket: tcp,udp 端口
+	opt := &Option{
+		Source:                "logging",
+		Service:               "test_service",
+		Pipeline:              "",
+		Sockets:               []string{"tcp://127.0.0.1:19030", "udp://127.0.0.1:19031"},
+		IgnoreStatus:          []string{"debug"},
+		CharacterEncoding:     "utf-8",
+		RemoveAnsiEscapeCodes: false,
+		IgnoreDeadLog:         time.Minute,
+		GlobalTags:            map[string]string{},
+		BlockingMode:          true,
+		Done:                  nil,
+	}
+	sl, err := NewWithOpt(opt)
+	if err != nil {
+		t.Errorf("new sockerLoger err=%v", err)
+		return
+	}
+	feeder := dkio.NewMockedFeeder()
+	sl.feeder = feeder
+	go sl.Start()
+	// wait sl.start
+	time.Sleep(time.Second)
+	send(t, "tcp", "127.0.0.1:19030")
+	send(t, "udp", "127.0.0.1:19031")
+	pts, err := feeder.NPoints(10, time.Second*5)
+	if err != nil {
+		t.Errorf("feeder err=%v", err)
+		return
+	}
+	for _, pt := range pts {
+		// todo check pt
+		bts, _ := pt.MarshalJSON()
+		t.Logf("pt :%s", string(bts))
+		source := string(pt.GetTag([]byte("log_source")))
+		if source != "socket" {
+			t.Errorf("source is %s", source)
+		}
+		service := string(pt.GetTag([]byte("service")))
+		if service != "test_service" {
+			t.Errorf("source is %s", service)
+		}
+	}
+}
+
+func send(t *testing.T, network string, addr string) {
+	t.Helper()
+	conn, err := net.Dial(network, addr)
+	if err != nil {
+		t.Errorf("dial network:%s , err=%v", network, err)
+		return
+	}
+	for i := 0; i < 5; i++ {
+		if _, err = conn.Write([]byte("this is logging message\n")); err != nil {
+			t.Errorf("conn write err=%v", err)
+		}
 	}
 }

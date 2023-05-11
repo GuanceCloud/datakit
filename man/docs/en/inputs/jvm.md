@@ -8,7 +8,8 @@
 
 Here, we provide two kinds of JVM metrics collection methods, one is Jolokia and the other is ddtrace. How to choose the way, we have the following suggestions:
 
-- If you capture middleware JVM metrics for java development such as Kafka, we recommend the Jolokia scenario. Ddtrace lays particular stress on link tracing (APM) and has some running overhead. For middleware, link tracing is of little significance.
+- It is recommended to use DDTrace to collect JVM metrics, and Jolokia is also acceptable as it is more cumbersome to use, so it is not recommended.
+
 - If we collect the JVM metrics of our own java application, we recommend ddtrace scheme, which can collect the JVM metrics as well as link tracing (APM) data.
 
 ## Collect JVM Metrics Through Ddtrace {#jvm-ddtrace}
@@ -180,6 +181,13 @@ Install or download  [Jolokia](https://search.maven.org/remotecontent?filepath=o
 ```shell
 java -javaagent:/path/to/jolokia-jvm-agent.jar=port=8080,host=localhost -jar your_app.jar
 ```
+
+Already tested version:
+
+- [x] JDK 20
+- [x] JDK 17
+- [x] JDK 11
+- [x] JDK 8
 
 ### Configuration {#jolokia-config}
 

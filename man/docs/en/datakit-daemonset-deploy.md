@@ -179,14 +179,25 @@ For string/bool/string-list/duration, it is recommended to use double quotation 
     
     Whether it is a host class global tag or an environment class global tag, if there is already a corresponding tag in the original data, the existing tag will not be appended, and we think that the tag in the original data should be used.
 
-### Log Configuration Related Environment Variables {#env-log}
+### Dataway Configuration Related Environments {#env-dataway}
 
-| Environment Variable Name            | Type   | Default Value                     | Required   | Description                                                             |
-| :---------              | :----  | :---                       | :----- | :---                                                             |
-| `ENV_GIN_LOG`           | string | */var/log/datakit/gin.log* | No     | If it is changed to `stdout`, the DataKit's own gin log will not be written to the file, but will be output by the terminal. |
-| `ENV_LOG`               | string | */var/log/datakit/log*     | No     | If it is changed to `stdout`, DataKit's own log will not be written to the file, but will be output by the terminal.      |
-| `ENV_LOG_LEVEL`         | string | info                       | No     | Set DataKit's own log level, optional `info/debug`.                     |
-| `ENV_DISABLE_LOG_COLOR` | bool   | -                          | No     | Turn off log colors                                             |
+| Environment Variable Name      | Type     | Default Value | Required | Description                                                                                   |
+| ---------:                     | ----:    | ---:          | ------   | ----                                                                                          |
+| `ENV_DATAWAY`                  | string   | No            | Yes      | Set DataWay address, such as `https://openway.guance.com?token=xxx`                           |
+| `ENV_DATAWAY_TIMEOUT`          | duration | "30s"         | No       | Set DataWay request timeout |
+| `ENV_DATAWAY_ENABLE_HTTPTRACE` | bool     | -             | No       | Enable metrics on DataWay HTTP request |
+| `ENV_DATAWAY_HTTP_PROXY`       | string   | No            | No       | Set DataWay HTTP Proxy|
+| `ENV_DATAWAY_MAX_IDLE_CONNS`   | int      | 100           | No       | Set DataWay HTTP connection pool size([:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0)) |
+| `ENV_DATAWAY_IDLE_TIMEOUT`     | duration | "90s"         | No       | Set DataWay HTTP Keep-Alive timeout([:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0)) |
+
+### Log Configuration Related Environments {#env-log}
+
+| Environment Variable Name | Type   | Default Value              | Required | Description                                                                                                                  |
+| :---------                | :----  | :---                       | :-----   | :---                                                                                                                         |
+| `ENV_GIN_LOG`             | string | */var/log/datakit/gin.log* | No       | If it is changed to `stdout`, the DataKit's own gin log will not be written to the file, but will be output by the terminal. |
+| `ENV_LOG`                 | string | */var/log/datakit/log*     | No       | If it is changed to `stdout`, DataKit's own log will not be written to the file, but will be output by the terminal.         |
+| `ENV_LOG_LEVEL`           | string | info                       | No       | Set DataKit's own log level, optional `info/debug`.                                                                          |
+| `ENV_DISABLE_LOG_COLOR`   | bool   | -                          | No       | Turn off log colors                                                                                                          |
 
 ###  Something about DataKit pprof {#env-pprof}
 
@@ -278,16 +289,16 @@ DK_SINKER="[ { \"categories\": [\"L\", \"M\"], \"filters\": [ \"{measurement='cp
 
 ### IO Module Configuring Related Environment Variables {#env-io}
 
-| Environment Variable Name     | Type     | Default Value      | Required | Description                                                               |
-| :---------                    | :---     | :---               | :-----   | :---                                                                      |
-| `ENV_IO_FILTERS`              | json     | None               | No       | Add [row protocol filter](datakit-filter)                                 |
-| `ENV_IO_FLUSH_INTERVAL`       | duration | 10s                | No       | IO transmission time frequency                                            |
-| `ENV_IO_FLUSH_WORKERS`        | int      | `cpu_core * 2 + 1` | No       | IO flush workers(:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9)) |
-| `ENV_IO_MAX_CACHE_COUNT`      | int      | 1000               | No       | Send buffer size                                                          |
-| `ENV_IO_ENABLE_CACHE`         | bool     | false              | No       | Whether to open the disk cache that failed to send                        |
-| `ENV_IO_CACHE_ALL`            | bool     | false              | 否       | cache failed data points of all categories                                |
-| `ENV_IO_CACHE_MAX_SIZE_GB`    | int      | 10                 | No       | Disk size of send failure cache (in GB)                                   |
-| `ENV_IO_CACHE_CLEAN_INTERVAL` | duration | 5s                 | No       | Periodically send failed tasks cached on disk                             |
+| Environment Variable Name     | Type     | Default Value      | Required | Description                                                                |
+| :---------                    | :---     | :---               | :-----   | :---                                                                       |
+| `ENV_IO_FILTERS`              | json     | None               | No       | Add [row protocol filter](datakit-filter)                                  |
+| `ENV_IO_FLUSH_INTERVAL`       | duration | 10s                | No       | IO transmission time frequency                                             |
+| `ENV_IO_FLUSH_WORKERS`        | int      | `cpu_core * 2 + 1` | No       | IO flush workers([:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9)) |
+| `ENV_IO_MAX_CACHE_COUNT`      | int      | 1000               | No       | Send buffer size                                                           |
+| `ENV_IO_ENABLE_CACHE`         | bool     | false              | No       | Whether to open the disk cache that failed to send                         |
+| `ENV_IO_CACHE_ALL`            | bool     | false              | 否       | cache failed data points of all categories                                 |
+| `ENV_IO_CACHE_MAX_SIZE_GB`    | int      | 10                 | No       | Disk size of send failure cache (in GB)                                    |
+| `ENV_IO_CACHE_CLEAN_INTERVAL` | duration | 5s                 | No       | Periodically send failed tasks cached on disk                              |
 
 ???+ note "description on buffer and queue"
 
@@ -330,9 +341,6 @@ DK_SINKER="[ { \"categories\": [\"L\", \"M\"], \"filters\": [ \"{measurement='cp
 | `ENV_HOSTNAME`                  | string   | None     | No     | The default is the local host name, which can be specified at installation time, such as, `dk-your-hostname`    |
 | `ENV_IPDB`                      | string   | None     | No     | Specify the IP repository type, currently only supports `iploc/geolite2`      |
 | `ENV_ULIMIT`                    | int      | None     | No     | Specify the maximum number of open files for Datakit                            |
-| `ENV_DATAWAY_TIMEOUT`           | duration | 30s    | No     | Set the timeout for DataKit to request DataWay                       |
-| `ENV_DATAWAY_ENABLE_HTTPTRACE`  | bool     | false  | No     | Output the weblog of the dataway HTTP request in the debug log            |
-| `ENV_DATAWAY_HTTP_PROXY`        | string   | None     | No     | Set up the DataWay HTTP Proxy                                     |
 
 ### Special Environment Variable {#env-special}
 

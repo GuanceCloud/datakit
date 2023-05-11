@@ -23,6 +23,7 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	gctoml "github.com/GuanceCloud/toml"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/operator"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
 )
@@ -440,6 +441,8 @@ func (c *Config) ApplyMainConfig() error {
 	}
 
 	InitGitreposDir()
+	// Operator 使用 ENV 初始化
+	c.Operator = operator.NewOperatorClientFromEnv()
 
 	return nil
 }

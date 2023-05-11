@@ -57,12 +57,12 @@ func (m *ConnStatsM) Info() *inputs.MeasurementInfo {
 			"transport":               inputs.TagInfo{Desc: "Transport layer protocol. (udp/tcp)"},
 			"family":                  inputs.TagInfo{Desc: "Network layer protocol. (IPv4/IPv6)"},
 			"direction":               inputs.TagInfo{Desc: "Use the source as a frame of reference to identify the connection initiator. (incoming/outgoing)"},
-			"source":                  inputs.TagInfo{Desc: "Fixed value: netflow."},
+			"source":                  inputs.TagInfo{Desc: "Fixed value: `netflow`."},
 			"sub_source":              inputs.TagInfo{Desc: "Some specific connection classifications, such as the sub_source value for Kubernetes network traffic is K8s."},
 		},
 		Fields: map[string]interface{}{
 			"bytes_read":      newFInfInt("The number of bytes read.", inputs.SizeByte),
-			"bytes_written":   newFInfInt("The number of bytes writte.", inputs.SizeByte),
+			"bytes_written":   newFInfInt("The number of bytes written.", inputs.SizeByte),
 			"retransmits":     newFInfInt("The number of retransmissions.", inputs.NCount),
 			"rtt":             newFInfInt("TCP Latency.", inputs.DurationUS),
 			"rtt_var":         newFInfInt("TCP Jitter.", inputs.DurationUS),
@@ -104,7 +104,7 @@ func (m *HTTPFlowM) Info() *inputs.MeasurementInfo {
 			"transport":               inputs.TagInfo{Desc: "Transport layer protocol. (udp/tcp)"},
 			"family":                  inputs.TagInfo{Desc: "Network layer protocol. (IPv4/IPv6)"},
 			"direction":               inputs.TagInfo{Desc: "Use the source as a frame of reference to identify the connection initiator. (incoming/outgoing)"},
-			"source":                  inputs.TagInfo{Desc: "Fixed value: httpflow."},
+			"source":                  inputs.TagInfo{Desc: "Fixed value: `httpflow`."},
 			"sub_source":              inputs.TagInfo{Desc: "Some specific connection classifications, such as the sub_source value for Kubernetes network traffic is K8s."},
 		},
 		Fields: map[string]interface{}{
@@ -150,12 +150,12 @@ func (m *DNSStatsM) Info() *inputs.MeasurementInfo {
 			"transport": inputs.TagInfo{Desc: "Transport layer protocol. (udp/tcp)"},
 			"family":    inputs.TagInfo{Desc: "Network layer protocol. (IPv4/IPv6)"},
 			"direction": inputs.TagInfo{Desc: "Use the source as a frame of reference to identify the connection initiator. (incoming/outgoing)"},
-			"source":    inputs.TagInfo{Desc: "Fixed value: dnsflow."},
+			"source":    inputs.TagInfo{Desc: "Fixed value: `dnsflow`."},
 			"sub_source": inputs.TagInfo{Desc: "Some specific connection classifications, " +
 				"such as the sub_source value for Kubernetes network traffic is K8s."},
 		},
 		Fields: map[string]interface{}{
-			"rcode": newFInfInt("DNS response code: 0 - NoError, 1 - FormErr, 2 - ServFail, "+
+			"rcode": newFInfInt("DNS response code: 0 - `NoError`, 1 - `FormErr`, 2 - `ServFail`, "+
 				"3 - NXDomain, 4 - NotImp, 5 - Refused, ...; A value of -1 means the request timed out.", inputs.UnknownUnit),
 			"count":       newFInfInt("The number of DNS requests in a collection cycle.", inputs.UnknownUnit),
 			"latency":     newFInfInt("Average response time for DNS requests.", inputs.DurationNS),

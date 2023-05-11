@@ -1,4 +1,4 @@
-{{.CSS}}
+
 # DataKit 更新
 ---
 
@@ -17,6 +17,7 @@ DataKit 支持手动更新和自动更新两种方式。
 > - 如果 [DataKit < 1.2.7](changelog.md#cl-1.2.7)，此处只能用 `datakit --version`
 > - 如果 DataKit < 1.2.0，请[直接使用更新命令](changelog.md#cl-1.2.0-break-changes)
 
+<!-- markdownlint-disable MD046 -->
 === "Linux/macOS"
 
     ``` shell
@@ -56,10 +57,13 @@ DataKit 支持手动更新和自动更新两种方式。
     Upgrade:
 {{ InstallCmd 4 (.WithPlatform "windows") (.WithUpgrade true) }}
     ```
+<!-- markdownlint-enable -->
+
 ---
 
 如果当前 DataKit 处于被代理模式，自动更新的提示命令中，会自动加上代理设置：
 
+<!-- markdownlint-disable MD046 -->
 === "Linux/macOS"
 
     ```shell
@@ -71,6 +75,7 @@ DataKit 支持手动更新和自动更新两种方式。
     ``` powershell
     $env:HTTPS_PROXY="http://10.100.64.198:9530"; $env:DK_UPGRADE="1" ...
     ```
+<!-- markdownlint-enable -->
 
 ## 自动更新 {#auto}
 
@@ -90,8 +95,8 @@ otalog=/usr/local/datakit/ota-update.log
 installer=https://static.guance.com/datakit/installer-linux-amd64
 
 if [[ $? == 42 ]]; then
-	echo "update now..."
-	DK_UPGRADE=1 bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+    echo "update now..."
+    DK_UPGRADE=1 bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
 fi
 ```
 
@@ -112,7 +117,7 @@ crontab -u root -e
 
 Tips: crontab 基本语法如下
 
-```
+``` not-set
 *   *   *   *   *     <command to be execute>
 ^   ^   ^   ^   ^
 |   |   |   |   |
@@ -137,20 +142,20 @@ service cron restart
 
 如果安装成功且有尝试更新，则在 `update_log` 中能看到类似如下日志：
 
-```
-2021-05-10T09:49:06.083+0800 DEBUG	ota-update datakit/main.go:201	get online version...
-2021-05-10T09:49:07.728+0800 DEBUG	ota-update datakit/main.go:216	online version: datakit 1.1.6-rc0/9bc4b960, local version: datakit 1.1.6-rc0-62-g7a1d0956/7a1d0956
-2021-05-10T09:49:07.728+0800 INFO	ota-update datakit/main.go:224	Up to date(1.1.6-rc0-62-g7a1d0956)
+``` log
+2021-05-10T09:49:06.083+0800 DEBUG ota-update datakit/main.go:201 get online version...
+2021-05-10T09:49:07.728+0800 DEBUG ota-update datakit/main.go:216 online version: datakit 1.1.6-rc0/9bc4b960, local version: datakit 1.1.6-rc0-62-g7a1d0956/7a1d0956
+2021-05-10T09:49:07.728+0800 INFO ota-update datakit/main.go:224 Up to date(1.1.6-rc0-62-g7a1d0956)
 ```
 
 如果确实发生了更新，会看到类似如下的更新日志：
 
-```
+``` log
 2021-05-10T09:52:18.352+0800 DEBUG ota-update datakit/main.go:201 get online version...
 2021-05-10T09:52:18.391+0800 DEBUG ota-update datakit/main.go:216 online version: datakit 1.1.6-rc0/9bc4b960, local version: datakit 1.0.1/7a1d0956
 2021-05-10T09:52:18.391+0800 INFO  ota-update datakit/main.go:219 New online version available: 1.1.6-rc0, commit 9bc4b960 (release at 2021-04-30 14:31:27)
 ...
-``` 
+```
 
 ## 远程更新 {#remote}
 
@@ -209,14 +214,17 @@ $ curl -X POST 'http://127.0.0.1:9539/v1/datakit/upgrade'
 {"msg":"success"}
 ```
 
+<!-- markdownlint-disable MD046 -->
 ???+ info
-    
+
     升级过程根据网络带宽情况，可能耗时较长，请耐心等待 API 返回。
+<!-- markdownlint-enable -->
 
 ## 更新到指定版本 {#downgrade}
 
 如果需要升级或回退到指定版本，可以通过如下命令进行操作：
 
+<!-- markdownlint-disable MD046 -->
 === "Linux/macOS"
 
     ```shell
@@ -227,8 +235,9 @@ $ curl -X POST 'http://127.0.0.1:9539/v1/datakit/upgrade'
     ```powershell
 {{ InstallCmd 4 (.WithPlatform "windows") (.WithUpgrade true) (.WithVersion "-1.2.3") }}
     ```
+<!-- markdownlint-enable -->
 
-上述命令中的`<版本号>`，可以从 [DataKit 的发布历史](changelog.md)页面找到。
+上述命令中的 `<版本号>`，可以从 [DataKit 的发布历史](changelog.md)页面找到。
 
 若要回退 DataKit 版本，目前只支持退回到 [1.2.0](changelog.md#cl-1.2.0) 以后的版本，之前的 rc 版本不建议回退。
 

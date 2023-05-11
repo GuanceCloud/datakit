@@ -1,3 +1,4 @@
+
 # Dataway Sink
 ---
 
@@ -7,10 +8,11 @@
 1. 对满足条件的数据（一般通过判断 tag/field 上的 key-value 值），即将数据上传到对应的 Dataway
 1. 如果数据不满足所有判定条件，数据继续会上传到默认的 Dataway 上
 
-
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    如果多个 dataway sink 的判定条件之间存在交集，对同时满足多个判定条件的数据，它们会分别写入对应的工作空间，可能造成一定的数据重复。
+    如果多个 Dataway Sinker 的判定条件之间存在交集，对同时满足多个判定条件的数据，它们会分别写入对应的工作空间，可能造成一定的数据重复。
+<!-- markdownlint-enable -->
 
 ## Sinker 支持的数据类型 {#categories}
 
@@ -18,7 +20,8 @@
 
 ## Dataway Sinker 配置 {#config}
 
-=== "datakit.conf"
+<!-- markdownlint-disable MD046 -->
+=== "*datakit.conf*"
 
     在 *datakit.conf* 的 `dataway` 下面增加以下片段（参考 Datakit [主配置模板](datakit-conf.md#maincfg-example)）:
     
@@ -51,7 +54,8 @@
 
 ???+ attention
 
-    虽然 Dataway 有[磁盘缓存](datakit-conf.md#io-disk-cache)功能，但 Dataway 上的 Sinker 暂时不具备这个功能，如果 Sinker 发送 dataway 失败，那么数据就丢失了。
+    虽然 Dataway 有[磁盘缓存](datakit-conf.md#io-disk-cache)功能，但 Dataway 上的 Sinker 暂时不具备这个功能，如果 Sinker 发送 Dataway 失败，那么数据就丢失了。
+<!-- markdownlint-enable -->
 
 ## 延申阅读 {#more-readings}
 

@@ -26,7 +26,7 @@ var (
 type TopicProcess interface {
 	Init() error
 	GetTopics() []string
-	Process(msg *sarama.ConsumerMessage)
+	Process(msg *sarama.ConsumerMessage) error
 }
 
 type sampler struct {
@@ -78,6 +78,7 @@ func (kc *kafkaConsumer) start() {
 		log.Warnf("topics len is 0")
 		return
 	}
+	InitMetric() // init metric.
 	var group sarama.ConsumerGroup
 	var err error
 	var count int
@@ -118,6 +119,7 @@ func (kc *kafkaConsumer) start() {
 			}
 			log.Infof("group:[%s] Re-election, consumer starts consuming messages", kc.groupID)
 			time.Sleep(time.Second) // 防止频率太快 造成的日志太大.
+			kafkaGroupElection.WithLabelValues().Add(1)
 			kc.ready = make(chan bool)
 		}
 	}()
@@ -194,8 +196,13 @@ func (kc *kafkaConsumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim
 				}
 			}
 			topic := msg.Topic
+			partition := fmt.Sprint(msg.Partition)
 			if p, ok := kc.process[topic]; ok {
-				p.Process(msg)
+				if err := p.Process(msg); err == nil {
+					kafkaConsumeMessages.WithLabelValues(topic, partition, "ok").Add(1)
+				} else {
+					kafkaConsumeMessages.WithLabelValues(topic, partition, "fail").Add(1)
+				}
 			} else {
 				log.Warnf("can not find process for Topic:[%s]", topic)
 			}

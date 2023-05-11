@@ -55,10 +55,10 @@ If you choose v3 version, you need to provide `username`, `authentication algori
 
 ???+ tip
 
-    Once the above configuration is complete, you can use the `datakit tool --test-snmp` command to test if the configuration is correct, as shown in the following example:
+    Once the above configuration is complete, you can use the `datakit debug --test-input` command to test if the configuration is correct, as shown in the following example:
 
     ```sh
-    sudo datakit tool --test-snmp /usr/local/datakit/conf.d/snmp/snmp.conf
+    sudo datakit debug --test-input /usr/local/datakit/conf.d/snmp/snmp.conf
     ```
 
     If correct the line protocol information would print out in output, otherwise no line protocol information is seen.
@@ -102,7 +102,7 @@ When SNMP devices are in the default, the general SNMP protocol is closed, you n
 
 If you find that the data reported by the collected device does not contain the indicators you want, then you may need to define an additional Profile for the device.
 
-All OIDs of devices can generally be downloaded from their official website. Datakit defines some common OIDs, as well as some devices such as Cisco/Dell/HP. According to snmp protocol, each device manufacturer can customize [OID](https://www.dpstele.com/snmp/what-does-oid-network-elements.php) to identify its internal special objects. If you want to identify these, you need to customize the configuration of the device (we call this configuration Profile here, that is, "Custom Profile"), as follows.
+All OIDs of devices can generally be downloaded from their official website. Datakit defines some common OIDs, as well as some devices such as Cisco/Dell/HP. According to snmp protocol, each device manufacturer can customize [OID](https://www.dpstele.com/snmp/what-does-oid-network-elements.php){:target="_blank"} to identify its internal special objects. If you want to identify these, you need to customize the configuration of the device (we call this configuration Profile here, that is, "Custom Profile"), as follows.
 
 To add metrics or a custom configuration, list the MIB name, table name, table OID, symbol, and symbol OID, for example:
 

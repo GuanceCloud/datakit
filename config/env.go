@@ -34,6 +34,64 @@ func (c *Config) LoadSink(v string) {
 	}
 }
 
+func (c *Config) loadDataway() {
+	// 多个 dataway 支持 ',' 分割
+	// c.Dataway should not nil
+	if v := datakit.GetEnv("ENV_DATAWAY"); v != "" {
+		c.Dataway.URLs = strings.Split(v, ",")
+	}
+
+	if v := datakit.GetEnv("ENV_DATAWAY_TIMEOUT"); v != "" {
+		du, err := time.ParseDuration(v)
+		if err != nil {
+			l.Warnf("invalid ENV_DATAWAY_TIMEOUT: %s", v)
+			c.Dataway.HTTPTimeout = time.Second * 30
+		} else {
+			c.Dataway.HTTPTimeout = du
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_DATAWAY_ENABLE_HTTPTRACE"); v != "" {
+		c.Dataway.EnableHTTPTrace = true
+	}
+
+	if v := datakit.GetEnv("ENV_DATAWAY_HTTP_PROXY"); v != "" {
+		c.Dataway.HTTPProxy = v
+		c.Dataway.Proxy = true
+	}
+
+	if v := datakit.GetEnv("ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST"); v != "" {
+		value, err := strconv.ParseInt(v, 10, 64)
+		if err == nil {
+			if value <= 0 {
+				l.Warnf("invalid ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST(%s): %s, ignored", v, err)
+			} else {
+				c.Dataway.MaxIdleConnsPerHost = int(value)
+			}
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_DATAWAY_MAX_IDLE_CONNS"); v != "" {
+		value, err := strconv.ParseInt(v, 10, 64)
+		if err == nil {
+			if value <= 0 {
+				l.Warnf("invalid ENV_DATAWAY_MAX_IDLE_CONNS(%q): %s, ignored", v)
+			} else {
+				c.Dataway.MaxIdleConns = int(value)
+			}
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_DATAWAY_IDLE_TIMEOUT"); v != "" {
+		du, err := time.ParseDuration(v)
+		if err == nil {
+			c.Dataway.IdleTimeout = du
+		} else {
+			l.Warnf("invalid ENV_DATAWAY_IDLE_TIMEOUT(%q): %s, ignored", v, err)
+		}
+	}
+}
+
 func (c *Config) loadElectionEnvs() {
 	if v := datakit.GetEnv("ENV_ENABLE_ELECTION"); v == "" {
 		return
@@ -218,41 +276,7 @@ func (c *Config) LoadEnvs() error {
 		c.Logging.DisableColor = true
 	}
 
-	// 多个 dataway 支持 ',' 分割
-	// c.Dataway should not nil
-	if v := datakit.GetEnv("ENV_DATAWAY"); v != "" {
-		c.Dataway.URLs = strings.Split(v, ",")
-	}
-
-	if v := datakit.GetEnv("ENV_DATAWAY_TIMEOUT"); v != "" {
-		_, err := time.ParseDuration(v)
-		if err != nil {
-			l.Warnf("invalid ENV_DATAWAY_TIMEOUT: %s", v)
-			c.Dataway.HTTPTimeout = "30s"
-		} else {
-			c.Dataway.HTTPTimeout = v
-		}
-	}
-
-	if v := datakit.GetEnv("ENV_DATAWAY_ENABLE_HTTPTRACE"); v != "" {
-		c.Dataway.EnableHTTPTrace = true
-	}
-
-	if v := datakit.GetEnv("ENV_DATAWAY_HTTP_PROXY"); v != "" {
-		c.Dataway.HTTPProxy = v
-		c.Dataway.Proxy = true
-	}
-
-	if v := datakit.GetEnv("ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST"); v != "" {
-		value, err := strconv.ParseInt(v, 10, 64)
-		if err == nil {
-			if value <= 0 {
-				l.Warnf("invalid ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST: %s", v)
-			} else {
-				c.Dataway.MaxIdleConnsPerHost = int(value)
-			}
-		}
-	}
+	c.loadDataway()
 
 	if v := datakit.GetEnv("ENV_SINKER"); v != "" {
 		c.LoadSink(v)

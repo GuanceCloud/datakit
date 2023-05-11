@@ -57,7 +57,7 @@ func TestWriteWithCache(t *T.T) {
 		dw := &Dataway{
 			URLs:            []string{fmt.Sprintf("%s?token=tkn_11111111111111111111", ts.URL)},
 			EnableHTTPTrace: true,
-			HTTPTimeout:     "10ms", // easy timeout
+			HTTPTimeout:     10 * time.Millisecond, // easy timeout
 		}
 		assert.NoError(t, dw.Init())
 
@@ -81,16 +81,16 @@ func TestWriteWithCache(t *T.T) {
 		m := metrics.GetMetricOnLabels(mfs,
 			`datakit_io_dataway_point_total`,
 			point.Metric.String(),
-			http.StatusText(http.StatusInternalServerError))
+			http.StatusText(http.StatusServiceUnavailable))
 		assert.NotNil(t, m)
-		assert.Equal(t, float64(100), m.GetCounter().GetValue())
+		assert.Equalf(t, float64(100), m.GetCounter().GetValue(), metrics.MetricFamily2Text(mfs))
 
 		m = metrics.GetMetricOnLabels(mfs,
 			`datakit_io_dataway_point_total`,
 			point.DynamicDWCategory.String(),
-			http.StatusText(http.StatusInternalServerError))
+			http.StatusText(http.StatusServiceUnavailable))
 		assert.NotNil(t, m)
-		assert.Equal(t, float64(100), m.GetCounter().GetValue())
+		assert.Equal(t, float64(100), m.GetCounter().GetValue(), metrics.MetricFamily2Text(mfs))
 
 		t.Cleanup(func() {
 			assert.NoError(t, fc.Close())

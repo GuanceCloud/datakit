@@ -1,4 +1,4 @@
-{{.CSS}}
+
 # Consul
 ---
 
@@ -10,26 +10,29 @@ Consul 采集器用于采集 Consul 相关的指标数据，目前只支持 Prom
 
 ## 前置条件 {#requirements}
 
-- 安装 consul-exporter
-    
-    - 下载 consul_exporter 压缩包
+安装 consul-exporter
 
-    ```shell
-    sudo wget https://github.com/prometheus/consul_exporter/releases/download/v0.7.1/consul_exporter-0.7.1.linux-amd64.tar.gz
-    ```
-    - 解压 consul_exporter 压缩包
+- 下载 consul_exporter 压缩包
 
-    ```shell
-    sudo tar -zxvf consul_exporter-0.7.1.linux-amd64.tar.gz  
-    ```
-    - 进入 consul_exporter-0.7.1.linux-amd64 目录，运行 consul_exporter 脚本
+```shell
+sudo wget https://github.com/prometheus/consul_exporter/releases/download/v0.7.1/consul_exporter-0.7.1.linux-amd64.tar.gz
+```
 
-    ```shell
-    ./consul_exporter     
-    ```
+- 解压 `consul_exporter` 压缩包
+
+```shell
+sudo tar -zxvf consul_exporter-0.7.1.linux-amd64.tar.gz  
+```
+
+- 进入 *consul_exporter-0.7.1.linux-amd64* 目录，运行 `consul_exporter` 脚本
+
+```shell
+./consul_exporter     
+```
 
 ## 配置 {#input-config}
 
+<!-- markdownlint-disable MD046 -->
 === "主机安装"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
@@ -43,6 +46,8 @@ Consul 采集器用于采集 Consul 相关的指标数据，目前只支持 Prom
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+
+<!-- markdownlint-enable -->
 
 ## 指标集 {#measurements}
 
@@ -110,7 +115,7 @@ consul agent -dev -syslog
 
 日志原文：
 
-```
+```log
 Sep 18 19:30:23 derrick-ThinkPad-X230 consul[11803]: 2021-09-18T19:30:23.522+0800 [INFO]  agent.server.connect: initialized primary datacenter CA with provider: provider=consul
 ```
 

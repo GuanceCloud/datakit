@@ -26,6 +26,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -64,6 +65,7 @@ type Input struct {
 
 	feeder  dkio.Feeder
 	semStop *cliutils.Sem // start stop signal
+	opt     point.Option
 }
 
 func (n *Input) ElectionEnabled() bool {
@@ -151,6 +153,12 @@ func (n *Input) Run() {
 
 	if err := n.setHost(); err != nil {
 		l.Errorf("failed to set host: %v", err)
+	}
+
+	if n.Election {
+		n.opt = point.WithExtraTags(dkpt.GlobalElectionTags())
+	} else {
+		n.opt = point.WithExtraTags(dkpt.GlobalHostTags())
 	}
 
 	tick := time.NewTicker(n.Interval.Duration)
@@ -256,10 +264,10 @@ func (n *Input) parse(body io.Reader) (*point.Point, error) {
 		tags[k] = v
 	}
 	metric := &Measurement{
-		name:     inputName,
-		fields:   map[string]interface{}{},
-		ts:       time.Now(),
-		election: n.Election,
+		name:   inputName,
+		fields: map[string]interface{}{},
+		ts:     time.Now(),
+		ipt:    n,
 	}
 
 	for sc.Scan() {

@@ -1,4 +1,4 @@
-{{.CSS}}
+
 # 网络拨测
 ---
 
@@ -6,12 +6,11 @@
 
 ---
 
-# {{.InputName}}
-
 该采集器是网络拨测结果数据采集，所有拨测产生的数据，上报观测云。
 
 ## 私有拨测节点部署 {#private-deploy}
 
+<!-- markdownlint-disable MD046 -->
 === "主机安装"
 
     私有拨测节点部署，需在 [观测云页面创建私有拨测节点](../usability-monitoring/self-node.md)。创建完成后，将页面上相关信息填入 `conf.d/{{.Catalog}}/{{.InputName}}.conf` 即可：
@@ -22,10 +21,10 @@
     #  dataway 地址
     server = "https://openway.guance.com"
     
-    # require，节点惟一标识ID
+    # !!!Require：节点惟一标识 ID
     region_id = "reg_c2jlokxxxxxxxxxxx"
     
-    # 若server配为中心任务服务地址时，需要配置相应的ak或者sk
+    # 若 server 配为中心任务服务地址时，需要配置相应的 ak 或者 sk
     ak = "ZYxxxxxxxxxxxx"
     sk = "BNFxxxxxxxxxxxxxxxxxxxxxxxxxxx"
     
@@ -41,11 +40,12 @@
 
     目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 
---- 
+---
 
 ???+ attention
 
-    目前只有 linux 的拨测节点才支持「路由跟踪」，跟踪数据会保存在相关指标的 [traceroute](#fields) 字段中。
+    目前只有 Linux 的拨测节点才支持「路由跟踪」，跟踪数据会保存在相关指标的 [`traceroute`](dialtesting.md#fields) 字段中。
+<!-- markdownlint-enable -->
 
 ## 拨测部署图 {#arch}
 
@@ -71,7 +71,7 @@
 
 ### `{{$m.Name}}`
 
--  标签
+- 标签
 
 {{$m.TagsMarkdownTable}}
 
@@ -81,10 +81,9 @@
 
 {{ end }}
 
-
 ## `traceroute` 字段描述 {#fields}
 
-traceroute 是「路由跟踪」数据的 JSON 文本，整个数据是一个数组对象，对象中的每个数组元素记录了一次路由探测的相关情况，示例如下：
+`traceroute` 是「路由跟踪」数据的 JSON 文本，整个数据是一个数组对象，对象中的每个数组元素记录了一次路由探测的相关情况，示例如下：
 
 ```json
 [
@@ -144,8 +143,7 @@ traceroute 是「路由跟踪」数据的 JSON 文本，整个数据是一个数
 
 ### Item {#item}
 
-| 字段            | 类型   | 说明                      |
-| :---            | ---    | ---                       |
-| `ip`            | string | IP 地址，如果失败，值为 * |
-| `response_time` | number | 响应时间(μs)              |
-
+| 字段            | 类型   | 说明                        |
+| :---            | ---    | ---                         |
+| `ip`            | string | IP 地址，如果失败，值为 `*` |
+| `response_time` | number | 响应时间(μs)                |

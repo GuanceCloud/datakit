@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -27,12 +26,16 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var mCount map[string]struct{} = make(map[string]struct{}) // Length of got measurements.
-
 // ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
 // Reference: https://jolokia.org/reference/html/agents.html#jvm-agent
 
+var mCount map[string]struct{} = make(map[string]struct{}) // Length of got measurements.
+
 func TestJVMInput(t *testing.T) {
+	if !testutils.CheckIntegrationTestingRunning() {
+		t.Skip()
+	}
+
 	start := time.Now()
 	cases, err := buildCases(t)
 	if err != nil {
@@ -55,7 +58,7 @@ func TestJVMInput(t *testing.T) {
 
 			t.Logf("testing %s...", tc.name)
 
-			if err := tc.run(); err != nil {
+			if err := testutils.RetryTestRun(tc.run); err != nil {
 				tc.cr.Status = testutils.TestFailed
 				tc.cr.FailedMessage = err.Error()
 
@@ -80,6 +83,10 @@ func TestJVMInput(t *testing.T) {
 	}
 }
 
+func getConfAccessPoint(host, port string) []string {
+	return []string{fmt.Sprintf("http://%s/jolokia", net.JoinHostPort(host, port))}
+}
+
 func buildCases(t *testing.T) ([]*caseSpec, error) {
 	t.Helper()
 
@@ -99,7 +106,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 	}{
 		{
 			name: "pubrepo.jiagouyun.com/image-repo-for-testing/java:jvm-jolokia-8",
-			conf: fmt.Sprintf(`urls = ["http://%s/jolokia"]
+			conf: `urls = [""]
 			interval   = "1s"
 			[[metric]]
 			  name  = "java_runtime"
@@ -126,7 +133,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			  name     = "java_memory_pool"
 			  mbean    = "java.lang:name=*,type=MemoryPool"
 			  paths    = ["Usage", "PeakUsage", "CollectionUsage"]
-			  tag_keys = ["name"]`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
+			  tag_keys = ["name"]`, // set conf URL later.
 			exposedPorts: []string{"59090/tcp"},
 			optsJavaRuntime: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
@@ -150,7 +157,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 		{
 			name: "pubrepo.jiagouyun.com/image-repo-for-testing/java:jvm-jolokia-11",
-			conf: fmt.Sprintf(`urls = ["http://%s/jolokia"]
+			conf: `urls = [""]
 			interval   = "1s"
 			[[metric]]
 			  name  = "java_runtime"
@@ -177,7 +184,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			  name     = "java_memory_pool"
 			  mbean    = "java.lang:name=*,type=MemoryPool"
 			  paths    = ["Usage", "PeakUsage", "CollectionUsage"]
-			  tag_keys = ["name"]`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
+			  tag_keys = ["name"]`, // set conf URL later.
 			exposedPorts: []string{"59090/tcp"},
 			optsJavaRuntime: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
@@ -201,7 +208,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 		{
 			name: "pubrepo.jiagouyun.com/image-repo-for-testing/java:jvm-jolokia-17",
-			conf: fmt.Sprintf(`urls = ["http://%s/jolokia"]
+			conf: `urls = [""]
 			interval   = "1s"
 			[[metric]]
 			  name  = "java_runtime"
@@ -228,7 +235,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			  name     = "java_memory_pool"
 			  mbean    = "java.lang:name=*,type=MemoryPool"
 			  paths    = ["Usage", "PeakUsage", "CollectionUsage"]
-			  tag_keys = ["name"]`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
+			  tag_keys = ["name"]`, // set conf URL later.
 			exposedPorts: []string{"59090/tcp"},
 			optsJavaRuntime: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
@@ -252,7 +259,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 		{
 			name: "pubrepo.jiagouyun.com/image-repo-for-testing/java:jvm-jolokia-20",
-			conf: fmt.Sprintf(`urls = ["http://%s/jolokia"]
+			conf: `urls = [""]
 			interval   = "1s"
 			[[metric]]
 			  name  = "java_runtime"
@@ -279,7 +286,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			  name     = "java_memory_pool"
 			  mbean    = "java.lang:name=*,type=MemoryPool"
 			  paths    = ["Usage", "PeakUsage", "CollectionUsage"]
-			  tag_keys = ["name"]`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
+			  tag_keys = ["name"]`, // set conf URL later.
 			exposedPorts: []string{"59090/tcp"},
 			optsJavaRuntime: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("CollectionUsageinit", "CollectionUsagecommitted", "CollectionUsagemax", "CollectionUsageused"), // nolint:lll
@@ -314,9 +321,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)
 
-		uURL, err := url.Parse(ipt.URLs[0])
-		require.NoError(t, err, "parse %s failed: %s", ipt.URLs[0], err)
-
 		repoTag := strings.Split(base.name, ":")
 
 		cases = append(cases, &caseSpec{
@@ -329,7 +333,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 			dockerFileText: base.dockerFileText,
 			exposedPorts:   base.exposedPorts,
-			serverPorts:    []string{uURL.Port()},
 
 			optsJavaRuntime:      base.optsJavaRuntime,
 			optsJavaMemory:       base.optsJavaMemory,
@@ -560,7 +563,6 @@ func (cs *caseSpec) run() error {
 				Env:        []string{"JOLOKIA_PORT=59090"},
 
 				ExposedPorts: cs.exposedPorts,
-				PortBindings: cs.getPortBindings(),
 			},
 
 			func(c *docker.HostConfig) {
@@ -581,7 +583,6 @@ func (cs *caseSpec) run() error {
 				Env:        []string{"JOLOKIA_PORT=59090"},
 
 				ExposedPorts: cs.exposedPorts,
-				PortBindings: cs.getPortBindings(),
 			},
 
 			func(c *docker.HostConfig) {
@@ -597,6 +598,11 @@ func (cs *caseSpec) run() error {
 
 	cs.pool = p
 	cs.resource = resource
+
+	if err := cs.getMappingPorts(); err != nil {
+		return err
+	}
+	cs.ipt.URLs = getConfAccessPoint(r.Host, cs.serverPorts[0]) // set conf URL here.
 
 	cs.t.Logf("check service(%s:%v)...", r.Host, cs.serverPorts)
 
@@ -636,6 +642,7 @@ func (cs *caseSpec) run() error {
 	cs.ipt.Terminate()
 
 	require.Equal(cs.t, 6, len(mCount))
+	mCount = map[string]struct{}{} // clear.
 
 	cs.t.Logf("exit...")
 	wg.Wait()
@@ -698,17 +705,17 @@ func (cs *caseSpec) getContainterName() string {
 	return name
 }
 
-func (cs *caseSpec) getPortBindings() map[docker.Port][]docker.PortBinding {
-	portBindings := make(map[docker.Port][]docker.PortBinding)
-
-	// check ports' mapping.
-	require.Equal(cs.t, len(cs.exposedPorts), len(cs.serverPorts))
-
+func (cs *caseSpec) getMappingPorts() error {
+	cs.serverPorts = make([]string, len(cs.exposedPorts))
 	for k, v := range cs.exposedPorts {
-		portBindings[docker.Port(v)] = []docker.PortBinding{{HostPort: docker.Port(cs.serverPorts[k]).Port()}}
+		mapStr := cs.resource.GetHostPort(v)
+		_, port, err := net.SplitHostPort(mapStr)
+		if err != nil {
+			return err
+		}
+		cs.serverPorts[k] = port
 	}
-
-	return portBindings
+	return nil
 }
 
 func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {

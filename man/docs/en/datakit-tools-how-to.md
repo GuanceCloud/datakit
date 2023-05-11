@@ -61,19 +61,9 @@ DataKit's new monitor usage [see here](datakit-monitor.md).
 After editing the collector's configuration file, there may be some configuration errors (such as the configuration file format error), which can be checked by the following command:
 
 ```shell
-datakit tool --check-config
+datakit check --config
 ------------------------
 checked 13 conf, all passing, cost 22.27455ms
-```
-
-### Collect SNMP Configuration Once {#check-snmp}
-
-After editing the configuration file of the SNMP collector, there may be some configuration errors (such as the configuration file format error). You can collect the SNMP device once to check whether it is correct by the following command:
-
-```shell
-datakit tool --test-snmp /usr/local/datakit/conf.d/snmp/snmp.conf
-# The collected information will be printed below...
-......
 ```
 
 ## View Workspace Information {#workspace-info}
@@ -322,7 +312,7 @@ If you are prompted `open /usr/local/datakit/externals/datakit-ebpf: text file b
 When troubleshooting DataKit problems, it is usually necessary to check the DataKit running log. To simplify the log collection process, DataKit supports one-click uploading of log files:
 
 ```shell
-datakit tool --upload-log
+datakit debug --upload-log
 log info: path/to/tkn_xxxxx/your-hostname/datakit-log-2021-11-08-1636340937.zip # Just send this path information to our engineers
 ```
 
@@ -335,7 +325,7 @@ After running the command, all log files in the log directory are packaged and c
 When troubleshooting issues with DataKit, it is necessary to manually collect various relevant information such as logs, configuration files, and monitoring data. This process can be cumbersome. To simplify this process, DataKit provides a command that can retrieve all the relevant information at once and package it into a file. Usage is as follows:
 
 ```shell
-datakit tool --bug-report
+datakit debug --bug-report
 ```
 
 After successful execution, a zip file will be generated in the current directory with the naming format of `info-<timestamp in milliseconds>.zip`。

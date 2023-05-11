@@ -7,7 +7,7 @@ Function description: Add the element elem to the end of the array arr.
 Function parameters:
 
 - `arr`: array
-- `elem`: element being added。 
+- `elem`: element being added.
 
 Example:
 
