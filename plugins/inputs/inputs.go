@@ -129,7 +129,6 @@ type ReadEnv interface {
 	ReadEnv(map[string]string)
 }
 
-// DEPRECATED.
 type InputOnceRunnableCollect interface {
 	Collect() (map[string][]*dkpt.Point, error)
 }
