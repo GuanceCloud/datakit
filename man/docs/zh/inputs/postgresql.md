@@ -12,6 +12,18 @@ PostgreSQL 采集器可以从 PostgreSQL 实例中采集实例运行状态指标
 ## 前置条件 {#reqirement}
 
 - PostgreSQL 版本 >= 9.0
+- 创建监控帐号
+
+```sql
+-- PostgreSQL >= 10
+create user datakit with password '<PASSWORD>';
+grant pg_monitor to datakit;
+grant SELECT ON pg_stat_database to datakit;
+
+-- PostgreSQL < 10
+create user datakit with password '<PASSWORD>';
+grant SELECT ON pg_stat_database to datakit;
+```
 
 ## 配置 {#config}
 
