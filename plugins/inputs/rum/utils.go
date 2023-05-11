@@ -40,9 +40,11 @@ const iosDSYMFilePath = "Contents/Resources/DWARF"
 const CacheInitCap = 16
 
 const (
-	SdkWeb     = "df_web_rum_sdk"
-	SdkAndroid = "df_android_rum_sdk"
-	SdkIOS     = "df_ios_rum_sdk"
+	SdkWeb        = "df_web_rum_sdk"
+	SdkWebMiniApp = "df_miniapp_rum_sdk"
+	SdkWebUniApp  = "df_uniapp_rum_sdk"
+	SdkAndroid    = "df_android_rum_sdk"
+	SdkIOS        = "df_ios_rum_sdk"
 )
 
 const (
@@ -65,9 +67,11 @@ var (
 		"x86_64":      {},
 	}
 	srcMapDirs = map[string]string{
-		SdkWeb:     srcMapDirWeb,
-		SdkAndroid: srcMapDirAndroid,
-		SdkIOS:     srcMapDirIOS,
+		SdkWeb:        srcMapDirWeb,
+		SdkWebMiniApp: srcMapDirWeb,
+		SdkWebUniApp:  srcMapDirWeb,
+		SdkAndroid:    srcMapDirAndroid,
+		SdkIOS:        srcMapDirIOS,
 	}
 	rumMetricNames = map[string]bool{
 		`view`:      true,

@@ -101,7 +101,7 @@ func buildInstaller(outdir, goos, goarch string) error {
 		envs = []string{
 			"GOOS=" + goos,
 			"GOARCH=" + goarch,
-			"CGO_ENABLED=off",
+			"CGO_ENABLED=0",
 		}
 	}
 
