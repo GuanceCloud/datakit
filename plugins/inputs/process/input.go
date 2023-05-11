@@ -43,6 +43,8 @@ type Input struct {
 	ObjectInterval      datakit.Duration  `toml:"object_interval,omitempty"`
 	RunTime             datakit.Duration  `toml:"min_run_time,omitempty"`
 	OpenMetric          bool              `toml:"open_metric,omitempty"`
+	OpenFiles           bool              `toml:"enable_open_files,omitempty"`
+	ListenPorts         bool              `toml:"enable_listen_ports,omitempty"`
 	MetricInterval      datakit.Duration  `toml:"metric_interval,omitempty"`
 	Tags                map[string]string `toml:"tags"`
 
@@ -143,11 +145,14 @@ func (p *Input) Terminate() {
 }
 
 // ReadEnv support envs：
-//   ENV_INPUT_OPEN_METRIC : booler   // deprecated
-//   ENV_INPUT_HOST_PROCESSES_OPEN_METRIC : booler
-//   ENV_INPUT_HOST_PROCESSES_TAGS : "a=b,c=d"
-//   ENV_INPUT_HOST_PROCESSES_PROCESS_NAME : []string
-//   ENV_INPUT_HOST_PROCESSES_MIN_RUN_TIME : datakit.Duration
+//
+//		ENV_INPUT_OPEN_METRIC : booler   // deprecated
+//		ENV_INPUT_HOST_PROCESSES_OPEN_METRIC : booler
+//		ENV_INPUT_HOST_PROCESSES_TAGS : "a=b,c=d"
+//		ENV_INPUT_HOST_PROCESSES_PROCESS_NAME : []string
+//		ENV_INPUT_HOST_PROCESSES_MIN_RUN_TIME : datakit.Duration
+//	 ENV_INPUT_HOST_PROCESSES_ENABLE_LISTEN_PORTS : booler
+//	 ENV_INPUT_HOST_PROCESSES_ENABLE_OPEN_FILES : booler
 func (p *Input) ReadEnv(envs map[string]string) {
 	// deprecated
 	if open, ok := envs["ENV_INPUT_OPEN_METRIC"]; ok {
@@ -191,6 +196,24 @@ func (p *Input) ReadEnv(envs map[string]string) {
 			p.RunTime.Duration = config.ProtectedInterval(minObjectInterval,
 				maxObjectInterval,
 				da)
+		}
+	}
+
+	if port, ok := envs["ENV_INPUT_HOST_PROCESSES_ENABLE_LISTEN_PORTS"]; ok {
+		b, err := strconv.ParseBool(port)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_HOST_PROCESSES_ENABLE_LISTEN_PORTS to bool: %s, ignore", err)
+		} else {
+			p.ListenPorts = b
+		}
+	}
+
+	if file, ok := envs["ENV_INPUT_HOST_PROCESSES_ENABLE_OPEN_FILES"]; ok {
+		b, err := strconv.ParseBool(file)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_HOST_PROCESSES_ENABLE_OPEN_FILES to bool: %s, ignore", err)
+		} else {
+			p.OpenFiles = b
 		}
 	}
 }
@@ -342,15 +365,6 @@ func (p *Input) Parse(ps *pr.Process, procRec *procRecorder, tn time.Time) (user
 	} else {
 		fields["threads"] = Threads
 	}
-	if runtime.GOOS == "linux" {
-		OpenFiles, err := ps.OpenFiles()
-		if err != nil {
-			l.Warnf("process:%s,pid:%d get openfile err:%s", name, ps.Pid, err.Error())
-		} else {
-			fields["open_files"] = len(OpenFiles)
-			message["open_files"] = OpenFiles
-		}
-	}
 
 	return username, state, name, fields, message
 }
@@ -366,17 +380,29 @@ func (p *Input) WriteObject(processList []*pr.Process, procRec *procRecorder, tn
 			"name":         fmt.Sprintf("%s_%d", config.Cfg.Hostname, ps.Pid),
 			"process_name": name,
 		}
-		if listeningPorts, err := getListeningPortsJSON(ps); err != nil {
-			l.Warnf("getListeningPortsJSON: %v", err)
-		} else {
-			tags["listen_ports"] = string(listeningPorts)
-		}
-		if runtime.GOOS == "linux" {
-			openFilesJSON, err := getOpenFilesJSON(ps)
-			if err != nil {
-				l.Errorf("failed to get open files list: %v", err)
+		if p.ListenPorts {
+			if listeningPorts, err := getListeningPortsJSON(ps); err != nil {
+				l.Warnf("getListeningPortsJSON: %v", err)
 			} else {
-				fields["open_files_list"] = string(openFilesJSON)
+				tags["listen_ports"] = string(listeningPorts)
+			}
+		}
+
+		if runtime.GOOS == "linux" {
+			if p.OpenFiles {
+				openFiles, err := ps.OpenFiles()
+				if err != nil {
+					l.Warnf("process:%s,pid:%d get openfile err:%s", name, ps.Pid, err.Error())
+				} else {
+					data, err := json.Marshal(openFiles)
+					if err != nil {
+						l.Warnf("failed to get open files list: %v", err)
+					}
+
+					message["open_files"] = openFiles
+					fields["open_files"] = len(openFiles)
+					fields["open_files_list"] = string(data)
+				}
 			}
 		}
 
@@ -510,15 +536,6 @@ func getListeningPortsJSON(proc *pr.Process) ([]byte, error) {
 		}
 	}
 	return json.Marshal(listening)
-}
-
-func getOpenFilesJSON(proc *pr.Process) ([]byte, error) {
-	openFiles, err := proc.OpenFiles()
-	if err != nil {
-		return nil, err
-	}
-	data, err := json.Marshal(openFiles)
-	return data, err
 }
 
 func init() { //nolint:gochecknoinits
