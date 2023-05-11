@@ -250,16 +250,6 @@ func init() {
 		},
 	)
 
-	notSinkPtsVec = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "datakit",
-			Subsystem: "io",
-			Name:      "dataway_not_sink_point_total",
-			Help:      "dataway not-sinked points(condition or category not match)",
-		},
-		[]string{"category"},
-	)
-
 	sinkPtsVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "datakit",
