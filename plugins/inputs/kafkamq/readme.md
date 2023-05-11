@@ -41,6 +41,16 @@ kafka 开启 SASL 之后，注意 user 和 pw 还有协议。
 ### 限速和采样
 从 v1.6.0 开始，全部支持限速和采样，并将自定义中的移除。
 
+## Prometheus Metrics
+
+kafkamq 模块暴露如下 metrics：
+
+| 指标                                     | 类型    | 说明                                                  | labels                 |
+|:---------------------------------------|:------|:----------------------------------------------------|:-----------------------|
+| datakit_kafkamq_group_election_total   | count | kafkamq group election count                        | -                      |
+| datakit_kafkamq_consumer_message_total | count | kafkamq consumer message numbers from Datakit start | topic,partition,status |
+
+
 
 ## todo
 - 集成测试，文档补全（kafka容易配置错的地方） en

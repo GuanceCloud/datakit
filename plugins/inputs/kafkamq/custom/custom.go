@@ -80,10 +80,12 @@ func (mq *Custom) GetTopics() []string {
 }
 
 // Process :TopicProcess implement.
-func (mq *Custom) Process(msg *sarama.ConsumerMessage) {
+func (mq *Custom) Process(msg *sarama.ConsumerMessage) error {
+	var err error
 	if mq.feeder == nil {
-		log.Warnf("feeder is nil,return")
-		return
+		err = fmt.Errorf("feeder is nil,return")
+		log.Warn(err)
+		return err
 	}
 	topic := msg.Topic
 	msgs := make([]string, 0)
@@ -94,13 +96,13 @@ func (mq *Custom) Process(msg *sarama.ConsumerMessage) {
 		err := json.Unmarshal(msg.Value, &is)
 		if err != nil {
 			log.Warnf("Unmarshal err=%v", err)
-			return
+			return err
 		}
 		for _, i := range is {
 			bts, err := json.Marshal(i)
 			if err != nil {
 				log.Warnf("marshal err=%v", err)
-				return
+				return err
 			}
 			m := strings.ReplaceAll(string(bts), "\n", " ")
 			log.Debugf("kafka_message is %s", m)
@@ -134,17 +136,19 @@ func (mq *Custom) Process(msg *sarama.ConsumerMessage) {
 			plMap[topic+"_"+topic] = p // 这也是 pl 中要必须的格式： app_id_xxx。
 		}
 		if len(plMap) == 0 {
-			log.Warnf("can not find [%s] pipeline script", topic)
-			return
+			err = fmt.Errorf("can not find [%s] pipeline script", topic)
+			log.Warn(err)
+			return err
 		}
 
 		pt := point.NewPointV2([]byte(topic), append(point.NewTags(tags), point.NewKVs(fields)...), opts...)
 
-		err := mq.feeder.Feed(topic, category, []*point.Point{pt}, &dkio.Option{PlScript: plMap})
+		err = mq.feeder.Feed(topic, category, []*point.Point{pt}, &dkio.Option{PlScript: plMap})
 		if err != nil {
 			log.Warnf("feed io err=%v", err)
 		}
 	}
+	return err
 }
 
 func (mq *Custom) initMap() {
