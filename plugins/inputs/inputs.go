@@ -42,8 +42,8 @@ var (
 	l              = logger.DefaultSLogger("inputs")
 )
 
-func GetElectionInputs() []ElectionInput {
-	res := []ElectionInput{}
+func GetElectionInputs() map[string][]ElectionInput {
+	res := make(map[string][]ElectionInput)
 	for k, arr := range InputsInfo {
 		for _, x := range arr {
 			if y, ok := x.input.(ElectionInput); ok {
@@ -54,7 +54,7 @@ func GetElectionInputs() []ElectionInput {
 					}
 				}
 				l.Debugf("find election inputs %s", k)
-				res = append(res, y)
+				res[k] = append(res[k], y)
 			}
 		}
 	}

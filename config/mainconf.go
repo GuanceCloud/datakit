@@ -15,6 +15,7 @@ import (
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/operator"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
@@ -69,7 +70,8 @@ type Config struct {
 	IO                     *IOConf `toml:"io"`
 	IOCacheCountDeprecated int     `toml:"io_cache_count,omitzero"`
 
-	Dataway *dataway.Dataway `toml:"dataway"`
+	Dataway  *dataway.Dataway   `toml:"dataway"`
+	Operator *operator.Operator `toml:"-"`
 
 	SinkersDeprecated *SinkerDeprecated `toml:"sinks"`
 
@@ -135,6 +137,7 @@ func DefaultConfig() *Config {
 			HTTPTimeout: 30 * time.Second,
 			IdleTimeout: 90 * time.Second,
 		},
+		Operator: &operator.Operator{},
 
 		ProtectMode: true,
 

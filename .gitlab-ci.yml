@@ -38,7 +38,6 @@ ci_ut_only:
   only:
     - /^ut-.*$/
   script:
-    # only run lint
     - make clean
     - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY"
     - make # try build basic binaries
@@ -52,6 +51,7 @@ test-datakit-production:
     - unstable
     - master
   script:
+    - nvm use v16.14.0
     - make clean
     - make production_notify GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"
     - make lint_nofix
@@ -66,6 +66,7 @@ test-datakit-testing:
     - testing
     - /^testing-.*$/
   script:
+    - nvm use v16.14.0
     - make clean
     - make testing_notify GIT_BRANCH=$CI_COMMIT_BRANCH
     - make lint_nofix
@@ -181,3 +182,4 @@ current-testing:
     - make testing_image VERSION="$TEST_VERSION"
   tags:
     - cloudcare-ft
+

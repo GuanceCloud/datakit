@@ -213,12 +213,21 @@ func doRun() error {
 	})
 
 	if config.Cfg.Dataway != nil {
-		election.Start(
+		electionsOpts := []election.ElectionOption{
 			election.WithElectionEnabled(config.Cfg.Election.Enable),
 			election.WithID(config.Cfg.Hostname),
 			election.WithNamespace(config.Cfg.Election.Namespace),
-			election.WithPuller(config.Cfg.Dataway),
-		)
+		}
+
+		if err := config.Cfg.Operator.Ping(); err == nil {
+			l.Infof("datakit-operator connection successed.")
+			electionsOpts = append(electionsOpts, election.WithOperatorPuller(config.Cfg.Operator))
+		} else {
+			l.Infof("datakit-operator connection refused, reason: %s", err)
+			electionsOpts = append(electionsOpts, election.WithDatawayPuller(config.Cfg.Dataway))
+		}
+
+		election.Start(electionsOpts...)
 
 		if len(config.Cfg.Dataway.URLs) == 1 {
 			// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/524
