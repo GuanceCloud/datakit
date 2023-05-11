@@ -22,6 +22,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -63,6 +64,7 @@ type Input struct {
 
 	feeder  dkio.Feeder
 	semStop *cliutils.Sem // start stop signal
+	opt     point.Option
 }
 
 func (*Input) Catalog() string {
@@ -180,11 +182,11 @@ func (i *Input) gatherServer(address string, unix bool) error {
 	}
 
 	metric := &inputMeasurement{
-		name:     inputName,
-		tags:     tags,
-		fields:   fields,
-		ts:       time.Now(),
-		election: i.Election,
+		name:   inputName,
+		tags:   tags,
+		fields: fields,
+		ts:     time.Now(),
+		ipt:    i,
 	}
 	i.collectCache = append(i.collectCache, metric.Point())
 	return nil
@@ -229,6 +231,12 @@ func (i *Input) Run() {
 	}
 
 	i.duration = config.ProtectedInterval(minInterval, maxInterval, duration)
+
+	if i.Election {
+		i.opt = point.WithExtraTags(dkpt.GlobalElectionTags())
+	} else {
+		i.opt = point.WithExtraTags(dkpt.GlobalHostTags())
+	}
 
 	tick := time.NewTicker(i.duration)
 

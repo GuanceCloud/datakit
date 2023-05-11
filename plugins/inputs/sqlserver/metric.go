@@ -6,6 +6,8 @@
 package sqlserver
 
 import (
+	"time"
+
 	"github.com/GuanceCloud/cliutils/point"
 	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -15,19 +17,14 @@ type Performance struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-
-	ipt *Input
+	ts     time.Time
+	ipt    *Input
 }
 
 // Point implement MeasurementV2.
 func (m *Performance) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-
-	if m.ipt != nil && m.ipt.Election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
+	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),

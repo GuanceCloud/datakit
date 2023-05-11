@@ -16,6 +16,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
@@ -72,6 +73,7 @@ type ExternalInput struct {
 
 	semStop        *cliutils.Sem // start stop signal
 	semStopProcess *cliutils.Sem
+	opt            point.Option
 	procExitReply  chan struct{}
 
 	daemonStarted bool
@@ -141,6 +143,12 @@ func (ex *ExternalInput) Run() {
 	l = logger.SLogger(inputName)
 
 	l.Infof("starting external input %s...", ex.Name)
+
+	if ex.Election {
+		ex.opt = point.WithExtraTags(dkpt.GlobalElectionTags())
+	} else {
+		ex.opt = point.WithExtraTags(dkpt.GlobalHostTags())
+	}
 
 	tagsStr := ""
 	arr := []string{}

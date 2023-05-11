@@ -3,12 +3,14 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package tomcat
+package jenkins
 
 import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -20,6 +22,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	dockertest "github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -27,15 +30,10 @@ import (
 )
 
 // ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
-// Reference: https://jolokia.org/reference/html/agents.html#jvm-agent
 
 var mCount map[string]struct{} = make(map[string]struct{}) // Length of got measurements.
 
-func TestTomcatInput(t *testing.T) {
-	if !testutils.CheckIntegrationTestingRunning() {
-		t.Skip()
-	}
-
+func TestJenkinsInput(t *testing.T) {
 	start := time.Now()
 	cases, err := buildCases(t)
 	if err != nil {
@@ -69,7 +67,7 @@ func TestTomcatInput(t *testing.T) {
 
 			tc.cr.Cost = time.Since(caseStart)
 
-			require.NoError(t, testutils.Flush(tc.cr))
+			assert.NoError(t, testutils.Flush(tc.cr))
 
 			t.Cleanup(func() {
 				// clean remote docker resources
@@ -77,14 +75,14 @@ func TestTomcatInput(t *testing.T) {
 					return
 				}
 
-				require.NoError(t, tc.pool.Purge(tc.resource))
+				assert.NoError(t, tc.pool.Purge(tc.resource))
 			})
 		})
 	}
 }
 
-func getConfAccessPoint(host, port string) []string {
-	return []string{fmt.Sprintf("http://%s/jolokia", net.JoinHostPort(host, port))}
+func getConfAccessPoint(host, port string) string {
+	return fmt.Sprintf("http://%s", net.JoinHostPort(host, port))
 }
 
 func buildCases(t *testing.T) ([]*caseSpec, error) {
@@ -93,89 +91,17 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 	remote := testutils.GetRemote()
 
 	bases := []struct {
-		name                             string // Also used as build image name:tag.
-		conf                             string
-		dockerFileText                   string // Empty if not build image.
-		exposedPorts                     []string
-		optsTomcatGlobalRequestProcessor []inputs.PointCheckOption
-		optsTomcatJspMonitor             []inputs.PointCheckOption
-		optsTomcatThreadPool             []inputs.PointCheckOption
-		optsTomcatServlet                []inputs.PointCheckOption
-		optsTomcatCache                  []inputs.PointCheckOption
-		mPathCount                       map[string]int
+		name         string // Also used as build image name:tag.
+		conf         string
+		exposedPorts []string
 	}{
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/tomcat:8-jolokia",
-			conf: `username = "jolokia_user"
-			password = "123456@secPassWd"
-			urls = [""]
-			[[metric]]
-			  name     = "tomcat_global_request_processor"
-			  mbean    = '''Catalina:name="*",type=GlobalRequestProcessor'''
-			  paths    = ["requestCount","bytesReceived","bytesSent","processingTime","errorCount"]
-			  tag_keys = ["name"]
-			[[metric]]
-			  name     = "tomcat_jsp_monitor"
-			  mbean    = "Catalina:J2EEApplication=*,J2EEServer=*,WebModule=*,name=jsp,type=JspMonitor"
-			  paths    = ["jspReloadCount","jspCount","jspUnloadCount"]
-			  tag_keys = ["J2EEApplication","J2EEServer","WebModule"]
-			[[metric]]
-			  name     = "tomcat_thread_pool"
-			  mbean    = "Catalina:name=\"*\",type=ThreadPool"
-			  paths    = ["maxThreads","currentThreadCount","currentThreadsBusy"]
-			  tag_keys = ["name"]
-			[[metric]]
-			  name     = "tomcat_servlet"
-			  mbean    = "Catalina:J2EEApplication=*,J2EEServer=*,WebModule=*,j2eeType=Servlet,name=*"
-			  paths    = ["processingTime","errorCount","requestCount"]
-			  tag_keys = ["name","J2EEApplication","J2EEServer","WebModule"]
-			[[metric]]
-			  name     = "tomcat_cache"
-			  mbean    = "Catalina:context=*,host=*,name=Cache,type=WebResourceRoot"
-			  paths    = ["hitCount","lookupCount"]
-			  tag_keys = ["context","host"]
-			  tag_prefix = "tomcat_"`, // set conf URL later.
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/jenkins:2.332.1-metrics",
+			conf: `enable_collect = true
+			url = ""
+			key = "6nCZ42W2cNnCO1oeM9Y41wEQ7GEyX1WTeK6aC1Q0vu43Kwqlebqcheek733Aq0sZ"
+			interval = "1s"`, // set conf URL later.
 			exposedPorts: []string{"8080/tcp"},
-			mPathCount: map[string]int{
-				"/": 10,
-			},
-		},
-
-		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/tomcat:9-jolokia",
-			conf: `username = "jolokia_user"
-			password = "123456@secPassWd"
-			urls = [""]
-			[[metric]]
-			  name     = "tomcat_global_request_processor"
-			  mbean    = '''Catalina:name="*",type=GlobalRequestProcessor'''
-			  paths    = ["requestCount","bytesReceived","bytesSent","processingTime","errorCount"]
-			  tag_keys = ["name"]
-			[[metric]]
-			  name     = "tomcat_jsp_monitor"
-			  mbean    = "Catalina:J2EEApplication=*,J2EEServer=*,WebModule=*,name=jsp,type=JspMonitor"
-			  paths    = ["jspReloadCount","jspCount","jspUnloadCount"]
-			  tag_keys = ["J2EEApplication","J2EEServer","WebModule"]
-			[[metric]]
-			  name     = "tomcat_thread_pool"
-			  mbean    = "Catalina:name=\"*\",type=ThreadPool"
-			  paths    = ["maxThreads","currentThreadCount","currentThreadsBusy"]
-			  tag_keys = ["name"]
-			[[metric]]
-			  name     = "tomcat_servlet"
-			  mbean    = "Catalina:J2EEApplication=*,J2EEServer=*,WebModule=*,j2eeType=Servlet,name=*"
-			  paths    = ["processingTime","errorCount","requestCount"]
-			  tag_keys = ["name","J2EEApplication","J2EEServer","WebModule"]
-			[[metric]]
-			  name     = "tomcat_cache"
-			  mbean    = "Catalina:context=*,host=*,name=Cache,type=WebResourceRoot"
-			  paths    = ["hitCount","lookupCount"]
-			  tag_keys = ["context","host"]
-			  tag_prefix = "tomcat_"`, // set conf URL later.
-			exposedPorts: []string{"8080/tcp"},
-			mPathCount: map[string]int{
-				"/": 10,
-			},
 		},
 	}
 
@@ -186,10 +112,13 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		feeder := io.NewMockedFeeder()
 
 		ipt := defaultInput()
-		ipt.Feeder = feeder
+		ipt.feeder = feeder
 
 		_, err := toml.Decode(base.conf, ipt)
-		require.NoError(t, err)
+		assert.NoError(t, err)
+
+		uURL, err := url.Parse(ipt.URL)
+		require.NoError(t, err, "parse %s failed: %s", ipt.URL, err)
 
 		repoTag := strings.Split(base.name, ":")
 
@@ -201,16 +130,8 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			repo:    repoTag[0],
 			repoTag: repoTag[1],
 
-			dockerFileText: base.dockerFileText,
-			exposedPorts:   base.exposedPorts,
-
-			optsTomcatGlobalRequestProcessor: base.optsTomcatGlobalRequestProcessor,
-			optsTomcatJspMonitor:             base.optsTomcatJspMonitor,
-			optsTomcatThreadPool:             base.optsTomcatThreadPool,
-			optsTomcatServlet:                base.optsTomcatServlet,
-			optsTomcatCache:                  base.optsTomcatCache,
-
-			mPathCount: base.mPathCount,
+			exposedPorts: base.exposedPorts,
+			serverPorts:  []string{uURL.Port()},
 
 			cr: &testutils.CaseResult{
 				Name:        t.Name(),
@@ -236,18 +157,13 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 type caseSpec struct {
 	t *testing.T
 
-	name                             string
-	repo                             string
-	repoTag                          string
-	dockerFileText                   string
-	exposedPorts                     []string
-	serverPorts                      []string
-	optsTomcatGlobalRequestProcessor []inputs.PointCheckOption
-	optsTomcatJspMonitor             []inputs.PointCheckOption
-	optsTomcatThreadPool             []inputs.PointCheckOption
-	optsTomcatServlet                []inputs.PointCheckOption
-	optsTomcatCache                  []inputs.PointCheckOption
-	mPathCount                       map[string]int
+	name           string
+	repo           string
+	repoTag        string
+	dockerFileText string
+	exposedPorts   []string
+	serverPorts    []string
+	opts           []inputs.PointCheckOption
 
 	ipt    *Input
 	feeder *io.MockedFeeder
@@ -261,14 +177,14 @@ type caseSpec struct {
 func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 	var opts []inputs.PointCheckOption
 	opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
+	opts = append(opts, cs.opts...)
 
 	for _, pt := range pts {
 		measurement := string(pt.Name())
 
 		switch measurement {
-		case TomcatGlobalRequestProcessor:
-			opts = append(opts, cs.optsTomcatGlobalRequestProcessor...)
-			opts = append(opts, inputs.WithDoc(&TomcatGlobalRequestProcessorM{}))
+		case inputName:
+			opts = append(opts, inputs.WithDoc(&Measurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
 
@@ -281,75 +197,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
-			mCount[TomcatGlobalRequestProcessor] = struct{}{}
-
-		case TomcatJspMonitor:
-			opts = append(opts, cs.optsTomcatJspMonitor...)
-			opts = append(opts, inputs.WithDoc(&TomcatJspMonitorM{}))
-
-			msgs := inputs.CheckPoint(pt, opts...)
-
-			for _, msg := range msgs {
-				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-			}
-
-			// TODO: error here
-			if len(msgs) > 0 {
-				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-			}
-
-			mCount[TomcatJspMonitor] = struct{}{}
-
-		case TomcatThreadPool:
-			opts = append(opts, cs.optsTomcatThreadPool...)
-			opts = append(opts, inputs.WithDoc(&TomcatThreadPoolM{}))
-
-			msgs := inputs.CheckPoint(pt, opts...)
-
-			for _, msg := range msgs {
-				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-			}
-
-			// TODO: error here
-			if len(msgs) > 0 {
-				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-			}
-
-			mCount[TomcatThreadPool] = struct{}{}
-
-		case TomcatServlet:
-			opts = append(opts, cs.optsTomcatServlet...)
-			opts = append(opts, inputs.WithDoc(&TomcatServletM{}))
-
-			msgs := inputs.CheckPoint(pt, opts...)
-
-			for _, msg := range msgs {
-				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-			}
-
-			// TODO: error here
-			if len(msgs) > 0 {
-				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-			}
-
-			mCount[TomcatServlet] = struct{}{}
-
-		case TomcatCache:
-			opts = append(opts, cs.optsTomcatCache...)
-			opts = append(opts, inputs.WithDoc(&TomcatCacheM{}))
-
-			msgs := inputs.CheckPoint(pt, opts...)
-
-			for _, msg := range msgs {
-				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-			}
-
-			// TODO: error here
-			if len(msgs) > 0 {
-				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-			}
-
-			mCount[TomcatCache] = struct{}{}
+			mCount[inputName] = struct{}{}
 
 		default: // TODO: check other measurement
 			panic("not implement")
@@ -414,7 +262,6 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				// Env:        []string{"JOLOKIA_PORT=59090"},
 
 				ExposedPorts: cs.exposedPorts,
 			},
@@ -434,7 +281,6 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				// Env:        []string{"JOLOKIA_PORT=59090"},
 
 				ExposedPorts: cs.exposedPorts,
 			},
@@ -456,15 +302,19 @@ func (cs *caseSpec) run() error {
 	if err := cs.getMappingPorts(); err != nil {
 		return err
 	}
-	cs.ipt.URLs = getConfAccessPoint(r.Host, cs.serverPorts[0]) // set conf URL here.
+	cs.ipt.URL = getConfAccessPoint(r.Host, cs.serverPorts[0]) // set conf URL here.
 
-	cs.t.Logf("check service(%s:%v)...", r.Host, cs.serverPorts)
+	cs.t.Logf("check service(%s:%v)...", r.Host, cs.exposedPorts)
 
 	if err := cs.portsOK(r); err != nil {
 		return err
 	}
 
 	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
+
+	if err = cs.runHTTPTests(r); err != nil {
+		return err
+	}
 
 	var wg sync.WaitGroup
 
@@ -479,7 +329,7 @@ func (cs *caseSpec) run() error {
 	// wait data
 	start = time.Now()
 	cs.t.Logf("wait points...")
-	pts, err := cs.feeder.NPoints(50, 5*time.Minute)
+	pts, err := cs.feeder.AnyPoints(5 * time.Minute)
 	if err != nil {
 		return err
 	}
@@ -495,7 +345,7 @@ func (cs *caseSpec) run() error {
 	cs.t.Logf("stop input...")
 	cs.ipt.Terminate()
 
-	require.Equal(cs.t, 5, len(mCount))
+	require.Equal(cs.t, 1, len(mCount))
 	mCount = map[string]struct{}{} // clear.
 
 	cs.t.Logf("exit...")
@@ -580,3 +430,28 @@ func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
 	}
 	return nil
 }
+
+// Waiting for Jenkins actual running up...
+func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) error {
+	tick := time.NewTicker(2 * time.Minute)
+	defer tick.Stop()
+
+	for {
+		select {
+		case <-tick.C:
+			return fmt.Errorf("get HTTP response time out")
+		default:
+			resp, err := http.Get("http://" + net.JoinHostPort(r.Host, cs.serverPorts[0]) + "/login")
+			if err != nil {
+				return err
+			}
+			defer resp.Body.Close()
+			if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+				return nil
+			}
+			time.Sleep(time.Second)
+		}
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////

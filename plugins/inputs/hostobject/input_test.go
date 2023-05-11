@@ -8,13 +8,13 @@ package hostobject
 import (
 	"testing"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 // go test -v -timeout 30s -run ^TestCollect$ gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/hostobject
 func TestCollect(t *testing.T) {
-	ipt := DefaultHostObject()
+	ipt := defaultInput()
 
 	// ipt.OnlyPhysicalDevice = true
 
@@ -24,11 +24,8 @@ func TestCollect(t *testing.T) {
 	}
 
 	var pts []*point.Point
-	if pt, err := ipt.collectData.LineProto(); err != nil {
-		t.Error(err)
-	} else {
-		pts = append(pts, pt)
-	}
+	pt := ipt.collectData.Point()
+	pts = append(pts, pt)
 
 	mpts := make(map[string][]*point.Point)
 	mpts[datakit.Object] = pts

@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
-	"net/netip"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,6 +25,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
+
+// ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
+
+var mCount map[string]struct{} = make(map[string]struct{}) // Length of got measurements.
 
 func TestMemcachedInput(t *testing.T) {
 	if !testutils.CheckIntegrationTestingRunning() {
@@ -79,6 +82,10 @@ func TestMemcachedInput(t *testing.T) {
 	}
 }
 
+func getConfAccessPoint(host, port string) []string {
+	return []string{fmt.Sprintf("%s:%s", host, port)}
+}
+
 func buildCases(t *testing.T) ([]*caseSpec, error) {
 	t.Helper()
 
@@ -93,18 +100,18 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 	}{
 		{
 			name: "memcached:1.5",
-			conf: fmt.Sprintf(`servers = ["%s"]
+			conf: `servers = [""]
 			interval = "1s"
 		[tags]
-			tag1 = "val1"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
+			tag1 = "val1"`, // set conf URL later.
 			exposedPorts: []string{"11211/tcp"},
 		},
 		{
 			name: "memcached:1.6",
-			conf: fmt.Sprintf(`servers = ["%s"]
+			conf: `servers = [""]
 			interval = "1s"
 		[tags]
-			tag1 = "val1"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
+			tag1 = "val1"`, // set conf URL later.
 			exposedPorts: []string{"11211/tcp"},
 		},
 	}
@@ -121,9 +128,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)
 
-		addrPort, err := netip.ParseAddrPort(ipt.Servers[0])
-		require.NoError(t, err, "parse %s failed: %s", ipt.Servers[0], err)
-
 		repoTag := strings.Split(base.name, ":")
 
 		cases = append(cases, &caseSpec{
@@ -136,7 +140,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 			dockerFileText: base.dockerFileText,
 			exposedPorts:   base.exposedPorts,
-			serverPorts:    []string{fmt.Sprintf("%d", addrPort.Port())},
 			cmd:            base.cmd,
 
 			cr: &testutils.CaseResult{
@@ -201,6 +204,8 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			if len(msgs) > 0 {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
+
+			mCount[inputName] = struct{}{}
 
 		default: // TODO: check other measurement
 			panic("not implement")
@@ -268,7 +273,6 @@ func (cs *caseSpec) run() error {
 				Cmd:        cs.cmd,
 
 				ExposedPorts: cs.exposedPorts,
-				PortBindings: cs.getPortBindings(),
 			},
 
 			func(c *docker.HostConfig) {
@@ -289,7 +293,6 @@ func (cs *caseSpec) run() error {
 				Cmd:        cs.cmd,
 
 				ExposedPorts: cs.exposedPorts,
-				PortBindings: cs.getPortBindings(),
 			},
 
 			func(c *docker.HostConfig) {
@@ -305,6 +308,11 @@ func (cs *caseSpec) run() error {
 
 	cs.pool = p
 	cs.resource = resource
+
+	if err := cs.getMappingPorts(); err != nil {
+		return err
+	}
+	cs.ipt.Servers = getConfAccessPoint(r.Host, cs.serverPorts[0]) // set conf URL here.
 
 	cs.t.Logf("check service(%s:%v)...", r.Host, cs.serverPorts)
 
@@ -346,6 +354,9 @@ func (cs *caseSpec) run() error {
 
 	cs.t.Logf("stop input...")
 	cs.ipt.Terminate()
+
+	require.Equal(cs.t, 1, len(mCount))
+	mCount = map[string]struct{}{} // clear.
 
 	cs.t.Logf("exit...")
 	wg.Wait()
@@ -408,17 +419,17 @@ func (cs *caseSpec) getContainterName() string {
 	return name
 }
 
-func (cs *caseSpec) getPortBindings() map[docker.Port][]docker.PortBinding {
-	portBindings := make(map[docker.Port][]docker.PortBinding)
-
-	// check ports' mapping.
-	require.Equal(cs.t, len(cs.exposedPorts), len(cs.serverPorts))
-
+func (cs *caseSpec) getMappingPorts() error {
+	cs.serverPorts = make([]string, len(cs.exposedPorts))
 	for k, v := range cs.exposedPorts {
-		portBindings[docker.Port(v)] = []docker.PortBinding{{HostPort: docker.Port(cs.serverPorts[k]).Port()}}
+		mapStr := cs.resource.GetHostPort(v)
+		_, port, err := net.SplitHostPort(mapStr)
+		if err != nil {
+			return err
+		}
+		cs.serverPorts[k] = port
 	}
-
-	return portBindings
+	return nil
 }
 
 func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {

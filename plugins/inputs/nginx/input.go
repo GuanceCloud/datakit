@@ -20,6 +20,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -171,6 +172,12 @@ func (n *Input) RunPipeline() {
 func (n *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("nginx start")
+
+	if n.Election {
+		n.opt = point.WithExtraTags(dkpt.GlobalElectionTags())
+	} else {
+		n.opt = point.WithExtraTags(dkpt.GlobalHostTags())
+	}
 
 	tick := time.NewTicker(n.Interval.Duration)
 	defer tick.Stop()

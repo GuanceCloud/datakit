@@ -139,6 +139,38 @@ func portInUse(proto string, p int) bool {
 	return true
 }
 
+// RandPortUDP return random UDP port after offset baseOffset.
+func RandPortUDP() (*net.UDPConn, int, error) {
+	if v := os.Getenv("TESTING_BASE_PORT"); v != "" {
+		i, err := strconv.ParseInt(v, 10, 64)
+		if err == nil {
+			baseOffset = int(i)
+		}
+	}
+
+	for {
+		r := rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec
+		p := ((r.Int() % baseOffset) + baseOffset) % maxPort
+		if conn, err := udpPortInUse(p); err == nil {
+			return conn, p, nil
+		}
+	}
+}
+
+func udpPortInUse(port int) (*net.UDPConn, error) {
+	s, err := net.ResolveUDPAddr("udp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		return nil, err
+	}
+
+	conn, err := net.ListenUDP("udp", s)
+	if err != nil {
+		return nil, err
+	}
+
+	return conn, nil
+}
+
 // ExternalIP returns running host's external IP address.
 func ExternalIP() (string, error) {
 	ifaces, err := net.Interfaces()

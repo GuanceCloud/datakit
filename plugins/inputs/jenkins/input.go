@@ -15,12 +15,14 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/gin-gonic/gin"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -76,6 +78,12 @@ func (n *Input) setup() {
 		n.setupServer()
 		l.Infof("start listening to jenkins CI events at %s", n.CIEventPort)
 	}
+
+	if n.Election {
+		n.opt = point.WithExtraTags(dkpt.GlobalElectionTags())
+	} else {
+		n.opt = point.WithExtraTags(dkpt.GlobalHostTags())
+	}
 }
 
 func (n *Input) setupServer() {
@@ -114,10 +122,8 @@ func (n *Input) Run() {
 			n.start = time.Now()
 			n.getPluginMetric()
 			if len(n.collectCache) > 0 {
-				err := inputs.FeedMeasurement(inputName,
-					datakit.Metric,
-					n.collectCache,
-					&io.Option{CollectCost: time.Since(n.start)})
+				err := n.feeder.Feed(inputName, point.Metric, n.collectCache,
+					&dkio.Option{CollectCost: time.Since(n.start)})
 				n.collectCache = n.collectCache[:0]
 				if err != nil {
 					n.lastErr = err
@@ -126,7 +132,7 @@ func (n *Input) Run() {
 				}
 			}
 			if n.lastErr != nil {
-				io.FeedLastError(inputName, n.lastErr.Error())
+				n.feeder.FeedLastError(inputName, n.lastErr.Error())
 				n.lastErr = nil
 			}
 		case <-datakit.Exit.Wait():
@@ -147,10 +153,12 @@ func (n *Input) Run() {
 func (n *Input) shutdownServer() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := n.srv.Shutdown(ctx); err != nil {
-		l.Errorf("jenkins CI event server failed to shutdown: %v", err)
-	} else {
-		l.Infof("jenkins CI event server is shutdown")
+	if n.srv != nil {
+		if err := n.srv.Shutdown(ctx); err != nil {
+			l.Errorf("jenkins CI event server failed to shutdown: %v", err)
+		} else {
+			l.Infof("jenkins CI event server is shutdown")
+		}
 	}
 }
 
@@ -187,7 +195,7 @@ func (n *Input) RunPipeline() {
 	n.tail, err = tailer.NewTailer(n.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
-		io.FeedLastError(inputName, err.Error())
+		n.feeder.FeedLastError(inputName, err.Error())
 		return
 	}
 
@@ -253,13 +261,16 @@ func (n *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
+func defaultInput() *Input {
+	return &Input{
+		Interval: datakit.Duration{Duration: time.Second * 30},
+		semStop:  cliutils.NewSem(),
+		feeder:   dkio.DefaultFeeder(),
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		s := &Input{
-			Interval: datakit.Duration{Duration: time.Second * 30},
-
-			semStop: cliutils.NewSem(),
-		}
-		return s
+		return defaultInput()
 	})
 }

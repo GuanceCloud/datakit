@@ -182,6 +182,13 @@ Install or download  [Jolokia](https://search.maven.org/remotecontent?filepath=o
 java -javaagent:/path/to/jolokia-jvm-agent.jar=port=8080,host=localhost -jar your_app.jar
 ```
 
+Already tested version:
+
+- [x] JDK 20
+- [x] JDK 17
+- [x] JDK 11
+- [x] JDK 8
+
 ### Configuration {#jolokia-config}
 
 Go to the `conf.d/jvm` directory under the DataKit installation directory, copy `jvm.conf.sample` and name it `jvm.conf`. Examples are as follows:

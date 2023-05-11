@@ -161,6 +161,12 @@ func (n *Input) Run() {
 
 	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
 
+	if n.Election {
+		n.opt = point.WithExtraTags(dkpt.GlobalElectionTags())
+	} else {
+		n.opt = point.WithExtraTags(dkpt.GlobalHostTags())
+	}
+
 	tick := time.NewTicker(n.Interval.Duration)
 	defer tick.Stop()
 

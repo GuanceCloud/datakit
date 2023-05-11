@@ -281,6 +281,7 @@ func TestGetPoint(t *testing.T) {
 				"duration":       int64(7319000),
 				"finished_at":    int64(1652020916871),
 				"message":        "jenkins-test-ci-master-5",
+				"status":         "unknown",
 			},
 		},
 		{
@@ -305,6 +306,7 @@ func TestGetPoint(t *testing.T) {
 				"build_id":          "33",
 				"build_started_at":  int64(1652020914276),
 				"message":           "Shell Script",
+				"status":            "unknown",
 			},
 		},
 		{
@@ -330,6 +332,7 @@ func TestGetPoint(t *testing.T) {
 				"build_finished_at": int64(1652020915376),
 				"build_id":          "34",
 				"build_started_at":  int64(1652020915097),
+				"status":            "unknown",
 			},
 		},
 		{
@@ -354,8 +357,8 @@ func TestGetPoint(t *testing.T) {
 						return
 					}
 					assert.Nil(t, err)
-					assert.Equal(t, tc.expectedTags, p.Tags())
-					fields, err := p.Fields()
+					assert.Equal(t, tc.expectedTags, p.InfluxTags())
+					fields := p.InfluxFields()
 					assert.Nil(t, err)
 					assert.Equal(t, tc.expectedFields, fields)
 				}
@@ -400,8 +403,8 @@ func TestCIExtraTags(t *testing.T) {
 					p, err := i.getPoint(span)
 					assert.Nil(t, err)
 					for k, v := range tc.expectedExtraTags {
-						assert.Contains(t, p.Tags(), k)
-						assert.True(t, p.Tags()[k] == v)
+						assert.Contains(t, p.InfluxTags(), k)
+						assert.True(t, p.InfluxTags()[k] == v)
 					}
 				}
 			}

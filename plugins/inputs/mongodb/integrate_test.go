@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
-	"net/netip"
 	"os"
 	"path/filepath"
 	"strings"
@@ -25,6 +24,18 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+)
+
+// ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
+
+var (
+	mCount  map[string]struct{} = make(map[string]struct{}) // Length of got measurements.
+	mExpect                     = map[string]struct{}{
+		MongoDB:         {},
+		MongoDBStats:    {},
+		MongoDBColStats: {},
+		MongoDBTopStats: {},
+	}
 )
 
 func TestMongoInput(t *testing.T) {
@@ -79,6 +90,10 @@ func TestMongoInput(t *testing.T) {
 	}
 }
 
+func getConfAccessPoint(host, port string) []string {
+	return []string{fmt.Sprintf("mongodb://root:example@%s", net.JoinHostPort(host, port))}
+}
+
 func buildCases(t *testing.T) ([]*caseSpec, error) {
 	t.Helper()
 
@@ -98,8 +113,8 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 	}{
 		{
 			name: "mongo:3.0",
-			conf: fmt.Sprintf(`interval = "1s"
-			servers = ["mongodb://root:example@%s"]
+			conf: `interval = "1s"
+			servers = ["mongodb://root:example@"]
 			gather_replica_set_stats = false
 			gather_cluster_stats = false
 			gather_per_db_stats = true
@@ -108,7 +123,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			gather_top_stat = true
 			election = true
 		[tags]
-			tag1 = "val1"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
+			tag1 = "val1"`, // set conf URL later.
 			exposedPorts: []string{"27017/tcp"},
 			cmd:          []string{"docker-entrypoint.sh", "mongod", "--smallfiles"},
 			optsDB: []inputs.PointCheckOption{
@@ -118,8 +133,8 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 		{
 			name: "mongo:4.0",
-			conf: fmt.Sprintf(`interval = "1s"
-			servers = ["mongodb://root:example@%s"]
+			conf: `interval = "1s"
+			servers = ["mongodb://root:example@"]
 			gather_replica_set_stats = false
 			gather_cluster_stats = false
 			gather_per_db_stats = true
@@ -128,7 +143,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			gather_top_stat = true
 			election = true
 		[tags]
-			tag1 = "val1"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
+			tag1 = "val1"`, // set conf URL later.
 			exposedPorts: []string{"27017/tcp"},
 			optsDB: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("non-mapped_megabytes", "mapped_megabytes", "page_faults_per_sec"), // nolint:lll
@@ -140,8 +155,8 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 		{
 			name: "mongo:5.0",
-			conf: fmt.Sprintf(`interval = "1s"
-			servers = ["mongodb://root:example@%s"]
+			conf: `interval = "1s"
+			servers = ["mongodb://root:example@"]
 			gather_replica_set_stats = false
 			gather_cluster_stats = false
 			gather_per_db_stats = true
@@ -150,7 +165,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			gather_top_stat = true
 			election = true
 		[tags]
-			tag1 = "val1"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
+			tag1 = "val1"`, // set conf URL later.
 			exposedPorts: []string{"27017/tcp"},
 			optsDB: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("non-mapped_megabytes", "mapped_megabytes", "page_faults_per_sec"), // nolint:lll
@@ -162,8 +177,8 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 		{
 			name: "mongo:6.0",
-			conf: fmt.Sprintf(`interval = "1s"
-			servers = ["mongodb://root:example@%s"]
+			conf: `interval = "1s"
+			servers = ["mongodb://root:example@"]
 			gather_replica_set_stats = false
 			gather_cluster_stats = false
 			gather_per_db_stats = true
@@ -172,7 +187,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			gather_top_stat = true
 			election = true
 		[tags]
-			tag1 = "val1"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
+			tag1 = "val1"`, // set conf URL later.
 			exposedPorts: []string{"27017/tcp"},
 			optsDB: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("non-mapped_megabytes", "mapped_megabytes", "page_faults_per_sec"), // nolint:lll
@@ -195,10 +210,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)
 
-		addr := strings.TrimPrefix(ipt.Servers[0], "mongodb://root:example@")
-		addrPort, err := netip.ParseAddrPort(addr)
-		require.NoError(t, err, "parse %s failed: %s", addr, err)
-
 		repoTag := strings.Split(base.name, ":")
 
 		cases = append(cases, &caseSpec{
@@ -211,7 +222,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 			dockerFileText: base.dockerFileText,
 			exposedPorts:   base.exposedPorts,
-			serverPorts:    []string{fmt.Sprintf("%d", addrPort.Port())},
 			cmd:            base.cmd,
 
 			optsDB:           base.optsDB,
@@ -289,6 +299,8 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
+			mCount[MongoDB] = struct{}{}
+
 		case MongoDBStats:
 			opts = append(opts, cs.optsDBStats...)
 			opts = append(opts, inputs.WithDoc(&mongodbDBMeasurement{}))
@@ -303,6 +315,8 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			if len(msgs) > 0 {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
+
+			mCount[MongoDBStats] = struct{}{}
 
 		case MongoDBColStats:
 			opts = append(opts, cs.optsDBColStats...)
@@ -319,6 +333,8 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
+			mCount[MongoDBColStats] = struct{}{}
+
 		case MongoDBShardStats:
 			opts = append(opts, cs.optsDBShardStats...)
 			opts = append(opts, inputs.WithDoc(&mongodbShardMeasurement{}))
@@ -334,6 +350,8 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
+			mCount[MongoDBShardStats] = struct{}{}
+
 		case MongoDBTopStats:
 			opts = append(opts, cs.optsDBTopStats...)
 			opts = append(opts, inputs.WithDoc(&mongodbTopMeasurement{}))
@@ -348,6 +366,8 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			if len(msgs) > 0 {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
+
+			mCount[MongoDBTopStats] = struct{}{}
 
 		default: // TODO: check other measurement
 			panic("not implement")
@@ -416,7 +436,6 @@ func (cs *caseSpec) run() error {
 				Cmd:        cs.cmd,
 
 				ExposedPorts: cs.exposedPorts,
-				PortBindings: cs.getPortBindings(),
 			},
 
 			func(c *docker.HostConfig) {
@@ -438,7 +457,6 @@ func (cs *caseSpec) run() error {
 				Cmd:        cs.cmd,
 
 				ExposedPorts: cs.exposedPorts,
-				PortBindings: cs.getPortBindings(),
 			},
 
 			func(c *docker.HostConfig) {
@@ -454,6 +472,11 @@ func (cs *caseSpec) run() error {
 
 	cs.pool = p
 	cs.resource = resource
+
+	if err := cs.getMappingPorts(); err != nil {
+		return err
+	}
+	cs.ipt.Servers = getConfAccessPoint(r.Host, cs.serverPorts[0]) // set conf URL here.
 
 	cs.t.Logf("check service(%s:%v)...", r.Host, cs.serverPorts)
 
@@ -495,6 +518,8 @@ func (cs *caseSpec) run() error {
 
 	cs.t.Logf("stop input...")
 	cs.ipt.Terminate()
+
+	require.Equal(cs.t, mExpect, mCount)
 
 	cs.t.Logf("exit...")
 	wg.Wait()
@@ -557,17 +582,17 @@ func (cs *caseSpec) getContainterName() string {
 	return name
 }
 
-func (cs *caseSpec) getPortBindings() map[docker.Port][]docker.PortBinding {
-	portBindings := make(map[docker.Port][]docker.PortBinding)
-
-	// check ports' mapping.
-	require.Equal(cs.t, len(cs.exposedPorts), len(cs.serverPorts))
-
+func (cs *caseSpec) getMappingPorts() error {
+	cs.serverPorts = make([]string, len(cs.exposedPorts))
 	for k, v := range cs.exposedPorts {
-		portBindings[docker.Port(v)] = []docker.PortBinding{{HostPort: docker.Port(cs.serverPorts[k]).Port()}}
+		mapStr := cs.resource.GetHostPort(v)
+		_, port, err := net.SplitHostPort(mapStr)
+		if err != nil {
+			return err
+		}
+		cs.serverPorts[k] = port
 	}
-
-	return portBindings
+	return nil
 }
 
 func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {

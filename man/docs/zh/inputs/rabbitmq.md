@@ -16,7 +16,11 @@ RabbitMQ 采集器是通过插件 `rabbitmq-management` 采集数据监控 Rabbi
 
 ## 前置条件 {#reqirement}
 
-- RabbitMQ 版本 >= 3.8.14
+- RabbitMQ 版本 >= `3.8.14`; 已测试的版本:
+    - [x] 3.11.x
+    - [x] 3.10.x
+    - [x] 3.9.x
+    - [x] 3.8.x
 
 - 安装 `rabbitmq` 以 `Ubuntu` 为例
 

@@ -10,7 +10,14 @@ Apache 采集器可以从 Apache 服务中采集请求数、连接数等，并�
 
 ## 前置条件 {#requirements}
 
-- Apache 版本 >= `2.4.46 (Unix)`。已测试版本: `2.4.46 (Unix)` ~ `2.4.52 (Unix)`;
+- Apache 版本 >= `2.4.6 (Unix)`。已测试版本:
+    - [x] 2.4.56
+    - [x] 2.4.54
+    - [x] 2.4.41
+    - [x] 2.4.38
+    - [x] 2.4.29
+    - [x] 2.4.6
+
 - 一般发行版 Linux 会自带 Apache,如需下载[参见](https://httpd.apache.org/download.cgi){:target="_blank"};
 - 默认配置路径: `/etc/apache2/apache2.conf`, `/etc/apache2/httpd.conf`, `/usr/local/apache2/conf/httpd.conf`;
 - 开启 Apache `mod_status`，在 Apache 配置文件中添加:
