@@ -8,7 +8,38 @@
 
 当集群中只有一个被采集对象（如 Kubernetes），但是在批量部署情况下，多个 DataKit 的配置完全相同，都开启了对该中心对象的采集，为了避免重复采集，我们可以开启 DataKit 的选举功能。
 
-## 选举配置 {#config}
+Datakit 有两种选举模式，即：
+
+- Datakit 自选举：在同一个选举命名空间下，当选的 Datakit 负责全部采集，其他 Datakit 处于待定状态。优点是配置简单，不需要额外部署应用；缺点是对当选者的资源占用较大，所有的采集器都在这台 Datakit 上运行，系统资源占用增多。
+- 采集器任务选举[:octicons-tag-24: Version-1.6.2](changelog.md#cl-1.6.2)：只适用于 Kubernetes 环境，通过部署 [Datakit Operator](datakit-operator.md#datakit-operator-overview-and-install) 程序，实现对 Datakit 各个采集器的任务分发。优点是各个 Datakit 的资源占用较为平均，缺点是需要在本集群额外部署一个程序。
+
+## 采集器任务选举模式 {#plugins-election}
+
+### 部署 Datakit Operator {#install-operator}
+
+采集器选举模式需要用到 Datakit Operator v1.0.5 及以上版本，部署文档参见[此处](datakit-operator.md#datakit-operator-install)。
+
+### 选举配置 {#plugins-election-config}
+
+在 Datakit 安装 yaml 中添加一项环境变量 `ENV_DATAKIT_OPERATOR`，值为 Datakit Operator 地址，例如：
+
+```yaml
+      containers:
+      - env:
+        - name: ENV_DATAKIT_OPERATOR
+          value: https://datakit-operator.datakit.svc:443
+```
+
+Datakit Operator 默认的 Service 地址是 `datakit-operator.datakit.svc:443`。
+
+<!-- markdownlint-disable MD046 -->
+???+ info
+
+    采集器任务选举的优先级高于 Datakit 自选举。如果配置可用的 Datakit Operator 地址，会优先使用任务选举，否则会使用 Datakit 自选举。
+
+## Datakit 自选举模式 {#self-election}
+
+### 选举配置 {#config}
 
 <!-- markdownlint-disable MD046 -->
 === "*datakit.conf*"
@@ -45,7 +76,7 @@
     参见[这里](datakit-daemonset-deploy.md#env-elect)
 <!-- markdownlint-enable -->
 
-## 选举状态查看 {#status}
+### 选举状态查看 {#status}
 
 配置完选举后，通过[查看 monitor](datakit-monitor.md#view) 即可知道当前 Datakit 的选举状态，在 `Basic Info` 栏中，有如下行：
 
@@ -71,7 +102,7 @@ Elected default::defeat|host-abc
 - `defeat` 表示当前 Datakit 开启了，但选举失败
 - `host-abc` 表示当前命名空间被选上的 Datakit 所在主机名
 
-## 选举原理 {#how}
+### 选举原理 {#how}
 
 以 MySQL 为例，在同一个集群（如 K8s cluster）中，假定有 10 Datakit、2 个 MySQL 实例，且 Datakit 都开启了选举（DaemonSet 模式下，每个 Datakit 的配置都是一样的）以及 MySQL 采集器：
 
@@ -82,7 +113,7 @@ Elected default::defeat|host-abc
     - 关于工作空间，在 *datakit.conf* 中，通过 Dataway 地址串中的 `token` URL 参数来表示，每个工作空间，都有其对应 token
     - 关于选举的命名空间，在 *datakit.conf* 中，通过 `namespace` 配置项来表示。一个工作空间可以配置多个命名空间
 
-## 选举类采集器的全局 tag 设置 {#global-tags}
+### 选举类采集器的全局 tag 设置 {#global-tags}
 
 <!-- markdownlint-disable MD046 -->
 === "*datakit.conf*"

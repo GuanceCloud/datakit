@@ -74,6 +74,7 @@ const (
 
 	// other APIS.
 	HeartBeat         = "/v1/write/heartbeat"
+	Ping              = "/ping"
 	Election          = "/v1/election"
 	ElectionHeartbeat = "/v1/election/heartbeat"
 	QueryRaw          = "/v1/query/raw"

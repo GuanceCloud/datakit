@@ -117,7 +117,7 @@ func (dw *Dataway) DQLQuery(body []byte) (*http.Response, error) {
 	return dw.eps[0].sendReq(req)
 }
 
-func (dw *Dataway) Election(namespace, id string) ([]byte, error) {
+func (dw *Dataway) Election(namespace, id string, reqBody io.Reader) ([]byte, error) {
 	if len(dw.eps) == 0 {
 		return nil, fmt.Errorf("no dataway available")
 	}
@@ -137,7 +137,7 @@ func (dw *Dataway) Election(namespace, id string) ([]byte, error) {
 
 	log.Debugf("election sending %s", requrl)
 
-	req, err := http.NewRequest("POST", requrl, nil)
+	req, err := http.NewRequest("POST", requrl, reqBody)
 	if err != nil {
 		log.Error(err)
 		return nil, err
@@ -166,7 +166,7 @@ func (dw *Dataway) Election(namespace, id string) ([]byte, error) {
 	}
 }
 
-func (dw *Dataway) ElectionHeartbeat(namespace, id string) ([]byte, error) {
+func (dw *Dataway) ElectionHeartbeat(namespace, id string, reqBody io.Reader) ([]byte, error) {
 	if len(dw.eps) == 0 {
 		return nil, fmt.Errorf("no dataway available")
 	}
@@ -186,7 +186,7 @@ func (dw *Dataway) ElectionHeartbeat(namespace, id string) ([]byte, error) {
 
 	log.Debugf("election sending heartbeat %s", requrl)
 
-	req, err := http.NewRequest("POST", requrl, nil)
+	req, err := http.NewRequest("POST", requrl, reqBody)
 	if err != nil {
 		log.Error(err)
 		return nil, err
