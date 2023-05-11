@@ -14,10 +14,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/influxdata/influxdb1-client/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -49,11 +50,9 @@ func inputDebugger(configFile string) error {
 
 	for k, arr := range inputsInstance {
 		for _, x := range arr {
-			if i, ok := x.(inputs.InputOnceRunnableCollect); !ok {
-				cp.Warnf("[W] %s not implement for now.\n", k)
-				continue
-			} else {
-				mpts, e := i.Collect()
+			switch ipt := x.(type) {
+			case inputs.InputOnceRunnableCollect: // DEPRECATED.
+				mpts, e := ipt.Collect()
 				if e != nil {
 					err = e
 					cp.Warnf("[W] %s Collect failed: %s\n", k, e.Error())
@@ -70,6 +69,29 @@ func inputDebugger(configFile string) error {
 					fmt.Println("Collect empty!")
 					return fmt.Errorf("collect_empty")
 				}
+
+			case inputs.InputOnceRunnableCollectV2:
+				mpts, e := ipt.Collect()
+				if e != nil {
+					err = e
+					cp.Warnf("[W] %s Collect failed: %s\n", k, e.Error())
+					return err
+				}
+				if err = printResultV2(mpts); err != nil {
+					cp.Warnf("[W] %s print failed: %s\n", k, e.Error())
+					return err
+				}
+
+				if len(mpts) > 0 {
+					fmt.Println("check succeeded!")
+				} else {
+					fmt.Println("Collect empty!")
+					return fmt.Errorf("collect_empty")
+				}
+
+			default:
+				cp.Warnf("[W] %s not implement for now.\n", k)
+				continue
 			}
 		}
 	}
@@ -77,7 +99,7 @@ func inputDebugger(configFile string) error {
 	return nil
 }
 
-func printResultEx(mpts map[string][]*point.Point) error {
+func printResultEx(mpts map[string][]*dkpt.Point) error {
 	fmt.Printf("\n================= Line Protocol Points ==================\n\n")
 	// measurements collected
 	measurements := make(map[string]string)
@@ -104,6 +126,51 @@ func printResultEx(mpts map[string][]*point.Point) error {
 			}
 			timeSeries[fmt.Sprint(influxPoint[0].HashID())] = trueString
 			name := pt.Name()
+			measurements[name] = trueString
+		}
+	}
+
+	mKeys := make([]string, len(measurements))
+	i := 0
+	for name := range measurements {
+		mKeys[i] = name
+		i++
+	}
+	fmt.Printf("\n================= Summary ==================\n\n")
+	fmt.Printf("Total time series: %v\n", len(timeSeries))
+	fmt.Printf("Total line protocol points: %v\n", ptsLen)
+	fmt.Printf("Total measurements: %v (%s)\n\n", len(measurements), strings.Join(mKeys, ", "))
+
+	return nil
+}
+
+func printResultV2(mpts map[point.Category][]*point.Point) error {
+	fmt.Printf("\n================= Line Protocol Points ==================\n\n")
+	// measurements collected
+	measurements := make(map[string]string)
+	timeSeries := make(map[string]string)
+
+	ptsLen := 0
+
+	for cate, points := range mpts {
+		category := cate.String()
+		fmt.Printf("%s: ", category)
+		ptsLen += len(points)
+
+		for _, pt := range points {
+			lp := pt.LineProto()
+			fmt.Println(lp)
+
+			influxPoint, err := models.ParsePointsWithPrecision([]byte(lp), time.Now(), "n")
+			if len(influxPoint) != 1 {
+				return fmt.Errorf("parse point error")
+			}
+
+			if err != nil {
+				return err
+			}
+			timeSeries[fmt.Sprint(influxPoint[0].HashID())] = trueString
+			name := string(pt.Name())
 			measurements[name] = trueString
 		}
 	}

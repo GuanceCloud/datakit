@@ -42,16 +42,6 @@ datakit check --config
 checked 13 conf, all passing, cost 22.27455ms
 ```
 
-### 采集一次 SNMP 配置 {#check-snmp}
-
-编辑完 SNMP 采集器的配置文件后，可能某些配置有误（如配置文件格式错误），通过如下命令可以采集一次 SNMP 设备用于检查是否正确：
-
-```shell
-datakit check --test-snmp /usr/local/datakit/conf.d/snmp/snmp.conf
-# 以下会打印采集到的信息...
-......
-```
-
 ## 查看工作空间信息 {#workspace-info}
 
 为便于大家在服务端查看工作空间信息，DataKit 提供如下命令查看：

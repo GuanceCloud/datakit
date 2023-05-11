@@ -226,7 +226,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (ipt *Input) Run() {
-	SetLog()
+	setLog()
 	l.Info("Run entry")
 
 	onceReleasePrefiles.Do(func() {
@@ -1175,9 +1175,41 @@ func (ipt *Input) initializeDevice(deviceIP, subnet string) (*deviceInfo, error)
 	return di, nil
 }
 
-// only for command "datakit check --test-snmp".
+// only for command "datakit --test-input".
 
-func SetLog() {
+func (ipt *Input) Collect() (map[point.Category][]*point.Point, error) {
+	setLog()
+
+	if err := ipt.CheckTestSNMP(); err != nil {
+		return nil, err
+	}
+
+	if err := ipt.ValidateConfig(); err != nil {
+		return nil, err
+	}
+
+	if err := ipt.Initialize(); err != nil {
+		return nil, err
+	}
+
+	l.Infof("Start collecting snmp...\n")
+	mpts := make(map[point.Category][]*point.Point)
+
+	specificDevices := ipt.GetSpecificDevices()
+	for deviceIP, deviceInfo := range specificDevices {
+		tn := time.Now().UTC()
+		points := ipt.CollectingMeasurements(deviceIP, deviceInfo, tn, true)
+		mpts[point.Object] = append(mpts[point.Object], points...)
+
+		tn = time.Now().UTC()
+		points = ipt.CollectingMeasurements(deviceIP, deviceInfo, tn, false)
+		mpts[point.Metric] = append(mpts[point.Metric], points...)
+	}
+
+	return mpts, nil
+}
+
+func setLog() {
 	onceSetLog.Do(func() {
 		l = logger.SLogger(snmpmeasurement.InputName)
 	})

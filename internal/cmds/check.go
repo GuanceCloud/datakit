@@ -10,7 +10,6 @@ import (
 	"os"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 )
 
 func runCheckFlags() error {
@@ -23,17 +22,6 @@ func runCheckFlags() error {
 		}
 
 		if err := checkConfig(confdir, ".conf"); err != nil {
-			os.Exit(-1)
-		}
-		os.Exit(0)
-
-	case *flagCheckSNMP != "":
-		if !datakit.FileExist(*flagCheckSNMP) {
-			cp.Errorf("[E] File not exist: %s\n", *flagCheckSNMP)
-			return nil
-		}
-
-		if err := testSNMP(*flagCheckSNMP); err != nil {
 			os.Exit(-1)
 		}
 		os.Exit(0)
