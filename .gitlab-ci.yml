@@ -38,6 +38,11 @@ ci_ut_only:
   only:
     - /^ut-.*$/
   script:
+    # - systemctl daemon-reload
+    # - systemctl restart docker
+    # - make
+    # - cd /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jenkins
+    # - go test -v .
     - make clean
     - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY"
     - make # try build basic binaries
@@ -55,6 +60,7 @@ test-datakit-production:
     - make clean
     - make production_notify GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"
     - make lint_nofix
+    - export UT_EXCLUDE_INTEGRATION_TESTING="on"
     - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" DOCKER_REMOTE_HOST=$TESTING_DOCKER_HOST UT_EXCLUDE=$UT_EXCLUDE GIT_BRANCH=$CI_COMMIT_BRANCH
   tags:
     - cloudcare-ft
