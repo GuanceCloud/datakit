@@ -17,7 +17,7 @@ import (
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/samuel/go-zookeeper/zk"
 	"github.com/stretchr/testify/assert"
-	tu "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
 var (
@@ -38,7 +38,7 @@ var (
 	NetworkID  string
 
 	testTopic    = "apm"
-	dockerRemote = tu.GetRemote()
+	dockerRemote = testutils.GetRemote()
 )
 
 func Test_kafkaConsumer_start(t *testing.T) {

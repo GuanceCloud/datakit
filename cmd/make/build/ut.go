@@ -18,7 +18,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
-	tu "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
 const (
@@ -62,7 +62,7 @@ func UnitTestDataKit() error {
 			continue
 		}
 
-		mr := &tu.ModuleResult{
+		mr := &testutils.ModuleResult{
 			// remove prefix for human readable
 			Name:      strings.TrimPrefix(p, pkgPrefix),
 			OS:        runtime.GOOS,
@@ -89,9 +89,9 @@ func UnitTestDataKit() error {
 		if err != nil {
 			failedPkgs[p] = string(res)
 
-			mr.Status = tu.TestFailed
+			mr.Status = testutils.TestFailed
 			mr.FailedMessage = err.Error()
-			if err := tu.Flush(mr); err != nil {
+			if err := testutils.Flush(mr); err != nil {
 				fmt.Printf("[E] flush metric failed: %s\n", err)
 			}
 			continue
@@ -113,7 +113,7 @@ func UnitTestDataKit() error {
 			mr.NoTest = true
 
 		case strings.HasPrefix(coverageLine, "ok"):
-			mr.Status = tu.TestPassed
+			mr.Status = testutils.TestPassed
 
 			coverage := perc.FindString(coverageLine)
 			if len(coverage) != 0 {
@@ -133,12 +133,12 @@ func UnitTestDataKit() error {
 			fmt.Printf("[W] unknown coverage line: %s\n", coverageLine)
 		}
 
-		if err := tu.Flush(mr); err != nil {
+		if err := testutils.Flush(mr); err != nil {
 			fmt.Printf("[E] flush metric failed: %s\n", err)
 		}
 	}
 
-	mr := &tu.ModuleResult{
+	mr := &testutils.ModuleResult{
 		// remove prefix for human readable
 		Name:      "datakit-ut",
 		OS:        runtime.GOOS,
@@ -150,7 +150,7 @@ func UnitTestDataKit() error {
 		Message:   fmt.Sprintf("done, total cost: %s", time.Since(start)),
 	}
 
-	if err := tu.Flush(mr); err != nil {
+	if err := testutils.Flush(mr); err != nil {
 		fmt.Printf("[E] flush metric failed: %s\n", err)
 	}
 

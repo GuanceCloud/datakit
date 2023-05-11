@@ -205,3 +205,15 @@ func RetryTestRun(f func() error) error {
 		}
 	}
 }
+
+const envIntegrationTesting = "UT_EXCLUDE_INTEGRATION_TESTING"
+
+// CheckIntegrationTestingRunning returns whether performing the integration testing.
+// Default is running.
+func CheckIntegrationTestingRunning() bool {
+	if val := os.Getenv(envIntegrationTesting); len(val) > 0 {
+		return false
+	}
+
+	return true
+}
