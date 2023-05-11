@@ -3,6 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
+// Package logstreaming http handler.
 package logstreaming
 
 import (
@@ -15,12 +16,11 @@ import (
 	"time"
 
 	lp "github.com/GuanceCloud/cliutils/lineproto"
-	client "github.com/influxdata/influxdb1-client/v2"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"github.com/GuanceCloud/cliutils/point"
+	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
@@ -55,7 +55,7 @@ func (ipt *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Request
 		queryValues:   req.URL.Query(),
 		body:          pbuf,
 	}
-	if err = processLogBody(param); err != nil {
+	if err = ipt.processLogBody(param); err != nil {
 		log.Error(err.Error())
 		resp.WriteHeader(http.StatusBadRequest)
 
@@ -89,7 +89,7 @@ func completePrecision(precision string) string {
 	return precision
 }
 
-func processLogBody(param *parameters) error {
+func (ipt *Input) processLogBody(param *parameters) error {
 	var (
 		source = completeSource(param.queryValues.Get("source"))
 		// TODO
@@ -115,7 +115,7 @@ func processLogBody(param *parameters) error {
 			break
 		}
 
-		var pts []*client.Point
+		var pts []*influxdb.Point
 		if pts, err = lp.ParsePoints(body, &lp.Option{
 			Time:      time.Now(),
 			ExtraTags: extraTags,
@@ -133,23 +133,20 @@ func processLogBody(param *parameters) error {
 		}
 
 		pts1 := point.WrapPoint(pts)
-		err = dkio.Feed(inputName, datakit.Logging, pts1, nil)
+		err = ipt.feeder.Feed(inputName, point.Logging, pts1, nil)
+
 	default:
 		scanner := bufio.NewScanner(param.body)
-		pts := []*point.Point{}
+		pts := make([]*point.Point, 0)
+		opts := point.DefaultLoggingOptions()
 		for scanner.Scan() {
-			pt, err := point.NewPoint(source, extraTags,
-				map[string]interface{}{
-					pipeline.FieldMessage: scanner.Text(),
-					pipeline.FieldStatus:  pipeline.DefaultStatus,
-				}, point.LOpt())
-			if err != nil {
-				log.Error(err)
-			} else {
-				pts = append(pts, pt)
+			fields := map[string]interface{}{
+				pipeline.FieldMessage: scanner.Text(),
+				pipeline.FieldStatus:  pipeline.DefaultStatus,
 			}
+			pts = append(pts, point.NewPointV2([]byte(source), append(point.NewTags(extraTags), point.NewKVs(fields)...), opts...))
 		}
-		// pts := plRunCnt(source, pipeLlinePath, pending, extraTags)
+
 		if len(pts) == 0 {
 			log.Debugf("len(points) is zero, skip")
 
@@ -164,7 +161,7 @@ func processLogBody(param *parameters) error {
 			}
 		}
 
-		err = dkio.Feed(source, datakit.Logging, pts, &dkio.Option{PlScript: scriptMap})
+		err = ipt.feeder.Feed(source, point.Logging, pts, &dkio.Option{PlScript: scriptMap})
 	}
 
 	return err
