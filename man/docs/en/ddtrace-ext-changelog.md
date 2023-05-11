@@ -25,6 +25,14 @@ Currently DDTrace has added the following extensions to the technology stack：
 
 ## changelog {#changelog}
 
+## v1.12.1-guance (2023/5/11) {#cl-1.12.1-guance}
+
+### fix {#cl-1.12.1-guance-new}
+
+- supported MongoDB obfuscation， [MongoDB Issue](https://github.com/GuanceCloud/dd-trace-java/issues/38){:target="_blank"}
+- [supported DM8](https://github.com/GuanceCloud/dd-trace-java/issues/39){:target="_blank"}
+
+
 ## v1.12.0 (2023/4/20) {#cl-1.10.2}
 
 ### fix {#cl-1.12.0-new}

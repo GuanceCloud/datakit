@@ -17,6 +17,23 @@
 - 阿里云 RocketMQ 5.0 支持
 - Redis 链路增加参数
 - 获取特定函数的入参信息
+- 支持 MongoDB 脱敏
+- 支持达梦国产数据库
+
+
+## 支持 MongoDB 数据库脱敏 {#mongo-obfuscation}
+使用启动参数 `-Ddd.mongo.obfuscation=true` 或者环境变量 `DD_MONGO_OBFUSCATION` 开启脱敏。这样从观测云上就可以看见一条具体的命令。
+
+目前可以实现脱敏的类型有：Int32/Int64/Boolean/Double/String 。 剩余的并没有参考意义，所以目前暂不支持。
+
+支持的版本：
+
+- [x] all
+
+## 支持达梦国产数据库 {#dameng-db}
+支持版本：
+
+- [x] v8
 
 ## 获取特定函数的入参信息 {#dd-trace-methods}
 
