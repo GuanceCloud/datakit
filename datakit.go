@@ -56,6 +56,7 @@ const (
 	Security            = "/v1/write/security"
 	Profiling           = "/v1/write/profiling"  // write profiling metadata.
 	ProfilingUpload     = "/v1/upload/profiling" // upload profiling binary.
+	TokenCheck          = "/v1/check/token"
 
 	DynamicDatawayCategory = "dynamicDatawayCategory"
 
