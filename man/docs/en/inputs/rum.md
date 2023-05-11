@@ -139,6 +139,10 @@ If a software installation fails during the installation process, you may need t
       at <anonymous> @ webpack:///src/components/header/header.vue:101:0
     ```
 
+=== "Mini Program"
+
+    Same as Web.
+
 === "Android"
 
     Android currently has two types of `sourcemap` files. One is the mapping file produced by Java bytecode obfuscated by `R8`/`Proguard` compression. The other is an (unstripped) `.so` file that does not clear the symbol table and debugging information when compiling C/C + + native code. If your android application contains these two `sourcemap` files at the same time, you need to package these two files into a zip package when packaging, and then copy the zip package to the `<DataKit installation directory>/data/rum/android` directory. The directory structure after zip package decompression is similar:

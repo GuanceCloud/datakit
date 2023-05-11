@@ -148,6 +148,10 @@ sudo datakit install --symbol-tools
       at <anonymous> @ webpack:///src/components/header/header.vue:101:0
     ```
 
+=== "小程序"
+
+    同 Web
+
 === "Android"
 
     Android 目前存在两种 `sourcemap` 文件，一种是 Java 字节码经 `R8`/`Proguard` 压缩混淆后产生的 mapping 文件，另一种为 C/C++ 原生代码编译时未清除符号表和调试信息的（unstripped） `.so` 文件，如果你的安卓应用同时包含这两种 `sourcemap` 文件， 打包时需要把这两种文件都打包进 zip 包中，之后再把 zip 包拷贝到 *<DataKit 安装目录>/data/rum/android* 目录下，zip 包解压后的目录结构类似：
