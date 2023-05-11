@@ -35,6 +35,10 @@ import (
 var mCount map[string]struct{} = make(map[string]struct{}) // Length of got measurements.
 
 func TestRabbitmqInput(t *testing.T) {
+	if !testutils.CheckIntegrationTestingRunning() {
+		t.Skip()
+	}
+
 	start := time.Now()
 	cases, err := buildCases(t)
 	if err != nil {
