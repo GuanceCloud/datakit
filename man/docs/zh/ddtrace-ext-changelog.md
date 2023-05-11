@@ -41,7 +41,15 @@
 
 --->
 
-## v1.12.0 (2023/4/20) {#cl-1.10.2}
+## v1.12.1-guance (2023/5/11) {#cl-1.12.1-guance}
+
+### 修复 {#cl-1.12.1-guance-new}
+
+- 支持 MongoDB 脱敏， [MongoDB 脱敏问题](https://github.com/GuanceCloud/dd-trace-java/issues/38){:target="_blank"}
+- [支持达梦国产数据库](https://github.com/GuanceCloud/dd-trace-java/issues/39){:target="_blank"}
+
+
+## v1.12.0 (2023/4/20) {#cl-1.12.0}
 
 ### 修复 {#cl-1.12.0-new}
 

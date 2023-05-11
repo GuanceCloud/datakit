@@ -18,6 +18,23 @@ Here we mainly introduce some extended functions of DDTrace-java. List of main f
 - Support Alibaba Cloud RocketMQ 5.0
 - redis trace parameters
 - Get the input parameter information of a specific function
+- MongoDB obfuscation
+- Supported DM8 Database
+
+## supported MongoDB obfuscation {#mongo-obfuscation}
+Use startup parameter `-DDd.mongo.obfuscation=true` or environment variable `DD_MONGO_OBFUSION` Turn on desensitization. This way, a specific command can be seen from the observation cloud.
+
+Currently, the types that can achieve desensitization include Int32, Int64, Boolean, Double, and String. The remaining ones have no reference significance, so they are currently not supported.
+
+supported version：
+
+- [x] all
+
+## supported DM8 Database {#dameng-db}
+Add DM8 Database trace information.
+supported version：
+
+- [x] v8
 
 ## Get the input parameter information of a specific function {#dd_trace_methods}
 **Specific function** mainly refers to the function specified by the business to obtain the corresponding input parameters.
