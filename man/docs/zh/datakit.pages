@@ -17,7 +17,9 @@ nav:
     - '更新': datakit-update.md
     - 'DQL 查询': datakit-dql-how-to.md
     - '其它命令': datakit-tools-how-to.md
-    - '虚拟互联网接入': aliyun-access.md
+    - '虚拟互联网接入': 
+      - '阿里云接入': aliyun-access.md
+      - '华为云接入': huaweicloud-access.md
     - '故障排查': why-no-data.md
 
   - 'DataKit 配置':
