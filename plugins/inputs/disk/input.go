@@ -11,7 +11,6 @@ import (
 	"math"
 	"runtime"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -21,7 +20,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/hostobject"
 )
 
 var (
@@ -211,9 +209,6 @@ func (ipt *Input) Collect() error {
 			usedPercent = float64(du.Used) /
 				(float64(du.Used) + float64(du.Free)) * 100
 		}
-		atomic.StoreUint64(&hostobject.DiskUsed, du.Used)
-		atomic.StoreUint64(&hostobject.DiskFree, du.Free)
-
 		fields := map[string]interface{}{
 			"total":        du.Total,
 			"free":         du.Free,

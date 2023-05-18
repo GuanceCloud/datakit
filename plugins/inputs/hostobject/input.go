@@ -18,6 +18,9 @@ import (
 	"github.com/GuanceCloud/cliutils/metrics"
 	"github.com/GuanceCloud/cliutils/point"
 	dto "github.com/prometheus/client_model/go"
+	diskutil "github.com/shirou/gopsutil/disk"
+	netutil "github.com/shirou/gopsutil/net"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
@@ -30,6 +33,11 @@ var (
 	_ inputs.ReadEnv   = (*Input)(nil)
 	_ inputs.Singleton = (*Input)(nil)
 	l                  = logger.DefaultSLogger(InputName)
+)
+
+type (
+	NetIOCounters  func(bool) ([]netutil.IOCountersStat, error)
+	DiskIOCounters func(names ...string) (map[string]diskutil.IOCountersStat, error)
 )
 
 type Input struct {
@@ -54,6 +62,11 @@ type Input struct {
 	DisableCloudProviderSync bool              `toml:"disable_cloud_provider_sync"`
 	CloudInfo                map[string]string `toml:"cloud_info,omitempty"`
 	lastSync                 time.Time
+
+	netIOCounters  NetIOCounters
+	diskIOCounters DiskIOCounters
+	lastDiskIOInfo diskIOInfo
+	lastNetIOInfo  netIOInfo
 
 	collectData *hostMeasurement
 
@@ -340,9 +353,12 @@ func defaultInput() *Input {
 		Interval:                 &datakit.Duration{Duration: 5 * time.Minute},
 		IgnoreInputsErrorsBefore: &datakit.Duration{Duration: 30 * time.Second},
 		IgnoreZeroBytesDisk:      true,
-		semStop:                  cliutils.NewSem(),
-		feeder:                   dkio.DefaultFeeder(),
-		Tags:                     make(map[string]string),
+		diskIOCounters:           diskutil.IOCounters,
+		netIOCounters:            netutil.IOCounters,
+
+		semStop: cliutils.NewSem(),
+		feeder:  dkio.DefaultFeeder(),
+		Tags:    make(map[string]string),
 	}
 }
 
