@@ -462,3 +462,73 @@ $ datakit dql <tab> # 输入 \tab 即可提示如下选项
 # 导出补全脚本到本地 datakit-completer.sh 文件中
 datakit tool --completer-script > datakit-completer.sh
 ```
+
+## DataKit 调试命令 {#debugging}
+
+### 使用 glob 规则获取文件路径 {#glob-conf}
+[:octicons-tag-24: Version-1.8.0](changelog.md#cl-1.8.0)
+
+在日志采集中，支持以 [glob 规则配置日志路径](logging.md#glob-rules)。
+
+通过使用 Datakit 调试 glob 规则。需要提供一个配置文件，该文件的每一行都是一个 glob 语句。
+
+配置文件示例如下：
+
+```shell
+$ cat glob-config
+/tmp/log-test/*.log
+/tmp/log-test/**/*.log
+```
+
+完整命令示例如下：
+
+```shell
+$ datakit debug --glob-conf glob-config
+============= glob paths ============
+/tmp/log-test/*.log
+/tmp/log-test/**/*.log
+
+========== found the files ==========
+/tmp/log-test/1.log
+/tmp/log-test/logfwd.log
+/tmp/log-test/123/1.log
+/tmp/log-test/123/2.log
+```
+
+### 正则表达式匹配文本 {#regex-conf}
+[:octicons-tag-24: Version-1.8.0](changelog.md#cl-1.8.0)
+
+在日志采集中，支持配置 [正则表达式实现多行日志采集](logging.md#multiline)。
+
+通过使用 Datakit 调试正则表达式规则。需要提供一个配置文件，该文件的第一行是正则表达式语句，剩余内容是匹配文本。
+
+配置文件示例如下：
+
+```shell
+$ cat regex-config
+^\d{4}-\d{2}-\d{2}
+2020-10-23 06:41:56,688 INFO demo.py 1.0
+2020-10-23 06:54:20,164 ERROR /usr/local/lib/python3.6/dist-packages/flask/app.py Exception on /0 [GET]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
+    response = self.full_dispatch_request()
+ZeroDivisionError: division by zero
+2020-10-23 06:41:56,688 INFO demo.py 5.0
+```
+
+完整命令示例如下：
+
+```shell
+$ datakit debug --regex-conf regex-config
+============= regex rule ============
+^\d{4}-\d{2}-\d{2}
+
+========== matching results ==========
+  Ok:  2020-10-23 06:41:56,688 INFO demo.py 1.0
+  Ok:  2020-10-23 06:54:20,164 ERROR /usr/local/lib/python3.6/dist-packages/flask/app.py Exception on /0 [GET]
+Fail:  Traceback (most recent call last):
+Fail:    File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
+Fail:      response = self.full_dispatch_request()
+Fail:  ZeroDivisionError: division by zero
+  Ok:  2020-10-23 06:41:56,688 INFO demo.py 5.0
+```

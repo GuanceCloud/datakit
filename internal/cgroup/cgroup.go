@@ -102,3 +102,19 @@ func MyMemPercent() (float32, error) {
 func MyCPUPercent(du time.Duration) (float64, error) {
 	return self.Percent(du)
 }
+
+func MyCtxSwitch() *process.NumCtxSwitchesStat {
+	if x, err := self.NumCtxSwitches(); err == nil {
+		return x
+	} else {
+		return nil
+	}
+}
+
+func MyIOCountersStat() *process.IOCountersStat {
+	if x, err := self.IOCounters(); err == nil {
+		return x
+	} else {
+		return nil
+	}
+}

@@ -46,7 +46,7 @@ var (
 	ginReleaseMode = true
 
 	enablePprof = false
-	pprofListen = ":6060"
+	pprofListen = "localhost:6060"
 
 	pprofSrv *http.Server
 

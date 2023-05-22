@@ -450,3 +450,73 @@ datakit tool --parse-lp /path/to/file --json
   "time_serial": 201 # Total time series
 }
 ```
+
+## DataKit Debugging Commands {#debugging}
+
+### Using Glob Rules to Retrieve File Paths {#glob-conf}
+[:octicons-tag-24: Version-1.8.0](changelog.md#cl-1.8.0)
+
+In logging collection, [glob rules can be used to configure log paths](logging.md#glob-rules).
+
+By using the DataKit debugging glob rule, a configuration file must be provided where each line of the file is a glob statement.
+
+Config Example:
+
+```shell
+$ cat glob-config
+/tmp/log-test/*.log
+/tmp/log-test/**/*.log
+```
+
+Command Example:
+
+```shell
+$ datakit debug --glob-conf glob-config
+============= glob paths ============
+/tmp/log-test/*.log
+/tmp/log-test/**/*.log
+
+========== found the files ==========
+/tmp/log-test/1.log
+/tmp/log-test/logfwd.log
+/tmp/log-test/123/1.log
+/tmp/log-test/123/2.log
+```
+
+### Matching Text with Regular Expressions {#regex-conf}
+[:octicons-tag-24: Version-1.8.0](changelog.md#cl-1.8.0)
+
+In log collection, regular expressions can be used to configure [multiline log collection](logging.md#multiline).
+
+By using the DataKit debugging regular expression rule, a configuration file must be provided where the first line of the file is the regular expression statement and the remaining contents are the matched text.
+
+Config Example:
+
+```shell
+$ cat regex-config
+^\d{4}-\d{2}-\d{2}
+2020-10-23 06:41:56,688 INFO demo.py 1.0
+2020-10-23 06:54:20,164 ERROR /usr/local/lib/python3.6/dist-packages/flask/app.py Exception on /0 [GET]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
+    response = self.full_dispatch_request()
+ZeroDivisionError: division by zero
+2020-10-23 06:41:56,688 INFO demo.py 5.0
+```
+
+Command Example:
+
+```shell
+$ datakit debug --regex-conf regex-config
+============= regex rule ============
+^\d{4}-\d{2}-\d{2}
+
+========== matching results ==========
+  Ok:  2020-10-23 06:41:56,688 INFO demo.py 1.0
+  Ok:  2020-10-23 06:54:20,164 ERROR /usr/local/lib/python3.6/dist-packages/flask/app.py Exception on /0 [GET]
+Fail:  Traceback (most recent call last):
+Fail:    File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
+Fail:      response = self.full_dispatch_request()
+Fail:  ZeroDivisionError: division by zero
+  Ok:  2020-10-23 06:41:56,688 INFO demo.py 5.0
+```

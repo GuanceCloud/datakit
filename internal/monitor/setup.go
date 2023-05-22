@@ -39,9 +39,13 @@ func (app *monitorAPP) setup() {
 	app.httpServerStatTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
 	app.httpServerStatTable.SetBorder(true).SetTitle("[red]H[white]TTP APIs").SetTitleAlign(tview.AlignLeft)
 
-	// sender stats
+	// IO stats
 	app.ioStatTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
 	app.ioStatTable.SetBorder(true).SetTitle("[red]IO[white] Info").SetTitleAlign(tview.AlignLeft)
+
+	// dataway stats
+	app.dwTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
+	app.dwTable.SetBorder(true).SetTitle("Data[red]W[white]ay APIs").SetTitleAlign(tview.AlignLeft)
 
 	// filter stats
 	app.filterStatsTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false)

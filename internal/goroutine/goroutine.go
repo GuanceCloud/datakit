@@ -101,7 +101,7 @@ func (g *Group) do(f func(ctx context.Context) error) {
 				err = fmt.Errorf("goroutine: panic recovered: %s", r)
 			} else {
 				goroutineCounterVec.WithLabelValues(g.name).Dec()
-				goroutineCostVec.WithLabelValues(g.name).Observe(float64(time.Since(start)))
+				goroutineCostVec.WithLabelValues(g.name).Observe(float64(time.Since(start)) / float64(time.Second))
 				goroutineStoppedVec.WithLabelValues(g.name).Inc()
 			}
 

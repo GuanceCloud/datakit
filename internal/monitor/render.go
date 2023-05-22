@@ -19,6 +19,7 @@ func (app *monitorAPP) render() {
 	app.plStatTable.Clear()
 	app.goroutineStatTable.Clear()
 	app.ioStatTable.Clear()
+	app.dwTable.Clear()
 	app.filterStatsTable.Clear()
 	app.filterRulesStatsTable.Clear()
 
@@ -32,8 +33,9 @@ func (app *monitorAPP) render() {
 
 	app.renderFilterStatsTable(app.mfs)
 	app.renderFilterRulesStatsTable(app.mfs, filterRuleCols)
-	app.renderIOTable(app.mfs, ioStatCols)
 	app.renderPLStatTable(app.mfs, plStatsCols)
+	app.renderIOTable(app.mfs, ioStatCols)
+	app.renderDatawayTable(app.mfs, dwCols)
 
 end:
 	app.exitPrompt.Clear()

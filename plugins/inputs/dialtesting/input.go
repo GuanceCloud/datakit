@@ -233,7 +233,8 @@ func (d *Input) doServerTask() {
 					if err := d.dispatchTasks(j); err != nil {
 						l.Warnf("dispatchTasks: %s, ignored", err.Error())
 					} else {
-						taskPullCostSummary.WithLabelValues(d.regionName, isFirstPull).Observe(float64(endPullTime.Sub(startPullTime)))
+						taskPullCostSummary.WithLabelValues(d.regionName, isFirstPull).
+							Observe(float64(endPullTime.Sub(startPullTime)) / float64(time.Second))
 					}
 				}
 			}

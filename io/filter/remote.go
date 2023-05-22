@@ -24,9 +24,9 @@ func (f *filter) remotePull(what string) ([]byte, error) {
 
 	defer func() {
 		if err != nil {
-			filterPullLatencyVec.WithLabelValues("failed").Observe(float64(time.Since(start) / time.Millisecond))
+			filterPullLatencyVec.WithLabelValues("failed").Observe(float64(time.Since(start)) / float64(time.Second))
 		} else {
-			filterPullLatencyVec.WithLabelValues("ok").Observe(float64(time.Since(start) / time.Millisecond))
+			filterPullLatencyVec.WithLabelValues("ok").Observe(float64(time.Since(start)) / float64(time.Second))
 		}
 	}()
 

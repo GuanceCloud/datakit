@@ -10,6 +10,25 @@ import (
 	"time"
 )
 
+func TestProcessInfo(t *T.T) {
+	t.Skip()
+	t.Run("ctx-switch", func(t *T.T) {
+		for i := 0; i < 10; i++ {
+			ctxswitch := MyCtxSwitch()
+			if ctxswitch == nil {
+				return
+			}
+
+			t.Logf("switch: %+#v", ctxswitch)
+			t.Logf("switch: %+#v", ctxswitch)
+			t.Logf("switch: %+#v", ctxswitch)
+			t.Logf("switch: %+#v", ctxswitch)
+
+			time.Sleep(time.Second)
+		}
+	})
+}
+
 func TestCPUUsage(t *T.T) {
 	t.Skip()
 	t.Run("cpu-100", func(t *T.T) {

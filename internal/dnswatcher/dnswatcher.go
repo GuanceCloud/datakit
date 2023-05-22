@@ -123,9 +123,9 @@ func checkDNSChanged(watcher IDNSWatcher) (bool, []string) {
 		}
 
 		if err == nil {
-			watchLatency.WithLabelValues(domain, "ok").Observe(float64(time.Since(start)) / float64(time.Millisecond))
+			watchLatency.WithLabelValues(domain, "ok").Observe(float64(time.Since(start)) / float64(time.Second))
 		} else {
-			watchLatency.WithLabelValues(domain, err.Error()).Observe(float64(time.Since(start)) / float64(time.Millisecond))
+			watchLatency.WithLabelValues(domain, err.Error()).Observe(float64(time.Since(start)) / float64(time.Second))
 		}
 	}()
 

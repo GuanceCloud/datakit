@@ -23,7 +23,7 @@ func metricsSetup() {
 			Namespace: "datakit",
 			Subsystem: "goroutine",
 			Name:      "alive",
-			Help:      "Alive goroutines",
+			Help:      "Alive Goroutines",
 		},
 		[]string{
 			"name",
@@ -35,7 +35,7 @@ func metricsSetup() {
 			Namespace: "datakit",
 			Subsystem: "goroutine",
 			Name:      "stopped_total",
-			Help:      "Stopped goroutines",
+			Help:      "Stopped Goroutines",
 		},
 		[]string{
 			"name",
@@ -55,8 +55,8 @@ func metricsSetup() {
 		p8s.SummaryOpts{
 			Namespace: "datakit",
 			Subsystem: "goroutine",
-			Name:      "cost",
-			Help:      "Goroutine running time(in nanosecond)",
+			Name:      "cost_seconds",
+			Help:      "Goroutine running duration",
 		},
 		[]string{
 			"name",

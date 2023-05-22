@@ -63,8 +63,8 @@ func init() {
 		prometheus.SummaryOpts{
 			Namespace: "datakit",
 			Subsystem: "dns",
-			Name:      "cost",
-			Help:      "DNS IP lookup cost(ms)",
+			Name:      "cost_seconds",
+			Help:      "DNS IP lookup cost",
 		},
 		[]string{
 			"domain",

@@ -29,7 +29,9 @@ func (app *monitorAPP) setupFlex() {
 										AddItem(app.filterRulesStatsTable, 0, 8, false), // filter rules stats
 				0, 10, false).
 			AddItem(app.plStatTable, 0, 15, false).
-			AddItem(app.ioStatTable, 0, 14, false).
+			AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
+				AddItem(app.ioStatTable, 0, 10, false).
+				AddItem(app.dwTable, 0, 10, false), 0, 10, false).
 			AddItem(app.anyErrorPrompt, 0, 1, false).
 			AddItem(app.exitPrompt, 0, 1, false)
 		return
@@ -70,6 +72,11 @@ func (app *monitorAPP) setupFlex() {
 		if exitsStr(app.onlyModules, moduleIO) {
 			flex.AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(app.ioStatTable, 0, 10, false), 0, 10, false)
 		}
+
+		if exitsStr(app.onlyModules, moduleDataway) {
+			flex.AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(app.dwTable, 0, 10, false), 0, 10, false)
+		}
+
 		flex.AddItem(app.anyErrorPrompt, 0, 1, false).AddItem(app.exitPrompt, 0, 1, false)
 
 		return
