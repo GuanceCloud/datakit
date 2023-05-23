@@ -27,8 +27,8 @@ func gatherDockerContainerMetric(client dockerClientX, k8sClient k8sClientX, con
 	if err != nil {
 		return nil, err
 	}
-	m.fields = f
 
+	m.fields = f
 	return m, nil
 }
 
@@ -128,14 +128,32 @@ func getContainerStats(client dockerClientX, containerID string) (fieldsType, er
 		return nil, err
 	}
 
-	return calculateContainerStats(v), nil
+	metrics := calculateContainerStats(v)
+
+	if metrics["network_bytes_rcvd"] == int64(0) && metrics["network_bytes_sent"] == int64(0) {
+		pid, err := getContainerPID(client, containerID)
+		if err != nil {
+			l.Warnf("unable to get container pid from ID %s, err: %s, ignored", containerID, err)
+		} else {
+			netRx, netTx, err := getNetworkMetricsWithProc(pid)
+			if err != nil {
+				l.Warnf("unable to get net/dev info from ID %s, err: %s, ignored", containerID, err)
+			} else {
+				l.Debugf("use net/dev info from ID %s, rx: %d, tx: %d", containerID, netRx, netTx)
+				metrics["network_bytes_rcvd"] = netRx
+				metrics["network_bytes_sent"] = netTx
+			}
+		}
+	}
+
+	return metrics, nil
 }
 
 func calculateContainerStats(v *types.StatsJSON) map[string]interface{} {
 	mem := calculateMemUsageUnixNoCache(v.MemoryStats)
 	memPercent := calculateMemPercentUnixNoCache(float64(v.MemoryStats.Limit), float64(mem))
-	netRx, netTx := calculateNetwork(v.Networks)
 	blkRead, blkWrite := calculateBlockIO(v.BlkioStats)
+	netRx, netTx := calculateNetwork(v.Networks)
 
 	return map[string]interface{}{
 		"cpu_usage": calculateCPUPercentUnix(v.PreCPUStats.CPUUsage.TotalUsage,
@@ -181,6 +199,21 @@ func isRunningContainer(state string) bool {
 
 func isPauseContainer(command string) bool {
 	return command == "/pause"
+}
+
+func getNetworkMetricsWithProc(pid int) (int64, int64, error) {
+	file := fmt.Sprintf("/proc/%d/net/dev", pid)
+	if datakit.Docker {
+		file = "/rootfs" + file
+	}
+
+	netdev, err := NewNetDev(file)
+	if err != nil {
+		return 0, 0, fmt.Errorf("unable to read net/dev file, err: %w", err)
+	}
+
+	total := netdev.Total()
+	return int64(total.RxBytes), int64(total.TxBytes), nil
 }
 
 // nolint:lll
