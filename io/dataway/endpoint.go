@@ -16,6 +16,7 @@ import (
 	"net/http/httptrace"
 	"net/url"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -29,6 +30,39 @@ import (
 	dnet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	pb "google.golang.org/protobuf/proto"
 )
+
+var (
+	// DatakitUserAgent define HTTP User-Agent header.
+	// user-agent format. See
+	// 	 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
+	DatakitUserAgent = fmt.Sprintf("datakit-%s-%s/%s", runtime.GOOS, runtime.GOARCH, git.Version)
+
+	httpFailRatio      = 0 // %n
+	httpFailStart      time.Time
+	httpFailDuration   time.Duration
+	httpMockedFailResp *http.Response
+)
+
+// nolint: gochecknoinits
+func init() {
+	if v := datakit.GetEnv("ENV_DEBUG_HTTP_FAIL_RATIO"); v != "" {
+		if x, err := strconv.ParseInt(v, 10, 64); err == nil {
+			httpFailRatio = int(x)
+			httpFailStart = time.Now()
+
+			httpMockedFailResp = &http.Response{
+				Status:     http.StatusText(500),
+				StatusCode: 500,
+			}
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_DEBUG_HTTP_FAIL_DURATION"); v != "" {
+		if x, err := time.ParseDuration(v); err == nil {
+			httpFailDuration = x
+		}
+	}
+}
 
 type endPoint struct {
 	token       string
@@ -469,7 +503,7 @@ type httpTraceStat struct {
 	connDone   time.Duration
 
 	wroteRequest time.Time
-	ttfbTime     time.Duration
+	ttfb         time.Duration
 }
 
 func (ep *endPoint) sendReq(req *http.Request) (resp *http.Response, err error) {
@@ -495,7 +529,6 @@ func (ep *endPoint) sendReq(req *http.Request) (resp *http.Response, err error) 
 		retry.Attempts(4),
 		retry.Delay(time.Second*1),
 		retry.OnRetry(func(n uint, err error) {
-			// TODO: add metric here
 			log.Warnf("on %dth retry, error: %s", n, err)
 			httpRetry.WithLabelValues(req.URL.Path, status).Inc()
 		}),
@@ -505,11 +538,6 @@ func (ep *endPoint) sendReq(req *http.Request) (resp *http.Response, err error) 
 
 	return resp, err
 }
-
-// DatakitUserAgent define HTTP User-Agent header.
-// user-agent format. See
-// 	 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
-var DatakitUserAgent = fmt.Sprintf("datakit-%s-%s/%s", runtime.GOOS, runtime.GOARCH, git.Version)
 
 func (ep *endPoint) doSendReq(req *http.Request) (*http.Response, error) {
 	log.Debugf("send request %q, proxy: %q, cli: %p, timeout: %s",
@@ -534,7 +562,7 @@ func (ep *endPoint) doSendReq(req *http.Request) (*http.Response, error) {
 			httpDNSCost.Observe(float64(ts.dnsResolve) / float64(time.Millisecond))
 			httpTLSHandshakeCost.Observe(float64(ts.tlsHSDone) / float64(time.Millisecond))
 			httpConnectCost.Observe(float64(ts.connDone) / float64(time.Millisecond))
-			httpGotFirstResponseByteCost.Observe(float64(time.Since(ts.wroteRequest)) / float64(time.Millisecond))
+			httpGotFirstResponseByteCost.Observe(float64(ts.ttfb))
 
 			httpConnIdleTime.Observe(float64(ts.idleTime) / float64(time.Millisecond))
 			if ts.reuseConn {
@@ -571,18 +599,31 @@ func (ep *endPoint) doSendReq(req *http.Request) (*http.Response, error) {
 			ConnectDone:  func(string, string, error) { ts.connDone = time.Since(ts.connStart) },
 
 			GotFirstResponseByte: func() {
-				ts.ttfbTime = time.Since(ts.wroteRequest) // after wrote request(header + body), then wait tfbb.
+				ts.ttfb = time.Since(ts.wroteRequest) / time.Millisecond // after wrote request(header + body), then TTFB.
 			},
 		}
 
 		req = req.WithContext(httptrace.WithClientTrace(req.Context(), t))
 	}
 
-	resp, err := ep.httpCli.Do(req)
+	var (
+		resp *http.Response
+		err  error
+	)
+
+	if httpFailRatio > 0 && (time.Since(httpFailStart) < httpFailDuration || int64(httpFailDuration) == 0) {
+		if start.Unix()%100 < int64(httpFailRatio) {
+			resp = httpMockedFailResp
+			goto end
+		}
+	}
+
+	resp, err = ep.httpCli.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("httpCli.Do: %w, resp: %+#v", err, resp)
 	}
 
+end:
 	if resp != nil {
 		httpCodeStr = http.StatusText(resp.StatusCode)
 	}

@@ -157,7 +157,7 @@ func metricsSetup() {
 			Namespace: "datakit",
 			Subsystem: "io",
 			Name:      "chan_usage",
-			Help:      "IO channel usage(length of the chan)",
+			Help:      "IO channel usage(length of the channel)",
 		},
 		[]string{
 			"category",

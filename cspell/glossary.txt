@@ -38,6 +38,7 @@ Fluentd
 fsyncs
 GitLab
 Goroutine
+Goroutines
 gRPC
 Gson
 guance
@@ -100,6 +101,8 @@ Servlet
 sharded
 SIGQUIT
 Sinker
+Sink
+Sinked
 SkyWalking
 Solr
 SQLite

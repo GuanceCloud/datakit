@@ -47,6 +47,15 @@ func newLeaderElection(opt *option, plugins map[string][]inputs.ElectionInput) *
 }
 
 func (x *leaderElection) Run() {
+	defer func() {
+		electionStatusVec.WithLabelValues(
+			CurrentElected,
+			x.id,
+			x.namespace,
+			x.status.String(),
+		).Set(float64(x.status))
+	}()
+
 	x.pausePlugins()
 	tick := time.NewTicker(time.Second * time.Duration(electionIntervalDefault))
 	defer tick.Stop()
@@ -68,10 +77,6 @@ func (x *leaderElection) Run() {
 }
 
 func (x *leaderElection) runOnce() int {
-	defer func() {
-		inputsResumeVec.WithLabelValues(x.id, x.namespace).Add(float64(len(x.plugins)))
-	}()
-
 	var (
 		elecIntv int
 		err      error
@@ -183,7 +188,7 @@ func (x *leaderElection) keepalive() (int, error) {
 
 	switch e.Content.Status {
 	case statusFail.String():
-		electionStatusVec.Reset() // cleanup election status if election ok
+		electionStatusVec.Reset() // cleanup election status if election fail
 		x.status = statusFail
 		x.pausePlugins()
 
@@ -197,6 +202,9 @@ func (x *leaderElection) keepalive() (int, error) {
 }
 
 func (x *leaderElection) pausePlugins() {
+	defer func() {
+		inputsPauseVec.WithLabelValues(x.id, x.namespace).Add(float64(len(x.plugins)))
+	}()
 	for i, p := range x.plugins {
 		log.Debugf("pause %dth inputs...", i)
 		if err := p.Pause(); err != nil {
@@ -206,6 +214,9 @@ func (x *leaderElection) pausePlugins() {
 }
 
 func (x *leaderElection) resumePlugins() {
+	defer func() {
+		inputsResumeVec.WithLabelValues(x.id, x.namespace).Add(float64(len(x.plugins)))
+	}()
 	for i, p := range x.plugins {
 		log.Debugf("resume %dth inputs...", i)
 		if err := p.Resume(); err != nil {

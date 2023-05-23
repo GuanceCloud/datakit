@@ -231,7 +231,7 @@ func init() {
 			Namespace: "datakit",
 			Subsystem: "io",
 			Name:      "dataway_sink_total",
-			Help:      "Dataway sink count, partitioned by category.",
+			Help:      "Dataway Sinked count, partitioned by category.",
 		},
 		[]string{
 			"category",
@@ -243,7 +243,7 @@ func init() {
 			Namespace: "datakit",
 			Subsystem: "io",
 			Name:      "dataway_not_sink_point_total",
-			Help:      "Dataway not-sinked points(condition or category not match)",
+			Help:      "Dataway not-Sinked points(condition or category not match)",
 		},
 		[]string{
 			"category",
@@ -255,7 +255,7 @@ func init() {
 			Namespace: "datakit",
 			Subsystem: "io",
 			Name:      "dataway_sink_point_total",
-			Help:      "Dataway sink points, partitioned by category and point send status(ok/failed/dropped)",
+			Help:      "Dataway Sinked points, partitioned by category and point send status(ok/failed/dropped)",
 		},
 		[]string{"category", "status"},
 	)

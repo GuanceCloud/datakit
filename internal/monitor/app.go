@@ -24,10 +24,10 @@ var (
 		`Input,Cat,Feeds,TotalPts,Filtered,LastFeed,AvgCost,Errors`,
 		",")
 	plStatsCols      = strings.Split("Script,Cat,Namespace,TotalPts,DropPts,ErrPts,PLUpdate,AvgCost", ",")
-	enabledInputCols = strings.Split(`Input,Instaces,Crashed`, ",")
+	enabledInputCols = strings.Split(`Input,Count,Crashed`, ",")
 	goroutineCols    = strings.Split(`Name,Running,Done,TotalCost`, ",")
 	httpAPIStatCols  = strings.Split(`API,Status,Total,Latency,BodySize`, ",")
-	ioStatCols       = strings.Split(`Cat,ChanUsage,Pts,Bytes(gz)`, ",")
+	ioStatCols       = strings.Split(`Cat,ChanUsage,Pts(ok/total),Bytes(ok/total/gz)`, ",")
 	filterRuleCols   = strings.Split("Cat,Total,Filtered(%),Cost", ",")
 
 	moduleGoroutine = []string{"G", "goroutine"}
