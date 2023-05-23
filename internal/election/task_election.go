@@ -33,6 +33,15 @@ func newTaskElection(opt *option, plugins map[string][]inputs.ElectionInput) *ta
 }
 
 func (x *taskElection) Run() {
+	defer func() {
+		electionStatusVec.WithLabelValues(
+			CurrentElected,
+			x.id,
+			x.namespace,
+			x.status.String(),
+		).Set(float64(x.status))
+	}()
+
 	x.pausePlugins()
 	tick := time.NewTicker(time.Second * time.Duration(electionIntervalDefault))
 	defer tick.Stop()
@@ -52,8 +61,23 @@ func (x *taskElection) Run() {
 }
 
 func (x *taskElection) runOnce() error {
+	var (
+		electedTime int64
+		start       = time.Now()
+	)
+
 	defer func() {
-		inputsPauseVec.WithLabelValues(x.id, x.namespace).Add(float64(len(x.runningInputs)))
+		electionVec.WithLabelValues(
+			x.namespace,
+			x.status.String(),
+		).Observe(float64(time.Since(start) / time.Millisecond))
+
+		electionStatusVec.WithLabelValues(
+			CurrentElected,
+			x.id,
+			x.namespace,
+			x.status.String(),
+		).Set(float64(electedTime))
 	}()
 
 	requ := x.buildRequest()
@@ -91,6 +115,13 @@ func (x *taskElection) runOnce() error {
 		log.Info("resume all plugins for task election")
 	}
 
+	if len(x.runningInputs) != 0 {
+		x.status = statusSuccess
+	} else {
+		x.status = statusFail
+		electionStatusVec.Reset() // cleanup election status if election fail
+	}
+
 	return nil
 }
 
@@ -115,8 +146,13 @@ func (x *taskElection) buildRequest() *taskElectionRequest {
 }
 
 func (x *taskElection) pausePlugins() {
+	count := 0
+	defer func() {
+		inputsResumeVec.WithLabelValues(x.id, x.namespace).Add(float64(count))
+	}()
 	for name, plugins := range x.runningInputs {
 		for idx, p := range plugins {
+			count++
 			log.Debugf("pause %s %dth inputs...", name, idx)
 			if err := p.Pause(); err != nil {
 				log.Warn(err)
@@ -126,8 +162,13 @@ func (x *taskElection) pausePlugins() {
 }
 
 func (x *taskElection) resumePlugins() {
+	count := 0
+	defer func() {
+		inputsResumeVec.WithLabelValues(x.id, x.namespace).Add(float64(count))
+	}()
 	for name, plugins := range x.runningInputs {
 		for idx, p := range plugins {
+			count++
 			log.Debugf("resume %s %dth inputs...", name, idx)
 			if err := p.Resume(); err != nil {
 				log.Warn(err)

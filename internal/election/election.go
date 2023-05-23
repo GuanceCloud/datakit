@@ -53,6 +53,7 @@ func Start(opts ...ElectionOption) {
 		log.Info("election mode with Dataway")
 	case modeOperator:
 		electionInstance = newTaskElection(&opt, inputs.GetElectionInputs())
+		opt.namespace = "N/A"
 		log.Info("election mode with Operator")
 	default:
 		log.Info("invalid election mode, election not enabled")
