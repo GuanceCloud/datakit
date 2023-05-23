@@ -2,11 +2,11 @@
 
 ## 简介 {#introduction}
 
-目前**华为云**已上架的服务为 **cn-south-guangzhou** 地域，其他地域的也即将上架，架构如下：
+目前**华为云**已上架的服务为 **cn-south-1** （广州）地域，其他地域的也即将上架，架构如下：
 
 | 接入站点         | 您的服务器所在 Region | 接入终端节点服务的名称 ID                                 |
 | ---------------- | --------------------- | --------------------------------------------------------- |
-| 中国区 4（广州） | `cn-south`            | `cn-south-1.openway.af005322-387a-47cb-a21f-758b1c6c7ee7` |
+| 中国区 4（广州） | `cn-south-1`            | `cn-south-1.openway.af005322-387a-47cb-a21f-758b1c6c7ee7` |
 
 
 
@@ -89,5 +89,5 @@
 登陆 VPC 内网的随便一台机器，用以下命令验证一下
 
 ```shell
-curl --insecure https://cn4-openway.guance.com
+curl https://cn4-openway.guance.com
 ```
