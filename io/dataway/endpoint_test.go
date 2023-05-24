@@ -129,13 +129,7 @@ test-2 f1=1i,f2=false 123`), x)
 		t.Logf("get metrics: %s", metrics.MetricFamily2Text(mfs))
 
 		m := metrics.GetMetricOnLabels(mfs,
-			`datakit_io_dataway_api_request_total`,
-			point.Metric.URL(),
-			http.StatusText(http.StatusBadRequest))
-		assert.Equal(t, float64(1), m.GetCounter().GetValue())
-
-		m = metrics.GetMetricOnLabels(mfs,
-			`datakit_io_dataway_api_latency`,
+			`datakit_io_dataway_api_latency_seconds`,
 			point.Metric.URL(),
 			http.StatusText(http.StatusBadRequest))
 		assert.Equal(t, uint64(1), m.GetSummary().GetSampleCount())
@@ -208,14 +202,8 @@ test-2 f1=1i,f2=false 123`), x)
 
 		t.Logf("metric: %s", metrics.MetricFamily2Text(mfs))
 
-		assert.Equal(t, float64(1),
-			metrics.GetMetricOnLabels(mfs,
-				`datakit_io_dataway_api_request_total`,
-				point.Metric.URL(),
-				http.StatusText(http.StatusOK)).GetCounter().GetValue())
-
 		m := metrics.GetMetricOnLabels(mfs,
-			`datakit_io_dataway_api_latency`,
+			`datakit_io_dataway_api_latency_seconds`,
 			point.Metric.URL(),
 			http.StatusText(http.StatusOK))
 		assert.Equal(t, uint64(1), m.GetSummary().GetSampleCount())
@@ -296,13 +284,7 @@ test-2 f1=1i,f2=false 123`), x)
 		t.Logf("metric: %s", metrics.MetricFamily2Text(mfs))
 
 		m := metrics.GetMetricOnLabels(mfs,
-			`datakit_io_dataway_api_request_total`,
-			point.Metric.URL(),
-			http.StatusText(http.StatusOK))
-		assert.Equal(t, float64(1), m.GetCounter().GetValue())
-
-		m = metrics.GetMetricOnLabels(mfs,
-			`datakit_io_dataway_api_latency`,
+			`datakit_io_dataway_api_latency_seconds`,
 			point.Metric.URL(),
 			http.StatusText(http.StatusOK))
 		assert.Equal(t, uint64(1), m.GetSummary().GetSampleCount())
