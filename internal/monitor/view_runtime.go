@@ -22,10 +22,10 @@ func (app *monitorAPP) renderGolangRuntimeTable(mfs map[string]*dto.MetricFamily
 	}
 
 	goroutines := app.mfs["datakit_goroutines"]
-	heapAlloc := app.mfs["datakit_heap_alloc"]
-	sysAlloc := app.mfs["datakit_sys_alloc"]
+	heapAlloc := app.mfs["datakit_heap_alloc_bytes"]
+	sysAlloc := app.mfs["datakit_sys_alloc_bytes"]
 	cpuUsage := app.mfs["datakit_cpu_usage"]
-	gcSummary := app.mfs["datakit_gc_summary"]
+	gcSummary := app.mfs["datakit_gc_summary_seconds"]
 	openFiles := app.mfs["datakit_open_files"]
 
 	if goroutines != nil && len(goroutines.Metric) == 1 {
@@ -74,7 +74,7 @@ func (app *monitorAPP) renderGolangRuntimeTable(mfs map[string]*dto.MetricFamily
 			tview.NewTableCell("GC Paused").SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 		table.SetCell(row, 1,
 			tview.NewTableCell(
-				time.Duration(m.GetSummary().GetSampleSum()).String()+
+				time.Duration(float64(time.Second)*m.GetSummary().GetSampleSum()).String()+
 					"/"+
 					number(m.GetSummary().GetSampleCount())).
 				SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignLeft))

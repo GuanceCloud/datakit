@@ -36,8 +36,7 @@ func (app *monitorAPP) renderFilterRulesStatsTable(mfs map[string]*dto.MetricFam
 	}
 
 	ptsDroppedTotal := mfs["datakit_filter_point_dropped_total"]
-	filterCost := mfs["datakit_filter_latency"]
-	_ = filterCost
+	filterCost := mfs["datakit_filter_latency_seconds"]
 
 	row := 1
 	for _, m := range ptsTotal.Metric {
@@ -89,7 +88,7 @@ func (app *monitorAPP) renderFilterRulesStatsTable(mfs map[string]*dto.MetricFam
 				table.SetCell(row, col, tview.NewTableCell("-").
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
 			} else {
-				cost := time.Duration(x.GetSummary().GetSampleSum()) * time.Microsecond
+				cost := time.Duration(float64(time.Second) * x.GetSummary().GetSampleSum())
 				table.SetCell(row, col, tview.NewTableCell(cost.String()).
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
 			}
@@ -106,7 +105,7 @@ func (app *monitorAPP) renderFilterStatsTable(mfs map[string]*dto.MetricFamily) 
 		return
 	}
 
-	pulled := mfs["datakit_filter_pull_latency"]
+	pulled := mfs["datakit_filter_pull_latency_seconds"]
 	if pulled == nil {
 		return
 	}
@@ -123,7 +122,7 @@ func (app *monitorAPP) renderFilterStatsTable(mfs map[string]*dto.MetricFamily) 
 	table.SetCell(row, 1, tview.NewTableCell(number(pullCnt)).SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignLeft))
 	row++
 
-	lastPull := mfs["datakit_filter_last_update"]
+	lastPull := mfs["datakit_filter_last_update_timestamp_seconds"]
 	if lastPull != nil {
 		table.SetCell(row, 0, tview.NewTableCell("Last Updated").
 			SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))

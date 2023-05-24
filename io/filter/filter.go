@@ -147,7 +147,7 @@ func (f *filter) doFilter(category string, pts []*dkpt.Point) ([]*dkpt.Point, in
 	defer func() {
 		filterPtsVec.WithLabelValues(catStr, f.rawConditions[catStr], f.source).Add(float64(len(pts)))
 		filterDroppedPtsVec.WithLabelValues(catStr, f.rawConditions[catStr], f.source).Add(float64(len(pts) - len(after)))
-		filterLatencyVec.WithLabelValues(catStr, f.rawConditions[catStr], f.source).Observe(float64(time.Since(start) / time.Microsecond))
+		filterLatencyVec.WithLabelValues(catStr, f.rawConditions[catStr], f.source).Observe(float64(time.Since(start)) / float64(time.Second))
 	}()
 
 	for _, pt := range pts {

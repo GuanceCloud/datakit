@@ -32,8 +32,8 @@ func setupMetrics() {
 		prometheus.GaugeOpts{
 			Namespace: "datakit",
 			Subsystem: "filter",
-			Name:      "last_update",
-			Help:      "Filter last update time(in unix timestamp second)",
+			Name:      "last_update_timestamp_seconds",
+			Help:      "Filter last update time",
 		})
 
 	filterPtsVec = prometheus.NewCounterVec(
@@ -68,8 +68,8 @@ func setupMetrics() {
 		prometheus.SummaryOpts{
 			Namespace: "datakit",
 			Subsystem: "filter",
-			Name:      "pull_latency",
-			Help:      "Filter pull(remote) latency(ms)",
+			Name:      "pull_latency_seconds",
+			Help:      "Filter pull(remote) latency",
 		},
 		[]string{"status"},
 	)
@@ -78,8 +78,8 @@ func setupMetrics() {
 		prometheus.SummaryOpts{
 			Namespace: "datakit",
 			Subsystem: "filter",
-			Name:      "latency",
-			Help:      "Filter latency(us) of these filters",
+			Name:      "latency_seconds",
+			Help:      "Filter latency of these filters",
 		},
 		[]string{
 			"category",

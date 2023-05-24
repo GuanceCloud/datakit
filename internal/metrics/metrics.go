@@ -79,13 +79,13 @@ var (
 	)
 
 	riHeapAllocDesc = p8s.NewDesc(
-		"datakit_heap_alloc",
+		"datakit_heap_alloc_bytes",
 		"Datakit memory heap bytes",
 		nil, nil,
 	)
 
 	riSysAllocDesc = p8s.NewDesc(
-		"datakit_sys_alloc",
+		"datakit_sys_alloc_bytes",
 		"Datakit memory system bytes",
 		nil, nil,
 	)
@@ -97,8 +97,8 @@ var (
 	)
 
 	riGCPauseDesc = p8s.NewDesc(
-		"datakit_gc_summary",
-		"Datakit golang GC paused(nano-second)",
+		"datakit_gc_summary_seconds",
+		"Datakit golang GC paused",
 		nil, nil,
 	)
 
@@ -115,8 +115,8 @@ var (
 	)
 
 	riUptimeDesc = p8s.NewDesc(
-		"datakit_uptime",
-		"Datakit uptime(second)",
+		"datakit_uptime_seconds",
+		"Datakit uptime",
 
 		// hostname and cgroup set after init(), so make it a non-const-label.
 		[]string{
@@ -179,7 +179,7 @@ func (rc runtimeInfoCollector) Describe(ch chan<- *p8s.Desc) {
 func (rc runtimeInfoCollector) Collect(ch chan<- p8s.Metric) {
 	ri := getRuntimeInfo()
 
-	ch <- p8s.MustNewConstSummary(riGCPauseDesc, uint64(ri.gcNum), float64(ri.gcPauseTotal), nil)
+	ch <- p8s.MustNewConstSummary(riGCPauseDesc, uint64(ri.gcNum), float64(ri.gcPauseTotal)/float64(time.Second), nil)
 	ch <- p8s.MustNewConstMetric(riGoroutineDesc, p8s.GaugeValue, float64(ri.goroutines))
 	ch <- p8s.MustNewConstMetric(riHeapAllocDesc, p8s.GaugeValue, float64(ri.heapAlloc))
 	ch <- p8s.MustNewConstMetric(riSysAllocDesc, p8s.GaugeValue, float64(ri.sys))

@@ -11,7 +11,6 @@ import (
 )
 
 var (
-	apiCounterVec,
 	ptsCounterVec,
 	bytesCounterVec,
 	sinkCounterVec,
@@ -36,7 +35,6 @@ var (
 // Metrics get all metrics aboud dataway.
 func Metrics() []prometheus.Collector {
 	return []prometheus.Collector{
-		apiCounterVec,
 		ptsCounterVec,
 		bytesCounterVec,
 		apiSumVec,
@@ -58,7 +56,6 @@ func Metrics() []prometheus.Collector {
 }
 
 func metricsReset() {
-	apiCounterVec.Reset()
 	ptsCounterVec.Reset()
 	bytesCounterVec.Reset()
 	apiSumVec.Reset()
@@ -74,7 +71,6 @@ func metricsReset() {
 
 func doRegister() {
 	metrics.MustRegister(
-		apiCounterVec,
 		ptsCounterVec,
 		bytesCounterVec,
 		apiSumVec,
@@ -121,40 +117,40 @@ func init() {
 	httpConnIdleTime = prometheus.NewSummary(prometheus.SummaryOpts{
 		Namespace: "datakit",
 		Subsystem: "io",
-		Name:      "http_conn_idle_time",
-		Help:      "Dataway HTTP connection idle time(ms)",
+		Name:      "http_conn_idle_time_seconds",
+		Help:      "Dataway HTTP connection idle time",
 	})
 
 	httpDNSCost = prometheus.NewSummary(
 		prometheus.SummaryOpts{
 			Namespace: "datakit",
 			Subsystem: "io",
-			Name:      "http_dns_cost",
-			Help:      "Dataway HTTP DNS cost(ms)",
+			Name:      "http_dns_cost_seconds",
+			Help:      "Dataway HTTP DNS cost",
 		})
 
 	httpTLSHandshakeCost = prometheus.NewSummary(
 		prometheus.SummaryOpts{
 			Namespace: "datakit",
 			Subsystem: "io",
-			Name:      "http_tls_handshake",
-			Help:      "Dataway TLS handshake cost(ms)",
+			Name:      "http_tls_handshake_seconds",
+			Help:      "Dataway TLS handshake cost",
 		})
 
 	httpConnectCost = prometheus.NewSummary(
 		prometheus.SummaryOpts{
 			Namespace: "datakit",
 			Subsystem: "io",
-			Name:      "http_connect_cost",
-			Help:      "Dataway HTTP connect cost(ms)",
+			Name:      "http_connect_cost_seconds",
+			Help:      "Dataway HTTP connect cost",
 		})
 
 	httpGotFirstResponseByteCost = prometheus.NewSummary(
 		prometheus.SummaryOpts{
 			Namespace: "datakit",
 			Subsystem: "io",
-			Name:      "http_got_first_resp_byte_cost",
-			Help:      "Dataway got first response byte cost(ms)",
+			Name:      "http_got_first_resp_byte_cost_seconds",
+			Help:      "Dataway got first response byte cost",
 
 			Objectives: map[float64]float64{
 				0.5:  0.05,
@@ -174,16 +170,6 @@ func init() {
 			Help:      "IO flush fail-cache bytes(in gzip) summary",
 		},
 		[]string{"category"},
-	)
-
-	apiCounterVec = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "datakit",
-			Subsystem: "io",
-			Name:      "dataway_api_request_total",
-			Help:      "Dataway HTTP request processed, partitioned by status code and HTTP API(url path)",
-		},
-		[]string{"api", "status"},
 	)
 
 	ptsCounterVec = prometheus.NewCounterVec(
@@ -210,8 +196,8 @@ func init() {
 		prometheus.SummaryOpts{
 			Namespace: "datakit",
 			Subsystem: "io",
-			Name:      "dataway_api_latency",
-			Help:      "Dataway HTTP request latency(ms) partitioned by HTTP API(method@url) and HTTP status",
+			Name:      "dataway_api_latency_seconds",
+			Help:      "Dataway HTTP request latency partitioned by HTTP API(method@url) and HTTP status",
 		},
 		[]string{"api", "status"},
 	)

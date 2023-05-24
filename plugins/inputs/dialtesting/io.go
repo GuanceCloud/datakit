@@ -22,7 +22,7 @@ func (d *dialer) pointsFeed(urlStr string) error {
 	tags, fields := d.task.GetResults()
 
 	if status, ok := tags["status"]; ok {
-		taskCheckCostSummary.WithLabelValues(d.regionName, d.class, status).Observe(float64(time.Since(startTime)))
+		taskCheckCostSummary.WithLabelValues(d.regionName, d.class, status).Observe(float64(time.Since(startTime)) / float64(time.Second))
 	}
 
 	for k, v := range d.tags {

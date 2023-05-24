@@ -20,15 +20,14 @@ import (
 var (
 	l = logger.DefaultSLogger("monitor")
 
-	inputsFeedCols = strings.Split(
-		`Input,Cat,Feeds,TotalPts,Filtered,LastFeed,AvgCost,Errors`,
-		",")
-	plStatsCols      = strings.Split("Script,Cat,Namespace,TotalPts,DropPts,ErrPts,PLUpdate,AvgCost", ",")
-	enabledInputCols = strings.Split(`Input,Count,Crashed`, ",")
-	goroutineCols    = strings.Split(`Name,Running,Done,TotalCost`, ",")
-	httpAPIStatCols  = strings.Split(`API,Status,Total,Latency,BodySize`, ",")
-	ioStatCols       = strings.Split(`Cat,ChanUsage,Pts(ok/total),Bytes(ok/total/gz)`, ",")
-	filterRuleCols   = strings.Split("Cat,Total,Filtered(%),Cost", ",")
+	inputsFeedCols   = strings.Split(`Input|Cat|Feeds|TotalPts|Filtered|LastFeed|AvgCost|Errors`, "|")
+	plStatsCols      = strings.Split("Script|Cat|Namespace|TotalPts|DropPts|ErrPts|PLUpdate|AvgCost", "|")
+	enabledInputCols = strings.Split(`Input|Count|Crashed`, "|")
+	goroutineCols    = strings.Split(`Name|Running|Done|TotalCost`, "|")
+	httpAPIStatCols  = strings.Split(`API|Status|Total|Latency|BodySize`, "|")
+	filterRuleCols   = strings.Split("Cat|Total|Filtered(%)|Cost", "|")
+	ioStatCols       = strings.Split(`Cat|ChanUsage|Points(ok/total)|Bytes(ok/total/gz)`, "|")
+	dwCols           = strings.Split(`API|Status|Count|Latency|Retry`, "|")
 
 	moduleGoroutine = []string{"G", "goroutine"}
 	moduleBasic     = []string{"B", "basic"}
@@ -38,6 +37,7 @@ var (
 	moduleInputs    = []string{"In", "inputs"}
 	modulePipeline  = []string{"P", "pipeline"}
 	moduleIO        = []string{"IO", "io_stats"}
+	moduleDataway   = []string{"W", "dataway"}
 )
 
 type monitorAPP struct {
@@ -52,6 +52,7 @@ type monitorAPP struct {
 	goroutineStatTable  *tview.Table
 	httpServerStatTable *tview.Table
 	ioStatTable         *tview.Table
+	dwTable             *tview.Table
 
 	filterStatsTable      *tview.Table
 	filterRulesStatsTable *tview.Table
