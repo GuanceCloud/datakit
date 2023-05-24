@@ -26,8 +26,8 @@ func (app *monitorAPP) renderPLStatTable(mfs map[string]*dto.MetricFamily, colAr
 	totalPts := mfs["datakit_pipeline_point_total"]
 	totalErrorPts := mfs["datakit_pipeline_error_point_total"]
 	totalDropPts := mfs["datakit_pipeline_drop_point_total"]
-	lastUpdate := mfs["datakit_pipeline_update_time"]
-	cost := mfs["datakit_pipeline_cost"]
+	lastUpdate := mfs["datakit_pipeline_last_update_timestamp_seconds"]
+	cost := mfs["datakit_pipeline_cost_seconds"]
 
 	if totalPts == nil {
 		table.SetTitle("[red]P[white]ipeline Info(no data collected)")
@@ -127,8 +127,8 @@ func (app *monitorAPP) renderPLStatTable(mfs map[string]*dto.MetricFamily, colAr
 				table.SetCell(row, col, tview.NewTableCell("-").
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
 			} else {
-				avgMs := x.GetSummary().GetSampleSum() / float64(x.GetSummary().GetSampleCount())
-				table.SetCell(row, col, tview.NewTableCell(time.Duration(avgMs*float64(time.Millisecond)).String()).
+				avg := x.GetSummary().GetSampleSum() / float64(x.GetSummary().GetSampleCount())
+				table.SetCell(row, col, tview.NewTableCell(time.Duration(avg*float64(time.Second)).String()).
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 			}
 		} else {

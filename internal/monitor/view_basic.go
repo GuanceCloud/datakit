@@ -26,7 +26,7 @@ func (app *monitorAPP) renderBasicInfoTable(mfs map[string]*dto.MetricFamily) {
 		return
 	}
 
-	mf := mfs["datakit_uptime"]
+	mf := mfs["datakit_uptime_seconds"]
 	if mf == nil {
 		return
 	}

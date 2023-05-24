@@ -23,6 +23,7 @@ var moduleMap = map[string]string{
 	"In": "inputs",
 	"P":  "pipeline",
 	"IO": "io_stats",
+	"W":  "dataway",
 }
 
 // loadLocalDatakitConf try to find where local datakit listen.

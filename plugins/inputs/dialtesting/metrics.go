@@ -26,7 +26,7 @@ func metricsSetup() {
 			Namespace: "datakit",
 			Subsystem: "dialtesting",
 			Name:      "task_number",
-			Help:      "the number of tasks",
+			Help:      "The number of tasks",
 		},
 		[]string{"region", "protocol"},
 	)
@@ -35,8 +35,8 @@ func metricsSetup() {
 		prometheus.SummaryOpts{
 			Namespace: "datakit",
 			Subsystem: "dialtesting",
-			Name:      "pull_cost",
-			Help:      "time cost to pull tasks(in nanosecond)",
+			Name:      "pull_cost_seconds",
+			Help:      "Time cost to pull tasks",
 		},
 		[]string{"region", "is_first"},
 	)
@@ -46,7 +46,7 @@ func metricsSetup() {
 			Namespace: "datakit",
 			Subsystem: "dialtesting",
 			Name:      "task_synchronized_total",
-			Help:      "task synchronized number",
+			Help:      "Task synchronized number",
 		},
 		[]string{"region", "protocol"},
 	)
@@ -56,7 +56,7 @@ func metricsSetup() {
 			Namespace: "datakit",
 			Subsystem: "dialtesting",
 			Name:      "task_invalid_total",
-			Help:      "invalid task number",
+			Help:      "Invalid task number",
 		},
 		[]string{"region", "protocol", "fail_reason"},
 	)
@@ -65,8 +65,8 @@ func metricsSetup() {
 		prometheus.SummaryOpts{
 			Namespace: "datakit",
 			Subsystem: "dialtesting",
-			Name:      "task_check_cost",
-			Help:      "task check time(in nanosecond)",
+			Name:      "task_check_cost_seconds",
+			Help:      "Task check time",
 		},
 		[]string{"region", "protocol", "status"},
 	)
@@ -75,8 +75,8 @@ func metricsSetup() {
 		prometheus.SummaryOpts{
 			Namespace: "datakit",
 			Subsystem: "dialtesting",
-			Name:      "task_run_cost",
-			Help:      "task run time(in nanosecond)",
+			Name:      "task_run_cost_seconds",
+			Help:      "Task run time",
 		},
 		[]string{"region", "protocol"},
 	)

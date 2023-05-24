@@ -55,7 +55,7 @@ func metricsSetup() {
 		prometheus.GaugeOpts{
 			Namespace: "datakit",
 			Subsystem: "io",
-			Name:      "queue_pts",
+			Name:      "queue_points",
 			Help:      "IO module queued(cached) points",
 		},
 		[]string{
@@ -130,8 +130,8 @@ func metricsSetup() {
 		prometheus.GaugeOpts{
 			Namespace: "datakit",
 			Subsystem: "io",
-			Name:      "last_feed",
-			Help:      "Input last feed time(unix timestamp in second)",
+			Name:      "last_feed_timestamp_seconds",
+			Help:      "Input last feed time(according to Datakit local time)",
 		},
 		[]string{
 			"name",
@@ -143,8 +143,8 @@ func metricsSetup() {
 		prometheus.SummaryOpts{
 			Namespace: "datakit",
 			Subsystem: "input",
-			Name:      "collect_latency",
-			Help:      "Input collect latency(us)",
+			Name:      "collect_latency_seconds",
+			Help:      "Input collect latency",
 		},
 		[]string{
 			"name",

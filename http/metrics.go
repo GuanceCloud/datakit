@@ -15,8 +15,6 @@ var (
 
 	apiElapsedVec,
 	apiReqSizeVec *p8s.SummaryVec
-
-	apiElapsedHistogram *p8s.HistogramVec
 )
 
 func metricsSetup() {
@@ -24,30 +22,16 @@ func metricsSetup() {
 		p8s.SummaryOpts{
 			Namespace: "datakit",
 			Subsystem: "http",
-			Name:      "api_elapsed",
-			Help:      "API request cost(in ms)",
-		},
-		[]string{
-			"api",
-			"method",
-			"status",
-		},
-	)
-
-	//nolint:promlinter
-	apiElapsedHistogram = p8s.NewHistogramVec(
-		p8s.HistogramOpts{
-			Namespace: "datakit",
-			Subsystem: "http",
-			Name:      "api_elapsed_histogram",
-			Help:      "API request cost(in ms) histogram",
-			Buckets: []float64{
-				float64(10),    // 10ms
-				float64(100),   // 100ms
-				float64(1000),  // 1s
-				float64(5000),  // 5s
-				float64(30000), // 30s
+			Name:      "api_elapsed_seconds",
+			Help:      "API request cost",
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.75: 0.0075,
+				0.95: 0.005,
 			},
+
+			MaxAge:     p8s.DefMaxAge,
+			AgeBuckets: p8s.DefAgeBuckets,
 		},
 		[]string{
 			"api",
@@ -60,7 +44,7 @@ func metricsSetup() {
 		p8s.SummaryOpts{
 			Namespace: "datakit",
 			Subsystem: "http",
-			Name:      "api_req_size",
+			Name:      "api_req_size_bytes",
 			Help:      "API request body size",
 		},
 		[]string{
@@ -86,7 +70,6 @@ func metricsSetup() {
 
 	metrics.MustRegister(
 		apiElapsedVec,
-		apiElapsedHistogram,
 		apiReqSizeVec,
 		apiCountVec,
 	)

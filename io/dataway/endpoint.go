@@ -551,20 +551,27 @@ func (ep *endPoint) doSendReq(req *http.Request) (*http.Response, error) {
 	req.Header.Set("User-Agent", DatakitUserAgent)
 
 	defer func() {
-		apiCounterVec.WithLabelValues(req.URL.Path, httpCodeStr).Inc()
-		apiSumVec.WithLabelValues(req.URL.Path, httpCodeStr).Observe(float64(time.Since(start) / time.Millisecond))
+		urlPath := req.URL.Path
+		// It's a bad-designed API path, we rename it in metrics.
+		// the original URL is `/v1/check/token/tkn_xxxxxxxxxxxxxxxxxxx'
+		if strings.HasPrefix(req.URL.Path, "/v1/check/token") {
+			urlPath = "/v1/check/token"
+		}
+
+		apiSumVec.WithLabelValues(urlPath, httpCodeStr).
+			Observe(float64(time.Since(start)) / float64(time.Second))
 	}()
 
 	if ep.httpTrace {
 		ts := &httpTraceStat{}
 
 		defer func() {
-			httpDNSCost.Observe(float64(ts.dnsResolve) / float64(time.Millisecond))
-			httpTLSHandshakeCost.Observe(float64(ts.tlsHSDone) / float64(time.Millisecond))
-			httpConnectCost.Observe(float64(ts.connDone) / float64(time.Millisecond))
-			httpGotFirstResponseByteCost.Observe(float64(ts.ttfb))
+			httpDNSCost.Observe(float64(ts.dnsResolve) / float64(time.Second))
+			httpTLSHandshakeCost.Observe(float64(ts.tlsHSDone) / float64(time.Second))
+			httpConnectCost.Observe(float64(ts.connDone) / float64(time.Second))
+			httpGotFirstResponseByteCost.Observe(float64(ts.ttfb) / float64(time.Second))
 
-			httpConnIdleTime.Observe(float64(ts.idleTime) / float64(time.Millisecond))
+			httpConnIdleTime.Observe(float64(ts.idleTime) / float64(time.Second))
 			if ts.reuseConn {
 				httpTCPConn.WithLabelValues(ts.remoteAddr, "reused").Add(1)
 			} else {
@@ -599,7 +606,7 @@ func (ep *endPoint) doSendReq(req *http.Request) (*http.Response, error) {
 			ConnectDone:  func(string, string, error) { ts.connDone = time.Since(ts.connStart) },
 
 			GotFirstResponseByte: func() {
-				ts.ttfb = time.Since(ts.wroteRequest) / time.Millisecond // after wrote request(header + body), then TTFB.
+				ts.ttfb = time.Since(ts.wroteRequest) // after wrote request(header + body), then TTFB.
 			},
 		}
 

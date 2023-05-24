@@ -129,7 +129,7 @@ func (d *dialer) run() error {
 		default:
 			startTime := time.Now()
 			_ = d.task.Run() //nolint:errcheck
-			taskRunCostSummary.WithLabelValues(d.regionName, d.class).Observe(float64(time.Since(startTime)))
+			taskRunCostSummary.WithLabelValues(d.regionName, d.class).Observe(float64(time.Since(startTime)) / float64(time.Second))
 		}
 
 		// dialtesting start

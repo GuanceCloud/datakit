@@ -125,7 +125,7 @@ func (x *leaderElection) tryElection() (int, error) {
 		electionVec.WithLabelValues(
 			x.namespace,
 			x.status.String(),
-		).Observe(float64(time.Since(start) / time.Millisecond))
+		).Observe(float64(time.Since(start)) / float64(time.Second))
 
 		electionStatusVec.WithLabelValues(
 			CurrentElected,

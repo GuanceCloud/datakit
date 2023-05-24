@@ -105,7 +105,7 @@ func (f *ioFeeder) Feed(name string, category point.Category, pts []*point.Point
 	if len(opts) == 0 {
 		return defIO.doFeed(iopts, category.URL(), name, nil)
 	} else {
-		inputsCollectLatencyVec.WithLabelValues(name, category.String()).Observe(float64(opts[0].CollectCost / time.Microsecond))
+		inputsCollectLatencyVec.WithLabelValues(name, category.String()).Observe(float64(opts[0].CollectCost) / float64(time.Second))
 		return defIO.doFeed(iopts, category.URL(), name, opts[0])
 	}
 }
@@ -307,7 +307,7 @@ func Feed(name, category string, pts []*dkpt.Point, opt *Option) error {
 	inputsFeedVec.WithLabelValues(name, catStr).Inc()
 	inputsFeedPtsVec.WithLabelValues(name, catStr).Add(float64(len(pts)))
 	if opt != nil {
-		inputsCollectLatencyVec.WithLabelValues(name, catStr).Observe(float64(opt.CollectCost / time.Microsecond))
+		inputsCollectLatencyVec.WithLabelValues(name, catStr).Observe(float64(opt.CollectCost) / float64(time.Second))
 	}
 	inputsLastFeedVec.WithLabelValues(name, catStr).Set(float64(time.Now().Unix()))
 

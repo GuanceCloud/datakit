@@ -21,8 +21,8 @@ func (app *monitorAPP) renderHTTPStatTable(mfs map[string]*dto.MetricFamily, col
 	}
 
 	apiTotal := mfs["datakit_http_api_total"]
-	apiElapsed := mfs["datakit_http_api_elapsed"]
-	reqSize := mfs["datakit_http_api_req_size"]
+	apiElapsed := mfs["datakit_http_api_elapsed_seconds"]
+	reqSize := mfs["datakit_http_api_req_size_bytes"]
 
 	if apiTotal == nil {
 		return
@@ -79,7 +79,7 @@ func (app *monitorAPP) renderHTTPStatTable(mfs map[string]*dto.MetricFamily, col
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 			} else {
 				sum := x.GetSummary()
-				avg := time.Duration(uint64(sum.GetSampleSum())/sum.GetSampleCount()) * time.Millisecond
+				avg := time.Duration(float64(time.Second) * sum.GetSampleSum() / float64(sum.GetSampleCount()))
 
 				table.SetCell(row, col, tview.NewTableCell(avg.String()).
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))

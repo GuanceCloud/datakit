@@ -80,8 +80,8 @@ func metricsSetup() {
 	electionVec = p8s.NewSummaryVec(
 		p8s.SummaryOpts{
 			Namespace: "datakit",
-			Name:      "election",
-			Help:      "Election latency(in millisecond)",
+			Name:      "election_seconds",
+			Help:      "Election latency",
 		}, []string{
 			"namespace",
 			"status",
