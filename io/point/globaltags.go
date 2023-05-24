@@ -47,7 +47,15 @@ func GlobalElectionTags() map[string]string {
 ////////////////////////////////////////////////////////////////////////////////
 
 func ClearGlobalTags() {
+	ClearGlobalHostTags()
+	ClearGlobalElectionTags()
+}
+
+func ClearGlobalHostTags() {
 	globalHostTags = map[string]string{}
+}
+
+func ClearGlobalElectionTags() {
 	globalElectionTags = map[string]string{}
 }
 

@@ -366,18 +366,25 @@ func (c *Config) setupGlobalTags() {
 		point.SetGlobalHostTags(k, v)
 	}
 
-	// 开启选举且开启开关的情况下，将选举的命名空间塞到 global-election-tags 中
-	if c.Election.Enable && c.Election.EnableNamespaceTag {
-		c.Election.Tags["election_namespace"] = c.Election.Namespace
-	}
-
-	for k, v := range c.Election.Tags {
-		point.SetGlobalElectionTags(k, v)
-	}
-
 	// 此处不将 host 计入 c.GlobalHostTags，因为 c.GlobalHostTags 是读取的用户配置，而 host
 	// 是不允许修改的, 故单独添加这个 tag 到 io 模块
 	point.SetGlobalHostTags("host", c.Hostname)
+
+	if c.Election.Enable {
+		// 开启选举且开启开关的情况下，将选举的命名空间塞到 global-election-tags 中
+		if c.Election.EnableNamespaceTag {
+			c.Election.Tags["election_namespace"] = c.Election.Namespace
+		}
+
+		for k, v := range c.Election.Tags {
+			point.SetGlobalElectionTags(k, v)
+		}
+	} else {
+		// If not election, assigning the global host tags to election.
+		point.ClearGlobalElectionTags()
+		globalHostTags := point.GlobalHostTags()
+		point.SetGlobalElectionTagsByMap(globalHostTags)
+	}
 }
 
 func (c *Config) ApplyMainConfig() error {
