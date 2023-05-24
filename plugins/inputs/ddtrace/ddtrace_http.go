@@ -260,6 +260,10 @@ func pickupMeta(dkspan *itrace.DatakitSpan, ddspan *DDSpan, keys ...string) {
 			dkspan.Metrics[itrace.FIELD_ERR_MESSAGE] = errMsg
 		}
 	}
+
+	if id, ok := ddspan.Meta[itrace.TRACE_128_BIT_ID]; ok {
+		dkspan.Tags[itrace.TRACE_128_BIT_ID] = id
+	}
 }
 
 func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {

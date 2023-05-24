@@ -41,6 +41,15 @@
 
 --->
 
+
+## v1.14.0-guance (2023/5/18) {#cl-1.14.0-guance}
+
+### 修复 {#cl-1.14.0-guance-new}
+
+- 合并最新的 Datadog v1.14.0 版本
+- [支持链路 ID 128 位](https://github.com/GuanceCloud/dd-trace-java/issues/37){:target="_blank"}
+
+
 ## v1.12.1-guance (2023/5/11) {#cl-1.12.1-guance}
 
 ### 修复 {#cl-1.12.1-guance-new}

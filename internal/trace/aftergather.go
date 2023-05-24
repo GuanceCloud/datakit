@@ -3,6 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
+// Package trace for DK trace.
 package trace
 
 import (
@@ -166,6 +167,7 @@ func BuildPoint(dkspan *DatakitSpan, strict bool) (*point.Point, error) {
 		TAG_SPAN_TYPE:   dkspan.SpanType,
 		TAG_SPAN_STATUS: dkspan.Status,
 	}
+
 	for k, v := range dkspan.Tags {
 		tags[strings.ReplaceAll(k, ".", "_")] = v
 	}
@@ -179,6 +181,12 @@ func BuildPoint(dkspan *DatakitSpan, strict bool) (*point.Point, error) {
 		FIELD_DURATION: dkspan.Duration / int64(time.Microsecond),
 		FIELD_MESSAGE:  dkspan.Content,
 	}
+
+	// trace-128-id replace trace-id.
+	if id, ok := dkspan.Tags[TRACE_128_BIT_ID]; ok {
+		fields[FIELD_TRACEID] = id
+	}
+
 	for k, v := range dkspan.Metrics {
 		fields[strings.ReplaceAll(k, ".", "_")] = v
 	}
