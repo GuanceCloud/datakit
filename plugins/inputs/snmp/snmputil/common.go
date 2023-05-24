@@ -11,16 +11,35 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
 )
+
+//------------------------------------------------------------------------------
 
 type MetricDatas struct {
 	Data []*MetricData
 }
 
 func (md *MetricDatas) Add(name string, value float64, tags []string) {
+	now := timeNowNano()
+
+	switch name {
+	case "ifBandwidthInUsage.rate", "ifBandwidthOutUsage.rate":
+		ip, inf := getIPInterfaceByTags(tags)
+		newVal, err := calculateBandwidthUtilization(ip, inf, name, value, now)
+		if err != nil {
+			l.Errorf("calculateBandwidthUtilization failed: %v", err)
+		} else {
+			value = newVal // use the new value.
+		}
+
+	default:
+	}
+
 	md.Data = append(md.Data, &MetricData{
 		Name:  name,
 		Value: value,
@@ -33,6 +52,97 @@ type MetricData struct {
 	Value    float64
 	Tags     []string
 	TagsHash string
+}
+
+//------------------------------------------------------------------------------
+
+var previousBandwidthUsageRate = sync.Map{} // map[ip_interface_metric]*valueItem
+
+func getIPInterfaceByTags(tags []string) (ip, inf string) {
+	for _, v := range tags {
+		if len(ip) > 0 && len(inf) > 0 {
+			break
+		}
+
+		arr := strings.Split(v, ":")
+		if len(arr) == 2 {
+			switch arr[0] {
+			case "interface":
+				inf = arr[1]
+			case "ip":
+				ip = arr[1]
+			}
+		} else {
+			l.Errorf("unexpected array! len = %d, tags = %v", len(arr), tags)
+		}
+	} // for
+
+	return
+}
+
+func getPreviousBandwidthUsageRateKeyName(ip, inf, metricName string) string {
+	if len(ip) == 0 || len(inf) == 0 || len(metricName) == 0 {
+		return ""
+	}
+	return ip + "_" + inf + "_" + metricName
+}
+
+type valueItem struct {
+	Value     float64
+	Timestamp float64
+}
+
+func newValueItem(value, timestamp float64) *valueItem {
+	return &valueItem{
+		Value:     value,
+		Timestamp: timestamp,
+	}
+}
+
+// https://www.cisco.com/c/en/us/support/docs/ip/simple-network-management-protocol-snmp/8141-calculate-bandwidth-snmp.html
+func calculateBandwidthUtilization(ip, inf, metricName string, metricValue, timestamp float64) (float64, error) {
+	if metricValue == 0 {
+		return 0, nil
+	}
+
+	if len(ip) == 0 || len(inf) == 0 {
+		return 0, fmt.Errorf("unexpected ip and interface")
+	}
+
+	mapKey := getPreviousBandwidthUsageRateKeyName(ip, inf, metricName)
+	if len(mapKey) == 0 {
+		return 0, fmt.Errorf("unexpected key name")
+	}
+
+	valItem, ok := previousBandwidthUsageRate.Load(mapKey)
+	if !ok {
+		// not exist, new one.
+		previousBandwidthUsageRate.Store(mapKey, newValueItem(metricValue, timestamp))
+		return 0, nil
+	}
+
+	valGot, ok := valItem.(*valueItem)
+	if !ok {
+		return 0, fmt.Errorf("invalid *valueItem")
+	}
+
+	// save new.
+	previousBandwidthUsageRate.Store(mapKey, newValueItem(metricValue, timestamp))
+
+	if valGot.Value == 0 || valGot.Timestamp == 0 {
+		// new key.
+		return 0, nil
+	}
+
+	newVal := (metricValue - valGot.Value) / (timestamp - valGot.Timestamp)
+	if newVal < 0 {
+		newVal = 0 // negative should return 0.
+	}
+	return newVal, nil
+}
+
+func timeNowNano() float64 {
+	return float64(time.Now().UnixNano()) / float64(time.Second) // Unix time with nanosecond precision
 }
 
 //------------------------------------------------------------------------------
