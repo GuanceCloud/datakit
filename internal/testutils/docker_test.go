@@ -6,13 +6,14 @@
 package testutils
 
 import (
-	T "testing"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestExternalIP(t *T.T) {
-	t.Run("external-ip", func(t *T.T) {
+func TestExternalIP(t *testing.T) {
+	t.Run("external-ip", func(t *testing.T) {
 		ip, err := ExternalIP()
 
 		assert.NoError(t, err)
@@ -21,8 +22,8 @@ func TestExternalIP(t *T.T) {
 	})
 }
 
-func TestGetPort(t *T.T) {
-	t.Run("base-100", func(t *T.T) {
+func TestGetPort(t *testing.T) {
+	t.Run("base-100", func(t *testing.T) {
 		for i := 0; i < 10; i++ {
 			get := RandPort("tcp")
 			assert.True(t, get > baseOffset)
@@ -36,7 +37,7 @@ func TestGetPort(t *T.T) {
 		}
 	})
 
-	t.Run("larger-than-base", func(t *T.T) {
+	t.Run("larger-than-base", func(t *testing.T) {
 		for i := baseOffset; i < baseOffset+10; i++ {
 			get := RandPort("tcp")
 			assert.True(t, get > baseOffset)
@@ -44,11 +45,49 @@ func TestGetPort(t *T.T) {
 		}
 	})
 
-	t.Run("larger-than-max", func(t *T.T) {
+	t.Run("larger-than-max", func(t *testing.T) {
 		for i := maxPort; i < maxPort+10; i++ {
 			get := RandPort("tcp")
 			assert.True(t, get > baseOffset)
 			t.Logf("get: %d -> %d", i, get)
 		}
 	})
+}
+
+func TestGetContainerName(t *testing.T) {
+	cases := []struct {
+		name string
+	}{
+		{
+			name: "myrepo/nginx:1.8.0",
+		},
+		{
+			name: "nginx",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			out := GetUniqueContainerName(tc.name)
+
+			t.Logf("name: %s", out)
+		})
+	}
+}
+
+func TestPurgeRemoteByName(t *testing.T) {
+	cases := []struct {
+		name string
+	}{
+		{
+			name: "nginx",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := PurgeRemoteByName(tc.name)
+			require.NoError(t, err)
+		})
+	}
 }

@@ -15,6 +15,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/GuanceCloud/cliutils"
+	"github.com/ory/dockertest/v3"
+	"github.com/ory/dockertest/v3/docker"
 )
 
 type RemoteInfo struct {
@@ -238,6 +242,8 @@ func RetryTestRun(f func() error) error {
 	}
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 const envIntegrationTesting = "UT_EXCLUDE_INTEGRATION_TESTING"
 
 // CheckIntegrationTestingRunning returns whether performing the integration testing.
@@ -249,3 +255,88 @@ func CheckIntegrationTestingRunning() bool {
 
 	return true
 }
+
+////////////////////////////////////////////////////////////////////////////////
+
+const testingPrefix = "testing-"
+
+// GetUniqueContainerName returns unique combined container name.
+func GetUniqueContainerName(name string) string {
+	rawName := dockertest.GetRawName(name)
+
+	nanoStr := fmt.Sprintf("-%d", time.Now().Nanosecond())
+	randStr := cliutils.CreateRandomString(5)
+
+	return testingPrefix + rawName + nanoStr + randStr
+}
+
+// GetTestingPrefix returns testing prefix name.
+func GetTestingPrefix(name string) string {
+	return testingPrefix + name
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+// PurgeRemoteByName purges containers with specified testing names.
+func PurgeRemoteByName(name string) error {
+	r := GetRemote()
+	dockerTCP := r.TCPURL()
+
+	log.Printf("get remote: %+#v, TCP: %s", r, dockerTCP)
+
+	p, err := GetPool(dockerTCP)
+	if err != nil {
+		return err
+	}
+
+	containerName := GetTestingPrefix(name)
+	containers, err := p.Client.ListContainers(docker.ListContainersOptions{
+		All: true,
+		Filters: map[string][]string{
+			"name": {containerName},
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("error while listing containers with name %s", containerName)
+	}
+
+	if len(containers) == 0 {
+		return nil
+	}
+
+	var errs []error
+	for k := range containers {
+		err = p.Client.RemoveContainer(docker.RemoveContainerOptions{
+			ID:            containers[k].ID,
+			Force:         true,
+			RemoveVolumes: true,
+		})
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if len(errs) > 0 {
+		for _, v := range errs {
+			log.Printf("RemoveContainer failed: %v", v)
+		}
+		return fmt.Errorf("error while removing container with name %s: %s", containerName, errs[0].Error()) //nolint:errorlint
+	}
+
+	return nil
+}
+
+// GetPool returns dockertest Pool connection.
+func GetPool(endpoint string) (*dockertest.Pool, error) {
+	p, err := dockertest.NewPool(endpoint)
+	if err != nil {
+		return nil, err
+	}
+	err = p.Client.Ping()
+	if err != nil {
+		log.Printf("Could not connect to Docker: %v", err)
+		return nil, err
+	}
+	return p, nil
+}
+
+////////////////////////////////////////////////////////////////////////////////

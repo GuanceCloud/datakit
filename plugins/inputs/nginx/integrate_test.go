@@ -11,7 +11,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -29,17 +28,17 @@ import (
 
 // ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
 
-var (
-	mCount  map[string]struct{} = make(map[string]struct{}) // Length of got measurements.
-	mExpect                     = map[string]struct{}{
-		nginx: {},
-	}
-)
+var mExpect = map[string]struct{}{
+	nginx: {},
+}
 
 func TestNginxInput(t *testing.T) {
 	if !testutils.CheckIntegrationTestingRunning() {
 		t.Skip()
 	}
+
+	testutils.PurgeRemoteByName(inputName)       // purge at first.
+	defer testutils.PurgeRemoteByName(inputName) // purge at last.
 
 	start := time.Now()
 	cases, err := buildCases(t)
@@ -58,33 +57,36 @@ func TestNginxInput(t *testing.T) {
 	t.Logf("testing %d cases...", len(cases))
 
 	for _, tc := range cases {
-		t.Run(tc.savedName, func(t *testing.T) {
-			caseStart := time.Now()
+		func(tc *caseSpec) {
+			t.Run(tc.savedName, func(t *testing.T) {
+				t.Parallel()
+				caseStart := time.Now()
 
-			t.Logf("testing %s...", tc.name)
+				t.Logf("testing %s...", tc.name)
 
-			if err := testutils.RetryTestRun(tc.run); err != nil {
-				tc.cr.Status = testutils.TestFailed
-				tc.cr.FailedMessage = err.Error()
+				if err := testutils.RetryTestRun(tc.run); err != nil {
+					tc.cr.Status = testutils.TestFailed
+					tc.cr.FailedMessage = err.Error()
 
-				panic(err)
-			} else {
-				tc.cr.Status = testutils.TestPassed
-			}
-
-			tc.cr.Cost = time.Since(caseStart)
-
-			require.NoError(t, testutils.Flush(tc.cr))
-
-			t.Cleanup(func() {
-				// clean remote docker resources
-				if tc.resource == nil {
-					return
+					panic(err)
+				} else {
+					tc.cr.Status = testutils.TestPassed
 				}
 
-				require.NoError(t, tc.pool.Purge(tc.resource))
+				tc.cr.Cost = time.Since(caseStart)
+
+				require.NoError(t, testutils.Flush(tc.cr))
+
+				t.Cleanup(func() {
+					// clean remote docker resources
+					if tc.resource == nil {
+						return
+					}
+
+					require.NoError(t, tc.pool.Purge(tc.resource))
+				})
 			})
-		})
+		}(tc)
 	}
 }
 
@@ -312,6 +314,7 @@ type caseSpec struct {
 	serverPorts    []string
 	opts           []inputs.PointCheckOption
 	mPathCount     map[string]int
+	mCount         map[string]struct{}
 
 	ipt    *Input
 	feeder *io.MockedFeeder
@@ -345,7 +348,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
-			mCount[nginx] = struct{}{}
+			cs.mCount[nginx] = struct{}{}
 
 		case ServerZone:
 			opts = append(opts, inputs.WithDoc(&ServerZoneMeasurement{}))
@@ -361,7 +364,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
-			mCount[ServerZone] = struct{}{}
+			cs.mCount[ServerZone] = struct{}{}
 
 		case UpstreamZone:
 			opts = append(opts, inputs.WithDoc(&UpstreamZoneMeasurement{}))
@@ -377,7 +380,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
-			mCount[UpstreamZone] = struct{}{}
+			cs.mCount[UpstreamZone] = struct{}{}
 
 		case CacheZone:
 			opts = append(opts, inputs.WithDoc(&CacheZoneMeasurement{}))
@@ -393,7 +396,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
-			mCount[CacheZone] = struct{}{}
+			cs.mCount[CacheZone] = struct{}{}
 
 		default: // TODO: check other measurement
 			panic("not implement")
@@ -435,18 +438,13 @@ func (cs *caseSpec) run() error {
 		return err
 	}
 
-	containerName := cs.getContainterName()
-
-	// Remove the container if exist.
-	if err := p.RemoveContainerByName(containerName); err != nil {
-		return err
-	}
-
 	dockerFileDir, dockerFilePath, err := cs.getDockerFilePath()
 	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(dockerFileDir)
+
+	uniqueContainerName := testutils.GetUniqueContainerName(inputName)
 
 	var resource *dockertest.Resource
 
@@ -454,7 +452,7 @@ func (cs *caseSpec) run() error {
 		// Just run a container from existing docker image.
 		resource, err = p.RunWithOptions(
 			&dockertest.RunOptions{
-				Name: containerName, // ATTENTION: not cs.name.
+				Name: uniqueContainerName, // ATTENTION: not cs.name.
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
@@ -473,7 +471,8 @@ func (cs *caseSpec) run() error {
 			dockerFilePath,
 
 			&dockertest.RunOptions{
-				Name: cs.name,
+				ContainerName: uniqueContainerName,
+				Name:          cs.name, // ATTENTION: not uniqueContainerName.
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
@@ -536,6 +535,7 @@ func (cs *caseSpec) run() error {
 	cs.cr.AddField("point_count", len(pts))
 
 	cs.t.Logf("get %d points", len(pts))
+	cs.mCount = make(map[string]struct{})
 	if err := cs.checkPoint(pts); err != nil {
 		return err
 	}
@@ -544,11 +544,10 @@ func (cs *caseSpec) run() error {
 	cs.ipt.Terminate()
 
 	if strings.Contains(cs.savedName, "http-stub-status-module") {
-		require.Equal(cs.t, mExpect, mCount)
+		require.Equal(cs.t, mExpect, cs.mCount)
 	} else {
-		require.Equal(cs.t, 4, len(mCount))
+		require.Equal(cs.t, 4, len(cs.mCount))
 	}
-	mCount = make(map[string]struct{}) // clear.
 
 	cs.t.Logf("exit...")
 	wg.Wait()
@@ -603,12 +602,6 @@ func (cs *caseSpec) getDockerFilePath() (dirName string, fileName string, err er
 	}
 
 	return tmpDir, tmpFile.Name(), nil
-}
-
-func (cs *caseSpec) getContainterName() string {
-	nameTag := strings.Split(cs.name, ":")
-	name := filepath.Base(nameTag[0])
-	return name
 }
 
 func (cs *caseSpec) getMappingPorts() error {

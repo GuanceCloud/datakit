@@ -37,10 +37,7 @@ const (
 	MinGatherInterval = 1 * time.Second
 )
 
-var (
-	log = logger.DefaultSLogger("jolokia")
-	g   = goroutine.NewGroup(goroutine.Option{Name: "inputs_jolokia"})
-)
+var log = logger.DefaultSLogger("jolokia")
 
 type JolokiaAgent struct {
 	DefaultFieldPrefix    string
@@ -70,6 +67,7 @@ type JolokiaAgent struct {
 	SemStop *cliutils.Sem `toml:"-"` // start stop signal
 	Feeder  dkio.Feeder   `toml:"-"`
 	Opt     point.Option
+	g       *goroutine.Group
 }
 
 func (j *JolokiaAgent) Collect() {
@@ -84,6 +82,9 @@ func (j *JolokiaAgent) Collect() {
 	}
 	if j.Feeder == nil {
 		j.Feeder = dkio.DefaultFeeder()
+	}
+	if j.g == nil {
+		j.g = goroutine.NewGroup(goroutine.Option{Name: "inputs_jolokia"})
 	}
 
 	if j.Election {
@@ -161,7 +162,7 @@ func (j *JolokiaAgent) Gather() error {
 
 	for _, client := range j.clients {
 		func(client *Client) {
-			g.Go(func(ctx context.Context) error {
+			j.g.Go(func(ctx context.Context) error {
 				err := j.gatherer.Gather(client, j)
 				if err != nil {
 					j.L.Errorf("unable to gather metrics for %s: %v", client.URL, err)
@@ -171,7 +172,7 @@ func (j *JolokiaAgent) Gather() error {
 		}(client)
 	}
 
-	return g.Wait()
+	return j.g.Wait()
 }
 
 func (j *JolokiaAgent) createMetrics() []Metric {

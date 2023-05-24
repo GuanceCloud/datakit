@@ -131,6 +131,7 @@ func addInputs(confdInputs map[string][]*ConfdInfo, handles []handle, errs *[]er
 	envs := getEnvs()
 	mtx.Lock()
 	defer mtx.Unlock()
+	g := datakit.G("confd_inputs")
 
 	// Recreate this input kind, and append form confdInputs,
 	// When insertIndex and deleteIndex any not be -1

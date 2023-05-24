@@ -60,7 +60,7 @@ Go to the `conf.d/nginx` directory under the DataKit installation directory, cop
 
 ???+ warnning
 
-    `url` are configurable, `/nginx_status` are prefereed.
+    `url` are configurable, `/basic_status` are prefereed.
 
 After configuration, restart DataKit.
 
