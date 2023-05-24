@@ -296,6 +296,8 @@ func shouldPreferTLS(endpoint string) bool {
 
 // RunOptions is used to pass in optional parameters when running a container.
 type RunOptions struct {
+	ContainerName string
+
 	Hostname     string
 	Name         string
 	Repository   string
@@ -346,10 +348,20 @@ func (d *Pool) BuildAndRunWithBuildOptions(buildOpts *BuildOptions, runOpts *Run
 		return nil, errors.Wrap(err, "")
 	}
 
-	nameTag := strings.Split(runOpts.Name, ":")
-	runOpts.Name = filepath.Base(nameTag[0])
+	if len(runOpts.ContainerName) > 0 {
+		runOpts.Name = runOpts.ContainerName
+	} else {
+		runOpts.Name = GetRawName(runOpts.Name)
+	}
 
 	return d.RunWithOptions(runOpts, hcOpts...)
+}
+
+// GetRawName returns container raw name.
+// eg, myrepo/nginx:1.8.0 returns nginx.
+func GetRawName(name string) string {
+	nameTag := strings.Split(name, ":")
+	return filepath.Base(nameTag[0])
 }
 
 // BuildAndRunWithOptions builds and starts a docker container.

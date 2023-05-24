@@ -45,33 +45,36 @@ func TestHostObjectInput(t *testing.T) {
 	t.Logf("testing %d cases...", len(cases))
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			caseStart := time.Now()
+		func(tc *caseSpec) {
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+				caseStart := time.Now()
 
-			t.Logf("testing %s...", tc.name)
+				t.Logf("testing %s...", tc.name)
 
-			if err := testutils.RetryTestRun(tc.run); err != nil {
-				tc.cr.Status = testutils.TestFailed
-				tc.cr.FailedMessage = err.Error()
+				if err := testutils.RetryTestRun(tc.run); err != nil {
+					tc.cr.Status = testutils.TestFailed
+					tc.cr.FailedMessage = err.Error()
 
-				panic(err)
-			} else {
-				tc.cr.Status = testutils.TestPassed
-			}
-
-			tc.cr.Cost = time.Since(caseStart)
-
-			require.NoError(t, testutils.Flush(tc.cr))
-
-			t.Cleanup(func() {
-				// clean remote docker resources
-				if tc.resource == nil {
-					return
+					panic(err)
+				} else {
+					tc.cr.Status = testutils.TestPassed
 				}
 
-				require.NoError(t, tc.pool.Purge(tc.resource))
+				tc.cr.Cost = time.Since(caseStart)
+
+				require.NoError(t, testutils.Flush(tc.cr))
+
+				t.Cleanup(func() {
+					// clean remote docker resources
+					if tc.resource == nil {
+						return
+					}
+
+					require.NoError(t, tc.pool.Purge(tc.resource))
+				})
 			})
-		})
+		}(tc)
 	}
 }
 

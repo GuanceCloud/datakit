@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -27,12 +26,13 @@ import (
 
 // ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
 
-var mCount map[string]struct{} = make(map[string]struct{}) // Length of got measurements.
-
 func TestBeatsInput(t *testing.T) {
 	if !testutils.CheckIntegrationTestingRunning() {
 		t.Skip()
 	}
+
+	testutils.PurgeRemoteByName(inputName)       // purge at first.
+	defer testutils.PurgeRemoteByName(inputName) // purge at last.
 
 	start := time.Now()
 	cases, err := buildCases(t)
@@ -51,33 +51,36 @@ func TestBeatsInput(t *testing.T) {
 	t.Logf("testing %d cases...", len(cases))
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			caseStart := time.Now()
+		func(tc *caseSpec) {
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+				caseStart := time.Now()
 
-			t.Logf("testing %s...", tc.name)
+				t.Logf("testing %s...", tc.name)
 
-			if err := testutils.RetryTestRun(tc.run); err != nil {
-				tc.cr.Status = testutils.TestFailed
-				tc.cr.FailedMessage = err.Error()
+				if err := testutils.RetryTestRun(tc.run); err != nil {
+					tc.cr.Status = testutils.TestFailed
+					tc.cr.FailedMessage = err.Error()
 
-				panic(err)
-			} else {
-				tc.cr.Status = testutils.TestPassed
-			}
-
-			tc.cr.Cost = time.Since(caseStart)
-
-			require.NoError(t, testutils.Flush(tc.cr))
-
-			t.Cleanup(func() {
-				// clean remote docker resources
-				if tc.resource == nil {
-					return
+					panic(err)
+				} else {
+					tc.cr.Status = testutils.TestPassed
 				}
 
-				require.NoError(t, tc.pool.Purge(tc.resource))
+				tc.cr.Cost = time.Since(caseStart)
+
+				require.NoError(t, testutils.Flush(tc.cr))
+
+				t.Cleanup(func() {
+					// clean remote docker resources
+					if tc.resource == nil {
+						return
+					}
+
+					require.NoError(t, tc.pool.Purge(tc.resource))
+				})
 			})
-		})
+		}(tc)
 	}
 }
 
@@ -245,6 +248,7 @@ type caseSpec struct {
 	dockerFileText string
 	exposedPorts   []string
 	opts           []inputs.PointCheckOption
+	mCount         map[string]struct{}
 
 	ipt    *Input
 	feeder *io.MockedFeeder
@@ -278,7 +282,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
-			mCount[measurementName] = struct{}{}
+			cs.mCount[measurementName] = struct{}{}
 
 		default: // TODO: check other measurement
 			panic("not implement")
@@ -320,13 +324,6 @@ func (cs *caseSpec) run() error {
 		return err
 	}
 
-	containerName := cs.getContainterName()
-
-	// Remove the container if exist.
-	if err := p.RemoveContainerByName(containerName); err != nil {
-		return err
-	}
-
 	dockerFileDir, dockerFilePath, err := cs.getDockerFilePath()
 	if err != nil {
 		return err
@@ -338,13 +335,15 @@ func (cs *caseSpec) run() error {
 		return err
 	}
 
+	uniqueContainerName := testutils.GetUniqueContainerName(inputName)
+
 	var resource *dockertest.Resource
 
 	if len(cs.dockerFileText) == 0 {
 		// Just run a container from existing docker image.
 		resource, err = p.RunWithOptions(
 			&dockertest.RunOptions{
-				Name: containerName, // ATTENTION: not cs.name.
+				Name: uniqueContainerName, // ATTENTION: not cs.name.
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
@@ -365,7 +364,8 @@ func (cs *caseSpec) run() error {
 			dockerFilePath,
 
 			&dockertest.RunOptions{
-				Name: cs.name,
+				ContainerName: uniqueContainerName,
+				Name:          cs.name, // ATTENTION: not uniqueContainerName.
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
@@ -420,6 +420,7 @@ func (cs *caseSpec) run() error {
 	cs.cr.AddField("point_count", len(pts))
 
 	cs.t.Logf("get %d points", len(pts))
+	cs.mCount = make(map[string]struct{})
 	if err := cs.checkPoint(pts); err != nil {
 		return err
 	}
@@ -427,8 +428,7 @@ func (cs *caseSpec) run() error {
 	cs.t.Logf("stop input...")
 	cs.ipt.Terminate()
 
-	require.Equal(cs.t, 1, len(mCount))
-	mCount = map[string]struct{}{} // clear.
+	require.Equal(cs.t, 1, len(cs.mCount))
 
 	cs.t.Logf("exit...")
 	wg.Wait()
@@ -483,12 +483,6 @@ func (cs *caseSpec) getDockerFilePath() (dirName string, fileName string, err er
 	}
 
 	return tmpDir, tmpFile.Name(), nil
-}
-
-func (cs *caseSpec) getContainterName() string {
-	nameTag := strings.Split(cs.name, ":")
-	name := filepath.Base(nameTag[0])
-	return name
 }
 
 func (cs *caseSpec) getPortBindings() map[docker.Port][]docker.PortBinding {

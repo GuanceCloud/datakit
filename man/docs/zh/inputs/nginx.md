@@ -69,7 +69,7 @@ http {
 
 ???+ attention
 
-    `url` 地址以 nginx 具体配置为准，一般常见的用法就是用 `/nginx_status` 这个路由。
+    `url` 地址以 nginx 具体配置为准，一般常见的用法就是用 `/basic_status` 这个路由。
 <!-- markdownlint-enable -->
 
 ## 指标集 {#measurements}
