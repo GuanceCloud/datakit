@@ -8,7 +8,7 @@
 
 ## 配置 Datakit Agent {#config-datakit-agent}
 
-参考[配置 Datakit 中的 Pinpoint Agent](./inputs/pinpoint.md#agent-config)
+参考[配置 Datakit 中的 Pinpoint Agent](pinpoint.md#agent-config)
 
 ## 配置 Pinpoint Golang Agent {#config-pinpoint-golang-agent}
 
