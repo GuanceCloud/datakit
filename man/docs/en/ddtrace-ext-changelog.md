@@ -25,6 +25,14 @@ Currently DDTrace has added the following extensions to the technology stack：
 
 ## changelog {#changelog}
 
+## v1.14.0-guance (2023/5/18) {#cl-1.14.0-guance}
+
+### fix {#cl-1.14.0-guance-new}
+
+- Merge Datadog v1.14.0 version.
+- [support trace 128 bit id](https://github.com/GuanceCloud/dd-trace-java/issues/37){:target="_blank"}
+
+
 ## v1.12.1-guance (2023/5/11) {#cl-1.12.1-guance}
 
 ### fix {#cl-1.12.1-guance-new}

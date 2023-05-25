@@ -20,6 +20,29 @@ Here we mainly introduce some extended functions of DDTrace-java. List of main f
 - Get the input parameter information of a specific function
 - MongoDB obfuscation
 - Supported DM8 Database
+- Supported trace-128-id
+
+## supported trace-128-id {#trace_128_bit_id}
+
+[:octicons-tag-24: Datakit-1.8.0](changelog.md#cl-1.8.0)
+[:octicons-tag-24: DDTrace-1.4.0-guance](ddtrace-ext-changelog.md#cl-1.14.0-guance)
+
+The default trace-id of the DDTrace agent is 64 bit, and the Datakit also supports 64 bit trace-id in the received link data. 
+Starting from `v1.11.0`, it supports the `W3C protocol` and supports receiving 128 bit trace-id. However, the trace id sent to the link is still 64 bit.
+
+To this end, secondary development was carried out on the observation cloud, which incorporated `trace_128_bit_id` is placed in the link data and sent to the Datakit, the DDTrace and OTEL links can be concatenated.
+
+how to config:
+
+```shell
+# open trace.128.bit, and use W3C propagation.
+-Ddd.trace.128.bit.traceid.generation.enabled=true -Ddd.trace.propagation.style=tracecontext
+```
+
+This is  [GitHub issue](https://github.com/GuanceCloud/dd-trace-java/issues/37){:target="_blank"}
+
+At present, only DDTrace and OTEL are connected in series, and there is currently no testing with other APM manufacturers.
+
 
 ## supported MongoDB obfuscation {#mongo-obfuscation}
 Use startup parameter `-DDd.mongo.obfuscation=true` or environment variable `DD_MONGO_OBFUSION` Turn on desensitization. This way, a specific command can be seen from the observation cloud.
