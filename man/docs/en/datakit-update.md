@@ -169,14 +169,14 @@ The remote upgrade service currently provides two http APIs:
 - **View the current Datakit version and available upgrade versions**
 
 | API                                                   | Method |
-| ---                                                   | ---    |
-| `http://<datakit-ip-or-host>:9539/v1/datakit/version` | `GET`  |
+|-------------------------------------------------------|--------|
+| `http://<datakit-ip-or-host>:9542/v1/datakit/version` | `GET`  |
 
 
 Example：
 
 ```shell
-$ curl 'http://127.0.0.1:9539/v1/datakit/version'
+$ curl 'http://127.0.0.1:9542/v1/datakit/version'
 {
     "Version": "1.5.7",
     "Commit": "1a9xxxxxxx",
@@ -201,13 +201,13 @@ $ curl 'http://127.0.0.1:9539/v1/datakit/version'
 - **Upgrade the current Datakit to the latest version**
 
 | API                                                   | Method |
-| ---                                                   | ---    |
-| `http://<datakit-ip-or-host>:9539/v1/datakit/upgrade` | `POST` |
+|-------------------------------------------------------|--------|
+| `http://<datakit-ip-or-host>:9542/v1/datakit/upgrade` | `POST` |
 
 Example：
 
 ```shell
-$ curl -X POST 'http://127.0.0.1:9539/v1/datakit/upgrade'
+$ curl -X POST 'http://127.0.0.1:9542/v1/datakit/upgrade'
 {"msg":"success"}
 ```
 
