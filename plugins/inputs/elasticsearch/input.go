@@ -22,11 +22,12 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -232,11 +233,13 @@ type Input struct {
 	duration        time.Duration
 	tail            *tailer.Tailer
 
-	collectCache []inputs.Measurement
+	collectCache []*point.Point
 
 	Election bool `toml:"election"`
 	pause    bool
 	pauseCh  chan bool
+
+	feeder dkio.Feeder
 
 	semStop *cliutils.Sem // start stop signal
 }
@@ -279,7 +282,7 @@ func (i serverInfo) isMaster() bool {
 
 var maxPauseCh = inputs.ElectionPauseChannelLength
 
-func NewElasticsearch() *Input {
+func defaultInput() *Input {
 	return &Input{
 		httpTimeout:                Duration{Duration: time.Second * 5},
 		ClusterStatsOnlyFromMaster: true,
@@ -287,6 +290,7 @@ func NewElasticsearch() *Input {
 		pauseCh:                    make(chan bool, maxPauseCh),
 		Election:                   true,
 		semStop:                    cliutils.NewSem(),
+		feeder:                     dkio.DefaultFeeder(),
 	}
 }
 
@@ -299,21 +303,6 @@ func mapHealthStatusToCode(s string) int {
 		return 2
 	case "red":
 		return 3
-	}
-	return 0
-}
-
-// perform shard status mapping.
-func mapShardStatusToCode(s string) int {
-	switch strings.ToUpper(s) {
-	case "UNASSIGNED":
-		return 1
-	case "INITIALIZING":
-		return 2
-	case "STARTED":
-		return 3
-	case "RELOCATING":
-		return 4
 	}
 	return 0
 }
@@ -512,7 +501,7 @@ func (i *Input) RunPipeline() {
 	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
-		io.FeedLastError(inputName, err.Error())
+		i.feeder.FeedLastError(inputName, err.Error())
 		return
 	}
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_elasticsearch"})
@@ -547,7 +536,7 @@ func (i *Input) Run() {
 	client, err := i.createHTTPClient()
 	if err != nil {
 		l.Error(err)
-		io.FeedLastError(inputName, err.Error())
+		i.feeder.FeedLastError(inputName, err.Error())
 		return
 	}
 	i.client = client
@@ -563,15 +552,12 @@ func (i *Input) Run() {
 		} else {
 			start := time.Now()
 			if err := i.Collect(); err != nil {
-				io.FeedLastError(inputName, err.Error())
+				i.feeder.FeedLastError(inputName, err.Error())
 				l.Error(err)
 			} else if len(i.collectCache) > 0 {
-				err := inputs.FeedMeasurement("elasticsearch",
-					datakit.Metric,
-					i.collectCache,
-					&io.Option{CollectCost: time.Since(start)})
+				err := i.feeder.Feed(inputName, point.Metric, i.collectCache, &dkio.Option{CollectCost: time.Since(start)})
 				if err != nil {
-					io.FeedLastError(inputName, err.Error())
+					i.feeder.FeedLastError(inputName, err.Error())
 					l.Errorf(err.Error())
 				}
 				i.collectCache = i.collectCache[:0]
@@ -653,7 +639,7 @@ func (i *Input) gatherIndicesStats(url string, clusterName string) error {
 		}
 
 		if len(metric.fields) > 0 {
-			i.collectCache = append(i.collectCache, metric)
+			i.collectCache = append(i.collectCache, metric.Point())
 		}
 	}
 
@@ -693,7 +679,7 @@ func (i *Input) gatherIndicesStats(url string, clusterName string) error {
 			}
 
 			if len(metric.fields) > 0 {
-				i.collectCache = append(i.collectCache, metric)
+				i.collectCache = append(i.collectCache, metric.Point())
 			}
 		}
 	}
@@ -785,7 +771,7 @@ func (i *Input) gatherNodeStats(url string) (string, error) {
 			},
 		}
 		if len(metric.fields) > 0 {
-			i.collectCache = append(i.collectCache, metric)
+			i.collectCache = append(i.collectCache, metric.Point())
 		}
 	}
 
@@ -838,7 +824,7 @@ func (i *Input) gatherClusterStats(url string) error {
 	}
 
 	if len(metric.fields) > 0 {
-		i.collectCache = append(i.collectCache, metric)
+		i.collectCache = append(i.collectCache, metric.Point())
 	}
 	return nil
 }
@@ -979,7 +965,7 @@ func (i *Input) gatherClusterHealth(url string, serverURL string) error {
 	}
 
 	if len(metric.fields) > 0 {
-		i.collectCache = append(i.collectCache, metric)
+		i.collectCache = append(i.collectCache, metric.Point())
 	}
 
 	return nil
@@ -1192,6 +1178,6 @@ func (i *Input) Resume() error {
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return NewElasticsearch()
+		return defaultInput()
 	})
 }

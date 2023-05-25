@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (
@@ -80,6 +80,8 @@ func TestGatherNodeStats(t *testing.T) {
 	tags := defaultTags()
 
 	checkIsMaster(t, es, es.Servers[0], false)
+
+	nodestatsExpected := nodestatsExpectedFunc()
 
 	for field, value := range nodestatsExpected {
 		fields := `fs_total_available_in_bytes,fs_total_free_in_bytes,fs_total_total_in_bytes,fs_data_0_available_in_bytes,fs_data_0_free_in_bytes,fs_data_0_total_in_bytes`
@@ -153,14 +155,6 @@ func TestGatherClusterHealthEmptyClusterHealth(t *testing.T) {
 	AssertContainsTaggedFields(t, "elasticsearch_cluster_health",
 		clusterHealthExpected,
 		map[string]string{"name": clusterName, "cluster_name": clusterName, "cluster_status": "green"}, es.collectCache)
-
-	// AssertDoesNotContainsTaggedFields(t, "elasticsearch_cluster_health_indices",
-	// 	v1IndexExpected,
-	// 	map[string]string{"index": "v1"}, es.collectCache)
-
-	// AssertDoesNotContainsTaggedFields(t, "elasticsearch_cluster_health_indices",
-	// 	v2IndexExpected,
-	// 	map[string]string{"index": "v2"}, es.collectCache)
 }
 
 func TestGatherClusterHealthSpecificClusterHealth(t *testing.T) {
@@ -206,7 +200,7 @@ func TestGatherClusterHealthAlsoIndicesHealth(t *testing.T) {
 
 	checkIsMaster(t, es, es.Servers[0], false)
 
-	clusterHealthExpected["indices_lifecycle_error_count"] = 2
+	clusterHealthExpected["indices_lifecycle_error_count"] = int64(2)
 	AssertContainsTaggedFields(t, "elasticsearch_cluster_health",
 		clusterHealthExpected,
 		map[string]string{"name": clusterName, "cluster_name": clusterName, "cluster_status": "green"}, es.collectCache)
@@ -232,24 +226,6 @@ func TestGatherClusterIndicesStats(t *testing.T) {
 		clusterIndicesTotalExpected,
 		map[string]string{"index_name": "_all", "cluster_name": ""}, es.collectCache)
 }
-
-// func TestGatherClusterIndiceShardsStats(t *testing.T) {
-// 	es := newElasticsearchWithClient()
-// 	es.IndicesLevel = "shards"
-// 	es.Servers = []string{url}
-// 	es.client.Transport = newTransportMock(clusterIndicesShardsResponse)
-// 	es.serverInfo = make(map[string]serverInfo)
-// 	es.serverInfo[url] = defaultServerInfo()
-
-// 	if err := es.gatherIndicesStats(""); err != nil {
-// 		t.Fatal(err)
-// 	}
-
-// 	AssertContainsTaggedFields(t, "elasticsearch_indices_stats_shards",
-// 		clusterIndicesPrimaryShardsExpected,
-// 		map[string]string{"index_name": "es", "node_id": "oqvR8I1dTpONvwRM30etww", "shard_name": "0", "type": "primary"},
-// 		es.collectCache)
-// }
 
 func TestMapHealthStatusToCode(t *testing.T) {
 	assert.Equal(t, mapHealthStatusToCode("GREEN"), 1)
@@ -284,14 +260,6 @@ func TestCreateHTTPClient(t *testing.T) {
 	if err == nil {
 		t.Fail()
 	}
-}
-
-func TestMapShardStatusToCode(t *testing.T) {
-	assert.Equal(t, mapShardStatusToCode("UNASSIGNED"), 1)
-	assert.Equal(t, mapShardStatusToCode("INITIALIZING"), 2)
-	assert.Equal(t, mapShardStatusToCode("STARTED"), 3)
-	assert.Equal(t, mapShardStatusToCode("RELOCATING"), 4)
-	assert.Equal(t, mapShardStatusToCode("NULL"), 0)
 }
 
 func TestTlsConfig(t *testing.T) {
@@ -330,7 +298,7 @@ func TestGatherClusterStatsMaster(t *testing.T) {
 
 	checkIsMaster(t, es, es.Servers[0], true)
 	tags := defaultTags()
-
+	nodestatsExpected := nodestatsExpectedFunc()
 	AssertContainsTaggedFields(t, "elasticsearch_node_stats", nodestatsExpected, tags, es.collectCache)
 
 	es.client.Transport = newTransportMock(clusterStatsResponse)
@@ -355,85 +323,29 @@ func TestGatherClusterStatsMaster(t *testing.T) {
 	AssertContainsTaggedFields(t, "elasticsearch_cluster_stats", clusterstatsExpected, tags, es.collectCache)
 }
 
-func getMeasurement(t *testing.T, metric inputs.Measurement) *elasticsearchMeasurement {
-	t.Helper()
-	switch m := metric.(type) {
-	case *nodeStatsMeasurement:
-		return &elasticsearchMeasurement{
-			name:   m.name,
-			tags:   m.tags,
-			fields: m.fields,
-			ts:     m.ts,
-		}
-	case *indicesStatsMeasurement:
-		return &elasticsearchMeasurement{
-			name:   m.name,
-			tags:   m.tags,
-			fields: m.fields,
-			ts:     m.ts,
-		}
-	case *indicesStatsShardsMeasurement:
-		return &elasticsearchMeasurement{
-			name:   m.name,
-			tags:   m.tags,
-			fields: m.fields,
-			ts:     m.ts,
-		}
-	case *indicesStatsShardsTotalMeasurement:
-		return &elasticsearchMeasurement{
-			name:   m.name,
-			tags:   m.tags,
-			fields: m.fields,
-			ts:     m.ts,
-		}
-	case *clusterStatsMeasurement:
-		return &elasticsearchMeasurement{
-			name:   m.name,
-			tags:   m.tags,
-			fields: m.fields,
-			ts:     m.ts,
-		}
-	case *clusterHealthMeasurement:
-		return &elasticsearchMeasurement{
-			name:   m.name,
-			tags:   m.tags,
-			fields: m.fields,
-			ts:     m.ts,
-		}
-	case *clusterHealthIndicesMeasurement:
-		return &elasticsearchMeasurement{
-			name:   m.name,
-			tags:   m.tags,
-			fields: m.fields,
-			ts:     m.ts,
-		}
-	default:
-		t.Fatalf("Invalid metric type: %s", reflect.TypeOf(metric).String())
-	}
-	return nil
-}
-
 func AssertContainsTaggedFields(t *testing.T,
 	measurement string,
 	fields map[string]interface{},
 	tags map[string]string,
-	collectCache []inputs.Measurement,
+	collectCache []*point.Point,
 ) {
 	t.Helper()
-	for _, metric := range collectCache {
-		m := getMeasurement(t, metric)
-		if !reflect.DeepEqual(tags, m.tags) {
+	for _, p := range collectCache {
+		if !reflect.DeepEqual(tags, p.InfluxTags()) {
 			continue
 		}
-		if m.name == measurement && reflect.DeepEqual(fields, m.fields) {
+
+		if string(p.Name()) != measurement {
+			continue
+		}
+		if reflect.DeepEqual(fields, p.InfluxFields()) {
 			return
 		}
 	}
 
-	for _, metric := range collectCache {
-		m := getMeasurement(t, metric)
-		if m.name == measurement {
-			t.Log("measurement", m.name, "tags", m.tags, "fields", m.fields)
+	for _, p := range collectCache {
+		if string(p.Name()) == measurement {
+			t.Log("measurement", p.Name(), "tags", p.InfluxTags(), "fields", p.InfluxFields())
 		}
 	}
 
@@ -444,16 +356,14 @@ func AssertDoesNotContainsTaggedFields(t *testing.T,
 	measurement string,
 	fields map[string]interface{},
 	tags map[string]string,
-	collectCache []inputs.Measurement,
+	collectCache []*point.Point,
 ) {
 	t.Helper()
-	for _, metric := range collectCache {
-		m := getMeasurement(t, metric)
-		if !reflect.DeepEqual(tags, m.tags) {
+	for _, p := range collectCache {
+		if !reflect.DeepEqual(tags, p.Tags()) {
 			continue
 		}
-		fmt.Println(m.tags)
-		if m.name == measurement && reflect.DeepEqual(fields, m.fields) {
+		if string(p.Name()) == measurement && reflect.DeepEqual(fields, p.Fields()) {
 			assert.Fail(t, fmt.Sprintf("found measurement %s with tagged fields (tags %v) which should not be there", measurement, tags))
 		}
 	}
@@ -467,7 +377,7 @@ func checkIsMaster(t *testing.T, es *Input, server string, expected bool) {
 }
 
 func newElasticsearchWithClient() *Input {
-	es := NewElasticsearch()
+	es := defaultInput()
 	es.client = &http.Client{}
 	return es
 }
