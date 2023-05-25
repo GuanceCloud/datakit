@@ -3,11 +3,14 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package beats_output
+package promtail
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"strings"
 	"sync"
@@ -16,6 +19,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/gin-gonic/gin"
 	dockertest "github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/require"
@@ -26,7 +30,7 @@ import (
 
 // ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
 
-func TestBeatsInput(t *testing.T) {
+func TestPromtailInput(t *testing.T) {
 	if !testutils.CheckIntegrationTestingRunning() {
 		t.Skip()
 	}
@@ -84,9 +88,9 @@ func TestBeatsInput(t *testing.T) {
 	}
 }
 
-// elastic/filebeat:7.17.6-logstash --> 7.17.6
+// grafana/promtail:2.8.2-datakit --> 2.8.2
 func getVersion(name string) string {
-	preDefined1 := "filebeat:"
+	preDefined1 := "promtail:"
 	preDefined2 := "-"
 
 	ndx1 := strings.Index(name, preDefined1)
@@ -111,79 +115,38 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 	bases := []struct {
 		name    string // Also used as build image name:tag.
 		verConf BUILD_CONFIG_VER
+		cmd     []string
 		conf    string
 		opts    []inputs.PointCheckOption
 	}{
 		{
-			name:    "elastic/filebeat:8.6.2-logstash",
-			verConf: VER_7,
-			conf:    `listen = "tcp://0.0.0.0:"`, // tcp://0.0.0.0:5044
-		},
-
-		{
-			name:    "elastic/filebeat:7.17.9-logstash",
-			verConf: VER_7,
-			conf:    `listen = "tcp://0.0.0.0:"`, // tcp://0.0.0.0:5044
-		},
-
-		{
-			name:    "elastic/filebeat:7.17.6-logstash",
-			verConf: VER_7,
-			conf:    `listen = "tcp://0.0.0.0:"`, // tcp://0.0.0.0:5044
-		},
-
-		{
-			name:    "elastic/filebeat:6.0.0-logstash",
-			verConf: VER_6,
-			conf:    `listen = "tcp://0.0.0.0:"`, // tcp://0.0.0.0:5044
-			opts: []inputs.PointCheckOption{
-				inputs.WithOptionalTags("filepath", "host"), //nolint:lll
+			name:    "grafana/promtail:2.8.2-datakit",
+			verConf: VER_3,
+			cmd: []string{
+				"-config.file=/etc/promtail/config.yml",
+				"-config.expand-env=true",
 			},
 		},
 
 		{
-			name:    "pubrepo.jiagouyun.com/image-repo-for-testing/filebeat:5.0.0-logstash",
-			verConf: VER_5,
-			conf:    `listen = "tcp://0.0.0.0:"`, // tcp://0.0.0.0:5044
-			opts: []inputs.PointCheckOption{
-				inputs.WithOptionalTags("filepath", "host"), //nolint:lll
-			},
+			name:    "pubrepo.jiagouyun.com/image-repo-for-testing/promtail:2.0.0-datakit",
+			verConf: VER_2,
 		},
 
 		{
-			name:    "pubrepo.jiagouyun.com/image-repo-for-testing/filebeat:1.3.0-logstash",
+			name:    "pubrepo.jiagouyun.com/image-repo-for-testing/promtail:1.5.0-datakit",
+			verConf: VER_2,
+		},
+
+		{
+			name:    "pubrepo.jiagouyun.com/image-repo-for-testing/promtail:1.0.0-datakit",
+			verConf: VER_2,
+		},
+
+		{
+			name:    "pubrepo.jiagouyun.com/image-repo-for-testing/promtail:0.1.0-datakit",
+			conf:    `legacy = true`,
 			verConf: VER_1,
-			conf:    `listen = "tcp://0.0.0.0:"`, // tcp://0.0.0.0:5044
-			opts: []inputs.PointCheckOption{
-				inputs.WithOptionalTags("filepath", "host"), //nolint:lll
-			},
-		},
-
-		{
-			name:    "pubrepo.jiagouyun.com/image-repo-for-testing/filebeat:1.2.0-logstash",
-			verConf: VER_1,
-			conf:    `listen = "tcp://0.0.0.0:"`, // tcp://0.0.0.0:5044
-			opts: []inputs.PointCheckOption{
-				inputs.WithOptionalTags("filepath", "host"), //nolint:lll
-			},
-		},
-
-		{
-			name:    "pubrepo.jiagouyun.com/image-repo-for-testing/filebeat:1.1.0-logstash",
-			verConf: VER_1,
-			conf:    `listen = "tcp://0.0.0.0:"`, // tcp://0.0.0.0:5044
-			opts: []inputs.PointCheckOption{
-				inputs.WithOptionalTags("filepath", "host"), //nolint:lll
-			},
-		},
-
-		{
-			name:    "pubrepo.jiagouyun.com/image-repo-for-testing/filebeat:1.0.0-logstash",
-			verConf: VER_1,
-			conf:    `listen = "tcp://0.0.0.0:"`, // tcp://0.0.0.0:5044
-			opts: []inputs.PointCheckOption{
-				inputs.WithOptionalTags("filepath", "host"), //nolint:lll
-			},
 		},
 	}
 
@@ -199,13 +162,9 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)
 
-		randPort := testutils.RandPort("tcp")
-		randPortStr := fmt.Sprintf("%d", randPort)
-		ipt.Listen += randPortStr // tcp://0.0.0.0:5044
-
 		repoTag := strings.Split(base.name, ":")
 
-		filebeatVersion := getVersion(base.name)
+		version := getVersion(base.name)
 
 		cases = append(cases, &caseSpec{
 			t:       t,
@@ -215,7 +174,8 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			repo:    repoTag[0],
 			repoTag: repoTag[1],
 
-			dockerFileText: getDockerfile(filebeatVersion, randPortStr, base.verConf),
+			cmd:            base.cmd,
+			dockerFileText: getDockerfile(version, base.verConf),
 			opts:           base.opts,
 
 			cr: &testutils.CaseResult{
@@ -249,6 +209,8 @@ type caseSpec struct {
 	exposedPorts   []string
 	opts           []inputs.PointCheckOption
 	mCount         map[string]struct{}
+	done           chan struct{}
+	cmd            []string
 
 	ipt    *Input
 	feeder *io.MockedFeeder
@@ -269,7 +231,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 
 		switch measurement {
 		case measurementName:
-			opts = append(opts, inputs.WithDoc(&loggingMeasurement{}))
+			opts = append(opts, inputs.WithDoc(&promtailSampleMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
 
@@ -311,11 +273,46 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 	return nil
 }
 
+func (cs *caseSpec) handler(c *gin.Context) {
+	cs.ipt.ServeHTTP(c.Writer, c.Request)
+}
+
 func (cs *caseSpec) run() error {
 	r := testutils.GetRemote()
 	dockerTCP := r.TCPURL()
 
 	cs.t.Logf("get remote: %+#v, TCP: %s", r, dockerTCP)
+
+	////////////////////////////////////////////////////////////////////////////
+
+	router := gin.New()
+	router.POST("v1/write/promtail", cs.handler)
+
+	randPort := testutils.RandPort("tcp")
+	randPortStr := fmt.Sprintf("%d", randPort)
+	cs.t.Logf("listening port " + randPortStr + "...")
+
+	srv := &http.Server{
+		Addr:    ":" + randPortStr,
+		Handler: router,
+	}
+
+	go func() {
+		cs.done = make(chan struct{})
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			panic(err)
+		}
+	}()
+
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		if err := srv.Shutdown(ctx); err != nil && errors.Is(err, http.ErrServerClosed) {
+			cs.t.Logf("Shutdown failed: %v", err)
+		}
+	}()
+
+	////////////////////////////////////////////////////////////////////////////
 
 	start := time.Now()
 
@@ -347,15 +344,16 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP)},
-
-				ExposedPorts: cs.exposedPorts,
-				PortBindings: cs.getPortBindings(),
+				Env: []string{
+					"DATAKIT_HOST=" + extIP,
+					"DATAKIT_PORT=" + randPortStr,
+				},
+				Cmd: cs.cmd,
 			},
 
 			func(c *docker.HostConfig) {
 				c.RestartPolicy = docker.RestartPolicy{Name: "no"}
-				c.AutoRemove = true
+				// c.AutoRemove = true
 			},
 		)
 	} else {
@@ -369,15 +367,16 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP)},
-
-				ExposedPorts: cs.exposedPorts,
-				PortBindings: cs.getPortBindings(),
+				Env: []string{
+					"DATAKIT_HOST=" + extIP,
+					"DATAKIT_PORT=" + randPortStr,
+				},
+				Cmd: cs.cmd,
 			},
 
 			func(c *docker.HostConfig) {
 				c.RestartPolicy = docker.RestartPolicy{Name: "no"}
-				c.AutoRemove = true
+				// c.AutoRemove = true
 			},
 		)
 	}
@@ -485,16 +484,6 @@ func (cs *caseSpec) getDockerFilePath() (dirName string, fileName string, err er
 	return tmpDir, tmpFile.Name(), nil
 }
 
-func (cs *caseSpec) getPortBindings() map[docker.Port][]docker.PortBinding {
-	portBindings := make(map[docker.Port][]docker.PortBinding)
-
-	for _, v := range cs.exposedPorts {
-		portBindings[docker.Port(v)] = []docker.PortBinding{{HostIP: "0.0.0.0", HostPort: docker.Port(v).Port()}}
-	}
-
-	return portBindings
-}
-
 func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
 	for _, v := range cs.exposedPorts {
 		if !r.PortOK(docker.Port(v).Port(), time.Minute) {
@@ -507,31 +496,24 @@ func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
 ////////////////////////////////////////////////////////////////////////////////
 
 // selfBuild indicates the image was customized built.
-func getDockerfile(version, listenPort string, buildConfVer BUILD_CONFIG_VER) string {
+func getDockerfile(version string, buildConfVer BUILD_CONFIG_VER) string {
 	if len(version) == 0 {
 		panic("version is empty")
 	}
 
-	if len(listenPort) == 0 {
-		panic("listenPort is empty")
-	}
-
 	replacePair := map[string]string{
 		"VERSION":      version,
-		"a":            "$a",
 		"DATAKIT_HOST": "${DATAKIT_HOST}",
-		"LISTEN_PORT":  listenPort,
+		"DATAKIT_PORT": "${DATAKIT_PORT}",
 	}
 
 	switch buildConfVer {
 	case VER_1:
-		return os.Expand(dockerFileLogstashV1, func(k string) string { return replacePair[k] })
-	case VER_5:
-		return os.Expand(dockerFileLogstashV5, func(k string) string { return replacePair[k] })
-	case VER_6:
-		return os.Expand(dockerFileLogstashV6, func(k string) string { return replacePair[k] })
-	case VER_7:
-		return os.Expand(dockerFileLogstashV7, func(k string) string { return replacePair[k] })
+		return os.Expand(dockerFileV1, func(k string) string { return replacePair[k] })
+	case VER_2:
+		return os.Expand(dockerFileV2, func(k string) string { return replacePair[k] })
+	case VER_3:
+		return os.Expand(dockerFileV3, func(k string) string { return replacePair[k] })
 	}
 
 	panic("should not been here.")
@@ -544,124 +526,91 @@ func getDockerfile(version, listenPort string, buildConfVer BUILD_CONFIG_VER) st
 type BUILD_CONFIG_VER int
 
 const (
-	VER_1 BUILD_CONFIG_VER = iota + 1 // Filebeat: v1.0 ~ v1.3.0
-	VER_5                             // Filebeat: v5.0.0
-	VER_6                             // Filebeat: v6.0.0
-	VER_7                             // Filebeat: v7.0.0+
+	VER_1 BUILD_CONFIG_VER = iota + 1
+	VER_2
+	VER_3
 )
 
-// Filebeat: v7.0.0+
+// v0.1.0
 /*
-output.logstash:
-  hosts: ["${DATAKIT_HOST}:${LISTEN_PORT}"]
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
 
-filebeat.inputs:
-- type: filestream
-  id: my-filestream-id
-  enabled: true
-  paths:
-    - /var/log/*.log
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://${DATAKIT_HOST}:${DATAKIT_PORT}/v1/write/promtail
+
+scrape_configs:
+- job_name: system
+  static_configs:
+  - targets:
+      - localhost
+    labels:
+      job: varlogs
+      __path__: /var/log/*log
 */
-const dockerFileLogstashV7 = `FROM elastic/filebeat:${VERSION}
-
-USER root
-
-RUN sed -i '10,13d' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a output.logstash:' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a \  hosts: ["${DATAKIT_HOST}:${LISTEN_PORT}"]' /usr/share/filebeat/filebeat.yml \
-    && echo "" >> /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a filebeat.inputs:' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a - type: filestream' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a \  id: my-filestream-id' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a \  enabled: true' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a \  paths:' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a \    - /var/log/*.log' /usr/share/filebeat/filebeat.yml
-
-USER filebeat`
-
-// Filebeat: v6.0.0
-/*
-filebeat.prospectors:
-- type: log
-  enabled: true
-  paths:
-    - /var/log/*.log
-
-output.logstash:
-  enabled: true
-  hosts: ["10.100.65.61:16209"]
-
-logging.to_files: true
-*/
-const dockerFileLogstashV6 = `FROM elastic/filebeat:${VERSION}
-
-USER root
-
-RUN    echo "" > /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a filebeat.prospectors:' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a  - type: log' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a \  enabled: true' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a \  paths:' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a \    - /var/log/*.log' /usr/share/filebeat/filebeat.yml \
-    && echo "" >> /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a output.logstash:' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a \  enabled: true' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a \  hosts: ["${DATAKIT_HOST}:${LISTEN_PORT}"]' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a logging.to_files: true' /usr/share/filebeat/filebeat.yml
-
-WORKDIR /usr/share/filebeat`
-
-// Filebeat: v5.0.0
-/*
-filebeat.prospectors:
-- input_type: log
-  paths:
-    - /var/log/*.log
-
-output.logstash:
-  hosts: ["${DATAKIT_HOST}:${LISTEN_PORT}"]
-*/
-const dockerFileLogstashV5 = `FROM pubrepo.jiagouyun.com/image-repo-for-testing/filebeat:${VERSION}
-
-RUN sed -i '$a filebeat.prospectors:' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a - input_type: log' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a \  paths:' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a \    - /usr/share/filebeat/logs/*' /usr/share/filebeat/filebeat.yml \
-    && echo "" >> /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a output.logstash:' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a \  hosts: ["${DATAKIT_HOST}:${LISTEN_PORT}"]' /usr/share/filebeat/filebeat.yml`
-
-// Filebeat: v1.0 ~ v1.3.0
-/*
-filebeat:
-  prospectors:
-    -
-      paths:
-        - /var/log/*.log
-
-output:
-  logstash:
-    hosts: ["${DATAKIT_HOST}:${LISTEN_PORT}"]
-
-logging:
-  to_syslog: false
-*/
-const dockerFileLogstashV1 = `FROM pubrepo.jiagouyun.com/image-repo-for-testing/filebeat:${VERSION}
+//nolint:lll
+const dockerFileV1 = `FROM pubrepo.jiagouyun.com/image-repo-for-testing/promtail:${VERSION}
 
 RUN    touch /var/log/1.log /var/log/2.log \
     && echo "123" >> /var/log/1.log \
     && echo "456" >> /var/log/2.log \
-    && sed -i '$a filebeat:' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a \  prospectors:' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a \    -' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a \      paths:' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a \        - /var/log/*.log' /usr/share/filebeat/filebeat.yml \
-    && echo "" >> /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a output:' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a \  logstash:' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a \    hosts: ["${DATAKIT_HOST}:${LISTEN_PORT}"]' /usr/share/filebeat/filebeat.yml \
-    && echo "" >> /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a logging:' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a \  to_syslog: false' /usr/share/filebeat/filebeat.yml
+    && sed -i 's/http:\/\/loki:3100\/api\/prom\/push/http:\/\/\${DATAKIT_HOST}:\${DATAKIT_PORT}\/v1\/write\/promtail/' /etc/promtail/config.yml`
 
-WORKDIR /usr/share/filebeat`
+// v1.0.0 ~ v2.0.0
+/*
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://${DATAKIT_HOST}:${DATAKIT_PORT}/v1/write/promtail
+
+scrape_configs:
+- job_name: system
+  static_configs:
+  - targets:
+      - localhost
+    labels:
+      job: varlogs
+      __path__: /var/log/*log
+*/
+//nolint:lll
+const dockerFileV2 = `FROM pubrepo.jiagouyun.com/image-repo-for-testing/promtail:${VERSION}
+
+RUN    touch /var/log/1.log /var/log/2.log \
+    && echo "123" >> /var/log/1.log \
+    && echo "456" >> /var/log/2.log \
+    && sed -i 's/http:\/\/loki:3100\/loki\/api\/v1\/push/http:\/\/\${DATAKIT_HOST}:\${DATAKIT_PORT}\/v1\/write\/promtail/' /etc/promtail/config.yml`
+
+// v2.8.2
+/*
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://${DATAKIT_HOST}:${DATAKIT_PORT}/v1/write/promtail
+
+scrape_configs:
+- job_name: system
+  static_configs:
+  - targets:
+      - localhost
+    labels:
+      job: varlogs
+      __path__: /var/log/*log
+*/
+//nolint:lll
+const dockerFileV3 = `FROM grafana/promtail:${VERSION}
+
+RUN sed -i 's/http:\/\/loki:3100\/loki\/api\/v1\/push/http:\/\/\${DATAKIT_HOST}:\${DATAKIT_PORT}\/v1\/write\/promtail/' /etc/promtail/config.yml`
