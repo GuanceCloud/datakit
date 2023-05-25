@@ -35,6 +35,17 @@ var (
 	_           inputs.ElectionInput = (*Input)(nil)
 )
 
+const (
+	DBMetric          = "db"
+	ReplicationMetric = "replication"
+	BgwriterMetric    = "bgwriter"
+	ConnectionMetric  = "connection"
+	SlruMetric        = "slru"
+	RelationMetric    = "relation"
+	DynamicMetric     = "dynamic"
+	ArchiverMetric    = "archiver"
+)
+
 const sampleConfig = `
 [[inputs.postgresql]]
   ## Server address 
@@ -151,6 +162,11 @@ type Relation struct {
 	RelKind       []string `toml:"relkind"`
 }
 
+type queryCacheItem struct {
+	query           string
+	measurementInfo *inputs.MeasurementInfo
+}
+
 // customQuery represents configuration for executing a custom query.
 type customQuery struct {
 	SQL    string   `toml:"sql"`
@@ -186,7 +202,8 @@ type Input struct {
 	isAurora bool
 	semStop  *cliutils.Sem // start stop signal
 
-	collectFuncs map[string]func() error
+	collectFuncs     map[string]func() error
+	metricQueryCache map[string]*queryCacheItem
 }
 
 type postgresqllog struct {
@@ -278,13 +295,22 @@ func (ipt *Input) SanitizedAddress() (sanitizedAddress string, err error) {
 	return sanitizedAddress, err
 }
 
-func (ipt *Input) executeQuery(query string, measurementInfo *inputs.MeasurementInfo) error {
+func (ipt *Input) executeQuery(cache *queryCacheItem) error {
 	var (
 		columns []string
 		err     error
 	)
 
-	rows, err := ipt.service.Query(query)
+	if cache == nil || cache.query == "" {
+		return fmt.Errorf("query cache is empty")
+	}
+
+	measurementInfo := cache.measurementInfo
+	if measurementInfo == nil {
+		measurementInfo = inputMeasurement{}.Info()
+	}
+
+	rows, err := ipt.service.Query(cache.query)
 	if err != nil {
 		return err
 	}
@@ -319,11 +345,16 @@ func (ipt *Input) getCustomQueryMetrics() error {
 			fields[field] = field
 		}
 
-		if err := ipt.executeQuery(customQuery.SQL, &inputs.MeasurementInfo{
-			Name:   customQuery.Metric,
-			Tags:   tags,
-			Fields: fields,
-		}); err != nil {
+		queryItem := &queryCacheItem{
+			query: customQuery.SQL,
+			measurementInfo: &inputs.MeasurementInfo{
+				Name:   customQuery.Metric,
+				Tags:   tags,
+				Fields: fields,
+			},
+		}
+
+		if err := ipt.executeQuery(queryItem); err != nil {
 			l.Warnf("collect custom query [%s] error: %s", customQuery.SQL, err.Error())
 		}
 	}
@@ -331,30 +362,41 @@ func (ipt *Input) getCustomQueryMetrics() error {
 }
 
 func (ipt *Input) getDBMetrics() error {
-	//nolint:lll
-	query := `
-	SELECT psd.*, 
-		2^31 - age(datfrozenxid) as wraparound, 
-		psd.datname as db,
-		pg_database_size(psd.datname) as database_size
-	FROM pg_stat_database psd
-	JOIN pg_database pd ON psd.datname = pd.datname
-	WHERE psd.datname not ilike 'template%'   AND psd.datname not ilike 'rdsadmin'
-	AND psd.datname not ilike 'azure_maintenance'   AND psd.datname not ilike 'postgres'
-	`
-	if len(ipt.IgnoredDatabases) != 0 {
-		query += fmt.Sprintf(` AND psd.datname NOT IN ('%s')`, strings.Join(ipt.IgnoredDatabases, "','"))
-	} else if len(ipt.Databases) != 0 {
-		query += fmt.Sprintf(` AND psd.datname IN ('%s')`, strings.Join(ipt.Databases, "','"))
+	cache, ok := ipt.metricQueryCache[DBMetric]
+	if !ok {
+		query := `
+		SELECT psd.*, 
+			2^31 - age(datfrozenxid) as wraparound, 
+			psd.datname as db,
+			pg_database_size(psd.datname) as database_size
+		FROM pg_stat_database psd
+		JOIN pg_database pd ON psd.datname = pd.datname
+		WHERE psd.datname not ilike 'template%'   AND psd.datname not ilike 'rdsadmin'
+		AND psd.datname not ilike 'azure_maintenance'   AND psd.datname not ilike 'postgres'
+		`
+		if len(ipt.IgnoredDatabases) != 0 {
+			query += fmt.Sprintf(` AND psd.datname NOT IN ('%s')`, strings.Join(ipt.IgnoredDatabases, "','"))
+		} else if len(ipt.Databases) != 0 {
+			query += fmt.Sprintf(` AND psd.datname IN ('%s')`, strings.Join(ipt.Databases, "','"))
+		}
+
+		cache = &queryCacheItem{
+			query:           query,
+			measurementInfo: inputMeasurement{}.Info(),
+		}
+		ipt.metricQueryCache[DBMetric] = cache
+		l.Debugf("Query for metric [%s]: %s", cache.measurementInfo.Name, query)
 	}
 
-	err := ipt.executeQuery(query, inputMeasurement{}.Info())
-
-	return err
+	return ipt.executeQuery(cache)
 }
 
 func (ipt *Input) getDynamicQueryMetrics() error {
-	if V92.LessThan(*ipt.version) {
+	if !V92.LessThan(*ipt.version) {
+		return fmt.Errorf("db version should be >= 9.2")
+	}
+	cache, ok := ipt.metricQueryCache[DynamicMetric]
+	if !ok {
 		query := `
 		SELECT
 		datname AS db,
@@ -365,37 +407,66 @@ func (ipt *Input) getDynamicQueryMetrics() error {
 		confl_deadlock
 	FROM pg_stat_database_conflicts
 	`
-
 		if len(ipt.IgnoredDatabases) != 0 {
-			query += fmt.Sprintf(` AND datname NOT IN ('%s')`, strings.Join(ipt.IgnoredDatabases, "','"))
+			query += fmt.Sprintf(` WHERE datname NOT IN ('%s')`, strings.Join(ipt.IgnoredDatabases, "','"))
 		} else if len(ipt.Databases) != 0 {
-			query += fmt.Sprintf(` AND datname IN ('%s')`, strings.Join(ipt.Databases, "','"))
+			query += fmt.Sprintf(` WHERE datname IN ('%s')`, strings.Join(ipt.Databases, "','"))
 		}
 
-		return ipt.executeQuery(query, inputMeasurement{}.Info())
+		cache = &queryCacheItem{
+			query:           query,
+			measurementInfo: inputMeasurement{}.Info(),
+		}
+		ipt.metricQueryCache[DynamicMetric] = cache
+		l.Debugf("Query for metric [%s], %s", cache.measurementInfo.Name, query)
 	}
 
-	return nil
+	return ipt.executeQuery(cache)
 }
 
 func (ipt *Input) getBgwMetrics() error {
-	query := `
+	cache, ok := ipt.metricQueryCache[BgwriterMetric]
+
+	if !ok {
+		query := `
 		select * FROM pg_stat_bgwriter
 	`
-	err := ipt.executeQuery(query, inputMeasurement{}.Info())
+		cache = &queryCacheItem{
+			query:           query,
+			measurementInfo: inputMeasurement{}.Info(),
+		}
+		ipt.metricQueryCache[BgwriterMetric] = cache
+		l.Debugf("Query for metric [%s]: %s", cache.measurementInfo.Name, query)
+	}
+	err := ipt.executeQuery(cache)
 	return err
 }
 
 func (ipt *Input) getRelationMetrics() error {
-	// get lock metrics
 	if len(ipt.Relations) == 0 {
 		return fmt.Errorf("no relations set")
 	}
 
 	for _, relationInfo := range relationMetrics {
-		if query := ipt.getRelationQuery(relationInfo.query, relationInfo.schemaField); len(query) == 0 {
-			l.Warnf("relation query is empty, ignore %s", relationInfo.name)
-		} else if err := ipt.executeQuery(query, relationInfo.measurementInfo); err != nil {
+		cacheName := fmt.Sprintf("%s_%s", RelationMetric, relationInfo.name)
+		cache, ok := ipt.metricQueryCache[cacheName]
+
+		if !ok {
+			query := ipt.getRelationQuery(relationInfo.query, relationInfo.schemaField)
+			if len(query) == 0 {
+				l.Warnf("relation query is empty, ignore %s", relationInfo.name)
+				continue
+			}
+
+			cache = &queryCacheItem{
+				query:           query,
+				measurementInfo: relationInfo.measurementInfo,
+			}
+			ipt.metricQueryCache[cacheName] = cache
+			l.Debugf("Query for metric [%s], %s", cache.measurementInfo.Name, query)
+		}
+
+		if err := ipt.executeQuery(cache); err != nil {
 			l.Warnf("collect %s error: %s", relationInfo.name, err.Error())
 		}
 	}
@@ -404,9 +475,18 @@ func (ipt *Input) getRelationMetrics() error {
 }
 
 func (ipt *Input) getArchiverMetrics() error {
-	query := "select archived_count, failed_count as archived_failed_count FROM pg_stat_archiver"
+	cache, ok := ipt.metricQueryCache[ArchiverMetric]
+	if !ok {
+		query := "select archived_count, failed_count as archived_failed_count FROM pg_stat_archiver"
+		cache = &queryCacheItem{
+			query:           query,
+			measurementInfo: inputMeasurement{}.Info(),
+		}
+		ipt.metricQueryCache[ArchiverMetric] = cache
+		l.Debugf("Query for metric [%s]: %s", cache.measurementInfo.Name, query)
+	}
 
-	return ipt.executeQuery(query, inputMeasurement{}.Info())
+	return ipt.executeQuery(cache)
 }
 
 func (ipt *Input) getReplicationMetrics() error {
@@ -415,48 +495,75 @@ func (ipt *Input) getReplicationMetrics() error {
 		return nil
 	}
 
-	query := ""
-	if V100.LessThan(*ipt.version) {
-		query = `
+	cache, ok := ipt.metricQueryCache[ReplicationMetric]
+	if !ok {
+		query := ""
+		if V100.LessThan(*ipt.version) {
+			query = `
 SELECT CASE WHEN pg_last_wal_receive_lsn() IS NULL OR pg_last_wal_receive_lsn() = pg_last_wal_replay_lsn() 
 	THEN 0 ELSE GREATEST (0, EXTRACT (EPOCH FROM now() - pg_last_xact_replay_timestamp())) END AS replication_delay, 
 	abs(pg_wal_lsn_diff(pg_last_wal_receive_lsn(), pg_last_wal_replay_lsn())) AS replication_delay_bytes
          WHERE (SELECT pg_is_in_recovery())		
 `
-	} else if V91.LessThan(*ipt.version) {
-		query = `
+		} else if V91.LessThan(*ipt.version) {
+			query = `
 SELECT CASE WHEN pg_last_xlog_receive_location() IS NULL OR pg_last_xlog_receive_location() = pg_last_xlog_replay_location() 
 	THEN 0 ELSE GREATEST (0, EXTRACT (EPOCH FROM now() - pg_last_xact_replay_timestamp())) END AS replication_delay
 `
-		if V92.LessThan(*ipt.version) {
-			query += `,
+			if V92.LessThan(*ipt.version) {
+				query += `,
 	abs(pg_xlog_location_diff(pg_last_xlog_receive_location(), pg_last_xlog_replay_location())) AS replication_delay_bytes
 `
-		}
+			}
 
-		query += " WHERE (SELECT pg_is_in_recovery())"
+			query += " WHERE (SELECT pg_is_in_recovery())"
+		}
+		cache = &queryCacheItem{
+			query:           query,
+			measurementInfo: replicationMeasurement{}.Info(),
+		}
+		ipt.metricQueryCache[ReplicationMetric] = cache
+		l.Debugf("Query for metric [%s]: %s", cache.measurementInfo.Name, query)
 	}
 
-	return ipt.executeQuery(query, replicationMeasurement{}.Info())
+	return ipt.executeQuery(cache)
 }
 
 func (ipt *Input) getSlruMetrics() error {
-	query := `
-SELECT name, blks_zeroed, blks_hit, blks_read, blks_written , blks_exists, flushes, truncates
-       FROM pg_stat_slru
+	cache, ok := ipt.metricQueryCache[SlruMetric]
+	if !ok {
+		query := `
+SELECT name, blks_zeroed, blks_hit, blks_read, 
+	blks_written , blks_exists, flushes, truncates
+FROM pg_stat_slru
 `
-	return ipt.executeQuery(query, slruMeasurement{}.Info())
+		cache = &queryCacheItem{
+			query:           query,
+			measurementInfo: slruMeasurement{}.Info(),
+		}
+		ipt.metricQueryCache[SlruMetric] = cache
+		l.Debugf("Query for metric [%s]: %s", cache.measurementInfo.Name, query)
+	}
+	return ipt.executeQuery(cache)
 }
 
 func (ipt *Input) getConnectionMetrics() error {
-	//nolint:lll
-	query := `
+	cache, ok := ipt.metricQueryCache[ConnectionMetric]
+	if !ok {
+		query := `
 		WITH max_con AS (SELECT setting::float FROM pg_settings WHERE name = 'max_connections')
 		SELECT MAX(setting) AS max_connections, SUM(numbackends)/MAX(setting) AS percent_usage_connections
 		FROM pg_stat_database, max_con
 	`
+		cache = &queryCacheItem{
+			query:           query,
+			measurementInfo: inputMeasurement{}.Info(),
+		}
+		ipt.metricQueryCache[ConnectionMetric] = cache
+		l.Debugf("Query for metric [%s]: %s", cache.measurementInfo.Name, query)
+	}
 
-	err := ipt.executeQuery(query, inputMeasurement{}.Info())
+	err := ipt.executeQuery(cache)
 	return err
 }
 
@@ -468,7 +575,7 @@ func (ipt *Input) getRelationQuery(query, schemaField string) string {
 		case len(relation.RelationName) > 0:
 			relationFilter = append(relationFilter, fmt.Sprintf("( relname = '%s'", relation.RelationName))
 		case len(relation.RelationRegex) > 0:
-			relationFilter = append(relationFilter, fmt.Sprintf("( relname ~ '%s')", relation.RelationRegex))
+			relationFilter = append(relationFilter, fmt.Sprintf("( relname ~ '%s'", relation.RelationRegex))
 		default:
 			l.Warnf("relation_name and relation_regex are both empty, ignore this relation config: %+#v", relation)
 			continue
@@ -624,13 +731,7 @@ func (ipt *Input) Collect() error {
 }
 
 func (ipt *Input) accRow(columnMap map[string]*interface{}, measurementInfo *inputs.MeasurementInfo) error {
-	var tagAddress string
-	tagAddress, err := ipt.SanitizedAddress()
-	if err != nil {
-		return err
-	}
-
-	tags := map[string]string{"server": tagAddress}
+	tags := map[string]string{}
 	if ipt.host != "" {
 		tags["host"] = ipt.host
 	}
@@ -745,8 +846,26 @@ func (ipt *Input) init() error {
 
 	ipt.setAurora()
 
-	// setup collectors
+	// set default Tags
+	tagAddress, err := ipt.SanitizedAddress()
+	if err != nil {
+		return err
+	}
+	dbName, err := getDBName(ipt.Address)
+	if err != nil {
+		l.Warnf("get db name error: %s, use postgres instead", err.Error())
+		dbName = "postgres"
+	}
+	if ipt.Tags == nil {
+		ipt.Tags = map[string]string{}
+	}
+	ipt.Tags["server"] = tagAddress
+	ipt.Tags["db"] = dbName
 
+	// init query cache
+	ipt.metricQueryCache = map[string]*queryCacheItem{}
+
+	// setup collectors
 	ipt.collectFuncs = map[string]func() error{
 		"db":          ipt.getDBMetrics,
 		"replication": ipt.getReplicationMetrics,
@@ -893,6 +1012,21 @@ func (ipt *Input) setHostIfNotLoopback() error {
 		ipt.host = host
 	}
 	return nil
+}
+
+// getDBName parses out the DB name from an input URI.
+// It returns the name of the DB or "postgres" if none is specified.
+func getDBName(uri string) (string, error) {
+	u, err := url.Parse(uri)
+	if err != nil {
+		return "", err
+	}
+
+	if u.Path != "" {
+		return u.Path[1:], nil
+	}
+
+	return "postgres", nil
 }
 
 func parseURL(uri string) (string, error) {

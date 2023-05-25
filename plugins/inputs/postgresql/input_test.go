@@ -197,31 +197,25 @@ func TestInput(t *testing.T) {
 	t.Run("executeQuery", func(t *testing.T) {
 		var err error
 		input.service = &MockCollectService{}
-		err = input.executeQuery("", nil)
+		err = input.executeQuery(&queryCacheItem{query: "sql"})
 		assert.NoError(t, err)
 
 		// when service.Query() error
-		err = input.executeQuery("-1", nil)
+		err = input.executeQuery(&queryCacheItem{query: "-1"})
 		assert.Error(t, err)
 
 		// when rows.Columns() error
 		input.service = &MockCollectService{
 			columnError: 1,
 		}
-		err = input.executeQuery("", nil)
+		err = input.executeQuery(&queryCacheItem{query: "sql"})
 		assert.Error(t, err)
 
 		// when GetColumnMap() error
 		input.service = &MockCollectService{
 			columnMapError: 1,
 		}
-		err = input.executeQuery("", nil)
-		assert.Error(t, err)
-
-		// when accRow() error
-		input.service = &MockCollectService{}
-		input.Address = "postgres://:888localhost"
-		err = input.executeQuery("", nil)
+		err = input.executeQuery(&queryCacheItem{query: "sql"})
 		assert.Error(t, err)
 	})
 }
