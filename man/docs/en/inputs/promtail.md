@@ -10,6 +10,14 @@ Start an HTTP endpoint to listen and receive promtail log data and report it to 
 
 ## Configuration {#config}
 
+Already tested version:
+
+- [x] 2.8.2
+- [x] 2.0.0
+- [x] 1.5.0
+- [x] 1.0.0
+- [x] 0.1.0
+
 Go to the `conf.d/log` directory under the DataKit installation directory, copy `promtail.conf.sample` and name it `promtail.conf`. Examples are as follows:
 
 ```toml
@@ -26,10 +34,9 @@ Go to the `conf.d/log` directory under the DataKit installation directory, copy 
 
 ### API Version {#API version}
 
-By configuring `legacy = true`, you can use the legacy version API to process the promtail received log data. See:
+For Promtail versions `v0.3.0` and before, Datakit's configuration should set `legacy = true`, by using legacy API [`POST /api/prom/push`](https://grafana.com/docs/loki/latest/api/#post-apiprompush){:target="_blank"} to receiving logging data from Promtail.
 
-- [POST /api/prom/push](https://grafana.com/docs/loki/latest/api/#post-apiprompush){:target="_blank"}
-- [POST /loki/api/v1/push](https://grafana.com/docs/loki/latest/api/#post-lokiapiv1push){:target="_blank"}
+Using the default Datakit's configuration, namely `legacy = false` for the rest of Promtail versions, by using new API [`POST /loki/api/v1/push`](https://grafana.com/docs/loki/latest/api/#post-lokiapiv1push){:target="_blank"}.
 
 ### Custom Tags {#custom tags}
 
@@ -53,30 +60,9 @@ The promtail collector supports adding parameters to the HTTP URL. The list of p
 
 ## Best Practice {#best practice}
 
-Promtail's data was originally mainly sent to loki, that is, `/loki/api/v1/push`, and its configuration sample is as follows:
+Promtail's data was originally sent to Loki, which is, `/loki/api/v1/push`. Change the `url` in Promtail's configuration to Datakit, after enabled Datakit's promtail collector, Promtail would send its data to Datakit's promtail collector.
 
-```yaml
-server:
-  http_listen_port: 9080
-  grpc_listen_port: 0
-
-positions:
-  filename: /tmp/positions.yaml
-
-clients:
-  - url: http://localhost:3100/loki/api/v1/push
-
-scrape_configs:
-  - job_name: system
-    static_configs:
-      - targets:
-          - localhost
-        labels:
-          job: varlogs
-          __path__: /var/log/*log
-```
-
-After opening the promtail collector, you can configure promtail to send data to Datakit's promtail collector:
+Promtail's configuration is like below:
 
 ```yaml
 server:

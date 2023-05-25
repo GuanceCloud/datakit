@@ -76,6 +76,10 @@ func TestGetContainerName(t *testing.T) {
 }
 
 func TestPurgeRemoteByName(t *testing.T) {
+	if !CheckIntegrationTestingRunning() {
+		t.Skip()
+	}
+
 	cases := []struct {
 		name string
 	}{

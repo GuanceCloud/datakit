@@ -29,7 +29,7 @@ var (
 	applicationJSON = "application/json"
 )
 
-func (i *Input) parseRequest(r *http.Request) (*logproto.PushRequest, error) {
+func (ipt *Input) parseRequest(r *http.Request) (*logproto.PushRequest, error) {
 	var body io.Reader
 	contentEncoding := r.Header.Get(contentEnc)
 	switch contentEncoding {
@@ -62,7 +62,7 @@ func (i *Input) parseRequest(r *http.Request) (*logproto.PushRequest, error) {
 	switch contentType {
 	case applicationJSON:
 		var err error
-		if i.Legacy {
+		if ipt.Legacy {
 			err = unmarshal_legacy.DecodePushRequest(body, &req)
 		} else {
 			err = unmarshal.DecodePushRequest(body, &req)
