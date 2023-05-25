@@ -8,6 +8,7 @@ package container
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -60,7 +61,25 @@ func getContainerHostname(client dockerClientX, containerID string) (string, err
 	if err != nil {
 		return "", err
 	}
+
 	return containerJSON.Config.Hostname, nil
+}
+
+func getContainerPID(client dockerClientX, containerID string) (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	containerJSON, err := client.ContainerInspect(ctx, containerID)
+	if err != nil {
+		return 0, err
+	}
+
+	if containerJSON.ContainerJSONBase != nil && containerJSON.ContainerJSONBase.State != nil {
+		pid := containerJSON.ContainerJSONBase.State.Pid
+		return pid, nil
+	}
+
+	return 0, fmt.Errorf("invalid container state")
 }
 
 func getContainerProcessToJSON(client dockerClientX, containerID string) (string, error) {

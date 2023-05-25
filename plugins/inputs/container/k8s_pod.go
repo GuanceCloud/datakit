@@ -107,7 +107,7 @@ func (p *pod) metric(election bool) (inputsMeas, error) {
 		if cli, ok := p.client.(*k8sClient); ok && cli.metricsClient != nil {
 			podMet, err := gatherPodMetrics(cli.metricsClient, item.Namespace, item.Name)
 			if err != nil {
-				l.Debugf("unable get pod-metric %s, namespace %s, name %s, ignored", err, item.Namespace, item.Name)
+				l.Debugf("unable to get pod-metric %s, namespace %s, name %s, ignored", err, item.Namespace, item.Name)
 			} else if podMet != nil {
 				met.fields["cpu_usage"] = podMet.cpuUsage
 				met.fields["memory_usage_bytes"] = podMet.memoryUsageBytes

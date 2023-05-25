@@ -14,7 +14,10 @@ import (
 	v1 "k8s.io/api/apps/v1"
 )
 
-var _ k8sResourceMetricInterface = (*daemonset)(nil)
+var (
+	_ k8sResourceMetricInterface = (*daemonset)(nil)
+	_ k8sResourceObjectInterface = (*daemonset)(nil)
+)
 
 type daemonset struct {
 	client    k8sClientX
@@ -82,6 +85,36 @@ func (d *daemonset) metric(election bool) (inputsMeas, error) {
 	return res, nil
 }
 
+func (d *daemonset) object(election bool) (inputsMeas, error) {
+	if err := d.pullItems(); err != nil {
+		return nil, err
+	}
+	var res inputsMeas
+
+	for _, item := range d.items {
+		obj := &daemonsetObject{
+			tags: map[string]string{
+				"name":           item.Name,
+				"daemonset_name": item.Name,
+				"namespace":      item.Namespace,
+			},
+			fields: map[string]interface{}{
+				"scheduled":           item.Status.CurrentNumberScheduled,
+				"desired":             item.Status.DesiredNumberScheduled,
+				"misscheduled":        item.Status.NumberMisscheduled,
+				"ready":               item.Status.NumberReady,
+				"updated":             item.Status.UpdatedNumberScheduled,
+				"daemons_unavailable": item.Status.NumberUnavailable,
+			},
+			election: election,
+		}
+		obj.tags.append(d.extraTags)
+		res = append(res, obj)
+	}
+
+	return res, nil
+}
+
 func (d *daemonset) count() (map[string]int, error) {
 	if err := d.pullItems(); err != nil {
 		return nil, err
@@ -132,10 +165,49 @@ func (*daemonsetMetric) Info() *inputs.MeasurementInfo {
 	}
 }
 
+type daemonsetObject struct {
+	tags     tagsType
+	fields   fieldsType
+	election bool
+}
+
+func (d *daemonsetObject) LineProto() (*point.Point, error) {
+	return point.NewPoint("kube_daemonset", d.tags, d.fields, point.OOptElectionV2(d.election))
+}
+
+//nolint:lll
+func (*daemonsetObject) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "kube_daemonset",
+		Desc: "The object of the Kubernetes DaemonSet.",
+		Type: "object",
+		Tags: map[string]interface{}{
+			"name":           inputs.NewTagInfo("UID"),
+			"daemonset_name": inputs.NewTagInfo("Name must be unique within a namespace."),
+			"namespace":      inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+		},
+		Fields: map[string]interface{}{
+			"count":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Number of daemonsets"},
+			"scheduled":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of nodes that are running at least one daemon pod and are supposed to run the daemon pod."},
+			"desired":      &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The total number of nodes that should be running the daemon pod (including nodes correctly running the daemon pod)."},
+			"misscheduled": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of nodes that are running the daemon pod, but are not supposed to run the daemon pod."},
+			"ready":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of nodes that should be running the daemon pod and have one or more of the daemon pod running and ready."},
+
+			"updated": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The total number of nodes that are running updated daemon pod."},
+
+			"daemons_unavailable": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of nodes that should be running the daemon pod and have none of the daemon pod running and available (ready for at least spec.minReadySeconds)."},
+		},
+	}
+}
+
 //nolint:gochecknoinits
 func init() {
 	registerK8sResourceMetric(func(c k8sClientX, m map[string]string) k8sResourceMetricInterface {
 		return newDaemonset(c, m)
 	})
+	registerK8sResourceObject(func(c k8sClientX, m map[string]string) k8sResourceObjectInterface {
+		return newDaemonset(c, m)
+	})
 	registerMeasurement(&daemonsetMetric{})
+	registerMeasurement(&daemonsetObject{})
 }
