@@ -38,7 +38,6 @@ Fluentd
 fsyncs
 GitLab
 Goroutine
-Goroutines
 gRPC
 Gson
 guance
@@ -100,9 +99,9 @@ Scheck
 Servlet
 sharded
 SIGQUIT
-Sinker
 Sink
 Sinked
+Sinker
 SkyWalking
 Solr
 SQLite
@@ -127,6 +126,7 @@ Zipkin
 CNCF
 CUDA
 DCGM
+DNAT
 JDBC
 NVMe
 OTEL
@@ -134,7 +134,6 @@ OTLP
 RUM
 SAAS
 SNMP
-DNAT
 
 # 合成词
 agentid
@@ -153,11 +152,17 @@ collectinterval
 COLLECTINTERVAL
 counterrate
 COUNTERRATE
+defragmentation
+defragmented
+freeable
 ISAPI
 maxcallstackdepth
 MAXCALLSTACKDEPTH
 maxcallstacksequence
 MAXCALLSTACKSEQUENCE
+Mbps
+mmapped
+mult
 NAND
 NUMA
 percentrate
@@ -166,19 +171,14 @@ queuesize
 QUEUESIZE
 RCVD # received
 roadmap
+routable
+scavaged
+snapshotted
 spanport
 SPANPORT
 statport
 STATPORT
 TTFB
-defragmentation
-defragmented
-freeable
-mmapped
-mult
-routable
-scavaged
-snapshotted
 uncorrectable
 unroutable
 
@@ -186,10 +186,10 @@ unroutable
 golangci
 
 # 极限词
-!Json
 !github
 !java
 !json
+!Json
 !pipeline
 !sink
 !sql
