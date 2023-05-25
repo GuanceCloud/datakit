@@ -801,7 +801,6 @@ func mergePromConfig(c1 *prom.Input, c2 *promConfig) *prom.Input {
 
 	c3.URLs = c1.URLs
 	c3.Tags = c1.Tags
-	c3.MetricTypes = []string{"counter", "gauge"}
 
 	if c1.Interval != "" {
 		c3.Interval = c1.Interval
@@ -856,7 +855,6 @@ func newPromInput(host, port, scheme, path string) (*prom.Input, error) {
 	promInput := prom.NewProm()
 	promInput.Interval = defaultPrometheusioInterval
 	promInput.Election = false
-	promInput.MetricTypes = []string{"counter", "gauge"}
 	promInput.URLs = []string{u.String()}
 	return promInput, nil
 }
