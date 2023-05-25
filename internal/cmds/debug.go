@@ -16,20 +16,31 @@ import (
 func runDebugFlags() error {
 	switch {
 	case *flagDebugBugReport:
-
 		tryLoadMainCfg()
 		if err := bugReport(); err != nil {
 			cp.Errorf("[E] export DataKit info failed: %s\n", err.Error())
 		}
 		os.Exit(0)
 
-	case *flagDebugPromConf != "":
+	case *flagDebugGlobConf != "":
+		if err := globPath(*flagDebugGlobConf); err != nil {
+			cp.Errorf("[E] %s\n", err)
+			os.Exit(-1)
+		}
+		os.Exit(0)
 
+	case *flagDebugRegexConf != "":
+		if err := regexMatching(*flagDebugRegexConf); err != nil {
+			cp.Errorf("[E] %s\n", err)
+			os.Exit(-1)
+		}
+		os.Exit(0)
+
+	case *flagDebugPromConf != "":
 		if err := promDebugger(*flagDebugPromConf); err != nil {
 			cp.Errorf("[E] %s\n", err)
 			os.Exit(-1)
 		}
-
 		os.Exit(0)
 
 	case *flagDebugLoadLog:

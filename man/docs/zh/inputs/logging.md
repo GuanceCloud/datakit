@@ -332,7 +332,7 @@ Pipeline 的几个注意事项：
 - 所有 Pipeline 脚本文件，统一存放在 Datakit 安装路径下的 Pipeline 目录下
 - 如果日志文件配置的是通配目录，logging 采集器会自动发现新的日志文件，以确保符合规则的新日志文件能够尽快采集到
 
-### glob 规则简述 {#grok-rules}
+### glob 规则简述 {#glob-rules}
 
 使用 glob 规则更方便地指定日志文件，以及自动发现和文件过滤。
 
