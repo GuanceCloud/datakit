@@ -254,10 +254,10 @@ func TestWritePoints(t *T.T) {
 				"datakit_io_dataway_sink_point_total",
 				point.Logging.String(), http.StatusText(http.StatusOK)).GetCounter().GetValue())
 
-		assert.Equal(t, 2.0, // 2 dataway request: each sink got a API request
+		assert.Equal(t, uint64(2), // 2 dataway request: each sink got a API request
 			metrics.GetMetricOnLabels(mfs,
-				"datakit_io_dataway_api_request_total",
-				point.Logging.URL(), http.StatusText(http.StatusOK)).GetCounter().GetValue())
+				"datakit_io_dataway_api_latency_seconds",
+				point.Logging.URL(), http.StatusText(http.StatusOK)).GetSummary().GetSampleCount())
 
 		assert.Equal(t, 102.0, // 102 points
 			metrics.GetMetricOnLabels(mfs,
