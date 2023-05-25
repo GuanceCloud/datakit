@@ -80,6 +80,14 @@ const sampleConfig = `
   ## Set true to enable election
   election = true
 
+  ## Run a custom SQL query and collect corresponding metrics. 
+  #
+  # [[inputs.postgresql.custom_queries]]
+  #   sql = "select datname,numbackends,blks_read from pg_stat_database"
+  #   metric = "postgresql_custom_stat"
+  #   tags = ["datname" ]
+  #   fields = ["numbackends", "blks_read"]
+
   ## Log collection 
   #
   # [inputs.postgresql.log]
@@ -143,6 +151,14 @@ type Relation struct {
 	RelKind       []string `toml:"relkind"`
 }
 
+// customQuery represents configuration for executing a custom query.
+type customQuery struct {
+	SQL    string   `toml:"sql"`
+	Metric string   `toml:"metric"`
+	Tags   []string `toml:"tags"`
+	Fields []string `toml:"fields"`
+}
+
 type Input struct {
 	Address          string            `toml:"address"`
 	Outputaddress    string            `toml:"outputaddress"`
@@ -151,6 +167,7 @@ type Input struct {
 	Interval         string            `toml:"interval"`
 	Tags             map[string]string `toml:"tags"`
 	Relations        []Relation        `toml:"relations"`
+	CustomQuery      []*customQuery    `toml:"custom_queries"`
 	Log              *postgresqllog    `toml:"log"`
 
 	MaxLifetimeDeprecated string `toml:"max_lifetime,omitempty"`
@@ -288,6 +305,28 @@ func (ipt *Input) executeQuery(query string, measurementInfo *inputs.Measurement
 		}
 	}
 
+	return nil
+}
+
+func (ipt *Input) getCustomQueryMetrics() error {
+	for _, customQuery := range ipt.CustomQuery {
+		tags := map[string]interface{}{}
+		fields := map[string]interface{}{}
+		for _, tag := range customQuery.Tags {
+			tags[tag] = tag
+		}
+		for _, field := range customQuery.Fields {
+			fields[field] = field
+		}
+
+		if err := ipt.executeQuery(customQuery.SQL, &inputs.MeasurementInfo{
+			Name:   customQuery.Metric,
+			Tags:   tags,
+			Fields: fields,
+		}); err != nil {
+			l.Warnf("collect custom query [%s] error: %s", customQuery.SQL, err.Error())
+		}
+	}
 	return nil
 }
 
@@ -713,6 +752,7 @@ func (ipt *Input) init() error {
 		"replication": ipt.getReplicationMetrics,
 		"bgwriter":    ipt.getBgwMetrics,
 		"connection":  ipt.getConnectionMetrics,
+		"customQuery": ipt.getCustomQueryMetrics,
 	}
 
 	if V130.LessThan(*ipt.version) {
