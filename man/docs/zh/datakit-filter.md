@@ -162,7 +162,7 @@ Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛�
 
 ### Network {#n}
 
-需要开启 [eBPF 采集器](ebpf.md)。假设我们要过滤掉目标端口为 `443` 的网络通讯，配置文件可以这样写:
+需要开启 [eBPF 采集器](ebpf.md)。假设我们要过滤掉目标端口为 `443` 的网络通讯，配置文件可以这样写：
 
 ```toml
 [io]
@@ -177,7 +177,7 @@ Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛�
 
 ### Profiling {#p}
 
-配置文件如下:
+配置文件如下：
 
 ```toml
 [io]
@@ -222,7 +222,7 @@ while True:
 
 ### Scheck 安全巡检 {#s}
 
-假设我们要过滤掉 log level 为 `warn` 的，配置可以这样写:
+假设我们要过滤掉 log level 为 `warn` 的，配置可以这样写：
 
 ```toml
 [io]
@@ -237,9 +237,9 @@ while True:
 
 ### RUM {#r}
 
->温馨提示: 如果你安装了 AdBlock 类广告插件可能会对中心汇报拦截。你可以在测试的时候临时关闭 AdBlock 类插件。
+>温馨提示：如果你安装了 AdBlock 类广告插件可能会对中心汇报拦截。你可以在测试的时候临时关闭 AdBlock 类插件。
 
-我们这里可以用三种浏览器 Chrome、Firefox、Safari 访问网站，假设我们要过滤掉 Chrome 浏览器的访问，配置文件可以这样写:
+我们这里可以用三种浏览器 Chrome、Firefox、Safari 访问网站，假设我们要过滤掉 Chrome 浏览器的访问，配置文件可以这样写：
 
 ```toml
 [io]
@@ -299,7 +299,7 @@ KeyEvent 通过 API 形式来进行测试。假设我们要过滤掉 `source` �
     ]
 ```
 
-然后使用 curl 进行 POST 请求:
+然后使用 curl 进行 POST 请求：
 
 ```shell
 curl --location --request POST 'http://localhost:9529/v1/write/keyevent' \
@@ -326,7 +326,7 @@ Custom Object 通过 API 形式来进行测试。假设我们要过滤掉 `class
     ]
 ```
 
-然后使用 curl 进行 POST 请求:
+然后使用 curl 进行 POST 请求：
 
 ```shell
 curl --location --request POST 'http://localhost:9529/v1/write/custom_object' \

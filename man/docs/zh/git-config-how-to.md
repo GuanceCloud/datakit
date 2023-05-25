@@ -62,7 +62,7 @@ git push origin --all
 
 ### 在 DataKit 上配置仓库 {#config-git-repo}
 
-在 *datakit.conf* 中开启 *git_repos* 功能，找到 `git_repos`，如下所示:
+在 *datakit.conf* 中开启 *git_repos* 功能，找到 `git_repos`，如下所示：
 
 ```toml
 [[git_repos.repo]]
@@ -93,7 +93,7 @@ git push origin --all
 ## FAQ {#faq}
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: 报错: authentication required {#auth-required}
+### :material-chat-question: 报错：authentication required {#auth-required}
 <!-- markdownlint-enable -->
 
 出现这个报错可能是以下几种情况。
@@ -103,7 +103,7 @@ git push origin --all
 1. 提供的用户名和密码有错
 1. git 地址的协议填错了
 
-比如说, 原地址是
+比如说，原地址是
 
 ```not-set
 https://username:password@github.com/path/to/repository.git

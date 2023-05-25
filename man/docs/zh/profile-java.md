@@ -42,15 +42,15 @@ async-profiler 可以收集以下几种事件：
 
 ### Async Profiler 安装 {#install}
 
-官网提供了不同平台的安装包的下载(当前版本 2.8.3):
+官网提供了不同平台的安装包的下载（当前版本 2.8.3）：
 
 - Linux x64 (glibc): [async-profiler-2.8.3-linux-x64.tar.gz](https://github.com/jvm-profiling-tools/async-profiler/releases/download/v2.8.3/async-profiler-2.8.3-linux-x64.tar.gz){:target="_blank"}
 - Linux x64 (musl): [async-profiler-2.8.3-linux-musl-x64.tar.gz](https://github.com/jvm-profiling-tools/async-profiler/releases/download/v2.8.3/async-profiler-2.8.3-linux-musl-x64.tar.gz){:target="_blank"}
 - Linux arm64: [async-profiler-2.8.3-linux-arm64.tar.gz](https://github.com/jvm-profiling-tools/async-profiler/releases/download/v2.8.3/async-profiler-2.8.3-linux-arm64.tar.gz){:target="_blank"}
 - macOS x64/arm64: [async-profiler-2.8.3-macos.zip](https://github.com/jvm-profiling-tools/async-profiler/releases/download/v2.8.3/async-profiler-2.8.3-macos.zip){:target="_blank"}
-- 不同格式文件转换器: [converter.jar](https://github.com/jvm-profiling-tools/async-profiler/releases/download/v2.8.3/converter.jar){:target="_blank"}
+- 不同格式文件转换器：[converter.jar](https://github.com/jvm-profiling-tools/async-profiler/releases/download/v2.8.3/converter.jar){:target="_blank"}
 
-下载相应的安装包，并解压。下面以 Linux x64 (glibc) 平台为例(其他平台类似):
+下载相应的安装包，并解压。下面以 Linux x64（glibc）平台为例（其他平台类似）：
 
 ```shell
 $ wget https://github.com/jvm-profiling-tools/async-profiler/releases/download/v2.8.3/async-profiler-2.8.3-linux-x64.tar.gz 
@@ -64,14 +64,14 @@ $ cd async-profiler-2.8.3-linux-x64 && ls
 
 - 设置 `perf_events` 参数
 
-Linux 内核版本为 4.6 以后的，如果需要使用非 root 用户启动进程中的 `perf_events`, 需要设置两个系统运行时变量，可通过如下方式设置:
+Linux 内核版本为 4.6 以后的，如果需要使用非 root 用户启动进程中的 `perf_events`，需要设置两个系统运行时变量，可通过如下方式设置：
 
 ```shell
 sudo sysctl kernel.perf_event_paranoid=1
 sudo sysctl kernel.kptr_restrict=0 
 ```
 
-- 安装 Debug Symbols (采集内存分配事件)
+- 安装 Debug Symbols（采集内存分配事件）
 
 如果需要采集内存分配（`alloc`）相关事件，则要求安装 Debug Symbols 。Oracle JDK 已经内置这些 Symbols，可跳过此步骤。而 OpenJDK 则需要安装，安装方式参考如下：
 
@@ -91,7 +91,7 @@ sudo sysctl kernel.kptr_restrict=0
     ```
 <!-- markdownlint-enable -->
 
-Linux 平台可以通过 `gdb` 查看是否正确安装:
+Linux 平台可以通过 `gdb` 查看是否正确安装：
 
 ```shell
 gdb $JAVA_HOME/lib/server/libjvm.so -ex 'info address UseG1GC'
@@ -101,7 +101,7 @@ gdb $JAVA_HOME/lib/server/libjvm.so -ex 'info address UseG1GC'
 
 - 查看 Java 进程 ID
 
-采集之前，需要查看 Java 进程的 PID (可以使用 `jps` 命令)
+采集之前，需要查看 Java 进程的 PID（可以使用 `jps` 命令）
 
 ```shell
 $ jps
@@ -135,7 +135,7 @@ Done
 
 - Java 应用注入服务名称 (`service`)（可选）
 
-默认会自动获取程序名称作为 `service` 上报观测云，如果需要自定义，可以程序启动时注入 service 名称:
+默认会自动获取程序名称作为 `service` 上报观测云，如果需要自定义，可以程序启动时注入 service 名称：
 
 ```shell
 java -Ddk.service=<service-name> ... -jar <your-jar>
@@ -143,7 +143,7 @@ java -Ddk.service=<service-name> ... -jar <your-jar>
 
 整合方式，可以分为两种：
 
-- [自动化脚本(推荐)](profile-java.md#script)
+- [自动化脚本（推荐）](profile-java.md#script)
 - [手动操作](profile-java.md#manual)
 
 #### 自动化脚本 {#script}
@@ -152,10 +152,10 @@ java -Ddk.service=<service-name> ... -jar <your-jar>
 
 - 创建 shell 脚本
 
-在当前目录下新建一个文件，命名为 `collect.sh`, 输入以下内容:
+在当前目录下新建一个文件，命名为 `collect.sh`，输入以下内容：
 
 <!-- markdownlint-disable MD046 -->
-???- note "collect.sh (单击点开)"
+???- note "collect.sh（单击点开）"
 
     ```shell
     set -e
@@ -343,16 +343,16 @@ bash collect.sh
 
 脚本执行完毕后，采集的 profiling 数据会通过 DataKit 上报给观测云平台，稍后可在"应用性能监测"-"Profile" 查看。
 
-脚本支持如下环境变量:
+脚本支持如下环境变量：
 
-- `DATAKIT_URL`: DataKit url 地址，默认为 `http://localhost:9529`
-- `APP_ENV`: 当前应用环境，如 `dev | prod | test` 等
-- `APP_VERSION`: 当前应用版本
-- `HOST_NAME`: 主机名称
-- `SERVICE_NAME`: 服务名称
-- `PROFILING_DURATION`: 采样持续时间，单位为秒
-- `PROFILING_EVENT`: 采集的事件，如 `cpu/alloc/lock` 等
-- `PROCESS_ID`: 采集的 java 进程 ID, 多个 ID 以逗号分割，如 `98789,33432`
+- `DATAKIT_URL`        ：DataKit URL 地址，默认为 `http://localhost : 9529`
+- `APP_ENV`            ：当前应用环境，如 `dev/prod/test` 等
+- `APP_VERSION`        ：当前应用版本
+- `HOST_NAME`          ：主机名称
+- `SERVICE_NAME`       ：服务名称
+- `PROFILING_DURATION` ：采样持续时间，单位为秒
+- `PROFILING_EVENT`    ：采集的事件，如 `cpu/alloc/lock` 等
+- `PROCESS_ID`         ：采集的 Java 进程 ID, 多个 ID 以逗号分割，如 `98789,33432`
 
 ```shell
 DATAKIT_URL=http://localhost:9529 APP_ENV=test APP_VERSION=1.0.0 HOST_NAME=datakit PROFILING_EVENT=cpu,alloc PROFILING_DURATION=20 PROCESS_ID=98789,33432 bash collect.sh
@@ -362,9 +362,9 @@ DATAKIT_URL=http://localhost:9529 APP_ENV=test APP_VERSION=1.0.0 HOST_NAME=datak
 
 相比自动化脚本，手动操作自由度高，可满足不同的场景需求。
 
-- 采集 profiling 文件 (jfr 格式)
+- 采集 profiling 文件（*jfr* 格式）
 
-首先使用 `async-profiler` 收集 Java 进程的 profiling 信息，并生成 **jfr** 格式的文件。如:
+首先使用 `async-profiler` 收集 Java 进程的 profiling 信息，并生成 *jfr* 格式的文件。如：
 
 ```shell
 ./profiler.sh -d 10 -o jfr -f profiling.jfr jps
@@ -372,7 +372,7 @@ DATAKIT_URL=http://localhost:9529 APP_ENV=test APP_VERSION=1.0.0 HOST_NAME=datak
 
 - 准备元信息文件
 
-编写 profiling 元信息文件, 如 `event.json`:
+编写 profiling 元信息文件，如 `event.json`：
 
 ```json
 {

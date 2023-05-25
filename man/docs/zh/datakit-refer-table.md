@@ -11,7 +11,7 @@
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    该功能内存消耗较高，参考 150 万行磁盘占用约 200MB (JSON 文件) 的不重复数据 (string 类型两列; int, float, bool 各一列) 为例，其内存占用维持在 950MB ～ 1.2GB, 更新时的峰值内存 2.2GB ~ 2.7GB。可以通过配置 `use_sqlite = true`，将数据保存到磁盘上。
+    该功能内存消耗较高，参考 150 万行磁盘占用约 200MB (JSON 文件) 的不重复数据 (string 类型两列；int, float, bool 各一列) 为例，其内存占用维持在 950MB ～ 1.2GB, 更新时的峰值内存 2.2GB ~ 2.7GB。可以通过配置 `use_sqlite = true`，将数据保存到磁盘上。
 <!-- markdownlint-enable -->
 
 ## 表结构与列的数据类型 {#table-struct}
@@ -61,7 +61,7 @@
 
 | 字段名   | table_name | column_name | column_type                                                         | row_data                                                                                                             |
 | ---      | ---        | --          | --                                                                  | ---                                                                                                                  |
-| 描述     | 表名       | 所有列名    | 列数据类型，需要与列名对应，值范围 "int", "float", "string", "bool" | 多个行数据，对于 int, float, bool 类型可以使用对应类型数据或转换成字符串表示; []any 中元素需与列名以及列类型一一对应 |
+| 描述     | 表名       | 所有列名    | 列数据类型，需要与列名对应，值范围 "int", "float", "string", "bool" | 多个行数据，对于 int, float, bool 类型可以使用对应类型数据或转换成字符串表示；[]any 中元素需与列名以及列类型一一对应 |
 | 数据类型 | string     | [ ]string   | [ ]string                                                           | [ ][ ]any                                                                                                            |
 
 - JSON 结构：
@@ -162,7 +162,7 @@
   sqlite_mem_mode = false
 ```
 
-进入 Datakit *pipeline/loggging* 目录, 并创建测试脚本 `refer_table_for_test.p`，并写入以下内容
+进入 Datakit *pipeline/loggging* 目录，并创建测试脚本 `refer_table_for_test.p`，并写入以下内容
 
 ```python
 # 从输入中提取 表名，列名，列值

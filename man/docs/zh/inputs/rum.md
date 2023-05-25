@@ -101,7 +101,7 @@ RUM 采集器默认会采集如下几个指标集：
 
 ## Sourcemap 转换 {#sourcemap}
 
-通常生产环境的 js 文件或移动端 App 代码会经过混淆和压缩以减小应用的尺寸，发生错误时的调用堆栈与开发时的源代码差异较大，不便于排错(`troubleshoot`)。如果需要定位错误至源码中，就得借助于 sourcemap 文件。
+通常生产环境的 js 文件或移动端 App 代码会经过混淆和压缩以减小应用的尺寸，发生错误时的调用堆栈与开发时的源代码差异较大，不便于排错。如果需要定位错误至源码中，就得借助于 sourcemap 文件。
 
 DataKit 支持这种源代码文件信息的映射，方法是将对应符号表文件进行 zip 压缩打包，命名格式为 *[app_id]-[env]-[version].zip*，上传至 *[DataKit 安装目录]/data/rum/[platform]*，这样就可以对上报的 `error` 指标集数据自动进行转换，并追加 `error_stack_source` 字段至该指标集中。
 
@@ -259,7 +259,7 @@ sudo datakit install --symbol-tools
     Build Settings -> Build Option -> Debug Information Format -> DWARF with dSYM File
     ```
 
-    进行 zip 打包时，把相应的 `.dSYM` 文件打包进 zip 包即可，如果你的项目涉及多个 `.dSYM` 文件，需要一起打包到 zip 包内，之后再把 zip 包拷贝到 *<DataKit 安装目录>/data/rum/ios* 目录下，zip 包解压后的目录结构类似如下(`.dSYM` 文件本质上是一个目录，和 macOS 下的可执行程序 *.app* 文件类似)：
+    进行 zip 打包时，把相应的 `.dSYM` 文件打包进 zip 包即可，如果你的项目涉及多个 `.dSYM` 文件，需要一起打包到 zip 包内，之后再把 zip 包拷贝到 *<DataKit 安装目录>/data/rum/ios* 目录下，zip 包解压后的目录结构类似如下（`.dSYM` 文件本质上是一个目录，和 macOS 下的可执行程序 *.app* 文件类似）：
 
 
     ```

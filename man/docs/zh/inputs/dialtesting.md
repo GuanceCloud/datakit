@@ -18,20 +18,7 @@
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
     
     ```toml
-    #  dataway 地址
-    server = "https://openway.guance.com"
-    
-    # !!!Require：节点惟一标识 ID
-    region_id = "reg_c2jlokxxxxxxxxxxx"
-    
-    # 若 server 配为中心任务服务地址时，需要配置相应的 ak 或者 sk
-    ak = "ZYxxxxxxxxxxxx"
-    sk = "BNFxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-    
-    [inputs.dialtesting.tags]
-      # some_tag = "some_value"
-      # more_tag = "some_other_value"
-      # ...
+    {{ CodeBlock .InputSample 4 }}
     ```
 
     配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。

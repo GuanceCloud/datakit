@@ -360,7 +360,7 @@ DK_SINKER="[ { \"categories\": [\"L\", \"M\"], \"filters\": [ \"{measurement='cp
     `ENV_IO_MAX_CACHE_COUNT` 用来控制数据的发送策略，即当内存中 cache 的（行协议）点数超过该数值的时候，就会尝试将内存中当前 cache 的点数发送到中心。如果该 cache 的阈值调的太大，数据就都堆积在内存，导致内存飙升，但会提高 GZip 的压缩效果。如果太小，可能影响发送吞吐率。
 <!-- markdownlint-enable -->
 
-`ENV_IO_FILTERS` 是一个 JSON 字符串，示例如下:
+`ENV_IO_FILTERS` 是一个 JSON 字符串，示例如下：
 
 ```json
 {

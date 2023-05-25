@@ -80,7 +80,7 @@ GRANT replication client on *.*  to 'datakit'@'localhost';
 默认情况下，MySQL Binlog 是不开启的。如果要统计 Binlog 大小，需要开启 MySQL 对应 Binlog 功能：
 
 ```sql
--- ON:开启, OFF:关闭
+-- ON: 开启/OFF: 关闭
 SHOW VARIABLES LIKE 'log_bin';
 ```
 
@@ -119,7 +119,7 @@ dbm = true
 
 - MySQL 配置
 
-修改配置文件(如 *mysql.conf*)，开启 `MySQL Performance Schema`， 并配置相关参数：
+修改配置文件（如 *mysql.conf*），开启 `MySQL Performance Schema`， 并配置相关参数：
 
 ```toml
 [mysqld]

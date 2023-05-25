@@ -73,9 +73,9 @@ CATALINA_OPTS="$CATALINA_OPTS -javaagent:PATH/TO/opentelemetry-javaagent.jar -Do
 # 重启 Tomcat
 ```
 
-在配置字段 `exporter.otlp.endpoint` 时，可以不用配置并使用默认值(localhost:4317)，因为 Datakit 与 Java 程序在一台主机上，默认的端口也是 4317。
+在配置字段 `exporter.otlp.endpoint` 时，可以不用配置并使用默认值（localhost:4317），因为 Datakit 与 Java 程序在一台主机上，默认的端口也是 4317。
 
-## Java 2:代码注入形式 {#with-code}
+## Java 2：代码注入形式 {#with-code}
 
 ``` java
 package com.example;

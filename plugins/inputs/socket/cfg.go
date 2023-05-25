@@ -92,19 +92,19 @@ func (m *TCPMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.DurationUS,
-				Desc:     "TCP 连接时间, 单位 us",
+				Desc:     "TCP 连接时间",
 			},
 			"response_time_with_dns": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.DurationUS,
-				Desc:     "连接时间（含 DNS 解析）, 单位 us",
+				Desc:     "连接时间（含 DNS 解析）",
 			},
 			"success": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "只有 1/-1 两种状态, 1 表示成功, -1 表示失败",
+				Desc:     "只有 1/-1 两种状态。1 表示成功/-1 表示失败",
 			},
 		},
 	}
@@ -118,7 +118,7 @@ func (m *UDPMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "只有 1/-1 两种状态, 1 表示成功, -1 表示失败",
+				Desc:     "只有 1/-1 两种状态。1 表示成功/-1 表示失败",
 			},
 		},
 		Tags: map[string]interface{}{

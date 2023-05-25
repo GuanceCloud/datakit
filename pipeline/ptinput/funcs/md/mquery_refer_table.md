@@ -4,13 +4,13 @@
 
 函数说明：通过指定多个 key 查询外部引用表，并将查询结果的首行的所有列追加到 field 中。
 
-参数:
+参数：
 
 - `table_name`: 待查找的表名
 - `keys`: 多个列名构成的列表
 - `values`: 每个列对应的值
 
-示例:
+示例：
 
 ```python
 json(_, table)
@@ -21,7 +21,7 @@ json(_, value)
 mquery_refer_table(table, values=[value, false], keys=[key, "col4"])
 ```
 
-示例结果:
+示例结果：
 
 ```json
 {

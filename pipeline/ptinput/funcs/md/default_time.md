@@ -33,7 +33,7 @@
 | `1384216367111222333`                              | `2009-08-12T22:15:09Z`                                  |
 <!-- markdownlint-enable -->
 
-JSON 提取示例:
+JSON 提取示例：
 
 ```python
 # 原始 json
@@ -54,7 +54,7 @@ default_time(time) # 将提取到的 time 字段转换成时间戳
 }
 ```
 
-文本提取示例:
+文本提取示例：
 
 ```python
 # 原始日志文本

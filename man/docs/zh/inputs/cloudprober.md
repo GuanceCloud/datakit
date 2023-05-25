@@ -24,7 +24,7 @@ unzip cloudprober-v0.11.2-ubuntu-x86_64.zip
 
 ## Cloudprober 配置 {#config}
 
-以探测百度为例,创建一个 `cloudprober.cfg` 文件并写入：
+以探测百度为例，创建一个 `cloudprober.cfg` 文件并写入：
 
 ``` conf
 probe {

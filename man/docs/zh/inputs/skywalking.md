@@ -42,7 +42,7 @@ collector.backend_service=${SW_AGENT_COLLECTOR_BACKEND_SERVICES:<datakit-ip:skyw
 
     Datakit SkyWalking Agent 目前支持 HTTP 协议和 GRPC 协议两种网络传输方式。
 
-    /v3/profiling 接口目前只作为兼容性接口使用, profiling 数据并不上报数据中心。
+    `/v3/profiling` 接口目前只作为兼容性接口使用，profiling 数据并不上报数据中心。
 
     通过 HTTP 协议传输
 

@@ -24,7 +24,7 @@ Netstat 指标采集，包括 TCP/UDP 连接数、等待连接、等待处理请
     {{ CodeBlock .InputSample 4 }}
     ```
 
-    配置技巧: 
+    配置技巧：
 
     ``` toml
     ## (1) 配置关注的端口号
@@ -84,7 +84,7 @@ Netstat 指标采集，包括 TCP/UDP 连接数、等待连接、等待处理请
   # ...
 ```
 
-不分端口号统计的指标集: `netstat` ，分端口号统计的指标集: `netstat_port` 。
+不分端口号统计的指标集：`netstat`，分端口号统计的指标集：`netstat_port`。
 
 {{ range $i, $m := .Measurements }}
 

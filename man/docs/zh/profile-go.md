@@ -95,7 +95,7 @@ func demo() {
 
 ### Go 应用开启 Profiling {#app-config}
 
-应用中开启 Profiling 只需要引用 `pprof` 包即可，参考如下:
+应用中开启 Profiling 只需要引用 `pprof` 包即可，参考如下：
 
 ```go
 package main

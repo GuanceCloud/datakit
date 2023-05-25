@@ -2,7 +2,7 @@
 
 Function prototype: `fn cover(key: str, range: list)`
 
-Function description: Perform data desensitization by range on the string data obtained on the specified fieldq2
+Function description: Perform data desensitization by range on the string data obtained on the specified field
 
 Function parameters:
 

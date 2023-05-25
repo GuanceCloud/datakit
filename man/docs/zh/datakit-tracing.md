@@ -89,8 +89,8 @@ Datakit backend 负责按照配置来操作链路数据，目前支持的操作�
 - `omit_status_code_filter`: 当配置了 `omit_err_status = ["404"]`，那么 HTTP 服务下的链路中如果包含状态码为 404 的错误将不会被上报到 Data Center。
 - `penetrate_error_filter`: Datakit 默认 filter，链路错误触发。
 - `close_resource_filter`: 在 `[inputs.tracer.close_resource]` 中进行配置，服务名为服务全称或 `*`，资源名为资源的正则表达式。
-    - 例一: 配置如 `login_server = ["^auth\_.*\?id=[0-9]*"]`，那么 `login_server` 服务名下 `resource` 形如 `auth_name?id=123` 的链路将被关闭
-    - 例二: 配置如 `"*" = ["heart_beat"]`，那么当前 Datakit 下的所有服务上的 `heart_beat` 资源将被关闭。
+    - 例一：配置如 `login_server = ["^auth\_.*\?id=[0-9]*"]`，那么 `login_server` 服务名下 `resource` 形如 `auth_name?id=123` 的链路将被关闭
+    - 例二：配置如 `"*" = ["heart_beat"]`，那么当前 Datakit 下的所有服务上的 `heart_beat` 资源将被关闭。
 - `keep_rare_resource_filter`: 当配置了 `keep_rare_resource = true`，那么被判定为稀有的链路将会被直接上报到 Data Center。
 
 当前的 Datakit 版本中的 Filters (Sampler 也是一种 Filter)执行顺序是固定的：
@@ -100,7 +100,7 @@ Datakit backend 负责按照配置来操作链路数据，目前支持的操作�
 
 ### Datakit Samplers {#samplers}
 
-目前 Datakit 尊重客户端的采样优先级配, [DDTrace Sampling Rules](https://docs.datadoghq.com/tracing/faq/trace_sampling_and_storage){:target="_blank"}。
+目前 Datakit 尊重客户端的采样优先级配，[DDTrace Sampling Rules](https://docs.datadoghq.com/tracing/faq/trace_sampling_and_storage){:target="_blank"}。
 
 - 情况一
 
@@ -108,7 +108,7 @@ Datakit backend 负责按照配置来操作链路数据，目前支持的操作�
 
 - 情况二
 
-如果客户只配置了 Datakit 采样率(inputs.tracer.sampler)，例如: sampling_rate = 0.3，那么此 Datakit 上报到 Data Center 的数据量大概为总量的 30%。
+如果客户只配置了 Datakit 采样率(inputs.tracer.sampler)，例如：sampling_rate = 0.3，那么此 Datakit 上报到 Data Center 的数据量大概为总量的 30%。
 
 **Note** 在多服务多 Datakit 分布式部署情况下配置 Datakit 采样率需要统一配置成同一个采样率才能达到采样效果。
 

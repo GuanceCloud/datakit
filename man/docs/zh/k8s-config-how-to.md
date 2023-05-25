@@ -5,7 +5,7 @@
 
 ## K8s 环境下的配置方式 {#intro}
 
-目前版本(>1.2.0)的 DataKit 支持如下几种方式的配置：
+目前版本（>1.2.0）的 DataKit 支持如下几种方式的配置：
 
 - 通过 [conf](datakit-daemonset-deploy.md#configmap-setting)  配置
 - 通过 [ENV](datakit-daemonset-deploy.md#using-k8-env) 配置

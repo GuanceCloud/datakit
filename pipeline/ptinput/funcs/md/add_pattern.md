@@ -2,17 +2,17 @@
 
 函数原型：`fn add_pattern(name: str, pattern: str)`
 
-函数说明：创建自定义 grok 模式。grok 模式有作用域限制, 如在 if else 语句内将产生新的作用域, 该 pattern 仅在此作用域内有效。该函数不可覆盖同一作用域或者上一作用域已经存在的 grok 模式
+函数说明：创建自定义 grok 模式。grok 模式有作用域限制，如在 if else 语句内将产生新的作用域，该 pattern 仅在此作用域内有效。该函数不可覆盖同一作用域或者上一作用域已经存在的 grok 模式
 
-参数:
+参数：
 
 - `name`：模式命名
 - `pattern`: 自定义模式内容
 
-示例:
+示例：
 
 ```python
-# 待处理数据: "11,abc,end1", "22,abc,end1", "33,abc,end3"
+# 待处理数据："11,abc,end1", "22,abc,end1", "33,abc,end3"
 
 # pipline 脚本
 add_pattern("aa", "\\d{2}")
@@ -25,7 +25,7 @@ if false {
         add_pattern("cc", "end1")
         grok(_, "%{aa:aa},%{bb:bb},%{cc:cc}")
     } elif aa == "22" {
-        # 此处使用 pattern cc 将导致编译失败: no pattern found for %{cc}
+        # 此处使用 pattern cc 将导致编译失败：no pattern found for %{cc}
         grok(_, "%{aa:aa},%{bb:bb},%{INT:cc}")
     } elif aa == "33" {
         add_pattern("bb", "[\\d]{5}") # 此处覆盖 bb 失败

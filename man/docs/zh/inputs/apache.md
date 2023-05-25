@@ -10,7 +10,7 @@ Apache 采集器可以从 Apache 服务中采集请求数、连接数等，并�
 
 ## 前置条件 {#requirements}
 
-- Apache 版本 >= `2.4.6 (Unix)`。已测试版本:
+- Apache 版本 >= `2.4.6 (Unix)`。已测试版本：
     - [x] 2.4.56
     - [x] 2.4.54
     - [x] 2.4.41
@@ -18,9 +18,9 @@ Apache 采集器可以从 Apache 服务中采集请求数、连接数等，并�
     - [x] 2.4.29
     - [x] 2.4.6
 
-- 一般发行版 Linux 会自带 Apache,如需下载[参见](https://httpd.apache.org/download.cgi){:target="_blank"};
-- 默认配置路径: `/etc/apache2/apache2.conf`, `/etc/apache2/httpd.conf`, `/usr/local/apache2/conf/httpd.conf`;
-- 开启 Apache `mod_status`，在 Apache 配置文件中添加:
+- 一般发行版 Linux 会自带 Apache，如需下载[参见](https://httpd.apache.org/download.cgi){:target="_blank"};
+- 默认配置路径：`/etc/apache2/apache2.conf`, `/etc/apache2/httpd.conf`, `/usr/local/apache2/conf/httpd.conf`;
+- 开启 Apache `mod_status`，在 Apache 配置文件中添加：
 
 ```xml
 <Location /server-status>
@@ -126,7 +126,7 @@ sudo apachectl restart
 
 - Apache 访问日志切割
 
-访问日志文本示例:
+访问日志文本示例：
 
 ``` log
 127.0.0.1 - - [17/May/2021:14:51:09 +0800] "GET /server-status?auto HTTP/1.1" 200 917

@@ -8,7 +8,7 @@ Function parameters:
 
 - `key`: key to be deleted
 
-示例:
+示例：
 
 ```python
 # data = `{\"age\": 17, \"name\": \"zhangsan\", \"height\": 180}`

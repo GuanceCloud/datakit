@@ -65,7 +65,7 @@ Datakit Profiling 是 Datakit 使用的用于表示 profiling 的结构。
 | RuntimeArch | `string`                |      | CPU 架构：amd64, arm64...                                            | `dkproto.tags.runtime_arch`   |
 | Format      | `string`                |      | profiling 二进制文件采用的格式，jfr, pprof...                        | `dkproto.fields.format`       |
 | Tags        | `map[string]string`     |      | profiling Tags                                                       | `dkproto.tags`                |
-| OssPath     | `[]string`              |      | 原始 profiling 二进制文件存储在 OSS 的路径, 用于后续解析和供用户下载 | `dkproto.fields.oss_path`     |
+| OssPath     | `[]string`              |      | 原始 profiling 二进制文件存储在 OSS 的路径，用于后续解析和供用户下载 | `dkproto.fields.oss_path`     |
 | Metrics     | `map[string]string`     |      | 从 profiling 二进制文件中解析出的 相关指标                           | `dkproto.fields.metrics`      |
 | Samples     | `map[EventType]*Sample` |      | profiling 相关采样性能指标                                           | `dkproto.fields.samples`      |
 
@@ -102,7 +102,7 @@ Datakit Profiling 是 Datakit 使用的用于表示 profiling 的结构。
 
 | Field Name         | Data Type | Description              |
 | ---                | ---       | ---                      |
-| Unit               | string    | 火焰图数值单位, 如：毫秒 |
+| Unit               | string    | 火焰图数值单位，如：毫秒 |
 | AvailableDimension | []string  | 支持的展示维度           |
 | Dimension          | string    | 当前所选的展示维度       |
 | RootFrame          | []Frame   | 火焰图层                 |

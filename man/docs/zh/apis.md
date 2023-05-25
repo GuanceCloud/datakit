@@ -30,7 +30,7 @@ DataKit 目前只支持 HTTP 接口，主要涉及数据写入，数据查询。
 | `input`                   | string | N        | `datakit` | 数据源名称                                                                                                                                    |
 | `loose`                   | bool   | N        | true      | 宽松模式，对于一些不合规的行协议，DataKit 会尝试修复它们（[:octicons-tag-24: Version-1.4.11](changelog.md#cl-1.4.11)）                        |
 | `strict`                  | bool   | N        | false     | 严格模式，对于一些不合规的行协议，API 直接报错，并告知具体的原因（[:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9)）                  |
-| `precision`               | string | N        | `n`       | 数据精度(支持 `n/u/ms/s/m/h`)                                                                                                                 |
+| `precision`               | string | N        | `n`       | 数据精度（支持 `n/u/ms/s/m/h`）                                                                                                               |
 | `source`                  | string | N        | -         | 仅仅针对 logging 支持指定该字段（即 `category` 为 `logging`）。如果不指定 `source`，则上传的日志数据不会执行 Pipeline 切割                    |
 | `version`                 | string | N        | -         | 当前采集器的版本号                                                                                                                            |
 
@@ -117,7 +117,7 @@ PASS
 ok      gitlab.jiagouyun.com/cloudcare-tools/datakit/http       4.499s
 ```
 
-### 日志(logging)示例 {#api-logging-example}
+### 日志示例 {#api-logging-example}
 
 ```http
 POST /v1/write/logging?precision=n&input=my-sample-logger&ignore_global_tags=123 HTTP/1.1
@@ -127,10 +127,10 @@ mysql,tag1=a,tag2=b,filename=b.log f1=1i,f2=1.2,f3="abc",message="other-log-data
 redis,tag1=a,tag2=b,filename=c.log f1=1i,f2=1.2,f3="abc",message="more-log-data",status="error" 1620723870000000000
 ```
 
-- 行协议中的指标集名称(此处的 `nginx/mysql/redis`) 会作为日志的 `source` 字段来存储。
+- 行协议中的指标集名称（此处的 `nginx/mysql/redis`）会作为日志的 `source` 字段来存储。
 - 原式日志数据存放在 `message` 字段上
 
-### 时序数据(metric)示例 {#api-metric-example}
+### 时序数据示例 {#api-metric-example}
 
 ``` http
 POST /v1/write/metric?precision=n&input=my-sample-logger&ignore_global_tags=123 HTTP/1.1
@@ -140,7 +140,7 @@ mem,tag1=a,tag2=b f1=1i,f2=1.2,f3="abc" 1620723870000000000
 net,tag1=a,tag2=b f1=1i,f2=1.2,f3="abc" 1620723870000000000
 ```
 
-### 对象数据(object)示例 {#api-object-example}
+### 对象数据示例 {#api-object-example}
 
 ``` http
 POST /v1/write/object?precision=n&input=my-sample-logger&ignore_global_tags=123 HTTP/1.1
@@ -355,7 +355,7 @@ curl -XPOST "127.0.0.1:9529/v1/object/labels" \
         }'
 ```
 
-成功返回示例:
+成功返回示例：
 
 ``` json
 status_code: 200
@@ -366,7 +366,7 @@ status_code: 200
 }
 ```
 
-失败返回示例:
+失败返回示例：
 
 ``` json
 status_code: 500
@@ -401,7 +401,7 @@ curl -XPOST "127.0.0.1:9529/v1/object/labels"  \
         }'
 ```
 
-成功返回示例:
+成功返回示例：
 
 ``` json
 status_code: 200
@@ -412,7 +412,7 @@ status_code: 200
 }
 ```
 
-失败返回示例:
+失败返回示例：
 
 ``` json
 status_code: 500
@@ -425,7 +425,7 @@ status_code: 500
 
 提供远程调试 PL 的功能。
 
-错误信息 PlError 结构:
+错误信息 `PlError` 结构：
 
 ```go
 type Position struct {
@@ -441,12 +441,12 @@ type PlError struct {
 }
 ```
 
-错误信息 JSON 示例:
+错误信息 JSON 示例：
 
 ```json
 {
   "pos_chain": [
-    { // 错误生成位置 (脚本终止运行)
+    { // 错误生成位置（脚本终止运行）
       "file": "xx.p",    // 文件名或文件路径
       "ln":   15,        // 行号
       "col":  29,        // 列号
@@ -484,7 +484,7 @@ Content-Type: application/json
 }
 ```
 
-正常返回示例:
+正常返回示例：
 
 ``` http
 HTTP/1.1 200 OK
@@ -493,17 +493,17 @@ HTTP/1.1 200 OK
     "content": {
         "cost": "2.3ms",
         "benchmark": BenchmarkResult.String(), # 返回 benchmark 结果
-        "pl_errors": [],   # 脚本解析或检查时产生的 PlError 列表
-        "plresults": [ # 由于日志可能是多行的，此处会返回多个切割结果
+        "pl_errors": [],                       # 脚本解析或检查时产生的 PlError 列表
+        "plresults": [                         # 由于日志可能是多行的，此处会返回多个切割结果
             {
                 "point": {
                   "name" : "可以是指标集名称、日志 source 等",
                   "tags": { "key": "val", "other-key": "other-val"},
-                  "fields": { "f1": 1, "f2": "abc", "f3": 1.2 },
-                  "time": 1644380607, # Unix 时间戳（单位秒）, 前端可将其转成可读日期,
-                  "time_ns": 421869748, # 余下的纳秒时间，便于精确转换成日期，完整的纳秒时间戳为 1644380607421869748,
+                  "fields": { "f1": 1, "f2": "abc", "f3": 1.2 }
+                  "time": 1644380607,   # Unix 时间戳（单位秒）, 前端可将其转成可读日期
+                  "time_ns": 421869748, # 余下的纳秒时间，便于精确转换成日期，完整的纳秒时间戳为 1644380607421869748
                 }
-                "dropped": false, # 是否在执行 pipeline 中将结果标记为待丢弃
+                "dropped": false,  # 是否在执行 pipeline 中将结果标记为待丢弃
                 "run_error": null  # 如果没有错误，值为 null
             },
             {  another-result },
@@ -513,7 +513,7 @@ HTTP/1.1 200 OK
 }
 ```
 
-错误返回示例:
+错误返回示例：
 
 ``` http
 HTTP Code: 400
@@ -528,32 +528,32 @@ HTTP Code: 400
 
 提供远程调试拨测的功能。
 
-请求示例 ：
+请求示例：
 
 ``` http
 POST /v1/dialtesting/debug
 Content-Type: application/json
 
 {
-    "task_type":"http",//"http","tcp","icmp","websocket"
-    "task": {
-        "name":"",
-        "method":"",
-        "url":"",
-        "post_url":"",
-        "cur_status":"",
-        "frequency":"",
-        "enable_traceroute":true, // true 代表勾选，tcp，icmp 才有用
-        "success_when_logic":"",
-        "SuccessWhen":[]*HTTPSuccess ,
-        "tags":map[string]string ,
-        "labels":[]string,
-        "advance_options":*HTTPAdvanceOption,
+    "task_type" : "http",//"http","tcp","icmp","websocket"
+    "task" : {
+        "name"               : "",
+        "method"             : "",
+        "url"                : "",
+        "post_url"           : "",
+        "cur_status"         : "",
+        "frequency"          : "",
+        "enable_traceroute"  : true, // true 代表勾选，tcp，icmp 才有用
+        "success_when_logic" : "",
+        "SuccessWhen"        : []*HTTPSuccess ,
+        "tags"               : map[string]string ,
+        "labels"             : []string,
+        "advance_options"    : *HTTPAdvanceOption,
     }
 }
 ```
 
-正常返回示例:
+正常返回示例：
 
 ``` http
 HTTP/1.1 200 OK
@@ -561,14 +561,30 @@ HTTP/1.1 200 OK
 {
     "content": {
         "cost": "2.3ms",
-        "status": "success",//  success/fail
+        "status": "success", # success/fail
         "error_msg": "",
-        "traceroute":[{"total":3,"failed":0,"loss":0,"avg_cost":0,"min_cost":2,"max_cost":3,"std_cost":33,"items":[{"ip":"127.0.0.1","response_time":33}]}],
+        "traceroute":[
+          {
+              "total"    : 3,
+              "failed"   : 0,
+              "loss"     : 0,
+              "avg_cost" : 0,
+              "min_cost" : 2,
+              "max_cost" : 3,
+              "std_cost" : 33,
+              "items" : [
+                  {
+                      "ip"            : "127.0.0.1",
+                      "response_time" : 33
+                  }
+              ]
+         }
+        ]
     }
 }
 ```
 
-错误返回示例:
+错误返回示例：
 
 ``` http
 HTTP Code: 400

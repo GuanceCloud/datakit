@@ -111,7 +111,7 @@ type indexStat struct {
 const sampleConfig = `
 [[inputs.elasticsearch]]
   ## Elasticsearch 服务器配置
-  # 支持 Basic 认证:
+  # 支持 Basic 认证
   # servers = ["http://user:pass@localhost:9200"]
   servers = ["http://localhost:9200"]
 
@@ -122,7 +122,7 @@ const sampleConfig = `
   ## HTTP 超时设置
   http_timeout = "5s"
 
-  ## 发行版本: elasticsearch/opendistro/opensearch
+  ## 发行版本：elasticsearch/opendistro/opensearch
   distribution = "elasticsearch"
 
   ## 默认 local 是开启的，只采集当前 Node 自身指标，如果需要采集集群所有 Node，需要将 local 设置为 false

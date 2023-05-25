@@ -22,20 +22,20 @@ java -javaagent：/path-to-pinpoint-agent-path/pinpoint-bootstrap.jar \
 
 基本参数说明：
 
-- pinpoint.profiler.profiles.active： Pinpoint profiler 工作模式(release/local) 与日志输出有关
-- pinpoint.applicationName： 服务名
-- pinpoint.agentId： agent ID
-- pinpoint.agentName： agent name
-- profiler.transport.module： 传输协议(GRPC/THRIFT)
-- profiler.transport.grpc.collector.ip： collector IP 地址(即启动 Datakit 的主机地址)
-- profiler.transport.grpc.agent.collector.port： agent collector port(即 Pinpoint Agent 在 Datakit 中的监听端口)
-- profiler.transport.grpc.metadata.collector.port： metadata collector port(即 Pinpoint Agent 在 Datakit 中的监听端口)
-- profiler.transport.grpc.stat.collector.port： stat collector port(即 Pinpoint Agent 在 Datakit 中的监听端口)
-- profiler.transport.grpc.span.collector.port： span collector port(即 Pinpoint Agent 在 Datakit 中的监听端口)
-- profiler.sampling.enable： 是否启动采样
-- profiler.sampling.type： 采样算法
-- profiler.sampling.counting.sampling-rate： 采样率
-- profiler.sampling.percent.sampling-rat： 采样率
+- pinpoint.profiler.profiles.active               : Pinpoint profiler 工作模式(release/local) 与日志输出有关
+- pinpoint.applicationName                        : 服务名
+- pinpoint.agentId                                : Agent ID
+- pinpoint.agentName                              : Agent name
+- profiler.transport.module                       : 传输协议（gRPC/Thrift）
+- profiler.transport.grpc.collector.ip            : Collector IP 地址（即启动 Datakit 的主机地址）
+- profiler.transport.grpc.agent.collector.port    : Agent collector port（即 Pinpoint Agent 在 Datakit 中的监听端口）
+- profiler.transport.grpc.metadata.collector.port : Metadata collector port（即 Pinpoint Agent 在 Datakit 中的监听端口）
+- profiler.transport.grpc.stat.collector.port     : stat collector port（即 Pinpoint Agent 在 Datakit 中的监听端口）
+- profiler.transport.grpc.span.collector.port     : span collector port（即 Pinpoint Agent 在 Datakit 中的监听端口）
+- profiler.sampling.enable                        : 是否启动采样
+- profiler.sampling.type                          : 采样算法
+- profiler.sampling.counting.sampling-rate        : 采样率
+- profiler.sampling.percent.sampling-rat          : 采样率
 
 ## 支持的模块 {#supported-modules}
 

@@ -70,7 +70,7 @@ remote_write:
   more_old_tag_name = "other_new_tag_name"
 ```
 
-另外，当重命名后的 tag key 与已有 tag key 相同时:可以通过 `overwrite` 配置是否覆盖掉已有的 tag key。
+另外，当重命名后的 tag key 与已有 tag key 相同时，可以通过 `overwrite` 配置是否覆盖掉已有的 tag key。
 
 > 注意：对于 [DataKit 全局 tag key](datakit-conf.md#update-global-tag)，此处不支持将它们重命名。
 

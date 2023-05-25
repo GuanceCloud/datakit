@@ -11,15 +11,15 @@ MongoDb 数据库，Collection， MongoDb 数据库集群运行状态数据采�
 
 ## 前置条件 {#requirements}
 
-- 已测试的版本:
+- 已测试的版本：
     - [x] 6.0
     - [x] 5.0
     - [x] 4.0
     - [x] 3.0
 
 - 开发使用 MongoDB 版本 `4.4.5`;
-- 编写配置文件在对应目录下然后启动 DataKit 即可完成配置;
-- 使用 TLS 进行安全连接请在配置文件中配置 `## TLS connection config` 下响应证书文件路径与配置;
+- 编写配置文件在对应目录下然后启动 DataKit 即可完成配置；
+- 使用 TLS 进行安全连接请在配置文件中配置 `## TLS connection config` 下响应证书文件路径与配置；
 - 如果 MongoDb 启动了访问控制那么需要配置必须的用户权限用于建立授权连接。例如：
 
 ```mongodb
@@ -31,7 +31,7 @@ MongoDb 数据库，Collection， MongoDb 数据库集群运行状态数据采�
 <!-- markdownlint-disable MD046 -->
 === "主机安装"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下:
+    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
     ```toml
     {{ CodeBlock .InputSample 4 }}
@@ -97,7 +97,7 @@ mongod --config /etc/mongod.conf
 mongod --tlsMode requireTLS --tlsCertificateKeyFile </etc/ssl/mongod.pem> --dbpath <.db/mongodb>
 ```
 
-复制 `mongod.cert.pem` 为 `mongo.cert.pem` 到 MongoDB 客户端并启用 TLS:
+复制 `mongod.cert.pem` 为 `mongo.cert.pem` 到 MongoDB 客户端并启用 TLS：
 
 ```shell
 mongo --tls --host <mongod_url> --tlsCAFile </etc/ssl/mongo.cert.pem>
@@ -139,7 +139,7 @@ net:
 mongod --config /etc/mongod.conf
 ```
 
-复制 `mongod.cert.pem` 为 `mongo.cert.pem` ，复制 `mongod.pem` 为 `mongo.pem` 到 MongoDB 客户端并启用 TLS:
+复制 `mongod.cert.pem` 为 `mongo.cert.pem` ，复制 `mongod.pem` 为 `mongo.pem` 到 MongoDB 客户端并启用 TLS：
 
 ```shell
 mongo --tls --host <mongod_url> --tlsCAFile </etc/ssl/mongo.cert.pem> --tlsCertificateKeyFile </etc/ssl/mongo.pem>

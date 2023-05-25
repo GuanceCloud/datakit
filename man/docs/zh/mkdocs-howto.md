@@ -9,25 +9,26 @@
 
 ## DataKit 相关编写步骤 {#steps}
 
-由于 DataKit 文档大部分都是用代码生成的，还有部分是纯手写的实践性文档，对不同的文档我们需要区别对待。目前 DataKit 相关的文档主要分为两类（即两大类集成），一类是 DataKit 文档，一个是集成文档：
+新文档的撰写步骤为：
 
-- DataKit：跟具体数据采集不直接相关的文档，主要是一些 DataKit 总体使用上的文档
-- 集成文档：主要是采集器相关的文档，这种文档又细分为俩类：
-    - 一类是 DataKit 内置采集器相关的文档
-    - 一类是衍生出来的数据采集文档，它们不通过 DataKit 生成，只是简单的添加在 man/docs 目录下。这些采集器的数据采集，一般通过 DataKit 已有采集器（比如 prom 等）来采集
-
-对于一篇新的文档，作者应该辨明应该存放在哪个文档库中，在 *mkdocs.sh* 脚本中，对文档分成了三类，这三类分别对应上述三类文档：
-
-- `datakit_docs`
-- `integrations_files_from_datakit`
-- `integrations_extra_files`
-
-文档作者确定了具体文档的归属后，将其添加到这三个数组中即可，*mkdocs.sh* 脚本会自动将文档发布到正确的文档库。故新文档的撰写步骤为：
-
+1. 在 *man/docs/zh* 下添加文档，如果是采集器文档，添加到 *man/docs/zh/inputs* 目录下
 1. 文档编写
-2. 确定归属
-3. 将文档路径添加到上述三种文档之一中
-4. 执行 *mkdocs.sh* 脚本
+1. 如有必要，在 *man/docs/en* 下添加对应的英文文档
+1. 在项目根目录下执行 *mkdocs.sh* 脚本
+
+### 文档本地调试 {#debug}
+
+执行 *mkdocs.sh* 的时候，可以先看一下其支持的命令行参数：
+
+```shell
+./mkdocs.sh -h
+```
+
+*mkdocs.sh* 依赖的基础环境：
+
+1. 先将[文档库](https://gitlab.jiagouyun.com/zy-docs/dataflux-doc){:target="_blank"} clone 到本地目录 *~/git/dataflux-doc*，此处默认即使用这个本地目录。*mkdocs.sh* 会将 Datakit 文档生成并拷贝到该 repo 对应的目录下。
+1. 在 *dataflux-doc* 项目下，有一个 *requirements.txt*，执行 `pip install -r requirements.txt` 安装对应依赖
+1. 回到 Datakit 代码目录，执行根目录下的 `./mkdocs.sh` 即可
 
 ## MkDocs 技巧分享 {#mkdocs-tips}
 
@@ -40,7 +41,7 @@
 
 [:octicons-beaker-24: Experimental](index.md#experimental)
 
-新功能正文描述...
+新功能正文描述 ...
 ```
 
 其效果就是会在章节的下面增加一个这样的图例：
@@ -115,7 +116,7 @@
 ```markdown
 ??? attention
 
-    这里是一段前置条件的说明...
+    这里是一段前置条件的说明 ...
 ```
 
 ```markdown
@@ -124,10 +125,10 @@
     Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla et euismod nulla. Curabitur feugiat, tortor non consequat finibus, justo purus auctor massa, nec semper lorem quam in massa.
 ```
 
-而不仅仅只是一个简单的说明:
+而不仅仅只是一个简单的说明：
 
 ```markdown
-> 这里是一个简陋的说明...
+> 这里是一个简陋的说明 ...
 ```
 
 更多漂亮的警示用法，参见[这里](https://squidfunk.github.io/mkdocs-material/reference/admonitions/){:target="_blank"}
@@ -139,11 +140,11 @@
 <!-- markdownlint-disable MD046 -->
 === "A 情况下这么使用"
 
-    在 A 情况下...
+    在 A 情况下 ...
 
 === "B 情况下这么使用"
 
-    在 B 情况下...
+    在 B 情况下 ...
 <!-- markdownlint-enable -->
 
 具体用法，参见[这里](https://squidfunk.github.io/mkdocs-material/reference/content-tabs/){:target="_blank"}
@@ -209,19 +210,29 @@ cspell 在检测单词（这里主要指英文单词，目前还不能检测中�
 
 #### 中英文混排检测 {#zh-en-mix}
 
-我们强制在所有中英文混排（含数字和中文混排）的文本之间加入一个英文空格来缓解阅读上的疲劳，比如如下看起来会更疏朗一些，视觉上不会显得局促：
+中英文混排涉及两个方面：
+
+- 在所有中英文混排（含数字和中文混排）的文本之间加入一个英文空格来缓解阅读上的疲劳
+
+比如如下看起来会更疏朗一些，视觉上不会显得局促：
 
 ```markdown
-我们希望在 English 和中文之间加入 1 个英文空格...
+我们希望在 English 和中文之间加入 1 个英文空格 ...
 ```
 
 但是，中文标点符号和英文（含数字）之间无需加空格，因为不加空格，这种排版也不会让人觉得不适：
 
 ```markdown
-我写一句 English，但是其后跟的是中文逗号...
+我写一句 English，但是其后跟的是中文逗号 ...
 ```
 
-> 所有的中英文混排，都需要遵循这个设定，不管是不是代码排版。
+- 在所有中文语境中，都使用中文标点，而非英文标点（比如 `,.:()'!` 不能直接出现在中文字符前后）
+
+<!-- markdownlint-disable MD046 -->
+??? warning
+
+    所有的中英文混排，都需要遵循这个设定，不管是不是代码排版。
+<!-- markdownlint-enable -->
 
 ### 404 链接检查 {#404-check}
 

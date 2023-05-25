@@ -14,7 +14,7 @@ Flink 采集器可以从 Flink 实例中采取很多指标，比如 Flink 服务
 
 ## 前置条件 {#requirements}
 
-目前 Flink 官方提供两种 metrics 上报方式: [Prometheus](https://nightlies.apache.org/flink/flink-docs-release-1.14/docs/deployment/metric_reporters/#prometheus){:target="_blank"} 和 [Prometheus PushGateway](https://nightlies.apache.org/flink/flink-docs-release-1.14/docs/deployment/metric_reporters/#prometheuspushgateway){:target="_blank"}。它们主要的区别是:
+目前 Flink 官方提供两种 metrics 上报方式：[Prometheus](https://nightlies.apache.org/flink/flink-docs-release-1.14/docs/deployment/metric_reporters/#prometheus){:target="_blank"} 和 [Prometheus PushGateway](https://nightlies.apache.org/flink/flink-docs-release-1.14/docs/deployment/metric_reporters/#prometheuspushgateway){:target="_blank"}。它们主要的区别是：
 
 - Prometheus PushGateway 方式是把集群所有的 metrics 统一汇报给 PushGateway，所以需要额外安装 PushGateway。
 - Prometheus 方式需要集群每个节点暴露一个唯一端口，不需要额外安装其它软件，但需要 N 个可用端口，配置略微复杂。

@@ -19,7 +19,7 @@ pip install ddtrace
 <!-- markdownlint-disable MD046 -->
 ??? attention
 
-    条命令需要 pip 版本 18.0.0 或更高。 对于 Ubuntu, Debian 或其他的包管理工具, 使用下面的命令升级 pip 版本:
+    条命令需要 pip 版本 18.0.0 或更高。 对于 Ubuntu, Debian 或其他的包管理工具，使用下面的命令升级 pip 版本：
 
     ```shell
     pip install --upgrade pip

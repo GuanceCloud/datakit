@@ -76,7 +76,7 @@
 ???+ attention
 
     - 对象数据采集间隔是 5 分钟，指标数据采集间隔是 20 秒，暂不支持配置
-    - 采集到的日志, 单行（包括经过 `multiline_match` 处理后）最大长度为 32MB，超出部分会被截断且丢弃
+    - 采集到的日志，单行（包括经过 `multiline_match` 处理后）最大长度为 32MB，超出部分会被截断且丢弃
 
 ### Docker 和 Containerd sock 文件配置 {#docker-containerd-sock}
 

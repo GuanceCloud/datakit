@@ -172,7 +172,7 @@ drop_origin_data()       # 丢弃原始日志文本(不建议这么做)
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    用户自定义 pattern 如果需要全局生效（即在其它 Pipeline 脚本中应用），必须放置在 *[Datakit 安装目录]/pipeline/pattern/>* 目录下:
+    用户自定义 pattern 如果需要全局生效（即在其它 Pipeline 脚本中应用），必须放置在 *[Datakit 安装目录]/pipeline/pattern/>* 目录下：
 
     ```Shell
     $ cat pipeline/pattern/datakit
@@ -269,7 +269,7 @@ $ datakit pipeline -P test.p -T "..."
         grok(_, "%{date2:time} \\[%{LOGLEVEL:status}\\] %{GREEDYDATA:msg} ...")
     
         if status != nil {
-            # 此处可再检查上面的 grok 是否匹配上...
+            # 此处可再检查上面的 grok 是否匹配上
         } else {
             # 未识别的日志，或者，在此可再加一个 grok 来处理，如此层层递进
         }

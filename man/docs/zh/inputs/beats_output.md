@@ -6,12 +6,12 @@
 
 ---
 
-本文档主要介绍 [Elastic Beats](https://www.elastic.co/products/beats/){:target="_blank"} 数据采集。目前支持:
+本文档主要介绍 [Elastic Beats](https://www.elastic.co/products/beats/){:target="_blank"} 数据采集。目前支持：
 
 - [Filebeat](https://www.elastic.co/beats/filebeat/){:target="_blank"}
 - [下载地址](http://www.elastic.co/cn/downloads/past-releases/filebeat-7-17-3){:target="_blank"}
 
-已测试的版本:
+已测试的版本：
 
 - [x] 8.6.2
 - [x] 7.17.9
@@ -83,7 +83,7 @@ output.logstash:
 
 这样就实现 Filebeat 采集日志文件 `/Users/mac/Downloads/tmp/1.log` 上报到 Datakit 了。
 
-需要注意的是，**需要将 elasticsearch 的配置 9200 端口给注释掉**，完整的 *filebeat.yml* 文件如下:
+需要注意的是，**需要将 elasticsearch 的配置 9200 端口给注释掉**，完整的 *filebeat.yml* 文件如下：
 
 ```yml
 #--------------------- Filebeat Configuration Example ------------------------#
@@ -316,7 +316,7 @@ processors:
 
 ## 指标集 {#measurements}
 
-以下所有数据采集, 默认会追加名为 `host`(值为 Filebeat 所在主机名) 和 `filepath`(值为 Filebeat 采集文件的全路径) 的全局 tag, 也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签:
+以下所有数据采集，默认会追加名为 `host`(值为 Filebeat 所在主机名) 和 `filepath`(值为 Filebeat 采集文件的全路径) 的全局 tag, 也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
 ``` toml
  [inputs.{{.InputName}}.tags]

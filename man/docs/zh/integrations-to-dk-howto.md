@@ -63,7 +63,7 @@ wget http://yuque-img-url.png -O imgs/input-xxx-2.png
 由于 Resin 是一类 Web 服务器，故在现有 *integrations.pages* 文件中，我们将其跟 Nginx/Apache 放在一起：
 
 ```yaml
-- 'Web 服务器'
+- "Web 服务器"
   - 'Nginx': nginx.md
   - apache.md
   - resin.md

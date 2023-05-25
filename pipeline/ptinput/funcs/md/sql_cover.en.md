@@ -2,7 +2,7 @@
 
 Function prototype: `fn sql_cover(sql_test: str)`
 
-Function description: desensitized sql statement
+Function description: desensitized SQL statement
 
 Example:
 

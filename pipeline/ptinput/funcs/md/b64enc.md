@@ -8,7 +8,7 @@
 
 - `key`: 待提取字段
 
-示例:
+示例：
 
 ```python
 # 待处理数据 {"str": "hello, world"}

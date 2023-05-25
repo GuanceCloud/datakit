@@ -13,7 +13,7 @@
 
 ### log4j(v2) {#log4j-v2}
 
-在 Maven 的配置中导入 log4j 2.x 的 jar 包:
+在 Maven 的配置中导入 log4j 2.x 的 jar 包：
 
 ``` xml
 <dependency>
@@ -40,7 +40,7 @@
      <!--注意：不要开启序列化传输到 socket 采集器上，目前 DataKit 无法反序列化，请使用纯文本形式传输-->
      <!-- <SerializedLayout/>-->
 
-     <!-- 注意: 配置 compact eventEol 一定要是 true  这样单条日志输出为一行-->
+     <!-- 注意：配置 compact eventEol 一定要是 true  这样单条日志输出为一行-->
      <!-- 将日志发送到观测云上后会自动将 JSON 展开，所以在这里建议您将日志单条单行输出 -->
      <!-- <JsonLayout  properties="true" compact="true" complete="false" eventEol="true"/>-->
  </Socket>

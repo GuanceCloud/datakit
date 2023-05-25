@@ -22,7 +22,7 @@ Datakit 支持 `etcd-v3` `consul` `redis` `zookeeper` `aws secrets manager` `nac
     Datakit 通过修改 `/datakit/conf.d/datakit.conf` 引入配置中心的资源。例如：
 
     ```
-    # 原有的其他配置信息...
+    # 原有的其他配置信息
     [[confds]]
       enable = true
       backend = "zookeeper"
@@ -70,7 +70,7 @@ Datakit 支持 `etcd-v3` `consul` `redis` `zookeeper` `aws secrets manager` `nac
       circle_interval = 60 
       confd_namespace =    "confd namespace ID"
       pipeline_namespace = "pipeline namespace ID"
-    # 原有的其他配置信息...
+    # 原有的其他配置信息
     ```
     ???+ attention
 

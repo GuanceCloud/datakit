@@ -4,10 +4,10 @@
 
 函数说明：丢弃初始化文本，否则初始文本放在 message 字段中
 
-示例:
+示例：
 
 ```python
-# 待处理数据: {"age": 17, "name": "zhangsan", "height": 180}
+# 待处理数据：{"age": 17, "name": "zhangsan", "height": 180}
 
 # 结果集中删除 message 内容
 drop_origin_data()

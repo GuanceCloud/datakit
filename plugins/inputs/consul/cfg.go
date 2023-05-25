@@ -30,14 +30,14 @@ func (m *ConsulMeasurement) Info() *inputs.MeasurementInfo {
 			"catalog_services":             newCountFieldInfo("集群中服务数量"),
 			"catalog_service_node_healthy": newUnknownFieldInfo("该服务在该结点上是否健康"),
 			"health_node_status":           newUnknownFieldInfo("结点的健康检查状态"),
-			"serf_lan_member_status":       newUnknownFieldInfo("集群里成员的状态, 其中 1 表示 Alive, 2 表示 Leaving, 3 表示 Left, 4 表示 Failed"),
+			"serf_lan_member_status":       newUnknownFieldInfo("集群里成员的状态。其中 1 表示 Alive/2 表示 Leaving/3 表示 Left/4 表示 Failed"),
 		},
 		Tags: map[string]interface{}{
 			"host":         inputs.NewTagInfo("主机名称"),
 			"node":         inputs.NewTagInfo("结点名称"),
-			"service_id":   inputs.NewTagInfo("服务 id"),
+			"service_id":   inputs.NewTagInfo("服务 ID"),
 			"service_name": inputs.NewTagInfo("服务名称"),
-			"status":       inputs.NewTagInfo("状态, status 有 critical, maintenance, passing, warning 四种"),
+			"status":       inputs.NewTagInfo("状态。status 有 critical/maintenance/passing/warning 四种"),
 			"member":       inputs.NewTagInfo("成员名称"),
 		},
 	}

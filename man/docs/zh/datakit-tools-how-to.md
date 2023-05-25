@@ -267,7 +267,7 @@ datakit install --scheck
 
 ### DataKit eBPF 集成 {#ebpf}
 
-安装 DataKit eBPF 采集器, 当前只支持 `linux/amd64 | linux/arm64` 平台，采集器使用说明见 [DataKit eBPF 采集器](ebpf.md)
+安装 DataKit eBPF 采集器，当前只支持 `linux/amd64 | linux/arm64` 平台，采集器使用说明见 [DataKit eBPF 采集器](ebpf.md)
 
 ```shell
 datakit install --ebpf

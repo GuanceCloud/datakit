@@ -71,7 +71,7 @@ ElectionEnabled() bool
 ```Golang
 func (ipt *Input) Run() {
 
-    // (可选) ...连接资源、准备资源
+    // (可选) ... 连接资源、准备资源
 
     tick := time.NewTicker(ipt.Interval.Duration)
     defer tick.Stop()
@@ -83,7 +83,7 @@ func (ipt *Input) Run() {
         case <-datakit.Exit.Wait():
             return
         case <-ipt.semStop.Wait():
-            // ...其他关闭连接、资源操作
+            // ... 其他关闭连接、资源操作
             return
         default:
         }
@@ -115,7 +115,7 @@ func (ipt *Input) Run() {
 ```Golang
 func (ipt *Input) Run() {
 
-    // (可选) ...连接资源、准备资源
+    // (可选) ..  连接资源、准备资源
 
     tick := time.NewTicker(ipt.Interval.Duration)
     defer tick.Stop()
@@ -127,7 +127,7 @@ func (ipt *Input) Run() {
         case <-datakit.Exit.Wait():
             return
         case <-ipt.semStop.Wait():
-            // ...其他关闭连接、资源操作
+            // ... 其他关闭连接、资源操作
             return
         default:
         }
@@ -159,7 +159,7 @@ func (ipt *Input) Run() {
 ```Golang
 func (ipt *Input) Run() {
 
-    // (可选) ...连接资源、准备资源
+    // (可选) ... 连接资源、准备资源
 
     tick := time.NewTicker(ipt.Interval.Duration)
     defer tick.Stop()
@@ -171,7 +171,7 @@ func (ipt *Input) Run() {
         case <-datakit.Exit.Wait():
             return
         case <-ipt.semStop.Wait():
-            // ...其他关闭连接、资源操作
+            // ... 其他关闭连接、资源操作
             return
         default:
         }
@@ -517,10 +517,10 @@ make pub_production_mac VERSION=<the-new-version>
 
 文档的发布，只能在开发机器上发布，需安装 [MkDocs](https://www.mkdocs.org/){:target="_blank"}。其流程如下：
 
-- 执行 *mkdocs.sh*
+- 执行 *mkdocs.sh*（更多命令行参数，请执行 `./mkdocs.sh -h` 查看）
 
 ``` shell
-./mkdocs.sh <the-new-version>
+./mkdocs.sh
 ```
 
 如果不指定版本，会以最新的一个 tag 名称作为版本号。
@@ -620,7 +620,7 @@ go func() {
 enable_pprof = true
 ```
 
-> 如果是 DaemonSet 安装 Datakit，可注入环境变量:
+> 如果是 DaemonSet 安装 Datakit，可注入环境变量：
 
 ```yaml
 - name: ENV_ENABLE_PPROF

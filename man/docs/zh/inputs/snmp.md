@@ -18,19 +18,19 @@
 
 ## 关于 SNMP 协议 {#config-pre}
 
-SNMP 协议分为 3 个版本: v1/v2c/v3，其中：
+SNMP 协议分为 3 个版本：v1/v2c/v3，其中：
 
-- **v1 和 v2c 是兼容的**。很多 SNMP 设备只提供 v2c 和 v3 两种版本的选择。v2c 版本，兼容性最好，很多旧设备只支持这个版本;
-- 如果对安全性要求高，选用 v3。安全性也是 v3 版本与之前版本的主要区别;
+- **v1 和 v2c 是兼容的**。很多 SNMP 设备只提供 v2c 和 v3 两种版本的选择。v2c 版本，兼容性最好，很多旧设备只支持这个版本；
+- 如果对安全性要求高，选用 v3。安全性也是 v3 版本与之前版本的主要区别；
 
 Datakit 支持以上所有版本。
 
 ### 选择 v1/v2c 版本 {#config-v2}
 
-如果选择 v1/v2c 版本，需要提供 `community string`，中文翻译为「团体名/团体字符串/未加密的口令」，即密码，与 SNMP 设备进行交互需要提供这个进行鉴权。另外，有的设备会进一步进行细分，分为「只读团体名」和「读写团体名」。顾名思义:
+如果选择 v1/v2c 版本，需要提供 `community string`，中文翻译为「团体名/团体字符串/未加密的口令」，即密码，与 SNMP 设备进行交互需要提供这个进行鉴权。另外，有的设备会进一步进行细分，分为「只读团体名」和「读写团体名」。顾名思义：
 
-- 只读团体名: 设备只会向该方提供内部指标数据，不能修改内部的一些配置(DataKit 用这个就够了);
-- 读写团体名: 提供方拥有设备内部指标数据查询与部分配置修改权限;
+- 只读团体名：设备只会向该方提供内部指标数据，不能修改内部的一些配置（Datakit 用这个就够了）
+- 读写团体名：提供方拥有设备内部指标数据查询与部分配置修改权限
 
 ### 选择 v3 版本 {#config-v3}
 
@@ -41,7 +41,7 @@ Datakit 支持以上所有版本。
 <!-- markdownlint-disable MD046 -->
 === "主机安装"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下: 
+    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
     
     ```toml
     {{ CodeBlock .InputSample 4 }}
@@ -57,7 +57,7 @@ Datakit 支持以上所有版本。
 
 ???+ tip
 
-    上述配置完成后，可以使用 `datakit debug --test-input` 命令来测试配置是否正确，示例如下:
+    上述配置完成后，可以使用 `datakit debug --test-input` 命令来测试配置是否正确，示例如下：
 
     ```sh
     sudo datakit debug --test-input /usr/local/datakit/conf.d/snmp/snmp.conf
@@ -67,21 +67,21 @@ Datakit 支持以上所有版本。
 
 ???+ attention
 
-    1. 上面配置的 `inputs.snmp.tags` 中如果与原始 fields 中的 key 同名重复，则会被原始数据覆盖;
-    2. 设备的 IP 地址(指定设备模式)/网段(自动发现模式)、SNMP 协议的版本号及相对应的鉴权字段是必填字段;
-    3. "指定设备" 模式和 "自动发现" 模式，两种模式可以共存，但设备间的 SNMP 协议的版本号及相对应的鉴权字段必须保持一致;
+    1. 上面配置的 `inputs.snmp.tags` 中如果与原始 fields 中的 key 同名重复，则会被原始数据覆盖
+    2. 设备的 IP 地址(指定设备模式)/网段(自动发现模式)、SNMP 协议的版本号及相对应的鉴权字段是必填字段
+    3. 「指定设备」模式和「自动发现」模式，两种模式可以共存，但设备间的 SNMP 协议的版本号及相对应的鉴权字段必须保持一致
 <!-- markdownlint-enable -->
 
 ### 配置 SNMP {#config-snmp}
 
-- 在设备侧, 配置 SNMP 协议
+- 在设备侧，配置 SNMP 协议
 
-SNMP 设备在默认情况下, 一般 SNMP 协议处于关闭状态, 需要进入管理界面手动打开。同时, 需要根据实际情况选择协议版本和填写相应信息。
+SNMP 设备在默认情况下，一般 SNMP 协议处于关闭状态，需要进入管理界面手动打开。同时，需要根据实际情况选择协议版本和填写相应信息。
 
 <!-- markdownlint-disable MD046 -->
 ???+ tip
 
-    有些设备为了安全需要额外配置放行 SNMP，具体因设备而异。比如华为系防火墙，需要在 "启用访问管理" 中勾选 SNMP 以放行。可以使用 `snmpwalk` 命令来测试采集侧与设备侧是否配置连通成功(在 Datakit 运行的主机上运行以下命令):
+    有些设备为了安全需要额外配置放行 SNMP，具体因设备而异。比如华为系防火墙，需要在 "启用访问管理" 中勾选 SNMP 以放行。可以使用 `snmpwalk` 命令来测试采集侧与设备侧是否配置连通成功（在 Datakit 运行的主机上运行以下命令）：
 
     ```shell
     # 适用 v2c 版本
@@ -90,7 +90,7 @@ SNMP 设备在默认情况下, 一般 SNMP 协议处于关闭状态, 需要进�
     snmpwalk -v 3 -u user -l authPriv -a sha -A [认证密码] -x aes -X [加密密码] [SNMP_DEVICE_IP] 1.3.6
     ```
 
-    如果配置没有问题的话，该命令会输出大量数据。`snmpwalk` 是运行在采集侧的一个测试工具，MacOS 下自带，Linux 安装方法: 
+    如果配置没有问题的话，该命令会输出大量数据。`snmpwalk` 是运行在采集侧的一个测试工具，MacOS 下自带，Linux 安装方法：
 
     ```shell
     sudo yum install net-snmp net-snmp-utils # CentOS
@@ -98,7 +98,7 @@ SNMP 设备在默认情况下, 一般 SNMP 协议处于关闭状态, 需要进�
     ```
 <!-- markdownlint-enable -->
 
-- 在 DataKit 侧, 配置采集。
+- 在 DataKit 侧，配置采集。
 
 ## 高级功能 {#advanced-features}
 
@@ -108,7 +108,7 @@ SNMP 设备在默认情况下, 一般 SNMP 协议处于关闭状态, 需要进�
 
 设备的所有 OID 一般都可以在其官网上下载。Datakit 定义了一些通用的 OID，以及 Cisco/Dell/HP 等部分设备。根据 SNMP 协议，各设备生产商可以自定义 [OID](https://www.dpstele.com/snmp/what-does-oid-network-elements.php){:target="_blank"}，用于标识其内部特殊对象。如果想要标识这些，你需要自定义设备的配置(我们这里称这种配置为 Profile，即 "自定义 Profile")，方法如下。
 
-要增加指标或者自定义配置，需要列出 MIB name, table name, table OID, symbol 和 symbol OID，例如:
+要增加指标或者自定义配置，需要列出 MIB name, table name, table OID, symbol 和 symbol OID，例如：
 
 ```yaml
 - MIB: EXAMPLE-MIB
@@ -126,7 +126,7 @@ SNMP 设备在默认情况下, 一般 SNMP 协议处于关闭状态, 需要进�
 
 下面是一个操作示例。
 
-在 Datakit 的安装目录的路径 `conf.d/snmp/profiles` 下，如下所示创建 yml 文件 `cisco-3850.yaml` (这里以 Cisco 3850 为例):
+在 Datakit 的安装目录的路径 `conf.d/snmp/profiles` 下，如下所示创建 yml 文件 `cisco-3850.yaml`（这里以 Cisco 3850 为例）：
 
 ``` yaml
 # Backward compatibility shim. Prefer the Cisco Catalyst profile directly
@@ -165,7 +165,7 @@ metadata:
 
 ## 指标集 {#measurements}
 
-以下所有数据采集，默认会追加名为 `host`(值为 SNMP 设备的名称)，也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签:
+以下所有数据采集，默认会追加名为 `host`（值为 SNMP 设备的名称），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
 ``` toml
 [inputs.{{.InputName}}.tags]

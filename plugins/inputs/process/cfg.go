@@ -58,14 +58,14 @@ func (m *ProcessMetric) LineProto() (*point.Point, error) {
 func (m *ProcessMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: inputName,
-		Desc: "采集进程指标数据,包括 CPU/内存使用率等",
+		Desc: "采集进程指标数据，包括 CPU/内存使用率等",
 		Type: "metric",
 		Fields: map[string]interface{}{
 			"threads":          newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "线程数"),
 			"rss":              newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.SizeByte, "Resident Set Size （常驻内存大小）"),
-			"cpu_usage":        newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "CPU 使用占比（%*100），进程自启动以来所占 CPU 百分比，该值相对会比较稳定（跟 `top` 的瞬时百分比不同）"),
-			"cpu_usage_top":    newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "CPU 使用占比（%*100）, 一个采集周期内的进程的 CPU 使用率均值"),
-			"mem_used_percent": newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "内存使用占比（%*100）"),
+			"cpu_usage":        newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "CPU 使用占比，进程自启动以来所占 CPU 百分比，该值相对会比较稳定（跟 `top` 的瞬时百分比不同）"),
+			"cpu_usage_top":    newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "CPU 使用占比，一个采集周期内的进程的 CPU 使用率均值"),
+			"mem_used_percent": newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "内存使用占比"),
 			"open_files":       newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "打开文件个数(仅支持 Linux)"),
 		},
 		Tags: map[string]interface{}{
@@ -100,7 +100,7 @@ func (m *ProcessObject) Info() *inputs.MeasurementInfo {
 			"threads":          newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "线程数"),
 			"rss":              newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.SizeByte, "Resident Set Size （常驻内存大小）"),
 			"pid":              newOtherFieldInfo(inputs.Int, inputs.UnknownType, inputs.UnknownUnit, "进程 ID"),
-			"cpu_usage":        newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "CPU 使用占比（%*100）,进程自启动以来所占 CPU 百分比，该值相对会比较稳定（跟 `top` 的瞬时百分比不同）"),
+			"cpu_usage":        newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "CPU 使用占比（%*100），进程自启动以来所占 CPU 百分比，该值相对会比较稳定（跟 `top` 的瞬时百分比不同）"),
 			"cpu_usage_top":    newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "CPU 使用占比（%*100）, 一个采集周期内的进程的 CPU 使用率均值"),
 			"mem_used_percent": newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "内存使用占比（%*100）"),
 			"open_files":       newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "打开的文件个数(仅支持 Linux)"),
@@ -110,8 +110,8 @@ func (m *ProcessObject) Info() *inputs.MeasurementInfo {
 			"state_zombie":     newOtherFieldInfo(inputs.Bool, inputs.Gauge, inputs.UnknownUnit, "是否是僵尸进程"),
 		},
 		Tags: map[string]interface{}{
-			"name":         inputs.NewTagInfo("name 字段，由 host_pid 组成"),
-			"class":        inputs.NewTagInfo("分类: host_processes"),
+			"name":         inputs.NewTagInfo("name 字段，由 `[host-name]_[pid]` 组成"),
+			"class":        inputs.NewTagInfo("固定为 `host_processes`"),
 			"username":     inputs.NewTagInfo("用户名"),
 			"host":         inputs.NewTagInfo("主机名"),
 			"state":        inputs.NewTagInfo("进程状态，暂不支持 Windows"),
