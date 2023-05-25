@@ -109,14 +109,14 @@ const clusterHealthResponseWithIndices = `
 `
 
 var clusterHealthExpected = map[string]interface{}{
-	"status_code": int64(1),
-	"number_of_data_nodes": int64(3),
-	"active_primary_shards": int64(5),
-	"active_shards":         int64(15),
-	"relocating_shards":     int64(0),
-	"initializing_shards":   int64(0),
-	"unassigned_shards":     int64(0),
-	"number_of_pending_tasks": int64(0),
+	"status_code":                   int64(1),
+	"number_of_data_nodes":          int64(3),
+	"active_primary_shards":         int64(5),
+	"active_shards":                 int64(15),
+	"relocating_shards":             int64(0),
+	"initializing_shards":           int64(0),
+	"unassigned_shards":             int64(0),
+	"number_of_pending_tasks":       int64(0),
 	"indices_lifecycle_error_count": int64(0),
 }
 
