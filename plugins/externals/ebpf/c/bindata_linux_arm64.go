@@ -19,12 +19,20 @@ func NetFlowBin() ([]byte, error) {
 	return binData.ReadFile("bin/arm64/netflow.o")
 }
 
+func ConntrackBin() ([]byte, error) {
+	return binData.ReadFile("bin/arm64/conntrack.o")
+}
+
 func OffsetGuessBin() ([]byte, error) {
 	return binData.ReadFile("bin/arm64/offset_guess.o")
 }
 
 func OffsetHttpflowBin() ([]byte, error) {
 	return binData.ReadFile("bin/arm64/offset_httpflow.o")
+}
+
+func OffsetConntrackBin() ([]byte, error) {
+	return binData.ReadFile("bin/arm64/offset_conntrack.o")
 }
 
 func BashHistoryBin() ([]byte, error) {

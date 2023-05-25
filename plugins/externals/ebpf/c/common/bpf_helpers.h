@@ -11,7 +11,7 @@
 
 
 
-#ifdef __DK_DEBUG__
+// #ifdef __DK_DEBUG__
 /* helper macro to print out debug messages */
 #define bpf_printk(fmt, ...)                       \
 	({                                             \
@@ -19,9 +19,9 @@
 		bpf_trace_printk(____fmt, sizeof(____fmt), \
 						 ##__VA_ARGS__);           \
 	})
-#else
-#define bpf_printk(fmt, ...)
-#endif
+// #else
+// #define bpf_printk(fmt, ...)
+// #endif
 
 #ifdef __clang__
 
@@ -103,6 +103,13 @@ struct bpf_map_def
 	unsigned int pinning;
 	char namespace[BUF_SIZE_MAP_NS];
 };
+
+#define BPF_HASH_MAP(map_name, key_type, value_type, map_max_entries) \
+	struct bpf_map_def SEC("maps/" #map_name) map_name = {            \
+		.type = BPF_MAP_TYPE_HASH,                            \
+		.key_size = sizeof(key_type),                         \
+		.value_size = sizeof(value_type),                    \
+		.max_entries = map_max_entries};
 
 static int (*bpf_skb_load_bytes)(void *ctx, int off, void *to, int len) =
 	(void *)BPF_FUNC_skb_load_bytes;

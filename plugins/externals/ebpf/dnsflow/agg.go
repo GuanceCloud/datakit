@@ -15,11 +15,7 @@ import (
 )
 
 type aggKey struct {
-	sAddr string
-	dAddr string
-
-	sPort uint32
-	dPort uint32
+	dknetflow.BaseKey
 
 	sType string
 	dType string
@@ -27,7 +23,6 @@ type aggKey struct {
 	rcode int
 
 	family    string
-	transport string
 	direction string
 }
 
@@ -56,25 +51,25 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 		"family": key.family,
 
 		"direction": key.direction,
-		"transport": key.transport,
+		"transport": key.Transport,
 
-		"src_ip": key.sAddr,
-		"dst_ip": key.dAddr,
+		"src_ip": key.SAddr,
+		"dst_ip": key.DAddr,
 
 		"src_ip_type": key.sType,
 		"dst_ip_type": key.dType,
 	}
 
-	if key.sPort == math.MaxUint32 {
+	if key.SPort == math.MaxUint32 {
 		tags["src_port"] = "*"
 	} else {
-		tags["src_port"] = strconv.FormatInt(int64(key.sPort), 10)
+		tags["src_port"] = strconv.FormatInt(int64(key.SPort), 10)
 	}
 
-	if key.dPort == math.MaxUint32 {
+	if key.DPort == math.MaxUint32 {
 		tags["dst_port"] = "*"
 	} else {
-		tags["dst_port"] = strconv.FormatInt(int64(key.dPort), 10)
+		tags["dst_port"] = strconv.FormatInt(int64(key.DPort), 10)
 	}
 
 	for k, v := range addTags {
@@ -90,8 +85,7 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 		"count":       value.count,
 	}
 
-	tags = dknetflow.AddK8sTags2Map(k8sNetInfo, key.sAddr, key.dAddr,
-		key.sPort, key.dPort, key.transport, tags)
+	tags = dknetflow.AddK8sTags2Map(k8sNetInfo, &key.BaseKey, tags)
 	return client.NewPoint(srcNameM, tags, fields, pTime)
 }
 
@@ -113,27 +107,27 @@ func (agg *FlowAgg) Append(dnsKey DNSQAKey, stats DNSStats) error {
 	key.rcode = stats.RCODE
 	// transport
 	if dnsKey.IsUDP {
-		key.transport = "udp"
+		key.Transport = "udp"
 	} else {
-		key.transport = "tcp"
+		key.Transport = "tcp"
 	}
 
 	// direction
 	key.direction = dknetflow.DirectionOutgoing
 
 	// port
-	key.sPort = uint32(dnsKey.ClientPort)
-	key.dPort = uint32(dnsKey.ServerPort)
-	if key.sPort != 53 {
-		key.sPort = math.MaxUint32
+	key.SPort = uint32(dnsKey.ClientPort)
+	key.DPort = uint32(dnsKey.ServerPort)
+	if key.SPort != 53 {
+		key.SPort = math.MaxUint32
 	}
-	if key.dPort != 53 {
-		key.dPort = math.MaxUint32
+	if key.DPort != 53 {
+		key.DPort = math.MaxUint32
 	}
 
 	// ip
-	key.sAddr = dknetflow.U32BEToIP(dnsKey.ClientIP, !dnsKey.IsV4).String()
-	key.dAddr = dknetflow.U32BEToIP(dnsKey.ServerIP, !dnsKey.IsV4).String()
+	key.SAddr = dknetflow.U32BEToIP(dnsKey.ClientIP, !dnsKey.IsV4).String()
+	key.DAddr = dknetflow.U32BEToIP(dnsKey.ServerIP, !dnsKey.IsV4).String()
 
 	// ip type
 	if dnsKey.IsV4 {
@@ -155,9 +149,9 @@ func (agg *FlowAgg) Append(dnsKey DNSQAKey, stats DNSStats) error {
 		// swap ip type
 		key.sType, key.dType = key.dType, key.sType
 		// swap ip addr
-		key.sAddr, key.dAddr = key.dAddr, key.sAddr
+		key.SAddr, key.DAddr = key.DAddr, key.SAddr
 		// swap port
-		key.sPort, key.dPort = key.dPort, key.sPort
+		key.SPort, key.DPort = key.DPort, key.SPort
 	}
 
 	// agg latency and count ++

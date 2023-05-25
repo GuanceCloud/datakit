@@ -33,6 +33,8 @@ Network data collection supports the collection of TCP/UDP network traffic infor
     |dst_ip|Destination IP address.|
     |dst_port|Destination port.|
     |dst_ip_type|Destination IP type. (other/private/multicast)|
+    |dst_nat_ip| For data containing the `outging` tag, this value is the ip after the dnat operation |
+    |dst_nat_port| For data containing the `outging` tag, this value is the port after the dnat operation |
     |dst_domain|Destination domain.|
     |src_k8s_pod_name|Source K8s pod name.|
     |src_k8s_deployment_name|Source K8s deployment name.|
@@ -71,6 +73,8 @@ Network data collection supports the collection of TCP/UDP network traffic infor
     |dst_ip|Destination IP address.|
     |dst_port|Destination port.|
     |dst_ip_type|Destination IP type. (other/private/multicast)|
+    |dst_nat_ip| For data containing the `outging` tag, this value is the ip after the dnat operation |
+    |dst_nat_port| For data containing the `outging` tag, this value is the port after the dnat operation |
     |dst_domain|Destination domain.|
     |src_k8s_pod_name|Source K8s pod name.|
     |src_k8s_deployment_name|Source K8s deployment name.|

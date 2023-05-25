@@ -75,10 +75,15 @@ struct connection_stats
     __u64 sent_packets;
     __u64 recv_packets;
 
+    __u64 timestamp;
     __u32 flags; // tcp three-way handshake
+
+    __be32 nat_daddr[4]; // dst ip address
+    __u16 nat_dport;     // dst port
+
     __u8 direction;
 
-    __u64 timestamp;
+    __u8 _pad0;
 };
 
 struct connection_tcp_stats
@@ -107,6 +112,5 @@ struct pid_fd
     __u32 pid;
     __s32 fd;
 };
-
 
 #endif // !__CONN_STATS_H

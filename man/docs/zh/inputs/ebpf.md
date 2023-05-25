@@ -6,7 +6,7 @@
 
 ---
 
-eBPF 采集器，采集主机网络 TCP、UDP 连接信息，Bash 执行日志等。本采集器主要包含 `ebpf-net` 及 `ebpf-bash` 俩类：
+eBPF 采集器，采集主机网络 TCP、UDP 连接信息，Bash 执行日志等。本采集器主要包含 `ebpf-net`、`ebpf-conntrack` 及 `ebpf-bash` 三个插件：
 
 - `ebpf-net`:
     - 数据类别：Network
@@ -16,6 +16,9 @@ eBPF 采集器，采集主机网络 TCP、UDP 连接信息，Bash 执行日志�
 
     - 数据类别：Logging
     - 采集 Bash 的执行日志，包含 Bash 进程号、用户名、执行的命令和时间等；
+
+- `ebpf-conntrack`: [:octicons-tag-24: Version-1.8.0](changelog.md#cl-1.8.0) · [:octicons-beaker-24: Experimental](index.md#experimental)
+    - 往网络流数据上添加两个标签 `dst_nat_ip` 和 `dst_nat_port`；
 
 ## 前置条件 {#requirements}
 
@@ -129,7 +132,7 @@ setenforce 0
     
     | 环境变量名                                    | 对应的配置参数项                 | 参数示例                    |
     | :---                                        | ---                           | ---                        |
-    | `ENV_INPUT_EBPF_ENABLED_PLUGINS`            | `enabled_plugins`             | `ebpf-net,ebpf-bash`       |
+    | `ENV_INPUT_EBPF_ENABLED_PLUGINS`            | `enabled_plugins`             | `ebpf-net,ebpf-bash,ebpf-conntrack`       |
     | `ENV_INPUT_EBPF_L7NET_ENABLED`              | `l7net_enabled`               | `httpflow,httpflow-tls`    |
     | `ENV_INPUT_EBPF_IPV6_DISABLED`              | `ipv6_disabled`               | `false/true`               |
     | `ENV_INPUT_EBPF_EPHEMERAL_PORT`             | `ephemeral_port`              | `32768`                    |

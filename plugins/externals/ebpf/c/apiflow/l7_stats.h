@@ -17,7 +17,7 @@ typedef enum
     HTTP_REQ_UNKNOWN = 0b00,
     HTTP_REQ_REQ = 0b01,
     HTTP_REQ_RESP = 0b10
-}  req_resp_t;
+} req_resp_t;
 
 // Need to associate payload and conn info.
 struct payload_id
@@ -59,6 +59,11 @@ struct layer7_http
     __u32 http_version;
     __u32 status_code;
     __u64 resp_ts;
+
+    __be32 nat_daddr[4]; // dst ip address
+    __u16 nat_dport;     // dst port
+    __u16 _pad0;
+    __u32 _pad1;
 };
 
 struct http_req_finished
@@ -66,7 +71,6 @@ struct http_req_finished
     struct connection_info conn_info;
     struct layer7_http http;
 };
-
 
 struct ssl_read_args
 {

@@ -70,13 +70,15 @@ func (tracer *NetFlowTracer) ClosedEventHandler(cpu int, data []byte,
 	eventC := (*ConncetionClosedInfoC)(unsafe.Pointer(&data[0])) //nolint:gosec
 	event := &ConncetionClosedInfo{
 		Info: ConnectionInfo{
-			Saddr: (*(*[4]uint32)(unsafe.Pointer(&eventC.conn_info.saddr))), //nolint:gosec
-			Daddr: (*(*[4]uint32)(unsafe.Pointer(&eventC.conn_info.daddr))), //nolint:gosec
-			Sport: uint32(eventC.conn_info.sport),
-			Dport: uint32(eventC.conn_info.dport),
-			Pid:   uint32(eventC.conn_info.pid),
-			Netns: uint32(eventC.conn_info.netns),
-			Meta:  uint32(eventC.conn_info.meta),
+			Saddr:    (*(*[4]uint32)(unsafe.Pointer(&eventC.conn_info.saddr))), //nolint:gosec
+			Daddr:    (*(*[4]uint32)(unsafe.Pointer(&eventC.conn_info.daddr))), //nolint:gosec
+			Sport:    uint32(eventC.conn_info.sport),
+			Dport:    uint32(eventC.conn_info.dport),
+			Pid:      uint32(eventC.conn_info.pid),
+			Netns:    uint32(eventC.conn_info.netns),
+			Meta:     uint32(eventC.conn_info.meta),
+			NATDaddr: (*(*[4]uint32)(unsafe.Pointer(&eventC.conn_stats.nat_daddr))), //nolint:gosec
+			NATDport: uint32(eventC.conn_stats.nat_dport),
 		},
 		Stats: ConnectionStats{
 			SentBytes: uint64(eventC.conn_stats.sent_bytes),
@@ -117,7 +119,7 @@ func (tracer *NetFlowTracer) bpfMapCleanup(cl []ConnectionInfo, connStatsMap *eb
 }
 
 // Lock resource connStatsRecord while scanning connStatMap.
-func (tracer *NetFlowTracer) connCollectHanllder(ctx context.Context, connStatsMap *ebpf.Map, tcpStatsMap *ebpf.Map,
+func (tracer *NetFlowTracer) connCollectHanllder(ctx context.Context, connStatsMap, tcpStatsMap *ebpf.Map,
 	interval time.Duration, gTags map[string]string, datakitPostURL string,
 ) {
 	ticker := time.NewTicker(interval)
@@ -148,13 +150,15 @@ func (tracer *NetFlowTracer) connCollectHanllder(ctx context.Context, connStatsM
 			// and unclosed connections in the previous collection cycle.
 			for iter.Next(unsafe.Pointer(&connInfoC), unsafe.Pointer(&connStatsC)) { //nolint:gosec
 				connInfo := ConnectionInfo{
-					Saddr: (*(*[4]uint32)(unsafe.Pointer(&connInfoC.saddr))), //nolint:gosec
-					Daddr: (*(*[4]uint32)(unsafe.Pointer(&connInfoC.daddr))), //nolint:gosec
-					Sport: uint32(connInfoC.sport),
-					Dport: uint32(connInfoC.dport),
-					Pid:   uint32(connInfoC.pid),
-					Netns: uint32(connInfoC.netns),
-					Meta:  uint32(connInfoC.meta),
+					Saddr:    (*(*[4]uint32)(unsafe.Pointer(&connInfoC.saddr))), //nolint:gosec
+					Daddr:    (*(*[4]uint32)(unsafe.Pointer(&connInfoC.daddr))), //nolint:gosec
+					Sport:    uint32(connInfoC.sport),
+					Dport:    uint32(connInfoC.dport),
+					Pid:      uint32(connInfoC.pid),
+					Netns:    uint32(connInfoC.netns),
+					Meta:     uint32(connInfoC.meta),
+					NATDaddr: (*(*[4]uint32)(unsafe.Pointer(&connStatsC.nat_daddr))), //nolint:gosec
+					NATDport: uint32(connStatsC.nat_dport),
 				}
 
 				SrcIPPortRecorder.InsertAndUpdate(connInfo.Saddr)

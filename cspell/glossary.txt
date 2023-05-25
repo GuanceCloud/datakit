@@ -134,6 +134,7 @@ OTLP
 RUM
 SAAS
 SNMP
+DNAT
 
 # 合成词
 agentid

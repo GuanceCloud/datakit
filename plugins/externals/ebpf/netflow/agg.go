@@ -9,24 +9,30 @@ import (
 	"time"
 
 	client "github.com/influxdata/influxdb1-client/v2"
-	"github.com/spf13/cast"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/k8sinfo"
 )
 
+type BaseKey struct {
+	SAddr string
+	DAddr string
+
+	SPort uint32
+	DPort uint32
+
+	Transport string
+
+	DNATAddr string
+	DNATPort uint32
+}
+
 type aggKey struct {
-	sAddr string
-	dAddr string
-
-	sPort uint32
-	dPort uint32
-
+	BaseKey
 	sType string
 	dType string
 
 	pid int
 
 	family    string
-	transport string
 	direction string
 }
 
@@ -63,15 +69,23 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 		"family": key.family,
 
 		"direction": key.direction,
-		"transport": key.transport,
+		"transport": key.Transport,
 
-		"src_ip": key.sAddr,
-		"dst_ip": key.dAddr,
+		"src_ip": key.SAddr,
+		"dst_ip": key.DAddr,
 
 		"src_ip_type": key.sType,
 		"dst_ip_type": key.dType,
 
 		"pid": strconv.FormatInt(int64(key.pid), 10),
+	}
+
+	if key.DNATAddr != "" && key.DNATPort != 0 {
+		tags["dst_nat_ip"] = key.DNATAddr
+		tags["dst_nat_port"] = strconv.FormatInt(int64(key.DNATPort), 10)
+	} else {
+		tags["dst_nat_ip"] = NoValue
+		tags["dst_nat_port"] = NoValue
 	}
 
 	if procName, ok := pidMap[key.pid]; ok {
@@ -80,20 +94,20 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 		tags["process_name"] = NoValue
 	}
 
-	if key.sPort == math.MaxUint32 {
+	if key.SPort == math.MaxUint32 {
 		tags["src_port"] = "*"
 	} else {
-		tags["src_port"] = cast.ToString(key.sPort)
+		tags["src_port"] = strconv.FormatInt(int64(key.SPort), 10)
 	}
 
-	if key.dPort == math.MaxUint32 {
+	if key.DPort == math.MaxUint32 {
 		tags["dst_port"] = "*"
 	} else {
-		tags["dst_port"] = cast.ToString(key.dPort)
+		tags["dst_port"] = strconv.FormatInt(int64(key.DPort), 10)
 	}
 
 	if dnsRecord != nil {
-		tags["dst_domain"] = dnsRecord.LookupAddr(key.dAddr)
+		tags["dst_domain"] = dnsRecord.LookupAddr(key.DAddr)
 	}
 
 	for k, v := range addTags {
@@ -104,7 +118,7 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 
 	var fields map[string]any
 
-	if key.transport == transportTCP {
+	if key.Transport == transportTCP {
 		fields = map[string]any{
 			"bytes_read":      value.bytesRead,
 			"bytes_written":   value.bytesWritten,
@@ -121,8 +135,7 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 		}
 	}
 
-	tags = AddK8sTags2Map(k8sNetInfo, key.sAddr, key.dAddr,
-		key.sPort, key.dPort, key.transport, tags)
+	tags = AddK8sTags2Map(k8sNetInfo, &key.BaseKey, tags)
 	return client.NewPoint(srcNameM, tags, fields, pTime)
 }
 
@@ -170,36 +183,41 @@ func (agg *FlowAgg) Append(info ConnectionInfo, stats ConnFullStats) error {
 	}
 
 	// saddr, daddr
-	key.sAddr = U32BEToIP(info.Saddr, isV6).String()
-	key.dAddr = U32BEToIP(info.Daddr, isV6).String()
+	key.SAddr = U32BEToIP(info.Saddr, isV6).String()
+	key.DAddr = U32BEToIP(info.Daddr, isV6).String()
+	if info.NATDport != 0 && (info.NATDaddr[0]|
+		info.NATDaddr[1]|info.NATDaddr[2]|info.NATDaddr[3]) != 0 {
+		key.DNATPort = info.NATDport
+		key.DNATAddr = U32BEToIP(info.NATDaddr, isV6).String()
+	}
 
 	// sport, dport
-	key.sPort = info.Sport
-	key.dPort = info.Dport
+	key.SPort = info.Sport
+	key.DPort = info.Dport
 
 	// transport
 	if ConnProtocolIsTCP(info.Meta) {
-		key.transport = transportTCP
+		key.Transport = transportTCP
 	} else {
-		key.transport = transportUDP
+		key.Transport = transportUDP
 	}
 
 	// direction
 	key.direction = ConnDirection2Str(stats.Stats.Direction)
 
-	if IsIncomingFromK8s(k8sNetInfo, key.sAddr,
-		key.sPort, key.transport) {
+	if IsIncomingFromK8s(k8sNetInfo, key.SAddr,
+		key.SPort, key.Transport) {
 		key.direction = DirectionIncoming
 	}
 
 	switch key.direction {
 	case DirectionOutgoing:
-		if IsEphemeralPort(key.sPort) {
-			key.sPort = math.MaxUint32
+		if IsEphemeralPort(key.SPort) {
+			key.SPort = math.MaxUint32
 		}
 	case DirectionIncoming:
-		if IsEphemeralPort(key.dPort) {
-			key.dPort = math.MaxUint32
+		if IsEphemeralPort(key.DPort) {
+			key.DPort = math.MaxUint32
 		}
 	}
 
@@ -221,7 +239,7 @@ func (agg *FlowAgg) Append(info ConnectionInfo, stats ConnFullStats) error {
 	value.bytesRead += int64(stats.Stats.RecvBytes)
 	value.bytesWritten += int64(stats.Stats.SentBytes)
 
-	if key.transport == transportTCP {
+	if key.Transport == transportTCP {
 		value.rtt = append(value.rtt, int64(stats.TCPStats.Rtt))
 		value.rttVar = append(value.rttVar, int64(stats.TCPStats.RttVar))
 		value.retransmits += int64(stats.TCPStats.Retransmits)

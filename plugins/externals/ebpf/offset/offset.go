@@ -336,7 +336,7 @@ func guessTCP4(serverAddr string, conninfo Conninfo, ebpfMapGuess *ebpf.Map,
 		return err
 	}
 	if statusAct.state == 0 { // lost
-		l.Error(statusAct.pid_tgid)
+		l.Warn(statusAct.pid_tgid)
 		time.Sleep(time.Millisecond * 20)
 		return nil
 	}

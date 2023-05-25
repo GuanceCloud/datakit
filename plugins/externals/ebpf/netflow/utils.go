@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/DataDog/ebpf"
 	"github.com/DataDog/ebpf/manager"
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
@@ -125,7 +126,7 @@ func (record *srcIPPortRecorder) AutoClean() {
 	}
 }
 
-func NewNetFlowManger(constEditor []manager.ConstantEditor, closedEventHandler func(cpu int, data []byte,
+func NewNetFlowManger(constEditor []manager.ConstantEditor, ctMap *ebpf.Map, closedEventHandler func(cpu int, data []byte,
 	perfmap *manager.PerfMap, manager *manager.Manager),
 ) (*manager.Manager, error) {
 	// Some kretprobe type programs need to set maxactive， https://www.kernel.org/doc/Documentation/kprobes.txt.
@@ -192,6 +193,13 @@ func NewNetFlowManger(constEditor []manager.ConstantEditor, closedEventHandler f
 		},
 		ConstantEditors: constEditor,
 	}
+
+	if ctMap != nil {
+		mOpts.MapEditors = map[string]*ebpf.Map{
+			"bpfmap_conntrack_tuple": ctMap,
+		}
+	}
+
 	if buf, err := dkebpf.NetFlowBin(); err != nil {
 		return nil, fmt.Errorf("netflow.o: %w", err)
 	} else if err := m.InitWithOptions((bytes.NewReader(buf)), mOpts); err != nil {
@@ -280,7 +288,14 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
 	mTags["direction"] = ConnDirection2Str(v.Stats.Direction)
 
 	// add K8s tags
-	mTags = AddK8sTags2Map(k8sNetInfo, srcIP, dstIP, k.Sport, k.Dport, l4proto, mTags)
+
+	mTags = AddK8sTags2Map(k8sNetInfo, &BaseKey{
+		SAddr:     srcIP,
+		DAddr:     dstIP,
+		SPort:     k.Sport,
+		DPort:     k.Dport,
+		Transport: l4proto,
+	}, mTags)
 
 	return point.NewPoint(name, mTags, mFields, ptOpt)
 }
@@ -294,28 +309,33 @@ func IsIncomingFromK8s(k8sNetInfo *k8sinfo.K8sNetInfo, srcIP string,
 	return false
 }
 
-func AddK8sTags2Map(k8sNetInfo *k8sinfo.K8sNetInfo, srcIP, dstIP string,
-	srcPort, dstPort uint32, transport string, mTags map[string]string,
+func AddK8sTags2Map(k8sNetInfo *k8sinfo.K8sNetInfo,
+	basekey *BaseKey, mTags map[string]string,
 ) map[string]string {
 	if mTags == nil {
 		mTags = map[string]string{}
 	}
 
+	if basekey == nil {
+		return mTags
+	}
+
 	if k8sNetInfo != nil {
 		srcK8sFlag := false
 		dstK8sFlag := false
-		if k8sNetInfo.IsServer(srcIP, srcPort, transport) {
+		if k8sNetInfo.IsServer(basekey.SAddr, basekey.SPort, basekey.Transport) {
 			mTags["direction"] = DirectionIncoming
 		}
-		if srcPoName, srcSvcName, ns, srcDeployment, err := k8sNetInfo.QueryPodInfo(srcIP,
-			srcPort, transport); err == nil {
+		if srcPoName, srcSvcName, ns, srcDeployment, err := k8sNetInfo.QueryPodInfo(
+			basekey.SAddr, basekey.SPort, basekey.Transport); err == nil {
 			srcK8sFlag = true
 			mTags["src_k8s_namespace"] = ns
 			mTags["src_k8s_pod_name"] = srcPoName
 			mTags["src_k8s_service_name"] = srcSvcName
 			mTags["src_k8s_deployment_name"] = srcDeployment
 		} else {
-			srcSvcName, ns, dp, err := k8sNetInfo.QuerySvcInfo(srcIP, srcPort, transport)
+			srcSvcName, ns, dp, err := k8sNetInfo.QuerySvcInfo(
+				basekey.SAddr, basekey.SPort, basekey.Transport)
 			if err == nil {
 				srcK8sFlag = true
 				mTags["src_k8s_namespace"] = ns
@@ -325,8 +345,18 @@ func AddK8sTags2Map(k8sNetInfo *k8sinfo.K8sNetInfo, srcIP, dstIP string,
 			}
 		}
 
-		if dstPodName, dstSvcName, ns, dstDeployment, err := k8sNetInfo.QueryPodInfo(dstIP,
-			dstPort, transport); err == nil {
+		if basekey.DNATAddr != "" && basekey.DNATPort != 0 {
+			if dstPodName, dstSvcName, ns, dstDeployment, err := k8sNetInfo.QueryPodInfo(
+				basekey.DNATAddr, basekey.DNATPort, basekey.Transport); err == nil {
+				mTags["dst_k8s_namespace"] = ns
+				mTags["dst_k8s_pod_name"] = dstPodName
+				mTags["dst_k8s_service_name"] = dstSvcName
+				mTags["dst_k8s_deployment_name"] = dstDeployment
+			}
+		}
+
+		if dstPodName, dstSvcName, ns, dstDeployment, err := k8sNetInfo.QueryPodInfo(
+			basekey.DAddr, basekey.DPort, basekey.Transport); err == nil {
 			// k.dport
 			dstK8sFlag = true
 			mTags["dst_k8s_namespace"] = ns
@@ -334,11 +364,11 @@ func AddK8sTags2Map(k8sNetInfo *k8sinfo.K8sNetInfo, srcIP, dstIP string,
 			mTags["dst_k8s_service_name"] = dstSvcName
 			mTags["dst_k8s_deployment_name"] = dstDeployment
 		} else {
-			dstSvcName, ns, dp, err := k8sNetInfo.QuerySvcInfo(dstIP, dstPort, transport)
+			dstSvcName, ns, dp, err := k8sNetInfo.QuerySvcInfo(
+				basekey.DAddr, basekey.DPort, basekey.Transport)
 			if err == nil {
 				dstK8sFlag = true
 				mTags["dst_k8s_namespace"] = ns
-				mTags["dst_k8s_pod_name"] = NoValue
 				mTags["dst_k8s_service_name"] = dstSvcName
 				mTags["dst_k8s_deployment_name"] = dp
 			}

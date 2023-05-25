@@ -19,14 +19,18 @@ import (
 
 	_ "net/http/pprof" // nolint:gosec
 
+	"github.com/DataDog/ebpf"
 	"github.com/DataDog/ebpf/manager"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/jessevdk/go-flags"
 	"github.com/shirou/gopsutil/process"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkbash "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/bashhistory"
+	dkct "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/conntrack"
 	dkdns "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/dnsflow"
+
 	dkhttpflow "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/httpflow"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/k8sinfo"
 	dknetflow "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/netflow"
 	dkout "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/output"
@@ -41,8 +45,9 @@ const (
 )
 
 var (
-	enableEbpfBash = false
-	enableEbpfNet  = false
+	enableEbpfBash      = false
+	enableEbpfNet       = false
+	enableEbpfConntrack = false
 
 	enableHTTPFlow    = false
 	enableHTTPFlowTLS = false
@@ -89,6 +94,8 @@ const (
 
 	inputNameNet  = "ebpf-net"
 	inputNameBash = "ebpf-bash"
+
+	pluginNameConntrack = "ebpf-conntrack"
 
 	inputNameNetNet  = "ebpf-net/netflow"
 	inputNameNetDNS  = "ebpf-net/dnsflow"
@@ -203,16 +210,45 @@ func main() {
 
 		constEditor := dkoffset.NewConstEditor(offset)
 
-		httpConst, err := dkoffset.GuessOffsetHTTPFlow(offset)
+		httpConst, err := guessOffsetHTTP(offset)
 		if err != nil {
 			err = fmt.Errorf("get http offset failed: %w", err)
 			feedLastErrorLoop(err, signaIterrrupt)
 		}
-
 		constEditor = append(constEditor, httpConst...)
 
+		// start conntrack
+		var ctMap *ebpf.Map
+		if enableEbpfConntrack {
+			ctOffset, _, err := guessOffsetConntrack(nil)
+			if err != nil {
+				feedLastErrorLoop(err, signaIterrrupt)
+			} else {
+				l.Debugf("%v", ctOffset)
+			}
+
+			ctManager, err := dkct.NewConntrackManger(ctOffset)
+			if err != nil {
+				err = fmt.Errorf("new conntrack manager: %w", err)
+				feedLastErrorLoop(err, signaIterrrupt)
+			}
+			if err := ctManager.Start(); err != nil {
+				feedLastErrorLoop(err, signaIterrrupt)
+			} else {
+				defer ctManager.Stop(manager.CleanAll) //nolint:errcheck
+			}
+			ctmap, ok, err := ctManager.GetMap("bpfmap_conntrack_tuple")
+			if err != nil {
+				feedLastErrorLoop(err, signaIterrrupt)
+			}
+			if !ok {
+				ctMap = nil
+			} else {
+				ctMap = ctmap
+			}
+		}
 		netflowTracer := dknetflow.NewNetFlowTracer()
-		ebpfNetManger, err := dknetflow.NewNetFlowManger(constEditor, netflowTracer.ClosedEventHandler)
+		ebpfNetManger, err := dknetflow.NewNetFlowManger(constEditor, ctMap, netflowTracer.ClosedEventHandler)
 		if err != nil {
 			err = fmt.Errorf("new netflow manager: %w", err)
 			feedLastErrorLoop(err, signaIterrrupt)
@@ -252,20 +288,9 @@ func main() {
 		}
 
 		if enableHTTPFlow {
-			bpfMapSockFD, ok, err := ebpfNetManger.GetMap("bpfmap_sockfd")
-			if err != nil {
-				err = fmt.Errorf("get bpfmap sockfd: %w", err)
-				feedLastErrorLoop(err, signaIterrrupt)
-				return
-			}
-			if !ok {
-				feedLastErrorLoop(fmt.Errorf("can not found bpfmap_sockfd"), signaIterrrupt)
-				return
-			}
-
 			tracer := dkhttpflow.NewHTTPFlowTracer(gTags, fmt.Sprintf("http://%s%s?input=",
 				dkout.DataKitAPIServer, datakit.Network)+url.QueryEscape(inputNameNetHTTP))
-			if err := tracer.Run(ctx, constEditor, bpfMapSockFD, enableHTTPFlowTLS, interval); err != nil {
+			if err := tracer.Run(ctx, constEditor, ctMap, enableHTTPFlowTLS, interval); err != nil {
 				l.Error(err)
 			}
 		}
@@ -289,6 +314,40 @@ func main() {
 
 	l.Info("datakit-ebpf exit")
 	quit()
+}
+
+func guessOffsetConntrack(guessed *dkoffset.OffsetConntrackC) (
+	[]manager.ConstantEditor, *dkoffset.OffsetConntrackC, error,
+) {
+	var err error
+	var constEditor []manager.ConstantEditor
+	var ctOffset *dkoffset.OffsetConntrackC
+	loopCount := 8
+
+	for i := 0; i < loopCount; i++ {
+		constEditor, ctOffset, err = dkoffset.GuessOffsetConntrack(guessed)
+		if err == nil {
+			return constEditor, ctOffset, nil
+		}
+		time.Sleep(time.Second * 5)
+	}
+
+	return constEditor, ctOffset, err
+}
+
+func guessOffsetHTTP(status *dkoffset.OffsetGuessC) ([]manager.ConstantEditor, error) {
+	var err error
+	var constEditor []manager.ConstantEditor
+	loopCount := 5
+
+	for i := 0; i < loopCount; i++ {
+		constEditor, err = dkoffset.GuessOffsetHTTPFlow(status)
+		if err == nil {
+			return constEditor, err
+		}
+		time.Sleep(time.Second * 5)
+	}
+	return constEditor, err
 }
 
 func getOffset(saved *dkoffset.OffsetGuessC) (*dkoffset.OffsetGuessC, error) {
@@ -357,6 +416,8 @@ func parseFlags() (*Option, map[string]string, error) {
 			enableEbpfNet = true
 		case inputNameBash:
 			enableEbpfBash = true
+		case pluginNameConntrack:
+			enableEbpfConntrack = true
 		}
 	}
 
