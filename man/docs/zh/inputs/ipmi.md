@@ -121,7 +121,7 @@ IPMI 采集器支持选举功能，当多台机器运行 DataKit 时，通过选
   # 开启选举
   enable = true
 
-  # 设置选举的命名空间(默认 default)
+  # 设置选举的命名空间（默认 default）
   namespace = "default"
 
   # 允许在数据上追加选举空间的 tag

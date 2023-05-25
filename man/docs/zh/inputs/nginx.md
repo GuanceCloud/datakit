@@ -11,7 +11,7 @@ NGINX 采集器可以从 NGINX 实例中采取很多指标，比如请求总数�
 
 ## 前置条件 {#requirements}
 
-- NGINX 版本 >= `1.8.0`; 已测试的版本:
+- NGINX 版本 >= `1.8.0`; 已测试的版本：
     - [x] 1.23.2
     - [x] 1.22.1
     - [x] 1.21.6
@@ -19,7 +19,7 @@ NGINX 采集器可以从 NGINX 实例中采取很多指标，比如请求总数�
     - [x] 1.14.2
     - [x] 1.8.0
 
-- NGINX 默认采集 `http_stub_status_module` 模块的数据，开启 `http_stub_status_module` 模块参见[这里](http://nginx.org/en/docs/http/ngx_http_stub_status_module.html){:target="_blank"}，开启了以后会上报 NGINX 指标集的数据;
+- NGINX 默认采集 `http_stub_status_module` 模块的数据，开启 `http_stub_status_module` 模块参见[这里](http://nginx.org/en/docs/http/ngx_http_stub_status_module.html){:target="_blank"}，开启了以后会上报 NGINX 指标集的数据；
 
 - 如果您正在使用 [VTS](https://github.com/vozlt/nginx-module-vts){:target="_blank"} 或者想监控更多数据，建议开启 VTS 相关数据采集，可在 `{{.InputName}}.conf` 中将选项 `use_vts` 设置为 `true`。如何开启 VTS 参见[这里](https://github.com/vozlt/nginx-module-vts#synopsis){:target="_blank"};
 
@@ -124,17 +124,17 @@ http {
 
 切割后的字段列表如下：
 
-| 字段名       | 字段值                                   | 说明                         |
-| ---          | ---                                      | ---                          |
-| status       | error                                    | 日志等级(alert 转成了 error) |
-| client_ip    | 120.204.196.129                          | client IP 地址               |
-| server       | localhost                                | server 地址                  |
-| http_method  | GET                                      | http 请求方式                |
-| http_url     | /                                        | http 请求 URL                |
-| http_version | 1.1                                      | http version                 |
-| ip_or_host   | 47.98.103.73                             | 请求方 IP 或者 host          |
-| msg          | 7#7: *168 write()...host: \"47.98.103.73 | 日志内容                     |
-| time         | 1618968244000000000                      | 纳秒时间戳（作为行协议时间） |
+| 字段名       | 字段值                                   | 说明                           |
+| ---          | ---                                      | ---                            |
+| status       | error                                    | 日志等级（alert 转成了 error） |
+| client_ip    | 120.204.196.129                          | client IP 地址                 |
+| server       | localhost                                | server 地址                    |
+| http_method  | GET                                      | http 请求方式                  |
+| http_url     | /                                        | http 请求 URL                  |
+| http_version | 1.1                                      | http version                   |
+| ip_or_host   | 47.98.103.73                             | 请求方 IP 或者 host            |
+| msg          | 7#7: *168 write()...host: \"47.98.103.73 | 日志内容                       |
+| time         | 1618968244000000000                      | 纳秒时间戳（作为行协议时间）   |
 
 错误日志文本示例：
 
@@ -144,15 +144,15 @@ http {
 
 切割后的字段列表如下：
 
-| 字段名   | 字段值                                                            | 说明                             |
-| ---      | ---                                                               | ---                              |
-| `status` | `error`                                                           | 日志等级(`emerg` 转成了 `error`) |
-| `msg`    | `50102#0: unexpected \";\" in /usr/local/etc/nginx/nginx.conf:23` | 日志内容                         |
-| `time`   | `1619684678000000000`                                             | 纳秒时间戳（作为行协议时间）     |
+| 字段名   | 字段值                                                            | 说明                               |
+| ---      | ---                                                               | ---                                |
+| `status` | `error`                                                           | 日志等级（`emerg` 转成了 `error`） |
+| `msg`    | `50102#0: unexpected \";\" in /usr/local/etc/nginx/nginx.conf:23` | 日志内容                           |
+| `time`   | `1619684678000000000`                                             | 纳秒时间戳（作为行协议时间）       |
 
 - NGINX 访问日志切割
 
-访问日志文本示例:
+访问日志文本示例：
 
 ```log
 127.0.0.1 - - [24/Mar/2021:13:54:19 +0800] "GET /basic_status HTTP/1.1" 200 97 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_1_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.72 Safari/537.36"
@@ -160,18 +160,18 @@ http {
 
 切割后的字段列表如下：
 
-| 字段名         | 字段值                         | 说明                             |
-| ---            | ---                            | ---                              |
-| `client_ip`    | `127.0.0.1`                    | 日志等级(`emerg` 转成了 `error`) |
-| `status`       | `ok`                           | 日志等级                         |
-| `status_code`  | `200`                          | HTTP Code                        |
-| `http_method`  | `GET`                          | HTTP 请求方式                    |
-| `http_url`     | `/basic_status`                | HTTP 请求 URL                    |
-| `http_version` | `1.1`                          | HTTP Version                     |
-| `agent`        | `Mozilla/5.0... Safari/537.36` | User-Agent                       |
-| `browser`      | `Chrome`                       | 浏览器                           |
-| `browserVer`   | `89.0.4389.72`                 | 浏览器版本                       |
-| `isMobile`     | `false`                        | 是否手机                         |
-| `engine`       | `AppleWebKit`                  | 引擎                             |
-| `os`           | `Intel Mac OS X 11_1_0`        | 系统                             |
-| `time`         | `1619243659000000000`          | 纳秒时间戳（作为行协议时间）     |
+| 字段名         | 字段值                         | 说明                               |
+| ---            | ---                            | ---                                |
+| `client_ip`    | `127.0.0.1`                    | 日志等级（`emerg` 转成了 `error`） |
+| `status`       | `ok`                           | 日志等级                           |
+| `status_code`  | `200`                          | HTTP Code                          |
+| `http_method`  | `GET`                          | HTTP 请求方式                      |
+| `http_url`     | `/basic_status`                | HTTP 请求 URL                      |
+| `http_version` | `1.1`                          | HTTP Version                       |
+| `agent`        | `Mozilla/5.0... Safari/537.36` | User-Agent                         |
+| `browser`      | `Chrome`                       | 浏览器                             |
+| `browserVer`   | `89.0.4389.72`                 | 浏览器版本                         |
+| `isMobile`     | `false`                        | 是否手机                           |
+| `engine`       | `AppleWebKit`                  | 引擎                               |
+| `os`           | `Intel Mac OS X 11_1_0`        | 系统                               |
+| `time`         | `1619243659000000000`          | 纳秒时间戳（作为行协议时间）       |

@@ -16,7 +16,7 @@ RabbitMQ 采集器是通过插件 `rabbitmq-management` 采集数据监控 Rabbi
 
 ## 前置条件 {#reqirement}
 
-- RabbitMQ 版本 >= `3.8.14`; 已测试的版本:
+- RabbitMQ 版本 >= `3.8.14`; 已测试的版本：
     - [x] 3.11.x
     - [x] 3.10.x
     - [x] 3.9.x
@@ -110,7 +110,7 @@ RabbitMQ 采集器是通过插件 `rabbitmq-management` 采集数据监控 Rabbi
 
 - RabbitMQ 通用日志切割
 
-通用日志文本示例:
+通用日志文本示例：
 
 ``` log
 2021-05-26 14:20:06.105 [warning] <0.12897.46> rabbitmqctl node_health_check and its HTTP API counterpart are DEPRECATED. See https://www.rabbitmq.com/monitoring.html#health-checks for replacement options.

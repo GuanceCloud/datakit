@@ -8,10 +8,10 @@
 
 - `key`: 要解析的 url 的字段名称。
 
-示例:
+示例：
 
 ```python
-# 待处理数据: {"url": "https://www.baidu.com"}
+# 待处理数据：{"url": "https://www.baidu.com"}
 
 # 处理脚本
 json(_, url)
@@ -28,7 +28,7 @@ add_key(scheme, m["scheme"])
 上述示例从 url 提取了其 scheme，除此以外，还能从 url 提取出 host, port, path, 以及 url 中携带的参数等信息，如下例子所示：
 
 ```python
-# 待处理数据: {"url": "https://www.google.com/search?q=abc&sclient=gws-wiz"}
+# 待处理数据：{"url": "https://www.google.com/search?q=abc&sclient=gws-wiz"}
 
 # 处理脚本
 json(_, url)

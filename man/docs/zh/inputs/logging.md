@@ -50,11 +50,11 @@
       # pipeline 脚本路径，如果为空将使用 $source.p，如果 $source.p 不存在将不使用 pipeline
       pipeline = ""
       
-      # 过滤对应 status:
+      # 过滤对应 status
       #   `emerg`,`alert`,`critical`,`error`,`warning`,`info`,`debug`,`OK`
       ignore_status = []
       
-      # 选择编码，如果编码有误会导致数据无法查看。默认为空即可:
+      # 选择编码，如果编码有误会导致数据无法查看。默认为空即可
       #    `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030` or ""
       character_encoding = ""
       
@@ -107,7 +107,7 @@
 
 ### socket 采集日志 {#socket}
 
-将 conf 中 `logfiles` 注释掉，并配置 `sockets`。以 log4j2 为例:
+将 conf 中 `logfiles` 注释掉，并配置 `sockets`。以 log4j2 为例：
 
 ``` xml
  <!-- socket 配置日志传输到本机 9540 端口，protocol 默认 tcp -->
@@ -120,7 +120,7 @@
  </Socket>
 ```
 
-更多: Java Go Python 主流日志组件的配置及代码示例，请参阅：[socket client 配置](logging_socket.md)
+更多 Java Go Python 主流日志组件的配置及代码示例，请参阅 [socket client 配置](logging_socket.md)。
 
 ### 多行日志采集 {#multiline}
 
@@ -133,7 +133,7 @@
 在 `logging.conf` 中，修改如下配置：
 
 ```toml
-multiline_match = '''这里填写具体的正则表达式''' # 注意，这里的正则俩边，建议分别加上三个「英文单引号」
+multiline_match = ''' 这里填写具体的正则表达式 ''' # 注意，这里的正则俩边，建议分别加上三个「英文单引号」
 ```
 
 日志采集器中使用的正则表达式风格[参考](https://golang.org/pkg/regexp/syntax/#hdr-Syntax){:target="_blank"}
@@ -267,7 +267,7 @@ Traceback (most recent call last):
 
 #### 日志单行最大长度 {#max-log}
 
-无论从文件还是从 socket 中读取的日志, 单行（包括经过 `multiline_match` 处理后）最大长度为 32MB，超出部分会被截断且丢弃。
+无论从文件还是从 socket 中读取的日志，单行（包括经过 `multiline_match` 处理后）最大长度为 32MB，超出部分会被截断且丢弃。
 
 ### Pipeline 配置和使用 {#pipeline}
 
@@ -465,7 +465,7 @@ head -c 1g path/to/your/log.txt | wc -l
 head -c 1g path/to/your/log.txt | gzip | wc -c
 ```
 
-这里拿到的是压缩后的字节数(bytes)，按照网络 bit 的计算方法（x8），其计算方式如下，以此可拿到大概的带宽消耗：
+这里拿到的是压缩后的字节数，按照网络 bit 的计算方法（x8），其计算方式如下，以此可拿到大概的带宽消耗：
 
 ``` not-set
 bytes * 2 * 8 /1024/1024 = xxx MBit

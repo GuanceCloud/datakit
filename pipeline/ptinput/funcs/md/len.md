@@ -4,11 +4,11 @@
 
 函数说明：计算 string 字节数，map 和 list 的元素个数。
 
-参数:
+参数：
 
 - `val`: 可以是 map、list 或 string
 
-示例:
+示例：
 
 ```python
 # 例 1

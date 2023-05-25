@@ -111,8 +111,8 @@ NAME1="value1" NAME2="value2"
 ### DataKit 自身日志相关 {#env-logging}
 
 - `DK_LOG_LEVEL`: 可选值 info/debug
-- `DK_LOG`: 如果改成 stdout, 日志将不写文件, 而是终端输出
-- `DK_GIN_LOG`: 如果改成 stdout, 日志将不写文件, 而是终端输出
+- `DK_LOG`: 如果改成 stdout, 日志将不写文件，而是终端输出
+- `DK_GIN_LOG`: 如果改成 stdout, 日志将不写文件，而是终端输出
 
 ### DataKit pprof 相关 {#env-pprof}
 
@@ -121,7 +121,7 @@ NAME1="value1" NAME2="value2"
 
 ### DataKit 选举相关 {#env-election}
 
-- `DK_ENABLE_ELECTION`: 开启选举, 默认不开启, 如需开启, 给该环境变量任意一个非空字符串值即可。（如 `True`/`False`）
+- `DK_ENABLE_ELECTION`: 开启选举，默认不开启，如需开启，给该环境变量任意一个非空字符串值即可。（如 `True`/`False`）
 - `DK_NAMESPACE`：支持安装阶段指定命名空间(选举用)
 
 ### HTTP/API 相关环境变量 {#env-http-api}
@@ -129,7 +129,7 @@ NAME1="value1" NAME2="value2"
 - `DK_HTTP_LISTEN`：支持安装阶段指定 DataKit HTTP 服务绑定的网卡（默认 `localhost`）
 - `DK_HTTP_PORT`：支持安装阶段指定 DataKit HTTP 服务绑定的端口（默认 `9529`）
 - `DK_RUM_ORIGIN_IP_HEADER`: RUM 专用
-- `DK_DISABLE_404PAGE`: 禁用 DataKit 404 页面 (公网部署 DataKit RUM 时常用.如 `True`/`False`)
+- `DK_DISABLE_404PAGE`: 禁用 DataKit 404 页面 (公网部署 DataKit RUM 时常用。如 `True`/`False`)
 - `DK_INSTALL_IPDB`: 安装时指定 IP 库(当前仅支持 `iploc/geolite2`)
 - `DK_UPGRADE_IP_WHITELIST`: 从 Datakit [1.5.9](changelog.md#cl-1.5.9) 开始，支持远程访问 API 的方式来升级 Datakit，此环境变量用于设置可以远程访问的客户端 IP 白名单（多个 IP 用逗号 `,` 分隔），不在白名单内的访问将被拒绝（默认是不做 IP 限制）。
 
@@ -182,11 +182,11 @@ NAME1="value1" NAME2="value2"
 ### 其它安装选项 {#env-others}
 
 - `DK_INSTALL_ONLY`：仅安装，不运行
-- `DK_HOSTNAME`:支持安装阶段自定义配置主机名
+- `DK_HOSTNAME`：支持安装阶段自定义配置主机名
 - `DK_UPGRADE`：升级到最新版本（注：一旦开启该选项，除 `DK_UPGRADE_MANAGER` 外其它选项均无效）
 - `DK_UPGRADE_MANAGER`: 升级 Datakit 同时是否升级 **远程升级服务**，需要和 `DK_UPGRADE` 配合使用， 从 [1.5.9](changelog.md#cl-1.5.9) 版本开始支持
 - `DK_INSTALLER_BASE_URL`：可选择不同环境的安装脚本，默认为 `https://static.guance.com/datakit`
-- `DK_PROXY_TYPE`：代理类型。选项有: `datakit` 或 `nginx`，均为小写
+- `DK_PROXY_TYPE`：代理类型。选项有：`datakit` 或 `nginx`，均为小写
 - `DK_NGINX_IP`：代理服务器 IP 地址（只需要填 IP 不需要填端口）。这个与上面的 "HTTP_PROXY" 和 "HTTPS_PROXY" 互斥，而且优先级最高，会覆盖以上两者
 - `DK_INSTALL_LOG`：设置安装程序日志路径，默认为当前目录下的 *install.log*，如果设置为 `stdout` 则输出到命令行终端
 - `HTTPS_PROXY`：通过 Datakit 代理安装

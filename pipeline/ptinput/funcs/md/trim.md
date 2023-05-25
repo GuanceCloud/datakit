@@ -9,10 +9,10 @@
 - `key`: 已提取的某字段，字符串类型
 - `cutset`: 删除 `key` 中出现在 `cutset` 字符串的中首尾字符
 
-示例:
+示例：
 
 ```python
-# 待处理数据: "trim(key, cutset)"
+# 待处理数据："trim(key, cutset)"
 
 # 处理脚本
 add_key(test_data, "ACCAA_test_DataA_ACBA")

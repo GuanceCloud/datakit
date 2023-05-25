@@ -8,7 +8,7 @@
 
 OpenTelemetry （以下简称 OTEL）是 CNCF 的一个可观测性项目，旨在提供可观测性领域的标准化方案，解决观测数据的数据模型、采集、处理、导出等的标准化问题。
 
-OTEL 是一组标准和工具的集合，旨在管理观测类数据，如 trace、metrics、logs 等 (未来可能有新的观测类数据类型出现)。
+OTEL 是一组标准和工具的集合，旨在管理观测类数据，如 trace、metrics、logs 等（未来可能有新的观测类数据类型出现）。
 
 OTEL 提供与 vendor 无关的实现，根据用户的需要将观测类数据导出到不同的后端，如开源的 Prometheus、Jaeger、Datakit 或云厂商的服务中。
 
@@ -36,7 +36,7 @@ OTEL 提供与 vendor 无关的实现，根据用户的需要将观测类数据�
 
 ### 注意事项 {#attentions}
 
-1. 建议使用 gRPC 协议, gRPC 具有压缩率高、序列化快、效率更高等优点
+1. 建议使用 gRPC 协议，gRPC 具有压缩率高、序列化快、效率更高等优点
 1. http 协议的路由是不可配置的，请求路径（Trace/Metric）分别为 `/otel/v1/trace` 和 `/otel/v1/metric`
 1. 在涉及到 `float/double` 类型数据时，会最多保留两位小数
 1. HTTP 和 gRPC 都支持 gzip 压缩格式。在 exporter 中可配置环境变量来开启：`OTEL_EXPORTER_OTLP_COMPRESSION = gzip`, 默认是不会开启 gzip。
@@ -56,10 +56,10 @@ OSDescriptionKey = attribute.Key("os.description")
 因此，如果您想要过滤所有 `teletemetry.sdk` 和 `os`  下所有的子类型标签，那么应该这样配置：
 
 ``` toml
-# 在创建 trace,Span,Resource 时，会加入很多标签，这些标签最终都会出现在 Span 中
+# 在创建 trace/span/resource 时，会加入很多标签，这些标签最终都会出现在 Span 中
 # 当您不希望这些标签太多造成网络上不必要的流量损失时，可选择忽略掉这些标签
 # 支持正则表达，
-# 注意:将所有的 '.' 替换成 '_'
+# 注意：将所有的 '.' 替换成 '_'
 ignore_attribute_keys = ["os_*","teletemetry_sdk*"]
 ```
 

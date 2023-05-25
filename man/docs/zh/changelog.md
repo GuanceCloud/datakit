@@ -1018,7 +1018,7 @@ volumeMounts:
 - mountPath: /var/lib
   name: lib
 
-# 省略其它部分...
+# 省略其它部分 ...
 
 volumes:
 - hostPath:

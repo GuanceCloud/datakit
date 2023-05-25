@@ -13,8 +13,8 @@ Profile 支持采集使用 Java, Python 和 Go 等不同语言环境下应用程
 
 目前 DataKit 采集 profiling 数据有两种方式：
 
-- 推送方式: 需要开启 DataKit Profile 服务，由客户端向 DataKit 主动推送数据
-- 拉取方式: 目前仅 [Go](profile-go.md) 支持，需要手动配置相关信息
+- 推送方式：需要开启 DataKit Profile 服务，由客户端向 DataKit 主动推送数据
+- 拉取方式：目前仅 [Go](profile-go.md) 支持，需要手动配置相关信息
 
 ### DataKit 配置 {#datakit-config}
 

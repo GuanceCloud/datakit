@@ -6,16 +6,16 @@
 
 ---
 
-eBPF 采集器，采集主机网络 TCP、UDP 连接信息，Bash 执行日志等。本采集器主要包含 `ebpf-net` 及 `ebpf-bash` 俩类:
+eBPF 采集器，采集主机网络 TCP、UDP 连接信息，Bash 执行日志等。本采集器主要包含 `ebpf-net` 及 `ebpf-bash` 俩类：
 
 - `ebpf-net`:
-    - 数据类别: Network
+    - 数据类别：Network
     - 由 `netflow/httpflow/dnsflow` 构成，分别用于采集主机 TCP/UDP 连接统计信息和主机 DNS 解析信息；
 
 - `ebpf-bash`:
 
-    - 数据类别: Logging
-    - 采集 Bash 的执行日志，包含 Bash 进程号、用户名、执行的命令和时间等;
+    - 数据类别：Logging
+    - 采集 Bash 的执行日志，包含 Bash 进程号、用户名、执行的命令和时间等；
 
 ## 前置条件 {#requirements}
 
@@ -30,7 +30,7 @@ eBPF 采集器，采集主机网络 TCP、UDP 连接信息，Bash 执行日志�
 - v1.5.6+
     - 无需手动安装
 
-在 Kubernetes 环境下部署时，必须挂载主机的 `/sys/kernel/debug` 目录到 Pod 内,可参考最新的 *datakit.yaml*；
+在 Kubernetes 环境下部署时，必须挂载主机的 `/sys/kernel/debug` 目录到 Pod 内，可参考最新的 *datakit.yaml*；
 
 ### HTTPS 支持 {#https}
 
@@ -39,7 +39,7 @@ eBPF 采集器，采集主机网络 TCP、UDP 连接信息，Bash 执行日志�
 
 若需要 `ebpf-net` 开启对容器内的进程采集 HTTPS 请求数据采集支持，则需要挂载 overlay 目录到容器
 
-*datakit.yaml* 参考修改:
+*datakit.yaml* 参考修改：
 
 <!-- markdownlint-disable MD046 -->
 === "Docker"
@@ -85,14 +85,14 @@ eBPF 采集器，采集主机网络 TCP、UDP 连接信息，Bash 执行日志�
 <!-- markdownlint-disable MD046 -->
 ???+ warning "内核限制"
 
-    Datakit 版本低于 v1.5.2 时，对于 CentOS 7.6+ 不能开启 `ebpf-net` 类别中的 `httpflow` 数据采集，由于其 Linux 3.10.x 内核不支持 eBPF 程序中的 BPF_PROG_TYPE_SOCKET_FILTER 类型;
+    Datakit 版本低于 v1.5.2 时，对于 CentOS 7.6+ 不能开启 `ebpf-net` 类别中的 `httpflow` 数据采集，由于其 Linux 3.10.x 内核不支持 eBPF 程序中的 BPF_PROG_TYPE_SOCKET_FILTER 类型；
 
     Datakit 版本低于 **v1.5.2** 时，由于 `BPF_FUNC_skb_load_bytes` 不存在于 Linux Kernel <= 4.4，若需开启 `httpflow`，需要 Linux Kernel >= 4.5，此问题待后续优化；
 <!-- markdownlint-enable -->
 
 ### 已启用 SELinux 的系统 {#selinux}
 
-对于启用了 SELinux 的系统，需要关闭其，执行以下命令进行关闭:
+对于启用了 SELinux 的系统，需要关闭其，执行以下命令进行关闭：
 
 ```shell
 setenforce 0

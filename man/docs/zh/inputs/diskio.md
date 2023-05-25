@@ -92,7 +92,7 @@ diskperf -Y
 
 ```
 
-- 安装 `sar` 命令, 具体参考 [https://github.com/sysstat/sysstat#installation](https://github.com/sysstat/sysstat#installation){:target="_blank"}
+- 安装 `sar` 命令，具体参考 [https://github.com/sysstat/sysstat#installation](https://github.com/sysstat/sysstat#installation){:target="_blank"}
 
 ubuntu 安装参考如下
 

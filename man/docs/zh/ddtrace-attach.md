@@ -28,7 +28,7 @@ load instrument dd-agent.jar=<params...>
 
 ## 下载并编译 {#download}
 
-建议下载源码并编译:
+建议下载源码并编译：
 
 ```shell
 git clone https://github.com/GuanceCloud/agent-attach-java

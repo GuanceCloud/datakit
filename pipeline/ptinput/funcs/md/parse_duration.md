@@ -17,16 +17,16 @@
 
 - `key`: 待解析的字段
 
-示例:
+示例：
 
 ```python
 # 假定 abc = "3.5s"
 parse_duration(abc) # 结果 abc = 3500000000
 
-# 支持负数: abc = "-3.5s"
+# 支持负数：abc = "-3.5s"
 parse_duration(abc) # 结果 abc = -3500000000
 
-# 支持浮点: abc = "-2.3s"
+# 支持浮点：abc = "-2.3s"
 parse_duration(abc) # 结果 abc = -2300000000
 
 ```

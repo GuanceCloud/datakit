@@ -9,10 +9,10 @@
 - `key`: 新增的 key 名称
 - `value`：作为 key 的值
 
-示例:
+示例：
 
 ```python
-# 待处理数据: {"age": 17, "name": "zhangsan", "height": 180}
+# 待处理数据：{"age": 17, "name": "zhangsan", "height": 180}
 
 # 处理脚本
 add_key(city, "shanghai")

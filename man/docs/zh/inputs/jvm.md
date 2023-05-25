@@ -38,7 +38,7 @@ DataKit 内置了 [StatsD 采集器](statsd.md)，用于接收网络上发送过
         "datadog_tracer_:ddtrace",
       ]
     
-      # 以下配置无需关注...
+      # 以下配置无需关注
     
       delete_gauges = true
       delete_counters = true
@@ -184,7 +184,7 @@ JVM 采集器可以通过 JMX 来采取很多指标，并将指标采集到观�
 java -javaagent:/path/to/jolokia-jvm-agent.jar=port=8080,host=localhost -jar your_app.jar
 ```
 
-已测试的版本:
+已测试的版本：
 
 - [x] JDK 20
 - [x] JDK 17

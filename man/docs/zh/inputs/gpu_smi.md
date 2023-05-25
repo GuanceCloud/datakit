@@ -24,11 +24,11 @@ SMI 指标展示：包括 GPU 卡温度、时钟、GPU 占用率、内存占用�
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    1. Datakit 可以通过 SSH 远程采集 GPU 服务器的指标。(开启远程采集后，本地采集配置将失效)。
+    1. Datakit 可以通过 SSH 远程采集 GPU 服务器的指标（开启远程采集后，本地采集配置将失效）。
     1. `remote_addrs` 配置的个数可以多于 `remote_users` `remote_passwords` `remote_rsa_paths` 个数，不够的匹配排位第一的数值。
     1. 可以通过 `remote_addrs`+`remote_users`+`remote_passwords` 采集。
-    1. 也可以通过 `remote_addrs`+`remote_users`+`remote_rsa_paths` 采集。(配置 RSA 公钥后，`remote_passwords` 将失效)。
-    1. 开启远程采集后，必须开启选举。(防止多个 Datakit 上传重复数据)。
+    1. 也可以通过 `remote_addrs`+`remote_users`+`remote_rsa_paths` 采集。（配置 RSA 公钥后，`remote_passwords` 将失效）。
+    1. 开启远程采集后，必须开启选举。（防止多个 Datakit 上传重复数据）。
     1. 出于安全考虑，可以变更 SSH 端口号，也可以单独为 GPU 远程采集创建专用的账户。 
 <!-- markdownlint-enable -->
 
@@ -139,7 +139,7 @@ DCGM 指标展示：包括 GPU 卡温度、时钟、GPU 占用率、内存占用
   # 采集数据大小上限默认设置为 32MB
   # max_file_size = 0
 
-  # 指标类型过滤, 可选值为 counter, gauge, histogram, summary, untyped
+  # 指标类型过滤，可选值为 counter/gauge/histogram/summary/untyped
   # 默认只采集 counter 和 gauge 类型的指标
   # 如果为空，则不进行过滤
   metric_types = ["counter", "gauge"]

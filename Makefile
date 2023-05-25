@@ -380,7 +380,7 @@ lint: deps copyright_check md_lint
 		exit -1; \
 	fi
 
-lint_nofix: deps copyright_check md_lint
+lint_nofix: deps copyright_check md_lint_nofix
 	@truncate -s 0 lint.err
 	$(GOLINT_BINARY) run --allow-parallel-runners;
 	@if [ $$? != 0 ]; then \
@@ -404,31 +404,37 @@ copyright_check:
 copyright_check_auto_fix:
 	@python3 copyright.py --fix
 
-md_lint:
-	@# markdownlint install: https://github.com/igorshubovych/markdownlint-cli
+define check_docs
+	# markdownlint install: https://github.com/igorshubovych/markdownlint-cli
 	@echo 'markdownlint version: $(MARKDOWNLINT_VERSION)'
-	@markdownlint man/docs/zh 2>&1 | tee md.lint
+	@markdownlint $(1) 2>&1 | tee md.lint
 	@if [ -s md.lint ]; then \
 		exit -1; \
 	fi
-	@# check spell on ZH docs
+
+	# check spell on ZH docs
 	@echo 'cspell version: $(CSPELL_VERSION)'
-	cspell lint -c cspell/cspell.json --no-progress man/docs/zh/*.md man/docs/zh/**/*.md | tee cspell.lint
+	@cspell lint -c cspell/cspell.json --no-progress $(2) | tee cspell.lint
 	@if [ -s cspell.lint ]; then \
 		exit -1; \
 	fi
-	@# Additional checkings on documents
-	@echo 'checking Unicode/ASCCI format...'
-	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run cmd/make/make.go -mdm man/docs/zh/ && \
+
+	# Additional checkings on documents
+	@echo 'checking format...'
+	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run cmd/make/make.go -mdcheck$(1) --mdcheck-autofix $(3) && \
 	 { echo "\n------\n[E] Some bad docs got invalid format on Unicode/ASCII. See https://docs.guance.com/datakit/mkdocs-howto/#zh-en-mix\n"; exit -1; } || { echo 'Unicode/ASCII format ok.'; }
-	@echo 'checking section tags...'
-	@grep --color=always --exclude *changelog.md -nr '^##' man/docs/* | grep -vE ' {#' | grep -vE '{{' && \
-	 { echo "\n------\n[E] Some bad docs that missing section tags. See https://docs.guance.com/datakit/mkdocs-howto/#set-links"; exit -1; } || { echo 'section tags ok.'; }
-	@echo 'checking external links...'
-	@grep --color=always -nr '\[.*\](http' man/docs/zh/ man/docs/en | grep -vE 'static.guance.com|_blank' && \
-	 { echo "\n------\n[E] Some bad docs got invalid external links. See https://docs.guance.com/datakit/mkdocs-howto/#outer-linkers\n"; exit -1; } || { echo 'external links ok.'; }
-	@#check generated docs
-	@bash mkdocs.sh -D ./local-docs -C -V 9.9.9
+endef
+
+md_lint:
+	$(call check_docs, "man/docs/zh", "man/docs/zh/*.md", "on") # check on doc templates
+	@rm -rf ./local-docs
+	@bash mkdocs.sh -D ./local-docs -E -V 0.0.0 # invalid version
+	@$(call check_docs, "local-docs/docs/zh", "local-docs/docs/zh/*.md", "on") # check on generated docs
+
+md_lint_nofix:
+	$(call check_docs, "man/docs/zh", "man/docs/zh/*.md", "off") # check on doc templates
+	@bash mkdocs.sh -D ./local-docs -E -V 0.0.0 # invalid version
+	$(call check_docs, "local-docs/docs/zh", "local-docs/docs/zh/*.md", "off") # check on generated docs
 
 project_words:
 	cspell -c cspell/cspell.json --words-only --unique man/docs/zh/** | sort --ignore-case >> project-words.txt

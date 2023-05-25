@@ -8,7 +8,7 @@
 ---
 
 DDTrace agent 采集的指标数据会通过 StatsD 数据类型发送到 DK 的 8125 端口上。
-其中包括 JVM 运行时的 CPU 、内存、线程、类加载信息，也包括开启的各种采集上来的 JMX 指标， 如: Kafka, Tomcat, RabbitMQ 等。
+其中包括 JVM 运行时的 CPU 、内存、线程、类加载信息，也包括开启的各种采集上来的 JMX 指标， 如： Kafka、Tomcat、RabbitMQ 等。
 
 ## 前置条件 {#requrements}
 

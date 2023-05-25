@@ -40,9 +40,9 @@ Datakit 支持从 kafka 中订阅消息采集链路、指标和日志信息。�
 
 ## SkyWalking {#kafkamq-skywalking}
 
-kafka 插件默认会将 `traces`, `JVM metrics`, `logging`, `Instance Properties` 以及 `profiled snapshots` 发送到 Kafka 集群中。
+kafka 插件默认会将 `traces/JVM metrics/logging/Instance Properties/profiled snapshots` 发送到 Kafka 集群中。
 
-该功能默认是关闭的。需要将 `kafka-reporter-plugin-x.y.z.jar`, 从 `agent/optional-reporter-plugins` 放到 `agent/plugins` 才会生效.
+该功能默认是关闭的。需要将 *kafka-reporter-plugin-x.y.z.jar* 从 *agent/optional-reporter-plugins* 放到 *agent/plugins* 目录才会生效。
 
 配置文件及说明：
 
@@ -120,7 +120,7 @@ kafka 插件默认会将 `traces`, `JVM metrics`, `logging`, `Instance Propertie
 当不知道发送到 Kafka 上的数据结构时什么格式时。可以先将 Datakit 的日志级别改为 Debug。将订阅打开，在 Datakit 日志中会有输出。假设拿到的如下数据：
 
 ```shell
-# 打开 debug 日志级别之后,查看日志, datakit 会将消息信息打印出来.
+# 打开 debug 日志级别之后，查看日志，Datakit 会将消息信息打印出来。
 tailf /var/log/datakit/log | grep "kafka_message"
 ```
 
@@ -130,7 +130,7 @@ tailf /var/log/datakit/log | grep "kafka_message"
 {"time": 1666492218, "dimensions": {"bk_biz_id": 225,"ip": "10.200.64.45" },  "metrics": { "cpu_usage_pct": 0.01}, "exemplar": null}
 ```
 
-有了数据格式，就可以手写 Pipeline 脚本。登录 观测云 -> 管理 -> 文本处理(Pipeline) 编写脚本。 如：
+有了数据格式，就可以手写 Pipeline 脚本。登录「观测云 -> 管理 -> 文本处理（Pipeline）编写脚本」。 如：
 
 ```python
 data = load_json(message)
@@ -171,7 +171,7 @@ drop_key(message_len)
 当消息量很大，一台 Datakit 消费能力不足时可以增加多台 Datakit 进行消费，这里有三点需要注意：
 
 1. 确保 Topic 分区不是一个（至少 2 个），这个可以通过工具 [`kafka-map`](https://github.com/dushixiang/kafka-map/releases){:target="_blank"}查看
-1. 确保 KafkaMQ 采集器的配置是 `assignor = "roundrobin"` (负载均衡策略的一种)，`group_id="datakit"`（组名称必须一致，否则会重复消费）
+1. 确保 KafkaMQ 采集器的配置是 `assignor = "roundrobin"`（负载均衡策略的一种），`group_id="datakit"`（组名称必须一致，否则会重复消费）
 1. 确保消息的生产者将消息发送多分区，语言不同方法不同 这里不列出代码了，自行查找相关实现
 
 ### 问题排查 {#some-problems}

@@ -134,7 +134,7 @@ DataDog Traces Structure
 | Name       | `string`               |      | 生产此条 Span 的方法名                             | `dkspan.Operation`                                                                                           |
 | Start      | `int64`                | 纳秒 | Span 起始时间                                      | `dkspan.Start`                                                                                               |
 | Duration   | `int64`                | 纳秒 | 耗时                                               | `dkspan.Duration`                                                                                            |
-| Error      | `int32`                |      | Span 状态字段 0:无报错 1:出错                      | `dkspan.Status`                                                                                              |
+| Error      | `int32`                |      | Span 状态字段 0：无报错 1：出错                      | `dkspan.Status`                                                                                              |
 | Meta       | `map[string, string]`  |      | Span 过程元数据，环境相关和服务相关 field 从此获得 | `dkspan.Project, dkspan.Env, dkspan.Version, dkspan.ContainerHost, dkspan.HTTPMethod, dkspan.HTTPStatusCode` |
 | Metrics    | `map[string, float64]` |      | Span 采样，运算相关数据                            | 不直接对应 DKSpan                                                                                            |
 | Type       | `string`               |      | Span Type                                          | `dkspan.SourceType`                                                                                          |

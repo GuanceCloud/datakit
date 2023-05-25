@@ -15,14 +15,14 @@
 
 自定义的标识符不能与 Pipeline 数据处理器语言的关键字重复
 
-标识符可以由数字(`0-9`)、字母(`A-Z a-z`)、下划线(`_`) 构成，但首字符不能是数字且区分大小写:
+标识符可以由数字（`0-9`）、字母（`A-Z a-z`）、下划线（`_`）构成，但首字符不能是数字且区分大小写：
 
 - `_abc`
 - `abc`
 - `abc1`
 - `abc_1_`
 
-如果需要以字母开头或在标识符中使用上述字符外需要使用反引号:
+如果需要以字母开头或在标识符中使用上述字符外需要使用反引号：
 
 - `` `1abc` ``
 - `` `@some-variable` ``
@@ -61,11 +61,11 @@ a = 3
 
 ##### 整型 {#int}
 
-整型的类型长度为 64bit，有符号，当前仅支持以十进制的方式编写整数字面量,如 `-1`, `0`, `1`, `+19`
+整型的类型长度为 64bit，有符号，当前仅支持以十进制的方式编写整数字面量，如 `-1`, `0`, `1`, `+19`
 
 ##### 浮点类型 {#float}
 
-浮点型的类型长度为 64bit，有符号，当前仅支持以十进制的方式编写浮点数字面量,如 `-1.00001`, `0.0`, `1.0`, `+19.0`
+浮点型的类型长度为 64-bit，有符号，当前仅支持以十进制的方式编写浮点数字面量，如 `-1.00001`, `0.0`, `1.0`, `+19.0`
 
 ##### 布尔类型 {#bool}
 
@@ -101,7 +101,7 @@ nil 为一种特殊的数据类型，表示空，当一个变量未赋值就使�
 
 字典类型与列表类型与基本类型不同，多个变量可以指向同一个 map 或 list 对象，在赋值时并不会进行列表或字典的内存拷贝，而是进行引用
 
-- 字典类型(map)
+- 字典类型
 
 字典类型为 key-value 结构，只有字符串类型才能作为 key，不限制 value 的数据类型，其可通过索引表达式读写 map 中的元素：
 
@@ -121,7 +121,7 @@ b = a["1"]
 b[0] = 1.1
 ```
 
-- 列表类型(list)
+- 列表类型
 
 列表类型可以在列表中存储任意数量、任意类型的值
 其可通过索引表达式读写 list 中的元素
@@ -137,12 +137,12 @@ a = a[0] # a == 1
 - 在 DataKit 中配置 Pipeline，编写如下 Pipeline 文件，假定名为 *nginx.p*。将其存放在 *[Datakit 安装目录]/pipeline* 目录下。
 
 ```python
-# 假定输入是一个 Nginx 日志（以下字段都是 yy 的...）
+# 假定输入是一个 Nginx 日志
 # 注意，脚本是可以加注释的
 
 grok(_, "some-grok-patterns")  # 对输入的文本，进行 grok 提取
 rename('client_ip', ip)        # 将 ip 字段改名成 client_ip
-rename("网络协议", protocol)   # 将 protocol 字段改名成 '网络协议'
+rename("网络协议", protocol)   # 将 protocol 字段改名成 "网络协议"
 
 # 将时间戳(如 1610967131)换成 RFC3339 日期格式：2006-01-02T15:04:05Z07:00
 datetime(access_time, "s", "RFC3339")
@@ -203,7 +203,7 @@ DataKit 中 grok 模式可以分为两类：
 127.0.0.1 - - [26/May/2022:20:53:52 +0800] "GET /server_status HTTP/1.1" 404 134 "-" "Go-http-client/1.1"
 ```
 
-假设我们需要从该访问日志中获取 client_ip、time (request)、http_method、http_url、http_version、status_code 这些内容，那么 grok pattern 初步可以写成:
+假设我们需要从该访问日志中获取 client_ip、time (request)、http_method、http_url、http_version、status_code 这些内容，那么 grok pattern 初步可以写成：
 
 ```python
 grok(_,"%{NOTSPACE:client_ip} %{NOTSPACE} %{NOTSPACE} \\[%{HTTPDATE:time}\\] \"%{DATA:http_method} %{GREEDYDATA:http_url} HTTP/%{NUMBER:http_version}\" %{INT:status_code} %{INT} \"%{NOTSPACE}\" \"%{NOTSPACE}\"")
@@ -433,7 +433,7 @@ add_key(d)
 
 ## Pipeline 脚本存放目录 {#pl-dirs}
 
-Pipeline 的目录搜索优先级是:
+Pipeline 的目录搜索优先级是：
 
 1. Remote Pipeline 目录
 2. Git 管理的 *pipeline* 目录
@@ -445,7 +445,7 @@ Pipeline 的目录搜索优先级是:
 
 ### Remote Pipeline 目录 {#remote-pl}
 
-在 Datakit 的安装目录下面的 `pipeline_remote` 目录下，目录结构如下所示:
+在 Datakit 的安装目录下面的 `pipeline_remote` 目录下，目录结构如下所示：
 
 ```shell
 .

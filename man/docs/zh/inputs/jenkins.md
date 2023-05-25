@@ -10,7 +10,7 @@ Jenkins 采集器是通过插件 Metrics 采集数据监控 Jenkins，包括但�
 
 ## 前置条件 {#requirements}
 
-- JenKins 版本 >= `2.332.1`; 已测试的版本:
+- JenKins 版本 >= `2.332.1`; 已测试的版本：
     - [x] 2.332.1
 
 - 安装 JenKins [参见](https://www.jenkins.io/doc/book/installing/){:target="_blank"}
@@ -51,8 +51,7 @@ Jenkins CI Visibility 开启方法：
 
 ## 指标集 {#measurements}
 
-以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名)。
-可以在配置中通过 `[inputs.{{.InputName}}.tags]` 为采集的指标指定其它标签：
+以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名）。可以在配置中通过 `[inputs.{{.InputName}}.tags]` 为采集的指标指定其它标签：
 
 ``` toml
  [inputs.{{.InputName}}.tags]
@@ -102,7 +101,7 @@ Jenkins CI Visibility 开启方法：
 
 - JenKins 通用日志切割
 
-通用日志文本示例:
+通用日志文本示例：
 
 ```log
 2021-05-18 03:08:58.053+0000 [id=32] INFO jenkins.InitReactorRunner$1#onAttained: Started all plugins

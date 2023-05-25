@@ -10,9 +10,9 @@ Microsoft IIS 采集器
 
 ## 前置条件 {#requirements}
 
-操作系统要求:
+操作系统要求：
 
-- Windows Vista 以上版本 (不包含 Windows Vista)
+- Windows 7 以上版本（含 Windows 7）
 - Windows Server 2008 R2 及以上版本
 
 ## 配置 {#config}

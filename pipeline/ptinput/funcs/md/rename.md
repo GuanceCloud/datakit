@@ -4,7 +4,7 @@
 
 函数说明：将已提取的字段重新命名
 
-参数:
+参数：
 
 - `new_key`: 新字段名
 - `old_key`: 已提取的字段名
@@ -21,7 +21,7 @@ rename(abc1, abc)
 ```
 
 ```python
-# 待处理数据: {"info": {"age": 17, "name": "zhangsan", "height": 180}}
+# 待处理数据：{"info": {"age": 17, "name": "zhangsan", "height": 180}}
 
 # 处理脚本
 json(_, info.name, "姓名")
