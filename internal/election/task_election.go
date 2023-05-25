@@ -21,6 +21,7 @@ type taskElection struct {
 	status            electionStatus
 	applicationInputs map[string][]inputs.ElectionInput
 	runningInputs     map[string][]inputs.ElectionInput
+	matchedCount      int
 }
 
 func newTaskElection(opt *option, plugins map[string][]inputs.ElectionInput) *taskElection {
@@ -56,8 +57,6 @@ func (x *taskElection) Run() {
 			}
 		}
 	}
-
-	// electionInputs.WithLabelValues(x.namespace).Set(float64(len(x.plugins)))
 }
 
 func (x *taskElection) runOnce() error {
@@ -102,17 +101,23 @@ func (x *taskElection) runOnce() error {
 	log.Debugf("allowed plugins: %v", result.AllowedInputs)
 
 	matched := x.match(result.AllowedInputs)
-
 	if !matched {
-		log.Info("pause all plugins for task election")
-		x.pausePlugins()
+		log.Debugf("match not passed, reset list")
+		x.matchedCount = 0
 		x.runningInputs = make(map[string][]inputs.ElectionInput)
 		for _, name := range result.AllowedInputs {
 			x.runningInputs[name] = append(x.runningInputs[name], x.applicationInputs[name]...)
 			log.Debugf("add new plugins: %s, len(%d)", name, len(x.runningInputs[name]))
 		}
-		x.resumePlugins()
-		log.Info("resume all plugins for task election")
+	} else {
+		x.matchedCount++
+		log.Debugf("match passed, count %d", x.matchedCount)
+		if x.matchedCount == 3 {
+			log.Info("pause all plugins for task election")
+			x.pausePlugins()
+			log.Info("resume all plugins for task election")
+			x.resumePlugins()
+		}
 	}
 
 	if len(x.runningInputs) != 0 {
