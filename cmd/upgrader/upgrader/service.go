@@ -407,6 +407,12 @@ func upgrade(ctx *gin.Context) {
 
 func saveUpgradeScript(downloadURL string) (string, error) {
 	downloadURL = strings.TrimSpace(downloadURL)
+	if runtime.GOOS == datakit.OSWindows {
+		downloadURL = fmt.Sprintf("%s/install.ps1", downloadURL)
+	} else {
+		downloadURL = fmt.Sprintf("%s/install.sh", downloadURL)
+	}
+
 	scriptName := "datakit-upgrade.sh"
 	if runtime.GOOS == datakit.OSWindows {
 		scriptName = "datakit-upgrade.ps1"
