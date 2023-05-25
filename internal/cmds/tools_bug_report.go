@@ -13,8 +13,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
@@ -71,7 +73,29 @@ func (info *datakitInfo) collect() error {
 	if err := info.collectMetrics(); err != nil {
 		cp.Warnf("collect metrics error: %s\n", err.Error())
 	}
+
+	if runtime.GOOS == "linux" {
+		cp.Infof("6. collect systemd log")
+		if err := info.collectSystemdLog(); err != nil {
+			cp.Warnf("collect systemd log error: %s\n", err.Error())
+		}
+	}
+
 	return nil
+}
+
+func (info *datakitInfo) collectSystemdLog() error {
+	sysLogDir, err := info.makeDir("syslog")
+	if err != nil {
+		return err
+	}
+	cmd := exec.Command("journalctl", "-u", "datakit.service", "-b", "--no-pager")
+	res, err := cmd.CombinedOutput()
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(filepath.Join(sysLogDir, fmt.Sprintf("syslog-%d", time.Now().UnixMilli())), res, os.ModePerm)
 }
 
 func (info *datakitInfo) collectMetrics() error {
@@ -402,9 +426,9 @@ func (info *datakitInfo) copyDir(srcDir string, dstDir string, transform transfo
 		fileName := file.Name()
 
 		srcFilePath := filepath.Join(srcDir, fileName)
-		dstFilePath := filepath.Join(dstDir, fileName)
 
 		if file.IsDir() {
+			dstFilePath := filepath.Join(dstDir, fileName)
 			err = os.MkdirAll(dstFilePath, os.ModePerm)
 			if err != nil {
 				return fmt.Errorf("error creating directory %s: %w", dstFilePath, err)
@@ -418,6 +442,8 @@ func (info *datakitInfo) copyDir(srcDir string, dstDir string, transform transfo
 			if !strings.HasSuffix(fileName, ".conf") {
 				continue
 			}
+			dstName := fmt.Sprintf("%s.copy", fileName)
+			dstFilePath := filepath.Join(dstDir, dstName)
 			err := info.copyFile(srcFilePath, dstFilePath, transform)
 			if err != nil {
 				fmt.Printf("error writing file %s: %s\n", dstFilePath, err)

@@ -336,24 +336,24 @@ The list of files is as follows:
 
 ├── config
 │   ├── container
-│   │   └── container.conf
-│   ├── datakit.conf
+│   │   └── container.conf.copy
+│   ├── datakit.conf.copy
 │   ├── db
-│   │   ├── kafka.conf
-│   │   ├── mysql.conf
-│   │   └── sqlserver.conf
+│   │   ├── kafka.conf.copy
+│   │   ├── mysql.conf.copy
+│   │   └── sqlserver.conf.copy
 │   ├── host
-│   │   ├── cpu.conf
-│   │   ├── disk.conf
-│   │   └── system.conf
+│   │   ├── cpu.conf.copy
+│   │   ├── disk.conf.copy
+│   │   └── system.conf.copy
 │   ├── network
-│   │   └── dialtesting.conf
+│   │   └── dialtesting.conf.copy
 │   ├── profile
-│   │   └── profile.conf
+│   │   └── profile.conf.copy
 │   ├── pythond
-│   │   └── pythond.conf
+│   │   └── pythond.conf.copy
 │   └── rum
-│       └── rum.conf
+│       └── rum.conf.copy
 ├── env.txt
 ├── metrics 
 │   ├── metric-1680513455403 
@@ -362,6 +362,8 @@ The list of files is as follows:
 ├── log
 │   ├── gin.log
 │   └── log
+├── syslog
+│   └── syslog-1680513475416
 └── profile
     ├── allocs
     ├── heap
@@ -378,6 +380,7 @@ Document Explanation
 | `log`     | yes  | Latest log files, such as log and gin log, not supporting `stdout` currently                           |
 | `profile` | yes  | When pprof is enabled, it will collect profile data.                                                   |
 | `metrics` | yes  | The data returned by the `/metrics` API is named in the format of `metric-<timestamp in milliseconds>` |
+| `syslog`  | yes       | only supported in `linux`, based on the `journalctl` command |
 
 **Mask sensitive information**
 
