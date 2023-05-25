@@ -33,7 +33,7 @@ func (md grpcMeta) Get(key string) string {
 
 func (x *PSpan) ConvertToDKTrace(inputName string, meta metadata.MD, apiMetaTab *sync.Map) itrace.DatakitTrace {
 	root := &itrace.DatakitSpan{
-		TraceID:    getTraceID(x.TransactionId),
+		TraceID:    getTraceID(x.TransactionId, meta),
 		SpanID:     strconv.FormatUint(uint64(x.SpanId), 10),
 		Service:    grpcMeta(meta).Get("applicationname"),
 		Source:     inputName,
@@ -77,7 +77,7 @@ func (x *PSpan) ConvertToDKTrace(inputName string, meta metadata.MD, apiMetaTab 
 
 func (x *PSpanChunk) ConvertToDKTrace(inputName string, meta metadata.MD, apiMetaTab *sync.Map) itrace.DatakitTrace {
 	root := &itrace.DatakitSpan{
-		TraceID:    getTraceID(x.TransactionId),
+		TraceID:    getTraceID(x.TransactionId, meta),
 		ParentID:   "0",
 		SpanID:     strconv.FormatUint(uint64(x.SpanId), 10),
 		Service:    grpcMeta(meta).Get("applicationname"),
@@ -180,7 +180,10 @@ func expandSpanEvents(rootStart int64, parent *itrace.DatakitSpan, i int, events
 	expandSpanEvents(rootStart, dkspan, i+1, events, apiMetaTab, trace)
 }
 
-func getTraceID(transid *PTransactionId) string {
+func getTraceID(transid *PTransactionId, meta metadata.MD) string {
+	if tid := grpcMeta(meta).Get("x-b3-traceid"); len(tid) != 0 {
+		return tid
+	}
 	if transid != nil {
 		return fmt.Sprintf("%s^%d^%d", transid.AgentId, transid.AgentStartTime, transid.Sequence)
 	} else {
