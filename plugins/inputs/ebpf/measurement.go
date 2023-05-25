@@ -36,10 +36,14 @@ func (m *ConnStatsM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "netflow",
 		Tags: map[string]interface{}{
-			"host":                    inputs.TagInfo{Desc: "System hostname."},
-			"dst_ip":                  inputs.TagInfo{Desc: "Destination IP address."},
-			"dst_domain":              inputs.TagInfo{Desc: "Destination domain."},
-			"dst_port":                inputs.TagInfo{Desc: "Destination port."},
+			"host":       inputs.TagInfo{Desc: "System hostname."},
+			"dst_ip":     inputs.TagInfo{Desc: "Destination IP address."},
+			"dst_domain": inputs.TagInfo{Desc: "Destination domain."},
+			"dst_port":   inputs.TagInfo{Desc: "Destination port."},
+			"dst_nat_ip": inputs.TagInfo{Desc: "For data containing the `outging` tag, " +
+				"this value is the ip after the DNAT operation."},
+			"dst_nat_port": inputs.TagInfo{Desc: "For data containing the `outging` tag, " +
+				"this value is the port after the DNAT operation."},
 			"dst_ip_type":             inputs.TagInfo{Desc: "Destination IP type. (other/private/multicast)"},
 			"src_ip":                  inputs.TagInfo{Desc: "Source IP."},
 			"src_port":                inputs.TagInfo{Desc: "Source port."},
@@ -83,11 +87,15 @@ func (m *HTTPFlowM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "httpflow",
 		Tags: map[string]interface{}{
-			"host":                    inputs.TagInfo{Desc: "System hostname."},
-			"dst_ip":                  inputs.TagInfo{Desc: "Destination IP address."},
-			"dst_domain":              inputs.TagInfo{Desc: "Destination domain."},
-			"dst_port":                inputs.TagInfo{Desc: "Destination port."},
-			"dst_ip_type":             inputs.TagInfo{Desc: "Destination IP type. (other/private/multicast)"},
+			"host":        inputs.TagInfo{Desc: "System hostname."},
+			"dst_ip":      inputs.TagInfo{Desc: "Destination IP address."},
+			"dst_domain":  inputs.TagInfo{Desc: "Destination domain."},
+			"dst_port":    inputs.TagInfo{Desc: "Destination port."},
+			"dst_ip_type": inputs.TagInfo{Desc: "Destination IP type. (other/private/multicast)"},
+			"dst_nat_ip": inputs.TagInfo{Desc: "For data containing the `outging` tag, " +
+				"this value is the ip after the DNAT operation."},
+			"dst_nat_port": inputs.TagInfo{Desc: "For data containing the `outging` tag, " +
+				"this value is the port after the DNAT operation."},
 			"src_ip":                  inputs.TagInfo{Desc: "Source IP."},
 			"src_port":                inputs.TagInfo{Desc: "Source port."},
 			"src_ip_type":             inputs.TagInfo{Desc: "Source IP type. (other/private/multicast)"},

@@ -15,11 +15,7 @@ import (
 )
 
 type aggKey struct {
-	sAddr string
-	dAddr string
-
-	sPort uint32
-	dPort uint32
+	dknetflow.BaseKey
 
 	sType string
 	dType string
@@ -30,7 +26,6 @@ type aggKey struct {
 	statusCode  int
 
 	family    string
-	transport string
 	direction string
 
 	pid int64
@@ -63,15 +58,23 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 		"family": key.family,
 
 		"direction": key.direction,
-		"transport": key.transport,
+		"transport": key.Transport,
 
-		"src_ip": key.sAddr,
-		"dst_ip": key.dAddr,
+		"src_ip": key.SAddr,
+		"dst_ip": key.DAddr,
 
 		"pid": strconv.FormatInt(key.pid, 10),
 
 		"src_ip_type": key.sType,
 		"dst_ip_type": key.dType,
+	}
+
+	if key.DNATAddr != "" && key.DNATPort != 0 {
+		tags["dst_nat_ip"] = key.DNATAddr
+		tags["dst_nat_port"] = strconv.FormatInt(int64(key.DNATPort), 10)
+	} else {
+		tags["dst_nat_ip"] = NoValue
+		tags["dst_nat_port"] = NoValue
 	}
 
 	if procName, ok := pidMap[int(key.pid)]; ok {
@@ -80,16 +83,16 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 		tags["process_name"] = NoValue
 	}
 
-	if key.sPort == math.MaxUint32 {
+	if key.SPort == math.MaxUint32 {
 		tags["src_port"] = "*"
 	} else {
-		tags["src_port"] = cast.ToString(key.sPort)
+		tags["src_port"] = cast.ToString(key.SPort)
 	}
 
-	if key.dPort == math.MaxUint32 {
+	if key.DPort == math.MaxUint32 {
 		tags["dst_port"] = "*"
 	} else {
-		tags["dst_port"] = cast.ToString(key.dPort)
+		tags["dst_port"] = cast.ToString(key.DPort)
 	}
 
 	for k, v := range addTags {
@@ -111,8 +114,7 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 		"count": value.count,
 	}
 
-	tags = dknetflow.AddK8sTags2Map(k8sNetInfo, key.sAddr, key.dAddr,
-		key.sPort, key.dPort, key.transport, tags)
+	tags = dknetflow.AddK8sTags2Map(k8sNetInfo, &key.BaseKey, tags)
 	return client.NewPoint(srcNameM, tags, fields, pTime)
 }
 
@@ -177,28 +179,34 @@ func (agg *FlowAgg) Append(httpFinReq *HTTPReqFinishedInfo) error {
 	}
 
 	// saddr, daddr, sport, dport, transport
-	key.sAddr = dknetflow.U32BEToIP(httpFinReq.ConnInfo.Saddr, isV6).String()
-	key.dAddr = dknetflow.U32BEToIP(httpFinReq.ConnInfo.Daddr, isV6).String()
+	key.SAddr = dknetflow.U32BEToIP(httpFinReq.ConnInfo.Saddr, isV6).String()
+	key.DAddr = dknetflow.U32BEToIP(httpFinReq.ConnInfo.Daddr, isV6).String()
 
-	key.sPort = httpFinReq.ConnInfo.Sport
-	key.dPort = httpFinReq.ConnInfo.Dport
+	if httpFinReq.ConnInfo.NATDport != 0 && (httpFinReq.ConnInfo.NATDaddr[0]|
+		httpFinReq.ConnInfo.NATDaddr[1]|httpFinReq.ConnInfo.NATDaddr[2]|httpFinReq.ConnInfo.NATDaddr[3]) != 0 {
+		key.DNATPort = httpFinReq.ConnInfo.NATDport
+		key.DNATAddr = dknetflow.U32BEToIP(httpFinReq.ConnInfo.NATDaddr, isV6).String()
+	}
+
+	key.SPort = httpFinReq.ConnInfo.Sport
+	key.DPort = httpFinReq.ConnInfo.Dport
 
 	switch key.direction {
 	case DirectionOutgoing:
-		if dknetflow.IsEphemeralPort(key.sPort) {
-			key.sPort = math.MaxUint32
+		if dknetflow.IsEphemeralPort(key.SPort) {
+			key.SPort = math.MaxUint32
 		}
 	case DirectionIncoming:
-		if dknetflow.IsEphemeralPort(key.dPort) {
-			key.dPort = math.MaxUint32
+		if dknetflow.IsEphemeralPort(key.DPort) {
+			key.DPort = math.MaxUint32
 		}
 	}
 
 	// transport
 	if dknetflow.ConnProtocolIsTCP(httpFinReq.ConnInfo.Meta) {
-		key.transport = "tcp"
+		key.Transport = "tcp"
 	} else {
-		key.transport = "udp"
+		key.Transport = "udp"
 	}
 
 	// agg latency and count ++

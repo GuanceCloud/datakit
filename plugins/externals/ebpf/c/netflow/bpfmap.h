@@ -1,8 +1,11 @@
-#ifndef __BPFMAP_H
-#define __BPFMAP_H
+#ifndef __NETFLOW_BPFMAP_H
+#define __NETFLOW_BPFMAP_H
+
+#include "../conntrack/maps.h"
 
 #include "bpf_helpers.h"
 #include "conn_stats.h"
+
 // ------------------------------------------------------
 // ---------------------- BPF MAP -----------------------
 
@@ -94,7 +97,6 @@ struct bpf_map_def SEC("maps/bpfmap_tmp_sendfile") bpfmap_tmp_sendfile = {
     .max_entries = 65536,
 };
 
-
 // Remove conn from bpfmap_conn_stats.
 // In addition if it is a TCP conn, remove it from bpfmap_conn_tcp_stats.
 static __always_inline void remove_from_conn_map(struct connection_info conn_info, struct connection_closed_info *event)
@@ -174,19 +176,17 @@ static __always_inline int update_tcp_retransmit(struct connection_info conn, in
     return 0;
 }
 
-
 static __always_inline void send_conn_closed_event(struct pt_regs *ctx, struct connection_closed_info event, __u64 cpu)
 {
     bpf_perf_event_output(ctx, &bpfmap_closed_event, cpu, &event, sizeof(event));
 }
-
 
 // param direction: connetction direction, automatic judgment | incoming | outgoing | unknown
 // param count_typpe: packet count type, 1: init, 2:increment
 static __always_inline void update_conn_stats(struct connection_info *conn, size_t sent_bytes, size_t recv_bytes, u64 ts, int direction,
                                               __u32 packets_out, __u32 packets_in, int count_type)
 {
-    struct connection_stats *val;
+    struct connection_stats *val = NULL;
 
     // initialize-if-no-exist the connection stat, and load it
     struct connection_stats empty = {};
@@ -246,6 +246,8 @@ static __always_inline void update_conn_stats(struct connection_info *conn, size
     {
         val->direction = direction;
     }
+
+    do_dnapt(conn, val->nat_daddr, &val->nat_dport);
 }
 
 #endif // !__BPFMAP_H

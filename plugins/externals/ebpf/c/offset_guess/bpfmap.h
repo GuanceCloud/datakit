@@ -34,7 +34,6 @@ struct bpf_map_def SEC("maps/bpfmap_file_ptr") bpf_map_file_ptr = {
     .max_entries = 1024,
 };
 
-
 struct bpf_map_def SEC("maps/bpfmap_sock_common_getsockopt_arg") bpf_map_sock_common_getsockopt_arg = {
     .type = BPF_MAP_TYPE_HASH,
     .key_size = sizeof(__u64),

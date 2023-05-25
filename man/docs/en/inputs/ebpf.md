@@ -6,7 +6,7 @@
 
 ---
 
-eBPF collector, collecting host network TCP, UDP connection information, Bash execution log, etc. This collector mainly includes `ebpf-net` and `ebpf-bash` classes:
+eBPF collector, collecting host network TCP, UDP connection information, Bash execution log, etc. This collector mainly includes `ebpf-net`, `ebpf-conntrack` and `ebpf-bash` three plugins:
 
 * `ebpf-net`:
     * Data category: Network
@@ -16,6 +16,9 @@ eBPF collector, collecting host network TCP, UDP connection information, Bash ex
 
     * Data category: Logging
     * Collect Bash execution log, including Bash process number, user name, executed command and time, etc.;
+
+* `ebpf-conntrack`: [:octicons-tag-24: Version-1.8.0](changelog.md#cl-1.8.0) · [:octicons-beaker-24: Experimental](index.md#experimental)
+    * Add two tags `dst_nat_ip` and `dst_nat_port` to the network flow data.
 
 ## Preconditions {#requirements}
 
@@ -122,7 +125,7 @@ setenforce 0
     
     | Environment Variable Name                                    | Corresponding Configuration Parameter Item                 | Parameter Example                    |
     | :---                                        | ---                           | ---                        |
-    | `ENV_INPUT_EBPF_ENABLED_PLUGINS`            | `enabled_plugins`             | `ebpf-net,ebpf-bash`       |
+    | `ENV_INPUT_EBPF_ENABLED_PLUGINS`            | `enabled_plugins`             | `ebpf-net,ebpf-bash,ebpf-conntrack`       |
     | `ENV_INPUT_EBPF_L7NET_ENABLED`              | `l7net_enabled`               | `httpflow,httpflow-tls`    |
     | `ENV_INPUT_EBPF_IPV6_DISABLED`              | `ipv6_disabled`               | `false/true`               |
     | `ENV_INPUT_EBPF_EPHEMERAL_PORT`             | `ephemeral_port`              | `32768`                    |
