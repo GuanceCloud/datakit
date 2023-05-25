@@ -311,24 +311,24 @@ datakit debug --bug-report
 ```shell
 ├── config
 │   ├── container
-│   │   └── container.conf
-│   ├── datakit.conf
+│   │   └── container.conf.copy
+│   ├── datakit.conf.copy
 │   ├── db
-│   │   ├── kafka.conf
-│   │   ├── mysql.conf
-│   │   └── sqlserver.conf
+│   │   ├── kafka.conf.copy
+│   │   ├── mysql.conf.copy
+│   │   └── sqlserver.conf.copy
 │   ├── host
-│   │   ├── cpu.conf
-│   │   ├── disk.conf
-│   │   └── system.conf
+│   │   ├── cpu.conf.copy
+│   │   ├── disk.conf.copy
+│   │   └── system.conf.copy
 │   ├── network
-│   │   └── dialtesting.conf
+│   │   └── dialtesting.conf.copy
 │   ├── profile
-│   │   └── profile.conf
+│   │   └── profile.conf.copy
 │   ├── pythond
-│   │   └── pythond.conf
+│   │   └── pythond.conf.copy
 │   └── rum
-│       └── rum.conf
+│       └── rum.conf.copy
 ├── env.txt
 ├── metrics 
 │   ├── metric-1680513455403 
@@ -337,6 +337,8 @@ datakit debug --bug-report
 ├── log
 │   ├── gin.log
 │   └── log
+├── syslog
+│   └── syslog-1680513475416
 └── profile
     ├── allocs
     ├── heap
@@ -352,6 +354,7 @@ datakit debug --bug-report
 | `log`     | 是       | 最新的日志文件，包括 log 和 gin log，暂不支持 `stdout`        |
 | `profile` | 是       | pprof 开启时，会采集 profile 数据                             |
 | `metrics` | 是       | `/metrics` 接口返回的数据，命名格式为 `metric-<时间戳毫秒数>` |
+| `syslog`  | 是       | 仅支持 `linux`, 基于 `journalctl` 来获取相关日志 |
 
 ### 敏感信息处理 {#sensitive}
 
