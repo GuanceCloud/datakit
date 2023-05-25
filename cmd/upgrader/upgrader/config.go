@@ -17,7 +17,7 @@ import (
 )
 
 var sampleConfig = `
-listen = "0.0.0.0:9539"
+listen = "0.0.0.0:9542"
 ip_whitelist = []
 
 [logging]
@@ -105,7 +105,7 @@ func DefaultMainConfig() *MainConfig {
 	L().Warnf("unable to decode config sample: %s", err)
 
 	return &MainConfig{
-		Listen:      "0.0.0.0:9539",
+		Listen:      "0.0.0.0:9542",
 		IPWhiteList: []string{},
 		Logging: &LoggerCfg{
 			LoggerCfg: &config.LoggerCfg{

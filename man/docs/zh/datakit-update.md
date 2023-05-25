@@ -173,14 +173,14 @@ DK_UPGRADE=1 \
 
 - **查看当前 Datakit 版本及可用的升级版本**
 
-| API                                                   | 请求方式 |
-| ---                                                   | ---      |
-| `http://<datakit-ip-or-host>:9539/v1/datakit/version` | `GET`    |
+| API                                                   | 请求方式  |
+|-------------------------------------------------------|-------|
+| `http://<datakit-ip-or-host>:9542/v1/datakit/version` | `GET` |
 
 请求示例：
 
 ```shell
-$ curl 'http://127.0.0.1:9539/v1/datakit/version'
+$ curl 'http://127.0.0.1:9542/v1/datakit/version'
 {
     "Version": "1.5.7",
     "Commit": "1a9xxxxxxx",
@@ -205,12 +205,12 @@ $ curl 'http://127.0.0.1:9539/v1/datakit/version'
 
 | API                                                   | 请求方式 |
 | ---                                                   | ---      |
-| `http://<datakit-ip-or-host>:9539/v1/datakit/upgrade` | `POST`   |
+| `http://<datakit-ip-or-host>:9542/v1/datakit/upgrade` | `POST`   |
 
 请求示例：
 
 ```shell
-$ curl -X POST 'http://127.0.0.1:9539/v1/datakit/upgrade'
+$ curl -X POST 'http://127.0.0.1:9542/v1/datakit/upgrade'
 {"msg":"success"}
 ```
 
