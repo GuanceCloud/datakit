@@ -12,8 +12,8 @@ import (
 	"os/exec"
 	"runtime"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 const (

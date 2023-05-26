@@ -9,8 +9,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ip2isp"
 )
 
 func BuildISP() {

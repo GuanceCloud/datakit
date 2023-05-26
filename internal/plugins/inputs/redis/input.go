@@ -1,0 +1,470 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
+// Package redis collects redis metrics.
+package redis
+
+import (
+	"context"
+	"fmt"
+	"strings"
+	"time"
+
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
+	"github.com/go-redis/redis/v8"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
+)
+
+const (
+	maxInterval = 30 * time.Minute
+	minInterval = 15 * time.Second
+)
+
+var (
+	inputName                        = "redis"
+	catalogName                      = "db"
+	l                                = logger.DefaultSLogger("redis")
+	_           inputs.ElectionInput = (*Input)(nil)
+)
+
+type redislog struct {
+	Files             []string `toml:"files"`
+	Pipeline          string   `toml:"pipeline"`
+	IgnoreStatus      []string `toml:"ignore"`
+	CharacterEncoding string   `toml:"character_encoding"`
+	MultilineMatch    string   `toml:"multiline_match"`
+
+	MatchDeprecated string `toml:"match,omitempty"`
+}
+
+type Input struct {
+	Username          string `toml:"username"`
+	Host              string `toml:"host"`
+	UnixSocketPath    string `toml:"unix_socket_path"`
+	Password          string `toml:"password"`
+	Timeout           string `toml:"connect_timeout"`
+	Service           string `toml:"service"`
+	Addr              string `toml:"-"`
+	Port              int    `toml:"port"`
+	DB                int    `toml:"db"`
+	SocketTimeout     int    `toml:"socket_timeout"`
+	SlowlogMaxLen     int    `toml:"slowlog-max-len"`
+	Interval          datakit.Duration
+	WarnOnMissingKeys bool              `toml:"warn_on_missing_keys"`
+	CommandStats      bool              `toml:"command_stats"`
+	Slowlog           bool              `toml:"slow_log"`
+	AllSlowLog        bool              `toml:"all_slow_log"`
+	Tags              map[string]string `toml:"tags"`
+	Keys              []string          `toml:"keys"`
+	DBS               []int             `toml:"dbs"`
+	Log               *redislog         `toml:"log"`
+
+	MatchDeprecated   string   `toml:"match,omitempty"`
+	ServersDeprecated []string `toml:"servers,omitempty"`
+
+	timeoutDuration time.Duration
+
+	tail       *tailer.Tailer
+	start      time.Time
+	collectors []func() ([]*point.Point, error)
+
+	client *redis.Client
+
+	Election        bool `toml:"election"`
+	pause           bool
+	pauseCh         chan bool
+	hashMap         [][16]byte
+	latencyLastTime time.Time
+	cpuUsage        redisCPUUsage
+
+	semStop *cliutils.Sem // start stop signal
+
+	startUpUnix int64
+	feeder      dkio.Feeder
+}
+
+type redisCPUUsage struct {
+	usedCPUSys    float64
+	usedCPUSysTS  time.Time
+	usedCPUUser   float64
+	usedCPUUserTS time.Time
+}
+
+func (i *Input) ElectionEnabled() bool {
+	return i.Election
+}
+
+func (i *Input) initCfg() error {
+	var err error
+	i.timeoutDuration, err = time.ParseDuration(i.Timeout)
+	if err != nil {
+		i.timeoutDuration = 10 * time.Second
+	}
+
+	i.Addr = fmt.Sprintf("%s:%d", i.Host, i.Port)
+
+	client := redis.NewClient(&redis.Options{
+		Addr:     i.Addr,
+		Username: i.Username,
+		Password: i.Password, // no password set
+		DB:       i.DB,       // use default DB
+	})
+
+	if i.SlowlogMaxLen == 0 {
+		i.SlowlogMaxLen = 128
+	}
+
+	i.client = client
+
+	// ping (todo)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	_, err = client.Ping(ctx).Result()
+
+	if err != nil {
+		return err
+	}
+
+	i.Tags["server"] = i.Addr
+	i.Tags["service_name"] = i.Service
+
+	return nil
+}
+
+func (*Input) PipelineConfig() map[string]string {
+	pipelineMap := map[string]string{
+		inputName: pipelineCfg,
+	}
+	return pipelineMap
+}
+
+func (i *Input) LogExamples() map[string]map[string]string {
+	return map[string]map[string]string{
+		inputName: {
+			"Redis log": `122:M 14 May 2019 19:11:40.164 * Background saving terminated with success`,
+		},
+	}
+}
+
+func (i *Input) GetPipeline() []*tailer.Option {
+	return []*tailer.Option{
+		{
+			Source:  inputName,
+			Service: inputName,
+			Pipeline: func() string {
+				if i.Log != nil {
+					return i.Log.Pipeline
+				}
+				return ""
+			}(),
+		},
+	}
+}
+
+func (i *Input) Collect() error {
+	for idx, f := range i.collectors {
+		pts, err := f()
+		if err != nil {
+			l.Errorf("collector %v[%d]: %s", f, idx, err)
+			i.feeder.FeedLastError(inputName, err.Error())
+		}
+
+		if len(pts) > 0 {
+			if err := i.feeder.Feed(inputName, point.Metric, pts,
+				&dkio.Option{CollectCost: time.Since(i.start)}); err != nil {
+				l.Errorf("FeedMeasurement: %s", err)
+			}
+		}
+	}
+	if i.Slowlog {
+		if err := i.getSlowData(); err != nil {
+			return err
+		}
+	}
+
+	if err := i.GetLatencyData(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func GetPointsFromMeasurement(measurements []inputs.Measurement) []*dkpt.Point {
+	var pts []*dkpt.Point
+	for _, m := range measurements {
+		if pt, err := m.LineProto(); err != nil {
+			l.Warnf("make point failed: %v, ignore", err)
+		} else {
+			pts = append(pts, pt)
+		}
+	}
+	return pts
+}
+
+func (i *Input) collectInfoMeasurement() ([]*point.Point, error) {
+	var collectCache []*point.Point
+
+	m := &infoMeasurement{
+		cli:         i.client,
+		resData:     make(map[string]interface{}),
+		tags:        make(map[string]string),
+		fields:      make(map[string]interface{}),
+		election:    i.Election,
+		lastCollect: &i.cpuUsage,
+	}
+
+	m.name = "redis_info"
+
+	setHostTagIfNotLoopback(m.tags, i.Host)
+	for key, value := range i.Tags {
+		m.tags[key] = value
+	}
+
+	// get data
+	if err := m.getData(); err != nil {
+		return nil, err
+	}
+
+	// build line data
+	if err := m.submit(); err != nil {
+		return nil, err
+	}
+
+	if len(m.fields) > 0 {
+		var opts []point.Option
+		if m.election {
+			opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+		}
+		pt := point.NewPointV2([]byte(m.name),
+			append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+			opts...)
+		collectCache = append(collectCache, pt)
+	}
+
+	return collectCache, nil
+}
+
+func (i *Input) collectBigKeyMeasurement() ([]*point.Point, error) {
+	keys, err := i.getKeys()
+	if err != nil {
+		return nil, err
+	}
+
+	return i.getData(keys)
+}
+
+// 数据源获取数据.
+func (i *Input) collectClientMeasurement() ([]*point.Point, error) {
+	ctx := context.Background()
+	list, err := i.client.ClientList(ctx).Result()
+	if err != nil {
+		l.Error("client list get error,", err)
+		return nil, err
+	}
+
+	return i.parseClientData(list)
+}
+
+// 数据源获取数据.
+func (i *Input) collectCommandMeasurement() ([]*point.Point, error) {
+	ctx := context.Background()
+	list, err := i.client.Info(ctx, "commandstats").Result()
+	if err != nil {
+		l.Error("command stats error,", err)
+		return nil, err
+	}
+
+	return i.parseCommandData(list)
+}
+
+func (i *Input) RunPipeline() {
+	if i.Log == nil || len(i.Log.Files) == 0 {
+		return
+	}
+
+	opt := &tailer.Option{
+		Source:            inputName,
+		Service:           inputName,
+		Pipeline:          i.Log.Pipeline,
+		GlobalTags:        i.Tags,
+		IgnoreStatus:      i.Log.IgnoreStatus,
+		CharacterEncoding: i.Log.CharacterEncoding,
+		MultilinePatterns: []string{i.Log.MultilineMatch},
+		Done:              i.semStop.Wait(),
+	}
+
+	var err error
+	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
+	if err != nil {
+		l.Error("NewTailer: %s", err)
+
+		i.feeder.FeedLastError(inputName, err.Error())
+		return
+	}
+
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_redis"})
+	g.Go(func(ctx context.Context) error {
+		i.tail.Start()
+		return nil
+	})
+}
+
+func (i *Input) Run() {
+	l = logger.SLogger("redis")
+	i.startUpUnix = time.Now().Unix()
+	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
+
+	tick := time.NewTicker(i.Interval.Duration)
+	defer tick.Stop()
+
+	// Try init until ok.
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			return
+		case <-i.semStop.Wait():
+			return
+		case <-tick.C:
+		}
+
+		if err := i.initCfg(); err != nil {
+			i.feeder.FeedLastError(inputName, err.Error())
+		} else {
+			break
+		}
+	}
+	i.hashMap = make([][16]byte, i.SlowlogMaxLen)
+
+	i.collectors = []func() ([]*point.Point, error){
+		i.collectInfoMeasurement,
+		i.collectClientMeasurement,
+		i.collectCommandMeasurement,
+		i.collectDBMeasurement,
+		i.collectReplicaMeasurement,
+	}
+
+	// 判断是否采集集群
+	ctx := context.Background()
+	list1 := i.client.Do(ctx, "info", "cluster").String()
+	part := strings.Split(list1, ":")
+	if len(part) >= 3 {
+		if strings.Compare(part[2], "1") == 1 {
+			i.collectors = append(i.collectors, i.CollectClusterMeasurement)
+		}
+	}
+
+	if len(i.Keys) > 0 {
+		i.collectors = append(i.collectors, i.collectBigKeyMeasurement)
+	}
+
+	for {
+		if !i.pause {
+			l.Debugf("redis input gathering...")
+			i.start = time.Now()
+			if err := i.Collect(); err != nil {
+				l.Errorf("Collect: %s", err)
+			}
+		} else {
+			l.Debugf("not leader, skipped")
+		}
+
+		select {
+		case <-datakit.Exit.Wait():
+			i.exit()
+			l.Info("redis exit")
+			return
+
+		case <-i.semStop.Wait():
+			i.exit()
+			l.Info("redis return")
+			return
+
+		case <-tick.C:
+		case i.pause = <-i.pauseCh:
+			// nil
+		}
+	}
+}
+
+func (i *Input) exit() {
+	if i.tail != nil {
+		i.tail.Close()
+		l.Info("redis log exit")
+	}
+}
+
+func (i *Input) Terminate() {
+	if i.semStop != nil {
+		i.semStop.Close()
+	}
+}
+
+func (*Input) Catalog() string { return catalogName }
+
+func (*Input) SampleConfig() string { return configSample }
+
+func (*Input) AvailableArchs() []string { return datakit.AllOSWithElection }
+
+func (*Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{
+		&bigKeyMeasurement{},
+		&clientMeasurement{},
+		&clusterMeasurement{},
+		&commandMeasurement{},
+		&dbMeasurement{},
+		&infoMeasurement{},
+		&latencyMeasurement{},
+		&slowlogMeasurement{},
+	}
+}
+
+func (i *Input) Pause() error {
+	tick := time.NewTicker(inputs.ElectionPauseTimeout)
+	defer tick.Stop()
+	select {
+	case i.pauseCh <- true:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("pause %s failed", inputName)
+	}
+}
+
+func (i *Input) Resume() error {
+	tick := time.NewTicker(inputs.ElectionResumeTimeout)
+	defer tick.Stop()
+	select {
+	case i.pauseCh <- false:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("resume %s failed", inputName)
+	}
+}
+
+func defaultInput() *Input {
+	return &Input{
+		Timeout:  "10s",
+		pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
+		DB:       -1,
+		Tags:     make(map[string]string),
+		semStop:  cliutils.NewSem(),
+		Election: true,
+		feeder:   dkio.DefaultFeeder(),
+	}
+}
+
+func init() { //nolint:gochecknoinits
+	inputs.Add(inputName, func() inputs.Input {
+		return defaultInput()
+	})
+}

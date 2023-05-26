@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
 
 func Test_spiltBuffer(t *testing.T) {

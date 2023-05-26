@@ -8,7 +8,7 @@ package cmds
 import (
 	"fmt"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/hostobject"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/hostobject"
 )
 
 func showCloudInfo() (map[string]interface{}, error) {
