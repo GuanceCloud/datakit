@@ -8,7 +8,9 @@ package postgresql
 import (
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"github.com/GuanceCloud/cliutils/point"
+
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -42,11 +44,7 @@ var relationMetrics = []struct {
 	{
 		name: "stat metrics",
 		query: `
-SELECT relname AS table,schemaname AS schema,
-			seq_scan, seq_tup_read, idx_scan, 
-			idx_tup_fetch, n_tup_ins, n_tup_upd, n_tup_del, n_tup_hot_upd, 
-			n_live_tup, n_dead_tup, vacuum_count, autovacuum_count, 
-			analyze_count, autoanalyze_count
+SELECT relname AS table,schemaname AS schema, *
 FROM pg_stat_user_tables 
 WHERE %s 
 		`,
@@ -99,59 +97,6 @@ WHERE %s
 	},
 }
 
-//nolint:lll
-var postgreFields = map[string]interface{}{
-	// db
-	"numbackends":              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of active connections to this database."},
-	"xact_commit":              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of transactions that have been committed in this database."},
-	"xact_rollback":            &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of transactions that have been rolled back in this database."},
-	"blks_read":                &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of disk blocks read in this database."},
-	"blks_hit":                 &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of times disk blocks were found in the buffer cache, preventing the need to read from the database."},
-	"tup_returned":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of rows returned by queries in this database."},
-	"tup_fetched":              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of rows fetched by queries in this database."},
-	"tup_inserted":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of rows inserted by queries in this database."},
-	"tup_updated":              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of rows updated by queries in this database."},
-	"tup_deleted":              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of rows deleted by queries in this database."},
-	"deadlocks":                &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of deadlocks detected in this database."},
-	"temp_bytes":               &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The amount of data written to temporary files by queries in this database."},
-	"temp_files":               &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of temporary files created by queries in this database."},
-	"database_size":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The disk space used by this database."},
-	"wraparound":               &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of transactions that can occur until a transaction wraparound."},
-	"session_time":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Time spent by database sessions in this database, in milliseconds."},
-	"active_time":              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Time spent executing SQL statements in this database, in milliseconds."},
-	"idle_in_transaction_time": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Time spent idling while in a transaction in this database, in milliseconds."},
-	"sessions":                 &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Total number of sessions established to this database."},
-	"sessions_abandoned":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of database sessions to this database that were terminated because connection to the client was lost."},
-	"sessions_fatal":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of database sessions to this database that were terminated by fatal errors."},
-	"sessions_killed":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of database sessions to this database that were terminated by operator intervention."},
-	// bg_writer
-	"checkpoints_timed":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of scheduled checkpoints that were performed."},
-	"checkpoints_req":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of requested checkpoints that were performed."},
-	"buffers_checkpoint":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of buffers written during checkpoints."},
-	"buffers_clean":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of buffers written by the background writer."},
-	"maxwritten_clean":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of times the background writer stopped a cleaning scan due to writing too many buffers."},
-	"buffers_backend":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of buffers written directly by a backend."},
-	"buffers_alloc":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of buffers allocated"},
-	"buffers_backend_fsync": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The of times a backend had to execute its own fsync call instead of the background writer."},
-	"checkpoint_write_time": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.DurationMS, Desc: "The total amount of checkpoint processing time spent writing files to disk."},
-	"checkpoint_sync_time":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.DurationMS, Desc: "The total amount of checkpoint processing time spent synchronizing files to disk."},
-
-	// CONNECTION_METRICS
-	"max_connections":           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The maximum number of client connections allowed to this database."},
-	"percent_usage_connections": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of connections to this database as a fraction of the maximum number of allowed connections."},
-
-	// conflicts
-	"confl_tablespace": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of queries in this database that have been canceled due to dropped tablespaces. This will occur when a `temp_tablespace` is dropped while being used on a standby."},
-	"confl_lock":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of queries in this database that have been canceled due to dropped tablespaces. This will occur when a `temp_tablespace` is dropped while being used on a standby."},
-	"confl_snapshot":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of queries in this database that have been canceled due to old snapshots."},
-	"confl_bufferpin":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of queries in this database that have been canceled due to pinned buffers."},
-	"confl_deadlock":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of queries in this database that have been canceled due to deadlocks."},
-
-	// archiver metric
-	"archived_count":        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of WAL files that have been successfully archived."},
-	"archived_failed_count": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of failed attempts for archiving WAL files."},
-}
-
 type inputMeasurement struct {
 	name     string
 	tags     map[string]string
@@ -160,15 +105,51 @@ type inputMeasurement struct {
 	election bool
 }
 
-func (m inputMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+func (m inputMeasurement) LineProto() (*dkpt.Point, error) {
+	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElectionV2(m.election))
+}
+
+// Point implement MeasurementV2.
+func (m *inputMeasurement) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	}
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
 }
 
 //nolint:lll
 func (m inputMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name:   inputName,
-		Fields: postgreFields,
+		Name: inputName,
+		Fields: map[string]interface{}{
+			"numbackends":              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of active connections to this database."},
+			"xact_commit":              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of transactions that have been committed in this database."},
+			"xact_rollback":            &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of transactions that have been rolled back in this database."},
+			"blks_read":                &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of disk blocks read in this database."},
+			"blks_hit":                 &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of times disk blocks were found in the buffer cache, preventing the need to read from the database."},
+			"tup_returned":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of rows returned by queries in this database."},
+			"tup_fetched":              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of rows fetched by queries in this database."},
+			"tup_inserted":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of rows inserted by queries in this database."},
+			"tup_updated":              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of rows updated by queries in this database."},
+			"tup_deleted":              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of rows deleted by queries in this database."},
+			"deadlocks":                &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of deadlocks detected in this database."},
+			"temp_bytes":               &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The amount of data written to temporary files by queries in this database."},
+			"temp_files":               &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of temporary files created by queries in this database."},
+			"database_size":            &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The disk space used by this database."},
+			"wraparound":               &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of transactions that can occur until a transaction wraparound."},
+			"session_time":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "Time spent by database sessions in this database, in milliseconds."},
+			"active_time":              &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "Time spent executing SQL statements in this database, in milliseconds."},
+			"idle_in_transaction_time": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "Time spent idling while in a transaction in this database, in milliseconds."},
+			"sessions":                 &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Total number of sessions established to this database."},
+			"sessions_abandoned":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of database sessions to this database that were terminated because connection to the client was lost."},
+			"sessions_fatal":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of database sessions to this database that were terminated by fatal errors."},
+			"sessions_killed":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of database sessions to this database that were terminated by operator intervention."},
+		},
 		Tags: map[string]interface{}{
 			"server": inputs.NewTagInfo("The server address"),
 			"db":     inputs.NewTagInfo("The database name"),
@@ -193,6 +174,7 @@ func (m lockMeasurement) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"db":       inputs.NewTagInfo("The database name"),
+			"server":   inputs.NewTagInfo("The server address"),
 			"table":    inputs.NewTagInfo("The table name"),
 			"schema":   inputs.NewTagInfo("The schema name"),
 			"locktype": inputs.NewTagInfo("The lock type"),
@@ -295,6 +277,7 @@ func (m statMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
+			"server": inputs.NewTagInfo("The server address"),
 			"db":     inputs.NewTagInfo("The database name"),
 			"table":  inputs.NewTagInfo("The table name"),
 			"schema": inputs.NewTagInfo("The schema name"),
@@ -331,6 +314,8 @@ func (m indexMeasurement) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"table":  inputs.NewTagInfo("The table name"),
+			"db":     inputs.NewTagInfo("The database name"),
+			"server": inputs.NewTagInfo("The server address"),
 			"schema": inputs.NewTagInfo("The schema name"),
 			"index":  inputs.NewTagInfo("The index name"),
 		},
@@ -346,25 +331,27 @@ func (m sizeMeasurement) Info() *inputs.MeasurementInfo {
 		Name: "postgresql_size",
 		Fields: map[string]interface{}{
 			"table_size": &inputs.FieldInfo{
-				DataType: inputs.Float,
+				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.SizeByte,
 				Desc:     "The total disk space used by the specified table. Includes TOAST, free space map, and visibility map. Excludes indexes.",
 			},
 			"index_size": &inputs.FieldInfo{
-				DataType: inputs.Float,
+				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.SizeByte,
 				Desc:     "The total disk space used by indexes attached to the specified table.",
 			},
 			"total_size": &inputs.FieldInfo{
-				DataType: inputs.Float,
+				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.SizeByte,
 				Desc:     "The total disk space used by the table, including indexes and TOAST data.",
 			},
 		},
 		Tags: map[string]interface{}{
+			"db":     inputs.NewTagInfo("The database name"),
+			"server": inputs.NewTagInfo("The server address"),
 			"table":  inputs.NewTagInfo("The table name"),
 			"schema": inputs.NewTagInfo("The schema name"),
 		},
@@ -429,6 +416,8 @@ func (m statIOMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
+			"db":     inputs.NewTagInfo("The database name"),
+			"server": inputs.NewTagInfo("The server address"),
 			"table":  inputs.NewTagInfo("The table name"),
 			"schema": inputs.NewTagInfo("The schema name"),
 		},
@@ -456,7 +445,10 @@ func (m replicationMeasurement) Info() *inputs.MeasurementInfo {
 				Desc:     "The current replication delay in bytes. Only available with `postgresql` 9.2 and newer.",
 			},
 		},
-		Tags: map[string]interface{}{},
+		Tags: map[string]interface{}{
+			"db":     inputs.NewTagInfo("The database name"),
+			"server": inputs.NewTagInfo("The server address"),
+		},
 	}
 }
 
@@ -478,7 +470,97 @@ func (m slruMeasurement) Info() *inputs.MeasurementInfo {
 			"truncates":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of truncates for this `SLRU` (simple least-recently-used) cache."},
 		},
 		Tags: map[string]interface{}{
-			"name": inputs.NewTagInfo("The name of the `SLRU`"),
+			"db":     inputs.NewTagInfo("The database name"),
+			"server": inputs.NewTagInfo("The server address"),
+			"name":   inputs.NewTagInfo("The name of the `SLRU`"),
+		},
+	}
+}
+
+type bgwriterMeasurement struct {
+	inputMeasurement
+}
+
+//nolint:lll
+func (m bgwriterMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "postgresql_bgwriter",
+		Fields: map[string]interface{}{
+			"checkpoints_timed":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of scheduled checkpoints that were performed."},
+			"checkpoints_req":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of requested checkpoints that were performed."},
+			"buffers_checkpoint":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of buffers written during checkpoints."},
+			"buffers_clean":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of buffers written by the background writer."},
+			"maxwritten_clean":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of times the background writer stopped a cleaning scan due to writing too many buffers."},
+			"buffers_backend":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of buffers written directly by a backend."},
+			"buffers_alloc":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of buffers allocated"},
+			"buffers_backend_fsync": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The of times a backend had to execute its own fsync call instead of the background writer."},
+			"checkpoint_write_time": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.DurationMS, Desc: "The total amount of checkpoint processing time spent writing files to disk."},
+			"checkpoint_sync_time":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.DurationMS, Desc: "The total amount of checkpoint processing time spent synchronizing files to disk."},
+		},
+		Tags: map[string]interface{}{
+			"server": inputs.NewTagInfo("The server address"),
+			"db":     inputs.NewTagInfo("The database name"),
+		},
+	}
+}
+
+type connectionMeasurement struct {
+	inputMeasurement
+}
+
+//nolint:lll
+func (m connectionMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "postgresql_connection",
+		Fields: map[string]interface{}{
+			"max_connections":           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The maximum number of client connections allowed to this database."},
+			"percent_usage_connections": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of connections to this database as a fraction of the maximum number of allowed connections."},
+		},
+		Tags: map[string]interface{}{
+			"server": inputs.NewTagInfo("The server address"),
+			"db":     inputs.NewTagInfo("The database name"),
+		},
+	}
+}
+
+type conflictMeasurement struct {
+	inputMeasurement
+}
+
+//nolint:lll
+func (m conflictMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "postgresql_conflict",
+		Fields: map[string]interface{}{
+			"confl_tablespace": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of queries in this database that have been canceled due to dropped tablespaces. This will occur when a `temp_tablespace` is dropped while being used on a standby."},
+			"confl_lock":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of queries in this database that have been canceled due to dropped tablespaces. This will occur when a `temp_tablespace` is dropped while being used on a standby."},
+			"confl_snapshot":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of queries in this database that have been canceled due to old snapshots."},
+			"confl_bufferpin":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of queries in this database that have been canceled due to pinned buffers."},
+			"confl_deadlock":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of queries in this database that have been canceled due to deadlocks."},
+		},
+		Tags: map[string]interface{}{
+			"server": inputs.NewTagInfo("The server address"),
+			"db":     inputs.NewTagInfo("The database name"),
+		},
+	}
+}
+
+type archiverMeasurement struct {
+	inputMeasurement
+}
+
+//nolint:lll
+func (m archiverMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "postgresql_archiver",
+		Fields: map[string]interface{}{
+			// archiver metric
+			"archived_count":        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of WAL files that have been successfully archived."},
+			"archived_failed_count": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of failed attempts for archiving WAL files."},
+		},
+		Tags: map[string]interface{}{
+			"server": inputs.NewTagInfo("The server address"),
+			"db":     inputs.NewTagInfo("The database name"),
 		},
 	}
 }

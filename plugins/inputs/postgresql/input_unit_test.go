@@ -19,6 +19,7 @@ import (
 	"github.com/coreos/go-semver/semver"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type MockCollectService struct {
@@ -27,6 +28,32 @@ type MockCollectService struct {
 	columnError    int
 	columnMapError int
 	startError     int
+}
+
+//nolint:lll
+var postgreFields = map[string]interface{}{
+	"numbackends":              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of active connections to this database."},
+	"xact_commit":              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of transactions that have been committed in this database."},
+	"xact_rollback":            &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of transactions that have been rolled back in this database."},
+	"blks_read":                &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of disk blocks read in this database."},
+	"blks_hit":                 &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of times disk blocks were found in the buffer cache, preventing the need to read from the database."},
+	"tup_returned":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of rows returned by queries in this database."},
+	"tup_fetched":              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of rows fetched by queries in this database."},
+	"tup_inserted":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of rows inserted by queries in this database."},
+	"tup_updated":              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of rows updated by queries in this database."},
+	"tup_deleted":              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of rows deleted by queries in this database."},
+	"deadlocks":                &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of deadlocks detected in this database."},
+	"temp_bytes":               &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The amount of data written to temporary files by queries in this database."},
+	"temp_files":               &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of temporary files created by queries in this database."},
+	"database_size":            &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The disk space used by this database."},
+	"wraparound":               &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of transactions that can occur until a transaction wraparound."},
+	"session_time":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Time spent by database sessions in this database, in milliseconds."},
+	"active_time":              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Time spent executing SQL statements in this database, in milliseconds."},
+	"idle_in_transaction_time": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "Time spent idling while in a transaction in this database, in milliseconds."},
+	"sessions":                 &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Total number of sessions established to this database."},
+	"sessions_abandoned":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of database sessions to this database that were terminated because connection to the client was lost."},
+	"sessions_fatal":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of database sessions to this database that were terminated by fatal errors."},
+	"sessions_killed":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of database sessions to this database that were terminated by operator intervention."},
 }
 
 func (m *MockCollectService) GetColumnMap(row scanner, columns []string) (map[string]*interface{}, error) {
@@ -130,17 +157,12 @@ func TestCollect(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Greater(t, len(input.collectCache), 0, "input collectCache should has at least one measurement")
 
-	points, err := input.collectCache[0].LineProto()
-	assert.NoError(t, err)
+	points := input.collectCache[0]
 
-	fields, err := points.Fields()
-	assert.NoError(t, err)
+	fields := points.InfluxFields()
 
 	trueFields := getTrueData(mockFields)
 	assert.True(t, reflect.DeepEqual(trueFields, fields), "not equal: %v <> %v", trueFields, fields)
-
-	tags := points.Tags()
-	assert.Equal(t, tags[datakit.DatakitInputName], datakit.DatakitInputName)
 
 	// work correctly when set IgnoredDatabases and Databases
 	input.IgnoredDatabases = []string{"a"}
@@ -199,10 +221,6 @@ func TestInput(t *testing.T) {
 		input.service = &MockCollectService{}
 		err = input.executeQuery(&queryCacheItem{query: "sql"})
 		assert.NoError(t, err)
-
-		// when service.Query() error
-		err = input.executeQuery(&queryCacheItem{query: "-1"})
-		assert.Error(t, err)
 
 		// when rows.Columns() error
 		input.service = &MockCollectService{

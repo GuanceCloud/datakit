@@ -19,6 +19,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/coreos/go-semver/semver"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -191,13 +192,14 @@ type Input struct {
 	service      Service
 	tail         *tailer.Tailer
 	duration     time.Duration
-	collectCache []inputs.Measurement
+	collectCache []*point.Point
 	host         string
 
 	Election bool `toml:"election"`
 	pause    bool
 	pauseCh  chan bool
 
+	feeder   io.Feeder
 	version  *semver.Version
 	isAurora bool
 	semStop  *cliutils.Sem // start stop signal
@@ -236,6 +238,10 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&statIOMeasurement{},
 		&statMeasurement{},
 		&slruMeasurement{},
+		&bgwriterMeasurement{},
+		&connectionMeasurement{},
+		&conflictMeasurement{},
+		&archiverMeasurement{},
 	}
 }
 
@@ -385,16 +391,13 @@ func (ipt *Input) getDBMetrics() error {
 			measurementInfo: inputMeasurement{}.Info(),
 		}
 		ipt.metricQueryCache[DBMetric] = cache
-		l.Debugf("Query for metric [%s]: %s", cache.measurementInfo.Name, query)
+		l.Infof("Query for metric [%s]: %s", cache.measurementInfo.Name, query)
 	}
 
 	return ipt.executeQuery(cache)
 }
 
 func (ipt *Input) getDynamicQueryMetrics() error {
-	if !V92.LessThan(*ipt.version) {
-		return fmt.Errorf("db version should be >= 9.2")
-	}
 	cache, ok := ipt.metricQueryCache[DynamicMetric]
 	if !ok {
 		query := `
@@ -415,10 +418,10 @@ func (ipt *Input) getDynamicQueryMetrics() error {
 
 		cache = &queryCacheItem{
 			query:           query,
-			measurementInfo: inputMeasurement{}.Info(),
+			measurementInfo: conflictMeasurement{}.Info(),
 		}
 		ipt.metricQueryCache[DynamicMetric] = cache
-		l.Debugf("Query for metric [%s], %s", cache.measurementInfo.Name, query)
+		l.Infof("Query for metric [%s], %s", cache.measurementInfo.Name, query)
 	}
 
 	return ipt.executeQuery(cache)
@@ -433,10 +436,10 @@ func (ipt *Input) getBgwMetrics() error {
 	`
 		cache = &queryCacheItem{
 			query:           query,
-			measurementInfo: inputMeasurement{}.Info(),
+			measurementInfo: bgwriterMeasurement{}.Info(),
 		}
 		ipt.metricQueryCache[BgwriterMetric] = cache
-		l.Debugf("Query for metric [%s]: %s", cache.measurementInfo.Name, query)
+		l.Infof("Query for metric [%s]: %s", cache.measurementInfo.Name, query)
 	}
 	err := ipt.executeQuery(cache)
 	return err
@@ -463,7 +466,7 @@ func (ipt *Input) getRelationMetrics() error {
 				measurementInfo: relationInfo.measurementInfo,
 			}
 			ipt.metricQueryCache[cacheName] = cache
-			l.Debugf("Query for metric [%s], %s", cache.measurementInfo.Name, query)
+			l.Infof("Query for metric [%s], %s", cache.measurementInfo.Name, query)
 		}
 
 		if err := ipt.executeQuery(cache); err != nil {
@@ -480,10 +483,10 @@ func (ipt *Input) getArchiverMetrics() error {
 		query := "select archived_count, failed_count as archived_failed_count FROM pg_stat_archiver"
 		cache = &queryCacheItem{
 			query:           query,
-			measurementInfo: inputMeasurement{}.Info(),
+			measurementInfo: archiverMeasurement{}.Info(),
 		}
 		ipt.metricQueryCache[ArchiverMetric] = cache
-		l.Debugf("Query for metric [%s]: %s", cache.measurementInfo.Name, query)
+		l.Infof("Query for metric [%s]: %s", cache.measurementInfo.Name, query)
 	}
 
 	return ipt.executeQuery(cache)
@@ -523,7 +526,7 @@ SELECT CASE WHEN pg_last_xlog_receive_location() IS NULL OR pg_last_xlog_receive
 			measurementInfo: replicationMeasurement{}.Info(),
 		}
 		ipt.metricQueryCache[ReplicationMetric] = cache
-		l.Debugf("Query for metric [%s]: %s", cache.measurementInfo.Name, query)
+		l.Infof("Query for metric [%s]: %s", cache.measurementInfo.Name, query)
 	}
 
 	return ipt.executeQuery(cache)
@@ -542,7 +545,7 @@ FROM pg_stat_slru
 			measurementInfo: slruMeasurement{}.Info(),
 		}
 		ipt.metricQueryCache[SlruMetric] = cache
-		l.Debugf("Query for metric [%s]: %s", cache.measurementInfo.Name, query)
+		l.Infof("Query for metric [%s]: %s", cache.measurementInfo.Name, query)
 	}
 	return ipt.executeQuery(cache)
 }
@@ -557,10 +560,10 @@ func (ipt *Input) getConnectionMetrics() error {
 	`
 		cache = &queryCacheItem{
 			query:           query,
-			measurementInfo: inputMeasurement{}.Info(),
+			measurementInfo: connectionMeasurement{}.Info(),
 		}
 		ipt.metricQueryCache[ConnectionMetric] = cache
-		l.Debugf("Query for metric [%s]: %s", cache.measurementInfo.Name, query)
+		l.Infof("Query for metric [%s]: %s", cache.measurementInfo.Name, query)
 	}
 
 	err := ipt.executeQuery(cache)
@@ -784,13 +787,14 @@ func (ipt *Input) accRow(columnMap map[string]*interface{}, measurementInfo *inp
 		if measurementInfo != nil {
 			name = measurementInfo.Name
 		}
-		ipt.collectCache = append(ipt.collectCache, &inputMeasurement{
+		ms := &inputMeasurement{
 			name:     name,
 			fields:   fields,
 			tags:     tags,
 			ts:       time.Now(),
 			election: ipt.Election,
-		})
+		}
+		ipt.collectCache = append(ipt.collectCache, ms.Point())
 	}
 
 	return nil
@@ -816,7 +820,7 @@ func (ipt *Input) RunPipeline() {
 	ipt.tail, err = tailer.NewTailer(ipt.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
-		io.FeedLastError(inputName, err.Error())
+		ipt.feeder.FeedLastError(inputName, err.Error())
 		return
 	}
 
@@ -874,7 +878,7 @@ func (ipt *Input) init() error {
 		"customQuery": ipt.getCustomQueryMetrics,
 	}
 
-	if V130.LessThan(*ipt.version) {
+	if V130.LessThan(*ipt.version) || V130.Equal(*ipt.version) {
 		ipt.collectFuncs["slru"] = ipt.getSlruMetrics
 	}
 
@@ -882,11 +886,11 @@ func (ipt *Input) init() error {
 		ipt.collectFuncs["relation"] = ipt.getRelationMetrics
 	}
 
-	if V92.LessThan(*ipt.version) {
+	if V92.LessThan(*ipt.version) || V92.Equal(*ipt.version) {
 		ipt.collectFuncs["dynamic"] = ipt.getDynamicQueryMetrics
 	}
 
-	if V94.LessThan(*ipt.version) {
+	if V94.LessThan(*ipt.version) || V94.Equal(*ipt.version) {
 		ipt.collectFuncs["archiver"] = ipt.getArchiverMetrics
 	}
 
@@ -916,9 +920,28 @@ func (ipt *Input) Run() {
 
 	defer tick.Stop()
 
-	if err := ipt.init(); err != nil {
-		l.Errorf("failed to init postgresql: %s", err.Error())
-		return
+	// try init
+	for {
+		if err := ipt.init(); err != nil {
+			l.Errorf("failed to init postgresql: %s", err.Error())
+			ipt.feeder.FeedLastError(inputName, err.Error(), point.Metric)
+		} else {
+			break
+		}
+		select {
+		case <-datakit.Exit.Wait():
+			if ipt.tail != nil {
+				ipt.tail.Close() //nolint:errcheck
+			}
+			l.Infof(fmt.Sprintf("%s exit", inputName))
+
+			return
+
+		case <-ipt.semStop.Wait():
+			return
+
+		case <-tick.C:
+		}
 	}
 
 	for {
@@ -941,15 +964,15 @@ func (ipt *Input) Run() {
 
 			start := time.Now()
 			if err := ipt.Collect(); err != nil {
-				io.FeedLastError(inputName, err.Error())
+				ipt.feeder.FeedLastError(inputName, err.Error())
 				l.Error(err)
 			}
 
 			if len(ipt.collectCache) > 0 {
-				err := inputs.FeedMeasurement(inputName, datakit.Metric, ipt.collectCache,
+				err := ipt.feeder.Feed(inputName, point.Metric, ipt.collectCache,
 					&io.Option{CollectCost: time.Since(start)})
 				if err != nil {
-					io.FeedLastError(inputName, err.Error())
+					ipt.feeder.FeedLastError(inputName, err.Error())
 					l.Error(err.Error())
 				}
 				ipt.collectCache = ipt.collectCache[:0]
@@ -1082,21 +1105,23 @@ func NewInput(service Service) *Input {
 		Interval: "10s",
 		pauseCh:  make(chan bool, maxPauseCh),
 		Election: true,
-
-		semStop: cliutils.NewSem(),
+		feeder:   io.DefaultFeeder(),
+		semStop:  cliutils.NewSem(),
 	}
 	input.service = service
 	return input
 }
 
+func defaultInput() *Input {
+	return NewInput(&SQLService{
+		MaxIdle:     1,
+		MaxOpen:     1,
+		MaxLifetime: time.Duration(0),
+	})
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		service := &SQLService{
-			MaxIdle:     1,
-			MaxOpen:     1,
-			MaxLifetime: time.Duration(0),
-		}
-		input := NewInput(service)
-		return input
+		return defaultInput()
 	})
 }
