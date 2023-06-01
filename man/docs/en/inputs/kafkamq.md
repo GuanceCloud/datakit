@@ -82,6 +82,7 @@ Configuration:
  ...
   ## user custom message with PL script.
   [inputs.kafkamq.custom]
+    #spilt_json_body = true
     [inputs.kafkamq.custom.log_topic_map]
       "log_topic"="log.p"
       "log"="rum_apm.p"
@@ -91,8 +92,6 @@ Configuration:
     [inputs.kafkamq.custom.rum_topic_map]
       "rum"="rum.p"
       
-
-    #spilt_json_body = true
 ```
 
 Note: The pl script of metric should be placed in the `pipeline/metric/` directory, and the pl script of rum should be placed in the `pipeline/rum/` directory.
