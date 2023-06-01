@@ -49,7 +49,7 @@ func metricsSetup() {
 	)
 }
 
-func InitMetric() {
+func init() { //nolint:gochecknoinits
 	metricsSetup()
 	metrics.MustRegister(kafkaGroupElection, kafkaConsumeMessages)
 }

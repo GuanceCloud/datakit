@@ -67,6 +67,7 @@ const mqSampleConfig = `
 
   ## user custom message with PL script.
   #[inputs.kafkamq.custom]
+    #spilt_json_body = true
     #[inputs.kafkamq.custom.log_topic_map]
     #  "log_topic"="log.p"
     #  "log01"="log_01.p"
@@ -77,7 +78,6 @@ const mqSampleConfig = `
     #  "rum_topic"="rum_01.p"
     #  "rum_02"="rum_02.p"
 
-    #spilt_json_body = true
 
   ## todo: add other input-mq
 `

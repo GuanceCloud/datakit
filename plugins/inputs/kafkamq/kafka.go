@@ -78,7 +78,7 @@ func (kc *kafkaConsumer) start() {
 		log.Warnf("topics len is 0")
 		return
 	}
-	InitMetric() // init metric.
+
 	var group sarama.ConsumerGroup
 	var err error
 	var count int
