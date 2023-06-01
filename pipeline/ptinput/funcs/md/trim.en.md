@@ -2,12 +2,12 @@
 
 Function prototype: `fn trim(key, cutset: str = "")`
 
-Function description: delete the characters specified at the beginning and end of the key, and delete all blank characters by default when the cutset is an empty string
+Function description: delete the characters specified at the beginning and end of the key, and delete all blank characters by default when the `cutset` is an empty string
 
 Function parameters:
 
 - `key`: a field that has been extracted, string type
-- `cutset`: Delete the first and last characters in the cutset string in the key
+- `cutset`: Delete the first and last characters in the `cutset` string in the key
 
 Example:
 

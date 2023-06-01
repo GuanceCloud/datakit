@@ -97,7 +97,7 @@ Enter the DataKit installation directory, copy the `pythond.conf.sample` file an
 
 ```
 
-- Install `sar` command. You can refer to [https://github.com/sysstat/sysstat#installation](https://github.com/sysstat/sysstat#installation)
+- Install `sar` command. You can refer to [https://github.com/sysstat/sysstat#installation](https://github.com/sysstat/sysstat#installation){:target="_blank"}
 
 Install from Ubuntu 
 
@@ -236,7 +236,7 @@ After saving the file, restart DataKit and you will be able to see the correspon
 
 **Metric list**
 
-The `sar` command can obtain many useful [disk metrics](https://man7.org/linux/man-pages/man1/sar.1.html). The above script only collect `await` and `svctm`. If you need to collect additional metrics, you can modify the script accordingly.
+The `sar` command can obtain many useful [disk metrics](https://man7.org/linux/man-pages/man1/sar.1.html){:target="_blank"}. The above script only collect `await` and `svctm`. If you need to collect additional metrics, you can modify the script accordingly.
 
 | Metric | Description | Type | Unit |
 | ---- | ---- | ---- | ---- |

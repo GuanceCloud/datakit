@@ -24,7 +24,9 @@ usage() {
 	echo "  ./mkdocs.sh -V string: Set version, such as 1.2.3" 1>&2;
 	echo "              -D string: Set workdir, such as my-test" 1>&2;
 	echo "              -B: Do not build datakit" 1>&2;
+	echo "              -E: Only exported docs, do not run mkdocs" 1>&2;
 	echo "              -L: Specify language(zh/en)" 1>&2;
+	echo "              -C: check(lint) generated docs" 1>&2;
 	echo "              -p: Specify local port(default 8000)" 1>&2;
 	echo "              -b: Specify local bind(default 0.0.0.0)" 1>&2;
 	echo "              -h: Show help" 1>&2;
@@ -32,7 +34,7 @@ usage() {
 	exit 1;
 }
 
-while getopts "V:D:L:p:b:Bh" arg; do
+while getopts "V:D:L:p:b:BEh" arg; do
 	case "${arg}" in
 		V)
 			version="${OPTARG}"
@@ -41,8 +43,21 @@ while getopts "V:D:L:p:b:Bh" arg; do
 		 lang="${OPTARG}"
 		 ;;
 
+		D)
+			mkdocs_dir="${OPTARG}"
+			printf "${YELLOW}> Set workdir to '%s'${CLR}\n" $mkdocs_dir
+			;;
+
+		E)
+			export_only=true;
+			;;
+
 		B)
 			no_build=true;
+			;;
+
+		C)
+			do_check=true;
 			;;
 
 		h)
@@ -67,7 +82,7 @@ shift $((OPTIND-1))
 
 # detect workdir
 if [ ! -d $mkdocs_dir ]; then
-	echo "${mkdocs_dir} not exist, exit now"
+	mkdir -p ${mkdocs_dir}/docs/{datakit,developers}
 fi
 
 # if -v not set...
@@ -147,10 +162,10 @@ fi
 # copy docs to different mkdocs sub-dirs
 ######################################
 printf "${GREEN}> Copy docs...${CLR}\n"
-for _lang  in "${i18n[@]}"; do
+for _lang in "${i18n[@]}"; do
 	# copy .pages
 	printf "${GREEN}> Copy pages(%s) to repo datakit ...${CLR}\n" $_lang
-	cp man/docs/${_lang}/datakit.pages $base_docs_dir/${_lang}/datakit/.pages
+	cp man/docs/$_lang/datakit.pages $base_docs_dir/$_lang/datakit/.pages
 
 	# move specific docs to developers
 	printf "${GREEN}> Copy docs(%s) to repo developers ...${CLR}\n" $_lang
@@ -164,6 +179,10 @@ for _lang  in "${i18n[@]}"; do
 	printf "${GREEN}> Copy docs(%s) to repo datakit ...${CLR}\n" $_lang
 	cp $tmp_doc_dir/${_lang}/*.md $base_docs_dir/${_lang}/datakit/
 done
+
+if [[ $export_only ]]; then
+	exit 0;
+fi
 
 ######################################
 # start mkdocs local server

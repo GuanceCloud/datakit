@@ -1,31 +1,34 @@
-{{.CSS}}
+
 # 用 Python 开发自定义采集器
+
 ---
 
 {{.AvailableArchs}}
 
 ---
 
-{{.InputName}} 是定时触发用户自定义 python 采集脚本的一整套方案。
+PythonD 是定时触发用户自定义 Python 采集脚本的一整套方案。
 
 ## 前置条件 {#reqirement}
 
 ### Python 环境 {#req-python}
 
-目前处于 alpha 阶段，**只兼容 Python 3+**。已测试的版本: `3.10.1`。
+目前处于 alpha 阶段，**只兼容 Python 3+**。已测试的版本：
 
-需要安装以下依赖库:
+- [x] 3.10.1
+
+需要安装以下依赖库：
 
 - requests
 
-安装方法如下:
+安装方法如下：
 
 ```shell
 # python3
 python3 -m pip install requests
 ```
 
-上述的安装需要安装 pip，如果你没有，可以参考以下方法(源自: [这里](https://pip.pypa.io/en/stable/installation/){:target="_blank"}):
+上述的安装需要安装 pip，如果你没有，可以参考以下方法（[源自这里](https://pip.pypa.io/en/stable/installation/){:target="_blank"}）：
 
 ```shell
 # Linux/MacOS
@@ -39,9 +42,9 @@ py -m ensurepip --upgrade
 
 在 `datakit/python.d` 目录下创建以 "Python 包名" 命名的目录，然后在该目录下创建 Python 脚本(`.py`)。
 
-以包名 `Demo` 为例，其路径结构如下。其中 `demo.py` 为 Python 脚本，Python 脚本的文件名可以自定义:
+以包名 `Demo` 为例，其路径结构如下。其中 `demo.py` 为 Python 脚本，Python 脚本的文件名可以自定义：
 
-```
+```shell
 datakit
    └── python.d
        ├── Demo
@@ -50,9 +53,11 @@ datakit
 
 Python 脚本需要用户继承 `DataKitFramework` 类，然后对 `run` 方法进行改写。
 
->`DataKitFramework` 类的源代码文件路径是 `datakit_framework.py` 在 `datakit/python.d/core/datakit_framework.py`。
+> `DataKitFramework` 类的源代码文件路径是 `datakit_framework.py` 在 `datakit/python.d/core/datakit_framework.py`。
 
-??? note "Python 脚本源码参考示例"
+<!-- markdownlint-disable MD046 -->
+???- note "Python 脚本源码参考示例"
+
     ```python
     #encoding: utf-8
 
@@ -174,54 +179,55 @@ Python 脚本需要用户继承 `DataKitFramework` 类，然后对 `run` 方法�
         #         **kwargs
         #         )
     ```
+<!-- markdownlint-enable -->
 
-Python SDK API 定义(详情参见 `datakit_framework.py`):
+Python SDK API 定义(详情参见 `datakit_framework.py`)：
 
-- 上报 metrics 数据: `feed_metric(self, input=None, measurement=None, tags=None, fields=None, time=None, **kwargs)`;
-- 上报 logging 数据: `feed_logging(self, input=None, source=None, tags=None, message=None, time=None, **kwargs)`;
-- 上报 object 数据: `feed_object(self, input=None, cls=None, name=None, tags=None, fields=None, time=None, **kwargs)`; (`cls` 就是 `class`。因为 `class` 是 Python 的关键字, 所以里把 `class` 缩写为 `cls`。)
+- 上报 metrics 数据：`feed_metric(self, input=None, measurement=None, tags=None, fields=None, time=None, **kwargs)`;
+- 上报 logging 数据：`feed_logging(self, input=None, source=None, tags=None, message=None, time=None, **kwargs)`;
+- 上报 object 数据：`feed_object(self, input=None, cls=None, name=None, tags=None, fields=None, time=None, **kwargs)`; （`cls` 就是 `class`。因为 `class` 是 Python 的关键字，所以里把 `class` 缩写为 `cls`）
 
 ### 编写 Pythond 上报 event 事件 {#report-event}
 
-可以使用以下三个内置函数来上报 event 事件:
+可以使用以下三个内置函数来上报 event 事件：
 
-- 上报 `df_source = user` 的事件: `feed_user_event(self, df_user_id=None, tags=None, df_date_range=10, df_status=None, df_event_id=None, df_title=None, df_message=None, **kwargs)`
-- 上报 `df_source = monitor` 的事件: `feed_monitor_event(self, df_dimension_tags=None, tags=None, df_date_range=10, df_status=None, df_event_id=None, df_title=None, df_message=None, **kwargs)`
-- 上报 `df_source = system` 的事件: `feed_system_event(self, tags=None, df_date_range=10, df_status=None, df_event_id=None, df_title=None, df_message=None, **kwargs)`
+- 上报 `df_source = user` 的事件：`feed_user_event(self, df_user_id=None, tags=None, df_date_range=10, df_status=None, df_event_id=None, df_title=None, df_message=None, **kwargs)`
+- 上报 `df_source = monitor` 的事件：`feed_monitor_event(self, df_dimension_tags=None, tags=None, df_date_range=10, df_status=None, df_event_id=None, df_title=None, df_message=None, **kwargs)`
+- 上报 `df_source = system` 的事件：`feed_system_event(self, tags=None, df_date_range=10, df_status=None, df_event_id=None, df_title=None, df_message=None, **kwargs)`
 
-通用 event 字段说明:
+通用 event 字段说明：
 
-|  字段名   | 类型  | 是否必须  | 说明  |
-|  ----  | ----  | ----  | ----  |
-| df_date_range  | Integer | 必须 | 时间范围。单位 s |
-| df_source  | String | 必须 | 数据来源。取值 `system` , `monitor` , `user` |
-| df_status  | Enum | 必须 | 状态。取值 `ok` , `info` , `warning` , `error` , `critical` , `nodata` |
-| df_event_id  | String | 必须 | event ID |
-| df_title  | String | 必须 | 标题 |
-| df_message  | String |  | 详细描述 |
-| {其他字段}  | `kwargs`, 例如 `k1=5, k2=6` |  | 其他额外字段 |
+| 字段名        | 类型                        | 是否必须 | 说明                                                                   |
+| ----          | ----                        | ----     | ----                                                                   |
+| df_date_range | Integer                     | 必须     | 时间范围。单位 s                                                       |
+| df_source     | String                      | 必须     | 数据来源。取值 `system` , `monitor` , `user`                           |
+| df_status     | Enum                        | 必须     | 状态。取值 `ok` , `info` , `warning` , `error` , `critical` , `nodata` |
+| df_event_id   | String                      | 必须     | event ID                                                               |
+| df_title      | String                      | 必须     | 标题                                                                   |
+| df_message    | String                      |          | 详细描述                                                               |
+| {其他字段}    | `kwargs`, 例如 `k1=5, k2=6` |          | 其他额外字段                                                           |
 
 - 当 `df_source = monitor` 时：
 
 表示由观测云检测功能产生的事件，额外存在以下字段：
 
-|  额外字段名   | 类型  | 是否必须  | 说明  |
-|  ----  | ----  | ----  | ----  |
-| df_dimension_tags  | String(JSON format) | 必须 | 检测纬度标签，如 `{"host":"web01"}` |
+| 额外字段名        | 类型                | 是否必须 | 说明                                |
+| ----              | ----                | ----     | ----                                |
+| df_dimension_tags | String(JSON format) | 必须     | 检测纬度标签，如 `{"host":"web01"}` |
 
 - 当 `df_source = user` 时：
 
 表示由用户直接创建的事件，额外存在以下字段：
 
-|  额外字段名   | 类型  | 是否必须  | 说明  |
-|  ----  | ----  | ----  | ----  |
-| df_user_id  | String | 必须 | 用户 ID |
+| 额外字段名 | 类型   | 是否必须 | 说明    |
+| ----       | ----   | ----     | ----    |
+| df_user_id | String | 必须     | 用户 ID |
 
 - 当 `df_source = system` 时：
 
 表示为系统生成的事件，不存在额外字段。
 
-使用示例:
+使用示例：
 
 ```py
 #encoding: utf-8
@@ -271,7 +277,7 @@ class Demo(DataKitFramework):
 
 ## 配置 {#config}
 
-进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+进入 DataKit 安装目录下的 *conf.d/{{.Catalog}}* 目录，复制 *{{.InputName}}.conf.sample* 并命名为 *{{.InputName}}.conf*。示例如下：
 
 ```toml
 {{.InputSample}}
@@ -279,9 +285,9 @@ class Demo(DataKitFramework):
 
 ## Git 支持 {#git}
 
-支持使用 git repo，一旦开启 git repo 功能，则 conf 里面的 args 里面填写的路径是相对于 `gitrepos` 的路径。比如下面这种情况，args 就填写 `mytest`:
+支持使用 git repo，一旦开启 git repo 功能，则 conf 里面的 args 里面填写的路径是相对于 `gitrepos` 的路径。比如下面这种情况，args 就填写 `mytest`：
 
-```
+```shell
 ├── datakit
 └── gitrepos
     └── myconf
@@ -294,7 +300,7 @@ class Demo(DataKitFramework):
 
 ## 完整示例 {#example}
 
-第一步：写一个类，继承 `DataKitFramework`:
+第一步：写一个类，继承 `DataKitFramework`：
 
 ```python
 from datakit_framework import DataKitFramework
@@ -348,15 +354,15 @@ class MyTest(DataKitFramework):
         return self.report(in_data) # you must call self.report here
 ```
 
-第二步：我们这里不开启 git repo 功能。将 `test.py` 放到 `python.d` 的 `mytest` 文件夹下:
+第二步：我们这里不开启 git repo 功能。将 `test.py` 放到 `python.d` 的 `mytest` 文件夹下：
 
-```
+```shell
 └── python.d
     ├── mytest
     │   ├── test.py
 ```
 
-第三步：配置 {{.InputName}}.conf:
+第三步：配置 *{{.InputName}}.conf*:
 
 ```toml
 [[inputs.pythond]]
@@ -374,7 +380,7 @@ class MyTest(DataKitFramework):
   dirs = ["mytest"]
 ```
 
-第四步: 重启 DataKit:
+第四步：重启 DataKit:
 
 ```shell
 sudo datakit service -R
@@ -384,7 +390,7 @@ sudo datakit service -R
 
 ### :material-chat-question: 如何排查错误 {#log}
 
-如果结果不及预期, 可以查看以下日志文件:
+如果结果不及预期，可以查看以下日志文件：
 
 - `~/_datakit_pythond_cli.log`
 - `_datakit_pythond_framework_[pythond name]_.log`

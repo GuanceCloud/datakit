@@ -308,7 +308,7 @@ func (p *Prom) filterMetricFamilies(metricFamilies map[string]*dto.MetricFamily)
 	return filteredMetricFamilies
 }
 
-// doText2Metrics converts raw prometheus metric text to line protocol point.
+// text2Metrics converts raw prometheus metric text to line protocol point.
 func (p *Prom) text2Metrics(in io.Reader, u string) (pts []*point.Point, lastErr error) {
 	metricFamilies, err := p.parser.TextToMetricFamilies(in)
 	if err != nil {
@@ -383,9 +383,15 @@ func (p *Prom) text2Metrics(in io.Reader, u string) (pts []*point.Point, lastErr
 				}
 
 				for _, q := range m.GetSummary().Quantile {
-					fields := map[string]interface{}{
-						fieldName: q.GetValue(),
+					v := q.GetValue()
+					if math.IsNaN(v) {
+						continue
 					}
+
+					fields := map[string]interface{}{
+						fieldName: v,
+					}
+
 					if p.opt.AsLogging != nil && p.opt.AsLogging.Enable {
 						fields["status"] = statusInfo
 					}
@@ -471,8 +477,9 @@ func (p *Prom) text2Metrics(in io.Reader, u string) (pts []*point.Point, lastErr
 			}
 		}
 	}
+
 	if lastErr != nil {
-		return pts, fmt.Errorf("doText2Metrics encountered make point error: %w", lastErr)
+		return pts, fmt.Errorf("text2Metrics encountered make point error: %w", lastErr)
 	}
 	return pts, nil
 }

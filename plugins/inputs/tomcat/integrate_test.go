@@ -9,9 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
-	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -30,9 +28,14 @@ import (
 // ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
 // Reference: https://jolokia.org/reference/html/agents.html#jvm-agent
 
-var mCount map[string]struct{} = make(map[string]struct{}) // Length of got measurements.
-
 func TestTomcatInput(t *testing.T) {
+	if !testutils.CheckIntegrationTestingRunning() {
+		t.Skip()
+	}
+
+	testutils.PurgeRemoteByName(inputName)       // purge at first.
+	defer testutils.PurgeRemoteByName(inputName) // purge at last.
+
 	start := time.Now()
 	cases, err := buildCases(t)
 	if err != nil {
@@ -50,34 +53,41 @@ func TestTomcatInput(t *testing.T) {
 	t.Logf("testing %d cases...", len(cases))
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			caseStart := time.Now()
+		func(tc *caseSpec) {
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+				caseStart := time.Now()
 
-			t.Logf("testing %s...", tc.name)
+				t.Logf("testing %s...", tc.name)
 
-			if err := tc.run(); err != nil {
-				tc.cr.Status = testutils.TestFailed
-				tc.cr.FailedMessage = err.Error()
+				if err := testutils.RetryTestRun(tc.run); err != nil {
+					tc.cr.Status = testutils.TestFailed
+					tc.cr.FailedMessage = err.Error()
 
-				panic(err)
-			} else {
-				tc.cr.Status = testutils.TestPassed
-			}
-
-			tc.cr.Cost = time.Since(caseStart)
-
-			require.NoError(t, testutils.Flush(tc.cr))
-
-			t.Cleanup(func() {
-				// clean remote docker resources
-				if tc.resource == nil {
-					return
+					panic(err)
+				} else {
+					tc.cr.Status = testutils.TestPassed
 				}
 
-				require.NoError(t, tc.pool.Purge(tc.resource))
+				tc.cr.Cost = time.Since(caseStart)
+
+				require.NoError(t, testutils.Flush(tc.cr))
+
+				t.Cleanup(func() {
+					// clean remote docker resources
+					if tc.resource == nil {
+						return
+					}
+
+					require.NoError(t, tc.pool.Purge(tc.resource))
+				})
 			})
-		})
+		}(tc)
 	}
+}
+
+func getConfAccessPoint(host, port string) []string {
+	return []string{fmt.Sprintf("http://%s/jolokia", net.JoinHostPort(host, port))}
 }
 
 func buildCases(t *testing.T) ([]*caseSpec, error) {
@@ -99,9 +109,9 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 	}{
 		{
 			name: "pubrepo.jiagouyun.com/image-repo-for-testing/tomcat:8-jolokia",
-			conf: fmt.Sprintf(`username = "jolokia_user"
+			conf: `username = "jolokia_user"
 			password = "123456@secPassWd"
-			urls = ["http://%s/jolokia"]
+			urls = [""]
 			[[metric]]
 			  name     = "tomcat_global_request_processor"
 			  mbean    = '''Catalina:name="*",type=GlobalRequestProcessor'''
@@ -127,7 +137,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			  mbean    = "Catalina:context=*,host=*,name=Cache,type=WebResourceRoot"
 			  paths    = ["hitCount","lookupCount"]
 			  tag_keys = ["context","host"]
-			  tag_prefix = "tomcat_"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
+			  tag_prefix = "tomcat_"`, // set conf URL later.
 			exposedPorts: []string{"8080/tcp"},
 			mPathCount: map[string]int{
 				"/": 10,
@@ -136,9 +146,9 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 		{
 			name: "pubrepo.jiagouyun.com/image-repo-for-testing/tomcat:9-jolokia",
-			conf: fmt.Sprintf(`username = "jolokia_user"
+			conf: `username = "jolokia_user"
 			password = "123456@secPassWd"
-			urls = ["http://%s/jolokia"]
+			urls = [""]
 			[[metric]]
 			  name     = "tomcat_global_request_processor"
 			  mbean    = '''Catalina:name="*",type=GlobalRequestProcessor'''
@@ -164,7 +174,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			  mbean    = "Catalina:context=*,host=*,name=Cache,type=WebResourceRoot"
 			  paths    = ["hitCount","lookupCount"]
 			  tag_keys = ["context","host"]
-			  tag_prefix = "tomcat_"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
+			  tag_prefix = "tomcat_"`, // set conf URL later.
 			exposedPorts: []string{"8080/tcp"},
 			mPathCount: map[string]int{
 				"/": 10,
@@ -184,9 +194,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)
 
-		uURL, err := url.Parse(ipt.URLs[0])
-		require.NoError(t, err, "parse %s failed: %s", ipt.URLs[0], err)
-
 		repoTag := strings.Split(base.name, ":")
 
 		cases = append(cases, &caseSpec{
@@ -199,7 +206,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 			dockerFileText: base.dockerFileText,
 			exposedPorts:   base.exposedPorts,
-			serverPorts:    []string{uURL.Port()},
 
 			optsTomcatGlobalRequestProcessor: base.optsTomcatGlobalRequestProcessor,
 			optsTomcatJspMonitor:             base.optsTomcatJspMonitor,
@@ -245,6 +251,7 @@ type caseSpec struct {
 	optsTomcatServlet                []inputs.PointCheckOption
 	optsTomcatCache                  []inputs.PointCheckOption
 	mPathCount                       map[string]int
+	mCount                           map[string]struct{}
 
 	ipt    *Input
 	feeder *io.MockedFeeder
@@ -278,7 +285,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
-			mCount[TomcatGlobalRequestProcessor] = struct{}{}
+			cs.mCount[TomcatGlobalRequestProcessor] = struct{}{}
 
 		case TomcatJspMonitor:
 			opts = append(opts, cs.optsTomcatJspMonitor...)
@@ -295,7 +302,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
-			mCount[TomcatJspMonitor] = struct{}{}
+			cs.mCount[TomcatJspMonitor] = struct{}{}
 
 		case TomcatThreadPool:
 			opts = append(opts, cs.optsTomcatThreadPool...)
@@ -312,7 +319,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
-			mCount[TomcatThreadPool] = struct{}{}
+			cs.mCount[TomcatThreadPool] = struct{}{}
 
 		case TomcatServlet:
 			opts = append(opts, cs.optsTomcatServlet...)
@@ -329,7 +336,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
-			mCount[TomcatServlet] = struct{}{}
+			cs.mCount[TomcatServlet] = struct{}{}
 
 		case TomcatCache:
 			opts = append(opts, cs.optsTomcatCache...)
@@ -346,7 +353,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
-			mCount[TomcatCache] = struct{}{}
+			cs.mCount[TomcatCache] = struct{}{}
 
 		default: // TODO: check other measurement
 			panic("not implement")
@@ -388,18 +395,13 @@ func (cs *caseSpec) run() error {
 		return err
 	}
 
-	containerName := cs.getContainterName()
-
-	// Remove the container if exist.
-	if err := p.RemoveContainerByName(containerName); err != nil {
-		return err
-	}
-
 	dockerFileDir, dockerFilePath, err := cs.getDockerFilePath()
 	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(dockerFileDir)
+
+	uniqueContainerName := testutils.GetUniqueContainerName(inputName)
 
 	var resource *dockertest.Resource
 
@@ -407,14 +409,13 @@ func (cs *caseSpec) run() error {
 		// Just run a container from existing docker image.
 		resource, err = p.RunWithOptions(
 			&dockertest.RunOptions{
-				Name: containerName, // ATTENTION: not cs.name.
+				Name: uniqueContainerName, // ATTENTION: not cs.name.
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
 				// Env:        []string{"JOLOKIA_PORT=59090"},
 
 				ExposedPorts: cs.exposedPorts,
-				PortBindings: cs.getPortBindings(),
 			},
 
 			func(c *docker.HostConfig) {
@@ -428,14 +429,14 @@ func (cs *caseSpec) run() error {
 			dockerFilePath,
 
 			&dockertest.RunOptions{
-				Name: cs.name,
+				ContainerName: uniqueContainerName,
+				Name:          cs.name, // ATTENTION: not uniqueContainerName.
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
 				// Env:        []string{"JOLOKIA_PORT=59090"},
 
 				ExposedPorts: cs.exposedPorts,
-				PortBindings: cs.getPortBindings(),
 			},
 
 			func(c *docker.HostConfig) {
@@ -451,6 +452,11 @@ func (cs *caseSpec) run() error {
 
 	cs.pool = p
 	cs.resource = resource
+
+	if err := cs.getMappingPorts(); err != nil {
+		return err
+	}
+	cs.ipt.URLs = getConfAccessPoint(r.Host, cs.serverPorts[0]) // set conf URL here.
 
 	cs.t.Logf("check service(%s:%v)...", r.Host, cs.serverPorts)
 
@@ -482,6 +488,7 @@ func (cs *caseSpec) run() error {
 	cs.cr.AddField("point_count", len(pts))
 
 	cs.t.Logf("get %d points", len(pts))
+	cs.mCount = make(map[string]struct{})
 	if err := cs.checkPoint(pts); err != nil {
 		return err
 	}
@@ -489,7 +496,7 @@ func (cs *caseSpec) run() error {
 	cs.t.Logf("stop input...")
 	cs.ipt.Terminate()
 
-	require.Equal(cs.t, 5, len(mCount))
+	require.Equal(cs.t, 5, len(cs.mCount))
 
 	cs.t.Logf("exit...")
 	wg.Wait()
@@ -546,23 +553,17 @@ func (cs *caseSpec) getDockerFilePath() (dirName string, fileName string, err er
 	return tmpDir, tmpFile.Name(), nil
 }
 
-func (cs *caseSpec) getContainterName() string {
-	nameTag := strings.Split(cs.name, ":")
-	name := filepath.Base(nameTag[0])
-	return name
-}
-
-func (cs *caseSpec) getPortBindings() map[docker.Port][]docker.PortBinding {
-	portBindings := make(map[docker.Port][]docker.PortBinding)
-
-	// check ports' mapping.
-	require.Equal(cs.t, len(cs.exposedPorts), len(cs.serverPorts))
-
+func (cs *caseSpec) getMappingPorts() error {
+	cs.serverPorts = make([]string, len(cs.exposedPorts))
 	for k, v := range cs.exposedPorts {
-		portBindings[docker.Port(v)] = []docker.PortBinding{{HostPort: docker.Port(cs.serverPorts[k]).Port()}}
+		mapStr := cs.resource.GetHostPort(v)
+		_, port, err := net.SplitHostPort(mapStr)
+		if err != nil {
+			return err
+		}
+		cs.serverPorts[k] = port
 	}
-
-	return portBindings
+	return nil
 }
 
 func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {

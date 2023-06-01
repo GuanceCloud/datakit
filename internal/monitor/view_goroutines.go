@@ -27,7 +27,7 @@ func (app *monitorAPP) renderGoroutineTable(mfs map[string]*dto.MetricFamily, co
 
 	grAlive := mfs["datakit_goroutine_alive"]
 	grStopped := mfs["datakit_goroutine_stopped_total"]
-	grCost := mfs["datakit_goroutine_cost"]
+	grCost := mfs["datakit_goroutine_cost_seconds"]
 
 	if grAlive == nil {
 		return
@@ -89,7 +89,7 @@ func (app *monitorAPP) renderGoroutineTable(mfs map[string]*dto.MetricFamily, co
 				table.SetCell(row, col, tview.NewTableCell("-").
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
 			} else {
-				avg := time.Duration(uint64(x.GetSummary().GetSampleSum()) / x.GetSummary().GetSampleCount())
+				avg := time.Duration(float64(time.Second) * x.GetSummary().GetSampleSum() / float64(x.GetSummary().GetSampleCount()))
 				table.SetCell(row, col, tview.NewTableCell(avg.String()).
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 			}

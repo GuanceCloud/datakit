@@ -7,6 +7,7 @@ package nginx
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
@@ -14,21 +15,17 @@ import (
 )
 
 type ServerZoneMeasurement struct {
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	election bool
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+	ipt    *Input
 }
 
 // Point implement MeasurementV2.
 func (m *ServerZoneMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-
-	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
+	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -58,28 +55,24 @@ func (m *ServerZoneMeasurement) Info() *inputs.MeasurementInfo {
 			"nginx_server":  inputs.NewTagInfo("nginx server host"),
 			"nginx_port":    inputs.NewTagInfo("nginx server port"),
 			"server_zone":   inputs.NewTagInfo("server zone"),
-			"host":          inputs.NewTagInfo("host mame which installed nginx"),
+			"host":          inputs.NewTagInfo("host name which installed nginx"),
 			"nginx_version": inputs.NewTagInfo("nginx version"),
 		},
 	}
 }
 
 type UpstreamZoneMeasurement struct {
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	election bool
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+	ipt    *Input
 }
 
 // Point implement MeasurementV2.
 func (m *UpstreamZoneMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-
-	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
+	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -110,28 +103,24 @@ func (m *UpstreamZoneMeasurement) Info() *inputs.MeasurementInfo {
 			"nginx_port":      inputs.NewTagInfo("nginx server port"),
 			"upstream_zone":   inputs.NewTagInfo("upstream zone"),
 			"upstream_server": inputs.NewTagInfo("upstream server"),
-			"host":            inputs.NewTagInfo("host mame which installed nginx"),
+			"host":            inputs.NewTagInfo("host name which installed nginx"),
 			"nginx_version":   inputs.NewTagInfo("nginx version"),
 		},
 	}
 }
 
 type CacheZoneMeasurement struct {
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	election bool
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+	ipt    *Input
 }
 
 // Point implement MeasurementV2.
 func (m *CacheZoneMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-
-	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
+	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -165,7 +154,7 @@ func (m *CacheZoneMeasurement) Info() *inputs.MeasurementInfo {
 			"nginx_server":  inputs.NewTagInfo("nginx server host"),
 			"nginx_port":    inputs.NewTagInfo("nginx server port"),
 			"cache_zone":    inputs.NewTagInfo("cache zone"),
-			"host":          inputs.NewTagInfo("host mame which installed nginx"),
+			"host":          inputs.NewTagInfo("host name which installed nginx"),
 			"nginx_version": inputs.NewTagInfo("nginx version"),
 		},
 	}

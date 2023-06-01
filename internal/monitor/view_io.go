@@ -39,6 +39,7 @@ func (app *monitorAPP) renderIOTable(mfs map[string]*dto.MetricFamily, colArr []
 	chanCap := mfs["datakit_io_chan_capacity"]
 	chanUsage := mfs["datakit_io_chan_usage"]
 	dwPtsTotal := mfs["datakit_io_dataway_point_total"]
+	dwBytesTotal := mfs["datakit_io_dataway_point_bytes_total"]
 
 	if chanUsage == nil {
 		return
@@ -54,7 +55,7 @@ func (app *monitorAPP) renderIOTable(mfs map[string]*dto.MetricFamily, colArr []
 			used,
 			capacity int64
 
-			ptsOK float64
+			ptsTotal, ptsOK float64
 		)
 
 		for _, lp := range lps {
@@ -81,12 +82,48 @@ func (app *monitorAPP) renderIOTable(mfs map[string]*dto.MetricFamily, colArr []
 		}
 
 		if dwPtsTotal != nil {
-			if x := metricWithLabel(dwPtsTotal, point.CatString(cat).String(), http.StatusText(http.StatusOK)); x != nil {
+			if x := metricWithLabel(dwPtsTotal,
+				point.CatString(cat).String(), http.StatusText(http.StatusOK)); x != nil {
 				ptsOK = x.GetCounter().GetValue()
 			}
 
-			table.SetCell(row, 2, tview.NewTableCell(number(ptsOK)).
-				SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
+			if x := metricWithLabel(dwPtsTotal,
+				point.CatString(cat).String(), "total"); x != nil {
+				ptsTotal = x.GetCounter().GetValue()
+			}
+
+			// only show ok points and total points.
+			table.SetCell(row, 2,
+				tview.NewTableCell(fmt.Sprintf("%s/%s",
+					number(ptsOK), number(ptsTotal))).
+					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
+
+			// For failed points, there maybe more reasons(more tags), so do not
+			// show here, we can see them via /metrics API.
+		}
+
+		if dwBytesTotal != nil {
+			var bytesOk, bytesTotal, bytesGzipTotal float64
+			if x := metricWithLabel(dwBytesTotal,
+				point.CatString(cat).String(), "raw", http.StatusText(http.StatusOK)); x != nil {
+				bytesOk = x.GetCounter().GetValue()
+			}
+
+			if x := metricWithLabel(dwBytesTotal,
+				point.CatString(cat).String(), "raw", "total"); x != nil {
+				bytesTotal = x.GetCounter().GetValue()
+			}
+
+			if x := metricWithLabel(dwBytesTotal,
+				point.CatString(cat).String(), "gzip", "total"); x != nil {
+				bytesGzipTotal = x.GetCounter().GetValue()
+			}
+
+			// only show ok points and total points.
+			table.SetCell(row, 3,
+				tview.NewTableCell(fmt.Sprintf("%s/%s(%s)",
+					number(bytesOk), number(bytesTotal), number(bytesGzipTotal))).
+					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 
 			// For failed points, there maybe more reasons(more tags), so do not
 			// show here, we can see them via /metrics API.

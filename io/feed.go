@@ -105,7 +105,7 @@ func (f *ioFeeder) Feed(name string, category point.Category, pts []*point.Point
 	if len(opts) == 0 {
 		return defIO.doFeed(iopts, category.URL(), name, nil)
 	} else {
-		inputsCollectLatencyVec.WithLabelValues(name, category.String()).Observe(float64(opts[0].CollectCost / time.Microsecond))
+		inputsCollectLatencyVec.WithLabelValues(name, category.String()).Observe(float64(opts[0].CollectCost) / float64(time.Second))
 		return defIO.doFeed(iopts, category.URL(), name, opts[0])
 	}
 }
@@ -236,7 +236,13 @@ func (x *dkIO) doFeed(pts []*dkpt.Point, category, from string, opt *Option) err
 		ch = x.chans[datakit.DynamicDatawayCategory]
 	}
 
-	ioChanLen.WithLabelValues(point.CatURL(category).String()).Set(float64(len(ch)))
+	if opt != nil && opt.HTTPHost != "" {
+		// dial-testing feed to logging channel, but we changed the label to dynamic-dataway.
+		// On command datakit monitor, we need to show dial-testing IO metrics.
+		ioChanLen.WithLabelValues(point.DynamicDWCategory.String()).Set(float64(len(ch)))
+	} else {
+		ioChanLen.WithLabelValues(point.CatURL(category).String()).Set(float64(len(ch)))
+	}
 
 	job := &iodata{
 		category: category,
@@ -301,7 +307,7 @@ func Feed(name, category string, pts []*dkpt.Point, opt *Option) error {
 	inputsFeedVec.WithLabelValues(name, catStr).Inc()
 	inputsFeedPtsVec.WithLabelValues(name, catStr).Add(float64(len(pts)))
 	if opt != nil {
-		inputsCollectLatencyVec.WithLabelValues(name, catStr).Observe(float64(opt.CollectCost / time.Microsecond))
+		inputsCollectLatencyVec.WithLabelValues(name, catStr).Observe(float64(opt.CollectCost) / float64(time.Second))
 	}
 	inputsLastFeedVec.WithLabelValues(name, catStr).Set(float64(time.Now().Unix()))
 

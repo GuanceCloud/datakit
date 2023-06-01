@@ -1,4 +1,6 @@
+
 # DataKit API
+
 ---
 
 This document mainly describes the HTTP API interface opened by DataKit.
@@ -7,7 +9,7 @@ This document mainly describes the HTTP API interface opened by DataKit.
 
 At present, DataKit only supports HTTP interface, which mainly involves data writing and data query.
 
-### Get the Remote DataKit Version Number Through API {#api-get-dk-version}
+### Get the DataKit Version {#api-get-dk-version}
 
 There are two ways to get the version number:
 
@@ -32,7 +34,7 @@ This API is used to report various `category` of data to DataKit, and the parame
 | `source`                  | string | N               | no            | Specify this field only for logging support (that is, `category` is `logging`). If you do not specify `source`, the uploaded log data would not be cut by Pipeline.                       |
 | `version`                 | string | N               | no            | The version number of the current collector                                                                                                                                               |
 
-HTTP body supports both line protocol and JSON. See [here](#lineproto-limitation) for constraints on data structures, whether in line protocol or JSON form.
+HTTP body supports both line protocol and JSON. See [here](apis.md#lineproto-limitation) for constraints on data structures, whether in line protocol or JSON form.
 
 ### Categories {#category}
 
@@ -148,11 +150,14 @@ rds,name=yyy,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 slb,name=zzz,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 ```
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     Object data must have the tag  `name` , otherwise the protocol will report an error.
     
     Object data should have a `message` field, which is mainly convenient for full-text search.
+
+<!-- markdownlint-enable -->
 
 ### Custom Object Data Sample {#api-custom-object-example}
 
@@ -166,11 +171,14 @@ rds,name=yyy,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 slb,name=zzz,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 ```
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     Custom object data must have the tag `name` , otherwise the protocol will report an error.
     
     It would be better  to have a `message` field for custom object data, which is mainly convenient for full-text search.
+
+<!-- markdownlint-enable -->
 
 ### RUM {#api-rum}
 
@@ -186,10 +194,10 @@ GET /v1/ping HTTP/1.1
 HTTP/1.1 200 OK
 
 {
-	"content":{
-		"version":"1.1.6-rc0",
-			"uptime":"1.022205003s"
-	}
+    "content":{
+        "version":"1.1.6-rc0",
+        "uptime":"1.022205003s"
+    }
 }
 ```
 
@@ -202,8 +210,8 @@ POST /v1/lasterror HTTP/1.1
 Content-Type: application/json
 
 {
-	"input":"redis",
-	"err_content":"Cache avalanche"
+    "input":"redis",
+    "err_content":"Cache avalanche"
 }
 ```
 
@@ -339,14 +347,14 @@ Example of request:
 
 ``` shell
 curl -XPOST "127.0.0.1:9529/v1/object/labels" \
-	-H 'Content-Type: application/json'  \
-	-d'{
-			"object_class": "host_processes",
-			"object_name": "ubuntu20-dev_49392",
-			"key": "host",
-			"value": "ubuntu20-dev",
-			"labels": ["l1","l2"]
-		}'
+    -H 'Content-Type: application/json'  \
+    -d'{
+            "object_class": "host_processes",
+            "object_name": "ubuntu20-dev_49392",
+            "key": "host",
+            "value": "ubuntu20-dev",
+            "labels": ["l1","l2"]
+        }'
 ```
 
 Example of successful return:
@@ -354,9 +362,9 @@ Example of successful return:
 ``` json
 status_code: 200
 {
-	"content": {
-		"_id": "375370265b0641xxxxxxxxxxxxxxxxxxxxxxxxxx"
-	}
+    "content": {
+        "_id": "375370265b0641xxxxxxxxxxxxxxxxxxxxxxxxxx"
+    }
 }
 ```
 
@@ -365,7 +373,7 @@ Example of failing return:
 ``` json
 status_code: 500
 {
-	"errorCode":"some-internal-error"
+    "errorCode":"some-internal-error"
 }
 ```
 
@@ -386,13 +394,13 @@ Example of request:
 
 ``` shell
 curl -XPOST "127.0.0.1:9529/v1/object/labels"  \
-	-H 'Content-Type: application/json'  \
-	-d'{
-			"object_class": "host_processes",
-			"object_name": "ubuntu20-dev_49392",
-			"key": "host",
-			"value": "ubuntu20-dev"
-		}'
+    -H 'Content-Type: application/json'  \
+    -d'{
+            "object_class": "host_processes",
+            "object_name": "ubuntu20-dev_49392",
+            "key": "host",
+            "value": "ubuntu20-dev"
+        }'
 ```
 
 Example of successful return:
@@ -400,9 +408,9 @@ Example of successful return:
 ``` json
 status_code: 200
 {
-	"content": {
-		"msg": "delete success!"
-	}
+    "content": {
+        "msg": "delete success!"
+    }
 }
 ```
 
@@ -411,7 +419,7 @@ Example of failing return:
 ``` json
 status_code: 500
 {
-	"errorCode": "some-internal-error"
+    "errorCode": "some-internal-error"
 }
 ```
 
@@ -464,7 +472,7 @@ HTTP/1.1 200 OK
 
 Example of failing return:
 
-```
+``` http
 HTTP Code: 400
 
 {

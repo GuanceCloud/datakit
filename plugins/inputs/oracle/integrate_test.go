@@ -10,12 +10,11 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -26,13 +25,22 @@ import (
 	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+// ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
+
 func TestOracleInput(t *testing.T) {
+	if !testutils.CheckIntegrationTestingRunning() {
+		t.Skip()
+	}
+
+	testutils.PurgeRemoteByName(inputName)       // purge at first.
+	defer testutils.PurgeRemoteByName(inputName) // purge at last.
+
 	start := time.Now()
 	cases, err := buildCases(t)
 	if err != nil {
@@ -50,33 +58,36 @@ func TestOracleInput(t *testing.T) {
 	t.Logf("testing %d cases...", len(cases))
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			caseStart := time.Now()
+		func(tc *caseSpec) {
+			t.Run(tc.name, func(t *testing.T) {
+				// t.Parallel() // Oracle should not be parallel, if so, it would dead and timeout due to junk machine.
+				caseStart := time.Now()
 
-			t.Logf("testing %s...", tc.name)
+				t.Logf("testing %s...", tc.name)
 
-			if err := tc.run(); err != nil {
-				tc.cr.Status = testutils.TestFailed
-				tc.cr.FailedMessage = err.Error()
+				if err := testutils.RetryTestRun(tc.run); err != nil {
+					tc.cr.Status = testutils.TestFailed
+					tc.cr.FailedMessage = err.Error()
 
-				panic(err)
-			} else {
-				tc.cr.Status = testutils.TestPassed
-			}
-
-			tc.cr.Cost = time.Since(caseStart)
-
-			assert.NoError(t, testutils.Flush(tc.cr))
-
-			t.Cleanup(func() {
-				// clean remote docker resources
-				if tc.resource == nil {
-					return
+					panic(err)
+				} else {
+					tc.cr.Status = testutils.TestPassed
 				}
 
-				assert.NoError(t, tc.pool.Purge(tc.resource))
+				tc.cr.Cost = time.Since(caseStart)
+
+				require.NoError(t, testutils.Flush(tc.cr))
+
+				t.Cleanup(func() {
+					// clean remote docker resources
+					if tc.resource == nil {
+						return
+					}
+
+					require.NoError(t, tc.pool.Purge(tc.resource))
+				})
 			})
-		})
+		}(tc)
 	}
 }
 
@@ -86,23 +97,25 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 	remote := testutils.GetRemote()
 
 	bases := []struct {
-		name           string // Also used as build image name:tag.
-		conf           string
-		dockerFileText string // Empty if not build image.
-		exposedPorts   []string
-		opts           []inputs.PointCheckOption
+		name         string // Also used as build image name:tag.
+		conf         string
+		exposedPorts []string
+		sid          string
 	}{
 		{
-			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/oracle/oracle:xe-11g-datakit",
+			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/oracle:11g-xe-datakit",
 			exposedPorts: []string{"1521/tcp"},
+			sid:          "XE",
 		},
 		{
-			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/oracle/oracle:se-12c-datakit",
+			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/oracle:12c-se-datakit",
 			exposedPorts: []string{"1521/tcp"},
+			sid:          "xe",
 		},
 		{
-			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/oracle/oracle:19c-ee-datakit",
+			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/oracle:19c-ee-datakit",
 			exposedPorts: []string{"1521/tcp"},
+			sid:          "XE",
 		},
 	}
 
@@ -116,7 +129,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// ipt.feeder = feeder
 
 		_, err := toml.Decode(base.conf, ipt)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		repoTag := strings.Split(base.name, ":")
 
@@ -128,9 +141,8 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			repo:    repoTag[0],
 			repoTag: repoTag[1],
 
-			dockerFileText: base.dockerFileText,
-			exposedPorts:   base.exposedPorts,
-			opts:           base.opts,
+			exposedPorts: base.exposedPorts,
+			sid:          base.sid,
 
 			cr: &testutils.CaseResult{
 				Name:        t.Name(),
@@ -161,7 +173,11 @@ type caseSpec struct {
 	repoTag        string
 	dockerFileText string
 	exposedPorts   []string
+	serverPorts    []string
+	sid            string
 	opts           []inputs.PointCheckOption
+	done           chan struct{}
+	mCount         map[string]struct{}
 
 	ipt    *Input
 	feeder *dkio.MockedFeeder
@@ -171,12 +187,6 @@ type caseSpec struct {
 
 	cr *testutils.CaseResult
 }
-
-var (
-	done             chan struct{}
-	errorMsgs        []string
-	mMeasurementName sync.Map
-)
 
 type FeedMeasurementBody []struct {
 	Measurement string                 `json:"measurement"`
@@ -219,7 +229,7 @@ func (cs *caseSpec) handler(c *gin.Context) {
 		if err := cs.checkPoint(newPts); err != nil {
 			if err != nil {
 				cs.t.Logf("%s", err.Error())
-				assert.NoError(cs.t, err)
+				require.NoError(cs.t, err)
 				return
 			}
 		}
@@ -228,13 +238,8 @@ func (cs *caseSpec) handler(c *gin.Context) {
 		panic("not implement")
 	}
 
-	length := 0
-	mMeasurementName.Range(func(k, v interface{}) bool {
-		length++
-		return true
-	})
-	if length == 3 {
-		done <- struct{}{}
+	if len(cs.mCount) == 3 {
+		cs.done <- struct{}{}
 	}
 }
 
@@ -248,7 +253,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 
 		switch measurement {
 		case oracleProcess:
-			_, ok := mMeasurementName.Load(oracleProcess)
+			_, ok := cs.mCount[oracleProcess]
 			if ok {
 				return nil
 			}
@@ -264,13 +269,13 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			// TODO: error here
 			if len(msgs) > 0 {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-			} else {
-				cs.t.Logf("oracle_process check completed!")
-				mMeasurementName.Store(oracleProcess, 1)
 			}
 
+			cs.t.Logf("oracle_process check completed!")
+			cs.mCount[oracleProcess] = struct{}{}
+
 		case oracleTablespace:
-			_, ok := mMeasurementName.Load(oracleTablespace)
+			_, ok := cs.mCount[oracleTablespace]
 			if ok {
 				return nil
 			}
@@ -286,13 +291,13 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			// TODO: error here
 			if len(msgs) > 0 {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-			} else {
-				cs.t.Logf("oracle_tablespace check completed!")
-				mMeasurementName.Store(oracleTablespace, 1)
 			}
 
+			cs.t.Logf("oracle_tablespace check completed!")
+			cs.mCount[oracleTablespace] = struct{}{}
+
 		case oracleSystem:
-			_, ok := mMeasurementName.Load(oracleSystem)
+			_, ok := cs.mCount[oracleSystem]
 			if ok {
 				return nil
 			}
@@ -308,10 +313,10 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			// TODO: error here
 			if len(msgs) > 0 {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-			} else {
-				cs.t.Logf("oracle_system check completed!")
-				mMeasurementName.Store(oracleSystem, 1)
 			}
+
+			cs.t.Logf("oracle_system check completed!")
+			cs.mCount[oracleSystem] = struct{}{}
 
 		default: // TODO: check other measurement
 			panic("not implement")
@@ -351,14 +356,17 @@ func (cs *caseSpec) run() error {
 	router := gin.New()
 	router.POST("/v1/write/metric", cs.handler)
 
+	randPort := testutils.RandPort("tcp")
+	randPortStr := fmt.Sprintf("%d", randPort)
+	cs.t.Logf("listening port " + randPortStr + "...")
+
 	srv := &http.Server{
-		Addr:    ":59529",
+		Addr:    ":" + randPortStr,
 		Handler: router,
 	}
 
 	go func() {
-		done = nil
-		done = make(chan struct{})
+		cs.done = make(chan struct{})
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			panic(err)
 		}
@@ -379,13 +387,6 @@ func (cs *caseSpec) run() error {
 		return err
 	}
 
-	containerName := cs.getContainterName()
-
-	// Remove the container if exist.
-	if err := p.RemoveContainerByName(containerName); err != nil {
-		return err
-	}
-
 	dockerFileDir, dockerFilePath, err := cs.getDockerFilePath()
 	if err != nil {
 		return err
@@ -397,25 +398,26 @@ func (cs *caseSpec) run() error {
 		return err
 	}
 
+	uniqueContainerName := testutils.GetUniqueContainerName(inputName)
+
 	var resource *dockertest.Resource
 
 	if len(cs.dockerFileText) == 0 {
 		// Just run a container from existing docker image.
 		resource, err = p.RunWithOptions(
 			&dockertest.RunOptions{
-				Name: containerName, // ATTENTION: not cs.name.
+				Name: uniqueContainerName, // ATTENTION: not cs.name.
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), "DATAKIT_PORT=59529", "ORACLE_PASSWORD=123456", "ORACLE_SID=XE"},
+				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), "DATAKIT_PORT=" + randPortStr, "ORACLE_PASSWORD=123456", "ORACLE_SID=" + cs.sid, "DATAKIT_INTERVAL=1s", "IMPORT_FROM_VOLUME=true"},
 
 				ExposedPorts: cs.exposedPorts,
-				PortBindings: cs.getPortBindings(),
 			},
 
 			func(c *docker.HostConfig) {
 				c.RestartPolicy = docker.RestartPolicy{Name: "no"}
-				// c.AutoRemove = true
+				c.AutoRemove = true
 			},
 		)
 	} else {
@@ -424,19 +426,19 @@ func (cs *caseSpec) run() error {
 			dockerFilePath,
 
 			&dockertest.RunOptions{
-				Name: cs.name,
+				ContainerName: uniqueContainerName,
+				Name:          cs.name, // ATTENTION: not uniqueContainerName.
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), "DATAKIT_PORT=59529", "ORACLE_PASSWORD=123456", "ORACLE_SID=XE"},
+				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), "DATAKIT_PORT=" + randPortStr, "ORACLE_PASSWORD=123456", "ORACLE_SID=" + cs.sid, "DATAKIT_INTERVAL=1s", "IMPORT_FROM_VOLUME=true"},
 
 				ExposedPorts: cs.exposedPorts,
-				PortBindings: cs.getPortBindings(),
 			},
 
 			func(c *docker.HostConfig) {
 				c.RestartPolicy = docker.RestartPolicy{Name: "no"}
-				// c.AutoRemove = true
+				c.AutoRemove = true
 			},
 		)
 	}
@@ -449,7 +451,11 @@ func (cs *caseSpec) run() error {
 	cs.pool = p
 	cs.resource = resource
 
-	cs.t.Logf("check service(%s:%v)...", r.Host, cs.exposedPorts)
+	if err := cs.getMappingPorts(); err != nil {
+		return err
+	}
+
+	cs.t.Logf("check service(%s:%v)...", r.Host, cs.serverPorts)
 
 	if err := cs.portsOK(r); err != nil {
 		return err
@@ -457,8 +463,10 @@ func (cs *caseSpec) run() error {
 
 	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
 
-	cs.t.Logf("checking oracle in 5 minutes...")
-	tick := time.NewTicker(5 * time.Minute)
+	cs.mCount = map[string]struct{}{}
+
+	cs.t.Logf("checking oracle in 10 minutes...")
+	tick := time.NewTicker(10 * time.Minute)
 	out := false
 	for {
 		if out {
@@ -467,18 +475,12 @@ func (cs *caseSpec) run() error {
 
 		select {
 		case <-tick.C:
-			cs.t.Logf("check oracle timeout!")
-			out = true
-		case <-done:
+			panic("check oracle timeout: " + cs.name)
+		case <-cs.done:
 			cs.t.Logf("check oracle all done!")
 			out = true
 		}
 	}
-
-	if len(errorMsgs) > 0 {
-		return fmt.Errorf("errorMsgs: %#v", errorMsgs)
-	}
-	errorMsgs = errorMsgs[:0]
 
 	cs.t.Logf("exit...")
 
@@ -534,25 +536,22 @@ func (cs *caseSpec) getDockerFilePath() (dirName string, fileName string, err er
 	return tmpDir, tmpFile.Name(), nil
 }
 
-func (cs *caseSpec) getContainterName() string {
-	nameTag := strings.Split(cs.name, ":")
-	name := filepath.Base(nameTag[0])
-	return name
-}
-
-func (cs *caseSpec) getPortBindings() map[docker.Port][]docker.PortBinding {
-	portBindings := make(map[docker.Port][]docker.PortBinding)
-
-	for _, v := range cs.exposedPorts {
-		portBindings[docker.Port(v)] = []docker.PortBinding{{HostIP: "0.0.0.0", HostPort: docker.Port(v).Port()}}
+func (cs *caseSpec) getMappingPorts() error {
+	cs.serverPorts = make([]string, len(cs.exposedPorts))
+	for k, v := range cs.exposedPorts {
+		mapStr := cs.resource.GetHostPort(v)
+		_, port, err := net.SplitHostPort(mapStr)
+		if err != nil {
+			return err
+		}
+		cs.serverPorts[k] = port
 	}
-
-	return portBindings
+	return nil
 }
 
 func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
-	for _, v := range cs.exposedPorts {
-		if !r.PortOK(docker.Port(v).Port(), time.Minute) {
+	for _, v := range cs.serverPorts {
+		if !r.PortOK(docker.Port(v).Port(), 2*time.Minute) {
 			return fmt.Errorf("service checking failed")
 		}
 	}

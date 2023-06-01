@@ -84,6 +84,8 @@ const (
 	FIELD_ERR_STACK   = "error_stack"
 	FIELD_ERR_TYPE    = "error_type"
 	FIELD_CALL_TREE   = "calling_tree"
+
+	TRACE_128_BIT_ID = "trace_128_bit_id"
 )
 
 // nolint:stylecheck

@@ -18,15 +18,55 @@ Here we mainly introduce some extended functions of DDTrace-java. List of main f
 - Support Alibaba Cloud RocketMQ 5.0
 - redis trace parameters
 - Get the input parameter information of a specific function
+- MongoDB obfuscation
+- Supported DM8 Database
+- Supported trace-128-id
+
+## supported trace-128-id {#trace_128_bit_id}
+
+[:octicons-tag-24: Datakit-1.8.0](changelog.md#cl-1.8.0)
+[:octicons-tag-24: DDTrace-1.4.0-guance](ddtrace-ext-changelog.md#cl-1.14.0-guance)
+
+The default trace-id of the DDTrace agent is 64 bit, and the Datakit also supports 64 bit trace-id in the received link data. 
+Starting from `v1.11.0`, it supports the `W3C protocol` and supports receiving 128 bit trace-id. However, the trace id sent to the link is still 64 bit.
+
+To this end, secondary development was carried out on the observation cloud, which incorporated `trace_128_bit_id` is placed in the link data and sent to the Datakit, the DDTrace and OTEL links can be concatenated.
+
+how to config:
+
+```shell
+# open trace.128.bit, and use W3C propagation.
+-Ddd.trace.128.bit.traceid.generation.enabled=true -Ddd.trace.propagation.style=tracecontext
+```
+
+This is  [GitHub issue](https://github.com/GuanceCloud/dd-trace-java/issues/37){:target="_blank"}
+
+At present, only DDTrace and OTEL are connected in series, and there is currently no testing with other APM manufacturers.
+
+
+## supported MongoDB obfuscation {#mongo-obfuscation}
+Use startup parameter `-DDd.mongo.obfuscation=true` or environment variable `DD_MONGO_OBFUSION` Turn on desensitization. This way, a specific command can be seen from the observation cloud.
+
+Currently, the types that can achieve desensitization include Int32, Int64, Boolean, Double, and String. The remaining ones have no reference significance, so they are currently not supported.
+
+supported version：
+
+- [x] all
+
+## supported DM8 Database {#dameng-db}
+Add DM8 Database trace information.
+supported version：
+
+- [x] v8
 
 ## Get the input parameter information of a specific function {#dd_trace_methods}
 **Specific function** mainly refers to the function specified by the business to obtain the corresponding input parameters.
 
 **Specific functions** need to be defined and declared through specific parameters. Currently, ddtrace provides two ways to trace specific functions:
 
-1. Marked by startup parameters: -Ddd.trace.methods ，reference documents： [Class or method injection Trace](https://docs.guance.com/integrations/apm/ddtrace/ddtrace-skill-param/#5-trace)
+1. Marked by startup parameters: -Ddd.trace.methods ，reference documents： [Class or method injection Trace](https://docs.guance.com/integrations/apm/ddtrace/ddtrace-skill-param/#5-trace){:target="_blank"}
 
-2. By introducing the SDK, use @Trace to mark, refer to the document [function level burying point](https://docs.guance.com/integrations/apm/ddtrace/ddtrace-skill-api/#2)
+2. By introducing the SDK, use @Trace to mark, refer to the document [function level burying point](https://docs.guance.com/integrations/apm/ddtrace/ddtrace-skill-api/#2){:target="_blank"}
 
 After the declaration is made in the above way, the corresponding method will be marked as trace, and the corresponding Span information will be generated at the same time, including the input parameter information of the function (input parameter name, type, value).
 

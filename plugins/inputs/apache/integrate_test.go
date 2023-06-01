@@ -9,9 +9,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
-	"net/url"
+	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -30,6 +29,13 @@ import (
 // ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
 
 func TestApacheInput(t *testing.T) {
+	if !testutils.CheckIntegrationTestingRunning() {
+		t.Skip()
+	}
+
+	testutils.PurgeRemoteByName(inputName)       // purge at first.
+	defer testutils.PurgeRemoteByName(inputName) // purge at last.
+
 	start := time.Now()
 	cases, err := buildCases(t)
 	if err != nil {
@@ -47,34 +53,60 @@ func TestApacheInput(t *testing.T) {
 	t.Logf("testing %d cases...", len(cases))
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			caseStart := time.Now()
+		func(tc *caseSpec) {
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+				caseStart := time.Now()
 
-			t.Logf("testing %s...", tc.name)
+				t.Logf("testing %s...", tc.name)
 
-			if err := tc.run(); err != nil {
-				tc.cr.Status = testutils.TestFailed
-				tc.cr.FailedMessage = err.Error()
+				if err := testutils.RetryTestRun(tc.run); err != nil {
+					tc.cr.Status = testutils.TestFailed
+					tc.cr.FailedMessage = err.Error()
 
-				panic(err)
-			} else {
-				tc.cr.Status = testutils.TestPassed
-			}
-
-			tc.cr.Cost = time.Since(caseStart)
-
-			require.NoError(t, testutils.Flush(tc.cr))
-
-			t.Cleanup(func() {
-				// clean remote docker resources
-				if tc.resource == nil {
-					return
+					panic(err)
+				} else {
+					tc.cr.Status = testutils.TestPassed
 				}
 
-				require.NoError(t, tc.pool.Purge(tc.resource))
+				tc.cr.Cost = time.Since(caseStart)
+
+				require.NoError(t, testutils.Flush(tc.cr))
+
+				t.Cleanup(func() {
+					// clean remote docker resources
+					if tc.resource == nil {
+						return
+					}
+
+					require.NoError(t, tc.pool.Purge(tc.resource))
+				})
 			})
-		})
+		}(tc)
 	}
+}
+
+func getConfAccessPoint(host, port string) string {
+	return fmt.Sprintf("http://%s/server-status?auto", net.JoinHostPort(host, port))
+}
+
+// httpd:2.4.54-alpine-server-status --> 2.4.54
+func getVersion(name string) string {
+	preDefined1 := "httpd:"
+	preDefined2 := "-"
+
+	ndx1 := strings.Index(name, preDefined1)
+	if ndx1 == -1 {
+		return ""
+	}
+
+	name2 := name[ndx1+len(preDefined1):]
+	ndx2 := strings.Index(name2, preDefined2)
+	if ndx2 == -1 {
+		return name2
+	}
+
+	return name2[:ndx2]
 }
 
 func buildCases(t *testing.T) ([]*caseSpec, error) {
@@ -84,19 +116,83 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 	bases := []struct {
 		name           string // Also used as build image name:tag.
+		selfBuild      bool   // Indicates the image was customized built.
 		conf           string
 		dockerFileText string // Empty if not build image.
 		exposedPorts   []string
+		opts           []inputs.PointCheckOption
 		mPathCount     map[string]int
 	}{
 		{
-			name: "httpd:server-status",
-			conf: fmt.Sprintf(`url = "http://%s/server-status?auto"
-			interval = "1s"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
-			exposedPorts:   []string{"80/tcp"},
-			dockerFileText: getDockerfile("2.4"),
+			name:      "httpd:2.4.56-alpine-server-status",
+			selfBuild: false,
+			conf: `url = ""
+			interval = "1s"`, // set conf URL later.
+			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
-				"/": 100,
+				"/": 10,
+			},
+		},
+
+		{
+			name:      "httpd:2.4.54-alpine-server-status",
+			selfBuild: false,
+			conf: `url = ""
+			interval = "1s"`, // set conf URL later.
+			exposedPorts: []string{"80/tcp"},
+			mPathCount: map[string]int{
+				"/": 10,
+			},
+		},
+
+		{
+			name:      "httpd:2.4.41-alpine-server-status",
+			selfBuild: false,
+			conf: `url = ""
+			interval = "1s"`, // set conf URL later.
+			exposedPorts: []string{"80/tcp"},
+			mPathCount: map[string]int{
+				"/": 10,
+			},
+		},
+
+		{
+			name:      "httpd:2.4.38-alpine-server-status",
+			selfBuild: false,
+			conf: `url = ""
+			interval = "1s"`, // set conf URL later.
+			exposedPorts: []string{"80/tcp"},
+			mPathCount: map[string]int{
+				"/": 10,
+			},
+		},
+
+		{
+			name:      "httpd:2.4.29-alpine-server-status",
+			selfBuild: false,
+			conf: `url = ""
+			interval = "1s"`, // set conf URL later.
+			exposedPorts: []string{"80/tcp"},
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("cpu_load"), //nolint:lll
+			},
+			mPathCount: map[string]int{
+				"/": 10,
+			},
+		},
+
+		{
+			name:      "httpd:2.4.6-alpine-server-status",
+			selfBuild: true,
+			conf: `url = ""
+			interval = "1s"`, // set conf URL later.
+			exposedPorts: []string{"80/tcp"},
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("cpu_load"),                   //nolint:lll
+				inputs.WithOptionalTags("server_version", "server_mpm"), //nolint:lll
+			},
+			mPathCount: map[string]int{
+				"/": 10,
 			},
 		},
 	}
@@ -113,9 +209,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)
 
-		uURL, err := url.Parse(ipt.URL)
-		require.NoError(t, err, "parse %s failed: %s", ipt.URL, err)
-
 		repoTag := strings.Split(base.name, ":")
 
 		cases = append(cases, &caseSpec{
@@ -126,10 +219,10 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			repo:    repoTag[0],
 			repoTag: repoTag[1],
 
-			dockerFileText: base.dockerFileText,
+			dockerFileText: getDockerfile(getVersion(base.name), base.selfBuild),
 			exposedPorts:   base.exposedPorts,
-			serverPorts:    []string{uURL.Port()},
 			mPathCount:     base.mPathCount,
+			opts:           base.opts,
 
 			cr: &testutils.CaseResult{
 				Name:        t.Name(),
@@ -163,6 +256,7 @@ type caseSpec struct {
 	serverPorts    []string
 	opts           []inputs.PointCheckOption
 	mPathCount     map[string]int
+	mCount         map[string]struct{}
 
 	ipt    *Input
 	feeder *io.MockedFeeder
@@ -195,6 +289,8 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			if len(msgs) > 0 {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
+
+			cs.mCount[inputName] = struct{}{}
 
 		default: // TODO: check other measurement
 			panic("not implement")
@@ -236,13 +332,6 @@ func (cs *caseSpec) run() error {
 		return err
 	}
 
-	containerName := cs.getContainterName()
-
-	// Remove the container if exist.
-	if err := p.RemoveContainerByName(containerName); err != nil {
-		return err
-	}
-
 	dockerFileDir, dockerFilePath, err := cs.getDockerFilePath()
 	if err != nil {
 		return err
@@ -254,20 +343,21 @@ func (cs *caseSpec) run() error {
 		return err
 	}
 
+	uniqueContainerName := testutils.GetUniqueContainerName(inputName)
+
 	var resource *dockertest.Resource
 
 	if len(cs.dockerFileText) == 0 {
 		// Just run a container from existing docker image.
 		resource, err = p.RunWithOptions(
 			&dockertest.RunOptions{
-				Name: containerName, // ATTENTION: not cs.name.
+				Name: uniqueContainerName, // ATTENTION: not cs.name.
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
 				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP)},
 
 				ExposedPorts: cs.exposedPorts,
-				PortBindings: cs.getPortBindings(),
 			},
 
 			func(c *docker.HostConfig) {
@@ -281,14 +371,14 @@ func (cs *caseSpec) run() error {
 			dockerFilePath,
 
 			&dockertest.RunOptions{
-				Name: cs.name,
+				ContainerName: uniqueContainerName,
+				Name:          cs.name, // ATTENTION: not uniqueContainerName.
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
 				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP)},
 
 				ExposedPorts: cs.exposedPorts,
-				PortBindings: cs.getPortBindings(),
 			},
 
 			func(c *docker.HostConfig) {
@@ -305,6 +395,11 @@ func (cs *caseSpec) run() error {
 	cs.pool = p
 	cs.resource = resource
 
+	if err := cs.getMappingPorts(); err != nil {
+		return err
+	}
+	cs.ipt.URL = getConfAccessPoint(r.Host, cs.serverPorts[0]) // set conf URL here.
+
 	cs.t.Logf("check service(%s:%v)...", r.Host, cs.serverPorts)
 
 	if err := cs.portsOK(r); err != nil {
@@ -312,6 +407,8 @@ func (cs *caseSpec) run() error {
 	}
 
 	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
+
+	cs.runHTTPTests(r)
 
 	var wg sync.WaitGroup
 
@@ -335,12 +432,15 @@ func (cs *caseSpec) run() error {
 	cs.cr.AddField("point_count", len(pts))
 
 	cs.t.Logf("get %d points", len(pts))
+	cs.mCount = make(map[string]struct{})
 	if err := cs.checkPoint(pts); err != nil {
 		return err
 	}
 
 	cs.t.Logf("stop input...")
 	cs.ipt.Terminate()
+
+	require.Equal(cs.t, 1, len(cs.mCount))
 
 	cs.t.Logf("exit...")
 	wg.Wait()
@@ -397,23 +497,17 @@ func (cs *caseSpec) getDockerFilePath() (dirName string, fileName string, err er
 	return tmpDir, tmpFile.Name(), nil
 }
 
-func (cs *caseSpec) getContainterName() string {
-	nameTag := strings.Split(cs.name, ":")
-	name := filepath.Base(nameTag[0])
-	return name
-}
-
-func (cs *caseSpec) getPortBindings() map[docker.Port][]docker.PortBinding {
-	portBindings := make(map[docker.Port][]docker.PortBinding)
-
-	// check ports' mapping.
-	require.Equal(cs.t, len(cs.exposedPorts), len(cs.serverPorts))
-
+func (cs *caseSpec) getMappingPorts() error {
+	cs.serverPorts = make([]string, len(cs.exposedPorts))
 	for k, v := range cs.exposedPorts {
-		portBindings[docker.Port(v)] = []docker.PortBinding{{HostPort: docker.Port(cs.serverPorts[k]).Port()}}
+		mapStr := cs.resource.GetHostPort(v)
+		_, port, err := net.SplitHostPort(mapStr)
+		if err != nil {
+			return err
+		}
+		cs.serverPorts[k] = port
 	}
-
-	return portBindings
+	return nil
 }
 
 func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
@@ -425,12 +519,60 @@ func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
 	return nil
 }
 
+// Launch large amount of HTTP requests to remote nginx.
+func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) {
+	for _, v := range cs.serverPorts {
+		for path, count := range cs.mPathCount {
+			newURL := fmt.Sprintf("http://%s%s", net.JoinHostPort(r.Host, v), path)
+
+			var wg sync.WaitGroup
+			wg.Add(count)
+
+			for i := 0; i < count; i++ {
+				go func() {
+					defer wg.Done()
+
+					netTransport := &http.Transport{
+						Dial: (&net.Dialer{
+							Timeout: 10 * time.Second,
+						}).Dial,
+						TLSHandshakeTimeout: 10 * time.Second,
+					}
+					netClient := &http.Client{
+						Timeout:   time.Second * 20,
+						Transport: netTransport,
+					}
+
+					resp, err := netClient.Get(newURL)
+					if err != nil {
+						panic(err)
+					}
+					if err := resp.Body.Close(); err != nil {
+						panic(err)
+					}
+				}()
+			}
+
+			wg.Wait()
+		}
+	}
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
-func getDockerfile(version string) string {
+// selfBuild indicates the image was customized built.
+func getDockerfile(version string, selfBuild bool) string {
+	if len(version) == 0 {
+		panic("version is empty")
+	}
+
 	replacePair := map[string]string{
 		"VERSION": version,
 		"a":       "$a",
+	}
+
+	if selfBuild {
+		return os.Expand(dockerFileServerStatusSelfBuild, func(k string) string { return replacePair[k] })
 	}
 
 	return os.Expand(dockerFileServerStatus, func(k string) string { return replacePair[k] })
@@ -440,7 +582,15 @@ func getDockerfile(version string) string {
 
 // Dockerfiles.
 
-const dockerFileServerStatus = `FROM httpd:${VERSION}
+const dockerFileServerStatus = `FROM httpd:${VERSION}-alpine
+
+  RUN sed -i '$a <Location /server-status>' /usr/local/apache2/conf/httpd.conf \
+	&& sed -i '$a SetHandler server-status' /usr/local/apache2/conf/httpd.conf \
+	&& sed -i '$a Order Allow,Deny' /usr/local/apache2/conf/httpd.conf \
+	&& sed -i '$a Allow from all' /usr/local/apache2/conf/httpd.conf \
+	&& sed -i '$a </Location>' /usr/local/apache2/conf/httpd.conf`
+
+const dockerFileServerStatusSelfBuild = `FROM pubrepo.jiagouyun.com/image-repo-for-testing/httpd:${VERSION}-alpine
 
   RUN sed -i '$a <Location /server-status>' /usr/local/apache2/conf/httpd.conf \
 	&& sed -i '$a SetHandler server-status' /usr/local/apache2/conf/httpd.conf \

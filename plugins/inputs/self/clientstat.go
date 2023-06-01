@@ -131,14 +131,17 @@ func (s *ClientStat) ToMetric() *point.Point {
 		"os_version_detail": s.OSDetail,
 		"arch":              s.Arch,
 		"host":              s.HostName,
-		"namespace":         s.electionInfo.Namespace,
+	}
+
+	var elected int64
+	if s.electionInfo != nil {
+		tags["namespace"] = s.electionInfo.Namespace
+		elected = int64(s.electionInfo.ElectedTime / time.Second)
 	}
 
 	if s.Proxy != "" {
 		tags["proxy"] = s.Proxy
 	}
-
-	elected := int64(s.electionInfo.ElectedTime / time.Second)
 
 	fields := map[string]interface{}{
 		"pid":    s.PID,
@@ -181,13 +184,18 @@ func (s *ClientStat) ToMetric() *point.Point {
 func (s *ClientStat) ToGoroutineMetric() []*point.Point {
 	var pts []*point.Point
 
+	electNS := ""
+	if s.electionInfo != nil {
+		electNS = s.electionInfo.Namespace
+	}
+
 	if s.GoroutineStats != nil {
 		// groutine that belongs to no group
 		if s.NumGoroutines >= s.GoroutineStats.RunningTotal {
 			tags := map[string]string{
 				"host":      s.HostName,
-				"namespace": s.electionInfo.Namespace,
 				"group":     "unknown",
+				"namespace": electNS,
 			}
 
 			fields := map[string]interface{}{
@@ -206,7 +214,7 @@ func (s *ClientStat) ToGoroutineMetric() []*point.Point {
 		for groupName, info := range s.GoroutineStats.Items {
 			tags := map[string]string{
 				"host":      s.HostName,
-				"namespace": s.electionInfo.Namespace,
+				"namespace": electNS,
 				"group":     groupName,
 			}
 

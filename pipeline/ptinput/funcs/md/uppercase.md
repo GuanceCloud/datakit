@@ -8,10 +8,10 @@
 
 - `key`: 指定已提取的待转换字段名，将 `key` 内容转成大写
 
-示例:
+示例：
 
 ```python
-# 待处理数据: {"first": "hello","second":2,"third":"aBC","forth":true}
+# 待处理数据：{"first": "hello","second":2,"third":"aBC","forth":true}
 
 # 处理脚本
 json(_, first) uppercase(first)

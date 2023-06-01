@@ -164,8 +164,7 @@ var (
 	flagCheckConfigDir = fsCheck.String("config-dir", "", "check configures under specified path")
 	flagCheckSample    = fsCheck.Bool("sample", false,
 		"check all inputs config sample, to ensure all sample are valid TOML")
-	flagCheckSNMP = fsCheck.String("test-snmp", "", "test snmp device")
-	fsCheckUsage  = func() {
+	fsCheckUsage = func() {
 		fmt.Printf("usage: datakit check [options]\n\n")
 		fmt.Printf("Various check tools for DataKit\n\n")
 		fmt.Println(fsCheck.FlagUsagesWrapped(0))
@@ -174,10 +173,14 @@ var (
 	//
 	// debug/trouble-shooting related flags.
 	//
-	fsDebugName        = "debug"
-	fsDebug            = pflag.NewFlagSet(fsDebugName, pflag.ContinueOnError)
-	flagDebugLogPath   = fsDebug.String("log", commonLogFlag(), "log path")
-	flagDebugLoadLog   = fsDebug.Bool("upload-log", false, "upload log")
+	fsDebugName       = "debug"
+	fsDebug           = pflag.NewFlagSet(fsDebugName, pflag.ContinueOnError)
+	flagDebugLogPath  = fsDebug.String("log", commonLogFlag(), "log path")
+	flagDebugLoadLog  = fsDebug.Bool("upload-log", false, "upload log")
+	flagDebugGlobConf = fsDebug.String("glob-conf", "",
+		"find the glob path and print it, provide a configuration file that contains glob statements written on separate lines.")
+	flagDebugRegexConf = fsDebug.String("regex-conf", "",
+		"export regex match results, provide a configuration file where the first line is a regular expression and the rest of the file is text.")
 	flagDebugPromConf  = fsDebug.String("prom-conf", "", "specify the prom input conf to debug")
 	flagDebugBugReport = fsDebug.Bool("bug-report", false, "export DataKit running information for troubleshooting")
 	flagDebugTestInput = fsDebug.String("test-input", "", "specify input's config file to test")

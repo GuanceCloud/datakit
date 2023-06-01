@@ -154,7 +154,7 @@ The consumption capability of messages is limited by the network and bandwidth, 
 ## load balancing {#load balancing}
 When the amount of messages is large and the consumption capacity of one datakit is insufficient, multiple datakits can be added for consumption. Here are three points to note:
 
-1. Make sure that the topic partition is not one (at least 2), which can be viewed through the tool [kafka-map](https://github.com/dushixiang/kafka-map/releases)
+1. Make sure that the topic partition is not one (at least 2), which can be viewed through the tool [kafka-map](https://github.com/dushixiang/kafka-map/releases){:target="_blank"}
 1. Make sure that the configuration of the kafkamq collector is assignor = "roundrobin" (a type of load balancing strategy), group_id="datakit" (group names must be consistent, otherwise consumption will be repeated)
 1. Make sure that the producer of the message sends the message to multiple partitions. The method is different for different languages. The code is not listed here, and you can google it yourself.
 

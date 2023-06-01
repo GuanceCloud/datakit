@@ -27,7 +27,7 @@ func (m *datakitGoroutineMeasurement) Info() *inputs.MeasurementInfo {
 		Name: measurementGoroutineName,
 		Type: "metric",
 		Tags: map[string]interface{}{
-			"group": &inputs.TagInfo{Desc: "The group name of the goroutine."},
+			"group": &inputs.TagInfo{Desc: "The group name of the Goroutine."},
 		},
 
 		Fields: map[string]interface{}{
@@ -35,19 +35,19 @@ func (m *datakitGoroutineMeasurement) Info() *inputs.MeasurementInfo {
 				Type:     inputs.Gauge,
 				DataType: inputs.Int,
 				Unit:     inputs.NCount,
-				Desc:     "The number of the running goroutine",
+				Desc:     "The number of the running Goroutine",
 			},
 			"finished_goroutine_num": &inputs.FieldInfo{
 				Type:     inputs.Gauge,
 				DataType: inputs.Int,
 				Unit:     inputs.NCount,
-				Desc:     "The number of the finished goroutine",
+				Desc:     "The number of the finished Goroutine",
 			},
 			"failed_num": &inputs.FieldInfo{
 				Type:     inputs.Gauge,
 				DataType: inputs.Int,
 				Unit:     inputs.NCount,
-				Desc:     "The number of the goroutine which has failed",
+				Desc:     "The number of the Goroutine which has failed",
 			},
 			"total_cost_time": &inputs.FieldInfo{
 				Type:     inputs.Gauge,

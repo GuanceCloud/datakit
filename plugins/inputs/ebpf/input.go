@@ -35,8 +35,9 @@ var (
 	catalogName         = "host"
 	l                   = logger.DefaultSLogger("ebpf")
 	AllSupportedPlugins = map[string]bool{
-		"ebpf-bash": true,
-		"ebpf-net":  true,
+		"ebpf-bash":      true,
+		"ebpf-net":       true,
+		"ebpf-conntrack": true,
 	}
 )
 

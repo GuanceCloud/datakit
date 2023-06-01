@@ -147,8 +147,8 @@ github.com/GuanceCloud/cliutils v0.0.0-20230417025230-293ec35774ce h1:ZOseVJ/j9Y
 github.com/GuanceCloud/cliutils v0.0.0-20230417025230-293ec35774ce/go.mod h1:bRamzN5L8mjHggQYXkV7ilLaIIORRKrllPZdFYLiLEA=
 github.com/GuanceCloud/confd v0.1.101 h1:yjHgfl6YzAlTbFOFMTE4ERpFJzIyovOW7ZFc2/ZssL0=
 github.com/GuanceCloud/confd v0.1.101/go.mod h1:o0opIwOX+yNwV9nh56x5ymFMJ+YBD8JuPxBJ7a1mEmo=
-github.com/GuanceCloud/dockertest/v3 v3.9.3 h1:ADJbg7BF7XwraWvaSr+VO5n9vnuCZo5rhj/MFGwh3kI=
-github.com/GuanceCloud/dockertest/v3 v3.9.3/go.mod h1:LDdHEB2bc9HxRQuXuMJOqesEasilevqVsFd5rnVb07I=
+github.com/GuanceCloud/dockertest/v3 v3.9.4 h1:ScSNhfA2HSNLfrYoNd1KSRxkrymlKiBE60g4f6eUoOk=
+github.com/GuanceCloud/dockertest/v3 v3.9.4/go.mod h1:LDdHEB2bc9HxRQuXuMJOqesEasilevqVsFd5rnVb07I=
 github.com/GuanceCloud/grok v1.1.2 h1:xscdb39kbPjiO8HfhORt/wDZuQqhi8N/WyjNcQnWujA=
 github.com/GuanceCloud/grok v1.1.2/go.mod h1:AHkJZYf7Qbo1FTZT6htdyScpICpgnkQ5+Hc0EmA88vM=
 github.com/GuanceCloud/platypus v0.2.3 h1:kgrOM+6WBw993ZUA681qWpZ3hZNgQoTuNOJbuZ0FS1U=
@@ -265,8 +265,9 @@ github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kd
 github.com/aokoli/goutils v1.0.1/go.mod h1:SijmP0QR8LtwsmDs8Yii5Z/S4trXFGFC2oO5g9DP+DQ=
 github.com/apache/arrow/go/arrow v0.0.0-20200923215132-ac86123a3f01/go.mod h1:QNYViu/X0HXDHw7m3KXzWSVXIbfUvJqBFe6Gj8/pYA0=
 github.com/apache/thrift v0.12.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
-github.com/apache/thrift v0.13.0 h1:5hryIiq9gtn+MiLVn0wP37kb/uTeRZgN08WoCsAhIhI=
 github.com/apache/thrift v0.13.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
+github.com/apache/thrift v0.16.0 h1:qEy6UW60iVOlUy+b9ZR0d5WzUWYGOo4HfopoyBaNmoY=
+github.com/apache/thrift v0.16.0/go.mod h1:PHK3hniurgQaNMZYaCLEqXKsYK8upmhPbmdP2FXSqgU=
 github.com/araddon/dateparse v0.0.0-20201001162425-8aadafed4dc4 h1:OkS1BqB3CzLtGRznRyvriSY8jeaVk2CrDn2ZiRQgMUI=
 github.com/araddon/dateparse v0.0.0-20201001162425-8aadafed4dc4/go.mod h1:hMAUZFIkk4B1FouGxqlogyMyU6BwY/UiVmmbbzz9Up8=
 github.com/aristanetworks/glog v0.0.0-20191112221043-67e8567f59f3/go.mod h1:KASm+qXFKs/xjSoWn30NrWBBvdTTQq+UjkhjEJHfSFA=

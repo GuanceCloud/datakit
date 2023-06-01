@@ -16,22 +16,17 @@ import (
 )
 
 type statsdMeasurement struct {
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	tm       time.Time
-	election bool
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+	ipt    *input
 }
 
 // Point implement MeasurementV2.
 func (m *statsdMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-
-	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
+	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -48,8 +43,7 @@ func (m *statsdMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 type accumulator struct {
-	ref *input
-	// measurements []inputs.Measurement
+	ref          *input
 	measurements []*point.Point
 }
 
@@ -105,7 +99,8 @@ func (a *accumulator) addFields(name string, fields map[string]interface{}, tags
 			fieldKey: fval,
 		},
 		tags: tags,
-		tm:   ts,
+		ts:   ts,
+		ipt:  a.ref,
 	}
 	a.measurements = append(a.measurements, metric.Point())
 }

@@ -8,7 +8,7 @@
 #include <linux/types.h>
 
 #define ERR_G_NOERROR 0
-#define ERR_G_SK_NET 19
+#define ERR_G_NS_INUM 19
 
 enum GUESS
 {
@@ -102,30 +102,63 @@ struct offset_httpflow
     __u64 pid_tgid;
 
     __s32 offset_task_struct_files;
-    
+
     // eBPF prog loop 0 ~ 300 times
     __s32 offset_files_struct_fdt;
-    
+
     // TODO
     __s32 offset_fdtable_fd;
 
     // offset_sock - sizeof(void *)
     __s32 offset_socket_file;
-    
+
     __s32 offset_file_private_data;
 
-    __s32 times; 
-    
+    __s32 times;
+
     __s32 state; // 0b1 | 0b10, ok
 
     __s32 fd;
 };
 
+struct nf_conn_tuple
+{
+    __u32 src_ip[4];
+    __u32 dst_ip[4];
 
+    __u16 src_port;
+    __u16 dst_port;
 
+    __u16 l3num;
+    __u8 l4proto;
 
-struct comm_getsockopt_arg {
-    void * skt;
+    __u8 _pad;
+};
+
+struct offset_conntrack
+{
+    __u8 process_name[PROCNAMELEN];
+    __s64 err; // ERR_G_NOERROR or ERR_G_SK_NET
+
+    __u64 state; // conn info updated times
+    __u64 pid_tgid;
+    // __u32 conn_type; // (tcp/udp | IPv4/IPv6)
+
+    __u64 offset_origin_tuple;
+    __u64 offset_reply_tuple;
+
+    __u64 offset_net;
+    __u64 offset_ns_common_inum;
+
+    struct nf_conn_tuple origin, reply;
+
+    __u32 netns;
+    __u32 _pad;
+};
+
+struct comm_getsockopt_arg
+{
+    void *skt;
     void *file;
 };
 

@@ -11,7 +11,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/metrics"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TaskOk(ctx context.Context) error {
@@ -175,4 +178,44 @@ func TestNestGroup(t *testing.T) {
 	err := g.Wait()
 	assert.NoError(t, err)
 	assert.Greater(t, time.Since(startTime), sleepTime)
+}
+
+func TestMultiGroup(t *testing.T) {
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(goroutineGroups, goroutineCostVec, goroutineStoppedVec, goroutineCounterVec)
+
+	sleep5s := func(ctx context.Context) error {
+		tick := time.NewTicker(5 * time.Second)
+		defer tick.Stop()
+
+		for {
+			mfs, err := reg.Gather()
+			require.NoError(t, err)
+			t.Logf("get metrics: %s\n====================================================\n\n",
+				metrics.MetricFamily2Text(mfs))
+
+			select {
+			case <-tick.C:
+				return nil
+			default:
+				time.Sleep(time.Second)
+			}
+		}
+	}
+	sleep5s2 := func(ctx context.Context) error {
+		time.Sleep(5 * time.Second)
+		return nil
+	}
+
+	g1 := NewGroup(Option{Name: "inputs_jolokia"})
+	g2 := NewGroup(Option{Name: "inputs_jolokia"})
+	g3 := NewGroup(Option{Name: "inputs_jolokia"})
+
+	g1.Go(sleep5s)
+	g2.Go(sleep5s2)
+	g3.Go(sleep5s2)
+
+	g1.Wait()
+	g2.Wait()
+	g3.Wait()
 }

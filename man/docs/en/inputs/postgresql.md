@@ -11,6 +11,18 @@ Postgresql collector can collect the running status index from Postgresql instan
 ## Preconditions {#reqirement}
 
 - Postgresql version >= 9.0
+- Create user
+
+```sql
+-- PostgreSQL >= 10
+create user datakit with password '<PASSWORD>';
+grant pg_monitor to datakit;
+grant SELECT ON pg_stat_database to datakit;
+
+-- PostgreSQL < 10
+create user datakit with password '<PASSWORD>';
+grant SELECT ON pg_stat_database to datakit;
+```
 
 ## Configuration {#config}
 

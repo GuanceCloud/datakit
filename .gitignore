@@ -40,6 +40,7 @@ cmd/datakit/python.d/
 cmd/installer/bin/
 config.d/
 config.json
+cspell.lint
 data/*
 data/iploc.bin
 data/jolokia-jvm-agent.jar
@@ -59,7 +60,10 @@ internal-pipelines.json
 internal/http/req.db
 io/parser/gram_y.go
 iploc.bin
+lint_test.sh
 liu_script.sh
+local-docs
+md.lint
 measurements-meta.json
 old/
 parser_y.go
@@ -73,6 +77,7 @@ plugins/externals/csv/venv
 plugins/input/kubernetes/*.out
 plugins/input/kubernetes/cfg.conf
 plugins/input/kubernetes/pki/*
+project-words.txt
 proxy_config.yaml
 pub
 replace.sh
@@ -87,5 +92,3 @@ test.jso
 test.output
 testing_metrics
 y.output
-testing_metrics
-lint_test.sh

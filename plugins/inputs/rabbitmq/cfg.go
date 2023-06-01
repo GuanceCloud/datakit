@@ -107,6 +107,7 @@ type Input struct {
 
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
+	opt     point.Option
 }
 
 type rabbitmqlog struct {

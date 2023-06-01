@@ -10,9 +10,9 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/shirou/gopsutil/v3/net"
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var connectionStats = []net.ConnectionStat{
@@ -91,7 +91,7 @@ func TestNetStatCollect(t *testing.T) {
 
 	assert.Equal(t, 2, len(i.collectCache))
 
-	expected := map[string]map[string]int{
+	expected := map[string]map[string]int64{
 		"4": {
 			"tcp_close":       0,
 			"tcp_close_wait":  6,
@@ -125,18 +125,17 @@ func TestNetStatCollect(t *testing.T) {
 	}
 
 	for _, v := range i.collectCache {
-		stat := v.(*netStatMeasurement)
-		ipVersion := stat.tags["ip_version"]
-		collect := stat.fields
+		ipVersion := v.InfluxTags()["ip_version"]
+		collect := v.InfluxFields()
 		if expectedFields, ok := expected[ipVersion]; ok {
 			for k, v := range expectedFields {
-				assertEqualint(t, v, collect[k].(int), k)
+				assertEqualint(t, v, collect[k].(int64), k)
 			}
 		}
 	}
 }
 
-func assertEqualint(t *testing.T, expected, actual int, mName string) {
+func assertEqualint(t *testing.T, expected, actual int64, mName string) {
 	t.Helper()
 	if expected != actual {
 		t.Errorf("error: "+mName+" expected: %d \t actual %d", expected, actual)
@@ -168,13 +167,13 @@ type testingCatche struct {
 }
 
 // sort by tags content
-func sortData(collects []inputs.Measurement) []testingCatche {
+func sortData(collects []*point.Point) []testingCatche {
 	testingCatches := make([]testingCatche, len(collects))
 	for i := 0; i < len(collects); i++ {
 		testingCatches[i].index = i
 		strs := make([]string, 0)
 
-		for k, v := range collects[i].(*netStatMeasurement).tags {
+		for k, v := range collects[i].InfluxTags() {
 			vStr := v
 			_ = vStr
 
@@ -205,7 +204,10 @@ func assertEquaFields(t *testing.T, collectFields map[string]interface{}, wantFi
 	t.Helper()
 	for k, v := range collectFields {
 		vWant := 0
-		vGot := v.(int)
+		vGot, ok := v.(int64)
+		if !ok {
+			continue
+		}
 		switch k {
 		case "tcp_established":
 			vWant = wantFields.tcpEstablished
@@ -236,7 +238,7 @@ func assertEquaFields(t *testing.T, collectFields map[string]interface{}, wantFi
 		case "pid":
 			vWant = wantFields.pid
 		}
-		if vWant != vGot {
+		if int64(vWant) != vGot {
 			t.Errorf("error: testname:"+name+", index:%d, field:"+k+", want: %d  got %d", j, vWant, vGot)
 		}
 	}
@@ -280,10 +282,10 @@ func TestCollectByPort(t *testing.T) {
 			// check
 			for j := 0; j < len(i.collectCachePort); j++ {
 				// i.collectCachePort's order after sort
-				collectFields := i.collectCachePort[sortCatches[j].index].(*netStatMeasurement).fields
+				collectFields := i.collectCachePort[sortCatches[j].index].InfluxFields()
 				assertEquaFields(t, collectFields, tt.wantFields[j], tt.name, j)
 
-				collectTags := i.collectCachePort[sortCatches[j].index].(*netStatMeasurement).tags
+				collectTags := i.collectCachePort[sortCatches[j].index].InfluxTags()
 				assertEquaTags(t, collectTags, tt.wantTags[j], tt.name, j)
 			}
 		})

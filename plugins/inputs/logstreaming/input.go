@@ -13,6 +13,8 @@ import (
 	"net/url"
 	"time"
 
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
@@ -61,6 +63,8 @@ type Input struct {
 	IgnoreURLTags    bool                         `toml:"ignore_url_tags"`
 	WPConfig         *workerpool.WorkerPoolConfig `toml:"threads"`
 	LocalCacheConfig *storage.StorageConfig       `toml:"storage"`
+
+	feeder dkio.Feeder
 }
 
 func (*Input) Catalog() string { return "log" }
@@ -133,7 +137,9 @@ func (ipt *Input) RegHTTPHandler() {
 
 func (ipt *Input) Run() {
 	log.Info("### register logstreaming router")
-
+	if ipt.feeder == nil {
+		ipt.feeder = dkio.DefaultFeeder()
+	}
 	<-datakit.Exit.Wait()
 	ipt.Terminate()
 }

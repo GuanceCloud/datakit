@@ -55,7 +55,7 @@ func metricsSetup() {
 		prometheus.GaugeOpts{
 			Namespace: "datakit",
 			Subsystem: "io",
-			Name:      "queue_pts",
+			Name:      "queue_points",
 			Help:      "IO module queued(cached) points",
 		},
 		[]string{
@@ -79,7 +79,7 @@ func metricsSetup() {
 		prometheus.CounterOpts{
 			Namespace: "datakit",
 			Name:      "error_total",
-			Help:      "total errors, only count on error source, not include error message",
+			Help:      "Total errors, only count on error source, not include error message",
 		},
 		[]string{
 			"source",
@@ -130,8 +130,8 @@ func metricsSetup() {
 		prometheus.GaugeOpts{
 			Namespace: "datakit",
 			Subsystem: "io",
-			Name:      "last_feed",
-			Help:      "Input last feed time(unix timestamp in second)",
+			Name:      "last_feed_timestamp_seconds",
+			Help:      "Input last feed time(according to Datakit local time)",
 		},
 		[]string{
 			"name",
@@ -143,8 +143,8 @@ func metricsSetup() {
 		prometheus.SummaryOpts{
 			Namespace: "datakit",
 			Subsystem: "input",
-			Name:      "collect_latency",
-			Help:      "Input collect latency(us)",
+			Name:      "collect_latency_seconds",
+			Help:      "Input collect latency",
 		},
 		[]string{
 			"name",
@@ -157,7 +157,7 @@ func metricsSetup() {
 			Namespace: "datakit",
 			Subsystem: "io",
 			Name:      "chan_usage",
-			Help:      "IO channel usage(length of the chan)",
+			Help:      "IO channel usage(length of the channel)",
 		},
 		[]string{
 			"category",

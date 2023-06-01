@@ -40,6 +40,8 @@ func init() { //nolint:gochecknoinits
 
 	flag.BoolVar(&downloadSamples, "download-samples", false, "download samples from OSS to samples/")
 	flag.BoolVar(&dumpSamples, "dump-samples", false, "download and dump local samples to OSS")
+	flag.StringVar(&build.MarkdownCheck, "mdcheck", "", "checck markdown docs")
+	flag.StringVar(&build.Autofix, "mdcheck-autofix", "off", "check markdown docs with autofix")
 }
 
 var (
@@ -58,6 +60,21 @@ var (
 )
 
 func applyFlags() {
+	if build.MarkdownCheck != "" {
+		// NOTE: if nothing matched, then we think all docs are valid, but exit -1
+		// to co-work with Makefile's shell, see Makefile's entry 'check_man'
+		//
+		// Here we keep the exit code the same with grep:
+		//
+		//  	If find something, exit ok, or exit fail.
+		//
+		if build.Match(build.MarkdownCheck) == 0 {
+			os.Exit(-1)
+		} else {
+			os.Exit(0) // we find some doc's not valid, so exit OK to print warning message.
+		}
+	}
+
 	l.Infof("download-cdn: %s", build.DownloadCDN)
 
 	if ut {

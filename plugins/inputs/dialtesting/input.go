@@ -68,7 +68,7 @@ type Input struct {
 	AK               string            `toml:"ak"`
 	SK               string            `toml:"sk"`
 	PullInterval     string            `toml:"pull_interval,omitempty"`
-	TimeOut          *datakit.Duration `toml:"time_out,omitempty"` // 单位为秒
+	TimeOut          *datakit.Duration `toml:"time_out,omitempty"` // second
 	Workers          int               `toml:"workers,omitempty"`
 	MaxSendFailCount int32             `toml:"max_send_fail_count,omitempty"` // max send fail count
 	Tags             map[string]string
@@ -76,31 +76,36 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 	cli     *http.Client  // class string
 
+	regionName string
+
 	curTasks map[string]*dialer
 	pos      int64 // current largest-task-update-time
 }
 
 const sample = `
 [[inputs.dialtesting]]
-  # 中心任务存储的服务地址，即df_dialtesting center service。
-  # 此处同时可配置成本地json 文件全路径 "file:///your/dir/json-file-name", 为task任务的json字符串。
+  # We can also configure a JSON path like "file:///your/dir/json-file-name"
   server = "https://dflux-dial.guance.com"
 
-  # require，节点惟一标识ID
+  # [require] node ID
   region_id = "default"
 
-  # 若server配为中心任务服务地址时，需要配置相应的ak或者sk
+  # if server are dflux-dial.guance.com, ak/sk required
   ak = ""
   sk = ""
 
+  # The interval to pull the tasks.
   pull_interval = "1m"
 
+  # The timeout for the HTTP request.
   time_out = "1m"
+
+  # The number of the workers.
   workers = 6
 
-  # 发送数据失败最大次数，根据任务的post_url进行累计，超过最大次数后，发送至该地址的拨测任务将退出
   max_send_fail_count = 16
 
+  # Custom tags.
   [inputs.dialtesting.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
@@ -135,9 +140,6 @@ func (d *Input) Terminate() {
 
 func (d *Input) Run() {
 	l = logger.SLogger(inputName)
-
-	// 根据Server配置，若为服务地址则定时拉取任务数据；
-	// 若为本地json文件，则读取任务
 
 	if d.Workers == 0 {
 		d.Workers = 6
@@ -207,7 +209,6 @@ func (d *Input) doServerTask() {
 
 		for {
 			select {
-			// TODO: 调接口发送每个任务的执行情况，便于中心对任务的管理
 			case <-datakit.Exit.Wait():
 				l.Info("exit")
 				return
@@ -218,13 +219,22 @@ func (d *Input) doServerTask() {
 
 			case <-tick.C:
 				l.Debug("try pull tasks...")
+				startPullTime := time.Now()
+				isFirstPull := "0"
+				if d.pos == 0 {
+					isFirstPull = "1"
+				}
 				j, err := d.pullTask()
 				if err != nil {
 					l.Warnf(`pullTask: %s, ignore`, err.Error())
 				} else {
 					l.Debug("try dispatch tasks...")
+					endPullTime := time.Now()
 					if err := d.dispatchTasks(j); err != nil {
 						l.Warnf("dispatchTasks: %s, ignored", err.Error())
+					} else {
+						taskPullCostSummary.WithLabelValues(d.regionName, isFirstPull).
+							Observe(float64(endPullTime.Sub(startPullTime)) / float64(time.Second))
 					}
 				}
 			}
@@ -255,6 +265,11 @@ func (d *Input) doLocalTask(path string) {
 }
 
 func (d *Input) newTaskRun(t dt.Task) (*dialer, error) {
+	regionName := d.RegionID
+	if len(d.regionName) > 0 {
+		regionName = d.regionName
+	}
+
 	if err := t.Init(); err != nil {
 		l.Errorf(`%s`, err.Error())
 		return nil, err
@@ -287,6 +302,7 @@ func (d *Input) newTaskRun(t dt.Task) (*dialer, error) {
 
 	dialer := newDialer(t, d.Tags)
 	dialer.done = d.semStop.Wait()
+	dialer.regionName = regionName
 
 	func(id string) {
 		g.Go(func(ctx context.Context) error {
@@ -356,6 +372,9 @@ func (d *Input) dispatchTasks(j []byte) error {
 						d.Tags[k] = v_
 					} else {
 						l.Debugf("ignore tag %s:%s from region info", k, v_)
+					}
+					if k == "name" {
+						d.regionName = v_
 					}
 				default:
 					l.Warnf("ignore key `%s' of type %s", k, reflect.TypeOf(v).String())
@@ -428,6 +447,8 @@ func (d *Input) dispatchTasks(j []byte) error {
 
 			l.Debugf("unmarshal task: %+#v", t)
 
+			taskSynchronizedCounter.WithLabelValues(d.regionName, t.Class()).Inc()
+
 			// update dialer pos
 			ts := t.UpdateTimeUs()
 			if d.pos < ts {
@@ -436,7 +457,6 @@ func (d *Input) dispatchTasks(j []byte) error {
 			}
 
 			l.Debugf(`%+#v id: %s`, d.curTasks[t.ID()], t.ID())
-
 			if dialer, ok := d.curTasks[t.ID()]; ok { // update task
 				if dialer.failCnt >= MaxFails {
 					l.Warnf(`failed %d times,ignore`, dialer.failCnt)
@@ -473,7 +493,6 @@ func (d *Input) dispatchTasks(j []byte) error {
 }
 
 func (d *Input) getLocalJSONTasks(data []byte) ([]byte, error) {
-	// 转化结构，json结构转成与kodo服务一样的格式
 	var resp map[string][]interface{}
 	if err := json.Unmarshal(data, &resp); err != nil {
 		l.Error(err)

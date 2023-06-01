@@ -33,6 +33,10 @@ type OffsetGuessC C.struct_offset_guess
 
 type OffsetHTTPFlowC C.struct_offset_httpflow
 
+type OffsetConntrackC C.struct_offset_conntrack
+
+type CTConnC C.struct_nf_conn_tuple
+
 //nolint:structcheck
 type OffsetCheck struct {
 	skNumOk           uint64
@@ -58,6 +62,10 @@ type OffsetCheck struct {
 	sknetOk           uint64
 	netnsInumOk       uint64
 	socketSkOK        uint64
+
+	ctOriginTupleOk uint64
+	ctReplyTupleOk  uint64
+	ctNetOk         uint64
 }
 
 const PROCNAMLEN = 16 // Maximum length of process name
@@ -87,6 +95,9 @@ const (
 	GUESS_SK_NET
 	GUESS_NS_COMMON_INUM
 	GUESS_SOCKET_SK
+
+	GUESS_CONNTRACK_TUPLE_ORIGIN
+	GUESS_CONNTRACK_TUPLE_REPLY
 )
 
 //nolint:stylecheck
@@ -159,6 +170,16 @@ func NewOffsetHTTPFlow() (*manager.Manager, error) {
 func readMapGuessStatus(m *ebpf.Map) (*OffsetGuessC, error) {
 	status := OffsetGuessC{}
 	zero := uint64(0)
+	if err := m.Lookup(&zero, unsafe.Pointer(&status)); err != nil {
+		return nil, err
+	} else {
+		return &status, err
+	}
+}
+
+func readMapGuessConntrack(m *ebpf.Map) (*OffsetConntrackC, error) {
+	status := OffsetConntrackC{}
+	var zero uint64 = 0
 	if err := m.Lookup(&zero, unsafe.Pointer(&status)); err != nil {
 		return nil, err
 	} else {
@@ -265,6 +286,32 @@ func newGuessHTTP() OffsetHTTPFlowC {
 	return httpOffset
 }
 
+func newGuessConntrack() *OffsetConntrackC {
+	procName := filepath.Base(os.Args[0])
+	if len(procName) > PROCNAMLEN-1 {
+		procName = procName[:PROCNAMLEN-1]
+	}
+
+	procNameC := [PROCNAMLEN]C.__u8{}
+	for i := 0; i < PROCNAMLEN-1 && i < len(procName); i++ {
+		procNameC[i] = C.__u8(procName[i])
+	}
+
+	offset := OffsetConntrackC{
+		process_name: procNameC,
+		pid_tgid:     C.__u64(uint64(unix.Getpid())<<32 | uint64(unix.Gettid())),
+	}
+
+	return &offset
+}
+
+func copyOffsetCT(src, dst *OffsetConntrackC) {
+	dst.offset_origin_tuple = src.offset_origin_tuple
+	dst.offset_reply_tuple = src.offset_reply_tuple
+	dst.offset_net = src.offset_net
+	dst.offset_ns_common_inum = src.offset_ns_common_inum
+}
+
 func copyOffset(src *OffsetGuessC, dst *OffsetGuessC) {
 	dst.offset_sk_num = src.offset_sk_num
 	dst.offset_inet_sport = src.offset_inet_sport
@@ -294,6 +341,54 @@ func copyOffset(src *OffsetGuessC, dst *OffsetGuessC) {
 	dst.offset_ns_common_inum = src.offset_ns_common_inum
 
 	dst.offset_socket_sk = src.offset_socket_sk
+}
+
+func tryGuessConntrack(status *OffsetConntrackC, check *OffsetCheck, conn *Conninfo,
+	guessWhich int) bool {
+	switch guessWhich {
+	case GUESS_CONNTRACK_TUPLE_ORIGIN:
+		if conn.Sport != uint16(status.origin.src_port) ||
+			conn.Saddr != *(*[4]uint32)(unsafe.Pointer(&status.origin.src_ip)) ||
+			conn.Dport != uint16(status.origin.dst_port) ||
+			conn.Daddr != *(*[4]uint32)(unsafe.Pointer(&status.origin.dst_ip)) {
+			status.offset_origin_tuple++
+			check.ctOriginTupleOk = 0
+			return false
+		} else {
+			check.ctOriginTupleOk++
+		}
+	case GUESS_CONNTRACK_TUPLE_REPLY:
+		if conn.Dport != uint16(status.reply.src_port) ||
+			conn.Daddr != *(*[4]uint32)(unsafe.Pointer(&status.reply.src_ip)) ||
+			conn.Sport != uint16(status.reply.dst_port) ||
+			conn.Saddr != *(*[4]uint32)(unsafe.Pointer(&status.reply.dst_ip)) {
+			status.offset_reply_tuple++
+			check.ctReplyTupleOk = 0
+			return false
+		} else {
+			check.ctReplyTupleOk++
+		}
+	case GUESS_NS_COMMON_INUM:
+		if status.err == ERR_G_SK_NET {
+			status.offset_net++
+			status.offset_ns_common_inum = 0
+			check.ctNetOk = 0
+			check.netnsInumOk = 0
+			return false
+		} else {
+			if conn.NetNS != uint32(status.netns) {
+				status.offset_ns_common_inum++
+				check.ctNetOk = 0
+				check.netnsInumOk = 0
+				return false
+			} else {
+				check.netnsInumOk++
+				check.ctNetOk++
+			}
+		}
+	}
+
+	return true
 }
 
 //nolint:gocyclo

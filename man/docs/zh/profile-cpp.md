@@ -10,13 +10,13 @@ Pyroscope 采用 C/S 架构，运行模式分为 [Pyroscope Agent](https://pyros
 
 这里需要的是 Pyroscope Agent 模式。DataKit 已经集成了 Pyroscope Server 功能，通过对外暴露 HTTP 接口的方式，可以接收 Pyroscope Agent 上报的 profiling 数据。
 
-profiling 数据流向: `Pyroscope Agent 采集 profiling 数据 -> Datakit -> 观测云`。
+Profiling 数据流向：「Pyroscope Agent 采集 Profiling 数据 -> Datakit -> 观测云」。
 
 ### 前置条件 {#pyroscope-requirement}
 
-1.根据 pyroscope 官方文档 [eBPF Profiling](https://pyroscope.io/docs/ebpf/#prerequisites-for-profiling-with-ebpf){:target="_blank"}，需要 Linux 内核版本 >= 4.9 (due to [BPF_PROG_TYPE_PERF_EVENT](https://lkml.org/lkml/2016/9/1/831){:target="_blank"})。
+- 根据 Pyroscope 官方文档 [eBPF Profiling](https://pyroscope.io/docs/ebpf/#prerequisites-for-profiling-with-ebpf){:target="_blank"}，需要 Linux 内核版本 >= 4.9 (due to [BPF_PROG_TYPE_PERF_EVENT](https://lkml.org/lkml/2016/9/1/831){:target="_blank"})。
 
-2.已安装 [DataKit](https://www.guance.com/){:target="_blank"} 并且已开启 [profile](profile.md#config) 采集器，配置参考如下:
+- 已安装 [DataKit](https://www.guance.com/){:target="_blank"} 并且已开启 [profile](profile.md#config) 采集器，配置参考如下：
 
 ```toml
 [[inputs.profile]]
@@ -30,25 +30,25 @@ profiling 数据流向: `Pyroscope Agent 采集 profiling 数据 -> Datakit -> �
 
   #  config
   [[inputs.profile.pyroscope]]
-	# listen url
-	url = "0.0.0.0:4040"
+    # listen url
+    url = "0.0.0.0:4040"
 
-	# service name
-	service = "pyroscope-demo"
+    # service name
+    service = "pyroscope-demo"
 
-	# app env
-	env = "dev"
+    # app env
+    env = "dev"
 
-	# app version
-	version = "0.0.0"
+    # app version
+    version = "0.0.0"
 
   [inputs.profile.pyroscope.tags]
-	tag1 = "val1"
+    tag1 = "val1"
 ```
 
-3.安装 pyroscope
+- 安装 Pyroscope
 
-这里以 Linux AMD64 平台为例:
+这里以 Linux AMD64 平台为例：
 
 ```sh
 wget https://dl.pyroscope.io/release/pyroscope-0.36.0-linux-amd64.tar.gz
@@ -63,7 +63,7 @@ tar -zxvf pyroscope-0.36.0-linux-amd64.tar.gz
 
 Pyroscope Agent 的 [eBPF](https://pyroscope.io/docs/ebpf/){:target="_blank"} 模式支持 C/C++ 程序的 profiling 采集。
 
-1.设置环境变量:
+- 设置环境变量：
 
 ```sh
 export PYROSCOPE_APPLICATION_NAME='my.ebpf.program{host=server-node-1,region=us-west-1,tag2=val2}'
@@ -71,11 +71,11 @@ export PYROSCOPE_SERVER_ADDRESS='http://localhost:4040/' # Datakit profile 配�
 export PYROSCOPE_SPY_NAME='ebpfspy'
 ```
 
-2.根据需要 profiling 的目标使用不同的命令:
+- 根据需要 profiling 的目标使用不同的命令：
 
-- profiling 正在运行的程序(以 PID 为 `1000` 为例): `sudo -E pyroscope connect --pid 1000`
-- profiling 运行指定程序(以 `mongod` 为例): `sudo -E pyroscope exec mongod`
-- profiling 整个系统: `sudo -E pyroscope ebpf`
+    - profiling 正在运行的程序(以 PID 为 `1000` 为例)：`sudo -E pyroscope connect --pid 1000`
+    - profiling 运行指定程序(以 `mongod` 为例)：`sudo -E pyroscope exec mongod`
+    - profiling 整个系统：`sudo -E pyroscope ebpf`
 
 ### 查看 Profile {#pyroscope-view}
 

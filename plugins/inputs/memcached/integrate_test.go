@@ -9,9 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
-	"net/netip"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -27,7 +25,16 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+// ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
+
 func TestMemcachedInput(t *testing.T) {
+	if !testutils.CheckIntegrationTestingRunning() {
+		t.Skip()
+	}
+
+	testutils.PurgeRemoteByName(inputName)       // purge at first.
+	defer testutils.PurgeRemoteByName(inputName) // purge at last.
+
 	start := time.Now()
 	cases, err := buildCases(t)
 	if err != nil {
@@ -45,34 +52,41 @@ func TestMemcachedInput(t *testing.T) {
 	t.Logf("testing %d cases...", len(cases))
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			caseStart := time.Now()
+		func(tc *caseSpec) {
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+				caseStart := time.Now()
 
-			t.Logf("testing %s...", tc.name)
+				t.Logf("testing %s...", tc.name)
 
-			if err := tc.run(); err != nil {
-				tc.cr.Status = testutils.TestFailed
-				tc.cr.FailedMessage = err.Error()
+				if err := testutils.RetryTestRun(tc.run); err != nil {
+					tc.cr.Status = testutils.TestFailed
+					tc.cr.FailedMessage = err.Error()
 
-				panic(err)
-			} else {
-				tc.cr.Status = testutils.TestPassed
-			}
-
-			tc.cr.Cost = time.Since(caseStart)
-
-			require.NoError(t, testutils.Flush(tc.cr))
-
-			t.Cleanup(func() {
-				// clean remote docker resources
-				if tc.resource == nil {
-					return
+					panic(err)
+				} else {
+					tc.cr.Status = testutils.TestPassed
 				}
 
-				require.NoError(t, tc.pool.Purge(tc.resource))
+				tc.cr.Cost = time.Since(caseStart)
+
+				require.NoError(t, testutils.Flush(tc.cr))
+
+				t.Cleanup(func() {
+					// clean remote docker resources
+					if tc.resource == nil {
+						return
+					}
+
+					require.NoError(t, tc.pool.Purge(tc.resource))
+				})
 			})
-		})
+		}(tc)
 	}
+}
+
+func getConfAccessPoint(host, port string) []string {
+	return []string{fmt.Sprintf("%s:%s", host, port)}
 }
 
 func buildCases(t *testing.T) ([]*caseSpec, error) {
@@ -89,18 +103,18 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 	}{
 		{
 			name: "memcached:1.5",
-			conf: fmt.Sprintf(`servers = ["%s"]
+			conf: `servers = [""]
 			interval = "1s"
 		[tags]
-			tag1 = "val1"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
+			tag1 = "val1"`, // set conf URL later.
 			exposedPorts: []string{"11211/tcp"},
 		},
 		{
 			name: "memcached:1.6",
-			conf: fmt.Sprintf(`servers = ["%s"]
+			conf: `servers = [""]
 			interval = "1s"
 		[tags]
-			tag1 = "val1"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
+			tag1 = "val1"`, // set conf URL later.
 			exposedPorts: []string{"11211/tcp"},
 		},
 	}
@@ -117,9 +131,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)
 
-		addrPort, err := netip.ParseAddrPort(ipt.Servers[0])
-		require.NoError(t, err, "parse %s failed: %s", ipt.Servers[0], err)
-
 		repoTag := strings.Split(base.name, ":")
 
 		cases = append(cases, &caseSpec{
@@ -132,7 +143,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 			dockerFileText: base.dockerFileText,
 			exposedPorts:   base.exposedPorts,
-			serverPorts:    []string{fmt.Sprintf("%d", addrPort.Port())},
 			cmd:            base.cmd,
 
 			cr: &testutils.CaseResult{
@@ -166,6 +176,7 @@ type caseSpec struct {
 	exposedPorts   []string
 	serverPorts    []string
 	cmd            []string
+	mCount         map[string]struct{}
 
 	ipt    *Input
 	feeder *io.MockedFeeder
@@ -197,6 +208,8 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			if len(msgs) > 0 {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
+
+			cs.mCount[inputName] = struct{}{}
 
 		default: // TODO: check other measurement
 			panic("not implement")
@@ -238,18 +251,13 @@ func (cs *caseSpec) run() error {
 		return err
 	}
 
-	containerName := cs.getContainterName()
-
-	// Remove the container if exist.
-	if err := p.RemoveContainerByName(containerName); err != nil {
-		return err
-	}
-
 	dockerFileDir, dockerFilePath, err := cs.getDockerFilePath()
 	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(dockerFileDir)
+
+	uniqueContainerName := testutils.GetUniqueContainerName(inputName)
 
 	var resource *dockertest.Resource
 
@@ -257,19 +265,18 @@ func (cs *caseSpec) run() error {
 		// Just run a container from existing docker image.
 		resource, err = p.RunWithOptions(
 			&dockertest.RunOptions{
-				Name: containerName, // ATTENTION: not cs.name.
+				Name: uniqueContainerName, // ATTENTION: not cs.name.
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
 				Cmd:        cs.cmd,
 
 				ExposedPorts: cs.exposedPorts,
-				PortBindings: cs.getPortBindings(),
 			},
 
 			func(c *docker.HostConfig) {
 				c.RestartPolicy = docker.RestartPolicy{Name: "no"}
-				// c.AutoRemove = true
+				c.AutoRemove = true
 			},
 		)
 	} else {
@@ -278,19 +285,19 @@ func (cs *caseSpec) run() error {
 			dockerFilePath,
 
 			&dockertest.RunOptions{
-				Name: cs.name,
+				ContainerName: uniqueContainerName,
+				Name:          cs.name, // ATTENTION: not uniqueContainerName.
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
 				Cmd:        cs.cmd,
 
 				ExposedPorts: cs.exposedPorts,
-				PortBindings: cs.getPortBindings(),
 			},
 
 			func(c *docker.HostConfig) {
 				c.RestartPolicy = docker.RestartPolicy{Name: "no"}
-				// c.AutoRemove = true
+				c.AutoRemove = true
 			},
 		)
 	}
@@ -301,6 +308,11 @@ func (cs *caseSpec) run() error {
 
 	cs.pool = p
 	cs.resource = resource
+
+	if err := cs.getMappingPorts(); err != nil {
+		return err
+	}
+	cs.ipt.Servers = getConfAccessPoint(r.Host, cs.serverPorts[0]) // set conf URL here.
 
 	cs.t.Logf("check service(%s:%v)...", r.Host, cs.serverPorts)
 
@@ -323,7 +335,7 @@ func (cs *caseSpec) run() error {
 	// wait data
 	start = time.Now()
 	cs.t.Logf("wait points...")
-	pts, err := cs.feeder.AnyPoints(5 * time.Minute)
+	pts, err := cs.feeder.AnyPoints(10 * time.Minute)
 	if err != nil {
 		return err
 	}
@@ -336,12 +348,15 @@ func (cs *caseSpec) run() error {
 	}
 
 	cs.t.Logf("get %d points", len(pts))
+	cs.mCount = make(map[string]struct{})
 	if err := cs.checkPoint(pts); err != nil {
 		return err
 	}
 
 	cs.t.Logf("stop input...")
 	cs.ipt.Terminate()
+
+	require.Equal(cs.t, 1, len(cs.mCount))
 
 	cs.t.Logf("exit...")
 	wg.Wait()
@@ -398,23 +413,17 @@ func (cs *caseSpec) getDockerFilePath() (dirName string, fileName string, err er
 	return tmpDir, tmpFile.Name(), nil
 }
 
-func (cs *caseSpec) getContainterName() string {
-	nameTag := strings.Split(cs.name, ":")
-	name := filepath.Base(nameTag[0])
-	return name
-}
-
-func (cs *caseSpec) getPortBindings() map[docker.Port][]docker.PortBinding {
-	portBindings := make(map[docker.Port][]docker.PortBinding)
-
-	// check ports' mapping.
-	require.Equal(cs.t, len(cs.exposedPorts), len(cs.serverPorts))
-
+func (cs *caseSpec) getMappingPorts() error {
+	cs.serverPorts = make([]string, len(cs.exposedPorts))
 	for k, v := range cs.exposedPorts {
-		portBindings[docker.Port(v)] = []docker.PortBinding{{HostPort: docker.Port(cs.serverPorts[k]).Port()}}
+		mapStr := cs.resource.GetHostPort(v)
+		_, port, err := net.SplitHostPort(mapStr)
+		if err != nil {
+			return err
+		}
+		cs.serverPorts[k] = port
 	}
-
-	return portBindings
+	return nil
 }
 
 func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {

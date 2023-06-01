@@ -14,7 +14,7 @@ Function parameters:
 - `keep_value`: The default value is `false`
 - `const_tags`: Custom tags, empty by default
 
-示例:
+示例：
 
 ```python
 agg_create("cpu_agg_info", interval = 60)

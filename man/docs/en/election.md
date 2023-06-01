@@ -8,7 +8,38 @@
 
 When there is only one collected object (such as Kubernetes) in the cluster, but in the case of batch deployment, the configuration of multiple DataKits is exactly the same, and the collection of the central object is turned on. In order to avoid repeated collection, we can turn on the election function of DataKits.
 
-## Election Configuration {#config}
+Datakit has two election modes:
+
+- Datakit self-election: In the same election namespace, the elected Datakit is responsible for all data collection, while other Datakits are in a pending state. The advantage is that the configuration is simple and there is no need to deploy additional applications. However, the disadvantage is that the elected Datakit has a higher resource utilization as all collectors run on this Datakit, which increases system resource usage.
+- Collector task election[:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0): This mode is only applicable to Kubernetes environment. By deploying the [Datakit Operator](datakit-operator.md#datakit-operator-overview-and-install) program, task distribution can be achieved among various collectors of Datakit. The advantage is that the resource utilization of each Datakit is more balanced. However, the disadvantage is that an additional program needs to be deployed in the cluster.
+
+## Collector Task Election Mode {#plugins-election}
+
+### Deploy Datakit Operator {#install-operator}
+
+The collector election mode requires the use of the Datakit Operator v1.0.5+ program. Refer to [here](datakit-operator.md#datakit-operator-install) for the deployment document.
+
+### Election Configuration {#plugins-election-config}
+
+Add an environment variable `ENV_DATAKIT_OPERATOR` with the value of the Datakit Operator address in Datakit's installation YAML file, for example:
+
+```yaml
+      containers:
+      - env:
+        - name: ENV_DATAKIT_OPERATOR
+          value: https://datakit-operator.datakit.svc:443
+```
+
+The default service address of Datakit Operator is `datakit-operator.datakit.svc:443`.
+
+<!-- markdownlint-disable MD046 -->
+???+ info
+
+    The priority of collector task election is higher than that of Datakit self-election. If a usable Datakit Operator address is configured, task election will be used first, otherwise Datakit self-election will be used.
+
+## Datakit Self Election {#self-election}
+
+### Election Configuration {#config}
 
 === "datakit.conf"
 
@@ -43,7 +74,7 @@ When there is only one collected object (such as Kubernetes) in the cluster, but
 
     See [here](datakit-daemonset-deploy.md#env-elect)
 
-## Election Principle {#how}
+### Election Principle {#how}
 
 Take MySQL as an example. In the same cluster (such as k8s cluster), suppose there are 10 DataKits, 2 MySQL instances, and all DataKits have elections turned on (in Daemonset mode, the configuration of each DataKit is the same) and MySQL collector:
 
@@ -54,7 +85,7 @@ Take MySQL as an example. In the same cluster (such as k8s cluster), suppose the
     - With regard to workspaces, in datakit.conf, it is represented by the `token` URL parameter in the DataWay address string, and each workspace has its corresponding token.
     - The namespace for the election, in datakit.conf, is represented by the `namespace` configuration item. Multiple namespaces can be configured in one workspace.
 
-## Election Class Collector's Global Tag Settings {#global-tags}
+### Election Class Collector's Global Tag Settings {#global-tags}
 
 === "datakit.conf"
 

@@ -15,6 +15,7 @@ import (
 
 	dt "github.com/GuanceCloud/cliutils/dialtesting"
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 type dialtestingDebugRequest struct {
@@ -48,7 +49,7 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 	taskType := strings.ToUpper(reqDebug.TaskType)
 	switch taskType {
 	case dt.ClassHTTP:
-		t = &dt.HTTPTask{}
+		t = &dt.HTTPTask{Option: map[string]string{"userAgent": fmt.Sprintf("DataKit/%s dialtesting", datakit.Version)}}
 	case dt.ClassTCP:
 		t = &dt.TCPTask{}
 	case dt.ClassWebsocket:

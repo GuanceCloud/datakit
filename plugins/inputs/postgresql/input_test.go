@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/araddon/dateparse"
+	"github.com/coreos/go-semver/semver"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
@@ -101,7 +102,9 @@ func getTrueData(mockFields map[string]interface{}) map[string]interface{} {
 }
 
 func TestCollect(t *testing.T) {
-	input := &Input{}
+	input := &Input{
+		version: &semver.Version{Major: 12},
+	}
 	input.service = &MockCollectService{}
 	err := input.Collect()
 	if err != nil {
@@ -121,6 +124,8 @@ func TestCollect(t *testing.T) {
 	}
 
 	input.Tags = map[string]string{datakit.DatakitInputName: datakit.DatakitInputName}
+	err = input.init()
+	assert.NoError(t, err)
 	err = input.Collect()
 	assert.NoError(t, err)
 	assert.Greater(t, len(input.collectCache), 0, "input collectCache should has at least one measurement")
@@ -136,7 +141,6 @@ func TestCollect(t *testing.T) {
 
 	tags := points.Tags()
 	assert.Equal(t, tags[datakit.DatakitInputName], datakit.DatakitInputName)
-	assert.Equal(t, tags["db"], "datname")
 
 	// work correctly when set IgnoredDatabases and Databases
 	input.IgnoredDatabases = []string{"a"}
@@ -148,12 +152,6 @@ func TestCollect(t *testing.T) {
 	// when start() error
 	input.service = &MockCollectService{
 		startError: 1,
-	}
-	assert.Error(t, input.Collect())
-
-	// when getDbMetrics() error
-	input.service = &MockCollectService{
-		columnMapError: 1,
 	}
 	assert.Error(t, input.Collect())
 }
@@ -199,31 +197,25 @@ func TestInput(t *testing.T) {
 	t.Run("executeQuery", func(t *testing.T) {
 		var err error
 		input.service = &MockCollectService{}
-		err = input.executeQuery("")
+		err = input.executeQuery(&queryCacheItem{query: "sql"})
 		assert.NoError(t, err)
 
 		// when service.Query() error
-		err = input.executeQuery("-1")
+		err = input.executeQuery(&queryCacheItem{query: "-1"})
 		assert.Error(t, err)
 
 		// when rows.Columns() error
 		input.service = &MockCollectService{
 			columnError: 1,
 		}
-		err = input.executeQuery("")
+		err = input.executeQuery(&queryCacheItem{query: "sql"})
 		assert.Error(t, err)
 
 		// when GetColumnMap() error
 		input.service = &MockCollectService{
 			columnMapError: 1,
 		}
-		err = input.executeQuery("")
-		assert.Error(t, err)
-
-		// when accRow() error
-		input.service = &MockCollectService{}
-		input.Address = "postgres://:888localhost"
-		err = input.executeQuery("")
+		err = input.executeQuery(&queryCacheItem{query: "sql"})
 		assert.Error(t, err)
 	})
 }

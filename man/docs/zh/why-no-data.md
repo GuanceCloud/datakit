@@ -1,5 +1,6 @@
-{{.CSS}}
+
 # 如何排查无数据问题
+
 ---
 
 大家在部署完数据采集之后（通过 DataKit 或 Function 采集），有时候在观测云的页面上看不到对应的数据更新，每次排查起来都心力憔悴，为了缓解这一状况，可按照如下的一些步骤，来逐步围歼「为啥没有数据」这一问题。
@@ -18,7 +19,7 @@ curl https://openway.guance.com
 
 如果得到如下结果，则表示网络是有问题的：
 
-```
+```shell
 curl: (6) Could not resolve host: openway.guance.com
 ```
 
@@ -39,7 +40,7 @@ Wed Jul 21 16:22:32 CST 2021
 
 有些情况下，这里可能显示成这样：
 
-```
+```shell
 Wed Jul 21 08:22:32 UTC 2021
 ```
 
@@ -63,11 +64,11 @@ Wed Jul 21 08:22:32 UTC 2021
 
 在 Windows/Linux/Mac 上，这一功能均支持，其中 Windows 需在 Powershell 中执行
 
-> DataKit [1.1.7-rc7](changelog.md#cl-1.1.7-rc7) 才支持这一功能
+> Datakit [1.1.7-rc7](changelog.md#cl-1.1.7-rc7) 才支持这一功能
 
 ```shell
 datakit dql
-> 这里即可输入 DQL 查询语句...
+> 这里即可输入 DQL 查询语句 ...
 ```
 
 对于无数据排查，建议对照着采集器文档，看对应的指标集叫什么名字，以 MySQL 采集器为例，目前文档中有如下几个指标集：
@@ -99,9 +100,9 @@ O::HOST {host='tan-air.local'}
 show_tracing_service()
 ```
 
-以此类推，如果数据确实上报了，那么通过 DQL 总能找到，至于前端不显示，可能是其它过滤条件给挡掉了。通过 DQL，不管是 DataKit 采集的数据，还是其它手段（如 Function）采集的数据，都可以零距离查看原式数据，特别便于 Debug。
+以此类推，如果数据确实上报了，那么通过 DQL 总能找到，至于前端不显示，可能是其它过滤条件给挡掉了。通过 DQL，不管是 Datakit 采集的数据，还是其它手段（如 Function）采集的数据，都可以零距离查看原式数据，特别便于 Debug。
 
-## 查看 DataKit 程序日志是否有异常 {#check-log}
+## 查看 Datakit 程序日志是否有异常 {#check-log}
 
 通过 Shell/Powershell 给出最近 10 个 ERROR, WARN 级别的日志
 
@@ -130,12 +131,12 @@ Get-Content -Path "C:\Program Files\datakit\log" -Wait | Select-String "<采集�
 
 也可以去掉 `ERROR/WARN` 等过滤，直接查看对应采集器日志。如果日志不够，可将 `datakit.conf` 中的调试日志打开，查看更多日志：
 
-```
+```toml
 # DataKit >= 1.1.8-rc0
 [logging]
-	...
-	level = "debug" # 将默认的 info 改为 debug
-	...
+    ...
+    level = "debug" # 将默认的 info 改为 debug
+    ...
 
 # DataKit < 1.1.8-rc0
 log_level = "debug"

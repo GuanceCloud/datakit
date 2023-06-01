@@ -66,7 +66,7 @@ DCA Web is the Web version of DCA client, which provides the interface proxy of 
 
 === "Docker"
 
-    Docker installation can be found in the document [installing Docker](https://docs.docker.com/desktop/install/linux-install/).
+    Docker installation can be found in the document [installing Docker](https://docs.docker.com/desktop/install/linux-install/){:target="_blank"}.
 
     - Download image
 
@@ -133,7 +133,7 @@ DCA Web is the Web version of DCA client, which provides the interface proxy of 
                   value: https://console-api.guance.com
                 - name: DCA_LOG_ENABLE_STDOUT
                   value: 'true'
-              image: pubrepo.guance.com/tools/dca:0.0.6
+              image: pubrepo.guance.com/tools/dca:0.0.7
               imagePullPolicy: Always
               name: dca
               ports:
@@ -225,7 +225,7 @@ $ docker run -d --name dca -p 8000:80 -e DCA_LOG_ENABLE_STDOUT=true -e DCA_LOG_L
 
 ### Log in to DCA {#login}
 
-After DCA is opened and installed, you can enter the address `localhost:8000` in the browser to open DCA Web, log in to your account, and start using it. If you don't have an account, you can register [Guance Cloud Account](https://auth.guance.com/register?channel=帮助文档).
+After DCA is opened and installed, you can enter the address `localhost:8000` in the browser to open DCA Web, log in to your account, and start using it. If you don't have an account, you can register [Guance Cloud Account](https://auth.guance.com/register?channel=帮助文档){:target="_blank"}.
 
 <figure markdown>
   ![](https://static.guance.com/images/datakit/dca_2_2.png){ width="800" }
@@ -238,6 +238,8 @@ Hosts remotely managed through DCA are divided into three states:
 - online: indicating that the data report is normal, you can view the operation of DataKit and configure the collector through DCA;
 - unknown: indicates that the remote management configuration is not turned on or is not in a local area network;
 - offline: It means that the host has not reported data for more than 10 minutes, or after the host name is modified, the original host name will be displayed as offline. Hosts that do not report data normally will be removed from the list if they do not report data for more than 24 hours.
+
+By default, you can only view information of the DataKit in the current workspace. If you need to manage DataKit, such as restarting it, creating, deleting, or modifying DataKit collector config file, pipelines, you need to grant current user DCA configuration management permission. Please refer to [role management](../management/role-management.md) for specific settings.
 
 #### View How DataKit is Running {#view-runtime}
 

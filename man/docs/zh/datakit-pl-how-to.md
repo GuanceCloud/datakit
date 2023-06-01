@@ -1,4 +1,4 @@
-{{.CSS}}
+
 # 如何编写 Pipeline 脚本
 ---
 
@@ -6,20 +6,20 @@ Pipeline 编写较为麻烦，为此，Datakit 中内置了简单的调试工具
 
 ## 调试 Grok 和 Pipeline {#debug}
 
-指定 pipeline 脚本名称，输入一段文本即可判断提取是否成功
+指定 Pipeline 脚本名称，输入一段文本即可判断提取是否成功
 
-> Pipeline 脚本必须放在 *<Datakit 安装目录>/pipeline* 目录下。
+> Pipeline 脚本必须放在 *[Datakit 安装目录]/pipeline* 目录下。
 
 ```shell
 $ datakit pipeline -P your_pipeline.p -T '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
 Extracted data(cost: 421.705µs): # 表示切割成功
 {
-	"code"   : "io/io.go: 458",       # 对应代码位置
-	"level"  : "DEBUG",               # 对应日志等级
-	"module" : "io",                  # 对应代码模块
-	"msg"    : "post cost 6.87021ms", # 纯日志内容
-	"time"   : 1610358231887000000    # 日志时间(Unix 纳秒时间戳)
-	"message": "2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms"
+    "code"   : "io/io.go: 458",       # 对应代码位置
+    "level"  : "DEBUG",               # 对应日志等级
+    "module" : "io",                  # 对应代码模块
+    "msg"    : "post cost 6.87021ms", # 纯日志内容
+    "time"   : 1610358231887000000    # 日志时间(Unix 纳秒时间戳)
+    "message": "2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms"
 }
 ```
 
@@ -28,14 +28,14 @@ Extracted data(cost: 421.705µs): # 表示切割成功
 ```shell
 $ datakit pipeline -P other_pipeline.p -T '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms'
 {
-	"message": "2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms"
+    "message": "2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms"
 }
 ```
 
 > 如果调试文本比较复杂，可以将它们写入一个文件（sample.log），用如下方式调试：
 
 ```shell
-$ datakit pipeline -P your_pipeline.p -F sample.log
+datakit pipeline -P your_pipeline.p -F sample.log
 ```
 
 更多 Pipeline 调试命令，参见 `datakit help pipeline`。
@@ -62,27 +62,29 @@ grokq > Q                              # Q 或 exit 退出
 Bye!
 ```
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     Windows 下，请在 Powershell 中执行调试。
+<!-- markdownlint-enable -->
 
 ### 多行如何处理 {#multiline}
 
 在处理一些调用栈相关的日志时，由于其日志行数不固定，直接用 `GREEDYDATA` 这个 pattern 无法处理如下情况的日志：
 
-```
+``` log
 2022-02-10 16:27:36.116 ERROR 1629881 --- [scheduling-1] o.s.s.s.TaskUtils$LoggingErrorHandler    : Unexpected error occurred in scheduled task
 
-	java.lang.NullPointerException: null
-	at com.xxxxx.xxxxxxxxxxx.xxxxxxx.impl.SxxxUpSxxxxxxImpl.isSimilarPrize(xxxxxxxxxxxxxxxxx.java:442)
-	at com.xxxxx.xxxxxxxxxxx.xxxxxxx.impl.SxxxUpSxxxxxxImpl.lambda$getSimilarPrizeSnapUpDo$0(xxxxxxxxxxxxxxxxx.java:595)
-	at java.util.stream.ReferencePipeline$3$1.accept(xxxxxxxxxxxxxxxxx.java:193)
-	at java.util.ArrayList$ArrayListSpliterator.forEachRemaining(xxxxxxxxx.java:1382)
-	at java.util.stream.AbstractPipeline.copyInto(xxxxxxxxxxxxxxxx.java:481)
-	at java.util.stream.AbstractPipeline.wrapAndCopyInto(xxxxxxxxxxxxxxxx.java:471)
-	at java.util.stream.ReduceOps$ReduceOp.evaluateSequential(xxxxxxxxx.java:708)
-	at java.util.stream.AbstractPipeline.evaluate(xxxxxxxxxxxxxxxx.java:234)
-	at java.util.stream.ReferencePipeline.collect(xxxxxxxxxxxxxxxxx.java:499)
+    java.lang.NullPointerException: null
+    at com.xxxxx.xxxxxxxxxxx.xxxxxxx.impl.SxxxUpSxxxxxxImpl.isSimilarPrize(xxxxxxxxxxxxxxxxx.java:442)
+    at com.xxxxx.xxxxxxxxxxx.xxxxxxx.impl.SxxxUpSxxxxxxImpl.lambda$getSimilarPrizeSnapUpDo$0(xxxxxxxxxxxxxxxxx.java:595)
+    at java.util.stream.ReferencePipeline$3$1.accept(xxxxxxxxxxxxxxxxx.java:193)
+    at java.util.ArrayList$ArrayListSpliterator.forEachRemaining(xxxxxxxxx.java:1382)
+    at java.util.stream.AbstractPipeline.copyInto(xxxxxxxxxxxxxxxx.java:481)
+    at java.util.stream.AbstractPipeline.wrapAndCopyInto(xxxxxxxxxxxxxxxx.java:471)
+    at java.util.stream.ReduceOps$ReduceOp.evaluateSequential(xxxxxxxxx.java:708)
+    at java.util.stream.AbstractPipeline.evaluate(xxxxxxxxxxxxxxxx.java:234)
+    at java.util.stream.ReferencePipeline.collect(xxxxxxxxxxxxxxxxx.java:499)
 ```
 
 此处可以使用 `GREEDYLINES` 规则来通配，如（*/usr/local/datakit/pipeline/test.p*）：
@@ -98,7 +100,7 @@ drop_origin_data()
 将上述多行日志存为 *multi-line.log*，调试一下：
 
 ```shell
-$ datakit pipeline -P test.p -T "$(<multi-line.log)"
+datakit pipeline -P test.p -T "$(<multi-line.log)"
 ```
 
 得到如下切割结果：
@@ -131,10 +133,11 @@ $ datakit pipeline -P test.p -T "$(<multi-line.log)"
 | `message` | string(field) | 原始日志                              |
 | `time`    | int           | 日志对应的时间戳                      |
 
-
+<!-- markdownlint-disable MD046 -->
 ???+ tip
 
     当然我们可以通过[特定的 Pipeline 函数](pipeline.md#fn-set-tag)覆盖上面这些 tag 的值。
+<!-- markdownlint-enable -->
 
 一旦 Pipeline 切割出来的字段跟已有 Tag 重名（大小写敏感），都会导致如下数据报错。故建议在 Pipeline 切割中，绕开这些字段命名。
 
@@ -147,11 +150,11 @@ same key xxx in tag and field
 
 这里以 Datakit 自身的日志切割为例。Datakit 自身的日志形式如下：
 
-```
+``` log
 2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms
 ```
 
-编写对应 pipeline：
+编写对应 Pipeline：
 
 ```python
 # pipeline for datakit log
@@ -164,11 +167,12 @@ default_time(time)       # 将 time 字段作为输出数据的时间戳
 drop_origin_data()       # 丢弃原始日志文本(不建议这么做)
 ```
 
-这里引用了几个用户自定义的 pattern，如 `_dklog_date`、`_dklog_level`。我们将这些规则存放 `<datakit安装目录>/pipeline/pattern` 下。
+这里引用了几个用户自定义的 pattern，如 `_dklog_date`、`_dklog_level`。我们将这些规则存放 *<Datakit 安装目录>/pipeline/pattern* 下。
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    用户自定义 pattern 如果需要全局生效（即在其它 Pipeline 脚本中应用），必须放置在 *[Datakit安装目录]/pipeline/pattern/>* 目录下:
+    用户自定义 pattern 如果需要全局生效（即在其它 Pipeline 脚本中应用），必须放置在 *[Datakit 安装目录]/pipeline/pattern/>* 目录下：
 
     ```Shell
     $ cat pipeline/pattern/datakit
@@ -184,12 +188,14 @@ drop_origin_data()       # 丢弃原始日志文本(不建议这么做)
     _dklog_source_file (/?[\w_%!$@:.,-]?/?)(\S+)?
     _dklog_msg %{GREEDYDATA}
     ```
+<!-- markdownlint-enable -->
 
-现在 pipeline 以及其引用的 pattern 都有了，就能通过 Datakit 内置的 pipeline 调试工具，对这一行日志进行切割：
+现在 Pipeline 以及其引用的 pattern 都有了，就能通过 Datakit 内置的 Pipeline 调试工具，对这一行日志进行切割：
 
 ```Shell
 # 提取成功示例
-$ datakit pipeline -P dklog_pl.p -T '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
+datakit pipeline -P dklog_pl.p -T '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
+
 Extracted data(cost: 421.705µs):
 {
     "code": "io/io.go:458",
@@ -202,7 +208,9 @@ Extracted data(cost: 421.705µs):
 
 ## FAQ {#faq}
 
+<!-- markdownlint-disable MD013 -->
 ### :material-chat-question: Pipeline 调试时，为什么变量无法引用？ {#ref-variables}
+<!-- markdownlint-enable -->
 
 现有如下 Pipeline：
 
@@ -215,7 +223,7 @@ json(_, @timestamp, "time")
 
 其报错如下：
 
-```
+``` not-set
 [E] new piepline failed: 4:8 parse error: unexpected character: '@'
 ```
 
@@ -227,7 +235,9 @@ json(_, `@timestamp`, "time")
 
 参见 [Pipeline 的基本语法规则](pipeline.md#basic-syntax)
 
+<!-- markdownlint-disable MD013 -->
 ### :material-chat-question: Pipeline 调试时，为什么找不到对应的 Pipeline 脚本？ {#pl404}
+<!-- markdownlint-enable -->
 
 命令如下：
 
@@ -238,10 +248,13 @@ $ datakit pipeline -P test.p -T "..."
 
 这是因为被调试的 Pipeline 存放的位置不对。调试用的 Pipeline 脚本，需将其放置到 *[Datakit 安装目录]/pipeline/* 目录下。
 
+<!-- markdownlint-disable MD013 -->
 ### :material-chat-question: 如何在一个 Pipeline 中切割多种不同格式的日志？ {#if-else}
+<!-- markdownlint-enable -->
 
 在日常的日志中，因为业务的不同，日志会呈现出多种形态，此时，需写多个 Grok 切割，为提高 Grok 的运行效率，**可根据日志出现的频率高低，优先匹配出现频率更高的那个 Grok**，这样，大概率日志在前面几个 Grok 中就匹配上了，避免了无效的匹配。
 
+<!-- markdownlint-disable MD046 -->
 ???+ tip
 
     在日志切割中，Grok 匹配是性能开销最大的部分，故避免重复的 Grok 匹配，能极大的提高 Grok 的切割性能。
@@ -256,18 +269,19 @@ $ datakit pipeline -P test.p -T "..."
         grok(_, "%{date2:time} \\[%{LOGLEVEL:status}\\] %{GREEDYDATA:msg} ...")
     
         if status != nil {
-            # 此处可再检查上面的 grok 是否匹配上...
+            # 此处可再检查上面的 grok 是否匹配上
         } else {
             # 未识别的日志，或者，在此可再加一个 grok 来处理，如此层层递进
         }
     }
     ```
+<!-- markdownlint-enable -->
 
 ### :material-chat-question: 如何丢弃字段切割 {#drop-keys}
 
-在某些情况下，我们需要的只是日志中间的几个字段，但不好跳过前面的部分，比如 
+在某些情况下，我们需要的只是日志中间的几个字段，但不好跳过前面的部分，比如
 
-```
+``` not-set
 200 356 1 0 44 30032 other messages
 ```
 
@@ -281,20 +295,20 @@ grok(_, "%{INT} %{INT} %{INT} %{INT:response_time} %{GREEDYDATA}")
 
 大家在使用 `add_pattern()` 添加局部模式时，容易陷入转义问题，比如如下这个 pattern（用来通配文件路径以及文件名）：
 
-```
+``` not-set
 (/?[\w_%!$@:.,-]?/?)(\S+)?
 ```
 
 如果我们将其放到全局 pattern 目录下（即 *pipeline/pattern* 目录），可这么写：
 
-```
+``` not-set
 # my-test
 source_file (/?[\w_%!$@:.,-]?/?)(\S+)?
 ```
 
-如果使用 `add_pattern()`，就需写成这样： 
+如果使用 `add_pattern()`，就需写成这样：
 
-```python
+``` python
 # my-test.p
 add_pattern('source_file', '(/?[\\w_%!$@:.,-]?/?)(\\S+)?')
 ```

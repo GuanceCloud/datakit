@@ -10,6 +10,39 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+type ConsulMeasurement struct {
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+}
+
+func (m *ConsulMeasurement) LineProto() (*point.Point, error) {
+	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+}
+
+func (m *ConsulMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "consul",
+		Fields: map[string]interface{}{
+			"raft_leader":                  newCountFieldInfo("raft 集群中 leader 数量"),
+			"raft_peers":                   newCountFieldInfo("raft 集群中 peer 数量"),
+			"serf_lan_members":             newCountFieldInfo("集群中成员数量"),
+			"catalog_services":             newCountFieldInfo("集群中服务数量"),
+			"catalog_service_node_healthy": newUnknownFieldInfo("该服务在该结点上是否健康"),
+			"health_node_status":           newUnknownFieldInfo("结点的健康检查状态"),
+			"serf_lan_member_status":       newUnknownFieldInfo("集群里成员的状态。其中 1 表示 Alive/2 表示 Leaving/3 表示 Left/4 表示 Failed"),
+		},
+		Tags: map[string]interface{}{
+			"host":         inputs.NewTagInfo("主机名称"),
+			"node":         inputs.NewTagInfo("结点名称"),
+			"service_id":   inputs.NewTagInfo("服务 ID"),
+			"service_name": inputs.NewTagInfo("服务名称"),
+			"status":       inputs.NewTagInfo("状态。status 有 critical/maintenance/passing/warning 四种"),
+			"member":       inputs.NewTagInfo("成员名称"),
+		},
+	}
+}
+
 type HostMeasurement struct {
 	name   string
 	tags   map[string]string
@@ -24,10 +57,10 @@ func (m *HostMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "consul_host",
 		Fields: map[string]interface{}{
-			"raft_leader":      newCountFieldInfo("raft集群中leader数量"),
-			"raft_peers":       newCountFieldInfo("raft集群中peer数量"),
+			"raft_leader":      newCountFieldInfo("raft 集群中 leader 数量"),
+			"raft_peers":       newCountFieldInfo("raft 集群中 peer 数量"),
 			"serf_lan_members": newCountFieldInfo("集群中成员数量"),
-			"catalog_service":  newCountFieldInfo("集群中服务数量"),
+			"catalog_services": newCountFieldInfo("集群中服务数量"),
 		},
 		Tags: map[string]interface{}{
 			"host": inputs.NewTagInfo("主机名称"),
@@ -54,7 +87,7 @@ func (m *ServiceMeasurement) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"host":         inputs.NewTagInfo("主机名称"),
 			"node":         inputs.NewTagInfo("结点名称"),
-			"service_id":   inputs.NewTagInfo("服务id"),
+			"service_id":   inputs.NewTagInfo("服务 id"),
 			"service_name": inputs.NewTagInfo("服务名称"),
 		},
 	}
@@ -79,7 +112,7 @@ func (m *HealthMeasurement) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"host":   inputs.NewTagInfo("主机名称"),
 			"node":   inputs.NewTagInfo("结点名称"),
-			"status": inputs.NewTagInfo("状态，status有critical, maintenance, passing,warning四种"),
+			"status": inputs.NewTagInfo("状态，status 有 critical/maintenance/passing/warning 四种"),
 		},
 	}
 }
@@ -98,7 +131,7 @@ func (m *MemberMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "consul_member",
 		Fields: map[string]interface{}{
-			"serf_lan_member_status": newUnknownFieldInfo("集群里成员的状态，其中1表示Alive，2表示Leaving，3表示Left，4表示Failed"),
+			"serf_lan_member_status": newUnknownFieldInfo("集群里成员的状态，其中 1 表示 Alive，2 表示 Leaving，3 表示 Left，4 表示 Failed"),
 		},
 		Tags: map[string]interface{}{
 			"host":   inputs.NewTagInfo("主机名称"),

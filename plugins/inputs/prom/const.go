@@ -34,7 +34,7 @@ const sampleCfg = `
   ## Metrics type whitelist. Optional: counter, gauge, histogram, summary
   # Default only collect 'counter' and 'gauge'.
   # Collect all if empty.
-  metric_types = ["counter", "gauge"]
+  metric_types = []
 
   ## Metrics name whitelist.
   # Regex supported. Multi supported, conditions met when one matched.

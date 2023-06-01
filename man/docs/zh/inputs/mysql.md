@@ -1,4 +1,4 @@
-{{.CSS}}
+
 # MySQL
 
 ---
@@ -9,8 +9,8 @@
 
 MySQL 指标采集，收集以下数据：
 
-- MySQL global status 基础数据采集
-- Scheam 相关数据
+- MySQL Global Status 基础数据采集
+- Schema 相关数据
 - InnoDB 相关指标
 - 支持自定义查询数据采集
 
@@ -37,15 +37,18 @@ GRANT SELECT ON mysql.user TO 'datakit'@'localhost';
 GRANT replication client on *.*  to 'datakit'@'localhost';
 ```
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     - 如用 `localhost` 时发现采集器有如下报错，需要将上述步骤的 `localhost` 换成 `::1` <br/>
     `Error 1045: Access denied for user 'datakit'@'localhost' (using password: YES)`
 
     - 以上创建、授权操作，均限定了 `datakit` 这个用户，只能在 MySQL 主机上（`localhost`）访问 MySQL。如果需要对 MySQL 进行远程采集，建议将 `localhost` 替换成 `%`（表示 DataKit 可以在任意机器上访问 MySQL），也可用特定的 DataKit 安装机器地址。
+<!-- markdownlint-enable -->
 
 ## 配置 {#config}
 
+<!-- markdownlint-disable MD046 -->
 === "主机安装"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
@@ -59,7 +62,7 @@ GRANT replication client on *.*  to 'datakit'@'localhost';
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
-
+<!-- markdownlint-enable -->
 
 ---
 
@@ -74,14 +77,14 @@ GRANT replication client on *.*  to 'datakit'@'localhost';
 
 ### Binlog 开启 {#binlog}
 
-默认情况下，MySQL binlog 是不开启的。如果要统计 binlog 大小，需要开启 MySQL 对应 binlog 功能：
+默认情况下，MySQL Binlog 是不开启的。如果要统计 Binlog 大小，需要开启 MySQL 对应 Binlog 功能：
 
 ```sql
--- ON:开启, OFF:关闭
+-- ON: 开启/OFF: 关闭
 SHOW VARIABLES LIKE 'log_bin';
 ```
 
-binlog 开启，参见[这个问答](https://stackoverflow.com/questions/40682381/how-do-i-enable-mysql-binary-logging){:target="_blank"}，或者[这个问答](https://serverfault.com/questions/706699/enable-binlog-in-mysql-on-ubuntu){:target="_blank"}
+Binlog 开启，参见[这个问答](https://stackoverflow.com/questions/40682381/how-do-i-enable-mysql-binary-logging){:target="_blank"}，或者[这个问答](https://serverfault.com/questions/706699/enable-binlog-in-mysql-on-ubuntu){:target="_blank"}
 
 ### 数据库性能指标采集 {#performance-schema}
 
@@ -114,9 +117,9 @@ dbm = true
 
 ```
 
-- MySQL配置
+- MySQL 配置
 
-修改配置文件(如`mysql.conf`)，开启 `MySQL Performance Schema`， 并配置相关参数：
+修改配置文件（如 *mysql.conf*），开启 `MySQL Performance Schema`， 并配置相关参数：
 
 ```toml
 [mysqld]
@@ -136,7 +139,7 @@ performance-schema-consumer-events-statements-history = on
 账号授权
 
 ```sql
--- 	MySQL 5.6 & 5.7
+-- MySQL 5.6 & 5.7
 GRANT REPLICATION CLIENT ON *.* TO datakit@'%' WITH MAX_USER_CONNECTIONS 5;
 GRANT PROCESS ON *.* TO datakit@'%';
 
@@ -154,7 +157,7 @@ GRANT EXECUTE ON datakit.* to datakit@'%';
 GRANT CREATE TEMPORARY TABLES ON datakit.* TO datakit@'%';
 ```
 
-创建存储过程 `explain_statement`，用于获取 sql 执行计划
+创建存储过程 `explain_statement`，用于获取 SQL 执行计划
 
 ```sql
 DELIMITER $$
@@ -185,7 +188,7 @@ DELIMITER ;
 GRANT EXECUTE ON PROCEDURE <数据库名称>.explain_statement TO datakit@'%';
 ```
 
-- `consumers`配置
+- `consumers` 配置
 
 方法一（推荐）：通过 `DataKit` 动态配置 `performance_schema.events_*`，需要创建以下存储过程：
 
@@ -211,6 +214,7 @@ UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name = 'events
 
 ### 指标 {#measurement}
 
+<!-- markdownlint-disable MD024 -->
 {{ range $i, $m := .Measurements }}
 
 {{if eq $m.Type "metric"}}
@@ -252,6 +256,7 @@ UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name = 'events
 {{end}}
 
 {{ end }}
+<!-- markdownlint-enable -->
 
 ## MySQL 运行日志 {#mysql-logging}
 
@@ -278,7 +283,7 @@ MySQL 日志分为普通日志和慢日志两种。
 
 日志原文：
 
-```
+``` log
 2017-12-29T12:33:33.095243Z         2 Query     SELECT TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE CREATE_OPTIONS LIKE '%partitioned%';
 ```
 
@@ -294,7 +299,7 @@ MySQL 日志分为普通日志和慢日志两种。
 
 日志原文：
 
-```
+``` log
 # Time: 2019-11-27T10:43:13.460744Z
 # User@Host: root[root] @ localhost [1.2.3.4]  Id:    35
 # Query_time: 0.214922  Lock_time: 0.000184 Rows_sent: 248832  Rows_examined: 72
@@ -310,13 +315,13 @@ SELECT * FROM fruit f1, fruit f2, fruit f3, fruit f4, fruit f5
 | ---                 | ---                                                                                         | ---                            |
 | `bytes_sent`        | `123456`                                                                                    | 发送字节数                     |
 | `db_host`           | `localhost`                                                                                 | hostname                       |
-| `db_ip`             | `1.2.3.4`                                                                                   | ip                             |
-| `db_slow_statement` | `SET timestamp=1574851393;\nSELECT * FROM fruit f1, fruit f2, fruit f3, fruit f4, fruit f5` | 慢查询 sql                     |
+| `db_ip`             | `1.2.3.4`                                                                                   | IP                             |
+| `db_slow_statement` | `SET timestamp=1574851393;\nSELECT * FROM fruit f1, fruit f2, fruit f3, fruit f4, fruit f5` | 慢查询 SQL                     |
 | `db_user`           | `root[root]`                                                                                | 用户                           |
 | `lock_time`         | `0.000184`                                                                                  | 锁时间                         |
-| `query_id`          | `35`                                                                                        | 查询 id                        |
+| `query_id`          | `35`                                                                                        | 查询 ID                        |
 | `query_time`        | `0.2l4922`                                                                                  | SQL 执行所消耗的时间           |
 | `rows_examined`     | `72`                                                                                        | 为了返回查询的数据所读取的行数 |
 | `rows_sent`         | `248832`                                                                                    | 查询返回的行数                 |
-| `thread_id`         | `55`                                                                                        | 线程 id                        |
+| `thread_id`         | `55`                                                                                        | 线程 ID                        |
 | `time`              | `1514520249954078000`                                                                       | 纳秒时间戳（作为行协议时间）   |

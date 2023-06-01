@@ -112,7 +112,7 @@ ulimit = 64000
   # Datakit will upload data points if cached(in memory) points
   #  reached(>=) the max_cache_count or the flush_interval triggered.
   max_cache_count = 1000
-	flush_workers   = 0 # default to (cpu_core * 2 + 1)
+  flush_workers   = 0 # default to (cpu_core * 2 + 1)
   flush_interval  = "10s"
 
   # We can write these data points into file in line-proto format(truncated at 32MB).
@@ -159,10 +159,14 @@ ulimit = 64000
   urls = ["https://openway.guance.com?token=tkn_xxxxxxxxxxx"]
 
   # Dataway HTTP timeout
-  timeout = "5s"
+  timeout_v2 = "30s"
 
   # HTTP Proxy(IP:Port)
   http_proxy = ""
+
+  max_idle_conns   = 0       # limit idle TCP connections for HTTP request to Dataway
+  enable_httptrace = false   # enable trace HTTP metrics(connection/NDS/TLS and so on)
+  idle_timeout     = "90s"   # not-set, default 90s
 
   # Sinkers: DataKit are able to upload data point to multiple workspace
   #[[dataway.sinkers]]

@@ -32,8 +32,8 @@ func setupMetrics() {
 		prometheus.GaugeOpts{
 			Namespace: "datakit",
 			Subsystem: "filter",
-			Name:      "last_update",
-			Help:      "filter last update time(in unix timestamp second)",
+			Name:      "last_update_timestamp_seconds",
+			Help:      "Filter last update time",
 		})
 
 	filterPtsVec = prometheus.NewCounterVec(
@@ -41,8 +41,7 @@ func setupMetrics() {
 			Namespace: "datakit",
 			Subsystem: "filter",
 			Name:      "point_total",
-
-			Help: "Filter points of filters",
+			Help:      "Filter points of filters",
 		},
 		[]string{
 			"category",
@@ -56,8 +55,7 @@ func setupMetrics() {
 			Namespace: "datakit",
 			Subsystem: "filter",
 			Name:      "point_dropped_total",
-
-			Help: "Dropped points of filters",
+			Help:      "Dropped points of filters",
 		},
 		[]string{
 			"category",
@@ -70,9 +68,8 @@ func setupMetrics() {
 		prometheus.SummaryOpts{
 			Namespace: "datakit",
 			Subsystem: "filter",
-			Name:      "pull_latency",
-
-			Help: "Filter pull(remote) latency(ms)",
+			Name:      "pull_latency_seconds",
+			Help:      "Filter pull(remote) latency",
 		},
 		[]string{"status"},
 	)
@@ -81,9 +78,8 @@ func setupMetrics() {
 		prometheus.SummaryOpts{
 			Namespace: "datakit",
 			Subsystem: "filter",
-			Name:      "latency",
-
-			Help: "Filter latency(us) of these filters",
+			Name:      "latency_seconds",
+			Help:      "Filter latency of these filters",
 		},
 		[]string{
 			"category",
@@ -97,8 +93,7 @@ func setupMetrics() {
 			Namespace: "datakit",
 			Subsystem: "filter",
 			Name:      "update_total",
-
-			Help: "Filters(remote) updated count",
+			Help:      "Filters(remote) updated count",
 		},
 	)
 

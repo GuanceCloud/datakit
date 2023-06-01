@@ -1,5 +1,6 @@
-{{.CSS}}
+
 # Profile 采集配置
+
 ---
 
 {{.AvailableArchs}}
@@ -12,11 +13,12 @@ Profile 支持采集使用 Java, Python 和 Go 等不同语言环境下应用程
 
 目前 DataKit 采集 profiling 数据有两种方式：
 
-- 推送方式: 需要开启 DataKit Profile 服务，由客户端向 DataKit 主动推送数据
-- 拉取方式: 目前仅 [Go](profile-go.md) 支持，需要手动配置相关信息
+- 推送方式：需要开启 DataKit Profile 服务，由客户端向 DataKit 主动推送数据
+- 拉取方式：目前仅 [Go](profile-go.md) 支持，需要手动配置相关信息
 
 ### DataKit 配置 {#datakit-config}
 
+<!-- markdownlint-disable MD046 -->
 === "主机安装"
 
     进入 DataKit 安装目录下的 `conf.d/profile` 目录，复制 `profile.conf.sample` 并命名为  `profile.conf` 。配置文件说明如下：
@@ -30,6 +32,7 @@ Profile 支持采集使用 Java, Python 和 Go 等不同语言环境下应用程
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+<!-- markdownlint-enable -->
 
 ### 客户端应用配置 {#app-config}
 
@@ -57,7 +60,7 @@ Profile 支持采集使用 Java, Python 和 Go 等不同语言环境下应用程
 
 {{$m.Desc}}
 
--  标签
+- 标签
 
 {{$m.TagsMarkdownTable}}
 

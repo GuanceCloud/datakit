@@ -25,16 +25,32 @@ Currently DDTrace has added the following extensions to the technology stack：
 
 ## changelog {#changelog}
 
+## v1.14.0-guance (2023/5/18) {#cl-1.14.0-guance}
+
+### fix {#cl-1.14.0-guance-new}
+
+- Merge Datadog v1.14.0 version.
+- [support trace 128 bit id](https://github.com/GuanceCloud/dd-trace-java/issues/37){:target="_blank"}
+
+
+## v1.12.1-guance (2023/5/11) {#cl-1.12.1-guance}
+
+### fix {#cl-1.12.1-guance-new}
+
+- supported MongoDB obfuscation， [MongoDB Issue](https://github.com/GuanceCloud/dd-trace-java/issues/38){:target="_blank"}
+- [supported DM8](https://github.com/GuanceCloud/dd-trace-java/issues/39){:target="_blank"}
+
+
 ## v1.12.0 (2023/4/20) {#cl-1.10.2}
 
 ### fix {#cl-1.12.0-new}
 
 - Merge ddtrace tag:1.12.0.
-- Support [当当网 dubbox](https://github.com/GuanceCloud/dd-trace-java/issues/32).
-- Solve the confusion between jax-rs and dubbo traces [problem Issue](https://github.com/GuanceCloud/dd-trace-java/issues/34).
-- Solve the problem that the order of dubbo trace topology map is wrong [problem](https://github.com/GuanceCloud/dd-trace-java/issues/35).
-- Solve the conflict between RocketMQ and customer-defined trace data [problem](https://github.com/GuanceCloud/dd-trace-java/issues/29).
-- Modify RocketMQ resource name[github-issue](https://github.com/GuanceCloud/dd-trace-java/issues/33).
+- Support [当当网 dubbox](https://github.com/GuanceCloud/dd-trace-java/issues/32){:target="_blank"}.
+- Solve the confusion between jax-rs and dubbo traces [problem Issue](https://github.com/GuanceCloud/dd-trace-java/issues/34){:target="_blank"}.
+- Solve the problem that the order of dubbo trace topology map is wrong [problem](https://github.com/GuanceCloud/dd-trace-java/issues/35){:target="_blank"}.
+- Solve the conflict between RocketMQ and customer-defined trace data [problem](https://github.com/GuanceCloud/dd-trace-java/issues/29){:target="_blank"}.
+- Modify RocketMQ resource name[github-issue](https://github.com/GuanceCloud/dd-trace-java/issues/33){:target="_blank"}.
 
 ## v1.10.2 (2023/4/10) {#cl-1.10.2}
 
@@ -120,7 +136,7 @@ Merge DataDog v0.108.1 version, compile while retaining 0.108.1
 
 Merge DataDog v0.108.1 and compile it.
 
-- [github download](https://github.com/GuanceCloud/dd-trace-java/releases/tag/v0.108.1)
+- [github download](https://github.com/GuanceCloud/dd-trace-java/releases/tag/v0.108.1){:target="_blank"}
 
 ### 0.108.1 {#cl-0.108.1-new}
 
@@ -132,13 +148,13 @@ Merge DataDog v0.108.1 and compile it.
 
 Merge DataDog 107 version, compile.
 
-- [github download](https://github.com/GuanceCloud/dd-trace-java/releases/tag/guance-107)
+- [github download](https://github.com/GuanceCloud/dd-trace-java/releases/tag/guance-107){:target="_blank"}
 
 ---
 
 ## guance-0.105.0(2022-08-23) {#cl-0.105.0}
 
-[github download](https://static.guance.com/ddtrace/dd-java-agent-guance-0.106.0-SNAPSHOT.jar)
+[github download](https://static.guance.com/ddtrace/dd-java-agent-guance-0.106.0-SNAPSHOT.jar){:target="_blank"}
 
 ### new {#cl-0.105.0}
 

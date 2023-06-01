@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -19,13 +18,22 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	dockertest "github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+// ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
+
 func TestBeatsInput(t *testing.T) {
+	if !testutils.CheckIntegrationTestingRunning() {
+		t.Skip()
+	}
+
+	testutils.PurgeRemoteByName(inputName)       // purge at first.
+	defer testutils.PurgeRemoteByName(inputName) // purge at last.
+
 	start := time.Now()
 	cases, err := buildCases(t)
 	if err != nil {
@@ -43,34 +51,56 @@ func TestBeatsInput(t *testing.T) {
 	t.Logf("testing %d cases...", len(cases))
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			caseStart := time.Now()
+		func(tc *caseSpec) {
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+				caseStart := time.Now()
 
-			t.Logf("testing %s...", tc.name)
+				t.Logf("testing %s...", tc.name)
 
-			if err := tc.run(); err != nil {
-				tc.cr.Status = testutils.TestFailed
-				tc.cr.FailedMessage = err.Error()
+				if err := testutils.RetryTestRun(tc.run); err != nil {
+					tc.cr.Status = testutils.TestFailed
+					tc.cr.FailedMessage = err.Error()
 
-				panic(err)
-			} else {
-				tc.cr.Status = testutils.TestPassed
-			}
-
-			tc.cr.Cost = time.Since(caseStart)
-
-			assert.NoError(t, testutils.Flush(tc.cr))
-
-			t.Cleanup(func() {
-				// clean remote docker resources
-				if tc.resource == nil {
-					return
+					panic(err)
+				} else {
+					tc.cr.Status = testutils.TestPassed
 				}
 
-				assert.NoError(t, tc.pool.Purge(tc.resource))
+				tc.cr.Cost = time.Since(caseStart)
+
+				require.NoError(t, testutils.Flush(tc.cr))
+
+				t.Cleanup(func() {
+					// clean remote docker resources
+					if tc.resource == nil {
+						return
+					}
+
+					require.NoError(t, tc.pool.Purge(tc.resource))
+				})
 			})
-		})
+		}(tc)
 	}
+}
+
+// elastic/filebeat:7.17.6-logstash --> 7.17.6
+func getVersion(name string) string {
+	preDefined1 := "filebeat:"
+	preDefined2 := "-"
+
+	ndx1 := strings.Index(name, preDefined1)
+	if ndx1 == -1 {
+		return ""
+	}
+
+	name2 := name[ndx1+len(preDefined1):]
+	ndx2 := strings.Index(name2, preDefined2)
+	if ndx2 == -1 {
+		return name2
+	}
+
+	return name2[:ndx2]
 }
 
 func buildCases(t *testing.T) ([]*caseSpec, error) {
@@ -79,26 +109,81 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 	remote := testutils.GetRemote()
 
 	bases := []struct {
-		name           string // Also used as build image name:tag.
-		conf           string
-		dockerFileText string // Empty if not build image.
-		exposedPorts   []string
-		opts           []inputs.PointCheckOption
+		name    string // Also used as build image name:tag.
+		verConf BUILD_CONFIG_VER
+		conf    string
+		opts    []inputs.PointCheckOption
 	}{
 		{
-			name:           "elastic/filebeat:7.17.9-logstash",
-			conf:           `listen = "tcp://0.0.0.0:5044"`,
-			dockerFileText: getDockerfile("7.17.9"),
+			name:    "elastic/filebeat:8.6.2-logstash",
+			verConf: VER_7,
+			conf:    `listen = "tcp://0.0.0.0:"`, // tcp://0.0.0.0:5044
 		},
+
 		{
-			name:           "elastic/filebeat:7.17.6-logstash",
-			conf:           `listen = "tcp://0.0.0.0:5044"`,
-			dockerFileText: getDockerfile("7.17.6"),
+			name:    "elastic/filebeat:7.17.9-logstash",
+			verConf: VER_7,
+			conf:    `listen = "tcp://0.0.0.0:"`, // tcp://0.0.0.0:5044
 		},
+
 		{
-			name:           "elastic/filebeat:8.6.2-logstash",
-			conf:           `listen = "tcp://0.0.0.0:5044"`,
-			dockerFileText: getDockerfile("8.6.2"),
+			name:    "elastic/filebeat:7.17.6-logstash",
+			verConf: VER_7,
+			conf:    `listen = "tcp://0.0.0.0:"`, // tcp://0.0.0.0:5044
+		},
+
+		{
+			name:    "elastic/filebeat:6.0.0-logstash",
+			verConf: VER_6,
+			conf:    `listen = "tcp://0.0.0.0:"`, // tcp://0.0.0.0:5044
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalTags("filepath", "host"), //nolint:lll
+			},
+		},
+
+		{
+			name:    "pubrepo.jiagouyun.com/image-repo-for-testing/filebeat:5.0.0-logstash",
+			verConf: VER_5,
+			conf:    `listen = "tcp://0.0.0.0:"`, // tcp://0.0.0.0:5044
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalTags("filepath", "host"), //nolint:lll
+			},
+		},
+
+		{
+			name:    "pubrepo.jiagouyun.com/image-repo-for-testing/filebeat:1.3.0-logstash",
+			verConf: VER_1,
+			conf:    `listen = "tcp://0.0.0.0:"`, // tcp://0.0.0.0:5044
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalTags("filepath", "host"), //nolint:lll
+			},
+		},
+
+		{
+			name:    "pubrepo.jiagouyun.com/image-repo-for-testing/filebeat:1.2.0-logstash",
+			verConf: VER_1,
+			conf:    `listen = "tcp://0.0.0.0:"`, // tcp://0.0.0.0:5044
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalTags("filepath", "host"), //nolint:lll
+			},
+		},
+
+		{
+			name:    "pubrepo.jiagouyun.com/image-repo-for-testing/filebeat:1.1.0-logstash",
+			verConf: VER_1,
+			conf:    `listen = "tcp://0.0.0.0:"`, // tcp://0.0.0.0:5044
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalTags("filepath", "host"), //nolint:lll
+			},
+		},
+
+		{
+			name:    "pubrepo.jiagouyun.com/image-repo-for-testing/filebeat:1.0.0-logstash",
+			verConf: VER_1,
+			conf:    `listen = "tcp://0.0.0.0:"`, // tcp://0.0.0.0:5044
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalTags("filepath", "host"), //nolint:lll
+			},
 		},
 	}
 
@@ -112,9 +197,15 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		ipt.feeder = feeder
 
 		_, err := toml.Decode(base.conf, ipt)
-		assert.NoError(t, err)
+		require.NoError(t, err)
+
+		randPort := testutils.RandPort("tcp")
+		randPortStr := fmt.Sprintf("%d", randPort)
+		ipt.Listen += randPortStr // tcp://0.0.0.0:5044
 
 		repoTag := strings.Split(base.name, ":")
+
+		filebeatVersion := getVersion(base.name)
 
 		cases = append(cases, &caseSpec{
 			t:       t,
@@ -124,8 +215,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			repo:    repoTag[0],
 			repoTag: repoTag[1],
 
-			dockerFileText: base.dockerFileText,
-			exposedPorts:   base.exposedPorts,
+			dockerFileText: getDockerfile(filebeatVersion, randPortStr, base.verConf),
 			opts:           base.opts,
 
 			cr: &testutils.CaseResult{
@@ -158,6 +248,7 @@ type caseSpec struct {
 	dockerFileText string
 	exposedPorts   []string
 	opts           []inputs.PointCheckOption
+	mCount         map[string]struct{}
 
 	ipt    *Input
 	feeder *io.MockedFeeder
@@ -190,6 +281,8 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			if len(msgs) > 0 {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
+
+			cs.mCount[measurementName] = struct{}{}
 
 		default: // TODO: check other measurement
 			panic("not implement")
@@ -231,13 +324,6 @@ func (cs *caseSpec) run() error {
 		return err
 	}
 
-	containerName := cs.getContainterName()
-
-	// Remove the container if exist.
-	if err := p.RemoveContainerByName(containerName); err != nil {
-		return err
-	}
-
 	dockerFileDir, dockerFilePath, err := cs.getDockerFilePath()
 	if err != nil {
 		return err
@@ -249,13 +335,15 @@ func (cs *caseSpec) run() error {
 		return err
 	}
 
+	uniqueContainerName := testutils.GetUniqueContainerName(inputName)
+
 	var resource *dockertest.Resource
 
 	if len(cs.dockerFileText) == 0 {
 		// Just run a container from existing docker image.
 		resource, err = p.RunWithOptions(
 			&dockertest.RunOptions{
-				Name: containerName, // ATTENTION: not cs.name.
+				Name: uniqueContainerName, // ATTENTION: not cs.name.
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
@@ -276,7 +364,8 @@ func (cs *caseSpec) run() error {
 			dockerFilePath,
 
 			&dockertest.RunOptions{
-				Name: cs.name,
+				ContainerName: uniqueContainerName,
+				Name:          cs.name, // ATTENTION: not uniqueContainerName.
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
@@ -331,12 +420,15 @@ func (cs *caseSpec) run() error {
 	cs.cr.AddField("point_count", len(pts))
 
 	cs.t.Logf("get %d points", len(pts))
+	cs.mCount = make(map[string]struct{})
 	if err := cs.checkPoint(pts); err != nil {
 		return err
 	}
 
 	cs.t.Logf("stop input...")
 	cs.ipt.Terminate()
+
+	require.Equal(cs.t, 1, len(cs.mCount))
 
 	cs.t.Logf("exit...")
 	wg.Wait()
@@ -393,12 +485,6 @@ func (cs *caseSpec) getDockerFilePath() (dirName string, fileName string, err er
 	return tmpDir, tmpFile.Name(), nil
 }
 
-func (cs *caseSpec) getContainterName() string {
-	nameTag := strings.Split(cs.name, ":")
-	name := filepath.Base(nameTag[0])
-	return name
-}
-
 func (cs *caseSpec) getPortBindings() map[docker.Port][]docker.PortBinding {
 	portBindings := make(map[docker.Port][]docker.PortBinding)
 
@@ -420,27 +506,69 @@ func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-func getDockerfile(version string) string {
+// selfBuild indicates the image was customized built.
+func getDockerfile(version, listenPort string, buildConfVer BUILD_CONFIG_VER) string {
+	if len(version) == 0 {
+		panic("version is empty")
+	}
+
+	if len(listenPort) == 0 {
+		panic("listenPort is empty")
+	}
+
 	replacePair := map[string]string{
 		"VERSION":      version,
 		"a":            "$a",
 		"DATAKIT_HOST": "${DATAKIT_HOST}",
+		"LISTEN_PORT":  listenPort,
 	}
 
-	return os.Expand(dockerFileLogstash, func(k string) string { return replacePair[k] })
+	switch buildConfVer {
+	case VER_1:
+		return os.Expand(dockerFileLogstashV1, func(k string) string { return replacePair[k] })
+	case VER_5:
+		return os.Expand(dockerFileLogstashV5, func(k string) string { return replacePair[k] })
+	case VER_6:
+		return os.Expand(dockerFileLogstashV6, func(k string) string { return replacePair[k] })
+	case VER_7:
+		return os.Expand(dockerFileLogstashV7, func(k string) string { return replacePair[k] })
+	}
+
+	panic("should not been here.")
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
 // Dockerfiles.
 
-const dockerFileLogstash = `FROM elastic/filebeat:${VERSION}
+type BUILD_CONFIG_VER int
+
+const (
+	VER_1 BUILD_CONFIG_VER = iota + 1 // Filebeat: v1.0 ~ v1.3.0
+	VER_5                             // Filebeat: v5.0.0
+	VER_6                             // Filebeat: v6.0.0
+	VER_7                             // Filebeat: v7.0.0+
+)
+
+// Filebeat: v7.0.0+
+/*
+output.logstash:
+  hosts: ["${DATAKIT_HOST}:${LISTEN_PORT}"]
+
+filebeat.inputs:
+- type: filestream
+  id: my-filestream-id
+  enabled: true
+  paths:
+    - /var/log/*.log
+*/
+const dockerFileLogstashV7 = `FROM elastic/filebeat:${VERSION}
 
 USER root
 
 RUN sed -i '10,13d' /usr/share/filebeat/filebeat.yml \
     && sed -i '$a output.logstash:' /usr/share/filebeat/filebeat.yml \
-    && sed -i '$a \  hosts: ["${DATAKIT_HOST}:5044"]' /usr/share/filebeat/filebeat.yml \
+    && sed -i '$a \  hosts: ["${DATAKIT_HOST}:${LISTEN_PORT}"]' /usr/share/filebeat/filebeat.yml \
     && echo "" >> /usr/share/filebeat/filebeat.yml \
     && sed -i '$a filebeat.inputs:' /usr/share/filebeat/filebeat.yml \
     && sed -i '$a - type: filestream' /usr/share/filebeat/filebeat.yml \
@@ -450,3 +578,90 @@ RUN sed -i '10,13d' /usr/share/filebeat/filebeat.yml \
     && sed -i '$a \    - /var/log/*.log' /usr/share/filebeat/filebeat.yml
 
 USER filebeat`
+
+// Filebeat: v6.0.0
+/*
+filebeat.prospectors:
+- type: log
+  enabled: true
+  paths:
+    - /var/log/*.log
+
+output.logstash:
+  enabled: true
+  hosts: ["10.100.65.61:16209"]
+
+logging.to_files: true
+*/
+const dockerFileLogstashV6 = `FROM elastic/filebeat:${VERSION}
+
+USER root
+
+RUN    echo "" > /usr/share/filebeat/filebeat.yml \
+    && sed -i '$a filebeat.prospectors:' /usr/share/filebeat/filebeat.yml \
+    && sed -i '$a  - type: log' /usr/share/filebeat/filebeat.yml \
+    && sed -i '$a \  enabled: true' /usr/share/filebeat/filebeat.yml \
+    && sed -i '$a \  paths:' /usr/share/filebeat/filebeat.yml \
+    && sed -i '$a \    - /var/log/*.log' /usr/share/filebeat/filebeat.yml \
+    && echo "" >> /usr/share/filebeat/filebeat.yml \
+    && sed -i '$a output.logstash:' /usr/share/filebeat/filebeat.yml \
+    && sed -i '$a \  enabled: true' /usr/share/filebeat/filebeat.yml \
+    && sed -i '$a \  hosts: ["${DATAKIT_HOST}:${LISTEN_PORT}"]' /usr/share/filebeat/filebeat.yml \
+    && sed -i '$a logging.to_files: true' /usr/share/filebeat/filebeat.yml
+
+WORKDIR /usr/share/filebeat`
+
+// Filebeat: v5.0.0
+/*
+filebeat.prospectors:
+- input_type: log
+  paths:
+    - /var/log/*.log
+
+output.logstash:
+  hosts: ["${DATAKIT_HOST}:${LISTEN_PORT}"]
+*/
+const dockerFileLogstashV5 = `FROM pubrepo.jiagouyun.com/image-repo-for-testing/filebeat:${VERSION}
+
+RUN sed -i '$a filebeat.prospectors:' /usr/share/filebeat/filebeat.yml \
+    && sed -i '$a - input_type: log' /usr/share/filebeat/filebeat.yml \
+    && sed -i '$a \  paths:' /usr/share/filebeat/filebeat.yml \
+    && sed -i '$a \    - /usr/share/filebeat/logs/*' /usr/share/filebeat/filebeat.yml \
+    && echo "" >> /usr/share/filebeat/filebeat.yml \
+    && sed -i '$a output.logstash:' /usr/share/filebeat/filebeat.yml \
+    && sed -i '$a \  hosts: ["${DATAKIT_HOST}:${LISTEN_PORT}"]' /usr/share/filebeat/filebeat.yml`
+
+// Filebeat: v1.0 ~ v1.3.0
+/*
+filebeat:
+  prospectors:
+    -
+      paths:
+        - /var/log/*.log
+
+output:
+  logstash:
+    hosts: ["${DATAKIT_HOST}:${LISTEN_PORT}"]
+
+logging:
+  to_syslog: false
+*/
+const dockerFileLogstashV1 = `FROM pubrepo.jiagouyun.com/image-repo-for-testing/filebeat:${VERSION}
+
+RUN    touch /var/log/1.log /var/log/2.log \
+    && echo "123" >> /var/log/1.log \
+    && echo "456" >> /var/log/2.log \
+    && sed -i '$a filebeat:' /usr/share/filebeat/filebeat.yml \
+    && sed -i '$a \  prospectors:' /usr/share/filebeat/filebeat.yml \
+    && sed -i '$a \    -' /usr/share/filebeat/filebeat.yml \
+    && sed -i '$a \      paths:' /usr/share/filebeat/filebeat.yml \
+    && sed -i '$a \        - /var/log/*.log' /usr/share/filebeat/filebeat.yml \
+    && echo "" >> /usr/share/filebeat/filebeat.yml \
+    && sed -i '$a output:' /usr/share/filebeat/filebeat.yml \
+    && sed -i '$a \  logstash:' /usr/share/filebeat/filebeat.yml \
+    && sed -i '$a \    hosts: ["${DATAKIT_HOST}:${LISTEN_PORT}"]' /usr/share/filebeat/filebeat.yml \
+    && echo "" >> /usr/share/filebeat/filebeat.yml \
+    && sed -i '$a logging:' /usr/share/filebeat/filebeat.yml \
+    && sed -i '$a \  to_syslog: false' /usr/share/filebeat/filebeat.yml
+
+WORKDIR /usr/share/filebeat`

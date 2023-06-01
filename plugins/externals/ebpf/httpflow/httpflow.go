@@ -126,7 +126,7 @@ var (
 type perferEventHandle func(cpu int, data []byte, perfmap *manager.PerfMap,
 	manager *manager.Manager)
 
-func NewHTTPFlowManger(constEditor []manager.ConstantEditor, bpfMapSockFD *ebpf.Map,
+func NewHTTPFlowManger(constEditor []manager.ConstantEditor, ctMap *ebpf.Map,
 	closedEventHandler, bufHandler perferEventHandle, enableTLS bool) (*manager.Manager, *sysmonitor.UprobeDynamicLibRegister, error) {
 	m := &manager.Manager{
 		Probes: []*manager.Probe{
@@ -221,6 +221,13 @@ func NewHTTPFlowManger(constEditor []manager.ConstantEditor, bpfMapSockFD *ebpf.
 		},
 		ConstantEditors: constEditor,
 	}
+
+	if ctMap != nil {
+		mOpts.MapEditors = map[string]*ebpf.Map{
+			"bpfmap_conntrack_tuple": ctMap,
+		}
+	}
+
 	if buf, err := dkebpf.HTTPFlowBin(); err != nil {
 		return nil, nil, fmt.Errorf("httpflow.o: %w", err)
 	} else if err := m.InitWithOptions((bytes.NewReader(buf)), mOpts); err != nil {
@@ -244,7 +251,7 @@ func NewHTTPFlowTracer(tags map[string]string, datakitPostURL string) *HTTPFlowT
 }
 
 func (tracer *HTTPFlowTracer) Run(ctx context.Context, constEditor []manager.ConstantEditor,
-	bpfMapSockFD *ebpf.Map, enableTLS bool, interval time.Duration) error {
+	ctMap *ebpf.Map, enableTLS bool, interval time.Duration) error {
 	// rawSocket, err := afpacket.NewTPacket()
 	// if err != nil {
 	// 	return fmt.Errorf("error creating raw socket: %w", err)
@@ -256,7 +263,7 @@ func (tracer *HTTPFlowTracer) Run(ctx context.Context, constEditor []manager.Con
 
 	// tracer.TPacket = rawSocket
 
-	bpfManger, r, err := NewHTTPFlowManger(constEditor, bpfMapSockFD,
+	bpfManger, r, err := NewHTTPFlowManger(constEditor, ctMap,
 		tracer.reqFinishedEventHandler, tracer.bufHandle, enableTLS)
 	if err != nil {
 		return err
@@ -293,12 +300,14 @@ func (tracer *HTTPFlowTracer) reqFinishedEventHandler(cpu int, data []byte,
 
 	httpStats := &HTTPReqFinishedInfo{
 		ConnInfo: ConnectionInfo{
-			Saddr: (*(*[4]uint32)(unsafe.Pointer(&eventC.conn_info.saddr))),
-			Sport: uint32(eventC.conn_info.sport),
-			Daddr: (*(*[4]uint32)(unsafe.Pointer(&eventC.conn_info.daddr))),
-			Dport: uint32(eventC.conn_info.dport),
-			Meta:  uint32(eventC.conn_info.meta),
-			Pid:   uint32(eventC.conn_info.pid),
+			Saddr:    (*(*[4]uint32)(unsafe.Pointer(&eventC.conn_info.saddr))),
+			Sport:    uint32(eventC.conn_info.sport),
+			Daddr:    (*(*[4]uint32)(unsafe.Pointer(&eventC.conn_info.daddr))),
+			Dport:    uint32(eventC.conn_info.dport),
+			Meta:     uint32(eventC.conn_info.meta),
+			Pid:      uint32(eventC.conn_info.pid),
+			NATDaddr: (*(*[4]uint32)(unsafe.Pointer(&eventC.http.nat_daddr))),
+			NATDport: uint32(eventC.http.nat_dport),
 		},
 		HTTPStats: HTTPStats{
 			Direction:   dknetflow.ConnDirection2Str(uint8(eventC.http.direction)),

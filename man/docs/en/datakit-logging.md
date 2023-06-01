@@ -103,7 +103,6 @@ All log collection, regardless of the collection method used, supports the follo
 
 - Multi-line cutting: Most logs are single-line logs, but some logs are multi-line, such as call stack logs, and some special application logs (such as MySQL slow logs)
 - Encoding: The final logs need to be converted to UTF8 storage, and some Windows logs may need to be coded and decoded
-- Color character: Mainly for the log output to stdout, it is necessary to filter out some color repair characters that affect reading when collecting
 
 ## Summary {#summary}
 

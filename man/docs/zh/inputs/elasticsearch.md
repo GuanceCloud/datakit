@@ -1,4 +1,4 @@
-{{.CSS}}
+
 # ElasticSearch
 ---
 
@@ -21,13 +21,13 @@ ElasticSearch 采集器主要采集节点运行情况、集群健康、JVM 性�
 
 如果开启账号密码访问，需要配置相应的权限，否则会导致监控信息获取失败错误。
 
-目前支持 [Elasticsearch](#perm-es) 、 [Open Distro for Elasticsearch](#perm-open-es) 和 [OpenSearch](#perm-opensearch)。
+目前支持 [Elasticsearch](elasticsearch.md#perm-es)、[Open Distro for Elasticsearch](elasticsearch.md#perm-open-es) 和 [OpenSearch](elasticsearch.md#perm-opensearch)。
 
 ### Elasticsearch {#perm-es}
 
-- 创建角色`monitor`，设置如下权限
+- 创建角色 `monitor`，设置如下权限
 
-```javascript
+```json
   {
     "applications": [],
     "cluster": [
@@ -51,15 +51,15 @@ ElasticSearch 采集器主要采集节点运行情况、集群健康、JVM 性�
 
 ```
 
-- 创建自定义用户，并赋予新创建的`monitor`角色。
+- 创建自定义用户，并赋予新创建的 `monitor` 角色。
 - 其他信息请参考配置文件说明
 
-### Open Distro for Elasticsearch {#perm-open-es}
+### Open Distro for ElasticSearch {#perm-open-es}
 
 - 创建用户
 - 创建角色 `monitor`，设置如下权限：
 
-```
+``` http
 PUT _opendistro/_security/api/roles/monitor
 {
   "description": "monitor es cluster",
@@ -92,7 +92,7 @@ PUT _opendistro/_security/api/roles/monitor
 - 创建用户
 - 创建角色 `monitor`，设置如下权限：
 
-```
+``` http
 PUT _plugins/_security/api/roles/monitor
 {
   "description": "monitor es cluster",
@@ -122,6 +122,7 @@ PUT _plugins/_security/api/roles/monitor
 
 ## 配置 {#config}
 
+<!-- markdownlint-disable MD046 -->
 === "主机安装"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
@@ -135,6 +136,7 @@ PUT _plugins/_security/api/roles/monitor
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+<!-- markdownlint-enable -->
 
 ## 指标集 {#measurements}
 
@@ -151,7 +153,7 @@ PUT _plugins/_security/api/roles/monitor
 
 ### `{{$m.Name}}`
 
--  标签
+- 标签
 
 {{$m.TagsMarkdownTable}}
 
@@ -159,14 +161,15 @@ PUT _plugins/_security/api/roles/monitor
 
 {{$m.FieldsMarkdownTable}}
 
-{{ end }} 
-
+{{ end }}
 
 ## 日志采集 {#logging}
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     日志采集仅支持采集已安装 DataKit 主机上的日志
+<!-- markdownlint-enable -->
 
 如需采集 ElasticSearch 的日志，可在 {{.InputName}}.conf 中 将 `files` 打开，并写入 ElasticSearch 日志文件的绝对路径。比如：
 
@@ -179,13 +182,13 @@ files = ["/path/to/your/file.log"]
 
 开启日志采集以后，默认会产生日志来源（`source`）为 `elasticsearch` 的日志。
 
-## 日志 pipeline 功能切割字段说明 {#pipeline}
+## 日志 Pipeline 功能切割字段说明 {#pipeline}
 
 - ElasticSearch 通用日志切割
   
 通用日志文本示例：
 
-```
+``` log
 [2021-06-01T11:45:15,927][WARN ][o.e.c.r.a.DiskThresholdMonitor] [master] high disk watermark [90%] exceeded on [A2kEFgMLQ1-vhMdZMJV3Iw][master][/tmp/elasticsearch-cluster/nodes/0] free: 17.1gb[7.3%], shards will be relocated away from this node; currently relocating away shards totalling [0] bytes; the node is expected to continue to exceed the high disk watermark when these relocations are complete
 ```
 
@@ -198,11 +201,11 @@ files = ["/path/to/your/file.log"]
 | status | WARN                           | 日志等级     |
 | nodeId | master                         | 节点名称     |
 
-- ElastiSearch 搜索慢日志切割
+- ElasticSearch 搜索慢日志切割
   
 搜索慢日志文本示例：
 
-```
+``` log
 [2021-06-01T11:56:06,712][WARN ][i.s.s.query              ] [master] [shopping][0] took[36.3ms], took_millis[36], total_hits[5 hits], types[], stats[], search_type[QUERY_THEN_FETCH], total_shards[1], source[{"query":{"match":{"name":{"query":"Nariko","operator":"OR","prefix_length":0,"max_expansions":50,"fuzzy_transpositions":true,"lenient":false,"zero_terms_query":"NONE","auto_generate_synonyms_phrase_query":true,"boost":1.0}}},"sort":[{"price":{"order":"desc"}}]}], id[], 
 ```
 
@@ -215,13 +218,13 @@ files = ["/path/to/your/file.log"]
 | status   | WARN                | 日志等级         |
 | nodeId   | master              | 节点名称         |
 | index    | shopping            | 索引名称         |
-| duration | 36000000            | 请求耗时，单位ns |
+| duration | 36000000            | 请求耗时，单位 ns|
 
 - ElasticSearch 索引慢日志切割
 
 索引慢日志文本示例：
 
-```
+``` log
 [2021-06-01T11:56:19,084][WARN ][i.i.s.index              ] [master] [shopping/X17jbNZ4SoS65zKTU9ZAJg] took[34.1ms], took_millis[34], type[_doc], id[LgC3xXkBLT9WrDT1Dovp], routing[], source[{"price":222,"name":"hello"}]
 ```
 
@@ -234,5 +237,4 @@ files = ["/path/to/your/file.log"]
 | status   | WARN                | 日志等级         |
 | nodeId   | master              | 节点名称         |
 | index    | shopping            | 索引名称         |
-| duration | 34000000            | 请求耗时，单位ns |
-
+| duration | 34000000            | 请求耗时，单位 ns|

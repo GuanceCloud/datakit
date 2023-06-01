@@ -300,9 +300,9 @@ Log collection is a very complex system, which involves a lot of detail processi
 
 Supplementary links:
 
-- [Introduction to the glob schema](https://en.wikipedia.org/wiki/Glob_(programming))
-- [Datakit automatic multiline configuration](https://docs.guance.com/integrations/logging/#auto-multiline)
-- [Datakit pipeline processing](https://docs.guance.com/datakit/pipeline/)
-- [Docker truncates discussions over 16KiB logs](https://github.com/moby/moby/issues/34855)
-- [Docker truncates more than 16KiB of source code](https://github.com/nalind/docker/blob/master/daemon/logger/copier.go#L13)
-- [Docker logging driver](https://docs.docker.com/config/containers/logging/local/)
+- [Introduction to the glob schema](https://en.wikipedia.org/wiki/Glob_(programming)){:target="_blank"}
+- [Datakit automatic multiline configuration](https://docs.guance.com/integrations/logging/#auto-multiline){:target="_blank"}
+- [Datakit pipeline processing](https://docs.guance.com/datakit/pipeline/){:target="_blank"}
+- [Docker truncates discussions over 16KiB logs](https://github.com/moby/moby/issues/34855){:target="_blank"}
+- [Docker truncates more than 16KiB of source code](https://github.com/nalind/docker/blob/master/daemon/logger/copier.go#L13){:target="_blank"}
+- [Docker logging driver](https://docs.docker.com/config/containers/logging/local/){:target="_blank"}

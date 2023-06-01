@@ -9,6 +9,7 @@ package snmputil
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -131,4 +132,242 @@ func TestValidateNamespace(t *testing.T) {
 	}
 	_, err = NormalizeNamespace(string(b))
 	assert.NotNil(err, "namespace should not contain bad bytes")
+}
+
+// go test -v -timeout 30s -run ^Test_getIPInterfaceByTags$ gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/snmp/snmputil
+func Test_getIPInterfaceByTags(t *testing.T) {
+	cases := []struct {
+		name                string
+		tags                []string
+		expectIP, expectInf string
+	}{
+		{
+			name: "normal",
+			tags: []string{
+				"snmp_profile:cisco-catalyst",
+				"device_vendor:cisco",
+				"snmp_host:jk",
+				"ip:1.1.1.1",
+				"agent_host:",
+				"agent_version:1.6.1-459-g0d3783817f",
+				"interface:Gi1/0/3",
+				"interface_alias:conn-to-4XF4BX2-2port-2.2.2.2",
+			},
+			expectIP:  "1.1.1.1",
+			expectInf: "Gi1/0/3",
+		},
+
+		{
+			name: "unexpect",
+			tags: []string{
+				"some",
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ip, inf := getIPInterfaceByTags(tc.tags)
+			assert.Equal(t, tc.expectIP, ip)
+			assert.Equal(t, tc.expectInf, inf)
+		})
+	}
+}
+
+// go test -v -timeout 30s -run ^Test_getPreviousBandwidthUsageRateKeyName$ gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/snmp/snmputil
+func Test_getPreviousBandwidthUsageRateKeyName(t *testing.T) {
+	cases := []struct {
+		name                string
+		ip, inf, metricName string
+		expect              string
+	}{
+		{
+			name:       "normal",
+			ip:         "1.1.1.1",
+			inf:        "Gi1/0/3",
+			metricName: "ifBandwidthInUsage.rate",
+			expect:     "1.1.1.1_Gi1/0/3_ifBandwidthInUsage.rate",
+		},
+
+		{
+			name:       "emptyIP",
+			inf:        "Gi1/0/3",
+			metricName: "ifBandwidthInUsage.rate",
+			expect:     "",
+		},
+
+		{
+			name:       "emptyInterface",
+			ip:         "1.1.1.1",
+			metricName: "ifBandwidthInUsage.rate",
+			expect:     "",
+		},
+
+		{
+			name:   "emptyMetricName",
+			ip:     "1.1.1.1",
+			inf:    "Gi1/0/3",
+			expect: "",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			out := getPreviousBandwidthUsageRateKeyName(tc.ip, tc.inf, tc.metricName)
+			assert.Equal(t, tc.expect, out)
+		})
+	}
+}
+
+// go test -v -timeout 30s -run ^Test_calculateBandwidthUtilization$ gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/snmp/snmputil
+func Test_calculateBandwidthUtilization(t *testing.T) {
+	preEmpty := func() {
+		previousBandwidthUsageRate = sync.Map{}
+	}
+
+	preInvalidValueItem := func() {
+		previousBandwidthUsageRate = sync.Map{}
+
+		previousBandwidthUsageRate.Store("1.1.1.1_Gi1/0/3_ifBandwidthInUsage.rate", 1)
+	}
+
+	preNegative := func() {
+		previousBandwidthUsageRate = sync.Map{}
+
+		previousBandwidthUsageRate.Store(
+			"1.1.1.1_Gi1/0/3_ifBandwidthInUsage.rate",
+			newValueItem(10000, 1),
+		)
+	}
+
+	prePreZero := func() {
+		previousBandwidthUsageRate = sync.Map{}
+
+		previousBandwidthUsageRate.Store(
+			"1.1.1.1_Gi1/0/3_ifBandwidthInUsage.rate",
+			newValueItem(0, 0),
+		)
+	}
+
+	preNewMetric := func() {
+		previousBandwidthUsageRate = sync.Map{}
+
+		previousBandwidthUsageRate.Store(
+			"1.1.1.1_Gi1/0/3_ifBandwidthInUsage.rate",
+			newValueItem(1000, 1),
+		)
+	}
+
+	_ = preEmpty
+	_ = preInvalidValueItem
+	_ = preNegative
+	_ = preNewMetric
+
+	cases := []struct {
+		name                   string
+		previous               func()
+		ip, inf, metricName    string
+		metricValue, timestamp float64
+		expectErr              error
+		expect                 float64
+	}{
+		{
+			name:        "Zero",
+			previous:    preEmpty,
+			ip:          "1.1.1.1",
+			inf:         "Gi1/0/3",
+			metricName:  "ifBandwidthInUsage.rate",
+			metricValue: 0,
+			timestamp:   5,
+			expect:      0,
+		},
+
+		{
+			name:        "InvalidInterface",
+			previous:    preEmpty,
+			ip:          "1.1.1.1",
+			metricName:  "ifBandwidthInUsage.rate",
+			metricValue: 10000,
+			timestamp:   5,
+			expectErr:   fmt.Errorf("unexpected ip and interface"),
+			expect:      0,
+		},
+
+		{
+			name:        "EmptyKey",
+			previous:    preEmpty,
+			ip:          "1.1.1.1",
+			inf:         "Gi1/0/3",
+			metricValue: 10000,
+			timestamp:   5,
+			expectErr:   fmt.Errorf("unexpected key name"),
+			expect:      0,
+		},
+
+		{
+			name:        "InvalidValueItem",
+			previous:    preInvalidValueItem,
+			ip:          "1.1.1.1",
+			inf:         "Gi1/0/3",
+			metricName:  "ifBandwidthInUsage.rate",
+			metricValue: 10000,
+			timestamp:   5,
+			expectErr:   fmt.Errorf("invalid *valueItem"),
+			expect:      0,
+		},
+
+		{
+			name:        "Negative",
+			previous:    preNegative,
+			ip:          "1.1.1.1",
+			inf:         "Gi1/0/3",
+			metricName:  "ifBandwidthInUsage.rate",
+			metricValue: 1000,
+			timestamp:   5,
+			expect:      0,
+		},
+
+		{
+			name:        "PreZero",
+			previous:    prePreZero,
+			ip:          "1.1.1.1",
+			inf:         "Gi1/0/3",
+			metricName:  "ifBandwidthInUsage.rate",
+			metricValue: 1000,
+			timestamp:   5,
+			expect:      0,
+		},
+
+		{
+			name:        "NewDevice",
+			previous:    preEmpty,
+			ip:          "1.1.1.1",
+			inf:         "Gi1/0/3",
+			metricName:  "ifBandwidthInUsage.rate",
+			metricValue: 10000,
+			timestamp:   5,
+			expect:      0,
+		},
+
+		{
+			name:        "NewMetric",
+			previous:    preNewMetric,
+			ip:          "1.1.1.1",
+			inf:         "Gi1/0/3",
+			metricName:  "ifBandwidthInUsage.rate",
+			metricValue: 10000,
+			timestamp:   5,
+			expect:      2250,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.previous()
+
+			out, err := calculateBandwidthUtilization(tc.ip, tc.inf, tc.metricName, tc.metricValue, tc.timestamp)
+			assert.Equal(t, tc.expectErr, err)
+			assert.Equal(t, tc.expect, out)
+		})
+	}
 }

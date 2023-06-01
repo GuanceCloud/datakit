@@ -65,11 +65,11 @@ func getQueues(n *Input) {
 		}
 		fields["bindings_count"] = bindings
 		metric := &QueueMeasurement{
-			name:     QueueMetric,
-			tags:     tags,
-			fields:   fields,
-			ts:       ts,
-			election: n.Election,
+			name:   QueueMetric,
+			tags:   tags,
+			fields: fields,
+			ts:     ts,
+			ipt:    n,
 		}
 		metricAppend(metric.Point())
 	}
@@ -86,22 +86,17 @@ func (n *Input) getBindingCount(vHost, queueName string) (int, error) {
 }
 
 type QueueMeasurement struct {
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	ts       time.Time
-	election bool
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+	ipt    *Input
 }
 
 // Point implement MeasurementV2.
 func (m *QueueMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-
-	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
+	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -142,10 +137,10 @@ func (m *QueueMeasurement) Info() *inputs.MeasurementInfo {
 		},
 
 		Tags: map[string]interface{}{
-			"url":        inputs.NewTagInfo("rabbitmq url"),
-			"node_name":  inputs.NewTagInfo("rabbitmq node name"),
-			"queue_name": inputs.NewTagInfo("rabbitmq queue name"),
-			"host":       inputs.NewTagInfo("Hostname of rabbitmq running on."),
+			"url":        inputs.NewTagInfo("RabbitMQ host URL"),
+			"node_name":  inputs.NewTagInfo("RabbitMQ node name"),
+			"queue_name": inputs.NewTagInfo("RabbitMQ queue name"),
+			"host":       inputs.NewTagInfo("Hostname of RabbitMQ running on."),
 		},
 	}
 }

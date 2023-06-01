@@ -1,9 +1,10 @@
-{{.CSS}}
+
 # DataKit 主配置
 ---
 
 DataKit 主配置用来配置 DataKit 自己的运行行为。
 
+<!-- markdownlint-disable MD046 -->
 === "主机部署"
 
     其目录一般位于：
@@ -11,25 +12,29 @@ DataKit 主配置用来配置 DataKit 自己的运行行为。
     - Linux/Mac: `/usr/local/datakit/conf.d/datakit.conf`
     - Windows: `C:\Program Files\datakit\conf.d\datakit.conf`
 
-=== "Kubernates"
+=== "Kubernetes"
 
-    DaemonSet 安装时，虽然在对应目录下也存在这个文件，**但实际上 DataKit 并不加载这里的配置**。这些配是通过在 datakit.yaml 中[注入环境变量](datakit-daemonset-deploy.md#using-k8-env)来生成的。下面所有的配置，都能在 Kubernates 部署文档中找到[对应的环境变量](datakit-daemonset-deploy.md#using-k8-env)配置。
+    DaemonSet 安装时，虽然在对应目录下也存在这个文件，**但实际上 DataKit 并不加载这里的配置**。这些配是通过在 *datakit.yaml* 中[注入环境变量](datakit-daemonset-deploy.md#using-k8-env)来生成的。下面所有的配置，都能在 Kubernetes 部署文档中找到[对应的环境变量](datakit-daemonset-deploy.md#using-k8-env)配置。
+<!-- markdownlint-enable -->
 
 ## Datakit 主配置示例 {#maincfg-example}
 
 Datakit 主配置示例如下，我们可以根据该示例来开启各种功能（当前版本 {{ .Version }}）：
 
-??? info "datakit.conf"
+<!-- markdownlint-disable MD046 -->
+??? info "*datakit.conf*"
 
     ```toml
     {{ CodeBlock .DatakitConfSample 4 }}
     ```
+<!-- markdownlint-enable -->
 
 ## HTTP 服务的配置 {#config-http-server}
 
 DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基础的数据服务。
 
-=== "datakit.conf"
+<!-- markdownlint-disable MD046 -->
+=== "*datakit.conf*"
 
     ### 修改 HTTP 服务地址 {#update-http-server-host}
     
@@ -46,12 +51,12 @@ DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基
 
     #### 使用 Unix domain socket {#uds}
 
-    Datakit 支持 UNIX domain sockets 访问。开启方式如下: `listen` 字段配置为<b>一个不存在文件的全路径</b>，这里以 `datakit.sock` 举例，可以为任意文件名。
+    Datakit 支持 UNIX domain sockets 访问。开启方式如下：`listen` 字段配置为<b>一个不存在文件的全路径</b>，这里以 `datakit.sock` 举例，可以为任意文件名。
     ```toml
     [http_api]
        listen = "/tmp/datakit.sock"
     ```
-    配置完成后可以使用 `curl` 命令测试是否配置成功: `sudo curl --no-buffer -XGET --unix-socket /tmp/datakit.sock http:/localhost/v1/ping`。更多关于 `curl` 的测试命令的信息可以参阅[这里](https://superuser.com/a/925610)。
+    配置完成后可以使用 `curl` 命令测试是否配置成功：`sudo curl --no-buffer -XGET --unix-socket /tmp/datakit.sock http:/localhost/v1/ping`。更多关于 `curl` 的测试命令的信息可以参阅[这里](https://superuser.com/a/925610){:target="_blank"}。
     
     ### HTTP 请求频率控制 {#set-http-api-limit}
     
@@ -70,9 +75,10 @@ DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基
         timeout = "30s"              # 设置服务端 HTTP 超时
     ```
 
-=== "Kubernates"
+=== "Kubernetes"
 
     参见[这里](datakit-daemonset-deploy.md#env-http-api)
+<!-- markdownlint-enable -->
 
 ## 全局标签（Tag）修改 {#set-global-tag}
 
@@ -96,8 +102,9 @@ DataKit 允许给其采集的所有数据配置全局标签，全局标签分为
 加全局 Tag 时，有几个地方要注意：
 
 - 这些全局 Tag 的值可以用 DataKit 目前已经支持的几个变量（双下划线（`__`）前缀和 `$` 都是可以的）：
-  - `__datakit_ip/$datakit_ip`：标签值会设置成 DataKit 获取到的第一个主网卡 IP
-  - `__datakit_hostname/$datakit_hostname`：标签值会设置成 DataKit 的主机名
+
+    - `__datakit_ip/$datakit_ip`：标签值会设置成 DataKit 获取到的第一个主网卡 IP
+    - `__datakit_hostname/$datakit_hostname`：标签值会设置成 DataKit 的主机名
 
 - 由于 [DataKit 数据传输协议限制](apis.md#lineproto-limitation)，不要在全局标签（Tag）中出现任何指标（Field）字段，否则会因为违反协议导致数据处理失败。具体参见具体采集器的字段列表。当然，也不要加太多 Tag，而且每个 Tag 的 Key 以及 Value 长度都有限制。
 
@@ -106,7 +113,7 @@ DataKit 允许给其采集的所有数据配置全局标签，全局标签分为
 
 ### 全局 Tag 在远程采集时的设置 {#notice-global-tags}
 
-因为 DataKit 会默认给采集到的所有数据追加标签 `host=<DataKit所在主机名>`，但某些情况这个默认追加的 `host` 会带来困扰。
+因为 DataKit 会默认给采集到的所有数据追加标签 `host=<DataKit 所在主机名>`，但某些情况这个默认追加的 `host` 会带来困扰。
 
 以 MySQL 为例，如果 MySQL 不在 DataKit 所在机器，但又希望这个 `host` 标签是被采集的 MySQL 的真实主机名（或云数据库的其它标识字段），而非 DataKit 所在的主机名。
 
@@ -121,13 +128,15 @@ DataKit 允许给其采集的所有数据配置全局标签，全局标签分为
 
 - 以 [HTTP API 方式往 DataKit 推送数据](apis.md#api-v1-write)时，可以通过 API 参数 `ignore_global_tags` 来屏蔽所有全局 Tag
 
+<!-- markdownlint-disable MD046 -->
 ???+ tip
 
     自 [1.4.20](changelog.md#cl-1.4.20) 之后，DataKit 默认会以被采集服务的 IP/Host 等字段为 `host` 字段，故这一问题升级之后将得到改善。建议大家升级到该版本来避免这一问题。
+<!-- markdownlint-enable -->
 
 ## DataKit 自身运行日志配置 {#logging-config}
 
-DataKit 自身日志有两个，一个是自身运行日志（*/var/log/datakit/log*），一个是 HTTP Access 日志（*/var/log/datakit/gin.log*）。 
+DataKit 自身日志有两个，一个是自身运行日志（*/var/log/datakit/log*），一个是 HTTP Access 日志（*/var/log/datakit/gin.log*）。
 
 DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志等级以及分片大小：
 
@@ -149,7 +158,8 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
 [:octicons-tag-24: Version-1.4.8](changelog.md#cl-1.4.8) ·
 [:octicons-beaker-24: Experimental](index.md#experimental)
 
-=== "datakit.conf"
+<!-- markdownlint-disable MD046 -->
+=== "*datakit.conf*"
 
     某些情况下，DataKit 的单机数据采集量非常大，如果网络带宽有限，可能导致部分数据的采集中断或丢弃。可以通过配置 io 模块的一些参数来缓解这一问题：
 
@@ -166,7 +176,7 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
 === "Kubernetes"
 
     参见[这里](datakit-daemonset-deploy.md#env-io)
-
+<!-- markdownlint-enable -->
 
 #### IO 磁盘缓存 {#io-disk-cache}
 
@@ -174,7 +184,8 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
 
 当 DataKit 发送数据失败后，为了不丢失关键数据，可以开启磁盘缓存。磁盘缓存的目的在于将发送失败的数据暂时存入磁盘，待条件允许时，再将数据发送出去。
 
-=== "datakit.conf"
+<!-- markdownlint-disable MD046 -->
+=== "*datakit.conf*"
 
     ```toml
     [io]
@@ -192,6 +203,7 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
 ???+ attention
 
     这里的 `cache_max_size_gb` 指每个分类（Category）的缓存大小，总共 10 个分类的话，如果每个指定 5GB，理论上会占用 50GB 左右的空间。
+<!-- markdownlint-enable -->
 
 ### cgroup 限制  {#enable-cgroup}
 
@@ -220,14 +232,16 @@ $ systemctl status datakit
    Main PID: 3474282 (code=killed, signal=KILL)
 ```
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     - cgroup 限制只在[宿主机安装](datakit-install.md)的时候会默认开启
-    - cgourp 只支持 CPU 使用率和内存使用量（mem+swap）控制，且只支持 Linux 操作系统。
+    - cgroup 只支持 CPU 使用率和内存使用量（mem+swap）控制，且只支持 Linux 操作系统。
 
 ???+ tip
 
     Datakit 自 [1.5.8](changelog.md#cl-1.5.8) 开始支持 cgroup v2。如果不确定 cgroup 版本，可通过命令 `mount | grep cgroup` 来确认。
+<!-- markdownlint-enable -->
 
 ### 选举配置 {#election}
 
@@ -249,7 +263,7 @@ Linux 环境下，可以在 Datakit 主配置文件中配置 `ulimit` 项，以�
 ulimit = 64000
 ```
 
-ulimit 默认配置为 64000。在 Kubernates 中，通过[设置 `ENV_ULIMIT`](datakit-daemonset-deploy.md#env-others) 即可。
+ulimit 默认配置为 64000。在 Kubernetes 中，通过[设置 `ENV_ULIMIT`](datakit-daemonset-deploy.md#env-others) 即可。
 
 ### :material-chat-question: cgroup CPU 使用率说明 {#cgroup-how}
 

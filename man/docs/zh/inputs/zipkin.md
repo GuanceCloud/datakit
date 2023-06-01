@@ -1,5 +1,6 @@
-{{.CSS}}
+
 # Zipkin
+
 ---
 
 {{.AvailableArchs}}
@@ -10,12 +11,13 @@ Datakit 内嵌的 Zipkin Agent 用于接收，运算，分析 Zipkin Tracing 协
 
 ## Zipkin 文档 {#docs}
 
-- [Quickstart](https://zipkin.io/pages/quickstart.html){:target="_blank"}
+- [Quick Start](https://zipkin.io/pages/quickstart.html){:target="_blank"}
 - [Docs](https://zipkin.io/pages/instrumenting.html){:target="_blank"}
-- [Souce Code](https://github.com/openzipkin/zipkin){:target="_blank"}
+- [Source Code](https://github.com/openzipkin/zipkin){:target="_blank"}
 
 ## 配置 Zipkin Agent {#config-agent}
 
+<!-- markdownlint-disable MD046 -->
 === "主机安装"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
@@ -29,6 +31,7 @@ Datakit 内嵌的 Zipkin Agent 用于接收，运算，分析 Zipkin Tracing 协
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+<!-- markdownlint-enable -->
 
 ## 指标集 {#measurements}
 

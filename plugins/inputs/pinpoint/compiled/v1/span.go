@@ -16,16 +16,29 @@ import (
 	"time"
 
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	"google.golang.org/grpc/metadata"
 )
 
-func (x *PSpan) ConvertToDKTrace(inputName string, apiMetaTab *sync.Map) itrace.DatakitTrace {
+type grpcMeta metadata.MD
+
+func (md grpcMeta) Get(key string) string {
+	for k, v := range md {
+		if k == key && len(v) != 0 {
+			return v[0]
+		}
+	}
+
+	return ""
+}
+
+func (x *PSpan) ConvertToDKTrace(inputName string, meta metadata.MD, apiMetaTab *sync.Map) itrace.DatakitTrace {
 	root := &itrace.DatakitSpan{
-		TraceID:    getTraceID(x.TransactionId),
+		TraceID:    getTraceID(x.TransactionId, meta),
 		SpanID:     strconv.FormatUint(uint64(x.SpanId), 10),
-		Service:    getServiceType(x.ServiceType),
+		Service:    grpcMeta(meta).Get("applicationname"),
 		Source:     inputName,
 		SpanType:   itrace.SPAN_TYPE_ENTRY,
-		SourceType: itrace.SPAN_SOURCE_CUSTOMER,
+		SourceType: getServiceType(x.ServiceType),
 		Tags:       make(map[string]string),
 		Metrics:    map[string]interface{}{itrace.FIELD_PRIORITY: itrace.PRIORITY_AUTO_KEEP},
 		Start:      x.StartTime * int64(time.Millisecond),
@@ -62,15 +75,15 @@ func (x *PSpan) ConvertToDKTrace(inputName string, apiMetaTab *sync.Map) itrace.
 	return *trace
 }
 
-func (x *PSpanChunk) ConvertToDKTrace(inputName string, apiMetaTab *sync.Map) itrace.DatakitTrace {
+func (x *PSpanChunk) ConvertToDKTrace(inputName string, meta metadata.MD, apiMetaTab *sync.Map) itrace.DatakitTrace {
 	root := &itrace.DatakitSpan{
-		TraceID:    getTraceID(x.TransactionId),
+		TraceID:    getTraceID(x.TransactionId, meta),
 		ParentID:   "0",
 		SpanID:     strconv.FormatUint(uint64(x.SpanId), 10),
-		Service:    x.TransactionId.AgentId,
+		Service:    grpcMeta(meta).Get("applicationname"),
 		Source:     inputName,
 		SpanType:   itrace.SPAN_TYPE_ENTRY,
-		SourceType: itrace.SPAN_SOURCE_CUSTOMER,
+		SourceType: getServiceType(x.ApplicationServiceType),
 		Metrics:    map[string]interface{}{itrace.FIELD_PRIORITY: itrace.PRIORITY_AUTO_KEEP},
 		Start:      x.KeyTime * int64(time.Millisecond),
 		Duration:   int64(PSpanEventList(x.SpanEvent).Duration()) * time.Hour.Milliseconds(),
@@ -167,7 +180,10 @@ func expandSpanEvents(rootStart int64, parent *itrace.DatakitSpan, i int, events
 	expandSpanEvents(rootStart, dkspan, i+1, events, apiMetaTab, trace)
 }
 
-func getTraceID(transid *PTransactionId) string {
+func getTraceID(transid *PTransactionId, meta metadata.MD) string {
+	if tid := grpcMeta(meta).Get("x-b3-traceid"); len(tid) != 0 {
+		return tid
+	}
 	if transid != nil {
 		return fmt.Sprintf("%s^%d^%d", transid.AgentId, transid.AgentStartTime, transid.Sequence)
 	} else {

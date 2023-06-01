@@ -27,8 +27,8 @@ func gatherDockerContainerMetric(client dockerClientX, k8sClient k8sClientX, con
 	if err != nil {
 		return nil, err
 	}
-	m.fields = f
 
+	m.fields = f
 	return m, nil
 }
 
@@ -128,14 +128,32 @@ func getContainerStats(client dockerClientX, containerID string) (fieldsType, er
 		return nil, err
 	}
 
-	return calculateContainerStats(v), nil
+	metrics := calculateContainerStats(v)
+
+	if metrics["network_bytes_rcvd"] == int64(0) && metrics["network_bytes_sent"] == int64(0) {
+		pid, err := getContainerPID(client, containerID)
+		if err != nil {
+			l.Warnf("unable to get container pid from ID %s, err: %s, ignored", containerID, err)
+		} else {
+			netRx, netTx, err := getNetworkMetricsWithProc(pid)
+			if err != nil {
+				l.Warnf("unable to get net/dev info from ID %s, err: %s, ignored", containerID, err)
+			} else {
+				l.Debugf("use net/dev info from ID %s, rx: %d, tx: %d", containerID, netRx, netTx)
+				metrics["network_bytes_rcvd"] = netRx
+				metrics["network_bytes_sent"] = netTx
+			}
+		}
+	}
+
+	return metrics, nil
 }
 
 func calculateContainerStats(v *types.StatsJSON) map[string]interface{} {
 	mem := calculateMemUsageUnixNoCache(v.MemoryStats)
 	memPercent := calculateMemPercentUnixNoCache(float64(v.MemoryStats.Limit), float64(mem))
-	netRx, netTx := calculateNetwork(v.Networks)
 	blkRead, blkWrite := calculateBlockIO(v.BlkioStats)
+	netRx, netTx := calculateNetwork(v.Networks)
 
 	return map[string]interface{}{
 		"cpu_usage": calculateCPUPercentUnix(v.PreCPUStats.CPUUsage.TotalUsage,
@@ -183,6 +201,21 @@ func isPauseContainer(command string) bool {
 	return command == "/pause"
 }
 
+func getNetworkMetricsWithProc(pid int) (int64, int64, error) {
+	file := fmt.Sprintf("/proc/%d/net/dev", pid)
+	if datakit.Docker {
+		file = "/rootfs" + file
+	}
+
+	netdev, err := NewNetDev(file)
+	if err != nil {
+		return 0, 0, fmt.Errorf("unable to read net/dev file, err: %w", err)
+	}
+
+	total := netdev.Total()
+	return int64(total.RxBytes), int64(total.TxBytes), nil
+}
+
 // nolint:lll
 // containerIsFromKubernetes 判断该容器是否由kubernetes创建
 // 所有kubernetes启动的容器的containerNamePrefix都是k8s，依据链接如下
@@ -209,18 +242,18 @@ func (c *containerMetric) Info() *inputs.MeasurementInfo {
 		Desc: "The metric of containers, only supported Running status.",
 		Tags: map[string]interface{}{
 			"container_id":           inputs.NewTagInfo(`Container ID`),
-			"container_name":         inputs.NewTagInfo(`Container name from k8s (label 'io.kubernetes.container.name'). If empty then use $container_runtime_name.`),
+			"container_name":         inputs.NewTagInfo("Container name from k8s (label `io.kubernetes.container.name`). If empty then use $container_runtime_name."),
 			"container_runtime_name": inputs.NewTagInfo(`Container name from runtime (like 'docker ps'). If empty then use 'unknown' ([:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)).`),
-			"docker_image":           inputs.NewTagInfo("The full name of the container image, example `nginx.org/nginx:1.21.0` (Depercated, use image)."),
-			"linux_namespace":        inputs.NewTagInfo(`The [linux namespace](https://man7.org/linux/man-pages/man7/namespaces.7.html) where this container is located.`),
+			"docker_image":           inputs.NewTagInfo("The full name of the container image, example `nginx.org/nginx:1.21.0` (Deprecated: use image)."),
+			"linux_namespace":        inputs.NewTagInfo(`The [Linux namespace](https://man7.org/linux/man-pages/man7/namespaces.7.html){:target="_blank"} where this container is located.`),
 			"image":                  inputs.NewTagInfo("The full name of the container image, example `nginx.org/nginx:1.21.0`."),
 			"image_name":             inputs.NewTagInfo("The name of the container image, example `nginx.org/nginx`."),
 			"image_short_name":       inputs.NewTagInfo("The short name of the container image, example `nginx`."),
 			"image_tag":              inputs.NewTagInfo("The tag of the container image, example `1.21.0`."),
-			"container_type":         inputs.NewTagInfo(`The type of the container (this container is created by kubernetes/docker/containerd).`),
+			"container_type":         inputs.NewTagInfo(`The type of the container (this container is created by Kubernetes/Docker/containerd).`),
 			"state":                  inputs.NewTagInfo(`Container status (only Running, unsupported containerd).`),
-			"pod_name":               inputs.NewTagInfo(`The pod name of the container (label 'io.kubernetes.pod.name').`),
-			"namespace":              inputs.NewTagInfo(`The pod namespace of the container (label 'io.kubernetes.pod.namespace').`),
+			"pod_name":               inputs.NewTagInfo("The pod name of the container (label `io.kubernetes.pod.name`)."),
+			"namespace":              inputs.NewTagInfo("The pod namespace of the container (label `io.kubernetes.pod.namespace`)."),
 			"deployment":             inputs.NewTagInfo(`The deployment name of the container's pod (unsupported containerd).`),
 		},
 		Fields: map[string]interface{}{

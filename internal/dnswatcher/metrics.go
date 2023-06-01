@@ -52,7 +52,7 @@ func init() {
 			Namespace: "datakit",
 			Subsystem: "dns",
 			Name:      "watch_run_total",
-			Help:      "watch run counter",
+			Help:      "Watch run counter",
 		},
 		[]string{
 			"interval",
@@ -63,8 +63,8 @@ func init() {
 		prometheus.SummaryOpts{
 			Namespace: "datakit",
 			Subsystem: "dns",
-			Name:      "cost",
-			Help:      "DNS IP lookup cost(ms)",
+			Name:      "cost_seconds",
+			Help:      "DNS IP lookup cost",
 		},
 		[]string{
 			"domain",

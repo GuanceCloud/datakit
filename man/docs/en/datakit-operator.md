@@ -1,4 +1,4 @@
-# Datakit-Operator User Guide
+# Datakit Operator User Guide
 
 ---
 
@@ -8,28 +8,32 @@
 
 ## Overview and Installation {#datakit-operator-overview-and-install}
 
-Datakit-Operator is a collaborative project between Datakit and Kubernetes orchestration. It aims to assist the deployment of Datakit as well as other functions such as verification and injection.
+Datakit Operator is a collaborative project between Datakit and Kubernetes orchestration. It aims to assist the deployment of Datakit as well as other functions such as verification and injection.
 
-Currently, Datakit-Operator provides the following functions:
+Currently, Datakit Operator provides the following functions:
 
-- Injection of `dd-lib` files and environment. See [documentation](datakit-operator.md#datakit-operator-inject-lib).
-- Injection of `logfwd` program and enabling log collection. See [documentation](datakit-operator.md#datakit-operator-inject-logfwd).
+- Injection DDTrace SDK(Java/Python/JavaScript) and related environments. See [documentation](datakit-operator.md#datakit-operator-inject-lib).
+- Injection Sidecar logfwd to collect Pod logging. See [documentation](datakit-operator.md#datakit-operator-inject-logfwd).
+- Support task distribution for Datakit plugins. See [documentation](election.md#plugins-election).
 
 Prerequisites:
 
-- Recommended Kubernetes version 1.24.1 or above and internet access (to download yaml file and pull image).
-- Ensure MutatingAdmissionWebhook and ValidatingAdmissionWebhook [controllers](https://kubernetes.io/zh-cn/docs/reference/access-authn-authz/extensible-admission-controllers/#prerequisites) are enabled.
+- Recommended Kubernetes version 1.24.1 or above and internet access (to download yaml file and pull images).
+- Ensure `MutatingAdmissionWebhook` and `ValidatingAdmissionWebhook` [controllers](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#prerequisites){:target="_blank"} are enabled.
 - Ensure admissionregistration.k8s.io/v1 API is enabled.
 
 ### Installation Steps {#datakit-operator-install}
 
-Download datakit-operator.yaml from [this link](https://static.guance.com/datakit-operator/datakit-operator.yaml), and follow these steps:
+Download [*datakit-operator.yaml*](https://static.guance.com/datakit-operator/datakit-operator.yaml), and follow these steps:
 
-```
-$ kubectl create namespace datakit
-$ wget https://static.guance.com/datakit-operator/datakit-operator.yaml
-$ kubectl apply -f datakit-operator.yaml
-$ kubectl get pod -n datakit
+``` shell
+kubectl create namespace datakit
+
+wget https://static.guance.com/datakit-operator/datakit-operator.yaml
+
+kubectl apply -f datakit-operator.yaml
+
+kubectl get pod -n datakit
 NAME                               READY   STATUS    RESTARTS   AGE
 datakit-operator-f948897fb-5w5nm   1/1     Running   0          15s
 ```

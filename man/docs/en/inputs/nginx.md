@@ -10,7 +10,13 @@ NGINX collector can take many metrics from NGINX instances, such as the total nu
 
 ## Preconditions {#requirements}
 
-- NGINX version >= `1.19.6`; Already tested version: `1.20.2`, `1.21.6`, `1.22.1`, `1.23.3`;
+- NGINX version >= `1.8.0`; Already tested version:
+    - [x] 1.23.2
+    - [x] 1.22.1
+    - [x] 1.21.6
+    - [x] 1.18.0
+    - [x] 1.14.2
+    - [x] 1.8.0
 
 - NGINX collects the data of `http_stub_status_module` by default. When the `http_stub_status_module` is opened, see [here](http://nginx.org/en/docs/http/ngx_http_stub_status_module.html){:target="_blank"}, which will report the data of NGINX measurements later.
 
@@ -54,7 +60,7 @@ Go to the `conf.d/nginx` directory under the DataKit installation directory, cop
 
 ???+ warnning
 
-    `url` are configurable, `/nginx_status` are prefereed.
+    `url` are configurable, `/basic_status` are prefereed.
 
 After configuration, restart DataKit.
 

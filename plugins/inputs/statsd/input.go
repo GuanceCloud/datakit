@@ -17,10 +17,12 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/influxdata/telegraf/plugins/parsers/graphite"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -151,6 +153,7 @@ type input struct {
 
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
+	opt     point.Option
 }
 
 type job struct {
@@ -237,16 +240,16 @@ const sampleConfig = `
   ## https://docs.datadoghq.com/developers/metrics/types/?tab=distribution#definition
   datadog_distributions = true
 
-	## We do not need following tags(they may create tremendous of time-series under influxdb's logic)
-	# Examples:
-	# "runtime-id", "metric-type"
+  ## We do not need following tags(they may create tremendous of time-series under influxdb's logic)
+  # Examples:
+  # "runtime-id", "metric-type"
   drop_tags = [ ]
 
   # All metric-name prefixed with 'jvm_' are set to influxdb's measurement 'jvm'
   # All metric-name prefixed with 'stats_' are set to influxdb's measurement 'stats'
   # Examples:
   # "stats_:stats", "jvm_:jvm"
-	metric_mapping = [ ]
+  metric_mapping = [ ]
 
   ## Number of UDP messages allowed to queue up, once filled,
   ## the statsd server will start dropping packets
@@ -378,6 +381,9 @@ func (ipt *input) Run() {
 		}
 		break
 	}
+
+	// no election.
+	ipt.opt = point.WithExtraTags(dkpt.GlobalHostTags())
 
 	l.Infof("Started the statsd service on %q", ipt.ServiceAddress)
 	tick := time.NewTicker(time.Second * 10)

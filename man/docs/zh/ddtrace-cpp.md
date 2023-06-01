@@ -1,4 +1,3 @@
-{{.CSS}}
 
 # C++
 
@@ -8,6 +7,7 @@
 
 ## 安装库和依赖 {#dependence}
 
+<!-- markdownlint-disable MD046 -->
 === "Linux/macOS"
 
     - 下载 DDTrace-C++ SDK
@@ -30,7 +30,7 @@
 
 === "Windows"
 
-    Comming Soon...
+    Coming Soon...
 
 ???+ attention "cmake 安装"
 
@@ -58,6 +58,7 @@
     which gcc
     gcc --version
     ```
+<!-- markdownlint-enable -->
 
 ## C++ 代码示例 {#simple-example}
 
@@ -80,44 +81,44 @@ datadog::opentracing::TracerOptions tracer_options{"", 0, "compiled-in-example"}
 auto tracer = datadog::opentracing::makeTracer(tracer_options);
 
 std::ifstream::pos_type filesize(const char* filename) {
-	std::ifstream in(filename, std::ifstream::ate | std::ifstream::binary);
-	return in.tellg(); 
+    std::ifstream in(filename, std::ifstream::ate | std::ifstream::binary);
+    return in.tellg(); 
 }
 
 std::string string_format(const std::string fmt_str, ...) {
-	int final_n, n = ((int)fmt_str.size()) * 2;
-	std::unique_ptr<char[]> formatted;
-	va_list ap;
-	while(1) {
-		formatted.reset(new char[n]);
-		strcpy(&formatted[0], fmt_str.c_str());
-		va_start(ap, fmt_str);
-		final_n = vsnprintf(&formatted[0], n, fmt_str.c_str(), ap);
-		va_end(ap);
-		if (final_n < 0 || final_n >= n)
-			n += abs(final_n - n + 1);
-		else
-			break;
-	}
-	return std::string(formatted.get());
+    int final_n, n = ((int)fmt_str.size()) * 2;
+    std::unique_ptr<char[]> formatted;
+    va_list ap;
+    while(1) {
+        formatted.reset(new char[n]);
+        strcpy(&formatted[0], fmt_str.c_str());
+        va_start(ap, fmt_str);
+        final_n = vsnprintf(&formatted[0], n, fmt_str.c_str(), ap);
+        va_end(ap);
+        if (final_n < 0 || final_n >= n)
+            n += abs(final_n - n + 1);
+        else
+            break;
+    }
+    return std::string(formatted.get());
 }
 
 int runApp(const char* f) {
-	auto span_a = tracer->StartSpan(f);
-	span_a->SetTag(datadog::tags::environment, "production");
-	span_a->SetTag("tag", "app-ok");
-	span_a->SetTag("file_len", string_format("%d", filesize(f)));
+    auto span_a = tracer->StartSpan(f);
+    span_a->SetTag(datadog::tags::environment, "production");
+    span_a->SetTag("tag", "app-ok");
+    span_a->SetTag("file_len", string_format("%d", filesize(f)));
 }
 
 int main(int argc, char* argv[]) {
-	for (;;) {
-		runApp(argv[0]);
-		runApp("file-not-exists");
-		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-	}
+    for (;;) {
+        runApp(argv[0]);
+        runApp("file-not-exists");
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    }
 
-	tracer->Close();
-	return 0;
+    tracer->Close();
+    return 0;
 } 
 ```
 
@@ -130,7 +131,6 @@ LD_LIBRARY_PATH=/usr/local/lib64  DD_AGENT_HOST=localhost DD_TRACE_AGENT_PORT=95
 
 此处可以将 *libdd_opentracing.so* 以及对应的头文件放到任意目录，然后调整 `LD_LIBRARY_PATH` 以及 `-I` 参数即可。
 
-
 程序运行一段时间后，即可在观测云看到类似如下 trace 数据：
 
 <figure markdown>
@@ -142,7 +142,7 @@ LD_LIBRARY_PATH=/usr/local/lib64  DD_AGENT_HOST=localhost DD_TRACE_AGENT_PORT=95
 
 ## 支持的环境变量 {#start-options}
 
-以下环境变量支持在启动程序的时候指定 ddtrace 的一些配置参数，其基本形式为：
+以下环境变量支持在启动程序的时候指定 DDTrace 的一些配置参数，其基本形式为：
 
 ```shell
 DD_XXX=<env-value> DD_YYY=<env-value> ./demo
@@ -157,9 +157,10 @@ DD_XXX=<env-value> DD_YYY=<env-value> ./demo
 | `DD_TRACE_AGENT_PORT`     | -           | 设置 DataKit trace 数据的接收端口。这里需手动指定 [DataKit 的 HTTP 端口][4]（一般为 9529）                                                                                                                                                                                                                                                                                                                                                              |
 | `DD_ENV`                  | -           | 设置应用当前的环境，如 prod、pre-prod 等                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `DD_SERVICE`              | -           | 设置应用服务名                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| `DD_TRACE_SAMPLING_RULES` | -           | 这里用 JSON 数组来表示采样设置（采样率应用以数组顺序为准），其中 `sample_rate` 为采样率，取值范围为 `[0.0, 1.0]`。<br> **示例一**：设置全局采样率为 20%：`DD_TRACE_SAMPLE_RATE='[{"sample_rate": 0.2}]' ./my-app` <br>**示例二**：服务名通配 `app1.*`、且 span 名称为 `abc`的，将采样率设置为 10%，除此之外，采样率设置为 20%：`DD_TRACE_SAMPLE_RATE='[{"service": "app1.*", "name": "b", "sample_rate": 0.1}, {"sample_rate": 0.2}]' ./my-app` <br> |
+| `DD_TRACE_SAMPLING_RULES` | -           | 这里用 JSON 数组来表示采样设置（采样率应用以数组顺序为准），其中 `sample_rate` 为采样率，取值范围为 `[0.0, 1.0]`。<br> **示例一**：设置全局采样率为 20%：`DD_TRACE_SAMPLE_RATE='[{"sample_rate": 0.2}]' ./my-app` <br>**示例二**：服务名通配 `app1.*`、且 span 名称为 `abc` 的，将采样率设置为 10%，除此之外，采样率设置为 20%：`DD_TRACE_SAMPLE_RATE='[{"service": "app1.*", "name": "b", "sample_rate": 0.1}, {"sample_rate": 0.2}]' ./my-app` <br> |
 | `DD_TAGS`                 | -           | 这里可注入一组全局 tag，这些 tag 会出现在每个 span 和 profile 数据中。多个 tag 之间可以用空格和英文逗号分割，例如 `layer:api,team:intake`、`layer:api team:intake`                                                                                                                                                                                                                                                                                   |
 
+<!-- markdownlint-disable MD053 -->
 [1]: https://static.guance.com/gfw/cmake-3.24.2.tar.gz
 [2]: https://static.guance.com/gfw/cmake-3.24.2-windows-x86_64.msi
 [3]: https://cmake.org/download/
@@ -167,4 +168,4 @@ DD_XXX=<env-value> DD_YYY=<env-value> ./demo
 [5]: https://static.guance.com/gfw/dd-cpp-include.tar.gz
 [6]: https://static.guance.com/gfw/libdd_opentracing.so
 [7]: https://docs.datadoghq.com/tracing/trace_collection/library_config/cpp/
-
+<!-- markdownlint-enable -->

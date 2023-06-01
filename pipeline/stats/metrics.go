@@ -75,8 +75,8 @@ func init() {
 		prometheus.SummaryOpts{
 			Namespace: "datakit",
 			Subsystem: "pipeline",
-			Name:      "cost",
-			Help:      "Pipeline total running time(ms)",
+			Name:      "cost_seconds",
+			Help:      "Pipeline total running time",
 		},
 		[]string{
 			"category",
@@ -89,8 +89,8 @@ func init() {
 		prometheus.GaugeOpts{
 			Namespace: "datakit",
 			Subsystem: "pipeline",
-			Name:      "update_time",
-			Help:      "Pipeline last update time(unix timestamp)",
+			Name:      "last_update_timestamp_seconds",
+			Help:      "Pipeline last update time",
 		},
 		[]string{
 			"category",

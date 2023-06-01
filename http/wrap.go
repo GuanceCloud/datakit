@@ -47,15 +47,10 @@ func ginLimiter(lmt *limiter.Limiter) gin.HandlerFunc {
 				c.Request.Method,
 				status).Inc()
 
-			apiElapsedHistogram.WithLabelValues(
-				c.Request.URL.Path,
-				c.Request.Method,
-				status).Observe(float64(time.Since(start) / time.Millisecond))
-
 			apiElapsedVec.WithLabelValues(
 				c.Request.URL.Path,
 				c.Request.Method,
-				status).Observe(float64(time.Since(start) / time.Millisecond))
+				status).Observe(float64(time.Since(start)) / float64(time.Second))
 
 			apiReqSizeVec.WithLabelValues(
 				c.Request.URL.Path,
@@ -91,15 +86,10 @@ func rawHTTPWraper(lmt *limiter.Limiter, next APIHandler, other ...interface{}) 
 				c.Request.Method,
 				status).Inc()
 
-			apiElapsedHistogram.WithLabelValues(
-				c.Request.URL.Path,
-				c.Request.Method,
-				status).Observe(float64(time.Since(start) / time.Millisecond))
-
 			apiElapsedVec.WithLabelValues(
 				c.Request.URL.Path,
 				c.Request.Method,
-				status).Observe(float64(time.Since(start) / time.Millisecond))
+				status).Observe(float64(time.Since(start)) / float64(time.Second))
 
 			apiReqSizeVec.WithLabelValues(
 				c.Request.URL.Path,

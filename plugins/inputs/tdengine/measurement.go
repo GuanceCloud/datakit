@@ -3,7 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-// Package tdengine is input for tdengine database
+// Package tdengine is input for TDEngine database
 package tdengine
 
 import (
@@ -70,7 +70,7 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 			},
 			"mnodes_total": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "数据库管理节点(mnode)个数",
+				Desc: "数据库管理节点(`mnode`)个数",
 			},
 			"mnodes_alive": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
@@ -137,7 +137,7 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 
 			"cpu_engine": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
-				Desc: "每个数据节点的CPU使用率",
+				Desc: "每个数据节点的 CPU 使用率",
 			},
 
 			"disk_used": &inputs.FieldInfo{
@@ -157,12 +157,12 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 
 			"cpu_system": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "数据节点的cpu系统使用率",
+				Desc: "数据节点的 CPU 系统使用率",
 			},
 
 			"mem_engine": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.SizeMB,
-				Desc: "tdengine占用内存量",
+				Desc: "TDEngine 占用内存量",
 			},
 
 			"mem_system": &inputs.FieldInfo{
@@ -177,7 +177,7 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 
 			"mem_engine_percent": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
-				Desc: "taosd 占用内存率",
+				Desc: "`taosd` 占用内存率",
 			},
 
 			"io_read_taosd": &inputs.FieldInfo{
@@ -192,17 +192,17 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 
 			"net_in": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.SizeKB,
-				Desc: "入口网络的IO速率",
+				Desc: "入口网络的 IO 速率",
 			},
 
 			"net_out": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.SizeKB,
-				Desc: "出口网络的IO速率",
+				Desc: "出口网络的 IO 速率",
 			},
 
 			"total_req_count": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "adapter总请求量",
+				Desc: "adapter 总请求量",
 			},
 
 			"status_code": &inputs.FieldInfo{

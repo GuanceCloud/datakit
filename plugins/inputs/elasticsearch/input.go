@@ -22,11 +22,12 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -109,8 +110,8 @@ type indexStat struct {
 //nolint:lll
 const sampleConfig = `
 [[inputs.elasticsearch]]
-  ## Elasticsearch服务器配置
-  # 支持Basic认证:
+  ## Elasticsearch 服务器配置
+  # 支持 Basic 认证
   # servers = ["http://user:pass@localhost:9200"]
   servers = ["http://localhost:9200"]
 
@@ -118,34 +119,34 @@ const sampleConfig = `
   # 单位 "ns", "us" (or "µs"), "ms", "s", "m", "h"
   interval = "10s"
 
-  ## HTTP超时设置
+  ## HTTP 超时设置
   http_timeout = "5s"
 
-  ## 发行版本: elasticsearch, opendistro, opensearch
+  ## 发行版本：elasticsearch/opendistro/opensearch
   distribution = "elasticsearch"
 
-  ## 默认local是开启的，只采集当前Node自身指标，如果需要采集集群所有Node，需要将local设置为false
+  ## 默认 local 是开启的，只采集当前 Node 自身指标，如果需要采集集群所有 Node，需要将 local 设置为 false
   local = true
 
-  ## 设置为true可以采集cluster health
+  ## 设置为 true 可以采集 cluster health
   cluster_health = false
 
   ## cluster health level 设置，indices (默认) 和 cluster
   # cluster_health_level = "indices"
 
-  ## 设置为true时可以采集cluster stats.
+  ## 设置为 true 时可以采集 cluster stats.
   cluster_stats = false
 
-  ## 只从master Node获取cluster_stats，这个前提是需要设置 local = true
+  ## 只从 master Node 获取 cluster_stats，这个前提是需要设置 local = true
   cluster_stats_only_from_master = true
 
-  ## 需要采集的Indices, 默认为 _all
+  ## 需要采集的 Indices, 默认为 _all
   indices_include = ["_all"]
 
-  ## indices级别，可取值："shards", "cluster", "indices"
+  ## indices 级别，可取值：shards/cluster/indices
   indices_level = "shards"
 
-  ## node_stats可支持配置选项有"indices", "os", "process", "jvm", "thread_pool", "fs", "transport", "http", "breaker"
+  ## node_stats 可支持配置选项有 indices/os/process/jvm/thread_pool/fs/transport/http/breaker
   # 默认是所有
   # node_stats = ["jvm", "http"]
 
@@ -232,11 +233,13 @@ type Input struct {
 	duration        time.Duration
 	tail            *tailer.Tailer
 
-	collectCache []inputs.Measurement
+	collectCache []*point.Point
 
 	Election bool `toml:"election"`
 	pause    bool
 	pauseCh  chan bool
+
+	feeder dkio.Feeder
 
 	semStop *cliutils.Sem // start stop signal
 }
@@ -279,7 +282,7 @@ func (i serverInfo) isMaster() bool {
 
 var maxPauseCh = inputs.ElectionPauseChannelLength
 
-func NewElasticsearch() *Input {
+func defaultInput() *Input {
 	return &Input{
 		httpTimeout:                Duration{Duration: time.Second * 5},
 		ClusterStatsOnlyFromMaster: true,
@@ -287,6 +290,7 @@ func NewElasticsearch() *Input {
 		pauseCh:                    make(chan bool, maxPauseCh),
 		Election:                   true,
 		semStop:                    cliutils.NewSem(),
+		feeder:                     dkio.DefaultFeeder(),
 	}
 }
 
@@ -299,21 +303,6 @@ func mapHealthStatusToCode(s string) int {
 		return 2
 	case "red":
 		return 3
-	}
-	return 0
-}
-
-// perform shard status mapping.
-func mapShardStatusToCode(s string) int {
-	switch strings.ToUpper(s) {
-	case "UNASSIGNED":
-		return 1
-	case "INITIALIZING":
-		return 2
-	case "STARTED":
-		return 3
-	case "RELOCATING":
-		return 4
 	}
 	return 0
 }
@@ -512,7 +501,7 @@ func (i *Input) RunPipeline() {
 	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
-		io.FeedLastError(inputName, err.Error())
+		i.feeder.FeedLastError(inputName, err.Error())
 		return
 	}
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_elasticsearch"})
@@ -547,7 +536,7 @@ func (i *Input) Run() {
 	client, err := i.createHTTPClient()
 	if err != nil {
 		l.Error(err)
-		io.FeedLastError(inputName, err.Error())
+		i.feeder.FeedLastError(inputName, err.Error())
 		return
 	}
 	i.client = client
@@ -563,15 +552,12 @@ func (i *Input) Run() {
 		} else {
 			start := time.Now()
 			if err := i.Collect(); err != nil {
-				io.FeedLastError(inputName, err.Error())
+				i.feeder.FeedLastError(inputName, err.Error())
 				l.Error(err)
 			} else if len(i.collectCache) > 0 {
-				err := inputs.FeedMeasurement("elasticsearch",
-					datakit.Metric,
-					i.collectCache,
-					&io.Option{CollectCost: time.Since(start)})
+				err := i.feeder.Feed(inputName, point.Metric, i.collectCache, &dkio.Option{CollectCost: time.Since(start)})
 				if err != nil {
-					io.FeedLastError(inputName, err.Error())
+					i.feeder.FeedLastError(inputName, err.Error())
 					l.Errorf(err.Error())
 				}
 				i.collectCache = i.collectCache[:0]
@@ -653,7 +639,7 @@ func (i *Input) gatherIndicesStats(url string, clusterName string) error {
 		}
 
 		if len(metric.fields) > 0 {
-			i.collectCache = append(i.collectCache, metric)
+			i.collectCache = append(i.collectCache, metric.Point())
 		}
 	}
 
@@ -693,7 +679,7 @@ func (i *Input) gatherIndicesStats(url string, clusterName string) error {
 			}
 
 			if len(metric.fields) > 0 {
-				i.collectCache = append(i.collectCache, metric)
+				i.collectCache = append(i.collectCache, metric.Point())
 			}
 		}
 	}
@@ -785,7 +771,7 @@ func (i *Input) gatherNodeStats(url string) (string, error) {
 			},
 		}
 		if len(metric.fields) > 0 {
-			i.collectCache = append(i.collectCache, metric)
+			i.collectCache = append(i.collectCache, metric.Point())
 		}
 	}
 
@@ -838,7 +824,7 @@ func (i *Input) gatherClusterStats(url string) error {
 	}
 
 	if len(metric.fields) > 0 {
-		i.collectCache = append(i.collectCache, metric)
+		i.collectCache = append(i.collectCache, metric.Point())
 	}
 	return nil
 }
@@ -979,7 +965,7 @@ func (i *Input) gatherClusterHealth(url string, serverURL string) error {
 	}
 
 	if len(metric.fields) > 0 {
-		i.collectCache = append(i.collectCache, metric)
+		i.collectCache = append(i.collectCache, metric.Point())
 	}
 
 	return nil
@@ -1192,6 +1178,6 @@ func (i *Input) Resume() error {
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return NewElasticsearch()
+		return defaultInput()
 	})
 }

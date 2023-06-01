@@ -11,7 +11,6 @@ import (
 	"net"
 	"runtime"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	cpuutil "github.com/shirou/gopsutil/cpu"
@@ -20,6 +19,7 @@ import (
 	loadutil "github.com/shirou/gopsutil/load"
 	memutil "github.com/shirou/gopsutil/mem"
 	netutil "github.com/shirou/gopsutil/net"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
@@ -27,15 +27,6 @@ import (
 	conntrackutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hostutil/conntrack"
 	filefdutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hostutil/filefd"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-)
-
-var (
-	DiskUsed               uint64
-	DiskFree               uint64
-	DiskIOReadBytesPerSec  int64
-	DiskIOWriteBytesPerSec int64
-	NetRecvBytesPerSec     int64
-	NetSendBytesPerSec     int64
 )
 
 type (
@@ -248,15 +239,16 @@ func getNetInfo(enableVIfaces bool) ([]*NetInfo, error) {
 		}
 		infos = append(infos, i)
 	}
+
 	return infos, nil
 }
 
-func getDiskInfo(excludeDevice []string, extraDevice []string, ignoreZeroBytesDisk, onlyPhysicalDevice bool) ([]*DiskInfo, error) {
+func getDiskInfo(excludeDevice []string, extraDevice []string, ignoreZeroBytesDisk, onlyPhysicalDevice bool) ([]*DiskInfo, float64, error) {
 	l.Debugf("get partitions(physical: %v)...", onlyPhysicalDevice)
 	ps, err := diskutil.Partitions(!onlyPhysicalDevice)
 	if err != nil {
 		l.Errorf("fail to get disk info, %s", err)
-		return nil, err
+		return nil, 0, err
 	}
 	var infos []*DiskInfo
 
@@ -269,6 +261,8 @@ func getDiskInfo(excludeDevice []string, extraDevice []string, ignoreZeroBytesDi
 		return false
 	}
 
+	total := uint64(0)
+	used := uint64(0)
 	for _, p := range ps {
 		l.Debugf("hostobject---fstype:%s ,device:%s ,mountpoint:%s ", p.Fstype, p.Device, p.Mountpoint)
 
@@ -310,9 +304,19 @@ func getDiskInfo(excludeDevice []string, extraDevice []string, ignoreZeroBytesDi
 
 		l.Debugf("get disk %+#v", info)
 		infos = append(infos, info)
+
+		// the sum of disk total and used.
+		total += usage.Total
+		used += usage.Used
 	}
 
-	return infos, nil
+	// disk used percent
+	usedPercent := float64(0)
+	if total > 0 {
+		usedPercent = float64(used) / float64(total) * 100
+	}
+
+	return infos, usedPercent, nil
 }
 
 func (ipt *Input) getHostObjectMessage() (*HostObjectMessage, error) {
@@ -386,7 +390,7 @@ func (ipt *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 	}
 
 	l.Debugf("get disk info...")
-	disk, err := getDiskInfo(ipt.ExcludeDevice, ipt.ExtraDevice, ipt.IgnoreZeroBytesDisk, ipt.OnlyPhysicalDevice)
+	disk, diskUsedPercent, err := getDiskInfo(ipt.ExcludeDevice, ipt.ExtraDevice, ipt.IgnoreZeroBytesDisk, ipt.OnlyPhysicalDevice)
 	if err != nil {
 		return nil, err
 	}
@@ -397,12 +401,8 @@ func (ipt *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 	l.Debugf("get election info...")
 	election := ipt.getElectionInfo()
 
-	var diskUsedPercent float64 = 0
-	diskUsed := atomic.LoadUint64(&DiskUsed)
-	diskFree := atomic.LoadUint64(&DiskFree)
-	if diskUsed+diskFree > 0 {
-		diskUsedPercent = float64(diskUsed) / (float64(diskUsed) + float64(diskFree)) * 100
-	}
+	ipt.getNetIORate(net) // net is the real interfaces
+	ipt.getDiskIORate()
 
 	msg.Host = &HostInfo{
 		HostMeta:               hostMeta,
@@ -416,10 +416,10 @@ func (ipt *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 		FileFd:                 fileFd,
 		Election:               election,
 		diskUsedPercent:        diskUsedPercent,
-		diskIOReadBytesPerSec:  atomic.LoadInt64(&DiskIOReadBytesPerSec),
-		diskIOWriteBytesPerSec: atomic.LoadInt64(&DiskIOWriteBytesPerSec),
-		netRecvBytesPerSec:     atomic.LoadInt64(&NetRecvBytesPerSec),
-		netSendBytesPerSec:     atomic.LoadInt64(&NetSendBytesPerSec),
+		diskIOReadBytesPerSec:  ipt.lastDiskIOInfo.readBytesPerSec,
+		diskIOWriteBytesPerSec: ipt.lastDiskIOInfo.writeBytesPerSec,
+		netRecvBytesPerSec:     ipt.lastNetIOInfo.recvBytesPerSec,
+		netSendBytesPerSec:     ipt.lastNetIOInfo.sendBytesPerSec,
 		loggingLevel:           config.Cfg.Logging.Level,
 	}
 

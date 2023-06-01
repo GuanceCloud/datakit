@@ -15,7 +15,11 @@ RabbitMQ collector monitors RabbitMQ by collecting data through the plug-in `rab
 
 ## Preconditions {#reqirement}
 
-- RabbitMQ version >= 3.8.14
+- RabbitMQ version >= `3.8.14`; Already tested version:
+    - [x] 3.11.x
+    - [x] 3.10.x
+    - [x] 3.9.x
+    - [x] 3.8.x
 
 - Install `rabbitmq`, take `Ubuntu` as an example
 

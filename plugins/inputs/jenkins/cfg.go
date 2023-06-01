@@ -11,9 +11,11 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/influxdata/telegraf/plugins/common/tls"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -33,8 +35,14 @@ var (
   ## Metric Access Key ,generate in your-jenkins-host:/configure,required
   key = ""
 
+  # ##(optional) collection interval, default is 30s
+  # interval = "30s"
+
   ## Set response_timeout
   # response_timeout = "5s"
+
+  ## Set true to enable election
+  # election = true
 
   ## Optional TLS Config
   # tls_ca = "/xx/ca.pem"
@@ -88,6 +96,7 @@ type Input struct {
 	Key                string            `toml:"key"`
 	Interval           datakit.Duration  `toml:"interval"`
 	ResponseTimeout    datakit.Duration  `toml:"response_timeout"`
+	Election           bool              `toml:"election"`
 	Log                *jenkinslog       `toml:"log"`
 	Tags               map[string]string `toml:"tags"`
 	EnableCIVisibility bool              `toml:"enable_ci_visibility"`
@@ -104,14 +113,16 @@ type Input struct {
 	srv *http.Server
 
 	lastErr      error
-	collectCache []inputs.Measurement
+	collectCache []*point.Point
 
 	semStop *cliutils.Sem // start stop signal
+	feeder  dkio.Feeder
+	opt     point.Option
 }
 
 func newCountFieldInfo(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
-		DataType: inputs.Int,
+		DataType: inputs.Float,
 		Type:     inputs.Count,
 		Unit:     inputs.NCount,
 		Desc:     desc,
@@ -123,15 +134,6 @@ func newRateFieldInfo(desc string) *inputs.FieldInfo {
 		DataType: inputs.Float,
 		Type:     inputs.Gauge,
 		Unit:     inputs.Percent,
-		Desc:     desc,
-	}
-}
-
-func newByteFieldInfo(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		DataType: inputs.Int,
-		Type:     inputs.Gauge,
-		Unit:     inputs.SizeByte,
 		Desc:     desc,
 	}
 }

@@ -64,10 +64,6 @@ _datakit()
 				COMPREPLY=( $(compgen -W '--log --bug-report --prom-conf --upload-log' -- "${cur_word}") )
 				;;
 
-			check)
-				COMPREPLY=( $(compgen -W '--log --config --config-dir --sample --test-snmp' -- "${cur_word}") )
-				;;
-
 			tool)
 				COMPREPLY=( $(compgen -W '--completer-script
 				--default-main-conf

@@ -25,8 +25,8 @@ func (app *monitorAPP) renderInputsFeedTable(mfs map[string]*dto.MetricFamily, c
 
 	feedTotal := mfs["datakit_io_feed_total"]
 	ptsTotal := mfs["datakit_io_feed_point_total"]
-	lastFeed := mfs["datakit_io_last_feed"]
-	cost := mfs["datakit_input_collect_latency"]
+	lastFeed := mfs["datakit_io_last_feed_timestamp_seconds"]
+	cost := mfs["datakit_input_collect_latency_seconds"]
 	ptsFilter := mfs["datakit_io_input_filter_point_total"]
 	errCount := mfs["datakit_error_total"]
 
@@ -131,8 +131,10 @@ func (app *monitorAPP) renderInputsFeedTable(mfs map[string]*dto.MetricFamily, c
 				table.SetCell(row, col, tview.NewTableCell("-").
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
 			} else {
-				avgMicrosec := time.Duration(uint64(x.GetSummary().GetSampleSum()) / x.GetSummary().GetSampleCount())
-				table.SetCell(row, col, tview.NewTableCell(avgMicrosec.String()).
+				cost := time.Duration(
+					float64(time.Second) * x.GetSummary().GetSampleSum() /
+						float64(x.GetSummary().GetSampleCount()))
+				table.SetCell(row, col, tview.NewTableCell(cost.String()).
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 			}
 		}

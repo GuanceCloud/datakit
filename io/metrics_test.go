@@ -60,10 +60,10 @@ func TestInputFeedMetrics(t *T.T) {
 			"datakit_io_feed_point_total", cat.String(), t.Name()).GetCounter().GetValue())
 		assert.Equal(t, 1.0, metrics.GetMetricOnLabels(mfs,
 			"datakit_io_feed_total", cat.String(), t.Name()).GetCounter().GetValue())
-		assert.Equal(t, float64(time.Second/time.Microsecond), metrics.GetMetricOnLabels(mfs,
-			"datakit_input_collect_latency", cat.String(), t.Name()).GetSummary().GetSampleSum())
+		assert.Equal(t, float64(1.0), metrics.GetMetricOnLabels(mfs,
+			"datakit_input_collect_latency_seconds", cat.String(), t.Name()).GetSummary().GetSampleSum())
 		assert.True(t, 0 < metrics.GetMetricOnLabels(mfs,
-			"datakit_io_last_feed", cat.String(), t.Name()).GetGauge().GetValue())
+			"datakit_io_last_feed_timestamp_seconds", cat.String(), t.Name()).GetGauge().GetValue())
 
 		t.Cleanup(func() {
 			MetricsReset()

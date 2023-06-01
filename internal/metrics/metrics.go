@@ -13,6 +13,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/metrics"
 	p8s "github.com/prometheus/client_golang/prometheus"
+	"github.com/shirou/gopsutil/v3/process"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
@@ -30,18 +31,20 @@ func init() {
 	metrics.MustRegister(collector)
 }
 
-type RuntimeInfo struct {
-	Goroutines int     `json:"goroutines"`
-	HeapAlloc  uint64  `json:"heap_alloc"`
-	Sys        uint64  `json:"total_sys"`
-	CPUUsage   float64 `json:"cpu_usage"`
+type runtimeInfo struct {
+	goroutines int
+	heapAlloc  uint64
+	sys        uint64
+	cpuUsage   float64
 
-	GCPauseTotal uint64        `json:"gc_pause_total"`
-	GCNum        uint32        `json:"gc_num"`
-	GCAvgCost    time.Duration `json:"gc_avg_bytes"`
+	gcPauseTotal uint64
+	gcNum        uint32
+
+	ioCountersstats *process.IOCountersStat
+	numCtxSwitch    *process.NumCtxSwitchesStat
 }
 
-func GetRuntimeInfo() *RuntimeInfo {
+func getRuntimeInfo() *runtimeInfo {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 
@@ -50,14 +53,16 @@ func GetRuntimeInfo() *RuntimeInfo {
 		usage = u
 	}
 
-	return &RuntimeInfo{
-		Goroutines: runtime.NumGoroutine(),
-		HeapAlloc:  m.HeapAlloc,
-		Sys:        m.Sys,
-		CPUUsage:   usage,
+	return &runtimeInfo{
+		goroutines: runtime.NumGoroutine(),
+		heapAlloc:  m.HeapAlloc,
+		sys:        m.Sys,
+		cpuUsage:   usage,
 
-		GCPauseTotal: m.PauseTotalNs,
-		GCNum:        m.NumGC,
+		gcPauseTotal:    m.PauseTotalNs,
+		gcNum:           m.NumGC,
+		ioCountersstats: cgroup.MyIOCountersStat(),
+		numCtxSwitch:    cgroup.MyCtxSwitch(),
 	}
 }
 
@@ -69,18 +74,18 @@ type runtimeInfoCollector struct{}
 var (
 	riGoroutineDesc = p8s.NewDesc(
 		"datakit_goroutines",
-		"goroutine count within Datakit",
+		"Goroutine count within Datakit",
 		nil, nil,
 	)
 
 	riHeapAllocDesc = p8s.NewDesc(
-		"datakit_heap_alloc",
+		"datakit_heap_alloc_bytes",
 		"Datakit memory heap bytes",
 		nil, nil,
 	)
 
 	riSysAllocDesc = p8s.NewDesc(
-		"datakit_sys_alloc",
+		"datakit_sys_alloc_bytes",
 		"Datakit memory system bytes",
 		nil, nil,
 	)
@@ -92,8 +97,8 @@ var (
 	)
 
 	riGCPauseDesc = p8s.NewDesc(
-		"datakit_gc_summary",
-		"Datakit golang GC paused(nano-second)",
+		"datakit_gc_summary_seconds",
+		"Datakit golang GC paused",
 		nil, nil,
 	)
 
@@ -110,8 +115,8 @@ var (
 	)
 
 	riUptimeDesc = p8s.NewDesc(
-		"datakit_uptime",
-		"Datakit uptime(second)",
+		"datakit_uptime_seconds",
+		"Datakit uptime",
 
 		// hostname and cgroup set after init(), so make it a non-const-label.
 		[]string{
@@ -130,9 +135,36 @@ var (
 		},
 	)
 
+	riCtxSwitch = p8s.NewDesc(
+		"datakit_process_ctx_switch_total",
+		"Datakit process context switch count(Linux only)",
+		[]string{
+			"type", // voluntary or involuntary, see https://courses.cs.duke.edu/spring01/cps110/slides/interleave/tsld008.htm
+		},
+		nil,
+	)
+
+	riIOCount = p8s.NewDesc(
+		"datakit_process_io_count_total",
+		"Datakit process IO count",
+		[]string{
+			"type", // r(read) or w(write)
+		},
+		nil,
+	)
+
+	riIOBytes = p8s.NewDesc(
+		"datakit_process_io_bytes_total",
+		"Datakit process IO bytes count",
+		[]string{
+			"type", // r(read) or w(write)
+		},
+		nil,
+	)
+
 	riBeyondUsage = p8s.NewDesc(
 		"datakit_data_overuse",
-		"Does current workspace's data(metric/logging) usaguse(if 0 not beyond, or with a unix timestamp when overuse occurred)",
+		"Does current workspace's data(metric/logging) usage(if 0 not beyond, or with a unix timestamp when overuse occurred)",
 		nil,
 		nil,
 	)
@@ -145,13 +177,13 @@ func (rc runtimeInfoCollector) Describe(ch chan<- *p8s.Desc) {
 
 // Collect implements Collector Collect interface.
 func (rc runtimeInfoCollector) Collect(ch chan<- p8s.Metric) {
-	ri := GetRuntimeInfo()
+	ri := getRuntimeInfo()
 
-	ch <- p8s.MustNewConstSummary(riGCPauseDesc, uint64(ri.GCNum), float64(ri.GCPauseTotal), nil)
-	ch <- p8s.MustNewConstMetric(riGoroutineDesc, p8s.GaugeValue, float64(ri.Goroutines))
-	ch <- p8s.MustNewConstMetric(riHeapAllocDesc, p8s.GaugeValue, float64(ri.HeapAlloc))
-	ch <- p8s.MustNewConstMetric(riSysAllocDesc, p8s.GaugeValue, float64(ri.Sys))
-	ch <- p8s.MustNewConstMetric(riCPUUsageDesc, p8s.GaugeValue, ri.CPUUsage)
+	ch <- p8s.MustNewConstSummary(riGCPauseDesc, uint64(ri.gcNum), float64(ri.gcPauseTotal)/float64(time.Second), nil)
+	ch <- p8s.MustNewConstMetric(riGoroutineDesc, p8s.GaugeValue, float64(ri.goroutines))
+	ch <- p8s.MustNewConstMetric(riHeapAllocDesc, p8s.GaugeValue, float64(ri.heapAlloc))
+	ch <- p8s.MustNewConstMetric(riSysAllocDesc, p8s.GaugeValue, float64(ri.sys))
+	ch <- p8s.MustNewConstMetric(riCPUUsageDesc, p8s.GaugeValue, ri.cpuUsage)
 	ch <- p8s.MustNewConstMetric(riOpenFilesDesc, p8s.GaugeValue, float64(datakit.OpenFiles()))
 
 	ch <- p8s.MustNewConstMetric(riCPUCores, p8s.GaugeValue, float64(runtime.NumCPU()))
@@ -161,4 +193,17 @@ func (rc runtimeInfoCollector) Collect(ch chan<- p8s.Metric) {
 		float64(time.Since(Uptime)/time.Second),
 		datakit.DatakitHostName, cgroup.Info())
 	ch <- p8s.MustNewConstMetric(riBeyondUsage, p8s.GaugeValue, float64(BeyondUsage))
+
+	if ri.numCtxSwitch != nil {
+		ch <- p8s.MustNewConstMetric(riCtxSwitch, p8s.CounterValue, float64(ri.numCtxSwitch.Voluntary), "voluntary")
+		ch <- p8s.MustNewConstMetric(riCtxSwitch, p8s.CounterValue, float64(ri.numCtxSwitch.Involuntary), "involuntary")
+	}
+
+	if ri.ioCountersstats != nil {
+		ch <- p8s.MustNewConstMetric(riIOCount, p8s.CounterValue, float64(ri.ioCountersstats.ReadCount), "r")
+		ch <- p8s.MustNewConstMetric(riIOCount, p8s.CounterValue, float64(ri.ioCountersstats.WriteCount), "w")
+
+		ch <- p8s.MustNewConstMetric(riIOBytes, p8s.CounterValue, float64(ri.ioCountersstats.ReadBytes), "r")
+		ch <- p8s.MustNewConstMetric(riIOBytes, p8s.CounterValue, float64(ri.ioCountersstats.WriteBytes), "w")
+	}
 }

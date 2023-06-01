@@ -1,4 +1,4 @@
-# Datakit-Operator 使用说明
+# Datakit Operator
 
 ---
 
@@ -8,38 +8,45 @@
 
 ## 概述和安装 {#datakit-operator-overview-and-install}
 
-Datakit-Operator 是 Datakit 在 Kubernetes 编排的联动项目，旨在协助 Datakit 更方便的部署，以及其他诸如验证、注入的功能。
+Datakit Operator 是 Datakit 在 Kubernetes 编排的联动项目，旨在协助 Datakit 更方便的部署，以及其他诸如验证、注入的功能。
 
 目前 Datakit-Operator 提供以下功能：
 
-- 提供注入 `dd-lib` 文件和 environment 的功能，参见[文档](datakit-operator.md#datakit-operator-inject-lib)
-- 提供注入 `logfwd` 程序并开启日志采集的功能，参见[文档](datakit-operator.md#datakit-operator-inject-logfwd)
+- 注入 DDTrace SDK（Java/Python/JavaScript）以及对应环境变量信息，参见[文档](datakit-operator.md#datakit-operator-inject-lib)
+- 注入 Sidecar logfwd 服务以采集容器内日志，参见[文档](datakit-operator.md#datakit-operator-inject-logfwd)
+- 支持 Datakit 采集器的任务选举，参见[文档](election.md#plugins-election)
 
 先决条件：
 
-- 推荐 Kubernetes v1.24.1 及以上版本，且能够访问互联网（下载 yaml 文件和 pull Image）。
-- 确保启用 MutatingAdmissionWebhook 和 ValidatingAdmissionWebhook [控制器](https://kubernetes.io/zh-cn/docs/reference/access-authn-authz/extensible-admission-controllers/#prerequisites)。
-- 确保启用了 admissionregistration.k8s.io/v1 API。
+- 推荐 Kubernetes v1.24.1 及以上版本，且能够访问互联网（下载 yaml 文件并拉取对应镜像）
+- 确保启用 `MutatingAdmissionWebhook` 和 `ValidatingAdmissionWebhook` [控制器](https://kubernetes.io/zh-cn/docs/reference/access-authn-authz/extensible-admission-controllers/#prerequisites){:target="_blank"}
+- 确保启用了 `admissionregistration.k8s.io/v1` API
 
 ### 安装步骤 {#datakit-operator-install}
 
-datakit-operator.yaml [下载地址](https://static.guance.com/datakit-operator/datakit-operator.yaml)，步骤如下：
+下载 [*datakit-operator.yaml*](https://static.guance.com/datakit-operator/datakit-operator.yaml){:target="_blank"}，步骤如下：
 
-```
-$ kubectl create namespace datakit
-$ wget https://static.guance.com/datakit-operator/datakit-operator.yaml
-$ kubectl apply -f datakit-operator.yaml
-$ kubectl get pod -n datakit
+``` shell
+kubectl create namespace datakit
+
+wget https://static.guance.com/datakit-operator/datakit-operator.yaml
+
+kubectl apply -f datakit-operator.yaml
+
+kubectl get pod -n datakit
+
 NAME                               READY   STATUS    RESTARTS   AGE
 datakit-operator-f948897fb-5w5nm   1/1     Running   0          15s
 ```
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     - Datakit-Operator 有严格的程序和 yaml 对应关系，如果使用一份过旧的 yaml 可能无法安装新版 Datakit-Operator，请重新下载最新版 yaml。
     - 如果出现 `InvalidImageName` 报错，可以手动 pull 镜像。
+<!-- markdownlint-enable -->
 
-## 使用 Datakit-Operator 注入文件和程序 {#datakit-operator-inject-sidecar}
+## 使用 Datakit Operator 注入文件和程序 {#datakit-operator-inject-sidecar}
 
 在大型 Kubernetes 集群中，批量修改配置是比较麻烦的事情。Datakit-Operator 会根据 Annotation 配置，决定是否对其修改或注入。
 
@@ -48,9 +55,11 @@ datakit-operator-f948897fb-5w5nm   1/1     Running   0          15s
 - 注入 `dd-lib` 文件和 environment 的功能
 - 挂载 `logfwd` sidecar 并开启日志采集的功能
 
+<!-- markdownlint-disable MD046 -->
 ???+ info
 
     只支持 v1 版本的 `deployments/daemonsets/cronjobs/jobs/statefulsets` 这五类 Kind，且因为 Datakit-Operator 实际对 PodTemplate 操作，所以不支持 Pod。 在本文中，以 `Deployment` 代替描述这五类 Kind。
+<!-- markdownlint-enable -->
 
 ### 注入 dd-lib 文件和相关的环境变量 {#datakit-operator-inject-lib}
 
@@ -94,22 +103,25 @@ spec:
 使用 yaml 文件创建资源：
 
 ```shell
-$ kubectl apply -f nginx.yaml
+kubectl apply -f nginx.yaml
 ```
 
 验证如下：
 
 ```shell
-$ kubectl get pod
-$ NAME                                   READY   STATUS    RESTARTS      AGE
+kubectl get pod
+
+NAME                                   READY   STATUS    RESTARTS      AGE
 nginx-deployment-7bd8dd85f-fzmt2       1/1     Running   0             4s
-$ kubectl get pod nginx-deployment-7bd8dd85f-fzmt2 -o=jsonpath={.spec.initContainers\[\*\].name}
-$ datakit-lib-init
+
+kubectl get pod nginx-deployment-7bd8dd85f-fzmt2 -o=jsonpath={.spec.initContainers\[\*\].name}
+
+datakit-lib-init
 ```
 
 #### 相关配置 {#datakit-operator-inject-lib-configurations}
 
-Datakit-Operator 支持以下的环境变量配置（在 datakit-operator.yaml 中修改）：
+Datakit-Operator 支持以下的环境变量配置（在 *datakit-operator.yaml* 中修改）：
 
 | 环境变量名                  | 默认值                                                                  | 配置项含义              |
 | :----                       | :----                                                                   | :----                   |
@@ -124,7 +136,7 @@ Datakit-Operator 支持以下的环境变量配置（在 datakit-operator.yaml �
 Datakit-Operator 的 dd-lib 镜像统一存放在 `pubrepo.jiagouyun.com/datakit-operator`，对于一些特殊环境可能不方便访问此镜像库，支持修改环境变量，指定镜像路径，方法如下：
 
 1. 在可以访问 `pubrepo.jiagouyun.com` 的环境中，pull 镜像 `pubrepo.jiagouyun.com/datakit-operator/dd-lib-java-init:v1.8.4-guance`，并将其转存到自己的镜像库，例如 `inside.image.hub/datakit-operator/dd-lib-java-init:v1.8.4-guance`
-2. 修改 datakit-operator.yaml，将环境变量 `ENV_DD_JAVA_AGENT_IMAGE` 修改为 `inside.image.hub/datakit-operator/dd-lib-java-init:v1.8.4-guance`，应用此 yaml
+2. 修改 *datakit-operator.yaml*，将环境变量 `ENV_DD_JAVA_AGENT_IMAGE` 修改为 `inside.image.hub/datakit-operator/dd-lib-java-init:v1.8.4-guance`，应用此 yaml
 3. 此后 Datakit-Operator 会使用的新的 Java lib 镜像路径
 
 > 如果已经在 Annotation 的 `admission.datakit/java-lib.version` 指定了版本，例如 `admission.datakit/java-lib.version:v2.0.1-guance` 或 `admission.datakit/java-lib.version:latest`，会使用这个版本。
@@ -177,8 +189,8 @@ Datakit-Operator 的 dd-lib 镜像统一存放在 `pubrepo.jiagouyun.com/datakit
     - `ignore` 文件路径过滤，使用 glob 规则，符合任意一条过滤条件将不会对该文件进行采集
     - `source` 数据来源，如果为空，则默认使用 'default'
     - `service` 新增标记 tag，如果为空，则默认使用 $source
-    - `pipeline` pipeline 脚本路径，如果为空将使用 $source.p，如果 $source.p 不存在将不使用 pipeline（此脚本文件存在于 DataKit 端）
-    - `character_encoding` # 选择编码，如果编码有误会导致数据无法查看，默认为空即可。支持`utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030` or ""
+    - `pipeline` Pipeline 脚本路径，如果为空将使用 $source.p，如果 $source.p 不存在将不使用 Pipeline（此脚本文件存在于 DataKit 端）
+    - `character_encoding` 选择编码，如果编码有误会导致数据无法查看，默认为空即可。支持 `utf-8/utf-16le/utf-16le/gbk/gb18030`
     - `multiline_match` 多行匹配，详见 [Datakit 日志多行配置](logging.md#multiline)，注意因为是 JSON 格式所以不支持 3 个单引号的“不转义写法”，正则 `^\d{4}` 需要添加转义写成 `^\\d{4}`
     - `tags` 添加额外 `tag`，书写格式是 JSON map，例如 `{ "key1":"value1", "key2":"value2" }`
 
@@ -214,7 +226,7 @@ spec:
 使用 yaml 文件创建资源：
 
 ```shell
-$ kubectl apply -f logging.yaml
+kubectl apply -f logging.yaml
 ```
 
 验证如下：
@@ -231,15 +243,14 @@ $ log-container datakit-logfwd
 
 #### 相关配置 {#datakit-operator-inject-logfwd-configurations}
 
-Datakit-Operator 支持以下的环境变量（在 datakit-operator.yaml 中修改）：
+Datakit Operator 支持以下的环境变量（在 *datakit-operator.yaml* 中修改）：
 
 | 环境变量名         | 默认值                                       | 配置项含义      |
 | :----              | :----                                        | :----           |
 | `ENV_LOGFWD_IMAGE` | `pubrepo.jiagouyun.com/datakit/logfwd:1.5.8` | logfwd 镜像路径 |
 
-----
+---
 
 补充：
 
-- Datakit-Operator 使用 Kubernetes Admission Controller 功能进行资源注入，详细机制请查看[官方文档](https://kubernetes.io/zh-cn/docs/reference/access-authn-authz/admission-controllers/)。
-
+- Datakit-Operator 使用 Kubernetes Admission Controller 功能进行资源注入，详细机制请查看[官方文档](https://kubernetes.io/zh-cn/docs/reference/access-authn-authz/admission-controllers/){:target="_blank"}

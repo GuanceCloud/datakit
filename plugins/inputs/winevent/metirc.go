@@ -19,7 +19,7 @@ var (
 	sample = `
 [[inputs.windows_event]]
   xpath_query = '''
-	<QueryList>
+  <QueryList>
     <Query Id="0" Path="Security">
       <Select Path="Security">*</Select>
       <Suppress Path="Security">*[System[( (EventID &gt;= 5152 and EventID &lt;= 5158) or EventID=5379 or EventID=4672)]]</Suppress>
@@ -37,11 +37,11 @@ var (
       <Select Path="Setup">*</Select>
     </Query>
   </QueryList>
-	'''
+  '''
   [inputs.windows_event.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
-  # ... `
+  # ...`
 
 	inputName = "windows_event"
 )

@@ -9,10 +9,10 @@
 - `key`: 指定字段
 - `value`: 目标值
 
-示例:
+示例：
 
 ```python
-# 待处理数据: {"first": 1,"second":2,"third":"aBC","forth":true}
+# 待处理数据：{"first": 1,"second":2,"third":"aBC","forth":true}
 
 # 处理脚本
 json(_, first) json(_, second) nullif(first, "1")
@@ -27,7 +27,7 @@ json(_, first) json(_, second) nullif(first, "1")
 
 ```python
 if first == "1" {
-	drop_key(first)
+    drop_key(first)
 }
 ```
 

@@ -8,7 +8,7 @@
 
 - `key_name`: key 的名称
 
-示例:
+示例：
 
 ```python
 add_key("city", "shanghai")

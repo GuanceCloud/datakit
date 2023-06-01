@@ -100,7 +100,7 @@ func (stats *Stats) WriteScriptStats(category, ns, name string, pt, ptDrop, ptEr
 	}
 
 	if cost > 0 {
-		plCostVec.WithLabelValues(catStr, name, ns).Observe(float64(cost) / float64(time.Millisecond))
+		plCostVec.WithLabelValues(catStr, name, ns).Observe(float64(cost) / float64(time.Second))
 	}
 }
 

@@ -15,7 +15,7 @@ ifeq ($(MACHINE_ARCH),amd64)
 		GO_ARCH := amd64
 endif
 
-DK_EBPF_DEBUG ?= ""
+ARGS ?= ""
 
 SRCPATH ?= .
 SRC_PATH := $(SRCPATH)
@@ -44,7 +44,7 @@ BPF_INCLUDE := $(KERNEL_INCLUDE) \
 		-I$(SRC_PATH)/c/common \
 		-include asm_goto_workaround.h
 
-BUILD_TAGS := -D__KERNEL__ -D__BPF_TRACING__ $(DK_EBPF_DEBUG) \
+BUILD_TAGS := -D__KERNEL__ -D__BPF_TRACING__ $(ARGS) \
 		-fno-stack-protector -g \
 		-Wno-unused-value \
 		-Wno-pointer-sign \
@@ -69,6 +69,12 @@ netflow.o: httpflow.o
 		-c $(SRC_PATH)/c/netflow/netflow.c \
 		-o - | llc -march=bpf -filetype=obj -o $(BIN_PATH)/netflow.o
 
+conntrack.o:
+	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
+		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
+		-c $(SRC_PATH)/c/conntrack/conntrack.c \
+		-o - | llc -march=bpf -filetype=obj -o $(BIN_PATH)/conntrack.o
+
 offset_guess.o:
 	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
 		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
@@ -81,12 +87,19 @@ offset_httpflow.o:
 		-c $(SRC_PATH)/c/offset_guess/offset_httpflow.c \
 		-o - | llc -march=bpf -filetype=obj -o $(BIN_PATH)/offset_httpflow.o
 
-bash_history.o : 
+offset_conntrack.o:
+	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
+		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
+		-c $(SRC_PATH)/c/offset_guess/offset_conntrack.c \
+		-o - | llc -march=bpf -filetype=obj -o $(BIN_PATH)/offset_conntrack.o
+
+bash_history.o: 
 	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
 		-c $(SRC_PATH)/c/bash_history/bash_history.c \
 		-o - | llc -march=bpf -filetype=obj -o $(BIN_PATH)/bash_history.o
 
-bindata: offset_guess.o  offset_httpflow.o netflow.o bash_history.o
+bindata: offset_guess.o offset_httpflow.o offset_conntrack.o \
+			netflow.o bash_history.o conntrack.o
 	llvm-strip $(BIN_PATH)/*.o --no-strip-all -R .BTF
 
 buildexec: bindata

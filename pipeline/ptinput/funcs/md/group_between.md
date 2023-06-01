@@ -4,10 +4,10 @@
 
 函数说明：如果 `key` 值在指定范围 `between` 内（注意：只能是单个区间，如 `[0,100]`），则可创建一个新字段，并赋予新值。若不提供新字段，则覆盖原字段值
 
-示例一:
+示例一：
 
 ```python
-# 待处理数据: {"http_status": 200, "code": "success"}
+# 待处理数据：{"http_status": 200, "code": "success"}
 
 json(_, http_status)
 
@@ -20,10 +20,10 @@ group_between(http_status, [200, 300], "OK")
 }
 ```
 
-示例二:
+示例二：
 
 ```python
-# 待处理数据: {"http_status": 200, "code": "success"}
+# 待处理数据：{"http_status": 200, "code": "success"}
 
 json(_, http_status)
 

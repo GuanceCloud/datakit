@@ -14,7 +14,7 @@ Prometheus has a complete Kubernetes application metrics collection scheme, and 
 
 ???+ attention
 
-    Prometheus-Operator [official link](https://github.com/prometheus-operator/prometheus-operator) and [application example](https://alexandrev.medium.com/prometheus-concepts-servicemonitor-and-podmonitor-8110ce904908)。
+    Prometheus-Operator [official link](https://github.com/prometheus-operator/prometheus-operator) and [application example](https://alexandrev.medium.com/prometheus-concepts-servicemonitor-and-podmonitor-8110ce904908){:target="_blank"}。
 
 Here, Datakit plays the role of step 3, in which Datakit monitors and discovers Prometheus-Operator CRD, starts metric collection according to configuration, and finally uploads it to Guance Cloud.
 
@@ -105,7 +105,7 @@ Several important configuration items should be consistent with nacos:
 - port: client
 - path: /nacos/actuator/prometheus
 
-Configuration parameters [document](https://doc.crds.dev/github.com/prometheus-operator/kube-prometheus/monitoring.coreos.com/PodMonitor/v1@v0.7.0). Currently, Datakit only supports the requirement part, and does not support authentication configurations such as `baseAuth`, `bearerToeknSecret` and `tlsConfig`.
+Configuration parameters [document](https://doc.crds.dev/github.com/prometheus-operator/kube-prometheus/monitoring.coreos.com/PodMonitor/v1@v0.7.0){:target="_blank"}. Currently, Datakit only supports the requirement part, and does not support authentication configurations such as `baseAuth`, `bearerToeknSecret` and `tlsConfig`.
 
 ### Turn on Datakit Collection {#config}
 
@@ -181,7 +181,7 @@ To work with metric data in more detail, Datakit provides the environment variab
 
 ???+ attention
 
-    matchLabels and matchExpressions are Kubernetes' common match methods, as shown in [doc](https://kubernetes.io/zh-cn/docs/concepts/overview/working-with-objects/labels/#label-selectors)。
+    matchLabels and matchExpressions are Kubernetes' common match methods, as shown in [doc](https://kubernetes.io/zh-cn/docs/concepts/overview/working-with-objects/labels/#label-selectors){:target="_blank"}。
 
 ???+ attention
 

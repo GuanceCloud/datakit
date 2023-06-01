@@ -1,5 +1,6 @@
-{{.CSS}}
+
 # DataKit 代理
+
 ---
 
 {{.AvailableArchs}}
@@ -33,7 +34,7 @@ curl -x <PROXY-IP:PROXY-PORT> -v -X POST https://openway.guance.com/v1/write/met
 
 如果代理服务器工作正常，工作空间将收到指标数据 `proxy_test,name=test c=123i`。
 
-- 设置 _被代理 Datakit_ 的代理模式
+- 设置 *被代理 Datakit* 的代理模式
 
 进入被代理 DataKit 安装目录下的 `conf.d/` 目录，配置 `datakit.conf` 中的代理服务。如下：
 
@@ -47,14 +48,14 @@ curl -x <PROXY-IP:PROXY-PORT> -v -X POST https://openway.guance.com/v1/write/met
 
 ## Nginx 正向代理配置 {#nginx-proxy}
 
-代理 HTTPS 流量这里 nginx 采用 4 层的透明代理方式，即需要:
+代理 HTTPS 流量这里 nginx 采用 4 层的透明代理方式，即需要：
 
 - 一台可以访问外网的 nginx 的透明代理服务器
-- datakit 所在的客户机使用 hosts 文件进行域名配置
+- Datakit 所在的客户机使用 *hosts* 文件进行域名配置
 
 ### 配置 `Nginx` 代理服务 {#config-nginx-proxy}
 
-```
+``` nginx
 # 代理 HTTPS
 stream {
     # resolver 114.114.114.114;
@@ -72,9 +73,9 @@ http {
 }
 ```
 
-代理 HTTP 流量这里 nginx 采用 7 层的透明代理方式(如果不需要代理 HTTP 这段可以跳过):
+代理 HTTP 流量这里 NGINX 采用 7 层的透明代理方式（如果不需要代理 HTTP 这段可以跳过）：
 
-```
+```nginx
 # 代理 HTTP
 http {
     # resolver 114.114.114.114;
@@ -103,7 +104,7 @@ http {
 
 ```shell
 nginx -t        # 测试配置
-nginx -s reload # reload配置
+nginx -s reload # reload 配置
 ```
 
 # 配置 `Datakit` 被代理机器上的域名
@@ -126,6 +127,7 @@ $ sudo vi /etc/hosts
 
 在被代理机器上，测试代理是否正常：
 
+<!-- markdownlint-disable MD046 -->
 === "Linux/Unix Shell"
 
     ```shell
@@ -140,7 +142,7 @@ $ sudo vi /etc/hosts
     curl -uri 'https://openway.guance.com/v1/write/metrics?token=<YOUR-TOKEN>' -Headers @{"param"="value"} -ContentType 'application/x-www-form-urlencoded' -body 'proxy_test_nginx,name=test c=123i' -method 'POST'
     ```
     
-    注意: PowerShell 有的机器上会报 `curl : 请求被中止: 未能创建 SSL/TLS 安全通道。` 的错误，这是因为服务端证书加密版本号在本地默认不被支持造成的，可以通过命令 `[Net.ServicePointManager]::SecurityProtocol` 查看支持的协议。如果想要本地支持可以做以下操作:
+    注意：PowerShell 有的机器上会报 `curl: 请求被中止：未能创建 SSL/TLS 安全通道。` 的错误，这是因为服务端证书加密版本号在本地默认不被支持造成的，可以通过命令 `[Net.ServicePointManager]::SecurityProtocol` 查看支持的协议。如果想要本地支持可以做以下操作：
     
     ```PowerShell
     # 64 bit PowerShell
@@ -150,8 +152,9 @@ $ sudo vi /etc/hosts
     Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\.NetFramework\v4.0.30319' -Name 'SchUseStrongCrypto' -Value '1' -Type DWord
     ```
     
-    关闭 PowerShell 窗口，打开一个新的 PowerShell 窗口，执行以下代码查看支持的协议:
+    关闭 PowerShell 窗口，打开一个新的 PowerShell 窗口，执行以下代码查看支持的协议：
     
     ```PowerShell
     [Net.ServicePointManager]::SecurityProtocol
     ```
+<!-- markdownlint-enable -->

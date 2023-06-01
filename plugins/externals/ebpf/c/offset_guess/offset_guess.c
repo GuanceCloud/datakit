@@ -58,7 +58,7 @@ static __always_inline void read_netns_inum(struct sock *sk, struct offset_guess
     int err = bpf_probe_read(&status->netns, sizeof(__u32), (__u8 *)sknet + status->offset_ns_common_inum);
     if (err == -EFAULT || status->offset_ns_common_inum > 200 || status->offset_sk_net > 128)
     {
-        status->err = ERR_G_SK_NET;
+        status->err = ERR_G_NS_INUM;
     }
     else
     {

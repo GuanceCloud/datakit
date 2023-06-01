@@ -28,7 +28,7 @@ if false {
         # Using pattern cc here will cause compilation failure: no pattern found for %{cc}
         grok(_, "%{aa:aa},%{bb:bb},%{INT:cc}")
     } elif aa == "33" {
-        add_pattern("bb", "[\\d]{5}")	# Overwriting bb here fails
+        add_pattern("bb", "[\\d]{5}") # Overwriting bb here fails
         add_pattern("cc", "end3")
         grok(_, "%{aa:aa},%{bb:bb},%{cc:cc}")
     }
@@ -43,7 +43,7 @@ if false {
 }
 {
     "aa":      "22"
-	 "message": "22,abc,end1"
+    "message": "22,abc,end1"
 }
 {
     "aa":      "33"

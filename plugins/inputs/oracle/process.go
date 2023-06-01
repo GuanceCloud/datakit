@@ -7,6 +7,7 @@ package oracle
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
@@ -20,21 +21,17 @@ const (
 )
 
 type processMeasurement struct {
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	election bool
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+	opt    point.Option
 }
 
 // Point implement MeasurementV2.
 func (m *processMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-
-	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
+	opts = append(opts, point.WithTime(m.ts), m.opt)
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -96,21 +93,17 @@ func (m *processMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 type tablespaceMeasurement struct {
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	election bool
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+	opt    point.Option
 }
 
 // Point implement MeasurementV2.
 func (m *tablespaceMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-
-	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
+	opts = append(opts, point.WithTime(m.ts), m.opt)
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -139,19 +132,19 @@ func (m *tablespaceMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
 				Unit:     inputs.SizeByte,
-				Desc:     "Tablespace size",
+				Desc:     "Table space size",
 			},
 			"in_use": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NCount,
-				Desc:     "Tablespace in-use",
+				Desc:     "Table space in-use",
 			},
 			"off_use": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NCount,
-				Desc:     "Tablespace offline",
+				Desc:     "Table space offline",
 			},
 		},
 		Tags: map[string]interface{}{
@@ -172,21 +165,17 @@ func (m *tablespaceMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 type systemMeasurement struct {
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	election bool
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+	opt    point.Option
 }
 
 // Point implement MeasurementV2.
 func (m *systemMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-
-	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
+	opts = append(opts, point.WithTime(m.ts), m.opt)
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -339,6 +328,9 @@ func (m *systemMeasurement) Info() *inputs.MeasurementInfo {
 			},
 			"oracle_service": &inputs.TagInfo{
 				Desc: "Server service",
+			},
+			"host": &inputs.TagInfo{
+				Desc: "host",
 			},
 		},
 	}

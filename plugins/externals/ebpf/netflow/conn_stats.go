@@ -28,6 +28,9 @@ type ConnectionInfo struct {
 	Pid   uint32
 	Netns uint32
 	Meta  uint32
+
+	NATDaddr [4]uint32
+	NATDport uint32
 }
 
 func (conn ConnectionInfo) String() string {
@@ -39,9 +42,13 @@ type ConnectionStats struct {
 	RecvBytes   uint64
 	SentPackets uint64
 	RecvPackets uint64
-	Flags       uint32
-	Direction   uint8
 	Timestamp   uint64
+	Flags       uint32
+
+	NATDaddr [4]uint32
+	NATDport uint32
+
+	Direction uint8
 }
 
 type ConnectionTCPStats struct {

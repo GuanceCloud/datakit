@@ -86,7 +86,7 @@ const sampleCfg = `
     # more_tag = "some_other_value"
 `
 
-type DepercatedConf struct {
+type DeprecatedConf struct {
 	EnableMetric           bool           `toml:"enable_metric,omitempty"`
 	EnableObject           bool           `toml:"enable_object,omitempty"`
 	EnableLogging          bool           `toml:"enable_logging,omitempty"`
@@ -117,7 +117,7 @@ type DepercatedConf struct {
 		CharacterEncoding string   `toml:"character_encoding,omitempty"`
 		MultilineMatch    string   `toml:"multiline_match,omitempty"`
 	} `toml:"log,omitempty"`
-	LogDepercated struct {
+	LogDeprecated struct {
 		FilterMessage []string `toml:"filter_message,omitempty"`
 		Source        string   `toml:"source,omitempty"`
 		Service       string   `toml:"service,omitempty"`

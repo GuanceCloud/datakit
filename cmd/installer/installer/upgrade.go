@@ -7,6 +7,7 @@ package installer
 
 import (
 	"os"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -57,6 +58,15 @@ func upgradeMainConfig(c *config.Config) *config.Config {
 	if c.Dataway != nil {
 		c.Dataway.DeprecatedURL = ""
 		c.Dataway.HTTPProxy = Proxy
+
+		if c.Dataway.DeprecatedHTTPTimeout != "" {
+			du, err := time.ParseDuration(c.Dataway.DeprecatedHTTPTimeout)
+			if err == nil {
+				c.Dataway.HTTPTimeout = du
+			}
+
+			c.Dataway.DeprecatedHTTPTimeout = "" // always remove the config
+		}
 	}
 
 	cp.Infof("Set log to %s\n", c.Logging.Log)

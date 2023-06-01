@@ -18,7 +18,7 @@ import (
 func TestGetMetric(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/nginx_status":
+		case "/basic_status":
 			httpModelHandle(w, r)
 		case "/status/format/json":
 			vtsModelHandle(w, r)
@@ -42,15 +42,15 @@ func TestGetMetric(t *testing.T) {
 		i    *Input
 	}{
 		{
-			name: "nginx_status",
+			name: "basic_status",
 			i: &Input{
-				URL:    ts.URL + "/nginx_status",
+				URL:    ts.URL + "/basic_status",
 				UseVts: false,
 			},
 		},
 
 		{
-			name: "nginx_status_json",
+			name: "basic_status_json",
 			i: &Input{
 				URL:    ts.URL + "/status/format/json",
 				UseVts: true,

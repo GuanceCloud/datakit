@@ -512,7 +512,7 @@ func (ipt *Input) resolveIOSSourceMap(p influxm.Point, sdkName string) (influxm.
 
 func (ipt *Input) parseSourcemap(p influxm.Point, sdkName string) (influxm.Point, error) {
 	switch sdkName {
-	case SdkWeb:
+	case SdkWeb, SdkWebMiniApp, SdkWebUniApp:
 		return ipt.resolveWebSourceMap(p, sdkName)
 	case SdkAndroid:
 		return ipt.resolveAndroidSourceMap(p, sdkName)

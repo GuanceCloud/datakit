@@ -12,7 +12,9 @@
 
 ### Python Environment {#req-python}
 
-Currently in the alpha phase, **it is compatible with Python 3++ only**. Already tested version: `3.10.1`.
+Currently in the alpha phase, **it is compatible with Python 3++ only**. Already tested version:
+
+- [x] 3.10.1
 
 The following dependency libraries need to be installed:
 

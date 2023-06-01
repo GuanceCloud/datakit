@@ -21,7 +21,7 @@ func metricsSetup() {
 			Namespace: "datakit",
 			Subsystem: "inputs",
 			Name:      "instance",
-			Help:      "input instance count",
+			Help:      "Input instance count",
 		},
 		[]string{
 			"input",
@@ -33,7 +33,7 @@ func metricsSetup() {
 			Namespace: "datakit",
 			Subsystem: "inputs",
 			Name:      "crash_total",
-			Help:      "input crash count",
+			Help:      "Input crash count",
 		},
 		[]string{
 			"input",

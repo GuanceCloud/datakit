@@ -30,6 +30,8 @@ const configSample = `
   ##     contains L4-network(netflow), L7-network(httpflow, dnsflow) collection
   ## - "ebpf-bash" :
   ##     log bash
+  ## - "ebpf-conntrack":
+  ##     add two tags "dst_nat_ip" and "dst_nat_port" to the network flow data
   ##
   enabled_plugins = [
     "ebpf-net",

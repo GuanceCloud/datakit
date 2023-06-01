@@ -1,4 +1,4 @@
-{{.CSS}}
+
 # NSQ
 ---
 
@@ -16,6 +16,7 @@
 
 ## 配置 {#config}
 
+<!-- markdownlint-disable MD046 -->
 === "主机安装"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
@@ -29,13 +30,14 @@
     ???+ tip "NSQ 采集器提供两种配置方式，分别为 `lookupd` 和 `nsqd`"
     
         - `lookupd`：配置 NSQ 集群的 `lookupd` 地址，采集器会自动发现 NSQ Server 并采集数据，扩展性更佳
-        - `nsqd`：配置固定的 NSQD 地址列表，采集器只会采集该列表的 NSQ Server 数据
+        - `nsqd`：配置固定的 NSQ Daemon（`nsqd`）地址列表，采集器只会采集该列表的 NSQ Server 数据
         
         以上两种配置方式是互斥的，**`lookupd` 优先级更高，推荐使用 `lookupd` 配置方式**。
 
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+<!-- markdownlint-enable -->
 
 ## 指标集 {#measurements}
 
@@ -54,7 +56,7 @@
 
 {{$m.Desc}}
 
--  标签
+- 标签
 
 {{$m.TagsMarkdownTable}}
 
@@ -62,4 +64,4 @@
 
 {{$m.FieldsMarkdownTable}}
 
-{{ end }} 
+{{ end }}

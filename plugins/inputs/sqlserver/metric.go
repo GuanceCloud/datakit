@@ -6,6 +6,8 @@
 package sqlserver
 
 import (
+	"time"
+
 	"github.com/GuanceCloud/cliutils/point"
 	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -15,19 +17,14 @@ type Performance struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-
-	ipt *Input
+	ts     time.Time
+	ipt    *Input
 }
 
 // Point implement MeasurementV2.
 func (m *Performance) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-
-	if m.ipt != nil && m.ipt.Election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
+	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -50,7 +47,7 @@ func (m *Performance) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"object_name":    inputs.NewTagInfo("Category to which this counter belongs."),
 			"counter_name":   inputs.NewTagInfo("Name of the counter. To get more information about a counter, this is the name of the topic to select from the list of counters in Use SQL Server Objects."),
-			"sqlserver_host": inputs.NewTagInfo("host name which installed sqlserver"),
+			"sqlserver_host": inputs.NewTagInfo("host name which installed SQLServer"),
 		},
 	}
 }
@@ -79,7 +76,7 @@ func (m *WaitStatsCategorized) Info() *inputs.MeasurementInfo {
 			"waiting_tasks_count": newCountFieldInfo("Number of waits on this wait type. This counter is incremented at the start of each wait."),
 		},
 		Tags: map[string]interface{}{
-			"sqlserver_host": inputs.NewTagInfo("host name which installed sqlserver"),
+			"sqlserver_host": inputs.NewTagInfo("host name which installed SQLServer"),
 			"wait_type":      inputs.NewTagInfo("Name of the wait type. For more information, see Types of Waits, later in this topic"),
 			"wait_category":  inputs.NewTagInfo("wait category info"),
 		},
@@ -114,10 +111,10 @@ func (m *DatabaseIO) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"database_name":     inputs.NewTagInfo("database name"),
-			"file_type":         inputs.NewTagInfo("Description of the file type,ROWS、LOG、FILESTREAM、FULLTEXT (Full-text catalogs earlier than SQL Server 2008.)"),
+			"file_type":         inputs.NewTagInfo("Description of the file type, `ROWS/LOG/FILESTREAM/FULLTEXT` (Full-text catalogs earlier than SQL Server 2008.)"),
 			"logical_filename":  inputs.NewTagInfo("Logical name of the file in the database"),
 			"physical_filename": inputs.NewTagInfo("Operating-system file name."),
-			"sqlserver_host":    inputs.NewTagInfo("host name which installed sqlserver"),
+			"sqlserver_host":    inputs.NewTagInfo("host name which installed SQLServer"),
 		},
 	}
 }
@@ -148,7 +145,7 @@ func (m *ServerProperties) Info() *inputs.MeasurementInfo {
 			"server_memory":       newByteFieldInfo("memory used"),
 		},
 		Tags: map[string]interface{}{
-			"sqlserver_host": inputs.NewTagInfo("host name which installed sqlserver"),
+			"sqlserver_host": inputs.NewTagInfo("host name which installed SQLServer"),
 		},
 	}
 }
@@ -187,7 +184,7 @@ func (m *Schedulers) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"cpu_id":         inputs.NewTagInfo("CPU ID assigned to the scheduler."),
-			"sqlserver_host": inputs.NewTagInfo("host name which installed sqlserver"),
+			"sqlserver_host": inputs.NewTagInfo("host name which installed SQLServer"),
 			"scheduler_id":   inputs.NewTagInfo("ID of the scheduler. All schedulers that are used to run regular queries have ID numbers less than 1048576. Those schedulers that have IDs greater than or equal to 1048576 are used internally by SQL Server, such as the dedicated administrator connection scheduler. Is not nullable."),
 		},
 	}
@@ -214,7 +211,7 @@ func (m *VolumeSpace) Info() *inputs.MeasurementInfo {
 			"volume_used_space_bytes":      newByteFieldInfo("Used size in bytes of the volume"),
 		},
 		Tags: map[string]interface{}{
-			"sqlserver_host":     inputs.NewTagInfo("host name which installed sqlserver"),
+			"sqlserver_host":     inputs.NewTagInfo("host name which installed SQLServer"),
 			"volume_mount_point": inputs.NewTagInfo("Mount point at which the volume is rooted. Can return an empty string. Returns null on Linux operating system."),
 		},
 	}

@@ -18,11 +18,12 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/GuanceCloud/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 const (
@@ -41,8 +42,8 @@ var (
 	l              = logger.DefaultSLogger("inputs")
 )
 
-func GetElectionInputs() []ElectionInput {
-	res := []ElectionInput{}
+func GetElectionInputs() map[string][]ElectionInput {
+	res := make(map[string][]ElectionInput)
 	for k, arr := range InputsInfo {
 		for _, x := range arr {
 			if y, ok := x.input.(ElectionInput); ok {
@@ -53,7 +54,7 @@ func GetElectionInputs() []ElectionInput {
 					}
 				}
 				l.Debugf("find election inputs %s", k)
-				res = append(res, y)
+				res[k] = append(res[k], y)
 			}
 		}
 	}
@@ -129,7 +130,11 @@ type ReadEnv interface {
 }
 
 type InputOnceRunnableCollect interface {
-	Collect() (map[string][]*point.Point, error)
+	Collect() (map[string][]*dkpt.Point, error)
+}
+
+type InputOnceRunnableCollectV2 interface {
+	Collect() (map[point.Category][]*point.Point, error)
 }
 
 type InputOnceRunnable interface {

@@ -8,12 +8,12 @@
 
 - `key`: 指定格式化后数据写入字段名
 - `fmt`: 格式化字符串模板
-- `args`:可变参数，可以是多个已提取的待格式化字段名
+- `args`：可变参数，可以是多个已提取的待格式化字段名
 
-示例:
+示例：
 
 ```python
-# 待处理数据: {"a":{"first":2.3,"second":2,"third":"abc","forth":true},"age":47}
+# 待处理数据：{"a":{"first":2.3,"second":2,"third":"abc","forth":true},"age":47}
 
 # 处理脚本
 json(_, a.second)

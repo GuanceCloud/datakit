@@ -1,4 +1,3 @@
-{{.CSS}}
 
 # MongoDB
 
@@ -12,10 +11,15 @@ MongoDb 数据库，Collection， MongoDb 数据库集群运行状态数据采�
 
 ## 前置条件 {#requirements}
 
-- 已测试的版本: `3.x`, `4.x`, `5.x`, `6.x`;
+- 已测试的版本：
+    - [x] 6.0
+    - [x] 5.0
+    - [x] 4.0
+    - [x] 3.0
+
 - 开发使用 MongoDB 版本 `4.4.5`;
-- 编写配置文件在对应目录下然后启动 DataKit 即可完成配置;
-- 使用 TLS 进行安全连接请在配置文件中配置 `## TLS connection config` 下响应证书文件路径与配置;
+- 编写配置文件在对应目录下然后启动 DataKit 即可完成配置；
+- 使用 TLS 进行安全连接请在配置文件中配置 `## TLS connection config` 下响应证书文件路径与配置；
 - 如果 MongoDb 启动了访问控制那么需要配置必须的用户权限用于建立授权连接。例如：
 
 ```mongodb
@@ -24,9 +28,10 @@ MongoDb 数据库，Collection， MongoDb 数据库集群运行状态数据采�
 
 ## 配置 {#config}
 
+<!-- markdownlint-disable MD046 -->
 === "主机安装"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下:
+    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
     ```toml
     {{ CodeBlock .InputSample 4 }}
@@ -37,14 +42,15 @@ MongoDb 数据库，Collection， MongoDb 数据库集群运行状态数据采�
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+<!-- markdownlint-enable -->
 
 ## TLS config (self-signed) {#tls}
 
-使用 openssl 生成证书文件用于 MongoDB TLS 配置，用于开启服务端加密和客户端认证。
+使用 `openssl` 生成证书文件用于 MongoDB TLS 配置，用于开启服务端加密和客户端认证。
 
 - 配置 TLS 证书
 
-安装 openssl 运行以下命令：
+安装 `openssl` 运行以下命令：
 
 ```shell
 sudo apt install openssl -y
@@ -52,7 +58,7 @@ sudo apt install openssl -y
 
 - 配置 MongoDB 服务端加密
 
-使用 openssl 生成证书级密钥文件，运行以下命令并按照命令提示符输入相应验证块信息：
+使用 `openssl` 生成证书级密钥文件，运行以下命令并按照命令提示符输入相应验证块信息：
 
 ```shell
 sudo openssl req -x509 -newkey rsa:<bits> -days <days> -keyout <mongod.key.pem> -out <mongod.cert.pem> -nodes
@@ -91,7 +97,7 @@ mongod --config /etc/mongod.conf
 mongod --tlsMode requireTLS --tlsCertificateKeyFile </etc/ssl/mongod.pem> --dbpath <.db/mongodb>
 ```
 
-复制 `mongod.cert.pem` 为 `mongo.cert.pem` 到 MongoDB 客户端并启用 TLS:
+复制 `mongod.cert.pem` 为 `mongo.cert.pem` 到 MongoDB 客户端并启用 TLS：
 
 ```shell
 mongo --tls --host <mongod_url> --tlsCAFile </etc/ssl/mongo.cert.pem>
@@ -99,7 +105,7 @@ mongo --tls --host <mongod_url> --tlsCAFile </etc/ssl/mongo.cert.pem>
 
 - 配置 MongoDB 客户端认证
 
-使用 openssl 生成证书级密钥文件，运行以下命令：
+使用 `openssl` 生成证书级密钥文件，运行以下命令：
 
 ```shell
 sudo openssl req -x509 -newkey rsa:<bits> -days <days> -keyout <mongod.key.pem> -out <mongod.cert.pem> -nodes
@@ -133,13 +139,13 @@ net:
 mongod --config /etc/mongod.conf
 ```
 
-复制 `mongod.cert.pem` 为 `mongo.cert.pem` ，复制 `mongod.pem` 为 `mongo.pem` 到 MongoDB 客户端并启用 TLS:
+复制 `mongod.cert.pem` 为 `mongo.cert.pem` ，复制 `mongod.pem` 为 `mongo.pem` 到 MongoDB 客户端并启用 TLS：
 
 ```shell
 mongo --tls --host <mongod_url> --tlsCAFile </etc/ssl/mongo.cert.pem> --tlsCertificateKeyFile </etc/ssl/mongo.pem>
 ```
 
-> **注意:**使用自签名证书时， `mongodb.conf` 配置中 `insecure_skip_verify` 必须是 `true`
+> 注意：使用自签名证书时，`mongodb.conf` 配置中 `insecure_skip_verify` 必须是 `true`
 
 ## 指标集 {#measurements}
 
@@ -172,7 +178,7 @@ mongo --tls --host <mongod_url> --tlsCAFile </etc/ssl/mongo.cert.pem> --tlsCerti
 
 日志原始数据 sample
 
-```
+```log
 {"t":{"$date":"2021-06-03T09:12:19.977+00:00"},"s":"I",  "c":"STORAGE",  "id":22430,   "ctx":"WTCheckpointThread","msg":"WiredTiger message","attr":{"message":"[1622711539:977142][1:0x7f1b9f159700], WT_SESSION.checkpoint: [WT_VERB_CHECKPOINT_PROGRESS] saving checkpoint snapshot min: 653, snapshot max: 653 snapshot count: 0, oldest timestamp: (0, 0) , meta checkpoint timestamp: (0, 0)"}}
 ```
 

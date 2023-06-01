@@ -12,7 +12,12 @@ MongoDb database, Collection, MongoDb database cluster running status data Colle
 
 ## Preconditions {#requirements}
 
-- Already tested version: `3.x`, `4.x`, `5.x`, `6.x`;
+- Already tested version:
+    - [x] 6.0
+    - [x] 5.0
+    - [x] 4.0
+    - [x] 3.0
+
 - Developed and used MongoDB version `4.4.5`;
 - Write the configuration file in the corresponding directory and then start DataKit to complete the configuration;
 - For secure connections using TLS, please configure the response certificate file path and configuration under `## TLS connection config` in the configuration file;
@@ -27,11 +32,11 @@ MongoDb database, Collection, MongoDb database cluster running status data Colle
 === "Host Installation"
 
     Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
-    
+
     ```toml
     {{ CodeBlock .InputSample 4 }}
     ```
-    
+
     Once configured, [restart DataKit](datakit-service-how-to.md#manage-service).
 
 === "Kubernetes"
@@ -178,11 +183,11 @@ Log raw data sample
 
 Log cut field
 
-| Field Name    | Field Value                        | Description                                                           |
-| --------- | ----------------------------- | -------------------------------------------------------------- |
-| message   |                               | Log raw data                                                   |
-| component | STORAGE                       | The full component string of the log message                   |
-| context   | WTCheckpointThread            | The name of the thread issuing the log statement               |
-| msg       | WiredTiger message            | The raw log output message as passed from the server or driver |
-| status    | I                             | The short severity code of the log message                     |
-| time      | 2021-06-03T09:12:19.977+00:00 | Timestamp                                                      |
+| Field Name | Field Value                   | Description                                                    |
+| ---------- | ----------------------------- | -------------------------------------------------------------- |
+| message    |                               | Log raw data                                                   |
+| component  | STORAGE                       | The full component string of the log message                   |
+| context    | WTCheckpointThread            | The name of the thread issuing the log statement               |
+| msg        | WiredTiger message            | The raw log output message as passed from the server or driver |
+| status     | I                             | The short severity code of the log message                     |
+| time       | 2021-06-03T09:12:19.977+00:00 | Timestamp                                                      |

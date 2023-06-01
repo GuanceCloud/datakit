@@ -138,7 +138,7 @@ func (n *node) object(election bool) (inputsMeas, error) {
 		for _, address := range item.Status.Addresses {
 			if address.Type == v1.NodeInternalIP {
 				obj.tags["internal_ip"] = address.Address
-				obj.tags["node_ip"] = address.Address // depercated
+				obj.tags["node_ip"] = address.Address // deprecated
 				break
 			}
 		}
@@ -197,7 +197,7 @@ func (*nodeMetric) Info() *inputs.MeasurementInfo {
 		Desc: "The metric of the Kubernetes Node.",
 		Type: "metric",
 		Tags: map[string]interface{}{
-			"node":      inputs.NewTagInfo("Name must be unique within a namespace. (depercated)"),
+			"node":      inputs.NewTagInfo("Name must be unique within a namespace. (Deprecated)"),
 			"node_name": inputs.NewTagInfo("Name must be unique within a namespace."),
 		},
 		Fields: map[string]interface{}{
@@ -233,7 +233,7 @@ func (*nodeObject) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"name":        inputs.NewTagInfo("UID"),
 			"node_name":   inputs.NewTagInfo("Name must be unique within a namespace."),
-			"node_ip":     inputs.NewTagInfo("Node IP (depercated)"),
+			"node_ip":     inputs.NewTagInfo("Node IP (Deprecated)"),
 			"internal_ip": inputs.NewTagInfo("Node internal IP"),
 			"role":        inputs.NewTagInfo("Node role. (master/node)"),
 			"namespace":   inputs.NewTagInfo("Namespace defines the space within each name must be unique."),

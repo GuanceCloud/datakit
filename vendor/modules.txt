@@ -167,8 +167,8 @@ github.com/antchfx/xmlquery
 # github.com/antchfx/xpath v1.2.1
 ## explicit; go 1.14
 github.com/antchfx/xpath
-# github.com/apache/thrift v0.13.0
-## explicit
+# github.com/apache/thrift v0.16.0
+## explicit; go 1.16
 github.com/apache/thrift/lib/go/thrift
 # github.com/araddon/dateparse v0.0.0-20201001162425-8aadafed4dc4
 ## explicit; go 1.12
@@ -1263,7 +1263,7 @@ github.com/opentracing/opentracing-go/log
 ## explicit; go 1.12
 github.com/openzipkin/zipkin-go/model
 github.com/openzipkin/zipkin-go/proto/v2
-# github.com/ory/dockertest/v3 v3.9.1 => github.com/GuanceCloud/dockertest/v3 v3.9.3
+# github.com/ory/dockertest/v3 v3.9.1 => github.com/GuanceCloud/dockertest/v3 v3.9.4
 ## explicit; go 1.17
 github.com/ory/dockertest/v3
 github.com/ory/dockertest/v3/docker

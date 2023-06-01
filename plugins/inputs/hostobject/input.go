@@ -8,6 +8,7 @@ package hostobject
 
 import (
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -17,10 +18,13 @@ import (
 	"github.com/GuanceCloud/cliutils/metrics"
 	"github.com/GuanceCloud/cliutils/point"
 	dto "github.com/prometheus/client_model/go"
+	diskutil "github.com/shirou/gopsutil/disk"
+	netutil "github.com/shirou/gopsutil/net"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -29,6 +33,11 @@ var (
 	_ inputs.ReadEnv   = (*Input)(nil)
 	_ inputs.Singleton = (*Input)(nil)
 	l                  = logger.DefaultSLogger(InputName)
+)
+
+type (
+	NetIOCounters  func(bool) ([]netutil.IOCountersStat, error)
+	DiskIOCounters func(names ...string) (map[string]diskutil.IOCountersStat, error)
 )
 
 type Input struct {
@@ -54,10 +63,17 @@ type Input struct {
 	CloudInfo                map[string]string `toml:"cloud_info,omitempty"`
 	lastSync                 time.Time
 
+	netIOCounters  NetIOCounters
+	diskIOCounters DiskIOCounters
+	lastDiskIOInfo diskIOInfo
+	lastNetIOInfo  netIOInfo
+
 	collectData *hostMeasurement
 
 	semStop    *cliutils.Sem // start stop signal
 	isTestMode bool
+	feeder     dkio.Feeder
+	opt        point.Option
 
 	mfs []*dto.MetricFamily
 }
@@ -88,15 +104,18 @@ func (ipt *Input) Run() {
 
 	l.Debugf("starting %s(interval: %v)...", InputName, ipt.Interval)
 
+	// no election.
+	ipt.opt = point.WithExtraTags(dkpt.GlobalHostTags())
+
 	for {
 		l.Debugf("start collecting...")
 		start := time.Now()
 		if err := ipt.doCollect(); err != nil {
-			io.FeedLastError(InputName, err.Error(), point.Object)
-		} else if err := inputs.FeedMeasurement(InputName,
-			datakit.Object, []inputs.Measurement{ipt.collectData},
-			&io.Option{CollectCost: time.Since(start)}); err != nil {
-			io.FeedLastError(InputName, err.Error(), point.Object)
+			ipt.feeder.FeedLastError(InputName, err.Error(), point.Object)
+		} else if err := ipt.feeder.Feed(InputName,
+			point.Object, []*point.Point{ipt.collectData.Point()},
+			&dkio.Option{CollectCost: time.Since(start)}); err != nil {
+			ipt.feeder.FeedLastError(InputName, err.Error(), point.Object)
 		}
 
 		select {
@@ -176,19 +195,33 @@ type hostMeasurement struct {
 	name   string
 	fields map[string]interface{}
 	tags   map[string]string
+	ts     time.Time
+	ipt    *Input
+}
+
+// Point implement MeasurementV2.
+func (m *hostMeasurement) Point() *point.Point {
+	opts := point.DefaultObjectOptions()
+	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
 }
 
 //nolint:lll
-func (hm *hostMeasurement) Info() *inputs.MeasurementInfo {
+func (*hostMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: hostObjMeasurementName,
-		Desc: "主机对象数据采集如下数据",
+		Desc: "Host object metrics",
 		Tags: map[string]interface{}{
-			"os": &inputs.TagInfo{Desc: "Host OS type"},
+			"host": &inputs.TagInfo{Desc: "Hostname. Required."},
+			"name": &inputs.TagInfo{Desc: "Hostname"},
+			"os":   &inputs.TagInfo{Desc: "Host OS type"},
 		},
 		Fields: map[string]interface{}{
 			"message":                    &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Summary of all host information"},
-			"start_time":                 &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "Host startup time (Unix timestamp)"},
+			"start_time":                 &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationMS, Desc: "Host startup time (Unix timestamp)"},
 			"datakit_ver":                &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "collector version"},
 			"cpu_usage":                  &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent, Desc: "CPU usage"},
 			"mem_used_percent":           &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent, Desc: "memory usage"},
@@ -204,8 +237,9 @@ func (hm *hostMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (hm *hostMeasurement) LineProto() (*dkpt.Point, error) {
-	return dkpt.NewPoint(hm.name, hm.tags, hm.fields, dkpt.OOpt())
+func (*hostMeasurement) LineProto() (*dkpt.Point, error) {
+	// return dkpt.NewPoint(hm.name, hm.tags, hm.fields, dkpt.OOpt())
+	return nil, fmt.Errorf("not implement")
 }
 
 func (ipt *Input) SampleMeasurement() []inputs.Measurement {
@@ -240,7 +274,7 @@ func (ipt *Input) doCollect() error {
 		name: hostObjMeasurementName,
 		fields: map[string]interface{}{
 			"message":                    string(messageData),
-			"start_time":                 message.Host.HostMeta.BootTime,
+			"start_time":                 message.Host.HostMeta.BootTime * 1000,
 			"datakit_ver":                datakit.Version,
 			"cpu_usage":                  message.Host.cpuPercent,
 			"mem_used_percent":           message.Host.Mem.usedPercent,
@@ -258,6 +292,9 @@ func (ipt *Input) doCollect() error {
 			"name": message.Host.HostMeta.HostName,
 			"os":   message.Host.HostMeta.OS,
 		},
+
+		ts:  time.Now(),
+		ipt: ipt,
 	}
 
 	if !ipt.isTestMode {
@@ -311,19 +348,23 @@ func (ipt *Input) Collect() (map[string][]*dkpt.Point, error) {
 	return mpts, nil
 }
 
-func DefaultHostObject() *Input {
+func defaultInput() *Input {
 	return &Input{
 		Interval:                 &datakit.Duration{Duration: 5 * time.Minute},
 		IgnoreInputsErrorsBefore: &datakit.Duration{Duration: 30 * time.Second},
 		IgnoreZeroBytesDisk:      true,
-		semStop:                  cliutils.NewSem(),
-		Tags:                     make(map[string]string),
+		diskIOCounters:           diskutil.IOCounters,
+		netIOCounters:            netutil.IOCounters,
+
+		semStop: cliutils.NewSem(),
+		feeder:  dkio.DefaultFeeder(),
+		Tags:    make(map[string]string),
 	}
 }
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(InputName, func() inputs.Input {
-		return DefaultHostObject()
+		return defaultInput()
 	})
 }
 

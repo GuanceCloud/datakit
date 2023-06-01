@@ -16,12 +16,13 @@ import (
 	"net/http/httptrace"
 	"net/url"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	rhttp "github.com/hashicorp/go-retryablehttp"
+	"github.com/avast/retry-go"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
@@ -30,19 +31,56 @@ import (
 	pb "google.golang.org/protobuf/proto"
 )
 
+var (
+	// DatakitUserAgent define HTTP User-Agent header.
+	// user-agent format. See
+	// 	 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
+	DatakitUserAgent = fmt.Sprintf("datakit-%s-%s/%s", runtime.GOOS, runtime.GOARCH, git.Version)
+
+	httpFailRatio      = 0 // %n
+	httpFailStart      time.Time
+	httpFailDuration   time.Duration
+	httpMockedFailResp *http.Response
+)
+
+// nolint: gochecknoinits
+func init() {
+	if v := datakit.GetEnv("ENV_DEBUG_HTTP_FAIL_RATIO"); v != "" {
+		if x, err := strconv.ParseInt(v, 10, 64); err == nil {
+			httpFailRatio = int(x)
+			httpFailStart = time.Now()
+
+			httpMockedFailResp = &http.Response{
+				Status:     http.StatusText(500),
+				StatusCode: 500,
+			}
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_DEBUG_HTTP_FAIL_DURATION"); v != "" {
+		if x, err := time.ParseDuration(v); err == nil {
+			httpFailDuration = x
+		}
+	}
+}
+
 type endPoint struct {
 	token       string
 	host        string
 	scheme      string
 	categoryURL map[string]string
-	httpCli     *rhttp.Client
+	httpCli     *http.Client
 
 	// optionals
-	proxy                        string
-	apis                         []string
-	httpTimeout                  time.Duration
+	proxy       string
+	apis        []string
+	httpTimeout time.Duration
+
 	maxHTTPIdleConnectionPerHost int
-	httpTrace                    bool
+	maxHTTPConnections           int
+	httpIdleTimeout              time.Duration
+
+	httpTrace bool
 }
 
 func (ep *endPoint) String() string {
@@ -68,6 +106,22 @@ func withMaxHTTPIdleConnectionPerHost(n int) endPointOption {
 	return func(ep *endPoint) {
 		if n > 0 {
 			ep.maxHTTPIdleConnectionPerHost = n
+		}
+	}
+}
+
+func withMaxHTTPConnections(n int) endPointOption {
+	return func(ep *endPoint) {
+		if n > 0 {
+			ep.maxHTTPConnections = n
+		}
+	}
+}
+
+func withHTTPIdleTimeout(du time.Duration) endPointOption {
+	return func(ep *endPoint) {
+		if du > 0 {
+			ep.httpIdleTimeout = du
 		}
 	}
 }
@@ -143,7 +197,9 @@ func (ep *endPoint) setupHTTP() error {
 
 	cliopts := &ihttp.Options{
 		DialTimeout:         ep.httpTimeout, // NOTE: should not use http timeout as dial timeout.
+		MaxIdleConns:        ep.maxHTTPConnections,
 		MaxIdleConnsPerHost: ep.maxHTTPIdleConnectionPerHost,
+		IdleConnTimeout:     ep.httpIdleTimeout,
 		DialContext:         dialContext,
 	}
 
@@ -156,8 +212,8 @@ func (ep *endPoint) setupHTTP() error {
 		}
 	}
 
-	ep.httpCli = newRetryCli(cliopts, ep.httpTimeout)
-
+	ep.httpCli = ihttp.Cli(cliopts)
+	ep.httpCli.Timeout = ep.httpTimeout
 	return nil
 }
 
@@ -273,11 +329,14 @@ func (ep *endPoint) writePointData(b *body, w *writer) error {
 			cat = point.DynamicDWCategory.String()
 		}
 
-		bytesCounterVec.WithLabelValues(
-			cat,
-			httpCodeStr).Add(float64(len(b.buf)))
+		bytesCounterVec.WithLabelValues(cat, "gzip", "total").Add(float64(len(b.buf)))
+		bytesCounterVec.WithLabelValues(cat, "gzip", httpCodeStr).Add(float64(len(b.buf)))
+		bytesCounterVec.WithLabelValues(cat, "raw", "total").Add(float64(b.rawLen))
+		bytesCounterVec.WithLabelValues(cat, "raw", httpCodeStr).Add(float64(b.rawLen))
 
+		ptsCounterVec.WithLabelValues(cat, "total").Add(float64(b.npts))
 		ptsCounterVec.WithLabelValues(cat, httpCodeStr).Add(float64(b.npts))
+
 		if w.isSinker {
 			sinkPtsVec.WithLabelValues(cat, httpCodeStr).Add(float64(b.npts))
 		}
@@ -296,23 +355,15 @@ func (ep *endPoint) writePointData(b *body, w *writer) error {
 	req.Header.Set("X-Points", fmt.Sprintf("%d", b.npts))
 
 	resp, err := ep.sendReq(req)
+
+	// NOTE: resp maybe not nil, we need HTTP status info to fill HTTP metrics before exit.
+	if resp != nil {
+		httpCodeStr = http.StatusText(resp.StatusCode)
+		httpCode = resp.StatusCode
+	}
+
 	if err != nil {
 		log.Errorf("sendReq: request url %s failed(proxy: %s): %s, resp: %v", requrl, ep.proxy, err, resp)
-
-		// We have to set status on different failed error for prometheuse metrics.
-		//nolint:errorlint
-		switch e := errors.Unwrap(err).(type) {
-		case *url.Error:
-			if e.Timeout() {
-				httpCodeStr = http.StatusText(http.StatusRequestTimeout)
-			}
-		case nil:
-			if strings.Contains(err.Error(), "giving up after") {
-				// NOTE: retryablehttp covered the HTTP status code 5xx, we use 500 here.
-				httpCodeStr = http.StatusText(http.StatusInternalServerError)
-			}
-		}
-
 		return err
 	}
 
@@ -322,9 +373,6 @@ func (ep *endPoint) writePointData(b *body, w *writer) error {
 		log.Errorf("ioutil.ReadAll: %s", err)
 		return err
 	}
-
-	httpCodeStr = http.StatusText(resp.StatusCode)
-	httpCode = resp.StatusCode
 
 	log.Debugf("post %d bytes to %s...", len(b.buf), requrl)
 
@@ -440,14 +488,60 @@ func (ep *endPoint) datakitPull(args string) ([]byte, error) {
 	return body, nil
 }
 
-// DatakitUserAgent define HTTP User-Agent header.
-// user-agent format. See
-// 	 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
-var DatakitUserAgent = fmt.Sprintf("datakit-%s-%s/%s", runtime.GOOS, runtime.GOARCH, git.Version)
+type httpTraceStat struct {
+	reuseConn bool
+	idle      bool
+	idleTime  time.Duration
 
-func (ep *endPoint) sendReq(req *http.Request) (*http.Response, error) {
+	remoteAddr string
+
+	dnsStart   time.Time
+	dnsResolve time.Duration
+	tlsHSStart time.Time
+	tlsHSDone  time.Duration
+	connStart  time.Time
+	connDone   time.Duration
+
+	wroteRequest time.Time
+	ttfb         time.Duration
+}
+
+func (ep *endPoint) sendReq(req *http.Request) (resp *http.Response, err error) {
+	status := "unknown"
+
+	if err := retry.Do(
+		func() error {
+			resp, err = ep.doSendReq(req)
+
+			if err != nil {
+				status = "unknown"
+				return err
+			}
+
+			if resp.StatusCode/100 == 5 { // server-side error
+				status = http.StatusText(resp.StatusCode)
+				return fmt.Errorf("doSendReq: %s", resp.Status)
+			}
+
+			return nil
+		},
+
+		retry.Attempts(4),
+		retry.Delay(time.Second*1),
+		retry.OnRetry(func(n uint, err error) {
+			log.Warnf("on %dth retry, error: %s", n, err)
+			httpRetry.WithLabelValues(req.URL.Path, status).Inc()
+		}),
+	); err != nil {
+		return resp, err
+	}
+
+	return resp, err
+}
+
+func (ep *endPoint) doSendReq(req *http.Request) (*http.Response, error) {
 	log.Debugf("send request %q, proxy: %q, cli: %p, timeout: %s",
-		req.URL.String(), ep.proxy, ep.httpCli.HTTPClient.Transport, ep.httpTimeout)
+		req.URL.String(), ep.proxy, ep.httpCli.Transport, ep.httpTimeout)
 
 	var (
 		start       = time.Now()
@@ -457,48 +551,86 @@ func (ep *endPoint) sendReq(req *http.Request) (*http.Response, error) {
 	req.Header.Set("User-Agent", DatakitUserAgent)
 
 	defer func() {
-		apiCounterVec.WithLabelValues(req.URL.Path, httpCodeStr).Inc()
-		apiSumVec.WithLabelValues(req.URL.Path, httpCodeStr).Observe(float64(time.Since(start) / time.Millisecond))
+		urlPath := req.URL.Path
+		// It's a bad-designed API path, we rename it in metrics.
+		// the original URL is `/v1/check/token/tkn_xxxxxxxxxxxxxxxxxxx'
+		if strings.HasPrefix(req.URL.Path, "/v1/check/token") {
+			urlPath = "/v1/check/token"
+		}
+
+		apiSumVec.WithLabelValues(urlPath, httpCodeStr).
+			Observe(float64(time.Since(start)) / float64(time.Second))
 	}()
 
-	var ts *httpTraceStat
 	if ep.httpTrace {
-		ts = &httpTraceStat{}
+		ts := &httpTraceStat{}
+
+		defer func() {
+			httpDNSCost.Observe(float64(ts.dnsResolve) / float64(time.Second))
+			httpTLSHandshakeCost.Observe(float64(ts.tlsHSDone) / float64(time.Second))
+			httpConnectCost.Observe(float64(ts.connDone) / float64(time.Second))
+			httpGotFirstResponseByteCost.Observe(float64(ts.ttfb) / float64(time.Second))
+
+			httpConnIdleTime.Observe(float64(ts.idleTime) / float64(time.Second))
+			if ts.reuseConn {
+				httpTCPConn.WithLabelValues(ts.remoteAddr, "reused").Add(1)
+			} else {
+				httpTCPConn.WithLabelValues(ts.remoteAddr, "created").Add(1)
+			}
+
+			if ts.idle {
+				httpConnReusedFromIdle.Add(1)
+			}
+		}()
+
 		t := &httptrace.ClientTrace{
 			GotConn: func(ci httptrace.GotConnInfo) {
 				ts.reuseConn = ci.Reused
 				ts.idle = ci.WasIdle
 				ts.idleTime = ci.IdleTime
+				ts.remoteAddr = ci.Conn.RemoteAddr().String()
 			},
-			DNSStart:             func(httptrace.DNSStartInfo) { ts.dnsStart = time.Now() },
-			DNSDone:              func(httptrace.DNSDoneInfo) { ts.dnsResolve = time.Since(ts.dnsStart) },
-			TLSHandshakeStart:    func() { ts.tlsHSStart = time.Now() },
-			TLSHandshakeDone:     func(tls.ConnectionState, error) { ts.tlsHSDone = time.Since(ts.tlsHSStart) },
-			ConnectStart:         func(string, string) { ts.connStart = time.Now() },
-			ConnectDone:          func(string, string, error) { ts.connDone = time.Since(ts.connStart) },
-			GotFirstResponseByte: func() { ts.ttfbTime = time.Since(start) },
+
+			DNSStart: func(httptrace.DNSStartInfo) { ts.dnsStart = time.Now() },
+			DNSDone:  func(httptrace.DNSDoneInfo) { ts.dnsResolve = time.Since(ts.dnsStart) },
+
+			TLSHandshakeStart: func() { ts.tlsHSStart = time.Now() },
+			TLSHandshakeDone:  func(tls.ConnectionState, error) { ts.tlsHSDone = time.Since(ts.tlsHSStart) },
+
+			WroteRequest: func(_ httptrace.WroteRequestInfo) {
+				// NOTE: should we used wrote-request-info here?
+				ts.wroteRequest = time.Now()
+			},
+
+			ConnectStart: func(string, string) { ts.connStart = time.Now() },
+			ConnectDone:  func(string, string, error) { ts.connDone = time.Since(ts.connStart) },
+
+			GotFirstResponseByte: func() {
+				ts.ttfb = time.Since(ts.wroteRequest) // after wrote request(header + body), then TTFB.
+			},
 		}
 
 		req = req.WithContext(httptrace.WithClientTrace(req.Context(), t))
 	}
 
-	x, err := rhttp.FromRequest(req)
+	var (
+		resp *http.Response
+		err  error
+	)
+
+	if httpFailRatio > 0 && (time.Since(httpFailStart) < httpFailDuration || int64(httpFailDuration) == 0) {
+		if start.Unix()%100 < int64(httpFailRatio) {
+			resp = httpMockedFailResp
+			goto end
+		}
+	}
+
+	resp, err = ep.httpCli.Do(req)
 	if err != nil {
-		log.Errorf("rhttp.FromRequest: %s", err)
-		return nil, err
+		return nil, fmt.Errorf("httpCli.Do: %w, resp: %+#v", err, resp)
 	}
 
-	resp, err := ep.httpCli.Do(x)
-	if ts != nil {
-		ts.cost = time.Since(start)
-		// http trace enabled, we'd better log them in INFO message.
-		log.Infof("%s: %s", req.URL.Path, ts.String())
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
+end:
 	if resp != nil {
 		httpCodeStr = http.StatusText(resp.StatusCode)
 	}

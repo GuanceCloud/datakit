@@ -20,6 +20,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -31,34 +32,34 @@ var (
 	minInterval = time.Second
 	maxInterval = time.Second * 30
 	sample      = `[[inputs.nginx]]
-	# Nginx status URL.
-	# (Default) If not use with VTS, the formula is like this: "http://localhost:80/nginx_status".
-	# If using with VTS, the formula is like this: "http://localhost:80/status/format/json".
-	url = "http://localhost:80/nginx_status"
+# Nginx status URL.
+# (Default) If not use with VTS, the formula is like this: "http://localhost:80/basic_status".
+# If using with VTS, the formula is like this: "http://localhost:80/status/format/json".
+url = "http://localhost:80/basic_status"
 
-	# ##(optional) collection interval, default is 30s
-	# interval = "30s"
-	use_vts = false
-	## Optional TLS Config
-	# tls_ca = "/xxx/ca.pem"
-	# tls_cert = "/xxx/cert.cer"
-	# tls_key = "/xxx/key.key"
-	## Use TLS but skip chain & host verification
-	insecure_skip_verify = false
-	# HTTP response timeout (default: 5s)
-	response_timeout = "20s"
+# ##(optional) collection interval, default is 30s
+# interval = "30s"
+use_vts = false
+## Optional TLS Config
+# tls_ca = "/xxx/ca.pem"
+# tls_cert = "/xxx/cert.cer"
+# tls_key = "/xxx/key.key"
+## Use TLS but skip chain & host verification
+insecure_skip_verify = false
+# HTTP response timeout (default: 5s)
+response_timeout = "20s"
 
-    ## Set true to enable election
-	election = true
+## Set true to enable election
+election = true
 
-	[inputs.nginx.log]
-	#	files = ["/var/log/nginx/access.log","/var/log/nginx/error.log"]
-	#	# grok pipeline script path
-	#	pipeline = "nginx.p"
-	[inputs.nginx.tags]
-	# some_tag = "some_value"
-	# more_tag = "some_other_value"
-	# ...`
+[inputs.nginx.log]
+#files = ["/var/log/nginx/access.log","/var/log/nginx/error.log"]
+## grok pipeline script path
+#pipeline = "nginx.p"
+[inputs.nginx.tags]
+# some_tag = "some_value"
+# more_tag = "some_other_value"
+# ...`
 
 	//nolint:lll
 	pipelineCfg = `
@@ -171,6 +172,12 @@ func (n *Input) RunPipeline() {
 func (n *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("nginx start")
+
+	if n.Election {
+		n.opt = point.WithExtraTags(dkpt.GlobalElectionTags())
+	} else {
+		n.opt = point.WithExtraTags(dkpt.GlobalHostTags())
+	}
 
 	tick := time.NewTicker(n.Interval.Duration)
 	defer tick.Stop()

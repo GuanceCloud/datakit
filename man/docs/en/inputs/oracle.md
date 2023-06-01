@@ -13,7 +13,11 @@ Oracle monitoring metrics collection has the following data collection functions
 - system data collection
 - Custom query data collection
 
-Already tested version: `11g`, `12c`, `19c`.
+Already tested version:
+
+- [x] Oracle 19c
+- [x] Oracle 12c
+- [x] Oracle 11g
 
 ## Precondition {#reqirement}
 

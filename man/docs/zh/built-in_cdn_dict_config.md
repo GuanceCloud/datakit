@@ -1,3 +1,5 @@
+<!-- markdownlint-disable -->
+
 ```toml
   cdn_map='''
   [
@@ -393,12 +395,12 @@
     },
     {
         "domain":"jiashule.com",
-        "name":"知道创宇云安全加速乐CDN",
+        "name":"知道创宇云安全加速乐 CDN",
         "website":"https://www.yunaq.com/jsl/"
     },
     {
         "domain":"jiasule.org",
-        "name":"知道创宇云安全加速乐CDN",
+        "name":"知道创宇云安全加速乐 CDN",
         "website":"https://www.yunaq.com/jsl/"
     },
     {
@@ -408,7 +410,7 @@
     },
     {
         "domain":"huaweicloud.com",
-        "name":"华为云WAF高防云盾",
+        "name":"华为云 WAF 高防云盾",
         "website":"https://www.huaweicloud.com/product/aad.html"
     },
     {
@@ -1083,12 +1085,12 @@
     },
     {
         "domain":"sinaedge.com",
-        "name":"新浪科技融合CDN负载均衡",
+        "name":"新浪科技融合 CDN 负载均衡",
         "website":"https://lab.skk.moe/cdn"
     },
     {
         "domain":"sina.com.cn",
-        "name":"新浪科技融合CDN负载均衡",
+        "name":"新浪科技融合 CDN 负载均衡",
         "website":"https://lab.skk.moe/cdn"
     },
     {
@@ -1113,7 +1115,7 @@
     },
     {
         "domain":"cdncenter.cn",
-        "name":"美橙互联CDN",
+        "name":"美橙互联 CDN",
         "website":"https://www.cndns.com"
     },
     {
@@ -1123,12 +1125,12 @@
     },
     {
         "domain":"jsd.cc",
-        "name":"上海云盾YUNDUN",
+        "name":"上海云盾 YUNDUN",
         "website":"https://www.yundun.com"
     },
     {
         "domain":"powercdn.cn",
-        "name":"动力在线CDN",
+        "name":"动力在线 CDN",
         "website":"http://www.powercdn.com"
     },
     {
@@ -1223,12 +1225,12 @@
     },
     {
         "domain":"ctxcdn.cn",
-        "name":"中国电信天翼云CDN",
+        "name":"中国电信天翼云 CDN",
         "website":"https://www.ctyun.cn/product2/#/product/10027560"
     },
     {
         "domain":"yfcdn.net",
-        "name":"云帆加速CDN",
+        "name":"云帆加速 CDN",
         "website":"https://www.yfcloud.com"
     },
     {
@@ -1253,17 +1255,17 @@
     },
     {
         "domain":"gosuncdn.com",
-        "name":"高升控股CDN技术",
+        "name":"高升控股 CDN 技术",
         "website":"http://www.gosun.com"
     },
     {
         "domain":"mmtrixopt.com",
-        "name":"mmTrix性能魔方(高升控股旗下)",
+        "name":"mmTrix 性能魔方(高升控股旗下)",
         "website":"http://www.mmtrix.com"
     },
     {
         "domain":"cloudfence.cn",
-        "name":"蓝盾云CDN",
+        "name":"蓝盾云 CDN",
         "website":"https://www.cloudfence.cn/#/cloudWeb/yaq/yaqyfx"
     },
     {
@@ -1273,12 +1275,12 @@
     },
     {
         "domain":"p2cdn.com",
-        "name":"星域云P2P CDN",
+        "name":"星域云 P2P CDN",
         "website":"https://www.xycloud.com"
     },
     {
         "domain":"00cdn.com",
-        "name":"星域云P2P CDN",
+        "name":"星域云 P2P CDN",
         "website":"https://www.xycloud.com"
     },
     {
