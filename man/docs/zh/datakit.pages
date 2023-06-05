@@ -21,9 +21,10 @@ nav:
     - '故障排查':
       - '无数据排查': why-no-data.md
       - 'Datakit Metrics': datakit-metrics.md
-    - '虚拟互联网接入': 
+    - '虚拟互联网接入':
       - '阿里云接入': aliyun-access.md
       - '华为云接入': huaweicloud-access.md
+      - 'AWS接入': aws-access.md
 
   - 'DataKit 配置':
     - '主配置': datakit-conf.md
