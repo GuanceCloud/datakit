@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	dto "github.com/prometheus/client_model/go"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 const statusInfo = "INFO"
@@ -49,11 +49,11 @@ func (p *Prom) getMetricTypeName(familyType dto.MetricType) string {
 }
 
 func (p *Prom) validMetricType(familyType dto.MetricType) bool {
-	if len(p.opt.MetricTypes) == 0 {
+	if len(p.opt.metricTypes) == 0 {
 		return true
 	}
 	typeName := p.getMetricTypeName(familyType)
-	for _, mt := range p.opt.MetricTypes {
+	for _, mt := range p.opt.metricTypes {
 		if strings.ToLower(mt) == typeName {
 			return true
 		}
@@ -62,10 +62,24 @@ func (p *Prom) validMetricType(familyType dto.MetricType) bool {
 }
 
 func (p *Prom) validMetricName(name string) bool {
-	if len(p.opt.MetricNameFilter) == 0 {
+	// blacklist first
+	if len(p.opt.metricNameFilterIgnore) > 0 {
+		for _, p := range p.opt.metricNameFilterIgnore {
+			match, err := regexp.MatchString(p, name)
+			if err != nil {
+				continue
+			}
+			if match {
+				return false
+			}
+		}
+	}
+
+	// whitelist second
+	if len(p.opt.metricNameFilter) == 0 {
 		return true
 	}
-	for _, p := range p.opt.MetricNameFilter {
+	for _, p := range p.opt.metricNameFilter {
 		match, err := regexp.MatchString(p, name)
 		if err != nil {
 			continue
@@ -87,7 +101,7 @@ func (p *Prom) getNames(name string) (measurementName string, fieldName string) 
 	if measurementName == "" {
 		measurementName = "prom"
 	}
-	return p.opt.MeasurementPrefix + measurementName, fieldName
+	return p.opt.measurementPrefix + measurementName, fieldName
 }
 
 func (p *Prom) doGetNames(name string) (measurementName string, fieldName string) {
@@ -97,8 +111,8 @@ func (p *Prom) doGetNames(name string) (measurementName string, fieldName string
 	}
 
 	// Check if measurement name is set.
-	if len(p.opt.MeasurementName) > 0 {
-		return p.opt.MeasurementName, name
+	if len(p.opt.measurementName) > 0 {
+		return p.opt.measurementName, name
 	}
 
 	if mName, fName, matchAny := p.getNamesByDefault(name); matchAny {
@@ -109,7 +123,7 @@ func (p *Prom) doGetNames(name string) (measurementName string, fieldName string
 }
 
 func (p *Prom) getNamesByRules(name string) (measurementName string, fieldName string, matchAny bool) {
-	for _, rule := range p.opt.Measurements {
+	for _, rule := range p.opt.measurements {
 		if len(rule.Prefix) > 0 && strings.HasPrefix(name, rule.Prefix) {
 			if rule.Name != "" {
 				measurementName = rule.Name
@@ -137,12 +151,12 @@ func (p *Prom) getNamesByDefault(name string) (measurementName string, fieldName
 }
 
 func (p *Prom) tagKVMatched(tags map[string]string) bool {
-	if p.opt.IgnoreTagKV == nil {
+	if p.opt.ignoreTagKV == nil {
 		return false
 	}
 
 	for k, v := range tags {
-		if res, ok := p.opt.IgnoreTagKV[k]; ok {
+		if res, ok := p.opt.ignoreTagKV[k]; ok {
 			for _, re := range res {
 				if re.MatchString(v) {
 					return true
@@ -157,22 +171,22 @@ func (p *Prom) tagKVMatched(tags map[string]string) bool {
 func (p *Prom) getTags(labels []*dto.LabelPair, measurementName string, u string) map[string]string {
 	tags := map[string]string{}
 
-	if !p.opt.DisableHostTag {
+	if !p.opt.disableHostTag {
 		setHostTagIfNotLoopback(tags, u)
 	}
 
-	if !p.opt.DisableInstanceTag {
+	if !p.opt.disableInstanceTag {
 		setInstanceTag(tags, u)
 	}
 
-	if !p.opt.DisableInfoTag {
+	if !p.opt.disableInfoTag {
 		for k, v := range p.infoTags {
 			tags[k] = v
 		}
 	}
 
 	// Add custom tags.
-	for k, v := range p.opt.Tags {
+	for k, v := range p.opt.tags {
 		tags[k] = v
 	}
 
@@ -185,9 +199,9 @@ func (p *Prom) getTags(labels []*dto.LabelPair, measurementName string, u string
 	p.renameTags(tags)
 
 	// Configure service tag if metrics are fed as logging.
-	if p.opt.AsLogging != nil && p.opt.AsLogging.Enable {
-		if p.opt.AsLogging.Service != "" {
-			tags["service"] = p.opt.AsLogging.Service
+	if p.opt.asLogging != nil && p.opt.asLogging.Enable {
+		if p.opt.asLogging.Service != "" {
+			tags["service"] = p.opt.asLogging.Service
 		} else {
 			tags["service"] = measurementName
 		}
@@ -218,24 +232,11 @@ func setHostTagIfNotLoopback(tags map[string]string, u string) {
 	}
 }
 
-func shouldDisableGlobalHostTag(u string) bool {
-	uu, err := url.Parse(u)
-	if err != nil {
-		return false
-	}
-	host, _, err := net.SplitHostPort(uu.Host)
-	if err != nil {
-		return false
-	}
-	// disable global host tag if ip is not a loopback address
-	return host == "localhost" || net.ParseIP(host).IsLoopback()
-}
-
 func (p *Prom) getTagsWithLE(labels []*dto.LabelPair, measurementName string, b *dto.Bucket) map[string]string {
 	tags := map[string]string{}
 
 	// Add custom tags.
-	for k, v := range p.opt.Tags {
+	for k, v := range p.opt.tags {
 		tags[k] = v
 	}
 
@@ -250,9 +251,9 @@ func (p *Prom) getTagsWithLE(labels []*dto.LabelPair, measurementName string, b 
 	p.renameTags(tags)
 
 	// Configure service tag if metrics are fed as logging.
-	if p.opt.AsLogging != nil && p.opt.AsLogging.Enable {
-		if p.opt.AsLogging.Service != "" {
-			tags["service"] = p.opt.AsLogging.Service
+	if p.opt.asLogging != nil && p.opt.asLogging.Enable {
+		if p.opt.asLogging.Service != "" {
+			tags["service"] = p.opt.asLogging.Service
 		} else {
 			tags["service"] = measurementName
 		}
@@ -263,7 +264,7 @@ func (p *Prom) getTagsWithLE(labels []*dto.LabelPair, measurementName string, b 
 
 func (p *Prom) removeIgnoredTags(tags map[string]string) {
 	for t := range tags {
-		for _, ignoredTag := range p.opt.TagsIgnore {
+		for _, ignoredTag := range p.opt.tagsIgnore {
 			if t == ignoredTag {
 				delete(tags, t)
 			}
@@ -272,13 +273,13 @@ func (p *Prom) removeIgnoredTags(tags map[string]string) {
 }
 
 func (p *Prom) renameTags(tags map[string]string) {
-	if tags == nil || p.opt.RenameTags == nil {
+	if tags == nil || p.opt.tagsRename == nil {
 		return
 	}
 
-	for oldKey, newKey := range p.opt.RenameTags.Mapping {
+	for oldKey, newKey := range p.opt.tagsRename.Mapping {
 		if v, ok := tags[oldKey]; ok { // rename the tag
-			if _, exists := tags[newKey]; exists && !p.opt.RenameTags.OverwriteExistTags {
+			if _, exists := tags[newKey]; exists && !p.opt.tagsRename.OverwriteExistTags {
 				continue
 			}
 
@@ -324,6 +325,7 @@ func (p *Prom) text2Metrics(in io.Reader, u string) (pts []*point.Point, lastErr
 		}
 	}()
 
+	opts := point.DefaultMetricOptions()
 	for _, nf := range filteredMetricFamilies {
 		name, value := nf.metricName, nf.metricFamily
 		measurementName, fieldName := p.getNames(name)
@@ -339,17 +341,16 @@ func (p *Prom) text2Metrics(in io.Reader, u string) (pts []*point.Point, lastErr
 				fields := map[string]interface{}{
 					fieldName: v,
 				}
-				if p.opt.AsLogging != nil && p.opt.AsLogging.Enable {
+				if p.opt.asLogging != nil && p.opt.asLogging.Enable {
 					fields["status"] = statusInfo
 				}
+
 				tags := p.getTags(m.GetLabel(), measurementName, u)
 
 				if !p.tagKVMatched(tags) {
-					pointOpt := *p.opt.pointOpt
-					if shouldDisableGlobalHostTag(u) {
-						pointOpt.DisableGlobalTags = true
-					}
-					pt, err := point.NewPoint(measurementName, tags, fields, &pointOpt)
+					pt := point.NewPointV2([]byte(measurementName),
+						append(point.NewTags(tags), point.NewKVs(fields)...),
+						opts...)
 					if err != nil {
 						lastErr = err
 					} else {
@@ -364,17 +365,15 @@ func (p *Prom) text2Metrics(in io.Reader, u string) (pts []*point.Point, lastErr
 					fieldName + "_count": float64(m.GetSummary().GetSampleCount()),
 					fieldName + "_sum":   m.GetSummary().GetSampleSum(),
 				}
-				if p.opt.AsLogging != nil && p.opt.AsLogging.Enable {
+				if p.opt.asLogging != nil && p.opt.asLogging.Enable {
 					fields["status"] = statusInfo
 				}
 				tags := p.getTags(m.GetLabel(), measurementName, u)
 
 				if !p.tagKVMatched(tags) {
-					pointOpt := *p.opt.pointOpt
-					if shouldDisableGlobalHostTag(u) {
-						pointOpt.DisableGlobalTags = true
-					}
-					pt, err := point.NewPoint(measurementName, tags, fields, &pointOpt)
+					pt := point.NewPointV2([]byte(measurementName),
+						append(point.NewTags(tags), point.NewKVs(fields)...),
+						opts...)
 					if err != nil {
 						lastErr = err
 					} else {
@@ -392,7 +391,7 @@ func (p *Prom) text2Metrics(in io.Reader, u string) (pts []*point.Point, lastErr
 						fieldName: v,
 					}
 
-					if p.opt.AsLogging != nil && p.opt.AsLogging.Enable {
+					if p.opt.asLogging != nil && p.opt.asLogging.Enable {
 						fields["status"] = statusInfo
 					}
 
@@ -400,11 +399,9 @@ func (p *Prom) text2Metrics(in io.Reader, u string) (pts []*point.Point, lastErr
 					tags["quantile"] = fmt.Sprint(q.GetQuantile())
 
 					if !p.tagKVMatched(tags) {
-						pointOpt := *p.opt.pointOpt
-						if shouldDisableGlobalHostTag(u) {
-							pointOpt.DisableGlobalTags = true
-						}
-						pt, err := point.NewPoint(measurementName, tags, fields, &pointOpt)
+						pt := point.NewPointV2([]byte(measurementName),
+							append(point.NewTags(tags), point.NewKVs(fields)...),
+							opts...)
 						if err != nil {
 							lastErr = err
 						} else {
@@ -420,18 +417,16 @@ func (p *Prom) text2Metrics(in io.Reader, u string) (pts []*point.Point, lastErr
 					fieldName + "_count": float64(m.GetHistogram().GetSampleCount()),
 					fieldName + "_sum":   m.GetHistogram().GetSampleSum(),
 				}
-				if p.opt.AsLogging != nil && p.opt.AsLogging.Enable {
+				if p.opt.asLogging != nil && p.opt.asLogging.Enable {
 					fields["status"] = statusInfo
 				}
 
 				tags := p.getTags(m.GetLabel(), measurementName, u)
 
 				if !p.tagKVMatched(tags) {
-					pointOpt := *p.opt.pointOpt
-					if shouldDisableGlobalHostTag(u) {
-						pointOpt.DisableGlobalTags = true
-					}
-					pt, err := point.NewPoint(measurementName, tags, fields, &pointOpt)
+					pt := point.NewPointV2([]byte(measurementName),
+						append(point.NewTags(tags), point.NewKVs(fields)...),
+						opts...)
 					if err != nil {
 						lastErr = err
 					} else {
@@ -443,18 +438,16 @@ func (p *Prom) text2Metrics(in io.Reader, u string) (pts []*point.Point, lastErr
 					fields := map[string]interface{}{
 						fieldName + "_bucket": b.GetCumulativeCount(),
 					}
-					if p.opt.AsLogging != nil && p.opt.AsLogging.Enable {
+					if p.opt.asLogging != nil && p.opt.asLogging.Enable {
 						fields["status"] = statusInfo
 					}
 
 					tags := p.getTagsWithLE(m.GetLabel(), measurementName, b)
 
 					if !p.tagKVMatched(tags) {
-						pointOpt := *p.opt.pointOpt
-						if shouldDisableGlobalHostTag(u) {
-							pointOpt.DisableGlobalTags = true
-						}
-						pt, err := point.NewPoint(measurementName, tags, fields, &pointOpt)
+						pt := point.NewPointV2([]byte(measurementName),
+							append(point.NewTags(tags), point.NewKVs(fields)...),
+							opts...)
 						if err != nil {
 							lastErr = err
 						} else {

@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"regexp"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -19,6 +18,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
@@ -27,8 +27,9 @@ import (
 var _ inputs.ElectionInput = (*Input)(nil)
 
 const (
-	inputName = "prom"
-	catalog   = "prom"
+	inputName               = "prom"
+	catalog                 = "prom"
+	defaultIntervalDuration = time.Second * 30
 )
 
 // defaultMaxFileSize is the default max response body size, in bytes.
@@ -40,26 +41,27 @@ const defaultMaxFileSize int64 = 32 * 1024 * 1024
 var l = logger.DefaultSLogger(inputName)
 
 type Input struct {
-	Source   string `toml:"source"`
-	Interval string `toml:"interval"`
-	Timeout  string `toml:"timeout"`
+	Source   string           `toml:"source" json:"source"`
+	Interval string           `toml:"interval" json:"interval"`
+	Timeout  datakit.Duration `toml:"timeout" json:"timeout"`
 
-	URL               string       `toml:"url,omitempty"` // Deprecated
-	URLs              []string     `toml:"urls"`
-	IgnoreReqErr      bool         `toml:"ignore_req_err" json:"ignore_req_err"`
-	MetricTypes       []string     `toml:"metric_types" json:"metric_types"`
-	MetricNameFilter  []string     `toml:"metric_name_filter" json:"metricName_filter"`
-	MeasurementPrefix string       `toml:"measurement_prefix" json:"measurement_prefix"`
-	MeasurementName   string       `toml:"measurement_name" json:"measurement_name"`
-	Measurements      []iprom.Rule `toml:"measurements" json:"measurements"`
-	Output            string       `toml:"output"`
-	MaxFileSize       int64        `toml:"max_file_size"`
+	URL                    string       `toml:"url,omitempty"` // Deprecated
+	URLs                   []string     `toml:"urls" json:"urls"`
+	IgnoreReqErr           bool         `toml:"ignore_req_err" json:"ignore_req_err"`
+	MetricTypes            []string     `toml:"metric_types" json:"metric_types"`
+	MetricNameFilter       []string     `toml:"metric_name_filter" json:"metric_name_filter"`
+	MetricNameFilterIgnore []string     `toml:"metric_name_filter_ignore" json:"metric_name_filter_ignore"`
+	MeasurementPrefix      string       `toml:"measurement_prefix" json:"measurement_prefix"`
+	MeasurementName        string       `toml:"measurement_name" json:"measurement_name"`
+	Measurements           []iprom.Rule `toml:"measurements" json:"measurements"`
+	Output                 string       `toml:"output" json:"output"`
+	MaxFileSize            int64        `toml:"max_file_size" json:"max_file_size"`
 
-	TLSOpen    bool   `toml:"tls_open"`
-	UDSPath    string `toml:"uds_path"`
-	CacertFile string `toml:"tls_ca"`
-	CertFile   string `toml:"tls_cert"`
-	KeyFile    string `toml:"tls_key"`
+	TLSOpen    bool   `toml:"tls_open" json:"tls_open"`
+	UDSPath    string `toml:"uds_path" json:"uds_path"`
+	CacertFile string `toml:"tls_ca" json:"tls_ca"`
+	CertFile   string `toml:"tls_cert" json:"tls_cert"`
+	KeyFile    string `toml:"tls_key" json:"tls_key"`
 
 	TagsIgnore  []string            `toml:"tags_ignore" json:"tags_ignore"`
 	TagsRename  *iprom.RenameTags   `toml:"tags_rename" json:"tags_rename"`
@@ -77,7 +79,7 @@ type Input struct {
 	pm     *iprom.Prom
 	Feeder io.Feeder
 
-	Election bool `toml:"election"`
+	Election bool `toml:"election" json:"election"`
 	chPause  chan bool
 	pause    bool
 
@@ -86,7 +88,9 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 
 	isInitialized bool
-	l             *logger.Logger
+
+	// Input holds logger because prom have different types of instances.
+	l *logger.Logger
 }
 
 func (*Input) SampleConfig() string { return sampleCfg }
@@ -148,8 +152,6 @@ func (i *Input) Run() {
 	}
 }
 
-const defaultIntervalDuration = time.Second * 30
-
 func (i *Input) GetIntervalDuration() time.Duration {
 	if !i.isInitialized {
 		if err := i.Init(); err != nil {
@@ -170,7 +172,14 @@ func (i *Input) RunningCollect() error {
 	ioname := inputName + "/" + i.Source
 
 	start := time.Now()
-	pts := i.doCollect()
+	pts, err := i.doCollect()
+	if err != nil {
+		return err
+	}
+	if pts == nil {
+		return fmt.Errorf("points got nil from doCollect")
+	}
+
 	if i.AsLogging != nil && i.AsLogging.Enable {
 		// Feed measurement as logging.
 		for _, pt := range pts {
@@ -192,7 +201,7 @@ func (i *Input) RunningCollect() error {
 	return nil
 }
 
-func (i *Input) doCollect() []*point.Point {
+func (i *Input) doCollect() ([]*point.Point, error) {
 	i.l.Debugf("collect URLs %v", i.URLs)
 
 	// If Output is configured, data is written to local file specified by Output.
@@ -202,7 +211,7 @@ func (i *Input) doCollect() []*point.Point {
 		if err != nil {
 			i.l.Errorf("WriteMetricText2File: %s", err.Error())
 		}
-		return nil
+		return nil, nil
 	}
 
 	pts, err := i.Collect()
@@ -217,124 +226,34 @@ func (i *Input) doCollect() []*point.Point {
 			}
 		}
 
-		return nil
+		return nil, err
 	}
 
-	if len(pts) == 0 {
-		i.l.Warnf("no data")
-		return nil
+	if pts == nil {
+		return nil, fmt.Errorf("points got nil from Collect")
 	}
 
-	return pts
-}
-
-func (i *Input) Terminate() {
-	if i.semStop != nil {
-		i.semStop.Close()
+	// Processing election information.
+	var opts map[string]string
+	if i.Election {
+		opts = dkpt.GlobalElectionTags()
+	} else {
+		opts = dkpt.GlobalHostTags()
 	}
-}
 
-func (i *Input) setup() bool {
-	for {
-		select {
-		case <-datakit.Exit.Wait():
-			l.Info("exit")
-			return true
-		default:
-			// nil
-		}
-		time.Sleep(1 * time.Second) // sleep a while
-		if err := i.Init(); err != nil {
-			continue
-		} else {
-			break
+	for j := 0; j < len(pts); j++ {
+		for k, v := range opts {
+			pts[j].AddTag([]byte(k), []byte(v))
 		}
 	}
 
-	return false
-}
-
-func (i *Input) Init() error {
-	i.l = logger.SLogger(inputName + "/" + i.Source)
-
-	if i.URL != "" {
-		i.URLs = append(i.URLs, i.URL)
-	}
-	for _, u := range i.URLs {
-		uu, err := url.Parse(u)
-		if err != nil {
-			return err
-		}
-		i.urls = append(i.urls, uu)
-	}
-
-	kvIgnore := iprom.IgnoreTagKeyValMatch{}
-	for k, arr := range i.IgnoreTagKV {
-		for _, x := range arr {
-			if re, err := regexp.Compile(x); err != nil {
-				i.l.Warnf("regexp.Compile('%s'): %s, ignored", x, err)
-			} else {
-				kvIgnore[k] = append(kvIgnore[k], re)
-			}
-		}
-	}
-
-	// toml 不支持匿名字段的 marshal，JSON 支持
-	opt := &iprom.Option{
-		Source:   i.Source,
-		Interval: i.Interval,
-		Timeout:  i.Timeout,
-
-		URL:  i.URL,
-		URLs: i.URLs,
-
-		MetricTypes: i.MetricTypes,
-
-		IgnoreReqErr: i.IgnoreReqErr,
-
-		MetricNameFilter:  i.MetricNameFilter,
-		MeasurementPrefix: i.MeasurementPrefix,
-		MeasurementName:   i.MeasurementName,
-		Measurements:      i.Measurements,
-
-		TLSOpen:    i.TLSOpen,
-		UDSPath:    i.UDSPath,
-		CacertFile: i.CacertFile,
-		CertFile:   i.CertFile,
-		KeyFile:    i.KeyFile,
-
-		Tags:               i.Tags,
-		TagsIgnore:         i.TagsIgnore,
-		IgnoreTagKV:        kvIgnore,
-		HTTPHeaders:        i.HTTPHeaders,
-		DisableHostTag:     i.DisableHostTag,
-		DisableInstanceTag: i.DisableInstanceTag,
-		DisableInfoTag:     i.DisableInfoTag,
-
-		RenameTags:  i.TagsRename,
-		AsLogging:   i.AsLogging,
-		Output:      i.Output,
-		MaxFileSize: i.MaxFileSize,
-		Auth:        i.Auth,
-
-		Election: i.Election,
-	}
-
-	pm, err := iprom.NewProm(opt)
-	if err != nil {
-		i.l.Warnf("prom.NewProm: %s, ignored", err)
-		return err
-	}
-	i.pm = pm
-	i.isInitialized = true
-
-	return nil
+	return pts, nil
 }
 
 // Collect collects metrics from all URLs.
 func (i *Input) Collect() ([]*point.Point, error) {
 	if i.pm == nil {
-		return nil, nil
+		return nil, fmt.Errorf("i.pm is nil")
 	}
 	var points []*point.Point
 	for _, u := range i.URLs {
@@ -353,6 +272,7 @@ func (i *Input) Collect() ([]*point.Point, error) {
 		}
 		points = append(points, pts...)
 	}
+
 	return points, nil
 }
 
@@ -394,6 +314,32 @@ func (i *Input) WriteMetricText2File() error {
 	return nil
 }
 
+func (i *Input) Terminate() {
+	if i.semStop != nil {
+		i.semStop.Close()
+	}
+}
+
+func (i *Input) setup() bool {
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+			return true
+		default:
+			// nil
+		}
+		time.Sleep(1 * time.Second) // sleep a while
+		if err := i.Init(); err != nil {
+			continue
+		} else {
+			break
+		}
+	}
+
+	return false
+}
+
 func (i *Input) Pause() error {
 	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	select {
@@ -412,6 +358,62 @@ func (i *Input) Resume() error {
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
 	}
+}
+
+func (i *Input) Init() error {
+	i.l = logger.SLogger(inputName + "/" + i.Source)
+
+	if i.URL != "" {
+		i.URLs = append(i.URLs, i.URL)
+	}
+	for _, u := range i.URLs {
+		uu, err := url.Parse(u)
+		if err != nil {
+			return err
+		}
+		i.urls = append(i.urls, uu)
+	}
+
+	opts := []iprom.PromOption{
+		iprom.WithLogger(i.l), // WithLogger must in the first
+		iprom.WithSource(i.Source),
+		iprom.WithInterval(i.Interval),
+		iprom.WithTimeout(i.Timeout),
+		iprom.WithIgnoreReqErr(i.IgnoreReqErr),
+		iprom.WithMetricTypes(i.MetricTypes),
+		iprom.WithMetricNameFilter(i.MetricNameFilter),
+		iprom.WithMetricNameFilterIgnore(i.MetricNameFilterIgnore),
+		iprom.WithMeasurementPrefix(i.MeasurementPrefix),
+		iprom.WithMeasurementName(i.MeasurementName),
+		iprom.WithMeasurements(i.Measurements),
+		iprom.WithOutput(i.Output),
+		iprom.WithMaxFileSize(i.MaxFileSize),
+		iprom.WithTLSOpen(i.TLSOpen),
+		iprom.WithUDSPath(i.UDSPath),
+		iprom.WithCacertFile(i.CacertFile),
+		iprom.WithCertFile(i.CertFile),
+		iprom.WithKeyFile(i.KeyFile),
+		iprom.WithTagsIgnore(i.TagsIgnore),
+		iprom.WithTagsRename(i.TagsRename),
+		iprom.WithAsLogging(i.AsLogging),
+		iprom.WithIgnoreTagKV(i.IgnoreTagKV),
+		iprom.WithHTTPHeaders(i.HTTPHeaders),
+		iprom.WithTags(i.Tags),
+		iprom.WithDisableHostTag(i.DisableHostTag),
+		iprom.WithDisableInstanceTag(i.DisableInstanceTag),
+		iprom.WithDisableInfoTag(i.DisableInfoTag),
+		iprom.WithAuth(i.Auth),
+	}
+
+	pm, err := iprom.NewProm(opts...)
+	if err != nil {
+		i.l.Warnf("prom.NewProm: %s, ignored", err)
+		return err
+	}
+	i.pm = pm
+	i.isInitialized = true
+
+	return nil
 }
 
 var maxPauseCh = inputs.ElectionPauseChannelLength
