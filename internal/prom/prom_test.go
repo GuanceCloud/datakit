@@ -11,17 +11,16 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	tu "github.com/GuanceCloud/cliutils/testutil"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 const promURL = "http://127.0.0.1:9100/metrics"
@@ -49,6 +48,43 @@ type transportMock struct {
 	body       string
 }
 
+type optionMock struct {
+	source   string
+	interval string
+	timeout  datakit.Duration
+
+	// URL               string
+	// urls              []string
+	ignoreReqErr           bool
+	metricTypes            []string
+	metricNameFilter       []string
+	metricNameFilterIgnore []string
+	measurementPrefix      string
+	measurementName        string
+	measurements           []Rule
+	output                 string
+	maxFileSize            int64
+
+	tlsOpen    bool
+	udsPath    string
+	cacertFile string
+	certFile   string
+	keyFile    string
+
+	tagsIgnore  []string // do not keep these tags in scraped prom data
+	tagsRename  *RenameTags
+	asLogging   *AsLogging
+	ignoreTagKV map[string][]string // drop scraped prom data if tag key's value matched
+	httpHeaders map[string]string
+
+	tags               map[string]string
+	disableHostTag     bool
+	disableInstanceTag bool
+	disableInfoTag     bool
+
+	auth map[string]string
+}
+
 func (t *transportMock) RoundTrip(r *http.Request) (*http.Response, error) {
 	res := &http.Response{
 		Header:     make(http.Header),
@@ -65,22 +101,57 @@ func newTransportMock(body string) http.RoundTripper {
 	return &transportMock{statusCode: http.StatusOK, body: body}
 }
 
+func createOpts(in *optionMock) []PromOption {
+	opts := make([]PromOption, 0)
+	opts = append(
+		opts,
+		// WithLogger(in.l),
+		WithSource(in.source),
+		WithInterval(in.interval),
+		WithTimeout(in.timeout),
+		WithIgnoreReqErr(in.ignoreReqErr),
+		WithMetricTypes(in.metricTypes),
+		WithMetricNameFilter(in.metricNameFilter),
+		WithMetricNameFilterIgnore(in.metricNameFilterIgnore),
+		WithMeasurementPrefix(in.measurementPrefix),
+		WithMeasurementName(in.measurementName),
+		WithMeasurements(in.measurements),
+		WithOutput(in.output),
+		WithMaxFileSize(in.maxFileSize),
+		WithTLSOpen(in.tlsOpen),
+		WithUDSPath(in.udsPath),
+		WithCacertFile(in.cacertFile),
+		WithCertFile(in.certFile),
+		WithKeyFile(in.keyFile),
+		WithTagsIgnore(in.tagsIgnore),
+		WithTagsRename(in.tagsRename),
+		WithAsLogging(in.asLogging),
+		WithIgnoreTagKV(in.ignoreTagKV),
+		WithHTTPHeaders(in.httpHeaders),
+		WithTags(in.tags),
+		WithDisableHostTag(in.disableHostTag),
+		WithDisableInstanceTag(in.disableInstanceTag),
+		WithDisableInfoTag(in.disableInfoTag),
+		WithAuth(in.auth),
+	)
+	return opts
+}
+
+func newTestPoint(name string, tags map[string]string, fields map[string]interface{}) *point.Point {
+	opts := point.DefaultMetricOptions()
+	return point.NewPointV2([]byte(name),
+		append(point.NewTags(tags), point.NewKVs(fields)...),
+		opts...)
+}
+
 func TestCollect(t *testing.T) {
 	testcases := []struct {
-		in     *Option
+		in     *optionMock
+		u      string
 		name   string
 		fail   bool
 		expect []string
 	}{
-		{
-			name: "nil option",
-			fail: true,
-		},
-		{
-			name: "empty option",
-			in:   &Option{},
-			fail: true,
-		},
 		{
 			name: "ok",
 			expect: []string{
@@ -89,23 +160,24 @@ func TestCollect(t *testing.T) {
 				`gogo,quantile=0.25 gc_duration_seconds=0`,
 				`gogo,quantile=0.5 gc_duration_seconds=0`,
 			},
-			in: &Option{
-				URL:         promURL,
-				MetricTypes: []string{},
-				Measurements: []Rule{
+			u: promURL,
+			in: &optionMock{
+				metricTypes: []string{},
+				measurements: []Rule{
 					{
 						Pattern: `^go_.*`,
 						Name:    "gogo",
 						Prefix:  "go_",
 					},
 				},
-				MetricNameFilter: []string{"go"},
+				metricNameFilter: []string{"go"},
 			},
 		},
 
 		{
 			name: "option-only-URL",
-			in:   &Option{URL: promURL},
+			u:    promURL,
+			in:   &optionMock{},
 			expect: []string{
 				`go gc_duration_seconds_count=0,gc_duration_seconds_sum=0`,
 				`go,quantile=0 gc_duration_seconds=0`,
@@ -133,11 +205,11 @@ func TestCollect(t *testing.T) {
 
 		{
 			name: "option-ignore-tag-kv",
-			in: &Option{
-				URL: promURL,
-				IgnoreTagKV: IgnoreTagKeyValMatch{
-					"le":          []*regexp.Regexp{regexp.MustCompile("0.*")},
-					"status_code": []*regexp.Regexp{regexp.MustCompile("403")},
+			u:    promURL,
+			in: &optionMock{
+				ignoreTagKV: map[string][]string{
+					"le":          ([]string{"0.*"}),
+					"status_code": ([]string{"403"}),
 				},
 			},
 			expect: []string{
@@ -196,7 +268,8 @@ up 1
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			p, err := NewProm(tc.in)
+			opts := createOpts(tc.in)
+			p, err := NewProm(opts...)
 			if tc.fail && assert.Error(t, err) {
 				return
 			} else {
@@ -204,9 +277,9 @@ up 1
 			}
 
 			p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
-			p.opt.DisableInstanceTag = true
+			p.opt.disableInstanceTag = true
 
-			pts, err := p.CollectFromHTTP(p.opt.URL)
+			pts, err := p.CollectFromHTTPV2(tc.u)
 			if tc.fail && assert.Error(t, err) {
 				return
 			} else {
@@ -215,12 +288,15 @@ up 1
 
 			var arr []string
 			for _, pt := range pts {
-				arr = append(arr, pt.String())
+				arr = append(arr, pt.LineProto())
 			}
 
 			sort.Strings(arr)
 			sort.Strings(tc.expect)
 
+			if len(tc.expect) != len(arr) {
+				t.Errorf("the length of want != got.")
+			}
 			for i := range arr {
 				assert.Equal(t, strings.HasPrefix(arr[i], tc.expect[i]), true)
 				t.Logf(">>>\n%s\n%s", arr[i], tc.expect[i])
@@ -283,10 +359,12 @@ func Test_BearerToken(t *testing.T) {
 
 func Test_Tls(t *testing.T) {
 	t.Run("enable tls", func(t *testing.T) {
-		p, err := NewProm(&Option{
-			URL:     "http://127.0.0.1:9100",
-			TLSOpen: true,
-		})
+		in := &optionMock{
+			tlsOpen: true,
+		}
+		opts := createOpts(in)
+		p, err := NewProm(opts...)
+
 		assert.NoError(t, err)
 		transport, ok := p.client.Transport.(*http.Transport)
 		assert.True(t, ok)
@@ -305,11 +383,13 @@ func Test_Tls(t *testing.T) {
 		assert.NoError(t, err)
 		caFile := f.Name()
 		defer os.Remove(caFile) // nolint:errcheck
-		p, err := NewProm(&Option{
-			URL:        "http://127.0.0.1:9100",
-			TLSOpen:    true,
-			CacertFile: caFile,
-		})
+
+		in := &optionMock{
+			tlsOpen:    true,
+			cacertFile: caFile,
+		}
+		opts := createOpts(in)
+		p, err := NewProm(opts...)
 
 		assert.NoError(t, err)
 		transport, ok := p.client.Transport.(*http.Transport)
@@ -319,15 +399,18 @@ func Test_Tls(t *testing.T) {
 }
 
 func Test_Auth(t *testing.T) {
-	p, err := NewProm(&Option{
-		URL: promURL,
-		Auth: map[string]string{
+	in := &optionMock{
+		auth: map[string]string{
 			"type":  "bearer_token",
 			"token": ".....",
 		},
-	})
+	}
+	u := promURL
+	opts := createOpts(in)
+	p, err := NewProm(opts...)
+
 	assert.NoError(t, err)
-	r, err := p.GetReq(p.opt.URL)
+	r, err := p.GetReq(u)
 	assert.NoError(t, err)
 	authHeader, ok := r.Header["Authorization"]
 	assert.True(t, ok)
@@ -337,25 +420,21 @@ func Test_Auth(t *testing.T) {
 }
 
 func Test_Option(t *testing.T) {
-	o := Option{
-		Disable: true,
-	}
-	assert.True(t, o.IsDisable(), o.Disable)
+	o := option{}
 
 	// GetSource
 	assert.Equal(t, o.GetSource("p"), "p")
 	assert.Equal(t, o.GetSource(), "prom")
-	o.Source = "p1"
+	o.source = "p1"
 	assert.Equal(t, o.GetSource("p"), "p1")
 
 	// GetIntervalDuration
 	assert.Equal(t, o.GetIntervalDuration(), defaultInterval)
-	o.interval = 1 * time.Second
+	o.interval = datakit.Duration{Duration: 1 * time.Second}
 	assert.Equal(t, o.GetIntervalDuration(), 1*time.Second)
-	o.interval = 0
-	o.Interval = "10s"
+	o.interval = datakit.Duration{Duration: 10 * time.Second}
 	assert.Equal(t, o.GetIntervalDuration(), 10*time.Second)
-	assert.Equal(t, o.interval, 10*time.Second)
+	assert.Equal(t, o.interval.Duration, 10*time.Second)
 }
 
 func Test_WriteFile(t *testing.T) {
@@ -405,15 +484,17 @@ up 1
 		t.Fatal(err)
 	}
 
-	p, err := NewProm(&Option{
-		URL:         promURL,
-		Output:      outputFile,
-		MaxFileSize: 100000,
-	})
+	in := &optionMock{
+		output:      outputFile,
+		maxFileSize: 100000,
+	}
+	u := promURL
+	opts := createOpts(in)
+	p, err := NewProm(opts...)
 
 	assert.NoError(t, err)
 	p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
-	err = p.WriteMetricText2File(p.opt.URL)
+	err = p.WriteMetricText2File(u)
 
 	assert.NoError(t, err)
 
@@ -427,27 +508,31 @@ up 1
 func TestIgnoreReqErr(t *testing.T) {
 	testCases := []struct {
 		name string
-		in   *Option
+		in   *optionMock
+		u    string
 		fail bool
 	}{
 		{
 			name: "ignore url request error",
-			in:   &Option{IgnoreReqErr: true, URL: "127.0.0.1:999999"},
+			in:   &optionMock{ignoreReqErr: true},
+			u:    "127.0.0.1:999999",
 			fail: false,
 		},
 		{
 			name: "do not ignore url request error",
-			in:   &Option{IgnoreReqErr: false, URL: "127.0.0.1:999999"},
+			in:   &optionMock{ignoreReqErr: false},
+			u:    "127.0.0.1:999999",
 			fail: true,
 		},
 	}
 	for idx, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			p, err := NewProm(tc.in)
+			opts := createOpts(tc.in)
+			p, err := NewProm(opts...)
 			if err != nil {
 				t.Errorf("[%d] failed to init prom: %s", idx, err)
 			}
-			_, err = p.CollectFromHTTP(p.opt.URL)
+			_, err = p.CollectFromHTTPV2(tc.u)
 			if err != nil {
 				if tc.fail {
 					t.Logf("[%d] returned an error as expected: %s", idx, err)
@@ -468,16 +553,15 @@ func TestIgnoreReqErr(t *testing.T) {
 func TestProm(t *testing.T) {
 	testCases := []struct {
 		name     string
-		in       *Option
+		in       *optionMock
+		u        string
 		fail     bool
 		expected []string
 	}{
 		{
 			name: "counter metric type only",
-			in: &Option{
-				URL:         promURL,
-				MetricTypes: []string{"counter"},
-			},
+			in:   &optionMock{metricTypes: []string{"counter"}},
+			u:    promURL,
 			fail: false,
 			expected: []string{
 				"promhttp,cause=encoding metric_handler_errors_total=0",
@@ -490,10 +574,8 @@ func TestProm(t *testing.T) {
 
 		{
 			name: "histogram metric type only",
-			in: &Option{
-				URL:         promURL,
-				MetricTypes: []string{"histogram"},
-			},
+			in:   &optionMock{metricTypes: []string{"histogram"}},
+			u:    promURL,
 			fail: false,
 			expected: []string{
 				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1i",
@@ -509,10 +591,8 @@ func TestProm(t *testing.T) {
 
 		{
 			name: "default metric types",
-			in: &Option{
-				URL:         promURL,
-				MetricTypes: []string{},
-			},
+			in:   &optionMock{metricTypes: []string{}},
+			u:    promURL,
 			fail: false,
 			expected: []string{
 				"go gc_duration_seconds_count=0,gc_duration_seconds_sum=0",
@@ -539,10 +619,8 @@ func TestProm(t *testing.T) {
 
 		{
 			name: "all metric types",
-			in: &Option{
-				URL:         promURL,
-				MetricTypes: []string{"histogram", "gauge", "counter", "summary", "untyped"},
-			},
+			in:   &optionMock{metricTypes: []string{"histogram", "gauge", "counter", "summary", "untyped"}},
+			u:    promURL,
 			fail: false,
 			expected: []string{
 				"go gc_duration_seconds_count=0,gc_duration_seconds_sum=0",
@@ -569,10 +647,8 @@ func TestProm(t *testing.T) {
 
 		{
 			name: "metric name filtering",
-			in: &Option{
-				URL:              promURL,
-				MetricNameFilter: []string{"http"},
-			},
+			in:   &optionMock{metricNameFilter: []string{"http"}},
+			u:    promURL,
 			fail: false,
 			expected: []string{
 				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1i",
@@ -594,10 +670,8 @@ func TestProm(t *testing.T) {
 
 		{
 			name: "regex metric name filtering",
-			in: &Option{
-				URL:              promURL,
-				MetricNameFilter: []string{"promht+p_metric_han[a-z]ler_req[^abcd]ests_total?"},
-			},
+			in:   &optionMock{metricNameFilter: []string{"promht+p_metric_han[a-z]ler_req[^abcd]ests_total?"}},
+			u:    promURL,
 			fail: false,
 			expected: []string{
 				"promhttp,code=200 metric_handler_requests_total=15143",
@@ -608,10 +682,8 @@ func TestProm(t *testing.T) {
 
 		{
 			name: "measurement name prefix",
-			in: &Option{
-				URL:               promURL,
-				MeasurementPrefix: "prefix_",
-			},
+			in:   &optionMock{measurementPrefix: "prefix_"},
+			u:    promURL,
 			fail: false,
 			expected: []string{
 				"prefix_go gc_duration_seconds_count=0,gc_duration_seconds_sum=0",
@@ -638,10 +710,8 @@ func TestProm(t *testing.T) {
 
 		{
 			name: "measurement name",
-			in: &Option{
-				URL:             promURL,
-				MeasurementName: "measurement_name",
-			},
+			in:   &optionMock{measurementName: "measurement_name"},
+			u:    promURL,
 			fail: false,
 			expected: []string{
 				"measurement_name go_gc_duration_seconds_count=0,go_gc_duration_seconds_sum=0",
@@ -668,10 +738,8 @@ func TestProm(t *testing.T) {
 
 		{
 			name: "tags filtering",
-			in: &Option{
-				URL:        promURL,
-				TagsIgnore: []string{"status_code", "method"},
-			},
+			in:   &optionMock{tagsIgnore: []string{"status_code", "method"}},
+			u:    promURL,
 			fail: false,
 			expected: []string{
 				"go gc_duration_seconds_count=0,gc_duration_seconds_sum=0",
@@ -698,9 +766,8 @@ func TestProm(t *testing.T) {
 
 		{
 			name: "rename-measurement",
-			in: &Option{
-				URL: promURL,
-				Measurements: []Rule{
+			in: &optionMock{
+				measurements: []Rule{
 					{
 						Prefix: "go_",
 						Name:   "with_prefix_go",
@@ -711,6 +778,7 @@ func TestProm(t *testing.T) {
 					},
 				},
 			},
+			u:    promURL,
 			fail: false,
 			expected: []string{
 				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1i",
@@ -737,10 +805,8 @@ func TestProm(t *testing.T) {
 
 		{
 			name: "custom tags",
-			in: &Option{
-				URL:  promURL,
-				Tags: map[string]string{"some_tag": "some_value", "more_tag": "some_other_value"},
-			},
+			in:   &optionMock{tags: map[string]string{"some_tag": "some_value", "more_tag": "some_other_value"}},
+			u:    promURL,
 			fail: false,
 			expected: []string{
 				"go,more_tag=some_other_value,quantile=0,some_tag=some_value gc_duration_seconds=0",
@@ -762,55 +828,6 @@ func TestProm(t *testing.T) {
 				"promhttp,code=503,more_tag=some_other_value,some_tag=some_value metric_handler_requests_total=0",
 				"promhttp,more_tag=some_other_value,some_tag=some_value metric_handler_requests_in_flight=1",
 				"up,more_tag=some_other_value,some_tag=some_value up=1",
-			},
-		},
-
-		{
-			name: "multiple urls",
-			in: &Option{
-				URLs:         []string{"localhost:1234", "localhost:5678"},
-				IgnoreReqErr: true,
-			},
-			fail: false,
-			expected: []string{
-				"go gc_duration_seconds_count=0,gc_duration_seconds_sum=0",
-				"go gc_duration_seconds_count=0,gc_duration_seconds_sum=0",
-				"go,quantile=0 gc_duration_seconds=0",
-				"go,quantile=0 gc_duration_seconds=0",
-				"go,quantile=0.25 gc_duration_seconds=0",
-				"go,quantile=0.25 gc_duration_seconds=0",
-				"go,quantile=0.5 gc_duration_seconds=0",
-				"go,quantile=0.5 gc_duration_seconds=0",
-				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
-				"http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
-				"promhttp metric_handler_requests_in_flight=1",
-				"promhttp metric_handler_requests_in_flight=1",
-				"promhttp,cause=encoding metric_handler_errors_total=0",
-				"promhttp,cause=encoding metric_handler_errors_total=0",
-				"promhttp,cause=gathering metric_handler_errors_total=0",
-				"promhttp,cause=gathering metric_handler_errors_total=0",
-				"promhttp,code=200 metric_handler_requests_total=15143",
-				"promhttp,code=200 metric_handler_requests_total=15143",
-				"promhttp,code=500 metric_handler_requests_total=0",
-				"promhttp,code=500 metric_handler_requests_total=0",
-				"promhttp,code=503 metric_handler_requests_total=0",
-				"promhttp,code=503 metric_handler_requests_total=0",
-				"up up=1",
-				"up up=1",
 			},
 		},
 	}
@@ -851,20 +868,14 @@ up 1
 
 	for idx, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			p, err := NewProm(tc.in)
+			opts := createOpts(tc.in)
+			p, err := NewProm(opts...)
 			if err != nil {
 				t.Errorf("[%d] failed to init prom: %s", idx, err)
 			}
 			p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
-			p.opt.DisableInstanceTag = true
-			var points []*point.Point
-			for _, u := range p.opt.URLs {
-				pts, err := p.CollectFromHTTP(u)
-				if err != nil {
-					break
-				}
-				points = append(points, pts...)
-			}
+			p.opt.disableInstanceTag = true
+			points, err := p.CollectFromHTTPV2(tc.u)
 			if err != nil {
 				if tc.fail {
 					t.Logf("[%d] returned an error as expected: %s", idx, err)
@@ -880,7 +891,7 @@ up 1
 
 			var got []string
 			for _, p := range points {
-				s := p.String()
+				s := p.LineProto()
 				// remove timestamp
 				s = s[:strings.LastIndex(s, " ")]
 				got = append(got, s)
@@ -939,14 +950,15 @@ up 1
 	if err := f.Sync(); err != nil {
 		t.Errorf("fail to flush data to disk: %v", err)
 	}
-	option := Option{
-		URLs: []string{f.Name()},
-	}
-	p, err := NewProm(&option)
+
+	in := &optionMock{}
+	u := f.Name()
+	opts := createOpts(in)
+	p, err := NewProm(opts...)
 	if err != nil {
 		t.Errorf("failed to init prom: %s", err)
 	}
-	if _, err := p.CollectFromFile(f.Name()); err != nil {
+	if _, err := p.CollectFromFileV2(u); err != nil {
 		t.Errorf(err.Error())
 	}
 }
@@ -965,18 +977,18 @@ func TestGetTimestampS(t *testing.T) {
 }
 
 func TestRenameTag(t *testing.T) {
-	tm := time.Now()
 	cases := []struct {
 		name     string
-		opt      *Option
+		opt      *optionMock
+		u        string
 		promdata string
 		expect   []*point.Point
 	}{
 		{
 			name: "rename-tags",
-			opt: &Option{
-				URL: "http://not-set",
-				RenameTags: &RenameTags{
+			u:    "http://not-set",
+			opt: &optionMock{
+				tagsRename: &RenameTags{
 					OverwriteExistTags: false,
 					Mapping: map[string]string{
 						"status_code":    "StatusCode",
@@ -986,14 +998,11 @@ func TestRenameTag(t *testing.T) {
 			},
 			expect: []*point.Point{
 				func() *point.Point {
-					pt, err := point.NewPoint("http",
+					pt := newTestPoint(
+						"http",
 						map[string]string{"le": "0.003", "StatusCode": "404", "method": "GET"},
 						map[string]interface{}{"request_duration_seconds_bucket": 1.0},
-						&point.PointOption{Category: datakit.Metric})
-					if err != nil {
-						t.Errorf("NewPoint: %s", err)
-						return nil
-					}
+					)
 					return pt
 				}(),
 			},
@@ -1004,9 +1013,9 @@ http_request_duration_seconds_bucket{le="0.003",status_code="404",method="GET"} 
 
 		{
 			name: "rename-overwrite-tags",
-			opt: &Option{
-				URL: "http://not-set",
-				RenameTags: &RenameTags{
+			u:    "http://not-set",
+			opt: &optionMock{
+				tagsRename: &RenameTags{
 					OverwriteExistTags: true, // enable overwrite
 					Mapping: map[string]string{
 						"status_code": "StatusCode",
@@ -1016,28 +1025,24 @@ http_request_duration_seconds_bucket{le="0.003",status_code="404",method="GET"} 
 			},
 			expect: []*point.Point{
 				func() *point.Point {
-					pt, err := point.NewPoint("http",
-						// method key removed, it's value overwrite tag_exists's value
+					pt := newTestPoint(
+						"http",
 						map[string]string{"le": "0.003", "StatusCode": "404", "tag_exists": "GET"},
 						map[string]interface{}{"request_duration_seconds_bucket": 1.0},
-						&point.PointOption{Category: datakit.Metric})
-					if err != nil {
-						t.Errorf("NewPoint: %s", err)
-						return nil
-					}
+					)
 					return pt
 				}(),
 			},
 			promdata: `
-http_request_duration_seconds_bucket{le="0.003",tag_exists="yes",status_code="404",method="GET"} 1
-			`,
+		http_request_duration_seconds_bucket{le="0.003",tag_exists="yes",status_code="404",method="GET"} 1
+					`,
 		},
 
 		{
 			name: "rename-tags-disable-overwrite",
-			opt: &Option{
-				URL: "http://not-set",
-				RenameTags: &RenameTags{
+			u:    "http://not-set",
+			opt: &optionMock{
+				tagsRename: &RenameTags{
 					OverwriteExistTags: false, // enable overwrite
 					Mapping: map[string]string{
 						"status_code": "StatusCode",
@@ -1047,27 +1052,24 @@ http_request_duration_seconds_bucket{le="0.003",tag_exists="yes",status_code="40
 			},
 			expect: []*point.Point{
 				func() *point.Point {
-					pt, err := point.NewPoint("http",
+					pt := newTestPoint(
+						"http",
 						map[string]string{"le": "0.003", "tag_exists": "yes", "StatusCode": "404", "method": "GET"}, // overwrite not work on method
 						map[string]interface{}{"request_duration_seconds_bucket": 1.0},
-						&point.PointOption{Category: datakit.Metric})
-					if err != nil {
-						t.Errorf("NewPoint: %s", err)
-						return nil
-					}
+					)
 					return pt
 				}(),
 			},
 			promdata: `
-http_request_duration_seconds_bucket{le="0.003",status_code="404",tag_exists="yes", method="GET"} 1
-			`,
+		http_request_duration_seconds_bucket{le="0.003",status_code="404",tag_exists="yes", method="GET"} 1
+					`,
 		},
 
 		{
 			name: "empty-tags",
-			opt: &Option{
-				URL: "http://not-set",
-				RenameTags: &RenameTags{
+			u:    "http://not-set",
+			opt: &optionMock{
+				tagsRename: &RenameTags{
 					OverwriteExistTags: true, // enable overwrite
 					Mapping: map[string]string{
 						"status_code": "StatusCode",
@@ -1077,25 +1079,23 @@ http_request_duration_seconds_bucket{le="0.003",status_code="404",tag_exists="ye
 			},
 			expect: []*point.Point{
 				func() *point.Point {
-					pt, err := point.NewPoint("http",
+					pt := newTestPoint(
+						"http",
 						nil,
 						map[string]interface{}{"request_duration_seconds_bucket": 1.0},
-						&point.PointOption{Category: datakit.Metric, Time: tm})
-					if err != nil {
-						t.Errorf("NewPoint: %s", err)
-						return nil
-					}
+					)
 					return pt
 				}(),
 			},
 			promdata: `
-http_request_duration_seconds_bucket 1
-			`,
+		http_request_duration_seconds_bucket 1
+					`,
 		},
 	}
 
 	for _, tc := range cases {
-		p, err := NewProm(tc.opt)
+		opts := createOpts(tc.opt)
+		p, err := NewProm(opts...)
 		if err != nil {
 			t.Error(err)
 			return
@@ -1109,8 +1109,12 @@ http_request_duration_seconds_bucket 1
 			}
 
 			for idx, pt := range pts {
-				tu.Equals(t, tc.expect[idx].PrecisionString("m"), pt.PrecisionString("m"))
-				t.Log(tc.expect[idx].PrecisionString("m"))
+				left := tc.expect[idx].LineProto()
+				left = left[:strings.LastIndex(left, " ")]
+				right := pt.LineProto()
+				right = right[:strings.LastIndex(right, " ")]
+				tu.Equals(t, left, right)
+				t.Log(tc.expect[idx].LineProto())
 			}
 		})
 	}
@@ -1119,13 +1123,14 @@ http_request_duration_seconds_bucket 1
 func TestSetHeaders(t *testing.T) {
 	testcases := []struct {
 		name string
-		opt  *Option
+		u    string
+		opt  *optionMock
 	}{
 		{
 			name: "add custom http header",
-			opt: &Option{
-				URL: "dummy_url",
-				HTTPHeaders: map[string]string{
+			u:    "dummy_url",
+			opt: &optionMock{
+				httpHeaders: map[string]string{
 					"Root":    "passwd",
 					"Michael": "12345",
 				},
@@ -1135,14 +1140,15 @@ func TestSetHeaders(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			p, err := NewProm(tc.opt)
+			opts := createOpts(tc.opt)
+			p, err := NewProm(opts...)
 			if err != nil {
 				t.Error(err)
 				return
 			}
-			req, err := p.GetReq(p.opt.URL)
+			req, err := p.GetReq(tc.u)
 			assert.NoError(t, err)
-			for k, v := range p.opt.HTTPHeaders {
+			for k, v := range p.opt.httpHeaders {
 				assert.Equal(t, v, req.Header.Get(k))
 			}
 		})
@@ -1151,14 +1157,16 @@ func TestSetHeaders(t *testing.T) {
 
 func TestInfoTag(t *testing.T) {
 	testcases := []struct {
-		in       *Option
+		u        string
+		in       *optionMock
 		name     string
 		fail     bool
 		expected []string
 	}{
 		{
 			name: "type-info",
-			in:   &Option{URL: promURL},
+			u:    promURL,
+			in:   &optionMock{},
 			expected: []string{
 				"process,host_arch=amd64,host_name=DESKTOP-3JJLRI8,os_description=Windows\\ 11\\ 10.0,os_type=windows,otel_scope_name=otlp-server,pool=mapped\\ -\\ 'non-volatile\\ memory',process_command_line=D:\\software_installer\\java\\jdk-17\\bin\\java.exe\\ -javaagent:D:/code_zy/opentelemetry-java-instrumentation/javaagent/build/libs/opentelemetry-javaagent-1.24.0-SNAPSHOT.jar\\ -Dotel.traces.exporter\\=otlp\\ -Dotel.exporter.otlp.endpoint\\=http://localhost:4317\\ -Dotel.resource.attributes\\=service.name\\=server\\,username\\=liu\\ -Dotel.metrics.exporter\\=otlp\\ -Dotel.propagators\\=b3\\ -Dotel.metrics.exporter\\=prometheus\\ -Dotel.exporter.prometheus.port\\=10086\\ -Dotel.exporter.prometheus.resource_to_telemetry_conversion.enabled\\=true\\ -XX:TieredStopAtLevel\\=1\\ -Xverify:none\\ -Dspring.output.ansi.enabled\\=always\\ -Dcom.sun.management.jmxremote\\ -Dspring.jmx.enabled\\=true\\ -Dspring.liveBeansView.mbeanDomain\\ -Dspring.application.admin.enabled\\=true\\ -javaagent:D:\\software_installer\\JetBrains\\IntelliJ\\ IDEA\\ 2022.1.4\\lib\\idea_rt.jar\\=55275:D:\\software_installer\\JetBrains\\IntelliJ\\ IDEA\\ 2022.1.4\\bin\\ -Dfile.encoding\\=UTF-8,process_executable_path=D:\\software_installer\\java\\jdk-17\\bin\\java.exe,process_pid=23592,process_runtime_description=Oracle\\ Corporation\\ Java\\ HotSpot(TM)\\ 64-Bit\\ Server\\ VM\\ 17.0.6+9-LTS-190,process_runtime_name=Java(TM)\\ SE\\ Runtime\\ Environment,process_runtime_version=17.0.6+9-LTS-190,service_name=server,telemetry_auto_version=1.24.0-SNAPSHOT,telemetry_sdk_language=java,telemetry_sdk_name=opentelemetry,telemetry_sdk_version=1.23.1,username=liu runtime_jvm_buffer_count=0",
 			},
@@ -1177,7 +1185,8 @@ otel_scope_info{otel_scope_name="otlp-server"} 1
 
 	for idx, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			p, err := NewProm(tc.in)
+			opts := createOpts(tc.in)
+			p, err := NewProm(opts...)
 			if tc.fail && assert.Error(t, err) {
 				return
 			} else {
@@ -1185,9 +1194,9 @@ otel_scope_info{otel_scope_name="otlp-server"} 1
 			}
 
 			p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
-			p.opt.DisableInstanceTag = true
+			p.opt.disableInstanceTag = true
 
-			points, err := p.CollectFromHTTP(p.opt.URL)
+			points, err := p.CollectFromHTTPV2(tc.u)
 			if tc.fail && assert.Error(t, err) {
 				return
 			} else {
@@ -1196,7 +1205,7 @@ otel_scope_info{otel_scope_name="otlp-server"} 1
 
 			var got []string
 			for _, p := range points {
-				s := p.String()
+				s := p.LineProto()
 				// remove timestamp
 				got = append(got, s[:strings.LastIndex(s, " ")])
 			}
@@ -1209,14 +1218,16 @@ otel_scope_info{otel_scope_name="otlp-server"} 1
 
 func TestDuplicateComment(t *testing.T) {
 	testcases := []struct {
-		in       *Option
+		u        string
+		in       *optionMock
 		name     string
 		fail     bool
 		expected []string
 	}{
 		{
 			name: "duplicate-comment",
-			in:   &Option{URL: promURL},
+			u:    promURL,
+			in:   &optionMock{},
 			expected: []string{
 				"go gc_duration_seconds_count=0,gc_duration_seconds_sum=0",
 				"go,quantile=0 gc_duration_seconds=0",
@@ -1279,7 +1290,8 @@ up 0
 
 	for idx, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			p, err := NewProm(tc.in)
+			opts := createOpts(tc.in)
+			p, err := NewProm(opts...)
 			if tc.fail && assert.Error(t, err) {
 				return
 			} else {
@@ -1287,9 +1299,9 @@ up 0
 			}
 
 			p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
-			p.opt.DisableInstanceTag = true
+			p.opt.disableInstanceTag = true
 
-			points, err := p.CollectFromHTTP(p.opt.URL)
+			points, err := p.CollectFromHTTPV2(tc.u)
 			if tc.fail && assert.Error(t, err) {
 				return
 			} else {
@@ -1298,13 +1310,431 @@ up 0
 
 			var got []string
 			for _, p := range points {
-				s := p.String()
+				s := p.LineProto()
 				// remove timestamp
 				got = append(got, s[:strings.LastIndex(s, " ")])
 			}
 			sort.Strings(got)
 			tu.Equals(t, strings.Join(tc.expected, "\n"), strings.Join(got, "\n"))
 			t.Logf("[%d] PASS", idx)
+		})
+	}
+}
+
+func TestInfoType(t *testing.T) {
+	testcases := []struct {
+		in     *optionMock
+		u      string
+		name   string
+		fail   bool
+		expect []string
+	}{
+		{
+			name: "no-info-type",
+			u:    promURL,
+			in: &optionMock{
+				metricTypes: []string{"counter", "gauge", "histogram", "summary", "untyped"},
+			},
+			expect: []string{
+				`go gc_duration_seconds_count=0,gc_duration_seconds_sum=0`,
+				`go,quantile=0 gc_duration_seconds=0`,
+				`go,quantile=0.25 gc_duration_seconds=0`,
+				`go,quantile=0.5 gc_duration_seconds=0`,
+				"http,le=1.2,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=+Inf,method=GET,status_code=403 request_duration_seconds_bucket=1i",
+				`http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				`http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				`http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				`http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				`http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				`http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				`http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013`,
+				"http,method=GET,status_code=403 request_duration_seconds_count=0,request_duration_seconds_sum=0",
+				`promhttp metric_handler_requests_in_flight=1`,
+				`promhttp,cause=encoding metric_handler_errors_total=0`,
+				`promhttp,cause=gathering metric_handler_errors_total=0`,
+				`promhttp,code=200 metric_handler_requests_total=15143`,
+				`promhttp,code=500 metric_handler_requests_total=0`,
+				`promhttp,code=503 metric_handler_requests_total=0`,
+				`up up=1`,
+			},
+		},
+
+		{
+			name: "with-info-type",
+			u:    promURL,
+			in:   &optionMock{},
+			expect: []string{
+				`go,entity=replica,name=prettier\ name,quantile=0,version=8.1.9 gc_duration_seconds=0`,
+				`go,entity=replica,name=prettier\ name,quantile=0.25,version=8.1.9 gc_duration_seconds=0`,
+				`go,entity=replica,name=prettier\ name,quantile=0.5,version=8.1.9 gc_duration_seconds=0`,
+				`go,entity=replica,name=prettier\ name,version=8.1.9 gc_duration_seconds_count=0,gc_duration_seconds_sum=0`,
+				`http,entity=replica,method=GET,name=prettier\ name,status_code=403,version=8.1.9 request_duration_seconds_count=0,request_duration_seconds_sum=0`,
+				`http,entity=replica,method=GET,name=prettier\ name,status_code=404,version=8.1.9 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013`,
+				`http,le=+Inf,method=GET,status_code=403 request_duration_seconds_bucket=1i`,
+				`http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				`http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				`http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				`http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				`http,le=1.2,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				`http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				`http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				`promhttp,cause=encoding,entity=replica,name=prettier\ name,version=8.1.9 metric_handler_errors_total=0`,
+				`promhttp,cause=gathering,entity=replica,name=prettier\ name,version=8.1.9 metric_handler_errors_total=0`,
+				`promhttp,code=200,entity=replica,name=prettier\ name,version=8.1.9 metric_handler_requests_total=15143`,
+				`promhttp,code=500,entity=replica,name=prettier\ name,version=8.1.9 metric_handler_requests_total=0`,
+				`promhttp,code=503,entity=replica,name=prettier\ name,version=8.1.9 metric_handler_requests_total=0`,
+				`promhttp,entity=replica,name=prettier\ name,version=8.1.9 metric_handler_requests_in_flight=1`,
+				`up,entity=replica,name=prettier\ name,version=8.1.9 up=1`,
+			},
+		},
+	}
+
+	mockBody := `
+
+# TYPE foo info
+foo_info{name="pretty name",version="8.2.7"} 1
+
+# TYPE foo info
+foo_info{entity="controller",name="pretty name",version="8.2.7"} 1.0
+foo_info{entity="replica",name="prettier name",version="8.1.9"} 1.0
+
+# HELP promhttp_metric_handler_errors_total Total number of internal errors encountered by the promhttp metric handler.
+# TYPE promhttp_metric_handler_errors_total counter
+promhttp_metric_handler_errors_total{cause="encoding"} 0
+promhttp_metric_handler_errors_total{cause="gathering"} 0
+# HELP promhttp_metric_handler_requests_in_flight Current number of scrapes being served.
+# TYPE promhttp_metric_handler_requests_in_flight gauge
+promhttp_metric_handler_requests_in_flight 1
+# HELP promhttp_metric_handler_requests_total Total number of scrapes by HTTP status code.
+# TYPE promhttp_metric_handler_requests_total counter
+promhttp_metric_handler_requests_total{code="200"} 15143
+promhttp_metric_handler_requests_total{code="500"} 0
+promhttp_metric_handler_requests_total{code="503"} 0
+# HELP go_gc_duration_seconds A summary of the GC invocation durations.
+# TYPE go_gc_duration_seconds summary
+go_gc_duration_seconds{quantile="0"} 0
+go_gc_duration_seconds{quantile="0.25"} 0
+go_gc_duration_seconds{quantile="0.5"} 0
+# HELP http_request_duration_seconds duration histogram of http responses labeled with: status_code, method
+# TYPE http_request_duration_seconds histogram
+http_request_duration_seconds_bucket{le="0.003",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="0.03",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="0.1",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="0.3",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="1.5",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="10",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="1.2",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="+Inf",status_code="403",method="GET"} 1
+http_request_duration_seconds_sum{status_code="404",method="GET"} 0.002451013
+http_request_duration_seconds_count{status_code="404",method="GET"} 1
+# HELP up 1 = up, 0 = not up
+# TYPE up untyped
+up 1
+`
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			opts := createOpts(tc.in)
+			p, err := NewProm(opts...)
+			if tc.fail && assert.Error(t, err) {
+				return
+			} else {
+				assert.NoError(t, err)
+			}
+
+			p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
+			p.opt.disableInstanceTag = true
+
+			pts, err := p.CollectFromHTTPV2(tc.u)
+			if tc.fail && assert.Error(t, err) {
+				return
+			} else {
+				assert.NoError(t, err)
+			}
+
+			var arr []string
+			for _, pt := range pts {
+				arr = append(arr, pt.LineProto())
+			}
+
+			sort.Strings(arr)
+			sort.Strings(tc.expect)
+
+			if len(tc.expect) != len(arr) {
+				t.Errorf("the length of want != got.")
+			}
+			for i := range arr {
+				assert.Equal(t, strings.HasPrefix(arr[i], tc.expect[i]), true)
+				t.Logf(">>>\n%s\n%s", arr[i], tc.expect[i])
+			}
+		})
+	}
+}
+
+func TestHistogramType(t *testing.T) {
+	testcases := []struct {
+		in     *optionMock
+		u      string
+		name   string
+		fail   bool
+		expect []string
+	}{
+		{
+			name: "without-histogram-type",
+			u:    promURL,
+			in: &optionMock{
+				metricTypes: []string{"counter", "gauge", "summary", "untyped"},
+			},
+			expect: []string{
+				`etcd debugging_auth_revision=1`,
+				`etcd,cluster_version=3.4 cluster_version=1`,
+			},
+		},
+
+		{
+			name: "with-histogram-type",
+			u:    promURL,
+			in:   &optionMock{},
+			expect: []string{
+				`etcd debugging_auth_revision=1`,
+				`etcd debugging_disk_backend_commit_rebalance_duration_seconds_count=24920,debugging_disk_backend_commit_rebalance_duration_seconds_sum=0.0007340149999999998`,
+				`etcd,cluster_version=3.4 cluster_version=1`,
+				`etcd,le=+Inf debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
+				`etcd,le=0.001 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
+				`etcd,le=0.002 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
+				`etcd,le=0.004 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
+				`etcd,le=0.008 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
+				`etcd,le=0.016 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
+				`etcd,le=0.032 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
+				`etcd,le=0.064 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
+				`etcd,le=0.128 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
+				`etcd,le=0.256 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
+				`etcd,le=0.512 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
+				`etcd,le=1.024 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
+				`etcd,le=2.048 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
+				`etcd,le=4.096 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
+				`etcd,le=8.192 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
+			},
+		},
+	}
+
+	mockBody := `
+etcd_cluster_version{cluster_version="3.4"} 1
+# HELP etcd_debugging_auth_revision The current revision of auth store.
+# TYPE etcd_debugging_auth_revision gauge
+etcd_debugging_auth_revision 1
+# HELP etcd_debugging_disk_backend_commit_rebalance_duration_seconds The latency distributions of commit.rebalance called by bboltdb backend.
+# TYPE etcd_debugging_disk_backend_commit_rebalance_duration_seconds histogram
+etcd_debugging_disk_backend_commit_rebalance_duration_seconds_bucket{le="0.001"} 24920
+etcd_debugging_disk_backend_commit_rebalance_duration_seconds_bucket{le="0.002"} 24920
+etcd_debugging_disk_backend_commit_rebalance_duration_seconds_bucket{le="0.004"} 24920
+etcd_debugging_disk_backend_commit_rebalance_duration_seconds_bucket{le="0.008"} 24920
+etcd_debugging_disk_backend_commit_rebalance_duration_seconds_bucket{le="0.016"} 24920
+etcd_debugging_disk_backend_commit_rebalance_duration_seconds_bucket{le="0.032"} 24920
+etcd_debugging_disk_backend_commit_rebalance_duration_seconds_bucket{le="0.064"} 24920
+etcd_debugging_disk_backend_commit_rebalance_duration_seconds_bucket{le="0.128"} 24920
+etcd_debugging_disk_backend_commit_rebalance_duration_seconds_bucket{le="0.256"} 24920
+etcd_debugging_disk_backend_commit_rebalance_duration_seconds_bucket{le="0.512"} 24920
+etcd_debugging_disk_backend_commit_rebalance_duration_seconds_bucket{le="1.024"} 24920
+etcd_debugging_disk_backend_commit_rebalance_duration_seconds_bucket{le="2.048"} 24920
+etcd_debugging_disk_backend_commit_rebalance_duration_seconds_bucket{le="4.096"} 24920
+etcd_debugging_disk_backend_commit_rebalance_duration_seconds_bucket{le="8.192"} 24920
+etcd_debugging_disk_backend_commit_rebalance_duration_seconds_bucket{le="+Inf"} 24920
+etcd_debugging_disk_backend_commit_rebalance_duration_seconds_sum 0.0007340149999999998
+etcd_debugging_disk_backend_commit_rebalance_duration_seconds_count 24920
+`
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			opts := createOpts(tc.in)
+			p, err := NewProm(opts...)
+			if tc.fail && assert.Error(t, err) {
+				return
+			} else {
+				assert.NoError(t, err)
+			}
+
+			p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
+			p.opt.disableInstanceTag = true
+
+			pts, err := p.CollectFromHTTPV2(tc.u)
+			if tc.fail && assert.Error(t, err) {
+				return
+			} else {
+				assert.NoError(t, err)
+			}
+
+			var arr []string
+			for _, pt := range pts {
+				arr = append(arr, pt.LineProto())
+			}
+
+			sort.Strings(arr)
+			sort.Strings(tc.expect)
+
+			if len(tc.expect) != len(arr) {
+				t.Errorf("the length of want != got.")
+			}
+			for i := range arr {
+				assert.Equal(t, strings.HasPrefix(arr[i], tc.expect[i]), true)
+				t.Logf(">>>\n%s\n%s", arr[i], tc.expect[i])
+			}
+		})
+	}
+}
+
+func TestMetricNameFilterIgnore(t *testing.T) {
+	testcases := []struct {
+		in     *optionMock
+		u      string
+		name   string
+		fail   bool
+		expect []string
+	}{
+		{
+			name: "metric-name-filter-ignore-complete-equal",
+			u:    promURL,
+			in: &optionMock{
+				metricNameFilterIgnore: []string{
+					"^http_", // this match "http" only, not "promhttp"
+					"abcd",   // this not useful
+				},
+			},
+			expect: []string{
+				`go gc_duration_seconds_count=0,gc_duration_seconds_sum=0`,
+				`go,quantile=0 gc_duration_seconds=0`,
+				`go,quantile=0.25 gc_duration_seconds=0`,
+				`go,quantile=0.5 gc_duration_seconds=0`,
+				`promhttp metric_handler_requests_in_flight=1`,
+				`promhttp,cause=encoding metric_handler_errors_total=0`,
+				`promhttp,cause=gathering metric_handler_errors_total=0`,
+				`promhttp,code=200 metric_handler_requests_total=15143`,
+				`promhttp,code=500 metric_handler_requests_total=0`,
+				`promhttp,code=503 metric_handler_requests_total=0`,
+				`up up=1`,
+			},
+		},
+		{
+			name: "metric-name-filter-ignore",
+			u:    promURL,
+			in: &optionMock{
+				metricNameFilterIgnore: []string{
+					"http", // this match "http" and "promhttp"
+					"abcd", // this not useful
+				},
+			},
+			expect: []string{
+				`go gc_duration_seconds_count=0,gc_duration_seconds_sum=0`,
+				`go,quantile=0 gc_duration_seconds=0`,
+				`go,quantile=0.25 gc_duration_seconds=0`,
+				`go,quantile=0.5 gc_duration_seconds=0`,
+				`up up=1`,
+			},
+		},
+		{
+			name: "metric-name-filter-black-and-white",
+			u:    promURL,
+			in: &optionMock{
+				metricNameFilterIgnore: []string{
+					"promhttp", // this match "promhttp"
+					"abcd",     // this not useful
+				},
+				metricNameFilter: []string{
+					"http", // this match "http" and "promhttp", but blacklist will cancel "promhttp"
+					"go",   // this match "go"
+					"xyz",  // this not useful
+				},
+			},
+			expect: []string{
+				`go gc_duration_seconds_count=0,gc_duration_seconds_sum=0`,
+				`go,quantile=0 gc_duration_seconds=0`,
+				`go,quantile=0.25 gc_duration_seconds=0`,
+				`go,quantile=0.5 gc_duration_seconds=0`,
+				"http,le=1.2,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=+Inf,method=GET,status_code=403 request_duration_seconds_bucket=1i",
+				`http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				`http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				`http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				`http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				`http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				`http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				`http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013`,
+				"http,method=GET,status_code=403 request_duration_seconds_count=0,request_duration_seconds_sum=0",
+			},
+		},
+	}
+
+	mockBody := `
+# HELP promhttp_metric_handler_errors_total Total number of internal errors encountered by the promhttp metric handler.
+# TYPE promhttp_metric_handler_errors_total counter
+promhttp_metric_handler_errors_total{cause="encoding"} 0
+promhttp_metric_handler_errors_total{cause="gathering"} 0
+# HELP promhttp_metric_handler_requests_in_flight Current number of scrapes being served.
+# TYPE promhttp_metric_handler_requests_in_flight gauge
+promhttp_metric_handler_requests_in_flight 1
+# HELP promhttp_metric_handler_requests_total Total number of scrapes by HTTP status code.
+# TYPE promhttp_metric_handler_requests_total counter
+promhttp_metric_handler_requests_total{code="200"} 15143
+promhttp_metric_handler_requests_total{code="500"} 0
+promhttp_metric_handler_requests_total{code="503"} 0
+# HELP go_gc_duration_seconds A summary of the GC invocation durations.
+# TYPE go_gc_duration_seconds summary
+go_gc_duration_seconds{quantile="0"} 0
+go_gc_duration_seconds{quantile="0.25"} 0
+go_gc_duration_seconds{quantile="0.5"} 0
+# HELP http_request_duration_seconds duration histogram of http responses labeled with: status_code, method
+# TYPE http_request_duration_seconds histogram
+http_request_duration_seconds_bucket{le="0.003",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="0.03",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="0.1",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="0.3",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="1.5",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="10",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="1.2",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="+Inf",status_code="403",method="GET"} 1
+http_request_duration_seconds_sum{status_code="404",method="GET"} 0.002451013
+http_request_duration_seconds_count{status_code="404",method="GET"} 1
+# HELP up 1 = up, 0 = not up
+# TYPE up untyped
+up 1
+`
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			opts := createOpts(tc.in)
+			p, err := NewProm(opts...)
+			if tc.fail && assert.Error(t, err) {
+				return
+			} else {
+				assert.NoError(t, err)
+			}
+
+			p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
+			p.opt.disableInstanceTag = true
+
+			pts, err := p.CollectFromHTTPV2(tc.u)
+			if tc.fail && assert.Error(t, err) {
+				return
+			} else {
+				assert.NoError(t, err)
+			}
+
+			var arr []string
+			for _, pt := range pts {
+				arr = append(arr, pt.LineProto())
+			}
+
+			sort.Strings(arr)
+			sort.Strings(tc.expect)
+
+			if len(tc.expect) != len(arr) {
+				t.Errorf("the length of want != got.")
+			}
+			for i := range arr {
+				assert.Equal(t, strings.HasPrefix(arr[i], tc.expect[i]), true)
+				t.Logf(">>>\n%s\n%s", arr[i], tc.expect[i])
+			}
 		})
 	}
 }

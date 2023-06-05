@@ -7,48 +7,54 @@ package prom
 
 const sampleCfg = `
 [[inputs.prom]]
-  # Exporter URLs.
+  ## Exporter URLs.
   # urls = ["http://127.0.0.1:9100/metrics", "http://127.0.0.1:9200/metrics"]
 
-  # Unix Domain Socket URL. Using socket to request data when not empty.
+  ## Unix Domain Socket URL. Using socket to request data when not empty.
   uds_path = ""
 
-  # Ignore URL request errors.
+  ## Ignore URL request errors.
   ignore_req_err = false
 
   ## Collector alias.
   source = "prom"
 
   ## Collect data output.
-  # Fill this when want to collect the data to local file nor center.
-  # After filling, could use 'datakit debug --prom-conf /path/to/this/conf' to debug local storage measurement set.
-  # Using '--prom-conf' when priority debugging data in 'output' path.
+  ## Fill this when want to collect the data to local file nor center.
+  ## After filling, could use 'datakit debug --prom-conf /path/to/this/conf' to debug local storage measurement set.
+  ## Using '--prom-conf' when priority debugging data in 'output' path.
   # output = "/abs/path/to/file"
 
   ## Collect data upper limit as bytes.
-  # Only available when set output to local file.
-  # If collect data exceeded the limit, the data would be dropped.
-  # Default is 32MB.
+  ## Only available when set output to local file.
+  ## If collect data exceeded the limit, the data would be dropped.
+  ## Default is 32MB.
   # max_file_size = 0
 
   ## Metrics type whitelist. Optional: counter, gauge, histogram, summary
-  # Default only collect 'counter' and 'gauge'.
-  # Collect all if empty.
-  metric_types = []
+  ## Example: metric_types = ["counter", "gauge"], only collect 'counter' and 'gauge'.
+  ## Default collect all.
+  # metric_types = []
 
   ## Metrics name whitelist.
-  # Regex supported. Multi supported, conditions met when one matched.
-  # Collect all if empty.
+  ## Regex supported. Multi supported, conditions met when one matched.
+  ## Collect all if empty.
   # metric_name_filter = ["cpu"]
 
+  ## Metrics name blacklist.
+  ## If a word both in blacklist and whitelist, blacklist priority.
+  ## Regex supported. Multi supported, conditions met when one matched.
+  ## Collect all if empty.
+  # metric_name_filter_ignore = ["foo","bar"]
+
   ## Measurement prefix.
-  # Add prefix to measurement set name.
+  ## Add prefix to measurement set name.
   measurement_prefix = ""
 
   ## Measurement name.
-  # If measurement_name is empty, split metric name by '_', the first field after split as measurement set name, the rest as current metric name.
-  # If measurement_name is not empty, using this as measurement set name.
-  # Always add 'measurement_prefix' prefix at last.
+  ## If measurement_name is empty, split metric name by '_', the first field after split as measurement set name, the rest as current metric name.
+  ## If measurement_name is not empty, using this as measurement set name.
+  ## Always add 'measurement_prefix' prefix at last.
   # measurement_name = "prom"
 
   ## TLS configuration.
@@ -60,29 +66,29 @@ const sampleCfg = `
   ## Set to 'true' to enable election.
   election = true
 
-  # disable setting host tag for this input
+  ## disable setting host tag for this input
   disable_host_tag = false
 
-  # disable setting instance tag for this input
+  ## disable setting instance tag for this input
   disable_instance_tag = false
 
-  # disable info tag for this input
+  ## disable info tag for this input
   disable_info_tag = false
 
-  # Ignore tags. Multi supported.
-  # The matched tags would be dropped, but the item would still be sent.
+  ## Ignore tags. Multi supported.
+  ## The matched tags would be dropped, but the item would still be sent.
   # tags_ignore = ["xxxx"]
 
   ## Customize authentification. For now support Bearer Token only.
-  # Filling in 'token' or 'token_file' is acceptable.
+  ## Filling in 'token' or 'token_file' is acceptable.
   # [inputs.prom.auth]
   # type = "bearer_token"
   # token = "xxxxxxxx"
   # token_file = "/tmp/token"
 
   ## Customize measurement set name.
-  # Treat those metrics with prefix as one set.
-  # Prioritier over 'measurement_name' configuration.
+  ## Treat those metrics with prefix as one set.
+  ## Prioritier over 'measurement_name' configuration.
   #[[inputs.prom.measurements]]
   #  prefix = "cpu_"
   #  name = "cpu"
@@ -91,17 +97,17 @@ const sampleCfg = `
   # prefix = "mem_"
   # name = "mem"
 
-  # Not collecting those data when tag matched.
+  ## Not collecting those data when tag matched.
   [inputs.prom.ignore_tag_kv_match]
   # key1 = [ "val1.*", "val2.*"]
   # key2 = [ "val1.*", "val2.*"]
 
-  # Add HTTP headers to data pulling.
+  ## Add HTTP headers to data pulling.
   [inputs.prom.http_headers]
   # Root = "passwd"
   # Michael = "1234"
 
-  # Rename tag key in prom data.
+  ## Rename tag key in prom data.
   [inputs.prom.tags_rename]
     overwrite_exist_tags = false
     [inputs.prom.tags_rename.mapping]
@@ -109,8 +115,8 @@ const sampleCfg = `
     # tag2 = "new-name-2"
     # tag3 = "new-name-3"
 
-  # Send collected metrics to center as log.
-  # When 'service' field is empty, using 'service tag' as measurement set name.
+  ## Send collected metrics to center as log.
+  ## When 'service' field is empty, using 'service tag' as measurement set name.
   [inputs.prom.as_logging]
     enable = false
     service = "service_name"
