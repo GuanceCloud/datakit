@@ -54,7 +54,6 @@ GOLINT_VERSION         := $(shell $(GOLINT_BINARY) --version | cut -c 27- | cut 
 GOLINT_VERSION_ERR_MSG := golangci-lint version($(GOLINT_VERSION)) is not supported, please use version $(SUPPORTED_GOLINT_VERSION)
 MARKDOWNLINT_VERSION   := $(shell markdownlint --version)
 CSPELL_VERSION         := $(shell cspell --version)
-GREP_VERSION           := $(shell grep --version)
 
 # These can be override at runtime by make variables
 VERSION              ?= $(shell git describe --always --tags)
@@ -388,13 +387,13 @@ lint_nofix: deps copyright_check md_lint_nofix
 	fi
 
 lfparser_disable_line:
-	@rm -rf io/parser/gram_y.go
-	@rm -rf io/parser/parser_y.go
-	@goyacc -l -o io/parser/gram_y.go io/parser/gram.y # use -l to disable `//line`
+	@rm -rf internal/io/parser/gram_y.go
+	@rm -rf internal/io/parser/parser_y.go
+	@goyacc -l -o internal/io/parser/gram_y.go internal/io/parser/gram.y # use -l to disable `//line`
 
 prepare:
-	@mkdir -p git
-	@echo "$$GIT_INFO" > git/git.go
+	@mkdir -p internal/git
+	@echo "$$GIT_INFO" > internal/git/git.go
 
 copyright_check:
 	@python3 copyright.py --dry-run && \
@@ -426,18 +425,18 @@ define check_docs
 endef
 
 md_lint:
-	$(call check_docs, "man/docs/zh", "man/docs/zh/*.md", "on") # check on doc templates
+	$(call check_docs, "internal/man/docs/zh", "internal/man/docs/zh/*.md", "on") # check on doc templates
 	@rm -rf ./local-docs
 	@bash mkdocs.sh -D ./local-docs -E -V 0.0.0 # invalid version
 	@$(call check_docs, "local-docs/docs/zh", "local-docs/docs/zh/*.md", "on") # check on generated docs
 
 md_lint_nofix:
-	$(call check_docs, "man/docs/zh", "man/docs/zh/*.md", "off") # check on doc templates
+	$(call check_docs, "internal/man/docs/zh", "internal/man/docs/zh/*.md", "off") # check on doc templates
 	@bash mkdocs.sh -D ./local-docs -E -V 0.0.0 # invalid version
 	$(call check_docs, "local-docs/docs/zh", "local-docs/docs/zh/*.md", "off") # check on generated docs
 
 project_words:
-	cspell -c cspell/cspell.json --words-only --unique man/docs/zh/** | sort --ignore-case >> project-words.txt
+	cspell -c cspell/cspell.json --words-only --unique internal/man/docs/zh/** | sort --ignore-case >> project-words.txt
 
 code_stat:
 	cloc --exclude-dir=vendor,tests --exclude-lang=JSON,HTML .
@@ -449,12 +448,12 @@ show_metrics:
 
 clean:
 	@rm -rf build/*
-	@rm -rf io/parser/gram_y.go
-	@rm -rf io/parser/gram.y.go
-	@rm -rf pipeline/parser/parser.y.go
-	@rm -rf pipeline/parser/parser_y.go
-	@rm -rf pipeline/parser/gram.y.go
-	@rm -rf pipeline/parser/gram_y.go
+	@rm -rf internal/io/parser/gram_y.go
+	@rm -rf internal/io/parser/gram.y.go
+	@rm -rf internal/pipeline/parser/parser.y.go
+	@rm -rf internal/pipeline/parser/parser_y.go
+	@rm -rf internal/pipeline/parser/gram.y.go
+	@rm -rf internal/pipeline/parser/gram_y.go
 	@rm -rf check.err
 	@rm -rf $(PUB_DIR)/*
 	@go clean --cache

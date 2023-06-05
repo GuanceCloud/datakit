@@ -13,8 +13,8 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 // generate auto completer command/options for DataKit

@@ -13,9 +13,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 var defaultMetaInfo = &OutputMetaInfo{

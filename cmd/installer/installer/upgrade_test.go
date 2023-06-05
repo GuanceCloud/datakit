@@ -11,8 +11,8 @@ import (
 
 	bstoml "github.com/BurntSushi/toml"
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 )
 
 func TestUpgradeMainConfig(t *testing.T) {

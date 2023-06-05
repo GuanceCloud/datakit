@@ -11,9 +11,9 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/make/build"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/all"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
 )
 
 func init() { //nolint:gochecknoinits

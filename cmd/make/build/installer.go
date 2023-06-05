@@ -13,7 +13,7 @@ import (
 	"runtime"
 	"text/template"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 func generateInstallScript() error {

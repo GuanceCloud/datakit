@@ -22,10 +22,10 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/prometheus/common/expfmt"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	dnet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	inpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/point"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 type Rule struct {

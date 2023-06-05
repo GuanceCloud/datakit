@@ -7,7 +7,7 @@ import (
 
 	"github.com/DataDog/datadog-go/statsd"
 	"github.com/dgraph-io/ristretto"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var g = datakit.G("internal_obfuscate")

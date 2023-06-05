@@ -12,8 +12,8 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dl "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/downloader"
 )
 

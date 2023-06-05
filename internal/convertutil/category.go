@@ -9,7 +9,7 @@ package convertutil
 import (
 	"fmt"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 // GetMapCategoryShortToFull ...

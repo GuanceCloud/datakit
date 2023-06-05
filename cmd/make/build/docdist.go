@@ -11,10 +11,10 @@ import (
 	"os"
 	"strings"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmds"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ptinput/funcs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput/funcs"
 )
 
 func generateMetaInfo() error {

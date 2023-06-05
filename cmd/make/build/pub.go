@@ -17,8 +17,8 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	humanize "github.com/dustin/go-humanize"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/upgrader/upgrader"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 type versionDesc struct {

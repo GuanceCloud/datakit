@@ -10,7 +10,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	influxdb "github.com/influxdata/influxdb1-client/v2"
 
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 // Point2dkpt convert point.Point to old io/point.Point.

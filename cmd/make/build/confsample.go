@@ -16,7 +16,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 func DumpSamples() {

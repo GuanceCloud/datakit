@@ -9,10 +9,10 @@ import (
 	"net/http"
 	"net/url"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
-	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpcli"
 )
 
 var (
@@ -41,7 +41,7 @@ func getcli() *http.Client {
 		proxy = config.Cfg.Dataway.HTTPProxy
 	}
 
-	cliopt := &ihttp.Options{
+	cliopt := &httpcli.Options{
 		InsecureSkipVerify: true,
 	}
 
@@ -51,5 +51,5 @@ func getcli() *http.Client {
 		}
 	}
 
-	return ihttp.Cli(cliopt)
+	return httpcli.Cli(cliopt)
 }

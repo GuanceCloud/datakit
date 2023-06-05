@@ -14,9 +14,9 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/kardianos/service"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/upgrader/upgrader"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var l = logger.DefaultSLogger("upgrade")

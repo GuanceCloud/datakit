@@ -16,7 +16,7 @@ import (
 	"time"
 
 	dto "github.com/prometheus/client_model/go"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 const statusInfo = "INFO"

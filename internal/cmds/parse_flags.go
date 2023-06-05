@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"github.com/spf13/pflag"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var (
@@ -181,9 +181,10 @@ var (
 		"find the glob path and print it, provide a configuration file that contains glob statements written on separate lines.")
 	flagDebugRegexConf = fsDebug.String("regex-conf", "",
 		"export regex match results, provide a configuration file where the first line is a regular expression and the rest of the file is text.")
-	flagDebugPromConf  = fsDebug.String("prom-conf", "", "specify the prom input conf to debug")
-	flagDebugBugReport = fsDebug.Bool("bug-report", false, "export DataKit running information for troubleshooting")
-	flagDebugTestInput = fsDebug.String("test-input", "", "specify input's config file to test")
+	flagDebugPromConf   = fsDebug.String("prom-conf", "", "specify the prom input conf to debug")
+	flagDebugBugReport  = fsDebug.Bool("bug-report", false, "export DataKit running information for troubleshooting")
+	flagDebugInputConf  = fsDebug.String("input-conf", "", "input TOML conf path")
+	flagDebugHTTPListen = fsDebug.String("http-listen", "", "setup HTTP server on debugging some inputs(such as some Trace/RUM/...)")
 
 	fsDebugUsage = func() {
 		fmt.Printf("usage: datakit debug [options]\n\n")
@@ -341,13 +342,13 @@ func doParseAndRunFlags() {
 				os.Exit(-1)
 			}
 
-			setCmdRootLog(*flagCheckLogPath)
-
 			if err := fsCheck.Parse(os.Args[2:]); err != nil {
 				cp.Errorf("Parse: %s\n", err)
 				fsCheckUsage()
 				os.Exit(-1)
 			}
+
+			setCmdRootLog(*flagCheckLogPath)
 
 			if err := runCheckFlags(); err != nil {
 				cp.Errorf("%s\n", err)
@@ -361,13 +362,13 @@ func doParseAndRunFlags() {
 				os.Exit(-1)
 			}
 
-			setCmdRootLog(*flagDebugLogPath)
-
 			if err := fsDebug.Parse(os.Args[2:]); err != nil {
 				cp.Errorf("Parse: %s\n", err)
 				fsDebugUsage()
 				os.Exit(-1)
 			}
+
+			setCmdRootLog(*flagDebugLogPath)
 
 			if err := runDebugFlags(); err != nil {
 				cp.Errorf("%s\n", err)
@@ -381,12 +382,13 @@ func doParseAndRunFlags() {
 				os.Exit(-1)
 			}
 
-			setCmdRootLog(*flagDocLogPath)
 			if err := fsDoc.Parse(os.Args[2:]); err != nil {
 				cp.Errorf("Parse: %s\n", err)
 				fsDocUsage()
 				os.Exit(-1)
 			}
+
+			setCmdRootLog(*flagDocLogPath)
 
 			if err := runDocFlags(); err != nil {
 				cp.Errorf("%s\n", err)
@@ -420,14 +422,14 @@ func doParseAndRunFlags() {
 				os.Exit(-1)
 			}
 
-			setCmdRootLog(*flagPLLogPath)
-			tryLoadMainCfg()
-
 			if err := fsPL.Parse(os.Args[2:]); err != nil {
 				cp.Errorf("[E] Parse: %s\n", err)
 				fsPLUsage()
 				os.Exit(-1)
 			}
+
+			setCmdRootLog(*flagPLLogPath)
+			tryLoadMainCfg()
 
 			if err := runPLFlags(); err != nil {
 				cp.Errorf("[E] %s\n", err)

@@ -15,7 +15,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/shirou/gopsutil/v3/process"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var (

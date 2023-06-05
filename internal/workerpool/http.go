@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
-	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 )
 
 type parameters struct {
@@ -21,7 +21,7 @@ type parameters struct {
 	body *bytes.Buffer
 }
 
-func HTTPWrapper(statRespFunc ihttp.HTTPStatusResponse, wkp *WorkerPool, handler http.HandlerFunc) http.HandlerFunc {
+func HTTPWrapper(statRespFunc httpapi.HTTPStatusResponse, wkp *WorkerPool, handler http.HandlerFunc) http.HandlerFunc {
 	if wkp == nil || !wkp.enabled {
 		return handler
 	} else {
@@ -50,7 +50,7 @@ func HTTPWrapper(statRespFunc ihttp.HTTPStatusResponse, wkp *WorkerPool, handler
 			req.Body.Close() // nolint: errcheck,gosec
 			req.Body = io.NopCloser(pbuf)
 			param := &parameters{
-				resp: &ihttp.NopResponseWriter{Raw: resp},
+				resp: &httpapi.NopResponseWriter{Raw: resp},
 				req:  req,
 				body: pbuf,
 			}
