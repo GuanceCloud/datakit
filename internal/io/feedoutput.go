@@ -50,7 +50,7 @@ func (fo *datawayOutput) Write(data *iodata) error {
 	ch := fo.chans[data.category.String()]
 
 	if data.opt != nil && data.opt.HTTPHost != "" {
-		ch = fo.chans[datakit.DynamicDatawayCategory]
+		ch = fo.chans[point.DynamicDWCategory.String()]
 		// dial-testing feed to logging channel, but we changed the label to dynamic-dataway.
 		// On command datakit monitor, we need to show dial-testing IO metrics.
 		ioChanLen.WithLabelValues(point.DynamicDWCategory.String()).Set(float64(len(ch)))
