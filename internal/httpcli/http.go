@@ -235,13 +235,23 @@ type httpClientTraceStat struct {
 
 	wroteRequest time.Time
 	ttfb         time.Duration
+
+	t *httptrace.ClientTrace
+}
+
+func (s *httpClientTraceStat) Trace() *httptrace.ClientTrace {
+	return s.t
 }
 
 // NewHTTPClientTraceStat create a hook for HTTP client running metrics.
 func NewHTTPClientTraceStat(from string) *httpClientTraceStat {
-	return &httpClientTraceStat{
+	s := &httpClientTraceStat{
 		from: from,
 	}
+
+	s.addTrace()
+
+	return s
 }
 
 func (s *httpClientTraceStat) Metrics() {
@@ -262,8 +272,8 @@ func (s *httpClientTraceStat) Metrics() {
 	}
 }
 
-func NewHTTPClientTrace(s *httpClientTraceStat) *httptrace.ClientTrace {
-	return &httptrace.ClientTrace{
+func (s *httpClientTraceStat) addTrace() {
+	s.t = &httptrace.ClientTrace{
 		GotConn: func(ci httptrace.GotConnInfo) {
 			s.reuseConn = ci.Reused
 			s.idle = ci.WasIdle
