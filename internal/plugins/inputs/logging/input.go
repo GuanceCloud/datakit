@@ -314,7 +314,7 @@ func (*loggingMeasurement) Info() *inputs.MeasurementInfo {
 			"date": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Unit:     inputs.DurationMS,
-				Desc:     "Built-in extension fields added by the central system. The date field is set to the time when the log is collected by the collector by default, but it can be overridden using a pipeline.."},
+				Desc:     "Built-in extension fields added by the central system. The date field is set to the time when the log is collected by the collector by default, but it can be overridden using a pipeline."},
 			"date_ns": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Unit:     inputs.DurationNS,
@@ -322,7 +322,7 @@ func (*loggingMeasurement) Info() *inputs.MeasurementInfo {
 			"create_time": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Unit:     inputs.DurationMS,
-				Desc:     "Built-in extension fields added by the central system. The create_time field represents the time when the log is written to the storage engine"},
+				Desc:     "Built-in extension fields added by the central system. The create_time field represents the time when the log is written to the storage engine."},
 			"df_metering_size": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Unit:     inputs.UnknownUnit,
