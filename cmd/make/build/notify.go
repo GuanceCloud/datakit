@@ -11,6 +11,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -124,7 +125,12 @@ func NotifyStartBuild() {
 	notify(NotifyToken, bytes.NewBufferString(CINotifyStartBuildMsg))
 }
 
+// NotifyFail send notifications and exit current process.
 func NotifyFail(msg string) {
+	defer func() {
+		os.Exit(-1)
+	}()
+
 	if NotifyToken == "" {
 		return
 	}
