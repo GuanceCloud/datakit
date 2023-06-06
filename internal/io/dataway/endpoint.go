@@ -546,10 +546,9 @@ func (ep *endPoint) doSendReq(req *http.Request) (*http.Response, error) {
 
 	if ep.httpTrace {
 		s := httpcli.NewHTTPClientTraceStat("dataway")
-		t := httpcli.NewHTTPClientTrace(s)
 		defer s.Metrics()
 
-		req = req.WithContext(httptrace.WithClientTrace(req.Context(), t))
+		req = req.WithContext(httptrace.WithClientTrace(req.Context(), s.Trace()))
 	}
 
 	var (
