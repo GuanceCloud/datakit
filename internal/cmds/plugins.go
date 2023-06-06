@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"runtime"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var ExternalInstallDir = map[string]string{

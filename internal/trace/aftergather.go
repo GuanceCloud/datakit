@@ -13,9 +13,9 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 var dkioFeed func(name, category string, pts []*point.Point, opt *dkio.Option) error = dkio.Feed

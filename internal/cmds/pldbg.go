@@ -16,16 +16,16 @@ import (
 	"time"
 
 	lp "github.com/GuanceCloud/cliutils/lineproto"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/convertutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/refertable"
+	plremote "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/remote"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/script"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/targzutil"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/refertable"
-	plremote "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/remote"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/script"
 )
 
 func runPLFlags() error {

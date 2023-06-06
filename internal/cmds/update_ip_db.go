@@ -8,7 +8,7 @@ package cmds
 import (
 	"fmt"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dl "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/downloader"
 )
 

@@ -16,8 +16,8 @@ import (
 	"strings"
 	"text/template"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/man"
 )
 
 //nolint:lll

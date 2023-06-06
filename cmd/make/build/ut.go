@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
@@ -87,14 +87,17 @@ func UnitTestDataKit() error {
 		}
 
 		if err != nil {
-			failedPkgs[p] = string(res)
+			if !strings.Contains(mr.Message, "no Go files in") {
+				failedPkgs[p] = string(res)
 
-			mr.Status = testutils.TestFailed
-			mr.FailedMessage = err.Error()
-			if err := testutils.Flush(mr); err != nil {
-				fmt.Printf("[E] flush metric failed: %s\n", err)
+				mr.Status = testutils.TestFailed
+				mr.FailedMessage = err.Error()
+				if err := testutils.Flush(mr); err != nil {
+					fmt.Printf("[E] flush metric failed: %s\n", err)
+				}
+			} else {
+				mr.Status = testutils.TestSkipped
 			}
-			continue
 		}
 
 		lines := strings.Split(string(res), "\n")
@@ -102,9 +105,9 @@ func UnitTestDataKit() error {
 		coverageLine := lines[len(lines)-2]
 
 		// go test output example:
-		//  ^ok  	gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/promremote	0.652s	coverage: 0.5% of statements [no tests to run]
-		//  ^?   	gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/process	[no test files]
-		//  ^ok  	gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/postgresql	0.715s	coverage: 52.3% of statements
+		//  ^ok  	gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/promremote	0.652s	coverage: 0.5% of statements [no tests to run]
+		//  ^?   	gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/process	[no test files]
+		//  ^ok  	gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/postgresql	0.715s	coverage: 52.3% of statements
 
 		switch {
 		case strings.HasPrefix(coverageLine, "?"),

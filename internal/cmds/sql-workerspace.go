@@ -8,8 +8,8 @@ package cmds
 import (
 	"strings"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 )
 
 var wss []*workerSpace

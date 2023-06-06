@@ -17,13 +17,13 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/influxdata/influxdb1-client/models"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/prom"
+	pr "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/promremote"
 	inpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/point"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
-	pr "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/promremote"
 )
 
 const trueString = "true"

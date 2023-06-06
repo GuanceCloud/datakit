@@ -18,9 +18,9 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/upgrader/upgrader"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
 )
 
 var (

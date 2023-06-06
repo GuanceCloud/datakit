@@ -16,7 +16,7 @@ import (
 	"strconv"
 	"strings"
 
-	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 )
 
 // tracing data constants
@@ -344,7 +344,7 @@ func ParseTracerRequest(req *http.Request) (contentType, encode string, buf []by
 	}
 
 	var body io.ReadCloser
-	if ihttp.GetHeader(req, "Content-Encoding") == "gzip" {
+	if httpapi.GetHeader(req, "Content-Encoding") == "gzip" {
 		encode = "gzip"
 		if body, err = gzip.NewReader(req.Body); err == nil {
 			defer body.Close() // nolint:errcheck
@@ -357,7 +357,7 @@ func ParseTracerRequest(req *http.Request) (contentType, encode string, buf []by
 		return
 	}
 
-	contentType = ihttp.GetHeader(req, "Content-Type")
+	contentType = httpapi.GetHeader(req, "Content-Type")
 
 	return
 }

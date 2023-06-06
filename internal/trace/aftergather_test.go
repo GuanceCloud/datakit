@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 func TestAfterGather(t *testing.T) {

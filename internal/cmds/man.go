@@ -13,9 +13,9 @@ import (
 	"strings"
 
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
-	plfuncs "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ptinput/funcs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/man"
+	plfuncs "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput/funcs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 func runDocFlags() error {

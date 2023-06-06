@@ -14,12 +14,12 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/man"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
 )
 
 func runVersionFlags(disableUpgradeInfo bool) error {

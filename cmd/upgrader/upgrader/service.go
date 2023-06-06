@@ -25,10 +25,10 @@ import (
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/gin-gonic/gin"
 	"github.com/kardianos/service"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	http2 "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmds"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	version2 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
 	"go.uber.org/atomic"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -334,7 +334,7 @@ func successResponse(ctx *gin.Context, data interface{}) {
 }
 
 type PingInfo struct {
-	Content http2.Ping `json:"content"`
+	Content httpapi.Ping `json:"content"`
 }
 
 func upgrade(ctx *gin.Context) {
