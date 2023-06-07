@@ -58,7 +58,7 @@ func (fo *datawayOutput) Write(data *iodata) error {
 		ioChanLen.WithLabelValues(data.category.String()).Set(float64(len(ch)))
 	}
 
-	if data.opt.Blocking {
+	if data.opt != nil && data.opt.Blocking {
 		select {
 		case ch <- data:
 			return nil
@@ -111,8 +111,13 @@ func (fo *debugOutput) Write(data *iodata) error {
 		cp.Output("%s\n", pt.String())
 	}
 
+	var cost time.Duration
+	if data.opt != nil {
+		cost = data.opt.CollectCost
+	}
+
 	cp.Infof("# %d points(%q) from %s, cost %s | Ctrl+c to exit.\n",
-		len(data.pts), data.category.Alias(), data.from, data.opt.CollectCost)
+		len(data.pts), data.category.Alias(), data.from, cost)
 
 	return nil
 }
