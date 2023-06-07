@@ -6,6 +6,7 @@
 package config
 
 import (
+	"encoding/json"
 	T "testing"
 	"time"
 
@@ -17,8 +18,8 @@ import (
 func TestDuration(t *T.T) {
 	t.Run("duration", func(t *T.T) {
 		type Some struct {
-			Duration  time.Duration   `toml:"duration"`
-			Durations []time.Duration `toml:"durations"`
+			Duration  time.Duration   `toml:"duration" json:"duration"`
+			Durations []time.Duration `toml:"durations" json:"durations"`
 		}
 
 		var x Some
@@ -32,6 +33,19 @@ func TestDuration(t *T.T) {
 		assert.Equal(t, time.Minute, x.Duration)
 		assert.Equal(t, time.Minute, x.Durations[0])
 		assert.Equal(t, time.Hour*3, x.Durations[1])
+
+		y := Some{
+			Duration:  time.Second,
+			Durations: []time.Duration{time.Minute, time.Hour},
+		}
+
+		j, err := json.Marshal(y)
+		assert.NoError(t, err)
+		t.Logf("%q", j)
+
+		var z Some
+		assert.NoError(t, json.Unmarshal(j, &z))
+		t.Logf("%v", z)
 	})
 }
 
