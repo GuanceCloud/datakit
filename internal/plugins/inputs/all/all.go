@@ -10,6 +10,7 @@ import (
 	// nolint:typecheck
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/apache"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/beats_output"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/cat"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/clickhousev1"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/cloudprober"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/consul"
