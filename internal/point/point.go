@@ -7,6 +7,10 @@
 package point
 
 import (
+	"hash/fnv"
+	"sort"
+	"strings"
+
 	"github.com/GuanceCloud/cliutils/point"
 	influxdb "github.com/influxdata/influxdb1-client/v2"
 
@@ -42,4 +46,68 @@ func Dkpt2point(pts ...*dkpt.Point) (res []*point.Point) {
 	}
 
 	return res
+}
+
+// LineprotoTimeseries get line-protocol point will consuming time-series in Guancedb.
+func LineprotoTimeseries(pts []*dkpt.Point) int {
+	set := map[uint64]bool{}
+	for _, pt := range pts {
+		set[lineprotoHash(pt)] = true
+	}
+
+	return len(set)
+}
+
+// Timeseries get consuming time-series in Guancedb.
+func Timeseries(pts []*point.Point) int {
+	set := map[uint64]bool{}
+	for _, pt := range pts {
+		set[pointHash(pt)] = true
+	}
+
+	return len(set)
+}
+
+func lineprotoHash(pt *dkpt.Point) uint64 {
+	arr := []string{pt.Name()}
+	for k, t := range pt.Tags() {
+		arr = append(arr, k+"="+t)
+	}
+
+	fs, err := pt.Fields()
+	if err != nil {
+		return 0
+	}
+
+	for k := range fs {
+		arr = append(arr, "__field__="+k)
+	}
+
+	return arrhash(arr)
+}
+
+func pointHash(pt *point.Point) uint64 {
+	arr := []string{string(pt.Name())}
+	for _, kv := range pt.Tags() {
+		arr = append(arr, string(
+			append(append(kv.Key, byte('=')), kv.GetD()...)))
+	}
+
+	for _, kv := range pt.Fields() {
+		arr = append(arr, string(append([]byte("__field__="), kv.Key...)))
+	}
+
+	return arrhash(arr)
+}
+
+func arrhash(arr []string) uint64 {
+	x := fnv.New64()
+	sort.Strings(arr)
+
+	data := []byte(strings.Join(arr, ""))
+
+	if _, err := x.Write(data); err != nil {
+		return 0
+	}
+	return x.Sum64()
 }
