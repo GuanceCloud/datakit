@@ -68,7 +68,7 @@ func TestJSONTaskFile(t *testing.T) {
 	for _, tc := range cases {
 		_ = tc
 		t.Run(tc.name, func(t *testing.T) {
-			i := newDefaultInput()
+			i := defaultInput()
 			b, err := i.getLocalJSONTasks([]byte(tc.j))
 			if tc.fail {
 				tu.NotOk(t, err, "expect err, got none")
