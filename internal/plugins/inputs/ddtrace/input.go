@@ -248,8 +248,6 @@ func (ipt *Input) RegHTTPHandler() {
 		}
 	}
 	if isReg {
-		// itrace.StartTracingStatistic()
-		// unsupported api yet
 		httpapi.RegHTTPHandler(http.MethodGet, info, handleDDInfo)
 		httpapi.RegHTTPHandler(http.MethodPost, info, handleDDInfo)
 		httpapi.RegHTTPHandler(http.MethodGet, stats, handleDDStats)

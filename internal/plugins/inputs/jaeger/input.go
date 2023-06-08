@@ -216,18 +216,15 @@ func (ipt *Input) RegHTTPHandler() {
 }
 
 func (ipt *Input) Run() {
+	customerKeys = ipt.CustomerTags
+	tags = ipt.Tags
+
 	if ipt.Address != "" {
 		log.Debugf("### %s UDP agent is starting...", inputName)
-		// itrace.StartTracingStatistic()
 		if err := StartUDPAgent(ipt.Address); err != nil {
 			log.Errorf("### start %s UDP agent failed: %s", inputName, err.Error())
 		}
 	}
-
-	customerKeys = ipt.CustomerTags
-	tags = ipt.Tags
-
-	log.Debugf("### %s agent is running...", inputName)
 
 	<-datakit.Exit.Wait()
 	ipt.Terminate()

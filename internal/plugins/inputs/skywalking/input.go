@@ -247,6 +247,7 @@ func (ipt *Input) RegHTTPHandler() {
 			httpapi.RegHTTPHandler(http.MethodPost, v, handleSkyMetricV3)
 		case v3logging:
 			httpapi.RegHTTPHandler(http.MethodPost, v, handleSkyLoggingV3)
+			httpapi.RegHTTPHandler(http.MethodPost, "/v3/logs", handleSkyLoggingV3)
 		case v3profiling:
 			httpapi.RegHTTPHandler(http.MethodPost, v, handleProfilingV3)
 		}
