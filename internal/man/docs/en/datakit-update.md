@@ -83,16 +83,49 @@ In Linux, in order to facilitate the automatic update of DataKit, tasks can be a
 Copy the following script contents to the installation directory of the machine where the DataKit is located and save `datakit-update.sh` (name optional).
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 # Update DataKit if new version available
 
-otalog=/usr/local/datakit/ota-update.log
-installer=https://static.guance.com/datakit/installer-linux-amd64
+echo "Checking for available updates..."
 
-if [[ $? == 42 ]]; then
-	echo "update now..."
-	DK_UPGRADE=1 bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+if [ ! -x /usr/local/datakit/datakit ]; then
+  echo "/usr/local/datakit/datakit cmd not found, has datakit been installed?" >&2
+  exit 1
 fi
+
+out_lines=()
+while IFS='' read -r line; do out_lines+=("$line"); done < <(/usr/local/datakit/datakit version)
+
+if [ ${#out_lines[@]} -lt 4 ]; then
+  echo "invalid version output" >&2
+  exit 1
+fi
+
+for ((i=0;i<${#out_lines[@]};i++))
+do
+  line="${out_lines[$i]}"
+  if [[ "$line" =~ Upgrade: ]] && [ $((i+1)) -lt ${#out_lines[@]} ]; then
+    cmd="${out_lines[$((i+1))]}"
+    break
+  fi
+done
+
+if [ -z "$cmd" ]; then
+  echo "already up-to-date!" >&2
+  exit 0
+fi
+
+if [[ "$cmd" =~ DK_UPGRADE ]]; then
+  if ! bash -c "$cmd"; then
+    echo "fail to upgrade" >&2
+    exit 2
+  fi
+else
+  printf "get invalid upgrade cmd: %s\n" "$cmd" >&2
+  exit 3
+fi
+
+echo "successfully upgrade!"
 ```
 
 ### Add Crontab Task {#add-crontab}
@@ -107,7 +140,7 @@ Add the following rule:
 
 ```shell
 # Mean to try the new version update every morning
-0 0 * * * bash /path/to/datakit-update.sh
+0 0 * * * bash /path/to/datakit-update.sh >>/var/log/datakit/auto-upgrade.log 2>&1
 ```
 
 Tips: crontab, The basic syntax is as follows

@@ -34,6 +34,7 @@ var (
 	catalogName                      = "db"
 	l                                = logger.DefaultSLogger(inputName)
 	_           inputs.ElectionInput = (*Input)(nil)
+	kvMatcher                        = regexp.MustCompile(`(password|sslcert|sslkey|sslmode|sslrootcert)=\S+ ?`)
 )
 
 const (
@@ -95,7 +96,11 @@ const sampleConfig = `
   ## Run a custom SQL query and collect corresponding metrics. 
   #
   # [[inputs.postgresql.custom_queries]]
-  #   sql = "select datname,numbackends,blks_read from pg_stat_database"
+  #   sql = '''
+  #     select datname,numbackends,blks_read
+  #     from pg_stat_database
+  #     limit 10
+  #   '''
   #   metric = "postgresql_custom_stat"
   #   tags = ["datname" ]
   #   fields = ["numbackends", "blks_read"]
@@ -281,8 +286,6 @@ func (ipt *Input) GetPipeline() []*tailer.Option {
 
 func (ipt *Input) SanitizedAddress() (sanitizedAddress string, err error) {
 	var canonicalizedAddress string
-
-	kvMatcher := regexp.MustCompile(`(password|sslcert|sslkey|sslmode|sslrootcert)=\S+ ?`)
 
 	if ipt.Outputaddress != "" {
 		return ipt.Outputaddress, nil

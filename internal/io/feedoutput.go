@@ -49,8 +49,10 @@ func (fo *datawayOutput) WriteLastError(source, err string, cat ...point.Categor
 func (fo *datawayOutput) Write(data *iodata) error {
 	ch := fo.chans[data.category.String()]
 
+	start := time.Now()
+
 	if data.opt != nil && data.opt.HTTPHost != "" {
-		ch = fo.chans[datakit.DynamicDatawayCategory]
+		ch = fo.chans[point.DynamicDWCategory.String()]
 		// dial-testing feed to logging channel, but we changed the label to dynamic-dataway.
 		// On command datakit monitor, we need to show dial-testing IO metrics.
 		ioChanLen.WithLabelValues(point.DynamicDWCategory.String()).Set(float64(len(ch)))
@@ -58,9 +60,10 @@ func (fo *datawayOutput) Write(data *iodata) error {
 		ioChanLen.WithLabelValues(data.category.String()).Set(float64(len(ch)))
 	}
 
-	if data.opt.Blocking {
+	if data.opt != nil && data.opt.Blocking {
 		select {
 		case ch <- data:
+			feedCost.Observe(float64(time.Since(start)) / float64(time.Second))
 			return nil
 		case <-datakit.Exit.Wait():
 			log.Warnf("%s/%s feed skipped on global exit", data.category, data.from)
@@ -74,6 +77,9 @@ func (fo *datawayOutput) Write(data *iodata) error {
 			log.Warnf("%s/%s feed skipped on global exit", data.category, data.from)
 			return fmt.Errorf("feed on global exit")
 		default:
+
+			feedDropPoints.Add(float64(len(data.pts)))
+
 			log.Warnf("io busy, %d (%s/%s) points maybe dropped", len(data.pts), data.from, data.category)
 			return ErrIOBusy
 		}
@@ -111,8 +117,13 @@ func (fo *debugOutput) Write(data *iodata) error {
 		cp.Output("%s\n", pt.String())
 	}
 
+	var cost time.Duration
+	if data.opt != nil {
+		cost = data.opt.CollectCost
+	}
+
 	cp.Infof("# %d points(%q) from %s, cost %s | Ctrl+c to exit.\n",
-		len(data.pts), data.category.Alias(), data.from, data.opt.CollectCost)
+		len(data.pts), data.category.Alias(), data.from, cost)
 
 	return nil
 }

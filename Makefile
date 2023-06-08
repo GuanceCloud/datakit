@@ -62,13 +62,12 @@ GIT_BRANCH           ?= $(shell git rev-parse --abbrev-ref HEAD)
 DATAKIT_EBPF_ARCHS   ?= linux/arm64,linux/amd64
 IGN_EBPF_INSTALL_ERR ?= 0
 RACE_DETECTION       ?= "off"
-PKGEBPF              ?= "false"
+PKGEBPF              ?= false
 UT_EXCLUDE           ?= ""
 DOCKER_REMOTE_HOST   ?= "0.0.0.0" # default use localhost as docker server
 
-PKGEBPF_FLAG = ""
-ifneq ($(PKGEBPF),"false")
-	PKGEBPF_FLAG = "-pkg-ebpf"
+ifneq ($(PKGEBPF), false)
+	PKGEBPF_FLAG = -pkg-ebpf
 endif
 
 # Generate 'git/' package under root path
@@ -150,7 +149,8 @@ define publish
 		-name $(NAME)            \
 		-build-dir $(BUILD_DIR)  \
 		-archs $(4)              \
-		-pkg-ebpf $(PKGEBPF)
+		$(PKGEBPF_FLAG)
+
 endef
 
 define pub_ebpf

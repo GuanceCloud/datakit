@@ -157,7 +157,7 @@ func buildExternals(dir, goos, goarch string, standalone bool) error {
 				"-o", filepath.Join(outdir, out),
 				"-ldflags",
 				"-w -s",
-				filepath.Join("plugins", "externals", ex.name, ex.entry),
+				filepath.Join("internal", "plugins", "externals", ex.name, ex.entry),
 			}
 
 			ex.envs = append(ex.envs, "GOOS="+goos, "GOARCH="+goarch)
@@ -167,11 +167,12 @@ func buildExternals(dir, goos, goarch string, standalone bool) error {
 				return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s",
 					args, ex.envs, err, string(msg))
 			}
+
 		case "makefile", "Makefile":
 			args := []string{
 				"make",
-				"--file=" + filepath.Join("plugins", "externals", ex.name, ex.entry),
-				"SRCPATH=" + "plugins/externals/" + ex.name,
+				"--file=" + filepath.Join("internal", "plugins", "externals", ex.name, ex.entry),
+				"SRCPATH=" + "internal/plugins/externals/" + ex.name,
 				"OUTPATH=" + filepath.Join(outdir, out),
 				"ARCH=" + runtime.GOARCH,
 			}
@@ -182,6 +183,7 @@ func buildExternals(dir, goos, goarch string, standalone bool) error {
 				return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s",
 					args, ex.envs, err, string(msg))
 			}
+
 		default: // for python, just copy source code into build dir
 			ex.buildArgs = append(ex.buildArgs, filepath.Join(outdir, "externals"))
 			cmd := exec.Command(ex.buildCmd, ex.buildArgs...) //nolint:gosec

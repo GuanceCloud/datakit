@@ -34,7 +34,7 @@ func (x *dkIO) runConsumer(cat point.Category) {
 
 	fc, ok := x.fcs[cat.String()]
 	if !ok {
-		log.Panicf("invalid category %q, should not been here", cat.String())
+		log.Infof("IO local cache not set for %q", cat.String())
 	}
 
 	c := &consumer{

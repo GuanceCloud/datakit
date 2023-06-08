@@ -291,6 +291,51 @@ func (*loggingMeasurement) Info() *inputs.MeasurementInfo {
 			"log_read_offset": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "The offset of the read file ([:octicons-tag-24: Version-1.4.8](changelog.md#cl-1.4.8) · [:octicons-beaker-24: Experimental](index.md#experimental))."},
 			"log_read_time":   &inputs.FieldInfo{DataType: inputs.DurationSecond, Unit: inputs.UnknownUnit, Desc: "The timestamp of the read file."},
 			"message_length":  &inputs.FieldInfo{DataType: inputs.SizeByte, Unit: inputs.NCount, Desc: "The length of the message content."},
+			"`__docid`": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "Built-in extension fields added by server. The unique identifier for a log document, typically used for sorting and viewing details",
+			},
+			"__namespace": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "Built-in extension fields added by server. The unique identifier for a log document dataType.",
+			},
+			"__truncated_id": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "Built-in extension fields added by server. If the log is particularly large (usually exceeding 1M in size), the central system will split it and add three fields: `__truncated_id`, `__truncated_count`, and `__truncated_number` to define the splitting scenario. The __truncated_id field represents the unique identifier for the split log.",
+			},
+			"__truncated_count": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "Built-in extension fields added by server. If the log is particularly large (usually exceeding 1M in size), the central system will split it and add three fields: `__truncated_id`, `__truncated_count`, and `__truncated_number` to define the splitting scenario. The __truncated_count field represents the total number of logs resulting from the split.",
+			},
+			"__truncated_number": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "Built-in extension fields added by server. If the log is particularly large (usually exceeding 1M in size), the central system will split it and add three fields: `__truncated_id`, `__truncated_count`, and `__truncated_number` to define the splitting scenario. The __truncated_count field represents represents the current sequential identifier for the split logs.",
+			},
+			"date": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Unit:     inputs.DurationMS,
+				Desc:     "Built-in extension fields added by server. The `date` field is set to the time when the log is collected by the collector by default, but it can be overridden using a pipeline.",
+			},
+			"date_ns": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Unit:     inputs.DurationNS,
+				Desc:     "Built-in extension fields added by server. The `date_ns` field is set to the millisecond part of the time when the log is collected by the collector by default. Its maximum value is 1.0E+6 and its unit is nanoseconds. It is typically used for sorting.",
+			},
+			"create_time": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Unit:     inputs.DurationMS,
+				Desc:     "Built-in extension fields added by server. The `create_time` field represents the time when the log is written to the storage engine.",
+			},
+			"df_metering_size": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "Built-in extension fields added by server. The `df_metering_size` field is used for logging cost statistics.",
+			},
 		},
 	}
 }
