@@ -171,7 +171,7 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 
 			metricsData, err := getContainerdMetricsData(ctx, container)
 			if err != nil {
-				l.Debugf("failed to get containerd metrics, err: %s, skip", err)
+				l.Warnf("failed to get containerd metrics, err: %s, skip", err)
 				continue
 			}
 			oldCPU, err := cpuContainerStats(metricsData, time.Now())

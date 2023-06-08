@@ -178,7 +178,7 @@ func (p *pod) object(election bool) (inputsMeas, error) {
 		}
 
 		if y, err := yaml.Marshal(item); err != nil {
-			l.Debugf("failed to get pod yaml %s, namespace %s, name %s, ignored", err, item.Namespace, item.Name)
+			l.Warnf("failed to get pod yaml %s, namespace %s, name %s, ignored", err, item.Namespace, item.Name)
 		} else {
 			obj.fields["yaml"] = string(y)
 		}

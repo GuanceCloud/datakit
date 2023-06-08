@@ -8,10 +8,12 @@ package container
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	v1 "k8s.io/api/apps/v1"
+	"sigs.k8s.io/yaml"
 )
 
 var (
@@ -94,11 +96,12 @@ func (d *daemonset) object(election bool) (inputsMeas, error) {
 	for _, item := range d.items {
 		obj := &daemonsetObject{
 			tags: map[string]string{
-				"name":           item.Name,
+				"name":           fmt.Sprintf("%v", item.UID),
 				"daemonset_name": item.Name,
 				"namespace":      item.Namespace,
 			},
 			fields: map[string]interface{}{
+				"age":                 int64(time.Since(item.CreationTimestamp.Time).Seconds()),
 				"scheduled":           item.Status.CurrentNumberScheduled,
 				"desired":             item.Status.DesiredNumberScheduled,
 				"misscheduled":        item.Status.NumberMisscheduled,
@@ -108,7 +111,21 @@ func (d *daemonset) object(election bool) (inputsMeas, error) {
 			},
 			election: election,
 		}
+
+		if y, err := yaml.Marshal(item); err != nil {
+			l.Warnf("failed to get daemonset yaml %s, namespace %s, name %s, ignored", err.Error(), item.Namespace, item.Name)
+		} else {
+			obj.fields["yaml"] = string(y)
+		}
+
 		obj.tags.append(d.extraTags)
+
+		obj.fields.addMapWithJSON("annotations", item.Annotations)
+		obj.fields.addLabel(item.Labels)
+		obj.fields.mergeToMessage(obj.tags)
+		obj.fields.delete("annotations")
+		obj.fields.delete("yaml")
+
 		res = append(res, obj)
 	}
 
@@ -172,13 +189,13 @@ type daemonsetObject struct {
 }
 
 func (d *daemonsetObject) LineProto() (*point.Point, error) {
-	return point.NewPoint("kube_daemonset", d.tags, d.fields, point.OOptElectionV2(d.election))
+	return point.NewPoint("kubernetes_daemonset", d.tags, d.fields, point.OOptElectionV2(d.election))
 }
 
 //nolint:lll
 func (*daemonsetObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "kube_daemonset",
+		Name: "kubernetes_daemonset",
 		Desc: "The object of the Kubernetes DaemonSet.",
 		Type: "object",
 		Tags: map[string]interface{}{
@@ -187,6 +204,7 @@ func (*daemonsetObject) Info() *inputs.MeasurementInfo {
 			"namespace":      inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 		},
 		Fields: map[string]interface{}{
+			"age":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "age (seconds)"},
 			"count":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Number of daemonsets"},
 			"scheduled":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of nodes that are running at least one daemon pod and are supposed to run the daemon pod."},
 			"desired":      &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The total number of nodes that should be running the daemon pod (including nodes correctly running the daemon pod)."},
@@ -196,6 +214,7 @@ func (*daemonsetObject) Info() *inputs.MeasurementInfo {
 			"updated": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The total number of nodes that are running updated daemon pod."},
 
 			"daemons_unavailable": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of nodes that should be running the daemon pod and have none of the daemon pod running and available (ready for at least spec.minReadySeconds)."},
+			"message":             &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "object details"},
 		},
 	}
 }
