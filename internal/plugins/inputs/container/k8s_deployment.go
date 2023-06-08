@@ -125,7 +125,7 @@ func (d *deployment) object(election bool) (inputsMeas, error) {
 		}
 
 		if y, err := yaml.Marshal(item); err != nil {
-			l.Debugf("failed to get deployment yaml %s, namespace %s, name %s, ignored", err.Error(), item.Namespace, item.Name)
+			l.Warnf("failed to get deployment yaml %s, namespace %s, name %s, ignored", err.Error(), item.Namespace, item.Name)
 		} else {
 			obj.fields["yaml"] = string(y)
 		}

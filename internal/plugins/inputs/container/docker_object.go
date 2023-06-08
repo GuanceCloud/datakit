@@ -35,7 +35,7 @@ func gatherDockerContainerObject(client dockerClientX, k8sClient k8sClientX, con
 	m.fields = f
 
 	if y, err := yaml.Marshal(container); err != nil {
-		l.Debugf("failed to get container yaml %s, ID: %s, ignored", err.Error(), container.ID)
+		l.Warnf("failed to get container yaml %s, ID: %s, ignored", err.Error(), container.ID)
 	} else {
 		m.fields["yaml"] = string(y)
 	}
