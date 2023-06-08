@@ -22,6 +22,22 @@ import (
 	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
+func TestExpectCat(t *T.T) {
+	t.Run("basic", func(t *T.T) {
+		s := Sinker{
+			Categories: []string{"M"},
+			URL:        "http://somewhere.com",
+		}
+
+		assert.NoError(t, s.Setup())
+
+		assert.True(t, s.expectedCategory(point.Metric))
+
+		_, err := s.sink(point.Object, nil)
+		assert.NoError(t, err)
+	})
+}
+
 func TestSinkerSetup(t *T.T) {
 	t.Run(`token-not-set-in-URL`, func(t *T.T) {
 		tkn := "tkn_xxxxxxxxxxxxxxxxxxxxxxxx"

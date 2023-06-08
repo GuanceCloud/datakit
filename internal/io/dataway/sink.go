@@ -81,6 +81,8 @@ func (s *Sinker) sink(cat point.Category, pts []*dkpt.Point) (remainIndices []in
 		return
 	}
 
+	log.Debugf("category %q expected for my categories %v", cat, s.Categories)
+
 	// Unconditional: all points send to the sinker
 	if len(s.conditions) == 0 {
 		sinkPts = pts

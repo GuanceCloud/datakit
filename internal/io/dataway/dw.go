@@ -151,11 +151,17 @@ func (dw *Dataway) doInit() error {
 		dw.MaxIdleConnsPerHost = 64
 	}
 
+	var setupOKSinker []*Sinker
 	for _, s := range dw.Sinkers {
 		if err := s.Setup(); err != nil {
 			log.Warnf("sinker %s setup failed: %s", s.String(), err.Error())
+		} else {
+			setupOKSinker = append(setupOKSinker, s)
 		}
 	}
+
+	dw.Sinkers = setupOKSinker
+	log.Infof("after sinker setup, %d sinker setup ok", len(dw.Sinkers))
 
 	for _, u := range dw.URLs {
 		ep, err := newEndpoint(u,
