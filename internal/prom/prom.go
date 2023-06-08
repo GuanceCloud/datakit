@@ -45,8 +45,6 @@ type AsLogging struct {
 
 type IgnoreTagKeyValMatch map[string][]*regexp.Regexp
 
-const defaultInterval = 30 * time.Second
-
 func (opt *option) GetSource(defaultSource ...string) string {
 	if opt.source != "" {
 		return opt.source
@@ -57,15 +55,7 @@ func (opt *option) GetSource(defaultSource ...string) string {
 	return "prom" //nolint:goconst
 }
 
-func (opt *option) GetIntervalDuration() time.Duration {
-	if opt.interval.Duration <= 0 {
-		opt.interval.Duration = defaultInterval
-	}
-	return opt.interval.Duration
-}
-
 const (
-	defaultIntervalDuration   = time.Second * 30
 	httpTimeout               = time.Second * 3
 	defaultInsecureSkipVerify = false
 )
@@ -85,8 +75,8 @@ func NewProm(promOpts ...PromOption) (*Prom, error) {
 		}
 	}
 
-	if opt.timeout.Duration < httpTimeout {
-		opt.timeout.Duration = httpTimeout
+	if opt.timeout < httpTimeout {
+		opt.timeout = httpTimeout
 	}
 
 	p := Prom{opt: &opt, infoTags: make(map[string]string)}
@@ -97,7 +87,7 @@ func NewProm(promOpts ...PromOption) (*Prom, error) {
 			return net.Dial("unix", p.opt.udsPath)
 		}
 	}
-	p.SetClient(&http.Client{Timeout: opt.timeout.Duration, Transport: &http.Transport{
+	p.SetClient(&http.Client{Timeout: opt.timeout, Transport: &http.Transport{
 		DialContext: dialContext,
 	}})
 

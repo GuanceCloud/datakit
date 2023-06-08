@@ -33,8 +33,10 @@ const (
 	annotationPrometheusioPort   = "prometheus.io/port"
 	annotationPrometheusioPath   = "prometheus.io/path"
 	annotationPrometheusioScheme = "prometheus.io/scheme"
+)
 
-	defaultPrometheusioInterval = "60s"
+var (
+	defaultPrometheusioInterval = time.Second * 60
 	defaultPromScheme           = "http"
 	defaultPromPath             = "/metrics"
 )
@@ -379,7 +381,10 @@ func (d *discovery) fetchPromInputsForPodMonitors() []*discoveryRunner {
 					promInput.Tags[k] = v
 				}
 				if metricsEndpoints.Interval != "" {
-					promInput.Interval = metricsEndpoints.Interval
+					interval, err := time.ParseDuration(metricsEndpoints.Interval)
+					if err == nil {
+						promInput.Interval = interval
+					}
 				}
 				promInput.Tags["namespace"] = pod.Namespace
 				promInput.Tags["service"] = pod.Name
@@ -478,7 +483,10 @@ func (d *discovery) fetchPromInputsForServiceMonitors() []*discoveryRunner {
 					promInput.Tags[k] = v
 				}
 				if endpoint.Interval != "" {
-					promInput.Interval = endpoint.Interval
+					interval, err := time.ParseDuration(endpoint.Interval)
+					if err == nil {
+						promInput.Interval = interval
+					}
 				}
 				promInput.Tags["namespace"] = service.Namespace
 				promInput.Tags["service"] = service.Name
@@ -802,7 +810,7 @@ func mergePromConfig(c1 *prom.Input, c2 *promConfig) *prom.Input {
 	c3.URLs = c1.URLs
 	c3.Tags = c1.Tags
 
-	if c1.Interval != "" {
+	if c1.Interval != 0 {
 		c3.Interval = c1.Interval
 	} else {
 		c3.Interval = defaultPrometheusioInterval
