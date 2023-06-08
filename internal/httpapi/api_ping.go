@@ -18,8 +18,14 @@ type Ping struct {
 	Version string `json:"version"`
 	Uptime  string `json:"uptime"`
 	Host    string `json:"host"`
+	Commit  string `json:"commit"`
 }
 
 func apiPing(w http.ResponseWriter, r *http.Request, x ...interface{}) (interface{}, error) {
-	return &Ping{Version: datakit.Version, Uptime: fmt.Sprintf("%v", time.Since(metrics.Uptime)), Host: datakit.DatakitHostName}, nil
+	return &Ping{
+		Version: datakit.Version,
+		Uptime:  fmt.Sprintf("%v", time.Since(metrics.Uptime)),
+		Host:    datakit.DatakitHostName,
+		Commit:  datakit.Commit,
+	}, nil
 }
