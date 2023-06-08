@@ -1,28 +1,31 @@
+
 # Go profiling
 
-Go 内置了性能分析 (profiling) 工具 pprof，可以采集程序运行中的性能数据，可通过以下两种方式使用：
+---
 
-- `runtime/pprof`: 通过编程方式，自定义采集运行数据，然后保存分析
-- `net/http/pprof`: 调用 `runtime/pprof`，封装成接口，通过 HTTP Server 的方式对外提供性能数据
+Golang built-in tool `pprof` can be used to profiling go process.
 
-性能数据主要包括如下：
+- `runtime/pprof`: By programming, output profiling data to a file.
+- `net/http/pprof`: Download profiling file by http request.
 
-- goroutine: 运行的 goroutines 的调用栈分析
-- heap: 活跃对象的内存分配情况 
-- allocs: 所有对象的内存分配情况 
-- threadcreate: OS 线程创建分析
-- block: 阻塞分析
-- mutex: 互斥锁分析
+Types of profiles available:: 
 
-收集到的数据，可以通过官方 [pprof](https://github.com/google/pprof/blob/main/doc/README.md){:target="_blank"} 工具进行分析。
+- `goroutine`: Stack traces of all current goroutines
+- `heap`: A sampling of memory allocations of live objects. You can specify the gc GET parameter to run GC before taking the heap sample.
+- `allocs`: A sampling of all past memory allocations
+- `threadcreate`: Stack traces that led to the creation of new OS threads
+- `block`: Stack traces that led to blocking on synchronization primitives
+- `mutex`: Stack traces of holders of contended mutexes
 
-DataKit 可通过[主动拉取](#pull-mode) (pull) 或[被动推送](#push-mode) (push) 的方式来获取这些数据。
+You can use official tool [`pprof`](https://github.com/google/pprof/blob/main/doc/README.md){:target="_blank"} to analysis generated profile file.
 
-## push 方式 {#push-mode}
+DataKit can use either [Pull mode](profile-go.md#pull-mode) or [Push mode](profile-go.md#push-mode) to generate profiling file.
 
-### DataKit 配置 {#push-datakit-config}
+## push mode {#push-mode}
 
-DataKit 开启 [profile](profile.md#config)  采集器，注册 profile http 服务。
+### Config DataKit {#push-datakit-config}
+
+Enable [profile](profile.md#config)  inputs
 
 ```toml
 [[inputs.profile]]
@@ -32,68 +35,67 @@ DataKit 开启 [profile](profile.md#config)  采集器，注册 profile http 服
   endpoints = ["/profiling/v1/input"]
 ```
 
-### Go 应用配置 {#push-app-config}
+### Integrate dd-trace-go {#push-app-config}
 
-集成 DataDog 开源库 [dd-trace-go](https://github.com/DataDog/dd-trace-go){:target="_blank"}，采集应用性能数据并发送至 DataKit。 代码参考如下：
+Import [dd-trace-go](https://github.com/DataDog/dd-trace-go){:target="_blank"}, Insert code as follows to your application: 
 
 ```go
 package main
 
 import (
-	"log"
-	"time"
+    "log"
+    "time"
 
-	"gopkg.in/DataDog/dd-trace-go.v1/profiler"
+    "gopkg.in/DataDog/dd-trace-go.v1/profiler"
 )
 
 func main() {
-	err := profiler.Start(
-		profiler.WithService("dd-service"),
-		profiler.WithEnv("dd-env"),
-		profiler.WithVersion("dd-1.0.0"),
-		profiler.WithTags("k:1", "k:2"),
-		profiler.WithAgentAddr("localhost:9529"), // DataKit url
-		profiler.WithProfileTypes(
-			profiler.CPUProfile,
-			profiler.HeapProfile,
-			// The profiles below are disabled by default to keep overhead
-			// low, but can be enabled as needed.
+    err := profiler.Start(
+        profiler.WithService("dd-service"),
+        profiler.WithEnv("dd-env"),
+        profiler.WithVersion("dd-1.0.0"),
+        profiler.WithTags("k:1", "k:2"),
+        profiler.WithAgentAddr("localhost:9529"), // DataKit url
+        profiler.WithProfileTypes(
+            profiler.CPUProfile,
+            profiler.HeapProfile,
+            // The profiles below are disabled by default to keep overhead
+            // low, but can be enabled as needed.
 
-			// profiler.BlockProfile,
-			// profiler.MutexProfile,
-			// profiler.GoroutineProfile,
-		),
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer profiler.Stop()
+            // profiler.BlockProfile,
+            // profiler.MutexProfile,
+            // profiler.GoroutineProfile,
+        ),
+    )
 
-  // your code here
-	demo()
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer profiler.Stop()
+
+    // your code here
+    demo()
 }
 
 func demo() {
-	for {
-		time.Sleep(100 * time.Millisecond)
-		go func() {
-			buf := make([]byte, 100000)
-			_ = len(buf)
-			time.Sleep(1 * time.Hour)
-		}()
-	}
+    for {
+        time.Sleep(100 * time.Millisecond)
+        go func() {
+            buf := make([]byte, 100000)
+            _ = len(buf)
+            time.Sleep(1 * time.Hour)
+        }()
+    }
 }
-
 ```
 
-运行该程序后，ddtrace 会定期（默认 1 分钟一次）将数据推送给 DataKit。
+Once your go app start, dd-trace-go will send profiling data to DataKit by interval(per 1min by default).
 
+## pull mode {#pull-mode}
 
-## pull 方式 {#pull-mode}
+### Enable profiling in app {#app-config}
 
-### Go 应用开启 pprof {#app-config}
-
-应用中开启 pprof 只需要引用 pprof 包即可，参考如下:
+import `pprof` package in your code: 
 
 ```go
 package main
@@ -104,15 +106,15 @@ import (
 )
 
 func main() {
-  http.ListenAndServe(":6060", nil)
+    http.ListenAndServe(":6060", nil)
 }
 ```
 
-运行代码后，可通过 `http://localhost:6060/debug/pprof/heap?debug=1` 来查看是否开启成功。
+Once start your app, you can view page `http://localhost:6060/debug/pprof/heap?debug=1` in browser to confirm running as your wish.
 
-**mutex 和 block 性能分析** 
+- Mutex and Block events
 
-默认情况下，mutex 和 block 性能采集并未开启，如果需要开启，可添加如下代码：
+Mutex and Block events are disable by default, if you want to enable them, add below code to your app: 
 
 ```go
 var rate = 1
@@ -123,13 +125,12 @@ runtime.SetMutexProfileFraction(rate)
 // enable block profiling
 runtime.SetBlockProfileRate(rate)
 ```
-`rate` 设置采集频率，即 1 / rate 的事件被采集， 如设置为 0或小于 0 的数值，是不进行采集的。
 
+Set the collection frequency, where 1/rate events are collected. Values set to 0 or less are not collected.
 
+### Config DataKit {#datakit-config}
 
-### DataKit 配置 {#datakit-config}
-
- [开启 Profile 采集器](profile.md)，进行如下设置 `[[inputs.profile.go]]`。
+[Enable Profile Input](profile.md), modify `[[inputs.profile.go]]` segment as follows.
 
 ```toml
 [[inputs.profile]]
@@ -166,17 +167,19 @@ runtime.SetBlockProfileRate(rate)
   # tag1 = "val1"
 ```
 
-> 注意： 如果不需要开启 Profile 的 HTTP 服务，可将 endpoints 字段注释掉。
+<!-- markdownlint-disable MD046 -->
+???+ note
+    
+    If there is no need to enable profile http endpoint, just comment `endpoints` item.
+<!-- markdownlint-enable -->
 
-**字段说明**
+### Field introduction {#fields-info}
 
-- `url`: 上报地址，如 `http://localhost:6060`
-- `interval`: 采集间隔时间，最小 10s
-- `service`： 服务名称
-- `env`： 应用环境类型
-- `version`: 应用的版本
-- `enabled_types`: 性能类型，如 `cpu, goroutine, heap, mutex, block` 
+- `url`: net/http/pprof listening address, such as `http://localhost:6060`
+- `interval`: upload interval, 最小 10s
+- `service`:  your service name
+- `env`:  your app running env
+- `version`: your app version
+- `enabled_types`: available events: `cpu, goroutine, heap, mutex, block`
 
-
-配置好 Profile 采集器，启动或重启 DataKit，一段时间后即可在观测云中心查看 Go 的性能数据。
-
+You should Restart DataKit after modification. After a minute or two, you can visualize your profiles on the [profile](https://console.guance.com/tracing/profile).
