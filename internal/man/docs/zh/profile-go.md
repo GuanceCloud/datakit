@@ -37,7 +37,7 @@ DataKit 开启 [profile](profile.md#config)  采集器，注册 profile http 服
 
 ### Go 应用配置 {#push-app-config}
 
-集成 DataDog 开源库 [dd-trace-go](https://github.com/DataDog/dd-trace-go){:target="_blank"}，采集应用性能数据并发送至 DataKit。 代码参考如下：
+集成 [dd-trace-go](https://github.com/DataDog/dd-trace-go){:target="_blank"}，采集应用性能数据并发送至 DataKit。 代码参考如下：
 
 ```go
 package main
@@ -167,7 +167,11 @@ runtime.SetBlockProfileRate(rate)
   # tag1 = "val1"
 ```
 
-> 注意： 如果不需要开启 Profile 的 HTTP 服务，可将 endpoints 字段注释掉。
+<!-- markdownlint-disable MD046 -->
+???+ note
+
+    如果不需要开启 Profile 的 HTTP 服务，可将 endpoints 字段注释掉。
+<!-- markdownlint-enable -->
 
 ### 字段说明 {#fields-info}
 

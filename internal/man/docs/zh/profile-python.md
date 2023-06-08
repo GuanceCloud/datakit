@@ -1,22 +1,28 @@
-# Python
+# Python profiling
 
-目前 DataKit Python profiling 支持 [DDTrace](https://github.com/DataDog/dd-trace-py){:target="_blank"} 和 [py-spy](https://github.com/benfred/py-spy){:target="_blank"} 两种性能分析器。
+目前 DataKit Python profiling 支持 [dd-trace-py](https://github.com/DataDog/dd-trace-py){:target="_blank"} 和 [py-spy](https://github.com/benfred/py-spy){:target="_blank"} 两种性能采集器。
 
 ## 前置条件 {#py-spy-requirement}
 
 已安装 [DataKit](https://www.guance.com){:target="_blank"} 并且已开启 [profile](profile.md#config) 采集器。
 
-## DDTrace 接入 {#ddtrace}
+## dd-trace-py 接入 {#ddtrace}
 
-`ddtrace` 是由 DataDog 推出的链路跟踪和性能分析开源库，能够收集 CPU、内存、锁争用等指标，功能较全面。
+`dd-trace-py` 是由 DataDog 推出的链路跟踪和性能分析开源库，能够收集 CPU、内存、阻塞等指标。
 
-- 安装 Python DDTrace 库
+- 安装 dd-trace-py 库
+
+<!-- markdownlint-disable MD046 -->
+???+ note "版本要求"
+
+    Datakit 目前支持 `dd-trace-py 1.14.x` 及以下版本，更高版本未经系统性测试，兼容性未知。
+<!-- markdownlint-enable -->
 
 ```shell
 pip3 install ddtrace
 ```
 
-- 自动 profiling
+- 无侵入式 profiling
 
 ```shell
 DD_PROFILING_ENABLED=true \
@@ -27,7 +33,7 @@ DD_TRACE_AGENT_URL=http://127.0.0.1:9529 \
 ddtrace-run python app.py
 ```
 
-也能通过手动注入代码的方式开启 profiling：
+- 手动注入代码的方式开启 profiling
 
 ```python
 import time
@@ -95,18 +101,18 @@ cargo install py-spy-for-datakit
 
 `py-spy-for-datakit` 在 `py-spy` 原有子命令的基础上增加了 `datakit` 命令，专门用于把采样数据发送给 DataKit，可以输入 `py-spy-for-datakit help datakit` 来查看使用帮助：
 
-| 参数                 | 说明                                                                             | 默认值                              |
-| -------------------- | ----------------------------------------------                                   | --------------------                |
-| -H, --host           | 要发往数据的 Datakit 监听的地址                                                  | 127.0.0.1                           |
-| -P, --port           | 要发往数据的 Datakit 监听端口                                                    | 9529                                |
-| -S, --service        | 项目名称，可用于后台区分不同的项目，且可以用于筛选和查询，建议设置               | unnamed-service                     |
-| -E, --env            | 项目所部署的环境，可以用于区分开发、测试和生产环境，也可以用于筛选，建议设置     | unnamed-env                         |
-| -V, --version        | 项目版本，可以用于后台查询和筛选，建议设置                                       | unnamed-version                     |
-| -p, --pid            | 需要分析的 Python 程序的进程 PID                                                 | 进程 PID 和项目启动命令必须指定其一 |
-| -d, --duration       | 采样的持续时长，每间隔该时间段向 Datakit 发送一次数据，单位秒，最小可以设置为 10 | 60                                  |
-| -r, --rate           | 采样频率，每秒采样次数                                                           | 100                                 |
-| -s, --subprocesses   | 是否分析子进程                                                                   | false                               |
-| -i, --idle           | 是否采样非运行状态的线程                                                         | false                               |
+| 参数                 | 说明                                             | 默认值                  |
+|--------------------|------------------------------------------------|----------------------|
+| -H, --host         | 要发往数据的 Datakit 监听的地址                           | 127.0.0.1            |
+| -P, --port         | 要发往数据的 Datakit 监听端口                            | 9529                 |
+| -S, --service      | 项目名称，可用于后台区分不同的项目，且可以用于筛选和查询，建议设置              | unnamed-service      |
+| -E, --env          | 项目所部署的环境，可以用于区分开发、测试和生产环境，也可以用于筛选，建议设置         | unnamed-env          |
+| -V, --version      | 项目版本，可以用于后台查询和筛选，建议设置                          | unnamed-version      |
+| -p, --pid          | 需要分析的 Python 程序的进程 PID                         | 进程 PID 和项目启动命令必须指定其一 |
+| -d, --duration     | 采样的持续时长，每间隔该时间段向 Datakit 发送一次数据，单位秒，最小可以设置为 10 | 60                   |
+| -r, --rate         | 采样频率，每秒采样次数                                    | 100                  |
+| -s, --subprocesses | 是否分析子进程                                        | false                |
+| -i, --idle         | 是否采样非运行状态的线程                                   | false                |
 
 `py-spy-for-datakit` 可以分析当前正在运行的程序，使用 `--pid <PID>` 或 `-p <PID>` 参数把正在运行的 Python 程序的进程 PID 传递给 `py-spy-for-datakit` 即可。
 

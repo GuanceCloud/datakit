@@ -3,16 +3,23 @@
 
 ---
 
-DataKit 支持两种方式来采集 Java profiling 数据，即 [DDTrace](https://github.com/DataDog/dd-trace-go){:target="_blank"} 和 [`async-profiler`](https://github.com/jvm-profiling-tools/async-profiler#async-profiler){:target="_blank"}。
+DataKit 支持两种采集器来采集 Java profiling 数据，即 [`dd-trace-java`](https://github.com/DataDog/dd-trace-java){:target="_blank"} 和 [async-profiler](https://github.com/async-profiler/async-profiler){:target="_blank"}。
 
-## DDTrace {#ddtrace}
+## `dd-trace-java` {#ddtrace}
 
-下载最新的 DDTrace Agent *dd-java-agent.jar*
+从页面 [https://github.com/DataDog/dd-trace-java/releases](https://github.com/DataDog/dd-trace-java/releases){:target="_blank"} 下载 `dd-trace-java`.
 
-```shell
-# Java 版本要求：Java8 版本需要高于 8u262+，或者使用 Java11 及以上版本
-wget -O dd-java-agent.jar 'https://github.com/DataDog/dd-trace-java/releases/download/v0.107.0/dd-java-agent-0.107.0.jar'
-```
+<!-- markdownlint-disable MD046 -->
+???+ Note "版本要求"
+
+    Datakit 目前支持 `dd-trace-java 1.15.x` 及以下版本，更高版本未经测试，兼容性未知，如遇兼容性问题，可反馈给我们。
+
+    JDK 版本要求：
+
+    - OpenJDK 11.0.17+, 17.0.5+
+    - Oracle JDK 11.0.17+, 17.0.5+
+    - OpenJDK 8 version 8u352+
+<!-- markdownlint-enable -->
 
 运行 Java Code
 
@@ -42,18 +49,21 @@ async-profiler 可以收集以下几种事件：
 
 ### Async Profiler 安装 {#install}
 
-官网提供了不同平台的安装包的下载（当前版本 2.8.3）：
+???+ node "版本要求"
+    Datakit 目前支持 `async-profiler v2.9` 及以下版本，更高版本未经测试，兼容性未知。
 
-- Linux x64 (glibc): [async-profiler-2.8.3-linux-x64.tar.gz](https://github.com/jvm-profiling-tools/async-profiler/releases/download/v2.8.3/async-profiler-2.8.3-linux-x64.tar.gz){:target="_blank"}
-- Linux x64 (musl): [async-profiler-2.8.3-linux-musl-x64.tar.gz](https://github.com/jvm-profiling-tools/async-profiler/releases/download/v2.8.3/async-profiler-2.8.3-linux-musl-x64.tar.gz){:target="_blank"}
-- Linux arm64: [async-profiler-2.8.3-linux-arm64.tar.gz](https://github.com/jvm-profiling-tools/async-profiler/releases/download/v2.8.3/async-profiler-2.8.3-linux-arm64.tar.gz){:target="_blank"}
-- macOS x64/arm64: [async-profiler-2.8.3-macos.zip](https://github.com/jvm-profiling-tools/async-profiler/releases/download/v2.8.3/async-profiler-2.8.3-macos.zip){:target="_blank"}
-- 不同格式文件转换器：[converter.jar](https://github.com/jvm-profiling-tools/async-profiler/releases/download/v2.8.3/converter.jar){:target="_blank"}
+官网提供了不同平台的安装包的下载（以 v2.8.3 为例）：
+
+- Linux x64 (glibc): [async-profiler-2.8.3-linux-x64.tar.gz](https://github.com/async-profiler/async-profiler/releases/download/v2.8.3/async-profiler-2.8.3-linux-x64.tar.gz){:target="_blank"}
+- Linux x64 (musl): [async-profiler-2.8.3-linux-musl-x64.tar.gz](https://github.com/async-profiler/async-profiler/releases/download/v2.8.3/async-profiler-2.8.3-linux-musl-x64.tar.gz){:target="_blank"}
+- Linux arm64: [async-profiler-2.8.3-linux-arm64.tar.gz](https://github.com/async-profiler/async-profiler/releases/download/v2.8.3/async-profiler-2.8.3-linux-arm64.tar.gz){:target="_blank"}
+- macOS x64/arm64: [async-profiler-2.8.3-macos.zip](https://github.com/async-profiler/async-profiler/releases/download/v2.8.3/async-profiler-2.8.3-macos.zip){:target="_blank"}
+- 不同格式文件转换器：[converter.jar](https://github.com/async-profiler/async-profiler/releases/download/v2.8.3/converter.jar){:target="_blank"}
 
 下载相应的安装包，并解压。下面以 Linux x64（glibc）平台为例（其他平台类似）：
 
 ```shell
-$ wget https://github.com/jvm-profiling-tools/async-profiler/releases/download/v2.8.3/async-profiler-2.8.3-linux-x64.tar.gz 
+$ wget https://github.com/async-profiler/async-profiler/releases/download/v2.8.3/async-profiler-2.8.3-linux-x64.tar.gz 
 $ tar -zxf async-profiler-2.8.3-linux-x64.tar.gz 
 $ cd async-profiler-2.8.3-linux-x64 && ls
 

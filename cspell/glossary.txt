@@ -121,9 +121,6 @@ Websphere
 xpack
 zhangsan
 Zipkin
-pyroscope
-Pyroscope
-datakit
 
 # 缩写
 CNCF
