@@ -29,7 +29,7 @@ func (d *dialer) pointsFeed(urlStr string) error {
 		if _, ok := tags[k]; !ok {
 			tags[k] = v
 		} else {
-			l.Warnf("ignore dialer tag %s: %s", k, v)
+			l.Debugf("ignore dialer tag %s: %s", k, v)
 		}
 	}
 	data, err := point.NewPoint(d.task.MetricName(), tags, fields, point.LOpt())

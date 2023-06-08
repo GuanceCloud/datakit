@@ -8,11 +8,11 @@ http 模块暴露如下 metrics：
 
 | 指标                               | 类型      | 说明                              | labels            |
 | ---                                | ---       | ---                               | ---               |
-| datakit_dialtesting_task_check_cost  | summary | Task check cost time          | protocol,region,status |
+| datakit_dialtesting_task_check_cost_seconds  | summary | Task check cost time          | protocol,region,status |
 | datakit_dialtesting_task_invalid_total  | count | The number of the invalid tasks | protocol,region,fail_reason |
 | datakit_dialtesting_task_number | gauge | The number of the running tasks | protocol,region |
-| datakit_dialtesting_task_run_cost | summary | The cost time of the running tasks | protocol,region |
-| datakit_dialtesting_pull_cost | summary | The cost time to the pull tasks | region,is_first |
+| datakit_dialtesting_task_run_cost_seconds | summary | The cost time of the running tasks | protocol,region |
+| datakit_dialtesting_pull_cost_seconds | summary | The cost time to the pull tasks | region,is_first |
 | datakit_dialtesting_task_synchronized_total | count | The total number of the synchronized tasks| protocol,region |
 
 # 网络拨测功能定义

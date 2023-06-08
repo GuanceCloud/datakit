@@ -163,6 +163,9 @@ func (d *Input) Run() {
 		d.cli.Timeout = d.TimeOut.Duration
 	}
 
+	// set default region name
+	d.regionName = d.RegionID
+
 	switch reqURL.Scheme {
 	case "http", "https":
 		d.doServerTask() // task server
@@ -373,7 +376,7 @@ func (d *Input) dispatchTasks(j []byte) error {
 					} else {
 						l.Debugf("ignore tag %s:%s from region info", k, v_)
 					}
-					if k == "name" {
+					if k == "name" && len(v_) > 0 {
 						d.regionName = v_
 					}
 				default:
