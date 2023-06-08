@@ -90,8 +90,8 @@ func TestMinHeap(t *testing.T) {
 	fmt.Println(heap.indexes)
 }
 
-// go test -v -timeout 30s -run ^Test_addTags$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/profile
-func Test_addTags(t *testing.T) {
+// go test -v -timeout 30s -run ^Test_originAddTagsSafe$ gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/profile
+func Test_originAddTagsSafe(t *testing.T) {
 	cases := []struct {
 		name         string
 		inOriginTags map[string]string
@@ -113,11 +113,25 @@ func Test_addTags(t *testing.T) {
 			inNewVal:     "c11",
 			expect:       map[string]string{"c1": "c11"},
 		},
+		{
+			name:         "empty_key",
+			inOriginTags: map[string]string{},
+			inNewKey:     "",
+			inNewVal:     "c11",
+			expect:       map[string]string{},
+		},
+		{
+			name:         "empty_value",
+			inOriginTags: map[string]string{},
+			inNewKey:     "c1",
+			inNewVal:     "",
+			expect:       map[string]string{},
+		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			addTags(tc.inOriginTags, tc.inNewKey, tc.inNewVal)
+			originAddTagsSafe(tc.inOriginTags, tc.inNewKey, tc.inNewVal)
 			assert.Equal(t, tc.expect, tc.inOriginTags)
 		})
 	}

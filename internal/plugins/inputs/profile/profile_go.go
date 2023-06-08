@@ -182,6 +182,11 @@ func (g *GoProfiler) run(i *Input) error {
 }
 
 func (g *GoProfiler) pullProfile() {
+	event := &eventOpts{
+		Family: goReportFamily,
+		Format: goReportFormat,
+	}
+
 	deletaDatas := []*profileData{}
 	for _, k := range g.EnabledTypes {
 		if p, ok := profileConfigMap[k]; ok {
@@ -195,13 +200,12 @@ func (g *GoProfiler) pullProfile() {
 						startTime:       pData.startTime,
 						endTime:         pData.endTime,
 						profiledatas:    []*profileData{pData},
-						reportFamily:    goReportFamily,
-						reportFormat:    goReportFormat,
 						endPoint:        g.url.String(),
 						inputTags:       g.tags,
 						election:        g.input.Election,
 						inputNameSuffix: "/go",
 					},
+					event,
 				); err != nil {
 					log.Warnf("push profile data error: %s", err.Error())
 				}
@@ -219,13 +223,12 @@ func (g *GoProfiler) pullProfile() {
 				startTime:       pData.startTime,
 				endTime:         pData.endTime,
 				profiledatas:    deletaDatas,
-				reportFamily:    goReportFamily,
-				reportFormat:    goReportFormat,
 				endPoint:        g.url.String(),
 				inputTags:       g.tags,
 				election:        g.input.Election,
 				inputNameSuffix: "/go",
 			},
+			event,
 		); err != nil {
 			log.Warnf("push delta profile data error: %s", err.Error())
 		}

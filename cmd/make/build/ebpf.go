@@ -117,6 +117,8 @@ func PubDatakitEBpf() error {
 }
 
 func PackageeBPF() {
+	l.Debug("Start downloading ebpf...")
+
 	curArch := ParseArchs(Archs)
 	for _, arch := range curArch {
 		parts := strings.Split(arch, "/")

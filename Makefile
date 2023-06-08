@@ -150,7 +150,6 @@ define publish
 		-build-dir $(BUILD_DIR)  \
 		-archs $(4)              \
 		$(PKGEBPF_FLAG)
-
 endef
 
 define pub_ebpf

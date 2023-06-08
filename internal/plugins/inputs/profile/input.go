@@ -110,6 +110,7 @@ var (
 	pointCacheOnce sync.Once
 )
 
+//nolint:unused
 type pyroscopeOpts struct {
 	URL     string            `toml:"url"`
 	Service string            `toml:"service"`
@@ -117,8 +118,9 @@ type pyroscopeOpts struct {
 	Version string            `toml:"version"`
 	Tags    map[string]string `toml:"tags"`
 
-	tags  map[string]string //nolint:unused
-	input *Input            //nolint:unused
+	tags      map[string]string
+	input     *Input
+	cacheData sync.Map // key: name, value: *cacheDetail
 }
 
 func InitCache() {
@@ -649,8 +651,6 @@ type pushProfileDataOpt struct {
 	startTime       time.Time
 	endTime         time.Time
 	profiledatas    []*profileData
-	reportFamily    string
-	reportFormat    string
 	endPoint        string
 	inputTags       map[string]string
 	election        bool
@@ -658,11 +658,12 @@ type pushProfileDataOpt struct {
 }
 
 type eventOpts struct {
-	Family string `toml:"family"`
-	Format string `toml:"format"`
+	Family   string `json:"family"`
+	Format   string `json:"format"`
+	Profiler string `json:"profiler"`
 }
 
-func pushProfileData(opt *pushProfileDataOpt) error {
+func pushProfileData(opt *pushProfileDataOpt, event *eventOpts) error {
 	b := new(bytes.Buffer)
 	mw := multipart.NewWriter(b)
 
@@ -683,10 +684,7 @@ func pushProfileData(opt *pushProfileDataOpt) error {
 	if err != nil {
 		return err
 	}
-	event := &eventOpts{
-		Family: opt.reportFamily,
-		Format: opt.reportFormat,
-	}
+
 	eventJSONString, err := json.Marshal(event)
 	if err != nil {
 		return err
@@ -744,8 +742,8 @@ func pushProfileData(opt *pushProfileDataOpt) error {
 			profileID:       profileID,
 			startTime:       opt.startTime,
 			endTime:         opt.endTime,
-			reportFamily:    opt.reportFamily,
-			reportFormat:    opt.reportFormat,
+			reportFamily:    event.Family,
+			reportFormat:    event.Format,
 			endPoint:        opt.endPoint,
 			inputTags:       opt.inputTags,
 			election:        opt.election,
@@ -784,6 +782,7 @@ func writeProfilePoint(opt *writeProfilePointOpt) error {
 		}
 	}
 
+	//nolint:lll
 	pointFields := map[string]interface{}{
 		FieldProfileID:  opt.profileID,
 		FieldFormat:     opt.reportFormat,
@@ -814,9 +813,11 @@ func writeProfilePoint(opt *writeProfilePointOpt) error {
 	return nil
 }
 
-func addTags(originTags map[string]string, newKey, newVal string) {
-	if _, ok := originTags[newKey]; !ok {
-		originTags[newKey] = newVal
+func originAddTagsSafe(originTags map[string]string, newKey, newVal string) {
+	if len(newKey) > 0 && len(newVal) > 0 {
+		if _, ok := originTags[newKey]; !ok {
+			originTags[newKey] = newVal
+		}
 	}
 }
 

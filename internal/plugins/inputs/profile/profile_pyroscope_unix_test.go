@@ -13,7 +13,9 @@ import (
 	"testing"
 
 	"github.com/GuanceCloud/cliutils"
-	"github.com/stretchr/testify/assert"
+	"github.com/pyroscope-io/pyroscope/pkg/storage"
+	"github.com/pyroscope-io/pyroscope/pkg/storage/segment"
+	"github.com/stretchr/testify/require"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 )
@@ -51,34 +53,167 @@ func TestPyroscopeRun(t *testing.T) {
 	}
 }
 
-// go test -v -timeout 30s -run ^Test_getLangFamilyFromSpyName$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/profile
-func Test_getLangFamilyFromSpyName(t *testing.T) {
+// go test -v -timeout 30s -run ^Test_getReportCacheKeyName$ gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/profile
+func Test_getReportCacheKeyName(t *testing.T) {
 	cases := []struct {
-		name    string
-		spyName string
-		expect  string
+		name string
+		out  string
 	}{
 		{
-			name:    "ebpf",
-			spyName: "ebpfspy",
-			expect:  "ebpf",
+			name: "myNodeService.cpu",
+			out:  "myNodeService{}nodespy",
 		},
 		{
-			name:    "go",
-			spyName: "goSpy",
-			expect:  "go",
+			name: "myNodeService.inuse_objects",
+			out:  "myNodeService{}nodespy",
 		},
 		{
-			name:    "length_3",
-			spyName: "une",
-			expect:  "une",
+			name: "myNodeService.inuse_space",
+			out:  "myNodeService{}nodespy",
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			out := getLangFamilyFromSpyName(tc.spyName)
-			assert.Equal(t, tc.expect, out)
+			in := &storage.PutInput{SpyName: nodeSpyName}
+			in.Key = segment.NewKey(map[string]string{"__name__": tc.name})
+
+			out := getReportCacheKeyName(in)
+			require.Equal(t, tc.out, out)
+		})
+	}
+}
+
+// go test -v -timeout 30s -run ^Test_LoadAndStore$ gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/profile
+func Test_LoadAndStore(t *testing.T) {
+	cases := []struct {
+		name     string
+		in       *storage.PutInput
+		inCache  map[string]interface{}
+		out      *cacheDetail
+		outCache *cacheDetail
+	}{
+		{
+			name: "not found",
+			in: &storage.PutInput{
+				Units: "samples",
+			},
+			outCache: &cacheDetail{
+				CPU: &storage.PutInput{
+					Units: "samples",
+				},
+			},
+		},
+
+		{
+			name: "impossible",
+			in:   &storage.PutInput{},
+			inCache: map[string]interface{}{
+				"impossible": 1,
+			},
+			outCache: &cacheDetail{},
+		},
+
+		{
+			name: "new cpu",
+			in: &storage.PutInput{
+				Units: "samples",
+			},
+			outCache: &cacheDetail{
+				CPU: &storage.PutInput{
+					Units: "samples",
+				},
+			},
+		},
+
+		{
+			name: "has cpu, new inuse_objects",
+			in: &storage.PutInput{
+				Units: "objects",
+			},
+			inCache: map[string]interface{}{
+				"has cpu, new inuse_objects": &cacheDetail{
+					CPU: &storage.PutInput{
+						Units: "samples",
+					},
+				},
+			},
+			outCache: &cacheDetail{
+				CPU: &storage.PutInput{
+					Units: "samples",
+				},
+				InuseObjects: &storage.PutInput{
+					Units: "objects",
+				},
+			},
+		},
+
+		{
+			name: "has cpu and inuse_objects, new inuse_space",
+			in: &storage.PutInput{
+				Units: "bytes",
+			},
+			inCache: map[string]interface{}{
+				"has cpu and inuse_objects, new inuse_space": &cacheDetail{
+					CPU: &storage.PutInput{
+						Units: "samples",
+					},
+					InuseObjects: &storage.PutInput{
+						Units: "objects",
+					},
+				},
+			},
+			out: &cacheDetail{
+				CPU: &storage.PutInput{
+					Units: "samples",
+				},
+				InuseObjects: &storage.PutInput{
+					Units: "objects",
+				},
+				InuseSpace: &storage.PutInput{
+					Units: "bytes",
+				},
+			},
+			outCache: &cacheDetail{
+				CPU: &storage.PutInput{
+					Units: "samples",
+				},
+				InuseObjects: &storage.PutInput{
+					Units: "objects",
+				},
+				InuseSpace: &storage.PutInput{
+					Units: "bytes",
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			report := &pyroscopeDatakitReport{pyrs: &pyroscopeOpts{}}
+
+			// initialize data cache.
+			if tc.inCache != nil {
+				for k, v := range tc.inCache {
+					report.pyrs.cacheData.Store(k, v)
+				}
+			}
+
+			out := report.LoadAndStore(tc.name, tc.in)
+
+			// compare out.
+			require.Equal(t, tc.out, out)
+
+			// compare cache.
+			{
+				outCache, ok := report.pyrs.cacheData.Load(tc.name)
+				require.True(t, ok)
+
+				val, ok := outCache.(*cacheDetail)
+				require.True(t, ok)
+
+				require.Equal(t, tc.outCache, val)
+			}
 		})
 	}
 }
