@@ -43,11 +43,21 @@ func Set(key string, value *MetaData) error {
 }
 
 func Get(key string) *MetaData {
+	if assertTesting || globalRegister == nil {
+		return nil
+	}
+	return globalRegister.Get(key)
+}
+
+func SetAndFlush(key string, value *MetaData) error {
 	if assertTesting {
 		return nil
 	}
 	if globalRegister == nil {
-		return nil
+		return fmt.Errorf("invalid register")
 	}
-	return globalRegister.Get(key)
+	if err := globalRegister.Set(key, value); err != nil {
+		return err
+	}
+	return globalRegister.Flush()
 }

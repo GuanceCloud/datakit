@@ -119,7 +119,7 @@ func TestFlush(t *testing.T) {
 	assert.NoError(t, err)
 
 	// flush
-	err = r.(*register).flush()
+	err = r.(*register).Flush()
 	assert.NoError(t, err)
 
 	// verification

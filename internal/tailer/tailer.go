@@ -207,8 +207,10 @@ func (t *Tailer) scan() {
 	}
 
 	for _, filename := range filelist {
-		if t.opt.IgnoreDeadLog > 0 && !FileIsActive(filename, t.opt.IgnoreDeadLog) {
-			continue
+		if !t.opt.FromBeginning {
+			if t.opt.IgnoreDeadLog > 0 && !FileIsActive(filename, t.opt.IgnoreDeadLog) {
+				continue
+			}
 		}
 
 		if t.inFileList(filename) {
