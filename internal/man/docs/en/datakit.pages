@@ -148,6 +148,9 @@ nav:
       - 'Jaeger' :
         - jaeger.md
 
+      - 'CAT' :
+        - cat.md
+
     - RUM:
       - rum.md
 

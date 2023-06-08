@@ -152,6 +152,9 @@ nav:
       - 'Jaeger':
         - jaeger.md
 
+      - 'CAT':
+        - cat.md
+
       - 'Pinpoint':
         -  pinpoint.md
         -  pinpoint-java.md
