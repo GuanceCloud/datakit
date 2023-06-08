@@ -145,18 +145,17 @@ func (ipt *Input) Run() {
 	}
 
 	opt := &tailer.Option{
-		Source:                ipt.Source,
-		Service:               ipt.Service,
-		Pipeline:              ipt.Pipeline,
-		Sockets:               ipt.Sockets,
-		IgnoreStatus:          ipt.IgnoreStatus,
-		FromBeginning:         ipt.FromBeginning,
-		CharacterEncoding:     ipt.CharacterEncoding,
-		RemoveAnsiEscapeCodes: ipt.RemoveAnsiEscapeCodes,
-		IgnoreDeadLog:         ignoreDuration,
-		GlobalTags:            ipt.Tags,
-		BlockingMode:          ipt.BlockingMode,
-		Done:                  ipt.semStop.Wait(),
+		Source:            ipt.Source,
+		Service:           ipt.Service,
+		Pipeline:          ipt.Pipeline,
+		Sockets:           ipt.Sockets,
+		IgnoreStatus:      ipt.IgnoreStatus,
+		FromBeginning:     ipt.FromBeginning,
+		CharacterEncoding: ipt.CharacterEncoding,
+		IgnoreDeadLog:     ignoreDuration,
+		GlobalTags:        ipt.Tags,
+		BlockingMode:      ipt.BlockingMode,
+		Done:              ipt.semStop.Wait(),
 	}
 
 	if ipt.DockerMode {

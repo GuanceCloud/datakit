@@ -77,7 +77,6 @@ func (fo *datawayOutput) Write(data *iodata) error {
 			log.Warnf("%s/%s feed skipped on global exit", data.category, data.from)
 			return fmt.Errorf("feed on global exit")
 		default:
-
 			feedDropPoints.Add(float64(len(data.pts)))
 
 			log.Warnf("io busy, %d (%s/%s) points maybe dropped", len(data.pts), data.from, data.category)

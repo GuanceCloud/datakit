@@ -113,7 +113,7 @@ func (t *Single) Run() {
 }
 
 func (t *Single) Close() {
-	t.recordingCache()
+	t.recordingLastCache()
 	t.closeFile()
 	t.opt.log.Infof("closing: file %s", t.filepath)
 }
@@ -180,6 +180,21 @@ func (t *Single) recordingCache() {
 	}
 
 	t.opt.log.Debugf("recording cache %s success", c)
+}
+
+func (t *Single) recordingLastCache() {
+	if t.offset <= 0 {
+		return
+	}
+
+	c := &register.MetaData{Source: t.opt.Source, Offset: t.offset}
+
+	if err := register.SetAndFlush(getFileKey(t.filepath), c); err != nil {
+		t.opt.log.Warnf("recording last cache %s err: %s", c, err)
+		return
+	}
+
+	t.opt.log.Debugf("recording last cache %s success", c)
 }
 
 func (t *Single) closeFile() {
@@ -463,8 +478,6 @@ func (t *Single) feed(pending []string) {
 		t.feedToRemote(pending)
 		return
 	}
-
-	// 记录 cache
 	defer t.recordingCache()
 
 	if t.enableDiskCache {
