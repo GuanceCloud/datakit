@@ -29,7 +29,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
-	version2 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
 	"go.uber.org/atomic"
 	"gopkg.in/natefinch/lumberjack.v2"
 	net2 "k8s.io/apimachinery/pkg/util/net"
@@ -348,15 +347,11 @@ func upgrade(ctx *gin.Context) {
 
 	output, err := fetchCurrentDKVersion()
 	downloadURL := ""
-	var currentVer *version2.VerInfo
+
+	var DKPingVer PingInfo
 	if err == nil {
-		var newDKVer PingInfo
-		if err := json.Unmarshal(output, &newDKVer); err == nil {
-			currentVer = &version2.VerInfo{VersionString: newDKVer.Content.Version}
-			if err := currentVer.Parse(); err != nil {
-				L().Warnf("unable to parse version info: %s", err)
-			}
-			L().Infof("VersionString: %s, Commit: %s, ReleaseDate: %s", currentVer.VersionString, currentVer.Commit, currentVer.ReleaseDate)
+		if err := json.Unmarshal(output, &DKPingVer); err == nil {
+			L().Infof("VersionString: %s, Commit: %s", DKPingVer.Content.Version, DKPingVer.Content.Commit)
 		} else {
 			L().Warnf("unable to unmarshal json: %s", err)
 		}
@@ -374,7 +369,8 @@ func upgrade(ctx *gin.Context) {
 	for _, v := range versions {
 		L().Infof("VersionString: %s, Commit: %s, ReleaseDate: %s", v.VersionString, v.Commit, v.ReleaseDate)
 		if v.DownloadURL != "" {
-			if v.VersionString != currentVer.VersionString || v.Commit != currentVer.Commit {
+			// only compare release commit hash
+			if v.Commit != DKPingVer.Content.Commit {
 				downloadURL = v.DownloadURL
 				break
 			} else {

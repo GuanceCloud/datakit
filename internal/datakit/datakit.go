@@ -124,6 +124,7 @@ var (
 
 	Docker     = false
 	Version    = git.Version
+	Commit     = git.Commit
 	AutoUpdate = false
 
 	InstallDir = optionalInstallDir[runtime.GOOS+"/"+runtime.GOARCH]
