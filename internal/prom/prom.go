@@ -24,6 +24,7 @@ import (
 	"github.com/prometheus/common/expfmt"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpcli"
 	dnet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 )
 
@@ -81,15 +82,9 @@ func NewProm(promOpts ...PromOption) (*Prom, error) {
 
 	p := Prom{opt: &opt, infoTags: make(map[string]string)}
 
-	var dialContext func(_ context.Context, _ string, _ string) (net.Conn, error)
-	if p.opt.udsPath != "" {
-		dialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
-			return net.Dial("unix", p.opt.udsPath)
-		}
-	}
-	p.SetClient(&http.Client{Timeout: opt.timeout, Transport: &http.Transport{
-		DialContext: dialContext,
-	}})
+	cliopts := httpcli.NewOptions()
+	cliopts.DialTimeout = opt.timeout
+	cliopts.DialKeepAlive = opt.keepAlive
 
 	if opt.tlsOpen {
 		caCerts := []string{}
@@ -106,16 +101,20 @@ func NewProm(promOpts ...PromOption) (*Prom, error) {
 			InsecureSkipVerify: insecureSkipVerify,
 		}
 
-		tlsconfig, err := tc.TLSConfig()
+		tlsConfig, err := tc.TLSConfig()
 		if err != nil {
 			return nil, err
 		}
-		p.client.Transport = &http.Transport{
-			TLSClientConfig: tlsconfig,
-			DialContext:     dialContext,
+		cliopts.TLSClientConfig = tlsConfig
+	}
+
+	if p.opt.udsPath != "" {
+		cliopts.DialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
+			return net.Dial("unix", p.opt.udsPath)
 		}
 	}
 
+	p.SetClient(httpcli.Cli(cliopts))
 	return &p, nil
 }
 

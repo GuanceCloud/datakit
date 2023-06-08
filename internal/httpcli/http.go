@@ -35,9 +35,11 @@ type Options struct {
 	IdleConnTimeout       time.Duration
 	TLSHandshakeTimeout   time.Duration
 	ExpectContinueTimeout time.Duration
-	InsecureSkipVerify    bool
 	ProxyURL              *url.URL
 	DialContext           dnet.DialFunc
+
+	InsecureSkipVerify bool
+	TLSClientConfig    *tls.Config
 }
 
 func NewOptions() *Options {
@@ -50,6 +52,7 @@ func NewOptions() *Options {
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: time.Second,
 		DialContext:           nil,
+		TLSClientConfig:       &tls.Config{}, //nolint:gosec
 	}
 }
 
@@ -64,6 +67,7 @@ func newCliTransport(opt *Options) *http.Transport {
 	var (
 		proxy       func(*http.Request) (*url.URL, error)
 		dialContext dnet.DialFunc
+		tlsConfig   *tls.Config
 	)
 
 	if opt.ProxyURL != nil {
@@ -89,22 +93,23 @@ func newCliTransport(opt *Options) *http.Transport {
 		}).DialContext
 	}
 
+	if opt.TLSClientConfig != nil {
+		tlsConfig = opt.TLSClientConfig.Clone()
+		tlsConfig.InsecureSkipVerify = opt.InsecureSkipVerify
+	} else {
+		tlsConfig = &tls.Config{InsecureSkipVerify: opt.InsecureSkipVerify} //nolint:gosec
+	}
+
 	return &http.Transport{
-		Proxy:       proxy,
-		DialContext: dialContext,
+		Proxy:           proxy,
+		DialContext:     dialContext,
+		TLSClientConfig: tlsConfig,
 
 		MaxIdleConns: func() int {
 			if opt.MaxIdleConns == 0 {
 				return 100
 			}
 			return opt.MaxIdleConns
-		}(),
-
-		TLSClientConfig: func() *tls.Config {
-			if opt.InsecureSkipVerify {
-				return &tls.Config{InsecureSkipVerify: true} //nolint:gosec
-			}
-			return &tls.Config{InsecureSkipVerify: false} //nolint:gosec
 		}(),
 
 		MaxIdleConnsPerHost: func() int {

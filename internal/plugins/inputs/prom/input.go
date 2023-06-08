@@ -41,9 +41,10 @@ const defaultMaxFileSize int64 = 32 * 1024 * 1024
 var l = logger.DefaultSLogger(inputName)
 
 type Input struct {
-	Source   string        `toml:"source" json:"source"`
-	Interval time.Duration `toml:"interval" json:"-"`
-	Timeout  time.Duration `toml:"timeout" json:"-"`
+	Source           string        `toml:"source" json:"source"`
+	Interval         time.Duration `toml:"interval"`
+	ConnectTimeout   time.Duration `toml:"-"`
+	ConnectKeepAlive time.Duration `toml:"-"`
 
 	URL                    string       `toml:"url,omitempty"` // Deprecated
 	URLs                   []string     `toml:"urls" json:"urls"`
@@ -377,7 +378,8 @@ func (i *Input) Init() error {
 	opts := []iprom.PromOption{
 		iprom.WithLogger(i.l), // WithLogger must in the first
 		iprom.WithSource(i.Source),
-		iprom.WithTimeout(i.Timeout),
+		iprom.WithTimeout(i.ConnectTimeout),
+		iprom.WithKeepAlive(i.ConnectKeepAlive),
 		iprom.WithIgnoreReqErr(i.IgnoreReqErr),
 		iprom.WithMetricTypes(i.MetricTypes),
 		iprom.WithMetricNameFilter(i.MetricNameFilter),
@@ -419,13 +421,13 @@ var maxPauseCh = inputs.ElectionPauseChannelLength
 
 func NewProm() *Input {
 	return &Input{
-		chPause:     make(chan bool, maxPauseCh),
-		MaxFileSize: defaultMaxFileSize,
-		Source:      "prom",
-		Interval:    time.Second * 30,
-		Timeout:     time.Second * 30,
-		Election:    true,
-		Tags:        make(map[string]string),
+		chPause:        make(chan bool, maxPauseCh),
+		MaxFileSize:    defaultMaxFileSize,
+		Source:         "prom",
+		Interval:       time.Second * 30,
+		ConnectTimeout: time.Second * 30,
+		Election:       true,
+		Tags:           make(map[string]string),
 
 		semStop: cliutils.NewSem(),
 		Feeder:  io.DefaultFeeder(),

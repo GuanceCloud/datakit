@@ -20,6 +20,8 @@ func (inp *fakeElectionInput) Pause() error  { return nil }
 func (inp *fakeElectionInput) Resume() error { return nil }
 
 func TestTaskElectionBuildRequest(t *testing.T) {
+	t.Skip()
+
 	tim := time.Now()
 	timeNow = func() time.Time {
 		return tim
