@@ -22,6 +22,33 @@
 ### 兼容调整 {#cl-x.x.x-brk}
 -->
 
+## 1.9.0(2023/06/08) {#cl-1.9.0}
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.9.0-new}
+
+- 新增 [NodeJS Profiling](profile-nodejs.md) 接入支持（#1638）
+- 新增点评 [Cat](cat.md) 接入支持（#1593）
+- 新增采集器配置[调试方法](why-no-data.md#check-input-conf)（#1649）
+
+### 问题修复 {#cl-1.9.0-fix}
+
+- 修复 K8s 中 Prometheus 指标采集导致的连接泄露问题（#1662）
+
+### 功能优化 {#cl-1.9.0-opt}
+
+- K8s DaemonSet 对象增加 `age` 字段（#1670）
+- 优化 [PostgreSQL](postgresql.md) 启动设置（#1658）
+- SkyWalking 增加 [`/v3/log/`](skywalking.md) 支持（#1654）
+- 优化日志采集处理（#1652/#1651）
+- 优化[升级文档](datakit-update.md#prepare)（#1653）
+- 其它重构和优化（#1673/#1650/#1630）
+- 新增若干集成测试（#1440/#1429）
+    - PostgreSQL
+    - 网络拨测
+
+---
+
 ## 1.8.1(2023/06/01) {#cl-1.8.1}
 本次发布属于 bug 修复，主要修复如下问题：
 
@@ -1286,9 +1313,9 @@ volumes:
 
 <!--
 - APM 功能调整(#610)
-	- 重构现有常见的 Tracing 数据接入
-	- 增加 APM 指标计算
-	- 新增 [OTEL(OpenTelemetry)数据接入]()
+    - 重构现有常见的 Tracing 数据接入
+    - 增加 APM 指标计算
+    - 新增 [OTEL(OpenTelemetry)数据接入]()
 
 !!! Delay
 -->
