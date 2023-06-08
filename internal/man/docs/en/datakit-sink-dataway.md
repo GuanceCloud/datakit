@@ -27,12 +27,12 @@ Dataway Sinker support [all categories](apis.md#category) in Datakit.
     
     ```toml
     [[dataway.sinkers]]
-      categories = [ "L/M/O/..." ]
+      categories = ["M", "O"] # More categories are allowed
       filters = [
         "{ cpu = 'cpu-total' }",
         "{ source = 'some-logging-source'}",
       ]
-      url = "https//openway.guance.com?token=<YOUR-TOKEN>"
+      url = "https://openway.guance.com?token=<YOUR-TOKEN>"
     
     [[dataway.sinkers]]
       another sinker...

@@ -27,12 +27,12 @@
     
     ```toml
     [[dataway.sinkers]]
-      categories = [ "L/M/O/..." ]
+      categories = ["M", "O"] # 此处还可以指定更多数据类型
       filters = [
         "{ cpu = 'cpu-total' }",
         "{ source = 'some-logging-source'}",
       ]
-      url = "https//openway.guance.com?token=<YOUR-TOKEN>"
+      url = "https://openway.guance.com?token=<YOUR-TOKEN>"
     
     [[dataway.sinkers]]
       another sinker...
