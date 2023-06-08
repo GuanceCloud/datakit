@@ -18,7 +18,9 @@ import (
 	_ "github.com/go-ping/ping"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 type dialer struct {
@@ -35,6 +37,9 @@ type dialer struct {
 
 	category   string
 	regionName string
+
+	feeder          io.Feeder
+	measurementInfo *inputs.MeasurementInfo
 
 	failCnt int
 	done    <-chan interface{}
@@ -57,13 +62,27 @@ func (d *dialer) stop() {
 	}
 }
 
-func newDialer(t dt.Task, ts map[string]string) *dialer {
+func newDialer(t dt.Task, feeder io.Feeder, ts map[string]string) *dialer {
+	var info *inputs.MeasurementInfo
+	switch t.Class() {
+	case dt.ClassHTTP:
+		info = (&httpMeasurement{}).Info()
+	case dt.ClassTCP:
+		info = (&tcpMeasurement{}).Info()
+	case dt.ClassICMP:
+		info = (&icmpMeasurement{}).Info()
+	case dt.ClassWebsocket:
+		info = (&websocketMeasurement{}).Info()
+	}
+
 	return &dialer{
-		task:     t,
-		updateCh: make(chan dt.Task),
-		initTime: time.Now(),
-		tags:     ts,
-		class:    t.Class(),
+		task:            t,
+		updateCh:        make(chan dt.Task),
+		initTime:        time.Now(),
+		feeder:          feeder,
+		tags:            ts,
+		measurementInfo: info,
+		class:           t.Class(),
 	}
 }
 

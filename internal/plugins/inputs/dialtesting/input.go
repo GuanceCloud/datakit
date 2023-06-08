@@ -30,6 +30,7 @@ import (
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/GuanceCloud/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -77,6 +78,7 @@ type Input struct {
 	cli     *http.Client  // class string
 
 	regionName string
+	feeder     io.Feeder
 
 	curTasks map[string]*dialer
 	pos      int64 // current largest-task-update-time
@@ -303,7 +305,7 @@ func (d *Input) newTaskRun(t dt.Task) (*dialer, error) {
 
 	l.Debugf("input tags: %+#v", d.Tags)
 
-	dialer := newDialer(t, d.Tags)
+	dialer := newDialer(t, d.feeder, d.Tags)
 	dialer.done = d.semStop.Wait()
 	dialer.regionName = regionName
 
@@ -639,11 +641,12 @@ func (d *Input) stopAlltask() {
 	}
 }
 
-func newDefaultInput() *Input {
+func defaultInput() *Input {
 	return &Input{
 		Tags:     map[string]string{},
 		curTasks: map[string]*dialer{},
 		semStop:  cliutils.NewSem(),
+		feeder:   io.DefaultFeeder(),
 		cli: &http.Client{
 			Timeout: 30 * time.Second,
 			Transport: &http.Transport{
@@ -658,6 +661,6 @@ func newDefaultInput() *Input {
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return newDefaultInput()
+		return defaultInput()
 	})
 }

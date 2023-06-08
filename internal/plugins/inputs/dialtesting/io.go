@@ -11,13 +11,11 @@ package dialtesting
 import (
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	pt "github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 func (d *dialer) pointsFeed(urlStr string) error {
-	// 获取此次任务执行的基本信息
 	startTime := time.Now()
 	tags, fields := d.task.GetResults()
 
@@ -26,30 +24,29 @@ func (d *dialer) pointsFeed(urlStr string) error {
 	}
 
 	for k, v := range d.tags {
+		if d.measurementInfo != nil && d.measurementInfo.Tags != nil {
+			if _, ok := d.measurementInfo.Tags[k]; !ok {
+				continue
+			}
+		}
+
 		if _, ok := tags[k]; !ok {
 			tags[k] = v
 		} else {
 			l.Debugf("ignore dialer tag %s: %s", k, v)
 		}
 	}
-	data, err := point.NewPoint(d.task.MetricName(), tags, fields, point.LOpt())
-	if err != nil {
-		l.Warnf("make metric failed: %s", err.Error)
-		return err
-	}
+	data := pt.NewPointV2([]byte(d.task.MetricName()),
+		append(pt.NewTags(tags), pt.NewKVs(fields)...), pt.DefaultLoggingOptions()...)
 
-	pts := []*point.Point{}
+	pts := []*pt.Point{}
 	pts = append(pts, data)
 
-	err = Feed(inputName, datakit.Logging, pts, &io.Option{
+	err := d.feeder.Feed(inputName, pt.Metric, pts, &io.Option{
 		HTTPHost: urlStr,
 	})
 
 	l.Debugf(`url:%s, tags: %+#v, fs: %+#v`, urlStr, tags, fields)
 
 	return err
-}
-
-func Feed(name, category string, pts []*point.Point, opt *io.Option) error {
-	return io.Feed(name, category, pts, opt)
 }
