@@ -46,7 +46,7 @@ collector.backend_service=${SW_AGENT_COLLECTOR_BACKEND_SERVICES:<datakit-ip:skyw
     ```toml
       ## Skywalking HTTP endpoints for tracing, metric, logging and profiling.
       ## NOTE: DO NOT EDIT.
-      endpoints = ["/v3/trace", "/v3/metric", "/v3/logging", "/v3/profiling"]
+      endpoints = ["/v3/trace", "/v3/metric", "/v3/logging", "/v3/logs", "/v3/profiling"]
     ```
 
     GRPC Protocol Config
