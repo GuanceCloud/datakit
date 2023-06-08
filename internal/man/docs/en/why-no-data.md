@@ -6,6 +6,8 @@ After deploying data collection (collected through DataKit or Function), sometim
 
 ## Checking input config {#check-input-conf}
 
+[:octicons-tag-24: Version-1.9.0](changelog.md#cl-1.9.0)
+
 We can run Datakit command to test if input configure able to collect data. For input `disk`, we can test like this:
 
 ``` shell

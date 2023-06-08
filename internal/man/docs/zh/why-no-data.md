@@ -7,6 +7,8 @@
 
 ## 调试采集器配置 {#check-input-conf}
 
+[:octicons-tag-24: Version-1.9.0](changelog.md#cl-1.9.0)
+
 我们可以通过命令行来调试采集器是否能正常采集到数据，如调试磁盘采集器：
 
 ``` shell
