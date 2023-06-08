@@ -90,39 +90,28 @@ func confdMain() error {
 
 	tick := time.NewTicker(time.Second * time.Duration(Lazy))
 	defer tick.Stop()
-
+	isHaveConfdData := false
+	isHavePipelineData := false
 	for {
-		isHaveConfdData := false
-		isHavePipelineData := false
-
-		// Blocked, waiting for a punctuation.
 		select {
 		case <-datakit.Exit.Wait():
 			l.Info("confdMain close by datakit.Exit.Wait")
 			return nil
-		case <-tick.C:
-		LOOP:
-			for {
-				select {
-				case kind := <-gotConfdCh:
-					if kind == "confd" {
-						isHaveConfdData = true
-					} else if kind == "pipeline" {
-						isHavePipelineData = true
-					}
-					// Loop here, clear all multiple watchPrefix signal.
-				default:
-					break LOOP
-				}
+		case kind := <-gotConfdCh:
+			if kind == "confd" {
+				isHaveConfdData = true
+			} else if kind == "pipeline" {
+				isHavePipelineData = true
 			}
-		}
-
-		// Have new data form watchPrefix.
-		if isHaveConfdData {
-			getConfdData()
-		}
-		if isHavePipelineData {
-			getPipelineData()
+		case <-tick.C:
+			if isHaveConfdData {
+				doConfdData()
+			}
+			if isHavePipelineData {
+				doPipelineData()
+			}
+			isHaveConfdData = false
+			isHavePipelineData = false
 		}
 	}
 }
@@ -315,45 +304,10 @@ func watchConfd(c *clientStruct, stopCh chan bool) {
 	}
 }
 
-func getConfdData() {
-	// Traverse and reads all data sources to get the latest configuration set.
-	prefixKind := "confd"
+func doConfdData() {
 	confdInputs = make(map[string][]*inputs.ConfdInfo)
-
-	// Traverse all backends.
-	for _, clientStru := range clientConfds {
-		if clientStru.prefixKind != prefixKind {
-			continue
-		}
-
-		l.Infof("before get values from: %v %v", prefixKind, clientStru.backend)
-		values, err := clientStru.client.GetValues([]string{prefix[prefixKind]})
-		if err != nil {
-			l.Errorf("get values from: %v %v %v", prefixKind, clientStru.backend, err)
-			time.Sleep(time.Second * 1)
-			// Any error, stop get all this loop.
-			return
-		}
-
-		// Traverse all data in one backends.
-		for keyPath, data := range values {
-			appendDataToConfdInputs(keyPath, data)
-		}
-	}
-
-	handleDefaultEnabledInputs()
-
-	// Handle which collectors are not allowed to run multiple instances.
-	for kind, oneKindInputs := range confdInputs {
-		if len(oneKindInputs) < 2 {
-			continue
-		}
-		if _, ok := oneKindInputs[0].Input.(inputs.Singleton); ok {
-			l.Warnf("the collector [%s] is singleton, allow only one in confd.", kind)
-			confdInputs[kind] = confdInputs[kind][:1]
-		}
-	}
-
+	data := getConfdData()
+	handleConfdData(data)
 	// Execute collector comparison, addition, deletion and modification.
 	l.Info("before run CompareInputs from confd ")
 	inputs.CompareInputs(confdInputs, config.Cfg.DefaultEnabledInputs)
@@ -370,9 +324,56 @@ func getConfdData() {
 	_ = backupConfdData()
 }
 
-func appendDataToConfdInputs(keyPath, data string) {
-	// Unmarshal data to Inputs.
-	allKindInputs, err := config.LoadSingleConf(data, inputs.Inputs)
+// getConfdData get all confd data form backends.
+func getConfdData() []map[string]string {
+	// Traverse and reads all data sources to get the latest configuration set.
+	prefixKind := "confd"
+
+	data := make([]map[string]string, 0)
+
+	// Traverse all backends.
+	for _, clientStru := range clientConfds {
+		if clientStru.prefixKind != prefixKind {
+			continue
+		}
+
+		l.Infof("before get values from: %v %v", prefixKind, clientStru.backend)
+		values, err := clientStru.client.GetValues([]string{prefix[prefixKind]})
+		if err != nil {
+			l.Errorf("get values from: %v %v %v", prefixKind, clientStru.backend, err)
+			time.Sleep(time.Second * 1)
+			// Any error, stop get all this loop.
+			return data
+		}
+		data = append(data, values)
+	}
+	return data
+}
+
+func handleConfdData(data []map[string]string) {
+	for _, values := range data {
+		for keyPath, value := range values {
+			appendDataToConfdInputs(keyPath, value)
+		}
+	}
+
+	handleDefaultEnabledInputs()
+
+	// Handle which collectors are not allowed to run multiple instances.
+	for kind, oneKindInputs := range confdInputs {
+		if len(oneKindInputs) < 2 {
+			continue
+		}
+		if _, ok := oneKindInputs[0].Input.(inputs.Singleton); ok {
+			l.Warnf("the collector [%s] is singleton, allow only one in confd.", kind)
+			confdInputs[kind] = confdInputs[kind][:1]
+		}
+	}
+}
+
+func appendDataToConfdInputs(keyPath, value string) {
+	// Unmarshal value to Inputs.
+	allKindInputs, err := config.LoadSingleConf(value, inputs.Inputs)
 	if err != nil {
 		l.Errorf("unmarshal: %v %v", keyPath, err)
 	}
@@ -387,7 +388,7 @@ func appendDataToConfdInputs(keyPath, data string) {
 		// Traverse like []inputs.Input.
 		for i := 0; i < len(oneKindInputs); i++ {
 			if haveSameInput(oneKindInputs[i], kind) {
-				l.Warn("has duplicate data: ", kind)
+				l.Warn("has duplicate value: ", kind)
 			} else {
 				confdInputs[kind] = append(confdInputs[kind], &inputs.ConfdInfo{Input: oneKindInputs[i]})
 			}
@@ -426,6 +427,10 @@ func handleDefaultEnabledInputs() {
 		delete(confdInputs, "self")
 		l.Warn("never modify self input")
 	}
+}
+
+func doPipelineData() {
+	getPipelineData()
 }
 
 func getPipelineData() {
