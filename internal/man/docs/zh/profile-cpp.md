@@ -14,7 +14,7 @@ Profiling 数据流向：「Pyroscope Agent 采集 Profiling 数据 -> Datakit -
 
 ### 前置条件 {#pyroscope-requirement}
 
-- 根据 Pyroscope 官方文档 [eBPF Profiling](https://pyroscope.io/docs/ebpf/#prerequisites-for-profiling-with-ebpf){:target="_blank"}，需要 Linux 内核版本 >= 4.9 (due to [BPF_PROG_TYPE_PERF_EVENT](https://lkml.org/lkml/2016/9/1/831){:target="_blank"})。
+- 根据 Pyroscope 官方文档 [eBPF Profiling](https://pyroscope.io/docs/ebpf/#prerequisites-for-profiling-with-ebpf){:target="_blank"}，需要 Linux 内核版本 >= 4.9 (因为事件 [BPF_PROG_TYPE_PERF_EVENT](https://lkml.org/lkml/2016/9/1/831){:target="_blank"})。
 
 - 已安装 [DataKit](https://www.guance.com/){:target="_blank"} 并且已开启 [profile](profile.md#config) 采集器，配置参考如下：
 

@@ -40,6 +40,7 @@ const (
 )
 
 func tarFiles(pubPath, buildPath, appName, goos, goarch string, opt tarFileOpt) (string, string) {
+	l.Debugf("tarFiles entry, pubPath = %s, buildPath = %s, appName = %s", pubPath, buildPath, appName)
 	var gzFileName, gzFilePath string
 
 	switch opt & TarRlsVerMask {

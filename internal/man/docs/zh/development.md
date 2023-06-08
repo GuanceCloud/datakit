@@ -349,9 +349,9 @@ datakit -M --vvv            # 检查所有采集器的运行情况
     - [LLVM](https://apt.llvm.org/){:target="_blank"}: 版本 >= 10.0
     - Clang: 版本 >= 10.0
     - Linux 内核（>= 5.4.0-99-generic）头文件：`apt-get install -y linux-headers-$(uname -r)` 
-    - cspell: https://cspell.org/
-    - markdownlint-cli：https://github.com/igorshubovych/markdownlint-cli
-    
+    - [cspell](https://cspell.org/){:target="_blank"}: `npm install -g cspell@6.31.1`
+    - [markdownlint-cli](https://github.com/igorshubovych/markdownlint-cli){:target="_blank"}: `npm install -g markdownlint-cli@0.34.0`
+
     #### 安装第三方库
     
     - `gcc-multilib`

@@ -5,6 +5,8 @@
 
 package point
 
+import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+
 var (
 	globalHostTags     = map[string]string{}
 	globalElectionTags = map[string]string{}
@@ -37,11 +39,11 @@ func SetGlobalElectionTagsByMap(in map[string]string) {
 ////////////////////////////////////////////////////////////////////////////////
 
 func GlobalHostTags() map[string]string {
-	return copyMapString(globalHostTags)
+	return internal.CopyMapString(globalHostTags)
 }
 
 func GlobalElectionTags() map[string]string {
-	return copyMapString(globalElectionTags)
+	return internal.CopyMapString(globalElectionTags)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -57,14 +59,4 @@ func ClearGlobalHostTags() {
 
 func ClearGlobalElectionTags() {
 	globalElectionTags = map[string]string{}
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-func copyMapString(in map[string]string) map[string]string {
-	out := make(map[string]string, len(in))
-	for k, v := range in {
-		out[k] = v
-	}
-	return out
 }

@@ -117,6 +117,7 @@ nav:
         - 'Python': profile-python.md
         - 'Go': profile-go.md
         - 'C/C++': profile-cpp.md
+        - 'NodeJS': profile-nodejs.md
 
       - 'DDTrace':
         - ddtrace.md

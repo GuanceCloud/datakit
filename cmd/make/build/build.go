@@ -176,6 +176,7 @@ func Compile() error {
 	prepare()
 
 	curArchs = ParseArchs(Archs)
+	l.Debugf("curArchs = %v", curArchs)
 
 	for _, arch := range curArchs {
 		parts := strings.Split(arch, "/")
@@ -186,6 +187,7 @@ func Compile() error {
 		goos, goarch := parts[0], parts[1]
 
 		dir := fmt.Sprintf("%s/%s-%s-%s", BuildDir, AppName, goos, goarch)
+		l.Debugf("dir = %s", dir)
 
 		err := os.MkdirAll(dir, os.ModePerm)
 		if err != nil {
@@ -204,6 +206,7 @@ func Compile() error {
 		}
 
 		upgraderDir := fmt.Sprintf("%s/%s-%s-%s", BuildDir, upgrader.BuildBinName, goos, goarch)
+		l.Debugf("upgraderDir = %s", dir)
 		if err := compileArch(upgrader.BuildBinName, goos, goarch, upgraderDir, upgrader.BuildEntranceFile); err != nil {
 			return fmt.Errorf("unable to build %s : %w", upgrader.BuildBinName, err)
 		}

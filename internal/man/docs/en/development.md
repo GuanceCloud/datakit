@@ -156,9 +156,9 @@ datakit -M --vvv            # Check the operation of all collectors
     - [llvm](https://apt.llvm.org/){:target="_blank"}: version >= 10.0
     - clang: version >= 10.0
     - linux kernel（>= 5.4.0-99-generic）header file: `apt-get install -y linux-headers-$(uname -r)` 
-    - [cspell](https://cspell.org/){:target="_blank"}
-    - [markdownlint-cli](https://github.com/igorshubovych/markdownlint-cli){:target="_blank"}
-    
+    - [cspell](https://cspell.org/){:target="_blank"}: `npm install -g cspell@6.31.1`
+    - [markdownlint-cli](https://github.com/igorshubovych/markdownlint-cli){:target="_blank"}: `npm install -g markdownlint-cli@0.34.0`
+
     #### Installing third-party libraries
     
     - `gcc-multilib`
