@@ -10,13 +10,11 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 type option struct {
-	source   string
-	interval datakit.Duration
-	timeout  datakit.Duration
+	source  string
+	timeout time.Duration
 
 	ignoreReqErr           bool
 	metricTypes            []string
@@ -52,22 +50,10 @@ type option struct {
 
 type PromOption func(opt *option)
 
-func WithSource(str string) PromOption { return func(opt *option) { opt.source = str } }
-func WithInterval(str string) PromOption {
-	return func(opt *option) {
-		dura, err := time.ParseDuration(str)
-		if err != nil {
-			if opt.l != nil {
-				opt.l.Warnf("time.ParseDuration(i.Interval) error, ignored")
-			}
-			dura = defaultIntervalDuration
-		}
-		opt.interval.Duration = dura
-	}
-}
-func WithTimeout(dura datakit.Duration) PromOption { return func(opt *option) { opt.timeout = dura } }
-func WithIgnoreReqErr(b bool) PromOption           { return func(opt *option) { opt.ignoreReqErr = b } }
-func WithMetricTypes(strs []string) PromOption     { return func(opt *option) { opt.metricTypes = strs } }
+func WithSource(str string) PromOption          { return func(opt *option) { opt.source = str } }
+func WithTimeout(dura time.Duration) PromOption { return func(opt *option) { opt.timeout = dura } }
+func WithIgnoreReqErr(b bool) PromOption        { return func(opt *option) { opt.ignoreReqErr = b } }
+func WithMetricTypes(strs []string) PromOption  { return func(opt *option) { opt.metricTypes = strs } }
 func WithMetricNameFilter(strs []string) PromOption {
 	return func(opt *option) { opt.metricNameFilter = strs }
 }

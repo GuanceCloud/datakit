@@ -89,13 +89,13 @@ const sampleCfg = `
   ## Customize measurement set name.
   ## Treat those metrics with prefix as one set.
   ## Prioritier over 'measurement_name' configuration.
-  #[[inputs.prom.measurements]]
-  #  prefix = "cpu_"
-  #  name = "cpu"
-
-  # [[inputs.prom.measurements]]
-  # prefix = "mem_"
-  # name = "mem"
+  [[inputs.prom.measurements]]
+    prefix = "etcd_network_"
+    name = "etcd_network"
+    
+  [[inputs.prom.measurements]]
+    prefix = "etcd_server_"
+    name = "etcd_server"
 
   ## Not collecting those data when tag matched.
   [inputs.prom.ignore_tag_kv_match]
@@ -124,4 +124,11 @@ const sampleCfg = `
   ## Customize tags.
   [inputs.prom.tags]
   # some_tag = "some_value"
-  # more_tag = "some_other_value"`
+  # more_tag = "some_other_value"
+  
+  ## (Optional) Collect interval: (defaults to "30s").
+  # interval = "30s"
+
+  ## (Optional) Timeout: (defaults to "30s").
+  # timeout = "30s"
+  `

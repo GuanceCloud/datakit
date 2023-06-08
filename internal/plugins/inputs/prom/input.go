@@ -41,9 +41,9 @@ const defaultMaxFileSize int64 = 32 * 1024 * 1024
 var l = logger.DefaultSLogger(inputName)
 
 type Input struct {
-	Source   string           `toml:"source" json:"source"`
-	Interval string           `toml:"interval" json:"interval"`
-	Timeout  datakit.Duration `toml:"timeout" json:"timeout"`
+	Source   string        `toml:"source" json:"source"`
+	Interval time.Duration `toml:"interval" json:"-"`
+	Timeout  time.Duration `toml:"timeout" json:"-"`
 
 	URL                    string       `toml:"url,omitempty"` // Deprecated
 	URLs                   []string     `toml:"urls" json:"urls"`
@@ -121,7 +121,7 @@ func (i *Input) Run() {
 		return
 	}
 
-	tick := time.NewTicker(i.pm.Option().GetIntervalDuration())
+	tick := time.NewTicker(i.Interval)
 	defer tick.Stop()
 
 	i.l.Info("prom start")
@@ -159,7 +159,7 @@ func (i *Input) GetIntervalDuration() time.Duration {
 			return defaultIntervalDuration
 		}
 	}
-	return i.pm.Option().GetIntervalDuration()
+	return i.Interval
 }
 
 func (i *Input) RunningCollect() error {
@@ -377,7 +377,6 @@ func (i *Input) Init() error {
 	opts := []iprom.PromOption{
 		iprom.WithLogger(i.l), // WithLogger must in the first
 		iprom.WithSource(i.Source),
-		iprom.WithInterval(i.Interval),
 		iprom.WithTimeout(i.Timeout),
 		iprom.WithIgnoreReqErr(i.IgnoreReqErr),
 		iprom.WithMetricTypes(i.MetricTypes),
@@ -423,7 +422,8 @@ func NewProm() *Input {
 		chPause:     make(chan bool, maxPauseCh),
 		MaxFileSize: defaultMaxFileSize,
 		Source:      "prom",
-		Interval:    "30s",
+		Interval:    time.Second * 30,
+		Timeout:     time.Second * 30,
 		Election:    true,
 		Tags:        make(map[string]string),
 

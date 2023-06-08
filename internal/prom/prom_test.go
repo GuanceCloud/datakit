@@ -20,7 +20,6 @@ import (
 	tu "github.com/GuanceCloud/cliutils/testutil"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 const promURL = "http://127.0.0.1:9100/metrics"
@@ -49,9 +48,8 @@ type transportMock struct {
 }
 
 type optionMock struct {
-	source   string
-	interval string
-	timeout  datakit.Duration
+	source  string
+	timeout time.Duration
 
 	// URL               string
 	// urls              []string
@@ -107,7 +105,6 @@ func createOpts(in *optionMock) []PromOption {
 		opts,
 		// WithLogger(in.l),
 		WithSource(in.source),
-		WithInterval(in.interval),
 		WithTimeout(in.timeout),
 		WithIgnoreReqErr(in.ignoreReqErr),
 		WithMetricTypes(in.metricTypes),
@@ -427,14 +424,6 @@ func Test_Option(t *testing.T) {
 	assert.Equal(t, o.GetSource(), "prom")
 	o.source = "p1"
 	assert.Equal(t, o.GetSource("p"), "p1")
-
-	// GetIntervalDuration
-	assert.Equal(t, o.GetIntervalDuration(), defaultInterval)
-	o.interval = datakit.Duration{Duration: 1 * time.Second}
-	assert.Equal(t, o.GetIntervalDuration(), 1*time.Second)
-	o.interval = datakit.Duration{Duration: 10 * time.Second}
-	assert.Equal(t, o.GetIntervalDuration(), 10*time.Second)
-	assert.Equal(t, o.interval.Duration, 10*time.Second)
 }
 
 func Test_WriteFile(t *testing.T) {
