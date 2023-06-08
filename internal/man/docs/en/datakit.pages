@@ -18,7 +18,9 @@ nav:
     - 'DQL Query': datakit-dql-how-to.md
     - 'Other Commands': datakit-tools-how-to.md
     - 'Virtual Internet Access': aliyun-access.md
-    - 'Troubleshooting': why-no-data.md
+    - 'Trouble Shooting':
+        - 'No data collected': why-no-data.md
+        - 'Datakit Metrics': datakit-metrics.md
 
   - 'DataKit Configuration': 
     - 'Major Configuration': datakit-conf.md

@@ -1,17 +1,17 @@
-# Datakit 自身指标
+# Datakit Exported Metrics
 
 ---
 
-为便于 Datakit 自身可观测性，我们在开发 Datakit 过程中，给相关的业务模块增加了很多 Prometheus 指标暴露，通过暴露这些指标，我们能方便的排查 Datakit 运行过程中的一些问题。
+Foe better self-observability, Datakit has exported many Prometheus metrics among various submodules. We can use these metrics to trouble shooting errors or bugs during Datakit running.
 
-## 指标列表 {#metrics}
+## Exported Metrics {#metrics}
 
-自 Datakit [1.5.9 版本](changelog.md#cl-1.5.9)以来，通过访问 `http://localhost:9529/metrics` 即可获取当前的指标列表，不同 Datakit 版本可能会对一些相关指标做调整，或者增删一些指标。
+Since Datakit [Version 1.5.9](changelog.md#cl-1.5.9), we can visit `http://localhost:9529/metrics` to see these metrics(Different release may got some new or renamed metrics).
 
-这些指标，在 [Datakit monitor](datakit-monitor.md) 展示中也会用到，只是 monitor 中为了展示上的友好型，做了一些优化处理。如果要查看原始的指标（或者 monitor 上没有展示出来的指标），我们可以通过 `curl` 和 `watch` 命令的组合来查看，比如获取 Datakit 进程 CPU 的使用情况：
+We have used these metrics in [Datakit monitor](datakit-monitor.md), and we can *playing* these metrics with some tricks like this(refresh CPU usage of Datakit): 
 
 ```shell
-# 每隔 3s 获取一次 CPU 使用率指标
+# play CPU usage of Datakit on every 3 seconds
 $ watch -n 3 'curl -s http://localhost:9529/metrics | grep datakit_cpu_usage'
 
 # HELP datakit_cpu_usage Datakit CPU usage(%)
@@ -19,9 +19,9 @@ $ watch -n 3 'curl -s http://localhost:9529/metrics | grep datakit_cpu_usage'
 datakit_cpu_usage 4.9920266849857144
 ```
 
-其它指标也能通过类似方式来观察，目前已有的指标如下（当前版本 {{ .Version }}）：
+We can also playing other metrics too(change the `grep` string), all available metrics list below(current Datakit version is {{ .Version }}):
 
-<!-- 以下这些指标，通过执行 make show_metrics 方式能获取 -->
+<!-- we can run `make show_metrics` go export all these metrics -->
 
 ``` not-set
 TYPE                NAME                                               HELP
