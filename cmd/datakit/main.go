@@ -16,22 +16,22 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/gitrepo"
-	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/checkutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmds"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/confd"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dnswatcher"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/election"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/gitrepo"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	plRemote "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/remote"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/all"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	plRemote "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/remote"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/tracer"
 )
 
 var (
@@ -69,10 +69,6 @@ func main() {
 	}
 
 	tryLoadConfig()
-
-	// start up global tracer
-	tracer.Start()
-	defer tracer.Stop()
 
 	datakit.SetLog()
 
@@ -173,8 +169,8 @@ func tryLoadConfig() {
 func startIO() {
 	c := config.Cfg.IO
 	opts := []dkio.IOOption{
+		dkio.WithFeederOutputer(dkio.NewDatawayOutput(c.FeedChanSize)),
 		dkio.WithDataway(config.Cfg.Dataway),
-		dkio.WithFeedCap(c.FeedChanSize),
 		dkio.WithMaxCacheCount(c.MaxCacheCount),
 		dkio.WithOutputFile(c.OutputFile),
 		dkio.WithOutputFileOnInputs(c.OutputFileInputs),
@@ -239,17 +235,8 @@ func doRun() error {
 		l.Warn("Ignore election or pipeline remote because dataway is not set")
 	}
 
-	if config.IsUseConfd() {
-		// First need RunInputs. lots of start in this func
-		// must befor StartConfd()
-		if err := inputs.RunInputs(); err != nil {
-			l.Error("error running inputs: %v", err)
-			return err
-		}
-
-		// if use config source from confd, like etcd zookeeper concul tredis ...
-		if err := config.StartConfd(); err != nil {
-			l.Errorf("config.StartConfd failed: %v", err)
+	if config.ConfdEnabled() {
+		if err := confd.Run(config.Cfg.Confds); err != nil {
 			return err
 		}
 	} else {
@@ -273,18 +260,16 @@ func doRun() error {
 }
 
 func startHTTP() {
-	dkhttp.Start(&dkhttp.Option{
-		APIConfig:      config.Cfg.HTTPAPI,
-		DCAConfig:      config.Cfg.DCAConfig,
-		Log:            config.Cfg.Logging.Log,
-		GinLog:         config.Cfg.Logging.GinLog,
-		GinRotate:      config.Cfg.Logging.Rotate,
-		GinReleaseMode: strings.ToLower(config.Cfg.Logging.Level) != "debug",
-
-		DataWay:     config.Cfg.Dataway,
-		PProf:       config.Cfg.EnablePProf,
-		PProfListen: config.Cfg.PProfListen,
-	})
+	httpapi.Start(
+		httpapi.WithAPIConfig(config.Cfg.HTTPAPI),
+		httpapi.WithDCAConfig(config.Cfg.DCAConfig),
+		httpapi.WithGinLog(config.Cfg.Logging.GinLog),
+		httpapi.WithGinRotateMB(config.Cfg.Logging.Rotate),
+		httpapi.WithGinReleaseMode(strings.ToLower(config.Cfg.Logging.Level) != "debug"),
+		httpapi.WithDataway(config.Cfg.Dataway),
+		httpapi.WithPProf(config.Cfg.EnablePProf),
+		httpapi.WithPProfListen(config.Cfg.PProfListen),
+	)
 
 	time.Sleep(time.Second) // wait http server ok
 }

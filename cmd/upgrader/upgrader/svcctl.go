@@ -19,8 +19,8 @@ import (
 
 	"github.com/kardianos/service"
 	"github.com/spf13/pflag"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 const (

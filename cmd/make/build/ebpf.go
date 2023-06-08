@@ -16,7 +16,7 @@ import (
 	"github.com/GuanceCloud/cliutils"
 	humanize "github.com/dustin/go-humanize"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/downloader"
-	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpcli"
 )
 
 //nolint:funlen,gocyclo
@@ -117,6 +117,8 @@ func PubDatakitEBpf() error {
 }
 
 func PackageeBPF() {
+	l.Debug("Start downloading ebpf...")
+
 	curArch := ParseArchs(Archs)
 	for _, arch := range curArch {
 		parts := strings.Split(arch, "/")
@@ -133,7 +135,7 @@ func PackageeBPF() {
 
 			switch goarch {
 			case "amd64", "arm64":
-				if err := downloader.Download(ihttp.Cli(nil), url, dir, false, false); err != nil {
+				if err := downloader.Download(httpcli.Cli(nil), url, dir, false, false); err != nil {
 					l.Error(err)
 					NotifyFail(err.Error())
 				}

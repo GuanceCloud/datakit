@@ -27,7 +27,7 @@ func checkDevHost() bool {
 
 //------------------------------------------------------------------------------
 
-// go test -v -timeout 30s -run ^TestGetCheckInterval$ gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dnswatcher
+// go test -v -timeout 30s -run ^TestGetCheckInterval$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dnswatcher
 func TestGetCheckInterval(t *testing.T) {
 	cases := []struct {
 		name string
@@ -112,7 +112,7 @@ func (*QQImpl) Update() error {
 // Make sure QQImpl implements the IDNSWatcher interface
 var _ IDNSWatcher = new(QQImpl)
 
-// go test -v -timeout 30s -run ^TestCheckDNSChanged$ gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dnswatcher
+// go test -v -timeout 30s -run ^TestCheckDNSChanged$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dnswatcher
 func TestCheckDNSChanged(t *testing.T) {
 	if !checkDevHost() {
 		return

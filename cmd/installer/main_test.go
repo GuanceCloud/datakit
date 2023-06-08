@@ -14,7 +14,7 @@ import (
 	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 func TestPromptFixVersionChecking(t *testing.T) {

@@ -20,9 +20,9 @@ import (
 
 	prompt "github.com/c-bata/go-prompt"
 	"github.com/influxdata/influxdb1-client/models"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 )
 
 var (
@@ -338,10 +338,10 @@ func writeToCsv(series []*models.Row, csvPath string) error {
 }
 
 func (dc *dqlCmd) doDQL(s string) ([]*queryResult, error) {
-	q := &dkhttp.QueryRaw{
+	q := &httpapi.QueryRaw{
 		EchoExplain: echoExplain,
 		Token:       dc.token,
-		Queries: []*dkhttp.SingleQuery{
+		Queries: []*httpapi.SingleQuery{
 			{
 				Query: s,
 			},

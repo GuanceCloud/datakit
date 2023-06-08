@@ -24,16 +24,16 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/kardianos/service"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/installer"
 	upgrader2 "gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/upgrader"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/upgrader/upgrader"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmds"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dl "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/downloader"
-	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpcli"
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 )
 
@@ -170,7 +170,7 @@ func init() {
 func downloadFiles(to string) error {
 	dl.CurDownloading = "datakit"
 
-	cliopt := &ihttp.Options{
+	cliopt := &httpcli.Options{
 		InsecureSkipVerify: true, // ignore SSL error
 	}
 
@@ -183,7 +183,7 @@ func downloadFiles(to string) error {
 		l.Infof("set proxy to %s ok", installer.Proxy)
 	}
 
-	cli := ihttp.Cli(cliopt)
+	cli := httpcli.Cli(cliopt)
 
 	if err := dl.Download(cli, datakitURL, to, true, flagDownloadOnly); err != nil {
 		return err

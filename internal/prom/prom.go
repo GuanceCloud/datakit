@@ -9,6 +9,7 @@ package prom
 import (
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -22,10 +23,9 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/prometheus/common/expfmt"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpcli"
 	dnet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
-	inpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/point"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/point"
 )
 
 type Rule struct {
@@ -46,84 +46,14 @@ type AsLogging struct {
 
 type IgnoreTagKeyValMatch map[string][]*regexp.Regexp
 
-type Option struct {
-	MetricTypes      []string `toml:"metric_types"`
-	MetricNameFilter []string `toml:"metric_name_filter"`
-	Measurements     []Rule   `json:"measurements"`
-	Source           string   `toml:"source"`
-	Interval         string   `toml:"interval"`
-	Timeout          string   `toml:"timeout"`
-
-	URL  string   `toml:"url,omitempty"` // Deprecated
-	URLs []string `toml:"urls"`
-
-	IgnoreReqErr bool `toml:"ignore_req_err"`
-
-	Output string `toml:"output"`
-
-	MaxFileSize int64 `toml:"max_file_size"`
-
-	MeasurementPrefix string `toml:"measurement_prefix"`
-	MeasurementName   string `toml:"measurement_name"`
-
-	CacertFile string `toml:"tls_ca"`
-	CertFile   string `toml:"tls_cert"`
-	KeyFile    string `toml:"tls_key"`
-
-	Auth        map[string]string `toml:"auth"`
-	HTTPHeaders map[string]string `toml:"http_headers"`
-	interval    time.Duration
-
-	Tags       map[string]string `toml:"tags"`
-	RenameTags *RenameTags       `toml:"rename_tags"`
-	AsLogging  *AsLogging        `toml:"as_logging"`
-
-	// do not keep these tags in scraped prom data
-	TagsIgnore []string `toml:"tags_ignore"`
-
-	// drop scraped prom data if tag key's value matched
-	IgnoreTagKV IgnoreTagKeyValMatch
-
-	DisableHostTag     bool
-	DisableInstanceTag bool
-	DisableInfoTag     bool
-
-	Election bool
-	pointOpt *dkpt.PointOption
-
-	TLSOpen bool   `toml:"tls_open"`
-	UDSPath string `toml:"uds_path"`
-	Disable bool   `toml:"disble"`
-}
-
-const defaultInterval = 30 * time.Second
-
-func (opt *Option) IsDisable() bool {
-	return opt.Disable
-}
-
-func (opt *Option) GetSource(defaultSource ...string) string {
-	if opt.Source != "" {
-		return opt.Source
+func (opt *option) GetSource(defaultSource ...string) string {
+	if opt.source != "" {
+		return opt.source
 	}
 	if len(defaultSource) > 0 {
 		return defaultSource[0]
 	}
 	return "prom" //nolint:goconst
-}
-
-func (opt *Option) GetIntervalDuration() time.Duration {
-	if opt.interval > 0 {
-		return opt.interval
-	}
-
-	t, err := time.ParseDuration(opt.Interval)
-	if err != nil {
-		t = defaultInterval
-	}
-
-	opt.interval = t
-	return t
 }
 
 const (
@@ -132,87 +62,63 @@ const (
 )
 
 type Prom struct {
-	opt      *Option
+	opt      *option
 	client   *http.Client
 	parser   expfmt.TextParser
 	infoTags map[string]string
 }
 
-func NewProm(opt *Option) (*Prom, error) {
-	if opt == nil {
-		return nil, fmt.Errorf("invalid option")
-	}
-
-	if opt.URL == "" && len(opt.URLs) == 0 {
-		return nil, fmt.Errorf("invalid URL, cannot be empty")
-	}
-
-	// double check opt.URL is placed in opt.URLs
-	if opt.URL != "" {
-		placed := false
-		for _, u := range opt.URLs {
-			if u == opt.URL {
-				placed = true
-				break
-			}
-		}
-		if !placed {
-			opt.URLs = append(opt.URLs, opt.URL)
+func NewProm(promOpts ...PromOption) (*Prom, error) {
+	opt := option{}
+	for idx := range promOpts {
+		if promOpts[idx] != nil {
+			promOpts[idx](&opt)
 		}
 	}
 
-	timeout, err := time.ParseDuration(opt.Timeout)
-	if err != nil || timeout < httpTimeout {
-		timeout = httpTimeout
+	if opt.timeout < httpTimeout {
+		opt.timeout = httpTimeout
 	}
 
-	p := Prom{opt: opt, infoTags: make(map[string]string)}
+	p := Prom{opt: &opt, infoTags: make(map[string]string)}
 
-	var dialContext func(_ context.Context, _ string, _ string) (net.Conn, error)
-	if p.opt.UDSPath != "" {
-		dialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
-			return net.Dial("unix", p.opt.UDSPath)
-		}
-	}
-	p.SetClient(&http.Client{Timeout: timeout, Transport: &http.Transport{
-		DialContext: dialContext,
-	}})
+	cliopts := httpcli.NewOptions()
+	cliopts.DialTimeout = opt.timeout
+	cliopts.DialKeepAlive = opt.keepAlive
 
-	if opt.TLSOpen {
+	if opt.tlsOpen {
 		caCerts := []string{}
 		insecureSkipVerify := defaultInsecureSkipVerify
-		if len(opt.CacertFile) != 0 {
-			caCerts = append(caCerts, opt.CacertFile)
+		if len(opt.cacertFile) != 0 {
+			caCerts = append(caCerts, opt.cacertFile)
 		} else {
 			insecureSkipVerify = true
 		}
 		tc := &dnet.TLSClientConfig{
 			CaCerts:            caCerts,
-			Cert:               opt.CertFile,
-			CertKey:            opt.KeyFile,
+			Cert:               opt.certFile,
+			CertKey:            opt.keyFile,
 			InsecureSkipVerify: insecureSkipVerify,
 		}
 
-		tlsconfig, err := tc.TLSConfig()
+		tlsConfig, err := tc.TLSConfig()
 		if err != nil {
 			return nil, err
 		}
-		p.client.Transport = &http.Transport{
-			TLSClientConfig: tlsconfig,
-			DialContext:     dialContext,
+		cliopts.TLSClientConfig = tlsConfig
+	}
+
+	if p.opt.udsPath != "" {
+		cliopts.DialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
+			return net.Dial("unix", p.opt.udsPath)
 		}
 	}
 
-	if p.opt.AsLogging != nil && p.opt.AsLogging.Enable {
-		p.opt.pointOpt = dkpt.LOptElectionV2(p.opt.Election)
-	} else {
-		p.opt.pointOpt = dkpt.MOptElectionV2(p.opt.Election)
-	}
-
+	p.SetClient(httpcli.Cli(cliopts))
 	return &p, nil
 }
 
-func (p *Prom) Option() *Option {
+func (p *Prom) Option() *option {
 	return p.opt
 }
 
@@ -226,10 +132,10 @@ func (p *Prom) GetReq(url string) (*http.Request, error) {
 		err error
 	)
 
-	if len(p.opt.Auth) > 0 {
-		if authType, ok := p.opt.Auth["type"]; ok {
+	if len(p.opt.auth) > 0 {
+		if authType, ok := p.opt.auth["type"]; ok {
 			if authFunc, ok := AuthMaps[authType]; ok {
-				req, err = authFunc(p.opt.Auth, url)
+				req, err = authFunc(p.opt.auth, url)
 			} else {
 				req, err = http.NewRequest("GET", url, nil)
 			}
@@ -237,13 +143,17 @@ func (p *Prom) GetReq(url string) (*http.Request, error) {
 	} else {
 		req, err = http.NewRequest("GET", url, nil)
 	}
-	for k, v := range p.opt.HTTPHeaders {
+	for k, v := range p.opt.httpHeaders {
 		req.Header.Set(k, v)
 	}
 	return req, err
 }
 
 func (p *Prom) Request(url string) (*http.Response, error) {
+	start := time.Now()
+	defer func() {
+		httpLatencyVec.WithLabelValues(p.opt.source).Observe(float64(time.Since(start)) / float64(time.Second))
+	}()
 	req, err := p.GetReq(url)
 	if err != nil {
 		return nil, err
@@ -257,54 +167,33 @@ func (p *Prom) Request(url string) (*http.Response, error) {
 	return r, nil
 }
 
-// CollectFromHTTPV2 convert point from old format to new format.
+// CollectFromHTTPV2 collect points.
 func (p *Prom) CollectFromHTTPV2(u string) ([]*point.Point, error) {
-	// Here got old format point.
-	dkPts, err := p.CollectFromHTTP(u)
-	if err != nil {
-		return nil, err
-	}
-
-	// Convert
-	pts := inpt.Dkpt2point(dkPts...)
-
-	return pts, nil
-}
-
-// CollectFromHTTP Deprecated: use CollectFromHTTPV2.
-func (p *Prom) CollectFromHTTP(u string) ([]*dkpt.Point, error) {
 	resp, err := p.Request(u)
 	if err != nil {
-		if p.opt.IgnoreReqErr {
-			return []*dkpt.Point{}, nil
+		if p.opt.ignoreReqErr {
+			return []*point.Point{}, nil
 		} else {
 			return nil, fmt.Errorf("collect from %s: %w", u, err)
 		}
 	}
 	defer resp.Body.Close() //nolint:errcheck
-	pts, err := p.text2Metrics(resp.Body, u)
+
+	// A agent used to count bytes.
+	wCounter := &writeCounter{}
+	pts, err := p.text2Metrics(io.TeeReader(resp.Body, wCounter), u)
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		collectPointsTotalVec.WithLabelValues(p.opt.source).Observe(float64(len(pts)))
+		httpGetBytesVec.WithLabelValues(p.opt.source).Observe(float64(wCounter.total))
+	}()
 	return pts, nil
 }
 
-// CollectFromFileV2 convert point from old format to new format.
+// CollectFromFileV2 collect points.
 func (p *Prom) CollectFromFileV2(filepath string) ([]*point.Point, error) {
-	// Here got old format point.
-	dkPts, err := p.CollectFromFile(filepath)
-	if err != nil {
-		return nil, err
-	}
-
-	// Convert
-	pts := inpt.Dkpt2point(dkPts...)
-
-	return pts, nil
-}
-
-// CollectFromFile Deprecated: use CollectFromFileV2.
-func (p *Prom) CollectFromFile(filepath string) ([]*dkpt.Point, error) {
 	f, err := os.OpenFile(filepath, os.O_RDONLY, 0o600) //nolint:gosec
 	if err != nil {
 		return nil, err
@@ -316,7 +205,7 @@ func (p *Prom) CollectFromFile(filepath string) ([]*dkpt.Point, error) {
 // WriteMetricText2File scrapes raw prometheus metric text from u
 // then appends them directly to file p.opt.Output.
 func (p *Prom) WriteMetricText2File(u string) error {
-	fp := p.opt.Output
+	fp := p.opt.output
 	if !path.IsAbs(fp) {
 		fp = filepath.Join(datakit.InstallDir, fp)
 	}
@@ -342,18 +231,29 @@ func (p *Prom) WriteMetricText2File(u string) error {
 	}
 	defer resp.Body.Close() //nolint:errcheck
 
-	if resp.ContentLength > p.opt.MaxFileSize {
-		return fmt.Errorf("content length is too large to handle, max: %d, got: %d", p.opt.MaxFileSize, resp.ContentLength)
+	if resp.ContentLength > p.opt.maxFileSize {
+		return fmt.Errorf("content length is too large to handle, max: %d, got: %d", p.opt.maxFileSize, resp.ContentLength)
 	}
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
-	if int64(len(data)) > p.opt.MaxFileSize {
-		return fmt.Errorf("content length is too large to handle, max: %d, got: %d", p.opt.MaxFileSize, len(data))
+	if int64(len(data)) > p.opt.maxFileSize {
+		return fmt.Errorf("content length is too large to handle, max: %d, got: %d", p.opt.maxFileSize, len(data))
 	}
 	if _, err := f.Write(data); err != nil {
 		return err
 	}
 	return nil
+}
+
+// A agent used to count bytes.
+type writeCounter struct {
+	total uint64
+}
+
+// A agent used to count bytes.
+func (wc *writeCounter) Write(p []byte) (int, error) {
+	wc.total += uint64(len(p))
+	return 0, nil
 }

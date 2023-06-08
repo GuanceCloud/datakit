@@ -17,8 +17,8 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	humanize "github.com/dustin/go-humanize"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/upgrader/upgrader"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 type versionDesc struct {
@@ -40,6 +40,7 @@ const (
 )
 
 func tarFiles(pubPath, buildPath, appName, goos, goarch string, opt tarFileOpt) (string, string) {
+	l.Debugf("tarFiles entry, pubPath = %s, buildPath = %s, appName = %s", pubPath, buildPath, appName)
 	var gzFileName, gzFilePath string
 
 	switch opt & TarRlsVerMask {

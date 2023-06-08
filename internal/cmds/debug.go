@@ -9,12 +9,19 @@ import (
 	"fmt"
 	"os"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 )
 
 func runDebugFlags() error {
 	switch {
+	case *flagDebugInputConf != "":
+		if err := debugInput(*flagDebugInputConf); err != nil {
+			cp.Errorf("[E] %s\n", err.Error())
+		}
+
+		os.Exit(0)
+
 	case *flagDebugBugReport:
 		tryLoadMainCfg()
 		if err := bugReport(); err != nil {
@@ -51,12 +58,6 @@ func runDebugFlags() error {
 			os.Exit(-1)
 		}
 		cp.Infof("Upload ok.\n")
-		os.Exit(0)
-
-	case *flagDebugTestInput != "":
-		if err := inputDebugger(*flagDebugTestInput); err != nil {
-			l.Errorf("inputDebugger: %s", err)
-		}
 		os.Exit(0)
 	}
 

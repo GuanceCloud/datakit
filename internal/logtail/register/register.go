@@ -16,7 +16,7 @@ import (
 	"sync"
 )
 
-const defaultFlushFactor = 8
+const defaultFlushFactor = 32
 
 type MetaData struct {
 	Source string `json:"source"`
@@ -30,6 +30,7 @@ func (m *MetaData) String() string {
 type Register interface {
 	Set(string, *MetaData) error
 	Get(string) *MetaData
+	Flush() error
 }
 
 type register struct {
@@ -85,6 +86,13 @@ func New(file string) (Register, error) {
 	return r, nil
 }
 
+func (r *register) Flush() error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	return r.flush()
+}
+
 func (r *register) flush() error {
 	b, err := json.MarshalIndent(r, "", "    ")
 	if err != nil {
@@ -115,10 +123,10 @@ func (r *register) Set(key string, value *MetaData) error {
 
 	r.Data[key] = value
 	r.count++
-
 	if r.count%r.flushFactor == 0 {
 		return r.flush()
 	}
+
 	return nil
 }
 

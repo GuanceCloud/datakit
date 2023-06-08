@@ -11,13 +11,14 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"text/template"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/man"
 )
 
 //nolint:lll
@@ -124,7 +125,12 @@ func NotifyStartBuild() {
 	notify(NotifyToken, bytes.NewBufferString(CINotifyStartBuildMsg))
 }
 
+// NotifyFail send notifications and exit current process.
 func NotifyFail(msg string) {
+	defer func() {
+		os.Exit(-1)
+	}()
+
 	if NotifyToken == "" {
 		return
 	}

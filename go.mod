@@ -104,7 +104,7 @@ require (
 	golang.org/x/term v0.5.0 // indirect
 	golang.org/x/text v0.7.0
 	google.golang.org/grpc v1.51.0
-	gopkg.in/CodapeWild/dd-trace-go.v1 v1.35.18
+	gopkg.in/CodapeWild/dd-trace-go.v1 v1.35.18 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.25.0

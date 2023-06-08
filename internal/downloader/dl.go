@@ -117,6 +117,7 @@ func Extract(r io.Reader, to string) error {
 }
 
 func Download(cli *http.Client, from, to string, progress, downloadOnly bool) error {
+	l.Debugf("Downloading %s => %s", from, to)
 	req, err := http.NewRequest("GET", from, nil)
 	if err != nil {
 		l.Error(err)

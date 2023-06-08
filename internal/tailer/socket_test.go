@@ -6,12 +6,15 @@
 package tailer
 
 import (
+	"fmt"
 	"net"
 	"reflect"
 	"testing"
 	"time"
 
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
+
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
 
 func Test_spiltBuffer(t *testing.T) {
@@ -136,12 +139,19 @@ func Test_mkServer(t *testing.T) {
 }
 
 func Test_socketLogger_Start(t *testing.T) {
+	tcpPort := testutils.RandPort("tcp")
+	t.Logf("tcp port = %d ", tcpPort)
+	udpPort := testutils.RandPort("tcp")
+	t.Logf("udp port = %d", udpPort)
 	// 启动socket: tcp,udp 端口
 	opt := &Option{
-		Source:                "logging",
-		Service:               "test_service",
-		Pipeline:              "",
-		Sockets:               []string{"tcp://127.0.0.1:19030", "udp://127.0.0.1:19031"},
+		Source:   "logging",
+		Service:  "test_service",
+		Pipeline: "",
+		Sockets: []string{
+			fmt.Sprintf("tcp://127.0.0.1:%d", tcpPort),
+			fmt.Sprintf("udp://127.0.0.1:%d", udpPort),
+		},
 		IgnoreStatus:          []string{"debug"},
 		CharacterEncoding:     "utf-8",
 		RemoveAnsiEscapeCodes: false,
@@ -150,6 +160,7 @@ func Test_socketLogger_Start(t *testing.T) {
 		BlockingMode:          true,
 		Done:                  nil,
 	}
+
 	sl, err := NewWithOpt(opt)
 	if err != nil {
 		t.Errorf("new sockerLoger err=%v", err)
@@ -157,18 +168,22 @@ func Test_socketLogger_Start(t *testing.T) {
 	}
 	feeder := dkio.NewMockedFeeder()
 	sl.feeder = feeder
+
 	go sl.Start()
-	// wait sl.start
-	time.Sleep(time.Second)
-	send(t, "tcp", "127.0.0.1:19030")
-	send(t, "udp", "127.0.0.1:19031")
+	t.Log(" wait sl.start")
+	time.Sleep(time.Second * 3)
+	defer sl.Close()
+
+	send(t, "tcp", fmt.Sprintf("127.0.0.1:%d", tcpPort))
+	send(t, "udp", fmt.Sprintf("127.0.0.1:%d", udpPort))
+
 	pts, err := feeder.NPoints(10, time.Second*5)
 	if err != nil {
 		t.Errorf("feeder err=%v", err)
 		return
 	}
+
 	for _, pt := range pts {
-		// todo check pt
 		bts, _ := pt.MarshalJSON()
 		t.Logf("pt :%s", string(bts))
 		source := string(pt.GetTag([]byte("log_source")))
@@ -184,11 +199,12 @@ func Test_socketLogger_Start(t *testing.T) {
 
 func send(t *testing.T, network string, addr string) {
 	t.Helper()
-	conn, err := net.Dial(network, addr)
+	conn, err := net.DialTimeout(network, addr, time.Second)
 	if err != nil {
 		t.Errorf("dial network:%s , err=%v", network, err)
 		return
 	}
+	defer conn.Close() //nolint:errcheck
 	for i := 0; i < 5; i++ {
 		if _, err = conn.Write([]byte("this is logging message\n")); err != nil {
 			t.Errorf("conn write err=%v", err)
