@@ -36,9 +36,10 @@ const (
 )
 
 var (
-	defaultPrometheusioInterval = time.Second * 60
-	defaultPromScheme           = "http"
-	defaultPromPath             = "/metrics"
+	defaultPrometheusioInterval         = time.Second * 60
+	defaultPrometheusioConnectKeepAlive = time.Second * 20
+	defaultPromScheme                   = "http"
+	defaultPromPath                     = "/metrics"
 )
 
 type discovery struct {
@@ -191,23 +192,27 @@ func (d *discovery) fetchPromInputsFromPodAnnotations() []*discoveryRunner {
 			continue
 		}
 
-		promInput, err := newPromInput(item.Status.PodIP, // podIP:port
+		tags := make(map[string]string)
+		for k, v := range d.extraTags {
+			tags[k] = v
+		}
+		tags["pod_name"] = item.Name
+		tags["namespace"] = item.Namespace
+
+		promInput, err := newPromInputWithURLParams(
+			"k8s.pod/"+item.Name,
+			item.Status.PodIP, // podIP:port
 			item.Annotations[annotationPrometheusioPort],
 			item.Annotations[annotationPrometheusioScheme],
-			item.Annotations[annotationPrometheusioPath])
+			item.Annotations[annotationPrometheusioPath],
+			tags,
+		)
 		if err != nil {
 			l.Warnf("autodiscovery: failed to new PromInput of Pod %s, err: %s, retry in a minute", item.Name, err)
 			continue
 		}
 
 		l.Infof("autodiscovery: created PromInput of Pod %s, url %s", item.Name, promInput.URLs)
-
-		promInput.Source = "k8s.pod/" + item.Name
-		for k, v := range d.extraTags {
-			promInput.Tags[k] = v
-		}
-		promInput.Tags["pod_name"] = item.Name
-		promInput.Tags["namespace"] = item.Namespace
 
 		res = append(res, &discoveryRunner{
 			runner:   promInput,
@@ -233,23 +238,27 @@ func (d *discovery) fetchPromInputsFromServiceAnnotations() []*discoveryRunner {
 			continue
 		}
 
-		promInput, err := newPromInput(fmt.Sprintf("%s.%s", item.Name, item.Namespace), // service_name.service_namespace:port
+		tags := make(map[string]string)
+		for k, v := range d.extraTags {
+			tags[k] = v
+		}
+		tags["service_name"] = item.Name
+		tags["namespace"] = item.Namespace
+
+		promInput, err := newPromInputWithURLParams(
+			"k8s.service/"+item.Name,
+			fmt.Sprintf("%s.%s", item.Name, item.Namespace), // service_name.service_namespace:port
 			item.Annotations[annotationPrometheusioPort],
 			item.Annotations[annotationPrometheusioScheme],
-			item.Annotations[annotationPrometheusioPath])
+			item.Annotations[annotationPrometheusioPath],
+			tags,
+		)
 		if err != nil {
 			l.Warnf("autodiscovery: failed to new PromInput of Service %s, err: %s, retry in a minute", item.Name, err)
 			continue
 		}
 
 		l.Infof("autodiscovery: created PromInput of Service %s, url %s", item.Name, promInput.URLs)
-
-		promInput.Source = "k8s.service/" + item.Name
-		for k, v := range d.extraTags {
-			promInput.Tags[k] = v
-		}
-		promInput.Tags["service_name"] = item.Name
-		promInput.Tags["namespace"] = item.Namespace
 
 		res = append(res, &discoveryRunner{
 			runner:   promInput,
@@ -342,43 +351,45 @@ func (d *discovery) fetchPromInputsForPodMonitors() []*discoveryRunner {
 
 		for _, pod := range pods {
 			for _, metricsEndpoints := range item.Spec.PodMetricsEndpoints {
-				u := url.URL{
-					Scheme:   defaultPromScheme,
-					Path:     defaultPromPath,
-					RawQuery: url.Values(metricsEndpoints.Params).Encode(),
-				}
-				if metricsEndpoints.Scheme != "" {
-					u.Scheme = metricsEndpoints.Scheme
-				}
-				if metricsEndpoints.Path != "" {
-					u.Path = metricsEndpoints.Path
-				}
-
+				var port int
 				if metricsEndpoints.Port != "" {
-					port := pod.containerPort(metricsEndpoints.Port)
+					port = pod.containerPort(metricsEndpoints.Port)
 					if port == -1 {
 						l.Warnf("autodiscovery: not found port %s for podMonitor %s podName %s, ignored", metricsEndpoints.Port, item.Name, pod.Name)
 						continue
 					}
-					u.Host = fmt.Sprintf("%s:%d", pod.Status.PodIP, port)
-				} else {
-					//nolint
-					// deprecated
-					if metricsEndpoints.TargetPort != nil {
-						u.Host = fmt.Sprintf("%s:%d", pod.Status.PodIP, metricsEndpoints.TargetPort.IntVal)
-					} else {
-						l.Warnf("autodiscovery: not found port for podMonitor %s podName %s, ignored", item.Name, pod.Name)
-						continue
-					}
 				}
+
+				u, err := getPromURL(
+					fmt.Sprintf("%s:%d", pod.Status.PodIP, port),
+					strconv.Itoa(port),
+					metricsEndpoints.Scheme,
+					metricsEndpoints.Path,
+				)
+				if err != nil {
+					// unreachable
+					continue
+				}
+				u.RawQuery = url.Values(metricsEndpoints.Params).Encode()
 
 				l.Infof("autodiscovery: new promInput for podMonitor %s podName %s, url %s", item.Name, pod.Name, u.String())
 
-				promInput := prom.NewProm()
-				promInput.Source = fmt.Sprintf("k8s.podMonitor/%s::%s", item.Name, pod.Name)
-				promInput.URLs = []string{u.String()}
+				tags := make(map[string]string)
 				for k, v := range d.extraTags {
-					promInput.Tags[k] = v
+					tags[k] = v
+				}
+				tags["namespace"] = pod.Namespace
+				tags["service"] = pod.Name
+
+				promInput, err := newPromInput(
+					fmt.Sprintf("k8s.podMonitor/%s::%s", item.Name, pod.Name),
+					[]string{u.String()},
+					metricsEndpoints.Interval,
+					tags,
+				)
+				if err != nil {
+					l.Warnf("autodiscovery: failed to new PromInput of podMonitor %s podName %s, err: %s", item.Name, pod.Name, err)
+					continue
 				}
 				if metricsEndpoints.Interval != "" {
 					interval, err := time.ParseDuration(metricsEndpoints.Interval)
@@ -386,8 +397,6 @@ func (d *discovery) fetchPromInputsForPodMonitors() []*discoveryRunner {
 						promInput.Interval = interval
 					}
 				}
-				promInput.Tags["namespace"] = pod.Namespace
-				promInput.Tags["service"] = pod.Name
 
 				if d.prometheusMonitoringExtraConfig != nil {
 					l.Debugf("autodiscovery: matching promConfig %#v", d.prometheusMonitoringExtraConfig)
@@ -444,43 +453,45 @@ func (d *discovery) fetchPromInputsForServiceMonitors() []*discoveryRunner {
 
 		for _, service := range services {
 			for _, endpoint := range item.Spec.Endpoints {
-				u := url.URL{
-					Scheme:   defaultPromScheme,
-					Path:     defaultPromPath,
-					RawQuery: url.Values(endpoint.Params).Encode(),
-				}
-				if endpoint.Scheme != "" {
-					u.Scheme = endpoint.Scheme
-				}
-				if endpoint.Path != "" {
-					u.Path = endpoint.Path
-				}
-
+				var port int
 				if endpoint.Port != "" {
-					port := service.servicePort(endpoint.Port)
+					port = service.servicePort(endpoint.Port)
 					if port == -1 {
 						l.Warnf("autodiscovery: not found port %s for serviceMonitor %s serviceName %s, ignored", endpoint.Port, item.Name, service.Name)
 						continue
 					}
-					u.Host = fmt.Sprintf("%s.%s:%d", service.Name, service.Namespace, port)
-				} else {
-					//nolint
-					// deprecated
-					if endpoint.TargetPort != nil {
-						u.Host = fmt.Sprintf("%s.%s:%d", service.Name, service.Namespace, endpoint.TargetPort.IntVal)
-					} else {
-						l.Warnf("autodiscovery: not found port for serviceMonitor %s serviceName %s, ignored", item.Name, service.Name)
-						continue
-					}
 				}
+
+				u, err := getPromURL(
+					fmt.Sprintf("%s.%s:%d", service.Name, service.Namespace, port),
+					strconv.Itoa(port),
+					endpoint.Scheme,
+					endpoint.Path,
+				)
+				if err != nil {
+					// unreachable
+					continue
+				}
+				u.RawQuery = url.Values(endpoint.Params).Encode()
 
 				l.Infof("autodiscovery: new promInput for serviceMonitor %s serviceName %s, url %s", item.Name, service.Name, u.String())
 
-				promInput := prom.NewProm()
-				promInput.Source = fmt.Sprintf("k8s.serviceMonitor/%s::%s", item.Name, service.Name)
-				promInput.URLs = []string{u.String()}
+				tags := make(map[string]string)
 				for k, v := range d.extraTags {
-					promInput.Tags[k] = v
+					tags[k] = v
+				}
+				tags["namespace"] = service.Namespace
+				tags["service"] = service.Name
+
+				promInput, err := newPromInput(
+					fmt.Sprintf("k8s.serviceMonitor/%s::%s", item.Name, service.Name),
+					[]string{u.String()},
+					endpoint.Interval,
+					tags,
+				)
+				if err != nil {
+					l.Warnf("autodiscovery: failed to new PromInput of serviceMonitor %s serviceName %s, err: %s", item.Name, service.Name, err)
+					continue
 				}
 				if endpoint.Interval != "" {
 					interval, err := time.ParseDuration(endpoint.Interval)
@@ -488,8 +499,6 @@ func (d *discovery) fetchPromInputsForServiceMonitors() []*discoveryRunner {
 						promInput.Interval = interval
 					}
 				}
-				promInput.Tags["namespace"] = service.Namespace
-				promInput.Tags["service"] = service.Name
 
 				if d.prometheusMonitoringExtraConfig != nil {
 					l.Debugf("autodiscovery: matching promConfig %#v", d.prometheusMonitoringExtraConfig)
@@ -841,30 +850,45 @@ func mergePromConfig(c1 *prom.Input, c2 *promConfig) *prom.Input {
 	return c3
 }
 
-func newPromInput(host, port, scheme, path string) (*prom.Input, error) {
+func newPromInput(source string, urls []string, interval string, tags map[string]string) (*prom.Input, error) {
+	promInput := prom.NewProm()
+	promInput.Source = source
+	promInput.URLs = urls
+	promInput.Interval = defaultPrometheusioInterval
+	promInput.ConnectKeepAlive = defaultPrometheusioConnectKeepAlive
+	promInput.Tags = tags
+	if interval != "" {
+		if val, err := time.ParseDuration(interval); err == nil {
+			promInput.Interval = val
+		}
+	}
+	return promInput, nil
+}
+
+func newPromInputWithURLParams(source, host, port, scheme, path string, tags map[string]string) (*prom.Input, error) {
+	u, err := getPromURL(host, port, scheme, path)
+	if err != nil {
+		return nil, err
+	}
+	return newPromInput(source, []string{u.String()}, "", tags)
+}
+
+func getPromURL(host, port, scheme, path string) (*url.URL, error) {
 	if _, err := strconv.Atoi(port); err != nil {
 		return nil, fmt.Errorf("invalid port %s", port)
 	}
-
-	u := url.URL{
+	u := &url.URL{
 		Scheme: defaultPromScheme,
 		Path:   defaultPromPath,
 		Host:   fmt.Sprintf("%s:%s", host, port),
 	}
-
 	if scheme == "https" {
 		u.Scheme = scheme
 	}
-
 	if path != "" {
 		u.Path = path
 	}
-
-	promInput := prom.NewProm()
-	promInput.Interval = defaultPrometheusioInterval
-	promInput.Election = false
-	promInput.URLs = []string{u.String()}
-	return promInput, nil
+	return u, nil
 }
 
 func parseScrapeFromProm(scrape string) bool {

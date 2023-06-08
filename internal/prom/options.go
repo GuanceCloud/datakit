@@ -13,8 +13,9 @@ import (
 )
 
 type option struct {
-	source  string
-	timeout time.Duration
+	source    string
+	timeout   time.Duration
+	keepAlive time.Duration
 
 	ignoreReqErr           bool
 	metricTypes            []string
@@ -50,10 +51,11 @@ type option struct {
 
 type PromOption func(opt *option)
 
-func WithSource(str string) PromOption          { return func(opt *option) { opt.source = str } }
-func WithTimeout(dura time.Duration) PromOption { return func(opt *option) { opt.timeout = dura } }
-func WithIgnoreReqErr(b bool) PromOption        { return func(opt *option) { opt.ignoreReqErr = b } }
-func WithMetricTypes(strs []string) PromOption  { return func(opt *option) { opt.metricTypes = strs } }
+func WithSource(str string) PromOption            { return func(opt *option) { opt.source = str } }
+func WithTimeout(dura time.Duration) PromOption   { return func(opt *option) { opt.timeout = dura } }
+func WithKeepAlive(dura time.Duration) PromOption { return func(opt *option) { opt.keepAlive = dura } }
+func WithIgnoreReqErr(b bool) PromOption          { return func(opt *option) { opt.ignoreReqErr = b } }
+func WithMetricTypes(strs []string) PromOption    { return func(opt *option) { opt.metricTypes = strs } }
 func WithMetricNameFilter(strs []string) PromOption {
 	return func(opt *option) { opt.metricNameFilter = strs }
 }
