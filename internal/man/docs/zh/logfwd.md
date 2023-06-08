@@ -54,7 +54,6 @@ logfwd 主配置是 JSON 格式，以下是配置示例：
                 "pipeline": "<your-pipeline.p>",
                 "character_encoding": "",
                 "multiline_match": "<your-match>",
-                "remove_ansi_escape_codes": false,
                 "tags": {}
             },
             {
@@ -78,7 +77,6 @@ logfwd 主配置是 JSON 格式，以下是配置示例：
     - `pipeline` Pipeline 脚本路径，如果为空将使用 `$source.p`，如果 `$source.p` 不存在将不使用 Pipeline（此脚本文件存在于 Datakit 端）
     - `character_encoding` 选择编码，如果编码有误，会导致数据无法查看，默认为空即可。支持 `utf-8/utf-16le/utf-16le/gbk/gb18030`
     - `multiline_match` 多行匹配，与 [logging](logging.md) 该项配置一样，注意因为是 JSON 格式所以不支持 3 个单引号的“不转义写法”，正则 `^\d{4}` 需要添加转义写成 `^\\d{4}`
-    - `remove_ansi_escape_codes` 是否删除 ANSI 转义码，例如标准输出的文本颜色等，值为 `true` 或 `false`
     - `tags` 添加额外 `tag`，书写格式是 JSON map，例如 `{ "key1":"value1", "key2":"value2" }`
 
 支持的环境变量：
@@ -129,23 +127,22 @@ spec:
       value: nginx-souce-test
     image: pubrepo.jiagouyun.com/datakit/logfwd:{{.Version}}
     imagePullPolicy: Always
+    resources:
+      requests:
+        cpu: "200m"
+        memory: "128Mi"
+      limits:
+        cpu: "1000m"
+        memory: "2Gi"
     volumeMounts:
-    - name: varlog
-      mountPath: /var/log
     - mountPath: /opt/logfwd/config
-      name: logfwd-conf
+      name: logfwd-config-volume
       subPath: config
-    - mountPath: /usr/local/datakit/cache
-      name: cache
-      readOnly: false
     workingDir: /opt/logfwd
   volumes:
-  - hostPath:
-      path: /root/datakit_cache
-    name: cache
   - configMap:
-      name: logfwd-conf
-    name: logfwd-config
+      name: logfwd-config
+    name: logfwd-config-volume
 ```
 
 第二份配置为 logfwd 实际运行的配置，即前文提到的 JSON 格式的主配置，在 Kubernetes 中以 ConfigMap 形式存在。
@@ -232,25 +229,26 @@ spec:
           fieldPath: metadata.namespace
     image: pubrepo.jiagouyun.com/datakit/logfwd:{{.Version}}
     imagePullPolicy: Always
+    resources:
+      requests:
+        cpu: "200m"
+        memory: "128Mi"
+      limits:
+        cpu: "1000m"
+        memory: "2Gi"
     volumeMounts:
     - name: varlog
       mountPath: /var/log
     - mountPath: /opt/logfwd/config
-      name: logfwd-conf
+      name: logfwd-config-volume
       subPath: config
-    - mountPath: /usr/local/datakit/cache
-      name: cache
-      readOnly: false
     workingDir: /opt/logfwd
   volumes:
   - name: varlog
     emptyDir: {}
-  - hostPath:
-      path: /root/datakit_cache
-    name: cache
   - configMap:
-      name: logfwd-conf
-    name: logfwd-config
+      name: logfwd-config
+    name: logfwd-config-volume
 
 ---
 

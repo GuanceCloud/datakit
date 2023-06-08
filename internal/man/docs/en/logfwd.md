@@ -52,7 +52,6 @@ The logfwd main configuration is in JSON format, and the following is a configur
                 "pipeline": "<your-pipeline.p>",
                 "character_encoding": "",
                 "multiline_match": "<your-match>",
-                "remove_ansi_escape_codes": false,
                 "tags": {}
             },
             {
@@ -76,7 +75,6 @@ Description of configuration parameters:
     - `pipeline` pipeline script path, if empty $source.p will be used, if $source.p does not exist will not use pipeline (this script file exists on the DataKit side).
     - `character_encoding` # Select the code. If there is a misunderstanding in the code and the data cannot be viewed, it will be empty by default. Support `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030` or ""
     - `multiline_match` multi-line match, as in the [logging](logging.md) configuration, note that "no escape writing" with 3 single quotes is not supported because it is in JSON format, and regular `^\d{4}` needs to be escaped as `^\\d{4}`
-    - `remove_ansi_escape_codes` whether to remove ANSI escape codes, such as the text color of standard output, and so on, with a value of `true` or `false`
     - `tags` adds additional `tag` written in a JSON map, such as `{ "key1":"value1", "key2":"value2" }`
 
 Supported environment variables:
@@ -124,16 +122,24 @@ spec:
           fieldPath: metadata.namespace
     - name: LOGFWD_GLOBAL_SOURCE
       value: nginx-souce-test
-    image: pubrepo.jiagouyun.com/datakit/logfwd:1.5.1
+    image: pubrepo.jiagouyun.com/datakit/logfwd:{{.Version}}
     imagePullPolicy: Always
+    resources:
+      requests:
+        cpu: "200m"
+        memory: "128Mi"
+      limits:
+        cpu: "1000m"
+        memory: "2Gi"
     volumeMounts:
-    - name: varlog
-      mountPath: /var/log
     - mountPath: /opt/logfwd/config
-      name: logfwd-config
+      name: logfwd-config-volume
       subPath: config
-      workingDir: /opt/logfwd
-
+    workingDir: /opt/logfwd
+  volumes:
+  - configMap:
+      name: logfwd-config
+    name: logfwd-config-volume
 ```
 
 The second configuration is the configuration where logfwd actually runs, the JSON-formatted master configuration mentioned earlier, which exists in Kubernetes as a ConfigMap.
@@ -218,28 +224,35 @@ spec:
         fieldRef:
           apiVersion: v1
           fieldPath: metadata.namespace
-    image: pubrepo.jiagouyun.com/datakit/logfwd:1.5.1
+    image: pubrepo.jiagouyun.com/datakit/logfwd:{{.Version}}
     imagePullPolicy: Always
+    resources:
+      requests:
+        cpu: "200m"
+        memory: "128Mi"
+      limits:
+        cpu: "1000m"
+        memory: "2Gi"
     volumeMounts:
     - name: varlog
       mountPath: /var/log
     - mountPath: /opt/logfwd/config
-      name: logfwd-config
+      name: logfwd-config-volume
       subPath: config
     workingDir: /opt/logfwd
   volumes:
   - name: varlog
     emptyDir: {}
   - configMap:
-      name: logfwd-conf
-    name: logfwd-config
+      name: logfwd-config
+    name: logfwd-config-volume
 
 ---
 
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: logfwd-conf
+  name: logfwd-config
 data:
   config: |
     [
