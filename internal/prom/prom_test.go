@@ -365,7 +365,7 @@ func Test_Tls(t *testing.T) {
 		assert.NoError(t, err)
 		transport, ok := p.client.Transport.(*http.Transport)
 		assert.True(t, ok)
-		assert.Equal(t, transport.TLSClientConfig.InsecureSkipVerify, true)
+		assert.Equal(t, transport.TLSClientConfig.InsecureSkipVerify, false)
 	})
 
 	t.Run("tls with ca", func(t *testing.T) {
