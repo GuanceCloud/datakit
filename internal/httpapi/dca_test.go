@@ -37,8 +37,8 @@ func getResponse(t *testing.T, req *http.Request, conf *config.DCAConfig) *httpt
 		dcaConfig = conf
 	}
 
-	dw = &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + TOKEN}}
-	assert.NoError(t, dw.Init())
+	apiServer.dw = &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + TOKEN}}
+	assert.NoError(t, apiServer.dw.Init())
 
 	router := setupDcaRouter()
 	w := httptest.NewRecorder()
@@ -756,8 +756,8 @@ func TestDcaGetLogTail(t *testing.T) {
 	// set up dca
 	dcaConfig = &config.DCAConfig{}
 
-	dw = &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + TOKEN}}
-	assert.NoError(t, dw.Init())
+	apiServer.dw = &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + TOKEN}}
+	assert.NoError(t, apiServer.dw.Init())
 
 	router := setupDcaRouter()
 	w := CreateTestResponseRecorder()
