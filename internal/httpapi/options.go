@@ -54,10 +54,10 @@ func WithAPIConfig(c *config.APIConfig) option {
 	}
 }
 
-func WithDataway(dw *dataway.Dataway) option {
+func WithDataway(dataway *dataway.Dataway) option {
 	return func(s *httpServer) {
-		if dw != nil {
-			s.dw = dw
+		if dataway != nil {
+			s.dw = dataway
 		}
 	}
 }

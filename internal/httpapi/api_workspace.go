@@ -21,11 +21,11 @@ type Workspace struct {
 
 func apiWorkspace(c *gin.Context) {
 	var w Workspace
-	if dw == nil {
+	if apiServer.dw == nil {
 		uhttp.HttpErr(c, fmt.Errorf("dataway not set"))
 		return
 	}
-	tkns := dw.GetTokens()
+	tkns := apiServer.dw.GetTokens()
 	if len(tkns) == 0 {
 		uhttp.HttpErr(c, fmt.Errorf("dataway token missing"))
 		return
@@ -40,7 +40,7 @@ func apiWorkspace(c *gin.Context) {
 
 	l.Debugf("query: %s", string(j))
 
-	resp, err := dw.WorkspaceQuery(j)
+	resp, err := apiServer.dw.WorkspaceQuery(j)
 	if err != nil {
 		l.Errorf("DQLQuery: %s", err)
 		uhttp.HttpErr(c, err)

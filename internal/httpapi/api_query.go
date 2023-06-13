@@ -63,15 +63,15 @@ func apiQueryRaw(c *gin.Context) {
 		return
 	}
 
-	if dw == nil {
+	if apiServer.dw == nil {
 		uhttp.HttpErr(c, fmt.Errorf("dataway not set"))
 		return
 	}
 
 	if q.Token == "" {
-		tkns := dw.GetTokens()
+		tkns := apiServer.dw.GetTokens()
 		if len(tkns) == 0 {
-			uhttp.HttpErr(c, fmt.Errorf("dataway token missing"))
+			uhttp.HttpErr(c, fmt.Errorf("dataway token not found"))
 			return
 		}
 
@@ -87,7 +87,7 @@ func apiQueryRaw(c *gin.Context) {
 
 	l.Debugf("query: %s", string(j))
 
-	resp, err := dw.DQLQuery(j)
+	resp, err := apiServer.dw.DQLQuery(j)
 	if err != nil {
 		l.Errorf("DQLQuery: %s", err)
 		uhttp.HttpErr(c, err)

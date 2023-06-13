@@ -51,10 +51,8 @@ var (
 	pprofServer *http.Server
 
 	dcaConfig *config.DCAConfig
-	dw        = &dataway.Dataway{}
-	g         = datakit.G("http")
 
-	DcaToken = ""
+	g = datakit.G("http")
 
 	semReload          *cliutils.Sem // [http server](the normal one, not dca nor pprof) reload signal
 	semReloadCompleted *cliutils.Sem // [http server](the normal one, not dca nor pprof) reload completed signal
@@ -459,10 +457,10 @@ func portInUse(addr string) bool {
 }
 
 func checkToken(r *http.Request) error {
-	if dw == nil {
+	if apiServer.dw == nil {
 		return ErrInvalidToken
 	}
-	localTokens := dw.GetTokens()
+	localTokens := apiServer.dw.GetTokens()
 	if len(localTokens) == 0 {
 		return ErrInvalidToken
 	}
