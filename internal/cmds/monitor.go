@@ -40,12 +40,14 @@ func runMonitorFlags() error {
 	}
 
 	to := config.Cfg.HTTPAPI.Listen
-	if *flagMonitorTo != "" {
-		to = *flagMonitorTo
-	}
 
 	if x := loadLocalDatakitConf(); x != "" {
 		to = x
+	}
+
+	// use command line host if specified
+	if *flagMonitorTo != "" {
+		to = *flagMonitorTo
 	}
 
 	monitor.Start(

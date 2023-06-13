@@ -24,18 +24,18 @@ func apiCreateOrUpdateObjectLabel(c *gin.Context) {
 		return
 	}
 
-	if dw == nil {
+	if apiServer.dw == nil {
 		uhttp.HttpErr(c, fmt.Errorf("dataway not set"))
 		return
 	}
 
-	tkns := dw.GetTokens()
+	tkns := apiServer.dw.GetTokens()
 	if len(tkns) == 0 {
 		uhttp.HttpErr(c, fmt.Errorf("dataway token missing"))
 		return
 	}
 
-	resp, err := dw.UpsertObjectLabels(tkns[0], body)
+	resp, err := apiServer.dw.UpsertObjectLabels(tkns[0], body)
 	if err != nil {
 		l.Errorf("create or update object labels: %s", err)
 		uhttp.HttpErr(c, err)
@@ -64,18 +64,18 @@ func apiDeleteObjectLabel(c *gin.Context) {
 		return
 	}
 
-	if dw == nil {
+	if apiServer.dw == nil {
 		uhttp.HttpErr(c, fmt.Errorf("dataway not set"))
 		return
 	}
 
-	tkns := dw.GetTokens()
+	tkns := apiServer.dw.GetTokens()
 	if len(tkns) == 0 {
 		uhttp.HttpErr(c, fmt.Errorf("dataway token missing"))
 		return
 	}
 
-	resp, err := dw.DeleteObjectLabels(tkns[0], body)
+	resp, err := apiServer.dw.DeleteObjectLabels(tkns[0], body)
 	if err != nil {
 		l.Errorf("create or update object labels: %s", err)
 		uhttp.HttpErr(c, err)
