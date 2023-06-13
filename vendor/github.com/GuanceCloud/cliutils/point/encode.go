@@ -13,6 +13,19 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+type Encoding int
+
+func EncodingStr(s string) Encoding {
+	switch s {
+	case "protobuf":
+		return Protobuf
+	case "lineproto", "lineprotocol":
+		return LineProtocol
+	default:
+		return LineProtocol
+	}
+}
+
 // EncodeFn used to iterate on []*Point payload, if error returned, the iterate terminated.
 type EncodeFn func(batchSize int, payload []byte) error
 
