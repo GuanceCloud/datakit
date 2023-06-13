@@ -104,12 +104,14 @@ func (c *DiskCache) String() string {
 	c.rwlock.Lock()
 	defer c.rwlock.Unlock()
 
+	// nolint: lll
 	// if there too many files(>10), only print file count
 	if n := len(c.dataFiles); n > 10 {
 		return fmt.Sprintf("%s/[size: %d][fallback: %v][nosync: %v][nopos: %v][nolock: %v][files: %d][maxDataSize: %d][batchSize: %d][capacity: %d][dataFiles: %d]",
 			c.path, c.size, c.noFallbackOnError, c.noSync, c.noPos, c.noLock, len(c.dataFiles), c.maxDataSize, c.batchSize, c.capacity, n,
 		)
 	} else {
+		// nolint: lll
 		return fmt.Sprintf("%s/[size: %d][fallback: %v][nosync: %v][nopos: %v][nolock: %v][files: %d][maxDataSize: %d][batchSize: %d][capacity: %d][dataFiles: %v]",
 			c.path, c.size, c.noFallbackOnError, c.noSync, c.noLock, c.noPos, len(c.dataFiles), c.maxDataSize, c.batchSize, c.capacity, c.dataFiles,
 		)

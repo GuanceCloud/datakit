@@ -45,7 +45,7 @@ github.com/DataDog/sketches-go/ddsketch/store
 # github.com/DataDog/zstd v1.4.1
 ## explicit
 github.com/DataDog/zstd
-# github.com/GuanceCloud/cliutils v0.0.0-20230417025230-293ec35774ce
+# github.com/GuanceCloud/cliutils v0.1.2-0.20230609061202-c0f026d17479
 ## explicit; go 1.18
 github.com/GuanceCloud/cliutils
 github.com/GuanceCloud/cliutils/dialtesting

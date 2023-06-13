@@ -1,8 +1,8 @@
-English | [简体中文](README_cn.md)
+[English](README.md) | 简体中文
 
-# Guance Cloud cliutils
+# 简介
 
-This library mainly collects various common functional packages in the Guance Cloud. See the README of each package for details.
+本库主要收集观测云中各种通用功能代码，详见各个功能代码的 README。
 
 [![GoDoc](https://godoc.org/github.com/GuanceCloud/cliutils?status.svg)](https://godoc.org/github.com/GuanceCloud/cliutils)
 [![MIT License](https://img.shields.io/badge/license-MIT-green?style=plastic)](LICENSE)

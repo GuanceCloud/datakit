@@ -104,8 +104,8 @@ func TestRestartAPI(t *T.T) {
 		"http://4.3.2.1?token=tkn_abc456",
 	}
 
-	dw = &dataway.Dataway{URLs: urls}
-	assert.NoError(t, dw.Init())
+	apiServer.dw = &dataway.Dataway{URLs: urls}
+	assert.NoError(t, apiServer.dw.Init())
 
 	cases := []struct {
 		token string

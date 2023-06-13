@@ -493,6 +493,13 @@ func (ep *endPoint) sendReq(req *http.Request) (resp *http.Response, err error) 
 
 	if err := retry.Do(
 		func() error {
+			defer func() {
+				if err != nil {
+					if body, err := req.GetBody(); err == nil {
+						req.Body = body
+					}
+				}
+			}()
 			resp, err = ep.doSendReq(req)
 
 			if err != nil {

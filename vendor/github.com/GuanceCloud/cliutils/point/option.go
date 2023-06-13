@@ -10,19 +10,6 @@ import (
 	"time"
 )
 
-type Encoding int
-
-func EncodingStr(s string) Encoding {
-	switch s {
-	case "protobuf":
-		return Protobuf
-	case "lineproto", "lineprotocol":
-		return LineProtocol
-	default:
-		return LineProtocol
-	}
-}
-
 const (
 	LineProtocol Encoding = iota
 	Protobuf
@@ -176,6 +163,7 @@ func WithRequiredKeys(keys ...*Key) Option {
 	}
 }
 
+// DefaultObjectOptions defined options on Object/CustomObject point.
 func DefaultObjectOptions() []Option {
 	return []Option{
 		WithDisabledKeys(disabledKeys[Object]...),
@@ -185,15 +173,16 @@ func DefaultObjectOptions() []Option {
 	}
 }
 
+// DefaultLoggingOptions defined options on Logging point.
 func DefaultLoggingOptions() []Option {
-	return []Option{
+	return append(CommonLoggingOptions(), []Option{
 		WithDisabledKeys(disabledKeys[Logging]...),
 		WithMaxFieldValLen(defaultMaxFieldValLen),
-		WithDotInKey(false),
 		WithRequiredKeys(requiredKeys[Logging]...),
-	}
+	}...)
 }
 
+// DefaultMetricOptions defined options on Metric point.
 func DefaultMetricOptions() []Option {
 	return []Option{
 		WithStrField(false),
@@ -206,5 +195,12 @@ func DefaultMetricOptions() []Option {
 func DefaultMetricOptionsForInflux1X() []Option {
 	return []Option{
 		WithU64Field(false),
+	}
+}
+
+// CommonLoggingOptions defined options on RUM/Tracing/Security/Event/Profile/Network point.
+func CommonLoggingOptions() []Option {
+	return []Option{
+		WithDotInKey(false),
 	}
 }
