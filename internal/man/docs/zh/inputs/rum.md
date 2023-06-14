@@ -43,7 +43,7 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
     或者直接在 *datakit.conf* 中默认采集器中开启即可：
 
     ``` toml
-    default_enabled_inputs = [ "cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net", "host_processes", "self" ]
+    default_enabled_inputs = [ "rum", "cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net", "host_processes" ]
     ```
 
     配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
@@ -54,7 +54,7 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
 
     ```yaml
     - name: ENV_DEFAULT_ENABLED_INPUTS
-      value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container,self
+      value: rum,cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container
     ```
 <!-- markdownlint-enable -->
 

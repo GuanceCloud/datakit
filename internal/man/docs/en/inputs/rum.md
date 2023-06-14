@@ -38,6 +38,12 @@ It is recommended that RUM be deployed separately on the public network, not wit
     {{ CodeBlock .InputSample 4 }}
     ```
 
+    We can also enable RUM input in *datakit.conf*:
+
+    ``` toml
+    default_enabled_inputs = [ "rum", "cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net", "host_processes" ]
+    ```
+
     After configuration, [restart DataKit](datakit-service-how-to.md#manage-service).
 
 === "Kubernetes"
@@ -46,7 +52,7 @@ It is recommended that RUM be deployed separately on the public network, not wit
 
     ```yaml
     - name: ENV_DEFAULT_ENABLED_INPUTS
-      value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container,self
+      value: rum,cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container
     ```
 
 ## Security Restrictions {#security-setting}
