@@ -135,7 +135,8 @@ nav:
 
         - 'DDTrace 扩展':
           - '更新历史': ddtrace-ext-changelog.md
-          - ddtrace-ext-java.md
+          - '扩展功能列表': ddtrace-ext-java.md
+          - 'OTEL 和 DDTrace 链路串联': ddtrace-128-trace-id.md
         - 'jmxfetch 指标':
           - '指标暴露和自定义指标': ddtrace-jmxfetch.md
 
@@ -146,6 +147,10 @@ nav:
         - opentelemetry.md
         - opentelemetry-go.md
         - opentelemetry-java.md
+
+        - '观测云二次开发':
+          - '更新历史': otel-ext-changelog.md
+          - 'DB语句脱敏': otel-sql-obfuscation.md
 
       - 'Zipkin':
         - zipkin.md

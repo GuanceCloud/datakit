@@ -142,6 +142,9 @@ nav:
         - opentelemetry.md
         - opentelemetry-go.md
         - opentelemetry-java.md
+        - 'guance version':
+          - 'changelog': otel-ext-changelog.md
+          - otel-sql-obfuscation.md
 
       - 'Zipkin':
         - zipkin.md
