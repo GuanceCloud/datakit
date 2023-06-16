@@ -29,8 +29,6 @@ Notes on configuration files:
 2. `offsets`: note: Newest or Oldest.
 3. `SASL`: If security authentication is enabled, please configure the user and password correctly.
 
-
-
 ## SkyWalking {#kafkamq-SkyWalking}
 The kafka plugin will send `traces`, `JVM metrics`, `logging`, `Instance Properties`, and `profiled snapshots` to the kafka cluster by default.
 

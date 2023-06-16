@@ -218,7 +218,7 @@
 ### 新加功能 {#cl-1.5.9-new}
 
 - 新增[伺服服务](datakit-update.md#remote)，用来管理 Datakit 升级(#1441)
-- 新增[故障排查功能](datakit-tools-how-to.md#bug-report)(#1377)
+- 新增[故障排查功能](why-no-data.md#bug-report)(#1377)
 
 ### 问题修复 {#cl-1.5.9-fix}
 
