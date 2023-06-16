@@ -102,11 +102,11 @@ func (f *ioFeeder) Feed(name string, category point.Category, pts []*point.Point
 
 	iopts := point2dkpt(pts...)
 
-	if len(opts) == 0 {
-		return defIO.doFeed(iopts, category.URL(), name, nil)
-	} else {
+	if len(opts) > 0 && opts[0] != nil {
 		inputsCollectLatencyVec.WithLabelValues(name, category.String()).Observe(float64(opts[0].CollectCost) / float64(time.Second))
 		return defIO.doFeed(iopts, category.URL(), name, opts[0])
+	} else {
+		return defIO.doFeed(iopts, category.URL(), name, nil)
 	}
 }
 
