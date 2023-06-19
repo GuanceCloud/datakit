@@ -197,8 +197,8 @@ func setupGinLogger() (gl io.Writer) {
 	return
 }
 
-func setVersionInfo(c *gin.Context) {
-	c.Header("X-DataKit", fmt.Sprintf("%s/%s", datakit.Version, git.BuildAt))
+func setDKInfo(c *gin.Context) {
+	c.Header("X-DataKit", fmt.Sprintf("%s/%s", datakit.Version, datakit.DatakitHostName))
 }
 
 func timeoutResponse(c *gin.Context) {
@@ -228,7 +228,7 @@ func setupRouter() *gin.Engine {
 		router.Use(getAPIWhiteListMiddleware())
 	}
 
-	router.Use(setVersionInfo)
+	router.Use(setDKInfo)
 
 	router.Use(gin.LoggerWithConfig(gin.LoggerConfig{
 		Formatter: uhttp.GinLogFormmatter,
