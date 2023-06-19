@@ -34,7 +34,8 @@ var (
 	// DatakitUserAgent define HTTP User-Agent header.
 	// user-agent format. See
 	// 	 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
-	DatakitUserAgent = fmt.Sprintf("datakit-%s-%s/%s", runtime.GOOS, runtime.GOARCH, git.Version)
+	DatakitUserAgent = fmt.Sprintf("datakit-%s-%s/%s/%s",
+		runtime.GOOS, runtime.GOARCH, git.Version, datakit.DatakitHostName)
 
 	httpFailRatio      = 0 // %n
 	httpFailStart      time.Time
