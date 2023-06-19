@@ -11,6 +11,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"net"
+	"net/url"
 	"os"
 	"reflect"
 	"strings"
@@ -458,6 +460,51 @@ func InputEnabled(name string) (n int) {
 
 	n = len(arr)
 	return
+}
+
+// MergeTags merge all optional tags from global tags/inputs config tags and host tags
+// from remote URL.
+func MergeTags(global, origin map[string]string, remote string) map[string]string {
+	out := map[string]string{}
+
+	for k, v := range origin {
+		out[k] = v
+	}
+
+	host := remote
+	if remote == "" {
+		goto end
+	}
+
+	// if 'host' exist in origin tags, ignore 'host' tag within remote
+	if _, ok := origin["host"]; ok {
+		goto end
+	}
+
+	// try get 'host' tag from remote URL.
+	if u, err := url.Parse(remote); err == nil && u.Host != "" { // like scheme://host:[port]/...
+		host = u.Host
+		if ip, _, err := net.SplitHostPort(u.Host); err == nil {
+			host = ip
+		}
+	} else { // not URL, only IP:Port
+		if ip, _, err := net.SplitHostPort(remote); err == nil {
+			host = ip
+		}
+	}
+
+	if host != "localhost" && !net.ParseIP(host).IsLoopback() {
+		out["host"] = host
+	}
+
+end: // global tags(host/election tags) got the lowest priority.
+	for k, v := range global {
+		if _, ok := out[k]; !ok {
+			out[k] = v
+		}
+	}
+
+	return out
 }
 
 func Init() {

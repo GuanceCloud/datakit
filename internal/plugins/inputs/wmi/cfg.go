@@ -31,30 +31,29 @@ const (
   interval = '5m'
 
   ##(optional) custom tags
-
-[inputs.wmi.tags]
+  [inputs.wmi.tags]
   key1 = "val1"
 
-[[inputs.wmi.query]]
-	##(required) the name of the WMI class.
-	see: https://docs.microsoft.com/en-us/previous-versions//aa394084(v=vs.85)?redirectedfrom=MSDN
-	class = 'Win32_LogicalDisk'
+  [[inputs.wmi.query]]
+    ##(required) the name of the WMI class.
+    ## see: https://docs.microsoft.com/en-us/previous-versions//aa394084(v=vs.85)?redirectedfrom=MSDN
+    class = 'Win32_LogicalDisk'
 
-	##(optional) collect interval of this class，use global interval if not set
-	interval='1m'
+    ##(optional) collect interval of this class，use global interval if not set
+    interval='1m'
 
-	##(required) property names of wmi class, you can optimally specify alias as field name.
-	metrics = [
-		['DeviceID'],
-		['FileSystem', 'disk_filesystem']
-	]
+    ##(required) property names of wmi class, you can optimally specify alias as field name.
+    metrics = [
+      ['DeviceID'],
+      ['FileSystem', 'disk_filesystem']
+    ]
 
-[[inputs.wmi.query]]
-	class = 'Win32_OperatingSystem'
-	metrics = [
-		['NumberOfProcesses', 'system_proc_count'],
-		['NumberOfUsers']
-	]
+  [[inputs.wmi.query]]
+    class = 'Win32_OperatingSystem'
+    metrics = [
+      ['NumberOfProcesses', 'system_proc_count'],
+      ['NumberOfUsers']
+    ]
 `
 )
 
