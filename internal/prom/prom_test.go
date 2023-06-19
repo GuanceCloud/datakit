@@ -51,8 +51,6 @@ type optionMock struct {
 	source  string
 	timeout time.Duration
 
-	// URL               string
-	// urls              []string
 	ignoreReqErr           bool
 	metricTypes            []string
 	metricNameFilter       []string
@@ -75,10 +73,8 @@ type optionMock struct {
 	ignoreTagKV map[string][]string // drop scraped prom data if tag key's value matched
 	httpHeaders map[string]string
 
-	tags               map[string]string
-	disableHostTag     bool
-	disableInstanceTag bool
-	disableInfoTag     bool
+	tags           map[string]string
+	disableInfoTag bool
 
 	auth map[string]string
 }
@@ -126,8 +122,6 @@ func createOpts(in *optionMock) []PromOption {
 		WithIgnoreTagKV(in.ignoreTagKV),
 		WithHTTPHeaders(in.httpHeaders),
 		WithTags(in.tags),
-		WithDisableHostTag(in.disableHostTag),
-		WithDisableInstanceTag(in.disableInstanceTag),
 		WithDisableInfoTag(in.disableInfoTag),
 		WithAuth(in.auth),
 	)
@@ -274,7 +268,6 @@ up 1
 			}
 
 			p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
-			p.opt.disableInstanceTag = true
 
 			pts, err := p.CollectFromHTTPV2(tc.u)
 			if tc.fail && assert.Error(t, err) {
@@ -863,7 +856,6 @@ up 1
 				t.Errorf("[%d] failed to init prom: %s", idx, err)
 			}
 			p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
-			p.opt.disableInstanceTag = true
 			points, err := p.CollectFromHTTPV2(tc.u)
 			if err != nil {
 				if tc.fail {
@@ -1183,7 +1175,6 @@ otel_scope_info{otel_scope_name="otlp-server"} 1
 			}
 
 			p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
-			p.opt.disableInstanceTag = true
 
 			points, err := p.CollectFromHTTPV2(tc.u)
 			if tc.fail && assert.Error(t, err) {
@@ -1288,7 +1279,6 @@ up 0
 			}
 
 			p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
-			p.opt.disableInstanceTag = true
 
 			points, err := p.CollectFromHTTPV2(tc.u)
 			if tc.fail && assert.Error(t, err) {
@@ -1433,7 +1423,6 @@ up 1
 			}
 
 			p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
-			p.opt.disableInstanceTag = true
 
 			pts, err := p.CollectFromHTTPV2(tc.u)
 			if tc.fail && assert.Error(t, err) {
@@ -1545,7 +1534,6 @@ etcd_debugging_disk_backend_commit_rebalance_duration_seconds_count 24920
 			}
 
 			p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
-			p.opt.disableInstanceTag = true
 
 			pts, err := p.CollectFromHTTPV2(tc.u)
 			if tc.fail && assert.Error(t, err) {
@@ -1700,7 +1688,6 @@ up 1
 			}
 
 			p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
-			p.opt.disableInstanceTag = true
 
 			pts, err := p.CollectFromHTTPV2(tc.u)
 			if tc.fail && assert.Error(t, err) {

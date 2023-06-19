@@ -12,6 +12,25 @@ var (
 	globalElectionTags = map[string]string{}
 )
 
+type GlobalTagger interface {
+	HostTags() map[string]string
+	ElectionTags() map[string]string
+}
+
+func DefaultGlobalTagger() GlobalTagger {
+	return &globalTaggerImpl{}
+}
+
+type globalTaggerImpl struct{}
+
+func (g *globalTaggerImpl) HostTags() map[string]string {
+	return GlobalHostTags()
+}
+
+func (g *globalTaggerImpl) ElectionTags() map[string]string {
+	return GlobalElectionTags()
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 func SetGlobalHostTags(k, v string) {

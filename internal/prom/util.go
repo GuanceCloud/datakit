@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"net"
-	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -171,14 +169,6 @@ func (p *Prom) tagKVMatched(tags map[string]string) bool {
 func (p *Prom) getTags(labels []*dto.LabelPair, measurementName string, u string) map[string]string {
 	tags := map[string]string{}
 
-	if !p.opt.disableHostTag {
-		setHostTagIfNotLoopback(tags, u)
-	}
-
-	if !p.opt.disableInstanceTag {
-		setInstanceTag(tags, u)
-	}
-
 	if !p.opt.disableInfoTag {
 		for k, v := range p.infoTags {
 			tags[k] = v
@@ -208,28 +198,6 @@ func (p *Prom) getTags(labels []*dto.LabelPair, measurementName string, u string
 	}
 
 	return tags
-}
-
-func setInstanceTag(tags map[string]string, u string) {
-	uu, err := url.Parse(u)
-	if err != nil {
-		return
-	}
-	tags["instance"] = uu.Host
-}
-
-func setHostTagIfNotLoopback(tags map[string]string, u string) {
-	uu, err := url.Parse(u)
-	if err != nil {
-		return
-	}
-	host, _, err := net.SplitHostPort(uu.Host)
-	if err != nil {
-		return
-	}
-	if host != "localhost" && !net.ParseIP(host).IsLoopback() {
-		tags["host"] = host
-	}
 }
 
 func (p *Prom) getTagsWithLE(labels []*dto.LabelPair, measurementName string, b *dto.Bucket) map[string]string {
@@ -342,6 +310,7 @@ func (p *Prom) text2Metrics(in io.Reader, u string) (pts []*point.Point, lastErr
 					fieldName: v,
 				}
 				if p.opt.asLogging != nil && p.opt.asLogging.Enable {
+					opts = point.DefaultLoggingOptions()
 					fields["status"] = statusInfo
 				}
 
