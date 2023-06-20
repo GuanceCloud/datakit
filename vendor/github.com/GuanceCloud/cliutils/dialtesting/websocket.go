@@ -332,6 +332,11 @@ func (t *WebsocketTask) Run() error {
 
 	header := t.getHeader()
 
+	if len(header.Get("Host")) == 0 {
+		// set default Host
+		header.Add("Host", t.hostname)
+	}
+
 	t.parsedURL.Host = net.JoinHostPort(hostIP.String(), t.parsedURL.Port())
 
 	if t.parsedURL.Scheme == "wss" {

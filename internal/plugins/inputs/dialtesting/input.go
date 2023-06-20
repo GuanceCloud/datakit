@@ -602,7 +602,7 @@ func (d *Input) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, int, error
 	case 2: // ok
 		return body, resp.StatusCode / 100, nil
 	default:
-		l.Warn("request %s failed(%s): %s", d.Server, resp.Status, string(body))
+		l.Warnf("request %s failed(%s): %s", d.Server, resp.Status, string(body))
 		if strings.Contains(string(body), `kodo.RegionNotFoundOrDisabled`) {
 			// stop all
 			d.stopAlltask()

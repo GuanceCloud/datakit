@@ -10,11 +10,11 @@ package dialtesting
 // date: Fri Feb  5 13:17:00 CST 2021
 
 import (
-	"bytes"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptrace"
@@ -310,6 +310,7 @@ func (t *HTTPTask) Run() error {
 	t.Clear()
 
 	var t1, connect, dns, tlsHandshake time.Time
+	var body io.Reader = nil
 
 	trace := &httptrace.ClientTrace{
 		DNSStart: func(dsi httptrace.DNSStartInfo) { dns = time.Now() },
@@ -342,7 +343,11 @@ func (t *HTTPTask) Run() error {
 		goto result
 	}
 
-	t.req, err = http.NewRequest(t.Method, reqURL.String(), nil)
+	if t.AdvanceOptions != nil && t.AdvanceOptions.RequestBody != nil && t.AdvanceOptions.RequestBody.Body != "" {
+		body = strings.NewReader(t.AdvanceOptions.RequestBody.Body)
+	}
+
+	t.req, err = http.NewRequest(t.Method, reqURL.String(), body)
 	if err != nil {
 		goto result
 	}
@@ -448,7 +453,11 @@ func (t *HTTPTask) setupAdvanceOpts(req *http.Request) error {
 	if opt.RequestOptions != nil {
 		// headers
 		for k, v := range opt.RequestOptions.Headers {
-			req.Header.Add(k, v)
+			if k == "Host" || k == "host" {
+				req.Host = v
+			} else {
+				req.Header.Add(k, v)
+			}
 		}
 
 		// cookie
@@ -469,9 +478,6 @@ func (t *HTTPTask) setupAdvanceOpts(req *http.Request) error {
 	if opt.RequestBody != nil {
 		if opt.RequestBody.BodyType != "" {
 			req.Header.Add("Content-Type", opt.RequestBody.BodyType)
-		}
-		if opt.RequestBody.Body != "" {
-			req.Body = ioutil.NopCloser(bytes.NewBuffer([]byte(opt.RequestBody.Body)))
 		}
 	}
 
