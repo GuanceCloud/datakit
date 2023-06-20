@@ -247,10 +247,6 @@ func getPodAnnotationState(labels map[string]string, meta *podMeta) podAnnotatio
 	var conf string
 	if meta.annotations() != nil && meta.annotations()[containerLogConfigKey] != "" {
 		conf = meta.annotations()[containerLogConfigKey]
-	} else {
-		globalCRDLogsConfList.mu.Lock()
-		conf = globalCRDLogsConfList.list[string(meta.UID)]
-		globalCRDLogsConfList.mu.Unlock()
 	}
 
 	logconf, err := parseContainerLogConfig(conf)

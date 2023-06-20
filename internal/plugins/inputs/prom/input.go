@@ -30,57 +30,57 @@ const (
 	inputName               = "prom"
 	catalog                 = "prom"
 	defaultIntervalDuration = time.Second * 30
-)
 
-// defaultMaxFileSize is the default max response body size, in bytes.
-// This field is used only when metrics are written to file, i.e. Output is configured.
-// If the size of response body is over defaultMaxFileSize, metrics will be discarded.
-// 32 MB.
-const defaultMaxFileSize int64 = 32 * 1024 * 1024
+	// defaultMaxFileSize is the default max response body size, in bytes.
+	// This field is used only when metrics are written to file, i.e. Output is configured.
+	// If the size of response body is over defaultMaxFileSize, metrics will be discarded.
+	// 32 MB.
+	defaultMaxFileSize int64 = 32 * 1024 * 1024
+)
 
 var l = logger.DefaultSLogger(inputName)
 
 type Input struct {
-	Source           string        `toml:"source" json:"source"`
+	Source           string        `toml:"source"`
 	Interval         time.Duration `toml:"interval"`
 	Timeout          time.Duration `toml:"timeout"`
 	ConnectKeepAlive time.Duration `toml:"-"`
 
 	URL                    string       `toml:"url,omitempty"` // Deprecated
-	URLs                   []string     `toml:"urls" json:"urls"`
-	IgnoreReqErr           bool         `toml:"ignore_req_err" json:"ignore_req_err"`
-	MetricTypes            []string     `toml:"metric_types" json:"metric_types"`
-	MetricNameFilter       []string     `toml:"metric_name_filter" json:"metric_name_filter"`
-	MetricNameFilterIgnore []string     `toml:"metric_name_filter_ignore" json:"metric_name_filter_ignore"`
-	MeasurementPrefix      string       `toml:"measurement_prefix" json:"measurement_prefix"`
-	MeasurementName        string       `toml:"measurement_name" json:"measurement_name"`
-	Measurements           []iprom.Rule `toml:"measurements" json:"measurements"`
-	Output                 string       `toml:"output" json:"output"`
-	MaxFileSize            int64        `toml:"max_file_size" json:"max_file_size"`
+	URLs                   []string     `toml:"urls"`
+	IgnoreReqErr           bool         `toml:"ignore_req_err"`
+	MetricTypes            []string     `toml:"metric_types"`
+	MetricNameFilter       []string     `toml:"metric_name_filter"`
+	MetricNameFilterIgnore []string     `toml:"metric_name_filter_ignore"`
+	MeasurementPrefix      string       `toml:"measurement_prefix"`
+	MeasurementName        string       `toml:"measurement_name"`
+	Measurements           []iprom.Rule `toml:"measurements"`
+	Output                 string       `toml:"output"`
+	MaxFileSize            int64        `toml:"max_file_size"`
 
-	TLSOpen    bool   `toml:"tls_open" json:"tls_open"`
-	UDSPath    string `toml:"uds_path" json:"uds_path"`
-	CacertFile string `toml:"tls_ca" json:"tls_ca"`
-	CertFile   string `toml:"tls_cert" json:"tls_cert"`
-	KeyFile    string `toml:"tls_key" json:"tls_key"`
+	TLSOpen    bool   `toml:"tls_open"`
+	UDSPath    string `toml:"uds_path"`
+	CacertFile string `toml:"tls_ca"`
+	CertFile   string `toml:"tls_cert"`
+	KeyFile    string `toml:"tls_key"`
 
-	TagsIgnore  []string            `toml:"tags_ignore" json:"tags_ignore"`
-	TagsRename  *iprom.RenameTags   `toml:"tags_rename" json:"tags_rename"`
-	AsLogging   *iprom.AsLogging    `toml:"as_logging" json:"as_logging"`
-	IgnoreTagKV map[string][]string `toml:"ignore_tag_kv_match" json:"ignore_tag_kv_match"`
-	HTTPHeaders map[string]string   `toml:"http_headers" json:"http_headers"`
+	TagsIgnore  []string            `toml:"tags_ignore"`
+	TagsRename  *iprom.RenameTags   `toml:"tags_rename"`
+	AsLogging   *iprom.AsLogging    `toml:"as_logging"`
+	IgnoreTagKV map[string][]string `toml:"ignore_tag_kv_match"`
+	HTTPHeaders map[string]string   `toml:"http_headers"`
 
-	Tags               map[string]string `toml:"tags" json:"tags"`
-	DisableHostTag     bool              `toml:"disable_host_tag" json:"disable_host_tag"`
-	DisableInstanceTag bool              `toml:"disable_instance_tag" json:"disable_instance_tag"`
-	DisableInfoTag     bool              `toml:"disable_info_tag" json:"disable_info_tag"`
+	Tags               map[string]string `toml:"tags"`
+	DisableHostTag     bool              `toml:"disable_host_tag"`
+	DisableInstanceTag bool              `toml:"disable_instance_tag"`
+	DisableInfoTag     bool              `toml:"disable_info_tag"`
 
-	Auth map[string]string `toml:"auth" json:"auth"`
+	Auth map[string]string `toml:"auth"`
 
 	pm     *iprom.Prom
 	Feeder io.Feeder
 
-	Election bool `toml:"election" json:"election"`
+	Election bool `toml:"election"`
 	chPause  chan bool
 	pause    bool
 
@@ -138,7 +138,7 @@ func (i *Input) Run() {
 		if i.pause {
 			i.l.Debug("prom paused")
 		} else {
-			if err := i.RunningCollect(); err != nil {
+			if err := i.collect(); err != nil {
 				i.l.Warn(err)
 			}
 		}
@@ -160,17 +160,7 @@ func (i *Input) Run() {
 	}
 }
 
-func (i *Input) GetIntervalDuration() time.Duration {
-	if !i.isInitialized {
-		if err := i.Init(); err != nil {
-			i.l.Infof("prom init error: %s", err)
-			return defaultIntervalDuration
-		}
-	}
-	return i.Interval
-}
-
-func (i *Input) RunningCollect() error {
+func (i *Input) collect() error {
 	if !i.isInitialized {
 		if err := i.Init(); err != nil {
 			return err
@@ -437,7 +427,7 @@ func NewProm() *Input {
 		chPause:     make(chan bool, maxPauseCh),
 		MaxFileSize: defaultMaxFileSize,
 		Source:      "prom",
-		Interval:    time.Second * 30,
+		Interval:    defaultIntervalDuration,
 		Timeout:     time.Second * 30,
 		Election:    true,
 		Tags:        make(map[string]string),

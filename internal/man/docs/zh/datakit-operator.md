@@ -46,13 +46,89 @@ datakit-operator-f948897fb-5w5nm   1/1     Running   0          15s
     - 如果出现 `InvalidImageName` 报错，可以手动 pull 镜像。
 <!-- markdownlint-enable -->
 
+### 相关配置 {#datakit-operator-jsonconfig}
+
+[:octicons-tag-24: Datakit Operator v1.2.1]
+
+Datakit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap 存放，以环境变量方式加载到容器中。
+
+默认配置如下：
+
+```json
+{
+    "server_listen": "0.0.0.0:9543",
+    "log_level":     "info",
+    "admission_inject": {
+        "ddtrace": {
+            "images": {
+                "java_agent_image":   "pubrepo.guance.com/datakit-operator/dd-lib-java-init:v1.8.4-guance",
+                "python_agent_image": "pubrepo.guance.com/datakit-operator/dd-lib-python-init:v1.6.2",
+                "js_agent_image":     "pubrepo.guance.com/datakit-operator/dd-lib-js-init:v3.9.2"
+            },
+            "envs": {
+                "DD_AGENT_HOST":           "datakit-service.datakit.svc",
+                "DD_TRACE_AGENT_PORT":     "9529",
+                "DD_JMXFETCH_STATSD_HOST": "datakit-service.datakit.svc",
+                "DD_JMXFETCH_STATSD_PORT": "8125"
+            }
+        },
+        "logfwd": {
+            "images": {
+                "logfwd_image": "pubrepo.guance.com/datakit/logfwd:1.5.8"
+            }
+        }
+    }
+}
+```
+
+其中，`admission_inject` 允许对 `ddtrace` 和 `logfwd` 做更精细的配置：
+
+- `images` 是多个 Key/Value，Key 是固定的，修改 Value 值实现自定义 image 路径。
+
+<!-- markdownlint-disable MD046 -->
+???+ info
+
+    Datakit Operator 的 `ddtrace` agent 镜像统一存放在 `pubrepo.guance.com/datakit-operator`，对于一些特殊环境可能不方便访问此镜像库，支持修改环境变量，指定镜像路径，方法如下：
+    
+    1. 在可以访问 `pubrepo.guance.com` 的环境中，pull 镜像 `pubrepo.guance.com/datakit-operator/dd-lib-java-init:v1.8.4-guance`，并将其转存到自己的镜像库，例如 `inside.image.hub/datakit-operator/dd-lib-java-init:v1.8.4-guance`
+    1. 修改 JSON 配置，将 `admission_inject`->`ddtrace`->`images`->`java_agent_image` 修改为 `inside.image.hub/datakit-operator/dd-lib-java-init:v1.8.4-guance`，应用此 yaml
+    1. 此后 Datakit Operator 会使用的新的 Java Agent 镜像路径
+    
+    **Datakit Operator 不检查镜像，如果该镜像路径错误，Kubernetes 在创建时会报错。**
+    
+    如果已经在 Annotation 的 `admission.datakit/java-lib.version` 指定了版本，例如 `admission.datakit/java-lib.version:v2.0.1-guance` 或 `admission.datakit/java-lib.version:latest`，会使用这个 `v2.0.1-guance` 版本。
+<!-- markdownlint-enable -->
+
+- `envs` 同样是多个 Key/Value，但是 Key 和 Value 不固定。Datakit Operator 会在目标容器中注入所有 Key/Value 环境变量。例如在 `envs` 中添加一个 `FAKE_ENV`：
+
+```json
+    "admission_inject": {
+        "ddtrace": {
+            "images": {
+                "java_agent_image":   "pubrepo.guance.com/datakit-operator/dd-lib-java-init:v1.8.4-guance",
+                "python_agent_image": "pubrepo.guance.com/datakit-operator/dd-lib-python-init:v1.6.2",
+                "js_agent_image":     "pubrepo.guance.com/datakit-operator/dd-lib-js-init:v3.9.2"
+            },
+            "envs": {
+                "DD_AGENT_HOST":           "datakit-service.datakit.svc",
+                "DD_TRACE_AGENT_PORT":     "9529",
+                "DD_JMXFETCH_STATSD_HOST": "datakit-service.datakit.svc",
+                "DD_JMXFETCH_STATSD_PORT": "8125",
+                "FAKE_ENV":                "ok"
+            }
+        }
+    }
+```
+
+所有注入 `ddtrace` agent 的容器，都会添加 `envs` 的 5 个环境变量。
+
 ## 使用 Datakit Operator 注入文件和程序 {#datakit-operator-inject-sidecar}
 
 在大型 Kubernetes 集群中，批量修改配置是比较麻烦的事情。Datakit-Operator 会根据 Annotation 配置，决定是否对其修改或注入。
 
 目前支持的功能有：
 
-- 注入 `dd-lib` 文件和 environment 的功能
+- 注入 `ddtrace` agent 和 environment 的功能
 - 挂载 `logfwd` sidecar 并开启日志采集的功能
 
 <!-- markdownlint-disable MD046 -->
@@ -61,12 +137,12 @@ datakit-operator-f948897fb-5w5nm   1/1     Running   0          15s
     只支持 v1 版本的 `deployments/daemonsets/cronjobs/jobs/statefulsets` 这五类 Kind，且因为 Datakit-Operator 实际对 PodTemplate 操作，所以不支持 Pod。 在本文中，以 `Deployment` 代替描述这五类 Kind。
 <!-- markdownlint-enable -->
 
-### 注入 dd-lib 文件和相关的环境变量 {#datakit-operator-inject-lib}
+### 注入 `ddtrace` agent 和相关的环境变量 {#datakit-operator-inject-lib}
 
 #### 使用说明 {#datakit-operator-inject-lib-usage}
 
 1. 在目标 Kubernetes 集群，[下载和安装 Datakit-Operator](datakit-operator.md#datakit-operator-inject-lib)
-2. 在 deployment 添加指定 Annotation，表示需要注入 dd-lib 文件。注意 Annotation 要添加在 template 中
+2. 在 deployment 添加指定 Annotation，表示需要注入 `ddtrace` 文件。注意 Annotation 要添加在 template 中
     - key 是 `admission.datakit/%s-lib.version`，%s 需要替换成指定的语言，目前支持 `java`、`python` 和 `js`
     - value 是指定版本号。如果为空，将使用环境变量的默认镜像版本
 
@@ -118,28 +194,6 @@ kubectl get pod nginx-deployment-7bd8dd85f-fzmt2 -o=jsonpath={.spec.initContaine
 
 datakit-lib-init
 ```
-
-#### 相关配置 {#datakit-operator-inject-lib-configurations}
-
-Datakit-Operator 支持以下的环境变量配置（在 *datakit-operator.yaml* 中修改）：
-
-| 环境变量名                  | 默认值                                                                  | 配置项含义              |
-| :----                       | :----                                                                   | :----                   |
-| `ENV_DD_JAVA_AGENT_IMAGE`   | `pubrepo.jiagouyun.com/datakit-operator/dd-lib-java-init:v1.8.4-guance` | Java lib 镜像路径       |
-| `ENV_DD_PYTHON_AGENT_IMAGE` | `pubrepo.jiagouyun.com/datakit-operator/dd-lib-python-init:v1.6.2`      | Python lib 镜像路径     |
-| `ENV_DD_JS_AGENT_IMAGE`     | `pubrepo.jiagouyun.com/datakit-operator/dd-lib-js-init:v3.9.2`          | Js lib 镜像路径         |
-| `ENV_DD_AGENT_HOST`         | `datakit-service.datakit.svc`                                           | 指定接收端 Datakit 地址 |
-| `ENV_DD_TRACE_AGENT_PORT`   | `"9529"`                                                                | 指定接收端 Datakit 端口 |
-
-**Datakit-Operator 不检查镜像，如果该镜像路径错误，Kubernetes 在创建时会报错。**
-
-Datakit-Operator 的 dd-lib 镜像统一存放在 `pubrepo.jiagouyun.com/datakit-operator`，对于一些特殊环境可能不方便访问此镜像库，支持修改环境变量，指定镜像路径，方法如下：
-
-1. 在可以访问 `pubrepo.jiagouyun.com` 的环境中，pull 镜像 `pubrepo.jiagouyun.com/datakit-operator/dd-lib-java-init:v1.8.4-guance`，并将其转存到自己的镜像库，例如 `inside.image.hub/datakit-operator/dd-lib-java-init:v1.8.4-guance`
-2. 修改 *datakit-operator.yaml*，将环境变量 `ENV_DD_JAVA_AGENT_IMAGE` 修改为 `inside.image.hub/datakit-operator/dd-lib-java-init:v1.8.4-guance`，应用此 yaml
-3. 此后 Datakit-Operator 会使用的新的 Java lib 镜像路径
-
-> 如果已经在 Annotation 的 `admission.datakit/java-lib.version` 指定了版本，例如 `admission.datakit/java-lib.version:v2.0.1-guance` 或 `admission.datakit/java-lib.version:latest`，会使用这个版本。
 
 ### 注入 logfwd 程序并开启日志采集 {#datakit-operator-inject-logfwd}
 
@@ -240,14 +294,6 @@ $ log-container datakit-logfwd
 ```
 
 最终可以在观测云日志平台查看日志是否采集。
-
-#### 相关配置 {#datakit-operator-inject-logfwd-configurations}
-
-Datakit Operator 支持以下的环境变量（在 *datakit-operator.yaml* 中修改）：
-
-| 环境变量名         | 默认值                                       | 配置项含义      |
-| :----              | :----                                        | :----           |
-| `ENV_LOGFWD_IMAGE` | `pubrepo.jiagouyun.com/datakit/logfwd:1.5.8` | logfwd 镜像路径 |
 
 ---
 
