@@ -283,7 +283,7 @@ sudo datakit install --symbol-tools
 ---
 
 <!-- markdownlint-disable MD046 -->
-??? info+ "RUM Headless 说明"
+???+ attention "RUM Headless 说明"
 
     对于 [RUM Headless](../dataflux-func/headless.md) 用户，可以直接在页面上上传压缩包即可，无需执行下面的文件上传和删除操作。
 <!-- markdownlint-enable -->
