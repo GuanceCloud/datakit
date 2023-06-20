@@ -67,7 +67,7 @@ The characteristic of this form is that the log is sent directly to DataKit, and
 
 - If the log type (`source/service`) of TCP type log push is varied, it is necessary to open multiple TCP ports on DataKit.
 
-> If you want to open only a single (or a few) TCP ports on the DataKit, you need to identify the characteristics of the cut fields in the subsequent [Pipeline](../developers/pipeline.md) processing, and mark their `service` through the function [`set_tag()`](../developers/pipeline.md#fn-set-tag) (the `source` field of the log cannot be modified at present, and this function is only [supported by versions above 1.2.8](changelog.md#cl-1.2.8)）。
+> If you want to open only a single (or a few) TCP ports on the DataKit, you need to identify the characteristics of the cut fields in the subsequent [Pipeline](../developers/pipeline/index.md) processing, and mark their `service` through the function [`set_tag()`](../developers/pipeline/pipeline-built-in-function.md#fn-set-tag) (the `source` field of the log cannot be modified at present, and this function is only [supported by versions above 1.2.8](changelog.md#cl-1.2.8)）。
 
 - For HTTP log push, developers need to [mark the characteristics on the HTTP request parameters](logstreaming.md#args), which is convenient for DataKit to do subsequent processing.
 

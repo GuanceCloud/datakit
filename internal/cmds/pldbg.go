@@ -26,6 +26,8 @@ import (
 	plremote "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/remote"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/script"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/targzutil"
+
+	clipt "github.com/GuanceCloud/cliutils/point"
 )
 
 func runPLFlags() error {
@@ -62,6 +64,7 @@ func pipelineDebugger(category, plname, ns, txt string, isPt bool) error {
 	if err != nil {
 		return err
 	}
+	cat := clipt.CatURL(category)
 
 	if err := pipeline.Init(config.Cfg.Pipeline); err != nil {
 		return err
@@ -77,7 +80,7 @@ func pipelineDebugger(category, plname, ns, txt string, isPt bool) error {
 		}
 	}
 
-	scriptTmpStore, errScripts := plScriptTmpStore(category)
+	scriptTmpStore, errScripts := plScriptTmpStore(cat)
 
 	if m, ok := errScripts[ns]; ok {
 		if e, ok := m[plname]; ok {
@@ -128,7 +131,7 @@ func pipelineDebugger(category, plname, ns, txt string, isPt bool) error {
 
 	res, dropFlag, err := (&pipeline.Pipeline{
 		Script: plScript,
-	}).Run(pt, nil, opt, nil)
+	}).Run(cat, pt, nil, opt, nil)
 	if err != nil {
 		return fmt.Errorf("run pipeline failed: %w", err)
 	}
@@ -201,7 +204,7 @@ func pipelineDebugger(category, plname, ns, txt string, isPt bool) error {
 	return nil
 }
 
-func plScriptTmpStore(category string) (*script.ScriptStore, map[string]map[string]error) {
+func plScriptTmpStore(category clipt.Category) (*script.ScriptStore, map[string]map[string]error) {
 	store := script.NewScriptStore(category)
 
 	errs := map[string]map[string]error{}
@@ -223,10 +226,10 @@ func plScriptTmpStore(category string) (*script.ScriptStore, map[string]map[stri
 		plPath := filepath.Join(datakit.PipelineRemoteDir, plremote.GetConentFileName())
 		if tarMap, err := targzutil.ReadTarToMap(plPath); err == nil {
 			allCategory := plremote.ConvertContentMapToThreeMap(tarMap)
-			scripts := allCategory[datakit.CategoryDirName()[category]]
+			scripts := allCategory[datakit.CategoryDirName()[category.String()]]
 			scriptsPath := map[string]string{}
 			for k := range scripts {
-				scriptsPath[k] = filepath.Join(plPath, category, k)
+				scriptsPath[k] = filepath.Join(plPath, category.String(), k)
 			}
 			errs[ns] = store.UpdateScriptsWithNS(ns, scripts, scriptsPath)
 		}

@@ -201,10 +201,12 @@ For string/bool/string-list/duration, it is recommended to use double quotation 
 
 ###  Something about DataKit pprof {#env-pprof}
 
-| Environment Variable Name       | Type   | Default Value | Required   | Description                |
-| :---------         | :----  | :---   | :----- | :---                |
-| `ENV_ENABLE_PPROF` | bool   | -      | No     | Whether to start `pprof`    |
-| `ENV_PPROF_LISTEN` | string | None     | No     | `pprof` service listening address |
+| Environment Variable Name | Type   | Default Value | Required | Description                       |
+| :---------                | :----  | :---          | :-----   | :---                              |
+| `ENV_ENABLE_PPROF`        | bool   | -             | No       | Whether to start `pprof`          |
+| `ENV_PPROF_LISTEN`        | string | None          | No       | `pprof` service listening address |
+
+> `ENV_ENABLE_PPROF`: [:octicons-tag-24: Version-1.9.2](changelog.md#cl-1.9.2) enabled pprof by default.
 
 ### Election-related Environmental Variables {#env-elect}
 
@@ -214,7 +216,7 @@ For string/bool/string-list/duration, it is recommended to use double quotation 
 | `ENV_NAMESPACE`                     | string      | `default` | No     | The namespace in which the DataKit resides, which defaults to null to indicate that it is namespace-insensitive and accepts any non-null string, such as `dk-namespace-example`. If the election is turned on, you can specify the workspace through this environment variable.                                        |
 | `ENV_ENABLE_ELECTION_NAMESPACE_TAG` | bool        | -         | No     | When this option is turned on, all election classes are collected with an extra tag of `election_namespace=<your-election-namespace>`, which may result in some timeline growth. ([:octicons-tag-24: Version-1.4.7](changelog.md#cl-1.4.7)) |
 | `ENV_GLOBAL_ELECTION_TAGS`          | string-list |         | No     | Tags are elected globally, and multiple tags are divided by English commas, such as `tag1=val,tag2=val2`. ENV_GLOBAL_ENV_TAGS will be discarded.                                                                                           |
-| `ENV_CLUSTER_NAME_K8S`              | string      | -         | No     | The cluster name in which the Datakit residers, if the cluster is not empty, a specified tag will be added to `global_election_tags`, the key is `cluster_name_k8s` and the value is the environment variable. ([:octicons-tag-24: Version-1.5.8](changelog.md#cl-1.5.8))               |
+| `ENV_CLUSTER_NAME_K8S`              | string      | -         | No     | The cluster name in which the Datakit residers, if the cluster is not empty, a specified tag will be added to [global election tags](election.md#global-tags), the key is `cluster_name_k8s` and the value is the environment variable. ([:octicons-tag-24: Version-1.5.8](changelog.md#cl-1.5.8))               |
 
 ### HTTP/API Related Environment Variables {#env-http-api}
 
@@ -341,6 +343,8 @@ DK_SINKER="[ { \"categories\": [\"L\", \"M\"], \"filters\": [ \"{measurement='cp
 | `ENV_HOSTNAME`                  | string   | None     | No     | The default is the local host name, which can be specified at installation time, such as, `dk-your-hostname`    |
 | `ENV_IPDB`                      | string   | None     | No     | Specify the IP repository type, currently only supports `iploc/geolite2`      |
 | `ENV_ULIMIT`                    | int      | None     | No     | Specify the maximum number of open files for Datakit                            |
+| `ENV_PIPELINE_OFFLOAD_RECEIVER` | string| `datakit-http`| false | Set offload receiver |
+| `ENV_PIPELINE_OFFLOAD_ADDRESSES`|string| None      | false    | Set offload addresses|
 
 ### Special Environment Variable {#env-special}
 

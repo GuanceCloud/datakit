@@ -39,10 +39,8 @@ type option struct {
 	ignoreTagKV map[string][]*regexp.Regexp // drop scraped prom data if tag key's value matched
 	httpHeaders map[string]string
 
-	tags               map[string]string
-	disableHostTag     bool
-	disableInstanceTag bool
-	disableInfoTag     bool
+	tags           map[string]string
+	disableInfoTag bool
 
 	auth map[string]string
 
@@ -110,10 +108,6 @@ func WithHTTPHeaders(m map[string]string) PromOption {
 	return func(opt *option) { opt.httpHeaders = m }
 }
 func WithTags(m map[string]string) PromOption { return func(opt *option) { opt.tags = m } }
-func WithDisableHostTag(b bool) PromOption    { return func(opt *option) { opt.disableHostTag = b } }
-func WithDisableInstanceTag(b bool) PromOption {
-	return func(opt *option) { opt.disableInstanceTag = b }
-}
 func WithDisableInfoTag(b bool) PromOption    { return func(opt *option) { opt.disableInfoTag = b } }
 func WithAuth(m map[string]string) PromOption { return func(opt *option) { opt.auth = m } }
 func WithLogger(l *logger.Logger) PromOption  { return func(opt *option) { opt.l = l } }

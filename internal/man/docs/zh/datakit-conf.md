@@ -24,7 +24,7 @@ Datakit 主配置示例如下，我们可以根据该示例来开启各种功能
 <!-- markdownlint-disable MD046 -->
 ??? info "*datakit.conf*"
 
-    ```toml
+    ```toml linenums="1"
     {{ CodeBlock .DatakitConfSample 4 }}
     ```
 <!-- markdownlint-enable -->
@@ -84,19 +84,20 @@ DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基
 
 [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)
 
-DataKit 允许给其采集的所有数据配置全局标签，全局标签分为两类：
+Datakit 允许给其采集的所有数据配置全局标签，全局标签分为两类：
 
-- 主机类全局变量：采集的数据跟当前主机息息相关，比如 CPU/内存等指标数据
-- 环境类全局变量：采集的数据来自某个公共实体，比如 MySQL/Redis 等，这些采集一般都参与选举，故这些数据上不会带上主机相关的全局 tag
+- 主机类全局标签：采集的数据跟当前主机绑定，比如 CPU/内存等指标数据
+- 选举类全局标签：采集的数据来自某个公共（远程）实体，比如 MySQL/Redis 等，这些采集一般都参与选举，故这些数据上不会带上当前主机相关的标签
 
 ```toml
 [global_host_tags]
-  ip         = "__datakit_ip"
-  host       = "__datakit_hostname"
+  ip   = "__datakit_ip"
+  host = "__datakit_hostname"
 
-[global_election_tags]
-  project = "my-project"
-  cluster = "my-cluster"
+[election]
+  [election.tags]
+    project = "my-project"
+    cluster = "my-cluster"
 ```
 
 加全局 Tag 时，有几个地方要注意：
@@ -107,9 +108,9 @@ DataKit 允许给其采集的所有数据配置全局标签，全局标签分为
     - `__datakit_hostname/$datakit_hostname`：标签值会设置成 DataKit 的主机名
 
 - 由于 [DataKit 数据传输协议限制](apis.md#lineproto-limitation)，不要在全局标签（Tag）中出现任何指标（Field）字段，否则会因为违反协议导致数据处理失败。具体参见具体采集器的字段列表。当然，也不要加太多 Tag，而且每个 Tag 的 Key 以及 Value 长度都有限制。
-
-- 如果被采集上来的数据中，本来就带有同名的 Tag，那么 DataKit 不会再追加这里配置的全局 Tag。
-- 即使 `global_host_tags` 不配置任何全局 Tag，DataKit 仍然会在所有数据上尝试添加一个 `host=$HOSTNAME` 的全局 Tag。
+- 如果被采集上来的数据中，本来就带有同名的 Tag，那么 DataKit 不会再追加这里配置的全局 Tag
+- 即使 `global_host_tags` 不配置任何全局 Tag，DataKit 仍然会在所有数据上尝试添加一个 `host=$HOSTNAME` 的全局 Tag
+- 这俩类全局标签是可以有交集的，比如都可以在其中设置一个 `project = "my-project"` 的标签
 
 ### 全局 Tag 在远程采集时的设置 {#notice-global-tags}
 

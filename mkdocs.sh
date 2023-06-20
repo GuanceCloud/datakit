@@ -82,7 +82,7 @@ shift $((OPTIND-1))
 
 # detect workdir
 if [ ! -d $mkdocs_dir ]; then
-	mkdir -p ${mkdocs_dir}/docs/{datakit,developers}
+	mkdir -p ${mkdocs_dir}/docs/{datakit,developers,developers/pipeline}
 fi
 
 # if -v not set...
@@ -115,6 +115,7 @@ rm -rf $tmp_doc_dir/*
 for _lang in "${i18n[@]}"; do
 	mkdir -p $base_docs_dir/${_lang}/datakit \
 		$base_docs_dir/${_lang}/developers \
+		$base_docs_dir/${_lang}/developers/pipeline \
 		$tmp_doc_dir/${_lang}
 	done
 
@@ -166,14 +167,14 @@ for _lang in "${i18n[@]}"; do
 	# copy .pages
 	printf "${GREEN}> Copy pages(%s) to repo datakit ...${CLR}\n" $_lang
 	cp internal/man/docs/$_lang/datakit.pages $base_docs_dir/$_lang/datakit/.pages
+	cp internal/man/docs/$_lang/pipeline/pl.pages $base_docs_dir/$_lang/developers/pipeline/.pages
+
+	cp internal/man/developers-$_lang.pages $base_docs_dir/$_lang/developers/.pages
 
 	# move specific docs to developers
 	printf "${GREEN}> Copy docs(%s) to repo developers ...${CLR}\n" $_lang
 	cp $tmp_doc_dir/${_lang}/pythond.md                ${base_docs_dir}/$_lang/developers
-	cp $tmp_doc_dir/${_lang}/pipeline.md               ${base_docs_dir}/$_lang/developers
-	cp $tmp_doc_dir/${_lang}/datakit-pl-global.md      ${base_docs_dir}/$_lang/developers
-	cp $tmp_doc_dir/${_lang}/datakit-pl-how-to.md      ${base_docs_dir}/$_lang/developers
-	cp $tmp_doc_dir/${_lang}/datakit-refer-table.md    ${base_docs_dir}/$_lang/developers
+	cp -r $tmp_doc_dir/${_lang}/pipeline/.               ${base_docs_dir}/$_lang/developers/pipeline/
 
 	# copy specific docs to datakit
 	printf "${GREEN}> Copy docs(%s) to repo datakit ...${CLR}\n" $_lang

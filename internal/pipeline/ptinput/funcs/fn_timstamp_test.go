@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput"
 )
@@ -74,15 +75,15 @@ func TestTimestamp(t *testing.T) {
 				return
 			}
 
-			pt := ptinput.GetPoint()
-			ptinput.InitPt(pt, "test", nil, map[string]any{"message": tc.in}, time.Now())
+			pt := ptinput.NewPlPoint(
+				point.Logging, "test", nil, map[string]any{"message": tc.in}, time.Now())
 			errR := runScript(runner, pt)
 
 			if errR != nil {
-				ptinput.PutPoint(pt)
-				t.Fatal(errR)
+				t.Fatal(errR.Error())
 			}
-			v := pt.Fields[tc.outkey]
+
+			v, _, _ := pt.Get(tc.outkey)
 			ts_act, ok := v.(int64)
 			if !ok {
 				t.Fatalf("type of %s is not int64", tc.outkey)
@@ -94,7 +95,6 @@ func TestTimestamp(t *testing.T) {
 				t.Fatal("undefined action")
 			}
 			t.Logf("[%d] PASS", idx)
-			ptinput.PutPoint(pt)
 		})
 	}
 }

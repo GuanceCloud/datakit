@@ -154,7 +154,7 @@ func (buk *bucket) startScan() {
 			case <-ticker.C:
 				buk.Lock()
 				pts := endAgg(buk)
-				if buk.uploadFn != nil {
+				if len(pts) > 0 && buk.uploadFn != nil {
 					_ = buk.uploadFn(buk.bukName, pts)
 				}
 				buk.Unlock()

@@ -22,6 +22,21 @@ func TestUpgradeMainConfig(t *testing.T) {
 		expect *config.Config
 	}{
 		{
+			name: "upgrade-enable-pprof",
+			old: func() *config.Config {
+				c := config.DefaultConfig()
+				c.EnablePProf = false
+				c.PProfListen = ""
+				return c
+			}(),
+
+			expect: func() *config.Config {
+				c := config.DefaultConfig()
+				return c
+			}(),
+		},
+
+		{
 			name: "upgrade-http-timeout",
 			old: func() *config.Config {
 				c := config.DefaultConfig()

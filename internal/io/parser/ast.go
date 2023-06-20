@@ -856,18 +856,18 @@ func (d *DeleteFunc) Pos() *PositionRange {
 }
 
 type Evaluable interface {
-	Eval(tags map[string]string, fields map[string]interface{}) bool
+	Eval(data KVs) bool
 }
 
 type WhereCondition struct {
 	conditions []Node
 }
 
-func (x *WhereCondition) Eval(tags map[string]string, fields map[string]interface{}) bool {
+func (x *WhereCondition) Eval(data KVs) bool {
 	for _, c := range x.conditions {
 		switch expr := c.(type) {
 		case *BinaryExpr:
-			if !expr.Eval(tags, fields) {
+			if !expr.Eval(data) {
 				return false
 			}
 
@@ -909,13 +909,11 @@ func (x WhereConditions) String() string {
 	return strings.Join(arr, "; ")
 }
 
-func (x WhereConditions) Eval(tags map[string]string,
-	fields map[string]interface{},
-) bool {
+func (x WhereConditions) Eval(data KVs) bool {
 	for _, item := range x {
 		switch c := item.(type) {
 		case *WhereCondition:
-			if c.Eval(tags, fields) {
+			if c.Eval(data) {
 				return true
 			}
 

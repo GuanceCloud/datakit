@@ -45,7 +45,7 @@ github.com/DataDog/sketches-go/ddsketch/store
 # github.com/DataDog/zstd v1.4.1
 ## explicit
 github.com/DataDog/zstd
-# github.com/GuanceCloud/cliutils v0.1.2-0.20230609061202-c0f026d17479
+# github.com/GuanceCloud/cliutils v0.1.2-0.20230620100236-b87195f3dd90
 ## explicit; go 1.18
 github.com/GuanceCloud/cliutils
 github.com/GuanceCloud/cliutils/dialtesting
@@ -79,7 +79,7 @@ github.com/GuanceCloud/confd/util
 # github.com/GuanceCloud/grok v1.1.2
 ## explicit; go 1.18
 github.com/GuanceCloud/grok
-# github.com/GuanceCloud/platypus v0.2.3
+# github.com/GuanceCloud/platypus v0.2.4
 ## explicit; go 1.18
 github.com/GuanceCloud/platypus/internal/logger
 github.com/GuanceCloud/platypus/pkg/ast

@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/GuanceCloud/cliutils/point"
 )
 
 type ScriptChangeEvent struct {
@@ -60,7 +62,7 @@ func (event *ScriptChangeEvent) Read() []ChangeEvent {
 
 type ChangeEvent struct {
 	Name              string
-	Category          string
+	Category          point.Category
 	NS, NSOld         string
 	Script, ScriptOld string
 

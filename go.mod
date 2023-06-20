@@ -8,10 +8,10 @@ require (
 	github.com/DataDog/datadog-go v4.8.3+incompatible
 	github.com/DataDog/ebpf v0.0.0-20210419131141-ea64821c9793
 	github.com/DataDog/gopsutil v1.1.0
-	github.com/GuanceCloud/cliutils v0.1.2-0.20230609061202-c0f026d17479
+	github.com/GuanceCloud/cliutils v0.1.2-0.20230620100236-b87195f3dd90
 	github.com/GuanceCloud/confd v0.1.101
 	github.com/GuanceCloud/grok v1.1.2
-	github.com/GuanceCloud/platypus v0.2.3
+	github.com/GuanceCloud/platypus v0.2.4
 	github.com/GuanceCloud/timeout v0.0.0-20230216045952-48442c6fb747
 	github.com/Shopify/sarama v1.38.1
 	github.com/aliyun/aliyun-oss-go-sdk v2.2.6+incompatible

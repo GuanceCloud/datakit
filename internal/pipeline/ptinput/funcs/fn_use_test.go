@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/GuanceCloud/platypus/pkg/inimpl/guancecloud/input"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput"
@@ -58,19 +59,17 @@ func TestUse(t *testing.T) {
 	}
 
 	for _, name := range ret[0] {
-		pt := ptinput.GetPoint()
-		ptinput.InitPt(pt, "default", map[string]string{"ax": "1"}, nil, timenow)
+		pt := ptinput.NewPlPoint(
+			point.Network, "default", map[string]string{"ax": "1"}, nil, timenow)
+
 		errR := runScript(ret1[name], pt)
 
 		if errR != nil {
-			ptinput.PutPoint(pt)
 			t.Fatal(errR)
 		}
-		assert.Equal(t, retCheck.Tags, pt.Tags)
-		assert.Equal(t, retCheck.Fields, pt.Fields)
-		assert.Equal(t, retCheck.Drop, pt.Drop)
-		assert.Equal(t, retCheck.Measurement, pt.Name)
-
-		ptinput.PutPoint(pt)
+		assert.Equal(t, retCheck.Tags, pt.Tags())
+		assert.Equal(t, retCheck.Fields, pt.Fields())
+		assert.Equal(t, retCheck.Drop, pt.Dropped())
+		assert.Equal(t, retCheck.Measurement, pt.GetPtName())
 	}
 }

@@ -94,6 +94,9 @@ func init() {
 	flag.StringVar(&installer.Proxy, "proxy", "", "http proxy http://ip:port for datakit")
 	flag.StringVar(&installer.DatakitName, "name", "", "specify DataKit name, example: prod-env-datakit")
 	flag.StringVar(&installer.EnableInputs, "enable-inputs", "", "default enable inputs(comma splited, example:cpu,mem,disk)")
+	flag.StringVar(&installer.HTTPPublicAPIs, "http-public-apis", "", "set which apis can be access by remote, split by comma.")
+	flag.StringVar(&installer.HTTPDisabledAPIs, "http-disabled-apis", "", "set which apis are disallowed access by remote, split by comma.")
+	flag.IntVar(&installer.InstallRUMSymbolTools, "install-rum-symbol-tools", 0, "whether to install RUM source map tools")
 	flag.BoolVar(&installer.OTA, "ota", false, "auto update")
 	flag.StringVar(&installer.InstallExternals, "install-externals", "", "install some external inputs")
 
@@ -154,7 +157,6 @@ func init() {
 	flag.StringVar(&installer.GinLog, "gin-log", "", "gin log setting")
 
 	// pprof flags
-	flag.StringVar(&installer.EnablePProf, "enable-pprof", "", "enable pprof")
 	flag.StringVar(&installer.PProfListen, "pprof-listen", "", "pprof listen")
 
 	// sinker flags

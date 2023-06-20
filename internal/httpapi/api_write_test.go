@@ -30,7 +30,7 @@ func BenchmarkHandleWriteBody(b *testing.B) {
 abc,t1=b,t2=d f1=123,f2=3.4,f3="strval" 1624550216`)
 
 	for n := 0; n < b.N; n++ {
-		if _, err := handleWriteBody(body, false, point.WithPrecision(point.S)); err != nil {
+		if _, err := HandleWriteBody(body, false, point.WithPrecision(point.S)); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -54,7 +54,7 @@ func BenchmarkHandleJSONWriteBody(b *testing.B) {
 			]`)
 
 	for n := 0; n < b.N; n++ {
-		if _, err := handleWriteBody(body, true, point.WithPrecision(point.S)); err != nil {
+		if _, err := HandleWriteBody(body, true, point.WithPrecision(point.S)); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -223,7 +223,7 @@ m1 f1=1i,f2="abc" 123`),
 				return
 			}
 
-			pts, err := handleWriteBody(tc.body, tc.js, tc.opts...)
+			pts, err := HandleWriteBody(tc.body, tc.js, tc.opts...)
 
 			if tc.fail {
 				assert.Error(t, err, "case[%d] expect fail, but ok", i)

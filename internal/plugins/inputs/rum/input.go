@@ -8,22 +8,26 @@ package rum
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/metrics"
 	"github.com/gobwas/glob"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
@@ -117,6 +121,7 @@ type Input struct {
 	WPConfig               *workerpool.WorkerPoolConfig `toml:"threads"`
 	LocalCacheConfig       *storage.StorageConfig       `toml:"storage"`
 	CDNMap                 string                       `toml:"cdn_map"`
+	feeder                 dkio.Feeder
 }
 
 type CDN struct {
@@ -347,48 +352,77 @@ func (ipt *Input) loadCDNListConf() error {
 	return nil
 }
 
-func lookupCDNNameForeach(cname string) (string, error) {
-	for domain, cdn := range CDNList.literal {
-		if strings.Contains(domain, strings.ToLower(cname)) {
-			return cdn.Name, nil
-		}
-	}
-	for pattern, cdn := range CDNList.glob {
-		if (*pattern).Match(cname) {
-			return cdn.Name, nil
-		}
-	}
-	return "", fmt.Errorf("unable to resolve cdn name for domain: %s", cname)
-}
-
-func lookupCDNName(domain string) (string, string, error) {
-	cname, err := net.LookupCNAME(domain)
-	if err != nil {
-		return "", "", fmt.Errorf("net.LookupCNAME(%s): %w", domain, err)
-	}
-	cname = strings.TrimRight(cname, ".")
-
-	segments := strings.Split(cname, ".")
-
-	// O(1)
-	if len(segments) >= 2 {
-		secondLevel := segments[len(segments)-2] + "." + segments[len(segments)-1]
-		if cdn, ok := CDNList.literal[secondLevel]; ok {
-			return cname, cdn.Name, nil
-		}
-	}
-
-	// O(n)
-	cdnName, err := lookupCDNNameForeach(cname)
-	return cname, cdnName, err
-}
-
 func (ipt *Input) Run() {
 	log.Infof("### RUM agent serving on: %+#v", ipt.Endpoints)
+
+	metrics.MustRegister(ClientRealIPCounter, sourceMapCount, loadedZipGauge, sourceMapDurationSummary)
+
+	if err := extractArchives(true); err != nil {
+		log.Errorf("init extract zip archives encounter err: %s", err)
+	}
 
 	if err := loadSourcemapFile(); err != nil {
 		log.Warnf("load source map file failed: %s", err.Error())
 	}
+
+	group := goroutine.NewGroup(goroutine.Option{
+		Name: "rum",
+		PanicCb: func(b []byte) bool {
+			log.Error(string(b))
+			return false
+		},
+		PanicTimes: 3,
+	})
+	group.Go(func(ctx context.Context) error {
+		tick := time.NewTicker(time.Minute * 3)
+		defer tick.Stop()
+		for {
+			select {
+			case <-datakit.Exit.Wait():
+				return nil
+			case <-tick.C:
+				if err := extractArchives(false); err != nil {
+					log.Errorf("extract zip archives encounter err: %s", err)
+				}
+
+				sourceMapDirs := getWebSourceMapDirs()
+
+				var webSourcemapCacheFile map[string]struct{}
+				func() {
+					webSourcemapLock.RLock()
+					defer webSourcemapLock.RUnlock()
+					webSourcemapCacheFile = make(map[string]struct{}, len(webSourcemapCache))
+					for file := range webSourcemapCache {
+						webSourcemapCacheFile[file] = struct{}{}
+					}
+				}()
+
+				func() {
+					for webDir := range sourceMapDirs {
+						archives, err := scanArchives(webDir)
+						if err != nil {
+							log.Warnf("unable to find zip archive in dir [%s]: %s", webDir, err)
+							return
+						}
+
+						for _, archive := range archives {
+							delete(webSourcemapCacheFile, filepath.Base(archive.Filepath))
+						}
+					}
+
+					// delete removed zip archive from cache
+					if len(webSourcemapCacheFile) > 0 {
+						removedFiles := make([]string, 0, len(webSourcemapCacheFile))
+						for file := range webSourcemapCacheFile {
+							removedFiles = append(removedFiles, file)
+						}
+						deleteSourcemapCache(removedFiles...)
+					}
+					webSourcemapCacheFile = nil
+				}()
+			}
+		}
+	})
 
 	if ipt.CDNMap != "" {
 		if err := ipt.loadCDNListConf(); err != nil {
@@ -415,6 +449,8 @@ func (*Input) Terminate() {
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{}
+		return &Input{
+			feeder: dkio.DefaultFeeder(),
+		}
 	})
 }

@@ -1,7 +1,4 @@
 nav:
  - 'Pythond ': pythond.md
- - 'Text Data Processing':
-    - 'Pipeline Manual': pipeline.md
-    - datakit-pl-how-to.md
-    - datakit-pl-global.md
-    - datakit-refer-table.md
+ - 'Pipeline Data Processor': pipeline
+ 

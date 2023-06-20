@@ -38,10 +38,88 @@ NAME                               READY   STATUS    RESTARTS   AGE
 datakit-operator-f948897fb-5w5nm   1/1     Running   0          15s
 ```
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     - There is a strict correspondence between Datakit-Operator's program and yaml files. If an outdated yaml file is used, it may not be possible to install the new version of Datakit-Operator. Please download the latest yaml file.
     - If you encounter `InvalidImageName` error, you can manually pull the image.
+<!-- markdownlint-enable -->
+
+### Relevant Configuration {#datakit-operator-jsonconfig}
+
+[:octicons-tag-24: Datakit Operator v1.2.1]
+
+The configuration for the Datakit Operator is in JSON format and is stored as a separate ConfigMap in Kubernetes, which is loaded into the container as an environment variable.
+
+The default configuration is as follows:
+
+```json
+{
+    "server_listen": "0.0.0.0:9543",
+    "log_level":     "info",
+    "admission_inject": {
+        "ddtrace": {
+            "images": {
+                "java_agent_image":   "pubrepo.guance.com/datakit-operator/dd-lib-java-init:v1.8.4-guance",
+                "python_agent_image": "pubrepo.guance.com/datakit-operator/dd-lib-python-init:v1.6.2",
+                "js_agent_image":     "pubrepo.guance.com/datakit-operator/dd-lib-js-init:v3.9.2"
+            },
+            "envs": {
+                "DD_AGENT_HOST":           "datakit-service.datakit.svc",
+                "DD_TRACE_AGENT_PORT":     "9529",
+                "DD_JMXFETCH_STATSD_HOST": "datakit-service.datakit.svc",
+                "DD_JMXFETCH_STATSD_PORT": "8125"
+            }
+        },
+        "logfwd": {
+            "images": {
+                "logfwd_image": "pubrepo.guance.com/datakit/logfwd:1.5.8"
+            }
+        }
+    }
+}
+```
+
+In `admission_inject`, you can configure `ddtrace` and `logfwd` more finely:
+
+- `images` is a collection of Key/Value pairs with fixed keys, where modifying the Value allows for customisation of image paths.
+
+<!-- markdownlint-disable MD046 -->
+???+ info
+
+    The Datakit Operator's ddtrace agent image is stored centrally at pubrepo.guance.com/datakit-operator. For certain special environments that may not have access to this image repository, it is possible to modify the environment variables and specify an image path, as follows:
+    
+    1. In an environment that can access pubrepo.guance.com, pull the image pubrepo.guance.com/datakit-operator/dd-lib-java-init:v1.8.4-guance and save it to your own image repository, for example inside.image.hub/datakit-operator/dd-lib-java-init:v1.8.4-guance.
+    1. Modify the JSON configuration by changing admission_inject->ddtrace->images->java_agent_image to inside.image.hub/datakit-operator/dd-lib-java-init:v1.8.4-guance, and apply this YAML.
+    1. Thereafter, the Datakit Operator will use the new Java Agent image path.
+    
+    **The Datakit Operator does not check images. If the image path is incorrect, Kubernetes will throw an error when creating the image.**
+    
+    If a version has already been specified in the admission.datakit/java-lib.version annotation, for example admission.datakit/java-lib.version:v2.0.1-guance or admission.datakit/java-lib.version:latest, the v2.0.1-guance version will be used.
+<!-- markdownlint-enable -->
+
+- `envs` is also a collection of Key/Value pairs, but with variable keys and values. The Datakit Operator injects all Key/Value environment variables into the target container. For example, add FAKE_ENV to envs:
+
+```json
+    "admission_inject": {
+        "ddtrace": {
+            "images": {
+                "java_agent_image":   "pubrepo.guance.com/datakit-operator/dd-lib-java-init:v1.8.4-guance",
+                "python_agent_image": "pubrepo.guance.com/datakit-operator/dd-lib-python-init:v1.6.2",
+                "js_agent_image":     "pubrepo.guance.com/datakit-operator/dd-lib-js-init:v3.9.2"
+            },
+            "envs": {
+                "DD_AGENT_HOST":           "datakit-service.datakit.svc",
+                "DD_TRACE_AGENT_PORT":     "9529",
+                "DD_JMXFETCH_STATSD_HOST": "datakit-service.datakit.svc",
+                "DD_JMXFETCH_STATSD_PORT": "8125",
+                "FAKE_ENV":                "ok"
+            }
+        }
+    }
+```
+
+All containers that have `ddtrace` agent injected into them will have five environment variables added to their `envs`.
 
 ## Using Datakit-Operator to Inject Files and Programs {#datakit-operator-inject-sidecar}
 
@@ -49,19 +127,19 @@ In large Kubernetes clusters, it can be quite difficult to make bulk configurati
 
 The following functions are currently supported:
 
-- Injection of `dd-lib` files and environment
+- Injection of `ddtrace` agent and environment
 - Mounting of `logfwd` sidecar and enabling log collection
 
 ???+ info
 
     Only version v1 of `deployments/daemonsets/cronjobs/jobs/statefulsets` Kind is supported, and because Datakit-Operator actually operates on the PodTemplate, Pod is not supported. In this article, we will use `Deployment` to describe these five kinds of Kind.
 
-### Injection of dd-lib Files and Relevant Environment Variables {#datakit-operator-inject-lib}
+### Injection of ddtrace Agent and Relevant Environment Variables {#datakit-operator-inject-lib}
 
 #### Usage {#datakit-operator-inject-lib-usage}
 
 1. On the target Kubernetes cluster, [download and install Datakit-Operator](datakit-operator.md#datakit-operator-inject-lib).
-2. Add a specified Annotation in deployment, indicating the need to inject dd-lib files. Note that the Annotation needs to be added in the template.
+2. Add a specified Annotation in deployment, indicating the need to inject ddtrace files. Note that the Annotation needs to be added in the template.
     - The key is `admission.datakit/%s-lib.version`, where %s needs to be replaced with the specified language. Currently supports `java`, `python` and `js`.
     - The value is the specified version number. If left blank, the default image version of the environment variable will be used.
 
@@ -110,28 +188,6 @@ nginx-deployment-7bd8dd85f-fzmt2       1/1     Running   0             4s
 $ kubectl get pod nginx-deployment-7bd8dd85f-fzmt2 -o=jsonpath={.spec.initContainers\[\*\].name}
 $ datakit-lib-init
 ```
-
-#### Related Configuration {#datakit-operator-inject-lib-configurations}
-
-Datakit-Operator supports the following environment variable configurations (modified in datakit-operator.yaml):
-
-| Environment Variable Name   | Default Value                                                         | Configuration Meaning    |
-| :----                       | :----                                                                 | :----                    |
-| `ENV_DD_JAVA_AGENT_IMAGE`   | `pubrepo.jiagouyun.com/datakit-operator/dd-lib-java-init:v1.8.4-guance` | Java lib image path      |
-| `ENV_DD_PYTHON_AGENT_IMAGE` | `pubrepo.jiagouyun.com/datakit-operator/dd-lib-python-init:v1.6.2`      | Python lib image path    |
-| `ENV_DD_JS_AGENT_IMAGE`     | `pubrepo.jiagouyun.com/datakit-operator/dd-lib-js-init:v3.9.2`          | Js lib image path        |
-| `ENV_DD_AGENT_HOST`         | `datakit-service.datakit.svc`                                         | Specify the Datakit host |
-| `ENV_DD_TRACE_AGENT_PORT`   | `"9529"`                                                              | Specify the Datakit port |
-
-**Datakit-Operator does not check images. If the image path is incorrect, Kubernetes will report an error when creating it.**
-
-The dd-lib image of Datakit-Operator is stored in `pubrepo.jiagouyun.com/datakit-operator`. However, it may not be convenient to access this image repository for some special environments. In this case, you can modify the environment variable and specify the image path as follows:
-
-1. In an environment where `pubrepo.jiagouyun.com` can be accessed, pull the image `pubrepo.jiagouyun.com/datakit-operator/dd-lib-java-init:v1.8.4-guance` and save it to your own image repository, such as `inside.image.hub/datakit-operator/dd-lib-java-init:v1.8.4-guance`.
-2. Modify datakit-operator.yaml and change the environment variable `ENV_DD_JAVA_AGENT_IMAGE` to `inside.image.hub/datakit-operator/dd-lib-java-init:v1.8.4-guance`, then apply this yaml.
-3. After that, Datakit-Operator will use the new Java lib image path.
-
-> If a version has already been specified in the `admission.datakit/java-lib.version` annotation, such as `admission.datakit/java-lib.version:v2.0.1-guance` or `admission.datakit/java-lib.version:latest`, it will use that version.
 
 ### Injecting Logfwd Program and Enabling Log Collection {#datakit-operator-inject-logfwd}
 
@@ -233,10 +289,8 @@ $ log-container datakit-logfwd
 
 Finally, you can check whether the logs have been collected on the Observability Cloud Log Platform.
 
-#### Related Configuration {#datakit-operator-inject-logfwd-configurations}
+---
 
-Datakit-Operator supports the following environment variables (modify them in `datakit-operator.yaml`):
+References：
 
-| Environment Variable Name | Default Value                                  | Configuration Meaning |
-| :------------------------ | :-------------------------------------------- | :-------------------- |
-| `ENV_LOGFWD_IMAGE`        | `pubrepo.jiagouyun.com/datakit/logfwd:1.5.8` | logfwd image path      |
+- Kubernetes [Admission Controlle](https://kubernetes.io/zh-cn/docs/reference/access-authn-authz/admission-controllers/){:target="_blank"}

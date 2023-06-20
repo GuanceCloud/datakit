@@ -164,7 +164,7 @@ default_time(time)       # use the time field as the timestamp of the output dat
 drop_origin_data()       # discard the original log text (not recommended)
 ```
 
-Several user-defined patterns are referenced, such as `_dklog_date`、`_dklog_level`. We put these rules under `<datakit安装目录>/pipeline/pattern` .
+Several user-defined patterns are referenced, such as `_dklog_date`、`_dklog_level`. We put these rules under *<datakit安装目录\>/pipeline/pattern* .
 
 > Note that the user-defined pattern must be placed in the *[Datakit 安装目录]/pipeline/pattern/* directory) if it needs to be globally effective (that is, applied in other pipeline scripts):
 
@@ -235,7 +235,7 @@ $ datakit pipeline -P test.p -T "..."
 
 ---
 
-A: Pipeline scripts for debugging. Place them in *<Datakit 安装目录>/pipeline* Directory.
+A: Pipeline scripts for debugging. Place them in *<Datakit 安装目录\>/pipeline* Directory.
 
 ### :material-chat-question: How to cut logs in many different formats in one Pipeline? {#if-else}
 

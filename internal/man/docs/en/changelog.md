@@ -28,8 +28,8 @@ This release is an emergency release and includes the following updates:
 
 - Add support to [auto-discovery Prometheus metrics](kubernetes-prom.md#auto-discovery-metrics-with-prometheus) on Kubernetes Pods(#1564)
 - Add new aggregation function in Pipeline(#1554)
-    - [agg_create()](../developers/pipeline.md#fn-agg-create)
-    - [agg_metric()](../developers/pipeline.md#fn-agg-metric)
+    - [agg_create()](../developers/pipeline/pipeline-built-in-function.md#fn-agg-create)
+    - [agg_metric()](../developers/pipeline/pipeline-built-in-function.md#fn-agg-metric)
 
 ### Feature Optimization {#cl-1.5.10-opt}
 
@@ -98,8 +98,8 @@ This release is an iterative release, mainly for bug fixes and feature improveme
 - Improve support for [cgroup v2](datakit-conf.md#enable-cgroup) (#1494)
 - Add an environment variable (`ENV_CLUSTER_K8S_NAME`) to configure the cluster name during Kubernetes installation (#1504)
 - Pipeline
-  - Add protective measures to the [`kv_split()`](../developers/pipeline.md#fn-kv_split) function to prevent data inflation (#1510)
-  - Optimize the functionality of [`json()`](../developers/pipeline.md#fn-json) and [`delete()`](../developers/pipeline.md#fn-delete) for processing JSON keys.
+  - Add protective measures to the [`kv_split()`](../developers/pipeline/pipeline-built-in-function.md#fn-kv_split) function to prevent data inflation (#1510)
+  - Optimize the functionality of [`json()`](../developers/pipeline/pipeline-built-in-function.md#fn-json) and [`delete()`](../developers/pipeline/pipeline-built-in-function.md#fn-delete) for processing JSON keys.
 - Other engineering optimizations (#1500)
 
 ### Documentation Adjustments {#cl-1.5.8-doc}
@@ -119,9 +119,9 @@ This release is an iterative release with the following updates:
 ### New Features {#cl-1.5.7-new}
 
 - Pipeline
-    - Add [key deletion](../developers/pipeline.md#fn-json) for `json` function (#1465)
-    - Add new function [`kv_split()`](../developers/pipeline.md#fn-kv_split)(#1414)
-    - Add new function[`datatime()`](../developers/pipeline.md#fn-datetime)(#1411)
+    - Add [key deletion](../developers/pipeline/pipeline-built-in-function.md#fn-json) for `json` function (#1465)
+    - Add new function [`kv_split()`](../developers/pipeline/pipeline-built-in-function.md#fn-kv_split)(#1414)
+    - Add new function[`datatime()`](../developers/pipeline/pipeline-built-in-function.md#fn-datetime)(#1411)
 - Add [IPv6 support](datakit-conf.md#config-http-server)(#1454)
 - diskio add extended metrics on [io wait](diskio.md#extend)(#1472)
 - Container support [Docker Containerd co-exist](container.md#requrements)(#1401)
@@ -137,7 +137,7 @@ This release is an iterative release with the following updates:
 ### Features Optimizations {#cl-1.5.7-opt}
 
 - Optimize Point Checker(#1478)
-- Optimize Pipeline funciton [`replace()`](../developers/pipeline.md#fn-replace.md) performance (#1477)
+- Optimize Pipeline funciton [`replace()`](../developers/pipeline/pipeline-built-in-function.md#fn-replace) performance (#1477)
 - Optimize Datakit installation under Windows(#1406)
 - Optimize [confd](confd.md) configuration($1402)
 - Add more testing on [Filebeat](beats_output.md)(#1459)

@@ -14,7 +14,7 @@ DataKit is an open source and integrated data collection Agent, which provides f
 
 - Support data collection of metrics, logs and Tracing in host, middleware, log, APM and other fields
 - Complete support for Kubernetes cloud native ecology
-- [Pipeline](../developers/pipeline.md): Easy structured data extraction
+- [Pipeline](../developers/pipeline/index.md): Easy structured data extraction
 - Support access to other third-party data collection
     - [Telegraf](telegraf.md)
     - [Prometheus](prom.md)

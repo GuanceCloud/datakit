@@ -25,7 +25,7 @@ default_enabled_inputs = [
 
 # enable_pprof: bool
 # If pprof enabled, we can profiling the running datakit
-enable_pprof = false
+enable_pprof = true
 pprof_listen = "localhost:6060" # pprof listen
 
 # protect_mode: bool, default false
@@ -75,6 +75,13 @@ ulimit = 64000
   use_sqlite = false
   # or use pure memory to cache the reftab data
   sqlite_mem_mode = false
+
+  # Offload data processing tasks to post-level data processors.
+  [pipeline.offload]
+    receiver = "datakit-http"
+    addresses = [
+      # "http://<ip>:<port>"
+    ]
 
 ################################################
 # HTTP server(9529)

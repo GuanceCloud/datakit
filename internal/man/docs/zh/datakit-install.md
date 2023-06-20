@@ -116,7 +116,7 @@ NAME1="value1" NAME2="value2"
 
 ### DataKit pprof 相关 {#env-pprof}
 
-- `DK_ENABLE_PPROF`: 是否开启 `pprof`
+- `DK_ENABLE_PPROF`: 是否开启 `pprof`。[:octicons-tag-24: Version-1.9.2](changelog.md#cl-1.9.2) 已默认开启。
 - `DK_PPROF_LISTEN`: `pprof` 服务监听地址
 
 ### DataKit 选举相关 {#env-election}
@@ -132,6 +132,7 @@ NAME1="value1" NAME2="value2"
 - `DK_DISABLE_404PAGE`: 禁用 DataKit 404 页面 (公网部署 DataKit RUM 时常用。如 `True`/`False`)
 - `DK_INSTALL_IPDB`: 安装时指定 IP 库(当前仅支持 `iploc/geolite2`)
 - `DK_UPGRADE_IP_WHITELIST`: 从 Datakit [1.5.9](changelog.md#cl-1.5.9) 开始，支持远程访问 API 的方式来升级 Datakit，此环境变量用于设置可以远程访问的客户端 IP 白名单（多个 IP 用逗号 `,` 分隔），不在白名单内的访问将被拒绝（默认是不做 IP 限制）。
+- `DK_HTTP_PUBLIC_APIS`: 设置 Datakit 允许远程访问的 HTTP API ，RUM 功能通常需要进行此配置，从 Datakit [1.9.2](changelog.md#cl-1.9.2) 开始支持。
 
 ### DCA 相关 {#env-dca}
 
@@ -190,6 +191,7 @@ NAME1="value1" NAME2="value2"
 - `DK_NGINX_IP`：代理服务器 IP 地址（只需要填 IP 不需要填端口）。这个与上面的 "HTTP_PROXY" 和 "HTTPS_PROXY" 互斥，而且优先级最高，会覆盖以上两者
 - `DK_INSTALL_LOG`：设置安装程序日志路径，默认为当前目录下的 *install.log*，如果设置为 `stdout` 则输出到命令行终端
 - `HTTPS_PROXY`：通过 Datakit 代理安装
+- `DK_INSTALL_RUM_SYMBOL_TOOLS` 是否安装 RUM source map 工具集，从 Datakit [1.9.2](changelog.md#cl-1.9.2) 开始支持
 
 ## FAQ {#faq}
 

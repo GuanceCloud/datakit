@@ -103,7 +103,7 @@ After reading (receiving) the log from the outside, the basic processing will be
 If the corresponding log is configured with Pipeline cutting, then each log (including a single multi-line log) will be cut by Pipeline, which is mainly divided into two steps:
 
   1. Grok/Json cutting: Through Grok/Json, a single Raw log is cut into structured data. 
-	1. The extracted fields are processed finely, such as [completing IP information](../developers/pipeline.md#fn-geoip), [desensitizing logs](../developers/pipeline.md#fn-cover), etc.
+	1. The extracted fields are processed finely, such as [completing IP information](../developers/pipeline/pipeline-built-in-function.md#fn-geoip), [desensitizing logs](../developers/pipeline/pipeline-built-in-function.md#fn-cover), etc.
 
 - Blacklist（Filter）
 
@@ -124,5 +124,5 @@ Under normal circumstances, there is a delay of about 30s from the time when the
 ## Extend Reading {#more-readings}
 
 - [Overview of DataKit Log Collection](datakit-logging.md)
-- [How to Debug Pipeline](../developers/datakit-pl-how-to.md)
+- [How to Debug Pipeline](../developers/pipeline/pipeline-quick-start.md#debug)
 - [Row Protocol Black Name Filter](datakit-filter.md)

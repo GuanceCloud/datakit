@@ -92,12 +92,13 @@ Take MySQL as an example. In the same cluster (such as k8s cluster), suppose the
     Under the condition of `conf.d/datakit.conf` opening the election, all the data collected by the collector that opened the election will try to append the global-env-tag in datakit.conf:
     
     ```toml
-    [global_election_tags]
-      # project = "my-project"
-      # cluster = "my-cluster"
+    [election]
+      [election.tags]
+        # project = "my-project"
+        # cluster = "my-cluster"
     ```
     
-    If the original data has the corresponding tag in `global_election_tags`, the tag in the original data will prevail and will not be overwritten here.
+    If the original data has the corresponding tags, the tag in the original data will prevail and will not be overwritten here.
     
     If the election is not turned on, the data collected by the election collector will be accompanied by the `global_host_tags` configured in datakit.conf (same as the non-election collector): [:octicons-tag-24: Version-1.4.8](changelog.md#cl-1.4.8).
 

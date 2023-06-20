@@ -7,7 +7,6 @@ package httpapi
 
 import (
 	"archive/zip"
-	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
@@ -85,13 +84,6 @@ func geoTags(srcip string) (tags map[string]string) {
 	}
 
 	return tags
-}
-
-// GetSourcemapZipFileName  zip file name.
-func GetSourcemapZipFileName(applicatinID, env, version string) string {
-	fileName := fmt.Sprintf("%s-%s-%s.zip", applicatinID, env, version)
-
-	return strings.ReplaceAll(fileName, string(filepath.Separator), "__")
 }
 
 func GetRumSourcemapDir() string {

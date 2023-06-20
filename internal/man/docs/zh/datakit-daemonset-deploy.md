@@ -249,10 +249,12 @@ spec:
 
 ### Datakit pprof 相关 {#env-pprof}
 
-| 环境变量名称       | 类型   | 默认值 | 必须   | 说明                |
-| ---------:         | ----:  | ---:   | ------ | ----                |
-| `ENV_ENABLE_PPROF` | bool   | -      | 否     | 是否开启 `pprof`    |
-| `ENV_PPROF_LISTEN` | string | 无     | 否     | `pprof` 服务监听地址|
+| 环境变量名称                             | 类型   | 默认值 | 必须   | 说明                 |
+| ---------:                               | ----:  | ---:   | ------ | ----                 |
+| `ENV_ENABLE_PPROF` :fontawesome-solid-x: | bool   | 无     | 否     | 是否开启 `pprof`     |
+| `ENV_PPROF_LISTEN`                       | string | 无     | 否     | `pprof` 服务监听地址 |
+
+> `ENV_ENABLE_PPROF`：[:octicons-tag-24: Version-1.9.2](changelog.md#cl-1.9.2) 已默认开启 pprof。
 
 ### 选举相关环境变量 {#env-elect}
 
@@ -262,7 +264,7 @@ spec:
 | `ENV_NAMESPACE`                     | string      | `default` | 否     | Datakit 所在的命名空间，默认为空表示不区分命名空间，接收任意非空字符串，如 `dk-namespace-example`。如果开启了选举，可以通过此环境变量指定工作空间。                                        |
 | `ENV_ENABLE_ELECTION_NAMESPACE_TAG` | bool        | -         | 否     | 开启该选项后，所有选举类的采集均会带上 `election_namespace=<your-election-namespace>` 的额外 tag，这可能会导致一些时间线的增长（[:octicons-tag-24: Version-1.4.7](changelog.md#cl-1.4.7)） |
 | `ENV_GLOBAL_ELECTION_TAGS`          | string-list | 无        | 否     | 全局选举 tag，多个 tag 之间以英文逗号分割，如 `tag1=val,tag2=val2`。ENV_GLOBAL_ENV_TAGS 将被弃用                                                                                           |
-| `ENV_CLUSTER_NAME_K8S`              | string      | -         | 否     | Datakit 所在的 cluster，如果非空，会在 `global_election_tags` 添加一个指定 tag，key 是 `cluster_name_k8s`，value 是环境变量的值。（[:octicons-tag-24: Version-1.5.8](changelog.md#cl-1.5.8)）|
+| `ENV_CLUSTER_NAME_K8S`              | string      | -         | 否     | Datakit 所在的 cluster，如果非空，会在 [Global Election Tags](election.md#global-tags) 中添加一个指定 tag，key 是 `cluster_name_k8s`，value 是环境变量的值。（[:octicons-tag-24: Version-1.5.8](changelog.md#cl-1.5.8)）|
 
 ### HTTP/API 相关环境变量 {#env-http-api}
 
@@ -399,6 +401,8 @@ DK_SINKER="[ { \"categories\": [\"L\", \"M\"], \"filters\": [ \"{measurement='cp
 | `ENV_HOSTNAME`                  | string   | 无     | 否     | 默认为本地主机名，可安装时指定，如， `dk-your-hostname`    |
 | `ENV_IPDB`                      | string   | 无     | 否     | 指定 IP 信息库类型，目前只支持 `iploc/geolite2` 两种       |
 | `ENV_ULIMIT`                    | int      | 无     | 否     | 指定 Datakit 最大的可打开文件数                            |
+| `ENV_PIPELINE_OFFLOAD_RECEIVER`   | string | `datakit-http`| false | 设置 Offload 目标接收器的类型 |
+| `ENV_PIPELINE_OFFLOAD_ADDRESSES`  |string  | 无   | false | 设置 Offload 目标地址|
 
 ### 特殊环境变量 {#env-special}
 

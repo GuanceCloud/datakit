@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	tu "github.com/GuanceCloud/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput"
 )
@@ -250,8 +251,9 @@ parse_date(key="time", yy=year, MM=month, dd=day, hh=hour, mm=min, ss=sec, zone=
 				}
 				return
 			}
-			pt := ptinput.GetPoint()
-			ptinput.InitPt(pt, "test", nil, map[string]any{"message": tc.in}, time.Now())
+
+			pt := ptinput.NewPlPoint(
+				point.Logging, "test", nil, map[string]any{"message": tc.in}, time.Now())
 			errR := runScript(runner, pt)
 
 			if errR != nil {
@@ -264,14 +266,13 @@ parse_date(key="time", yy=year, MM=month, dd=day, hh=hour, mm=min, ss=sec, zone=
 				pt.KeyTime2Time()
 				var v interface{}
 				if tc.outKey != "time" && tc.outKey != "" {
-					v = pt.Fields[tc.outKey]
+					v, _, _ = pt.Get(tc.outKey)
 				} else {
-					v = pt.Time.UnixNano()
+					v = pt.PtTime().UnixNano()
 				}
 				tu.Equals(t, tc.expected, v)
 				t.Logf("[%d] PASS", idx)
 			}
-			ptinput.PutPoint(pt)
 		})
 	}
 }

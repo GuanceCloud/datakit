@@ -8,21 +8,51 @@ package ptinput
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/GuanceCloud/platypus/pkg/ast"
 	plruntime "github.com/GuanceCloud/platypus/pkg/engine/runtime"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plmap"
 
 	"github.com/spf13/cast"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 type (
 	KeyKind uint
 	PtFlag  uint
 )
+
+var _ PlInputPt = (*PlPoint)(nil)
+
+type PlInputPt interface {
+	GetPtName() string
+	SetPtName(m string)
+
+	Get(key string) (any, ast.DType, error)
+	GetWithIsTag(key string) (any, bool, bool)
+	Set(key string, value any, dtype ast.DType) error
+	Delete(key string)
+	RenameKey(from, to string) error
+
+	SetTag(key string, value any, dtype ast.DType) error
+
+	PtTime() time.Time
+
+	GetAggBuckets() *plmap.AggBuckets
+	SetAggBuckets(*plmap.AggBuckets)
+
+	KeyTime2Time()
+
+	MarkDrop(bool)
+	Dropped() bool
+
+	Tags() map[string]string
+	Fields() map[string]any
+	// Deprecated: use Point()
+	DkPoint() (*dkpt.Point, error)
+}
 
 const (
 	PtMeasurement PtFlag = iota
@@ -51,49 +81,63 @@ type InputWithVarbMapR interface {
 
 type InputWithoutVarbMap interface{}
 
-type DoFeedCache func(name, category string, pt *point.Point) error
+type DoFeedCache func(name, category string, pt *dkpt.Point) error
 
-var DoFeedNOP = func(name, category string, pt *point.Point) error { return nil }
+var DoFeedNOP = func(name, category string, pt *dkpt.Point) error { return nil }
 
 type PlmapManager interface {
 	// createPtCaheMap(category string, source PtSource) (*fucs.PtCacheMap, bool)
 }
 
-type Point struct {
-	Name   string
-	Tags   map[string]string
-	Fields map[string]any // int, float, bool, string, map, slice, array
-	Time   time.Time
+type PlPoint struct {
+	name   string
+	tags   map[string]string
+	fields map[string]any // int, float, bool, string, map, slice, array
+	time   time.Time
 
-	PtReadFrom *Point
-	PtWriteTo  *Point
+	aggBuckets *plmap.AggBuckets
 
-	AggBuckets *plmap.AggBuckets
-
-	Category string
-	Drop     bool
+	category point.Category
+	drop     bool
 }
 
-func InitPt(pt *Point, name string, t map[string]string, f map[string]any, tn time.Time) *Point {
-	if f == nil {
-		f = map[string]any{}
+func WrapDeprecatedPoint(category point.Category, pt *dkpt.Point) (PlInputPt, error) {
+	if pt == nil {
+		return nil, fmt.Errorf("no data")
 	}
 
-	if t == nil {
-		t = map[string]string{}
+	fields, err := pt.Fields()
+	if err != nil {
+		return nil, err
 	}
 
-	pt.Name = name
-	pt.Tags = t
-	pt.Fields = f
-	pt.Time = tn
-	pt.Drop = false
+	return NewPlPoint(category, pt.Name(),
+		pt.Tags(), fields, pt.Time()), nil
+}
 
-	return pt
+func NewPlPoint(category point.Category, name string,
+	tags map[string]string, fields map[string]any, ptTime time.Time,
+) PlInputPt {
+	if tags == nil {
+		tags = map[string]string{}
+	}
+
+	if fields == nil {
+		fields = map[string]any{}
+	}
+
+	dPt := &PlPoint{
+		name:     name,
+		tags:     tags,
+		fields:   fields,
+		time:     ptTime,
+		category: category,
+	}
+	return dPt
 }
 
 func valueDtype(v any) (any, ast.DType) {
-	switch v.(type) {
+	switch v := v.(type) {
 	case int32, int8, int16, int,
 		uint, uint16, uint32, uint64, uint8:
 		return cast.ToInt64(v), ast.Int
@@ -105,6 +149,8 @@ func valueDtype(v any) (any, ast.DType) {
 		return v, ast.Float
 	case bool:
 		return v, ast.Bool
+	case []byte:
+		return string(v), ast.String
 	case string:
 		return v, ast.String
 	}
@@ -113,171 +159,154 @@ func valueDtype(v any) (any, ast.DType) {
 	return nil, ast.Nil
 }
 
-func (pt *Point) Conv2Pt() (*point.Point, error) {
-	pt.KeyTime2Time()
-
-	opt := &point.PointOption{
-		Category: pt.Category,
-		Time:     pt.Time,
-	}
-
-	v, err := point.NewPoint(pt.Name, pt.Tags, pt.Fields, opt)
-	if err != nil {
-		return nil, err
-	}
-	return v, nil
+func (pt *PlPoint) GetPtName() string {
+	return pt.name
 }
 
-func (pt *Point) Get(key string) (any, ast.DType, error) {
-	if pt.PtReadFrom != nil {
-		return pt.PtReadFrom.Get(key)
-	}
+func (pt *PlPoint) SetPtName(m string) {
+	pt.name = m
+}
 
-	if v, ok := pt.Tags[key]; ok {
+func (pt *PlPoint) Get(key string) (any, ast.DType, error) {
+	if v, ok := pt.tags[key]; ok {
 		return v, ast.String, nil
 	}
 
-	if v, ok := pt.Fields[key]; ok {
+	if v, ok := pt.fields[key]; ok {
 		v, dtype := valueDtype(v)
 		return v, dtype, nil
 	}
 	return nil, ast.Invalid, fmt.Errorf("unsupported pt key type")
 }
 
-func (pt *Point) Delete(key string) {
-	if pt.PtWriteTo != nil {
-		pt.PtWriteTo.Delete(key)
-		return
+func (pt *PlPoint) GetWithIsTag(key string) (any, bool, bool) {
+	if v, ok := pt.tags[key]; ok {
+		return v, true, true
 	}
 
-	if _, ok := pt.Tags[key]; ok {
-		delete(pt.Tags, key)
-	} else {
-		delete(pt.Fields, key)
+	if v, ok := pt.fields[key]; ok {
+		v, _ := valueDtype(v)
+		return v, false, true
 	}
+	return nil, false, false
 }
 
-func (pt *Point) Set(key string, value any, dtype ast.DType) error {
-	if pt.PtWriteTo != nil {
-		return pt.PtWriteTo.Set(key, value, dtype)
-	}
-
-	if _, ok := pt.Tags[key]; ok {
+func (pt *PlPoint) Set(key string, value any, dtype ast.DType) error {
+	if _, ok := pt.tags[key]; ok { // is tag
 		if dtype == ast.Void || dtype == ast.Invalid {
-			delete(pt.Tags, key)
+			delete(pt.tags, key)
 			return nil
 		}
 		if v, err := plruntime.Conv2String(value, dtype); err == nil {
-			pt.Tags[key] = v
+			pt.tags[key] = v
+			return nil
 		} else {
 			return err
 		}
-	}
-
-	switch dtype { //nolint:exhaustive
-	case ast.Nil, ast.Void, ast.Invalid:
-		pt.Fields[key] = nil
-		return nil
-	case ast.List, ast.Map:
-		if v, err := plruntime.Conv2String(value, dtype); err == nil {
-			pt.Fields[key] = v
-		} else {
-			pt.Fields[key] = nil
+	} else { // is field
+		switch dtype { //nolint:exhaustive
+		case ast.Nil, ast.Void, ast.Invalid:
+			pt.fields[key] = nil
 			return nil
+		case ast.List, ast.Map:
+			if v, err := plruntime.Conv2String(value, dtype); err == nil {
+				pt.fields[key] = v
+			} else {
+				pt.fields[key] = nil
+				return nil
+			}
+		default:
+			pt.fields[key] = value
 		}
-	default:
-		pt.Fields[key] = value
 	}
-
 	return nil
 }
 
-func (pt *Point) SetTag(key string, value any, dtype ast.DType) error {
-	if pt.PtWriteTo != nil {
-		return pt.PtWriteTo.SetTag(key, value, dtype)
+func (pt *PlPoint) Delete(key string) {
+	if _, ok := pt.tags[key]; ok {
+		delete(pt.tags, key)
+	} else {
+		delete(pt.fields, key)
 	}
+}
 
-	delete(pt.Fields, key)
+func (pt *PlPoint) RenameKey(from, to string) error {
+	if v, ok := pt.fields[from]; ok {
+		pt.fields[to] = v
+		delete(pt.fields, from)
+	} else if v, ok := pt.tags[from]; ok {
+		pt.tags[to] = v
+		delete(pt.tags, from)
+	} else {
+		return fmt.Errorf("key(from) %s not found", from)
+	}
+	return nil
+}
+
+func (pt *PlPoint) SetTag(key string, value any, dtype ast.DType) error {
+	delete(pt.fields, key)
 
 	if str, err := plruntime.Conv2String(value, dtype); err == nil {
-		pt.Tags[key] = str
+		pt.tags[key] = str
 		return nil
 	} else {
-		pt.Tags[key] = ""
+		pt.tags[key] = ""
 		return err
 	}
 }
 
-func (pt *Point) Mv2Tag(key string) error {
-	if pt.PtWriteTo != nil {
-		return pt.PtWriteTo.Mv2Tag(key)
-	}
-
-	m, ok := pt.Fields[key]
-	if ok {
-		delete(pt.Fields, key)
-	}
-
-	v, dtype := valueDtype(m)
-
-	if str, err := plruntime.Conv2String(v, dtype); err == nil {
-		pt.Tags[key] = str
-	} else {
-		pt.Tags[key] = ""
-		return err
-	}
-
-	return nil
+func (pt *PlPoint) PtTime() time.Time {
+	return pt.time
 }
 
-func (pt *Point) SetMeasurement(m string) {
-	if pt.PtWriteTo != nil {
-		pt.PtWriteTo.SetMeasurement(m)
-	}
-	pt.Name = m
+func (pt *PlPoint) GetAggBuckets() *plmap.AggBuckets {
+	return pt.aggBuckets
 }
 
-func (pt *Point) GetMeasurement() string {
-	return pt.Name
+func (pt *PlPoint) SetAggBuckets(buks *plmap.AggBuckets) {
+	pt.aggBuckets = buks
 }
 
-func (pt *Point) KeyTime2Time() {
+func (pt *PlPoint) KeyTime2Time() {
 	if v, _, err := pt.Get("time"); err == nil {
 		if nanots, ok := v.(int64); ok {
 			t := time.Unix(nanots/int64(time.Second),
 				nanots%int64(time.Second))
 			if !t.IsZero() {
-				pt.Time = t
+				pt.time = t
 			}
 		}
 		pt.Delete("time")
 	}
 }
 
-var pointPool = sync.Pool{
-	New: func() any {
-		return &Point{}
-	},
+func (pt *PlPoint) MarkDrop(drop bool) {
+	pt.drop = drop
 }
 
-func GetPoint() *Point {
-	pt, _ := pointPool.Get().(*Point)
-	return pt
+func (pt *PlPoint) Dropped() bool {
+	return pt.drop
 }
 
-func PutPoint(pt *Point) {
-	if pt == nil {
-		return
+func (pt *PlPoint) DkPoint() (*dkpt.Point, error) {
+	pt.KeyTime2Time()
+
+	opt := &dkpt.PointOption{
+		Category: pt.category.URL(),
+		Time:     pt.time,
 	}
 
-	pt.AggBuckets = nil
+	v, err := dkpt.NewPoint(pt.name, pt.tags, pt.fields, opt)
+	if err != nil {
+		return nil, err
+	}
+	return v, nil
+}
 
-	pt.Name = ""
+func (pt *PlPoint) Tags() map[string]string {
+	return pt.tags
+}
 
-	pt.Fields = nil
-	pt.Tags = nil
-
-	pt.Drop = false
-
-	pointPool.Put(pt)
+func (pt *PlPoint) Fields() map[string]any {
+	return pt.fields
 }

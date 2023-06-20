@@ -73,6 +73,10 @@ var (
 	Proxy,
 	Dataway string
 
+	HTTPPublicAPIs        string
+	HTTPDisabledAPIs      string
+	InstallRUMSymbolTools int
+
 	DCAWhiteList,
 	DCAEnable,
 	DCAListen string
@@ -115,7 +119,7 @@ var (
 
 	LogLevel, Log, GinLog string
 
-	EnablePProf, PProfListen string
+	PProfListen string
 
 	Sinker string
 
@@ -136,12 +140,14 @@ func writeDefInputToMainCfg(mc *config.Config) {
 	}
 
 	// Enable default input, auto remove duplicated input name.
-	if EnableInputs == "" {
+	switch {
+	case EnableInputs == "":
 		x := strings.Join(hostInputs, ",")
 
 		cp.Infof("Use default enabled inputs '%s'\n", x)
 		mc.EnableDefaultsInputs(x)
-	} else {
+
+	default:
 		cp.Infof("Set default inputs '%s'...\n", EnableInputs)
 		mc.EnableDefaultsInputs(EnableInputs)
 	}

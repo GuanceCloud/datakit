@@ -37,7 +37,6 @@ Write the following to the yaml configuration, such as `datakit-crd.yaml`, where
   - `$NAMESPACE`: Pod Namespace
   - `$PODNAME`: Pod Name
   - `$NODENAME`: The name of the current node
-- `datakit/logs`: Log configuration, which specifies the relevant configuration for the Pod log, as in the container's Annotations use, [see here](container-log.md#logging-with-annotation-or-label). Priority is lower than Pod Annotations datakit/logs configuration.
 
 Execute the `kubectl apply -f datakit-crd.yaml` command.
 
@@ -54,7 +53,6 @@ A complete example is as follows, including:
 
 - Create CRD Datakit
 - Namespace and Datakit instance objects used for testing
-- Configure log collection (`datakit/logs`)
 - Configure the Prom collector (`inputConf`)
 
 ```yaml
@@ -115,13 +113,6 @@ spec:
       inputConf: |
         [inputs.prom]
           url="http://prom"
-    - k8sNamespace: "testing-namespace"
-      k8sDeployment: "testing-deployment"
-      datakit/logs: |
-        [{
-          "source" : "nginx",
-          "service": "nginx-x"
-        }]
 ```
 
 ### Ngxin Ingress Configuration Sample {#example-nginx}
@@ -258,19 +249,3 @@ $ datakit monitor
 </figure>
 
 You can also log in to [Guance Cloud Platform](https://www.guance.com/){:target="_blank"}, "Indicator"-"Viewer" to view metric data
-
-## FAQ {#faq}
-
-### Current issues {#issue}
-
-The configuration of `datakit/logs` cannot be dynamically applied to the log being collected. Examples are as follows:
-
-1. Datakit is collecting Pod stdout logs. Adding CRD `datakit/logs` now is not effective because log collection is already in progress.
-2. Datakit uses CRD `datakit/logs` configuration to collect logs. The configuration namespace and deployment of CRD remain unchanged, but only `datakit/logs` is changed. This update will not take effect, because logs have been collected with the old configuration and cannot be intervened.
-3. Restart Datakit if you configure the Datakit CRD and make sure it works.
-
-So now the normal order is:
-
-1. Create a Pod using Deployment
-2. Modify and create the Datakit crd
-3. Start Datakit 

@@ -94,6 +94,7 @@ NIL NULL IF ELIF ELSE
 	paren_expr
 	index_expr
 	attr_expr
+	/* in_expr */
 	expr
 	map_init
 	map_init_start
@@ -383,12 +384,12 @@ list_init : list_init_start RIGHT_BRACKET
 			}
 		;
 
-list_init_start : LEFT_BRACKET array_elem
+list_init_start : LEFT_BRACKET expr
 			{ 
 				$$ = yylex.(*parser).newListInitStartExpr($1.Pos)
 				$$ = yylex.(*parser).newListInitAppendExpr($$, $2)
 			}
-		| list_init_start COMMA array_elem
+		| list_init_start COMMA expr
 				{				
 					$$ = yylex.(*parser).newListInitAppendExpr($$, $3)
 				}
@@ -431,8 +432,6 @@ array_elem	: bool_literal
 		| number_literal
 		| identifier
 		;
-
-
 
 /*
 	literal:

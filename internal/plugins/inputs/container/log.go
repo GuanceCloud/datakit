@@ -128,15 +128,6 @@ func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) (*ta
 		if meta.annotations() != nil && meta.annotations()[info.configKey] != "" {
 			conf = meta.annotations()[info.configKey]
 			l.Infof("use annotation datakit/logs, conf: %s, pod_name %s", conf, info.tags["pod_name"])
-		} else {
-			globalCRDLogsConfList.mu.Lock()
-			crdLogsConf := globalCRDLogsConfList.list[string(meta.UID)]
-			globalCRDLogsConfList.mu.Unlock()
-
-			if crdLogsConf != "" {
-				conf = crdLogsConf
-				l.Infof("use crd datakit/logs, conf: %s, pod_name %s", conf, info.tags["pod_name"])
-			}
 		}
 
 		if conf == "" {

@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/convertutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -400,6 +401,8 @@ func loadContentPipeline(in map[string]map[string]string) {
 			l.Warnf("GetMapCategoryShortToFull failed: err = %s, categoryShort = %s", err, categoryShort)
 			continue
 		}
-		script.ReloadAllRemoteDotPScript2StoreFromMap(category, val)
+
+		cat := point.CatURL(category)
+		script.ReloadAllRemoteDotPScript2StoreFromMap(cat, val)
 	}
 }

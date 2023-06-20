@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -46,7 +47,7 @@ func TestPlChangeEvent(t *testing.T) {
 		assert.Equal(t, tmp, event.Read())
 		c := ChangeEvent{
 			Name:     fmt.Sprint(i, ".p"),
-			Category: fmt.Sprint(i),
+			Category: point.Category(i % 32), // for testing only
 			NS:       fmt.Sprint(i),
 			Time:     time.Now(),
 		}

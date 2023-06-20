@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/offload"
 )
 
 func TestLoadEnv(t *testing.T) {
@@ -84,6 +85,8 @@ func TestLoadEnv(t *testing.T) {
 				"ENV_HTTP_CLOSE_IDLE_CONNECTION":      "on",
 				"ENV_HTTP_TIMEOUT":                    "10s",
 				"ENV_ENABLE_ELECTION_NAMESPACE_TAG":   "ok",
+				"ENV_PIPELINE_OFFLOAD_RECEIVER":       offload.DKRcv,
+				"ENV_PIPELINE_OFFLOAD_ADDRESSES":      "http://aaa:123,http://1.2.3.4:1234",
 			},
 			expect: func() *Config {
 				cfg := DefaultConfig()
@@ -108,6 +111,9 @@ func TestLoadEnv(t *testing.T) {
 
 				cfg.Logging.Level = "debug"
 
+				cfg.Pipeline.Offload = &offload.OffloadConfig{}
+				cfg.Pipeline.Offload.Receiver = offload.DKRcv
+				cfg.Pipeline.Offload.Addresses = []string{"http://aaa:123", "http://1.2.3.4:1234"}
 				cfg.EnablePProf = true
 				cfg.Hostname = "1024.coding"
 				cfg.ProtectMode = false

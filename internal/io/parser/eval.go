@@ -12,14 +12,42 @@ import (
 	"strings"
 )
 
-func (p *ParenExpr) Eval(tags map[string]string, fields map[string]interface{}) bool {
+type KVs interface {
+	Get(k string) (v any, ok bool)
+}
+
+type tfData struct {
+	tags   map[string]string
+	fields map[string]any
+}
+
+func (d *tfData) Get(name string) (any, bool) {
+	if v, ok := d.tags[name]; ok {
+		return v, true
+	}
+
+	if v, ok := d.fields[name]; ok {
+		return v, true
+	}
+
+	return nil, false
+}
+
+func newtf(tags map[string]string, fields map[string]any) *tfData {
+	return &tfData{
+		tags:   tags,
+		fields: fields,
+	}
+}
+
+func (p *ParenExpr) Eval(data KVs) bool {
 	if p.Param == nil {
 		return false
 	}
 
 	switch expr := p.Param.(type) {
 	case Evaluable:
-		return expr.Eval(tags, fields)
+		return expr.Eval(data)
 	default:
 		log.Errorf("ParenExpr's Param should be Evaluable")
 	}
@@ -27,7 +55,7 @@ func (p *ParenExpr) Eval(tags map[string]string, fields map[string]interface{}) 
 	return false
 }
 
-func (e *BinaryExpr) Eval(tags map[string]string, fields map[string]interface{}) bool {
+func (e *BinaryExpr) Eval(data KVs) bool {
 	switch e.Op {
 	case AND:
 		for _, expr := range []Node{e.LHS, e.RHS} {
@@ -39,7 +67,7 @@ func (e *BinaryExpr) Eval(tags map[string]string, fields map[string]interface{})
 			}
 		}
 
-		return e.LHS.(Evaluable).Eval(tags, fields) && e.RHS.(Evaluable).Eval(tags, fields)
+		return e.LHS.(Evaluable).Eval(data) && e.RHS.(Evaluable).Eval(data)
 
 	case OR: // LHS/RHS should be BinaryExpr
 
@@ -52,14 +80,14 @@ func (e *BinaryExpr) Eval(tags map[string]string, fields map[string]interface{})
 			}
 		}
 
-		return e.LHS.(Evaluable).Eval(tags, fields) || e.RHS.(Evaluable).Eval(tags, fields)
+		return e.LHS.(Evaluable).Eval(data) || e.RHS.(Evaluable).Eval(data)
 
 	default:
-		return e.doEval(tags, fields)
+		return e.doEval(data)
 	}
 }
 
-func (e *BinaryExpr) doEval(tags map[string]string, fields map[string]interface{}) bool {
+func (e *BinaryExpr) doEval(data KVs) bool {
 	switch e.Op {
 	case GTE, GT, LT, LTE, NEQ, EQ, IN, NOT_IN, MATCH, NOT_MATCH:
 	default:
@@ -67,7 +95,7 @@ func (e *BinaryExpr) doEval(tags map[string]string, fields map[string]interface{
 		return false
 	}
 
-	return e.singleEval(tags, fields)
+	return e.singleEval(data)
 }
 
 const float64EqualityThreshold = 1e-9
@@ -245,7 +273,7 @@ func cmpfloat(op ItemType, l, r float64) bool {
 	return false
 }
 
-func (e *BinaryExpr) singleEval(tags map[string]string, fields map[string]interface{}) bool {
+func (e *BinaryExpr) singleEval(data KVs) bool {
 	if e.LHS == nil || e.RHS == nil {
 		log.Warn("LHS or RHS nil, should not been here")
 		return false
@@ -299,13 +327,7 @@ func (e *BinaryExpr) singleEval(tags map[string]string, fields map[string]interf
 		switch e.Op {
 		case MATCH, NOT_MATCH:
 			for _, item := range e.RHS.(NodeList) {
-				if v, ok := tags[name]; ok {
-					if binEval(e.Op, v, item) {
-						return true
-					}
-				}
-
-				if v, ok := fields[name]; ok {
+				if v, ok := data.Get(name); ok {
 					switch x := v.(type) {
 					case string:
 						if binEval(e.Op, x, item) {
@@ -320,13 +342,7 @@ func (e *BinaryExpr) singleEval(tags map[string]string, fields map[string]interf
 
 		case IN:
 			for _, item := range arr {
-				if v, ok := tags[name]; ok {
-					if binEval(EQ, v, item) {
-						return true
-					}
-				}
-
-				if v, ok := fields[name]; ok {
+				if v, ok := data.Get(name); ok {
 					if binEval(EQ, v, item) {
 						return true
 					}
@@ -336,13 +352,7 @@ func (e *BinaryExpr) singleEval(tags map[string]string, fields map[string]interf
 
 		case NOT_IN:
 			for _, item := range arr {
-				if v, ok := tags[name]; ok {
-					if binEval(EQ, v, item) {
-						return false
-					}
-				}
-
-				if v, ok := fields[name]; ok {
+				if v, ok := data.Get(name); ok {
 					if binEval(EQ, v, item) {
 						return false
 					}
@@ -353,13 +363,7 @@ func (e *BinaryExpr) singleEval(tags map[string]string, fields map[string]interf
 
 		case GTE, GT, LT, LTE, NEQ, EQ:
 
-			if v, ok := tags[name]; ok {
-				if binEval(e.Op, v, lit) {
-					return true
-				}
-			}
-
-			if v, ok := fields[name]; ok {
+			if v, ok := data.Get(name); ok {
 				if binEval(e.Op, v, lit) {
 					return true
 				}

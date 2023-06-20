@@ -16,7 +16,12 @@ const (
   [inputs.iis.log]
     files = []
     ## grok pipeline script path
-    pipeline = "iis.p"`
+    pipeline = "iis.p"
+
+  [inputs.iis.tags]
+    ## tag1 = "v1"
+    ## tag2 = "v2"
+`
 
 	//nolint:deadcode
 	pipelineCfg = `

@@ -16,6 +16,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/operator"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/offload"
 )
 
 type SinkerDeprecated struct {
@@ -106,6 +107,9 @@ func DefaultConfig() *Config {
 		GlobalHostTags:       map[string]string{},
 		GlobalTagsDeprecated: map[string]string{},
 
+		EnablePProf: true,
+		PProfListen: "localhost:6060",
+
 		Election: &ElectionCfg{
 			Enable:             false,
 			EnableNamespaceTag: false,
@@ -160,6 +164,10 @@ func DefaultConfig() *Config {
 			RemotePullInterval:     "1m",
 			ReferTableURL:          "",
 			ReferTablePullInterval: "5m",
+			Offload: &offload.OffloadConfig{
+				Receiver:  offload.DKRcv,
+				Addresses: []string{},
+			},
 		},
 
 		Logging: &LoggerCfg{

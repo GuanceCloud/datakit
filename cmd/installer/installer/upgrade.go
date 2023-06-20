@@ -78,6 +78,14 @@ func upgradeMainConfig(c *config.Config) *config.Config {
 		c.LogDeprecated = ""
 	}
 
+	if !c.EnablePProf { // enable pprof by default
+		c.EnablePProf = true
+	}
+
+	if c.PProfListen == "" {
+		c.PProfListen = "localhost:6060"
+	}
+
 	if c.LogLevelDeprecated != "" {
 		c.Logging.Level = c.LogLevelDeprecated
 		c.LogLevelDeprecated = ""

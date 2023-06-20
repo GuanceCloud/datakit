@@ -7,7 +7,9 @@ package funcs
 
 import (
 	"fmt"
+	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/GuanceCloud/platypus/pkg/engine"
 	"github.com/GuanceCloud/platypus/pkg/engine/runtime"
 	"github.com/GuanceCloud/platypus/pkg/errchain"
@@ -34,6 +36,41 @@ func NewTestingRunner2(scripts map[string]string) (map[string]*runtime.Script, m
 	return engine.ParseScript(scripts, FuncsMap, FuncsCheckMap)
 }
 
-func runScript(proc *runtime.Script, pt *ptinput.Point) *errchain.PlError {
+func runScript(proc *runtime.Script, pt ptinput.PlInputPt) *errchain.PlError {
 	return engine.RunScriptWithRMapIn(proc, pt, nil)
+}
+
+func newPoint(cat point.Category, name string, tags map[string]string, fields map[string]any,
+	ts ...time.Time,
+) *point.Point {
+	var t time.Time
+	if len(ts) > 0 {
+		t = ts[0]
+	} else {
+		t = time.Now()
+	}
+
+	var opt []point.Option
+	switch cat { //nolint:exhaustive
+	case point.Metric, point.MetricDeprecated:
+		opt = point.DefaultMetricOptions()
+	case point.Object, point.CustomObject:
+		opt = point.DefaultObjectOptions()
+	case point.Logging:
+		opt = point.DefaultLoggingOptions()
+	default:
+		opt = []point.Option{
+			point.WithDisabledKeys(point.KeySource, point.KeyDate),
+			point.WithMaxFieldValLen(32 * 1024 * 1024),
+			point.WithDotInKey(false),
+		}
+	}
+
+	opt = append(opt, point.WithTime(t))
+
+	kCount := len(tags) + len(fields)
+	kvs := make(point.KVs, 0, kCount)
+	kvs = append(kvs, point.NewTags(tags)...)
+	kvs = append(kvs, point.NewKVs(fields)...)
+	return point.NewPointV2([]byte(name), kvs, opt...)
 }

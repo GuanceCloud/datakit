@@ -27,7 +27,7 @@ source_name,key1=value1,key2=value2 field1=value1,field2=value2 ts
 > Hereinafter referred to as dkproto
 
 | <span style="color:green">**Section**</span> | <span style="color:green">**Name**</span> | <span style="color:green">**Unit**</span> | <span style="color:green">**Description**</span>                                                    |
-| -------------------------------------------- | ----------------------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------- |
+|----------------------------------------------|-------------------------------------------|-------------------------------------------|-----------------------------------------------------------------------------------------------------|
 | Tag                                          | container_host                            |                                           | host name of container                                                                              |
 | Tag                                          | endpoint                                  |                                           | end point of resource                                                                               |
 | Tag                                          | env                                       |                                           | environment arguments                                                                               |
@@ -44,14 +44,14 @@ source_name,key1=value1,key2=value2 field1=value1,field2=value2 ts
 | Tag                                          | status                                    |                                           | span status [ok, info, warning, error, critical]                                                    |
 | Tag                                          | span_type                                 |                                           | span types [entry, local, exit, unknow]                                                             |
 | Tag                                          | version                                   |                                           | service version                                                                                     |
-| Field                                        | duration                                  | Microsecond                                      | span duration                                                                                       |
+| Field                                        | duration                                  | Microsecond                               | span duration                                                                                       |
 | Field                                        | message                                   |                                           | raw data content                                                                                    |
 | Field                                        | parent_id                                 |                                           | parent ID of span                                                                                   |
 | Field                                        | priority                                  |                                           | priority rules (PRIORITY_USER_REJECT, PRIORITY_AUTO_REJECT, PRIORITY_AUTO_KEEP, PRIORITY_USER_KEEP) |
 | Field                                        | resource                                  |                                           | resource of service                                                                                 |
 | Field                                        | sample_rate                               |                                           | global sampling ratio (0.1 means roughly 10 percent will send to data center)                       |
 | Field                                        | span_id                                   |                                           | span ID                                                                                             |
-| Field                                        | start                                     | Microsecond                                      | span start timestamp                                                                                |
+| Field                                        | start                                     | Microsecond                               | span start timestamp                                                                                |
 | Field                                        | trace_id                                  |                                           | trace ID                                                                                            |
 
 Span Type is the relative position of the current span in trace, and its value is described as follows:

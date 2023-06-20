@@ -289,10 +289,6 @@ func (i *Input) collectMetric() {
 }
 
 func (i *Input) collectLogging() {
-	if i.discovery != nil {
-		i.discovery.updateGlobalCRDLogsConfList()
-	}
-
 	if err := i.watchNewDockerContainerLogs(); err != nil {
 		l.Errorf("failed to watch container log: %s", err)
 	}

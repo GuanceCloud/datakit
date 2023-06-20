@@ -6,13 +6,11 @@
 package script
 
 import (
-	"os"
-	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plmap"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/stats"
 )
@@ -20,61 +18,65 @@ import (
 var l = logger.DefaultSLogger("pl-script")
 
 var (
-	_metricScriptStore       = NewScriptStore(datakit.Metric)
-	_networkScriptStore      = NewScriptStore(datakit.Network)
-	_keyEventScriptStore     = NewScriptStore(datakit.KeyEvent)
-	_objectScriptStore       = NewScriptStore(datakit.Object)
-	_customObjectScriptStore = NewScriptStore(datakit.CustomObject)
-	_loggingScriptStore      = NewScriptStore(datakit.Logging)
-	_tracingScriptStore      = NewScriptStore(datakit.Tracing)
-	_rumScriptStore          = NewScriptStore(datakit.RUM)
-	_securityScriptStore     = NewScriptStore(datakit.Security)
-	_profilingScriptStore    = NewScriptStore(datakit.Profiling)
+	_metricScriptStore       = NewScriptStore(point.Metric)
+	_networkScriptStore      = NewScriptStore(point.Network)
+	_keyEventScriptStore     = NewScriptStore(point.KeyEvent)
+	_objectScriptStore       = NewScriptStore(point.Object)
+	_customObjectScriptStore = NewScriptStore(point.CustomObject)
+	_loggingScriptStore      = NewScriptStore(point.Logging)
+	_tracingScriptStore      = NewScriptStore(point.Tracing)
+	_rumScriptStore          = NewScriptStore(point.RUM)
+	_securityScriptStore     = NewScriptStore(point.Security)
+	_profilingScriptStore    = NewScriptStore(point.Profiling)
 
 	// TODO: If you add a store, please add the relevant content in the whichStore function.
 
-	_allCategory = map[string]*ScriptStore{
-		datakit.Metric:       _metricScriptStore,
-		datakit.Network:      _networkScriptStore,
-		datakit.KeyEvent:     _keyEventScriptStore,
-		datakit.Object:       _objectScriptStore,
-		datakit.CustomObject: _customObjectScriptStore,
-		datakit.Logging:      _loggingScriptStore,
-		datakit.Tracing:      _tracingScriptStore,
-		datakit.RUM:          _rumScriptStore,
-		datakit.Security:     _securityScriptStore,
-		datakit.Profiling:    _profilingScriptStore,
+	_allCategory = map[point.Category]*ScriptStore{
+		point.Metric:       _metricScriptStore,
+		point.Network:      _networkScriptStore,
+		point.KeyEvent:     _keyEventScriptStore,
+		point.Object:       _objectScriptStore,
+		point.CustomObject: _customObjectScriptStore,
+		point.Logging:      _loggingScriptStore,
+		point.Tracing:      _tracingScriptStore,
+		point.RUM:          _rumScriptStore,
+		point.Security:     _securityScriptStore,
+		point.Profiling:    _profilingScriptStore,
 	}
 
-	_allDeprecatedCategory = map[string]*ScriptStore{
-		datakit.MetricDeprecated: _metricScriptStore,
+	_allDeprecatedCategory = map[point.Category]*ScriptStore{
+		point.MetricDeprecated: _metricScriptStore,
 	}
 )
 
-func whichStore(category string) *ScriptStore {
+func whichStore(category point.Category) *ScriptStore {
 	switch category {
-	case datakit.Metric, datakit.MetricDeprecated:
+	case point.Metric,
+		point.MetricDeprecated:
 		return _metricScriptStore
-	case datakit.Network:
+	case point.Network:
 		return _networkScriptStore
-	case datakit.KeyEvent:
+	case point.KeyEvent:
 		return _keyEventScriptStore
-	case datakit.Object:
+	case point.Object:
 		return _objectScriptStore
-	case datakit.CustomObject:
+	case point.CustomObject:
 		return _customObjectScriptStore
-	case datakit.Logging:
+	case point.Logging:
 		return _loggingScriptStore
-	case datakit.Tracing:
+	case point.Tracing:
 		return _tracingScriptStore
-	case datakit.RUM:
+	case point.RUM:
 		return _rumScriptStore
-	case datakit.Security:
+	case point.Security:
 		return _securityScriptStore
-	case datakit.Profiling:
+	case point.Profiling:
 		return _profilingScriptStore
+	case point.UnknownCategory, point.DynamicDWCategory:
+		l.Warnf("unsuppored category: %s", category)
+		return _loggingScriptStore
 	default:
-		l.Warn("unsuppored category: %s", category)
+		l.Warnf("unknown category: %s", category)
 		return _loggingScriptStore
 	}
 }
@@ -121,9 +123,12 @@ func NSFindPriority(ns string) int {
 }
 
 type ScriptStore struct {
-	category string
-	index    sync.Map
-	storage  scriptStorage
+	category point.Category
+
+	storage scriptStorage
+
+	index     map[string]*PlScript
+	indexLock sync.RWMutex
 }
 
 type scriptStorage struct {
@@ -131,7 +136,7 @@ type scriptStorage struct {
 	scripts map[string](map[string]*PlScript)
 }
 
-func NewScriptStore(category string) *ScriptStore {
+func NewScriptStore(category point.Category) *ScriptStore {
 	return &ScriptStore{
 		category: category,
 		storage: scriptStorage{
@@ -142,14 +147,15 @@ func NewScriptStore(category string) *ScriptStore {
 				DefaultScriptNS: {},
 			},
 		},
+		index: map[string]*PlScript{},
 	}
 }
 
-func (store *ScriptStore) Get(name string) (*PlScript, bool) {
-	if v, ok := store.index.Load(name); ok {
-		if v, ok := v.(*PlScript); ok && v != nil {
-			return v, ok
-		}
+func (store *ScriptStore) IndexGet(name string) (*PlScript, bool) {
+	store.indexLock.RLock()
+	defer store.indexLock.RUnlock()
+	if v, ok := store.index[name]; ok {
+		return v, ok
 	}
 	return nil, false
 }
@@ -173,14 +179,32 @@ func (store *ScriptStore) GetWithNs(name, ns string) (*PlScript, bool) {
 	return nil, false
 }
 
+func (store *ScriptStore) indexStore(script *PlScript) {
+	store.indexLock.Lock()
+	defer store.indexLock.Unlock()
+
+	if store.index == nil {
+		store.index = map[string]*PlScript{}
+	}
+	store.index[script.name] = script
+}
+
+func (store *ScriptStore) indexDelete(name string) {
+	store.indexLock.Lock()
+	defer store.indexLock.Unlock()
+
+	delete(store.index, name)
+}
+
 func (store *ScriptStore) indexUpdate(script *PlScript) {
 	if script == nil {
 		return
 	}
 
-	curScript, ok := store.Get(script.name)
+	curScript, ok := store.IndexGet(script.name)
+
 	if !ok {
-		store.index.Store(script.name, script)
+		store.indexStore(script)
 
 		stats.UpdateScriptStatsMeta(script.category, script.ns, script.name, script.script, true, false, "")
 		stats.WriteEvent(&stats.ChangeEvent{
@@ -197,8 +221,7 @@ func (store *ScriptStore) indexUpdate(script *PlScript) {
 	nsCur := NSFindPriority(curScript.ns)
 	nsNew := NSFindPriority(script.ns)
 	if nsNew >= nsCur {
-		store.index.Store(script.name, script)
-
+		store.indexStore(script)
 		stats.UpdateScriptStatsMeta(curScript.category, curScript.ns, curScript.name, curScript.script, false, false, "")
 		stats.UpdateScriptStatsMeta(script.category, script.ns, script.name, script.script, true, false, "")
 		stats.WriteEvent(&stats.ChangeEvent{
@@ -215,7 +238,7 @@ func (store *ScriptStore) indexUpdate(script *PlScript) {
 }
 
 func (store *ScriptStore) indexDeleteAndBack(name, ns string, scripts4back map[string](map[string]*PlScript)) {
-	curScript, ok := store.Get(name)
+	curScript, ok := store.IndexGet(name)
 	if !ok {
 		return
 	}
@@ -230,7 +253,7 @@ func (store *ScriptStore) indexDeleteAndBack(name, ns string, scripts4back map[s
 	}
 
 	if nsCur == -1 {
-		store.index.Delete(name)
+		store.indexDelete(name)
 
 		stats.WriteEvent(&stats.ChangeEvent{
 			Name:     name,
@@ -246,7 +269,7 @@ func (store *ScriptStore) indexDeleteAndBack(name, ns string, scripts4back map[s
 	for _, v := range plScriptNSSearchOrder[len(plScriptNSSearchOrder)-nsCur:] {
 		if v, ok := scripts4back[v]; ok {
 			if s, ok := v[name]; ok {
-				store.index.Store(s.name, s)
+				store.indexStore(s)
 				stats.UpdateScriptStatsMeta(s.category, s.ns, s.name, s.script, true, false, "")
 				stats.WriteEvent(&stats.ChangeEvent{
 					Name:      name,
@@ -263,7 +286,7 @@ func (store *ScriptStore) indexDeleteAndBack(name, ns string, scripts4back map[s
 		}
 	}
 
-	store.index.Delete(name)
+	store.indexDelete(name)
 
 	stats.WriteEvent(&stats.ChangeEvent{
 		Name:     name,
@@ -373,189 +396,4 @@ func (store *ScriptStore) LoadDotPScript2Store(ns string, dirPath string, filePa
 			l.Error(err)
 		}
 	}
-}
-
-func QueryScript(category, name string) (*PlScript, bool) {
-	return whichStore(category).Get(name)
-}
-
-func ScriptCount(category string) int {
-	return whichStore(category).Count()
-}
-
-func ReadPlScriptFromFile(fp string) (string, string, error) {
-	fp = filepath.Clean(fp)
-	if v, err := os.ReadFile(filepath.Clean(fp)); err == nil {
-		_, sName := filepath.Split(fp)
-		return sName, string(v), nil
-	} else {
-		return "", "", err
-	}
-}
-
-func SearchPlFilePathFormDir(dirPath string) map[string]string {
-	ret := map[string]string{}
-	dirPath = filepath.Clean(dirPath)
-	if dirEntry, err := os.ReadDir(dirPath); err != nil {
-		l.Warn(err)
-	} else {
-		for _, v := range dirEntry {
-			if v.IsDir() {
-				continue
-			}
-			sName := v.Name()
-			if filepath.Ext(sName) != ".p" {
-				continue
-			}
-			ret[sName] = filepath.Join(dirPath, sName)
-		}
-	}
-	return ret
-}
-
-func ReadPlScriptFromDir(dirPath string) (map[string]string, map[string]string) {
-	ret := map[string]string{}
-	retPath := map[string]string{}
-	dirPath = filepath.Clean(dirPath)
-	if dirEntry, err := os.ReadDir(dirPath); err != nil {
-		l.Warn(err)
-	} else {
-		for _, v := range dirEntry {
-			if v.IsDir() {
-				continue
-			}
-			sName := v.Name()
-			if filepath.Ext(sName) != ".p" {
-				continue
-			}
-			sPath := filepath.Join(dirPath, sName)
-			if name, script, err := ReadPlScriptFromFile(sPath); err == nil {
-				ret[name] = script
-				retPath[name] = sPath
-			} else {
-				l.Error(err)
-			}
-		}
-	}
-	return ret, retPath
-}
-
-func SearchPlFilePathFromPlStructPath(basePath string) map[string](map[string]string) {
-	files := map[string](map[string]string){}
-
-	files[datakit.Logging] = SearchPlFilePathFormDir(basePath)
-
-	for category, dirName := range datakit.CategoryDirName() {
-		s := SearchPlFilePathFormDir(filepath.Join(basePath, dirName))
-		if _, ok := files[category]; !ok {
-			files[category] = map[string]string{}
-		}
-		for k, v := range s {
-			files[category][k] = v
-		}
-	}
-	return files
-}
-
-func ReadPlScriptFromPlStructPath(basePath string) (map[string](map[string]string), map[string](map[string]string)) {
-	scripts := map[string](map[string]string){}
-	scriptsPath := map[string](map[string]string){}
-
-	scripts[datakit.Logging], scriptsPath[datakit.Logging] = ReadPlScriptFromDir(basePath)
-
-	for category, dirName := range datakit.CategoryDirName() {
-		s, p := ReadPlScriptFromDir(filepath.Join(basePath, dirName))
-		if _, ok := scripts[category]; !ok {
-			scripts[category] = map[string]string{}
-		}
-		if _, ok := scriptsPath[category]; !ok {
-			scriptsPath[category] = map[string]string{}
-		}
-
-		for k, v := range s {
-			scripts[category][k] = v
-		}
-		for k, v := range p {
-			scriptsPath[category][k] = v
-		}
-	}
-	return scripts, scriptsPath
-}
-
-// LoadDotPScript2Store will diff current layer data and then update.
-func LoadDotPScript2Store(category, ns string, dirPath string, filePath []string) {
-	whichStore(category).LoadDotPScript2Store(ns, dirPath, filePath)
-}
-
-func LoadAllDefaultScripts2Store() {
-	plPath := filepath.Join(datakit.InstallDir, "pipeline")
-	LoadAllScripts2StoreFromPlStructPath(DefaultScriptNS, plPath)
-}
-
-func LoadAllScripts2StoreFromPlStructPath(ns, plPath string) {
-	scripts, path := ReadPlScriptFromPlStructPath(plPath)
-
-	LoadAllScript(ns, scripts, path)
-}
-
-func LoadScript(category, ns string, scripts map[string]string, path map[string]string) {
-	_ = whichStore(category).UpdateScriptsWithNS(ns, scripts, path)
-}
-
-func FillScriptCategoryMap(scripts map[string](map[string]string)) map[string](map[string]string) {
-	allCategoryScript := map[string](map[string]string){}
-	for k := range _allCategory {
-		allCategoryScript[k] = map[string]string{}
-	}
-	for k, v := range scripts {
-		for name, script := range v {
-			allCategoryScript[k][name] = script
-		}
-	}
-	return allCategoryScript
-}
-
-func FillScriptCategoryMapFp(scripts map[string]([]string)) map[string]([]string) {
-	allCategoryScript := map[string]([]string){}
-	for k := range _allCategory {
-		allCategoryScript[k] = []string{}
-	}
-	for k, v := range scripts {
-		allCategoryScript[k] = append(allCategoryScript[k], v...)
-	}
-	return allCategoryScript
-}
-
-// LoadAllScript is used to load and clean the script, parameter scripts example: {datakit.Logging: {ScriptName: ScriptContent},... }.
-func LoadAllScript(ns string, scripts, scriptPath map[string](map[string]string)) {
-	allCategoryScript := FillScriptCategoryMap(scripts)
-	for category, m := range allCategoryScript {
-		_ = whichStore(category).UpdateScriptsWithNS(ns, m, scriptPath[category])
-	}
-}
-
-// LoadAllScriptThrFilepath is used to load and clean  the script, parameter scripts example: {datakit.Logging: [filepath1,..],... }.
-func LoadAllScriptThrFilepath(ns string, scripts map[string]([]string)) {
-	allCategoryScript := FillScriptCategoryMapFp(scripts)
-	for category, filePath := range allCategoryScript {
-		LoadDotPScript2Store(category, GitRepoScriptNS, "", filePath)
-	}
-}
-
-// CleanAllScript is used to clean up all scripts.
-func CleanAllScript(ns string) {
-	allCategoryScript := FillScriptCategoryMap(nil)
-	for category, m := range allCategoryScript {
-		_ = whichStore(category).UpdateScriptsWithNS(ns, m, nil)
-	}
-}
-
-// ReloadAllGitReposDotPScript2Store Deprecated.
-func ReloadAllGitReposDotPScript2Store(category string, filePath []string) {
-	LoadDotPScript2Store(category, GitRepoScriptNS, "", filePath)
-}
-
-// ReloadAllRemoteDotPScript2StoreFromMap Deprecated.
-func ReloadAllRemoteDotPScript2StoreFromMap(category string, m map[string]string) {
-	_ = whichStore(category).UpdateScriptsWithNS(RemoteScriptNS, m, nil)
 }

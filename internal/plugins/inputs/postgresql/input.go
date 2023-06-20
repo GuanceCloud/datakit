@@ -50,15 +50,15 @@ const (
 
 const sampleConfig = `
 [[inputs.postgresql]]
-  ## Server address 
+  ## Server address
   # URI format
-  # postgres://[pqgotest[:password]]@localhost[/dbname]?sslmode=[disable|verify-ca|verify-full]
-  # or simple string 
+  # postgres://[datakit[:PASSWORD]]@localhost[/dbname]?sslmode=[disable|verify-ca|verify-full]
+  # or simple string
   # host=localhost user=pqgotest password=... sslmode=... dbname=app_production
 
-  address = "postgres://postgres@localhost/test?sslmode=disable"
+  address = "postgres://datakit:PASSWORD@localhost?sslmode=disable"
 
-  ## Ignore databases which are gathered. Do not use with 'databases' option. 
+  ## Ignore databases which are gathered. Do not use with 'databases' option.
   #
   # ignored_databases = ["db1"]
 
@@ -66,11 +66,11 @@ const sampleConfig = `
   #
   # databases = ["db1"]
 
-  ## Specify the name used as the "server" tag. 
+  ## Specify the name used as the "server" tag.
   #
   # outputaddress = "db01"
 
-  ## Collect interval 
+  ## Collect interval
   # Time unit: "ns", "us" (or "µs"), "ms", "s", "m", "h"
   #
   interval = "10s"
@@ -85,7 +85,7 @@ const sampleConfig = `
   #   m(materialized view), c(composite type), f(foreign table)
   #
   # [[inputs.postgresql.relations]]
-  # relation_name = "<TABLE_NAME>" 
+  # relation_name = "<TABLE_NAME>"
   # relation_regex = "<TABLE_PATTERN>"
   # schemas = ["public"]
   # relkind = ["r", "p"]
@@ -93,7 +93,7 @@ const sampleConfig = `
   ## Set true to enable election
   election = true
 
-  ## Run a custom SQL query and collect corresponding metrics. 
+  ## Run a custom SQL query and collect corresponding metrics.
   #
   # [[inputs.postgresql.custom_queries]]
   #   sql = '''
@@ -105,13 +105,13 @@ const sampleConfig = `
   #   tags = ["datname" ]
   #   fields = ["numbackends", "blks_read"]
 
-  ## Log collection 
+  ## Log collection
   #
   # [inputs.postgresql.log]
   # files = []
   # pipeline = "postgresql.p"
 
-  ## Custom tags 
+  ## Custom tags
   #
   [inputs.postgresql.tags]
   # some_tag = "some_value"
@@ -374,8 +374,8 @@ func (ipt *Input) getDBMetrics() error {
 	cache, ok := ipt.metricQueryCache[DBMetric]
 	if !ok {
 		query := `
-		SELECT psd.*, 
-			2^31 - age(datfrozenxid) as wraparound, 
+		SELECT psd.*,
+			2^31 - age(datfrozenxid) as wraparound,
 			psd.datname as db,
 			pg_database_size(psd.datname) as database_size
 		FROM pg_stat_database psd
@@ -506,14 +506,14 @@ func (ipt *Input) getReplicationMetrics() error {
 		query := ""
 		if V100.LessThan(*ipt.version) {
 			query = `
-SELECT CASE WHEN pg_last_wal_receive_lsn() IS NULL OR pg_last_wal_receive_lsn() = pg_last_wal_replay_lsn() 
-	THEN 0 ELSE GREATEST (0, EXTRACT (EPOCH FROM now() - pg_last_xact_replay_timestamp())) END AS replication_delay, 
+SELECT CASE WHEN pg_last_wal_receive_lsn() IS NULL OR pg_last_wal_receive_lsn() = pg_last_wal_replay_lsn()
+	THEN 0 ELSE GREATEST (0, EXTRACT (EPOCH FROM now() - pg_last_xact_replay_timestamp())) END AS replication_delay,
 	abs(pg_wal_lsn_diff(pg_last_wal_receive_lsn(), pg_last_wal_replay_lsn())) AS replication_delay_bytes
-         WHERE (SELECT pg_is_in_recovery())		
+         WHERE (SELECT pg_is_in_recovery())
 `
 		} else if V91.LessThan(*ipt.version) {
 			query = `
-SELECT CASE WHEN pg_last_xlog_receive_location() IS NULL OR pg_last_xlog_receive_location() = pg_last_xlog_replay_location() 
+SELECT CASE WHEN pg_last_xlog_receive_location() IS NULL OR pg_last_xlog_receive_location() = pg_last_xlog_replay_location()
 	THEN 0 ELSE GREATEST (0, EXTRACT (EPOCH FROM now() - pg_last_xact_replay_timestamp())) END AS replication_delay
 `
 			if V92.LessThan(*ipt.version) {
@@ -539,7 +539,7 @@ func (ipt *Input) getSlruMetrics() error {
 	cache, ok := ipt.metricQueryCache[SlruMetric]
 	if !ok {
 		query := `
-SELECT name, blks_zeroed, blks_hit, blks_read, 
+SELECT name, blks_zeroed, blks_hit, blks_read,
 	blks_written , blks_exists, flushes, truncates
 FROM pg_stat_slru
 `

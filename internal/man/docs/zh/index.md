@@ -13,7 +13,7 @@ DataKit 是一款开源、一体式的数据采集 Agent，它提供全平台操
 
 - 支持主机、中间件、日志、APM 等领域的指标、日志以及 Tracing 几大类数据采集
 - 完整支持 Kubernetes 云原生生态
-- [Pipeline](../developers/pipeline.md)：简便的结构化数据提取
+- [Pipeline](../developers/pipeline/index.md)：简便的结构化数据提取
 - 支持接入其它第三方数据采集
     - [Telegraf](telegraf.md)
     - [Prometheus](prom.md)

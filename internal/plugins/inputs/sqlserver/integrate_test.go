@@ -403,7 +403,7 @@ func TestPipeline(t *T.T) {
 			}, &dkpt.PointOption{Category: point.Logging.URL(), Time: time.Date(2020, 1, 1, 0, 0, 2, 0, time.UTC)}),
 		}
 
-		p, err := pl.NewPipeline(point.Logging.URL(), "", pipeline)
+		p, err := pl.NewPipeline(point.Logging, "", pipeline)
 		assert.NoError(t, err, "NewPipeline: %s", err)
 
 		for idx, ln := range logs {
@@ -413,7 +413,7 @@ func TestPipeline(t *T.T) {
 				&dkpt.PointOption{Category: point.Logging.URL()})
 			assert.NoError(t, err)
 
-			after, dropped, err := p.Run(pt, nil, &dkpt.PointOption{Category: point.Logging.URL()}, nil)
+			after, dropped, err := p.Run(point.Logging, pt, nil, &dkpt.PointOption{Category: point.Logging.URL()}, nil, nil)
 
 			assert.NoError(t, err)
 			assert.False(t, dropped)

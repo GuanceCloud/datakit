@@ -90,7 +90,7 @@ func (s *Sinker) sink(cat point.Category, pts []*dkpt.Point) (remainIndices []in
 	}
 
 	for i, pt := range pts {
-		fok, err = filter.CheckPointFiltered(s.conditions, cat.URL(), pt)
+		fok, err = filter.CheckPointFiltered(s.conditions, cat, pt)
 		if err != nil {
 			log.Warnf("pt.Fields: %s, ignored", err.Error())
 

@@ -103,7 +103,7 @@ The configuration here should follow the following rules:
 
 ### Basic Grammar Rules {#basic}
 
-The basic syntax rules of filter are basically the same as Pipeline, see [here](../developers/pipeline.md#basic-syntax).
+The basic syntax rules of filter are basically the same as Pipeline, see [here](../developers/pipeline/pipeline-platypus-grammar.md).
 
 ### Operator {#operator}
 
@@ -341,7 +341,7 @@ You can see in the datakit monitor that `regionid` for `cn-qingdao` is filtered 
 
 [:octicons-tag-24: Version-1.4.2](changelog.md#cl-1.4.2)
 
-For filters synchronized from the center, DataKit records a copy to *<DataKit Installation Directory>/data/.pull*, which can be viewed directly.
+For filters synchronized from the center, DataKit records a copy to *<DataKit Installation Directory\>/data/.pull*, which can be viewed directly.
 
 ```shell
 $ cat .filters  | jq

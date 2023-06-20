@@ -39,7 +39,6 @@
     - `$NAMESPACE`：Pod Namespace
     - `$PODNAME`：Pod Name
     - `$NODENAME`：当前所在 node 的 name
-- `datakit/logs`：日志配置，用以指定 Pod 日志的相关配置，和容器的 Annotations 用法相同，[详见这里](container-log.md#logging-with-annotation-or-label)。优先级低于 Pod Annotations Datakit/logs 配置
 
 执行 `kubectl apply -f datakit-crd.yaml` 命令。
 
@@ -57,7 +56,6 @@
 
 - 创建 CRD Datakit
 - 测试所用的 namespace 和 Datakit 实例对象
-- 配置日志采集（`datakit/logs`）
 - 配置 Prom 采集器（`inputConf`）
 
 ```yaml
@@ -118,13 +116,6 @@ spec:
       inputConf: |
         [inputs.prom]
           url="http://prom"
-    - k8sNamespace: "testing-namespace"
-      k8sDeployment: "testing-deployment"
-      datakit/logs: |
-        [{
-          "source" : "nginx",
-          "service": "nginx-x"
-        }]
 ```
 
 ### NGINX Ingress 配置示例 {#example-nginx}
@@ -262,19 +253,3 @@ datakit monitor
 </figure>
 
 也可以登录 [观测云平台](https://www.guance.com/){:target="_blank"} ,【指标】-【查看器】查看指标数据
-
-## FAQ {#faq}
-
-### :material-chat-question: 目前存在的问题 {#issue}
-
-无法将 `datakit/logs` 的配置，动态应用到正在采集的日志。举例如下：
-
-1. Datakit 正在采集 Pod stdout 日志，现在再添加 CRD `datakit/logs` 是不生效的，因为日志采集已经在进行中
-1. Datakit 使用 CRD `datakit/logs` 配置进行日志采集，CRD 的配置 namespace 和 deployment 不变，只改变 `datakit/logs` ，这次更新改动是不生效的，因为日志已经用旧的配置在采集中，无法被干预
-1. 如果配置了 Datakit CRD，并且要确保生效，需要重启 Datakit
-
-所以现在正常的顺序是：
-
-1. 使用 Deployment 创建 Pod
-1. 修改和创建 Datakit crd
-1. 启动 Datakit

@@ -227,12 +227,12 @@ func reindexFuncArgs(fnStmt *ast.CallExpr, keyList []string, reqParm int) error 
 	return nil
 }
 
-func getPoint(in any) (*ptinput.Point, error) {
+func getPoint(in any) (ptinput.PlInputPt, error) {
 	if in == nil {
 		return nil, fmt.Errorf("nil ptr: input")
 	}
 
-	pt, ok := in.(*ptinput.Point)
+	pt, ok := in.(ptinput.PlInputPt)
 
 	if !ok {
 		return nil, fmt.Errorf("typeof input is not Point")
@@ -270,14 +270,15 @@ func deletePtKey(in any, key string) {
 }
 
 func pointTime(in any) int64 {
-	pt, err := getPoint(in)
-	if err != nil {
+	pt, ok := in.(ptinput.PlInputPt)
+	if !ok {
 		return time.Now().UnixNano()
 	}
-	if pt.Time.IsZero() {
+	t := pt.PtTime()
+	if t.IsZero() {
 		return time.Now().UnixNano()
 	} else {
-		return pt.Time.UnixNano()
+		return t.UnixNano()
 	}
 }
 
@@ -321,17 +322,7 @@ func renamePtKey(in any, to, from string) error {
 		return err
 	}
 
-	if v, ok := pt.Fields[from]; ok {
-		pt.Fields[to] = v
-		delete(pt.Fields, from)
-	} else if v, ok := pt.Tags[from]; ok {
-		pt.Tags[to] = v
-		delete(pt.Tags, from)
-	} else {
-		return fmt.Errorf("key(from) %s not found", from)
-	}
-
-	return nil
+	return pt.RenameKey(from, to)
 }
 
 func setMeasurement(in any, val string) error {
@@ -339,7 +330,7 @@ func setMeasurement(in any, val string) error {
 	if err != nil {
 		return err
 	}
-	pt.Name = val
+	pt.SetPtName(val)
 	return nil
 }
 
@@ -349,7 +340,7 @@ func markPtDrop(in any) error {
 		return err
 	}
 
-	pt.Drop = true
+	pt.MarkDrop(true)
 
 	return nil
 }

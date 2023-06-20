@@ -10,6 +10,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/GuanceCloud/cliutils/point"
 )
 
 type ScriptMeta struct {
@@ -21,8 +23,9 @@ type ScriptMeta struct {
 	scriptUpdateTS    time.Time
 	scriptUpdateTimes uint64
 
-	category, ns, name string
-	err                string
+	category point.Category
+	ns, name string
+	err      string
 
 	metaUpdateTS time.Time
 
@@ -46,8 +49,6 @@ type ScriptStats struct {
 type ScriptStatsROnly struct {
 	Pt, PtDrop, PtError uint64
 
-	RunLastErrs []string
-
 	TotalCost int64 // ns
 	MetaTS    time.Time
 
@@ -56,7 +57,8 @@ type ScriptStatsROnly struct {
 	ScriptTS          time.Time
 	ScriptUpdateTimes uint64
 
-	Category, NS, Name string
+	Category point.Category
+	NS, Name string
 
 	Enable       bool
 	Deleted      bool
@@ -121,30 +123,6 @@ func (stats *ScriptStats) Read() *ScriptStatsROnly {
 	ret.CompileError = stats.meta.err
 
 	ret.MetaTS = stats.meta.metaUpdateTS
-
-	stats.lastRunErr.RLock()
-	defer stats.lastRunErr.RUnlock()
-	last100 := []string{}
-	curPos := stats.lastRunErr.pos
-	if curPos >= MaxErrorCount {
-		curPos %= MaxErrorCount
-	}
-
-	if stats.lastRunErr.last100err[curPos] == "" {
-		for i := 0; i < curPos; i++ {
-			last100 = append(last100, stats.lastRunErr.last100err[i])
-		}
-	} else {
-		for i := curPos; i < MaxErrorCount; i++ {
-			last100 = append(last100, stats.lastRunErr.last100err[i])
-		}
-
-		for i := 0; i < curPos; i++ {
-			last100 = append(last100, stats.lastRunErr.last100err[i])
-		}
-	}
-
-	ret.RunLastErrs = last100
 
 	return ret
 }

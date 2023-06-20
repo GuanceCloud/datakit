@@ -7,7 +7,7 @@
 package stats
 
 import (
-	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -56,11 +56,11 @@ func (stats *Stats) ReadEvent() []ChangeEvent {
 	return stats.event.Read()
 }
 
-func (stats *Stats) UpdateScriptStatsMeta(category, ns, name, script string, enable, deleted bool, err string) {
+func (stats *Stats) UpdateScriptStatsMeta(category point.Category, ns, name, script string, enable, deleted bool, err string) {
 	ts := time.Now()
 
 	defer func() {
-		plUpdateVec.WithLabelValues(point.CatURL(category).String(), name, ns).Set(float64(ts.Unix()))
+		plUpdateVec.WithLabelValues(category.String(), name, ns).Set(float64(ts.Unix()))
 	}()
 
 	if stats, loaded := stats.stats.LoadOrStore(StatsKey(category, ns, name), &ScriptStats{
@@ -84,8 +84,8 @@ func (stats *Stats) UpdateScriptStatsMeta(category, ns, name, script string, ena
 	}
 }
 
-func (stats *Stats) WriteScriptStats(category, ns, name string, pt, ptDrop, ptError uint64, cost int64, err error) {
-	catStr := point.CatURL(category).String()
+func (stats *Stats) WriteScriptStats(category point.Category, ns, name string, pt, ptDrop, ptError uint64, cost int64, err error) {
+	catStr := category.String()
 
 	if pt > 0 {
 		plPtsVec.WithLabelValues(catStr, name, ns).Add(float64(pt))
@@ -125,71 +125,22 @@ func ReadEvent() []ChangeEvent {
 	return _plstats.ReadEvent()
 }
 
-func UpdateScriptStatsMeta(category, ns, name, script string, enable, deleted bool, err string) {
+func UpdateScriptStatsMeta(category point.Category, ns, name, script string, enable, deleted bool, err string) {
 	_plstats.UpdateScriptStatsMeta(category, ns, name, script, enable, deleted, err)
 }
 
-func WriteScriptStats(category, ns, name string, pt, ptDrop, ptError uint64, cost int64, err error) {
+func WriteScriptStats(category point.Category, ns, name string, pt, ptDrop, ptError uint64, cost int64, err error) {
 	_plstats.WriteScriptStats(category, ns, name, pt, ptDrop, ptError, cost, err)
 }
 
-func ReadStats() []ScriptStatsROnly {
-	ret := SortStatsROnly(_plstats.ReadStats())
-	sort.Sort(ret)
-	return ret
-}
+func StatsKey(category point.Category, ns, name string) string {
+	var b strings.Builder
 
-func StatsKey(category, ns, name string) string {
-	return category + "::" + ns + "::" + name
-}
+	b.WriteString(ns)
+	b.Write([]byte("::"))
+	b.WriteString(category.String())
+	b.Write([]byte("::"))
+	b.WriteString(name)
 
-type SortStatsROnly []ScriptStatsROnly
-
-func (s SortStatsROnly) Less(i, j int) bool {
-	si := s[i]
-	sj := s[j]
-	if si.Deleted != sj.Deleted {
-		if !si.Deleted {
-			return true
-		} else {
-			return false
-		}
-	}
-
-	if si.Enable != sj.Enable {
-		if si.Enable {
-			return true
-		} else {
-			return false
-		}
-	}
-
-	if si.Pt != sj.Pt {
-		if si.Pt > sj.Pt {
-			return true
-		} else {
-			return false
-		}
-	}
-
-	if si.Name != sj.Name {
-		return sort.StringsAreSorted([]string{si.Name, sj.Name})
-	}
-
-	if si.Category != sj.Category {
-		return sort.StringsAreSorted([]string{si.Category, sj.Category})
-	}
-
-	if si.NS != sj.NS {
-		return sort.StringsAreSorted([]string{si.NS, sj.NS})
-	}
-	return false
-}
-
-func (s SortStatsROnly) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-
-func (s SortStatsROnly) Len() int {
-	return len(s)
+	return b.String() // ns::cat::name
 }

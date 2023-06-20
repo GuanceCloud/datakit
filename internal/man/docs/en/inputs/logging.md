@@ -263,7 +263,7 @@ The maximum length of a single line (including after `multiline_match`) is 32MB,
 
 ### Pipeline Configuring and Using {#pipeline}
 
-[Pipeline](../developers/pipeline.md) is used primarily to cut unstructured text data, or to extract parts of information from structured text, such as JSON.
+[Pipeline](../developers/pipeline/index.md) is used primarily to cut unstructured text data, or to extract parts of information from structured text, such as JSON.
 
 For log data, there are two main fields to extract:
 
@@ -442,13 +442,13 @@ But in fact, the compression ratio of DataKit will not be so high, because DataK
 
 ??? info
 
-    Here `*2` takes into account the actual data inflation caused by [Pipeline cutting](../developers/pipeline.md) and the original data should be brought after cutting in general, so according to the worst case, the calculation here is doubled.
+    Here `*2` takes into account the actual data inflation caused by [Pipeline cutting](../developers/pipeline/index.md) and the original data should be brought after cutting in general, so according to the worst case, the calculation here is doubled.
 
 ## Extended reading {#more-reading}
 
 - [DataKit Log Collection Overview](datakit-logging.md)
-- [Pipeline: Text Data Processing](../developers/pipeline.md)
-- [Pipeline debugging](../developers/datakit-pl-how-to.md)
+- [Pipeline: Text Data Processing](../developers/pipeline/index.md)
+- [Pipeline debugging](../developers/pipeline/pipeline-quick-start.md#debug)
 - [Pipeline Performance Test and Comparison](logging-pipeline-bench.md)
 - [Collect container internal logs via Sidecar (logfwd)](logfwd.md)
 - [Configure correctly with regular expressions](datakit-input-conf#debug-regex) 

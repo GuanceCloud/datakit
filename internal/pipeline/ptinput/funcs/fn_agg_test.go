@@ -13,6 +13,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plmap"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput"
+
+	cliPt "github.com/GuanceCloud/cliutils/point"
 )
 
 func TestAgg(t *testing.T) {
@@ -70,15 +72,13 @@ func TestAgg(t *testing.T) {
 
 			buks := plmap.NewAggBuks(fn)
 			for _, tcIn := range tc.in {
-				pt := ptinput.GetPoint()
-				pt.AggBuckets = buks
-				ptinput.InitPt(pt, "test", nil, map[string]any{"message": tcIn}, time.Now())
+				pt := ptinput.NewPlPoint(
+					cliPt.Logging, "test", nil, map[string]any{"message": tcIn}, time.Now())
+				pt.SetAggBuckets(buks)
 				errR := runScript(runner, pt)
 				if errR != nil {
-					ptinput.PutPoint(pt)
 					t.Fatal(*errR)
 				}
-				ptinput.PutPoint(pt)
 			}
 
 			buks.StopAllBukScanner()

@@ -34,7 +34,8 @@ var (
 	// DatakitUserAgent define HTTP User-Agent header.
 	// user-agent format. See
 	// 	 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
-	DatakitUserAgent = fmt.Sprintf("datakit-%s-%s/%s", runtime.GOOS, runtime.GOARCH, git.Version)
+	DatakitUserAgent = fmt.Sprintf("datakit-%s-%s/%s/%s",
+		runtime.GOOS, runtime.GOARCH, git.Version, datakit.DatakitHostName)
 
 	httpFailRatio      = 0 // %n
 	httpFailStart      time.Time
@@ -494,7 +495,7 @@ func (ep *endPoint) sendReq(req *http.Request) (resp *http.Response, err error) 
 	if err := retry.Do(
 		func() error {
 			defer func() {
-				if err != nil {
+				if err != nil && req.GetBody != nil {
 					if body, err := req.GetBody(); err == nil {
 						req.Body = body
 					}

@@ -6,6 +6,7 @@
 package rum
 
 import (
+	"net"
 	"testing"
 	"time"
 
@@ -111,4 +112,13 @@ func TestLruCDNCache(t *testing.T) {
 	node := cache.get("qiniu.com")
 	t.Logf("%+v\n", node.Data)
 	testutil.Assert(t, node != nil, "")
+}
+
+func TestIsPrivateIP(t *testing.T) {
+	testutil.Assert(t, isPrivateIP(net.ParseIP("10.200.14.195")), "10.200.14.195 is a private ip")
+	testutil.Assert(t, isPrivateIP(net.ParseIP("127.0.0.1")), "127.0.0.1 is a private ip")
+	testutil.Assert(t, isPrivateIP(net.ParseIP("192.168.100.1")), "192.168.100.1 is a private ip")
+	testutil.Assert(t, isPrivateIP(net.ParseIP("172.16.2.14")), "172.16.2.14 is a private ip")
+	testutil.Assert(t, isPrivateIP(net.ParseIP("172.17.2.14")), "172.17.2.14 is a private ip")
+	testutil.Assert(t, !isPrivateIP(net.ParseIP("8.8.8.8")), "8.8.8.8 is not a private ip")
 }

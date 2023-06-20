@@ -97,7 +97,7 @@ datakit debug --prom-conf prom_remote_write.conf
 
 Parameter description:
 
-- `prom-conf`: Specify the configuration file and look for the  `prom_remote_write.conf` file in the current directory by default. If it is not found, it will look for the corresponding file in the `<datakit-install-dir>/conf.d/prom` directory.
+- `prom-conf`: Specify the configuration file and look for the  `prom_remote_write.conf` file in the current directory by default. If it is not found, it will look for the corresponding file in the *<datakit-install-dir\>/conf.d/prom* directory.
 
 Output sample:
 

@@ -276,5 +276,5 @@ In the container environment, the log `source` setting is a very important confi
 
 ## Extended Reading {#more-reading}
 
-- [Pipeline: Text Data Processing](../developers/pipeline.md)
+- [Pipeline: Text Data Processing](../developers/pipeline/index.md)
 - [Overview of DataKit Log Collection](datakit-logging.md)

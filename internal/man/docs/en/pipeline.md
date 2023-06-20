@@ -32,7 +32,7 @@ To maintain forward compatibility of Pipeline semantics, for logs, `_` is an ali
 
 ## Quick Start {#quick-start}
 
-- Configure the pipeline in the DataKit by writing the following pipeline file, assuming the name is *nginx.p*. Store it in the `<datakit安装目录>/pipeline` directory.
+- Configure the pipeline in the DataKit by writing the following pipeline file, assuming the name is *nginx.p*. Store it in the *<datakit安装目录\>/pipeline* directory.
 
 ```python
 # Assume the input is an Nginx log (the following fields are all yy's...)
@@ -60,7 +60,7 @@ drop_origin_data()
 
 - Configure the Corresponding Collector to Use the Pipeline Above
 
-Taking the logging collector as an example, configure the field `pipeline_path`, noting that the script name of the pipeline is configured here, not the path. All pipeline scripts referenced here must be stored in the `<DataKit 安装目录/pipeline>` directory:
+Taking the logging collector as an example, configure the field `pipeline_path`, noting that the script name of the pipeline is configured here, not the path. All pipeline scripts referenced here must be stored in the *<DataKit 安装目录\>/pipeline* directory:
 
 ```python
 [[inputs.logging]]
