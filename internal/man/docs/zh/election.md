@@ -121,12 +121,13 @@ Elected default::defeat|host-abc
     在 `conf.d/datakit.conf` 开启选举的条件下，开启了选举的采集器采集到的数据，均会尝试追加 *datakit.conf* 中的 `global_election_tag`：
     
     ```toml
-    [global_election_tags]
-      # project = "my-project"
-      # cluster = "my-cluster"
+    [election]
+      [election.tags]
+        # project = "my-project"
+        # cluster = "my-cluster"
     ```
 
-    如果原始数据上就带有了 `global_election_tags` 中的相应 tag，则以原始数据中带有的 tag 为准，此处不会覆盖。
+    如果原始数据上就带有了这里的 tag，则以原始数据中带有的 tag 为准，此处不会覆盖。
 
     如果没有开启选举，则选举采集器采集到的数据中，均会带上 *datakit.conf* 中配置的 `global_host_tags`（跟非选举类采集器一样）：[:octicons-tag-24: Version-1.4.8](changelog.md#cl-1.4.8) ·
 

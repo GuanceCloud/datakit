@@ -88,21 +88,22 @@ DataKit allows you to configure global labels for all the data it collects. Glob
   ip         = "__datakit_ip"
   host       = "__datakit_hostname"
 
-[global_election_tags]
-  project = "my-project"
-  cluster = "my-cluster"
+[election]
+  [election.tags]
+    project = "my-project"
+    cluster = "my-cluster"
 ```
 
 When adding a global Tag, there are several places to pay attention to:
 
 - These global Tag values are available using several variables currently supported by DataKit (both the double underscore（`__`）prefix and `$` are available):
-  - `__datakit_ip/$datakit_ip`: The tag value is set to the first master network card IP that the DataKit obtains.
-  - `__datakit_hostname/$datakit_hostname`: Tag value is set to the hostname of the DataKit.
+    - `__datakit_ip/$datakit_ip`: The tag value is set to the first master network card IP that the DataKit obtains.
+    - `__datakit_hostname/$datakit_hostname`: Tag value is set to the hostname of the DataKit.
 
 - Do not have any metric Field in the global Tag because of the [DataKit data transmission protocol restrictions](apis.md#lineproto-limitation), otherwise the data processing will fail due to protocol violation. See the field list of specific collectors for details. Of course, don't add too many tags, and there are limits to the length of Key and Value of each Tag.
-
 - If the collected data has a Tag with the same name, the DataKit will not append the global Tag configured here.
 - Even if `global_host_tags` does not configure any global tags, DataKit will still try to add a global Tag with `host=$HOSTNAME` on all the data.
+- We can set same tags to both global tags, for example, set `project = "my-project"` to both `global_host_tags` and `[election.tags]`
 
 ### Settings of Global Tag in Remote Collection {#notice-global-tags}
 
