@@ -285,5 +285,5 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 
 ## 延伸阅读 {#more-reading}
 
-- [Pipeline：文本数据处理](../developers/pipeline/)
+- [Pipeline：文本数据处理](../developers/pipeline/index.md)
 - [DataKit 日志采集综述](datakit-logging.md)
