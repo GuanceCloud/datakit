@@ -107,6 +107,9 @@ func DefaultConfig() *Config {
 		GlobalHostTags:       map[string]string{},
 		GlobalTagsDeprecated: map[string]string{},
 
+		EnablePProf: true,
+		PProfListen: "localhost:6060",
+
 		Election: &ElectionCfg{
 			Enable:             false,
 			EnableNamespaceTag: false,

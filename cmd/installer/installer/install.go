@@ -94,13 +94,10 @@ func Install(svc service.Service) {
 		l.Infof("DCA enabled, listen on %s, whiteliste: %s", DCAListen, DCAWhiteList)
 	}
 
-	if EnablePProf != "" {
-		config.Cfg.EnablePProf = true
-		if PProfListen != "" {
-			config.Cfg.PProfListen = PProfListen
-		}
-		l.Infof("pprof enabled? %v, listen on %s", config.Cfg.EnablePProf, config.Cfg.PProfListen)
+	if PProfListen != "" {
+		config.Cfg.PProfListen = PProfListen
 	}
+	l.Infof("pprof enabled? %v, listen on %s", config.Cfg.EnablePProf, config.Cfg.PProfListen)
 
 	// Only linux support cgroup.
 	if CgroupDisabled != 1 && runtime.GOOS == datakit.OSLinux {

@@ -25,7 +25,7 @@ default_enabled_inputs = [
 
 # enable_pprof: bool
 # If pprof enabled, we can profiling the running datakit
-enable_pprof = false
+enable_pprof = true
 pprof_listen = "localhost:6060" # pprof listen
 
 # protect_mode: bool, default false

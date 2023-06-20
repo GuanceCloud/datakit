@@ -115,7 +115,7 @@ var (
 
 	LogLevel, Log, GinLog string
 
-	EnablePProf, PProfListen string
+	PProfListen string
 
 	Sinker string
 

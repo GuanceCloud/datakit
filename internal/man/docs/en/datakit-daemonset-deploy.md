@@ -201,10 +201,12 @@ For string/bool/string-list/duration, it is recommended to use double quotation 
 
 ###  Something about DataKit pprof {#env-pprof}
 
-| Environment Variable Name       | Type   | Default Value | Required   | Description                |
-| :---------         | :----  | :---   | :----- | :---                |
-| `ENV_ENABLE_PPROF` | bool   | -      | No     | Whether to start `pprof`    |
-| `ENV_PPROF_LISTEN` | string | None     | No     | `pprof` service listening address |
+| Environment Variable Name | Type   | Default Value | Required | Description                       |
+| :---------                | :----  | :---          | :-----   | :---                              |
+| `ENV_ENABLE_PPROF`        | bool   | -             | No       | Whether to start `pprof`          |
+| `ENV_PPROF_LISTEN`        | string | None          | No       | `pprof` service listening address |
+
+> `ENV_ENABLE_PPROF`: [:octicons-tag-24: Version-1.9.2](changelog.md#cl-1.9.2) enabled pprof by default.
 
 ### Election-related Environmental Variables {#env-elect}
 

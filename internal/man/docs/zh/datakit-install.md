@@ -116,7 +116,7 @@ NAME1="value1" NAME2="value2"
 
 ### DataKit pprof 相关 {#env-pprof}
 
-- `DK_ENABLE_PPROF`: 是否开启 `pprof`
+- `DK_ENABLE_PPROF`: 是否开启 `pprof`。[:octicons-tag-24: Version-1.9.2](changelog.md#cl-1.9.2) 已默认开启。
 - `DK_PPROF_LISTEN`: `pprof` 服务监听地址
 
 ### DataKit 选举相关 {#env-election}
