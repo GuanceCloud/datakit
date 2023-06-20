@@ -123,7 +123,7 @@ var (
 	//
 	fsMonitorName              = "monitor"
 	fsMonitor                  = pflag.NewFlagSet(fsMonitorName, pflag.ContinueOnError)
-	flagMonitorTo              = fsMonitor.String("to", "localhost:9529", "specify the DataKit(IP:Port) to show its statistics")
+	flagMonitorTo              = fsMonitor.String("to", "", "specify the DataKit(IP:Port) to show its statistics")
 	flagMonitorMaxTableWidth   = fsMonitor.IntP("max-table-width", "W", 128, "set max table cell width")
 	flagMonitorLogPath         = fsMonitor.String("log", commonLogFlag(), "log path")
 	flagMonitorRefreshInterval = fsMonitor.DurationP("refresh", "R", 5*time.Second, "refresh interval")
