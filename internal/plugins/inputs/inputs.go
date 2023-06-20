@@ -129,11 +129,6 @@ type ReadEnv interface {
 	ReadEnv(map[string]string)
 }
 
-type InputOnceRunnable interface {
-	RunningCollect() error
-	GetIntervalDuration() time.Duration
-}
-
 type LogExampler interface {
 	LogExamples() map[string]map[string]string
 }
