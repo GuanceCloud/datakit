@@ -318,7 +318,7 @@ func GetStats() (*DatakitStats, error) {
 		}
 	}
 
-	stats.PLStats = plstats.ReadStats()
+	// stats.PLStats = plstats.ReadStats()
 
 	return stats, nil
 }

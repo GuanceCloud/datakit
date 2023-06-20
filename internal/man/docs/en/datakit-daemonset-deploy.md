@@ -341,6 +341,8 @@ DK_SINKER="[ { \"categories\": [\"L\", \"M\"], \"filters\": [ \"{measurement='cp
 | `ENV_HOSTNAME`                  | string   | None     | No     | The default is the local host name, which can be specified at installation time, such as, `dk-your-hostname`    |
 | `ENV_IPDB`                      | string   | None     | No     | Specify the IP repository type, currently only supports `iploc/geolite2`      |
 | `ENV_ULIMIT`                    | int      | None     | No     | Specify the maximum number of open files for Datakit                            |
+| `ENV_PIPELINE_OFFLOAD_RECEIVER` | string| `datakit-http`| false | Set offload receiver |
+| `ENV_PIPELINE_OFFLOAD_ADDRESSES`|string| None      | false    | Set offload addresses|
 
 ### Special Environment Variable {#env-special}
 

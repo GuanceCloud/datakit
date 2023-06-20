@@ -10,10 +10,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	plengine "github.com/GuanceCloud/platypus/pkg/engine"
 	plruntime "github.com/GuanceCloud/platypus/pkg/engine/runtime"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plmap"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput/funcs"
@@ -32,7 +32,7 @@ type PlScript struct {
 	script   string // script content
 
 	ns       string // script 所属 namespace
-	category string
+	category point.Category
 
 	proc *plruntime.Script
 
@@ -41,7 +41,24 @@ type PlScript struct {
 	updateTS int64
 }
 
-func NewScripts(scripts map[string]string, scriptPath map[string]string, ns, category string,
+func CategoryList() (map[point.Category]struct{}, map[point.Category]struct{}) {
+	return map[point.Category]struct{}{
+			point.Metric:       {},
+			point.Network:      {},
+			point.KeyEvent:     {},
+			point.Object:       {},
+			point.CustomObject: {},
+			point.Logging:      {},
+			point.Tracing:      {},
+			point.RUM:          {},
+			point.Security:     {},
+			point.Profiling:    {},
+		}, map[point.Category]struct{}{
+			point.MetricDeprecated: {},
+		}
+}
+
+func NewScripts(scripts map[string]string, scriptPath map[string]string, ns string, category point.Category,
 	buks ...*plmap.AggBuckets,
 ) (map[string]*PlScript, map[string]error) {
 	var plbuks *plmap.AggBuckets
@@ -50,19 +67,19 @@ func NewScripts(scripts map[string]string, scriptPath map[string]string, ns, cat
 	}
 
 	switch category {
-	case datakit.Metric:
-	case datakit.MetricDeprecated:
-		category = datakit.Metric
-	case datakit.Network:
-	case datakit.KeyEvent:
-	case datakit.Object:
-	case datakit.CustomObject:
-	case datakit.Tracing:
-	case datakit.RUM:
-	case datakit.Security:
-	case datakit.Logging:
-	case datakit.Profiling:
-	default:
+	case point.Metric:
+	case point.MetricDeprecated:
+		category = point.Metric
+	case point.Network:
+	case point.KeyEvent:
+	case point.Object:
+	case point.CustomObject:
+	case point.Tracing:
+	case point.RUM:
+	case point.Security:
+	case point.Logging:
+	case point.Profiling:
+	case point.UnknownCategory, point.DynamicDWCategory:
 		retErr := map[string]error{}
 		for k := range scripts {
 			retErr[k] = fmt.Errorf("unsupported category: %s", category)
@@ -102,7 +119,7 @@ func (script *PlScript) SetAggBuks(buks *plmap.AggBuckets) {
 	script.plBuks = buks
 }
 
-func (script *PlScript) Run(plpt *ptinput.Point, signal plruntime.Signal, opt *Option,
+func (script *PlScript) Run(plpt ptinput.PlInputPt, signal plruntime.Signal, opt *Option,
 ) error {
 	startTime := time.Now()
 	if script.proc == nil {
@@ -113,7 +130,7 @@ func (script *PlScript) Run(plpt *ptinput.Point, signal plruntime.Signal, opt *O
 		return fmt.Errorf("no data")
 	}
 
-	plpt.AggBuckets = script.plBuks
+	plpt.SetAggBuckets(script.plBuks)
 
 	err := plengine.RunScriptWithRMapIn(script.proc, plpt, signal)
 	if err != nil {
@@ -121,8 +138,7 @@ func (script *PlScript) Run(plpt *ptinput.Point, signal plruntime.Signal, opt *O
 		return err
 	}
 
-	switch script.category {
-	case datakit.Logging:
+	if script.category == point.Logging {
 		var disable bool
 		var ignore []string
 
@@ -132,11 +148,10 @@ func (script *PlScript) Run(plpt *ptinput.Point, signal plruntime.Signal, opt *O
 			// spiltLen = opt.MaxFieldValLen
 		}
 
-		plpt.Tags, plpt.Fields, plpt.Drop = ProcLoggingStatus(plpt.Tags, plpt.Fields, plpt.Drop, disable, ignore)
-	default:
+		ProcLoggingStatus(plpt, disable, ignore)
 	}
 
-	if plpt.Drop {
+	if plpt.Dropped() {
 		stats.WriteScriptStats(script.category, script.ns, script.name, 1, 1, 0, int64(time.Since(startTime)), nil)
 	} else {
 		stats.WriteScriptStats(script.category, script.ns, script.name, 1, 0, 0, int64(time.Since(startTime)), nil)
@@ -155,7 +170,7 @@ func (script PlScript) FilePath() string {
 	return script.filePath
 }
 
-func (script *PlScript) Category() string {
+func (script *PlScript) Category() point.Category {
 	return script.category
 }
 

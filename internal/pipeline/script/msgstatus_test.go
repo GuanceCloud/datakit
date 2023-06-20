@@ -7,36 +7,46 @@ package script
 
 import (
 	"testing"
+	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput"
 )
 
+type pt4t struct {
+	Fields map[string]interface{}
+	Tags   map[string]string
+	Drop   bool
+}
+
 func TestStatus(t *testing.T) {
 	for k, v := range statusMap {
-		outp := &ptinput.Point{
+		outp := &pt4t{
 			Fields: map[string]interface{}{
 				FieldStatus: k,
 			},
 		}
-		_, f, _ := ProcLoggingStatus(nil, outp.Fields, outp.Drop, false, nil)
-		assert.Equal(t, v, f[FieldStatus])
+		pt := ptinput.NewPlPoint(point.Logging, "", nil, outp.Fields, time.Now())
+		ProcLoggingStatus(pt, false, nil)
+		assert.Equal(t, v, pt.Fields()[FieldStatus])
 	}
 
 	{
-		outp := &ptinput.Point{
+		outp := &pt4t{
 			Fields: map[string]interface{}{
 				FieldStatus:  "x",
 				FieldMessage: "1234567891011",
 			},
 		}
-		_, f, _ := ProcLoggingStatus(nil, outp.Fields, outp.Drop, false, nil)
-		assert.Equal(t, "unknown", f[FieldStatus])
-		assert.Equal(t, "1234567891011", f[FieldMessage])
+		pt := ptinput.NewPlPoint(point.Logging, "", nil, outp.Fields, time.Now())
+		ProcLoggingStatus(pt, false, nil)
+		assert.Equal(t, "unknown", pt.Fields()[FieldStatus])
+		assert.Equal(t, "1234567891011", pt.Fields()[FieldMessage])
 	}
 
 	{
-		outp := &ptinput.Point{
+		outp := &pt4t{
 			Fields: map[string]interface{}{
 				FieldStatus:  "x",
 				FieldMessage: "1234567891011",
@@ -45,18 +55,19 @@ func TestStatus(t *testing.T) {
 				"xxxqqqddd": "1234567891011",
 			},
 		}
-		tags, f, _ := ProcLoggingStatus(outp.Tags, outp.Fields, outp.Drop, false, nil)
+		pt := ptinput.NewPlPoint(point.Logging, "", outp.Tags, outp.Fields, time.Now())
+		ProcLoggingStatus(pt, false, nil)
 		assert.Equal(t, map[string]interface{}{
 			FieldStatus:  "unknown",
 			FieldMessage: "1234567891011",
-		}, f)
+		}, pt.Fields())
 		assert.Equal(t, map[string]string{
 			"xxxqqqddd": "1234567891011",
-		}, tags)
+		}, pt.Tags())
 	}
 
 	{
-		outp := &ptinput.Point{
+		outp := &pt4t{
 			Fields: map[string]interface{}{
 				FieldStatus:  "n",
 				FieldMessage: "1234567891011",
@@ -65,40 +76,44 @@ func TestStatus(t *testing.T) {
 				"xxxqqqddd": "1234567891011",
 			},
 		}
-		tags, f, _ := ProcLoggingStatus(outp.Tags, outp.Fields, outp.Drop, false, nil)
+		pt := ptinput.NewPlPoint(point.Logging, "", outp.Tags, outp.Fields, time.Now())
+		ProcLoggingStatus(pt, false, nil)
 		assert.Equal(t, map[string]interface{}{
 			FieldStatus:  "notice",
 			FieldMessage: "1234567891011",
-		}, f)
+		}, pt.Fields())
 		assert.Equal(t, map[string]string{
 			"xxxqqqddd": "1234567891011",
-		}, tags)
+		}, pt.Tags())
 	}
 }
 
 func TestGetSetStatus(t *testing.T) {
-	out := &ptinput.Point{
+	out := &pt4t{
 		Tags: map[string]string{
 			"status": "n",
 		},
 		Fields: make(map[string]interface{}),
 	}
 
-	tags, f, _ := ProcLoggingStatus(out.Tags, out.Fields, out.Drop, false, nil)
+	pt := ptinput.NewPlPoint(point.Logging, "", out.Tags, out.Fields, time.Now())
+	ProcLoggingStatus(pt, false, nil)
 	assert.Equal(t, map[string]string{
 		"status": "notice",
-	}, tags)
-	assert.Equal(t, make(map[string]interface{}), f)
+	}, pt.Tags())
+	assert.Equal(t, make(map[string]interface{}), pt.Fields())
 
 	out.Fields = map[string]interface{}{
 		"status": "n",
 	}
 	out.Tags = make(map[string]string)
-	tags, f, _ = ProcLoggingStatus(out.Tags, out.Fields, out.Drop, false, nil)
+	pt = ptinput.NewPlPoint(point.Logging, "", out.Tags, out.Fields, time.Now())
+
+	ProcLoggingStatus(pt, false, nil)
 	assert.Equal(t, map[string]interface{}{
 		"status": "notice",
-	}, f)
-	assert.Equal(t, make(map[string]string), tags)
+	}, pt.Fields())
+	assert.Equal(t, make(map[string]string), pt.Tags())
 
 	out.Fields = map[string]interface{}{
 		"status": "n",
@@ -106,11 +121,22 @@ func TestGetSetStatus(t *testing.T) {
 	out.Tags = map[string]string{
 		"status": "n",
 	}
-	tags, f, _ = ProcLoggingStatus(out.Tags, out.Fields, out.Drop, false, nil)
+
+	pt = ptinput.NewPlPoint(point.Logging, "", out.Tags, out.Fields, time.Now())
+	ProcLoggingStatus(pt, false, nil)
 	assert.Equal(t, map[string]string{
 		"status": "notice",
-	}, tags)
+	}, pt.Tags())
 	assert.Equal(t, map[string]interface{}{
 		"status": "n",
-	}, f)
+	}, pt.Fields())
+
+	pt = ptinput.NewPlPoint(point.Logging, "", out.Tags, out.Fields, time.Now())
+	ProcLoggingStatus(pt, false, []string{"notice"})
+	assert.Equal(t, map[string]string{
+		"status": "notice",
+	}, pt.Tags())
+	assert.Equal(t, map[string]interface{}{
+		"status": "n",
+	}, pt.Fields())
 }

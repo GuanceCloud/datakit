@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput"
 )
 
@@ -41,21 +42,19 @@ func TestDropOriginData(t *testing.T) {
 				}
 				return
 			}
-			pt := ptinput.GetPoint()
-			ptinput.InitPt(pt, "test", nil, map[string]any{"message": tc.in}, time.Now())
+			pt := ptinput.NewPlPoint(
+				point.Logging, "test", nil, map[string]any{"message": tc.in}, time.Now())
 			errR := runScript(runner, pt)
 
 			if errR != nil {
-				ptinput.PutPoint(pt)
 				t.Fatal(errR)
 			}
 
-			if v, ok := pt.Fields[tc.key]; ok {
+			if v, _, ok := pt.GetWithIsTag(tc.key); ok {
 				t.Errorf("[%d] failed: key `%s` value `%v`", idx, tc.key, v)
 			} else {
 				t.Logf("[%d] PASS", idx)
 			}
-			ptinput.PutPoint(pt)
 		})
 	}
 }

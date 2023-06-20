@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	tu "github.com/GuanceCloud/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput"
 )
@@ -45,18 +46,21 @@ func TestDrop(t *testing.T) {
 				}
 				return
 			}
-			pt := ptinput.GetPoint()
-			ptinput.InitPt(pt, "test", nil, map[string]any{"message": tc.in}, time.Now())
+			pt := ptinput.NewPlPoint(
+				point.Logging, "test", nil, map[string]any{"message": tc.in}, time.Now())
 			errR := runScript(runner, pt)
+			if errR != nil {
+				t.Fatal(*errR)
+			}
 
 			if errR != nil {
 				t.Fatal(errR)
 			}
 
-			if pt.Drop {
+			if pt.Dropped() {
 				return
 			}
-			v := pt.Fields[tc.outkey]
+			v, _, _ := pt.Get(tc.outkey)
 			tu.Equals(t, tc.expect, v)
 			t.Logf("[%d] PASS", idx)
 		})

@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput"
 )
@@ -164,18 +165,17 @@ func TestAddPattern(t *testing.T) {
 				return
 			}
 
-			pt := ptinput.GetPoint()
-			ptinput.InitPt(pt, "test", nil, map[string]any{"message": tc.in}, time.Now())
+			pt := ptinput.NewPlPoint(point.Logging, "test", nil, map[string]any{"message": tc.in}, time.Now())
 			errR := runScript(runner, pt)
 			if errR != nil {
-				ptinput.PutPoint(pt)
 				t.Fatal(errR)
 			}
-			v := pt.Fields[tc.outkey]
+			v, isTag, ok := pt.GetWithIsTag(tc.outkey)
+			assert.Equal(t, true, ok)
+			assert.Equal(t, false, isTag)
 			if assert.Equal(t, tc.expect, v) {
 				t.Logf("[%d] PASS", idx)
 			}
-			ptinput.PutPoint(pt)
 		})
 	}
 }

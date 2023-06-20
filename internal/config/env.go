@@ -15,6 +15,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/parser"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/offload"
 )
 
 // LoadSink unmarshal sinker JSON string to dataway's sinker.
@@ -224,6 +225,30 @@ func (c *Config) LoadEnvs() error {
 
 	if v := datakit.GetEnv("ENV_REFER_TABLE_SQLITE_MEM_MODE"); v != "" {
 		c.Pipeline.SQLiteMemMode = true
+	}
+
+	if v := datakit.GetEnv("ENV_PIPELINE_OFFLOAD_RECEIVER"); v != "" {
+		if c.Pipeline.Offload == nil {
+			c.Pipeline.Offload = &offload.OffloadConfig{
+				Receiver: v,
+			}
+		} else {
+			c.Pipeline.Offload.Receiver = v
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_PIPELINE_OFFLOAD_ADDRESSES"); v != "" {
+		if c.Pipeline.Offload == nil {
+			c.Pipeline.Offload = &offload.OffloadConfig{
+				Receiver:  offload.DKRcv,
+				Addresses: strings.Split(v, ","),
+			}
+		} else {
+			if c.Pipeline.Offload.Receiver == "" {
+				c.Pipeline.Offload.Receiver = offload.DKRcv
+			}
+			c.Pipeline.Offload.Addresses = strings.Split(v, ",")
+		}
 	}
 
 	if v := datakit.GetEnv("ENV_REQUEST_RATE_LIMIT"); v != "" {

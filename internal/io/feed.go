@@ -18,6 +18,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/offload"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plmap"
 	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/script"
 )
@@ -99,7 +100,6 @@ func (f *ioFeeder) Feed(name string, category point.Category, pts []*point.Point
 	inputsFeedVec.WithLabelValues(name, category.String()).Inc()
 	inputsFeedPtsVec.WithLabelValues(name, category.String()).Add(float64(len(pts)))
 	inputsLastFeedVec.WithLabelValues(name, category.String()).Set(float64(time.Now().Unix()))
-
 	iopts := point2dkpt(pts...)
 
 	if len(opts) > 0 && opts[0] != nil {
@@ -145,7 +145,12 @@ func plAggFeed(name string, data any) error {
 	inputsLastFeedVec.WithLabelValues(name, catStr).Set(float64(time.Now().Unix()))
 
 	bf := len(pts)
-	pts = filter.FilterPts(datakit.Metric, pts)
+	pts = filter.FilterPts(point.Metric, pts)
+
+	inputsFilteredPtsVec.WithLabelValues(
+		name,
+		catStr,
+	).Add(float64(bf - len(pts)))
 
 	inputsFilteredPtsVec.WithLabelValues(
 		name,
@@ -166,7 +171,7 @@ func plAggFeed(name string, data any) error {
 }
 
 // beforeFeed apply pipeline and filter handling on pts.
-func beforeFeed(category string, pts []*dkpt.Point, opt *Option) ([]*dkpt.Point, error) {
+func beforeFeed(category string, pts []*dkpt.Point, opt *Option) ([]*dkpt.Point, int, error) {
 	var after []*dkpt.Point
 
 	switch category {
@@ -186,7 +191,7 @@ func beforeFeed(category string, pts []*dkpt.Point, opt *Option) ([]*dkpt.Point,
 		}
 	case datakit.Metric, datakit.MetricDeprecated:
 	default:
-		return nil, fmt.Errorf("invalid category `%s'", category)
+		return nil, 0, fmt.Errorf("invalid category `%s'", category)
 	}
 
 	// run pipeline
@@ -197,31 +202,41 @@ func beforeFeed(category string, pts []*dkpt.Point, opt *Option) ([]*dkpt.Point,
 		scriptConfMap = opt.PlScript
 	}
 
-	after, err := pipeline.RunPl(category, pts, plopt, scriptConfMap)
+	cat := point.CatURL(category)
+	after, offl, err := pipeline.RunPl(cat, pts, plopt, scriptConfMap)
 	if err != nil {
 		log.Error(err)
 	}
 
+	offloadCount := len(offl)
+	if offloadCount > 0 {
+		err = offload.OffloadSend(cat, offl)
+		if err != nil {
+			log.Errorf("offload failed, total %d pts dropped: %v", offloadCount, err)
+		}
+	}
 	// run filters
-	after = filter.FilterPts(category, after)
-	return after, nil
+	after = filter.FilterPts(cat, after)
+	return after, offloadCount, nil
 }
+
+// beforeFeed apply pipeline and filter handling on pts.
 
 //nolint:gocyclo
 func (x *dkIO) doFeed(pts []*dkpt.Point, category, from string, opt *Option) error {
 	log.Debugf("io feed %s|%s", from, category)
 
-	after, err := beforeFeed(category, pts, opt)
+	after, offl, err := beforeFeed(category, pts, opt)
 	if err != nil {
 		return err
 	}
 
+	filtered := len(pts) - len(after) - offl
+
 	inputsFilteredPtsVec.WithLabelValues(
 		from,
 		point.CatURL(category).String(), // /v1/write/metric -> metric
-	).Add(float64(len(pts) - len(after)))
-
-	filtered := len(pts) - len(after)
+	).Add(float64(filtered))
 
 	// Maybe all points been filtered, but we still send the feeding into io.
 	// We can still see some inputs/data are sending to io in monitor. Do not

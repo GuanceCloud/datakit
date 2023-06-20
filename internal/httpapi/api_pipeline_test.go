@@ -19,8 +19,8 @@ import (
 	"time"
 
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 // go test -v -timeout 30s -run ^TestGetDecodeData$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi
@@ -66,7 +66,7 @@ func TestGetDecodeData(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			pts, err := decodeDataAndConv2Point(datakit.Logging, "a", tc.in.Encode, tc.in.Data)
+			pts, err := decodeDataAndConv2Point(point.Logging, "a", tc.in.Encode, tc.in.Data)
 
 			var r []string
 			for _, pt := range pts {

@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput"
@@ -123,18 +124,17 @@ strfmt(bb, "%v%s", a_forth, "tone")
 				return
 			}
 
-			pt := ptinput.GetPoint()
-			ptinput.InitPt(pt, "test", nil, map[string]any{"message": tc.in}, time.Now())
+			pt := ptinput.NewPlPoint(
+				point.Logging, "test", nil, map[string]any{"message": tc.in}, time.Now())
 			errR := runScript(runner, pt)
 
 			if errR != nil {
-				ptinput.PutPoint(pt)
-				t.Fatal(errR)
+				t.Fatal(errR.Error())
 			}
 
-			assert.Equal(t, "test", pt.Name)
+			assert.Equal(t, "test", pt.GetPtName())
 
-			if v, ok := pt.Fields[tc.outKey]; !ok {
+			if v, _, err := pt.Get(tc.outKey); err != nil {
 				if !tc.fail {
 					t.Errorf("[%d]expect error: %s", idx, err)
 				}
@@ -142,7 +142,6 @@ strfmt(bb, "%v%s", a_forth, "tone")
 				tu.Equals(t, tc.expected, v)
 				t.Logf("[%d] PASS", idx)
 			}
-			ptinput.PutPoint(pt)
 		})
 	}
 }

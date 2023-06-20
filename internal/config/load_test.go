@@ -8,6 +8,7 @@ package config
 import (
 	"testing"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
@@ -75,7 +76,7 @@ func TestGetPipelinePath(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			ss, err := GetPipelinePath(datakit.Logging, tc.pipeline)
+			ss, err := GetPipelinePath(point.Logging, tc.pipeline)
 			if err != nil {
 				t.Logf("GetPipelinePath failed: %v", err)
 				return

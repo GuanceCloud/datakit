@@ -14,6 +14,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
@@ -158,7 +159,7 @@ func feedEnvs(data []byte) []byte {
 	return data
 }
 
-func GetPipelinePath(category, pipeLineName string) (string, error) {
+func GetPipelinePath(category point.Category, pipeLineName string) (string, error) {
 	if pipeLineName == "" {
 		// you shouldn't be here, check before you call this function.
 		return "", fmt.Errorf("pipeline_empty")

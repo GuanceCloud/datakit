@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/refertable"
@@ -147,17 +148,17 @@ func TestQueryReferTable(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			pt := ptinput.GetPoint()
-			ptinput.InitPt(pt, "test", nil, map[string]any{"message": tc.in}, time.Now())
+
+			pt := ptinput.NewPlPoint(
+				point.Logging, "test", nil, map[string]any{"message": tc.in}, time.Now())
 			errR := runScript(runner, pt)
 
 			if errR != nil {
-				ptinput.PutPoint(pt)
-				t.Fatal(errR)
+				t.Fatal(errR.Error())
 			}
 
 			for idxK, key := range tc.key {
-				v, ok := pt.Fields[key]
+				v, _, ok := pt.GetWithIsTag(key)
 				if !ok {
 					if len(tc.expected) != 0 {
 						t.Logf("key: %s, value exp: %v  act: nil",
@@ -166,7 +167,6 @@ func TestQueryReferTable(t *testing.T) {
 				}
 				assert.Equal(t, tc.expected[idxK], v)
 			}
-			ptinput.PutPoint(pt)
 		})
 	}
 }

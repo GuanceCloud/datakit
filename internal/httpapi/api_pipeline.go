@@ -19,6 +19,8 @@ import (
 
 	lp "github.com/GuanceCloud/cliutils/lineproto"
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
+
+	clipt "github.com/GuanceCloud/cliutils/point"
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 	"github.com/GuanceCloud/platypus/pkg/token"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -94,7 +96,7 @@ func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever 
 	}
 
 	category := normalizeCategory(reqBody.Category)
-	if category == "" {
+	if category == clipt.UnknownCategory {
 		err := uhttp.Error(ErrInvalidCategory, "invalid category")
 		l.Errorf("[%s] %s", tid, err.Error())
 		return nil, err
@@ -147,7 +149,7 @@ func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever 
 
 	// decode log or line protocol data
 	// conv data to point
-	ptName := pointName(category, reqBody.ScriptName)
+	ptName := pointName(category.String(), reqBody.ScriptName)
 	pts, err := decodeDataAndConv2Point(category, ptName, reqBody.Encode,
 		reqBody.Data)
 	if err != nil {
@@ -156,7 +158,7 @@ func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever 
 	}
 
 	opt := &point.PointOption{
-		Category: category,
+		Category: category.URL(),
 		Time:     time.Now(),
 	}
 
@@ -169,7 +171,7 @@ func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever 
 	buks := plmap.NewAggBuks(ptsLi.uploadfn)
 	for _, pt := range pts {
 		// run pipeline
-		pt, drop, err := plRunner.Run(pt, nil, opt, newPlTestSingal(), buks)
+		pt, drop, err := plRunner.Run(category, pt, nil, opt, newPlTestSingal(), buks)
 
 		if err != nil {
 			plerr, ok := err.(*errchain.PlError) //nolint:errorlint
@@ -225,7 +227,7 @@ func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever 
 
 	var benchmarkInfo string
 	if reqBody.Benchmark && len(pts) > 0 {
-		benchmarkInfo = benchPipeline(plRunner, pts[0], opt)
+		benchmarkInfo = benchPipeline(plRunner, category, pts[0], opt)
 	}
 
 	return &pipelineDebugResponse{
@@ -235,7 +237,7 @@ func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever 
 	}, nil
 }
 
-func parsePipeline(category, scriptName string, scripts map[string]string) (*pipeline.Pipeline, error) {
+func parsePipeline(category clipt.Category, scriptName string, scripts map[string]string) (*pipeline.Pipeline, error) {
 	success, faild := pipeline.NewPipelineMulti(category, scripts, nil)
 	if err, ok := faild[scriptName]; ok && err != nil {
 		return nil, err
@@ -247,30 +249,30 @@ func parsePipeline(category, scriptName string, scripts map[string]string) (*pip
 	}
 }
 
-func normalizeCategory(category string) string {
+func normalizeCategory(category string) clipt.Category {
 	switch category {
 	case datakit.Metric, datakit.MetricDeprecated, datakit.CategoryMetric:
-		return datakit.Metric
+		return clipt.Metric
 	case datakit.Network, datakit.CategoryNetwork:
-		return datakit.Network
+		return clipt.Network
 	case datakit.KeyEvent, datakit.CategoryKeyEvent:
-		return datakit.KeyEvent
+		return clipt.KeyEvent
 	case datakit.Object, datakit.CategoryObject:
-		return datakit.Object
+		return clipt.Object
 	case datakit.CustomObject, datakit.CategoryCustomObject:
-		return datakit.CustomObject
+		return clipt.CustomObject
 	case datakit.Tracing, datakit.CategoryTracing:
-		return datakit.Tracing
+		return clipt.Tracing
 	case datakit.RUM, datakit.CategoryRUM:
-		return datakit.RUM
+		return clipt.RUM
 	case datakit.Security, datakit.CategorySecurity:
-		return datakit.Security
+		return clipt.Security
 	case datakit.Logging, datakit.CategoryLogging:
-		return datakit.Logging
+		return clipt.Logging
 	case datakit.Profiling, datakit.CategoryProfiling:
-		return datakit.Profiling
+		return clipt.Profiling
 	default:
-		return ""
+		return clipt.UnknownCategory
 	}
 }
 
@@ -289,11 +291,11 @@ func pointName(category, name string) string {
 	}
 }
 
-func benchPipeline(runner *pipeline.Pipeline, pt *point.Point, ptOPt *point.PointOption) string {
+func benchPipeline(runner *pipeline.Pipeline, cat clipt.Category, pt *point.Point, ptOPt *point.PointOption) string {
 	benchmarkResult := testing.Benchmark(func(b *testing.B) {
 		b.Helper()
 		for n := 0; n < b.N; n++ {
-			_, _, _ = runner.Run(pt, nil, ptOPt, newPlTestSingal())
+			_, _, _ = runner.Run(cat, pt, nil, ptOPt, newPlTestSingal())
 		}
 	})
 	return benchmarkResult.String()
@@ -302,7 +304,7 @@ func benchPipeline(runner *pipeline.Pipeline, pt *point.Point, ptOPt *point.Poin
 //------------------------------------------------------------------------------
 // -- decoding functions' area start --
 
-func decodePipeline(category string, scripts map[string]string) (map[string]string, error) {
+func decodePipeline(category clipt.Category, scripts map[string]string) (map[string]string, error) {
 	decodedScripts := map[string]string{}
 	for scriptName, scriptContent := range scripts {
 		scriptContent, err := decodeBase64Content(scriptContent, defaultEncode)
@@ -318,11 +320,11 @@ func decodePipeline(category string, scripts map[string]string) (map[string]stri
 	return decodedScripts, nil
 }
 
-func decodeDataAndConv2Point(category, name, encode string, data []string) ([]*point.Point, error) {
+func decodeDataAndConv2Point(category clipt.Category, name, encode string, data []string) ([]*point.Point, error) {
 	result := []*point.Point{}
 
 	opt := &point.PointOption{
-		Category: category,
+		Category: category.URL(),
 		Time:     time.Now(),
 	}
 
@@ -334,8 +336,8 @@ func decodeDataAndConv2Point(category, name, encode string, data []string) ([]*p
 		if len(line) > DataByteSizeLimit {
 			return nil, fmt.Errorf("data size exceeds 32MB limit")
 		}
-		switch category {
-		case datakit.Logging:
+		switch category { //nolint:exhaustive
+		case clipt.Logging:
 			pt, err := point.NewPoint(name, nil, map[string]interface{}{
 				pipeline.FieldMessage: line,
 			}, opt)
@@ -343,7 +345,7 @@ func decodeDataAndConv2Point(category, name, encode string, data []string) ([]*p
 				return nil, err
 			}
 			result = append(result, pt)
-		case datakit.Metric:
+		case clipt.Metric:
 			pts, err := lp.ParsePoints([]byte(line), &lp.Option{EnablePointInKey: true})
 			if err != nil {
 				return nil, err

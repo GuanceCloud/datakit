@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput"
 )
@@ -111,18 +112,19 @@ add_key(add_new_key, "shanghai")
 				}
 				return
 			}
-			pt := ptinput.GetPoint()
-			ptinput.InitPt(pt, "test", nil, map[string]any{"message": tc.in}, time.Now())
+			pt := ptinput.NewPlPoint(point.Logging, "test", nil, map[string]any{"message": tc.in}, time.Now())
+
 			errR := runScript(runner, pt)
 
 			if errR == nil {
-				v := pt.Fields["add_new_key"]
+				v, isTag, ok := pt.GetWithIsTag("add_new_key")
+				assert.Equal(t, true, ok)
+				assert.Equal(t, false, isTag)
 				assert.Equal(t, tc.expect, v)
 				t.Logf("[%d] PASS", idx)
 			} else {
 				t.Error(errR)
 			}
-			ptinput.PutPoint(pt)
 		})
 	}
 }

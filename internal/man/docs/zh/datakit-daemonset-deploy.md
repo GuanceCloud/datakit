@@ -399,6 +399,8 @@ DK_SINKER="[ { \"categories\": [\"L\", \"M\"], \"filters\": [ \"{measurement='cp
 | `ENV_HOSTNAME`                  | string   | 无     | 否     | 默认为本地主机名，可安装时指定，如， `dk-your-hostname`    |
 | `ENV_IPDB`                      | string   | 无     | 否     | 指定 IP 信息库类型，目前只支持 `iploc/geolite2` 两种       |
 | `ENV_ULIMIT`                    | int      | 无     | 否     | 指定 Datakit 最大的可打开文件数                            |
+| `ENV_PIPELINE_OFFLOAD_RECEIVER`   | string | `datakit-http`| false | 设置 Offload 目标接收器的类型 |
+| `ENV_PIPELINE_OFFLOAD_ADDRESSES`  |string  | 无   | false | 设置 Offload 目标地址|
 
 ### 特殊环境变量 {#env-special}
 

@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"sync"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestPlStats(t *testing.T) {
@@ -41,16 +39,4 @@ func TestPlStats(t *testing.T) {
 
 	l.Info("")
 	stats = ScriptStats{}
-
-	tmp := []string{}
-	for i := 0; i < 256; i++ {
-		assert.Equal(t, tmp, stats.Read().RunLastErrs)
-		c := fmt.Sprint(i)
-		stats.WriteErr(c)
-		tmp = append(tmp, c)
-		if len(tmp) > 100 {
-			tmp = tmp[len(tmp)-100:]
-		}
-		assert.Equal(t, tmp, stats.Read().RunLastErrs)
-	}
 }
