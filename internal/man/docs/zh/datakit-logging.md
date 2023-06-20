@@ -67,7 +67,7 @@
 
 - 对 TCP 形式的日志推送，其日志类型（`source/service`）如果多变，那么需要在 DataKit 上开多个 TCP 端口
 
-> 如果希望 DataKit 上只开启单个（或少数几个）TCP 端口，那么需要在后续 [Pipeline](../developers/pipeline.md) 处理中，对切割出来的字段，识别其特征，并通过函数 [`set_tag()`](../developers/pipeline.md#fn-set-tag) 来标记其 `service`（目前无法修改日志的 `source` 字段，且该功能只有 [1.2.8 以上的版本才支持](changelog.md#cl-1.2.8)）。
+> 如果希望 DataKit 上只开启单个（或少数几个）TCP 端口，那么需要在后续 [Pipeline](../developers/pipeline/) 处理中，对切割出来的字段，识别其特征，并通过函数 [`set_tag()`](../developers/pipeline/pipeline-built-in-function/#fn-set-tag) 来标记其 `service`（目前无法修改日志的 `source` 字段，且该功能只有 [1.2.8 以上的版本才支持](changelog.md#cl-1.2.8)）。
 
 - 对 HTTP 形式的日志推送，开发者需在 [HTTP 请求参数上标记好特征](logstreaming.md#args)，便于 DataKit 做后续处理
 

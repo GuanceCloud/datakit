@@ -1,0 +1,14 @@
+nav:
+
+ - index.md
+ - 快速开始: pipeline-quick-start.md
+ - 基础和原理:
+   - pipeline-architecture.md
+   - 各数据类别数据处理: pipeline-category.md
+   - Grok 模式: pipeline-grok.md
+ - Platypus 语法: pipeline-platypus-grammar.md
+ - 内置函数: pipeline-built-in-function.md
+ - 附加功能:
+   - Reference Table: pipeline-refer-table.md
+   - Offload: pipeline-offload.md
+ - 性能基准和优化: pipeline-benchmark.md

@@ -91,7 +91,7 @@ Wed Jul 21 08:22:32 UTC 2021
 
 如果配置了[黑名单](datakit-filter.md)（如日志黑名单），新采集的数据可能会被黑名单过滤掉。
 
-同理，如果 Pipeline 中对数据进行了一些[丢弃操作](../developers/pipeline.md#fn-drop)，那么也可能导致中心看不到这些数据。
+同理，如果 Pipeline 中对数据进行了一些[丢弃操作](../developers/pipeline/pipeline-built-in-function/#fn-drop)，那么也可能导致中心看不到这些数据。
 
 ## 查看 Monitor 页面 {#monitor}
 
