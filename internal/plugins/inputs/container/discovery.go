@@ -37,7 +37,7 @@ const (
 
 var (
 	defaultPrometheusioInterval         = time.Second * 60
-	defaultPrometheusioConnectKeepAlive = time.Second * 20
+	defaultPrometheusioConnectKeepAlive = time.Second * 90
 	defaultPromScheme                   = "http"
 	defaultPromPath                     = "/metrics"
 )
@@ -349,6 +349,8 @@ func (d *discovery) fetchPromInputsForPodMonitors() []*discoveryRunner {
 			}
 		}
 
+		l.Infof("autodiscovery: find %d pods from podMonitor %s", len(pods), item.Name)
+
 		for _, pod := range pods {
 			for _, metricsEndpoints := range item.Spec.PodMetricsEndpoints {
 				var port int
@@ -361,7 +363,7 @@ func (d *discovery) fetchPromInputsForPodMonitors() []*discoveryRunner {
 				}
 
 				u, err := getPromURL(
-					fmt.Sprintf("%s:%d", pod.Status.PodIP, port),
+					pod.Status.PodIP,
 					strconv.Itoa(port),
 					metricsEndpoints.Scheme,
 					metricsEndpoints.Path,
@@ -451,6 +453,8 @@ func (d *discovery) fetchPromInputsForServiceMonitors() []*discoveryRunner {
 			}
 		}
 
+		l.Infof("autodiscovery: find %d services from podMonitor %s", len(services), item.Name)
+
 		for _, service := range services {
 			for _, endpoint := range item.Spec.Endpoints {
 				var port int
@@ -463,7 +467,7 @@ func (d *discovery) fetchPromInputsForServiceMonitors() []*discoveryRunner {
 				}
 
 				u, err := getPromURL(
-					fmt.Sprintf("%s.%s:%d", service.Name, service.Namespace, port),
+					fmt.Sprintf("%s.%s", service.Name, service.Namespace),
 					strconv.Itoa(port),
 					endpoint.Scheme,
 					endpoint.Path,
@@ -600,7 +604,7 @@ func (d *discovery) getServicesFromLabelSelector(namespace, appName string, sele
 
 	services, err := d.client.getServicesForNamespace(namespace).List(context.Background(), opt)
 	if err != nil {
-		l.Warnf("autodiscovery: failed to get pods from node_name %s, namespace %s, app %s, err: %s, retry in 3 minute",
+		l.Warnf("autodiscovery: failed to get services from node_name %s, namespace %s, app %s, err: %s, retry in 3 minute",
 			d.localNodeName, namespace, appName, err)
 		return
 	}
