@@ -101,7 +101,7 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 
 	default:
 		l.Debugf("invalid category: %q", categoryURL)
-		return nil, ErrInvalidCategory
+		return nil, uhttp.Errorf(ErrInvalidCategory, "invalid URL %q", categoryURL)
 	}
 
 	q := req.URL.Query()
