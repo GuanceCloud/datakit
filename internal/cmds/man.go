@@ -82,6 +82,50 @@ func buildAllDocs(lang i18n, opt *man.ExportOption) (map[string][]byte, error) {
 		res[f.Name()] = doc
 	}
 
+	// build all pipeline docs
+	plDocs, err := man.AllDocs.ReadDir(filepath.Join("docs", lang.String(), "pipeline"))
+	if err != nil {
+		return nil, err
+	}
+
+	for _, f := range plDocs {
+		fmt.Println(f.Name())
+		if f.IsDir() {
+			continue
+		}
+
+		if !strings.HasSuffix(f.Name(), ".md") {
+			continue // ignore non-markdown
+		}
+
+		md, err := man.AllDocs.ReadFile(filepath.Join("docs", lang.String(), "pipeline", f.Name()))
+		if err != nil {
+			continue
+		}
+
+		if f.Name() == "pipeline-built-in-function.md" {
+			var fndocs map[string]*plfuncs.PLDoc
+			switch lang {
+			case i18nZh:
+				fndocs = plfuncs.PipelineFunctionDocs
+			case i18nEn:
+				fndocs = plfuncs.PipelineFunctionDocsEN
+			}
+
+			doc, err := man.BuildPipelineDocs(md, fndocs, opt)
+			if err != nil {
+				return nil, err
+			} else {
+				if _, ok := res["pipeline/pipeline-built-in-function.md"]; ok {
+					return nil, fmt.Errorf("resource pipeline/pipeline-built-in-function.md exists")
+				}
+				res["pipeline/pipeline-built-in-function.md"] = doc
+			}
+		} else {
+			res[filepath.Join("pipeline", f.Name())] = md
+		}
+	}
+
 	// build other docs
 	otherDocs, err := man.AllDocs.ReadDir(filepath.Join("docs", lang.String()))
 	if err != nil {
@@ -115,27 +159,6 @@ func buildAllDocs(lang i18n, opt *man.ExportOption) (map[string][]byte, error) {
 		res[f.Name()] = doc
 	}
 
-	// build pipeline docs
-	plmd, err := man.AllDocs.ReadFile(filepath.Join("docs", lang.String(), "pipeline.md"))
-	if err != nil {
-		return nil, err
-	}
-
-	var fndocs map[string]*plfuncs.PLDoc
-	switch lang {
-	case i18nZh:
-		fndocs = plfuncs.PipelineFunctionDocs
-	case i18nEn:
-		fndocs = plfuncs.PipelineFunctionDocsEN
-	}
-
-	doc, err := man.BuildPipelineDocs(plmd, fndocs, opt)
-	if err != nil {
-		return nil, err
-	} else {
-		res["pipeline.md"] = doc
-	}
-
 	return res, nil
 }
 
@@ -145,6 +168,13 @@ func exportMan(opt *man.ExportOption) error {
 	}
 
 	for _, x := range []i18n{i18nZh, i18nEn} {
+		if err := os.MkdirAll(filepath.Join(opt.Path, x.String()), os.ModePerm); err != nil {
+			return err
+		}
+		if err := os.MkdirAll(filepath.Join(opt.Path, x.String(), "pipeline"), os.ModePerm); err != nil {
+			return err
+		}
+
 		docs, err := buildAllDocs(x, opt)
 		if err != nil {
 			return err

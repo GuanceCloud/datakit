@@ -271,7 +271,7 @@ Traceback (most recent call last):
 
 ### Pipeline 配置和使用 {#pipeline}
 
-[Pipeline](../developers/pipeline.md) 主要用于切割非结构化的文本数据，或者用于从结构化的文本中（如 JSON）提取部分信息。
+[Pipeline](../developers/pipeline/) 主要用于切割非结构化的文本数据，或者用于从结构化的文本中（如 JSON）提取部分信息。
 
 对日志数据而言，主要提取两个字段：
 
@@ -480,13 +480,13 @@ bytes * 2 * 8 /1024/1024 = xxx MBit
 <!-- markdownlint-disable MD046 -->
 ??? info
 
-    此处 `*2` 考虑到了 [Pipeline 切割](../developers/pipeline.md)导致的实际数据膨胀，而一般情况下，切割完都是要带上原始数据的，故按照最坏情况考虑，此处以加倍方式来计算。
+    此处 `*2` 考虑到了 [Pipeline 切割](../developers/pipeline/)导致的实际数据膨胀，而一般情况下，切割完都是要带上原始数据的，故按照最坏情况考虑，此处以加倍方式来计算。
 <!-- markdownlint-enable -->
 
 ## 延伸阅读 {#more-reading}
 
 - [DataKit 日志采集综述](datakit-logging.md)
-- [Pipeline: 文本数据处理](../developers/pipeline.md)
+- [Pipeline: 文本数据处理](../developers/pipeline/)
 - [Pipeline 调试](../developers/datakit-pl-how-to.md)
 - [Pipeline 性能测试和对比](logging-pipeline-bench.md)
 - [通过 Sidecar(logfwd) 采集容器内部日志](logfwd.md)
