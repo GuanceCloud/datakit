@@ -100,7 +100,7 @@ datakit debug --prom-conf prom_remote_write.conf
 
 参数说明：
 
-- `prom-conf`: 指定配置文件，默认在当前目录下寻找 `prom_remote_write.conf` 文件，如果未找到，会去 `<datakit-install-dir>/conf.d/prom` 目录下查找相应文件。
+- `prom-conf`: 指定配置文件，默认在当前目录下寻找 `prom_remote_write.conf` 文件，如果未找到，会去 *<datakit-install-dir\>/conf.d/prom* 目录下查找相应文件。
 
 输出示例：
 

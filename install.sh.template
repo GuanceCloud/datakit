@@ -4,18 +4,18 @@
 
 # https://stackoverflow.com/questions/19339248/append-line-to-etc-hosts-file-with-shell-script/37824076
 # usage: updateHosts ip domain1 domain2 domain3 ...
-function updateHosts() {
-	for n in $@
+updateHosts() {
+	for n in "$@"
 	do
 		if [ "$n" != "$1" ]; then
 			# echo $n
 			ip_address=$1
 			host_name=$n
 			# find existing instances in the host file and save the line numbers
-			matches_in_hosts="$(grep -n $host_name /etc/hosts | cut -f1 -d:)"
+			matches_in_hosts="$(grep -n "$host_name" /etc/hosts | cut -f1 -d:)"
 			host_entry="${ip_address} ${host_name}"
 
-			if [ ! -z "$matches_in_hosts" ]
+			if [ -n "$matches_in_hosts" ]
 			then
 				# iterate over the line numbers on which matches were found
 				while read -r line_number; do
@@ -48,7 +48,7 @@ domain=(
 )
 
 # detect root user
-if [ "$(echo "$UID")" = "0" ]; then
+if [ "$UID" = "0" ]; then
 	sudo_cmd=''
 else
 	sudo_cmd='sudo'
@@ -59,6 +59,12 @@ fi
 ##################
 RED="\033[31m"
 CLR="\033[0m"
+
+errorf() {
+  msg=$1
+  shift
+  printf "${RED}[E] $msg ${CLR}\n" "$@" >&2
+}
 
 ##################
 # Set Variables
@@ -91,7 +97,7 @@ case $(uname -m) in
 
 	*)
 		# shellcheck disable=SC2059
-		printf "${RED}[E] Unsupport arch $(uname -m) ${CLR}\n"
+		printf "${RED}[E] Unsupported arch $(uname -m) ${CLR}\n"
 		exit 1
 		;;
 esac
@@ -116,7 +122,7 @@ installer_base_url="https://{{.InstallBaseURL}}"
 
 if [ -n "$DK_INSTALLER_BASE_URL" ]; then
 	installer_base_url=$DK_INSTALLER_BASE_URL
-	printf "* base url = ${installer_base_url}\n"
+	printf "* base url = %s\n" "$installer_base_url"
 fi
 
 installer_file="installer-${os}-${arch}-{{.Version}}"
@@ -149,8 +155,22 @@ fi
 
 def_inputs=
 if [ -n "$DK_DEF_INPUTS" ]; then
-	# shellcheck disable=SC2034
 	def_inputs=$DK_DEF_INPUTS
+fi
+
+install_rum_symbol_tools=0
+if [ -n "$DK_INSTALL_RUM_SYMBOL_TOOLS" ]; then
+  install_rum_symbol_tools=1
+fi
+
+http_public_apis=""
+if [ -n "$DK_HTTP_PUBLIC_APIS" ]; then
+  http_public_apis="$DK_HTTP_PUBLIC_APIS"
+fi
+
+http_disabled_apis=""
+if [ -n "$DK_HTTP_DISABLED_APIS"  ]; then
+  http_disabled_apis="$DK_HTTP_DISABLED_APIS"
 fi
 
 global_host_tags=
@@ -200,7 +220,7 @@ fi
 
 dca_enable=""
 if [ -n "$DK_DCA_ENABLE" ]; then
-	dca_enable=$DK_DCA_ENABLE
+	dca_enable="$DK_DCA_ENABLE"
 	if [ -z "$dca_white_list" ]; then
 		printf "${RED}[E] DCA service is enabled, but white list is not set in DK_DCA_WHITE_LIST!${CLR}\n"
 		exit 1;
@@ -234,17 +254,17 @@ fi
 proxy_type=""
 if [ -n "$DK_PROXY_TYPE" ]; then
 	proxy_type=$DK_PROXY_TYPE
-	proxy_type=$(echo $proxy_type | tr '[:upper:]' '[:lower:]') # to lowercase
-	printf "\n* found Proxy Type: $proxy_type\n"
+	proxy_type=$(echo "$proxy_type" | tr '[:upper:]' '[:lower:]') # to lowercase
+	printf "\n* found Proxy Type: %s\n" "$proxy_type"
 
-	if [ "$proxy_type" == "nginx" ]; then
-		# env DK_NGINX_IP has highest priority on proxy level
+	if [ "$proxy_type" = "nginx" ]; then
+		# env DK_NGINX_IP has the highest priority on proxy level
 		if [ -n "$DK_NGINX_IP" ]; then
 			proxy=$DK_NGINX_IP
 			if [ "$proxy" != "" ]; then
-				printf "\n* got nginx Proxy: $proxy\n"
+				printf "\n* got nginx Proxy: %s\n" "$proxy"
 
-				for i in ${domain[@]}; do
+				for i in "${domain[@]}"; do
 					updateHosts "$proxy" "$i"
 				done
 			fi
@@ -353,7 +373,7 @@ if [ -n "$DK_CONFD_CIRCLE_INTERVAL" ]; then
 fi
 
 if [ -n "$DK_CONFD_CONFD_NAMESPACE" ]; then
-	confd_role=$DK_CONFD_CONFD_NAMESPACE   
+	confd_role=$DK_CONFD_CONFD_NAMESPACE
 fi
 
 if [ -n "$DK_CONFD_PIPELINE_NAMESPACE" ]; then
@@ -453,7 +473,7 @@ if [ "$upgrade" ]; then
 	# shellcheck disable=SC2059
 	printf "\n* Upgrading DataKit...\n"
 	$sudo_cmd $installer \
-		--install-log=${install_log} \
+		--install-log="$install_log" \
 		--upgrade --upgrade-manager="${upgrade_manager}" --upgrade-ip-whitelist="${upgrade_ip_whitelist}" --proxy="${proxy}" --installer_base_url="$installer_base_url"
 else
 printf "\n* Installing DataKit...\n"
@@ -463,6 +483,9 @@ $sudo_cmd $installer \
 		--installer_base_url="${installer_base_url}" \
 		--dataway="${dataway}" \
 		--enable-inputs="${def_inputs}" \
+		--http-public-apis="$http_public_apis" \
+		--http-disabled-apis="$http_disabled_apis" \
+		--install-rum-symbol-tools="$install_rum_symbol_tools" \
 		--global-host-tags="${global_host_tags}" \
 		--global-election-tags="${global_election_tags}" \
 		--cloud-provider="${cloud_provider}" \

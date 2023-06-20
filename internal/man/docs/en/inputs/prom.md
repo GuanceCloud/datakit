@@ -149,7 +149,7 @@ datakit debug --prom-conf prom.conf
 
 Parameter description:
 
-- `prom-conf`: Specifies the configuration file. By default, it looks for the `prom.conf` file in the current directory. If it is not found, it will look for the corresponding file in the `<datakit-install-dir>/conf.d/prom` directory.
+- `prom-conf`: Specifies the configuration file. By default, it looks for the `prom.conf` file in the current directory. If it is not found, it will look for the corresponding file in the *<datakit-install-dir\>/conf.d/prom* directory.
 
 Output sample:
 

@@ -135,7 +135,7 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 
 	isjson := (strings.Contains(req.Header.Get("Content-Type"), "application/json"))
 
-	pts, err := handleWriteBody(body, isjson, opts...)
+	pts, err := HandleWriteBody(body, isjson, opts...)
 	if err != nil {
 		if errors.Is(err, point.ErrInvalidLineProtocol) {
 			return nil, uhttp.Errorf(ErrInvalidLinePoint, "%s: body(%d bytes)", err.Error(), len(body))
@@ -219,7 +219,7 @@ func appendTags(pts []*point.Point, tags map[string]string) {
 	}
 }
 
-func handleWriteBody(body []byte,
+func HandleWriteBody(body []byte,
 	isJSON bool,
 	opts ...point.Option,
 ) ([]*point.Point, error) {

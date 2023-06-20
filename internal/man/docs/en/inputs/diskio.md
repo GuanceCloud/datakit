@@ -141,7 +141,7 @@ Average:     dev253-1      0.00      0.00      0.00      0.00      0.00      0.0
 
 **Python script**
 
-Create file `<DataKit Dir>/python.d/diskio/diskio.py` and add the following content:
+Create file *<DataKit Dir\>/python.d/diskio/diskio.py* and add the following content:
 
 ```python
 import subprocess

@@ -77,7 +77,7 @@ output.logstash:
   hosts: ["<Datakit-IP>:5044"]
 ```
 
-Port `5044` here should be consistent with the `listen` port configured in `<Datakit Installation Directory>/conf.d/beats_output/beats_output.conf`.
+Port `5044` here should be consistent with the `listen` port configured in *<Datakit Installation Directory\>/conf.d/beats_output/beats_output.conf*.
 
 In this way, the Filebeat collection log `/Users/mac/Downloads/tmp/1.log` is reported to Datakit.
 

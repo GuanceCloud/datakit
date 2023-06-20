@@ -20,10 +20,9 @@ import (
 	"strings"
 	"time"
 
+	lp "github.com/GuanceCloud/cliutils/lineproto"
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 	"github.com/GuanceCloud/platypus/pkg/token"
-
-	lp "github.com/GuanceCloud/cliutils/lineproto"
 	"github.com/gin-gonic/gin"
 	"github.com/influxdata/toml"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
@@ -37,10 +36,26 @@ import (
 )
 
 const (
-	platformWeb     = "web"
-	platformAndroid = "android"
-	platformIOS     = "ios"
+	SourceMapDirWeb     = "web"
+	SourceMapDirMini    = "miniapp"
+	SourceMapDirAndroid = "android"
+	SourceMapDirIOS     = "ios"
+	ZipExt              = ".zip"
 )
+
+// GetSourcemapZipFileName  zip file name.
+func GetSourcemapZipFileName(appID, env, version string) string {
+	if env == "" {
+		env = "none"
+	}
+	if version == "" {
+		version = "none"
+	}
+
+	fileName := fmt.Sprintf("%s-%s-%s%s", appID, env, version, ZipExt)
+
+	return strings.ReplaceAll(fileName, string(filepath.Separator), "__")
+}
 
 var dcaErrorMessage = map[string]string{
 	"server.error": "server error",
@@ -982,20 +997,21 @@ func dcaUploadSourcemap(c *gin.Context) {
 		return
 	}
 
-	if (len(param.ApplicationID) == 0) || (len(param.Env) == 0) || (len(param.Version) == 0) {
-		context.fail(dcaError{ErrorCode: "query.param.required", ErrorMsg: "app_id, env, version required"})
+	if param.ApplicationID == "" {
+		context.fail(dcaError{ErrorCode: "query.param.required", ErrorMsg: "app_id required"})
 		return
 	}
 
 	if param.Platform == "" {
-		param.Platform = platformWeb
+		param.Platform = SourceMapDirWeb
 	}
 
-	if param.Platform != platformWeb && param.Platform != platformAndroid && param.Platform != platformIOS {
+	if param.Platform != SourceMapDirWeb && param.Platform != SourceMapDirMini &&
+		param.Platform != SourceMapDirAndroid && param.Platform != SourceMapDirIOS {
 		l.Errorf("platform [%s] not supported", param.Platform)
 		context.fail(dcaError{
 			ErrorCode: "param.invalid",
-			ErrorMsg:  fmt.Sprintf("platform [%s] not supported, please use web, android or ios", param.Platform),
+			ErrorMsg:  fmt.Sprintf("platform [%s] not supported, please use web, miniapp, android or ios", param.Platform),
 		})
 		return
 	}
@@ -1048,20 +1064,21 @@ func dcaDeleteSourcemap(c *gin.Context) {
 		return
 	}
 
-	if (len(param.ApplicationID) == 0) || (len(param.Env) == 0) || (len(param.Version) == 0) {
+	if param.ApplicationID == "" {
 		context.fail(dcaError{ErrorCode: "query.param.required", ErrorMsg: "app_id, env, version required"})
 		return
 	}
 
 	if param.Platform == "" {
-		param.Platform = platformWeb
+		param.Platform = SourceMapDirWeb
 	}
 
-	if param.Platform != platformWeb && param.Platform != platformAndroid && param.Platform != platformIOS {
+	if param.Platform != SourceMapDirWeb && param.Platform != SourceMapDirMini &&
+		param.Platform != SourceMapDirAndroid && param.Platform != SourceMapDirIOS {
 		l.Errorf("platform [%s] not supported", param.Platform)
 		context.fail(dcaError{
 			ErrorCode: "param.invalid",
-			ErrorMsg:  fmt.Sprintf("platform [%s] not supported, please use web, android or ios", param.Platform),
+			ErrorMsg:  fmt.Sprintf("platform [%s] not supported, please use web, miniapp, android or ios", param.Platform),
 		})
 		return
 	}

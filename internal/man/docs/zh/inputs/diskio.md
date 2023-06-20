@@ -135,7 +135,7 @@ Average:     dev253-1      0.00      0.00      0.00      0.00      0.00      0.0
 
 ### 采集脚本 {#py-script}
 
-新建文件 *<DataKit 目录>/python.d/diskio/diskio.py*，脚本内容如下：
+新建文件 *<DataKit 目录\>/python.d/diskio/diskio.py*，脚本内容如下：
 
 ```python
 import subprocess

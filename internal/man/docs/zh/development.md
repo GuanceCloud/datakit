@@ -273,7 +273,7 @@ sudo datakit service -S                                         # 重启 datakit
 datakit monitor                                                 # datakit 运行情况监测
 ```
 
-- 此时，一般会在 `/usr/local/datakit/conf.d/<Catalog>/` 目录下有个 `zhangsan.conf.sample`。注意，这里的 `<Catalog>` 就是上面接口 `Catalog() string` 的返回值。
+- 此时，一般会在 */usr/local/datakit/conf.d/<Catalog\>/* 目录下有个 `zhangsan.conf.sample`。注意，这里的 *<Catalog\>* 就是上面接口 `Catalog() string` 的返回值。
 - 开启 `zhangsan` 采集器，将 `zhangsan.conf.sample` 复制出一份 `zhangsan.conf`，如果有对应的配置（如用户名、目录配置等），修改之，然后重启 DataKit
 - 执行如下命令检查采集器情况：
 

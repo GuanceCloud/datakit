@@ -77,7 +77,7 @@ sudo cp -r dist/datakit-darwin-amd64/datakit /usr/local/datakit # Overlay binary
 sudo datakit service -S                                         # restart datakit
 ```
 
-- At this point, you typically have a `zhangsan.conf.sample` in the `/usr/local/datakit/conf.d/<Catalog>/` directory. Note that the `<Catalog>` here is the return value of the interface `Catalog() string` above.
+- At this point, you typically have a `zhangsan.conf.sample` in the */usr/local/datakit/conf.d/<Catalog\>/* directory. Note that the `<Catalog>` here is the return value of the interface `Catalog() string` above.
 - Open the `zhangsan` collector, make a copy of `zhangsan.conf` from `zhangsan.conf.sample`, modify the corresponding configuration (such as user name, directory configuration, etc.), and restart DataKit
 - Check the collector condition by executing the following command:
 
