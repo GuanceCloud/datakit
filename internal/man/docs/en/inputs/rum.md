@@ -279,7 +279,7 @@ If a software installation fails during the installation process, you may need t
 ---
 
 <!-- markdownlint-disable MD046 -->
-??? info+ "For RUM Headless"
+???+ attention "For RUM Headless"
 
     For [RUM headless](../dataflux-func/headless.md), you can upload these package files on web pages, and following upload/delete operations are not required.
 <!-- markdownlint-enable -->
