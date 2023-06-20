@@ -280,6 +280,14 @@ sudo datakit install --symbol-tools
     ```
 <!-- markdownlint-enable -->
 
+---
+
+<!-- markdownlint-disable MD046 -->
+??? info+ "RUM Headless 说明"
+
+    对于 [RUM Headless](../dataflux-func/headless.md) 用户，可以直接在页面上上传压缩包即可，无需执行下面的文件上传和删除操作。
+<!-- markdownlint-enable -->
+
 ### 文件上传和删除 {#upload-delete}
 
 打包完成后，除了手动拷贝至 DataKit 相关目录，还可通过 http 接口上传和删除该文件，前提是 Datakit 开启了 DCA 服务。
