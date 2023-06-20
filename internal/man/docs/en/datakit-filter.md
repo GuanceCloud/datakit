@@ -103,7 +103,7 @@ The configuration here should follow the following rules:
 
 ### Basic Grammar Rules {#basic}
 
-The basic syntax rules of filter are basically the same as Pipeline, see [here](../developers/pipeline/pipeline-platypus-grammar/).
+The basic syntax rules of filter are basically the same as Pipeline, see [here](../developers/pipeline/pipeline-platypus-grammar.md).
 
 ### Operator {#operator}
 

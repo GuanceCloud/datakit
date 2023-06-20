@@ -103,7 +103,7 @@ spec:
 如果对应的日志有配置 Pipeline 切割，那么每一条日志（含单条多行日志）都会通过 Pipeline 切割，Pipeline 主要又分为两个步骤：
 
 1. Grok/JSON 切割：通过 Grok/JSON，将单条 Raw 日志切割成结构化数据
-1. 对提取出来的字段，再精细处理：比如[补全 IP 信息](../developers/pipeline/pipeline-built-in-function/#fn-geoip)，[日志脱敏](../developers/pipeline/pipeline-built-in-function/#fn-cover)等
+1. 对提取出来的字段，再精细处理：比如[补全 IP 信息](../developers/pipeline/pipeline-built-in-function.md#fn-geoip)，[日志脱敏](../developers/pipeline/pipeline-built-in-function.md#fn-cover)等
 
 - 黑名单（Filter）
 
@@ -124,5 +124,5 @@ spec:
 ## 延申阅读 {#more-readings}
 
 - [DataKit 日志采集综述](datakit-logging.md)
-- [如何调试 Pipeline](../developers/pipeline/pipeline-quick-start/#debug)
+- [如何调试 Pipeline](../developers/pipeline/pipeline-quick-start.md#debug)
 - [行协议黑名过滤器](datakit-filter.md)

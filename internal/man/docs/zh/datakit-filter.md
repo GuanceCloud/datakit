@@ -104,7 +104,7 @@ Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛�
 
 ### 基本语法规则 {#basic}
 
-过滤器基本语法规则，跟 Pipeline 基本一致，参见[这里](../developers/pipeline/pipeline-platypus-grammar/)。
+过滤器基本语法规则，跟 Pipeline 基本一致，参见[这里](../developers/pipeline/pipeline-platypus-grammar.md)。
 
 ### 操作符 {#operator}
 
