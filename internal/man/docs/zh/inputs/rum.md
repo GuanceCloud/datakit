@@ -120,7 +120,7 @@ sudo datakit install --symbol-tools
 <!-- markdownlint-disable MD046 -->
 === "Web"
 
-    将 js 文件经 webpack 混淆和压缩后生成的 *.map* 文件进行 zip 压缩打包，再拷贝到 *<DataKit 安装目录>/data/rum/web* 目录下，必须要保证该压缩包解压后的文件路径与 `error_stack` 中 URL 的路径一致。 假设如下 `error_stack`：
+    将 js 文件经 webpack 混淆和压缩后生成的 *.map* 文件进行 zip 压缩打包，再拷贝到 *<DataKit 安装目录\>/data/rum/web* 目录下，必须要保证该压缩包解压后的文件路径与 `error_stack` 中 URL 的路径一致。 假设如下 `error_stack`：
 
     ```
     ReferenceError
@@ -150,11 +150,11 @@ sudo datakit install --symbol-tools
 
 === "小程序"
 
-    同 Web
+    同 Web 的打包方式基本保持一致，但需注意要将打包好的 `.zip` 文件拷贝到 *<DataKit 安装目录\>/data/rum/miniapp* 目录下而不是 *<DataKit 安装目录\>/data/rum/web*。
 
 === "Android"
 
-    Android 目前存在两种 `sourcemap` 文件，一种是 Java 字节码经 `R8`/`Proguard` 压缩混淆后产生的 mapping 文件，另一种为 C/C++ 原生代码编译时未清除符号表和调试信息的（unstripped） `.so` 文件，如果你的安卓应用同时包含这两种 `sourcemap` 文件， 打包时需要把这两种文件都打包进 zip 包中，之后再把 zip 包拷贝到 *<DataKit 安装目录>/data/rum/android* 目录下，zip 包解压后的目录结构类似：
+    Android 目前存在两种 `sourcemap` 文件，一种是 Java 字节码经 `R8`/`Proguard` 压缩混淆后产生的 mapping 文件，另一种为 C/C++ 原生代码编译时未清除符号表和调试信息的（unstripped） `.so` 文件，如果你的安卓应用同时包含这两种 `sourcemap` 文件， 打包时需要把这两种文件都打包进 zip 包中，之后再把 zip 包拷贝到 *<DataKit 安装目录\>/data/rum/android* 目录下，zip 包解压后的目录结构类似：
     
     ```
     <app_id>-<env>-<version>/
@@ -177,7 +177,7 @@ sudo datakit install --symbol-tools
         └── libvideocodec.so
     ```
 
-    默认情况下，mapping 文件将位于： *<项目文件夹>/<Module>/build/outputs/mapping/<build-type>/*，`.so` 文件在用 CMake 编译项目时位于： *<项目文件夹>/<Module>/build/intermediates/cmake/debug/obj/*，用 NDK 编译时位于：*<项目文件夹>/<Module>/build/intermediates/ndk/debug/obj/*（debug 编译）或 *<项目文件夹>/<Module>/build/intermediates/ndk/release/obj/*（release 编译）。
+    默认情况下，mapping 文件将位于： *<项目文件夹\>/<Module\>/build/outputs/mapping/<build-type\>/*，`.so` 文件在用 CMake 编译项目时位于： *<项目文件夹\>/<Module\>/build/intermediates/cmake/debug/obj/*，用 NDK 编译时位于：*<项目文件夹\>/<Module\>/build/intermediates/ndk/debug/obj/*（debug 编译）或 *<项目文件夹\>/<Module\>/build/intermediates/ndk/release/obj/*（release 编译）。
 
     转换的效果如下：
 
@@ -259,7 +259,7 @@ sudo datakit install --symbol-tools
     Build Settings -> Build Option -> Debug Information Format -> DWARF with dSYM File
     ```
 
-    进行 zip 打包时，把相应的 `.dSYM` 文件打包进 zip 包即可，如果你的项目涉及多个 `.dSYM` 文件，需要一起打包到 zip 包内，之后再把 zip 包拷贝到 *<DataKit 安装目录>/data/rum/ios* 目录下，zip 包解压后的目录结构类似如下（`.dSYM` 文件本质上是一个目录，和 macOS 下的可执行程序 *.app* 文件类似）：
+    进行 zip 打包时，把相应的 `.dSYM` 文件打包进 zip 包即可，如果你的项目涉及多个 `.dSYM` 文件，需要一起打包到 zip 包内，之后再把 zip 包拷贝到 *<DataKit 安装目录\>/data/rum/ios* 目录下，zip 包解压后的目录结构类似如下（`.dSYM` 文件本质上是一个目录，和 macOS 下的可执行程序 *.app* 文件类似）：
 
 
     ```
@@ -302,7 +302,7 @@ curl -X DELETE '<dca_address>/v1/rum/sourcemap?app_id=<app_id>&env=<env>&version
 - `<app_id>`: 对应 RUM 的 `applicationId`
 - `<env>`: 对应 RUM 的 `env`
 - `<version>`: 对应 RUM 的 `version`
-- `<platform>` 应用平台，当前支持 web/android/ios
+- `<platform>` 应用平台，当前支持 web/miniapp/android/ios
 - `<sourcemap_path>`: 待上传的 `sourcemap` 压缩包文件路径
 
 <!-- markdownlint-disable MD046 -->

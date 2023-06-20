@@ -26,24 +26,27 @@ var (
 	l              = logger.DefaultSLogger("downloader")
 )
 
-type writeCounter struct {
-	total   uint64
+type WriteCounter struct {
+	Total   uint64
 	current uint64
 	last    float64
 }
 
-func (wc *writeCounter) Write(p []byte) (int, error) {
+func (wc *WriteCounter) Write(p []byte) (int, error) {
 	n := len(p)
 	wc.current += uint64(n)
 	wc.last += float64(n)
 	wc.PrintProgress()
+	if n > 0 && wc.current >= wc.Total {
+		fmt.Println()
+	}
 	return n, nil
 }
 
-func (wc *writeCounter) PrintProgress() {
-	if wc.last > float64(wc.total)*0.01 || wc.current == wc.total { // update progress-bar each 1%
-		fmt.Printf("\r%s", strings.Repeat(" ", 36)) //nolint:gomnd
-		fmt.Printf("\rDownloading(% 7s)... %s/%s", CurDownloading, humanize.Bytes(wc.current), humanize.Bytes(wc.total))
+func (wc *WriteCounter) PrintProgress() {
+	if wc.last > float64(wc.Total)*0.01 || wc.current == wc.Total { // update progress-bar each 1%
+		fmt.Printf("\r%s", strings.Repeat(" ", 100)) //nolint:gomnd
+		fmt.Printf("\rDownloading(% 7s)... %s/%s", CurDownloading, humanize.Bytes(wc.current), humanize.Bytes(wc.Total))
 		wc.last = 0.0
 	}
 }
@@ -132,8 +135,8 @@ func Download(cli *http.Client, from, to string, progress, downloadOnly bool) er
 	}
 
 	defer resp.Body.Close() //nolint:errcheck
-	progbar := &writeCounter{
-		total: uint64(resp.ContentLength),
+	progbar := &WriteCounter{
+		Total: uint64(resp.ContentLength),
 	}
 
 	if downloadOnly {

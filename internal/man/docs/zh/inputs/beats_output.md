@@ -79,7 +79,7 @@ output.logstash:
   hosts: ["<Datakit-IP>:5044"]
 ```
 
-这里的 `5044` 端口要与 `<Datakit 安装目录>/conf.d/beats_output/beats_output.conf` 中配置的 `listen` 端口一致。
+这里的 `5044` 端口要与 *<Datakit 安装目录\>/conf.d/beats_output/beats_output.conf* 中配置的 `listen` 端口一致。
 
 这样就实现 Filebeat 采集日志文件 `/Users/mac/Downloads/tmp/1.log` 上报到 Datakit 了。
 

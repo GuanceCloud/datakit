@@ -18,142 +18,12 @@ import (
 	"testing"
 	"time"
 
-	lp "github.com/GuanceCloud/cliutils/lineproto"
-	tu "github.com/GuanceCloud/cliutils/testutil"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/go-sourcemap/sourcemap"
-	"github.com/influxdata/influxdb1-client/models"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 )
-
-func TestRUMHandleBody(t *testing.T) {
-	cases := []struct {
-		name           string
-		body           []byte
-		prec           string
-		fail           bool
-		js             bool
-		npts           int
-		appidWhiteList []string
-	}{
-		{
-			name: `invalid json`,
-			body: []byte(`[{
-"measurement": "error",
-"tags": {"t1": "tv1"},
-"fields": 1.0, "f2": 2}
-}]`),
-			npts: 1,
-			fail: true,
-			js:   true,
-		},
-
-		{
-			name: `valid app_id`,
-			body: []byte(`[{
-"measurement": "error",
-"tags": {"app_id": "appid01"},
-"fields": {"f1": 1.0, "f2": 2}
-}]`),
-			npts:           1,
-			js:             true,
-			appidWhiteList: []string{"appid01"},
-		},
-
-		{
-			name: `invalid app_id`,
-			body: []byte(`[{
-"measurement": "error",
-"tags": {"app_id": "appid01"},
-"fields": {"f1": 1.0, "f2": 2}
-}]`),
-			npts:           1,
-			js:             true,
-			appidWhiteList: []string{"appid02"},
-			fail:           true,
-		},
-
-		{
-			name: `invalid json, no tags`,
-			body: []byte(`[{
-"measurement": "error",
-"fields": {"f1": 1.0, "f2": 2}
-}]`),
-			npts:           1,
-			js:             true,
-			appidWhiteList: []string{"appid02"},
-			fail:           true,
-		},
-
-		{
-			name: `Precision ms`,
-			prec: "ms",
-			body: []byte(`error,app_id=appid01,t2=tag2 f1=1.0,f2=2i,f3="abc"
-			action,app_id=appid01,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
-			npts:           2,
-			appidWhiteList: []string{"appid01"},
-		},
-
-		{
-			name: "app_id not in white-list",
-			prec: "ms",
-			body: []byte(`error,app_id=appid01,t2=tag2 f1=1.0,f2=2i,f3="abc"
-			action,app_id=appid01,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
-			npts:           2,
-			appidWhiteList: []string{"appid02"},
-			fail:           true,
-		},
-
-		{
-			name: `Precision ns`,
-			prec: "n",
-			body: []byte(`error,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
-			view,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
-			resource,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
-			long_task,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
-			action,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
-			npts: 5,
-		},
-
-		{
-			// 行协议指标带换行
-			name: "line break in point",
-			prec: "ms",
-			body: []byte(`error,sdk_name=Web\ SDK,sdk_version=2.0.1,app_id=appid_16b35953792f4fcda0ca678d81dd6f1a,env=production,version=1.0.0,userid=60f0eae1-01b8-431e-85c9-a0b7bcb391e1,session_id=8c96307f-5ef0-4533-be8f-c84e622578cc,is_signin=F,os=Mac\ OS,os_version=10.11.6,os_version_major=10,browser=Chrome,browser_version=90.0.4430.212,browser_version_major=90,screen_size=1920*1080,network_type=4g,view_id=addb07a3-5ab9-4e30-8b4f-6713fc54fb4e,view_url=http://172.16.5.9:5003/,view_host=172.16.5.9:5003,view_path=/,view_path_group=/,view_url_query={},error_source=source,error_type=ReferenceError error_starttime=1621244127493,error_message="displayDate is not defined",error_stack="ReferenceError
-  at onload @ http://172.16.5.9:5003/:25:30" 1621244127493`),
-			npts: 1,
-		},
-	}
-
-	ipt := &Input{}
-	for i, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			pts, err := ipt.parseRUMBody(tc.body, tc.prec, tc.js, nil, tc.appidWhiteList)
-
-			if tc.fail {
-				tu.NotOk(t, err, "case[%d] expect fail, but ok", i)
-				t.Logf("[%d] handle body failed: %s", i, err)
-				return
-			}
-
-			if err != nil && !tc.fail {
-				t.Errorf("[FAIL][%d] handle body failed: %s", i, err)
-				return
-			}
-
-			tu.Equals(t, tc.npts, len(pts))
-
-			for _, pt := range pts {
-				lp := pt.String()
-				t.Logf("\t%s", lp)
-				_, err := models.ParsePointsWithPrecision([]byte(lp), time.Now(), "n")
-				if err != nil {
-					t.Error(err)
-				}
-			}
-		})
-	}
-}
 
 func TestHandleSourcemap(t *testing.T) {
 	bodyStr := `resource,sdk_name=df_web_rum_sdk,sdk_version=2.0.15,app_id=appid_e6208285ab6947dbaef25d1f1e4749bd,env=production,version=1.0.0,userid=5499c5f6-9b35-43dc-b752-d291a4677b07,session_id=e0e08c94-3096-419e-8eae-1273d045153c,session_type=user,is_signin=F,os=Mac\ OS,os_version=10.14.6,os_version_major=10,browser=Chrome,browser_version=95.0.4638.69,browser_version_major=95,screen_size=2560*1440,network_type=4g,view_id=6f272fe3-5ab1-430c-98b4-45d3d091126c,view_referrer=http://localhost:5500/dist/,view_url=http://localhost:5500/dist/,view_host=localhost:5500,view_path=/dist/,view_path_group=/dist/,view_url_query={},resource_url=https://static.dataflux.cn/browser-sdk/v2/dataflux-rum.js,resource_url_host=static.dataflux.cn,resource_url_path=/browser-sdk/v2/dataflux-rum.js,resource_url_path_group=/browser-sdk/?/dataflux-rum.js,resource_url_query={},resource_type=js,resource_status=200,resource_status_group=2xx,resource_method=GET duration=0 1636524705407
@@ -179,8 +49,8 @@ func TestHandleSourcemap(t *testing.T) {
 
 	datakit.DataDir = path.Join(tmpDir, "data")
 
-	sourcemapFileName := GetSourcemapZipFileName("appid_e6208285ab6947dbaef25d1f1e4749bd", "production", "1.0.0")
-	rumDir := getRumSourcemapDir(srcMapDirWeb)
+	sourcemapFileName := httpapi.GetSourcemapZipFileName("appid_e6208285ab6947dbaef25d1f1e4749bd", "production", "1.0.0")
+	rumDir := getRumSourcemapDir(SdkWebMiniApp)
 
 	err := os.MkdirAll(rumDir, os.ModePerm)
 	assert.NoError(t, err)
@@ -206,30 +76,22 @@ func TestHandleSourcemap(t *testing.T) {
 
 	loadSourcemapFile()
 
-	pts, err := lp.ParsePoints(body, &lp.Option{
-		Time:      time.Now(),
-		Precision: "ms",
-		Callback: func(p models.Point) (models.Point, error) {
-			if string(p.Name()) == "error" {
-				ipt := &Input{}
-				p, _ = ipt.parseSourcemap(p, SdkWeb)
-			}
-			return p, nil
-		},
-	})
+	ipt := &Input{}
+	opts := []point.Option{
+		point.WithPrecision(point.MS),
+		point.WithTime(time.Now()),
+		point.WithCallback(ipt.parseCallback),
+	}
+
+	pts, err := httpapi.HandleWriteBody(body, false, opts...)
 
 	assert.NoError(t, err)
 	assert.Greater(t, len(pts), 0)
 
 	for _, p := range pts {
-		if p.Name() == "error" {
-			fields, err := p.Fields()
-			if err != nil {
-				continue
-			}
+		if string(p.Name()) == "error" {
+			fields := p.InfluxFields()
 			if _, ok := fields["error_stack"]; ok {
-				fields, err := p.Fields()
-				assert.NoError(t, err)
 				if errorStackSource, ok := fields["error_stack_source_base64"]; !ok {
 					assert.Fail(t, "error stack transform failed")
 				} else {
@@ -243,15 +105,15 @@ func TestHandleSourcemap(t *testing.T) {
 
 	t.Run("updateSourcemapCache", func(t *testing.T) {
 		updateSourcemapCache("invalid")
-		assert.Equal(t, len(sourcemapCache), 1)
+		assert.Equal(t, len(webSourcemapCache), 1)
 
 		updateSourcemapCache(zipFilePath)
 		fileName := filepath.Base(zipFilePath)
-		_, ok := sourcemapCache[fileName]
+		_, ok := webSourcemapCache[fileName]
 		assert.True(t, ok)
 
 		deleteSourcemapCache(zipFilePath)
-		_, ok = sourcemapCache[fileName]
+		_, ok = webSourcemapCache[fileName]
 		assert.False(t, ok)
 	})
 
@@ -283,13 +145,13 @@ func TestHandleSourcemap(t *testing.T) {
 				src:           "http://localhost:5500/dist/bundle.js:1:821",
 				dest:          "webpack:///./src/index.js:17:4",
 				desc:          "it shourld work",
-				sourceMapItem: sourcemapCache[fileName],
+				sourceMapItem: webSourcemapCache[fileName],
 			},
 			{
 				src:           "http:///localhost:5500/dist/bundle.js:1:821",
 				dest:          "http:///localhost:5500/dist/bundle.js:1:821",
 				desc:          "invalid url",
-				sourceMapItem: sourcemapCache[fileName],
+				sourceMapItem: webSourcemapCache[fileName],
 			},
 			{
 				src:  "http://localhost:5500/dist/bundle.js:1:821",

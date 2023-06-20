@@ -164,7 +164,7 @@ drop_origin_data()
 
 - 配置对应的采集器来使用上面的 Pipeline
 
-以 logging 采集器为例，配置字段 `pipeline_path` 即可，注意，这里配置的是 pipeline 的脚本名称，而不是路径。所有这里引用的 pipeline 脚本，必须存放在 `<DataKit 安装目录/pipeline>` 目录下：
+以 logging 采集器为例，配置字段 `pipeline_path` 即可，注意，这里配置的是 Pipeline 的脚本名称，而不是路径。所有这里引用的 Pipeline 脚本，必须存放在 *<DataKit 安装目录\>/pipeline* 目录下：
 
 ```python
 [[inputs.logging]]

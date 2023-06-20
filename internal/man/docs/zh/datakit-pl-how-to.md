@@ -167,7 +167,7 @@ default_time(time)       # 将 time 字段作为输出数据的时间戳
 drop_origin_data()       # 丢弃原始日志文本(不建议这么做)
 ```
 
-这里引用了几个用户自定义的 pattern，如 `_dklog_date`、`_dklog_level`。我们将这些规则存放 *<Datakit 安装目录>/pipeline/pattern* 下。
+这里引用了几个用户自定义的 pattern，如 `_dklog_date`、`_dklog_level`。我们将这些规则存放 *<Datakit 安装目录\>/pipeline/pattern* 下。
 
 <!-- markdownlint-disable MD046 -->
 ???+ attention

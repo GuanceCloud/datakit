@@ -100,7 +100,7 @@ The RUM collector collects the following metric sets by default:
 
 Usually, js files in production environment or App code on mobile side will be confused and compressed to reduce the size of application. The call stack when an error occurs is quite different from the source code at development time, which is inconvenient for debugging (`troubleshoot`). If you need to locate errors in the source code, you have to rely on the `sourcemap` file.
 
-DataKit supports this mapping of source code file information by zipping the corresponding symbol table file, named `<app_id>-<env>-<version>.zip` and uploading it to`<DataKit Installation Directory>/data/rum/<platform>` so that the reported `error` measurement data can be automatically converted and the `error_stack_source` field appended to the metric set.
+DataKit supports this mapping of source code file information by zipping the corresponding symbol table file, named *<app_id\>-<env\>-<version\>.zip* and uploading it to *<DataKit Installation Directory\>/data/rum/<platform\>* so that the reported `error` measurement data can be automatically converted and the `error_stack_source` field appended to the metric set.
 
 ### Install the sourcemap Toolset {#install-tools}
 
@@ -117,7 +117,7 @@ If a software installation fails during the installation process, you may need t
 
 === "Web"
 
-    After the js file is obfuscated and compressed by webpack, the `.map` file is zip compressed and packaged, and then copied to the `<DataKit installation directory>/data/rum/web`directory. It is necessary to ensure that the uncompressed file path of the compressed package is consistent with the URL path in `error_stack`. Assume the following `error_stack`：
+    After the js file is obfuscated and compressed by webpack, the `.map` file is zip compressed and packaged, and then copied to the *<DataKit installation directory\>/data/rum/web* directory. It is necessary to ensure that the uncompressed file path of the compressed package is consistent with the URL path in `error_stack`. Assume the following `error_stack`：
 
     ```
     ReferenceError
@@ -147,11 +147,11 @@ If a software installation fails during the installation process, you may need t
 
 === "Mini Program"
 
-    Same as Web.
+    Same as Web except you should copy the `.zip` archive into *<DataKit installation directory\>/data/rum/miniapp* directory.
 
 === "Android"
 
-    Android currently has two types of `sourcemap` files. One is the mapping file produced by Java bytecode obfuscated by `R8`/`Proguard` compression. The other is an (unstripped) `.so` file that does not clear the symbol table and debugging information when compiling C/C + + native code. If your android application contains these two `sourcemap` files at the same time, you need to package these two files into a zip package when packaging, and then copy the zip package to the `<DataKit installation directory>/data/rum/android` directory. The directory structure after zip package decompression is similar:
+    Android currently has two types of `sourcemap` files. One is the mapping file produced by Java bytecode obfuscated by `R8`/`Proguard` compression. The other is an (unstripped) `.so` file that does not clear the symbol table and debugging information when compiling C/C + + native code. If your android application contains these two `sourcemap` files at the same time, you need to package these two files into a zip package when packaging, and then copy the zip package to the *<DataKit installation directory\>/data/rum/android* directory. The directory structure after zip package decompression is similar:
 
     ```
     <app_id>-<env>-<version>/
@@ -174,7 +174,7 @@ If a software installation fails during the installation process, you may need t
         └── libvideocodec.so
     ```
 
-    By default, the `mapping` file will be in: `<project folder>/<Module>/build/outputs/mapping/<build-type>/`, the `.so` file will be in: `<project folder>/<Module>/build/intermediates/cmake/debug/obj/` when compiling with ndk: `<project folder>/<Module>/build/intermediates/ndk/debug/obj/`（debug compilation) or `<project folder>/<Module>/build/intermediates/ndk/release/obj/`(release compile).
+    By default, the `mapping` file will be in: *<project folder\>/<Module\>/build/outputs/mapping/<build-type\>/*, the `.so` file will be in: *<project folder\>/<Module\>/build/intermediates/cmake/debug/obj/* when compiling with ndk: *<project folder\>/<Module\>/build/intermediates/ndk/debug/obj/*（debug compilation) or *<project folder\>/<Module\>/build/intermediates/ndk/release/obj/*(release compile).
 
     The effect of the transformation is as follows:
 
@@ -256,7 +256,7 @@ If a software installation fails during the installation process, you may need t
     Build Settings -> Build Option -> Debug Information Format -> DWARF with dSYM File
     ```
 
-    When packaging zip, you can package the corresponding `.dSYM` files into the zip package. If your project involves multiple `.dSYM` files, you need to package them together into the zip package, and then copy the zip package to the `<DataKit installation directory >/data/rum/ios` directory. The directory structure after zip package decompression is similar to the following (the`.dSYM` file is essentially a directory, which is similar to the executable program `.app` file under macOS):
+    When packaging zip, you can package the corresponding `.dSYM` files into the zip package. If your project involves multiple `.dSYM` files, you need to package them together into the zip package, and then copy the zip package to the *<DataKit installation directory\>/data/rum/ios* directory. The directory structure after zip package decompression is similar to the following (the`.dSYM` file is essentially a directory, which is similar to the executable program `.app` file under macOS):
 
 
     ```
@@ -298,16 +298,17 @@ Variable description:
 - `<app_id>`: RUM's application ID
 - `<env>`: RUM's tag `env`
 - `<version>`: RUM's tag `version`
-- `<platform>` RUM supported platform, currently support `web/android/ios`
+- `<platform>` RUM supported platform, currently support `web/miniapp/android/ios`
 - `<sourcemap_path>`: Path of zipped file path
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     - This conversion process is only for the `error` measurement.
     - Currently only Javascript/Android/iOS sourcemap conversion is supported.
     - If the corresponding sourcemap file is not found, no conversion will be performed.
     - Sourcemap compressed package uploaded through the interface, which does not need to restart DataKit to take effect. However, if it is uploaded manually, you need to restart the DataKit before it can take effect.
-
+<!-- markdownlint-enable -->
 
 ## CDN resolve {#cdn-resolve}
 
@@ -315,7 +316,7 @@ For the `resource` indicator, DataKit attempts to analyze whether the resource u
 
 ### Customize the CDN lookup dictionary {#customize-cdn-map}
 
-DataKit has a built-in list of CDN manufacturers. If we find that the CDN we use cannot be recognized, we can modify the list in the configuration file, which is located at */usr/local/datakit/conf.d/rum/rum.conf*, which is determined according to DataKit installation location, where `cdn_map` configuration item is used to customize the CDN dictionary. The CDN list seems like the following JSON:
+DataKit has a built-in list of CDN manufacturers. If you find that the CDN you used cannot be recognized, you can modify the list in the configuration file, which is located at */usr/local/datakit/conf.d/rum/rum.conf*, which is determined according to DataKit installation location, where `cdn_map` configuration item is used to customize the CDN dictionary. The CDN list seems like the following JSON:
 
 ```json
 [

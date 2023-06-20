@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/kardianos/service"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmds"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -66,6 +67,23 @@ func Install(svc service.Service) {
 	if OTA {
 		mc.AutoUpdate = OTA
 		l.Info("set auto update(OTA enabled)")
+	}
+
+	if HTTPPublicAPIs != "" {
+		apis := strings.Split(HTTPPublicAPIs, ",")
+		idx := 0
+		for _, api := range apis {
+			api = strings.TrimSpace(api)
+			if api != "" {
+				if !strings.HasPrefix(api, "/") {
+					api = "/" + api
+				}
+				apis[idx] = api
+				idx++
+			}
+		}
+		mc.HTTPAPI.PublicAPIs = apis[:idx]
+		l.Infof("set PublicAPIs to %s", strings.Join(apis[:idx], ","))
 	}
 
 	if DCAEnable != "" {
@@ -208,6 +226,12 @@ func Install(svc service.Service) {
 	cp.Infof("Installing service %s...\n", dkservice.Name)
 	if err := service.Control(svc, "install"); err != nil {
 		l.Warnf("uninstall service failed %s", err.Error()) //nolint:lll
+	}
+
+	if InstallRUMSymbolTools != 0 {
+		if err := cmds.InstallSymbolTools(); err != nil {
+			l.Fatalf("unable to install RUM symbol tools: %s", err)
+		}
 	}
 }
 

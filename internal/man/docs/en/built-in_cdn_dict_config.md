@@ -1,3 +1,6 @@
+# Built-in CDN Dict
+
+<!-- markdownlint-disable -->
 ```toml
   cdn_map='''
   [
