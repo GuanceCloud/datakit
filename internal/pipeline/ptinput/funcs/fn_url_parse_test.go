@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	tu "github.com/GuanceCloud/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput"
 )
@@ -126,24 +127,24 @@ m = url_parse(url, 2)
 				return
 			}
 
-			pt := ptinput.GetPoint()
-			ptinput.InitPt(pt, "test", nil, map[string]any{"message": tc.in}, time.Now())
+			var pt ptinput.PlInputPt = ptinput.NewPlPoint(point.Logging, "test", nil, map[string]any{"message": tc.in}, time.Now())
 			errR := runScript(runner, pt)
-
 			if errR != nil {
-				ptinput.PutPoint(pt)
 				t.Fatal(errR)
 			}
 
-			if v, ok := pt.Fields[tc.outKey]; !ok {
+			if v, istag, ok := pt.GetWithIsTag(tc.outKey); !ok {
 				if !tc.fail {
-					t.Errorf("[%d]key %s not found", idx, tc.outKey)
+					t.Errorf("[%d]key %s, error: %s", idx, tc.outKey, err)
 				}
 			} else {
-				tu.Equals(t, tc.expected, v)
-				t.Logf("[%d] PASS", idx)
+				if istag {
+					t.Errorf("key %s should be a field", tc.outKey)
+				} else {
+					tu.Equals(t, tc.expected, v)
+					t.Logf("[%d] PASS", idx)
+				}
 			}
-			ptinput.PutPoint(pt)
 		})
 	}
 }

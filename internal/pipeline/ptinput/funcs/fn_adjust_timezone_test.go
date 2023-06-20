@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput"
 )
@@ -64,25 +65,43 @@ func TestAdjustTimezone(t *testing.T) {
 				}
 				return
 			}
+			{
+				pt := ptinput.NewPlPoint(
+					point.Logging, "test", nil, map[string]any{"message": tc.in}, time.Now())
+				errR := runScript(runner, pt)
+				if errR != nil {
+					t.Fatal(errR)
+				}
 
-			pt := ptinput.GetPoint()
-			ptinput.InitPt(pt, "test", nil, map[string]any{"message": tc.in}, time.Now())
-			errR := runScript(runner, pt)
-			if errR != nil {
-				ptinput.PutPoint(pt)
-				t.Fatal(errR)
+				pt.KeyTime2Time()
+				var v interface{}
+				if tc.outkey != "time" {
+					v, _, _ = pt.GetWithIsTag(tc.outkey)
+				} else {
+					v = pt.PtTime()
+				}
+				assert.Equal(t, tc.expect, v)
+				t.Logf("[%d] PASS", idx)
 			}
 
-			pt.KeyTime2Time()
-			var v interface{}
-			if tc.outkey != "time" {
-				v = pt.Fields[tc.outkey]
-			} else {
-				v = pt.Time
+			{
+				pt := ptinput.NewPlPoint(point.Logging,
+					"test", nil, map[string]any{"message": tc.in}, time.Now())
+				errR := runScript(runner, pt)
+				if errR != nil {
+					t.Fatal(errR)
+				}
+
+				pt.KeyTime2Time()
+				var v interface{}
+				if tc.outkey != "time" {
+					v, _, _ = pt.GetWithIsTag(tc.outkey)
+				} else {
+					v = pt.PtTime()
+				}
+				assert.Equal(t, tc.expect, v)
+				t.Logf("[%d] PASS", idx)
 			}
-			assert.Equal(t, tc.expect, v)
-			t.Logf("[%d] PASS", idx)
-			ptinput.PutPoint(pt)
 		})
 	}
 }

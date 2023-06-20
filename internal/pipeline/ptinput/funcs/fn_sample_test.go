@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput"
 )
 
@@ -80,20 +81,19 @@ sample(2)
 				}
 				return
 			}
-			pt := ptinput.GetPoint()
-			ptinput.InitPt(pt, "test", nil, map[string]any{"message": tc.in}, time.Now())
+
+			pt := ptinput.NewPlPoint(
+				point.Logging, "test", nil, map[string]any{"message": tc.in}, time.Now())
 			errR := runScript(runner, pt)
 
 			if errR != nil {
-				ptinput.PutPoint(pt)
-				t.Fatal(errR)
+				t.Fatal(errR.Error())
 			}
 
-			if v, has := pt.Fields[tc.outKey]; has {
+			if v, _, err := pt.Get(tc.outKey); err == nil {
 				t.Logf("k/v pair `%s = %s` has been added to output", tc.outKey, v)
 			}
 			t.Logf("[%d] PASS", idx)
-			ptinput.PutPoint(pt)
 		})
 	}
 }

@@ -18,14 +18,16 @@ import (
 	_ "time/tzdata"
 
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/GuanceCloud/grok"
 	plruntime "github.com/GuanceCloud/platypus/pkg/engine/runtime"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ip2isp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ipdb"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ipdb/geoip"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ipdb/iploc"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/offload"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plmap"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput/funcs"
@@ -58,16 +60,17 @@ func GetIPdb() ipdb.IPdb {
 }
 
 type PipelineCfg struct {
-	IPdbAttr               map[string]string `toml:"ipdb_attr"`
-	IPdbType               string            `toml:"ipdb_type"`
-	RemotePullInterval     string            `toml:"remote_pull_interval"`
-	ReferTableURL          string            `toml:"refer_table_url"`
-	ReferTablePullInterval string            `toml:"refer_table_pull_interval"`
-	UseSQLite              bool              `toml:"use_sqlite"`
-	SQLiteMemMode          bool              `toml:"sqlite_mem_mode"`
+	IPdbAttr               map[string]string      `toml:"ipdb_attr"`
+	IPdbType               string                 `toml:"ipdb_type"`
+	RemotePullInterval     string                 `toml:"remote_pull_interval"`
+	ReferTableURL          string                 `toml:"refer_table_url"`
+	ReferTablePullInterval string                 `toml:"refer_table_pull_interval"`
+	UseSQLite              bool                   `toml:"use_sqlite"`
+	SQLiteMemMode          bool                   `toml:"sqlite_mem_mode"`
+	Offload                *offload.OffloadConfig `toml:"offload"`
 }
 
-func NewPipelineFromFile(category string, path string) (*Pipeline, error) {
+func NewPipelineFromFile(category point.Category, path string) (*Pipeline, error) {
 	name, script, err := plscript.ReadPlScriptFromFile(path)
 	if err != nil {
 		return nil, err
@@ -76,7 +79,7 @@ func NewPipelineFromFile(category string, path string) (*Pipeline, error) {
 	return NewPipeline(category, name, script)
 }
 
-func NewPipeline(category string, name, script string) (*Pipeline, error) {
+func NewPipeline(category point.Category, name, script string) (*Pipeline, error) {
 	scs, errs := plscript.NewScripts(map[string]string{name: script}, map[string]string{}, "", category)
 
 	if v, ok := errs[name]; ok {
@@ -92,7 +95,7 @@ func NewPipeline(category string, name, script string) (*Pipeline, error) {
 	return nil, fmt.Errorf("unknown error")
 }
 
-func NewPipelineMulti(category string, scripts map[string]string, scriptPath map[string]string) (map[string]*Pipeline, map[string]error) {
+func NewPipelineMulti(category point.Category, scripts map[string]string, scriptPath map[string]string) (map[string]*Pipeline, map[string]error) {
 	ret, retErr := plscript.NewScripts(scripts, scriptPath, "", category)
 
 	retPl := map[string]*Pipeline{}
@@ -109,9 +112,9 @@ type Pipeline struct {
 	Script *plscript.PlScript
 }
 
-func (p *Pipeline) Run(pt *point.Point, plOpt *plscript.Option, ioPtOpt *point.PointOption,
+func (p *Pipeline) Run(cat point.Category, pt *dkpt.Point, plOpt *plscript.Option, ioPtOpt *dkpt.PointOption,
 	signal plruntime.Signal, buks ...*plmap.AggBuckets,
-) (*point.Point, bool, error) {
+) (*dkpt.Point, bool, error) {
 	if p.Script == nil || p.Script.Engine() == nil {
 		return nil, false, fmt.Errorf("pipeline engine not initialized")
 	}
@@ -120,14 +123,11 @@ func (p *Pipeline) Run(pt *point.Point, plOpt *plscript.Option, ioPtOpt *point.P
 		return nil, false, fmt.Errorf("no data")
 	}
 
-	fields, err := pt.Fields()
+	plpt, err := ptinput.WrapDeprecatedPoint(cat, pt)
 	if err != nil {
 		return nil, false, err
 	}
 
-	plpt := &ptinput.Point{}
-
-	plpt = ptinput.InitPt(plpt, pt.Name(), pt.Tags(), fields, ioPtOpt.Time)
 	if len(buks) > 0 {
 		p.Script.SetAggBuks(buks[0])
 	}
@@ -135,14 +135,14 @@ func (p *Pipeline) Run(pt *point.Point, plOpt *plscript.Option, ioPtOpt *point.P
 	if err := p.Script.Run(plpt, signal, plOpt); err != nil {
 		return nil, false, err
 	} else {
-		if !plpt.Time.IsZero() {
-			ioPtOpt.Time = plpt.Time
+		if !plpt.PtTime().IsZero() {
+			ioPtOpt.Time = plpt.PtTime()
 		}
-		if pt, err := point.NewPoint(plpt.Name, plpt.Tags, plpt.Fields, ioPtOpt); err != nil {
+		if pt, err := plpt.DkPoint(); err != nil {
 			// stats.WriteScriptStats(p.script.Category(), p.script.NS(), p.script.Name(), 0, 0, 1, err)
 			return nil, false, err
 		} else {
-			return pt, plpt.Drop, nil
+			return pt, plpt.Dropped(), nil
 		}
 	}
 }
@@ -153,6 +153,10 @@ func Init(pipelineCfg *PipelineCfg) error {
 	funcs.InitLog()
 	plrefertable.InitLog()
 	relation.InitRelationLog()
+
+	if pipelineCfg == nil {
+		pipelineCfg = pipelineDefaultCfg
+	}
 
 	if _, err := InitIPdb(pipelineCfg); err != nil {
 		l.Warnf("init ipdb error: %s", err.Error())
@@ -167,6 +171,13 @@ func Init(pipelineCfg *PipelineCfg) error {
 		if err := plrefertable.InitReferTableRunner(
 			pipelineCfg.ReferTableURL, dur, pipelineCfg.UseSQLite, pipelineCfg.SQLiteMemMode); err != nil {
 			l.Error("init refer table, error: %v", err)
+		}
+	}
+
+	if pipelineCfg.Offload != nil && pipelineCfg.Offload.Receiver != "" &&
+		len(pipelineCfg.Offload.Addresses) != 0 {
+		if err := offload.InitOffloaWorker(pipelineCfg.Offload); err != nil {
+			l.Errorf("init offload worker, error: %v", err)
 		}
 	}
 

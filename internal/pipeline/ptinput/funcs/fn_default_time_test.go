@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	tu "github.com/GuanceCloud/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput"
 )
@@ -1081,11 +1082,10 @@ func TestDefaultTime(t *testing.T) {
 				return
 			}
 
-			pt := ptinput.GetPoint()
-			ptinput.InitPt(pt, "test", nil, map[string]any{"message": tc.in}, time.Now())
+			pt := ptinput.NewPlPoint(
+				point.Logging, "test", nil, map[string]any{"message": tc.in}, time.Now())
 			errR := runScript(runner, pt)
 			if errR != nil {
-				ptinput.PutPoint(pt)
 				t.Fatal(errR)
 			}
 
@@ -1093,13 +1093,12 @@ func TestDefaultTime(t *testing.T) {
 
 			var v interface{}
 			if tc.outkey != "time" && tc.outkey != "" {
-				v = pt.Fields[tc.outkey]
+				v, _, _ = pt.Get(tc.outkey)
 			} else {
-				v = pt.Time.UnixNano()
+				v = pt.PtTime().UnixNano()
 			}
 			tu.Equals(t, tc.expect, v)
 			t.Logf("[%d] PASS", idx)
-			ptinput.PutPoint(pt)
 		})
 	}
 }

@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	tu "github.com/GuanceCloud/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput"
 )
@@ -108,24 +109,22 @@ func TestXML(t *testing.T) {
 			runner, err := NewTestingRunner(tc.script)
 			tu.Equals(t, nil, err)
 
-			pt := ptinput.GetPoint()
-			ptinput.InitPt(pt, "test", nil, map[string]any{"message": tc.in}, time.Now())
+			pt := ptinput.NewPlPoint(
+				point.Logging, "test", nil, map[string]any{"message": tc.in}, time.Now())
 			errR := runScript(runner, pt)
 
 			if errR != nil {
-				ptinput.PutPoint(pt)
 				t.Fatal(errR)
 			}
 
-			r, ok := pt.Fields[tc.key]
-			if !ok && tc.fail {
+			r, isTag, ok := pt.GetWithIsTag(tc.key)
+			if !ok && !isTag && tc.fail {
 				t.Logf("[%d] failed as expected", idx)
 				return
 			}
-			tu.Equals(t, true, ok)
+			tu.Equals(t, nil, err)
 			tu.Equals(t, tc.expected, r)
 			t.Logf("[%d] PASS", idx)
-			ptinput.PutPoint(pt)
 		})
 	}
 }

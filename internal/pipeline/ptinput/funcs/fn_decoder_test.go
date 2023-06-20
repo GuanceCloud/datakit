@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	tu "github.com/GuanceCloud/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput"
 	"golang.org/x/text/encoding/simplifiedchinese"
@@ -64,19 +65,18 @@ func TestDecode(t *testing.T) {
 			runner, err := NewTestingRunner(tc.script)
 			tu.Equals(t, nil, err)
 
-			pt := ptinput.GetPoint()
-			ptinput.InitPt(pt, "test", nil, map[string]any{"message": tc.in}, time.Now())
+			pt := ptinput.NewPlPoint(
+				point.Logging, "test", nil, map[string]any{"message": tc.in}, time.Now())
 			errR := runScript(runner, pt)
 
 			if errR != nil {
-				ptinput.PutPoint(pt)
 				t.Fatal(errR)
 			}
 
-			tu.Equals(t, data[idx], pt.Fields[tc.key])
+			v, _, _ := pt.Get(tc.key)
+			tu.Equals(t, data[idx], v)
 
 			t.Logf("[%d] PASS", idx)
-			ptinput.PutPoint(pt)
 		})
 	}
 }

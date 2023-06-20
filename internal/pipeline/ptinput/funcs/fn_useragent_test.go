@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	tu "github.com/GuanceCloud/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput"
 )
@@ -116,26 +117,24 @@ func TestUserAgent(t *testing.T) {
 				return
 			}
 
-			pt := ptinput.GetPoint()
-			ptinput.InitPt(pt, "test", nil, map[string]any{"message": tc.in}, time.Now())
+			pt := ptinput.NewPlPoint(
+				point.Logging, "test", nil, map[string]any{"message": tc.in}, time.Now())
 			errR := runScript(runner, pt)
 
 			if errR != nil {
 				if tc.fail {
 					t.Logf("[%d]expect error: %s", idx, err)
 				} else {
-					ptinput.PutPoint(pt)
 					t.Fatal(errR)
 				}
 			} else {
 				fieldsToCompare := make(map[string]interface{})
 				for k := range tc.expected {
-					fieldsToCompare[k] = pt.Fields[k]
+					fieldsToCompare[k], _, _ = pt.Get(k)
 				}
 				tu.Equals(t, tc.expected, fieldsToCompare)
 				t.Logf("[%d] PASS", idx)
 			}
-			ptinput.PutPoint(pt)
 		})
 	}
 }

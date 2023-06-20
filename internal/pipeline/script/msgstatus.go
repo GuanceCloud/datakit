@@ -7,6 +7,9 @@ package script
 
 import (
 	"strings"
+
+	plast "github.com/GuanceCloud/platypus/pkg/ast"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput"
 )
 
 const (
@@ -44,56 +47,42 @@ var statusMap = map[string]string{
 	"ok":       "OK",
 }
 
-func ProcLoggingStatus(tags map[string]string, fileds map[string]any, drop bool,
-	disable bool, ignore []string,
-) (map[string]string, map[string]any, bool) {
-	var status string
+func normalizeStatus(status string) string {
+	status = strings.ToLower(status)
 
-	status, _ = getStatus(tags, fileds)
+	if s, ok := statusMap[status]; ok {
+		status = s
+	} else {
+		status = DefaultStatus
+	}
+
+	return status
+}
+
+func filterByStatus(stats string, filterRule []string) bool {
+	for _, v := range filterRule {
+		if strings.ToLower(v) == stats {
+			return true
+		}
+	}
+	return false
+}
+
+func ProcLoggingStatus(plpt ptinput.PlInputPt, disable bool, ignore []string) {
+	status := DefaultStatus
+
+	if s, _, err := plpt.Get(FieldStatus); err == nil {
+		if s, ok := s.(string); ok {
+			status = s
+		}
+	}
 
 	if !disable {
-		status = strings.ToLower(status)
-		if s, ok := statusMap[status]; ok {
-			status = s
-			tags, fileds = setStatus(tags, fileds, status)
-		} else {
-			status = DefaultStatus
-			tags, fileds = setStatus(tags, fileds, status)
-		}
+		status = normalizeStatus(status)
+		_ = plpt.Set(FieldStatus, status, plast.String)
 	}
 
-	if len(ignore) > 0 {
-		for _, ign := range ignore {
-			if strings.ToLower(ign) == status {
-				drop = true
-				break
-			}
-		}
+	if filterByStatus(status, ignore) {
+		plpt.MarkDrop(true)
 	}
-	return tags, fileds, drop
-}
-
-func getStatus(tags map[string]string, fields map[string]any) (string, bool) {
-	if v, ok := tags[FieldStatus]; ok {
-		return v, ok
-	}
-
-	if v, ok := fields[FieldStatus]; ok {
-		if s, ok := v.(string); ok {
-			return s, ok
-		}
-	}
-
-	return "", false
-}
-
-func setStatus(tags map[string]string, fileds map[string]any, status string) (
-	map[string]string, map[string]any,
-) {
-	if _, ok := tags[FieldStatus]; ok {
-		tags[FieldStatus] = status
-	} else {
-		fileds[FieldStatus] = status
-	}
-	return tags, fileds
 }

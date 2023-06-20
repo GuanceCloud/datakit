@@ -7,17 +7,18 @@ package pipeline
 
 import (
 	"fmt"
-	"strings"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	"github.com/GuanceCloud/cliutils/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/offload"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/relation"
 	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/script"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/stats"
 )
 
-func RunPl(category string, pts []*point.Point, plOpt *plscript.Option, scriptMap map[string]string) (ret []*point.Point, retErr error) {
+func RunPl(category point.Category, pts []*dkpt.Point, plOpt *plscript.Option,
+	scriptMap map[string]string,
+) (ret []*dkpt.Point, offl []*dkpt.Point, retErr error) {
 	defer func() {
 		if err := recover(); err != nil {
 			retErr = fmt.Errorf("run pl: %s", err)
@@ -25,184 +26,131 @@ func RunPl(category string, pts []*point.Point, plOpt *plscript.Option, scriptMa
 	}()
 
 	if plscript.ScriptCount(category) < 1 {
-		return pts, nil
+		return pts, nil, nil
 	}
 
-	ret = []*point.Point{}
-	ptOpt := &point.PointOption{
+	ret = []*dkpt.Point{}
+	offl = []*dkpt.Point{}
+	ptOpt := &dkpt.PointOption{
 		DisableGlobalTags: true,
-		Category:          category,
+		Category:          category.URL(),
 	}
 	if plOpt != nil {
 		ptOpt.MaxFieldValueLen = plOpt.MaxFieldValLen
 	}
 
-	plPt := ptinput.GetPoint()
-	defer ptinput.PutPoint(plPt)
-
-	var ok bool
-	var script *plscript.PlScript
 	for _, pt := range pts {
-		// 这里将清理 plPt 并填充 point 到 plPt,
-		// plPt 在函数运行结束后尽量放回对象池
-		script, plPt, ok = getScriptAndFillPlPt(category, pt, scriptMap, plPt)
+		script, inputData, ok := searchScript(category, pt, scriptMap)
 
-		if !ok || script == nil {
+		if !ok || script == nil || inputData == nil {
 			ret = append(ret, pt)
 			continue
 		}
 
-		err := script.Run(plPt, nil, plOpt)
+		if offload.Enabled() &&
+			script.NS() == plscript.RemoteScriptNS &&
+			category == point.Logging {
+			offl = append(offl, pt)
+			continue
+		}
+
+		err := script.Run(inputData, nil, plOpt)
 		if err != nil {
 			l.Warn(err)
 			ret = append(ret, pt)
 			continue
 		}
 
-		if plPt.Drop { // drop
+		if inputData.Dropped() { // drop
 			continue
 		}
 
-		ptOpt.Time = plPt.Time
-		if p, err := point.NewPoint(plPt.Name, plPt.Tags, plPt.Fields, ptOpt); err != nil {
-			l.Error(err)
-			stats.WriteScriptStats(script.Category(), script.NS(), script.Name(), 0, 0, 1, 0, err)
+		if dkpt, err := inputData.DkPoint(); err != nil {
+			ret = append(ret, pt)
 		} else {
-			pt = p
+			ret = append(ret, dkpt)
 		}
-
-		ret = append(ret, pt)
 	}
 
-	return ret, nil
+	return ret, offl, nil
 }
 
-func getScriptAndFillPlPt(category string, pt *point.Point, scriptMap map[string]string, plpt *ptinput.Point) (
-	*plscript.PlScript, *ptinput.Point, bool,
-) {
+func searchScript(cat point.Category, pt *dkpt.Point, scriptMap map[string]string) (*plscript.PlScript, ptinput.PlInputPt, bool) {
 	if pt == nil {
-		return nil, plpt, false
+		return nil, nil, false
 	}
-	if plpt == nil {
-		plpt = &ptinput.Point{}
+	scriptName, plpt, ok := scriptName(cat, pt, scriptMap)
+	if !ok {
+		return nil, nil, false
 	}
 
-	switch category {
-	case datakit.RUM, datakit.Security, datakit.Tracing, datakit.Profiling:
-		fields, err := pt.Fields()
-		if err != nil {
-			l.Debug(err)
-			break
-		}
-		ptTime := pt.Time()
-		name := pt.Name()
-		tags := pt.Tags()
-
-		scriptName, ok := scriptName(category, name, tags, fields, scriptMap)
-		if !ok {
-			break
-		}
-		if s, ok := plscript.QueryScript(category, scriptName); ok {
-			fields, err := pt.Fields()
+	sc, ok := plscript.QueryScript(cat, scriptName)
+	if ok {
+		if plpt == nil {
+			var err error
+			plpt, err = ptinput.WrapDeprecatedPoint(cat, pt)
 			if err != nil {
-				l.Errorf("Fields: %s", err)
-				break
+				return nil, nil, false
 			}
-
-			plpt = ptinput.InitPt(plpt, name, tags, fields, ptTime)
-
-			return s, plpt, true
 		}
-	default:
-		name := pt.Name()
-		scriptName, ok := scriptName(category, name, nil, nil, scriptMap)
-		if !ok {
-			break
-		}
-		// 未查询到脚本时条过解析 Point
-		s, ok := plscript.QueryScript(category, scriptName)
-		if !ok {
-			break
-		}
-
-		fields, err := pt.Fields()
-		if err != nil {
-			l.Errorf("Fields: %s", err)
-			break
-		}
-
-		ptTime := pt.Time()
-		tags := pt.Tags()
-		plpt = ptinput.InitPt(plpt, name, tags, fields, ptTime)
-		return s, plpt, true
+		return sc, plpt, true
+	} else {
+		return nil, nil, false
 	}
-
-	return nil, plpt, false
 }
 
-func scriptName(category string, name string, tags map[string]string, fields map[string]interface{},
-	scriptMap map[string]string,
-) (string, bool) {
-	var scriptName string
+func scriptName(cat point.Category, pt *dkpt.Point, scriptMap map[string]string) (string, ptinput.PlInputPt, bool) {
+	if pt == nil {
+		return "", nil, false
+	}
 
-	// tag 优先，key 唯一
-	switch category {
-	case datakit.RUM:
-		if id, ok := tags["app_id"]; ok {
-			scriptName = joinName(id, name)
-		} else if id, ok := fields["app_id"]; ok {
-			switch id := id.(type) {
-			case string:
-				scriptName = joinName(id, name)
-			default:
-			}
+	var scriptName string
+	var plpt ptinput.PlInputPt
+	var err error
+
+	// built-in rules last
+	switch cat { //nolint:exhaustive
+	case point.RUM:
+		plpt, err = ptinput.WrapDeprecatedPoint(cat, pt)
+		if err != nil {
+			return "", nil, false
 		}
-	case datakit.Security:
-		if scheckCategory, ok := tags["category"]; ok {
-			scriptName = scheckCategory
-		} else if scheckCategory, ok := fields["category"]; ok {
-			switch scheckCategory := scheckCategory.(type) {
-			case string:
-				scriptName = scheckCategory
-			default:
-			}
+		scriptName = _rumSName(plpt)
+	case point.Security:
+		plpt, err = ptinput.WrapDeprecatedPoint(cat, pt)
+		if err != nil {
+			return "", nil, false
 		}
-	case datakit.Tracing, datakit.Profiling:
-		if svc, ok := tags["service"]; ok {
-			scriptName = svc
-		} else if svc, ok := fields["service"]; ok {
-			switch svc := svc.(type) {
-			case string:
-				scriptName = svc
-			default:
-			}
+		scriptName = _securitySName(plpt)
+	case point.Tracing, point.Profiling:
+		plpt, err = ptinput.WrapDeprecatedPoint(cat, pt)
+		if err != nil {
+			return "", nil, false
 		}
+		scriptName = _apmSName(plpt)
 	default:
-		scriptName = name
+		scriptName = _defaultCatSName(pt)
 	}
 
 	if scriptName == "" {
-		return "", false
+		return "", plpt, false
 	}
 
-	// 查找，值 `-` 禁用
+	// configuration first
 	if sName, ok := scriptMap[scriptName]; ok {
 		switch sName {
 		case "-":
-			return "", false
+			return "", nil, false
 		case "":
 		default:
-			return sName, ok
+			return sName, plpt, true
 		}
 	}
 
-	if sName, ok := relation.QueryRemoteRelation(category, scriptName); ok {
-		return sName, ok
+	// remote relation sencond
+	if sName, ok := relation.QueryRemoteRelation(cat, scriptName); ok {
+		return sName, plpt, true
 	}
 
-	return scriptName + ".p", true
-}
-
-func joinName(name ...string) string {
-	return strings.Join(name, "_")
+	return scriptName + ".p", plpt, true
 }

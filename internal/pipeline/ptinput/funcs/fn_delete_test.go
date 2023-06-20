@@ -9,7 +9,8 @@ import (
 	"testing"
 	"time"
 
-	tu "github.com/GuanceCloud/cliutils/testutil"
+	"github.com/GuanceCloud/cliutils/point"
+	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput"
 )
 
@@ -106,19 +107,19 @@ func TestDelete(t *testing.T) {
 				}
 				return
 			}
-			pt := ptinput.GetPoint()
-			ptinput.InitPt(pt, "test", nil, map[string]any{"message": tc.in}, time.Now())
+			pt := ptinput.NewPlPoint(
+				point.Logging, "test", nil, map[string]any{"message": tc.in}, time.Now())
 			errR := runScript(runner, pt)
 			if errR != nil {
-				ptinput.PutPoint(pt)
 				t.Fatal(*errR)
 			}
-			v := pt.Fields[tc.outkey]
-			tu.Equals(t, nil, err)
-			tu.Equals(t, tc.expected, v)
 
+			v, isTag, ok := pt.GetWithIsTag(tc.outkey)
+
+			assert.Equal(t, true, ok)
+			assert.Equal(t, false, isTag)
+			assert.Equal(t, tc.expected, v)
 			t.Logf("[%d] PASS", idx)
-			ptinput.PutPoint(pt)
 		})
 	}
 }

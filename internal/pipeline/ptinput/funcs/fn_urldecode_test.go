@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	tu "github.com/GuanceCloud/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput"
 )
@@ -71,16 +72,15 @@ func TestURLDecode(t *testing.T) {
 				return
 			}
 
-			pt := ptinput.GetPoint()
-			ptinput.InitPt(pt, "test", nil, map[string]any{"message": tc.in}, time.Now())
+			pt := ptinput.NewPlPoint(
+				point.Logging, "test", nil, map[string]any{"message": tc.in}, time.Now())
 			errR := runScript(runner, pt)
 
 			if errR != nil {
-				ptinput.PutPoint(pt)
-				t.Fatal(errR)
+				t.Fatal(errR.Error())
 			}
 
-			if v, ok := pt.Fields[tc.outKey]; !ok {
+			if v, _, err := pt.Get(tc.outKey); err != nil {
 				if !tc.fail {
 					t.Errorf("[%d]expect error", idx)
 				}
@@ -88,7 +88,6 @@ func TestURLDecode(t *testing.T) {
 				tu.Equals(t, tc.expected, v)
 				t.Logf("[%d] PASS", idx)
 			}
-			ptinput.PutPoint(pt)
 		})
 	}
 }

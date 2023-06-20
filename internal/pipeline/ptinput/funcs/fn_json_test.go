@@ -9,7 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	tu "github.com/GuanceCloud/cliutils/testutil"
+	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput"
 )
 
@@ -142,23 +144,21 @@ func TestJSON(t *testing.T) {
 				tu.Equals(t, tc.fail, err != nil)
 			}
 
-			pt := ptinput.GetPoint()
-			ptinput.InitPt(pt, "test", nil, map[string]any{"message": tc.in}, time.Now())
+			pt := ptinput.NewPlPoint(
+				point.Logging, "test", nil, map[string]any{"message": tc.in}, time.Now())
 			errR := runScript(runner, pt)
-
 			if errR != nil {
-				t.Fatal(errR)
+				t.Fatal(errR.Error())
 			}
 
-			r, ok := pt.Fields[tc.key]
+			r, _, ok := pt.GetWithIsTag(tc.key)
 			tu.Equals(t, true, ok)
 			if tc.key == "[2].age" {
 				t.Log(1)
 			}
-			tu.Equals(t, tc.expected, r)
+			assert.Equal(t, tc.expected, r)
 
 			t.Logf("[%d] PASS", idx)
-			ptinput.PutPoint(pt)
 		})
 	}
 }

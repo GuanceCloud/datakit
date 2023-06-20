@@ -81,7 +81,7 @@ func AggCreate(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 		return nil
 	}
 
-	buks := pt.AggBuckets
+	buks := pt.GetAggBuckets()
 	if buks == nil {
 		return nil
 	}
@@ -198,7 +198,7 @@ func AggAddMetric(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlErro
 		return nil
 	}
 
-	buks := pt.AggBuckets
+	buks := pt.GetAggBuckets()
 	if buks == nil {
 		return nil
 	}

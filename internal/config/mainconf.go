@@ -16,6 +16,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/operator"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/offload"
 )
 
 type SinkerDeprecated struct {
@@ -160,6 +161,10 @@ func DefaultConfig() *Config {
 			RemotePullInterval:     "1m",
 			ReferTableURL:          "",
 			ReferTablePullInterval: "5m",
+			Offload: &offload.OffloadConfig{
+				Receiver:  offload.DKRcv,
+				Addresses: []string{},
+			},
 		},
 
 		Logging: &LoggerCfg{

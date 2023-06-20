@@ -455,4 +455,3 @@ clean:
 	@rm -rf internal/pipeline/parser/gram_y.go
 	@rm -rf check.err
 	@rm -rf $(PUB_DIR)/*
-	@go clean --cache

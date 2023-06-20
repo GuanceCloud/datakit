@@ -95,37 +95,20 @@ func GetConds(filterArr []string) (parser.WhereConditions, error) {
 
 // CheckPointFiltered returns whether the point matches the fitler rule.
 // If returns true means they are matched.
-func CheckPointFiltered(conds parser.WhereConditions, category string, pt *dkpt.Point) (bool, error) {
-	tags := pt.Tags()
-	fields, err := pt.Fields()
+func CheckPointFiltered(conds parser.WhereConditions, category point.Category, pt *dkpt.Point) (bool, error) {
+	tfData, err := newTFData(category, pt)
 	if err != nil {
 		return false, err
 	}
 
-	// Before checks, should adjust tags under some conditions.
-	// Must stay the same 'switch' logic with kodo project function named 'getSourceValue' in source file apis/esFields.go.
-	switch category {
-	case datakit.Logging, datakit.Network, datakit.KeyEvent, datakit.RUM:
-		tags["source"] = pt.Point.Name() // set measurement name as tag `source'
-	case datakit.Tracing, datakit.Security, datakit.Profiling:
-		// using measurement name as tag `service'.
-	case datakit.Metric:
-		tags["measurement"] = pt.Point.Name() // set measurement name as tag `measurement'
-	case datakit.Object, datakit.CustomObject:
-		tags["class"] = pt.Point.Name() // set measurement name as tag `class'
-	default:
-		l.Warnf("unsupport category: %s", category)
-		return false, fmt.Errorf("unsupport category: %s", category)
-	}
-
-	return filtered(conds, tags, fields), nil
+	return filtered(conds, tfData), nil
 }
 
-func filtered(conds parser.WhereConditions, tags map[string]string, fields map[string]interface{}) bool {
-	return conds.Eval(tags, fields)
+func filtered(conds parser.WhereConditions, data parser.KVs) bool {
+	return conds.Eval(data)
 }
 
-func (f *filter) doFilter(category string, pts []*dkpt.Point) ([]*dkpt.Point, int) {
+func (f *filter) doFilter(category point.Category, pts []*dkpt.Point) ([]*dkpt.Point, int) {
 	l.Debugf("doFilter: %+#v", f)
 
 	start := time.Now()
@@ -134,7 +117,7 @@ func (f *filter) doFilter(category string, pts []*dkpt.Point) ([]*dkpt.Point, in
 	defer f.mtx.RUnlock()
 
 	// "/v1/write/metric" => "metric"
-	catStr := point.CatURL(category).String()
+	catStr := category.String()
 
 	conds, ok := f.conditions[catStr]
 	if !ok || conds == nil {
@@ -166,7 +149,7 @@ func (f *filter) doFilter(category string, pts []*dkpt.Point) ([]*dkpt.Point, in
 	return after, len(conds)
 }
 
-func FilterPts(category string, pts []*dkpt.Point) []*dkpt.Point {
+func FilterPts(category point.Category, pts []*dkpt.Point) []*dkpt.Point {
 	if defaultFilter == nil { // during testing, defaultFilter not initialized
 		return pts
 	}

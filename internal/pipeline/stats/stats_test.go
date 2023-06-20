@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 func TestStats(t *testing.T) {
@@ -18,7 +18,7 @@ func TestStats(t *testing.T) {
 	event := &ChangeEvent{
 		Name:         "abc.p",
 		NS:           "default",
-		Category:     datakit.Metric,
+		Category:     point.Metric,
 		CompileError: "",
 		Time:         time.Now(),
 	}
@@ -32,7 +32,7 @@ func TestStats(t *testing.T) {
 	statsR := ScriptStatsROnly{
 		Name:     "abc.p",
 		NS:       "default",
-		Category: datakit.Metric,
+		Category: point.Metric,
 	}
 	stats.WriteScriptStats(statsR.Category, statsR.NS, statsR.Name, 0, 0, 0, 0, nil)
 	statsRL := stats.ReadStats()
@@ -50,12 +50,4 @@ func TestStats(t *testing.T) {
 	if len(statsRL) != 1 {
 		t.Fatal("len(stats)", len(statsRL))
 	}
-}
-
-func TestEventAndStats(t *testing.T) {
-	WriteEvent(nil)
-	_ = ReadEvent()
-	_ = ReadStats()
-	UpdateScriptStatsMeta("a", "b", "c", "x", false, false, "")
-	WriteScriptStats("d", "d", "d", 1, 1, 0, 1, nil)
 }

@@ -9,7 +9,8 @@ import (
 	"testing"
 	"time"
 
-	tu "github.com/GuanceCloud/cliutils/testutil"
+	"github.com/GuanceCloud/cliutils/point"
+	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ipdb"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput"
 )
@@ -130,20 +131,19 @@ func TestGeoIpFunc(t *testing.T) {
 			return
 		}
 
-		pt := ptinput.GetPoint()
-		ptinput.InitPt(pt, "test", nil, map[string]any{"message": tc.in}, time.Now())
+		pt := ptinput.NewPlPoint(
+			point.Logging, "test", nil, map[string]any{"message": tc.in}, time.Now())
 		errR := runScript(runner, pt)
 
 		if errR != nil {
-			ptinput.PutPoint(pt)
-			t.Fatal(errR)
+			t.Fatal(errR.Error())
 		}
 
 		for k, v := range tc.expected {
-			r, ok := pt.Fields[k]
-			tu.Assert(t, ok == true, "!ok")
-			tu.Assert(t, r == v, "%s != %s, output: %+#v", r, v)
+			r, isTag, ok := pt.GetWithIsTag(k)
+			assert.Equal(t, true, ok, "!ok")
+			assert.Equal(t, false, isTag)
+			assert.Equal(t, v, r, "%s != %s, output: %+#v", r, v)
 		}
-		ptinput.PutPoint(pt)
 	}
 }

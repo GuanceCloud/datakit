@@ -10,7 +10,7 @@ import (
 	"sync"
 
 	"github.com/GuanceCloud/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/convertutil"
+	"github.com/GuanceCloud/cliutils/point"
 )
 
 var l = logger.DefaultSLogger("pl-relation")
@@ -23,10 +23,10 @@ var remoteRelation = &PipelineRelation{}
 
 type PipelineRelation struct {
 	// map[<category>]: map[<source>]: <name>
-	relation map[string]map[string]string
+	relation map[point.Category]map[string]string
 
 	// map[<category>]: <name>
-	defaultScript map[string]string
+	defaultScript map[point.Category]string
 
 	updateAt int64
 
@@ -45,14 +45,13 @@ func (relation *PipelineRelation) UpdateDefaultPl(defaultPl map[string]string) {
 	defer relation.rwMutex.Unlock()
 
 	if len(relation.defaultScript) > 0 || relation.defaultScript == nil {
-		relation.defaultScript = map[string]string{}
+		relation.defaultScript = map[point.Category]string{}
 	}
 
 	for categoryShort, name := range defaultPl {
-		category, err := convertutil.GetMapCategoryShortToFull(categoryShort)
-		if err != nil {
-			l.Warnf("GetMapCategoryShortToFull failed: err = %s, categoryShort = %s", err, categoryShort)
-			continue
+		category := point.CatString(categoryShort)
+		if category == point.UnknownCategory {
+			l.Warnf("unknown category: %s", categoryShort)
 		}
 		relation.defaultScript[category] = name
 	}
@@ -64,14 +63,13 @@ func (relation *PipelineRelation) UpdateRelation(updateAt int64, rel map[string]
 
 	relation.updateAt = updateAt
 	if len(relation.relation) > 0 || relation.relation == nil {
-		relation.relation = map[string]map[string]string{}
+		relation.relation = map[point.Category]map[string]string{}
 	}
 
 	for categoryShort, relat := range rel {
-		category, err := convertutil.GetMapCategoryShortToFull(categoryShort)
-		if err != nil {
-			l.Warnf("GetMapCategoryShortToFull failed: err = %s, categoryShort = %s", err, categoryShort)
-			continue
+		category := point.CatString(categoryShort)
+		if category == point.UnknownCategory {
+			l.Warnf("unknown category: %s", categoryShort)
 		}
 		for source, name := range relat {
 			if v, ok := relation.relation[category]; !ok {
@@ -85,7 +83,7 @@ func (relation *PipelineRelation) UpdateRelation(updateAt int64, rel map[string]
 	}
 }
 
-func (relation *PipelineRelation) query(category, source string) (string, bool) {
+func (relation *PipelineRelation) query(category point.Category, source string) (string, bool) {
 	relation.rwMutex.RLock()
 	defer relation.rwMutex.RUnlock()
 
@@ -103,7 +101,7 @@ func (relation *PipelineRelation) query(category, source string) (string, bool) 
 	return "", false
 }
 
-func QueryRemoteRelation(category, source string) (string, bool) {
+func QueryRemoteRelation(category point.Category, source string) (string, bool) {
 	return remoteRelation.query(category, source)
 }
 

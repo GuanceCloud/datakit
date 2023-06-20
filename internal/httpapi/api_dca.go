@@ -32,6 +32,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+
+	clipt "github.com/GuanceCloud/cliutils/point"
 )
 
 const (
@@ -778,7 +780,7 @@ func dcaDeletePipelines(c *gin.Context) {
 
 func pipelineTest(pipelineFile string, text string) (string, error) {
 	// TODO
-	pl, err := pipeline.NewPipelineFromFile(datakit.Logging, filepath.Join(datakit.PipelineDir, pipelineFile))
+	pl, err := pipeline.NewPipelineFromFile(clipt.Logging, filepath.Join(datakit.PipelineDir, pipelineFile))
 	if err != nil {
 		return "", err
 	}
@@ -791,7 +793,7 @@ func pipelineTest(pipelineFile string, text string) (string, error) {
 		return "", err
 	}
 
-	pt, dropFlag, err := pl.Run(pt, nil, opt, nil)
+	pt, dropFlag, err := pl.Run(clipt.Logging, pt, nil, opt, nil)
 	if err != nil {
 		return "", err
 	}
@@ -874,11 +876,11 @@ func dcaTestPipelines(c *gin.Context) {
 	var pointErr error
 	for _, data := range body.Data {
 		switch category {
-		case datakit.Logging:
+		case clipt.Logging:
 			pt, err := point.NewPoint(body.ScriptName, nil, map[string]interface{}{
 				pipeline.FieldMessage: data,
 			}, &point.PointOption{
-				Category: category,
+				Category: category.URL(),
 				Time:     time.Now(),
 			})
 			if err != nil {
@@ -887,7 +889,18 @@ func dcaTestPipelines(c *gin.Context) {
 				break
 			}
 			pts = append(pts, pt)
-		default:
+		case clipt.CustomObject,
+			clipt.DynamicDWCategory,
+			clipt.KeyEvent,
+			clipt.MetricDeprecated,
+			clipt.Metric,
+			clipt.Network,
+			clipt.Object,
+			clipt.Profiling,
+			clipt.RUM,
+			clipt.Security,
+			clipt.Tracing,
+			clipt.UnknownCategory:
 			ps, err := lp.ParsePoints([]byte(data), nil)
 			if err != nil {
 				l.Warnf("make point error: %s", err.Error())
@@ -904,14 +917,14 @@ func dcaTestPipelines(c *gin.Context) {
 	}
 
 	opt := &point.PointOption{
-		Category: category,
+		Category: category.URL(),
 		Time:     time.Now(),
 	}
 
 	var runResult []*pipelineResult
 
 	for _, pt := range pts {
-		pt, drop, err := pl.Run(pt, nil, opt, newPlTestSingal())
+		pt, drop, err := pl.Run(category, pt, nil, opt, newPlTestSingal())
 		if err != nil {
 			plerr, ok := err.(*errchain.PlError) //nolint:errorlint
 			if !ok {
