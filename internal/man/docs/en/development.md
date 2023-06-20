@@ -421,6 +421,8 @@ go func() {
 
 ## Troubleshooting DataKit Memory Leaks {#mem-leak}
 
+> [:octicons-tag-24: Version-1.9.2](changelog.md#cl-1.9.2) enabled pprof by default.
+
 Edit DataKit.conf and add the following configuration fields at the top to turn on the DataKit remote pprof function:
 
 ```toml

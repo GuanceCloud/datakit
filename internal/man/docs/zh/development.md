@@ -614,6 +614,8 @@ go func() {
 
 ## 排查 DataKit 内存泄露 {#mem-leak}
 
+[:octicons-tag-24: Version-1.9.2](changelog.md#cl-1.9.2) 已默认开启 pprof 功能。
+
 编辑 *datakit.conf*，顶部增加如下配置字段即可开启 DataKit 远程 pprof 功能：
 
 ```toml

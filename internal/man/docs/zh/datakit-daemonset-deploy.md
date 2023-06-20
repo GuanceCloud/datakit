@@ -249,10 +249,12 @@ spec:
 
 ### Datakit pprof 相关 {#env-pprof}
 
-| 环境变量名称       | 类型   | 默认值 | 必须   | 说明                |
-| ---------:         | ----:  | ---:   | ------ | ----                |
-| `ENV_ENABLE_PPROF` | bool   | -      | 否     | 是否开启 `pprof`    |
-| `ENV_PPROF_LISTEN` | string | 无     | 否     | `pprof` 服务监听地址|
+| 环境变量名称                             | 类型   | 默认值 | 必须   | 说明                 |
+| ---------:                               | ----:  | ---:   | ------ | ----                 |
+| `ENV_ENABLE_PPROF` :fontawesome-solid-x: | bool   | 无     | 否     | 是否开启 `pprof`     |
+| `ENV_PPROF_LISTEN`                       | string | 无     | 否     | `pprof` 服务监听地址 |
+
+> `ENV_ENABLE_PPROF`：[:octicons-tag-24: Version-1.9.2](changelog.md#cl-1.9.2) 已默认开启 pprof。
 
 ### 选举相关环境变量 {#env-elect}
 

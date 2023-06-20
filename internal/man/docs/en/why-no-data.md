@@ -254,14 +254,14 @@ The list of files is as follows:
 
 Document Explanation
 
-| name      | dir  | description                                                                                            |
-| ---:      | ---: | ---:                                                                                                   |
-| `config`  | yes  | Configuration file, including the main configuration and the configuration of the enabled collectors.  |
-| `env.txt` | no   | The environment variables of the runtime.                                                              |
-| `log`     | yes  | Latest log files, such as log and gin log, not supporting `stdout` currently                           |
-| `profile` | yes  | When pprof is enabled, it will collect profile data.                                                   |
-| `metrics` | yes  | The data returned by the `/metrics` API is named in the format of `metric-<timestamp in milliseconds>` |
-| `syslog`  | yes       | only supported in `linux`, based on the `journalctl` command |
+| name      | dir  | description                                                                                                                            |
+| ---:      | ---: | ---:                                                                                                                                   |
+| `config`  | yes  | Configuration file, including the main configuration and the configuration of the enabled collectors.                                  |
+| `env.txt` | no   | The environment variables of the runtime.                                                                                              |
+| `log`     | yes  | Latest log files, such as log and gin log, not supporting `stdout` currently                                                           |
+| `profile` | yes  | When pprof is enabled, it will collect profile data. [:octicons-tag-24: Version-1.9.2](changelog.md#cl-1.9.2) enabled pprof by default |
+| `metrics` | yes  | The data returned by the `/metrics` API is named in the format of `metric-<timestamp in milliseconds>`                                 |
+| `syslog`  | yes  | only supported in `linux`, based on the `journalctl` command                                                                           |
 
 **Mask sensitive information**
 

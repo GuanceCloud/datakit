@@ -154,7 +154,6 @@ func init() {
 	flag.StringVar(&installer.GinLog, "gin-log", "", "gin log setting")
 
 	// pprof flags
-	flag.StringVar(&installer.EnablePProf, "enable-pprof", "", "enable pprof")
 	flag.StringVar(&installer.PProfListen, "pprof-listen", "", "pprof listen")
 
 	// sinker flags

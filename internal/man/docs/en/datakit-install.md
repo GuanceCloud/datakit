@@ -108,8 +108,10 @@ The environment variables supported by the installation script are as follows (s
 
 ### On DataKit pprof  {#env-pprof}
 
-- `DK_ENABLE_PPROF`: whether to turn on `pprof`
+- `DK_ENABLE_PPROF`(deprecated): whether to turn on `pprof`
 - `DK_PPROF_LISTEN`: `pprof` service listening address
+
+> [:octicons-tag-24: Version-1.9.2](changelog.md#cl-1.9.2) enabled pprof by default.
 
 ### On DataKit Election  {#env-election}
 

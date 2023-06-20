@@ -224,13 +224,6 @@ if ($x -ne $null) {
 	}
 }
 
-$enable_pprof=
-$x = [Environment]::GetEnvironmentVariable("DK_ENABLE_PPROF")
-if ($x -ne $null) {
-	$enable_pprof = $x
-	Write-COutput yellow "* set pprof"
-}
-
 $pprof_listen=
 $x = [Environment]::GetEnvironmentVariable("DK_PPROF_LISTEN")
 if ($x -ne $null) {
@@ -520,7 +513,6 @@ if ($upgrade -ne $null) { # upgrade
 			"--log='${log}'",
 			"--gin-log='${gin_log}'",
 			"--ipdb-type='${ipdb_type}'",
-			"--enable-pprof='${enable_pprof}'",
 			"--pprof-listen='${pprof_listen}'",
 			"--upgrade-ip-whitelist='${upgrade_ip_whitelist}'",
 			"--sinker='${sinker}'" # Do NOT add trailing `,' here!
