@@ -51,6 +51,7 @@ nav:
         - net.md
         - host_processes.md
         - hostobject.md
+      - chrony.md
       - netstat.md
       - socket.md
       - hostdir.md
