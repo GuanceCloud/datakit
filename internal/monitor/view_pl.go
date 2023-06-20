@@ -75,8 +75,8 @@ func (app *monitorAPP) renderPLStatTable(mfs map[string]*dto.MetricFamily, colAr
 			SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 		col++
 
-		if totalErrorPts != nil {
-			x := metricWithLabel(totalErrorPts, cat, name, ns)
+		if totalDropPts != nil {
+			x := metricWithLabel(totalDropPts, cat, name, ns)
 			if x == nil {
 				table.SetCell(row, col, tview.NewTableCell("-").
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
@@ -90,8 +90,8 @@ func (app *monitorAPP) renderPLStatTable(mfs map[string]*dto.MetricFamily, colAr
 		}
 		col++
 
-		if totalDropPts != nil {
-			x := metricWithLabel(totalDropPts, cat, name, ns)
+		if totalErrorPts != nil {
+			x := metricWithLabel(totalErrorPts, cat, name, ns)
 			if x == nil {
 				table.SetCell(row, col, tview.NewTableCell("-").
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
