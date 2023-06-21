@@ -188,14 +188,14 @@ func newEndpoint(urlstr string, opts ...endPointOption) (*endPoint, error) {
 	return ep, nil
 }
 
-func (ep *endPoint) setupHTTP() error {
+func (ep *endPoint) getHTTPCliOpts() *httpcli.Options {
 	dialContext, err := dnet.GetDNSCacheDialContext(defaultDNSCacheFreq, defaultDNSCacheLookUpTimeout)
 	if err != nil {
 		log.Warnf("GetDNSCacheDialContext failed: %v", err)
 		dialContext = nil // if failed, then not use dns cache.
 	}
 
-	cliopts := &httpcli.Options{
+	cliOpts := &httpcli.Options{
 		DialTimeout:         ep.httpTimeout, // NOTE: should not use http timeout as dial timeout.
 		MaxIdleConns:        ep.maxHTTPConnections,
 		MaxIdleConnsPerHost: ep.maxHTTPIdleConnectionPerHost,
@@ -207,14 +207,22 @@ func (ep *endPoint) setupHTTP() error {
 		if u, err := url.ParseRequestURI(ep.proxy); err != nil {
 			log.Warnf("parse http proxy %q failed err: %s, ignored and no proxy set", ep.proxy, err.Error())
 		} else {
-			cliopts.ProxyURL = u
+			cliOpts.ProxyURL = u
 			log.Infof("set dataway proxy to %q ok", ep.proxy)
 		}
 	}
 
-	ep.httpCli = httpcli.Cli(cliopts)
+	return cliOpts
+}
+
+func (ep *endPoint) setupHTTP() error {
+	ep.httpCli = httpcli.Cli(ep.getHTTPCliOpts())
 	ep.httpCli.Timeout = ep.httpTimeout
 	return nil
+}
+
+func (ep *endPoint) Transport() *http.Transport {
+	return httpcli.Transport(ep.getHTTPCliOpts())
 }
 
 func (ep *endPoint) writeBody(w *writer, b *body) {

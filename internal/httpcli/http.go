@@ -143,15 +143,16 @@ func newCliTransport(opt *Options) *http.Transport {
 }
 
 func Cli(opt *Options) *http.Client {
-	if opt == nil {
-		return &http.Client{
-			Transport: DefTransport(),
-		}
-	}
-
 	return &http.Client{
-		Transport: newCliTransport(opt),
+		Transport: Transport(opt),
 	}
+}
+
+func Transport(opt *Options) *http.Transport {
+	if opt == nil {
+		return DefTransport()
+	}
+	return newCliTransport(opt)
 }
 
 func RemoteAddr(req *http.Request) (ip, port string) {

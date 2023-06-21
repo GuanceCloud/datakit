@@ -424,13 +424,13 @@ func queryWorkSpaceUUID() (string, error) {
 	return workSpaceUUID, nil
 }
 
-func profilingProxyURL() (*url.URL, error) {
+func profilingProxyURL() (*url.URL, *http.Transport, error) {
 	lastErr := fmt.Errorf("no dataway endpoint available now")
 
 	endpoints := config.Cfg.Dataway.GetAvailableEndpoints()
 
 	if len(endpoints) == 0 {
-		return nil, lastErr
+		return nil, nil, lastErr
 	}
 
 	for _, ep := range endpoints {
@@ -445,14 +445,15 @@ func profilingProxyURL() (*url.URL, error) {
 			lastErr = fmt.Errorf("profiling upload url [%s] parse err:%w", rawURL, err)
 			continue
 		}
-		return URL, nil
+
+		return URL, ep.Transport(), nil
 	}
-	return nil, lastErr
+	return nil, nil, lastErr
 }
 
 // RegHTTPHandler simply proxy profiling request to dataway.
 func (i *Input) RegHTTPHandler() {
-	URL, err := profilingProxyURL()
+	URL, transport, err := profilingProxyURL()
 	if err != nil {
 		log.Errorf("no profiling proxy url available: %s", err)
 		return
@@ -461,6 +462,8 @@ func (i *Input) RegHTTPHandler() {
 	InitCache()
 
 	proxy := &httputil.ReverseProxy{
+		Transport: transport,
+
 		Director: func(req *http.Request) {
 			// not a post request
 			if req.Body == nil {
@@ -699,7 +702,7 @@ func pushProfileData(opt *pushProfileDataOpt, event *eventOpts) error {
 
 	profileID := randomProfileID()
 
-	URL, err := profilingProxyURL()
+	URL, transport, err := profilingProxyURL()
 	if err != nil {
 		return err
 	}
@@ -718,7 +721,10 @@ func pushProfileData(opt *pushProfileDataOpt, event *eventOpts) error {
 	req.Header.Set("X-Datakit-Profileid", profileID)
 	req.Header.Set("X-Datakit-Unixnano", strconv.FormatInt(opt.startTime.UnixNano(), 10))
 
-	client := &http.Client{Timeout: 15 * time.Second}
+	client := &http.Client{
+		Transport: transport,
+		Timeout:   15 * time.Second,
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {
