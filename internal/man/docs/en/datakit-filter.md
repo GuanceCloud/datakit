@@ -90,7 +90,13 @@ In `datakt.conf`, you can manually configure blacklist filtering, as shown in th
     ]
 ```
 
-Once the filter is configured in *datakit.conf* , the filter configured by **Guance Cloud Studio will no longer take effect**.
+<!-- markdownlint-disable MD046 -->
+???+ warning
+
+    Filters in *datakit.conf* developped for debugging, you should use web-side Blacklist for production usage. Once the filter is configured in *datakit.conf*, the Blacklist configured in web-side will **no longer take effect**.
+
+    PS: Blacklist will be deprecated in the future, we recomment use Pipeline `drop()` to drop unwanted data.
+<!-- markdownlint-enable -->
 
 The configuration here should follow the following rules:
 
