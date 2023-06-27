@@ -122,14 +122,28 @@ func initDefaultEnabledPlugins(c *Config) {
 	}
 }
 
-func loadInputsConfFromDirs(paths []string) {
+func inputDisabled(name string, list []string) bool {
+	for _, elem := range list {
+		if "-"+name == elem {
+			return true
+		}
+	}
+	return false
+}
+
+func loadInputsConfFromDirs(paths []string, disabledList []string) {
 	inputs.ResetInputs()
 
 	l.Infof("load input confs from %s", paths)
 	for _, rp := range paths {
 		for name, arr := range LoadInputConf(rp) {
+			if inputDisabled(name, disabledList) {
+				l.Infof("input %q disabled", name)
+				continue
+			}
+
 			for _, x := range arr {
-				l.Infof("load inputs from file add input: %s", name)
+				l.Infof("load input %q from conf file", name)
 				inputs.AddInput(name, x)
 			}
 		}
@@ -152,6 +166,7 @@ func enableDefaultInputs(list []string) {
 				l.Errorf("LoadSingleConf failed: %v", err)
 				continue
 			}
+
 			for _, arr := range inputInstances {
 				for _, ipt := range arr {
 					l.Infof("add input name: %s ", name)
@@ -176,6 +191,6 @@ func ReloadCheckInputCfg() ([]inputs.Input, error) {
 }
 
 func ReloadInputConfig() error {
-	loadInputsConfFromDirs(getConfRootPaths())
+	loadInputsConfFromDirs(getConfRootPaths(), Cfg.DefaultEnabledInputs)
 	return nil
 }
