@@ -305,7 +305,7 @@ func (cs *caseSpec) run() error {
 	return nil
 }
 
-func TestRedisInput(t *testing.T) {
+func TestIntegrate(t *testing.T) {
 	if !testutils.CheckIntegrationTestingRunning() {
 		t.Skip()
 	}

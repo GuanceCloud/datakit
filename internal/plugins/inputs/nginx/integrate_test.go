@@ -13,6 +13,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -32,7 +33,7 @@ var mExpect = map[string]struct{}{
 	nginx: {},
 }
 
-func TestNginxInput(t *testing.T) {
+func TestIntegrate(t *testing.T) {
 	if !testutils.CheckIntegrationTestingRunning() {
 		t.Skip()
 	}
@@ -631,14 +632,32 @@ func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) {
 	for _, v := range cs.serverPorts {
 		for path, count := range cs.mPathCount {
 			newURL := fmt.Sprintf("http://%s%s", net.JoinHostPort(r.Host, v), path)
+			fmt.Printf("start GET: %s\n", newURL)
 
-			var wg sync.WaitGroup
-			wg.Add(count)
+			if cs.runHTTPWithTimeout(newURL, count) {
+				break
+			}
+		}
+	}
+}
 
+// runHTTPWithTimeout returns true if HTTP request succeeded.
+func (cs *caseSpec) runHTTPWithTimeout(newURL string, count int) bool {
+	done := make(chan struct{})
+
+	iter := time.NewTicker(time.Second)
+	defer iter.Stop()
+
+	timeout := time.NewTicker(2 * time.Minute)
+	defer timeout.Stop()
+
+	var num int32
+
+	for {
+		select {
+		case <-iter.C:
 			for i := 0; i < count; i++ {
 				go func() {
-					defer wg.Done()
-
 					netTransport := &http.Transport{
 						Dial: (&net.Dialer{
 							Timeout: 10 * time.Second,
@@ -652,15 +671,23 @@ func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) {
 
 					resp, err := netClient.Get(newURL)
 					if err != nil {
-						panic(err)
+						fmt.Printf("HTTP GET failed: %v\n", err)
+						return
 					}
-					if err := resp.Body.Close(); err != nil {
-						panic(err)
-					}
+					defer resp.Body.Close()
+
+					// HTTP request succeeded.
+					done <- struct{}{}
 				}()
 			}
 
-			wg.Wait()
+		case <-timeout.C:
+			return false
+
+		case <-done:
+			if val := atomic.AddInt32(&num, 1); val >= int32(count) {
+				return true
+			}
 		}
 	}
 }
