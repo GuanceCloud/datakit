@@ -216,7 +216,7 @@ func Install(svc service.Service) {
 		mc.Logging.GinLog = GinLog
 	}
 
-	writeDefInputToMainCfg(mc)
+	writeDefInputToMainCfg(mc, false)
 
 	// build datakit main config
 	if err := mc.InitCfg(datakit.MainConfPath); err != nil {

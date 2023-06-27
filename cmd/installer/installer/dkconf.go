@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
@@ -129,7 +130,94 @@ var (
 	LimitMemMax int64
 )
 
-func writeDefInputToMainCfg(mc *config.Config) {
+// generate default inputs list.
+func mergeDefaultInputs(defaultList, enabledList []string) []string {
+	if len(enabledList) == 0 {
+		return defaultList // no inputs enabled(disabled), enable all default inputs
+	}
+
+	res := []string{}
+	blackList := map[string]bool{}
+	whiteList := map[string]bool{}
+
+	for _, elem := range enabledList {
+		if elem == "-" { // disabled all
+			for _, x := range defaultList {
+				res = append(res, "-"+x) // prefixed '-' to disable the input
+			}
+			return res
+		}
+
+		res = append(res, elem) // may be 'foo' or '-foo'
+		if strings.HasPrefix(elem, "-") {
+			blackList[elem] = true
+		} else {
+			whiteList[elem] = true
+		}
+	}
+
+	// why people specify both list?
+	// we drop white list: only accept black list
+	if len(blackList) > 0 && len(whiteList) > 0 {
+		whiteList = map[string]bool{}
+	}
+
+	//
+	// merge default enabled inputs
+	//
+
+	if len(blackList) > 0 {
+		for _, elem := range defaultList {
+			if _, ok := blackList["-"+elem]; !ok { // not disabled, then enable it
+				cp.Infof("input %q enabled\n", elem)
+				res = append(res, elem)
+			}
+		}
+	}
+
+	if len(whiteList) > 0 {
+		for _, elem := range defaultList {
+			if _, ok := whiteList[elem]; !ok { // not enabled, then disable it
+				cp.Warnf("input %q disabled\n", elem)
+				res = append(res, "-"+elem)
+			}
+		}
+	}
+
+	// compact the list, remove duplicates.
+	set := map[string]bool{}
+	for _, elem := range res {
+		set[elem] = true
+	}
+
+	res = []string{}
+	for k := range set {
+		res = append(res, k)
+	}
+
+	// keep sorted
+	sort.Strings(res)
+
+	return res
+}
+
+func setupDefaultInputs(mc *config.Config, arg string, list []string, upgrade bool) {
+	if upgrade {
+		if len(mc.DefaultEnabledInputs) == 0 { // all default inputs disabled
+			mc.DefaultEnabledInputs = mergeDefaultInputs(list, []string{"-"})
+		} else {
+			mc.DefaultEnabledInputs = mergeDefaultInputs(list, mc.DefaultEnabledInputs)
+		}
+	} else {
+		if arg == "" {
+			mc.DefaultEnabledInputs = mergeDefaultInputs(list, nil)
+		} else {
+			mc.DefaultEnabledInputs = mergeDefaultInputs(list, strings.Split(arg, ","))
+		}
+	}
+}
+
+func writeDefInputToMainCfg(mc *config.Config, upgrade bool) {
 	hostInputs := defaultHostInputs
 
 	switch runtime.GOOS {
@@ -139,18 +227,7 @@ func writeDefInputToMainCfg(mc *config.Config) {
 		hostInputs = defaultHostInputsForMacOS
 	}
 
-	// Enable default input, auto remove duplicated input name.
-	switch {
-	case EnableInputs == "":
-		x := strings.Join(hostInputs, ",")
-
-		cp.Infof("Use default enabled inputs '%s'\n", x)
-		mc.EnableDefaultsInputs(x)
-
-	default:
-		cp.Infof("Set default inputs '%s'...\n", EnableInputs)
-		mc.EnableDefaultsInputs(EnableInputs)
-	}
+	setupDefaultInputs(mc, EnableInputs, hostInputs, upgrade)
 
 	if CloudProvider != "" {
 		if err := injectCloudProvider(CloudProvider); err != nil {

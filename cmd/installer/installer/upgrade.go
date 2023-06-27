@@ -33,7 +33,7 @@ func Upgrade() error {
 			mc.AutoUpdate = OTA
 		}
 
-		writeDefInputToMainCfg(mc)
+		writeDefInputToMainCfg(mc, true)
 	} else {
 		l.Warnf("load main config: %s, ignored", err.Error())
 		return err
