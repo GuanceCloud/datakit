@@ -49,6 +49,23 @@ ci_ut_only:
   tags:
     - cloudcare-ft
 
+ci_it_only:
+  stage: deploy
+  resource_group: production
+  only:
+    - /^it-.*$/
+  script:
+    # - systemctl daemon-reload
+    # - systemctl restart docker
+    # - make
+    # - cd /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jenkins
+    # - go test -v .
+    - make clean
+    - make it DATAWAY_URL="$TESTING_METRIC_DATAWAY"
+    - make # try build basic binaries
+  tags:
+    - cloudcare-ft
+
 test-datakit-production:
   stage: test
   resource_group: production

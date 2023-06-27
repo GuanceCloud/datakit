@@ -33,7 +33,7 @@ import (
 
 // ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
 
-func TestOracleInput(t *testing.T) {
+func TestOracle(t *testing.T) {
 	if !testutils.CheckIntegrationTestingRunning() {
 		t.Skip()
 	}

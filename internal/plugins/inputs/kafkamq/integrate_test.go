@@ -41,7 +41,7 @@ var (
 	dockerRemote = testutils.GetRemote()
 )
 
-func Test_kafkaConsumer_start(t *testing.T) {
+func TestIntegrate(t *testing.T) {
 	if !testutils.CheckIntegrationTestingRunning() {
 		t.Skip()
 	}

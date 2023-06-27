@@ -28,7 +28,7 @@ import (
 
 // ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
 
-func TestApacheInput(t *testing.T) {
+func TestIntegrate(t *testing.T) {
 	if !testutils.CheckIntegrationTestingRunning() {
 		t.Skip()
 	}

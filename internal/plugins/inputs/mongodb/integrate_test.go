@@ -34,7 +34,7 @@ var mExpect = map[string]struct{}{
 	MongoDBTopStats: {},
 }
 
-func TestMongoInput(t *testing.T) {
+func TestIntegrate(t *testing.T) {
 	if !testutils.CheckIntegrationTestingRunning() {
 		t.Skip()
 	}

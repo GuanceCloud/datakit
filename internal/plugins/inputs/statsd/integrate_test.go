@@ -29,7 +29,7 @@ import (
 
 const jvm = "jvm"
 
-func TestStatsdInput(t *testing.T) {
+func TestIntegrate(t *testing.T) {
 	if !testutils.CheckIntegrationTestingRunning() {
 		t.Skip()
 	}

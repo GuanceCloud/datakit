@@ -28,7 +28,7 @@ import (
 // ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
 // Reference: https://jolokia.org/reference/html/agents.html#jvm-agent
 
-func TestTomcatInput(t *testing.T) {
+func TestIntegrate(t *testing.T) {
 	if !testutils.CheckIntegrationTestingRunning() {
 		t.Skip()
 	}
