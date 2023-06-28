@@ -207,6 +207,8 @@ const (
 	HttpHeaderOssDate                        = "X-Oss-Date"
 	HttpHeaderOssContentSha256               = "X-Oss-Content-Sha256"
 	HttpHeaderOssNotification                = "X-Oss-Notification"
+	HTTPHeaderOssEc                          = "X-Oss-Ec"
+	HTTPHeaderOssErr                         = "X-Oss-Err"
 )
 
 // HTTP Param
@@ -240,7 +242,7 @@ const (
 
 	DefaultContentSha256 = "UNSIGNED-PAYLOAD" // for v4 signature
 
-	Version = "v2.2.6" // Go SDK version
+	Version = "v2.2.7" // Go SDK version
 )
 
 // FrameType

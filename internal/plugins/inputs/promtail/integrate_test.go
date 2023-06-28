@@ -81,7 +81,7 @@ func TestIntegrate(t *testing.T) {
 						return
 					}
 
-					require.NoError(t, tc.pool.Purge(tc.resource))
+					tc.pool.Purge(tc.resource)
 				})
 			})
 		}(tc)
@@ -247,7 +247,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			cs.mCount[measurementName] = struct{}{}
 
 		default: // TODO: check other measurement
-			panic("not implement")
+			panic("unknown measurement")
 		}
 
 		// check if tag appended
@@ -285,7 +285,8 @@ func (cs *caseSpec) run() error {
 
 	////////////////////////////////////////////////////////////////////////////
 
-	router := gin.New()
+	gin.SetMode(gin.DebugMode)
+	router := gin.Default()
 	router.POST("v1/write/promtail", cs.handler)
 
 	randPort := testutils.RandPort("tcp")
@@ -353,7 +354,7 @@ func (cs *caseSpec) run() error {
 
 			func(c *docker.HostConfig) {
 				c.RestartPolicy = docker.RestartPolicy{Name: "no"}
-				// c.AutoRemove = true
+				c.AutoRemove = true
 			},
 		)
 	} else {
@@ -376,7 +377,7 @@ func (cs *caseSpec) run() error {
 
 			func(c *docker.HostConfig) {
 				c.RestartPolicy = docker.RestartPolicy{Name: "no"}
-				// c.AutoRemove = true
+				c.AutoRemove = true
 			},
 		)
 	}

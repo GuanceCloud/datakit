@@ -3,17 +3,17 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package jenkins
+package skywalking
 
 import (
 	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -25,6 +25,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
 // ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
@@ -56,7 +57,7 @@ func TestIntegrate(t *testing.T) {
 	for _, tc := range cases {
 		func(tc *caseSpec) {
 			t.Run(tc.name, func(t *testing.T) {
-				t.Parallel()
+				// t.Parallel() // Should not be paralleled due to code design. For example, afterGatherRun is global variable.
 				caseStart := time.Now()
 
 				t.Logf("testing %s...", tc.name)
@@ -87,10 +88,6 @@ func TestIntegrate(t *testing.T) {
 	}
 }
 
-func getConfAccessPoint(host, port string) string {
-	return fmt.Sprintf("http://%s", net.JoinHostPort(host, port))
-}
-
 func buildCases(t *testing.T) ([]*caseSpec, error) {
 	t.Helper()
 
@@ -100,14 +97,67 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		name         string // Also used as build image name:tag.
 		conf         string
 		exposedPorts []string
+		mPathCount   map[string]int
+		opts         []inputs.PointCheckOption
 	}{
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/jenkins:2.332.1-metrics",
-			conf: `enable_collect = true
-			url = ""
-			key = "6nCZ42W2cNnCO1oeM9Y41wEQ7GEyX1WTeK6aC1Q0vu43Kwqlebqcheek733Aq0sZ"
-			interval = "1s"`, // set conf URL later.
+			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/skywalking:agent-java",
+			conf:         `address = "0.0.0.0:"`,
 			exposedPorts: []string{"8080/tcp"},
+			mPathCount: map[string]int{
+				"/": 10,
+			},
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalFields(
+					itrace.TAG_PID,
+					itrace.FIELD_PRIORITY,
+					"cpu_usage_percent",
+					"heap_max",
+					"heap_used",
+					"heap_committed",
+					"heap_init",
+					"stack_used",
+					"stack_committed",
+					"stack_init",
+					"stack_max",
+					"pool_code_cache_usage_committed",
+					"pool_code_cache_usage_init",
+					"pool_code_cache_usage_max",
+					"pool_code_cache_usage_used",
+					"pool_metaspace_usage_init",
+					"pool_metaspace_usage_committed",
+					"pool_metaspace_usage_max",
+					"pool_metaspace_usage_used",
+					"pool_permgen_usage_committed",
+					"pool_permgen_usage_init",
+					"pool_permgen_usage_used",
+					"pool_permgen_usage_max",
+					"pool_newgen_usage_committed",
+					"pool_newgen_usage_used",
+					"pool_newgen_usage_max",
+					"pool_newgen_usage_init",
+					"pool_survivor_usage_max",
+					"pool_survivor_usage_committed",
+					"pool_survivor_usage_used",
+					"pool_survivor_usage_init",
+					"pool_oldgen_usage_max",
+					"pool_oldgen_usage_committed",
+					"pool_oldgen_usage_used",
+					"pool_oldgen_usage_init",
+					"gc_new_count",
+					"gc_old_count",
+					"thread_blocked_state_count",
+					"thread_runnable_state_count",
+					"thread_peak_count",
+					"thread_time_waiting_state_count",
+					"thread_waiting_state_count",
+					"thread_live_count",
+					"thread_daemon_count",
+					"class_loaded_count",
+					"class_total_unloaded_count",
+					"class_total_loaded_count",
+				),
+			},
 		},
 	}
 
@@ -123,9 +173,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)
 
-		uURL, err := url.Parse(ipt.URL)
-		require.NoError(t, err, "parse %s failed: %s", ipt.URL, err)
-
 		repoTag := strings.Split(base.name, ":")
 
 		cases = append(cases, &caseSpec{
@@ -137,7 +184,8 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			repoTag: repoTag[1],
 
 			exposedPorts: base.exposedPorts,
-			serverPorts:  []string{uURL.Port()},
+			mPathCount:   base.mPathCount,
+			opts:         base.opts,
 
 			cr: &testutils.CaseResult{
 				Name:        t.Name(),
@@ -170,7 +218,9 @@ type caseSpec struct {
 	exposedPorts   []string
 	serverPorts    []string
 	opts           []inputs.PointCheckOption
+	mPathCount     map[string]int
 	mCount         map[string]struct{}
+	cmd            []string
 
 	ipt    *Input
 	feeder *io.MockedFeeder
@@ -190,8 +240,8 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 		measurement := string(pt.Name())
 
 		switch measurement {
-		case inputName:
-			opts = append(opts, inputs.WithDoc(&Measurement{}))
+		case jvmMetricName:
+			opts = append(opts, inputs.WithDoc(&jvmMeasurement{name: jvmMetricName}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
 
@@ -239,6 +289,17 @@ func (cs *caseSpec) run() error {
 
 	cs.t.Logf("get remote: %+#v, TCP: %s", r, dockerTCP)
 
+	////////////////////////////////////////////////////////////////////////////
+
+	cs.ipt.RegHTTPHandler()
+
+	randPort := testutils.RandPort("tcp")
+	randPortStr := fmt.Sprintf("%d", randPort)
+	cs.t.Logf("listening port " + randPortStr + "...")
+	cs.ipt.Address += randPortStr
+
+	////////////////////////////////////////////////////////////////////////////
+
 	start := time.Now()
 
 	p, err := cs.getPool(dockerTCP)
@@ -252,6 +313,11 @@ func (cs *caseSpec) run() error {
 	}
 	defer os.RemoveAll(dockerFileDir)
 
+	extIP, err := testutils.ExternalIP()
+	if err != nil {
+		return err
+	}
+
 	uniqueContainerName := testutils.GetUniqueContainerName(inputName)
 
 	var resource *dockertest.Resource
@@ -264,8 +330,12 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-
+				Env: []string{
+					"DATAKIT_HOST=" + extIP,
+					"DATAKIT_PORT=" + randPortStr,
+				},
 				ExposedPorts: cs.exposedPorts,
+				Cmd:          cs.cmd,
 			},
 
 			func(c *docker.HostConfig) {
@@ -284,8 +354,12 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-
+				Env: []string{
+					"DATAKIT_HOST=" + extIP,
+					"DATAKIT_PORT=" + randPortStr,
+				},
 				ExposedPorts: cs.exposedPorts,
+				Cmd:          cs.cmd,
 			},
 
 			func(c *docker.HostConfig) {
@@ -296,6 +370,7 @@ func (cs *caseSpec) run() error {
 	}
 
 	if err != nil {
+		cs.t.Logf("%s", err.Error())
 		return err
 	}
 
@@ -305,7 +380,6 @@ func (cs *caseSpec) run() error {
 	if err := cs.getMappingPorts(); err != nil {
 		return err
 	}
-	cs.ipt.URL = getConfAccessPoint(r.Host, cs.serverPorts[0]) // set conf URL here.
 
 	cs.t.Logf("check service(%s:%v)...", r.Host, cs.exposedPorts)
 
@@ -315,9 +389,7 @@ func (cs *caseSpec) run() error {
 
 	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
 
-	if err = cs.runHTTPTests(r); err != nil {
-		return err
-	}
+	cs.runHTTPTests(r)
 
 	var wg sync.WaitGroup
 
@@ -428,27 +500,67 @@ func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
 	return nil
 }
 
-// Waiting for Jenkins actual running up...
-func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) error {
-	tick := time.NewTicker(2 * time.Minute)
-	defer tick.Stop()
+// Launch large amount of HTTP requests to remote nginx.
+func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) {
+	for _, v := range cs.serverPorts {
+		for path, count := range cs.mPathCount {
+			newURL := fmt.Sprintf("http://%s%s", net.JoinHostPort(r.Host, v), path)
+			fmt.Printf("start GET: %s\n", newURL)
+
+			if cs.runHTTPWithTimeout(newURL, count) {
+				break
+			}
+		}
+	}
+}
+
+// runHTTPWithTimeout returns true if HTTP request succeeded.
+func (cs *caseSpec) runHTTPWithTimeout(newURL string, count int) bool {
+	done := make(chan struct{})
+
+	iter := time.NewTicker(time.Second)
+	defer iter.Stop()
+
+	timeout := time.NewTicker(2 * time.Minute)
+	defer timeout.Stop()
+
+	var num int32
 
 	for {
 		select {
-		case <-tick.C:
-			return fmt.Errorf("get HTTP response time out")
-		default:
-			resp, err := http.Get("http://" + net.JoinHostPort(r.Host, cs.serverPorts[0]) + "/login")
-			if err != nil {
-				fmt.Printf("HTTP GET /login failed: %v\n", err)
-				continue
+		case <-iter.C:
+			for i := 0; i < count; i++ {
+				go func() {
+					netTransport := &http.Transport{
+						Dial: (&net.Dialer{
+							Timeout: 10 * time.Second,
+						}).Dial,
+						TLSHandshakeTimeout: 10 * time.Second,
+					}
+					netClient := &http.Client{
+						Timeout:   time.Second * 20,
+						Transport: netTransport,
+					}
+
+					resp, err := netClient.Get(newURL)
+					if err != nil {
+						fmt.Printf("HTTP GET failed: %v\n", err)
+						return
+					}
+					defer resp.Body.Close()
+
+					// HTTP request succeeded.
+					done <- struct{}{}
+				}()
 			}
-			defer resp.Body.Close()
-			if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-				return nil
+
+		case <-timeout.C:
+			return false
+
+		case <-done:
+			if val := atomic.AddInt32(&num, 1); val >= int32(count) {
+				return true
 			}
-			fmt.Printf("resp.StatusCode = %d\n", resp.StatusCode)
-			time.Sleep(time.Second)
 		}
 	}
 }

@@ -11,10 +11,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	agentv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/skywalking/compiled/v9.3.0/language/agent/v3"
 	loggingv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/skywalking/compiled/v9.3.0/logging/v3"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
@@ -72,7 +72,7 @@ func readSegmentObjectV3(req *http.Request) (*agentv3.SegmentObject, error) {
 	return segment, err
 }
 
-func handleSkyMetricV3(resp http.ResponseWriter, req *http.Request) {
+func (ipt *Input) handleSkyMetricV3(resp http.ResponseWriter, req *http.Request) {
 	log.Debugf("### receiving metric data from path %s", req.URL.Path)
 
 	var (
@@ -93,10 +93,10 @@ func handleSkyMetricV3(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	metrics := processMetricsV3(jvm, start)
+	metrics := processMetricsV3(jvm, start, ipt)
 	if len(metrics) != 0 {
-		if err := inputs.FeedMeasurement(jvmMetricName, datakit.Metric, metrics, &dkio.Option{CollectCost: time.Since(start)}); err != nil {
-			dkio.FeedLastError(jvmMetricName, err.Error())
+		if err := ipt.feeder.Feed(jvmMetricName, point.Metric, metrics, &dkio.Option{CollectCost: time.Since(start)}); err != nil {
+			ipt.feeder.FeedLastError(jvmMetricName, err.Error())
 		}
 	}
 
@@ -138,7 +138,7 @@ func handleSkyLoggingV3(resp http.ResponseWriter, req *http.Request) {
 	if pt, err := processLogV3(logdata); err != nil {
 		log.Error(err.Error())
 	} else {
-		if err = dkio.Feed(logdata.Service, datakit.Logging, []*point.Point{pt}, nil); err != nil {
+		if err = dkio.Feed(logdata.Service, datakit.Logging, []*dkpt.Point{pt}, nil); err != nil {
 			log.Error(err.Error())
 		}
 	}

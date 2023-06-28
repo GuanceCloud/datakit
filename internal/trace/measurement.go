@@ -7,9 +7,11 @@
 package trace
 
 import (
+	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	"github.com/GuanceCloud/cliutils/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -18,44 +20,58 @@ type TraceMeasurement struct {
 	Tags   map[string]string
 	Fields map[string]interface{}
 	TS     time.Time
+	Opt    point.Option
 }
 
-func (tm *TraceMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(tm.Name, tm.Tags, tm.Fields, &point.PointOption{
-		Time:   tm.TS,
-		Strict: false,
-	})
+// Point implement MeasurementV2.
+func (m *TraceMeasurement) Point() *point.Point {
+	opts := point.CommonLoggingOptions()
+	opts = append(opts, point.WithTime(m.TS), m.Opt)
+
+	return point.NewPointV2([]byte(m.Name),
+		append(point.NewTags(m.Tags), point.NewKVs(m.Fields)...),
+		opts...)
 }
 
-func (tm *TraceMeasurement) Info() *inputs.MeasurementInfo {
+func (*TraceMeasurement) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(tm.Name, tm.Tags, tm.Fields, &point.PointOption{
+	// 	Time:   tm.TS,
+	// 	Strict: false,
+	// })
+	return nil, fmt.Errorf("not implement")
+}
+
+func (m *TraceMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: tm.Name,
+		Name: m.Name,
 		Type: "tracing",
 		Tags: map[string]interface{}{
-			TAG_CONTAINER_HOST:   &inputs.TagInfo{Desc: "container hostname"},
-			TAG_ENDPOINT:         &inputs.TagInfo{Desc: "endpoint info"},
-			TAG_ENV:              &inputs.TagInfo{Desc: "application environment info"},
-			TAG_HTTP_STATUS_CODE: &inputs.TagInfo{Desc: "http response code"},
-			TAG_HTTP_METHOD:      &inputs.TagInfo{Desc: "http request method name"},
-			TAG_OPERATION:        &inputs.TagInfo{Desc: "span name"},
-			TAG_PROJECT:          &inputs.TagInfo{Desc: "project name"},
-			TAG_SERVICE:          &inputs.TagInfo{Desc: "service name"},
-			TAG_SOURCE_TYPE:      &inputs.TagInfo{Desc: "tracing source type"},
-			TAG_SPAN_STATUS:      &inputs.TagInfo{Desc: "span status"},
-			TAG_SPAN_TYPE:        &inputs.TagInfo{Desc: "span type"},
-			TAG_VERSION:          &inputs.TagInfo{Desc: "application version info"},
+			TAG_CONTAINER_HOST:   &inputs.TagInfo{Desc: "Container hostname. Available in OpenTelemetry. Optional."},
+			TAG_ENDPOINT:         &inputs.TagInfo{Desc: "Endpoint info. Available in SkyWalking, Zipkin. Optional."},
+			TAG_ENV:              &inputs.TagInfo{Desc: "Application environment info. Available in Jaeger. Optional."},
+			TAG_HTTP_STATUS_CODE: &inputs.TagInfo{Desc: "HTTP response code. Available in ddtrace, OpenTelemetry. Optional."},
+			TAG_HTTP_METHOD:      &inputs.TagInfo{Desc: "HTTP request method name. Available in ddtrace, OpenTelemetry. Optional."},
+			TAG_OPERATION:        &inputs.TagInfo{Desc: "Span name"},
+			TAG_PROJECT:          &inputs.TagInfo{Desc: "Project name. Available in Jaeger. Optional."},
+			TAG_SERVICE:          &inputs.TagInfo{Desc: "Service name. Optional."},
+			TAG_SOURCE_TYPE:      &inputs.TagInfo{Desc: "Tracing source type"},
+			TAG_SPAN_STATUS:      &inputs.TagInfo{Desc: "Span status"},
+			TAG_SPAN_TYPE:        &inputs.TagInfo{Desc: "Span type"},
+			TAG_VERSION:          &inputs.TagInfo{Desc: "Application version info. Available in Jaeger. Optional."},
+			TAG_HTTP_ROUTE:       &inputs.TagInfo{Desc: "HTTP route. Optional."},
+			TAG_HTTP_URL:         &inputs.TagInfo{Desc: "HTTP URL. Optional."},
 		},
 		Fields: map[string]interface{}{
-			FIELD_DURATION: &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationUS, Desc: "duration of span"},
-			FIELD_MESSAGE:  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "origin content of span"},
-			FIELD_PARENTID: &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "parent span ID of current span"},
-			TAG_PID:        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "application process id."},
-			FIELD_PRIORITY: &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
-			FIELD_RESOURCE: &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "resource name produce current span"},
+			FIELD_DURATION: &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationUS, Desc: "Duration of span"},
+			FIELD_MESSAGE:  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Origin content of span"},
+			FIELD_PARENTID: &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Parent span ID of current span"},
+			TAG_PID:        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Application process id. Available in ddtrace, OpenTelemetry. Optional."},
+			FIELD_PRIORITY: &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "Optional."},
+			FIELD_RESOURCE: &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Resource name produce current span"},
 			// FIELD_SAMPLE_RATE_GLOBAL: &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "global sample ratio"},
-			FIELD_SPANID:  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "span id"},
+			FIELD_SPANID:  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Span id"},
 			FIELD_START:   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.TimestampUS, Desc: "start time of span."},
-			FIELD_TRACEID: &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "trace id"},
+			FIELD_TRACEID: &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Trace id"},
 		},
 	}
 }

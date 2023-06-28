@@ -31,6 +31,7 @@ type ptChecker struct {
 
 	optionalFields []string
 	optionalTags   []string
+	ignoreTags     map[string]struct{}
 
 	// check result
 	checkMsg []string
@@ -113,6 +114,18 @@ func WithOptionalTags(keys ...string) PointCheckOption {
 	}
 }
 
+// WithIgnoreTags set ignore keys(tag key) that will delete from key-check.
+func WithIgnoreTags(keys ...string) PointCheckOption {
+	return func(c *ptChecker) {
+		if c.ignoreTags == nil {
+			c.ignoreTags = make(map[string]struct{})
+		}
+		for _, v := range keys {
+			c.ignoreTags[v] = struct{}{}
+		}
+	}
+}
+
 // CheckPoint used to check pt with various options. If any checking
 // failed, the failed message are returned.
 func CheckPoint(pt *point.Point, opts ...PointCheckOption) []string {
@@ -151,7 +164,7 @@ func (c *ptChecker) checkOnPoint(pt *point.Point) {
 	}
 
 	if len(c.expTags) != len(c.gotTags) {
-		c.addMsg(fmt.Sprintf("expect %d tags got %d", len(c.expTags), len(c.gotTags)))
+		c.addMsg(fmt.Sprintf("checkOnPoint expect %d tags got %d", len(c.expTags), len(c.gotTags)))
 	}
 
 	if len(c.expFields) != len(c.gotFields) {
@@ -195,8 +208,11 @@ func (c *ptChecker) checkOnDoc(pt *point.Point) {
 			mGotTags[v] = struct{}{}
 		}
 	}
+	for k := range c.ignoreTags {
+		delete(mGotTags, k)
+	}
 	if len(c.mInfo.Tags)+len(c.extraTags) != len(mGotTags) {
-		c.addMsg(fmt.Sprintf("expect %d tags got %d",
+		c.addMsg(fmt.Sprintf("checkOnDoc expect %d tags got %d",
 			len(c.mInfo.Tags)+len(c.extraTags),
 			len(c.gotTags)+len(c.optionalTags)))
 	}
@@ -222,7 +238,8 @@ func (c *ptChecker) checkOnDoc(pt *point.Point) {
 			right = append(right, k)
 		}
 		diff := Difference(left, right)
-		_ = diff
+
+		fmt.Printf("diff = %v\n", diff)
 
 		c.addMsg(fmt.Sprintf("expect %d fields got %d(%d keys optional)",
 			len(c.mInfo.Fields), len(c.gotFields), len(c.optionalFields)))
@@ -245,6 +262,10 @@ func (c *ptChecker) checkOnDoc(pt *point.Point) {
 		}
 
 		if _, ok := c.extraTags[key]; ok {
+			continue
+		}
+
+		if _, ok := c.ignoreTags[key]; ok {
 			continue
 		}
 

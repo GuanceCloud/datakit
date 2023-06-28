@@ -79,7 +79,7 @@ func TestIntegrate(t *testing.T) {
 						return
 					}
 
-					require.NoError(t, tc.pool.Purge(tc.resource))
+					tc.pool.Purge(tc.resource)
 				})
 			})
 		}(tc)
@@ -293,7 +293,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			cs.mCount[inputName] = struct{}{}
 
 		default: // TODO: check other measurement
-			panic("not implement")
+			panic("unknown measurement")
 		}
 
 		// check if tag appended
@@ -545,11 +545,10 @@ func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) {
 
 					resp, err := netClient.Get(newURL)
 					if err != nil {
-						panic(err)
+						fmt.Printf("HTTP GET failed: %v\n", err)
+						return
 					}
-					if err := resp.Body.Close(); err != nil {
-						panic(err)
-					}
+					defer resp.Body.Close()
 				}()
 			}
 

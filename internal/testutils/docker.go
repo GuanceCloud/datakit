@@ -226,6 +226,7 @@ func RetryTestRun(f func() error) error {
 		}
 
 		if err := f(); err != nil {
+			fmt.Printf("RetryTestRun, err = %v\n", err)
 			switch {
 			case strings.Contains(err.Error(), "already"):
 				// API error (500): driver failed programming external connectivity on endpoint memcached (7bdcaf6b4a5dba4fa54c118e455a9f0220f9d3514e682f0dfdb92fddebc6823f): Error starting userland proxy: listen tcp4 0.0.0.0:10828: bind: address already in use
@@ -338,5 +339,14 @@ func GetPool(endpoint string) (*dockertest.Pool, error) {
 	}
 	return p, nil
 }
+
+////////////////////////////////////////////////////////////////////////////////
+
+//nolint:stylecheck
+const (
+	SERVICE_NAME     = "service_name"
+	PSPAN_ANNOTATION = "pspan_annotation"
+	RUNTIME_ID       = "runtime_id"
+)
 
 ////////////////////////////////////////////////////////////////////////////////

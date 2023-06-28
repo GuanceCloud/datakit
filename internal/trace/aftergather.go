@@ -13,22 +13,23 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"github.com/GuanceCloud/cliutils/point"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
-var dkioFeed func(name, category string, pts []*point.Point, opt *dkio.Option) error = dkio.Feed
+////////////////////////////////////////////////////////////////////////////////
 
 type AfterGatherHandler interface {
-	Run(inputName string, dktraces DatakitTraces, strikMod bool)
+	Run(inputName string, dktraces DatakitTraces, strictMod bool)
 }
 
-type AfterGatherFunc func(inputName string, dktraces DatakitTraces, strikMod bool)
+type AfterGatherFunc func(inputName string, dktraces DatakitTraces, strictMod bool)
 
-func (ag AfterGatherFunc) Run(inputName string, dktraces DatakitTraces, strikMod bool) {
-	ag(inputName, dktraces, strikMod)
+func (ag AfterGatherFunc) Run(inputName string, dktraces DatakitTraces, strictMod bool) {
+	ag(inputName, dktraces, strictMod)
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 type AfterGather struct {
 	sync.Mutex
@@ -36,6 +37,8 @@ type AfterGather struct {
 	filters        []FilterFunc
 	ReFeedInterval time.Duration
 	BlockIOModel   bool
+	inputOption    point.Option
+	feeder         dkio.Feeder
 }
 
 type Option func(aga *AfterGather)
@@ -58,6 +61,18 @@ func WithBlockIOModel(block bool) Option {
 	}
 }
 
+func WithInputOption(opt point.Option) Option {
+	return func(aga *AfterGather) {
+		aga.inputOption = opt
+	}
+}
+
+func WithFeeder(feeder dkio.Feeder) Option {
+	return func(aga *AfterGather) {
+		aga.feeder = feeder
+	}
+}
+
 func NewAfterGather(options ...Option) *AfterGather {
 	aga := &AfterGather{log: logger.DefaultSLogger("after-gather")}
 	for i := range options {
@@ -77,7 +92,7 @@ func (aga *AfterGather) AppendFilter(filter ...FilterFunc) {
 	aga.filters = append(aga.filters, filter...)
 }
 
-func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces, stricktMod bool) {
+func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces, strictMod bool) {
 	if len(dktraces) == 0 {
 		aga.log.Debug("empty dktraces")
 
@@ -105,14 +120,14 @@ func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces, stricktMod
 		return
 	}
 
-	if pts := aga.BuildPointsBatch(afterFilters, stricktMod); len(pts) != 0 {
+	if pts := aga.BuildPointsBatch(afterFilters, strictMod); len(pts) != 0 {
 		var (
 			start = time.Now()
 			opt   = &dkio.Option{Blocking: aga.BlockIOModel}
 			err   error
 		)
 	IO_FEED_RETRY:
-		if err = dkioFeed(inputName, datakit.Tracing, pts, opt); err != nil {
+		if err = aga.feeder.Feed(inputName, point.Tracing, pts, opt); err != nil {
 			aga.log.Warnf("io feed points failed: %s, ignored", err.Error())
 			if aga.ReFeedInterval > 0 && errors.Is(err, dkio.ErrIOBusy) {
 				time.Sleep(aga.ReFeedInterval)
@@ -131,7 +146,7 @@ func (aga *AfterGather) BuildPointsBatch(dktraces DatakitTraces, strict bool) []
 	var pts []*point.Point
 	for i := range dktraces {
 		for j := range dktraces[i] {
-			if pt, err := BuildPoint(dktraces[i][j], strict); err != nil {
+			if pt, err := BuildPoint(dktraces[i][j], strict, aga.inputOption); err != nil {
 				aga.log.Warnf("build point error: %s", err.Error())
 			} else {
 				pts = append(pts, pt)
@@ -141,6 +156,8 @@ func (aga *AfterGather) BuildPointsBatch(dktraces DatakitTraces, strict bool) []
 
 	return pts
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 func processUnknown(dkspan *DatakitSpan) {
 	if dkspan != nil {
@@ -157,7 +174,7 @@ func processUnknown(dkspan *DatakitSpan) {
 }
 
 // BuildPoint builds point from DatakitSpan.
-func BuildPoint(dkspan *DatakitSpan, strict bool) (*point.Point, error) {
+func BuildPoint(dkspan *DatakitSpan, strict bool, optFromInput point.Option) (*point.Point, error) {
 	processUnknown(dkspan)
 
 	tags := map[string]string{
@@ -191,9 +208,13 @@ func BuildPoint(dkspan *DatakitSpan, strict bool) (*point.Point, error) {
 		fields[strings.ReplaceAll(k, ".", "_")] = v
 	}
 
-	return point.NewPoint(dkspan.Source, tags, fields, &point.PointOption{
-		Time:     time.Unix(0, dkspan.Start),
-		Category: datakit.Tracing,
-		Strict:   strict,
-	})
+	tracing := &TraceMeasurement{
+		Name:   dkspan.Source,
+		Tags:   tags,
+		Fields: fields,
+		TS:     time.Unix(0, dkspan.Start),
+		Opt:    optFromInput,
+	}
+
+	return tracing.Point(), nil
 }

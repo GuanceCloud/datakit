@@ -3,14 +3,14 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package jenkins
+package zipkin
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -19,12 +19,14 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/gin-gonic/gin"
 	dockertest "github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/require"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
 // ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
@@ -56,7 +58,7 @@ func TestIntegrate(t *testing.T) {
 	for _, tc := range cases {
 		func(tc *caseSpec) {
 			t.Run(tc.name, func(t *testing.T) {
-				t.Parallel()
+				// t.Parallel() // zipkin should not be paralleled due to code design. For example, afterGatherRun is global variable.
 				caseStart := time.Now()
 
 				t.Logf("testing %s...", tc.name)
@@ -87,10 +89,6 @@ func TestIntegrate(t *testing.T) {
 	}
 }
 
-func getConfAccessPoint(host, port string) string {
-	return fmt.Sprintf("http://%s", net.JoinHostPort(host, port))
-}
-
 func buildCases(t *testing.T) ([]*caseSpec, error) {
 	t.Helper()
 
@@ -99,15 +97,57 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 	bases := []struct {
 		name         string // Also used as build image name:tag.
 		conf         string
+		urlPath      string
 		exposedPorts []string
+		mPathCount   map[string]int
+		opts         []inputs.PointCheckOption
 	}{
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/jenkins:2.332.1-metrics",
-			conf: `enable_collect = true
-			url = ""
-			key = "6nCZ42W2cNnCO1oeM9Y41wEQ7GEyX1WTeK6aC1Q0vu43Kwqlebqcheek733Aq0sZ"
-			interval = "1s"`, // set conf URL later.
-			exposedPorts: []string{"8080/tcp"},
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/zipkin:agent-go{}apiV1",
+			conf: `pathV1 = "/api/v1/spans"
+			pathV2 = "/api/v2/spans"`,
+			urlPath: "/api/v1/spans",
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					itrace.TAG_ENV,
+					itrace.TAG_HTTP_METHOD,
+					itrace.VERSION,
+					itrace.TAG_CONTAINER_HOST,
+					itrace.TAG_ENDPOINT,
+					itrace.TAG_HTTP_STATUS_CODE,
+					itrace.TAG_PROJECT,
+					itrace.TAG_HTTP_ROUTE,
+					itrace.TAG_HTTP_URL,
+				),
+				inputs.WithOptionalFields(
+					itrace.TAG_PID,
+					itrace.FIELD_PRIORITY,
+				),
+			},
+		},
+
+		{
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/zipkin:agent-go{}apiV2",
+			conf: `pathV1 = "/api/v1/spans"
+			pathV2 = "/api/v2/spans"`,
+			urlPath: "/api/v2/spans",
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					itrace.TAG_ENV,
+					itrace.TAG_HTTP_METHOD,
+					itrace.VERSION,
+					itrace.TAG_CONTAINER_HOST,
+					itrace.TAG_ENDPOINT,
+					itrace.TAG_HTTP_STATUS_CODE,
+					itrace.TAG_PROJECT,
+					itrace.TAG_HTTP_ROUTE,
+					itrace.TAG_HTTP_URL,
+				),
+				inputs.WithOptionalFields(
+					itrace.TAG_PID,
+					itrace.FIELD_PRIORITY,
+				),
+			},
 		},
 	}
 
@@ -123,10 +163,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)
 
-		uURL, err := url.Parse(ipt.URL)
-		require.NoError(t, err, "parse %s failed: %s", ipt.URL, err)
-
-		repoTag := strings.Split(base.name, ":")
+		repoTag := strings.Split(getSplitName(base.name), ":")
 
 		cases = append(cases, &caseSpec{
 			t:       t,
@@ -136,8 +173,9 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			repo:    repoTag[0],
 			repoTag: repoTag[1],
 
+			urlPath:      base.urlPath,
 			exposedPorts: base.exposedPorts,
-			serverPorts:  []string{uURL.Port()},
+			opts:         base.opts,
 
 			cr: &testutils.CaseResult{
 				Name:        t.Name(),
@@ -156,6 +194,13 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 	return cases, nil
 }
 
+const splitSymbol = "{}"
+
+func getSplitName(in string) string {
+	out := strings.Split(in, splitSymbol)
+	return out[0]
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 // caseSpec.
@@ -167,10 +212,12 @@ type caseSpec struct {
 	repo           string
 	repoTag        string
 	dockerFileText string
+	urlPath        string
 	exposedPorts   []string
-	serverPorts    []string
 	opts           []inputs.PointCheckOption
 	mCount         map[string]struct{}
+	done           chan struct{}
+	cmd            []string
 
 	ipt    *Input
 	feeder *io.MockedFeeder
@@ -191,7 +238,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 
 		switch measurement {
 		case inputName:
-			opts = append(opts, inputs.WithDoc(&Measurement{}))
+			opts = append(opts, inputs.WithDoc(&itrace.TraceMeasurement{Name: inputName}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
 
@@ -233,11 +280,54 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 	return nil
 }
 
+func (cs *caseSpec) handlerV1(c *gin.Context) {
+	handleZipkinTraceV1(c.Writer, c.Request)
+}
+
+func (cs *caseSpec) handlerV2(c *gin.Context) {
+	handleZipkinTraceV2(c.Writer, c.Request)
+}
+
 func (cs *caseSpec) run() error {
 	r := testutils.GetRemote()
 	dockerTCP := r.TCPURL()
 
 	cs.t.Logf("get remote: %+#v, TCP: %s", r, dockerTCP)
+
+	////////////////////////////////////////////////////////////////////////////
+
+	cs.ipt.RegHTTPHandler()
+
+	gin.SetMode(gin.DebugMode)
+	router := gin.Default()
+	router.POST("/api/v1/spans", cs.handlerV1)
+	router.POST("/api/v2/spans", cs.handlerV2)
+
+	randPort := testutils.RandPort("tcp")
+	randPortStr := fmt.Sprintf("%d", randPort)
+	cs.t.Logf("listening port " + randPortStr + "...")
+
+	srv := &http.Server{
+		Addr:    ":" + randPortStr,
+		Handler: router,
+	}
+
+	go func() {
+		cs.done = make(chan struct{})
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			panic(err)
+		}
+	}()
+
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		if err := srv.Shutdown(ctx); err != nil && errors.Is(err, http.ErrServerClosed) {
+			cs.t.Logf("Shutdown failed: %v", err)
+		}
+	}()
+
+	////////////////////////////////////////////////////////////////////////////
 
 	start := time.Now()
 
@@ -252,6 +342,11 @@ func (cs *caseSpec) run() error {
 	}
 	defer os.RemoveAll(dockerFileDir)
 
+	extIP, err := testutils.ExternalIP()
+	if err != nil {
+		return err
+	}
+
 	uniqueContainerName := testutils.GetUniqueContainerName(inputName)
 
 	var resource *dockertest.Resource
@@ -264,8 +359,12 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-
-				ExposedPorts: cs.exposedPorts,
+				Env: []string{
+					"DATAKIT_HOST=" + extIP,
+					"DATAKIT_PORT=" + randPortStr,
+					"DATAKIT_URL_PATH=" + cs.urlPath,
+				},
+				Cmd: cs.cmd,
 			},
 
 			func(c *docker.HostConfig) {
@@ -280,12 +379,16 @@ func (cs *caseSpec) run() error {
 
 			&dockertest.RunOptions{
 				ContainerName: uniqueContainerName,
-				Name:          cs.name, // ATTENTION: not uniqueContainerName.
+				Name:          getSplitName(cs.name), // ATTENTION: not uniqueContainerName.
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-
-				ExposedPorts: cs.exposedPorts,
+				Env: []string{
+					"DATAKIT_HOST=" + extIP,
+					"DATAKIT_PORT=" + randPortStr,
+					"DATAKIT_URL_PATH=" + cs.urlPath,
+				},
+				Cmd: cs.cmd,
 			},
 
 			func(c *docker.HostConfig) {
@@ -296,16 +399,12 @@ func (cs *caseSpec) run() error {
 	}
 
 	if err != nil {
+		cs.t.Logf("%s", err.Error())
 		return err
 	}
 
 	cs.pool = p
 	cs.resource = resource
-
-	if err := cs.getMappingPorts(); err != nil {
-		return err
-	}
-	cs.ipt.URL = getConfAccessPoint(r.Host, cs.serverPorts[0]) // set conf URL here.
 
 	cs.t.Logf("check service(%s:%v)...", r.Host, cs.exposedPorts)
 
@@ -314,10 +413,6 @@ func (cs *caseSpec) run() error {
 	}
 
 	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
-
-	if err = cs.runHTTPTests(r); err != nil {
-		return err
-	}
 
 	var wg sync.WaitGroup
 
@@ -406,51 +501,13 @@ func (cs *caseSpec) getDockerFilePath() (dirName string, fileName string, err er
 	return tmpDir, tmpFile.Name(), nil
 }
 
-func (cs *caseSpec) getMappingPorts() error {
-	cs.serverPorts = make([]string, len(cs.exposedPorts))
-	for k, v := range cs.exposedPorts {
-		mapStr := cs.resource.GetHostPort(v)
-		_, port, err := net.SplitHostPort(mapStr)
-		if err != nil {
-			return err
-		}
-		cs.serverPorts[k] = port
-	}
-	return nil
-}
-
 func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
-	for _, v := range cs.serverPorts {
+	for _, v := range cs.exposedPorts {
 		if !r.PortOK(docker.Port(v).Port(), time.Minute) {
 			return fmt.Errorf("service checking failed")
 		}
 	}
 	return nil
-}
-
-// Waiting for Jenkins actual running up...
-func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) error {
-	tick := time.NewTicker(2 * time.Minute)
-	defer tick.Stop()
-
-	for {
-		select {
-		case <-tick.C:
-			return fmt.Errorf("get HTTP response time out")
-		default:
-			resp, err := http.Get("http://" + net.JoinHostPort(r.Host, cs.serverPorts[0]) + "/login")
-			if err != nil {
-				fmt.Printf("HTTP GET /login failed: %v\n", err)
-				continue
-			}
-			defer resp.Body.Close()
-			if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-				return nil
-			}
-			fmt.Printf("resp.StatusCode = %d\n", resp.StatusCode)
-			time.Sleep(time.Second)
-		}
-	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////

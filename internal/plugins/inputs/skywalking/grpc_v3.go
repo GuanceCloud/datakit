@@ -12,17 +12,14 @@ import (
 	"net"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	commonv3old "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/skywalking/compiled/v8.3.0/common/v3"
 	agentv3old "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/skywalking/compiled/v8.3.0/language/agent/v3"
 	profilev3old "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/skywalking/compiled/v8.3.0/language/profile/v3"
 	mgmtv3old "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/skywalking/compiled/v8.3.0/management/v3"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
-
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	configv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/skywalking/compiled/v9.3.0/agent/configuration/v3"
 	commonv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/skywalking/compiled/v9.3.0/common/v3"
 	eventv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/skywalking/compiled/v9.3.0/event/v3"
@@ -30,29 +27,31 @@ import (
 	profilev3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/skywalking/compiled/v9.3.0/language/profile/v3"
 	loggingv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/skywalking/compiled/v9.3.0/logging/v3"
 	mgmtv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/skywalking/compiled/v9.3.0/management/v3"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 )
 
-func runGRPCV3(addr string) {
-	listener, err := net.Listen("tcp", addr)
+func runGRPCV3(ipt *Input) {
+	listener, err := net.Listen("tcp", ipt.Address)
 	if err != nil {
-		log.Errorf("### skywalking grpc server v3 listening on %s failed: %v", addr, err)
+		log.Errorf("### skywalking grpc server v3 listening on %s failed: %v", ipt.Address, err)
 
 		return
 	}
-	log.Debugf("### skywalking grpc v3 listening on: %s", addr)
+	log.Debugf("### skywalking grpc v3 listening on: %s", ipt.Address)
 
 	skySvr = grpc.NewServer()
 	// register API version 8.3.0
 	agentv3old.RegisterTraceSegmentReportServiceServer(skySvr, &TraceReportServerV3Old{})
-	agentv3old.RegisterJVMMetricReportServiceServer(skySvr, &JVMMetricReportServerV3Old{})
+	agentv3old.RegisterJVMMetricReportServiceServer(skySvr, &JVMMetricReportServerV3Old{ipt: ipt})
 	profilev3old.RegisterProfileTaskServer(skySvr, &ProfileTaskServerV3Old{})
 	mgmtv3old.RegisterManagementServiceServer(skySvr, &ManagementServerV3Old{})
 	// register API version 9.3.0
 	agentv3.RegisterTraceSegmentReportServiceServer(skySvr, &TraceReportServerV3{})
 	eventv3.RegisterEventServiceServer(skySvr, &EventServerV3{})
-	agentv3.RegisterJVMMetricReportServiceServer(skySvr, &JVMMetricReportServerV3{})
+	agentv3.RegisterJVMMetricReportServiceServer(skySvr, &JVMMetricReportServerV3{ipt: ipt})
 	loggingv3.RegisterLogReportServiceServer(skySvr, &LoggingServerV3{})
 	profilev3.RegisterProfileTaskServer(skySvr, &ProfileTaskServerV3{})
 	mgmtv3.RegisterManagementServiceServer(skySvr, &ManagementServerV3{})
@@ -138,9 +137,10 @@ func (*TraceReportServerV3Old) CollectInSync(ctx context.Context, col *agentv3ol
 
 type JVMMetricReportServerV3Old struct {
 	agentv3old.UnimplementedJVMMetricReportServiceServer
+	ipt *Input
 }
 
-func (*JVMMetricReportServerV3Old) Collect(ctx context.Context, jvm *agentv3old.JVMMetricCollection) (*commonv3old.Commands, error) {
+func (r *JVMMetricReportServerV3Old) Collect(ctx context.Context, jvm *agentv3old.JVMMetricCollection) (*commonv3old.Commands, error) {
 	log.Debugf("### JVMMetricReportServerV3Old:Collect %#v", jvm)
 
 	start := time.Now()
@@ -157,13 +157,12 @@ func (*JVMMetricReportServerV3Old) Collect(ctx context.Context, jvm *agentv3old.
 		return &commonv3old.Commands{}, err
 	}
 
-	metrics := processMetricsV3(newjvm, start)
+	metrics := processMetricsV3(newjvm, start, r.ipt)
 	if len(metrics) != 0 {
-		if err := inputs.FeedMeasurement(jvmMetricName, datakit.Metric, metrics, &dkio.Option{CollectCost: time.Since(start)}); err != nil {
-			dkio.FeedLastError(jvmMetricName, err.Error())
+		if err := r.ipt.feeder.Feed(jvmMetricName, point.Metric, metrics, &dkio.Option{CollectCost: time.Since(start)}); err != nil {
+			r.ipt.feeder.FeedLastError(jvmMetricName, err.Error())
 		}
 	}
-
 	return &commonv3old.Commands{}, nil
 }
 
@@ -307,16 +306,17 @@ func (*EventServerV3) Collect(esrv eventv3.EventService_CollectServer) error {
 
 type JVMMetricReportServerV3 struct {
 	agentv3.UnimplementedJVMMetricReportServiceServer
+	ipt *Input
 }
 
-func (*JVMMetricReportServerV3) Collect(ctx context.Context, jvm *agentv3.JVMMetricCollection) (*commonv3.Commands, error) {
+func (r *JVMMetricReportServerV3) Collect(ctx context.Context, jvm *agentv3.JVMMetricCollection) (*commonv3.Commands, error) {
 	log.Debugf("### JVMMetricReportServerV3:Collect JVMMetricCollection: %#v", jvm)
 
 	start := time.Now()
-	metrics := processMetricsV3(jvm, start)
+	metrics := processMetricsV3(jvm, start, r.ipt)
 	if len(metrics) != 0 {
-		if err := inputs.FeedMeasurement(jvmMetricName, datakit.Metric, metrics, &dkio.Option{CollectCost: time.Since(start)}); err != nil {
-			dkio.FeedLastError(jvmMetricName, err.Error())
+		if err := r.ipt.feeder.Feed(jvmMetricName, point.Metric, metrics, &dkio.Option{CollectCost: time.Since(start)}); err != nil {
+			r.ipt.feeder.FeedLastError(jvmMetricName, err.Error())
 		}
 	}
 
@@ -343,7 +343,7 @@ func (*LoggingServerV3) Collect(server loggingv3.LogReportService_CollectServer)
 		if pt, err := processLogV3(logData); err != nil {
 			log.Error(err.Error())
 		} else {
-			if err = dkio.Feed(logData.Service, datakit.Logging, []*point.Point{pt}, nil); err != nil {
+			if err = dkio.Feed(logData.Service, datakit.Logging, []*dkpt.Point{pt}, nil); err != nil {
 				log.Error(err.Error())
 			}
 		}
