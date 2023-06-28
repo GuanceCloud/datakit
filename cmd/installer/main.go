@@ -6,6 +6,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -173,7 +174,8 @@ func downloadFiles(to string) error {
 	dl.CurDownloading = "datakit"
 
 	cliopt := &httpcli.Options{
-		InsecureSkipVerify: true, // ignore SSL error
+		// ignore SSL error
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint
 	}
 
 	if installer.Proxy != "" {

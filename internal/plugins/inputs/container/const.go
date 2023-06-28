@@ -47,7 +47,7 @@ const sampleCfg = `
 
   ## Containers logs to include and exclude, default collect all containers. Globs accepted.
   container_include_log = []
-  container_exclude_log = ["image:pubrepo.jiagouyun.com/datakit/logfwd*", "image:pubrepo.jiagouyun.com/datakit/datakit*"]
+  container_exclude_log = ["image:*logfwd*", "image:*datakit*"]
 
   exclude_pause_container = true
 
