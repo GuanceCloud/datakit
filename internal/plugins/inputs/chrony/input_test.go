@@ -235,6 +235,21 @@ func TestInput_getPts(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "election-and-local-extra-tag",
+			fields: fields{
+				Election: true,
+				Tags: map[string]string{
+					"some_tag":  "some_value",
+					"some_tag2": "some_value2",
+				},
+			},
+			args: args{mockDataLocal()},
+			want: []string{
+				`chrony,leap_status=normal,reference_id=CA760182,some_tag=some_value,some_tag2=some_value2,stratum=2 frequency=-1.452,last_offset=-0.00029172,residual_freq=-0.094,rms_offset=0.00476266,root_delay=0.04132754,root_dispersion=0.003143095,skew=4.524,system_time=-0,update_interval=65.3`,
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
