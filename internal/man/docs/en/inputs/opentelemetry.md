@@ -77,34 +77,36 @@ The purpose of this article is to introduce how to configure and enable OTEL dat
         # path = "./otel_storage"
         # capacity = 5120
     
-      [inputs.opentelemetry.expectedHeaders]
-      # If header is configured, the request must carry the otherwise return status code 500
-      ## Be used as a security check and must be all lowercase
-      # ex_version = xxx
-      # ex_name = xxx
-      # ...
-    
-      ## grpc
-      [inputs.opentelemetry.grpc]
-      ## trace for grpc
-      trace_enable = true
-    
-      ## metric for grpc
-      metric_enable = true
-    
-      ## grpc listen addr
-      addr = "127.0.0.1:4317"
-    
-      ## http
+      ## OTEL agent HTTP config for trace and metrics
+      ## If enable set to be true, trace and metrics will be received on path respectively, by default is:
+      ## trace : /otel/v1/trace
+      ## metric: /otel/v1/metric
+      ## and the client side should be configured properly with Datakit listening port(default: 9529)
+      ## or custom HTTP request path
+      ## for example http://127.0.0.1:9529/otel/v1/trace
+      ## The acceptable http_status_ok values will be 200 or 202.
       [inputs.opentelemetry.http]
-      ## if enable=true
-      ## http path (do not edit):
-      ##	trace : /otel/v1/trace
-      ##	metric: /otel/v1/metric
-      ## use as : http://127.0.0.1:9529/otel/v1/trace . Method = POST
-      enable = true
-      ## return to client status_ok_code :200/202
-      http_status_ok = 200
+        enable = true
+        http_status_ok = 200
+        trace_api = "/otel/v1/trace"
+        metric_api = "/otel/v1/metric"
+      
+      ## OTEL agent GRPC config for trace and metrics.
+      ## GRPC services for trace and metrics can be enabled respectively as setting either to be true.
+      ## add is the listening on address for GRPC server.
+      [inputs.opentelemetry.grpc]
+        trace_enable = true
+        metric_enable = true
+        addr = "127.0.0.1:4317"
+      
+      ## If 'expectedHeaders' is well configed, then the obligation of sending certain wanted HTTP headers is on the client side,
+      ## otherwise HTTP status code 400(bad request) will be provoked.
+      ## Note: expectedHeaders will be effected on both trace and metrics if setted up.
+      # [inputs.opentelemetry.expectedHeaders]
+      #   ex_version = "1.2.3"
+      #   ex_name = "env_resource_name"
+      # ...
+
     
     ```
 
@@ -118,7 +120,7 @@ The purpose of this article is to introduce how to configure and enable OTEL dat
 
 1. It is recommended to use grpc protocol, which has the advantages of high compression ratio, fast serialization and higher efficiency.
 
-1. The route of the http protocol is not configurable and the request path is trace: `/otel/v1/trace`, metric:`/otel/v1/metric`
+1. Since datakit version v1.10.0, The route of the http protocol is configurable and the request path is trace: `/otel/v1/trace`, metric:`/otel/v1/metric`
 
 1. When data of type `float` `double` is involved, a maximum of two decimal places are reserved.
 
@@ -148,6 +150,31 @@ Therefore, if you want to filter all subtype tags under `teletemetry.sdk` and `o
 ignore_attribute_keys = ["os_*","teletemetry_sdk*"]
 ```
 
+Pay attention to the configuration of environment variables when using OTEL HTTP exporter. Since the default configuration of datakit is `/otel/v1/trace` and `/otel/v1/metric`, 
+if you want to use the HTTP protocol, you need to configure `trace` and `trace` separately `metric`,
+
+The default request routes of otlp are `v1/traces` and `v1/metrics`, which need to be configured separately for these two. If you modify the routing in the configuration file, just replace the routing address below.
+
+example:
+
+```shell
+java -javaagent:/usr/local/opentelemetry-javaagent-1.26.1-guance.jar \
+ -Dotel.exporter=otlp \
+ -Dotel.exporter.otlp.protocol=http/protobuf \ 
+ -Dotel.exporter.otlp.traces.endpoint=http://localhost:9529/otel/v1/trace \ 
+ -Dotel.exporter.otlp.metrics.endpoint=http://localhost:9529/otel/v1/metric \ 
+ -jar tmall.jar
+ 
+# If the default routes in the configuration file are changed to `v1/traces` and `v1/metrics`, 
+# then the above command can be written as follows:
+java -javaagent:/usr/local/opentelemetry-javaagent-1.26.1-guance.jar \
+ -Dotel.exporter=otlp \
+ -Dotel.exporter.otlp.protocol=http/protobuf \ 
+ -Dotel.exporter.otlp.endpoint=http://localhost:9529/ \ 
+ -jar tmall.jar
+```
+
+
 ### Best Practices {#bp}
 
 Datakit currently provides [Go language](opentelemetry-go.md)、[Java](opentelemetry-java.md) languages, with other languages available later.
@@ -156,3 +183,4 @@ Datakit currently provides [Go language](opentelemetry-go.md)、[Java](opentelem
 - Go open source address [opentelemetry-go](https://github.com/open-telemetry/opentelemetry-go){:target="_blank"}
 - Official user manual: [opentelemetry-io-docs](https://opentelemetry.io/docs/){:target="_blank"}
 - Environment variable configuration: [sdk-extensions](https://github.com/open-telemetry/opentelemetry-java/blob/main/sdk-extensions/autoconfigure/README.md#otlp-exporter-both-span-and-metric-exporters){:target="_blank"}
+- GitHub GuanceCloud version [opentelemetry-java-instrumentation](https://github.com/GuanceCloud/opentelemetry-java-instrumentation){:target="_blank"}
