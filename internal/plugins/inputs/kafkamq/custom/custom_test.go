@@ -19,6 +19,7 @@ func TestCustom_Process(t *testing.T) {
 		SpiltBody       bool
 		logTopicsMap    map[string]string
 		metricTopicsMap map[string]string
+		SpiltTopicsMap  map[string]bool
 		feeder          *io.MockedFeeder
 	}
 	type args struct {
@@ -65,6 +66,21 @@ func TestCustom_Process(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "spilt_json_body_single",
+			fields: fields{
+				SpiltBody:      true,
+				logTopicsMap:   map[string]string{"apm": "apm.p"},
+				feeder:         io.NewMockedFeeder(),
+				SpiltTopicsMap: map[string]bool{"apm": true},
+			},
+			args: args{
+				msg: &sarama.ConsumerMessage{
+					Topic: "apm",
+					Value: []byte(`[{"index":"1","message":"log msg"},{"index":"1","message":"log msg"}]`),
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -73,6 +89,7 @@ func TestCustom_Process(t *testing.T) {
 				SpiltBody:       tt.fields.SpiltBody,
 				LogTopicsMap:    tt.fields.logTopicsMap,
 				MetricTopicsMap: tt.fields.metricTopicsMap,
+				SpiltTopicsMap:  tt.fields.SpiltTopicsMap,
 				feeder:          tt.fields.feeder,
 			}
 			mq.Process(tt.args.msg)
