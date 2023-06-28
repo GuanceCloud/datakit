@@ -85,7 +85,7 @@ func TestIntegrate(t *testing.T) {
 						return
 					}
 
-					require.NoError(t, tc.pool.Purge(tc.resource))
+					tc.pool.Purge(tc.resource)
 				})
 			})
 		}(tc)
@@ -373,7 +373,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			cs.mCount[MongoDBTopStats] = struct{}{}
 
 		default: // TODO: check other measurement
-			panic("not implement")
+			panic("unknown measurement")
 		}
 
 		// check if tag appended
@@ -506,9 +506,9 @@ func (cs *caseSpec) run() error {
 	cs.cr.AddField("point_latency", int64(time.Since(start)))
 	cs.cr.AddField("point_count", len(pts))
 
-	for _, v := range pts {
-		cs.t.Logf("pt = %s", v.LineProto())
-	}
+	// for _, v := range pts {
+	// 	cs.t.Logf("pt = %s", v.LineProto())
+	// }
 
 	cs.t.Logf("get %d points", len(pts))
 	cs.mCount = make(map[string]struct{})

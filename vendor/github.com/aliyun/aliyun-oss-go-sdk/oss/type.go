@@ -31,7 +31,7 @@ type BucketProperties struct {
 	StorageClass string    `xml:"StorageClass"` // Bucket storage class
 }
 
-// ListCloudBoxesResult defines the result object from ListBuckets request
+// ListCloudBoxResult defines the result object from ListBuckets request
 type ListCloudBoxResult struct {
 	XMLName     xml.Name             `xml:"ListCloudBoxResult"`
 	Prefix      string               `xml:"Prefix"`              // The prefix in this query
@@ -482,13 +482,13 @@ type DeleteObjectsResult struct {
 	DeletedObjects []string // Deleted object key list
 }
 
-// DeleteObjectsResult_inner defines result of DeleteObjects request
+// DeleteObjectVersionsResult defines result of DeleteObjects request
 type DeleteObjectVersionsResult struct {
 	XMLName              xml.Name         `xml:"DeleteResult"`
 	DeletedObjectsDetail []DeletedKeyInfo `xml:"Deleted"` // Deleted object detail info
 }
 
-// DeleteKeyInfo defines object delete info
+// DeletedKeyInfo defines object delete info
 type DeletedKeyInfo struct {
 	XMLName               xml.Name `xml:"Deleted"`
 	Key                   string   `xml:"Key"`                   // Object key
@@ -931,13 +931,13 @@ type Tag struct {
 	Value   string   `xml:"Value"`
 }
 
-// Tagging tagset for the object
+// Tagging tag set for the object
 type Tagging struct {
 	XMLName xml.Name `xml:"Tagging"`
 	Tags    []Tag    `xml:"TagSet>Tag,omitempty"`
 }
 
-// for GetObjectTagging return value
+// GetObjectTaggingResult for GetObjectTagging return value
 type GetObjectTaggingResult Tagging
 
 // VersioningConfig for the bucket
@@ -948,13 +948,13 @@ type VersioningConfig struct {
 
 type GetBucketVersioningResult VersioningConfig
 
-// Server Encryption rule for the bucket
+// ServerEncryptionRule Server Encryption rule for the bucket
 type ServerEncryptionRule struct {
 	XMLName    xml.Name       `xml:"ServerSideEncryptionRule"`
 	SSEDefault SSEDefaultRule `xml:"ApplyServerSideEncryptionByDefault"`
 }
 
-// Server Encryption deafult rule for the bucket
+// SSEDefaultRule Server Encryption deafult rule for the bucket
 type SSEDefaultRule struct {
 	XMLName           xml.Name `xml:"ApplyServerSideEncryptionByDefault"`
 	SSEAlgorithm      string   `xml:"SSEAlgorithm,omitempty"`
@@ -1165,7 +1165,7 @@ func (selectReq *SelectRequest) jsonEncodeBase64() {
 	}
 }
 
-// CsvOptions is a element in the SelectObject api request's params
+// SelectOptions is a element in the SelectObject api request's params
 type SelectOptions struct {
 	XMLName                  xml.Name `xml:"Options"`
 	SkipPartialDataRecord    *bool    `xml:"SkipPartialDataRecord,omitempty"`
@@ -1349,10 +1349,110 @@ type ReplicationXML struct {
 	ID      string   `xml:"ID,omitempty"`
 }
 
+// PutBucketReplication define the bucket replication config
+type PutBucketReplication BucketReplicationXml
+
+// GetBucketReplicationResult define get bucket's replication config
+type GetBucketReplicationResult BucketReplicationXml
+
+// GetBucketReplicationLocationResult define get bucket's replication location
+type GetBucketReplicationLocationResult BucketReplicationLocationXml
+
+// GetBucketReplicationProgressResult define get bucket's replication progress
+type GetBucketReplicationProgressResult BucketReplicationProgressXml
+
+// PutBucketRTC define the bucket rtc config
+type PutBucketRTC BucketRTCXml
+
+// BucketReplicationXml define the xml of bucket replication config
+type BucketReplicationXml struct {
+	XMLName xml.Name          `xml:"ReplicationConfiguration"`
+	Rule    []ReplicationRule `xml:"Rule,omitempty"`
+}
+
+// BucketReplicationProgressXml define the xml of bucket replication config
+type BucketReplicationProgressXml struct {
+	XMLName xml.Name          `xml:"ReplicationProgress"`
+	Rule    []ReplicationRule `xml:"Rule,omitempty"`
+}
+
+// BucketRTCXml define the xml of bucket rtc config
+type BucketRTCXml struct {
+	XMLName xml.Name `xml:"ReplicationRule"`
+	RTC     *string  `xml:"RTC>Status,omitempty"`
+	ID      string   `xml:"ID,omitempty"`
+}
+
+// ReplicationRule define the xml of bucket replication config rule
+type ReplicationRule struct {
+	ID                          string                      `xml:"ID,omitempty"`
+	RTC                         *string                     `xml:"RTC>Status,omitempty"`
+	PrefixSet                   *ReplicationRulePrefix      `xml:"PrefixSet,omitempty"`
+	Action                      string                      `xml:"Action,omitempty"`
+	Destination                 *ReplicationRuleDestination `xml:"Destination,omitempty"`
+	HistoricalObjectReplication string                      `xml:"HistoricalObjectReplication,omitempty"`
+	Status                      string                      `xml:"Status,omitempty"`
+	SyncRole                    string                      `xml:"SyncRole,omitempty"`
+	SourceSelectionCriteria     *string                     `xml:"SourceSelectionCriteria>SseKmsEncryptedObjects>Status,omitempty"`
+	EncryptionConfiguration     *string                     `xml:"EncryptionConfiguration>ReplicaKmsKeyID,omitempty"`
+	Progress                    *ReplicationRuleProgress    `xml:"Progress,omitempty"`
+	HistoricalObject            string                      `xml:"HistoricalObject,omitempty"`
+}
+
+type ReplicationRulePrefix struct {
+	Prefix []*string `xml:"Prefix,omitempty"`
+}
+
+type ReplicationRuleDestination struct {
+	Bucket       string `xml:"Bucket,omitempty"`
+	Location     string `xml:"Location,omitempty"`
+	TransferType string `xml:"TransferType,omitempty"`
+}
+
+// BucketReplicationLocationXml define the xml of bucket replication location info
+type BucketReplicationLocationXml struct {
+	XMLName              xml.Name                          `xml:"ReplicationLocation"`
+	Location             []string                          `xml:"Location,omitempty"`
+	LocationTransferType []ReplicationLocationTransferType `xml:"LocationTransferTypeConstraint>LocationTransferType,omitempty"`
+	RTCLocation          []string                          `xml:"LocationRTCConstraint>Location,omitempty"`
+}
+
+type ReplicationLocation struct {
+	Location string `xml:"Location,omitempty"`
+}
+
+type ReplicationLocationTransferType struct {
+	Location      string `xml:"Location,omitempty"`
+	TransferTypes string `xml:"TransferTypes>Type,omitempty"`
+}
+
+type ReplicationRuleProgress struct {
+	HistoricalObject string `xml:"HistoricalObject,omitempty"`
+	NewObject        string `xml:"NewObject,omitempty"`
+}
+
 // CnameConfigurationXML define cname configuration
 type CnameConfigurationXML struct {
 	XMLName xml.Name `xml:"BucketCnameConfiguration"`
 	Domain  string   `xml:"Cname>Domain"`
+}
+
+type PutBucketCname PutBucketCnameXml
+
+// PutBucketCnameXml define cname configuration
+type PutBucketCnameXml struct {
+	XMLName                  xml.Name                  `xml:"BucketCnameConfiguration"`
+	Cname                    string                    `xml:"Cname>Domain"`
+	CertificateConfiguration *CertificateConfiguration `xml:"Cname>CertificateConfiguration"`
+}
+
+type CertificateConfiguration struct {
+	CertId            string `xml:"CertId,omitempty"`
+	Certificate       string `xml:"Certificate,omitempty"`
+	PrivateKey        string `xml:"PrivateKey,omitempty"`
+	PreviousCertId    string `xml:"PreviousCertId,omitempty"`
+	Force             bool   `xml:"Force,omitempty"`
+	DeleteCertificate bool   `xml:"DeleteCertificate,omitempty"`
 }
 
 // CnameTokenXML define cname token information
@@ -1382,7 +1482,7 @@ type GetMetaQueryStatusResultXml struct {
 	UpdateTime string   `xml:"UpdateTime"`
 }
 
-// DoMetaQuery defines meta query struct
+// MetaQuery defines meta query struct
 type MetaQuery struct {
 	XMLName      xml.Name                      `xml:"MetaQuery"`
 	NextToken    string                        `xml:"NextToken,omitempty"`
@@ -1459,14 +1559,77 @@ type MetaQueryGroup struct {
 	Count   int64    `xml:"Count"`
 }
 
-//GetBucketAccessMonitorResult define config for get bucket access monitor
+// GetBucketAccessMonitorResult define config for get bucket access monitor
 type GetBucketAccessMonitorResult BucketAccessMonitorXml
 
-//BucketAccessMonitor define the xml of bucket access monitor config
+// PutBucketAccessMonitor define the xml of bucket access monitor config
 type PutBucketAccessMonitor BucketAccessMonitorXml
 
-// GetBucketAccessMonitorXml define get bucket access monitor information
+// BucketAccessMonitorXml define get bucket access monitor information
 type BucketAccessMonitorXml struct {
 	XMLName xml.Name `xml:"AccessMonitorConfiguration"`
 	Status  string   `xml:"Status"` // access monitor status
+}
+
+// ListBucketCnameResult define the cname list of the bucket
+type ListBucketCnameResult BucketCnameXml
+
+// BucketCnameXml define get the bucket cname information
+type BucketCnameXml struct {
+	XMLName xml.Name `xml:"ListCnameResult"`
+	Bucket  string   `xml:"Bucket"`
+	Owner   string   `xml:"Owner"`
+	Cname   []Cname  `xml:"Cname"`
+}
+
+// Cname define the cname information
+type Cname struct {
+	Domain       string      `xml:"Domain"`
+	LastModified string      `xml:"LastModified"`
+	Status       string      `xml:"Status"`
+	Certificate  Certificate `xml:"Certificate"`
+}
+
+// Certificate define Details of domain name certificate
+type Certificate struct {
+	Type           string `xml:"Type"`
+	CertId         string `xml:"CertId"`
+	Status         string `xml:"Status"`
+	CreationDate   string `xml:"CreationDate"`
+	Fingerprint    string `xml:"Fingerprint"`
+	ValidStartDate string `xml:"ValidStartDate"`
+	ValidEndDate   string `xml:"ValidEndDate"`
+}
+
+//GetBucketResourceGroupResult define resource group for the bucket
+type GetBucketResourceGroupResult BucketResourceGroupXml
+
+//PutBucketResourceGroup define the xml of bucket's resource group config
+type PutBucketResourceGroup BucketResourceGroupXml
+
+// BucketResourceGroupXml define the information of the bucket's resource group
+type BucketResourceGroupXml struct {
+	XMLName         xml.Name `xml:"BucketResourceGroupConfiguration"`
+	ResourceGroupId string   `xml:"ResourceGroupId"` // resource groupId
+}
+
+// GetBucketStyleResult define style for the bucket
+type GetBucketStyleResult BucketStyleXml
+
+// GetBucketListStyleResult define the list style for the bucket
+type GetBucketListStyleResult BucketListStyleXml
+
+// BucketListStyleXml define the list style of the bucket
+type BucketListStyleXml struct {
+	XMLName xml.Name         `xml:"StyleList"`
+	Style   []BucketStyleXml `xml:"Style,omitempty"` // style
+}
+
+// BucketStyleXml define the information of the bucket's style
+type BucketStyleXml struct {
+	XMLName        xml.Name `xml:"Style"`
+	Name           string   `xml:"Name,omitempty"`           // style name
+	Content        string   `xml:"Content"`                  // style content
+	CreateTime     string   `xml:"CreateTime,omitempty"`     // style create time
+	LastModifyTime string   `xml:"LastModifyTime,omitempty"` // style last modify time
 }

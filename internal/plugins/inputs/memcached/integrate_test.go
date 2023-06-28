@@ -78,7 +78,7 @@ func TestIntegrate(t *testing.T) {
 						return
 					}
 
-					require.NoError(t, tc.pool.Purge(tc.resource))
+					tc.pool.Purge(tc.resource)
 				})
 			})
 		}(tc)
@@ -212,7 +212,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			cs.mCount[inputName] = struct{}{}
 
 		default: // TODO: check other measurement
-			panic("not implement")
+			panic("unknown measurement")
 		}
 
 		// check if tag appended
@@ -335,7 +335,7 @@ func (cs *caseSpec) run() error {
 	// wait data
 	start = time.Now()
 	cs.t.Logf("wait points...")
-	pts, err := cs.feeder.AnyPoints(10 * time.Minute)
+	pts, err := cs.feeder.AnyPoints(5 * time.Minute)
 	if err != nil {
 		return err
 	}

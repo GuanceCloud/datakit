@@ -178,7 +178,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			cs.mCount[hostObjMeasurementName] = struct{}{}
 
 		default: // TODO: check other measurement
-			panic("not implement")
+			panic("unknown measurement")
 		}
 
 		// check if tag appended

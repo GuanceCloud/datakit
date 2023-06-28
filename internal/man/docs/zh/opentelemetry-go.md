@@ -86,9 +86,9 @@ func initProvider() func() {
 var tracer = otel.Tracer("tracer_user_login")
 
 // web handler 处理请求数据
-func web(w http.ResponseWriter, r *http.Request) {
+func user(w http.ResponseWriter, r *http.Request) {
     // ... 接收客户端请求
-    log.Println("doing web")
+    log.Println("doing user")
     // labels represent additional key-value descriptors that can be bound to a
     // metric observer or recorder.
     commonLabels := []attribute.KeyValue{attribute.String("key1", "val1")}
@@ -142,8 +142,8 @@ func main() {
     shutdown := initProvider()
     defer shutdown()
     log.Println("connect ...")
-    http.HandleFunc("/user", web)
-    go handleErr(http.ListenAndServe(":4317", nil), "open server")
+    http.HandleFunc("/user", user)
+    go handleErr(http.ListenAndServe(":8080", nil), "open server")
     time.Sleep(time.Minute * 2)
     os.Exit(0)
 }

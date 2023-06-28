@@ -6,36 +6,38 @@
 package skywalking
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	"github.com/GuanceCloud/cliutils/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	commonv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/skywalking/compiled/v9.3.0/common/v3"
 	agentv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/skywalking/compiled/v9.3.0/language/agent/v3"
 )
 
-func processMetricsV3(jvm *agentv3.JVMMetricCollection, start time.Time) []inputs.Measurement {
-	var metrics []inputs.Measurement
+// func processMetricsV3(jvm *agentv3.JVMMetricCollection, start time.Time) []inputs.Measurement {.
+func processMetricsV3(jvm *agentv3.JVMMetricCollection, start time.Time, ipt *Input) []*point.Point {
+	var metrics []*point.Point
 	for _, jm := range jvm.Metrics {
 		if jm.Cpu != nil {
-			metrics = append(metrics, extractJVMCpuMetric(jvm.Service, start, jm.Cpu))
+			metrics = append(metrics, extractJVMCpuMetric(jvm.Service, start, jm.Cpu, ipt))
 		}
 		if len(jm.Memory) != 0 {
-			metrics = append(metrics, extractJVMMemoryMetrics(jvm.Service, start, jm.Memory)...)
+			metrics = append(metrics, extractJVMMemoryMetrics(jvm.Service, start, jm.Memory, ipt)...)
 		}
 		if len(jm.MemoryPool) != 0 {
-			metrics = append(metrics, extractJVMMemoryPoolMetrics(jvm.Service, start, jm.MemoryPool)...)
+			metrics = append(metrics, extractJVMMemoryPoolMetrics(jvm.Service, start, jm.MemoryPool, ipt)...)
 		}
 		if len(jm.Gc) != 0 {
-			metrics = append(metrics, extractJVMGCMetrics(jvm.Service, start, jm.Gc)...)
+			metrics = append(metrics, extractJVMGCMetrics(jvm.Service, start, jm.Gc, ipt)...)
 		}
 		if jm.Thread != nil {
-			metrics = append(metrics, extractJVMThread(jvm.Service, start, jm.Thread))
+			metrics = append(metrics, extractJVMThread(jvm.Service, start, jm.Thread, ipt))
 		}
 		if jm.Clazz != nil {
-			metrics = append(metrics, extractJVMClass(jvm.Service, start, jm.Clazz))
+			metrics = append(metrics, extractJVMClass(jvm.Service, start, jm.Clazz, ipt))
 		}
 	}
 
@@ -47,26 +49,94 @@ type jvmMeasurement struct {
 	tags   map[string]string
 	fields map[string]interface{}
 	ts     time.Time
+	ipt    *Input
 }
 
-func (m *jvmMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, &point.PointOption{Category: datakit.Metric, DisableGlobalTags: true})
+// Point implement MeasurementV2.
+func (m *jvmMeasurement) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *jvmMeasurement) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, &point.PointOption{Category: datakit.Metric, DisableGlobalTags: true})
+	return nil, fmt.Errorf("not implement")
 }
 
 func (*jvmMeasurement) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{}
+	return &inputs.MeasurementInfo{
+		Name: jvmMetricName,
+		Fields: map[string]interface{}{
+			"cpu_usage_percent":               &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: ""},
+			"pid":                             &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: ""},
+			"priority":                        &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: ""},
+			"heap_max":                        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"heap_used":                       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"heap_committed":                  &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"heap_init":                       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"stack_used":                      &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"stack_committed":                 &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"stack_init":                      &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"stack_max":                       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"pool_code_cache_usage_committed": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"pool_code_cache_usage_init":      &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"pool_code_cache_usage_max":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"pool_code_cache_usage_used":      &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"pool_metaspace_usage_init":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"pool_metaspace_usage_committed":  &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"pool_metaspace_usage_max":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"pool_metaspace_usage_used":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"pool_permgen_usage_committed":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"pool_permgen_usage_init":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"pool_permgen_usage_used":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"pool_permgen_usage_max":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"pool_newgen_usage_committed":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"pool_newgen_usage_used":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"pool_newgen_usage_max":           &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"pool_newgen_usage_init":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"pool_survivor_usage_max":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"pool_survivor_usage_committed":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"pool_survivor_usage_used":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"pool_survivor_usage_init":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"pool_oldgen_usage_max":           &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"pool_oldgen_usage_committed":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"pool_oldgen_usage_used":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"pool_oldgen_usage_init":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"gc_new_count":                    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"gc_old_count":                    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"thread_blocked_state_count":      &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"thread_runnable_state_count":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"thread_peak_count":               &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"thread_time_waiting_state_count": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"thread_waiting_state_count":      &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"thread_live_count":               &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"thread_daemon_count":             &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"class_loaded_count":              &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"class_total_unloaded_count":      &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"class_total_loaded_count":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+		},
+		Tags: map[string]interface{}{
+			"service": inputs.NewTagInfo("service name"),
+		},
+	}
 }
 
-func extractJVMCpuMetric(service string, start time.Time, cpu *commonv3.CPU) inputs.Measurement {
-	return &jvmMeasurement{
+func extractJVMCpuMetric(service string, start time.Time, cpu *commonv3.CPU, ipt *Input) *point.Point {
+	metric := &jvmMeasurement{
 		name:   jvmMetricName,
 		tags:   map[string]string{"service": service},
 		fields: map[string]interface{}{"cpu_usage_percent": cpu.UsagePercent},
 		ts:     start,
+		ipt:    ipt,
 	}
+	return metric.Point()
 }
 
-func extractJVMMemoryMetrics(service string, start time.Time, memory []*agentv3.Memory) []inputs.Measurement {
+func extractJVMMemoryMetrics(service string, start time.Time, memory []*agentv3.Memory, ipt *Input) []*point.Point {
 	isHeap := func(isHeap bool) string {
 		if isHeap {
 			return "heap"
@@ -75,12 +145,12 @@ func extractJVMMemoryMetrics(service string, start time.Time, memory []*agentv3.
 		}
 	}
 
-	var m []inputs.Measurement
+	var m []*point.Point
 	for _, v := range memory {
 		if v == nil {
 			continue
 		}
-		m = append(m, &jvmMeasurement{
+		metric := &jvmMeasurement{
 			name: jvmMetricName,
 			tags: map[string]string{"service": service},
 			fields: map[string]interface{}{
@@ -89,20 +159,22 @@ func extractJVMMemoryMetrics(service string, start time.Time, memory []*agentv3.
 				isHeap(v.IsHeap) + "_used":      v.Used,
 				isHeap(v.IsHeap) + "_committed": v.Committed,
 			},
-			ts: start,
-		})
+			ts:  start,
+			ipt: ipt,
+		}
+		m = append(m, metric.Point())
 	}
 
 	return m
 }
 
-func extractJVMMemoryPoolMetrics(service string, start time.Time, memoryPool []*agentv3.MemoryPool) []inputs.Measurement {
-	var m []inputs.Measurement
+func extractJVMMemoryPoolMetrics(service string, start time.Time, memoryPool []*agentv3.MemoryPool, ipt *Input) []*point.Point {
+	var m []*point.Point
 	for _, v := range memoryPool {
 		if v == nil {
 			continue
 		}
-		m = append(m, &jvmMeasurement{
+		metric := &jvmMeasurement{
 			name: jvmMetricName,
 			tags: map[string]string{"service": service},
 			fields: map[string]interface{}{
@@ -111,34 +183,38 @@ func extractJVMMemoryPoolMetrics(service string, start time.Time, memoryPool []*
 				"pool_" + strings.ToLower(agentv3.PoolType_name[int32(v.Type)]) + "_used":      v.Used,
 				"pool_" + strings.ToLower(agentv3.PoolType_name[int32(v.Type)]) + "_committed": v.Committed,
 			},
-			ts: start,
-		})
+			ts:  start,
+			ipt: ipt,
+		}
+		m = append(m, metric.Point())
 	}
 
 	return m
 }
 
-func extractJVMGCMetrics(service string, start time.Time, gc []*agentv3.GC) []inputs.Measurement {
-	var m []inputs.Measurement
+func extractJVMGCMetrics(service string, start time.Time, gc []*agentv3.GC, ipt *Input) []*point.Point {
+	var m []*point.Point
 	for _, v := range gc {
 		if v == nil {
 			continue
 		}
-		m = append(m, &jvmMeasurement{
+		metric := &jvmMeasurement{
 			name: jvmMetricName,
 			tags: map[string]string{"service": service},
 			fields: map[string]interface{}{
 				"gc_" + strings.ToLower(agentv3.GCPhase_name[int32(v.Phase)]) + "_count": v.Count,
 			},
-			ts: start,
-		})
+			ts:  start,
+			ipt: ipt,
+		}
+		m = append(m, metric.Point())
 	}
 
 	return m
 }
 
-func extractJVMThread(service string, start time.Time, thread *agentv3.Thread) inputs.Measurement {
-	return &jvmMeasurement{
+func extractJVMThread(service string, start time.Time, thread *agentv3.Thread, ipt *Input) *point.Point {
+	metric := &jvmMeasurement{
 		name: jvmMetricName,
 		tags: map[string]string{"service": service},
 		fields: map[string]interface{}{
@@ -150,12 +226,14 @@ func extractJVMThread(service string, start time.Time, thread *agentv3.Thread) i
 			"thread_waiting_state_count":      thread.WaitingStateThreadCount,
 			"thread_time_waiting_state_count": thread.TimedWaitingStateThreadCount,
 		},
-		ts: start,
+		ts:  start,
+		ipt: ipt,
 	}
+	return metric.Point()
 }
 
-func extractJVMClass(service string, start time.Time, class *agentv3.Class) inputs.Measurement {
-	return &jvmMeasurement{
+func extractJVMClass(service string, start time.Time, class *agentv3.Class, ipt *Input) *point.Point {
+	metric := &jvmMeasurement{
 		name: jvmMetricName,
 		tags: map[string]string{"service": service},
 		fields: map[string]interface{}{
@@ -163,8 +241,10 @@ func extractJVMClass(service string, start time.Time, class *agentv3.Class) inpu
 			"class_total_unloaded_count": class.TotalUnloadedClassCount,
 			"class_total_loaded_count":   class.TotalLoadedClassCount,
 		},
-		ts: start,
+		ts:  start,
+		ipt: ipt,
 	}
+	return metric.Point()
 }
 
 var _ inputs.Measurement = &MetricMeasurement{}
@@ -173,10 +253,23 @@ type MetricMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
+	ts     time.Time
+	ipt    *Input
 }
 
-func (m *MetricMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
+// Point implement MeasurementV2.
+func (m *MetricMeasurement) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (*MetricMeasurement) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
+	return nil, fmt.Errorf("not implement")
 }
 
 func (*MetricMeasurement) Info() *inputs.MeasurementInfo {

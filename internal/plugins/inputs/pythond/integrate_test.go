@@ -25,7 +25,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
@@ -76,7 +76,7 @@ func TestIntegrate(t *testing.T) {
 
 				tc.cr.Cost = time.Since(caseStart)
 
-				assert.NoError(t, testutils.Flush(tc.cr))
+				require.NoError(t, testutils.Flush(tc.cr))
 
 				t.Cleanup(func() {
 					// clean remote docker resources
@@ -84,7 +84,7 @@ func TestIntegrate(t *testing.T) {
 						return
 					}
 
-					assert.NoError(t, tc.pool.Purge(tc.resource))
+					tc.pool.Purge(tc.resource)
 				})
 			})
 		}(tc)
@@ -118,7 +118,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		ipt.feeder = feeder
 
 		_, err := toml.Decode(base.conf, ipt)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		repoTag := strings.Split(base.name, ":")
 

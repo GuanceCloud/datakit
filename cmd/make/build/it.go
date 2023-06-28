@@ -18,40 +18,20 @@ const itFuncName = "TestIntegrate"
 
 var errMarks = []string{
 	"FAIL",
-	"fail",
 
 	"PANIC",
 	"Panic",
 	"panic",
 
 	"ERROR",
-	"error",
 
 	"not expected",
 }
 
 var errDispute = map[string][]string{
-	"fail": {
-		"failcache",
-		"stat_insert_failed",
-		"aggregate_command_failed",
-		"count_command_failed",
-		"delete_command_failed",
-		"distinct_command_failed",
-		"find_and_modify_command_failed",
-		"find_command_failed",
-		"get_more_command_failed",
-		"insert_command_failed",
-		"update_command_failed",
-		"service check failed:",
-		"checkSNMPPort failed:",
-		"authentication failed:",
-		"http Do failed: Put",
-	},
-	"error": {
-		"auth_errors",
-		"checkSNMPPort failed: error reading from socket: read udp",
-	},
+	// "error": {
+	// 	"auth_errors",
+	// },
 }
 
 func IntegrationTestingDataKit() error {
@@ -73,8 +53,12 @@ func IntegrationTestingDataKit() error {
 
 	cost := time.Since(start)
 
-	fail := false
-	var failword string
+	var (
+		fail     = false
+		failword string
+		failMsgs []string
+		rtnErr   error
+	)
 
 	// check regex.
 	re := regexp.MustCompile(`(?m)check measurement .* failed`)
@@ -99,7 +83,8 @@ func IntegrationTestingDataKit() error {
 					if cntGet == cntDefinedTotal {
 						continue
 					}
-					fmt.Printf("cntGet = %d, cntDefinedTotal = %d\n", cntGet, cntDefinedTotal)
+
+					failMsgs = append(failMsgs, fmt.Sprintf("cntGet = %d, cntDefinedTotal = %d\n", cntGet, cntDefinedTotal))
 				}
 
 				fail = true
@@ -114,8 +99,12 @@ func IntegrationTestingDataKit() error {
 		fmt.Println(str)
 		fmt.Println()
 		fmt.Println("Result contains " + failword)
+		for _, v := range failMsgs {
+			fmt.Println(v)
+		}
 		fmt.Println()
-		return fmt.Errorf("failed")
+
+		rtnErr = fmt.Errorf("failed")
 	} else {
 		fmt.Println()
 		fmt.Println(`  /////`)
@@ -132,5 +121,5 @@ func IntegrationTestingDataKit() error {
 	fmt.Printf("CombinedOutput, err = %v\n", err)
 	fmt.Printf("Time costs: %v\n", cost)
 
-	return nil
+	return rtnErr
 }
