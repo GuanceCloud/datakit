@@ -991,26 +991,28 @@ WITH CTE_SID ( BSID, SID, sql_handle )
 `
 
 	sqlServerLogicIO = `
-	select 
-	  'sqlserver_logical_io' as [measurement],
-		creation_time,
-		last_execution_time,
-		total_logical_reads,
-		total_logical_writes,
-		(total_logical_reads + total_logical_writes) as total_logical_io,
-		execution_count,
-		(total_logical_reads + total_logical_writes)/Execution_count AS 'avg_logical_io',
-		substring(sql_text.text, (statement_start_offset/2),
-		case
-		when (statement_end_offset -statement_start_offset)/2 <=0 then 64000
-		else (statement_end_offset -statement_start_offset)/2 end) message 
-	from sys.dm_exec_query_stats
-		cross apply sys.dm_exec_sql_text(sql_handle) as sql_text
-		cross apply sys.dm_exec_query_plan(plan_handle) as plan_text
-	where (total_logical_reads + total_logical_writes)/Execution_count > 50000
-		and
-		creation_time > dateadd(second, -__COLLECT_INTERVAL_SECONDS__, GETDATE())
-	order by (total_logical_reads + total_logical_writes) Desc
+SELECT
+	'sqlserver_logical_io' AS [measurement],
+	creation_time,
+	last_execution_time,
+	total_logical_reads,
+	total_logical_writes,
+	(total_logical_reads + total_logical_writes) AS total_logical_io,
+	execution_count,
+	(total_logical_reads + total_logical_writes)/ Execution_count AS 'avg_logical_io',
+		CAST(SUBSTRING(sql_text.text, (statement_start_offset / 2) + 1,
+        CASE
+            WHEN (statement_end_offset - statement_start_offset) / 2 <= 0 THEN 640000
+            ELSE (statement_end_offset - statement_start_offset) / 2
+        END) AS VARCHAR(MAX)) AS message
+FROM sys.dm_exec_query_stats
+CROSS APPLY sys.dm_exec_sql_text(sql_handle) AS sql_text
+WHERE
+	(total_logical_reads + total_logical_writes)/ Execution_count > 50000
+	AND
+   creation_time > dateadd(second, -__COLLECT_INTERVAL_SECONDS__, GETDATE())
+ORDER BY
+	(total_logical_reads + total_logical_writes) DESC
 `
 
 	sqlServerWorkerTime = `
