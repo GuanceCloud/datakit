@@ -98,7 +98,7 @@ func TestProxy(t *testing.T) {
 
 		{
 			cli: Cli(&Options{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // ignore SSL error
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: false}, // ignore SSL error
 				ProxyURL: func() *url.URL {
 					u, err := url.Parse("http://" + proxyAddr)
 					if err != nil { //nolint:golint
@@ -152,7 +152,7 @@ func TestInsecureSkipVerify(t *testing.T) {
 
 		{
 			cli: Cli(&Options{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // ignore SSL error
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: false}, // ignore SSL error
 			}),
 			fail: true,
 		},
