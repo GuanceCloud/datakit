@@ -31,53 +31,6 @@ type checkTokenResult struct {
 	Message   string `json:"message"`
 }
 
-func (dw *Dataway) CheckToken(token, scheme, host string) (bool, error) {
-	if len(dw.eps) == 0 {
-		return false, fmt.Errorf("no dataway available")
-	}
-
-	dc := dw.eps[0]
-
-	if len(scheme) == 0 {
-		scheme = dc.scheme
-	}
-
-	if len(host) == 0 {
-		host = dc.host
-	}
-	reqURL := fmt.Sprintf("%s://%s%s/%s", scheme, host, datakit.TokenCheck, token)
-
-	req, err := http.NewRequest("GET", reqURL, nil)
-	if err != nil {
-		return false, err
-	}
-
-	resp, err := dc.sendReq(req)
-	if err != nil {
-		return false, err
-	}
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Error(err)
-		return false, err
-	}
-
-	defer resp.Body.Close() //nolint:errcheck
-
-	result := checkTokenResult{}
-
-	if err := json.Unmarshal(body, &result); err != nil {
-		return false, fmt.Errorf("invalid JSON body content")
-	}
-
-	if result.Code == 200 {
-		return true, nil
-	} else {
-		return false, nil
-	}
-}
-
 func (dw *Dataway) WorkspaceQuery(body []byte) (*http.Response, error) {
 	if len(dw.eps) == 0 {
 		return nil, fmt.Errorf("no dataway available")

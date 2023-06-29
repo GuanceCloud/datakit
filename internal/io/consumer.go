@@ -21,9 +21,8 @@ type consumer struct {
 
 	flushTiker *time.Ticker
 
-	pts               []*dkpt.Point
-	lastFlush         time.Time
-	dynamicDatawayPts map[string][]*dkpt.Point // 拨测数据
+	pts       []*dkpt.Point
+	lastFlush time.Time
 }
 
 func (x *dkIO) runConsumer(cat point.Category) {
@@ -38,10 +37,9 @@ func (x *dkIO) runConsumer(cat point.Category) {
 	}
 
 	c := &consumer{
-		flushTiker:        time.NewTicker(x.flushInterval),
-		fc:                fc,
-		category:          cat,
-		dynamicDatawayPts: map[string][]*dkpt.Point{},
+		flushTiker: time.NewTicker(x.flushInterval),
+		fc:         fc,
+		category:   cat,
 	}
 
 	defer c.flushTiker.Stop()

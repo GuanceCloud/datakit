@@ -12,10 +12,10 @@ import (
 	"time"
 
 	pt "github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
 
-func (d *dialer) pointsFeed(urlStr string) error {
+func (d *dialer) pointsFeed(urlStr string) {
+	d.seqNumber++
 	startTime := time.Now()
 	tags, fields := d.task.GetResults()
 
@@ -36,17 +36,16 @@ func (d *dialer) pointsFeed(urlStr string) error {
 			l.Debugf("ignore dialer tag %s: %s", k, v)
 		}
 	}
+
+	fields["seq_number"] = d.seqNumber
+	opt := append(pt.DefaultLoggingOptions(), pt.WithTime(startTime))
 	data := pt.NewPointV2([]byte(d.task.MetricName()),
-		append(pt.NewTags(tags), pt.NewKVs(fields)...), pt.DefaultLoggingOptions()...)
+		append(pt.NewTags(tags), pt.NewKVs(fields)...), opt...)
 
-	pts := []*pt.Point{}
-	pts = append(pts, data)
-
-	err := d.feeder.Feed(inputName, pt.Metric, pts, &io.Option{
-		HTTPHost: urlStr,
+	dialWorker.addPoints(&jobData{
+		url:        urlStr,
+		pt:         data,
+		regionName: d.regionName,
+		class:      d.class,
 	})
-
-	l.Debugf(`url:%s, tags: %+#v, fs: %+#v`, urlStr, tags, fields)
-
-	return err
 }
