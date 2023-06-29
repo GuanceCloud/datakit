@@ -359,6 +359,8 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 )
 
+require github.com/jmoiron/sqlx v1.3.4
+
 require github.com/GuanceCloud/tracing-protos v0.0.0-20230619071516-54c8cff1b6b3
 
 require (

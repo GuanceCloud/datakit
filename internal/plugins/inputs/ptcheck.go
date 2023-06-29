@@ -239,7 +239,7 @@ func (c *ptChecker) checkOnDoc(pt *point.Point) {
 		}
 		diff := Difference(left, right)
 
-		fmt.Printf("diff = %v\n", diff)
+		l.Warnf("diff = %v\n", diff)
 
 		c.addMsg(fmt.Sprintf("expect %d fields got %d(%d keys optional)",
 			len(c.mInfo.Fields), len(c.gotFields), len(c.optionalFields)))
