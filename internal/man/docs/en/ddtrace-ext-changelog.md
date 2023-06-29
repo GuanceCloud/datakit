@@ -8,7 +8,7 @@
 
 Native DDTrace does not support some well-known mainstream frameworks perfectly. On this basis, we have made some improvements to support more mainstream frameworks and key data tracking.
 
-Currently DDTrace has added the following extensions to the technology stack：
+Currently, DDTrace has added the following extensions to the technology stack：
 
 <div class="grid cards" markdown>
 
@@ -24,6 +24,14 @@ Currently DDTrace has added the following extensions to the technology stack：
 </div>
 
 ## changelog {#changelog}
+
+## v1.15.4-guance (2023/6/12) {#cl-1.15.4-guance}
+
+### new {#cl-1.15.4-guance-new}
+
+- Merge Datadog v1.15.3 tag
+- [Support PowerJob](https://github.com/GuanceCloud/dd-trace-java/issues/42){:target="_blank"}
+
 
 ## v1.14.0-guance (2023/5/18) {#cl-1.14.0-guance}
 
@@ -46,7 +54,7 @@ Currently DDTrace has added the following extensions to the technology stack：
 ### fix {#cl-1.12.0-new}
 
 - Merge ddtrace tag:1.12.0.
-- Support [当当网 dubbox](https://github.com/GuanceCloud/dd-trace-java/issues/32){:target="_blank"}.
+- Support [DangDang dubbox](https://github.com/GuanceCloud/dd-trace-java/issues/32){:target="_blank"}.
 - Solve the confusion between jax-rs and dubbo traces [problem Issue](https://github.com/GuanceCloud/dd-trace-java/issues/34){:target="_blank"}.
 - Solve the problem that the order of dubbo trace topology map is wrong [problem](https://github.com/GuanceCloud/dd-trace-java/issues/35){:target="_blank"}.
 - Solve the conflict between RocketMQ and customer-defined trace data [problem](https://github.com/GuanceCloud/dd-trace-java/issues/29){:target="_blank"}.
