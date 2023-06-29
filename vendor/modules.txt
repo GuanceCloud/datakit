@@ -96,6 +96,25 @@ github.com/GuanceCloud/timeout
 ## explicit; go 1.16
 github.com/GuanceCloud/toml
 github.com/GuanceCloud/toml/internal
+# github.com/GuanceCloud/tracing-protos v0.0.0-20230619071516-54c8cff1b6b3
+## explicit
+github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/collector/metrics/v1
+github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/collector/trace/v1
+github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/common/v1
+github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/metrics/v1
+github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/resource/v1
+github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/trace/v1
+github.com/GuanceCloud/tracing-protos/pinpoint-gen-go/v1
+github.com/GuanceCloud/tracing-protos/skywalking-gen-go/agent/configuration/v3
+github.com/GuanceCloud/tracing-protos/skywalking-gen-go/common/v3
+github.com/GuanceCloud/tracing-protos/skywalking-gen-go/event/v3
+github.com/GuanceCloud/tracing-protos/skywalking-gen-go/language/agent/v3
+github.com/GuanceCloud/tracing-protos/skywalking-gen-go/language/agent/v3/compat
+github.com/GuanceCloud/tracing-protos/skywalking-gen-go/language/profile/v3
+github.com/GuanceCloud/tracing-protos/skywalking-gen-go/language/profile/v3/compat
+github.com/GuanceCloud/tracing-protos/skywalking-gen-go/logging/v3
+github.com/GuanceCloud/tracing-protos/skywalking-gen-go/management/v3
+github.com/GuanceCloud/tracing-protos/skywalking-gen-go/management/v3/compat
 # github.com/Microsoft/go-winio v0.6.0
 ## explicit; go 1.17
 github.com/Microsoft/go-winio
@@ -1174,9 +1193,6 @@ github.com/mdlayher/netlink/nlenc
 # github.com/mdlayher/socket v0.0.0-20210307095302-262dc9984e00
 ## explicit; go 1.16
 github.com/mdlayher/socket
-# github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db
-## explicit
-github.com/mitchellh/colorstring
 # github.com/mitchellh/copystructure v1.2.0
 ## explicit; go 1.15
 github.com/mitchellh/copystructure
@@ -1463,9 +1479,6 @@ github.com/ryanuber/go-glob
 # github.com/samuel/go-zookeeper v0.0.0-20201211165307-7117e9ea2414
 ## explicit
 github.com/samuel/go-zookeeper/zk
-# github.com/schollz/progressbar/v3 v3.9.0
-## explicit; go 1.13
-github.com/schollz/progressbar/v3
 # github.com/sercand/kuberesolver v2.4.0+incompatible
 ## explicit
 github.com/sercand/kuberesolver
@@ -1738,7 +1751,6 @@ golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/crypto/ssh/knownhosts
-golang.org/x/crypto/ssh/terminal
 # golang.org/x/exp v0.0.0-20221026004748-78e5e7837ae6
 ## explicit; go 1.18
 golang.org/x/exp/constraints

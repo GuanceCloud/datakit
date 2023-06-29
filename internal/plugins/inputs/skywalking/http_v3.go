@@ -12,11 +12,11 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+	agentv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/language/agent/v3"
+	loggingv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/logging/v3"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
-	agentv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/skywalking/compiled/v9.3.0/language/agent/v3"
-	loggingv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/skywalking/compiled/v9.3.0/logging/v3"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"google.golang.org/protobuf/proto"
 )

@@ -13,22 +13,22 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+	agentv3old "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/language/agent/v3/compat"
+	profilev3old "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/language/profile/v3/compat"
+	mgmtv3old "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/management/v3/compat"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
-	commonv3old "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/skywalking/compiled/v8.3.0/common/v3"
-	agentv3old "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/skywalking/compiled/v8.3.0/language/agent/v3"
-	profilev3old "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/skywalking/compiled/v8.3.0/language/profile/v3"
-	mgmtv3old "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/skywalking/compiled/v8.3.0/management/v3"
-	configv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/skywalking/compiled/v9.3.0/agent/configuration/v3"
-	commonv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/skywalking/compiled/v9.3.0/common/v3"
-	eventv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/skywalking/compiled/v9.3.0/event/v3"
-	agentv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/skywalking/compiled/v9.3.0/language/agent/v3"
-	profilev3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/skywalking/compiled/v9.3.0/language/profile/v3"
-	loggingv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/skywalking/compiled/v9.3.0/logging/v3"
-	mgmtv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/skywalking/compiled/v9.3.0/management/v3"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+
+	configv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/agent/configuration/v3"
+	commonv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/common/v3"
+	eventv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/event/v3"
+	agentv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/language/agent/v3"
+	profilev3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/language/profile/v3"
+	loggingv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/logging/v3"
+	mgmtv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/management/v3"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 )
@@ -48,7 +48,7 @@ func runGRPCV3(ipt *Input) {
 	agentv3old.RegisterJVMMetricReportServiceServer(skySvr, &JVMMetricReportServerV3Old{ipt: ipt})
 	profilev3old.RegisterProfileTaskServer(skySvr, &ProfileTaskServerV3Old{})
 	mgmtv3old.RegisterManagementServiceServer(skySvr, &ManagementServerV3Old{})
-	// register API version 9.3.0
+	// register API version 9.4.0
 	agentv3.RegisterTraceSegmentReportServiceServer(skySvr, &TraceReportServerV3{})
 	eventv3.RegisterEventServiceServer(skySvr, &EventServerV3{})
 	agentv3.RegisterJVMMetricReportServiceServer(skySvr, &JVMMetricReportServerV3{ipt: ipt})
@@ -73,7 +73,7 @@ func (*TraceReportServerV3Old) Collect(tsr agentv3old.TraceSegmentReportService_
 		segobj, err := tsr.Recv()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
-				return tsr.SendAndClose(&commonv3old.Commands{})
+				return tsr.SendAndClose(&commonv3.Commands{})
 			}
 			log.Error(err.Error())
 
@@ -105,7 +105,7 @@ func (*TraceReportServerV3Old) Collect(tsr agentv3old.TraceSegmentReportService_
 	}
 }
 
-func (*TraceReportServerV3Old) CollectInSync(ctx context.Context, col *agentv3old.SegmentCollection) (*commonv3old.Commands, error) {
+func (*TraceReportServerV3Old) CollectInSync(ctx context.Context, col *agentv3.SegmentCollection) (*commonv3.Commands, error) {
 	log.Debugf("### TraceReportServerV3Old:CollectInSync SegmentCollection: %#v", col)
 
 	for _, segobj := range col.Segments {
@@ -132,7 +132,7 @@ func (*TraceReportServerV3Old) CollectInSync(ctx context.Context, col *agentv3ol
 		}
 	}
 
-	return &commonv3old.Commands{}, nil
+	return &commonv3.Commands{}, nil
 }
 
 type JVMMetricReportServerV3Old struct {
@@ -140,7 +140,7 @@ type JVMMetricReportServerV3Old struct {
 	ipt *Input
 }
 
-func (r *JVMMetricReportServerV3Old) Collect(ctx context.Context, jvm *agentv3old.JVMMetricCollection) (*commonv3old.Commands, error) {
+func (r *JVMMetricReportServerV3Old) Collect(ctx context.Context, jvm *agentv3.JVMMetricCollection) (*commonv3.Commands, error) {
 	log.Debugf("### JVMMetricReportServerV3Old:Collect %#v", jvm)
 
 	start := time.Now()
@@ -148,13 +148,13 @@ func (r *JVMMetricReportServerV3Old) Collect(ctx context.Context, jvm *agentv3ol
 	if err != nil {
 		log.Error(err.Error())
 
-		return &commonv3old.Commands{}, err
+		return &commonv3.Commands{}, err
 	}
 	newjvm := &agentv3.JVMMetricCollection{}
 	if err = proto.Unmarshal(bts, newjvm); err != nil {
 		log.Error(err.Error())
 
-		return &commonv3old.Commands{}, err
+		return &commonv3.Commands{}, err
 	}
 
 	metrics := processMetricsV3(newjvm, start, r.ipt)
@@ -163,7 +163,7 @@ func (r *JVMMetricReportServerV3Old) Collect(ctx context.Context, jvm *agentv3ol
 			r.ipt.feeder.FeedLastError(jvmMetricName, err.Error())
 		}
 	}
-	return &commonv3old.Commands{}, nil
+	return &commonv3.Commands{}, nil
 }
 
 type ProfileTaskServerV3Old struct {
@@ -171,11 +171,11 @@ type ProfileTaskServerV3Old struct {
 }
 
 func (*ProfileTaskServerV3Old) GetProfileTaskCommands(ctx context.Context,
-	task *profilev3old.ProfileTaskCommandQuery,
-) (*commonv3old.Commands, error) {
+	task *profilev3.ProfileTaskCommandQuery,
+) (*commonv3.Commands, error) {
 	log.Debugf("### ProfileTaskServerV3Old:GetProfileTaskCommands ProfileTaskCommandQuery: %#v", task)
 
-	return &commonv3old.Commands{}, nil
+	return &commonv3.Commands{}, nil
 }
 
 func (*ProfileTaskServerV3Old) CollectSnapshot(psrv profilev3old.ProfileTask_CollectSnapshotServer) error {
@@ -183,7 +183,7 @@ func (*ProfileTaskServerV3Old) CollectSnapshot(psrv profilev3old.ProfileTask_Col
 		profile, err := psrv.Recv()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
-				return psrv.SendAndClose(&commonv3old.Commands{})
+				return psrv.SendAndClose(&commonv3.Commands{})
 			}
 			log.Debug(err.Error())
 
@@ -204,26 +204,26 @@ func (*ProfileTaskServerV3Old) CollectSnapshot(psrv profilev3old.ProfileTask_Col
 	}
 }
 
-func (*ProfileTaskServerV3Old) ReportTaskFinish(ctx context.Context, reporter *profilev3old.ProfileTaskFinishReport) (*commonv3old.Commands, error) {
+func (*ProfileTaskServerV3Old) ReportTaskFinish(ctx context.Context, reporter *profilev3.ProfileTaskFinishReport) (*commonv3.Commands, error) {
 	log.Debugf("### ProfileTaskServerV3Old:ReportTaskFinish ProfileTaskFinishReport: %#v", reporter)
 
-	return &commonv3old.Commands{}, nil
+	return &commonv3.Commands{}, nil
 }
 
 type ManagementServerV3Old struct {
 	mgmtv3old.UnimplementedManagementServiceServer
 }
 
-func (*ManagementServerV3Old) ReportInstanceProperties(ctx context.Context, mgmt *mgmtv3old.InstanceProperties) (*commonv3old.Commands, error) {
+func (*ManagementServerV3Old) ReportInstanceProperties(ctx context.Context, mgmt *mgmtv3.InstanceProperties) (*commonv3.Commands, error) {
 	log.Debugf("### ManagementServerV3Old:ReportInstanceProperties InstanceProperties: %#v", mgmt)
 
-	return &commonv3old.Commands{}, nil
+	return &commonv3.Commands{}, nil
 }
 
-func (*ManagementServerV3Old) KeepAlive(ctx context.Context, ping *mgmtv3old.InstancePingPkg) (*commonv3old.Commands, error) {
+func (*ManagementServerV3Old) KeepAlive(ctx context.Context, ping *mgmtv3.InstancePingPkg) (*commonv3.Commands, error) {
 	log.Debugf("### ManagementServerV3Old:KeepAlive InstancePingPkg: %#v", ping)
 
-	return &commonv3old.Commands{}, nil
+	return &commonv3.Commands{}, nil
 }
 
 type TraceReportServerV3 struct {
