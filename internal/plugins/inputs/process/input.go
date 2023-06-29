@@ -417,7 +417,12 @@ func (p *Input) WriteObject(processList []*pr.Process, procRec *procRecorder, tn
 		fields["state_zombie"] = stateZombie
 
 		fields["pid"] = ps.Pid
-		fields["start_time"] = getCreateTime(ps)
+
+		ct := getCreateTime(ps)
+		fields["started_duration"] = time.Since(time.Unix(0,
+			ct*int64(time.Millisecond))) / time.Second
+		fields["start_time"] = ct
+
 		if runtime.GOOS == "linux" {
 			dir, err := ps.Cwd()
 			if err != nil {
