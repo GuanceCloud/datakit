@@ -90,18 +90,15 @@ const (
     # capacity = 5120
 
   ## OTEL agent HTTP config for trace and metrics
-  ## If enable set to be true, trace and metrics will be received on path respectively, by default is:
+  ## If enable set to be true, trace and metrics will be received on path respectively:
   ## trace : /otel/v1/trace
   ## metric: /otel/v1/metric
-  ## and the client side should be configured properly with Datakit listening port(default: 9529),
-  ## or custom HTTP request path.
+  ## and the client side should be configured properly with Datakit listening port(default: 9529)
   ## for example http://127.0.0.1:9529/otel/v1/trace
   ## The acceptable http_status_ok values will be 200 or 202.
   [inputs.opentelemetry.http]
    enable = true
    http_status_ok = 200
-   trace_api = "/otel/v1/trace"
-   metric_api = "/otel/v1/metric"
 
   ## OTEL agent GRPC config for trace and metrics.
   ## GRPC services for trace and metrics can be enabled respectively as setting either to be true.
@@ -111,10 +108,10 @@ const (
    metric_enable = true
    addr = "127.0.0.1:4317"
 
-  ## If 'expectedHeaders' is well configed, then the obligation of sending certain wanted HTTP headers is on the client side,
+  ## If 'expected_headers' is well configed, then the obligation of sending certain wanted HTTP headers is on the client side,
   ## otherwise HTTP status code 400(bad request) will be provoked.
-  ## Note: expectedHeaders will be effected on both trace and metrics if setted up.
-  # [inputs.opentelemetry.expectedHeaders]
+  ## Note: expected_headers will be effected on both trace and metrics if setted up.
+  # [inputs.opentelemetry.expected_headers]
   # ex_version = "1.2.3"
   # ex_name = "env_resource_name"
   # ...
@@ -124,8 +121,6 @@ const (
 var (
 	log               = logger.DefaultSLogger(inputName)
 	statusOK          = 200
-	defaultTraceAPI   = "/otel/v1/trace"
-	defaultMetricAPI  = "/otel/v1/metric"
 	afterGatherRun    itrace.AfterGatherHandler
 	ignoreKeyRegExps  []*regexp.Regexp
 	getAttribute      getAttributeFunc
@@ -137,10 +132,8 @@ var (
 )
 
 type httpConfig struct {
-	Enabled      bool   `toml:"enable"`
-	StatusCodeOK int    `toml:"http_status_ok"`
-	TraceAPI     string `toml:"trace_api"`
-	MetricAPI    string `toml:"metric_api"`
+	Enabled      bool `toml:"enable"`
+	StatusCodeOK int  `toml:"http_status_ok"`
 }
 
 type grpcConfig struct {
@@ -153,7 +146,7 @@ type Input struct {
 	Pipelines           map[string]string            `toml:"pipelines"` // deprecated
 	HTTPConfig          *httpConfig                  `toml:"http"`
 	GRPCConfig          *grpcConfig                  `toml:"grpc"`
-	ExpectedHeaders     map[string]string            `toml:"expectedHeaders"`
+	ExpectedHeaders     map[string]string            `toml:"expected_headers"`
 	IgnoreAttributeKeys []string                     `toml:"ignore_attribute_keys"`
 	KeepRareResource    bool                         `toml:"keep_rare_resource"`
 	CloseResource       map[string][]string          `toml:"close_resource"`
@@ -281,24 +274,16 @@ func (ipt *Input) RegHTTPHandler() {
 
 		return
 	}
-	// 路由可能为空，为版本兼容设置默认值。
-	if ipt.HTTPConfig.TraceAPI == "" {
-		ipt.HTTPConfig.TraceAPI = defaultTraceAPI
-	}
 
-	if ipt.HTTPConfig.MetricAPI == "" {
-		ipt.HTTPConfig.MetricAPI = defaultMetricAPI
-	}
-
-	log.Debugf("### register handler for %s of agent %s", ipt.HTTPConfig.TraceAPI, inputName)
+	log.Debugf("### register handler for /otel/v1/trace of agent %s", inputName)
 	statusOK = ipt.HTTPConfig.StatusCodeOK
-	httpapi.RegHTTPHandler("POST", ipt.HTTPConfig.TraceAPI,
+	httpapi.RegHTTPHandler("POST", "/otel/v1/trace",
 		httpapi.CheckExpectedHeaders(
 			workerpool.HTTPWrapper(httpStatusRespFunc, wkpool,
 				httpapi.HTTPStorageWrapper(storage.HTTP_KEY, httpStatusRespFunc, localCache, handleOTELTrace)), log, expectedHeaders))
 
-	log.Debugf("### register handler for %s of agent %s", ipt.HTTPConfig.MetricAPI, inputName)
-	httpapi.RegHTTPHandler("POST", ipt.HTTPConfig.MetricAPI, httpapi.CheckExpectedHeaders(handleOTElMetrics, log, expectedHeaders))
+	log.Debugf("### register handler for /otel/v1/metric of agent %s", inputName)
+	httpapi.RegHTTPHandler("POST", "/otel/v1/metric", httpapi.CheckExpectedHeaders(handleOTElMetrics, log, expectedHeaders))
 }
 
 func (ipt *Input) Run() {

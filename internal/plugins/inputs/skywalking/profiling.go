@@ -6,7 +6,7 @@
 package skywalking
 
 import (
-	profileV3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/skywalking/compiled/v9.3.0/language/profile/v3"
+	profileV3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/language/profile/v3"
 )
 
 // TODO:.

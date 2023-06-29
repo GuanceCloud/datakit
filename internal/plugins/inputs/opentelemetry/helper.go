@@ -8,13 +8,13 @@ package opentelemetry
 import (
 	"regexp"
 
+	common "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/common/v1"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
-	commonpb "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/opentelemetry/compiled/v1/common"
 )
 
-type getAttributeFunc func(key string, attributes []*commonpb.KeyValue) (*commonpb.KeyValue, bool)
+type getAttributeFunc func(key string, attributes []*common.KeyValue) (*common.KeyValue, bool)
 
-func getAttr(key string, attributes []*commonpb.KeyValue) (*commonpb.KeyValue, bool) {
+func getAttr(key string, attributes []*common.KeyValue) (*common.KeyValue, bool) {
 	for _, attr := range attributes {
 		if attr.Key == key {
 			return attr, true
@@ -28,7 +28,7 @@ func getAttrWrapper(ignore []*regexp.Regexp) getAttributeFunc {
 	if len(ignore) == 0 {
 		return getAttr
 	} else {
-		return func(key string, attributes []*commonpb.KeyValue) (*commonpb.KeyValue, bool) {
+		return func(key string, attributes []*common.KeyValue) (*common.KeyValue, bool) {
 			for _, rexp := range ignore {
 				if rexp.MatchString(key) {
 					return nil, false
@@ -40,9 +40,9 @@ func getAttrWrapper(ignore []*regexp.Regexp) getAttributeFunc {
 	}
 }
 
-type extractAttributesFunc func(src []*commonpb.KeyValue) (dest []*commonpb.KeyValue)
+type extractAttributesFunc func(src []*common.KeyValue) (dest []*common.KeyValue)
 
-func extractAttrs(src []*commonpb.KeyValue) (dest []*commonpb.KeyValue) {
+func extractAttrs(src []*common.KeyValue) (dest []*common.KeyValue) {
 	dest = append(dest, src...)
 
 	return
@@ -52,7 +52,7 @@ func extractAttrsWrapper(ignore []*regexp.Regexp) extractAttributesFunc {
 	if len(ignore) == 0 {
 		return extractAttrs
 	} else {
-		return func(src []*commonpb.KeyValue) (dest []*commonpb.KeyValue) {
+		return func(src []*common.KeyValue) (dest []*common.KeyValue) {
 		NEXT_ATTR:
 			for _, v := range src {
 				for _, rexp := range ignore {
@@ -68,7 +68,7 @@ func extractAttrsWrapper(ignore []*regexp.Regexp) extractAttributesFunc {
 	}
 }
 
-func newAttributes(attrs []*commonpb.KeyValue) *attributes {
+func newAttributes(attrs []*common.KeyValue) *attributes {
 	a := &attributes{}
 	a.attrs = append(a.attrs, attrs...)
 
@@ -76,11 +76,11 @@ func newAttributes(attrs []*commonpb.KeyValue) *attributes {
 }
 
 type attributes struct {
-	attrs []*commonpb.KeyValue
+	attrs []*common.KeyValue
 }
 
 // nolint: deadcode,unused
-func (a *attributes) loop(proc func(i int, k string, v *commonpb.KeyValue) bool) {
+func (a *attributes) loop(proc func(i int, k string, v *common.KeyValue) bool) {
 	for i, v := range a.attrs {
 		if !proc(i, v.Key, v) {
 			break
@@ -88,7 +88,7 @@ func (a *attributes) loop(proc func(i int, k string, v *commonpb.KeyValue) bool)
 	}
 }
 
-func (a *attributes) merge(attrs ...*commonpb.KeyValue) *attributes {
+func (a *attributes) merge(attrs ...*common.KeyValue) *attributes {
 	for _, v := range attrs {
 		if _, i := a.find(v.Key); i != -1 {
 			a.attrs[i] = v
@@ -100,7 +100,7 @@ func (a *attributes) merge(attrs ...*commonpb.KeyValue) *attributes {
 	return a
 }
 
-func (a *attributes) find(key string) (*commonpb.KeyValue, int) {
+func (a *attributes) find(key string) (*common.KeyValue, int) {
 	for i := len(a.attrs) - 1; i >= 0; i-- {
 		if a.attrs[i].Key == key {
 			return a.attrs[i], i
@@ -123,15 +123,15 @@ func (a *attributes) splite() (map[string]string, map[string]interface{}) {
 	metrics := make(map[string]interface{})
 	for _, v := range a.attrs {
 		switch v.Value.Value.(type) {
-		case *commonpb.AnyValue_BytesValue, *commonpb.AnyValue_StringValue:
+		case *common.AnyValue_BytesValue, *common.AnyValue_StringValue:
 			if s := v.Value.GetStringValue(); len(s) > point.MaxTagValueLen {
 				metrics[v.Key] = s
 			} else {
 				tags[v.Key] = s
 			}
-		case *commonpb.AnyValue_DoubleValue:
+		case *common.AnyValue_DoubleValue:
 			metrics[v.Key] = v.Value.GetDoubleValue()
-		case *commonpb.AnyValue_IntValue:
+		case *common.AnyValue_IntValue:
 			metrics[v.Key] = v.Value.GetIntValue()
 		}
 	}

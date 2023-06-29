@@ -8,9 +8,9 @@ package opentelemetry
 import (
 	"time"
 
+	metrics "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/metrics/v1"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
-	metricspb "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/opentelemetry/compiled/v1/metrics"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
@@ -63,7 +63,7 @@ func (m *OTELMetrics) getPoints() []*point.Point {
 	return pts
 }
 
-func parseResourceMetrics(resmcs []*metricspb.ResourceMetrics) []*OTELMetrics {
+func parseResourceMetrics(resmcs []*metrics.ResourceMetrics) []*OTELMetrics {
 	var omcs []*OTELMetrics
 	for _, resmc := range resmcs {
 		resattrs := extractAtrributes(resmc.Resource.Attributes)
@@ -86,34 +86,34 @@ func parseResourceMetrics(resmcs []*metricspb.ResourceMetrics) []*OTELMetrics {
 	return omcs
 }
 
-func extractMetricPoints(metric *metricspb.Metric, attrs *attributes) []*pointData {
+func extractMetricPoints(metric *metrics.Metric, attrs *attributes) []*pointData {
 	var points []*pointData
 	switch t := metric.Data.(type) {
-	case *metricspb.Metric_Gauge:
+	case *metrics.Metric_Gauge:
 		for _, pt := range t.Gauge.DataPoints {
 			tags, fields := attrs.merge(extractAtrributes(pt.Attributes)...).splite()
 			data := &pointData{tags: tags, fields: fields}
-			if v, ok := pt.Value.(*metricspb.NumberDataPoint_AsDouble); ok {
+			if v, ok := pt.Value.(*metrics.NumberDataPoint_AsDouble); ok {
 				data.value = v.AsDouble
-			} else if v, ok := pt.Value.(*metricspb.NumberDataPoint_AsInt); ok {
+			} else if v, ok := pt.Value.(*metrics.NumberDataPoint_AsInt); ok {
 				data.value = v.AsInt
 			}
 			data.ts = int64(pt.TimeUnixNano)
 			points = append(points, data)
 		}
-	case *metricspb.Metric_Sum:
+	case *metrics.Metric_Sum:
 		for _, pt := range t.Sum.DataPoints {
 			tags, fields := attrs.merge(extractAtrributes(pt.Attributes)...).splite()
 			data := &pointData{tags: tags, fields: fields}
-			if v, ok := pt.Value.(*metricspb.NumberDataPoint_AsDouble); ok {
+			if v, ok := pt.Value.(*metrics.NumberDataPoint_AsDouble); ok {
 				data.value = v.AsDouble
-			} else if v, ok := pt.Value.(*metricspb.NumberDataPoint_AsInt); ok {
+			} else if v, ok := pt.Value.(*metrics.NumberDataPoint_AsInt); ok {
 				data.value = v.AsInt
 			}
 			data.ts = int64(pt.TimeUnixNano)
 			points = append(points, data)
 		}
-	case *metricspb.Metric_Histogram:
+	case *metrics.Metric_Histogram:
 		for _, pt := range t.Histogram.DataPoints {
 			tags, fields := attrs.merge(extractAtrributes(pt.Attributes)...).splite()
 			data := &pointData{tags: tags, fields: fields}
@@ -121,7 +121,7 @@ func extractMetricPoints(metric *metricspb.Metric, attrs *attributes) []*pointDa
 			data.ts = int64(pt.TimeUnixNano)
 			points = append(points, data)
 		}
-	case *metricspb.Metric_ExponentialHistogram:
+	case *metrics.Metric_ExponentialHistogram:
 		for _, pt := range t.ExponentialHistogram.DataPoints {
 			tags, fields := attrs.merge(extractAtrributes(pt.Attributes)...).splite()
 			data := &pointData{tags: tags, fields: fields}
@@ -129,7 +129,7 @@ func extractMetricPoints(metric *metricspb.Metric, attrs *attributes) []*pointDa
 			data.ts = int64(pt.TimeUnixNano)
 			points = append(points, data)
 		}
-	case *metricspb.Metric_Summary:
+	case *metrics.Metric_Summary:
 		for _, pt := range t.Summary.DataPoints {
 			tags, fields := attrs.merge(extractAtrributes(pt.Attributes)...).splite()
 			data := &pointData{tags: tags, fields: fields}

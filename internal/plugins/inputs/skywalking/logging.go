@@ -10,10 +10,10 @@ import (
 	"strconv"
 	"strings"
 
+	loggingv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/logging/v3"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
-	loggingv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/skywalking/compiled/v9.3.0/logging/v3"
 )
 
 func processLogV3(plog *loggingv3.LogData) (*point.Point, error) {

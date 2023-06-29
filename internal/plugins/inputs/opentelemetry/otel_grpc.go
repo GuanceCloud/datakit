@@ -9,11 +9,11 @@ import (
 	"context"
 	"net"
 
+	metrics "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/collector/metrics/v1"
+	trace "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/collector/trace/v1"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/opentelemetry/compiled/v1/collector/metrics"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/opentelemetry/compiled/v1/collector/trace"
 	"google.golang.org/grpc"
 	_ "google.golang.org/grpc/encoding/gzip"
 )

@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+	commonv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/common/v3"
+	agentv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/language/agent/v3"
 	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-	commonv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/skywalking/compiled/v9.3.0/common/v3"
-	agentv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/skywalking/compiled/v9.3.0/language/agent/v3"
 )
 
 // func processMetricsV3(jvm *agentv3.JVMMetricCollection, start time.Time) []inputs.Measurement {.

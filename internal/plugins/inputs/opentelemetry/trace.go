@@ -9,11 +9,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 
-	tracepb "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/opentelemetry/compiled/v1/trace"
+	trace "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/trace/v1"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
-func parseResourceSpans(resspans []*tracepb.ResourceSpans) itrace.DatakitTraces {
+func parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
 	var dktraces itrace.DatakitTraces
 	spanIDs, parentIDs := getSpanIDsAndParentIDs(resspans)
 	for _, spans := range resspans {
@@ -98,7 +98,7 @@ func parseResourceSpans(resspans []*tracepb.ResourceSpans) itrace.DatakitTraces 
 	return dktraces
 }
 
-func getSpanIDsAndParentIDs(resspans []*tracepb.ResourceSpans) (map[string]bool, map[string]bool) {
+func getSpanIDsAndParentIDs(resspans []*trace.ResourceSpans) (map[string]bool, map[string]bool) {
 	var (
 		spanIDs   = make(map[string]bool)
 		parentIDs = make(map[string]bool)
@@ -127,15 +127,15 @@ func byteToString(buf []byte) string {
 }
 
 // getDKSpanStatus 从otel的status转成dk的span_status.
-func getDKSpanStatus(statuspb *tracepb.Status) string {
+func getDKSpanStatus(statuspb *trace.Status) string {
 	status := itrace.STATUS_INFO
 	if statuspb == nil {
 		return status
 	}
 	switch statuspb.Code {
-	case tracepb.Status_STATUS_CODE_OK, tracepb.Status_STATUS_CODE_UNSET:
+	case trace.Status_STATUS_CODE_OK, trace.Status_STATUS_CODE_UNSET:
 		status = itrace.STATUS_OK
-	case tracepb.Status_STATUS_CODE_ERROR:
+	case trace.Status_STATUS_CODE_ERROR:
 		status = itrace.STATUS_ERR
 	default:
 	}
