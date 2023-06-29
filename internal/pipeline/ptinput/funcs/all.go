@@ -70,6 +70,8 @@ var FuncsMap = map[string]runtime.FuncCall{
 	"decode":                Decode,
 	"sample":                Sample,
 	"url_parse":             URLParse,
+	"value_type":            ValueType,
+	"vaild_json":            VaildJSON,
 	// disable
 	"json_all": JSONAll,
 }
@@ -127,6 +129,8 @@ var FuncsCheckMap = map[string]runtime.FuncCheck{
 	"decode":                DecodeChecking,
 	"url_parse":             URLParseChecking,
 	"sample":                SampleChecking,
+	"value_type":            ValueTypeChecking,
+	"vaild_json":            VaildJSONChecking,
 	// disable
 	"json_all": JSONAllChecking,
 }

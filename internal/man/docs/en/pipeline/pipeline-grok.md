@@ -18,7 +18,7 @@ Any regular expression can be regarded as a legal Grok pattern, and supports the
 For the pattern notation `%{pattern_name:key_name}`, it is equivalent to the named capture group in the regular expression:
 
 ```regexp
-(?P<pattern_name>pattern)
+(?P<key_name>pattern)
 ```
 
 ## Grok Pattern Classification in DataKit {#grok-pattern-class}
@@ -87,10 +87,10 @@ Based on the above three built-in patterns, you can extend your own built-in pat
 time ([^0-9]?)%{hour:hour}:%{minute:minute}(?::%{second:second})([^0-9]?)
 
 # It can also be added to the pipeline file via add_pattern (), then the mode becomes local and only the current pipeline script can use time.
-add_pattern(time, "([^0-9]?)%{HOUR:hour}:%{MINUTE:minute}(?::%{SECOND:second})([^0-9]?)")
+add_pattern("time", "(?:[^0-9]?)%{HOUR:hour}:%{MINUTE:minute}(?::%{SECOND:second})(?:[^0-9]?)")
 
 # Extract the time field from the original input through grok. Assuming the input is 12:30:59, the {"hour": 12, "minute": 30, "second": 59}
-grok(_, %{time})
+grok(_, "%{time}")
 ```
 
 ???+ attention

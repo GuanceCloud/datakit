@@ -79,7 +79,7 @@ github.com/GuanceCloud/confd/util
 # github.com/GuanceCloud/grok v1.1.2
 ## explicit; go 1.18
 github.com/GuanceCloud/grok
-# github.com/GuanceCloud/platypus v0.2.4
+# github.com/GuanceCloud/platypus v0.2.5
 ## explicit; go 1.18
 github.com/GuanceCloud/platypus/internal/logger
 github.com/GuanceCloud/platypus/pkg/ast

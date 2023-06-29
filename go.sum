@@ -151,8 +151,8 @@ github.com/GuanceCloud/dockertest/v3 v3.9.4 h1:ScSNhfA2HSNLfrYoNd1KSRxkrymlKiBE6
 github.com/GuanceCloud/dockertest/v3 v3.9.4/go.mod h1:LDdHEB2bc9HxRQuXuMJOqesEasilevqVsFd5rnVb07I=
 github.com/GuanceCloud/grok v1.1.2 h1:xscdb39kbPjiO8HfhORt/wDZuQqhi8N/WyjNcQnWujA=
 github.com/GuanceCloud/grok v1.1.2/go.mod h1:AHkJZYf7Qbo1FTZT6htdyScpICpgnkQ5+Hc0EmA88vM=
-github.com/GuanceCloud/platypus v0.2.4 h1:HSyEb73+9U6TKQ3Ky9p70WHLTYZeOwFbukaVkatV4wY=
-github.com/GuanceCloud/platypus v0.2.4/go.mod h1:budRXgqN8vm48Y8njJj/IJkcB0d87CqJeQILejf7wjU=
+github.com/GuanceCloud/platypus v0.2.5 h1:wIjzj1+4c3pDuMjn6Y41WU9psF0AJp4LlPTCuUZUuhg=
+github.com/GuanceCloud/platypus v0.2.5/go.mod h1:budRXgqN8vm48Y8njJj/IJkcB0d87CqJeQILejf7wjU=
 github.com/GuanceCloud/promcommon v0.0.0-20230424035348-b908fc8f60ec h1:7wJHvQaUT3mosMRd8pkGRCIOo5ozlEcF+DlS5TtjHRA=
 github.com/GuanceCloud/promcommon v0.0.0-20230424035348-b908fc8f60ec/go.mod h1:zuawsU7vK4z3rZC2qaOYnhJO2rHD0CIUAgbyJxpjIf0=
 github.com/GuanceCloud/pyroscope v0.36.1 h1:u9hR7N+5ASIddXSVJAXYQG/EaXuUzKG2GkRRuUvfMjE=

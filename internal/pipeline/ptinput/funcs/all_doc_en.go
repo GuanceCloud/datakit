@@ -164,6 +164,12 @@ var (
 
 	//go:embed md/kv_split.en.md
 	docKVSplitEN string
+
+	//go:embed md/value_type.en.md
+	docValueTypeEN string
+
+	//go:embed md/vaild_json.en.md
+	docVaildJSONEN string
 )
 
 const (
@@ -497,6 +503,20 @@ var (
 		Doc: docKVSplitEN, Deprecated: false,
 		FnCategory: map[string][]string{
 			langTagEnUS: {eRegExp},
+		},
+	}
+
+	valueTypeMarkdownEN = PLDoc{
+		Doc: docValueTypeEN, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagEnUS: {eJSON},
+		},
+	}
+
+	vaildJSONMarkdownEN = PLDoc{
+		Doc: docVaildJSONEN, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagEnUS: {eJSON},
 		},
 	}
 )

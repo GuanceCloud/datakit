@@ -11,7 +11,7 @@ require (
 	github.com/GuanceCloud/cliutils v0.1.2-0.20230620100236-b87195f3dd90
 	github.com/GuanceCloud/confd v0.1.101
 	github.com/GuanceCloud/grok v1.1.2
-	github.com/GuanceCloud/platypus v0.2.4
+	github.com/GuanceCloud/platypus v0.2.5
 	github.com/GuanceCloud/timeout v0.0.0-20230216045952-48442c6fb747
 	github.com/Shopify/sarama v1.38.1
 	github.com/aliyun/aliyun-oss-go-sdk v2.2.7+incompatible

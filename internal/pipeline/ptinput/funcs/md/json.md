@@ -57,7 +57,8 @@ json(zhangsan, age, "age")
 #    }
 
 # 处理脚本：
-json(_, name) json(name, first)
+json(_, name)
+json(name, first)
 ```
 
 示例三：
@@ -71,7 +72,7 @@ json(_, name) json(name, first)
 #    ]
     
 # 处理脚本，json 数组处理：
-json(_, [0].nets[-1])
+json(_, .[0].nets[-1])
 ```
 
 示例四：

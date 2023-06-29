@@ -29,6 +29,7 @@ const (
 
 	TypeListInitExpr
 	TypeMapInitExpr
+	TypeInExpr
 
 	TypeParenExpr
 
@@ -56,6 +57,8 @@ func (t NodeType) String() string {
 		return "Invalid"
 	case TypeIdentifier:
 		return "Identifier"
+	case TypeInExpr:
+		return "InExpr"
 	case TypeStringLiteral:
 		return "StringLiteral"
 	case TypeIntegerLiteral:
@@ -148,6 +151,7 @@ type Node struct {
 
 	AttrExpr  *AttrExpr
 	IndexExpr *IndexExpr
+	InExpr    *InExpr
 
 	ArithmeticExpr  *ArithmeticExpr
 	ConditionalExpr *ConditionalExpr
@@ -207,6 +211,8 @@ func (node *Node) String() string {
 		return node.ContinueStmt.String()
 	case TypeBreakStmt:
 		return node.BreakStmt.String()
+	case TypeInExpr:
+		return node.InExpr.String()
 	}
 	return "node conv to string failed"
 }
@@ -299,6 +305,13 @@ func WrapConditionExpr(node *ConditionalExpr) *Node {
 	return &Node{
 		NodeType:        TypeConditionalExpr,
 		ConditionalExpr: node,
+	}
+}
+
+func WrapInExpr(node *InExpr) *Node {
+	return &Node{
+		NodeType: TypeInExpr,
+		InExpr:   node,
 	}
 }
 

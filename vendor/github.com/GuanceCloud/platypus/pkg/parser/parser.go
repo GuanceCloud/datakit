@@ -294,27 +294,37 @@ func (p *parser) newForStmt(initExpr *ast.Node, condExpr *ast.Node, loopExpr *as
 	})
 }
 
-func (p *parser) newForInStmt(varb *ast.Node, iter *ast.Node, body *ast.BlockStmt, forTk, inTk Item) *ast.Node {
-	switch varb.NodeType { //nolint:exhaustive
-	case ast.TypeIdentifier:
+func (p *parser) newForInStmt(inExpr *ast.Node, body *ast.BlockStmt, forTk Item) *ast.Node {
+	var expr *ast.InExpr
+
+	switch inExpr.NodeType { //nolint:exhaustive
+	case ast.TypeInExpr:
+		expr = inExpr.InExpr
 	default:
-		p.addParseErrf(p.yyParser.lval.item.PositionRange(), "%s object is not identifier", varb.NodeType)
+		p.addParseErrf(p.yyParser.lval.item.PositionRange(), "%s object is not identifier", inExpr.NodeType)
 		return nil
 	}
 
-	switch iter.NodeType { //nolint:exhaustive
+	switch expr.LHS.NodeType { //nolint:exhaustive
+	case ast.TypeIdentifier:
+	default:
+		p.addParseErrf(p.yyParser.lval.item.PositionRange(), "%s object is not identifier", expr.LHS.NodeType)
+		return nil
+	}
+
+	switch expr.RHS.NodeType { //nolint:exhaustive
 	case ast.TypeBoolLiteral, ast.TypeNilLiteral,
 		ast.TypeIntegerLiteral, ast.TypeFloatLiteral:
-		p.addParseErrf(p.yyParser.lval.item.PositionRange(), "%s object is not iterable", iter.NodeType)
+		p.addParseErrf(p.yyParser.lval.item.PositionRange(), "%s object is not iterable", expr.RHS.NodeType)
 		return nil
 	}
 
 	return ast.WrapForInStmt(&ast.ForInStmt{
-		Varb:   varb,
-		Iter:   iter,
+		Varb:   expr.LHS,
+		Iter:   expr.RHS,
 		Body:   body,
 		ForPos: p.posCache.LnCol(forTk.Pos),
-		InPos:  p.posCache.LnCol(inTk.Pos),
+		InPos:  p.posCache.LnCol(expr.OpPos.Pos),
 	})
 }
 
@@ -368,6 +378,14 @@ func (p *parser) newAssignmentExpr(l, r *ast.Node, eqOp Item) *ast.Node {
 		LHS:   l,
 		RHS:   r,
 		OpPos: p.posCache.LnCol(eqOp.Pos),
+	})
+}
+
+func (p *parser) newInExpr(l, r *ast.Node, inOp Item) *ast.Node {
+	return ast.WrapInExpr(&ast.InExpr{
+		LHS:   l,
+		RHS:   r,
+		OpPos: p.posCache.LnCol(inOp.Pos),
 	})
 }
 

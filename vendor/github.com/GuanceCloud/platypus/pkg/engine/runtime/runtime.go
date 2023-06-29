@@ -9,6 +9,7 @@ package runtime
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/GuanceCloud/platypus/pkg/ast"
 	"github.com/GuanceCloud/platypus/pkg/errchain"
@@ -362,6 +363,8 @@ func RunStmt(ctx *Context, node *ast.Node) (any, ast.DType, *errchain.PlError) {
 		return RunAssignmentExpr(ctx, node.AssignmentExpr)
 	case ast.TypeCallExpr:
 		return RunCallExpr(ctx, node.CallExpr)
+	case ast.TypeInExpr:
+		return RunInExpr(ctx, node.InExpr)
 	case ast.TypeListInitExpr:
 		return RunListInitExpr(ctx, node.ListInitExpr)
 	case ast.TypeIdentifier:
@@ -545,6 +548,59 @@ func RunParenExpr(ctx *Context, expr *ast.ParenExpr) (any, ast.DType, *errchain.
 
 // BinarayExpr
 
+func RunInExpr(ctx *Context, expr *ast.InExpr) (any, ast.DType, *errchain.PlError) {
+	lhs, lhsT, err := RunStmt(ctx, expr.LHS)
+	if err != nil {
+		return nil, ast.Invalid, err
+	}
+
+	rhs, rhsT, err := RunStmt(ctx, expr.RHS)
+	if err != nil {
+		return nil, ast.Invalid, err
+	}
+
+	switch rhsT {
+	case ast.String:
+		if lhsT != ast.String {
+			return false, ast.Bool, NewRunError(ctx, fmt.Sprintf(
+				"unsupported lhs data type: %s", lhsT), expr.OpPos)
+		}
+		if s, ok := lhs.(string); ok {
+			if v, ok := rhs.(string); ok {
+				return strings.Contains(v, s), ast.Bool, nil
+			}
+		}
+
+		return false, ast.Bool, nil
+	case ast.Map:
+		if lhsT != ast.String {
+			return false, ast.Bool, NewRunError(ctx, fmt.Sprintf(
+				"unsupported lhs data type: %s", lhsT), expr.OpPos)
+		}
+		if s, ok := lhs.(string); ok {
+			if v, ok := rhs.(map[string]any); ok {
+				if _, ok := v[s]; ok {
+					return true, ast.Bool, nil
+				}
+			}
+		}
+		return false, ast.Bool, nil
+	case ast.List:
+		if v, ok := rhs.([]any); ok {
+			for _, elem := range v {
+				if reflect.DeepEqual(lhs, elem) {
+					return true, ast.Bool, nil
+				}
+			}
+		}
+		return false, ast.Bool, nil
+
+	default:
+		return false, ast.Bool, NewRunError(ctx, fmt.Sprintf(
+			"unsupported rhs data type: %s", rhsT), expr.OpPos)
+	}
+}
+
 func RunConditionExpr(ctx *Context, expr *ast.ConditionalExpr) (any, ast.DType, *errchain.PlError) {
 	lhs, lhsT, err := RunStmt(ctx, expr.LHS)
 	if err != nil {
@@ -593,9 +649,9 @@ func RunArithmeticExpr(ctx *Context, expr *ast.ArithmeticExpr) (any, ast.DType, 
 		return nil, ast.Invalid, errOpInt
 	}
 
-	if !arithType(lhsValType) {
+	if !arithType(rhsValType) {
 		return nil, ast.Invalid, NewRunError(ctx, fmt.Sprintf(
-			"unsupported rhs data type: %s", lhsValType), expr.OpPos)
+			"unsupported rhs data type: %s", rhsValType), expr.OpPos)
 	}
 
 	// string
