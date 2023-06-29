@@ -38,16 +38,11 @@ func (x *dkIO) cacheData(c *consumer, d *iodata, tryClean bool) {
 		return
 	}
 
-	if d.opt != nil && d.opt.HTTPHost != "" {
-		c.dynamicDatawayPts[d.opt.HTTPHost] = append(c.dynamicDatawayPts[d.opt.HTTPHost], d.pts...)
-	} else {
-		c.pts = append(c.pts, d.pts...)
-	}
+	c.pts = append(c.pts, d.pts...)
 
-	if (tryClean &&
+	if tryClean &&
 		x.maxCacheCount > 0 &&
-		len(c.pts) > x.maxCacheCount) ||
-		len(c.dynamicDatawayPts) > 0 {
+		len(c.pts) > x.maxCacheCount {
 		x.flush(c)
 
 		// reset consumer flush ticker to prevent send small packages
@@ -67,13 +62,6 @@ func (x *dkIO) flush(c *consumer) {
 	}
 
 	c.pts = c.pts[:0] // clear
-
-	for k, pts := range c.dynamicDatawayPts {
-		if err := x.doFlush(pts, point.DynamicDWCategory, c.fc, k); err != nil {
-			log.Warnf("post %d points to %s failed: %s, ignored", len(pts), k, err)
-		}
-		c.dynamicDatawayPts[k] = c.dynamicDatawayPts[k][:0] // clear
-	}
 }
 
 func (x *dkIO) flushFailCache(c *consumer) {

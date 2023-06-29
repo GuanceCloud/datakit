@@ -43,8 +43,7 @@ type iodata struct {
 type Option struct {
 	CollectCost time.Duration
 
-	Version  string
-	HTTPHost string
+	Version string
 
 	PostTimeout time.Duration
 

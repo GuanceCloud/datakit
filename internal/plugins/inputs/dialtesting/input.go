@@ -21,7 +21,9 @@ import (
 	"net/url"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -30,14 +32,16 @@ import (
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/GuanceCloud/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 var ( // type assertions
-	_ inputs.ReadEnv = (*Input)(nil)
-	_ inputs.InputV2 = (*Input)(nil)
-	g                = datakit.G("inputs_dialtesting")
+	_             inputs.ReadEnv = (*Input)(nil)
+	_             inputs.InputV2 = (*Input)(nil)
+	g                            = datakit.G("inputs_dialtesting")
+	urlMaskRegexp                = regexp.MustCompile(`(token=tkn_[\w\d]{6})([\w\d]+)([\w\d]{6})`)
+	dialWorker    *worker
 )
 
 var (
@@ -50,6 +54,7 @@ var (
 
 	inputName = "dialtesting"
 	l         = logger.DefaultSLogger(inputName)
+	once      sync.Once
 
 	MaxFails         = 100
 	MaxSendFailCount = 16
@@ -72,13 +77,14 @@ type Input struct {
 	TimeOut          *datakit.Duration `toml:"time_out,omitempty"` // second
 	Workers          int               `toml:"workers,omitempty"`
 	MaxSendFailCount int32             `toml:"max_send_fail_count,omitempty"` // max send fail count
+	MaxJobNumber     int               `toml:"max_job_number,omitempty"`      // max job number in parallel
+	MaxJobChanNumber int               `toml:"max_job_chan_number,omitempty"` // max job chan number
 	Tags             map[string]string
 
 	semStop *cliutils.Sem // start stop signal
 	cli     *http.Client  // class string
 
 	regionName string
-	feeder     io.Feeder
 
 	curTasks map[string]*dialer
 	pos      int64 // current largest-task-update-time
@@ -100,12 +106,19 @@ const sample = `
   pull_interval = "1m"
 
   # The timeout for the HTTP request.
-  time_out = "1m"
+  time_out = "30s"
 
   # The number of the workers.
   workers = 6
 
+  # Stop the task when the task failed to send data to dataway over max_send_fail_count.
   max_send_fail_count = 16
+
+  # The max number of jobs sending data to dataway in parallel. Default 10.
+  max_job_number = 10
+
+  # The max number of job chan. Default 1000.
+  max_job_chan_number = 1000
 
   # Custom tags.
   [inputs.dialtesting.tags]
@@ -140,6 +153,29 @@ func (d *Input) Terminate() {
 	}
 }
 
+func (d *Input) setupWorker() {
+	once.Do(func() {
+		if dialWorker == nil {
+			var s sender
+			dialSender := &dataway.DialtestingSender{}
+
+			if err := dialSender.Init(&dataway.DialtestingSenderOpt{
+				HTTPTimeout: d.cli.Timeout,
+			}); err != nil {
+				l.Warnf("setup dialSender failed: %s", err.Error())
+			}
+
+			s = &dwSender{dw: dialSender}
+			dialWorker = &worker{
+				sender:           s,
+				maxJobNumber:     d.MaxJobNumber,
+				maxJobChanNumber: d.MaxJobChanNumber,
+			}
+			dialWorker.init()
+		}
+	})
+}
+
 func (d *Input) Run() {
 	l = logger.SLogger(inputName)
 
@@ -160,10 +196,12 @@ func (d *Input) Run() {
 	l.Debugf(`%+#v, %+#v`, d.cli, d.TimeOut)
 
 	if d.TimeOut == nil {
-		d.cli.Timeout = 60 * time.Second
+		d.cli.Timeout = 30 * time.Second
 	} else {
 		d.cli.Timeout = d.TimeOut.Duration
 	}
+
+	d.setupWorker()
 
 	// set default region name
 	d.regionName = d.RegionID
@@ -305,7 +343,7 @@ func (d *Input) newTaskRun(t dt.Task) (*dialer, error) {
 
 	l.Debugf("input tags: %+#v", d.Tags)
 
-	dialer := newDialer(t, d.feeder, d.Tags)
+	dialer := newDialer(t, d.Tags)
 	dialer.done = d.semStop.Wait()
 	dialer.regionName = regionName
 
@@ -641,12 +679,15 @@ func (d *Input) stopAlltask() {
 	}
 }
 
+func getMaskURL(url string) string {
+	return urlMaskRegexp.ReplaceAllString(url, `${1}******${3}`)
+}
+
 func defaultInput() *Input {
 	return &Input{
 		Tags:     map[string]string{},
 		curTasks: map[string]*dialer{},
 		semStop:  cliutils.NewSem(),
-		feeder:   io.DefaultFeeder(),
 		cli: &http.Client{
 			Timeout: 30 * time.Second,
 			Transport: &http.Transport{
