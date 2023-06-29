@@ -347,3 +347,12 @@ func getServiceType(serviceType int32) string {
 		return "Unknown"
 	}
 }
+
+func getAnnotationKey(key int32) string {
+	skey, ok := Annotations[key]
+	if ok {
+		return skey
+	} else {
+		return "Unknown"
+	}
+}
