@@ -13,22 +13,21 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	agentv3old "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/language/agent/v3/compat"
-	profilev3old "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/language/profile/v3/compat"
-	mgmtv3old "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/management/v3/compat"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
-
 	configv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/agent/configuration/v3"
 	commonv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/common/v3"
 	eventv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/event/v3"
 	agentv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/language/agent/v3"
+	agentv3old "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/language/agent/v3/compat"
 	profilev3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/language/profile/v3"
+	profilev3old "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/language/profile/v3/compat"
 	loggingv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/logging/v3"
 	mgmtv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/management/v3"
+	mgmtv3old "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/management/v3/compat"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 )
@@ -163,6 +162,7 @@ func (r *JVMMetricReportServerV3Old) Collect(ctx context.Context, jvm *agentv3.J
 			r.ipt.feeder.FeedLastError(jvmMetricName, err.Error())
 		}
 	}
+
 	return &commonv3.Commands{}, nil
 }
 

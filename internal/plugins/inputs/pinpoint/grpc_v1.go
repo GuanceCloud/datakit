@@ -9,6 +9,7 @@ package pinpoint
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 
@@ -127,13 +128,29 @@ func (agtsvr *AgentServer) PingSession(ping ppv1.Agent_PingSessionServer) error 
 	return ping.SendMsg(msg)
 }
 
+type reqtype string
+
+const (
+	reqsql reqtype = "sql-request"
+	reqapi reqtype = "sql-api"
+	reqstr reqtype = "sql-string"
+)
+
+func concatReqID(req reqtype, id int32) string {
+	return fmt.Sprintf("%d:%s", id, req)
+}
+
+func newMetaData(id int32, meta interface{}) *requestMetaData {
+	return &requestMetaData{ID: id, Meta: meta}
+}
+
 type MetadataServer struct {
 	ppv1.UnimplementedMetadataServer
 }
 
 func (mdsvr *MetadataServer) RequestSqlMetaData(ctx context.Context, meta *ppv1.PSqlMetaData) (*ppv1.PResult, error) { // nolint: stylecheck
 	if reqMetaTab != nil && meta != nil {
-		reqMetaTab.Store(meta.SqlId, NewMetaData(meta.SqlId, meta))
+		reqMetaTab.Store(concatReqID(reqsql, meta.SqlId), newMetaData(meta.SqlId, meta))
 	}
 
 	return &ppv1.PResult{Success: true, Message: "ok"}, nil
@@ -141,7 +158,7 @@ func (mdsvr *MetadataServer) RequestSqlMetaData(ctx context.Context, meta *ppv1.
 
 func (mdsvr *MetadataServer) RequestApiMetaData(ctx context.Context, meta *ppv1.PApiMetaData) (*ppv1.PResult, error) { // nolint: stylecheck
 	if reqMetaTab != nil && meta != nil {
-		reqMetaTab.Store(meta.ApiId, NewMetaData(meta.ApiId, meta))
+		reqMetaTab.Store(concatReqID(reqapi, meta.ApiId), newMetaData(meta.ApiId, meta))
 	}
 
 	return &ppv1.PResult{Success: true, Message: "ok"}, nil
@@ -149,7 +166,7 @@ func (mdsvr *MetadataServer) RequestApiMetaData(ctx context.Context, meta *ppv1.
 
 func (mdsvr *MetadataServer) RequestStringMetaData(ctx context.Context, meta *ppv1.PStringMetaData) (*ppv1.PResult, error) {
 	if reqMetaTab != nil && meta != nil {
-		reqMetaTab.Store(meta.StringId, NewMetaData(meta.StringId, meta))
+		reqMetaTab.Store(concatReqID(reqstr, meta.StringId), newMetaData(meta.StringId, meta))
 	}
 
 	return &ppv1.PResult{Success: true, Message: "ok"}, nil
