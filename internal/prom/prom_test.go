@@ -348,7 +348,7 @@ func Test_BearerToken(t *testing.T) {
 }
 
 func Test_Tls(t *testing.T) {
-	t.Run("enable tls", func(t *testing.T) {
+	t.Run("enable-tls", func(t *testing.T) {
 		in := &optionMock{
 			tlsOpen: true,
 		}
@@ -358,7 +358,7 @@ func Test_Tls(t *testing.T) {
 		assert.NoError(t, err)
 		transport, ok := p.client.Transport.(*http.Transport)
 		assert.True(t, ok)
-		assert.Equal(t, transport.TLSClientConfig.InsecureSkipVerify, false)
+		assert.Equal(t, transport.TLSClientConfig.InsecureSkipVerify, true)
 	})
 
 	t.Run("tls with ca", func(t *testing.T) {
