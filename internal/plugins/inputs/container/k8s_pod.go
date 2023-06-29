@@ -111,6 +111,15 @@ func (p *pod) metric(election bool) (inputsMeas, error) {
 			} else if podMet != nil {
 				met.fields["cpu_usage"] = podMet.cpuUsage
 				met.fields["memory_usage_bytes"] = podMet.memoryUsageBytes
+
+				memLimit := getMemoryCapacityFromResourceLimit(item.Spec.Containers)
+				if memLimit == 0 {
+					memLimit = getMemoryCapacityFromNode(p.client, item.Spec.NodeName)
+				}
+				if memLimit != 0 {
+					met.fields["memory_capacity"] = memLimit
+					met.fields["memory_used_percent"] = (float64(podMet.memoryUsageBytes) / float64(memLimit)) * 100.0
+				}
 			}
 		}
 
@@ -230,10 +239,19 @@ func (p *pod) object(election bool) (inputsMeas, error) {
 		if cli, ok := p.client.(*k8sClient); ok && cli.metricsClient != nil {
 			podMet, err := gatherPodMetrics(cli.metricsClient, item.Namespace, item.Name)
 			if err != nil {
-				l.Debugf("unable get pod metric %s, namespace %s, name %s, ignored", err, item.Namespace, item.Name)
+				l.Debugf("unable to get pod metric %s, namespace %s, name %s, ignored", err, item.Namespace, item.Name)
 			} else if podMet != nil {
 				obj.fields["cpu_usage"] = podMet.cpuUsage
 				obj.fields["memory_usage_bytes"] = podMet.memoryUsageBytes
+
+				memLimit := getMemoryCapacityFromResourceLimit(item.Spec.Containers)
+				if memLimit == 0 {
+					memLimit = getMemoryCapacityFromNode(p.client, item.Spec.NodeName)
+				}
+				if memLimit != 0 {
+					obj.fields["memory_capacity"] = memLimit
+					obj.fields["memory_used_percent"] = (float64(podMet.memoryUsageBytes) / float64(memLimit)) * 100.0
+				}
 			}
 		}
 
@@ -251,6 +269,39 @@ func queryPodMetaData(k8sClient k8sClientX, podname, podnamespace string) (*podM
 		return nil, err
 	}
 	return &podMeta{pod}, nil
+}
+
+func getMemoryCapacityFromResourceLimit(containers []v1.Container) int64 {
+	var limit int64
+	for _, c := range containers {
+		qu := c.Resources.Limits["memory"]
+		memLimit, _ := qu.AsInt64()
+
+		// 如果有容器没有配置 resource limit，就不再相加，避免出现 limit 逻辑问题
+		// 例如，3 个容器只有 1 个有 limit 1GiB，不能将 1GiB 作为整个 Pod 的 limit
+		if memLimit == 0 {
+			l.Debugf("container %s does not have a memory limit set, skip", c.Name)
+			return 0
+		}
+
+		limit += memLimit
+	}
+
+	return limit
+}
+
+func getMemoryCapacityFromNode(client k8sClientX, nodeName string) int64 {
+	node, err := client.getNodes().Get(context.Background(), nodeName, metaV1GetOption)
+	if err != nil {
+		l.Warnf("failed to get nodes %s info, err: %s, ignored", nodeName, err)
+		return 0
+	}
+
+	qu := node.Status.Capacity["memory"]
+	capacity, _ := qu.AsInt64()
+
+	l.Debugf("memory capacity %s bytes for node %s, ", capacity, nodeName)
+	return capacity
 }
 
 func (item *podMeta) containerPort(name string) int {
@@ -309,10 +360,12 @@ func (*podMetric) Info() *inputs.MeasurementInfo {
 			"[POD_LABEL]": inputs.NewTagInfo("The pod labels will be extracted as tags if `extract_k8s_label_as_tags` is enabled."),
 		},
 		Fields: map[string]interface{}{
-			"count":              &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Number of pods"},
-			"ready":              &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Describes whether the pod is ready to serve requests."},
-			"cpu_usage":          &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage of cpu used"},
-			"memory_usage_bytes": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.SizeByte, Desc: "The number of memory used in bytes"},
+			"count":               &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Number of pods"},
+			"ready":               &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Describes whether the pod is ready to serve requests."},
+			"cpu_usage":           &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage of cpu used"},
+			"memory_usage_bytes":  &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The number of memory used in bytes"},
+			"memory_capacity":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The memory capacity."},
+			"memory_used_percent": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage usage of the memory."},
 		},
 	}
 }
@@ -346,15 +399,17 @@ func (*podObject) Info() *inputs.MeasurementInfo {
 			"replica_set": inputs.NewTagInfo("The name of the replicaSet which the object belongs to. (Probably empty)"),
 		},
 		Fields: map[string]interface{}{
-			"age":                &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "age (seconds)"},
-			"create_time":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampMS, Desc: "CreationTimestamp is a timestamp representing the server time when this object was created.(milliseconds)"},
-			"restart":            &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of times the container has been restarted. (Deprecated: use restarts)"},
-			"restarts":           &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of times the container has been restarted."},
-			"ready":              &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Describes whether the pod is ready to serve requests."},
-			"available":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Number of containers"},
-			"cpu_usage":          &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage of cpu used"},
-			"memory_usage_bytes": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.SizeByte, Desc: "The number of memory used in bytes"},
-			"message":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "object details"},
+			"age":                 &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},
+			"create_time":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampMS, Desc: "CreationTimestamp is a timestamp representing the server time when this object was created.(milliseconds)"},
+			"restart":             &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of times the container has been restarted. (Deprecated: use restarts)"},
+			"restarts":            &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of times the container has been restarted."},
+			"ready":               &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Describes whether the pod is ready to serve requests."},
+			"available":           &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Number of containers"},
+			"cpu_usage":           &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage of cpu used"},
+			"memory_usage_bytes":  &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The number of memory used in bytes"},
+			"memory_capacity":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The memory capacity."},
+			"memory_used_percent": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage usage of the memory."},
+			"message":             &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Object details"},
 		},
 	}
 }
