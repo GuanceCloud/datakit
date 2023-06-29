@@ -39,11 +39,12 @@ func SetLog() {
 }
 
 type LoggerCfg struct {
-	Log          string `toml:"log"`
-	GinLog       string `toml:"gin_log"`
-	Level        string `toml:"level"`
-	DisableColor bool   `toml:"disable_color"`
-	Rotate       int    `toml:"rotate,omitzero"`
+	Log           string `toml:"log"`
+	GinLog        string `toml:"gin_log"`
+	Level         string `toml:"level"`
+	DisableColor  bool   `toml:"disable_color"`
+	Rotate        int    `toml:"rotate,omitzero"`
+	RotateBackups int    `toml:"rotate_backups"`
 }
 
 type GitRepository struct {
@@ -339,6 +340,9 @@ func (c *Config) setLogging() {
 
 		if c.Logging.Rotate > 0 {
 			logger.MaxSize = c.Logging.Rotate
+		}
+		if c.Logging.RotateBackups > 0 {
+			logger.MaxBackups = c.Logging.RotateBackups
 		}
 
 		lopt.Path = c.Logging.Log

@@ -192,12 +192,14 @@ For string/bool/string-list/duration, it is recommended to use double quotation 
 
 ### Log Configuration Related Environments {#env-log}
 
-| Environment Variable Name | Type   | Default Value              | Required | Description                                                                                                                  |
-| :---------                | :----  | :---                       | :-----   | :---                                                                                                                         |
-| `ENV_GIN_LOG`             | string | */var/log/datakit/gin.log* | No       | If it is changed to `stdout`, the DataKit's own gin log will not be written to the file, but will be output by the terminal. |
-| `ENV_LOG`                 | string | */var/log/datakit/log*     | No       | If it is changed to `stdout`, DataKit's own log will not be written to the file, but will be output by the terminal.         |
-| `ENV_LOG_LEVEL`           | string | info                       | No       | Set DataKit's own log level, optional `info/debug`.                                                                          |
-| `ENV_DISABLE_LOG_COLOR`   | bool   | -                          | No       | Turn off log colors                                                                                                          |
+| Environment Variable Name | Type   | Default Value              | Required | Description                                                                                                                              |
+|:--------------------------|:-------|:---------------------------|:---------|:-----------------------------------------------------------------------------------------------------------------------------------------|
+| `ENV_GIN_LOG`             | string | */var/log/datakit/gin.log* | No       | If it is changed to `stdout`, the DataKit's own gin log will not be written to the file, but will be output by the terminal.             |
+| `ENV_LOG`                 | string | */var/log/datakit/log*     | No       | If it is changed to `stdout`, DataKit's own log will not be written to the file, but will be output by the terminal.                     |
+| `ENV_LOG_LEVEL`           | string | info                       | No       | Set DataKit's own log level, optional `info/debug`.                                                                                      |
+| `ENV_DISABLE_LOG_COLOR`   | bool   | -                          | No       | Turn off log colors                                                                                                                      |
+| `ENV_LOG_ROTATE_BACKUP`   | int    | 5                          | No       | The upper limit count for log files to be reserve.                                                                                       |
+| `ENV_LOG_ROTATE_SIZE_MB`  | int    | 32                         | No       | The threshold for automatic log rotating in MB, which automatically switches to a new file when the log file size reaches the threshold. |
 
 ###  Something about DataKit pprof {#env-pprof}
 
