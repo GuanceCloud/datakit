@@ -205,8 +205,11 @@ ulimit = 64000
   disable_color = false
 
   # log rotate size(in MB)
-  # DataKit will always keep at most 5+1(5 backup log and 1 writing log) splited log files on disk.
+  # DataKit will always keep at most n+1(n backup log and 1 writing log) splited log files on disk.
   rotate = 32
+
+  # Upper limit count of backup log
+  rotate_backups = 5
 
 ################################################
 # Global tags

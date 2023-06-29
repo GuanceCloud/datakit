@@ -67,6 +67,8 @@ func TestLoadEnv(t *testing.T) {
 				"ENV_GLOBAL_TAGS":      "x=y,m=n", // deprecated, not used
 
 				"ENV_LOG_LEVEL":                       "debug",
+				"ENV_LOG_ROTATE_BACKUP":               "10",
+				"ENV_LOG_ROTATE_SIZE_MB":              "128",
 				"ENV_DATAWAY":                         "http://host1.org,http://host2.com",
 				"ENV_HOSTNAME":                        "1024.coding",
 				"ENV_NAME":                            "testing-datakit",
@@ -110,6 +112,8 @@ func TestLoadEnv(t *testing.T) {
 				cfg.HTTPAPI.CloseIdleConnection = true
 
 				cfg.Logging.Level = "debug"
+				cfg.Logging.RotateBackups = 10
+				cfg.Logging.Rotate = 128
 
 				cfg.Pipeline.Offload = &offload.OffloadConfig{}
 				cfg.Pipeline.Offload.Receiver = offload.DKRcv

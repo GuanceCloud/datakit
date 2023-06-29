@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
@@ -299,6 +300,24 @@ func (c *Config) LoadEnvs() error {
 
 	if v := datakit.GetEnv("ENV_DISABLE_LOG_COLOR"); v != "" {
 		c.Logging.DisableColor = true
+	}
+
+	if v := datakit.GetEnv("ENV_LOG_ROTATE_BACKUP"); v != "" {
+		count, err := strconv.Atoi(v)
+		if err != nil || count <= 0 {
+			l.Warnf("invalid value for ENV_LOG_ROTATE_BACKUP, need positive number but got [%s], use default value instead", v)
+			count = logger.MaxBackups
+		}
+		c.Logging.RotateBackups = count
+	}
+
+	if v := datakit.GetEnv("ENV_LOG_ROTATE_SIZE_MB"); v != "" {
+		size, err := strconv.Atoi(v)
+		if err != nil || size <= 0 {
+			l.Warnf("invalid value for ENV_LOG_ROTATE_SIZE_MB, need positive number but got [%s], use default value instead", v)
+			size = logger.MaxSize
+		}
+		c.Logging.Rotate = size
 	}
 
 	c.loadDataway()

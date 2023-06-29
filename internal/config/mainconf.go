@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/tracer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -171,10 +172,11 @@ func DefaultConfig() *Config {
 		},
 
 		Logging: &LoggerCfg{
-			Level:  "info",
-			Rotate: 32,
-			Log:    filepath.Join("/var/log/datakit", "log"),
-			GinLog: filepath.Join("/var/log/datakit", "gin.log"),
+			Level:         "info",
+			Rotate:        logger.MaxSize,
+			RotateBackups: logger.MaxBackups,
+			Log:           filepath.Join("/var/log/datakit", "log"),
+			GinLog:        filepath.Join("/var/log/datakit", "gin.log"),
 		},
 
 		Cgroup: &cgroup.CgroupOptions{

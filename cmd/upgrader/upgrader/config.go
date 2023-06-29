@@ -109,11 +109,12 @@ func DefaultMainConfig() *MainConfig {
 		IPWhiteList: []string{},
 		Logging: &LoggerCfg{
 			LoggerCfg: &config.LoggerCfg{
-				Log:          "/var/log/dk_upgrader/log",
-				GinLog:       "/var/log/dk_upgrader/gin.log",
-				Level:        "info",
-				DisableColor: false,
-				Rotate:       32,
+				Log:           "/var/log/dk_upgrader/log",
+				GinLog:        "/var/log/dk_upgrader/gin.log",
+				Level:         "info",
+				DisableColor:  false,
+				Rotate:        logger.MaxSize,
+				RotateBackups: logger.MaxBackups,
 			},
 			GinErrLog: "/var/log/dk_upgrader/gin_err.log",
 		},

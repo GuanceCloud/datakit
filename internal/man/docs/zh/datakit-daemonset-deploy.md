@@ -240,12 +240,14 @@ spec:
 
 ### 日志配置相关环境变量 {#env-log}
 
-| 环境变量名称            | 类型   | 默认值                     | 必须   | 说明                                                             |
-| ---------:              | ----:  | ---:                       | ------ | ----                                                             |
-| `ENV_GIN_LOG`           | string | */var/log/datakit/gin.log* | 否     | 如果改成 `stdout`，Datakit 自身 gin 日志将不写文件，而是终端输出 |
-| `ENV_LOG`               | string | */var/log/datakit/log*     | 否     | 如果改成 `stdout`，Datakit 自身日志将不写文件，而是终端输出      |
-| `ENV_LOG_LEVEL`         | string | info                       | 否     | 设置 Datakit 自身日志等级，可选 `info/debug`                     |
-| `ENV_DISABLE_LOG_COLOR` | bool   | -                          | 否     | 关闭日志颜色                                                     |
+|                   环境变量名称 |     类型 |                        默认值 | 必须   | 说明                                          |
+|-------------------------:|-------:|---------------------------:| ------ |---------------------------------------------|
+|            `ENV_GIN_LOG` | string | */var/log/datakit/gin.log* | 否     | 如果改成 `stdout`，Datakit 自身 gin 日志将不写文件，而是终端输出 |
+|                `ENV_LOG` | string |     */var/log/datakit/log* | 否     | 如果改成 `stdout`，Datakit 自身日志将不写文件，而是终端输出      |
+|          `ENV_LOG_LEVEL` | string |                       info | 否     | 设置 Datakit 自身日志等级，可选 `info/debug`           |
+|  `ENV_DISABLE_LOG_COLOR` |   bool |                          - | 否     | 关闭日志颜色                                      |
+|  `ENV_LOG_ROTATE_BACKUP` |    int |                          5 | 否     | 设置最多保留日志分片的个数                               |
+| `ENV_LOG_ROTATE_SIZE_MB` |    int |                         32 | 否     | 日志自动切割的阈值（单位：MB），当日志文件大小达到设置的值时，自动切换新的文件    |
 
 ### Datakit pprof 相关 {#env-pprof}
 
