@@ -23,7 +23,7 @@ var (
 	MsgType = "kafka"
 )
 
-// Custom : 自定义消息的处理对象.
+// Custom 自定义消息的处理对象.
 type Custom struct {
 	// old config
 	LogTopics    []string `toml:"log_topics"`
@@ -35,12 +35,12 @@ type Custom struct {
 	LogTopicsMap    map[string]string `toml:"log_topic_map"`
 	MetricTopicsMap map[string]string `toml:"metric_topic_map"`
 	RumTopicsMap    map[string]string `toml:"rum_topic_map"`
-
-	SpiltBody bool `toml:"spilt_json_body"`
-	feeder    dkio.Feeder
+	SpiltTopicsMap  map[string]bool   `toml:"spilt_topic_map"`
+	SpiltBody       bool              `toml:"spilt_json_body"`
+	feeder          dkio.Feeder
 }
 
-// Init :初始化消息.
+// Init 初始化消息.
 func (mq *Custom) Init() error {
 	log = logger.SLogger("kafkamq.custom")
 
@@ -57,7 +57,7 @@ func (mq *Custom) SetFeeder(feeder dkio.Feeder) {
 	mq.feeder = feeder
 }
 
-// GetTopics :TopicProcess implement.
+// GetTopics TopicProcess implement.
 func (mq *Custom) GetTopics() []string {
 	topics := make([]string, 0)
 	if len(mq.LogTopicsMap) > 0 {
@@ -79,19 +79,25 @@ func (mq *Custom) GetTopics() []string {
 	return topics
 }
 
-// Process :TopicProcess implement.
+// Process TopicProcess implement.
 func (mq *Custom) Process(msg *sarama.ConsumerMessage) error {
-	var err error
+	var (
+		err              error
+		topic            = msg.Topic
+		msgs             = make([]string, 0)
+		category         = point.Logging
+		opts             = make([]point.Option, 0)
+		topicToSpilt, ok = mq.SpiltTopicsMap[topic]
+	)
 	if mq.feeder == nil {
 		err = fmt.Errorf("feeder is nil,return")
 		log.Warn(err)
 		return err
 	}
-	topic := msg.Topic
-	msgs := make([]string, 0)
-	category := point.Logging
-	opts := make([]point.Option, 0)
-	if mq.SpiltBody {
+	if !ok {
+		topicToSpilt = mq.SpiltBody
+	}
+	if topicToSpilt {
 		is := make([]interface{}, 0)
 		err := json.Unmarshal(msg.Value, &is)
 		if err != nil {

@@ -287,6 +287,10 @@ func (ipt *Input) getPts(data []datakit.SSHData) ([]*point.Point, error) {
 			tags["host"] = v.Server
 		}
 
+		for k, v := range ipt.Tags {
+			tags[k] = v
+		}
+
 		pt := point.NewPointV2([]byte(metricName), append(point.NewTags(tags), point.NewKVs(fields)...), opts...)
 		pts = append(pts, pt)
 	}

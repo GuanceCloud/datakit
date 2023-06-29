@@ -36,6 +36,7 @@ func init() { //nolint:gochecknoinits
 	flag.BoolVar(&buildISP, "build-isp", false, "generate ISP data")
 
 	flag.BoolVar(&ut, "ut", false, "test all DataKit code")
+	flag.BoolVar(&it, "it", false, "test only DataKit integration testing code")
 	flag.StringVar(&build.UTExclude, "ut-exclude", "", "exclude packages for testing")
 
 	flag.BoolVar(&downloadSamples, "download-samples", false, "download samples from OSS to samples/")
@@ -50,6 +51,7 @@ var (
 	pkgeBPF       = false
 	buildISP      = false
 	ut            = false
+	it            = false
 	raceDetection = "off"
 	dwURL         = "not-set"
 
@@ -76,6 +78,14 @@ func applyFlags() {
 	}
 
 	l.Infof("download-cdn: %s", build.DownloadCDN)
+
+	if it {
+		if err := build.IntegrationTestingDataKit(); err != nil {
+			l.Errorf("build.IntegrationTestingDataKit: %s", err)
+			os.Exit(-1)
+		}
+		return
+	}
 
 	if ut {
 		testutils.DatawayURL = dwURL

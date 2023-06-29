@@ -15,12 +15,12 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
+	pt "github.com/GuanceCloud/cliutils/point"
 	dt "github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
@@ -40,6 +40,23 @@ type (
 	serviceOKFunc    func(t *testing.T, port int) bool
 )
 
+var collectPointsCache []*pt.Point = make([]*point.Point, 0)
+
+type mockSender struct {
+	mu sync.Mutex
+}
+
+func (m *mockSender) send(url string, point *pt.Point) error {
+	m.mu.Lock()
+	collectPointsCache = append(collectPointsCache, point)
+	m.mu.Unlock()
+	return nil
+}
+
+func (m *mockSender) checkToken(token, scheme, host string) (bool, error) {
+	return true, nil
+}
+
 type caseSpec struct {
 	t *testing.T
 
@@ -54,7 +71,6 @@ type caseSpec struct {
 	bindingPort  docker.Port
 
 	ipt           *Input
-	feeder        *io.MockedFeeder
 	collectPoints func(*caseSpec) []*point.Point
 
 	pool     *dt.Pool
@@ -247,9 +263,6 @@ func (cs *caseSpec) run() error {
 		return err
 	}
 
-	cs.feeder = io.NewMockedFeeder()
-	cs.ipt.feeder = cs.feeder
-
 	if cs.serviceReady != nil {
 		if err := cs.serviceReady(cs.ipt); err != nil {
 			return err
@@ -275,10 +288,7 @@ func (cs *caseSpec) run() error {
 	if cs.collectPoints != nil {
 		ps = cs.collectPoints(cs)
 	} else {
-		ps, err = cs.feeder.AnyPoints()
-		if err != nil {
-			return err
-		}
+		ps = collectPointsCache
 	}
 
 	cs.cr.AddField("point_latency", int64(time.Since(start)))
@@ -341,15 +351,9 @@ func buildCases(t *testing.T, configs []caseItem) ([]*caseSpec, error) {
 				collectPoints: func(cs *caseSpec) []*point.Point {
 					ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 					defer cancel()
-					pts := make([]*point.Point, 0)
+					pts := collectPointsCache
 				outer:
 					for {
-						if ps, err := cs.feeder.AnyPoints(); err != nil {
-							continue
-						} else {
-							pts = append(pts, ps...)
-						}
-
 						if len(pts) >= 4 {
 							break
 						}
@@ -360,6 +364,7 @@ func buildCases(t *testing.T, configs []caseItem) ([]*caseSpec, error) {
 						default:
 						}
 					}
+					collectPointsCache = collectPointsCache[:0]
 					return pts
 				},
 			}
@@ -487,6 +492,10 @@ func TestInput(t *testing.T) {
 
 		_ = testutils.Flush(cr)
 		return
+	}
+
+	dialWorker = &worker{
+		sender: &mockSender{},
 	}
 
 	t.Logf("testing %d cases...", len(cases))

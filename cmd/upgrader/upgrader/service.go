@@ -509,14 +509,18 @@ func getGinLog() io.Writer {
 	if Cfg.Logging.GinLog == "stdout" {
 		return os.Stdout
 	}
-	rotate := 32
+	rotate := logger.MaxSize
 	if Cfg.Logging.Rotate > 0 {
-		rotate = config.Cfg.Logging.Rotate
+		rotate = Cfg.Logging.Rotate
+	}
+	rotateBackups := logger.MaxBackups
+	if Cfg.Logging.RotateBackups > 0 {
+		rotateBackups = Cfg.Logging.RotateBackups
 	}
 	return &lumberjack.Logger{
 		Filename:   Cfg.Logging.GinLog,
 		MaxSize:    rotate, // MB
-		MaxBackups: 5,
+		MaxBackups: rotateBackups,
 		MaxAge:     30, // day
 	}
 }
@@ -525,15 +529,19 @@ func getGinErrLogger() io.Writer {
 	if Cfg.Logging.GinErrLog == "stderr" {
 		return os.Stderr
 	}
-	rotate := 32
+	rotate := logger.MaxSize
 	if Cfg.Logging.Rotate > 0 {
-		rotate = config.Cfg.Logging.Rotate
+		rotate = Cfg.Logging.Rotate
+	}
+	rotateBackups := logger.MaxBackups
+	if Cfg.Logging.RotateBackups > 0 {
+		rotateBackups = Cfg.Logging.RotateBackups
 	}
 
 	return &lumberjack.Logger{
 		Filename:   Cfg.Logging.GinErrLog,
 		MaxSize:    rotate, // MB
-		MaxBackups: 5,
+		MaxBackups: rotateBackups,
 		MaxAge:     30, // day
 	}
 }

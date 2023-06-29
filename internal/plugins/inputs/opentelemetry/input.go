@@ -15,10 +15,13 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
@@ -105,10 +108,10 @@ const (
    metric_enable = true
    addr = "127.0.0.1:4317"
 
-  ## If 'expectedHeaders' is well configed, then the obligation of sending certain wanted HTTP headers is on the client side,
+  ## If 'expected_headers' is well configed, then the obligation of sending certain wanted HTTP headers is on the client side,
   ## otherwise HTTP status code 400(bad request) will be provoked.
-  ## Note: expectedHeaders will be effected on both trace and metrics if setted up.
-  # [inputs.opentelemetry.expectedHeaders]
+  ## Note: expected_headers will be effected on both trace and metrics if setted up.
+  # [inputs.opentelemetry.expected_headers]
   # ex_version = "1.2.3"
   # ex_name = "env_resource_name"
   # ...
@@ -143,7 +146,7 @@ type Input struct {
 	Pipelines           map[string]string            `toml:"pipelines"` // deprecated
 	HTTPConfig          *httpConfig                  `toml:"http"`
 	GRPCConfig          *grpcConfig                  `toml:"grpc"`
-	ExpectedHeaders     map[string]string            `toml:"expectedHeaders"`
+	ExpectedHeaders     map[string]string            `toml:"expected_headers"`
 	IgnoreAttributeKeys []string                     `toml:"ignore_attribute_keys"`
 	KeepRareResource    bool                         `toml:"keep_rare_resource"`
 	CloseResource       map[string][]string          `toml:"close_resource"`
@@ -152,6 +155,10 @@ type Input struct {
 	Tags                map[string]string            `toml:"tags"`
 	WPConfig            *workerpool.WorkerPoolConfig `toml:"threads"`
 	LocalCacheConfig    *storage.StorageConfig       `toml:"storage"`
+
+	feeder  dkio.Feeder
+	opt     point.Option
+	semStop *cliutils.Sem // start stop signal
 }
 
 func (*Input) Catalog() string { return inputName }
@@ -220,9 +227,15 @@ func (ipt *Input) RegHTTPHandler() {
 
 	var afterGather *itrace.AfterGather
 	if localCache != nil && localCache.Enabled() {
-		afterGather = itrace.NewAfterGather(itrace.WithLogger(log), itrace.WithRetry(100*time.Millisecond), itrace.WithBlockIOModel(true))
+		afterGather = itrace.NewAfterGather(
+			itrace.WithLogger(log),
+			itrace.WithRetry(100*time.Millisecond),
+			itrace.WithBlockIOModel(true),
+			itrace.WithInputOption(ipt.opt),
+			itrace.WithFeeder(ipt.feeder),
+		)
 	} else {
-		afterGather = itrace.NewAfterGather(itrace.WithLogger(log))
+		afterGather = itrace.NewAfterGather(itrace.WithLogger(log), itrace.WithInputOption(ipt.opt), itrace.WithFeeder(ipt.feeder))
 	}
 	afterGatherRun = afterGather
 
@@ -297,11 +310,19 @@ func (ipt *Input) Run() {
 
 	log.Debugf("### %s agent is running...", inputName)
 
-	<-datakit.Exit.Wait()
-	ipt.Terminate()
+	select {
+	case <-datakit.Exit.Wait():
+		ipt.exit()
+		log.Info("opentelemetry exit")
+		return
+	case <-ipt.semStop.Wait():
+		ipt.exit()
+		log.Info("opentelemetry return")
+		return
+	}
 }
 
-func (ipt *Input) Terminate() {
+func (ipt *Input) exit() {
 	if wkpool != nil {
 		wkpool.Shutdown()
 		log.Info("### workerpool closed")
@@ -317,8 +338,21 @@ func (ipt *Input) Terminate() {
 	}
 }
 
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+	}
+}
+
+func defaultInput() *Input {
+	return &Input{
+		feeder:  dkio.DefaultFeeder(),
+		semStop: cliutils.NewSem(),
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{}
+		return defaultInput()
 	})
 }

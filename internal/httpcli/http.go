@@ -37,9 +37,7 @@ type Options struct {
 	ExpectContinueTimeout time.Duration
 	ProxyURL              *url.URL
 	DialContext           dnet.DialFunc
-
-	InsecureSkipVerify bool
-	TLSClientConfig    *tls.Config
+	TLSClientConfig       *tls.Config
 }
 
 func NewOptions() *Options {
@@ -52,7 +50,6 @@ func NewOptions() *Options {
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: time.Second,
 		DialContext:           nil,
-		TLSClientConfig:       &tls.Config{}, //nolint:gosec
 	}
 }
 
@@ -95,9 +92,6 @@ func newCliTransport(opt *Options) *http.Transport {
 
 	if opt.TLSClientConfig != nil {
 		tlsConfig = opt.TLSClientConfig.Clone()
-		tlsConfig.InsecureSkipVerify = opt.InsecureSkipVerify
-	} else {
-		tlsConfig = &tls.Config{InsecureSkipVerify: opt.InsecureSkipVerify} //nolint:gosec
 	}
 
 	return &http.Transport{
@@ -143,15 +137,16 @@ func newCliTransport(opt *Options) *http.Transport {
 }
 
 func Cli(opt *Options) *http.Client {
-	if opt == nil {
-		return &http.Client{
-			Transport: DefTransport(),
-		}
-	}
-
 	return &http.Client{
-		Transport: newCliTransport(opt),
+		Transport: Transport(opt),
 	}
+}
+
+func Transport(opt *Options) *http.Transport {
+	if opt == nil {
+		return DefTransport()
+	}
+	return newCliTransport(opt)
 }
 
 func RemoteAddr(req *http.Request) (ip, port string) {

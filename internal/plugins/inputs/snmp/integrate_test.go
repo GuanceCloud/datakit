@@ -30,7 +30,7 @@ import (
 
 // ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
 
-func TestSNMPInput(t *testing.T) {
+func TestIntegrate(t *testing.T) {
 	if !testutils.CheckIntegrationTestingRunning() {
 		t.Skip()
 	}
@@ -81,7 +81,7 @@ func TestSNMPInput(t *testing.T) {
 						return
 					}
 
-					require.NoError(t, tc.pool.Purge(tc.resource))
+					tc.pool.Purge(tc.resource)
 				})
 			})
 		}(tc)
@@ -251,7 +251,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			cs.mCount[snmpmeasurement.SNMPMetricName] = struct{}{}
 
 		default: // TODO: check other measurement
-			panic("not implement")
+			panic("unknown measurement")
 		}
 
 		// check if tag appended

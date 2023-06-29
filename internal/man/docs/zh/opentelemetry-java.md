@@ -48,6 +48,7 @@
 ```shell
 export JAVA_OPTS="-javaagent:PATH/TO/opentelemetry-javaagent.jar"
 export OTEL_TRACES_EXPORTER=otlp
+export OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4317"
 ```
 
 - 命令行启动
@@ -68,7 +69,7 @@ cd bin
 vim catalina.sh
 
 # 添加在第二行
-CATALINA_OPTS="$CATALINA_OPTS -javaagent:PATH/TO/opentelemetry-javaagent.jar -Dotel.traces.exporter=otlp"; export CATALINA_OPTS
+CATALINA_OPTS="$CATALINA_OPTS -javaagent:PATH/TO/opentelemetry-javaagent.jar -Dotel.traces.exporter=otlp -Dotel.exporter.otlp.endpoint=http://localhost:4317"; export CATALINA_OPTS
 
 # 重启 Tomcat
 ```

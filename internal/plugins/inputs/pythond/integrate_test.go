@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -24,7 +25,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
@@ -32,7 +33,7 @@ import (
 
 // ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
 
-func TestPythondInput(t *testing.T) {
+func TestIntegrate(t *testing.T) {
 	if !testutils.CheckIntegrationTestingRunning() {
 		t.Skip()
 	}
@@ -75,7 +76,7 @@ func TestPythondInput(t *testing.T) {
 
 				tc.cr.Cost = time.Since(caseStart)
 
-				assert.NoError(t, testutils.Flush(tc.cr))
+				require.NoError(t, testutils.Flush(tc.cr))
 
 				t.Cleanup(func() {
 					// clean remote docker resources
@@ -83,7 +84,7 @@ func TestPythondInput(t *testing.T) {
 						return
 					}
 
-					assert.NoError(t, tc.pool.Purge(tc.resource))
+					tc.pool.Purge(tc.resource)
 				})
 			})
 		}(tc)
@@ -117,7 +118,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		ipt.feeder = feeder
 
 		_, err := toml.Decode(base.conf, ipt)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		repoTag := strings.Split(base.name, ":")
 
@@ -164,6 +165,8 @@ type caseSpec struct {
 	exposedPorts   []string
 	opts           []inputs.PointCheckOption
 
+	done chan struct{}
+
 	ipt    *Input
 	feeder *dkio.MockedFeeder
 
@@ -174,7 +177,6 @@ type caseSpec struct {
 }
 
 var (
-	done      chan struct{}
 	lock      sync.RWMutex
 	errorMsgs []string
 	count     uint32
@@ -295,7 +297,17 @@ func (cs *caseSpec) handler(c *gin.Context) {
 	val := atomic.LoadUint32(&count)
 	if val == 7 {
 		atomic.SwapUint32(&count, 0)
-		done <- struct{}{}
+		cs.done <- struct{}{}
+	}
+}
+
+func createListener() (net.Listener, func()) {
+	l, err := net.Listen("tcp", ":0")
+	if err != nil {
+		panic(err)
+	}
+	return l, func() {
+		_ = l.Close()
 	}
 }
 
@@ -305,7 +317,8 @@ func (cs *caseSpec) run() error {
 
 	cs.t.Logf("get remote: %+#v, TCP: %s", r, dockerTCP)
 
-	router := gin.New()
+	gin.SetMode(gin.DebugMode)
+	router := gin.Default()
 	router.POST("/v1/write/metrics", cs.handler)
 	router.POST("/v1/write/metric", cs.handler)
 	router.POST("/v1/write/network", cs.handler)
@@ -318,17 +331,23 @@ func (cs *caseSpec) run() error {
 	router.POST("/v1/write/security", cs.handler)
 	router.POST("/v1/write/profiling", cs.handler)
 
-	randPort := testutils.RandPort("tcp")
+	cs.done = make(chan struct{})
 
+	lsn, closeFunc := createListener()
+	defer closeFunc()
+	_, port, err := net.SplitHostPort(lsn.Addr().String())
+	if err != nil {
+		return fmt.Errorf("SplitHostPort failed: %s" + err.Error())
+	}
 	srv := &http.Server{
-		Addr:    fmt.Sprintf(":%d", randPort),
+		Addr:    ":" + port,
 		Handler: router,
 	}
+	fmt.Println("listening port " + port + "...")
 
 	go func() {
-		done = nil
-		done = make(chan struct{})
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := srv.Serve(lsn); err != nil && err != http.ErrServerClosed {
+			fmt.Printf("Serve failed: %v", err)
 			panic(err)
 		}
 	}()
@@ -363,7 +382,7 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), fmt.Sprintf("DATAKIT_PORT=%d", randPort)},
+				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), "DATAKIT_PORT=" + port},
 
 				ExposedPorts: cs.exposedPorts,
 				PortBindings: cs.getPortBindings(),
@@ -385,7 +404,7 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), fmt.Sprintf("DATAKIT_PORT=%d", randPort)},
+				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), "DATAKIT_PORT=" + port},
 
 				ExposedPorts: cs.exposedPorts,
 				PortBindings: cs.getPortBindings(),
@@ -415,18 +434,11 @@ func (cs *caseSpec) run() error {
 	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
 
 	tick := time.NewTicker(time.Minute)
-	out := false
-	for {
-		if out {
-			break
-		}
-
-		select {
-		case <-tick.C:
-			out = true
-		case <-done:
-			out = true
-		}
+	select {
+	case <-tick.C:
+		panic("pythond timeout!")
+	case <-cs.done:
+		fmt.Println("pythond done!")
 	}
 
 	if len(errorMsgs) > 0 {

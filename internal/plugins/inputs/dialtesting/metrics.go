@@ -12,12 +12,17 @@ import (
 )
 
 var (
-	taskGauge               *prometheus.GaugeVec
-	taskPullCostSummary     *prometheus.SummaryVec
-	taskSynchronizedCounter *prometheus.CounterVec
-	taskCheckCostSummary    *prometheus.SummaryVec
-	taskRunCostSummary      *prometheus.SummaryVec
-	taskInvalidCounter      *prometheus.CounterVec
+	taskGauge                  *prometheus.GaugeVec
+	taskDatawaySendFailedGauge *prometheus.GaugeVec
+	taskPullCostSummary        *prometheus.SummaryVec
+	taskSynchronizedCounter    *prometheus.CounterVec
+	taskCheckCostSummary       *prometheus.SummaryVec
+	taskRunCostSummary         *prometheus.SummaryVec
+	taskInvalidCounter         *prometheus.CounterVec
+
+	workerJobChanGauge     *prometheus.GaugeVec
+	workerCachePointsGauge *prometheus.GaugeVec
+	workerSendPointsGauge  *prometheus.GaugeVec
 )
 
 func metricsSetup() {
@@ -29,6 +34,16 @@ func metricsSetup() {
 			Help:      "The number of tasks",
 		},
 		[]string{"region", "protocol"},
+	)
+
+	taskDatawaySendFailedGauge = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "datakit",
+			Subsystem: "dialtesting",
+			Name:      "dataway_send_failed_number",
+			Help:      "The number of failed sending for each dataway",
+		},
+		[]string{"region", "protocol", "dataway"},
 	)
 
 	taskPullCostSummary = prometheus.NewSummaryVec(
@@ -80,6 +95,36 @@ func metricsSetup() {
 		},
 		[]string{"region", "protocol"},
 	)
+
+	workerJobChanGauge = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "datakit",
+			Subsystem: "dialtesting",
+			Name:      "worker_job_chan_number",
+			Help:      "The number of the chan for the jobs",
+		},
+		[]string{"type"},
+	)
+
+	workerCachePointsGauge = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "datakit",
+			Subsystem: "dialtesting",
+			Name:      "worker_cached_points_number",
+			Help:      "The number of cached points",
+		},
+		[]string{"region", "protocol"},
+	)
+
+	workerSendPointsGauge = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "datakit",
+			Subsystem: "dialtesting",
+			Name:      "worker_send_points_number",
+			Help:      "The number of the points which have been sent",
+		},
+		[]string{"region", "protocol", "status"},
+	)
 }
 
 //nolint:gochecknoinits
@@ -87,10 +132,14 @@ func init() {
 	metricsSetup()
 	metrics.MustRegister([]prometheus.Collector{
 		taskGauge,
+		taskDatawaySendFailedGauge,
 		taskSynchronizedCounter,
 		taskPullCostSummary,
 		taskCheckCostSummary,
 		taskRunCostSummary,
 		taskInvalidCounter,
+		workerCachePointsGauge,
+		workerJobChanGauge,
+		workerSendPointsGauge,
 	}...)
 }

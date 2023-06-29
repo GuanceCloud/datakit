@@ -17,7 +17,7 @@ import (
 func LoadJSONChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 1 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
-			"func %s expected 1", funcExpr.Name), funcExpr.NamePos)
+			"func %s expects 1 arg", funcExpr.Name), funcExpr.NamePos)
 	}
 	return nil
 }
@@ -35,7 +35,8 @@ func LoadJSON(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 	}
 	errJ := json.Unmarshal([]byte(val.(string)), &m)
 	if errJ != nil {
-		return runtime.NewRunError(ctx, errJ.Error(), funcExpr.Param[0].StartPos())
+		ctx.Regs.ReturnAppend(nil, ast.Nil)
+		return nil
 	}
 	m, dtype = ast.DectDataType(m)
 

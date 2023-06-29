@@ -72,7 +72,7 @@ Example 3:
 #    ]
     
 # script:
-json(_, [0].nets[-1])
+json(_, .[0].nets[-1])
 ```
 
 Example 4:

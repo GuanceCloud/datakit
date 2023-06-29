@@ -23,18 +23,73 @@ Already tested version:
 
 - Create a monitoring account
 
+If you wish to monitor only a single PDB or non-CDB instance, a local user is sufficient:
+
 ```sql
 -- Create the datakit user. Replace the password placeholder with a secure password.
 CREATE USER datakit IDENTIFIED BY <PASSWORD>;
 
 -- Grant access to the datakit user.
-GRANT CONNECT TO datakit;
-GRANT SELECT ON GV_$PROCESS TO datakit;
-GRANT SELECT ON gv_$sysmetric TO datakit;
-GRANT SELECT ON sys.dba_data_files TO datakit;
-GRANT SELECT ON sys.dba_tablespaces TO datakit;
-GRANT SELECT ON sys.dba_tablespace_usage_metrics TO datakit;
+GRANT CONNECT, CREATE SESSION TO datakit;
+GRANT SELECT_CATALOG_ROLE to datakit;
+GRANT SELECT ON DBA_TABLESPACE_USAGE_METRICS TO datakit;
+GRANT SELECT ON DBA_TABLESPACES TO datakit;
+GRANT SELECT ON DBA_USERS TO datakit;
+GRANT SELECT ON SYS.DBA_DATA_FILES TO datakit;
+GRANT SELECT ON V_$ACTIVE_SESSION_HISTORY TO datakit;
+GRANT SELECT ON V_$ARCHIVE_DEST TO datakit;
+GRANT SELECT ON V_$ASM_DISKGROUP TO datakit;
+GRANT SELECT ON V_$DATABASE TO datakit;
+GRANT SELECT ON V_$DATAFILE TO datakit;
+GRANT SELECT ON V_$INSTANCE TO datakit;
+GRANT SELECT ON V_$LOG TO datakit;
+GRANT SELECT ON V_$OSSTAT TO datakit;
+GRANT SELECT ON V_$PGASTAT TO datakit;
+GRANT SELECT ON V_$PROCESS TO datakit;
+GRANT SELECT ON V_$RECOVERY_FILE_DEST TO datakit;
+GRANT SELECT ON V_$RESTORE_POINT TO datakit;
+GRANT SELECT ON V_$SESSION TO datakit;
+GRANT SELECT ON V_$SGASTAT TO datakit;
+GRANT SELECT ON V_$SYSMETRIC TO datakit;
+GRANT SELECT ON V_$SYSTEM_PARAMETER TO datakit;
 ```
+
+In CDB installations it is possible to monitor tablespaces from CDB (container database) and all PDBs (pluggable databases). In such case, a common user is needed with the correct rights:
+
+```sql
+-- Create the datakit user. Replace the password placeholder with a secure password.
+CREATE USER datakit IDENTIFIED BY <PASSWORD>;
+
+-- Grant access to the datakit user.
+ALTER USER datakit SET CONTAINER_DATA=ALL CONTAINER=CURRENT;
+GRANT CONNECT, CREATE SESSION TO datakit;
+GRANT SELECT_CATALOG_ROLE to datakit;
+GRANT SELECT ON v_$instance TO datakit;
+GRANT SELECT ON v_$database TO datakit;
+GRANT SELECT ON v_$sysmetric TO datakit;
+GRANT SELECT ON v_$system_parameter TO datakit;
+GRANT SELECT ON v_$session TO datakit;
+GRANT SELECT ON v_$recovery_file_dest TO datakit;
+GRANT SELECT ON v_$active_session_history TO datakit;
+GRANT SELECT ON v_$osstat TO datakit;
+GRANT SELECT ON v_$restore_point TO datakit;
+GRANT SELECT ON v_$process TO datakit;
+GRANT SELECT ON v_$datafile TO datakit;
+GRANT SELECT ON v_$pgastat TO datakit;
+GRANT SELECT ON v_$sgastat TO datakit;
+GRANT SELECT ON v_$log TO datakit;
+GRANT SELECT ON v_$archive_dest TO datakit;
+GRANT SELECT ON v_$asm_diskgroup TO datakit;
+GRANT SELECT ON sys.dba_data_files TO datakit;
+GRANT SELECT ON DBA_TABLESPACES TO datakit;
+GRANT SELECT ON DBA_TABLESPACE_USAGE_METRICS TO datakit;
+GRANT SELECT ON DBA_USERS TO datakit;
+```
+
+???+ attention
+
+    Some of the SQL above may lead to non-existent failure due to diverse Oracle version, just ignore it.
+
 
 - Assemble dependency package
 
@@ -141,4 +196,4 @@ This means that the Oracle collector can only run on amd64 (X86) Linux, and no o
 
 ### Why can't see `oracle_system` measurements? {#faq-no-system}
 
-It is version related. Earlier version than `12c`, it needs to taking a few minutes to see them after the database system starting up.
+It needs to taking 1 minute to see them after the database system starting up.

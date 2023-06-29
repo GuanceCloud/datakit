@@ -110,7 +110,7 @@ func LoadCfg(c *Config, mcp string) error {
 	l.Infof("init %d default plugins...", len(c.DefaultEnabledInputs))
 	initDefaultEnabledPlugins(c)
 
-	loadInputsConfFromDirs(getConfRootPaths())
+	loadInputsConfFromDirs(getConfRootPaths(), c.DefaultEnabledInputs)
 
 	return nil
 }

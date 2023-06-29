@@ -11,6 +11,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
 	"github.com/uber/jaeger-client-go/thrift"
 	"github.com/uber/jaeger-client-go/thrift-gen/agent"
 	"github.com/uber/jaeger-client-go/utils"
@@ -18,14 +19,17 @@ import (
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
-func StartUDPAgent(addr string) error {
-	udpAddr, err := net.ResolveUDPAddr("udp", addr)
-	if err != nil {
-		return err
-	}
-	udpConn, err := net.ListenUDP("udp", udpAddr)
-	if err != nil {
-		return err
+func StartUDPAgent(udpConn *net.UDPConn, addr string, semStop *cliutils.Sem) error {
+	if udpConn == nil {
+		udpAddr, err := net.ResolveUDPAddr("udp", addr)
+		if err != nil {
+			return err
+		}
+
+		udpConn, err = net.ListenUDP("udp", udpAddr)
+		if err != nil {
+			return err
+		}
 	}
 
 	log.Debugf("%s(UDP): listen on path: %s", inputName, addr)
@@ -35,12 +39,15 @@ func StartUDPAgent(addr string) error {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			if err := udpConn.Close(); err != nil {
-				log.Warnf("Close: %s", err)
-			}
-			log.Infof("jaeger udp agent closed")
-
+			udpExit(udpConn)
+			log.Infof("jaeger udp agent exited")
 			return nil
+
+		case <-semStop.Wait():
+			udpExit(udpConn)
+			log.Infof("jaeger udp agent returned")
+			return nil
+
 		default:
 		}
 
@@ -64,6 +71,12 @@ func StartUDPAgent(addr string) error {
 		if err = parseJaegerTraceUDP(param); err != nil {
 			log.Errorf("### parse jaeger trace from UDP failed: %s", err.Error())
 		}
+	}
+}
+
+func udpExit(udpConn *net.UDPConn) {
+	if err := udpConn.Close(); err != nil {
+		log.Warnf("UDP Close failed: %v", err)
 	}
 }
 

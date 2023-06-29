@@ -16,10 +16,7 @@ import (
 
 	dt "github.com/GuanceCloud/cliutils/dialtesting"
 	_ "github.com/go-ping/ping"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -38,8 +35,9 @@ type dialer struct {
 	category   string
 	regionName string
 
-	feeder          io.Feeder
 	measurementInfo *inputs.MeasurementInfo
+
+	seqNumber int64 // the number of test has been executed
 
 	failCnt int
 	done    <-chan interface{}
@@ -62,7 +60,7 @@ func (d *dialer) stop() {
 	}
 }
 
-func newDialer(t dt.Task, feeder io.Feeder, ts map[string]string) *dialer {
+func newDialer(t dt.Task, ts map[string]string) *dialer {
 	var info *inputs.MeasurementInfo
 	switch t.Class() {
 	case dt.ClassHTTP:
@@ -79,7 +77,6 @@ func newDialer(t dt.Task, feeder io.Feeder, ts map[string]string) *dialer {
 		task:            t,
 		updateCh:        make(chan dt.Task),
 		initTime:        time.Now(),
-		feeder:          feeder,
 		tags:            ts,
 		measurementInfo: info,
 		class:           t.Class(),
@@ -88,12 +85,13 @@ func newDialer(t dt.Task, feeder io.Feeder, ts map[string]string) *dialer {
 
 func (d *dialer) getSendFailCount() int {
 	if d.category != "" {
-		return dataway.GetDTFailInfo(d.category)
+		return dialWorker.getFailCount(d.category)
 	}
 	return 0
 }
 
 func (d *dialer) run() error {
+	var maskURL string
 	d.ticker = d.task.Ticker()
 
 	taskGauge.WithLabelValues(d.regionName, d.class).Inc()
@@ -115,7 +113,8 @@ func (d *dialer) run() error {
 		if tokens, ok := params["token"]; ok {
 			// check token
 			if len(tokens) >= 1 {
-				if isValid, err := config.Cfg.Dataway.CheckToken(tokens[0], parts.Scheme, parts.Host); err != nil {
+				maskURL = getMaskURL(parts.String())
+				if isValid, err := dialWorker.sender.checkToken(tokens[0], parts.Scheme, parts.Host); err != nil {
 					l.Warnf("check token error: %s", err.Error())
 				} else if !isValid {
 					taskInvalidCounter.WithLabelValues(d.regionName, d.class, "invalid_token").Inc()
@@ -133,6 +132,10 @@ func (d *dialer) run() error {
 
 	for {
 		failCount := d.getSendFailCount()
+		if failCount > 0 {
+			taskDatawaySendFailedGauge.WithLabelValues(d.regionName, d.class, maskURL).Set(float64(failCount))
+		}
+
 		if failCount > MaxSendFailCount {
 			taskInvalidCounter.WithLabelValues(d.regionName, d.class, "exceed_max_failure_count").Inc()
 			l.Warnf("dial testing %s send data failed %d times", d.task.ID(), failCount)
@@ -152,7 +155,6 @@ func (d *dialer) run() error {
 		}
 
 		// dialtesting start
-		// 无论成功或失败，都要记录测试结果
 		err := d.feedIO()
 		if err != nil {
 			l.Warnf("io feed failed, %s", err.Error())
@@ -194,7 +196,7 @@ func (d *dialer) feedIO() error {
 	switch d.task.Class() {
 	case dt.ClassHTTP, dt.ClassTCP, dt.ClassICMP, dt.ClassWebsocket:
 		d.category = urlStr
-		return d.pointsFeed(urlStr)
+		d.pointsFeed(urlStr)
 	case dt.ClassHeadless:
 		return fmt.Errorf("headless task deprecated")
 	default:

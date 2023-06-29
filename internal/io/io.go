@@ -150,7 +150,7 @@ func (x *dkIO) start() {
 				flushWorkersVec.WithLabelValues(c.String()).Set(float64(nworker))
 			default:
 				fn(c, 1)
-				flushWorkersVec.WithLabelValues(c.String()).Set(1.0)
+				flushWorkersVec.WithLabelValues(c.String()).Set(1)
 			}
 		}
 	}

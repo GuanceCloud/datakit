@@ -9,10 +9,11 @@ package pinpoint
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 
-	v1 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/pinpoint/compiled/v1"
+	ppv1 "github.com/GuanceCloud/tracing-protos/pinpoint-gen-go/v1"
 	istorage "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"google.golang.org/grpc"
@@ -24,7 +25,7 @@ import (
 func runGRPCV1(addr string) {
 	if localCache != nil {
 		localCache.RegisterConsumer(istorage.PINPOINT_GRPC_KEY, func(buf []byte) error {
-			spanw := &v1.PSpanWrapper{}
+			spanw := &ppv1.PSpanMessageWithMeta{}
 			if err := proto.Unmarshal(buf, spanw); err != nil {
 				return err
 			}
@@ -50,11 +51,11 @@ func runGRPCV1(addr string) {
 	log.Debugf("### grpc server v1 listening on: %s", addr)
 
 	gsvr = grpc.NewServer()
-	v1.RegisterAgentServer(gsvr, &AgentServer{})
-	v1.RegisterMetadataServer(gsvr, &MetadataServer{})
-	v1.RegisterProfilerCommandServiceServer(gsvr, &ProfilerCommandServiceServer{})
-	v1.RegisterStatServer(gsvr, &StatServer{})
-	v1.RegisterSpanServer(gsvr, &SpanServer{})
+	ppv1.RegisterAgentServer(gsvr, &AgentServer{})
+	ppv1.RegisterMetadataServer(gsvr, &MetadataServer{})
+	ppv1.RegisterProfilerCommandServiceServer(gsvr, &ProfilerCommandServiceServer{})
+	ppv1.RegisterStatServer(gsvr, &StatServer{})
+	ppv1.RegisterSpanServer(gsvr, &SpanServer{})
 
 	if err = gsvr.Serve(listener); err != nil {
 		log.Error(err.Error())
@@ -82,14 +83,14 @@ type AgentMetaData struct {
 	VMArg        []string
 	ServiceInfo  []*ServiceInfo
 	Version      int32
-	GcType       v1.PJvmGcType
+	GcType       ppv1.PJvmGcType
 }
 
 type AgentServer struct {
-	v1.UnimplementedAgentServer
+	ppv1.UnimplementedAgentServer
 }
 
-func (agtsvr *AgentServer) RequestAgentInfo(ctx context.Context, agInfo *v1.PAgentInfo) (*v1.PResult, error) {
+func (agtsvr *AgentServer) RequestAgentInfo(ctx context.Context, agInfo *ppv1.PAgentInfo) (*ppv1.PResult, error) {
 	agentMetaData.Hostname = agInfo.Hostname
 	agentMetaData.IP = agInfo.Ip
 	agentMetaData.Ports = agInfo.Ports
@@ -113,10 +114,10 @@ func (agtsvr *AgentServer) RequestAgentInfo(ctx context.Context, agInfo *v1.PAge
 
 	log.Debugf("### agent meta: %s", agInfo.String())
 
-	return &v1.PResult{Success: true, Message: "ok"}, nil
+	return &ppv1.PResult{Success: true, Message: "ok"}, nil
 }
 
-func (agtsvr *AgentServer) PingSession(ping v1.Agent_PingSessionServer) error {
+func (agtsvr *AgentServer) PingSession(ping ppv1.Agent_PingSessionServer) error {
 	msg, err := ping.Recv()
 	if err != nil {
 		log.Error(err.Error())
@@ -127,39 +128,55 @@ func (agtsvr *AgentServer) PingSession(ping v1.Agent_PingSessionServer) error {
 	return ping.SendMsg(msg)
 }
 
+type reqtype string
+
+const (
+	reqsql reqtype = "sql-request"
+	reqapi reqtype = "sql-api"
+	reqstr reqtype = "sql-string"
+)
+
+func concatReqID(req reqtype, id int32) string {
+	return fmt.Sprintf("%d:%s", id, req)
+}
+
+func newMetaData(id int32, meta interface{}) *requestMetaData {
+	return &requestMetaData{ID: id, Meta: meta}
+}
+
 type MetadataServer struct {
-	v1.UnimplementedMetadataServer
+	ppv1.UnimplementedMetadataServer
 }
 
-func (mdsvr *MetadataServer) RequestSqlMetaData(ctx context.Context, meta *v1.PSqlMetaData) (*v1.PResult, error) { // nolint: stylecheck
+func (mdsvr *MetadataServer) RequestSqlMetaData(ctx context.Context, meta *ppv1.PSqlMetaData) (*ppv1.PResult, error) { // nolint: stylecheck
 	if reqMetaTab != nil && meta != nil {
-		reqMetaTab.Store(meta.SqlId, v1.NewMetaData(meta.SqlId, meta))
+		reqMetaTab.Store(concatReqID(reqsql, meta.SqlId), newMetaData(meta.SqlId, meta))
 	}
 
-	return &v1.PResult{Success: true, Message: "ok"}, nil
+	return &ppv1.PResult{Success: true, Message: "ok"}, nil
 }
 
-func (mdsvr *MetadataServer) RequestApiMetaData(ctx context.Context, meta *v1.PApiMetaData) (*v1.PResult, error) { // nolint: stylecheck
+func (mdsvr *MetadataServer) RequestApiMetaData(ctx context.Context, meta *ppv1.PApiMetaData) (*ppv1.PResult, error) { // nolint: stylecheck
 	if reqMetaTab != nil && meta != nil {
-		reqMetaTab.Store(meta.ApiId, v1.NewMetaData(meta.ApiId, meta))
+		reqMetaTab.Store(concatReqID(reqapi, meta.ApiId), newMetaData(meta.ApiId, meta))
 	}
 
-	return &v1.PResult{Success: true, Message: "ok"}, nil
+	return &ppv1.PResult{Success: true, Message: "ok"}, nil
 }
 
-func (mdsvr *MetadataServer) RequestStringMetaData(ctx context.Context, meta *v1.PStringMetaData) (*v1.PResult, error) {
+func (mdsvr *MetadataServer) RequestStringMetaData(ctx context.Context, meta *ppv1.PStringMetaData) (*ppv1.PResult, error) {
 	if reqMetaTab != nil && meta != nil {
-		reqMetaTab.Store(meta.StringId, v1.NewMetaData(meta.StringId, meta))
+		reqMetaTab.Store(concatReqID(reqstr, meta.StringId), newMetaData(meta.StringId, meta))
 	}
 
-	return &v1.PResult{Success: true, Message: "ok"}, nil
+	return &ppv1.PResult{Success: true, Message: "ok"}, nil
 }
 
 type ProfilerCommandServiceServer struct {
-	v1.UnimplementedProfilerCommandServiceServer
+	ppv1.UnimplementedProfilerCommandServiceServer
 }
 
-func (*ProfilerCommandServiceServer) HandleCommand(handler v1.ProfilerCommandService_HandleCommandServer) error {
+func (*ProfilerCommandServiceServer) HandleCommand(handler ppv1.ProfilerCommandService_HandleCommandServer) error {
 	if _, err := handler.Recv(); err != nil {
 		log.Error(err.Error())
 
@@ -169,7 +186,7 @@ func (*ProfilerCommandServiceServer) HandleCommand(handler v1.ProfilerCommandSer
 	return nil
 }
 
-func (*ProfilerCommandServiceServer) HandleCommandV2(handler v1.ProfilerCommandService_HandleCommandV2Server) error {
+func (*ProfilerCommandServiceServer) HandleCommandV2(handler ppv1.ProfilerCommandService_HandleCommandV2Server) error {
 	msg, err := handler.Recv()
 	if err != nil {
 		log.Error(err.Error())
@@ -181,13 +198,13 @@ func (*ProfilerCommandServiceServer) HandleCommandV2(handler v1.ProfilerCommandS
 	return nil
 }
 
-func (*ProfilerCommandServiceServer) CommandEcho(ctx context.Context, resp *v1.PCmdEchoResponse) (*emptypb.Empty, error) {
+func (*ProfilerCommandServiceServer) CommandEcho(ctx context.Context, resp *ppv1.PCmdEchoResponse) (*emptypb.Empty, error) {
 	log.Debugf("### profiler echo command %#v", resp)
 
 	return &emptypb.Empty{}, nil
 }
 
-func (*ProfilerCommandServiceServer) CommandStreamActiveThreadCount(stream v1.ProfilerCommandService_CommandStreamActiveThreadCountServer) error {
+func (*ProfilerCommandServiceServer) CommandStreamActiveThreadCount(stream ppv1.ProfilerCommandService_CommandStreamActiveThreadCountServer) error {
 	for {
 		resp, err := stream.Recv()
 		if err != nil {
@@ -203,7 +220,7 @@ func (*ProfilerCommandServiceServer) CommandStreamActiveThreadCount(stream v1.Pr
 	}
 }
 
-func (*ProfilerCommandServiceServer) CommandActiveThreadDump(ctx context.Context, resp *v1.PCmdActiveThreadDumpRes) (
+func (*ProfilerCommandServiceServer) CommandActiveThreadDump(ctx context.Context, resp *ppv1.PCmdActiveThreadDumpRes) (
 	*emptypb.Empty, error,
 ) {
 	log.Debugf("### profiler active thread dump command %#v", resp)
@@ -212,7 +229,7 @@ func (*ProfilerCommandServiceServer) CommandActiveThreadDump(ctx context.Context
 }
 
 func (pcss *ProfilerCommandServiceServer) CommandActiveThreadLightDump(ctx context.Context,
-	resp *v1.PCmdActiveThreadLightDumpRes,
+	resp *ppv1.PCmdActiveThreadLightDumpRes,
 ) (*emptypb.Empty, error) {
 	log.Debugf("### profiler active thread light dump command %#v", resp)
 
@@ -220,10 +237,10 @@ func (pcss *ProfilerCommandServiceServer) CommandActiveThreadLightDump(ctx conte
 }
 
 type StatServer struct {
-	v1.UnimplementedStatServer
+	ppv1.UnimplementedStatServer
 }
 
-func (*StatServer) SendAgentStat(statSvr v1.Stat_SendAgentStatServer) error {
+func (*StatServer) SendAgentStat(statSvr ppv1.Stat_SendAgentStatServer) error {
 	for {
 		msg, err := statSvr.Recv()
 		if err != nil {
@@ -240,10 +257,10 @@ func (*StatServer) SendAgentStat(statSvr v1.Stat_SendAgentStatServer) error {
 }
 
 type SpanServer struct {
-	v1.UnimplementedSpanServer
+	ppv1.UnimplementedSpanServer
 }
 
-func (*SpanServer) SendSpan(spanSvr v1.Span_SendSpanServer) error {
+func (*SpanServer) SendSpan(spanSvr ppv1.Span_SendSpanServer) error {
 	for {
 		md, _ := metadata.FromIncomingContext(spanSvr.Context())
 
@@ -268,9 +285,9 @@ func (*SpanServer) SendSpan(spanSvr v1.Span_SendSpanServer) error {
 				spanSender.Append(dktrace...)
 			}
 		} else {
-			spanw := &v1.PSpanWrapper{
-				Meta:        makePSpanMeta(md),
+			spanw := &ppv1.PSpanMessageWithMeta{
 				SpanMessage: msg,
+				Meta:        makePSpanMeta(md),
 			}
 			buf, err := proto.Marshal(spanw)
 			if err != nil {
@@ -285,12 +302,12 @@ func (*SpanServer) SendSpan(spanSvr v1.Span_SendSpanServer) error {
 	}
 }
 
-func parsePPSpanMessage(meta metadata.MD, msg *v1.PSpanMessage) (itrace.DatakitTrace, error) {
+func parsePPSpanMessage(meta metadata.MD, msg *ppv1.PSpanMessage) (itrace.DatakitTrace, error) {
 	var trace itrace.DatakitTrace
 	if ppspan := msg.GetSpan(); ppspan != nil {
-		trace = ppspan.ConvertToDKTrace(inputName, meta, reqMetaTab)
+		trace = ConvertPSpanToDKTrace(inputName, ppspan, meta, reqMetaTab)
 	} else if ppchunk := msg.GetSpanChunk(); ppchunk != nil {
-		trace = ppchunk.ConvertToDKTrace(inputName, meta, reqMetaTab)
+		trace = ConvertPSpanChunkToDKTrace(inputName, ppchunk, meta, reqMetaTab)
 	} else {
 		return nil, errors.New("### empty span message")
 	}
@@ -310,20 +327,20 @@ func parsePPSpanMessage(meta metadata.MD, msg *v1.PSpanMessage) (itrace.DatakitT
 	return trace, nil
 }
 
-func makePSpanMeta(md metadata.MD) map[string]*v1.StringSlice {
+func makePSpanMeta(md metadata.MD) map[string]*ppv1.StringSlice {
 	if len(md) == 0 {
 		return nil
 	}
 
-	spmd := make(map[string]*v1.StringSlice)
+	spmd := make(map[string]*ppv1.StringSlice)
 	for k, v := range md {
-		spmd[k] = &v1.StringSlice{Values: v}
+		spmd[k] = &ppv1.StringSlice{Values: v}
 	}
 
 	return spmd
 }
 
-func makeMeta(spmd map[string]*v1.StringSlice) metadata.MD {
+func makeMeta(spmd map[string]*ppv1.StringSlice) metadata.MD {
 	if len(spmd) == 0 {
 		return nil
 	}

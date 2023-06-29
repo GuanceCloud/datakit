@@ -286,7 +286,7 @@ url = "http://%s/metrics"
 	return cases, nil
 }
 
-func TestEtcdInput(t *T.T) {
+func TestIntegrate(t *T.T) {
 	if !testutils.CheckIntegrationTestingRunning() {
 		t.Skip()
 	}

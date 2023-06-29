@@ -188,14 +188,14 @@ func newEndpoint(urlstr string, opts ...endPointOption) (*endPoint, error) {
 	return ep, nil
 }
 
-func (ep *endPoint) setupHTTP() error {
+func (ep *endPoint) getHTTPCliOpts() *httpcli.Options {
 	dialContext, err := dnet.GetDNSCacheDialContext(defaultDNSCacheFreq, defaultDNSCacheLookUpTimeout)
 	if err != nil {
 		log.Warnf("GetDNSCacheDialContext failed: %v", err)
 		dialContext = nil // if failed, then not use dns cache.
 	}
 
-	cliopts := &httpcli.Options{
+	cliOpts := &httpcli.Options{
 		DialTimeout:         ep.httpTimeout, // NOTE: should not use http timeout as dial timeout.
 		MaxIdleConns:        ep.maxHTTPConnections,
 		MaxIdleConnsPerHost: ep.maxHTTPIdleConnectionPerHost,
@@ -207,24 +207,29 @@ func (ep *endPoint) setupHTTP() error {
 		if u, err := url.ParseRequestURI(ep.proxy); err != nil {
 			log.Warnf("parse http proxy %q failed err: %s, ignored and no proxy set", ep.proxy, err.Error())
 		} else {
-			cliopts.ProxyURL = u
+			cliOpts.ProxyURL = u
 			log.Infof("set dataway proxy to %q ok", ep.proxy)
 		}
 	}
 
-	ep.httpCli = httpcli.Cli(cliopts)
+	return cliOpts
+}
+
+func (ep *endPoint) setupHTTP() error {
+	ep.httpCli = httpcli.Cli(ep.getHTTPCliOpts())
 	ep.httpCli.Timeout = ep.httpTimeout
 	return nil
 }
 
-func (ep *endPoint) writeBody(w *writer, b *body) {
+func (ep *endPoint) Transport() *http.Transport {
+	return httpcli.Transport(ep.getHTTPCliOpts())
+}
+
+func (ep *endPoint) writeBody(w *writer, b *body) (err error) {
 	w.gzip = b.gzon
 
 	// if send failed, do nothing.
-	if err := ep.writePointData(b, w); err != nil {
-		log.Warnf("send %d points to %q(gzip: %v) bytes failed: %q, ignored",
-			len(w.pts), w.category, w.gzip, err.Error())
-
+	if err = ep.writePointData(b, w); err != nil {
 		// 4xx error do not cache data.
 		// If the error is token-not-found or beyond-usage, datakit
 		// will write all data to disk, this may cause unexpected I/O cost
@@ -262,6 +267,8 @@ func (ep *endPoint) writeBody(w *writer, b *body) {
 			}
 		}
 	}
+
+	return err
 }
 
 func (ep *endPoint) writePoints(w *writer) error {
@@ -276,7 +283,10 @@ func (ep *endPoint) writePoints(w *writer) error {
 	}
 
 	for _, body := range bodies {
-		ep.writeBody(w, body)
+		if err := ep.writeBody(w, body); err != nil {
+			log.Warnf("send %d points to %q(gzip: %v) bytes failed: %q, ignored",
+				len(w.pts), w.category, w.gzip, err.Error())
+		}
 	}
 
 	return nil
@@ -295,11 +305,7 @@ func doCache(w *writer, b *body) error {
 }
 
 func (ep *endPoint) writePointData(b *body, w *writer) error {
-	var (
-		httpCodeStr = "unknown"
-		httpCode    int
-	)
-
+	httpCodeStr := "unknown"
 	requrl, catNotFound := ep.categoryURL[w.category.URL()]
 
 	if !catNotFound {
@@ -310,11 +316,6 @@ func (ep *endPoint) writePointData(b *body, w *writer) error {
 			} else {
 				log.Debugf("try use dynamic URL %s", w.dynamicURL)
 				requrl = w.dynamicURL
-
-				defer func() {
-					// update dial-testing ok/fail info
-					updateDTFailInfo(requrl, (httpCode/100 == 2))
-				}()
 			}
 		} else {
 			return fmt.Errorf("invalid url %s", w.dynamicURL)
@@ -360,7 +361,6 @@ func (ep *endPoint) writePointData(b *body, w *writer) error {
 	// NOTE: resp maybe not nil, we need HTTP status info to fill HTTP metrics before exit.
 	if resp != nil {
 		httpCodeStr = http.StatusText(resp.StatusCode)
-		httpCode = resp.StatusCode
 	}
 
 	if err != nil {

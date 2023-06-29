@@ -33,7 +33,7 @@ import (
 
 // ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
 
-func TestOracleInput(t *testing.T) {
+func TestIntegrate(t *testing.T) {
 	if !testutils.CheckIntegrationTestingRunning() {
 		t.Skip()
 	}
@@ -84,7 +84,7 @@ func TestOracleInput(t *testing.T) {
 						return
 					}
 
-					require.NoError(t, tc.pool.Purge(tc.resource))
+					tc.pool.Purge(tc.resource)
 				})
 			})
 		}(tc)
@@ -97,25 +97,106 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 	remote := testutils.GetRemote()
 
 	bases := []struct {
-		name         string // Also used as build image name:tag.
-		conf         string
-		exposedPorts []string
-		sid          string
+		name           string // Also used as build image name:tag.
+		conf           string
+		exposedPorts   []string
+		sid            string
+		optsProcess    []inputs.PointCheckOption
+		optsTablespace []inputs.PointCheckOption
+		optsSystem     []inputs.PointCheckOption
 	}{
 		{
-			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/oracle:11g-xe-datakit",
+			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/oracle:11g-xe-datakit-v3",
 			exposedPorts: []string{"1521/tcp"},
 			sid:          "XE",
+			optsProcess: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"pdb_name",
+				),
+				inputs.WithOptionalFields(
+					"pid",
+				),
+			},
+			optsTablespace: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"pdb_name",
+				),
+			},
+			optsSystem: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"pdb_name",
+				),
+				inputs.WithOptionalFields(
+					"cache_blocks_corrupt",
+					"cache_blocks_lost",
+					"cursor_cachehit_ratio",
+					"database_wait_time_ratio",
+					"disk_sorts",
+					"enqueue_timeouts",
+					"gc_cr_block_received",
+					"memory_sorts_ratio",
+					"rows_per_sort",
+					"service_response_time",
+					"session_count",
+					"session_limit_usage",
+					"sorts_per_user_call",
+					"temp_space_used",
+					"user_rollbacks",
+				),
+			},
 		},
+
 		{
-			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/oracle:12c-se-datakit",
+			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/oracle:12c-se-datakit-v3",
 			exposedPorts: []string{"1521/tcp"},
 			sid:          "xe",
+			optsSystem: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"pdb_name",
+				),
+				inputs.WithOptionalFields(
+					"cache_blocks_corrupt",
+					"cache_blocks_lost",
+					"cursor_cachehit_ratio",
+					"database_wait_time_ratio",
+					"disk_sorts",
+					"enqueue_timeouts",
+					"gc_cr_block_received",
+					"memory_sorts_ratio",
+					"rows_per_sort",
+					"service_response_time",
+					"session_count",
+					"session_limit_usage",
+					"sorts_per_user_call",
+					"temp_space_used",
+					"user_rollbacks",
+				),
+			},
 		},
+
 		{
-			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/oracle:19c-ee-datakit",
+			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/oracle:19c-ee-datakit-v3",
 			exposedPorts: []string{"1521/tcp"},
 			sid:          "XE",
+			optsSystem: []inputs.PointCheckOption{
+				inputs.WithOptionalFields(
+					"cache_blocks_corrupt",
+					"cache_blocks_lost",
+					"cursor_cachehit_ratio",
+					"database_wait_time_ratio",
+					"disk_sorts",
+					"enqueue_timeouts",
+					"gc_cr_block_received",
+					"memory_sorts_ratio",
+					"rows_per_sort",
+					"service_response_time",
+					"session_count",
+					"session_limit_usage",
+					"sorts_per_user_call",
+					"temp_space_used",
+					"user_rollbacks",
+				),
+			},
 		},
 	}
 
@@ -126,7 +207,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		feeder := dkio.NewMockedFeeder()
 
 		ipt := defaultInput()
-		// ipt.feeder = feeder
+		// ipt.feeder = feeder // no need.
 
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)
@@ -141,8 +222,11 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			repo:    repoTag[0],
 			repoTag: repoTag[1],
 
-			exposedPorts: base.exposedPorts,
-			sid:          base.sid,
+			exposedPorts:   base.exposedPorts,
+			sid:            base.sid,
+			optsProcess:    base.optsProcess,
+			optsTablespace: base.optsTablespace,
+			optsSystem:     base.optsSystem,
 
 			cr: &testutils.CaseResult{
 				Name:        t.Name(),
@@ -175,7 +259,9 @@ type caseSpec struct {
 	exposedPorts   []string
 	serverPorts    []string
 	sid            string
-	opts           []inputs.PointCheckOption
+	optsProcess    []inputs.PointCheckOption
+	optsTablespace []inputs.PointCheckOption
+	optsSystem     []inputs.PointCheckOption
 	done           chan struct{}
 	mCount         map[string]struct{}
 
@@ -217,25 +303,19 @@ func (cs *caseSpec) handler(c *gin.Context) {
 		}
 
 		newPts := dkpt2point(pts...)
+
 		for _, pt := range newPts {
-			if string(pt.Name()) == oracleSystem {
-				if len(pt.Fields()) <= 6 {
-					cs.t.Logf("oracle_system not ready, ignored...")
-					return // not ready, ignore.
-				}
-			}
+			fmt.Println(pt.LineProto())
 		}
 
 		if err := cs.checkPoint(newPts); err != nil {
-			if err != nil {
-				cs.t.Logf("%s", err.Error())
-				require.NoError(cs.t, err)
-				return
-			}
+			cs.t.Logf("%s", err.Error())
+			require.NoError(cs.t, err)
+			return
 		}
 
 	default:
-		panic("not implement")
+		panic("unknown measurement")
 	}
 
 	if len(cs.mCount) == 3 {
@@ -244,20 +324,20 @@ func (cs *caseSpec) handler(c *gin.Context) {
 }
 
 func (cs *caseSpec) checkPoint(pts []*point.Point) error {
-	var opts []inputs.PointCheckOption
-	opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
-	opts = append(opts, cs.opts...)
-
 	for _, pt := range pts {
+		var opts []inputs.PointCheckOption
+		opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
+
 		measurement := string(pt.Name())
 
 		switch measurement {
 		case oracleProcess:
 			_, ok := cs.mCount[oracleProcess]
 			if ok {
-				return nil
+				continue
 			}
 
+			opts = append(opts, cs.optsProcess...)
 			opts = append(opts, inputs.WithDoc(&processMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
@@ -277,9 +357,10 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 		case oracleTablespace:
 			_, ok := cs.mCount[oracleTablespace]
 			if ok {
-				return nil
+				continue
 			}
 
+			opts = append(opts, cs.optsTablespace...)
 			opts = append(opts, inputs.WithDoc(&tablespaceMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
@@ -299,9 +380,10 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 		case oracleSystem:
 			_, ok := cs.mCount[oracleSystem]
 			if ok {
-				return nil
+				continue
 			}
 
+			opts = append(opts, cs.optsSystem...)
 			opts = append(opts, inputs.WithDoc(&systemMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
@@ -319,7 +401,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			cs.mCount[oracleSystem] = struct{}{}
 
 		default: // TODO: check other measurement
-			panic("not implement")
+			panic("unknown measurement")
 		}
 
 		// check if tag appended
@@ -353,7 +435,8 @@ func (cs *caseSpec) run() error {
 
 	cs.t.Logf("get remote: %+#v, TCP: %s", r, dockerTCP)
 
-	router := gin.New()
+	gin.SetMode(gin.DebugMode)
+	router := gin.Default()
 	router.POST("/v1/write/metric", cs.handler)
 
 	randPort := testutils.RandPort("tcp")
@@ -410,7 +493,7 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), "DATAKIT_PORT=" + randPortStr, "ORACLE_PASSWORD=123456", "ORACLE_SID=" + cs.sid, "DATAKIT_INTERVAL=1s", "IMPORT_FROM_VOLUME=true"},
+				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), "DATAKIT_PORT=" + randPortStr, "ORACLE_PASSWORD=123456", "ORACLE_SID=" + cs.sid, "DATAKIT_INTERVAL=5s", "IMPORT_FROM_VOLUME=true"},
 
 				ExposedPorts: cs.exposedPorts,
 			},
@@ -431,7 +514,7 @@ func (cs *caseSpec) run() error {
 
 				Repository: cs.repo,
 				Tag:        cs.repoTag,
-				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), "DATAKIT_PORT=" + randPortStr, "ORACLE_PASSWORD=123456", "ORACLE_SID=" + cs.sid, "DATAKIT_INTERVAL=1s", "IMPORT_FROM_VOLUME=true"},
+				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), "DATAKIT_PORT=" + randPortStr, "ORACLE_PASSWORD=123456", "ORACLE_SID=" + cs.sid, "DATAKIT_INTERVAL=5s", "IMPORT_FROM_VOLUME=true"},
 
 				ExposedPorts: cs.exposedPorts,
 			},
@@ -465,8 +548,9 @@ func (cs *caseSpec) run() error {
 
 	cs.mCount = map[string]struct{}{}
 
-	cs.t.Logf("checking oracle in 10 minutes...")
-	tick := time.NewTicker(10 * time.Minute)
+	timeout := 10 * time.Minute
+	cs.t.Logf("checking oracle in %v...", timeout)
+	tick := time.NewTicker(timeout)
 	out := false
 	for {
 		if out {

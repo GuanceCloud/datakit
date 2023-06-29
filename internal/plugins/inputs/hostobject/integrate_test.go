@@ -23,7 +23,7 @@ import (
 
 // ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
 
-func TestHostObjectInput(t *testing.T) {
+func TestIntegrate(t *testing.T) {
 	if !testutils.CheckIntegrationTestingRunning() {
 		t.Skip()
 	}
@@ -178,7 +178,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			cs.mCount[hostObjMeasurementName] = struct{}{}
 
 		default: // TODO: check other measurement
-			panic("not implement")
+			panic("unknown measurement")
 		}
 
 		// check if tag appended

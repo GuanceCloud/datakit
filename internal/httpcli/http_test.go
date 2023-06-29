@@ -8,6 +8,7 @@ package httpcli
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -82,7 +83,7 @@ func TestProxy(t *testing.T) {
 	}{
 		{
 			cli: Cli(&Options{
-				InsecureSkipVerify: true,
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // ignore SSL error
 				ProxyURL: func() *url.URL {
 					//nolint:golint
 					if u, err := url.Parse("http://" + proxyAddr); err != nil {
@@ -97,7 +98,7 @@ func TestProxy(t *testing.T) {
 
 		{
 			cli: Cli(&Options{
-				InsecureSkipVerify: false,
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // ignore SSL error
 				ProxyURL: func() *url.URL {
 					u, err := url.Parse("http://" + proxyAddr)
 					if err != nil { //nolint:golint
@@ -145,13 +146,13 @@ func TestInsecureSkipVerify(t *testing.T) {
 	}{
 		{
 			cli: Cli(&Options{
-				InsecureSkipVerify: true,
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // ignore SSL error
 			}),
 		},
 
 		{
 			cli: Cli(&Options{
-				InsecureSkipVerify: false,
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // ignore SSL error
 			}),
 			fail: true,
 		},

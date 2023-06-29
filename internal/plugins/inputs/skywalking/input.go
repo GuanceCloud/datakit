@@ -14,12 +14,15 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
+	agentv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/language/agent/v3"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-	agentv3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/skywalking/compiled/v9.3.0/language/agent/v3"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/workerpool"
@@ -123,6 +126,10 @@ type Input struct {
 	Tags             map[string]string            `toml:"tags"`
 	WPConfig         *workerpool.WorkerPoolConfig `toml:"threads"`
 	LocalCacheConfig *storage.StorageConfig       `toml:"storage"`
+
+	feeder  dkio.Feeder
+	opt     point.Option
+	semStop *cliutils.Sem // start stop signal
 }
 
 func (*Input) Catalog() string { return inputName }
@@ -205,9 +212,15 @@ func (ipt *Input) RegHTTPHandler() {
 
 	var afterGather *itrace.AfterGather
 	if localCache != nil && localCache.Enabled() {
-		afterGather = itrace.NewAfterGather(itrace.WithLogger(log), itrace.WithRetry(100*time.Millisecond), itrace.WithBlockIOModel(true))
+		afterGather = itrace.NewAfterGather(
+			itrace.WithLogger(log),
+			itrace.WithRetry(100*time.Millisecond),
+			itrace.WithBlockIOModel(true),
+			itrace.WithInputOption(ipt.opt),
+			itrace.WithFeeder(ipt.feeder),
+		)
 	} else {
-		afterGather = itrace.NewAfterGather(itrace.WithLogger(log))
+		afterGather = itrace.NewAfterGather(itrace.WithLogger(log), itrace.WithInputOption(ipt.opt), itrace.WithFeeder(ipt.feeder))
 	}
 	afterGatherRun = afterGather
 
@@ -244,7 +257,7 @@ func (ipt *Input) RegHTTPHandler() {
 				workerpool.HTTPWrapper(httpStatusRespFunc, wkpool,
 					httpapi.HTTPStorageWrapper(storage.HTTP_KEY, httpStatusRespFunc, localCache, handleSkyTraceV3)))
 		case v3metric:
-			httpapi.RegHTTPHandler(http.MethodPost, v, handleSkyMetricV3)
+			httpapi.RegHTTPHandler(http.MethodPost, v, ipt.handleSkyMetricV3)
 		case v3logging:
 			httpapi.RegHTTPHandler(http.MethodPost, v, handleSkyLoggingV3)
 			httpapi.RegHTTPHandler(http.MethodPost, "/v3/logs", handleSkyLoggingV3)
@@ -262,16 +275,24 @@ func (ipt *Input) Run() {
 	log.Debug("start skywalking grpc v3 server")
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_skywalking"})
 	g.Go(func(ctx context.Context) error {
-		runGRPCV3(ipt.Address)
+		runGRPCV3(ipt)
 
 		return nil
 	})
 
-	<-datakit.Exit.Wait()
-	ipt.Terminate()
+	select {
+	case <-datakit.Exit.Wait():
+		ipt.exit()
+		log.Info("skywalking exit")
+		return
+	case <-ipt.semStop.Wait():
+		ipt.exit()
+		log.Info("skywalking return")
+		return
+	}
 }
 
-func (ipt *Input) Terminate() {
+func (ipt *Input) exit() {
 	if skySvr != nil {
 		skySvr.Stop()
 	}
@@ -287,8 +308,21 @@ func (ipt *Input) Terminate() {
 	}
 }
 
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+	}
+}
+
+func defaultInput() *Input {
+	return &Input{
+		feeder:  dkio.DefaultFeeder(),
+		semStop: cliutils.NewSem(),
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{}
+		return defaultInput()
 	})
 }

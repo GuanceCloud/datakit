@@ -11,7 +11,7 @@ before_script:
 
 variables:
   PROJECT: "datakit"
-  CI_VERSION: "1.9.2"
+  CI_VERSION: "1.10.0"
   TEST_VERSION: "1.999.0"
 
 stages:
@@ -45,6 +45,23 @@ ci_ut_only:
     # - go test -v .
     - make clean
     - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY"
+    - make # try build basic binaries
+  tags:
+    - cloudcare-ft
+
+ci_it_only:
+  stage: deploy
+  resource_group: production
+  only:
+    - /^it-.*$/
+  script:
+    # - systemctl daemon-reload
+    # - systemctl restart docker
+    # - make
+    # - cd /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jenkins
+    # - go test -v .
+    - make clean
+    - make it DATAWAY_URL="$TESTING_METRIC_DATAWAY"
     - make # try build basic binaries
   tags:
     - cloudcare-ft

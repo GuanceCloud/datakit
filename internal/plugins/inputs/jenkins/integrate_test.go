@@ -21,7 +21,6 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	dockertest "github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -30,7 +29,7 @@ import (
 
 // ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
 
-func TestJenkinsInput(t *testing.T) {
+func TestIntegrate(t *testing.T) {
 	if !testutils.CheckIntegrationTestingRunning() {
 		t.Skip()
 	}
@@ -73,7 +72,7 @@ func TestJenkinsInput(t *testing.T) {
 
 				tc.cr.Cost = time.Since(caseStart)
 
-				assert.NoError(t, testutils.Flush(tc.cr))
+				require.NoError(t, testutils.Flush(tc.cr))
 
 				t.Cleanup(func() {
 					// clean remote docker resources
@@ -81,7 +80,7 @@ func TestJenkinsInput(t *testing.T) {
 						return
 					}
 
-					assert.NoError(t, tc.pool.Purge(tc.resource))
+					tc.pool.Purge(tc.resource)
 				})
 			})
 		}(tc)
@@ -122,7 +121,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		ipt.feeder = feeder
 
 		_, err := toml.Decode(base.conf, ipt)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		uURL, err := url.Parse(ipt.URL)
 		require.NoError(t, err, "parse %s failed: %s", ipt.URL, err)
@@ -208,7 +207,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			cs.mCount[inputName] = struct{}{}
 
 		default: // TODO: check other measurement
-			panic("not implement")
+			panic("unknown measurement")
 		}
 
 		// check if tag appended
@@ -441,12 +440,14 @@ func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) error {
 		default:
 			resp, err := http.Get("http://" + net.JoinHostPort(r.Host, cs.serverPorts[0]) + "/login")
 			if err != nil {
+				fmt.Printf("HTTP GET /login failed: %v\n", err)
 				continue
 			}
 			defer resp.Body.Close()
 			if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 				return nil
 			}
+			fmt.Printf("resp.StatusCode = %d\n", resp.StatusCode)
 			time.Sleep(time.Second)
 		}
 	}

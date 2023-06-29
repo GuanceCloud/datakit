@@ -1,5 +1,5 @@
 
-# Java
+# 观测云二次开发
 
 ---
 
@@ -19,28 +19,9 @@
 - 获取特定函数的入参信息
 - 支持 MongoDB 脱敏
 - 支持达梦国产数据库
-- 支持 trace-id 128 位（与 OTEL 实现链路串联）
+- [支持 trace-id 128 位](ddtrace-128-trace-id.md){:target="_blank"}
+- 支持 PowerJob 框架
 
-
-## 支持 trace-id 128 位 {#trace_128_bit}
-
-[:octicons-tag-24: Datakit-1.8.0](changelog.md#cl-1.8.0)
-[:octicons-tag-24: DDTrace-1.4.0-guance](ddtrace-ext-changelog.md#cl-1.14.0-guance)
-
-DDTrace agent 默认的 trace-id 是 64 位，Datakit 在接收到的链路数据中 trace-id 也是 64 位，从 v1.11.0 开始支持 W3C 协议并支持接收 128 位的 trace-id。但是发送到链路中的 trace-id 依旧是 64 位。
-
-为此，观测云做了二次开发，将 trace_128_bit_id 放到链路数据中一并发往 Datakit ，这样就能实现 DDTrace 和 OTEL 的链路串联。
-
-具体做法：
-
-```shell
-# 需要打开 128 开关，并且设置透传协议为 W3C 协议。
--Ddd.trace.128.bit.traceid.generation.enabled=true -Ddd.trace.propagation.style=tracecontext
-```
-
-可以查看参考：[GitHub issue](https://github.com/GuanceCloud/dd-trace-java/issues/37){:target="_blank"}
-
-目前仅实现 DDTrace 与 OTEL 串联，与其他 APM 厂商暂时没有测试。
 
 
 ## 支持 MongoDB 数据库脱敏 {#mongo-obfuscation}
@@ -206,4 +187,4 @@ Thrift 属于 apache 的项目。有的客户在项目中使用 thrift RPC 进�
 
 原生的 DDTrace-Java 批量注入方式有一定的缺陷，不支持动态参数注入（比如 `-Ddd.agent=xxx, -Ddd.agent.port=yyy` 等）。
 
-扩展的 DDTrace-Java 增加了动态参数注入功能。具体用法，参见[这里](ddtrace-attach.md)
+扩展的 DDTrace-Java 增加了动态参数注入功能。具体用法，参见[这里](ddtrace-attach.md){:target="_blank"}

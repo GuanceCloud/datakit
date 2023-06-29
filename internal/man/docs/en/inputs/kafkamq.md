@@ -81,6 +81,9 @@ Configuration:
   ## user custom message with PL script.
   [inputs.kafkamq.custom]
     #spilt_json_body = true
+    [inputs.kafkamq.custom.spilt_topic_map]
+      "log_topic"=true
+      "log01"=false
     [inputs.kafkamq.custom.log_topic_map]
       "log_topic"="log.p"
       "log"="rum_apm.p"
@@ -94,7 +97,7 @@ Configuration:
 
 Note: The pl script of metric should be placed in the `pipeline/metric/` directory, and the pl script of rum should be placed in the `pipeline/rum/` directory.
 
-Theoretically, each message body should be a log or an indicator. If your message is multiple logs, you can use `spilt_json_body` to enable the function of splitting arrays: When the data is an array and conforms to the json format, it can be set to true, and PL can be used to Arrays are sliced into individual log or metric data.
+Theoretically, each message body should be a log or a metric. If your message is multiple logs, you can use `spilt_json_body` to enable the global function of splitting arrays, you can also use `spilt_topic_map` to enable the function of splitting arrays for a single topic: When the data is an array and conforms to the json format, it can be set to true, and PL can be used to Arrays are sliced into individual log or metric data.
 
 
 ### Example {#example}

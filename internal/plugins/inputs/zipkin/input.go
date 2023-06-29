@@ -13,9 +13,12 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
@@ -104,6 +107,10 @@ type Input struct {
 	Tags             map[string]string            `toml:"tags"`
 	WPConfig         *workerpool.WorkerPoolConfig `toml:"threads"`
 	LocalCacheConfig *storage.StorageConfig       `toml:"storage"`
+
+	feeder  dkio.Feeder
+	opt     point.Option
+	semStop *cliutils.Sem // start stop signal
 }
 
 func (*Input) Catalog() string { return inputName }
@@ -203,9 +210,15 @@ func (ipt *Input) RegHTTPHandler() {
 
 	var afterGather *itrace.AfterGather
 	if localCache != nil && localCache.Enabled() {
-		afterGather = itrace.NewAfterGather(itrace.WithLogger(log), itrace.WithRetry(100*time.Millisecond), itrace.WithBlockIOModel(true))
+		afterGather = itrace.NewAfterGather(
+			itrace.WithLogger(log),
+			itrace.WithRetry(100*time.Millisecond),
+			itrace.WithBlockIOModel(true),
+			itrace.WithInputOption(ipt.opt),
+			itrace.WithFeeder(ipt.feeder),
+		)
 	} else {
-		afterGather = itrace.NewAfterGather(itrace.WithLogger(log))
+		afterGather = itrace.NewAfterGather(itrace.WithLogger(log), itrace.WithInputOption(ipt.opt), itrace.WithFeeder(ipt.feeder))
 	}
 	afterGatherRun = afterGather
 
@@ -257,11 +270,19 @@ func (ipt *Input) Run() {
 
 	log.Debugf("### %s agent is running...", inputName)
 
-	<-datakit.Exit.Wait()
-	ipt.Terminate()
+	select {
+	case <-datakit.Exit.Wait():
+		ipt.exit()
+		log.Info("zipkin exit")
+		return
+	case <-ipt.semStop.Wait():
+		ipt.exit()
+		log.Info("zipkin return")
+		return
+	}
 }
 
-func (*Input) Terminate() {
+func (ipt *Input) exit() {
 	if wkpool != nil {
 		wkpool.Shutdown()
 		log.Debug("### workerpool closed")
@@ -274,8 +295,21 @@ func (*Input) Terminate() {
 	}
 }
 
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+	}
+}
+
+func defaultInput() *Input {
+	return &Input{
+		feeder:  dkio.DefaultFeeder(),
+		semStop: cliutils.NewSem(),
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{}
+		return defaultInput()
 	})
 }

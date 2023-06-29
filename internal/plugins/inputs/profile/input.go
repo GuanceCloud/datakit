@@ -18,7 +18,6 @@ import (
 	"net/http/httputil"
 	"net/textproto"
 	"net/url"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -37,10 +36,12 @@ import (
 )
 
 const (
-	inputName            = "profile"
-	profileMaxSize       = 1 << 23
-	ProxySaveErrorHeader = "X-Proxy-Error"
-	sampleConfig         = `
+	inputName              = "profile"
+	profileMaxSize         = 1 << 23
+	workspaceUUIDHeaderKey = "X-Datakit-Workspace"
+	profileIDHeaderKey     = "X-Datakit-ProfileID"
+	timestampHeaderKey     = "X-Datakit-UnixNano"
+	sampleConfig           = `
 [[inputs.profile]]
   ## profile Agent endpoints register by version respectively.
   ## Endpoints can be skipped listen by remove them from the list.
@@ -101,13 +102,7 @@ var (
 	_ inputs.InputV2       = &Input{}
 	_ inputs.ElectionInput = (*Input)(nil)
 
-	workSpaceUUID         string
-	workSpaceUUIDInitLock sync.Mutex
-	// A Regexp is concurrent safe, so we can define this var globally.
-	workSpaceUUIDRegexp = regexp.MustCompile(`ws_uuid"\s*:\s*"([^"]*?)"`)
-
-	pointCache     *profileCache
-	pointCacheOnce sync.Once
+	pointCache = newProfileCache(32, 4096)
 )
 
 //nolint:unused
@@ -121,12 +116,6 @@ type pyroscopeOpts struct {
 	tags      map[string]string
 	input     *Input
 	cacheData sync.Map // key: name, value: *cacheDetail
-}
-
-func InitCache() {
-	pointCacheOnce.Do(func() {
-		pointCache = newProfileCache(32, 4096)
-	})
 }
 
 type profileCache struct {
@@ -381,56 +370,13 @@ type uploadResponse struct {
 	} `json:"content"`
 }
 
-func queryWorkSpaceUUID() (string, error) {
-	if workSpaceUUID != "" {
-		return workSpaceUUID, nil
-	}
-
-	workSpaceUUIDInitLock.Lock()
-	defer workSpaceUUIDInitLock.Unlock()
-
-	if workSpaceUUID != "" {
-		return workSpaceUUID, nil
-	}
-
-	tokens := config.Cfg.Dataway.GetTokens()
-	if len(tokens) == 0 {
-		return "", fmt.Errorf("dataway token missing")
-	}
-	ws := httpapi.Workspace{Token: tokens}
-	wsJSON, err := json.Marshal(ws)
-	if err != nil {
-		return "", fmt.Errorf("json marshal fail: %w", err)
-	}
-	resp, err := config.Cfg.Dataway.WorkspaceQuery(wsJSON)
-	if err != nil {
-		return "", fmt.Errorf("workspace query fail: %w, query body: %s", err, string(wsJSON))
-	}
-	// for lint:errCheck
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("read response body fail:%w", err)
-	}
-
-	matches := workSpaceUUIDRegexp.FindSubmatch(body)
-	if len(matches) < 2 {
-		return "", fmt.Errorf("no match for express[%s] found, body [%s]", workSpaceUUIDRegexp.String(), string(body))
-	}
-	workSpaceUUID = string(matches[1])
-	return workSpaceUUID, nil
-}
-
-func profilingProxyURL() (*url.URL, error) {
+func profilingProxyURL() (*url.URL, *http.Transport, error) {
 	lastErr := fmt.Errorf("no dataway endpoint available now")
 
 	endpoints := config.Cfg.Dataway.GetAvailableEndpoints()
 
 	if len(endpoints) == 0 {
-		return nil, lastErr
+		return nil, nil, lastErr
 	}
 
 	for _, ep := range endpoints {
@@ -445,79 +391,70 @@ func profilingProxyURL() (*url.URL, error) {
 			lastErr = fmt.Errorf("profiling upload url [%s] parse err:%w", rawURL, err)
 			continue
 		}
-		return URL, nil
+		return URL, ep.Transport(), nil
 	}
-	return nil, lastErr
+	return nil, nil, lastErr
+}
+
+type reverseProxy struct {
+	proxy *httputil.ReverseProxy
+}
+
+func (r *reverseProxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	// not a post request
+	if req.Body == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte("profiling request body is nil"))
+		log.Error("Incoming profiling request body is nil")
+		return
+	}
+
+	bodyBytes, err := ioutil.ReadAll(http.MaxBytesReader(w, req.Body, profileMaxSize))
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(fmt.Sprintf("Unable to read profile body: %s", err)))
+		log.Errorf("Unable to read profile body: %s", err)
+		return
+	}
+	_ = req.Body.Close()
+	req.Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
+
+	profileID, unixNano, err := cache(req)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(fmt.Sprintf("unable to cache profile data: %s", err)))
+		log.Errorf("send profile to datakit io fail: %s", err)
+		return
+	}
+
+	_ = req.Body.Close()
+	req.Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
+
+	// Retain this header to avoid fatal since Kodo still verify it.
+	req.Header.Set(workspaceUUIDHeaderKey, "no-longer-in-use")
+	req.Header.Set(profileIDHeaderKey, profileID)
+	req.Header.Set(timestampHeaderKey, strconv.FormatInt(unixNano, 10))
+
+	r.proxy.ServeHTTP(w, req)
 }
 
 // RegHTTPHandler simply proxy profiling request to dataway.
 func (i *Input) RegHTTPHandler() {
-	URL, err := profilingProxyURL()
+	URL, transport, err := profilingProxyURL()
 	if err != nil {
 		log.Errorf("no profiling proxy url available: %s", err)
 		return
 	}
 
-	InitCache()
+	httpProxy := &httputil.ReverseProxy{
+		Transport: transport,
 
-	proxy := &httputil.ReverseProxy{
 		Director: func(req *http.Request) {
-			// not a post request
-			if req.Body == nil {
-				req.Header.Set(ProxySaveErrorHeader, "profiling request body is nil")
-				log.Errorf("profiling request body is nil")
-				// Set req.URL to nil will trigger a proxy err and then the request will be terminated immediately
-				req.URL = nil
-				return
-			}
-
-			bodyBytes, err := ioutil.ReadAll(http.MaxBytesReader(nil, req.Body, profileMaxSize))
-			if err != nil {
-				req.Header.Set(ProxySaveErrorHeader, fmt.Sprintf("readall profile body err: %s", err))
-				log.Errorf("read profile body err: %s", err)
-				req.URL = nil
-				return
-			}
-			_ = req.Body.Close()
-
-			// use to repeatable read
-			bodyReader := bytes.NewReader(bodyBytes)
-			req.Body = ioutil.NopCloser(bodyReader)
-
-			defer func() {
-				_ = req.Body.Close()
-				// reset http body
-				if _, err := bodyReader.Seek(0, io.SeekStart); err != nil {
-					log.Errorf("seek body to begin fail: %s", err)
-				}
-				req.Body = ioutil.NopCloser(bodyReader)
-			}()
-
-			wsID, err := queryWorkSpaceUUID()
-			if err != nil {
-				req.Header.Set(ProxySaveErrorHeader, fmt.Sprintf("query workspace uuid fail: %s", err))
-				log.Errorf("query workspace id fail: %s", err)
-				req.URL = nil
-				return
-			}
-
-			profileID, unixNano, err := cache(req)
-			if err != nil {
-				req.Header.Set(ProxySaveErrorHeader, fmt.Sprintf("cache profile data fail: %s", err))
-				log.Errorf("send profile to datakit io fail: %s", err)
-				req.URL = nil
-				return
-			}
-
 			req.URL = URL
 			req.Host = URL.Host // must override the host
 
-			log.Infof("receive profiling request, bodyLength: %d, datakit will proxy the request to url [%s], workspaceID: [%s]",
-				req.ContentLength, URL.String(), wsID)
-
-			req.Header.Set("X-Datakit-Workspace", wsID)
-			req.Header.Set("X-Datakit-Profileid", profileID)
-			req.Header.Set("X-Datakit-Unixnano", strconv.FormatInt(unixNano, 10))
+			log.Infof("receive profiling request, bodyLength: %d, datakit will proxy the request to url [%s]",
+				req.ContentLength, URL.String())
 
 			if _, ok := req.Header["User-Agent"]; !ok {
 				// explicitly disable User-Agent so it's not set to default value
@@ -527,7 +464,6 @@ func (i *Input) RegHTTPHandler() {
 
 		ModifyResponse: func(resp *http.Response) error {
 			// log proxy error
-
 			if resp.StatusCode/100 > 2 {
 				log.Errorf("profile proxy response http status: %s", resp.Status)
 			} else {
@@ -545,39 +481,32 @@ func (i *Input) RegHTTPHandler() {
 				}
 
 				if resp.StatusCode/100 > 2 {
-					log.Errorf("upload profile binary response: %s", string(body))
+					log.Errorf("unable to upload profile binary response: %s", string(body))
 				} else {
 					log.Infof("upload profile binary response: %s", string(body))
 
-					var resp uploadResponse
+					profileID := resp.Request.Header.Get(profileIDHeaderKey)
 
-					if err := json.Unmarshal(body, &resp); err != nil {
-						return fmt.Errorf("json unmarshal upload profile binary response err: %w", err)
+					if profileID == "" {
+						return fmt.Errorf("profileID is empty")
 					}
 
-					if resp.Content == nil || resp.Content.ProfileID == "" {
-						return fmt.Errorf("fetch profile upload response profileID fail")
-					}
-
-					if err := sendToIO(resp.Content.ProfileID); err != nil {
-						return fmt.Errorf("发送profile元数据失败: %w", err)
+					if err := sendToIO(profileID); err != nil {
+						return fmt.Errorf("unable to send profile: %w", err)
 					}
 				}
 			}
 			return nil
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
-			proxyErr := r.Header.Get(ProxySaveErrorHeader)
-			if proxyErr != "" {
-				w.WriteHeader(http.StatusBadRequest)
-				_, _ = w.Write([]byte(proxyErr))
-				log.Errorf("proxy error handler get err: %s, %s", proxyErr, err.Error())
-			} else {
-				w.WriteHeader(http.StatusBadGateway)
-				_, _ = w.Write([]byte(err.Error()))
-				log.Errorf("proxy error handler get err: %s", err.Error())
-			}
+			w.WriteHeader(http.StatusBadGateway)
+			_, _ = w.Write([]byte(err.Error()))
+			log.Errorf("proxy error handler receive err: %s", err.Error())
 		},
+	}
+
+	proxy := &reverseProxy{
+		proxy: httpProxy,
 	}
 
 	for _, endpoint := range i.Endpoints {
@@ -699,7 +628,7 @@ func pushProfileData(opt *pushProfileDataOpt, event *eventOpts) error {
 
 	profileID := randomProfileID()
 
-	URL, err := profilingProxyURL()
+	URL, transport, err := profilingProxyURL()
 	if err != nil {
 		return err
 	}
@@ -709,16 +638,16 @@ func pushProfileData(opt *pushProfileDataOpt, event *eventOpts) error {
 		return err
 	}
 
-	wsID, err := queryWorkSpaceUUID()
-	if err != nil {
-		log.Errorf("query workspace id fail: %s", err)
-	}
 	req.Header.Set("Content-Type", mw.FormDataContentType())
-	req.Header.Set("X-Datakit-Workspace", wsID)
-	req.Header.Set("X-Datakit-Profileid", profileID)
-	req.Header.Set("X-Datakit-Unixnano", strconv.FormatInt(opt.startTime.UnixNano(), 10))
+	// Retain this header to avoid fatal since Kodo still verify it.
+	req.Header.Set(workspaceUUIDHeaderKey, "no-longer-in-use")
+	req.Header.Set(profileIDHeaderKey, profileID)
+	req.Header.Set(timestampHeaderKey, strconv.FormatInt(opt.startTime.UnixNano(), 10))
 
-	client := &http.Client{Timeout: 15 * time.Second}
+	client := &http.Client{
+		Transport: transport,
+		Timeout:   15 * time.Second,
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {

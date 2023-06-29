@@ -11,9 +11,13 @@ http 模块暴露如下 metrics：
 | datakit_dialtesting_task_check_cost_seconds  | summary | Task check cost time          | protocol,region,status |
 | datakit_dialtesting_task_invalid_total  | count | The number of the invalid tasks | protocol,region,fail_reason |
 | datakit_dialtesting_task_number | gauge | The number of the running tasks | protocol,region |
+| datakit_dialtesting_dataway_send_failed_number| gauge | The number of failed sending for each dataway | protocol,region,dataway |
 | datakit_dialtesting_task_run_cost_seconds | summary | The cost time of the running tasks | protocol,region |
 | datakit_dialtesting_pull_cost_seconds | summary | The cost time to the pull tasks | region,is_first |
 | datakit_dialtesting_task_synchronized_total | count | The total number of the synchronized tasks| protocol,region |
+| datakit_dialtesting_worker_cached_points_number | count | The total number of the cached points in memory | protocol,region |
+| datakit_dialtesting_worker_job_chan_number | count | The total number of the job chan | type |
+| datakit_dialtesting_worker_send_points_number | count | The total number of the points which have been sent | protocol,region,status |
 
 # 网络拨测功能定义
 

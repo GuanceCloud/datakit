@@ -41,6 +41,13 @@
 
 --->
 
+## v1.15.4-guance (2023/6/12) {#cl-1.15.4-guance}
+
+### 修复 {#cl-1.15.4-guance-new}
+
+- 合并最新的 Datadog v1.15.3 版本
+- [支持 PowerJob](https://github.com/GuanceCloud/dd-trace-java/issues/42){:target="_blank"}
+
 
 ## v1.14.0-guance (2023/5/18) {#cl-1.14.0-guance}
 

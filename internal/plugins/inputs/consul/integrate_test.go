@@ -276,7 +276,7 @@ url = "http://%s/metrics"
 	return cases, nil
 }
 
-func TestConsulInput(t *T.T) {
+func TestIntegrate(t *T.T) {
 	if !tu.CheckIntegrationTestingRunning() {
 		t.Skip()
 	}

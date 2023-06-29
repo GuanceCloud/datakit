@@ -1,12 +1,12 @@
-### `load_json()` {#fn-load_JSON}
+### `load_json()` {#fn-load-json}
 
 函数原型：`fn load_json(val: str) nil|bool|float|map|list`
 
-函数说明：将 JSON 字符串转换成 map、list、nil、bool、float 的其中一种，可通过 index 表达式取值及修改值。
+函数说明：将 JSON 字符串转换成 map、list、nil、bool、float 的其中一种，可通过 index 表达式取值及修改值。若反序列化失败，也返回 nil，而不是终止脚本运行。
 
 参数：
 
-- `val`: 要求是 string 类型的数据
+- `val`: 要求是 string 类型的数据。
 
 示例：
 

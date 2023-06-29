@@ -11,13 +11,12 @@ import (
 	"time"
 
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 func TestAfterGather(t *testing.T) {
-	dkioFeed = func(name, category string, pts []*point.Point, opt *dkio.Option) error { return nil }
+	feeder := dkio.NewMockedFeeder()
 
-	afterGather := NewAfterGather()
+	afterGather := NewAfterGather(WithFeeder(feeder))
 	afterGather.AppendFilter(PenetrateErrorTracing)
 
 	closer := &CloseResource{}
@@ -49,11 +48,11 @@ func TestAfterGather(t *testing.T) {
 
 func TestBuildPoint(t *testing.T) {
 	for i := 0; i < 100; i++ {
-		if pt, err := BuildPoint(randDatakitSpan(t), false); err != nil {
+		if pt, err := BuildPoint(randDatakitSpan(t), false, nil); err != nil {
 			t.Error(err.Error())
 			t.FailNow()
 		} else {
-			t.Log(pt.String())
+			t.Log(pt.LPPoint().String())
 		}
 	}
 }

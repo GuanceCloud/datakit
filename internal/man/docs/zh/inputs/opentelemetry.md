@@ -22,7 +22,7 @@ OTEL 提供与 vendor 无关的实现，根据用户的需要将观测类数据�
 === "主机安装"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
-    
+
     ```toml
     {{ CodeBlock .InputSample 4 }}
     ```
@@ -37,11 +37,11 @@ OTEL 提供与 vendor 无关的实现，根据用户的需要将观测类数据�
 ### 注意事项 {#attentions}
 
 1. 建议使用 gRPC 协议，gRPC 具有压缩率高、序列化快、效率更高等优点
-1. http 协议的路由是不可配置的，请求路径（Trace/Metric）分别为 `/otel/v1/trace` 和 `/otel/v1/metric`
-1. 在涉及到 `float/double` 类型数据时，会最多保留两位小数
-1. HTTP 和 gRPC 都支持 gzip 压缩格式。在 exporter 中可配置环境变量来开启：`OTEL_EXPORTER_OTLP_COMPRESSION = gzip`, 默认是不会开启 gzip。
-1. HTTP 协议请求格式同时支持 JSON 和 Protobuf 两种序列化格式。但 gRPC 仅支持 Protobuf 一种。
-1. 配置字段 `ignore_attribute_keys` 是过滤掉一些不需要的 Key 。但是在 OTEL 中的 `attributes` 大多数的标签中用 `.` 分隔。例如在 resource 的源码中：
+2. 自 datakit v1.10.0 版本开始，http 协议的路由是可配置的，默认请求路径（Trace/Metric）分别为 `/otel/v1/trace` 和 `/otel/v1/metric`
+3. 在涉及到 `float/double` 类型数据时，会最多保留两位小数
+4. HTTP 和 gRPC 都支持 gzip 压缩格式。在 exporter 中可配置环境变量来开启：`OTEL_EXPORTER_OTLP_COMPRESSION = gzip`, 默认是不会开启 gzip。
+5. HTTP 协议请求格式同时支持 JSON 和 Protobuf 两种序列化格式。但 gRPC 仅支持 Protobuf 一种。
+6. 配置字段 `ignore_attribute_keys` 是过滤掉一些不需要的 Key 。但是在 OTEL 中的 `attributes` 大多数的标签中用 `.` 分隔。例如在 resource 的源码中：
 
 ```golang
 ServiceNameKey = attribute.Key("service.name")

@@ -6,6 +6,7 @@
 package cmds
 
 import (
+	"crypto/tls"
 	"net/http"
 	"net/url"
 
@@ -42,7 +43,8 @@ func getcli() *http.Client {
 	}
 
 	cliopt := &httpcli.Options{
-		InsecureSkipVerify: true,
+		// ignore SSL error
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint
 	}
 
 	if proxy != "" {

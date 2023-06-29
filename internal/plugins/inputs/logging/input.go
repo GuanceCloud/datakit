@@ -32,7 +32,7 @@ const (
   ## File names or a pattern to tail.
   logfiles = [
     "/var/log/syslog",
-    "/var/log/message",
+    "/var/log/messages",
   ]
 
   # Only two protocols are supported:TCP and UDP.

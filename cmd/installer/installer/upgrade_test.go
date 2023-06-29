@@ -6,7 +6,7 @@
 package installer
 
 import (
-	"testing"
+	T "testing"
 	"time"
 
 	bstoml "github.com/BurntSushi/toml"
@@ -15,7 +15,72 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 )
 
-func TestUpgradeMainConfig(t *testing.T) {
+func Test_setupDefaultInputs(t *T.T) {
+	t.Run("install", func(t *T.T) {
+		c := config.DefaultConfig()
+		setupDefaultInputs(c,
+			"", // no list specified: use all default
+			[]string{"1", "2", "3"}, false)
+
+		assert.Equal(t, []string{"1", "2", "3"}, c.DefaultEnabledInputs)
+	})
+
+	t.Run("install-with-white-list", func(t *T.T) {
+		c := config.DefaultConfig()
+		setupDefaultInputs(c,
+			"2,mem", // white list, with extra input 'mem'
+			[]string{"1", "2", "3"}, false)
+
+		assert.Equal(t, []string{"-1", "-3", "2", "mem"}, c.DefaultEnabledInputs)
+	})
+
+	t.Run("install-with-blacklist", func(t *T.T) {
+		c := config.DefaultConfig()
+		setupDefaultInputs(c,
+			"-2", // black list
+			[]string{"1", "2", "3"}, false)
+
+		assert.Equal(t, []string{"-2", "1", "3"}, c.DefaultEnabledInputs)
+	})
+
+	t.Run("install-with-black-white-list", func(t *T.T) {
+		c := config.DefaultConfig()
+		setupDefaultInputs(c,
+			"-2,1", // mixed w/b list: only black list applied
+			[]string{"1", "2", "3"}, false)
+
+		assert.Equal(t, []string{"-2", "1", "3"}, c.DefaultEnabledInputs)
+	})
+
+	t.Run("upgrade-with-empty-list", func(t *T.T) {
+		c := config.DefaultConfig()
+		setupDefaultInputs(c, "", []string{"1", "2", "3"}, true)
+
+		assert.Equal(t, []string{"-1", "-2", "-3"}, c.DefaultEnabledInputs)
+	})
+
+	t.Run("upgrade-with-white-list", func(t *T.T) {
+		c := config.DefaultConfig()
+		c.DefaultEnabledInputs = []string{"1"}
+
+		setupDefaultInputs(c, "", []string{"1", "2", "3"}, true)
+
+		// NOTE: under whitelist, new added inputs also disabled
+		assert.Equal(t, []string{"-2", "-3", "1"}, c.DefaultEnabledInputs)
+	})
+
+	t.Run("upgrade-with-black-list", func(t *T.T) {
+		c := config.DefaultConfig()
+		c.DefaultEnabledInputs = []string{"-1"}
+
+		setupDefaultInputs(c, "", []string{"1", "2", "3"}, true)
+
+		// NOTE: under blacklist, new added inputs are accepted
+		assert.Equal(t, []string{"-1", "2", "3"}, c.DefaultEnabledInputs)
+	})
+}
+
+func TestUpgradeMainConfig(t *T.T) {
 	cases := []struct {
 		name string
 		old,
@@ -225,7 +290,7 @@ func TestUpgradeMainConfig(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *T.T) {
 			got := upgradeMainConfig(tc.old)
 			assert.Equal(t, tc.expect.String(), got.String())
 
