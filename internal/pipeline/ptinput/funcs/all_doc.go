@@ -70,6 +70,8 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"sample()":             &sampleMarkdown,
 	"url_parse()":          &urlParseMarkdown,
 	"timestamp()":          &timestampMarkdown,
+	"value_type":           &valueTypeMarkdown,
+	"vaild_json":           &vaildJSONMarkdown,
 }
 
 var PipelineFunctionDocsEN = map[string]*PLDoc{
@@ -124,6 +126,8 @@ var PipelineFunctionDocsEN = map[string]*PLDoc{
 	"sample()":             &sampleMarkdownEN,
 	"url_parse()":          &urlParseMarkdownEN,
 	"timestamp()":          &timestampMarkdownEN,
+	"value_type()":         &valueTypeMarkdownEN,
+	"vaild_json()":         &vaildJSONMarkdownEN,
 }
 
 // embed docs.
@@ -281,6 +285,12 @@ var (
 
 	//go:embed md/kv_split.md
 	docKVSplit string
+
+	//go:embed md/value_type.md
+	docValueType string
+
+	//go:embed md/vaild_json.md
+	docVaildJSON string
 )
 
 const (
@@ -612,6 +622,20 @@ var (
 		Doc: docKVSplit, Deprecated: false,
 		FnCategory: map[string][]string{
 			langTagZhCN: {cRegExp},
+		},
+	}
+
+	valueTypeMarkdown = PLDoc{
+		Doc: docValueType, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cJSON},
+		},
+	}
+
+	vaildJSONMarkdown = PLDoc{
+		Doc: docVaildJSON, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cJSON},
 		},
 	}
 )

@@ -94,7 +94,7 @@ NIL NULL IF ELIF ELSE
 	paren_expr
 	index_expr
 	attr_expr
-	/* in_expr */
+	in_expr
 	expr
 	map_init
 	map_init_start
@@ -114,6 +114,7 @@ NIL NULL IF ELIF ELSE
 %right EQ
 %left OR
 %left AND
+%left IN
 %left GTE GT NEQ EQEQ LTE LT
 %left ADD SUB
 %left MUL DIV MOD
@@ -170,7 +171,7 @@ value_stmt: expr
 	;
 
 /* expression */
-expr	: array_elem | list_init | map_init | paren_expr | call_expr | binary_expr | attr_expr | index_expr ; // arithmeticExpr
+expr	: array_elem | list_init | map_init | paren_expr | call_expr | binary_expr | attr_expr | index_expr | in_expr; // arithmeticExpr
 
 
 break_stmt: BREAK
@@ -186,8 +187,8 @@ continue_stmt: CONTINUE
 	for identifier IN list_init
 	for identifier IN string
 */
-for_in_stmt : FOR identifier IN expr stmt_block
-			{ $$ = yylex.(*parser).newForInStmt($2, $4, $5, $1, $3) }
+for_in_stmt : FOR in_expr stmt_block
+			{ $$ = yylex.(*parser).newForInStmt($2, $3, $1) }
 		;
 
 
@@ -248,6 +249,11 @@ stmt_block	: empty_block
 
 empty_block : LEFT_BRACE RIGHT_BRACE
 		{ $$ = yylex.(*parser).newBlockStmt($1, ast.Stmts{} , $2) }
+	;
+
+
+in_expr : expr IN expr
+		{ $$ = yylex.(*parser).newInExpr($1, $3, $2) }
 	;
 
 

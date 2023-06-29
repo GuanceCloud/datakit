@@ -174,6 +174,20 @@ func (e *ConditionalExpr) String() string {
 	return fmt.Sprintf("%s %s %s", e.LHS.String(), e.Op, e.RHS.String())
 }
 
+type InExpr struct {
+	Op       Op
+	LHS, RHS *Node
+	OpPos    token.LnColPos
+}
+
+func (e *InExpr) IsExpr() bool {
+	return true
+}
+
+func (e *InExpr) String() string {
+	return fmt.Sprintf("%s %s %s", e.LHS.String(), e.Op, e.RHS.String())
+}
+
 type ArithmeticExpr struct {
 	Op       Op
 	LHS, RHS *Node

@@ -14,7 +14,7 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func LoadJSONChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func VaildJSONChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 1 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expects 1 arg", funcExpr.Name), funcExpr.NamePos)
@@ -22,24 +22,20 @@ func LoadJSONChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.Pl
 	return nil
 }
 
-func LoadJSON(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
-	val, dtype, err := runtime.RunStmt(ctx, funcExpr.Param[0])
+func VaildJSON(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+	val, _, err := runtime.RunStmt(ctx, funcExpr.Param[0])
 	if err != nil {
 		return err
 	}
-	var m any
 
-	if dtype != ast.String {
-		return runtime.NewRunError(ctx, "param data type expect string",
-			funcExpr.Param[0].StartPos())
+	if val != nil {
+		if v, ok := val.(string); ok {
+			vaild := json.Valid([]byte(v))
+			ctx.Regs.ReturnAppend(vaild, ast.Bool)
+			return nil
+		}
 	}
-	errJ := json.Unmarshal([]byte(val.(string)), &m)
-	if errJ != nil {
-		ctx.Regs.ReturnAppend(nil, ast.Nil)
-		return nil
-	}
-	m, dtype = ast.DectDataType(m)
 
-	ctx.Regs.ReturnAppend(m, dtype)
+	ctx.Regs.ReturnAppend(false, ast.Bool)
 	return nil
 }

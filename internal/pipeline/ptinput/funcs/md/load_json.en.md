@@ -1,12 +1,12 @@
-### `load_json()` {#fn-load_JSON}
+### `load_json()` {#fn-load-json}
 
 Function prototype: `fn load_json(val: str) nil|bool|float|map|list`
 
-Function description: Convert the JSON string to one of map, list, nil, bool, float, and the value can be obtained and modified through the index expression.
+Function description: Convert the JSON string to one of map, list, nil, bool, float, and the value can be obtained and modified through the index expression.If deserialization fails, it also returns nil instead of terminating the script run.
 
 Function parameters:
 
-- `val`: Requires data of type string
+- `val`: Requires data of type string.
 
 Example:
 
