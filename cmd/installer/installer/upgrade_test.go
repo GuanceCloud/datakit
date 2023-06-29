@@ -207,10 +207,11 @@ func TestUpgradeMainConfig(t *T.T) {
 			expect: func() *config.Config {
 				c := config.DefaultConfig()
 				c.Logging = &config.LoggerCfg{
-					Log:    "/some/path",
-					GinLog: "/some/gin/log",
-					Level:  "debug",
-					Rotate: 128,
+					Log:           "/some/path",
+					GinLog:        "/some/gin/log",
+					Level:         "debug",
+					Rotate:        128,
+					RotateBackups: 5,
 				}
 
 				return c
