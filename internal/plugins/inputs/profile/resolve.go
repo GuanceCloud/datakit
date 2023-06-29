@@ -331,7 +331,7 @@ func cache(req *http.Request) (string, int64, error) {
 		return "", 0, fmt.Errorf("can not resolve profile end time: %w", err)
 	}
 
-	startNS, endNS := profileStart.UnixNano(), profileEnd.UnixNano()
+	startNano, endNano := profileStart.UnixNano(), profileEnd.UnixNano()
 
 	tags := NewTags(formValues["tags[]"])
 
@@ -364,9 +364,9 @@ func cache(req *http.Request) (string, int64, error) {
 		FieldFormat:     getForm("format", formValues),
 		FieldLibraryVer: tags.Get("profiler_version"),
 		FieldDatakitVer: datakit.Version,
-		FieldStart:      startNS, // precision: ns
-		FieldEnd:        endNS,
-		FieldDuration:   endNS - startNS,
+		FieldStart:      startNano,
+		FieldEnd:        endNano,
+		FieldDuration:   (endNano - startNano) / 1000, // unit: microsecond
 		FieldFileSize:   filesize,
 	}
 
@@ -387,7 +387,7 @@ func cache(req *http.Request) (string, int64, error) {
 	delete(pointFields, "runtime-id")
 
 	pt, err := point.NewPoint(inputName, pointTags, pointFields, &point.PointOption{
-		Time:     time.Unix(0, startNS),
+		Time:     profileEnd, // use profileEnd as the creation time of point
 		Category: datakit.Profiling,
 		Strict:   false,
 	})
@@ -397,7 +397,7 @@ func cache(req *http.Request) (string, int64, error) {
 
 	pointCache.push(profileID, time.Now(), pt)
 
-	return profileID, startNS, nil
+	return profileID, endNano, nil
 }
 
 func sendToIO(profileID string) error {

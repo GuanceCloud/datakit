@@ -9,6 +9,8 @@ package upgrader
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"runtime"
 
 	bstoml "github.com/BurntSushi/toml"
 	"github.com/GuanceCloud/cliutils/logger"
@@ -104,7 +106,7 @@ func DefaultMainConfig() *MainConfig {
 
 	L().Warnf("unable to decode config sample: %s", err)
 
-	return &MainConfig{
+	conf := &MainConfig{
 		Listen:      "0.0.0.0:9542",
 		IPWhiteList: []string{},
 		Logging: &LoggerCfg{
@@ -118,4 +120,12 @@ func DefaultMainConfig() *MainConfig {
 			GinErrLog: "/var/log/dk_upgrader/gin_err.log",
 		},
 	}
+
+	if runtime.GOOS == datakit.OSWindows {
+		conf.Logging.Log = filepath.Join(InstallDir, "log")
+		conf.Logging.GinLog = filepath.Join(InstallDir, "gin.log")
+		conf.Logging.GinErrLog = filepath.Join(InstallDir, "gin_err.log")
+	}
+
+	return conf
 }
