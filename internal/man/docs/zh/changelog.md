@@ -24,7 +24,8 @@
 
 ## 1.10.1(2023/06/30) {#cl-1.10.1}
 
-修复 OpenTelemetry HTTP 路由支持自定义（#1718）
+- 修复 OpenTelemetry HTTP 路由支持自定义
+- 修复主机进程对象中启动时长（`started_duration`）字段缺失问题
 
 ---
 
