@@ -419,8 +419,8 @@ func (p *Input) WriteObject(processList []*pr.Process, procRec *procRecorder, tn
 		fields["pid"] = ps.Pid
 
 		ct := getCreateTime(ps)
-		fields["started_duration"] = time.Since(time.Unix(0,
-			ct*int64(time.Millisecond))) / time.Second
+		fields["started_duration"] = int64(time.Since(time.Unix(0,
+			ct*int64(time.Millisecond))) / time.Second)
 		fields["start_time"] = ct
 
 		if runtime.GOOS == "linux" {
@@ -431,18 +431,23 @@ func (p *Input) WriteObject(processList []*pr.Process, procRec *procRecorder, tn
 				fields["work_directory"] = dir
 			}
 		}
+
 		cmd, err := ps.Cmdline()
 		if err != nil {
 			l.Warnf("process:%s,pid:%d get cmd err:%s", name, ps.Pid, err.Error())
 			cmd = ""
 		}
+
 		if cmd == "" {
 			cmd = fmt.Sprintf("(%s)", name)
 		}
+
 		fields["cmdline"] = cmd
+
 		if p.isTest {
 			return
 		}
+
 		// 此处为了全文检索 需要冗余一份数据 将tag field字段全部塞入 message
 		for k, v := range tags {
 			message[k] = v
@@ -451,6 +456,7 @@ func (p *Input) WriteObject(processList []*pr.Process, procRec *procRecorder, tn
 		for k, v := range fields {
 			message[k] = v
 		}
+
 		m, err := json.Marshal(message)
 		if err == nil {
 			fields["message"] = string(m)
