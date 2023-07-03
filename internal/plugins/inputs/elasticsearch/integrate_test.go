@@ -461,6 +461,10 @@ func assertMeasurements(pts []*point.Point, cs *caseSpec) error {
 			optionalTags: []string{
 				"node_attribute_ml.enabled",
 				"node_attribute_ml.max_open_jobs",
+				"node_attribute_ml.allocated_processors",
+				"node_attribute_ml.allocated_processors_double",
+				"node_attribute_ml.max_jvm_size",
+				"node_roles",
 			},
 		},
 
