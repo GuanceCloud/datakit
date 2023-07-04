@@ -138,17 +138,9 @@
 
 将这些文件拷贝到对应机器上（通过 U 盘或 scp 等命令）。
 
-### 安装 {#install}
+#### 安装 {#simple-install}
 
 <!-- markdownlint-disable MD046 -->
-=== "Windows"
-
-    需以 administrator 权限运行 Powershell 执行：
-
-    ```powershell
-    .\installer-windows-amd64.exe --offline --dataway "https://openway.guance.com?token=<YOUR-TOKEN>" --srcs .\datakit-windows-amd64-{{.Version}}.tar.gz,.\data.tar.gz
-    ```
-
 === "Linux"
 
     需以 root 权限运行：
@@ -156,6 +148,35 @@
     ```shell
     chmod +x installer-linux-amd64
     ./installer-linux-amd64 --offline --dataway "https://openway.guance.com?token=<YOUR-TOKEN>" --srcs datakit-linux-amd64-{{.Version}}.tar.gz,data.tar.gz
+    ```
+
+=== "Windows"
+
+    需以 administrator 权限运行 Powershell 执行：
+
+    ```powershell
+    .\installer-windows-amd64.exe --offline --dataway "https://openway.guance.com?token=<YOUR-TOKEN>" --srcs .\datakit-windows-amd64-{{.Version}}.tar.gz,.\data.tar.gz
+    ```
+<!-- markdownlint-enable -->
+
+#### 升级 {#simple-upgrade}
+
+<!-- markdownlint-disable MD046 -->
+=== "Linux"
+
+    需以 root 权限运行：
+
+    ```shell
+    chmod +x installer-linux-amd64
+    ./installer-linux-amd64 --offline --upgrade --srcs datakit-linux-amd64-{{.Version}}.tar.gz,data.tar.gz
+    ```
+
+=== "Windows"
+
+    需以 administrator 权限运行 Powershell 执行：
+
+    ```powershell
+    .\installer-windows-amd64.exe --offline --upgrade --srcs .\datakit-windows-amd64-{{.Version}}.tar.gz,.\data.tar.gz
     ```
 <!-- markdownlint-enable -->
 
@@ -237,7 +258,7 @@ for((i=0;i<${#sources[@]};i++)); do
 done
 ```
 
-- 准备安装
+#### 安装 {#advance-install}
 
 在内网机器上，通过设置 `DK_INSTALLER_BASE_URL`，将其指向 Nginx 文件服务器：
 
@@ -269,7 +290,7 @@ done
 
 ---
 
-- 更新 DataKit
+#### 升级 {#advance-upgrade}
 
 如果有新的 DataKit 版本，可以将其安装上面的方式下载下来，执行如下命令来升级：
 
@@ -288,7 +309,6 @@ done
 === "Windows"
 
     ```powershell
-
 {{ InstallCmd 4
 (.WithPlatform "windows")
 (.WithUpgrade true)
