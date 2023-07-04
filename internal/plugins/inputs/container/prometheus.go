@@ -27,7 +27,10 @@ var (
 type promConfig struct {
 	Source   string        `toml:"source" json:"source"`
 	Interval time.Duration `toml:"interval"`
-	URLs     []string      `toml:"urls" json:"urls"`
+	Timeout  time.Duration `toml:"timeout"`
+
+	URL  string   `toml:"url" json:"url"` // deprecated
+	URLs []string `toml:"urls" json:"urls"`
 
 	IgnoreReqErr           bool         `toml:"ignore_req_err" json:"ignore_req_err"`
 	MetricTypes            []string     `toml:"metric_types" json:"metric_types"`
@@ -92,18 +95,36 @@ func newPromRunner(source string, urls []string, interval string, tags map[strin
 	return newPromRunnerWithConfig(c)
 }
 
-func newPromRunnerWithTomlConfig(str string) (*promRunner, error) {
-	c := promConfig{}
+type wrapPromConfig struct {
+	Inputs struct {
+		Prom []*promConfig `toml:"prom"`
+	} `toml:"inputs"`
+}
+
+func newPromRunnerWithTomlConfig(str string) ([]*promRunner, error) {
+	c := wrapPromConfig{}
 	if err := bstoml.Unmarshal([]byte(str), &c); err != nil {
 		return nil, fmt.Errorf("unable to parse toml: %w", err)
 	}
-	return newPromRunnerWithConfig(&c)
+
+	var res []*promRunner
+
+	for _, promCfg := range c.Inputs.Prom {
+		p, err := newPromRunnerWithConfig(promCfg)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, p)
+	}
+
+	return res, nil
 }
 
 func newPromRunnerWithConfig(c *promConfig) (*promRunner, error) {
 	opts := []iprom.PromOption{
 		iprom.WithLogger(l), // WithLogger must in the first
 		iprom.WithSource(c.Source),
+		iprom.WithTimeout(c.Timeout),
 		iprom.WithKeepAlive(defaultPrometheusioConnectKeepAlive),
 		iprom.WithIgnoreReqErr(c.IgnoreReqErr),
 		iprom.WithMetricTypes(c.MetricTypes),
@@ -130,6 +151,10 @@ func newPromRunnerWithConfig(c *promConfig) (*promRunner, error) {
 	pm, err := iprom.NewProm(opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create prom: %w", err)
+	}
+
+	if c.URL != "" {
+		c.URLs = append(c.URLs, c.URL)
 	}
 
 	return &promRunner{
