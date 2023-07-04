@@ -265,7 +265,7 @@ func (d *discovery) newPromFromPodAnnotationExport() []*promRunner {
 			continue
 		}
 
-		res = append(res, runner)
+		res = append(res, runner...)
 	}
 
 	return res
@@ -283,7 +283,7 @@ func (d *discovery) newPromFromDatakitCRD() []*promRunner {
 			return
 		}
 
-		res = append(res, runner)
+		res = append(res, runner...)
 	}
 
 	if err := d.processCRDWithPod(fn); err != nil {
@@ -590,22 +590,23 @@ func (d *discovery) getDeploymentLabelSelector(namespace, deployment string) (*m
 	return deploymentObj.Spec.Selector, nil
 }
 
-func newPromRunnersForPod(item *podMeta, inputConfig string, extraTags map[string]string, extractK8sLabelAsTags bool) (*promRunner, error) {
+func newPromRunnersForPod(item *podMeta, inputConfig string, extraTags map[string]string, extractK8sLabelAsTags bool) ([]*promRunner, error) {
 	l.Debugf("autodiscovery: new runner, source: %s, config: %s", item.Name, inputConfig)
 
-	runner, err := newPromRunnerWithTomlConfig(completePromConfig(inputConfig, item))
+	runners, err := newPromRunnerWithTomlConfig(completePromConfig(inputConfig, item))
 	if err != nil {
 		return nil, err
 	}
 
-	runner.addTags(extraTags)
-
-	// extract pod labels as tags
-	if extractK8sLabelAsTags {
-		runner.addTags(item.Labels)
+	for _, runner := range runners {
+		runner.addTags(extraTags)
+		// extract pod labels as tags
+		if extractK8sLabelAsTags {
+			runner.addTags(item.Labels)
+		}
 	}
 
-	return runner, nil
+	return runners, nil
 }
 
 func completePromConfig(config string, item *podMeta) string {
