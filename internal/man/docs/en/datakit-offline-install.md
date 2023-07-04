@@ -144,7 +144,16 @@ After downloading, you should have three files (`<OS-ARCH>` here refers to the p
 
 Copy these files to the corresponding machine (via USB flash drive or scp and other commands).
 
-### Installation {#install}
+#### Installation {#simple-install}
+
+=== "Linux"
+
+    To run with root privileges:
+    
+    ```shell
+    chmod +x installer-linux-amd64
+    ./installer-linux-amd64 --offline --dataway "https://openway.guance.com?token=<YOUR-TOKEN>" --srcs datakit-linux-amd64-{{ .Version }}.tar.gz,data.tar.gz
+    ```
 
 === "Windows"
 
@@ -154,13 +163,23 @@ Copy these files to the corresponding machine (via USB flash drive or scp and ot
     .\installer-windows-amd64.exe --offline --dataway "https://openway.guance.com?token=<YOUR-TOKEN>" --srcs .\datakit-windows-amd64-{{ .Version }}.tar.gz,.\data.tar.gz
     ```
 
+#### Upgrade {#simple-upgrade}
+
 === "Linux"
 
     To run with root privileges:
-    
+
     ```shell
     chmod +x installer-linux-amd64
-    ./installer-linux-amd64 --offline --dataway "https://openway.guance.com?token=<YOUR-TOKEN>" --srcs datakit-linux-amd64-{{ .Version }}.tar.gz,data.tar.gz
+    ./installer-linux-amd64 --offline --upgrade --srcs datakit-linux-amd64-{{ .Version }}.tar.gz,data.tar.gz
+    ```
+
+=== "Windows"
+
+    You need to run the Powershell with administrator privileges to execute:
+
+    ```powershell
+    .\installer-windows-amd64.exe --offline --upgrade --srcs .\datakit-windows-amd64-{{ .Version }}.tar.gz,.\data.tar.gz
     ```
 
 ### Advanced Mode {#offline-advanced}
@@ -242,31 +261,39 @@ for((i=0;i<${#sources[@]};i++)); do
 done
 ```
 
-- Prepare for installation
+#### Install {#advance-install}
 
 On the intranet machine, point it to the Nginx file server by setting `DK_INSTALLER_BASE_URL`:
 
+<!-- markdownlint-disable MD046 MD034 -->
 === "Linux/Mac"
-    
+
     ```shell
-    HTTPS_PROXY=http://1.2.3.4:9530 \
-    DK_INSTALLER_BASE_URL="http://<nginxServer>:8080/datakit" \
-{{ InstallCmd 4 (.WithPlatform "unix") (.WithSourceURL "${DK_INSTALLER_BASE_URL}") }}
+{{ InstallCmd 4
+(.WithPlatform "unix")
+(.WithSourceURL "${DK_INSTALLER_BASE_URL}")
+(.WithEnvs "DK_INSTALLER_BASE_URL" "http://[Nginx-Server]:8080/datakit")
+(.WithEnvs "HTTPS_PROXY" "http://1.2.3.4:9530")
+}}
     ```
 
 === "Windows"
 
-    ```powershel
-    HTTPS_PROXY=http://1.2.3.4:9530 \
-    DK_INSTALLER_BASE_URL="http://<nginxServer>:8080/datakit" \
-{{ InstallCmd 4 (.WithPlatform "windows") (.WithSourceURL "${DK_INSTALLER_BASE_URL}") }}
+    ```powershell
+{{ InstallCmd 4
+(.WithPlatform "windows")
+(.WithSourceURL "${DK_INSTALLER_BASE_URL}")
+(.WithEnvs "HTTPS_PROXY" "1.2.3.4:9530")
+(.WithEnvs "DK_INSTALLER_BASE_URL" "http://[Nginx-Server]:8080/datakit")
+}}
     ```
+<!-- markdownlint-enable -->
 
 So far, the offline installation is complete. Note that HTTPS_PROXY is additionally set here.
 
 ---
 
-- Update DataKit
+#### Upgrade {#advance-upgrade}
 
 If there is a new version of DataKit, you can download it as above and execute the following command to upgrade:
 

@@ -85,13 +85,13 @@ DataKit 支持手动更新和自动更新两种方式。
 
 ### 准备更新脚本 {#prepare}
 
-将如下脚本内容复制到 DataKit 所在机器的安装目录下，保存 `datakit-update.sh`（名称随意）
+将如下脚本内容复制到 DataKit 所在机器的安装目录下，保存 `datakit-upgrade.sh`（名称随意）
 
 ```bash
 #!/usr/bin/env bash
-# Update DataKit if new version available
+# Upgrade DataKit if new version available
 
-echo "Checking for available updates..."
+echo "Checking for available upgrade..."
 
 if [ ! -x /usr/local/datakit/datakit ]; then
   echo "/usr/local/datakit/datakit cmd not found, has datakit been installed?" >&2
@@ -145,7 +145,7 @@ crontab -u root -e
 
 ```shell
 # 意即每天凌晨尝试一下新版本更新
-0 0 * * * bash /path/to/datakit-update.sh >>/var/log/datakit/auto-upgrade.log 2>&1
+0 0 * * * bash /path/to/datakit-upgrade.sh >>/var/log/datakit/auto-upgrade.log 2>&1
 ```
 
 Tips: crontab 基本语法如下
@@ -173,7 +173,7 @@ crontab -u root -l
 service cron restart
 ```
 
-如果安装成功且有尝试更新，则在 `update_log` 中能看到类似如下日志：
+如果安装成功且有尝试更新，则在 `upgrade_log` 中能看到类似如下日志：
 
 ``` log
 2021-05-10T09:49:06.083+0800 DEBUG ota-update datakit/main.go:201 get online version...
@@ -306,3 +306,7 @@ Golang Version: go version go1.18.3 linux/amd64
       Uploader: zy-infra-gitlab-prod-runner/root/xxx
 ReleasedInputs: checked
 ```
+
+## 离线更新 {#offline-upgrade}
+
+参见[离线安装](datakit-offline-install.md)相关的章节。

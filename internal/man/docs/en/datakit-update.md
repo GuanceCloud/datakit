@@ -1,21 +1,22 @@
 
-# DataKit Update
+# DataKit Upgrade
 ---
 
-DataKit supports both manual and automatic updates.
+DataKit supports both manual and automatic upgrade.
 
 ## Preconditions {#req}
 
-- Automatic updates require DataKit version >= 1.1.6-rc1
-- There is no version requirement for manual update
+- Automatic upgrade require DataKit version >= 1.1.6-rc1
+- There is no version requirement for manual upgrade
 
-## Manually Update {#manual}
+## Manually Upgrade {#manual}
 
-Directly execute the following command to view the current DataKit version. If the latest version is available online, the corresponding update command will be prompted, such as:
+Directly execute the following command to view the current DataKit version. If the latest version is available online, the corresponding upgrade
+command will be prompted, such as:
 
 > - For remote upgrade, you must upgrade Datakit to [1.5.9](changelog.md#cl-1.5.9)+
 > - If [DataKit < 1.2.7](changelog.md#cl-1.2.7), you can only use `datakit --version`
-> - If DataKit < 1.2.0, [use the update command directly](changelog.md#cl-1.2.0-break-changes)
+> - If DataKit < 1.2.0, [use the upgrade command directly](changelog.md#cl-1.2.0-break-changes)
 
 === "Linux/macOS"
 
@@ -58,7 +59,7 @@ Directly execute the following command to view the current DataKit version. If t
     ```
 ---
 
-If the DataKit is currently in proxy mode, the proxy settings will be automatically added to the prompt command of automatic update:
+If the DataKit is currently in proxy mode, the proxy settings will be automatically added to the prompt command of automatic upgrade:
 
 === "Linux/macOS"
 
@@ -72,21 +73,21 @@ If the DataKit is currently in proxy mode, the proxy settings will be automatica
     $env:HTTPS_PROXY="http://10.100.64.198:9530"; $env:DK_UPGRADE="1" ...
     ```
 
-## Auto Update {#auto}
+## Auto Upgrade {#auto}
 
-In Linux, in order to facilitate the automatic update of DataKit, tasks can be added through crontab to realize regular update.
+In Linux, in order to facilitate the automatic upgrade of DataKit, tasks can be added through crontab to realize regular upgrade.
 
-> Note: Currently, automatic updates only support Linux, and proxy mode is not supported for the time being.
+> Note: Currently, automatic upgrade only support Linux, and proxy mode is not supported for the time being.
 
-### Prepare to Update Script {#prepare}
+### Prepare to Upgrade Script {#prepare}
 
-Copy the following script contents to the installation directory of the machine where the DataKit is located and save `datakit-update.sh` (name optional).
+Copy the following script contents to the installation directory of the machine where the DataKit is located and save `datakit-upgrade.sh` (name optional).
 
 ```bash
 #!/usr/bin/env bash
-# Update DataKit if new version available
+# Upgrade DataKit if new version available
 
-echo "Checking for available updates..."
+echo "Checking for available upgrade..."
 
 if [ ! -x /usr/local/datakit/datakit ]; then
   echo "/usr/local/datakit/datakit cmd not found, has datakit been installed?" >&2
@@ -139,8 +140,8 @@ crontab -u root -e
 Add the following rule:
 
 ```shell
-# Mean to try the new version update every morning
-0 0 * * * bash /path/to/datakit-update.sh >>/var/log/datakit/auto-upgrade.log 2>&1
+# Mean to try the new version upgrade every morning
+0 0 * * * bash /path/to/datakit-upgrade.sh >>/var/log/datakit/auto-upgrade.log 2>&1
 ```
 
 Tips: crontab, The basic syntax is as follows
@@ -168,7 +169,7 @@ Make sure the crontab service starts:
 service cron restart
 ```
 
-If the installation is successful and an update is attempted, you can see logs like the following in `update_log`:
+If the installation is successful and an upgrade is attempted, you can see logs like the following in `upgrade_log`:
 
 ```
 2021-05-10T09:49:06.083+0800 DEBUG	ota-update datakit/main.go:201	get online version...
@@ -176,7 +177,7 @@ If the installation is successful and an update is attempted, you can see logs l
 2021-05-10T09:49:07.728+0800 INFO	ota-update datakit/main.go:224	Up to date(1.1.6-rc0-62-g7a1d0956)
 ```
 
-If an update does occur, you will see an update log similar to the following:
+If an upgrade does occur, you will see an upgrade log similar to the following:
 
 ```
 2021-05-10T09:52:18.352+0800 DEBUG ota-update datakit/main.go:201 get online version...
@@ -297,3 +298,7 @@ Golang Version: go version go1.18.3 linux/amd64
       Uploader: zy-infra-gitlab-prod-runner/root/xxx
 ReleasedInputs: checked
 ```
+
+## Offline Upgrade {#offline-upgrade}
+
+Please refer to [Offline Install](datakit-offline-install.md) related sections.
