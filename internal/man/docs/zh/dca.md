@@ -87,7 +87,7 @@ DCA web 是 DCA 客户端的 web 版本，它通过部署一个后端服务来�
     运行容器之前，首先通过 `docker pull` 下载 DCA 镜像。
 
     ```shell
-    $ docker pull pubrepo.guance.com/tools/dca:latest
+    docker pull pubrepo.guance.com/tools/dca:latest
     ```
 
     - 运行容器
@@ -95,7 +95,7 @@ DCA web 是 DCA 客户端的 web 版本，它通过部署一个后端服务来�
     通过 `docker run` 命令来创建和启动 DCA 容器，容器默认暴露访问端口是 80。
 
     ```shell
-    $ docker run -d --name dca -p 8000:80 pubrepo.guance.com/tools/dca
+    docker run -d --name dca -p 8000:80 pubrepo.guance.com/tools/dca
     ```
 
     - 测试

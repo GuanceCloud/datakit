@@ -32,9 +32,9 @@ const TOKEN string = "tkn_xxxxxxxxxxxxxxxxxxxxxxx"
 func getResponse(t *testing.T, req *http.Request, conf *config.DCAConfig) *httptest.ResponseRecorder {
 	t.Helper()
 
-	dcaConfig = &config.DCAConfig{}
+	apiServer.dcaConfig = &config.DCAConfig{}
 	if conf != nil {
-		dcaConfig = conf
+		apiServer.dcaConfig = conf
 	}
 
 	apiServer.dw = &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + TOKEN}}
@@ -754,7 +754,7 @@ func TestDcaGetLogTail(t *testing.T) {
 	req.Header.Add("X-Token", TOKEN)
 
 	// set up dca
-	dcaConfig = &config.DCAConfig{}
+	apiServer.dcaConfig = &config.DCAConfig{}
 
 	apiServer.dw = &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + TOKEN}}
 	assert.NoError(t, apiServer.dw.Init())
