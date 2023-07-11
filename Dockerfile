@@ -15,7 +15,7 @@ RUN sed -i 's/\(archive\|security\|ports\).ubuntu.com/mirrors.aliyun.com/' /etc/
 RUN \
   case "$TARGETARCH" in \
     amd64) \
-      wget -q https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/otn_software/instantclient/instantclient-basiclite-linux.x64-19.8.0.0.0dbru.zip \
+      wget -q https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/otn_software/instantclient/instantclient-basiclite-linux.x64-21.10.0.0.0dbru.zip \
       			-O /usr/local/datakit/externals/instantclient-basiclite-linux.zip \
       			&& unzip /usr/local/datakit/externals/instantclient-basiclite-linux.zip -d /opt/oracle; \
       ;; \

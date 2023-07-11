@@ -106,7 +106,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		optsSystem     []inputs.PointCheckOption
 	}{
 		{
-			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/oracle:11g-xe-datakit-v3",
+			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/oracle:11g-xe-datakit-v4",
 			exposedPorts: []string{"1521/tcp"},
 			sid:          "XE",
 			optsProcess: []inputs.PointCheckOption{
@@ -147,7 +147,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		},
 
 		{
-			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/oracle:12c-se-datakit-v3",
+			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/oracle:12c-se-datakit-v4",
 			exposedPorts: []string{"1521/tcp"},
 			sid:          "xe",
 			optsSystem: []inputs.PointCheckOption{
@@ -175,7 +175,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		},
 
 		{
-			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/oracle:19c-ee-datakit-v3",
+			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/oracle:19c-ee-datakit-v4",
 			exposedPorts: []string{"1521/tcp"},
 			sid:          "XE",
 			optsSystem: []inputs.PointCheckOption{
