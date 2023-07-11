@@ -68,6 +68,21 @@ collector.backend_service=${SW_AGENT_COLLECTOR_BACKEND_SERVICES:<datakit-ip:skyw
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](datakit-daemonset-deploy.md#configmap-setting).
 
+    Multiple environment variables supported that can be used in Kubernetes showing below:
+
+    | Envrionment Variable Name                 | Type        | Example                                                                              |
+    | ----------------------------------------- | ----------- | ------------------------------------------------------------------------------------ |
+    | `ENV_INPUT_SKYWALKING_HTTP_ENDPOINTS`     | JSON string | `["/v3/trace", "/v3/metric", "/v3/logging", "/v3/profiling"]`                        |
+    | `ENV_INPUT_SKYWALKING_GRPC_ENDPOINT`      | string      | "127.0.0.1:11800"                                                                    |
+    | `ENV_INPUT_SKYWALKING_PLUGINS`            | JSON string | `["db.type", "os.call"]`                                                             |
+    | `ENV_INPUT_SKYWALKING_CUSTOMER_TAGS`      | JSON string | `["key1", "key2", "key3"]`                                                           |
+    | `ENV_INPUT_SKYWALKING_KEEP_RARE_RESOURCE` | bool        | true                                                                                 |
+    | `ENV_INPUT_SKYWALKING_CLOSE_RESOURCE`     | JSON string | `{"service1":["resource1"], "service2":["resource2"], "service3":    ["resource3"]}` |
+    | `ENV_INPUT_SKYWALKING_SAMPLER`            | float       | 0.3                                                                                  |
+    | `ENV_INPUT_SKYWALKING_TAGS`               | JSON string | `{"k1":"v1", "k2":"v2", "k3":"v3"}`                                                  |
+    | `ENV_INPUT_SKYWALKING_THREADS`            | JSON string | `{"buffer":1000, "threads":100}`                                                     |
+    | `ENV_INPUT_SKYWALKING_STORAGE`            | JSON string | `{"storage":"./skywalking_storage", "capacity": 5120}`                               |
+
 ## Restart Java Client {#start-java}
 
 ```command
@@ -98,7 +113,6 @@ Others:
 - [log4j-1.x](https://github.com/apache/skywalking-java/blob/main/docs/en/setup/service-agent/java-agent/Application-toolkit-log4j-1.x.md){:target="_blank"}
 - [logback-1.x](https://github.com/apache/skywalking-java/blob/main/docs/en/setup/service-agent/java-agent/Application-toolkit-logback-1.x.md){:target="_blank"}
 
-
 ## SkyWalking JVM Measurement {#jvm-measurements}
 
 jvm metrics collected by skywalking language agent.
@@ -110,7 +124,6 @@ jvm metrics collected by skywalking language agent.
 | `service` | service name |
 
 - Metrics List
-
 
 | Metrics                            | Description                                                                                                                               | Data Type |  Unit   |
 | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | :-------: | :-----: |
@@ -134,3 +147,24 @@ jvm metrics collected by skywalking language agent.
 | `thread_runnable_state_count`      | runnable state thread count.                                                                                                              |    int    |  count  |
 | `thread_time_waiting_state_count`  | time waiting state thread count.                                                                                                          |    int    |  count  |
 | `thread_waiting_state_count`       | waiting state thread count.                                                                                                               |    int    |  count  |
+
+## Measurements {#measurements}
+
+{{range $i, $m := .Measurements}}
+
+{{if eq $m.Type "tracing"}}
+
+### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+- tag
+
+{{$m.TagsMarkdownTable}}
+
+- metric list
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
+
+{{end}}

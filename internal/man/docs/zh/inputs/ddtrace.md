@@ -86,7 +86,7 @@ Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing �
 === "主机安装"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
-    
+
     ```toml
     {{ CodeBlock .InputSample 4 }}
     ```
@@ -97,24 +97,37 @@ Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing �
 
     目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 
----
+    在 Kubernetes 中支持的环境变量如下表：
+
+    | 环境变量名                             | 类型        | 示例                                                                             |
+    | -------------------------------------- | ----------- | -------------------------------------------------------------------------------- |
+    | `ENV_INPUT_DDTRACE_ENDPOINTS`          | JSON string | `["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]`                               |
+    | `ENV_INPUT_DDTRACE_CUSTOMER_TAGS`      | JSON string | `["key1", "key2", "key3"]`                                                       |
+    | `ENV_INPUT_DDTRACE_KEEP_RARE_RESOURCE` | bool        | true                                                                             |
+    | `ENV_INPUT_DDTRACE_OMIT_ERR_STATUS`    | JSON string | `["404", "403", "400"]`                                                          |
+    | `ENV_INPUT_DDTRACE_CLOSE_RESOURCE`     | JSON string | `{"service1":["resource1"], "service2":["resource2"], "service3":["resource3"]}` |
+    | `ENV_INPUT_DDTRACE_SAMPLER`            | float       | 0.3                                                                              |
+    | `ENV_INPUT_DDTRACE_TAGS`               | JSON string | `{"k1":"v1", "k2":"v2", "k3":"v3"}`                                              |
+    | `ENV_INPUT_DDTRACE_THREADS`            | JSON string | `{"buffer":1000, "threads":100}`                                                 |
+    | `ENV_INPUT_DDTRACE_STORAGE`            | JSON string | `{"storage":"./ddtrace_storage", "capacity": 5120}`                              |
 
 ???+ attention
 
-    - 不要修改这里的 `endpoints` 列表。
+    - 不要修改这里的 `endpoints` 列表（除非明确知道配置逻辑和效果）。
 
     ```toml
     endpoints = ["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]
     ```
 
     - 如果要关闭采样（即采集所有数据），采样率字段需做如下设置：
-    
+
     ``` toml
     # [inputs.ddtrace.sampler]
     # sampling_rate = 1.0
     ```
 
     不要只注释 `sampling_rate = 1.0` 这一行，必须连同 `[inputs.ddtrace.sampler]` 也一并注释掉，否则采集器会认为 `sampling_rate` 被置为 0.0，从而导致所有数据都被丢弃。
+
 <!-- markdownlint-enable -->
 
 ### HTTP 设置 {#http}
@@ -142,7 +155,7 @@ Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing �
 
 配置完采集器之后，还可以对 DDtrace SDK 端做一些配置。
 
-### 环境变量设置 {#dd-envs}
+### 环境变量设置 {#sdk-envs}
 
 - `DD_TRACE_ENABLED`: Enable global tracer (部分语言平台支持)
 - `DD_AGENT_HOST`: DDtrace agent host address
@@ -195,7 +208,7 @@ customer_tags = [
 
 ## 指标集 {#measurements}
 
-{{ range $i, $m := .Measurements }}
+{{range $i, $m := .Measurements}}
 
 {{if eq $m.Type "tracing"}}
 
@@ -212,7 +225,7 @@ customer_tags = [
 {{$m.FieldsMarkdownTable}}
 {{end}}
 
-{{ end }}
+{{end}}
 
 ## 延伸阅读 {#more-reading}
 

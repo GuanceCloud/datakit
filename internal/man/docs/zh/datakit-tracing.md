@@ -128,3 +128,12 @@ Datakit backend 负责按照配置来操作链路数据，目前支持的操作�
 - 生产环境下(多服务，多 Datakit 部署)一条完整的 Trace 数据是被分批次上传到 Data Center 的并不是按照调用先后顺序上传到 Data Center。
 - `parent_id = 0` 为 root span。
 - `span_type = entry` 为 service 上的首个 resource 的调用者即当前 service 上的第一个 span。
+
+## FAQ {#faq}
+
+<!-- markdownlint-disable MD013 -->
+### :material-chat-question: 链路中 HTTP 状态显示 4xx 错误，为什么 Span 状态依旧为 OK ？ {#faq-logging}
+
+链路系统的 Span 状态监测的是目标业务系统的执行状态，大多数情况下目标系统对应的是用户业务系统，而不是传输层或者网络层或者更底层的系统。HTTP 虽然也在业务层但是 4xx 错误还没有进入客户业务层而是属于 HTTP 协议栈中的客户端，所以客户业务层对应的 API 已经正确识别了这个客户端错误所以 Span 状态依旧为 OK。
+
+<!-- markdownlint-enable -->

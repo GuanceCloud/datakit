@@ -71,6 +71,22 @@ collector.backend_service=${SW_AGENT_COLLECTOR_BACKEND_SERVICES:<datakit-ip:skyw
 === "Kubernetes 内安装"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+
+    在 Kubernetes 中支持的环境变量如下表：
+
+    | 环境变量名                                | 类型        | 示例                                                                                 |
+    | ----------------------------------------- | ----------- | ------------------------------------------------------------------------------------ |
+    | `ENV_INPUT_SKYWALKING_HTTP_ENDPOINTS`     | JSON string | `["/v3/trace", "/v3/metric", "/v3/logging", "/v3/profiling"]`                        |
+    | `ENV_INPUT_SKYWALKING_GRPC_ENDPOINT`      | string      | "127.0.0.1:11800"                                                                    |
+    | `ENV_INPUT_SKYWALKING_PLUGINS`            | JSON string | `["db.type", "os.call"]`                                                             |
+    | `ENV_INPUT_SKYWALKING_CUSTOMER_TAGS`      | JSON string | `["key1", "key2", "key3"]`                                                           |
+    | `ENV_INPUT_SKYWALKING_KEEP_RARE_RESOURCE` | bool        | true                                                                                 |
+    | `ENV_INPUT_SKYWALKING_CLOSE_RESOURCE`     | JSON string | `{"service1":["resource1"], "service2":["resource2"], "service3":    ["resource3"]}` |
+    | `ENV_INPUT_SKYWALKING_SAMPLER`            | float       | 0.3                                                                                  |
+    | `ENV_INPUT_SKYWALKING_TAGS`               | JSON string | `{"k1":"v1", "k2":"v2", "k3":"v3"}`                                                  |
+    | `ENV_INPUT_SKYWALKING_THREADS`            | JSON string | `{"buffer":1000, "threads":100}`                                                     |
+    | `ENV_INPUT_SKYWALKING_STORAGE`            | JSON string | `{"storage":"./skywalking_storage", "capacity": 5120}`                               |
+
 <!-- markdownlint-enable -->
 
 ## 启动 Java Client {#start-java}
@@ -106,9 +122,48 @@ toolkit 依赖包添加到 maven 或者 gradle 中：
 - [Log4j-1.x](https://github.com/apache/skywalking-java/blob/main/docs/en/setup/service-agent/java-agent/Application-toolkit-log4j-1.x.md){:target="_blank"}
 - [Logback-1.x](https://github.com/apache/skywalking-java/blob/main/docs/en/setup/service-agent/java-agent/Application-toolkit-logback-1.x.md){:target="_blank"}
 
-## SkyWalking JVM 指标集 {#jvm-measurements}
+## SkyWalking JVM 指标 {#jvm-measurements}
 
-{{ range $i, $m := .Measurements }}
+jvm metrics collected by skywalking language agent.
+
+- Tag
+
+| Tag Name  | Description  |
+| --------- | ------------ |
+| `service` | service name |
+
+- Metrics List
+
+| Metrics                            | Description                                                                                                                               | Data Type |  Unit   |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | :-------: | :-----: |
+| `class_loaded_count`               | loaded class count.                                                                                                                       |    int    |  count  |
+| `class_total_loaded_count`         | total loaded class count.                                                                                                                 |    int    |  count  |
+| `class_total_unloaded_class_count` | total unloaded class count.                                                                                                               |    int    |  count  |
+| `cpu_usage_percent`                | cpu usage percentile                                                                                                                      |   float   | percent |
+| `gc_phrase_old/new_count`          | gc old or new count.                                                                                                                      |    int    |  count  |
+| `heap/stack_committed`             | heap or stack committed amount of memory.                                                                                                 |    int    |  count  |
+| `heap/stack_init`                  | heap or stack initialized amount of memory.                                                                                               |    int    |  count  |
+| `heap/stack_max`                   | heap or stack max amount of memory.                                                                                                       |    int    |  count  |
+| `heap/stack_used`                  | heap or stack used amount of memory.                                                                                                      |    int    |  count  |
+| `pool_*_committed`                 | committed amount of memory in variety of pool(code_cache_usage,newgen_usage,oldgen_usage,survivor_usage,permgen_usage,metaspace_usage).   |    int    |  count  |
+| `pool_*_init`                      | initialized amount of memory in variety of pool(code_cache_usage,newgen_usage,oldgen_usage,survivor_usage,permgen_usage,metaspace_usage). |    int    |  count  |
+| `pool_*_max`                       | max amount of memory in variety of pool(code_cache_usage,newgen_usage,oldgen_usage,survivor_usage,permgen_usage,metaspace_usage).         |    int    |  count  |
+| `pool_*_used`                      | used amount of memory in variety of pool(code_cache_usage,newgen_usage,oldgen_usage,survivor_usage,permgen_usage,metaspace_usage).        |    int    |  count  |
+| `thread_blocked_state_count`       | blocked state thread count                                                                                                                |    int    |  count  |
+| `thread_daemon_count`              | thread daemon count.                                                                                                                      |    int    |  count  |
+| `thread_live_count`                | thread live count.                                                                                                                        |    int    |  count  |
+| `thread_peak_count`                | thread peak count.                                                                                                                        |    int    |  count  |
+| `thread_runnable_state_count`      | runnable state thread count.                                                                                                              |    int    |  count  |
+| `thread_time_waiting_state_count`  | time waiting state thread count.                                                                                                          |    int    |  count  |
+| `thread_waiting_state_count`       | waiting state thread count.                                                                                                               |    int    |  count  |
+
+## 指标集 {#measurements}
+
+{{range $i, $m := .Measurements}}
+
+{{if eq $m.Type "tracing"}}
+
+### `{{$m.Name}}`
 
 {{$m.Desc}}
 
@@ -119,5 +174,6 @@ toolkit 依赖包添加到 maven 或者 gradle 中：
 - 指标列表
 
 {{$m.FieldsMarkdownTable}}
+{{end}}
 
-{{ end }}
+{{end}}

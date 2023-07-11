@@ -32,6 +32,23 @@ The purpose of this article is to introduce how to configure and enable OTEL dat
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](datakit-daemonset-deploy.md#configmap-setting).
+
+    Multiple environment variables supported that can be used in Kubernetes showing below:
+
+    | Envrionment Variable Name              | Type        | Example                                                                                                  |
+    | -------------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------- |
+    | `ENV_INPUT_OTEL_IGNORE_ATTRIBUTE_KEYS` | JSON string | `["os_*", "process_*"]`                                                                                  |
+    | `ENV_INPUT_OTEL_KEEP_RARE_RESOURCE`    | bool        | true                                                                                                     |
+    | `ENV_INPUT_OTEL_OMIT_ERR_STATUS`       | JSON string | `["404", "403", "400"]`                                                                                  |
+    | `ENV_INPUT_OTEL_CLOSE_RESOURCE`        | JSON string | `{"service1":["resource1"], "service2":["resource2"], "service3":["resource3"]}`                         |
+    | `ENV_INPUT_OTEL_SAMPLER`               | float       | 0.3                                                                                                      |
+    | `ENV_INPUT_OTEL_TAGS`                  | JSON string | `{"k1":"v1", "k2":"v2", "k3":"v3"}`                                                                      |
+    | `ENV_INPUT_OTEL_THREADS`               | JSON string | `{"buffer":1000, "threads":100}`                                                                         |
+    | `ENV_INPUT_OTEL_STORAGE`               | JSON string | `{"storage":"./otel_storage", "capacity": 5120}`                                                         |
+    | `ENV_INPUT_OTEL_HTTP`                  | JSON string | `{"enable":true, "http_status_ok": 200, "trace_api": "/otel/v1/trace", "metric_api": "/otel/v1/metric"}` |
+    | `ENV_INPUT_OTEL_GRPC`                  | JSON string | `{"trace_enable": true, "metric_enable": true, "addr": "127.0.0.1:4317"}`                                |
+    | `ENV_INPUT_OTEL_EXPECTED_HEADERS`      | JSON string | `{"ex_version": "1.2.3", "ex_name": "env_resource_name"}`                                                |
+
 <!-- markdownlint-enable -->
 
 ### Notes {#attentions}
@@ -73,23 +90,44 @@ example:
 ```shell
 java -javaagent:/usr/local/opentelemetry-javaagent-1.26.1-guance.jar \
  -Dotel.exporter=otlp \
- -Dotel.exporter.otlp.protocol=http/protobuf \ 
- -Dotel.exporter.otlp.traces.endpoint=http://localhost:9529/otel/v1/trace \ 
- -Dotel.exporter.otlp.metrics.endpoint=http://localhost:9529/otel/v1/metric \ 
+ -Dotel.exporter.otlp.protocol=http/protobuf \
+ -Dotel.exporter.otlp.traces.endpoint=http://localhost:9529/otel/v1/trace \
+ -Dotel.exporter.otlp.metrics.endpoint=http://localhost:9529/otel/v1/metric \
  -jar tmall.jar
- 
-# If the default routes in the configuration file are changed to `v1/traces` and `v1/metrics`, 
+
+# If the default routes in the configuration file are changed to `v1/traces` and `v1/metrics`,
 # then the above command can be written as follows:
 java -javaagent:/usr/local/opentelemetry-javaagent-1.26.1-guance.jar \
  -Dotel.exporter=otlp \
- -Dotel.exporter.otlp.protocol=http/protobuf \ 
- -Dotel.exporter.otlp.endpoint=http://localhost:9529/ \ 
+ -Dotel.exporter.otlp.protocol=http/protobuf \
+ -Dotel.exporter.otlp.endpoint=http://localhost:9529/ \
  -jar tmall.jar
 ```
 
 ### Best Practices {#bp}
 
 Datakit currently provides [Go language](opentelemetry-go.md)、[Java](opentelemetry-java.md) languages, with other languages available later.
+
+## Measurements {#measurements}
+
+{{range $i, $m := .Measurements}}
+
+{{if eq $m.Type "tracing"}}
+
+### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+- tag
+
+{{$m.TagsMarkdownTable}}
+
+- metric list
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
+
+{{end}}
 
 ## More Docs {#more-readings}
 - Go open source address [opentelemetry-go](https://github.com/open-telemetry/opentelemetry-go){:target="_blank"}
