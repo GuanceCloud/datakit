@@ -67,5 +67,5 @@ DD_AGENT_HOST=localhost DD_TRACE_AGENT_PORT=9529 node server
 - DD_SERVICE_MAPPING: Define service name mappings for renaming services in Tracing.
 - DD_TAGS: Add default Tags for each Span.
 - DD_TRACE_AGENT_HOSTNAME: The name of the address where Datakit listens, default localhost.
-- DD_AGENT_PORT: The port number on which Datakit listens, the default is 9529.
+- DD_TRACE_AGENT_PORT: The port number on which Datakit listens, the default is 9529.
 - DD_TRACE_SAMPLE_RATE: Set the sampling rate from 0.0 (0%) to 1.0 (100%).

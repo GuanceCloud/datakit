@@ -46,13 +46,23 @@ Datakit 内置的 Pinpoint Agent 用于接收，运算，分析 Pinpoint Tracing
 
     目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 
----
+    在 Kubernetes 中支持的环境变量如下表：
+
+    | 环境变量名                              | 类型        | 示例                                                                             |
+    | --------------------------------------- | ----------- | -------------------------------------------------------------------------------- |
+    | `ENV_INPUT_PINPOINT_ADDRESS`            | string      | "127.0.0.1:9991"                                                                 |
+    | `ENV_INPUT_PINPOINT_KEEP_RARE_RESOURCE` | bool        | true                                                                             |
+    | `ENV_INPUT_PINPOINT_CLOSE_RESOURCE`     | JSON string | `{"service1":["resource1"], "service2":["resource2"], "service3":["resource3"]}` |
+    | `ENV_INPUT_PINPOINT_SAMPLER`            | float       | 0.3                                                                              |
+    | `ENV_INPUT_PINPOINT_TAGS`               | JSON string | `{"k1":"v1", "k2":"v2", "k3":"v3"}`                                              |
+    | `ENV_INPUT_PINPOINT_STORAGE`            | JSON string | `{"storage":"./pinpoint_storage", "capacity": 5120}`                             |
 
 ???+ warning "Datakit 中的 Pinpoint Agent 存在以下限制"
 
     - 目前只支持 gRPC 协议
     - 多服务（Agent/Metadata/Stat/Span）合一的服务使用同一个端口
     - Pinpoint 链路与 Datakit 链路存在差异，详见[下文](pinpoint.md#opentracing-vs-pinpoint)
+
 <!-- markdownlint-enable -->
 
 ## 配置 Pinpoint Collector {#collector-config}
@@ -99,3 +109,24 @@ Pinpoint APM 链路数据较为复杂：
   ![Pinpoint](https://static.guance.com/images/datakit/datakit-pinpoint.png){ width="600" }
   <figcaption>Pinpoint</figcaption>
 </figure>
+
+## 指标集 {#measurements}
+
+{{range $i, $m := .Measurements}}
+
+{{if eq $m.Type "tracing"}}
+
+### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+- 标签
+
+{{$m.TagsMarkdownTable}}
+
+- 指标列表
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
+
+{{end}}

@@ -70,5 +70,5 @@ DD_AGENT_HOST=localhost DD_TRACE_AGENT_PORT=9529 node server
 - DD_SERVICE_MAPPING: 定义服务名映射用于在 Tracing 里重命名服务。
 - DD_TAGS: 为每个 Span 添加默认 Tags。
 - DD_TRACE_AGENT_HOSTNAME: Datakit 监听的地址名，默认 localhost。
-- DD_AGENT_PORT: Datakit 监听的端口号，默认 9529。
+- DD_TRACE_AGENT_PORT: Datakit 监听的端口号，默认 9529。
 - DD_TRACE_SAMPLE_RATE: 设置采样率从 0.0(0%) ~ 1.0(100%)。

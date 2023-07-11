@@ -315,16 +315,16 @@ func RunInputs() error {
 				continue
 			}
 
+			if inp, ok := ii.input.(ReadEnv); ok && datakit.Docker {
+				inp.ReadEnv(envs)
+			}
+
 			if inp, ok := ii.input.(HTTPInput); ok {
 				inp.RegHTTPHandler()
 			}
 
 			if inp, ok := ii.input.(PipelineInput); ok {
 				inp.RunPipeline()
-			}
-
-			if inp, ok := ii.input.(ReadEnv); ok && datakit.Docker {
-				inp.ReadEnv(envs)
 			}
 
 			func(name string, ii *inputInfo) {

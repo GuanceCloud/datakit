@@ -137,16 +137,16 @@ var (
 )
 
 type httpConfig struct {
-	Enabled      bool   `toml:"enable"`
-	StatusCodeOK int    `toml:"http_status_ok"`
-	TraceAPI     string `toml:"trace_api"`
-	MetricAPI    string `toml:"metric_api"`
+	Enabled      bool   `toml:"enable" json:"enable"`
+	StatusCodeOK int    `toml:"http_status_ok" json:"http_status_ok"`
+	TraceAPI     string `toml:"trace_api" json:"trace_api"`
+	MetricAPI    string `toml:"metric_api" json:"metric_api"`
 }
 
 type grpcConfig struct {
-	TraceEnabled  bool   `toml:"trace_enable"`
-	MetricEnabled bool   `toml:"metric_enable"`
-	Address       string `toml:"addr"`
+	TraceEnabled  bool   `toml:"trace_enable" json:"trace_enable"`
+	MetricEnabled bool   `toml:"metric_enable" json:"metric_enable"`
+	Address       string `toml:"addr" json:"addr"`
 }
 
 type Input struct {

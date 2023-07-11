@@ -25,7 +25,7 @@ Datakit 内嵌的 Jaeger Agent 用于接收，运算，分析 Jaeger Tracing 协
 === "主机安装"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
-    
+
     ```toml
     {{ CodeBlock .InputSample 4 }}
     ```
@@ -35,6 +35,21 @@ Datakit 内嵌的 Jaeger Agent 用于接收，运算，分析 Jaeger Tracing 协
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+
+    在 Kubernetes 中支持的环境变量如下表：
+
+    | 环境变量名                            | 类型        | 示例                                                                             |
+    | ------------------------------------- | ----------- | -------------------------------------------------------------------------------- |
+    | `ENV_INPUT_JAEGER_HTTP_ENDPOINT`      | string      | "/apis/traces"                                                                   |
+    | `ENV_INPUT_JAEGER_UDP_ENDPOINT`       | string      | "127.0.0.1:6831"                                                                 |
+    | `ENV_INPUT_JAEGER_CUSTOMER_TAGS`      | JSON string | `["key1", "key2", "key3"]`                                                       |
+    | `ENV_INPUT_JAEGER_KEEP_RARE_RESOURCE` | bool        | true                                                                             |
+    | `ENV_INPUT_JAEGER_CLOSE_RESOURCE`     | JSON string | `{"service1":["resource1"], "service2":["resource2"], "service3":["resource3"]}` |
+    | `ENV_INPUT_JAEGER_SAMPLER`            | float       | 0.3                                                                              |
+    | `ENV_INPUT_JAEGER_TAGS`               | JSON string | `{"k1":"v1", "k2":"v2", "k3":"v3"}`                                              |
+    | `ENV_INPUT_JAEGER_THREADS`            | JSON string | `{"buffer":1000, "threads":100}`                                                 |
+    | `ENV_INPUT_JAEGER_STORAGE`            | JSON string | `{"storage":"./jaeger_storage", "capacity": 5120}`                               |
+
 <!-- markdownlint-enable -->
 
 ### 配置 Jaeger HTTP Agent {#config-http-agent}
@@ -225,7 +240,7 @@ func foo() {
 
 ## 指标集 {#measurements}
 
-{{ range $i, $m := .Measurements }}
+{{range $i, $m := .Measurements}}
 
 {{if eq $m.Type "tracing"}}
 
@@ -242,4 +257,4 @@ func foo() {
 {{$m.FieldsMarkdownTable}}
 {{end}}
 
-{{ end }}
+{{end}}
