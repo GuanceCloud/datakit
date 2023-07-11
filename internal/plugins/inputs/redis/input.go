@@ -91,6 +91,7 @@ type Input struct {
 
 	startUpUnix int64
 	feeder      dkio.Feeder
+	Tagger      dkpt.GlobalTagger
 }
 
 type redisCPUUsage struct {
@@ -224,7 +225,7 @@ func (i *Input) collectInfoMeasurement() ([]*point.Point, error) {
 		lastCollect: &i.cpuUsage,
 	}
 
-	m.name = "redis_info"
+	m.name = redisInfoM
 
 	setHostTagIfNotLoopback(m.tags, i.Host)
 	for key, value := range i.Tags {
@@ -243,9 +244,18 @@ func (i *Input) collectInfoMeasurement() ([]*point.Point, error) {
 
 	if len(m.fields) > 0 {
 		var opts []point.Option
+
+		var hostTags map[string]string
 		if m.election {
-			opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+			hostTags = inputs.MergeTags(i.Tagger.ElectionTags(), i.Tags, i.Host)
+		} else {
+			hostTags = inputs.MergeTags(i.Tagger.HostTags(), i.Tags, i.Host)
 		}
+
+		for k, v := range hostTags {
+			m.tags[k] = v
+		}
+
 		pt := point.NewPointV2([]byte(m.name),
 			append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 			opts...)
@@ -460,6 +470,7 @@ func defaultInput() *Input {
 		semStop:  cliutils.NewSem(),
 		Election: true,
 		feeder:   dkio.DefaultFeeder(),
+		Tagger:   dkpt.DefaultGlobalTagger(),
 	}
 }
 

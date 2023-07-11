@@ -36,7 +36,7 @@ func (m *infoMeasurement) LineProto() (*dkpt.Point, error) {
 //nolint:lll,funlen
 func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "redis_info",
+		Name: redisInfoM,
 		Type: "metric",
 		Fields: map[string]interface{}{
 			"info_latency_ms": &inputs.FieldInfo{
@@ -355,12 +355,9 @@ func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
-			"server": &inputs.TagInfo{
-				Desc: "Server addr",
-			},
-			"redis_version": &inputs.TagInfo{
-				Desc: "Version of the Redis server",
-			},
+			"host":          &inputs.TagInfo{Desc: "Hostname"},
+			"redis_version": &inputs.TagInfo{Desc: "Version of the Redis server"},
+			"server":        &inputs.TagInfo{Desc: "Server addr"},
 		},
 	}
 }

@@ -30,7 +30,7 @@ func (m *clientMeasurement) LineProto() (*dkpt.Point, error) {
 
 func (m *clientMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "redis_client",
+		Name: redisClient,
 		Type: "metric",
 		Fields: map[string]interface{}{
 			"fd": &inputs.FieldInfo{
@@ -65,18 +65,10 @@ func (m *clientMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
-			"server": &inputs.TagInfo{
-				Desc: "Server addr",
-			},
-			"name": &inputs.TagInfo{
-				Desc: "The name set by the client with `CLIENT SETNAME`, default unknown",
-			},
-			"id": &inputs.TagInfo{
-				Desc: "AN unique 64-bit client ID",
-			},
-			"addr": &inputs.TagInfo{
-				Desc: "Address/port of the client",
-			},
+			"addr":   &inputs.TagInfo{Desc: "Address without port of the client"},
+			"host":   &inputs.TagInfo{Desc: "Hostname"},
+			"name":   &inputs.TagInfo{Desc: "The name set by the client with `CLIENT SETNAME`, default unknown"},
+			"server": &inputs.TagInfo{Desc: "Server addr"},
 		},
 	}
 }
@@ -100,7 +92,7 @@ func (i *Input) parseClientData(list string) ([]*point.Point, error) {
 		}
 
 		m := &clientMeasurement{
-			name:     "redis_client",
+			name:     redisClient,
 			tags:     make(map[string]string),
 			fields:   make(map[string]interface{}),
 			resData:  make(map[string]interface{}),
@@ -117,12 +109,24 @@ func (i *Input) parseClientData(list string) ([]*point.Point, error) {
 			key := item[0]
 			val := strings.TrimSpace(item[1])
 
-			if key == "addr" || key == "id" || key == "name" {
+			// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/1743
+			switch key {
+			case "addr", "name":
 				if val == "" {
 					val = "unknown"
 				}
-				m.tags[key] = val
-			} else {
+
+				if key == "addr" {
+					// exclude port.
+					arr := strings.Split(val, ":")
+					m.tags[key] = arr[0]
+				} else {
+					// "name"
+					m.tags[key] = val
+				}
+
+			case "id": // drop it.
+			default:
 				m.resData[key] = val
 			}
 		}
@@ -134,9 +138,18 @@ func (i *Input) parseClientData(list string) ([]*point.Point, error) {
 
 		if len(m.fields) > 0 {
 			var opts []point.Option
+
+			var hostTags map[string]string
 			if m.election {
-				opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+				hostTags = inputs.MergeTags(i.Tagger.ElectionTags(), i.Tags, i.Host)
+			} else {
+				hostTags = inputs.MergeTags(i.Tagger.HostTags(), i.Tags, i.Host)
 			}
+
+			for k, v := range hostTags {
+				m.tags[k] = v
+			}
+
 			pt := point.NewPointV2([]byte(m.name),
 				append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 				opts...)

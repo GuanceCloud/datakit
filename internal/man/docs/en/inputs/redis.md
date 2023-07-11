@@ -14,6 +14,13 @@ Redis indicator collector, which collects the following data:
 - bigkey scan monitoring
 - Master-slave replication
 
+Already tested version:
+
+- [x] 7.0.11
+- [x] 6.2.12
+- [x] 5.0.14
+- [x] 4.0.14
+
 ## Precondition {#reqirement}
 
 - Redis version v5.0+

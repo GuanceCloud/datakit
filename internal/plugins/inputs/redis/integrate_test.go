@@ -7,308 +7,44 @@ package redis
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/GuanceCloud/cliutils/point"
-	dt "github.com/ory/dockertest/v3"
+	dockertest "github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
-type caseSpec struct {
-	t *testing.T
+// ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
 
-	name        string
-	repo        string
-	repoTag     string
-	envs        []string
-	servicePort string
-
-	ipt    *Input
-	feeder *io.MockedFeeder
-
-	pool     *dt.Pool
-	resource *dt.Resource
-
-	cr *testutils.CaseResult
-}
-
-func buildCases(t *testing.T) ([]*caseSpec, error) {
-	t.Helper()
-
-	remote := testutils.GetRemote()
-
-	bases := []struct {
-		name string
-		conf string
-	}{
-		{
-			name: "remote-redis",
-
-			conf: fmt.Sprintf(`
-host = "%s"
-port = %s`,
-				remote.Host,
-				fmt.Sprintf("%d", testutils.RandPort("tcp"))),
-		},
-	}
-
-	images := [][2]string{
-		{"redis", "7.0"},
-		{"redis", "6.0"},
-		{"redis", "5.0"},
-	}
-
-	// TODO: add per-image configs
-	perImageCfgs := []interface{}{}
-	_ = perImageCfgs
-
-	var cases []*caseSpec
-
-	// compose cases
-	for _, img := range images {
-		for _, base := range bases {
-			feeder := io.NewMockedFeeder()
-
-			ipt := defaultInput()
-			ipt.Service = "some_service"
-			ipt.feeder = feeder
-
-			_, err := toml.Decode(base.conf, ipt)
-			assert.NoError(t, err)
-
-			envs := []string{}
-
-			// ipport, err := netip.ParseAddrPort(ipt.Host)
-			assert.NoError(t, err, "parse %s failed: %s", ipt.Host, err)
-
-			cases = append(cases, &caseSpec{
-				t:      t,
-				ipt:    ipt,
-				name:   base.name,
-				feeder: feeder,
-				envs:   envs,
-
-				repo:    img[0],
-				repoTag: img[1],
-
-				servicePort: fmt.Sprintf("%d", ipt.Port),
-
-				cr: &testutils.CaseResult{
-					Name:        t.Name(),
-					Case:        base.name,
-					ExtraFields: map[string]any{},
-					ExtraTags: map[string]string{
-						"image":         img[0],
-						"image_tag":     img[1],
-						"remote_server": ipt.Host,
-					},
-				},
-			})
-			l.Infof("using port: %s\n", cases[len(cases)-1].servicePort)
-		}
-	}
-	return cases, nil
-}
-
-func (cs *caseSpec) checkPoint(pts []*point.Point) error {
-	for _, pt := range pts {
-		measurement := string(pt.Name())
-
-		switch measurement {
-		case "redis_latency":
-			msgs := inputs.CheckPoint(pt, inputs.WithDoc(&latencyMeasurement{}), inputs.WithExtraTags(cs.ipt.Tags))
-
-			for _, msg := range msgs {
-				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-			}
-
-		case "redis_slowlog":
-			msgs := inputs.CheckPoint(pt, inputs.WithDoc(&slowlogMeasurement{}), inputs.WithExtraTags(cs.ipt.Tags))
-
-			for _, msg := range msgs {
-				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-			}
-
-		case "redis_bigkey":
-			msgs := inputs.CheckPoint(pt, inputs.WithDoc(&bigKeyMeasurement{}), inputs.WithExtraTags(cs.ipt.Tags))
-
-			for _, msg := range msgs {
-				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-			}
-		case "redis_client":
-			msgs := inputs.CheckPoint(pt, inputs.WithDoc(&clientMeasurement{}), inputs.WithExtraTags(cs.ipt.Tags))
-
-			for _, msg := range msgs {
-				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-			}
-		case "redis_cluster":
-			msgs := inputs.CheckPoint(pt, inputs.WithDoc(&clusterMeasurement{}), inputs.WithExtraTags(cs.ipt.Tags))
-
-			for _, msg := range msgs {
-				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-			}
-		case "redis_command_stat":
-			msgs := inputs.CheckPoint(pt, inputs.WithDoc(&commandMeasurement{}), inputs.WithExtraTags(cs.ipt.Tags))
-
-			for _, msg := range msgs {
-				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-			}
-		case "redis_db":
-			msgs := inputs.CheckPoint(pt, inputs.WithDoc(&dbMeasurement{}), inputs.WithExtraTags(cs.ipt.Tags))
-
-			for _, msg := range msgs {
-				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-			}
-		// Some metrics in redis_info are only present on replica
-		case "redis_info":
-			optionalFields := []string{
-				"loading_eta_seconds", "loading_loaded_perc", "master_last_io_seconds_ago", "client_longest_output_list",
-				"master_sync_left_bytes", "used_cpu_sys_percent", "aof_current_size", "loading_loaded_bytes", "loading_total_bytes", "master_sync_in_progress",
-				"slave_repl_offset", "aof_buffer_length", "used_cpu_user_percent", "client_biggest_input_buf",
-			}
-			// optionalTags := []string{"host"}
-			extra := map[string]string{"host": "some_host", "service_name": "some_service"}
-
-			msgs := inputs.CheckPoint(pt, inputs.WithDoc(&infoMeasurement{}), inputs.WithExtraTags(extra), inputs.WithOptionalFields(optionalFields...))
-
-			for _, msg := range msgs {
-				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-			}
-		default:
-		}
-
-		// check if tag appended
-		if len(cs.ipt.Tags) != 0 {
-			cs.t.Logf("checking tags %+#v...", cs.ipt.Tags)
-
-			tags := pt.Tags()
-			for k, expect := range cs.ipt.Tags {
-				if v := tags.Get([]byte(k)); v != nil {
-					got := string(v.GetD())
-					if got != expect {
-						return fmt.Errorf("expect tag value %s, got %s", expect, got)
-					}
-				} else {
-					return fmt.Errorf("tag %s not found, got %v", k, tags)
-				}
-			}
-		}
-	}
-
-	// TODO: some other checking on @pts, such as `if some required measurements exist'...
-
-	return nil
-}
-
-func (cs *caseSpec) run() error {
-	// start remote sqlserver
-	r := testutils.GetRemote()
-	dockerTCP := r.TCPURL()
-
-	cs.t.Logf("get remote: %+#v, TCP: %s", r, dockerTCP)
-
-	start := time.Now()
-
-	p, err := dt.NewPool(dockerTCP)
-	if err != nil {
-		return err
-	}
-
-	hostname, err := os.Hostname()
-	if err != nil {
-		cs.t.Logf("get hostname failed: %s, ignored", err)
-		hostname = "unknown-hostname"
-	}
-
-	containerName := fmt.Sprintf("%s.%s", hostname, cs.name)
-
-	// remove container if exist.
-	if err := p.RemoveContainerByName(containerName); err != nil {
-		return err
-	}
-
-	resource, err := p.RunWithOptions(&dt.RunOptions{
-		// specify container image & tag
-		Repository: cs.repo,
-		Tag:        cs.repoTag,
-
-		// port binding
-		PortBindings: map[docker.Port][]docker.PortBinding{
-			"1433/tcp": {{HostIP: "0.0.0.0", HostPort: cs.servicePort}},
-		},
-
-		Name: containerName,
-
-		// container run-time envs
-		Env: cs.envs,
-	}, func(c *docker.HostConfig) {
-		c.RestartPolicy = docker.RestartPolicy{Name: "no"}
-	})
-	if err != nil {
-		return err
-	}
-	cs.pool = p
-
-	// set input's port to port exposed by docker
-	cs.resource = resource
-	exposedPort := resource.GetPort("6379/tcp")
-	cs.ipt.Port, _ = strconv.Atoi(exposedPort)
-
-	cs.t.Logf("check service(%s:%s)...", r.Host, exposedPort)
-	if !r.PortOK(exposedPort, time.Minute) {
-		return fmt.Errorf("service checking failed")
-	}
-
-	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
-
-	var wg sync.WaitGroup
-
-	// start input
-	cs.t.Logf("start input...")
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		cs.ipt.Run()
-	}()
-
-	// wait data
-	start = time.Now()
-	cs.t.Logf("wait points...")
-	pts, err := cs.feeder.AnyPoints()
-	if err != nil {
-		return err
-	}
-
-	cs.cr.AddField("point_latency", int64(time.Since(start)))
-	cs.cr.AddField("point_count", len(pts))
-
-	cs.t.Logf("get %d points", len(pts))
-	if err := cs.checkPoint(pts); err != nil {
-		return err
-	}
-
-	cs.t.Logf("stop input...")
-	cs.ipt.Terminate()
-
-	cs.t.Logf("exit...")
-	wg.Wait()
-
-	return nil
+var mExpect = map[string]struct{}{
+	// redisBigkey:      {},
+	redisClient: {},
+	// redisCluster:     {},
+	redisCommandStat: {},
+	// redisDB:          {},
+	redisInfoM:   {},
+	redisReplica: {},
 }
 
 func TestIntegrate(t *testing.T) {
 	if !testutils.CheckIntegrationTestingRunning() {
 		t.Skip()
 	}
+
+	testutils.PurgeRemoteByName(inputName)       // purge at first.
+	defer testutils.PurgeRemoteByName(inputName) // purge at last.
 
 	start := time.Now()
 	cases, err := buildCases(t)
@@ -327,32 +63,645 @@ func TestIntegrate(t *testing.T) {
 	t.Logf("testing %d cases...", len(cases))
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			caseStart := time.Now()
+		func(tc *caseSpec) {
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+				caseStart := time.Now()
 
-			t.Logf("testing %s...", tc.name)
+				t.Logf("testing %s...", tc.name)
 
-			if err := testutils.RetryTestRun(tc.run); err != nil {
-				tc.cr.Status = testutils.TestFailed
-				tc.cr.FailedMessage = err.Error()
+				if err := testutils.RetryTestRun(tc.run); err != nil {
+					tc.cr.Status = testutils.TestFailed
+					tc.cr.FailedMessage = err.Error()
 
-				assert.NoError(t, err)
-			} else {
-				tc.cr.Status = testutils.TestPassed
-			}
-
-			tc.cr.Cost = time.Since(caseStart)
-
-			assert.NoError(t, testutils.Flush(tc.cr))
-
-			t.Cleanup(func() {
-				// clean remote docker resources
-				if tc.resource == nil {
-					return
+					panic(err)
+				} else {
+					tc.cr.Status = testutils.TestPassed
 				}
 
-				assert.NoError(t, tc.pool.Purge(tc.resource))
+				tc.cr.Cost = time.Since(caseStart)
+
+				require.NoError(t, testutils.Flush(tc.cr))
+
+				t.Cleanup(func() {
+					// clean remote docker resources
+					if tc.resource == nil {
+						return
+					}
+
+					tc.pool.Purge(tc.resource)
+				})
 			})
-		})
+		}(tc)
 	}
 }
+
+func buildCases(t *testing.T) ([]*caseSpec, error) {
+	t.Helper()
+
+	remote := testutils.GetRemote()
+
+	bases := []struct {
+		name                 string // Also used as build image name:tag.
+		conf                 string
+		dockerFileText       string // Empty if not build image.
+		exposedPorts         []string
+		cmd                  []string
+		optsRedisBigkey      []inputs.PointCheckOption
+		optsRedisClient      []inputs.PointCheckOption
+		optsRedisCluster     []inputs.PointCheckOption
+		optsRedisCommandStat []inputs.PointCheckOption
+		optsRedisDB          []inputs.PointCheckOption
+		optsRedisInfoM       []inputs.PointCheckOption
+		optsRedisReplica     []inputs.PointCheckOption
+	}{
+		{
+			name: "redis:4.0.14-alpine",
+			conf: `interval = "2s"
+			slow_log = true
+			all_slow_log = false
+			slowlog-max-len = 128
+			election = true`, // set conf URL later.
+			exposedPorts: []string{"6379/tcp"},
+			optsRedisInfoM: []inputs.PointCheckOption{
+				inputs.WithOptionalFields(
+					"master_last_io_seconds_ago",
+					"used_cpu_user_percent",
+					"used_cpu_sys_percent",
+					"loading_loaded_perc",
+					"loading_eta_seconds",
+					"aof_buffer_length",
+					"master_sync_in_progress",
+					"slave_repl_offset",
+					"aof_current_size",
+					"loading_total_bytes",
+					"loading_loaded_bytes",
+					"master_sync_left_bytes",
+				),
+			},
+			optsRedisReplica: []inputs.PointCheckOption{
+				inputs.WithOptionalFields(
+					"master_link_down_since_seconds",
+				),
+				inputs.WithOptionalTags(
+					"server",
+					"service_name",
+				),
+			},
+		},
+
+		{
+			name: "redis:5.0.14-alpine",
+			conf: `interval = "2s"
+			slow_log = true
+			all_slow_log = false
+			slowlog-max-len = 128
+			election = true`, // set conf URL later.
+			exposedPorts: []string{"6379/tcp"},
+			optsRedisInfoM: []inputs.PointCheckOption{
+				inputs.WithOptionalFields(
+					"master_last_io_seconds_ago",
+					"used_cpu_user_percent",
+					"used_cpu_sys_percent",
+					"loading_loaded_perc",
+					"loading_eta_seconds",
+					"aof_buffer_length",
+					"master_sync_in_progress",
+					"slave_repl_offset",
+					"aof_current_size",
+					"loading_total_bytes",
+					"loading_loaded_bytes",
+					"master_sync_left_bytes",
+					"client_biggest_input_buf",
+					"client_longest_output_list",
+				),
+			},
+			optsRedisReplica: []inputs.PointCheckOption{
+				inputs.WithOptionalFields(
+					"master_link_down_since_seconds",
+				),
+				inputs.WithOptionalTags(
+					"server",
+					"service_name",
+				),
+			},
+		},
+
+		{
+			name: "redis:6.2.12-alpine",
+			conf: `interval = "2s"
+			slow_log = true
+			all_slow_log = false
+			slowlog-max-len = 128
+			election = true`, // set conf URL later.
+			exposedPorts: []string{"6379/tcp"},
+			optsRedisInfoM: []inputs.PointCheckOption{
+				inputs.WithOptionalFields(
+					"master_last_io_seconds_ago",
+					"used_cpu_user_percent",
+					"used_cpu_sys_percent",
+					"loading_loaded_perc",
+					"loading_eta_seconds",
+					"aof_buffer_length",
+					"master_sync_in_progress",
+					"slave_repl_offset",
+					"aof_current_size",
+					"loading_total_bytes",
+					"loading_loaded_bytes",
+					"master_sync_left_bytes",
+					"client_biggest_input_buf",
+					"client_longest_output_list",
+				),
+			},
+			optsRedisReplica: []inputs.PointCheckOption{
+				inputs.WithOptionalFields(
+					"master_link_down_since_seconds",
+				),
+				inputs.WithOptionalTags(
+					"server",
+					"service_name",
+				),
+			},
+		},
+
+		{
+			name: "redis:7.0.11-alpine",
+			conf: `interval = "2s"
+			slow_log = true
+			all_slow_log = false
+			slowlog-max-len = 128
+			election = true`, // set conf URL later.
+			exposedPorts: []string{"6379/tcp"},
+			optsRedisInfoM: []inputs.PointCheckOption{
+				inputs.WithOptionalFields(
+					"master_last_io_seconds_ago",
+					"used_cpu_user_percent",
+					"used_cpu_sys_percent",
+					"loading_loaded_perc",
+					"loading_eta_seconds",
+					"aof_buffer_length",
+					"master_sync_in_progress",
+					"slave_repl_offset",
+					"aof_current_size",
+					"loading_total_bytes",
+					"loading_loaded_bytes",
+					"master_sync_left_bytes",
+					"client_longest_output_list",
+					"client_biggest_input_buf",
+				),
+			},
+			optsRedisReplica: []inputs.PointCheckOption{
+				inputs.WithOptionalFields(
+					"master_link_down_since_seconds",
+				),
+				inputs.WithOptionalTags(
+					"server",
+					"service_name",
+				),
+			},
+		},
+	}
+
+	var cases []*caseSpec
+
+	// compose cases
+	for _, base := range bases {
+		feeder := io.NewMockedFeeder()
+
+		ipt := defaultInput()
+		ipt.feeder = feeder
+
+		_, err := toml.Decode(base.conf, ipt)
+		require.NoError(t, err)
+
+		repoTag := strings.Split(base.name, ":")
+
+		cases = append(cases, &caseSpec{
+			t:       t,
+			ipt:     ipt,
+			name:    base.name,
+			feeder:  feeder,
+			repo:    repoTag[0],
+			repoTag: repoTag[1],
+
+			dockerFileText: base.dockerFileText,
+			exposedPorts:   base.exposedPorts,
+			cmd:            base.cmd,
+
+			optsRedisBigkey:      base.optsRedisBigkey,
+			optsRedisClient:      base.optsRedisClient,
+			optsRedisCluster:     base.optsRedisCluster,
+			optsRedisCommandStat: base.optsRedisCommandStat,
+			optsRedisDB:          base.optsRedisDB,
+			optsRedisInfoM:       base.optsRedisInfoM,
+			optsRedisReplica:     base.optsRedisReplica,
+
+			cr: &testutils.CaseResult{
+				Name:        t.Name(),
+				Case:        base.name,
+				ExtraFields: map[string]any{},
+				ExtraTags: map[string]string{
+					"image":       repoTag[0],
+					"image_tag":   repoTag[1],
+					"docker_host": remote.Host,
+					"docker_port": remote.Port,
+				},
+			},
+		})
+	}
+
+	return cases, nil
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+// caseSpec.
+
+type caseSpec struct {
+	t *testing.T
+
+	name                 string
+	repo                 string
+	repoTag              string
+	dockerFileText       string
+	exposedPorts         []string
+	serverPorts          []string
+	optsRedisBigkey      []inputs.PointCheckOption
+	optsRedisClient      []inputs.PointCheckOption
+	optsRedisCluster     []inputs.PointCheckOption
+	optsRedisCommandStat []inputs.PointCheckOption
+	optsRedisDB          []inputs.PointCheckOption
+	optsRedisInfoM       []inputs.PointCheckOption
+	optsRedisReplica     []inputs.PointCheckOption
+	cmd                  []string
+	mCount               map[string]struct{}
+
+	ipt    *Input
+	feeder *io.MockedFeeder
+
+	pool     *dockertest.Pool
+	resource *dockertest.Resource
+
+	cr *testutils.CaseResult
+}
+
+func (cs *caseSpec) checkPoint(pts []*point.Point) error {
+	for _, pt := range pts {
+		var opts []inputs.PointCheckOption
+		opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
+
+		measurement := string(pt.Name())
+
+		switch measurement {
+		case redisBigkey:
+			opts = append(opts, cs.optsRedisBigkey...)
+			opts = append(opts, inputs.WithDoc(&bigKeyMeasurement{}))
+
+			msgs := inputs.CheckPoint(pt, opts...)
+
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
+
+			// TODO: error here
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
+
+			cs.mCount[redisBigkey] = struct{}{}
+
+		case redisClient:
+			opts = append(opts, cs.optsRedisClient...)
+			opts = append(opts, inputs.WithDoc(&clientMeasurement{}))
+
+			msgs := inputs.CheckPoint(pt, opts...)
+
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
+
+			// TODO: error here
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
+
+			cs.mCount[redisClient] = struct{}{}
+
+		case redisCluster:
+			opts = append(opts, cs.optsRedisCluster...)
+			opts = append(opts, inputs.WithDoc(&clusterMeasurement{}))
+
+			msgs := inputs.CheckPoint(pt, opts...)
+
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
+
+			// TODO: error here
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
+
+			cs.mCount[redisCluster] = struct{}{}
+
+		case redisCommandStat:
+			opts = append(opts, cs.optsRedisCommandStat...)
+			opts = append(opts, inputs.WithDoc(&commandMeasurement{}))
+
+			msgs := inputs.CheckPoint(pt, opts...)
+
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
+
+			// TODO: error here
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
+
+			cs.mCount[redisCommandStat] = struct{}{}
+
+		case redisDB:
+			opts = append(opts, cs.optsRedisDB...)
+			opts = append(opts, inputs.WithDoc(&dbMeasurement{}))
+
+			msgs := inputs.CheckPoint(pt, opts...)
+
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
+
+			// TODO: error here
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
+
+			cs.mCount[redisDB] = struct{}{}
+
+		case redisInfoM:
+			opts = append(opts, cs.optsRedisInfoM...)
+			opts = append(opts, inputs.WithDoc(&infoMeasurement{}))
+
+			msgs := inputs.CheckPoint(pt, opts...)
+
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
+
+			// TODO: error here
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
+
+			cs.mCount[redisInfoM] = struct{}{}
+
+		case redisReplica:
+			opts = append(opts, cs.optsRedisReplica...)
+			opts = append(opts, inputs.WithDoc(&replicaMeasurement{}))
+
+			msgs := inputs.CheckPoint(pt, opts...)
+
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
+
+			// TODO: error here
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
+
+			cs.mCount[redisReplica] = struct{}{}
+
+		default: // TODO: check other measurement
+			panic("unknown measurement: " + measurement)
+		}
+
+		// check if tag appended
+		if len(cs.ipt.Tags) != 0 {
+			cs.t.Logf("%s checking tags %+#v...", measurement, cs.ipt.Tags)
+
+			tags := pt.Tags()
+			for k, expect := range cs.ipt.Tags {
+				if v := tags.Get([]byte(k)); v != nil {
+					got := string(v.GetD())
+					if got != expect {
+						return fmt.Errorf("%s expect tag value %s, got %s", measurement, expect, got)
+					}
+				} else {
+					return fmt.Errorf("%s tag %s not found, got %v", measurement, k, tags)
+				}
+			}
+		}
+	}
+
+	// TODO: some other checking on @pts, such as `if some required measurements exist'...
+
+	return nil
+}
+
+func (cs *caseSpec) run() error {
+	r := testutils.GetRemote()
+	dockerTCP := r.TCPURL()
+
+	cs.t.Logf("get remote: %+#v, TCP: %s", r, dockerTCP)
+
+	start := time.Now()
+
+	p, err := cs.getPool(dockerTCP)
+	if err != nil {
+		return err
+	}
+
+	dockerFileDir, dockerFilePath, err := cs.getDockerFilePath()
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(dockerFileDir)
+
+	uniqueContainerName := testutils.GetUniqueContainerName(inputName)
+
+	var resource *dockertest.Resource
+
+	if len(cs.dockerFileText) == 0 {
+		// Just run a container from existing docker image.
+		resource, err = p.RunWithOptions(
+			&dockertest.RunOptions{
+				Name: uniqueContainerName, // ATTENTION: not cs.name.
+
+				Repository: cs.repo,
+				Tag:        cs.repoTag,
+				Cmd:        cs.cmd,
+
+				ExposedPorts: cs.exposedPorts,
+			},
+
+			func(c *docker.HostConfig) {
+				c.RestartPolicy = docker.RestartPolicy{Name: "no"}
+				c.AutoRemove = true
+			},
+		)
+	} else {
+		// Build docker image from Dockerfile and run a container from it.
+		resource, err = p.BuildAndRunWithOptions(
+			dockerFilePath,
+
+			&dockertest.RunOptions{
+				ContainerName: uniqueContainerName,
+				Name:          cs.name, // ATTENTION: not uniqueContainerName.
+
+				Repository: cs.repo,
+				Tag:        cs.repoTag,
+				Cmd:        cs.cmd,
+
+				ExposedPorts: cs.exposedPorts,
+			},
+
+			func(c *docker.HostConfig) {
+				c.RestartPolicy = docker.RestartPolicy{Name: "no"}
+				c.AutoRemove = true
+			},
+		)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	cs.pool = p
+	cs.resource = resource
+
+	if err := cs.getMappingPorts(); err != nil {
+		return err
+	}
+	cs.ipt.Host = r.Host
+	cs.ipt.Port, err = strconv.Atoi(cs.serverPorts[0])
+	if err != nil {
+		return err
+	}
+
+	cs.t.Logf("check service(%s:%v)...", r.Host, cs.serverPorts)
+
+	if err := cs.portsOK(r); err != nil {
+		return err
+	}
+
+	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
+
+	var wg sync.WaitGroup
+
+	// start input
+	cs.t.Logf("start input...")
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		cs.ipt.Run()
+	}()
+
+	// wait data
+	start = time.Now()
+	cs.t.Logf("wait points...")
+	pts, err := cs.feeder.NPoints(60, 5*time.Minute)
+	if err != nil {
+		return err
+	}
+
+	cs.cr.AddField("point_latency", int64(time.Since(start)))
+	cs.cr.AddField("point_count", len(pts))
+
+	// for _, v := range pts {
+	// 	cs.t.Logf("pt = %s", v.LineProto())
+	// }
+
+	cs.t.Logf("get %d points", len(pts))
+	cs.mCount = make(map[string]struct{})
+	if err := cs.checkPoint(pts); err != nil {
+		return err
+	}
+
+	cs.t.Logf("stop input...")
+	cs.ipt.Terminate()
+
+	require.Equal(cs.t, mExpect, cs.mCount)
+	// length := len(cs.mCount)
+	// if length < 1 {
+	// 	return fmt.Errorf("count smaller than 1: %d", length)
+	// }
+
+	cs.t.Logf("exit...")
+	wg.Wait()
+
+	return nil
+}
+
+func (cs *caseSpec) getPool(endpoint string) (*dockertest.Pool, error) {
+	p, err := dockertest.NewPool(endpoint)
+	if err != nil {
+		return nil, err
+	}
+	err = p.Client.Ping()
+	if err != nil {
+		cs.t.Logf("Could not connect to Docker: %v", err)
+		return nil, err
+	}
+	return p, nil
+}
+
+func (cs *caseSpec) getDockerFilePath() (dirName string, fileName string, err error) {
+	if len(cs.dockerFileText) == 0 {
+		return
+	}
+
+	tmpDir, err := ioutil.TempDir("", "dockerfiles_")
+	if err != nil {
+		cs.t.Logf("ioutil.TempDir failed: %s", err.Error())
+		return "", "", err
+	}
+
+	tmpFile, err := ioutil.TempFile(tmpDir, "dockerfile_")
+	if err != nil {
+		cs.t.Logf("ioutil.TempFile failed: %s", err.Error())
+		return "", "", err
+	}
+
+	_, err = tmpFile.WriteString(cs.dockerFileText)
+	if err != nil {
+		cs.t.Logf("TempFile.WriteString failed: %s", err.Error())
+		return "", "", err
+	}
+
+	if err := os.Chmod(tmpFile.Name(), os.ModePerm); err != nil {
+		cs.t.Logf("os.Chmod failed: %s", err.Error())
+		return "", "", err
+	}
+
+	if err := tmpFile.Close(); err != nil {
+		cs.t.Logf("Close failed: %s", err.Error())
+		return "", "", err
+	}
+
+	return tmpDir, tmpFile.Name(), nil
+}
+
+func (cs *caseSpec) getMappingPorts() error {
+	cs.serverPorts = make([]string, len(cs.exposedPorts))
+	for k, v := range cs.exposedPorts {
+		mapStr := cs.resource.GetHostPort(v)
+		_, port, err := net.SplitHostPort(mapStr)
+		if err != nil {
+			return err
+		}
+		cs.serverPorts[k] = port
+	}
+	return nil
+}
+
+func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
+	for _, v := range cs.serverPorts {
+		if !r.PortOK(docker.Port(v).Port(), time.Minute) {
+			return fmt.Errorf("service checking failed")
+		}
+	}
+	return nil
+}
+
+////////////////////////////////////////////////////////////////////////////////
