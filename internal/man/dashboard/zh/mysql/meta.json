@@ -1,0 +1,3115 @@
+{
+  "dashboardBindSet": [],
+  "dashboardExtend": {},
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "dashboardType": "CUSTOM",
+  "iconSet": {
+    "icon": "https://static-res.guance.com/dataflux-template/dashboard/mysql/icon.svg",
+    "url": "https://static-res.guance.com/dataflux-template/dashboard/mysql/mysql.png"
+  },
+  "main": {
+    "charts": [
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLegend": true,
+            "showLine": false,
+            "showTitle": true,
+            "showTopSize": 10,
+            "stackType": "time",
+            "tableSortMetricName": "写入次数",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "InnoDB"
+        },
+        "name": "每秒缓冲池内存读写请求",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 8,
+          "y": 69.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "写入次数",
+              "code": "A",
+              "dataSource": "mysql_innodb",
+              "field": "buffer_pool_write_requests",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "115d0330-6084-11eb-ae47-cb6cae37dc63",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql_innodb`:(fill(AVG(`buffer_pool_write_requests`), linear) AS `写入次数`) { `host` = '#{host}' } BY `host`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "NON_NEGATIVE_DERIVATIVE"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "读取次数",
+              "code": "B",
+              "dataSource": "mysql_innodb",
+              "field": "buffer_pool_read_requests",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "115d0330-6084-11eb-ae47-cb6cae37dc63",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql_innodb`:(fill(AVG(`buffer_pool_read_requests`), linear) AS `读取次数`) { `host` = '#{host}' } BY `host`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "NON_NEGATIVE_DERIVATIVE"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colorLevel": 5,
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "direction": "vertical",
+            "downsample": "last",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "isVariable": false,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levelArr": [
+              {
+                "color": "#8590f7",
+                "max": 99,
+                "min": 0
+              },
+              {
+                "color": "#a3daff",
+                "max": 199,
+                "min": 100
+              },
+              {
+                "color": "#aed9f2",
+                "max": 299,
+                "min": 200
+              },
+              {
+                "color": "#b2bff4",
+                "max": 399,
+                "min": 300
+              },
+              {
+                "color": "#c0c8f9",
+                "min": 400
+              }
+            ],
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mainMeasurement": "",
+            "mappings": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "max": 100,
+            "min": 0,
+            "openCompare": false,
+            "openStack": false,
+            "pageSize": 50,
+            "provinceKey": "",
+            "queryMode": "toOneColumn",
+            "rangeColor": "#1989fa",
+            "showFieldMapping": false,
+            "showLegend": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "showTopSize": 10,
+            "showTopWithMetric": "",
+            "stackType": "time",
+            "tableSortMetricName": "select",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "topSize": 10,
+            "units": [
+              {
+                "key": "delete",
+                "name": "delete",
+                "unit": "次",
+                "units": [
+                  "custom",
+                  "次"
+                ]
+              },
+              {
+                "key": "insert",
+                "name": "insert",
+                "unit": "次",
+                "units": [
+                  "custom",
+                  "次"
+                ]
+              },
+              {
+                "key": "replace",
+                "name": "replace",
+                "unit": "次",
+                "units": [
+                  "custom",
+                  "次"
+                ]
+              },
+              {
+                "key": "select",
+                "name": "select",
+                "unit": "次",
+                "units": [
+                  "custom",
+                  "次"
+                ]
+              },
+              {
+                "key": "update",
+                "name": "update",
+                "unit": "次",
+                "units": [
+                  "custom",
+                  "次"
+                ]
+              }
+            ],
+            "variableCode": "",
+            "xAxisShowType": "groupBy"
+          }
+        },
+        "group": {
+          "name": "InnoDB"
+        },
+        "name": "每秒 SQL 执行次数",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 0,
+          "y": 69.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "replace",
+              "code": "A",
+              "dataSource": "mysql",
+              "field": "Com_replace",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "d40b6330-610c-11eb-92a4-a7762360e489",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(fill(AVG(`Com_replace`), linear) AS `replace`) { `host` = '#{host}' } BY `host`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "update",
+              "code": "C",
+              "dataSource": "mysql",
+              "field": "Com_update",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "d40b6330-610c-11eb-92a4-a7762360e489",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(fill(AVG(`Com_update`), linear) AS `update`) { `host` = '#{host}' } BY `host`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "delete",
+              "code": "D",
+              "dataSource": "mysql",
+              "field": "Com_delete",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "d40b6330-610c-11eb-92a4-a7762360e489",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(fill(AVG(`Com_delete`), linear) AS `delete`) { `host` = '#{host}' } BY `host`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "insert",
+              "code": "E",
+              "dataSource": "mysql",
+              "field": "Com_insert",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "d40b6330-610c-11eb-92a4-a7762360e489",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(fill(AVG(`Com_insert`), linear) AS `insert`) { `host` = '#{host}' } BY `host`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "select",
+              "code": "B",
+              "dataSource": "mysql",
+              "field": "Com_select",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "d40b6330-610c-11eb-92a4-a7762360e489",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(fill(AVG(`Com_select`), linear) AS `select`) { `host` = '#{host}' } BY `host`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "direction": "vertical",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLegend": true,
+            "showLine": false,
+            "showTitle": true,
+            "showTopSize": false,
+            "showTopWithMetric": "",
+            "stackType": "time",
+            "tableSortMetricName": "mysql_bytes_received",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "topSize": 10,
+            "units": [
+              {
+                "key": "接收字节数",
+                "name": "接收字节数",
+                "unit": "",
+                "units": [
+                  "traffic",
+                  "B/S"
+                ]
+              },
+              {
+                "key": "发送字节数",
+                "name": "发送字节数",
+                "unit": "",
+                "units": [
+                  "traffic",
+                  "B/S"
+                ]
+              }
+            ],
+            "xAxisShowType": "groupBy"
+          }
+        },
+        "group": {
+          "name": "InnoDB"
+        },
+        "name": "网络流量",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 16,
+          "y": 69.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "发送字节数",
+              "code": "A",
+              "dataSource": "mysql",
+              "field": "Bytes_sent",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "1c80c690-610e-11eb-92a4-a7762360e489",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(fill(AVG(`Bytes_sent`), linear) AS `发送字节数`) { `host` = '#{host}' } BY `host`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "接收字节数",
+              "code": "B",
+              "dataSource": "mysql",
+              "field": "Bytes_received",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "1c80c690-610e-11eb-92a4-a7762360e489",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(fill(AVG(`Bytes_received`), linear) AS `接收字节数`) { `host` = '#{host}' } BY `host`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "downsample": "last",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "lineColor": "#00B5FF",
+            "mappings": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "stackType": "time",
+            "tableSortMetricName": "打开表数",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "InnoDB"
+        },
+        "name": "每秒打开的表数",
+        "pos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 77.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "打开表数",
+              "code": "A",
+              "dataSource": "mysql",
+              "field": "Open_tables",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "74aaa930-610e-11eb-92a4-a7762360e489",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mysql`:(fill(AVG(`Open_tables`), linear) AS `打开表数`) { `host` = '#{host}' } BY `host`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "direction": "vertical",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLegend": true,
+            "showLine": false,
+            "showTitle": true,
+            "showTopSize": 10,
+            "showTopWithMetric": "mysql_innodb_buffer_pool_pages_free",
+            "stackType": "time",
+            "tableSortMetricName": "剩余页数",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "topSize": 10,
+            "units": [],
+            "xAxisShowType": "groupBy"
+          }
+        },
+        "group": {
+          "name": "InnoDB"
+        },
+        "name": "缓冲池页数",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 8,
+          "y": 61.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "总页数",
+              "code": "A",
+              "dataSource": "mysql_innodb",
+              "field": "buffer_pool_pages_total",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "b572f090-610d-11eb-92a4-a7762360e489",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mysql_innodb`:(fill(AVG(`buffer_pool_pages_total`), linear) AS `总页数`) { `host` = '#{host}' } BY `host`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "可用页数",
+              "code": "B",
+              "dataSource": "mysql_innodb",
+              "field": "buffer_pool_pages_free",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "b572f090-610d-11eb-92a4-a7762360e489",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mysql_innodb`:(fill(AVG(`buffer_pool_pages_free`), linear) AS `可用页数`) { `host` = '#{host}' } BY `host`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLegend": true,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "tableSortMetricName": "临时文件",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "InnoDB"
+        },
+        "name": "每秒自动创建的临时表数",
+        "pos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 77.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "临时表",
+              "code": "C",
+              "dataSource": "mysql",
+              "field": "Created_tmp_tables",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "31c7bf30-610f-11eb-92a4-a7762360e489",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(fill(AVG(`Created_tmp_tables`), linear) AS `临时表`) { `host` = '#{host}' } BY `host`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "磁盘临时表",
+              "code": "B",
+              "dataSource": "mysql",
+              "field": "Created_tmp_disk_tables",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "31c7bf30-610f-11eb-92a4-a7762360e489",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(fill(AVG(`Created_tmp_disk_tables`), linear) AS `磁盘临时表`) { `host` = '#{host}' } BY `host`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "临时文件",
+              "code": "A",
+              "dataSource": "mysql",
+              "field": "Created_tmp_disk_tables",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "31c7bf30-610f-11eb-92a4-a7762360e489",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(fill(AVG(`Created_tmp_disk_tables`), linear) AS `临时文件`) { `host` = '#{host}' } BY `host`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "tableSortMetricName": "写页面数",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "InnoDB"
+        },
+        "name": "每秒读写页数",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 16,
+          "y": 61.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "读页面数",
+              "code": "B",
+              "dataSource": "mysql_innodb",
+              "field": "buffer_pages_read",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "501f3130-610e-11eb-92a4-a7762360e489",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql_innodb`:(fill(AVG(`buffer_pages_read`), linear) AS `读页面数`) { `host` = '#{host}' } BY `host`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "写页面数",
+              "code": "A",
+              "dataSource": "mysql_innodb",
+              "field": "buffer_pages_written",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "501f3130-610e-11eb-92a4-a7762360e489",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql_innodb`:(fill(AVG(`buffer_pages_written`), linear) AS `写页面数`) { `host` = '#{host}' } BY `host`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "rgba(249,117,117,1)",
+                "key": "读取请求",
+                "name": "读取请求"
+              }
+            ],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "levels": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLegend": true,
+            "showLine": false,
+            "showTopSize": 10,
+            "stackType": "time",
+            "tableSortMetricName": "读取请求",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "InnoDB"
+        },
+        "name": "每秒缓冲池磁盘读请求",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 0,
+          "y": 61.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "读取请求",
+              "code": "A",
+              "dataSource": "mysql_innodb",
+              "field": "buffer_pool_reads",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "be16a8f0-610c-11eb-92a4-a7762360e489",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql_innodb`:(fill(AVG(`buffer_pool_reads`), linear) AS `读取请求`) { `host` = '#{host}' }\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "rgba(73,139,254,1)",
+                "key": "剩余页数",
+                "name": "剩余页数"
+              }
+            ],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "direction": "vertical",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLegend": true,
+            "showLine": false,
+            "showTitle": true,
+            "showTopSize": 10,
+            "showTopWithMetric": "mysql_innodb_buffer_pool_pages_free",
+            "stackType": "time",
+            "tableSortMetricName": "当前正在等待锁的数量",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "topSize": 10,
+            "units": [],
+            "xAxisShowType": "groupBy"
+          }
+        },
+        "group": {
+          "name": "锁信息"
+        },
+        "name": "行锁数",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 0,
+          "y": 88
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "当前正在等待锁的数量",
+              "code": "A",
+              "dataSource": "mysql_innodb",
+              "field": "lock_row_lock_current_waits",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "54e8f8d0-610f-11eb-92a4-a7762360e489",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql_innodb`:(fill(AVG(`lock_row_lock_current_waits`), linear) AS `当前正在等待锁的数量`) { `host` = '#{host}' } BY `host`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "等待锁总数",
+              "code": "B",
+              "dataSource": "mysql_innodb",
+              "field": "lock_row_lock_waits",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "625f7980-610f-11eb-92a4-a7762360e489",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql_innodb`:(fill(AVG(`lock_row_lock_waits`), linear) AS `等待锁总数`) { `host` = '#{host}' } BY `host`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "direction": "vertical",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLegend": true,
+            "showLine": false,
+            "showTitle": true,
+            "showTopSize": 10,
+            "showTopWithMetric": "mysql_innodb_buffer_pool_pages_free",
+            "stackType": "time",
+            "tableSortMetricName": "mysql_innodb_row_lock_time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "topSize": 10,
+            "units": [
+              {
+                "key": "等待锁平均耗时",
+                "name": "等待锁平均耗时",
+                "unit": "",
+                "units": [
+                  "time",
+                  "ms"
+                ]
+              },
+              {
+                "key": "等待锁总时长",
+                "name": "等待锁总时长",
+                "unit": "",
+                "units": [
+                  "time",
+                  "ms"
+                ]
+              },
+              {
+                "key": "等待锁最大耗时",
+                "name": "等待锁最大耗时",
+                "unit": "",
+                "units": [
+                  "time",
+                  "ms"
+                ]
+              }
+            ],
+            "xAxisShowType": "groupBy"
+          }
+        },
+        "group": {
+          "name": "锁信息"
+        },
+        "name": "行锁耗时",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 8,
+          "y": 88
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "等待锁平均耗时",
+              "children": [
+                {
+                  "alias": "",
+                  "code": "A",
+                  "dataSource": "mysql_innodb",
+                  "field": "lock_row_lock_time",
+                  "fieldFunc": "avg",
+                  "fieldType": "integer",
+                  "fill": "linear",
+                  "filters": [
+                    {
+                      "id": "3de19a90-bedc-11eb-9a34-fd54a9f11e8a",
+                      "logic": "and",
+                      "name": "host",
+                      "op": "=",
+                      "type": "",
+                      "value": "#{host}"
+                    }
+                  ],
+                  "funcList": [],
+                  "groupBy": [
+                    "host"
+                  ],
+                  "groupByTime": "",
+                  "namespace": "metric",
+                  "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql_innodb`:(fill(AVG(`lock_row_lock_time`), linear)) { `host` = '#{host}' } BY `host`\")",
+                  "queryFuncs": [
+                    {
+                      "args": [],
+                      "name": "non_negative_derivative"
+                    }
+                  ],
+                  "type": "simple"
+                },
+                {
+                  "alias": "",
+                  "code": "B",
+                  "dataSource": "mysql_innodb",
+                  "field": "lock_row_lock_waits",
+                  "fieldFunc": "avg",
+                  "fieldType": "integer",
+                  "fill": "linear",
+                  "filters": [
+                    {
+                      "id": "4033ef00-bedc-11eb-9a34-fd54a9f11e8a",
+                      "logic": "and",
+                      "name": "host",
+                      "op": "=",
+                      "type": "",
+                      "value": "#{host}"
+                    }
+                  ],
+                  "funcList": [],
+                  "groupBy": [
+                    "host"
+                  ],
+                  "groupByTime": "",
+                  "namespace": "metric",
+                  "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql_innodb`:(fill(AVG(`lock_row_lock_waits`), linear)) { `host` = '#{host}' } BY `host`\")",
+                  "queryFuncs": [
+                    {
+                      "args": [],
+                      "name": "non_negative_derivative"
+                    }
+                  ],
+                  "type": "simple"
+                }
+              ],
+              "code": "D",
+              "expression": "A/(B+0.0001)",
+              "funcList": [],
+              "q": "eval(A/(B+0.0001), alias='等待锁平均耗时', A=\"NON_NEGATIVE_DERIVATIVE(\\\"M::`mysql_innodb`:(fill(AVG(`lock_row_lock_time`), linear)) { `host` = '#{host}' } BY `host`\\\")\", B=\"NON_NEGATIVE_DERIVATIVE(\\\"M::`mysql_innodb`:(fill(AVG(`lock_row_lock_waits`), linear)) { `host` = '#{host}' } BY `host`\\\")\")",
+              "type": "expression"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "等待锁最大耗时",
+              "code": "A",
+              "dataSource": "mysql_innodb",
+              "field": "lock_row_lock_time_max",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "8f9a9b50-610f-11eb-92a4-a7762360e489",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql_innodb`:(fill(AVG(`lock_row_lock_time_max`), linear) AS `等待锁最大耗时`) { `host` = '#{host}' } BY `host`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "等待锁总时长",
+              "code": "C",
+              "dataSource": "mysql_innodb",
+              "field": "lock_row_lock_time",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "8f9a9b50-610f-11eb-92a4-a7762360e489",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql_innodb`:(AVG(`lock_row_lock_time`) AS `等待锁总时长`) { `host` = '#{host}' } BY `host`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "rgba(73,139,254,1)",
+                "key": "剩余页数",
+                "name": "剩余页数"
+              }
+            ],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "direction": "vertical",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLegend": true,
+            "showLine": false,
+            "showTitle": true,
+            "showTopSize": 10,
+            "showTopWithMetric": "mysql_innodb_buffer_pool_pages_free",
+            "stackType": "time",
+            "tableSortMetricName": "不能立即获得锁的数量",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "topSize": 10,
+            "units": [],
+            "xAxisShowType": "groupBy"
+          }
+        },
+        "group": {
+          "name": "锁信息"
+        },
+        "name": "每秒表锁数",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 16,
+          "y": 88
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "不能立即获得锁的数量",
+              "code": "B",
+              "dataSource": "mysql",
+              "field": "Table_locks_waited",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "fillNum": -1,
+              "filters": [
+                {
+                  "id": "d2a64d90-610f-11eb-92a4-a7762360e489",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(fill(AVG(`Table_locks_waited`), linear) AS `不能立即获得锁的数量`) { `host` = '#{host}' } BY `host`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "立即获得锁的数量",
+              "code": "A",
+              "dataSource": "mysql",
+              "field": "Table_locks_immediate",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "d2a64d90-610f-11eb-92a4-a7762360e489",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(fill(AVG(`Table_locks_immediate`), linear) AS `立即获得锁的数量`) { `host` = '#{host}' } BY `host`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "pie",
+            "colors": [],
+            "currentChartType": "pie",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "legendPostion": "bottom",
+            "levels": [],
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "概览"
+        },
+        "name": "Schema大小",
+        "pos": {
+          "h": 16,
+          "w": 8,
+          "x": 16,
+          "y": 22.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "schema_size",
+              "code": "A",
+              "dataSource": "mysql_schema",
+              "density": "medium",
+              "field": "schema_size",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "ff2a3c60-bedd-11eb-9a34-fd54a9f11e8a",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "schema_name",
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mysql_schema`:(fill(AVG(`schema_size`), linear) AS `schema_size`) { `host` = '#{host}' } BY `schema_name`, `host`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "pie",
+            "unit": ""
+          }
+        ],
+        "type": "pie"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "links": [],
+          "settings": {
+            "bgColor": "",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": true,
+            "showLineAxis": true,
+            "showTitle": true,
+            "tableSortMetricName": "当前打开的连接数",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "概览"
+        },
+        "name": "连接数",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 0,
+          "y": 14.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "当前打开的连接数",
+              "code": "C",
+              "dataSource": "mysql",
+              "field": "Threads_connected",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "8baccc50-6080-11eb-8f77-bbfc4c28f26e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mysql`:(AVG(`Threads_connected`) AS `当前打开的连接数`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "概览"
+        },
+        "name": "QPS",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 8,
+          "y": 14.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "QPS",
+              "code": "A",
+              "dataSource": "mysql",
+              "field": "Questions",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "3237c4b0-6083-11eb-ae47-cb6cae37dc63",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(AVG(`Questions`) AS `QPS`) { `host` = '#{host}' } BY `host`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "概览"
+        },
+        "name": "TPS",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 16,
+          "y": 14.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "每秒事务数",
+              "children": [
+                {
+                  "alias": "",
+                  "code": "A",
+                  "dataSource": "mysql",
+                  "field": "Handler_commit",
+                  "fieldFunc": "avg",
+                  "fieldType": "integer",
+                  "fill": null,
+                  "filters": [
+                    {
+                      "id": "032a69e0-bec8-11eb-8031-253f76b6353f",
+                      "logic": "and",
+                      "name": "host",
+                      "op": "=",
+                      "type": "",
+                      "value": "#{host}"
+                    }
+                  ],
+                  "funcList": [],
+                  "groupBy": [
+                    "host"
+                  ],
+                  "groupByTime": "",
+                  "namespace": "metric",
+                  "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(AVG(`Handler_commit`)) { `host` = '#{host}' } BY `host`\")",
+                  "queryFuncs": [
+                    {
+                      "args": [],
+                      "name": "non_negative_derivative"
+                    }
+                  ],
+                  "type": "simple"
+                },
+                {
+                  "alias": "",
+                  "code": "B",
+                  "dataSource": "mysql",
+                  "field": "Handler_rollback",
+                  "fieldFunc": "avg",
+                  "fieldType": "integer",
+                  "fill": null,
+                  "filters": [
+                    {
+                      "id": "05accf00-bec8-11eb-8031-253f76b6353f",
+                      "logic": "and",
+                      "name": "host",
+                      "op": "=",
+                      "type": "",
+                      "value": "#{host}"
+                    }
+                  ],
+                  "funcList": [],
+                  "groupBy": [
+                    "host"
+                  ],
+                  "groupByTime": "",
+                  "namespace": "metric",
+                  "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(AVG(`Handler_rollback`)) { `host` = '#{host}' } BY `host`\")",
+                  "queryFuncs": [
+                    {
+                      "args": [],
+                      "name": "non_negative_derivative"
+                    }
+                  ],
+                  "type": "simple"
+                }
+              ],
+              "code": "B",
+              "expression": "A+B",
+              "funcList": [],
+              "q": "eval(A+B, alias='每秒事务数', A=\"NON_NEGATIVE_DERIVATIVE(\\\"M::`mysql`:(AVG(`Handler_commit`)) { `host` = '#{host}' } BY `host`\\\")\", B=\"NON_NEGATIVE_DERIVATIVE(\\\"M::`mysql`:(AVG(`Handler_rollback`)) { `host` = '#{host}' } BY `host`\\\")\")",
+              "type": "expression"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "概览"
+        },
+        "name": "慢查询",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 0,
+          "y": 30.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "慢SQL",
+              "code": "A",
+              "dataSource": "mysql",
+              "field": "Slow_queries",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "dbc1fbb0-6077-11eb-a4ee-3704183133af",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(AVG(`Slow_queries`) AS `慢SQL`) { `host` = '#{host}' } BY `host`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "概览"
+        },
+        "name": "每秒无索引join查询次数",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 8,
+          "y": 22.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "mysql",
+              "field": "Select_full_join",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "dbc1fbb0-6077-11eb-a4ee-3704183133af",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(AVG(`Select_full_join`)) { `host` = '#{host}' } BY `host`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "概览"
+        },
+        "name": "行锁等待时长",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 8,
+          "y": 30.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "等待锁平均耗时",
+              "code": "D",
+              "dataSource": "mysql_innodb",
+              "field": "lock_row_lock_time",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "cefb7df0-c2cb-11eb-8937-7905f49ee4ee",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql_innodb`:(AVG(`lock_row_lock_time`) AS `等待锁平均耗时`) { `host` = '#{host}' } BY `host`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "direction": "vertical",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "max": 100,
+            "min": 0,
+            "openCompare": false,
+            "openStack": false,
+            "pageSize": 50,
+            "queryMode": "toOneColumn",
+            "showFieldMapping": false,
+            "showLegend": true,
+            "showLine": false,
+            "showTitle": true,
+            "showTopSize": false,
+            "showTopWithMetric": "mysql_connection_errors_internal",
+            "stackType": "time",
+            "tableSortMetricName": "尝试与服务器连接导致",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "topSize": 10,
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "概览"
+        },
+        "name": "异常连接数",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 0,
+          "y": 22.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "尝试连接到服务器失败的次数",
+              "code": "B",
+              "dataSource": "mysql",
+              "field": "Aborted_connects",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "dd1ae8b0-a978-11eb-ac7c-2bc02f521dcc",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(fill(AVG(`Aborted_connects`), linear) AS `尝试连接到服务器失败的次数`) { `host` = '#{host}' } BY `host`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "由于客户端没有正确关闭连接而中止的连接数",
+              "code": "A",
+              "dataSource": "mysql",
+              "field": "Aborted_clients",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "dd1ae8b0-a978-11eb-ac7c-2bc02f521dcc",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(fill(AVG(`Aborted_clients`), linear) AS `由于客户端没有正确关闭连接而中止的连接数`) { `host` = '#{host}' } BY `host`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "colors": [],
+            "currentChartType": "table",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "pageSize": 0,
+            "queryMode": "toGroupColumn",
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "接收字节数",
+                "name": "接收字节数",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              },
+              {
+                "key": "发送字节数",
+                "name": "发送字节数",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "valColorMappings": [],
+            "valMappings": []
+          }
+        },
+        "group": {
+          "name": "活动用户信息"
+        },
+        "name": "MySQL 活动用户信息列表",
+        "pos": {
+          "h": 18,
+          "w": 12,
+          "x": 0,
+          "y": 41
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "mysql_user_status",
+              "field": "current_connect",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "fe1e09e0-2f3f-11ed-b002-95dd88253084",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last",
+                "top:5"
+              ],
+              "groupBy": [
+                "user"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mysql_user_status`:(AVG(`current_connect`)) { `host` = '#{host}' } BY `user`",
+              "queryFuncs": [],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "B",
+              "dataSource": "mysql_user_status",
+              "field": "total_connect",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "fe1e09e0-2f3f-11ed-b002-95dd88253084",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last",
+                "top:5"
+              ],
+              "groupBy": [
+                "user"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mysql_user_status`:(AVG(`total_connect`)) { `host` = '#{host}' } BY `user`",
+              "queryFuncs": [],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "接收字节数",
+              "code": "C",
+              "dataSource": "mysql_user_status",
+              "field": "bytes_received",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "fe1e09e0-2f3f-11ed-b002-95dd88253084",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last",
+                "top:5"
+              ],
+              "groupBy": [
+                "user"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mysql_user_status`:(AVG(`bytes_received`) AS `接收字节数`) { `host` = '#{host}' } BY `user`",
+              "queryFuncs": [],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "发送字节数",
+              "code": "D",
+              "dataSource": "mysql_user_status",
+              "field": "bytes_sent",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "fe1e09e0-2f3f-11ed-b002-95dd88253084",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last",
+                "top:5"
+              ],
+              "groupBy": [
+                "user"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mysql_user_status`:(AVG(`bytes_sent`) AS `发送字节数`) { `host` = '#{host}' } BY `user`",
+              "queryFuncs": [],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "慢查询数量",
+              "code": "E",
+              "dataSource": "mysql_user_status",
+              "field": "slow_queries",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "fe1e09e0-2f3f-11ed-b002-95dd88253084",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last",
+                "top:5"
+              ],
+              "groupBy": [
+                "user"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mysql_user_status`:(AVG(`slow_queries`) AS `慢查询数量`) { `host` = '#{host}' } BY `user`",
+              "queryFuncs": [],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "缓存命中数",
+              "code": "F",
+              "dataSource": "mysql_user_status",
+              "field": "table_open_cache_hits",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "fe1e09e0-2f3f-11ed-b002-95dd88253084",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last",
+                "top:5"
+              ],
+              "groupBy": [
+                "user"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mysql_user_status`:(AVG(`table_open_cache_hits`) AS `缓存命中数`) { `host` = '#{host}' } BY `user`",
+              "queryFuncs": [],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "table",
+            "unit": ""
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "pie",
+            "colors": [],
+            "currentChartType": "pie",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "legendPostion": "bottom",
+            "levels": [],
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "活动用户信息"
+        },
+        "name": "当前活动用户 Connections 分布",
+        "pos": {
+          "h": 18,
+          "w": 6,
+          "x": 12,
+          "y": 41
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "current_connect",
+              "code": "A",
+              "dataSource": "mysql_user_status",
+              "field": "current_connect",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "6df1a9c0-2f40-11ed-b002-95dd88253084",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "user"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mysql_user_status`:(AVG(`current_connect`) AS `current_connect`) { `host` = '#{host}' } BY `user`",
+              "queryFuncs": [],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "pie",
+            "unit": ""
+          }
+        ],
+        "type": "pie"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "alias": [],
+            "colorLevel": 3,
+            "colors": [],
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levelArr": [],
+            "levels": [],
+            "mainMeasurementLimit": 20,
+            "mainMeasurementQueryCode": "A",
+            "mainMeasurementSort": "top",
+            "rangeColor": "",
+            "rangeColorKey": "light-blue",
+            "showFieldMapping": false,
+            "showLegend": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "活动用户信息"
+        },
+        "name": "当前活动用户慢查询分布",
+        "pos": {
+          "h": 18,
+          "w": 6,
+          "x": 18,
+          "y": 41
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "mysql_user_status",
+              "field": "slow_queries",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "9365fb20-2f40-11ed-b002-95dd88253084",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "user"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mysql_user_status`:(AVG(`slow_queries`)) { `host` = '#{host}' } BY `user`",
+              "queryFuncs": [],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "treemap",
+            "unit": ""
+          }
+        ],
+        "type": "treemap"
+      },
+      {
+        "extend": {
+          "isRefresh": false,
+          "links": [],
+          "settings": {
+            "alias": [],
+            "backgroundStyle": {
+              "background-size": "cover"
+            },
+            "colors": [],
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "type": "fill",
+            "units": [],
+            "url": "https://www.logw.jp/wp-content/uploads/2011/08/mysqllogo.png"
+          }
+        },
+        "group": {
+          "name": "概览"
+        },
+        "name": "img",
+        "pos": {
+          "h": 12,
+          "w": 9,
+          "x": 0,
+          "y": 2.5
+        },
+        "queries": [],
+        "type": "picture"
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "colors": [],
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "概览"
+        },
+        "name": "说明",
+        "pos": {
+          "h": 12,
+          "w": 15,
+          "x": 9,
+          "y": 2.5
+        },
+        "queries": [
+          {
+            "name": "",
+            "query": {
+              "content": "使用这个仪表板，您可以获得连接数、QPS、TPS、吞吐量、异常连接数、每秒无索引join 查询次数、Schema 大小、慢查询、行锁等待时长、活动用户信息、缓冲情况、锁信息等。\n\n了解更多关于MySQL集成的信息：\n[我们的官方集成文档](https://docs.guance.com/integrations/datastorage/mysql/)\n[监控MySQL性能指标](https://docs.guance.com/datakit/mysql/#measurement)"
+            }
+          }
+        ],
+        "type": "text"
+      }
+    ],
+    "groups": [
+      "概览",
+      "活动用户信息",
+      "InnoDB",
+      "锁信息"
+    ],
+    "type": "template",
+    "vars": [
+      {
+        "code": "host",
+        "datasource": "dataflux",
+        "definition": {
+          "field": "",
+          "metric": "",
+          "object": "",
+          "tag": "",
+          "value": "show_tag_value(from=['mysql'],keyin=['host'])"
+        },
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "name": "主机名",
+        "seq": 0,
+        "type": "QUERY",
+        "valueSort": "default"
+      }
+    ]
+  },
+  "summary": "",
+  "tagInfo": [],
+  "tags": [],
+  "thumbnail": "",
+  "title": "Mysql 监控视图"
+}

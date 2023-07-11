@@ -1,0 +1,1773 @@
+{
+  "dashboardBindSet": [],
+  "dashboardExtend": {},
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "dashboardType": "CUSTOM",
+  "iconSet": {
+    "icon": "https://static-res.guance.com/dataflux-template/dashboard/mongodb/icon.svg",
+    "url": "https://static-res.guance.com/dataflux-template/dashboard/mongodb/mongodb.png"
+  },
+  "main": {
+    "charts": [
+      {
+        "extend": {
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "levels": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "stackType": "time",
+            "tableSortMetricName": "每秒使用ttl索引从集合中删除的文档总数",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "性能"
+        },
+        "name": "TTL索引",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 8,
+          "y": 37
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "每秒使用ttl索引从集合中删除的文档总数",
+              "code": "B",
+              "dataSource": "mongodb",
+              "field": "ttl_deletes_per_sec",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a3c1f7a0-5fa6-11eb-b94e-8de971454a5b",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mongodb`:(AVG(`ttl_deletes_per_sec`) AS `每秒使用ttl索引从集合中删除的文档总数`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "每秒后台进程使用ttl索引从集合中删除文档的次数",
+              "code": "A",
+              "dataSource": "mongodb",
+              "field": "ttl_passes_per_sec",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a3c1f7a0-5fa6-11eb-b94e-8de971454a5b",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mongodb`:(AVG(`ttl_passes_per_sec`) AS `每秒后台进程使用ttl索引从集合中删除文档的次数`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "downsample": "last",
+            "levels": [],
+            "lineColor": "#c23531",
+            "mappings": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "stackType": "time",
+            "tableSortMetricName": "内存中的脏页占比",
+            "units": [
+              {
+                "key": "内存中的脏页占比",
+                "name": "内存中的脏页占比",
+                "unit": "",
+                "units": [
+                  "percent",
+                  "percent"
+                ]
+              },
+              {
+                "key": "已使用缓存占比",
+                "name": "已使用缓存占比",
+                "unit": "",
+                "units": [
+                  "percent",
+                  "percent"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "资源概览"
+        },
+        "name": "缓存",
+        "pos": {
+          "h": 8,
+          "w": 10,
+          "x": 14,
+          "y": 2.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "内存中的脏页占比",
+              "code": "A",
+              "dataSource": "mongodb",
+              "field": "percent_cache_dirty",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "17c95d40-6043-11eb-a218-9f89e8460b72",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mongodb`:(AVG(`percent_cache_dirty`) AS `内存中的脏页占比`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "已使用缓存占比",
+              "code": "B",
+              "dataSource": "mongodb",
+              "field": "percent_cache_used",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "e1552bb0-5fa5-11eb-b94e-8de971454a5b",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mongodb`:(AVG(`percent_cache_used`) AS `已使用缓存占比`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "levels": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "stackType": "time",
+            "tableSortMetricName": "入流量",
+            "units": [
+              {
+                "key": "入流量",
+                "name": "入流量",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              },
+              {
+                "key": "出流量",
+                "name": "出流量",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "资源概览"
+        },
+        "name": "网络流量",
+        "pos": {
+          "h": 8,
+          "w": 10,
+          "x": 4,
+          "y": 10.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "出流量",
+              "code": "A",
+              "dataSource": "mongodb",
+              "field": "net_out_bytes",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "filters": [
+                {
+                  "id": "3e24d760-5fa0-11eb-b94e-8de971454a5b",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mongodb`:(AVG(`net_out_bytes`) AS `出流量`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "入流量",
+              "code": "C",
+              "dataSource": "mongodb",
+              "field": "net_in_bytes",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "3e24d760-5fa0-11eb-b94e-8de971454a5b",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mongodb`:(AVG(`net_in_bytes`) AS `入流量`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "#F97575",
+                "key": "每秒执行删除次数{\"host\": \"iZbp14ak3swm562py0tx05Z\", \"hostname\": \"127.0.0.1:27017\"}",
+                "name": "每秒执行删除次数{\"host\": \"iZbp14ak3swm562py0tx05Z\", \"hostname\": \"127.0.0.1:27017\"}",
+                "tags": {
+                  "host": "iZbp14ak3swm562py0tx05Z",
+                  "hostname": "127.0.0.1:27017"
+                }
+              },
+              {
+                "color": "#41CEC7",
+                "key": "每秒执行刷新次数{\"host\": \"iZbp14ak3swm562py0tx05Z\", \"hostname\": \"127.0.0.1:27017\"}",
+                "name": "每秒执行刷新次数{\"host\": \"iZbp14ak3swm562py0tx05Z\", \"hostname\": \"127.0.0.1:27017\"}",
+                "tags": {
+                  "host": "iZbp14ak3swm562py0tx05Z",
+                  "hostname": "127.0.0.1:27017"
+                }
+              },
+              {
+                "color": "#FFBD5F",
+                "key": "每秒执行查询次数{\"host\": \"iZbp14ak3swm562py0tx05Z\", \"hostname\": \"127.0.0.1:27017\"}",
+                "name": "每秒执行查询次数{\"host\": \"iZbp14ak3swm562py0tx05Z\", \"hostname\": \"127.0.0.1:27017\"}",
+                "tags": {
+                  "host": "iZbp14ak3swm562py0tx05Z",
+                  "hostname": "127.0.0.1:27017"
+                }
+              },
+              {
+                "color": "#737AE2",
+                "key": "每秒执行命令次数{\"host\": \"iZbp14ak3swm562py0tx05Z\", \"hostname\": \"127.0.0.1:27017\"}",
+                "name": "每秒执行命令次数{\"host\": \"iZbp14ak3swm562py0tx05Z\", \"hostname\": \"127.0.0.1:27017\"}",
+                "tags": {
+                  "host": "iZbp14ak3swm562py0tx05Z",
+                  "hostname": "127.0.0.1:27017"
+                }
+              },
+              {
+                "color": "rgba(255,255,255,1)",
+                "key": "每秒执行插入次数{\"host\": \"iZbp14ak3swm562py0tx05Z\", \"hostname\": \"127.0.0.1:27017\"}",
+                "name": "每秒执行插入次数{\"host\": \"iZbp14ak3swm562py0tx05Z\", \"hostname\": \"127.0.0.1:27017\"}",
+                "tags": {
+                  "host": "iZbp14ak3swm562py0tx05Z",
+                  "hostname": "127.0.0.1:27017"
+                }
+              }
+            ],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "levels": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "stackType": "time",
+            "tableSortMetricName": "mongodb_commands_per_sec",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "性能"
+        },
+        "name": "每秒操作数",
+        "pos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 29
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "deletes",
+              "code": "C",
+              "dataSource": "mongodb",
+              "field": "deletes_per_sec",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "6788b5a0-5fa4-11eb-b94e-8de971454a5b",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mongodb`:(AVG(`deletes_per_sec`) AS `deletes`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "insert",
+              "code": "E",
+              "dataSource": "mongodb",
+              "field": "inserts_per_sec",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "6788b5a0-5fa4-11eb-b94e-8de971454a5b",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mongodb`:(AVG(`inserts_per_sec`) AS `insert`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "flushes",
+              "code": "A",
+              "dataSource": "mongodb",
+              "field": "flushes_per_sec",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "6788b5a0-5fa4-11eb-b94e-8de971454a5b",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mongodb`:(AVG(`flushes_per_sec`) AS `flushes`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "queries",
+              "code": "B",
+              "dataSource": "mongodb",
+              "field": "queries_per_sec",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "6788b5a0-5fa4-11eb-b94e-8de971454a5b",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mongodb`:(AVG(`queries_per_sec`) AS `queries`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "command",
+              "code": "D",
+              "dataSource": "mongodb",
+              "field": "commands_per_sec",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "6788b5a0-5fa4-11eb-b94e-8de971454a5b",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mongodb`:(AVG(`commands_per_sec`) AS `command`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "levels": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "stackType": "time",
+            "tableSortMetricName": "可用连接数",
+            "units": [
+              {
+                "key": "可用连接数",
+                "name": "可用连接数",
+                "unit": "个",
+                "units": [
+                  "custom",
+                  "个"
+                ]
+              },
+              {
+                "key": "当前连接数",
+                "name": "当前连接数",
+                "unit": "个",
+                "units": [
+                  "custom",
+                  "个"
+                ]
+              },
+              {
+                "key": "每秒创建连接数",
+                "name": "每秒创建连接数",
+                "unit": "个",
+                "units": [
+                  "custom",
+                  "个"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "资源概览"
+        },
+        "name": "连接数",
+        "pos": {
+          "h": 8,
+          "w": 10,
+          "x": 14,
+          "y": 10.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "可用连接数",
+              "code": "A",
+              "dataSource": "mongodb",
+              "field": "connections_available",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "ed866d10-5fa3-11eb-b94e-8de971454a5b",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mongodb`:(AVG(`connections_available`) AS `可用连接数`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "每秒创建连接数",
+              "code": "C",
+              "dataSource": "mongodb",
+              "field": "connections_total_created",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1185d1b0-5fa4-11eb-b94e-8de971454a5b",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mongodb`:(AVG(`connections_total_created`) AS `每秒创建连接数`) { `host` = '#{host}' }\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "当前连接数",
+              "code": "B",
+              "dataSource": "mongodb",
+              "field": "connections_current",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1185d1b0-5fa4-11eb-b94e-8de971454a5b",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mongodb`:(AVG(`connections_current`) AS `当前连接数`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "levels": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "stackType": "time",
+            "tableSortMetricName": "删除的文档总数",
+            "units": [
+              {
+                "key": "删除的文档总数",
+                "name": "删除的文档总数",
+                "unit": "个",
+                "units": [
+                  "custom",
+                  "个"
+                ]
+              },
+              {
+                "key": "插入的文档总数",
+                "name": "插入的文档总数",
+                "unit": "个",
+                "units": [
+                  "custom",
+                  "个"
+                ]
+              },
+              {
+                "key": "更新的文档总数",
+                "name": "更新的文档总数",
+                "unit": "个",
+                "units": [
+                  "custom",
+                  "个"
+                ]
+              },
+              {
+                "key": "返回的文档总数",
+                "name": "返回的文档总数",
+                "unit": "个",
+                "units": [
+                  "custom",
+                  "个"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "性能"
+        },
+        "name": "每秒文档操作",
+        "pos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 29
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "update",
+              "code": "A",
+              "dataSource": "mongodb",
+              "field": "document_updated",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "4318bf70-5fa5-11eb-b94e-8de971454a5b",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mongodb`:(AVG(`document_updated`) AS `update`) { `host` = '#{host}' }\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "delete",
+              "code": "B",
+              "dataSource": "mongodb",
+              "field": "document_deleted",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "4318bf70-5fa5-11eb-b94e-8de971454a5b",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mongodb`:(AVG(`document_deleted`) AS `delete`) { `host` = '#{host}' }\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "insert",
+              "code": "C",
+              "dataSource": "mongodb",
+              "field": "document_inserted",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "4318bf70-5fa5-11eb-b94e-8de971454a5b",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mongodb`:(AVG(`document_inserted`) AS `insert`) { `host` = '#{host}' }\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "return",
+              "code": "D",
+              "dataSource": "mongodb",
+              "field": "document_returned",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "4318bf70-5fa5-11eb-b94e-8de971454a5b",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mongodb`:(AVG(`document_returned`) AS `return`) { `host` = '#{host}' }\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "levels": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "stackType": "time",
+            "tableSortMetricName": "扫描的key总数",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "性能"
+        },
+        "name": "文档扫描",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 16,
+          "y": 37
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "扫描的key总数",
+              "code": "A",
+              "dataSource": "mongodb",
+              "field": "total_keys_scanned",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "aaf3a970-5fa5-11eb-b94e-8de971454a5b",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mongodb`:(AVG(`total_keys_scanned`) AS `扫描的key总数`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "扫描的文档总数",
+              "code": "B",
+              "dataSource": "mongodb",
+              "field": "total_docs_scanned",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "aaf3a970-5fa5-11eb-b94e-8de971454a5b",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mongodb`:(AVG(`total_docs_scanned`) AS `扫描的文档总数`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "levels": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "stackType": "time",
+            "tableSortMetricName": "固定游标数",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "性能"
+        },
+        "name": "游标",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 0,
+          "y": 37
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "固定游标数",
+              "code": "C",
+              "dataSource": "mongodb",
+              "field": "cursor_pinned",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "2ed80150-5fa6-11eb-b94e-8de971454a5b",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mongodb`:(AVG(`cursor_pinned`) AS `固定游标数`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "游标超时数",
+              "code": "D",
+              "dataSource": "mongodb",
+              "field": "cursor_timed_out",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "2ed80150-5fa6-11eb-b94e-8de971454a5b",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mongodb`:(AVG(`cursor_timed_out`) AS `游标超时数`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "游标总数",
+              "code": "A",
+              "dataSource": "mongodb",
+              "field": "cursor_total",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "2ed80150-5fa6-11eb-b94e-8de971454a5b",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mongodb`:(AVG(`cursor_total`) AS `游标总数`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "游标未超时数",
+              "code": "B",
+              "dataSource": "mongodb",
+              "field": "cursor_no_timeout",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "2ed80150-5fa6-11eb-b94e-8de971454a5b",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mongodb`:(AVG(`cursor_no_timeout`) AS `游标未超时数`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "downsample": "last",
+            "levels": [],
+            "lineColor": "#c23531",
+            "mappings": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "stackType": "time",
+            "tableSortMetricName": "已占用内存",
+            "units": [
+              {
+                "key": "常驻内存",
+                "name": "常驻内存",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "MB"
+                ]
+              },
+              {
+                "key": "虚拟内存",
+                "name": "虚拟内存",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "MB"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "资源概览"
+        },
+        "name": "内存",
+        "pos": {
+          "h": 8,
+          "w": 10,
+          "x": 4,
+          "y": 2.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "虚拟内存",
+              "code": "B",
+              "dataSource": "mongodb",
+              "field": "vsize_megabytes",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "d7492630-5fa5-11eb-b94e-8de971454a5b",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mongodb`:(AVG(`vsize_megabytes`) AS `虚拟内存`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "常驻内存",
+              "code": "A",
+              "dataSource": "mongodb",
+              "field": "resident_megabytes",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "d45d02c0-5fa5-11eb-b94e-8de971454a5b",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mongodb`:(AVG(`resident_megabytes`) AS `常驻内存`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "colors": [],
+            "compareChartType": "",
+            "compareTitle": "",
+            "compareType": "",
+            "compares": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "tableSortMetricName": "last(active_reads)",
+            "timeInterval": {
+              "type": "auto"
+            },
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "last(uptime_ns)",
+                "name": "last(uptime_ns)",
+                "unit": "",
+                "units": [
+                  "time",
+                  "ns"
+                ]
+              },
+              {
+                "key": "A / 86400000000000",
+                "name": "A / 86400000000000",
+                "unit": "",
+                "units": [
+                  "time",
+                  "d"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": "资源概览"
+        },
+        "name": "运行时间",
+        "pos": {
+          "h": 16,
+          "w": 4,
+          "x": 0,
+          "y": 2.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "children": [
+                {
+                  "alias": "",
+                  "code": "A",
+                  "dataSource": "mongodb",
+                  "field": "uptime_ns",
+                  "fieldFunc": "last",
+                  "fieldType": "float",
+                  "fill": null,
+                  "fillNum": null,
+                  "filters": [
+                    {
+                      "id": "4ec27130-1737-11ee-b33a-c9a8e42cb5a1",
+                      "logic": "and",
+                      "name": "host",
+                      "op": "=",
+                      "value": "#{host}"
+                    }
+                  ],
+                  "groupBy": [
+                    "mongod_host"
+                  ],
+                  "groupByTime": "",
+                  "labelOp": "",
+                  "namespace": "metric",
+                  "q": "M::`mongodb`:(LAST(`uptime_ns`)) { `host` = '#{host}' } BY `mongod_host`",
+                  "queryFuncs": [],
+                  "type": "simple",
+                  "withLabels": []
+                }
+              ],
+              "code": "A",
+              "expression": "A/86400000000000",
+              "funcList": [],
+              "q": "eval(A/86400000000000, A=\"M::`mongodb`:(LAST(`uptime_ns`)) { `host` = '#{host}' } BY `mongod_host`\")",
+              "type": "expression"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "density": "medium",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "stackType": "time",
+            "tableSortMetricName": "last(active_reads)",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "性能"
+        },
+        "name": "锁队列",
+        "pos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 21
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "当前等读锁队列长度",
+              "code": "A",
+              "dataSource": "mongodb",
+              "field": "queued_reads",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "87f2cff0-c76a-11eb-8900-09c288084079",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mongodb`:(AVG(`queued_reads`) AS `当前等读锁队列长度`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "当前等写锁队列长度",
+              "code": "B",
+              "dataSource": "mongodb",
+              "field": "queued_writes",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "87f2cff0-c76a-11eb-8900-09c288084079",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mongodb`:(AVG(`queued_writes`) AS `当前等写锁队列长度`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "density": "medium",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "stackType": "time",
+            "tableSortMetricName": "last(active_reads)",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "性能"
+        },
+        "name": "锁请求",
+        "pos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 21
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "当前请求读锁的活动客户端",
+              "code": "A",
+              "dataSource": "mongodb",
+              "field": "active_reads",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "87f2cff0-c76a-11eb-8900-09c288084079",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mongodb`:(AVG(`active_reads`) AS `当前请求读锁的活动客户端`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "当前请求写锁的活动客户端",
+              "code": "B",
+              "dataSource": "mongodb",
+              "field": "active_writes",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "87f2cff0-c76a-11eb-8900-09c288084079",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mongodb`:(AVG(`active_writes`) AS `当前请求写锁的活动客户端`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      }
+    ],
+    "groups": [
+      "资源概览",
+      "性能"
+    ],
+    "type": "template",
+    "vars": [
+      {
+        "code": "host",
+        "datasource": "dataflux",
+        "definition": {
+          "field": "",
+          "metric": "",
+          "object": "",
+          "tag": "",
+          "value": "show_tag_value(from=['mongodb'],keyin=['host'])"
+        },
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "name": "主机名",
+        "seq": 0,
+        "type": "QUERY",
+        "valueSort": ""
+      }
+    ]
+  },
+  "summary": "",
+  "tagInfo": [],
+  "tags": [],
+  "thumbnail": "",
+  "title": "Mongodb 监控视图-童光辉"
+}

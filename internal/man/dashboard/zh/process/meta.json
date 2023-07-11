@@ -1,0 +1,791 @@
+{
+  "dashboardBindSet": [],
+  "dashboardExtend": {},
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "dashboardType": "CUSTOM",
+  "iconSet": {},
+  "main": {
+    "charts": [
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "cpu usage",
+        "pos": {
+          "h": 8,
+          "i": "chrt_3df484624432430a9f83fb027ab07124",
+          "w": 5,
+          "x": 14,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "cpu usage",
+              "code": "A",
+              "dataSource": "host_processes",
+              "field": "cpu_usage_top",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "0cb5df70-8e26-11ec-964b-c1eb1a70f290",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "3f8af080-8e2f-11ec-964b-c1eb1a70f290",
+                  "logic": "and",
+                  "name": "process_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{process_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`host_processes`:(AVG(`cpu_usage_top`) AS `cpu usage`) { `host` = '#{host}' and `process_name` = '#{process_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "#FF77AA",
+                "key": "mem usage",
+                "name": "mem usage"
+              }
+            ],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "mem usage",
+        "pos": {
+          "h": 8,
+          "i": "chrt_ac1727069fe943a1b8a3617f3c88a1d1",
+          "w": 5,
+          "x": 19,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "mem usage",
+              "code": "A",
+              "dataSource": "host_processes",
+              "field": "mem_used_percent",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "0cb5df70-8e26-11ec-964b-c1eb1a70f290",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "45b41680-8e2f-11ec-964b-c1eb1a70f290",
+                  "logic": "and",
+                  "name": "process_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{process_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`host_processes`:(AVG(`mem_used_percent`) AS `mem usage`) { `host` = '#{host}' and `process_name` = '#{process_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "#41CEC7",
+                "key": "open files",
+                "name": "open files"
+              }
+            ],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "open files",
+        "pos": {
+          "h": 7,
+          "i": "chrt_d11bd86afce3470093685ffc07c3423d",
+          "w": 5,
+          "x": 14,
+          "y": 8
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "open files",
+              "code": "A",
+              "dataSource": "host_processes",
+              "field": "open_files",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "0cb5df70-8e26-11ec-964b-c1eb1a70f290",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "4bd35170-8e2f-11ec-964b-c1eb1a70f290",
+                  "logic": "and",
+                  "name": "process_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{process_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`host_processes`:(AVG(`open_files`) AS `open files`) { `host` = '#{host}' and `process_name` = '#{process_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "#C57ECD",
+                "key": "rss",
+                "name": "rss"
+              }
+            ],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "rss",
+                "name": "rss",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "rss",
+        "pos": {
+          "h": 9,
+          "i": "chrt_164fc72c9ec0458a835a8f8284a46158",
+          "w": 10,
+          "x": 14,
+          "y": 15
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "rss",
+              "code": "A",
+              "dataSource": "host_processes",
+              "field": "rss",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "0cb5df70-8e26-11ec-964b-c1eb1a70f290",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "524bf700-8e2f-11ec-964b-c1eb1a70f290",
+                  "logic": "and",
+                  "name": "process_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{process_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`host_processes`:(AVG(`rss`) AS `rss`) { `host` = '#{host}' and `process_name` = '#{process_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "#A0DD86",
+                "key": "threads",
+                "name": "threads"
+              }
+            ],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "rss",
+                "name": "rss",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "threads",
+        "pos": {
+          "h": 7,
+          "i": "chrt_10e85d6ed5b246e5a8d177990641d6dc",
+          "w": 5,
+          "x": 19,
+          "y": 8
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "threads",
+              "code": "A",
+              "dataSource": "host_processes",
+              "field": "threads",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "0cb5df70-8e26-11ec-964b-c1eb1a70f290",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "59ebb770-8e2f-11ec-964b-c1eb1a70f290",
+                  "logic": "and",
+                  "name": "process_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{process_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`host_processes`:(AVG(`threads`) AS `threads`) { `host` = '#{host}' and `process_name` = '#{process_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "colors": [],
+            "currentChartType": "table",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "pageSize": 0,
+            "queryMode": "toGroupColumn",
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "valColorMappings": [
+              {
+                "field": "cpu",
+                "fontColor": "#FF2244",
+                "operation": ">",
+                "value": [
+                  "90"
+                ]
+              },
+              {
+                "field": "memory",
+                "fontColor": "#FF2244",
+                "operation": ">",
+                "value": [
+                  "90"
+                ]
+              }
+            ],
+            "valMappings": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "cpu usage top5",
+        "pos": {
+          "h": 12,
+          "i": "chrt_1b29b92263614bf48ce8c558d96a2edd",
+          "w": 14,
+          "x": 0,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "cpu",
+              "code": "A",
+              "dataSource": "host_processes",
+              "field": "cpu_usage_top",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "6a186200-8e30-11ec-964b-c1eb1a70f290",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last",
+                "top:5"
+              ],
+              "groupBy": [
+                "host",
+                "process_name",
+                "pid"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`host_processes`:(AVG(`cpu_usage_top`) AS `cpu`) { `host` = '#{host}' } BY `host`, `process_name`, `pid`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "memory",
+              "code": "B",
+              "dataSource": "host_processes",
+              "field": "mem_used_percent",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "6d010300-8e30-11ec-964b-c1eb1a70f290",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "host",
+                "process_name",
+                "pid"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`host_processes`:(AVG(`mem_used_percent`) AS `memory`) { `host` = '#{host}' } BY `host`, `process_name`, `pid`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "colors": [],
+            "currentChartType": "table",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "pageSize": 0,
+            "queryMode": "toGroupColumn",
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "valColorMappings": [
+              {
+                "field": "memory",
+                "fontColor": "#FF2244",
+                "operation": ">",
+                "value": [
+                  "90"
+                ]
+              },
+              {
+                "field": "cpu",
+                "fontColor": "#FF2244",
+                "operation": ">",
+                "value": [
+                  "90"
+                ]
+              }
+            ],
+            "valMappings": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "memory usage top5",
+        "pos": {
+          "h": 12,
+          "i": "chrt_2adbaecbfb694f48821165e16a7b0f60",
+          "w": 14,
+          "x": 0,
+          "y": 12
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "memory",
+              "code": "A",
+              "dataSource": "host_processes",
+              "field": "mem_used_percent",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "83065480-8e2f-11ec-964b-c1eb1a70f290",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last",
+                "top:5"
+              ],
+              "groupBy": [
+                "host",
+                "process_name",
+                "pid"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`host_processes`:(AVG(`mem_used_percent`) AS `memory`) { `host` = '#{host}' } BY `host`, `process_name`, `pid`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "cpu",
+              "code": "B",
+              "dataSource": "host_processes",
+              "field": "cpu_usage_top",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "83065480-8e2f-11ec-964b-c1eb1a70f290",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "host",
+                "process_name",
+                "pid"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`host_processes`:(AVG(`cpu_usage_top`) AS `cpu`) { `host` = '#{host}' } BY `host`, `process_name`, `pid`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          }
+        ],
+        "type": "table"
+      }
+    ],
+    "groups": [],
+    "type": "template",
+    "vars": [
+      {
+        "code": "host",
+        "datasource": "dataflux",
+        "definition": {
+          "defaultVal": {
+            "label": "*",
+            "value": "re(`.*`)"
+          },
+          "field": "",
+          "metric": "",
+          "object": "",
+          "tag": "",
+          "value": "show_tag_value(from=['host_processes'], keyin=['host'])[5m]"
+        },
+        "hide": 0,
+        "name": "主机名",
+        "seq": 0,
+        "type": "QUERY",
+        "valueSort": "default"
+      },
+      {
+        "code": "process_name",
+        "datasource": "dataflux",
+        "definition": {
+          "defaultVal": {
+            "label": "*",
+            "value": "re(`.*`)"
+          },
+          "field": "",
+          "metric": "",
+          "object": "",
+          "tag": "",
+          "value": "show_tag_value(from=['host_processes'], keyin=['process_name']){host='#{host}'}[5m]"
+        },
+        "hide": 0,
+        "name": "进程名",
+        "seq": 1,
+        "type": "QUERY",
+        "valueSort": "default"
+      }
+    ]
+  },
+  "summary": "",
+  "tagInfo": [
+    {
+      "id": "tag_794ad04d7a8845f9836d21c4856684a2",
+      "name": "主机"
+    }
+  ],
+  "tags": [],
+  "thumbnail": "",
+  "title": "Processes"
+}

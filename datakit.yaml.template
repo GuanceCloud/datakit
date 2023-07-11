@@ -149,11 +149,9 @@ spec:
         - name: ENV_GLOBAL_TAGS
           value: host=__datakit_hostname,host_ip=__datakit_ip
         - name: ENV_DEFAULT_ENABLED_INPUTS
-          value: datakit,cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container
+          value: dk,cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container
         - name: ENV_ENABLE_ELECTION
           value: enable
-        - name: ENV_LOG
-          value: stdout
         - name: ENV_HTTP_LISTEN
           value: 0.0.0.0:9529
         - name: HOST_PROC

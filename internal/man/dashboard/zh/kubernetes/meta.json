@@ -1,0 +1,5398 @@
+{
+  "dashboardBindSet": [],
+  "dashboardExtend": {},
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "dashboardType": "CUSTOM",
+  "iconSet": {
+    "icon": "https://static-res.guance.com/dataflux-template/dashboard/kubernetes/icon.svg",
+    "url": "https://static-res.guance.com/dataflux-template/dashboard/kubernetes/kubernetes.png"
+  },
+  "main": {
+    "charts": [
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "#737AE2",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": true,
+            "levels": [],
+            "lineColor": "rgba(73,139,254,1)",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Deployments",
+        "pos": {
+          "h": 8,
+          "w": 4,
+          "x": 4,
+          "y": 8
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "disabled": false,
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "container 数量",
+              "code": "A",
+              "dataSource": "kubernetes",
+              "field": "deployment",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "a07b01e0-38b7-11ed-b7c1-658969602525",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "a07b01e1-38b7-11ed-b7c1-658969602525",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "namespace",
+                "cluster_name_k8s"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "SERIES_SUM(\"M::`kubernetes`:(AVG(`deployment`) AS `container 数量`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `cluster_name_k8s`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "#41CEC7",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": true,
+            "levels": [],
+            "lineColor": "rgba(73,139,254,1)",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "ReplicaSet",
+        "pos": {
+          "h": 7,
+          "w": 6,
+          "x": 0,
+          "y": 23
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "disabled": false,
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "container 数量",
+              "code": "A",
+              "dataSource": "kubernetes",
+              "field": "replica_set",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "082f0070-b1ad-11ed-83c2-37f9ecc6a62c",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "082f0071-b1ad-11ed-83c2-37f9ecc6a62c",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "namespace",
+                "cluster_name_k8s"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "SERIES_SUM(\"M::`kubernetes`:(AVG(`replica_set`) AS `container 数量`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `cluster_name_k8s`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "#FF92C6",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": true,
+            "levels": [],
+            "lineColor": "rgba(73,139,254,1)",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Pods",
+        "pos": {
+          "h": 8,
+          "w": 4,
+          "x": 8,
+          "y": 8
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "disabled": false,
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "container 数量",
+              "code": "A",
+              "dataSource": "kubernetes",
+              "field": "pod",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "f5f8ad30-c1fb-11ec-86c4-a7a6321aad45",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "f5f8ad31-c1fb-11ec-86c4-a7a6321aad45",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "namespace",
+                "cluster_name_k8s"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "SERIES_SUM(\"M::`kubernetes`:(AVG(`pod`) AS `container 数量`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `cluster_name_k8s`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "#FE9155",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": true,
+            "levels": [],
+            "lineColor": "rgba(73,139,254,1)",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Services",
+        "pos": {
+          "h": 7,
+          "w": 4,
+          "x": 0,
+          "y": 16
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "disabled": false,
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "container 数量",
+              "code": "A",
+              "dataSource": "kubernetes",
+              "field": "service",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "e08383c0-b1ac-11ed-83c2-37f9ecc6a62c",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "e08383c1-b1ac-11ed-83c2-37f9ecc6a62c",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "namespace",
+                "cluster_name_k8s"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "SERIES_SUM(\"M::`kubernetes`:(AVG(`service`) AS `container 数量`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `cluster_name_k8s`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "#737AE2",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "rgba(58,184,255,1)",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "CronJob",
+        "pos": {
+          "h": 7,
+          "w": 4,
+          "x": 8,
+          "y": 16
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "disabled": false,
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "container 数量",
+              "code": "A",
+              "dataSource": "kubernetes",
+              "field": "cronjob",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "6c1c0e70-b1ad-11ed-83c2-37f9ecc6a62c",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "6c1c0e71-b1ad-11ed-83c2-37f9ecc6a62c",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "namespace",
+                "cluster_name_k8s"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "SERIES_SUM(\"M::`kubernetes`:(AVG(`cronjob`) AS `container 数量`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `cluster_name_k8s`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "colors": [],
+            "currentChartType": "table",
+            "fixedTime": "",
+            "isTimeInterval": true,
+            "levels": [],
+            "pageSize": 0,
+            "queryMode": "toGroupColumn",
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "就绪Pod数",
+                "name": "就绪Pod数",
+                "unit": "个",
+                "units": [
+                  "custom",
+                  "个"
+                ]
+              }
+            ],
+            "valColorMappings": [],
+            "valMappings": []
+          }
+        },
+        "group": {
+          "name": "集群负载"
+        },
+        "name": "Deployment",
+        "pos": {
+          "h": 12,
+          "w": 24,
+          "x": 0,
+          "y": 114.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Available pods",
+              "code": "A",
+              "dataSource": "kubernetes_deployments",
+              "field": "available",
+              "fieldFunc": "last",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "namespace",
+                "deployment_name"
+              ],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`kubernetes_deployments`:(LAST(`available`) AS `Available pods`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `deployment_name`",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Ready pods",
+              "code": "B",
+              "dataSource": "kubernetes_deployments",
+              "field": "ready",
+              "fieldFunc": "last",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "namespace",
+                "deployment_name"
+              ],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`kubernetes_deployments`:(LAST(`ready`) AS `Ready pods`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `deployment_name`",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "disabled": false,
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Unavailable pods",
+              "code": "C",
+              "dataSource": "kubernetes_deployments",
+              "field": "unavailable",
+              "fieldFunc": "last",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "namespace",
+                "deployment_name"
+              ],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`kubernetes_deployments`:(LAST(`unavailable`) AS `Unavailable pods`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `deployment_name`",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "table",
+            "unit": ""
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "#63DBAD",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Job",
+        "pos": {
+          "h": 8,
+          "w": 4,
+          "x": 0,
+          "y": 8
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "kubernetes",
+              "field": "job",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "955f0c60-394e-11ed-8634-bf00b95d4edf",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "955f0c61-394e-11ed-8634-bf00b95d4edf",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "namespace",
+                "cluster_name_k8s"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "SERIES_SUM(\"M::`kubernetes`:(AVG(`job`)) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `cluster_name_k8s`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "colors": [],
+            "currentChartType": "table",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "mainMeasurementLimit": 20,
+            "mainMeasurementQueryCode": "A",
+            "mainMeasurementSort": "top",
+            "pageSize": 0,
+            "queryMode": "toGroupColumn",
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "运行时长",
+                "name": "运行时长",
+                "unit": "",
+                "units": [
+                  "time",
+                  "s"
+                ]
+              },
+              {
+                "key": "可分配内存",
+                "name": "可分配内存",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              },
+              {
+                "key": "内存容量",
+                "name": "内存容量",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "valColorMappings": [],
+            "valMappings": []
+          }
+        },
+        "group": {
+          "name": "集群负载"
+        },
+        "name": "集群信息",
+        "pos": {
+          "h": 12,
+          "w": 24,
+          "x": 0,
+          "y": 88.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "运行时长",
+              "code": "A",
+              "dataSource": "kubernetes_nodes",
+              "field": "age",
+              "fieldFunc": "last",
+              "fieldType": "long",
+              "filters": [
+                {
+                  "id": "2f7f4e40-32e3-11ec-a0e1-a5a848e05f88",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "node_name"
+              ],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`kubernetes_nodes`:(LAST(`age`) AS `运行时长`) { `cluster_name_k8s` = '#{cluster_name}' } BY `node_name`",
+              "queryFuncs": [],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "版本",
+              "code": "D",
+              "dataSource": "kubernetes_nodes",
+              "field": "kubelet_version",
+              "fieldFunc": "last",
+              "fieldType": "keyword",
+              "filters": [
+                {
+                  "id": "334e7eb0-32e3-11ec-a0e1-a5a848e05f88",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "node_name"
+              ],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`kubernetes_nodes`:(LAST(`kubelet_version`) AS `版本`) { `cluster_name_k8s` = '#{cluster_name}' } BY `node_name`",
+              "queryFuncs": [],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "IP",
+              "code": "C",
+              "dataSource": "kubernetes_nodes",
+              "field": "node_ip",
+              "fieldFunc": "last",
+              "fieldType": "keyword",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "1fc84d50-4835-11ec-b4cf-dd3ee07c0923",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "node_name"
+              ],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`kubernetes_nodes`:(LAST(`node_ip`) AS `IP`) { `cluster_name_k8s` = '#{cluster_name}' } BY `node_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "disabled": false,
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "可分配内存",
+              "code": "B",
+              "dataSource": "kube_node",
+              "field": "memory_allocatable",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "ba78d160-b7e4-11ed-b660-dd4861d89fe6",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "node_name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`kube_node`:(LAST(`memory_allocatable`) AS `可分配内存`) { `cluster_name_k8s` = '#{cluster_name}' } BY `node_name`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "disabled": false,
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "内存容量",
+              "code": "E",
+              "dataSource": "kube_node",
+              "field": "memory_capacity",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "bf07cf60-b7e4-11ed-b660-dd4861d89fe6",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "node_name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`kube_node`:(LAST(`memory_capacity`) AS `内存容量`) { `cluster_name_k8s` = '#{cluster_name}' } BY `node_name`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "disabled": false,
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "可分配CPU",
+              "code": "F",
+              "dataSource": "kube_node",
+              "field": "cpu_allocatable",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "c29f7510-b7e4-11ed-b660-dd4861d89fe6",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "node_name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`kube_node`:(LAST(`cpu_allocatable`) AS `可分配CPU`) { `cluster_name_k8s` = '#{cluster_name}' } BY `node_name`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "disabled": false,
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "CPU容量",
+              "code": "G",
+              "dataSource": "kube_node",
+              "field": "cpu_capacity",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "c4c00b20-b7e4-11ed-b660-dd4861d89fe6",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "node_name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`kube_node`:(LAST(`cpu_capacity`) AS `CPU容量`) { `cluster_name_k8s` = '#{cluster_name}' } BY `node_name`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "colors": [],
+            "currentChartType": "table",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "mainMeasurementLimit": 20,
+            "mainMeasurementQueryCode": "A",
+            "mainMeasurementSort": "top",
+            "pageSize": 0,
+            "queryMode": "toGroupColumn",
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "运行时长",
+                "name": "运行时长",
+                "unit": "",
+                "units": [
+                  "time",
+                  "s"
+                ]
+              }
+            ],
+            "valColorMappings": [],
+            "valMappings": []
+          }
+        },
+        "group": {
+          "name": "集群负载"
+        },
+        "name": "Pod",
+        "pos": {
+          "h": 19,
+          "w": 24,
+          "x": 0,
+          "y": 142.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "运行时长",
+              "code": "A",
+              "dataSource": "kubelet_pod",
+              "field": "age",
+              "fieldFunc": "last",
+              "fieldType": "long",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "8ac85fb0-b710-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "8e8ce1c0-b710-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "pod_name"
+              ],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`kubelet_pod`:(LAST(`age`) AS `运行时长`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `pod_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Availale",
+              "code": "C",
+              "dataSource": "kubelet_pod",
+              "field": "available",
+              "fieldFunc": "last",
+              "fieldType": "long",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "67caabd0-b7e6-11ed-b660-dd4861d89fe6",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "67caabd1-b7e6-11ed-b660-dd4861d89fe6",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "pod_name"
+              ],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`kubelet_pod`:(LAST(`available`) AS `Availale`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `pod_name`",
+              "queryFuncs": [],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "disabled": true,
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Annotations",
+              "code": "D",
+              "dataSource": "kubelet_pod",
+              "field": "annotations",
+              "fieldFunc": "count",
+              "fieldType": "",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "a2fd45f0-b710-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "a782ce10-b710-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "pod_name"
+              ],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`kubelet_pod`:(COUNT(`annotations`) AS `Annotations`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `pod_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "disabled": true,
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Message",
+              "code": "E",
+              "dataSource": "kubelet_pod",
+              "field": "message",
+              "fieldFunc": "count",
+              "fieldType": "text",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "aaed7050-b710-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "adbe91b0-b710-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "pod_name"
+              ],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`kubelet_pod`:(COUNT(`message`) AS `Message`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `pod_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Ready",
+              "code": "F",
+              "dataSource": "kubelet_pod",
+              "field": "ready",
+              "fieldFunc": "last",
+              "fieldType": "long",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "b216c840-b710-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "b4b65250-b710-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "pod_name"
+              ],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`kubelet_pod`:(LAST(`ready`) AS `Ready`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `pod_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Restart",
+              "code": "G",
+              "dataSource": "kubelet_pod",
+              "field": "restarts",
+              "fieldFunc": "last",
+              "fieldType": "long",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "b537bf70-b7fa-11ed-b660-dd4861d89fe6",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "b537bf71-b7fa-11ed-b660-dd4861d89fe6",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "pod_name"
+              ],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`kubelet_pod`:(LAST(`restarts`) AS `Restart`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `pod_name`",
+              "queryFuncs": [],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "disabled": true,
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "H",
+              "dataSource": "kubelet_pod",
+              "field": "restarts",
+              "fieldFunc": "last",
+              "fieldType": "long",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "cd083670-b710-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "cf851d50-b710-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "pod_name"
+              ],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`kubelet_pod`:(LAST(`restarts`)) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `pod_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "disabled": false,
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Status",
+              "code": "B",
+              "dataSource": "kubelet_pod",
+              "field": "state",
+              "fieldFunc": "last",
+              "fieldType": "keyword",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "cd083670-b710-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "cf851d50-b710-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "pod_name"
+              ],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`kubelet_pod`:(LAST(`state`) AS `Status`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `pod_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "disabled": false,
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "NameSpace",
+              "code": "I",
+              "dataSource": "kubelet_pod",
+              "field": "namespace",
+              "fieldFunc": "last",
+              "fieldType": "keyword",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "cd083670-b710-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "cf851d50-b710-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "pod_name"
+              ],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`kubelet_pod`:(LAST(`namespace`) AS `NameSpace`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `pod_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "disabled": false,
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "ip",
+              "code": "J",
+              "dataSource": "kubelet_pod",
+              "field": "pod_ip",
+              "fieldFunc": "last",
+              "fieldType": "keyword",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "cd083670-b710-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "cf851d50-b710-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "pod_name"
+              ],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`kubelet_pod`:(LAST(`pod_ip`) AS `ip`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `pod_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "disabled": false,
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Node",
+              "code": "K",
+              "dataSource": "kubelet_pod",
+              "field": "node_name",
+              "fieldFunc": "last",
+              "fieldType": "keyword",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "cd083670-b710-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "cf851d50-b710-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "pod_name"
+              ],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`kubelet_pod`:(LAST(`node_name`) AS `Node`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `pod_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "colors": [],
+            "currentChartType": "table",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "mainMeasurementLimit": 20,
+            "mainMeasurementQueryCode": "A",
+            "mainMeasurementSort": "top",
+            "pageSize": 0,
+            "queryMode": "toGroupColumn",
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "运行时长",
+                "name": "运行时长",
+                "unit": "",
+                "units": [
+                  "time",
+                  "s"
+                ]
+              }
+            ],
+            "valColorMappings": [],
+            "valMappings": []
+          }
+        },
+        "group": {
+          "name": "集群负载"
+        },
+        "name": "Kubernetes Service",
+        "pos": {
+          "h": 14,
+          "w": 24,
+          "x": 0,
+          "y": 100.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "运行时长",
+              "code": "A",
+              "dataSource": "kubernetes_services",
+              "field": "age",
+              "fieldFunc": "last",
+              "fieldType": "long",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "dfd1cfd0-b70d-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "e2fb9880-b70d-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "namespace",
+                "service_name"
+              ],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`kubernetes_services`:(LAST(`age`) AS `运行时长`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `service_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Annotations",
+              "code": "B",
+              "dataSource": "kubernetes_services",
+              "field": "annotations",
+              "fieldFunc": "last",
+              "fieldType": "",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "e627d230-b70d-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "e93efd40-b70d-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "namespace",
+                "service_name"
+              ],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`kubernetes_services`:(LAST(`annotations`) AS `Annotations`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `service_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Cluster IP",
+              "code": "C",
+              "dataSource": "kubernetes_services",
+              "field": "cluster_ip",
+              "fieldFunc": "last",
+              "fieldType": "keyword",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "ee2ce420-b70d-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "f21716a0-b70d-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "namespace",
+                "service_name"
+              ],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`kubernetes_services`:(LAST(`cluster_ip`) AS `Cluster IP`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `service_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "External IP",
+              "code": "D",
+              "dataSource": "kubernetes_services",
+              "field": "external_ips",
+              "fieldFunc": "last",
+              "fieldType": "keyword",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "f5d38260-b70d-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "f94e5140-b70d-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "namespace",
+                "service_name"
+              ],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`kubernetes_services`:(LAST(`external_ips`) AS `External IP`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `service_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "External Name",
+              "code": "E",
+              "dataSource": "kubernetes_services",
+              "field": "external_name",
+              "fieldFunc": "last",
+              "fieldType": "keyword",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "fc52b7a0-b70d-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "ff4bac50-b70d-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "namespace",
+                "service_name"
+              ],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`kubernetes_services`:(LAST(`external_name`) AS `External Name`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `service_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "外部策略",
+              "code": "F",
+              "dataSource": "kubernetes_services",
+              "field": "external_traffic_policy",
+              "fieldFunc": "last",
+              "fieldType": "keyword",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "021c3170-b70e-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "05f06af0-b70e-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "namespace",
+                "service_name"
+              ],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`kubernetes_services`:(LAST(`external_traffic_policy`) AS `外部策略`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `service_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "亲合力",
+              "code": "G",
+              "dataSource": "kubernetes_services",
+              "field": "session_affinity",
+              "fieldFunc": "last",
+              "fieldType": "keyword",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "08e8ea70-b70e-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "0c375220-b70e-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "namespace",
+                "service_name"
+              ],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`kubernetes_services`:(LAST(`session_affinity`) AS `亲合力`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `service_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Message",
+              "code": "H",
+              "dataSource": "kubernetes_services",
+              "field": "message",
+              "fieldFunc": "last",
+              "fieldType": "text",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "12ac4e30-b70e-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "16198880-b70e-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "namespace",
+                "service_name"
+              ],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`kubernetes_services`:(LAST(`message`) AS `Message`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `service_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "colors": [],
+            "currentChartType": "table",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "mainMeasurementLimit": 20,
+            "mainMeasurementQueryCode": "A",
+            "mainMeasurementSort": "top",
+            "pageSize": 0,
+            "queryMode": "toGroupColumn",
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "运行时长",
+                "name": "运行时长",
+                "unit": "",
+                "units": [
+                  "time",
+                  "s"
+                ]
+              }
+            ],
+            "valColorMappings": [],
+            "valMappings": []
+          }
+        },
+        "group": {
+          "name": "集群负载"
+        },
+        "name": "Replica Sets",
+        "pos": {
+          "h": 16,
+          "w": 24,
+          "x": 0,
+          "y": 126.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "运行时长",
+              "code": "A",
+              "dataSource": "kubernetes_replica_sets",
+              "field": "age",
+              "fieldFunc": "last",
+              "fieldType": "long",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "3dfafec0-b70d-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "41d5ef00-b70d-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "deployment",
+                "replica_set_name"
+              ],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`kubernetes_replica_sets`:(LAST(`age`) AS `运行时长`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `deployment`, `replica_set_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "disabled": true,
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Annotations",
+              "code": "B",
+              "dataSource": "kubernetes_replica_sets",
+              "field": "annotations",
+              "fieldFunc": "count",
+              "fieldType": "",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "7a9b03c0-b70d-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "7d5c94c0-b70d-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "deployment",
+                "replica_set_name"
+              ],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`kubernetes_replica_sets`:(COUNT(`annotations`) AS `Annotations`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `deployment`, `replica_set_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "available",
+              "code": "C",
+              "dataSource": "kubernetes_replica_sets",
+              "field": "available",
+              "fieldFunc": "last",
+              "fieldType": "long",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "827d9990-b70d-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "8843df10-b70d-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "deployment",
+                "replica_set_name"
+              ],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`kubernetes_replica_sets`:(LAST(`available`) AS `available`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `deployment`, `replica_set_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "disabled": true,
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Message",
+              "code": "D",
+              "dataSource": "kubernetes_replica_sets",
+              "field": "message",
+              "fieldFunc": "count",
+              "fieldType": "text",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "8d574f50-b70d-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "9041c510-b70d-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "deployment",
+                "replica_set_name"
+              ],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`kubernetes_replica_sets`:(COUNT(`message`) AS `Message`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `deployment`, `replica_set_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "disabled": false,
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "ready",
+              "code": "F",
+              "dataSource": "kubernetes_replica_sets",
+              "field": "ready",
+              "fieldFunc": "last",
+              "fieldType": "long",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "827d9990-b70d-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "8843df10-b70d-11ec-bb5c-41c94daaa2c7",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "deployment",
+                "replica_set_name"
+              ],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`kubernetes_replica_sets`:(LAST(`ready`) AS `ready`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `deployment`, `replica_set_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "当前pod数",
+                "name": "当前pod数",
+                "unit": "个 pod",
+                "units": [
+                  "custom",
+                  "个 pod"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "集群负载"
+        },
+        "name": "集群CPU 负载",
+        "pos": {
+          "h": 17,
+          "w": 8,
+          "x": 0,
+          "y": 71.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "15分钟负载",
+              "code": "A",
+              "dataSource": "system",
+              "field": "load15_per_core",
+              "fieldFunc": "avg",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "!=",
+                  "value": {}
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`system`:(AVG(`load15_per_core`) AS `15分钟负载`) { `cluster_name_k8s` = '#{cluster_name}' and `cluster_name_k8s` != '' } BY `host`",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "line",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "集群负载"
+        },
+        "name": "集群内存趋势",
+        "pos": {
+          "h": 17,
+          "w": 8,
+          "x": 8,
+          "y": 71.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "总内存",
+              "code": "A",
+              "dataSource": "mem",
+              "field": "total",
+              "fieldFunc": "avg",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "!=",
+                  "value": {}
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mem`:(AVG(`total`) AS `总内存`) { `cluster_name_k8s` = '#{cluster_name}'  and `cluster_name_k8s` != ''} BY `host`",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "已使用内存",
+              "code": "C",
+              "dataSource": "mem",
+              "field": "used",
+              "fieldFunc": "avg",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "!=",
+                  "value": {}
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mem`:(AVG(`used`) AS `已使用内存`) { `cluster_name_k8s` = '#{cluster_name}'  and `cluster_name_k8s` != '' } BY `host`",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "剩余内存",
+              "code": "D",
+              "dataSource": "mem",
+              "field": "free",
+              "fieldFunc": "avg",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "!=",
+                  "value": {}
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mem`:(AVG(`free`) AS `剩余内存`) { `cluster_name_k8s` = '#{cluster_name}'  and `cluster_name_k8s` != ''} BY `host`",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "缓冲",
+              "code": "E",
+              "dataSource": "mem",
+              "field": "cached",
+              "fieldFunc": "avg",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "!=",
+                  "value": {}
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mem`:(AVG(`cached`) AS `缓冲`) { `cluster_name_k8s` = '#{cluster_name}'  and `cluster_name_k8s` != ''} BY `host`",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "缓存",
+              "code": "B",
+              "dataSource": "mem",
+              "field": "buffered",
+              "fieldFunc": "avg",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "!=",
+                  "value": {}
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mem`:(AVG(`buffered`) AS `缓存`) { `cluster_name_k8s` = '#{cluster_name}'  and `cluster_name_k8s` != ''} BY `host`",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "当前pod数",
+                "name": "当前pod数",
+                "unit": "个 pod",
+                "units": [
+                  "custom",
+                  "个 pod"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "集群负载"
+        },
+        "name": "集群磁盘空间趋势",
+        "pos": {
+          "h": 17,
+          "w": 8,
+          "x": 16,
+          "y": 71.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "总磁盘空间",
+              "code": "A",
+              "dataSource": "disk",
+              "field": "total",
+              "fieldFunc": "avg",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "!=",
+                  "value": {}
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "device",
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`disk`:(AVG(`total`) AS `总磁盘空间`) { `cluster_name_k8s` = '#{cluster_name}'  and `cluster_name_k8s` != ''} BY `device`, `host`",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "已使用磁盘空间",
+              "code": "B",
+              "dataSource": "disk",
+              "field": "used",
+              "fieldFunc": "avg",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "!=",
+                  "value": {}
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "device",
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`disk`:(AVG(`used`) AS `已使用磁盘空间`) { `cluster_name_k8s` = '#{cluster_name}'  and `cluster_name_k8s` != ''} BY `device`, `host`",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "剩余磁盘空间",
+              "code": "C",
+              "dataSource": "disk",
+              "field": "free",
+              "fieldFunc": "avg",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "!=",
+                  "value": {}
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "device",
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`disk`:(AVG(`free`) AS `剩余磁盘空间`) { `cluster_name_k8s` = '#{cluster_name}'  and `cluster_name_k8s` != ''} BY `device`, `host`",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "colorLevel": 3,
+            "colors": [],
+            "currentChartType": "treemap",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levelArr": [],
+            "levels": [],
+            "mainMeasurementLimit": 50,
+            "mainMeasurementQueryCode": "B",
+            "mainMeasurementSort": "top",
+            "rangeColor": "",
+            "rangeColorKey": "light-blue",
+            "showFieldMapping": false,
+            "showLegend": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "当前空间pod数",
+                "name": "当前空间pod数",
+                "unit": "个 pod",
+                "units": [
+                  "custom",
+                  "个 pod"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "集群空间pod分布",
+        "pos": {
+          "h": 30,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "children": [],
+              "code": "B",
+              "expression": "",
+              "funcList": [],
+              "q": "",
+              "type": "expression"
+            },
+            "type": "treemap",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "当前空间pod数",
+              "code": "A",
+              "dataSource": "kubernetes",
+              "field": "pod",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "0ed55150-ba4a-11ec-b29c-6b7bede1c9e9",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "namespace"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`kubernetes`:(AVG(`pod`) AS `当前空间pod数`) { `cluster_name_k8s` = '#{cluster_name}' } BY `namespace`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "treemap",
+            "unit": ""
+          }
+        ],
+        "type": "treemap"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "ReplicaSet Available",
+        "pos": {
+          "h": 7,
+          "w": 4,
+          "x": 0,
+          "y": 30
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "kube_deployment",
+              "field": "replicas_available",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "9fbd3170-d5a1-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "a2924a70-d5a1-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "namespace",
+                "deployment",
+                "cluster_name_k8s"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "SERIES_SUM(\"M::`kube_deployment`:(AVG(`replicas_available`)) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `deployment`, `cluster_name_k8s`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "ReplicaSet Unavailable",
+        "pos": {
+          "h": 7,
+          "w": 4,
+          "x": 0,
+          "y": 37
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "kube_deployment",
+              "field": "replicas_unavailable",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "9fbd3170-d5a1-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "a2924a70-d5a1-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "namespace",
+                "deployment",
+                "cluster_name_k8s"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "SERIES_SUM(\"M::`kube_deployment`:(AVG(`replicas_unavailable`)) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `deployment`, `cluster_name_k8s`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "ReplicaSet Updated",
+        "pos": {
+          "h": 7,
+          "w": 4,
+          "x": 0,
+          "y": 44
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "kube_deployment",
+              "field": "replicas_updated",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "9fbd3170-d5a1-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "a2924a70-d5a1-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "namespace",
+                "deployment"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "SERIES_SUM(\"M::`kube_deployment`:(AVG(`replicas_updated`)) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `deployment`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "ReplicaSet Available",
+        "pos": {
+          "h": 7,
+          "w": 8,
+          "x": 4,
+          "y": 30
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "kube_deployment",
+              "field": "replicas_available",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "9fbd3170-d5a1-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "a2924a70-d5a1-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "namespace",
+                "deployment",
+                "cluster_name_k8s"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "SERIES_SUM(\"M::`kube_deployment`:(AVG(`replicas_available`)) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `deployment`, `cluster_name_k8s`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "ReplicaSet Unavailable",
+        "pos": {
+          "h": 7,
+          "w": 8,
+          "x": 4,
+          "y": 37
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "kube_deployment",
+              "field": "replicas_unavailable",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "9fbd3170-d5a1-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "a2924a70-d5a1-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "namespace",
+                "deployment",
+                "cluster_name_k8s"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "SERIES_SUM(\"M::`kube_deployment`:(AVG(`replicas_unavailable`)) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `deployment`, `cluster_name_k8s`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "ReplicaSet Updated",
+        "pos": {
+          "h": 7,
+          "w": 8,
+          "x": 4,
+          "y": 44
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "kube_deployment",
+              "field": "replicas_updated",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "9fbd3170-d5a1-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "a2924a70-d5a1-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "namespace",
+                "deployment",
+                "cluster_name_k8s"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "SERIES_SUM(\"M::`kube_deployment`:(AVG(`replicas_updated`)) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `deployment`, `cluster_name_k8s`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Replicas Desired",
+        "pos": {
+          "h": 7,
+          "w": 4,
+          "x": 0,
+          "y": 58
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "副本 数量",
+              "code": "A",
+              "dataSource": "kube_replicaset",
+              "field": "replicas_desired",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "3edd0870-38c1-11ed-b7c1-658969602525",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "3edd0871-38c1-11ed-b7c1-658969602525",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "namespace",
+                "deployment",
+                "cluster_name_k8s"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "SERIES_SUM(\"M::`kube_replicaset`:(AVG(`replicas_desired`) AS `副本 数量`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `deployment`, `cluster_name_k8s`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Replicas Ready",
+        "pos": {
+          "h": 7,
+          "w": 4,
+          "x": 0,
+          "y": 51
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "副本 数量",
+              "code": "A",
+              "dataSource": "kube_replicaset",
+              "field": "replicas_ready",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "464c9120-38c1-11ed-b7c1-658969602525",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "464c9121-38c1-11ed-b7c1-658969602525",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "namespace",
+                "deployment",
+                "cluster_name_k8s"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "SERIES_SUM(\"M::`kube_replicaset`:(AVG(`replicas_ready`) AS `副本 数量`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `deployment`, `cluster_name_k8s`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Replicas Desired",
+        "pos": {
+          "h": 7,
+          "w": 8,
+          "x": 4,
+          "y": 58
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "B",
+              "dataSource": "kube_replicaset",
+              "field": "replicas_desired",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "bcf919f0-d5a3-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "bee83fc0-d5a3-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "namespace",
+                "deployment",
+                "cluster_name_k8s"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "SERIES_SUM(\"M::`kube_replicaset`:(AVG(`replicas_desired`)) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `deployment`, `cluster_name_k8s`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Replicas Ready",
+        "pos": {
+          "h": 7,
+          "w": 8,
+          "x": 4,
+          "y": 51
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "B",
+              "dataSource": "kube_replicaset",
+              "field": "replicas_ready",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "bcf919f0-d5a3-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "bee83fc0-d5a3-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "namespace",
+                "deployment",
+                "cluster_name_k8s"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "SERIES_SUM(\"M::`kube_replicaset`:(AVG(`replicas_ready`)) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `deployment`, `cluster_name_k8s`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Job Succeeded",
+        "pos": {
+          "h": 7,
+          "w": 6,
+          "x": 12,
+          "y": 55
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "kube_job",
+              "field": "succeeded",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "9fbd3170-d5a1-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "a2924a70-d5a1-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "namespace",
+                "job",
+                "cluster_name_k8s"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "SERIES_SUM(\"M::`kube_job`:(AVG(`succeeded`)) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `job`, `cluster_name_k8s`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Job Failed",
+        "pos": {
+          "h": 7,
+          "w": 6,
+          "x": 18,
+          "y": 55
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "kube_job",
+              "field": "failed",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "9fbd3170-d5a1-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "a2924a70-d5a1-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "namespace",
+                "job",
+                "cluster_name_k8s"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "SERIES_SUM(\"M::`kube_job`:(AVG(`failed`)) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `job`, `cluster_name_k8s`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Completion Succeeded",
+        "pos": {
+          "h": 7,
+          "w": 6,
+          "x": 12,
+          "y": 62
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "kube_job",
+              "field": "completion_succeeded",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "9fbd3170-d5a1-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "a2924a70-d5a1-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "namespace",
+                "job",
+                "cluster_name_k8s"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "SERIES_SUM(\"M::`kube_job`:(AVG(`completion_succeeded`)) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `job`, `cluster_name_k8s`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Completion Failed",
+        "pos": {
+          "h": 7,
+          "w": 6,
+          "x": 18,
+          "y": 62
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "kube_job",
+              "field": "completion_failed",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "9fbd3170-d5a1-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "a2924a70-d5a1-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "namespace",
+                "job",
+                "cluster_name_k8s"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "SERIES_SUM(\"M::`kube_job`:(AVG(`completion_failed`)) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `job`, `cluster_name_k8s`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "DaemonSet Desired",
+        "pos": {
+          "h": 7,
+          "w": 4,
+          "x": 12,
+          "y": 30
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "kube_daemonset",
+              "field": "desired",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "9fbd3170-d5a1-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "a2924a70-d5a1-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "namespace",
+                "daemonset",
+                "cluster_name_k8s"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "SERIES_SUM(\"M::`kube_daemonset`:(AVG(`desired`)) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `daemonset`, `cluster_name_k8s`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "DaemonSet Ready",
+        "pos": {
+          "h": 7,
+          "w": 4,
+          "x": 12,
+          "y": 37
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "kube_daemonset",
+              "field": "ready",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "9fbd3170-d5a1-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "a2924a70-d5a1-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "namespace",
+                "daemonset",
+                "cluster_name_k8s"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "SERIES_SUM(\"M::`kube_daemonset`:(AVG(`ready`)) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `daemonset`, `cluster_name_k8s`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "DaemonSet  Updated",
+        "pos": {
+          "h": 7,
+          "w": 4,
+          "x": 12,
+          "y": 44
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "kube_daemonset",
+              "field": "updated",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "9fbd3170-d5a1-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "a2924a70-d5a1-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "namespace",
+                "daemonset",
+                "cluster_name_k8s"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "SERIES_SUM(\"M::`kube_daemonset`:(AVG(`updated`)) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `daemonset`, `cluster_name_k8s`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "DaemonSet Desired",
+        "pos": {
+          "h": 7,
+          "w": 8,
+          "x": 16,
+          "y": 30
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "kube_daemonset",
+              "field": "desired",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "9fbd3170-d5a1-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "a2924a70-d5a1-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "namespace",
+                "daemonset",
+                "cluster_name_k8s"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "SERIES_SUM(\"M::`kube_daemonset`:(AVG(`desired`)) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `daemonset`, `cluster_name_k8s`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "DaemonSet Ready",
+        "pos": {
+          "h": 7,
+          "w": 8,
+          "x": 16,
+          "y": 37
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "kube_daemonset",
+              "field": "ready",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "9fbd3170-d5a1-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "a2924a70-d5a1-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "namespace",
+                "daemonset",
+                "cluster_name_k8s"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "SERIES_SUM(\"M::`kube_daemonset`:(AVG(`ready`)) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `daemonset`, `cluster_name_k8s`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "DaemonSet Updated",
+        "pos": {
+          "h": 7,
+          "w": 8,
+          "x": 16,
+          "y": 44
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "kube_daemonset",
+              "field": "updated",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "9fbd3170-d5a1-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "a2924a70-d5a1-11ec-8607-39d9d29453f2",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "namespace",
+                "daemonset",
+                "cluster_name_k8s"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "SERIES_SUM(\"M::`kube_daemonset`:(AVG(`updated`)) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `namespace`, `daemonset`, `cluster_name_k8s`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "#737AE2",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "rgba(73,139,254,1)",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Daemonset",
+        "pos": {
+          "h": 7,
+          "w": 4,
+          "x": 4,
+          "y": 16
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "disabled": false,
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "container 数量",
+              "code": "A",
+              "dataSource": "kubernetes",
+              "field": "daemonset",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "33e396b0-38b6-11ed-b7c1-658969602525",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "4fa37870-38b6-11ed-b7c1-658969602525",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{namespace}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "namespace"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "SERIES_SUM(\"M::`kubernetes`:(AVG(`daemonset`) AS `container 数量`) { `cluster_name_k8s` = '#{cluster_name}' and `namespace` = '#{namespace}' } BY `cluster_name_k8s`, `namespace`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "#498BFE",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "rgba(73,139,254,1)",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Nodes",
+        "pos": {
+          "h": 7,
+          "w": 6,
+          "x": 6,
+          "y": 23
+        },
+        "queries": [
+          {
+            "color": "",
+            "dashboardUUID": "dsbd_d742ffb25b5d42948b8bae08b2506090",
+            "datasource": "dataflux",
+            "disabled": false,
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "container 数量",
+              "code": "A",
+              "dataSource": "kube_node",
+              "field": "count",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "56600ce0-b1ac-11ed-83c2-37f9ecc6a62c",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "cluster_name_k8s"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "SERIES_SUM(\"M::`kube_node`:(AVG(`count`) AS `container 数量`) { `cluster_name_k8s` = '#{cluster_name}' } BY `cluster_name_k8s`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "isRefresh": false,
+          "links": [],
+          "settings": {
+            "alias": [],
+            "backgroundStyle": {
+              "background-size": "contain"
+            },
+            "colors": [],
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "type": "contain",
+            "units": [],
+            "url": "https://drupal.org/files/project-images/Kubernetes.png"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "新建图表",
+        "pos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        },
+        "queries": [],
+        "type": "picture"
+      }
+    ],
+    "groups": [
+      "集群负载"
+    ],
+    "type": "template",
+    "vars": [
+      {
+        "code": "cluster_name",
+        "datasource": "dataflux",
+        "definition": {
+          "defaultVal": {
+            "label": "*",
+            "value": "re(`.*`)"
+          },
+          "field": "",
+          "metric": "",
+          "object": "",
+          "tag": "",
+          "value": "show_tag_value(from=['kubernetes'], keyin=['cluster_name_k8s'])"
+        },
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "name": "集群名称",
+        "seq": 0,
+        "type": "QUERY",
+        "valueSort": "default"
+      },
+      {
+        "code": "namespace",
+        "datasource": "dataflux",
+        "definition": {
+          "defaultVal": {
+            "label": "*",
+            "value": "re(`.*`)"
+          },
+          "field": "",
+          "metric": "",
+          "object": "",
+          "tag": "",
+          "value": "show_tag_value(from=['kubernetes'], keyin=['namespace']){`cluster_name_k8s`='#{cluster_name}'}"
+        },
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "name": "命名空间",
+        "seq": 1,
+        "type": "QUERY",
+        "valueSort": "default"
+      }
+    ]
+  },
+  "summary": "",
+  "tagInfo": [],
+  "tags": [],
+  "thumbnail": "",
+  "title": "Kubernetes 监控视图"
+}

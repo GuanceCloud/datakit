@@ -1,0 +1,1319 @@
+{
+  "dashboardBindSet": [],
+  "dashboardExtend": {},
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "dashboardType": "CUSTOM",
+  "iconSet": {
+    "icon": "https://static-res.guance.com/dataflux-template/dashboard/oracle/icon.svg",
+    "url": "https://static-res.guance.com/dataflux-template/dashboard/oracle/oracle.png"
+  },
+  "main": {
+    "charts": [
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": null,
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "tableSortMetricName": "缓冲区缓存命中率",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "缓冲区缓存命中率",
+                "name": "缓冲区缓存命中率",
+                "unit": "",
+                "units": [
+                  "percent",
+                  "percent"
+                ]
+              },
+              {
+                "key": "库缓存命中率",
+                "name": "库缓存命中率",
+                "unit": "",
+                "units": [
+                  "percent",
+                  "percent"
+                ]
+              },
+              {
+                "key": "游标缓存命中率",
+                "name": "游标缓存命中率",
+                "unit": "",
+                "units": [
+                  "percent",
+                  "percent"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "实例基础信息"
+        },
+        "name": "缓存命中率",
+        "pos": {
+          "h": 8,
+          "i": 1,
+          "w": 8,
+          "x": 0,
+          "y": 8
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "缓冲区缓存命中率",
+              "code": "A",
+              "dataSource": "oracle_system",
+              "field": "buffer_cachehit_ratio",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "e88e27c0-61d9-11eb-bfd1-75a1f3a5078f",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                },
+                {
+                  "id": "38482880-c83f-11eb-8c91-137cdaf56565",
+                  "logic": "and",
+                  "name": "oracle_service",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`oracle_system`:(AVG(`buffer_cachehit_ratio`) AS `缓冲区缓存命中率`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "库缓存命中率",
+              "code": "C",
+              "dataSource": "oracle_system",
+              "field": "library_cachehit_ratio",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "e88e27c0-61d9-11eb-bfd1-75a1f3a5078f",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                },
+                {
+                  "id": "38482880-c83f-11eb-8c91-137cdaf56565",
+                  "logic": "and",
+                  "name": "oracle_service",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`oracle_system`:(AVG(`library_cachehit_ratio`) AS `库缓存命中率`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "游标缓存命中率",
+              "code": "B",
+              "dataSource": "oracle_system",
+              "field": "cursor_cachehit_ratio",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "e88e27c0-61d9-11eb-bfd1-75a1f3a5078f",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                },
+                {
+                  "id": "38482880-c83f-11eb-8c91-137cdaf56565",
+                  "logic": "and",
+                  "name": "oracle_service",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`oracle_system`:(AVG(`cursor_cachehit_ratio`) AS `游标缓存命中率`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": null,
+          "settings": {
+            "bgColor": "",
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": true,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": true,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "服务响应时间",
+                "name": "服务响应时间",
+                "unit": "",
+                "units": [
+                  "time",
+                  "s"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": "实例基础信息"
+        },
+        "name": "响应时间",
+        "pos": {
+          "h": 8,
+          "i": 2,
+          "w": 6,
+          "x": 18,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "服务响应时间",
+              "code": "H",
+              "dataSource": "oracle_system",
+              "field": "service_response_time",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "02205410-61da-11eb-bfd1-75a1f3a5078f",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                },
+                {
+                  "id": "d2eb8f80-c83f-11eb-8c91-137cdaf56565",
+                  "logic": "and",
+                  "name": "oracle_service",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`oracle_system`:(AVG(`service_response_time`) AS `服务响应时间`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": null,
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "tableSortMetricName": "活动排序的总块数",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "临时空间大小",
+                "name": "临时空间大小",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "实例基础信息"
+        },
+        "name": "TEMP空间",
+        "pos": {
+          "h": 8,
+          "i": 3,
+          "w": 8,
+          "x": 8,
+          "y": 8
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "临时空间大小",
+              "code": "D",
+              "dataSource": "oracle_system",
+              "field": "temp_space_used",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "4079c8e0-61da-11eb-bfd1-75a1f3a5078f",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                },
+                {
+                  "id": "b3a80fd0-c840-11eb-8c91-137cdaf56565",
+                  "logic": "and",
+                  "name": "oracle_service",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`oracle_system`:(fill(AVG(`temp_space_used`), linear) AS `临时空间大小`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": null,
+          "links": [],
+          "settings": {
+            "colors": [],
+            "currentChartType": "table",
+            "pageSize": 0,
+            "queryMode": "toGroupColumn",
+            "showFieldMapping": false,
+            "tableSortMetricName": "已使用",
+            "timeInterval": {
+              "type": "auto"
+            },
+            "units": [
+              {
+                "key": "已使用",
+                "name": "已使用",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              },
+              {
+                "key": "总大小",
+                "name": "总大小",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              },
+              {
+                "key": "百分比占用",
+                "name": "百分比占用",
+                "unit": "",
+                "units": [
+                  "percent",
+                  "percent"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": "实例基础信息"
+        },
+        "name": "表空间",
+        "pos": {
+          "h": 10,
+          "i": 4,
+          "w": 15,
+          "x": 0,
+          "y": 16
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "总大小",
+              "code": "A",
+              "dataSource": "oracle_tablespace",
+              "field": "ts_size",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "0287f6b0-c83c-11eb-8c91-137cdaf56565",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                },
+                {
+                  "id": "067a6690-c83c-11eb-8c91-137cdaf56565",
+                  "logic": "and",
+                  "name": "oracle_service",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "tablespace_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`oracle_tablespace`:(AVG(`ts_size`) AS `总大小`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' } BY `tablespace_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "已使用",
+              "code": "B",
+              "dataSource": "oracle_tablespace",
+              "field": "used_space",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "0287f6b0-c83c-11eb-8c91-137cdaf56565",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                },
+                {
+                  "id": "067a6690-c83c-11eb-8c91-137cdaf56565",
+                  "logic": "and",
+                  "name": "oracle_service",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "tablespace_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`oracle_tablespace`:(AVG(`used_space`) AS `已使用`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' } BY `tablespace_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "百分比占用",
+              "code": "C",
+              "dataSource": "oracle_tablespace",
+              "field": "in_use",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "0287f6b0-c83c-11eb-8c91-137cdaf56565",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                },
+                {
+                  "id": "067a6690-c83c-11eb-8c91-137cdaf56565",
+                  "logic": "and",
+                  "name": "oracle_service",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                }
+              ],
+              "funcList": [
+                "last",
+                "top:10"
+              ],
+              "groupBy": [
+                "tablespace_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`oracle_tablespace`:(AVG(`in_use`) AS `百分比占用`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' } BY `tablespace_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "挂载状态",
+              "code": "D",
+              "dataSource": "oracle_tablespace",
+              "field": "off_use",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "0287f6b0-c83c-11eb-8c91-137cdaf56565",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                },
+                {
+                  "id": "067a6690-c83c-11eb-8c91-137cdaf56565",
+                  "logic": "and",
+                  "name": "oracle_service",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "tablespace_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`oracle_tablespace`:(AVG(`off_use`) AS `挂载状态`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' } BY `tablespace_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "tableSortMetricName": "等待会话",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "实例基础信息"
+        },
+        "name": "会话",
+        "pos": {
+          "h": 8,
+          "i": 5,
+          "w": 6,
+          "x": 12,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "会话总数",
+              "code": "B",
+              "dataSource": "oracle_system",
+              "field": "session_count",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "07433820-1a6c-11ee-946a-93d85961bcc4",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                },
+                {
+                  "id": "0a5be9d0-1a6c-11ee-946a-93d85961bcc4",
+                  "logic": "and",
+                  "name": "oracle_service",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`oracle_system`:(AVG(`session_count`) AS `会话总数`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "活跃会话数",
+              "code": "A",
+              "dataSource": "oracle_system",
+              "field": "active_sessions",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1102cb50-1a6c-11ee-946a-93d85961bcc4",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                },
+                {
+                  "id": "16493270-1a6c-11ee-946a-93d85961bcc4",
+                  "logic": "and",
+                  "name": "oracle_service",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`oracle_system`:(AVG(`active_sessions`) AS `活跃会话数`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "colors": [],
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": true,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": true,
+            "showLineAxis": true,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "实例基础信息"
+        },
+        "name": "活跃会话数",
+        "pos": {
+          "h": 8,
+          "i": 6,
+          "w": 6,
+          "x": 6,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "活跃会话数",
+              "code": "A",
+              "dataSource": "oracle_system",
+              "field": "active_sessions",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "efd32880-1a6b-11ee-946a-93d85961bcc4",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                },
+                {
+                  "id": "f2aab280-1a6b-11ee-946a-93d85961bcc4",
+                  "logic": "and",
+                  "name": "oracle_service",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`oracle_system`:(fill(AVG(`active_sessions`), linear) AS `活跃会话数`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "colors": [],
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": true,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": true,
+            "showLineAxis": true,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "实例基础信息"
+        },
+        "name": "会话总数",
+        "pos": {
+          "h": 8,
+          "i": 7,
+          "w": 6,
+          "x": 0,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "活跃会话数",
+              "code": "A",
+              "dataSource": "oracle_system",
+              "field": "session_count",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": "linear",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "e0500ef0-1a6b-11ee-946a-93d85961bcc4",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                },
+                {
+                  "id": "e3910920-1a6b-11ee-946a-93d85961bcc4",
+                  "logic": "and",
+                  "name": "oracle_service",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "labelOp": "",
+              "namespace": "metric",
+              "q": "M::`oracle_system`:(fill(AVG(`session_count`), linear) AS `活跃会话数`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
+              "queryFuncs": [],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "用户排序",
+                "name": "用户排序",
+                "unit": "次/秒",
+                "units": [
+                  "custom",
+                  "次/秒"
+                ]
+              },
+              {
+                "key": "磁盘排序",
+                "name": "磁盘排序",
+                "unit": "次/秒",
+                "units": [
+                  "custom",
+                  "次/秒"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "实例基础信息"
+        },
+        "name": "数据排序",
+        "pos": {
+          "h": 8,
+          "i": 8,
+          "w": 8,
+          "x": 16,
+          "y": 8
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "磁盘排序",
+              "code": "A",
+              "dataSource": "oracle_system",
+              "field": "disk_sorts",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "68844c20-d4b2-11eb-b6fd-6ff82c63a527",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                },
+                {
+                  "id": "6af991e0-d4b2-11eb-b6fd-6ff82c63a527",
+                  "logic": "and",
+                  "name": "oracle_service",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`oracle_system`:(fill(AVG(`disk_sorts`), linear) AS `磁盘排序`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "用户排序",
+              "code": "B",
+              "dataSource": "oracle_system",
+              "field": "sorts_per_user_call",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "68844c20-d4b2-11eb-b6fd-6ff82c63a527",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                },
+                {
+                  "id": "6af991e0-d4b2-11eb-b6fd-6ff82c63a527",
+                  "logic": "and",
+                  "name": "oracle_service",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`oracle_system`:(fill(AVG(`sorts_per_user_call`), linear) AS `用户排序`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "物理读取",
+                "name": "物理读取",
+                "unit": "次/秒",
+                "units": [
+                  "custom",
+                  "次/秒"
+                ]
+              },
+              {
+                "key": "物理写入",
+                "name": "物理写入",
+                "unit": "次/秒",
+                "units": [
+                  "custom",
+                  "次/秒"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "实例基础信息"
+        },
+        "name": "物理读写次数",
+        "pos": {
+          "h": 10,
+          "i": 9,
+          "w": 9,
+          "x": 15,
+          "y": 16
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "物理读取",
+              "code": "A",
+              "dataSource": "oracle_system",
+              "field": "physical_reads",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "d2634380-d4b2-11eb-b6fd-6ff82c63a527",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                },
+                {
+                  "id": "d44040e0-d4b2-11eb-b6fd-6ff82c63a527",
+                  "logic": "and",
+                  "name": "oracle_service",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`oracle_system`:(fill(AVG(`physical_reads`), linear) AS `物理读取`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "物理写入",
+              "code": "B",
+              "dataSource": "oracle_system",
+              "field": "physical_writes",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "d2634380-d4b2-11eb-b6fd-6ff82c63a527",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                },
+                {
+                  "id": "d44040e0-d4b2-11eb-b6fd-6ff82c63a527",
+                  "logic": "and",
+                  "name": "oracle_service",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`oracle_system`:(fill(AVG(`physical_writes`), linear) AS `物理写入`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      }
+    ],
+    "groups": [
+      "实例基础信息"
+    ],
+    "type": "template",
+    "vars": [
+      {
+        "code": "hostname",
+        "datasource": "dataflux",
+        "definition": {
+          "defaultVal": {
+            "label": "",
+            "value": ""
+          },
+          "field": "",
+          "metric": "",
+          "object": "",
+          "tag": "",
+          "value": "show_tag_value(from=['oracle_process'],keyin=['host'])"
+        },
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "name": "主机名",
+        "seq": 0,
+        "type": "QUERY",
+        "valueSort": "default"
+      },
+      {
+        "code": "service_name",
+        "datasource": "dataflux",
+        "definition": {
+          "defaultVal": {
+            "label": "",
+            "value": ""
+          },
+          "field": "",
+          "metric": "",
+          "object": "",
+          "tag": "",
+          "value": "show_tag_value(from=['oracle_process'],keyin=['oracle_service'])"
+        },
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "name": "服务名",
+        "seq": 1,
+        "type": "QUERY",
+        "valueSort": "default"
+      }
+    ]
+  },
+  "summary": "",
+  "tagInfo": [
+    {
+      "id": "tag_cae6e957bf13438182c8a1e1c923b622",
+      "name": "刘跃兰"
+    }
+  ],
+  "tags": [],
+  "thumbnail": "",
+  "title": "Oracle 监控视图"
+}

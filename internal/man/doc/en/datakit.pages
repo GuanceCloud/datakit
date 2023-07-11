@@ -1,0 +1,43 @@
+nav:
+  - index.md
+  - changelog.md
+
+  - 'DataKit Intro': 
+    - 'Intro to Overall Architecture': datakit-arch.md
+
+  - 'DataKit Installation':
+    - 'Host Installation': datakit-install.md
+    - 'K8s Installation': datakit-daemonset-deploy.md
+    - 'Offline Installation': datakit-offline-install.md
+    - 'Batch Installation': datakit-batch-deploy.md
+
+  - 'Using DataKit': 
+    - Service Management: datakit-service-how-to.md
+    - Status Management: datakit-monitor.md
+    - 'Update': datakit-update.md
+    - 'DQL Query': datakit-dql-how-to.md
+    - 'Other Commands': datakit-tools-how-to.md
+    - 'Virtual Internet Access': aliyun-access.md
+    - 'Trouble Shooting':
+        - 'No data collected': why-no-data.md
+        - 'Datakit Metrics': datakit-metrics.md
+
+  - 'DataKit Configuration': 
+    - 'Major Configuration': datakit-conf.md
+    - 'Collector Configuration': datakit-input-conf.md
+    - 'Election Configuration': election.md
+    - 'Proxy Configuration': datakit-proxy.md
+    - 'Operator Configuration': datakit-operator.md
+    - 'Other Configurations':
+      - 'Configuration Overview': k8s-config-how-to.md
+      - 'DCA': dca.md
+      - 'Git': git-config-how-to.md
+      - 'Configuration Support': confd.md
+
+  - 'DataKit Dev Manual':
+    - development.md
+    - datakit-filter.md
+    - apis.md
+    - common-tags.md
+    - 'Doc Editing':
+      - mkdocs-howto.md

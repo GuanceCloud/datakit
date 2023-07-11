@@ -1,0 +1,276 @@
+{
+  "checkers": [
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "jenkins",
+              "field": "queue_blocked",
+              "fieldFunc": "sum",
+              "fieldType": "float",
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(SUM(`queue_blocked`)) BY `host`",
+              "type": "simple"
+            },
+            "uuid": "ad87f2a7-7ece-43f7-ad8e-c4820611b72b"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "5"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "critical"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "4"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "error"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "3"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "warning"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "atAccounts": [],
+        "atNoDataAccounts": [],
+        "channels": [],
+        "checkerOpt": {
+          "infoEvent": false,
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "5"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "critical"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "4"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "error"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "3"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "warning"
+            }
+          ]
+        },
+        "every": "5m",
+        "groupBy": [
+          "host"
+        ],
+        "interval": 300,
+        "message": "- 工作空间：{{ df_workspace_name }}\n- 主机：{{ host }}\n- 级别：{{ df_status }}\n- 检测值：{{ Result }}\n",
+        "noDataMessage": "",
+        "noDataTitle": "",
+        "recoverNeedPeriodCount": 2,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`jenkins`:(SUM(`queue_blocked`)) BY `host`"
+          }
+        ],
+        "title": "Jenkins队列中阻塞状态的作业数量较多",
+        "type": "simpleCheck"
+      },
+      "monitorName": "Jenkins"
+    },
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "children": [
+                {
+                  "alias": "",
+                  "code": "A",
+                  "dataSource": "jenkins",
+                  "field": "queue_blocked",
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "groupBy": [
+                    "host"
+                  ],
+                  "groupByTime": "",
+                  "namespace": "metric",
+                  "q": "M::`jenkins`:(AVG(`queue_blocked`)) BY `host`",
+                  "type": "simple"
+                },
+                {
+                  "alias": "",
+                  "code": "B",
+                  "dataSource": "jenkins",
+                  "field": "queue_size",
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "groupBy": [
+                    "host"
+                  ],
+                  "groupByTime": "",
+                  "namespace": "metric",
+                  "q": "M::`jenkins`:(AVG(`queue_size`)) BY `host`",
+                  "type": "simple"
+                }
+              ],
+              "code": "Result",
+              "expression": "A / B",
+              "funcList": [],
+              "q": "eval(A / B, A=\"M::`jenkins`:(AVG(`queue_blocked`)) BY `host`\", B=\"M::`jenkins`:(AVG(`queue_size`)) BY `host`\")",
+              "type": "expression"
+            },
+            "uuid": "9a3b4266-a9a9-4534-9461-fba10ec53ac9"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "0.5"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "critical"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "0.3"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "error"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "atAccounts": [],
+        "atNoDataAccounts": [],
+        "channels": [],
+        "checkerOpt": {
+          "infoEvent": false,
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "0.5"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "critical"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "0.3"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "error"
+            }
+          ]
+        },
+        "every": "5m",
+        "groupBy": [
+          "host"
+        ],
+        "interval": 300,
+        "message": "- 工作空间：{{ df_workspace_name }}\n- 主机：{{ host }}\n- 级别：{{ df_status }}\n- 检测值：{{ Result }}\n最近5分钟Jenkins队列中被阻塞的项目的百分比较高，请检查",
+        "noDataMessage": "",
+        "noDataTitle": "",
+        "recoverNeedPeriodCount": 2,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "eval(A / B, A=\"M::`jenkins`:(AVG(`queue_blocked`)) BY `host`\", B=\"M::`jenkins`:(AVG(`queue_size`)) BY `host`\")"
+          }
+        ],
+        "title": "Jenkins队列中阻塞项目的百分比较高",
+        "type": "simpleCheck"
+      },
+      "monitorName": "Jenkins"
+    }
+  ]
+}

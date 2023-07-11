@@ -14,7 +14,7 @@ datakit:
   global_tags: host=__datakit_hostname,host_ip=__datakit_ip
   ## @param default_enabled_inputs - string
   ## The default open collector list, format example: input1, input2, input3
-  default_enabled_inputs: datakit,cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container
+  default_enabled_inputs: dk,cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container
   ## @param enabled_election - boolean
   ## When the election is enabled, it is enabled by default. If it needs to be enabled, you can give any non empty string value to the environment variable. (e.g. true / false)
   enabled_election: true
