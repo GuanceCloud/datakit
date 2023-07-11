@@ -331,7 +331,7 @@ func cache(req *http.Request) (string, int64, error) {
 		return "", 0, fmt.Errorf("can not resolve profile end time: %w", err)
 	}
 
-	startNano, endNano := profileStart.UnixNano(), profileEnd.UnixNano()
+	startMicroSeconds, endMicroSeconds := profileStart.UnixMicro(), profileEnd.UnixMicro()
 
 	tags := NewTags(formValues["tags[]"])
 
@@ -364,9 +364,9 @@ func cache(req *http.Request) (string, int64, error) {
 		FieldFormat:     getForm("format", formValues),
 		FieldLibraryVer: tags.Get("profiler_version"),
 		FieldDatakitVer: datakit.Version,
-		FieldStart:      startNano,
-		FieldEnd:        endNano,
-		FieldDuration:   (endNano - startNano) / 1000, // unit: microsecond
+		FieldStart:      startMicroSeconds,
+		FieldEnd:        endMicroSeconds,
+		FieldDuration:   endMicroSeconds - startMicroSeconds, // unit: microsecond
 		FieldFileSize:   filesize,
 	}
 
@@ -397,7 +397,7 @@ func cache(req *http.Request) (string, int64, error) {
 
 	pointCache.push(profileID, time.Now(), pt)
 
-	return profileID, endNano, nil
+	return profileID, profileStart.UnixNano(), nil
 }
 
 func sendToIO(profileID string) error {
