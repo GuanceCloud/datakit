@@ -51,6 +51,19 @@ For example, Tomcat or Kafka:
 
     The collector can now be turned on by [configMap injection collector configuration](datakit-daemonset-deploy.md#configmap-setting).
 
+### Tag data sources {#config-tag}
+
+If you want to tag the hosts captured by DDTrace, you can do so by injecting tags:
+
+- You can use environment variables, i.e. `DD_TAGS`, for example: `DD_TAGS=source_key:tomcat,host_key:cn-shanghai-sq5ei`
+- You can use the command line, i.e. `dd.tags`, for example：`-Ddd.tags=source_key:tomcat,host_key:cn-shanghai-sq5ei`
+
+In the above example, you need to specify that the key for source is `source_key` and the key for host is `host_key` in the Datakit configuration. You can change it to something else, but you have to make sure that the field names in Datakit are the same as the field names in DDTrace.
+
+The end result is that you can see `statsd/tomcat/cn-shanghai-sq5ei` in the `datakit monitor`, which distinguishes it from other data sources reported to the statsd collector. If the above configuration is not done, then the default display is seen on the `datakit monitor`: `statsd/-/-`.
+
+In addition, there is a configuration swith `save_above_key` that determine whether the tags corresponding to `statsd_source_key` and `statsd_host_key` are reported to the center. The default is not to report(`false`).
+
 ## Measurement {#measurement}
 
 Statsd has no measurement definition at present, and all metrics are subject to the metrics sent by the network.

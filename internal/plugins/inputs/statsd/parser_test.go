@@ -38,7 +38,7 @@ func TestParseName(t *testing.T) {
 		},
 	}
 
-	s := defaultInput()
+	s := DefaultInput()
 	s.Templates = []string{}
 
 	for _, tc := range cases {

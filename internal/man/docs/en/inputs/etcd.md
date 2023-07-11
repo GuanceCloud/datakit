@@ -10,9 +10,13 @@ The tcd collector can take many metrics from the etcd instance, such as the stat
 
 ## Preconditions {#requirements}
 
-- etcd version  >=3
+etcd version >= 3, Already tested version:
 
-- Open etcd, the default metrics interface is http://localhost:2379/metrics, or you can modify it in your configuration file.
+- [x] 3.5.7
+- [x] 3.4.24
+- [x] 3.3.27
+
+Open etcd, the default metrics interface is `http://localhost:2379/metrics`, or you can modify it in your configuration file.
 
 ## Configuration {#config}
 

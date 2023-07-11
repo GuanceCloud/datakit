@@ -7,22 +7,15 @@
 package tomcat
 
 import (
-	"context"
-	"time"
-
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
 
 const (
-	inputName   = "tomcat"
-	minInterval = time.Second * 10
-	maxInterval = time.Minute * 20
+	inputName = "tomcat"
 )
 
 var l = logger.DefaultSLogger(inputName)
@@ -39,8 +32,6 @@ type Input struct {
 	inputs.JolokiaAgent
 	Log  *tomcatlog        `toml:"log"`
 	Tags map[string]string `toml:"tags"`
-
-	tail *tailer.Tailer
 }
 
 func (*Input) Catalog() string {
@@ -62,6 +53,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&TomcatThreadPoolM{},
 		&TomcatServletM{},
 		&TomcatCacheM{},
+		&TomcatM{},
 	}
 }
 
@@ -98,46 +90,11 @@ func (i *Input) GetPipeline() []*tailer.Option {
 }
 
 func (i *Input) RunPipeline() {
-	if i.Log == nil || len(i.Log.Files) == 0 {
-		return
-	}
-
-	opt := &tailer.Option{
-		Source:            inputName,
-		Service:           inputName,
-		Pipeline:          i.Log.Pipeline,
-		GlobalTags:        i.Tags,
-		IgnoreStatus:      i.Log.IgnoreStatus,
-		CharacterEncoding: i.Log.CharacterEncoding,
-		MultilinePatterns: []string{i.Log.MultilineMatch},
-		Done:              i.SemStop.Wait(), // nolint:typecheck
-	}
-
-	var err error
-	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
-	if err != nil {
-		l.Errorf("NewTailer: %s", err)
-		i.JolokiaAgent.Feeder.FeedLastError(inputName, err.Error())
-		return
-	}
-
-	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_tomcat"})
-	g.Go(func(ctx context.Context) error {
-		i.tail.Start()
-		return nil
-	})
+	l.Error("Collecting Tomcat in Jolokia way is deprecated. Exiting...")
 }
 
 func (i *Input) Run() {
-	if d, err := time.ParseDuration(i.JolokiaAgent.Interval); err != nil {
-		i.JolokiaAgent.Interval = (time.Second * 10).String()
-	} else {
-		i.JolokiaAgent.Interval = config.ProtectedInterval(minInterval, maxInterval, d).String()
-	}
-	i.JolokiaAgent.PluginName = inputName
-	i.JolokiaAgent.Tags = i.Tags
-	i.JolokiaAgent.Types = TomcatMetricType
-	i.JolokiaAgent.Collect()
+	l.Error("Collecting Tomcat in Jolokia way is deprecated. Exiting...")
 }
 
 func (i *Input) Terminate() {

@@ -250,7 +250,7 @@ name = "flink_taskmanager"
 			optsTask: []inputs.PointCheckOption{
 				inputs.WithTypeChecking(false),
 				inputs.WithExtraTags(map[string]string{"instance": "", "tag1": "", "tag2": ""}),
-				inputs.WithOptionalTags(),
+				inputs.WithOptionalTags("tm_id"),
 				inputs.WithOptionalFields("Status_Flink_Memory_Managed_Total", "Status_Flink_Memory_Managed_Used", "Status_JVM_CPU_Load", "Status_JVM_CPU_Time", "Status_JVM_ClassLoader_ClassesLoaded", "Status_JVM_ClassLoader_ClassesUnloaded", "Status_JVM_GarbageCollector_G1_Old_Generation_Count", "Status_JVM_GarbageCollector_G1_Old_Generation_Time", "Status_JVM_GarbageCollector_G1_Young_Generation_Count", "Status_JVM_GarbageCollector_G1_Young_Generation_Time", "Status_JVM_Memory_Direct_Count", "Status_JVM_Memory_Direct_MemoryUsed", "Status_JVM_Memory_Direct_TotalCapacity", "Status_JVM_Memory_Heap_Committed", "Status_JVM_Memory_Heap_Max", "Status_JVM_Memory_Heap_Used", "Status_JVM_Memory_Mapped_Count", "Status_JVM_Memory_Mapped_MemoryUsed", "Status_JVM_Memory_Mapped_TotalCapacity", "Status_JVM_Memory_Metaspace_Committed", "Status_JVM_Memory_Metaspace_Max", "Status_JVM_Memory_Metaspace_Used", "Status_JVM_Memory_NonHeap_Committed", "Status_JVM_Memory_NonHeap_Max", "Status_JVM_Memory_NonHeap_Used", "Status_JVM_Threads_Count", "Status_Network_AvailableMemorySegments", "Status_Network_TotalMemorySegments", "Status_Shuffle_Netty_AvailableMemory", "Status_Shuffle_Netty_AvailableMemorySegments", "Status_Shuffle_Netty_TotalMemory", "Status_Shuffle_Netty_TotalMemorySegments", "Status_Shuffle_Netty_UsedMemory", "Status_Shuffle_Netty_UsedMemorySegments"), // nolint:lll
 			},
 		}, {
@@ -285,7 +285,7 @@ name = "flink_taskmanager"
 			optsTask: []inputs.PointCheckOption{
 				inputs.WithTypeChecking(false),
 				inputs.WithExtraTags(map[string]string{"instance": "", "tag1": "", "tag2": ""}),
-				inputs.WithOptionalTags(),
+				inputs.WithOptionalTags("tm_id"),
 				inputs.WithOptionalFields("Status_Flink_Memory_Managed_Total", "Status_Flink_Memory_Managed_Used", "Status_JVM_CPU_Load", "Status_JVM_CPU_Time", "Status_JVM_ClassLoader_ClassesLoaded", "Status_JVM_ClassLoader_ClassesUnloaded", "Status_JVM_GarbageCollector_G1_Old_Generation_Count", "Status_JVM_GarbageCollector_G1_Old_Generation_Time", "Status_JVM_GarbageCollector_G1_Young_Generation_Count", "Status_JVM_GarbageCollector_G1_Young_Generation_Time", "Status_JVM_Memory_Direct_Count", "Status_JVM_Memory_Direct_MemoryUsed", "Status_JVM_Memory_Direct_TotalCapacity", "Status_JVM_Memory_Heap_Committed", "Status_JVM_Memory_Heap_Max", "Status_JVM_Memory_Heap_Used", "Status_JVM_Memory_Mapped_Count", "Status_JVM_Memory_Mapped_MemoryUsed", "Status_JVM_Memory_Mapped_TotalCapacity", "Status_JVM_Memory_Metaspace_Committed", "Status_JVM_Memory_Metaspace_Max", "Status_JVM_Memory_Metaspace_Used", "Status_JVM_Memory_NonHeap_Committed", "Status_JVM_Memory_NonHeap_Max", "Status_JVM_Memory_NonHeap_Used", "Status_JVM_Threads_Count", "Status_Network_AvailableMemorySegments", "Status_Network_TotalMemorySegments", "Status_Shuffle_Netty_AvailableMemory", "Status_Shuffle_Netty_AvailableMemorySegments", "Status_Shuffle_Netty_TotalMemory", "Status_Shuffle_Netty_TotalMemorySegments", "Status_Shuffle_Netty_UsedMemory", "Status_Shuffle_Netty_UsedMemorySegments"), // nolint:lll
 			},
 		},
@@ -345,7 +345,7 @@ name = "flink_taskmanager"
 	return cases, nil
 }
 
-func TestInput(t *T.T) {
+func TestIntegrate(t *T.T) {
 	if !tu.CheckIntegrationTestingRunning() {
 		t.Skip()
 	}
@@ -391,7 +391,7 @@ func TestInput(t *T.T) {
 					return
 				}
 
-				assert.NoError(t, tc.pool.Purge(tc.resource))
+				tc.pool.Purge(tc.resource)
 			})
 		})
 	}

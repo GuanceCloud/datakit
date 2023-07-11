@@ -209,10 +209,10 @@ type caseSpec struct {
 }
 
 func (cs *caseSpec) checkPoint(pts []*point.Point) error {
-	var opts []inputs.PointCheckOption
-	opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
-
 	for _, pt := range pts {
+		var opts []inputs.PointCheckOption
+		opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
+
 		measurement := string(pt.Name())
 
 		switch measurement {

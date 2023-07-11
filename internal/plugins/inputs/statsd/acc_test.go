@@ -10,6 +10,7 @@ import (
 	"time"
 
 	tu "github.com/GuanceCloud/cliutils/testutil"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAddFields(t *testing.T) {
@@ -96,7 +97,7 @@ func TestAddFields(t *testing.T) {
 	}
 
 	acc := &accumulator{}
-	s := defaultInput()
+	s := DefaultInput()
 	acc.ref = s
 	s.acc = acc
 
@@ -116,5 +117,98 @@ func TestAddFields(t *testing.T) {
 		if len(acc.measurements) > 0 {
 			t.Logf("%#v", acc.measurements[len(acc.measurements)-1])
 		}
+	}
+}
+
+// go test -v -timeout 30s -run ^TestDoFeedMetricName$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/statsd
+func TestDoFeedMetricName(t *testing.T) {
+	cases := []struct {
+		name                 string
+		acc                  *accumulator
+		tags                 map[string]string
+		expectFeedMetricName string
+	}{
+		{
+			name: "normal",
+			acc: &accumulator{
+				ref: &Input{
+					StatsdSourceKey: "source_key",
+					StatsdHostKey:   "host_key",
+				},
+			},
+			tags: map[string]string{
+				"source_key": "tomcat",
+				"host_key":   "cn-shanghai-sq5ei",
+			},
+			expectFeedMetricName: "statsd/tomcat/cn-shanghai-sq5ei",
+		},
+
+		{
+			name: "default",
+			acc: &accumulator{
+				ref: &Input{},
+			},
+			tags:                 map[string]string{},
+			expectFeedMetricName: "statsd/-/-",
+		},
+
+		{
+			name: "no_tags",
+			acc: &accumulator{
+				ref: &Input{
+					StatsdSourceKey: "source_key",
+					StatsdHostKey:   "host_key",
+				},
+			},
+			tags:                 map[string]string{},
+			expectFeedMetricName: "statsd/-/-",
+		},
+
+		{
+			name: "default_config_report",
+			acc: &accumulator{
+				ref: &Input{},
+			},
+			tags: map[string]string{
+				"source_key": "tomcat",
+				"host_key":   "cn-shanghai-sq5ei",
+			},
+			expectFeedMetricName: "statsd/-/-",
+		},
+
+		{
+			name: "no_source_key",
+			acc: &accumulator{
+				ref: &Input{
+					StatsdSourceKey: "source_key",
+					StatsdHostKey:   "host_key",
+				},
+			},
+			tags: map[string]string{
+				"host_key": "cn-shanghai-sq5ei",
+			},
+			expectFeedMetricName: "statsd/-/cn-shanghai-sq5ei",
+		},
+
+		{
+			name: "no_host_key",
+			acc: &accumulator{
+				ref: &Input{
+					StatsdSourceKey: "source_key",
+				},
+			},
+			tags: map[string]string{
+				"source_key": "tomcat",
+			},
+			expectFeedMetricName: "statsd/tomcat/-",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			acc := tc.acc
+			acc.doFeedMetricName(tc.tags)
+			require.Equal(t, tc.expectFeedMetricName, acc.feedMetricName)
+		})
 	}
 }

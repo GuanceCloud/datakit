@@ -113,6 +113,9 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		optsDBShardStats []inputs.PointCheckOption
 		optsDBTopStats   []inputs.PointCheckOption
 	}{
+		////////////////////////////////////////////////////////////////////////
+		// Mongo 3.0
+		////////////////////////////////////////////////////////////////////////
 		{
 			name: "mongo:3.0",
 			conf: `interval = "1s"
@@ -129,10 +132,118 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			exposedPorts: []string{"27017/tcp"},
 			cmd:          []string{"docker-entrypoint.sh", "mongod", "--smallfiles"},
 			optsDB: []inputs.PointCheckOption{
-				inputs.WithOptionalFields("wtcache_unmodified_pages_evicted", "percent_cache_dirty", "wtcache_max_bytes_configured", "percent_cache_used", "wtcache_internal_pages_evicted", "wtcache_pages_read_into", "wtcache_server_evicting_pages", "wtcache_app_threads_page_write_count", "wtcache_app_threads_page_read_time", "wtcache_pages_written_from", "wtcache_current_bytes", "wtcache_app_threads_page_read_count", "wtcache_pages_requested_from", "wtcache_pages_evicted_by_app_thread", "wtcache_tracked_dirty_bytes", "wtcache_worker_thread_evictingpages", "wtcache_bytes_written_from", "wtcache_pages_queued_for_eviction", "wtcache_bytes_read_into", "wtcache_modified_pages_evicted", "non-mapped_megabytes", "mapped_megabytes", "page_faults_per_sec"), // nolint:lll
+				inputs.WithOptionalFields(
+					"mapped_megabytes",
+					"non-mapped_megabytes",
+					"page_faults_per_sec",
+					"percent_cache_dirty",
+					"percent_cache_used",
+					"wtcache_app_threads_page_read_count",
+					"wtcache_app_threads_page_read_time",
+					"wtcache_app_threads_page_write_count",
+					"wtcache_bytes_read_into",
+					"wtcache_bytes_written_from",
+					"wtcache_current_bytes",
+					"wtcache_internal_pages_evicted",
+					"wtcache_max_bytes_configured",
+					"wtcache_modified_pages_evicted",
+					"wtcache_pages_evicted_by_app_thread",
+					"wtcache_pages_queued_for_eviction",
+					"wtcache_pages_read_into",
+					"wtcache_pages_requested_from",
+					"wtcache_pages_written_from",
+					"wtcache_server_evicting_pages",
+					"wtcache_tracked_dirty_bytes",
+					"wtcache_unmodified_pages_evicted",
+					"wtcache_worker_thread_evictingpages",
+				),
+			},
+			optsDBStats: []inputs.PointCheckOption{
+				inputs.WithOptionalFields(
+					"mapped_megabytes",
+					"non-mapped_megabytes",
+					"page_faults_per_sec",
+					"percent_cache_dirty",
+					"percent_cache_used",
+					"wtcache_app_threads_page_read_count",
+					"wtcache_app_threads_page_read_time",
+					"wtcache_app_threads_page_write_count",
+					"wtcache_bytes_read_into",
+					"wtcache_bytes_written_from",
+					"wtcache_current_bytes",
+					"wtcache_internal_pages_evicted",
+					"wtcache_max_bytes_configured",
+					"wtcache_modified_pages_evicted",
+					"wtcache_pages_evicted_by_app_thread",
+					"wtcache_pages_queued_for_eviction",
+					"wtcache_pages_read_into",
+					"wtcache_pages_requested_from",
+					"wtcache_pages_written_from",
+					"wtcache_server_evicting_pages",
+					"wtcache_tracked_dirty_bytes",
+					"wtcache_unmodified_pages_evicted",
+					"wtcache_worker_thread_evictingpages",
+				),
+			},
+			optsDBColStats: []inputs.PointCheckOption{
+				inputs.WithOptionalFields(
+					"mapped_megabytes",
+					"non-mapped_megabytes",
+					"page_faults_per_sec",
+					"percent_cache_dirty",
+					"percent_cache_used",
+					"wtcache_app_threads_page_read_count",
+					"wtcache_app_threads_page_read_time",
+					"wtcache_app_threads_page_write_count",
+					"wtcache_bytes_read_into",
+					"wtcache_bytes_written_from",
+					"wtcache_current_bytes",
+					"wtcache_internal_pages_evicted",
+					"wtcache_max_bytes_configured",
+					"wtcache_modified_pages_evicted",
+					"wtcache_pages_evicted_by_app_thread",
+					"wtcache_pages_queued_for_eviction",
+					"wtcache_pages_read_into",
+					"wtcache_pages_requested_from",
+					"wtcache_pages_written_from",
+					"wtcache_server_evicting_pages",
+					"wtcache_tracked_dirty_bytes",
+					"wtcache_unmodified_pages_evicted",
+					"wtcache_worker_thread_evictingpages",
+				),
+			},
+			optsDBTopStats: []inputs.PointCheckOption{
+				inputs.WithOptionalFields(
+					"mapped_megabytes",
+					"non-mapped_megabytes",
+					"page_faults_per_sec",
+					"percent_cache_dirty",
+					"percent_cache_used",
+					"wtcache_app_threads_page_read_count",
+					"wtcache_app_threads_page_read_time",
+					"wtcache_app_threads_page_write_count",
+					"wtcache_bytes_read_into",
+					"wtcache_bytes_written_from",
+					"wtcache_current_bytes",
+					"wtcache_internal_pages_evicted",
+					"wtcache_max_bytes_configured",
+					"wtcache_modified_pages_evicted",
+					"wtcache_pages_evicted_by_app_thread",
+					"wtcache_pages_queued_for_eviction",
+					"wtcache_pages_read_into",
+					"wtcache_pages_requested_from",
+					"wtcache_pages_written_from",
+					"wtcache_server_evicting_pages",
+					"wtcache_tracked_dirty_bytes",
+					"wtcache_unmodified_pages_evicted",
+					"wtcache_worker_thread_evictingpages",
+				),
 			},
 		},
 
+		////////////////////////////////////////////////////////////////////////
+		// Mongo 4.0
+		////////////////////////////////////////////////////////////////////////
 		{
 			name: "mongo:4.0",
 			conf: `interval = "1s"
@@ -148,13 +259,98 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			tag1 = "val1"`, // set conf URL later.
 			exposedPorts: []string{"27017/tcp"},
 			optsDB: []inputs.PointCheckOption{
-				inputs.WithOptionalFields("non-mapped_megabytes", "mapped_megabytes", "page_faults_per_sec"), // nolint:lll
+				inputs.WithOptionalFields(
+					"mapped_megabytes",
+					"non-mapped_megabytes",
+					"page_faults_per_sec",
+				),
 			},
 			optsDBStats: []inputs.PointCheckOption{
-				inputs.WithOptionalFields("wtcache_unmodified_pages_evicted", "percent_cache_dirty", "wtcache_app_threads_page_read_count", "wtcache_max_bytes_configured", "wtcache_pages_evicted_by_app_thread", "wtcache_pages_queued_for_eviction", "wtcache_current_bytes", "wtcache_modified_pages_evicted", "wtcache_app_threads_page_write_count", "wtcache_worker_thread_evictingpages", "wtcache_bytes_read_into", "wtcache_tracked_dirty_bytes", "wtcache_pages_written_from", "wtcache_pages_requested_from", "wtcache_bytes_written_from", "percent_cache_used", "wtcache_app_threads_page_read_time", "wtcache_internal_pages_evicted", "wtcache_server_evicting_pages", "wtcache_pages_read_into"), // nolint:lll
+				inputs.WithOptionalFields(
+					"mapped_megabytes",
+					"non-mapped_megabytes",
+					"page_faults_per_sec",
+					"percent_cache_dirty",
+					"percent_cache_used",
+					"wtcache_app_threads_page_read_count",
+					"wtcache_app_threads_page_read_time",
+					"wtcache_app_threads_page_write_count",
+					"wtcache_bytes_read_into",
+					"wtcache_bytes_written_from",
+					"wtcache_current_bytes",
+					"wtcache_internal_pages_evicted",
+					"wtcache_max_bytes_configured",
+					"wtcache_modified_pages_evicted",
+					"wtcache_pages_evicted_by_app_thread",
+					"wtcache_pages_queued_for_eviction",
+					"wtcache_pages_read_into",
+					"wtcache_pages_requested_from",
+					"wtcache_pages_written_from",
+					"wtcache_server_evicting_pages",
+					"wtcache_tracked_dirty_bytes",
+					"wtcache_unmodified_pages_evicted",
+					"wtcache_worker_thread_evictingpages",
+				),
+			},
+			optsDBColStats: []inputs.PointCheckOption{
+				inputs.WithOptionalFields(
+					"mapped_megabytes",
+					"non-mapped_megabytes",
+					"page_faults_per_sec",
+					"percent_cache_dirty",
+					"percent_cache_used",
+					"wtcache_app_threads_page_read_count",
+					"wtcache_app_threads_page_read_time",
+					"wtcache_app_threads_page_write_count",
+					"wtcache_bytes_read_into",
+					"wtcache_bytes_written_from",
+					"wtcache_current_bytes",
+					"wtcache_internal_pages_evicted",
+					"wtcache_max_bytes_configured",
+					"wtcache_modified_pages_evicted",
+					"wtcache_pages_evicted_by_app_thread",
+					"wtcache_pages_queued_for_eviction",
+					"wtcache_pages_read_into",
+					"wtcache_pages_requested_from",
+					"wtcache_pages_written_from",
+					"wtcache_server_evicting_pages",
+					"wtcache_tracked_dirty_bytes",
+					"wtcache_unmodified_pages_evicted",
+					"wtcache_worker_thread_evictingpages",
+				),
+			},
+			optsDBTopStats: []inputs.PointCheckOption{
+				inputs.WithOptionalFields(
+					"mapped_megabytes",
+					"non-mapped_megabytes",
+					"page_faults_per_sec",
+					"percent_cache_dirty",
+					"percent_cache_used",
+					"wtcache_app_threads_page_read_count",
+					"wtcache_app_threads_page_read_time",
+					"wtcache_app_threads_page_write_count",
+					"wtcache_bytes_read_into",
+					"wtcache_bytes_written_from",
+					"wtcache_current_bytes",
+					"wtcache_internal_pages_evicted",
+					"wtcache_max_bytes_configured",
+					"wtcache_modified_pages_evicted",
+					"wtcache_pages_evicted_by_app_thread",
+					"wtcache_pages_queued_for_eviction",
+					"wtcache_pages_read_into",
+					"wtcache_pages_requested_from",
+					"wtcache_pages_written_from",
+					"wtcache_server_evicting_pages",
+					"wtcache_tracked_dirty_bytes",
+					"wtcache_unmodified_pages_evicted",
+					"wtcache_worker_thread_evictingpages",
+				),
 			},
 		},
 
+		////////////////////////////////////////////////////////////////////////
+		// Mongo 5.0
+		////////////////////////////////////////////////////////////////////////
 		{
 			name: "mongo:5.0",
 			conf: `interval = "1s"
@@ -170,13 +366,98 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			tag1 = "val1"`, // set conf URL later.
 			exposedPorts: []string{"27017/tcp"},
 			optsDB: []inputs.PointCheckOption{
-				inputs.WithOptionalFields("non-mapped_megabytes", "mapped_megabytes", "page_faults_per_sec"), // nolint:lll
+				inputs.WithOptionalFields(
+					"mapped_megabytes",
+					"non-mapped_megabytes",
+					"page_faults_per_sec",
+				),
 			},
 			optsDBStats: []inputs.PointCheckOption{
-				inputs.WithOptionalFields("wtcache_unmodified_pages_evicted", "percent_cache_dirty", "wtcache_app_threads_page_read_count", "wtcache_max_bytes_configured", "wtcache_pages_evicted_by_app_thread", "wtcache_pages_queued_for_eviction", "wtcache_current_bytes", "wtcache_modified_pages_evicted", "wtcache_app_threads_page_write_count", "wtcache_worker_thread_evictingpages", "wtcache_bytes_read_into", "wtcache_tracked_dirty_bytes", "wtcache_pages_written_from", "wtcache_pages_requested_from", "wtcache_bytes_written_from", "percent_cache_used", "wtcache_app_threads_page_read_time", "wtcache_internal_pages_evicted", "wtcache_server_evicting_pages", "wtcache_pages_read_into"), // nolint:lll
+				inputs.WithOptionalFields(
+					"mapped_megabytes",
+					"non-mapped_megabytes",
+					"page_faults_per_sec",
+					"percent_cache_dirty",
+					"percent_cache_used",
+					"wtcache_app_threads_page_read_count",
+					"wtcache_app_threads_page_read_time",
+					"wtcache_app_threads_page_write_count",
+					"wtcache_bytes_read_into",
+					"wtcache_bytes_written_from",
+					"wtcache_current_bytes",
+					"wtcache_internal_pages_evicted",
+					"wtcache_max_bytes_configured",
+					"wtcache_modified_pages_evicted",
+					"wtcache_pages_evicted_by_app_thread",
+					"wtcache_pages_queued_for_eviction",
+					"wtcache_pages_read_into",
+					"wtcache_pages_requested_from",
+					"wtcache_pages_written_from",
+					"wtcache_server_evicting_pages",
+					"wtcache_tracked_dirty_bytes",
+					"wtcache_unmodified_pages_evicted",
+					"wtcache_worker_thread_evictingpages",
+				),
+			},
+			optsDBColStats: []inputs.PointCheckOption{
+				inputs.WithOptionalFields(
+					"mapped_megabytes",
+					"non-mapped_megabytes",
+					"page_faults_per_sec",
+					"percent_cache_dirty",
+					"percent_cache_used",
+					"wtcache_app_threads_page_read_count",
+					"wtcache_app_threads_page_read_time",
+					"wtcache_app_threads_page_write_count",
+					"wtcache_bytes_read_into",
+					"wtcache_bytes_written_from",
+					"wtcache_current_bytes",
+					"wtcache_internal_pages_evicted",
+					"wtcache_max_bytes_configured",
+					"wtcache_modified_pages_evicted",
+					"wtcache_pages_evicted_by_app_thread",
+					"wtcache_pages_queued_for_eviction",
+					"wtcache_pages_read_into",
+					"wtcache_pages_requested_from",
+					"wtcache_pages_written_from",
+					"wtcache_server_evicting_pages",
+					"wtcache_tracked_dirty_bytes",
+					"wtcache_unmodified_pages_evicted",
+					"wtcache_worker_thread_evictingpages",
+				),
+			},
+			optsDBTopStats: []inputs.PointCheckOption{
+				inputs.WithOptionalFields(
+					"mapped_megabytes",
+					"non-mapped_megabytes",
+					"page_faults_per_sec",
+					"percent_cache_dirty",
+					"percent_cache_used",
+					"wtcache_app_threads_page_read_count",
+					"wtcache_app_threads_page_read_time",
+					"wtcache_app_threads_page_write_count",
+					"wtcache_bytes_read_into",
+					"wtcache_bytes_written_from",
+					"wtcache_current_bytes",
+					"wtcache_internal_pages_evicted",
+					"wtcache_max_bytes_configured",
+					"wtcache_modified_pages_evicted",
+					"wtcache_pages_evicted_by_app_thread",
+					"wtcache_pages_queued_for_eviction",
+					"wtcache_pages_read_into",
+					"wtcache_pages_requested_from",
+					"wtcache_pages_written_from",
+					"wtcache_server_evicting_pages",
+					"wtcache_tracked_dirty_bytes",
+					"wtcache_unmodified_pages_evicted",
+					"wtcache_worker_thread_evictingpages",
+				),
 			},
 		},
 
+		////////////////////////////////////////////////////////////////////////
+		// Mongo 6.0
+		////////////////////////////////////////////////////////////////////////
 		{
 			name: "mongo:6.0",
 			conf: `interval = "1s"
@@ -192,10 +473,92 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			tag1 = "val1"`, // set conf URL later.
 			exposedPorts: []string{"27017/tcp"},
 			optsDB: []inputs.PointCheckOption{
-				inputs.WithOptionalFields("non-mapped_megabytes", "mapped_megabytes", "page_faults_per_sec"), // nolint:lll
+				inputs.WithOptionalFields(
+					"mapped_megabytes",
+					"non-mapped_megabytes",
+					"page_faults_per_sec",
+				),
 			},
 			optsDBStats: []inputs.PointCheckOption{
-				inputs.WithOptionalFields("wtcache_unmodified_pages_evicted", "percent_cache_dirty", "wtcache_app_threads_page_read_count", "wtcache_max_bytes_configured", "wtcache_pages_evicted_by_app_thread", "wtcache_pages_queued_for_eviction", "wtcache_current_bytes", "wtcache_modified_pages_evicted", "wtcache_app_threads_page_write_count", "wtcache_worker_thread_evictingpages", "wtcache_bytes_read_into", "wtcache_tracked_dirty_bytes", "wtcache_pages_written_from", "wtcache_pages_requested_from", "wtcache_bytes_written_from", "percent_cache_used", "wtcache_app_threads_page_read_time", "wtcache_internal_pages_evicted", "wtcache_server_evicting_pages", "wtcache_pages_read_into"), // nolint:lll
+				inputs.WithOptionalFields(
+					"mapped_megabytes",
+					"non-mapped_megabytes",
+					"page_faults_per_sec",
+					"percent_cache_dirty",
+					"percent_cache_used",
+					"wtcache_app_threads_page_read_count",
+					"wtcache_app_threads_page_read_time",
+					"wtcache_app_threads_page_write_count",
+					"wtcache_bytes_read_into",
+					"wtcache_bytes_written_from",
+					"wtcache_current_bytes",
+					"wtcache_internal_pages_evicted",
+					"wtcache_max_bytes_configured",
+					"wtcache_modified_pages_evicted",
+					"wtcache_pages_evicted_by_app_thread",
+					"wtcache_pages_queued_for_eviction",
+					"wtcache_pages_read_into",
+					"wtcache_pages_requested_from",
+					"wtcache_pages_written_from",
+					"wtcache_server_evicting_pages",
+					"wtcache_tracked_dirty_bytes",
+					"wtcache_unmodified_pages_evicted",
+					"wtcache_worker_thread_evictingpages",
+				),
+			},
+			optsDBColStats: []inputs.PointCheckOption{
+				inputs.WithOptionalFields(
+					"mapped_megabytes",
+					"non-mapped_megabytes",
+					"page_faults_per_sec",
+					"percent_cache_dirty",
+					"percent_cache_used",
+					"wtcache_app_threads_page_read_count",
+					"wtcache_app_threads_page_read_time",
+					"wtcache_app_threads_page_write_count",
+					"wtcache_bytes_read_into",
+					"wtcache_bytes_written_from",
+					"wtcache_current_bytes",
+					"wtcache_internal_pages_evicted",
+					"wtcache_max_bytes_configured",
+					"wtcache_modified_pages_evicted",
+					"wtcache_pages_evicted_by_app_thread",
+					"wtcache_pages_queued_for_eviction",
+					"wtcache_pages_read_into",
+					"wtcache_pages_requested_from",
+					"wtcache_pages_written_from",
+					"wtcache_server_evicting_pages",
+					"wtcache_tracked_dirty_bytes",
+					"wtcache_unmodified_pages_evicted",
+					"wtcache_worker_thread_evictingpages",
+				),
+			},
+			optsDBTopStats: []inputs.PointCheckOption{
+				inputs.WithOptionalFields(
+					"mapped_megabytes",
+					"non-mapped_megabytes",
+					"page_faults_per_sec",
+					"percent_cache_dirty",
+					"percent_cache_used",
+					"wtcache_app_threads_page_read_count",
+					"wtcache_app_threads_page_read_time",
+					"wtcache_app_threads_page_write_count",
+					"wtcache_bytes_read_into",
+					"wtcache_bytes_written_from",
+					"wtcache_current_bytes",
+					"wtcache_internal_pages_evicted",
+					"wtcache_max_bytes_configured",
+					"wtcache_modified_pages_evicted",
+					"wtcache_pages_evicted_by_app_thread",
+					"wtcache_pages_queued_for_eviction",
+					"wtcache_pages_read_into",
+					"wtcache_pages_requested_from",
+					"wtcache_pages_written_from",
+					"wtcache_server_evicting_pages",
+					"wtcache_tracked_dirty_bytes",
+					"wtcache_unmodified_pages_evicted",
+					"wtcache_worker_thread_evictingpages",
+				),
 			},
 		},
 	}
@@ -280,10 +643,10 @@ type caseSpec struct {
 }
 
 func (cs *caseSpec) checkPoint(pts []*point.Point) error {
-	var opts []inputs.PointCheckOption
-	opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
-
 	for _, pt := range pts {
+		var opts []inputs.PointCheckOption
+		opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
+
 		measurement := string(pt.Name())
 
 		switch measurement {

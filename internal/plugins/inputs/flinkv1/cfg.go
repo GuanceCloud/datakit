@@ -70,7 +70,7 @@ func (*JobmanagerMeasurement) Info() *inputs.MeasurementInfo {
 			"taskSlotsTotal":                                        newGaugeFieldInfo("The total number of task slots."),
 		},
 		Tags: map[string]interface{}{
-			"host": inputs.NewTagInfo("host name"),
+			"host": inputs.NewTagInfo("Host name."),
 		},
 	}
 }
@@ -117,7 +117,8 @@ func (*TaskmanagerMeasurement) Info() *inputs.MeasurementInfo {
 			"Status_Shuffle_Netty_UsedMemorySegments":               newGaugeFieldInfo("The number of used memory segments."),
 		},
 		Tags: map[string]interface{}{
-			"host": inputs.NewTagInfo("host name"),
+			"host":  inputs.NewTagInfo("Host name."),
+			"tm_id": inputs.NewTagInfo("Taskmanager ID."),
 		},
 	}
 }
