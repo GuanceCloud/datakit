@@ -38,7 +38,7 @@ func (m *slowlogMeasurement) LineProto() (*point.Point, error) {
 func (m *slowlogMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Desc: "Redis 慢查询命令历史，这里我们将其以日志的形式采集",
-		Name: "redis_slowlog",
+		Name: redisSlowlog,
 		Type: "logging",
 		Tags: map[string]interface{}{
 			"server": &inputs.TagInfo{
@@ -89,7 +89,7 @@ func (i *Input) getSlowData() error {
 	}
 
 	m := &slowlogMeasurement{
-		name: "redis_slowlog",
+		name: redisSlowlog,
 		tags: func() map[string]string {
 			x := map[string]string{
 				"service": "redis",
@@ -177,7 +177,7 @@ func (i *Input) getSlowData() error {
 			"status":         "WARNING",
 		}
 
-		pt, err := point.NewPoint("redis_slowlog", m.tags, m.fields,
+		pt, err := point.NewPoint(redisSlowlog, m.tags, m.fields,
 			&point.PointOption{Time: m.ts, Category: datakit.Logging, Strict: true})
 		if err != nil {
 			l.Warnf("make metric failed: %s", err.Error)

@@ -30,7 +30,7 @@ func (m *clusterMeasurement) LineProto() (*dkpt.Point, error) {
 //nolint:lll
 func (m *clusterMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "redis_cluster",
+		Name: redisCluster,
 		Type: "metric",
 		Fields: map[string]interface{}{
 			"cluster_state": &inputs.FieldInfo{
@@ -146,7 +146,7 @@ func (i *Input) ParseClusterData(list string) ([]*point.Point, error) {
 			continue
 		}
 
-		m.name = "redis_cluster"
+		m.name = redisCluster
 		m.tags["server_addr"] = i.Addr
 		m.fields[parts[0]] = parts[1]
 		err := m.submit()
@@ -154,9 +154,18 @@ func (i *Input) ParseClusterData(list string) ([]*point.Point, error) {
 			return nil, err
 		}
 		var opts []point.Option
+
+		var hostTags map[string]string
 		if m.election {
-			opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+			hostTags = inputs.MergeTags(i.Tagger.ElectionTags(), i.Tags, i.Host)
+		} else {
+			hostTags = inputs.MergeTags(i.Tagger.HostTags(), i.Tags, i.Host)
 		}
+
+		for k, v := range hostTags {
+			m.tags[k] = v
+		}
+
 		pt := point.NewPointV2([]byte(m.name),
 			append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 			opts...)

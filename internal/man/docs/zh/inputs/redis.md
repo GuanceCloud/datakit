@@ -15,6 +15,13 @@ Redis 指标采集器，采集以下数据：
 - Big Key scan 监控
 - 主从 Replication
 
+已测试的版本：
+
+- [x] 7.0.11
+- [x] 6.2.12
+- [x] 5.0.14
+- [x] 4.0.14
+
 ## 前置条件 {#reqirement}
 
 - Redis 版本 v5.0+

@@ -36,7 +36,7 @@ func (m *replicaMeasurement) LineProto() (*dkpt.Point, error) {
 //nolint:lll
 func (m *replicaMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "redis_replica",
+		Name: redisReplica,
 		Type: "metric",
 		Fields: map[string]interface{}{
 			"repl_delay": &inputs.FieldInfo{
@@ -50,6 +50,12 @@ func (m *replicaMeasurement) Info() *inputs.MeasurementInfo {
 				Desc:     "Number of seconds since the link is down",
 			},
 		},
+		Tags: map[string]interface{}{
+			"host":         &inputs.TagInfo{Desc: "Hostname"},
+			"server":       &inputs.TagInfo{Desc: "Server addr"},
+			"service_name": &inputs.TagInfo{Desc: "Service name"},
+			"slave_id":     &inputs.TagInfo{Desc: "Slave ID"},
+		},
 	}
 }
 
@@ -62,7 +68,7 @@ func (i *Input) collectReplicaMeasurement() ([]*point.Point, error) {
 		election: i.Election,
 	}
 
-	m.name = "redis_replica"
+	m.name = redisReplica
 	setHostTagIfNotLoopback(m.tags, i.Host)
 
 	if err := m.getData(); err != nil {
@@ -74,9 +80,18 @@ func (i *Input) collectReplicaMeasurement() ([]*point.Point, error) {
 	}
 	var collectCache []*point.Point
 	var opts []point.Option
+
+	var hostTags map[string]string
 	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+		hostTags = inputs.MergeTags(i.Tagger.ElectionTags(), i.Tags, i.Host)
+	} else {
+		hostTags = inputs.MergeTags(i.Tagger.HostTags(), i.Tags, i.Host)
 	}
+
+	for k, v := range hostTags {
+		m.tags[k] = v
+	}
+
 	pt := point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)

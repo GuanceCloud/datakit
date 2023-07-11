@@ -14,6 +14,18 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
+const (
+	redisBigkey      = "redis_bigkey"
+	redisClient      = "redis_client"
+	redisCluster     = "redis_cluster"
+	redisCommandStat = "redis_command_stat"
+	redisDB          = "redis_db"
+	redisLatency     = "redis_latency"
+	redisInfoM       = "redis_info"
+	redisReplica     = "redis_replica"
+	redisSlowlog     = "redis_slowlog"
+)
+
 type bigKeyMeasurement struct {
 	name     string
 	tags     map[string]string
@@ -28,7 +40,7 @@ func (m *bigKeyMeasurement) LineProto() (*dkpt.Point, error) {
 //nolint:lll
 func (m *bigKeyMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "redis_bigkey",
+		Name: redisBigkey,
 		Type: "metric",
 		Fields: map[string]interface{}{
 			"value_length": &inputs.FieldInfo{
@@ -89,7 +101,7 @@ func (i *Input) getData(resKeys []string) ([]*point.Point, error) {
 		found := false
 
 		m := &commandMeasurement{
-			name:     "redis_bigkey",
+			name:     redisBigkey,
 			tags:     make(map[string]string),
 			fields:   make(map[string]interface{}),
 			election: i.Election,
@@ -127,9 +139,18 @@ func (i *Input) getData(resKeys []string) ([]*point.Point, error) {
 
 		if len(m.fields) > 0 {
 			var opts []point.Option
+
+			var hostTags map[string]string
 			if m.election {
-				opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+				hostTags = inputs.MergeTags(i.Tagger.ElectionTags(), i.Tags, i.Host)
+			} else {
+				hostTags = inputs.MergeTags(i.Tagger.HostTags(), i.Tags, i.Host)
 			}
+
+			for k, v := range hostTags {
+				m.tags[k] = v
+			}
+
 			pt := point.NewPointV2([]byte(m.name),
 				append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 				opts...)

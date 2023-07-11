@@ -30,7 +30,7 @@ func (m *dbMeasurement) LineProto() (*dkpt.Point, error) {
 
 func (m *dbMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "redis_db",
+		Name: redisDB,
 		Type: "metric",
 		Tags: map[string]interface{}{
 			"db": &inputs.TagInfo{
@@ -86,7 +86,8 @@ func (i *Input) ParseInfoData(list string) ([]*point.Point, error) {
 	// 遍历每一行数据
 	for scanner.Scan() {
 		m := &dbMeasurement{
-			name:     "redis_client",
+			// name:     "redis_client",
+			name:     redisClient,
 			tags:     make(map[string]string),
 			fields:   make(map[string]interface{}),
 			resData:  make(map[string]interface{}),
@@ -106,7 +107,7 @@ func (i *Input) ParseInfoData(list string) ([]*point.Point, error) {
 
 		// cmdstat_get:calls=2,usec=16,usec_per_call=8.00
 		db := parts[0]
-		m.name = "redis_db"
+		m.name = redisDB
 		setHostTagIfNotLoopback(m.tags, i.Host)
 		m.tags["db_name"] = db
 		itemStrs := strings.Split(parts[1], ",")
@@ -123,9 +124,18 @@ func (i *Input) ParseInfoData(list string) ([]*point.Point, error) {
 				return nil, err
 			}
 			var opts []point.Option
+
+			var hostTags map[string]string
 			if m.election {
-				opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+				hostTags = inputs.MergeTags(i.Tagger.ElectionTags(), i.Tags, i.Host)
+			} else {
+				hostTags = inputs.MergeTags(i.Tagger.HostTags(), i.Tags, i.Host)
 			}
+
+			for k, v := range hostTags {
+				m.tags[k] = v
+			}
+
 			pt := point.NewPointV2([]byte(m.name),
 				append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 				opts...)
@@ -142,9 +152,18 @@ func (i *Input) ParseInfoData(list string) ([]*point.Point, error) {
 					return nil, err
 				}
 				var opts []point.Option
+
+				var hostTags map[string]string
 				if m.election {
-					opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+					hostTags = inputs.MergeTags(i.Tagger.ElectionTags(), i.Tags, i.Host)
+				} else {
+					hostTags = inputs.MergeTags(i.Tagger.HostTags(), i.Tags, i.Host)
 				}
+
+				for k, v := range hostTags {
+					m.tags[k] = v
+				}
+
 				pt := point.NewPointV2([]byte(m.name),
 					append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 					opts...)

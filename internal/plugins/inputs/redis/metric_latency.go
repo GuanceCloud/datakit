@@ -33,7 +33,7 @@ func (m *latencyMeasurement) LineProto() (*point.Point, error) {
 
 func (m *latencyMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "redis_latency",
+		Name: redisLatency,
 		Type: "logging",
 		Fields: map[string]interface{}{
 			"occur_time": &inputs.FieldInfo{
@@ -95,7 +95,7 @@ func (i *Input) GetLatencyData() error {
 	fieldName := []string{"event_name", "occur_time", "cost_time", "max_cost_time"}
 
 	m := &latencyMeasurement{
-		name:     "redis_latency",
+		name:     redisLatency,
 		tags:     make(map[string]string),
 		fields:   make(map[string]interface{}),
 		resData:  make(map[string]interface{}),
@@ -114,7 +114,7 @@ func (i *Input) GetLatencyData() error {
 	}
 	m.ts = time.Unix(startTime, 0)
 
-	pt, err := point.NewPoint("redis_latency", m.tags, m.fields,
+	pt, err := point.NewPoint(redisLatency, m.tags, m.fields,
 		&point.PointOption{Time: m.ts, Category: datakit.Logging, Strict: true})
 	if err != nil {
 		l.Warnf("make metric failed: %s", err.Error)

@@ -54,12 +54,9 @@ func (m *commandMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
-			"server": &inputs.TagInfo{
-				Desc: "Server addr",
-			},
-			"method": &inputs.TagInfo{
-				Desc: "Command type",
-			},
+			"host":   &inputs.TagInfo{Desc: "Hostname"},
+			"method": &inputs.TagInfo{Desc: "Command type"},
+			"server": &inputs.TagInfo{Desc: "Server addr"},
 		},
 	}
 }
@@ -115,9 +112,18 @@ func (i *Input) parseCommandData(list string) ([]*point.Point, error) {
 		if len(m.fields) > 0 {
 			m.ts = time.Now()
 			var opts []point.Option
+
+			var hostTags map[string]string
 			if m.election {
-				opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+				hostTags = inputs.MergeTags(i.Tagger.ElectionTags(), i.Tags, i.Host)
+			} else {
+				hostTags = inputs.MergeTags(i.Tagger.HostTags(), i.Tags, i.Host)
 			}
+
+			for k, v := range hostTags {
+				m.tags[k] = v
+			}
+
 			pt := point.NewPointV2([]byte(m.name),
 				append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 				opts...)
