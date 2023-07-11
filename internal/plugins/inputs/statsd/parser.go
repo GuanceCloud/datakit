@@ -17,7 +17,7 @@ import (
 // parser monitors the ipt.in channel, if there is a packet ready, it parses the
 // packet into statsd strings and then calls parseStatsdLine, which parses a
 // single statsd metric into a struct.
-func (ipt *input) parser(idx int) {
+func (ipt *Input) parser(idx int) {
 	for {
 		select {
 		case <-ipt.done:
@@ -51,7 +51,7 @@ func (ipt *input) parser(idx int) {
 
 // parseStatsdLine will parse the given statsd line, validating it as it goes.
 // If the line is valid, it will be cached for the next call to Gather().
-func (ipt *input) parseStatsdLine(line string) error {
+func (ipt *Input) parseStatsdLine(line string) error {
 	lineTags := make(map[string]string)
 	if ipt.DataDogExtensions {
 		recombinedSegments := make([]string, 0)
@@ -197,7 +197,7 @@ func (ipt *input) parseStatsdLine(line string) error {
 // config file. If there is a match, it will parse the name of the metric and
 // map of tags.
 // Return values are (<name>, <field>, <tags>).
-func (ipt *input) parseName(bucket string) (string, string, map[string]string) {
+func (ipt *Input) parseName(bucket string) (string, string, map[string]string) {
 	ipt.Lock()
 	defer ipt.Unlock()
 	tags := make(map[string]string)

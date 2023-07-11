@@ -41,7 +41,7 @@ const (
   # If measurement_name is empty, split metric name by '_', the first field after split as measurement set name, the rest as current metric name.
   # If measurement_name is not empty, using this as measurement set name.
   # Always add 'measurement_prefix' prefix at last.
-  # measurement_name = "prom"
+  measurement_name = "etcd"
 
   ## Collect interval, support "ns", "us" (or "µs"), "ms", "s", "m", "h".
   interval = "10s"
@@ -59,19 +59,21 @@ const (
   ## Customize measurement set name.
   # Treat those metrics with prefix as one set.
   # Prioritier over 'measurement_name' configuration.
-  [[inputs.prom.measurements]]
-    prefix = "etcd_"
-    name = "etcd"
+  #[[inputs.prom.measurements]]
+  #  prefix = "etcd_"
+  #  name = "etcd"
 
-    ## Customize authentification. For now support Bearer Token only.
-    # Filling in 'token' or 'token_file' is acceptable.
+  ## Customize authentification. For now support Bearer Token only.
+  # Filling in 'token' or 'token_file' is acceptable.
   # [inputs.prom.auth]
   # type = "bearer_token"
   # token = "xxxxxxxx"
   # token_file = "/tmp/token"
 
   ## Customize tags.
+  [inputs.prom.tags]
   # some_tag = "some_value"
+  # more_tag = "some_other_value"
 `
 )
 
@@ -98,8 +100,7 @@ func (i *Input) AvailableArchs() []string {
 
 func (i *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
-		&NetworkMeasurement{},
-		&ServerMeasurement{},
+		&etcdMeasurement{},
 	}
 }
 

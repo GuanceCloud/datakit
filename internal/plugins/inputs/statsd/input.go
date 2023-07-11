@@ -49,13 +49,18 @@ var (
 	g = goroutine.NewGroup(goroutine.Option{Name: "inputs_statsd"})
 )
 
-// Statsd allows the importing of statsd and dogstatsd data.
-type input struct {
+// Input statsd allows the importing of statsd and dogstatsd data.
+type Input struct {
 	// Protocol used on listener - udp or tcp
 	Protocol string `toml:"protocol"`
 
 	// Address & Port to serve from
 	ServiceAddress string `toml:"service_address"`
+
+	// Tag request metric. Used for distinguish feed metric name.
+	StatsdSourceKey string `toml:"statsd_source_key"`
+	StatsdHostKey   string `toml:"statsd_host_key"`
+	SaveAboveKey    bool   `toml:"save_above_key"`
 
 	// Number of messages allowed to queue up in between calls to Gather. If this
 	// fills up, packets will get dropped until the next Gather interval is ran.
@@ -152,7 +157,7 @@ type input struct {
 	bufPool sync.Pool
 
 	semStop *cliutils.Sem // start stop signal
-	feeder  dkio.Feeder
+	Feeder  dkio.Feeder
 	opt     point.Option
 }
 
@@ -218,6 +223,14 @@ const sampleConfig = `
   ## Address and port to host UDP listener on
   service_address = ":8125"
 
+  ## Tag request metric. Used for distinguish feed metric name.
+  ## eg, DD_TAGS=source_key:tomcat,host_key:cn-shanghai-sq5ei
+  ## eg, -Ddd.tags=source_key:tomcat,host_key:cn-shanghai-sq5ei
+  # statsd_source_key = "source_key"
+  # statsd_host_key   = "host_key"
+  ## Indicate whether report tag statsd_source_key and statsd_host_key.
+  # save_above_key    = false
+
   delete_gauges = true
   delete_counters = true
   delete_sets = true
@@ -248,7 +261,7 @@ const sampleConfig = `
   # All metric-name prefixed with 'jvm_' are set to influxdb's measurement 'jvm'
   # All metric-name prefixed with 'stats_' are set to influxdb's measurement 'stats'
   # Examples:
-  # "stats_:stats", "jvm_:jvm"
+  # "stats_:stats", "jvm_:jvm", "tomcat_:tomcat",
   metric_mapping = [ ]
 
   ## Number of UDP messages allowed to queue up, once filled,
@@ -267,23 +280,23 @@ const sampleConfig = `
   # some_tag = "some_value"
   # more_tag = "some_other_value"`
 
-func (ipt *input) SampleConfig() string {
+func (ipt *Input) SampleConfig() string {
 	return sampleConfig
 }
 
-func (ipt *input) Catalog() string {
+func (ipt *Input) Catalog() string {
 	return catalog
 }
 
-func (ipt *input) SampleMeasurement() []inputs.Measurement {
+func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 	return nil
 }
 
-func (ipt *input) AvailableArchs() []string {
+func (ipt *Input) AvailableArchs() []string {
 	return datakit.AllOS
 }
 
-func (ipt *input) setup() error {
+func (ipt *Input) setup() error {
 	if ipt.ParseDataDogTags {
 		ipt.DataDogExtensions = true
 		l.Warn("'parse_data_dog_tags' config option is deprecated, please use 'datadog_extensions' instead")
@@ -350,7 +363,7 @@ func (ipt *input) setup() error {
 	return nil
 }
 
-func (ipt *input) setupMmap() {
+func (ipt *Input) setupMmap() {
 	ipt.mmap = map[string]string{}
 
 	for _, mm := range ipt.MetricMapping {
@@ -364,7 +377,7 @@ func (ipt *input) setupMmap() {
 	}
 }
 
-func (ipt *input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 
 	for {
@@ -375,7 +388,7 @@ func (ipt *input) Run() {
 		}
 
 		if err := ipt.setup(); err != nil {
-			ipt.feeder.FeedLastError(inputName, err.Error())
+			ipt.Feeder.FeedLastError(inputName, err.Error())
 			time.Sleep(time.Second * 5)
 			continue
 		}
@@ -408,11 +421,11 @@ func (ipt *input) Run() {
 	}
 }
 
-func (ipt *input) exit() {
+func (ipt *Input) exit() {
 	ipt.stop()
 }
 
-func (ipt *input) Terminate() {
+func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
 	}
@@ -421,7 +434,7 @@ func (ipt *input) Terminate() {
 // aggregate takes in a metric. It then
 // aggregates and caches the current value(s). It does not deal with the
 // Delete* options, because those are dealt with in the Gather function.
-func (ipt *input) aggregate(m metric) {
+func (ipt *Input) aggregate(m metric) {
 	ipt.Lock()
 	defer ipt.Unlock()
 
@@ -525,7 +538,7 @@ func (ipt *input) aggregate(m metric) {
 	}
 }
 
-func (ipt *input) stop() {
+func (ipt *Input) stop() {
 	ipt.Lock()
 	l.Infof("Stopping the statsd service")
 	close(ipt.done)
@@ -572,11 +585,11 @@ func (ipt *input) stop() {
 }
 
 // IsUDP returns true if the protocol is UDP, false otherwise.
-func (ipt *input) isUDP() bool {
+func (ipt *Input) isUDP() bool {
 	return strings.HasPrefix(ipt.Protocol, "udp")
 }
 
-func (ipt *input) expireCachedMetrics() {
+func (ipt *Input) expireCachedMetrics() {
 	// If Max TTL wasn't configured, skip expiration.
 	if ipt.MaxTTL.Duration == 0 {
 		return
@@ -609,8 +622,8 @@ func (ipt *input) expireCachedMetrics() {
 	}
 }
 
-func defaultInput() *input {
-	return &input{
+func DefaultInput() *Input {
+	return &Input{
 		Protocol:               defaultProtocol,
 		ServiceAddress:         ":8125",
 		MaxTCPConnections:      250,
@@ -623,12 +636,12 @@ func defaultInput() *input {
 		DeleteTimings:          true,
 
 		semStop: cliutils.NewSem(),
-		feeder:  dkio.DefaultFeeder(),
+		Feeder:  dkio.DefaultFeeder(),
 	}
 }
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return defaultInput()
+		return DefaultInput()
 	})
 }

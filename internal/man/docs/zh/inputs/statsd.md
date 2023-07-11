@@ -53,6 +53,19 @@ DD_JMXFETCH_STATSD_PORT=8125
     目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 <!-- markdownlint-enable -->
 
+### 标记数据源 {#config-mark}
+
+如果想标记 DDTrace 采集的主机，可以使用注入 tags 的方式进行标记：
+
+- 可以使用环境变量，即 `DD_TAGS`，例如：`DD_TAGS=source_key:tomcat,host_key:cn-shanghai-sq5ei`
+- 可以使用命令行方式，即 `dd.tags`，例如：`-Ddd.tags=source_key:tomcat,host_key:cn-shanghai-sq5ei`
+
+在上面的例子中，需要在 Datakit 配置中指定 source 的 key 是 `source_key`，host 的 key 是 `host_key`。改成其它的也可以，但必须保证 Datakit 中的配置字段名与 DDTrace 中的字段名一致。
+
+最终的效果是：在使用 datakit monitor 中可以看到 `statsd/tomcat/cn-shanghai-sq5ei`，这样可以与其它两样报告给 statsd 采集器的数据源区分开来。如果没有进行以上配置，那么在 datakit monitor 上看到的是默认展示：`statsd/-/-`。
+
+另外，有配置开关 `save_above_key` 决定是否将 `statsd_source_key` 和 `statsd_host_key` 对应的 tag 报告给中心。默认不报告(`false`)。
+
 ## 指标集 {#measurement}
 
 statsD 暂无指标集定义，所有指标以网络发送过来的指标为准。
