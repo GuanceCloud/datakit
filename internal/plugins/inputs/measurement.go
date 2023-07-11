@@ -253,3 +253,21 @@ func BuildFields(t *testing.T, fi map[string]interface{}) map[string]interface{}
 	}
 	return x
 }
+
+type I18n int
+
+const (
+	I18nZh = iota
+	I18nEn
+)
+
+func (x I18n) String() string {
+	switch x {
+	case I18nZh:
+		return "zh"
+	case I18nEn:
+		return "en"
+	default:
+		panic(fmt.Sprintf("should not been here: unsupport language: %s", x.String()))
+	}
+}

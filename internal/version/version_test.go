@@ -51,6 +51,13 @@ func TestCompare(t *testing.T) {
 		fail        bool
 	}{
 		{
+			id:         "minor-version",
+			v1:         "1.10.0",
+			v2:         "1.9.2",
+			newVersion: true,
+		},
+
+		{
 			id:         "version-with-tag",
 			v1:         "1.1.7-rc7.1_foo-bar",
 			v2:         "1.1.7-rc7",

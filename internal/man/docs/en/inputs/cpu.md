@@ -22,13 +22,13 @@ None.
     {{ CodeBlock .InputSample 4 }}
     ```
     
-    After configuration, restart DataKit.
+    After configuration, [restart Datakit](datakit-service-how-to.md#manage-service).
 
 === "Kubernetes"
 
     Kubernetes supports modifying configuration parameters in the form of environment variables:
     
-    | Environment Variable Name                                  | Corresponding Configuration Parameter Item              | Parameter Example                                                                              |
+    | Environment Variable Name                   | Corresponding Configuration Parameter Item              | Parameter Example                                                                              |
     | :---                                        | ---                           | ---                                                                                   |
     | `ENV_INPUT_CPU_PERCPU`                      | `percpu`                      | `true/false`                                                                          |
     | `ENV_INPUT_CPU_ENABLE_TEMPERATURE`          | `enable_temperature`          | `true/false`                                                                          |

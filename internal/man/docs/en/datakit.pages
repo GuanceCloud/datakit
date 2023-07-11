@@ -37,7 +37,7 @@ nav:
     - datakit-input-conf.md
     - Host:
       - Default Collection:
-        - 'DataKit': self.md 
+        - 'DataKit': dk.md 
         - cpu.md
         - disk.md
         - diskio.md

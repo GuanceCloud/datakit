@@ -1,5 +1,4 @@
 <!-- This file required to translate to EN. -->
-{{.CSS}}
 # Demo 采集器
 ---
 

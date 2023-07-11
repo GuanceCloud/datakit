@@ -11,6 +11,7 @@ YELLOW="\033[33m"
 CLR="\033[0m"
 
 mkdocs_dir=~/git/dataflux-doc
+template_dir=~/git/dataflux-template
 lang=zh
 port=8000
 bind=0.0.0.0
@@ -96,6 +97,7 @@ fi
 
 tmp_doc_dir=.docs
 base_docs_dir=${mkdocs_dir}/docs
+base_dashboard_dir=${template_dir}/dashboard
 
 ######################################
 # list i18n languages
@@ -116,6 +118,7 @@ for _lang in "${i18n[@]}"; do
 	mkdir -p $base_docs_dir/${_lang}/datakit \
 		$base_docs_dir/${_lang}/developers \
 		$base_docs_dir/${_lang}/developers/pipeline \
+		$base_dashboard_dir/${_lang} \
 		$tmp_doc_dir/${_lang}
 	done
 
@@ -179,6 +182,15 @@ for _lang in "${i18n[@]}"; do
 	# copy specific docs to datakit
 	printf "${GREEN}> Copy docs(%s) to repo datakit ...${CLR}\n" $_lang
 	cp $tmp_doc_dir/${_lang}/*.md $base_docs_dir/${_lang}/datakit/
+
+	# copy dashboard JSONs
+	printf "${GREEN}> Copy dashboard(%s) ...${CLR}\n" $_lang
+	for name in $tmp_doc_dir/${_lang}/*.json; do # copy all xxx.json to xxx dashboard
+		subdir=`basename "${name%.*}"` # .docs/zh/cpu.json => cpu
+		mkdir -p $base_dashboard_dir/${_lang}/${subdir}
+		cp $name $base_dashboard_dir/${_lang}/${subdir}/meta.json # all dashbarod json rename to `meta.json'
+	done
+
 done
 
 if [[ $export_only ]]; then

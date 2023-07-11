@@ -85,7 +85,6 @@ const (
 	LogFilter         = "/v2/logfilter/pull" // deprecated
 	DatakitPull       = "/v1/datakit/pull"
 	ListDataWay       = "/v2/list/dataway"
-	DatakitInputName  = "self"
 
 	StrGitRepos           = "gitrepos"
 	StrPipelineRemote     = "pipeline_remote"

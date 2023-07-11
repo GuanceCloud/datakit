@@ -19,7 +19,7 @@ func Test_mergeDefaultInputs(t *T.T) {
 		}
 
 		assert.Equal(t, expect,
-			mergeDefaultInputs([]string{"cpu", "mem"}, nil))
+			mergeDefaultInputs([]string{"cpu", "mem"}, nil, false))
 	})
 
 	t.Run("disable-all", func(t *T.T) {
@@ -28,7 +28,7 @@ func Test_mergeDefaultInputs(t *T.T) {
 			"-mem",
 		}
 		assert.Equal(t, expect,
-			mergeDefaultInputs([]string{"cpu", "mem"}, []string{"-"}))
+			mergeDefaultInputs([]string{"cpu", "mem"}, []string{"-"}, false))
 	})
 
 	t.Run("enable-some", func(t *T.T) {
@@ -37,7 +37,7 @@ func Test_mergeDefaultInputs(t *T.T) {
 			"cpu",
 		}
 		assert.Equal(t, expect,
-			mergeDefaultInputs([]string{"cpu", "mem"}, []string{"cpu"}))
+			mergeDefaultInputs([]string{"cpu", "mem"}, []string{"cpu"}, false))
 	})
 
 	t.Run("disable-some", func(t *T.T) {
@@ -46,7 +46,7 @@ func Test_mergeDefaultInputs(t *T.T) {
 			"mem",
 		}
 		assert.Equal(t, expect,
-			mergeDefaultInputs([]string{"cpu", "mem"}, []string{"-cpu"}))
+			mergeDefaultInputs([]string{"cpu", "mem"}, []string{"-cpu"}, false))
 	})
 
 	t.Run("disable-and-enable-some", func(t *T.T) {
@@ -65,6 +65,6 @@ func Test_mergeDefaultInputs(t *T.T) {
 
 		assert.Equal(t,
 			expect,
-			mergeDefaultInputs(defaultList, []string{"-cpu", "mem", "disk"}))
+			mergeDefaultInputs(defaultList, []string{"-cpu", "mem", "disk"}, false))
 	})
 }

@@ -18,33 +18,29 @@ datakit monitor
 
 The DataKit Basic Monitor page information is shown in the following figure:
 
-![](https://static.guance.com/images/datakit/monitor-basic-v1.gif)
+![](https://static.guance.com/images/datakit/monitor-basic-v1.png)
 
 The elements in this diagram can be manipulated by mouse or keyboard. Blocks selected by the mouse are highlighted in bilateral boxes (as shown in the `Basic Info` block in the upper left corner of the above figure), and can also be browsed through the mouse wheel or the up and down arrow keys of the keyboard (or J/K of vim).
 
 The information of each UI block in the above figure is:
 
 - `Basic Info` is used to show the basic information of DataKit, such as version number, host name, runtime and so on. From here, we can have a basic understanding of the current situation of DataKit. Now select a few fields to explain separately:
-  - `Version`: Current version number of DataKit
-	- `Branch`: The current code branch of DataKit, which is generally master
-	- `Uptime`: Startup time of DataKit
-	- `CGroup`: Show the cgroup configuration of the current DataKit, where mem refers to the maximum memory limit and cpu refers to the usage limit
-	- `OS/Arch`: Current software and hardware platforms of DataKit
-	- `IO`: Show the current congestion of the DataKit IO channel
-	- `Pipeline`: Show the current Pipeline processing of DataKit
-	- `Elected`: Show the election situation
-	  - If the election is not open, display `<namespace-name>::disabled|<none>`
-	  - If the election is open, display `<namespace-name>::<disabled-or-success>|<elected-datakit-host-name>`, such as `my-namespace::success|my-host123`
-	- `From`: The DataKit address of the current Monitor, such as `http://localhost:9529/stats`
+    - `Version`: Current version number of DataKit
+    - `Uptime`: Startup time of DataKit
+    - `Branch`: The current code branch of DataKit, which is generally master
+    - `Build`：DataKit release date
+    - `CGroup`: Show the cgroup configuration of the current DataKit, where mem refers to the maximum memory limit and cpu refers to the usage limit (If cgroup not set, the value is `-`)
+    - `Hostname`: Current hostname
+    - `OS/Arch`: Current software and hardware platforms of DataKit
+    - `Elected`: Election info(See [Election](election.md#status))
+    - `From`: The DataKit address of the current Monitor, such as `http://localhost:9529/metrics`
 
-- `Runtime Info` Runtime Info is used to show the basic running consumption of DataKit (mainly related to memory and Goroutine):
+- `Runtime Info` Runtime Info is used to show the basic running consumption of Datakit (mainly related to memory and Goroutine):
 
-	- `Goroutines`: The number of Goroutines currently running
-	- `Mem`: The actual number of bytes of memory currently consumed by the DataKit process (*excluding externally running collectors*)
-	- `System`: Virtual memory currently consumed by the DataKit process (*excluding externally running collectors*)
-	- `Stack`: Number of bytes of memory consumed in the current Stack
-	- `GC Paused`: Time elapsed by GC (garbage collection) since DataKit started
-	- `GC Count`: Number of GCs since DataKit started
+    - `Goroutines`: The number of Goroutines currently running
+    - `Mem`: The actual number of bytes of memory currently consumed by the DataKit process (*excluding externally running collectors*)
+    - `System`: Virtual memory currently consumed by the DataKit process (*excluding externally running collectors*)
+    - `GC Paused`: Time elapsed and count of Golang GC (garbage collection) since DataKit started
 
 ???+ info
 
@@ -52,22 +48,19 @@ The information of each UI block in the above figure is:
 
 - `Enabled Inputs` displays a list of open collectors:
 
-	- `Input`: Refer to the collector name, which is fixed and cannot be modified
-	- `Instances`: Refer to the number of the collector turned on
-	- `Crashed`: Refer to the number of crashes of the collector
+    - `Input`: Refer to the collector(input) name, which is fixed and cannot be modified
+    - `Count`: Refer to the number of the collector turned on
+    - `Crashed`: Refer to the number of crashes of the collector
+    
+- `Inputs Info`: It is used to show the running status of each collector. There is more information here:
 
-- `Inputs Info`: It is used to show the collection situation of each collector. There is more information here, which is decomposed one by one below
-	- `Input`: Refer to the collector name. In some cases, this name is collector-specific (such as Log Collector/Prom Collector)
-	- `Category`: Refer to the type of data collected by the collector (M (metrics)/L (logs)/O (objects...)
-	- `Freq`: Refer to the acquisition frequency per minute of the collector
-	- `Avg Pts`: Refer to the number of line protocol points collected by the collector per collection (*if the collector frequency Freq is high but Avg Pts is low, the collector setting may be problematic*)
-	- `Total Feed`: Total collection times
-	- `Total Pts`: Total line protocol points collected
-	- `1st Feed`: Time of first collection (relative to current time)
-	- `Last Feed`: Time of last collection (relative to current time)
-	- `Avg Cost`: Average consumption per collection
-	- `Max Cost`: Maximum collection consumption
-	- `Error(date)`: Whether there is a collection Error (with the last Error relative to the current time)
+    - `Input`: Refer to the collector name. In some cases, this name is collector-specific (such as Log Collector/Prom Collector)
+    - `Cat`: Refer to the type of data collected by the collector (M (metrics)/L (logs)/O (objects...)
+    - `Feeds`: Total updates(collects) since Datakit started
+    - `TotalPts`: Total points collected of the collector
+    - `Last Feed`: Time of last update(collect), relative to current time
+    - `Avg Cost`: Average cost of each collect
+    - `Errors`: Collect error count(if no error, empty here)
 
 - The prompt text at the bottom tells you how to exit the current Monitor program and displays the current Monitor refresh rate.
 
@@ -75,25 +68,15 @@ The information of each UI block in the above figure is:
 
 If the verbose option (`-V`) is specified when Monitor is run, additional information is output, as shown in the following figure:
 
-![](https://static.guance.com/images/datakit/monitor-verbose-v1.gif)
+![](https://static.guance.com/images/datakit/monitor-verbose-v1.png)
 
 - `Goroutine Groups` shows the existing Goroutine Groups in the DataKit (the number of Goroutines in the group < = the number of `Goroutines` in the panel above).
-- `HTTP APIs` show API calls in DataKit.
-- `Filter` shows the pull of blacklist filtering rules in DataKit.
-- `Filter Rules` shows the filtering of each type of blacklist.
-
-- `Sender Info` shows the operation of each Sink managed by Sender.
-	- `Sink`: Sink name
-	- `Uptime`: Runtime
-	- `Count`: Number of Write
-	- `Failed`: Number of Write failures
-	- `Pts`: Write Points
-	- `Raw Bytes`: Number of Write bytes (before compression)
-	- `Bytes`: Number of Write Bytes (compressed)
-	- `2XX`: HTTP status code 2XX times
-	- `4XX`: HTTP status code 4XX times
-	- `5XX`: HTTP status code 5XX times
-	- `Timeout`: The number of HTTP timeouts
+- `HTTP APIs`: HTTP API request info
+- `Filter`: Pull of blacklist filtering rules
+- `Filter Rules`: Filtering of each type of blacklist
+- `Pipeline Info`: Pipeline running info
+- `IO Info`: Data upload info
+- `DataWay APIs`: Dataway API request info
 
 ## FAQ {#faq}
 
@@ -162,7 +145,3 @@ datakit monitor --to localhost:19528
 # We can also view the monitor of another remote DataKit
 datakit monitor --to <remote-ip>:9528
 ```
-
-### :material-chat-question: How to view error messages for a specific collector? {#view-errors}
-
-Click on the error message directly to display a detailed error message at the bottom. After clicking the error message, the display of the error message can be closed by ESC or Enter.

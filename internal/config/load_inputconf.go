@@ -159,9 +159,10 @@ func LoadInputConf(root string) map[string][]inputs.Input {
 
 	ret := map[string][]inputs.Input{}
 
-	l.Infof("find %d confs:  %s", len(confs), strings.Join(confs, "<\t\t>"))
+	l.Infof("find %d confs: %+#v", len(confs), confs)
 	for _, fp := range confs {
-		if filepath.Base(fp) == datakit.StrDefaultConfFile {
+		if fp == datakit.MainConfPath {
+			l.Infof("ignore main configure %q", fp)
 			continue
 		}
 

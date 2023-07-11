@@ -1,4 +1,3 @@
-{{.CSS}}
 # Telegraf Data Access
 ---
 

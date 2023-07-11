@@ -8,10 +8,9 @@ package man
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"sort"
-
-	// nolint:typecheck
 	"strings"
 	"text/template"
 
@@ -26,18 +25,22 @@ var l = logger.DefaultSLogger("man")
 // A Params defined various template parameters to build docs
 // and command line output.
 type Params struct {
+	// Various fields used to render meta info into markdown documents.
 	InputName         string
 	Catalog           string
 	InputSample       string
 	Version           string
 	ReleaseDate       string
-	CSS               string
 	AvailableArchs    string
 	PipelineFuncs     string
 	PipelineFuncsEN   string
 	DatakitConfSample string
 
+	// Measurements used to render metric info into markdown documents.
 	Measurements []*inputs.MeasurementInfo
+
+	// Dashboard used to mapping en/zh contents into dashboard JSON
+	Dashboard map[string]string
 
 	ic *installCmd
 }
@@ -47,7 +50,50 @@ type ExportOption struct {
 	Skips,
 	Path,
 	ManVersion string
+
+	Lang          inputs.I18n
 	IgnoreMissing bool
+}
+
+// BuildDashboard render dashboard JSON.
+func BuildDashboard(inputName string, j []byte, lang inputs.I18n) ([]byte, error) {
+	c, ok := inputs.Inputs[inputName]
+	if !ok {
+		return nil, fmt.Errorf("unknown input %s", inputName)
+	}
+
+	var (
+		ipt       = c()
+		dashboard map[string]string
+	)
+
+	switch i := ipt.(type) {
+	case inputs.Dashboard:
+		dashboard = i.Dashboard(lang)
+		if len(dashboard) == 0 {
+			l.Warnf("input %s got no dashboard rendering, ignored", inputName)
+			return nil, nil
+		}
+
+	default:
+		l.Warnf("input %s not implement Dashboard interfaces, ignored", inputName)
+		return nil, nil
+	}
+
+	p := &Params{
+		Dashboard: dashboard,
+	}
+
+	buf, err := renderBuf(j, p)
+	if err != nil {
+		return nil, err
+	}
+
+	// check if JSON ok
+	if !json.Valid(buf) {
+		return nil, fmt.Errorf("invalid dashboard on input %q", inputName)
+	}
+	return buf, nil
 }
 
 // BuildInputDoc render inputs docs based on input document template.

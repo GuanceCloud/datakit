@@ -16,6 +16,15 @@ import (
 func runDebugFlags() error {
 	switch {
 	case *flagDebugInputConf != "":
+
+		// Try load global settings, we need to load global-host/env tags
+		// and applied to collected points. This makes the testing points
+		// are the same as real point.
+		tryLoadMainCfg()
+		if err := config.Cfg.ApplyMainConfig(); err != nil {
+			cp.Warnf("ApplyMainConfig: %s, ignored\n", err)
+		}
+
 		if err := debugInput(*flagDebugInputConf); err != nil {
 			cp.Errorf("[E] %s\n", err.Error())
 		}

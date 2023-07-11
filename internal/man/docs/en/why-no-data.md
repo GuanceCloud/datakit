@@ -1,4 +1,3 @@
-{{.CSS}}
 # How to Troubleshoot No Data Problems
 ---
 

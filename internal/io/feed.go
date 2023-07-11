@@ -220,8 +220,6 @@ func beforeFeed(category string, pts []*dkpt.Point, opt *Option) ([]*dkpt.Point,
 }
 
 // beforeFeed apply pipeline and filter handling on pts.
-
-//nolint:gocyclo
 func (x *dkIO) doFeed(pts []*dkpt.Point, category, from string, opt *Option) error {
 	log.Debugf("io feed %s|%s", from, category)
 

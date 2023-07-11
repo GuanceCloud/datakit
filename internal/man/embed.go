@@ -11,3 +11,6 @@ import (
 
 //go:embed docs/*
 var AllDocs embed.FS
+
+//go:embed dashboards/*
+var AllDashboard embed.FS

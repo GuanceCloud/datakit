@@ -229,7 +229,7 @@ func doRun() error {
 			// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/524
 			plRemote.StartPipelineRemote(config.Cfg.Dataway.URLs)
 		} else {
-			dkio.FeedLastError(datakit.DatakitInputName, "dataway empty or multi, not run pipeline remote")
+			l.Warn("dataway empty or multi, not run pipeline remote")
 		}
 	} else {
 		l.Warn("Ignore election or pipeline remote because dataway is not set")

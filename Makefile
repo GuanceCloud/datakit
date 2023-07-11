@@ -70,7 +70,7 @@ ifneq ($(PKGEBPF), false)
 	PKGEBPF_FLAG = -pkg-ebpf
 endif
 
-# Generate 'git/' package under root path
+# Generate 'internal/git' package
 define GIT_INFO
 // Package git used to define basic git info abount current version.
 package git

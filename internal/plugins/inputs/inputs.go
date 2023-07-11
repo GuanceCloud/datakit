@@ -78,12 +78,15 @@ type Input interface {
 	Catalog() string
 	Run()
 	SampleConfig() string
-	// add more...
 }
 
 type HTTPInput interface {
-	// Input
 	RegHTTPHandler()
+}
+
+// Dashboard used to export inputs dashboard.
+type Dashboard interface {
+	Dashboard(lang I18n) map[string]string
 }
 
 type Singleton interface {
@@ -91,7 +94,6 @@ type Singleton interface {
 }
 
 type PipelineInput interface {
-	// Input
 	PipelineConfig() map[string]string
 	RunPipeline()
 	GetPipeline() []*tailer.Option

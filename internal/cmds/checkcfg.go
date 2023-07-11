@@ -13,7 +13,6 @@ import (
 
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -63,12 +62,6 @@ func checkSample() error {
 
 	for k, c := range inputs.Inputs {
 		i := c()
-
-		if k == datakit.DatakitInputName {
-			cp.Warnf("[W] ignore self input\n")
-			ignored = append(ignored, k)
-			continue
-		}
 
 		if _, err := config.LoadSingleConf(i.SampleConfig(), inputs.Inputs); err != nil {
 			cp.Errorf("[E] failed to parse %s: %s\n", k, err.Error())

@@ -1,4 +1,3 @@
-{{.CSS}}
 # Developing Custom Collector with Python
 ---
 
