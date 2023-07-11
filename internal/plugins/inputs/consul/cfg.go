@@ -20,140 +20,39 @@ func (m *ConsulMeasurement) LineProto() (*point.Point, error) {
 	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
 }
 
+// Info from github.com/prometheus/consul_exporter.
 func (m *ConsulMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "consul",
+		//nolint:lll
 		Fields: map[string]interface{}{
-			"raft_leader":                  newCountFieldInfo("raft 集群中 leader 数量"),
-			"raft_peers":                   newCountFieldInfo("raft 集群中 peer 数量"),
-			"serf_lan_members":             newCountFieldInfo("集群中成员数量"),
-			"catalog_services":             newCountFieldInfo("集群中服务数量"),
-			"catalog_service_node_healthy": newUnknownFieldInfo("该服务在该结点上是否健康"),
-			"health_node_status":           newUnknownFieldInfo("结点的健康检查状态"),
-			"serf_lan_member_status":       newUnknownFieldInfo("集群里成员的状态。其中 1 表示 Alive/2 表示 Leaving/3 表示 Left/4 表示 Failed"),
+			"up":                           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Bool, Desc: "Was the last query of Consul successful."},
+			"raft_peers":                   &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "How many peers (servers) are in the Raft cluster."},
+			"raft_leader":                  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Bool, Desc: "Does Raft cluster have a leader (according to this node)."},
+			"serf_lan_members":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "How many members are in the cluster."},
+			"serf_lan_member_status":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "Status of member in the cluster. 1=Alive, 2=Leaving, 3=Left, 4=Failed."},
+			"serf_wan_member_status":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "SStatus of member in the wan cluster. 1=Alive, 2=Leaving, 3=Left, 4=Failed."},
+			"catalog_services":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "How many services are in the cluster."},
+			"service_tag":                  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Tags of a service."},
+			"catalog_service_node_healthy": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Bool, Desc: "Is this service healthy on this node?"},
+			"health_node_status":           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Bool, Desc: "Status of health checks associated with a node."},
+			"health_service_status":        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Bool, Desc: "Status of health checks associated with a service."},
+			"service_checks":               &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Bool, Desc: "Link the service id and check name if available."},
+			"catalog_kv":                   &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "The values for selected keys in Consul's key/value catalog. Keys with non-numeric values are omitted."},
 		},
 		Tags: map[string]interface{}{
-			"host":         inputs.NewTagInfo("主机名称"),
-			"node":         inputs.NewTagInfo("结点名称"),
-			"service_id":   inputs.NewTagInfo("服务 ID"),
-			"service_name": inputs.NewTagInfo("服务名称"),
-			"status":       inputs.NewTagInfo("状态。status 有 critical/maintenance/passing/warning 四种"),
-			"member":       inputs.NewTagInfo("成员名称"),
+			"host":         inputs.NewTagInfo("Host name."),
+			"check":        inputs.NewTagInfo("Check."),
+			"check_id":     inputs.NewTagInfo("Check id."),
+			"check_name":   inputs.NewTagInfo("Check name."),
+			"node":         inputs.NewTagInfo("Node name."),
+			"tag":          inputs.NewTagInfo("Tag."),
+			"key":          inputs.NewTagInfo("Key."),
+			"service_id":   inputs.NewTagInfo("Service id."),
+			"service_name": inputs.NewTagInfo("Service name."),
+			"status":       inputs.NewTagInfo("Status: critical, maintenance, passing, warning."),
+			"member":       inputs.NewTagInfo("Member name."),
+			"instance":     inputs.NewTagInfo("Instance endpoint."),
 		},
-	}
-}
-
-type HostMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-}
-
-func (m *HostMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
-}
-
-func (m *HostMeasurement) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{
-		Name: "consul_host",
-		Fields: map[string]interface{}{
-			"raft_leader":      newCountFieldInfo("raft 集群中 leader 数量"),
-			"raft_peers":       newCountFieldInfo("raft 集群中 peer 数量"),
-			"serf_lan_members": newCountFieldInfo("集群中成员数量"),
-			"catalog_services": newCountFieldInfo("集群中服务数量"),
-		},
-		Tags: map[string]interface{}{
-			"host": inputs.NewTagInfo("主机名称"),
-		},
-	}
-}
-
-type ServiceMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-}
-
-func (m *ServiceMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
-}
-
-func (m *ServiceMeasurement) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{
-		Name: "consul_service",
-		Fields: map[string]interface{}{
-			"catalog_service_node_healthy": newUnknownFieldInfo("该服务在该结点上是否健康"),
-		},
-		Tags: map[string]interface{}{
-			"host":         inputs.NewTagInfo("主机名称"),
-			"node":         inputs.NewTagInfo("结点名称"),
-			"service_id":   inputs.NewTagInfo("服务 id"),
-			"service_name": inputs.NewTagInfo("服务名称"),
-		},
-	}
-}
-
-type HealthMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-}
-
-func (m *HealthMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
-}
-
-func (m *HealthMeasurement) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{
-		Name: "consul_health",
-		Fields: map[string]interface{}{
-			"health_node_status": newUnknownFieldInfo("结点的健康检查状态"),
-		},
-		Tags: map[string]interface{}{
-			"host":   inputs.NewTagInfo("主机名称"),
-			"node":   inputs.NewTagInfo("结点名称"),
-			"status": inputs.NewTagInfo("状态，status 有 critical/maintenance/passing/warning 四种"),
-		},
-	}
-}
-
-type MemberMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-}
-
-func (m *MemberMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
-}
-
-func (m *MemberMeasurement) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{
-		Name: "consul_member",
-		Fields: map[string]interface{}{
-			"serf_lan_member_status": newUnknownFieldInfo("集群里成员的状态，其中 1 表示 Alive，2 表示 Leaving，3 表示 Left，4 表示 Failed"),
-		},
-		Tags: map[string]interface{}{
-			"host":   inputs.NewTagInfo("主机名称"),
-			"member": inputs.NewTagInfo("成员名称"),
-		},
-	}
-}
-
-func newCountFieldInfo(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		DataType: inputs.Int,
-		Type:     inputs.Gauge,
-		Unit:     inputs.NCount,
-		Desc:     desc,
-	}
-}
-
-func newUnknownFieldInfo(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		DataType: inputs.Int,
-		Type:     inputs.Gauge,
-		Unit:     inputs.UnknownUnit,
-		Desc:     desc,
 	}
 }

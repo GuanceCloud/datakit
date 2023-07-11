@@ -8,55 +8,246 @@ package consul
 import (
 	"fmt"
 	"net"
-	"net/netip"
-	"net/url"
-	"os"
+	"strings"
 	"sync"
-	T "testing"
+	"testing"
 	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/GuanceCloud/cliutils/point"
 	dt "github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/prom"
-	tu "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
-type caseSpec struct {
-	t *T.T
+// ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
 
-	name        string
-	repo        string // docker name
-	repoTag     string // docker tag
-	envs        []string
-	servicePort string // port (rand)）
+func TestIntegrate(t *testing.T) {
+	if !testutils.CheckIntegrationTestingRunning() {
+		t.Skip()
+	}
+
+	testutils.PurgeRemoteByName(inputName)       // purge at first.
+	defer testutils.PurgeRemoteByName(inputName) // purge at last.
+
+	start := time.Now()
+	cases, err := buildCases(t)
+	if err != nil {
+		cr := &testutils.CaseResult{
+			Name:          t.Name(),
+			Status:        testutils.TestPassed,
+			FailedMessage: err.Error(),
+			Cost:          time.Since(start),
+		}
+
+		_ = testutils.Flush(cr)
+		return
+	}
+
+	t.Logf("testing %d cases...", len(cases))
+
+	for _, tc := range cases {
+		func(tc *caseSpec) {
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+				caseStart := time.Now()
+
+				t.Logf("testing %s...", tc.name)
+
+				if err := testutils.RetryTestRun(tc.run); err != nil {
+					tc.cr.Status = testutils.TestFailed
+					tc.cr.FailedMessage = err.Error()
+
+					panic(err)
+				} else {
+					tc.cr.Status = testutils.TestPassed
+				}
+
+				tc.cr.Cost = time.Since(caseStart)
+
+				require.NoError(t, testutils.Flush(tc.cr))
+
+				t.Cleanup(func() {
+					// clean remote docker resources
+					if tc.resource == nil {
+						return
+					}
+
+					tc.pool.Purge(tc.resource)
+				})
+			})
+		}(tc)
+	}
+}
+
+func getConfAccessPoint(host, port string) string {
+	return fmt.Sprintf("http://%s/metrics", net.JoinHostPort(host, port))
+}
+
+func buildCases(t *testing.T) ([]*caseSpec, error) {
+	t.Helper()
+
+	remote := testutils.GetRemote()
+
+	bases := []struct {
+		name         string // Also used as build image name:tag.
+		conf         string
+		exposedPorts []string
+		mPathCount   map[string]int
+
+		opts []inputs.PointCheckOption
+	}{
+		{
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/consul/consul:1.15.0",
+			// selfBuild: true,
+			conf: `
+source = "consul"
+metric_name_filter = ["consul_raft_leader", "consul_raft_peers", "consul_serf_lan_members", "consul_catalog_service", "consul_catalog_service_node_healthy", "consul_health_node_status", "consul_serf_lan_member_status"]
+tags_ignore = ["check"]
+interval = "10s"
+url = ""
+
+[tags]
+  tag1 = "some_value"
+  tag2 = "some_other_value"`, // set conf URL later.
+			exposedPorts: []string{"9107/tcp"},
+			mPathCount:   map[string]int{"/": 10},
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalTags("host", "check", "check_id", "check_name", "node", "tag", "key", "service_id", "service_name", "status", "member", "instance"),
+				inputs.WithOptionalFields("up", "raft_peers", "raft_leader", "serf_lan_members", "serf_lan_member_status", "serf_wan_member_status", "catalog_services", "service_tag", "catalog_service_node_healthy", "health_node_status", "health_service_status", "service_checks", "catalog_kv"), // nolint:lll
+				inputs.WithTypeChecking(false),
+				inputs.WithExtraTags(map[string]string{"tag1": "", "tag2": ""}),
+			},
+		},
+		{
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/consul/consul:1.14.4",
+			// selfBuild: true,
+			conf: `
+source = "consul"
+metric_name_filter = ["consul_raft_leader", "consul_raft_peers", "consul_serf_lan_members", "consul_catalog_service", "consul_catalog_service_node_healthy", "consul_health_node_status", "consul_serf_lan_member_status"]
+tags_ignore = ["check"]
+interval = "10s"
+url = ""`, // set conf URL later.
+			exposedPorts: []string{"9107/tcp"},
+			mPathCount:   map[string]int{"/": 10},
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalTags("host", "check", "check_id", "check_name", "node", "tag", "key", "service_id", "service_name", "status", "member", "instance"),
+				inputs.WithOptionalFields("up", "raft_peers", "raft_leader", "serf_lan_members", "serf_lan_member_status", "serf_wan_member_status", "catalog_services", "service_tag", "catalog_service_node_healthy", "health_node_status", "health_service_status", "service_checks", "catalog_kv"), // nolint:lll
+				inputs.WithTypeChecking(false),
+				inputs.WithExtraTags(map[string]string{}),
+			},
+		},
+		{
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/consul/consul:1.13.6",
+			// selfBuild: true,
+			conf: `
+source = "consul"
+metric_name_filter = ["consul_raft_leader", "consul_raft_peers", "consul_serf_lan_members", "consul_catalog_service", "consul_catalog_service_node_healthy", "consul_health_node_status", "consul_serf_lan_member_status"]
+tags_ignore = ["check"]
+interval = "10s"
+url = ""
+
+[tags]
+  tag1 = "some_value"
+  tag2 = "some_other_value"`, // set conf URL later.
+			exposedPorts: []string{"9107/tcp"},
+			mPathCount:   map[string]int{"/": 10},
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalTags("host", "check", "check_id", "check_name", "node", "tag", "key", "service_id", "service_name", "status", "member", "instance"),
+				inputs.WithOptionalFields("up", "raft_peers", "raft_leader", "serf_lan_members", "serf_lan_member_status", "serf_wan_member_status", "catalog_services", "service_tag", "catalog_service_node_healthy", "health_node_status", "health_service_status", "service_checks", "catalog_kv"), // nolint:lll
+				inputs.WithTypeChecking(false),
+				inputs.WithExtraTags(map[string]string{"tag1": "", "tag2": ""}),
+			},
+		},
+	}
+
+	var cases []*caseSpec
+
+	// compose cases
+	for _, base := range bases {
+		feeder := io.NewMockedFeeder()
+
+		ipt := prom.NewProm()
+		ipt.Feeder = feeder
+
+		_, err := toml.Decode(base.conf, ipt)
+		require.NoError(t, err)
+
+		// URL from ENV.
+		envs := []string{
+			"ALLOW_NONE_AUTHENTICATION=yes",
+		}
+
+		repoTag := strings.Split(base.name, ":")
+		cases = append(cases, &caseSpec{
+			t:            t,
+			ipt:          ipt,
+			name:         base.name,
+			feeder:       feeder,
+			envs:         envs,
+			repo:         repoTag[0],
+			repoTag:      repoTag[1],
+			exposedPorts: base.exposedPorts,
+
+			opts: base.opts,
+
+			cr: &testutils.CaseResult{
+				Name:        t.Name(),
+				Case:        base.name,
+				ExtraFields: map[string]any{},
+				ExtraTags: map[string]string{
+					"image":       repoTag[0],
+					"image_tag":   repoTag[1],
+					"docker_host": remote.Host,
+					"docker_port": remote.Port,
+				},
+			},
+		})
+	}
+
+	return cases, nil
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+// caseSpec.
+type caseSpec struct {
+	t *testing.T
+
+	name         string
+	repo         string
+	repoTag      string
+	envs         []string
+	exposedPorts []string
+	serverPorts  []string
+	mCount       map[string]struct{}
 
 	opts []inputs.PointCheckOption
 
-	ipt    *prom.Input // This is real prom
+	ipt    *prom.Input
 	feeder *io.MockedFeeder
 
 	pool     *dt.Pool
 	resource *dt.Resource
 
-	cr *tu.CaseResult // collect `go test -run` metric
+	cr *testutils.CaseResult
 }
 
 func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 	for _, pt := range pts {
 		measurement := string(pt.Name())
+		opts := []inputs.PointCheckOption{}
 
 		switch measurement {
 		case "consul":
-			var opts []inputs.PointCheckOption
-			opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
-			opts = append(opts, inputs.WithDoc(&ConsulMeasurement{}))
 			opts = append(opts, cs.opts...)
+			opts = append(opts, inputs.WithDoc(&ConsulMeasurement{}))
+
 			msgs := inputs.CheckPoint(pt, opts...)
 
 			for _, msg := range msgs {
@@ -67,8 +258,10 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
+			cs.mCount[measurement] = struct{}{}
+
 		default: // TODO: check other measurement
-			return nil
+			panic("unknown measurement: " + measurement)
 		}
 
 		// check if tag appended
@@ -96,8 +289,8 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 
 func (cs *caseSpec) run() error {
 	// start remote image server
-	r := tu.GetRemote()
-	dockerTCP := r.TCPURL() // got "tcp://" + net.JoinHostPort(i.Host, i.Port) 2375
+	r := testutils.GetRemote()
+	dockerTCP := r.TCPURL()
 
 	cs.t.Logf("get remote: %+#v, TCP: %s", r, dockerTCP)
 
@@ -108,35 +301,22 @@ func (cs *caseSpec) run() error {
 		return err
 	}
 
-	hostname, err := os.Hostname()
-	if err != nil {
-		cs.t.Logf("get hostname failed: %s, ignored", err)
-		hostname = "unknown-hostname"
-	}
-
-	containerName := fmt.Sprintf("%s.%s", hostname, cs.name)
-
-	// remove the container if exist.
-	if err := p.RemoveContainerByName(containerName); err != nil {
-		return err
-	}
+	uniqueContainerName := testutils.GetUniqueContainerName(inputName)
 
 	resource, err := p.RunWithOptions(&dt.RunOptions{
+		Name: uniqueContainerName, // ATTENTION: not cs.name.
+
 		// specify container image & tag
 		Repository: cs.repo,
 		Tag:        cs.repoTag,
 
-		// port binding
-		PortBindings: map[docker.Port][]docker.PortBinding{
-			"9107/tcp": {{HostIP: "0.0.0.0", HostPort: cs.servicePort}},
-		},
-
-		Name: containerName,
+		ExposedPorts: cs.exposedPorts,
 
 		// container run-time envs
 		Env: cs.envs,
 	}, func(c *docker.HostConfig) {
 		c.RestartPolicy = docker.RestartPolicy{Name: "no"}
+		c.AutoRemove = true
 	})
 	if err != nil {
 		return err
@@ -145,9 +325,15 @@ func (cs *caseSpec) run() error {
 	cs.pool = p
 	cs.resource = resource
 
-	cs.t.Logf("check service(%s:%s)...", r.Host, cs.servicePort)
-	if !r.PortOK(cs.servicePort, time.Minute) {
-		return fmt.Errorf("service checking failed")
+	if err := cs.getMappingPorts(); err != nil {
+		return err
+	}
+	cs.ipt.URL = getConfAccessPoint(r.Host, cs.serverPorts[0]) // set conf URL here.
+
+	cs.t.Logf("check service(%s:%v)...", r.Host, cs.serverPorts)
+
+	if err := cs.portsOK(r); err != nil {
+		return err
 	}
 
 	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
@@ -174,6 +360,7 @@ func (cs *caseSpec) run() error {
 	cs.cr.AddField("point_count", len(pts))
 
 	cs.t.Logf("get %d points", len(pts))
+	cs.mCount = make(map[string]struct{})
 	if err := cs.checkPoint(pts); err != nil {
 		return err
 	}
@@ -181,149 +368,32 @@ func (cs *caseSpec) run() error {
 	cs.t.Logf("stop input...")
 	cs.ipt.Terminate()
 
+	require.GreaterOrEqual(cs.t, len(cs.mCount), 1) // At lest 1 Metric out.
+
 	cs.t.Logf("exit...")
 	wg.Wait()
 
 	return nil
 }
 
-func buildCases(t *T.T) ([]*caseSpec, error) {
-	t.Helper()
-
-	remote := tu.GetRemote()
-
-	bases := []struct {
-		name string
-		conf string
-		opts []inputs.PointCheckOption
-	}{
-		{
-			name: "remote-consul",
-
-			conf: fmt.Sprintf(`
-source = "consul"
-metric_name_filter = ["consul_raft_leader", "consul_raft_peers", "consul_serf_lan_members", "consul_catalog_service", "consul_catalog_service_node_healthy", "consul_health_node_status", "consul_serf_lan_member_status"]
-tags_ignore = ["check"]
-interval = "10s"
-url = "http://%s/metrics"
-
-[tags]
-  tag1 = "some_value"
-  tag2 = "some_other_value"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", tu.RandPort("tcp")))),
-			opts: []inputs.PointCheckOption{
-				inputs.WithOptionalTags("status", "member", "node", "service_id", "service_name", "instance"),
-				inputs.WithOptionalFields("health_node_status", "serf_lan_member_status", "raft_leader", "raft_peers", "serf_lan_members", "catalog_service_node_healthy", "catalog_services"), // nolint:lll
-				inputs.WithTypeChecking(false),
-				inputs.WithExtraTags(map[string]string{"instance": "", "tag1": "", "tag2": ""}),
-			},
-		},
-	}
-
-	images := [][2]string{
-		{"pubrepo.jiagouyun.com/image-repo-for-testing/consul/consul", "1.15.0"},
-		{"pubrepo.jiagouyun.com/image-repo-for-testing/consul/consul", "1.14.4"},
-		{"pubrepo.jiagouyun.com/image-repo-for-testing/consul/consul", "1.13.6"},
-	}
-
-	// TODO: add per-image configs
-	perImageCfgs := []interface{}{}
-	_ = perImageCfgs
-
-	var cases []*caseSpec
-
-	// compose cases
-	for _, img := range images {
-		for _, base := range bases {
-			feeder := io.NewMockedFeeder()
-
-			ipt := prom.NewProm() // This is real prom
-			ipt.Feeder = feeder   // Flush metric data to testing_metrics
-
-			// URL from ENV.
-			_, err := toml.Decode(base.conf, ipt)
-			assert.NoError(t, err)
-
-			url, err := url.Parse(ipt.URL) // http://127.0.0.1:9107/metric --> 127.0.0.1:9107
-			assert.NoError(t, err)
-
-			ipport, err := netip.ParseAddrPort(url.Host)
-			assert.NoError(t, err, "parse %s failed: %s", ipt.URL, err)
-
-			cases = append(cases, &caseSpec{
-				t:           t,
-				ipt:         ipt,
-				name:        base.name,
-				feeder:      feeder,
-				repo:        img[0], // docker name
-				repoTag:     img[1], // docker tag
-				servicePort: fmt.Sprintf("%d", ipport.Port()),
-				opts:        base.opts,
-
-				// Test case result.
-				cr: &tu.CaseResult{
-					Name:        t.Name(),
-					Case:        base.name,
-					ExtraFields: map[string]any{},
-					ExtraTags: map[string]string{
-						"image":         img[0],
-						"image_tag":     img[1],
-						"remote_server": ipt.URL,
-					},
-				},
-			})
+func (cs *caseSpec) getMappingPorts() error {
+	cs.serverPorts = make([]string, len(cs.exposedPorts))
+	for k, v := range cs.exposedPorts {
+		mapStr := cs.resource.GetHostPort(v)
+		_, port, err := net.SplitHostPort(mapStr)
+		if err != nil {
+			return err
 		}
+		cs.serverPorts[k] = port
 	}
-	return cases, nil
+	return nil
 }
 
-func TestIntegrate(t *T.T) {
-	if !tu.CheckIntegrationTestingRunning() {
-		t.Skip()
-	}
-	start := time.Now()
-	cases, err := buildCases(t)
-	if err != nil {
-		cr := &tu.CaseResult{
-			Name:          t.Name(),
-			Status:        tu.TestPassed,
-			FailedMessage: err.Error(),
-			Cost:          time.Since(start),
+func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
+	for _, v := range cs.serverPorts {
+		if !r.PortOK(docker.Port(v).Port(), time.Minute) {
+			return fmt.Errorf("service checking failed")
 		}
-
-		_ = tu.Flush(cr)
-		return
 	}
-
-	t.Logf("testing %d cases...", len(cases))
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *T.T) {
-			caseStart := time.Now()
-
-			t.Logf("testing %s...", tc.name)
-
-			// Run a test case.
-			if err := tc.run(); err != nil {
-				tc.cr.Status = tu.TestFailed
-				tc.cr.FailedMessage = err.Error()
-
-				assert.NoError(t, err)
-			} else {
-				tc.cr.Status = tu.TestPassed
-			}
-
-			tc.cr.Cost = time.Since(caseStart)
-
-			assert.NoError(t, tu.Flush(tc.cr))
-
-			t.Cleanup(func() {
-				// clean remote docker resources
-				if tc.resource == nil {
-					return
-				}
-
-				assert.NoError(t, tc.pool.Purge(tc.resource))
-			})
-		})
-	}
+	return nil
 }
