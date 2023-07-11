@@ -13,6 +13,7 @@ import (
 	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestEmptyDir(t *testing.T) {
@@ -306,14 +307,13 @@ func TestFeedEnvs(t *testing.T) {
 		},
 	}
 
-	for idx, tc := range cases {
+	for _, tc := range cases {
 		for k, v := range tc.env {
 			if err := os.Setenv(k, v); err != nil {
 				t.Fatal(err)
 			}
 		}
 
-		data := feedEnvs([]byte(tc.str))
-		tu.Assert(t, tc.expect == string(data), "[%d] epxect `%s', got `%s'", idx, tc.expect, string(data))
+		assert.Equal(t, tc.expect, string(feedEnvs([]byte(tc.str))))
 	}
 }

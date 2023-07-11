@@ -37,36 +37,36 @@ tls_open = false
 
 ## customize metrics
 [[inputs.prom.measurements]]
-prefix = "coredns_acl_"
-name = "coredns_acl"
+  prefix = "coredns_acl_"
+  name = "coredns_acl"
 
 [[inputs.prom.measurements]]
-prefix = "coredns_cache_"
-name = "coredns_cache"
+  prefix = "coredns_cache_"
+  name = "coredns_cache"
 
 [[inputs.prom.measurements]]
-prefix = "coredns_dnssec_"
-name = "coredns_dnssec"
+  prefix = "coredns_dnssec_"
+  name = "coredns_dnssec"
 
 [[inputs.prom.measurements]]
-prefix = "coredns_forward_"
-name = "coredns_forward"
+  prefix = "coredns_forward_"
+  name = "coredns_forward"
 
 [[inputs.prom.measurements]]
-prefix = "coredns_grpc_"
-name = "coredns_grpc"
+  prefix = "coredns_grpc_"
+  name = "coredns_grpc"
 
 [[inputs.prom.measurements]]
-prefix = "coredns_hosts_"
-name = "coredns_hosts"
+  prefix = "coredns_hosts_"
+  name = "coredns_hosts"
 
 [[inputs.prom.measurements]]
-prefix = "coredns_template_"
-name = "coredns_template"
+  prefix = "coredns_template_"
+  name = "coredns_template"
 
 [[inputs.prom.measurements]]
-prefix = "coredns_dns_"
-name = "coredns"`
+  prefix = "coredns_dns_"
+  name = "coredns"`
 )
 
 type Input struct{}

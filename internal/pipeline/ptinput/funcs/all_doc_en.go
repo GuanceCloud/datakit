@@ -170,6 +170,9 @@ var (
 
 	//go:embed md/vaild_json.en.md
 	docVaildJSONEN string
+
+	//go:embed md/conv_traceid_w3c_to_dd.en.md
+	docConvTraceIDEN string
 )
 
 const (
@@ -517,6 +520,13 @@ var (
 		Doc: docVaildJSONEN, Deprecated: false,
 		FnCategory: map[string][]string{
 			langTagEnUS: {eJSON},
+		},
+	}
+
+	convTraceID128MDEN = PLDoc{
+		Doc: docConvTraceIDEN,
+		FnCategory: map[string][]string{
+			langTagEnUS: {eStringOp},
 		},
 	}
 )

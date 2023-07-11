@@ -65,8 +65,6 @@ const (
 	RegionInfo  = "region"
 )
 
-var apiTasksNum int
-
 type Input struct {
 	Region           string            `toml:"region,omitempty"`
 	RegionID         string            `toml:"region_id"`
@@ -74,8 +72,7 @@ type Input struct {
 	AK               string            `toml:"ak"`
 	SK               string            `toml:"sk"`
 	PullInterval     string            `toml:"pull_interval,omitempty"`
-	TimeOut          *datakit.Duration `toml:"time_out,omitempty"` // second
-	Workers          int               `toml:"workers,omitempty"`
+	TimeOut          *datakit.Duration `toml:"time_out,omitempty"`            // second
 	MaxSendFailCount int32             `toml:"max_send_fail_count,omitempty"` // max send fail count
 	MaxJobNumber     int               `toml:"max_job_number,omitempty"`      // max job number in parallel
 	MaxJobChanNumber int               `toml:"max_job_chan_number,omitempty"` // max job chan number
@@ -178,10 +175,6 @@ func (d *Input) setupWorker() {
 
 func (d *Input) Run() {
 	l = logger.SLogger(inputName)
-
-	if d.Workers == 0 {
-		d.Workers = 6
-	}
 
 	if d.MaxSendFailCount > 0 {
 		MaxSendFailCount = int(d.MaxSendFailCount)
@@ -320,7 +313,6 @@ func (d *Input) newTaskRun(t dt.Task) (*dialer, error) {
 
 	switch t.Class() {
 	case dt.ClassHTTP:
-		apiTasksNum++
 	case dt.ClassHeadless:
 		return nil, fmt.Errorf("headless task deprecated")
 	case dt.ClassDNS:

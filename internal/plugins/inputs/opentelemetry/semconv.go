@@ -53,3 +53,5 @@ var otelErrKeyToDkErrKey = map[string]string{
 	ExceptionMessageKey:    itrace.FIELD_ERR_MESSAGE,
 	ExceptionStacktraceKey: itrace.FIELD_ERR_STACK,
 }
+
+var convertToDD = false

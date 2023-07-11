@@ -7,12 +7,17 @@ package sqlserver
 
 import (
 	"testing"
+	T "testing"
+	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	_ "github.com/denisenkom/go-mssqldb"
 	"github.com/stretchr/testify/assert"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	pl "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
 )
 
-func TestCon(t *testing.T) {
+func TestCon(t *T.T) {
 	n := Input{
 		Host:     "10.100.64.109:1433",
 		User:     "_",
@@ -84,11 +89,109 @@ func TestFilterDBInstance(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *T.T) {
 			n := Input{}
 			n.DBFilter = tc.dbFilter
 			n.initDBFilterMap()
 			assert.Equal(t, tc.expectedFilterOut, n.filterOutDBName(tc.tags))
 		})
 	}
+}
+
+func Test_setHostTagIfNotLoopback(t *T.T) {
+	type args struct {
+		tags      map[string]string
+		ipAndPort string
+	}
+	tests := []struct {
+		name     string
+		args     args
+		expected map[string]string
+	}{
+		{
+			name: "loopback",
+			args: args{
+				tags:      map[string]string{},
+				ipAndPort: "localhost:1234",
+			},
+			expected: map[string]string{},
+		},
+		{
+			name: "loopback",
+			args: args{
+				tags:      map[string]string{},
+				ipAndPort: "127.0.0.1:1234",
+			},
+			expected: map[string]string{},
+		},
+		{
+			name: "normal",
+			args: args{
+				tags:      map[string]string{},
+				ipAndPort: "192.168.1.1:1234",
+			},
+			expected: map[string]string{
+				"host": "192.168.1.1",
+			},
+		},
+		{
+			name: "error not ip:port",
+			args: args{
+				tags:      map[string]string{},
+				ipAndPort: "http://192.168.1.1:1234",
+			},
+			expected: map[string]string{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *T.T) {
+			setHostTagIfNotLoopback(tt.args.tags, tt.args.ipAndPort)
+			assert.Equal(t, tt.expected, tt.args.tags)
+		})
+	}
+}
+
+func TestPipeline(t *T.T) {
+	source := `sqlserver`
+	t.Run("pl-sqlserver-logging", func(t *T.T) {
+		// sqlserver log examples
+		logs := []string{
+			`2020-01-01 00:00:01.00 spid28s     Server is listening on [ ::1 <ipv6> 1431] accept sockets 1.`,
+			`2020-01-01 00:00:02.00 Server      Common language runtime (CLR) functionality initialized.`,
+		}
+
+		expected := []*dkpt.Point{
+			dkpt.MustNewPoint(source, nil, map[string]any{
+				`message`: logs[0],
+				`msg`:     `Server is listening on [ ::1 <ipv6> 1431] accept sockets 1.`,
+				`origin`:  `spid28s`,
+				`status`:  `unknown`,
+			}, &dkpt.PointOption{Category: point.Logging.URL(), Time: time.Date(2020, 1, 1, 0, 0, 1, 0, time.UTC)}),
+
+			dkpt.MustNewPoint(source, nil, map[string]any{
+				`message`: logs[1],
+				`msg`:     `Common language runtime (CLR) functionality initialized.`,
+				`origin`:  `Server`,
+				`status`:  `unknown`,
+			}, &dkpt.PointOption{Category: point.Logging.URL(), Time: time.Date(2020, 1, 1, 0, 0, 2, 0, time.UTC)}),
+		}
+
+		p, err := pl.NewPipeline(point.Logging, "", pipeline)
+		assert.NoError(t, err, "NewPipeline: %s", err)
+
+		for idx, ln := range logs {
+			pt, err := dkpt.NewPoint(source,
+				nil,
+				map[string]any{"message": ln},
+				&dkpt.PointOption{Category: point.Logging.URL()})
+			assert.NoError(t, err)
+
+			after, dropped, err := p.Run(point.Logging, pt, nil, &dkpt.PointOption{Category: point.Logging.URL()}, nil, nil)
+
+			assert.NoError(t, err)
+			assert.False(t, dropped)
+
+			assert.Equal(t, expected[idx].String(), after.String())
+		}
+	})
 }

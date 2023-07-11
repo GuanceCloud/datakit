@@ -31,29 +31,18 @@ func runDocFlags() error {
 	return exportMan(opt)
 }
 
-type i18n int
-
-const (
-	i18nZh = iota
-	i18nEn
-)
-
-func (x i18n) String() string {
-	switch x {
-	case i18nZh:
-		return "zh"
-	case i18nEn:
-		return "en"
-	default:
-		panic(fmt.Sprintf("should not been here: unsupport language: %s", x.String()))
-	}
-}
-
-func buildAllDocs(lang i18n, opt *man.ExportOption) (map[string][]byte, error) {
+// buildAll used to build all exported data based on template.
+//
+// These data include:
+//  - docs: markdown doc
+//  - pipeline: markdown doc
+//  - dashboard: JSON
+//  - monitor: JSON
+func buildAll(lang inputs.I18n, opt *man.ExportOption) (map[string][]byte, error) {
 	res := map[string][]byte{}
 
 	// build all inputs docs
-	inputDocs, err := man.AllDocs.ReadDir(filepath.Join("docs", lang.String(), "inputs"))
+	inputDocs, err := man.AllDocs.ReadDir(filepath.Join("doc", lang.String(), "inputs"))
 	if err != nil {
 		return nil, err
 	}
@@ -67,29 +56,65 @@ func buildAllDocs(lang i18n, opt *man.ExportOption) (map[string][]byte, error) {
 			continue // ignore non-markdown
 		}
 
-		name := strings.Split(f.Name(), ".")[0] // get cpu.md -> cpu
-		md, err := man.AllDocs.ReadFile(filepath.Join("docs", lang.String(), "inputs", f.Name()))
+		name := strings.Split(f.Name(), ".")[0] // cpu.md -> cpu
+
+		if strings.Contains(opt.Skips, name) {
+			cp.Infof("skip build exports for input %q, skip list: %q\n", name, opt.Skips)
+			continue
+		}
+
+		md, err := man.AllDocs.ReadFile(filepath.Join("doc", lang.String(), "inputs", f.Name()))
 		if err != nil {
+			cp.Warnf("read doc on input %q failed: %s, ignored\n", name, err)
 			continue
 		}
 
 		doc, err := man.BuildInputDoc(name, md, opt)
 		if err != nil {
-			cp.Errorf("man.BuildInputDoc(%q): %s", name, err)
-			continue
+			cp.Errorf("man.BuildInputDoc(%q): %s\n", name, err)
+			os.Exit(-1) // failed to build markdown, fail ASAP.
 		}
 
-		res[f.Name()] = doc
+		res[filepath.Join("inputs", f.Name())] = doc
+
+		// build monitor
+		monitors, err := man.BuildMonitor(name, lang)
+		if err != nil {
+			cp.Errorf("man.BuildMonitor(%q): %s\n", name, err)
+			os.Exit(-1) // failed to build markdown, fail ASAP.
+		} else {
+			if len(monitors) > 0 {
+				for k, v := range monitors {
+					res[filepath.Join("monitor", k+".json")] = v
+				}
+			} else {
+				cp.Warnf("[W] no monitor for %s(%s), ignored\n", name, lang)
+			}
+		}
+
+		// build dashboard: one input may got multiple dashboards
+		dashboards, err := man.BuildDashboard(name, lang)
+		if err != nil {
+			cp.Errorf("man.BuildDashboard(%q): %s\n", name, err)
+			os.Exit(-1) // failed to build markdown, fail ASAP.
+		} else {
+			if len(dashboards) > 0 {
+				for k, v := range dashboards {
+					res[filepath.Join("dashboard", k+".json")] = v
+				}
+			} else {
+				cp.Warnf("[W] no dashboard for %s(%s), ignored\n", name, lang)
+			}
+		}
 	}
 
 	// build all pipeline docs
-	plDocs, err := man.AllDocs.ReadDir(filepath.Join("docs", lang.String(), "pipeline"))
+	plDocs, err := man.AllDocs.ReadDir(filepath.Join("doc", lang.String(), "pipeline"))
 	if err != nil {
 		return nil, err
 	}
 
 	for _, f := range plDocs {
-		fmt.Println(f.Name())
 		if f.IsDir() {
 			continue
 		}
@@ -98,7 +123,7 @@ func buildAllDocs(lang i18n, opt *man.ExportOption) (map[string][]byte, error) {
 			continue // ignore non-markdown
 		}
 
-		md, err := man.AllDocs.ReadFile(filepath.Join("docs", lang.String(), "pipeline", f.Name()))
+		md, err := man.AllDocs.ReadFile(filepath.Join("doc", lang.String(), "pipeline", f.Name()))
 		if err != nil {
 			continue
 		}
@@ -106,9 +131,9 @@ func buildAllDocs(lang i18n, opt *man.ExportOption) (map[string][]byte, error) {
 		if f.Name() == "pipeline-built-in-function.md" {
 			var fndocs map[string]*plfuncs.PLDoc
 			switch lang {
-			case i18nZh:
+			case inputs.I18nZh:
 				fndocs = plfuncs.PipelineFunctionDocs
-			case i18nEn:
+			case inputs.I18nEn:
 				fndocs = plfuncs.PipelineFunctionDocsEN
 			}
 
@@ -127,7 +152,7 @@ func buildAllDocs(lang i18n, opt *man.ExportOption) (map[string][]byte, error) {
 	}
 
 	// build other docs
-	otherDocs, err := man.AllDocs.ReadDir(filepath.Join("docs", lang.String()))
+	otherDocs, err := man.AllDocs.ReadDir(filepath.Join("doc", lang.String()))
 	if err != nil {
 		return nil, err
 	}
@@ -145,15 +170,15 @@ func buildAllDocs(lang i18n, opt *man.ExportOption) (map[string][]byte, error) {
 			continue // ignore pipeline docs
 		}
 
-		md, err := man.AllDocs.ReadFile(filepath.Join("docs", lang.String(), f.Name()))
+		md, err := man.AllDocs.ReadFile(filepath.Join("doc", lang.String(), f.Name()))
 		if err != nil {
 			continue
 		}
 
 		doc, err := man.BuildNonInputDocs(md, opt)
 		if err != nil {
-			cp.Errorf("man.BuildInputDoc(%q): %s", f.Name(), err)
-			continue
+			cp.Errorf("man.BuildInputDoc(%q): %s\n", f.Name(), err)
+			os.Exit(-1) // failed to build markdown, fail ASAP.
 		}
 
 		res[f.Name()] = doc
@@ -167,15 +192,21 @@ func exportMan(opt *man.ExportOption) error {
 		return err
 	}
 
-	for _, x := range []i18n{i18nZh, i18nEn} {
-		if err := os.MkdirAll(filepath.Join(opt.Path, x.String()), os.ModePerm); err != nil {
-			return err
-		}
-		if err := os.MkdirAll(filepath.Join(opt.Path, x.String(), "pipeline"), os.ModePerm); err != nil {
-			return err
+	for _, x := range []inputs.I18n{inputs.I18nZh, inputs.I18nEn} {
+		// create dir to hold the docs
+		for _, dir := range []string{
+			filepath.Join(opt.Path, x.String()),
+			filepath.Join(opt.Path, x.String(), "pipeline"),
+			filepath.Join(opt.Path, x.String(), "inputs"),
+			filepath.Join(opt.Path, x.String(), "dashboard"),
+			filepath.Join(opt.Path, x.String(), "monitor"),
+		} {
+			if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+				return err
+			}
 		}
 
-		docs, err := buildAllDocs(x, opt)
+		docs, err := buildAll(x, opt)
 		if err != nil {
 			return err
 		}

@@ -13,15 +13,15 @@ import (
 	"net/url"
 	"time"
 
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-
 	"github.com/GuanceCloud/cliutils/logger"
+	"google.golang.org/protobuf/proto"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/workerpool"
-	"google.golang.org/protobuf/proto"
 )
 
 var (

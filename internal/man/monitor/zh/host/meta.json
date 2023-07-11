@@ -1,0 +1,842 @@
+{
+  "checkers": [
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "mem",
+              "field": "used_percent",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mem`:(LAST(`used_percent`)) BY `host`",
+              "type": "simple"
+            },
+            "uuid": "713bbfc3-a189-4a1a-8039-1776da67c5d0"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "80",
+                  "90"
+                ],
+                "operator": "between"
+              }
+            ],
+            "status": "warning"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "90"
+                ],
+                "operator": ">"
+              }
+            ],
+            "status": "critical"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "80",
+                    "90"
+                  ],
+                  "operator": "between"
+                }
+              ],
+              "status": "warning"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "90"
+                  ],
+                  "operator": ">"
+                }
+              ],
+              "status": "critical"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "host"
+        ],
+        "interval": 300,
+        "message": ">等级：{{status}}  \n>主机：{{host}}  \n>内容：内存使用率为 {{ Result |  to_fixed(2) }}%  \n>建议：基础设施-进程-选择主机-内存使用率 (排序) 查看是否为异常导致",
+        "recoverNeedPeriodCount": 1,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`mem`:(LAST(`used_percent`)) BY `host`"
+          }
+        ],
+        "title": "主机 {{ host }} 内存使用率过高",
+        "type": "simpleCheck"
+      },
+      "monitorName": "主机检测库"
+    },
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "children": [
+                {
+                  "alias": "",
+                  "code": "A",
+                  "dataSource": "cpu",
+                  "field": "usage_idle",
+                  "fieldFunc": "last",
+                  "fieldType": "float",
+                  "filters": [],
+                  "groupBy": [
+                    "host"
+                  ],
+                  "groupByTime": "",
+                  "namespace": "metric",
+                  "q": "M::`cpu`:(LAST(`usage_idle`)) BY `host`",
+                  "queryFuncs": [],
+                  "type": "simple"
+                }
+              ],
+              "code": "Result",
+              "expression": "100 - A",
+              "funcList": [],
+              "q": "eval(100 - A, A=\"M::`cpu`:(LAST(`usage_idle`)) BY `host`\")",
+              "type": "expression"
+            },
+            "uuid": "d10d4505-aca8-48c5-b80a-2ce8f24b26cd"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "90"
+                ],
+                "operator": ">"
+              }
+            ],
+            "status": "critical"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "80",
+                  "90"
+                ],
+                "operator": "between"
+              }
+            ],
+            "status": "warning"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "90"
+                  ],
+                  "operator": ">"
+                }
+              ],
+              "status": "critical"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "80",
+                    "90"
+                  ],
+                  "operator": "between"
+                }
+              ],
+              "status": "warning"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "host"
+        ],
+        "interval": 300,
+        "message": ">等级：{{status}}  \n>主机：{{host}}  \n>内容：系统 CPU 使用率为 {{ Result |  to_fixed(2) }}%  \n>建议：基础设施-进程-选择主机-CPU 使用率 (排序) 查看是否为异常导致",
+        "recoverNeedPeriodCount": 1,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "eval(100 - A, A=\"M::`cpu`:(LAST(`usage_idle`)) BY `host`\")"
+          }
+        ],
+        "title": "主机 {{ host }} CPU 使用率过高",
+        "type": "simpleCheck"
+      },
+      "monitorName": "主机检测库"
+    },
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "children": [
+                {
+                  "alias": "",
+                  "code": "A",
+                  "dataSource": "mem",
+                  "field": "available",
+                  "fieldFunc": "last",
+                  "fieldType": "integer",
+                  "groupBy": [
+                    "host"
+                  ],
+                  "groupByTime": "",
+                  "namespace": "metric",
+                  "q": "M::`mem`:(LAST(`available`)) BY `host`",
+                  "queryFuncs": [],
+                  "type": "simple"
+                }
+              ],
+              "code": "Result",
+              "expression": "A/1024/1024",
+              "funcList": [],
+              "q": "eval(A/1024/1024, A=\"M::`mem`:(LAST(`available`)) BY `host`\")",
+              "type": "expression"
+            },
+            "uuid": "65abbb09-1301-4ef7-b154-c81352c90373"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "100"
+                ],
+                "operator": "<="
+              }
+            ],
+            "status": "critical"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "100"
+                  ],
+                  "operator": "<="
+                }
+              ],
+              "status": "critical"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "host"
+        ],
+        "interval": 300,
+        "message": ">等级：{{status}}  \n>主机：{{host}}  \n>内容：内存为 {{ Result |  to_fixed(2) }}M  \n>建议：基础设施-进程-选择主机-内存使用率 (排序) 查看是否为异常导致",
+        "recoverNeedPeriodCount": 1,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "eval(A/1024/1024, A=\"M::`mem`:(LAST(`available`)) BY `host`\")"
+          }
+        ],
+        "title": "主机 {{ host}} 内存小于 100M",
+        "type": "simpleCheck"
+      },
+      "monitorName": "主机检测库"
+    },
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "system",
+              "field": "load5_per_core",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`system`:(LAST(`load5_per_core`)) BY `host`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "uuid": "f691f977-6b4c-401f-bb73-d8913faa47e1"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "2",
+                  "5"
+                ],
+                "operator": "between"
+              }
+            ],
+            "status": "warning"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "5"
+                ],
+                "operator": ">"
+              }
+            ],
+            "status": "critical"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "2",
+                    "5"
+                  ],
+                  "operator": "between"
+                }
+              ],
+              "status": "warning"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "5"
+                  ],
+                  "operator": ">"
+                }
+              ],
+              "status": "critical"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "host"
+        ],
+        "interval": 300,
+        "message": ">等级：{{status}}  \n>主机：{{host}}  \n>内容：系统 CPU 平均负载为 {{ Result |  to_fixed(2) }}  \n>建议：平均负载过高，可能是 CPU 密集型应用进程导致；如果同时 CPU 使用率不高，可能是 I/O 密集型应用进程导致",
+        "recoverNeedPeriodCount": 1,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`system`:(LAST(`load5_per_core`)) BY `host`"
+          }
+        ],
+        "title": "主机 {{ host }} CPU 平均负载过高",
+        "type": "simpleCheck"
+      },
+      "monitorName": "主机检测库"
+    },
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "children": [
+                {
+                  "alias": "",
+                  "code": "A",
+                  "dataSource": "disk",
+                  "field": "used_percent",
+                  "fieldFunc": "last",
+                  "fieldType": "float",
+                  "filters": [],
+                  "groupBy": [
+                    "host",
+                    "device"
+                  ],
+                  "groupByTime": "",
+                  "namespace": "metric",
+                  "q": "M::`disk`:(LAST(`used_percent`)) BY `host`, `device`",
+                  "queryFuncs": [],
+                  "type": "simple"
+                }
+              ],
+              "code": "Result",
+              "expression": "100-A",
+              "funcList": [],
+              "q": "eval(100-A, A=\"M::`disk`:(LAST(`used_percent`)) BY `host`, `device`\")",
+              "type": "expression"
+            },
+            "uuid": "4c123741-2f0a-4c67-9887-fee9cb651835"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "10",
+                  "5"
+                ],
+                "operator": "between"
+              }
+            ],
+            "status": "warning"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "5"
+                ],
+                "operator": "<"
+              }
+            ],
+            "status": "critical"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "infoEvent": false,
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "10",
+                    "5"
+                  ],
+                  "operator": "between"
+                }
+              ],
+              "status": "warning"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "5"
+                  ],
+                  "operator": "<"
+                }
+              ],
+              "status": "critical"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "host",
+          "device"
+        ],
+        "interval": 300,
+        "message": ">等级：{{status}}  \n>主机：{{host}}  \n>内容：磁盘 {{device}} 剩余空间为 {{ Result |  to_fixed(2) }}%  \n>建议：磁盘空间即将耗尽，导致无法正常写入数据，请及时清理不必要的文件",
+        "recoverNeedPeriodCount": 1,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "eval(100-A, A=\"M::`disk`:(LAST(`used_percent`)) BY `host`, `device`\")"
+          }
+        ],
+        "title": "主机 {{ host }} 磁盘剩余空间过低",
+        "type": "simpleCheck"
+      },
+      "monitorName": "主机检测库"
+    },
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "swap",
+              "field": "used_percent",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`swap`:(LAST(`used_percent`)) BY `host`",
+              "type": "simple"
+            },
+            "uuid": "889b6426-b112-47ed-bf80-17ab7347c7f5"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "90"
+                ],
+                "operator": ">"
+              }
+            ],
+            "status": "critical"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "80",
+                  "90"
+                ],
+                "operator": "between"
+              }
+            ],
+            "status": "warning"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "90"
+                  ],
+                  "operator": ">"
+                }
+              ],
+              "status": "critical"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "80",
+                    "90"
+                  ],
+                  "operator": "between"
+                }
+              ],
+              "status": "warning"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "host"
+        ],
+        "interval": 300,
+        "message": ">等级：{{status}}  \n>主机：{{host}}  \n>内容：内存 Swap 使用率为 {{ Result |  to_fixed(2) }}%  \n>建议：内存 Swap 耗尽可能导致宕机风险，请查看内存使用率高的进程/应用是否为异常导致",
+        "recoverNeedPeriodCount": 1,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`swap`:(LAST(`used_percent`)) BY `host`"
+          }
+        ],
+        "title": "主机 {{ host }} 内存 Swap 使用率过高",
+        "type": "simpleCheck"
+      },
+      "monitorName": "主机检测库"
+    },
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "children": [
+                {
+                  "alias": "",
+                  "code": "A",
+                  "dataSource": "disk",
+                  "field": "inodes_free",
+                  "fieldFunc": "last",
+                  "fieldType": "integer",
+                  "groupBy": [
+                    "host",
+                    "device"
+                  ],
+                  "groupByTime": "",
+                  "namespace": "metric",
+                  "q": "M::`disk`:(LAST(`inodes_free`)) BY `host`, `device`",
+                  "queryFuncs": [],
+                  "type": "simple"
+                },
+                {
+                  "alias": "",
+                  "code": "B",
+                  "dataSource": "disk",
+                  "field": "inodes_total",
+                  "fieldFunc": "last",
+                  "fieldType": "integer",
+                  "groupBy": [
+                    "host",
+                    "device"
+                  ],
+                  "groupByTime": "",
+                  "namespace": "metric",
+                  "q": "M::`disk`:(LAST(`inodes_total`)) BY `host`, `device`",
+                  "type": "simple"
+                }
+              ],
+              "code": "Result",
+              "expression": "A/B*100",
+              "funcList": [],
+              "q": "eval(A/B*100, A=\"M::`disk`:(LAST(`inodes_free`)) BY `host`, `device`\", B=\"M::`disk`:(LAST(`inodes_total`)) BY `host`, `device`\")",
+              "type": "expression"
+            },
+            "uuid": "b3cfb628-67c5-45c5-b502-41ffcef605c0"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "5"
+                ],
+                "operator": "<="
+              }
+            ],
+            "status": "critical"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "5"
+                  ],
+                  "operator": "<="
+                }
+              ],
+              "status": "critical"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "host",
+          "device"
+        ],
+        "interval": 300,
+        "message": ">等级：{{status}}  \n>主机：{{host}}  \n>内容：文件系统剩余 inode 为 {{ Result |  to_fixed(2) }}%  \n>建议：文件系统 inode 耗尽将无法写入数据，请查看是否有大量小文件占用 inode",
+        "recoverNeedPeriodCount": 1,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "eval(A/B*100, A=\"M::`disk`:(LAST(`inodes_free`)) BY `host`, `device`\", B=\"M::`disk`:(LAST(`inodes_total`)) BY `host`, `device`\")"
+          }
+        ],
+        "title": "主机 {{ host }} 文件系统剩余 inode 过低",
+        "type": "simpleCheck"
+      },
+      "monitorName": "主机检测库"
+    },
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "cpu",
+              "field": "usage_iowait",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`cpu`:(LAST(`usage_iowait`)) BY `host`",
+              "type": "simple"
+            },
+            "uuid": "a4e4a3dd-0b1b-4cec-b90b-ae9a6f1c0c09"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "60"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "warning"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "60"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "warning"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "host"
+        ],
+        "interval": 300,
+        "message": ">等级：{{status}}  \n>主机：{{host}}  \n>内容：系统 CPU IOwait 为 {{ Result |  to_fixed(2) }}%  \n>建议：等待 I/O 的 CPU 时间过长，可能存在频繁写入或 I/O 瓶颈",
+        "recoverNeedPeriodCount": 1,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`cpu`:(LAST(`usage_iowait`)) BY `host`"
+          }
+        ],
+        "title": "主机 {{ host }} CPU IOwait 过高",
+        "type": "simpleCheck"
+      },
+      "monitorName": "主机检测库"
+    }
+  ]
+}

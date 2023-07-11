@@ -84,9 +84,7 @@ var (
 
 type Input struct {
 	Address          string                 `toml:"address"`
-	ExpandSpanEvents bool                   `toml:"expand_span_events"`
 	KeepRareResource bool                   `toml:"keep_rare_resource"`
-	OmitErrStatus    []string               `toml:"omit_err_status"`
 	CloseResource    map[string][]string    `toml:"close_resource"`
 	Sampler          *itrace.Sampler        `toml:"sampler"`
 	Tags             map[string]string      `toml:"tags"`

@@ -13,7 +13,7 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
 
-func (ipt *input) gather() {
+func (ipt *Input) gather() {
 	l.Debugf("try locking...")
 	ipt.Lock()
 	defer ipt.Unlock()
@@ -88,7 +88,7 @@ func (ipt *input) gather() {
 
 	l.Debugf("feed %d points...", len(ipt.acc.measurements))
 	if len(ipt.acc.measurements) > 0 {
-		if err := ipt.feeder.Feed(inputName, point.Metric, ipt.acc.measurements, &dkio.Option{CollectCost: time.Since(now)}); err != nil {
+		if err := ipt.Feeder.Feed(ipt.acc.feedMetricName, point.Metric, ipt.acc.measurements, &dkio.Option{CollectCost: time.Since(now)}); err != nil {
 			l.Error(err)
 		} else {
 			ipt.acc.measurements = ipt.acc.measurements[:0]

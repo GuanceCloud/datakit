@@ -31,6 +31,7 @@ func loadLocalDatakitConf() string {
 	if err := config.Cfg.LoadMainTOML(datakit.MainConfPath); err != nil {
 		return ""
 	}
+
 	return config.Cfg.HTTPAPI.Listen
 }
 
@@ -39,8 +40,10 @@ func runMonitorFlags() error {
 		*flagMonitorRefreshInterval = time.Second
 	}
 
+	// default
 	to := config.Cfg.HTTPAPI.Listen
 
+	// load from datakit.conf
 	if x := loadLocalDatakitConf(); x != "" {
 		to = x
 	}

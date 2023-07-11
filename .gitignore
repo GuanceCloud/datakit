@@ -1,7 +1,7 @@
 __debug_bin
 !cmd/make/build
 .cl.md
-.docs/
+.doc/
 .DS_Store
 .idea/
 .orig

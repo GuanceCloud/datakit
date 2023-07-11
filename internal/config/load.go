@@ -152,7 +152,10 @@ func feedEnvs(data []byte) []byte {
 		// 找到了环境变量就替换否则不替换
 		if ok {
 			envval = envVarEscaper.Replace(envval)
+			l.Infof("load ENV %q:%q ok", envvar, envval)
 			data = bytes.Replace(data, parameter[0], []byte(envval), 1)
+		} else {
+			l.Infof("load ENV %q failed, ignored", envvar)
 		}
 	}
 

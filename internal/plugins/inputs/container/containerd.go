@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
-	"sync"
 	"time"
 
 	v1 "github.com/containerd/cgroups/stats/v1"
@@ -34,8 +33,7 @@ type containerdInput struct {
 	criRuntimeVersion *cri.VersionResponse
 
 	loggingFilter filter.Filter
-	logpathList   map[string]interface{}
-	mu            sync.Mutex
+	logTable      *logTable
 }
 
 func newContainerdInput(ipt *Input) (cx *containerdInput, err error) {
@@ -66,7 +64,7 @@ func newContainerdInput(ipt *Input) (cx *containerdInput, err error) {
 		criClient:         criClient,
 		criRuntimeVersion: runtimeVersion,
 		ipt:               ipt,
-		logpathList:       make(map[string]interface{}),
+		logTable:          newLogTable(),
 	}
 
 	if err := c.createLoggingFilters(ipt.ContainerIncludeLog, ipt.ContainerExcludeLog); err != nil {
@@ -226,37 +224,75 @@ func (c *containerdInput) watchNewLogs() error {
 	}
 
 	containers := list.GetContainers()
-	l.Debugf("containerd length: %d", len(containers))
 
+	var newIDs []string
 	for _, container := range containers {
-		resp, err := c.criClient.ContainerStatus(context.Background(), &cri.ContainerStatusRequest{ContainerId: container.Id})
+		newIDs = append(newIDs, container.GetId())
+	}
+	c.cleanMissingContainerLog(newIDs)
+
+	l.Infof("containerd IDs: %v", newIDs)
+
+	for idx := range containers {
+		resp, err := c.criClient.ContainerStatus(context.Background(),
+			&cri.ContainerStatusRequest{ContainerId: containers[idx].Id, Verbose: true})
 		if err != nil {
-			l.Warnf("failed to get cri-container response, id: %s, err: %s", container.Id, err)
+			l.Warnf("failed to get cri-container response, id: %s, err: %s", containers[idx].Id, err)
 			continue
 		}
 
 		status := resp.GetStatus()
 		if status == nil {
-			l.Warnf("invalid containerd status, id: %s", container.Id)
+			l.Warn("invalid containerd status, skip")
 			continue
 		}
 
-		if !c.shouldPullContainerLog(status) {
-			l.Debugf("containerd-status: %#v", status)
+		if status.GetState() != cri.ContainerState_CONTAINER_RUNNING {
 			continue
 		}
 
-		func(status *cri.ContainerStatus) {
-			g.Go(func(ctx context.Context) error {
-				if err := c.tailingLog(status); err != nil {
-					l.Warnf("tail containerLog: %s", err)
-				}
-				return nil
-			})
-		}(status)
+		info := c.queryContainerLogInfo(resp)
+		if info == nil {
+			continue
+		}
+
+		if !c.shouldPullContainerLog(info) {
+			continue
+		}
+
+		if err := info.parseLogConfigs(); err != nil {
+			l.Warn(err)
+			continue
+		}
+
+		info.addStdout()
+		info.fillTags()
+
+		c.ipt.setLoggingExtraSourceMapToLogConfigs(info.logConfigs)
+		c.ipt.setLoggingSourceMultilineMapToLogConfigs(info.logConfigs)
+		c.ipt.setLoggingAutoMultilineToLogConfigs(info.logConfigs)
+
+		c.ipt.setExtractK8sLabelAsTagsToLogConfigs(info.logConfigs, info.podLabels)
+		c.ipt.setTagsToLogConfigs(info.logConfigs, info.tags)
+		c.ipt.setGlobalTagsToLogConfigs(info.logConfigs)
+
+		l.Debugf("containerd %s info: %#v", info.containerName, info)
+
+		c.tailingLogs(info)
 	}
 
+	l.Debugf("current containerd logtable: %s", c.logTable.String())
+
 	return nil
+}
+
+func (c *containerdInput) cleanMissingContainerLog(newIDs []string) {
+	missingIDs := c.logTable.findDifferences(newIDs)
+	for _, id := range missingIDs {
+		l.Infof("clean log collection for container id %s", id)
+		c.logTable.closeFromTable(id)
+		c.logTable.removeFromTable(id)
+	}
 }
 
 func (c *containerdInput) createLoggingFilters(include, exclude []string) error {
@@ -276,63 +312,19 @@ func (c *containerdInput) ignoreImageForLogging(image string) (ignore bool) {
 	if c.loggingFilter == nil {
 		return
 	}
-	// 注意，match 和 ignore 是相反的逻辑
-	// 如果 match 通过，则表示不需要 ignore
-	// 所以要取反
 	return !c.loggingFilter.Match(image)
 }
 
-func (c *containerdInput) shouldPullContainerLog(container *cri.ContainerStatus) bool {
-	if container.GetState() != cri.ContainerState_CONTAINER_RUNNING {
-		return false
-	}
-
-	if c.inLogList(container.GetLogPath()) {
-		return false
-	}
-
-	var image string
-	if imageSpec := container.GetImage(); imageSpec != nil {
-		image = imageSpec.Image
-	}
-
-	// TODO
-	// 每次获取到容器列表，都要进行以下审核，特别是获取其 k8s Annotation 的配置，需要进行访问和查找
-	// 这消耗很大，且没有意义
-	// 可以使用 container ID 进行缓存，维持一份名单，通过名单再决定是否进行考查
-
-	podAnnotationState := podAnnotationNil
-
-	func() {
-		podName := getPodNameForLabels(container.Labels)
-		if c.k8sClient == nil || podName == "" {
-			return
-		}
-		podNamespace := getPodNamespaceForLabels(container.Labels)
-
-		meta, err := queryPodMetaData(c.k8sClient, podName, podNamespace)
-		if err != nil {
-			return
-		}
-		if containerImage := meta.containerImage(getContainerNameForLabels(container.Labels)); containerImage != "" {
-			image = containerImage
-		}
-		podAnnotationState = getPodAnnotationState(container.Labels, meta)
-	}()
-
-	switch podAnnotationState {
-	case podAnnotationDisable:
-		return false
-	case podAnnotationEnable:
+func (c *containerdInput) shouldPullContainerLog(info *containerLogInfo) bool {
+	if info.enabled() {
 		return true
-	case podAnnotationNil:
-		// nil
 	}
 
-	l.Debugf("containerd-log image %s, containerName:%s", image, getContainerNameForLabels(container.Labels))
+	if c.logTable.inTable(info.id, info.logPath) {
+		return false
+	}
 
-	if c.ignoreImageForLogging(image) {
-		l.Debugf("ignore containerd-log because of image filter, containerName:%s, shortImage:%s", getContainerNameForLabels(container.Labels), image)
+	if c.ignoreImageForLogging(info.image) {
 		return false
 	}
 

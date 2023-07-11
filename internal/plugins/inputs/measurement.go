@@ -32,6 +32,8 @@ const (
 	// DataDog metricc types: https://docs.datadoghq.com/developers/metrics/types/?tab=count#metric-types
 	Gauge       = "gauge"
 	Count       = "count"
+	Histogram   = "histogram"
+	Summary     = "summary"
 	Rate        = "rate"
 	UnknownType = "unknown"
 	// add more...
@@ -250,4 +252,22 @@ func BuildFields(t *testing.T, fi map[string]interface{}) map[string]interface{}
 		}
 	}
 	return x
+}
+
+type I18n int
+
+const (
+	I18nZh = iota
+	I18nEn
+)
+
+func (x I18n) String() string {
+	switch x {
+	case I18nZh:
+		return "zh"
+	case I18nEn:
+		return "en"
+	default:
+		panic(fmt.Sprintf("should not been here: unsupport language: %s", x.String()))
+	}
 }

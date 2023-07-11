@@ -1,0 +1,1716 @@
+{
+  "dashboardBindSet": [],
+  "dashboardExtend": {},
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "dashboardType": "CUSTOM",
+  "iconSet": {
+    "icon": "https://static-res.guance.com/dataflux-template/dashboard/iis/icon.svg",
+    "url": "https://static-res.guance.com/dataflux-template/dashboard/iis/iis.png"
+  },
+  "main": {
+    "charts": [
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "colors": [],
+            "currentChartType": "table",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "mainMeasurementLimit": 50,
+            "mainMeasurementQueryCode": "A",
+            "mainMeasurementSort": "top",
+            "pageSize": 0,
+            "queryMode": "toGroupColumn",
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "uptime",
+                "name": "uptime",
+                "unit": "",
+                "units": [
+                  "time",
+                  "s"
+                ]
+              }
+            ],
+            "valColorMappings": [
+              {
+                "field": "state",
+                "fontColor": "",
+                "operation": "=",
+                "value": [
+                  "1"
+                ]
+              },
+              {
+                "field": "state",
+                "fontColor": "",
+                "operation": "=",
+                "value": [
+                  "2"
+                ]
+              },
+              {
+                "field": "state",
+                "fontColor": "",
+                "operation": "=",
+                "value": [
+                  "3"
+                ]
+              },
+              {
+                "field": "state",
+                "fontColor": "",
+                "operation": "=",
+                "value": [
+                  "4"
+                ]
+              },
+              {
+                "field": "state",
+                "fontColor": "",
+                "operation": "=",
+                "value": [
+                  "5"
+                ]
+              },
+              {
+                "field": "state",
+                "fontColor": "",
+                "operation": "=",
+                "value": [
+                  "6"
+                ]
+              },
+              {
+                "field": "state",
+                "fontColor": "",
+                "operation": "=",
+                "value": [
+                  "7"
+                ]
+              }
+            ],
+            "valMappings": [
+              {
+                "field": "state",
+                "mappingVal": "Uninitialized",
+                "operation": "=",
+                "originalVal": [
+                  "1"
+                ]
+              },
+              {
+                "field": "state",
+                "mappingVal": "Initialized",
+                "operation": "=",
+                "originalVal": [
+                  "2"
+                ]
+              },
+              {
+                "field": "state",
+                "mappingVal": "Running",
+                "operation": "=",
+                "originalVal": [
+                  "3"
+                ]
+              },
+              {
+                "field": "state",
+                "mappingVal": "Disabling",
+                "operation": "=",
+                "originalVal": [
+                  "4"
+                ]
+              },
+              {
+                "field": "state",
+                "mappingVal": "Disabled",
+                "operation": "=",
+                "originalVal": [
+                  "5"
+                ]
+              },
+              {
+                "field": "state",
+                "mappingVal": "Shutdown Pending",
+                "operation": "=",
+                "originalVal": [
+                  "6"
+                ]
+              },
+              {
+                "field": "state",
+                "mappingVal": "Delete Pending",
+                "operation": "=",
+                "originalVal": [
+                  "7"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": "APP Pool"
+        },
+        "name": "app pool",
+        "pos": {
+          "h": 13,
+          "w": 24,
+          "x": 0,
+          "y": 2
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "state",
+              "code": "A",
+              "dataSource": "iis_app_pool_was",
+              "field": "current_app_pool_state",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "07485f30-50f0-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "31c025d0-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "app_pool",
+                  "op": "!=",
+                  "type": "",
+                  "value": "_Total"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "app_pool"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`iis_app_pool_was`:(LAST(`current_app_pool_state`) AS `state`) { `host` = '#{host}' and `app_pool` != '_Total' } BY `app_pool`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "uptime",
+              "code": "B",
+              "dataSource": "iis_app_pool_was",
+              "field": "current_app_pool_uptime",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "07485f30-50f0-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "app_pool"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`iis_app_pool_was`:(LAST(`current_app_pool_uptime`) AS `uptime`) { `host` = '#{host}' } BY `app_pool`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "recycles",
+              "code": "C",
+              "dataSource": "iis_app_pool_was",
+              "field": "total_app_pool_recycles",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "07485f30-50f0-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "app_pool"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`iis_app_pool_was`:(LAST(`total_app_pool_recycles`) AS `recycles`) { `host` = '#{host}' } BY `app_pool`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "WebSite"
+        },
+        "name": "network traffic",
+        "pos": {
+          "h": 7,
+          "w": 8,
+          "x": 8,
+          "y": 17.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "sent",
+              "code": "A",
+              "dataSource": "iis_web_service",
+              "field": "bytes_sent",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "708aabf0-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "73041060-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "website",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{website}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`iis_web_service`:(LAST(`bytes_sent`) AS `sent`) { `host` = '#{host}' and `website` = '#{website}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "recived",
+              "code": "B",
+              "dataSource": "iis_web_service",
+              "field": "bytes_received",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "708aabf0-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "73041060-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "website",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{website}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`iis_web_service`:(LAST(`bytes_received`) AS `recived`) { `host` = '#{host}' and `website` = '#{website}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "WebSite"
+        },
+        "name": "current connections",
+        "pos": {
+          "h": 7,
+          "w": 8,
+          "x": 16,
+          "y": 17.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "current connections",
+              "code": "A",
+              "dataSource": "iis_web_service",
+              "field": "current_connections",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "708aabf0-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "73041060-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "website",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{website}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`iis_web_service`:(LAST(`current_connections`) AS `current connections`) { `host` = '#{host}' and `website` = '#{website}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "WebSite"
+        },
+        "name": "anonymous users",
+        "pos": {
+          "h": 7,
+          "w": 6,
+          "x": 12,
+          "y": 24.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "anonymous users",
+              "code": "A",
+              "dataSource": "iis_web_service",
+              "field": "anonymous_users",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "708aabf0-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "73041060-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "website",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{website}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`iis_web_service`:(LAST(`anonymous_users`) AS `anonymous users`) { `host` = '#{host}' and `website` = '#{website}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "WebSite"
+        },
+        "name": "connection attempts",
+        "pos": {
+          "h": 7,
+          "w": 6,
+          "x": 0,
+          "y": 24.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "total connection attempts",
+              "code": "A",
+              "dataSource": "iis_web_service",
+              "field": "total_connection_attempts",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "708aabf0-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "73041060-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "website",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{website}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`iis_web_service`:(LAST(`total_connection_attempts`) AS `total connection attempts`) { `host` = '#{host}' and `website` = '#{website}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "connection attempts",
+              "code": "B",
+              "dataSource": "iis_web_service",
+              "field": "connection_attempts",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "708aabf0-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "73041060-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "website",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{website}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`iis_web_service`:(LAST(`connection_attempts`) AS `connection attempts`) { `host` = '#{host}' and `website` = '#{website}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "WebSite"
+        },
+        "name": "file received/sent",
+        "pos": {
+          "h": 7,
+          "w": 6,
+          "x": 6,
+          "y": 24.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "files sent",
+              "code": "A",
+              "dataSource": "iis_web_service",
+              "field": "files_sent",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "708aabf0-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "73041060-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "website",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{website}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`iis_web_service`:(LAST(`files_sent`) AS `files sent`) { `host` = '#{host}' and `website` = '#{website}' }\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "file received",
+              "code": "B",
+              "dataSource": "iis_web_service",
+              "field": "files_received",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "708aabf0-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "73041060-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "website",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{website}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`iis_web_service`:(LAST(`files_received`) AS `file received`) { `host` = '#{host}' and `website` = '#{website}' }\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "WebSite"
+        },
+        "name": "http requests",
+        "pos": {
+          "h": 7,
+          "w": 8,
+          "x": 0,
+          "y": 17.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "delete",
+              "code": "A",
+              "dataSource": "iis_web_service",
+              "field": "http_requests_delete",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "708aabf0-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "73041060-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "website",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{website}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`iis_web_service`:(LAST(`http_requests_delete`) AS `delete`) { `host` = '#{host}' and `website` = '#{website}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "get",
+              "code": "B",
+              "dataSource": "iis_web_service",
+              "field": "http_requests_get",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "708aabf0-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "73041060-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "website",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{website}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`iis_web_service`:(LAST(`http_requests_get`) AS `get`) { `host` = '#{host}' and `website` = '#{website}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "head",
+              "code": "C",
+              "dataSource": "iis_web_service",
+              "field": "http_requests_head",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "708aabf0-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "73041060-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "website",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{website}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`iis_web_service`:(LAST(`http_requests_head`) AS `head`) { `host` = '#{host}' and `website` = '#{website}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "post",
+              "code": "D",
+              "dataSource": "iis_web_service",
+              "field": "http_requests_post",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "708aabf0-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "73041060-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "website",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{website}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`iis_web_service`:(LAST(`http_requests_post`) AS `post`) { `host` = '#{host}' and `website` = '#{website}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "put",
+              "code": "E",
+              "dataSource": "iis_web_service",
+              "field": "http_requests_put",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "708aabf0-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "73041060-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "website",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{website}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`iis_web_service`:(LAST(`http_requests_put`) AS `put`) { `host` = '#{host}' and `website` = '#{website}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "trace",
+              "code": "F",
+              "dataSource": "iis_web_service",
+              "field": "http_requests_trace",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "708aabf0-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "73041060-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "website",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{website}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`iis_web_service`:(LAST(`http_requests_trace`) AS `trace`) { `host` = '#{host}' and `website` = '#{website}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "options",
+              "code": "G",
+              "dataSource": "iis_web_service",
+              "field": "http_requests_options",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "708aabf0-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "73041060-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "website",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{website}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`iis_web_service`:(LAST(`http_requests_options`) AS `options`) { `host` = '#{host}' and `website` = '#{website}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "WebSite"
+        },
+        "name": "error locked",
+        "pos": {
+          "h": 7,
+          "w": 6,
+          "x": 0,
+          "y": 31.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "error locked",
+              "code": "A",
+              "dataSource": "iis_web_service",
+              "field": "error_locked",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "708aabf0-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "73041060-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "website",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{website}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`iis_web_service`:(LAST(`error_locked`) AS `error locked`) { `host` = '#{host}' and `website` = '#{website}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "WebSite"
+        },
+        "name": "error not found",
+        "pos": {
+          "h": 7,
+          "w": 6,
+          "x": 6,
+          "y": 31.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "error not found",
+              "code": "A",
+              "dataSource": "iis_web_service",
+              "field": "error_not_found",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "708aabf0-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "73041060-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "website",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{website}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`iis_web_service`:(LAST(`error_not_found`) AS `error not found`) { `host` = '#{host}' and `website` = '#{website}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "WebSite"
+        },
+        "name": "requests cgi",
+        "pos": {
+          "h": 7,
+          "w": 6,
+          "x": 18,
+          "y": 24.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "requests cgi",
+              "code": "A",
+              "dataSource": "iis_web_service",
+              "field": "requests_cgi",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "708aabf0-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "73041060-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "website",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{website}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`iis_web_service`:(LAST(`requests_cgi`) AS `requests cgi`) { `host` = '#{host}' and `website` = '#{website}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "WebSite"
+        },
+        "name": "requests isapi extension",
+        "pos": {
+          "h": 7,
+          "w": 6,
+          "x": 12,
+          "y": 31.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "requests isapi extension",
+              "code": "A",
+              "dataSource": "iis_web_service",
+              "field": "requests_isapi_extension",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "708aabf0-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "73041060-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "website",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{website}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`iis_web_service`:(LAST(`requests_isapi_extension`) AS `requests isapi extension`) { `host` = '#{host}' and `website` = '#{website}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "requests isapi extension",
+                "name": "requests isapi extension",
+                "unit": "",
+                "units": [
+                  "time",
+                  "s"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": "WebSite"
+        },
+        "name": "service uptime",
+        "pos": {
+          "h": 7,
+          "w": 6,
+          "x": 18,
+          "y": 31.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "requests isapi extension",
+              "code": "A",
+              "dataSource": "iis_web_service",
+              "field": "service_uptime",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "708aabf0-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "73041060-50f1-11ed-9190-8d462e42933e",
+                  "logic": "and",
+                  "name": "website",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{website}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`iis_web_service`:(LAST(`service_uptime`) AS `requests isapi extension`) { `host` = '#{host}' and `website` = '#{website}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      }
+    ],
+    "groups": [
+      "APP Pool",
+      "WebSite"
+    ],
+    "type": "template",
+    "vars": [
+      {
+        "code": "host",
+        "datasource": "dataflux",
+        "definition": {
+          "defaultVal": {
+            "label": "*",
+            "value": "re(`.*`)"
+          },
+          "field": "",
+          "metric": "",
+          "object": "",
+          "tag": "",
+          "value": "show_tag_value(from=['iis_app_pool_was'],keyin=['host'])[5m]"
+        },
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "name": "主机名",
+        "seq": 0,
+        "type": "QUERY",
+        "valueSort": "default"
+      },
+      {
+        "code": "website",
+        "datasource": "dataflux",
+        "definition": {
+          "defaultVal": {
+            "label": "*",
+            "value": "re(`.*`)"
+          },
+          "field": "",
+          "metric": "",
+          "object": "",
+          "tag": "",
+          "value": "show_tag_value(from=['iis_web_service'], keyin=['website']){host='#{host}'}[5m]"
+        },
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "name": "站点名",
+        "seq": 1,
+        "type": "QUERY",
+        "valueSort": "default"
+      }
+    ]
+  },
+  "summary": "",
+  "tagInfo": [],
+  "tags": [],
+  "thumbnail": "",
+  "title": "IIS 监控视图"
+}

@@ -6,33 +6,100 @@
 package sqlserver
 
 import (
-	"time"
-
 	"github.com/GuanceCloud/cliutils/point"
 	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-type Performance struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
-	ipt    *Input
+type Measurement struct {
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	election bool
+}
+
+func (m *Measurement) Point() *point.Point {
+	return nil
+}
+
+func (m *Measurement) Info() *inputs.MeasurementInfo {
+	return nil
+}
+
+type MetricMeasurment struct {
+	Measurement
+}
+
+func (m *MetricMeasurment) LineProto() (*dkpt.Point, error) {
+	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElection())
 }
 
 // Point implement MeasurementV2.
-func (m *Performance) Point() *point.Point {
+func (m *MetricMeasurment) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	}
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
 }
 
-func (m *Performance) LineProto() (*dkpt.Point, error) {
-	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElection())
+type LoggingMeasurment struct {
+	Measurement
+}
+
+func (m *LoggingMeasurment) LineProto() (*dkpt.Point, error) {
+	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.LOptElection())
+}
+
+// Point implement MeasurementV2.
+func (m *LoggingMeasurment) Point() *point.Point {
+	opts := point.DefaultLoggingOptions()
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+	}
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+type SqlserverMeasurment struct {
+	MetricMeasurment
+}
+
+//nolint:lll
+func (m *SqlserverMeasurment) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "sqlserver",
+		Type: "metric",
+		Fields: map[string]interface{}{
+			"cpu_count":           newCountFieldInfo("Specifies the number of logical CPUs on the system. Not nullable"),
+			"uptime":              newTimeFieldInfo("Total time elapsed since the last computer restart"),
+			"committed_memory":    newByteFieldInfo("The amount of memory committed to the memory manager"),
+			"physical_memory":     newByteFieldInfo("Total physical memory on the machine"),
+			"virtual_memory":      newByteFieldInfo("Amount of virtual memory available to the process in user mode."),
+			"target_memory":       newByteFieldInfo("Amount of memory that can be consumed by the memory manager. When this value is larger than the committed memory, then the memory manager will try to obtain more memory. When it is smaller, the memory manager will try to shrink the amount of memory committed."),
+			"db_online":           newCountFieldInfo("num of database state in online"),
+			"db_offline":          newCountFieldInfo("num of database state in offline"),
+			"db_recovering":       newCountFieldInfo("num of database state in recovering"),
+			"db_recovery_pending": newCountFieldInfo("num of database state in recovery_pending"),
+			"db_restoring":        newCountFieldInfo("num of database state in restoring"),
+			"db_suspect":          newCountFieldInfo("num of database state in suspect"),
+			"server_memory":       newByteFieldInfo("memory used"),
+		},
+		Tags: map[string]interface{}{
+			"sqlserver_host": inputs.NewTagInfo("host name which installed SQLServer"),
+		},
+	}
+}
+
+type Performance struct {
+	MetricMeasurment
 }
 
 //nolint:lll
@@ -42,24 +109,25 @@ func (m *Performance) Info() *inputs.MeasurementInfo {
 		Type: "metric",
 		Desc: "performance counter maintained by the server,[detail](https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-os-performance-counters-transact-sql?view=sql-server-ver15)",
 		Fields: map[string]interface{}{
-			"cntr_value": newCountFieldInfo("Current value of the counter."),
+			"cntr_value": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Count,
+				Unit:     inputs.NCount,
+				Desc:     "Current value of the counter",
+			},
 		},
 		Tags: map[string]interface{}{
 			"object_name":    inputs.NewTagInfo("Category to which this counter belongs."),
 			"counter_name":   inputs.NewTagInfo("Name of the counter. To get more information about a counter, this is the name of the topic to select from the list of counters in Use SQL Server Objects."),
+			"counter_type":   inputs.NewTagInfo("Type of the counter"),
+			"instance":       inputs.NewTagInfo("Name of the specific instance of the counter"),
 			"sqlserver_host": inputs.NewTagInfo("host name which installed SQLServer"),
 		},
 	}
 }
 
 type WaitStatsCategorized struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-}
-
-func (m *WaitStatsCategorized) LineProto() (*dkpt.Point, error) {
-	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElection())
+	MetricMeasurment
 }
 
 //nolint:lll
@@ -84,13 +152,7 @@ func (m *WaitStatsCategorized) Info() *inputs.MeasurementInfo {
 }
 
 type DatabaseIO struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-}
-
-func (m *DatabaseIO) LineProto() (*dkpt.Point, error) {
-	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElection())
+	MetricMeasurment
 }
 
 //nolint:lll
@@ -104,7 +166,7 @@ func (m *DatabaseIO) Info() *inputs.MeasurementInfo {
 			"write_bytes":       newByteFieldInfo("Number of writes made on this file"),
 			"read_latency_ms":   newTimeFieldInfo("Total time, in milliseconds, that the users waited for reads issued on the file."),
 			"write_latency_ms":  newTimeFieldInfo("Total time, in milliseconds, that users waited for writes to be completed on the file"),
-			"read":              newCountFieldInfo("Number of reads issued on the file."),
+			"reads":             newCountFieldInfo("Number of reads issued on the file."),
 			"writes":            newCountFieldInfo("Number of writes issued on the file."),
 			"rg_read_stall_ms":  newTimeFieldInfo("Does not apply to:: SQL Server 2008 through SQL Server 2012 (11.x).Total IO latency introduced by IO resource governance for reads"),
 			"rg_write_stall_ms": newTimeFieldInfo("Does not apply to:: SQL Server 2008 through SQL Server 2012 (11.x).Total IO latency introduced by IO resource governance for writes. Is not nullable."),
@@ -119,45 +181,8 @@ func (m *DatabaseIO) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type ServerProperties struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-}
-
-func (m *ServerProperties) LineProto() (*dkpt.Point, error) {
-	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElection())
-}
-
-//nolint:lll
-func (m *ServerProperties) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{
-		Name: "sqlserver",
-		Type: "metric",
-		Fields: map[string]interface{}{
-			"cpu_count":           newCountFieldInfo("Specifies the number of logical CPUs on the system. Not nullable."),
-			"db_online":           newCountFieldInfo("num of database state in online"),
-			"db_offline":          newCountFieldInfo("num of database state in offline"),
-			"db_recovering":       newCountFieldInfo("num of database state in recovering"),
-			"db_recovery_pending": newCountFieldInfo("num of database state in recovery_pending"),
-			"db_restoring":        newCountFieldInfo("num of database state in restoring"),
-			"db_suspect":          newCountFieldInfo("num of database state in suspect"),
-			"server_memory":       newByteFieldInfo("memory used"),
-		},
-		Tags: map[string]interface{}{
-			"sqlserver_host": inputs.NewTagInfo("host name which installed SQLServer"),
-		},
-	}
-}
-
 type Schedulers struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-}
-
-func (m *Schedulers) LineProto() (*dkpt.Point, error) {
-	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElection())
+	MetricMeasurment
 }
 
 //nolint:lll
@@ -191,13 +216,7 @@ func (m *Schedulers) Info() *inputs.MeasurementInfo {
 }
 
 type VolumeSpace struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-}
-
-func (m *VolumeSpace) LineProto() (*dkpt.Point, error) {
-	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElection())
+	MetricMeasurment
 }
 
 //nolint:lll
@@ -218,14 +237,7 @@ func (m *VolumeSpace) Info() *inputs.MeasurementInfo {
 }
 
 type LockRow struct {
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	election bool
-}
-
-func (m *LockRow) LineProto() (*dkpt.Point, error) {
-	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.LOptElectionV2(m.election))
+	LoggingMeasurment
 }
 
 //nolint:lll
@@ -242,24 +254,17 @@ func (m *LockRow) Info() *inputs.MeasurementInfo {
 			"memory_usage":            newCountFieldInfo("Number of 8-KB pages of memory used by this session"),
 			"last_request_start_time": newTimeFieldInfo("Time at which the last request on the session began, in second"),
 			"last_request_end_time":   newTimeFieldInfo("Time of the last completion of a request on the session, in second"),
+			"host_name":               newStringFieldInfo("Name of the client workstation that is specific to a session"),
+			"login_name":              newStringFieldInfo("SQL Server login name under which the session is currently executing"),
+			"session_status":          newStringFieldInfo("Status of the session"),
+			"message":                 newStringFieldInfo("Text of the SQL query"),
 		},
-		Tags: map[string]interface{}{
-			"host_name":      inputs.NewTagInfo("Name of the client workstation that is specific to a session"),
-			"login_name":     inputs.NewTagInfo("SQL Server login name under which the session is currently executing"),
-			"session_status": inputs.NewTagInfo("Status of the session"),
-			"text":           inputs.NewTagInfo("Text of the SQL query"),
-		},
+		Tags: map[string]interface{}{},
 	}
 }
 
 type LockTable struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-}
-
-func (m *LockTable) LineProto() (*dkpt.Point, error) {
-	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.LOptElection())
+	LoggingMeasurment
 }
 
 //nolint:lll
@@ -268,26 +273,19 @@ func (m *LockTable) Info() *inputs.MeasurementInfo {
 		Name: "sqlserver_lock_table",
 		Type: "logging",
 		Fields: map[string]interface{}{
-			"resource_session_id": newCountFieldInfo("Session ID that currently owns this request"),
+			"request_session_id": newCountFieldInfo("Session ID that currently owns this request"),
+			"object_name":        newStringFieldInfo("Name of the entity in a database with which a resource is associated"),
+			"db_name":            newStringFieldInfo("Name of the database under which this resource is scoped"),
+			"resource_type":      newStringFieldInfo("Represents the resource type"),
+			"request_mode":       newStringFieldInfo("Mode of the request"),
+			"request_status":     newStringFieldInfo("Current status of this request"),
 		},
-		Tags: map[string]interface{}{
-			"object_name":    inputs.NewTagInfo("Name of the entity in a database with which a resource is associated"),
-			"db_name":        inputs.NewTagInfo("Name of the database under which this resource is scoped"),
-			"resource_type":  inputs.NewTagInfo("Represents the resource type"),
-			"request_mode":   inputs.NewTagInfo("Mode of the request"),
-			"request_status": inputs.NewTagInfo("Current status of this request"),
-		},
+		Tags: map[string]interface{}{},
 	}
 }
 
 type LockDead struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-}
-
-func (m *LockDead) LineProto() (*dkpt.Point, error) {
-	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.LOptElection())
+	LoggingMeasurment
 }
 
 //nolint:lll
@@ -296,29 +294,22 @@ func (m *LockDead) Info() *inputs.MeasurementInfo {
 		Name: "sqlserver_lock_dead",
 		Type: "logging",
 		Fields: map[string]interface{}{
-			"request_session_id":  newCountFieldInfo("Session ID that currently owns this request"),
-			"blocking_session_id": newCountFieldInfo("ID of the session that is blocking the request"),
+			"request_session_id":   newCountFieldInfo("Session ID that currently owns this request"),
+			"blocking_session_id":  newCountFieldInfo("ID of the session that is blocking the request"),
+			"blocking_object_name": newStringFieldInfo("Indicates the name of the object to which this partition belongs"),
+			"db_name":              newStringFieldInfo("Name of the database under which this resource is scoped"),
+			"resource_type":        newStringFieldInfo("Represents the resource type"),
+			"request_mode":         newStringFieldInfo("Mode of the request"),
+			"requesting_text":      newStringFieldInfo("Text of the SQL query which is requesting"),
+			"blocking_text":        newStringFieldInfo("Text of the SQL query which is blocking"),
+			"message":              newStringFieldInfo("Text of the SQL query which is blocking"),
 		},
-		Tags: map[string]interface{}{
-			"blocking_object_name": inputs.NewTagInfo("Indicates the name of the object to which this partition belongs"),
-			"db_name":              inputs.NewTagInfo("Name of the database under which this resource is scoped"),
-			"resource_type":        inputs.NewTagInfo("Represents the resource type"),
-			"request_mode":         inputs.NewTagInfo("Mode of the request"),
-			"requesting_text":      inputs.NewTagInfo("Text of the SQL query which is requesting"),
-			"blocking_text":        inputs.NewTagInfo("Text of the SQL query which is blocking"),
-		},
+		Tags: map[string]interface{}{},
 	}
 }
 
 type LogicalIO struct {
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	election bool
-}
-
-func (m *LogicalIO) LineProto() (*dkpt.Point, error) {
-	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.LOptElectionV2(m.election))
+	LoggingMeasurment
 }
 
 //nolint:lll
@@ -342,14 +333,7 @@ func (m *LogicalIO) Info() *inputs.MeasurementInfo {
 }
 
 type WorkerTime struct {
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	election bool
-}
-
-func (m *WorkerTime) LineProto() (*dkpt.Point, error) {
-	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.LOptElectionV2(m.election))
+	LoggingMeasurment
 }
 
 //nolint:lll
@@ -371,14 +355,7 @@ func (m *WorkerTime) Info() *inputs.MeasurementInfo {
 }
 
 type DatabaseSize struct {
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	election bool
-}
-
-func (m *DatabaseSize) LineProto() (*dkpt.Point, error) {
-	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElectionV2(m.election))
+	MetricMeasurment
 }
 
 //nolint:lll
@@ -391,7 +368,58 @@ func (m *DatabaseSize) Info() *inputs.MeasurementInfo {
 			"log_size":  newKByteFieldInfo("The size of file of Log"),
 		},
 		Tags: map[string]interface{}{
-			"name": inputs.NewTagInfo("Name of the database"),
+			"database_name": inputs.NewTagInfo("Name of the database"),
+		},
+	}
+}
+
+type DatabaseFilesMeasurement struct {
+	MetricMeasurment
+}
+
+//nolint:lll
+func (m *DatabaseFilesMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "sqlserver_database_files",
+		Type: "metric",
+		Fields: map[string]interface{}{
+			"size": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeKB,
+				Desc:     "Current size of the database file",
+			},
+		},
+		Tags: map[string]interface{}{
+			"database":      inputs.NewTagInfo("Database name"),
+			"state":         inputs.NewTagInfo("Database file state: 0 = Online, 1 = Restoring, 2 = Recovering, 3 = Recovery_Pending, 4 = Suspect, 5 = Unknown, 6 = Offline, 7 = Defunct"),
+			"physical_name": inputs.NewTagInfo("Operating-system file name"),
+			"state_desc":    inputs.NewTagInfo("Description of the file state"),
+			"file_id":       inputs.NewTagInfo("ID of the file within database"),
+			"file_type":     inputs.NewTagInfo("File type: 0 = Rows, 1 = Log, 2 = FILESTREAM, 3 =  Identified for informational purposes only, 4 = Full-text"),
+		},
+	}
+}
+
+type DatabaseBackupMeasurement struct {
+	MetricMeasurment
+}
+
+//nolint:lll
+func (m *DatabaseBackupMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "sqlserver_database_backup",
+		Type: "metric",
+		Fields: map[string]interface{}{
+			"backup_count": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.Count,
+				Desc:     "The total count of successful backups made for a database",
+			},
+		},
+		Tags: map[string]interface{}{
+			"database": inputs.NewTagInfo("Database name"),
 		},
 	}
 }

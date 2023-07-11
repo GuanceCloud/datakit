@@ -63,8 +63,7 @@ type Input struct {
 }
 
 func (i *Input) Run() {
-	l.Info("oracle started...")
-	i.ExternalInput.Run()
+	l.Info("Only for Oracle measurement documentation information, should not be here.")
 }
 
 func (i *Input) Catalog() string { return catalogName }

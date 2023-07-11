@@ -137,9 +137,7 @@ func (i *Input) buildMysqlInnodb() ([]*gcPoint.Point, error) {
 		m.tags[key] = value
 	}
 
-	for k, v := range i.mInnodb {
-		m.fields[k] = v
-	}
+	m.fields = getMetricFields(i.mInnodb, m.Info())
 
 	ms = append(ms, m)
 
@@ -434,4 +432,19 @@ func getPointsFromMeasurement(ms []inputs.MeasurementV2) []*gcPoint.Point {
 	}
 
 	return pts
+}
+
+func getMetricFields(fields map[string]interface{}, info *inputs.MeasurementInfo) map[string]interface{} {
+	if info == nil {
+		return fields
+	}
+	newFields := map[string]interface{}{}
+
+	for k, v := range fields {
+		if _, ok := info.Fields[k]; ok {
+			newFields[k] = v
+		}
+	}
+
+	return newFields
 }

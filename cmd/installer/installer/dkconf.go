@@ -32,7 +32,7 @@ var (
 		"hostobject",
 		"net",
 		"host_processes",
-		"self",
+		"dk",
 	}
 
 	defaultHostInputsForLinux = []string{
@@ -46,7 +46,7 @@ var (
 		"net",
 		"host_processes",
 		"container",
-		"self",
+		"dk",
 	}
 
 	defaultHostInputsForMacOS = []string{
@@ -59,7 +59,7 @@ var (
 		"hostobject",
 		"net",
 		"container",
-		"self",
+		"dk",
 
 		// host_processes is costly, maybe we should disable default
 		"host_processes",
@@ -131,10 +131,12 @@ var (
 )
 
 // generate default inputs list.
-func mergeDefaultInputs(defaultList, enabledList []string) []string {
+func mergeDefaultInputs(defaultList, enabledList []string, appendDefault bool) []string {
 	if len(enabledList) == 0 {
 		return defaultList // no inputs enabled(disabled), enable all default inputs
 	}
+
+	cp.Infof("enabledList: %+#v\n", enabledList)
 
 	res := []string{}
 	blackList := map[string]bool{}
@@ -151,6 +153,7 @@ func mergeDefaultInputs(defaultList, enabledList []string) []string {
 		res = append(res, elem) // may be 'foo' or '-foo'
 		if strings.HasPrefix(elem, "-") {
 			blackList[elem] = true
+			cp.Warnf("input %q disabled\n", elem)
 		} else {
 			whiteList[elem] = true
 		}
@@ -177,9 +180,15 @@ func mergeDefaultInputs(defaultList, enabledList []string) []string {
 
 	if len(whiteList) > 0 {
 		for _, elem := range defaultList {
-			if _, ok := whiteList[elem]; !ok { // not enabled, then disable it
-				cp.Warnf("input %q disabled\n", elem)
-				res = append(res, "-"+elem)
+			if appendDefault {
+				cp.Infof("input %q eanbled\n", elem)
+				res = append(res, elem)
+			} else {
+				// disable them
+				if _, ok := whiteList[elem]; !ok { // not enabled, then disable it
+					cp.Warnf("input %q disabled\n", elem)
+					res = append(res, "-"+elem)
+				}
 			}
 		}
 	}
@@ -204,15 +213,15 @@ func mergeDefaultInputs(defaultList, enabledList []string) []string {
 func setupDefaultInputs(mc *config.Config, arg string, list []string, upgrade bool) {
 	if upgrade {
 		if len(mc.DefaultEnabledInputs) == 0 { // all default inputs disabled
-			mc.DefaultEnabledInputs = mergeDefaultInputs(list, []string{"-"})
+			mc.DefaultEnabledInputs = mergeDefaultInputs(list, []string{"-"}, true)
 		} else {
-			mc.DefaultEnabledInputs = mergeDefaultInputs(list, mc.DefaultEnabledInputs)
+			mc.DefaultEnabledInputs = mergeDefaultInputs(list, mc.DefaultEnabledInputs, true)
 		}
 	} else {
 		if arg == "" {
-			mc.DefaultEnabledInputs = mergeDefaultInputs(list, nil)
+			mc.DefaultEnabledInputs = mergeDefaultInputs(list, nil, false)
 		} else {
-			mc.DefaultEnabledInputs = mergeDefaultInputs(list, strings.Split(arg, ","))
+			mc.DefaultEnabledInputs = mergeDefaultInputs(list, strings.Split(arg, ","), false)
 		}
 	}
 }

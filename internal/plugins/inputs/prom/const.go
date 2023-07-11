@@ -8,7 +8,7 @@ package prom
 const sampleCfg = `
 [[inputs.prom]]
   ## Exporter URLs.
-  # urls = ["http://127.0.0.1:9100/metrics", "http://127.0.0.1:9200/metrics"]
+  urls = ["http://127.0.0.1:9100/metrics", "http://127.0.0.1:9200/metrics"]
 
   ## Unix Domain Socket URL. Using socket to request data when not empty.
   uds_path = ""
@@ -131,4 +131,4 @@ const sampleCfg = `
 
   ## (Optional) Timeout: (defaults to "30s").
   # timeout = "30s"
-  `
+`

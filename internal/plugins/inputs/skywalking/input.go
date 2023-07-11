@@ -45,7 +45,7 @@ const (
   endpoints = ["/v3/trace", "/v3/metric", "/v3/logging", "/v3/profiling"]
 
   ## Skywalking GRPC server listening on address.
-  address = "localhost:11800"
+  address = "127.0.0.1:11800"
 
   ## plugins is a list contains all the widgets used in program that want to be regarded as service.
   ## every key words list in plugins represents a plugin defined as special tag by skywalking.

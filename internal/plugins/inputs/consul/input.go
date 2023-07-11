@@ -26,7 +26,7 @@ const (
   tags_ignore = ["check"]
   interval = "10s"
 
-  [[inputs.prom.measurements]]
+[[inputs.prom.measurements]]
   prefix = "consul_"
   name = "consul"
 `

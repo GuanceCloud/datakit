@@ -235,3 +235,73 @@ func newFielInfoCountFloat(desc string) *inputs.FieldInfo {
 		Desc:     desc,
 	}
 }
+
+// func newFielInfoCountFloatTODO() *inputs.FieldInfo {
+// 	return &inputs.FieldInfo{
+// 		Type:     inputs.Gauge,
+// 		DataType: inputs.Float,
+// 		Unit:     inputs.NCount,
+// 		Desc:     inputs.TODO,
+// 	}
+// }
+
+////////////////////////////////////////////////////////////////////////////////
+
+type TomcatM struct{ measurement }
+
+// Point implement MeasurementV2.
+func (m *TomcatM) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(m.ts), m.opt)
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+//nolint:lll
+func (m *TomcatM) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: inputName,
+		Fields: map[string]interface{}{
+			"bytes_rcvd":                newFielInfoCountFloat("Bytes per second received by all request processors."),
+			"bytes_sent":                newFielInfoCountFloat("Bytes per second sent by all the request processors."),
+			"cache_access_count":        newFielInfoCountFloat("The number of accesses to the cache per second."),
+			"cache_hits_count":          newFielInfoCountFloat("The number of cache hits per second."),
+			"error_count":               newFielInfoCountFloat("The number of errors per second on all request processors."),
+			"jsp_count":                 newFielInfoCountFloat("The number of JSPs per second that have been loaded in the web module."),
+			"jsp_reload_count":          newFielInfoCountFloat("The number of JSPs per second that have been reloaded in the web module."),
+			"max_time":                  newFielInfoCountFloat("The longest request processing time (in milliseconds)."),
+			"processing_time":           newFielInfoCountFloat("The sum of request processing times across all requests handled by the request processors (in milliseconds) per second."),
+			"request_count":             newFielInfoCountFloat("The number of requests per second across all request processors."),
+			"servlet_error_count":       newFielInfoCountFloat("The number of erroneous requests received by the servlet per second."),
+			"servlet_processing_time":   newFielInfoCountFloat("The sum of request processing times across all requests to the servlet (in milliseconds) per second."),
+			"servlet_request_count":     newFielInfoCountFloat("The number of requests received by the servlet per second."),
+			"string_cache_access_count": newFielInfoCountFloat("The number of accesses to the string cache per second."),
+			"string_cache_hit_count":    newFielInfoCountFloat("The number of string cache hits per second."),
+			"threads_busy":              newFielInfoCountFloat("The number of threads that are in use."),
+			"threads_count":             newFielInfoCountFloat("The number of threads managed by the thread pool."),
+			"threads_max":               newFielInfoCountFloat("The maximum number of allowed worker threads."),
+			"web_cache_hit_count":       newFielInfoCountFloat("The number of web resource cache hits per second."),
+			"web_cache_lookup_count":    newFielInfoCountFloat("The number of lookups to the web resource cache per second."),
+		},
+		Tags: map[string]interface{}{
+			// "bean_host":       inputs.NewTagInfo("Bean host."),
+			// "context":         inputs.NewTagInfo("Context."),
+			// "env":             inputs.NewTagInfo("Environment variable."),
+			// "host":            inputs.NewTagInfo("Hostname."),
+			"instance": inputs.NewTagInfo("Instance."),
+			// "J2EEApplication": inputs.NewTagInfo("J2EE application."),
+			// "J2EEServer":      inputs.NewTagInfo("J2EE server."),
+			// "j2eeType":        inputs.NewTagInfo("J2EE type."),
+			"jmx_domain":  inputs.NewTagInfo("JMX domain."),
+			"metric_type": inputs.NewTagInfo("Metric type."),
+			"name":        inputs.NewTagInfo("Name."),
+			"runtime-id":  inputs.NewTagInfo("Runtime ID."),
+			"service":     inputs.NewTagInfo("Service name."),
+			"type":        inputs.NewTagInfo("Type."),
+			// "version":         inputs.NewTagInfo("Version."),
+			// "WebModule":       inputs.NewTagInfo("Web module."),
+		},
+	}
+}

@@ -87,14 +87,13 @@ func CompareInputs(confdInputs map[string][]*ConfdInfo, defaultEnabledInputs []s
 				// old inputsInfo is long
 
 				// Some input is default enabled and must singleton
-				// Default start collector + self
 				i := 0
 				for i = 0; i < len(defaultEnabledInputs); i++ {
 					if confdInputName == defaultEnabledInputs[i] {
 						break
 					}
 				}
-				if i >= len(defaultEnabledInputs) && confdInputName != "self" {
+				if i >= len(defaultEnabledInputs) && confdInputName != "dk" {
 					// Not default enabled input
 					handleList[len(handleList)-1].deleteIndex = len(confdConfigs) // from here delete
 				} else if len(InputsInfo[confdInputName]) > 1 {

@@ -40,6 +40,10 @@ func TestCompile(t *testing.T) {
 	assert.False(t, f.Match("cpu0"))
 	assert.True(t, f.Match("mem"))
 	assert.True(t, f.Match("network"))
+
+	f, err = Compile([]string{"*sys*"})
+	assert.NoError(t, err)
+	assert.True(t, f.Match("linux/system"))
 }
 
 func TestIncludeExclude(t *testing.T) {

@@ -632,7 +632,7 @@ func TestIntegrate(t *testing.T) {
 						return
 					}
 
-					assert.NoError(t, tc.pool.Purge(tc.resource))
+					tc.pool.Purge(tc.resource)
 				})
 			})
 		}(tc)

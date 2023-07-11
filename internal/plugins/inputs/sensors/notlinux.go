@@ -38,7 +38,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&sensorsMeasurement{}}
 }
 
-func (s *Input) Run() {
+func (*Input) Run() {
 	l.Errorf("Can not run input %q on %s-%s.", inputName, runtime.GOOS, runtime.GOARCH)
 }
 

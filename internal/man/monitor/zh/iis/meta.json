@@ -1,0 +1,151 @@
+{
+  "checkers": [
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "iis",
+              "field": "*",
+              "fieldFunc": "count",
+              "fieldType": "",
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "host",
+                "service"
+              ],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`iis`:(COUNT(`*`)) { `index` = 'default' and  `status_code` >= 500  } BY `host`, `service`",
+              "search": "",
+              "treeFilters": {
+                "status_code": [
+                  ">=500"
+                ]
+              },
+              "type": "simple"
+            },
+            "uuid": "684e7414-4d2b-44e6-a745-451c9e5550e5"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "100"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "critical"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "50"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "error"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "25"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "warning"
+          }
+        ],
+        "uiType": "tree"
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "atAccounts": [],
+        "atNoDataAccounts": [],
+        "channels": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "100"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "critical"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "50"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "error"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "25"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "warning"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "host",
+          "service"
+        ],
+        "interval": 300,
+        "message": ">等级：{{status}}  \n>主机：{{host}}  \n>内容：IIS 5XX 错误数为 {{ Result |  to_fixed(2) }}%  \n>建议：检查 IIS 日志查看详细信息",
+        "noDataMessage": "",
+        "noDataTitle": "",
+        "recoverNeedPeriodCount": 2,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "L::`iis`:(COUNT(`*`)) { `index` = 'default' and  `status_code` >= 500  } BY `host`, `service`"
+          }
+        ],
+        "title": "IIS 5XX 错误数过多",
+        "type": "loggingCheck"
+      },
+      "monitorName": "默认"
+    }
+  ]
+}

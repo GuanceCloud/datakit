@@ -211,10 +211,33 @@ func (c *ptChecker) checkOnDoc(pt *point.Point) {
 	for k := range c.ignoreTags {
 		delete(mGotTags, k)
 	}
-	if len(c.mInfo.Tags)+len(c.extraTags) != len(mGotTags) {
-		c.addMsg(fmt.Sprintf("checkOnDoc expect %d tags got %d",
-			len(c.mInfo.Tags)+len(c.extraTags),
-			len(c.gotTags)+len(c.optionalTags)))
+
+	mDocTags := make(map[string]struct{})
+	for k := range c.mInfo.Tags {
+		if len(k) > 0 {
+			mDocTags[k] = struct{}{}
+		}
+	}
+	for k := range c.extraTags {
+		if len(k) > 0 {
+			mDocTags[k] = struct{}{}
+		}
+	}
+	if len(mDocTags) != len(mGotTags) {
+		// c.addMsg(fmt.Sprintf("checkOnDoc expect %d tags got %d",
+		// 	len(c.mInfo.Tags)+len(c.extraTags),
+		// 	len(c.gotTags)+len(c.optionalTags)))
+
+		var left, right []string
+		for k := range mDocTags {
+			left = append(left, k)
+		}
+		for k := range mGotTags {
+			right = append(right, k)
+		}
+		diff := Difference(left, right)
+
+		c.addMsg(fmt.Sprintf("tags diff = %v\n", diff))
 	}
 
 	// check field key count
@@ -239,10 +262,10 @@ func (c *ptChecker) checkOnDoc(pt *point.Point) {
 		}
 		diff := Difference(left, right)
 
-		l.Warnf("diff = %v\n", diff)
+		c.addMsg(fmt.Sprintf("fields diff = %v\n", diff))
 
-		c.addMsg(fmt.Sprintf("expect %d fields got %d(%d keys optional)",
-			len(c.mInfo.Fields), len(c.gotFields), len(c.optionalFields)))
+		// c.addMsg(fmt.Sprintf("expect %d fields got %d(%d keys optional)",
+		// 	len(c.mInfo.Fields), len(c.gotFields), len(c.optionalFields)))
 	}
 
 	// check all documented tags are exist in got tags.

@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/go-sourcemap/sourcemap"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
@@ -477,7 +478,7 @@ func getSourceMapString(str string, sourcemapItem map[string]*sourcemap.Consumer
 
 	urlObj, err := url.Parse(srcPath)
 	if err != nil {
-		log.Debugf("parse url failed, %s, %s", srcPath, err.Error())
+		log.Warnf("parse url failed, %s, %s", srcPath, err.Error())
 		return str
 	}
 
@@ -486,7 +487,7 @@ func getSourceMapString(str string, sourcemapItem map[string]*sourcemap.Consumer
 
 	smap, ok := sourcemapItem[sourceMapFileName]
 	if !ok {
-		log.Debugf("no sourcemap: %s", sourceMapFileName)
+		log.Warnf("parse sourcemap for [%s] failed: sourcemap file [%s] is required", str, sourceMapFileName)
 		return str
 	}
 

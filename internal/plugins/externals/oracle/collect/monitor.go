@@ -11,7 +11,6 @@ import (
 	"net"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -138,28 +137,18 @@ func (m *Monitor) Run() {
 	defer tick.Stop()
 	defer m.db.Close() //nolint:errcheck
 
-	wg := sync.WaitGroup{}
-
 	for {
 		sa := newSafeArray()
 
-		wg.Add(len(m.collectors))
 		for idx := range m.collectors {
-			func(idx int) {
-				go func(i int) {
-					defer wg.Done()
-					pt, err := m.collectors[idx].collect()
-					if err != nil {
-						l.Errorf("Collect failed: %v", err)
-					} else {
-						line := pt.LineProto()
-						sa.add(line)
-					}
-				}(idx)
-			}(idx)
+			pt, err := m.collectors[idx].collect()
+			if err != nil {
+				l.Errorf("Collect failed: %v", err)
+			} else {
+				line := pt.LineProto()
+				sa.add(line)
+			}
 		}
-
-		wg.Wait() // blocking
 
 		if sa.len() > 0 {
 			if err := writeData(bytes.Join(sa.get(), []byte("\n")), m.datakitPostURL); err != nil {

@@ -85,7 +85,6 @@ const (
 	LogFilter         = "/v2/logfilter/pull" // deprecated
 	DatakitPull       = "/v1/datakit/pull"
 	ListDataWay       = "/v2/list/dataway"
-	DatakitInputName  = "self"
 
 	StrGitRepos           = "gitrepos"
 	StrPipelineRemote     = "pipeline_remote"
@@ -148,7 +147,7 @@ var (
 	OSLabelMac     = ":fontawesome-brands-apple:"
 	LabelK8s       = ":material-kubernetes:"
 	LabelDocker    = ":material-docker:"
-	LabelElection  = ` · [:fontawesome-solid-flag-checkered:](index.md#legends "支持选举")`
+	LabelElection  = ` · [:fontawesome-solid-flag-checkered:](index.md#legends "Election Enabled")`
 
 	AllOS             = []string{OSLabelLinux, OSLabelWindows, OSLabelMac, LabelK8s, LabelDocker}
 	AllOSWithElection = append(AllOS, LabelElection)

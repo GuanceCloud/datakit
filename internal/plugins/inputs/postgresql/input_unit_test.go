@@ -150,7 +150,6 @@ func TestCollect(t *testing.T) {
 		mockData: getMockData(mockFields),
 	}
 
-	input.Tags = map[string]string{datakit.DatakitInputName: datakit.DatakitInputName}
 	err = input.init()
 	assert.NoError(t, err)
 	err = input.Collect()

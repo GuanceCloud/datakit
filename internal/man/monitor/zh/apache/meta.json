@@ -1,0 +1,152 @@
+{
+  "checkers": [
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "apache",
+              "field": "*",
+              "fieldFunc": "count",
+              "fieldType": "",
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "service",
+                "host"
+              ],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`apache`:(COUNT(`*`)) { `index` = 'default' and  `http_code` >= 500  } BY `service`, `host`",
+              "search": "",
+              "treeFilters": {
+                "http_code": [
+                  ">=500"
+                ]
+              },
+              "type": "simple"
+            },
+            "uuid": "2904c397-fd6c-44e8-8b29-c62f4e89d8a3"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "100"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "critical"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "50"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "error"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "25"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "warning"
+          }
+        ],
+        "uiType": "tree"
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "atAccounts": [],
+        "atNoDataAccounts": [],
+        "channels": [],
+        "checkerOpt": {
+          "infoEvent": false,
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "100"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "critical"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "50"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "error"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "25"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "warning"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "service",
+          "host"
+        ],
+        "interval": 300,
+        "message": ">等级：{{status}}  \n>主机：{{host}}  \n>内容：Apache 5XX 错误数为 {{ Result |  to_fixed(2) }}%  \n>建议：检查 Apache 日志查看详细信息",
+        "noDataMessage": "",
+        "noDataTitle": "",
+        "recoverNeedPeriodCount": 2,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "L::`apache`:(COUNT(`*`)) { `index` = 'default' and  `http_code` >= 500  } BY `service`, `host`"
+          }
+        ],
+        "title": "apache 5XX 错误数过多",
+        "type": "loggingCheck"
+      },
+      "monitorName": "默认"
+    }
+  ]
+}

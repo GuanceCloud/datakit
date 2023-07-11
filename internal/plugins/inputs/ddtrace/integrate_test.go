@@ -213,11 +213,11 @@ type caseSpec struct {
 }
 
 func (cs *caseSpec) checkPoint(pts []*point.Point) error {
-	var opts []inputs.PointCheckOption
-	opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
-	opts = append(opts, cs.opts...)
-
 	for _, pt := range pts {
+		var opts []inputs.PointCheckOption
+		opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
+		opts = append(opts, cs.opts...)
+
 		measurement := string(pt.Name())
 
 		switch measurement {
@@ -510,7 +510,7 @@ func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
 	return nil
 }
 
-// Launch large amount of HTTP requests to remote nginx.
+// Launch large amount of HTTP requests to remote web server.
 func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) {
 	for _, v := range cs.serverPorts {
 		for path, count := range cs.mPathCount {

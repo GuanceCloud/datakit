@@ -78,12 +78,26 @@ type Input interface {
 	Catalog() string
 	Run()
 	SampleConfig() string
-	// add more...
 }
 
 type HTTPInput interface {
-	// Input
 	RegHTTPHandler()
+}
+
+// Dashboard used to export inputs dashboard JSON.
+type Dashboard interface {
+	Dashboard(lang I18n) map[string]string
+	// List return all related dashboard name
+	// if nothing returned, use input name
+	DashboardList() []string
+}
+
+// Monitor used to export inputs monitor JSON.
+type Monitor interface {
+	Monitor(lang I18n) map[string]string
+	// List return all related monitor name
+	// if nothing returned, use input name
+	MonitorList() []string
 }
 
 type Singleton interface {
@@ -91,7 +105,6 @@ type Singleton interface {
 }
 
 type PipelineInput interface {
-	// Input
 	PipelineConfig() map[string]string
 	RunPipeline()
 	GetPipeline() []*tailer.Option
@@ -315,16 +328,16 @@ func RunInputs() error {
 				continue
 			}
 
+			if inp, ok := ii.input.(ReadEnv); ok && datakit.Docker {
+				inp.ReadEnv(envs)
+			}
+
 			if inp, ok := ii.input.(HTTPInput); ok {
 				inp.RegHTTPHandler()
 			}
 
 			if inp, ok := ii.input.(PipelineInput); ok {
 				inp.RunPipeline()
-			}
-
-			if inp, ok := ii.input.(ReadEnv); ok && datakit.Docker {
-				inp.ReadEnv(envs)
 			}
 
 			func(name string, ii *inputInfo) {

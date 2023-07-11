@@ -54,6 +54,9 @@ const (
   ## sampler. If you want to get rid of some error status, you can set the error status list here.
   # omit_err_status = ["404"]
 
+  ## compatible ddtrace: It is possible to compatible OTEL Trace with DDTrace trace
+  # compatible_ddtrace=false
+
   ## Ignore tracing resources map like service:[resources...].
   ## The service name is the full service name in current application.
   ## The resource list is regular expressions uses to block resource names.
@@ -137,22 +140,23 @@ var (
 )
 
 type httpConfig struct {
-	Enabled      bool   `toml:"enable"`
-	StatusCodeOK int    `toml:"http_status_ok"`
-	TraceAPI     string `toml:"trace_api"`
-	MetricAPI    string `toml:"metric_api"`
+	Enabled      bool   `toml:"enable" json:"enable"`
+	StatusCodeOK int    `toml:"http_status_ok" json:"http_status_ok"`
+	TraceAPI     string `toml:"trace_api" json:"trace_api"`
+	MetricAPI    string `toml:"metric_api" json:"metric_api"`
 }
 
 type grpcConfig struct {
-	TraceEnabled  bool   `toml:"trace_enable"`
-	MetricEnabled bool   `toml:"metric_enable"`
-	Address       string `toml:"addr"`
+	TraceEnabled  bool   `toml:"trace_enable" json:"trace_enable"`
+	MetricEnabled bool   `toml:"metric_enable" json:"metric_enable"`
+	Address       string `toml:"addr" json:"addr"`
 }
 
 type Input struct {
 	Pipelines           map[string]string            `toml:"pipelines"` // deprecated
 	HTTPConfig          *httpConfig                  `toml:"http"`
 	GRPCConfig          *grpcConfig                  `toml:"grpc"`
+	CompatibleDDTrace   bool                         `toml:"compatible_ddtrace"`
 	ExpectedHeaders     map[string]string            `toml:"expected_headers"`
 	IgnoreAttributeKeys []string                     `toml:"ignore_attribute_keys"`
 	KeepRareResource    bool                         `toml:"keep_rare_resource"`
@@ -308,7 +312,7 @@ func (ipt *Input) Run() {
 
 		return
 	}
-
+	convertToDD = ipt.CompatibleDDTrace
 	tags = ipt.Tags
 	for i := range ipt.IgnoreAttributeKeys {
 		ignoreKeyRegExps = append(ignoreKeyRegExps, regexp.MustCompile(ipt.IgnoreAttributeKeys[i]))

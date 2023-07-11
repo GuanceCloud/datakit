@@ -61,6 +61,7 @@ keyevent
 Kodo
 kubelet
 Kubernetes
+kubernetes
 libc
 Log4j
 Logback
@@ -182,6 +183,7 @@ STATPORT
 TTFB
 uncorrectable
 unroutable
+dialtesting
 
 # 连词
 golangci

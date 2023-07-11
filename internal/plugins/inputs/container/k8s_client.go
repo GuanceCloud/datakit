@@ -168,11 +168,6 @@ func (c *k8sClient) kubeStateMetrics() error {
 	return nil
 }
 
-//nolint:deadcode,unused
-func (c *k8sClient) setNamespace(namespace string) {
-	c.namespace = namespace
-}
-
 func (c *k8sClient) getDeployments() kubev1apps.DeploymentInterface {
 	return c.AppsV1().Deployments(c.namespace)
 }

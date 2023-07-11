@@ -35,15 +35,6 @@ type dockerClient struct {
 	client *docker.Client
 }
 
-// nolint (is unused)
-func newEnvClient() (*dockerClient, error) {
-	client, err := docker.NewClientWithOpts(docker.FromEnv)
-	if err != nil {
-		return nil, err
-	}
-	return &dockerClient{client}, nil
-}
-
 func newDockerClient(host string, tlsConfig *tls.Config) (*dockerClient, error) {
 	transport := &http.Transport{
 		TLSClientConfig: tlsConfig,

@@ -20,7 +20,7 @@ type statsdMeasurement struct {
 	tags   map[string]string
 	fields map[string]interface{}
 	ts     time.Time
-	ipt    *input
+	ipt    *Input
 }
 
 // Point implement MeasurementV2.
@@ -43,8 +43,9 @@ func (m *statsdMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 type accumulator struct {
-	ref          *input
-	measurements []*point.Point
+	ref            *Input
+	measurements   []*point.Point
+	feedMetricName string
 }
 
 func (a *accumulator) addFields(name string, fields map[string]interface{}, tags map[string]string, ts time.Time) {
@@ -56,6 +57,8 @@ func (a *accumulator) addFields(name string, fields map[string]interface{}, tags
 		l.Debugf("drop tag %s", t)
 		delete(tags, t)
 	}
+
+	a.doFeedMetricName(tags)
 
 	// Requrements: there shoule be only 1 field, the field key should be `value'
 	if len(fields) != 1 {
@@ -103,4 +106,24 @@ func (a *accumulator) addFields(name string, fields map[string]interface{}, tags
 		ipt:  a.ref,
 	}
 	a.measurements = append(a.measurements, metric.Point())
+}
+
+func (a *accumulator) doFeedMetricName(tags map[string]string) {
+	a.feedMetricName = "statsd/-/-" // default
+	if len(a.ref.StatsdSourceKey) > 0 || len(a.ref.StatsdHostKey) > 0 {
+		sourceKey := tags[a.ref.StatsdSourceKey]
+		hostKey := tags[a.ref.StatsdHostKey]
+		if len(sourceKey) == 0 {
+			sourceKey = "-"
+		}
+		if len(hostKey) == 0 {
+			hostKey = "-"
+		}
+		a.feedMetricName = "statsd/" + sourceKey + "/" + hostKey
+
+		if !a.ref.SaveAboveKey {
+			delete(tags, a.ref.StatsdSourceKey)
+			delete(tags, a.ref.StatsdHostKey)
+		}
+	}
 }

@@ -1,0 +1,90 @@
+{
+  "checkers": [
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "consul",
+              "field": "serf_lan_member_status",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "funcList": [],
+              "groupBy": [
+                "instance",
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`consul`:(LAST(`serf_lan_member_status`)) BY `instance`, `host`",
+              "type": "simple"
+            },
+            "uuid": "fb3170f5-178c-4816-bbe9-8fff1f01f1f3"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "1"
+                ],
+                "operator": "!="
+              }
+            ],
+            "status": "critical"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "atAccounts": [],
+        "atNoDataAccounts": [],
+        "channels": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "1"
+                  ],
+                  "operator": "!="
+                }
+              ],
+              "status": "critical"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "instance",
+          "host"
+        ],
+        "interval": 60,
+        "message": "- 所属空间：{{ df_workspace_name }}\n- 主机：{{ host }}\n- 级别：{{ df_status }}\n- 检测值：{{ Result }}\n- 集群里成员的状态存在异常，其中2 表示 Leaving，3 表示 Left，4 表示 Failed\n",
+        "noDataMessage": "",
+        "noDataTitle": "",
+        "recoverNeedPeriodCount": 2,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`consul`:(LAST(`serf_lan_member_status`)) BY `instance`, `host`"
+          }
+        ],
+        "title": "Consul 集群里成员的状态存在异常",
+        "type": "simpleCheck"
+      },
+      "monitorName": "默认"
+    }
+  ]
+}

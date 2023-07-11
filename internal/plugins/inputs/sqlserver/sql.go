@@ -30,7 +30,7 @@ const (
 	sqlServerDatabaseIO = `
 SET DEADLOCK_PRIORITY -10;
 IF SERVERPROPERTY('EngineEdition') NOT IN (2,3,4) BEGIN /*NOT IN Standard,Enterpris,Express*/
-	DECLARE @ErrorMessage AS nvarchar(500) = 'Telegraf - Connection string Server:'+ @@ServerName + ',Database:' + DB_NAME() +' is not a SQL Server Standard,Enterprise or Express. Check the database_type parameter in the telegraf configuration.';
+	DECLARE @ErrorMessage AS nvarchar(500) = 'DataKit - Connection string Server:'+ @@ServerName + ',Database:' + DB_NAME() +' is not a SQL Server Standard,Enterprise or Express. Check the database_type parameter in the datakit configuration.';
 	RAISERROR (@ErrorMessage,11,1)
 	RETURN
 END
@@ -42,7 +42,7 @@ DECLARE
 	,@Tables AS nvarchar(max) = ''
 
 IF @MajorMinorVersion >= 1050 BEGIN
-	/*in [volume_mount_point] any trailing "\" char will be automatically removed by telegraf */
+	/*in [volume_mount_point] any trailing "\" char will be automatically removed by datakit */
 	SET @Columns += N'
 	,[volume_mount_point]'
 	SET @Tables += N'
@@ -79,7 +79,7 @@ EXEC sp_executesql @SqlStatement
 
 	sqlServerProperties = `
 IF SERVERPROPERTY('EngineEdition') NOT IN (2,3,4) BEGIN /*NOT IN Standard,Enterpris,Express*/
-	DECLARE @ErrorMessage AS nvarchar(500) = 'Telegraf - Connection string Server:'+ @@ServerName + ',Database:' + DB_NAME() +' is not a SQL Server Standard,Enterprise or Express. Check the database_type parameter in the telegraf configuration.';
+	DECLARE @ErrorMessage AS nvarchar(500) = 'DataKit - Connection string Server:'+ @@ServerName + ',Database:' + DB_NAME() +' is not a SQL Server Standard,Enterprise or Express. Check the database_type parameter in the datakit configuration.';
 	RAISERROR (@ErrorMessage,11,1)
 	RETURN
 END
@@ -94,7 +94,12 @@ SET @SqlStatement = '
 SELECT
 	 ''sqlserver'' AS [measurement]
 	,REPLACE(@@SERVERNAME, ''\'', '':'') AS [sqlserver_host]
+	,(si.ms_ticks) AS [uptime]
 	,si.[cpu_count]
+	,(si.physical_memory_kb*1024) AS [physical_memory]
+	,si.virtual_memory_kb AS [virtual_memory]
+	,(si.committed_kb*1024) AS [committed_memory]
+	,(si.committed_target_kb*1024) AS [target_memory]
 	,(SELECT [total_physical_memory_kb] FROM sys.[dm_os_sys_memory]) AS [server_memory]
 	,dbs.[db_online]
 	,dbs.[db_restoring]
@@ -121,7 +126,7 @@ EXEC sp_executesql @SqlStatement
 
 	sqlServerSchedulers = `
 IF SERVERPROPERTY('EngineEdition') NOT IN (2,3,4) BEGIN /*NOT IN Standard,Enterpris,Express*/
-	DECLARE @ErrorMessage AS nvarchar(500) = 'Telegraf - Connection string Server:'+ @@ServerName + ',Database:' + DB_NAME() +' is not a SQL Server Standard,Enterprise or Express. Check the database_type parameter in the telegraf configuration.';
+	DECLARE @ErrorMessage AS nvarchar(500) = 'DataKit - Connection string Server:'+ @@ServerName + ',Database:' + DB_NAME() +' is not a SQL Server Standard,Enterprise or Express. Check the database_type parameter in the datakit configuration.';
 	RAISERROR (@ErrorMessage,11,1)
 	RETURN
 END
@@ -175,7 +180,7 @@ EXEC sp_executesql @SqlStatement
 	sqlServerPerformanceCounters = `
 SET DEADLOCK_PRIORITY -10;
 IF SERVERPROPERTY('EngineEdition') NOT IN (2,3,4) BEGIN /*NOT IN Standard,Enterpris,Express*/
-	DECLARE @ErrorMessage AS nvarchar(500) = 'Telegraf - Connection string Server:'+ @@ServerName + ',Database:' + DB_NAME() +' is not a SQL Server Standard,Enterprise or Express. Check the database_type parameter in the telegraf configuration.';
+	DECLARE @ErrorMessage AS nvarchar(500) = 'DataKit - Connection string Server:'+ @@ServerName + ',Database:' + DB_NAME() +' is not a SQL Server Standard,Enterprise or Express. Check the database_type parameter in the datakit configuration.';
 	RAISERROR (@ErrorMessage,11,1)
 	RETURN
 END
@@ -333,7 +338,7 @@ OPTION(RECOMPILE)
 
 	sqlServerWaitStatsCategorized = `
 IF SERVERPROPERTY('EngineEdition') NOT IN (2,3,4) BEGIN /*NOT IN Standard,Enterpris,Express*/
-	DECLARE @ErrorMessage AS nvarchar(500) = 'Telegraf - Connection string Server:'+ @@ServerName + ',Database:' + DB_NAME() +' is not a SQL Server Standard,Enterprise or Express. Check the database_type parameter in the telegraf configuration.';
+	DECLARE @ErrorMessage AS nvarchar(500) = 'DataKit - Connection string Server:'+ @@ServerName + ',Database:' + DB_NAME() +' is not a SQL Server Standard,Enterprise or Express. Check the database_type parameter in the datakit configuration.';
 	RAISERROR (@ErrorMessage,11,1)
 	RETURN
 END
@@ -899,7 +904,7 @@ WHERE
 
 	sqlServerVolumeSpace = `
 IF SERVERPROPERTY('EngineEdition') NOT IN (2,3,4) BEGIN /*NOT IN Standard,Enterpris,Express*/
-	DECLARE @ErrorMessage AS nvarchar(500) = 'Telegraf - Connection string Server:'+ @@ServerName + ',Database:' + DB_NAME() +' is not a SQL Server Standard,Enterprise or Express. Check the database_type parameter in the telegraf configuration.';
+	DECLARE @ErrorMessage AS nvarchar(500) = 'DataKit - Connection string Server:'+ @@ServerName + ',Database:' + DB_NAME() +' is not a SQL Server Standard,Enterprise or Express. Check the database_type parameter in the datakit configuration.';
 	RAISERROR (@ErrorMessage,11,1)
 	RETURN
 END
@@ -911,7 +916,7 @@ IF @MajorMinorVersion >= 1050 BEGIN
 	SELECT DISTINCT
 		'sqlserver_volumespace' AS [measurement]
 		,REPLACE(@@SERVERNAME,'\',':') AS [sqlserver_host]
-		/*in [volume_mount_point] any trailing "\" char will be removed by telegraf */
+		/*in [volume_mount_point] any trailing "\" char will be removed by datakit */
 		,vs.[volume_mount_point]
 		,vs.[total_bytes] AS [volume_total_space_bytes]
 		,vs.[available_bytes] AS [volume_available_space_bytes]
@@ -969,6 +974,8 @@ WITH CTE_SID ( BSID, SID, sql_handle )
 `
 
 	sqlServerLockDead = `
+	use __DATABASE__;
+
   SELECT
 	  'sqlserver_lock_dead' as [measurement],
     db.name db_name,
@@ -1050,5 +1057,14 @@ ORDER BY
 	(select cast(round(sum(size),2) as numeric(15,2)) from fs where type = 1 and fs.database_id = db.database_id) log_size 
 	from sys.databases db
 	order by 2 desc
+`
+
+	sqlServerDatabaseBackup = `
+select 'sqlserver_database_backup' as [measurement], 
+	sys.databases.name as database_name, 
+	count(backup_set_id) as backup_count
+from msdb.dbo.backupset right outer join sys.databases
+on sys.databases.name = msdb.dbo.backupset.database_name
+group by sys.databases.name
 `
 )

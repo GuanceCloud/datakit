@@ -1,0 +1,565 @@
+{
+  "checkers": [
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "tomcat_global_request_processor",
+              "field": "processingTime",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "funcList": [],
+              "groupBy": [
+                "jolokia_agent_url"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`tomcat_global_request_processor`:(AVG(`processingTime`)) BY `jolokia_agent_url`",
+              "type": "simple"
+            },
+            "uuid": "edc12917-dd52-4fc2-bcdd-b8e719be4826"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "100"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "critical"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "80"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "error"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "atAccounts": [],
+        "atNoDataAccounts": [],
+        "channels": [],
+        "checkerOpt": {
+          "diffMode": "percent",
+          "direction": "both",
+          "infoEvent": false,
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "100"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "critical"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "80"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "error"
+            }
+          ]
+        },
+        "every": "5m",
+        "groupBy": [
+          "jolokia_agent_url"
+        ],
+        "interval": 1800,
+        "message": "- 工作空间：{{ df_workspace_name }}\n- URL：{{ df_dimension_tags }}\n- 级别：{{ df_status }}\n- 检测值：{{ Result }}\n- 建议说明：如果处理时间随着流量的增加而增加，那么您可能没有足够的工作线程来处理请求，或者您的服务器达到了阈值并消耗了太多内存。可以与“requestCount（处理的请求数）\t”度量相比，您可以衡量服务器可以有效处理多少请求。\n",
+        "noDataMessage": "",
+        "noDataTitle": "",
+        "periodBefore": 0,
+        "range": 900,
+        "range_2": 1800,
+        "recoverNeedPeriodCount": 2,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`tomcat_global_request_processor`:(AVG(`processingTime`)) BY `jolokia_agent_url`"
+          }
+        ],
+        "title": "[Tomcat]主机的处理请求的总时间发生较大变化",
+        "type": "seniorMutationsCheck"
+      },
+      "monitorName": "默认"
+    },
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "tomcat_global_request_processor",
+              "field": "errorCount",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "funcList": [],
+              "groupBy": [
+                "jolokia_agent_url"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`tomcat_global_request_processor`:(AVG(`errorCount`)) BY `jolokia_agent_url`",
+              "type": "simple"
+            },
+            "uuid": "9a015859-9d6b-4c2e-9704-b94fd196027d"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "100"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "critical"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "80"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "error"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "60"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "warning"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "atAccounts": [],
+        "atNoDataAccounts": [],
+        "channels": [],
+        "checkerOpt": {
+          "diffMode": "percent",
+          "direction": "both",
+          "infoEvent": false,
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "100"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "critical"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "80"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "error"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "60"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "warning"
+            }
+          ]
+        },
+        "every": "5m",
+        "groupBy": [
+          "jolokia_agent_url"
+        ],
+        "interval": 1800,
+        "message": "- 工作空间：{{ df_workspace_name }}\n- URL：{{ df_dimension_tags }}\n- 级别：{{ df_status }}\n- 检测值：{{ Result }}\n- 处理建议：该错误表示：Tomcat服务器本身、主机、已部署的应用程序或应用程序servlet存在问题。这包括Tomcat服务器内存不足、找不到请求的文件或servlet，或者由于servlet代码库中的语法错误而无法为JSP提供服务时产生的错误。\n\n\n",
+        "noDataMessage": "",
+        "noDataTitle": "",
+        "periodBefore": 0,
+        "range": 900,
+        "range_2": 1800,
+        "recoverNeedPeriodCount": 2,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`tomcat_global_request_processor`:(AVG(`errorCount`)) BY `jolokia_agent_url`"
+          }
+        ],
+        "title": "[Tomcat]主机的错误请求数发生较大变化",
+        "type": "seniorMutationsCheck"
+      },
+      "monitorName": "默认"
+    },
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "tomcat_global_request_processor",
+              "field": "requestCount",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "funcList": [],
+              "groupBy": [
+                "jolokia_agent_url"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`tomcat_global_request_processor`:(AVG(`requestCount`)) BY `jolokia_agent_url`",
+              "type": "simple"
+            },
+            "uuid": "07ee80f6-1c12-4d2b-b33f-8eb670833069"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "100"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "critical"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "80"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "error"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "60"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "warning"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "atAccounts": [],
+        "atNoDataAccounts": [],
+        "channels": [],
+        "checkerOpt": {
+          "diffMode": "percent",
+          "direction": "both",
+          "infoEvent": false,
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "100"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "critical"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "80"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "error"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "60"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "warning"
+            }
+          ]
+        },
+        "every": "5m",
+        "groupBy": [
+          "jolokia_agent_url"
+        ],
+        "interval": 1800,
+        "message": "- 工作空间：{{ df_workspace_name }}\n- URL：{{ df_dimension_tags }}\n- 级别：{{ df_status }}\n- 检测值：{{ Result }}\n最近15分钟tomcat主机的请求数量和最近30分钟的数量发生了较大变化。请检查",
+        "noDataMessage": "",
+        "noDataTitle": "",
+        "periodBefore": 0,
+        "range": 900,
+        "range_2": 1800,
+        "recoverNeedPeriodCount": 2,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`tomcat_global_request_processor`:(AVG(`requestCount`)) BY `jolokia_agent_url`"
+          }
+        ],
+        "title": "[Tomcat]主机的请求数量发生较大变化",
+        "type": "seniorMutationsCheck"
+      },
+      "monitorName": "默认"
+    },
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "children": [
+                {
+                  "alias": "",
+                  "code": "A",
+                  "dataSource": "tomcat_thread_pool",
+                  "field": "currentThreadCount",
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "groupBy": [
+                    "jolokia_agent_url"
+                  ],
+                  "groupByTime": "",
+                  "namespace": "metric",
+                  "q": "M::`tomcat_thread_pool`:(AVG(`currentThreadCount`)) BY `jolokia_agent_url`",
+                  "type": "simple"
+                },
+                {
+                  "alias": "",
+                  "code": "B",
+                  "dataSource": "tomcat_thread_pool",
+                  "field": "currentThreadsBusy",
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "groupBy": [
+                    "jolokia_agent_url"
+                  ],
+                  "groupByTime": "",
+                  "namespace": "metric",
+                  "q": "M::`tomcat_thread_pool`:(AVG(`currentThreadsBusy`)) BY `jolokia_agent_url`",
+                  "type": "simple"
+                }
+              ],
+              "code": "Result",
+              "expression": "B / A",
+              "funcList": [],
+              "q": "eval(B / A, A=\"M::`tomcat_thread_pool`:(AVG(`currentThreadCount`)) BY `jolokia_agent_url`\", B=\"M::`tomcat_thread_pool`:(AVG(`currentThreadsBusy`)) BY `jolokia_agent_url`\")",
+              "type": "expression"
+            },
+            "uuid": "d3d02377-bbe9-4c4d-8628-9fca925364c6"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "0.8"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "critical"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "0.7"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "error"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "0.5"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "warning"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "atAccounts": [],
+        "atNoDataAccounts": [],
+        "channels": [],
+        "checkerOpt": {
+          "infoEvent": false,
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "0.8"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "critical"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "0.7"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "error"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "0.5"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "warning"
+            }
+          ]
+        },
+        "every": "5m",
+        "groupBy": [
+          "jolokia_agent_url"
+        ],
+        "interval": 300,
+        "message": "- 工作空间：{{ df_workspace_name }}\n- URL：{{ df_dimension_tags }}\n- 级别：{{ df_status }}\n- 检测值：{{ Result }}\n最近5分钟tomcat繁忙线程百分比较高，请检查。",
+        "noDataMessage": "",
+        "noDataTitle": "",
+        "recoverNeedPeriodCount": 2,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "eval(B / A, A=\"M::`tomcat_thread_pool`:(AVG(`currentThreadCount`)) BY `jolokia_agent_url`\", B=\"M::`tomcat_thread_pool`:(AVG(`currentThreadsBusy`)) BY `jolokia_agent_url`\")"
+          }
+        ],
+        "title": "[Tomcat]主机的繁忙线程百分比较高",
+        "type": "simpleCheck"
+      },
+      "monitorName": "默认"
+    }
+  ]
+}

@@ -50,8 +50,6 @@ var (
 
 	pprofServer *http.Server
 
-	dcaConfig *config.DCAConfig
-
 	g = datakit.G("http")
 
 	semReload          *cliutils.Sem // [http server](the normal one, not dca nor pprof) reload signal

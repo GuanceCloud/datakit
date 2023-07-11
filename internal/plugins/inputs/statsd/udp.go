@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-func (ipt *input) setupUDPServer() error {
+func (ipt *Input) setupUDPServer() error {
 	if ipt.UDPlistener == nil {
 		address, err := net.ResolveUDPAddr(ipt.Protocol, ipt.ServiceAddress)
 		if err != nil {
@@ -43,7 +43,7 @@ func (ipt *input) setupUDPServer() error {
 }
 
 // udpListen starts listening for udp packets on the configured port.
-func (ipt *input) udpListen(conn *net.UDPConn) error {
+func (ipt *Input) udpListen(conn *net.UDPConn) error {
 	if ipt.ReadBufferSize > 0 {
 		if err := ipt.UDPlistener.SetReadBuffer(ipt.ReadBufferSize); err != nil {
 			return err

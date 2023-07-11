@@ -1,0 +1,2838 @@
+{
+  "dashboardBindSet": [],
+  "dashboardExtend": {},
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "dashboardType": "CUSTOM",
+  "iconSet": {},
+  "main": {
+    "charts": [
+      {
+        "extend": {
+          "fixedTime": {
+            "key": "15m",
+            "text": "最近 15 分钟"
+          },
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "15m",
+            "fontColor": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "last(start_time)",
+                "name": "last(start_time)",
+                "unit": "",
+                "units": [
+                  "timeStamp",
+                  "ms"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "启动时间",
+        "pos": {
+          "h": 14,
+          "w": 6,
+          "x": 0,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "host_processes",
+              "field": "start_time",
+              "fieldFunc": "last",
+              "fieldType": "long",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "94778b50-1fb8-11ee-8e57-43c329c91c12",
+                  "logic": "and",
+                  "name": "cmdline",
+                  "op": "wildcard",
+                  "type": "keyword",
+                  "value": "influxd"
+                },
+                {
+                  "id": "94778b51-1fb8-11ee-8e57-43c329c91c12",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "labelOp": "",
+              "namespace": "object",
+              "q": "O::`host_processes`:(LAST(`start_time`)) { `cmdline` = wildcard('influxd') and `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "tableSortMetricName": "15分钟负载",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "剩余内存",
+                "name": "剩余内存",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              },
+              {
+                "key": "总内存",
+                "name": "总内存",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              },
+              {
+                "key": "已使用",
+                "name": "已使用",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "资源监控"
+        },
+        "name": "服务器内存使用",
+        "pos": {
+          "h": 11,
+          "w": 6,
+          "x": 0,
+          "y": 16.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "已使用",
+              "children": [
+                {
+                  "alias": "",
+                  "code": "A",
+                  "dataSource": "mem",
+                  "field": "total",
+                  "fieldFunc": "last",
+                  "fieldType": "integer",
+                  "fill": null,
+                  "fillNum": null,
+                  "filters": [
+                    {
+                      "id": "70872710-beac-11eb-a413-474766dfa53a",
+                      "logic": "and",
+                      "name": "host",
+                      "op": "=",
+                      "value": "#{host}"
+                    }
+                  ],
+                  "funcList": [],
+                  "groupBy": [],
+                  "groupByTime": "",
+                  "namespace": "metric",
+                  "q": "M::`mem`:(LAST(`total`)) { `host` = '#{host}' }",
+                  "queryFuncs": [],
+                  "type": "simple"
+                },
+                {
+                  "alias": "",
+                  "code": "B",
+                  "dataSource": "mem",
+                  "field": "free",
+                  "fieldFunc": "last",
+                  "fieldType": "integer",
+                  "fill": null,
+                  "fillNum": null,
+                  "filters": [
+                    {
+                      "id": "66314750-beac-11eb-a413-474766dfa53a",
+                      "logic": "and",
+                      "name": "host",
+                      "op": "=",
+                      "value": "#{host}"
+                    }
+                  ],
+                  "funcList": [],
+                  "groupBy": [],
+                  "groupByTime": "",
+                  "namespace": "metric",
+                  "q": "M::`mem`:(LAST(`free`)) { `host` = '#{host}' }",
+                  "queryFuncs": [],
+                  "type": "simple"
+                }
+              ],
+              "code": "F",
+              "expression": "A - B",
+              "funcList": [],
+              "q": "F::dataflux__dql:(EXEC_FORMULA(expr='A - B', alias='已使用', A=dql(\"M::`mem`:(LAST(`total`)) { `host` = '#{host}' }\"), B=dql(\"M::`mem`:(LAST(`free`)) { `host` = '#{host}' }\")))",
+              "type": "expression"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "总内存",
+              "code": "A",
+              "dataSource": "mem",
+              "field": "total",
+              "fieldFunc": "last",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "04cb9840-5966-11eb-a841-7bbd77278e92",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mem`:(LAST(`total`) AS `总内存`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": {
+            "key": "15m",
+            "text": "最近15分钟"
+          },
+          "settings": {
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "gauge",
+            "fixedTime": "15m",
+            "isTimeInterval": false,
+            "levels": [
+              {
+                "lineColor": "#498BFE",
+                "operation": "<=",
+                "value": [
+                  20
+                ]
+              },
+              {
+                "lineColor": "#41CEC7",
+                "operation": "<=",
+                "value": [
+                  80
+                ]
+              },
+              {
+                "lineColor": "#FFBD5F",
+                "operation": "<=",
+                "value": [
+                  100
+                ]
+              }
+            ],
+            "max": 100,
+            "min": 0,
+            "openCompare": false,
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "InfluxDB 内存使用率",
+        "pos": {
+          "h": 14,
+          "w": 6,
+          "x": 12,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "host_processes",
+              "field": "mem_used_percent",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "6c7cf700-314b-11ec-810b-11ea24436520",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "7d4ded50-314b-11ec-810b-11ea24436520",
+                  "logic": "and",
+                  "name": "cmdline",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "influxd"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`host_processes`:(LAST(`mem_used_percent`)) { `host` = '#{host}' and `cmdline` = 'influxd' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "gauge",
+            "unit": ""
+          }
+        ],
+        "type": "gauge"
+      },
+      {
+        "extend": {
+          "fixedTime": {
+            "key": "15m",
+            "text": "最近15分钟"
+          },
+          "settings": {
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "gauge",
+            "fixedTime": "15m",
+            "isTimeInterval": false,
+            "levels": [
+              {
+                "lineColor": "#498BFE",
+                "operation": "<=",
+                "value": [
+                  20
+                ]
+              },
+              {
+                "lineColor": "#41CEC7",
+                "operation": "<=",
+                "value": [
+                  80
+                ]
+              },
+              {
+                "lineColor": "#FFBD5F",
+                "operation": "<=",
+                "value": [
+                  100
+                ]
+              }
+            ],
+            "max": 100,
+            "min": 0,
+            "openCompare": false,
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "InfluxDB CPU 使用率",
+        "pos": {
+          "h": 14,
+          "w": 6,
+          "x": 18,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "host_processes",
+              "field": "cpu_usage",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "5f732560-314c-11ec-810b-11ea24436520",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "6562c4d0-314c-11ec-810b-11ea24436520",
+                  "logic": "and",
+                  "name": "cmdline",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "influxd"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`host_processes`:(LAST(`cpu_usage`)) { `host` = '#{host}' and `cmdline` = 'influxd' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "gauge",
+            "unit": ""
+          }
+        ],
+        "type": "gauge"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "colorLevel": 3,
+            "colors": [],
+            "currentChartType": "treemap",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levelArr": [],
+            "levels": [],
+            "mainMeasurementLimit": 50,
+            "mainMeasurementQueryCode": "A",
+            "mainMeasurementSort": "top",
+            "rangeColor": "",
+            "rangeColorKey": "light-blue",
+            "showFieldMapping": false,
+            "showLegend": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "资源监控"
+        },
+        "name": "系统进程内存使用概览",
+        "pos": {
+          "h": 19,
+          "w": 12,
+          "x": 0,
+          "y": 27.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "host_processes",
+              "field": "mem_used_percent",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "fc980720-314c-11ec-810b-11ea24436520",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "cmdline"
+              ],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`host_processes`:(LAST(`mem_used_percent`)) { `host` = '#{host}' } BY `cmdline`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "treemap",
+            "unit": ""
+          }
+        ],
+        "type": "treemap"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "colorLevel": 3,
+            "colors": [],
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levelArr": [],
+            "levels": [],
+            "mainMeasurementLimit": 50,
+            "mainMeasurementQueryCode": "A",
+            "mainMeasurementSort": "top",
+            "rangeColor": "",
+            "rangeColorKey": "light-blue",
+            "showFieldMapping": false,
+            "showLegend": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "资源监控"
+        },
+        "name": "系统进程cpu使用概览",
+        "pos": {
+          "h": 19,
+          "w": 12,
+          "x": 12,
+          "y": 27.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "host_processes",
+              "field": "cpu_usage",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "44ce2cb0-3150-11ec-810b-11ea24436520",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "cmdline"
+              ],
+              "groupByTime": "",
+              "namespace": "object",
+              "q": "O::`host_processes`:(LAST(`cpu_usage`)) { `host` = '#{host}' } BY `cmdline`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "treemap",
+            "unit": ""
+          }
+        ],
+        "type": "treemap"
+      },
+      {
+        "extend": {
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "levels": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "showLine": false,
+            "stackType": "time",
+            "tableSortMetricName": "15分钟负载",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "资源监控"
+        },
+        "name": "CPU 平均负载",
+        "pos": {
+          "h": 11,
+          "w": 6,
+          "x": 12,
+          "y": 16.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "1分钟负载",
+              "code": "A",
+              "dataSource": "system",
+              "field": "load1_per_core",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "03177fa0-5966-11eb-a841-7bbd77278e92",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`system`:(LAST(`load1_per_core`) AS `1分钟负载`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "5分钟负载",
+              "code": "C",
+              "dataSource": "system",
+              "field": "load5_per_core",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "04cb9840-5966-11eb-a841-7bbd77278e92",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`system`:(LAST(`load5_per_core`) AS `5分钟负载`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "15分钟负载",
+              "code": "B",
+              "dataSource": "system",
+              "field": "load15_per_core",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "06cbfc20-5966-11eb-a841-7bbd77278e92",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`system`:(LAST(`load15_per_core`) AS `15分钟负载`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "levels": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "stackType": "time",
+            "tableSortMetricName": "15分钟负载",
+            "units": [
+              {
+                "key": "核心态",
+                "name": "核心态",
+                "unit": "",
+                "units": [
+                  "percent",
+                  "percent"
+                ]
+              },
+              {
+                "key": "用户态",
+                "name": "用户态",
+                "unit": "",
+                "units": [
+                  "percent",
+                  "percent"
+                ]
+              },
+              {
+                "key": "空闲率",
+                "name": "空闲率",
+                "unit": "",
+                "units": [
+                  "percent",
+                  "percent"
+                ]
+              },
+              {
+                "key": "硬中断",
+                "name": "硬中断",
+                "unit": "",
+                "units": [
+                  "percent",
+                  "percent"
+                ]
+              },
+              {
+                "key": "软中断",
+                "name": "软中断",
+                "unit": "",
+                "units": [
+                  "percent",
+                  "percent"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "资源监控"
+        },
+        "name": "CPU 使用信息",
+        "pos": {
+          "h": 11,
+          "w": 6,
+          "x": 6,
+          "y": 16.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "用户态",
+              "code": "C",
+              "dataSource": "cpu",
+              "field": "usage_user",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "04cb9840-5966-11eb-a841-7bbd77278e92",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`cpu`:(LAST(`usage_user`) AS `用户态`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "空闲率",
+              "code": "B",
+              "dataSource": "cpu",
+              "field": "usage_idle",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "06cbfc20-5966-11eb-a841-7bbd77278e92",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`cpu`:(LAST(`usage_idle`) AS `空闲率`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "核心态",
+              "code": "A",
+              "dataSource": "cpu",
+              "field": "usage_system",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "eb5ce1b0-beab-11eb-a413-474766dfa53a",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`cpu`:(LAST(`usage_system`) AS `核心态`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "硬中断",
+              "code": "D",
+              "dataSource": "cpu",
+              "field": "usage_irq",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "eb5ce1b0-beab-11eb-a413-474766dfa53a",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`cpu`:(LAST(`usage_irq`) AS `硬中断`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "软中断",
+              "code": "E",
+              "dataSource": "cpu",
+              "field": "usage_softirq",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "eb5ce1b0-beab-11eb-a413-474766dfa53a",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`cpu`:(LAST(`usage_softirq`) AS `软中断`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [
+              {
+                "bgColor": "#FE49B6",
+                "title": "磁盘水位线",
+                "value": 80
+              }
+            ],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLegend": true,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "tableSortMetricName": "last(free)",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "剩余磁盘空间",
+                "name": "剩余磁盘空间",
+                "unit": "",
+                "units": [
+                  "percent",
+                  "percent"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "资源监控"
+        },
+        "name": "磁盘使用率",
+        "pos": {
+          "h": 11,
+          "w": 6,
+          "x": 18,
+          "y": 16.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "剩余磁盘空间",
+              "code": "A",
+              "dataSource": "disk",
+              "field": "used_percent",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a199fbc0-5bba-11eb-bd31-015cfe86e5cf",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "device"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`disk`:(LAST(`used_percent`) AS `剩余磁盘空间`) { `host` = '#{host}' } BY `device`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "chartType": "line",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "引擎监控"
+        },
+        "name": "Points Written",
+        "pos": {
+          "h": 12,
+          "w": 8,
+          "x": 8,
+          "y": 84
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "write_error",
+              "code": "C",
+              "dataSource": "influxdb_write",
+              "field": "write_error",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`influxdb_write`:(LAST(`write_error`) AS `write_error`) \")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "write_ok",
+              "code": "B",
+              "dataSource": "influxdb_write",
+              "field": "write_ok",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`influxdb_write`:(LAST(`write_ok`) AS `write_ok`) \")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "write_drop",
+              "code": "A",
+              "dataSource": "influxdb_write",
+              "field": "write_drop",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`influxdb_write`:(LAST(`write_drop`) AS `write_drop`) \")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "chartType": "line",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "measurements",
+                "name": "measurements",
+                "unit": "",
+                "units": [
+                  "custom"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "引擎监控"
+        },
+        "name": "measurements",
+        "pos": {
+          "h": 12,
+          "w": 8,
+          "x": 0,
+          "y": 72
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "measurements",
+              "code": "A",
+              "dataSource": "influxdb_database",
+              "field": "num_measurements",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "d1f3c360-3179-11ec-94d4-3916798a4de3",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "database"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`influxdb_database`:(LAST(`num_measurements`) AS `measurements`) { `host` = '#{host}' } BY `database`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "settings": {
+            "chartType": "line",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "引擎监控"
+        },
+        "name": "Series",
+        "pos": {
+          "h": 12,
+          "w": 8,
+          "x": 0,
+          "y": 60
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "influxdb_database",
+              "field": "num_series",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "40ecda60-317d-11ec-94d4-3916798a4de3",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "database"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`influxdb_database`:(LAST(`num_series`)) { `host` = '#{host}' } BY `database`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "settings": {
+            "bar": {
+              "direction": "horizontal",
+              "xAxisShowType": "groupBy"
+            },
+            "chartType": "bar",
+            "color": "",
+            "colors": [],
+            "currentChartType": "toplist",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "openCompare": false,
+            "showFieldMapping": false,
+            "showTableHead": true,
+            "showTitle": true,
+            "showTopSize": true,
+            "table": {
+              "queryMode": "toGroupColumn"
+            },
+            "tableSortMetricName": "",
+            "tableSortType": "top",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "topSize": 10,
+            "units": []
+          }
+        },
+        "group": {
+          "name": "引擎监控"
+        },
+        "name": "Measurements total",
+        "pos": {
+          "h": 11,
+          "w": 5,
+          "x": 0,
+          "y": 49
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "influxdb_database",
+              "field": "num_measurements",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "7dcd9c70-317e-11ec-94d4-3916798a4de3",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last",
+                "top:10"
+              ],
+              "groupBy": [
+                "database"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`influxdb_database`:(LAST(`num_measurements`)) { `host` = '#{host}' } BY `database`",
+              "queryFuncs": [],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "toplist",
+            "unit": ""
+          }
+        ],
+        "type": "toplist"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "settings": {
+            "bar": {
+              "direction": "horizontal",
+              "xAxisShowType": "groupBy"
+            },
+            "chartType": "bar",
+            "color": "#498BFE",
+            "colors": [
+              {
+                "color": "#498BFE",
+                "key": "sum(num_series)",
+                "name": "sum(num_series)"
+              }
+            ],
+            "currentChartType": "toplist",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "openCompare": false,
+            "showFieldMapping": false,
+            "showTableHead": true,
+            "showTitle": true,
+            "showTopSize": true,
+            "table": {
+              "queryMode": "toGroupColumn"
+            },
+            "tableSortMetricName": "",
+            "tableSortType": "top",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "topSize": 10,
+            "units": []
+          }
+        },
+        "group": {
+          "name": "引擎监控"
+        },
+        "name": "Series total",
+        "pos": {
+          "h": 11,
+          "w": 7,
+          "x": 5,
+          "y": 49
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "influxdb_database",
+              "field": "num_series",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "22c77f70-317f-11ec-94d4-3916798a4de3",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last",
+                "top:10"
+              ],
+              "groupBy": [
+                "database"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`influxdb_database`:(LAST(`num_series`)) { `host` = '#{host}' } BY `database`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "toplist",
+            "unit": ""
+          }
+        ],
+        "type": "toplist"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "bgColor": "",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "#1F81E8",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "引擎监控"
+        },
+        "name": "auth fail",
+        "pos": {
+          "h": 11,
+          "w": 3,
+          "x": 12,
+          "y": 49
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "influxdb_httpd",
+              "field": "auth_fail",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`influxdb_httpd`:(LAST(`auth_fail`)) ",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": null,
+          "settings": {
+            "chartType": "line",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "disk_bytes",
+                "name": "disk_bytes",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "引擎监控"
+        },
+        "name": "InfluxDB Data Caching Composition",
+        "pos": {
+          "h": 12,
+          "w": 8,
+          "x": 8,
+          "y": 60
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "mem_bytes",
+              "code": "C",
+              "dataSource": "influxdb_tsm1_cache",
+              "field": "mem_bytes",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`influxdb_tsm1_cache`:(LAST(`mem_bytes`) AS `mem_bytes`) ",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "disk_bytes",
+              "code": "A",
+              "dataSource": "influxdb_tsm1_cache",
+              "field": "disk_bytes",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`influxdb_tsm1_cache`:(LAST(`disk_bytes`) AS `disk_bytes`) ",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "disk_bytes",
+              "code": "B",
+              "dataSource": "influxdb_tsm1_cache",
+              "field": "cached_bytes",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`influxdb_tsm1_cache`:(LAST(`cached_bytes`) AS `disk_bytes`) ",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "chartType": "line",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "heap_inuse",
+                "name": "heap_inuse",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              },
+              {
+                "key": "heap_total",
+                "name": "heap_total",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "引擎监控"
+        },
+        "name": "InfluxDB Heap Usage",
+        "pos": {
+          "h": 11,
+          "w": 9,
+          "x": 15,
+          "y": 49
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "heap_inuse",
+              "code": "A",
+              "dataSource": "influxdb_runtime",
+              "field": "heap_inuse",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "ac689d90-3198-11ec-acc7-11ff9ba83fdd",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "MOVING_AVERAGE(\"M::`influxdb_runtime`:(LAST(`heap_inuse`) AS `heap_inuse`) { `host` = '#{host}' }\", 5)",
+              "queryFuncs": [
+                {
+                  "args": [
+                    5
+                  ],
+                  "name": "moving_average"
+                }
+              ],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "chartType": "line",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "引擎监控"
+        },
+        "name": "HTTP Errors / Minute",
+        "pos": {
+          "h": 12,
+          "w": 8,
+          "x": 16,
+          "y": 72
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "client_error",
+              "code": "A",
+              "dataSource": "influxdb_httpd",
+              "field": "client_error",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DIFFERENCE(\"M::`influxdb_httpd`:(LAST(`client_error`) AS `client_error`) \")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_difference"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "server_error",
+              "code": "B",
+              "dataSource": "influxdb_httpd",
+              "field": "server_error",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DIFFERENCE(\"M::`influxdb_httpd`:(LAST(`server_error`) AS `server_error`) \")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_difference"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "chartType": "line",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "引擎监控"
+        },
+        "name": "Point Intake",
+        "pos": {
+          "h": 12,
+          "w": 8,
+          "x": 16,
+          "y": 60
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "points_written_fail",
+              "code": "A",
+              "dataSource": "influxdb_httpd",
+              "field": "points_written_fail",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`influxdb_httpd`:(LAST(`points_written_fail`) AS `points_written_fail`) ",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "points_written_ok",
+              "code": "B",
+              "dataSource": "influxdb_httpd",
+              "field": "points_written_ok",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`influxdb_httpd`:(LAST(`points_written_ok`) AS `points_written_ok`) ",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "chartType": "line",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "pause_total_ns",
+                "name": "pause_total_ns",
+                "unit": "",
+                "units": [
+                  "time",
+                  "ns"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "引擎监控"
+        },
+        "name": "GC Activity",
+        "pos": {
+          "h": 12,
+          "w": 8,
+          "x": 0,
+          "y": 84
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "pause_total_ns",
+              "code": "A",
+              "dataSource": "influxdb_runtime",
+              "field": "pause_total_ns",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "fillNum": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`influxdb_runtime`:(LAST(`pause_total_ns`) AS `pause_total_ns`) \")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "chartType": "line",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "TPS",
+                "name": "TPS",
+                "unit": "",
+                "units": [
+                  "throughput",
+                  "ops"
+                ]
+              },
+              {
+                "key": "QPS",
+                "name": "QPS",
+                "unit": "",
+                "units": [
+                  "throughput",
+                  "ops"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "引擎监控"
+        },
+        "name": "HTTP Requests / Minute",
+        "pos": {
+          "h": 12,
+          "w": 8,
+          "x": 8,
+          "y": 72
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "QPS",
+              "code": "B",
+              "dataSource": "influxdb_httpd",
+              "field": "query_req",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`influxdb_httpd`:(LAST(`query_req`) AS `QPS`) \")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "TPS",
+              "code": "A",
+              "dataSource": "influxdb_httpd",
+              "field": "write_req",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`influxdb_httpd`:(LAST(`write_req`) AS `TPS`) \")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "chartType": "pie",
+            "colors": [],
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "showFieldMapping": false,
+            "showLegend": true,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "日志"
+        },
+        "name": "Username",
+        "pos": {
+          "h": 15,
+          "w": 6,
+          "x": 0,
+          "y": 113.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Username",
+              "code": "A",
+              "dataSource": "influxdb_http",
+              "field": "request_id",
+              "fieldFunc": "count",
+              "fieldType": "keyword",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "b23e4c50-325c-11ec-abdb-9de75be46030",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "auth"
+              ],
+              "groupByTime": "",
+              "namespace": "logging",
+              "q": "L::`influxdb_http`:(COUNT(`request_id`) AS `Username`) { `host` = '#{host}' } BY `auth`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "pie",
+            "unit": ""
+          }
+        ],
+        "type": "pie"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "colorLevel": 3,
+            "colors": [],
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levelArr": [],
+            "levels": [],
+            "mainMeasurementLimit": 20,
+            "mainMeasurementQueryCode": "A",
+            "mainMeasurementSort": "top",
+            "rangeColor": "",
+            "rangeColorKey": "light-blue",
+            "showFieldMapping": false,
+            "showLegend": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "日志"
+        },
+        "name": "client_ip",
+        "pos": {
+          "h": 15,
+          "w": 7,
+          "x": 6,
+          "y": 98.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "client_ip",
+              "code": "A",
+              "dataSource": "influxdb_http",
+              "field": "client_ip",
+              "fieldFunc": "count",
+              "fieldType": "keyword",
+              "fill": "",
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "client_ip"
+              ],
+              "groupByTime": "",
+              "namespace": "logging",
+              "q": "L::`influxdb_http`:(COUNT(`client_ip`) AS `client_ip`)  BY `client_ip`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "treemap",
+            "unit": ""
+          }
+        ],
+        "type": "treemap"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "日志"
+        },
+        "name": "Log growth",
+        "pos": {
+          "h": 15,
+          "w": 11,
+          "x": 13,
+          "y": 98.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "influxdb_http",
+              "field": "time",
+              "fieldFunc": "count",
+              "fieldType": "",
+              "fill": "",
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "user_agent",
+                "auth"
+              ],
+              "groupByTime": "",
+              "namespace": "logging",
+              "q": "L::`influxdb_http`:(COUNT(`time`))  BY `user_agent`, `auth`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "count",
+              "code": "B",
+              "dataSource": "influxdb_http",
+              "field": "time",
+              "fieldFunc": "count",
+              "fieldType": "",
+              "fill": "",
+              "filters": [],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "logging",
+              "q": "L::`influxdb_http`:(COUNT(`time`) AS `count`) ",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "日志"
+        },
+        "name": "status_code",
+        "pos": {
+          "h": 15,
+          "w": 6,
+          "x": 0,
+          "y": 98.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "influxdb_http",
+              "field": "request_id",
+              "fieldFunc": "count",
+              "fieldType": "keyword",
+              "fill": "",
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "auth",
+                "status"
+              ],
+              "groupByTime": "",
+              "namespace": "logging",
+              "q": "L::`influxdb_http`:(COUNT(`request_id`))  BY `auth`, `status`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "addColumns": [
+              {
+                "field": "message",
+                "headerName": "内容"
+              },
+              {
+                "field": "status",
+                "hide": true
+              },
+              {
+                "field": "__docid",
+                "hide": true
+              },
+              {
+                "field": "source"
+              }
+            ],
+            "colors": [],
+            "currentChartType": "log",
+            "fixedTime": "",
+            "inColumns": [
+              {
+                "cellRendererFramework": "StatusCellRender",
+                "field": "time",
+                "filterParams": {},
+                "headerName": "时间"
+              }
+            ],
+            "isTimeInterval": false,
+            "levels": [],
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "日志"
+        },
+        "name": "sys error log",
+        "pos": {
+          "h": 15,
+          "w": 18,
+          "x": 6,
+          "y": 113.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "noTimeRange": false,
+            "qtype": "dql",
+            "query": {
+              "alias": "内容",
+              "code": "A",
+              "dataSource": "influxdb",
+              "disableMultipleField": false,
+              "field": null,
+              "fieldFunc": "last",
+              "fieldType": "text",
+              "fields": [
+                {
+                  "alias": "内容",
+                  "field": "message",
+                  "isEditAlias": false
+                },
+                {
+                  "field": "status",
+                  "hide": true
+                },
+                {
+                  "field": "__docid",
+                  "hide": true
+                },
+                {
+                  "field": "source"
+                }
+              ],
+              "fill": null,
+              "filters": [
+                {
+                  "id": "7c6e0630-325f-11ec-94ed-c5edaa132b49",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "logging",
+              "q": "L::`influxdb`:(`message`, `status`, `__docid`, `source`) { `message` = queryString('error') and `host` = '#{host}' }",
+              "queryFuncs": [],
+              "search": "error",
+              "type": "simple"
+            },
+            "type": "log",
+            "unit": ""
+          }
+        ],
+        "type": "log"
+      },
+      {
+        "extend": {
+          "fixedTime": {
+            "key": "15m",
+            "text": "最近15分钟"
+          },
+          "settings": {
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "15m",
+            "isTimeInterval": false,
+            "levels": [
+              {
+                "bgColor": "#F02D37",
+                "operation": "<",
+                "value": [
+                  "1"
+                ]
+              },
+              {
+                "bgColor": "#2DF098",
+                "operation": ">=",
+                "value": [
+                  "1"
+                ]
+              }
+            ],
+            "lineColor": "#3AB8FF",
+            "mappings": [
+              {
+                "mappingVal": "down",
+                "operation": "<",
+                "originalVal": [
+                  "1"
+                ]
+              },
+              {
+                "mappingVal": "up",
+                "operation": ">=",
+                "originalVal": [
+                  "1"
+                ]
+              }
+            ],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "units": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "状态",
+        "pos": {
+          "h": 14,
+          "w": 6,
+          "x": 6,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "code": "A",
+              "dataSource": "host_processes",
+              "field": "process_name",
+              "fieldFunc": "count",
+              "fieldType": "keyword",
+              "filters": [
+                {
+                  "id": "adaba690-32e5-11ec-bea6-a5ddd31bf586",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "be3867f0-32e5-11ec-bea6-a5ddd31bf586",
+                  "logic": "and",
+                  "name": "cmdline",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "influxd"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "process_name"
+              ],
+              "namespace": "object",
+              "q": "O::`host_processes`:(COUNT(`process_name`)) { `host` = '#{host}' and `cmdline` = 'influxd' } BY `process_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      }
+    ],
+    "groups": [
+      "资源监控",
+      "引擎监控",
+      "日志"
+    ],
+    "type": "template",
+    "vars": [
+      {
+        "code": "host",
+        "datasource": "dataflux",
+        "definition": {
+          "defaultVal": {
+            "label": "*",
+            "value": "*"
+          },
+          "field": "",
+          "metric": "",
+          "object": "",
+          "tag": "",
+          "value": "show_tag_value(from=['influxdb_httpd'], keyin=['host'])[5m]"
+        },
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "name": "主机",
+        "seq": 0,
+        "type": "QUERY",
+        "valueSort": "default"
+      }
+    ]
+  },
+  "summary": "",
+  "tagInfo": [],
+  "tags": [],
+  "thumbnail": "",
+  "title": "InfluxDB 监控视图"
+}
