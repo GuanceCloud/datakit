@@ -10,7 +10,6 @@ import (
 	"time"
 
 	lp "github.com/GuanceCloud/cliutils/lineproto"
-	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/influxdata/influxdb1-client/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
@@ -28,7 +27,7 @@ var (
 		// others data type not set...
 	}
 
-	log = logger.DefaultSLogger("point")
+	// log = logger.DefaultSLogger("point").
 
 	DisabledFieldKeys = map[string][]string{
 		datakit.Logging: {"source"},
@@ -154,12 +153,11 @@ func doMakePoint(name string,
 	fields map[string]interface{},
 	opt *lp.Option,
 ) (*Point, error) {
-	p, warnings, err := lp.MakeLineProtoPointWithWarnings(name, tags, fields, opt)
-
-	if len(warnings) > 0 {
-		// We may need these warnings to debug. Therefore still print them even if error occurs.
-		log.Warnf("make point %s warning: %s", name, buildWarningMessage(warnings))
-	}
+	p, _, err := lp.MakeLineProtoPointWithWarnings(name, tags, fields, opt)
+	// if len(warnings) > 0 {
+	// We may need these warnings to debug. Therefore still print them even if error occurs.
+	// log.Warnf("make point %s warning: %s", name, buildWarningMessage(warnings))
+	// }
 	if err != nil {
 		return nil, err
 	}
@@ -167,13 +165,13 @@ func doMakePoint(name string,
 	return &Point{Point: p}, nil
 }
 
-func buildWarningMessage(warnings []*lp.PointWarning) string {
-	warningsStr := ""
-	for _, warn := range warnings {
-		warningsStr += warn.Message + ";"
-	}
-	return warningsStr
-}
+// func buildWarningMessage(warnings []*lp.PointWarning) string {
+// 	warningsStr := ""
+// 	for _, warn := range warnings {
+// 		warningsStr += warn.Message + ";"
+// 	}
+// 	return warningsStr
+// }
 
 // deprecated.
 func makePoint(name string,
