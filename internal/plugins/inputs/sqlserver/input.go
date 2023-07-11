@@ -32,26 +32,26 @@ import (
 
 var _ inputs.ElectionInput = (*Input)(nil)
 
-func (n *Input) ElectionEnabled() bool {
-	return n.Election
+func (i *Input) ElectionEnabled() bool {
+	return i.Election
 }
 
-func (n *Input) Pause() error {
+func (i *Input) Pause() error {
 	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	defer tick.Stop()
 	select {
-	case n.pauseCh <- true:
+	case i.pauseCh <- true:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("pause %s failed", inputName)
 	}
 }
 
-func (n *Input) Resume() error {
+func (i *Input) Resume() error {
 	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	defer tick.Stop()
 	select {
-	case n.pauseCh <- false:
+	case i.pauseCh <- false:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
@@ -78,7 +78,7 @@ func (*Input) PipelineConfig() map[string]string {
 }
 
 //nolint:lll
-func (n *Input) LogExamples() map[string]map[string]string {
+func (i *Input) LogExamples() map[string]map[string]string {
 	return map[string]map[string]string{
 		inputName: {
 			"SQLServer log": `2021-05-28 10:46:07.78 spid10s     0 transactions rolled back in database 'msdb' (4:0). This is an informational message only. No user action is required`,
@@ -86,14 +86,59 @@ func (n *Input) LogExamples() map[string]map[string]string {
 	}
 }
 
-func (n *Input) GetPipeline() []*tailer.Option {
+// getCustomQueryMetrics collect custom SQL query metrics.
+func (i *Input) getCustomQueryMetrics() {
+	for _, customQuery := range i.CustomQuery {
+		res, err := i.query(customQuery.SQL)
+		if err != nil {
+			l.Warnf("collect custom query [%s] failed: %s", customQuery.SQL, err.Error())
+			continue
+		}
+
+		for _, row := range res {
+			tags := map[string]string{}
+			fields := map[string]interface{}{}
+
+			setHostTagIfNotLoopback(tags, i.Host)
+
+			for _, tag := range customQuery.Tags {
+				if _, ok := row[tag]; ok {
+					tags[tag] = fmt.Sprintf("%v", *row[tag])
+				} else {
+					l.Warnf("specified tag %s not found", tag)
+				}
+			}
+
+			for _, field := range customQuery.Fields {
+				if _, ok := row[field]; ok {
+					fields[field] = *row[field]
+				} else {
+					l.Warn("specified field %s not found", field)
+				}
+			}
+
+			m := MetricMeasurment{
+				Measurement: Measurement{
+					name:     customQuery.Metric,
+					tags:     tags,
+					fields:   fields,
+					election: i.Election,
+				},
+			}
+
+			collectCache = append(collectCache, m.Point())
+		}
+	}
+}
+
+func (i *Input) GetPipeline() []*tailer.Option {
 	return []*tailer.Option{
 		{
 			Source:  inputName,
 			Service: inputName,
 			Pipeline: func() string {
-				if n.Log != nil {
-					return n.Log.Pipeline
+				if i.Log != nil {
+					return i.Log.Pipeline
 				}
 				return ""
 			}(),
@@ -101,13 +146,13 @@ func (n *Input) GetPipeline() []*tailer.Option {
 	}
 }
 
-func (n *Input) initDB() error {
-	connStr := fmt.Sprintf("sqlserver://%s:%s@%s?dial+timeout=3", url.PathEscape(n.User), url.PathEscape(n.Password), url.PathEscape(n.Host))
+func (i *Input) initDB() error {
+	connStr := fmt.Sprintf("sqlserver://%s:%s@%s?dial+timeout=3", url.PathEscape(i.User), url.PathEscape(i.Password), url.PathEscape(i.Host))
 	cfg, _, err := msdsn.Parse(connStr)
 	if err != nil {
 		return err
 	}
-	if n.AllowTLS10 {
+	if i.AllowTLS10 {
 		// Because go1.18 defaults client-sids's TLS minimum version to TLS 1.2,
 		// we need to configure MinVersion manually to enable TLS 1.0 and TLS 1.1.
 		cfg.TLSConfig.MinVersion = tls.VersionTLS10
@@ -120,63 +165,63 @@ func (n *Input) initDB() error {
 		return err
 	}
 
-	n.db = db
+	i.db = db
 	return nil
 }
 
-func (n *Input) RunPipeline() {
-	if n.Log == nil || len(n.Log.Files) == 0 {
+func (i *Input) RunPipeline() {
+	if i.Log == nil || len(i.Log.Files) == 0 {
 		return
 	}
 
 	opt := &tailer.Option{
 		Source:            inputName,
 		Service:           inputName,
-		Pipeline:          n.Log.Pipeline,
-		GlobalTags:        n.Tags,
-		IgnoreStatus:      n.Log.IgnoreStatus,
-		CharacterEncoding: n.Log.CharacterEncoding,
+		Pipeline:          i.Log.Pipeline,
+		GlobalTags:        i.Tags,
+		IgnoreStatus:      i.Log.IgnoreStatus,
+		CharacterEncoding: i.Log.CharacterEncoding,
 		MultilinePatterns: []string{`^\d{4}-\d{2}-\d{2}`},
-		Done:              n.semStop.Wait(),
+		Done:              i.semStop.Wait(),
 	}
 
 	var err error
-	n.tail, err = tailer.NewTailer(n.Log.Files, opt)
+	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
-		n.feeder.FeedLastError(inputName, err.Error())
+		i.feeder.FeedLastError(inputName, err.Error())
 		return
 	}
 
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_sqlserver"})
 	g.Go(func(ctx context.Context) error {
-		n.tail.Start()
+		i.tail.Start()
 		return nil
 	})
 }
 
-func (n *Input) Run() {
+func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("sqlserver start")
 
-	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
+	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 
-	if n.Election {
-		n.opt = point.WithExtraTags(dkpt.GlobalElectionTags())
+	if i.Election {
+		i.opt = point.WithExtraTags(dkpt.GlobalElectionTags())
 	} else {
-		n.opt = point.WithExtraTags(dkpt.GlobalHostTags())
+		i.opt = point.WithExtraTags(dkpt.GlobalHostTags())
 	}
 
-	tick := time.NewTicker(n.Interval.Duration)
+	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
 
-	n.initDBFilterMap()
+	i.init()
 
 	// Init DB until OK.
 	for {
-		if err := n.initDB(); err != nil {
+		if err := i.initDB(); err != nil {
 			l.Errorf("initDB: %s", err.Error())
-			n.feeder.FeedLastError(inputName, err.Error())
+			i.feeder.FeedLastError(inputName, err.Error())
 		} else {
 			break
 		}
@@ -186,47 +231,47 @@ func (n *Input) Run() {
 		case <-datakit.Exit.Wait():
 			l.Info("sqlserver exit")
 			return
-		case n.pause = <-n.pauseCh:
+		case i.pause = <-i.pauseCh:
 			// nil
 		}
 	}
 
 	defer func() {
-		if err := n.db.Close(); err != nil {
+		if err := i.db.Close(); err != nil {
 			l.Warnf("Close: %s", err)
 		}
 
-		if n.tail != nil {
-			n.tail.Close()
+		if i.tail != nil {
+			i.tail.Close()
 		}
 	}()
 
 	for {
-		if n.pause {
+		if i.pause {
 			l.Debugf("not leader, skipped")
 		} else {
-			n.getMetric()
+			i.getMetric()
 			if len(collectCache) > 0 {
-				err := n.feeder.Feed(inputName, point.Metric, collectCache, &io.Option{CollectCost: time.Since(n.start)})
+				err := i.feeder.Feed(inputName, point.Metric, collectCache, &io.Option{CollectCost: time.Since(i.start)})
 				collectCache = collectCache[:0]
 				if err != nil {
-					n.lastErr = err
+					i.lastErr = err
 					l.Errorf(err.Error())
 				}
 			}
 
 			if len(loggingCollectCache) > 0 {
-				err := n.feeder.Feed(inputName, point.Logging, loggingCollectCache, &io.Option{CollectCost: time.Since(n.start)})
+				err := i.feeder.Feed(inputName, point.Logging, loggingCollectCache, &io.Option{CollectCost: time.Since(i.start)})
 				loggingCollectCache = loggingCollectCache[:0]
 				if err != nil {
-					n.lastErr = err
+					i.lastErr = err
 					l.Errorf(err.Error())
 				}
 			}
 
-			if n.lastErr != nil {
-				n.feeder.FeedLastError(inputName, n.lastErr.Error())
-				n.lastErr = nil
+			if i.lastErr != nil {
+				i.feeder.FeedLastError(inputName, i.lastErr.Error())
+				i.lastErr = nil
 			}
 
 			select {
@@ -235,8 +280,8 @@ func (n *Input) Run() {
 				l.Info("sqlserver exit")
 				return
 
-			case <-n.semStop.Wait():
-				n.exit()
+			case <-i.semStop.Wait():
+				i.exit()
 				l.Info("sqlserver return")
 				return
 			}
@@ -244,44 +289,59 @@ func (n *Input) Run() {
 	}
 }
 
-func (n *Input) exit() {
-	if n.tail != nil {
-		n.tail.Close()
+func (i *Input) exit() {
+	if i.tail != nil {
+		i.tail.Close()
 		l.Info("sqlserver log exit")
 	}
 }
 
-func (n *Input) Terminate() {
-	if n.semStop != nil {
-		n.semStop.Close()
+func (i *Input) Terminate() {
+	if i.semStop != nil {
+		i.semStop.Close()
 	}
 }
 
-func (n *Input) getMetric() {
+func (i *Input) getMetric() {
 	now := time.Now()
 	collectInterval := 10 * time.Minute
-	if !n.start.IsZero() {
-		collectInterval = now.Sub(n.start)
+	if !i.start.IsZero() {
+		collectInterval = now.Sub(i.start)
 	}
-	n.start = now
+	i.start = now
 
+	// simple metric points
 	for _, v := range query {
-		n.handRow(v, now, false)
+		i.handRow(v, now, false)
 	}
 
+	// simple logging points
 	for _, v := range loggingQuery {
 		if strings.Contains(v, "__COLLECT_INTERVAL_SECONDS__") {
 			v = strings.ReplaceAll(v, "__COLLECT_INTERVAL_SECONDS__", fmt.Sprintf("%.0f", collectInterval.Seconds()))
 		}
-		n.handRow(v, now, true)
+		if strings.Contains(v, "__DATABASE__") {
+			v = strings.ReplaceAll(v, "__DATABASE__", i.Database)
+		}
+		i.handRow(v, now, true)
 	}
+
+	// collectFuncs collect metrics that can't be collected by simple SQL query.
+	for k, v := range i.collectFuncs {
+		if err := v(); err != nil {
+			l.Warnf("collect measurement [%s] error: %s", k, err.Error())
+		}
+	}
+
+	// custom query from the config
+	i.getCustomQueryMetrics()
 }
 
-func (n *Input) handRow(query string, ts time.Time, isLogging bool) {
-	rows, err := n.db.Query(query)
+func (i *Input) handRow(query string, ts time.Time, isLogging bool) {
+	rows, err := i.db.Query(query)
 	if err != nil {
 		l.Error(err.Error())
-		n.lastErr = err
+		i.lastErr = err
 		return
 	}
 	defer rows.Close() //nolint:errcheck
@@ -294,7 +354,7 @@ func (n *Input) handRow(query string, ts time.Time, isLogging bool) {
 	OrderedColumns, err := rows.Columns()
 	if err != nil {
 		l.Error(err.Error())
-		n.lastErr = err
+		i.lastErr = err
 		return
 	}
 
@@ -315,13 +375,13 @@ func (n *Input) handRow(query string, ts time.Time, isLogging bool) {
 		err := rows.Scan(columnVars...)
 		if err != nil {
 			l.Error(err.Error())
-			n.lastErr = err
+			i.lastErr = err
 			return
 		}
 		measurement := ""
 		tags := make(map[string]string)
-		setHostTagIfNotLoopback(tags, n.Host)
-		for k, v := range n.Tags {
+		setHostTagIfNotLoopback(tags, i.Host)
+		for k, v := range i.Tags {
 			tags[k] = v
 		}
 		fields := make(map[string]interface{})
@@ -350,7 +410,7 @@ func (n *Input) handRow(query string, ts time.Time, isLogging bool) {
 		if len(fields) == 0 {
 			continue
 		}
-		if n.filterOutDBName(tags) {
+		if i.filterOutDBName(tags) {
 			continue
 		}
 
@@ -362,18 +422,15 @@ func (n *Input) handRow(query string, ts time.Time, isLogging bool) {
 			opts = point.DefaultMetricOptions()
 		}
 
-		if n.Election {
+		if i.Election {
 			opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
 		}
 
 		transformData(measurement, tags, fields)
 
-		point, err := point.NewPoint(measurement, tags, fields, opts...)
-		if err != nil {
-			l.Errorf("make point err:%s", err.Error())
-			n.lastErr = err
-			continue
-		}
+		point := point.NewPointV2([]byte(measurement),
+			append(point.NewTags(tags), point.NewKVs(fields)...), opts...)
+
 		if isLogging {
 			loggingCollectCache = append(loggingCollectCache, point)
 		} else {
@@ -384,33 +441,138 @@ func (n *Input) handRow(query string, ts time.Time, isLogging bool) {
 
 // filterOutDBName filters out metrics according to their database_name tag.
 // Metrics with database_name tag specified in db_filter are filtered out and not fed to IO.
-func (n *Input) filterOutDBName(tags map[string]string) bool {
-	if len(n.dbFilterMap) == 0 {
+func (i *Input) filterOutDBName(tags map[string]string) bool {
+	if len(i.dbFilterMap) == 0 {
 		return false
 	}
 	db, has := tags["database_name"]
 	if !has {
 		return false
 	}
-	if _, filterOut := n.dbFilterMap[db]; filterOut {
+
+	if _, filterOut := i.dbFilterMap[db]; filterOut {
 		l.Debugf("filter out metric from db: %s", db)
 		return true
 	}
 	return false
 }
 
-func (n *Input) initDBFilterMap() {
-	if n.dbFilterMap == nil {
-		n.dbFilterMap = make(map[string]struct{}, len(n.DBFilter))
+func (i *Input) init() {
+	if len(i.Database) == 0 {
+		i.Database = "master"
 	}
-	for _, db := range n.DBFilter {
-		n.dbFilterMap[db] = struct{}{}
+
+	i.collectFuncs = map[string]func() error{
+		"sqlserver_database_files": i.getDatabaseFilesMetrics,
+	}
+
+	i.initDBFilterMap()
+}
+
+func (i *Input) getDatabaseFilesMetrics() error {
+	data, err := i.query(fmt.Sprintf(`use [%s];
+		select file_id,type as file_type,physical_name,state_desc,size,state
+		from sys.database_files
+	`, i.Database))
+	if err != nil {
+		return err
+	}
+
+	m := &DatabaseFilesMeasurement{
+		MetricMeasurment: MetricMeasurment{},
+	}
+	info := m.Info()
+
+	for _, row := range data {
+		tags := make(map[string]string)
+		fields := make(map[string]interface{})
+
+		setHostTagIfNotLoopback(tags, i.Host)
+		for k, v := range i.Tags {
+			tags[k] = v
+		}
+
+		tags["database"] = i.Database
+
+		for k, v := range row {
+			switch k {
+			case "size":
+				if size, err := getValue[int64](v); err != nil {
+					return err
+				} else {
+					fields[k] = 8 * size
+				}
+			default:
+				if _, ok := info.Tags[k]; ok {
+					tags[k] = fmt.Sprintf("%v", *v)
+				}
+			}
+		}
+
+		m.Measurement.fields = fields
+		m.Measurement.tags = tags
+		m.Measurement = Measurement{
+			tags:     tags,
+			fields:   fields,
+			name:     info.Name,
+			election: i.Election,
+		}
+		collectCache = append(collectCache, m.Point())
+	}
+
+	return nil
+}
+
+func (i *Input) query(sql string) (resRows []map[string]*interface{}, err error) {
+	rows, err := i.db.Query(sql)
+	if err != nil {
+		return
+	}
+	defer rows.Close() //nolint:errcheck
+
+	if err = rows.Err(); err != nil {
+		return
+	}
+
+	columns, err := rows.Columns()
+	if err != nil {
+		return
+	}
+
+	resRows = make([]map[string]*interface{}, 0)
+
+	for rows.Next() {
+		var columnVars []interface{}
+		columnMap := make(map[string]*interface{})
+
+		for _, column := range columns {
+			item := new(interface{})
+			columnMap[column] = item
+			columnVars = append(columnVars, item)
+		}
+
+		err = rows.Scan(columnVars...)
+		if err != nil {
+			return
+		}
+		resRows = append(resRows, columnMap)
+	}
+
+	return resRows, err
+}
+
+func (i *Input) initDBFilterMap() {
+	if i.dbFilterMap == nil {
+		i.dbFilterMap = make(map[string]struct{}, len(i.DBFilter))
+	}
+	for _, db := range i.DBFilter {
+		i.dbFilterMap[db] = struct{}{}
 	}
 }
 
-func (n *Input) SampleMeasurement() []inputs.Measurement {
+func (i *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
-		&ServerProperties{},
+		&SqlserverMeasurment{},
 		&Performance{},
 		&WaitStatsCategorized{},
 		&DatabaseIO{},
@@ -422,7 +584,22 @@ func (n *Input) SampleMeasurement() []inputs.Measurement {
 		&LogicalIO{},
 		&WorkerTime{},
 		&DatabaseSize{},
+		&DatabaseBackupMeasurement{},
+		&DatabaseFilesMeasurement{},
 	}
+}
+
+// getValue return the of value with the type of the specified T.
+func getValue[T any](rawValue interface{}) (res T, err error) {
+	if v, ok := rawValue.(*interface{}); !ok {
+		err = fmt.Errorf("value is not *interface{}")
+		return
+	} else if res, ok = (*v).(T); !ok {
+		err = fmt.Errorf("value is not specified type")
+		return
+	}
+
+	return
 }
 
 func defaultInput() *Input {
