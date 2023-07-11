@@ -7,9 +7,11 @@ package container
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -52,96 +54,120 @@ func dial(ctx context.Context, addr string) (net.Conn, error) {
 	return net.DialTimeout("unix", addr, timeout)
 }
 
-func (c *containerdInput) addToLogList(logpath string) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.logpathList[logpath] = nil
+func (c *containerdInput) tailingLogs(info *containerLogInfo) {
+	g := goroutine.NewGroup(goroutine.Option{Name: "containerd-logs/" + info.containerName})
+	done := make(chan interface{})
+
+	for _, cfg := range info.logConfigs {
+		if cfg.Disable {
+			continue
+		}
+
+		if c.logTable.inTable(info.id, cfg.Path) {
+			continue
+		}
+
+		opt := &tailer.Option{
+			Source:                   cfg.Source,
+			Service:                  cfg.Service,
+			Pipeline:                 cfg.Pipeline,
+			CharacterEncoding:        cfg.CharacterEncoding,
+			MultilinePatterns:        cfg.MultilinePatterns,
+			GlobalTags:               cfg.Tags,
+			BlockingMode:             c.ipt.LoggingBlockingMode,
+			MinFlushInterval:         c.ipt.LoggingMinFlushInterval,
+			MaxMultilineLifeDuration: c.ipt.LoggingMaxMultilineLifeDuration,
+			Done:                     done,
+		}
+
+		if cfg.Type == "file" {
+			opt.Mode = tailer.FileMode
+		} else {
+			opt.Mode = tailer.ContainerdMode
+		}
+		_ = opt.Init()
+
+		path := logsJoinRootfs(cfg.Path)
+
+		tail, err := tailer.NewTailerSingle(path, opt)
+		if err != nil {
+			l.Errorf("failed to create containerd-log collection %s for %s, err: %s", path, info.containerName, err)
+			continue
+		}
+
+		c.logTable.addToTable(info.id, cfg.Path, done)
+
+		g.Go(func(ctx context.Context) error {
+			defer c.logTable.removePathFromTable(info.id, cfg.Path)
+			tail.Run()
+			return nil
+		})
+	}
 }
 
-func (c *containerdInput) removeFromLogList(logpath string) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	delete(c.logpathList, logpath)
-}
+func (c *containerdInput) queryContainerLogInfo(resp *cri.ContainerStatusResponse) *containerLogInfo {
+	status := resp.GetStatus()
 
-func (c *containerdInput) inLogList(logpath string) bool {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	_, ok := c.logpathList[logpath]
-	return ok
-}
-
-func (c *containerdInput) tailingLog(status *cri.ContainerStatus) error {
-	var name string
-	if status.GetMetadata() != nil && status.GetMetadata().Name != "" {
-		name = status.GetMetadata().Name
-	} else {
-		name = "unknown"
+	var originalName string
+	if status.GetMetadata() != nil {
+		originalName = status.GetMetadata().GetName()
 	}
 
-	oldLogpath := status.GetLogPath()
-	logpath := logsJoinRootfs(oldLogpath)
-
-	if !tailer.FileIsActive(logpath, ignoreDeadLogDuration) {
-		l.Debugf("container %s file %s is not active, larger than %s, ignored", name, logpath, ignoreDeadLogDuration)
-		return nil
+	labels := status.GetLabels()
+	info := &containerLogInfo{
+		runtimeType:   "containerd",
+		id:            status.GetId(),
+		originalName:  originalName,
+		containerName: getContainerNameForLabels(labels),
+		podName:       getPodNameForLabels(labels),
+		podNamespace:  getPodNamespaceForLabels(labels),
+		logPath:       status.GetLogPath(),
 	}
 
-	info := &containerLogBasisInfo{
-		name:                  name,
-		id:                    status.GetId(),
-		logPath:               logpath,
-		labels:                status.GetLabels(),
-		tags:                  make(map[string]string),
-		extraSourceMap:        c.ipt.LoggingExtraSourceMap,
-		sourceMultilineMap:    c.ipt.LoggingSourceMultilineMap,
-		autoMultilinePatterns: c.ipt.getAutoMultilinePatterns(),
-		extractK8sLabelAsTags: c.ipt.ExtractK8sLabelAsTags,
-		configKey:             containerLogConfigKey,
+	if info.containerName == "" {
+		info.containerName = originalName
 	}
 
-	if n := status.GetImage(); n != nil {
-		info.image = n.Image
+	if status.GetImage() != nil {
+		info.image = status.GetImage().GetImage()
 	}
 
-	if c.criRuntimeVersion != nil {
-		l.Debugf("containedlog runtime: '%s'", c.criRuntimeVersion.RuntimeName)
-		info.tags["container_type"] = c.criRuntimeVersion.RuntimeName
-	} else {
-		l.Debug("containedlog runtime: default 'containerd'")
-		info.tags["container_type"] = "containerd"
-	}
-	// add extra tags
-	for k, v := range c.ipt.Tags {
-		if _, ok := info.tags[k]; !ok {
-			info.tags[k] = v
+	if c.k8sClient != nil && info.podName != "" {
+		meta, err := queryPodMetaData(c.k8sClient, info.podName, info.podNamespace)
+		if err != nil {
+			l.Warnf("failed to query containerd %s info from k8s, err: %s, skip", info.containerName, err)
+		} else {
+			img := meta.containerImage(info.containerName)
+			if img != "" {
+				info.image = img
+			}
+
+			annotations := meta.annotations()
+
+			// ex: datakit/logs
+			if v := annotations[fmt.Sprintf(logConfigAnnotationKeyFormat, "")]; v != "" {
+				info.logConfigStr = v
+			}
+
+			// ex: datakit/nginx.logs
+			if v := annotations[fmt.Sprintf(logConfigAnnotationKeyFormat, info.containerName+".")]; v != "" {
+				info.logConfigStr = v
+			}
 		}
 	}
 
-	opt, _ := composeTailerOption(c.k8sClient, info)
-	opt.Mode = tailer.ContainerdMode
-	opt.BlockingMode = c.ipt.LoggingBlockingMode
-	opt.MinFlushInterval = c.ipt.LoggingMinFlushInterval
-	opt.MaxMultilineLifeDuration = c.ipt.LoggingMaxMultilineLifeDuration
-	opt.Done = c.ipt.semStop.Wait()
-	_ = opt.Init()
-
-	l.Debugf("use container-log opt:%#v, containerId: %s", opt, status.GetId())
-
-	t, err := tailer.NewTailerSingle(info.logPath, opt)
-	if err != nil {
-		l.Warnf("failed to new containerd log, containerId: %s, source: %s, logpath: %s, err: %s", status.Id, opt.Source, info.logPath, err)
-		return err
+	// ex: DATAKIT_LOGS_CONFIG
+	if in := resp.GetInfo(); in != nil {
+		criInfo, err := parseCriInfo(in["info"])
+		if err != nil {
+			l.Warnf("unable to parse containerd %s info, err: %s, skip", info.containerName, err)
+		} else {
+			if v := criInfo.Config.Envs.Find("DATAKIT_LOGS_CONFIG"); v != "" {
+				info.logConfigStr = v
+			}
+		}
 	}
 
-	// 这里添加原始 logpath，而不是修改过的
-	c.addToLogList(oldLogpath)
-	l.Infof("add containerd log, containerId: %s, source: %s, logpath: %s", status.Id, opt.Source, info.logPath)
-	defer func() {
-		c.removeFromLogList(oldLogpath)
-		l.Infof("remove containerd log, containerId: %s, source: %s, logpath: %s", status.Id, opt.Source, info.logPath)
-	}()
-
-	t.Run()
-	return nil
+	l.Debugf("containerd %s use logConfig: '%s'", info.containerName, info.logConfigStr)
+	return info
 }

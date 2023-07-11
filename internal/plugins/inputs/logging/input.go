@@ -67,9 +67,6 @@ const (
   auto_multiline_detection = true
   auto_multiline_extra_patterns = []
 
-  ## Removes ANSI escape codes from text strings.
-  remove_ansi_escape_codes = false
-
   ## If the data sent failure, will retry forevery.
   blocking_mode = true
 
@@ -87,25 +84,25 @@ const (
 )
 
 type Input struct {
-	LogFiles                   []string          `toml:"logfiles"`
-	Sockets                    []string          `toml:"sockets,omitempty"`
-	Ignore                     []string          `toml:"ignore"`
-	Source                     string            `toml:"source"`
-	Service                    string            `toml:"service"`
-	Pipeline                   string            `toml:"pipeline"`
-	IgnoreStatus               []string          `toml:"ignore_status"`
-	CharacterEncoding          string            `toml:"character_encoding"`
-	MultilineMatch             string            `toml:"multiline_match"`
-	AutoMultilineDetection     bool              `toml:"auto_multiline_detection"`
-	AutoMultilineExtraPatterns []string          `toml:"auto_multiline_extra_patterns"`
-	RemoveAnsiEscapeCodes      bool              `toml:"remove_ansi_escape_codes"`
-	Tags                       map[string]string `toml:"tags"`
-	BlockingMode               bool              `toml:"blocking_mode"`
-	FromBeginning              bool              `toml:"from_beginning,omitempty"`
-	DockerMode                 bool              `toml:"docker_mode,omitempty"`
-	IgnoreDeadLog              string            `toml:"ignore_dead_log"`
-	MinFlushInterval           time.Duration     `toml:"-"`
-	MaxMultilineLifeDuration   time.Duration     `toml:"-"`
+	LogFiles                        []string          `toml:"logfiles"`
+	Sockets                         []string          `toml:"sockets,omitempty"`
+	Ignore                          []string          `toml:"ignore"`
+	Source                          string            `toml:"source"`
+	Service                         string            `toml:"service"`
+	Pipeline                        string            `toml:"pipeline"`
+	IgnoreStatus                    []string          `toml:"ignore_status"`
+	CharacterEncoding               string            `toml:"character_encoding"`
+	MultilineMatch                  string            `toml:"multiline_match"`
+	AutoMultilineDetection          bool              `toml:"auto_multiline_detection"`
+	AutoMultilineExtraPatterns      []string          `toml:"auto_multiline_extra_patterns"`
+	DeprecatedRemoveAnsiEscapeCodes bool              `toml:"remove_ansi_escape_codes"`
+	Tags                            map[string]string `toml:"tags"`
+	BlockingMode                    bool              `toml:"blocking_mode"`
+	FromBeginning                   bool              `toml:"from_beginning,omitempty"`
+	DockerMode                      bool              `toml:"docker_mode,omitempty"`
+	IgnoreDeadLog                   string            `toml:"ignore_dead_log"`
+	MinFlushInterval                time.Duration     `toml:"-"`
+	MaxMultilineLifeDuration        time.Duration     `toml:"-"`
 
 	DeprecatedEnableDiskCache bool   `toml:"enable_diskcache,omitempty"`
 	DeprecatedPipeline        string `toml:"pipeline_path"`

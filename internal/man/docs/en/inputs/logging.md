@@ -68,17 +68,14 @@ This document focuses on local disk log collection and Socket log collection:
       ## Configure the automatic multiline patterns list, which is an array of multiline rules, i.e. multiple multiline_matches. If it is empty, use the default rule. See the document for details
       auto_multiline_extra_patterns = []
     
-      ## Whether to delete ANSI escape codes, such as text color for standard output, etc
-      remove_ansi_escape_codes = false
-      
       ## Ignore inactive files. For example, files that were last modified 20 minutes ago and more than 10m ago will be ignored
       ## Time unit supports "ms", "s", "m", "h"
       ignore_dead_log = "1h"
+
+      ## Read file from beginning.
+      from_beginning = false
     
-      ## Whether to turn on blocking mode, which will continue to retry after data fails to be sent, instead of discarding the data
-      blocking_mode = true
-    
-      # Custom tags
+      ## Custom tags
       [inputs.logging.tags]
       # some_tag = "some_value"
       # more_tag = "some_other_value"
@@ -386,25 +383,6 @@ The two collection methods are mutually exclusive at present. When collecting lo
 ### Remote File Collection Scheme {#remote-ntfs}
 
 On linux, you can mount the file path of the host where the log is located to the DataKit host by [NFS mode](https://linuxize.com/post/how-to-mount-an-nfs-share-in-linux/){:target="_blank"}, and the logging collector can configure the corresponding log path.
-
-### Special Bytecode Filtering for Logs {#ansi-decode}
-
-The log may contain some unreadable bytecodes (such as the color of terminal output, etc.), which can be deleted and filtered by setting `remove_ansi_escape_codes` to `true`.
-
-This configuration may affect log processing performance, and the benchmark results are as follows:
-
-```
-goos: linux
-goarch: amd64
-pkg: gitlab.jiagouyun.com/cloudcare-tools/test
-cpu: Intel(R) Core(TM) i7-4770HQ CPU @ 2.20GHz
-BenchmarkRemoveAnsiCodes
-BenchmarkRemoveAnsiCodes-8        636033              1616 ns/op
-PASS
-ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
-```
-
-The processing time of each text increases by `1616 ns`. If this function is not turned on, there will be no extra loss.
 
 ### MacOS Log Collector Error `operation not permitted` {#mac-no-permission}
 

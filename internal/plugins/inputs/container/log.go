@@ -10,49 +10,81 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strings"
-	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
 
-const ignoreDeadLogDuration = time.Hour * 48
+const logConfigAnnotationKeyFormat = "datakit/%slogs"
 
-type containerLogBasisInfo struct {
-	name, id              string
-	logPath               string
-	image                 string
-	labels                map[string]string
-	tags                  map[string]string
-	created               string
-	extraSourceMap        map[string]string
-	sourceMultilineMap    map[string]string
-	autoMultilinePatterns []string
-	extractK8sLabelAsTags bool
-
-	configKey string
+type logConfig struct {
+	Disable           bool              `json:"disable"`
+	Type              string            `json:"type"`
+	Path              string            `json:"path"`
+	Source            string            `json:"source"`
+	Service           string            `json:"service"`
+	CharacterEncoding string            `json:"character_encoding"`
+	Pipeline          string            `json:"pipeline"`
+	Multiline         string            `json:"multiline_match"`
+	MultilinePatterns []string          `json:"-"`
+	Tags              map[string]string `json:"tags"`
 }
 
-func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) (*tailer.Option, []string) {
-	if info.tags == nil {
-		info.tags = make(map[string]string)
+type logConfigs []*logConfig
+
+func (lc logConfigs) enabled() bool {
+	b := false
+	for _, c := range lc {
+		b = b || !c.Disable
+	}
+	return b
+}
+
+func parseLogConfig(cfg string) (logConfigs, error) {
+	if cfg == "" {
+		return nil, fmt.Errorf("logsconf is empty")
 	}
 
-	info.tags["container_runtime_name"] = info.name
-	if getContainerNameForLabels(info.labels) != "" {
-		info.tags["container_name"] = getContainerNameForLabels(info.labels)
-	} else {
-		info.tags["container_name"] = info.tags["container_runtime_name"]
+	var configs logConfigs
+	if err := json.Unmarshal([]byte(cfg), &configs); err != nil {
+		return nil, err
 	}
-	info.tags["container_id"] = info.id
 
-	if n := getPodNameForLabels(info.labels); n != "" {
-		info.tags["pod_name"] = n
+	return configs, nil
+}
+
+type containerLogInfo struct {
+	runtimeType   string
+	id            string
+	originalName  string
+	containerName string
+	image         string
+	podName       string
+	podNamespace  string
+	logPath       string
+
+	tags      map[string]string
+	podLabels map[string]string
+
+	logConfigStr string
+	logConfigs   logConfigs
+}
+
+func (info *containerLogInfo) enabled() bool {
+	return info.logConfigs.enabled()
+}
+
+func (info *containerLogInfo) fillTags() {
+	info.tags = map[string]string{
+		"container_id":           info.id,
+		"container_runtime_name": info.originalName,
+		"container_name":         info.containerName,
 	}
-	if ns := getPodNamespaceForLabels(info.labels); ns != "" {
-		info.tags["namespace"] = ns
+
+	if info.podName != "" {
+		info.tags["pod_name"] = info.podName
+	}
+	if info.podNamespace != "" {
+		info.tags["namespace"] = info.podNamespace
 	}
 
 	if info.image != "" {
@@ -63,178 +95,38 @@ func composeTailerOption(k8sClient k8sClientX, info *containerLogBasisInfo) (*ta
 		info.tags["image_tag"] = imageTag
 	}
 
-	opt := &tailer.Option{
-		GlobalTags:    info.tags,
-		IgnoreDeadLog: ignoreDeadLogDuration,
+	if containerIsFromKubernetes(info.containerName) {
+		info.tags["container_type"] = "kubernetes"
+	} else {
+		info.tags["container_type"] = info.runtimeType
 	}
-
-	switch {
-	case getContainerNameForLabels(info.labels) != "":
-		opt.Source = getContainerNameForLabels(info.labels)
-	case info.tags["image_short_name"] != "":
-		opt.Source = info.tags["image_short_name"]
-	default:
-		opt.Source = info.name
-	}
-
-	// 如果 opt.Source 能够匹配到 extra source，就不再使用 logconf.Source 的值 (#903)
-	useExtraSource := false
-	for re, newSource := range info.extraSourceMap {
-		match, err := regexp.MatchString(re, opt.Source)
-		if err != nil {
-			l.Warnf("invalid global_extra_source_map '%s', err %s, ignored", re, err)
-		}
-		if match {
-			opt.Source = newSource
-			useExtraSource = true
-			break
-		}
-	}
-
-	// 创建时间小于等于 5 分钟的新容器，日志从首部开始采集
-	if !checkContainerIsOlder(info.created, time.Minute*10) {
-		opt.FromBeginning = true
-	}
-
-	var logconf *containerLogConfig
-
-	func() {
-		if !datakit.Docker || info.tags["pod_name"] == "" || k8sClient == nil {
-			return
-		}
-		meta, err := queryPodMetaData(k8sClient, info.tags["pod_name"], info.tags["namespace"])
-		if err != nil {
-			l.Warnf("failed of get pod data, err: %s", err)
-			return
-		}
-
-		info.tags["pod_ip"] = meta.Status.PodIP
-		if deployment := getDeployment(meta.labels()["app"], info.tags["namespace"]); deployment != "" {
-			info.tags["deployment"] = deployment
-		}
-
-		// extract pod labels to tags
-		if info.extractK8sLabelAsTags {
-			for k, v := range meta.Labels {
-				// replace dot
-				k := strings.ReplaceAll(k, ".", "_")
-				if _, ok := opt.GlobalTags[k]; !ok {
-					opt.GlobalTags[k] = v
-				}
-			}
-		}
-
-		var conf string
-		if meta.annotations() != nil && meta.annotations()[info.configKey] != "" {
-			conf = meta.annotations()[info.configKey]
-			l.Infof("use annotation datakit/logs, conf: %s, pod_name %s", conf, info.tags["pod_name"])
-		}
-
-		if conf == "" {
-			l.Debugf("not found datakit/logs conf")
-			return
-		}
-
-		c, err := parseContainerLogConfig(conf)
-		if err != nil {
-			l.Warnf("failed of parse logconfig from annotations, err: %s", err)
-			return
-		}
-
-		logconf = c
-	}()
-
-	if logconf == nil {
-		c, err := getContainerLogConfig(info.configKey, info.labels)
-		if err != nil {
-			l.Warnf("failed of parse logconfig from labels, err: %s", err)
-		} else {
-			logconf = c
-		}
-	}
-
-	multilineMatch := ""
-
-	if logconf != nil {
-		if !useExtraSource {
-			if logconf.Source != "" {
-				opt.Source = logconf.Source
-			}
-			opt.Pipeline = logconf.Pipeline
-			multilineMatch = logconf.Multiline
-		}
-		if logconf.Service != "" {
-			opt.Service = logconf.Service
-		}
-
-		for k, v := range logconf.Tags {
-			opt.GlobalTags[k] = v
-		}
-
-		l.Debugf("use container logconfig:%#v, containerId: %s, source: %s, logpath: %s", logconf, info.id, opt.Source, info.logPath)
-	}
-
-	if multilineMatch == "" && info.sourceMultilineMap != nil {
-		mult := info.sourceMultilineMap[opt.Source]
-		if mult != "" {
-			multilineMatch = mult
-			l.Debugf("use multiline_match '%s' to source %s", multilineMatch, opt.Source)
-		}
-	}
-
-	if multilineMatch != "" {
-		opt.MultilinePatterns = []string{multilineMatch}
-	} else if len(info.autoMultilinePatterns) != 0 {
-		opt.MultilinePatterns = info.autoMultilinePatterns
-		l.Debugf("source %s, filename %s, automatic-multiline on, patterns %v", opt.Source, info.logPath, info.autoMultilinePatterns)
-	}
-
-	if logconf != nil && len(logconf.Paths) != 0 {
-		return opt, logconf.Paths
-	}
-
-	return opt, nil
 }
 
-type containerLogConfig struct {
-	Disable    bool              `json:"disable"`
-	Source     string            `json:"source"`
-	Paths      []string          `json:"paths"`
-	Pipeline   string            `json:"pipeline"`
-	Service    string            `json:"service"`
-	Multiline  string            `json:"multiline_match"`
-	OnlyImages []string          `json:"only_images"`
-	Tags       map[string]string `json:"tags"`
+func (info *containerLogInfo) parseLogConfigs() error {
+	if info.logConfigStr != "" {
+		configs, err := parseLogConfig(info.logConfigStr)
+		if err != nil {
+			return fmt.Errorf("failed to parse configs from container %s, err: %w", info.containerName, err)
+		}
+		info.logConfigs = configs
+	}
+	return nil
 }
 
-const (
-	containerLogConfigKey        = "datakit/logs"
-	containerInsiderLogConfigKey = "datakit/logs/inside"
-)
-
-func getContainerLogConfig(key string, m map[string]string) (*containerLogConfig, error) {
-	if m == nil || m[key] == "" {
-		return nil, nil
+func (info *containerLogInfo) addStdout() {
+	if len(info.logConfigs) == 0 {
+		info.logConfigs = append(info.logConfigs, &logConfig{
+			Type:   "stdout/stderr",
+			Path:   info.logPath,
+			Source: info.containerName,
+		})
+		return
 	}
-	return parseContainerLogConfig(m[key])
-}
-
-func parseContainerLogConfig(cfg string) (*containerLogConfig, error) {
-	if cfg == "" {
-		return nil, fmt.Errorf("logsconf is empty")
+	for _, cfg := range info.logConfigs {
+		if (cfg.Type == "" || cfg.Type == "stdout") && cfg.Path == "" {
+			cfg.Path = info.logPath
+		}
 	}
-
-	var configs []containerLogConfig
-	if err := json.Unmarshal([]byte(cfg), &configs); err != nil {
-		return nil, err
-	}
-
-	if len(configs) < 1 {
-		return nil, fmt.Errorf("invalid logsconf")
-	}
-
-	temp := configs[0]
-	return &temp, nil
 }
 
 func getPodNameForLabels(labels map[string]string) string {

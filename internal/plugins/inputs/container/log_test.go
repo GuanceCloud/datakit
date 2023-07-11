@@ -11,16 +11,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestParseLogConfig(t *testing.T) {
+func TestParseLogConfigs(t *testing.T) {
 	cases := []struct {
 		in                     string
-		out                    *containerLogConfig
+		out                    logConfigs
 		parseFail, contentFail bool
 	}{
 		{
 			in: "[{\"disable\":true}]",
-			out: &containerLogConfig{
-				Disable: true,
+			out: logConfigs{
+				&logConfig{
+					Disable: true,
+				},
 			},
 		},
 		// fail
@@ -30,35 +32,37 @@ func TestParseLogConfig(t *testing.T) {
 		},
 		{
 			in: "[{\"disable\":false,\"source\":\"testing-source\",\"service\":\"testing-service\",\"pipeline\":\"test.p\"}]",
-			out: &containerLogConfig{
-				Disable:  false,
-				Source:   "testing-source",
-				Service:  "testing-service",
-				Pipeline: "test.p",
-			},
-		},
-		{
-			in: "[{\"only_images\":[\"image:<your_image_regexp>\"]}]",
-			out: &containerLogConfig{
-				OnlyImages: []string{"image:<your_image_regexp>"},
+			out: logConfigs{
+				&logConfig{
+					Disable:  false,
+					Source:   "testing-source",
+					Service:  "testing-service",
+					Pipeline: "test.p",
+				},
 			},
 		},
 		{
 			in: "[{\"tags\":{\"some_tag\":\"some_value\"}}]",
-			out: &containerLogConfig{
-				Tags: map[string]string{"some_tag": "some_value"},
+			out: logConfigs{
+				&logConfig{
+					Tags: map[string]string{"some_tag": "some_value"},
+				},
 			},
 		},
 		{
 			in: "[{\"multiline_match\":\"^\\\\[[0-9]{4}\"}]",
-			out: &containerLogConfig{
-				Multiline: `^\[[0-9]{4}`,
+			out: logConfigs{
+				&logConfig{
+					Multiline: `^\[[0-9]{4}`,
+				},
 			},
 		},
 		{
 			in: "[{\"multiline_match\":\"^\\\\[[0-9]{4}\"}]",
-			out: &containerLogConfig{
-				Multiline: "^\\[[0-9]{4}",
+			out: logConfigs{
+				&logConfig{
+					Multiline: "^\\[[0-9]{4}",
+				},
 			},
 		},
 		// fail，multiline_match 需要 4 条斜线转义等于 1 根
@@ -68,63 +72,92 @@ func TestParseLogConfig(t *testing.T) {
 		},
 		{
 			in: "[{\"multiline_match\":\"^\\\\d{4}-\\\\d{2}\"}]",
-			out: &containerLogConfig{
-				Multiline: "^\\d{4}-\\d{2}",
+			out: logConfigs{
+				&logConfig{
+					Multiline: "^\\d{4}-\\d{2}",
+				},
 			},
 		},
 		{
 			// 等于上一条测试
 			in: "[{\"multiline_match\":\"^\\\\d{4}-\\\\d{2}\"}]",
-			out: &containerLogConfig{
-				Multiline: `^\d{4}-\d{2}`,
+			out: logConfigs{
+				&logConfig{
+					Multiline: `^\d{4}-\d{2}`,
+				},
 			},
 		},
 		// 解析通过，内容错误
 		{
 			in: "[{\"multiline_match\":\"^\\\\d{4}-\\\\d{2}\"}]",
-			out: &containerLogConfig{
-				Multiline: `^\\d{4}-\\d{2}`,
+			out: logConfigs{
+				&logConfig{
+					Multiline: `^\\d{4}-\\d{2}`,
+				},
 			},
 			contentFail: true,
 		},
 		{
 			// 8 条斜线等于实际 2 条
 			in: "[{\"multiline_match\":\"^\\\\\\\\d{4}-\\\\\\\\d{2}\"}]",
-			out: &containerLogConfig{
-				Multiline: "^\\\\d{4}-\\\\d{2}",
+			out: logConfigs{
+				&logConfig{
+					Multiline: "^\\\\d{4}-\\\\d{2}",
+				},
 			},
 		},
 		{
 			// 等同上一条测试
 			in: "[{\"multiline_match\":\"^\\\\\\\\d{4}-\\\\\\\\d{2}\"}]",
-			out: &containerLogConfig{
-				Multiline: `^\\d{4}-\\d{2}`,
+			out: logConfigs{
+				&logConfig{
+					Multiline: `^\\d{4}-\\d{2}`,
+				},
 			},
 		},
 		// 解析通过，内容错误
 		{
 			in: "[{\"tags\":{\"some_tag\":\"some_value\"}}]",
-			out: &containerLogConfig{
-				Tags: map[string]string{"some_tag": "some_value_11"},
+			out: logConfigs{
+				&logConfig{
+					Tags: map[string]string{"some_tag": "some_value_11"},
+				},
 			},
 			contentFail: true,
 		},
 		{
-			in: "[{\"disable\":false,\"source\":\"testing-source\",\"service\":\"testing-service\",\"pipeline\":\"test.p\",\"only_images\":[\"image:<your_image_regexp>\"],\"multiline_match\":\"^\\\\d{4}-\\\\d{2}\", \"tags\":{\"some_tag\":\"some_value\"}}]",
-			out: &containerLogConfig{
-				Disable:    false,
-				Source:     "testing-source",
-				Service:    "testing-service",
-				Pipeline:   "test.p",
-				Multiline:  "^\\d{4}-\\d{2}",
-				OnlyImages: []string{"image:<your_image_regexp>"},
-				Tags:       map[string]string{"some_tag": "some_value"},
+			in: "[{\"disable\":false,\"source\":\"testing-source\",\"service\":\"testing-service\",\"pipeline\":\"test.p\",\"multiline_match\":\"^\\\\d{4}-\\\\d{2}\", \"tags\":{\"some_tag\":\"some_value\"}}]",
+			out: logConfigs{
+				&logConfig{
+					Disable:   false,
+					Source:    "testing-source",
+					Service:   "testing-service",
+					Pipeline:  "test.p",
+					Multiline: "^\\d{4}-\\d{2}",
+					Tags:      map[string]string{"some_tag": "some_value"},
+				},
+			},
+		},
+		// many config
+		{
+			in: "[{\"disable\":false}, {\"disable\":true}]",
+			out: logConfigs{
+				&logConfig{
+					Disable: false,
+				},
+				&logConfig{
+					Disable: true,
+				},
 			},
 		},
 	}
 
 	for idx, tc := range cases {
-		c, err := parseContainerLogConfig(tc.in)
+		info := &containerLogInfo{
+			logConfigStr: tc.in,
+		}
+
+		err := info.parseLogConfigs()
 		if tc.parseFail && assert.Error(t, err) {
 			t.Logf("[%d][OK   ] %s\n", idx, err)
 			continue
@@ -134,10 +167,12 @@ func TestParseLogConfig(t *testing.T) {
 			continue
 		}
 
+		res := info.logConfigs
+
 		if tc.contentFail {
-			assert.Equal(t, tc.contentFail, assert.NotEqual(t, c, tc.out))
+			assert.Equal(t, tc.contentFail, assert.NotEqual(t, tc.out, res))
 		} else {
-			assert.Equal(t, !tc.contentFail, assert.Equal(t, c, tc.out))
+			assert.Equal(t, !tc.contentFail, assert.Equal(t, tc.out, res))
 		}
 
 		t.Logf("[%d][OK   ] %v\n", idx, tc)

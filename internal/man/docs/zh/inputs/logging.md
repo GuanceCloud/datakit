@@ -69,19 +69,10 @@
       ## 配置自动多行的 patterns 列表，内容是多行规则的数组，即多个 multiline_match，如果为空则使用默认规则详见文档
       auto_multiline_extra_patterns = []
     
-      ## 是否删除 ANSI 转义码，例如标准输出的文本颜色等
-      remove_ansi_escape_codes = false
-      
       ## 忽略不活跃的文件，例如文件最后一次修改是 20 分钟之前，距今超出 10m，则会忽略此文件
       ## 时间单位支持 "ms", "s", "m", "h"
       ignore_dead_log = "1h"
     
-      ## 是否开启阻塞模式，阻塞模式会在数据发送失败后持续重试，而不是丢弃该数据
-      blocking_mode = true
-
-      ## 是否开启磁盘缓存，可以有效避免采集延迟，有一定的性能开销，建议只在日志量超过 3000 条/秒再开启
-      enable_diskcache = false
-
       ## 是否从文件首部开始读取
       from_beginning = false
     
@@ -423,25 +414,6 @@ First Message. filename: /some/path/to/new/log ...
 ### :material-chat-question: 远程文件采集方案 {#remote-ntfs}
 
 在 Linux 上，可通过 [NFS 方式](https://linuxize.com/post/how-to-mount-an-nfs-share-in-linux/){:target="_blank"}，将日志所在主机的文件路径，挂载到 DataKit 主机下，logging 采集器配置对应日志路径即可。
-
-### :material-chat-question: 日志的特殊字节码过滤 {#ansi-decode}
-
-日志可能会包含一些不可读的字节码（比如终端输出的颜色等），可以将 `remove_ansi_escape_codes` 设置为 `true` 对其删除过滤。
-
-此配置可能会影响日志的处理性能，基准测试结果如下：
-
-``` not-set
-goos: linux
-goarch: amd64
-pkg: gitlab.jiagouyun.com/cloudcare-tools/test
-cpu: Intel(R) Core(TM) i7-4770HQ CPU @ 2.20GHz
-BenchmarkRemoveAnsiCodes
-BenchmarkRemoveAnsiCodes-8        636033              1616 ns/op
-PASS
-ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
-```
-
-每一条文本的处理耗时增加 `1616 ns` 不等。如果不开启此功能将无额外损耗。
 
 ### :material-chat-question: MacOS 日志采集器报错 `operation not permitted` {#mac-no-permission}
 
