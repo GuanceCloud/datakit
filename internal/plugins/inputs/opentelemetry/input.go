@@ -54,6 +54,9 @@ const (
   ## sampler. If you want to get rid of some error status, you can set the error status list here.
   # omit_err_status = ["404"]
 
+  ## compatible ddtrace: It is possible to compatible OTEL Trace with DDTrace trace
+  # compatible_ddtrace=false
+
   ## Ignore tracing resources map like service:[resources...].
   ## The service name is the full service name in current application.
   ## The resource list is regular expressions uses to block resource names.
@@ -153,6 +156,7 @@ type Input struct {
 	Pipelines           map[string]string            `toml:"pipelines"` // deprecated
 	HTTPConfig          *httpConfig                  `toml:"http"`
 	GRPCConfig          *grpcConfig                  `toml:"grpc"`
+	CompatibleDDTrace   bool                         `toml:"compatible_ddtrace"`
 	ExpectedHeaders     map[string]string            `toml:"expected_headers"`
 	IgnoreAttributeKeys []string                     `toml:"ignore_attribute_keys"`
 	KeepRareResource    bool                         `toml:"keep_rare_resource"`
@@ -308,7 +312,7 @@ func (ipt *Input) Run() {
 
 		return
 	}
-
+	convertToDD = ipt.CompatibleDDTrace
 	tags = ipt.Tags
 	for i := range ipt.IgnoreAttributeKeys {
 		ignoreKeyRegExps = append(ignoreKeyRegExps, regexp.MustCompile(ipt.IgnoreAttributeKeys[i]))
