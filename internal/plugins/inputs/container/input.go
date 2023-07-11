@@ -15,7 +15,6 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/multiline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	timex "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
@@ -520,16 +519,6 @@ func (i *Input) Resume() error {
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
 	}
-}
-
-func (i *Input) getAutoMultilinePatterns() []string {
-	if !i.LoggingAutoMultilineDetection {
-		return nil
-	}
-	if len(i.LoggingAutoMultilineExtraPatterns) != 0 {
-		return i.LoggingAutoMultilineExtraPatterns
-	}
-	return multiline.GlobalPatterns
 }
 
 //nolint:gochecknoinits

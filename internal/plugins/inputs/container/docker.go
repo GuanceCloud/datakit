@@ -7,7 +7,6 @@ package container
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -23,15 +22,14 @@ type dockerInput struct {
 	client    *dockerClient
 	k8sClient k8sClientX // container log 需要添加 pod 信息，所以存一份 k8sclient
 
-	loggingFilter    filter.Filter
-	containerLogList map[string]interface{}
-	mu               sync.Mutex
+	loggingFilter filter.Filter
+	logTable      *logTable
 }
 
 func newDockerInput(ipt *Input) (*dockerInput, error) {
 	d := &dockerInput{
-		containerLogList: make(map[string]interface{}),
-		ipt:              ipt,
+		ipt:      ipt,
+		logTable: newLogTable(),
 	}
 
 	client, err := newDockerClient(ipt.DockerEndpoint, nil)
@@ -151,133 +149,77 @@ func (d *dockerInput) watchNewLogs() error {
 		return err
 	}
 
-	g := goroutine.NewGroup(goroutine.Option{Name: goroutineGroupName})
+	var newIDs []string
+	for _, container := range cList {
+		newIDs = append(newIDs, container.ID)
+	}
+	d.cleanMissingContainerLog(newIDs)
 
-	for idx, container := range cList {
-		if !d.shouldPullContainerLog(&cList[idx]) {
+	l.Infof("docker container IDs: %v", newIDs)
+
+	for idx := range cList {
+		info := d.queryContainerLogInfo(context.Background(), &cList[idx])
+		if info == nil {
 			continue
 		}
 
-		l.Infof("add container log, containerName: %s image: %s", getContainerName(container.Names), container.Image)
-		// Start a new goroutine for every new container that has logs to collect
-		func(container *types.Container) {
-			g.Go(func(ctx context.Context) error {
-				if err := d.tailingLog(context.Background(), container); err != nil {
-					if !errors.Is(err, context.Canceled) {
-						l.Warnf("tail containerLog: %s", err)
-					}
-				}
-				return nil
-			})
-		}(&cList[idx])
+		if !d.shouldPullContainerLog(&cList[idx], info) {
+			continue
+		}
+
+		if err := info.parseLogConfigs(); err != nil {
+			l.Warn(err)
+			continue
+		}
+
+		info.addStdout()
+		info.fillTags()
+
+		d.ipt.setLoggingExtraSourceMapToLogConfigs(info.logConfigs)
+		d.ipt.setLoggingSourceMultilineMapToLogConfigs(info.logConfigs)
+		d.ipt.setLoggingAutoMultilineToLogConfigs(info.logConfigs)
+
+		d.ipt.setExtractK8sLabelAsTagsToLogConfigs(info.logConfigs, info.podLabels)
+		d.ipt.setTagsToLogConfigs(info.logConfigs, info.tags)
+		d.ipt.setGlobalTagsToLogConfigs(info.logConfigs)
+
+		l.Debugf("docker container %s info: %#v", info.containerName, info)
+
+		d.tailingLogs(info)
 	}
+
+	l.Debugf("current docker logtable: %s", d.logTable.String())
 
 	return nil
 }
 
-type podAnnotationStateType int
+func (d *dockerInput) cleanMissingContainerLog(newIDs []string) {
+	missingIDs := d.logTable.findDifferences(newIDs)
+	for _, id := range missingIDs {
+		l.Infof("clean log collection for container id %s", id)
+		d.logTable.closeFromTable(id)
+		d.logTable.removeFromTable(id)
+	}
+}
 
-const (
-	podAnnotationNil podAnnotationStateType = iota + 1
-	podAnnotationEnable
-	podAnnotationDisable
-)
-
-func (d *dockerInput) shouldPullContainerLog(container *types.Container) bool {
-	if d.containerInContainerList(container.ID) {
+func (d *dockerInput) shouldPullContainerLog(container *types.Container, info *containerLogInfo) bool {
+	if d.logTable.inTable(info.id, info.logPath) {
 		return false
 	}
 
-	image := container.Image
-
-	// TODO
-	// 每次获取到容器列表，都要进行以下审核，特别是获取其 k8s Annotation 的配置，需要进行访问和查找
-	// 这消耗很大，且没有意义
-	// 可以使用 container ID 进行缓存，维持一份名单，通过名单再决定是否进行考查
-
-	podAnnotationState := podAnnotationNil
-
-	func() {
-		podName := getPodNameForLabels(container.Labels)
-		if d.k8sClient == nil || podName == "" {
-			return
-		}
-		podNamespace := getPodNamespaceForLabels(container.Labels)
-
-		meta, err := queryPodMetaData(d.k8sClient, podName, podNamespace)
-		if err != nil {
-			return
-		}
-		if containerImage := meta.containerImage(getContainerNameForLabels(container.Labels)); containerImage != "" {
-			image = containerImage
-		}
-		podAnnotationState = getPodAnnotationState(container.Labels, meta)
-	}()
-
-	switch podAnnotationState {
-	case podAnnotationDisable:
-		return false
-	case podAnnotationEnable:
+	if info.enabled() {
 		return true
-	case podAnnotationNil:
-		// nil
 	}
 
 	if d.ignoreContainer(container) {
-		l.Debugf("ignore containerlog because of pause status, containerName:%s, shortImage:%s", getContainerName(container.Names), image)
 		return false
 	}
 
-	if d.ignoreImageForLogging(image) {
-		l.Debugf("ignore containerlog because of image filter, containerName:%s, shortImage:%s", getContainerName(container.Names), image)
+	if d.ignoreImageForLogging(info.image) {
 		return false
 	}
 
 	return true
-}
-
-func getPodAnnotationState(labels map[string]string, meta *podMeta) podAnnotationStateType {
-	if meta == nil {
-		return podAnnotationNil
-	}
-
-	// 优先使用 Pod Annotations 的 datakit/logs 配置
-	// 其次使用全局 CRD 列表中 Pod UID 对应的 datakit/logs
-
-	var conf string
-	if meta.annotations() != nil && meta.annotations()[containerLogConfigKey] != "" {
-		conf = meta.annotations()[containerLogConfigKey]
-	}
-
-	logconf, err := parseContainerLogConfig(conf)
-	if err != nil || logconf == nil {
-		return podAnnotationNil
-	}
-
-	if logconf.Disable {
-		l.Debugf("ignore containerlog because of annotation disable, podName:%s, containerName:%s",
-			getPodNameForLabels(labels), getContainerNameForLabels(labels))
-		return podAnnotationDisable
-	}
-
-	if len(logconf.OnlyImages) == 0 {
-		return podAnnotationEnable
-	}
-
-	f, err := filter.NewIncludeExcludeFilter(splitRules(logconf.OnlyImages), nil)
-	if err != nil {
-		l.Warnf("failed to new filter of only_images, err: %s", err)
-		return podAnnotationEnable
-	}
-
-	podContainerName := getContainerNameForLabels(labels)
-	image := meta.containerImage(podContainerName)
-	if image != "" && f.Match(image) {
-		l.Debugf("match pod only_images, name:%s, image: %s", podContainerName, image)
-		return podAnnotationEnable
-	}
-	l.Debugf("ignore pod container, name:%s, image: %s", podContainerName, image)
-	return podAnnotationDisable
 }
 
 func (d *dockerInput) getContainerList() ([]types.Container, error) {
@@ -319,9 +261,6 @@ func (d *dockerInput) ignoreImageForLogging(image string) (ignore bool) {
 	if d.loggingFilter == nil {
 		return
 	}
-	// 注意，match 和 ignore 是相反的逻辑
-	// 如果 match 通过，则表示不需要 ignore
-	// 所以要取反
 	return !d.loggingFilter.Match(image)
 }
 
@@ -336,9 +275,8 @@ func (d *dockerInput) ignoreContainer(container *types.Container) bool {
 }
 
 // splitRules
-//   切分带有 'image:' 前缀的字符串 kv，返回其 values
-//   ex: ["image:img_*", "image:img01*", "xx:xx"]
-//   return: ["img_*", "img01*"]
+//   split 'image:' kv，return values
+//   ex, in: ["image:img_*", "image:img01*", "xx:xx"] return: ["img_*", "img01*"]
 func splitRules(arr []string) (rules []string) {
 	for _, str := range arr {
 		x := strings.Split(str, ":")
@@ -350,24 +288,5 @@ func splitRules(arr []string) (rules []string) {
 		}
 	}
 
-	return
-}
-
-//nolint:deadcode,unused
-func getImageOfPodContainer(container *types.Container, k8sClient k8sClientX) (image string) {
-	image = container.Image
-
-	if k8sClient == nil {
-		return
-	}
-	if getPodNameForLabels(container.Labels) == "" {
-		return
-	}
-
-	meta, err := queryPodMetaData(k8sClient, getPodNameForLabels(container.Labels), getPodNamespaceForLabels(container.Labels))
-	if err != nil {
-		return
-	}
-	image = meta.containerImage(getContainerNameForLabels(container.Labels))
 	return
 }
