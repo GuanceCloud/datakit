@@ -32,6 +32,8 @@ const (
 	// DataDog metricc types: https://docs.datadoghq.com/developers/metrics/types/?tab=count#metric-types
 	Gauge       = "gauge"
 	Count       = "count"
+	Histogram   = "histogram"
+	Summary     = "summary"
 	Rate        = "rate"
 	UnknownType = "unknown"
 	// add more...
