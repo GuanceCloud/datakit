@@ -35,22 +35,36 @@ func (m *ACLMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "coredns_acl",
 		Fields: map[string]interface{}{
-			"acl_blocked_requests_total": &inputs.FieldInfo{
-				DataType: inputs.Int,
+			"blocked_requests_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
 				Type:     inputs.Count,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "被拦截的 DNS 请求个数",
+				Unit:     inputs.NCount,
+				Desc:     "Counter of DNS requests being blocked",
 			},
-			"acl_allowed_requests_total": &inputs.FieldInfo{
-				DataType: inputs.Int,
+			"filtered_requests_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
 				Type:     inputs.Count,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "被放行的 DNS 请求个数",
+				Unit:     inputs.NCount,
+				Desc:     "Counter of DNS requests being filtered",
+			},
+			"allowed_requests_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Count,
+				Unit:     inputs.NCount,
+				Desc:     "Counter of DNS requests being allowed",
+			},
+			"dropped_requests_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Count,
+				Unit:     inputs.NCount,
+				Desc:     "Counter of DNS requests being dropped",
 			},
 		},
 		Tags: map[string]interface{}{
-			"server": inputs.NewTagInfo("监听服务地址"),
-			"zone":   inputs.NewTagInfo("请求所属区域"),
+			"server":   inputs.NewTagInfo("Server responsible for the request."),
+			"zone":     inputs.NewTagInfo("Zone name used for the request/response."),
+			"instance": inputs.NewTagInfo("Instance endpoint"),
+			"host":     inputs.NewTagInfo("Host name"),
 		},
 	}
 }
@@ -59,46 +73,61 @@ func (m *CacheMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "coredns_cache",
 		Fields: map[string]interface{}{
-			"cache_entries": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Count,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "缓存总数",
+			"entries": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The number of elements in the cache",
 			},
-			"cache_hits_total": &inputs.FieldInfo{
-				DataType: inputs.Int,
+			"requests_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
 				Type:     inputs.Count,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "缓存命中个数",
+				Unit:     inputs.NCount,
+				Desc:     "The count of cache requests",
 			},
-			"cache_misses_total": &inputs.FieldInfo{
-				DataType: inputs.Int,
+			"hits_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
 				Type:     inputs.Count,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "缓存 miss 个数",
+				Unit:     inputs.NCount,
+				Desc:     "The count of cache hits",
 			},
-			"cache_prefetch_total": &inputs.FieldInfo{
-				DataType: inputs.Int,
+			"misses_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
 				Type:     inputs.Count,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "缓存预读取个数",
+				Unit:     inputs.NCount,
+				Desc:     "The count of cache misses. Deprecated, derive misses from cache hits/requests counters",
 			},
-			"cache_drops_total": &inputs.FieldInfo{
-				DataType: inputs.Int,
+			"prefetch_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
 				Type:     inputs.Count,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "被排除在缓存外的响应个数",
+				Unit:     inputs.NCount,
+				Desc:     "The number of times the cache has prefetched a cached item.",
 			},
-			"cache_served_stale_total": &inputs.FieldInfo{
-				DataType: inputs.Int,
+			"drops_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
 				Type:     inputs.Count,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "提供过时缓存的请求个数",
+				Unit:     inputs.NCount,
+				Desc:     "The number responses that are not cached, because the reply is malformed",
+			},
+			"served_stale_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Count,
+				Unit:     inputs.NCount,
+				Desc:     "The number of requests served from stale cache entries",
+			},
+			"evictions_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Count,
+				Unit:     inputs.NCount,
+				Desc:     "The count of cache evictions",
 			},
 		},
 		Tags: map[string]interface{}{
-			"server": inputs.NewTagInfo("监听服务地址"),
-			"type":   inputs.NewTagInfo("缓存类型"),
+			"server":   inputs.NewTagInfo("Server responsible for the request"),
+			"zones":    inputs.NewTagInfo("Zone name used for the request/response"),
+			"type":     inputs.NewTagInfo("Cache type"),
+			"instance": inputs.NewTagInfo("Instance endpoint"),
+			"host":     inputs.NewTagInfo("Host name"),
 		},
 	}
 }
@@ -107,28 +136,30 @@ func (m *DNSSecMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "coredns_dnssec",
 		Fields: map[string]interface{}{
-			"dnssec_cache_entries": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Count,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "dnssec 缓存总数",
+			"cache_entries": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The number of elements in the dnssec cache",
 			},
-			"dnssec_cache_hits_total": &inputs.FieldInfo{
-				DataType: inputs.Int,
+			"cache_hits_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
 				Type:     inputs.Count,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "dnssec 缓存命中个数",
+				Unit:     inputs.NCount,
+				Desc:     "The count of cache hits",
 			},
-			"dnssec_cache_misses_total": &inputs.FieldInfo{
-				DataType: inputs.Int,
+			"cache_misses_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
 				Type:     inputs.Count,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "dnssec 缓存 miss 个数",
+				Unit:     inputs.NCount,
+				Desc:     "The count of cache misses",
 			},
 		},
 		Tags: map[string]interface{}{
-			"server": inputs.NewTagInfo("监听服务地址"),
-			"type":   inputs.NewTagInfo("签名"),
+			"server":   inputs.NewTagInfo("Server responsible for the request"),
+			"type":     inputs.NewTagInfo("signature"),
+			"instance": inputs.NewTagInfo("Instance endpoint"),
+			"host":     inputs.NewTagInfo("Host name"),
 		},
 	}
 }
@@ -137,47 +168,61 @@ func (m *ForwardMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "coredns_forward",
 		Fields: map[string]interface{}{
-			"forward_requests_total": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Count,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "转发给每个上游的请求个数",
-			},
-			"forward_responses_total": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Count,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "从每个上游得到的 `RCODE` 响应个数",
-			},
-			"forward_request_duration_seconds": &inputs.FieldInfo{
+			"requests_total": &inputs.FieldInfo{
 				DataType: inputs.Float,
-				Type:     inputs.Gauge,
+				Type:     inputs.Count,
+				Unit:     inputs.NCount,
+				Desc:     "Counter of requests made per upstream",
+			},
+			"responses_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Count,
+				Unit:     inputs.NCount,
+				Desc:     "Counter of responses received per upstream",
+			},
+			"request_duration_seconds": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Histogram,
 				Unit:     inputs.DurationSecond,
-				Desc:     "请求时长",
+				Desc:     "Histogram of the time each request took",
 			},
-			"forward_healthcheck_failures_total": &inputs.FieldInfo{
-				DataType: inputs.Int,
+			"healthcheck_failures_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
 				Type:     inputs.Count,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "每个上游健康检查失败个数",
+				Unit:     inputs.NCount,
+				Desc:     "Counter of the number of failed healthchecks",
 			},
-			"forward_healthcheck_broken_total": &inputs.FieldInfo{
-				DataType: inputs.Int,
+			"healthcheck_broken_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
 				Type:     inputs.Count,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "所有上游均不健康次数",
+				Unit:     inputs.NCount,
+				Desc:     "Counter of the number of complete failures of the healthchecks",
 			},
-			"forward_max_concurrent_rejects_total": &inputs.FieldInfo{
-				DataType: inputs.Int,
+			"max_concurrent_rejects_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
 				Type:     inputs.Count,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "由于并发达到峰值而被拒绝的查询个数",
+				Unit:     inputs.NCount,
+				Desc:     "Counter of the number of queries rejected because the concurrent queries were at maximum",
+			},
+			"conn_cache_hits_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Count,
+				Unit:     inputs.NCount,
+				Desc:     "Counter of connection cache hits per upstream and protocol",
+			},
+			"conn_cache_misses_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Count,
+				Unit:     inputs.NCount,
+				Desc:     "Counter of connection cache misses per upstream and protocol",
 			},
 		},
 		Tags: map[string]interface{}{
-			"to":    inputs.NewTagInfo("上游服务器"),
-			"rcode": inputs.NewTagInfo("上游返回的 `RCODE`"),
-			"proto": inputs.NewTagInfo("传输协议"),
+			"to":       inputs.NewTagInfo("Upstream server"),
+			"rcode":    inputs.NewTagInfo("Upstream returned `RCODE`"),
+			"proto":    inputs.NewTagInfo("Transport protocol like `udp`, `tcp`, `tcp-tls`"),
+			"instance": inputs.NewTagInfo("Instance endpoint"),
+			"host":     inputs.NewTagInfo("Host name"),
 		},
 	}
 }
@@ -186,28 +231,30 @@ func (m *GrpcMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "coredns_grpc",
 		Fields: map[string]interface{}{
-			"grpc_request_duration_seconds": &inputs.FieldInfo{
+			"requests_total": &inputs.FieldInfo{
 				DataType: inputs.Float,
-				Type:     inputs.Gauge,
+				Type:     inputs.Count,
+				Unit:     inputs.NCount,
+				Desc:     "Counter of requests made per upstream",
+			},
+			"responses_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Count,
+				Unit:     inputs.NCount,
+				Desc:     "Counter of requests made per upstream",
+			},
+			"request_duration_seconds": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Histogram,
 				Unit:     inputs.DurationSecond,
-				Desc:     "grpc 与上游交互时长",
-			},
-			"grpc_requests_total": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Count,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "grpc 在每个上游查询个数",
-			},
-			"grpc_responses_total": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Count,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "grpc 在每个上游得到的 `RCODE` 响应个数",
+				Desc:     "Histogram of the time each request took",
 			},
 		},
 		Tags: map[string]interface{}{
-			"to":    inputs.NewTagInfo("上游服务器"),
-			"rcode": inputs.NewTagInfo("上游返回的 `RCODE`"),
+			"to":       inputs.NewTagInfo("Upstream server"),
+			"rcode":    inputs.NewTagInfo("Upstream returned `RCODE`"),
+			"instance": inputs.NewTagInfo("Instance endpoint"),
+			"host":     inputs.NewTagInfo("Host name"),
 		},
 	}
 }
@@ -216,20 +263,23 @@ func (m *HostsMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "coredns_hosts",
 		Fields: map[string]interface{}{
-			"hosts_entries": &inputs.FieldInfo{
-				DataType: inputs.Int,
+			"entries": &inputs.FieldInfo{
+				DataType: inputs.Float,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "hosts 总条数",
+				Unit:     inputs.NCount,
+				Desc:     "The combined number of entries in hosts and Corefile",
 			},
-			"hosts_reload_timestamp_seconds": &inputs.FieldInfo{
+			"reload_timestamp_seconds": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
 				Unit:     inputs.TimestampSec,
-				Desc:     "最后一次重载 hosts 文件的时间戳",
+				Desc:     "The timestamp of the last reload of hosts file",
 			},
 		},
-		Tags: map[string]interface{}{},
+		Tags: map[string]interface{}{
+			"instance": inputs.NewTagInfo("Instance endpoint"),
+			"host":     inputs.NewTagInfo("Host name"),
+		},
 	}
 }
 
@@ -237,30 +287,35 @@ func (m *TemplateMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "coredns_template",
 		Fields: map[string]interface{}{
-			"template_matches_total": &inputs.FieldInfo{
-				DataType: inputs.Int,
+			"matches_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
 				Type:     inputs.Count,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "正则匹配的请求总数",
+				Unit:     inputs.NCount,
+				Desc:     "Counter of template regex matches",
 			},
-			"template_failures_total": &inputs.FieldInfo{
-				DataType: inputs.Int,
+			"failures_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
 				Type:     inputs.Count,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "Go 模板失败次数",
+				Unit:     inputs.NCount,
+				Desc:     "Counter of go template failures",
 			},
-			"template_rr_failures_total": &inputs.FieldInfo{
-				DataType: inputs.Int,
+			"rr_failures_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
 				Type:     inputs.Count,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "因模板资源记录无效而无法处理的次数",
+				Unit:     inputs.NCount,
+				Desc:     "Counter of mis-templated RRs",
 			},
 		},
 		Tags: map[string]interface{}{
-			"server":   inputs.NewTagInfo("监听服务地址"),
-			"regex":    inputs.NewTagInfo("正则表达式"),
-			"section":  inputs.NewTagInfo("所属板块"),
-			"template": inputs.NewTagInfo("模板"),
+			"server":   inputs.NewTagInfo("Server responsible for the request"),
+			"zone":     inputs.NewTagInfo("Zone name"),
+			"view":     inputs.NewTagInfo("View name"),
+			"class":    inputs.NewTagInfo("The query class (usually `IN`)"),
+			"type":     inputs.NewTagInfo("The RR type requested (e.g. `PTR`"),
+			"section":  inputs.NewTagInfo("Section label"),
+			"template": inputs.NewTagInfo("Template label"),
+			"instance": inputs.NewTagInfo("Instance endpoint"),
+			"host":     inputs.NewTagInfo("Host name"),
 		},
 	}
 }
@@ -269,63 +324,132 @@ func (m *PromMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "coredns",
 		Fields: map[string]interface{}{
-			"dns_requests_total": &inputs.FieldInfo{
-				DataType: inputs.Int,
+			"dns64_requests_translated_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
 				Type:     inputs.Count,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "查询总数",
+				Unit:     inputs.NCount,
+				Desc:     "Counter of DNS requests translated by dns64",
+			},
+			"health_request_duration_seconds": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Histogram,
+				Unit:     inputs.DurationSecond,
+				Desc:     "Histogram of the time (in seconds) each request took",
+			},
+			"health_request_failures_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Count,
+				Unit:     inputs.NCount,
+				Desc:     "The number of times the health check failed",
+			},
+			"kubernetes_dns_programming_duration_seconds": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Histogram,
+				Unit:     inputs.DurationSecond,
+				Desc:     "Histogram of the time (in seconds) it took to program a dns instance",
+			},
+			"local_localhost_requests_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Count,
+				Unit:     inputs.NCount,
+				Desc:     "Counter of localhost. `domain` requests",
+			},
+			"build_info": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.Bool,
+				Desc:     "A metric with a constant '1' value labeled by version, revision, and goversion from which CoreDNS was built",
+			},
+			"dns_requests_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Count,
+				Unit:     inputs.NCount,
+				Desc:     "Counter of DNS requests made per zone, protocol and family",
 			},
 			"dns_request_duration_seconds": &inputs.FieldInfo{
 				DataType: inputs.Float,
-				Type:     inputs.Gauge,
+				Type:     inputs.Histogram,
 				Unit:     inputs.DurationSecond,
-				Desc:     "处理每个查询的时长",
+				Desc:     "Histogram of the time (in seconds) each request took per zone",
 			},
 			"dns_request_size_bytes": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
+				DataType: inputs.Float,
+				Type:     inputs.Histogram,
 				Unit:     inputs.SizeByte,
-				Desc:     "请求大小(以 byte 计)",
+				Desc:     "Size of the EDNS0 UDP buffer in bytes (64K for TCP) per zone and protocol",
 			},
-			"dns_responses_total": &inputs.FieldInfo{
-				DataType: inputs.Int,
+			"dns_do_requests_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
 				Type:     inputs.Count,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "对每个 zone 和 `RCODE` 的响应总数",
+				Unit:     inputs.NCount,
+				Desc:     "Counter of DNS requests with DO bit set per zone",
 			},
 			"dns_response_size_bytes": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
+				DataType: inputs.Float,
+				Type:     inputs.Histogram,
 				Unit:     inputs.SizeByte,
-				Desc:     "响应大小(以 byte 计)",
+				Desc:     "Size of the returned response in bytes",
 			},
-			"hosts_reload_timestamp_seconds": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
-				Unit:     inputs.SizeByte,
-				Desc:     "上次重新加载主机文件的时间戳",
+			"dns_responses_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Count,
+				Unit:     inputs.NCount,
+				Desc:     "Counter of response status codes",
 			},
-			"forward_healthcheck_broken_total": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
-				Unit:     inputs.SizeByte,
-				Desc:     "健康检查完全失败次数",
+			"dns_panics_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Count,
+				Unit:     inputs.NCount,
+				Desc:     "A metrics that counts the number of panics",
 			},
-			"forward_max_concurrent_rejects_total": &inputs.FieldInfo{
-				DataType: inputs.Int,
+			"dns_plugin_enabled": &inputs.FieldInfo{
+				DataType: inputs.Float,
 				Type:     inputs.Gauge,
-				Unit:     inputs.SizeByte,
-				Desc:     "由于并发查询达到最大值而被拒绝的查询数",
+				Unit:     inputs.Bool,
+				Desc:     "A metric that indicates whether a plugin is enabled on per server and zone basis",
+			},
+			"dns_https_responses_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Count,
+				Unit:     inputs.NCount,
+				Desc:     "Counter of DoH responses per server and http status code",
+			},
+			"reload_failed_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Count,
+				Unit:     inputs.NCount,
+				Desc:     "Counter of the number of failed reload attempts",
+			},
+			"reload_version_info": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.Bool,
+				Desc:     "A metric with a constant '1' value labeled by hash, and value which type of hash generated",
+			},
+			"autopath_success_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Count,
+				Unit:     inputs.NCount,
+				Desc:     "Counter of requests that did auto path",
 			},
 		},
 		Tags: map[string]interface{}{
-			"host":   inputs.NewTagInfo("主机"),
-			"server": inputs.NewTagInfo("监听服务地址"),
-			"zone":   inputs.NewTagInfo("请求所属区域"),
-			"type":   inputs.NewTagInfo("查询类型"),
-			"proto":  inputs.NewTagInfo("传输协议"),
-			"family": inputs.NewTagInfo("IP 地址家族"),
-			"rcode":  inputs.NewTagInfo("上游返回的 `RCODE`"),
+			"server":       inputs.NewTagInfo("Server responsible for the request"),
+			"service_kind": inputs.NewTagInfo("Service kind"),
+			"version":      inputs.NewTagInfo("coredns version"),
+			"revision":     inputs.NewTagInfo("Gitcommit contains the commit where we built CoreDNS from"),
+			"goversion":    inputs.NewTagInfo("Golang version"),
+			"zone":         inputs.NewTagInfo("Zone name used for the request/response"),
+			"view":         inputs.NewTagInfo("View name"),
+			"proto":        inputs.NewTagInfo("Transport protocol like `udp`, `tcp`, `tcp-tls`"),
+			"rcode":        inputs.NewTagInfo("Upstream returned `RCODE`"),
+			"plugin":       inputs.NewTagInfo("The name of the plugin that made the write to the client"),
+			"name":         inputs.NewTagInfo("Handler name"),
+			"status":       inputs.NewTagInfo("HTTPs status code"),
+			"hash":         inputs.NewTagInfo("Is `sha512`"),
+			"value":        inputs.NewTagInfo("The returned hash value"),
+			"instance":     inputs.NewTagInfo("Instance endpoint"),
+			"host":         inputs.NewTagInfo("Host name"),
 		},
 	}
 }

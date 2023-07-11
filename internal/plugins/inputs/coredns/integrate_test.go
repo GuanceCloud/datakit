@@ -8,33 +8,413 @@ package coredns
 import (
 	"fmt"
 	"net"
-	"net/netip"
-	"net/url"
-	"os"
+	"strings"
 	"sync"
-	T "testing"
+	"testing"
 	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/GuanceCloud/cliutils/point"
 	dt "github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/prom"
-	tu "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
-type caseSpec struct {
-	t *T.T
+// ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
 
-	name        string
-	repo        string // docker name
-	repoTag     string // docker tag
-	envs        []string
-	servicePort string // port (rand)）
+func TestIntegrate(t *testing.T) {
+	if !testutils.CheckIntegrationTestingRunning() {
+		t.Skip()
+	}
+
+	testutils.PurgeRemoteByName(inputName)       // purge at first.
+	defer testutils.PurgeRemoteByName(inputName) // purge at last.
+
+	start := time.Now()
+	cases, err := buildCases(t)
+	if err != nil {
+		cr := &testutils.CaseResult{
+			Name:          t.Name(),
+			Status:        testutils.TestPassed,
+			FailedMessage: err.Error(),
+			Cost:          time.Since(start),
+		}
+
+		_ = testutils.Flush(cr)
+		return
+	}
+
+	t.Logf("testing %d cases...", len(cases))
+
+	for _, tc := range cases {
+		func(tc *caseSpec) {
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+				caseStart := time.Now()
+
+				t.Logf("testing %s...", tc.name)
+
+				if err := testutils.RetryTestRun(tc.run); err != nil {
+					tc.cr.Status = testutils.TestFailed
+					tc.cr.FailedMessage = err.Error()
+
+					panic(err)
+				} else {
+					tc.cr.Status = testutils.TestPassed
+				}
+
+				tc.cr.Cost = time.Since(caseStart)
+
+				require.NoError(t, testutils.Flush(tc.cr))
+
+				t.Cleanup(func() {
+					// clean remote docker resources
+					if tc.resource == nil {
+						return
+					}
+
+					tc.pool.Purge(tc.resource)
+				})
+			})
+		}(tc)
+	}
+}
+
+func getConfAccessPoint(host, port string) string {
+	return fmt.Sprintf("http://%s/metrics", net.JoinHostPort(host, port))
+}
+
+func buildCases(t *testing.T) ([]*caseSpec, error) {
+	t.Helper()
+
+	remote := testutils.GetRemote()
+
+	bases := []struct {
+		name         string // Also used as build image name:tag.
+		conf         string
+		exposedPorts []string
+		mPathCount   map[string]int
+
+		optsACL      []inputs.PointCheckOption
+		optsCache    []inputs.PointCheckOption
+		optsDNSSec   []inputs.PointCheckOption
+		optsForward  []inputs.PointCheckOption
+		optsGrpc     []inputs.PointCheckOption
+		optsHosts    []inputs.PointCheckOption
+		optsTemplate []inputs.PointCheckOption
+		optsProm     []inputs.PointCheckOption
+	}{
+		{
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/coredns/coredns:1.10.1",
+			// selfBuild: true,
+			conf: `
+source = "coredns"
+metric_types = ["counter", "gauge"]
+metric_name_filter = ["^coredns_(acl|cache|dnssec|forward|grpc|hosts|template|dns)_([a-z_]+)$"]
+interval = "10s"
+tls_open = false
+url = ""
+[[measurements]]
+  prefix = "coredns_acl_"
+  name = "coredns_acl"
+[[measurements]]
+  prefix = "coredns_cache_"
+  name = "coredns_cache"
+[[measurements]]
+  prefix = "coredns_dnssec_"
+  name = "coredns_dnssec"
+[[measurements]]
+  prefix = "coredns_forward_"
+  name = "coredns_forward"
+[[measurements]]
+  prefix = "coredns_grpc_"
+  name = "coredns_grpc"
+[[measurements]]
+  prefix = "coredns_hosts_"
+  name = "coredns_hosts"
+[[measurements]]
+  prefix = "coredns_template_"
+  name = "coredns_template"
+[[measurements]]
+  prefix = "coredns_dns_"
+  name = "coredns"
+`, // set conf URL later.
+			exposedPorts: []string{"9153/tcp"},
+			mPathCount:   map[string]int{"/": 10},
+
+			optsACL: []inputs.PointCheckOption{
+				inputs.WithTypeChecking(false),
+				inputs.WithOptionalTags("server", "zone", "instance", "host"),
+				inputs.WithOptionalFields("dropped_requests_total", "blocked_requests_total", "filtered_requests_total", "allowed_requests_total"),
+			},
+			optsCache: []inputs.PointCheckOption{
+				inputs.WithTypeChecking(false),
+				inputs.WithOptionalTags("type", "instance", "host", "server", "zones"),
+				inputs.WithOptionalFields("prefetch_total", "drops_total", "served_stale_total", "evictions_total", "entries", "requests_total", "hits_total", "misses_total"),
+			},
+			optsDNSSec: []inputs.PointCheckOption{
+				inputs.WithTypeChecking(false),
+				inputs.WithOptionalTags("server", "type", "instance", "host"),
+				inputs.WithOptionalFields("cache_entries", "cache_hits_total", "cache_misses_total"),
+			},
+			optsForward: []inputs.PointCheckOption{
+				inputs.WithTypeChecking(false),
+				inputs.WithOptionalTags("rcode", "proto", "instance", "host", "to"),
+				inputs.WithOptionalFields("max_concurrent_rejects_total", "conn_cache_hits_total", "conn_cache_misses_total", "requests_total", "responses_total", "request_duration_seconds", "healthcheck_failures_total", "healthcheck_broken_total"),
+			},
+			optsGrpc: []inputs.PointCheckOption{
+				inputs.WithTypeChecking(false),
+				inputs.WithOptionalTags("rcode", "instance", "host", "to"),
+				inputs.WithOptionalFields("requests_total", "responses_total", "request_duration_seconds"),
+			},
+			optsHosts: []inputs.PointCheckOption{
+				inputs.WithTypeChecking(false),
+				inputs.WithOptionalTags("host", "instance"),
+				inputs.WithOptionalFields("entries", "reload_timestamp_seconds"),
+			},
+			optsTemplate: []inputs.PointCheckOption{
+				inputs.WithTypeChecking(false),
+				inputs.WithOptionalTags("type", "host", "view", "zone", "class", "section", "template", "instance", "server"),
+				inputs.WithOptionalFields("rr_failures_total", "matches_total", "failures_total"),
+			},
+			optsProm: []inputs.PointCheckOption{
+				inputs.WithTypeChecking(false),
+				inputs.WithOptionalTags("service_kind", "view", "proto", "hash", "value", "host", "rcode", "name", "instance", "server", "goversion", "plugin", "status", "version", "revision", "zone"),
+				inputs.WithOptionalFields("health_request_duration_seconds", "dns_https_responses_total", "reload_failed_total", "autopath_success_total", "health_request_failures_total", "local_localhost_requests_total", "build_info", "dns_do_requests_total", "dns_responses_total", "dns_plugin_enabled", "dns64_requests_translated_total", "kubernetes_dns_programming_duration_seconds", "dns_requests_total", "dns_request_size_bytes", "dns_panics_total", "dns_request_duration_seconds", "dns_response_size_bytes", "reload_version_info"),
+			},
+		},
+		{
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/coredns/coredns:1.9.4",
+			// selfBuild: true,
+			conf: `
+source = "coredns"
+metric_types = ["counter", "gauge"]
+metric_name_filter = ["^coredns_(acl|cache|dnssec|forward|grpc|hosts|template|dns)_([a-z_]+)$"]
+interval = "10s"
+tls_open = false
+url = ""
+[[measurements]]
+  prefix = "coredns_acl_"
+  name = "coredns_acl"
+[[measurements]]
+  prefix = "coredns_cache_"
+  name = "coredns_cache"
+[[measurements]]
+  prefix = "coredns_dnssec_"
+  name = "coredns_dnssec"
+[[measurements]]
+  prefix = "coredns_forward_"
+  name = "coredns_forward"
+[[measurements]]
+  prefix = "coredns_grpc_"
+  name = "coredns_grpc"
+[[measurements]]
+  prefix = "coredns_hosts_"
+  name = "coredns_hosts"
+[[measurements]]
+  prefix = "coredns_template_"
+  name = "coredns_template"
+[[measurements]]
+  prefix = "coredns_dns_"
+  name = "coredns"
+`, // set conf URL later.
+			exposedPorts: []string{"9153/tcp"},
+			mPathCount:   map[string]int{"/": 10},
+
+			optsACL: []inputs.PointCheckOption{
+				inputs.WithTypeChecking(false),
+				inputs.WithOptionalTags("server", "zone", "instance", "host"),
+				inputs.WithOptionalFields("dropped_requests_total", "blocked_requests_total", "filtered_requests_total", "allowed_requests_total"),
+			},
+			optsCache: []inputs.PointCheckOption{
+				inputs.WithTypeChecking(false),
+				inputs.WithOptionalTags("type", "instance", "host", "server", "zones"),
+				inputs.WithOptionalFields("prefetch_total", "drops_total", "served_stale_total", "evictions_total", "entries", "requests_total", "hits_total", "misses_total"),
+			},
+			optsDNSSec: []inputs.PointCheckOption{
+				inputs.WithTypeChecking(false),
+				inputs.WithOptionalTags("server", "type", "instance", "host"),
+				inputs.WithOptionalFields("cache_entries", "cache_hits_total", "cache_misses_total"),
+			},
+			optsForward: []inputs.PointCheckOption{
+				inputs.WithTypeChecking(false),
+				inputs.WithOptionalTags("rcode", "proto", "instance", "host", "to"),
+				inputs.WithOptionalFields("max_concurrent_rejects_total", "conn_cache_hits_total", "conn_cache_misses_total", "requests_total", "responses_total", "request_duration_seconds", "healthcheck_failures_total", "healthcheck_broken_total"),
+			},
+			optsGrpc: []inputs.PointCheckOption{
+				inputs.WithTypeChecking(false),
+				inputs.WithOptionalTags("rcode", "instance", "host", "to"),
+				inputs.WithOptionalFields("requests_total", "responses_total", "request_duration_seconds"),
+			},
+			optsHosts: []inputs.PointCheckOption{
+				inputs.WithTypeChecking(false),
+				inputs.WithOptionalTags("host", "instance"),
+				inputs.WithOptionalFields("entries", "reload_timestamp_seconds"),
+			},
+			optsTemplate: []inputs.PointCheckOption{
+				inputs.WithTypeChecking(false),
+				inputs.WithOptionalTags("type", "host", "view", "zone", "class", "section", "template", "instance", "server"),
+				inputs.WithOptionalFields("rr_failures_total", "matches_total", "failures_total"),
+			},
+			optsProm: []inputs.PointCheckOption{
+				inputs.WithTypeChecking(false),
+				inputs.WithOptionalTags("service_kind", "view", "proto", "hash", "value", "host", "rcode", "name", "instance", "server", "goversion", "plugin", "status", "version", "revision", "zone"),
+				inputs.WithOptionalFields("health_request_duration_seconds", "dns_https_responses_total", "reload_failed_total", "autopath_success_total", "health_request_failures_total", "local_localhost_requests_total", "build_info", "dns_do_requests_total", "dns_responses_total", "dns_plugin_enabled", "dns64_requests_translated_total", "kubernetes_dns_programming_duration_seconds", "dns_requests_total", "dns_request_size_bytes", "dns_panics_total", "dns_request_duration_seconds", "dns_response_size_bytes", "reload_version_info"),
+			},
+		},
+		{
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/coredns/coredns:1.8.7",
+			// selfBuild: true,
+			conf: `
+source = "coredns"
+metric_types = ["counter", "gauge"]
+metric_name_filter = ["^coredns_(acl|cache|dnssec|forward|grpc|hosts|template|dns)_([a-z_]+)$"]
+interval = "10s"
+tls_open = false
+url = ""
+[[measurements]]
+  prefix = "coredns_acl_"
+  name = "coredns_acl"
+[[measurements]]
+  prefix = "coredns_cache_"
+  name = "coredns_cache"
+[[measurements]]
+  prefix = "coredns_dnssec_"
+  name = "coredns_dnssec"
+[[measurements]]
+  prefix = "coredns_forward_"
+  name = "coredns_forward"
+[[measurements]]
+  prefix = "coredns_grpc_"
+  name = "coredns_grpc"
+[[measurements]]
+  prefix = "coredns_hosts_"
+  name = "coredns_hosts"
+[[measurements]]
+  prefix = "coredns_template_"
+  name = "coredns_template"
+[[measurements]]
+  prefix = "coredns_dns_"
+  name = "coredns"
+`, // set conf URL later.
+			exposedPorts: []string{"9153/tcp"},
+			mPathCount:   map[string]int{"/": 10},
+
+			optsACL: []inputs.PointCheckOption{
+				inputs.WithTypeChecking(false),
+				inputs.WithOptionalTags("server", "zone", "instance", "host"),
+				inputs.WithOptionalFields("dropped_requests_total", "blocked_requests_total", "filtered_requests_total", "allowed_requests_total"),
+			},
+			optsCache: []inputs.PointCheckOption{
+				inputs.WithTypeChecking(false),
+				inputs.WithOptionalTags("type", "instance", "host", "server", "zones"),
+				inputs.WithOptionalFields("prefetch_total", "drops_total", "served_stale_total", "evictions_total", "entries", "requests_total", "hits_total", "misses_total"),
+			},
+			optsDNSSec: []inputs.PointCheckOption{
+				inputs.WithTypeChecking(false),
+				inputs.WithOptionalTags("server", "type", "instance", "host"),
+				inputs.WithOptionalFields("cache_entries", "cache_hits_total", "cache_misses_total"),
+			},
+			optsForward: []inputs.PointCheckOption{
+				inputs.WithTypeChecking(false),
+				inputs.WithOptionalTags("rcode", "proto", "instance", "host", "to"),
+				inputs.WithOptionalFields("max_concurrent_rejects_total", "conn_cache_hits_total", "conn_cache_misses_total", "requests_total", "responses_total", "request_duration_seconds", "healthcheck_failures_total", "healthcheck_broken_total"),
+			},
+			optsGrpc: []inputs.PointCheckOption{
+				inputs.WithTypeChecking(false),
+				inputs.WithOptionalTags("rcode", "instance", "host", "to"),
+				inputs.WithOptionalFields("requests_total", "responses_total", "request_duration_seconds"),
+			},
+			optsHosts: []inputs.PointCheckOption{
+				inputs.WithTypeChecking(false),
+				inputs.WithOptionalTags("host", "instance"),
+				inputs.WithOptionalFields("entries", "reload_timestamp_seconds"),
+			},
+			optsTemplate: []inputs.PointCheckOption{
+				inputs.WithTypeChecking(false),
+				inputs.WithOptionalTags("type", "host", "view", "zone", "class", "section", "template", "instance", "server"),
+				inputs.WithOptionalFields("rr_failures_total", "matches_total", "failures_total"),
+			},
+			optsProm: []inputs.PointCheckOption{
+				inputs.WithTypeChecking(false),
+				inputs.WithOptionalTags("service_kind", "view", "proto", "hash", "value", "host", "rcode", "name", "instance", "server", "goversion", "plugin", "status", "version", "revision", "zone"),
+				inputs.WithOptionalFields("health_request_duration_seconds", "dns_https_responses_total", "reload_failed_total", "autopath_success_total", "health_request_failures_total", "local_localhost_requests_total", "build_info", "dns_do_requests_total", "dns_responses_total", "dns_plugin_enabled", "dns64_requests_translated_total", "kubernetes_dns_programming_duration_seconds", "dns_requests_total", "dns_request_size_bytes", "dns_panics_total", "dns_request_duration_seconds", "dns_response_size_bytes", "reload_version_info"),
+			},
+		},
+	}
+
+	var cases []*caseSpec
+
+	// compose cases
+	for _, base := range bases {
+		feeder := io.NewMockedFeeder()
+
+		ipt := prom.NewProm()
+		ipt.Feeder = feeder
+
+		_, err := toml.Decode(base.conf, ipt)
+		require.NoError(t, err)
+
+		// URL from ENV.
+		envs := []string{
+			"ALLOW_NONE_AUTHENTICATION=yes",
+		}
+
+		repoTag := strings.Split(base.name, ":")
+		cases = append(cases, &caseSpec{
+			t:            t,
+			ipt:          ipt,
+			name:         base.name,
+			feeder:       feeder,
+			envs:         envs,
+			repo:         repoTag[0],
+			repoTag:      repoTag[1],
+			exposedPorts: base.exposedPorts,
+
+			optsACL:      base.optsACL,
+			optsCache:    base.optsCache,
+			optsDNSSec:   base.optsDNSSec,
+			optsForward:  base.optsForward,
+			optsGrpc:     base.optsGrpc,
+			optsHosts:    base.optsHosts,
+			optsTemplate: base.optsTemplate,
+			optsProm:     base.optsProm,
+
+			cr: &testutils.CaseResult{
+				Name:        t.Name(),
+				Case:        base.name,
+				ExtraFields: map[string]any{},
+				ExtraTags: map[string]string{
+					"image":       repoTag[0],
+					"image_tag":   repoTag[1],
+					"docker_host": remote.Host,
+					"docker_port": remote.Port,
+				},
+			},
+		})
+	}
+
+	return cases, nil
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+// caseSpec.
+type caseSpec struct {
+	t *testing.T
+
+	name         string
+	repo         string
+	repoTag      string
+	envs         []string
+	exposedPorts []string
+	serverPorts  []string
+	mCount       map[string]struct{}
 
 	optsACL      []inputs.PointCheckOption
 	optsCache    []inputs.PointCheckOption
@@ -45,94 +425,25 @@ type caseSpec struct {
 	optsTemplate []inputs.PointCheckOption
 	optsProm     []inputs.PointCheckOption
 
-	ipt    *prom.Input // This is real prom
+	ipt    *prom.Input
 	feeder *io.MockedFeeder
 
 	pool     *dt.Pool
 	resource *dt.Resource
 
-	cr *tu.CaseResult // collect `go test -run` metric
+	cr *testutils.CaseResult
 }
 
 func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 	for _, pt := range pts {
 		measurement := string(pt.Name())
+		opts := []inputs.PointCheckOption{}
 
 		switch measurement {
 		case "coredns_acl":
-			msgs := inputs.CheckPoint(pt, inputs.WithDoc(&ACLMeasurement{}), inputs.WithExtraTags(cs.ipt.Tags))
+			opts = append(opts, cs.optsACL...)
+			opts = append(opts, inputs.WithDoc(&ACLMeasurement{}))
 
-			for _, msg := range msgs {
-				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-			}
-
-			if len(msgs) > 0 {
-				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-			}
-		case "coredns_cache":
-			msgs := inputs.CheckPoint(pt, inputs.WithDoc(&CacheMeasurement{}), inputs.WithExtraTags(cs.ipt.Tags))
-
-			for _, msg := range msgs {
-				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-			}
-
-			if len(msgs) > 0 {
-				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-			}
-		case "coredns_dnssec":
-			msgs := inputs.CheckPoint(pt, inputs.WithDoc(&DNSSecMeasurement{}), inputs.WithExtraTags(cs.ipt.Tags))
-
-			for _, msg := range msgs {
-				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-			}
-
-			if len(msgs) > 0 {
-				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-			}
-		case "coredns_forward":
-			msgs := inputs.CheckPoint(pt, inputs.WithDoc(&ForwardMeasurement{}), inputs.WithExtraTags(cs.ipt.Tags))
-
-			for _, msg := range msgs {
-				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-			}
-
-			if len(msgs) > 0 {
-				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-			}
-		case "coredns_grpc":
-			msgs := inputs.CheckPoint(pt, inputs.WithDoc(&GrpcMeasurement{}), inputs.WithExtraTags(cs.ipt.Tags))
-
-			for _, msg := range msgs {
-				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-			}
-
-			if len(msgs) > 0 {
-				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-			}
-		case "coredns_hosts":
-			msgs := inputs.CheckPoint(pt, inputs.WithDoc(&HostsMeasurement{}), inputs.WithExtraTags(cs.ipt.Tags))
-
-			for _, msg := range msgs {
-				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-			}
-
-			if len(msgs) > 0 {
-				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-			}
-		case "coredns_template":
-			msgs := inputs.CheckPoint(pt, inputs.WithDoc(&TemplateMeasurement{}), inputs.WithExtraTags(cs.ipt.Tags))
-
-			for _, msg := range msgs {
-				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-			}
-
-			if len(msgs) > 0 {
-				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-			}
-		case "coredns":
-			var opts []inputs.PointCheckOption
-			opts = append(opts, cs.optsProm...)
-			opts = append(opts, inputs.WithDoc(&PromMeasurement{}))
 			msgs := inputs.CheckPoint(pt, opts...)
 
 			for _, msg := range msgs {
@@ -142,8 +453,116 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			if len(msgs) > 0 {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
+
+			cs.mCount[measurement] = struct{}{}
+		case "coredns_cache":
+			opts = append(opts, cs.optsCache...)
+			opts = append(opts, inputs.WithDoc(&CacheMeasurement{}))
+
+			msgs := inputs.CheckPoint(pt, opts...)
+
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
+
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
+
+			cs.mCount[measurement] = struct{}{}
+		case "coredns_dnssec":
+			opts = append(opts, cs.optsDNSSec...)
+			opts = append(opts, inputs.WithDoc(&DNSSecMeasurement{}))
+
+			msgs := inputs.CheckPoint(pt, opts...)
+
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
+
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
+
+			cs.mCount[measurement] = struct{}{}
+		case "coredns_forward":
+			opts = append(opts, cs.optsForward...)
+			opts = append(opts, inputs.WithDoc(&ForwardMeasurement{}))
+
+			msgs := inputs.CheckPoint(pt, opts...)
+
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
+
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
+
+			cs.mCount[measurement] = struct{}{}
+		case "coredns_grpc":
+			opts = append(opts, cs.optsGrpc...)
+			opts = append(opts, inputs.WithDoc(&GrpcMeasurement{}))
+
+			msgs := inputs.CheckPoint(pt, opts...)
+
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
+
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
+
+			cs.mCount[measurement] = struct{}{}
+		case "coredns_hosts":
+			opts = append(opts, cs.optsHosts...)
+			opts = append(opts, inputs.WithDoc(&HostsMeasurement{}))
+
+			msgs := inputs.CheckPoint(pt, opts...)
+
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
+
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
+
+			cs.mCount[measurement] = struct{}{}
+		case "coredns_template":
+			opts = append(opts, cs.optsTemplate...)
+			opts = append(opts, inputs.WithDoc(&TemplateMeasurement{}))
+
+			msgs := inputs.CheckPoint(pt, opts...)
+
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
+
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
+
+			cs.mCount[measurement] = struct{}{}
+		case "coredns":
+			opts = append(opts, cs.optsProm...)
+			opts = append(opts, inputs.WithDoc(&PromMeasurement{}))
+
+			msgs := inputs.CheckPoint(pt, opts...)
+
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
+
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
+
+			cs.mCount[measurement] = struct{}{}
+
 		default: // TODO: check other measurement
-			return nil
+			panic("unknown measurement: " + measurement)
 		}
 
 		// check if tag appended
@@ -171,7 +590,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 
 func (cs *caseSpec) run() error {
 	// start remote image server
-	r := tu.GetRemote()
+	r := testutils.GetRemote()
 	dockerTCP := r.TCPURL() // got "tcp://" + net.JoinHostPort(i.Host, i.Port) 2375
 
 	cs.t.Logf("get remote: %+#v, TCP: %s", r, dockerTCP)
@@ -183,35 +602,22 @@ func (cs *caseSpec) run() error {
 		return err
 	}
 
-	hostname, err := os.Hostname()
-	if err != nil {
-		cs.t.Logf("get hostname failed: %s, ignored", err)
-		hostname = "unknown-hostname"
-	}
-
-	containerName := fmt.Sprintf("%s.%s", hostname, cs.name)
-
-	// remove the container if exist.
-	if err := p.RemoveContainerByName(containerName); err != nil {
-		return err
-	}
+	uniqueContainerName := testutils.GetUniqueContainerName(inputName)
 
 	resource, err := p.RunWithOptions(&dt.RunOptions{
+		Name: uniqueContainerName, // ATTENTION: not cs.name.
+
 		// specify container image & tag
 		Repository: cs.repo,
 		Tag:        cs.repoTag,
 
-		// port binding
-		PortBindings: map[docker.Port][]docker.PortBinding{
-			"9153/tcp": {{HostIP: "0.0.0.0", HostPort: cs.servicePort}},
-		},
-
-		Name: containerName,
+		ExposedPorts: cs.exposedPorts,
 
 		// container run-time envs
 		Env: cs.envs,
 	}, func(c *docker.HostConfig) {
 		c.RestartPolicy = docker.RestartPolicy{Name: "no"}
+		c.AutoRemove = true
 	})
 	if err != nil {
 		return err
@@ -220,9 +626,15 @@ func (cs *caseSpec) run() error {
 	cs.pool = p
 	cs.resource = resource
 
-	cs.t.Logf("check service(%s:%s)...", r.Host, cs.servicePort)
-	if !r.PortOK(cs.servicePort, time.Minute) {
-		return fmt.Errorf("service checking failed")
+	if err := cs.getMappingPorts(); err != nil {
+		return err
+	}
+	cs.ipt.URL = getConfAccessPoint(r.Host, cs.serverPorts[0]) // set conf URL here.
+
+	cs.t.Logf("check service(%s:%v)...", r.Host, cs.serverPorts)
+
+	if err := cs.portsOK(r); err != nil {
+		return err
 	}
 
 	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
@@ -249,6 +661,7 @@ func (cs *caseSpec) run() error {
 	cs.cr.AddField("point_count", len(pts))
 
 	cs.t.Logf("get %d points", len(pts))
+	cs.mCount = make(map[string]struct{})
 	if err := cs.checkPoint(pts); err != nil {
 		return err
 	}
@@ -256,297 +669,32 @@ func (cs *caseSpec) run() error {
 	cs.t.Logf("stop input...")
 	cs.ipt.Terminate()
 
+	require.GreaterOrEqual(cs.t, len(cs.mCount), 1) // At lest 1 Metric out.
+
 	cs.t.Logf("exit...")
 	wg.Wait()
 
 	return nil
 }
 
-func buildCases(t *T.T) ([]*caseSpec, error) {
-	t.Helper()
-
-	remote := tu.GetRemote()
-
-	bases := []struct {
-		name         string
-		repo         string // docker name
-		repoTag      string // docker tag
-		conf         string
-		optsACL      []inputs.PointCheckOption
-		optsCache    []inputs.PointCheckOption
-		optsDNSSec   []inputs.PointCheckOption
-		optsForward  []inputs.PointCheckOption
-		optsGrpc     []inputs.PointCheckOption
-		optsHosts    []inputs.PointCheckOption
-		optsTemplate []inputs.PointCheckOption
-		optsProm     []inputs.PointCheckOption
-	}{
-		{
-			name:    "remote-coredns",
-			repo:    "pubrepo.jiagouyun.com/image-repo-for-testing/coredns/coredns",
-			repoTag: "1.10.1",
-			conf: fmt.Sprintf(`
-source = "coredns"
-metric_types = ["counter", "gauge"]
-metric_name_filter = ["^coredns_(acl|cache|dnssec|forward|grpc|hosts|template|dns)_([a-z_]+)$"]
-interval = "10s"
-tls_open = false
-url = "http://%s/metrics"
-[[inputs.prom.measurements]]
-  prefix = "coredns_acl_"
-  name = "coredns_acl"
-[[inputs.prom.measurements]]
-  prefix = "coredns_cache_"
-  name = "coredns_cache"
-[[inputs.prom.measurements]]
-  prefix = "coredns_dnssec_"
-  name = "coredns_dnssec"
-[[inputs.prom.measurements]]
-  prefix = "coredns_forward_"
-  name = "coredns_forward"
-[[inputs.prom.measurements]]
-  prefix = "coredns_grpc_"
-  name = "coredns_grpc"
-[[inputs.prom.measurements]]
-  prefix = "coredns_hosts_"
-  name = "coredns_hosts"
-[[inputs.prom.measurements]]
-  prefix = "coredns_template_"
-  name = "coredns_template"
-[[inputs.prom.measurements]]
-  prefix = "coredns_dns_"
-  name = "coredns"
-[tags]
-  tag1 = "some_value"
-  tag2 = "some_other_value"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", tu.RandPort("tcp")))),
-			optsACL:      []inputs.PointCheckOption{},
-			optsCache:    []inputs.PointCheckOption{},
-			optsDNSSec:   []inputs.PointCheckOption{},
-			optsForward:  []inputs.PointCheckOption{},
-			optsGrpc:     []inputs.PointCheckOption{},
-			optsHosts:    []inputs.PointCheckOption{},
-			optsTemplate: []inputs.PointCheckOption{},
-			optsProm: []inputs.PointCheckOption{
-				inputs.WithTypeChecking(false),
-				inputs.WithExtraTags(map[string]string{"instance": "", "tag1": "", "tag2": ""}),
-				inputs.WithOptionalTags("server", "zone", "type", "proto", "family", "rcode"),
-				inputs.WithOptionalFields("dns_requests_total", "dns_request_duration_seconds", "dns_request_size_bytes", "dns_responses_total", "dns_response_size_bytes", "hosts_reload_timestamp_seconds", "forward_healthcheck_broken_total", "forward_max_concurrent_rejects_total"), // nolint:lll
-			},
-		},
-		{
-			name:    "remote-coredns",
-			repo:    "pubrepo.jiagouyun.com/image-repo-for-testing/coredns/coredns",
-			repoTag: "1.9.4",
-			conf: fmt.Sprintf(`
-source = "coredns"
-metric_types = ["counter", "gauge"]
-metric_name_filter = ["^coredns_(acl|cache|dnssec|forward|grpc|hosts|template|dns)_([a-z_]+)$"]
-interval = "10s"
-tls_open = false
-url = "http://%s/metrics"
-[[inputs.prom.measurements]]
-  prefix = "coredns_acl_"
-  name = "coredns_acl"
-[[inputs.prom.measurements]]
-  prefix = "coredns_cache_"
-  name = "coredns_cache"
-[[inputs.prom.measurements]]
-  prefix = "coredns_dnssec_"
-  name = "coredns_dnssec"
-[[inputs.prom.measurements]]
-  prefix = "coredns_forward_"
-  name = "coredns_forward"
-[[inputs.prom.measurements]]
-  prefix = "coredns_grpc_"
-  name = "coredns_grpc"
-[[inputs.prom.measurements]]
-  prefix = "coredns_hosts_"
-  name = "coredns_hosts"
-[[inputs.prom.measurements]]
-  prefix = "coredns_template_"
-  name = "coredns_template"
-[[inputs.prom.measurements]]
-  prefix = "coredns_dns_"
-  name = "coredns"
-[tags]
-  tag1 = "some_value"
-  tag2 = "some_other_value"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", tu.RandPort("tcp")))),
-			optsACL:      []inputs.PointCheckOption{},
-			optsCache:    []inputs.PointCheckOption{},
-			optsDNSSec:   []inputs.PointCheckOption{},
-			optsForward:  []inputs.PointCheckOption{},
-			optsGrpc:     []inputs.PointCheckOption{},
-			optsHosts:    []inputs.PointCheckOption{},
-			optsTemplate: []inputs.PointCheckOption{},
-			optsProm: []inputs.PointCheckOption{
-				inputs.WithTypeChecking(false),
-				inputs.WithExtraTags(map[string]string{"instance": "", "tag1": "", "tag2": ""}),
-				inputs.WithOptionalTags("server", "zone", "type", "proto", "family", "rcode"),
-				inputs.WithOptionalFields("dns_requests_total", "dns_request_duration_seconds", "dns_request_size_bytes", "dns_responses_total", "dns_response_size_bytes", "hosts_reload_timestamp_seconds", "forward_healthcheck_broken_total", "forward_max_concurrent_rejects_total"), // nolint:lll
-			},
-		},
-		{
-			name:    "remote-coredns",
-			repo:    "pubrepo.jiagouyun.com/image-repo-for-testing/coredns/coredns",
-			repoTag: "1.8.7",
-			conf: fmt.Sprintf(`
-source = "coredns"
-metric_types = ["counter", "gauge"]
-metric_name_filter = ["^coredns_(acl|cache|dnssec|forward|grpc|hosts|template|dns)_([a-z_]+)$"]
-interval = "10s"
-tls_open = false
-url = "http://%s/metrics"
-[[inputs.prom.measurements]]
-  prefix = "coredns_acl_"
-  name = "coredns_acl"
-[[inputs.prom.measurements]]
-  prefix = "coredns_cache_"
-  name = "coredns_cache"
-[[inputs.prom.measurements]]
-  prefix = "coredns_dnssec_"
-  name = "coredns_dnssec"
-[[inputs.prom.measurements]]
-  prefix = "coredns_forward_"
-  name = "coredns_forward"
-[[inputs.prom.measurements]]
-  prefix = "coredns_grpc_"
-  name = "coredns_grpc"
-[[inputs.prom.measurements]]
-  prefix = "coredns_hosts_"
-  name = "coredns_hosts"
-[[inputs.prom.measurements]]
-  prefix = "coredns_template_"
-  name = "coredns_template"
-[[inputs.prom.measurements]]
-  prefix = "coredns_dns_"
-  name = "coredns"
-[tags]
-  tag1 = "some_value"
-  tag2 = "some_other_value"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", tu.RandPort("tcp")))),
-			optsACL:      []inputs.PointCheckOption{},
-			optsCache:    []inputs.PointCheckOption{},
-			optsDNSSec:   []inputs.PointCheckOption{},
-			optsForward:  []inputs.PointCheckOption{},
-			optsGrpc:     []inputs.PointCheckOption{},
-			optsHosts:    []inputs.PointCheckOption{},
-			optsTemplate: []inputs.PointCheckOption{},
-			optsProm: []inputs.PointCheckOption{
-				inputs.WithTypeChecking(false),
-				inputs.WithExtraTags(map[string]string{"instance": "", "tag1": "", "tag2": ""}),
-				inputs.WithOptionalTags("server", "zone", "type", "proto", "family", "rcode"),
-				inputs.WithOptionalFields("dns_requests_total", "dns_request_duration_seconds", "dns_request_size_bytes", "dns_responses_total", "dns_response_size_bytes", "hosts_reload_timestamp_seconds", "forward_healthcheck_broken_total", "forward_max_concurrent_rejects_total"), // nolint:lll
-			},
-		},
+func (cs *caseSpec) getMappingPorts() error {
+	cs.serverPorts = make([]string, len(cs.exposedPorts))
+	for k, v := range cs.exposedPorts {
+		mapStr := cs.resource.GetHostPort(v)
+		_, port, err := net.SplitHostPort(mapStr)
+		if err != nil {
+			return err
+		}
+		cs.serverPorts[k] = port
 	}
-
-	// TODO: add per-image configs
-	perImageCfgs := []interface{}{}
-	_ = perImageCfgs
-
-	var cases []*caseSpec
-
-	// compose cases
-	for _, base := range bases {
-		feeder := io.NewMockedFeeder()
-
-		ipt := prom.NewProm() // This is real prom
-		ipt.Feeder = feeder   // Flush metric data to testing_metrics
-
-		// URL from ENV.
-		_, err := toml.Decode(base.conf, ipt)
-		assert.NoError(t, err)
-
-		url, err := url.Parse(ipt.URL) // http://127.0.0.1:9153/metric --> 127.0.0.1:9153
-		assert.NoError(t, err)
-
-		ipport, err := netip.ParseAddrPort(url.Host)
-		assert.NoError(t, err, "parse %s failed: %s", ipt.URL, err)
-
-		cases = append(cases, &caseSpec{
-			t:      t,
-			ipt:    ipt,
-			name:   base.name,
-			feeder: feeder,
-			// envs:   envs,
-
-			repo:    base.repo,    // docker name
-			repoTag: base.repoTag, // docker tag
-
-			servicePort: fmt.Sprintf("%d", ipport.Port()),
-
-			optsACL:      base.optsACL,
-			optsCache:    base.optsCache,
-			optsDNSSec:   base.optsDNSSec,
-			optsForward:  base.optsForward,
-			optsGrpc:     base.optsGrpc,
-			optsHosts:    base.optsHosts,
-			optsTemplate: base.optsTemplate,
-			optsProm:     base.optsProm,
-
-			// Test case result.
-			cr: &tu.CaseResult{
-				Name:        t.Name(),
-				Case:        base.name,
-				ExtraFields: map[string]any{},
-				ExtraTags: map[string]string{
-					"image":         base.repo,
-					"image_tag":     base.repoTag,
-					"remote_server": ipt.URL,
-				},
-			},
-		})
-	}
-	return cases, nil
+	return nil
 }
 
-func TestIntegrate(t *T.T) {
-	if !tu.CheckIntegrationTestingRunning() {
-		t.Skip()
-	}
-	start := time.Now()
-	cases, err := buildCases(t)
-	if err != nil {
-		cr := &tu.CaseResult{
-			Name:          t.Name(),
-			Status:        tu.TestPassed,
-			FailedMessage: err.Error(),
-			Cost:          time.Since(start),
+func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
+	for _, v := range cs.serverPorts {
+		if !r.PortOK(docker.Port(v).Port(), time.Minute) {
+			return fmt.Errorf("service checking failed")
 		}
-
-		_ = tu.Flush(cr)
-		return
 	}
-
-	t.Logf("testing %d cases...", len(cases))
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *T.T) {
-			caseStart := time.Now()
-
-			t.Logf("testing %s...", tc.name)
-
-			// Run a test case.
-			if err := tc.run(); err != nil {
-				tc.cr.Status = tu.TestFailed
-				tc.cr.FailedMessage = err.Error()
-
-				assert.NoError(t, err)
-			} else {
-				tc.cr.Status = tu.TestPassed
-			}
-
-			tc.cr.Cost = time.Since(caseStart)
-
-			assert.NoError(t, tu.Flush(tc.cr))
-
-			t.Cleanup(func() {
-				// clean remote docker resources
-				if tc.resource == nil {
-					return
-				}
-
-				assert.NoError(t, tc.pool.Purge(tc.resource))
-			})
-		})
-	}
+	return nil
 }
