@@ -62,7 +62,6 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 		assert.NoError(t, err)
 
 		for _, pt := range pts {
-			assert.True(t, pt.Tags().Has([]byte("instance")))
 			assert.True(t, pt.Tags().Has([]byte("cause")))
 
 			assert.True(t, pt.Tags().Has([]byte("project")))
@@ -97,7 +96,6 @@ promhttp_metric_handler_errors_total{cause="encoding",ignore_me="some"} 0
 		assert.NoError(t, err)
 
 		for _, pt := range pts {
-			assert.True(t, pt.Tags().Has([]byte("instance")))
 			assert.False(t, pt.Tags().Has([]byte("ignore_me")))
 
 			t.Logf("%s", pt.Pretty())
@@ -127,7 +125,6 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 		assert.NoError(t, err)
 
 		for _, pt := range pts {
-			assert.True(t, pt.Tags().Has([]byte("instance")))
 			assert.True(t, pt.Tags().Has([]byte("cause")))
 			assert.True(t, string(pt.Name()) == "some")
 

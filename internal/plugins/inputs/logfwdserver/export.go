@@ -3,6 +3,9 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
+//go:build !windows
+// +build !windows
+
 package logfwdserver
 
 import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
