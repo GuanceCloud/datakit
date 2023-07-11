@@ -6,34 +6,120 @@
 package sqlserver
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
 	"net"
-	"net/netip"
 	"os"
+	"strings"
 	"sync"
-	T "testing"
+	"testing"
 	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/GuanceCloud/cliutils/point"
+	mssql "github.com/denisenkom/go-mssqldb"
+	"github.com/denisenkom/go-mssqldb/msdsn"
 	dt "github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
-	pl "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
-type caseSpec struct {
-	t *T.T
+const (
+	User         = "sa"
+	UserPassword = "Abc123abC$"
+	Database     = "master"
+	Table        = ""
 
-	name        string
-	repo        string
-	repoTag     string
-	envs        []string
-	servicePort string
+	RepoURL = "mcr.microsoft.com/mssql/"
+)
+
+var mtMap = map[string]struct {
+	measurement    inputs.Measurement
+	optionalFields []string
+	optionalTags   []string
+	extraTags      map[string]string
+}{
+	"sqlserver_database_files": {
+		measurement:    &DatabaseFilesMeasurement{},
+		optionalFields: []string{},
+	},
+	"sqlserver": {
+		measurement: &SqlserverMeasurment{},
+	},
+	"sqlserver_performance": {
+		measurement: &Performance{},
+	},
+	"sqlserver_waitstats": {
+		measurement: &WaitStatsCategorized{},
+	},
+	"sqlserver_database_io": {
+		measurement: &DatabaseIO{},
+	},
+	"sqlserver_schedulers": {
+		measurement: &Schedulers{},
+	},
+	"sqlserver_volumespace": {
+		measurement:  &VolumeSpace{},
+		optionalTags: []string{"volume_mount_point"},
+	},
+	"sqlserver_lock_row": {
+		measurement: &LockRow{},
+		extraTags: map[string]string{
+			"status": "",
+		},
+	},
+	"sqlserver_lock_table": {
+		measurement: &LockTable{},
+		extraTags: map[string]string{
+			"status": "",
+		},
+	},
+	"sqlserver_lock_dead": {
+		measurement: &LockDead{},
+		extraTags: map[string]string{
+			"status": "",
+		},
+	},
+	"sqlserver_logical_io": {
+		measurement: &LogicalIO{},
+		extraTags: map[string]string{
+			"status": "",
+		},
+	},
+	"sqlserver_worker_time": {
+		measurement: &WorkerTime{},
+		extraTags: map[string]string{
+			"status": "",
+		},
+	},
+	"sqlserver_database_size": {
+		measurement: &DatabaseSize{},
+	},
+}
+
+type (
+	validateFunc     func(pts []*point.Point, cs *caseSpec) error
+	getConfFunc      func(c containerInfo) string
+	serviceReadyFunc func(ipt *Input) error
+	serviceOKFunc    func(t *testing.T, port int) bool
+)
+
+type caseSpec struct {
+	t *testing.T
+
+	name  string
+	image string
+	envs  []string
+
+	validate     validateFunc
+	getConf      getConfFunc
+	serviceOK    serviceOKFunc
+	serviceReady serviceReadyFunc
+	bindingPort  docker.Port
 
 	ipt    *Input
 	feeder *io.MockedFeeder
@@ -44,84 +130,188 @@ type caseSpec struct {
 	cr *testutils.CaseResult
 }
 
-func (cs *caseSpec) checkPoint(pts []*point.Point) error {
-	for _, pt := range pts {
-		measurement := string(pt.Name())
+type caseItem struct {
+	name         string
+	getConf      getConfFunc
+	validate     validateFunc
+	serviceReady serviceReadyFunc
+	serviceOK    serviceOKFunc
+	envs         []string
+	images       []string
 
-		switch measurement {
-		case "sqlserver_performance":
-			msgs := inputs.CheckPoint(pt, inputs.WithDoc(&Performance{}), inputs.WithExtraTags(cs.ipt.Tags))
-
-			for _, msg := range msgs {
-				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-			}
-
-			// TODO: error here
-			// if len(msgs) > 0 {
-			//	return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-			//}
-
-		default: // TODO: check other measurement
-		}
-
-		// check if tag appended
-		if len(cs.ipt.Tags) != 0 {
-			cs.t.Logf("checking tags %+#v...", cs.ipt.Tags)
-
-			tags := pt.Tags()
-			for k, expect := range cs.ipt.Tags {
-				if v := tags.Get([]byte(k)); v != nil {
-					got := string(v.GetD())
-					if got != expect {
-						return fmt.Errorf("expect tag value %s, got %s", expect, got)
-					}
-				} else {
-					return fmt.Errorf("tag %s not found, got %v", k, tags)
-				}
-			}
-		}
-	}
-
-	// TODO: some other checking on @pts, such as `if some required measurements exist'...
-
-	return nil
+	bindingPort docker.Port
 }
 
-func (cs *caseSpec) run() error {
-	// start remote sqlserver
-	r := testutils.GetRemote()
+type caseConfig struct {
+	name               string
+	images             []string
+	checkedMeasurement []string
+}
+
+func generateCase(config *caseConfig) caseItem {
+	images := []string{}
+	for _, image := range config.images {
+		images = append(images, fmt.Sprintf("%s%s", RepoURL, image))
+	}
+	return caseItem{
+		name:        config.name,
+		images:      images,
+		bindingPort: "1433/tcp",
+		envs: []string{
+			"ACCEPT_EULA=Y",
+			fmt.Sprintf("MSSQL_SA_PASSWORD=%s", UserPassword),
+		},
+		getConf: func(c containerInfo) string {
+			return fmt.Sprintf(`
+host = "%s:%s"
+user = "%s"
+password = "%s"
+interval = "2s"
+database = "%s"
+`, c.Host, c.Port, c.User, c.Password, Database)
+		},
+		serviceReady: func(ipt *Input) error {
+			err := ipt.initDB()
+			if err != nil {
+				return err
+			}
+			_, err = ipt.query(`
+			CREATE TABLE Persons ( PersonID int, LastName varchar(255), FirstName varchar(255), Address varchar(255), City varchar(255));
+			`)
+			if err != nil {
+				return err
+			}
+
+			_, err = ipt.query("insert into Persons (LastName, FirstName) values('a', 'b')")
+			if err != nil {
+				return err
+			}
+
+			for i := 0; i < 2; i++ {
+				go func() {
+					_, err = ipt.query(`
+					begin transaction;
+					update Persons set FirstName='bb' where LastName='a';
+				`)
+				}()
+			}
+
+			time.Sleep(2 * time.Second)
+			return err
+		},
+		validate: assertSelectedMeasurments(config.checkedMeasurement),
+	}
+}
+
+// TODO: check lock measurement: sqlserver_worker_time,sqlserver_logical_io
+var cases = []caseItem{
+	generateCase(&caseConfig{
+		name:   "sqlserver-ok",
+		images: []string{"server:2017-latest", "server:2019-latest", "server:2022-latest"},
+		checkedMeasurement: []string{
+			"sqlserver_database_files",
+			"sqlserver",
+			"sqlserver_performance",
+			"sqlserver_waitstats",
+			"sqlserver_database_io",
+			"sqlserver_schedulers",
+			"sqlserver_volumespace",
+			"sqlserver_database_size",
+			"sqlserver_lock_row",
+			"sqlserver_lock_table",
+			"sqlserver_lock_dead",
+		},
+	}),
+}
+
+// getPool generates pool to connect to Docker.
+func (cs *caseSpec) getPool(r *testutils.RemoteInfo) (*dt.Pool, error) {
 	dockerTCP := r.TCPURL()
 
 	cs.t.Logf("get remote: %+#v, TCP: %s", r, dockerTCP)
 
-	start := time.Now()
-
 	p, err := dt.NewPool(dockerTCP)
 	if err != nil {
+		return nil, err
+	}
+
+	err = p.Client.Ping()
+	if err != nil {
+		if r.Host != "0.0.0.0" {
+			return nil, err
+		}
+		// use default docker service
+		cs.t.Log("try default docker")
+		p, err = dt.NewPool("")
+		if err != nil {
+			return nil, err
+		} else {
+			if err = p.Client.Ping(); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return p, nil
+}
+
+func (cs *caseSpec) getInput(c containerInfo) (*Input, error) {
+	ipt := defaultInput()
+
+	if _, err := toml.Decode(cs.getConf(c), ipt); err != nil {
+		return nil, err
+	}
+	return ipt, nil
+}
+
+func (cs *caseSpec) run() error {
+	var err error
+	var containerName string
+	r := testutils.GetRemote()
+	start := time.Now()
+
+	// set pool
+	if cs.pool, err = cs.getPool(r); err != nil {
 		return err
 	}
 
-	hostname, err := os.Hostname()
-	if err != nil {
+	hostname := "unknown-hostname"
+	// set containerName
+	if name, err := os.Hostname(); err != nil {
 		cs.t.Logf("get hostname failed: %s, ignored", err)
-		hostname = "unknown-hostname"
+	} else {
+		hostname = name
 	}
-
-	containerName := fmt.Sprintf("%s.%s", hostname, cs.name)
+	containerName = fmt.Sprintf("%s.%s", hostname, cs.name)
 
 	// remove the container if exist.
-	if err := p.RemoveContainerByName(containerName); err != nil {
+	if err := cs.pool.RemoveContainerByName(containerName); err != nil {
 		return err
 	}
 
-	resource, err := p.RunWithOptions(&dt.RunOptions{
+	// get port
+	port := testutils.RandPort("tcp")
+
+	// check image valid
+	images := strings.Split(cs.image, ":")
+	if len(images) != 2 {
+		return fmt.Errorf("invalid image %s", cs.image)
+	}
+
+	// check binding port
+	if len(cs.bindingPort) == 0 {
+		return fmt.Errorf("binding port is empty")
+	}
+
+	// run a container
+	if cs.resource, err = cs.pool.RunWithOptions(&dt.RunOptions{
 		// specify container image & tag
-		Repository: cs.repo,
-		Tag:        cs.repoTag,
+		Repository: images[0],
+		Tag:        images[1],
 
 		// port binding
 		PortBindings: map[docker.Port][]docker.PortBinding{
-			"1433/tcp": {{HostIP: "0.0.0.0", HostPort: cs.servicePort}},
+			cs.bindingPort: {{HostIP: "0.0.0.0", HostPort: fmt.Sprintf("%d", port)}},
 		},
 
 		Name: containerName,
@@ -130,21 +320,46 @@ func (cs *caseSpec) run() error {
 		Env: cs.envs,
 	}, func(c *docker.HostConfig) {
 		c.RestartPolicy = docker.RestartPolicy{Name: "no"}
-	})
-	if err != nil {
+	}); err != nil {
 		return err
 	}
 
-	cs.pool = p
-	cs.resource = resource
+	// setup container
+	if err := setupContainer(cs.pool, cs.resource); err != nil {
+		return err
+	}
 
-	cs.t.Logf("check service(%s:%s)...", r.Host, cs.servicePort)
-	if !r.PortOK(cs.servicePort, time.Minute) {
-		return fmt.Errorf("service checking failed")
+	cs.t.Logf("check service(%s:%d)...", r.Host, port)
+	if cs.serviceOK != nil {
+		if !cs.serviceOK(cs.t, port) {
+			return fmt.Errorf("service failed to serve")
+		}
+	} else if !r.PortOK(fmt.Sprintf("%d", port), 5*time.Minute) {
+		return fmt.Errorf("service port checking failed")
+	}
+
+	info := containerInfo{
+		User:     User,
+		Password: UserPassword,
+		Host:     r.Host,
+		Port:     fmt.Sprintf("%d", port),
+	}
+
+	// set input
+	if cs.ipt, err = cs.getInput(info); err != nil {
+		return err
+	}
+
+	cs.feeder = io.NewMockedFeeder()
+	cs.ipt.feeder = cs.feeder
+
+	if cs.serviceReady != nil {
+		if err := cs.serviceReady(cs.ipt); err != nil {
+			return err
+		}
 	}
 
 	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
-
 	var wg sync.WaitGroup
 
 	// start input
@@ -158,17 +373,28 @@ func (cs *caseSpec) run() error {
 	// wait data
 	start = time.Now()
 	cs.t.Logf("wait points...")
-	pts, err := cs.feeder.AnyPoints(5 * time.Minute)
+
+	// collect metric points
+	ps, err := cs.feeder.AnyPoints()
 	if err != nil {
 		return err
 	}
 
-	cs.cr.AddField("point_latency", int64(time.Since(start)))
-	cs.cr.AddField("point_count", len(pts))
-
-	cs.t.Logf("get %d points", len(pts))
-	if err := cs.checkPoint(pts); err != nil {
+	// collect logging points
+	ps1, err := cs.feeder.AnyPoints()
+	if err != nil {
 		return err
+	}
+	ps = append(ps, ps1...)
+
+	cs.cr.AddField("point_latency", int64(time.Since(start)))
+	cs.cr.AddField("point_count", len(ps))
+
+	cs.t.Logf("get %d points", len(ps))
+	if cs.validate != nil {
+		if err := cs.validate(ps, cs); err != nil {
+			return err
+		}
 	}
 
 	cs.t.Logf("stop input...")
@@ -180,106 +406,170 @@ func (cs *caseSpec) run() error {
 	return nil
 }
 
-func buildCases(t *T.T) ([]*caseSpec, error) {
+type containerInfo struct {
+	Host     string
+	Port     string
+	User     string
+	Password string
+}
+
+// build test cases based on case item
+func buildCases(t *testing.T, configs []caseItem) ([]*caseSpec, error) {
 	t.Helper()
-
-	remote := testutils.GetRemote()
-
-	bases := []struct {
-		name string
-		conf string
-	}{
-		{
-			name: "remote-sqlserver",
-
-			conf: fmt.Sprintf(`
-host = "%s"
-user = "sa"
-password = "Abc123abC$"`,
-				net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
-		},
-
-		{
-			name: "remote-sqlserver-with-extra-tags",
-
-			// Why config like this? See:
-			//    https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/1391#note_36026
-			conf: fmt.Sprintf(`
-host = "%s"
-user = "sa"
-password = "Abc123abC$" # SQLServer require password to be larger than 8bytes, must include number, alphabet and symbol.
-[tags]
-  tag1 = "some_value"
-  tag2 = "some_other_value"`, net.JoinHostPort(remote.Host, fmt.Sprintf("%d", testutils.RandPort("tcp")))),
-		},
-	}
-
-	images := [][2]string{
-		{"mcr.microsoft.com/mssql/server", "2017-latest"},
-		{"mcr.microsoft.com/mssql/server", "2019-latest"},
-		{"mcr.microsoft.com/mssql/server", "2022-latest"},
-	}
-
-	// TODO: add per-image configs
-	perImageCfgs := []interface{}{}
-	_ = perImageCfgs
 
 	var cases []*caseSpec
 
-	// compose cases
-	for _, img := range images {
-		for _, base := range bases {
-			feeder := io.NewMockedFeeder()
-
-			ipt := defaultInput()
-			ipt.feeder = feeder
-
-			_, err := toml.Decode(base.conf, ipt)
-			assert.NoError(t, err)
-
-			envs := []string{
-				"ACCEPT_EULA=Y",
-				fmt.Sprintf("SA_PASSWORD=%s", ipt.Password),
+	for _, config := range configs {
+		for _, img := range config.images {
+			parts := strings.Split(img, ":")
+			tag := "latest"
+			if len(parts) == 2 {
+				tag = parts[1]
 			}
 
-			ipport, err := netip.ParseAddrPort(ipt.Host)
-			assert.NoError(t, err, "parse %s failed: %s", ipt.Host, err)
+			caseSpecItem := &caseSpec{
+				t:     t,
+				name:  fmt.Sprintf("%s.%s", config.name, fmt.Sprintf("%s.%s", inputName, tag)),
+				envs:  config.envs,
+				image: img,
 
-			cases = append(cases, &caseSpec{
-				t:      t,
-				ipt:    ipt,
-				name:   base.name,
-				feeder: feeder,
-				envs:   envs,
-
-				repo:    img[0],
-				repoTag: img[1],
-
-				servicePort: fmt.Sprintf("%d", ipport.Port()),
-
+				validate:     config.validate,
+				getConf:      config.getConf,
+				serviceReady: config.serviceReady,
+				bindingPort:  config.bindingPort,
 				cr: &testutils.CaseResult{
-					Name:        t.Name(),
-					Case:        base.name,
-					ExtraFields: map[string]any{},
+					Name: t.Name(),
+					Case: config.name,
 					ExtraTags: map[string]string{
-						"image":         img[0],
-						"image_tag":     img[1],
-						"remote_server": ipt.Host,
+						"image": img,
 					},
 				},
-			})
+			}
+
+			if config.serviceOK != nil {
+				caseSpecItem.serviceOK = config.serviceOK
+			} else {
+				caseSpecItem.serviceOK = func(t *testing.T, port int) bool {
+					t.Helper()
+					host := net.JoinHostPort(testutils.GetRemote().Host, fmt.Sprint(port))
+
+					connStr := fmt.Sprintf("sqlserver://%s:%s@%s?dial+timeout=3", User, UserPassword, host)
+					cfg, _, _ := msdsn.Parse(connStr)
+					conn := mssql.NewConnectorConfig(cfg)
+					db := sql.OpenDB(conn)
+					defer db.Close()
+					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+					defer cancel()
+					ticker := time.NewTicker(time.Second)
+					defer ticker.Stop()
+					for {
+						select {
+						case <-ctx.Done():
+							return false
+						case <-ticker.C:
+							if err := db.Ping(); err == nil {
+								return true
+							} else {
+								t.Logf("service check failed, %s, try again", err.Error())
+								continue
+							}
+						}
+					}
+				}
+			}
+
+			cases = append(cases, caseSpecItem)
 		}
 	}
+
 	return cases, nil
 }
 
-func TestSQLServerInput(t *T.T) {
+func assertSelectedMeasurments(selected []string) func(pts []*point.Point, cs *caseSpec) error {
+	return func(pts []*point.Point, cs *caseSpec) error {
+		pointMap := map[string]bool{}
+		for _, pt := range pts {
+			name := string(pt.Name())
+			if _, ok := pointMap[name]; ok {
+				continue
+			}
+
+			if m, ok := mtMap[name]; ok {
+				extraTags := map[string]string{
+					"host": "host",
+				}
+
+				for k, v := range m.extraTags {
+					extraTags[k] = v
+				}
+				msgs := inputs.CheckPoint(pt,
+					inputs.WithDoc(m.measurement),
+					inputs.WithOptionalFields(m.optionalFields...),
+					inputs.WithExtraTags(cs.ipt.Tags),
+					inputs.WithOptionalTags(m.optionalTags...),
+					inputs.WithExtraTags(extraTags),
+				)
+				for _, msg := range msgs {
+					cs.t.Logf("[%s] check measurement %s failed: %+#v", cs.t.Name(), name, msg)
+				}
+				if len(msgs) > 0 {
+					return fmt.Errorf("check measurement %s failed: collected points are as expected ", name)
+				}
+				pointMap[name] = true
+			} else {
+				continue
+			}
+			// check if tag appended
+			if len(cs.ipt.Tags) != 0 {
+				cs.t.Logf("checking tags %+#v...", cs.ipt.Tags)
+
+				tags := pt.Tags()
+				for k := range cs.ipt.Tags {
+					if v := tags.Get([]byte(k)); v == nil {
+						return fmt.Errorf("tag %s not found, got %v", k, tags)
+					}
+				}
+			}
+		}
+
+		missingMeasurements := []string{}
+		for m := range mtMap {
+			if selected == nil {
+				if _, ok := pointMap[m]; !ok {
+					missingMeasurements = append(missingMeasurements, m)
+				}
+			} else {
+				for _, item := range selected {
+					if m == item {
+						if _, ok := pointMap[m]; !ok {
+							missingMeasurements = append(missingMeasurements, m)
+						}
+					}
+				}
+			}
+		}
+
+		if len(missingMeasurements) > 0 {
+			return fmt.Errorf("measurements not found: %s", strings.Join(missingMeasurements, ","))
+		}
+
+		return nil
+	}
+}
+
+// setupContainer sets up the container for the given Pool and Resource.
+func setupContainer(p *dt.Pool, resource *dt.Resource) error {
+	return nil
+}
+
+func TestIntegrate(t *testing.T) {
 	if !testutils.CheckIntegrationTestingRunning() {
 		t.Skip()
 	}
 
+	t.Helper()
 	start := time.Now()
-	cases, err := buildCases(t)
+	cases, err := buildCases(t, cases)
 	if err != nil {
 		cr := &testutils.CaseResult{
 			Name:          t.Name(),
@@ -295,130 +585,35 @@ func TestSQLServerInput(t *T.T) {
 	t.Logf("testing %d cases...", len(cases))
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *T.T) {
-			caseStart := time.Now()
+		func(tc *caseSpec) {
+			t.Run(tc.name, func(t *testing.T) {
+				tc.t = t
+				caseStart := time.Now()
 
-			t.Logf("testing %s...", tc.name)
+				t.Logf("testing %s...", tc.name)
 
-			if err := tc.run(); err != nil {
-				tc.cr.Status = testutils.TestFailed
-				tc.cr.FailedMessage = err.Error()
+				if err := tc.run(); err != nil {
+					tc.cr.Status = testutils.TestFailed
+					tc.cr.FailedMessage = err.Error()
 
-				panic(err)
-			} else {
-				tc.cr.Status = testutils.TestPassed
-			}
-
-			tc.cr.Cost = time.Since(caseStart)
-
-			assert.NoError(t, testutils.Flush(tc.cr))
-
-			t.Cleanup(func() {
-				// clean remote docker resources
-				if tc.resource == nil {
-					return
+					assert.NoError(t, err)
+				} else {
+					tc.cr.Status = testutils.TestPassed
 				}
 
-				assert.NoError(t, tc.pool.Purge(tc.resource))
+				tc.cr.Cost = time.Since(caseStart)
+
+				assert.NoError(t, testutils.Flush(tc.cr))
+
+				t.Cleanup(func() {
+					// clean remote docker resources
+					if tc.resource == nil {
+						return
+					}
+
+					assert.NoError(t, tc.pool.Purge(tc.resource))
+				})
 			})
-		})
+		}(tc)
 	}
-}
-
-func Test_setHostTagIfNotLoopback(t *T.T) {
-	type args struct {
-		tags      map[string]string
-		ipAndPort string
-	}
-	tests := []struct {
-		name     string
-		args     args
-		expected map[string]string
-	}{
-		{
-			name: "loopback",
-			args: args{
-				tags:      map[string]string{},
-				ipAndPort: "localhost:1234",
-			},
-			expected: map[string]string{},
-		},
-		{
-			name: "loopback",
-			args: args{
-				tags:      map[string]string{},
-				ipAndPort: "127.0.0.1:1234",
-			},
-			expected: map[string]string{},
-		},
-		{
-			name: "normal",
-			args: args{
-				tags:      map[string]string{},
-				ipAndPort: "192.168.1.1:1234",
-			},
-			expected: map[string]string{
-				"host": "192.168.1.1",
-			},
-		},
-		{
-			name: "error not ip:port",
-			args: args{
-				tags:      map[string]string{},
-				ipAndPort: "http://192.168.1.1:1234",
-			},
-			expected: map[string]string{},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *T.T) {
-			setHostTagIfNotLoopback(tt.args.tags, tt.args.ipAndPort)
-			assert.Equal(t, tt.expected, tt.args.tags)
-		})
-	}
-}
-
-func TestPipeline(t *T.T) {
-	source := `sqlserver`
-	t.Run("pl-sqlserver-logging", func(t *T.T) {
-		// sqlserver log examples
-		logs := []string{
-			`2020-01-01 00:00:01.00 spid28s     Server is listening on [ ::1 <ipv6> 1431] accept sockets 1.`,
-			`2020-01-01 00:00:02.00 Server      Common language runtime (CLR) functionality initialized.`,
-		}
-
-		expected := []*dkpt.Point{
-			dkpt.MustNewPoint(source, nil, map[string]any{
-				`message`: logs[0],
-				`msg`:     `Server is listening on [ ::1 <ipv6> 1431] accept sockets 1.`,
-				`origin`:  `spid28s`,
-				`status`:  `unknown`,
-			}, &dkpt.PointOption{Category: point.Logging.URL(), Time: time.Date(2020, 1, 1, 0, 0, 1, 0, time.UTC)}),
-
-			dkpt.MustNewPoint(source, nil, map[string]any{
-				`message`: logs[1],
-				`msg`:     `Common language runtime (CLR) functionality initialized.`,
-				`origin`:  `Server`,
-				`status`:  `unknown`,
-			}, &dkpt.PointOption{Category: point.Logging.URL(), Time: time.Date(2020, 1, 1, 0, 0, 2, 0, time.UTC)}),
-		}
-
-		p, err := pl.NewPipeline(point.Logging, "", pipeline)
-		assert.NoError(t, err, "NewPipeline: %s", err)
-
-		for idx, ln := range logs {
-			pt, err := dkpt.NewPoint(source,
-				nil,
-				map[string]any{"message": ln},
-				&dkpt.PointOption{Category: point.Logging.URL()})
-			assert.NoError(t, err)
-
-			after, dropped, err := p.Run(point.Logging, pt, nil, &dkpt.PointOption{Category: point.Logging.URL()}, nil, nil)
-
-			assert.NoError(t, err)
-			assert.False(t, dropped)
-
-			assert.Equal(t, expected[idx].String(), after.String())
-		}
-	})
 }

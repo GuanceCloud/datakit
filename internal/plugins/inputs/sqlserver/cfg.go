@@ -42,9 +42,24 @@ var (
   ## Set true to enable election
   election = true
 
+  ## Database name to query. Default is master.
+  database = "master"
+
   ## configure db_filter to filter out metrics from certain databases according to their database_name tag.
   ## If leave blank, no metric from any database is filtered out.
   # db_filter = ["some_db_instance_name", "other_db_instance_name"]
+
+
+  ## Run a custom SQL query and collect corresponding metrics.
+  #
+  # [[inputs.sqlserver.custom_queries]]
+  #   sql = '''
+  #     select counter_name,cntr_type,cntr_value
+  #     from sys.dm_os_performance_counters
+  #   '''
+  #   metric = "sqlserver_custom_stat"
+  #   tags = ["counter_name","cntr_type"]
+  #   fields = ["cntr_value"]
 
   # [inputs.sqlserver.log]
   # files = []
@@ -78,6 +93,7 @@ default_time(time, "+0")
 		sqlServerSchedulers,
 		sqlServerVolumeSpace,
 		sqlServerDatabaseSize,
+		sqlServerDatabaseBackup,
 	}
 	loggingQuery = []string{
 		sqlServerLockTable,
@@ -88,14 +104,23 @@ default_time(time, "+0")
 	}
 )
 
+type customQuery struct {
+	SQL    string   `toml:"sql"`
+	Metric string   `toml:"metric"`
+	Tags   []string `toml:"tags"`
+	Fields []string `toml:"fields"`
+}
+
 type Input struct {
-	Host       string            `toml:"host"`
-	User       string            `toml:"user"`
-	Password   string            `toml:"password"`
-	Interval   datakit.Duration  `toml:"interval"`
-	Tags       map[string]string `toml:"tags"`
-	Log        *sqlserverlog     `toml:"log"`
-	AllowTLS10 bool              `toml:"allow_tls10,omitempty"`
+	Host        string            `toml:"host"`
+	User        string            `toml:"user"`
+	Password    string            `toml:"password"`
+	Interval    datakit.Duration  `toml:"interval"`
+	Tags        map[string]string `toml:"tags"`
+	Log         *sqlserverlog     `toml:"log"`
+	Database    string            `toml:"database,omitempty"`
+	CustomQuery []*customQuery    `toml:"custom_queries"`
+	AllowTLS10  bool              `toml:"allow_tls10,omitempty"`
 
 	QueryVersionDeprecated int      `toml:"query_version,omitempty"`
 	ExcludeQuery           []string `toml:"exclude_query,omitempty"`
@@ -115,6 +140,8 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
 	opt     point.Option
+
+	collectFuncs map[string]func() error
 }
 
 type sqlserverlog struct {
@@ -129,6 +156,15 @@ func newCountFieldInfo(desc string) *inputs.FieldInfo {
 		DataType: inputs.Int,
 		Type:     inputs.Count,
 		Unit:     inputs.NCount,
+		Desc:     desc,
+	}
+}
+
+func newStringFieldInfo(desc string) *inputs.FieldInfo {
+	return &inputs.FieldInfo{
+		DataType: inputs.String,
+		Type:     inputs.String,
+		Unit:     inputs.TODO,
 		Desc:     desc,
 	}
 }
