@@ -41,12 +41,12 @@ func dcaHTTPStart() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	l.Debugf("DCA HTTP bind addr:%s", dcaConfig.Listen)
+	l.Debugf("DCA HTTP bind addr:%s", apiServer.dcaConfig.Listen)
 
 	router := setupDcaRouter()
 
 	srv := &http.Server{
-		Addr:    dcaConfig.Listen,
+		Addr:    apiServer.dcaConfig.Listen,
 		Handler: router,
 	}
 
@@ -71,7 +71,7 @@ func whiteListCheck(c *gin.Context) {
 	var isValid bool
 	context := dcaContext{c: c}
 	clientIP := net.ParseIP(c.ClientIP())
-	whiteList := dcaConfig.WhiteList
+	whiteList := apiServer.dcaConfig.WhiteList
 
 	// ignore loopback
 	if clientIP.IsLoopback() {

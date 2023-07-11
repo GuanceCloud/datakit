@@ -73,7 +73,7 @@ DCA Web is the Web version of DCA client, which provides the interface proxy of 
     Before running the container, first download the DCA image through `docker pull`.
 
     ```shell
-    $ docker pull pubrepo.guance.com/tools/dca
+    docker pull pubrepo.guance.com/tools/dca
     ```
 
     - Run the container
@@ -81,7 +81,7 @@ DCA Web is the Web version of DCA client, which provides the interface proxy of 
     The DCA container is created and started with the `docker run` command, and the default exposed access port of the container is 80.
 
     ```shell
-    $ docker run -d --name dca -p 8000:80 pubrepo.guance.com/tools/dca
+    docker run -d --name dca -p 8000:80 pubrepo.guance.com/tools/dca
     ```
 
     - Testing
