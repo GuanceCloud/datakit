@@ -25,6 +25,7 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/token"
 	"github.com/gin-gonic/gin"
 	"github.com/influxdata/toml"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"

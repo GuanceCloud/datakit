@@ -31,25 +31,7 @@ func runDocFlags() error {
 	return exportMan(opt)
 }
 
-type i18n int
-
-const (
-	i18nZh = iota
-	i18nEn
-)
-
-func (x i18n) String() string {
-	switch x {
-	case i18nZh:
-		return "zh"
-	case i18nEn:
-		return "en"
-	default:
-		panic(fmt.Sprintf("should not been here: unsupport language: %s", x.String()))
-	}
-}
-
-func buildAllDocs(lang i18n, opt *man.ExportOption) (map[string][]byte, error) {
+func buildAllDocs(lang inputs.I18n, opt *man.ExportOption) (map[string][]byte, error) {
 	res := map[string][]byte{}
 
 	// build all inputs docs
@@ -67,19 +49,34 @@ func buildAllDocs(lang i18n, opt *man.ExportOption) (map[string][]byte, error) {
 			continue // ignore non-markdown
 		}
 
-		name := strings.Split(f.Name(), ".")[0] // get cpu.md -> cpu
+		name := strings.Split(f.Name(), ".")[0] // cpu.md -> cpu
 		md, err := man.AllDocs.ReadFile(filepath.Join("docs", lang.String(), "inputs", f.Name()))
 		if err != nil {
+			cp.Warnf("read doc on input %q failed: %s, ignored\n", name, err)
 			continue
 		}
 
 		doc, err := man.BuildInputDoc(name, md, opt)
 		if err != nil {
-			cp.Errorf("man.BuildInputDoc(%q): %s", name, err)
+			cp.Errorf("man.BuildInputDoc(%q): %s\n", name, err)
 			continue
 		}
 
 		res[f.Name()] = doc
+
+		// build dashboard
+		j, err := man.AllDashboard.ReadFile(filepath.Join("dashboards", name+".json")) // cpu -> cpu.json
+		if err != nil {
+			cp.Warnf("read dashboard on input %q failed: %s, ignored\n", name, err)
+			continue
+		}
+
+		dashboard, err := man.BuildDashboard(name, j, lang)
+		if err != nil {
+			cp.Errorf("man.BuildDashboard(%q): %s\n", name, err)
+			continue
+		}
+		res[name+".json"] = dashboard
 	}
 
 	// build all pipeline docs
@@ -106,9 +103,9 @@ func buildAllDocs(lang i18n, opt *man.ExportOption) (map[string][]byte, error) {
 		if f.Name() == "pipeline-built-in-function.md" {
 			var fndocs map[string]*plfuncs.PLDoc
 			switch lang {
-			case i18nZh:
+			case inputs.I18nZh:
 				fndocs = plfuncs.PipelineFunctionDocs
-			case i18nEn:
+			case inputs.I18nEn:
 				fndocs = plfuncs.PipelineFunctionDocsEN
 			}
 
@@ -152,7 +149,7 @@ func buildAllDocs(lang i18n, opt *man.ExportOption) (map[string][]byte, error) {
 
 		doc, err := man.BuildNonInputDocs(md, opt)
 		if err != nil {
-			cp.Errorf("man.BuildInputDoc(%q): %s", f.Name(), err)
+			cp.Errorf("man.BuildInputDoc(%q): %s\n", f.Name(), err)
 			continue
 		}
 
@@ -167,7 +164,7 @@ func exportMan(opt *man.ExportOption) error {
 		return err
 	}
 
-	for _, x := range []i18n{i18nZh, i18nEn} {
+	for _, x := range []inputs.I18n{inputs.I18nZh, inputs.I18nEn} {
 		if err := os.MkdirAll(filepath.Join(opt.Path, x.String()), os.ModePerm); err != nil {
 			return err
 		}

@@ -1,4 +1,3 @@
-{{.CSS}}
 # DataKit DaemonSet 部署最佳实践
 ---
 

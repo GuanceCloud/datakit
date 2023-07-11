@@ -41,7 +41,7 @@ nav:
     - datakit-input-conf.md
     - 主机:
       - 默认采集:
-        - 'DataKit': self.md
+        - 'DataKit': dk.md
         - cpu.md
         - disk.md
         - diskio.md

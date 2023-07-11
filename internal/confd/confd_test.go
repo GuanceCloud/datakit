@@ -14,9 +14,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/cpu"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/dk"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/ipmi"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/mem"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/self"
 )
 
 type args struct {
@@ -64,8 +64,8 @@ func checkGot(t *testing.T, confdInputs map[string][]*inputs.ConfdInfo, wants []
 			duration = confdInputs[want.mapKey][want.sliceIdx].Input.(*mem.Input).Interval.Duration
 		case "ipmi":
 			duration = confdInputs[want.mapKey][want.sliceIdx].Input.(*ipmi.Input).Interval.Duration
-		case "self":
-			duration = confdInputs[want.mapKey][want.sliceIdx].Input.(*self.Input).Interval.Duration
+		case "dk":
+			duration = confdInputs[want.mapKey][want.sliceIdx].Input.(*dk.Input).Interval
 		}
 		if duration != want.inputInterval {
 			t.Errorf("want Interval.Duration : %d, mapKey : %s, but got %d .", want.inputInterval, want.mapKey, duration)
@@ -163,18 +163,18 @@ func Test_handleConfdData(t *testing.T) {
 			},
 		},
 		{
-			// to test will not got "self", then will not modify "self" input.
-			name: "1-self",
+			// to test will not got "dk", then will not modify "dk" input.
+			name: "1-dk",
 			args: args{
 				data: []map[string]string{{"any": `
-[[inputs.self]]
+[[inputs.dk]]
   interval = '12s'
 				`}},
 			},
 			wants: []want{
 				{
 					isHaveKey: false,
-					mapKey:    "self",
+					mapKey:    "dk",
 				},
 			},
 		},
@@ -182,7 +182,7 @@ func Test_handleConfdData(t *testing.T) {
 
 	// cpu & mem inputs be default.
 	config.Cfg.DefaultEnabledInputs = []string{"cpu", "mem"}
-	// Existing inputs, "cpu" & "mem" be singleton, "self" can't modify, "ipmi" be other.
+	// Existing inputs, "cpu" & "mem" be singleton, "dk" can't modify, "ipmi" be other.
 	inputs.Inputs = map[string]inputs.Creator{
 		"cpu": func() inputs.Input {
 			return &cpu.Input{
@@ -197,9 +197,9 @@ func Test_handleConfdData(t *testing.T) {
 				Tags:     make(map[string]string),
 			}
 		},
-		"self": func() inputs.Input {
-			return &self.Input{
-				Interval: datakit.Duration{Duration: time.Second * 10},
+		"dk": func() inputs.Input {
+			return &dk.Input{
+				Interval: time.Second * 10,
 				Tags:     make(map[string]string),
 			}
 		},
@@ -215,7 +215,7 @@ func Test_handleConfdData(t *testing.T) {
 	inputs.AddInput("cpu", nil)
 	inputs.AddInput("mem", nil)
 	inputs.AddInput("ipmi", nil)
-	inputs.AddInput("self", nil)
+	inputs.AddInput("dk", nil)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -20,31 +20,30 @@ datakit monitor
 
 DataKit 基本 Monitor 页面信息如下图所示：
 
-![not-set](https://static.guance.com/images/datakit/monitor-basic-v1.gif)
+![not-set](https://static.guance.com/images/datakit/monitor-basic-v1.png)
 
 该图中的元素可以通过鼠标或键盘操作。被鼠标选中的块会以双边框突出显示（如上图左上角的 `Basic Info` 块所示），另外，还能通过鼠标滚轮或者键盘上下方向键（或者 vim 的 J/K）来浏览。
 
 上图中的每个 UI 块的信息分别是：
 
 - `Basic Info` 用来展示 DataKit 的基本信息，如版本号、主机名、运行时长等信息。从这里我们可以对 DataKit 当前的情况有个基本了解。现挑选几个字段出来单独说明：
-    - `Version`：DataKit 当前的版本号
-    - `Branch`：DataKit 当前的代码分支，一般情况下都是 master
     - `Uptime`：DataKit 的启动时间
-    - `CGroup`：展示当前 DataKit 的 cgroup 配置，其中 `mem` 指最大内存限制，`cpu` 指使用率限制范围
+    - `Branch`：DataKit 当前的代码分支，一般情况下都是 master
+    - `Build`：DataKit 的发布时间
+    - `CGroup`：展示当前 DataKit 的 cgroup 配置，其中 `mem` 指最大内存限制，`cpu` 指使用率限制范围（如果展示为 `-` 表示当前 cgroup 未设置）
+    - `Hostname`：当前主机名
     - `OS/Arch`：当前 DataKit 的软硬件平台
-    - `IO`：展示 DataKit 当前 IO 通道的拥塞情况
-    - `Pipeline`：展示 DataKit 当前 Pipeline 的处理情况
+    - `Version`：DataKit 当前的版本号
     - `Elected`：展示选举情况，详见[这里](election.md#status)
-    - `From`：当前被 Monitor 的 DataKit 地址，如 `http://localhost:9529/stats`
+    - `From`：当前被 Monitor 的 DataKit 地址，如 `http://localhost:9529/metrics`
 
-- `Runtime Info` 用来展示 DataKit 的基本运行消耗（主要是内存以及 Goroutine 有关），其中：
+- `Runtime Info` 用来展示 Datakit 的基本运行消耗（主要是内存以及 Goroutine 有关），其中：
 
     - `Goroutines`：当前正在运行的 Goroutine 个数
     - `Mem`：DataKit 进程当前实际消耗的内存字节数（*不含外部运行的采集器*）
     - `System`：DataKit 进程当前消耗的虚拟内存（*不含外部运行的采集器*）
-    - `Stack`：当前栈中消耗的内存字节数
-    - `GC Paused`：自 DataKit 启动以来，GC（垃圾回收）所消耗的时间
-    - `GC Count`：自 DataKit 启动以来，GC 次数
+    - `GC Paused`：自 DataKit 启动以来，GC（垃圾回收）所消耗的时间以及次数
+    - `OpenFiles`：当前打开的文件个数（部分平台可能显示为 `-1`，表示不支持该功能）
 
 <!-- markdownlint-disable MD046 -->
 ???+ info
@@ -55,21 +54,18 @@ DataKit 基本 Monitor 页面信息如下图所示：
 - `Enabled Inputs` 展示开启的采集器列表，其中
 
     - `Input`：指采集器名称，该名称是固定的，不容修改
-    - `Instances`：指该采集器开启的个数
+    - `Count`：指该采集器开启的个数
     - `Crashed`：指该采集器的崩溃次数
 
 - `Inputs Info`：用来展示每个采集器的采集情况，这里信息较多，下面一一分解
     - `Input`: 指采集器名称。某些情况下，这个名称是采集器自定义的（比如日志采集器/Prom 采集器）
-    - `Category`：指该采集器所采集的数据类型（M(指标)/L(日志)/O(对象)...）
-    - `Freq`：指该采集器每分钟的采集频率
-    - `Avg Pts`：指该采集器每次采集所获取的行协议点数（*如果采集器频率 Freq 高，但 Avg Pts 又少，则该采集器的设定可能有问题*）
-    - `Total Feed`：总的采集次数
-    - `Total Pts`：采集的总的行协议点数
-    - `1st Feed`：第一次采集的时间（相对当前时间）
-    - `Last Feed`：最后一次采集的时间（相对当前时间）
+    - `Cat`：指该采集器所采集的数据类型（M(指标)/L(日志)/O(对象)...）
+    - `Feeds`：指该采集器自启动以来更新数据（采集）的次数
+    - `TotalPts`：采集的总的行协议点数
+    - `Filtered`：被黑名单筛选掉的点数
+    - `Last Feed`：最后一次更新数据（采集）的时间（相对当前时间）
     - `Avg Cost`：平均每次采集消耗
-    - `Max Cost`：最大采集消耗
-    - `Errors`：采集错误次数
+    - `Errors`：采集错误次数（如果没有则不显示）
 
 - 底部的提示文本，用于告知如何退出当前的 Monitor 程序，并且显示当前的 Monitor 刷新频率。
 
@@ -77,25 +73,15 @@ DataKit 基本 Monitor 页面信息如下图所示：
 
 如果运行 Monitor 时，指定了 verbose 选项（`-V`），则会额外输出更多信息，如下图所示：
 
-![not-set](https://static.guance.com/images/datakit/monitor-verbose-v1.gif)
+![not-set](https://static.guance.com/images/datakit/monitor-verbose-v1.png)
 
 - `Goroutine Groups` 展示 DataKit 中已有的 Goroutine 分组（该分组中的 Goroutine 个数 <= 上面面板中的 `Goroutines` 个数）
 - `HTTP APIs` 展示 DataKit 中 API 调用情况
 - `Filter` 展示 DataKit 中黑名单过滤规则拉取情况
 - `Filter Rules` 展示每类黑名单的过滤情况
-
-- `Sender Info` 展示 Sender 管理的各个 Sink 运行情况
-    - `Sink`: Sink 名称
-    - `Uptime`: 运行时间
-    - `Count`: Write 次数
-    - `Failed`: Write 失败次数
-    - `Pts`: Write 点数
-    - `Raw Bytes`: Write 字节数（压缩前）
-    - `Bytes`: Write 字节数（压缩后）
-    - `2XX`: HTTP 状态码 2XX 次数
-    - `4XX`: HTTP 状态码 4XX 次数
-    - `5XX`: HTTP 状态码 5XX 次数
-    - `Timeout`: HTTP 超时次数
+- `Pipeline Info` 展示 Pipeline 运行情况
+- `IO Info` 展示数据上传通道的运行情况
+- `DataWay APIs` 展示 Dataway API 的调用情况
 
 ## FAQ {#faq}
 
@@ -168,7 +154,3 @@ datakit monitor --to localhost:19528
 # 也能查看另一个远程 DataKit 的 monitor
 datakit monitor --to <remote-ip>:9528
 ```
-
-### :material-chat-question: 如何查看具体采集器的错误信息？ {#view-errors}
-
-直接点击错误信息，即可在底部显示详细错误信息。点击该错误信息后，通过 ESC 或 Enter 键即可关闭该错误信息展示。

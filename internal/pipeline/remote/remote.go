@@ -172,7 +172,7 @@ func pullMain(urls []string, ipr IPipelineRemote) error {
 	for {
 		err = doPull(pathConfig, pathRelation, urls[0], ipr)
 		if err != nil {
-			ipr.FeedLastError(datakit.DatakitInputName, err.Error())
+			l.Warnf("doPull: %s, ignored", err.Error())
 		}
 
 		if isReturn {
@@ -186,8 +186,8 @@ func pullMain(urls []string, ipr IPipelineRemote) error {
 
 		case <-tick.C:
 			l.Debug("triggered")
-		} // select
-	} // for
+		}
+	}
 }
 
 func doPull(pathConfig, pathRelation, siteURL string, ipr IPipelineRemote) error {

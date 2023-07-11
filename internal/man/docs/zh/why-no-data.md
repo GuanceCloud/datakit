@@ -37,9 +37,11 @@ disk,device=/dev/disk3s1,fstype=apfs free=167050518528i,inodes_free=1631352720i,
 用 Ctrl + c 可以结束调试。为了尽快得到采集的数据，可以适当调整采集器的采集间隔（如果有）。
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ tip
 
-    部分被动接收数据的采集器（比如 DDTrace/RUM）需要指定 HTTP 服务（`--hppt-listen=[IP:Port]`），然后通过一些 HTTP 客户端工具（比如 `curl`）将数据发送给 Datakit 对应地址。详见 `datakit help debug` 帮助。
+    - 部分被动接收数据的采集器（比如 DDTrace/RUM）需要指定 HTTP 服务（`--hppt-listen=[IP:Port]`），然后通过一些 HTTP 客户端工具（比如 `curl`）将数据发送给 Datakit 对应地址。详见 `datakit help debug` 帮助
+
+    - 调试用的采集器配置可以是任何形式的扩展名，不一定要[以 `.conf` 作为后缀](datakit-input-conf.md#intro)，我们可以用诸如 *my-input.conf.test* 这样的文件名专用于调试，同时又不影响 Datakit 的正常运行
 <!-- markdownlint-enable -->
 
 ## 检查 DataWay 连接是否正常 {#check-connection}

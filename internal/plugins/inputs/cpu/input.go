@@ -65,8 +65,7 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 }
 
-func (ipt *Input) Singleton() {
-}
+func (ipt *Input) Singleton() {}
 
 func (ipt *Input) appendMeasurement(name string, tags map[string]string, fields map[string]interface{}, ts time.Time) {
 	tmp := &cpuMeasurement{name: name, tags: tags, fields: fields, ts: ts}

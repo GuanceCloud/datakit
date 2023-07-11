@@ -37,10 +37,6 @@ var confsampleFingerprint = append([]byte(fmt.Sprintf(
 	byte('\n'))
 
 func initDatakitConfSample(name string, c inputs.Creator) error {
-	if name == datakit.DatakitInputName {
-		return nil
-	}
-
 	input := c()
 	catalog := input.Catalog()
 
@@ -110,6 +106,7 @@ func initDefaultEnabledPlugins(c *Config) {
 
 		// check exist
 		if _, err := os.Stat(fpath); err == nil {
+			l.Infof("default enabled input %q exists(%q), ignored", name, fpath)
 			continue
 		}
 

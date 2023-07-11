@@ -203,7 +203,12 @@ func PubDatakit() error {
 
 	l.Infof("upload to %q...", UploadAddr)
 	for k, v := range ossfiles {
-		fi, _ := os.Stat(v)
+		fi, err := os.Stat(v)
+		if err != nil {
+			l.Errorf("os.Stat(%s): %s", v, err)
+			return err
+		}
+
 		l.Debugf("%s => %s(%s)...", v, k, humanize.Bytes(uint64(fi.Size())))
 
 		if err := oc.Upload(v, k); err != nil {

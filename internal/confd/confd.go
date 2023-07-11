@@ -412,7 +412,7 @@ func handleDefaultEnabledInputs() {
 	for kind := range inputs.InputsInfo {
 		if _, ok := confdInputs[kind]; !ok {
 			isNeedDelete := true
-			for _, v := range append(config.Cfg.DefaultEnabledInputs, "self") {
+			for _, v := range append(config.Cfg.DefaultEnabledInputs, "dk") {
 				if kind == v {
 					isNeedDelete = false
 					break
@@ -423,9 +423,9 @@ func handleDefaultEnabledInputs() {
 			}
 		}
 	}
-	if _, ok := confdInputs["self"]; ok {
-		delete(confdInputs, "self")
-		l.Warn("never modify self input")
+	if _, ok := confdInputs["dk"]; ok {
+		delete(confdInputs, "dk")
+		l.Warn("never modify dk input")
 	}
 }
 

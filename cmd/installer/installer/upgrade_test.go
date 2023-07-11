@@ -21,7 +21,6 @@ func Test_setupDefaultInputs(t *T.T) {
 		setupDefaultInputs(c,
 			"", // no list specified: use all default
 			[]string{"1", "2", "3"}, false)
-
 		assert.Equal(t, []string{"1", "2", "3"}, c.DefaultEnabledInputs)
 	})
 
@@ -31,7 +30,24 @@ func Test_setupDefaultInputs(t *T.T) {
 			"2,mem", // white list, with extra input 'mem'
 			[]string{"1", "2", "3"}, false)
 
-		assert.Equal(t, []string{"-1", "-3", "2", "mem"}, c.DefaultEnabledInputs)
+		assert.Equal(t, []string{
+			"-1",
+			"-3",
+			"2",
+			"mem",
+		}, c.DefaultEnabledInputs)
+	})
+
+	t.Run("upgrade-with-white-list", func(t *T.T) {
+		c := config.DefaultConfig()
+
+		c.DefaultEnabledInputs = []string{"disk"}
+
+		setupDefaultInputs(c,
+			"2,mem", // white list, with extra input 'mem'
+			[]string{"1", "2", "3"}, true)
+
+		assert.Equal(t, []string{"1", "2", "3", "disk"}, c.DefaultEnabledInputs)
 	})
 
 	t.Run("install-with-blacklist", func(t *T.T) {
@@ -57,16 +73,6 @@ func Test_setupDefaultInputs(t *T.T) {
 		setupDefaultInputs(c, "", []string{"1", "2", "3"}, true)
 
 		assert.Equal(t, []string{"-1", "-2", "-3"}, c.DefaultEnabledInputs)
-	})
-
-	t.Run("upgrade-with-white-list", func(t *T.T) {
-		c := config.DefaultConfig()
-		c.DefaultEnabledInputs = []string{"1"}
-
-		setupDefaultInputs(c, "", []string{"1", "2", "3"}, true)
-
-		// NOTE: under whitelist, new added inputs also disabled
-		assert.Equal(t, []string{"-2", "-3", "1"}, c.DefaultEnabledInputs)
 	})
 
 	t.Run("upgrade-with-black-list", func(t *T.T) {

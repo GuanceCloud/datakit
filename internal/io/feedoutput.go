@@ -12,6 +12,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	ipoint "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/point"
 )
 
 type FeederOutputer interface {
@@ -109,13 +110,18 @@ func (fo *debugOutput) Write(data *iodata) error {
 		cp.Output("%s\n", pt.String())
 	}
 
-	var cost time.Duration
-	if data.opt != nil {
-		cost = data.opt.CollectCost
-	}
+	now := time.Now()
+	date := fmt.Sprintf("%d/%02d/%02d %02d:%02d:%02d",
+		now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute(), now.Second())
 
-	cp.Infof("# %d points(%q) from %s, cost %s | Ctrl+c to exit.\n",
-		len(data.pts), data.category.Alias(), data.from, cost)
+	if data.category == point.Metric {
+		cp.Infof("# [%s] %d points(%q) from %s(time-series: %d), cost %s | Ctrl+c to exit.\n",
+			date, len(data.pts), data.category.Alias(), data.from,
+			ipoint.LineprotoTimeseries(data.pts), data.opt.CollectCost)
+	} else {
+		cp.Infof("# [%s] %d points(%q) from %s, cost %s | Ctrl+c to exit.\n",
+			date, len(data.pts), data.category.Alias(), data.from, data.opt.CollectCost)
+	}
 
 	return nil
 }
@@ -128,9 +134,3 @@ func (fo *debugOutput) WriteLastError(source, err string, cat ...point.Category)
 func NewDebugOutput() *debugOutput {
 	return &debugOutput{}
 }
-
-// fileFeederOutput send feeder data to local file.
-// type fileOutput struct {
-//	fpath  string
-//	rotate int
-//}

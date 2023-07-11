@@ -1,5 +1,4 @@
 <!-- This file required to translate to EN. -->
-{{.CSS}}
 # DataKit 支持的数据类型
 ---
 

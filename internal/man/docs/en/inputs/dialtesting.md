@@ -1,4 +1,3 @@
-{{.CSS}}
 # Network Dial Test
 ---
 
