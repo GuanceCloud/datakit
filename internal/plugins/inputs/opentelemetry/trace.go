@@ -6,8 +6,10 @@
 package opentelemetry
 
 import (
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
+	"strconv"
 
 	trace "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/trace/v1"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
@@ -27,9 +29,9 @@ func parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
 				spattrs := extractAtrributes(span.Attributes)
 
 				dkspan := &itrace.DatakitSpan{
-					TraceID:   hex.EncodeToString(span.GetTraceId()),
-					ParentID:  byteToString(span.GetParentSpanId()),
-					SpanID:    byteToString(span.GetSpanId()),
+					TraceID:   convert(span.GetTraceId()),
+					ParentID:  convert(span.GetParentSpanId()),
+					SpanID:    convert(span.GetSpanId()),
 					Resource:  span.Name,
 					Operation: span.Name,
 					Source:    inputName,
@@ -109,8 +111,8 @@ func getSpanIDsAndParentIDs(resspans []*trace.ResourceSpans) (map[string]bool, m
 				if span == nil {
 					continue
 				}
-				spanIDs[byteToString(span.SpanId)] = true
-				parentIDs[byteToString(span.ParentSpanId)] = true
+				spanIDs[convert(span.SpanId)] = true
+				parentIDs[convert(span.ParentSpanId)] = true
 			}
 		}
 	}
@@ -124,6 +126,21 @@ func byteToString(buf []byte) string {
 	}
 
 	return hex.EncodeToString(buf)
+}
+
+func convert(id []byte) string {
+	if convertToDD {
+		if len(id) >= 8 {
+			bts := id[len(id)-8:]
+			num := binary.BigEndian.Uint64(bts[:8])
+			return strconv.FormatUint(num, 10)
+		} else {
+			log.Debugf("traceid or spanid is %s ,can not convert to [8]byte", string(id))
+			return "0"
+		}
+	} else {
+		return byteToString(id)
+	}
 }
 
 // getDKSpanStatus 从otel的status转成dk的span_status.

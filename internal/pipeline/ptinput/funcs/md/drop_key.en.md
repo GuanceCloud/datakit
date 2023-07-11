@@ -8,10 +8,10 @@ Function parameters:
 
 - `key`: key to be deleted
 
-示例：
+Example：
 
 ```python
-# data = `{\"age\": 17, \"name\": \"zhangsan\", \"height\": 180}`
+# data = "{\"age\": 17, \"name\": \"zhangsan\", \"height\": 180}"
 
 json(_, age,)
 json(_, name)
