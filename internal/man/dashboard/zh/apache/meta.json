@@ -1,0 +1,1490 @@
+{
+  "dashboardBindSet": [],
+  "dashboardExtend": {},
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "dashboardType": "CUSTOM",
+  "iconSet": {
+    "icon": "https://static-res.guance.com/dataflux-template/dashboard/apache/icon.svg",
+    "url": "https://static-res.guance.com/dataflux-template/dashboard/apache/apache.png"
+  },
+  "main": {
+    "charts": [
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "direction": "vertical",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "pageSize": 50,
+            "queryMode": "toOneColumn",
+            "showFieldMapping": false,
+            "showLegend": true,
+            "showLine": false,
+            "showTitle": true,
+            "showTopSize": false,
+            "showTopWithMetric": "",
+            "stackType": "time",
+            "tableSortMetricName": "apache_scboard_open",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "topSize": 10,
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "General"
+        },
+        "name": "workers",
+        "pos": {
+          "h": 8,
+          "i": "chrt_6a2c3bacbbf949d79a4110e7d565d412",
+          "w": 6,
+          "x": 6,
+          "y": 32
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "busy workers",
+              "code": "A",
+              "dataSource": "apache",
+              "field": "busy_workers",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "18209db0-a8c0-11eb-afff-abf5824043b5",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`apache`:(AVG(`busy_workers`) AS `busy workers`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "idle workers",
+              "code": "B",
+              "dataSource": "apache",
+              "field": "idle_workers",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "18209db0-a8c0-11eb-afff-abf5824043b5",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`apache`:(AVG(`idle_workers`) AS `idle workers`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "#FFDA43",
+                "key": "network request",
+                "name": "network request"
+              }
+            ],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "direction": "vertical",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "pageSize": 50,
+            "queryMode": "toOneColumn",
+            "showFieldMapping": false,
+            "showLegend": true,
+            "showLine": false,
+            "showTitle": true,
+            "showTopSize": false,
+            "showTopWithMetric": "",
+            "stackType": "time",
+            "tableSortMetricName": "apache_scboard_open",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "topSize": 10,
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "General"
+        },
+        "name": "network request count/s",
+        "pos": {
+          "h": 8,
+          "i": "chrt_c1050e1b737b46e9a94b7ddc9c5d3c46",
+          "w": 6,
+          "x": 18,
+          "y": 32
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "network request",
+              "code": "A",
+              "dataSource": "apache",
+              "field": "net_hits",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "18209db0-a8c0-11eb-afff-abf5824043b5",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`apache`:(AVG(`net_hits`) AS `network request`) { `host` = '#{host}' }\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "#FF77AA",
+                "key": "cpu load",
+                "name": "cpu load"
+              }
+            ],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "direction": "vertical",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "pageSize": 50,
+            "queryMode": "toOneColumn",
+            "showFieldMapping": false,
+            "showLegend": true,
+            "showLine": false,
+            "showTitle": true,
+            "showTopSize": false,
+            "showTopWithMetric": "",
+            "stackType": "time",
+            "tableSortMetricName": "apache_scboard_open",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "topSize": 10,
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "General"
+        },
+        "name": "cpu load",
+        "pos": {
+          "h": 8,
+          "i": "chrt_254b561f4bee4165a2b98e6b3266864d",
+          "w": 6,
+          "x": 0,
+          "y": 32
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "cpu load",
+              "code": "A",
+              "dataSource": "apache",
+              "field": "cpu_load",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "18209db0-a8c0-11eb-afff-abf5824043b5",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`apache`:(AVG(`cpu_load`) AS `cpu load`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "#A0DD86",
+                "key": "network bytes",
+                "name": "network bytes"
+              }
+            ],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "direction": "vertical",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "pageSize": 50,
+            "queryMode": "toOneColumn",
+            "showFieldMapping": false,
+            "showLegend": true,
+            "showLine": false,
+            "showTitle": true,
+            "showTopSize": false,
+            "showTopWithMetric": "",
+            "stackType": "time",
+            "tableSortMetricName": "apache_scboard_open",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "topSize": 10,
+            "units": [
+              {
+                "key": "network bytes",
+                "name": "network bytes",
+                "unit": "",
+                "units": [
+                  "traffic",
+                  "B/S"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "General"
+        },
+        "name": "network request bytes/s",
+        "pos": {
+          "h": 8,
+          "i": "chrt_5fe5bd8cd42a48a786e25bbd83577613",
+          "w": 6,
+          "x": 12,
+          "y": 32
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "network bytes",
+              "code": "A",
+              "dataSource": "apache",
+              "field": "net_bytes",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "18209db0-a8c0-11eb-afff-abf5824043b5",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`apache`:(AVG(`net_bytes`) AS `network bytes`) { `host` = '#{host}' }\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "#498BFE",
+                "key": "closing connection",
+                "name": "closing connection"
+              }
+            ],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "direction": "vertical",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "pageSize": 50,
+            "queryMode": "toOneColumn",
+            "showFieldMapping": false,
+            "showLegend": true,
+            "showLine": false,
+            "showTitle": true,
+            "showTopSize": false,
+            "showTopWithMetric": "",
+            "stackType": "time",
+            "tableSortMetricName": "apache_scboard_open",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "topSize": 10,
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "ScoreBoard"
+        },
+        "name": "closing connection",
+        "pos": {
+          "h": 9,
+          "i": "chrt_4dcddea252d84fc8812230e1f318d7f9",
+          "w": 6,
+          "x": 0,
+          "y": 11.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "closing connection",
+              "code": "A",
+              "dataSource": "apache",
+              "field": "closing_connection",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "18209db0-a8c0-11eb-afff-abf5824043b5",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`apache`:(AVG(`closing_connection`) AS `closing connection`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "#FE9155",
+                "key": "waiting for connection",
+                "name": "waiting for connection"
+              }
+            ],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "direction": "vertical",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "pageSize": 50,
+            "queryMode": "toOneColumn",
+            "showFieldMapping": false,
+            "showLegend": true,
+            "showLine": false,
+            "showTitle": true,
+            "showTopSize": false,
+            "showTopWithMetric": "",
+            "stackType": "time",
+            "tableSortMetricName": "apache_scboard_open",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "topSize": 10,
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "ScoreBoard"
+        },
+        "name": "waiting for connection",
+        "pos": {
+          "h": 9,
+          "i": "chrt_ee4e85ffb36741fcb46fd86f87a87ee5",
+          "w": 8,
+          "x": 8,
+          "y": 2.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "waiting for connection",
+              "code": "B",
+              "dataSource": "apache",
+              "field": "waiting_for_connection",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "18209db0-a8c0-11eb-afff-abf5824043b5",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`apache`:(AVG(`waiting_for_connection`) AS `waiting for connection`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "#FF77AA",
+                "key": "dns lookup",
+                "name": "dns lookup"
+              }
+            ],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "direction": "vertical",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "pageSize": 50,
+            "queryMode": "toOneColumn",
+            "showFieldMapping": false,
+            "showLegend": true,
+            "showLine": false,
+            "showTitle": true,
+            "showTopSize": false,
+            "showTopWithMetric": "",
+            "stackType": "time",
+            "tableSortMetricName": "apache_scboard_open",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "topSize": 10,
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "ScoreBoard"
+        },
+        "name": "dns lookup",
+        "pos": {
+          "h": 9,
+          "i": "chrt_bd2096bfebc74ec6a8da6674c08d1237",
+          "w": 6,
+          "x": 12,
+          "y": 11.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "dns lookup",
+              "code": "C",
+              "dataSource": "apache",
+              "field": "dns_lookup",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "18209db0-a8c0-11eb-afff-abf5824043b5",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`apache`:(AVG(`dns_lookup`) AS `dns lookup`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "#FFBD5F",
+                "key": "gracefully finishing",
+                "name": "gracefully finishing"
+              }
+            ],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "direction": "vertical",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "pageSize": 50,
+            "queryMode": "toOneColumn",
+            "showFieldMapping": false,
+            "showLegend": true,
+            "showLine": false,
+            "showTitle": true,
+            "showTopSize": false,
+            "showTopWithMetric": "",
+            "stackType": "time",
+            "tableSortMetricName": "apache_scboard_open",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "topSize": 10,
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "ScoreBoard"
+        },
+        "name": "gracefully finishing",
+        "pos": {
+          "h": 9,
+          "i": "chrt_71ad9c6c885e4a92af14378d5fc87487",
+          "w": 6,
+          "x": 18,
+          "y": 11.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "gracefully finishing",
+              "code": "D",
+              "dataSource": "apache",
+              "field": "gracefully_finishing",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "18209db0-a8c0-11eb-afff-abf5824043b5",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`apache`:(AVG(`gracefully_finishing`) AS `gracefully finishing`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "#41CEC7",
+                "key": "keepalive",
+                "name": "keepalive"
+              }
+            ],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "direction": "vertical",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "pageSize": 50,
+            "queryMode": "toOneColumn",
+            "showFieldMapping": false,
+            "showLegend": true,
+            "showLine": false,
+            "showTitle": true,
+            "showTopSize": false,
+            "showTopWithMetric": "",
+            "stackType": "time",
+            "tableSortMetricName": "apache_scboard_open",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "topSize": 10,
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "ScoreBoard"
+        },
+        "name": "keepalive",
+        "pos": {
+          "h": 9,
+          "i": "chrt_a1d3ca6fa2fe465a81b635f2c8bf2835",
+          "w": 6,
+          "x": 0,
+          "y": 20.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "keepalive",
+              "code": "E",
+              "dataSource": "apache",
+              "field": "keepalive",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "18209db0-a8c0-11eb-afff-abf5824043b5",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`apache`:(AVG(`keepalive`) AS `keepalive`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "#C8DD4F",
+                "key": "logging",
+                "name": "logging"
+              }
+            ],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "direction": "vertical",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "pageSize": 50,
+            "queryMode": "toOneColumn",
+            "showFieldMapping": false,
+            "showLegend": true,
+            "showLine": false,
+            "showTitle": true,
+            "showTopSize": false,
+            "showTopWithMetric": "",
+            "stackType": "time",
+            "tableSortMetricName": "apache_scboard_open",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "topSize": 10,
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "ScoreBoard"
+        },
+        "name": "logging",
+        "pos": {
+          "h": 9,
+          "i": "chrt_12b733ef9a364d20a36baf9446a60ac0",
+          "w": 6,
+          "x": 6,
+          "y": 20.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "logging",
+              "code": "F",
+              "dataSource": "apache",
+              "field": "logging",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "18209db0-a8c0-11eb-afff-abf5824043b5",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`apache`:(AVG(`logging`) AS `logging`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "#41CEC7",
+                "key": "sending reply",
+                "name": "sending reply"
+              }
+            ],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "direction": "vertical",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "pageSize": 50,
+            "queryMode": "toOneColumn",
+            "showFieldMapping": false,
+            "showLegend": true,
+            "showLine": false,
+            "showTitle": true,
+            "showTopSize": false,
+            "showTopWithMetric": "",
+            "stackType": "time",
+            "tableSortMetricName": "apache_scboard_open",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "topSize": 10,
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "ScoreBoard"
+        },
+        "name": "sending reply",
+        "pos": {
+          "h": 9,
+          "i": "chrt_9f8a8de279684101b92319fe1689c3af",
+          "w": 8,
+          "x": 16,
+          "y": 2.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "sending reply",
+              "code": "G",
+              "dataSource": "apache",
+              "field": "sending_reply",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "18209db0-a8c0-11eb-afff-abf5824043b5",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`apache`:(AVG(`sending_reply`) AS `sending reply`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "#EA5E74",
+                "key": "starting up",
+                "name": "starting up"
+              }
+            ],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "direction": "vertical",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "pageSize": 50,
+            "queryMode": "toOneColumn",
+            "showFieldMapping": false,
+            "showLegend": true,
+            "showLine": false,
+            "showTitle": true,
+            "showTopSize": false,
+            "showTopWithMetric": "",
+            "stackType": "time",
+            "tableSortMetricName": "apache_scboard_open",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "topSize": 10,
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "ScoreBoard"
+        },
+        "name": "starting up",
+        "pos": {
+          "h": 9,
+          "i": "chrt_bb94c9a7c00b46aa85c2581f5b33b557",
+          "w": 6,
+          "x": 18,
+          "y": 20.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "starting up",
+              "code": "H",
+              "dataSource": "apache",
+              "field": "starting_up",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "18209db0-a8c0-11eb-afff-abf5824043b5",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`apache`:(AVG(`starting_up`) AS `starting up`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "#C57ECD",
+                "key": "reading request",
+                "name": "reading request"
+              }
+            ],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "direction": "vertical",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "pageSize": 50,
+            "queryMode": "toOneColumn",
+            "showFieldMapping": false,
+            "showLegend": true,
+            "showLine": false,
+            "showTitle": true,
+            "showTopSize": false,
+            "showTopWithMetric": "",
+            "stackType": "time",
+            "tableSortMetricName": "apache_scboard_open",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "topSize": 10,
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "ScoreBoard"
+        },
+        "name": "reading request",
+        "pos": {
+          "h": 9,
+          "i": "chrt_e0e83100bb7e4ed7a1059cf8e2311991",
+          "w": 6,
+          "x": 6,
+          "y": 11.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "reading request",
+              "code": "I",
+              "dataSource": "apache",
+              "field": "reading_request",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "18209db0-a8c0-11eb-afff-abf5824043b5",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`apache`:(AVG(`reading_request`) AS `reading request`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "#A0DD86",
+                "key": "open slot",
+                "name": "open slot"
+              }
+            ],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "direction": "vertical",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "pageSize": 50,
+            "queryMode": "toOneColumn",
+            "showFieldMapping": false,
+            "showLegend": true,
+            "showLine": false,
+            "showTitle": true,
+            "showTopSize": false,
+            "showTopWithMetric": "",
+            "stackType": "time",
+            "tableSortMetricName": "apache_scboard_open",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "topSize": 10,
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "ScoreBoard"
+        },
+        "name": "open slot",
+        "pos": {
+          "h": 9,
+          "i": "chrt_bfcb8edf6e454fe38db27bfab09c246a",
+          "w": 8,
+          "x": 0,
+          "y": 2.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "open slot",
+              "code": "J",
+              "dataSource": "apache",
+              "field": "open_slot",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "18209db0-a8c0-11eb-afff-abf5824043b5",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`apache`:(AVG(`open_slot`) AS `open slot`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "#00B2CE",
+                "key": "idle cleanup",
+                "name": "idle cleanup"
+              }
+            ],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "direction": "vertical",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "pageSize": 50,
+            "queryMode": "toOneColumn",
+            "showFieldMapping": false,
+            "showLegend": true,
+            "showLine": false,
+            "showTitle": true,
+            "showTopSize": false,
+            "showTopWithMetric": "",
+            "stackType": "time",
+            "tableSortMetricName": "apache_scboard_open",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "topSize": 10,
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "ScoreBoard"
+        },
+        "name": "idle cleanup",
+        "pos": {
+          "h": 9,
+          "i": "chrt_5bde47c6bd5143e69ab59bfe500b3a36",
+          "w": 6,
+          "x": 12,
+          "y": 20.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "idle cleanup",
+              "code": "A",
+              "dataSource": "apache",
+              "field": "idle_cleanup",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "18209db0-a8c0-11eb-afff-abf5824043b5",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`apache`:(AVG(`idle_cleanup`) AS `idle cleanup`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      }
+    ],
+    "groups": [
+      "ScoreBoard",
+      "General"
+    ],
+    "type": "template",
+    "vars": [
+      {
+        "code": "host",
+        "datasource": "dataflux",
+        "definition": {
+          "defaultVal": {
+            "label": "*",
+            "value": "re(`.*`)"
+          },
+          "field": "",
+          "metric": "",
+          "object": "",
+          "tag": "",
+          "value": "show_tag_value(from=['apache'], keyin=['host'])[5m]"
+        },
+        "hide": 0,
+        "name": "主机名",
+        "seq": 0,
+        "type": "QUERY",
+        "valueSort": ""
+      }
+    ]
+  },
+  "summary": "",
+  "tagInfo": [],
+  "tags": [],
+  "thumbnail": "",
+  "title": "Apache 监控视图55"
+}

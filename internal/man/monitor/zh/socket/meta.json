@@ -1,0 +1,142 @@
+{
+  "checkers": [
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "tcp",
+              "field": "response_time",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "dest_host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`tcp`:(AVG(`response_time`)) BY `dest_host`",
+              "type": "simple"
+            },
+            "uuid": "80544476-3a5c-45ca-a79b-3e602530d2ac"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "1000000"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "critical"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "100000"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "error"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "500000"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "warning"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "atAccounts": [],
+        "atNoDataAccounts": [],
+        "channels": [],
+        "checkerOpt": {
+          "infoEvent": false,
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "1000000"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "critical"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "100000"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "error"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "500000"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "warning"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "dest_host"
+        ],
+        "interval": 300,
+        "message": ">等级：{{status}}  \n>主机：{{dest_host}}  \n>端口:  {{dest_port}}\n>内容：端口响应时间为 {{ Result |  to_fixed(2) }}%  \n>建议：登录服务器查看应用是否有异常",
+        "noDataMessage": "",
+        "noDataTitle": "",
+        "recoverNeedPeriodCount": 2,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`tcp`:(AVG(`response_time`)) BY `dest_host`"
+          }
+        ],
+        "title": "主机 {{ host }} : {{dest_port}} socket 响应时间过长",
+        "type": "simpleCheck"
+      },
+      "monitorName": "默认"
+    }
+  ]
+}

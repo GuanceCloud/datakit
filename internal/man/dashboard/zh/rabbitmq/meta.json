@@ -1,0 +1,1677 @@
+{
+  "dashboardBindSet": [],
+  "dashboardExtend": {},
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "dashboardType": "CUSTOM",
+  "iconSet": {
+    "icon": "https://static-res.guance.com/dataflux-template/dashboard/rabbitmq/icon.svg",
+    "url": "https://static-res.guance.com/dataflux-template/dashboard/rabbitmq/rabbitmq.png"
+  },
+  "main": {
+    "charts": [
+      {
+        "extend": {
+          "settings": {
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "showFieldMapping": false,
+            "showLine": true,
+            "showLineAxis": false,
+            "tableSortMetricName": "连接数",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "总揽"
+        },
+        "name": "通道数",
+        "pos": {
+          "h": 7,
+          "w": 6,
+          "x": 6,
+          "y": 13
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "连接数",
+              "code": "A",
+              "dataSource": "rabbitmq_overview",
+              "field": "object_totals_channels",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "69df2860-a898-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_overview`:(AVG(`object_totals_channels`) AS `连接数`) { `host` = '#{host_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "settings": {
+            "chartType": "line",
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            }
+          }
+        },
+        "group": {
+          "name": "总揽"
+        },
+        "name": "消息",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 20
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "消息发布数",
+              "code": "A",
+              "dataSource": "rabbitmq_overview",
+              "field": "message_publish_count",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "9c5ae4f0-a898-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_overview`:(AVG(`message_publish_count`) AS `消息发布数`) { `host` = '#{host_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "消息重传数",
+              "code": "D",
+              "dataSource": "rabbitmq_overview",
+              "field": "message_redeliver_count",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "afbff3a0-a898-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_overview`:(AVG(`message_redeliver_count`) AS `消息重传数`) { `host` = '#{host_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "客户端确认数",
+              "code": "C",
+              "dataSource": "rabbitmq_overview",
+              "field": "message_ack_count",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "aad9d4f0-a898-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_overview`:(AVG(`message_ack_count`) AS `客户端确认数`) { `host` = '#{host_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "消息投递数",
+              "code": "B",
+              "dataSource": "rabbitmq_overview",
+              "field": "message_deliver_get_count",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a4cfcfb0-a898-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_overview`:(AVG(`message_deliver_get_count`) AS `消息投递数`) { `host` = '#{host_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "消息不可路由数",
+              "code": "E",
+              "dataSource": "rabbitmq_overview",
+              "field": "message_return_unroutable_count",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "d64f03d0-a898-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_overview`:(AVG(`message_return_unroutable_count`) AS `消息不可路由数`) { `host` = '#{host_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "settings": {
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "showFieldMapping": false,
+            "showLine": true,
+            "showLineAxis": false,
+            "tableSortMetricName": "连接数",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "总揽"
+        },
+        "name": "连接数",
+        "pos": {
+          "h": 7,
+          "w": 6,
+          "x": 0,
+          "y": 13
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "连接数",
+              "code": "A",
+              "dataSource": "rabbitmq_overview",
+              "field": "object_totals_connections",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "5c85f3b0-a898-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_overview`:(AVG(`object_totals_connections`) AS `连接数`) { `host` = '#{host_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "settings": {
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "showFieldMapping": false,
+            "showLine": true,
+            "showLineAxis": false,
+            "tableSortMetricName": "连接数",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "总揽"
+        },
+        "name": "队列数",
+        "pos": {
+          "h": 7,
+          "w": 6,
+          "x": 12,
+          "y": 13
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "连接数",
+              "code": "A",
+              "dataSource": "rabbitmq_overview",
+              "field": "object_totals_queues",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "740df820-a898-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_overview`:(AVG(`object_totals_queues`) AS `连接数`) { `host` = '#{host_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "settings": {
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "showFieldMapping": false,
+            "showLine": true,
+            "showLineAxis": false,
+            "tableSortMetricName": "连接数",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "总揽"
+        },
+        "name": "消费者数",
+        "pos": {
+          "h": 7,
+          "w": 6,
+          "x": 18,
+          "y": 13
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "连接数",
+              "code": "A",
+              "dataSource": "rabbitmq_overview",
+              "field": "object_totals_consumers",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "bf30dd90-a64f-11eb-b7c4-b706c033c376",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_overview`:(AVG(`object_totals_consumers`) AS `连接数`) { `host` = '#{host_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "settings": {
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "showFieldMapping": false,
+            "showLine": true,
+            "showLineAxis": false,
+            "tableSortMetricName": "消息速率",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "总揽"
+        },
+        "name": "队列消息速率",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 20
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "消息速率",
+              "code": "A",
+              "dataSource": "rabbitmq_overview",
+              "field": "queue_totals_messages_rate",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "f79e3c90-a898-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_overview`:(AVG(`queue_totals_messages_rate`) AS `消息速率`) { `host` = '#{host_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "settings": {
+            "chartType": "doughnut",
+            "colors": [],
+            "currentChartType": "pie",
+            "showFieldMapping": false,
+            "showLegend": true,
+            "tableSortMetricName": "客户端确认数",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "总揽"
+        },
+        "name": "队列消息",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 16,
+          "y": 20
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "待确认消息数",
+              "code": "B",
+              "dataSource": "rabbitmq_overview",
+              "field": "queue_totals_messages_unacknowledged_count",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "00e25e30-a899-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_overview`:(AVG(`queue_totals_messages_unacknowledged_count`) AS `待确认消息数`) { `host` = '#{host_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "pie",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "待消费消息数",
+              "code": "A",
+              "dataSource": "rabbitmq_overview",
+              "field": "queue_totals_messages_ready_count",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "053d2cd0-a899-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_overview`:(AVG(`queue_totals_messages_ready_count`) AS `待消费消息数`) { `host` = '#{host_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "pie",
+            "unit": ""
+          }
+        ],
+        "type": "pie"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "links": [],
+          "settings": {
+            "alias": [],
+            "colors": [],
+            "currentChartType": "table",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "pageSize": 0,
+            "queryMode": "toGroupColumn",
+            "showFieldMapping": false,
+            "showTitle": true,
+            "tableSortMetricName": "Socket已用文件描述符",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "内存最高水位",
+                "name": "内存最高水位",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              },
+              {
+                "key": "磁盘余量",
+                "name": "磁盘余量",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              },
+              {
+                "key": "内存用量",
+                "name": "内存用量",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "valColorMappings": [],
+            "valMappings": []
+          }
+        },
+        "group": {
+          "name": "交换机/队列/节点"
+        },
+        "name": "队列",
+        "pos": {
+          "h": 10,
+          "w": 24,
+          "x": 0,
+          "y": 54.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "disabled": false,
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "消费者数量",
+              "code": "A",
+              "dataSource": "rabbitmq_queue",
+              "field": "consumer_utilization",
+              "fieldFunc": "avg",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "node_name",
+                "queue_name"
+              ],
+              "groupByTime": "",
+              "labelOp": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_queue`:(AVG(`consumer_utilization`) AS `消费者数量`) { `host` = '#{host_name}' } by `node_name`,`queue_name`",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "客户端确认消息",
+              "code": "B",
+              "dataSource": "rabbitmq_queue",
+              "field": "message_ack_count",
+              "fieldFunc": "avg",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "node_name",
+                "queue_name"
+              ],
+              "groupByTime": "",
+              "labelOp": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_queue`:(AVG(`message_ack_count`) AS `客户端确认消息`) { `host` = '#{host_name}' } by `node_name`,`queue_name`",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "投递消息",
+              "code": "C",
+              "dataSource": "rabbitmq_queue",
+              "field": "message_deliver_count",
+              "fieldFunc": "avg",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "node_name",
+                "queue_name"
+              ],
+              "groupByTime": "",
+              "labelOp": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_queue`:(AVG(`message_deliver_count`) AS `投递消息`) { `host` = '#{host_name}' } by `node_name`,`queue_name`",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "发布消息",
+              "code": "D",
+              "dataSource": "rabbitmq_queue",
+              "field": "message_publish_count",
+              "fieldFunc": "avg",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "node_name",
+                "queue_name"
+              ],
+              "groupByTime": "",
+              "labelOp": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_queue`:(AVG(`message_publish_count`) AS `发布消息`) { `host` = '#{host_name}' } by `node_name`,`queue_name`",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "重投消息",
+              "code": "E",
+              "dataSource": "rabbitmq_queue",
+              "field": "message_redeliver_count",
+              "fieldFunc": "avg",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "node_name",
+                "queue_name"
+              ],
+              "groupByTime": "",
+              "labelOp": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_queue`:(AVG(`message_redeliver_count`) AS `重投消息`) { `host` = '#{host_name}' } by `node_name`,`queue_name`",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "待投递消息",
+              "code": "F",
+              "dataSource": "rabbitmq_queue",
+              "field": "messages_ready",
+              "fieldFunc": "avg",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "node_name",
+                "queue_name"
+              ],
+              "groupByTime": "",
+              "labelOp": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_queue`:(AVG(`messages_ready`) AS `待投递消息`) { `host` = '#{host_name}' } by `node_name`,`queue_name`",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "待确认消息",
+              "code": "G",
+              "dataSource": "rabbitmq_queue",
+              "field": "messages_unacknowledged",
+              "fieldFunc": "avg",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "node_name",
+                "queue_name"
+              ],
+              "groupByTime": "",
+              "labelOp": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_queue`:(AVG(`messages_unacknowledged`) AS `待确认消息`) { `host` = '#{host_name}' } by `node_name`,`queue_name`",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "table",
+            "unit": ""
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "extend": {
+          "links": [],
+          "settings": {
+            "colors": [],
+            "currentChartType": "table",
+            "pageSize": 0,
+            "queryMode": "toGroupColumn",
+            "showFieldMapping": false,
+            "tableSortMetricName": "Socket已用文件描述符",
+            "units": [
+              {
+                "key": "内存最高水位",
+                "name": "内存最高水位",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              },
+              {
+                "key": "磁盘余量",
+                "name": "磁盘余量",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              },
+              {
+                "key": "内存用量",
+                "name": "内存用量",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": "交换机/队列/节点"
+        },
+        "name": "节点",
+        "pos": {
+          "h": 10,
+          "w": 24,
+          "x": 0,
+          "y": 44.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "磁盘余量",
+              "code": "A",
+              "dataSource": "rabbitmq_node",
+              "field": "disk_free",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "2792fb00-a7e7-11eb-8d47-6938a96381f1",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last",
+                "top:5"
+              ],
+              "groupBy": [
+                "node_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_node`:(AVG(`disk_free`) AS `磁盘余量`) { `host` = '#{host_name}' } by `node_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "已用FD",
+              "code": "B",
+              "dataSource": "rabbitmq_node",
+              "field": "fd_used",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "74830ba0-a899-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "node_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_node`:(AVG(`fd_used`) AS `已用FD`) { `host` = '#{host_name}' } by `node_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "内存用量",
+              "code": "C",
+              "dataSource": "rabbitmq_node",
+              "field": "mem_used",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "78f29ac0-a899-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "node_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_node`:(AVG(`mem_used`) AS `内存用量`) { `host` = '#{host_name}' } by `node_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Socket用FD",
+              "code": "D",
+              "dataSource": "rabbitmq_node",
+              "field": "sockets_used",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "7c7a3ae0-a899-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "node_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_node`:(AVG(`sockets_used`) AS `Socket用FD`) { `host` = '#{host_name}' } by `node_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "待运行进程",
+              "code": "E",
+              "dataSource": "rabbitmq_node",
+              "field": "run_queue",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "80ffea10-a899-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "node_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_node`:(AVG(`run_queue`) AS `待运行进程`) { `host` = '#{host_name}' } by `node_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "内存最高水位",
+              "code": "F",
+              "dataSource": "rabbitmq_node",
+              "field": "mem_limit",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "849e94a0-a899-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "node_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_node`:(AVG(`mem_limit`) AS `内存最高水位`) { `host` = '#{host_name}' } by `node_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "磁盘剩余告警",
+              "code": "G",
+              "dataSource": "rabbitmq_node",
+              "field": "disk_free_alarm",
+              "fieldFunc": "avg",
+              "fieldType": "boolean",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "8879d300-a899-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "node_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_node`:(AVG(`disk_free_alarm`) AS `磁盘剩余告警`) { `host` = '#{host_name}' } by `node_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "内存告警",
+              "code": "H",
+              "dataSource": "rabbitmq_node",
+              "field": "mem_alarm",
+              "fieldFunc": "avg",
+              "fieldType": "boolean",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "8b9da840-a899-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "node_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_node`:(AVG(`mem_alarm`) AS `内存告警`) { `host` = '#{host_name}' } by `node_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "节点运行",
+              "code": "I",
+              "dataSource": "rabbitmq_node",
+              "field": "running",
+              "fieldFunc": "avg",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "node_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_node`:(AVG(`running`) AS `节点运行`) { `host` = '#{host_name}' } by `node_name`",
+              "queryFuncs": [],
+              "type": "dql"
+            },
+            "type": "table",
+            "unit": ""
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "extend": {
+          "links": [],
+          "settings": {
+            "colors": [],
+            "currentChartType": "table",
+            "pageSize": 0,
+            "queryMode": "toGroupColumn",
+            "showFieldMapping": false,
+            "tableSortMetricName": "Socket已用文件描述符",
+            "units": [
+              {
+                "key": "内存最高水位",
+                "name": "内存最高水位",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              },
+              {
+                "key": "磁盘余量",
+                "name": "磁盘余量",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              },
+              {
+                "key": "内存用量",
+                "name": "内存用量",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": "交换机/队列/节点"
+        },
+        "name": "交换机",
+        "pos": {
+          "h": 12,
+          "w": 24,
+          "x": 0,
+          "y": 32.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "客户端确认",
+              "code": "A",
+              "dataSource": "rabbitmq_exchange",
+              "field": "message_ack_count",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "0064c4a0-a7e7-11eb-8d47-6938a96381f1",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last",
+                "top:5"
+              ],
+              "groupBy": [
+                "exchange_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_exchange`:(AVG(`message_ack_count`) AS `客户端确认`) { `host` = '#{host_name}' } by `exchange_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "发布消息",
+              "code": "B",
+              "dataSource": "rabbitmq_exchange",
+              "field": "message_publish_count",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a4a55f30-a7e6-11eb-8d47-6938a96381f1",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "exchange_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_exchange`:(AVG(`message_publish_count`) AS `发布消息`) { `host` = '#{host_name}' } by `exchange_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "传递消息",
+              "code": "C",
+              "dataSource": "rabbitmq_exchange",
+              "field": "message_deliver_get_count",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1c0822d0-a899-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "exchange_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_exchange`:(AVG(`message_deliver_get_count`) AS `传递消息`) { `host` = '#{host_name}' } by `exchange_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "重传消息",
+              "code": "D",
+              "dataSource": "rabbitmq_exchange",
+              "field": "message_redeliver_count",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "211cf2a0-a899-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "exchange_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_exchange`:(AVG(`message_redeliver_count`) AS `重传消息`) { `host` = '#{host_name}' } by `exchange_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "无路由消息",
+              "code": "E",
+              "dataSource": "rabbitmq_exchange",
+              "field": "message_return_unroutable_count",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "25811010-a899-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "exchange_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_exchange`:(AVG(`message_return_unroutable_count`) AS `无路由消息`) { `host` = '#{host_name}' } by `exchange_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "colors": [],
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "简介"
+        },
+        "name": "说明",
+        "pos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 2.5
+        },
+        "queries": [
+          {
+            "name": "",
+            "query": {
+              "content": "采集器可以从 rabbitmq 实例中采取很多指标，比如连接数、队列数、消息总数等多种指标，并将指标采集到观测云，帮助监控分析 rabbitmq 各种异常情况。\n\nhttps://docs.guance.com/datakit/rabbitmq/"
+            }
+          }
+        ],
+        "type": "text"
+      }
+    ],
+    "groups": [
+      "简介",
+      "总揽",
+      "交换机/队列/节点"
+    ],
+    "type": "template",
+    "vars": [
+      {
+        "code": "host_name",
+        "datasource": "ftinfluxdb",
+        "definition": {
+          "field": "",
+          "metric": "rabbitmq_overview",
+          "object": "",
+          "tag": "host",
+          "value": ""
+        },
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "name": "主机名",
+        "seq": 0,
+        "type": "TAG",
+        "valueSort": "default"
+      }
+    ]
+  },
+  "summary": "",
+  "tagInfo": [],
+  "tags": [],
+  "thumbnail": "",
+  "title": "Rabbitmq 监控视图"
+}

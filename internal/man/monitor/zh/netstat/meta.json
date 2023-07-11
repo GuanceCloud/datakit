@@ -1,0 +1,141 @@
+{
+  "checkers": [
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "netstat",
+              "field": "tcp_close_wait",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`netstat`:(AVG(`tcp_close_wait`)) BY `host`",
+              "type": "simple"
+            },
+            "uuid": "7b79ed82-a821-4a4e-ac26-0ebf922c8186"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "20000"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "critical"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "15000"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "error"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "5000"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "warning"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "atAccounts": [],
+        "atNoDataAccounts": [],
+        "channels": [],
+        "checkerOpt": {
+          "infoEvent": false,
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "20000"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "critical"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "15000"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "error"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "5000"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "warning"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "host"
+        ],
+        "interval": 300,
+        "message": ">等级：{{status}}  \n>主机：{{host}}\n>内容：主机的 tcp_close_wait数量为 {{ Result |  to_fixed(2) }}%\n>建议：基础设施-进程-选择主机-基本信息-netstat监控视图 查看详细信息",
+        "noDataMessage": "",
+        "noDataTitle": "",
+        "recoverNeedPeriodCount": 2,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`netstat`:(AVG(`tcp_close_wait`)) BY `host`"
+          }
+        ],
+        "title": "主机 {{ host }} 的 tcp_close_wait 数量过高",
+        "type": "simpleCheck"
+      },
+      "monitorName": "默认"
+    }
+  ]
+}

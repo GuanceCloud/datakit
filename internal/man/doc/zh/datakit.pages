@@ -1,0 +1,47 @@
+nav:
+  - index.md
+  - changelog.md
+
+  - 'DataKit 介绍':
+    - datakit-arch.md
+
+  - 'DataKit 安装':
+    - '主机安装': datakit-install.md
+    - 'K8s 安装': datakit-daemonset-deploy.md
+    - '离线安装': datakit-offline-install.md
+    - '批量安装': datakit-batch-deploy.md
+
+  - 'DataKit 使用':
+    - 服务管理: datakit-service-how-to.md
+    - 状态查看: datakit-monitor.md
+    - '更新': datakit-update.md
+    - 'DQL 查询': datakit-dql-how-to.md
+    - '其它命令': datakit-tools-how-to.md
+    - '虚拟互联网接入': aliyun-access.md
+    - '故障排查':
+      - '无数据排查': why-no-data.md
+      - 'Datakit Metrics': datakit-metrics.md
+    - '虚拟互联网接入':
+      - '阿里云接入': aliyun-access.md
+      - '华为云接入': huaweicloud-access.md
+      - 'AWS 接入': aws-access.md
+
+  - 'DataKit 配置':
+    - '主配置': datakit-conf.md
+    - '选举配置': election.md
+    - '代理配置': datakit-proxy.md
+    - 'Datakit Operator': datakit-operator.md
+    - '其它配置方式':
+      - '配置综述': k8s-config-how-to.md
+      - 'DCA': dca.md
+      - 'Git': git-config-how-to.md
+      - 'Helm 配置': datakit-helm.md
+      - '配置中心支持': confd.md
+
+  - 'DataKit 开发手册':
+    - development.md
+    - datakit-filter.md
+    - apis.md
+    - common-tags.md
+    - '文档撰写':
+      - mkdocs-howto.md

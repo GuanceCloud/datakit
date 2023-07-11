@@ -1,0 +1,143 @@
+{
+  "checkers": [
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "gpu_smi",
+              "field": "utilization_memory",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "funcList": [],
+              "groupBy": [
+                "uuid",
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`gpu_smi`:(AVG(`utilization_memory`)) BY `uuid`, `host`",
+              "type": "simple"
+            },
+            "uuid": "1d7082a0-dce2-4f87-bf1d-a1c0d5314ee5"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "90"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "critical"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "80"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "error"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "60"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "warning"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "atAccounts": [],
+        "atNoDataAccounts": [],
+        "channels": [],
+        "checkerOpt": {
+          "infoEvent": false,
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "90"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "critical"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "80"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "error"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "60"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "warning"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "uuid",
+          "host"
+        ],
+        "interval": 300,
+        "message": ">等级：{{status}}  \n>主机：{{host}} - {{uuid}} \n>内容：内存使用率为 {{ Result |  to_fixed(2) }}%  \n>建议：登录主机查看详细信息",
+        "noDataMessage": "",
+        "noDataTitle": "",
+        "recoverNeedPeriodCount": 2,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`gpu_smi`:(AVG(`utilization_memory`)) BY `uuid`, `host`"
+          }
+        ],
+        "title": "GPU {{host}} - {{uuid}} 内存利用率过高",
+        "type": "simpleCheck"
+      },
+      "monitorName": "默认"
+    }
+  ]
+}

@@ -1,0 +1,849 @@
+{
+  "dashboardBindSet": [],
+  "dashboardExtend": {},
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "dashboardType": "CUSTOM",
+  "iconSet": {
+    "icon": "https://static-res.guance.com/dataflux-template/dashboard/net/icon.svg",
+    "url": "https://static-res.guance.com/dataflux-template/dashboard/net/net.png"
+  },
+  "main": {
+    "charts": [
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "tableSortMetricName": "15分钟负载",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "receive bytes",
+                "name": "receive bytes",
+                "unit": "",
+                "units": [
+                  "traffic",
+                  "B/S"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "receive bytes/s",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 0,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "receive bytes",
+              "code": "B",
+              "dataSource": "net",
+              "field": "bytes_recv/sec",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "7cb99430-be9a-11eb-a413-474766dfa53a",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "interface"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`net`:(AVG(`bytes_recv/sec`) AS `receive bytes`) { `host` = '#{host}' } BY `interface`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "tableSortMetricName": "15分钟负载",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "packets sent",
+                "name": "packets sent",
+                "unit": "pps",
+                "units": [
+                  "custom",
+                  "pps"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "packets sent/s",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 8,
+          "y": 8
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "packets sent",
+              "code": "A",
+              "dataSource": "net",
+              "field": "packets_sent/sec",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "e58c24a0-be9a-11eb-a413-474766dfa53a",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "interface"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`net`:(AVG(`packets_sent/sec`) AS `packets sent`) { `host` = '#{host}' } BY `interface`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "tableSortMetricName": "15分钟负载",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "sent bytes",
+                "name": "sent bytes",
+                "unit": "",
+                "units": [
+                  "traffic",
+                  "B/S"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "sent bytes/s",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 8,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "sent bytes",
+              "code": "A",
+              "dataSource": "net",
+              "field": "bytes_sent/sec",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "b36ba770-be9a-11eb-a413-474766dfa53a",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "interface"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`net`:(AVG(`bytes_sent/sec`) AS `sent bytes`) { `host` = '#{host}' } BY `interface`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "tableSortMetricName": "15分钟负载",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "packets receive",
+                "name": "packets receive",
+                "unit": "pps",
+                "units": [
+                  "custom",
+                  "pps"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "packets receive/s",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 0,
+          "y": 8
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "packets receive",
+              "code": "B",
+              "dataSource": "net",
+              "field": "packets_recv/sec",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "c7c0e280-be9a-11eb-a413-474766dfa53a",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "interface"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`net`:(AVG(`packets_recv/sec`) AS `packets receive`) { `host` = '#{host}' } BY `interface`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "tableSortMetricName": "15分钟负载",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "tcp insegs/s",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 16,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "tcp insegs",
+              "code": "A",
+              "dataSource": "net",
+              "field": "tcp_insegs/sec",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "b36ba770-be9a-11eb-a413-474766dfa53a",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`net`:(AVG(`tcp_insegs/sec`) AS `tcp insegs`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "tableSortMetricName": "15分钟负载",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "tcp outsegs/s",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 16,
+          "y": 8
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "tcp outsegs",
+              "code": "A",
+              "dataSource": "net",
+              "field": "tcp_outsegs/sec",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "b36ba770-be9a-11eb-a413-474766dfa53a",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`net`:(AVG(`tcp_outsegs/sec`) AS `tcp outsegs`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "tableSortMetricName": "15分钟负载",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "tcp currestab",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 0,
+          "y": 16
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "tcp currestab",
+              "code": "A",
+              "dataSource": "net",
+              "field": "tcp_currestab",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "b36ba770-be9a-11eb-a413-474766dfa53a",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`net`:(AVG(`tcp_currestab`) AS `tcp currestab`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "tableSortMetricName": "15分钟负载",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "udp indatagrams/s",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 8,
+          "y": 16
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "udp indatagrams",
+              "code": "A",
+              "dataSource": "net",
+              "field": "udp_indatagrams/sec",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "b36ba770-be9a-11eb-a413-474766dfa53a",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`net`:(AVG(`udp_indatagrams/sec`) AS `udp indatagrams`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "tableSortMetricName": "15分钟负载",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "udp outdatagrams/s",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 16,
+          "y": 16
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "udp outdatagrams",
+              "code": "A",
+              "dataSource": "net",
+              "field": "udp_outdatagrams/sec",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "b36ba770-be9a-11eb-a413-474766dfa53a",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`net`:(AVG(`udp_outdatagrams/sec`) AS `udp outdatagrams`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      }
+    ],
+    "groups": [],
+    "type": "template",
+    "vars": [
+      {
+        "code": "host",
+        "datasource": "dataflux",
+        "definition": {
+          "field": "",
+          "metric": "",
+          "object": "",
+          "tag": "",
+          "value": "show_tag_value(from=['net'], keyin=['host'])[5m]"
+        },
+        "hide": 0,
+        "name": "主机名",
+        "seq": 0,
+        "type": "QUERY",
+        "valueSort": "default"
+      }
+    ]
+  },
+  "summary": "",
+  "tagInfo": [
+    {
+      "id": "tag_58e73116f7874c8ab3071d5515b73905",
+      "name": "Host"
+    }
+  ],
+  "tags": [],
+  "thumbnail": "",
+  "title": "Net New"
+}

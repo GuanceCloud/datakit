@@ -1,0 +1,1492 @@
+{
+  "dashboardBindSet": [],
+  "dashboardExtend": {},
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "dashboardType": "CUSTOM",
+  "iconSet": {
+    "icon": "https://static-res.guance.com/dataflux-template/dashboard/jenkins/icon.svg",
+    "url": "https://static-res.guance.com/dataflux-template/dashboard/jenkins/jenkins.png"
+  },
+  "main": {
+    "charts": [
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "Jenkins使用的内存总量",
+                "name": "Jenkins使用的内存总量",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "内存使用",
+        "pos": {
+          "h": 11,
+          "i": 0,
+          "w": 8,
+          "x": 8,
+          "y": 24
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Jenkins使用的内存总量",
+              "code": "A",
+              "dataSource": "jenkins",
+              "field": "vm_memory_total_used",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "e77bc0d0-d23c-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`vm_memory_total_used`) AS `Jenkins使用的内存总量`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "jenkins cpu使用",
+                "name": "jenkins cpu使用",
+                "unit": "",
+                "units": [
+                  "percent",
+                  "percent_decimal"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "CPU使用率",
+        "pos": {
+          "h": 11,
+          "i": 1,
+          "w": 8,
+          "x": 0,
+          "y": 24
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "jenkins cpu使用",
+              "code": "A",
+              "dataSource": "jenkins",
+              "field": "vm_cpu_load",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "291d0310-d23c-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`vm_cpu_load`) AS `jenkins cpu使用`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": null,
+          "settings": {
+            "bgColor": "",
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": true,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "0",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "Jenkins JVM 中线程总数",
+                "name": "Jenkins JVM 中线程总数",
+                "unit": "个",
+                "units": [
+                  "custom",
+                  "个"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Jenkins JVM 中线程总数",
+        "pos": {
+          "h": 8,
+          "i": 2,
+          "w": 6,
+          "x": 12,
+          "y": 8
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Jenkins JVM 中线程总数",
+              "code": "A",
+              "dataSource": "jenkins",
+              "field": "vm_count",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "9361fd50-d23e-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`vm_count`) AS `Jenkins JVM 中线程总数`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": null,
+          "settings": {
+            "bgColor": "",
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": true,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "0",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "last(executor_count)",
+                "name": "last(executor_count)",
+                "unit": "个",
+                "units": [
+                  "custom",
+                  "个"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "构建总量",
+        "pos": {
+          "h": 8,
+          "i": 3,
+          "w": 6,
+          "x": 0,
+          "y": 16
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "jenkins",
+              "field": "executor_count",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "ae7ee850-d23e-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`executor_count`)) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": null,
+          "settings": {
+            "bgColor": "",
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": true,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "0",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "项目数量",
+                "name": "项目数量",
+                "unit": "个",
+                "units": [
+                  "custom",
+                  "个"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "项目数量",
+        "pos": {
+          "h": 8,
+          "i": 4,
+          "w": 6,
+          "x": 6,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "项目数量",
+              "code": "A",
+              "dataSource": "jenkins",
+              "field": "project_count",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "2c1af970-d23f-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`project_count`) AS `项目数量`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "dql"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": null,
+          "settings": {
+            "bgColor": "",
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": true,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "0",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "在线的构建节点数量",
+                "name": "在线的构建节点数量",
+                "unit": "个",
+                "units": [
+                  "custom",
+                  "个"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "在线的构建节点数量",
+        "pos": {
+          "h": 8,
+          "i": 5,
+          "w": 6,
+          "x": 12,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "在线的构建节点数量",
+              "code": "B",
+              "dataSource": "jenkins",
+              "field": "node_online_count",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "dc387730-d265-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`node_online_count`) AS `在线的构建节点数量`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": null,
+          "settings": {
+            "bgColor": "",
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": true,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "0",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "启动成功的插件数量",
+                "name": "启动成功的插件数量",
+                "unit": "个",
+                "units": [
+                  "custom",
+                  "个"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "启动失败的插件数量",
+        "pos": {
+          "h": 8,
+          "i": 6,
+          "w": 6,
+          "x": 6,
+          "y": 8
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "启动成功的插件数量",
+              "code": "B",
+              "dataSource": "jenkins",
+              "field": "plugins_failed",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a1af4870-d25e-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`plugins_failed`) AS `启动成功的插件数量`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "构建队列中的作业数量",
+                "name": "构建队列中的作业数量",
+                "unit": "个",
+                "units": [
+                  "custom"
+                ]
+              },
+              {
+                "key": "可构建作业数量",
+                "name": "可构建作业数量",
+                "unit": "个",
+                "units": [
+                  "custom",
+                  "个"
+                ]
+              },
+              {
+                "key": "卡住作业数量",
+                "name": "卡住作业数量",
+                "unit": "个",
+                "units": [
+                  "custom",
+                  "个"
+                ]
+              },
+              {
+                "key": "阻塞作业数量",
+                "name": "阻塞作业数量",
+                "unit": "个",
+                "units": [
+                  "custom",
+                  "个"
+                ]
+              },
+              {
+                "key": "待处理作业数量",
+                "name": "待处理作业数量",
+                "unit": "个",
+                "units": [
+                  "custom",
+                  "个"
+                ]
+              },
+              {
+                "key": "作业数量",
+                "name": "作业数量",
+                "unit": "个",
+                "units": [
+                  "custom",
+                  "个"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "队列作业数量",
+        "pos": {
+          "h": 11,
+          "i": 7,
+          "w": 8,
+          "x": 16,
+          "y": 24
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "可构建作业数量",
+              "code": "B",
+              "dataSource": "jenkins",
+              "field": "queue_buildable",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "9ed7ac80-d260-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`queue_buildable`) AS `可构建作业数量`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "卡住作业数量",
+              "code": "E",
+              "dataSource": "jenkins",
+              "field": "queue_stuck",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a76ddae0-d260-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`queue_stuck`) AS `卡住作业数量`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "阻塞作业数量",
+              "code": "A",
+              "dataSource": "jenkins",
+              "field": "queue_blocked",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "9c0d1ad0-d260-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`queue_blocked`) AS `阻塞作业数量`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "待处理作业数量",
+              "code": "C",
+              "dataSource": "jenkins",
+              "field": "queue_pending",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a1745060-d260-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`queue_pending`) AS `待处理作业数量`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "构建队列中的作业数量",
+              "code": "D",
+              "dataSource": "jenkins",
+              "field": "queue_size",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a4aaea50-d260-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`queue_size`) AS `构建队列中的作业数量`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "isRefresh": false,
+          "links": [],
+          "settings": {
+            "backgroundStyle": {
+              "background-size": "contain"
+            },
+            "colors": [],
+            "fixedTime": "",
+            "isTimeInterval": true,
+            "levels": [],
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "type": "contain",
+            "units": [],
+            "url": "https://df-showcase.oss-cn-shanghai.aliyuncs.com/dashboard/Jenkins.jpg"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Jenkins",
+        "pos": {
+          "h": 8,
+          "i": 8,
+          "w": 6,
+          "x": 0,
+          "y": 0
+        },
+        "queries": [],
+        "type": "picture"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "bgColor": "",
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": true,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "0",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "last(node_offline_count)",
+                "name": "last(node_offline_count)",
+                "unit": "个",
+                "units": [
+                  "custom",
+                  "个"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "离线的构建节点数量",
+        "pos": {
+          "h": 8,
+          "i": 9,
+          "w": 6,
+          "x": 18,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "jenkins",
+              "field": "node_offline_count",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "84eb9f60-d26b-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "85ae5320-d26b-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "",
+                  "op": "=",
+                  "value": ""
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`node_offline_count`)) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "bgColor": "",
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": true,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "0",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "last(plugins_active)",
+                "name": "last(plugins_active)",
+                "unit": "个",
+                "units": [
+                  "custom",
+                  "个"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "启动成功的插件数量",
+        "pos": {
+          "h": 8,
+          "i": 10,
+          "w": 6,
+          "x": 0,
+          "y": 8
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "jenkins",
+              "field": "plugins_active",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "ec9be500-d26d-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`plugins_active`)) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "bgColor": "",
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": true,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "0",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "last(vm_blocked_count)",
+                "name": "last(vm_blocked_count)",
+                "unit": "个",
+                "units": [
+                  "custom",
+                  "个"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Jenkins JVM中阻塞线程数量",
+        "pos": {
+          "h": 8,
+          "i": 11,
+          "w": 6,
+          "x": 18,
+          "y": 8
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "jenkins",
+              "field": "vm_blocked_count",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "ab2bc4e0-d26e-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`vm_blocked_count`)) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": null,
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "空闲构建数量",
+                "name": "空闲构建数量",
+                "unit": "个",
+                "units": [
+                  "custom",
+                  "个"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "空闲构建数量",
+        "pos": {
+          "h": 8,
+          "i": 12,
+          "w": 6,
+          "x": 12,
+          "y": 16
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "disabled": false,
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "空闲构建数量",
+              "code": "A",
+              "dataSource": "jenkins",
+              "field": "executor_free_count",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "14725760-d270-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`executor_free_count`) AS `空闲构建数量`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": null,
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "正在执行构建数量",
+                "name": "正在执行构建数量",
+                "unit": "个",
+                "units": [
+                  "custom",
+                  "个"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "正在执行构建数量",
+        "pos": {
+          "h": 8,
+          "i": 13,
+          "w": 6,
+          "x": 18,
+          "y": 16
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "正在执行构建数量",
+              "code": "A",
+              "dataSource": "jenkins",
+              "field": "executor_in_use_count",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "f2c1c4c0-d26f-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`executor_in_use_count`) AS `正在执行构建数量`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "bgColor": "",
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": true,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "0",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "last(job_count)",
+                "name": "last(job_count)",
+                "unit": "个",
+                "units": [
+                  "custom",
+                  "个"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "作业数量",
+        "pos": {
+          "h": 8,
+          "i": 14,
+          "w": 6,
+          "x": 6,
+          "y": 16
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "jenkins",
+              "field": "job_count",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "642e0600-d270-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`job_count`)) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      }
+    ],
+    "groups": [],
+    "type": "template",
+    "vars": [
+      {
+        "code": "host",
+        "datasource": "dataflux",
+        "definition": {
+          "field": "",
+          "metric": "",
+          "object": "",
+          "tag": "",
+          "value": "show_tag_value(from=['jenkins'], keyin=['host'])"
+        },
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "name": "主机",
+        "seq": 0,
+        "type": "QUERY",
+        "valueSort": "default"
+      }
+    ]
+  },
+  "summary": "",
+  "tagInfo": [
+    {
+      "id": "tag_0e6bb985b83d471cb231968c35d502a7",
+      "name": "贾川"
+    }
+  ],
+  "tags": [],
+  "thumbnail": "",
+  "title": "Jenkins 监控视图"
+}

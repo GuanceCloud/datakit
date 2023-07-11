@@ -31,11 +31,18 @@ func runDocFlags() error {
 	return exportMan(opt)
 }
 
-func buildAllDocs(lang inputs.I18n, opt *man.ExportOption) (map[string][]byte, error) {
+// buildAll used to build all exported data based on template.
+//
+// These data include:
+//  - docs: markdown doc
+//  - pipeline: markdown doc
+//  - dashboard: JSON
+//  - monitor: JSON
+func buildAll(lang inputs.I18n, opt *man.ExportOption) (map[string][]byte, error) {
 	res := map[string][]byte{}
 
 	// build all inputs docs
-	inputDocs, err := man.AllDocs.ReadDir(filepath.Join("docs", lang.String(), "inputs"))
+	inputDocs, err := man.AllDocs.ReadDir(filepath.Join("doc", lang.String(), "inputs"))
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +57,13 @@ func buildAllDocs(lang inputs.I18n, opt *man.ExportOption) (map[string][]byte, e
 		}
 
 		name := strings.Split(f.Name(), ".")[0] // cpu.md -> cpu
-		md, err := man.AllDocs.ReadFile(filepath.Join("docs", lang.String(), "inputs", f.Name()))
+
+		if strings.Contains(opt.Skips, name) {
+			cp.Infof("skip build exports for input %q, skip list: %q\n", name, opt.Skips)
+			continue
+		}
+
+		md, err := man.AllDocs.ReadFile(filepath.Join("doc", lang.String(), "inputs", f.Name()))
 		if err != nil {
 			cp.Warnf("read doc on input %q failed: %s, ignored\n", name, err)
 			continue
@@ -59,34 +72,49 @@ func buildAllDocs(lang inputs.I18n, opt *man.ExportOption) (map[string][]byte, e
 		doc, err := man.BuildInputDoc(name, md, opt)
 		if err != nil {
 			cp.Errorf("man.BuildInputDoc(%q): %s\n", name, err)
-			continue
+			os.Exit(-1) // failed to build markdown, fail ASAP.
 		}
 
-		res[f.Name()] = doc
+		res[filepath.Join("inputs", f.Name())] = doc
 
-		// build dashboard
-		j, err := man.AllDashboard.ReadFile(filepath.Join("dashboards", name+".json")) // cpu -> cpu.json
+		// build monitor
+		monitors, err := man.BuildMonitor(name, lang)
 		if err != nil {
-			cp.Warnf("read dashboard on input %q failed: %s, ignored\n", name, err)
-			continue
+			cp.Errorf("man.BuildMonitor(%q): %s\n", name, err)
+			os.Exit(-1) // failed to build markdown, fail ASAP.
+		} else {
+			if len(monitors) > 0 {
+				for k, v := range monitors {
+					res[filepath.Join("monitor", k+".json")] = v
+				}
+			} else {
+				cp.Warnf("[W] no monitor for %s(%s), ignored\n", name, lang)
+			}
 		}
 
-		dashboard, err := man.BuildDashboard(name, j, lang)
+		// build dashboard: one input may got multiple dashboards
+		dashboards, err := man.BuildDashboard(name, lang)
 		if err != nil {
 			cp.Errorf("man.BuildDashboard(%q): %s\n", name, err)
-			continue
+			os.Exit(-1) // failed to build markdown, fail ASAP.
+		} else {
+			if len(dashboards) > 0 {
+				for k, v := range dashboards {
+					res[filepath.Join("dashboard", k+".json")] = v
+				}
+			} else {
+				cp.Warnf("[W] no dashboard for %s(%s), ignored\n", name, lang)
+			}
 		}
-		res[name+".json"] = dashboard
 	}
 
 	// build all pipeline docs
-	plDocs, err := man.AllDocs.ReadDir(filepath.Join("docs", lang.String(), "pipeline"))
+	plDocs, err := man.AllDocs.ReadDir(filepath.Join("doc", lang.String(), "pipeline"))
 	if err != nil {
 		return nil, err
 	}
 
 	for _, f := range plDocs {
-		fmt.Println(f.Name())
 		if f.IsDir() {
 			continue
 		}
@@ -95,7 +123,7 @@ func buildAllDocs(lang inputs.I18n, opt *man.ExportOption) (map[string][]byte, e
 			continue // ignore non-markdown
 		}
 
-		md, err := man.AllDocs.ReadFile(filepath.Join("docs", lang.String(), "pipeline", f.Name()))
+		md, err := man.AllDocs.ReadFile(filepath.Join("doc", lang.String(), "pipeline", f.Name()))
 		if err != nil {
 			continue
 		}
@@ -124,7 +152,7 @@ func buildAllDocs(lang inputs.I18n, opt *man.ExportOption) (map[string][]byte, e
 	}
 
 	// build other docs
-	otherDocs, err := man.AllDocs.ReadDir(filepath.Join("docs", lang.String()))
+	otherDocs, err := man.AllDocs.ReadDir(filepath.Join("doc", lang.String()))
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +170,7 @@ func buildAllDocs(lang inputs.I18n, opt *man.ExportOption) (map[string][]byte, e
 			continue // ignore pipeline docs
 		}
 
-		md, err := man.AllDocs.ReadFile(filepath.Join("docs", lang.String(), f.Name()))
+		md, err := man.AllDocs.ReadFile(filepath.Join("doc", lang.String(), f.Name()))
 		if err != nil {
 			continue
 		}
@@ -150,7 +178,7 @@ func buildAllDocs(lang inputs.I18n, opt *man.ExportOption) (map[string][]byte, e
 		doc, err := man.BuildNonInputDocs(md, opt)
 		if err != nil {
 			cp.Errorf("man.BuildInputDoc(%q): %s\n", f.Name(), err)
-			continue
+			os.Exit(-1) // failed to build markdown, fail ASAP.
 		}
 
 		res[f.Name()] = doc
@@ -165,14 +193,20 @@ func exportMan(opt *man.ExportOption) error {
 	}
 
 	for _, x := range []inputs.I18n{inputs.I18nZh, inputs.I18nEn} {
-		if err := os.MkdirAll(filepath.Join(opt.Path, x.String()), os.ModePerm); err != nil {
-			return err
-		}
-		if err := os.MkdirAll(filepath.Join(opt.Path, x.String(), "pipeline"), os.ModePerm); err != nil {
-			return err
+		// create dir to hold the docs
+		for _, dir := range []string{
+			filepath.Join(opt.Path, x.String()),
+			filepath.Join(opt.Path, x.String(), "pipeline"),
+			filepath.Join(opt.Path, x.String(), "inputs"),
+			filepath.Join(opt.Path, x.String(), "dashboard"),
+			filepath.Join(opt.Path, x.String(), "monitor"),
+		} {
+			if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+				return err
+			}
 		}
 
-		docs, err := buildAllDocs(x, opt)
+		docs, err := buildAll(x, opt)
 		if err != nil {
 			return err
 		}

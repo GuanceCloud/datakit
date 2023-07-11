@@ -11,6 +11,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/make/build"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/all"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
@@ -41,8 +42,9 @@ func init() { //nolint:gochecknoinits
 
 	flag.BoolVar(&downloadSamples, "download-samples", false, "download samples from OSS to samples/")
 	flag.BoolVar(&dumpSamples, "dump-samples", false, "download and dump local samples to OSS")
-	flag.StringVar(&build.MarkdownCheck, "mdcheck", "", "checck markdown docs")
+	flag.StringVar(&build.MarkdownCheck, "mdcheck", "", "check markdown docs")
 	flag.StringVar(&build.Autofix, "mdcheck-autofix", "off", "check markdown docs with autofix")
+	flag.StringVar(&build.MetaDir, "meta-dir", "", "metadir used to check markdown meta")
 }
 
 var (
@@ -70,10 +72,13 @@ func applyFlags() {
 		//
 		//  	If find something, exit ok, or exit fail.
 		//
-		if build.Match(build.MarkdownCheck) == 0 {
-			os.Exit(-1)
+		if n := build.Match(build.MarkdownCheck); n == 0 {
+			cp.Infof("mdcheck format ok.\n")
+			os.Exit(0)
 		} else {
-			os.Exit(0) // we find some doc's not valid, so exit OK to print warning message.
+			cp.Errorf("[E] Got %d invalid docs/erros during markdown checking(Unicode/ASCII/meta).\n"+
+				"    See https://docs.guance.com/datakit/mkdocs-howto/#zh-en-mix\n", n)
+			os.Exit(-1)
 		}
 	}
 

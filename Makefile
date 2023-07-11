@@ -430,23 +430,26 @@ define check_docs
 
 	# Additional checkings on documents
 	@echo 'checking format...'
-	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run cmd/make/make.go -mdcheck$(1) --mdcheck-autofix $(3) && \
-	 { echo "\n------\n[E] Some bad docs got invalid format on Unicode/ASCII. See https://docs.guance.com/datakit/mkdocs-howto/#zh-en-mix\n"; exit -1; } || { echo 'Unicode/ASCII format ok.'; }
+	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) \
+		go run cmd/make/make.go -mdcheck $(1) \
+		--mdcheck-autofix $(3)
 endef
 
 md_lint:
-	$(call check_docs, "internal/man/docs/zh", "internal/man/docs/zh/*.md", "on") # check on doc templates
-	@rm -rf ./local-docs
+	$(call check_docs, "internal/man/doc/zh", "internal/man/doc/zh/*.md", "on") # check on doc templates
+	@rm -rf ./local-docs .doc
 	@bash mkdocs.sh -D ./local-docs -E -V 0.0.0 # invalid version
 	@$(call check_docs, "local-docs/docs/zh", "local-docs/docs/zh/*.md", "on") # check on generated docs
+	GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) \
+		go run cmd/make/make.go -mdcheck=.doc/zh/inputs --meta-dir=internal/man/
 
 md_lint_nofix:
-	$(call check_docs, "internal/man/docs/zh", "internal/man/docs/zh/*.md", "off") # check on doc templates
+	$(call check_docs, "internal/man/doc/zh", "internal/man/doc/zh/*.md", "off") # check on doc templates
 	@bash mkdocs.sh -D ./local-docs -E -V 0.0.0 # invalid version
 	$(call check_docs, "local-docs/docs/zh", "local-docs/docs/zh/*.md", "off") # check on generated docs
 
 project_words:
-	cspell -c cspell/cspell.json --words-only --unique internal/man/docs/zh/** | sort --ignore-case >> project-words.txt
+	cspell -c cspell/cspell.json --words-only --unique internal/man/doc/zh/** | sort --ignore-case >> project-words.txt
 
 code_stat:
 	cloc --exclude-dir=vendor,tests --exclude-lang=JSON,HTML .

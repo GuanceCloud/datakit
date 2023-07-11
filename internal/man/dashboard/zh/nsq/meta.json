@@ -1,0 +1,977 @@
+{
+  "dashboardBindSet": [],
+  "dashboardExtend": {},
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "dashboardType": "CUSTOM",
+  "iconSet": {},
+  "main": {
+    "charts": [
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "指标"
+        },
+        "name": "NSQ 消息增量/Topic",
+        "pos": {
+          "h": 8,
+          "w": 6,
+          "x": 0,
+          "y": 2.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "消息增量",
+              "code": "A",
+              "dataSource": "nsq_topics",
+              "field": "message_count",
+              "fieldFunc": "last",
+              "fieldType": "integer",
+              "fill": null,
+              "fillNum": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "topic"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "DERIVATIVE(\"M::`nsq_topics`:(LAST(`message_count`) AS `消息增量`)  BY `topic`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "derivative"
+                }
+              ],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bar": {
+              "direction": "horizontal",
+              "xAxisShowType": "groupBy"
+            },
+            "chartType": "bar",
+            "color": "#FE9155",
+            "colors": [
+              {
+                "color": "#FE9155",
+                "key": "last(depth){\"topic\": \"df_logging\"}",
+                "name": "last(depth){\"topic\": \"df_logging\"}"
+              }
+            ],
+            "currentChartType": "toplist",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "openCompare": false,
+            "showFieldMapping": false,
+            "showTableHead": true,
+            "showTitle": true,
+            "showTopSize": true,
+            "table": {
+              "queryMode": "toGroupColumn"
+            },
+            "tableSortMetricName": "",
+            "tableSortType": "top",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "topSize": 10,
+            "units": []
+          }
+        },
+        "group": {
+          "name": "指标"
+        },
+        "name": "磁盘&内存中消息暂存排行榜",
+        "pos": {
+          "h": 8,
+          "w": 6,
+          "x": 18,
+          "y": 2.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "nsq_topics",
+              "field": "depth",
+              "fieldFunc": "last",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "topic"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`nsq_topics`:(LAST(`depth`)) BY `topic`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "toplist",
+            "unit": ""
+          }
+        ],
+        "type": "toplist"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartCombineDefaultColor": "#F56610",
+            "chartType": "pie",
+            "colors": [],
+            "currentChartType": "pie",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "legendPostion": "circle",
+            "levels": [],
+            "onlyShowGroupName": false,
+            "otherColor": "#F56610",
+            "showFieldMapping": false,
+            "showLegend": true,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "指标"
+        },
+        "name": "NSQ 各个 Topic 消息占比",
+        "pos": {
+          "h": 13,
+          "w": 8,
+          "x": 0,
+          "y": 18.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "消息数",
+              "code": "A",
+              "dataSource": "nsq_topics",
+              "field": "message_count",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "topic"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`nsq_topics`:(LAST(`message_count`) AS `消息数`) BY `topic`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "pie",
+            "unit": ""
+          }
+        ],
+        "type": "pie"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "指标"
+        },
+        "name": "NSQ 消息增量/Node",
+        "pos": {
+          "h": 8,
+          "w": 6,
+          "x": 0,
+          "y": 10.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "nsq_nodes",
+              "field": "message_count",
+              "fieldFunc": "last",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "server_host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "DERIVATIVE(\"M::`nsq_nodes`:(LAST(`message_count`))  BY `server_host`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "指标"
+        },
+        "name": "Requeue Count/Topic",
+        "pos": {
+          "h": 8,
+          "w": 6,
+          "x": 12,
+          "y": 10.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "nsq_topics",
+              "field": "requeue_count",
+              "fieldFunc": "last",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "topic"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`nsq_topics`:(LAST(`requeue_count`))  BY `topic`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": null,
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "指标"
+        },
+        "name": "消息体超时/Topic",
+        "pos": {
+          "h": 8,
+          "w": 6,
+          "x": 18,
+          "y": 10.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "nsq_topics",
+              "field": "timeout_count",
+              "fieldFunc": "last",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "topic"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`nsq_topics`:(LAST(`timeout_count`))  BY `topic`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "指标"
+        },
+        "name": "NSQ 消息总量/Node",
+        "pos": {
+          "h": 8,
+          "w": 6,
+          "x": 6,
+          "y": 2.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "消息总数",
+              "code": "A",
+              "dataSource": "nsq_nodes",
+              "field": "message_count",
+              "fieldFunc": "last",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "server_host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`nsq_nodes`:(LAST(`message_count`) AS `消息总数`)  BY `server_host`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "指标"
+        },
+        "name": "NSQ 消息堆积",
+        "pos": {
+          "h": 8,
+          "w": 6,
+          "x": 12,
+          "y": 2.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "nsq_topics",
+              "field": "depth",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "topic",
+                "channel"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`nsq_topics`:(LAST(`depth`)) BY `topic`, `channel`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "alias": [],
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "指标"
+        },
+        "name": "节点负载",
+        "pos": {
+          "h": 8,
+          "w": 6,
+          "x": 6,
+          "y": 10.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "消息变化率",
+              "code": "A",
+              "dataSource": "nsq_nodes",
+              "field": "message_count",
+              "fieldFunc": "last",
+              "fill": null,
+              "fillNum": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "server_host"
+              ],
+              "groupByTime": "",
+              "labelOp": "",
+              "namespace": "metric",
+              "q": "derivative(\"M::`nsq_nodes`:(LAST(`message_count`) AS `消息变化率`) BY `server_host`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "derivative"
+                }
+              ],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "alias": [],
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "指标"
+        },
+        "name": "超时消息",
+        "pos": {
+          "h": 10,
+          "w": 13,
+          "x": 11,
+          "y": 31.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "code": "A",
+              "dataSource": "nsq_topics",
+              "field": "timeout_count",
+              "fieldFunc": "last",
+              "fill": null,
+              "fillNum": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "topic"
+              ],
+              "groupByTime": "",
+              "labelOp": "",
+              "namespace": "metric",
+              "q": "M::`nsq_topics`:(LAST(`timeout_count`)) BY `topic`",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "settings": {
+            "alias": [],
+            "bar": {
+              "direction": "horizontal",
+              "xAxisShowType": "groupBy"
+            },
+            "chartType": "bar",
+            "color": "#498bfe",
+            "colors": [],
+            "currentChartType": "toplist",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "openCompare": false,
+            "showFieldMapping": false,
+            "showTableHead": true,
+            "showTitle": true,
+            "showTopSize": true,
+            "table": {
+              "queryMode": "toGroupColumn"
+            },
+            "tableSortMetricName": "",
+            "tableSortType": "top",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "topSize": 10,
+            "units": []
+          }
+        },
+        "group": {
+          "name": "指标"
+        },
+        "name": "Topic 已处理消息数排行",
+        "pos": {
+          "h": 13,
+          "w": 16,
+          "x": 8,
+          "y": 18.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "code": "A",
+              "dataSource": "nsq_topics",
+              "field": "message_count",
+              "fieldFunc": "last",
+              "fill": null,
+              "fillNum": null,
+              "filters": [],
+              "funcList": [
+                null,
+                "top:10"
+              ],
+              "groupBy": [
+                "topic"
+              ],
+              "groupByTime": "",
+              "labelOp": "",
+              "namespace": "metric",
+              "q": "M::`nsq_topics`:(LAST(`message_count`)) BY `topic`",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "toplist",
+            "unit": ""
+          }
+        ],
+        "type": "toplist"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "alias": [],
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "指标"
+        },
+        "name": "堆积消息数排行",
+        "pos": {
+          "h": 10,
+          "w": 11,
+          "x": 0,
+          "y": 31.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "堆积数量",
+              "code": "A",
+              "dataSource": "nsq_topics",
+              "field": "depth",
+              "fieldFunc": "last",
+              "fill": null,
+              "fillNum": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "topic"
+              ],
+              "groupByTime": "",
+              "labelOp": "",
+              "namespace": "metric",
+              "q": "M::`nsq_topics`:(LAST(`depth`) AS `堆积数量`) BY `topic`",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      }
+    ],
+    "groups": [
+      "指标"
+    ],
+    "type": "template",
+    "vars": []
+  },
+  "summary": "",
+  "tagInfo": [
+    {
+      "id": "tag_22b69be5080e4336a2226e337d39ab64",
+      "name": "NSQ"
+    },
+    {
+      "id": "tag_f58f3b2baa134afeaf16eba92a4cfbb7",
+      "name": "基础设施"
+    }
+  ],
+  "tags": [],
+  "thumbnail": "",
+  "title": "nsq"
+}

@@ -1,0 +1,152 @@
+{
+  "checkers": [
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "nginx",
+              "field": "*",
+              "fieldFunc": "count",
+              "fieldType": "",
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "service",
+                "host"
+              ],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`nginx`:(COUNT(`*`)) { `index` = 'default' and  `status` IN ['error']  } BY `service`, `host`",
+              "search": "",
+              "treeFilters": {
+                "status": [
+                  "error"
+                ]
+              },
+              "type": "simple"
+            },
+            "uuid": "7979da13-6a40-4427-b4ff-61d3edb8bf4b"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "100"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "critical"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "50"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "error"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "25"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "warning"
+          }
+        ],
+        "uiType": "tree"
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "atAccounts": [],
+        "atNoDataAccounts": [],
+        "channels": [],
+        "checkerOpt": {
+          "infoEvent": false,
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "100"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "critical"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "50"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "error"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "25"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "warning"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "service",
+          "host"
+        ],
+        "interval": 300,
+        "message": ">等级：{{status}}  \n>主机：{{host}}  \n>内容：Nginx 5XX 错误数为 {{ Result |  to_fixed(2) }}%  \n>建议：检查Nginx日志查看详细信息",
+        "noDataMessage": "",
+        "noDataTitle": "",
+        "recoverNeedPeriodCount": 2,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "L::`nginx`:(COUNT(`*`)) { `index` = 'default' and  `status` IN ['error']  } BY `service`, `host`"
+          }
+        ],
+        "title": "Nginx 5XX 错误数过多",
+        "type": "loggingCheck"
+      },
+      "monitorName": "默认"
+    }
+  ]
+}

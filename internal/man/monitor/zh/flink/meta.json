@@ -1,0 +1,156 @@
+{
+  "checkers": [
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "children": [
+                {
+                  "alias": "",
+                  "code": "A",
+                  "dataSource": "flink",
+                  "field": "taskmanager_Status_JVM_Memory_Heap_Used",
+                  "fieldFunc": "last",
+                  "fieldType": "float",
+                  "groupBy": [],
+                  "groupByTime": "",
+                  "namespace": "metric",
+                  "q": "M::`flink`:(LAST(`taskmanager_Status_JVM_Memory_Heap_Used`))",
+                  "type": "simple"
+                },
+                {
+                  "alias": "",
+                  "code": "B",
+                  "dataSource": "flink",
+                  "field": "taskmanager_Status_JVM_Memory_Heap_Max",
+                  "fieldFunc": "last",
+                  "fieldType": "float",
+                  "groupBy": [],
+                  "groupByTime": "",
+                  "namespace": "metric",
+                  "q": "M::`flink`:(LAST(`taskmanager_Status_JVM_Memory_Heap_Max`))",
+                  "type": "simple"
+                }
+              ],
+              "code": "Result",
+              "expression": "A/B",
+              "funcList": [],
+              "q": "eval(A/B, A=\"M::`flink`:(LAST(`taskmanager_Status_JVM_Memory_Heap_Used`))\", B=\"M::`flink`:(LAST(`taskmanager_Status_JVM_Memory_Heap_Max`))\")",
+              "type": "expression"
+            },
+            "uuid": "cd6e9c2d-71bb-4cf2-b6c5-0f54257508e7"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "0.95"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "critical"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "0.90"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "error"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "0.85"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "warning"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "atAccounts": [],
+        "atNoDataAccounts": [],
+        "channels": [],
+        "checkerOpt": {
+          "infoEvent": false,
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "0.95"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "critical"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "0.90"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "error"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "0.85"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "warning"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [],
+        "interval": 900,
+        "message": ">等级：{{ df_status }}\n>主机：{{host}}  \n>内容：主机 {{ host }} 发生 {{ df_monitor_checker_name }} 异常，当前TaskManager 堆内存使用率为 {{ Result }}\n>建议：适当的为 JVM 配置更多内存",
+        "recoverNeedPeriodCount": 0,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "eval(A/B, A=\"M::`flink`:(LAST(`taskmanager_Status_JVM_Memory_Heap_Used`))\", B=\"M::`flink`:(LAST(`taskmanager_Status_JVM_Memory_Heap_Max`))\")"
+          }
+        ],
+        "title": "主机 {{ host }} 发生 TaskManager 堆内存不足异常",
+        "type": "simpleCheck"
+      },
+      "monitorName": "Flink 检测库"
+    }
+  ]
+}

@@ -81,6 +81,6 @@ func TestParseProm(t *T.T) {
 		`
 		r, err := newPromRunnerWithTomlConfig(txt)
 		assert.NoError(t, err)
-		t.Logf("source: %s", r.conf.Source)
+		t.Logf("source: %s", r[0].conf.Source)
 	})
 }

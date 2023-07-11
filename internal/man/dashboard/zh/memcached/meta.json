@@ -1,0 +1,1557 @@
+{
+  "dashboardBindSet": [],
+  "dashboardExtend": {},
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "dashboardType": "CUSTOM",
+  "iconSet": {
+    "icon": "https://static-res.guance.com/dataflux-template/dashboard/memcached/icon.svg",
+    "url": "https://static-res.guance.com/dataflux-template/dashboard/memcached/memcached.png"
+  },
+  "main": {
+    "charts": [
+      {
+        "extend": {
+          "settings": {
+            "chartType": "line",
+            "colors": [
+              {
+                "color": "rgba(65,206,199,1)",
+                "key": "get命中次数",
+                "name": "get命中次数"
+              },
+              {
+                "color": "rgba(73,139,254,1)",
+                "key": "get未命中次数",
+                "name": "get未命中次数"
+              }
+            ],
+            "levels": [],
+            "openCompare": false,
+            "showLegend": true,
+            "units": []
+          }
+        },
+        "group": {
+          "name": "命中次数"
+        },
+        "name": "Get",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 0,
+          "y": 36
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "get未命中次数",
+              "code": "A",
+              "dataSource": "memcached",
+              "field": "get_misses",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "ce6cdcb0-c764-11eb-b0ad-0122e47ec773",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`memcached`:(AVG(`get_misses`) AS `get未命中次数`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "get命中次数",
+              "code": "B",
+              "dataSource": "memcached",
+              "field": "get_hits",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "ce6cdcb0-c764-11eb-b0ad-0122e47ec773",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`memcached`:(AVG(`get_hits`) AS `get命中次数`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "settings": {
+            "chartType": "line",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLegend": true,
+            "showLine": false,
+            "stackType": "time",
+            "tableSortMetricName": "memcached_cas_hits",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "命中次数"
+        },
+        "name": "Cas",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 0,
+          "y": 28
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "cas命中次数",
+              "code": "B",
+              "dataSource": "memcached",
+              "field": "cas_hits",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a76c4600-c764-11eb-b0ad-0122e47ec773",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`memcached`:(AVG(`cas_hits`) AS `cas命中次数`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "cas未命中次数",
+              "code": "A",
+              "dataSource": "memcached",
+              "field": "cas_misses",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a76c4600-c764-11eb-b0ad-0122e47ec773",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`memcached`:(AVG(`cas_misses`) AS `cas未命中次数`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "settings": {
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "levels": [],
+            "lineColor": "rgba(73,139,254,1)",
+            "mappings": [],
+            "openCompare": false,
+            "showFieldMapping": false,
+            "showLine": true,
+            "showLineAxis": false,
+            "tableSortMetricName": "last(accepting_conns)",
+            "units": [
+              {
+                "key": "last(uptime)",
+                "name": "last(uptime)",
+                "unit": "",
+                "units": [
+                  "time",
+                  "s"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": "总览"
+        },
+        "name": "运行时间",
+        "pos": {
+          "h": 8,
+          "w": 4,
+          "x": 0,
+          "y": 9.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "memcached",
+              "density": "medium",
+              "field": "uptime",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "697c33a0-c75f-11eb-83f1-d37be104fe8e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`memcached`:(AVG(`uptime`)) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "settings": {
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "levels": [],
+            "lineColor": "rgba(73,139,254,1)",
+            "mappings": [],
+            "openCompare": false,
+            "showFieldMapping": false,
+            "showLine": true,
+            "showLineAxis": false,
+            "tableSortMetricName": "last(accepting_conns)",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "总览"
+        },
+        "name": "当前连接数",
+        "pos": {
+          "h": 8,
+          "w": 4,
+          "x": 0,
+          "y": 17.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "memcached",
+              "density": "medium",
+              "field": "curr_connections",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "697c33a0-c75f-11eb-83f1-d37be104fe8e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`memcached`:(AVG(`curr_connections`)) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "settings": {
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "levels": [],
+            "lineColor": "rgba(73,139,254,1)",
+            "mappings": [],
+            "openCompare": false,
+            "showFieldMapping": false,
+            "showLine": true,
+            "showLineAxis": false,
+            "tableSortMetricName": "last(accepting_conns)",
+            "units": [
+              {
+                "key": "last(uptime)",
+                "name": "last(uptime)",
+                "unit": "",
+                "units": [
+                  "time",
+                  "s"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": "总览"
+        },
+        "name": "线程数",
+        "pos": {
+          "h": 8,
+          "w": 4,
+          "x": 4,
+          "y": 17.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "memcached",
+              "density": "medium",
+              "field": "threads",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "697c33a0-c75f-11eb-83f1-d37be104fe8e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`memcached`:(AVG(`threads`)) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "settings": {
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "levels": [],
+            "lineColor": "rgba(73,139,254,1)",
+            "mappings": [],
+            "openCompare": false,
+            "showFieldMapping": false,
+            "showLine": true,
+            "showLineAxis": false,
+            "tableSortMetricName": "last(accepting_conns)",
+            "units": [
+              {
+                "key": "last(limit_maxbytes)",
+                "name": "last(limit_maxbytes)",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": "总览"
+        },
+        "name": "最大内存限制",
+        "pos": {
+          "h": 8,
+          "w": 4,
+          "x": 4,
+          "y": 9.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "memcached",
+              "density": "medium",
+              "field": "limit_maxbytes",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "697c33a0-c75f-11eb-83f1-d37be104fe8e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`memcached`:(AVG(`limit_maxbytes`)) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": null,
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "stackType": "time",
+            "tableSortMetricName": "last(uptime)",
+            "units": [
+              {
+                "key": "入流量",
+                "name": "入流量",
+                "unit": "",
+                "units": [
+                  "traffic",
+                  "B/S"
+                ]
+              },
+              {
+                "key": "出流量",
+                "name": "出流量",
+                "unit": "",
+                "units": [
+                  "traffic",
+                  "B/S"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "总览"
+        },
+        "name": "网络流量",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 8,
+          "y": 9.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "入流量",
+              "code": "A",
+              "dataSource": "memcached",
+              "density": "medium",
+              "field": "bytes_read",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "697c33a0-c75f-11eb-83f1-d37be104fe8e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`memcached`:(AVG(`bytes_read`) AS `入流量`) { `host` = '#{host}' }\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "出流量",
+              "code": "B",
+              "dataSource": "memcached",
+              "density": "medium",
+              "field": "bytes_written",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "697c33a0-c75f-11eb-83f1-d37be104fe8e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`memcached`:(AVG(`bytes_written`) AS `出流量`) { `host` = '#{host}' }\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": null,
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "stackType": "time",
+            "tableSortMetricName": "last(uptime)",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "总览"
+        },
+        "name": "认证",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 8,
+          "y": 17.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "认证命令处理的次数",
+              "code": "A",
+              "dataSource": "memcached",
+              "density": "medium",
+              "field": "auth_cmds",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "697c33a0-c75f-11eb-83f1-d37be104fe8e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`memcached`:(AVG(`auth_cmds`) AS `认证命令处理的次数`) { `host` = '#{host}' }\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "认证失败数",
+              "code": "B",
+              "dataSource": "memcached",
+              "density": "medium",
+              "field": "auth_errors",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "697c33a0-c75f-11eb-83f1-d37be104fe8e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`memcached`:(AVG(`auth_errors`) AS `认证失败数`) { `host` = '#{host}' }\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": null,
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "stackType": "time",
+            "tableSortMetricName": "last(uptime)",
+            "units": [
+              {
+                "key": "flush",
+                "name": "flush",
+                "unit": "次",
+                "units": [
+                  "custom",
+                  "次"
+                ]
+              },
+              {
+                "key": "get",
+                "name": "get",
+                "unit": "次",
+                "units": [
+                  "custom",
+                  "次"
+                ]
+              },
+              {
+                "key": "set",
+                "name": "set",
+                "unit": "次",
+                "units": [
+                  "custom",
+                  "次"
+                ]
+              },
+              {
+                "key": "touch",
+                "name": "touch",
+                "unit": "次",
+                "units": [
+                  "custom",
+                  "次"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "总览"
+        },
+        "name": "命令数",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 16,
+          "y": 9.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "get",
+              "code": "A",
+              "dataSource": "memcached",
+              "density": "medium",
+              "field": "cmd_get",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "697c33a0-c75f-11eb-83f1-d37be104fe8e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`memcached`:(AVG(`cmd_get`) AS `get`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "flush",
+              "code": "B",
+              "dataSource": "memcached",
+              "density": "medium",
+              "field": "cmd_flush",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "697c33a0-c75f-11eb-83f1-d37be104fe8e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`memcached`:(AVG(`cmd_flush`) AS `flush`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "set",
+              "code": "C",
+              "dataSource": "memcached",
+              "density": "medium",
+              "field": "cmd_set",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "697c33a0-c75f-11eb-83f1-d37be104fe8e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`memcached`:(AVG(`cmd_set`) AS `set`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "touch",
+              "code": "D",
+              "dataSource": "memcached",
+              "density": "medium",
+              "field": "cmd_touch",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "697c33a0-c75f-11eb-83f1-d37be104fe8e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`memcached`:(AVG(`cmd_touch`) AS `touch`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": null,
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "stackType": "time",
+            "tableSortMetricName": "last(uptime)",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "总览"
+        },
+        "name": "当前存储的item",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 16,
+          "y": 17.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "当前存储的内容数",
+              "code": "A",
+              "dataSource": "memcached",
+              "density": "medium",
+              "field": "curr_items",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "697c33a0-c75f-11eb-83f1-d37be104fe8e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`memcached`:(AVG(`curr_items`) AS `当前存储的内容数`) { `host` = '#{host}' }\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "settings": {
+            "chartType": "line",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLegend": true,
+            "showLine": false,
+            "stackType": "time",
+            "tableSortMetricName": "memcached_cas_hits",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "命中次数"
+        },
+        "name": "Desr",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 8,
+          "y": 36
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "desr命中次数",
+              "code": "B",
+              "dataSource": "memcached",
+              "field": "decr_hits",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a76c4600-c764-11eb-b0ad-0122e47ec773",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`memcached`:(AVG(`decr_hits`) AS `desr命中次数`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "desr未命中次数",
+              "code": "A",
+              "dataSource": "memcached",
+              "field": "decr_misses",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a76c4600-c764-11eb-b0ad-0122e47ec773",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`memcached`:(AVG(`decr_misses`) AS `desr未命中次数`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "settings": {
+            "chartType": "line",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLegend": true,
+            "showLine": false,
+            "stackType": "time",
+            "tableSortMetricName": "memcached_cas_hits",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "命中次数"
+        },
+        "name": "Delete",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 16,
+          "y": 36
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "delete命中次数",
+              "code": "B",
+              "dataSource": "memcached",
+              "field": "delete_hits",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a76c4600-c764-11eb-b0ad-0122e47ec773",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`memcached`:(AVG(`delete_hits`) AS `delete命中次数`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "delete未命中次数",
+              "code": "A",
+              "dataSource": "memcached",
+              "field": "delete_misses",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a76c4600-c764-11eb-b0ad-0122e47ec773",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`memcached`:(AVG(`delete_misses`) AS `delete未命中次数`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "settings": {
+            "chartType": "line",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLegend": true,
+            "showLine": false,
+            "stackType": "time",
+            "tableSortMetricName": "memcached_cas_hits",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "命中次数"
+        },
+        "name": "Incr",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 16,
+          "y": 28
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "incr命中次数",
+              "code": "B",
+              "dataSource": "memcached",
+              "field": "incr_hits",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a76c4600-c764-11eb-b0ad-0122e47ec773",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`memcached`:(AVG(`incr_hits`) AS `incr命中次数`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "incr未命中次数",
+              "code": "A",
+              "dataSource": "memcached",
+              "field": "incr_misses",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a76c4600-c764-11eb-b0ad-0122e47ec773",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`memcached`:(AVG(`incr_misses`) AS `incr未命中次数`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "settings": {
+            "chartType": "line",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLegend": true,
+            "showLine": false,
+            "stackType": "time",
+            "tableSortMetricName": "memcached_cas_hits",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "命中次数"
+        },
+        "name": "Touch",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 8,
+          "y": 28
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "touch命中次数",
+              "code": "B",
+              "dataSource": "memcached",
+              "field": "touch_hits",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a76c4600-c764-11eb-b0ad-0122e47ec773",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`memcached`:(AVG(`touch_hits`) AS `touch命中次数`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "touch未命中次数",
+              "code": "A",
+              "dataSource": "memcached",
+              "field": "touch_misses",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a76c4600-c764-11eb-b0ad-0122e47ec773",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`memcached`:(AVG(`touch_misses`) AS `touch未命中次数`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "isRefresh": false,
+          "links": [],
+          "settings": {
+            "alias": [],
+            "backgroundStyle": {
+              "background-position": "center"
+            },
+            "colors": [],
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "type": "center",
+            "units": [],
+            "url": "https://static.guance.com/zhuyun-docs/integration-doc-src/covers/memcached.png"
+          }
+        },
+        "group": {
+          "name": "总览"
+        },
+        "name": "Memcached",
+        "pos": {
+          "h": 7,
+          "w": 2,
+          "x": 0,
+          "y": 2.5
+        },
+        "queries": [],
+        "type": "picture"
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "colors": [],
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "总览"
+        },
+        "name": "说明",
+        "pos": {
+          "h": 7,
+          "w": 22,
+          "x": 2,
+          "y": 2.5
+        },
+        "queries": [
+          {
+            "name": "",
+            "query": {
+              "content": " Memcached 监控视图显示 Memcached 实例运行状态指标，比如运行时间、最大内存限制、网络流量等多种指标，帮助监控分析 Memcached 各种异常情况。\n\nhttps://docs.guance.com/datakit/memcached"
+            }
+          }
+        ],
+        "type": "text"
+      }
+    ],
+    "groups": [
+      "总览",
+      "命中次数"
+    ],
+    "type": "template",
+    "vars": [
+      {
+        "code": "host",
+        "datasource": "ftinfluxdb",
+        "definition": {
+          "field": "",
+          "metric": "",
+          "object": "",
+          "tag": "host",
+          "value": "SHOW TAG VALUES FROM \"memcached\" WITH KEY=\"host\" WHERE time > now() - 5m"
+        },
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "name": "主机名",
+        "seq": 0,
+        "type": "QUERY",
+        "valueSort": ""
+      }
+    ]
+  },
+  "summary": "",
+  "tagInfo": [],
+  "tags": [],
+  "thumbnail": "",
+  "title": "Memcached 监控视图"
+}

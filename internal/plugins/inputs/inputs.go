@@ -84,9 +84,20 @@ type HTTPInput interface {
 	RegHTTPHandler()
 }
 
-// Dashboard used to export inputs dashboard.
+// Dashboard used to export inputs dashboard JSON.
 type Dashboard interface {
 	Dashboard(lang I18n) map[string]string
+	// List return all related dashboard name
+	// if nothing returned, use input name
+	DashboardList() []string
+}
+
+// Monitor used to export inputs monitor JSON.
+type Monitor interface {
+	Monitor(lang I18n) map[string]string
+	// List return all related monitor name
+	// if nothing returned, use input name
+	MonitorList() []string
 }
 
 type Singleton interface {

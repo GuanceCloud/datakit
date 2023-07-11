@@ -1,0 +1,1429 @@
+{
+  "dashboardBindSet": [],
+  "dashboardExtend": {},
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "dashboardType": "CUSTOM",
+  "iconSet": {
+    "icon": "https://static-res.guance.com/dataflux-template/dashboard/kubernetes_events/icon.svg",
+    "url": "https://static-res.guance.com/dataflux-template/dashboard/kubernetes_events/kubernetes_events.png"
+  },
+  "main": {
+    "charts": [
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": true,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Kubernetes 事件",
+        "pos": {
+          "h": 15,
+          "w": 14,
+          "x": 0,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "status",
+              "code": "A",
+              "dataSource": "kubernetes_events",
+              "field": "*",
+              "fieldFunc": "count",
+              "fieldType": "",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "b1053660-fb5a-11ec-aaad-bb4d689fc917",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "type"
+              ],
+              "groupByTime": "",
+              "namespace": "logging",
+              "q": "L::`kubernetes_events`:(COUNT(`*`) AS `status`) { `cluster_name_k8s` = '#{cluster_name}' } BY `type`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "#C8DD4F",
+                "key": "status{\"type\": \"Warning\"}",
+                "name": "status{\"type\": \"Warning\"}"
+              }
+            ],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Warnning 事件",
+        "pos": {
+          "h": 14,
+          "w": 14,
+          "x": 0,
+          "y": 15
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "status",
+              "code": "A",
+              "dataSource": "kubernetes_events",
+              "field": "*",
+              "fieldFunc": "count",
+              "fieldType": "",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "dee36410-fb5c-11ec-aaad-bb4d689fc917",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "e23219e0-fb5c-11ec-aaad-bb4d689fc917",
+                  "logic": "and",
+                  "name": "type",
+                  "op": "!=",
+                  "type": "keyword",
+                  "value": "Normal"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "type"
+              ],
+              "groupByTime": "",
+              "namespace": "logging",
+              "q": "L::`kubernetes_events`:(COUNT(`*`) AS `status`) { `cluster_name_k8s` = '#{cluster_name}' and `type` != 'Normal' } BY `type`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "事件详情"
+        },
+        "name": "节点不可用",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 31.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "count",
+              "code": "A",
+              "dataSource": "kubernetes_events",
+              "field": "node_name",
+              "fieldFunc": "count_distinct",
+              "fieldType": "keyword",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "37b936c0-fb60-11ec-aaad-bb4d689fc917",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "f4e27a60-fb63-11ec-aaad-bb4d689fc917",
+                  "logic": "and",
+                  "name": "reason",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "NodeNotReady"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "logging",
+              "q": "L::`kubernetes_events`:(COUNT_DISTINCT(`node_name`) AS `count`) { `cluster_name_k8s` = '#{cluster_name}' and `reason` = 'NodeNotReady' }",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "事件详情"
+        },
+        "name": "节点重启",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 31.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "count",
+              "code": "A",
+              "dataSource": "kubernetes_events",
+              "field": "*",
+              "fieldFunc": "count",
+              "fieldType": "",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "41fa7d10-fb60-11ec-aaad-bb4d689fc917",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "5d801820-fb64-11ec-aaad-bb4d689fc917",
+                  "logic": "and",
+                  "name": "reason",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "Rebooted"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "logging",
+              "q": "L::`kubernetes_events`:(COUNT(`*`) AS `count`) { `cluster_name_k8s` = '#{cluster_name}' and `reason` = 'Rebooted' }",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "事件详情"
+        },
+        "name": "节点 OOM",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 16,
+          "y": 31.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "count",
+              "code": "A",
+              "dataSource": "kubernetes_events",
+              "field": "*",
+              "fieldFunc": "count",
+              "fieldType": "",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "d6eab490-fb64-11ec-aaad-bb4d689fc917",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "d6eab491-fb64-11ec-aaad-bb4d689fc917",
+                  "logic": "and",
+                  "name": "reason",
+                  "op": "=",
+                  "value": "SystemOOM"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "logging",
+              "q": "L::`kubernetes_events`:(COUNT(`*`) AS `count`) { `cluster_name_k8s` = '#{cluster_name}' and `reason` = 'SystemOOM' }",
+              "queryFuncs": [],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "事件详情"
+        },
+        "name": "镜像拉取失败",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 41.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "count",
+              "code": "A",
+              "dataSource": "kubernetes_events",
+              "field": "*",
+              "fieldFunc": "count",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "logic": "and",
+                  "name": "reason",
+                  "op": "=",
+                  "value": "Failed"
+                },
+                {
+                  "logic": "and",
+                  "name": "message",
+                  "op": "=",
+                  "value": "re('')"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "labelOp": "",
+              "namespace": "logging",
+              "q": "L::`kubernetes_events`:(COUNT(`*`) AS `count`) { `cluster_name_k8s` = '#{cluster_name}' and `reason` = 'Failed' and `message` = re('') }",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "事件详情"
+        },
+        "name": "调度失败",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 16,
+          "y": 41.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "count",
+              "code": "A",
+              "dataSource": "kubernetes_events",
+              "field": "*",
+              "fieldFunc": "count",
+              "fieldType": "",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "37b936c0-fb60-11ec-aaad-bb4d689fc917",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "5149cdb0-fb66-11ec-aaad-bb4d689fc917",
+                  "logic": "and",
+                  "name": "reason",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "FailedScheduling"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "logging",
+              "q": "L::`kubernetes_events`:(COUNT(`*`) AS `count`) { `cluster_name_k8s` = '#{cluster_name}' and `reason` = 'FailedScheduling' }",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "事件详情"
+        },
+        "name": "卷挂载失败",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 41.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "count",
+              "code": "A",
+              "dataSource": "kubernetes_events",
+              "field": "*",
+              "fieldFunc": "count",
+              "fieldType": "",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "37b936c0-fb60-11ec-aaad-bb4d689fc917",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "9a6f0b00-fb65-11ec-aaad-bb4d689fc917",
+                  "logic": "and",
+                  "name": "reason",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "FailedMount"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "logging",
+              "q": "L::`kubernetes_events`:(COUNT(`*`) AS `count`) { `cluster_name_k8s` = '#{cluster_name}' and `reason` = 'FailedMount' }",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "事件详情"
+        },
+        "name": "容器 Crash",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 51.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "count",
+              "code": "A",
+              "dataSource": "kubernetes_events",
+              "field": "*",
+              "fieldFunc": "count",
+              "fieldType": "",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "37b936c0-fb60-11ec-aaad-bb4d689fc917",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "d56ed810-fb66-11ec-aaad-bb4d689fc917",
+                  "logic": "and",
+                  "name": "reason",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "BackOff"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "logging",
+              "q": "L::`kubernetes_events`:(COUNT(`*`) AS `count`) { `cluster_name_k8s` = '#{cluster_name}' and `reason` = 'BackOff' }",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "事件详情"
+        },
+        "name": "容器驱逐",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 16,
+          "y": 51.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "count",
+              "code": "A",
+              "dataSource": "kubernetes_events",
+              "field": "*",
+              "fieldFunc": "count",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "index",
+                  "op": "=",
+                  "value": "default"
+                },
+                {
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "logic": "and",
+                  "name": "message",
+                  "op": "=",
+                  "value": "re('')"
+                },
+                {
+                  "logic": "and",
+                  "name": "reason",
+                  "op": "=",
+                  "value": "TaintManagerEviction"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "labelOp": "",
+              "namespace": "logging",
+              "q": "L::`kubernetes_events`:(COUNT(`*`) AS `count`) { `index` = 'default' and ( `cluster_name_k8s` = '#{cluster_name}' and `message` = re('') and `reason` = 'TaintManagerEviction' ) }",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "事件详情"
+        },
+        "name": "容器 OOM",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 51.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "count",
+              "code": "A",
+              "dataSource": "kubernetes_events",
+              "field": "*",
+              "fieldFunc": "count",
+              "fieldType": "",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "37b936c0-fb60-11ec-aaad-bb4d689fc917",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "aab1fcb0-fb66-11ec-aaad-bb4d689fc917",
+                  "logic": "and",
+                  "name": "reason",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "OOMKilling"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "logging",
+              "q": "L::`kubernetes_events`:(COUNT(`*`) AS `count`) { `cluster_name_k8s` = '#{cluster_name}' and `reason` = 'OOMKilling' }",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "事件详情"
+        },
+        "name": "DockerHung",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 61.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "count",
+              "code": "A",
+              "dataSource": "kubernetes_events",
+              "field": "*",
+              "fieldFunc": "count",
+              "fieldType": "",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "37b936c0-fb60-11ec-aaad-bb4d689fc917",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "14a629c0-fb67-11ec-aaad-bb4d689fc917",
+                  "logic": "and",
+                  "name": "reason",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "DockerHung"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "logging",
+              "q": "L::`kubernetes_events`:(COUNT(`*`) AS `count`) { `cluster_name_k8s` = '#{cluster_name}' and `reason` = 'DockerHung' }",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "事件详情"
+        },
+        "name": "ConntrackFull",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 16,
+          "y": 61.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "count",
+              "code": "A",
+              "dataSource": "kubernetes_events",
+              "field": "*",
+              "fieldFunc": "count",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "logic": "and",
+                  "name": "message",
+                  "op": "=",
+                  "value": "re('')"
+                },
+                {
+                  "logic": "and",
+                  "name": "reason",
+                  "op": "=",
+                  "value": "ConntrackFull"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "labelOp": "",
+              "namespace": "logging",
+              "q": "L::`kubernetes_events`:(COUNT(`*`) AS `count`) { `cluster_name_k8s` = '#{cluster_name}' and `message` = re('') and `reason` = 'ConntrackFull'  }",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "事件详情"
+        },
+        "name": "探针失败",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 61.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "count",
+              "code": "A",
+              "dataSource": "kubernetes_events",
+              "field": "*",
+              "fieldFunc": "count",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "logic": "and",
+                  "name": "reason",
+                  "op": "=",
+                  "value": "Killing"
+                },
+                {
+                  "logic": "and",
+                  "name": "message",
+                  "op": "=",
+                  "value": "re('')"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "labelOp": "",
+              "namespace": "logging",
+              "q": "L::`kubernetes_events`:(COUNT(`*`) AS `count`) { `cluster_name_k8s` = '#{cluster_name}' and `reason` = 'Killing' and `message` = re('')  }",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": {
+            "key": "1d",
+            "text": "最近1天"
+          },
+          "settings": {
+            "bar": {
+              "direction": "horizontal",
+              "xAxisShowType": "groupBy"
+            },
+            "chartType": "bar",
+            "color": "#498BFE",
+            "colors": [
+              {
+                "color": "#498BFE",
+                "key": "count(*)",
+                "name": "count(*)"
+              }
+            ],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "toplist",
+            "fixedTime": "1d",
+            "isTimeInterval": false,
+            "levels": [],
+            "openCompare": false,
+            "showFieldMapping": false,
+            "showTableHead": true,
+            "showTitle": true,
+            "showTopSize": true,
+            "table": {
+              "queryMode": "toGroupColumn"
+            },
+            "tableSortMetricName": "",
+            "tableSortType": "top",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "topSize": 10,
+            "units": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "事件 Top 10",
+        "pos": {
+          "h": 29,
+          "w": 10,
+          "x": 14,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "kubernetes_events",
+              "field": "*",
+              "fieldFunc": "count",
+              "fieldType": "",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "2c5ed7f0-fb63-11ec-aaad-bb4d689fc917",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [
+                "last",
+                "top:10"
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "reason"
+              ],
+              "groupByTime": "",
+              "namespace": "logging",
+              "q": "L::`kubernetes_events`:(COUNT(`*`)) { `cluster_name_k8s` = '#{cluster_name}' } BY `cluster_name_k8s`, `reason`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "toplist",
+            "unit": ""
+          }
+        ],
+        "type": "toplist"
+      }
+    ],
+    "groups": [
+      "事件详情"
+    ],
+    "type": "template",
+    "vars": [
+      {
+        "code": "cluster_name",
+        "datasource": "dataflux",
+        "definition": {
+          "defaultVal": {
+            "label": "*",
+            "value": "re(`.*`)"
+          },
+          "field": "",
+          "metric": "",
+          "object": "",
+          "tag": "",
+          "value": "show_tag_value(from=['kubernetes'], keyin=['cluster_name_k8s'])"
+        },
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "name": "集群名称",
+        "seq": 0,
+        "type": "QUERY",
+        "valueSort": "default"
+      }
+    ]
+  },
+  "summary": "",
+  "tagInfo": [],
+  "tags": [],
+  "thumbnail": "",
+  "title": "Kubernetes Events 监控视图"
+}

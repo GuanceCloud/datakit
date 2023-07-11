@@ -1,0 +1,66 @@
+{
+  "checkers": [
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "redis",
+              "field": "blocked_clients",
+              "fieldFunc": "last",
+              "fieldType": "integer",
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`redis`:(LAST(`blocked_clients`))  by `host`",
+              "type": "simple"
+            },
+            "uuid": "166892fb-25c4-4244-9ba6-efa8b307da10"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "0"
+                  ],
+                  "operator": ">"
+                }
+              ],
+              "status": "critical"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "host"
+        ],
+        "interval": 900,
+        "message": ">等级：{{status}}  \n>主机：{{host}}  \n>内容：等待阻塞命令的客户端连接数为 {{ Result }}\n>建议：延迟或其他问题可能会阻止源列表被填充。虽然被阻止的客户端本身不会引起警报，但如果您看到此指标的值始终为非零值，则应该引起注意。",
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`redis`:(LAST(`blocked_clients`))  by `host`"
+          }
+        ],
+        "title": "主机 {{ host }} Redis 等待阻塞命令的客户端连接数异常增加",
+        "type": "simpleCheck"
+      }
+    }
+  ]
+}
