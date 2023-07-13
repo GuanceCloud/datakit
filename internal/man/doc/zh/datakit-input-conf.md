@@ -29,23 +29,23 @@ DataKit 中采集器配置均使用 [Toml 格式](https://toml.io/cn){:target="_
 
 ## 默认开启的采集器 {#default-enabled-inputs}
 
-DataKit 安装完成后，默认会开启一批采集器，无需手动开启。也可以按需[禁用所有默认采集器](../datakit/datakit-install.md#common-envs)。
+DataKit 安装完成后，默认会开启一批采集器，无需手动开启。也可以按需[禁用所有默认采集器](datakit-install.md#common-envs)。
 
 默认开启的采集器一般跟主机相关，列表如下：
 
-| 采集器名称                                        | 说明                                                                           |
-| ---                                               | ---                                                                            |
-| [CPU（`cpu`）](cpu.md)                            | 采集主机的 CPU 使用情况                                                        |
-| [Disk（`disk`）](disk.md)                         | 采集磁盘占用情况                                                               |
-| [磁盘 IO（`diskio`）](diskio.md)                  | 采集主机的磁盘 IO 情况                                                         |
-| [内存（`mem`）](mem.md)                           | 采集主机的内存使用情况                                                         |
-| [Swap（`swap`）](swap.md)                         | 采集 Swap 内存使用情况                                                         |
-| [System（`system`）](system.md)                   | 采集主机操作系统负载                                                           |
-| [Net（`net`）](net.md)                            | 采集主机网络流量情况                                                           |
-| [主机进程（`host_processes`）](host_processes.md) | 采集主机上常驻（存活 10min 以上）进程列表                                      |
-| [主机对象（`hostobject`）](hostobject.md)         | 采集主机基础信息（如操作系统信息、硬件信息等）                                 |
-| [容器（`container`）](container.md)               | 采集主机上可能的容器或 Kubernetes 数据，假定主机上没有容器，则采集器会直接退出 |
-| [Datakit（`dk`）](dk.md)                          | 采集 Datakit 自身运行指标收集                                                  |
+| 采集器名称                                                        | 说明                                                                         |
+| ---                                                               | ---                                                                          |
+| [CPU（`cpu`）](../integrations/cpu.md)                            | 采集主机的 CPU 使用情况                                                        |
+| [Disk（`disk`）](../integrations/disk.md)                         | 采集磁盘占用情况                                                             |
+| [磁盘 IO（`diskio`）](../integrations/diskio.md)                   | 采集主机的磁盘 IO 情况                                                         |
+| [内存（`mem`）](../integrations/mem.md)                           | 采集主机的内存使用情况                                                       |
+| [Swap（`swap`）](../integrations/swap.md)                         | 采集 Swap 内存使用情况                                                         |
+| [System（`system`）](../integrations/system.md)                   | 采集主机操作系统负载                                                         |
+| [Net（`net`）](../integrations/net.md)                            | 采集主机网络流量情况                                                         |
+| [主机进程（`host_processes`）](../integrations/host_processes.md) | 采集主机上常驻（存活 10min 以上）进程列表                                      |
+| [主机对象（`hostobject`）](../integrations/hostobject.md)         | 采集主机基础信息（如操作系统信息、硬件信息等）                               |
+| [容器（`container`）](../integrations/container.md)               | 采集主机上可能的容器或 Kubernetes 数据，假定主机上没有容器，则采集器会直接退出 |
+| [Datakit（`dk`）](../integrations/dk.md)                          | 采集 Datakit 自身运行指标收集                                                |
 
 ## 修改采集器配置 {#modify-input-conf}
 
@@ -127,21 +127,21 @@ DataKit 安装完成后，默认会开启一批采集器，无需手动开启。
 
 部分采集器只允许单实例运行，即使配置多份，也只会运行单个实例，这些单实例采集器列表如下：
 
-| 采集器名称                                        | 说明                                                                           |
-| -------------------------------------             | -----------------------------------------------                                |
-| [`cpu`](cpu.md)                                   | 采集主机的 CPU 使用情况                                                        |
-| [`disk`](disk.md)                                 | 采集磁盘占用情况                                                               |
-| [`diskio`](diskio.md)                             | 采集主机的磁盘 IO 情况                                                         |
-| [eBPF](ebpf.md)                                   | 采集主机网络 TCP、UDP 连接信息，Bash 执行日志等                                |
-| [`mem`](mem.md)                                   | 采集主机的内存使用情况                                                         |
-| [`swap`](swap.md)                                 | 采集 Swap 内存使用情况                                                         |
-| [`system`](system.md)                             | 采集主机操作系统负载                                                           |
-| [`net`](net.md)                                   | 采集主机网络流量情况                                                           |
-| [`netstat`](netstat.md)                           | 采集网络连接情况，包括 TCP/UDP 连接数、等待连接、等待处理请求等                |
-| [主机进程（`host_processes`）](host_processes.md) | 采集主机上常驻（存活 10min 以上）进程列表                                      |
-| [主机对象（`hostobject`）](hostobject.md)         | 采集主机基础信息（如操作系统信息、硬件信息等）                                 |
-| [容器（`container`）](container.md)               | 采集主机上可能的容器或 Kubernetes 数据，假定主机上没有容器，则采集器会直接退出 |
-| [Datakit（`dk`）](dk.md)                          | 采集 Datakit 自己的运行情况，包括 CPU、Memory 等等                             |
+| 采集器名称                                                        | 说明                                                                         |
+| ---                                                               | -----------------------------------------------                              |
+| [`cpu`](../integrations/cpu.md)                                   | 采集主机的 CPU 使用情况                                                        |
+| [`disk`](../integrations/disk.md)                                 | 采集磁盘占用情况                                                             |
+| [`diskio`](../integrations/diskio.md)                             | 采集主机的磁盘 IO 情况                                                         |
+| [eBPF](../integrations/ebpf.md)                                   | 采集主机网络 TCP、UDP 连接信息，Bash 执行日志等                                 |
+| [`mem`](../integrations/mem.md)                                   | 采集主机的内存使用情况                                                       |
+| [`swap`](../integrations/swap.md)                                 | 采集 Swap 内存使用情况                                                         |
+| [`system`](../integrations/system.md)                             | 采集主机操作系统负载                                                         |
+| [`net`](../integrations/net.md)                                   | 采集主机网络流量情况                                                         |
+| [`netstat`](../integrations/netstat.md)                           | 采集网络连接情况，包括 TCP/UDP 连接数、等待连接、等待处理请求等                |
+| [主机进程（`host_processes`）](../integrations/host_processes.md) | 采集主机上常驻（存活 10min 以上）进程列表                                      |
+| [主机对象（`hostobject`）](../integrations/hostobject.md)         | 采集主机基础信息（如操作系统信息、硬件信息等）                               |
+| [容器（`container`）](../integrations/container.md)               | 采集主机上可能的容器或 Kubernetes 数据，假定主机上没有容器，则采集器会直接退出 |
+| [Datakit（`dk`）](../integrations/dk.md)                          | 采集 Datakit 自己的运行情况，包括 CPU、Memory 等等                               |
 
 ### 关闭具体采集器 {#disable-inputs}
 

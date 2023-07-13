@@ -146,21 +146,23 @@ Elected default::defeat|host-abc
 
 目前支持选举的采集器列表如下：
 
-- [Apache](apache.md)
-- [ElasticSearch](elasticsearch.md)
-- [GitLab](gitlab.md)
-- [InfluxDB](influxdb.md)
-- [Container](container.md)
-- [MongoDB](mongodb.md)
-- [MySQL](mysql.md)
-- [NSQ](nsq.md)
-- [Nginx](nginx.md)
-- [PostgreSQL](postgresql.md)
-- [Prom](prom.md)
-- [RabbitMQ](rabbitmq.md)
-- [Redis](redis.md)
-- [Solr](solr.md)
-- [TDengine](tdengine.md)
+- [Apache](../integrations/apache.md)
+- [Elasticsearch](../integrations/elasticsearch.md)
+- [GitLab](../integrations/gitlab.md)
+- [InfluxDB](../integrations/influxdb.md)
+- [Container](../integrations/container.md)
+- [MongoDB](../integrations/mongodb.md)
+- [MySQL](../integrations/mysql.md)
+- [NSQ](../integrations/nsq.md)
+- [Nginx](../integrations/nginx.md)
+- [PostgreSQL](../integrations/postgresql.md)
+- [Prom](../integrations/prom.md)
+- [RabbitMQ](../integrations/rabbitmq.md)
+- [Redis](../integrations/redis.md)
+- [Solr](../integrations/solr.md)
+- [TDengine](../integrations/tdengine.md)
+
+> 事实上，支持选举的采集器会更多，此处可能更新不及时，以具体采集器的文档为准。
 
 ## FAQ {#faq}
 

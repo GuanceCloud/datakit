@@ -167,6 +167,6 @@ DD_XXX=<env-value> DD_YYY=<env-value> ./my-app
 
 [1]: datakit-install.md
 [2]: datakit-service-how-to.md
-[3]: ddtrace.md#config
+[3]: ../integrations/ddtrace.md#config
 [4]: datakit-conf.md#config-http-server
-[5]: statsd.md
+[5]: ../integrations/statsd.md

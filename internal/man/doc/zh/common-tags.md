@@ -45,7 +45,7 @@
 | ---     | ---                                                                                                          |
 | source  | 日志来源，在行协议上，它并不是以 tag 形式存在，而是作为指标集名称，但中心将其作为 tag 存为日志的 source 字段 |
 | service | 日志的 service 名称，如果不填写，其值等同于 source 字段                                                      |
-| status  | 日志等级，如果不填写，采集器会默认将其值置为 `unknown`，常见的 status 列表在[这里](logging.md#status)        |
+| status  | 日志等级，如果不填写，采集器会默认将其值置为 `unknown`，常见的 status 列表在[这里](../integrations/logging.md#status)        |
 
 ### 对象 {#O}
 
@@ -60,7 +60,7 @@
 
 ### APM {#T}
 
-Tracing 类数据的 tag 统一在[这里](ddtrace.md#measurements)
+Tracing 类数据的 tag 统一在[这里](../integrations/ddtrace.md#measurements)
 
 ### RUM {#R}
 
@@ -79,12 +79,12 @@ Tracing 类数据的 tag 统一在[这里](ddtrace.md#measurements)
 
 ### Profile {#P}
 
-参见[采集器文档](profile.md#measurements)
+参见[采集器文档](../integrations/profile.md#measurements)
 
 ### Network {#N}
 
-参见[采集器文档](ebpf.md#measurements)
+参见[采集器文档](../integrations/ebpf.md#measurements)
 
 ### Event {#E}
 
-参见[设计文档](../events/generating.md)
+参见[设计文档](../events/index.md)
