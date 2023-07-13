@@ -6,7 +6,7 @@ Pinpoint Java Agent [下载地址](https://github.com/pinpoint-apm/pinpoint/rele
 
 ## 配置 Datakit Agent {#config-datakit-agent}
 
-参考[配置 Datakit 中的 Pinpoint Agent](pinpoint.md#agent-config)
+参考[配置 Datakit 中的 Pinpoint Agent](pinpoint.md#config)
 
 ## 配置 Pinpoint Java Agent {#config-pinpoint-java-agent}
 

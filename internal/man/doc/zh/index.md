@@ -15,18 +15,19 @@ DataKit 是一款开源、一体式的数据采集 Agent，它提供全平台操
 - 完整支持 Kubernetes 云原生生态
 - [Pipeline](../developers/pipeline/index.md)：简便的结构化数据提取
 - 支持接入其它第三方数据采集
-    - [Telegraf](telegraf.md)
-    - [Prometheus](prom.md)
-    - [Statsd](statsd.md)
-    - [Fluentd](logstreaming.md)
-    - [Filebeat](beats_output.md)
+    - [Telegraf](../integrations/telegraf.md)
+    - [Prometheus](../integrations/prom.md)
+    - [Statsd](../integrations/statsd.md)
+    - [Fluentd](../integrations/logstreaming.md)
+    - [Filebeat](../integrations/beats_output.md)
     - [Function](https://func.guance.com/doc/practice-write-data-via-datakit/){:target="_blank"}
     - Tracing 相关
-        - [OpenTelemetry](opentelemetry.md)
-        - [DDTrace](ddtrace.md)
-        - [Zipkin](zipkin.md)
-        - [Jaeger](jaeger.md)
-        - [SkyWalking](skywalking.md)
+        - [OpenTelemetry](../integrations/opentelemetry.md)
+        - [DDTrace](../integrations/ddtrace.md)
+        - [Zipkin](../integrations/zipkin.md)
+        - [Jaeger](../integrations/jaeger.md)
+        - [SkyWalking](../integrations/skywalking.md)
+        - [Pinpoint](../integrations/pinpoint.md)
 
 ## 说明 {#spec}
 
