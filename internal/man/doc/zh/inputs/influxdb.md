@@ -1,7 +1,7 @@
 ---
 title     : 'InfluxDB'
 summary   : '采集 InfluxDB 指标数据'
-icon      : 'icon/influxdb'
+__int_icon      : 'icon/influxdb'
 dashboard :
   - desc  : 'InfluxDB'
     path  : 'dashboard/zh/influxdb'

@@ -1,7 +1,7 @@
 ---
 title     : 'MongoDB'
 summary   : '采集 MongoDB 的指标数据'
-icon      : 'icon/mongodb'
+__int_icon      : 'icon/mongodb'
 dashboard :
   - desc  : 'Mongodb 监控视图'
     path  : 'dashboard/zh/mongodb'

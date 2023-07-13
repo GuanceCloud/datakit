@@ -1,7 +1,7 @@
 ---
 title     : 'Redis'
 summary   : 'Redis 指标和日志采集'
-icon      : 'icon/redis'
+__int_icon      : 'icon/redis'
 dashboard :
   - desc  : 'Redis'
     path  : 'dashboard/zh/redis'

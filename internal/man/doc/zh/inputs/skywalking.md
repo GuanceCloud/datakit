@@ -1,7 +1,7 @@
 ---
 title     : 'SkyWalking'
 summary   : 'SkyWalking Tracing 数据接入'
-icon      : 'icon/skywalking'
+__int_icon      : 'icon/skywalking'
 dashboard :
   - desc  : 'Skywalking JVM 监控视图'
     path  : 'dashboard/zh/skywalking'
@@ -128,7 +128,7 @@ log4j2 示例。将 toolkit 依赖包添加到 maven 或者 gradle 中：
 
 ## 指标字段 {#metric}
 
-jvm metrics collected by skywalking language agent.
+SkyWalking 会上报一些 JVM 指标数据。
 
 - Tag
 
@@ -161,7 +161,7 @@ jvm metrics collected by skywalking language agent.
 | `thread_time_waiting_state_count`  | time waiting state thread count.                                                                                                          |    int    |  count  |
 | `thread_waiting_state_count`       | waiting state thread count.                                                                                                               |    int    |  count  |
 
-## 指标集 {#measurements}
+## 链路字段 {#tracing}
 
 {{range $i, $m := .Measurements}}
 

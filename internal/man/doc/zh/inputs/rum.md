@@ -1,7 +1,7 @@
 ---
 title     : 'RUM'
 summary   : '采集用户行为数据'
-icon      : 'icon/rum'
+__int_icon      : 'icon/rum'
 dashboard :
   - desc  : '暂无'
     path  : '-'

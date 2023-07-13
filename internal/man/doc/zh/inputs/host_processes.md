@@ -1,7 +1,7 @@
 ---
 title     : 'Process'
 summary   : '采集进程的指标和对象数据'
-icon      : 'icon/process'
+__int_icon      : 'icon/process'
 dashboard :
   - desc  : '进程'
     path  : 'dashboard/zh/process'

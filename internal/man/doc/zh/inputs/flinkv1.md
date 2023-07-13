@@ -1,7 +1,7 @@
 ---
 title     : 'Flink'
 summary   : '采集 Flink 的指标数据'
-icon      : 'icon/flink'
+__int_icon      : 'icon/flink'
 dashboard :
   - desc  : 'Flink'
     path  : 'dashboard/zh/flink'

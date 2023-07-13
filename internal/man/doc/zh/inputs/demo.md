@@ -1,7 +1,7 @@
 ---
 title: 'Demo'
 summary: 'Demo 采集器'
-icon: 'icon/demo'
+__int_icon: 'icon/demo'
 dashboard:
   - desc: '暂无'
     path: '-'

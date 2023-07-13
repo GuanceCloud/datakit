@@ -1,7 +1,7 @@
 ---
 title     : 'Cloudprober'
 summary   : '接收 Cloudprober 数据'
-icon      : 'icon/cloudprober'
+__int_icon      : 'icon/cloudprober'
 dashboard :
   - desc  : '暂无'
     path  : '-'

@@ -1,7 +1,7 @@
 ---
 title     : 'Solr'
 summary   : '采集 Solr 的指标数据'
-icon      : 'icon/solr'
+__int_icon      : 'icon/solr'
 dashboard :
   - desc  : 'Solr'
     path  : 'dashboard/zh/solr'

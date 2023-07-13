@@ -1,7 +1,7 @@
 ---
 title     : 'Consul'
 summary   : '采集 Consul 的指标数据'
-icon      : 'icon/consul'
+__int_icon      : 'icon/consul'
 dashboard :
   - desc  : 'Consul'
     path  : 'dashboard/zh/consul'

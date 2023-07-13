@@ -1,7 +1,7 @@
 ---
 title: 'DataKit 自身指标采集'
 summary: '采集 Datakit 自身运行指标'
-icon: 'icon/dk'
+__int_icon: 'icon/dk'
 dashboard:
   - desc: 'Datakit 内置视图'
     path: 'dashboard/zh/dk'

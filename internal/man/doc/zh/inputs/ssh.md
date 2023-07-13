@@ -1,7 +1,7 @@
 ---
 title     : 'SSH'
 summary   : '采集 SSH 的指标数据'
-icon      : 'icon/ssh'
+__int_icon      : 'icon/ssh'
 dashboard :
   - desc  : 'SSH'
     path  : 'dashboard/zh/ssh'

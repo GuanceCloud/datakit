@@ -1,7 +1,7 @@
 ---
 title     : 'Filebeat'
 summary   : '接收 Filebeat 采集的日志数据'
-icon      : 'icon/beats'
+__int_icon      : 'icon/beats'
 dashboard :
   - desc  : '暂无'
     path  : '-'

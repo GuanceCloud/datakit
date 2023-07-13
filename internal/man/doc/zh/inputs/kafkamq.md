@@ -1,7 +1,7 @@
 ---
 title     : 'KafkaMQ'
 summary   : '通过 Kafka 收集已有的指标和日志数据'
-icon      : 'icon/kafka'
+__int_icon      : 'icon/kafka'
 dashboard :
   - desc  : '暂无'
     path  : '-'

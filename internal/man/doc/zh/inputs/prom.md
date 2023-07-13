@@ -1,7 +1,7 @@
 ---
 title     : 'Prometheus Exporter'
 summary   : '采集 Prometheus Exporter 暴露的指标数据'
-icon      : 'icon/prometheus'
+__int_icon      : 'icon/prometheus'
 dashboard :
   - desc  : '暂无'
     path  : '-'

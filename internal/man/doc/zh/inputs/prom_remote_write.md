@@ -1,7 +1,7 @@
 ---
 title     : 'Prometheus Remote Write'
 summary   : '通过 Prometheus Remote Write 汇集指标数据'
-icon      : 'icon/prometheus'
+__int_icon      : 'icon/prometheus'
 dashboard :
   - desc  : '暂无'
     path  : '-'

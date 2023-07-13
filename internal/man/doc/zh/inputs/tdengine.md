@@ -1,7 +1,7 @@
 ---
 title     : 'TDengine'
 summary   : '采集 TDengine 的指标数据'
-icon      : 'icon/tdengine'
+__int_icon      : 'icon/tdengine'
 dashboard :
   - desc  : 'TDengine'
     path  : 'dashboard/zh/tdengine'

@@ -1,7 +1,7 @@
 ---
 title     : 'Apache'
 summary   : 'Apache 采集器可以从 Apache 服务中采集请求数、连接数等'
-icon      : 'icon/apache'
+__int_icon      : 'icon/apache'
 dashboard :
   - desc  : 'Apache'
     path  : 'dashboard/zh/apache'

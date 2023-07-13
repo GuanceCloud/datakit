@@ -1,7 +1,7 @@
 ---
 title     : 'Sidecar'
 summary   : 'Sidecar 形式的日志采集'
-icon      : 'icon/kubernetes'
+__int_icon      : 'icon/kubernetes'
 dashboard :
   - desc  : '暂无'
     path  : '-'

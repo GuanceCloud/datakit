@@ -1,7 +1,7 @@
 ---
 title     : '硬件 Sensors 数据采集'
 summary   : '通过 Sensors 命令采集硬件温度指标'
-icon      : 'icon/sensors'
+__int_icon      : 'icon/sensors'
 dashboard :
   - desc  : '暂无'
     path  : '-'

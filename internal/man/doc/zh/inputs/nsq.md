@@ -1,7 +1,7 @@
 ---
 title     : 'NSQ'
 summary   : '采集 NSQ 的指标数据'
-icon      : 'icon/nsq'
+__int_icon      : 'icon/nsq'
 dashboard :
   - desc  : 'NSQ'
     path  : 'dashboard/zh/nsq'

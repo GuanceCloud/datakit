@@ -1,7 +1,7 @@
 ---
 title     : 'StatsD'
 summary   : '收集 StatsD 上报的指标数据'
-icon      : 'icon/statsd'
+__int_icon      : 'icon/statsd'
 dashboard :
   - desc  : '暂无'
     path  : '-'

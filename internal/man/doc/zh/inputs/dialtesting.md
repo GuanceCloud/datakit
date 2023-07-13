@@ -1,7 +1,7 @@
 ---
 title     : '网络拨测'
 summary   : '通过网络拨测来获取网络性能表现'
-icon      : 'icon/dialtesting'
+__int_icon      : 'icon/dialtesting'
 dashboard :
   - desc  : '暂无'
     path  : '-'

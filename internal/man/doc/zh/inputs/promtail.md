@@ -1,7 +1,7 @@
 ---
 title     : 'Promtail'
 summary   : '采集 Promtail 上报的日志数据'
-icon      : 'icon/promtail'
+__int_icon      : 'icon/promtail'
 dashboard :
   - desc  : '暂无'
     path  : '-'

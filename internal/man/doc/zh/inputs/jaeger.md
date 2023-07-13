@@ -1,7 +1,7 @@
 ---
 title     : 'Jaeger'
 summary   : '接收 Jaeger APM 数据'
-icon      : 'icon/jaeger'
+__int_icon      : 'icon/jaeger'
 dashboard :
   - desc  : '暂无'
     path  : '-'

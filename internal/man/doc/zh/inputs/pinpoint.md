@@ -1,7 +1,7 @@
 ---
 title     : 'Pinpoint'
 summary   : 'Pinpoint Tracing 数据接入'
-icon      : 'icon/pinpoint'
+__int_icon      : 'icon/pinpoint'
 dashboard :
   - desc  : '暂无'
     path  : '-'
@@ -97,8 +97,6 @@ $ java -javaagent:/path_to_pinpoint/pinpoint-bootstrap.jar \
     -jar /path_to_your_app.jar
 ```
 
-## 链路字段 {#tracing}
-
 Datakit 链路数据遵循 OpenTracing 协议，Datakit 中一条链路是通过简单的父子（子 span 中存放父 span 的 id）结构串联起来且每个 span 对应一次函数调用
 
 <figure markdown>
@@ -118,7 +116,7 @@ Pinpoint APM 链路数据较为复杂：
   <figcaption>Pinpoint</figcaption>
 </figure>
 
-## 指标集 {#measurements}
+## 链路字段 {#tracing}
 
 {{range $i, $m := .Measurements}}
 

@@ -1,7 +1,7 @@
 ---
 title     : 'Oracle'
 summary   : '采集 Oracle 的指标数据'
-icon      : 'icon/oracle'
+__int_icon      : 'icon/oracle'
 dashboard :
   - desc  : 'Oracle'
     path  : 'dashboard/zh/oracle'

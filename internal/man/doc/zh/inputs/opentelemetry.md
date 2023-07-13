@@ -1,7 +1,7 @@
 ---
 title     : 'OpenTelemetry'
 summary   : '接收 OpenTelemetry 指标、日志、APM 数据'
-icon      : 'icon/opentelemetry'
+__int_icon      : 'icon/opentelemetry'
 dashboard :
   - desc  : '暂无'
     path  : '-'
@@ -124,10 +124,6 @@ Datakit 目前提供了如下两种语言的最佳实践：
 - [Java](opentelemetry-java.md)
 
 ## 链路字段 {#tracing}
-
-待补充。
-
-## 指标集 {#measurements}
 
 {{range $i, $m := .Measurements}}
 

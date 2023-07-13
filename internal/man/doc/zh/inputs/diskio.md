@@ -1,7 +1,7 @@
 ---
 title     : '磁盘 IO'
 summary   : '采集磁盘 IO 指标数据'
-icon      : 'icon/diskio'
+__int_icon      : 'icon/diskio'
 dashboard :
   - desc  : '磁盘 IO'
     path  : 'dashboard/zh/diskio'

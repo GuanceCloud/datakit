@@ -1,7 +1,7 @@
 ---
 title     : 'Tomcat'
 summary   : '采集 Tomcat 的指标数据'
-icon      : 'icon/tomcat'
+__int_icon      : 'icon/tomcat'
 dashboard :
   - desc  : 'Tomcat'
     path  : 'dashboard/zh/tomcat'
