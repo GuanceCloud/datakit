@@ -1,7 +1,7 @@
 ---
 title     : '文件目录'
 summary   : '采集文件目录的指标数据'
-icon      : 'icon/hostdir'
+__int_icon      : 'icon/hostdir'
 dashboard :
   - desc  : '文件目录'
     path  : 'dashboard/zh/hostdir'

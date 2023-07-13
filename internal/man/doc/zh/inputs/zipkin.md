@@ -1,7 +1,7 @@
 ---
 title     : 'Zipkin'
 summary   : 'Zipkin Tracing 数据接入'
-icon      : 'icon/zipkin'
+__int_icon      : 'icon/zipkin'
 dashboard :
   - desc  : '暂无'
     path  : '-'

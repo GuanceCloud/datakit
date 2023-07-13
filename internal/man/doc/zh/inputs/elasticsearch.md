@@ -1,7 +1,7 @@
 ---
 title     : 'ElasticSearch'
 summary   : '采集 ElasticSearch 的指标数据'
-icon      : 'icon/elasticsearch'
+__int_icon      : 'icon/elasticsearch'
 dashboard :
   - desc  : '暂无'
     path  : '-'

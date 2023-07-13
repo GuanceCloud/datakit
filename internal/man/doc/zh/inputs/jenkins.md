@@ -1,7 +1,7 @@
 ---
 title     : 'Jenkins'
 summary   : '采集 Jenkins 的指标和日志'
-icon      : 'icon/jenkins'
+__int_icon      : 'icon/jenkins'
 dashboard :
   - desc  : 'Jenkins'
     path  : 'dashboard/zh/jenkins'

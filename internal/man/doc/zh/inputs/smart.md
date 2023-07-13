@@ -1,7 +1,7 @@
 ---
 title     : '磁盘 S.M.A.R.T'
 summary   : '通过 smartctl 采集磁盘指标'
-icon      : 'icon/smartctl'
+__int_icon      : 'icon/smartctl'
 dashboard :
   - desc  : '暂无'
     path  : '-'

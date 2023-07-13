@@ -1,7 +1,7 @@
 ---
 title     : 'etcd'
 summary   : '采集 etcd 的指标数据'
-icon      : 'icon/etcd'
+__int_icon      : 'icon/etcd'
 dashboard :
   - desc  : 'etcd'
     path  : 'dashboard/zh/etcd'

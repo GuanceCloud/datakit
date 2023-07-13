@@ -1,7 +1,7 @@
 ---
 title     : 'Nginx'
 summary   : '采集 Nginx 的指标数据'
-icon      : 'icon/nginx'
+__int_icon      : 'icon/nginx'
 dashboard :
   - desc  : 'Nginx'
     path  : 'dashboard/zh/nginx'

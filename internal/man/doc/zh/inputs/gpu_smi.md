@@ -1,7 +1,7 @@
 ---
 title     : 'GPU'
 summary   : '采集 NVIDIA GPU 指标数据'
-icon      : 'icon/gpu_smi'
+__int_icon      : 'icon/gpu_smi'
 dashboard :
   - desc  : '暂无'
     path  : '-'

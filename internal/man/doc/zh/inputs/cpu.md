@@ -1,7 +1,7 @@
 ---
 title     : 'CPU'
 summary   : '采集 CPU 指标数据'
-icon      : 'icon/cpu'
+__int_icon      : 'icon/cpu'
 dashboard :
   - desc  : 'CPU'
     path  : 'dashboard/zh/cpu'

@@ -1,7 +1,7 @@
 ---
 title     : '内存'
 summary   : '采集主机内存的指标数据'
-icon      : 'icon/mem'
+__int_icon      : 'icon/mem'
 dashboard :
   - desc  : '内存'
     path  : 'dashboard/zh/mem'

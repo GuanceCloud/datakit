@@ -1,7 +1,7 @@
 ---
 title     : 'CoreDNS'
 summary   : '采集 CoreDNS 的指标数据'
-icon      : 'icon/coredns'
+__int_icon      : 'icon/coredns'
 dashboard :
   - desc  : 'CoreDNS'
     path  : 'dashboard/zh/coredns'

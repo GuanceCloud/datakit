@@ -1,7 +1,7 @@
 ---
 title     : 'Log Streaming'
 summary   : '通过 HTTP 上报日志数据'
-icon      : 'icon/logstreaming'
+__int_icon      : 'icon/logstreaming'
 dashboard :
   - desc  : '暂无'
     path  : '-'

@@ -181,7 +181,7 @@ func mergeDefaultInputs(defaultList, enabledList []string, appendDefault bool) [
 	if len(whiteList) > 0 {
 		for _, elem := range defaultList {
 			if appendDefault {
-				cp.Infof("input %q eanbled\n", elem)
+				cp.Infof("input %q enabled\n", elem)
 				res = append(res, elem)
 			} else {
 				// disable them

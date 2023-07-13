@@ -27,6 +27,7 @@ import (
 // ---
 // title: 'title name'
 // summary: 'summary text'
+// __int_icon: 'dir/to/icon'
 // dashboard:
 //   - desc: 'dashboard name'
 //     path: 'dir/to/dashboard-json'
@@ -75,7 +76,7 @@ func checkMeta(meta map[string]interface{}, metaDataDir string) error {
 				errMsgs = append(errMsgs, fmt.Sprintf("missing summary %q", k))
 			}
 
-		case "icon":
+		case "__int_icon":
 			x, ok := v.(string)
 			if !ok || len(x) == 0 {
 				errMsgs = append(errMsgs, "invalid icon")
@@ -145,8 +146,9 @@ func checkMeta(meta map[string]interface{}, metaDataDir string) error {
 }
 
 var requiredKeys = []string{
+	// icon used only with integrations, to avoid key conflict with mkdocs key `icon'
+	"__int_icon",
 	"dashboard",
-	"icon",
 	"monitor",
 	"summary",
 	"title",

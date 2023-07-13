@@ -1,7 +1,7 @@
 ---
 title     : '日志采集'
 summary   : '采集主机上的日志数据'
-icon      : 'icon/logging'
+__int_icon      : 'icon/logging'
 dashboard :
   - desc  : '日志'
     path  : '-'

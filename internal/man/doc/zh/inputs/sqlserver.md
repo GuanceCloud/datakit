@@ -1,7 +1,7 @@
 ---
 title     : 'SQLServer'
 summary   : '采集 SQLServer 的指标数据'
-icon      : 'icon/sqlserver'
+__int_icon      : 'icon/sqlserver'
 dashboard :
   - desc  : 'SQLServer'
     path  : 'dashboard/zh/sqlserver'

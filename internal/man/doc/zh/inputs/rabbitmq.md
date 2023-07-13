@@ -1,7 +1,7 @@
 ---
 title     : 'RabbitMQ'
 summary   : '采集 RabbitMQ 的指标数据'
-icon      : 'icon/rabbitmq'
+__int_icon      : 'icon/rabbitmq'
 dashboard :
   - desc  : 'RabbitMQ'
     path  : 'dashboard/zh/rabbitmq'

@@ -1,7 +1,7 @@
 ---
 title     : 'Net'
 summary   : '采集网卡的指标数据'
-icon      : 'icon/net'
+__int_icon: 'icon/net'
 dashboard :
   - desc  : 'Net'
     path  : 'dashboard/zh/net'

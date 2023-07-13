@@ -1,7 +1,7 @@
 ---
 title     : 'eBPF'
 summary   : '通过 eBPF 采集 Linux 网络数据'
-icon      : 'icon/ebpf'
+__int_icon      : 'icon/ebpf'
 dashboard :
   - desc  : '暂无'
     path  : '-'

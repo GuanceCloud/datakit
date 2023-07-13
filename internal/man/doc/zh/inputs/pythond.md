@@ -1,7 +1,7 @@
 ---
 title     : 'Pythond'
 summary   : '通过 Python 扩展采集数据'
-icon      : 'icon/pythond'
+__int_icon      : 'icon/pythond'
 dashboard :
   - desc  : '暂无'
     path  : '-'

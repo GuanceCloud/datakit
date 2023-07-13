@@ -1,7 +1,7 @@
 ---
 title     : 'Chrony'
 summary   : '采集 Chrony 服务器相关的指标数据'
-icon      : 'icon/chrony'
+__int_icon      : 'icon/chrony'
 dashboard :
   - desc  : '暂无'
     path  : '-'

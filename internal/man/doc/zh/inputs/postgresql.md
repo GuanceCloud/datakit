@@ -1,7 +1,7 @@
 ---
 title     : 'PostgreSQL'
 summary   : '采集 PostgreSQL 的指标数据'
-icon      : 'icon/postgresql'
+__int_icon      : 'icon/postgresql'
 dashboard :
   - desc  : 'PostgrepSQL'
     path  : 'dashboard/zh/postgresql'

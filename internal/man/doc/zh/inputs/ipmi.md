@@ -1,7 +1,7 @@
 ---
 title     : 'IPMI'
 summary   : 'IPMI 指标展示被监测设备的电流、电压、功耗、占用率、风扇转速、温度以及设备状态等信息'
-icon      : 'icon/ipmi'
+__int_icon      : 'icon/ipmi'
 dashboard :
   - desc  : '暂无'
     path  : '-'

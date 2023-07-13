@@ -1,7 +1,7 @@
 ---
 title     : 'Kafka'
 summary   : '采集 Kafka 的指标数据'
-icon      : 'icon/kafka'
+__int_icon      : 'icon/kafka'
 dashboard :
   - desc  : 'Kafka'
     path  : 'dashboard/zh/kafka'

@@ -1,7 +1,7 @@
 ---
 title     : '磁盘'
 summary   : '采集磁盘的指标数据'
-icon      : 'icon/disk'
+__int_icon      : 'icon/disk'
 dashboard :
   - desc  : '磁盘'
     path  : 'dashboard/zh/disk'

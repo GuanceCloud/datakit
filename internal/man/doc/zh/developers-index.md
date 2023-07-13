@@ -1,5 +1,5 @@
 ---
-icon: zy/custom
+__int_icon: zy/custom
 ---
 # 自定义开发
 

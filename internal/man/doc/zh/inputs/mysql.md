@@ -1,7 +1,7 @@
 ---
 title     : 'MySQL'
 summary   : '采集 MySQL 的指标数据'
-icon      : 'icon/mysql'
+__int_icon      : 'icon/mysql'
 dashboard :
   - desc  : 'MySQL'
     path  : 'dashboard/zh/mysql'
