@@ -77,13 +77,13 @@ Amazon PrivateLink 是一项高度可用的可扩展技术，使您能够将 VPC
 
 EC2 执行命令：
 
-```shell script
+```shell
 dig aws-openway.guance.com
 ```
 
 结果：
 
-```shell script
+```shell
 ; <<>> DiG 9.16.38-RH <<>> aws-openway.guance.com
 ;; global options: +cmd
 ;; Got answer:
