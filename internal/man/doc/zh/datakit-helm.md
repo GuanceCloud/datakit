@@ -372,3 +372,52 @@ helm uninstall datakit -n datakit
     MetricsServerEnabled: false
     ```
 <!-- markdownlint-enable -->
+
+## FAQ {#faq}
+
+### PodSecurityPolicy 问题 {#pod-security-policy}
+
+`PodSecurityPolicy` 已在 [Kubernetes`1.21`](https://kubernetes.io/blog/2021/04/06/podsecuritypolicy-deprecation-past-present-and-future/){:target="_blank"} 中弃用，并且已在 Kubernetes`1.25` 中移除。
+如果强行升级集群版本，Helm 部署 `kube-state-metrics` 会报错：
+
+```shell
+Error: UPGRADE FAILED: current release manifest 
+contains removed kubernetes api(s) for this kubernetes
+version and it is therefore unable to build the
+kubernetes objects for performing the diff. error from
+kubernetes: unable to recognize "": no matches for kind
+"PodSecurityPolicy" in version "policy/v1beta1"
+```
+
+#### 备份 Helm values {#get-values}
+
+```shell
+helm get values -n datakit datakit -o yaml > values.yaml
+```
+
+#### 清空 Helm 信息 {#delete-values}
+
+删除 Datakit namespace 的 secrets Helm 信息。
+
+- 获取 secrets
+
+  ```shell
+  $ kubectl get secrets -n datakit
+  NAME                            TYPE                 DATA   AGE
+  sh.helm.release.v1.datakit.v1   helm.sh/release.v1   1      4h17m
+  sh.helm.release.v1.datakit.v2   helm.sh/release.v1   1      4h17m
+  sh.helm.release.v1.datakit.v3   helm.sh/release.v1   1      4h16m
+  ```
+
+- 删除带有 `sh.helm.release.v1.datakit` 的 secrets
+
+  ```shell
+  kubectl delete  secrets sh.helm.release.v1.datakit.v1 sh.helm.release.v1.datakit.v2 sh.helm.release.v1.datakit.v3   -n datakit
+  ```
+
+#### 重新升级或安装 {#reinstall}
+
+```shell
+helm upgrade -i -n datakit datakit  --repo  https://pubrepo.guance.com/chartrepo/datakit  -f values.yaml
+```
+
