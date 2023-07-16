@@ -29,8 +29,8 @@ ci_lint_only:
     - nvm use v16.14.0
     - make clean
     - make lint_nofix
-  #except:
-  # - tags
+  except: # disable CI on tag push
+   - tags
   tags:
     - cloudcare-ft
 
@@ -186,7 +186,7 @@ release-stable:
     ]
   only:
     - master
-  except:
+  except: # disable CI on tag push
     - tags
   script:
     - make clean
