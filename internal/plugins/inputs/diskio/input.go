@@ -148,7 +148,10 @@ func (i *Input) Singleton() {
 }
 
 func (*Input) AvailableArchs() []string {
-	return datakit.AllOS
+	return []string{
+		datakit.OSLabelLinux, datakit.OSLabelWindows,
+		datakit.LabelK8s, datakit.LabelDocker,
+	}
 }
 
 func (*Input) Catalog() string {
