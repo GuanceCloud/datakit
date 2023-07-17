@@ -86,7 +86,7 @@ Point {
 
 - 请勿修改 *pipeline* 目录下的自动生成的采集器默认脚本，如果修改，在 DataKit 启动后，脚本将被覆盖；
 - 建议在 *pipeline/[category]/* 目录下添加对应数据类别的本地脚本；
-- 除 *pipeline* 目录外，请勿对其他脚本目录（remote、confd、gitrepo）请勿进行任何形式的修改。
+- 除 *pipeline* 目录外，请勿对其他脚本目录（*remote*、*confd*、*gitrepo*）请勿进行任何形式的修改。
 
 DataKit 在选择对应的 Pipeline 时，这四个命名空间内的脚本的索引优先级是递减的。以 `cpu` 指标集为例，当需要 *metric/cpu.p* 时，DataKit 查找顺序如下：
 

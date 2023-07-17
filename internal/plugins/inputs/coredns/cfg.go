@@ -190,13 +190,13 @@ func (m *ForwardMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Float,
 				Type:     inputs.Count,
 				Unit:     inputs.NCount,
-				Desc:     "Counter of the number of failed healthchecks",
+				Desc:     "Counter of the number of failed health checks",
 			},
 			"healthcheck_broken_total": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Count,
 				Unit:     inputs.NCount,
-				Desc:     "Counter of the number of complete failures of the healthchecks",
+				Desc:     "Counter of the number of complete failures of the health checks",
 			},
 			"max_concurrent_rejects_total": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -340,7 +340,7 @@ func (m *PromMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Float,
 				Type:     inputs.Count,
 				Unit:     inputs.NCount,
-				Desc:     "The number of times the health check failed",
+				Desc:     "The number of times the health checks failed",
 			},
 			"kubernetes_dns_programming_duration_seconds": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -358,7 +358,7 @@ func (m *PromMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
 				Unit:     inputs.Bool,
-				Desc:     "A metric with a constant '1' value labeled by version, revision, and goversion from which CoreDNS was built",
+				Desc:     "A metric with a constant '1' value labeled by version, revision, and Go version from which CoreDNS was built",
 			},
 			"dns_requests_total": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -376,7 +376,7 @@ func (m *PromMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Float,
 				Type:     inputs.Histogram,
 				Unit:     inputs.SizeByte,
-				Desc:     "Size of the EDNS0 UDP buffer in bytes (64K for TCP) per zone and protocol",
+				Desc:     "Size of the `EDNS0` UDP buffer in bytes (64K for TCP) per zone and protocol",
 			},
 			"dns_do_requests_total": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -436,7 +436,7 @@ func (m *PromMeasurement) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"server":       inputs.NewTagInfo("Server responsible for the request"),
 			"service_kind": inputs.NewTagInfo("Service kind"),
-			"version":      inputs.NewTagInfo("coredns version"),
+			"version":      inputs.NewTagInfo("CoreDNS version"),
 			"revision":     inputs.NewTagInfo("Gitcommit contains the commit where we built CoreDNS from"),
 			"goversion":    inputs.NewTagInfo("Golang version"),
 			"zone":         inputs.NewTagInfo("Zone name used for the request/response"),

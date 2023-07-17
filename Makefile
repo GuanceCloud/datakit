@@ -436,10 +436,10 @@ define check_docs
 endef
 
 md_lint:
-	$(call check_docs, "internal/man/doc/zh", "internal/man/doc/zh/*.md", "on") # check on doc templates
+	$(call check_docs, "internal/man/doc/zh", "internal/man/doc/zh/**/*.md", "on") # check on doc templates
 	@rm -rf ./local-docs .doc
 	@bash mkdocs.sh -D ./local-docs -E -V 0.0.0 # invalid version
-	@$(call check_docs, "local-docs/docs/zh", "local-docs/docs/zh/*.md", "on") # check on generated docs
+	@$(call check_docs, "local-docs/docs/zh", "local-docs/docs/zh/**/*.md", "on") # check on generated docs
 	GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) \
 		go run cmd/make/make.go -mdcheck=.doc/zh/inputs --meta-dir=internal/man/
 

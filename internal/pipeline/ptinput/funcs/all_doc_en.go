@@ -168,8 +168,8 @@ var (
 	//go:embed md/value_type.en.md
 	docValueTypeEN string
 
-	//go:embed md/vaild_json.en.md
-	docVaildJSONEN string
+	//go:embed md/valid_json.en.md
+	docValidJSONEN string
 
 	//go:embed md/conv_traceid_w3c_to_dd.en.md
 	docConvTraceIDEN string
@@ -516,8 +516,8 @@ var (
 		},
 	}
 
-	vaildJSONMarkdownEN = PLDoc{
-		Doc: docVaildJSONEN, Deprecated: false,
+	validJSONMarkdownEN = PLDoc{
+		Doc: docValidJSONEN, Deprecated: false,
 		FnCategory: map[string][]string{
 			langTagEnUS: {eJSON},
 		},

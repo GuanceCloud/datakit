@@ -14,7 +14,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput"
 )
 
-func TestVaildJson(t *testing.T) {
+func TestValidJson(t *testing.T) {
 	cases := []struct {
 		name, pl, in string
 		outkey       string
@@ -24,8 +24,8 @@ func TestVaildJson(t *testing.T) {
 		{
 			name: "map",
 			in:   `{"a":{"first": [2.2, 1.1], "ff": "[2.2, 1.1]","second":2,"third":"aBC","forth":true},"age":47}`,
-			pl: ` 
-			if vaild_json(_) {
+			pl: `
+			if valid_json(_) {
 				d = load_json(_)
 				add_key("abc", d["a"]["first"][0])
 			}
@@ -36,8 +36,8 @@ func TestVaildJson(t *testing.T) {
 		{
 			name: "map",
 			in:   `{"a"??:{"first": [2.2, 1.1], "ff": "[2.2, 1.1]","second":2,"third":"aBC","forth":true},"age":47}`,
-			pl: ` 
-			if vaild_json(_) {
+			pl: `
+			if valid_json(_) {
 			} else {
 				d = load_json(_)
 				add_key("abc", d["a"]["first"][0])
@@ -50,9 +50,21 @@ func TestVaildJson(t *testing.T) {
 		{
 			name:   "map",
 			in:     ``,
-			pl:     "add_key(`in`, vaild_json(_))",
+			pl:     "add_key(`in`, valid_json(_))",
 			outkey: "in",
 			expect: false,
+		},
+		{
+			name: "for-compatibility-with-older-versions",
+			in:   `{"a":{"first": [2.2, 1.1], "ff": "[2.2, 1.1]","second":2,"third":"aBC","forth":true},"age":47}`,
+			pl: ` 
+			if vaild_json(_) {
+				d = load_json(_)
+				add_key("abc", d["a"]["first"][0])
+			}
+			`,
+			outkey: "abc",
+			expect: 2.2,
 		},
 	}
 

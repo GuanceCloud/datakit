@@ -35,7 +35,7 @@ git clone https://github.com/GuanceCloud/agent-attach-java
 mvn package
 ```
 
-使用 -h 查看：
+使用 `-h` 查看：
 
 ``` shell
 agent-attach-java$ java -jar target/agent-attach-java-jar-with-dependencies.jar -h

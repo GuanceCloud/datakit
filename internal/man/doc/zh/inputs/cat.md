@@ -24,7 +24,7 @@ monitor   :
 
 ---
 
-[dianping-cat](https://github.com/dianping/cat){:target="_blank"}  简称 Cat， 是一个开源的分布式实时监控系统，主要用于监控系统的性能、容量和业务指标等。它是美团点评公司研发的一款监控系统，目前已经开源并得到了广泛的应用。
+[Cat](https://github.com/dianping/cat){:target="_blank"}  简称 Cat， 是一个开源的分布式实时监控系统，主要用于监控系统的性能、容量和业务指标等。它是美团点评公司研发的一款监控系统，目前已经开源并得到了广泛的应用。
 
 Cat 通过采集系统的各种指标数据，如 CPU、内存、网络、磁盘等，进行实时监控和分析，帮助开发人员快速定位和解决系统问题。同时，它还提供了一些常用的监控功能，如告警、统计、日志分析等，方便开发人员进行系统监控和分析。
 
@@ -67,7 +67,7 @@ Cat 通过采集系统的各种指标数据，如 CPU、内存、网络、磁盘
 配置文件注意的地方：
 
 1. `startTransactionTypes` `MatchTransactionTypes` `block` `routers` `sample` 是返回给 client 端的数据。
-1. `routers` 是 datakit 的 ip 或者域名。
+1. `routers` 是 Datakit 的 IP 或者域名。
 1. `tcp_port` 对应的是 client 端配置 servers ip 地址。
 
 ---
@@ -99,7 +99,7 @@ Cat 通过采集系统的各种指标数据，如 CPU、内存、网络、磁盘
 
 数据分类：
 
-| 数据类型简写 | 类型                | 说明        | 当前版本的 datakit 是否接入 | 对应到观测云中的数据类型 |
+| 数据类型简写 | 类型                | 说明        | 当前版本的 Datakit 是否接入 | 对应到观测云中的数据类型 |
 | --------     | ------------------- | :---------- | :------------------:        | :-----------------       |
 | t            | transaction start   | 事务开始    | true                        | trace                    |
 | T            | transaction end     | 事务结束    | true                        | trace                    |
@@ -112,7 +112,7 @@ Cat 通过采集系统的各种指标数据，如 CPU、内存、网络、磁盘
 
 - 启动 cat server 模式
 
-    - 数据全在 datakit 中，cat 的 web 页面已经没有数据，所以启动的意义不大，并且页面报错： **出问题 CAT 的服务端[xxx.xxx]**
+    - 数据全在 Datakit 中，cat 的 web 页面已经没有数据，所以启动的意义不大，并且页面报错： **出问题 CAT 的服务端[xxx.xxx]**
     - 配置客户端行为可以在 client 的启动中做
     - cat server 也会将 transaction 数据发送到 dk，造成观测云页面大量的垃圾数据
 

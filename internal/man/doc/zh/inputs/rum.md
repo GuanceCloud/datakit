@@ -325,7 +325,7 @@ curl -X DELETE '<dca_address>/v1/rum/sourcemap?app_id=<app_id>&env=<env>&version
 - `<app_id>`: 对应 RUM 的 `applicationId`
 - `<env>`: 对应 RUM 的 `env`
 - `<version>`: 对应 RUM 的 `version`
-- `<platform>` 应用平台，当前支持 web/miniapp/android/ios
+- `<platform>` 应用平台，当前支持 `web/miniapp/android/ios`
 - `<sourcemap_path>`: 待上传的 `sourcemap` 压缩包文件路径
 
 <!-- markdownlint-disable MD046 -->

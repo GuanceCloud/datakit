@@ -13,6 +13,7 @@ Cloudprober
 Collector
 Confd
 ConfigMag
+Corefile # CoreDNS
 DBCP
 DDTrace
 DKProto

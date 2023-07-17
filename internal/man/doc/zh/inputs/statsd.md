@@ -76,7 +76,7 @@ DD_JMXFETCH_STATSD_PORT=8125
 
 在上面的例子中，需要在 Datakit 配置中指定 source 的 key 是 `source_key`，host 的 key 是 `host_key`。改成其它的也可以，但必须保证 Datakit 中的配置字段名与 DDTrace 中的字段名一致。
 
-最终的效果是：在使用 datakit monitor 中可以看到 `statsd/tomcat/cn-shanghai-sq5ei`，这样可以与其它两样报告给 statsd 采集器的数据源区分开来。如果没有进行以上配置，那么在 datakit monitor 上看到的是默认展示：`statsd/-/-`。
+最终的效果是：在使用 `datakit monitor` 时可以看到 `statsd/tomcat/cn-shanghai-sq5ei`，这样可以与其它两样报告给 statsd 采集器的数据源区分开来。如果没有进行以上配置，那么在 datakit monitor 上看到的是默认展示：`statsd/-/-`。
 
 另外，有配置开关 `save_above_key` 决定是否将 `statsd_source_key` 和 `statsd_host_key` 对应的 tag 报告给中心。默认不报告(`false`)。
 
