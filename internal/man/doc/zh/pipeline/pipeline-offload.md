@@ -32,7 +32,8 @@
 
 `DataKit` 在查找到 `Pipeline` 数据处理脚本后将判断其是否为来自 ` 观测云 ` 的远程脚本，如果是则将数据转发到后级数据处理器处理（如 `DataKit`）。负载均衡方式为轮询。
 
-![pipeline-offload](img/pipeline-offload.drawio.png)
+![Pipeline Offload](img/pipeline-offload.drawio.png)
+
 ## 部署后级数据处理器
 
 有以下几个方式部署用于接收计算任务的数据处理器（DataKit）：

@@ -396,7 +396,7 @@ func (m *DatabaseFilesMeasurement) Info() *inputs.MeasurementInfo {
 			"physical_name": inputs.NewTagInfo("Operating-system file name"),
 			"state_desc":    inputs.NewTagInfo("Description of the file state"),
 			"file_id":       inputs.NewTagInfo("ID of the file within database"),
-			"file_type":     inputs.NewTagInfo("File type: 0 = Rows, 1 = Log, 2 = FILESTREAM, 3 =  Identified for informational purposes only, 4 = Full-text"),
+			"file_type":     inputs.NewTagInfo("File type: 0 = Rows, 1 = Log, 2 = File-Stream, 3 = Identified for informational purposes only, 4 = Full-text"),
 		},
 	}
 }

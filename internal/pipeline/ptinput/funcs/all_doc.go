@@ -71,7 +71,7 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"url_parse()":              &urlParseMarkdown,
 	"timestamp()":              &timestampMarkdown,
 	"value_type()":             &valueTypeMarkdown,
-	"vaild_json()":             &vaildJSONMarkdown,
+	"valid_json()":             &validJSONMarkdown,
 	"conv_traceid_w3c_to_dd()": &convTraceID128MD,
 }
 
@@ -128,7 +128,7 @@ var PipelineFunctionDocsEN = map[string]*PLDoc{
 	"url_parse()":              &urlParseMarkdownEN,
 	"timestamp()":              &timestampMarkdownEN,
 	"value_type()":             &valueTypeMarkdownEN,
-	"vaild_json()":             &vaildJSONMarkdownEN,
+	"valid_json()":             &validJSONMarkdownEN,
 	"conv_traceid_w3c_to_dd()": &convTraceID128MDEN,
 }
 
@@ -291,8 +291,8 @@ var (
 	//go:embed md/value_type.md
 	docValueType string
 
-	//go:embed md/vaild_json.md
-	docVaildJSON string
+	//go:embed md/valid_json.md
+	docValidJSON string
 
 	//go:embed md/conv_traceid_w3c_to_dd.md
 	docConvTraceID string
@@ -637,8 +637,8 @@ var (
 		},
 	}
 
-	vaildJSONMarkdown = PLDoc{
-		Doc: docVaildJSON, Deprecated: false,
+	validJSONMarkdown = PLDoc{
+		Doc: docValidJSON, Deprecated: false,
 		FnCategory: map[string][]string{
 			langTagZhCN: {cJSON},
 		},

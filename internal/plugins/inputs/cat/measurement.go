@@ -144,10 +144,10 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"domain":               &inputs.TagInfo{Desc: "IP 地址"},
 			"hostName":             &inputs.TagInfo{Desc: "主机名"},
-			"runtime_java-version": &inputs.TagInfo{Desc: "java version"},
+			"runtime_java-version": &inputs.TagInfo{Desc: "Java version"},
 			"runtime_user-name":    &inputs.TagInfo{Desc: "用户名"},
 			"runtime_user-dir":     &inputs.TagInfo{Desc: "启动程序的 jar 包位置"},
-			"os_name":              &inputs.TagInfo{Desc: "操作系统名称：windows、linux，mac 等"},
+			"os_name":              &inputs.TagInfo{Desc: "操作系统名称：`windows/linux/mac` 等"},
 			"os_arch":              &inputs.TagInfo{Desc: "CPU 架构：amd/arm"},
 			"os_version":           &inputs.TagInfo{Desc: "操作系统的内核版本"},
 		},

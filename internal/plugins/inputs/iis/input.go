@@ -204,7 +204,7 @@ func (i *Input) Collect() error {
 				}
 			}
 			if len(pathList) < 1 {
-				return fmt.Errorf("obj %s no vaild counter ", objName)
+				return fmt.Errorf("obj %s no valid counter ", objName)
 			}
 			var handle pdh.PDH_HQUERY
 			var counterHandle pdh.PDH_HCOUNTER

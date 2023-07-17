@@ -118,7 +118,7 @@ func (*TaskmanagerMeasurement) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"host":  inputs.NewTagInfo("Host name."),
-			"tm_id": inputs.NewTagInfo("Taskmanager ID."),
+			"tm_id": inputs.NewTagInfo("Task manager ID."),
 		},
 	}
 }

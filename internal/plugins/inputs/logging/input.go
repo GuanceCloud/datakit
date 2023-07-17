@@ -315,7 +315,7 @@ func (*loggingMeasurement) Info() *inputs.MeasurementInfo {
 			"date": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Unit:     inputs.DurationMS,
-				Desc:     "Built-in extension fields added by server. The `date` field is set to the time when the log is collected by the collector by default, but it can be overridden using a pipeline.",
+				Desc:     "Built-in extension fields added by server. The `date` field is set to the time when the log is collected by the collector by default, but it can be overridden using a Pipeline.",
 			},
 			"date_ns": &inputs.FieldInfo{
 				DataType: inputs.Int,

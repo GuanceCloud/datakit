@@ -70,7 +70,7 @@ GRANT SELECT ON V_$SYSMETRIC TO datakit;
 GRANT SELECT ON V_$SYSTEM_PARAMETER TO datakit;
 ```
 
-如果想监控来自 CDB 和所有 PDB 中的表空间(tablespaces)，需要一个有合适权限的公共用户(common user):
+如果想监控来自 CDB 和所有 PDB 中的表空间(Table Spaces)，需要一个有合适权限的公共用户(common user):
 
 ```sql
 -- Create the datakit user. Replace the password placeholder with a secure password.

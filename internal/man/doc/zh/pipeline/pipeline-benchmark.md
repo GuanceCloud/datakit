@@ -32,7 +32,7 @@
 
 分别使用函数 `json()` 和 `load_json()` 函数进行提取
 
-- load_json
+- `load_json()`
 
 ```python
 data = load_json(_)
@@ -49,7 +49,7 @@ add_key(status, data["status"])
 add_key(cost, data["cost"])
 ```
 
-- json
+- `json()`
 
 ```python
 json(_, tcpSeq, tcpSeq)
@@ -64,7 +64,6 @@ json(_, id, id)
 json(_, status, status)
 json(_, cost, cost)
 ```
-
 
 基准测试结果：
 

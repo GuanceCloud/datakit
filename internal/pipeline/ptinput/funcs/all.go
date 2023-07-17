@@ -71,7 +71,8 @@ var FuncsMap = map[string]runtime.FuncCall{
 	"sample":                 Sample,
 	"url_parse":              URLParse,
 	"value_type":             ValueType,
-	"vaild_json":             VaildJSON,
+	"vaild_json":             ValidJSON,
+	"valid_json":             ValidJSON,
 	"conv_traceid_w3c_to_dd": ConvTraceIDW3C2DD,
 	// disable
 	"json_all": JSONAll,
@@ -131,7 +132,8 @@ var FuncsCheckMap = map[string]runtime.FuncCheck{
 	"url_parse":              URLParseChecking,
 	"sample":                 SampleChecking,
 	"value_type":             ValueTypeChecking,
-	"vaild_json":             VaildJSONChecking,
+	"vaild_json":             ValidJSONChecking,
+	"valid_json":             ValidJSONChecking,
 	"conv_traceid_w3c_to_dd": ConvTraceIDW3C2DDChecking,
 
 	// disable

@@ -1,7 +1,7 @@
 ---
 title     : 'Chrony'
 summary   : '采集 Chrony 服务器相关的指标数据'
-__int_icon      : 'icon/chrony'
+__int_icon: 'icon/chrony'
 dashboard :
   - desc  : '暂无'
     path  : '-'
@@ -27,7 +27,7 @@ Chrony 采集器支持远程采集，采集器 Datakit 可以运行在多种操�
 
 ### 前置条件 {#requirements}
 
-- 安装 [chrony 服务]
+- 安装 Chrony 服务
 
 ```shell
 $ yum -y install chrony    # [On CentOS/RHEL]

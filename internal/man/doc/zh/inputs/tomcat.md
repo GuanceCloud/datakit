@@ -173,7 +173,7 @@ export CATALINA_OPTS="-javaagent:dd-java-agent.jar \
 
 以 `apache-tomcat-9.0.45` 为例：
 
-> 注意：示例中 jolokia user 的 username 和 password 请务必修改！
+> 注意：示例中 Jolokia 的 `username` 和 `password` 请务必修改
 
 ``` shell
 cd apache-tomcat-9.0.45/

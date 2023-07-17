@@ -215,7 +215,7 @@ java -javaagent:/path/to/jolokia-jvm-agent.jar=port=8080,host=localhost -jar you
 
 配置好后，重启 DataKit 即可。
 
-### Jolokic 指标 {#jolokia-metric}
+### Jolokia 指标 {#jolokia-metric}
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 

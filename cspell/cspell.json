@@ -19,6 +19,7 @@
             "ignoreRegExpList": [
                 "/^\\s*```[\\s\\S]*?^\\s*```/gm",
                 "/`.*`/gm",
+                "/'.*'/gm", // ignore markdown header meta infos
                 "/:.*:/gm",
                 "/_.*_/gm",
                 "/\\*.*\\*/gm",

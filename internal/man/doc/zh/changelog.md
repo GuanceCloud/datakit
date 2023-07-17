@@ -49,7 +49,7 @@
 ### 兼容调整 {#cl-1.11.0-brk}
 1. 容器日志采集对于创建时间小于 5 分钟的容器，不再提供自动 `from_beginning`
 2. 移除容器日志的 `deployment` tag
-3. 移除容器 stdout source 会以 `short_image_name` 来命名的逻辑，现在只使用容器自身名称和 labels["io.kubernetes.container.name"]
+3. 移除容器 stdout source 会以 `short_image_name` 来命名的逻辑，现在只使用容器自身名称和 `labels["io.kubernetes.container.name"]`
 4. 移除对旧版容器内部文件采集方案——配置 labels `datakit/logs/inside` 的支持，改为 ENV 配置
 -->
 
@@ -84,7 +84,7 @@
 - Kubernetes Pod 指标和对象采集新增 `memory_capacity` 和 `memory_used_percent` 两个字段 (#1721)
 - OpenTelemetry HTTP 路由支持自定义（#1718）
 - Oracle 采集器优化 `oracle_system` 指标集丢失的问题，优化采集逻辑并增加部分指标（#1693）
-- Pipeline 增加 `in` 运算符，增加 `value_type()` 和 `vaild_json()` 函数，调整 `load_json()` 函数反序列化失败后的行为 (#1712)
+- Pipeline 增加 `in` 运算符，增加 `value_type()` 和 `valid_json()` 函数，调整 `load_json()` 函数反序列化失败后的行为 (#1712)
 - 主机进程对象中采集新增启动时长（`started_duration`）字段（#1722）
 - 优化拨测数据发送逻辑（#1708）
 - 更新更多集成测试（#1666/#1667/#1668/#1693/#1599/#1573/#1572/#1563/#1512/#1715）
