@@ -79,7 +79,9 @@ func TestReadEnv(t *testing.T) {
 			assert.Equal(t, tc.expected, ipt, "test case: %s, expected: %v, actual: %v", tc.expected, ipt)
 			// clear env values
 			t.Cleanup(func() {
-				os.Clearenv()
+				for k := range tc.envs {
+					assert.NoError(t, os.Unsetenv(k))
+				}
 			})
 		})
 	}

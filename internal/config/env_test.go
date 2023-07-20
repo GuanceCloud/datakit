@@ -372,7 +372,9 @@ func TestLoadEnv(t *testing.T) {
 			assert.Equal(t, tc.expect.String(), c.String(), "expect\n%s, get\n%s", tc.expect.String(), c.String())
 
 			t.Cleanup(func() {
-				os.Clearenv()
+				for k := range tc.envs {
+					assert.NoError(t, os.Unsetenv(k))
+				}
 			})
 		})
 	}
