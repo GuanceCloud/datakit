@@ -35,6 +35,9 @@ const sampleConfig = `
   ## Set true to enable election
   election = true
 
+  ## Collect extra stats
+  # extra_stats = ["slabs", "items"]
+
   ## Collect interval.
   # 单位 "ns", "us" (or "µs"), "ms", "s", "m", "h"
   interval = "10s"
@@ -52,15 +55,28 @@ var (
 	defaultTimeout = 5 * time.Second
 )
 
+const emptySlabID = "empty_slab_id"
+
+type (
+	getValueFunc func(key, value []byte) (slabID string, fields map[string]interface{}, err error)
+	collectFunc  func(net.Conn, *inputs.MeasurementInfo, map[string]string) ([]*point.Point, error)
+	collectItem  struct {
+		metricInfo *inputs.MeasurementInfo
+		collector  collectFunc
+	}
+)
+
 type Input struct {
 	Servers     []string          `toml:"servers"`
 	UnixSockets []string          `toml:"unix_sockets"`
 	Election    bool              `toml:"election"`
+	ExtraStats  []string          `toml:"extra_stats"` // may be slabs or items
 	Interval    string            `toml:"interval"`
 	Tags        map[string]string `toml:"tags"`
 
-	duration     time.Duration
-	collectCache []*point.Point
+	duration           time.Duration
+	collectCache       []*point.Point
+	metricCollectorMap map[string]*collectItem
 
 	feeder  dkio.Feeder
 	semStop *cliutils.Sem // start stop signal
@@ -82,6 +98,8 @@ func (*Input) AvailableArchs() []string {
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&inputMeasurement{},
+		&itemsMeasurement{},
+		&slabsMeasurement{},
 	}
 }
 
@@ -142,53 +160,21 @@ func (i *Input) gatherServer(address string, unix bool) error {
 		return fmt.Errorf("failed to create net connection")
 	}
 
-	if err := conn.SetDeadline(time.Now().Add(defaultTimeout)); err != nil {
-		l.Errorf("conn.SetDeadline: %s", err)
-	}
-
-	rw := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
-
-	if _, err := fmt.Fprint(rw, "stats\r\n"); err != nil {
-		return err
-	}
-
-	if err := rw.Flush(); err != nil {
-		return err
-	}
-
-	values, err := parseResponse(rw.Reader)
-	if err != nil {
-		return err
-	}
-
 	tags := map[string]string{"server": address}
-
-	fields := make(map[string]interface{})
-
-	for key := range memFields {
-		if value, ok := values[key]; ok {
-			if iValue, errParse := strconv.ParseInt(value, 10, 64); errParse == nil {
-				fields[key] = iValue
-			} else {
-				fields[key] = value
-			}
-		}
-	}
-
 	if i.Tags != nil {
 		for k, v := range i.Tags {
 			tags[k] = v
 		}
 	}
 
-	metric := &inputMeasurement{
-		name:   inputName,
-		tags:   tags,
-		fields: fields,
-		ts:     time.Now(),
-		ipt:    i,
+	for k, v := range i.metricCollectorMap {
+		if points, err := v.collector(conn, v.metricInfo, tags); err != nil {
+			l.Warnf("collect stats %s failed: %s", k, err.Error())
+		} else {
+			i.collectCache = append(i.collectCache, points...)
+		}
 	}
-	i.collectCache = append(i.collectCache, metric.Point())
+
 	return nil
 }
 
@@ -215,6 +201,175 @@ func parseResponse(r *bufio.Reader) (map[string]string, error) {
 	return values, nil
 }
 
+func getResponseReader(conn net.Conn, command string) (reader *bufio.Reader, err error) {
+	err = conn.SetDeadline(time.Now().Add(defaultTimeout))
+	if err != nil {
+		err = fmt.Errorf("conn.SetDeadline: %w", err)
+		return
+	}
+
+	rw := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
+
+	_, err = fmt.Fprintf(rw, "%s\r\n", command)
+	if err != nil {
+		return
+	}
+
+	if err = rw.Flush(); err != nil {
+		return
+	}
+
+	reader = rw.Reader
+	return
+}
+
+// collectStatsItems collect items stats.
+func (i *Input) collectStatsItems(conn net.Conn, info *inputs.MeasurementInfo, extraTags map[string]string) (pts []*point.Point, err error) {
+	reader, err := getResponseReader(conn, "stats items")
+	if err != nil {
+		return
+	}
+	return i.collectPoints(reader, info, extraTags,
+		func(key, value []byte) (slabID string, fields map[string]interface{}, err error) {
+			fields = make(map[string]interface{})
+			keyParts := bytes.SplitN(key, []byte(":"), 3)
+			if len(keyParts) != 3 || !bytes.Equal(keyParts[0], []byte("items")) {
+				err = fmt.Errorf("unexpected key: %q", key)
+				return
+			}
+
+			slabID = string(keyParts[1])
+			fieldName := string(keyParts[2])
+			if iValue, errParse := strconv.ParseInt(string(value), 10, 64); errParse == nil {
+				fields[fieldName] = iValue
+			} else {
+				l.Warnf("invalid value: %q, expect number", value)
+			}
+			return
+		})
+}
+
+// collectStatsSlabs collect slabs stats.
+func (i *Input) collectStatsSlabs(conn net.Conn, info *inputs.MeasurementInfo, extraTags map[string]string) (pts []*point.Point, err error) {
+	reader, err := getResponseReader(conn, "stats slabs")
+	if err != nil {
+		return
+	}
+	return i.collectPoints(reader, info, extraTags,
+		func(key, value []byte) (slabID string, fields map[string]interface{}, err error) {
+			fields = make(map[string]interface{})
+			keyParts := bytes.SplitN(key, []byte(":"), 2)
+			fieldName := ""
+			switch {
+			case len(keyParts) == 1:
+				slabID = emptySlabID
+				fieldName = string(keyParts[0])
+			case len(keyParts) == 2:
+				slabID = string(keyParts[0])
+				fieldName = string(keyParts[1])
+			default:
+				err = fmt.Errorf("unexpected key: %q", key)
+				return
+			}
+
+			if iValue, errParse := strconv.ParseInt(string(value), 10, 64); errParse == nil {
+				fields[fieldName] = iValue
+			} else {
+				l.Warnf("invalid value: %q, expect number", value)
+			}
+			return
+		})
+}
+
+func (i *Input) collectPoints(
+	reader *bufio.Reader,
+	info *inputs.MeasurementInfo,
+	extraTags map[string]string,
+	getValue getValueFunc,
+) (pts []*point.Point, err error) {
+	slabFieldsMap := map[string]map[string]interface{}{}
+
+	for {
+		line, _, errRead := reader.ReadLine()
+		if errRead != nil {
+			err = errRead
+			break
+		}
+
+		if bytes.Equal(line, []byte("END")) {
+			break
+		}
+
+		s := bytes.SplitN(line, []byte(" "), 3)
+		if len(s) != 3 || !bytes.Equal(s[0], []byte("STAT")) {
+			err = fmt.Errorf("unexpected line in stats response: %q", line)
+			return
+		}
+
+		if slabID, fields, err := getValue(s[1], s[2]); err != nil {
+			l.Warnf("get value error: %s", err.Error())
+		} else {
+			if _, ok := slabFieldsMap[slabID]; !ok {
+				slabFieldsMap[slabID] = map[string]interface{}{}
+			}
+			for k, v := range fields {
+				slabFieldsMap[slabID][k] = v
+			}
+		}
+	}
+
+	for slabID, slabfields := range slabFieldsMap {
+		fields := make(map[string]interface{})
+		tags := make(map[string]string)
+
+		for field, value := range slabfields {
+			if _, ok := info.Fields[field]; ok {
+				fields[field] = value
+			}
+		}
+
+		if slabID != emptySlabID {
+			tags["slab_id"] = slabID
+		}
+
+		for k, v := range extraTags {
+			tags[k] = v
+		}
+
+		metric := &inputMeasurement{
+			name:   info.Name,
+			tags:   tags,
+			fields: fields,
+			ts:     time.Now(),
+			ipt:    i,
+		}
+
+		pts = append(pts, metric.Point())
+	}
+
+	return pts, err
+}
+
+func (i *Input) collectStats(conn net.Conn, info *inputs.MeasurementInfo, extraTags map[string]string) (pts []*point.Point, err error) {
+	reader, err := getResponseReader(conn, "stats")
+	if err != nil {
+		return
+	}
+
+	return i.collectPoints(reader, info, extraTags,
+		func(key, value []byte) (slabID string, fields map[string]interface{}, err error) {
+			fields = make(map[string]interface{})
+			slabID = emptySlabID
+			fieldName := string(key)
+			if iValue, errParse := strconv.ParseInt(string(value), 10, 64); errParse == nil {
+				fields[fieldName] = iValue
+			} else {
+				l.Debugf("invalid value: %q, expect number", value)
+			}
+			return
+		})
+}
+
 const (
 	maxInterval = 1 * time.Minute
 	minInterval = 1 * time.Second
@@ -231,6 +386,31 @@ func (i *Input) Run() {
 	}
 
 	i.duration = config.ProtectedInterval(minInterval, maxInterval, duration)
+
+	i.metricCollectorMap = map[string]*collectItem{
+		"memcache": {
+			metricInfo: (&inputMeasurement{}).Info(),
+			collector:  i.collectStats,
+		},
+	}
+
+	for _, statType := range i.ExtraStats {
+		switch statType {
+		case "items":
+			i.metricCollectorMap["items"] = &collectItem{
+				metricInfo: (&itemsMeasurement{}).Info(),
+				collector:  i.collectStatsItems,
+			}
+		case "slabs":
+			i.metricCollectorMap["slabs"] = &collectItem{
+				metricInfo: (&slabsMeasurement{}).Info(),
+				collector:  i.collectStatsSlabs,
+			}
+
+		default:
+			l.Warnf("Invalid extra stats type: %s, items or slabs expected", statType)
+		}
+	}
 
 	if i.Election {
 		i.opt = point.WithExtraTags(dkpt.GlobalElectionTags())

@@ -89,3 +89,74 @@ var memFields = map[string]interface{}{
 	"touch_misses":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of items that have been touched and not found"},
 	"uptime":                &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of secs since the server started"},
 }
+
+type itemsMeasurement struct {
+	inputMeasurement
+}
+
+//nolint:lll
+func (*itemsMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "memcached_items",
+		Fields: map[string]interface{}{
+			"number":            &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of items presently stored in this slab class"},
+			"number_hot":        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of items presently stored in the HOT LRU"},
+			"number_warm":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of items presently stored in the WARM LRU"},
+			"number_cold":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of items presently stored in the COLD LRU"},
+			"number_noexp":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of items presently stored in the `NOEXP` class"},
+			"age":               &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Age of the oldest item in the LRU"},
+			"evicted":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of the items which had to be evicted from the LRU before expiring"},
+			"evicted_nonzero":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of the `onzero` items which had an explicit expire time set had to be evicted from the LRU before expiring"},
+			"expired_unfetched": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of the expired items reclaimed from the LRU which were never touched after being set"},
+			"evicted_unfetched": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of the valid items evicted from the LRU which were never touched after being set"},
+			"evicted_time":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationSecond, Desc: "Seconds since the last access for the most recent item evicted from this class"},
+			"outofmemory":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of the underlying slab class which was unable to store a new item"},
+			"tailrepairs":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "How many times memcache self-healed a slab with a `refcount` leak"},
+			"moves_to_cold":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of items which were moved from HOT or WARM into COLD"},
+			"moves_to_warm":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of items which were moved from COLD to WARM"},
+			"moves_within_lru":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of active items which were bumped within HOT or WARM"},
+			"reclaimed":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of entries which were stored using memory from an expired entry"},
+			"crawler_reclaimed": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of items which freed by the LRU Crawler"},
+			"lrutail_reflocked": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of items which found to be `refcount` locked in the LRU tail"},
+			"direct_reclaims":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of worker threads which had to directly pull LRU tails to find memory for a new item"},
+		},
+		Tags: map[string]interface{}{
+			"server":  inputs.NewTagInfo("The host name from which metrics are gathered"),
+			"slab_id": inputs.NewTagInfo("The id of the current slab"),
+		},
+	}
+}
+
+type slabsMeasurement struct {
+	inputMeasurement
+}
+
+//nolint:lll
+func (*slabsMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "memcached_slabs",
+		Fields: map[string]interface{}{
+			"chunk_size":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of space each chunk uses"},
+			"chunks_per_page": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "How many chunks exist within one page"},
+			"total_pages":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Total number of pages allocated to the slab class"},
+			"total_chunks":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Total number of chunks allocated to the slab class"},
+			"used_chunks":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "How many chunks have been allocated to items"},
+			"free_chunks":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Chunks not yet allocated to items or freed via delete"},
+			"free_chunks_end": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of free chunks at the end of the last allocated page"},
+			"get_hits":        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of get requests were serviced by this slab class"},
+			"cmd_set":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of set requests stored data in this slab class"},
+			"delete_hits":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of delete commands succeeded in this slab class"},
+			"incr_hits":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of `incrs` commands modified this slab class"},
+			"decr_hits":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of `decrs` commands modified this slab class"},
+			"cas_hits":        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of CAS commands modified this slab class"},
+			"cas_badval":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of CAS commands failed to modify a value due to a bad CAS id"},
+			"touch_hits":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of touches serviced by this slab class"},
+			"active_slabs":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Total number of slab classes allocated"},
+			"total_malloced":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Total amount of memory allocated to slab pages"},
+		},
+		Tags: map[string]interface{}{
+			"server":  inputs.NewTagInfo("The host name from which metrics are gathered"),
+			"slab_id": inputs.NewTagInfo("The id of the current slab"),
+		},
+	}
+}
