@@ -42,7 +42,7 @@ func Test_checkMarkdownMeta(t *T.T) {
 		md := `---
 title: 'title string'
 summary: 'summary string'
-icon: 'icon'
+__int_icon: 'icon'
 dashboard:
   - desc: 'dashboard desc'
     path: 'dashboard'
