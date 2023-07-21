@@ -55,7 +55,12 @@ func UnitTestDataKit() error {
 
 	for i, p := range pkgs {
 		fmt.Printf("=======================\n")
-		fmt.Printf("[%s] testing(%03d/%d) %s...\n", utID, i, len(pkgs), p)
+		start := time.Now()
+		fmt.Printf("[%s][%02d:%02d:%02d] testing(%03d/%d) %s...\n",
+			utID,
+			start.Hour(),
+			start.Minute(),
+			start.Second(), i, len(pkgs), p)
 
 		if excludes[p] {
 			fmt.Printf("%s excluded\n", p)
@@ -72,8 +77,7 @@ func UnitTestDataKit() error {
 			TestID:    utID,
 		}
 
-		start := time.Now()
-		tcmd := exec.Command("go", "test", "-timeout", "1h", "-cover", p) //nolint:gosec
+		tcmd := exec.Command("go", "test", "-count=1", "-timeout", "1h", "-cover", p) //nolint:gosec
 		tcmd.Env = append(os.Environ(), []string{
 			"GO111MODULE=off",
 			"CGO_ENABLED=1",
@@ -108,6 +112,8 @@ func UnitTestDataKit() error {
 		//  ^ok  	gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/promremote	0.652s	coverage: 0.5% of statements [no tests to run]
 		//  ^?   	gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/process	[no test files]
 		//  ^ok  	gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/postgresql	0.715s	coverage: 52.3% of statements
+
+		fmt.Printf(">> %s\n", coverageLine)
 
 		switch {
 		case strings.HasPrefix(coverageLine, "?"),

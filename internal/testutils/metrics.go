@@ -232,8 +232,7 @@ func flushToFile(data []byte) error {
 		}
 	}
 
-	f, err := os.OpenFile(filepath.Clean(metricFile),
-		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
+	f, err := os.OpenFile(filepath.Clean(metricFile), os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {
 		return err
 	}

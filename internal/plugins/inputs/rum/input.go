@@ -75,22 +75,27 @@ const (
   ## buffer is the size of jobs' buffering of worker channel.
   ## threads is the total number fo goroutines at running time.
   # [inputs.rum.threads]
-    # buffer = 100
-    # threads = 8
+  #   buffer = 100
+  #   threads = 8
 
   ## Storage config a local storage space in hard dirver to cache trace data.
   ## path is the local file path used to cache data.
   ## capacity is total space size(MB) used to store data.
   # [inputs.rum.storage]
-    # path = "./rum_storage"
-    # capacity = 5120
+  #   path = "./rum_storage"
+  #   capacity = 5120
 
   # Provide a list to resolve CDN of your static resource.
   # Below is the Datakit default built-in CDN list, you can uncomment that and change it to your cdn list,
   # it's a JSON array like: [{"domain": "CDN domain", "name": "CDN human readable name", "website": "CDN official website"},...],
   # domain field value can contains '*' as wildcard, for example: "kunlun*.com",
   # it will match "kunluna.com", "kunlunab.com" and "kunlunabc.com" but not "kunlunab.c.com".
-  # cdn_map = '[{"domain":"15cdn.com","name":"腾正安全加速(原 15CDN)","website":"https://www.15cdn.com"},{"domain":"tzcdn.cn","name":"腾正安全加速(原 15CDN)","website":"https://www.15cdn.com"},...]'
+  # cdn_map = '''
+  # [
+  #   {"domain":"15cdn.com","name":"腾正安全加速(原 15CDN)","website":"https://www.15cdn.com"},
+  #   {"domain":"tzcdn.cn","name":"腾正安全加速(原 15CDN)","website":"https://www.15cdn.com"}
+  # ]
+  # '''
 `
 )
 
@@ -123,6 +128,8 @@ type Input struct {
 	LocalCacheConfig       *storage.StorageConfig       `toml:"storage"`
 	CDNMap                 string                       `toml:"cdn_map"`
 	feeder                 dkio.Feeder
+
+	rumDataDir string
 }
 
 type CDN struct {
@@ -358,11 +365,11 @@ func (ipt *Input) Run() {
 
 	metrics.MustRegister(ClientRealIPCounter, sourceMapCount, loadedZipGauge, sourceMapDurationSummary)
 
-	if err := extractArchives(true); err != nil {
+	if err := ipt.extractArchives(true); err != nil {
 		log.Errorf("init extract zip archives encounter err: %s", err)
 	}
 
-	if err := loadSourcemapFile(); err != nil {
+	if err := ipt.loadSourcemapFile(); err != nil {
 		log.Warnf("load source map file failed: %s", err.Error())
 	}
 
@@ -382,11 +389,11 @@ func (ipt *Input) Run() {
 			case <-datakit.Exit.Wait():
 				return nil
 			case <-tick.C:
-				if err := extractArchives(false); err != nil {
+				if err := ipt.extractArchives(false); err != nil {
 					log.Errorf("extract zip archives encounter err: %s", err)
 				}
 
-				sourceMapDirs := getWebSourceMapDirs()
+				sourceMapDirs := ipt.getWebSourceMapDirs()
 
 				var webSourcemapCacheFile map[string]struct{}
 				func() {
@@ -448,10 +455,15 @@ func (*Input) Terminate() {
 	}
 }
 
+func defaultInput() *Input {
+	return &Input{
+		feeder:     dkio.DefaultFeeder(),
+		rumDataDir: datakit.DataRUMDir,
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{
-			feeder: dkio.DefaultFeeder(),
-		}
+		return defaultInput()
 	})
 }

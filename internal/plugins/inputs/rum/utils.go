@@ -25,7 +25,6 @@ import (
 	"github.com/go-sourcemap/sourcemap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ip2isp"
@@ -96,17 +95,17 @@ var (
 	replaceRegexp    = regexp.MustCompile(`@ .*:\d+:\d+`)
 )
 
-func getWebSourceMapDirs() map[string]struct{} {
+func (ipt *Input) getWebSourceMapDirs() map[string]struct{} {
 	sourceMapDirs := make(map[string]struct{}, 2)
 
 	for _, sdkName := range []string{SdkWeb, SdkWebMiniApp, SdkWebUniApp} {
-		sourceMapDirs[getRumSourcemapDir(sdkName)] = struct{}{}
+		sourceMapDirs[ipt.getRumSourcemapDir(sdkName)] = struct{}{}
 	}
 	return sourceMapDirs
 }
 
-func loadSourcemapFile() error {
-	sourceMapDirs := getWebSourceMapDirs()
+func (ipt *Input) loadSourcemapFile() error {
+	sourceMapDirs := ipt.getWebSourceMapDirs()
 
 	webSourcemapLock.Lock()
 	defer webSourcemapLock.Unlock()
@@ -134,14 +133,13 @@ func loadSourcemapFile() error {
 	return nil
 }
 
-func getRumSourcemapDir(sdkName string) string {
+func (ipt *Input) getRumSourcemapDir(sdkName string) string {
 	dir, ok := srcMapDirs[sdkName]
 	if !ok {
 		dir = httpapi.SourceMapDirWeb
 	}
-	rumDir := filepath.Join(datakit.DataRUMDir, dir)
 
-	return rumDir
+	return filepath.Join(ipt.rumDataDir, dir)
 }
 
 type execCmdTokenBuckets struct {
