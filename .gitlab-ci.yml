@@ -19,20 +19,20 @@ stages:
   - deploy_ebpf
   - deploy
 
-ci_lint_and_ut:
+# run lint and unit test for most of the branches
+ci_lint_and_ut: 
   stage: deploy
   resource_group: production
-  only:
-    - /.*/
+  except:
+    - tags # disable CI on tag push
+    - dev  # dev & master branches are 'merged to' branch, all things should have be done before merge, so skip these 2 branches
+    - master
   script:
-    # only run lint
     - nvm use v16.14.0
     - make clean
     - make lint_nofix
     - export UT_EXCLUDE_INTEGRATION_TESTING="on" # ignore integration test
     - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY"
-  except: # disable CI on tag push
-   - tags
   tags:
     - cloudcare-ft
 
