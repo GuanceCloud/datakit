@@ -1,0 +1,37 @@
+Hardware Model:  arm64
+OS Version:   iPhone OS 15.2
+Report Version:  104
+
+Code Type:   ARM64
+
+Last Exception Backtrace:
+0   CoreFoundation                      0x00000001803e1188 __exceptionPreprocess + 236
+1   libobjc.A.dylib                     0x0000000180193384 objc_exception_throw + 56
+2   CoreFoundation                      0x00000001803f0530 +[NSObject(NSObject) instanceMethodSignatureForSelector:] + 0
+3   CoreFoundation                      0x00000001803e53fc ___forwarding___ + 1408
+4   CoreFoundation                      0x00000001803e743c _CF_forwarding_prep_0 + 92
+5   App                                 0x0000000104486ef0 0x104480000 + 72
+6   AFNetworking                        0x00000001049393f4 0x104934000 + 132
+7   AFNetworking                        0x000000010494aeb0 0x104934000 + 148
+8   libdispatch.dylib                   0x0000000104bb3e94 _dispatch_call_block_and_release + 24
+9   libdispatch.dylib                   0x0000000104bb5694 _dispatch_client_callout + 16
+10  libdispatch.dylib                   0x0000000104bc432c _dispatch_main_queue_callback_4CF + 1388
+11  CoreFoundation                      0x000000018034fcd4 __CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__ + 12
+12  CoreFoundation                      0x000000018034a244 __CFRunLoopRun + 2448
+13  CoreFoundation                      0x00000001803493a8 CFRunLoopRunSpecific + 572
+14  GraphicsServices                    0x000000018c03c5ec GSEventRunModal + 160
+15  UIKitCore                           0x0000000184d937ac -[UIApplication _run] + 992
+16  UIKitCore                           0x0000000184d982e8 UIApplicationMain + 112
+17  App                                 0x0000000104489940 0x104480000 + 96
+18  dyld                                0x0000000104595ca0 start_sim + 20
+19  ???                                 0x00000001046850f4 0x0 + 4368912628
+20  ???                                 0xb841800000000000 0x0 + 13277033913953288192
+
+Binary Images:
+       0x104480000 -        0x1044dffff App arm64 <c5f567045f43313083662447212630b9> /Users/hulilei/Library/Developer/CoreSimulator/Devices/85A2FDD0-C469-4BFD-9628-5CC6F7A3CE13/data/Containers/Bundle/Application/5029205E-C195-480D-B112-626E8D614D67/App.app/App
+       0x104934000 -        0x10495ffff AFNetworking arm64 <23b403d6f86e32349a498e63fa24055b> /Users/hulilei/Library/Developer/CoreSimulator/Devices/85A2FDD0-C469-4BFD-9628-5CC6F7A3CE13/data/Containers/Bundle/Application/5029205E-C195-480D-B112-626E8D614D67/App.app/Frameworks/AFNetworking.framework/AFNetworking
+       0x180172000 -        0x1801a2fff libobjc.A.dylib arm64 <22330d97ba8130f1ba94b9879f9f23bf> /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS.simruntime/Contents/Resources/RuntimeRoot/usr/lib/libobjc.A.dylib
+       0x1802cb000 -        0x180677fff CoreFoundation arm64 <3b05273d3bbf321d8274b848d167fd37> /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation
+       0x104bb0000 -        0x104bfbfff libdispatch.dylib arm64 <68675cfeb3333633bc16e0f5d5c052c2> /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/introspection/libdispatch.dylib
+       0x184189000 -        0x185613fff UIKitCore arm64 <08a5560d3f2b3b52a202add2a39b5d30> /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore
+       0x18c039000 -        0x18c041fff GraphicsServices arm64 <01858b6bf55936239aafd03b35fccf3c> /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices

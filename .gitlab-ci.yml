@@ -19,7 +19,7 @@ stages:
   - deploy_ebpf
   - deploy
 
-ci_lint_only:
+ci_lint_and_ut:
   stage: deploy
   resource_group: production
   only:
@@ -29,6 +29,8 @@ ci_lint_only:
     - nvm use v16.14.0
     - make clean
     - make lint_nofix
+    - export UT_EXCLUDE_INTEGRATION_TESTING="on" # ignore integration test
+    - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY"
   except: # disable CI on tag push
    - tags
   tags:

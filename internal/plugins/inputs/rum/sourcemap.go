@@ -108,7 +108,7 @@ func writeDict(file string, dict ArchiveMetaDict) error {
 	return nil
 }
 
-func extractArchives(loose bool) error {
+func (ipt *Input) extractArchives(loose bool) error {
 	if !ExtractZipLock.TryLock() {
 		log.Warnf("unable to get lock, skip this interval")
 		return nil
@@ -118,7 +118,7 @@ func extractArchives(loose bool) error {
 	sourceMapDirs := make(map[string]struct{}, 3)
 
 	for _, sdkName := range []string{SdkAndroid, SdkIOS} {
-		sourceMapDirs[getRumSourcemapDir(sdkName)] = struct{}{}
+		sourceMapDirs[ipt.getRumSourcemapDir(sdkName)] = struct{}{}
 	}
 
 	var totalArchives []*SourceMapArchive
@@ -268,14 +268,14 @@ func runAtosCMD(atosCMDPath, symbolFile, loadAddress string, addresses []string)
 }
 
 // miniAppZipStat First find in "miniapp", and then find in "web" if not exists.
-func miniAppZipStat(sdkName, zipFile string) (string, os.FileInfo, error) {
-	zipFileAbsPath := filepath.Join(getRumSourcemapDir(sdkName), zipFile)
+func (ipt *Input) miniAppZipStat(sdkName, zipFile string) (string, os.FileInfo, error) {
+	zipFileAbsPath := filepath.Join(ipt.getRumSourcemapDir(sdkName), zipFile)
 	statInfo, err := os.Stat(zipFileAbsPath)
 	if sdkName != SdkWebMiniApp && sdkName != SdkWebUniApp {
 		return zipFileAbsPath, statInfo, err
 	}
 	if err != nil && errors.Is(err, os.ErrNotExist) {
-		zipFileAbsPath = filepath.Join(getRumSourcemapDir(SdkWeb), zipFile)
+		zipFileAbsPath = filepath.Join(ipt.getRumSourcemapDir(SdkWeb), zipFile)
 		statInfo, err = os.Stat(zipFileAbsPath)
 		if err == nil {
 			return zipFileAbsPath, statInfo, err
@@ -308,7 +308,7 @@ func (ipt *Input) resolveWebSourceMap(p *point.Point, sdkName string, status *so
 		webSourcemapLock.RUnlock()
 
 		if !cacheExists || loadTime.Add(time.Minute*5).Before(time.Now()) {
-			zipFileAbsPath, statInfo, err := miniAppZipStat(sdkName, zipFile)
+			zipFileAbsPath, statInfo, err := ipt.miniAppZipStat(sdkName, zipFile)
 			if err != nil {
 				if errors.Is(err, os.ErrNotExist) && cacheExists {
 					deleteSourcemapCache(zipFileAbsPath)
@@ -331,7 +331,7 @@ func (ipt *Input) resolveWebSourceMap(p *point.Point, sdkName string, status *so
 			p.MustAdd([]byte("error_stack_source_base64"), errorStackSourceBase64)
 		} else {
 			status.status = StatusZipNotFound
-			log.Warnf("source map file [%s] not exists", filepath.Join(getRumSourcemapDir(sdkName), zipFile))
+			log.Warnf("source map file [%s] not exists", filepath.Join(ipt.getRumSourcemapDir(sdkName), zipFile))
 		}
 	} else {
 		status.status = StatusLackField
@@ -358,7 +358,7 @@ func (ipt *Input) resolveAndroidSourceMap(p *point.Point, sdkName string, status
 
 	if appID != "" {
 		zipFile := httpapi.GetSourcemapZipFileName(appID, env, version)
-		zipFileAbsDir := filepath.Join(getRumSourcemapDir(sdkName), strings.TrimSuffix(zipFile, httpapi.ZipExt))
+		zipFileAbsDir := filepath.Join(ipt.getRumSourcemapDir(sdkName), strings.TrimSuffix(zipFile, httpapi.ZipExt))
 
 		errorType := tags["error_type"]
 		if errorType == JavaCrash {
@@ -499,7 +499,7 @@ func (ipt *Input) resolveIOSSourceMap(p *point.Point, sdkName string, status *so
 
 	if appID != "" {
 		zipFile := httpapi.GetSourcemapZipFileName(appID, env, version)
-		zipFileAbsDir := filepath.Join(getRumSourcemapDir(sdkName), strings.TrimSuffix(zipFile, httpapi.ZipExt))
+		zipFileAbsDir := filepath.Join(ipt.getRumSourcemapDir(sdkName), strings.TrimSuffix(zipFile, httpapi.ZipExt))
 
 		atosBinPath := ipt.AtosBinPath
 		if runtime.GOOS == "darwin" {
