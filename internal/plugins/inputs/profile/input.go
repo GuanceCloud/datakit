@@ -3,7 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-// Package profile datakit collector
+// Package profile collector
 package profile
 
 import (
@@ -18,6 +18,7 @@ import (
 	"net/http/httputil"
 	"net/textproto"
 	"net/url"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -419,7 +420,24 @@ func (r *reverseProxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	_ = req.Body.Close()
 	req.Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
 
-	profileID, unixNano, err := cache(req)
+	if err := req.ParseMultipartForm(profileMaxSize); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		msg := fmt.Sprintf("unable to parse multipart: %s", err)
+		_, _ = w.Write([]byte(msg))
+		log.Error(msg)
+		return
+	}
+
+	metadata, fileSize, err := parseMetadata(req)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		msg := fmt.Sprintf("unable to parse metadata: %s", err)
+		_, _ = w.Write([]byte(msg))
+		log.Error(msg)
+		return
+	}
+
+	profileID, unixNano, err := cache(req, metadata, fileSize)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(fmt.Sprintf("unable to cache profile data: %s", err)))
@@ -427,8 +445,83 @@ func (r *reverseProxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	var bodyReader io.Reader
+
+	// Add event form file to multipartForm if not exists
+	if _, ok := req.MultipartForm.File[eventJSONFile]; !ok {
+		func() {
+			boundary, err := getBoundary(req.Header.Get("Content-Type"))
+			if err != nil {
+				log.Warnf("unable to get boundary: %s", err)
+				return
+			}
+
+			var buf bytes.Buffer
+			pm, err := newMultipartPrepend(&buf, boundary)
+			if err != nil {
+				log.Warnf("unable add event file to multipart form: %s", err)
+				return
+			}
+
+			f, err := pm.CreateFormFile(eventJSONFile, eventJSONFile)
+			if err != nil {
+				log.Warnf("unable to create form file: %s", err)
+				return
+			}
+
+			md := Metadata{}
+
+			for name := range req.MultipartForm.File {
+				md.Attachments = append(md.Attachments, name)
+				switch strings.ToLower(filepath.Ext(name)) {
+				case ".pprof":
+					md.Format = PPROF
+				case ".jfr":
+					md.Format = JFR
+				}
+			}
+			startTime, err := resolveStartTime(metadata)
+			if err != nil {
+				log.Warnf("unable to resolve profile start time: %s", err)
+			} else {
+				md.Start = rfc3339Time(startTime)
+			}
+
+			endTime, err := resolveEndTime(metadata)
+			if err != nil {
+				log.Warnf("unable to resolve profile end time: %s", err)
+			} else {
+				md.End = rfc3339Time(endTime)
+			}
+
+			tags := NewTags(metadata["tags[]"])
+			lang := resolveLang(metadata, tags)
+			md.Language = lang
+
+			md.TagsProfiler = strings.Join(metadata["tags[]"], ",")
+
+			encoder := json.NewEncoder(f)
+			if err := encoder.Encode(md); err != nil {
+				log.Warnf("unable to marshal metadata to json: %s", err)
+				return
+			}
+
+			if err := pm.Close(); err != nil {
+				log.Warnf("unable to close multipart prepend: %s", err)
+				return
+			}
+
+			buf.Write(bodyBytes)
+			bodyReader = &buf
+		}()
+	}
+
+	if bodyReader == nil {
+		bodyReader = bytes.NewReader(bodyBytes)
+	}
+
 	_ = req.Body.Close()
-	req.Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
+	req.Body = ioutil.NopCloser(bodyReader)
 
 	// Retain this header to avoid fatal since Kodo still verify it.
 	req.Header.Set(workspaceUUIDHeaderKey, "no-longer-in-use")
