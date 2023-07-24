@@ -42,6 +42,7 @@ nav:
   - 'DataKit 开发手册':
     - development.md
     - datakit-filter.md
+    - datakit-port.md
     - apis.md
     - common-tags.md
     - '文档撰写':
