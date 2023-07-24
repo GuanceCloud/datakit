@@ -11,6 +11,7 @@ import (
 	prompt "github.com/c-bata/go-prompt"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
 )
 
@@ -78,8 +79,9 @@ func setCmdRootLog(rl string) {
 		panic(err)
 	}
 
-	// setup config module logger, redirect to @rl
+	// setup module log, redirect to @rl
 	config.SetLog()
+	export.SetLog()
 
 	l = logger.SLogger("cmds")
 }

@@ -1,7 +1,5 @@
 ### `delete()` {#fn-delete}
 
-[:octicons-tag-24: Version-1.5.8](../datakit/changelog.md#cl-1.5.8)
-
 Function prototype: `fn delete(src: map[string]any, key: str)`
 
 Function description: Delete the key in the JSON map

@@ -147,7 +147,7 @@ var (
 	OSLabelMac     = ":fontawesome-brands-apple:"
 	LabelK8s       = ":material-kubernetes:"
 	LabelDocker    = ":material-docker:"
-	LabelElection  = ` · [:fontawesome-solid-flag-checkered:](index.md#legends "Election Enabled")`
+	LabelElection  = ` · [:fontawesome-solid-flag-checkered:](../datakit/index.md#legends "Election Enabled")`
 
 	AllOS             = []string{OSLabelLinux, OSLabelWindows, OSLabelMac, LabelK8s, LabelDocker}
 	AllOSWithElection = append(AllOS, LabelElection)

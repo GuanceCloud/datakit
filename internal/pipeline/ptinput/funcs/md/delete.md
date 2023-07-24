@@ -1,5 +1,4 @@
 ### `delete()` {#fn-delete}
-[:octicons-tag-24: Version-1.5.8](../datakit/changelog.md#cl-1.5.8)
 
 函数原型：`fn delete(src: map[string]any, key: str)`
 

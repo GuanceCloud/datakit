@@ -7,9 +7,11 @@ package main
 
 import (
 	"flag"
+	"log"
 	"os"
 
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/mdcheck/check"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/make/build"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/all"
@@ -42,12 +44,15 @@ func init() { //nolint:gochecknoinits
 
 	flag.BoolVar(&downloadSamples, "download-samples", false, "download samples from OSS to samples/")
 	flag.BoolVar(&dumpSamples, "dump-samples", false, "download and dump local samples to OSS")
-	flag.StringVar(&build.MarkdownCheck, "mdcheck", "", "check markdown docs")
-	flag.StringVar(&build.Autofix, "mdcheck-autofix", "off", "check markdown docs with autofix")
-	flag.StringVar(&build.MetaDir, "meta-dir", "", "metadir used to check markdown meta")
+
+	flag.StringVar(&mdCheck, "mdcheck", "", "check markdown docs")
+	flag.StringVar(&mdAutofix, "mdcheck-autofix", "off", "check markdown docs with autofix")
+	flag.StringVar(&mdMetaDir, "meta-dir", "", "metadir used to check markdown meta")
 }
 
 var (
+	mdCheck, mdMetaDir, mdAutofix string
+
 	doPub         = false
 	doPubeBPF     = false
 	pkgeBPF       = false
@@ -64,22 +69,31 @@ var (
 )
 
 func applyFlags() {
-	if build.MarkdownCheck != "" {
-		// NOTE: if nothing matched, then we think all docs are valid, but exit -1
-		// to co-work with Makefile's shell, see Makefile's entry 'check_man'
-		//
-		// Here we keep the exit code the same with grep:
-		//
-		//  	If find something, exit ok, or exit fail.
-		//
-		if n := build.Match(build.MarkdownCheck); n == 0 {
-			cp.Infof("mdcheck format ok.\n")
-			os.Exit(0)
-		} else {
-			cp.Errorf("[E] Got %d invalid docs/erros during markdown checking(Unicode/ASCII/meta).\n"+
-				"    See https://docs.guance.com/datakit/mkdocs-howto/#zh-en-mix\n", n)
+	if mdCheck != "" {
+		res, err := check.Check(
+			check.WithMarkdownDir(mdCheck),
+			check.WithMetaDir(mdMetaDir),
+			check.WithAutofix(mdAutofix != "off"),
+		)
+		if err != nil {
+			cp.Errorf("markdown check: %s\n", err.Error())
 			os.Exit(-1)
 		}
+
+		for _, r := range res {
+			switch {
+			case r.Err != "":
+				cp.Errorf("%s: %q | Err: %s\n", r.Path, r.Text, r.Err)
+			case r.Warn != "":
+				cp.Warnf("%s: Warn: %s\n", r.Path, r.Err)
+			}
+		}
+
+		if len(res) > 0 {
+			os.Exit(-1)
+		}
+
+		return
 	}
 
 	l.Infof("download-cdn: %s", build.DownloadCDN)
@@ -196,6 +210,7 @@ func applyFlags() {
 }
 
 func main() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	flag.Parse()
 	applyFlags()
 }

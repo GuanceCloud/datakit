@@ -257,7 +257,7 @@ func BuildFields(t *testing.T, fi map[string]interface{}) map[string]interface{}
 type I18n int
 
 const (
-	I18nZh = iota
+	I18nZh I18n = iota
 	I18nEn
 )
 

@@ -30,6 +30,9 @@ MAC_ARCHS          = darwin/amd64
 DOCKER_IMAGE_ARCHS = linux/arm64,linux/amd64
 GOLINT_BINARY      = golangci-lint
 CGO_FLAGS          = "-Wno-undef-prefix -Wno-deprecated-declarations" # to disable warnings from gopsutil on macOS
+HL                 = \033[0;32m # high light
+NC                 = \033[0m    # no color
+RED                = \033[31m   # red
 
 SUPPORTED_GOLINT_VERSION         = 1.46.2
 SUPPORTED_GOLINT_VERSION_ANOTHER = v1.46.2
@@ -52,8 +55,6 @@ GO_PATCH_VERSION       := $(shell go version | cut -c 14- | cut -d' ' -f1 | cut 
 BUILDER_GOOS_GOARCH    := $(shell go env GOOS)-$(shell go env GOARCH)
 GOLINT_VERSION         := $(shell $(GOLINT_BINARY) --version | cut -c 27- | cut -d' ' -f1)
 GOLINT_VERSION_ERR_MSG := golangci-lint version($(GOLINT_VERSION)) is not supported, please use version $(SUPPORTED_GOLINT_VERSION)
-MARKDOWNLINT_VERSION   := $(shell markdownlint --version)
-CSPELL_VERSION         := $(shell cspell --version)
 
 # These can be override at runtime by make variables
 VERSION              ?= $(shell git describe --always --tags)
@@ -63,6 +64,7 @@ DATAKIT_EBPF_ARCHS   ?= linux/arm64,linux/amd64
 IGN_EBPF_INSTALL_ERR ?= 0
 RACE_DETECTION       ?= "off"
 PKGEBPF              ?= false
+AUTO_FIX             ?= on
 UT_EXCLUDE           ?= ""
 DOCKER_REMOTE_HOST   ?= "0.0.0.0" # default use localhost as docker server
 
@@ -354,45 +356,18 @@ it: deps
 			echo "######################"; \
 		fi
 
-# Run all testings
-# Deprecated: used `make ut' for better metrics exported.
-all_test: deps
-	@truncate -s 0 test.output
-	@echo "#####################" | tee -a test.output
-	@echo "#" $(DATE) | tee -a test.output
-	@echo "#" $(VERSION) | tee -a test.output
-	@echo "#####################" | tee -a test.output
-	i=0; \
-	for pkg in `go list ./... | grep -vE 'datakit/git'`; do \
-		echo "# testing $$pkg..." | tee -a test.output; \
-		GO111MODULE=off CGO_ENABLED=1 LOGGER_PATH=nul go test -timeout 1h -cover $$pkg; \
-		if [ $$? != 0 ]; then \
-			printf "\033[31m [FAIL] %s\n\033[0m" $$pkg; \
-			i=`expr $$i + 1`; \
-		else \
-			echo "######################"; \
-			fi \
-	done; \
-	if [ $$i -gt 0 ]; then \
-		printf "\033[31m %d case failed.\n\033[0m" $$i; \
-		exit 1; \
-	else \
-		printf "\033[32m all testinig passed.\n\033[0m"; \
-	fi
-
-test_deps: prepare gofmt lfparser_disable_line vet
-
 lint: deps copyright_check md_lint
 	@truncate -s 0 lint.err
-	$(GOLINT_BINARY) run --fix --allow-parallel-runners;
-	@if [ $$? != 0 ]; then \
-		exit -1; \
-	fi
+ifeq ($(AUTO_FIX),on)
+		@printf "$(HL)lint with auto fix...\n$(NC)"; \
+		$(GOLINT_BINARY) run --fix --allow-parallel-runners;
+else
+		@printf "$(HL)lint without auto fix...\n$(NC)"; \
+		$(GOLINT_BINARY) run --allow-parallel-runners;
+endif
 
-lint_nofix: deps copyright_check md_lint_nofix
-	@truncate -s 0 lint.err
-	$(GOLINT_BINARY) run --allow-parallel-runners;
 	@if [ $$? != 0 ]; then \
+		printf "$(RED)[FAIL] lint failed\n$(NC)" $$pkg; \
 		exit -1; \
 	fi
 
@@ -414,42 +389,46 @@ copyright_check_auto_fix:
 	@python3 copyright.py --fix
 
 define check_docs
+	# check spell on docs
+	@echo 'version of cspell: $(shell cspell --version)'
+	cspell lint -c scripts/cspell.json --no-progress $(1)/**/*.md | tee dist/cspell.lint
+
+  # check markdown style
 	# markdownlint install: https://github.com/igorshubovych/markdownlint-cli
-	@echo 'markdownlint version: $(MARKDOWNLINT_VERSION)'
-	@markdownlint $(1) 2>&1 | tee md.lint
-	@if [ -s md.lint ]; then \
+	@echo 'version of markdownlint: $(shell markdownlint --version)'
+	@truncate -s 0 dist/md-lint.json
+	markdownlint -c scripts/markdownlint.yml -j -o dist/md-lint.json $(1) 
+
+	@if [ -s dist/md-lint.json ]; then \
+		printf "$(RED) [FAIL] dist/md-lint.json not empty \n$(NC)"; \
 		exit -1; \
 	fi
 
-	# check spell on ZH docs
-	@echo 'cspell version: $(CSPELL_VERSION)'
-	@cspell lint -c cspell/cspell.json --no-progress $(2) | tee cspell.lint
-	@if [ -s cspell.lint ]; then \
+	@if [ -s dist/cspell.lint ]; then \
+		printf "$(RED) [FAIL] dist/cspell.lint not empty \n$(NC)"; \
 		exit -1; \
 	fi
-
-	# Additional checkings on documents
-	@echo 'checking format...'
-	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) \
-		go run cmd/make/make.go -mdcheck $(1) \
-		--mdcheck-autofix $(3)
 endef
 
-md_lint:
-	$(call check_docs, "internal/man/doc/zh", "internal/man/doc/zh/**/*.md", "on") # check on doc templates
-	@rm -rf ./local-docs .doc
-	@bash mkdocs.sh -D ./local-docs -E -V 0.0.0 # invalid version
-	@$(call check_docs, "local-docs/docs/zh", "local-docs/docs/zh/**/*.md", "on") # check on generated docs
-	GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) \
-		go run cmd/make/make.go -mdcheck=.doc/zh/inputs --meta-dir=internal/man/
+exportdir=dist/export
+# only check ZH docs, EN docs too many errors
+docs_dir=$(exportdir)/guance-doc/docs/zh
+docs_template_dir=internal/export/doc/zh
 
-md_lint_nofix:
-	$(call check_docs, "internal/man/doc/zh", "internal/man/doc/zh/*.md", "off") # check on doc templates
-	@bash mkdocs.sh -D ./local-docs -E -V 0.0.0 # invalid version
-	$(call check_docs, "local-docs/docs/zh", "local-docs/docs/zh/*.md", "off") # check on generated docs
+md_lint:
+	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) \
+		go run cmd/make/make.go \
+		--mdcheck $(docs_template_dir) \
+		--mdcheck-autofix=$(AUTO_FIX) # check doc templates
+	@rm -rf $(exportdir) && mkdir -p $(exportdir)
+	@bash export.sh -D $(exportdir) -E -V 0.0.0
+	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) \
+		go run cmd/make/make.go -mdcheck $(docs_dir) \
+		--mdcheck-autofix off # disable autofix on checking generated documents
+	$(call check_docs,$(docs_dir))
 
 project_words:
-	cspell -c cspell/cspell.json --words-only --unique internal/man/doc/zh/** | sort --ignore-case >> project-words.txt
+	cspell -c cspell/cspell.json --words-only --unique internal/export/doc/zh/** | sort --ignore-case >> project-words.txt
 
 code_stat:
 	cloc --exclude-dir=vendor,tests --exclude-lang=JSON,HTML .

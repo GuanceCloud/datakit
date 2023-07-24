@@ -23,6 +23,9 @@ __debug_bin
 *.tar.gz
 *.yaml
 *.zip
+
+# to ignore all test generated files
+Test* 
 ag.sh
 agent_linux
 agent.conf

@@ -17,8 +17,8 @@ import (
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/man"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
 )
 
@@ -102,9 +102,9 @@ const (
 )
 
 func getUpgradeCommand(os, dlurl, proxy string) string {
-	p := &man.Params{}
+	p := &export.Params{}
 
-	cmd := man.InstallCommand(
+	cmd := export.InstallCommand(
 		p.WithUpgrade(true),
 		p.WithIndent(4),
 		p.WithSourceURL(dlurl))
