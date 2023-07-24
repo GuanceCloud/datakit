@@ -3,6 +3,61 @@
 
 After deploying data collection (collected through DataKit or Function), sometimes you can't see the corresponding data update on the page of Guance Cloud, and you are tired every time you check it. In order to alleviate this situation, you can adopt the following steps to gradually encircle the problem of "why there is no data".
 
+## How to trouble shooting {#how-to-trouble-shoot}
+
+For better trouble shooting, we developed the following step-by-step map:
+
+``` mermaid
+graph TD
+  %% node definitions
+  no_data[No Data];
+  debug_fail{Still Not Working};
+  monitor[<a href='https://docs.guance.com/datakit/datakit-monitor/'>Check Monitor</a>];
+  debug_input[<a href='https://docs.guance.com/datakit/why-no-data/#check-input-conf'>Debug input.conf</a>];
+  read_faq[Check Input FAQ];
+  dql[DQL Query];
+  beyond_usage[Beyond Usage?];
+  pay[Pay];
+  filtered[Filted?];
+  sinked[Sinked?];
+  check_time[Check Machine Time];
+  check_token[Check Workspace Token];
+  check_version[Check Datakit Version];
+  dk_service_ok[<a href='https://docs.guance.com/datakit/datakit-service-how-to/'>Datakit Service OK?</a>];
+  check_changelog[<a href='https://docs.guance.com/datakit/changelog'>Check Changelog</a>];
+  is_input_ok[Input Running?];
+  is_input_enabled[Input Enabled?];
+  enable_input[Enable Input];
+  dataway_upload_ok[Upload OK?];
+  ligai[<a href='https://ligai.cn/'>Fire Ligai Issue</a>];
+
+  no_data --> dk_service_ok --> check_time --> check_token --> check_version --> check_changelog;
+
+  no_data --> monitor;
+  no_data --> debug_input --> debug_fail;
+  debug_input --> read_faq;
+  no_data --> read_faq --> debug_fail;
+  dql --> debug_fail;
+
+  monitor --> beyond_usage -->|No| debug_fail;
+  beyond_usage -->|Yes| pay;
+
+  monitor --> is_input_enabled;
+
+  is_input_enabled -->|Yes| is_input_ok;
+  is_input_enabled -->|No| enable_input --> debug_input;
+
+  monitor --> is_input_ok -->|No| debug_input;
+
+  is_input_ok -->|Yes| dataway_upload_ok -->|Yes| dql;
+  is_input_ok --> filtered --> sinked;
+
+  trouble_shooting[<a href='https://docs.guance.com/datakit/why-no-data/#bug-report'>收集信息</a>];
+
+  debug_fail --> trouble_shooting;
+  trouble_shooting --> ligai;
+```
+
 ## Checking input config {#check-input-conf}
 
 [:octicons-tag-24: Version-1.9.0](changelog.md#cl-1.9.0)

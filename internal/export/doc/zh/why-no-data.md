@@ -5,6 +5,61 @@
 
 大家在部署完数据采集之后（通过 DataKit 或 Function 采集），有时候在观测云的页面上看不到对应的数据更新，每次排查起来都心力憔悴，为了缓解这一状况，可按照如下的一些步骤，来逐步围歼「为啥没有数据」这一问题。
 
+## 问题排查导图 {#how-to-trouble-shoot}
+
+为便于大家排查问题，下图列举了一下基本的排查思路，大家可按照其指引来排查可能存在的问题：
+
+``` mermaid
+graph TD
+  %% node definitions
+  no_data[无数据];
+  debug_fail{无果};
+  monitor[查看 <a href='https://docs.guance.com/datakit/datakit-monitor/'>monitor</a> 情况];
+  debug_input[<a href='https://docs.guance.com/datakit/why-no-data/#check-input-conf'>调试采集器配置</a>];
+  read_faq[查看文档中的 FAQ];
+  dql[DQL 查询];
+  beyond_usage[数据是否超量];
+  pay[成为付费用户];
+  filtered[数据是否被黑名单丢弃];
+  sinked[数据是否被 Sink];
+  check_time[检查机器时间];
+  check_token[检查工作空间空间 token];
+  check_version[检查 Datakit 版本];
+  dk_service_ok[<a href='https://docs.guance.com/datakit/datakit-service-how-to/'>Datakit 服务是否正常</a>];
+  check_changelog[<a href='https://docs.guance.com/datakit/changelog'>检查 changelog 是否已修复</a>];
+  is_input_ok[采集器是否运行正常];
+  is_input_enabled[是否开启采集器];
+  enable_input[开启采集器];
+  dataway_upload_ok[上传是否正常];
+  ligai[提交 <a href='https://ligai.cn/'>Ligai</a> 问题];
+
+  no_data --> dk_service_ok --> check_time --> check_token --> check_version --> check_changelog;
+
+  no_data --> monitor;
+  no_data --> debug_input --> debug_fail;
+  debug_input --> read_faq;
+  no_data --> read_faq --> debug_fail;
+  dql --> debug_fail;
+
+  monitor --> beyond_usage -->|No| debug_fail;
+  beyond_usage -->|Yes| pay;
+
+  monitor --> is_input_enabled;
+
+  is_input_enabled -->|Yes| is_input_ok;
+  is_input_enabled -->|No| enable_input --> debug_input;
+
+  monitor --> is_input_ok -->|No| debug_input;
+
+  is_input_ok -->|Yes| dataway_upload_ok -->|Yes| dql;
+  is_input_ok --> filtered --> sinked;
+
+  trouble_shooting[<a href='https://docs.guance.com/datakit/why-no-data/#bug-report'>收集信息</a>];
+
+  debug_fail --> trouble_shooting;
+  trouble_shooting --> ligai;
+```
+
 ## 调试采集器配置 {#check-input-conf}
 
 [:octicons-tag-24: Version-1.9.0](changelog.md#cl-1.9.0)
