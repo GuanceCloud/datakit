@@ -1,7 +1,5 @@
 ### `datetime()` {#fn-datetime}
 
-[:octicons-tag-24: Version-1.5.7](../datakit/changelog.md#cl-1.5.7)
-
 函数原型：`fn datetime(key, precision: str, fmt: str, tz: str = "")`
 
 函数说明：将时间戳转成指定日期格式

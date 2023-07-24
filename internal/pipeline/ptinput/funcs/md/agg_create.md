@@ -1,7 +1,5 @@
 ### `agg_create()` {#fn-agg-create}
 
-[:octicons-tag-24: Version-1.5.10](../datakit/changelog.md#cl-1.5.10)
-
 函数原型：`fn agg_create(bucket: str, on_interval: str = "60s", on_count: int = 0, keep_value: bool = false, const_tags: map[string]string = nil)`
 
 函数说明：创建一个用于聚合的指标集，通过 `on_interval` 或 `on_count` 设置时间或次数作为聚合周期，聚合结束后将上传聚合数据，可以选择是否保留上一次聚合的数据

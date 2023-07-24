@@ -79,6 +79,9 @@ github.com/GuanceCloud/confd/util
 # github.com/GuanceCloud/grok v1.1.2
 ## explicit; go 1.18
 github.com/GuanceCloud/grok
+# github.com/GuanceCloud/mdcheck v0.0.0-20230718065937-44c6728c995f
+## explicit; go 1.18
+github.com/GuanceCloud/mdcheck/check
 # github.com/GuanceCloud/platypus v0.2.5
 ## explicit; go 1.18
 github.com/GuanceCloud/platypus/internal/logger
@@ -1521,8 +1524,8 @@ github.com/spf13/pflag
 # github.com/stretchr/objx v0.5.0
 ## explicit; go 1.12
 github.com/stretchr/objx
-# github.com/stretchr/testify v1.8.1
-## explicit; go 1.13
+# github.com/stretchr/testify v1.8.4
+## explicit; go 1.20
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/mock
 github.com/stretchr/testify/require

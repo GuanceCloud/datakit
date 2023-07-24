@@ -19,6 +19,8 @@ import (
 	humanize "github.com/dustin/go-humanize"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/upgrader/upgrader"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 type versionDesc struct {
@@ -131,31 +133,38 @@ func PubDatakit() error {
 		return err
 	}
 
-	if err := generateMetaInfo(); err != nil {
-		return err
-	}
-
-	if err := generatePipelineDoc(); err != nil {
-		return err
-	}
-
-	if err := generatePipelineDocEN(); err != nil {
-		return err
-	}
-
-	if err := generatePipelineScripts(); err != nil {
+	exporter := export.NewIntegration(export.WithTopDir(PubDir))
+	if err := exporter.Export(); err != nil {
 		return err
 	}
 
 	basics := map[string]string{
-		"version":                 path.Join(PubDir, ReleaseType, "version"),
-		"datakit.yaml":            "datakit.yaml",
-		"install.sh":              "install.sh",
-		"install.ps1":             "install.ps1",
-		"measurements-meta.json":  "measurements-meta.json",
-		"pipeline-docs.json":      "pipeline-docs.json",
-		"en/pipeline-docs.json":   "pipeline-docs.en.json",
-		"internal-pipelines.json": "internal-pipelines.json",
+		"version":      path.Join(PubDir, ReleaseType, "version"),
+		"datakit.yaml": "datakit.yaml",
+		"install.sh":   "install.sh",
+		"install.ps1":  "install.ps1",
+
+		"measurements-meta.json": filepath.Join(PubDir,
+			"datakit",
+			inputs.I18nZh.String(), // on Zh version
+			"measurements-meta.json"),
+
+		"pipeline-docs.json": filepath.Join(PubDir,
+			"datakit",
+			inputs.I18nZh.String(),
+			"pipeline-docs.json"),
+
+		"en/pipeline-docs.json": filepath.Join(PubDir,
+			"datakit",
+			inputs.I18nEn.String(),
+			"pipeline-docs.json"),
+
+		// only Zh version
+		"internal-pipelines.json": filepath.Join(PubDir,
+			"datakit",
+			inputs.I18nZh.String(),
+			"internal-pipelines.json"),
+
 		fmt.Sprintf("datakit-%s.yaml", ReleaseVersion): "datakit.yaml",
 		fmt.Sprintf("install-%s.sh", ReleaseVersion):   "install.sh",
 		fmt.Sprintf("install-%s.ps1", ReleaseVersion):  "install.ps1",

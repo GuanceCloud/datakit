@@ -14,8 +14,8 @@ import (
 	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/man"
 )
 
 func TestInitCfg(t *testing.T) {
@@ -288,7 +288,7 @@ hostname = "should-not-set"`,
 		},
 		{
 			name: "dk-conf-sample",
-			raw:  man.DatakitConfSample,
+			raw:  export.DatakitConfSample,
 		},
 	}
 

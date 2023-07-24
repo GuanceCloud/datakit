@@ -23,17 +23,28 @@ var (
 	//
 	// doc related flags.
 	//
-	fsDocName         = "doc"
-	fsDoc             = pflag.NewFlagSet(fsDocName, pflag.ContinueOnError)
-	flagDocExportDocs = fsDoc.String("export-docs", "", "export all inputs and related docs to specified path")
-	flagDocIgnore     = fsDoc.String("ignore", "", "disable list, i.e., --ignore nginx,redis,mem")
-	flagDocLogPath    = fsDoc.String("log", commonLogFlag(), "log path")
-	flagDocTODO       = fsDoc.String("TODO", "TODO", "set TODO placeholder")
-	flagDocVersion    = fsDoc.String("version", datakit.Version, "specify version string in document's header")
-	fsDocUsage        = func() {
-		fmt.Printf("usage: datakit doc [options]\n\n")
-		fmt.Printf("Doc used to manage all documents related to DataKit. Available options:\n\n")
-		fmt.Println(fsDoc.FlagUsagesWrapped(0))
+	fsDocName  = "doc"
+	fsDocUsage = func() {
+		fmt.Printf("command 'datakit doc' deprecated, use 'datakit export'\n\n")
+	}
+
+	//
+	// export related flags.
+	//
+	fsExportName = "export"
+	fsExport     = pflag.NewFlagSet(fsExportName, pflag.ContinueOnError)
+
+	flagExportDocDir         = fsExport.String("export-doc-dir", "", "export all inputs and related docs to specified path")
+	flagExportIntegrationDir = fsExport.String("export-integration-dir", "", "export all integration related resource to specified path")
+
+	flagExportIgnore  = fsExport.String("ignore", "", "disable list, i.e., --ignore nginx,redis,mem")
+	flagExportLogPath = fsExport.String("log", commonLogFlag(), "log path")
+	flagExportTODO    = fsExport.String("TODO", "TODO", "set TODO placeholder")
+	flagExportVersion = fsExport.String("version", datakit.Version, "specify version string in document's header")
+	fsExportUsage     = func() {
+		fmt.Printf("usage: datakit export [options]\n\n")
+		fmt.Printf("Export used to output all resource related to Datakit. Available options:\n\n")
+		fmt.Println(fsExport.FlagUsagesWrapped(0))
 	}
 
 	//
@@ -253,7 +264,7 @@ func printHelp() {
 	fmt.Fprintf(os.Stderr, "\tcheck      methods of all check tools within DataKit\n")
 	fmt.Fprintf(os.Stderr, "\tdebug      methods of all debug tools within DataKit\n")
 	fmt.Fprintf(os.Stderr, "\ttool       methods of all tools within DataKit\n")
-	fmt.Fprintf(os.Stderr, "\tdoc        manage all documents for DataKit\n")
+	fmt.Fprintf(os.Stderr, "\texport     export Datakit related resources\n")
 
 	// TODO: add more commands...
 
@@ -269,6 +280,9 @@ func runHelpFlags() {
 		switch os.Args[2] {
 		case fsDocName:
 			fsDocUsage()
+
+		case fsExportName:
+			fsExportUsage()
 
 		case fsPLName:
 			fsPLUsage()
@@ -375,22 +389,27 @@ func doParseAndRunFlags() {
 				os.Exit(-1)
 			}
 
-		case fsDocName:
+		case fsDocName: // deprecated
+			fsDocUsage()
+			os.Exit(-1)
 
-			if len(os.Args) < 3 {
-				fsDocUsage()
+		case fsExportName:
+
+			if len(os.Args) < 2 {
+				fsExportUsage()
 				os.Exit(-1)
 			}
 
-			if err := fsDoc.Parse(os.Args[2:]); err != nil {
+			if err := fsExport.Parse(os.Args[2:]); err != nil {
 				cp.Errorf("Parse: %s\n", err)
-				fsDocUsage()
+				fsExportUsage()
 				os.Exit(-1)
 			}
 
-			setCmdRootLog(*flagDocLogPath)
+			setCmdRootLog(*flagExportLogPath)
 
-			if err := runDocFlags(); err != nil {
+			cp.Infof("exporting to %q,%q...\n", *flagExportDocDir, *flagExportIntegrationDir)
+			if err := runExportFlags(); err != nil {
 				cp.Errorf("%s\n", err)
 				os.Exit(-1)
 			}

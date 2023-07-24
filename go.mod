@@ -85,7 +85,7 @@ require (
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cast v1.5.0
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.4
 	github.com/tidwall/gjson v1.14.3
 	github.com/tinylib/msgp v1.1.6
 	github.com/tweekmonster/luser v0.0.0-20161003172636-3fa38070dbd7
@@ -361,7 +361,10 @@ require (
 
 require github.com/jmoiron/sqlx v1.3.4
 
-require github.com/GuanceCloud/tracing-protos v0.0.0-20230619071516-54c8cff1b6b3
+require (
+	github.com/GuanceCloud/mdcheck v0.0.0-20230718065937-44c6728c995f
+	github.com/GuanceCloud/tracing-protos v0.0.0-20230619071516-54c8cff1b6b3
+)
 
 require (
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect

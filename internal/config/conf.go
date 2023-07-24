@@ -23,9 +23,9 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	gctoml "github.com/GuanceCloud/toml"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/operator"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/man"
 )
 
 var (
@@ -270,7 +270,7 @@ func (c *Config) InitCfgWithComments(path string, meta gctoml.MetaData) error {
 }
 
 func initCfgSample(p string) error {
-	if err := ioutil.WriteFile(p, []byte(man.DatakitConfSample), datakit.ConfPerm); err != nil {
+	if err := ioutil.WriteFile(p, []byte(export.DatakitConfSample), datakit.ConfPerm); err != nil {
 		l.Errorf("error creating %s: %s", p, err)
 		return err
 	}

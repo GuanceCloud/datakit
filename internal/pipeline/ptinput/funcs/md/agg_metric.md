@@ -1,7 +1,5 @@
 ### `agg_metric()` {#fn-agg-metric}
 
-[:octicons-tag-24: Version-1.5.10](../datakit/changelog.md#cl-1.5.10)
-
 函数原型：`fn agg_metric(bucket: str, new_field: str, agg_fn: str, agg_by: []string, agg_field: str)`
 
 函数说明：根据输入的数据中的字段的名，自动取值后作为聚合数据的 tag，并将这些聚合数据存储在对应的 bucket 中

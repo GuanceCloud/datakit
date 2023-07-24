@@ -17,8 +17,8 @@ import (
 	"strings"
 	"text/template"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/man"
 )
 
 //nolint:lll
@@ -176,7 +176,7 @@ func NotifyPubDone() {
 				x = append(x, "--------------------------")
 				x = append(x, fmt.Sprintf("%s 安装/升级：", arch))
 
-				p := &man.Params{}
+				p := &export.Params{}
 
 				platform := ""
 				switch arch {
@@ -192,7 +192,7 @@ func NotifyPubDone() {
 					platform = "windows"
 				}
 
-				x = append(x, man.InstallCommand(
+				x = append(x, export.InstallCommand(
 					p.WithPlatform(platform),
 					p.WithSourceURL("https://"+DownloadCDN),
 					p.WithJSON(true),
@@ -201,7 +201,7 @@ func NotifyPubDone() {
 
 				x = append(x, "\n")
 
-				x = append(x, man.InstallCommand(
+				x = append(x, export.InstallCommand(
 					p.WithUpgrade(true),
 					p.WithPlatform(platform),
 					p.WithSourceURL("https://"+DownloadCDN),

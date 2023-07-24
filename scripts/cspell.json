@@ -1,0 +1,39 @@
+// NOTE: comment in this json is accepted.
+{
+    "$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
+    "version": "0.2",
+    "caseSensitive": true,
+    "dictionaryDefinitions": [
+        {
+            "name": "glossary",
+            "path": "scripts/glossary.txt",
+            "addWords": true
+        }
+    ],
+    "dictionaries": [
+        "glossary"
+    ],
+
+    "languageSettings": [
+        {
+            "languageId": "markdown",
+
+						//"ignorePaths": "*.pages",
+
+            "ignoreRegExpList": [
+                "/^\\s*```[\\s\\S]*?^\\s*```/gm",
+                "/`.*`/gm",
+
+							  // ignore markdown header meta data
+                "/'.*'/gm",
+
+                "/:.*:/gm",
+                "/_.*_/gm",
+                "/\\*.*\\*/gm",
+                "/ {#[-a-z0-9.]*}/gm",
+                "/{{[^{}]*}}/gm",
+                "^icon: .*"
+            ]
+        }
+    ]
+}

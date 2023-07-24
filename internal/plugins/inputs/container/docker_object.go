@@ -143,7 +143,7 @@ func (c *containerObject) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"container_id":           inputs.NewTagInfo(`Container ID`),
 			"container_name":         inputs.NewTagInfo("Container name from k8s (label `io.kubernetes.container.name`). If empty then use $container_runtime_name."),
-			"container_runtime_name": inputs.NewTagInfo(`Container name from runtime (like 'docker ps'). If empty then use 'unknown' ([:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)).`),
+			"container_runtime_name": inputs.NewTagInfo(`Container name from runtime (like 'docker ps'). If empty then use 'unknown'.`),
 			"name":                   inputs.NewTagInfo(`The ID of the container.`),
 			"docker_image":           inputs.NewTagInfo("The full name of the container image, example `nginx.org/nginx:1.21.0` (Deprecated: use image)."),
 			"linux_namespace":        inputs.NewTagInfo(`The [Linux namespace](https://man7.org/linux/man-pages/man7/namespaces.7.html){:target="_blank"} where this container is located.`),
