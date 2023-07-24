@@ -37,7 +37,8 @@ nav:
   - 'DataKit Dev Manual':
     - development.md
     - datakit-filter.md
+    - datakit-port.md
     - apis.md
     - common-tags.md
-    - 'Doc Editing':
+    - 'Documentation':
       - mkdocs-howto.md
