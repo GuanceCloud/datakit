@@ -53,6 +53,15 @@ func (x *dkIO) runConsumer(cat point.Category) {
 	fcTick := time.NewTicker(x.cacheCleanInterval)
 	defer fcTick.Stop()
 
+	// close diskcache on exit.
+	defer func() {
+		if c.fc != nil {
+			if err := c.fc.Close(); err != nil {
+				log.Warnf("cache.Close: %s, ignored", err)
+			}
+		}
+	}()
+
 	log.Infof("run consumer on %s", c.category)
 	for {
 		select {

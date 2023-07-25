@@ -103,6 +103,7 @@ func WithDiskCache(on bool) IOOption {
 				log.Warnf("NewWALCache to %s with capacity %d: %s", p, capacity, err.Error())
 				continue
 			} else {
+				log.Infof("diskcache.New ok on category %q on path %q, cap %d", c.String(), p, capacity)
 				x.fcs[c.String()] = cache
 			}
 		}
