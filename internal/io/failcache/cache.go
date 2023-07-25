@@ -16,4 +16,5 @@ type Cache interface {
 	//   Get() []byte
 	Get(diskcache.Fn) error
 	Put([]byte) error
+	Close() error
 }

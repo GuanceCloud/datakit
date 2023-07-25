@@ -4161,8 +4161,8 @@
             "titleDesc": "The memory usage comes from Golang runtime",
             "units": [
               {
-                "key": "avg(datakit_heap_alloc)",
-                "name": "avg(datakit_heap_alloc)",
+                "key": "Heap Mem",
+                "name": "Heap Mem",
                 "unit": "",
                 "units": [
                   "digital",
@@ -4170,8 +4170,8 @@
                 ]
               },
               {
-                "key": "avg(datakit_sys_alloc)",
-                "name": "avg(datakit_sys_alloc)",
+                "key": "System Mem",
+                "name": "System Mem",
                 "unit": "",
                 "units": [
                   "digital",
