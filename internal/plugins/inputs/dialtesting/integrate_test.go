@@ -474,7 +474,7 @@ func setupContainer(p *dt.Pool, resource *dt.Resource) error {
 	return err
 }
 
-func TestInput(t *testing.T) {
+func TestIntegrate(t *testing.T) {
 	if !testutils.CheckIntegrationTestingRunning() {
 		t.Skip()
 	}

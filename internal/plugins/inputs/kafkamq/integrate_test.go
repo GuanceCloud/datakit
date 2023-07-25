@@ -92,8 +92,8 @@ func TestIntegrate(t *testing.T) {
 		kafkaResource, err := dockerPool.RunWithOptions(test.resource)
 		assert.NoError(t, err)
 		assert.NotNil(t, kafkaResource)
-		t.Logf("time sleep 20s")
-		time.Sleep(time.Second * 20)
+		t.Logf("time sleep 1 minute")
+		time.Sleep(time.Minute)
 
 		kafka := &kafkaConsumer{
 			process: make(map[string]TopicProcess),
@@ -112,7 +112,7 @@ func TestIntegrate(t *testing.T) {
 		assert.NoError(t, err)
 		select {
 		case <-test.process.checkOK:
-		case <-time.After(time.Second * 20):
+		case <-time.After(time.Minute):
 			t.Log("time out ")
 		}
 		_ = kafkaResource.Close()

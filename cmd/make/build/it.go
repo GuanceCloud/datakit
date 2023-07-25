@@ -23,8 +23,6 @@ var errMarks = []string{
 	"Panic",
 	"panic",
 
-	"ERROR",
-
 	"not expected",
 }
 

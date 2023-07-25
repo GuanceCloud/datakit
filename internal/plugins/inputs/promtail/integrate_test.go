@@ -300,7 +300,12 @@ func (cs *caseSpec) run() error {
 
 	go func() {
 		cs.done = make(chan struct{})
+	startListen:
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			if strings.Contains(err.Error(), "address already in use") {
+				fmt.Println(err.Error())
+				goto startListen
+			}
 			panic(err)
 		}
 	}()

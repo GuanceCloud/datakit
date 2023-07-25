@@ -78,7 +78,7 @@ func (ipt *Input) BuildSNMPParams(deviceIP string) (*gosnmp.GoSNMP, error) {
 		privProtocol = gosnmp.NoPriv
 	case "des":
 		privProtocol = gosnmp.DES
-	case "aes":
+	case "aes", "aes128":
 		privProtocol = gosnmp.AES
 	case "aes192":
 		privProtocol = gosnmp.AES192

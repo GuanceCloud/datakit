@@ -168,6 +168,12 @@ spec:
           value: /rootfs/dev
         - name: HOST_ROOT
           value: /rootfs
+        # - name: ENV_GIT_BRANCH
+        #   value: master
+        # - name: ENV_GIT_INTERVAL
+        #   value: 10s
+        # - name: ENV_GIT_URL
+        #   value: http://username:password@github.com/path/to/repository.git
         # # ---iploc-start
         #- name: ENV_IPDB
         #  value: iploc
@@ -211,6 +217,13 @@ spec:
         #  name: datakit-conf
         #  subPath: redis.conf
         #  readOnly: true
+        # - mountPath: /usr/local/datakit/conf.d/pythond/pythond.conf
+        #   name: datakit-conf
+        #   subPath: pythond.conf
+        #   readOnly: true
+        # - name: hellopythond
+        #   mountPath: /usr/local/datakit/python.d/hellopythond/
+        #   readOnly: true
         workingDir: /usr/local/datakit
       # # ---iploc-start
       #initContainers:
@@ -238,6 +251,9 @@ spec:
       - configMap:
           name: datakit-conf
         name: datakit-conf
+      # - name: hellopythond
+      #   configMap:
+      #     name: python-scripts
       - hostPath:
           path: /root/datakit_cache
         name: cache
@@ -273,3 +289,47 @@ data:
     #redis.conf: |-
     #  [inputs.redis]
     #  ...
+    # pythond.conf: |
+    #   [[inputs.pythond]]
+    #     # Python input name
+    #     name = 'some-python-inputs'  # required
+    #     # System environments to run Python
+    #     #envs = ['LD_LIBRARY_PATH=/path/to/lib:$LD_LIBRARY_PATH',]
+    #     # Python path(recomment abstract Python path)
+    #     cmd = "python3" # required. python3 is recommended.
+    #     # Python scripts relative path
+    #     dirs = ["hellopythond"]
+---
+
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: python-scripts
+#   namespace: datakit
+# data:
+#     hellopythond.py: |
+#       from datakit_framework import DataKitFramework
+#       import random
+#       class HelloPythond(DataKitFramework):
+#           __name = 'HelloPythond'
+#           interval = 10
+#           def run(self):
+#               rd = random.randint(1, 100)
+#               data = [
+#                 {
+#                     "measurement": "random_number",
+#                     "tags": {
+#                       "tag_name": "tag_value",
+#                     },
+#                     "fields": {
+#                       "number": rd,
+#                     },
+#                 },
+#               ]
+#               in_data = {
+#                   'M':data,
+#                   'input': "pyfromgit"
+#               }
+#               return self.report(in_data)
+
+---

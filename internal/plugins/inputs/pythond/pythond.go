@@ -166,6 +166,7 @@ func getPyModules(root string, ipd IPythond) []string {
 		l.Error(err)
 		return nil
 	}
+	l.Infof("[11] files = %v", files)
 	return getFilteredPyModules(files, root)
 }
 
@@ -184,12 +185,14 @@ func getFilteredPyModules(files []string, root string) []string {
 		}
 
 		pureName := path.GetPureNameFromExt(base)
+		l.Infof("[12] pureName = %s", pureName)
 
 		parentFull := filepath.Dir(v)
 		if parentFull == root {
 			arr = append(arr, pureName)
 		} else {
 			parent := path.GetParentDirName(v)
+			l.Infof("[13] parent = %s", parent)
 			arr = append(arr, fmt.Sprintf("%s.%s", parent, pureName))
 		}
 	}
@@ -230,7 +233,17 @@ func (*pythondImpl) FileExist(ph string) bool {
 }
 
 func (*pythondImpl) GetFolderList(root string, deep int) (folders, files []string, err error) {
-	return path.GetFolderList(root, deep)
+	_folders, _files, _err := path.GetFolderList(root, deep)
+	if err != nil {
+		return nil, nil, _err
+	}
+	// exclude filename contains ..
+	for _, v := range _files {
+		if !strings.Contains(v, "..") {
+			files = append(files, v)
+		}
+	}
+	return _folders, files, nil
 }
 
 func (*pythondImpl) GitHasEnabled() bool {
@@ -248,24 +261,32 @@ func getScriptNameRoot(dirs []string, ipd IPythond) (scriptName, scriptRoot stri
 			// enabled git
 			if filepath.IsAbs(v) {
 				pythonPath = v
+				l.Infof(" [1] pythonPath = %s", pythonPath)
 			} else {
 				pythonPath = searchPythondDir(v, []string{datakit.GitReposRepoName}, ipd)
+				l.Infof(" [2] pythonPath = %s", pythonPath)
 			}
 		} else {
 			// not enabled git
 			pythonPath = filepath.Join(datakit.PythonDDir, v)
+			l.Infof(" [3] pythonPath = %s", pythonPath)
 		}
 
 		if ipd.IsDir(pythonPath) {
 			pyModules = append(pyModules, getPyModules(pythonPath, ipd)...)
 			modulesRoot = append(modulesRoot, pythonPath)
+			l.Infof(" [4] pyModules   = %v", pyModules)
+			l.Infof(" [5] modulesRoot = %v", modulesRoot)
 		} else if ipd.FileExist(pythonPath) {
 			pyModules = append(pyModules, path.GetPureNameFromExt(pythonPath))
+			l.Infof(" [6] pyModules = %v", pyModules)
 		}
 	}
 
 	pyModules = dkstring.GetUniqueArray(pyModules)
 	modulesRoot = dkstring.GetUniqueArray(modulesRoot)
+	l.Infof(" [7] pyModules   = %v", pyModules)
+	l.Infof(" [8] modulesRoot = %v", modulesRoot)
 
 	if len(pyModules) == 0 || len(modulesRoot) == 0 {
 		err = fmt.Errorf("pyModules or modulesRoot empty")
@@ -274,6 +295,8 @@ func getScriptNameRoot(dirs []string, ipd IPythond) (scriptName, scriptRoot stri
 
 	scriptName = strings.Join(pyModules, "\", \"")
 	scriptRoot = "['" + strings.Join(modulesRoot, "', '") + "']"
+	l.Infof(" [9] scriptName = %s", scriptName)
+	l.Infof("[10] scriptRoot = %s", scriptRoot)
 
 	return scriptName, scriptRoot, nil
 }
