@@ -538,7 +538,7 @@ EOF
 	return nil
 }
 
-func TestMySQLInput(t *testing.T) {
+func TestIntegrate(t *testing.T) {
 	if !testutils.CheckIntegrationTestingRunning() {
 		t.Skip()
 	}

@@ -47,7 +47,7 @@ Datakit 支持以上所有版本。
 
 ### 选择 v3 版本 {#config-v3}
 
-如果选择 v3 版本，需要提供 「用户名」、「认证算法/密码」、「加密算法/密码」、「上下文」 等，各个设备不同，根据要求进行填写。
+如果选择 v3 版本，需要提供 「用户名」、「认证算法/密码」、「加密算法/密码」、「上下文」 等，各个设备要求不同，根据设备侧的配置进行填写。
 
 ## 配置 {#config}
 
@@ -165,10 +165,23 @@ metadata:
         symbol:
           MIB: OLD-CISCO-CHASSIS-MIB
           OID: 1.3.6.1.4.1.9.3.6.3.0
-          name: chassisId
+          name: info
+
+metrics:
+  # iLO controller metrics.
+
+  - # Power state.
+    # NOTE: unknown(1), poweredOff(2), poweredOn(3), insufficientPowerOrPowerOnDenied(4)
+    MIB: CPQSM2-MIB
+    symbol:
+      OID: 1.3.6.1.4.1.232.9.2.2.32
+      name: temperature
 ```
 
-如上所示，定义了一个 `sysobjectid` 为 `1.3.6.1.4.1.9.1.1745` 的设备，下次 Datakit 如果采集到 `sysobjectid` 相同的设备时，便会应用该文件，在此情况下，采集到 OID 为 `1.3.6.1.4.1.9.3.6.3.0` 的数据便会上报为名称是 `chassisId` 的指标。
+如上所示，定义了一个 `sysobjectid` 为 `1.3.6.1.4.1.9.1.1745` 的设备，下次 Datakit 如果采集到 `sysobjectid` 相同的设备时，便会应用该文件，在此情况下：
+
+- 采集到 OID 为 `1.3.6.1.4.1.9.3.6.3.0` 的数据时会把名称为 `serial_number` 的字段加到 `device_meta` 字段（JSON）里面，然后附加到指标集 `snmp_object` 中作为 Object 上报；
+- 采集到 OID 为 `1.3.6.1.4.1.232.9.2.2.32` 的数据时把名称为 `temperature` 的字段附加到指标集 `snmp_metric` 中作为 Metric 上报；
 
 <!-- markdownlint-disable MD046 -->
 ???+ attention

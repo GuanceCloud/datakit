@@ -375,17 +375,10 @@ func (cs *caseSpec) run() error {
 	cs.t.Logf("wait points...")
 
 	// collect metric points
-	ps, err := cs.feeder.AnyPoints()
+	ps, err := cs.feeder.NPoints(400, 5*time.Minute)
 	if err != nil {
 		return err
 	}
-
-	// collect logging points
-	ps1, err := cs.feeder.AnyPoints()
-	if err != nil {
-		return err
-	}
-	ps = append(ps, ps1...)
 
 	cs.cr.AddField("point_latency", int64(time.Since(start)))
 	cs.cr.AddField("point_count", len(ps))

@@ -33,7 +33,7 @@ If you choose v1/v2c version, you need to provide `community string`, AKA `commu
 
 ### Choosing v3 version {#config-v3}
 
-If you choose v3 version, you need to provide `username`, `authentication algorithm/password`, `encryption algorithm/password`, `context`, etc. Each device is different and should be filled in as required.
+If you choose v3 version, you need to provide `username`, `authentication algorithm/password`, `encryption algorithm/password`, `context`, etc. Each device is different and should be filled in as same as configuration in SNMP device.
 
 ## Configure Collector {#config-input}
 
@@ -148,10 +148,23 @@ metadata:
         symbol:
           MIB: OLD-CISCO-CHASSIS-MIB
           OID: 1.3.6.1.4.1.9.3.6.3.0
-          name: chassisId
+          name: info
+
+metrics:
+  # iLO controller metrics.
+
+  - # Power state.
+    # NOTE: unknown(1), poweredOff(2), poweredOn(3), insufficientPowerOrPowerOnDenied(4)
+    MIB: CPQSM2-MIB
+    symbol:
+      OID: 1.3.6.1.4.1.232.9.2.2.32
+      name: temperature
 ```
 
-As shown above, a device with `sysobjectid` of `1.3.6.1.4.1.9.1.1745` is defined, and the file will be applied the next time Datakit collects a device with the same `sysobjectid`, in which case the collected data with an OID of `1.3.6.1.4.1.9.3.6.3.0` will be reported as an indicator with the name `chassisId`.
+As shown above, a device with `sysobjectid` of `1.3.6.1.4.1.9.1.1745` is defined, and the next time Datakit captures a device with the same `sysobjectid`, the file will be applied, in this case:
+
+- When device data is captured for an OID of `1.3.6.1.4.1.9.3.6.3.0`, the field with the name `serial_number` will added to the `device_meta` field(JSON), and appended to the set `snmp_object` to be reported as an Object;
+- When device data is captured for an OID of `1.3.6.1.4.1.232.9.2.2.32`, the field with the name `temperature` will added to the the metric set `snmp_metric` and reported as a Metric;
 
 ???+ attention
 

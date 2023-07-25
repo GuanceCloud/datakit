@@ -9,7 +9,8 @@ COPY dist/datakit-linux-${TARGETARCH}/ /usr/local/datakit/
 
 RUN sed -i 's/\(archive\|security\|ports\).ubuntu.com/mirrors.aliyun.com/' /etc/apt/sources.list \
     && apt-get update \
-    && apt-get install -y libaio-dev libaio1 unzip wget curl
+    && apt-get install -y libaio-dev libaio1 unzip wget curl python3 python3-pip \
+    && pip3 install requests
 
 # download 3rd party libraries
 RUN \
