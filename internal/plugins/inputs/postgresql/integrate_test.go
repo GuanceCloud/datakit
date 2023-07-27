@@ -39,7 +39,7 @@ type (
 	validateFunc     func(pts []*point.Point, cs *caseSpec) error
 	getConfFunc      func(c containerInfo) string
 	serviceReadyFunc func(ipt *Input) error
-	serviceOKFunc    func(t *testing.T, port int) bool
+	serviceOKFunc    func(t *testing.T, port string) bool
 )
 
 type caseSpec struct {
@@ -276,9 +276,6 @@ func (cs *caseSpec) run() error {
 		return err
 	}
 
-	// get port
-	port := testutils.RandPort("tcp")
-
 	// check image valid
 	images := strings.Split(cs.image, ":")
 	if len(images) != 2 {
@@ -296,10 +293,7 @@ func (cs *caseSpec) run() error {
 		Repository: images[0],
 		Tag:        images[1],
 
-		// port binding
-		PortBindings: map[docker.Port][]docker.PortBinding{
-			cs.bindingPort: {{HostIP: "0.0.0.0", HostPort: fmt.Sprintf("%d", port)}},
-		},
+		ExposedPorts: []string{string(cs.bindingPort)},
 
 		Name: containerName,
 
@@ -311,17 +305,24 @@ func (cs *caseSpec) run() error {
 		return err
 	}
 
+	hostPort := cs.resource.GetHostPort(string(cs.bindingPort))
+
+	_, port, err := net.SplitHostPort(hostPort)
+	if err != nil {
+		return fmt.Errorf("get host port error: %w", err)
+	}
+
 	// setup container
 	if err := setupContainer(cs.pool, cs.resource); err != nil {
 		return err
 	}
 
-	cs.t.Logf("check service(%s:%d)...", r.Host, port)
+	cs.t.Logf("check service(%s:%s)...", r.Host, port)
 	if cs.serviceOK != nil {
 		if !cs.serviceOK(cs.t, port) {
 			return fmt.Errorf("service failed to serve")
 		}
-	} else if !r.PortOK(fmt.Sprintf("%d", port), 5*time.Minute) {
+	} else if !r.PortOK(port, 5*time.Minute) {
 		return fmt.Errorf("service port checking failed")
 	}
 
@@ -329,7 +330,7 @@ func (cs *caseSpec) run() error {
 		User:     User,
 		Password: UserPassword,
 		Host:     r.Host,
-		Port:     fmt.Sprintf("%d", port),
+		Port:     port,
 	}
 
 	// set input
@@ -427,7 +428,7 @@ func buildCases(t *testing.T, configs []caseItem) ([]*caseSpec, error) {
 			if config.serviceOK != nil {
 				caseSpecItem.serviceOK = config.serviceOK
 			} else {
-				caseSpecItem.serviceOK = func(t *testing.T, port int) bool {
+				caseSpecItem.serviceOK = func(t *testing.T, port string) bool {
 					t.Helper()
 					host := net.JoinHostPort(testutils.GetRemote().Host, fmt.Sprint(port))
 					address := fmt.Sprintf("postgres://%s:%s@%s?sslmode=disable", User, UserPassword, host)
