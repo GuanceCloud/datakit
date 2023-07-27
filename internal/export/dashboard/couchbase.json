@@ -1,0 +1,785 @@
+{
+    "dashboardBindSet": [],
+    "dashboardExtend": {},
+    "dashboardMapping": [],
+    "dashboardOwnerType": "node",
+    "dashboardType": "CUSTOM",
+    "iconSet": {},
+    "main": {
+      "charts": [
+        {
+          "extend": {
+            "fixedTime": "",
+            "isRefresh": false,
+            "settings": {
+              "alias": [],
+              "chartType": "line",
+              "colors": [],
+              "compareColors": {
+                "dayCompare": "rgba(213,217,226,0.5)",
+                "hourCompare": "#D5D9E2",
+                "monthCompare": "rgba(213,217,226,0.12)",
+                "weekCompare": "rgba(213,217,226,0.25)"
+              },
+              "compareColorsDark": {
+                "dayCompare": "rgba(213,217,226,0.5)",
+                "hourCompare": "#D5D9E2",
+                "monthCompare": "rgba(213,217,226,0.12)",
+                "weekCompare": "rgba(213,217,226,0.25)"
+              },
+              "compareColorsLight": {
+                "dayCompare": "rgba(11,11,12,0.5)",
+                "hourCompare": "#0B0B0C",
+                "monthCompare": "rgba(11,11,12,0.12)",
+                "weekCompare": "rgba(11,11,12,0.3)"
+              },
+              "compareType": [],
+              "currentChartType": "sequence",
+              "density": "medium",
+              "fixedTime": "",
+              "isPercent": false,
+              "isTimeInterval": true,
+              "legendPostion": "none",
+              "legendValues": "",
+              "levels": [],
+              "mainMeasurementQueryCode": "A",
+              "onlyShowGroupName": false,
+              "openCompare": false,
+              "openStack": false,
+              "showFieldMapping": false,
+              "showLine": false,
+              "showTitle": true,
+              "slimit": 20,
+              "stackType": "time",
+              "timeInterval": "auto",
+              "titleDesc": "{{.Dashboard.ram_used_note}}",
+              "units": [
+                {
+                  "key": "avg(interestingstats_mem_used)",
+                  "name": "avg(interestingstats_mem_used)",
+                  "unit": "",
+                  "units": [
+                    "digital",
+                    "b"
+                  ]
+                },
+                {
+                  "key": "avg(memory_free)",
+                  "name": "avg(memory_free)",
+                  "unit": "",
+                  "units": [
+                    "digital",
+                    "b"
+                  ]
+                },
+                {
+                  "key": "avg(memory_total)",
+                  "name": "avg(memory_total)",
+                  "unit": "",
+                  "units": [
+                    "digital",
+                    "b"
+                  ]
+                }
+              ],
+              "xAxisShowType": "time",
+              "yAxixMaxVal": null,
+              "yAxixMinVal": null
+            }
+          },
+          "group": {
+            "name": "{{.Dashboard.node_resources}}"
+          },
+          "name": "{{.Dashboard.ram_used}}",
+          "pos": {
+            "h": 10,
+            "w": 8,
+            "x": 8,
+            "y": 15
+          },
+          "queries": [
+            {
+              "color": "",
+              "datasource": "dataflux",
+              "name": "",
+              "qtype": "dql",
+              "query": {
+                "alias": "",
+                "code": "A",
+                "dataSource": "cbnode",
+                "field": "interestingstats_mem_used",
+                "fieldFunc": "avg",
+                "fieldType": "float",
+                "fill": null,
+                "filters": [
+                  {
+                    "id": "0186bac0-2c40-11ee-a4ae-3b238200ca3d",
+                    "logic": "and",
+                    "name": "#{cluster}",
+                    "op": "=",
+                    "type": "",
+                    "value": ""
+                  }
+                ],
+                "funcList": [],
+                "groupBy": [],
+                "groupByTime": "",
+                "indexFilter": "",
+                "namespace": "metric",
+                "q": "M::`cbnode`:(AVG(`interestingstats_mem_used`)) { `#{cluster}` = '' }",
+                "queryFuncs": [],
+                "type": "simple"
+              },
+              "type": "sequence",
+              "unit": ""
+            },
+            {
+              "color": "",
+              "datasource": "dataflux",
+              "name": "",
+              "qtype": "dql",
+              "query": {
+                "alias": "",
+                "code": "B",
+                "dataSource": "cbnode",
+                "field": "memory_total",
+                "fieldFunc": "avg",
+                "fieldType": "float",
+                "fill": null,
+                "filters": [
+                  {
+                    "id": "42153800-2c40-11ee-a4ae-3b238200ca3d",
+                    "logic": "and",
+                    "name": "#{cluster}",
+                    "op": "=",
+                    "type": "",
+                    "value": ""
+                  }
+                ],
+                "funcList": [],
+                "groupBy": [],
+                "groupByTime": "",
+                "indexFilter": "",
+                "namespace": "metric",
+                "q": "M::`cbnode`:(AVG(`memory_total`)) { `#{cluster}` = '' }",
+                "queryFuncs": [],
+                "type": "simple"
+              },
+              "type": "sequence",
+              "unit": ""
+            },
+            {
+              "color": "",
+              "datasource": "dataflux",
+              "name": "",
+              "qtype": "dql",
+              "query": {
+                "alias": "",
+                "code": "C",
+                "dataSource": "cbnode",
+                "field": "memory_free",
+                "fieldFunc": "avg",
+                "fieldType": "float",
+                "fill": null,
+                "filters": [],
+                "funcList": [],
+                "groupBy": [],
+                "groupByTime": "",
+                "indexFilter": "",
+                "namespace": "metric",
+                "q": "M::`cbnode`:(AVG(`memory_free`))",
+                "queryFuncs": [],
+                "type": "simple"
+              },
+              "type": "sequence",
+              "unit": ""
+            }
+          ],
+          "type": "sequence"
+        },
+        {
+          "extend": {
+            "fixedTime": "",
+            "isRefresh": false,
+            "settings": {
+              "alias": [],
+              "chartType": "line",
+              "colors": [],
+              "compareColors": {
+                "dayCompare": "rgba(213,217,226,0.5)",
+                "hourCompare": "#D5D9E2",
+                "monthCompare": "rgba(213,217,226,0.12)",
+                "weekCompare": "rgba(213,217,226,0.25)"
+              },
+              "compareColorsDark": {
+                "dayCompare": "rgba(213,217,226,0.5)",
+                "hourCompare": "#D5D9E2",
+                "monthCompare": "rgba(213,217,226,0.12)",
+                "weekCompare": "rgba(213,217,226,0.25)"
+              },
+              "compareColorsLight": {
+                "dayCompare": "rgba(11,11,12,0.5)",
+                "hourCompare": "#0B0B0C",
+                "monthCompare": "rgba(11,11,12,0.12)",
+                "weekCompare": "rgba(11,11,12,0.3)"
+              },
+              "compareType": [],
+              "currentChartType": "sequence",
+              "density": "medium",
+              "fixedTime": "",
+              "isPercent": false,
+              "isTimeInterval": true,
+              "legendPostion": "none",
+              "legendValues": "",
+              "levels": [],
+              "mainMeasurementQueryCode": "A",
+              "onlyShowGroupName": false,
+              "openCompare": false,
+              "openStack": false,
+              "showFieldMapping": false,
+              "showLine": false,
+              "showTitle": true,
+              "slimit": 20,
+              "stackType": "time",
+              "timeInterval": "auto",
+              "titleDesc": "{{.Dashboard.total_ops_note}}",
+              "units": [
+                {
+                  "key": "avg(interestingstats_ops)",
+                  "name": "avg(interestingstats_ops)",
+                  "unit": "",
+                  "units": [
+                    "throughput",
+                    "reqps"
+                  ]
+                }
+              ],
+              "xAxisShowType": "time",
+              "yAxixMaxVal": null,
+              "yAxixMinVal": null
+            }
+          },
+          "group": {
+            "name": "{{.Dashboard.cluster_overview}}"
+          },
+          "name": "{{.Dashboard.total_ops}}",
+          "pos": {
+            "h": 10,
+            "w": 8,
+            "x": 0,
+            "y": 2.5
+          },
+          "queries": [
+            {
+              "color": "",
+              "datasource": "dataflux",
+              "name": "",
+              "qtype": "dql",
+              "query": {
+                "alias": "",
+                "code": "A",
+                "dataSource": "cbnode",
+                "field": "interestingstats_ops",
+                "fieldFunc": "avg",
+                "fieldType": "float",
+                "fill": null,
+                "filters": [
+                  {
+                    "id": "b70ea230-2c41-11ee-a4ae-3b238200ca3d",
+                    "logic": "and",
+                    "name": "",
+                    "op": "=",
+                    "value": ""
+                  }
+                ],
+                "funcList": [],
+                "groupBy": [
+                  "cluster"
+                ],
+                "groupByTime": "",
+                "indexFilter": "",
+                "namespace": "metric",
+                "q": "M::`cbnode`:(AVG(`interestingstats_ops`)) BY `cluster`",
+                "queryFuncs": [],
+                "type": "simple"
+              },
+              "type": "sequence",
+              "unit": ""
+            }
+          ],
+          "type": "sequence"
+        },
+        {
+          "extend": {
+            "fixedTime": "",
+            "isRefresh": false,
+            "settings": {
+              "alias": [],
+              "chartType": "line",
+              "colors": [],
+              "compareColors": {
+                "dayCompare": "rgba(213,217,226,0.5)",
+                "hourCompare": "#D5D9E2",
+                "monthCompare": "rgba(213,217,226,0.12)",
+                "weekCompare": "rgba(213,217,226,0.25)"
+              },
+              "compareColorsDark": {
+                "dayCompare": "rgba(213,217,226,0.5)",
+                "hourCompare": "#D5D9E2",
+                "monthCompare": "rgba(213,217,226,0.12)",
+                "weekCompare": "rgba(213,217,226,0.25)"
+              },
+              "compareColorsLight": {
+                "dayCompare": "rgba(11,11,12,0.5)",
+                "hourCompare": "#0B0B0C",
+                "monthCompare": "rgba(11,11,12,0.12)",
+                "weekCompare": "rgba(11,11,12,0.3)"
+              },
+              "compareType": [],
+              "currentChartType": "sequence",
+              "density": "medium",
+              "fixedTime": "",
+              "isPercent": false,
+              "isTimeInterval": true,
+              "legendPostion": "none",
+              "legendValues": "",
+              "levels": [],
+              "mainMeasurementQueryCode": "A",
+              "onlyShowGroupName": false,
+              "openCompare": false,
+              "openStack": false,
+              "showFieldMapping": false,
+              "showLine": false,
+              "showTitle": true,
+              "slimit": 20,
+              "stackType": "time",
+              "timeInterval": "auto",
+              "titleDesc": "{{.Dashboard.disk_note}}",
+              "units": [
+                {
+                  "key": "avg(interestingstats_couch_docs_actual_disk_size)",
+                  "name": "avg(interestingstats_couch_docs_actual_disk_size)",
+                  "unit": "",
+                  "units": [
+                    "digital",
+                    "b"
+                  ]
+                },
+                {
+                  "key": "avg(disk_write_queue)",
+                  "name": "avg(disk_write_queue)",
+                  "unit": "",
+                  "units": [
+                    "digital",
+                    "b"
+                  ]
+                }
+              ],
+              "xAxisShowType": "time",
+              "yAxixMaxVal": null,
+              "yAxixMinVal": null
+            }
+          },
+          "group": {
+            "name": "{{.Dashboard.cluster_overview}}"
+          },
+          "name": "{{.Dashboard.disk}}",
+          "pos": {
+            "h": 10,
+            "w": 8,
+            "x": 16,
+            "y": 2.5
+          },
+          "queries": [
+            {
+              "color": "",
+              "datasource": "dataflux",
+              "name": "",
+              "qtype": "dql",
+              "query": {
+                "alias": "",
+                "code": "A",
+                "dataSource": "cbpernodebucket",
+                "field": "disk_write_queue",
+                "fieldFunc": "avg",
+                "fieldType": "float",
+                "fill": null,
+                "filters": [
+                  {
+                    "id": "207438f0-2c44-11ee-a4ae-3b238200ca3d",
+                    "logic": "and",
+                    "name": "#{cluster}",
+                    "op": "=",
+                    "type": "",
+                    "value": ""
+                  }
+                ],
+                "funcList": [],
+                "groupBy": [
+                  "cluster"
+                ],
+                "groupByTime": "",
+                "indexFilter": "",
+                "namespace": "metric",
+                "q": "M::`cbpernodebucket`:(AVG(`disk_write_queue`)) { `#{cluster}` = '' } BY `cluster`",
+                "queryFuncs": [],
+                "type": "simple"
+              },
+              "type": "sequence",
+              "unit": ""
+            },
+            {
+              "color": "",
+              "datasource": "dataflux",
+              "name": "",
+              "qtype": "dql",
+              "query": {
+                "alias": "",
+                "code": "B",
+                "dataSource": "cbnode",
+                "field": "interestingstats_couch_docs_actual_disk_size",
+                "fieldFunc": "avg",
+                "fieldType": "float",
+                "fill": null,
+                "filters": [
+                  {
+                    "id": "506a8320-2c44-11ee-a4ae-3b238200ca3d",
+                    "logic": "and",
+                    "name": "",
+                    "op": "=",
+                    "value": ""
+                  }
+                ],
+                "funcList": [],
+                "groupBy": [
+                  "cluster"
+                ],
+                "groupByTime": "",
+                "indexFilter": "",
+                "namespace": "metric",
+                "q": "M::`cbnode`:(AVG(`interestingstats_couch_docs_actual_disk_size`)) BY `cluster`",
+                "queryFuncs": [],
+                "type": "simple"
+              },
+              "type": "sequence",
+              "unit": ""
+            }
+          ],
+          "type": "sequence"
+        },
+        {
+          "extend": {
+            "fixedTime": "",
+            "isRefresh": false,
+            "settings": {
+              "alias": [],
+              "chartType": "line",
+              "colors": [],
+              "compareColors": {
+                "dayCompare": "rgba(213,217,226,0.5)",
+                "hourCompare": "#D5D9E2",
+                "monthCompare": "rgba(213,217,226,0.12)",
+                "weekCompare": "rgba(213,217,226,0.25)"
+              },
+              "compareColorsDark": {
+                "dayCompare": "rgba(213,217,226,0.5)",
+                "hourCompare": "#D5D9E2",
+                "monthCompare": "rgba(213,217,226,0.12)",
+                "weekCompare": "rgba(213,217,226,0.25)"
+              },
+              "compareColorsLight": {
+                "dayCompare": "rgba(11,11,12,0.5)",
+                "hourCompare": "#0B0B0C",
+                "monthCompare": "rgba(11,11,12,0.12)",
+                "weekCompare": "rgba(11,11,12,0.3)"
+              },
+              "compareType": [],
+              "currentChartType": "sequence",
+              "density": "medium",
+              "fixedTime": "",
+              "isPercent": false,
+              "isTimeInterval": true,
+              "legendPostion": "none",
+              "legendValues": "",
+              "levels": [],
+              "mainMeasurementQueryCode": "A",
+              "onlyShowGroupName": false,
+              "openCompare": false,
+              "openStack": false,
+              "showFieldMapping": false,
+              "showLine": false,
+              "showTitle": true,
+              "slimit": 20,
+              "stackType": "time",
+              "timeInterval": "auto",
+              "titleDesc": "{{.Dashboard.cpu_used_note}}",
+              "units": [
+                {
+                  "key": "avg(systemstats_cpu_utilization_rate)",
+                  "name": "avg(systemstats_cpu_utilization_rate)",
+                  "unit": "",
+                  "units": []
+                }
+              ],
+              "xAxisShowType": "time",
+              "yAxixMaxVal": null,
+              "yAxixMinVal": null
+            }
+          },
+          "group": {
+            "name": "{{.Dashboard.node_resources}}"
+          },
+          "name": "{{.Dashboard.cpu_used}}",
+          "pos": {
+            "h": 10,
+            "w": 8,
+            "x": 0,
+            "y": 15
+          },
+          "queries": [
+            {
+              "color": "",
+              "datasource": "dataflux",
+              "name": "",
+              "qtype": "dql",
+              "query": {
+                "alias": "",
+                "code": "A",
+                "dataSource": "cbnode",
+                "field": "systemstats_cpu_utilization_rate",
+                "fieldFunc": "avg",
+                "fieldType": "float",
+                "fill": null,
+                "filters": [
+                  {
+                    "id": "f1353400-2c47-11ee-a4ae-3b238200ca3d",
+                    "logic": "and",
+                    "name": "",
+                    "op": "=",
+                    "value": ""
+                  }
+                ],
+                "funcList": [],
+                "groupBy": [
+                  "cluster"
+                ],
+                "groupByTime": "",
+                "indexFilter": "",
+                "namespace": "metric",
+                "q": "M::`cbnode`:(AVG(`systemstats_cpu_utilization_rate`)) BY `cluster`",
+                "queryFuncs": [],
+                "type": "simple"
+              },
+              "type": "sequence",
+              "unit": ""
+            }
+          ],
+          "type": "sequence"
+        },
+        {
+          "extend": {
+            "fixedTime": "",
+            "isRefresh": false,
+            "settings": {
+              "alias": [],
+              "chartType": "line",
+              "colors": [],
+              "compareColors": {
+                "dayCompare": "rgba(213,217,226,0.5)",
+                "hourCompare": "#D5D9E2",
+                "monthCompare": "rgba(213,217,226,0.12)",
+                "weekCompare": "rgba(213,217,226,0.25)"
+              },
+              "compareColorsDark": {
+                "dayCompare": "rgba(213,217,226,0.5)",
+                "hourCompare": "#D5D9E2",
+                "monthCompare": "rgba(213,217,226,0.12)",
+                "weekCompare": "rgba(213,217,226,0.25)"
+              },
+              "compareColorsLight": {
+                "dayCompare": "rgba(11,11,12,0.5)",
+                "hourCompare": "#0B0B0C",
+                "monthCompare": "rgba(11,11,12,0.12)",
+                "weekCompare": "rgba(11,11,12,0.3)"
+              },
+              "compareType": [],
+              "currentChartType": "sequence",
+              "density": "medium",
+              "fixedTime": "",
+              "isPercent": false,
+              "isTimeInterval": true,
+              "legendPostion": "none",
+              "legendValues": "",
+              "levels": [],
+              "mainMeasurementQueryCode": "A",
+              "onlyShowGroupName": false,
+              "openCompare": false,
+              "openStack": false,
+              "showFieldMapping": false,
+              "showLine": false,
+              "showTitle": true,
+              "slimit": 20,
+              "stackType": "time",
+              "timeInterval": "auto",
+              "titleDesc": "{{.Dashboard.data_ram_note}}",
+              "units": [
+                {
+                  "key": "avg(interestingstats_mem_used)",
+                  "name": "avg(interestingstats_mem_used)",
+                  "unit": "",
+                  "units": [
+                    "digital",
+                    "b"
+                  ]
+                },
+                {
+                  "key": "avg(ep_mem_low_wat)",
+                  "name": "avg(ep_mem_low_wat)",
+                  "unit": "",
+                  "units": [
+                    "digital",
+                    "b"
+                  ]
+                },
+                {
+                  "key": "avg(ep_mem_high_wat)",
+                  "name": "avg(ep_mem_high_wat)",
+                  "unit": "",
+                  "units": [
+                    "digital",
+                    "b"
+                  ]
+                }
+              ],
+              "xAxisShowType": "time",
+              "yAxixMaxVal": null,
+              "yAxixMinVal": null
+            }
+          },
+          "group": {
+            "name": "{{.Dashboard.cluster_overview}}"
+          },
+          "name": "{{.Dashboard.data_ram}}",
+          "pos": {
+            "h": 10,
+            "w": 8,
+            "x": 8,
+            "y": 2.5
+          },
+          "queries": [
+            {
+              "color": "",
+              "datasource": "dataflux",
+              "name": "",
+              "qtype": "dql",
+              "query": {
+                "alias": "",
+                "code": "A",
+                "dataSource": "cbnode",
+                "field": "interestingstats_mem_used",
+                "fieldFunc": "avg",
+                "fieldType": "float",
+                "fill": null,
+                "filters": [
+                  {
+                    "id": "64ae2340-2c4a-11ee-a4ae-3b238200ca3d",
+                    "logic": "and",
+                    "name": "#{cluster}",
+                    "op": "=",
+                    "type": "",
+                    "value": ""
+                  }
+                ],
+                "funcList": [],
+                "groupBy": [
+                  "cluster"
+                ],
+                "groupByTime": "",
+                "indexFilter": "",
+                "namespace": "metric",
+                "q": "M::`cbnode`:(AVG(`interestingstats_mem_used`)) { `#{cluster}` = '' } BY `cluster`",
+                "queryFuncs": [],
+                "type": "simple"
+              },
+              "type": "sequence",
+              "unit": ""
+            },
+            {
+              "color": "",
+              "datasource": "dataflux",
+              "name": "",
+              "qtype": "dql",
+              "query": {
+                "alias": "",
+                "code": "B",
+                "dataSource": "cbpernodebucket",
+                "field": "ep_mem_low_wat",
+                "fieldFunc": "avg",
+                "fieldType": "float",
+                "fill": null,
+                "filters": [
+                  {
+                    "id": "aac23380-2c4a-11ee-a4ae-3b238200ca3d",
+                    "logic": "and",
+                    "name": "",
+                    "op": "=",
+                    "value": ""
+                  }
+                ],
+                "funcList": [],
+                "groupBy": [
+                  "cluster"
+                ],
+                "groupByTime": "",
+                "indexFilter": "",
+                "namespace": "metric",
+                "q": "M::`cbpernodebucket`:(AVG(`ep_mem_low_wat`)) BY `cluster`",
+                "queryFuncs": [],
+                "type": "simple"
+              },
+              "type": "sequence",
+              "unit": ""
+            },
+            {
+              "color": "",
+              "datasource": "dataflux",
+              "name": "",
+              "qtype": "dql",
+              "query": {
+                "alias": "",
+                "code": "C",
+                "dataSource": "cbpernodebucket",
+                "field": "ep_mem_high_wat",
+                "fieldFunc": "avg",
+                "fieldType": "float",
+                "fill": null,
+                "filters": [],
+                "funcList": [],
+                "groupBy": [],
+                "groupByTime": "",
+                "indexFilter": "",
+                "namespace": "metric",
+                "q": "M::`cbpernodebucket`:(AVG(`ep_mem_high_wat`))",
+                "queryFuncs": [],
+                "type": "simple"
+              },
+              "type": "sequence",
+              "unit": ""
+            }
+          ],
+          "type": "sequence"
+        }
+      ],
+      "groups": [
+        "{{.Dashboard.cluster_overview}}",
+        "{{.Dashboard.node_resources}}"
+      ],
+      "type": "template",
+      "vars": []
+    },
+    "summary": "",
+    "tagInfo": [],
+    "tags": [],
+    "thumbnail": "",
+    "title": "Couchbase"
+  }
