@@ -25,10 +25,13 @@ import (
 
 // hugePackages is those packages that whose testing so much performance consumption.
 var hugePackages = map[string]bool{
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway":             true,
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/kafkamq": true,
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/mysql":   true,
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/oracle":  true,
 }
+
+const envExcludeHugeIntegrationTesting = "UT_EXCLUDE_HUGE_INTEGRATION_TESTING"
 
 func UnitTestDataKit() error {
 	pkgsListCmd := exec.Command("go", "list", "./...") //nolint:gosec
@@ -82,16 +85,25 @@ func UnitTestDataKit() error {
 
 	close(jobs)
 
-	nIdx := 0
-	for pkg := range hugePackages {
-		nIdx++
-		doWork(1, Job{
-			UTID:    utID,
-			Index:   nIdx,
-			LenPkgs: lenHugePkgs,
-			Pkg:     pkg,
-			wg:      nil,
-		})
+	skipHuge := false
+	if val := os.Getenv(envExcludeHugeIntegrationTesting); len(val) > 0 {
+		lower := strings.ToLower(val)
+		if lower == "on" {
+			skipHuge = true
+		}
+	}
+	if !skipHuge {
+		nIdx := 0
+		for pkg := range hugePackages {
+			nIdx++
+			doWork(1, Job{
+				UTID:    utID,
+				Index:   nIdx,
+				LenPkgs: lenHugePkgs,
+				Pkg:     pkg,
+				wg:      nil,
+			})
+		}
 	}
 
 	costHuge := time.Now()

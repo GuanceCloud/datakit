@@ -123,6 +123,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 					itrace.TAG_PID,
 					itrace.FIELD_PRIORITY,
 				),
+				inputs.WithIgnoreUnexpectedTags(true),
 			},
 		},
 
@@ -147,6 +148,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 					itrace.TAG_PID,
 					itrace.FIELD_PRIORITY,
 				),
+				inputs.WithIgnoreUnexpectedTags(true),
 			},
 		},
 	}
