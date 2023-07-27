@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -300,27 +301,40 @@ func (cs *caseSpec) run() error {
 
 	cs.ipt.RegHTTPHandler()
 
-	var srv *http.Server
-	var randPortStr string
+	var (
+		srv         *http.Server
+		randPortStr string
+	)
 
 	switch cs.mode {
 	case AGENT_HTTP:
-		randPort := testutils.RandPort("tcp")
-		randPortStr = fmt.Sprintf("%d", randPort)
-		cs.t.Logf("listening port " + randPortStr + "...")
-
 		gin.SetMode(gin.DebugMode)
 		router := gin.Default()
 		router.POST("apis/traces", cs.handler)
 
-		srv = &http.Server{
-			Addr:    ":" + randPortStr,
-			Handler: router,
+		var listener net.Listener
+
+		for {
+			randPort := testutils.RandPort("tcp")
+			randPortStr = fmt.Sprintf("%d", randPort)
+			listener, err = net.Listen("tcp", ":"+randPortStr)
+			if err != nil {
+				if strings.Contains(err.Error(), "bind: address already in use") {
+					continue
+				}
+				cs.t.Logf("net.Listen failed: %v", err)
+				return err
+			}
+			break
 		}
+
+		cs.t.Logf("listening port " + randPortStr + "...")
+
+		srv = &http.Server{Handler: router}
 
 		go func() {
 			cs.done = make(chan struct{})
-			if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			if err := srv.Serve(listener); err != nil && err != http.ErrServerClosed {
 				panic(err)
 			}
 		}()

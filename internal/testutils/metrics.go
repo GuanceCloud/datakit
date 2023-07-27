@@ -60,21 +60,18 @@ type TestingMetric interface {
 
 // ModuleResult collect `go test` metrics for single go module.
 type ModuleResult struct {
-	TestID string
-	Name   string
-
-	OS,
-	Arch,
-	GoVersion,
-	Branch string
-
-	Cost     time.Duration
-	Status   TestStatus
-	Coverage float64
-	NoTest   bool
-
-	FailedMessage string
-	Message       string
+	TestID        string        `json:"test_id"`
+	Name          string        `json:"name"`
+	OS            string        `json:"os"`
+	Arch          string        `json:"arch"`
+	GoVersion     string        `json:"go_version"`
+	Branch        string        `json:"branch"`
+	Cost          time.Duration `json:"cost"`
+	Status        TestStatus    `json:"status"`
+	Coverage      float64       `json:"coverage"`
+	NoTest        bool          `json:"no_test"`
+	FailedMessage string        `json:"failed_message"`
+	Message       string        `json:"message"`
 }
 
 func (mr *ModuleResult) LineProtocol() string {

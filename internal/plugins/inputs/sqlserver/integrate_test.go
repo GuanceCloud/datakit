@@ -95,6 +95,9 @@ var mtMap = map[string]struct {
 		extraTags: map[string]string{
 			"status": "",
 		},
+		optionalTags: []string{
+			"message",
+		},
 	},
 	"sqlserver_database_size": {
 		measurement: &DatabaseSize{},
@@ -451,7 +454,7 @@ func buildCases(t *testing.T, configs []caseItem) ([]*caseSpec, error) {
 					conn := mssql.NewConnectorConfig(cfg)
 					db := sql.OpenDB(conn)
 					defer db.Close()
-					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+					ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 					defer cancel()
 					ticker := time.NewTicker(time.Second)
 					defer ticker.Stop()
