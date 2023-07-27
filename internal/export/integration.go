@@ -19,6 +19,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
 	plfuncs "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/all"
 )
 
 type Integration struct {
@@ -288,17 +289,41 @@ func (i *Integration) exportIntegration(lang inputs.I18n) error {
 }
 
 func (i *Integration) exportDashboard(lang inputs.I18n) error {
-	dashboardEntries, err := AllDashboards.ReadDir(filepath.Join("dashboard", lang.String()))
+	entryDir := filepath.Join("dashboard", lang.String())
+	dashboardEntries, err := AllDashboards.ReadDir(entryDir)
 	if err != nil {
 		return err
 	}
 
 	for _, e := range dashboardEntries {
 		if !e.IsDir() {
+			l.Debugf("ignore non-dir %q under %s", e.Name(), entryDir)
 			continue
 		}
 
+		l.Debugf("export dashboard %q", e.Name())
 		name := e.Name() // dashboard/{zh,en}/cpu/ -> cpu
+		if err := i.buildDashboard(name, lang); err != nil {
+			return err
+		}
+	}
+
+	// read xx.json under dashboard
+	templateDir := "dashboard"
+	templateEntry, err := AllDashboards.ReadDir(templateDir)
+	if err != nil {
+		return err
+	}
+
+	for _, e := range templateEntry {
+		if e.IsDir() {
+			l.Debugf("ignore dir %q under %s", e.Name(), templateDir)
+			continue
+		}
+
+		l.Debugf("export dashboard %q", e.Name())
+
+		name := strings.Split(e.Name(), ".")[0] // cpu.json-> cpu
 		if err := i.buildDashboard(name, lang); err != nil {
 			return err
 		}
@@ -343,8 +368,12 @@ func (i *Integration) buildDashboard(name string, lang inputs.I18n) error {
 	// inputs may specified it's dashboard's specs.
 	if c, ok := inputs.Inputs[name]; ok && c != nil {
 		ipt := c()
+
 		switch i := ipt.(type) {
 		case inputs.Dashboard:
+
+			l.Infof("rendering %q dashboard...", name)
+
 			dashboard = i.Dashboard(lang)
 			dl := []string{name}
 
@@ -367,6 +396,8 @@ func (i *Integration) buildDashboard(name string, lang inputs.I18n) error {
 		default:
 			l.Warnf("input %s not implement Dashboard interfaces, ignored", name)
 		}
+	} else {
+		l.Warnf("input %q not exist", name)
 	}
 
 	p = &Params{

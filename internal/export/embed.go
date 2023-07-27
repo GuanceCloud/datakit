@@ -35,6 +35,7 @@ func dashboardTryLoad(name string, lang inputs.I18n) ([]byte, error) {
 	for _, f := range arr {
 		j, err := AllDashboards.ReadFile(f)
 		if err == nil {
+			l.Debugf("load %q ok", f)
 			return j, nil
 		}
 	}

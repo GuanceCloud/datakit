@@ -360,10 +360,15 @@ func (c *Config) LoadEnvs() error {
 		} else {
 			for k, arr := range x {
 				for _, c := range arr {
-					if parser.GetConds(c) == nil {
-						l.Warnf("invalid filter condition on %s: %s, ignored", k, c)
+					arr, err := parser.GetConds(c)
+					if err != nil {
+						l.Warnf("parse filter condition failed %q: %q, ignored", k, c)
+					}
+
+					if len(arr) == 0 {
+						l.Warnf("empty filter conditions %q", c)
 					} else {
-						l.Debugf("filter condition ok: %s", c)
+						l.Infof("filter condition ok %q", c)
 					}
 				}
 			}

@@ -65,7 +65,7 @@ IGN_EBPF_INSTALL_ERR ?= 0
 RACE_DETECTION       ?= "off"
 PKGEBPF              ?= false
 AUTO_FIX             ?= on
-UT_EXCLUDE           ?= ""
+UT_EXCLUDE           ?= "not-set"
 DOCKER_REMOTE_HOST   ?= "0.0.0.0" # default use localhost as docker server
 
 ifneq ($(PKGEBPF), false)

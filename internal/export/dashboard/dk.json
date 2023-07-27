@@ -1,5 +1,4 @@
 {
-	"verion": "v1.0.0",
   "dashboardBindSet": [],
   "dashboardExtend": {},
   "dashboardMapping": [],
@@ -53,7 +52,7 @@
             "slimit": 20,
             "stackType": "time",
             "timeInterval": "auto",
-            "titleDesc": "Total goroutines >= Sum of all module goroutines",
+            "titleDesc": "{{.Dashboard.alive_goroutines_note}}",
             "units": [],
             "xAxisShowType": "time",
             "yAxixMaxVal": null,
@@ -63,7 +62,7 @@
         "group": {
           "name": "Goroutine"
         },
-        "name": "Alive goroutines",
+        "name": "{{.Dashboard.alive_goroutines}}",
         "pos": {
           "h": 6,
           "w": 8,
@@ -77,7 +76,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "Module goroutines",
+              "alias": "Module",
               "code": "A",
               "dataSource": "dk",
               "field": "datakit_goroutine_alive",
@@ -101,7 +100,7 @@
               "groupByTime": "",
               "labelOp": "",
               "namespace": "metric",
-              "q": "M::`dk`:(AVG(`datakit_goroutine_alive`) AS `Module goroutines`) { `host` = '#{host}' } BY `name`",
+              "q": "M::`dk`:(AVG(`datakit_goroutine_alive`) AS `Module`) { `host` = '#{host}' } BY `name`",
               "queryFuncs": [],
               "type": "simple",
               "withLabels": []
@@ -150,7 +149,7 @@
       {
         "extend": {
           "fixedTime": "",
-          "isRefresh": true,
+          "isRefresh": false,
           "settings": {
             "alias": [],
             "chartType": "areaLine",
@@ -209,7 +208,7 @@
         "group": {
           "name": "Dataway"
         },
-        "name": "Dataway API request",
+        "name": "{{.Dashboard.dw_api_request}}",
         "pos": {
           "h": 6,
           "w": 6,
@@ -350,7 +349,7 @@
         "group": {
           "name": "Dataway"
         },
-        "name": "Dataway upload points",
+        "name": "{{.Dashboard.dw_upload_pts}}",
         "pos": {
           "h": 6,
           "w": 6,
@@ -364,14 +363,17 @@
             "name": "",
             "qtype": "dql",
             "query": {
+              "alias": "",
               "code": "A",
               "dataSource": "dk",
               "field": "datakit_io_dataway_point_total",
               "fieldFunc": "last",
+              "fieldType": "float",
               "fill": null,
               "fillNum": null,
               "filters": [
                 {
+                  "id": "b7fcf1b0-2bb0-11ee-85c3-3df58cd73a53",
                   "logic": "and",
                   "name": "host",
                   "op": "=",
@@ -388,7 +390,7 @@
               "namespace": "metric",
               "q": "M::`dk`:(LAST(`datakit_io_dataway_point_total`)) { `host` = '#{host}' } BY `category`, `status`",
               "queryFuncs": [],
-              "type": "dql",
+              "type": "simple",
               "withLabels": []
             },
             "type": "sequence",
@@ -452,7 +454,7 @@
         "group": {
           "name": "Dataway"
         },
-        "name": "Datawat upload bytes(gzip)",
+        "name": "{{.Dashboard.dw_upload_bytes}}",
         "pos": {
           "h": 6,
           "w": 6,
@@ -570,9 +572,9 @@
           }
         },
         "group": {
-          "name": "Black list"
+          "name": "{{.Dashboard.group_blacklist}}"
         },
-        "name": "Dropped points",
+        "name": "{{.Dashboard.filter_pts}}",
         "pos": {
           "h": 10,
           "w": 5,
@@ -605,12 +607,51 @@
               ],
               "funcList": [],
               "groupBy": [
-                "category"
+                "category",
+                "source"
               ],
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`dk`:(LAST(`datakit_filter_point_dropped_total`) AS `Dropped`) { `host` = '#{host}' } BY `category`",
+              "q": "M::`dk`:(LAST(`datakit_filter_point_dropped_total`) AS `Dropped`) { `host` = '#{host}' } BY `category`, `source`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Total",
+              "code": "B",
+              "dataSource": "dk",
+              "field": "datakit_filter_point_total",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "4ceee210-2b61-11ee-b71f-bd068a3e16e4",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "category",
+                "source"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`dk`:(LAST(`datakit_filter_point_total`) AS `Total`) { `host` = '#{host}' } BY `category`, `source`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -622,60 +663,56 @@
       },
       {
         "extend": {
+          "fixedGroupByTime": null,
           "fixedTime": "",
           "isRefresh": false,
           "settings": {
-            "alias": [],
-            "chartType": "areaLine",
+            "alias": [
+              {
+                "alias": "Err",
+                "key": "error",
+                "name": "error"
+              },
+              {
+                "alias": "Rule",
+                "key": "filters",
+                "name": "filters"
+              }
+            ],
             "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareType": [],
-            "currentChartType": "sequence",
-            "density": "medium",
+            "currentChartType": "table",
             "fixedTime": "",
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
+            "isTimeInterval": false,
             "levels": [],
+            "mainMeasurementLimit": 20,
             "mainMeasurementQueryCode": "A",
-            "onlyShowGroupName": false,
-            "openCompare": false,
-            "openStack": false,
+            "mainMeasurementSort": "top",
+            "pageSize": 0,
+            "queryMode": "toGroupColumn",
             "showFieldMapping": false,
-            "showLine": false,
             "showTitle": true,
             "slimit": 20,
-            "stackType": "time",
-            "timeInterval": "auto",
+            "timeInterval": "default",
             "titleDesc": "",
-            "units": [],
-            "xAxisShowType": "time",
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null
+            "units": [
+              {
+                "key": "Date",
+                "name": "Date",
+                "unit": "",
+                "units": [
+                  "timeStamp",
+                  "s"
+                ]
+              }
+            ],
+            "valColorMappings": [],
+            "valMappings": []
           }
         },
         "group": {
-          "name": "Black list"
+          "name": "{{.Dashboard.group_blacklist}}"
         },
-        "name": "Total points",
+        "name": "{{.Dashboard.filter_errors}}",
         "pos": {
           "h": 10,
           "w": 5,
@@ -689,11 +726,11 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "",
+              "alias": "Date",
               "code": "A",
               "dataSource": "dk",
-              "field": "datakit_io_input_filter_point_total",
-              "fieldFunc": "avg",
+              "field": "datakit_filter_parse_error",
+              "fieldFunc": "last",
               "fieldType": "float",
               "fill": null,
               "filters": [
@@ -708,21 +745,21 @@
               ],
               "funcList": [],
               "groupBy": [
-                "category",
-                "name"
+                "error",
+                "filters"
               ],
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`dk`:(AVG(`datakit_io_input_filter_point_total`)) { `host` = '#{host}' } BY `category`, `name`",
+              "q": "M::`dk`:(LAST(`datakit_filter_parse_error`) AS `Date`) { `host` = '#{host}' } BY `error`, `filters`",
               "queryFuncs": [],
               "type": "simple"
             },
-            "type": "sequence",
+            "type": "table",
             "unit": ""
           }
         ],
-        "type": "sequence"
+        "type": "table"
       },
       {
         "extend": {
@@ -779,7 +816,7 @@
         "group": {
           "name": "Pipeline"
         },
-        "name": "Pipeline Points",
+        "name": "{{.Dashboard.pl_pts}}",
         "pos": {
           "h": 6,
           "w": 12,
@@ -893,7 +930,7 @@
         "group": {
           "name": "Pipeline"
         },
-        "name": "Pipeline cost of each point",
+        "name": "{{.Dashboard.pl_cost_per_pt}}",
         "pos": {
           "h": 6,
           "w": 12,
@@ -915,7 +952,7 @@
                   "dataSource": "dk",
                   "field": "datakit_pipeline_cost_seconds_sum",
                   "fieldFunc": "avg",
-                  "fieldType": "float",
+                  "fieldType": "",
                   "fill": null,
                   "fillNum": null,
                   "filters": [
@@ -946,7 +983,7 @@
                   "dataSource": "dk",
                   "field": "datakit_pipeline_cost_seconds_count",
                   "fieldFunc": "avg",
-                  "fieldType": "float",
+                  "fieldType": "",
                   "fill": null,
                   "fillNum": null,
                   "filters": [
@@ -988,7 +1025,7 @@
         "extend": {
           "fixedGroupByTime": null,
           "fixedTime": "",
-          "isRefresh": true,
+          "isRefresh": false,
           "settings": {
             "alias": [],
             "chartType": "areaLine",
@@ -1048,9 +1085,9 @@
           }
         },
         "group": {
-          "name": "Collectors"
+          "name": "{{.Dashboard.group_collectors}}"
         },
-        "name": "Alive collectors",
+        "name": "{{.Dashboard.alive_collectors}}",
         "pos": {
           "h": 8,
           "w": 12,
@@ -1069,7 +1106,7 @@
               "dataSource": "dk",
               "field": "datakit_io_last_feed_timestamp_seconds",
               "fieldFunc": "avg",
-              "fieldType": "float",
+              "fieldType": "",
               "fill": null,
               "fillNum": null,
               "filters": [
@@ -1165,7 +1202,7 @@
         "group": {
           "name": "HTTP-API"
         },
-        "name": "HTTP(:9529) API latency",
+        "name": "{{.Dashboard.http_api_latency}}",
         "pos": {
           "h": 6,
           "w": 8,
@@ -1315,9 +1352,9 @@
           }
         },
         "group": {
-          "name": "Collectors"
+          "name": "{{.Dashboard.group_collectors}}"
         },
-        "name": "Collect points each time",
+        "name": "{{.Dashboard.pts_per_collect}}",
         "pos": {
           "h": 8,
           "w": 12,
@@ -1339,7 +1376,7 @@
                   "dataSource": "dk",
                   "field": "datakit_io_feed_point_total",
                   "fieldFunc": "avg",
-                  "fieldType": "float",
+                  "fieldType": "",
                   "fill": null,
                   "filters": [
                     {
@@ -1369,7 +1406,7 @@
                   "dataSource": "dk",
                   "field": "datakit_io_feed_total",
                   "fieldFunc": "avg",
-                  "fieldType": "float",
+                  "fieldType": "",
                   "fill": null,
                   "filters": [
                     {
@@ -1471,7 +1508,7 @@
         "group": {
           "name": "HTTP-API"
         },
-        "name": "HTTP(:9529) API request body size",
+        "name": "{{.Dashboard.http_req_size}}",
         "pos": {
           "h": 6,
           "w": 8,
@@ -1604,7 +1641,7 @@
             "slimit": 20,
             "stackType": "time",
             "timeInterval": "auto",
-            "titleDesc": "Only for Linux/Windows",
+            "titleDesc": "{{.Dashboard.open_files_note}}",
             "units": [],
             "xAxisShowType": "time",
             "yAxixMaxVal": null,
@@ -1612,9 +1649,9 @@
           }
         },
         "group": {
-          "name": "Overview"
+          "name": "{{.Dashboard.group_overview}}"
         },
-        "name": "Open files",
+        "name": "{{.Dashboard.open_files}}",
         "pos": {
           "h": 6,
           "w": 6,
@@ -1715,7 +1752,7 @@
         "group": {
           "name": "Goroutine"
         },
-        "name": "Stopped goroutines",
+        "name": "{{.Dashboard.stopped_goroutines}}",
         "pos": {
           "h": 6,
           "w": 8,
@@ -1828,7 +1865,7 @@
         "group": {
           "name": "Goroutine"
         },
-        "name": "Stopped goroutine cost",
+        "name": "{{.Dashboard.stopped_goroutine_cost}}",
         "pos": {
           "h": 6,
           "w": 8,
@@ -1972,7 +2009,7 @@
         "group": {
           "name": "Dataway"
         },
-        "name": "Datawat API retried",
+        "name": "{{.Dashboard.dw_api_retry}}",
         "pos": {
           "h": 6,
           "w": 6,
@@ -2023,7 +2060,7 @@
       {
         "extend": {
           "fixedTime": "",
-          "isRefresh": true,
+          "isRefresh": false,
           "settings": {
             "alias": [],
             "chartType": "areaLine",
@@ -2082,7 +2119,7 @@
         "group": {
           "name": "HTTP request"
         },
-        "name": "HTTP TFBB",
+        "name": "HTTP TTFB",
         "pos": {
           "h": 5,
           "w": 8,
@@ -2242,7 +2279,7 @@
         "group": {
           "name": "HTTP request"
         },
-        "name": "TCP connections",
+        "name": "{{.Dashboard.http_client_tcp_connections}}",
         "pos": {
           "h": 5,
           "w": 8,
@@ -2366,7 +2403,7 @@
         "group": {
           "name": "HTTP request"
         },
-        "name": "Dataway NDS latency",
+        "name": "{{.Dashboard.http_client_dns_latency}}",
         "pos": {
           "h": 5,
           "w": 8,
@@ -2380,14 +2417,14 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "DNS 解析耗时",
+              "alias": "DNS解析耗时",
               "children": [
                 {
                   "alias": "",
                   "code": "A",
                   "dataSource": "dk",
                   "field": "datakit_httpcli_dns_cost_seconds_sum",
-                  "fieldFunc": "last",
+                  "fieldFunc": "avg",
                   "fieldType": "float",
                   "fill": null,
                   "fillNum": null,
@@ -2415,7 +2452,7 @@
                   "groupByTime": "",
                   "labelOp": "",
                   "namespace": "metric",
-                  "q": "M::`dk`:(LAST(`datakit_httpcli_dns_cost_seconds_sum`)) { `host` = '#{host}' and `from` = 'dataway' } BY `from`",
+                  "q": "M::`dk`:(AVG(`datakit_httpcli_dns_cost_seconds_sum`)) { `host` = '#{host}' and `from` = 'dataway' } BY `from`",
                   "queryFuncs": [],
                   "type": "simple",
                   "withLabels": []
@@ -2425,7 +2462,7 @@
                   "code": "B",
                   "dataSource": "dk",
                   "field": "datakit_httpcli_dns_cost_seconds_count",
-                  "fieldFunc": "last",
+                  "fieldFunc": "avg",
                   "fieldType": "float",
                   "fill": null,
                   "fillNum": null,
@@ -2453,7 +2490,7 @@
                   "groupByTime": "",
                   "labelOp": "",
                   "namespace": "metric",
-                  "q": "M::`dk`:(LAST(`datakit_httpcli_dns_cost_seconds_count`)) { `host` = '#{host}' and `from` = 'dataway' } BY `from`",
+                  "q": "M::`dk`:(AVG(`datakit_httpcli_dns_cost_seconds_count`)) { `host` = '#{host}' and `from` = 'dataway' } BY `from`",
                   "queryFuncs": [],
                   "type": "simple",
                   "withLabels": []
@@ -2462,100 +2499,8 @@
               "code": "A",
               "expression": "A/B",
               "funcList": [],
-              "q": "eval(A/B, alias='DNS 解析耗时', A=\"M::`dk`:(LAST(`datakit_httpcli_dns_cost_seconds_sum`)) { `host` = '#{host}' and `from` = 'dataway' } BY `from`\", B=\"M::`dk`:(LAST(`datakit_httpcli_dns_cost_seconds_count`)) { `host` = '#{host}' and `from` = 'dataway' } BY `from`\")",
+              "q": "eval(A/B, alias='DNS解析耗时', A=\"M::`dk`:(AVG(`datakit_httpcli_dns_cost_seconds_sum`)) { `host` = '#{host}' and `from` = 'dataway' } BY `from`\", B=\"M::`dk`:(AVG(`datakit_httpcli_dns_cost_seconds_count`)) { `host` = '#{host}' and `from` = 'dataway' } BY `from`\")",
               "type": "expression"
-            },
-            "type": "sequence",
-            "unit": ""
-          },
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "B",
-              "dataSource": "dk",
-              "field": "datakit_httpcli_dns_cost_seconds_sum",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "fillNum": null,
-              "filters": [
-                {
-                  "id": "1ac83d70-068d-11ee-be59-edff147dc5ea",
-                  "logic": "and",
-                  "name": "host",
-                  "op": "=",
-                  "value": "#{host}"
-                },
-                {
-                  "id": "1e7f5200-068d-11ee-be59-edff147dc5ea",
-                  "logic": "and",
-                  "name": "from",
-                  "op": "=",
-                  "type": "",
-                  "value": "dataway"
-                }
-              ],
-              "funcList": [],
-              "groupBy": [
-                "from"
-              ],
-              "groupByTime": "",
-              "labelOp": "",
-              "namespace": "metric",
-              "q": "M::`dk`:(LAST(`datakit_httpcli_dns_cost_seconds_sum`)) { `host` = '#{host}' and `from` = 'dataway' } BY `from`",
-              "queryFuncs": [],
-              "type": "simple",
-              "withLabels": []
-            },
-            "type": "sequence",
-            "unit": ""
-          },
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "C",
-              "dataSource": "dk",
-              "field": "datakit_httpcli_dns_cost_seconds_count",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "fillNum": null,
-              "filters": [
-                {
-                  "id": "1b553b30-068d-11ee-be59-edff147dc5ea",
-                  "logic": "and",
-                  "name": "host",
-                  "op": "=",
-                  "value": "#{host}"
-                },
-                {
-                  "id": "273c4240-068d-11ee-be59-edff147dc5ea",
-                  "logic": "and",
-                  "name": "from",
-                  "op": "=",
-                  "type": "",
-                  "value": "dataway"
-                }
-              ],
-              "funcList": [],
-              "groupBy": [
-                "from"
-              ],
-              "groupByTime": "",
-              "labelOp": "",
-              "namespace": "metric",
-              "q": "M::`dk`:(LAST(`datakit_httpcli_dns_cost_seconds_count`)) { `host` = '#{host}' and `from` = 'dataway' } BY `from`",
-              "queryFuncs": [],
-              "type": "simple",
-              "withLabels": []
             },
             "type": "sequence",
             "unit": ""
@@ -2582,6 +2527,7 @@
             "lineColor": "#3AB8FF",
             "mappings": [],
             "openCompare": false,
+            "openThousandsSeparator": true,
             "precision": "2",
             "showFieldMapping": false,
             "showLine": false,
@@ -2603,9 +2549,9 @@
           }
         },
         "group": {
-          "name": "Black list"
+          "name": "{{.Dashboard.group_blacklist}}"
         },
-        "name": "Blacklist update time",
+        "name": "{{.Dashboard.filter_last_update_time}}",
         "pos": {
           "h": 10,
           "w": 4,
@@ -2670,6 +2616,7 @@
             "lineColor": "#3AB8FF",
             "mappings": [],
             "openCompare": false,
+            "openThousandsSeparator": true,
             "precision": "2",
             "showFieldMapping": false,
             "showLine": false,
@@ -2691,9 +2638,9 @@
           }
         },
         "group": {
-          "name": "Overview"
+          "name": "{{.Dashboard.group_overview}}"
         },
-        "name": "Uptime",
+        "name": "{{.Dashboard.uptime}}",
         "pos": {
           "h": 6,
           "w": 6,
@@ -2743,7 +2690,7 @@
         "extend": {
           "fixedGroupByTime": null,
           "fixedTime": "",
-          "isRefresh": true,
+          "isRefresh": false,
           "settings": {
             "alias": [],
             "bgColor": "",
@@ -2758,6 +2705,7 @@
             "lineColor": "#3AB8FF",
             "mappings": [],
             "openCompare": false,
+            "openThousandsSeparator": true,
             "precision": "2",
             "showFieldMapping": false,
             "showLine": false,
@@ -2776,9 +2724,9 @@
           }
         },
         "group": {
-          "name": "Black list"
+          "name": "{{.Dashboard.group_blacklist}}"
         },
-        "name": "Blacklist update count",
+        "name": "{{.Dashboard.filter_update_count}}",
         "pos": {
           "h": 10,
           "w": 4,
@@ -2878,9 +2826,9 @@
           }
         },
         "group": {
-          "name": "Black list"
+          "name": "{{.Dashboard.group_blacklist}}"
         },
-        "name": "Blasklist update latency",
+        "name": "{{.Dashboard.filter_update_letency}}",
         "pos": {
           "h": 10,
           "w": 6,
@@ -3030,7 +2978,7 @@
         "group": {
           "name": "HTTP-API"
         },
-        "name": "HTTP(:9529) API not ok",
+        "name": "{{.Dashboard.http_bad_api}}",
         "pos": {
           "h": 6,
           "w": 8,
@@ -3113,9 +3061,9 @@
           }
         },
         "group": {
-          "name": "Overview"
+          "name": "{{.Dashboard.group_overview}}"
         },
-        "name": "Datakit: top(n) of CPU usage",
+        "name": "{{.Dashboard.top_n_cpu_usage}}",
         "pos": {
           "h": 10,
           "w": 12,
@@ -3210,9 +3158,9 @@
           }
         },
         "group": {
-          "name": "Disk cache"
+          "name": "{{.Dashboard.group_diskcache}}"
         },
-        "name": "Write Bytes",
+        "name": "{{.Dashboard.diskcache_write_bytes}}",
         "pos": {
           "h": 9,
           "w": 6,
@@ -3313,9 +3261,9 @@
           }
         },
         "group": {
-          "name": "Disk cache"
+          "name": "{{.Dashboard.group_diskcache}}"
         },
-        "name": "Read bytes",
+        "name": "{{.Dashboard.diskcache_read_bytes}}",
         "pos": {
           "h": 9,
           "w": 6,
@@ -3416,9 +3364,9 @@
           }
         },
         "group": {
-          "name": "Disk cache"
+          "name": "{{.Dashboard.group_diskcache}}"
         },
-        "name": "Read count",
+        "name": "{{.Dashboard.diskcache_read_count}}",
         "pos": {
           "h": 9,
           "w": 6,
@@ -3519,9 +3467,9 @@
           }
         },
         "group": {
-          "name": "Disk cache"
+          "name": "{{.Dashboard.group_diskcache}}"
         },
-        "name": "Write count",
+        "name": "{{.Dashboard.diskcache_write_count}}",
         "pos": {
           "h": 9,
           "w": 6,
@@ -3614,7 +3562,7 @@
             "slimit": 20,
             "stackType": "time",
             "timeInterval": "auto",
-            "titleDesc": "Only for Linux",
+            "titleDesc": "{{.Dashboard.cpu_ctx_switch_note}}",
             "units": [],
             "xAxisShowType": "time",
             "yAxixMaxVal": null,
@@ -3622,9 +3570,9 @@
           }
         },
         "group": {
-          "name": "Overview"
+          "name": "{{.Dashboard.group_overview}}"
         },
-        "name": "Datakit CPU context switches",
+        "name": "{{.Dashboard.cpu_ctx_switch}}",
         "pos": {
           "h": 6,
           "w": 6,
@@ -3643,7 +3591,7 @@
               "dataSource": "dk",
               "field": "datakit_process_ctx_switch_total",
               "fieldFunc": "avg",
-              "fieldType": "",
+              "fieldType": "float",
               "fill": null,
               "filters": [
                 {
@@ -3717,7 +3665,7 @@
             "slimit": 20,
             "stackType": "time",
             "timeInterval": "auto",
-            "titleDesc": "Only for Linux/Windows",
+            "titleDesc": "{{.Dashboard.rw_bytes_note}}",
             "units": [
               {
                 "key": "avg(datakit_process_io_bytes_total)",
@@ -3735,9 +3683,9 @@
           }
         },
         "group": {
-          "name": "Overview"
+          "name": "{{.Dashboard.group_overview}}"
         },
-        "name": "Datakit IO bytes",
+        "name": "{{.Dashboard.rw_bytes}}",
         "pos": {
           "h": 6,
           "w": 6,
@@ -3756,7 +3704,7 @@
               "dataSource": "dk",
               "field": "datakit_process_io_bytes_total",
               "fieldFunc": "avg",
-              "fieldType": "",
+              "fieldType": "float",
               "fill": null,
               "filters": [
                 {
@@ -3830,7 +3778,7 @@
             "slimit": 20,
             "stackType": "time",
             "timeInterval": "auto",
-            "titleDesc": "Only for Linux/Windows",
+            "titleDesc": "{{.Dashboard.rw_count_note}}",
             "units": [
               {
                 "key": "avg(datakit_process_io_bytes_total)",
@@ -3848,9 +3796,9 @@
           }
         },
         "group": {
-          "name": "Overview"
+          "name": "{{.Dashboard.group_overview}}"
         },
-        "name": "Datakit IO times",
+        "name": "{{.Dashboard.rw_count}}",
         "pos": {
           "h": 6,
           "w": 6,
@@ -3869,7 +3817,7 @@
               "dataSource": "dk",
               "field": "datakit_process_io_count_total",
               "fieldFunc": "avg",
-              "fieldType": "",
+              "fieldType": "float",
               "fill": null,
               "filters": [
                 {
@@ -3967,9 +3915,9 @@
           }
         },
         "group": {
-          "name": "Overview"
+          "name": "{{.Dashboard.group_overview}}"
         },
-        "name": "Datakit: top(n) of heap memory usage",
+        "name": "{{.Dashboard.top_n_mem_usage}}",
         "pos": {
           "h": 10,
           "w": 12,
@@ -4056,7 +4004,7 @@
             "slimit": 20,
             "stackType": "time",
             "timeInterval": "auto",
-            "titleDesc": "Same as the top command output",
+            "titleDesc": "{{.Dashboard.cpu_usage_note}}",
             "units": [],
             "xAxisShowType": "time",
             "yAxixMaxVal": null,
@@ -4064,9 +4012,9 @@
           }
         },
         "group": {
-          "name": "Overview"
+          "name": "{{.Dashboard.group_overview}}"
         },
-        "name": "CPU%",
+        "name": "{{.Dashboard.cpu_usage}}",
         "pos": {
           "h": 6,
           "w": 12,
@@ -4158,7 +4106,7 @@
             "slimit": 20,
             "stackType": "time",
             "timeInterval": "auto",
-            "titleDesc": "The memory usage comes from Golang runtime",
+            "titleDesc": "{{.Dashboard.mem_usage_note}}",
             "units": [
               {
                 "key": "Heap Mem",
@@ -4185,9 +4133,9 @@
           }
         },
         "group": {
-          "name": "Overview"
+          "name": "{{.Dashboard.group_overview}}"
         },
-        "name": "Memory",
+        "name": "{{.Dashboard.mem_usage}}",
         "pos": {
           "h": 6,
           "w": 12,
@@ -4320,20 +4268,21 @@
               }
             ],
             "openCompare": false,
+            "openThousandsSeparator": true,
             "precision": "2",
             "showFieldMapping": false,
             "showLine": false,
             "showLineAxis": false,
             "showTitle": true,
             "timeInterval": "default",
-            "titleDesc": "If the usage exceeds the limit, new data cannot be  uploaded",
+            "titleDesc": "{{.Dashboard.data_usage_note}}",
             "units": []
           }
         },
         "group": {
-          "name": "Overview"
+          "name": "{{.Dashboard.group_overview}}"
         },
-        "name": "Data Usage",
+        "name": "{{.Dashboard.data_usage}}",
         "pos": {
           "h": 6,
           "w": 6,
@@ -4410,9 +4359,9 @@
           }
         },
         "group": {
-          "name": "Overview"
+          "name": "{{.Dashboard.group_overview}}"
         },
-        "name": "Election",
+        "name": "{{.Dashboard.election}}",
         "pos": {
           "h": 6,
           "w": 12,
@@ -4463,15 +4412,15 @@
       }
     ],
     "groups": [
-      "Overview",
+      "{{.Dashboard.group_overview}}",
       "Goroutine",
-      "Collectors",
+      "{{.Dashboard.group_collectors}}",
       "Pipeline",
-      "Black list",
+      "{{.Dashboard.group_blacklist}}",
       "Dataway",
       "HTTP-API",
       "HTTP request",
-      "Disk cache"
+      "{{.Dashboard.group_diskcache}}"
     ],
     "type": "template",
     "vars": [
@@ -4528,5 +4477,5 @@
   ],
   "tags": [],
   "thumbnail": "",
-  "title": "datakit-metrics-template"
+  "title": "dk-dashboard-template"
 }

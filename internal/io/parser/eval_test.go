@@ -120,7 +120,7 @@ func TestExprConditions(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.in, func(t *testing.T) {
-			conditions := GetConds(tc.in)
+			conditions, _ := GetConds(tc.in)
 
 			tu.Equals(t, tc.pass, conditions.Eval(newtf(tc.tags, tc.fields)))
 

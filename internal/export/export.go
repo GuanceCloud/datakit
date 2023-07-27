@@ -15,15 +15,16 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
 	plfuncs "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-var l = logger.DefaultSLogger("man")
+var l = logger.DefaultSLogger("export")
 
 func SetLog() {
-	l = logger.SLogger("man")
+	l = logger.SLogger("export")
 }
 
 // Exporter provide exporting resource of Datakit, such as
@@ -153,7 +154,7 @@ func buildNonInputDocs(md []byte, opt *exportOptions) ([]byte, error) {
 		Version:     opt.version,
 		ReleaseDate: git.BuildAt,
 
-		DatakitConfSample: DatakitConfSample,
+		DatakitConfSample: datakit.DatakitConfSample,
 	}
 
 	if buf, err := renderBuf(md, p); err != nil {
@@ -187,7 +188,7 @@ func buildPipelineDocs(
 		Version:     opt.version,
 		ReleaseDate: git.BuildAt,
 
-		DatakitConfSample: DatakitConfSample,
+		DatakitConfSample: datakit.DatakitConfSample,
 		PipelineFuncs:     sb.String(),
 	}
 
