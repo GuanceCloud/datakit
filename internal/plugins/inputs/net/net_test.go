@@ -12,6 +12,7 @@ import (
 
 	tu "github.com/GuanceCloud/cliutils/testutil"
 	psNet "github.com/shirou/gopsutil/net"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 func TestCollect(t *testing.T) {
@@ -27,6 +28,7 @@ func TestCollect(t *testing.T) {
 				Interfaces:              nil,
 				EnableVirtualInterfaces: true,
 				IgnoreProtocolStats:     true,
+				Tagger:                  dkpt.DefaultGlobalTagger(),
 			},
 		},
 
@@ -39,6 +41,7 @@ func TestCollect(t *testing.T) {
 				Interfaces:              []string{"eth.*", "wlp3s0", "docke[a-z]+\\d+"},
 				EnableVirtualInterfaces: false,
 				IgnoreProtocolStats:     false,
+				Tagger:                  dkpt.DefaultGlobalTagger(),
 			},
 		},
 	}
@@ -54,9 +57,8 @@ func TestCollect(t *testing.T) {
 
 		tu.Assert(t, len(tc.i.collectCache) > 0, "no data collected")
 		for _, m := range tc.i.collectCache {
-			p, err := m.LineProto()
-			tu.Ok(t, err)
-			t.Logf(p.String())
+			p := m.LineProto()
+			t.Logf(p)
 		}
 	}
 }

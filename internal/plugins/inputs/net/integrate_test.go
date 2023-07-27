@@ -3,7 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package netstat
+package net
 
 import (
 	"fmt"
@@ -16,7 +16,6 @@ import (
 	dockertest "github.com/ory/dockertest/v3"
 	"github.com/stretchr/testify/require"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
@@ -82,20 +81,57 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 	t.Helper()
 
 	bases := []struct {
-		name               string // Also used as build image name:tag.
-		conf               string
-		opts               []inputs.PointCheckOption
-		globalHostTags     map[string]string
-		globalElectionTags map[string]string
+		name string // Also used as build image name:tag.
+		conf string
+		opts []inputs.PointCheckOption
 	}{
 		{
 			name: "netstat_normal",
 			conf: `interval = "1s"`, // set conf URL later.
 			opts: []inputs.PointCheckOption{
-				inputs.WithOptionalTags("addr_port"),
-				inputs.WithOptionalFields("pid"),
+				// inputs.WithOptionalTags("addr_port"),
+				inputs.WithOptionalFields(
+					"bytes_recv",
+					"bytes_recv/sec",
+					"bytes_sent",
+					"bytes_sent/sec",
+					"drop_in",
+					"drop_out",
+					"err_in",
+					"err_out",
+					"packets_recv",
+					"packets_recv/sec",
+					"packets_sent",
+					"packets_sent/sec",
+					"tcp_activeopens",
+					"tcp_attemptfails",
+					"tcp_currestab",
+					"tcp_estabresets",
+					"tcp_incsumerrors",
+					"tcp_inerrs",
+					"tcp_insegs",
+					"tcp_insegs/sec",
+					"tcp_maxconn",
+					"tcp_outrsts",
+					"tcp_outsegs",
+					"tcp_outsegs/sec",
+					"tcp_passiveopens",
+					"tcp_retranssegs",
+					"tcp_rtoalgorithm",
+					"tcp_rtomax",
+					"tcp_rtomin",
+					"udp_ignoredmulti",
+					"udp_incsumerrors",
+					"udp_indatagrams",
+					"udp_indatagrams/sec",
+					"udp_inerrors",
+					"udp_noports",
+					"udp_outdatagrams",
+					"udp_outdatagrams/sec",
+					"udp_rcvbuferrors",
+					"udp_sndbuferrors",
+				),
 			},
-			globalHostTags: map[string]string{"host": "linux"},
 		},
 	}
 
@@ -111,14 +147,15 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)
 
+		// no election.
+		ipt.Tagger = testutils.NewTaggerHost()
+
 		cases = append(cases, &caseSpec{
-			t:                  t,
-			ipt:                ipt,
-			name:               base.name,
-			feeder:             feeder,
-			opts:               base.opts,
-			globalHostTags:     base.globalHostTags,
-			globalElectionTags: base.globalElectionTags,
+			t:      t,
+			ipt:    ipt,
+			name:   base.name,
+			feeder: feeder,
+			opts:   base.opts,
 
 			cr: &testutils.CaseResult{
 				Name:        t.Name(),
@@ -141,11 +178,9 @@ type caseSpec struct {
 	name string
 	opts []inputs.PointCheckOption
 
-	ipt                *Input
-	feeder             *io.MockedFeeder
-	globalHostTags     map[string]string
-	globalElectionTags map[string]string
-	mCount             map[string]struct{}
+	ipt    *Input
+	feeder *io.MockedFeeder
+	mCount map[string]struct{}
 
 	pool     *dockertest.Pool
 	resource *dockertest.Resource
@@ -162,8 +197,8 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 		measurement := string(pt.Name())
 
 		switch measurement {
-		case metricName:
-			opts = append(opts, inputs.WithDoc(&netStatMeasurement{}))
+		case inputName:
+			opts = append(opts, inputs.WithDoc(&netMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
 
@@ -176,7 +211,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
-			cs.mCount[metricName] = struct{}{}
+			cs.mCount[inputName] = struct{}{}
 
 		default: // TODO: check other measurement
 			panic("unknown measurement")
@@ -213,11 +248,6 @@ func (cs *caseSpec) run() error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-
-		dkpt.ClearGlobalTags()
-		dkpt.SetGlobalHostTagsByMap(cs.globalHostTags)
-		dkpt.SetGlobalElectionTagsByMap(cs.globalElectionTags)
-
 		cs.ipt.Run()
 	}()
 
