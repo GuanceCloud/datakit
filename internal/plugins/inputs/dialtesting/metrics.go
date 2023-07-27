@@ -21,8 +21,10 @@ var (
 	taskInvalidCounter         *prometheus.CounterVec
 
 	workerJobChanGauge     *prometheus.GaugeVec
+	workerJobGauge         prometheus.Gauge
 	workerCachePointsGauge *prometheus.GaugeVec
 	workerSendPointsGauge  *prometheus.GaugeVec
+	workerSendCost         *prometheus.SummaryVec
 )
 
 func metricsSetup() {
@@ -106,6 +108,15 @@ func metricsSetup() {
 		[]string{"type"},
 	)
 
+	workerJobGauge = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "datakit",
+			Subsystem: "dialtesting",
+			Name:      "worker_job_number",
+			Help:      "The number of the jobs to send data in parallel",
+		},
+	)
+
 	workerCachePointsGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "datakit",
@@ -125,6 +136,16 @@ func metricsSetup() {
 		},
 		[]string{"region", "protocol", "status"},
 	)
+
+	workerSendCost = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Namespace: "datakit",
+			Subsystem: "dialtesting",
+			Name:      "worker_send_cost_seconds",
+			Help:      "Time cost to send points",
+		},
+		[]string{"region", "protocol"},
+	)
 }
 
 //nolint:gochecknoinits
@@ -140,6 +161,8 @@ func init() {
 		taskInvalidCounter,
 		workerCachePointsGauge,
 		workerJobChanGauge,
+		workerJobGauge,
 		workerSendPointsGauge,
+		workerSendCost,
 	}...)
 }

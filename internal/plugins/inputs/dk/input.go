@@ -61,6 +61,9 @@ var (
     ### Filter
     #"datakit_filter_.*",
 
+    ### dialtesting
+    #"datakit_dialtesting_.*",
+
     ### Input feed
     #".*_feed_.*",
   ]

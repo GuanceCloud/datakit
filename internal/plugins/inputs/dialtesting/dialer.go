@@ -92,6 +92,12 @@ func (d *dialer) getSendFailCount() int {
 
 func (d *dialer) run() error {
 	var maskURL string
+
+	if err := d.task.Init(); err != nil {
+		l.Errorf(`task init error: %s`, err.Error())
+		return err
+	}
+
 	d.ticker = d.task.Ticker()
 
 	taskGauge.WithLabelValues(d.regionName, d.class).Inc()

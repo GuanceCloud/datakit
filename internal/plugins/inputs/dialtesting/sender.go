@@ -70,8 +70,9 @@ func (s *dwSender) checkToken(token, scheme, host string) (bool, error) {
 }
 
 const (
-	DefaultWorkerMaxJobNumber  = 10
-	DefaultWorkerChannelNumber = 1000
+	DefaultWorkerMaxJobNumber   = 10
+	DefaultWorkerChannelNumber  = 1000
+	DefaultWorkerCacheMaxPoints = 100000
 )
 
 type jobData struct {
@@ -84,11 +85,12 @@ type jobData struct {
 // woker collect all points and send points using sender.
 type worker struct {
 	sender           sender
-	maxJobNumber     int           // max job in parallel
-	maxJobChanNumber int           // max job chans
-	jobChans         chan *jobData // point to be dealt
-	pointCache       []*jobData    // cache point when jobChans is full
-	flushInterval    time.Duration // flush interval to flush cached points
+	maxJobNumber     int              // max job in parallel
+	maxJobChanNumber int              // max job chans
+	jobChans         chan *jobData    // point to be dealt
+	pointCache       []*jobData       // cache point when jobChans is full
+	flushInterval    time.Duration    // flush interval to flush cached points
+	flushChan        chan interface{} // flush points mannualy
 	mu               sync.RWMutex
 
 	failInfo map[string]int
@@ -142,7 +144,9 @@ func (w *worker) init() {
 	}
 
 	w.jobChans = make(chan *jobData, w.maxJobChanNumber)
+	w.flushChan = make(chan interface{}, 1)
 
+	workerJobGauge.Set(float64(w.maxJobNumber))
 	workerJobChanGauge.WithLabelValues("total").Set(float64(cap(w.jobChans)))
 	w.runConsumer()
 }
@@ -157,6 +161,7 @@ func (w *worker) runConsumer() {
 					return nil
 				case job := <-w.jobChans:
 					workerSendPointsGauge.WithLabelValues(job.regionName, job.class, "sending").Add(1)
+					startTime := time.Now()
 					if err := w.sender.send(job.url, job.pt); err != nil {
 						w.updateFailInfo(job.url, true)
 						l.Warnf("send data failed: %s", err.Error())
@@ -165,6 +170,7 @@ func (w *worker) runConsumer() {
 						w.updateFailInfo(job.url, false)
 						workerSendPointsGauge.WithLabelValues(job.regionName, job.class, "ok").Add(1)
 					}
+					workerSendCost.WithLabelValues(job.regionName, job.class).Observe(float64(time.Since(startTime)) / float64(time.Second))
 					workerSendPointsGauge.WithLabelValues(job.regionName, job.class, "sending").Add(-1)
 					workerJobChanGauge.WithLabelValues("used").Set(float64(len(w.jobChans)))
 				}
@@ -179,6 +185,8 @@ func (w *worker) runConsumer() {
 			select {
 			case <-datakit.Exit.Wait():
 				return nil
+			case <-w.flushChan:
+				w.flush()
 			case <-flushTicker.C:
 				w.flush()
 			}
@@ -192,6 +200,12 @@ func (w *worker) addPoints(data *jobData) {
 	case w.jobChans <- data:
 	default:
 		w.mu.Lock()
+
+		// drop half of the cached points when the number of the cached points is over DefaultWorkerCacheMaxPoints.
+		if len(w.pointCache) > DefaultWorkerCacheMaxPoints {
+			w.pointCache = w.pointCache[DefaultWorkerCacheMaxPoints>>1:]
+		}
+
 		w.pointCache = append(w.pointCache, data)
 		w.mu.Unlock()
 		workerCachePointsGauge.WithLabelValues(data.regionName, data.class).Add(1)
@@ -201,20 +215,33 @@ func (w *worker) addPoints(data *jobData) {
 
 // flush put the cached points into the jobChans. when the jobChans is full, put back into the cache.
 func (w *worker) flush() {
-	newPointCache := []*jobData{}
 	flushedPoints := [][2]string{}
 	w.mu.Lock()
-	for _, v := range w.pointCache {
+	index := 0
+out:
+	for index < len(w.pointCache) {
+		point := w.pointCache[index]
 		select {
-		case w.jobChans <- v:
-			flushedPoints = append(flushedPoints, [2]string{v.regionName, v.class})
+		case w.jobChans <- point:
+			index++
+			flushedPoints = append(flushedPoints, [2]string{point.regionName, point.class})
 		default:
-			newPointCache = append(newPointCache, v)
+			break out
 		}
 	}
-	w.pointCache = newPointCache
+
+	w.pointCache = w.pointCache[index:]
 	w.mu.Unlock()
+	workerJobChanGauge.WithLabelValues("used").Set(float64(len(w.jobChans)))
 	for _, v := range flushedPoints {
 		workerCachePointsGauge.WithLabelValues(v[0], v[1]).Add(-1)
+	}
+
+	// flush instanly if cache is not empty
+	if len(w.pointCache) > 0 {
+		select {
+		case w.flushChan <- struct{}{}:
+		default:
+		}
 	}
 }

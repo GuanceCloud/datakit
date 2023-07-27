@@ -270,41 +270,41 @@ mysql指标采集，参考datadog提供的指标，提供默认指标收集和�
 | data_written |  |  |  | The amount of data written per second. |  |  |
 | dblwr_pages_written |  |  |  | The number of pages written per second to the doublewrite buffer. |  |  |
 | dblwr_writes |  |  |  | The number of doublewrite operations performed per second. |  |  |
-| history_list_length |  |  |  | History list length as shown in the TRANSACTIONS section of the SHOW ENGINE INNODB STATUS output. |  |  |
+| history_list_length |  |  |  | History list length as shown in the TRANSACTIONS section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
 | log_waits |  |  |  | The number of times that the log buffer was too small and a wait was required for it to be flushed before continuing. |  |  |
 | log_write_requests |  |  |  | The number of write requests for the InnoDB redo log. |  |  |
 | log_writes |  |  |  | The number of physical writes to the InnoDB redo log file. |  |  |
 | hash_index_cells_total |  |  |  | Total number of cells of the adaptive hash index |  |  |
 | hash_index_cells_used |  |  |  | Number of used cells of the adaptive hash index |  |  |
-| ibuf_free_list |  |  |  | Insert buffer free list, as shown in the INSERT BUFFER AND ADAPTIVE HASH INDEX section of the SHOW ENGINE INNODB STATUS output. |  |  |
-| ibuf_segment_size |  |  |  | Insert buffer segment size, as shown in the INSERT BUFFER AND ADAPTIVE HASH INDEX section of the SHOW ENGINE INNODB STATUS output. |  |  |
-| ibuf_size |  |  |  | Insert buffer size, as shown in the INSERT BUFFER AND ADAPTIVE HASH INDEX section of the SHOW ENGINE INNODB STATUS output. |  |  |
-| pending_aio_log_ios |  |  |  | As shown in the FILE I/O section of the SHOW ENGINE INNODB STATUS output. |  |  |
-| pending_aio_sync_ios |  |  |  | As shown in the FILE I/O section of the SHOW ENGINE INNODB STATUS output. |  |  |
-| pending_ibuf_aio_reads |  |  |  | As shown in the FILE I/O section of the SHOW ENGINE INNODB STATUS output. |  |  |
-| pending_normal_aio_reads |  |  |  | As shown in the FILE I/O section of the SHOW ENGINE INNODB STATUS output. |  |  |
-| pending_normal_aio_writes |  |  |  | As shown in the FILE I/O section of the SHOW ENGINE INNODB STATUS output. |  |  |
-| pending_buffer_pool_flushes |  |  |  | As shown in the FILE I/O section of the SHOW ENGINE INNODB STATUS output. |  |  |
-| pending_log_flushes |  |  |  | As shown in the FILE I/O section of the SHOW ENGINE INNODB STATUS output. |  |  |
-| pending_log_writes |  |  |  | As shown in the FILE I/O section of the SHOW ENGINE INNODB STATUS output. |  |  |
-| checkpoint_age |  |  |  | Checkpoint age as shown in the LOG section of the SHOW ENGINE INNODB STATUS output. |  |  |
-| lsn_current |  |  |  | Log sequence number as shown in the LOG section of the SHOW ENGINE INNODB STATUS output. |  |  |
-| lsn_flushed |  |  |  | Flushed up to log sequence number as shown in the LOG section of the SHOW ENGINE INNODB STATUS output. |  |  |
-| lsn_last_checkpoint |  |  |  | Log sequence number last checkpoint as shown in the LOG section of the SHOW ENGINE INNODB STATUS output. |  |  |
-| pending_checkpoint_writes |  |  |  | As shown in the FILE I/O section of the SHOW ENGINE INNODB STATUS output. |  |  |
-| queries_inside |  |  |  | As shown in the FILE I/O section of the SHOW ENGINE INNODB STATUS output. |  |  |
-| queries_queued |  |  |  | As shown in the FILE I/O section of the SHOW ENGINE INNODB STATUS output. |  |  |
-| read_views |  |  |  | As shown in the FILE I/O section of the SHOW ENGINE INNODB STATUS output. |  |  |
+| ibuf_free_list |  |  |  | Insert buffer free list, as shown in the INSERT BUFFER AND ADAPTIVE HASH INDEX section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
+| ibuf_segment_size |  |  |  | Insert buffer segment size, as shown in the INSERT BUFFER AND ADAPTIVE HASH INDEX section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
+| ibuf_size |  |  |  | Insert buffer size, as shown in the INSERT BUFFER AND ADAPTIVE HASH INDEX section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
+| pending_aio_log_ios |  |  |  | As shown in the FILE I/O section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
+| pending_aio_sync_ios |  |  |  | As shown in the FILE I/O section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
+| pending_ibuf_aio_reads |  |  |  | As shown in the FILE I/O section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
+| pending_normal_aio_reads |  |  |  | As shown in the FILE I/O section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
+| pending_normal_aio_writes |  |  |  | As shown in the FILE I/O section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
+| pending_buffer_pool_flushes |  |  |  | As shown in the FILE I/O section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
+| pending_log_flushes |  |  |  | As shown in the FILE I/O section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
+| pending_log_writes |  |  |  | As shown in the FILE I/O section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
+| checkpoint_age |  |  |  | Checkpoint age as shown in the LOG section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
+| lsn_current |  |  |  | Log sequence number as shown in the LOG section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
+| lsn_flushed |  |  |  | Flushed up to log sequence number as shown in the LOG section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
+| lsn_last_checkpoint |  |  |  | Log sequence number last checkpoint as shown in the LOG section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
+| pending_checkpoint_writes |  |  |  | As shown in the FILE I/O section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
+| queries_inside |  |  |  | As shown in the FILE I/O section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
+| queries_queued |  |  |  | As shown in the FILE I/O section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
+| read_views |  |  |  | As shown in the FILE I/O section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
 | key_buffer_bytes_unflushed |  |  |  | MyISAM key buffer bytes unflushed. |  |  |
 | key_buffer_bytes_used |  |  |  | MyISAM key buffer bytes used. |  |  |
-| mem_adaptive_hash |  |  |  | As shown in the BUFFER POOL AND MEMORY section of the SHOW ENGINE INNODB STATUS output. |  |  |
-| innodb.mem_dictionary |  |  |  | As shown in the BUFFER POOL AND MEMORY section of the SHOW ENGINE INNODB STATUS output. |  |  |
-| mem_total |  |  |  | As shown in the BUFFER POOL AND MEMORY section of the SHOW ENGINE INNODB STATUS output. |  |  |
-| mem_additional_pool |  |  |  | As shown in the BUFFER POOL AND MEMORY section of the SHOW ENGINE INNODB STATUS output. |  |  |
-| mem_file_system |  |  |  | As shown in the BUFFER POOL AND MEMORY section of the SHOW ENGINE INNODB STATUS output. |  |  |
-| mem_lock_system |  |  |  | As shown in the BUFFER POOL AND MEMORY section of the SHOW ENGINE INNODB STATUS output. |  |  |
-| mem_page_hash |  |  |  | As shown in the BUFFER POOL AND MEMORY section of the SHOW ENGINE INNODB STATUS output. |  |  |
-| mem_recovery_system |  |  |  | As shown in the BUFFER POOL AND MEMORY section of the SHOW ENGINE INNODB STATUS output. |  |  |
+| mem_adaptive_hash |  |  |  | As shown in the BUFFER POOL AND MEMORY section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
+| innodb.mem_dictionary |  |  |  | As shown in the BUFFER POOL AND MEMORY section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
+| mem_total |  |  |  | As shown in the BUFFER POOL AND MEMORY section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
+| mem_additional_pool |  |  |  | As shown in the BUFFER POOL AND MEMORY section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
+| mem_file_system |  |  |  | As shown in the BUFFER POOL AND MEMORY section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
+| mem_lock_system |  |  |  | As shown in the BUFFER POOL AND MEMORY section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
+| mem_page_hash |  |  |  | As shown in the BUFFER POOL AND MEMORY section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
+| mem_recovery_system |  |  |  | As shown in the BUFFER POOL AND MEMORY section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
 | os_log_pending_fsyncs |  |  |  | Number of pending InnoDB log fsync (sync-to-disk) requests. |  |  |
 | os_log_pending_writes |  |  |  | Number of pending InnoDB log writes. |  |  |
 | os_log_written |  |  |  | Number of bytes written to the InnoDB log. |  |  |
@@ -315,12 +315,12 @@ mysql指标采集，参考datadog提供的指标，提供默认指标收集和�
 | rows_inserted |  |  |  | Number of rows inserted into InnoDB tables. |  |  |
 | rows_read |  |  |  | Number of rows read from InnoDB tables. |  |  |
 | rows_updated |  |  |  | Number of rows updated in InnoDB tables. |  |  |
-| s_lock_os_waits |  |  |  | As shown in the SEMAPHORES section of the SHOW ENGINE INNODB STATUS output |  |  |
-| s_lock_spin_rounds |  |  |  | As shown in the SEMAPHORES section of the SHOW ENGINE INNODB STATUS output. |  |  |
-| s_lock_spin_waits |  |  |  | As shown in the SEMAPHORES section of the SHOW ENGINE INNODB STATUS output. |  |  |
-| x_lock_os_waits |  |  |  | As shown in the SEMAPHORES section of the SHOW ENGINE INNODB STATUS output. |  |  |
-| x_lock_spin_rounds |  |  |  | As shown in the SEMAPHORES section of the SHOW ENGINE INNODB STATUS output. |  |  |
-| x_lock_spin_waits |  |  |  | As shown in the SEMAPHORES section of the SHOW ENGINE INNODB STATUS output. |  |  |
+| s_lock_os_waits |  |  |  | As shown in the SEMAPHORES section of the `SHOW ENGINE INNODB STATUS` output |  |  |
+| s_lock_spin_rounds |  |  |  | As shown in the SEMAPHORES section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
+| s_lock_spin_waits |  |  |  | As shown in the SEMAPHORES section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
+| x_lock_os_waits |  |  |  | As shown in the SEMAPHORES section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
+| x_lock_spin_rounds |  |  |  | As shown in the SEMAPHORES section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
+| x_lock_spin_waits |  |  |  | As shown in the SEMAPHORES section of the `SHOW ENGINE INNODB STATUS` output. |  |  |
 | mysql.galera.wsrep_local_recv_queue_avg |  |  |  | Shows the average size of the local received queue since the last status query. |  |  |
 | mysql.galera.wsrep_flow_control_paused |  |  |  | Shows the fraction of the time, since FLUSH STATUS was last called, that the node paused due to Flow Control. |  |  |
 | mysql.galera.wsrep_flow_control_paused_ns |  |  |  | Shows the pause time due to Flow Control, in nanoseconds. |  |  |

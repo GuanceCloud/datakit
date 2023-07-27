@@ -1,0 +1,1441 @@
+{
+  "dashboardBindSet": [],
+  "dashboardExtend": {},
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "dashboardType": "CUSTOM",
+  "iconSet": {},
+  "main": {
+    "charts": [
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.group_points}}"
+        },
+        "name": "{{.Dashboard.points_sent_ok}}",
+        "pos": {
+          "h": 17,
+          "w": 6,
+          "x": 0,
+          "y": 23
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "dk",
+              "field": "datakit_dialtesting_worker_send_points_number",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a3a85fe0-215d-11ee-9b2c-83566302a92f",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "de4ca5d0-2166-11ee-ac52-cf222624beab",
+                  "logic": "and",
+                  "name": "status",
+                  "op": "=",
+                  "type": "",
+                  "value": "ok"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "protocol"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "non_negative_difference(\"M::`dk`:(LAST(`datakit_dialtesting_worker_send_points_number`)) { `host` = '#{host}' and `status` = 'ok' } BY `protocol`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_difference"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.group_tasks}}"
+        },
+        "name": "{{.Dashboard.task_invalid}}",
+        "pos": {
+          "h": 16,
+          "w": 8,
+          "x": 16,
+          "y": 42.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "dk",
+              "field": "datakit_dialtesting_task_invalid_total",
+              "fieldFunc": "avg",
+              "fieldType": "",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "852b0bd0-215d-11ee-9b2c-83566302a92f",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "protocol",
+                "fail_reason"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`dk`:(AVG(`datakit_dialtesting_task_invalid_total`)) { `host` = '#{host}' } BY `protocol`, `fail_reason`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.group_tasks}}"
+        },
+        "name": "{{.Dashboard.task_pulled}}",
+        "pos": {
+          "h": 16,
+          "w": 8,
+          "x": 0,
+          "y": 42.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "dk",
+              "field": "datakit_dialtesting_task_synchronized_total",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "6a18a820-215d-11ee-9b2c-83566302a92f",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "protocol"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`dk`:(AVG(`datakit_dialtesting_task_synchronized_total`)) { `host` = '#{host}' } BY `protocol`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "colors": [],
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.group_overview}}"
+        },
+        "name": "{{.Dashboard.worker_job_chan_total}}",
+        "pos": {
+          "h": 6,
+          "w": 5,
+          "x": 0,
+          "y": 2.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "dk",
+              "field": "datakit_dialtesting_worker_job_chan_number",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "bf8e5320-2150-11ee-9b2c-83566302a92f",
+                  "logic": "and",
+                  "name": "type",
+                  "op": "=",
+                  "type": "",
+                  "value": "total"
+                },
+                {
+                  "id": "98cd3570-215b-11ee-9b2c-83566302a92f",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`dk`:(LAST(`datakit_dialtesting_worker_job_chan_number`)) { `type` = 'total' and `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "colors": [],
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.group_overview}}"
+        },
+        "name": "{{.Dashboard.worker_job_chan_used}}",
+        "pos": {
+          "h": 6,
+          "w": 5,
+          "x": 0,
+          "y": 8.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "dk",
+              "field": "datakit_dialtesting_worker_job_chan_number",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "022e7ce0-2152-11ee-9b2c-83566302a92f",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "124e2490-2152-11ee-9b2c-83566302a92f",
+                  "logic": "and",
+                  "name": "type",
+                  "op": "=",
+                  "type": "",
+                  "value": "used"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`dk`:(LAST(`datakit_dialtesting_worker_job_chan_number`)) { `host` = '#{host}' and `type` = 'used' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.group_overview}}"
+        },
+        "name": "{{.Dashboard.worker_cached_points}}",
+        "pos": {
+          "h": 18,
+          "w": 6,
+          "x": 11,
+          "y": 2.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "dk",
+              "field": "datakit_dialtesting_worker_cached_points_number",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "ca418dc0-2153-11ee-9b2c-83566302a92f",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "protocol"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`dk`:(AVG(`datakit_dialtesting_worker_cached_points_number`)) { `host` = '#{host}' } BY `protocol`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "B",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "cost",
+                "name": "cost",
+                "unit": "",
+                "units": [
+                  "time",
+                  "s"
+                ]
+              }
+            ],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.group_tasks}}"
+        },
+        "name": "{{.Dashboard.task_pull_cost}}",
+        "pos": {
+          "h": 16,
+          "w": 8,
+          "x": 8,
+          "y": 42.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "cost",
+              "children": [
+                {
+                  "alias": "",
+                  "code": "A",
+                  "dataSource": "dk",
+                  "field": "datakit_dialtesting_pull_cost_seconds_sum",
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "fill": null,
+                  "filters": [
+                    {
+                      "id": "4aeaf400-2156-11ee-9b2c-83566302a92f",
+                      "logic": "and",
+                      "name": "host",
+                      "op": "=",
+                      "type": "",
+                      "value": "#{host}"
+                    }
+                  ],
+                  "funcList": [],
+                  "groupBy": [
+                    "is_first"
+                  ],
+                  "groupByTime": "",
+                  "indexFilter": "",
+                  "namespace": "metric",
+                  "q": "M::`dk`:(AVG(`datakit_dialtesting_pull_cost_seconds_sum`)) { `host` = '#{host}' } BY `is_first`",
+                  "queryFuncs": [],
+                  "type": "simple"
+                },
+                {
+                  "alias": "",
+                  "code": "B",
+                  "dataSource": "dk",
+                  "field": "datakit_dialtesting_pull_cost_seconds_count",
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "fill": null,
+                  "filters": [
+                    {
+                      "id": "60c6f620-2156-11ee-9b2c-83566302a92f",
+                      "logic": "and",
+                      "name": "host",
+                      "op": "=",
+                      "type": "",
+                      "value": "#{host}"
+                    }
+                  ],
+                  "funcList": [],
+                  "groupBy": [
+                    "is_first"
+                  ],
+                  "groupByTime": "",
+                  "indexFilter": "",
+                  "namespace": "metric",
+                  "q": "M::`dk`:(AVG(`datakit_dialtesting_pull_cost_seconds_count`)) { `host` = '#{host}' } BY `is_first`",
+                  "queryFuncs": [],
+                  "type": "simple"
+                }
+              ],
+              "code": "B",
+              "expression": "A/B",
+              "funcList": [],
+              "q": "eval(A/B, alias='cost', A=\"M::`dk`:(AVG(`datakit_dialtesting_pull_cost_seconds_sum`)) { `host` = '#{host}' } BY `is_first`\", B=\"M::`dk`:(AVG(`datakit_dialtesting_pull_cost_seconds_count`)) { `host` = '#{host}' } BY `is_first`\")",
+              "type": "expression"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bar": {
+              "direction": "horizontal",
+              "xAxisShowType": "groupBy"
+            },
+            "chartType": "bar",
+            "color": "#498bfe",
+            "colors": [],
+            "currentChartType": "toplist",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "openCompare": false,
+            "showFieldMapping": false,
+            "showTableHead": true,
+            "showTitle": true,
+            "showTopSize": true,
+            "table": {
+              "queryMode": "toGroupColumn"
+            },
+            "tableSortMetricName": "",
+            "tableSortType": "top",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "topSize": 10,
+            "units": []
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.group_overview}}"
+        },
+        "name": "{{.Dashboard.task_running_number}}",
+        "pos": {
+          "h": 18,
+          "w": 6,
+          "x": 5,
+          "y": 2.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "dk",
+              "field": "datakit_dialtesting_task_number",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "8a3184c0-2152-11ee-9b2c-83566302a92f",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                null,
+                "top:10"
+              ],
+              "groupBy": [
+                "protocol"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`dk`:(LAST(`datakit_dialtesting_task_number`)) { `host` = '#{host}' } BY `protocol`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "toplist",
+            "unit": ""
+          }
+        ],
+        "type": "toplist"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "colors": [],
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.group_overview}}"
+        },
+        "name": "{{.Dashboard.worker_job_total}}",
+        "pos": {
+          "h": 6,
+          "w": 5,
+          "x": 0,
+          "y": 14.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "dk",
+              "field": "datakit_dialtesting_worker_job_number",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "022e7ce0-2152-11ee-9b2c-83566302a92f",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`dk`:(LAST(`datakit_dialtesting_worker_job_number`)) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.group_overview}}"
+        },
+        "name": "{{.Dashboard.dataway_sent_failed}}",
+        "pos": {
+          "h": 18,
+          "w": 7,
+          "x": 17,
+          "y": 2.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "code": "A",
+              "dataSource": "dk",
+              "field": "datakit_dialtesting_dataway_send_failed_number",
+              "fieldFunc": "last",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "dataway"
+              ],
+              "groupByTime": "",
+              "labelOp": "",
+              "namespace": "metric",
+              "q": "M::`dk`:(LAST(`datakit_dialtesting_dataway_send_failed_number`)) { `host` = '#{host}' } BY `dataway`",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.group_points}}"
+        },
+        "name": "{{.Dashboard.points_sent_failed}}",
+        "pos": {
+          "h": 17,
+          "w": 6,
+          "x": 6,
+          "y": 23
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "dk",
+              "field": "datakit_dialtesting_worker_send_points_number",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a3a85fe0-215d-11ee-9b2c-83566302a92f",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "de4ca5d0-2166-11ee-ac52-cf222624beab",
+                  "logic": "and",
+                  "name": "status",
+                  "op": "=",
+                  "type": "",
+                  "value": "failed"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "protocol"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "non_negative_difference(\"M::`dk`:(LAST(`datakit_dialtesting_worker_send_points_number`)) { `host` = '#{host}' and `status` = 'failed' } BY `protocol`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_difference"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.group_points}}"
+        },
+        "name": "{{.Dashboard.points_sending}}",
+        "pos": {
+          "h": 17,
+          "w": 6,
+          "x": 12,
+          "y": 23
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "dk",
+              "field": "datakit_dialtesting_worker_send_points_number",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a3a85fe0-215d-11ee-9b2c-83566302a92f",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "de4ca5d0-2166-11ee-ac52-cf222624beab",
+                  "logic": "and",
+                  "name": "status",
+                  "op": "=",
+                  "type": "",
+                  "value": "sending"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "protocol"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`dk`:(LAST(`datakit_dialtesting_worker_send_points_number`)) { `host` = '#{host}' and `status` = 'sending' } BY `protocol`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "B",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "cost",
+                "name": "cost",
+                "unit": "",
+                "units": [
+                  "time",
+                  "s"
+                ]
+              }
+            ],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.group_points}}"
+        },
+        "name": "{{.Dashboard.points_sent_cost}}",
+        "pos": {
+          "h": 17,
+          "w": 6,
+          "x": 18,
+          "y": 23
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "cost",
+              "children": [
+                {
+                  "alias": "",
+                  "code": "A",
+                  "dataSource": "dk",
+                  "field": "datakit_dialtesting_worker_send_cost_seconds_sum",
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "fill": null,
+                  "filters": [
+                    {
+                      "id": "4aeaf400-2156-11ee-9b2c-83566302a92f",
+                      "logic": "and",
+                      "name": "host",
+                      "op": "=",
+                      "type": "",
+                      "value": "#{host}"
+                    }
+                  ],
+                  "funcList": [],
+                  "groupBy": [
+                    "protocol"
+                  ],
+                  "groupByTime": "",
+                  "indexFilter": "",
+                  "namespace": "metric",
+                  "q": "M::`dk`:(AVG(`datakit_dialtesting_worker_send_cost_seconds_sum`)) { `host` = '#{host}' } BY `protocol`",
+                  "queryFuncs": [],
+                  "type": "simple"
+                },
+                {
+                  "alias": "",
+                  "code": "B",
+                  "dataSource": "dk",
+                  "field": "datakit_dialtesting_worker_send_cost_seconds_count",
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "fill": null,
+                  "filters": [
+                    {
+                      "id": "60c6f620-2156-11ee-9b2c-83566302a92f",
+                      "logic": "and",
+                      "name": "host",
+                      "op": "=",
+                      "type": "",
+                      "value": "#{host}"
+                    }
+                  ],
+                  "funcList": [],
+                  "groupBy": [
+                    "protocol"
+                  ],
+                  "groupByTime": "",
+                  "indexFilter": "",
+                  "namespace": "metric",
+                  "q": "M::`dk`:(AVG(`datakit_dialtesting_worker_send_cost_seconds_count`)) { `host` = '#{host}' } BY `protocol`",
+                  "queryFuncs": [],
+                  "type": "simple"
+                }
+              ],
+              "code": "B",
+              "expression": "A/B",
+              "funcList": [],
+              "q": "eval(A/B, alias='cost', A=\"M::`dk`:(AVG(`datakit_dialtesting_worker_send_cost_seconds_sum`)) { `host` = '#{host}' } BY `protocol`\", B=\"M::`dk`:(AVG(`datakit_dialtesting_worker_send_cost_seconds_count`)) { `host` = '#{host}' } BY `protocol`\")",
+              "type": "expression"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      }
+    ],
+    "groups": [
+      "{{.Dashboard.group_overview}}",
+      "{{.Dashboard.group_points}}",
+      "{{.Dashboard.group_tasks}}"
+    ],
+    "type": "template",
+    "vars": [
+      {
+        "code": "host",
+        "datasource": "ftinfluxdb",
+        "definition": {
+          "defaultVal": {
+            "label": "*",
+            "value": "*"
+          },
+          "field": "",
+          "metric": "dk",
+          "object": "",
+          "tag": "host",
+          "value": ""
+        },
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "name": "host",
+        "seq": 0,
+        "type": "TAG",
+        "valueSort": "asc"
+      }
+    ]
+  },
+  "summary": "",
+  "tagInfo": [],
+  "tags": [],
+  "thumbnail": "",
+  "title": "dialtesting-dashboard-template"
+}
