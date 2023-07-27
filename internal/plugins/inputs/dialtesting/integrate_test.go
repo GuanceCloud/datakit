@@ -135,7 +135,7 @@ var cases = []caseItem{
 	generateCase(&caseConfig{
 		name:               "http-test-ok",
 		images:             []string{"dialtesting:0.0.1"},
-		checkedMeasurement: []string{""},
+		checkedMeasurement: []string{"http_dial_testing", "tcp_dial_testing", "icmp_dial_testing", "websocket_dial_testing"},
 	}),
 }
 
@@ -349,12 +349,11 @@ func buildCases(t *testing.T, configs []caseItem) ([]*caseSpec, error) {
 					},
 				},
 				collectPoints: func(cs *caseSpec) []*point.Point {
-					ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+					ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 					defer cancel()
-					pts := collectPointsCache
 				outer:
 					for {
-						if len(pts) >= 4 {
+						if len(collectPointsCache) >= 4 {
 							break
 						}
 
@@ -364,8 +363,7 @@ func buildCases(t *testing.T, configs []caseItem) ([]*caseSpec, error) {
 						default:
 						}
 					}
-					collectPointsCache = collectPointsCache[:0]
-					return pts
+					return collectPointsCache
 				},
 			}
 
@@ -393,17 +391,27 @@ func assertSelectedMeasurments(selected []string) func(pts []*point.Point, cs *c
 		extraTags      map[string]string
 	}{
 		"http_dial_testing": {
-			measurement:    &httpMeasurement{},
-			optionalTags:   []string{},
-			optionalFields: []string{},
+			measurement: &httpMeasurement{},
+			optionalFields: []string{
+				"fail_reason",
+				"response_download",
+				"response_connection",
+				"response_ttfb",
+				"response_ssl",
+				"response_dns",
+			},
 		},
 		"tcp_dial_testing": {
-			measurement:    &tcpMeasurement{},
-			optionalFields: []string{"traceroute"},
+			measurement: &tcpMeasurement{},
+			optionalFields: []string{
+				"traceroute",
+			},
 		},
 		"icmp_dial_testing": {
-			measurement:    &icmpMeasurement{},
-			optionalFields: []string{"traceroute"},
+			measurement: &icmpMeasurement{},
+			optionalFields: []string{
+				"traceroute",
+			},
 		},
 		"websocket_dial_testing": {
 			measurement: &websocketMeasurement{},
@@ -427,12 +435,14 @@ func assertSelectedMeasurments(selected []string) func(pts []*point.Point, cs *c
 				msgs := inputs.CheckPoint(pt,
 					inputs.WithDoc(m.measurement),
 					inputs.WithOptionalFields(m.optionalFields...),
-					inputs.WithExtraTags(cs.ipt.Tags),
 					inputs.WithOptionalTags(m.optionalTags...),
 					inputs.WithExtraTags(extraTags),
 				)
-				for _, msg := range msgs {
-					cs.t.Logf("check measurement %s failed: %+#v", name, msg)
+				if len(msgs) > 0 {
+					for _, msg := range msgs {
+						cs.t.Logf("check measurement %s failed: %+#v", name, msg)
+					}
+					return fmt.Errorf("check measurement %s failed with %d errors", name, len(msgs))
 				}
 				pointMap[name] = true
 			} else {
@@ -497,6 +507,7 @@ func TestIntegrate(t *testing.T) {
 	dialWorker = &worker{
 		sender: &mockSender{},
 	}
+	dialWorker.init()
 
 	t.Logf("testing %d cases...", len(cases))
 
