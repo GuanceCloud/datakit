@@ -158,6 +158,10 @@ func (i *Input) getDsnString() string {
 		Passwd:               i.Pass,
 	}
 
+	if i.Port == 0 {
+		i.Port = 3306
+	}
+
 	// set addr
 	if i.Sock != "" {
 		cfg.Net = "unix"

@@ -7,7 +7,9 @@ package mysql
 
 import (
 	"fmt"
+	"net"
 	"os"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -114,18 +116,13 @@ func (cs *caseSpec) run() error {
 	if err := p.RemoveContainerByName(containerName); err != nil {
 		return err
 	}
-	port := testutils.RandPort("tcp")
 	resource, err := p.RunWithOptions(&dt.RunOptions{
 		// specify container image & tag
 		Repository: cs.repo,
 		Tag:        cs.repoTag,
 
-		// port binding
-		PortBindings: map[docker.Port][]docker.PortBinding{
-			"3306/tcp": {{HostIP: "0.0.0.0", HostPort: fmt.Sprintf("%d", port)}},
-		},
-
-		Name: containerName,
+		ExposedPorts: []string{cs.servicePort},
+		Name:         containerName,
 
 		// container run-time envs
 		Env: cs.envs,
@@ -136,18 +133,27 @@ func (cs *caseSpec) run() error {
 		return err
 	}
 
-	cs.pool = p
-	cs.resource = resource
-	cs.ipt.Port = port
-
 	time.Sleep(10 * time.Second)
 
 	if err := setupContainer(p, resource); err != nil {
 		return err
 	}
 
-	cs.t.Logf("check service(%s:%d)...", r.Host, port)
-	if !r.PortOK(fmt.Sprintf("%d", port), time.Minute) {
+	hostPort := resource.GetHostPort(cs.servicePort)
+	_, port, err := net.SplitHostPort(hostPort)
+	if err != nil {
+		return fmt.Errorf("get host port error: %w", err)
+	}
+
+	cs.pool = p
+	cs.resource = resource
+	if portNumber, err := strconv.Atoi(port); err != nil {
+		return fmt.Errorf("get host port error: %w", err)
+	} else {
+		cs.ipt.Port = portNumber
+	}
+	cs.t.Logf("check service(%s:%s)...", r.Host, port)
+	if !r.PortOK(port, time.Minute) {
 		return fmt.Errorf("service checking failed")
 	}
 
@@ -298,7 +304,7 @@ dbm = false
 				repo:    img[0],
 				repoTag: img[1],
 
-				servicePort: fmt.Sprintf("%d", ipt.Port),
+				servicePort: "3306/tcp",
 
 				validate: base.validate,
 
@@ -331,11 +337,7 @@ func assertMeasurements(pts []*point.Point, cs *caseSpec) error {
 		"mysql": {
 			measurement: &baseMeasurement{},
 			optionalFields: []string{
-				"Key_buffer_bytes_used",
 				"Binlog_space_usage_bytes",
-				"Key_buffer_size",
-				"Key_cache_utilization",
-				"Key_buffer_bytes_unflushed",
 				"Qcache_not_cached",
 				"Qcache_lowmem_prunes",
 				"Qcache_free_blocks",
@@ -352,8 +354,24 @@ func assertMeasurements(pts []*point.Point, cs *caseSpec) error {
 			optionalFields: []string{"query_run_time_avg"},
 		},
 		"mysql_innodb": {
-			measurement:    &innodbMeasurement{},
-			optionalFields: []string{"log_padded"},
+			measurement: &innodbMeasurement{},
+			optionalFields: []string{
+				"log_padded",
+				"mem_recovery_system",
+				"mem_dictionary",
+				"mem_additional_pool",
+				"pending_log_writes",
+				"mem_lock_system",
+				"mem_page_hash",
+				"mem_adaptive_hash",
+				"mem_file_system",
+				"pending_checkpoint_writes",
+				"mem_thread_hash",
+				"mem_total",
+				"pending_aio_sync_ios",
+				"pending_aio_log_ios",
+				"pending_ibuf_aio_reads",
+			},
 		},
 		"mysql_table_schema": {
 			measurement: &tbMeasurement{},
@@ -535,10 +553,17 @@ EOF
 		return err
 	}
 
+	// need to refresh container info after restarting container.
+	if c, err := p.Client.InspectContainer(resource.Container.ID); err != nil {
+		return fmt.Errorf("get container info error: %w", err)
+	} else {
+		resource.Container = c
+	}
+
 	return nil
 }
 
-func TestMySQLInput(t *testing.T) {
+func TestIntegrate(t *testing.T) {
 	if !testutils.CheckIntegrationTestingRunning() {
 		t.Skip()
 	}

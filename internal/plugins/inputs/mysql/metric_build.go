@@ -40,6 +40,32 @@ func (i *Input) buildMysql() ([]*gcPoint.Point, error) {
 		m.resData["Binlog_space_usage_bytes"] = i.binlog["Binlog_space_usage_bytes"]
 	}
 
+	if hasKey(m.resData, "Key_blocks_unused") && hasKey(m.resData, "key_cache_block_size") && hasKey(m.resData, "key_buffer_size") {
+		m.resData["Key_buffer_size"] = m.resData["key_buffer_size"]
+		if keyBufferSize, ok := m.resData["key_buffer_size"].(int64); ok {
+			if keyBufferSize != 0 {
+				keyBlocksUnused, ok1 := m.resData["Key_blocks_unused"].(int64)
+				keyCacheBlockSize, ok2 := m.resData["key_cache_block_size"].(int64)
+				if ok1 && ok2 {
+					m.resData["Key_cache_utilization"] = 1.0 - float64(keyBlocksUnused*keyCacheBlockSize)/float64(keyBufferSize)
+					if hasKey(m.resData, "Key_blocks_used") {
+						keyBlocksUsed, ok := m.resData["Key_blocks_used"].(int64)
+						if ok {
+							m.resData["Key_buffer_bytes_used"] = keyBlocksUsed * keyCacheBlockSize
+						}
+					}
+
+					if hasKey(m.resData, "Key_blocks_not_flushed") {
+						keyBufferBytesUnflushed, ok := m.resData["Key_blocks_not_flushed"].(int64)
+						if ok {
+							m.resData["Key_buffer_bytes_unflushed"] = keyBufferBytesUnflushed * keyCacheBlockSize
+						}
+					}
+				}
+			}
+		}
+	}
+
 	metricInfo := m.Info()
 	for key, item := range metricInfo.Fields {
 		if value, ok := m.resData[key]; ok {

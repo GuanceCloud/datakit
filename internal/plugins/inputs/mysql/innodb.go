@@ -18,7 +18,6 @@ type innodbMeasurement struct {
 	election bool
 }
 
-// 生成行协议.
 func (m *innodbMeasurement) LineProto() (*point.Point, error) {
 	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
 }
@@ -36,55 +35,48 @@ func (m *innodbMeasurement) Point() *gcPoint.Point {
 		opts...)
 }
 
-// 指定指标.
-func (m *innodbMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
+//nolint:lll,funlen
+func (m *innodbMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "mysql_innodb",
 		Type: "metric",
 		Fields: map[string]interface{}{
-			// status
 			"lock_deadlocks": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NCount,
 				Desc:     "Number of deadlocks",
 			},
-			// status
 			"lock_timeouts": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NCount,
 				Desc:     "Number of lock timeouts",
 			},
-			// status
 			"lock_row_lock_current_waits": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NCount,
 				Desc:     "Number of row locks currently being waited for (innodb_row_lock_current_waits)",
 			},
-			// status
 			"lock_row_lock_time": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.DurationMS,
 				Desc:     "Time spent in acquiring row locks, in milliseconds (innodb_row_lock_time)",
 			},
-			// status
 			"lock_row_lock_time_max": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.DurationMS,
 				Desc:     "The maximum time to acquire a row lock, in milliseconds (innodb_row_lock_time_max)",
 			},
-			// status
 			"lock_row_lock_waits": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NCount,
 				Desc:     "Number of times a row lock had to be waited for (innodb_row_lock_waits)",
 			},
-			// status
 			"lock_row_lock_time_avg": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
@@ -433,6 +425,420 @@ func (m *innodbMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 				Type:     inputs.Gauge,
 				Unit:     inputs.NCount,
 				Desc:     "Number of rows updated",
+			},
+			"active_transactions": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The number of active transactions on InnoDB tables",
+			},
+			"buffer_pool_bytes_data": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "The total number of bytes in the InnoDB buffer pool containing data. The number includes both dirty and clean pages.",
+			},
+			"buffer_pool_pages_flushed": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The number of requests to flush pages from the InnoDB buffer pool",
+			},
+			"buffer_pool_read_ahead_rnd": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The number of random read-aheads initiated by InnoDB. This happens when a query scans a large portion of a table but in random order.",
+			},
+			"checkpoint_age": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Checkpoint age as shown in the LOG section of the SHOW ENGINE INNODB STATUS output",
+			},
+			"current_transactions": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Current InnoDB transactions",
+			},
+			"data_fsyncs": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The number of fsync() operations per second.",
+			},
+			"data_pending_fsyncs": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The current number of pending fsync() operations.",
+			},
+			"data_pending_reads": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The current number of pending reads.",
+			},
+			"data_pending_writes": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The current number of pending writes.",
+			},
+			"data_read": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "The amount of data read per second.",
+			},
+			"data_written": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "The amount of data written per second.",
+			},
+			"dblwr_pages_written": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The number of pages written per second to the doublewrite buffer.",
+			},
+			"dblwr_writes": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "The number of doublewrite operations performed per second.",
+			},
+			"hash_index_cells_total": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Total number of cells of the adaptive hash index",
+			},
+			"hash_index_cells_used": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Number of used cells of the adaptive hash index",
+			},
+			"history_list_length": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "History list length as shown in the TRANSACTIONS section of the SHOW ENGINE INNODB STATUS output.",
+			},
+			"ibuf_free_list": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Insert buffer free list, as shown in the INSERT BUFFER AND ADAPTIVE HASH INDEX section of the SHOW ENGINE INNODB STATUS output.",
+			},
+			"ibuf_merged": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Insert buffer and adaptative hash index merged",
+			},
+			"ibuf_merged_delete_marks": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Insert buffer and adaptative hash index merged delete marks",
+			},
+			"ibuf_merged_deletes": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Insert buffer and adaptative hash index merged delete",
+			},
+			"ibuf_merged_inserts": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Insert buffer and adaptative hash index merged inserts",
+			},
+			"lock_structs": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Lock structs",
+			},
+			"locked_tables": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Locked tables",
+			},
+			"locked_transactions": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Locked transactions",
+			},
+			"lsn_current": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Log sequence number as shown in the LOG section of the SHOW ENGINE INNODB STATUS output.",
+			},
+			"lsn_flushed": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Flushed up to log sequence number as shown in the LOG section of the SHOW ENGINE INNODB STATUS output.",
+			},
+			"lsn_last_checkpoint": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Log sequence number last checkpoint as shown in the LOG section of the SHOW ENGINE INNODB STATUS output.",
+			},
+			"mem_adaptive_hash": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "As shown in the BUFFER POOL AND MEMORY section of the SHOW ENGINE INNODB STATUS output.",
+			},
+			"mem_additional_pool": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "As shown in the BUFFER POOL AND MEMORY section of the SHOW ENGINE INNODB STATUS output.",
+			},
+			"mem_dictionary": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "As shown in the BUFFER POOL AND MEMORY section of the SHOW ENGINE INNODB STATUS output.",
+			},
+			"mem_file_system": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "As shown in the BUFFER POOL AND MEMORY section of the SHOW ENGINE INNODB STATUS output.",
+			},
+			"mem_lock_system": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "As shown in the BUFFER POOL AND MEMORY section of the SHOW ENGINE INNODB STATUS output.",
+			},
+			"mem_page_hash": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "As shown in the BUFFER POOL AND MEMORY section of the SHOW ENGINE INNODB STATUS output.",
+			},
+			"mem_recovery_system": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "As shown in the BUFFER POOL AND MEMORY section of the SHOW ENGINE INNODB STATUS output.",
+			},
+			"mem_thread_hash": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "As shown in the BUFFER POOL AND MEMORY section of the SHOW ENGINE INNODB STATUS output.",
+			},
+			"mem_total": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "As shown in the BUFFER POOL AND MEMORY section of the SHOW ENGINE INNODB STATUS output.",
+			},
+			"os_file_fsyncs": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "(Delta) The total number of fsync() operations performed by InnoDB.",
+			},
+			"os_file_reads": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "(Delta) The total number of files reads performed by read threads within InnoDB.",
+			},
+			"os_file_writes": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "(Delta) The total number of file writes performed by write threads within InnoDB.",
+			},
+			"os_log_written": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "Number of bytes written to the InnoDB log.",
+			},
+			"pages_created": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Number of InnoDB pages created.",
+			},
+			"pages_read": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Number of InnoDB pages read.",
+			},
+			"pages_written": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Number of InnoDB pages written.",
+			},
+			"pending_aio_log_ios": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "As shown in the FILE I/O section of the SHOW ENGINE INNODB STATUS output.",
+			},
+			"pending_aio_sync_ios": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "As shown in the FILE I/O section of the SHOW ENGINE INNODB STATUS output.",
+			},
+			"pending_buffer_pool_flushes": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "As shown in the FILE I/O section of the SHOW ENGINE INNODB STATUS output.",
+			},
+			"pending_checkpoint_writes": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "As shown in the FILE I/O section of the SHOW ENGINE INNODB STATUS output.",
+			},
+			"pending_ibuf_aio_reads": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "As shown in the FILE I/O section of the SHOW ENGINE INNODB STATUS output.",
+			},
+			"pending_log_flushes": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "As shown in the FILE I/O section of the SHOW ENGINE INNODB STATUS output.",
+			},
+			"pending_log_writes": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "As shown in the FILE I/O section of the SHOW ENGINE INNODB STATUS output.",
+			},
+			"pending_normal_aio_reads": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "As shown in the FILE I/O section of the SHOW ENGINE INNODB STATUS output.",
+			},
+			"pending_normal_aio_writes": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "As shown in the FILE I/O section of the SHOW ENGINE INNODB STATUS output.",
+			},
+			"queries_inside": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "As shown in the FILE I/O section of the SHOW ENGINE INNODB STATUS output.",
+			},
+			"queries_queued": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "As shown in the FILE I/O section of the SHOW ENGINE INNODB STATUS output.",
+			},
+			"read_views": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "As shown in the FILE I/O section of the SHOW ENGINE INNODB STATUS output.",
+			},
+			"rows_deleted": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Number of rows deleted from InnoDB tables.",
+			},
+			"rows_inserted": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Number of rows inserted into InnoDB tables.",
+			},
+			"rows_read": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Number of rows read from InnoDB tables.",
+			},
+			"rows_updated": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Number of rows updated in InnoDB tables.",
+			},
+			"s_lock_os_waits": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "As shown in the SEMAPHORES section of the SHOW ENGINE INNODB STATUS output",
+			},
+			"s_lock_spin_rounds": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "As shown in the SEMAPHORES section of the SHOW ENGINE INNODB STATUS output.",
+			},
+			"s_lock_spin_waits": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "As shown in the SEMAPHORES section of the SHOW ENGINE INNODB STATUS output.",
+			},
+			"semaphore_wait_time": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Semaphore wait time",
+			},
+			"semaphore_waits": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The number semaphore currently being waited for by operations on InnoDB tables.",
+			},
+			"tables_in_use": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Tables in use",
+			},
+			"x_lock_os_waits": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "As shown in the SEMAPHORES section of the SHOW ENGINE INNODB STATUS output.",
+			},
+			"x_lock_spin_rounds": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "As shown in the SEMAPHORES section of the SHOW ENGINE INNODB STATUS output.",
+			},
+			"x_lock_spin_waits": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "As shown in the SEMAPHORES section of the SHOW ENGINE INNODB STATUS output.",
 			},
 		},
 		Tags: map[string]interface{}{
