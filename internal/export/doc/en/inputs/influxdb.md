@@ -12,6 +12,10 @@ The InfuxDB collector is used to collect the data of the InfuxDB.
 
 The infuxdb collector is only applicable to infuxdb v1.x, and the prom collector is required for infuxdb v2.x.
 
+Already tested version:
+
+- [x] 1.8.10
+
 ## InfluxDB Collector Configuration {#config}
 
 === "Host Installation"

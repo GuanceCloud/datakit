@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 // --------------------- solr v6.6 + -------------------
@@ -166,7 +168,7 @@ func (i *Input) gatherSolrSearcher(k string, v json.RawMessage, fields map[strin
 	return err
 }
 
-func (i *Input) gatherSolrCache(k string, v json.RawMessage, commTags map[string]string, ts time.Time) error {
+func (i *Input) gatherSolrCache(k, remote string, v json.RawMessage, commTags map[string]string, ts time.Time) error {
 	var err error
 	cacheStat := CacheStats{}
 	if err = json.Unmarshal(v, &cacheStat); err != nil {
@@ -186,6 +188,8 @@ func (i *Input) gatherSolrCache(k string, v json.RawMessage, commTags map[string
 	tags["category"] = kSplit[0]
 	tags["name"] = kSplit[2]
 
+	inputs.MergeGlobalTags(tags, i.globalTags, remote)
+
 	fields := map[string]interface{}{
 		"cumulative_evictions": cacheStat.CumulativeEvictions,
 		"cumulative_hitratio":  cacheStat.CumulativeHitratio,
@@ -202,18 +206,18 @@ func (i *Input) gatherSolrCache(k string, v json.RawMessage, commTags map[string
 		"max_ram":              cacheStat.MaxRAMInMB,
 		"ram_bytes_used":       cacheStat.RAMBytesUsed,
 	}
-	i.appendM(&SolrCache{
-		name:     metricNameCache,
-		fields:   fields,
-		tags:     tags,
-		ts:       ts,
-		election: i.Election,
-	})
+	metric := &SolrCache{
+		name:   metricNameCache,
+		fields: fields,
+		tags:   tags,
+		ts:     ts,
+	}
+	i.appendM(metric.Point())
 
 	return err
 }
 
-func (i *Input) gatherSolrRequestTimes(k string, v json.RawMessage, commTags map[string]string, ts time.Time) error {
+func (i *Input) gatherSolrRequestTimes(k, remote string, v json.RawMessage, commTags map[string]string, ts time.Time) error {
 	var err error
 	rqtimes := RequestTimesStats{}
 	if err = json.Unmarshal(v, &rqtimes); err != nil {
@@ -234,6 +238,8 @@ func (i *Input) gatherSolrRequestTimes(k string, v json.RawMessage, commTags map
 	tags["category"] = kSplit[0]
 	tags["handler"] = kSplit[1]
 
+	inputs.MergeGlobalTags(tags, i.globalTags, remote)
+
 	fields := map[string]interface{}{
 		"count":      rqtimes.Count,
 		"rate_mean":  rqtimes.RateMean,
@@ -250,13 +256,13 @@ func (i *Input) gatherSolrRequestTimes(k string, v json.RawMessage, commTags map
 		"p99":        rqtimes.P99,
 		"p999":       rqtimes.P999,
 	}
-	i.appendM(&SolrRequestTimes{
-		name:     metricNameRequestTimes,
-		fields:   fields,
-		tags:     tags,
-		ts:       ts,
-		election: i.Election,
-	})
+	metric := &SolrRequestTimes{
+		name:   metricNameRequestTimes,
+		fields: fields,
+		tags:   tags,
+		ts:     ts,
+	}
+	i.appendM(metric.Point())
 
 	return nil
 }

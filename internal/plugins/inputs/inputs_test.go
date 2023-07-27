@@ -8,10 +8,13 @@ package inputs
 import (
 	"fmt"
 	"os"
+	"testing"
 	T "testing"
 
 	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 func TestGetEnvs(t *T.T) {
@@ -149,3 +152,186 @@ func TestMergeTags(t *T.T) {
 		assert.NotContains(t, after, "host")
 	})
 }
+
+////////////////////////////////////////////////////////////////////////////////
+
+type taggerMock struct {
+	hostTags, electionTags map[string]string
+}
+
+func (m *taggerMock) HostTags() map[string]string {
+	return m.hostTags
+}
+
+func (m *taggerMock) ElectionTags() map[string]string {
+	return m.electionTags
+}
+
+type ForTestInput struct {
+	Election bool
+	Servers  []string
+	Tagger   dkpt.GlobalTagger
+	Tags     map[string]string
+
+	globalTags map[string]map[string]string // server:map[string]string
+}
+
+// go test -v -timeout 30s -run ^Test_InitGlobalTags$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/
+func Test_InitGlobalTags(t *testing.T) {
+	cases := []struct {
+		name     string
+		election bool
+		servers  []string
+		tagger   *taggerMock
+		tags     map[string]string
+		expect   map[string]map[string]string
+	}{
+		{
+			name:     "election",
+			election: true,
+			servers:  []string{"1.2.3.4", "1.2.3.4:80"},
+			tagger: &taggerMock{
+				hostTags: map[string]string{
+					"host":  "foo",
+					"hello": "world",
+				},
+
+				electionTags: map[string]string{
+					"project": "foo",
+					"cluster": "bar",
+				},
+			},
+			tags: map[string]string{
+				"apple":       "orange",
+				"information": "mark",
+				"see":         "you",
+			},
+			expect: map[string]map[string]string{
+				"1.2.3.4": {
+					"project":     "foo",
+					"cluster":     "bar",
+					"apple":       "orange",
+					"information": "mark",
+					"see":         "you",
+					"host":        "1.2.3.4",
+				},
+				"1.2.3.4:80": {
+					"project":     "foo",
+					"cluster":     "bar",
+					"apple":       "orange",
+					"information": "mark",
+					"see":         "you",
+					"host":        "1.2.3.4",
+				},
+			},
+		},
+
+		{
+			name:     "not_election",
+			election: false,
+			servers:  []string{"1.2.3.4", "1.2.3.4:80"},
+			tagger: &taggerMock{
+				hostTags: map[string]string{
+					"hallo": "ja",
+					"hello": "world",
+				},
+
+				electionTags: map[string]string{
+					"project": "foo",
+					"cluster": "bar",
+				},
+			},
+			tags: map[string]string{
+				"apple":       "orange",
+				"information": "mark",
+				"see":         "you",
+			},
+			expect: map[string]map[string]string{
+				"1.2.3.4": {
+					"hallo":       "ja",
+					"hello":       "world",
+					"apple":       "orange",
+					"information": "mark",
+					"see":         "you",
+					"host":        "1.2.3.4",
+				},
+				"1.2.3.4:80": {
+					"hallo":       "ja",
+					"hello":       "world",
+					"apple":       "orange",
+					"information": "mark",
+					"see":         "you",
+					"host":        "1.2.3.4",
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ipt := &ForTestInput{
+				Election: tc.election,
+				Servers:  tc.servers,
+				Tagger:   tc.tagger,
+				Tags:     tc.tags,
+			}
+
+			ipt.globalTags = InitGlobalTags(
+				ipt.Servers,
+				ipt.Election,
+				ipt.Tagger,
+				ipt.Tags,
+			)
+
+			require.Equal(t, tc.expect, ipt.globalTags)
+		})
+	}
+}
+
+// go test -v -timeout 30s -run ^Test_mergeGlobalTags$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/
+func Test_MergeGlobalTags(t *testing.T) {
+	cases := []struct {
+		name       string
+		globalTags map[string]map[string]string
+		in         map[string]string
+		remote     string
+		expect     map[string]string
+	}{
+		{
+			name: "normal",
+			globalTags: map[string]map[string]string{
+				"1.2.3.4": {
+					"key1": "val1",
+					"key2": "val2",
+				},
+				"1.2.3.4:80": {
+					"key3": "val3",
+					"key4": "val4",
+				},
+			},
+			in: map[string]string{
+				"key5": "val5",
+			},
+			remote: "1.2.3.4:80",
+			expect: map[string]string{
+				"key3": "val3",
+				"key4": "val4",
+				"key5": "val5",
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			MergeGlobalTags(
+				tc.in,
+				tc.globalTags,
+				tc.remote,
+			)
+
+			require.Equal(t, tc.expect, tc.in)
+		})
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////

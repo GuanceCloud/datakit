@@ -25,7 +25,6 @@ __debug_bin
 *.zip
 
 # to ignore all test generated files
-Test* 
 ag.sh
 agent_linux
 agent.conf
@@ -95,3 +94,4 @@ test.jso
 test.output
 testing_metrics
 y.output
+.docs/

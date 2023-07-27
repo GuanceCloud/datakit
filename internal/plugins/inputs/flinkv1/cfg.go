@@ -115,6 +115,7 @@ func (*TaskmanagerMeasurement) Info() *inputs.MeasurementInfo {
 			"Status_Shuffle_Netty_TotalMemorySegments":              newGaugeFieldInfo("The number of allocated memory segments."),
 			"Status_Shuffle_Netty_UsedMemory":                       newGaugeFieldInfo("The amount of used memory in bytes."),
 			"Status_Shuffle_Netty_UsedMemorySegments":               newGaugeFieldInfo("The number of used memory segments."),
+			"Status_Shuffle_Netty_RequestedMemoryUsage":             newGaugeFieldInfo("Experimental: The usage of the network memory. Shows (as percentage) the total amount of requested memory from all of the subtasks. It can exceed 100% as not all requested memory is required for subtask to make progress. However if usage exceeds 100% throughput can suffer greatly and please consider increasing available network memory, or decreasing configured size of network buffer pools."),
 		},
 		Tags: map[string]interface{}{
 			"host":  inputs.NewTagInfo("Host name."),

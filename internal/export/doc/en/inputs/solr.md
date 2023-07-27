@@ -12,6 +12,11 @@ Solr collector, which collects statistics of solr cache, request times, and so o
 
 DataKit uses the Solr Metrics API to collect metrics data and supports Solr 7.0 and above. Available for Solr 6.6, but the indicator data is incomplete.
 
+Already tested version:
+
+- [x] 8.11.2
+- [x] 7.0.0
+
 ## Configuration {#config}
 
 === "Host Installation"
@@ -21,10 +26,7 @@ DataKit uses the Solr Metrics API to collect metrics data and supports Solr 7.0 
     ```toml
     {{ CodeBlock .InputSample 4 }}
     ```
-    
 
-
-​    
     After configuration, restart DataKit.
 
 === "Kubernetes"

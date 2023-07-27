@@ -736,7 +736,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			cs.mCount[MongoDBTopStats] = struct{}{}
 
 		default: // TODO: check other measurement
-			panic("unknown measurement")
+			panic("unknown measurement: " + measurement)
 		}
 
 		// check if tag appended
