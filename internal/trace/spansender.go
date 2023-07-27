@@ -83,7 +83,7 @@ func (ss *SpanSender) flushWorker() {
 			for i := 0; i < l; i++ {
 				trace[i] = <-ss.p
 			}
-			ss.afterGatherFunc.Run(ss.name, DatakitTraces{trace}, false)
+			ss.afterGatherFunc.Run(ss.name, DatakitTraces{trace})
 		}
 	}
 }

@@ -22,6 +22,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
@@ -39,11 +40,9 @@ const (
 	inputName    = "opentelemetry"
 	sampleConfig = `
 [[inputs.opentelemetry]]
-  ## During creating 'trace', 'span' and 'resource', many labels will be added, and these labels will eventually appear in all 'spans'
-  ## When you don't want too many labels to cause unnecessary traffic loss on the network, you can choose to ignore these labels
-  ## with setting up an regular expression list.
-  ## Note: ignore_attribute_keys will be effected on both trace and metrics if setted up.
-  # ignore_attribute_keys = ["os_*", "process_*"]
+  ## ignore_tags will work as a blacklist to prevent tags send to data center.
+  ## Every value in this list is a valid string of regular expression.
+  # ignore_tags = ["block1", "block2"]
 
   ## Keep rare tracing resources list switch.
   ## If some resources are rare enough(not presend in 1 hour), those resource will always send
@@ -130,7 +129,7 @@ var (
 	defaultTraceAPI   = "/otel/v1/trace"
 	defaultMetricAPI  = "/otel/v1/metric"
 	afterGatherRun    itrace.AfterGatherHandler
-	ignoreKeyRegExps  []*regexp.Regexp
+	ignoreTags        []*regexp.Regexp
 	getAttribute      getAttributeFunc
 	extractAtrributes extractAttributesFunc
 	tags              map[string]string
@@ -153,12 +152,13 @@ type grpcConfig struct {
 }
 
 type Input struct {
-	Pipelines           map[string]string            `toml:"pipelines"` // deprecated
+	Pipelines           map[string]string            `toml:"pipelines"`             // deprecated
+	IgnoreAttributeKeys []string                     `toml:"ignore_attribute_keys"` // deprecated
+	IgnoreTags          []string                     `toml:"ignore_tags"`
 	HTTPConfig          *httpConfig                  `toml:"http"`
 	GRPCConfig          *grpcConfig                  `toml:"grpc"`
 	CompatibleDDTrace   bool                         `toml:"compatible_ddtrace"`
 	ExpectedHeaders     map[string]string            `toml:"expected_headers"`
-	IgnoreAttributeKeys []string                     `toml:"ignore_attribute_keys"`
 	KeepRareResource    bool                         `toml:"keep_rare_resource"`
 	CloseResource       map[string][]string          `toml:"close_resource"`
 	OmitErrStatus       []string                     `toml:"omit_err_status"`
@@ -168,7 +168,6 @@ type Input struct {
 	LocalCacheConfig    *storage.StorageConfig       `toml:"storage"`
 
 	feeder  dkio.Feeder
-	opt     point.Option
 	semStop *cliutils.Sem // start stop signal
 }
 
@@ -241,12 +240,13 @@ func (ipt *Input) RegHTTPHandler() {
 		afterGather = itrace.NewAfterGather(
 			itrace.WithLogger(log),
 			itrace.WithRetry(100*time.Millisecond),
-			itrace.WithBlockIOModel(true),
-			itrace.WithInputOption(ipt.opt),
+			itrace.WithIOBlockingMode(true),
+			itrace.WithPointOptions(point.WithExtraTags(dkpt.GlobalHostTags())),
 			itrace.WithFeeder(ipt.feeder),
 		)
 	} else {
-		afterGather = itrace.NewAfterGather(itrace.WithLogger(log), itrace.WithInputOption(ipt.opt), itrace.WithFeeder(ipt.feeder))
+		afterGather = itrace.NewAfterGather(itrace.WithLogger(log),
+			itrace.WithPointOptions(point.WithExtraTags(dkpt.GlobalHostTags())), itrace.WithFeeder(ipt.feeder))
 	}
 	afterGatherRun = afterGather
 
@@ -312,13 +312,17 @@ func (ipt *Input) Run() {
 
 		return
 	}
-	convertToDD = ipt.CompatibleDDTrace
-	tags = ipt.Tags
-	for i := range ipt.IgnoreAttributeKeys {
-		ignoreKeyRegExps = append(ignoreKeyRegExps, regexp.MustCompile(ipt.IgnoreAttributeKeys[i]))
+	for _, v := range ipt.IgnoreTags {
+		if rexp, err := regexp.Compile(v); err != nil {
+			log.Debug(err.Error())
+		} else {
+			ignoreTags = append(ignoreTags, rexp)
+		}
 	}
-	getAttribute = getAttrWrapper(ignoreKeyRegExps)
-	extractAtrributes = extractAttrsWrapper(ignoreKeyRegExps)
+	tags = ipt.Tags
+	convertToDD = ipt.CompatibleDDTrace
+	getAttribute = getAttrWrapper(ignoreTags)
+	extractAtrributes = extractAttrsWrapper(ignoreTags)
 
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_opentelemetry"})
 	g.Go(func(ctx context.Context) error {

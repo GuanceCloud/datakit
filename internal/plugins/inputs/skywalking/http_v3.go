@@ -54,7 +54,7 @@ func handleSkyTraceV3(resp http.ResponseWriter, req *http.Request) {
 
 	dktrace := parseSegmentObjectV3(segment)
 	if len(dktrace) != 0 && afterGatherRun != nil {
-		afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace}, false)
+		afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace})
 	}
 
 	resp.WriteHeader(http.StatusOK)

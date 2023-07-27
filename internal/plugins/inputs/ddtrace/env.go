@@ -21,7 +21,7 @@ var _ inputs.ReadEnv = &Input{}
 
 // ReadEnv load config from environment values
 // ENV_INPUT_DDTRACE_ENDPOINTS : JSON string
-// ENV_INPUT_DDTRACE_CUSTOMER_TAGS : JSON string
+// ENV_INPUT_DDTRACE_IGNORE_TAGS : JSON string
 // ENV_INPUT_DDTRACE_KEEP_RARE_RESOURCE : bool
 // ENV_INPUT_DDTRACE_OMIT_ERR_STATUS : JSON string
 // ENV_INPUT_DDTRACE_CLOSE_RESOURCE : JSON string
@@ -31,7 +31,7 @@ var _ inputs.ReadEnv = &Input{}
 // ENV_INPUT_DDTRACE_STORAGE : JSON string
 // below is a complete example for env in shell
 // export ENV_INPUT_DDTRACE_ENDPOINTS=`["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]`
-// export ENV_INPUT_DDTRACE_CUSTOMER_TAGS=`["key1", "key2", "key3"]`
+// export ENV_INPUT_DDTRACE_IGNORE_TAGS=`["block1", "block2"]`
 // export ENV_INPUT_DDTRACE_KEEP_RARE_RESOURCE=true
 // export ENV_INPUT_DDTRACE_OMIT_ERR_STATUS=`["404", "403", "400"]`
 // export ENV_INPUT_DDTRACE_CLOSE_RESOURCE=`{"service1":["resource1"], "service2":["resource2"], "service3":["resource3"]}`
@@ -43,7 +43,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	log = logger.SLogger(inputName)
 
 	for _, key := range []string{
-		"ENV_INPUT_DDTRACE_ENDPOINTS", "ENV_INPUT_DDTRACE_CUSTOMER_TAGS", "ENV_INPUT_DDTRACE_KEEP_RARE_RESOURCE",
+		"ENV_INPUT_DDTRACE_ENDPOINTS", "ENV_INPUT_DDTRACE_IGNORE_TAGS", "ENV_INPUT_DDTRACE_KEEP_RARE_RESOURCE",
 		"ENV_INPUT_DDTRACE_OMIT_ERR_STATUS", "ENV_INPUT_DDTRACE_CLOSE_RESOURCE", "ENV_INPUT_DDTRACE_SAMPLER",
 		"ENV_INPUT_DDTRACE_TAGS", "ENV_INPUT_DDTRACE_THREADS", "ENV_INPUT_DDTRACE_STORAGE",
 	} {
@@ -59,12 +59,12 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			} else {
 				ipt.Endpoints = list
 			}
-		case "ENV_INPUT_DDTRACE_CUSTOMER_TAGS":
+		case "ENV_INPUT_DDTRACE_IGNORE_TAGS":
 			var list []string
 			if err := json.Unmarshal([]byte(value), &list); err != nil {
 				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
 			} else {
-				ipt.CustomerTags = list
+				ipt.IgnoreTags = list
 			}
 		case "ENV_INPUT_DDTRACE_KEEP_RARE_RESOURCE":
 			if ok, err := strconv.ParseBool(value); err != nil {

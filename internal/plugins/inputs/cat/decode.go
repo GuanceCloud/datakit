@@ -144,7 +144,7 @@ func (ipt *Input) handleMsg(buf *bytes.Buffer) {
 	}
 	dktraces := parseResourceSpans(ctx, dt)
 	if afterGatherRun != nil {
-		afterGatherRun.Run(inputName, dktraces, false)
+		afterGatherRun.Run(inputName, dktraces)
 	}
 }
 

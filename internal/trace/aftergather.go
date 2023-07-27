@@ -17,28 +17,14 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
 
-////////////////////////////////////////////////////////////////////////////////
-
 type AfterGatherHandler interface {
-	Run(inputName string, dktraces DatakitTraces, strictMod bool)
+	Run(inputName string, dktraces DatakitTraces)
 }
 
-type AfterGatherFunc func(inputName string, dktraces DatakitTraces, strictMod bool)
+type AfterGatherFunc func(inputName string, dktraces DatakitTraces)
 
-func (ag AfterGatherFunc) Run(inputName string, dktraces DatakitTraces, strictMod bool) {
-	ag(inputName, dktraces, strictMod)
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-type AfterGather struct {
-	sync.Mutex
-	log            *logger.Logger
-	filters        []FilterFunc
-	ReFeedInterval time.Duration
-	BlockIOModel   bool
-	inputOption    point.Option
-	feeder         dkio.Feeder
+func (ag AfterGatherFunc) Run(inputName string, dktraces DatakitTraces) {
+	ag(inputName, dktraces)
 }
 
 type Option func(aga *AfterGather)
@@ -51,19 +37,19 @@ func WithLogger(log *logger.Logger) Option {
 
 func WithRetry(interval time.Duration) Option {
 	return func(aga *AfterGather) {
-		aga.ReFeedInterval = interval
+		aga.retry = interval
 	}
 }
 
-func WithBlockIOModel(block bool) Option {
+func WithIOBlockingMode(block bool) Option {
 	return func(aga *AfterGather) {
-		aga.BlockIOModel = block
+		aga.ioBlockingMode = block
 	}
 }
 
-func WithInputOption(opt point.Option) Option {
+func WithPointOptions(opts ...point.Option) Option {
 	return func(aga *AfterGather) {
-		aga.inputOption = opt
+		aga.pointOptions = append(aga.pointOptions, opts...)
 	}
 }
 
@@ -73,13 +59,14 @@ func WithFeeder(feeder dkio.Feeder) Option {
 	}
 }
 
-func NewAfterGather(options ...Option) *AfterGather {
-	aga := &AfterGather{log: logger.DefaultSLogger("after-gather")}
-	for i := range options {
-		options[i](aga)
-	}
-
-	return aga
+type AfterGather struct {
+	sync.Mutex
+	log            *logger.Logger
+	filters        []FilterFunc
+	retry          time.Duration
+	ioBlockingMode bool
+	pointOptions   []point.Option
+	feeder         dkio.Feeder
 }
 
 // AppendFilter will append new filters into AfterGather structure
@@ -92,7 +79,7 @@ func (aga *AfterGather) AppendFilter(filter ...FilterFunc) {
 	aga.filters = append(aga.filters, filter...)
 }
 
-func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces, strictMod bool) {
+func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces) {
 	if len(dktraces) == 0 {
 		aga.log.Debug("empty dktraces")
 
@@ -120,17 +107,17 @@ func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces, strictMod 
 		return
 	}
 
-	if pts := aga.BuildPointsBatch(afterFilters, strictMod); len(pts) != 0 {
+	if pts := aga.BuildPointsBatch(afterFilters); len(pts) != 0 {
 		var (
 			start = time.Now()
-			opt   = &dkio.Option{Blocking: aga.BlockIOModel}
+			opt   = &dkio.Option{Blocking: aga.ioBlockingMode}
 			err   error
 		)
 	IO_FEED_RETRY:
 		if err = aga.feeder.Feed(inputName, point.Tracing, pts, opt); err != nil {
 			aga.log.Warnf("io feed points failed: %s, ignored", err.Error())
-			if aga.ReFeedInterval > 0 && errors.Is(err, dkio.ErrIOBusy) {
-				time.Sleep(aga.ReFeedInterval)
+			if aga.retry > 0 && errors.Is(err, dkio.ErrIOBusy) {
+				time.Sleep(aga.retry)
 				goto IO_FEED_RETRY
 			}
 		} else {
@@ -142,11 +129,11 @@ func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces, strictMod 
 }
 
 // BuildPointsBatch builds points from whole trace.
-func (aga *AfterGather) BuildPointsBatch(dktraces DatakitTraces, strict bool) []*point.Point {
+func (aga *AfterGather) BuildPointsBatch(dktraces DatakitTraces) []*point.Point {
 	var pts []*point.Point
 	for i := range dktraces {
 		for j := range dktraces[i] {
-			if pt, err := BuildPoint(dktraces[i][j], strict, aga.inputOption); err != nil {
+			if pt, err := BuildPoint(dktraces[i][j], aga.pointOptions...); err != nil {
 				aga.log.Warnf("build point error: %s", err.Error())
 			} else {
 				pts = append(pts, pt)
@@ -157,7 +144,14 @@ func (aga *AfterGather) BuildPointsBatch(dktraces DatakitTraces, strict bool) []
 	return pts
 }
 
-////////////////////////////////////////////////////////////////////////////////
+func NewAfterGather(options ...Option) *AfterGather {
+	aga := &AfterGather{log: logger.DefaultSLogger("after-gather")}
+	for i := range options {
+		options[i](aga)
+	}
+
+	return aga
+}
 
 func processUnknown(dkspan *DatakitSpan) {
 	if dkspan != nil {
@@ -174,7 +168,7 @@ func processUnknown(dkspan *DatakitSpan) {
 }
 
 // BuildPoint builds point from DatakitSpan.
-func BuildPoint(dkspan *DatakitSpan, strict bool, optFromInput point.Option) (*point.Point, error) {
+func BuildPoint(dkspan *DatakitSpan, opts ...point.Option) (*point.Point, error) {
 	processUnknown(dkspan)
 
 	tags := map[string]string{
@@ -184,9 +178,10 @@ func BuildPoint(dkspan *DatakitSpan, strict bool, optFromInput point.Option) (*p
 		TAG_SPAN_TYPE:   dkspan.SpanType,
 		TAG_SPAN_STATUS: dkspan.Status,
 	}
-
 	for k, v := range dkspan.Tags {
-		tags[strings.ReplaceAll(k, ".", "_")] = v
+		rk := strings.ReplaceAll(k, ".", "_")
+		rk = strings.ReplaceAll(rk, "-", "_")
+		tags[rk] = v
 	}
 
 	fields := map[string]interface{}{
@@ -198,22 +193,22 @@ func BuildPoint(dkspan *DatakitSpan, strict bool, optFromInput point.Option) (*p
 		FIELD_DURATION: dkspan.Duration / int64(time.Microsecond),
 		FIELD_MESSAGE:  dkspan.Content,
 	}
-
 	// trace-128-id replace trace-id.
 	if id, ok := dkspan.Tags[TRACE_128_BIT_ID]; ok {
 		fields[FIELD_TRACEID] = id
 	}
-
 	for k, v := range dkspan.Metrics {
-		fields[strings.ReplaceAll(k, ".", "_")] = v
+		rk := strings.ReplaceAll(k, ".", "_")
+		rk = strings.ReplaceAll(rk, "-", "_")
+		fields[rk] = v
 	}
 
 	tracing := &TraceMeasurement{
-		Name:   dkspan.Source,
-		Tags:   tags,
-		Fields: fields,
-		TS:     time.Unix(0, dkspan.Start),
-		Opt:    optFromInput,
+		Name:              dkspan.Source,
+		Tags:              tags,
+		Fields:            fields,
+		TS:                time.Unix(0, dkspan.Start),
+		BuildPointOptions: opts,
 	}
 
 	return tracing.Point(), nil

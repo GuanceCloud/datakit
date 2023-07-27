@@ -22,7 +22,7 @@ var _ inputs.ReadEnv = &Input{}
 // ReadEnv load config from environment values
 // ENV_INPUT_ZIPKIN_PATH_V1 : string
 // ENV_INPUT_ZIPKIN_PATH_V2 : string
-// ENV_INPUT_ZIPKIN_CUSTOMER_TAGS : JSON string
+// ENV_INPUT_ZIPKIN_IGNORE_TAGS : JSON string
 // ENV_INPUT_ZIPKIN_KEEP_RARE_RESOURCE : bool
 // ENV_INPUT_ZIPKIN_CLOSE_RESOURCE : JSON string
 // ENV_INPUT_ZIPKIN_SAMPLER : float
@@ -32,7 +32,7 @@ var _ inputs.ReadEnv = &Input{}
 // below is a complete example for env in shell
 // export ENV_INPUT_ZIPKIN_PATH_V1="/api/v1/spans"
 // export ENV_INPUT_ZIPKIN_PATH_V2="/api/v2/spans"
-// export ENV_INPUT_ZIPKIN_CUSTOMER_TAGS=`["key1", "key2", "key3"]`
+// export ENV_INPUT_ZIPKIN_IGNORE_TAGS=`["block1", "block2"]`
 // export ENV_INPUT_ZIPKIN_KEEP_RARE_RESOURCE=true
 // export ENV_INPUT_ZIPKIN_CLOSE_RESOURCE=`{"service1":["resource1"], "service2":["resource2"], "service3":["resource3"]}`
 // export ENV_INPUT_ZIPKIN_SAMPLER=0.3
@@ -43,7 +43,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	log = logger.SLogger(inputName)
 
 	for _, key := range []string{
-		"ENV_INPUT_ZIPKIN_PATH_V1", "ENV_INPUT_ZIPKIN_PATH_V2", "ENV_INPUT_ZIPKIN_CUSTOMER_TAGS",
+		"ENV_INPUT_ZIPKIN_PATH_V1", "ENV_INPUT_ZIPKIN_PATH_V2", "ENV_INPUT_ZIPKIN_IGNORE_TAGS",
 		"ENV_INPUT_ZIPKIN_KEEP_RARE_RESOURCE", "ENV_INPUT_ZIPKIN_CLOSE_RESOURCE", "ENV_INPUT_ZIPKIN_SAMPLER",
 		"ENV_INPUT_ZIPKIN_TAGS", "ENV_INPUT_ZIPKIN_THREADS", "ENV_INPUT_ZIPKIN_STORAGE",
 	} {
@@ -56,12 +56,12 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			ipt.PathV1 = value
 		case "ENV_INPUT_ZIPKIN_PATH_V2":
 			ipt.PathV2 = value
-		case "ENV_INPUT_ZIPKIN_CUSTOMER_TAGS":
+		case "ENV_INPUT_ZIPKIN_IGNORE_TAGS":
 			var list []string
 			if err := json.Unmarshal([]byte(value), &list); err != nil {
 				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
 			} else {
-				ipt.CustomerTags = list
+				ipt.IgnoreTags = list
 			}
 		case "ENV_INPUT_ZIPKIN_KEEP_RARE_RESOURCE":
 			if ok, err := strconv.ParseBool(value); err != nil {

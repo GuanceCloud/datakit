@@ -10,7 +10,6 @@ monitor   :
     path  : '-'
 ---
 
-
 <!-- markdownlint-disable MD025 -->
 # DDTrace
 <!-- markdownlint-enable -->
@@ -117,7 +116,7 @@ DDTrace 是 DataDog 开源的 APM 产品，Datakit 内嵌的 DDTrace Agent 用�
     | 环境变量名                             | 类型        | 示例                                                                             |
     | -------------------------------------- | ----------- | -------------------------------------------------------------------------------- |
     | `ENV_INPUT_DDTRACE_ENDPOINTS`          | JSON string | `["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]`                               |
-    | `ENV_INPUT_DDTRACE_CUSTOMER_TAGS`      | JSON string | `["key1", "key2", "key3"]`                                                       |
+    | `ENV_INPUT_DDTRACE_IGNORE_TAGS`        | JSON string | `["block1", "block2"]`                                                           |
     | `ENV_INPUT_DDTRACE_KEEP_RARE_RESOURCE` | bool        | true                                                                             |
     | `ENV_INPUT_DDTRACE_OMIT_ERR_STATUS`    | JSON string | `["404", "403", "400"]`                                                          |
     | `ENV_INPUT_DDTRACE_CLOSE_RESOURCE`     | JSON string | `{"service1":["resource1"], "service2":["resource2"], "service3":["resource3"]}` |

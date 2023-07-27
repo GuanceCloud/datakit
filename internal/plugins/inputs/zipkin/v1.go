@@ -104,7 +104,10 @@ func thriftV1SpansToDkTrace(zpktrace []*zipkincore.Span) itrace.DatakitTrace {
 		for _, tag := range span.BinaryAnnotations {
 			sourceTags[tag.Key] = string(tag.Value)
 		}
-		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
+		var err error
+		if dkspan.Tags, err = itrace.MergeInToCustomerTags(tags, sourceTags, ignoreTags, nil); err != nil {
+			log.Debug(err.Error())
+		}
 		if project, ok := findZpkCoreV1BinaryAnnotation(span.BinaryAnnotations, "project"); ok {
 			dkspan.Tags[itrace.TAG_PROJECT] = project
 		}
@@ -366,7 +369,10 @@ func jsonV1SpansToDkTrace(zpktrace []*ZipkinSpanV1) itrace.DatakitTrace {
 		for _, tag := range span.BinaryAnnotations {
 			sourceTags[tag.Key] = tag.Value
 		}
-		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
+		var err error
+		if dkspan.Tags, err = itrace.MergeInToCustomerTags(tags, sourceTags, ignoreTags, nil); err != nil {
+			log.Debug(err.Error())
+		}
 		if project, ok := findZpkV1BinaryAnnotation(span.BinaryAnnotations, "project"); ok {
 			dkspan.Tags[itrace.TAG_PROJECT] = project
 		}

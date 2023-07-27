@@ -54,12 +54,9 @@ type jvmMeasurement struct {
 
 // Point implement MeasurementV2.
 func (m *jvmMeasurement) Point() *point.Point {
-	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
+	opts := append(point.DefaultMetricOptions(), point.WithTime(m.ts), point.WithExtraTags(dkpt.GlobalHostTags()))
 
-	return point.NewPointV2([]byte(m.name),
-		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
-		opts...)
+	return point.NewPointV2([]byte(m.name), append(point.NewTags(m.tags), point.NewKVs(m.fields)...), opts...)
 }
 
 func (m *jvmMeasurement) LineProto() (*dkpt.Point, error) {
@@ -254,17 +251,13 @@ type MetricMeasurement struct {
 	tags   map[string]string
 	fields map[string]interface{}
 	ts     time.Time
-	ipt    *Input
 }
 
 // Point implement MeasurementV2.
 func (m *MetricMeasurement) Point() *point.Point {
-	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
+	opts := append(point.DefaultMetricOptions(), point.WithTime(m.ts), point.WithExtraTags(dkpt.GlobalHostTags()))
 
-	return point.NewPointV2([]byte(m.name),
-		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
-		opts...)
+	return point.NewPointV2([]byte(m.name), append(point.NewTags(m.tags), point.NewKVs(m.fields)...), opts...)
 }
 
 func (*MetricMeasurement) LineProto() (*dkpt.Point, error) {

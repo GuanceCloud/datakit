@@ -39,7 +39,7 @@ func TestReadEnv(t *testing.T) {
 			name: "dd_env_tc_1",
 			envs: map[string]string{
 				"ENV_INPUT_DDTRACE_ENDPOINTS":          `["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]`,
-				"ENV_INPUT_DDTRACE_CUSTOMER_TAGS":      `["key1", "key2", "key3"]`,
+				"ENV_INPUT_DDTRACE_IGNORE_TAGS":        `["block1", "block2"]`,
 				"ENV_INPUT_DDTRACE_KEEP_RARE_RESOURCE": `true`,
 				"ENV_INPUT_DDTRACE_OMIT_ERR_STATUS":    `["404", "403", "400"]`,
 				"ENV_INPUT_DDTRACE_CLOSE_RESOURCE":     `{"service1":["resource1"], "service2":["resource2"], "service3":["resource3"]}`,
@@ -50,7 +50,7 @@ func TestReadEnv(t *testing.T) {
 			},
 			expected: &Input{
 				Endpoints:        []string{"/v0.3/traces", "/v0.4/traces", "/v0.5/traces"},
-				CustomerTags:     []string{"key1", "key2", "key3"},
+				IgnoreTags:       []string{"block1", "block2"},
 				KeepRareResource: true,
 				OmitErrStatus:    []string{"404", "403", "400"},
 				CloseResource:    map[string][]string{"service1": {"resource1"}, "service2": {"resource2"}, "service3": {"resource3"}},

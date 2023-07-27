@@ -92,7 +92,7 @@ func parseZipkinTraceV1(param *itrace.TraceParameters) error {
 	}
 
 	if len(dktrace) != 0 && afterGatherRun != nil {
-		afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace}, false)
+		afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace})
 	}
 
 	return nil
@@ -166,7 +166,7 @@ func parseZipkinTraceV2(param *itrace.TraceParameters) error {
 
 	dktrace = spanModeleV2ToDkTrace(zpkmodels)
 	if len(dktrace) != 0 && afterGatherRun != nil {
-		afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace}, false)
+		afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace})
 	}
 
 	return nil

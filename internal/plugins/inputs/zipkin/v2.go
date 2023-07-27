@@ -61,7 +61,10 @@ func spanModeleV2ToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
 			}
 		}
 
-		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, span.Tags)
+		var err error
+		if dkspan.Tags, err = itrace.MergeInToCustomerTags(tags, span.Tags, ignoreTags, nil); err != nil {
+			log.Debug(err.Error())
+		}
 		if span.RemoteEndpoint != nil {
 			if endpoint := span.RemoteEndpoint.IPv4.String(); len(endpoint) != 0 {
 				dkspan.Tags[itrace.TAG_ENDPOINT] = endpoint

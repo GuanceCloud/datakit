@@ -45,7 +45,7 @@ Datakit 内嵌的 Zipkin Agent 用于接收，运算，分析 Zipkin Tracing 协
     | ------------------------------------- | ----------- | -------------------------------------------------------------------------------- |
     | `ENV_INPUT_ZIPKIN_PATH_V1`            | string      | "/api/v1/spans"                                                                  |
     | `ENV_INPUT_ZIPKIN_PATH_V2`            | string      | "/api/v2/spans"                                                                  |
-    | `ENV_INPUT_ZIPKIN_CUSTOMER_TAGS`      | JSON string | `["key1", "key2", "key3"]`                                                       |
+    | `ENV_INPUT_ZIPKIN_IGNORE_TAGS`        | JSON string | `["block1", "block2"]`                                                           |
     | `ENV_INPUT_ZIPKIN_KEEP_RARE_RESOURCE` | bool        | true                                                                             |
     | `ENV_INPUT_ZIPKIN_CLOSE_RESOURCE`     | JSON string | `{"service1":["resource1"], "service2":["resource2"], "service3":["resource3"]}` |
     | `ENV_INPUT_ZIPKIN_SAMPLER`            | float       | 0.3                                                                              |
