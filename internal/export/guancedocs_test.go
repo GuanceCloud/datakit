@@ -13,7 +13,7 @@ import (
 
 func TestGuanceDocs(t *T.T) {
 	t.Run("export-all", func(t *T.T) {
-		dir := t.Name()
+		dir := "test." + t.Name()
 		gd := NewGuanceDodcs(
 			WithTopDir(dir),
 		)
