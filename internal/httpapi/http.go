@@ -269,6 +269,8 @@ func setupRouter() *gin.Engine {
 
 	router.POST("/v1/pipeline/debug", rawHTTPWraper(reqLimiter, apiPipelineDebugHandler))
 	router.POST("/v1/dialtesting/debug", rawHTTPWraper(reqLimiter, apiDebugDialtestingHandler))
+
+	router.PUT("/v1/sourcemap", ginLimiter(reqLimiter), apiUploadSourcemap)
 	return router
 }
 

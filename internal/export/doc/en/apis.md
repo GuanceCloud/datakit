@@ -536,6 +536,54 @@ HTTP Code: 400
 }
 ```
 
+
+## `/v1/sourcemap` | `PUT` {#api-sourcemap}
+
+[:octicons-tag-24: Version-1.12.0](changelog.md#cl-1.12.0)
+
+Upload the sourcemap file.
+
+Description of the parameter.
+
+|           Parameter | Description                                                              | Type     |
+| -------------: | ----------------------------------------------------------------------------- | -------- |
+| `token`    | The token is from the `dataway` address configured in `datakit.conf`                 | `string` |
+| `app_id`   | The unique ID generated when you create a application, such as `test-sourcmap`      | `string` |
+|  `env`     | The environment variable, such as `prod`                                              | `string` |
+|  `version` | The version of the application, such as `1.0.0`                                   | `string` |
+
+Example of request:
+
+``` shell
+curl -X PUT -H "X-Token: tkn_xxxxxx" "http://localhost:9529/v1/sourcemap?app_id=test_sourcemap&env=production&version=1.0.0&token=tkn_xxxxx" \
+-F "file=@./sourcemap.zip" \
+-H "Content-Type: multipart/form-data"
+```
+
+Example of successful return:
+
+``` json
+{
+    "code":200,
+    "content":"uploaded to [/datakit/dir/data/rum/web/test_sourcemap-production-1.0.0.zip]!",
+    "errorCode":"",
+    "errorMsg":"",
+    "success":true
+}
+```
+
+Example of failing return:
+
+``` json
+{
+    "code":401,
+    "content":null,
+    "errorCode":"auth.failed",
+    "errorMsg":"auth failed",
+    "success":false
+}
+```
+
 ## `/metrics` | `GET` {#api-metrics}
 
 Get Datakit Prometheus metrics.
