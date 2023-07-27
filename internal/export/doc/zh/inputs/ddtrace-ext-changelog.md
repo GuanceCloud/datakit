@@ -41,6 +41,38 @@
 
 --->
 
+## v1.17.4-guance (2023/7/27) {#cl-1.17.4-guance}
+
+### 修复 {#cl-1.17.4-guance-fix}
+
+- 修复 RocketMQ 在高并发中丢失 Span 问题。
+
+## v1.17.2-guance v1.17.3-guance (2023/7/20) {#cl-1.17.3-guance}
+
+### 修复 {#cl-1.17.3-guance-fix}
+
+- 修复 Redis 没有链路信息的问题。
+- 去除 Dubbo 中大量的调试日志。
+- 增加 4 个 JVM 指标，详细请查看 [GitHub-Issue](https://github.com/GuanceCloud/dd-trace-java/issues/46){:target="_blank"}
+
+## v1.17.1-guance (2023/7/11) {#cl-1.17.1-guance}
+
+### 修复 {#cl-1.17.1-guance-new}
+
+- RocketMQ 在发送异步消息时返回值会引起 npe 异常。
+- RocketMQ 将使用消息本身缓存 span 替换为本地缓存，用户不再需要关闭 traceContext 功能。
+
+### 优化 {#cl-1.17.1-guance-opt}
+
+- 优化日志输出
+
+## v1.17.0-guance (2023/7/7) {#cl-1.17.0-guance}
+
+### 修复 {#cl-1.17.0-guance-new}
+
+- 合并最新的 Datadog v1.17.0 版本
+
+
 ## v1.15.4-guance (2023/6/12) {#cl-1.15.4-guance}
 
 ### 修复 {#cl-1.15.4-guance-new}

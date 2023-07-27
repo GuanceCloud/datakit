@@ -41,6 +41,21 @@
 
 --->
 
+## 1.28.0-guance (2023/7/7) {#cl-1.28.0-guance}
+
+### 新加功能 {#cl-1.28.0-guance-new}
+
+- 合并 open-telemetry 最新分支
+
+---
+
+## 1.26.3-guance (2023/7/7) {#cl-1.26.3-guance}
+
+### 新加功能 {#cl-1.26.3-guance-new}
+
+- 新增 [guance-exporter](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/issues/17){:target="_blank"}
+
+---
 
 ## 1.26.2-guance (2023/6/15) {#cl-1.26.2-guance}
 下载当前版本 jar 包： [v1.26.2-guance](https://static.guance.com/dd-image/opentelemetry-javaagent-1.26.2-guance.jar){:target="_blank"}
@@ -48,6 +63,8 @@
 ### 新加功能 {#cl-1.26.2-guance-new}
 
 - [增加 DB 语句脱敏](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/issues/15){:target="_blank"}
+
+---
 
 ## 1.26.1-guance (2023/6/9) {#cl-1.26.1-guance}
 

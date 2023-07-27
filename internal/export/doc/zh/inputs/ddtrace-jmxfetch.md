@@ -9,9 +9,9 @@ DDTrace 以 agent 形式运行时，不需要用户特意的开通 jmx 端口，
 
 JMXFetch 是从 JMX 服务器收集指标以 statsD 数据结构形式向外发送。本身集成在 *dd-java-agent* 中。
 
-默认会采集 JVM 信息：JVM CPU、JVM Mem、JVM Thread、Class 等。 具体[指标集列表列表](jvm.md#dd-jvm-measurement)
+默认会采集 JVM 信息：JVM CPU、 Mem、Thread、Class 等。 具体 [指标集列表](jvm.md#metric)
 
-默认情况下采集到的指标信息发送到 `localhost:8125` 确定已经[开启 statsd 采集器](statsd.md)是开启的。
+默认情况下采集到的指标信息发送到 `localhost:8125` 确定已经 [开启 statsd 采集器](statsd.md) 是开启的。
 
 如果是 k8s 环境下，需要配置 StatsD host 和 port：
 
@@ -37,6 +37,8 @@ DD_JMXFETCH_STATSD_PORT=8125
 - `jvm.total_thread_count`
 - `jvm.peak_thread_count`
 - `jvm.daemon_thread_count`
+
+> `dd-java-agent` 从 v1.17.3-guance 开始已经将这三个指标内置，不需要再额外配置。但这种自定义的方式依然可以配置其他的 MBean 指标。
 
 自定义指标需要增加配置文件：
 

@@ -25,6 +25,22 @@ Currently, OTEL has added the following technology stack extensions:
 
 ## changelog {#changelog}
 
+## 1.28.0-guance (2023/7/7) {#cl-1.28.0-guance}
+
+### new {#cl-1.28.0-guance-new}
+
+- Merge open-telemetry v1.28.0
+
+---
+
+## 1.26.3-guance (2023/7/7) {#cl-1.26.3-guance}
+
+### new {#cl-1.26.3-guance-new}
+
+- Support [guance-exporter](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/issues/17){:target="_blank"}
+
+---
+
 ## 1.26.2-guance (2023/6/15) {#cl-1.26.2-guance}
 download this version jar: [v1.26.2-guance](https://static.guance.com/dd-image/opentelemetry-javaagent-1.26.2-guance.jar)
 

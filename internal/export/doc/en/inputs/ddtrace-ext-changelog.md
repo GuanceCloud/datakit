@@ -25,6 +25,34 @@ Currently, DDTrace has added the following extensions to the technology stack：
 
 ## changelog {#changelog}
 
+## v1.17.4-guance (2023/7/27) {#cl-1.17.4-guance}
+
+### fix {#cl-1.17.4-guance-fix}
+
+- Fix RocketMQ send span bug.
+
+## v1.17.2-guance v1.17.3-guance (2023/7/20) {#cl-1.17.3-guance}
+
+### fix {#cl-1.17.3-guance-fix}
+
+- Fix bug for Redis not has Spans.
+- Delete Info logging of Dubbo.
+- Add 4 个 JVM metric,see [GitHub-Issue](https://github.com/GuanceCloud/dd-trace-java/issues/46){:target="_blank"}
+
+## v1.17.1-guance (2023/7/11) {#cl-1.17.1-guance}
+
+### fix {#cl-1.17.1-guance-new}
+
+- RocketMQ returns a value when sending an asynchronous message, which can cause an NPE.
+- RocketMQ will replace the message itself cache span with local cache, and users no longer need to turn off the traceContext function.
+
+## v1.17.0-guance (2023/7/7) {#cl-1.17.0-guance}
+
+### fix {#cl-1.17.0-guance-new}
+
+- Merge Datadog v1.17.0.
+
+
 ## v1.15.4-guance (2023/6/12) {#cl-1.15.4-guance}
 
 ### new {#cl-1.15.4-guance-new}

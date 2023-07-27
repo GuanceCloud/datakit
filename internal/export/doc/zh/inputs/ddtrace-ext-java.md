@@ -25,7 +25,7 @@
 
 
 ## 支持 MongoDB 数据库脱敏 {#mongo-obfuscation}
-使用启动参数 `-Ddd.mongo.obfuscation=true` 或者环境变量 `DD_MONGO_OBFUSCATION` 开启脱敏。这样从观测云上就可以看见一条具体的命令。
+使用启动参数 `-Ddd.mongo.obfuscation=true` 或者环境变量 `DD_MONGO_OBFUSCATION=TRUE` 开启脱敏。这样从观测云上就可以看见一条具体的命令。
 
 目前可以实现脱敏的类型有：Int32/Int64/Boolean/Double/String 。 剩余的并没有参考意义，所以目前暂不支持。
 
@@ -59,13 +59,27 @@ DDTrace 二次开发将默认的远端端口 8126 修改为 9529。
 
 ## Redis 链路中查看参数 {#redis-command-args}
 
-Redis 的链路中的 Resource 只会显示 `redis.command` 信息，并不会显示参数（args）信息。
+Redis 的链路中的 Resource 只会显示 `redis.command` 信息，并不会显示参数（args）信息。如果想要查看每条语句中的参数，可开启此功能。
 
-开启此功能：启动命令添加环境变量 `-Ddd.redis.command.args`，在观测云链路的详情中会增加一个 Tag：`redis.command.args=key val`。
+开启此功能：启动命令添加环境变量：
+
+```shell
+-Ddd.redis.command.args=true
+```
+
+k8s:
+
+```shell
+DD_REDIS_COMMAND_ARGS=TRUE
+```
+
+在观测云链路的详情中会增加一个 Tag：`redis.command.args=key val...`。其中 `key val ...` 对应的就是 redis 语句中的 `jedis.set(key,val)`
+
+> 注意：val 中可能涉及到一些私密的信息，请谨慎开启。
 
 支持版本：
 
-- [x] Jedis 1.4.0+
+- [x] Jedis 1.4.0 以上
 
 ## log pattern 支持自定义 {#log-pattern}
 
