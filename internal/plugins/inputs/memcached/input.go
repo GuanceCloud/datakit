@@ -375,7 +375,7 @@ const (
 	minInterval = 1 * time.Second
 )
 
-func (i *Input) Run() {
+func (i *Input) init() {
 	l = logger.SLogger(inputName)
 
 	duration, err := time.ParseDuration(i.Interval)
@@ -417,6 +417,10 @@ func (i *Input) Run() {
 	} else {
 		i.opt = point.WithExtraTags(dkpt.GlobalHostTags())
 	}
+}
+
+func (i *Input) Run() {
+	i.init()
 
 	tick := time.NewTicker(i.duration)
 
