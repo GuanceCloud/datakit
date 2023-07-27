@@ -340,3 +340,25 @@ SELECT * FROM fruit f1, fruit f2, fruit f3, fruit f4, fruit f5
 | `rows_sent`         | `248832`                                                                                    | 查询返回的行数                 |
 | `thread_id`         | `55`                                                                                        | 线程 ID                        |
 | `time`              | `1514520249954078000`                                                                       | 纳秒时间戳（作为行协议时间）   |
+
+## FAQ {#faq}
+
+<!-- markdownlint-disable MD013 -->
+### :material-chat-question: 阿里云 RDS 采集时，指标 `mysql_user_status` 没有上报数据？ {#faq-user-no-data}
+
+该指标需要开启 `performance_schema`，可以通过以下 SQL 查询：
+
+```sql
+show variables like "performance_schema";
+
++--------------------+-------+
+| Variable_name      | Value |
++--------------------+-------+
+| performance_schema | ON    |
++--------------------+-------+
+
+```
+
+如果值是 `OFF`，请参考阿里云相关 [文档](https://help.aliyun.com/document_detail/41726.html?spm=a2c4g.276975.0.i9){:target="_blank"} 进行开启。
+
+<!-- markdownlint-enable -->

@@ -18,21 +18,6 @@ import (
 
 const maxPayloadBytes = 19e6
 
-const connectionsQuerySQL = `
-SELECT
-    processlist_user,
-    processlist_host,
-    processlist_db,
-    processlist_state,
-    COUNT(processlist_user) AS connections
-FROM
-    performance_schema.threads
-WHERE
-    processlist_user IS NOT NULL AND
-    processlist_state IS NOT NULL
-    GROUP BY processlist_user, processlist_host, processlist_db, processlist_state
-`
-
 const activityQuerySQL = `
 SELECT
     thread_a.thread_id,

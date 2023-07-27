@@ -39,6 +39,7 @@ func (m *baseMeasurement) Point() *gcPoint.Point {
 }
 
 // 指定指标.
+//
 //nolint:lll
 func (m *baseMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 	return &inputs.MeasurementInfo{
@@ -326,7 +327,7 @@ func (m *baseMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.SizeByte,
-				Desc:     inputs.TODO,
+				Desc:     "Total binary log file size.",
 			},
 
 			// OPTIONAL_STATUS

@@ -394,3 +394,22 @@ The list of cut fields is as follows:
 | `rows_sent`         | `248832`                                                                                    | Number of rows returned by query                 |
 | `thread_id`         | `55`                                                                                        | Thread id                        |
 | `time`              | `1514520249954078000`                                                                       | Nanosecond timestamp (as line protocol time)   |
+
+## FAQ {#faq}
+
+### :material-chat-question: Why the measurement `mysql_user_status` is not collected for Aliyun RDS? {#faq-user-no-data}
+
+The measurment is collected from MySQL `performance_schema`. You should check if it is enabled by the SQL below：
+
+```sql
+show variables like "performance_schema";
+
++--------------------+-------+
+| Variable_name      | Value |
++--------------------+-------+
+| performance_schema | ON    |
++--------------------+-------+
+
+```
+
+If the value is `OFF`, please refer to the [document](https://help.aliyun.com/document_detail/41726.html?spm=a2c4g.276975.0.i9) to enable it.
