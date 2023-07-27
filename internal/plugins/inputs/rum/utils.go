@@ -105,6 +105,14 @@ func (ipt *Input) getWebSourceMapDirs() map[string]struct{} {
 }
 
 func (ipt *Input) loadSourcemapFile() error {
+	// update sourcemap cache when the new file is uploaded
+	httpapi.RegisterSourcemapCallback(func(s string) {
+		err := updateSourcemapCache(s)
+		if err != nil {
+			log.Warnf("update sourcemap cache failed: %s", err.Error())
+		}
+	})
+
 	sourceMapDirs := ipt.getWebSourceMapDirs()
 
 	webSourcemapLock.Lock()
@@ -639,7 +647,7 @@ func updateSourcemapCache(zipFile string) error {
 	}
 	webSourcemapCache[fileName] = sourcemapItem
 	webSourceCacheLoadTime[fileName] = time.Now()
-	log.Debugf("load sourcemap success: %s", fileName)
+	log.Infof("load sourcemap success: %s", fileName)
 
 	return nil
 }

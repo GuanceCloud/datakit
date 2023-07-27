@@ -44,7 +44,7 @@ const (
 	ZipExt              = ".zip"
 )
 
-// GetSourcemapZipFileName  zip file name.
+// GetSourcemapZipFileName zip file name.
 func GetSourcemapZipFileName(appID, env, version string) string {
 	if env == "" {
 		env = "none"
@@ -986,73 +986,11 @@ type rumQueryParam struct {
 
 // upload sourcemap
 // curl -X POST 'http://localhost:9531/v1/rum/sourcemap?app_id=app_xxxx&env=release&version=1.0.1'
-// 			-F "file=@/tmp/code.zip"
-// 			-H "Content-Type: multipart/form-data".
+//
+//	-F "file=@/tmp/code.zip"
+//	-H "Content-Type: multipart/form-data".
 func dcaUploadSourcemap(c *gin.Context) {
-	context := getContext(c)
-
-	var param rumQueryParam
-
-	if c.ShouldBindQuery(&param) != nil {
-		context.fail(dcaError{ErrorCode: "query.parse.error", ErrorMsg: "query string parse error"})
-		return
-	}
-
-	if param.ApplicationID == "" {
-		context.fail(dcaError{ErrorCode: "query.param.required", ErrorMsg: "app_id required"})
-		return
-	}
-
-	if param.Platform == "" {
-		param.Platform = SourceMapDirWeb
-	}
-
-	if param.Platform != SourceMapDirWeb && param.Platform != SourceMapDirMini &&
-		param.Platform != SourceMapDirAndroid && param.Platform != SourceMapDirIOS {
-		l.Errorf("platform [%s] not supported", param.Platform)
-		context.fail(dcaError{
-			ErrorCode: "param.invalid",
-			ErrorMsg:  fmt.Sprintf("platform [%s] not supported, please use web, miniapp, android or ios", param.Platform),
-		})
-		return
-	}
-
-	file, err := c.FormFile("file")
-	if err != nil {
-		l.Errorf("get file failed: %s", err.Error())
-		context.fail(dcaError{ErrorCode: "upload.file.required", ErrorMsg: "make sure the file was uploaded correctly"})
-		return
-	}
-
-	fileName := GetSourcemapZipFileName(param.ApplicationID, param.Env, param.Version)
-	rumDir := filepath.Join(GetRumSourcemapDir(), param.Platform)
-	if !path.IsDir(rumDir) {
-		if err := os.MkdirAll(rumDir, datakit.ConfPerm); err != nil {
-			context.fail(dcaError{
-				ErrorCode: "dir.create.failed",
-				ErrorMsg:  "rum dir created failed",
-			})
-			return
-		}
-	}
-	dst := filepath.Clean(filepath.Join(rumDir, fileName))
-
-	// check filename
-	if !strings.HasPrefix(dst, rumDir) {
-		context.fail(dcaError{
-			ErrorCode: "param.invalid",
-			ErrorMsg:  "invalid param, should not contain illegal char, such as  '../, /'",
-		})
-		return
-	}
-
-	if err := c.SaveUploadedFile(file, dst); err != nil {
-		l.Errorf("save upload file error: %s", err.Error())
-		context.fail(dcaError{ErrorCode: "upload.file.error", ErrorMsg: "upload failed"})
-		return
-	}
-	updateSourcemapCache(dst)
-	context.success(fmt.Sprintf("uploaded to %s!", fileName))
+	uploadSourcemap(c)
 }
 
 func dcaDeleteSourcemap(c *gin.Context) {
@@ -1105,6 +1043,5 @@ func dcaDeleteSourcemap(c *gin.Context) {
 		})
 		return
 	}
-	deleteSourcemapCache(zipFilePath)
 	context.success("delete file successfully")
 }
