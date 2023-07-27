@@ -45,7 +45,7 @@ func TestReIndexFuncArgs(t *testing.T) {
 			reqParm: 2,
 			fnArgs: &ast.CallExpr{
 				Param: ast.Stmts{
-					ast.WrapAssignmentExpr(&ast.AssignmentExpr{
+					ast.WrapAssignmentStmt(&ast.AssignmentExpr{
 						LHS: ast.WrapIdentifier(&ast.Identifier{Name: "a"}),
 						RHS: ast.WrapBoolLiteral(&ast.BoolLiteral{Val: true}),
 					}),
@@ -61,7 +61,7 @@ func TestReIndexFuncArgs(t *testing.T) {
 			fnArgs: &ast.CallExpr{
 				Param: []*ast.Node{
 					ast.WrapBoolLiteral(&ast.BoolLiteral{Val: false}),
-					ast.WrapAssignmentExpr(
+					ast.WrapAssignmentStmt(
 						&ast.AssignmentExpr{
 							LHS: ast.WrapIdentifier(&ast.Identifier{Name: "x"}),
 							RHS: ast.WrapBoolLiteral(&ast.BoolLiteral{Val: true}),
@@ -77,7 +77,7 @@ func TestReIndexFuncArgs(t *testing.T) {
 			reqParm: 2,
 			fnArgs: &ast.CallExpr{
 				Param: []*ast.Node{
-					ast.WrapAssignmentExpr(
+					ast.WrapAssignmentStmt(
 						&ast.AssignmentExpr{
 							LHS: ast.WrapIdentifier(&ast.Identifier{Name: "b"}),
 							RHS: ast.WrapBoolLiteral(&ast.BoolLiteral{Val: true}),
@@ -93,13 +93,13 @@ func TestReIndexFuncArgs(t *testing.T) {
 			reqParm: 2,
 			fnArgs: &ast.CallExpr{
 				Param: []*ast.Node{
-					ast.WrapAssignmentExpr(
+					ast.WrapAssignmentStmt(
 						&ast.AssignmentExpr{
 							LHS: ast.WrapIdentifier(&ast.Identifier{Name: "b"}),
 							RHS: ast.WrapBoolLiteral(&ast.BoolLiteral{Val: true}),
 						},
 					),
-					ast.WrapAssignmentExpr(
+					ast.WrapAssignmentStmt(
 						&ast.AssignmentExpr{
 							LHS: ast.WrapIdentifier(&ast.Identifier{Name: "a"}),
 							RHS: ast.WrapBoolLiteral(&ast.BoolLiteral{Val: false}),
@@ -122,13 +122,13 @@ func TestReIndexFuncArgs(t *testing.T) {
 			fnArgs: &ast.CallExpr{
 				Param: []*ast.Node{
 					ast.WrapIdentifier(&ast.Identifier{Name: "p1"}),
-					ast.WrapAssignmentExpr(
+					ast.WrapAssignmentStmt(
 						&ast.AssignmentExpr{
 							LHS: ast.WrapIdentifier(&ast.Identifier{Name: "c"}),
 							RHS: ast.WrapBoolLiteral(&ast.BoolLiteral{Val: true}),
 						},
 					),
-					ast.WrapAssignmentExpr(
+					ast.WrapAssignmentStmt(
 						&ast.AssignmentExpr{
 							LHS: ast.WrapIdentifier(&ast.Identifier{Name: "b"}),
 							RHS: ast.WrapBoolLiteral(&ast.BoolLiteral{Val: false}),
@@ -151,7 +151,7 @@ func TestReIndexFuncArgs(t *testing.T) {
 			fnArgs: &ast.CallExpr{
 				Param: []*ast.Node{
 					ast.WrapIdentifier(&ast.Identifier{Name: "p1"}),
-					ast.WrapAssignmentExpr(
+					ast.WrapAssignmentStmt(
 						&ast.AssignmentExpr{
 							LHS: ast.WrapIdentifier(&ast.Identifier{Name: "c"}),
 							RHS: ast.WrapBoolLiteral(&ast.BoolLiteral{Val: true}),
@@ -174,7 +174,7 @@ func TestReIndexFuncArgs(t *testing.T) {
 			fnArgs: &ast.CallExpr{
 				Param: []*ast.Node{
 					ast.WrapIdentifier(&ast.Identifier{Name: "p1"}),
-					ast.WrapAssignmentExpr(
+					ast.WrapAssignmentStmt(
 						&ast.AssignmentExpr{
 							LHS: ast.WrapIdentifier(&ast.Identifier{Name: "c"}),
 							RHS: ast.WrapBoolLiteral(&ast.BoolLiteral{Val: true}),

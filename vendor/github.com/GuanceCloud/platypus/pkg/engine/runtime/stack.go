@@ -13,7 +13,6 @@ import (
 )
 
 type Varb struct {
-	Name  string
 	Value any
 	DType ast.DType
 }
@@ -71,7 +70,6 @@ func (stack *PlProcStack) Set(key string, value any, dType ast.DType) {
 
 	// new
 	stack.data[key] = &Varb{
-		Name:  key,
 		Value: value,
 		DType: dType,
 	}

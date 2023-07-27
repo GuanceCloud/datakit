@@ -35,8 +35,14 @@ const (
 
 	AND Op = "&&"
 	OR  Op = "||"
+	NOT Op = "!"
 
-	EQ Op = "="
+	EQ    Op = "="
+	ADDEQ Op = "+="
+	SUBEQ Op = "-="
+	MULEQ Op = "*="
+	DIVEQ Op = "/="
+	MODEQ Op = "%="
 )
 
 type Identifier struct {
@@ -158,6 +164,20 @@ func (e *ListInitExpr) String() string {
 		arr = append(arr, x.String())
 	}
 	return "[" + strings.Join(arr, ", ") + "]"
+}
+
+type UnaryExpr struct {
+	Op    Op
+	RHS   *Node
+	OpPos token.LnColPos
+}
+
+func (e *UnaryExpr) IsExpr() bool {
+	return true
+}
+
+func (e *UnaryExpr) String() string {
+	return fmt.Sprintf("%s%s", e.Op, e.RHS.String())
 }
 
 type ConditionalExpr struct {
@@ -296,6 +316,7 @@ func (e *CallExpr) String() string {
 
 type AssignmentExpr struct {
 	LHS, RHS *Node
+	Op       Op
 	OpPos    token.LnColPos
 }
 
@@ -304,5 +325,5 @@ func (e *AssignmentExpr) IsExpr() bool {
 }
 
 func (e *AssignmentExpr) String() string {
-	return fmt.Sprintf("%s = %s", e.LHS, e.RHS)
+	return fmt.Sprintf("%s %s %s", e.LHS, e.Op, e.RHS)
 }

@@ -13,6 +13,7 @@ import (
 
 	"github.com/GuanceCloud/platypus/pkg/ast"
 	"github.com/GuanceCloud/platypus/pkg/errchain"
+	"github.com/GuanceCloud/platypus/pkg/token"
 	"github.com/spf13/cast"
 )
 
@@ -359,6 +360,8 @@ func RunStmt(ctx *Context, node *ast.Node) (any, ast.DType, *errchain.PlError) {
 		return RunArithmeticExpr(ctx, node.ArithmeticExpr)
 	case ast.TypeConditionalExpr:
 		return RunConditionExpr(ctx, node.ConditionalExpr)
+	case ast.TypeUnaryExpr:
+		return RunUnaryExpr(ctx, node.UnaryExpr)
 	case ast.TypeAssignmentExpr:
 		return RunAssignmentExpr(ctx, node.AssignmentExpr)
 	case ast.TypeCallExpr:
@@ -411,6 +414,104 @@ func RunStmt(ctx *Context, node *ast.Node) (any, ast.DType, *errchain.PlError) {
 	default:
 		return nil, ast.Invalid, NewRunError(ctx, fmt.Sprintf(
 			"unsupported ast node: %s", reflect.TypeOf(node).String()), node.StartPos())
+	}
+}
+
+func RunUnaryExpr(ctx *Context, expr *ast.UnaryExpr) (any, ast.DType, *errchain.PlError) {
+	switch expr.Op {
+	case ast.SUB, ast.ADD:
+		v, dtype, err := RunStmt(ctx, expr.RHS)
+		if err != nil {
+			return nil, ast.Invalid, err
+		}
+		switch dtype {
+		case ast.Bool:
+			val, _ := v.(bool)
+			if expr.Op == ast.SUB {
+				if val {
+					return int64(-1), ast.Int, nil
+				} else {
+					return 0, ast.Int, nil
+				}
+			} else {
+				if val {
+					return int64(1), ast.Int, nil
+				} else {
+					return 0, ast.Int, nil
+				}
+			}
+		case ast.Float:
+			val, _ := v.(float64)
+			if expr.Op == ast.SUB {
+				return -val, ast.Float, nil
+			} else {
+				return val, ast.Float, nil
+			}
+		case ast.Int:
+			val, _ := v.(int64)
+			if expr.Op == ast.SUB {
+				return -val, ast.Int, nil
+			} else {
+				return val, ast.Int, nil
+			}
+		default:
+			return nil, ast.Invalid, NewRunError(ctx,
+				fmt.Sprintf("unsuppored operand type for unary op %s: %s",
+					expr.Op, reflect.TypeOf(expr).String()), expr.OpPos)
+		}
+
+	case ast.NOT:
+		v, _, err := RunStmt(ctx, expr.RHS)
+		if err != nil {
+			return nil, ast.Invalid, err
+		}
+
+		if v == nil {
+			return true, ast.Bool, nil
+		}
+
+		switch v := v.(type) {
+		case bool:
+			return !v, ast.Bool, nil
+		case float64:
+			if v == 0 {
+				return true, ast.Bool, nil
+			} else {
+				return false, ast.Bool, nil
+			}
+		case int64:
+			if v == 0 {
+				return true, ast.Bool, nil
+			} else {
+				return false, ast.Bool, nil
+			}
+		case string:
+			if len(v) == 0 {
+				return true, ast.Bool, nil
+			} else {
+				return false, ast.Bool, nil
+			}
+		case map[string]any:
+			if len(v) == 0 {
+				return true, ast.Bool, nil
+			} else {
+				return false, ast.Bool, nil
+			}
+		case []any:
+			if len(v) == 0 {
+				return true, ast.Bool, nil
+			} else {
+				return false, ast.Bool, nil
+			}
+
+		default:
+			return nil, ast.Invalid, NewRunError(ctx,
+				fmt.Sprintf("unsuppored operand type for unary op %s: %s",
+					expr.Op, reflect.TypeOf(expr).String()), expr.OpPos)
+		}
+	default:
+		return nil, ast.Invalid, NewRunError(ctx,
+			fmt.Sprintf("unsupported op for unary expr: %s", expr.Op), expr.OpPos)
 	}
 }
 
@@ -639,14 +740,15 @@ func RunArithmeticExpr(ctx *Context, expr *ast.ArithmeticExpr) (any, ast.DType, 
 	if errOpInt != nil {
 		return nil, ast.Invalid, errOpInt
 	}
-	if !arithType(lhsValType) {
-		return nil, ast.Invalid, NewRunError(ctx, fmt.Sprintf(
-			"unsupported lhs data type: %s", lhsValType), expr.OpPos)
-	}
 
 	rhsVal, rhsValType, errOpInt := RunStmt(ctx, expr.RHS)
 	if errOpInt != nil {
 		return nil, ast.Invalid, errOpInt
+	}
+
+	if !arithType(lhsValType) {
+		return nil, ast.Invalid, NewRunError(ctx, fmt.Sprintf(
+			"unsupported lhs data type: %s", lhsValType), expr.OpPos)
 	}
 
 	if !arithType(rhsValType) {
@@ -689,23 +791,127 @@ func RunArithmeticExpr(ctx *Context, expr *ast.ArithmeticExpr) (any, ast.DType, 
 	return v, dtype, nil
 }
 
+func runAssignArith(ctx *Context, l, r *Varb, op ast.Op, pos token.LnColPos) (
+	any, ast.DType, *errchain.PlError) {
+
+	arithOp, ok := assign2arithOp(op)
+	if !ok {
+		return nil, ast.Invalid, NewRunError(ctx,
+			"unsupported op", pos)
+	}
+
+	if !arithType(l.DType) {
+		return nil, ast.Invalid, NewRunError(ctx, fmt.Sprintf(
+			"unsupported lhs data type: %s", l.DType), pos)
+	}
+
+	if !arithType(r.DType) {
+		return nil, ast.Invalid, NewRunError(ctx, fmt.Sprintf(
+			"unsupported rhs data type: %s", r.DType), pos)
+	}
+
+	// string
+	if l.DType == ast.String || r.DType == ast.String {
+		if arithOp != ast.ADD {
+			return nil, ast.Invalid, NewRunError(ctx, fmt.Sprintf(
+				"unsupported operand type(s) for %s: %s and %s",
+				op, l.DType, r.DType), pos)
+		}
+		if l.DType == ast.String && r.DType == ast.String {
+			return cast.ToString(l.Value) + cast.ToString(r.Value), ast.String, nil
+		} else {
+			return nil, ast.Invalid, NewRunError(ctx, fmt.Sprintf(
+				"unsupported operand type(s) for %s: %s and %s",
+				op, l.DType, r.DType), pos)
+		}
+	}
+
+	// float
+	if l.DType == ast.Float || r.DType == ast.Float {
+		v, dtype, err := arithOpFloat(cast.ToFloat64(l.Value), cast.ToFloat64(r.Value), arithOp)
+		if err != nil {
+			return nil, ast.Invalid, NewRunError(ctx, err.Error(), pos)
+		}
+		return v, dtype, nil
+	}
+
+	// bool or int
+
+	v, dtype, errOp := arithOpInt(cast.ToInt64(l.Value), cast.ToInt64(r.Value), arithOp)
+
+	if errOp != nil {
+		return nil, ast.Invalid, NewRunError(ctx, errOp.Error(), pos)
+	}
+	return v, dtype, nil
+}
+
 func RunAssignmentExpr(ctx *Context, expr *ast.AssignmentExpr) (any, ast.DType, *errchain.PlError) {
 	v, dtype, err := RunStmt(ctx, expr.RHS)
 	if err != nil {
 		return nil, ast.Invalid, err
 	}
+	rVarb := &Varb{Value: v, DType: dtype}
 
 	switch expr.LHS.NodeType { //nolint:exhaustive
 	case ast.TypeIdentifier:
-		_ = ctx.SetVarb(expr.LHS.Identifier.Name, v, dtype)
-		return v, dtype, nil
-	case ast.TypeIndexExpr:
-		varb, err := ctx.GetKey(expr.LHS.IndexExpr.Obj.Name)
-		if err != nil {
-			return nil, ast.Invalid, NewRunError(ctx, err.Error(), expr.LHS.IndexExpr.Obj.Start)
+		switch expr.Op {
+		case ast.EQ:
+			_ = ctx.SetVarb(expr.LHS.Identifier.Name, v, dtype)
+			return v, dtype, nil
+
+		case ast.SUBEQ,
+			ast.ADDEQ,
+			ast.MULEQ,
+			ast.DIVEQ,
+			ast.MODEQ:
+			lVarb, err := ctx.GetKey(expr.LHS.Identifier.Name)
+			if err != nil {
+				return nil, ast.Nil, nil
+			}
+			if v, dt, errR := runAssignArith(ctx, lVarb, rVarb, expr.Op, expr.OpPos); errR != nil {
+				return nil, ast.Void, errR
+			} else {
+				_ = ctx.SetVarb(expr.LHS.Identifier.Name, v, dt)
+				return v, dt, nil
+			}
+
+		default:
+			return nil, ast.Invalid, NewRunError(ctx,
+				"unsupported op", expr.OpPos)
 		}
-		return changeListOrMapValue(ctx, varb.Value, expr.LHS.IndexExpr.Index,
-			v, dtype)
+	case ast.TypeIndexExpr:
+		switch expr.Op {
+		case ast.EQ:
+			varb, err := ctx.GetKey(expr.LHS.IndexExpr.Obj.Name)
+			if err != nil {
+				return nil, ast.Invalid, NewRunError(ctx, err.Error(), expr.LHS.IndexExpr.Obj.Start)
+			}
+			return changeListOrMapValue(ctx, varb.Value, expr.LHS.IndexExpr.Index,
+				v, dtype)
+		case ast.ADDEQ,
+			ast.SUBEQ,
+			ast.MULEQ,
+			ast.DIVEQ,
+			ast.MODEQ:
+			varb, err := ctx.GetKey(expr.LHS.IndexExpr.Obj.Name)
+			if err != nil {
+				return nil, ast.Invalid, NewRunError(ctx, err.Error(), expr.LHS.IndexExpr.Obj.Start)
+			}
+			if v, dt, errR := searchListAndMap(ctx, varb.Value, expr.LHS.IndexExpr.Index); err != nil {
+				return nil, ast.Invalid, errR
+			} else {
+				v, dt, err := runAssignArith(ctx, &Varb{Value: v, DType: dt}, rVarb, expr.Op, expr.OpPos)
+				if err != nil {
+					return nil, ast.Invalid, err
+				}
+				return changeListOrMapValue(ctx, varb.Value, expr.LHS.IndexExpr.Index,
+					v, dt)
+			}
+		default:
+			return nil, ast.Invalid, NewRunError(ctx,
+				"unsupported op", expr.OpPos)
+		}
+
 	default:
 		return nil, ast.Void, nil
 	}
@@ -906,6 +1112,23 @@ func cmpType(dtype ast.DType) bool {
 	return false
 }
 
+func assign2arithOp(op ast.Op) (ast.Op, bool) {
+	switch op {
+	case ast.ADDEQ:
+		return ast.ADD, true
+	case ast.SUBEQ:
+		return ast.SUB, true
+	case ast.MULEQ:
+		return ast.MUL, true
+	case ast.DIVEQ:
+		return ast.DIV, true
+	case ast.MODEQ:
+		return ast.MOD, true
+	default:
+		return "", false
+	}
+}
+
 func arithType(dtype ast.DType) bool {
 	switch dtype { //nolint:exhaustive
 	case ast.Int, ast.Float, ast.Bool, ast.String:
@@ -952,6 +1175,6 @@ func arithOpFloat(l float64, r float64, op ast.Op) (float64, ast.DType, error) {
 		}
 		return l / r, ast.Float, nil
 	default:
-		return 0, ast.Invalid, fmt.Errorf("unsupported op: %s", op)
+		return 0, ast.Invalid, fmt.Errorf("float does not support modulo operations")
 	}
 }

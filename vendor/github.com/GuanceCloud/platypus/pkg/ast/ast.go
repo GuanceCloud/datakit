@@ -36,6 +36,7 @@ const (
 	TypeAttrExpr
 	TypeIndexExpr
 
+	TypeUnaryExpr
 	TypeArithmeticExpr
 	TypeConditionalExpr
 	TypeAssignmentExpr
@@ -79,6 +80,8 @@ func (t NodeType) String() string {
 		return "AttrExpr"
 	case TypeIndexExpr:
 		return "IndexExpr"
+	case TypeUnaryExpr:
+		return "UnaryExpr"
 	case TypeArithmeticExpr:
 		return "ArithmeticExpr"
 	case TypeConditionalExpr:
@@ -153,6 +156,7 @@ type Node struct {
 	IndexExpr *IndexExpr
 	InExpr    *InExpr
 
+	UnaryExpr       *UnaryExpr
 	ArithmeticExpr  *ArithmeticExpr
 	ConditionalExpr *ConditionalExpr
 	AssignmentExpr  *AssignmentExpr
@@ -193,6 +197,8 @@ func (node *Node) String() string {
 		return node.AttrExpr.String()
 	case TypeIndexExpr:
 		return node.IndexExpr.String()
+	case TypeUnaryExpr:
+		return node.UnaryExpr.String()
 	case TypeArithmeticExpr:
 		return node.ArithmeticExpr.String()
 	case TypeConditionalExpr:
@@ -315,7 +321,14 @@ func WrapInExpr(node *InExpr) *Node {
 	}
 }
 
-func WrapAssignmentExpr(node *AssignmentExpr) *Node {
+func WrapUnaryExpr(node *UnaryExpr) *Node {
+	return &Node{
+		NodeType:  TypeUnaryExpr,
+		UnaryExpr: node,
+	}
+}
+
+func WrapAssignmentStmt(node *AssignmentExpr) *Node {
 	return &Node{
 		NodeType:       TypeAssignmentExpr,
 		AssignmentExpr: node,
@@ -409,6 +422,8 @@ func NodeStartPos(node *Node) token.LnColPos {
 	case TypeIndexExpr:
 		return node.IndexExpr.Obj.Start
 
+	case TypeUnaryExpr:
+		return node.UnaryExpr.OpPos
 	case TypeArithmeticExpr:
 		return node.ArithmeticExpr.LHS.StartPos()
 	case TypeConditionalExpr:
