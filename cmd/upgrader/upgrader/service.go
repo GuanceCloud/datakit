@@ -206,7 +206,7 @@ func DoProgramRun(p *Program) {
 	gin.DisableConsoleColor()
 	router := gin.New()
 	router.Use(gin.LoggerWithConfig(gin.LoggerConfig{
-		Formatter: uhttp.GinLogFormmatter,
+		Formatter: uhttp.GinLogFormatter,
 		Output:    getGinLog(),
 	}))
 	router.Use(gin.Recovery())

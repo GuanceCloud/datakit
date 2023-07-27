@@ -117,7 +117,9 @@ func newRootLogger(fpath, level string, options int) (*zap.Logger, error) {
 
 	switch strings.ToLower(u.Scheme) {
 	case SchemeTCP, SchemeUDP: // logs sending to some remote TCP/UDP server
-		return newCustomizeRootLogger(level, options, &remoteEndpoint{protocol: u.Scheme, host: u.Host})
+		return newCustomizeRootLogger(level,
+			options,
+			&remoteEndpoint{protocol: u.Scheme, host: u.Host})
 
 	default: // they must be some disk path file
 		if _, err := os.Stat(fpath); err != nil { // create file if not exists
@@ -133,7 +135,10 @@ func newRootLogger(fpath, level string, options int) (*zap.Logger, error) {
 	}
 
 	// auto-rotate disk logging file
-	if options&OPT_ROTATE != 0 && options&OPT_STDOUT == 0 {
+	if options&OPT_ROTATE != 0 &&
+		options&OPT_STDOUT == 0 && // can't rotate stdout
+		fpath != os.DevNull { // can't rotate(rename) /dev/null
+
 		return newCustomizeRootLogger(level, options, &lumberjack.Logger{
 			Filename:   fpath,
 			MaxSize:    MaxSize,

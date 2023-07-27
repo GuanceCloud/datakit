@@ -13,7 +13,9 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/textproto"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -41,26 +43,38 @@ const (
 	XWorkspaceUUID = "X-Workspace-UUID"
 )
 
-var (
-	allowHeaders = strings.Join(
-		[]string{
-			"Content-Type",
-			"Content-Length",
-			"Accept-Encoding",
-			"X-CSRF-Token",
-			"Authorization",
-			"accept",
-			"origin",
-			"Cache-Control",
-			"X-Requested-With",
+const (
+	HeaderWildcard = "*"
+	HeaderGlue     = ", "
+)
 
-			// dataflux headers
-			XToken,
-			XDatakitUUID,
-			XRP,
-			XPrecision,
-			XLua,
-		}, ", ")
+var (
+	// Although CORS-safelisted request headers(Accept/Accept-Language/Content-Language/Content-Type) are always allowed
+	// and don't usually need to be listed in Access-Control-Allow-Headers,
+	// listing them anyway will circumvent the additional restrictions that apply.
+	// see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Headers#bypassing_additional_restrictions
+	defaultCORSHeader = newCORSHeaders([]string{
+		"Content-Type",
+		"Content-Length",
+		"Accept-Encoding",
+		"X-CSRF-Token",
+		"Authorization",
+		"Accept",
+		"Accept-Language",
+		"Content-Language",
+		"Origin",
+		"Cache-Control",
+		"X-Requested-With",
+
+		// dataflux headers
+		XToken,
+		XDatakitUUID,
+		XRP,
+		XPrecision,
+		XLua,
+		"*",
+	})
+	allowHeaders      = defaultCORSHeader.String()
 	realIPHeader      = []string{"X-Forwarded-For", "X-Real-IP", "RemoteAddr"}
 	MaxRequestBodyLen = 128
 
@@ -79,7 +93,62 @@ func Init() {
 	}
 }
 
-func GinLogFormmatter(param gin.LogFormatterParams) string {
+type CORSHeaders map[string]struct{}
+
+func newCORSHeaders(headers []string) CORSHeaders {
+	ch := make(CORSHeaders, len(headers))
+	for _, header := range headers {
+		header = strings.TrimSpace(header)
+		if header == "" {
+			continue
+		}
+		ch[textproto.CanonicalMIMEHeaderKey(header)] = struct{}{}
+	}
+	return ch
+}
+
+func (c CORSHeaders) String() string {
+	headers := make([]string, 0, len(c))
+	hasWildcard := false
+	for k := range c {
+		if k == HeaderWildcard {
+			hasWildcard = true
+			continue
+		}
+		headers = append(headers, k)
+	}
+
+	sort.Strings(headers)
+
+	if hasWildcard {
+		headers = append(headers, "*")
+	}
+
+	return strings.Join(headers, HeaderGlue)
+}
+
+func (c CORSHeaders) Add(requestHeaders string) string {
+	if requestHeaders == "" {
+		return allowHeaders
+	}
+	headers := make([]string, 0)
+	for _, key := range strings.Split(requestHeaders, ",") {
+		key = strings.TrimSpace(key)
+		if key == "" {
+			continue
+		}
+		key = textproto.CanonicalMIMEHeaderKey(key)
+		if _, ok := c[key]; !ok {
+			headers = append(headers, key)
+		}
+	}
+	if len(headers) == 0 {
+		return allowHeaders
+	}
+	return strings.Join(headers, HeaderGlue) + HeaderGlue + allowHeaders
+}
+
+func GinLogFormatter(param gin.LogFormatterParams) string {
 	realIP := param.ClientIP
 	for _, h := range realIPHeader {
 		if v := param.Request.Header.Get(h); v != "" {
@@ -109,14 +178,23 @@ func GinLogFormmatter(param gin.LogFormatterParams) string {
 
 func CORSMiddleware(c *gin.Context) {
 	allowOrigin := c.GetHeader("origin")
+	requestHeaders := c.GetHeader("Access-Control-Request-Headers")
 	if allowOrigin == "" {
 		allowOrigin = "*"
 	}
 
 	c.Writer.Header().Set("Access-Control-Allow-Origin", allowOrigin)
 	c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-	c.Writer.Header().Set("Access-Control-Allow-Headers", allowHeaders)
+	if requestHeaders != "" {
+		c.Writer.Header().Set("Access-Control-Allow-Headers", defaultCORSHeader.Add(requestHeaders))
+	} else {
+		c.Writer.Header().Set("Access-Control-Allow-Headers", allowHeaders)
+	}
 	c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
+
+	// The default value is only 5 seconds, so we explicitly set it to reduce the count of OPTIONS requests.
+	// see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Max-Age#directives
+	c.Writer.Header().Set("Access-Control-Max-Age", "7200")
 
 	if c.Request.Method == "OPTIONS" {
 		c.AbortWithStatus(http.StatusNoContent)

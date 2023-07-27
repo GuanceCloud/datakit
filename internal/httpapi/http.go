@@ -229,7 +229,7 @@ func setupRouter() *gin.Engine {
 	router.Use(setDKInfo)
 
 	router.Use(gin.LoggerWithConfig(gin.LoggerConfig{
-		Formatter: uhttp.GinLogFormmatter,
+		Formatter: uhttp.GinLogFormatter,
 		Output:    setupGinLogger(),
 	}))
 
