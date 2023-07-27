@@ -31,7 +31,8 @@ ci_lint_and_ut:
     - nvm use v16.14.0
     - make clean
     - make lint AUTO_FIX=off
-    - export UT_EXCLUDE_INTEGRATION_TESTING="" # enable integration test
+    - export UT_EXCLUDE_INTEGRATION_TESTING="off" # enable integration testing.
+    - export UT_EXCLUDE_HUGE_INTEGRATION_TESTING="on" # exclude huge integration testing.
     - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY"
   tags:
     - cloudcare-ft
@@ -64,7 +65,8 @@ test-datakit-production:
     - make clean
     - make production_notify GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"
     - make lint AUTO_FIX=off
-    - export UT_EXCLUDE_INTEGRATION_TESTING="" # enable integration test
+    - export UT_EXCLUDE_INTEGRATION_TESTING="off" # enable integration test
+    - export UT_EXCLUDE_HUGE_INTEGRATION_TESTING="off" # enable huge integration testing.
     - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" DOCKER_REMOTE_HOST=$TESTING_DOCKER_HOST UT_EXCLUDE=$UT_EXCLUDE GIT_BRANCH=$CI_COMMIT_BRANCH
   tags:
     - cloudcare-ft

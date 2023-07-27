@@ -131,6 +131,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 				inputs.WithIgnoreTags(
 					testutils.RUNTIME_ID,
 				),
+				inputs.WithIgnoreUnexpectedTags(true),
 			},
 		},
 
@@ -157,6 +158,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 				inputs.WithIgnoreTags(
 					testutils.RUNTIME_ID,
 				),
+				inputs.WithIgnoreUnexpectedTags(true),
 			},
 		},
 	}

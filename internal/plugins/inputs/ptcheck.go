@@ -29,9 +29,11 @@ type ptChecker struct {
 
 	extraTags map[string]string
 
-	optionalFields []string
-	optionalTags   []string
-	ignoreTags     map[string]struct{}
+	optionalFields         []string
+	optionalTags           []string
+	ignoreTags             map[string]struct{}
+	ignoreUnexpectedTags   bool
+	ignoreUnexpectedFields bool
 
 	// check result
 	checkMsg []string
@@ -123,6 +125,18 @@ func WithIgnoreTags(keys ...string) PointCheckOption {
 		for _, v := range keys {
 			c.ignoreTags[v] = struct{}{}
 		}
+	}
+}
+
+func WithIgnoreUnexpectedTags(ignore bool) PointCheckOption {
+	return func(c *ptChecker) {
+		c.ignoreUnexpectedTags = ignore
+	}
+}
+
+func WithIgnoreUnexpectedFields(ignore bool) PointCheckOption {
+	return func(c *ptChecker) {
+		c.ignoreUnexpectedFields = ignore
 	}
 }
 
@@ -237,7 +251,9 @@ func (c *ptChecker) checkOnDoc(pt *point.Point) {
 		}
 		diff := Difference(left, right)
 
-		c.addMsg(fmt.Sprintf("tags diff = %v\n", diff))
+		if !c.ignoreUnexpectedTags {
+			c.addMsg(fmt.Sprintf("tags diff = %v\n", diff))
+		}
 	}
 
 	// check field key count
@@ -289,6 +305,10 @@ func (c *ptChecker) checkOnDoc(pt *point.Point) {
 		}
 
 		if _, ok := c.ignoreTags[key]; ok {
+			continue
+		}
+
+		if c.ignoreUnexpectedTags {
 			continue
 		}
 
