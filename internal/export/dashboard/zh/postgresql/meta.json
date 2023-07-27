@@ -3820,16 +3820,7 @@
     ]
   },
   "summary": "",
-  "tagInfo": [
-    {
-      "id": "tag_de171ce36f1c4d4da72543a7b8058302",
-      "name": "DataBase"
-    },
-    {
-      "id": "tag_cae6e957bf13438182c8a1e1c923b622",
-      "name": "刘跃兰"
-    }
-  ],
+  "tagInfo": [],
   "tags": [],
   "thumbnail": "",
   "title": "PostgreSQL 监控视图"

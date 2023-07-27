@@ -5,8 +5,8 @@
   "dashboardOwnerType": "node",
   "dashboardType": "CUSTOM",
   "iconSet": {
-    "icon": "https://static-res.guance.com/dataflux-template/dashboard/coredns/icon.svg",
-    "url": "https://static-res.guance.com/dataflux-template/dashboard/coredns/coredns.png"
+    "icon": "https://static-res.guance.com/dataflux-template/dashboard/zh/coredns/icon.svg",
+    "url": "https://static-res.guance.com/dataflux-template/dashboard/zh/coredns/coredns.png"
   },
   "main": {
     "charts": [
@@ -584,13 +584,8 @@
     ]
   },
   "summary": "",
-  "tagInfo": [
-    {
-      "id": "tag_0e6bb985b83d471cb231968c35d502a7",
-      "name": "贾川"
-    }
-  ],
+  "tagInfo": [],
   "tags": [],
   "thumbnail": "",
-  "title": "CoreDNS 监控视图1"
+  "title": "CoreDNS 监控视图"
 }

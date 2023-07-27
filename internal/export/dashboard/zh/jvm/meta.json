@@ -5,8 +5,8 @@
   "dashboardOwnerType": "node",
   "dashboardType": "CUSTOM",
   "iconSet": {
-    "icon": "https://static-res.guance.com/dataflux-template/dashboard/jvm/icon.svg",
-    "url": "https://static-res.guance.com/dataflux-template/dashboard/jvm/jvm.png"
+    "icon": "https://static-res.guance.com/dataflux-template/dashboard/zh/jvm/icon.svg",
+    "url": "https://static-res.guance.com/dataflux-template/dashboard/zh/jvm/jvm.png"
   },
   "main": {
     "charts": [
@@ -2356,12 +2356,7 @@
     ]
   },
   "summary": "",
-  "tagInfo": [
-    {
-      "id": "tag_0e6bb985b83d471cb231968c35d502a7",
-      "name": "贾川"
-    }
-  ],
+  "tagInfo": [],
   "tags": [],
   "thumbnail": "",
   "title": "JVM 监控视图"
