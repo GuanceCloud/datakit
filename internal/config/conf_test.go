@@ -14,7 +14,6 @@ import (
 	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 )
 
@@ -288,7 +287,7 @@ hostname = "should-not-set"`,
 		},
 		{
 			name: "dk-conf-sample",
-			raw:  export.DatakitConfSample,
+			raw:  datakit.DatakitConfSample,
 		},
 	}
 

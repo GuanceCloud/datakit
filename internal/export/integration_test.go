@@ -15,7 +15,7 @@ import (
 func TestIntegration(t *T.T) {
 	t.Run("export-all", func(t *T.T) {
 		i := NewIntegration(WithTopDir("test-export-all"),
-			WithI18n([]inputs.I18n{inputs.I18nZh}))
+			WithI18n([]inputs.I18n{inputs.I18nZh, inputs.I18nEn}))
 
 		assert.NoError(t, i.Export())
 	})

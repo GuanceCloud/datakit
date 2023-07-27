@@ -24,88 +24,94 @@ datakit_cpu_usage 4.9920266849857144
 <!-- 以下这些指标，通过执行 make show_metrics 方式能获取 -->
 
 ``` not-set
-TYPE                NAME                                               HELP
-COUNTER             datakit_dns_domain_total                           DNS watched domain counter
-COUNTER             datakit_dns_ip_updated_total                       Domain IP updated counter
-COUNTER             datakit_dns_watch_run_total                        Watch run counter
-SUMMARY             datakit_dns_cost_seconds                           DNS IP lookup cost
-COUNTER             datakit_election_pause_total                       Input paused count when election failed
-COUNTER             datakit_election_resume_total                      Input resume count when election OK
-GAUGE               datakit_election_status                            Datakit election status, if metric = 0, meas not elected, or the elected time(unix timestamp second)
-GAUGE               datakit_election_inputs                            Datakit election input count
-SUMMARY             datakit_election_seconds                           Election latency
-GAUGE               datakit_goroutine_alive                            Alive Goroutines
-COUNTER             datakit_goroutine_stopped_total                    Stopped Goroutines
-GAUGE               datakit_goroutine_groups                           Goroutine group count
-SUMMARY             datakit_goroutine_cost_seconds                     Goroutine running duration
-SUMMARY             datakit_http_api_elapsed_seconds                   API request cost
-SUMMARY             datakit_http_api_req_size_bytes                    API request body size
-COUNTER             datakit_http_api_total                             API request counter
-COUNTER             datakit_httpcli_tcp_conn_total                     HTTP TCP connection count
-COUNTER             datakit_httpcli_conn_reused_from_idle_total        HTTP connection reused from idle count
-SUMMARY             datakit_httpcli_conn_idle_time_seconds             HTTP connection idle time
-SUMMARY             datakit_httpcli_dns_cost_seconds                   HTTP DNS cost
-SUMMARY             datakit_httpcli_tls_handshake_seconds              HTTP TLS handshake cost
-SUMMARY             datakit_httpcli_http_connect_cost_seconds          HTTP connect cost
-SUMMARY             datakit_httpcli_got_first_resp_byte_cost_seconds   Got first response byte cost
-COUNTER             datakit_io_http_retry_total                        Dataway HTTP retried count
-COUNTER             datakit_io_dataway_sink_total                      Dataway Sinked count, partitioned by category.
-COUNTER             datakit_io_dataway_not_sink_point_total            Dataway not-Sinked points(condition or category not match)
-COUNTER             datakit_io_dataway_sink_point_total                Dataway Sinked points, partitioned by category and point send status(ok/failed/dropped)
-SUMMARY             datakit_io_flush_failcache_bytes                   IO flush fail-cache bytes(in gzip) summary
-COUNTER             datakit_io_dataway_point_total                     Dataway uploaded points, partitioned by category and send status(HTTP status)
-COUNTER             datakit_io_dataway_point_bytes_total               Dataway uploaded points bytes, partitioned by category and pint send status(HTTP status)
-SUMMARY             datakit_io_dataway_api_latency_seconds             Dataway HTTP request latency partitioned by HTTP API(method@url) and HTTP status
-GAUGE               datakit_filter_last_update_timestamp_seconds       Filter last update time
-COUNTER             datakit_filter_point_total                         Filter points of filters
-COUNTER             datakit_filter_point_dropped_total                 Dropped points of filters
-SUMMARY             datakit_filter_pull_latency_seconds                Filter pull(remote) latency
-SUMMARY             datakit_filter_latency_seconds                     Filter latency of these filters
-COUNTER             datakit_filter_update_total                        Filters(remote) updated count
-COUNTER             datakit_error_total                                Total errors, only count on error source, not include error message
-COUNTER             datakit_io_feed_point_total                        Input feed point total
-COUNTER             datakit_io_input_filter_point_total                Input filtered point total
-COUNTER             datakit_io_feed_total                              Input feed total
-GAUGE               datakit_io_last_feed_timestamp_seconds             Input last feed time(according to Datakit local time)
-SUMMARY             datakit_input_collect_latency_seconds              Input collect latency
-GAUGE               datakit_io_chan_usage                              IO channel usage(length of the channel)
-GAUGE               datakit_io_chan_capacity                           IO channel capacity
-SUMMARY             datakit_io_feed_cost_seconds                       IO feed waiting(on block mode) seconds
-COUNTER             datakit_io_feed_drop_point_total                   IO feed drop(on non-block mode) points
-GAUGE               datakit_io_flush_workers                           IO flush workers
-COUNTER             datakit_io_flush_total                             IO flush total
-GAUGE               datakit_io_queue_points                            IO module queued(cached) points
-GAUGE               datakit_last_err                                   Datakit errors(when error occurred), these errors come from inputs or any sub modules
-GAUGE               datakit_goroutines                                 Goroutine count within Datakit
-GAUGE               datakit_heap_alloc_bytes                           Datakit memory heap bytes
-GAUGE               datakit_sys_alloc_bytes                            Datakit memory system bytes
-GAUGE               datakit_cpu_usage                                  Datakit CPU usage(%)
-GAUGE               datakit_open_files                                 Datakit open files(only available on Linux)
-GAUGE               datakit_cpu_cores                                  Datakit CPU cores
-GAUGE               datakit_uptime_seconds                             Datakit uptime
-GAUGE               datakit_data_overuse                               Does current workspace's data(metric/logging) usage(if 0 not beyond, or with a unix timestamp when overuse occurred)
-COUNTER             datakit_process_ctx_switch_total                   Datakit process context switch count(Linux only)
-COUNTER             datakit_process_ctx_switch_total                   Datakit process context switch count(Linux only)
-COUNTER             datakit_process_io_count_total                     Datakit process IO count
-COUNTER             datakit_process_io_count_total                     Datakit process IO count
-COUNTER             datakit_process_io_bytes_total                     Datakit process IO bytes count
-COUNTER             datakit_process_io_bytes_total                     Datakit process IO bytes count
-COUNTER             datakit_pipeline_point_total                       Pipeline processed total points
-COUNTER             datakit_pipeline_drop_point_total                  Pipeline total dropped points
-COUNTER             datakit_pipeline_error_point_total                 Pipeline processed total error points
-SUMMARY             datakit_pipeline_cost_seconds                      Pipeline total running time
-GAUGE               datakit_pipeline_last_update_timestamp_seconds     Pipeline last update time
-GAUGE               datakit_dialtesting_task_number                    The number of tasks
-SUMMARY             datakit_dialtesting_pull_cost_seconds              Time cost to pull tasks
-COUNTER             datakit_dialtesting_task_synchronized_total        Task synchronized number
-COUNTER             datakit_dialtesting_task_invalid_total             Invalid task number
-SUMMARY             datakit_dialtesting_task_check_cost_seconds        Task check time
-SUMMARY             datakit_dialtesting_task_run_cost_seconds          Task run time
-COUNTER             datakit_kafkamq_consumer_message_total             Kafka consumer message numbers from Datakit start
-COUNTER             datakit_kafkamq_group_election_total               Kafka group election count
-GAUGE               datakit_inputs_instance                            Input instance count
-COUNTER             datakit_inputs_crash_total                         Input crash count
-SUMMARY             datakit_prom_collect_points                        Total number of prom collection points
-SUMMARY             datakit_prom_http_get_bytes                        HTTP get bytes
-SUMMARY             datakit_prom_http_latency_in_second                HTTP latency(in second)
+NAME                                              TYPE                HELP
+datakit_cpu_cores                                 GAUGE               Datakit CPU cores
+datakit_cpu_usage                                 GAUGE               Datakit CPU usage(%)
+datakit_data_overuse                              GAUGE               Does current workspace's data(metric/logging) usage(if 0 not beyond, or with a unix timestamp when overuse occurred)
+datakit_dialtesting_dataway_send_failed_number    GAUGE               The number of failed sending for each dataway
+datakit_dialtesting_pull_cost_seconds             SUMMARY             Time cost to pull tasks
+datakit_dialtesting_task_check_cost_seconds       SUMMARY             Task check time
+datakit_dialtesting_task_invalid_total            COUNTER             Invalid task number
+datakit_dialtesting_task_number                   GAUGE               The number of tasks
+datakit_dialtesting_task_run_cost_seconds         SUMMARY             Task run time
+datakit_dialtesting_task_synchronized_total       COUNTER             Task synchronized number
+datakit_dialtesting_worker_cached_points_number   GAUGE               The number of cached points
+datakit_dialtesting_worker_job_chan_number        GAUGE               The number of the chan for the jobs
+datakit_dialtesting_worker_send_points_number     GAUGE               The number of the points which have been sent
+datakit_dns_cost_seconds                          SUMMARY             DNS IP lookup cost
+datakit_dns_domain_total                          COUNTER             DNS watched domain counter
+datakit_dns_ip_updated_total                      COUNTER             Domain IP updated counter
+datakit_dns_watch_run_total                       COUNTER             Watch run counter
+datakit_election_inputs                           GAUGE               Datakit election input count
+datakit_election_pause_total                      COUNTER             Input paused count when election failed
+datakit_election_resume_total                     COUNTER             Input resume count when election OK
+datakit_election_seconds                          SUMMARY             Election latency
+datakit_election_status                           GAUGE               Datakit election status, if metric = 0, meas not elected, or the elected time(unix timestamp second)
+datakit_error_total                               COUNTER             Total errors, only count on error source, not include error message
+datakit_filter_last_update_timestamp_seconds      GAUGE               Filter last update time
+datakit_filter_latency_seconds                    SUMMARY             Filter latency of these filters
+datakit_filter_parse_error                        GAUGE               Filter parse error
+datakit_filter_point_dropped_total                COUNTER             Dropped points of filters
+datakit_filter_point_total                        COUNTER             Filter points of filters
+datakit_filter_pull_latency_seconds               SUMMARY             Filter pull(remote) latency
+datakit_filter_update_total                       COUNTER             Filters(remote) updated count
+datakit_goroutine_alive                           GAUGE               Alive Goroutines
+datakit_goroutine_cost_seconds                    SUMMARY             Goroutine running duration
+datakit_goroutine_groups                          GAUGE               Goroutine group count
+datakit_goroutine_stopped_total                   COUNTER             Stopped Goroutines
+datakit_goroutines                                GAUGE               Goroutine count within Datakit
+datakit_heap_alloc_bytes                          GAUGE               Datakit memory heap bytes
+datakit_http_api_elapsed_seconds                  SUMMARY             API request cost
+datakit_http_api_req_size_bytes                   SUMMARY             API request body size
+datakit_http_api_total                            COUNTER             API request counter
+datakit_httpcli_conn_idle_time_seconds            SUMMARY             HTTP connection idle time
+datakit_httpcli_conn_reused_from_idle_total       COUNTER             HTTP connection reused from idle count
+datakit_httpcli_dns_cost_seconds                  SUMMARY             HTTP DNS cost
+datakit_httpcli_got_first_resp_byte_cost_seconds  SUMMARY             Got first response byte cost
+datakit_httpcli_http_connect_cost_seconds         SUMMARY             HTTP connect cost
+datakit_httpcli_tcp_conn_total                    COUNTER             HTTP TCP connection count
+datakit_httpcli_tls_handshake_seconds             SUMMARY             HTTP TLS handshake cost
+datakit_input_collect_latency_seconds             SUMMARY             Input collect latency
+datakit_inputs_crash_total                        COUNTER             Input crash count
+datakit_inputs_instance                           GAUGE               Input instance count
+datakit_io_chan_capacity                          GAUGE               IO channel capacity
+datakit_io_chan_usage                             GAUGE               IO channel usage(length of the channel)
+datakit_io_dataway_api_latency_seconds            SUMMARY             Dataway HTTP request latency partitioned by HTTP API(method@url) and HTTP status
+datakit_io_dataway_not_sink_point_total           COUNTER             Dataway not-Sinked points(condition or category not match)
+datakit_io_dataway_point_bytes_total              COUNTER             Dataway uploaded points bytes, partitioned by category and pint send status(HTTP status)
+datakit_io_dataway_point_total                    COUNTER             Dataway uploaded points, partitioned by category and send status(HTTP status)
+datakit_io_dataway_sink_point_total               COUNTER             Dataway Sinked points, partitioned by category and point send status(ok/failed/dropped)
+datakit_io_dataway_sink_total                     COUNTER             Dataway Sinked count, partitioned by category.
+datakit_io_feed_cost_seconds                      SUMMARY             IO feed waiting(on block mode) seconds
+datakit_io_feed_drop_point_total                  COUNTER             IO feed drop(on non-block mode) points
+datakit_io_feed_point_total                       COUNTER             Input feed point total
+datakit_io_feed_total                             COUNTER             Input feed total
+datakit_io_flush_failcache_bytes                  SUMMARY             IO flush fail-cache bytes(in gzip) summary
+datakit_io_flush_total                            COUNTER             IO flush total
+datakit_io_flush_workers                          GAUGE               IO flush workers
+datakit_io_http_retry_total                       COUNTER             Dataway HTTP retried count
+datakit_io_input_filter_point_total               COUNTER             Input filtered point total
+datakit_io_last_feed_timestamp_seconds            GAUGE               Input last feed time(according to Datakit local time)
+datakit_io_queue_points                           GAUGE               IO module queued(cached) points
+datakit_kafkamq_consumer_message_total            COUNTER             Kafka consumer message numbers from Datakit start
+datakit_kafkamq_group_election_total              COUNTER             Kafka group election count
+datakit_last_err                                  GAUGE               Datakit errors(when error occurred), these errors come from inputs or any sub modules
+datakit_open_files                                GAUGE               Datakit open files(only available on Linux)
+datakit_pipeline_cost_seconds                     SUMMARY             Pipeline total running time
+datakit_pipeline_drop_point_total                 COUNTER             Pipeline total dropped points
+datakit_pipeline_error_point_total                COUNTER             Pipeline processed total error points
+datakit_pipeline_last_update_timestamp_seconds    GAUGE               Pipeline last update time
+datakit_pipeline_point_total                      COUNTER             Pipeline processed total points
+datakit_process_ctx_switch_total                  COUNTER             Datakit process context switch count(Linux only)
+datakit_process_io_bytes_total                    COUNTER             Datakit process IO bytes count
+datakit_process_io_count_total                    COUNTER             Datakit process IO count
+datakit_prom_collect_points                       SUMMARY             Total number of prom collection points
+datakit_prom_http_get_bytes                       SUMMARY             HTTP get bytes
+datakit_prom_http_latency_in_second               SUMMARY             HTTP latency(in second)
+datakit_rum_loaded_zip_cnt                        GAUGE               RUM source map currently loaded zip archive count
+datakit_rum_locate_statistics_total               COUNTER             locate by ip addr statistics
+datakit_rum_source_map_duration_seconds           SUMMARY             statistics elapsed time in RUM source map(unit: second)
+datakit_rum_source_map_total                      COUNTER             source map result statistics
+datakit_sys_alloc_bytes                           GAUGE               Datakit memory system bytes
+datakit_uptime_seconds                            GAUGE               Datakit uptime
 ```

@@ -12,14 +12,23 @@ import (
 )
 
 func TestList(t *T.T) {
-	t.Skip()
-	t.Run("list-all", func(t *T.T) {
-		dirs, err := AllDocs.ReadDir("docs/zh/")
+	t.Run("list-all-docs", func(t *T.T) {
+		dirs, err := AllDocs.ReadDir("doc/zh")
 		assert.NoError(t, err)
 
 		t.Logf("get %d dirs", len(dirs))
 		for _, x := range dirs {
 			t.Logf("%s", x.Name())
+		}
+	})
+
+	t.Run("list-all-dashboard", func(t *T.T) {
+		dirs, err := AllDashboards.ReadDir("dashboard")
+		assert.NoError(t, err)
+
+		t.Logf("get %d dirs", len(dirs))
+		for _, x := range dirs {
+			t.Logf("%s, is dir: %v", x.Name(), x.IsDir())
 		}
 	})
 }

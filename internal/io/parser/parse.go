@@ -43,7 +43,7 @@ type parser struct {
 	injecting bool
 }
 
-func GetConds(input string) WhereConditions {
+func GetConds(input string) (WhereConditions, error) {
 	log.Debugf("parse %s", input)
 
 	var err error
@@ -54,12 +54,10 @@ func GetConds(input string) WhereConditions {
 	p.doParse()
 
 	if len(p.errs) > 0 {
-		log.Error(p.errs.Error())
-
-		return nil
+		return nil, &p.errs[0]
 	}
 
-	return p.parseResult.(WhereConditions)
+	return p.parseResult.(WhereConditions), nil
 }
 
 func newParser(input string) *parser {

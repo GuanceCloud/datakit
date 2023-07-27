@@ -20,6 +20,8 @@ var (
 	filterLatencyVec *prometheus.SummaryVec
 
 	lastUpdate prometheus.Gauge
+
+	filterParseErrorVec *prometheus.GaugeVec
 )
 
 const (
@@ -47,6 +49,19 @@ func setupMetrics() {
 			"category",
 			"filters",
 			"source",
+		},
+	)
+
+	filterParseErrorVec = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "datakit",
+			Subsystem: "filter",
+			Name:      "parse_error",
+			Help:      "Filter parse error",
+		},
+		[]string{
+			"error",
+			"filters",
 		},
 	)
 
@@ -100,6 +115,7 @@ func setupMetrics() {
 	metrics.MustRegister(
 		filterDroppedPtsVec,
 		filterPtsVec,
+		filterParseErrorVec,
 		lastUpdate,
 		filterPullLatencyVec,
 		filterLatencyVec,

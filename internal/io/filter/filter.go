@@ -84,7 +84,12 @@ func (f *filter) pull(what string) {
 func GetConds(filterArr []string) (parser.WhereConditions, error) {
 	var conds parser.WhereConditions
 	for _, v := range filterArr {
-		cond := parser.GetConds(v)
+		cond, err := parser.GetConds(v)
+		if err != nil {
+			filterParseErrorVec.WithLabelValues(err.Error(), v).Set(float64(time.Now().Unix()))
+			return nil, err
+		}
+
 		if cond == nil {
 			return nil, fmt.Errorf("condition empty")
 		}
