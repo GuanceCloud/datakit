@@ -17,7 +17,9 @@ http 模块暴露如下 metrics：
 | datakit_dialtesting_task_synchronized_total | count | The total number of the synchronized tasks| protocol,region |
 | datakit_dialtesting_worker_cached_points_number | count | The total number of the cached points in memory | protocol,region |
 | datakit_dialtesting_worker_job_chan_number | count | The total number of the job chan | type |
+| datakit_dialtesting_worker_job_number | count | The number of the jobs to send data in parallel | - |
 | datakit_dialtesting_worker_send_points_number | count | The total number of the points which have been sent | protocol,region,status |
+| datakit_dialtesting_worker_send_cost_seconds | summary | The cost time to send points | protocol,region |
 
 # 网络拨测功能定义
 

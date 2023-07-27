@@ -55,6 +55,27 @@ monitor   :
   ![](https://static.guance.com/images/datakit/dialtesting-net-arch.png){ width="800" }
 </figure>
 
+## 指标 {#metric}
+
+拨测采集器会暴露 [Prometheus 指标](../datakit/datakit-metrics.md)，如果需要上报这些指标至观测云，可以通过 [DataKit 采集器](dk.md) 进行采集，相关配置参考如下：
+
+```toml
+[[inputs.dk]]
+  ......
+
+  metric_name_filter = [
+  
+  ### others...
+  
+  ### dialtesting
+  "datakit_dialtesting_.*",
+
+  ]
+
+  ......
+
+```
+
 ## 日志 {#logging}
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[[inputs.{{.InputName}}.tags]]` 另择 host 来命名。

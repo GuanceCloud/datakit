@@ -5,6 +5,8 @@ __int_icon: 'icon/dk'
 dashboard:
   - desc: 'Datakit 内置视图'
     path: 'dashboard/zh/dk'
+  - desc: 'Datakit 拨测内置视图'
+    path: 'dashboard/zh/dialtesting'
 
 monitor:
   - desc: '暂无'

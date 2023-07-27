@@ -306,11 +306,6 @@ func (d *Input) newTaskRun(t dt.Task) (*dialer, error) {
 		regionName = d.regionName
 	}
 
-	if err := t.Init(); err != nil {
-		l.Errorf(`%s`, err.Error())
-		return nil, err
-	}
-
 	switch t.Class() {
 	case dt.ClassHTTP:
 	case dt.ClassHeadless:
@@ -389,6 +384,22 @@ func (d *Input) dispatchTasks(j []byte) error {
 	}
 
 	l.Infof(`dispatching %d tasks...`, len(resp.Content))
+
+	totalTasksNum := 0
+
+	for k, v := range resp.Content {
+		if k != RegionInfo {
+			if arr, ok := v.([]interface{}); ok {
+				totalTasksNum += len(arr)
+			}
+		}
+	}
+
+	// default time interval for starting a dialing test
+	taskStartInterval := time.Second
+	if totalTasksNum > 60 {
+		taskStartInterval = time.Minute / time.Duration(totalTasksNum)
+	}
 
 	for k, arr := range resp.Content {
 		switch k {
@@ -512,6 +523,8 @@ func (d *Input) dispatchTasks(j []byte) error {
 					continue
 				}
 
+				time.Sleep(taskStartInterval)
+
 				l.Debugf(`create new task %+#v`, t)
 				dialer, err := d.newTaskRun(t)
 				if err != nil {
@@ -574,7 +587,7 @@ func (d *Input) pullTask() ([]byte, error) {
 	for i := 0; i <= 3; i++ {
 		var statusCode int
 		res, statusCode, err = d.pullHTTPTask(reqURL, d.pos)
-		if statusCode/100 != 5 { // 500 err 重试
+		if statusCode/100 != 5 { // 500 err
 			break
 		}
 	}
