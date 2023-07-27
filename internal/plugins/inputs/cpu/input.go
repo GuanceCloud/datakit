@@ -88,7 +88,10 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (*Input) AvailableArchs() []string {
-	return datakit.AllOS
+	return []string{
+		datakit.OSLabelLinux, datakit.OSLabelWindows,
+		datakit.LabelK8s, datakit.LabelDocker,
+	}
 }
 
 func (ipt *Input) Collect() error {
