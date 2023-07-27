@@ -9,19 +9,19 @@ package solr
 import (
 	"context"
 	"fmt"
-	"net"
 	"net/http"
-	"net/url"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -97,7 +97,7 @@ type Input struct {
 	HTTPTimeout  datakit.Duration
 	client       *http.Client
 	tail         *tailer.Tailer
-	collectCache []inputs.Measurement
+	collectCache []*point.Point
 	gatherData   GatherData
 	m            sync.Mutex
 
@@ -105,16 +105,19 @@ type Input struct {
 	pause    bool
 	pauseCh  chan bool
 
-	semStop *cliutils.Sem // start stop signal
+	semStop    *cliutils.Sem // start stop signal
+	feeder     dkio.Feeder
+	Tagger     dkpt.GlobalTagger
+	globalTags map[string]map[string]string // server:map[string]string
 }
 
 func (i *Input) ElectionEnabled() bool {
 	return i.Election
 }
 
-func (i *Input) appendM(m inputs.Measurement) {
+func (i *Input) appendM(p *point.Point) {
 	i.m.Lock()
-	i.collectCache = append(i.collectCache, m)
+	i.collectCache = append(i.collectCache, p)
 	i.m.Unlock()
 }
 
@@ -154,7 +157,7 @@ func (i *Input) RunPipeline() {
 	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
-		io.FeedLastError(inputName, err.Error())
+		i.feeder.FeedLastError(inputName, err.Error())
 		return
 	}
 
@@ -204,6 +207,13 @@ func (i *Input) Run() {
 	l.Infof("solr input started")
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 
+	i.globalTags = inputs.InitGlobalTags(
+		i.Servers,
+		i.Election,
+		i.Tagger,
+		i.Tags,
+	)
+
 	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
 	for {
@@ -225,14 +235,18 @@ func (i *Input) Run() {
 			}
 			start := time.Now()
 			if err := i.Collect(); err == nil {
-				if feedErr := inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache,
-					&io.Option{CollectCost: time.Since((start))}); feedErr != nil {
-					logError(feedErr)
+				if err := i.feeder.Feed(
+					inputName,
+					point.Metric,
+					i.collectCache,
+					&dkio.Option{CollectCost: time.Since((start))},
+				); err != nil {
+					i.logError(err)
 				}
 			} else {
-				logError(err)
+				i.logError(err)
 			}
-			i.collectCache = make([]inputs.Measurement, 0)
+			i.collectCache = make([]*point.Point, 0)
 
 		case i.pause = <-i.pauseCh:
 			// nil
@@ -254,7 +268,7 @@ func (i *Input) Terminate() {
 }
 
 func (i *Input) Collect() error {
-	i.collectCache = make([]inputs.Measurement, 0)
+	i.collectCache = make([]*point.Point, 0)
 	if i.client == nil {
 		i.client = createHTTPClient(i.HTTPTimeout)
 	}
@@ -262,11 +276,10 @@ func (i *Input) Collect() error {
 	for _, s := range i.Servers {
 		func(s string) {
 			g.Go(func(ctx context.Context) error {
-				host := getHostTagIfNotLoopback(s)
 				ts := time.Now()
 				resp := Response{}
 				if err := i.gatherData(i, URLAll(s), &resp); err != nil {
-					logError(err)
+					i.logError(err)
 					return nil
 				}
 				for gKey, gValue := range resp.Metrics {
@@ -285,9 +298,6 @@ func (i *Input) Collect() error {
 					}
 					// searcher stats tags and fields
 					tagsSearcher := map[string]string{}
-					if host != "" {
-						tagsSearcher["host"] = host
-					}
 					for kTag, vTag := range commTag {
 						tagsSearcher[kTag] = vTag
 					}
@@ -297,24 +307,27 @@ func (i *Input) Collect() error {
 					for k, v := range gValue {
 						switch whichMesaurement(k) {
 						case "cache":
-							logError(i.gatherSolrCache(k, v, commTag, ts))
+							i.logError(i.gatherSolrCache(k, s, v, commTag, ts))
 						case "requesttimes":
-							logError(i.gatherSolrRequestTimes(k, v, commTag, ts))
+							i.logError(i.gatherSolrRequestTimes(k, s, v, commTag, ts))
 						case "searcher":
-							logError(i.gatherSolrSearcher(k, v, fieldSearcher))
+							i.logError(i.gatherSolrSearcher(k, v, fieldSearcher))
 						default:
 							continue
 						}
 					}
+
+					inputs.MergeGlobalTags(tagsSearcher, i.globalTags, s)
+
 					// append searcher stats
 					if len(fieldSearcher) > 0 {
-						i.appendM(&SolrSearcher{
-							fields:   fieldSearcher,
-							tags:     tagsSearcher,
-							name:     metricNameSearcher,
-							ts:       ts,
-							election: i.Election,
-						})
+						metric := &SolrSearcher{
+							fields: fieldSearcher,
+							tags:   tagsSearcher,
+							name:   metricNameSearcher,
+							ts:     ts,
+						}
+						i.appendM(metric.Point())
 					}
 				}
 				return nil
@@ -325,21 +338,11 @@ func (i *Input) Collect() error {
 	return nil
 }
 
-func getHostTagIfNotLoopback(u string) string {
-	uu, err := url.Parse(u)
+func (i *Input) logError(err error) {
 	if err != nil {
-		l.Errorf("url parse: %v", err)
-		return ""
+		l.Error(err)
+		i.feeder.FeedLastError(inputName, err.Error())
 	}
-	host, _, err := net.SplitHostPort(uu.Host)
-	if err != nil {
-		l.Errorf("split host and port: %v", err)
-		return ""
-	}
-	if host != "localhost" && !net.ParseIP(host).IsLoopback() {
-		return host
-	}
-	return ""
 }
 
 func (i *Input) Pause() error {
@@ -364,16 +367,23 @@ func (i *Input) Resume() error {
 	}
 }
 
+func defaultInput() *Input {
+	return &Input{
+		HTTPTimeout: datakit.Duration{Duration: time.Second * 5},
+		Interval:    datakit.Duration{Duration: time.Second * 10},
+		gatherData:  gatherDataFunc,
+		pauseCh:     make(chan bool, inputs.ElectionPauseChannelLength),
+		Election:    true,
+
+		semStop:    cliutils.NewSem(),
+		feeder:     dkio.DefaultFeeder(),
+		Tagger:     dkpt.DefaultGlobalTagger(),
+		globalTags: map[string]map[string]string{},
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{
-			HTTPTimeout: datakit.Duration{Duration: time.Second * 5},
-			Interval:    datakit.Duration{Duration: time.Second * 10},
-			gatherData:  gatherDataFunc,
-			pauseCh:     make(chan bool, inputs.ElectionPauseChannelLength),
-			Election:    true,
-
-			semStop: cliutils.NewSem(),
-		}
+		return defaultInput()
 	})
 }

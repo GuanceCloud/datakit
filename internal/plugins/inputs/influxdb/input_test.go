@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 func TestParseData(t *testing.T) {
@@ -65,7 +65,7 @@ func TestCollect(t *testing.T) {
 	}
 	i.URL = "http://localhost:8086/debug/vars"
 	if err := i.Collect(); err != nil {
-		i.collectCache = make([]inputs.Measurement, 0)
+		i.collectCache = make([]*point.Point, 0)
 	}
 }
 

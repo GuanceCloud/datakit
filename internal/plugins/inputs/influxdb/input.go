@@ -11,18 +11,18 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"net/http"
-	"net/url"
 	"reflect"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
@@ -63,27 +63,18 @@ type Input struct {
 
 	tail         *tailer.Tailer
 	client       *http.Client
-	collectCache []inputs.Measurement
+	collectCache []*point.Point
 
 	Election bool `toml:"election"`
 	pause    bool
 	pauseCh  chan bool
 
 	semStop *cliutils.Sem // start stop signal
+	feeder  dkio.Feeder
+	Tagger  dkpt.GlobalTagger
 }
 
 var maxPauseCh = inputs.ElectionPauseChannelLength
-
-func newInput() *Input {
-	return &Input{
-		Interval: datakit.Duration{Duration: time.Second * 15},
-		Timeout:  datakit.Duration{Duration: time.Second * 5},
-		pauseCh:  make(chan bool, maxPauseCh),
-		Election: true,
-
-		semStop: cliutils.NewSem(),
-	}
-}
 
 func (i *Input) ElectionEnabled() bool {
 	return i.Election
@@ -150,7 +141,7 @@ func (i *Input) RunPipeline() {
 	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
-		io.FeedLastError(inputName, err.Error())
+		i.feeder.FeedLastError(inputName, err.Error())
 		return
 	}
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_influxdb"})
@@ -173,7 +164,7 @@ func (i *Input) Run() {
 		tlsCfg, err = i.TLSConf.TLSConfig()
 		if err != nil {
 			l.Errorf("TLSConfig: %s", err)
-			io.FeedLastError(inputName, err.Error())
+			i.feeder.FeedLastError(inputName, err.Error())
 			return
 		}
 	} else {
@@ -196,15 +187,18 @@ func (i *Input) Run() {
 			start := time.Now()
 			if err := i.Collect(); err != nil {
 				l.Errorf("Collect: %s", err)
-				io.FeedLastError(inputName, err.Error())
+				i.feeder.FeedLastError(inputName, err.Error())
 			}
 
 			if len(i.collectCache) > 0 {
-				if err := inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache,
-					&io.Option{CollectCost: time.Since(start)}); err != nil {
-					l.Errorf("FeedMeasurement: %s", err)
+				if err := i.feeder.Feed(
+					inputName, point.Metric, i.collectCache,
+					&dkio.Option{CollectCost: time.Since(start)},
+				); err != nil {
+					l.Errorf("Feed failed: %v", err)
+					i.feeder.FeedLastError(inputName, err.Error())
 				}
-				i.collectCache = make([]inputs.Measurement, 0)
+				i.collectCache = make([]*point.Point, 0)
 			}
 		} else {
 			l.Debugf("not leader, skipped")
@@ -272,7 +266,7 @@ func (i *Input) Collect() error {
 		return err
 	}
 	for {
-		point, err := fc()
+		pt, err := fc()
 		if err != nil {
 			if reflect.TypeOf(err) == reflect.TypeOf(NoMoreDataError{}) || err.Error() == "no more data" {
 				break
@@ -280,40 +274,30 @@ func (i *Input) Collect() error {
 				return err
 			}
 		}
-		if point != nil {
-			if point.Tags == nil {
-				point.Tags = make(map[string]string)
+		if pt != nil {
+			if pt.Tags == nil {
+				pt.Tags = make(map[string]string)
 			}
-			setHostTagIfNotLoopback(point.Tags, i.URL)
 			for k, v := range i.Tags {
-				point.Tags[k] = v
+				pt.Tags[k] = v
 			}
-			i.collectCache = append(i.collectCache, &measurement{
-				name:     metricNamePrefix + point.Name,
-				tags:     point.Tags,
-				fields:   point.Values,
-				ts:       ts,
-				election: i.Election,
-			})
+
+			if i.Election {
+				pt.Tags = inputs.MergeTags(i.Tagger.ElectionTags(), pt.Tags, i.URL)
+			} else {
+				pt.Tags = inputs.MergeTags(i.Tagger.HostTags(), pt.Tags, i.URL)
+			}
+
+			metric := &measurement{
+				name:   metricNamePrefix + pt.Name,
+				tags:   pt.Tags,
+				fields: pt.Values,
+				ts:     ts,
+			}
+			i.collectCache = append(i.collectCache, metric.Point())
 		}
 	}
 	return nil
-}
-
-func setHostTagIfNotLoopback(tags map[string]string, u string) {
-	uu, err := url.Parse(u)
-	if err != nil {
-		l.Errorf("parse url: %v", err)
-		return
-	}
-	host, _, err := net.SplitHostPort(uu.Host)
-	if err != nil {
-		l.Errorf("split host and port: %v", err)
-		return
-	}
-	if host != "localhost" && !net.ParseIP(host).IsLoopback() {
-		tags["host"] = host
-	}
 }
 
 func (i *Input) Pause() error {
@@ -338,8 +322,21 @@ func (i *Input) Resume() error {
 	}
 }
 
+func defaultInput() *Input {
+	return &Input{
+		Interval: datakit.Duration{Duration: time.Second * 15},
+		Timeout:  datakit.Duration{Duration: time.Second * 5},
+		pauseCh:  make(chan bool, maxPauseCh),
+		Election: true,
+
+		semStop: cliutils.NewSem(),
+		feeder:  dkio.DefaultFeeder(),
+		Tagger:  dkpt.DefaultGlobalTagger(),
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return newInput()
+		return defaultInput()
 	})
 }

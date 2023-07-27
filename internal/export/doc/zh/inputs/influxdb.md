@@ -29,6 +29,10 @@ InfluxDB 采集器，用于采集 InfluxDB 的数据。
 - InfluxDB 采集器，仅适用于 InfluxDB v1.x
 - InfluxDB v2.x ，需要使用 prom 采集器进行采集
 
+已测试的版本：
+
+- [x] 1.8.10
+
 <!-- markdownlint-disable MD046 -->
 === "主机安装"
 

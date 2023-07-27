@@ -12,7 +12,6 @@ import (
 	"regexp"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
 
 const (
@@ -28,14 +27,6 @@ func createHTTPClient(timeout datakit.Duration) *http.Client {
 		Timeout:   timeout.Duration,
 	}
 	return client
-}
-
-// log error.
-func logError(err error) {
-	if err != nil {
-		l.Error(err)
-		io.FeedLastError(inputName, err.Error())
-	}
 }
 
 func urljoin(server, path string, param [][2]string) string { //nolint:unparam

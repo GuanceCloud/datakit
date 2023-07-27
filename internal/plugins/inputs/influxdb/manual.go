@@ -6,30 +6,156 @@
 package influxdb
 
 import (
+	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	"github.com/GuanceCloud/cliutils/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
+const (
+	influxdbCq            = "influxdb_cq"
+	influxdbHttpd         = "influxdb_httpd"
+	influxdbMemstats      = "influxdb_memstats"
+	influxdbQueryExecutor = "influxdb_queryExecutor"
+	influxdbRuntime       = "influxdb_runtime"
+	influxdbSubscriber    = "influxdb_subscriber"
+	influxdbWrite         = "influxdb_write"
+)
+
+////////////////////////////////////////////////////////////////////////////////
+
 type measurement struct {
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	ts       time.Time
-	election bool
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
 }
 
-func (m *measurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+// Point implement MeasurementV2.
+func (m *measurement) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(m.ts))
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *measurement) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+	return nil, fmt.Errorf("not implement")
 }
 
 func (m *measurement) Info() *inputs.MeasurementInfo { return nil }
 
+////////////////////////////////////////////////////////////////////////////////
+
+type InfluxdbCqM measurement
+
+// Point implement MeasurementV2.
+func (m *InfluxdbCqM) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(m.ts))
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *InfluxdbCqM) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+	return nil, fmt.Errorf("not implement")
+}
+
+//nolint:lll
+func (m *InfluxdbCqM) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: metricNamePrefix + "cq",
+		Tags: map[string]interface{}{
+			"host": &inputs.TagInfo{Desc: "System hostname."},
+		},
+		Fields: map[string]interface{}{
+			"query_fail": nFIFloatUnknown("The total number of continuous queries that executed but failed."),
+			"query_ok":   nFIFloatUnknown("The total number of continuous queries that executed successfully."),
+		},
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+type InfluxdbHttpdM measurement
+
+// Point implement MeasurementV2.
+func (m *InfluxdbHttpdM) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(m.ts))
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *InfluxdbHttpdM) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+	return nil, fmt.Errorf("not implement")
+}
+
+//nolint:lll
+func (m *InfluxdbHttpdM) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: metricNamePrefix + "httpd",
+		Tags: map[string]interface{}{
+			"host": &inputs.TagInfo{Desc: "System hostname."},
+			"bind": &inputs.TagInfo{Desc: "Bind port."},
+		},
+		Fields: map[string]interface{}{
+			"auth_fail":                  nFIFloatUnknown("The number of HTTP requests that were aborted due to authentication being required, but not supplied or incorrect."),
+			"client_error":               nFIFloatUnknown("The number of HTTP responses due to client errors, with a 4XX HTTP status code."),
+			"flux_query_req":             nFIFloatUnknown("The number of Flux query requests served."),
+			"flux_query_req_duration_ns": nFIFloatDurationNs("The duration (wall-time), in nanoseconds, spent executing Flux query requests."),
+			"ping_req":                   nFIFloatUnknown("The number of times InfluxDB HTTP server served the /ping HTTP endpoint."),
+			"points_written_dropped":     nFIFloatUnknown("The number of points dropped by the storage engine."),
+			"points_written_fail":        nFIFloatUnknown("The number of points accepted by the HTTP /write endpoint, but unable to be persisted."),
+			"points_written_ok":          nFIFloatUnknown("The number of points successfully accepted and persisted by the HTTP /write endpoint."),
+			"prom_read_req":              nFIFloatUnknown("The number of read requests to the Prometheus /read endpoint."),
+			"prom_write_req":             nFIFloatUnknown("The number of write requests to the Prometheus /write endpoint."),
+			"query_req":                  nFIFloatUnknown("The number of query requests."),
+			"query_req_duration_ns":      nFIFloatDurationNs("The total query request duration, in nanosecond (ns)."),
+			"query_resp_bytes":           nFIFloatBytes("The total number of bytes returned in query responses."),
+			"recovered_panics":           nFIFloatUnknown("The total number of panics recovered by the HTTP handler."),
+			"req":                        nFIFloatUnknown("The total number of HTTP requests served."),
+			"req_active":                 nFIFloatUnknown("The number of currently active requests."),
+			"req_duration_ns":            nFIFloatDurationNs("The duration (wall time), in nanoseconds, spent inside HTTP requests."),
+			"server_error":               nFIFloatUnknown("The number of HTTP responses due to server errors."),
+			"status_req":                 nFIFloatUnknown("The number of status requests served using the HTTP /status endpoint."),
+			"values_written_ok":          nFIFloatUnknown("The number of values (fields) successfully accepted and persisted by the HTTP /write endpoint."),
+			"write_req":                  nFIFloatUnknown("The number of write requests served using the HTTP /write endpoint."),
+			"write_req_active":           nFIFloatUnknown("The number of currently active write requests."),
+			"write_req_bytes":            nFIFloatBytes("The total number of bytes of line protocol data received by write requests, using the HTTP /write endpoint."),
+			"write_req_duration_ns":      nFIFloatDurationNs("The duration (wall time), in nanoseconds, of write requests served using the /write HTTP endpoint."),
+		},
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 type InfluxdbMemstatsM measurement
 
-func (m *InfluxdbMemstatsM) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+// Point implement MeasurementV2.
+func (m *InfluxdbMemstatsM) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(m.ts))
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *InfluxdbMemstatsM) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -72,10 +198,59 @@ func (m *InfluxdbMemstatsM) Info() *inputs.MeasurementInfo {
 	}
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
+type InfluxdbQueryExecutorM measurement
+
+// Point implement MeasurementV2.
+func (m *InfluxdbQueryExecutorM) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(m.ts))
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *InfluxdbQueryExecutorM) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+	return nil, fmt.Errorf("not implement")
+}
+
+//nolint:lll
+func (m *InfluxdbQueryExecutorM) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: metricNamePrefix + "queryExecutor",
+		Tags: map[string]interface{}{
+			"host": &inputs.TagInfo{Desc: "System hostname."},
+		},
+		Fields: map[string]interface{}{
+			"queries_active":    nFIFloatUnknown("The number of active queries currently being handled."),
+			"queries_executed":  nFIFloatUnknown("The number of queries executed (started)."),
+			"queries_finished":  nFIFloatUnknown("The number of queries that have finished executing."),
+			"query_duration_ns": nFIFloatDurationNs("The duration (wall time), in nanoseconds, of every query executed. "),
+			"recovered_panics":  nFIFloatUnknown("The number of panics recovered by the Query Executor."),
+		},
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 type InfluxdbRuntimeM measurement
 
-func (m *InfluxdbRuntimeM) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+// Point implement MeasurementV2.
+func (m *InfluxdbRuntimeM) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(m.ts))
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *InfluxdbRuntimeM) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -105,33 +280,97 @@ func (m *InfluxdbRuntimeM) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type InfluxdbQueryExecutorM measurement
+////////////////////////////////////////////////////////////////////////////////
 
-func (m *InfluxdbQueryExecutorM) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+type InfluxdbSubscriberM measurement
+
+// Point implement MeasurementV2.
+func (m *InfluxdbSubscriberM) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(m.ts))
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *InfluxdbSubscriberM) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
-func (m *InfluxdbQueryExecutorM) Info() *inputs.MeasurementInfo {
+func (m *InfluxdbSubscriberM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: metricNamePrefix + "queryExecutor",
+		Name: metricNamePrefix + "subscriber",
 		Tags: map[string]interface{}{
 			"host": &inputs.TagInfo{Desc: "System hostname."},
 		},
 		Fields: map[string]interface{}{
-			"queries_active":    nFIFloatUnknown("The number of active queries currently being handled."),
-			"queries_executed":  nFIFloatUnknown("The number of queries executed (started)."),
-			"queries_finished":  nFIFloatUnknown("The number of queries that have finished executing."),
-			"query_duration_ns": nFIFloatDurationNs("The duration (wall time), in nanoseconds, of every query executed. "),
-			"recovered_panics":  nFIFloatUnknown("The number of panics recovered by the Query Executor."),
+			"create_failures": nFIFloatUnknown("The number of subscriptions that failed to be created."),
+			"points_written":  nFIFloatUnknown("The total number of points that were successfully written to subscribers."),
+			"write_failures":  nFIFloatUnknown("The total number of batches that failed to be written to subscribers."),
 		},
 	}
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
+type InfluxdbWriteM measurement
+
+// Point implement MeasurementV2.
+func (m *InfluxdbWriteM) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(m.ts))
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *InfluxdbWriteM) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+	return nil, fmt.Errorf("not implement")
+}
+
+//nolint:lll
+func (m *InfluxdbWriteM) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: metricNamePrefix + "write",
+		Tags: map[string]interface{}{
+			"host": &inputs.TagInfo{Desc: "System hostname."},
+		},
+		Fields: map[string]interface{}{
+			"point_req":       nFIFloatUnknown("The total number of every point requested to be written to this data node."),
+			"point_req_local": nFIFloatUnknown("The total number of point requests that have been attempted to be written into a shard on the same (local) node."),
+			"req":             nFIFloatUnknown("The total number of batches of points requested to be written to this node."),
+			"sub_write_drop":  nFIFloatUnknown("The total number of batches of points that failed to be sent to the subscription dispatcher."),
+			"sub_write_ok":    nFIFloatUnknown("The total number of batches of points that were successfully sent to the subscription dispatcher."),
+			"write_drop":      nFIFloatUnknown("The total number of write requests for points that have been dropped due to timestamps not matching any existing retention policies."),
+			"write_error":     nFIFloatUnknown("The total number of batches of points that were not successfully written, due to a failure to write to a local or remote shard."),
+			"write_ok":        nFIFloatUnknown("The total number of batches of points written at the requested consistency level."),
+			"write_timeout":   nFIFloatUnknown("The total number of write requests that failed to complete within the default write timeout duration."),
+		},
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 type InfluxdbDatabaseM measurement
 
-func (m *InfluxdbDatabaseM) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+// Point implement MeasurementV2.
+func (m *InfluxdbDatabaseM) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(m.ts))
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *InfluxdbDatabaseM) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -149,10 +388,23 @@ func (m *InfluxdbDatabaseM) Info() *inputs.MeasurementInfo {
 	}
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 type InfluxdbShardM measurement
 
-func (m *InfluxdbShardM) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+// Point implement MeasurementV2.
+func (m *InfluxdbShardM) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(m.ts))
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *InfluxdbShardM) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -185,10 +437,23 @@ func (m *InfluxdbShardM) Info() *inputs.MeasurementInfo {
 	}
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 type InfluxdbTsm1EngineM measurement
 
-func (m *InfluxdbTsm1EngineM) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+// Point implement MeasurementV2.
+func (m *InfluxdbTsm1EngineM) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(m.ts))
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *InfluxdbTsm1EngineM) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -244,10 +509,23 @@ func (m *InfluxdbTsm1EngineM) Info() *inputs.MeasurementInfo {
 	}
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 type InfluxdbTsm1CacheM measurement
 
-func (m *InfluxdbTsm1CacheM) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+// Point implement MeasurementV2.
+func (m *InfluxdbTsm1CacheM) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(m.ts))
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *InfluxdbTsm1CacheM) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -278,10 +556,23 @@ func (m *InfluxdbTsm1CacheM) Info() *inputs.MeasurementInfo {
 	}
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 type InfluxdbTsm1FilestoreM measurement
 
-func (m *InfluxdbTsm1FilestoreM) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+// Point implement MeasurementV2.
+func (m *InfluxdbTsm1FilestoreM) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(m.ts))
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *InfluxdbTsm1FilestoreM) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -305,10 +596,23 @@ func (m *InfluxdbTsm1FilestoreM) Info() *inputs.MeasurementInfo {
 	}
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 type InfluxdbTsm1WalM measurement
 
-func (m *InfluxdbTsm1WalM) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+// Point implement MeasurementV2.
+func (m *InfluxdbTsm1WalM) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(m.ts))
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *InfluxdbTsm1WalM) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -334,116 +638,7 @@ func (m *InfluxdbTsm1WalM) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type InfluxdbWriteM measurement
-
-func (m *InfluxdbWriteM) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
-}
-
-//nolint:lll
-func (m *InfluxdbWriteM) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{
-		Name: metricNamePrefix + "write",
-		Tags: map[string]interface{}{
-			"host": &inputs.TagInfo{Desc: "System hostname."},
-		},
-		Fields: map[string]interface{}{
-			"point_req":       nFIFloatUnknown("The total number of every point requested to be written to this data node."),
-			"point_req_local": nFIFloatUnknown("The total number of point requests that have been attempted to be written into a shard on the same (local) node."),
-			"req":             nFIFloatUnknown("The total number of batches of points requested to be written to this node."),
-			"sub_write_drop":  nFIFloatUnknown("The total number of batches of points that failed to be sent to the subscription dispatcher."),
-			"sub_write_ok":    nFIFloatUnknown("The total number of batches of points that were successfully sent to the subscription dispatcher."),
-			"write_drop":      nFIFloatUnknown("The total number of write requests for points that have been dropped due to timestamps not matching any existing retention policies."),
-			"write_error":     nFIFloatUnknown("The total number of batches of points that were not successfully written, due to a failure to write to a local or remote shard."),
-			"write_ok":        nFIFloatUnknown("The total number of batches of points written at the requested consistency level."),
-			"write_timeout":   nFIFloatUnknown("The total number of write requests that failed to complete within the default write timeout duration."),
-		},
-	}
-}
-
-type InfluxdbSubscriberM measurement
-
-func (m *InfluxdbSubscriberM) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
-}
-
-//nolint:lll
-func (m *InfluxdbSubscriberM) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{
-		Name: metricNamePrefix + "subscriber",
-		Tags: map[string]interface{}{
-			"host": &inputs.TagInfo{Desc: "System hostname."},
-		},
-		Fields: map[string]interface{}{
-			"create_failures": nFIFloatUnknown("The number of subscriptions that failed to be created."),
-			"points_written":  nFIFloatUnknown("The total number of points that were successfully written to subscribers."),
-			"write_failures":  nFIFloatUnknown("The total number of batches that failed to be written to subscribers."),
-		},
-	}
-}
-
-type InfluxdbCqM measurement
-
-func (m *InfluxdbCqM) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
-}
-
-//nolint:lll
-func (m *InfluxdbCqM) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{
-		Name: metricNamePrefix + "cq",
-		Tags: map[string]interface{}{
-			"host": &inputs.TagInfo{Desc: "System hostname."},
-		},
-		Fields: map[string]interface{}{
-			"query_fail": nFIFloatUnknown("The total number of continuous queries that executed but failed."),
-			"query_ok":   nFIFloatUnknown("The total number of continuous queries that executed successfully."),
-		},
-	}
-}
-
-type InfluxdbHttpdM measurement
-
-func (m *InfluxdbHttpdM) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
-}
-
-//nolint:lll
-func (m *InfluxdbHttpdM) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{
-		Name: metricNamePrefix + "httpd",
-		Tags: map[string]interface{}{
-			"host": &inputs.TagInfo{Desc: "System hostname."},
-			"bind": &inputs.TagInfo{Desc: "Bind port."},
-		},
-		Fields: map[string]interface{}{
-			"auth_fail":                  nFIFloatUnknown("The number of HTTP requests that were aborted due to authentication being required, but not supplied or incorrect."),
-			"client_error":               nFIFloatUnknown("The number of HTTP responses due to client errors, with a 4XX HTTP status code."),
-			"flux_query_req":             nFIFloatUnknown("The number of Flux query requests served."),
-			"flux_query_req_duration_ns": nFIFloatDurationNs("The duration (wall-time), in nanoseconds, spent executing Flux query requests."),
-			"ping_req":                   nFIFloatUnknown("The number of times InfluxDB HTTP server served the /ping HTTP endpoint."),
-			"points_written_dropped":     nFIFloatUnknown("The number of points dropped by the storage engine."),
-			"points_written_fail":        nFIFloatUnknown("The number of points accepted by the HTTP /write endpoint, but unable to be persisted."),
-			"points_written_ok":          nFIFloatUnknown("The number of points successfully accepted and persisted by the HTTP /write endpoint."),
-			"prom_read_req":              nFIFloatUnknown("The number of read requests to the Prometheus /read endpoint."),
-			"prom_write_req":             nFIFloatUnknown("The number of write requests to the Prometheus /write endpoint."),
-			"query_req":                  nFIFloatUnknown("The number of query requests."),
-			"query_req_duration_ns":      nFIFloatDurationNs("The total query request duration, in nanosecond (ns)."),
-			"query_resp_bytes":           nFIFloatBytes("The total number of bytes returned in query responses."),
-			"recovered_panics":           nFIFloatUnknown("The total number of panics recovered by the HTTP handler."),
-			"req":                        nFIFloatUnknown("The total number of HTTP requests served."),
-			"req_active":                 nFIFloatUnknown("The number of currently active requests."),
-			"req_duration_ns":            nFIFloatDurationNs("The duration (wall time), in nanoseconds, spent inside HTTP requests."),
-			"server_error":               nFIFloatUnknown("The number of HTTP responses due to server errors."),
-			"status_req":                 nFIFloatUnknown("The number of status requests served using the HTTP /status endpoint."),
-			"values_written_ok":          nFIFloatUnknown("The number of values (fields) successfully accepted and persisted by the HTTP /write endpoint."),
-			"write_req":                  nFIFloatUnknown("The number of write requests served using the HTTP /write endpoint."),
-			"write_req_active":           nFIFloatUnknown("The number of currently active write requests."),
-			"write_req_bytes":            nFIFloatBytes("The total number of bytes of line protocol data received by write requests, using the HTTP /write endpoint."),
-			"write_req_duration_ns":      nFIFloatDurationNs("The duration (wall time), in nanoseconds, of write requests served using the /write HTTP endpoint."),
-		},
-	}
-}
+////////////////////////////////////////////////////////////////////////////////
 
 func nFIFloatUnknown(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{

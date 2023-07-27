@@ -23,6 +23,7 @@ import (
 	"github.com/GuanceCloud/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
 
@@ -513,6 +514,37 @@ end: // global tags(host/election tags) got the lowest priority.
 	}
 
 	return out
+}
+
+func InitGlobalTags(
+	servers []string,
+	election bool,
+	tagger dkpt.GlobalTagger,
+	inputTags map[string]string,
+) map[string]map[string]string {
+	globalTags := make(map[string]map[string]string) // server:map[string]string
+
+	for _, v := range servers {
+		var newTags map[string]string
+		if election {
+			newTags = MergeTags(tagger.ElectionTags(), inputTags, v)
+		} else {
+			newTags = MergeTags(tagger.HostTags(), inputTags, v)
+		}
+		globalTags[v] = newTags
+	}
+
+	return globalTags
+}
+
+func MergeGlobalTags(gotTags map[string]string, globalTags map[string]map[string]string, remote string) {
+	val, ok := globalTags[remote]
+	if !ok {
+		return
+	}
+	for k, v := range val {
+		gotTags[k] = v
+	}
 }
 
 func Init() {
