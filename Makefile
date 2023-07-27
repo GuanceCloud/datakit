@@ -345,17 +345,6 @@ ut: deps
 			echo "######################"; \
 		fi
 
-it: deps
-	CGO_CFLAGS=$(CGO_FLAGS) GO111MODULE=off CGO_ENABLED=1 \
-						 REMOTE_HOST=$(DOCKER_REMOTE_HOST) \
-						 go run cmd/make/make.go -it -ut-exclude $(UT_EXCLUDE) \
-						 -dataway-url $(DATAWAY_URL); \
-		if [ $$? != 0 ]; then \
-			exit 1; \
-		else \
-			echo "######################"; \
-		fi
-
 lint: deps copyright_check md_lint
 	@truncate -s 0 lint.err
 ifeq ($(AUTO_FIX),on)

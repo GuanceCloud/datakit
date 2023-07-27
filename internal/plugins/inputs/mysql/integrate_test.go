@@ -587,7 +587,7 @@ func TestIntegrate(t *testing.T) {
 	for _, tc := range cases {
 		func(tc *caseSpec) {
 			t.Run(tc.name, func(t *testing.T) {
-				t.Parallel()
+				// t.Parallel() // Should not be parallel, if so, it would dead and timeout due to junk machine.
 				tc.t = t
 				caseStart := time.Now()
 

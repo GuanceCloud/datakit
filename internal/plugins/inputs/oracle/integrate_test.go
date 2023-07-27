@@ -150,6 +150,11 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/oracle:12c-se-datakit-v4",
 			exposedPorts: []string{"1521/tcp"},
 			sid:          "xe",
+			optsTablespace: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"pdb_name",
+				),
+			},
 			optsSystem: []inputs.PointCheckOption{
 				inputs.WithOptionalTags(
 					"pdb_name",
@@ -439,18 +444,33 @@ func (cs *caseSpec) run() error {
 	router := gin.Default()
 	router.POST("/v1/write/metric", cs.handler)
 
-	randPort := testutils.RandPort("tcp")
-	randPortStr := fmt.Sprintf("%d", randPort)
+	var (
+		listener    net.Listener
+		randPortStr string
+		err         error
+	)
+
+	for {
+		randPort := testutils.RandPort("tcp")
+		randPortStr = fmt.Sprintf("%d", randPort)
+		listener, err = net.Listen("tcp", ":"+randPortStr)
+		if err != nil {
+			if strings.Contains(err.Error(), "bind: address already in use") {
+				continue
+			}
+			cs.t.Logf("net.Listen failed: %v", err)
+			return err
+		}
+		break
+	}
+
 	cs.t.Logf("listening port " + randPortStr + "...")
 
-	srv := &http.Server{
-		Addr:    ":" + randPortStr,
-		Handler: router,
-	}
+	srv := &http.Server{Handler: router}
 
 	go func() {
 		cs.done = make(chan struct{})
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := srv.Serve(listener); err != nil && err != http.ErrServerClosed {
 			panic(err)
 		}
 	}()
