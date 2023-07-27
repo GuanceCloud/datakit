@@ -92,7 +92,7 @@ func (d *DialtestingSender) CheckToken(token, scheme, host string) (bool, error)
 		return false, fmt.Errorf("invalid JSON body content")
 	}
 
-	if result.Code == 200 {
+	if result.Code == 200 || len(result.ErrorCode) == 0 {
 		return true, nil
 	} else {
 		return false, nil

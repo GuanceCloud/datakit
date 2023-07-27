@@ -40,6 +40,8 @@ func (m *httpMeasurement) Info() *inputs.MeasurementInfo {
 			"status_code_class":  &inputs.TagInfo{Desc: "The class of the status code, such as '2xx'"},
 			"status_code_string": &inputs.TagInfo{Desc: "The status string, such as '200 OK'"},
 			"proto":              &inputs.TagInfo{Desc: "The protocol of the HTTP, such as 'HTTP/1.1'"},
+			"method":             &inputs.TagInfo{Desc: "HTTP method, such as `GET`"},
+			"owner":              &inputs.TagInfo{Desc: "The owner name"}, // used for fees calculation
 		},
 		Fields: map[string]interface{}{
 			"status_code": &inputs.FieldInfo{
@@ -66,6 +68,36 @@ func (m *httpMeasurement) Info() *inputs.MeasurementInfo {
 				Unit:     inputs.DurationUS,
 				Desc:     "The time of the response",
 			},
+			"response_download": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationUS,
+				Desc:     "HTTP downloading time",
+			},
+			"response_ttfb": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationUS,
+				Desc:     "HTTP response `ttfb`",
+			},
+			"response_dns": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationUS,
+				Desc:     "HTTP DNS parsing time",
+			},
+			"response_ssl": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationUS,
+				Desc:     "HTTP ssl handshake time",
+			},
+			"response_connection": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationUS,
+				Desc:     "HTTP connection time",
+			},
 			"response_body_size": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
@@ -78,11 +110,11 @@ func (m *httpMeasurement) Info() *inputs.MeasurementInfo {
 				Unit:     inputs.UnknownUnit,
 				Desc:     "The number to specify whether is successful, 1 for success, -1 for failure",
 			},
-			"proto": &inputs.FieldInfo{
-				DataType: inputs.String,
+			"seq_number": &inputs.FieldInfo{
+				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "The protocol of the HTTP request",
+				Unit:     inputs.Count,
+				Desc:     "The sequence number of the test",
 			},
 		},
 	}
@@ -114,6 +146,7 @@ func (m *tcpMeasurement) Info() *inputs.MeasurementInfo {
 			"isp":       &inputs.TagInfo{Desc: "ISP, such as `chinamobile`, `chinaunicom`, `chinatelecom`"},
 			"status":    &inputs.TagInfo{Desc: "The status of the task, either 'OK' or 'FAIL'"},
 			"proto":     &inputs.TagInfo{Desc: "The protocol of the task"},
+			"owner":     &inputs.TagInfo{Desc: "The owner name"}, // used for fees calculation
 		},
 		Fields: map[string]interface{}{
 			"message": &inputs.FieldInfo{
@@ -152,6 +185,12 @@ func (m *tcpMeasurement) Info() *inputs.MeasurementInfo {
 				Unit:     inputs.UnknownUnit,
 				Desc:     "The number to specify whether is successful, 1 for success, -1 for failure",
 			},
+			"seq_number": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.Count,
+				Desc:     "The sequence number of the test",
+			},
 		},
 	}
 }
@@ -180,6 +219,7 @@ func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
 			"isp":       &inputs.TagInfo{Desc: "ISP, such as `chinamobile`, `chinaunicom`, `chinatelecom`"},
 			"status":    &inputs.TagInfo{Desc: "The status of the task, either 'OK' or 'FAIL'"},
 			"proto":     &inputs.TagInfo{Desc: "The protocol of the task"},
+			"owner":     &inputs.TagInfo{Desc: "The owner name"}, // used for fees calculation
 		},
 		Fields: map[string]interface{}{
 			"message": &inputs.FieldInfo{
@@ -272,6 +312,12 @@ func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
 				Unit:     inputs.UnknownUnit,
 				Desc:     "The number to specify whether is successful, 1 for success, -1 for failure",
 			},
+			"seq_number": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.Count,
+				Desc:     "The sequence number of the test",
+			},
 		},
 	}
 }
@@ -300,6 +346,7 @@ func (m *websocketMeasurement) Info() *inputs.MeasurementInfo {
 			"isp":      &inputs.TagInfo{Desc: "ISP, such as `chinamobile`, `chinaunicom`, `chinatelecom`"},
 			"status":   &inputs.TagInfo{Desc: "The status of the task, either 'OK' or 'FAIL'"},
 			"proto":    &inputs.TagInfo{Desc: "The protocol of the task"},
+			"owner":    &inputs.TagInfo{Desc: "The owner name"}, // used for fees calculation
 		},
 		Fields: map[string]interface{}{
 			"message": &inputs.FieldInfo{
@@ -343,6 +390,12 @@ func (m *websocketMeasurement) Info() *inputs.MeasurementInfo {
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
 				Desc:     "The number to specify whether is successful, 1 for success, -1 for failure",
+			},
+			"seq_number": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.Count,
+				Desc:     "The sequence number of the test",
 			},
 		},
 	}
