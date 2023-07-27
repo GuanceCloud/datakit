@@ -107,6 +107,9 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		optsSearcher     []inputs.PointCheckOption
 		optsRequestTimes []inputs.PointCheckOption
 	}{
+		////////////////////////////////////////////////////////////////////////
+		// solr:8.11.2
+		////////////////////////////////////////////////////////////////////////
 		{
 			name: "solr:8.11.2",
 			conf: `interval = '2s'
@@ -116,13 +119,44 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 				inputs.WithOptionalTags(
 					"core",
 				),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+		},
+		{
+			name: "solr:8.11.2",
+			conf: `interval = '2s'
+			election = false`, // set conf URL later.
+			exposedPorts: []string{"8983/tcp"},
+			optsRequestTimes: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"core",
+				),
 			},
 		},
 
+		////////////////////////////////////////////////////////////////////////
+		// solr:7.0.0
+		////////////////////////////////////////////////////////////////////////
 		{
 			name: "solr:7.0.0-alpine",
 			conf: `interval = '2s'
 			election = true`, // set conf URL later.
+			exposedPorts: []string{"8983/tcp"},
+			optsRequestTimes: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"core",
+				),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+		},
+		{
+			name: "solr:7.0.0-alpine",
+			conf: `interval = '2s'
+			election = false`, // set conf URL later.
 			exposedPorts: []string{"8983/tcp"},
 			optsRequestTimes: []inputs.PointCheckOption{
 				inputs.WithOptionalTags(
@@ -143,6 +177,12 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)
+
+		if ipt.Election {
+			ipt.Tagger = testutils.NewTaggerElection()
+		} else {
+			ipt.Tagger = testutils.NewTaggerHost()
+		}
 
 		repoTag := strings.Split(base.name, ":")
 

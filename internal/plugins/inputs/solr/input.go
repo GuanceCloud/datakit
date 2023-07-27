@@ -105,10 +105,9 @@ type Input struct {
 	pause    bool
 	pauseCh  chan bool
 
-	semStop    *cliutils.Sem // start stop signal
-	feeder     dkio.Feeder
-	Tagger     dkpt.GlobalTagger
-	globalTags map[string]map[string]string // server:map[string]string
+	semStop *cliutils.Sem // start stop signal
+	feeder  dkio.Feeder
+	Tagger  dkpt.GlobalTagger
 }
 
 func (i *Input) ElectionEnabled() bool {
@@ -206,13 +205,6 @@ func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("solr input started")
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
-
-	i.globalTags = inputs.InitGlobalTags(
-		i.Servers,
-		i.Election,
-		i.Tagger,
-		i.Tags,
-	)
 
 	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
@@ -317,7 +309,11 @@ func (i *Input) Collect() error {
 						}
 					}
 
-					inputs.MergeGlobalTags(tagsSearcher, i.globalTags, s)
+					if i.Election {
+						tagsSearcher = inputs.MergeTags(i.Tagger.ElectionTags(), tagsSearcher, s)
+					} else {
+						tagsSearcher = inputs.MergeTags(i.Tagger.HostTags(), tagsSearcher, s)
+					}
 
 					// append searcher stats
 					if len(fieldSearcher) > 0 {
@@ -375,10 +371,9 @@ func defaultInput() *Input {
 		pauseCh:     make(chan bool, inputs.ElectionPauseChannelLength),
 		Election:    true,
 
-		semStop:    cliutils.NewSem(),
-		feeder:     dkio.DefaultFeeder(),
-		Tagger:     dkpt.DefaultGlobalTagger(),
-		globalTags: map[string]map[string]string{},
+		semStop: cliutils.NewSem(),
+		feeder:  dkio.DefaultFeeder(),
+		Tagger:  dkpt.DefaultGlobalTagger(),
 	}
 }
 

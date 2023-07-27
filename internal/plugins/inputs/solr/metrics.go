@@ -188,7 +188,11 @@ func (i *Input) gatherSolrCache(k, remote string, v json.RawMessage, commTags ma
 	tags["category"] = kSplit[0]
 	tags["name"] = kSplit[2]
 
-	inputs.MergeGlobalTags(tags, i.globalTags, remote)
+	if i.Election {
+		tags = inputs.MergeTags(i.Tagger.ElectionTags(), tags, remote)
+	} else {
+		tags = inputs.MergeTags(i.Tagger.HostTags(), tags, remote)
+	}
 
 	fields := map[string]interface{}{
 		"cumulative_evictions": cacheStat.CumulativeEvictions,
@@ -238,7 +242,11 @@ func (i *Input) gatherSolrRequestTimes(k, remote string, v json.RawMessage, comm
 	tags["category"] = kSplit[0]
 	tags["handler"] = kSplit[1]
 
-	inputs.MergeGlobalTags(tags, i.globalTags, remote)
+	if i.Election {
+		tags = inputs.MergeTags(i.Tagger.ElectionTags(), tags, remote)
+	} else {
+		tags = inputs.MergeTags(i.Tagger.HostTags(), tags, remote)
+	}
 
 	fields := map[string]interface{}{
 		"count":      rqtimes.Count,

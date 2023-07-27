@@ -254,7 +254,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
-			cs.mCount[inputName] = struct{}{}
+			cs.mCount[jvmMetricName] = struct{}{}
 
 		default: // TODO: check other measurement
 			panic("unknown measurement")
