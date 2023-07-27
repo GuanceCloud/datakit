@@ -23,6 +23,7 @@ __debug_bin
 *.tar.gz
 *.yaml
 *.zip
+test.*/
 
 # to ignore all test generated files
 ag.sh

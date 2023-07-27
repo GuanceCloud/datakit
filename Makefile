@@ -380,7 +380,7 @@ copyright_check_auto_fix:
 define check_docs
 	# check spell on docs
 	@echo 'version of cspell: $(shell cspell --version)'
-	cspell lint -c scripts/cspell.json --no-progress $(1)/**/*.md | tee dist/cspell.lint
+	cspell lint --show-suggestions -c scripts/cspell.json --no-progress $(1)/**/*.md | tee dist/cspell.lint
 
   # check markdown style
 	# markdownlint install: https://github.com/igorshubovych/markdownlint-cli

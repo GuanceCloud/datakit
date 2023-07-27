@@ -25,7 +25,6 @@ import (
 
 // hugePackages is those packages that whose testing so much performance consumption.
 var hugePackages = map[string]bool{
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway":             true,
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/kafkamq": true,
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/mysql":   true,
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/oracle":  true,
