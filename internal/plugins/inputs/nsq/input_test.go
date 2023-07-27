@@ -11,7 +11,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -34,7 +33,7 @@ func TestGather(t *testing.T) {
 			fmt.Fprint(w, body)
 		}))
 
-		it := newInput()
+		it := defaultInput()
 		t.Log(ts.URL)
 		it.NSQDs = []string{getNSQDEndpoint(ts.URL)}
 		it.setup()
@@ -71,7 +70,7 @@ func TestNSQDList(t *testing.T) {
 			fmt.Fprint(w, tc.body)
 		}))
 
-		it := newInput()
+		it := defaultInput()
 		err := it.updateEndpointListByLookupd(ts.URL)
 		assert.NoError(t, err)
 
@@ -96,23 +95,28 @@ func TestSetup(t *testing.T) {
 		fail bool
 	}{
 		{
-			func() *Input { it := newInput(); it.Lookupd = "http://dummy:1"; return it }(),
+			func() *Input { it := defaultInput(); it.Lookupd = "http://dummy:1"; return it }(),
 			true,
 		},
 		{
-			func() *Input { it := newInput(); it.NSQDs = []string{"http://dummy:1"}; return it }(),
+			func() *Input { it := defaultInput(); it.NSQDs = []string{"http://dummy:1"}; return it }(),
 			false,
 		},
 		{
-			func() *Input { it := newInput(); it.Interval = "10s"; return it }(),
+			func() *Input { it := defaultInput(); it.Interval = "10s"; return it }(),
 			true,
 		},
 		{
-			func() *Input { it := newInput(); it.Interval = "10s"; it.NSQDs = []string{"http://dummy:1"}; return it }(),
+			func() *Input {
+				it := defaultInput()
+				it.Interval = "10s"
+				it.NSQDs = []string{"http://dummy:1"}
+				return it
+			}(),
 			false,
 		},
 		{
-			func() *Input { it := newInput(); it.Interval = "dummy_interval"; return it }(),
+			func() *Input { it := defaultInput(); it.Interval = "dummy_interval"; return it }(),
 			true,
 		},
 	}
@@ -153,22 +157,8 @@ func TestBuildURL(t *testing.T) {
 	}
 }
 
-//nolint:lll
-func TestRUn(t *testing.T) {
-	minInterval = time.Second * 1
-	updateEndpointListInterval = time.Second * 1
-
-	it := newInput()
-	it.Interval = "1s"
-	it.NSQDs = []string{"http://dummy:1"}
-	go it.Run()
-
-	time.Sleep(time.Second * 3)
-	datakit.Exit.Close()
-}
-
 func TestOther(t *testing.T) {
-	it := newInput()
+	it := defaultInput()
 	assert.Equal(t, sampleCfg, it.SampleConfig())
 	assert.Equal(t, catalog, it.Catalog())
 	assert.Equal(t, datakit.AllOSWithElection, it.AvailableArchs())

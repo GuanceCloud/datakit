@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -19,8 +20,9 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	timex "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
 )
@@ -33,6 +35,8 @@ const (
 
 	nsqdStatsPattern = "%s/stats?format=json"
 	lookupdPattern   = "%s/nodes"
+
+	unknownHost = "unknown"
 )
 
 var (
@@ -66,23 +70,11 @@ type Input struct {
 	pause    bool
 
 	semStop *cliutils.Sem // start stop signal
-
-	feed io.Feeder
+	feeder  dkio.Feeder
+	Tagger  dkpt.GlobalTagger
 }
 
 var maxPauseCh = inputs.ElectionPauseChannelLength
-
-func newInput() *Input {
-	return &Input{
-		Tags:             make(map[string]string),
-		nsqdEndpointList: make(map[string]interface{}),
-		pauseCh:          make(chan bool, maxPauseCh),
-		httpClient:       &http.Client{Timeout: 5 * time.Second},
-		Election:         true,
-		semStop:          cliutils.NewSem(),
-		feed:             io.DefaultFeeder(),
-	}
-}
 
 func (ipt *Input) ElectionEnabled() bool {
 	return ipt.Election
@@ -139,10 +131,10 @@ func (ipt *Input) Run() {
 				continue
 			}
 
-			if err := ipt.feed.Feed(inputName,
+			if err := ipt.feeder.Feed(inputName,
 				point.Metric,
 				pts,
-				&io.Option{CollectCost: time.Since(start)}); err != nil {
+				&dkio.Option{CollectCost: time.Since(start)}); err != nil {
 				l.Errorf("io.Feed: %s, ignored", err)
 			}
 
@@ -197,7 +189,7 @@ func (ipt *Input) setupDo() error {
 	}
 
 	if ipt.TLSCA != "" {
-		tlsconfig := &net.TLSClientConfig{
+		tlsconfig := &dknet.TLSClientConfig{
 			CaCerts:            []string{ipt.TLSCA},
 			Cert:               ipt.TLSCert,
 			CertKey:            ipt.TLSKey,
@@ -261,7 +253,7 @@ func (ipt *Input) gather() ([]*point.Point, error) {
 		return nil, nil
 	}
 
-	st := newStats(ipt.Election)
+	st := newStats(ipt)
 
 	for endpoint := range ipt.nsqdEndpointList {
 		body, err := ipt.httpGet(endpoint)
@@ -299,6 +291,28 @@ func (ipt *Input) updateEndpointListByLookupd(lookupdEndpoint string) error {
 			l.Warnf("build URL: %s", err)
 			continue
 		}
+
+		// fix lookupd and producer in the same remote host while Datakit is in another.
+		// lookupdURL, err := url.Parse(lookupdEndpoint)
+		// if err != nil {
+		// 	l.Warnf("url.Parse failed: %v", err)
+		// } else {
+		// 	lookupdHost, _, err := net.SplitHostPort(lookupdURL.Host)
+		// 	if err != nil {
+		// 		l.Warnf("net.SplitHostPort failed: %v", err)
+		// 	} else {
+		// 		uHost, uPort, err := net.SplitHostPort(u.Host)
+		// 		if err != nil {
+		// 			l.Warnf("net.SplitHostPort failed: %v", err)
+		// 		} else {
+		// 			if !net.ParseIP(lookupdHost).IsLoopback() && net.ParseIP(uHost).IsLoopback() {
+		// 				// replace remote producer host with lookupd host.
+		// 				u.Host = net.JoinHostPort(lookupdHost, uPort)
+		// 			}
+		// 		}
+		// 	}
+		// }
+
 		endpoints = append(endpoints, u.String())
 	}
 
@@ -363,13 +377,31 @@ func buildURL(u string) (*url.URL, error) {
 func getURLHost(urlStr string) string {
 	u, err := url.Parse(urlStr)
 	if err != nil {
-		return "unknown"
+		host, _, err := net.SplitHostPort(urlStr)
+		if err != nil {
+			l.Errorf("url.Parse and net.SplitHostPort failed: %v", err)
+			return unknownHost
+		}
+		return host
 	}
 	return u.Host
 }
 
+func defaultInput() *Input {
+	return &Input{
+		Tags:             make(map[string]string),
+		nsqdEndpointList: make(map[string]interface{}),
+		pauseCh:          make(chan bool, maxPauseCh),
+		httpClient:       &http.Client{Timeout: 5 * time.Second},
+		Election:         true,
+		semStop:          cliutils.NewSem(),
+		feeder:           dkio.DefaultFeeder(),
+		Tagger:           dkpt.DefaultGlobalTagger(),
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return newInput()
+		return defaultInput()
 	})
 }

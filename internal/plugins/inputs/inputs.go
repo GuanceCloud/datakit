@@ -531,7 +531,9 @@ func InitGlobalTags(
 		} else {
 			newTags = MergeTags(tagger.HostTags(), inputTags, v)
 		}
-		globalTags[v] = newTags
+		if len(v) > 0 {
+			globalTags[v] = newTags
+		}
 	}
 
 	return globalTags
@@ -544,6 +546,16 @@ func MergeGlobalTags(gotTags map[string]string, globalTags map[string]map[string
 	}
 	for k, v := range val {
 		gotTags[k] = v
+	}
+}
+
+func LogGlobalTags(l *logger.Logger, globalTags map[string]map[string]string) {
+	for server, tags := range globalTags {
+		var outMsg []string
+		for k, v := range tags {
+			outMsg = append(outMsg, k+" = "+v)
+		}
+		l.Infof("server [%s]: %s", server, strings.Join(outMsg, ", "))
 	}
 }
 

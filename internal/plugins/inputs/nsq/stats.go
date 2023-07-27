@@ -8,10 +8,9 @@ package nsq
 import (
 	"encoding/json"
 	"fmt"
-	"net"
 
 	"github.com/GuanceCloud/cliutils/point"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 type topicChannels map[string]*ChannelStats
@@ -19,7 +18,7 @@ type topicChannels map[string]*ChannelStats
 type stats struct {
 	topicCache map[string]topicChannels
 	nodeCache  map[string]*nodeStats
-	election   bool
+	ipt        *Input
 }
 
 type nodeStats struct {
@@ -36,11 +35,11 @@ func (n *nodeStats) ToMap() map[string]interface{} {
 	}
 }
 
-func newStats(election bool) *stats {
+func newStats(ipt *Input) *stats {
 	return &stats{
 		topicCache: make(map[string]topicChannels),
 		nodeCache:  make(map[string]*nodeStats),
-		election:   election,
+		ipt:        ipt,
 	}
 }
 
@@ -93,12 +92,6 @@ func (s *stats) makePoint(addTags map[string]string) ([]*point.Point, error) {
 	var pts []*point.Point
 	var lastErr error
 
-	var opts []point.Option
-
-	if s.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	}
-
 	for topic, c := range s.topicCache {
 		for channel, channelStats := range c {
 			tags := map[string]string{
@@ -110,11 +103,10 @@ func (s *stats) makePoint(addTags map[string]string) ([]*point.Point, error) {
 			}
 			fields := channelStats.ToMap()
 
-			pt, err := point.NewPoint("nsq_topics", tags, fields, opts...)
-			if err != nil {
-				lastErr = err
-				continue
-			}
+			pt := point.NewPointV2(
+				[]byte(nsqTopics),
+				append(point.NewTags(tags), point.NewKVs(fields)...),
+			)
 			pts = append(pts, pt)
 		}
 	}
@@ -123,17 +115,27 @@ func (s *stats) makePoint(addTags map[string]string) ([]*point.Point, error) {
 		tags := map[string]string{
 			"server_host": nodeHost,
 		}
-		setHostTagIfNotLoopback(tags, nodeHost)
+
+		remote := getURLHost(nodeHost)
+		if remote == unknownHost {
+			remote = ""
+		}
+		if s.ipt.Election {
+			tags = inputs.MergeTags(s.ipt.Tagger.ElectionTags(), tags, remote)
+		} else {
+			tags = inputs.MergeTags(s.ipt.Tagger.HostTags(), tags, remote)
+		}
+
 		for k, v := range addTags {
 			tags[k] = v
 		}
+
 		fields := n.ToMap()
 
-		pt, err := point.NewPoint("nsq_nodes", tags, fields, opts...)
-		if err != nil {
-			lastErr = err
-			continue
-		}
+		pt := point.NewPointV2(
+			[]byte(nsqNodes),
+			append(point.NewTags(tags), point.NewKVs(fields)...),
+		)
 		pts = append(pts, pt)
 	}
 
@@ -192,20 +194,5 @@ func (c *ChannelStats) ToMap() map[string]interface{} {
 		"message_count":   c.MessageCount,
 		"requeue_count":   c.RequeueCount,
 		"timeout_count":   c.TimeoutCount,
-	}
-}
-
-func setHostTagIfNotLoopback(tags map[string]string, u string) {
-	// input pattern:
-	// ip:port or ip
-	var host string
-	h, _, err := net.SplitHostPort(u)
-	if err != nil {
-		host = u
-	} else {
-		host = h
-	}
-	if host != "localhost" && !net.ParseIP(host).IsLoopback() {
-		tags["host"] = host
 	}
 }

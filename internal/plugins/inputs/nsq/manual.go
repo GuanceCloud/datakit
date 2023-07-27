@@ -10,6 +10,11 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
+const (
+	nsqTopics = "nsq_topics"
+	nsqNodes  = "nsq_nodes"
+)
+
 type nsqTopicMeasurement struct{}
 
 func (*nsqTopicMeasurement) LineProto() (*point.Point, error) { return nil, nil }
@@ -17,7 +22,7 @@ func (*nsqTopicMeasurement) LineProto() (*point.Point, error) { return nil, nil 
 //nolint:lll
 func (*nsqTopicMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "nsq_topics",
+		Name: nsqTopics,
 		Desc: "NSQ 集群所有 topic 的指标",
 		Tags: map[string]interface{}{
 			"topic":   inputs.NewTagInfo("topic 名称"),
@@ -42,10 +47,11 @@ func (*nsqNodesMeasurement) LineProto() (*point.Point, error) { return nil, nil 
 //nolint:lll
 func (*nsqNodesMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "nsq_nodes",
+		Name: nsqNodes,
 		Desc: "NSQ 集群所有 node 的指标",
 		Tags: map[string]interface{}{
 			"server_host": inputs.NewTagInfo("服务地址，即 `host:ip`"),
+			"host":        inputs.NewTagInfo("Hostname"),
 		},
 		Fields: map[string]interface{}{
 			"depth":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "在当前 node 中未被消费的消息总数"},
