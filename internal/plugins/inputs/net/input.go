@@ -15,12 +15,12 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
-	clipt "github.com/GuanceCloud/cliutils/point"
+	"github.com/GuanceCloud/cliutils/point"
 	psNet "github.com/shirou/gopsutil/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -135,8 +135,19 @@ func (m *netMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (m *netMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
+// Point implement MeasurementV2.
+func (m *netMeasurement) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(m.ts))
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *netMeasurement) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
+	return nil, fmt.Errorf("not implement")
 }
 
 type Input struct {
@@ -146,7 +157,7 @@ type Input struct {
 	IgnoreProtocolStats     bool
 	Tags                    map[string]string
 
-	collectCache   []inputs.Measurement
+	collectCache   []*point.Point
 	lastStats      map[string]psNet.IOCountersStat
 	lastProtoStats []psNet.ProtoCountersStat
 
@@ -156,14 +167,16 @@ type Input struct {
 	netVirtualIfaces NetVirtualIfaces
 
 	semStop *cliutils.Sem // start stop signal
+	feeder  dkio.Feeder
+	Tagger  dkpt.GlobalTagger
 }
 
 func (i *Input) Singleton() {
 }
 
 func (i *Input) appendMeasurement(name string, tags map[string]string, fields map[string]interface{}, ts time.Time) {
-	tmp := &netMeasurement{name: name, tags: tags, fields: fields, ts: ts}
-	i.collectCache = append(i.collectCache, tmp)
+	metric := &netMeasurement{name: name, tags: tags, fields: fields, ts: ts}
+	i.collectCache = append(i.collectCache, metric.Point())
 }
 
 func (i *Input) AvailableArchs() []string {
@@ -185,7 +198,7 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (i *Input) Collect() error {
-	i.collectCache = make([]inputs.Measurement, 0)
+	i.collectCache = make([]*point.Point, 0)
 	ts := time.Now()
 	netio, err := NetIOCounters()
 	if err != nil {
@@ -230,6 +243,8 @@ func (i *Input) Collect() error {
 			}
 		}
 
+		tags = inputs.MergeTags(i.Tagger.HostTags(), tags, "")
+
 		i.appendMeasurement(netMetricName, tags, fields, ts)
 	}
 	// Get system wide stats for network protocols tcp and udp
@@ -262,6 +277,7 @@ func (i *Input) Collect() error {
 			tags[k] = v
 		}
 		if len(fields) > 0 {
+			tags = inputs.MergeTags(i.Tagger.HostTags(), tags, "")
 			i.appendMeasurement(netMetricName, tags, fields, ts)
 		}
 		i.lastProtoStats = netprotos
@@ -275,6 +291,7 @@ func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("net input started")
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
+
 	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
 	for {
@@ -282,13 +299,13 @@ func (i *Input) Run() {
 		case <-tick.C:
 			start := time.Now()
 			if err := i.Collect(); err == nil {
-				if errFeed := inputs.FeedMeasurement(netMetricName, datakit.Metric, i.collectCache,
-					&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
-					io.FeedLastError(inputName, errFeed.Error(), clipt.Metric)
-					l.Error(errFeed)
+				if err := i.feeder.Feed(netMetricName, point.Metric, i.collectCache,
+					&dkio.Option{CollectCost: time.Since(start)}); err != nil {
+					i.feeder.FeedLastError(inputName, err.Error(), point.Metric)
+					l.Error(err)
 				}
 			} else {
-				io.FeedLastError(inputName, err.Error(), clipt.Metric)
+				i.feeder.FeedLastError(inputName, err.Error(), point.Metric)
 				l.Error(err)
 			}
 		case <-datakit.Exit.Wait():
@@ -360,16 +377,22 @@ func (i *Input) ReadEnv(envs map[string]string) {
 	}
 }
 
+func defaultInput() *Input {
+	return &Input{
+		netIO:            NetIOCounters,
+		netProto:         psNet.ProtoCounters,
+		netVirtualIfaces: NetVirtualInterfaces,
+		Interval:         datakit.Duration{Duration: time.Second * 10},
+
+		semStop: cliutils.NewSem(),
+		Tags:    make(map[string]string),
+		feeder:  dkio.DefaultFeeder(),
+		Tagger:  dkpt.DefaultGlobalTagger(),
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{
-			netIO:            NetIOCounters,
-			netProto:         psNet.ProtoCounters,
-			netVirtualIfaces: NetVirtualInterfaces,
-			Interval:         datakit.Duration{Duration: time.Second * 10},
-
-			semStop: cliutils.NewSem(),
-			Tags:    make(map[string]string),
-		}
+		return defaultInput()
 	})
 }
