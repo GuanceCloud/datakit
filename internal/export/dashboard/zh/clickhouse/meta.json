@@ -2097,12 +2097,7 @@
     "vars": []
   },
   "summary": "",
-  "tagInfo": [
-    {
-      "id": "tag_cae6e957bf13438182c8a1e1c923b622",
-      "name": "刘跃兰"
-    }
-  ],
+  "tagInfo": [],
   "tags": [],
   "thumbnail": "",
   "title": "ClickHouse 监控视图"
