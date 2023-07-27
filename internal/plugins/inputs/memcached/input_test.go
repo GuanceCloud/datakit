@@ -70,6 +70,7 @@ func TestGatherServer(t *testing.T) {
 	}
 
 	// err := memcached.gatherServer(address, false)
+	memcached.init()
 	err := memcached.Collect()
 	assert.Nil(t, err)
 
