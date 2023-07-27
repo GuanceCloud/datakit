@@ -214,6 +214,7 @@ func ExternalIP() (string, error) {
 }
 
 // RetryTestRun retries function under specificed conditions.
+//
 //nolint:lll
 func RetryTestRun(f func() error) error {
 	retryCount := 0
@@ -290,7 +291,11 @@ func PurgeRemoteByName(name string) error {
 
 	p, err := GetPool(dockerTCP)
 	if err != nil {
-		return err
+		if r.Host != "0.0.0.0" {
+			return err
+		} else if p, err = GetPool(""); err != nil {
+			return err
+		}
 	}
 
 	containerName := GetTestingPrefix(name)
