@@ -256,3 +256,31 @@ class DiskIO(DataKitFramework):
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- | ---- |
 | `await` | The average time (in milliseconds) for I/O requests issued to the device to be served. This includes the time spent by the requests in queue and the time spent servicing them. | float | ms   |
 | `svctm` | awaitThe average service time (in milliseconds) for I/O requests that were issued to the device.                                                                                | float | ms   |
+
+
+## FAQ {#faq}
+
+### `diskio` 指标在 Linux 主机上的数据来源是什么 {#linux-diskio}
+
+在 Linux 主机上，指标从 _/proc/diskstats_ 文件获取并通过解析和计算得出；其中每一列的解释可参考 [_procfs-diskstats_](https://www.kernel.org/doc/Documentation/ABI/testing/procfs-diskstats){:target="_blank"}；
+
+部分数据来源列和指标的对应关系为：
+
+| `diskstats` 字段 | `diskio` 指标 |
+| - | - |
+| col04: reads completed successfully        | `reads`                                                   |
+| col05: reads merged                        | `merged_reads`                                            |
+| col06: sectors read                        | `read_bytes = col06 * sector_size`; `read_bytes/sec = (read_bytes - last(read_bytes))/(time - last(time))`      |
+| col07: time spent reading (ms)             | `read_time`                                               |
+| col08: writes completed                    | `writes`                                                  |
+| col09: writes merged                       | `merged_writes`                                           |
+| col10: sectors written                     | `write_bytes = col10 * sector_size`; `write_bytes/sec = (write_bytes - last(write_bytes))/(time - last(time))` |
+| col11: time spent writing (ms)             | `write_time`                                              |
+| col12: I/Os currently in progress          | `iops_in_progress`                                        |
+| col13: time spent doing I/Os (ms)          | `io_time`                                                 |
+| col14: weighted time spent doing I/Os (ms) | `weighted_io_time`                                        |
+
+注意：
+
+1. 扇区大小（sector_size）为 512 字节；
+2. 除 read_bytes/sec 和 write_bytes/sec 外均为递增值。
