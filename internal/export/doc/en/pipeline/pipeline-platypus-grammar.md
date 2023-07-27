@@ -16,7 +16,7 @@ Identifiers can be composed of numbers (`0-9`), letters (`A-Z a-z`), and undersc
 - `abc1`
 - `abc_1_`
 
-Use backticks if you need to start with a letter or use characters other than the above in the identifier:
+Use backticks if you need to start with a non-alphabet or non-underscore, or use characters other than the above in the identifier:
 
 - `` `1abc` ``
 - `` `@some-variable` ``
@@ -137,6 +137,11 @@ The following operators are currently supported by Platypus, and the higher the 
 |Priority|Symbol|Associativity|Description|
 |-|-|-|-|
 | 1 | `=` | right | assignment; named argument; lowest precedence|
+| 1 | `+=` | right | assignment, left operand = left operand + right operand|
+| 1 | `-=` | right | assignment, left operand = left operand - right operand|
+| 1 | `*=` | right | assignment, left operand = left operand * right operand|
+| 1 | `/=` | right | assignment, left operand = left operand / right operand|
+| 1 | `%=` | right | assignment, left operand = left operand % right operand|
 | 2 | `||` | left | logical "or" |
 | 3 | `&&` | left | Logical AND |
 | 4 | `in` | left | Determine whether the key is in the map; Specify the element in the list; The substring is included in the string|
@@ -151,8 +156,11 @@ The following operators are currently supported by Platypus, and the higher the 
 | 7 | `*` | left | arithmetic "multiply" |
 | 7 | `/` | left | arithmetic "division" |
 | 7 | `%` | left | arithmetic "remainder"|
-| 8 | `[]` | left | Subscript operator; can use list subscript or map key to get value|
-| 8 | `()` | left | Can change operator precedence; function call|
+| 8 | `!`  | right | unary operator; logical "negation", available for 6 built-in data types |
+| 8 | `+`  | right | unary operator; positive sign, can be used to represent positive numbers |
+| 8 | `-`  | right | unary operator; minus sign, used to flip the sign and represent negative numbers |
+| 9 | `[]` | left | Subscript operator; can use list subscript or map key to get value|
+| 9 | `()` | left | Can change operator precedence; function call|
 
 ## Expression {#expr}
 

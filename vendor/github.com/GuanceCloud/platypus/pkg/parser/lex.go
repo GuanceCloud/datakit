@@ -117,23 +117,33 @@ var (
 		LEFT_BRACE:    "{",
 		RIGHT_BRACE:   "}",
 		COMMA:         ",",
-		EQ:            "=",
-		EQEQ:          "==",
-		SEMICOLON:     ";",
-		DOT:           ".",
-		SPACE:         "<space>",
-		COLON:         ":",
 
+		EQ:     "=",
+		ADD_EQ: "+=",
+		SUB_EQ: "-=",
+		MUL_EQ: "*=",
+		DIV_EQ: "/=",
+		MOD_EQ: "%=",
+
+		SEMICOLON: ";",
+		DOT:       ".",
+		SPACE:     "<space>",
+		COLON:     ":",
+
+		EQEQ: "==",
+		NEQ:  "!=",
+		LTE:  "<=",
+		LT:   "<",
+		GTE:  ">=",
+		GT:   ">",
+
+		NOT: "!",
 		SUB: "-",
 		ADD: "+",
 		MUL: "*",
 		MOD: "%",
 		DIV: "/",
-		NEQ: "!=",
-		LTE: "<=",
-		LT:  "<",
-		GTE: ">=",
-		GT:  ">",
+
 		// XOR: "^",
 		AND: "&&",
 		OR:  "||",
@@ -244,24 +254,47 @@ func lexStatements(l *Lexer) stateFn {
 		return lexSpaceNotEOL
 
 	case r == '*':
-		l.emit(MUL)
-		return lexSpace
+		if t := l.peek(); t == '=' {
+			l.next()
+			l.emit(MUL_EQ)
+		} else {
+			l.emit(MUL)
+			return lexSpace
+		}
 
 	case r == '/':
-		l.emit(DIV)
-		return lexSpace
-
+		if t := l.peek(); t == '=' {
+			l.next()
+			l.emit(DIV_EQ)
+		} else {
+			l.emit(DIV)
+			return lexSpace
+		}
 	case r == '%':
-		l.emit(MOD)
-		return lexSpace
-
+		if t := l.peek(); t == '=' {
+			l.next()
+			l.emit(MOD_EQ)
+		} else {
+			l.emit(MOD)
+			return lexSpace
+		}
 	case r == '+':
-		l.emit(ADD)
-		return lexSpace
+		if t := l.peek(); t == '=' {
+			l.next()
+			l.emit(ADD_EQ)
+		} else {
+			l.emit(ADD)
+			return lexSpace
+		}
 
 	case r == '-':
-		l.emit(SUB)
-		return lexSpace
+		if t := l.peek(); t == '=' {
+			l.next()
+			l.emit(SUB_EQ)
+		} else {
+			l.emit(SUB)
+			return lexSpace
+		}
 
 	// case r == '^':
 	// 	l.emit(XOR)
@@ -310,11 +343,12 @@ func lexStatements(l *Lexer) stateFn {
 		return lexSpace
 
 	case r == '!':
-		switch nr := l.next(); {
+		switch nr := l.peek(); {
 		case nr == '=':
+			l.next()
 			l.emit(NEQ)
 		default:
-			return l.errorf("unexpected character `%q' after `!'", nr)
+			l.emit(NOT)
 		}
 		return lexSpace
 

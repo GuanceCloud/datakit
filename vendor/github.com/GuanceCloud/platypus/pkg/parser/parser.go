@@ -373,11 +373,39 @@ func (p *parser) newIfElem(ifTk Item, condition *ast.Node, block *ast.BlockStmt)
 	return ifElem
 }
 
-func (p *parser) newAssignmentExpr(l, r *ast.Node, eqOp Item) *ast.Node {
-	return ast.WrapAssignmentExpr(&ast.AssignmentExpr{
-		LHS:   l,
+func (p *parser) newUnaryExpr(op Item, r *ast.Node) *ast.Node {
+	switch op.Typ {
+	case ADD, SUB:
+		// 负数
+		switch r.NodeType {
+		case ast.TypeFloatLiteral:
+			if op.Typ == SUB {
+				r.FloatLiteral.Val = -r.FloatLiteral.Val
+			}
+			r.FloatLiteral.Start = p.posCache.LnCol(op.Pos)
+			return r
+		case ast.TypeIntegerLiteral:
+			if op.Typ == SUB {
+				r.IntegerLiteral.Val = -r.IntegerLiteral.Val
+			}
+			r.IntegerLiteral.Start = p.posCache.LnCol(op.Pos)
+			return r
+		}
+	}
+
+	return ast.WrapUnaryExpr(&ast.UnaryExpr{
+		Op:    AstOp(op.Typ),
 		RHS:   r,
-		OpPos: p.posCache.LnCol(eqOp.Pos),
+		OpPos: p.posCache.LnCol(op.Pos),
+	})
+}
+
+func (p *parser) newAssignmentStmt(l, r *ast.Node, op Item) *ast.Node {
+	return ast.WrapAssignmentStmt(&ast.AssignmentExpr{
+		LHS:   l,
+		Op:    AstOp(op.Typ),
+		RHS:   r,
+		OpPos: p.posCache.LnCol(op.Pos),
 	})
 }
 

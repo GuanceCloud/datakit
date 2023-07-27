@@ -82,7 +82,7 @@ github.com/GuanceCloud/grok
 # github.com/GuanceCloud/mdcheck v0.0.0-20230718065937-44c6728c995f
 ## explicit; go 1.18
 github.com/GuanceCloud/mdcheck/check
-# github.com/GuanceCloud/platypus v0.2.5
+# github.com/GuanceCloud/platypus v0.2.6
 ## explicit; go 1.18
 github.com/GuanceCloud/platypus/internal/logger
 github.com/GuanceCloud/platypus/pkg/ast

@@ -186,7 +186,6 @@ func (ctx *Context) GetKey(key string) (*Varb, error) {
 	case InRMap:
 		if v, t, err := ctx.inRMap.Get(key); err == nil {
 			return &Varb{
-				Name:  key,
 				Value: v,
 				DType: t,
 			}, nil

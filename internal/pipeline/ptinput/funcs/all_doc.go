@@ -647,7 +647,7 @@ var (
 	convTraceID128MD = PLDoc{
 		Doc: docConvTraceID,
 		FnCategory: map[string][]string{
-			langTagEnUS: {cStringOp},
+			langTagZhCN: {cStringOp},
 		},
 	}
 )
