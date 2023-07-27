@@ -28,6 +28,26 @@ const (
 )
 
 const (
+	// Deprecated: use Collapsed instead.
+	RawFlameGraph Format = "rawflamegraph" // flamegraph collapse
+	Collapsed     Format = "collapse"      // flamegraph collapse format see https://github.com/brendangregg/FlameGraph/blob/master/stackcollapse.pl
+	JFR           Format = "jfr"           // see https://github.com/openjdk/jmc#core-api-example
+	PPROF         Format = "pprof"         // see https://github.com/google/pprof/blob/main/proto/profile.proto
+)
+
+const (
+	Unknown       Profiler = "unknown"
+	DDtrace       Profiler = "ddtrace"
+	AsyncProfiler Profiler = "async-profiler"
+	PySpy         Profiler = "py-spy"
+	Pyroscope     Profiler = "pyroscope"
+)
+
+type Profiler string
+
+type Format string
+
+const (
 	Java    Language = "java"
 	Python  Language = "python"
 	Golang  Language = "golang"
@@ -79,6 +99,7 @@ var langMaps = map[string]Language{
 	"node.js": NodeJS,
 	"nodejs":  NodeJS,
 	"php":     PHP,
+	"dotnet":  DotNet,
 	"c#":      DotNet,
 	"csharp":  DotNet,
 	"golang":  Golang,
@@ -88,6 +109,22 @@ var langMaps = map[string]Language{
 
 // Tags refer to parsed formValue["tags[]"].
 type Tags map[string]string
+
+type rfc3339Time time.Time
+
+func (r rfc3339Time) MarshalJSON() ([]byte, error) {
+	return []byte(`"` + time.Time(r).Format(time.RFC3339Nano) + `"`), nil
+}
+
+type Metadata struct {
+	Format       Format      `json:"format"`
+	Profiler     Profiler    `json:"profiler"`
+	Attachments  []string    `json:"attachments"`
+	Language     Language    `json:"language"`
+	TagsProfiler string      `json:"tags_profiler"`
+	Start        rfc3339Time `json:"start"`
+	End          rfc3339Time `json:"end"`
+}
 
 func NewTags(originTags []string) Tags {
 	pt := make(Tags)
@@ -160,6 +197,14 @@ func OurUUID() string {
 		host = hex.EncodeToString(buf[8:])
 	}
 	return fmt.Sprintf("%s-%s-%s-%s-%s", random[:8], random[8:12], random[12:], host, nanos)
+}
+
+func resolveStartTime(formValue map[string][]string) (time.Time, error) {
+	return resolveTime(formValue, []string{"recording-start", "start"})
+}
+
+func resolveEndTime(formValue map[string][]string) (time.Time, error) {
+	return resolveTime(formValue, []string{"recording-end", "end"})
 }
 
 func resolveTime(formValue map[string][]string, formFields []string) (time.Time, error) {
@@ -271,7 +316,7 @@ func json2StringMap(m map[string]interface{}) map[string][]string {
 
 func parseMetadata(req *http.Request) (map[string][]string, int64, error) {
 	if err := req.ParseMultipartForm(profileMaxSize); err != nil {
-		return nil, 0, fmt.Errorf("parse multipart/form-data fail: %w", err)
+		return nil, 0, fmt.Errorf("unable to parse multipart: %w", err)
 	}
 
 	filesize := int64(0)
@@ -315,27 +360,22 @@ func parseMetadata(req *http.Request) (map[string][]string, int64, error) {
 	return nil, filesize, fmt.Errorf("the profiling data format not supported, check your datadog trace library version")
 }
 
-func cache(req *http.Request) (string, int64, error) {
-	formValues, filesize, err := parseMetadata(req)
-	if err != nil {
-		return "", 0, fmt.Errorf("parse multipart form values fail: %w", err)
-	}
-
-	profileStart, err := resolveTime(formValues, []string{"recording-start", "start"})
+func cache(req *http.Request, metadata map[string][]string, fileSize int64) (string, int64, error) {
+	profileStart, err := resolveStartTime(metadata)
 	if err != nil {
 		return "", 0, fmt.Errorf("can not resolve profile start time: %w", err)
 	}
 
-	profileEnd, err := resolveTime(formValues, []string{"recording-end", "end"})
+	profileEnd, err := resolveEndTime(metadata)
 	if err != nil {
 		return "", 0, fmt.Errorf("can not resolve profile end time: %w", err)
 	}
 
 	startMicroSeconds, endMicroSeconds := profileStart.UnixMicro(), profileEnd.UnixMicro()
 
-	tags := NewTags(formValues["tags[]"])
+	tags := NewTags(metadata["tags[]"])
 
-	runtime := getForm("runtime", formValues)
+	runtime := getForm("runtime", metadata)
 	if runtime == "" {
 		runtime = tags.Get("runtime")
 	}
@@ -348,7 +388,7 @@ func cache(req *http.Request) (string, int64, error) {
 		TagRuntimeArch: tags.Get("runtime_arch"),
 		TagEnv:         tags.Get("env"),
 		TagVersion:     tags.Get("version"),
-		TagLanguage:    resolveLang(formValues, tags).String(),
+		TagLanguage:    resolveLang(metadata, tags).String(),
 		TagRuntime:     runtime,
 	}
 	if pointTags[TagService] == "" {
@@ -361,13 +401,13 @@ func cache(req *http.Request) (string, int64, error) {
 		FieldProfileID:  profileID,
 		FieldRuntimeID:  tags.Get("runtime-id"),
 		FieldPid:        tags.Get("pid"),
-		FieldFormat:     getForm("format", formValues),
+		FieldFormat:     getForm("format", metadata),
 		FieldLibraryVer: tags.Get("profiler_version"),
 		FieldDatakitVer: datakit.Version,
 		FieldStart:      startMicroSeconds,
 		FieldEnd:        endMicroSeconds,
 		FieldDuration:   endMicroSeconds - startMicroSeconds, // unit: microsecond
-		FieldFileSize:   filesize,
+		FieldFileSize:   fileSize,
 	}
 
 	// user custom tags
