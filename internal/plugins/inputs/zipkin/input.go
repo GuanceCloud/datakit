@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -19,6 +20,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
@@ -38,10 +40,9 @@ const (
   pathV1 = "/api/v1/spans"
   pathV2 = "/api/v2/spans"
 
-  ## customer_tags is a list of keys contains keys set by client code like span.SetTag(key, value)
-  ## that want to send to data center. Those keys set by client code will take precedence over
-  ## keys in [inputs.zipkin.tags]. DOT(.) IN KEY WILL BE REPLACED BY DASH(_) WHEN SENDING.
-  # customer_tags = ["key1", "key2", ...]
+  ## ignore_tags will work as a blacklist to prevent tags send to data center.
+  ## Every value in this list is a valid string of regular expression.
+  # ignore_tags = ["block1", "block2"]
 
   ## Keep rare tracing resources list switch.
   ## If some resources are rare enough(not presend in 1 hour), those resource will always send
@@ -90,17 +91,18 @@ var (
 	apiv1Path      = "/api/v1/spans"
 	apiv2Path      = "/api/v2/spans"
 	afterGatherRun itrace.AfterGatherHandler
-	customerKeys   []string
+	ignoreTags     []*regexp.Regexp
 	tags           map[string]string
 	wkpool         *workerpool.WorkerPool
 	localCache     *storage.Storage
 )
 
 type Input struct {
-	Pipelines        map[string]string            `toml:"pipelines"` // deprecated
+	Pipelines        map[string]string            `toml:"pipelines"`     // deprecated
+	CustomerTags     []string                     `toml:"customer_tags"` // deprecated
 	PathV1           string                       `toml:"pathV1"`
 	PathV2           string                       `toml:"pathV2"`
-	CustomerTags     []string                     `toml:"customer_tags"`
+	IgnoreTags       []string                     `toml:"ignore_tags"`
 	KeepRareResource bool                         `toml:"keep_rare_resource"`
 	CloseResource    map[string][]string          `toml:"close_resource"`
 	Sampler          *itrace.Sampler              `toml:"sampler"`
@@ -109,7 +111,6 @@ type Input struct {
 	LocalCacheConfig *storage.StorageConfig       `toml:"storage"`
 
 	feeder  dkio.Feeder
-	opt     point.Option
 	semStop *cliutils.Sem // start stop signal
 }
 
@@ -213,12 +214,13 @@ func (ipt *Input) RegHTTPHandler() {
 		afterGather = itrace.NewAfterGather(
 			itrace.WithLogger(log),
 			itrace.WithRetry(100*time.Millisecond),
-			itrace.WithBlockIOModel(true),
-			itrace.WithInputOption(ipt.opt),
+			itrace.WithIOBlockingMode(true),
+			itrace.WithPointOptions(point.WithExtraTags(dkpt.GlobalHostTags())),
 			itrace.WithFeeder(ipt.feeder),
 		)
 	} else {
-		afterGather = itrace.NewAfterGather(itrace.WithLogger(log), itrace.WithInputOption(ipt.opt), itrace.WithFeeder(ipt.feeder))
+		afterGather = itrace.NewAfterGather(itrace.WithLogger(log),
+			itrace.WithPointOptions(point.WithExtraTags(dkpt.GlobalHostTags())), itrace.WithFeeder(ipt.feeder))
 	}
 	afterGatherRun = afterGather
 
@@ -265,7 +267,13 @@ func (ipt *Input) RegHTTPHandler() {
 }
 
 func (ipt *Input) Run() {
-	customerKeys = ipt.CustomerTags
+	for _, v := range ipt.IgnoreTags {
+		if rexp, err := regexp.Compile(v); err != nil {
+			log.Debug(err.Error())
+		} else {
+			ignoreTags = append(ignoreTags, rexp)
+		}
+	}
 	tags = ipt.Tags
 
 	log.Debugf("### %s agent is running...", inputName)

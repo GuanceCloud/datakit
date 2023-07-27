@@ -17,6 +17,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
@@ -91,7 +92,6 @@ type Input struct {
 	LocalCacheConfig *storage.StorageConfig `toml:"storage"`
 
 	feeder  dkio.Feeder
-	opt     point.Option
 	semStop *cliutils.Sem // start stop signal
 }
 
@@ -120,12 +120,13 @@ func (ipt *Input) Run() {
 		afterGather = itrace.NewAfterGather(
 			itrace.WithLogger(log),
 			itrace.WithRetry(100*time.Millisecond),
-			itrace.WithBlockIOModel(true),
-			itrace.WithInputOption(ipt.opt),
+			itrace.WithIOBlockingMode(true),
+			itrace.WithPointOptions(point.WithExtraTags(dkpt.GlobalHostTags())),
 			itrace.WithFeeder(ipt.feeder),
 		)
 	} else {
-		afterGather = itrace.NewAfterGather(itrace.WithLogger(log), itrace.WithInputOption(ipt.opt), itrace.WithFeeder(ipt.feeder))
+		afterGather = itrace.NewAfterGather(itrace.WithLogger(log),
+			itrace.WithPointOptions(point.WithExtraTags(dkpt.GlobalHostTags())), itrace.WithFeeder(ipt.feeder))
 	}
 	afterGatherRun = afterGather.Run
 

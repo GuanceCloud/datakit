@@ -12,7 +12,7 @@ import (
 )
 
 func TestJaegerAgent(t *testing.T) {
-	afterGatherRun = itrace.AfterGatherFunc(func(inputName string, dktraces itrace.DatakitTraces, strikMod bool) {})
+	afterGatherRun = itrace.AfterGatherFunc(func(inputName string, dktraces itrace.DatakitTraces) {})
 
 	testHTTPHandler(t)
 	testUDPClient(t)

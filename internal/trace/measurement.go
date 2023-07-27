@@ -16,29 +16,23 @@ import (
 )
 
 type TraceMeasurement struct {
-	Name   string
-	Tags   map[string]string
-	Fields map[string]interface{}
-	TS     time.Time
-	Opt    point.Option
+	Name              string
+	Tags              map[string]string
+	Fields            map[string]interface{}
+	TS                time.Time
+	BuildPointOptions []point.Option
 }
 
 // Point implement MeasurementV2.
 func (m *TraceMeasurement) Point() *point.Point {
-	opts := point.CommonLoggingOptions()
-	opts = append(opts, point.WithTime(m.TS), m.Opt)
+	opts := append(point.CommonLoggingOptions(), point.WithTime(m.TS))
+	opts = append(opts, m.BuildPointOptions...)
 
-	return point.NewPointV2([]byte(m.Name),
-		append(point.NewTags(m.Tags), point.NewKVs(m.Fields)...),
-		opts...)
+	return point.NewPointV2([]byte(m.Name), append(point.NewTags(m.Tags), point.NewKVs(m.Fields)...), opts...)
 }
 
 func (*TraceMeasurement) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(tm.Name, tm.Tags, tm.Fields, &point.PointOption{
-	// 	Time:   tm.TS,
-	// 	Strict: false,
-	// })
-	return nil, fmt.Errorf("not implement")
+	return nil, fmt.Errorf("deprecated")
 }
 
 func (m *TraceMeasurement) Info() *inputs.MeasurementInfo {

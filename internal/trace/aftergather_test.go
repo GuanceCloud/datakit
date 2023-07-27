@@ -39,7 +39,7 @@ func TestAfterGather(t *testing.T) {
 			for i := 0; i < 100; i++ {
 				trace := randDatakitTrace(t, 10, randService(_services...), randResource(_resources...))
 				parentialize(trace)
-				afterGather.Run("test_after_gather", DatakitTraces{trace}, false)
+				afterGather.Run("test_after_gather", DatakitTraces{trace})
 			}
 		}()
 	}
@@ -48,7 +48,7 @@ func TestAfterGather(t *testing.T) {
 
 func TestBuildPoint(t *testing.T) {
 	for i := 0; i < 100; i++ {
-		if pt, err := BuildPoint(randDatakitSpan(t), false, nil); err != nil {
+		if pt, err := BuildPoint(randDatakitSpan(t)); err != nil {
 			t.Error(err.Error())
 			t.FailNow()
 		} else {
@@ -60,6 +60,6 @@ func TestBuildPoint(t *testing.T) {
 func TestBuildPointsBatch(t *testing.T) {
 	aga := NewAfterGather()
 	for i := 0; i < 100; i++ {
-		aga.BuildPointsBatch(DatakitTraces{randDatakitTrace(t, 10)}, false)
+		aga.BuildPointsBatch(DatakitTraces{randDatakitTrace(t, 10)})
 	}
 }

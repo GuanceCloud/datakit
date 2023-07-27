@@ -47,7 +47,7 @@ func (tss *TraceServiceServer) Export(ctx context.Context, tsreq *trace.ExportTr
 ) {
 	if afterGatherRun != nil {
 		if dktraces := parseResourceSpans(tsreq.ResourceSpans); len(dktraces) != 0 {
-			afterGatherRun.Run(inputName, dktraces, false)
+			afterGatherRun.Run(inputName, dktraces)
 		}
 	}
 

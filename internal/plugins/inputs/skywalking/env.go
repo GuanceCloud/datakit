@@ -23,7 +23,7 @@ var _ inputs.ReadEnv = &Input{}
 // ENV_INPUT_SKYWALKING_HTTP_ENDPOINTS : JSON string
 // ENV_INPUT_SKYWALKING_GRPC_ENDPOINT : string
 // ENV_INPUT_SKYWALKING_PLUGINS : JSON string
-// ENV_INPUT_SKYWALKING_CUSTOMER_TAGS : JSON string
+// ENV_INPUT_SKYWALKING_IGNORE_TAGS : JSON string
 // ENV_INPUT_SKYWALKING_KEEP_RARE_RESOURCE : bool
 // ENV_INPUT_SKYWALKING_CLOSE_RESOURCE : JSON string
 // ENV_INPUT_SKYWALKING_SAMPLER : float
@@ -34,7 +34,7 @@ var _ inputs.ReadEnv = &Input{}
 // export ENV_INPUT_SKYWALKING_HTTP_ENDPOINTS=`["/v3/trace", "/v3/metric", "/v3/logging", "/v3/profiling"]`
 // export ENV_INPUT_SKYWALKING_GRPC_ENDPOINT="127.0.0.1:11800"
 // export ENV_INPUT_SKYWALKING_PLUGINS=`["db.type", "os.call"]`
-// export ENV_INPUT_SKYWALKING_CUSTOMER_TAGS=`["key1", "key2", "key3"]`
+// export ENV_INPUT_SKYWALKING_IGNORE_TAGS=`["block1", "block2"]`
 // export ENV_INPUT_SKYWALKING_KEEP_RARE_RESOURCE=true
 // export ENV_INPUT_SKYWALKING_CLOSE_RESOURCE=`{"service1":["resource1"], "service2":["resource2"], "service3":["resource3"]}`
 // export ENV_INPUT_SKYWALKING_SAMPLER=0.3
@@ -46,7 +46,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 
 	for _, key := range []string{
 		"ENV_INPUT_SKYWALKING_HTTP_ENDPOINTS", "ENV_INPUT_SKYWALKING_GRPC_ENDPOINT", "ENV_INPUT_SKYWALKING_PLUGINS",
-		"ENV_INPUT_SKYWALKING_CUSTOMER_TAGS", "ENV_INPUT_SKYWALKING_KEEP_RARE_RESOURCE", "ENV_INPUT_SKYWALKING_CLOSE_RESOURCE",
+		"ENV_INPUT_SKYWALKING_IGNORE_TAGS", "ENV_INPUT_SKYWALKING_KEEP_RARE_RESOURCE", "ENV_INPUT_SKYWALKING_CLOSE_RESOURCE",
 		"ENV_INPUT_SKYWALKING_SAMPLER", "ENV_INPUT_SKYWALKING_TAGS", "ENV_INPUT_SKYWALKING_THREADS", "ENV_INPUT_SKYWALKING_STORAGE",
 	} {
 		value, ok := envs[key]
@@ -70,12 +70,12 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			} else {
 				ipt.Plugins = list
 			}
-		case "ENV_INPUT_SKYWALKING_CUSTOMER_TAGS":
+		case "ENV_INPUT_SKYWALKING_IGNORE_TAGS":
 			var list []string
 			if err := json.Unmarshal([]byte(value), &list); err != nil {
 				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
 			} else {
-				ipt.CustomerTags = list
+				ipt.IgnoreTags = list
 			}
 		case "ENV_INPUT_SKYWALKING_KEEP_RARE_RESOURCE":
 			if ok, err := strconv.ParseBool(value); err != nil {

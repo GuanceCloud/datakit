@@ -94,7 +94,7 @@ func (*TraceReportServerV3Old) Collect(tsr agentv3old.TraceSegmentReportService_
 			}
 			dktrace := parseSegmentObjectV3(newSegObj)
 			if len(dktrace) != 0 && afterGatherRun != nil {
-				afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace}, false)
+				afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace})
 			}
 		} else {
 			if err = localCache.Put(storage.SKY_WALKING_GRPC_KEY, bts); err != nil {
@@ -122,7 +122,7 @@ func (*TraceReportServerV3Old) CollectInSync(ctx context.Context, col *agentv3.S
 			}
 			dktrace := parseSegmentObjectV3(newSegObj)
 			if len(dktrace) != 0 && afterGatherRun != nil {
-				afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace}, false)
+				afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace})
 			}
 		} else {
 			if err = localCache.Put(storage.SKY_WALKING_GRPC_KEY, bts); err != nil {
@@ -246,7 +246,7 @@ func (*TraceReportServerV3) Collect(tsr agentv3.TraceSegmentReportService_Collec
 		if localCache == nil || !localCache.Enabled() {
 			dktrace := parseSegmentObjectV3(segobj)
 			if len(dktrace) != 0 && afterGatherRun != nil {
-				afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace}, false)
+				afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace})
 			}
 		} else {
 			if bts, err := proto.Marshal(segobj); err != nil {
@@ -267,7 +267,7 @@ func (*TraceReportServerV3) CollectInSync(ctx context.Context, col *agentv3.Segm
 		if localCache == nil || !localCache.Enabled() {
 			dktrace := parseSegmentObjectV3(segobj)
 			if len(dktrace) != 0 && afterGatherRun != nil {
-				afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace}, false)
+				afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace})
 			}
 		} else {
 			if bts, err := proto.Marshal(segobj); err != nil {

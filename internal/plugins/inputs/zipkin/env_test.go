@@ -40,7 +40,7 @@ func TestReadEnv(t *testing.T) {
 			envs: map[string]string{
 				"ENV_INPUT_ZIPKIN_PATH_V1":            "/api/v1/spans",
 				"ENV_INPUT_ZIPKIN_PATH_V2":            "/api/v2/spans",
-				"ENV_INPUT_ZIPKIN_CUSTOMER_TAGS":      `["key1", "key2", "key3"]`,
+				"ENV_INPUT_ZIPKIN_IGNORE_TAGS":        `["block1", "block2"]`,
 				"ENV_INPUT_ZIPKIN_KEEP_RARE_RESOURCE": "true",
 				"ENV_INPUT_ZIPKIN_CLOSE_RESOURCE":     `{"service1":["resource1"], "service2":["resource2"], "service3":["resource3"]}`,
 				"ENV_INPUT_ZIPKIN_SAMPLER":            "0.3",
@@ -51,7 +51,7 @@ func TestReadEnv(t *testing.T) {
 			expected: &Input{
 				PathV1:           "/api/v1/spans",
 				PathV2:           "/api/v2/spans",
-				CustomerTags:     []string{"key1", "key2", "key3"},
+				IgnoreTags:       []string{"block1", "block2"},
 				KeepRareResource: true,
 				CloseResource:    map[string][]string{"service1": {"resource1"}, "service2": {"resource2"}, "service3": {"resource3"}},
 				Sampler:          &trace.Sampler{SamplingRateGlobal: 0.3},

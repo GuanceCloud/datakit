@@ -54,11 +54,11 @@ dk-installer
 docker/agent
 docker/datakit
 embed/*
-internal/git/git.go
 install_local.sh
 install.ps1
 install.sh
 internal-pipelines.json
+internal/git/git.go
 internal/http/req.db
 internal/io/parser/gram_y.go
 iploc.bin

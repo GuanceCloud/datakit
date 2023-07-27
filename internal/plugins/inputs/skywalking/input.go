@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -22,6 +23,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
@@ -52,10 +54,9 @@ const (
   ## the value of the key word will be used to set the service name.
   # plugins = ["db.type"]
 
-  ## customer_tags is a list of keys contains keys set by client code like span.SetTag(key, value)
-  ## that want to send to data center. Those keys set by client code will take precedence over
-  ## keys in [inputs.skywalking.tags]. DOT(.) IN KEY WILL BE REPLACED BY DASH(_) WHEN SENDING.
-  # customer_tags = ["key1", "key2", ...]
+  ## ignore_tags will work as a blacklist to prevent tags send to data center.
+  ## Every value in this list is a valid string of regular expression.
+  # ignore_tags = ["block1", "block2"]
 
   ## Keep rare tracing resources list switch.
   ## If some resources are rare enough(not presend in 1 hour), those resource will always send
@@ -105,7 +106,7 @@ var (
 	address                                   = "localhost:11800"
 	plugins                                   []string
 	afterGatherRun                            itrace.AfterGatherHandler
-	customerKeys                              []string
+	ignoreTags                                []*regexp.Regexp
 	tags                                      map[string]string
 	wkpool                                    *workerpool.WorkerPool
 	localCache                                *storage.Storage
@@ -113,13 +114,14 @@ var (
 )
 
 type Input struct {
-	V2               interface{}                  `toml:"V2"`        // deprecated *skywalkingConfig
-	V3               interface{}                  `toml:"V3"`        // deprecated *skywalkingConfig
-	Pipelines        map[string]string            `toml:"pipelines"` // deprecated
+	V2               interface{}                  `toml:"V2"`            // deprecated *skywalkingConfig
+	V3               interface{}                  `toml:"V3"`            // deprecated *skywalkingConfig
+	Pipelines        map[string]string            `toml:"pipelines"`     // deprecated
+	CustomerTags     []string                     `toml:"customer_tags"` // deprecated
 	Endpoints        []string                     `toml:"endpoints"`
 	Address          string                       `toml:"address"`
 	Plugins          []string                     `toml:"plugins"`
-	CustomerTags     []string                     `toml:"customer_tags"`
+	IgnoreTags       []string                     `toml:"ignore_tags"`
 	KeepRareResource bool                         `toml:"keep_rare_resource"`
 	CloseResource    map[string][]string          `toml:"close_resource"`
 	Sampler          *itrace.Sampler              `toml:"sampler"`
@@ -128,7 +130,6 @@ type Input struct {
 	LocalCacheConfig *storage.StorageConfig       `toml:"storage"`
 
 	feeder  dkio.Feeder
-	opt     point.Option
 	semStop *cliutils.Sem // start stop signal
 }
 
@@ -197,7 +198,7 @@ func (ipt *Input) RegHTTPHandler() {
 				}
 				dktrace := parseSegmentObjectV3(segobj)
 				if len(dktrace) != 0 && afterGatherRun != nil {
-					afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace}, false)
+					afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace})
 				}
 
 				log.Debugf("### process status: buffer-size: %dkb, cost: %dms, err: %v", len(buf)>>10, time.Since(start)/time.Millisecond, err)
@@ -215,12 +216,13 @@ func (ipt *Input) RegHTTPHandler() {
 		afterGather = itrace.NewAfterGather(
 			itrace.WithLogger(log),
 			itrace.WithRetry(100*time.Millisecond),
-			itrace.WithBlockIOModel(true),
-			itrace.WithInputOption(ipt.opt),
+			itrace.WithIOBlockingMode(true),
+			itrace.WithPointOptions(point.WithExtraTags(dkpt.GlobalHostTags())),
 			itrace.WithFeeder(ipt.feeder),
 		)
 	} else {
-		afterGather = itrace.NewAfterGather(itrace.WithLogger(log), itrace.WithInputOption(ipt.opt), itrace.WithFeeder(ipt.feeder))
+		afterGather = itrace.NewAfterGather(itrace.WithLogger(log),
+			itrace.WithPointOptions(point.WithExtraTags(dkpt.GlobalHostTags())), itrace.WithFeeder(ipt.feeder))
 	}
 	afterGatherRun = afterGather
 
@@ -268,6 +270,15 @@ func (ipt *Input) RegHTTPHandler() {
 }
 
 func (ipt *Input) Run() {
+	for _, v := range ipt.IgnoreTags {
+		if rexp, err := regexp.Compile(v); err != nil {
+			log.Debug(err.Error())
+		} else {
+			ignoreTags = append(ignoreTags, rexp)
+		}
+	}
+	tags = ipt.Tags
+
 	// start up grpc v3 routine
 	if len(ipt.Address) == 0 {
 		ipt.Address = address

@@ -68,7 +68,7 @@ func handleOTELTrace(resp http.ResponseWriter, req *http.Request) {
 
 	if afterGatherRun != nil {
 		if dktraces := parseResourceSpans(tsreq.ResourceSpans); len(dktraces) != 0 {
-			afterGatherRun.Run(inputName, dktraces, false)
+			afterGatherRun.Run(inputName, dktraces)
 		}
 	}
 }

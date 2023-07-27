@@ -65,7 +65,7 @@ func parseJaegerTrace(param *itrace.TraceParameters) error {
 	}
 
 	if dktrace := batchToDkTrace(batch); len(dktrace) != 0 && afterGatherRun != nil {
-		afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace}, false)
+		afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace})
 	}
 
 	return nil
@@ -121,7 +121,10 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 		for _, tag := range span.Tags {
 			sourceTags[tag.Key] = tag.String()
 		}
-		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
+		var err error
+		if dkspan.Tags, err = itrace.MergeInToCustomerTags(tags, sourceTags, ignoreTags, nil); err != nil {
+			log.Debug(err.Error())
+		}
 		if project != "" {
 			dkspan.Tags[itrace.PROJECT] = project
 		}

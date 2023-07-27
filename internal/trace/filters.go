@@ -68,7 +68,9 @@ func (cres *CloseResource) UpdateIgnResList(ignResList map[string][]string) {
 		for service, resList := range ignResList {
 			ignResRegs[service] = []*regexp.Regexp{}
 			for i := range resList {
-				ignResRegs[service] = append(ignResRegs[service], regexp.MustCompile(resList[i]))
+				if rexp, err := regexp.Compile(resList[i]); err == nil {
+					ignResRegs[service] = append(ignResRegs[service], rexp)
+				}
 			}
 		}
 		cres.IgnoreResources = ignResRegs

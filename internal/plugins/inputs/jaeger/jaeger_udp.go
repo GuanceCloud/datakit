@@ -106,7 +106,7 @@ func parseJaegerTraceUDP(param *itrace.TraceParameters) error {
 	}
 
 	if dktrace := batchToDkTrace(batch.Batch); len(dktrace) != 0 && afterGatherRun != nil {
-		afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace}, false)
+		afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace})
 	}
 
 	return nil

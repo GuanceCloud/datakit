@@ -75,7 +75,7 @@ collector.backend_service=${SW_AGENT_COLLECTOR_BACKEND_SERVICES:<datakit-ip:skyw
     | `ENV_INPUT_SKYWALKING_HTTP_ENDPOINTS`     | JSON string | `["/v3/trace", "/v3/metric", "/v3/logging", "/v3/profiling"]`                        |
     | `ENV_INPUT_SKYWALKING_GRPC_ENDPOINT`      | string      | "127.0.0.1:11800"                                                                    |
     | `ENV_INPUT_SKYWALKING_PLUGINS`            | JSON string | `["db.type", "os.call"]`                                                             |
-    | `ENV_INPUT_SKYWALKING_CUSTOMER_TAGS`      | JSON string | `["key1", "key2", "key3"]`                                                           |
+    | `ENV_INPUT_SKYWALKING_IGNORE_TAGS`        | JSON string | `["block1", "block2"]`                                                               |
     | `ENV_INPUT_SKYWALKING_KEEP_RARE_RESOURCE` | bool        | true                                                                                 |
     | `ENV_INPUT_SKYWALKING_CLOSE_RESOURCE`     | JSON string | `{"service1":["resource1"], "service2":["resource2"], "service3":    ["resource3"]}` |
     | `ENV_INPUT_SKYWALKING_SAMPLER`            | float       | 0.3                                                                                  |

@@ -40,7 +40,7 @@ func TestReadEnv(t *testing.T) {
 			envs: map[string]string{
 				"ENV_INPUT_JAEGER_HTTP_ENDPOINT":      "/apis/traces",
 				"ENV_INPUT_JAEGER_UDP_ENDPOINT":       "127.0.0.1:6831",
-				"ENV_INPUT_JAEGER_CUSTOMER_TAGS":      `["key1", "key2", "key3"]`,
+				"ENV_INPUT_JAEGER_IGNORE_TAGS":        `["block1", "block2"]`,
 				"ENV_INPUT_JAEGER_KEEP_RARE_RESOURCE": "true",
 				"ENV_INPUT_JAEGER_CLOSE_RESOURCE":     `{"service1":["resource1"], "service2":["resource2"], "service3":["resource3"]}`,
 				"ENV_INPUT_JAEGER_SAMPLER":            "0.3",
@@ -51,7 +51,7 @@ func TestReadEnv(t *testing.T) {
 			expected: &Input{
 				Endpoint:         "/apis/traces",
 				Address:          "127.0.0.1:6831",
-				CustomerTags:     []string{"key1", "key2", "key3"},
+				IgnoreTags:       []string{"block1", "block2"},
 				KeepRareResource: true,
 				CloseResource:    map[string][]string{"service1": {"resource1"}, "service2": {"resource2"}, "service3": {"resource3"}},
 				Sampler:          &trace.Sampler{SamplingRateGlobal: 0.3},

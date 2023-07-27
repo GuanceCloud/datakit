@@ -125,7 +125,7 @@ func parseDDTraces(param *itrace.TraceParameters) error {
 	}
 
 	if len(dktraces) != 0 && afterGatherRun != nil {
-		afterGatherRun.Run(inputName, dktraces, false)
+		afterGatherRun.Run(inputName, dktraces)
 	}
 
 	return nil
@@ -210,61 +210,10 @@ func mergeTraces(traces DDTraces) DDTraces {
 	return merged
 }
 
-func pickupMeta(dkspan *itrace.DatakitSpan, ddspan *DDSpan, keys ...string) {
-	if dkspan.Tags == nil {
-		dkspan.Tags = make(map[string]string)
-	}
-
-	for i := range keys {
-		if v, ok := ddspan.Meta[keys[i]]; ok {
-			dkspan.Tags[keys[i]] = v
-		}
-	}
-
-	if pid, ok := ddspan.Metrics["system.pid"]; ok {
-		dkspan.Tags[itrace.TAG_PID] = strconv.FormatInt(int64(pid), 10)
-	}
-	if runtimeid, ok := ddspan.Meta["runtime-id"]; ok {
-		dkspan.Tags["runtime_id"] = runtimeid
-	}
-	if origin, ok := ddspan.Meta["_dd.origin"]; ok {
-		dkspan.Tags["_dd_origin"] = origin
-	}
-
-	if dkspan.SourceType == itrace.SPAN_SOURCE_WEB {
-		if host, ok := ddspan.Meta["http.host"]; ok {
-			dkspan.Tags[itrace.TAG_HTTP_HOST] = host
-		}
-		if url, ok := ddspan.Meta["http.url"]; ok {
-			dkspan.Tags[itrace.TAG_HTTP_URL] = url
-		}
-		if route, ok := ddspan.Meta["http.route"]; ok {
-			dkspan.Tags[itrace.TAG_HTTP_ROUTE] = route
-		}
-		if method, ok := ddspan.Meta["http.method"]; ok {
-			dkspan.Tags[itrace.TAG_HTTP_METHOD] = method
-		}
-		if statusCode, ok := ddspan.Meta["http.status_code"]; ok {
-			dkspan.Tags[itrace.TAG_HTTP_STATUS_CODE] = statusCode
-		}
-	}
-
-	if dkspan.Status == itrace.STATUS_ERR || dkspan.Status == itrace.STATUS_CRITICAL {
-		if errType, ok := ddspan.Meta["error.type"]; ok {
-			dkspan.Metrics[itrace.FIELD_ERR_TYPE] = errType
-		}
-		if errStack, ok := ddspan.Meta["error.stack"]; ok {
-			dkspan.Metrics[itrace.FIELD_ERR_STACK] = errStack
-		}
-		if errMsg, ok := ddspan.Meta["error.msg"]; ok {
-			dkspan.Metrics[itrace.FIELD_ERR_MESSAGE] = errMsg
-		}
-	}
-
-	if id, ok := ddspan.Meta[itrace.TRACE_128_BIT_ID]; ok {
-		dkspan.Tags[itrace.TRACE_128_BIT_ID] = id
-	}
-}
+var remapper = itrace.KeyRemapper(map[string]string{
+	"system.pid": "pid",
+	"error.msg":  "error_message",
+})
 
 func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 	var (
@@ -286,10 +235,14 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			Source:     inputName,
 			SpanType:   itrace.FindSpanTypeInMultiServersIntSpanID(span.SpanID, span.ParentID, span.Service, spanIDs, parentIDs),
 			SourceType: itrace.GetSpanSourceType(span.Type),
-			Tags:       itrace.MergeInToCustomerTags(customerKeys, tags, span.Meta),
 			Metrics:    make(map[string]interface{}),
 			Start:      span.Start,
 			Duration:   span.Duration,
+		}
+
+		var err error
+		if dkspan.Tags, err = itrace.MergeInToCustomerTags(tags, span.Meta, ignoreTags, remapper); err != nil {
+			log.Debug(err.Error())
 		}
 
 		dkspan.Status = itrace.STATUS_OK
@@ -303,8 +256,6 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 		if rate, ok := span.Metrics[keySamplingRate]; ok {
 			dkspan.Metrics[itrace.FIELD_SAMPLE_RATE] = rate
 		}
-
-		pickupMeta(dkspan, span, itrace.PROJECT, itrace.VERSION, itrace.ENV, itrace.CONTAINER_HOST)
 
 		if buf, err := json.Marshal(span); err != nil {
 			log.Warn(err.Error())
