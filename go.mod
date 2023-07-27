@@ -8,7 +8,7 @@ require (
 	github.com/DataDog/datadog-go v4.8.3+incompatible
 	github.com/DataDog/ebpf v0.0.0-20210419131141-ea64821c9793
 	github.com/DataDog/gopsutil v1.1.0
-	github.com/GuanceCloud/cliutils v0.1.2-0.20230620100236-b87195f3dd90
+	github.com/GuanceCloud/cliutils v0.1.2
 	github.com/GuanceCloud/confd v0.1.101
 	github.com/GuanceCloud/grok v1.1.2
 	github.com/GuanceCloud/platypus v0.2.5

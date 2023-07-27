@@ -145,6 +145,8 @@ github.com/GuanceCloud/client_model v0.0.0-20230418154757-93bd4e878a5e h1:i34dA4
 github.com/GuanceCloud/client_model v0.0.0-20230418154757-93bd4e878a5e/go.mod h1:PMnE48aPzuRu83FmWZugC0O3d54ZupJd/MmiaYxz8sM=
 github.com/GuanceCloud/cliutils v0.1.2-0.20230620100236-b87195f3dd90 h1:/sTREDoVPdg3CIc4X3BpSLodl3mULZUM5FdhsL7eHz0=
 github.com/GuanceCloud/cliutils v0.1.2-0.20230620100236-b87195f3dd90/go.mod h1:bRamzN5L8mjHggQYXkV7ilLaIIORRKrllPZdFYLiLEA=
+github.com/GuanceCloud/cliutils v0.1.2 h1:MuKcdu6SXoQBgHXHHN4LdUug7j6FsUhucnd8whQEYjY=
+github.com/GuanceCloud/cliutils v0.1.2/go.mod h1:bRamzN5L8mjHggQYXkV7ilLaIIORRKrllPZdFYLiLEA=
 github.com/GuanceCloud/confd v0.1.101 h1:yjHgfl6YzAlTbFOFMTE4ERpFJzIyovOW7ZFc2/ZssL0=
 github.com/GuanceCloud/confd v0.1.101/go.mod h1:o0opIwOX+yNwV9nh56x5ymFMJ+YBD8JuPxBJ7a1mEmo=
 github.com/GuanceCloud/dockertest/v3 v3.9.4 h1:ScSNhfA2HSNLfrYoNd1KSRxkrymlKiBE60g4f6eUoOk=

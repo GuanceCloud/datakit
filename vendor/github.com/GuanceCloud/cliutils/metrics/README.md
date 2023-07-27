@@ -55,36 +55,36 @@ dwAPIVec.WithLabelValues("/v1/write/metric", "Status OK").Inc()
 datakit_dataway_api_total{api="/v1/write/metric",status="Status OK"} 169
 ```
 
-## 耗时
+## 计量（counter）
 
-耗时性质的指标，有两个维度的计数，一个是次数，一个是耗时，故这里可以使用 summary：
+计量用于表示一些忽高忽低的指标，比如温度、CPU 使用率等，它不是单调递增的，
+
+## 概要（summary）
+
+概要用来表示一种自启动以来的总次数和总量之间的关系，比如网络请求总耗时和总次数，API 调用的总 Body 大小和次数，它自带两个字段：
+
+- Sample Count：表示总次数
+- Sample Sum：表示总量
+
+比如，以 HTTP 请求为例，一个指标维度就是总的请求次数和总的请求耗时，即可组成一个 summary 指标：
 
 ```golang
-dwAPILatencyVec = prometheuse.NewSummaryVec(
+httpLatencyVec = prometheuse.NewSummaryVec(
     prometheus.SummaryOpts{
-        // 复用上面的 Namespace 和 Subsystem
         Namespace : "datakit",
-        Subsystem : "dataway",
+        Subsystem : "http",
 
-        Name : "api_latency", // 具体的指标名，比如这里指 HTTP API 的发送次数（当前是一个 counter）
-        Help : "Dataway API request latency(ms)",
+        Name : "api_cost_seconds", // 具体的指标名
+        Help : "API request cost",
     },
     []string{"api", "status"}, // 这里的维度跟上面的基本一致
 )
-
-// 将该指标注册到 datakit 全局指标体系中
-metrics.MustRegister(dwAPILatencyVec)
 ```
 
 summary 可以这么用：
 
 ```golang
-start := time.Now()
-
-... // do request
-
-// 请求 /v1/write/metric 成功
-dwAPILatencyVec.WithLabelValues("/v1/write/metric", "Status OK").Observe(float64(time.Since(start)))
+httpLatencyVec.WithLabelValues("/v1/write/metric", "Status OK").Observe(float64(time.Since(start))/float64(time.Second))
 ```
 
 在最终的 /metrics 接口返回中，能看到类似如下的返回：
@@ -92,9 +92,52 @@ dwAPILatencyVec.WithLabelValues("/v1/write/metric", "Status OK").Observe(float64
 ```
 # HELP datakit_dataway_api_latency Dataway API request latency(ms)
 # TYPE datakit_dataway_api_latency summary
-datakit_dataway_api_latency_sum{api="/v1/write/metric",status="Status OK"}"} 178854
-datakit_dataway_api_latency_count{api="/v1/write/metric",status="Status OK"}"} 1357
+datakit_http_api_cost_seconds_sum{api="/v1/write/metric",status="Status OK"}"} 3.1415926
+datakit_http_api_cost_seconds_count{api="/v1/write/metric",status="Status OK"}"} 42
 ```
+
+它表示「在 API `/v1/write/metric` 上总共有 42 次请求，总的请求耗时为 3.1415926 秒」，通过简单的除法，我们即可知道该 API 上的平均耗时。
+
+### 概要的百分位
+
+上面的方式只能计算平均值，但是我们可以在 summary 中设置一定的百分位，来获取最近一段时间的数据：
+
+```golang
+httpLatencyVec = prometheuse.NewSummaryVec(
+    prometheus.SummaryOpts{
+        Namespace : "datakit",
+        Subsystem : "http",
+
+        Name : "api_cost_seconds", // 具体的指标名
+        Help : "API request cost",
+
+        Objectives: map[float64][float64] {
+            0.5:  0.05,
+            0.75: 0.0075,
+            0.95: 0.005,
+        },
+        MaxAge: 10 * time.Minute,
+        AgeBuckets: 5,
+    },
+    []string{"api", "status"}, // 这里的维度跟上面的基本一致
+)
+```
+
+这样，我们就能获取最近 10min 每个 API 上几个百分位（P50/P75/P95）的响应情况：
+
+```
+# HELP datakit_dataway_api_latency Dataway API request latency(ms)
+# TYPE datakit_dataway_api_latency summary
+datakit_http_api_cost_seconds{api="/v1/write/metric",status="Status OK",quantile="0.5"} 1.002858834
+datakit_http_api_cost_seconds{api="/v1/write/metric",status="Status OK",quantile="0.75"} 1.002858834
+datakit_http_api_cost_seconds{api="/v1/write/metric",status="Status OK",quantile="0.95"} 1.002858834
+datakit_http_api_cost_seconds_sum{api="/v1/write/metric",status="Status OK"}"} 3.1415926
+datakit_http_api_cost_seconds_count{api="/v1/write/metric",status="Status OK"}"} 42
+```
+
+## 指标命名规范
+
+Prometheus 指标有自身的命名规范，参见[官方文档](https://prometheus.io/docs/practices/naming/)。
 
 ## 报错
 
@@ -124,23 +167,23 @@ import (
     "github.com/GuanceCloud/cliutils/metrics"
 )
 
-dwAPILatencyVec = prometheuse.NewSummaryVec(
+apiLatencyVec = prometheuse.NewSummaryVec(
     prometheus.SummaryOpts{
         Namespace : "datakit",
         Subsystem : "dataway",
 
-        Name : "api_latency",
-        Help : "Dataway API request latency(ms)",
+        Name : "api_cost_seconds",
+        Help : "Dataway API request latency",
     },
     []string{"api", "status"},
 )
 
 // 构建一个 registry
 reg := prometheus.NewRegistry()
-reg.MustRegister(dwAPILatencyVec)
+reg.MustRegister(apiLatencyVec)
 
 // 塞进去一个指标
-dwAPILatencyVec.WithLabelValues("/v1/write/metric", "Status OK").Observe(float64(time.Since(start)))
+apiLatencyVec.WithLabelValues("/v1/write/metric", "Status OK").Observe(float64(time.Since(start))/float64(time.Second))
 
 // 获取 reg 上所有指标
 mfs, err := reg.Gather()
