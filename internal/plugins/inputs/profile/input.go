@@ -513,6 +513,8 @@ func (r *reverseProxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 			buf.Write(bodyBytes)
 			bodyReader = &buf
+			req.Header.Set("Content-Length", strconv.Itoa(buf.Len()))
+			req.ContentLength = int64(buf.Len())
 		}()
 	}
 
