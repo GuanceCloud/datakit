@@ -3,7 +3,7 @@
 
 ---
 
-DataKit now supports two Java profiling tools: [dd-trace-java](https://github.com/DataDog/dd-trace-java){:target="_blank"} and [async-profiler](https://github.com/async-profiler/async-profiler){:target="_blank"}.
+Datakit now supports two Java profiling tools: [dd-trace-java](https://github.com/DataDog/dd-trace-java){:target="_blank"} and [async-profiler](https://github.com/async-profiler/async-profiler){:target="_blank"}.
 
 ## dd-trace-java {#ddtrace}
 
@@ -150,7 +150,7 @@ By default, the program name will be automatically obtained as a 'service' to re
 java -Ddk.service=<service-name> ... -jar <your-jar>
 ```
 
-There are two integration method：
+There are two integration methods：
 
 - [automate（Recommend）](profile-java.md#script)
 - [manual](profile-java.md#manual)

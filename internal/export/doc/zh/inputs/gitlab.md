@@ -1,6 +1,6 @@
 ---
 title     : 'GitLab'
-summary   : '采集 Gitlat 的指标数据'
+summary   : '采集 Gitlab 的指标数据'
 __int_icon      : 'icon/gitlab'
 dashboard :
   - desc  : 'GitLab'

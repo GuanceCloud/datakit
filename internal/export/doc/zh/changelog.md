@@ -22,13 +22,20 @@
 ### 兼容调整 {#cl-x.x.x-brk}
 -->
 
+
+## 1.12.1(2023/07/28) {#cl-1.12.1}
+
+- 修复老版本 DDTrace Python Profile 接入问题（#1800）
+
+---
+
 ## 1.12.0(2023/07/27) {#cl-1.12.0}
 
 本次发布属于迭代发布，主要有如下更新：
 
 ### 新加功能 {#cl-1.12.0-new}
 
-- [HTTP API](api.md##api-sourcemap) 增加 sourcemap 文件上传（#1782）
+- [HTTP API](apis.md##api-sourcemap) 增加 sourcemap 文件上传（#1782）
 - 新增 .net Profiling 接入支持（#1772）
 - 新增 Couchbase 采集器（#1717）
 
