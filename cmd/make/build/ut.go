@@ -59,14 +59,14 @@ func UnitTestDataKit() error {
 
 	lenPkgs := len(pkgs)
 	addPassedPkgsJobs = make(chan passedPkgsOpt, lenPkgs)
-	lenHugePkgs := len(hugePackages)
-	lenPkgs -= lenHugePkgs
 	go workAddPassedPkgs()
 
 	wg.Add(lenPkgs)
 	for i, p := range pkgs {
+		i++
 		if hugePackages[p] {
 			fmt.Printf("%s is HUGE package, testing it later, skip...\n", p)
+			wg.Done()
 			continue
 		}
 		jobs <- Job{
@@ -93,6 +93,7 @@ func UnitTestDataKit() error {
 	}
 	if !skipHuge {
 		nIdx := 0
+		lenHugePkgs := len(hugePackages)
 		for pkg := range hugePackages {
 			nIdx++
 			doWork(1, Job{
@@ -103,10 +104,10 @@ func UnitTestDataKit() error {
 				wg:      nil,
 			})
 		}
-	}
 
-	costHuge := time.Now()
-	fmt.Printf("Huge tests completed, costs = %v, total = %v\n", costHuge.Sub(costNormal), costHuge.Sub(start))
+		costHuge := time.Now()
+		fmt.Printf("Huge tests completed, costs = %v, total = %v\n", costHuge.Sub(costNormal), costHuge.Sub(start))
+	}
 
 	close(addPassedPkgsJobs)
 
