@@ -47,7 +47,7 @@ Datakit 启动后。默认会暴露一些 [Prometheus 指标](../datakit/datakit
     | 环境变量名                        | 说明                            | 参数示例                                                                               |
     | :---                              | ---                             | ---                                                                                    |
     | `ENV_INPUT_DK_ENABLE_ALL_METRICS` | 开启所有指标采集                | 任意非空字符串，如 `on/yes/`                                                           |
-    | `ENV_INPUT_DK_ADD_METRICS`        | 追加指标列表（JSON 数组）       | `["datakit_io_.*", "datakit_pipeline_.*"]`，可用的指标名参见[这里](datakit-metrics.md) |
+    | `ENV_INPUT_DK_ADD_METRICS`        | 追加指标列表（JSON 数组）       | `["datakit_io_.*", "datakit_pipeline_.*"]`，可用的指标名参见[这里](../datakit/datakit-metrics.md) |
     | `ENV_INPUT_DK_ONLY_METRICS`       | **只开启**指定指标（JSON 数组） | `["datakit_io_.*", "datakit_pipeline_.*"]`                                             |
 <!-- markdownlint-enable -->
 
