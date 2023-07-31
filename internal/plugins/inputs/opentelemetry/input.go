@@ -296,13 +296,13 @@ func (ipt *Input) RegHTTPHandler() {
 
 	log.Debugf("### register handler for %s of agent %s", ipt.HTTPConfig.TraceAPI, inputName)
 	statusOK = ipt.HTTPConfig.StatusCodeOK
-	httpapi.RegHTTPHandler("POST", "/otel/v1/trace",
+	httpapi.RegHTTPHandler("POST", ipt.HTTPConfig.TraceAPI,
 		httpapi.CheckExpectedHeaders(
 			workerpool.HTTPWrapper(httpStatusRespFunc, wkpool,
 				httpapi.HTTPStorageWrapper(storage.HTTP_KEY, httpStatusRespFunc, localCache, handleOTELTrace)), log, expectedHeaders))
 
 	log.Debugf("### register handler for %s of agent %s", ipt.HTTPConfig.MetricAPI, inputName)
-	httpapi.RegHTTPHandler("POST", "/otel/v1/metric", httpapi.CheckExpectedHeaders(handleOTElMetrics, log, expectedHeaders))
+	httpapi.RegHTTPHandler("POST", ipt.HTTPConfig.MetricAPI, httpapi.CheckExpectedHeaders(handleOTElMetrics, log, expectedHeaders))
 }
 
 func (ipt *Input) Run() {
