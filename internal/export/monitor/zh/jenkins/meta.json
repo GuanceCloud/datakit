@@ -135,7 +135,7 @@
         "title": "Jenkins队列中阻塞状态的作业数量较多",
         "type": "simpleCheck"
       },
-      "monitorName": "Jenkins"
+      "monitorName": "Jenkins 检测库"
     },
     {
       "extend": {
@@ -270,7 +270,7 @@
         "title": "Jenkins队列中阻塞项目的百分比较高",
         "type": "simpleCheck"
       },
-      "monitorName": "Jenkins"
+      "monitorName": "Jenkins 检测库"
     }
   ]
 }
