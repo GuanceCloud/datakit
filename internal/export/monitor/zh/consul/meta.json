@@ -49,6 +49,7 @@
         "atNoDataAccounts": [],
         "channels": [],
         "checkerOpt": {
+          "infoEvent": false,
           "rules": [
             {
               "conditionLogic": "and",
@@ -81,10 +82,10 @@
             "dql": "M::`consul`:(LAST(`serf_lan_member_status`)) BY `instance`, `host`"
           }
         ],
-        "title": "Consul 集群里成员的状态存在异常",
+        "title": "Consul集群里成员的状态存在异常",
         "type": "simpleCheck"
       },
-      "monitorName": "默认"
+      "monitorName": "Consul 检测库"
     }
   ]
 }

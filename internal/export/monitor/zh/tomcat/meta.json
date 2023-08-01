@@ -111,10 +111,10 @@
             "dql": "M::`tomcat_global_request_processor`:(AVG(`processingTime`)) BY `jolokia_agent_url`"
           }
         ],
-        "title": "[Tomcat]主机的处理请求的总时间发生较大变化",
+        "title": "Tomcat主机的处理请求的总时间发生较大变化",
         "type": "seniorMutationsCheck"
       },
-      "monitorName": "默认"
+      "monitorName": "Tomcat检测库"
     },
     {
       "extend": {
@@ -253,10 +253,10 @@
             "dql": "M::`tomcat_global_request_processor`:(AVG(`errorCount`)) BY `jolokia_agent_url`"
           }
         ],
-        "title": "[Tomcat]主机的错误请求数发生较大变化",
+        "title": "Tomcat主机的错误请求数发生较大变化",
         "type": "seniorMutationsCheck"
       },
-      "monitorName": "默认"
+      "monitorName": "Tomcat检测库"
     },
     {
       "extend": {
@@ -395,10 +395,10 @@
             "dql": "M::`tomcat_global_request_processor`:(AVG(`requestCount`)) BY `jolokia_agent_url`"
           }
         ],
-        "title": "[Tomcat]主机的请求数量发生较大变化",
+        "title": "Tomcat主机的请求数量发生较大变化",
         "type": "seniorMutationsCheck"
       },
-      "monitorName": "默认"
+      "monitorName": "Tomcat检测库"
     },
     {
       "extend": {
@@ -556,10 +556,10 @@
             "dql": "eval(B / A, A=\"M::`tomcat_thread_pool`:(AVG(`currentThreadCount`)) BY `jolokia_agent_url`\", B=\"M::`tomcat_thread_pool`:(AVG(`currentThreadsBusy`)) BY `jolokia_agent_url`\")"
           }
         ],
-        "title": "[Tomcat]主机的繁忙线程百分比较高",
+        "title": "Tomcat主机的繁忙线程百分比较高",
         "type": "simpleCheck"
       },
-      "monitorName": "默认"
+      "monitorName": "Tomcat检测库"
     }
   ]
 }
