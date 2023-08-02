@@ -52,7 +52,7 @@ graph TD
   is_input_ok -->|Yes| dataway_upload_ok -->|Yes| dql;
   is_input_ok --> filtered --> sinked;
 
-  trouble_shooting[<a href='https://docs.guance.com/datakit/why-no-data/#bug-report'>收集信息</a>];
+  trouble_shooting[<a href='https://docs.guance.com/datakit/why-no-data/#bug-report'>Collect Running Info</a>];
 
   debug_fail --> trouble_shooting;
   trouble_shooting --> ligai;
