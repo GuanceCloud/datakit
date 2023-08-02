@@ -147,7 +147,7 @@
             "dql": "eval(A/B, A=\"M::`flink`:(LAST(`taskmanager_Status_JVM_Memory_Heap_Used`))\", B=\"M::`flink`:(LAST(`taskmanager_Status_JVM_Memory_Heap_Max`))\")"
           }
         ],
-        "title": "主机 {{ host }} 发生 TaskManager 堆内存不足异常",
+        "title": "Flink主机 {{ host }} 发生 TaskManager 堆内存不足异常",
         "type": "simpleCheck"
       },
       "monitorName": "Flink 检测库"
