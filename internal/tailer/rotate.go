@@ -11,7 +11,7 @@ import (
 )
 
 func DidRotate(file *os.File, lastReadOffset int64) (bool, error) {
-	f, err := os.Open(file.Name())
+	f, err := openFile(file.Name())
 	if err != nil {
 		return false, err
 	}

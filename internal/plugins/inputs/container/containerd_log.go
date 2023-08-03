@@ -58,6 +58,8 @@ func (c *containerdInput) tailingLogs(info *containerLogInfo) {
 	g := goroutine.NewGroup(goroutine.Option{Name: "containerd-logs/" + info.containerName})
 	done := make(chan interface{})
 
+	fromBeginning := time.Since(time.Unix(0, info.createdAt)) < time.Minute*5
+
 	for _, cfg := range info.logConfigs {
 		if cfg.Disable {
 			continue
@@ -77,6 +79,7 @@ func (c *containerdInput) tailingLogs(info *containerLogInfo) {
 			BlockingMode:             c.ipt.LoggingBlockingMode,
 			MinFlushInterval:         c.ipt.LoggingMinFlushInterval,
 			MaxMultilineLifeDuration: c.ipt.LoggingMaxMultilineLifeDuration,
+			FromBeginning:            fromBeginning,
 			Done:                     done,
 		}
 
@@ -122,6 +125,7 @@ func (c *containerdInput) queryContainerLogInfo(resp *cri.ContainerStatusRespons
 		podName:       getPodNameForLabels(labels),
 		podNamespace:  getPodNamespaceForLabels(labels),
 		logPath:       status.GetLogPath(),
+		createdAt:     status.GetCreatedAt(),
 	}
 
 	if info.containerName == "" {
