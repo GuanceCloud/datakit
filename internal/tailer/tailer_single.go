@@ -90,7 +90,7 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 		return nil, err
 	}
 
-	t.file, err = os.Open(filepath.Clean(filename))
+	t.file, err = openFile(filepath.Clean(filename))
 	if err != nil {
 		return nil, err
 	}
@@ -211,7 +211,7 @@ func (t *Single) reopen() error {
 	t.closeFile()
 
 	var err error
-	t.file, err = os.Open(t.filepath)
+	t.file, err = openFile(t.filepath)
 	if err != nil {
 		return fmt.Errorf("unable to open file %s: %w", t.filepath, err)
 	}

@@ -61,6 +61,7 @@ type containerLogInfo struct {
 	podName       string
 	podNamespace  string
 	logPath       string
+	createdAt     int64
 
 	tags      map[string]string
 	podLabels map[string]string

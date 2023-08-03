@@ -86,6 +86,7 @@ func (d *dockerInput) queryContainerLogInfo(ctx context.Context, container *type
 		podNamespace:  getPodNamespaceForLabels(labels),
 		image:         container.Image,
 		logPath:       inspect.LogPath,
+		createdAt:     container.Created,
 	}
 
 	if info.containerName == "" {

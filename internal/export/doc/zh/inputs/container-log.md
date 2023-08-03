@@ -328,8 +328,8 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
 
 > 所谓不手动指定容器日志来源，就是指在 Pod Annotation 中不指定，在 container.conf 中也不指定（目前 container.conf 中无指定容器日志来源的配置项）
 
-- 容器本身的名称：通过 `docker ps` 或 `crictl ps` 能看到的容器名
 - Kubernetes 指定的容器名：从容器的 `io.kubernetes.container.name` 这个 label 上取值
+- 容器本身的名称：通过 `docker ps` 或 `crictl ps` 能看到的容器名
 - `default`: 默认的 `source`
 
 ## 延伸阅读 {#more-reading}
