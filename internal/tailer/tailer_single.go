@@ -120,7 +120,7 @@ func (t *Single) Close() {
 
 func (t *Single) seekOffset() error {
 	if t.file == nil {
-		return fmt.Errorf("unreachable, invalid file pointer")
+		return fmt.Errorf("unexpected file pointer")
 	}
 
 	var ret int64
@@ -128,13 +128,14 @@ func (t *Single) seekOffset() error {
 
 	if pos := t.getPosition(); pos != -1 {
 		ret, err = t.file.Seek(pos, io.SeekStart)
-		t.opt.log.Debugf("setting position %d to filename %s", pos, t.filepath)
+		t.opt.log.Infof("set position %d for filename %s", pos, t.filepath)
 	} else {
 		if t.opt.FromBeginning {
 			ret, err = t.file.Seek(0, io.SeekStart)
-			t.opt.log.Debugf("setting 'from_beginning' to filename %s", t.filepath)
+			t.opt.log.Infof("set start position for filename %s", t.filepath)
 		} else {
 			ret, err = t.file.Seek(0, io.SeekEnd)
+			t.opt.log.Infof("set end position for filename %s", t.filepath)
 		}
 	}
 
@@ -148,10 +149,8 @@ func (t *Single) getPosition() (pos int64) {
 
 	data := register.Get(getFileKey(t.filepath))
 	if data == nil {
-		t.opt.log.Infof("not found logtail cache for file %s, skip", t.filepath)
 		return
 	}
-	t.opt.log.Debugf("hit offset %d from filename %s", data.Offset, t.filepath)
 
 	stat, err := t.file.Stat()
 	if err != nil {

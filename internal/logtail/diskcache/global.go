@@ -30,8 +30,6 @@ var (
 	globalPBChan chan *PBData
 
 	initOnce sync.Once
-	//nolint
-	initErr error
 
 	l = logger.DefaultSLogger("logging-cache")
 )
@@ -44,6 +42,8 @@ const (
 )
 
 func Start(opts ...Option) error {
+	var err error
+
 	initOnce.Do(func() {
 		l = logger.SLogger("logging-cache")
 
@@ -53,8 +53,8 @@ func Start(opts ...Option) error {
 		}
 
 		config := &storage.StorageConfig{Path: c.path, Capacity: c.capacity}
-		globalCache, initErr = storage.NewStorage(config, l)
-		if initErr != nil {
+		globalCache, err = storage.NewStorage(config, l)
+		if err != nil {
 			return
 		}
 
@@ -68,10 +68,12 @@ func Start(opts ...Option) error {
 			return nil
 		})
 
-		initErr = globalCache.RunConsumeWorker()
-		if initErr != nil {
+		err = globalCache.RunConsumeWorker()
+		if err != nil {
 			return
 		}
+
+		l.Infof("init diskcache success, path: %s, capacity: %dMiB", c.path, c.capacity)
 
 		for i := 0; i < c.consumerNum; i++ {
 			g := goroutine.NewGroup(goroutine.Option{Name: "logtail-dickcache"})
@@ -79,7 +81,7 @@ func Start(opts ...Option) error {
 				for {
 					select {
 					case <-datakit.Exit.Wait():
-						l.Debug("consumer goroutine exit")
+						l.Info("consumer goroutine exit")
 						return nil
 
 					case pbdata := <-globalPBChan:
@@ -92,7 +94,7 @@ func Start(opts ...Option) error {
 		}
 	})
 
-	return initErr
+	return err
 }
 
 func Put(buf []byte) error {
