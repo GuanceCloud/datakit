@@ -201,13 +201,19 @@ func Compile() error {
 			return err
 		}
 
-		if err := compileArch(AppBin, goos, goarch, dir, MainEntry); err != nil {
+		if err := compileArch(AppBin, goos, goarch, dir, MainEntry, "with_inputs"); err != nil {
 			return err
 		}
 
 		upgraderDir := fmt.Sprintf("%s/%s-%s-%s", BuildDir, upgrader.BuildBinName, goos, goarch)
 		l.Debugf("upgraderDir = %s", dir)
-		if err := compileArch(upgrader.BuildBinName, goos, goarch, upgraderDir, upgrader.BuildEntranceFile); err != nil {
+		if err := compileArch(upgrader.BuildBinName,
+			goos,
+			goarch,
+			upgraderDir,
+			upgrader.BuildEntranceFile,
+			"not-set",
+		); err != nil {
 			return fmt.Errorf("unable to build %s : %w", upgrader.BuildBinName, err)
 		}
 
@@ -230,7 +236,7 @@ func Compile() error {
 	return nil
 }
 
-func compileArch(bin, goos, goarch, dir, mainEntranceFile string) error {
+func compileArch(bin, goos, goarch, dir, mainEntranceFile, tags string) error {
 	output := filepath.Join(dir, bin)
 	if goos == datakit.OSWindows {
 		output += winBinSuffix
@@ -243,15 +249,22 @@ func compileArch(bin, goos, goarch, dir, mainEntranceFile string) error {
 
 	var cmdArgs []string
 
+	if tags == "" {
+		tags = "not-set"
+	}
+
 	// race-detection need cgo
 	if RaceDetection && runtime.GOOS == goos && runtime.GOARCH == goarch {
 		l.Infof("race deteciton enabled")
 		cmdArgs = []string{
-			"go", "build", "-race",
+			"go", "build",
+			"-tags", tags,
+			"-race",
 		}
 	} else {
 		cmdArgs = []string{
 			"go", "build",
+			"-tags", tags,
 		}
 	}
 
