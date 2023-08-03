@@ -47,6 +47,36 @@ DataKit 安装完成后，默认会开启一批采集器，无需手动开启。
 | [容器（`container`）](../integrations/container.md)               | 采集主机上可能的容器或 Kubernetes 数据，假定主机上没有容器，则采集器会直接退出 |
 | [Datakit（`dk`）](../integrations/dk.md)                          | 采集 Datakit 自身运行指标收集                                                |
 
+### 移除默认采集器 {#disable-default-inputs}
+
+<!-- markdownlint-disable MD046 -->
+=== "主机安装"
+
+    如果不希望开启某些采集器，可以通过在采集器名字前面加一个 `-` 的方式来屏蔽：
+    
+    ```toml
+    # datakit.conf
+    default_enabled_inputs = [
+        "-cpu",
+        "-disk",
+        "-diskio",
+        "-mem",
+        "swap",
+        "system",
+        "hostobject",
+        "net",
+        "host_processes",
+        "dk",
+    ]
+    ```
+    
+    同样，在安装阶段，也能通过[这种方式（`DK_DEF_INPUTS`）](datakit-install.md#common-envs)来禁用。
+
+=== "Kubernetes"
+
+    通过[环境变量（`ENV_ENABLE_INPUTS`）](datakit-daemonset-deploy.md#env-common)可设置要开启的采集器。
+<!-- markdownlint-enable -->
+
 ## 修改采集器配置 {#modify-input-conf}
 
 ### 同一个采集器开启多份采集 {#input-multi-inst}
