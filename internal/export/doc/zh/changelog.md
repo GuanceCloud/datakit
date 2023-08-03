@@ -1,26 +1,13 @@
 # 更新日志
 ---
 
-<!--
-[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental)
-[:fontawesome-solid-flag-checkered:](index.md#legends "支持选举")
+## 1.12.3(2023/08/03) {#cl-1.12.3}
 
-    ```toml
-    {{ CodeBlock .InputSample 4 }}
-    ```
-
-# 外链的添加方式
-[some text](http://external-host.com){:target="_blank"}
-
-## x.x.x(YY/MM/DD) {#cl-x.x.x}
-
-本次发布属于迭代发布，主要有如下更新：
-
-### 新加功能 {#cl-x.x.x-new}
-### 问题修复 {#cl-x.x.x-fix}
-### 功能优化 {#cl-x.x.x-opt}
-### 兼容调整 {#cl-x.x.x-brk}
--->
+- 修复 Windows 下日志采集文件延迟释放问题（#1805）
+- 修复新容器头部日志不采集的问题
+- 修复几个正则表达式可能导致的崩溃问题（#1781）
+- 修复安装包体积过大的问题（#1804）
+- 修复日志采集器开启磁盘缓存可能失败的问题
 
 ## 1.12.2(2023/07/31) {#cl-1.12.2}
 
@@ -2494,3 +2481,24 @@ volumes:
 - `tailf` 采集器新日志匹配改成正向匹配
 - 其它一些细节问题修复
 - 支持 Mac 平台的 CPU 数据采集
+
+<!--
+[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental)
+[:fontawesome-solid-flag-checkered:](index.md#legends "支持选举")
+
+    ```toml
+    {{ CodeBlock .InputSample 4 }}
+    ```
+
+# 外链的添加方式
+[some text](http://external-host.com){:target="_blank"}
+
+## x.x.x(YY/MM/DD) {#cl-x.x.x}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-x.x.x-new}
+### 问题修复 {#cl-x.x.x-fix}
+### 功能优化 {#cl-x.x.x-opt}
+### 兼容调整 {#cl-x.x.x-brk}
+-->
