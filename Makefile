@@ -104,7 +104,7 @@ define notify_build
 		exit 1; \
 	fi
 	@echo "===== notify $(BIN) $(1) ===="
-	GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run cmd/make/make.go \
+	GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run -tags with_inputs cmd/make/make.go \
 		-main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir $(BUILD_DIR) \
 		-release $(1) -pub-dir $(PUB_DIR) -archs $(2) -upload-addr $(3) -download-cdn $(4) \
 		-notify-only
@@ -125,7 +125,7 @@ define build_bin
 	@rm -rf $(PUB_DIR)/$(1)/*
 	@mkdir -p $(BUILD_DIR) $(PUB_DIR)/$(1)
 	@echo "===== building $(BIN) $(1) ====="
-	GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run cmd/make/make.go \
+	GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run -tags with_inputs cmd/make/make.go \
 		-release $(1)             \
 		-archs $(2)               \
 		-upload-addr $(3)         \
@@ -142,7 +142,7 @@ endef
 # pub used to publish datakit version(for release/testing/local)
 define publish
 	@echo "===== publishing $(1) $(NAME) ====="
-	GO111MODULE=off CGO_CFLAGS=$(CGO_FLAGS) go run cmd/make/make.go \
+	GO111MODULE=off CGO_CFLAGS=$(CGO_FLAGS) go run -tags with_inputs cmd/make/make.go \
 		-release $(1)            \
 		-upload-addr $(2)        \
 		-download-cdn $(3)       \
@@ -156,7 +156,7 @@ endef
 
 define pub_ebpf
 	@echo "===== publishing $(1) $(NAME_EBPF) ====="
-	@GO111MODULE=off CGO_CFLAGS=$(CGO_FLAGS) go run cmd/make/make.go \
+	@GO111MODULE=off CGO_CFLAGS=$(CGO_FLAGS) go run -tags with_inputs cmd/make/make.go \
 		-release $(1)             \
 		-upload-addr $(2)         \
 		-archs $(3)               \
@@ -222,7 +222,7 @@ endef
 define build_ip2isp
 	rm -rf china-operator-ip
 	git clone -b ip-lists https://github.com/gaoyifan/china-operator-ip.git
-	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go -build-isp
+	@GO111MODULE=off CGO_ENABLED=0 go run -tags with_inputs cmd/make/make.go -build-isp
 endef
 
 ##############################################################################
