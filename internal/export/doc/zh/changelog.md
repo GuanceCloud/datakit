@@ -77,13 +77,16 @@
 - 容器日志采集支持配置容器内文件(#1723)
 - SQLServer 采集器指标完善和集成测试功能重构(#1694)
 
-<!-- 
 ### 兼容调整 {#cl-1.11.0-brk}
-1. 容器日志采集对于创建时间小于 5 分钟的容器，不再提供自动 `from_beginning`
-2. 移除容器日志的 `deployment` tag
-3. 移除容器 stdout source 会以 `short_image_name` 来命名的逻辑，现在只使用容器自身名称和 `labels["io.kubernetes.container.name"]`
-4. 移除对旧版容器内部文件采集方案——配置 labels `datakit/logs/inside` 的支持，改为 ENV 配置
--->
+
+以下兼容性修改，可能会导致数据采集上的问题，如果您使用了以下的功能，请考虑是否升级，或者采用新的对应方案。
+
+1. 移除容器日志的 `deployment` tag
+1. 移除容器 stdout 日志的 `source` 字段以 `short_image_name` 来命名的逻辑。现在只使用容器名称或 Kubernetes 中的 label `io.kubernetes.container.name` 来命名[^cl-1.11.0-brk-why-1]。
+1. 移除通过容器 label 采集其外挂文件路径的功能（`datakit/logs/inside`），改成通过[容器环境变量（`DATAKIT_LOGS_CONFIG`）](../integrations/container-log.md)的方式来实现[^cl-1.11.0-brk-why-2]。
+
+[^cl-1.11.0-brk-why-1]: 在 Kubernetes 中，`io.kubernetes.container.name` 值是不变的，而主机容器中，容器名也不太变，故不再采用原始镜像名作为 `source` 字段的来源。
+[^cl-1.11.0-brk-why-2]: 相比修改容器的 Label（一般情况下需要重新构建镜像），给容器追加环境变量更为方便（启动容器的时候，注入环境变量即可）。
 
 ---
 

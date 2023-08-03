@@ -92,7 +92,7 @@ NAME1="value1" NAME2="value2"
 - `DK_GLOBAL_ELECTION_TAGS`：支持安装阶段填写全局选举 tag，格式范例：`project=my-porject,cluster=my-cluster`（多个 tag 之间以英文逗号分隔）
 - `DK_CLOUD_PROVIDER`：支持安装阶段填写云厂商(`aliyun/aws/tencent/hwcloud/azure`)
 - `DK_USER_NAME`：Datakit 服务运行时的用户名。目前仅支持 `root` 和 `datakit`, 默认为 `root`。
-- `DK_DEF_INPUTS`：[默认开启的采集器](datakit-input-conf.md#default-enabled-inputs)配置。如果要禁用某些采集器，需手动将其屏蔽，比如，要禁用 cpu 和 mem 采集器，需这样指定：`-cpu,-mem`，即除了这两个采集器之外，其它默认采集器均开启。
+- `DK_DEF_INPUTS`：[默认开启的采集器](datakit-input-conf.md#default-enabled-inputs)配置。如果要禁用某些采集器，需手动将其屏蔽，比如，要禁用 `cpu` 和 `mem` 采集器，需这样指定：`-cpu,-mem`，即除了这两个采集器之外，其它默认采集器均开启。
 
 <!-- markdownlint-disable MD046 -->
 ???+ tip "禁用所有默认采集器 [:octicons-tag-24: Version-1.5.5](changelog.md#cl-1.5.5)"
