@@ -127,7 +127,6 @@ func (ipt *Input) getValueMetric(strs []string) (int, interface{}, error) {
 		return -1, "", nil
 	}
 
-	var expName *regexp.Regexp
 	var expValue *regexp.Regexp
 	var expStr string
 	var expStrs []string
@@ -152,7 +151,12 @@ func (ipt *Input) getValueMetric(strs []string) (int, interface{}, error) {
 
 		// Traversal try all Regexp in this metric kind. Like ["pwr","power"].
 		for _, expStr = range expStrs {
-			expName = regexp.MustCompile(expStr)
+			expName, err := regexp.Compile(expStr)
+			if err != nil {
+				l.Errorf("parsing regexp:: %v", err)
+				return 0, "", err
+			}
+
 			if expName.MatchString(strs[0]) {
 				// Match name
 				switch metricTypes[i].dataType {
@@ -206,7 +210,12 @@ func (ipt *Input) getStatusMetric(strs []string) (int, interface{}, error) {
 
 	// Traversal try all Regexp in “status” kind. Like regexp_power = ["pwr","power"]
 	for _, expStr := range expStrs {
-		expName := regexp.MustCompile(expStr)
+		expName, err := regexp.Compile(expStr)
+		if err != nil {
+			l.Errorf("parsing regexp:: %v", err)
+			return 0, "", err
+		}
+
 		if expName.MatchString(strs[0]) {
 			if strs[2] == "ok" {
 				return 0, 1, nil
