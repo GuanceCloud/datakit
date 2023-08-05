@@ -23,7 +23,7 @@ func UseChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError
 	case ast.TypeStringLiteral:
 		ctx.SetCallRef(funcExpr)
 	default:
-		return runtime.NewRunError(ctx, fmt.Sprintf("param key expects AttrExpr or Identifier, got %s",
+		return runtime.NewRunError(ctx, fmt.Sprintf("param key expects StringLiteral, got %s",
 			funcExpr.Param[0].NodeType), funcExpr.Param[0].StartPos())
 	}
 
@@ -52,7 +52,7 @@ func Use(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 		}
 	default:
 		return runtime.NewRunError(ctx, fmt.Sprintf(
-			"param key expects AttrExpr or Identifier, got %s",
+			"param key expects StringLiteral, got %s",
 			funcExpr.Param[0].NodeType), funcExpr.Param[0].StartPos())
 	}
 

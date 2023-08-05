@@ -809,33 +809,38 @@ func pipelineTest(pipelineFile string, text string) (string, error) {
 		return "", err
 	}
 
-	pt, dropFlag, err := pl.Run(clipt.Logging, pt, nil, opt, nil)
+	plpt, err := pl.Run(clipt.Logging, pt, nil, opt, nil)
 	if err != nil {
 		return "", err
 	}
 
-	if pt == nil {
+	if plpt == nil {
 		l.Debug("No data extracted from pipeline")
 		return "", nil
 	}
 
-	fields, err := pt.Fields()
+	dkPt, err := plpt.DkPoint()
 	if err != nil {
 		return "", err
 	}
 
-	tags := pt.Tags()
+	fields, err := dkPt.Fields()
+	if err != nil {
+		return "", err
+	}
 
-	if dropFlag {
+	tags := plpt.Tags()
+
+	if plpt.Dropped() {
 		l.Debug("the current log has been dropped by the pipeline script")
 		return "", nil
 	}
 
 	res := pipeline.Result{
 		Output: &pipeline.Output{
-			Drop:        dropFlag,
-			Measurement: pt.Name(),
-			Time:        pt.Time(),
+			Drop:        plpt.Dropped(),
+			Measurement: dkPt.Name(),
+			Time:        dkPt.Time(),
 			Tags:        tags,
 			Fields:      fields,
 		},
@@ -940,7 +945,7 @@ func dcaTestPipelines(c *gin.Context) {
 	var runResult []*pipelineResult
 
 	for _, pt := range pts {
-		pt, drop, err := pl.Run(category, pt, nil, opt, newPlTestSingal())
+		pt, err := pl.Run(category, pt, nil, opt, newPlTestSingal())
 		if err != nil {
 			plerr, ok := err.(*errchain.PlError) //nolint:errorlint
 			if !ok {
@@ -954,24 +959,26 @@ func dcaTestPipelines(c *gin.Context) {
 				RunError: plerr,
 			})
 		} else {
-			fields, err := pt.Fields()
-			if err != nil {
-				l.Errorf("Fields: %s", err.Error())
-				context.fail(dcaError{ErrorCode: "500", ErrorMsg: fmt.Sprintf("fields failed: %s", err.Error())})
-				return
+			dropFlag := pt.Dropped()
+			if pt, err := pt.DkPoint(); err == nil {
+				fields, err := pt.Fields()
+				if err != nil {
+					l.Errorf("Fields: %s", err.Error())
+					context.fail(dcaError{ErrorCode: "500", ErrorMsg: fmt.Sprintf("fields failed: %s", err.Error())})
+					return
+				}
+
+				runResult = append(runResult, &pipelineResult{
+					Point: &PlRetPoint{
+						Dropped: dropFlag,
+						Name:    pt.Name(),
+						Tags:    pt.Tags(),
+						Fields:  fields,
+						Time:    pt.Time().Unix(),
+						TimeNS:  int64(pt.Time().Nanosecond()),
+					},
+				})
 			}
-
-			runResult = append(runResult, &pipelineResult{
-				Point: &PlRetPoint{
-					Name:   pt.Name(),
-					Tags:   pt.Tags(),
-					Fields: fields,
-					Time:   pt.Time().Unix(),
-					TimeNS: int64(pt.Time().Nanosecond()),
-				},
-
-				Dropped: drop,
-			})
 		}
 	}
 	context.success(&runResult)

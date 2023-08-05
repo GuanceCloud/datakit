@@ -81,6 +81,10 @@ func (ctx *Context) InData() any {
 	}
 }
 
+func (ctx *Context) Signal() Signal {
+	return ctx.signal
+}
+
 func InitCtxWithoutMap(ctx *Context, inWithoutMap InputWithoutMap, funcs map[string]FuncCall,
 	callRef []*ast.CallExpr, signal Signal, name, content string,
 ) *Context {

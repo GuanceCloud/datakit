@@ -34,7 +34,6 @@ func DefaultFeeder() Feeder {
 type iodata struct {
 	category point.Category
 	from     string
-	filtered int
 	opt      *Option
 	pts      []*dkpt.Point
 }
@@ -160,7 +159,6 @@ func plAggFeed(name string, data any) error {
 		return defIO.fo.Write(&iodata{
 			category: point.Metric,
 			pts:      pts,
-			filtered: 0,
 			from:     name,
 		})
 	} else {
@@ -170,9 +168,9 @@ func plAggFeed(name string, data any) error {
 }
 
 // beforeFeed apply pipeline and filter handling on pts.
-func beforeFeed(category string, pts []*dkpt.Point, opt *Option) ([]*dkpt.Point, int, error) {
-	var after []*dkpt.Point
-
+func beforeFeed(from, category string, pts []*dkpt.Point, opt *Option) (
+	[]*dkpt.Point, map[point.Category][]*dkpt.Point, error,
+) {
 	switch category {
 	case datakit.Logging,
 		datakit.Tracing,
@@ -190,7 +188,7 @@ func beforeFeed(category string, pts []*dkpt.Point, opt *Option) ([]*dkpt.Point,
 		}
 	case datakit.Metric, datakit.MetricDeprecated:
 	default:
-		return nil, 0, fmt.Errorf("invalid category `%s'", category)
+		return nil, nil, fmt.Errorf("invalid category `%s'", category)
 	}
 
 	// run pipeline
@@ -202,48 +200,70 @@ func beforeFeed(category string, pts []*dkpt.Point, opt *Option) ([]*dkpt.Point,
 	}
 
 	cat := point.CatURL(category)
-	after, offl, err := pipeline.RunPl(cat, pts, plopt, scriptConfMap)
+	result, err := pipeline.RunPl(cat, pts, plopt, scriptConfMap)
 	if err != nil {
 		log.Error(err)
 	}
 
-	offloadCount := len(offl)
+	offloadCount := len(result.PtsOffload())
 	if offloadCount > 0 {
-		err = offload.OffloadSend(cat, offl)
+		err = offload.OffloadSend(cat, result.PtsOffload())
 		if err != nil {
-			log.Errorf("offload failed, total %d pts dropped: %v", offloadCount, err)
+			log.Errorf("offload failed, total %d pts dropped: %v",
+				offloadCount, err)
 		}
 	}
+
+	ptCreate := result.PtsCreated()
+	for k, v := range ptCreate {
+		ptCreate[k] = filter.FilterPts(k, v)
+		// run filters
+		if filtered := len(ptCreate[k]) - len(v); filtered > 0 {
+			inputsFilteredPtsVec.WithLabelValues(
+				"pipeline/create_point",
+				point.CatURL(category).String(),
+			).Add(float64(filtered))
+		}
+	}
+
 	// run filters
-	after = filter.FilterPts(cat, after)
-	return after, offloadCount, nil
+	after := filter.FilterPts(cat, result.Pts())
+	if filtered := len(pts) - len(after) - offloadCount; filtered > 0 {
+		inputsFilteredPtsVec.WithLabelValues(
+			from,
+			point.CatURL(category).String(), // /v1/write/metric -> metric
+		).Add(float64(filtered))
+	}
+
+	return after, ptCreate, nil
 }
 
 // beforeFeed apply pipeline and filter handling on pts.
 func (x *dkIO) doFeed(pts []*dkpt.Point, category, from string, opt *Option) error {
 	log.Debugf("io feed %s|%s", from, category)
-
-	after, offl, err := beforeFeed(category, pts, opt)
+	after, plCreate, err := beforeFeed(from, category, pts, opt)
 	if err != nil {
 		return err
 	}
-
-	filtered := len(pts) - len(after) - offl
-
-	inputsFilteredPtsVec.WithLabelValues(
-		from,
-		point.CatURL(category).String(), // /v1/write/metric -> metric
-	).Add(float64(filtered))
 
 	// Maybe all points been filtered, but we still send the feeding into io.
 	// We can still see some inputs/data are sending to io in monitor. Do not
 	// optimize the feeding, or we see nothing on monitor about these filtered
 	// points.
 	if x.fo != nil {
+		for cat, v := range plCreate {
+			if err := x.fo.Write(&iodata{
+				category: cat,
+				pts:      v,
+				from:     "pipeline/create_point",
+			}); err != nil {
+				log.Warnf("send pts created by the script: %s", err.Error())
+			}
+		}
+
 		return x.fo.Write(&iodata{
 			category: point.CatURL(category),
 			pts:      after,
-			filtered: filtered,
 			from:     from,
 			opt:      opt,
 		})

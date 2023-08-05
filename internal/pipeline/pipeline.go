@@ -114,18 +114,18 @@ type Pipeline struct {
 
 func (p *Pipeline) Run(cat point.Category, pt *dkpt.Point, plOpt *plscript.Option, ioPtOpt *dkpt.PointOption,
 	signal plruntime.Signal, buks ...*plmap.AggBuckets,
-) (*dkpt.Point, bool, error) {
+) (ptinput.PlInputPt, error) {
 	if p.Script == nil || p.Script.Engine() == nil {
-		return nil, false, fmt.Errorf("pipeline engine not initialized")
+		return nil, fmt.Errorf("pipeline engine not initialized")
 	}
 
 	if pt == nil {
-		return nil, false, fmt.Errorf("no data")
+		return nil, fmt.Errorf("no data")
 	}
 
 	plpt, err := ptinput.WrapDeprecatedPoint(cat, pt)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
 	if len(buks) > 0 {
@@ -133,17 +133,12 @@ func (p *Pipeline) Run(cat point.Category, pt *dkpt.Point, plOpt *plscript.Optio
 	}
 
 	if err := p.Script.Run(plpt, signal, plOpt); err != nil {
-		return nil, false, err
+		return nil, err
 	} else {
 		if !plpt.PtTime().IsZero() {
 			ioPtOpt.Time = plpt.PtTime()
 		}
-		if pt, err := plpt.DkPoint(); err != nil {
-			// stats.WriteScriptStats(p.script.Category(), p.script.NS(), p.script.Name(), 0, 0, 1, err)
-			return nil, false, err
-		} else {
-			return pt, plpt.Dropped(), nil
-		}
+		return plpt, nil
 	}
 }
 

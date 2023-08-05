@@ -43,6 +43,10 @@ type PlInputPt interface {
 	GetAggBuckets() *plmap.AggBuckets
 	SetAggBuckets(*plmap.AggBuckets)
 
+	AppendSubPoint(PlInputPt)
+	GetSubPoint() []PlInputPt
+	Category() point.Category
+
 	KeyTime2Time()
 
 	MarkDrop(bool)
@@ -96,6 +100,8 @@ type PlPoint struct {
 	time   time.Time
 
 	aggBuckets *plmap.AggBuckets
+
+	subPlpt []PlInputPt
 
 	category point.Category
 	drop     bool
@@ -165,6 +171,18 @@ func (pt *PlPoint) GetPtName() string {
 
 func (pt *PlPoint) SetPtName(m string) {
 	pt.name = m
+}
+
+func (pt *PlPoint) AppendSubPoint(plpt PlInputPt) {
+	pt.subPlpt = append(pt.subPlpt, plpt)
+}
+
+func (pt *PlPoint) GetSubPoint() []PlInputPt {
+	return pt.subPlpt
+}
+
+func (pt *PlPoint) Category() point.Category {
+	return pt.category
 }
 
 func (pt *PlPoint) Get(key string) (any, ast.DType, error) {

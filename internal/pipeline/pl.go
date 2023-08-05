@@ -16,9 +16,27 @@ import (
 	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/script"
 )
 
-func RunPl(category point.Category, pts []*dkpt.Point, plOpt *plscript.Option,
-	scriptMap map[string]string,
-) (ret []*dkpt.Point, offl []*dkpt.Point, retErr error) {
+type ScriptResult struct {
+	pts        []*dkpt.Point
+	ptsOffload []*dkpt.Point
+	ptsCreated map[point.Category][]*dkpt.Point
+}
+
+func (r *ScriptResult) Pts() []*dkpt.Point {
+	return r.pts
+}
+
+func (r *ScriptResult) PtsOffload() []*dkpt.Point {
+	return r.ptsOffload
+}
+
+func (r *ScriptResult) PtsCreated() map[point.Category][]*dkpt.Point {
+	return r.ptsCreated
+}
+
+func RunPl(category point.Category, pts []*dkpt.Point,
+	plOpt *plscript.Option, scriptMap map[string]string,
+) (reslt *ScriptResult, retErr error) {
 	defer func() {
 		if err := recover(); err != nil {
 			retErr = fmt.Errorf("run pl: %s", err)
@@ -26,19 +44,23 @@ func RunPl(category point.Category, pts []*dkpt.Point, plOpt *plscript.Option,
 	}()
 
 	if plscript.ScriptCount(category) < 1 {
-		return pts, nil, nil
+		return &ScriptResult{
+			pts: pts,
+		}, nil
 	}
 
-	ret = []*dkpt.Point{}
-	offl = []*dkpt.Point{}
+	ret := []*dkpt.Point{}
+	offl := []*dkpt.Point{}
 	ptOpt := &dkpt.PointOption{
 		DisableGlobalTags: true,
 		Category:          category.URL(),
 	}
+
 	if plOpt != nil {
 		ptOpt.MaxFieldValueLen = plOpt.MaxFieldValLen
 	}
 
+	subPt := make(map[point.Category][]*dkpt.Point)
 	for _, pt := range pts {
 		script, inputData, ok := searchScript(category, pt, scriptMap)
 
@@ -61,6 +83,16 @@ func RunPl(category point.Category, pts []*dkpt.Point, plOpt *plscript.Option,
 			continue
 		}
 
+		if pts := inputData.GetSubPoint(); len(pts) > 0 {
+			for _, pt := range pts {
+				if !pt.Dropped() {
+					if dkpt, err := pt.DkPoint(); err != nil {
+						subPt[pt.Category()] = append(subPt[pt.Category()], dkpt)
+					}
+				}
+			}
+		}
+
 		if inputData.Dropped() { // drop
 			continue
 		}
@@ -72,7 +104,11 @@ func RunPl(category point.Category, pts []*dkpt.Point, plOpt *plscript.Option,
 		}
 	}
 
-	return ret, offl, nil
+	return &ScriptResult{
+		pts:        ret,
+		ptsOffload: offl,
+		ptsCreated: subPt,
+	}, nil
 }
 
 func searchScript(cat point.Category, pt *dkpt.Point, scriptMap map[string]string) (*plscript.PlScript, ptinput.PlInputPt, bool) {

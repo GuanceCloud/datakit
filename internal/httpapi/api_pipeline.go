@@ -66,16 +66,17 @@ type pipelineDebugResponse struct {
 }
 
 type PlRetPoint struct {
-	Name   string                 `json:"name"`
-	Tags   map[string]string      `json:"tags"`
-	Fields map[string]interface{} `json:"fields"`
-	Time   int64                  `json:"time"`
-	TimeNS int64                  `json:"time_ns"`
+	Dropped bool                   `json:"dropped"`
+	Name    string                 `json:"name"`
+	Tags    map[string]string      `json:"tags"`
+	Fields  map[string]interface{} `json:"fields"`
+	Time    int64                  `json:"time"`
+	TimeNS  int64                  `json:"time_ns"`
 }
 
 type pipelineResult struct {
-	Point   *PlRetPoint `json:"point"`
-	Dropped bool        `json:"dropped"`
+	Point       *PlRetPoint   `json:"point"`
+	CreatePoint []*PlRetPoint `json:"create_point"`
 
 	RunError *errchain.PlError `json:"run_error"`
 }
@@ -171,7 +172,7 @@ func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever 
 	buks := plmap.NewAggBuks(ptsLi.uploadfn)
 	for _, pt := range pts {
 		// run pipeline
-		pt, drop, err := plRunner.Run(category, pt, nil, opt, newPlTestSingal(), buks)
+		pt, err := plRunner.Run(category, pt, nil, opt, newPlTestSingal(), buks)
 
 		if err != nil {
 			plerr, ok := err.(*errchain.PlError) //nolint:errorlint
@@ -187,7 +188,35 @@ func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever 
 				RunError: plerr,
 			})
 		} else {
-			fields, err := pt.Fields()
+			var cPts []*PlRetPoint
+			for _, pt := range pt.GetSubPoint() {
+				dkPt, err := pt.DkPoint()
+				if err != nil {
+					l.Errorf("Fields: %s", err.Error())
+					return nil, err
+				}
+				fields, err := dkPt.Fields()
+				if err != nil {
+					l.Errorf("Fields: %s", err.Error())
+					return nil, err
+				}
+				cPts = append(cPts, &PlRetPoint{
+					Dropped: pt.Dropped(),
+					Name:    dkPt.Name(),
+					Tags:    dkPt.Tags(),
+					Fields:  fields,
+					Time:    dkPt.Time().Unix(),
+					TimeNS:  int64(dkPt.Time().Nanosecond()),
+				})
+			}
+
+			dkPt, err := pt.DkPoint()
+			if err != nil {
+				l.Errorf("Fields: %s", err.Error())
+				return nil, err
+			}
+
+			fields, err := dkPt.Fields()
 			if err != nil {
 				l.Errorf("Fields: %s", err.Error())
 				return nil, err
@@ -195,13 +224,14 @@ func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever 
 
 			runResult = append(runResult, pipelineResult{
 				Point: &PlRetPoint{
-					Name:   pt.Name(),
-					Tags:   pt.Tags(),
-					Fields: fields,
-					Time:   pt.Time().Unix(),
-					TimeNS: int64(pt.Time().Nanosecond()),
+					Dropped: pt.Dropped(),
+					Name:    dkPt.Name(),
+					Tags:    dkPt.Tags(),
+					Fields:  fields,
+					Time:    dkPt.Time().Unix(),
+					TimeNS:  int64(dkPt.Time().Nanosecond()),
 				},
-				Dropped: drop,
+				CreatePoint: cPts,
 			})
 		}
 	}
@@ -295,7 +325,7 @@ func benchPipeline(runner *pipeline.Pipeline, cat clipt.Category, pt *point.Poin
 	benchmarkResult := testing.Benchmark(func(b *testing.B) {
 		b.Helper()
 		for n := 0; n < b.N; n++ {
-			_, _, _ = runner.Run(cat, pt, nil, ptOPt, newPlTestSingal())
+			_, _ = runner.Run(cat, pt, nil, ptOPt, newPlTestSingal())
 		}
 	})
 	return benchmarkResult.String()
