@@ -305,6 +305,9 @@ datakit debug --bug-report
 └── profile
     ├── allocs
     ├── heap
+    ├── goroutine
+    ├── mutex
+    ├── block
     └── profile
 ```
 
