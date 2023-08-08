@@ -37,12 +37,12 @@ func TestParseName(t *testing.T) {
 			out: "us_west_cpu_load",
 		},
 	}
-
-	s := DefaultInput()
+	opt := option{}
+	s := &Collector{opts: &opt}
 	s.Templates = []string{}
 
 	for _, tc := range cases {
-		s.MetricSeparator = tc.sep
+		s.opts.metricSeparator = tc.sep
 
 		name, fields, tags := s.parseName(tc.in)
 		t.Logf("%s => name: %s, fields: %+#v, tags: %+#v", tc.in, name, fields, tags)

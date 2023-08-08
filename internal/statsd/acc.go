@@ -10,7 +10,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
+
 	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -20,13 +22,13 @@ type statsdMeasurement struct {
 	tags   map[string]string
 	fields map[string]interface{}
 	ts     time.Time
-	ipt    *Input
+	coll   *Collector
 }
 
 // Point implement MeasurementV2.
 func (m *statsdMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
+	opts = append(opts, point.WithTime(m.ts), m.coll.opt)
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -42,33 +44,39 @@ func (m *statsdMeasurement) Info() *inputs.MeasurementInfo {
 	return nil
 }
 
+type measurementInfo struct {
+	FeedMetricName string
+	PT             *point.Point
+}
+
 type accumulator struct {
-	ref            *Input
-	measurements   []*point.Point
-	feedMetricName string
+	ref              *Collector
+	measurementInfos []*measurementInfo
+	feedMetricName   string
+	l                *logger.Logger
 }
 
 func (a *accumulator) addFields(name string, fields map[string]interface{}, tags map[string]string, ts time.Time) {
-	for k, v := range a.ref.Tags {
+	for k, v := range a.ref.opts.tags {
 		tags[k] = v // may override tags in real-data
 	}
 
-	for _, t := range a.ref.DropTags {
-		l.Debugf("drop tag %s", t)
+	for _, t := range a.ref.opts.dropTags {
+		a.l.Debugf("drop tag %s", t)
 		delete(tags, t)
 	}
 
 	a.doFeedMetricName(tags)
 
-	// Requrements: there shoule be only 1 field, the field key should be `value'
+	// Requrements: there shoule be only 1 field, the field key should be 'value'
 	if len(fields) != 1 {
-		l.Warnf("drop metric %s, got %d fields: %+#v", name, len(fields), fields)
+		a.l.Warnf("drop metric %s, got %d fields: %+#v", name, len(fields), fields)
 		return
 	}
 
 	fval, ok := fields["value"]
 	if !ok {
-		l.Warnf("drop metric %s, field `value' missing", name)
+		a.l.Warnf("drop metric %s, field 'value' missing", name)
 		return
 	}
 
@@ -84,9 +92,9 @@ func (a *accumulator) addFields(name string, fields map[string]interface{}, tags
 			}
 		}
 	} else {
-		arr := strings.SplitN(name, a.ref.MetricSeparator, 2)
+		arr := strings.SplitN(name, a.ref.opts.metricSeparator, 2)
 		if len(arr) < 2 {
-			l.Warnf("got metric `%s', accept it", name)
+			a.l.Warnf("got metric '%s', accept it", name)
 			metricName = name
 		} else {
 			metricName = arr[0]
@@ -94,8 +102,13 @@ func (a *accumulator) addFields(name string, fields map[string]interface{}, tags
 		}
 	}
 
-	l.Debugf("addFields: %s|%s", metricName, fieldKey)
+	// Check metric
+	if len(metricName) == 0 || len(fieldKey) == 0 {
+		a.l.Warnf("error metricName|fieldKey: %s|%s", metricName, fieldKey)
+		return
+	}
 
+	a.l.Debugf("addFields: %s|%s", metricName, fieldKey)
 	metric := &statsdMeasurement{
 		name: metricName,
 		fields: map[string]interface{}{
@@ -103,16 +116,20 @@ func (a *accumulator) addFields(name string, fields map[string]interface{}, tags
 		},
 		tags: tags,
 		ts:   ts,
-		ipt:  a.ref,
+		coll: a.ref,
 	}
-	a.measurements = append(a.measurements, metric.Point())
+
+	a.measurementInfos = append(a.measurementInfos, &measurementInfo{
+		FeedMetricName: a.feedMetricName,
+		PT:             metric.Point(),
+	})
 }
 
 func (a *accumulator) doFeedMetricName(tags map[string]string) {
 	a.feedMetricName = "statsd/-/-" // default
-	if len(a.ref.StatsdSourceKey) > 0 || len(a.ref.StatsdHostKey) > 0 {
-		sourceKey := tags[a.ref.StatsdSourceKey]
-		hostKey := tags[a.ref.StatsdHostKey]
+	if len(a.ref.opts.statsdSourceKey) > 0 || len(a.ref.opts.statsdHostKey) > 0 {
+		sourceKey := tags[a.ref.opts.statsdSourceKey]
+		hostKey := tags[a.ref.opts.statsdHostKey]
 		if len(sourceKey) == 0 {
 			sourceKey = "-"
 		}
@@ -121,9 +138,9 @@ func (a *accumulator) doFeedMetricName(tags map[string]string) {
 		}
 		a.feedMetricName = "statsd/" + sourceKey + "/" + hostKey
 
-		if !a.ref.SaveAboveKey {
-			delete(tags, a.ref.StatsdSourceKey)
-			delete(tags, a.ref.StatsdHostKey)
+		if !a.ref.opts.saveAboveKey {
+			delete(tags, a.ref.opts.statsdSourceKey)
+			delete(tags, a.ref.opts.statsdHostKey)
 		}
 	}
 }

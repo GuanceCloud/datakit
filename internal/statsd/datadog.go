@@ -28,7 +28,7 @@ const (
 
 var uncommenter = strings.NewReplacer("\\n", "\n")
 
-func (ipt *Input) parseEventMessage(now time.Time, message string, defaultHostname string) error {
+func (col *Collector) parseEventMessage(now time.Time, message string, defaultHostname string) error {
 	// _e{title.length,text.length}:title|text
 	//  [
 	//   |d:date_happened
@@ -43,7 +43,7 @@ func (ipt *Input) parseEventMessage(now time.Time, message string, defaultHostna
 	// tag is key:value
 	messageRaw := strings.SplitN(message, ":", 2)
 	if len(messageRaw) < 2 || len(messageRaw[0]) < 7 || len(messageRaw[1]) < 3 {
-		l.Warnf("invalid message format: %s", message)
+		col.opts.l.Warnf("invalid message format: %s", message)
 		return fmt.Errorf("invalid message format")
 	}
 	header := messageRaw[0]
@@ -51,26 +51,26 @@ func (ipt *Input) parseEventMessage(now time.Time, message string, defaultHostna
 
 	rawLen := strings.SplitN(header[3:], ",", 2)
 	if len(rawLen) != 2 {
-		l.Warnf("invalid message format: %s", message)
+		col.opts.l.Warnf("invalid message format: %s", message)
 		return fmt.Errorf("invalid message format")
 	}
 
 	titleLen, err := strconv.ParseInt(rawLen[0], 10, 64)
 	if err != nil {
-		l.Warnf("invalid message format: %s", message)
+		col.opts.l.Warnf("invalid message format: %s", message)
 		return fmt.Errorf("invalid message format, could not parse title.length: '%s'", rawLen[0])
 	}
 	if len(rawLen[1]) < 1 {
-		l.Warnf("invalid message format: %s", message)
+		col.opts.l.Warnf("invalid message format: %s", message)
 		return fmt.Errorf("invalid message format, could not parse text.length: '%s'", rawLen[0])
 	}
 	textLen, err := strconv.ParseInt(rawLen[1][:len(rawLen[1])-1], 10, 64)
 	if err != nil {
-		l.Warnf("invalid message format: %s", message)
+		col.opts.l.Warnf("invalid message format: %s", message)
 		return fmt.Errorf("invalid message format, could not parse text.length: '%s'", rawLen[0])
 	}
 	if titleLen+textLen+1 > int64(len(message)) {
-		l.Warnf("invalid message format: %s", message)
+		col.opts.l.Warnf("invalid message format: %s", message)
 		return fmt.Errorf("invalid message format, title.length and text.length exceed total message length")
 	}
 
@@ -79,7 +79,7 @@ func (ipt *Input) parseEventMessage(now time.Time, message string, defaultHostna
 	message = message[titleLen+1+textLen:]
 
 	if len(rawTitle) == 0 || len(rawText) == 0 {
-		l.Warnf("invalid message format: %s", message)
+		col.opts.l.Warnf("invalid message format: %s", message)
 		return fmt.Errorf("invalid event message format: empty 'title' or 'text' field")
 	}
 
@@ -94,14 +94,14 @@ func (ipt *Input) parseEventMessage(now time.Time, message string, defaultHostna
 	fields["priority"] = priorityNormal
 	ts := now
 	if len(message) < 2 {
-		ipt.acc.addFields(name, fields, tags, ts)
+		col.acc.addFields(name, fields, tags, ts)
 		return nil
 	}
 
 	rawMetadataFields := strings.Split(message[1:], "|")
 	for i := range rawMetadataFields {
 		if len(rawMetadataFields[i]) < 2 {
-			l.Warnf("invalid message format: %s", message)
+			col.opts.l.Warnf("invalid message format: %s", message)
 			return errors.New("too short metadata field")
 		}
 		switch rawMetadataFields[i][:2] {
@@ -136,7 +136,7 @@ func (ipt *Input) parseEventMessage(now time.Time, message string, defaultHostna
 			if rawMetadataFields[i][0] == '#' {
 				parseDataDogTags(tags, rawMetadataFields[i][1:])
 			} else {
-				l.Warnf("invalid message format: %s", message)
+				col.opts.l.Warnf("invalid message format: %s", message)
 				return fmt.Errorf("unknown metadata type: '%s'", rawMetadataFields[i])
 			}
 		}
@@ -147,7 +147,7 @@ func (ipt *Input) parseEventMessage(now time.Time, message string, defaultHostna
 		delete(tags, "host")
 		tags["source"] = host
 	}
-	ipt.acc.addFields(name, fields, tags, ts)
+	col.acc.addFields(name, fields, tags, ts)
 	return nil
 }
 
