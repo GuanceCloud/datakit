@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/logger"
 	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/stretchr/testify/require"
 )
@@ -96,26 +97,29 @@ func TestAddFields(t *testing.T) {
 		},
 	}
 
-	acc := &accumulator{}
-	s := DefaultInput()
-	acc.ref = s
+	opt := option{}
+	s := &Collector{opts: &opt}
+	acc := &accumulator{
+		ref: s,
+		l:   logger.SLogger("ioName"),
+	}
 	s.acc = acc
 
 	for _, tc := range cases {
-		acc.measurements = acc.measurements[:0] // clear cache
+		acc.measurementInfos = acc.measurementInfos[:0] // clear cache
 
-		s.MetricMapping = tc.mmap
-		s.DropTags = tc.dropTags
+		s.opts.metricMapping = tc.mmap
+		s.opts.dropTags = tc.dropTags
 		s.setupMmap()
 
 		acc.addFields(tc.name, tc.fields, tc.tags, time.Now())
 
-		tu.Assert(t, len(acc.measurements) == tc.expectPoint,
+		tu.Assert(t, len(acc.measurementInfos) == tc.expectPoint,
 			"expect %d point, got %d: %+#v",
-			tc.expectPoint, len(acc.measurements), acc.measurements)
+			tc.expectPoint, len(acc.measurementInfos), acc.measurementInfos)
 
-		if len(acc.measurements) > 0 {
-			t.Logf("%#v", acc.measurements[len(acc.measurements)-1])
+		if len(acc.measurementInfos) > 0 {
+			t.Logf("%#v", acc.measurementInfos[len(acc.measurementInfos)-1])
 		}
 	}
 }
@@ -131,9 +135,11 @@ func TestDoFeedMetricName(t *testing.T) {
 		{
 			name: "normal",
 			acc: &accumulator{
-				ref: &Input{
-					StatsdSourceKey: "source_key",
-					StatsdHostKey:   "host_key",
+				ref: &Collector{
+					opts: &option{
+						statsdSourceKey: "source_key",
+						statsdHostKey:   "host_key",
+					},
 				},
 			},
 			tags: map[string]string{
@@ -146,7 +152,9 @@ func TestDoFeedMetricName(t *testing.T) {
 		{
 			name: "default",
 			acc: &accumulator{
-				ref: &Input{},
+				ref: &Collector{
+					opts: &option{},
+				},
 			},
 			tags:                 map[string]string{},
 			expectFeedMetricName: "statsd/-/-",
@@ -155,9 +163,11 @@ func TestDoFeedMetricName(t *testing.T) {
 		{
 			name: "no_tags",
 			acc: &accumulator{
-				ref: &Input{
-					StatsdSourceKey: "source_key",
-					StatsdHostKey:   "host_key",
+				ref: &Collector{
+					opts: &option{
+						statsdSourceKey: "source_key",
+						statsdHostKey:   "host_key",
+					},
 				},
 			},
 			tags:                 map[string]string{},
@@ -167,7 +177,9 @@ func TestDoFeedMetricName(t *testing.T) {
 		{
 			name: "default_config_report",
 			acc: &accumulator{
-				ref: &Input{},
+				ref: &Collector{
+					opts: &option{},
+				},
 			},
 			tags: map[string]string{
 				"source_key": "tomcat",
@@ -179,9 +191,11 @@ func TestDoFeedMetricName(t *testing.T) {
 		{
 			name: "no_source_key",
 			acc: &accumulator{
-				ref: &Input{
-					StatsdSourceKey: "source_key",
-					StatsdHostKey:   "host_key",
+				ref: &Collector{
+					opts: &option{
+						statsdSourceKey: "source_key",
+						statsdHostKey:   "host_key",
+					},
 				},
 			},
 			tags: map[string]string{
@@ -193,8 +207,10 @@ func TestDoFeedMetricName(t *testing.T) {
 		{
 			name: "no_host_key",
 			acc: &accumulator{
-				ref: &Input{
-					StatsdSourceKey: "source_key",
+				ref: &Collector{
+					opts: &option{
+						statsdSourceKey: "source_key",
+					},
 				},
 			},
 			tags: map[string]string{

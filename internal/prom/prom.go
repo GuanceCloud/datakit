@@ -20,6 +20,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/prometheus/common/expfmt"
 
@@ -74,6 +75,10 @@ func NewProm(promOpts ...PromOption) (*Prom, error) {
 		if promOpts[idx] != nil {
 			promOpts[idx](&opt)
 		}
+	}
+
+	if opt.l == nil {
+		opt.l = logger.DefaultSLogger("prom")
 	}
 
 	if opt.timeout < httpTimeout {

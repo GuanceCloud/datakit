@@ -437,7 +437,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 		}
 	}
 
-	// TODO: some other checking on @pts, such as `if some required measurements exist'...
+	// TODO: some other checking on @pts, such as 'if some required measurements exist'...
 
 	return nil
 }
