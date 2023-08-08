@@ -302,6 +302,9 @@ The list of files is as follows:
 └── profile
     ├── allocs
     ├── heap
+    ├── goroutine
+    ├── mutex
+    ├── block
     └── profile
 
 ```

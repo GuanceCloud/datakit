@@ -75,7 +75,7 @@ func (info *datakitInfo) collect() error {
 	}
 
 	if runtime.GOOS == "linux" {
-		cp.Infof("6. collect systemd log")
+		cp.Infof("6. collect systemd log\n")
 		if err := info.collectSystemdLog(); err != nil {
 			cp.Warnf("collect systemd log error: %s\n", err.Error())
 		}
@@ -140,7 +140,14 @@ func (info *datakitInfo) collectProfile() error {
 		return err
 	}
 
-	profileTypes := []string{"profile", "heap", "allocs"}
+	profileTypes := []string{
+		"profile",
+		"heap",
+		"allocs",
+		"goroutine",
+		"block",
+		"mutex",
+	}
 
 	for _, name := range profileTypes {
 		params := ""
