@@ -66,7 +66,7 @@ type JolokiaAgent struct {
 
 	SemStop *cliutils.Sem `toml:"-"` // start stop signal
 	Feeder  dkio.Feeder   `toml:"-"`
-	Opt     point.Option
+	Tagger  dkpt.GlobalTagger
 	g       *goroutine.Group
 }
 
@@ -83,14 +83,11 @@ func (j *JolokiaAgent) Collect() {
 	if j.Feeder == nil {
 		j.Feeder = dkio.DefaultFeeder()
 	}
+	if j.Tagger == nil {
+		j.Tagger = dkpt.DefaultGlobalTagger()
+	}
 	if j.g == nil {
 		j.g = goroutine.NewGroup(goroutine.Option{Name: "inputs_jolokia"})
-	}
-
-	if j.Election {
-		j.Opt = point.WithExtraTags(dkpt.GlobalElectionTags())
-	} else {
-		j.Opt = point.WithExtraTags(dkpt.GlobalHostTags())
 	}
 
 	j = j.Adaptor()
@@ -145,7 +142,6 @@ func (j *JolokiaAgent) Terminate() {
 func (j *JolokiaAgent) Gather() error {
 	if j.gatherer == nil {
 		j.gatherer = NewGatherer(j.createMetrics())
-		j.gatherer.opt = j.Opt
 	}
 
 	// Initialize clients once
@@ -228,13 +224,12 @@ type JolokiaMeasurement struct {
 	tags   map[string]string
 	fields map[string]interface{}
 	ts     time.Time
-	opt    point.Option
 }
 
 // Point implement MeasurementV2.
 func (m *JolokiaMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts), m.opt)
+	opts = append(opts, point.WithTime(m.ts))
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -253,7 +248,6 @@ func (*JolokiaMeasurement) Info() *MeasurementInfo {
 type Gatherer struct {
 	metrics  []Metric
 	requests []ReadRequest
-	opt      point.Option
 }
 
 func NewGatherer(metrics []Metric) *Gatherer {
@@ -341,12 +335,17 @@ func (g *Gatherer) gatherResponses(responses []ReadResponse, tags map[string]str
 				}
 			}
 
+			if j.Election {
+				tag = MergeTagsWrapper(tag, j.Tagger.ElectionTags(), j.Tags, hostURL)
+			} else {
+				tag = MergeTagsWrapper(tag, j.Tagger.HostTags(), j.Tags, hostURL)
+			}
+
 			metric := &JolokiaMeasurement{
 				name:   measurement,
 				tags:   tag,
 				fields: field,
 				ts:     time.Now(),
-				opt:    g.opt,
 			}
 			j.collectCache = append(j.collectCache, metric.Point())
 		}

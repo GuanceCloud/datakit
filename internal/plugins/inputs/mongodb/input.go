@@ -14,7 +14,6 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
-	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
@@ -131,7 +130,7 @@ type Input struct {
 	pauseCh  chan bool
 	semStop  *cliutils.Sem // start stop signal
 	feeder   dkio.Feeder
-	opt      point.Option
+	Tagger   dkpt.GlobalTagger
 }
 
 func (*Input) Catalog() string { return catalogName }
@@ -246,12 +245,6 @@ func (ipt *Input) Run() {
 		log.Errorf("connect to all Mongodb servers failed")
 
 		return
-	}
-
-	if ipt.Election {
-		ipt.opt = point.WithExtraTags(dkpt.GlobalElectionTags())
-	} else {
-		ipt.opt = point.WithExtraTags(dkpt.GlobalHostTags())
 	}
 
 	tick := time.NewTicker(ipt.Interval.Duration)
@@ -374,6 +367,7 @@ func defaultInput() *Input {
 	return &Input{
 		feeder:  dkio.DefaultFeeder(),
 		semStop: cliutils.NewSem(),
+		Tagger:  dkpt.DefaultGlobalTagger(),
 	}
 }
 

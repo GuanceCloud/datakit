@@ -101,37 +101,125 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		optsObject     []inputs.PointCheckOption
 		optsMetric     []inputs.PointCheckOption
 	}{
+		////////////////////////////////////////////////////////////////////////
+		// snmp:v2
+		////////////////////////////////////////////////////////////////////////
 		{
 			name: "pubrepo.jiagouyun.com/image-repo-for-testing/snmp:inexio-snmpsim:v2",
 			conf: fmt.Sprintf(`specific_devices = ["%s"]
 	snmp_version = 2
 	v2_community_string = "recorded/cisco-catalyst-3750"
+	election = true
 [tags]
 	tag1 = "val1"
 	tag2 = "val2"`, remote.Host),
 			exposedPorts: []string{"161/udp"},
+			optsObject: []inputs.PointCheckOption{
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+					"tag1":     "val1",
+					"tag2":     "val2",
+				}),
+			},
 			optsMetric: []inputs.PointCheckOption{
 				inputs.WithOptionalTags("interface", "interface_alias", "mac_addr", "entity_name", "power_source", "power_status_descr", "temp_index", "temp_state", "cpu", "mem", "mem_pool_name", "sensor_id", "sensor_type"),
 				inputs.WithOptionalFields("ifNumber", "sysUpTimeInstance", "tcpActiveOpens", "tcpAttemptFails", "tcpCurrEstab", "tcpEstabResets", "tcpInErrs", "tcpOutRsts", "tcpPassiveOpens", "tcpRetransSegs", "udpInErrors", "udpNoPorts", "ifAdminStatus", "ifHCInBroadcastPkts", "ifHCInMulticastPkts", "ifHCInOctets", "ifHCInOctetsRate", "ifHCInUcastPkts", "ifHCOutBroadcastPkts", "ifHCOutMulticastPkts", "ifHCOutOctets", "ifHCOutOctetsRate", "ifHCOutUcastPkts", "ifHighSpeed", "ifInDiscards", "ifInDiscardsRate", "ifInErrors", "ifInErrorsRate", "ifOperStatus", "ifOutDiscards", "ifOutDiscardsRate", "ifOutErrors", "ifOutErrorsRate", "ifSpeed", "ifBandwidthInUsageRate", "ifBandwidthOutUsageRate", "cpuUsage", "memoryUsed", "memoryUsage", "memoryFree", "cieIfLastOutTime", "cieIfOutputQueueDrops", "ciscoMemoryPoolUsed", "cpmCPUTotalMonIntervalValue", "cieIfLastInTime", "cieIfResetCount", "ciscoMemoryPoolLargestFree", "ciscoEnvMonTemperatureStatusValue", "ciscoEnvMonSupplyState", "cswStackPortOperStatus", "cpmCPUTotal1minRev", "ciscoMemoryPoolFree", "cieIfInputQueueDrops", "ciscoEnvMonFanState", "cswSwitchState", "entSensorValue"), // nolint:lll
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+					"tag1":     "val1",
+					"tag2":     "val2",
+				}),
+			},
+		},
+		{
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/snmp:inexio-snmpsim:v2",
+			conf: fmt.Sprintf(`specific_devices = ["%s"]
+	snmp_version = 2
+	v2_community_string = "recorded/cisco-catalyst-3750"
+	election = false
+[tags]
+	tag1 = "val1"
+	tag2 = "val2"`, remote.Host),
+			exposedPorts: []string{"161/udp"},
+			optsObject: []inputs.PointCheckOption{
+				inputs.WithExtraTags(map[string]string{
+					"tag1": "val1",
+					"tag2": "val2",
+				}),
+			},
+			optsMetric: []inputs.PointCheckOption{
+				inputs.WithOptionalTags("interface", "interface_alias", "mac_addr", "entity_name", "power_source", "power_status_descr", "temp_index", "temp_state", "cpu", "mem", "mem_pool_name", "sensor_id", "sensor_type"),
+				inputs.WithOptionalFields("ifNumber", "sysUpTimeInstance", "tcpActiveOpens", "tcpAttemptFails", "tcpCurrEstab", "tcpEstabResets", "tcpInErrs", "tcpOutRsts", "tcpPassiveOpens", "tcpRetransSegs", "udpInErrors", "udpNoPorts", "ifAdminStatus", "ifHCInBroadcastPkts", "ifHCInMulticastPkts", "ifHCInOctets", "ifHCInOctetsRate", "ifHCInUcastPkts", "ifHCOutBroadcastPkts", "ifHCOutMulticastPkts", "ifHCOutOctets", "ifHCOutOctetsRate", "ifHCOutUcastPkts", "ifHighSpeed", "ifInDiscards", "ifInDiscardsRate", "ifInErrors", "ifInErrorsRate", "ifOperStatus", "ifOutDiscards", "ifOutDiscardsRate", "ifOutErrors", "ifOutErrorsRate", "ifSpeed", "ifBandwidthInUsageRate", "ifBandwidthOutUsageRate", "cpuUsage", "memoryUsed", "memoryUsage", "memoryFree", "cieIfLastOutTime", "cieIfOutputQueueDrops", "ciscoMemoryPoolUsed", "cpmCPUTotalMonIntervalValue", "cieIfLastInTime", "cieIfResetCount", "ciscoMemoryPoolLargestFree", "ciscoEnvMonTemperatureStatusValue", "ciscoEnvMonSupplyState", "cswStackPortOperStatus", "cpmCPUTotal1minRev", "ciscoMemoryPoolFree", "cieIfInputQueueDrops", "ciscoEnvMonFanState", "cswSwitchState", "entSensorValue"), // nolint:lll
+				inputs.WithExtraTags(map[string]string{
+					"tag1": "val1",
+					"tag2": "val2",
+				}),
+			},
+		},
+
+		////////////////////////////////////////////////////////////////////////
+		// snmp:v3
+		////////////////////////////////////////////////////////////////////////
+		{
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/snmp:inexio-snmpsim:v3",
+			conf: fmt.Sprintf(`specific_devices = ["%s"]
+			snmp_version = 3
+			v3_user = "testing"
+			v3_auth_protocol = "MD5"
+			v3_auth_key = "testing123"
+			v3_priv_protocol = "DES"
+			v3_priv_key = "12345678"
+			v3_context_name = "recorded/cisco-catalyst-3750"
+			election = true
+	[tags]
+			tag1 = "val1"
+			tag2 = "val2"`, remote.Host),
+			exposedPorts: []string{"161/udp"},
+			optsObject: []inputs.PointCheckOption{
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+					"tag1":     "val1",
+					"tag2":     "val2",
+				}),
+			},
+			optsMetric: []inputs.PointCheckOption{
+				inputs.WithOptionalTags("interface", "interface_alias", "mac_addr", "entity_name", "power_source", "power_status_descr", "temp_index", "temp_state", "cpu", "mem", "mem_pool_name", "sensor_id", "sensor_type"),
+				inputs.WithOptionalFields("ifNumber", "sysUpTimeInstance", "tcpActiveOpens", "tcpAttemptFails", "tcpCurrEstab", "tcpEstabResets", "tcpInErrs", "tcpOutRsts", "tcpPassiveOpens", "tcpRetransSegs", "udpInErrors", "udpNoPorts", "ifAdminStatus", "ifHCInBroadcastPkts", "ifHCInMulticastPkts", "ifHCInOctets", "ifHCInOctetsRate", "ifHCInUcastPkts", "ifHCOutBroadcastPkts", "ifHCOutMulticastPkts", "ifHCOutOctets", "ifHCOutOctetsRate", "ifHCOutUcastPkts", "ifHighSpeed", "ifInDiscards", "ifInDiscardsRate", "ifInErrors", "ifInErrorsRate", "ifOperStatus", "ifOutDiscards", "ifOutDiscardsRate", "ifOutErrors", "ifOutErrorsRate", "ifSpeed", "ifBandwidthInUsageRate", "ifBandwidthOutUsageRate", "cpuUsage", "memoryUsed", "memoryUsage", "memoryFree", "cieIfLastOutTime", "cieIfOutputQueueDrops", "ciscoMemoryPoolUsed", "cpmCPUTotalMonIntervalValue", "cieIfLastInTime", "cieIfResetCount", "ciscoMemoryPoolLargestFree", "ciscoEnvMonTemperatureStatusValue", "ciscoEnvMonSupplyState", "cswStackPortOperStatus", "cpmCPUTotal1minRev", "ciscoMemoryPoolFree", "cieIfInputQueueDrops", "ciscoEnvMonFanState", "cswSwitchState", "entSensorValue"), // nolint:lll
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+					"tag1":     "val1",
+					"tag2":     "val2",
+				}),
 			},
 		},
 		{
 			name: "pubrepo.jiagouyun.com/image-repo-for-testing/snmp:inexio-snmpsim:v3",
 			conf: fmt.Sprintf(`specific_devices = ["%s"]
-	snmp_version = 3
-	v3_user = "testing"
-	v3_auth_protocol = "MD5"
-	v3_auth_key = "testing123"
-	v3_priv_protocol = "DES"
-	v3_priv_key = "12345678"
-	v3_context_name = "recorded/cisco-catalyst-3750"
-[tags]
-	tag1 = "val1"
-	tag2 = "val2"`, remote.Host),
+			snmp_version = 3
+			v3_user = "testing"
+			v3_auth_protocol = "MD5"
+			v3_auth_key = "testing123"
+			v3_priv_protocol = "DES"
+			v3_priv_key = "12345678"
+			v3_context_name = "recorded/cisco-catalyst-3750"
+			election = false
+	[tags]
+			tag1 = "val1"
+			tag2 = "val2"`, remote.Host),
 			exposedPorts: []string{"161/udp"},
+			optsObject: []inputs.PointCheckOption{
+				inputs.WithExtraTags(map[string]string{
+					"tag1": "val1",
+					"tag2": "val2",
+				}),
+			},
 			optsMetric: []inputs.PointCheckOption{
 				inputs.WithOptionalTags("interface", "interface_alias", "mac_addr", "entity_name", "power_source", "power_status_descr", "temp_index", "temp_state", "cpu", "mem", "mem_pool_name", "sensor_id", "sensor_type"),
 				inputs.WithOptionalFields("ifNumber", "sysUpTimeInstance", "tcpActiveOpens", "tcpAttemptFails", "tcpCurrEstab", "tcpEstabResets", "tcpInErrs", "tcpOutRsts", "tcpPassiveOpens", "tcpRetransSegs", "udpInErrors", "udpNoPorts", "ifAdminStatus", "ifHCInBroadcastPkts", "ifHCInMulticastPkts", "ifHCInOctets", "ifHCInOctetsRate", "ifHCInUcastPkts", "ifHCOutBroadcastPkts", "ifHCOutMulticastPkts", "ifHCOutOctets", "ifHCOutOctetsRate", "ifHCOutUcastPkts", "ifHighSpeed", "ifInDiscards", "ifInDiscardsRate", "ifInErrors", "ifInErrorsRate", "ifOperStatus", "ifOutDiscards", "ifOutDiscardsRate", "ifOutErrors", "ifOutErrorsRate", "ifSpeed", "ifBandwidthInUsageRate", "ifBandwidthOutUsageRate", "cpuUsage", "memoryUsed", "memoryUsage", "memoryFree", "cieIfLastOutTime", "cieIfOutputQueueDrops", "ciscoMemoryPoolUsed", "cpmCPUTotalMonIntervalValue", "cieIfLastInTime", "cieIfResetCount", "ciscoMemoryPoolLargestFree", "ciscoEnvMonTemperatureStatusValue", "ciscoEnvMonSupplyState", "cswStackPortOperStatus", "cpmCPUTotal1minRev", "ciscoMemoryPoolFree", "cieIfInputQueueDrops", "ciscoEnvMonFanState", "cswSwitchState", "entSensorValue"), // nolint:lll
+				inputs.WithExtraTags(map[string]string{
+					"tag1": "val1",
+					"tag2": "val2",
+				}),
 			},
 		},
 	}
@@ -149,6 +237,12 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)
+
+		if ipt.Election {
+			ipt.Tagger = testutils.NewTaggerElection()
+		} else {
+			ipt.Tagger = testutils.NewTaggerHost()
+		}
 
 		repoTag := strings.Split(base.name, ":")
 
@@ -471,7 +565,7 @@ func (cs *caseSpec) getMappingPorts() error {
 }
 
 func (cs *caseSpec) checkSNMPPortOK(r *testutils.RemoteInfo) error {
-	tick := time.NewTicker(time.Minute)
+	tick := time.NewTicker(3 * time.Minute)
 	var errReturn error
 
 	out := false

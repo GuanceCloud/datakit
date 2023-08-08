@@ -245,15 +245,10 @@ func (i *Input) collectInfoMeasurement() ([]*point.Point, error) {
 	if len(m.fields) > 0 {
 		var opts []point.Option
 
-		var hostTags map[string]string
 		if m.election {
-			hostTags = inputs.MergeTags(i.Tagger.ElectionTags(), i.Tags, i.Host)
+			m.tags = inputs.MergeTags(i.Tagger.ElectionTags(), m.tags, i.Host)
 		} else {
-			hostTags = inputs.MergeTags(i.Tagger.HostTags(), i.Tags, i.Host)
-		}
-
-		for k, v := range hostTags {
-			m.tags[k] = v
+			m.tags = inputs.MergeTags(i.Tagger.HostTags(), m.tags, i.Host)
 		}
 
 		pt := point.NewPointV2([]byte(m.name),

@@ -12,8 +12,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmpmeasurement"
@@ -27,21 +26,22 @@ type TrapForwarder struct {
 	trapsIn   PacketsChannel
 	formatter Formatter
 	stopChan  chan struct{}
-	opt       point.Option
+	election  bool
+	inputTags map[string]string
+	feeder    dkio.Feeder
+	tagger    dkpt.GlobalTagger
 }
 
 // NewTrapForwarder creates a simple TrapForwarder instance.
-func NewTrapForwarder(formatter Formatter, packets PacketsChannel, election bool) (*TrapForwarder, error) {
+func NewTrapForwarder(formatter Formatter, packets PacketsChannel, opt *TrapsServerOpt) (*TrapForwarder, error) {
 	trapForwarder := &TrapForwarder{
 		trapsIn:   packets,
 		formatter: formatter,
 		stopChan:  make(chan struct{}),
-	}
-
-	if election {
-		trapForwarder.opt = point.WithExtraTags(dkpt.GlobalElectionTags())
-	} else {
-		trapForwarder.opt = point.WithExtraTags(dkpt.GlobalHostTags())
+		election:  opt.Election,
+		inputTags: opt.InputTags,
+		feeder:    opt.Feeder,
+		tagger:    opt.Tagger,
 	}
 
 	return trapForwarder, nil
@@ -95,23 +95,28 @@ func (tf *TrapForwarder) sendTrap(packet *SnmpPacket) {
 	tags := map[string]string{
 		"host": host,
 	}
-	Fields := map[string]interface{}{
+	fields := map[string]interface{}{
 		"trap_payload": payload,
 	}
-	tn := time.Now().UTC()
-	var measurements []inputs.Measurement
-	measurements = append(measurements, &snmpmeasurement.SNMPObject{
+	tn := time.Now()
+
+	if tf.election {
+		tags = inputs.MergeTagsWrapper(tags, tf.tagger.ElectionTags(), tf.inputTags, host)
+	} else {
+		tags = inputs.MergeTagsWrapper(tags, tf.tagger.HostTags(), tf.inputTags, host)
+	}
+
+	metric := &snmpmeasurement.SNMPObject{
 		Name:   "traps",
 		Tags:   tags,
-		Fields: Fields,
+		Fields: fields,
 		TS:     tn,
-		Opt:    tf.opt,
-	})
+	}
 
-	if err := inputs.FeedMeasurement("traps-object",
-		datakit.Object,
-		measurements,
-		&io.Option{CollectCost: time.Since(tn)}); err != nil {
-		l.Errorf("FeedMeasurement object err: %v", err)
+	if err := tf.feeder.Feed("traps-object", point.Object,
+		[]*point.Point{metric.Point()},
+		&dkio.Option{CollectCost: time.Since(tn)}); err != nil {
+		l.Errorf("Feed object err: %v", err)
+		tf.feeder.FeedLastError(snmpmeasurement.SNMPObjectName, err.Error())
 	}
 }

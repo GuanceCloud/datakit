@@ -358,6 +358,7 @@ func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 			"host":          &inputs.TagInfo{Desc: "Hostname"},
 			"redis_version": &inputs.TagInfo{Desc: "Version of the Redis server"},
 			"server":        &inputs.TagInfo{Desc: "Server addr"},
+			"service_name":  &inputs.TagInfo{Desc: "Service name"},
 		},
 	}
 }

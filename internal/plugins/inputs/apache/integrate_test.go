@@ -123,55 +123,156 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		opts           []inputs.PointCheckOption
 		mPathCount     map[string]int
 	}{
+		////////////////////////////////////////////////////////////////////////
+		// httpd:2.4.56
+		////////////////////////////////////////////////////////////////////////
 		{
 			name:      "httpd:2.4.56-alpine-server-status",
 			selfBuild: false,
 			conf: `url = ""
-			interval = "1s"`, // set conf URL later.
+			interval = "1s"
+			election = true`, // set conf URL later.
+			exposedPorts: []string{"80/tcp"},
+			mPathCount: map[string]int{
+				"/": 10,
+			},
+			opts: []inputs.PointCheckOption{
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+		},
+		{
+			name:      "httpd:2.4.56-alpine-server-status",
+			selfBuild: false,
+			conf: `url = ""
+			interval = "1s"
+			election = false`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
 				"/": 10,
 			},
 		},
 
+		////////////////////////////////////////////////////////////////////////
+		// httpd:2.4.54
+		////////////////////////////////////////////////////////////////////////
 		{
 			name:      "httpd:2.4.54-alpine-server-status",
 			selfBuild: false,
 			conf: `url = ""
-			interval = "1s"`, // set conf URL later.
+			interval = "1s"
+			election = true`, // set conf URL later.
+			exposedPorts: []string{"80/tcp"},
+			mPathCount: map[string]int{
+				"/": 10,
+			},
+			opts: []inputs.PointCheckOption{
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+		},
+		{
+			name:      "httpd:2.4.54-alpine-server-status",
+			selfBuild: false,
+			conf: `url = ""
+			interval = "1s"
+			election = false`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
 				"/": 10,
 			},
 		},
 
+		////////////////////////////////////////////////////////////////////////
+		// httpd:2.4.41
+		////////////////////////////////////////////////////////////////////////
 		{
 			name:      "httpd:2.4.41-alpine-server-status",
 			selfBuild: false,
 			conf: `url = ""
-			interval = "1s"`, // set conf URL later.
+			interval = "1s"
+			election = true`, // set conf URL later.
+			exposedPorts: []string{"80/tcp"},
+			mPathCount: map[string]int{
+				"/": 10,
+			},
+			opts: []inputs.PointCheckOption{
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+		},
+		{
+			name:      "httpd:2.4.41-alpine-server-status",
+			selfBuild: false,
+			conf: `url = ""
+			interval = "1s"
+			election = false`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
 				"/": 10,
 			},
 		},
 
+		////////////////////////////////////////////////////////////////////////
+		// httpd:2.4.38
+		////////////////////////////////////////////////////////////////////////
 		{
 			name:      "httpd:2.4.38-alpine-server-status",
 			selfBuild: false,
 			conf: `url = ""
-			interval = "1s"`, // set conf URL later.
+			interval = "1s"
+			election = true`, // set conf URL later.
+			exposedPorts: []string{"80/tcp"},
+			mPathCount: map[string]int{
+				"/": 10,
+			},
+			opts: []inputs.PointCheckOption{
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+		},
+		{
+			name:      "httpd:2.4.38-alpine-server-status",
+			selfBuild: false,
+			conf: `url = ""
+			interval = "1s"
+			election = false`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
 				"/": 10,
 			},
 		},
 
+		////////////////////////////////////////////////////////////////////////
+		// httpd:2.4.29
+		////////////////////////////////////////////////////////////////////////
 		{
 			name:      "httpd:2.4.29-alpine-server-status",
 			selfBuild: false,
 			conf: `url = ""
-			interval = "1s"`, // set conf URL later.
+			interval = "1s"
+			election = true`, // set conf URL later.
+			exposedPorts: []string{"80/tcp"},
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("cpu_load"), //nolint:lll
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+			mPathCount: map[string]int{
+				"/": 10,
+			},
+		},
+		{
+			name:      "httpd:2.4.29-alpine-server-status",
+			selfBuild: false,
+			conf: `url = ""
+			interval = "1s"
+			election = false`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
 			opts: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("cpu_load"), //nolint:lll
@@ -181,11 +282,33 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 		},
 
+		////////////////////////////////////////////////////////////////////////
+		// httpd:2.4.6
+		////////////////////////////////////////////////////////////////////////
 		{
 			name:      "httpd:2.4.6-alpine-server-status",
 			selfBuild: true,
 			conf: `url = ""
-			interval = "1s"`, // set conf URL later.
+			interval = "1s"
+			election = true`, // set conf URL later.
+			exposedPorts: []string{"80/tcp"},
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("cpu_load"),                   //nolint:lll
+				inputs.WithOptionalTags("server_version", "server_mpm"), //nolint:lll
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+			mPathCount: map[string]int{
+				"/": 10,
+			},
+		},
+		{
+			name:      "httpd:2.4.6-alpine-server-status",
+			selfBuild: true,
+			conf: `url = ""
+			interval = "1s"
+			election = false`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
 			opts: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("cpu_load"),                   //nolint:lll
@@ -208,6 +331,12 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)
+
+		if ipt.Election {
+			ipt.Tagger = testutils.NewTaggerElection()
+		} else {
+			ipt.Tagger = testutils.NewTaggerHost()
+		}
 
 		repoTag := strings.Split(base.name, ":")
 
@@ -271,12 +400,12 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 	for _, pt := range pts {
 		var opts []inputs.PointCheckOption
 		opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
-		opts = append(opts, cs.opts...)
 
 		measurement := string(pt.Name())
 
 		switch measurement {
 		case inputName:
+			opts = append(opts, cs.opts...)
 			opts = append(opts, inputs.WithDoc(&Measurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
@@ -293,7 +422,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			cs.mCount[inputName] = struct{}{}
 
 		default: // TODO: check other measurement
-			panic("unknown measurement")
+			panic("unknown measurement: " + measurement)
 		}
 
 		// check if tag appended

@@ -48,13 +48,12 @@ type jenkinsPipelineMeasurement struct {
 	tags   map[string]string
 	fields map[string]interface{}
 	ts     time.Time
-	ipt    *Input
 }
 
 // Point implement MeasurementV2.
 func (m *jenkinsPipelineMeasurement) Point() *point.Point {
 	opts := point.DefaultLoggingOptions()
-	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
+	opts = append(opts, point.WithTime(m.ts))
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -99,13 +98,12 @@ type jenkinsJobMeasurement struct {
 	tags   map[string]string
 	fields map[string]interface{}
 	ts     time.Time
-	ipt    *Input
 }
 
 // Point implement MeasurementV2.
 func (m *jenkinsJobMeasurement) Point() *point.Point {
 	opts := point.DefaultLoggingOptions()
-	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
+	opts = append(opts, point.WithTime(m.ts))
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -182,12 +180,18 @@ func (n *Input) getPluginMetric() {
 		n.lastErr = err
 		return
 	}
+
+	if n.Election {
+		tags = inputs.MergeTags(n.Tagger.ElectionTags(), tags, n.URL)
+	} else {
+		tags = inputs.MergeTags(n.Tagger.HostTags(), tags, n.URL)
+	}
+
 	measurement := &Measurement{
 		name:   inputName,
 		fields: fields,
 		tags:   tags,
 		ts:     ts,
-		ipt:    n,
 	}
 	n.collectCache = append(n.collectCache, measurement.Point())
 	l.Debug(n.collectCache[0])
@@ -198,13 +202,12 @@ type Measurement struct {
 	tags   map[string]string
 	fields map[string]interface{}
 	ts     time.Time
-	ipt    *Input
 }
 
 // Point implement MeasurementV2.
 func (m *Measurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
+	opts = append(opts, point.WithTime(m.ts))
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -221,8 +224,9 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: inputName,
 		Tags: map[string]interface{}{
-			"url":                   inputs.NewTagInfo("Jenkins URL"),
+			"host":                  inputs.NewTagInfo("Hostname"),
 			"metric_plugin_version": inputs.NewTagInfo("Jenkins plugin version"),
+			"url":                   inputs.NewTagInfo("Jenkins URL"),
 			"version":               inputs.NewTagInfo("Jenkins  version"),
 		},
 		Fields: map[string]interface{}{

@@ -120,19 +120,64 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		opts         []inputs.PointCheckOption
 		mPathCount   map[string]int
 	}{
+		////////////////////////////////////////////////////////////////////////
+		// nginx:1.23.2
+		////////////////////////////////////////////////////////////////////////
 		{
-			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.23.2-alpine____http-stub-status-module",
-			conf:         `url = ""`, // set conf URL later.
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.23.2-alpine____http-stub-status-module",
+			conf: `url = ""
+			election = true`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
-			opts:         []inputs.PointCheckOption{inputs.WithOptionalFields("load_timestamp"), inputs.WithOptionalTags("nginx_version")},
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("load_timestamp"),
+				inputs.WithOptionalTags("nginx_version"),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
 			mPathCount: map[string]int{
 				"/": 10,
+			},
+		},
+		{
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.23.2-alpine____http-stub-status-module",
+			conf: `url = ""
+			election = false`, // set conf URL later.
+			exposedPorts: []string{"80/tcp"},
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("load_timestamp"),
+				inputs.WithOptionalTags("nginx_version"),
+			},
+			mPathCount: map[string]int{
+				"/": 10,
+			},
+		},
+		////////////////////////////////////////////////////////////////////////
+		// nginx:1.23.2-vts
+		////////////////////////////////////////////////////////////////////////
+		{
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.23.2-alpine____using-vts",
+			conf: `url = ""
+		use_vts = true
+		election = true`, // set conf URL later.
+
+			exposedPorts: []string{"80/tcp"},
+			mPathCount: map[string]int{
+				"/1": 10,
+				"/2": 10,
+				"/3": 10,
+			},
+			opts: []inputs.PointCheckOption{
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
 			},
 		},
 		{
 			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.23.2-alpine____using-vts",
 			conf: `url = ""
-		use_vts = true`, // set conf URL later.
+		use_vts = true
+		election = false`, // set conf URL later.
 
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
@@ -142,19 +187,64 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 		},
 
+		////////////////////////////////////////////////////////////////////////
+		// nginx:1.22.1
+		////////////////////////////////////////////////////////////////////////
 		{
-			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.22.1-alpine____http-stub-status-module",
-			conf:         `url = ""`, // set conf URL later.
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.22.1-alpine____http-stub-status-module",
+			conf: `url = ""
+			election = true`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
-			opts:         []inputs.PointCheckOption{inputs.WithOptionalFields("load_timestamp"), inputs.WithOptionalTags("nginx_version")},
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("load_timestamp"),
+				inputs.WithOptionalTags("nginx_version"),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
 			mPathCount: map[string]int{
 				"/": 10,
+			},
+		},
+		{
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.22.1-alpine____http-stub-status-module",
+			conf: `url = ""
+			election = false`, // set conf URL later.
+			exposedPorts: []string{"80/tcp"},
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("load_timestamp"),
+				inputs.WithOptionalTags("nginx_version"),
+			},
+			mPathCount: map[string]int{
+				"/": 10,
+			},
+		},
+		////////////////////////////////////////////////////////////////////////
+		// nginx:1.22.1-vts
+		////////////////////////////////////////////////////////////////////////
+		{
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.22.1-alpine____using-vts",
+			conf: `url = ""
+		use_vts = true
+		election = true`, // set conf URL later.
+
+			exposedPorts: []string{"80/tcp"},
+			mPathCount: map[string]int{
+				"/1": 10,
+				"/2": 10,
+				"/3": 10,
+			},
+			opts: []inputs.PointCheckOption{
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
 			},
 		},
 		{
 			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.22.1-alpine____using-vts",
 			conf: `url = ""
-		use_vts = true`, // set conf URL later.
+		use_vts = true
+		election = false`, // set conf URL later.
 
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
@@ -164,19 +254,64 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 		},
 
+		////////////////////////////////////////////////////////////////////////
+		// nginx:1.21.6
+		////////////////////////////////////////////////////////////////////////
 		{
-			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.21.6-alpine____http-stub-status-module",
-			conf:         `url = ""`, // set conf URL later.
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.21.6-alpine____http-stub-status-module",
+			conf: `url = ""
+			election = true`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
-			opts:         []inputs.PointCheckOption{inputs.WithOptionalFields("load_timestamp"), inputs.WithOptionalTags("nginx_version")},
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("load_timestamp"),
+				inputs.WithOptionalTags("nginx_version"),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
 			mPathCount: map[string]int{
 				"/": 10,
+			},
+		},
+		{
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.21.6-alpine____http-stub-status-module",
+			conf: `url = ""
+			election = false`, // set conf URL later.
+			exposedPorts: []string{"80/tcp"},
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("load_timestamp"),
+				inputs.WithOptionalTags("nginx_version"),
+			},
+			mPathCount: map[string]int{
+				"/": 10,
+			},
+		},
+		////////////////////////////////////////////////////////////////////////
+		// nginx:1.21.6-vts
+		////////////////////////////////////////////////////////////////////////
+		{
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.21.6-alpine____using-vts",
+			conf: `url = ""
+		use_vts = true
+		election = true`, // set conf URL later.
+
+			exposedPorts: []string{"80/tcp"},
+			mPathCount: map[string]int{
+				"/1": 10,
+				"/2": 10,
+				"/3": 10,
+			},
+			opts: []inputs.PointCheckOption{
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
 			},
 		},
 		{
 			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.21.6-alpine____using-vts",
 			conf: `url = ""
-		use_vts = true`, // set conf URL later.
+		use_vts = true
+		election = false`, // set conf URL later.
 
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
@@ -186,19 +321,61 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 		},
 
+		////////////////////////////////////////////////////////////////////////
+		// nginx:1.18.0
+		////////////////////////////////////////////////////////////////////////
 		{
-			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.18.0-alpine____http-stub-status-module",
-			conf:         `url = ""`, // set conf URL later.
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.18.0-alpine____http-stub-status-module",
+			conf: `url = ""
+			election = true`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
-			opts:         []inputs.PointCheckOption{inputs.WithOptionalFields("load_timestamp"), inputs.WithOptionalTags("nginx_version")},
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("load_timestamp"),
+				inputs.WithOptionalTags("nginx_version"),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
 			mPathCount: map[string]int{
 				"/": 10,
+			},
+		},
+		{
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.18.0-alpine____http-stub-status-module",
+			conf: `url = ""
+			election = false`, // set conf URL later.
+			exposedPorts: []string{"80/tcp"},
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("load_timestamp"),
+				inputs.WithOptionalTags("nginx_version"),
+			},
+		},
+		////////////////////////////////////////////////////////////////////////
+		// nginx:1.18.0-vts
+		////////////////////////////////////////////////////////////////////////
+		{
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.18.0-alpine____using-vts",
+			conf: `url = ""
+		use_vts = true
+		election = true`, // set conf URL later.
+
+			exposedPorts: []string{"80/tcp"},
+			mPathCount: map[string]int{
+				"/1": 10,
+				"/2": 10,
+				"/3": 10,
+			},
+			opts: []inputs.PointCheckOption{
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
 			},
 		},
 		{
 			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.18.0-alpine____using-vts",
 			conf: `url = ""
-		use_vts = true`, // set conf URL later.
+		use_vts = true
+		election = false`, // set conf URL later.
 
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
@@ -208,19 +385,64 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 		},
 
+		////////////////////////////////////////////////////////////////////////
+		// nginx:1.14.2
+		////////////////////////////////////////////////////////////////////////
 		{
-			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.14.2-alpine____http-stub-status-module",
-			conf:         `url = ""`, // set conf URL later.
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.14.2-alpine____http-stub-status-module",
+			conf: `url = ""
+			election = true`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
-			opts:         []inputs.PointCheckOption{inputs.WithOptionalFields("load_timestamp"), inputs.WithOptionalTags("nginx_version")},
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("load_timestamp"),
+				inputs.WithOptionalTags("nginx_version"),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
 			mPathCount: map[string]int{
 				"/": 10,
+			},
+		},
+		{
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.14.2-alpine____http-stub-status-module",
+			conf: `url = ""
+			election = false`, // set conf URL later.
+			exposedPorts: []string{"80/tcp"},
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("load_timestamp"),
+				inputs.WithOptionalTags("nginx_version"),
+			},
+			mPathCount: map[string]int{
+				"/": 10,
+			},
+		},
+		////////////////////////////////////////////////////////////////////////
+		// nginx:1.14.2-vts
+		////////////////////////////////////////////////////////////////////////
+		{
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.14.2-alpine____using-vts",
+			conf: `url = ""
+		use_vts = true
+		election = true`, // set conf URL later.
+
+			exposedPorts: []string{"80/tcp"},
+			mPathCount: map[string]int{
+				"/1": 10,
+				"/2": 10,
+				"/3": 10,
+			},
+			opts: []inputs.PointCheckOption{
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
 			},
 		},
 		{
 			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.14.2-alpine____using-vts",
 			conf: `url = ""
-		use_vts = true`, // set conf URL later.
+		use_vts = true
+		election = false`, // set conf URL later.
 
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
@@ -230,19 +452,64 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 		},
 
+		////////////////////////////////////////////////////////////////////////
+		// nginx:1.8.0
+		////////////////////////////////////////////////////////////////////////
 		{
-			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.8.0-alpine____http-stub-status-module",
-			conf:         `url = ""`, // set conf URL later.
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.8.0-alpine____http-stub-status-module",
+			conf: `url = ""
+			election = true`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
-			opts:         []inputs.PointCheckOption{inputs.WithOptionalFields("load_timestamp"), inputs.WithOptionalTags("nginx_version")},
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("load_timestamp"),
+				inputs.WithOptionalTags("nginx_version"),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
 			mPathCount: map[string]int{
 				"/": 10,
 			},
 		},
 		{
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.8.0-alpine____http-stub-status-module",
+			conf: `url = ""
+			election = false`, // set conf URL later.
+			exposedPorts: []string{"80/tcp"},
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("load_timestamp"),
+				inputs.WithOptionalTags("nginx_version"),
+			},
+			mPathCount: map[string]int{
+				"/": 10,
+			},
+		},
+		////////////////////////////////////////////////////////////////////////
+		// nginx:1.8.0-vts
+		////////////////////////////////////////////////////////////////////////
+		{
 			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.8.0-alpine____using-vts",
 			conf: `url = ""
-		use_vts = true`, // set conf URL later.
+		use_vts = true
+		election = true`, // set conf URL later.
+
+			exposedPorts: []string{"80/tcp"},
+			mPathCount: map[string]int{
+				"/1": 10,
+				"/2": 10,
+				"/3": 10,
+			},
+			opts: []inputs.PointCheckOption{
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+		},
+		{
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.8.0-alpine____using-vts",
+			conf: `url = ""
+		use_vts = true
+		election = false`, // set conf URL later.
 
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
@@ -264,6 +531,12 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)
+
+		if ipt.Election {
+			ipt.Tagger = testutils.NewTaggerElection()
+		} else {
+			ipt.Tagger = testutils.NewTaggerHost()
+		}
 
 		base.name, base.savedName = getAmendName(base.name)
 

@@ -37,6 +37,12 @@ func getQueues(n *Input) {
 			tags[k] = v
 		}
 
+		if n.Election {
+			tags = inputs.MergeTags(n.Tagger.ElectionTags(), tags, n.URL)
+		} else {
+			tags = inputs.MergeTags(n.Tagger.HostTags(), tags, n.URL)
+		}
+
 		fields := map[string]interface{}{
 			"consumers":                    queue.Consumers,
 			"consumer_utilization":         queue.ConsumerUtilisation,
@@ -69,9 +75,8 @@ func getQueues(n *Input) {
 			tags:   tags,
 			fields: fields,
 			ts:     ts,
-			ipt:    n,
 		}
-		metricAppend(metric.Point())
+		n.metricAppend(metric.Point())
 	}
 }
 
@@ -90,13 +95,12 @@ type QueueMeasurement struct {
 	tags   map[string]string
 	fields map[string]interface{}
 	ts     time.Time
-	ipt    *Input
 }
 
 // Point implement MeasurementV2.
 func (m *QueueMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
+	opts = append(opts, point.WithTime(m.ts))
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),

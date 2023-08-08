@@ -36,6 +36,11 @@ func (m *dbMeasurement) Info() *inputs.MeasurementInfo {
 			"db": &inputs.TagInfo{
 				Desc: "db name",
 			},
+			"host": &inputs.TagInfo{
+				Desc: "Hostname",
+			},
+			"server":       &inputs.TagInfo{Desc: "Server addr"},
+			"service_name": &inputs.TagInfo{Desc: "Service name"},
 		},
 		Fields: map[string]interface{}{
 			"keys": &inputs.FieldInfo{
@@ -86,7 +91,6 @@ func (i *Input) ParseInfoData(list string) ([]*point.Point, error) {
 	// 遍历每一行数据
 	for scanner.Scan() {
 		m := &dbMeasurement{
-			// name:     "redis_client",
 			name:     redisClient,
 			tags:     make(map[string]string),
 			fields:   make(map[string]interface{}),
@@ -125,15 +129,10 @@ func (i *Input) ParseInfoData(list string) ([]*point.Point, error) {
 			}
 			var opts []point.Option
 
-			var hostTags map[string]string
 			if m.election {
-				hostTags = inputs.MergeTags(i.Tagger.ElectionTags(), i.Tags, i.Host)
+				m.tags = inputs.MergeTagsWrapper(m.tags, i.Tagger.ElectionTags(), i.Tags, i.Host)
 			} else {
-				hostTags = inputs.MergeTags(i.Tagger.HostTags(), i.Tags, i.Host)
-			}
-
-			for k, v := range hostTags {
-				m.tags[k] = v
+				m.tags = inputs.MergeTagsWrapper(m.tags, i.Tagger.HostTags(), i.Tags, i.Host)
 			}
 
 			pt := point.NewPointV2([]byte(m.name),
@@ -153,15 +152,10 @@ func (i *Input) ParseInfoData(list string) ([]*point.Point, error) {
 				}
 				var opts []point.Option
 
-				var hostTags map[string]string
 				if m.election {
-					hostTags = inputs.MergeTags(i.Tagger.ElectionTags(), i.Tags, i.Host)
+					m.tags = inputs.MergeTagsWrapper(m.tags, i.Tagger.ElectionTags(), i.Tags, i.Host)
 				} else {
-					hostTags = inputs.MergeTags(i.Tagger.HostTags(), i.Tags, i.Host)
-				}
-
-				for k, v := range hostTags {
-					m.tags[k] = v
+					m.tags = inputs.MergeTagsWrapper(m.tags, i.Tagger.HostTags(), i.Tags, i.Host)
 				}
 
 				pt := point.NewPointV2([]byte(m.name),

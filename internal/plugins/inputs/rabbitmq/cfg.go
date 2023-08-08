@@ -18,18 +18,17 @@ import (
 	"github.com/influxdata/telegraf/plugins/common/tls"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
 
 var (
-	inputName    = `rabbitmq`
-	l            = logger.DefaultSLogger(inputName)
-	collectCache []*point.Point
-	minInterval  = time.Second
-	maxInterval  = time.Second * 30
-	lock         sync.Mutex
-	sample       = `
+	inputName   = `rabbitmq`
+	l           = logger.DefaultSLogger(inputName)
+	minInterval = time.Second
+	maxInterval = time.Second * 30
+	sample      = `
 [[inputs.rabbitmq]]
   # rabbitmq url ,required
   url = "http://localhost:15672"
@@ -101,13 +100,15 @@ type Input struct {
 	lastErr error
 	start   time.Time
 
-	Election bool `toml:"election"`
-	pause    bool
-	pauseCh  chan bool
+	Election     bool `toml:"election"`
+	pause        bool
+	pauseCh      chan bool
+	lock         sync.Mutex
+	collectCache []*point.Point
 
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
-	opt     point.Option
+	Tagger  dkpt.GlobalTagger
 }
 
 type rabbitmqlog struct {
@@ -313,8 +314,8 @@ func newByteFieldInfo(desc string) *inputs.FieldInfo {
 	}
 }
 
-func metricAppend(metric *point.Point) {
-	lock.Lock()
-	collectCache = append(collectCache, metric)
-	lock.Unlock()
+func (n *Input) metricAppend(metric *point.Point) {
+	n.lock.Lock()
+	n.collectCache = append(n.collectCache, metric)
+	n.lock.Unlock()
 }

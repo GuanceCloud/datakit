@@ -235,6 +235,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 		ipt := DefaultInput()
 		ipt.Feeder = feeder
+		ipt.Tagger = testutils.NewTaggerHost()
 
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)
@@ -320,13 +321,12 @@ type jvmMeasurement struct {
 	tags   map[string]string
 	fields map[string]interface{}
 	ts     time.Time
-	ipt    *Input
 }
 
 // Point implement MeasurementV2.
 func (m *jvmMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
+	opts = append(opts, point.WithTime(m.ts))
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -343,38 +343,39 @@ func (j *jvmMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: jvmMetricName,
 		Fields: map[string]interface{}{
-			"heap_memory":                 &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"buffer_pool_direct_capacity": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"buffer_pool_direct_count":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"buffer_pool_direct_used":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"buffer_pool_mapped_capacity": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"buffer_pool_mapped_count":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"buffer_pool_mapped_used":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"cpu_load_process":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"cpu_load_system":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"gc_cms_count":                &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+			"gc_eden_size":                &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"gc_major_collection_count":   &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"gc_major_collection_time":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"gc_metaspace_size":           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"gc_minor_collection_count":   &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"gc_minor_collection_time":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"gc_old_gen_size":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"gc_parnew_time":              &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"gc_survivor_size":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
 			"heap_memory_committed":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
 			"heap_memory_init":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
 			"heap_memory_max":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
-			"non_heap_memory":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"heap_memory":                 &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"loaded_classes":              &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
 			"non_heap_memory_committed":   &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
 			"non_heap_memory_init":        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
 			"non_heap_memory_max":         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
-			"thread_count":                &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
-			"gc_cms_count":                &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
-			"gc_major_collection_count":   &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
-			"gc_minor_collection_count":   &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
-			"gc_parnew_time":              &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
-			"gc_major_collection_time":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
-			"gc_minor_collection_time":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"non_heap_memory":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
 			"os_open_file_descriptors":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
-			"gc_eden_size":                &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
-			"gc_old_gen_size":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
-			"buffer_pool_direct_used":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
-			"buffer_pool_direct_capacity": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
-			"cpu_load_system":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
-			"buffer_pool_mapped_capacity": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
-			"buffer_pool_mapped_count":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
-			"cpu_load_process":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
-			"gc_survivor_size":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
-			"buffer_pool_direct_count":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
-			"gc_metaspace_size":           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
-			"loaded_classes":              &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
-			"buffer_pool_mapped_used":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: ""},
+			"thread_count":                &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
 		},
 		Tags: map[string]interface{}{
 			"env":         inputs.TagInfo{Desc: ""},
+			"host":        inputs.TagInfo{Desc: ""},
 			"instance":    inputs.TagInfo{Desc: ""},
 			"jmx_domain":  inputs.TagInfo{Desc: ""},
 			"metric_type": inputs.TagInfo{Desc: ""},

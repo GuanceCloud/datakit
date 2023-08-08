@@ -15,6 +15,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 // 默认 http stub status module 模块的数据.
@@ -105,6 +107,13 @@ func (n *Input) getStubStatusModuleMetric() {
 	for k, v := range n.Tags {
 		tags[k] = v
 	}
+
+	if n.Election {
+		tags = inputs.MergeTags(n.Tagger.ElectionTags(), tags, n.URL)
+	} else {
+		tags = inputs.MergeTags(n.Tagger.HostTags(), tags, n.URL)
+	}
+
 	fields := map[string]interface{}{
 		"connection_active":   active,
 		"connection_accepts":  accepts,
@@ -119,7 +128,6 @@ func (n *Input) getStubStatusModuleMetric() {
 		tags:   tags,
 		fields: fields,
 		ts:     time.Now(),
-		ipt:    n,
 	}
 	n.collectCache = append(n.collectCache, metric.Point())
 }
@@ -188,12 +196,18 @@ func (n *Input) makeConnectionsLine(vtsResp NginxVTSResponse, t time.Time) {
 		"connection_writing":  vtsResp.Connections.Writing,
 		"connection_waiting":  vtsResp.Connections.Waiting,
 	}
+
+	if n.Election {
+		tags = inputs.MergeTagsWrapper(tags, n.Tagger.ElectionTags(), n.Tags, n.URL)
+	} else {
+		tags = inputs.MergeTagsWrapper(tags, n.Tagger.HostTags(), n.Tags, n.URL)
+	}
+
 	metric := &NginxMeasurement{
 		name:   nginx,
 		tags:   tags,
 		fields: fields,
 		ts:     t,
-		ipt:    n,
 	}
 	n.collectCache = append(n.collectCache, metric.Point())
 }
@@ -216,12 +230,18 @@ func (n *Input) makeServerZoneLine(vtsResp NginxVTSResponse, t time.Time) {
 			"response_4xx": v.Responses.FourXx,
 			"response_5xx": v.Responses.FiveXx,
 		}
+
+		if n.Election {
+			tags = inputs.MergeTagsWrapper(tags, n.Tagger.ElectionTags(), n.Tags, n.URL)
+		} else {
+			tags = inputs.MergeTagsWrapper(tags, n.Tagger.HostTags(), n.Tags, n.URL)
+		}
+
 		metric := &NginxMeasurement{
 			name:   ServerZone,
 			tags:   tags,
 			fields: fields,
 			ts:     t,
-			ipt:    n,
 		}
 		n.collectCache = append(n.collectCache, metric.Point())
 	}
@@ -247,12 +267,18 @@ func (n *Input) makeUpstreamZoneLine(vtsResp NginxVTSResponse, t time.Time) {
 				"response_4xx": upstream.Responses.FourXx,
 				"response_5xx": upstream.Responses.FiveXx,
 			}
+
+			if n.Election {
+				tags = inputs.MergeTagsWrapper(tags, n.Tagger.ElectionTags(), n.Tags, n.URL)
+			} else {
+				tags = inputs.MergeTagsWrapper(tags, n.Tagger.HostTags(), n.Tags, n.URL)
+			}
+
 			metric := &UpstreamZoneMeasurement{
 				name:   UpstreamZone,
 				tags:   tags,
 				fields: fields,
 				ts:     t,
-				ipt:    n,
 			}
 			n.collectCache = append(n.collectCache, metric.Point())
 		}
@@ -281,12 +307,18 @@ func (n *Input) makeCacheZoneLine(vtsResp NginxVTSResponse, t time.Time) {
 			"responses_hit":         cacheZone.Responses.Hit,
 			"responses_scarce":      cacheZone.Responses.Scarce,
 		}
+
+		if n.Election {
+			tags = inputs.MergeTagsWrapper(tags, n.Tagger.ElectionTags(), n.Tags, n.URL)
+		} else {
+			tags = inputs.MergeTagsWrapper(tags, n.Tagger.HostTags(), n.Tags, n.URL)
+		}
+
 		metric := &CacheZoneMeasurement{
 			name:   CacheZone,
 			tags:   tags,
 			fields: fields,
 			ts:     t,
-			ipt:    n,
 		}
 		n.collectCache = append(n.collectCache, metric.Point())
 	}

@@ -289,7 +289,7 @@ func (m *TomcatM) Info() *inputs.MeasurementInfo {
 			// "bean_host":       inputs.NewTagInfo("Bean host."),
 			// "context":         inputs.NewTagInfo("Context."),
 			// "env":             inputs.NewTagInfo("Environment variable."),
-			// "host":            inputs.NewTagInfo("Hostname."),
+			"host":     inputs.NewTagInfo("Hostname."),
 			"instance": inputs.NewTagInfo("Instance."),
 			// "J2EEApplication": inputs.NewTagInfo("J2EE application."),
 			// "J2EEServer":      inputs.NewTagInfo("J2EE server."),

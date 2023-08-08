@@ -31,13 +31,12 @@ type SNMPObject struct {
 	Tags   map[string]string
 	Fields map[string]interface{}
 	TS     time.Time
-	Opt    point.Option
 }
 
 // Point implement MeasurementV2.
 func (m *SNMPObject) Point() *point.Point {
 	opts := point.DefaultObjectOptions()
-	opts = append(opts, point.WithTime(m.TS), m.Opt)
+	opts = append(opts, point.WithTime(m.TS))
 
 	return point.NewPointV2([]byte(m.Name),
 		append(point.NewTags(m.Tags), point.NewKVs(m.Fields)...),
@@ -83,13 +82,12 @@ type SNMPMetric struct {
 	Tags   map[string]string
 	Fields map[string]interface{}
 	TS     time.Time
-	Opt    point.Option
 }
 
 // Point implement MeasurementV2.
 func (m *SNMPMetric) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.TS), m.Opt)
+	opts = append(opts, point.WithTime(m.TS))
 
 	return point.NewPointV2([]byte(m.Name),
 		append(point.NewTags(m.Tags), point.NewKVs(m.Fields)...),

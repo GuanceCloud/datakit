@@ -169,6 +169,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 		ipt := defaultInput()
 		ipt.feeder = feeder
+		ipt.Tagger = testutils.NewTaggerHost()
 
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)

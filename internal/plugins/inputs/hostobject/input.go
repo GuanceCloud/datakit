@@ -73,7 +73,7 @@ type Input struct {
 	semStop    *cliutils.Sem // start stop signal
 	isTestMode bool
 	feeder     dkio.Feeder
-	opt        point.Option
+	Tagger     dkpt.GlobalTagger
 
 	mfs []*dto.MetricFamily
 }
@@ -103,9 +103,6 @@ func (ipt *Input) Run() {
 	defer tick.Stop()
 
 	l.Debugf("starting %s(interval: %v)...", InputName, ipt.Interval)
-
-	// no election.
-	ipt.opt = point.WithExtraTags(dkpt.GlobalHostTags())
 
 	for {
 		l.Debugf("start collecting...")
@@ -196,13 +193,12 @@ type hostMeasurement struct {
 	fields map[string]interface{}
 	tags   map[string]string
 	ts     time.Time
-	ipt    *Input
 }
 
 // Point implement MeasurementV2.
 func (m *hostMeasurement) Point() *point.Point {
 	opts := point.DefaultObjectOptions()
-	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
+	opts = append(opts, point.WithTime(m.ts))
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -293,8 +289,7 @@ func (ipt *Input) doCollect() error {
 			"os":   message.Host.HostMeta.OS,
 		},
 
-		ts:  time.Now(),
-		ipt: ipt,
+		ts: time.Now(),
 	}
 
 	if !ipt.isTestMode {
@@ -324,6 +319,8 @@ func (ipt *Input) doCollect() error {
 		// 用户 tag 无脑添加 tag(可能覆盖已有 tag)
 		ipt.collectData.tags[k] = v
 	}
+
+	ipt.collectData.tags = inputs.MergeTags(ipt.Tagger.HostTags(), ipt.collectData.tags, "")
 
 	return nil
 }
@@ -359,6 +356,7 @@ func defaultInput() *Input {
 		semStop: cliutils.NewSem(),
 		feeder:  dkio.DefaultFeeder(),
 		Tags:    make(map[string]string),
+		Tagger:  dkpt.DefaultGlobalTagger(),
 	}
 }
 

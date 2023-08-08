@@ -150,7 +150,7 @@ func NewTrapServer(opt TrapsServerOpt, formatter Formatter) (*TrapServer, error)
 		return nil, err
 	}
 
-	trapForwarder, err := startSNMPTrapForwarder(formatter, packets, opt.Election)
+	trapForwarder, err := startSNMPTrapForwarder(formatter, packets, &opt)
 	if err != nil {
 		return nil, fmt.Errorf("unable to start trapForwarder: %w. Will not listen for SNMP traps", err)
 	}
@@ -163,8 +163,8 @@ func NewTrapServer(opt TrapsServerOpt, formatter Formatter) (*TrapServer, error)
 	return server, nil
 }
 
-func startSNMPTrapForwarder(formatter Formatter, packets PacketsChannel, election bool) (*TrapForwarder, error) {
-	trapForwarder, err := NewTrapForwarder(formatter, packets, election)
+func startSNMPTrapForwarder(formatter Formatter, packets PacketsChannel, opt *TrapsServerOpt) (*TrapForwarder, error) {
+	trapForwarder, err := NewTrapForwarder(formatter, packets, opt)
 	if err != nil {
 		return nil, err
 	}

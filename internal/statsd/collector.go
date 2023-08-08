@@ -16,11 +16,9 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
-	"github.com/GuanceCloud/cliutils/point"
 	"github.com/influxdata/telegraf/plugins/parsers/graphite"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 const (
@@ -78,8 +76,6 @@ type Collector struct {
 
 	// A pool of byte slices to handle parsingPromOption
 	bufPool sync.Pool
-
-	opt point.Option
 }
 
 type job struct {
@@ -331,9 +327,6 @@ func NewCollector(udplistener *net.UDPConn, tcplistener *net.TCPListener, collec
 		TCPlistener: tcplistener,
 		mmap:        map[string]string{},
 	}
-
-	// no election.
-	col.opt = point.WithExtraTags(dkpt.GlobalHostTags())
 
 	// Make data structures
 	col.gauges = make(map[string]cachedgauge)

@@ -114,24 +114,36 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		conf    string
 		opts    []inputs.PointCheckOption
 	}{
+		////////////////////////////////////////////////////////////////////////
+		// filebeat:8.6.2
+		////////////////////////////////////////////////////////////////////////
 		{
 			name:    "elastic/filebeat:8.6.2-logstash",
 			verConf: VER_7,
 			conf:    `listen = "tcp://0.0.0.0:"`, // tcp://0.0.0.0:5044
 		},
 
+		////////////////////////////////////////////////////////////////////////
+		// filebeat:7.17.9
+		////////////////////////////////////////////////////////////////////////
 		{
 			name:    "elastic/filebeat:7.17.9-logstash",
 			verConf: VER_7,
 			conf:    `listen = "tcp://0.0.0.0:"`, // tcp://0.0.0.0:5044
 		},
 
+		////////////////////////////////////////////////////////////////////////
+		// filebeat:7.17.6
+		////////////////////////////////////////////////////////////////////////
 		{
 			name:    "elastic/filebeat:7.17.6-logstash",
 			verConf: VER_7,
 			conf:    `listen = "tcp://0.0.0.0:"`, // tcp://0.0.0.0:5044
 		},
 
+		////////////////////////////////////////////////////////////////////////
+		// filebeat:6.0.0
+		////////////////////////////////////////////////////////////////////////
 		{
 			name:    "elastic/filebeat:6.0.0-logstash",
 			verConf: VER_6,
@@ -141,6 +153,9 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 		},
 
+		////////////////////////////////////////////////////////////////////////
+		// filebeat:5.0.0
+		////////////////////////////////////////////////////////////////////////
 		{
 			name:    "pubrepo.jiagouyun.com/image-repo-for-testing/filebeat:5.0.0-logstash",
 			verConf: VER_5,
@@ -150,6 +165,9 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 		},
 
+		////////////////////////////////////////////////////////////////////////
+		// filebeat:1.3.0
+		////////////////////////////////////////////////////////////////////////
 		{
 			name:    "pubrepo.jiagouyun.com/image-repo-for-testing/filebeat:1.3.0-logstash",
 			verConf: VER_1,
@@ -159,6 +177,9 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 		},
 
+		////////////////////////////////////////////////////////////////////////
+		// filebeat:1.2.0
+		////////////////////////////////////////////////////////////////////////
 		{
 			name:    "pubrepo.jiagouyun.com/image-repo-for-testing/filebeat:1.2.0-logstash",
 			verConf: VER_1,
@@ -168,6 +189,9 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 		},
 
+		////////////////////////////////////////////////////////////////////////
+		// filebeat:1.1.0
+		////////////////////////////////////////////////////////////////////////
 		{
 			name:    "pubrepo.jiagouyun.com/image-repo-for-testing/filebeat:1.1.0-logstash",
 			verConf: VER_1,
@@ -177,6 +201,9 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 		},
 
+		////////////////////////////////////////////////////////////////////////
+		// filebeat:1.0.0
+		////////////////////////////////////////////////////////////////////////
 		{
 			name:    "pubrepo.jiagouyun.com/image-repo-for-testing/filebeat:1.0.0-logstash",
 			verConf: VER_1,
@@ -198,6 +225,8 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)
+
+		ipt.Tagger = testutils.NewTaggerHost()
 
 		randPort := testutils.RandPort("tcp")
 		randPortStr := fmt.Sprintf("%d", randPort)
@@ -263,12 +292,12 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 	for _, pt := range pts {
 		var opts []inputs.PointCheckOption
 		opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
-		opts = append(opts, cs.opts...)
 
 		measurement := string(pt.Name())
 
 		switch measurement {
 		case measurementName:
+			opts = append(opts, cs.opts...)
 			opts = append(opts, inputs.WithDoc(&loggingMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
@@ -285,7 +314,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			cs.mCount[measurementName] = struct{}{}
 
 		default: // TODO: check other measurement
-			panic("unknown measurement")
+			panic("unknown measurement: " + measurement)
 		}
 
 		// check if tag appended

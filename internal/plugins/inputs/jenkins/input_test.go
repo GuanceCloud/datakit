@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
 const (
@@ -273,6 +274,7 @@ func TestGetPoint(t *testing.T) {
 				"resource":       "leetcode",
 				"author_email":   "421640644@qq.com",
 				"ci_status":      "failed",
+				"host":           "HOST",
 			},
 			map[string]interface{}{
 				"pipeline_id":    "jenkins-test-ci-master-5",
@@ -297,6 +299,7 @@ func TestGetPoint(t *testing.T) {
 				"object_kind":      "job",
 				"project_name":     "leetcode",
 				"sha":              "6eecc513e6435d2c654c94f9c86f76250f53402e",
+				"host":             "HOST",
 			},
 			map[string]interface{}{
 				"pipeline_id":       "jenkins-test-ci-master-5",
@@ -323,6 +326,7 @@ func TestGetPoint(t *testing.T) {
 				"build_failure_reason": "script returned exit code 1",
 				"build_repo_name":      "https://gitee.com/ethan97/leetcode.git",
 				"sha":                  "6eecc513e6435d2c654c94f9c86f76250f53402e",
+				"host":                 "HOST",
 			},
 			map[string]interface{}{
 				"message":           "Shell Script",
@@ -346,7 +350,7 @@ func TestGetPoint(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			i := Input{}
+			i := Input{Tagger: testutils.NewTaggerHost()}
 			traces, err := getTraces(tc.in)
 			assert.Nil(t, err)
 			for _, trace := range traces {
@@ -395,7 +399,7 @@ func TestCIExtraTags(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			i := Input{CIExtraTags: tc.expectedExtraTags}
+			i := Input{CIExtraTags: tc.expectedExtraTags, Tagger: testutils.NewTaggerHost()}
 			traces, err := getTraces(tc.in)
 			assert.Nil(t, err)
 			for _, trace := range traces {

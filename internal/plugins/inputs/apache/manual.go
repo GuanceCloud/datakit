@@ -19,13 +19,12 @@ type Measurement struct {
 	tags   map[string]string
 	fields map[string]interface{}
 	ts     time.Time
-	ipt    *Input
 }
 
 // Point implement MeasurementV2.
 func (m *Measurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
+	opts = append(opts, point.WithTime(m.ts))
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -69,7 +68,7 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 			"url":            inputs.NewTagInfo("Apache server status url."),
 			"server_version": inputs.NewTagInfo("Apache server version. Optional."),
 			"server_mpm":     inputs.NewTagInfo("Apache server Multi-Processing Module, `prefork`, `worker` and `event`. Optional."),
-			"host":           inputs.NewTagInfo("Hostname of the DataKit."),
+			"host":           inputs.NewTagInfo("Hostname."),
 		},
 	}
 }

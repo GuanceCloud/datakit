@@ -65,7 +65,7 @@ type Input struct {
 
 	feeder  dkio.Feeder
 	semStop *cliutils.Sem // start stop signal
-	opt     point.Option
+	Tagger  dkpt.GlobalTagger
 }
 
 func (n *Input) ElectionEnabled() bool {
@@ -153,12 +153,6 @@ func (n *Input) Run() {
 
 	if err := n.setHost(); err != nil {
 		l.Errorf("failed to set host: %v", err)
-	}
-
-	if n.Election {
-		n.opt = point.WithExtraTags(dkpt.GlobalElectionTags())
-	} else {
-		n.opt = point.WithExtraTags(dkpt.GlobalHostTags())
 	}
 
 	tick := time.NewTicker(n.Interval.Duration)
@@ -267,7 +261,6 @@ func (n *Input) parse(body io.Reader) (*point.Point, error) {
 		name:   inputName,
 		fields: map[string]interface{}{},
 		ts:     time.Now(),
-		ipt:    n,
 	}
 
 	for sc.Scan() {
@@ -349,6 +342,13 @@ func (n *Input) parse(body io.Reader) (*point.Point, error) {
 			}
 		}
 	}
+
+	if n.Election {
+		tags = inputs.MergeTags(n.Tagger.ElectionTags(), tags, n.URL)
+	} else {
+		tags = inputs.MergeTags(n.Tagger.HostTags(), tags, n.URL)
+	}
+
 	metric.tags = tags
 
 	return metric.Point(), nil
@@ -401,6 +401,7 @@ func defaultInput() *Input {
 		Election: true,
 		feeder:   dkio.DefaultFeeder(),
 		semStop:  cliutils.NewSem(),
+		Tagger:   dkpt.DefaultGlobalTagger(),
 	}
 }
 

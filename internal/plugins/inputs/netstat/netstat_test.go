@@ -6,6 +6,7 @@
 package netstat
 
 import (
+	"fmt"
 	"reflect"
 	"sort"
 	"testing"
@@ -13,6 +14,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/shirou/gopsutil/v3/net"
 	"github.com/stretchr/testify/assert"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
 var connectionStats = []net.ConnectionStat{
@@ -83,6 +85,7 @@ func TestNetStatCollect(t *testing.T) {
 	i := &Input{
 		netConnections: ConnectionStat4Test,
 		netInfos:       []*NetInfos{},
+		Tagger:         testutils.NewTaggerHost(),
 	}
 	i.platform = "linux" // runtime.GOOS
 	if err := i.Collect(); err != nil {
@@ -263,6 +266,7 @@ func TestCollectByPort(t *testing.T) {
 				AddrPorts: tt.addrPorts,
 				// must init this map, otherwise will panic
 				netInfos: []*NetInfos{},
+				Tagger:   testutils.NewTaggerHost(),
 			}
 
 			// run function
@@ -278,6 +282,10 @@ func TestCollectByPort(t *testing.T) {
 
 			// sort data
 			sortCatches := sortData(i.collectCachePort)
+
+			for k, v := range i.collectCachePort {
+				fmt.Printf("pt[%02d] = %v\n", k, v.LineProto())
+			}
 
 			// check
 			for j := 0; j < len(i.collectCachePort); j++ {
@@ -310,9 +318,9 @@ var testData = []testStruct{
 			{12, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3059},
 		},
 		wantTags: []map[string]string{
-			{"addr_port": "5353", "ip_version": "unknown"},
-			{"addr_port": "8000", "ip_version": "4"},
-			{"addr_port": "80", "ip_version": "4"},
+			{"addr_port": "5353", "ip_version": "unknown", "host": "HOST"},
+			{"addr_port": "8000", "ip_version": "4", "host": "HOST"},
+			{"addr_port": "80", "ip_version": "4", "host": "HOST"},
 		},
 		wantErr: false,
 	},
@@ -336,10 +344,10 @@ var testData = []testStruct{
 			{4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3059},
 		},
 		wantTags: []map[string]string{
-			{"service": "https", "addr_port": "10.100.64.115:443", "ip_version": "4"},
-			{"service": "http", "addr_port": "10.100.64.115:80", "ip_version": "4"},
-			{"service": "https", "addr_port": "10.100.64.119:443", "ip_version": "4"},
-			{"service": "http", "addr_port": "10.100.64.119:80", "ip_version": "4"},
+			{"service": "https", "addr_port": "10.100.64.115:443", "ip_version": "4", "host": "HOST"},
+			{"service": "http", "addr_port": "10.100.64.115:80", "ip_version": "4", "host": "HOST"},
+			{"service": "https", "addr_port": "10.100.64.119:443", "ip_version": "4", "host": "HOST"},
+			{"service": "http", "addr_port": "10.100.64.119:80", "ip_version": "4", "host": "HOST"},
 		},
 		wantErr: false,
 	},
@@ -357,9 +365,9 @@ var testData = []testStruct{
 			{5, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3059},
 		},
 		wantTags: []map[string]string{
-			{"addr_port": "10.100.64.115:443", "ip_version": "4"},
-			{"addr_port": "443", "ip_version": "4"},
-			{"addr_port": "80", "ip_version": "4"},
+			{"addr_port": "10.100.64.115:443", "ip_version": "4", "host": "HOST"},
+			{"addr_port": "443", "ip_version": "4", "host": "HOST"},
+			{"addr_port": "80", "ip_version": "4", "host": "HOST"},
 		},
 		wantErr: false,
 	},

@@ -41,7 +41,7 @@ type Input struct {
 	Legacy bool              `toml:"legacy"`
 	Tags   map[string]string `toml:"tags"`
 	feeder dkio.Feeder
-	opt    point.Option
+	Tagger dkpt.GlobalTagger
 }
 
 type promtailSampleMeasurement struct {
@@ -49,7 +49,6 @@ type promtailSampleMeasurement struct {
 	tags   map[string]string
 	fields map[string]interface{}
 	ts     time.Time
-	ipt    *Input
 }
 
 var l = logger.DefaultSLogger(inputName)
@@ -57,7 +56,7 @@ var l = logger.DefaultSLogger(inputName)
 // Point implement MeasurementV2.
 func (m *promtailSampleMeasurement) Point() *point.Point {
 	opts := point.DefaultLoggingOptions()
-	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
+	opts = append(opts, point.WithTime(m.ts))
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -78,6 +77,7 @@ func (*promtailSampleMeasurement) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"filename": inputs.NewTagInfo("File name. Optional."),
 			"job":      inputs.NewTagInfo("Job name. Optional."),
+			"host":     inputs.NewTagInfo("Hostname."),
 		},
 		Fields: map[string]interface{}{
 			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Message text, existed when default. Could use Pipeline to delete this field."}, // message
@@ -124,6 +124,8 @@ func (ipt *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 			tags[k] = v
 		}
 
+		tags = inputs.MergeTags(ipt.Tagger.HostTags(), tags, "")
+
 		for _, e := range s.Entries {
 			logging := &promtailSampleMeasurement{
 				name: source,
@@ -132,8 +134,7 @@ func (ipt *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 					pipeline.FieldMessage: e.Line,
 					pipeline.FieldStatus:  pipeline.DefaultStatus,
 				},
-				ts:  now,
-				ipt: ipt,
+				ts: now,
 			}
 
 			pts = append(pts, logging.Point())
@@ -154,9 +155,6 @@ func (*Input) Catalog() string {
 
 func (ipt *Input) Run() {
 	l.Info("register promtail router")
-
-	// no election.
-	ipt.opt = point.WithExtraTags(dkpt.GlobalHostTags())
 }
 
 func (*Input) SampleConfig() string {
@@ -185,6 +183,7 @@ func defaultInput() *Input {
 		Legacy: false,
 		Tags:   map[string]string{},
 		feeder: dkio.DefaultFeeder(),
+		Tagger: dkpt.DefaultGlobalTagger(),
 	}
 }
 

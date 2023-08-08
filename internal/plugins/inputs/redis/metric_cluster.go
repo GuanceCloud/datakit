@@ -101,9 +101,13 @@ func (m *clusterMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
+			"host": &inputs.TagInfo{
+				Desc: "Hostname",
+			},
 			"server": &inputs.TagInfo{
 				Desc: "Server addr",
 			},
+			"service_name": &inputs.TagInfo{Desc: "Service name"},
 		},
 	}
 }
@@ -155,15 +159,10 @@ func (i *Input) ParseClusterData(list string) ([]*point.Point, error) {
 		}
 		var opts []point.Option
 
-		var hostTags map[string]string
 		if m.election {
-			hostTags = inputs.MergeTags(i.Tagger.ElectionTags(), i.Tags, i.Host)
+			m.tags = inputs.MergeTagsWrapper(m.tags, i.Tagger.ElectionTags(), i.Tags, i.Host)
 		} else {
-			hostTags = inputs.MergeTags(i.Tagger.HostTags(), i.Tags, i.Host)
-		}
-
-		for k, v := range hostTags {
-			m.tags[k] = v
+			m.tags = inputs.MergeTagsWrapper(m.tags, i.Tagger.HostTags(), i.Tags, i.Host)
 		}
 
 		pt := point.NewPointV2([]byte(m.name),

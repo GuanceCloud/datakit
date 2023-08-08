@@ -14,6 +14,7 @@ import (
 
 	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/stretchr/testify/assert"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
 var testdata = `127.0.0.1
@@ -50,7 +51,7 @@ Scoreboard: W_________________________________________________..................
 
 func TestParse(t *testing.T) {
 	body := strings.NewReader(testdata)
-	n := Input{}
+	n := Input{Tagger: testutils.NewTaggerHost()}
 	if _, err := n.parse(body); err != nil {
 		t.Error(err)
 	}
@@ -64,7 +65,8 @@ func TestGetMetric(t *testing.T) {
 	defer ts.Close()
 
 	n := Input{
-		URL: ts.URL + "/server_status",
+		URL:    ts.URL + "/server_status",
+		Tagger: testutils.NewTaggerHost(),
 	}
 
 	client, err := n.createHTTPClient()

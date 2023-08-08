@@ -100,13 +100,32 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		name         string // Also used as build image name:tag.
 		conf         string
 		exposedPorts []string
+		opts         []inputs.PointCheckOption
 	}{
+		////////////////////////////////////////////////////////////////////////
+		// jenkins:2.332.1
+		////////////////////////////////////////////////////////////////////////
 		{
 			name: "pubrepo.jiagouyun.com/image-repo-for-testing/jenkins:2.332.1-metrics",
 			conf: `enable_collect = true
 			url = ""
 			key = "6nCZ42W2cNnCO1oeM9Y41wEQ7GEyX1WTeK6aC1Q0vu43Kwqlebqcheek733Aq0sZ"
-			interval = "1s"`, // set conf URL later.
+			interval = "1s"
+			election = true`, // set conf URL later.
+			exposedPorts: []string{"8080/tcp"},
+			opts: []inputs.PointCheckOption{
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+		},
+		{
+			name: "pubrepo.jiagouyun.com/image-repo-for-testing/jenkins:2.332.1-metrics",
+			conf: `enable_collect = true
+			url = ""
+			key = "6nCZ42W2cNnCO1oeM9Y41wEQ7GEyX1WTeK6aC1Q0vu43Kwqlebqcheek733Aq0sZ"
+			interval = "1s"
+			election = false`, // set conf URL later.
 			exposedPorts: []string{"8080/tcp"},
 		},
 	}
@@ -123,6 +142,12 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)
 
+		if ipt.Election {
+			ipt.Tagger = testutils.NewTaggerElection()
+		} else {
+			ipt.Tagger = testutils.NewTaggerHost()
+		}
+
 		uURL, err := url.Parse(ipt.URL)
 		require.NoError(t, err, "parse %s failed: %s", ipt.URL, err)
 
@@ -138,6 +163,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 			exposedPorts: base.exposedPorts,
 			serverPorts:  []string{uURL.Port()},
+			opts:         base.opts,
 
 			cr: &testutils.CaseResult{
 				Name:        t.Name(),
@@ -185,12 +211,12 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 	for _, pt := range pts {
 		var opts []inputs.PointCheckOption
 		opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
-		opts = append(opts, cs.opts...)
 
 		measurement := string(pt.Name())
 
 		switch measurement {
 		case inputName:
+			opts = append(opts, cs.opts...)
 			opts = append(opts, inputs.WithDoc(&Measurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
@@ -207,7 +233,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			cs.mCount[inputName] = struct{}{}
 
 		default: // TODO: check other measurement
-			panic("unknown measurement")
+			panic("unknown measurement: " + measurement)
 		}
 
 		// check if tag appended

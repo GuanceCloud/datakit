@@ -118,6 +118,7 @@ type Input struct {
 
 	feeder      dkio.Feeder
 	semStop     *cliutils.Sem // start stop signal
+	Tagger      dkpt.GlobalTagger
 	udpListener *net.UDPConn
 }
 
@@ -190,12 +191,12 @@ func (ipt *Input) RegHTTPHandler() {
 			itrace.WithLogger(log),
 			itrace.WithRetry(100*time.Millisecond),
 			itrace.WithIOBlockingMode(true),
-			itrace.WithPointOptions(point.WithExtraTags(dkpt.GlobalHostTags())),
+			itrace.WithPointOptions(point.WithExtraTags(ipt.Tagger.HostTags())),
 			itrace.WithFeeder(ipt.feeder),
 		)
 	} else {
 		afterGather = itrace.NewAfterGather(itrace.WithLogger(log),
-			itrace.WithPointOptions(point.WithExtraTags(dkpt.GlobalHostTags())), itrace.WithFeeder(ipt.feeder))
+			itrace.WithPointOptions(point.WithExtraTags(ipt.Tagger.HostTags())), itrace.WithFeeder(ipt.feeder))
 	}
 	afterGatherRun = afterGather
 
@@ -294,6 +295,7 @@ func defaultInput() *Input {
 	return &Input{
 		feeder:  dkio.DefaultFeeder(),
 		semStop: cliutils.NewSem(),
+		Tagger:  dkpt.DefaultGlobalTagger(),
 	}
 }
 
