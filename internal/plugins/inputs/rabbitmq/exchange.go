@@ -45,6 +45,12 @@ func getExchange(n *Input) {
 			tags[k] = v
 		}
 
+		if n.Election {
+			tags = inputs.MergeTags(n.Tagger.ElectionTags(), tags, n.URL)
+		} else {
+			tags = inputs.MergeTags(n.Tagger.HostTags(), tags, n.URL)
+		}
+
 		fields := map[string]interface{}{
 			"message_ack_count":                    exchange.MessageStats.Ack,
 			"message_ack_rate":                     exchange.MessageStats.AckDetails.Rate,
@@ -68,9 +74,8 @@ func getExchange(n *Input) {
 			tags:   tags,
 			fields: fields,
 			ts:     ts,
-			ipt:    n,
 		}
-		metricAppend(metric.Point())
+		n.metricAppend(metric.Point())
 	}
 }
 
@@ -79,13 +84,12 @@ type ExchangeMeasurement struct {
 	tags   map[string]string
 	fields map[string]interface{}
 	ts     time.Time
-	ipt    *Input
 }
 
 // Point implement MeasurementV2.
 func (m *ExchangeMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
+	opts = append(opts, point.WithTime(m.ts))
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),

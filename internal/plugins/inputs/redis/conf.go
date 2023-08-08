@@ -20,7 +20,7 @@ const (
   # connect_timeout = "10s"
 
   ## @param service - string - optional
-  # service = "<SERVICE>"
+  service = "redis"
 
   ## @param interval - number - optional - default: 15
   interval = "15s"

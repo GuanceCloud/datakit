@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	tu "github.com/GuanceCloud/cliutils/testutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
 // go test -v -timeout 30s -run ^TestGetMetric$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/nginx
@@ -46,6 +47,7 @@ func TestGetMetric(t *testing.T) {
 			i: &Input{
 				URL:    ts.URL + "/basic_status",
 				UseVts: false,
+				Tagger: testutils.NewTaggerHost(),
 			},
 		},
 
@@ -54,6 +56,7 @@ func TestGetMetric(t *testing.T) {
 			i: &Input{
 				URL:    ts.URL + "/status/format/json",
 				UseVts: true,
+				Tagger: testutils.NewTaggerHost(),
 			},
 		},
 	}

@@ -23,7 +23,6 @@ import (
 	"github.com/GuanceCloud/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
 
@@ -516,47 +515,14 @@ end: // global tags(host/election tags) got the lowest priority.
 	return out
 }
 
-func InitGlobalTags(
-	servers []string,
-	election bool,
-	tagger dkpt.GlobalTagger,
-	inputTags map[string]string,
-) map[string]map[string]string {
-	globalTags := make(map[string]map[string]string) // server:map[string]string
-
-	for _, v := range servers {
-		var newTags map[string]string
-		if election {
-			newTags = MergeTags(tagger.ElectionTags(), inputTags, v)
-		} else {
-			newTags = MergeTags(tagger.HostTags(), inputTags, v)
-		}
-		if len(v) > 0 {
-			globalTags[v] = newTags
+// MergeTagsWrapper wraps MergeTags function above with input's Tags.
+func MergeTagsWrapper(origin, global, inputTags map[string]string, remote string) map[string]string {
+	for k, v := range inputTags {
+		if _, ok := origin[k]; !ok {
+			origin[k] = v
 		}
 	}
-
-	return globalTags
-}
-
-func MergeGlobalTags(gotTags map[string]string, globalTags map[string]map[string]string, remote string) {
-	val, ok := globalTags[remote]
-	if !ok {
-		return
-	}
-	for k, v := range val {
-		gotTags[k] = v
-	}
-}
-
-func LogGlobalTags(l *logger.Logger, globalTags map[string]map[string]string) {
-	for server, tags := range globalTags {
-		var outMsg []string
-		for k, v := range tags {
-			outMsg = append(outMsg, k+" = "+v)
-		}
-		l.Infof("server [%s]: %s", server, strings.Join(outMsg, ", "))
-	}
+	return MergeTags(global, origin, remote)
 }
 
 func Init() {

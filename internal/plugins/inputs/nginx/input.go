@@ -173,12 +173,6 @@ func (n *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("nginx start")
 
-	if n.Election {
-		n.opt = point.WithExtraTags(dkpt.GlobalElectionTags())
-	} else {
-		n.opt = point.WithExtraTags(dkpt.GlobalHostTags())
-	}
-
 	tick := time.NewTicker(n.Interval.Duration)
 	defer tick.Stop()
 
@@ -329,6 +323,7 @@ func defaultInput() *Input {
 		Election: true,
 		feeder:   io.DefaultFeeder(),
 		semStop:  cliutils.NewSem(),
+		Tagger:   dkpt.DefaultGlobalTagger(),
 	}
 }
 

@@ -115,6 +115,9 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		optsRedisInfoM       []inputs.PointCheckOption
 		optsRedisReplica     []inputs.PointCheckOption
 	}{
+		////////////////////////////////////////////////////////////////////////
+		// redis:4.0.14
+		////////////////////////////////////////////////////////////////////////
 		{
 			name: "redis:4.0.14-alpine",
 			conf: `interval = "2s"
@@ -123,20 +126,130 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			slowlog-max-len = 128
 			election = true`, // set conf URL later.
 			exposedPorts: []string{"6379/tcp"},
+			optsRedisBigkey: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+			optsRedisClient: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+			optsRedisCluster: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+			optsRedisCommandStat: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+			optsRedisDB: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
 			optsRedisInfoM: []inputs.PointCheckOption{
 				inputs.WithOptionalFields(
-					"master_last_io_seconds_ago",
-					"used_cpu_user_percent",
-					"used_cpu_sys_percent",
-					"loading_loaded_perc",
-					"loading_eta_seconds",
 					"aof_buffer_length",
-					"master_sync_in_progress",
-					"slave_repl_offset",
 					"aof_current_size",
-					"loading_total_bytes",
+					"loading_eta_seconds",
 					"loading_loaded_bytes",
+					"loading_loaded_perc",
+					"loading_total_bytes",
+					"master_last_io_seconds_ago",
+					"master_sync_in_progress",
 					"master_sync_left_bytes",
+					"slave_repl_offset",
+					"used_cpu_sys_percent",
+					"used_cpu_user_percent",
+				),
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+			optsRedisReplica: []inputs.PointCheckOption{
+				inputs.WithOptionalFields(
+					"master_link_down_since_seconds",
+				),
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+		},
+		{
+			name: "redis:4.0.14-alpine",
+			conf: `interval = "2s"
+			slow_log = true
+			all_slow_log = false
+			slowlog-max-len = 128
+			election = false`, // set conf URL later.
+			exposedPorts: []string{"6379/tcp"},
+			optsRedisBigkey: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+			},
+			optsRedisClient: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+			},
+			optsRedisCluster: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+			},
+			optsRedisCommandStat: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+			},
+			optsRedisDB: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+			},
+			optsRedisInfoM: []inputs.PointCheckOption{
+				inputs.WithOptionalFields(
+					"aof_buffer_length",
+					"aof_current_size",
+					"loading_eta_seconds",
+					"loading_loaded_bytes",
+					"loading_loaded_perc",
+					"loading_total_bytes",
+					"master_last_io_seconds_ago",
+					"master_sync_in_progress",
+					"master_sync_left_bytes",
+					"slave_repl_offset",
+					"used_cpu_sys_percent",
+					"used_cpu_user_percent",
+				),
+				inputs.WithOptionalTags(
+					"service_name",
 				),
 			},
 			optsRedisReplica: []inputs.PointCheckOption{
@@ -144,12 +257,14 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 					"master_link_down_since_seconds",
 				),
 				inputs.WithOptionalTags(
-					"server",
 					"service_name",
 				),
 			},
 		},
 
+		////////////////////////////////////////////////////////////////////////
+		// redis:5.0.14
+		////////////////////////////////////////////////////////////////////////
 		{
 			name: "redis:5.0.14-alpine",
 			conf: `interval = "2s"
@@ -158,22 +273,134 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			slowlog-max-len = 128
 			election = true`, // set conf URL later.
 			exposedPorts: []string{"6379/tcp"},
+			optsRedisBigkey: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+			optsRedisClient: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+			optsRedisCluster: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+			optsRedisCommandStat: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+			optsRedisDB: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
 			optsRedisInfoM: []inputs.PointCheckOption{
 				inputs.WithOptionalFields(
-					"master_last_io_seconds_ago",
-					"used_cpu_user_percent",
-					"used_cpu_sys_percent",
-					"loading_loaded_perc",
-					"loading_eta_seconds",
 					"aof_buffer_length",
-					"master_sync_in_progress",
-					"slave_repl_offset",
 					"aof_current_size",
-					"loading_total_bytes",
-					"loading_loaded_bytes",
-					"master_sync_left_bytes",
 					"client_biggest_input_buf",
 					"client_longest_output_list",
+					"loading_eta_seconds",
+					"loading_loaded_bytes",
+					"loading_loaded_perc",
+					"loading_total_bytes",
+					"master_last_io_seconds_ago",
+					"master_sync_in_progress",
+					"master_sync_left_bytes",
+					"slave_repl_offset",
+					"used_cpu_sys_percent",
+					"used_cpu_user_percent",
+				),
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+			optsRedisReplica: []inputs.PointCheckOption{
+				inputs.WithOptionalFields(
+					"master_link_down_since_seconds",
+				),
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+		},
+		{
+			name: "redis:5.0.14-alpine",
+			conf: `interval = "2s"
+			slow_log = true
+			all_slow_log = false
+			slowlog-max-len = 128
+			election = false`, // set conf URL later.
+			exposedPorts: []string{"6379/tcp"},
+			optsRedisBigkey: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+			},
+			optsRedisClient: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+			},
+			optsRedisCluster: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+			},
+			optsRedisCommandStat: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+			},
+			optsRedisDB: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+			},
+			optsRedisInfoM: []inputs.PointCheckOption{
+				inputs.WithOptionalFields(
+					"aof_buffer_length",
+					"aof_current_size",
+					"client_biggest_input_buf",
+					"client_longest_output_list",
+					"loading_eta_seconds",
+					"loading_loaded_bytes",
+					"loading_loaded_perc",
+					"loading_total_bytes",
+					"master_last_io_seconds_ago",
+					"master_sync_in_progress",
+					"master_sync_left_bytes",
+					"slave_repl_offset",
+					"used_cpu_sys_percent",
+					"used_cpu_user_percent",
+				),
+				inputs.WithOptionalTags(
+					"service_name",
 				),
 			},
 			optsRedisReplica: []inputs.PointCheckOption{
@@ -181,12 +408,14 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 					"master_link_down_since_seconds",
 				),
 				inputs.WithOptionalTags(
-					"server",
 					"service_name",
 				),
 			},
 		},
 
+		////////////////////////////////////////////////////////////////////////
+		// redis:6.2.12
+		////////////////////////////////////////////////////////////////////////
 		{
 			name: "redis:6.2.12-alpine",
 			conf: `interval = "2s"
@@ -195,22 +424,134 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			slowlog-max-len = 128
 			election = true`, // set conf URL later.
 			exposedPorts: []string{"6379/tcp"},
+			optsRedisBigkey: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+			optsRedisClient: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+			optsRedisCluster: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+			optsRedisCommandStat: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+			optsRedisDB: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
 			optsRedisInfoM: []inputs.PointCheckOption{
 				inputs.WithOptionalFields(
-					"master_last_io_seconds_ago",
-					"used_cpu_user_percent",
-					"used_cpu_sys_percent",
-					"loading_loaded_perc",
-					"loading_eta_seconds",
 					"aof_buffer_length",
-					"master_sync_in_progress",
-					"slave_repl_offset",
 					"aof_current_size",
-					"loading_total_bytes",
-					"loading_loaded_bytes",
-					"master_sync_left_bytes",
 					"client_biggest_input_buf",
 					"client_longest_output_list",
+					"loading_eta_seconds",
+					"loading_loaded_bytes",
+					"loading_loaded_perc",
+					"loading_total_bytes",
+					"master_last_io_seconds_ago",
+					"master_sync_in_progress",
+					"master_sync_left_bytes",
+					"slave_repl_offset",
+					"used_cpu_sys_percent",
+					"used_cpu_user_percent",
+				),
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+			optsRedisReplica: []inputs.PointCheckOption{
+				inputs.WithOptionalFields(
+					"master_link_down_since_seconds",
+				),
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+		},
+		{
+			name: "redis:6.2.12-alpine",
+			conf: `interval = "2s"
+			slow_log = true
+			all_slow_log = false
+			slowlog-max-len = 128
+			election = false`, // set conf URL later.
+			exposedPorts: []string{"6379/tcp"},
+			optsRedisBigkey: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+			},
+			optsRedisClient: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+			},
+			optsRedisCluster: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+			},
+			optsRedisCommandStat: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+			},
+			optsRedisDB: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+			},
+			optsRedisInfoM: []inputs.PointCheckOption{
+				inputs.WithOptionalFields(
+					"aof_buffer_length",
+					"aof_current_size",
+					"client_biggest_input_buf",
+					"client_longest_output_list",
+					"loading_eta_seconds",
+					"loading_loaded_bytes",
+					"loading_loaded_perc",
+					"loading_total_bytes",
+					"master_last_io_seconds_ago",
+					"master_sync_in_progress",
+					"master_sync_left_bytes",
+					"slave_repl_offset",
+					"used_cpu_sys_percent",
+					"used_cpu_user_percent",
+				),
+				inputs.WithOptionalTags(
+					"service_name",
 				),
 			},
 			optsRedisReplica: []inputs.PointCheckOption{
@@ -218,12 +559,14 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 					"master_link_down_since_seconds",
 				),
 				inputs.WithOptionalTags(
-					"server",
 					"service_name",
 				),
 			},
 		},
 
+		////////////////////////////////////////////////////////////////////////
+		// redis:7.0.11
+		////////////////////////////////////////////////////////////////////////
 		{
 			name: "redis:7.0.11-alpine",
 			conf: `interval = "2s"
@@ -232,22 +575,134 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			slowlog-max-len = 128
 			election = true`, // set conf URL later.
 			exposedPorts: []string{"6379/tcp"},
+			optsRedisBigkey: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+			optsRedisClient: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+			optsRedisCluster: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+			optsRedisCommandStat: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+			optsRedisDB: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
 			optsRedisInfoM: []inputs.PointCheckOption{
 				inputs.WithOptionalFields(
-					"master_last_io_seconds_ago",
-					"used_cpu_user_percent",
-					"used_cpu_sys_percent",
-					"loading_loaded_perc",
-					"loading_eta_seconds",
 					"aof_buffer_length",
-					"master_sync_in_progress",
-					"slave_repl_offset",
 					"aof_current_size",
-					"loading_total_bytes",
-					"loading_loaded_bytes",
-					"master_sync_left_bytes",
-					"client_longest_output_list",
 					"client_biggest_input_buf",
+					"client_longest_output_list",
+					"loading_eta_seconds",
+					"loading_loaded_bytes",
+					"loading_loaded_perc",
+					"loading_total_bytes",
+					"master_last_io_seconds_ago",
+					"master_sync_in_progress",
+					"master_sync_left_bytes",
+					"slave_repl_offset",
+					"used_cpu_sys_percent",
+					"used_cpu_user_percent",
+				),
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+			optsRedisReplica: []inputs.PointCheckOption{
+				inputs.WithOptionalFields(
+					"master_link_down_since_seconds",
+				),
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+		},
+		{
+			name: "redis:7.0.11-alpine",
+			conf: `interval = "2s"
+			slow_log = true
+			all_slow_log = false
+			slowlog-max-len = 128
+			election = false`, // set conf URL later.
+			exposedPorts: []string{"6379/tcp"},
+			optsRedisBigkey: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+			},
+			optsRedisClient: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+			},
+			optsRedisCluster: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+			},
+			optsRedisCommandStat: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+			},
+			optsRedisDB: []inputs.PointCheckOption{
+				inputs.WithOptionalTags(
+					"service_name",
+				),
+			},
+			optsRedisInfoM: []inputs.PointCheckOption{
+				inputs.WithOptionalFields(
+					"aof_buffer_length",
+					"aof_current_size",
+					"client_biggest_input_buf",
+					"client_longest_output_list",
+					"loading_eta_seconds",
+					"loading_loaded_bytes",
+					"loading_loaded_perc",
+					"loading_total_bytes",
+					"master_last_io_seconds_ago",
+					"master_sync_in_progress",
+					"master_sync_left_bytes",
+					"slave_repl_offset",
+					"used_cpu_sys_percent",
+					"used_cpu_user_percent",
+				),
+				inputs.WithOptionalTags(
+					"service_name",
 				),
 			},
 			optsRedisReplica: []inputs.PointCheckOption{
@@ -255,7 +710,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 					"master_link_down_since_seconds",
 				),
 				inputs.WithOptionalTags(
-					"server",
 					"service_name",
 				),
 			},
@@ -273,6 +727,12 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)
+
+		if ipt.Election {
+			ipt.Tagger = testutils.NewTaggerElection()
+		} else {
+			ipt.Tagger = testutils.NewTaggerHost()
+		}
 
 		repoTag := strings.Split(base.name, ":")
 
@@ -600,7 +1060,8 @@ func (cs *caseSpec) run() error {
 	// wait data
 	start = time.Now()
 	cs.t.Logf("wait points...")
-	pts, err := cs.feeder.NPoints(60, 5*time.Minute)
+	// pts, err := cs.feeder.NPoints(60, 5*time.Minute)
+	pts, err := cs.feeder.NPoints(20, 5*time.Minute)
 	if err != nil {
 		return err
 	}

@@ -22,7 +22,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmpmeasurement"
@@ -203,8 +203,8 @@ type Input struct {
 	mFieldNameSpecified  map[string]struct{}
 	jobs                 chan Job
 	autodetectProfile    bool
-	feeder               io.Feeder
-	opt                  point.Option
+	feeder               dkio.Feeder
+	Tagger               dkpt.GlobalTagger
 }
 
 type TrapsConfig struct {
@@ -236,12 +236,6 @@ func (ipt *Input) Run() {
 		}
 	})
 
-	if ipt.Election {
-		ipt.opt = point.WithExtraTags(dkpt.GlobalElectionTags())
-	} else {
-		ipt.opt = point.WithExtraTags(dkpt.GlobalHostTags())
-	}
-
 	// starting traps server
 	if ipt.Traps.Enable {
 		var communityStrings []string
@@ -269,6 +263,9 @@ func (ipt *Input) Run() {
 			Users:            v3,
 			StopTimeout:      ipt.Traps.StopTimeout,
 			Election:         ipt.Election,
+			InputTags:        ipt.Tags,
+			Feeder:           ipt.feeder,
+			Tagger:           ipt.Tagger,
 		}); err != nil {
 			l.Errorf("traps.StartServer failed: %v, port = %d", err, ipt.Traps.Port)
 			return
@@ -527,7 +524,7 @@ func (ipt *Input) doCollectObject(deviceIP string, device *deviceInfo) {
 		return
 	}
 
-	if err := ipt.feeder.Feed(snmpmeasurement.SNMPObjectName, point.Object, points, &io.Option{CollectCost: time.Since(tn)}); err != nil {
+	if err := ipt.feeder.Feed(snmpmeasurement.SNMPObjectName, point.Object, points, &dkio.Option{CollectCost: time.Since(tn)}); err != nil {
 		l.Errorf("FeedMeasurement object err: %v", err)
 		ipt.feeder.FeedLastError(snmpmeasurement.SNMPObjectName, err.Error())
 	}
@@ -540,7 +537,7 @@ func (ipt *Input) doCollectMetrics(deviceIP string, device *deviceInfo) {
 		return
 	}
 
-	if err := ipt.feeder.Feed(snmpmeasurement.SNMPMetricName, point.Metric, points, &io.Option{CollectCost: time.Since(tn)}); err != nil {
+	if err := ipt.feeder.Feed(snmpmeasurement.SNMPMetricName, point.Metric, points, &dkio.Option{CollectCost: time.Since(tn)}); err != nil {
 		l.Errorf("FeedMeasurement metric err: %v", err)
 		ipt.feeder.FeedLastError(snmpmeasurement.SNMPMetricName, err.Error())
 	}
@@ -555,12 +552,17 @@ func (ipt *Input) CollectingMeasurements(deviceIP string, device *deviceInfo, tn
 		ipt.doCollectCore(deviceIP, device, tn, &fts, true) // object need collect meta
 
 		for _, data := range fts.Data {
+			if ipt.Election {
+				data.Tags = inputs.MergeTags(ipt.Tagger.ElectionTags(), data.Tags, "")
+			} else {
+				data.Tags = inputs.MergeTags(ipt.Tagger.HostTags(), data.Tags, "")
+			}
+
 			sobj := &snmpmeasurement.SNMPObject{
 				Name:   snmpmeasurement.SNMPObjectName,
 				Tags:   data.Tags,
 				Fields: data.Fields,
 				TS:     tn,
-				Opt:    ipt.opt,
 			}
 			pts = append(pts, sobj.Point())
 		}
@@ -568,12 +570,17 @@ func (ipt *Input) CollectingMeasurements(deviceIP string, device *deviceInfo, tn
 		ipt.doCollectCore(deviceIP, device, tn, &fts, false) // metric not collect meta
 
 		for _, data := range fts.Data {
+			if ipt.Election {
+				data.Tags = inputs.MergeTags(ipt.Tagger.ElectionTags(), data.Tags, "")
+			} else {
+				data.Tags = inputs.MergeTags(ipt.Tagger.HostTags(), data.Tags, "")
+			}
+
 			smtc := &snmpmeasurement.SNMPMetric{
 				Name:   snmpmeasurement.SNMPMetricName,
 				Tags:   data.Tags,
 				Fields: data.Fields,
 				TS:     tn,
-				Opt:    ipt.opt,
 			}
 			pts = append(pts, smtc.Point())
 		}
@@ -1218,7 +1225,8 @@ func defaultInput() *Input {
 	return &Input{
 		Tags:    make(map[string]string),
 		semStop: cliutils.NewSem(),
-		feeder:  io.DefaultFeeder(),
+		feeder:  dkio.DefaultFeeder(),
+		Tagger:  dkpt.DefaultGlobalTagger(),
 	}
 }
 

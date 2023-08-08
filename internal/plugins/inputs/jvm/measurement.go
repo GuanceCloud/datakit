@@ -28,7 +28,6 @@ type JvmMeasurement struct {
 	tags   map[string]string
 	fields map[string]interface{}
 	ts     time.Time
-	ipt    *Input
 }
 
 type JavaRuntimeMemt struct {
@@ -60,7 +59,7 @@ type JavaMemoryPoolMemt struct {
 // Point implement MeasurementV2.
 func (m *JvmMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts), m.ipt.Opt)
+	opts = append(opts, point.WithTime(m.ts))
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -81,7 +80,7 @@ func (*JvmMeasurement) Info() *inputs.MeasurementInfo {
 // Point implement MeasurementV2.
 func (m *JavaRuntimeMemt) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts), m.ipt.Opt)
+	opts = append(opts, point.WithTime(m.ts))
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -117,7 +116,7 @@ func (*JavaRuntimeMemt) Info() *inputs.MeasurementInfo {
 // Point implement MeasurementV2.
 func (m *JavaMemoryMemt) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts), m.ipt.Opt)
+	opts = append(opts, point.WithTime(m.ts))
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -164,7 +163,7 @@ func (*JavaMemoryMemt) Info() *inputs.MeasurementInfo {
 // Point implement MeasurementV2.
 func (m *JavaGcMemt) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts), m.ipt.Opt)
+	opts = append(opts, point.WithTime(m.ts))
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -203,7 +202,7 @@ func (*JavaGcMemt) Info() *inputs.MeasurementInfo {
 // Point implement MeasurementV2.
 func (m *JavaThreadMemt) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts), m.ipt.Opt)
+	opts = append(opts, point.WithTime(m.ts))
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -243,7 +242,7 @@ func (*JavaThreadMemt) Info() *inputs.MeasurementInfo {
 // Point implement MeasurementV2.
 func (m *JavaClassLoadMemt) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts), m.ipt.Opt)
+	opts = append(opts, point.WithTime(m.ts))
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -282,7 +281,7 @@ func (*JavaClassLoadMemt) Info() *inputs.MeasurementInfo {
 // Point implement MeasurementV2.
 func (m *JavaMemoryPoolMemt) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts), m.ipt.Opt)
+	opts = append(opts, point.WithTime(m.ts))
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),

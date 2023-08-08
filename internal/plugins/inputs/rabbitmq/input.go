@@ -107,12 +107,6 @@ func (n *Input) Run() {
 	}
 	n.client = client
 
-	if n.Election {
-		n.opt = point.WithExtraTags(dkpt.GlobalElectionTags())
-	} else {
-		n.opt = point.WithExtraTags(dkpt.GlobalHostTags())
-	}
-
 	tick := time.NewTicker(n.Interval.Duration)
 	defer tick.Stop()
 
@@ -125,13 +119,13 @@ func (n *Input) Run() {
 				n.lastErr = nil
 			}
 
-			if len(collectCache) > 0 {
-				if err := n.feeder.Feed(inputName, point.Metric, collectCache,
+			if len(n.collectCache) > 0 {
+				if err := n.feeder.Feed(inputName, point.Metric, n.collectCache,
 					&dkio.Option{CollectCost: time.Since(n.start)}); err != nil {
 					l.Errorf("FeedMeasurement: %s", err.Error())
 				}
 
-				collectCache = collectCache[:0]
+				n.collectCache = n.collectCache[:0]
 			}
 		} else {
 			l.Debugf("not leader, skipped")
@@ -198,7 +192,9 @@ func (n *Input) getMetric() {
 			})
 		}(v)
 	}
-	_ = g.Wait()
+	if err := g.Wait(); err != nil {
+		l.Errorf("g.Wait failed: %v", err)
+	}
 }
 
 func (n *Input) SampleMeasurement() []inputs.Measurement {
@@ -239,6 +235,7 @@ func defaultInput() *Input {
 		Election: true,
 		semStop:  cliutils.NewSem(),
 		feeder:   dkio.DefaultFeeder(),
+		Tagger:   dkpt.DefaultGlobalTagger(),
 	}
 }
 

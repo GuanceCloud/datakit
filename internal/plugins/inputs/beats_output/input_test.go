@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
 // go test -v -timeout 30s -run ^TestParseListen$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/beats_output
@@ -138,6 +139,7 @@ func TestGetNewTags(t *testing.T) {
 					"tag1": "val1",
 					"tag2": "val2",
 				},
+				Tagger: testutils.NewTaggerHost(),
 			},
 			in: &DataStruct{
 				HostName:    "MacBook-Air-2.local",

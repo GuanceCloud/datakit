@@ -143,7 +143,7 @@ type Input struct {
 	AddrPorts        []*portConf    `toml:"addr_ports"` // the ip and port that must show
 	netInfos         []*NetInfos    // cache metric,
 	feeder           dkio.Feeder
-	opt              point.Option
+	Tagger           dkpt.GlobalTagger
 }
 
 func (ipt *Input) Singleton() {}
@@ -154,13 +154,12 @@ type netStatMeasurement struct {
 	tags   map[string]string      // Indicator name
 	fields map[string]interface{} // Indicator measurement results
 	ts     time.Time
-	ipt    *Input
 }
 
 // Point implement MeasurementV2.
 func (m *netStatMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
+	opts = append(opts, point.WithTime(m.ts))
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -239,12 +238,13 @@ func (ipt *Input) Collect() error {
 				portTags[k] = v
 			}
 
+			portTags = inputs.MergeTags(ipt.Tagger.HostTags(), portTags, "")
+
 			metric := &netStatMeasurement{
 				name:   inputNamePort,
 				tags:   portTags,
 				fields: netInfo.netInfo.toMap(),
 				ts:     now,
-				ipt:    ipt,
 			}
 			ipt.collectCachePort = append(ipt.collectCachePort, metric.Point())
 		} else { // netstat all
@@ -259,13 +259,14 @@ func (ipt *Input) Collect() error {
 
 			tags["ip_version"] = netInfo.ipVersion
 
+			tags = inputs.MergeTags(ipt.Tagger.HostTags(), tags, "")
+
 			metric := &netStatMeasurement{
 				name: inputName,
 				tags: tags,
 				// "all" mean count by server
 				fields: fields,
 				ts:     now,
-				ipt:    ipt,
 			}
 			ipt.collectCache = append(ipt.collectCache, metric.Point())
 		}
@@ -398,9 +399,6 @@ func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("netStat input started")
 
-	// no election.
-	ipt.opt = point.WithExtraTags(dkpt.GlobalHostTags())
-
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
@@ -519,6 +517,7 @@ func defaultInput() *Input {
 		Tags:           make(map[string]string),
 		netInfos:       []*NetInfos{},
 		feeder:         dkio.DefaultFeeder(),
+		Tagger:         dkpt.DefaultGlobalTagger(),
 	}
 }
 

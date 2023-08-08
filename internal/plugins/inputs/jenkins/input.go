@@ -78,12 +78,6 @@ func (n *Input) setup() {
 		n.setupServer()
 		l.Infof("start listening to jenkins CI events at %s", n.CIEventPort)
 	}
-
-	if n.Election {
-		n.opt = point.WithExtraTags(dkpt.GlobalElectionTags())
-	} else {
-		n.opt = point.WithExtraTags(dkpt.GlobalHostTags())
-	}
 }
 
 func (n *Input) setupServer() {
@@ -266,6 +260,7 @@ func defaultInput() *Input {
 		Interval: datakit.Duration{Duration: time.Second * 30},
 		semStop:  cliutils.NewSem(),
 		feeder:   dkio.DefaultFeeder(),
+		Tagger:   dkpt.DefaultGlobalTagger(),
 	}
 }
 

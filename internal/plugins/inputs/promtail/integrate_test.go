@@ -158,6 +158,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 		ipt := defaultInput()
 		ipt.feeder = feeder
+		ipt.Tagger = testutils.NewTaggerHost()
 
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)
@@ -247,7 +248,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			cs.mCount[measurementName] = struct{}{}
 
 		default: // TODO: check other measurement
-			panic("unknown measurement")
+			panic("unknown measurement: " + measurement)
 		}
 
 		// check if tag appended

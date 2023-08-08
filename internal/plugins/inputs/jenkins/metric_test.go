@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
 func TestGetMetric(t *testing.T) {
@@ -26,6 +27,7 @@ func TestGetMetric(t *testing.T) {
 		URL:      ts.URL,
 		Key:      "ccc",
 		Interval: datakit.Duration{Duration: time.Second * 1},
+		Tagger:   testutils.NewTaggerHost(),
 	}
 
 	n.setup()

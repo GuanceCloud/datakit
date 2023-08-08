@@ -10,6 +10,7 @@ import (
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -107,6 +108,7 @@ func defaultInput() *Input {
 	return &Input{
 		JolokiaAgent: inputs.JolokiaAgent{
 			SemStop: cliutils.NewSem(),
+			Tagger:  dkpt.DefaultGlobalTagger(),
 		},
 	}
 }

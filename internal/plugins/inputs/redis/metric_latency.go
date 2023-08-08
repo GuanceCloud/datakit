@@ -65,6 +65,7 @@ func (m *latencyMeasurement) Info() *inputs.MeasurementInfo {
 			"server": &inputs.TagInfo{
 				Desc: "Server addr",
 			},
+			"service_name": &inputs.TagInfo{Desc: "Service name"},
 		},
 	}
 }

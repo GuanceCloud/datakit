@@ -121,9 +121,9 @@ func (s *stats) makePoint(addTags map[string]string) ([]*point.Point, error) {
 			remote = ""
 		}
 		if s.ipt.Election {
-			tags = inputs.MergeTags(s.ipt.Tagger.ElectionTags(), tags, remote)
+			tags = inputs.MergeTagsWrapper(tags, s.ipt.Tagger.ElectionTags(), s.ipt.Tags, remote)
 		} else {
-			tags = inputs.MergeTags(s.ipt.Tagger.HostTags(), tags, remote)
+			tags = inputs.MergeTagsWrapper(tags, s.ipt.Tagger.HostTags(), s.ipt.Tags, remote)
 		}
 
 		for k, v := range addTags {

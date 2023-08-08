@@ -101,7 +101,11 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		name         string // Also used as build image name:tag.
 		conf         string
 		exposedPorts []string
+		opts         []inputs.PointCheckOption
 	}{
+		////////////////////////////////////////////////////////////////////////
+		// rabbitmq:3.8
+		////////////////////////////////////////////////////////////////////////
 		{
 			name: "rabbitmq:3.8-management-alpine",
 			conf: `url = ""
@@ -111,8 +115,26 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			insecure_skip_verify = false
 			election = true`, // set conf URL later.
 			exposedPorts: []string{"15672/tcp"},
+			opts: []inputs.PointCheckOption{
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+		},
+		{
+			name: "rabbitmq:3.8-management-alpine",
+			conf: `url = ""
+			username = "guest"
+			password = "guest"
+			interval = "1s"
+			insecure_skip_verify = false
+			election = false`, // set conf URL later.
+			exposedPorts: []string{"15672/tcp"},
 		},
 
+		////////////////////////////////////////////////////////////////////////
+		// rabbitmq:3.9
+		////////////////////////////////////////////////////////////////////////
 		{
 			name: "rabbitmq:3.9-management-alpine",
 			conf: `url = ""
@@ -122,8 +144,26 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			insecure_skip_verify = false
 			election = true`, // set conf URL later.
 			exposedPorts: []string{"15672/tcp"},
+			opts: []inputs.PointCheckOption{
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+		},
+		{
+			name: "rabbitmq:3.9-management-alpine",
+			conf: `url = ""
+			username = "guest"
+			password = "guest"
+			interval = "1s"
+			insecure_skip_verify = false
+			election = false`, // set conf URL later.
+			exposedPorts: []string{"15672/tcp"},
 		},
 
+		////////////////////////////////////////////////////////////////////////
+		// rabbitmq:3.10
+		////////////////////////////////////////////////////////////////////////
 		{
 			name: "rabbitmq:3.10-management-alpine",
 			conf: `url = ""
@@ -133,8 +173,26 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			insecure_skip_verify = false
 			election = true`, // set conf URL later.
 			exposedPorts: []string{"15672/tcp"},
+			opts: []inputs.PointCheckOption{
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+		},
+		{
+			name: "rabbitmq:3.10-management-alpine",
+			conf: `url = ""
+			username = "guest"
+			password = "guest"
+			interval = "1s"
+			insecure_skip_verify = false
+			election = false`, // set conf URL later.
+			exposedPorts: []string{"15672/tcp"},
 		},
 
+		////////////////////////////////////////////////////////////////////////
+		// rabbitmq:3.11
+		////////////////////////////////////////////////////////////////////////
 		{
 			name: "rabbitmq:3.11-management-alpine",
 			conf: `url = ""
@@ -143,6 +201,21 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			interval = "1s"
 			insecure_skip_verify = false
 			election = true`, // set conf URL later.
+			exposedPorts: []string{"15672/tcp"},
+			opts: []inputs.PointCheckOption{
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+		},
+		{
+			name: "rabbitmq:3.11-management-alpine",
+			conf: `url = ""
+			username = "guest"
+			password = "guest"
+			interval = "1s"
+			insecure_skip_verify = false
+			election = false`, // set conf URL later.
 			exposedPorts: []string{"15672/tcp"},
 		},
 	}
@@ -159,6 +232,12 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)
 
+		if ipt.Election {
+			ipt.Tagger = testutils.NewTaggerElection()
+		} else {
+			ipt.Tagger = testutils.NewTaggerHost()
+		}
+
 		repoTag := strings.Split(base.name, ":")
 
 		cases = append(cases, &caseSpec{
@@ -170,6 +249,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			repoTag: repoTag[1],
 
 			exposedPorts: base.exposedPorts,
+			opts:         base.opts,
 
 			cr: &testutils.CaseResult{
 				Name:        t.Name(),
@@ -287,7 +367,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			cs.mCount[QueueMetric] = struct{}{}
 
 		default: // TODO: check other measurement
-			panic("unknown measurement")
+			panic("unknown measurement: " + measurement)
 		}
 
 		// check if tag appended

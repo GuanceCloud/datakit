@@ -40,6 +40,7 @@ func (m *TraceMeasurement) Info() *inputs.MeasurementInfo {
 		Name: m.Name,
 		Type: "tracing",
 		Tags: map[string]interface{}{
+			TAG_HOST:             &inputs.TagInfo{Desc: "Hostname."},
 			TAG_CONTAINER_HOST:   &inputs.TagInfo{Desc: "Container hostname. Available in OpenTelemetry. Optional."},
 			TAG_ENDPOINT:         &inputs.TagInfo{Desc: "Endpoint info. Available in SkyWalking, Zipkin. Optional."},
 			TAG_ENV:              &inputs.TagInfo{Desc: "Application environment info. Available in Jaeger. Optional."},

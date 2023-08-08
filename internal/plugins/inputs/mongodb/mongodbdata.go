@@ -13,6 +13,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 type DBData struct {
@@ -168,13 +169,18 @@ func (d *MongodbData) add(key string, val interface{}) {
 }
 
 func (d *MongodbData) append() {
+	if d.ipt.Election {
+		d.Tags = inputs.MergeTagsWrapper(d.Tags, d.ipt.Tagger.ElectionTags(), d.ipt.Tags, "")
+	} else {
+		d.Tags = inputs.MergeTagsWrapper(d.Tags, d.ipt.Tagger.HostTags(), d.ipt.Tags, "")
+	}
+
 	now := time.Now()
 	metric := &mongodbMeasurement{
 		name:   MongoDB,
 		tags:   copyTags(d.Tags),
 		fields: d.Fields,
 		ts:     now,
-		ipt:    d.ipt,
 	}
 	d.collectCache = append(d.collectCache, metric.Point())
 
@@ -186,7 +192,6 @@ func (d *MongodbData) append() {
 			tags:   tmp,
 			fields: db.Fields,
 			ts:     now,
-			ipt:    d.ipt,
 		}
 		d.collectCache = append(d.collectCache, metric.Point())
 	}
@@ -200,7 +205,6 @@ func (d *MongodbData) append() {
 			tags:   tmp,
 			fields: col.Fields,
 			ts:     now,
-			ipt:    d.ipt,
 		}
 		d.collectCache = append(d.collectCache, metric.Point())
 	}
@@ -213,7 +217,6 @@ func (d *MongodbData) append() {
 			tags:   tmp,
 			fields: host.Fields,
 			ts:     now,
-			ipt:    d.ipt,
 		}
 		d.collectCache = append(d.collectCache, metric.Point())
 	}
@@ -226,7 +229,6 @@ func (d *MongodbData) append() {
 			tags:   tmp,
 			fields: col.Fields,
 			ts:     now,
-			ipt:    d.ipt,
 		}
 		d.collectCache = append(d.collectCache, metric.Point())
 	}

@@ -13,6 +13,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 type ciEventType byte
@@ -126,12 +127,18 @@ func (n *Input) getPipelinePoint(span *ddSpan) (*point.Point, error) {
 	measurementName := "jenkins_pipeline"
 	tags := getPipelineTags(span)
 	n.putExtraTags(tags)
+
+	if n.Election {
+		tags = inputs.MergeTagsWrapper(tags, n.Tagger.ElectionTags(), n.Tags, n.URL)
+	} else {
+		tags = inputs.MergeTagsWrapper(tags, n.Tagger.HostTags(), n.Tags, n.URL)
+	}
+
 	measurement := &jenkinsPipelineMeasurement{
 		name:   measurementName,
 		tags:   tags,
 		fields: getPipelineFields(span),
 		ts:     time.Now(),
-		ipt:    n,
 	}
 	return measurement.Point(), nil
 }
@@ -140,12 +147,18 @@ func (n *Input) getJobPoint(span *ddSpan) (*point.Point, error) {
 	measurementName := "jenkins_job"
 	tags := getJobTags(span)
 	n.putExtraTags(tags)
+
+	if n.Election {
+		tags = inputs.MergeTagsWrapper(tags, n.Tagger.ElectionTags(), n.Tags, n.URL)
+	} else {
+		tags = inputs.MergeTagsWrapper(tags, n.Tagger.HostTags(), n.Tags, n.URL)
+	}
+
 	measurement := &jenkinsJobMeasurement{
 		name:   measurementName,
 		tags:   tags,
 		fields: getJobFields(span),
 		ts:     time.Now(),
-		ipt:    n,
 	}
 	return measurement.Point(), nil
 }

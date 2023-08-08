@@ -34,6 +34,13 @@ func getNode(n *Input) {
 		for k, v := range n.Tags {
 			tags[k] = v
 		}
+
+		if n.Election {
+			tags = inputs.MergeTags(n.Tagger.ElectionTags(), tags, n.URL)
+		} else {
+			tags = inputs.MergeTags(n.Tagger.HostTags(), tags, n.URL)
+		}
+
 		fields := map[string]interface{}{
 			"disk_free_alarm":   node.DiskFreeAlarm,
 			"disk_free":         node.DiskFree,
@@ -54,9 +61,8 @@ func getNode(n *Input) {
 			tags:   tags,
 			fields: fields,
 			ts:     ts,
-			ipt:    n,
 		}
-		metricAppend(metric.Point())
+		n.metricAppend(metric.Point())
 	}
 }
 
@@ -65,13 +71,12 @@ type NodeMeasurement struct {
 	tags   map[string]string
 	fields map[string]interface{}
 	ts     time.Time
-	ipt    *Input
 }
 
 // Point implement MeasurementV2.
 func (m *NodeMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
+	opts = append(opts, point.WithTime(m.ts))
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),

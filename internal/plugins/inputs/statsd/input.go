@@ -16,6 +16,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	istatsd "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/statsd"
 )
@@ -92,10 +93,11 @@ type Input struct {
 	UDPlistener *net.UDPConn
 	TCPlistener *net.TCPListener
 
-	semStop *cliutils.Sem // start stop signal
-	Feeder  dkio.Feeder
-	opt     point.Option
-	Col     *istatsd.Collector // The real collector
+	semStop    *cliutils.Sem // start stop signal
+	Feeder     dkio.Feeder
+	Tagger     dkpt.GlobalTagger
+	taggerTags map[string]string
+	Col        *istatsd.Collector // The real collector
 
 	isInitialized bool
 	l             *logger.Logger
@@ -178,6 +180,11 @@ func (ipt *Input) Collect() error {
 	}
 	if len(measurementInfos) > 0 {
 		for _, v := range measurementInfos {
+			// append tags to points
+			for kk, vv := range ipt.taggerTags {
+				v.PT.AddTag([]byte(kk), []byte(vv))
+			}
+
 			err = ipt.Feeder.Feed(v.FeedMetricName, point.Metric,
 				[]*point.Point{v.PT},
 				&dkio.Option{CollectCost: time.Since(start)})
@@ -210,6 +217,9 @@ func (ipt *Input) Run() {
 	}
 
 	ipt.l.Infof("Started the statsd service on %q", ipt.ServiceAddress)
+
+	ipt.taggerTags = inputs.MergeTags(ipt.Tagger.HostTags(), ipt.taggerTags, "")
+
 	tick := time.NewTicker(time.Second * 10)
 	defer tick.Stop()
 
@@ -260,6 +270,7 @@ func DefaultInput() *Input {
 
 		semStop: cliutils.NewSem(),
 		Feeder:  dkio.DefaultFeeder(),
+		Tagger:  dkpt.DefaultGlobalTagger(),
 	}
 }
 

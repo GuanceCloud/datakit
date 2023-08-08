@@ -22,13 +22,12 @@ type statsdMeasurement struct {
 	tags   map[string]string
 	fields map[string]interface{}
 	ts     time.Time
-	coll   *Collector
 }
 
 // Point implement MeasurementV2.
 func (m *statsdMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts), m.coll.opt)
+	opts = append(opts, point.WithTime(m.ts))
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -116,7 +115,6 @@ func (a *accumulator) addFields(name string, fields map[string]interface{}, tags
 		},
 		tags: tags,
 		ts:   ts,
-		coll: a.ref,
 	}
 
 	a.measurementInfos = append(a.measurementInfos, &measurementInfo{

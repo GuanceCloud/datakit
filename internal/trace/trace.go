@@ -55,6 +55,7 @@ const (
 	SPAN_SOURCE_WEB       = "web"
 
 	// line protocol tags.
+	TAG_HOST             = "host"
 	TAG_CONTAINER_HOST   = "container_host"
 	TAG_ENDPOINT         = "endpoint"
 	TAG_ENV              = "env"

@@ -72,7 +72,7 @@ type Input struct {
 
 	semStop *cliutils.Sem // start stop signal
 	stopped bool
-	opt     point.Option
+	Tagger  dkpt.GlobalTagger
 }
 
 // Make sure Input implements the inputs.InputV2 interface.
@@ -100,7 +100,6 @@ type loggingMeasurement struct {
 	tags   map[string]string
 	fields map[string]interface{}
 	ts     time.Time
-	ipt    *Input
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
@@ -112,7 +111,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 // Point implement MeasurementV2.
 func (m *loggingMeasurement) Point() *point.Point {
 	opts := point.DefaultLoggingOptions()
-	opts = append(opts, point.WithTime(m.ts), m.ipt.opt)
+	opts = append(opts, point.WithTime(m.ts))
 
 	return point.NewPointV2([]byte(m.name),
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -163,9 +162,6 @@ func (ipt *Input) Run() {
 	}
 	server, _ := v2.NewWithListener(opServer.Listener)
 	defer server.Close() //nolint:errcheck
-
-	// no election.
-	ipt.opt = point.WithExtraTags(dkpt.GlobalHostTags())
 
 	l.Debug("listening " + ipt.Listen + "...")
 	ipt.stopped = false
@@ -242,6 +238,9 @@ func (ipt *Input) getNewTags(dataPiece *DataStruct) map[string]string {
 			}
 		}
 	}
+
+	newTags = inputs.MergeTags(ipt.Tagger.HostTags(), newTags, "")
+
 	return newTags
 }
 
@@ -261,7 +260,6 @@ func (ipt *Input) feed(pending []*DataStruct) {
 			tags:   newTags,
 			fields: v.Fields,
 			ts:     now,
-			ipt:    ipt,
 		}
 
 		if logging.fields == nil {
@@ -405,6 +403,7 @@ func defaultInput() *Input {
 		Tags:    make(map[string]string),
 		feeder:  io.DefaultFeeder(),
 		semStop: cliutils.NewSem(),
+		Tagger:  dkpt.DefaultGlobalTagger(),
 	}
 }
 

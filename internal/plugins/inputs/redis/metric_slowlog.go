@@ -44,6 +44,7 @@ func (m *slowlogMeasurement) Info() *inputs.MeasurementInfo {
 			"server": &inputs.TagInfo{
 				Desc: "server",
 			},
+			"service_name": &inputs.TagInfo{Desc: "Service name"},
 			"message": &inputs.TagInfo{
 				Desc: "log message",
 			},
