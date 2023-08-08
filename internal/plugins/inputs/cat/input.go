@@ -14,10 +14,12 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
@@ -131,7 +133,10 @@ func (ipt *Input) Run() {
 		globalTags = ipt.Tags
 	}
 
-	afterGather := itrace.NewAfterGather(itrace.WithLogger(log))
+	afterGather := itrace.NewAfterGather(itrace.WithLogger(log),
+		itrace.WithPointOptions(point.WithExtraTags(dkpt.GlobalHostTags())),
+		itrace.WithFeeder(ipt.feeder))
+
 	afterGatherRun = afterGather
 
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_cat"})
