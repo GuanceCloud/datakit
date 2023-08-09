@@ -96,7 +96,10 @@ func (ipt *Input) handleSkyMetricV3(resp http.ResponseWriter, req *http.Request)
 	metrics := processMetricsV3(jvm, start, ipt)
 	if len(metrics) != 0 {
 		if err := ipt.feeder.Feed(jvmMetricName, point.Metric, metrics, &dkio.Option{CollectCost: time.Since(start)}); err != nil {
-			ipt.feeder.FeedLastError(jvmMetricName, err.Error())
+			ipt.feeder.FeedLastError(err.Error(),
+				dkio.WithLastErrorInput(inputName),
+				dkio.WithLastErrorSource(jvmMetricName),
+			)
 		}
 	}
 

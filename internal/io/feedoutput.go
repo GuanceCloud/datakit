@@ -17,9 +17,13 @@ import (
 
 type FeederOutputer interface {
 	Write(data *iodata) error
-	WriteLastError(source, err string, cat ...point.Category)
+	WriteLastError(err string, opts ...LastErrorOption)
 	Reader(c point.Category) <-chan *iodata
 }
+
+////////////////////////////////////////////////////////////////////////////////
+
+var _ FeederOutputer = new(datawayOutput)
 
 // feederOutput send feeder data to dataway.
 type datawayOutput struct {
@@ -31,20 +35,28 @@ func (fo *datawayOutput) Reader(cat point.Category) <-chan *iodata {
 }
 
 // WriteLastError send any error info into Prometheus metrics.
-func (fo *datawayOutput) WriteLastError(source, err string, cat ...point.Category) {
-	catStr := "unknown"
-	if len(cat) == 1 {
-		catStr = cat[0].String()
+func (fo *datawayOutput) WriteLastError(err string, opts ...LastErrorOption) {
+	le := newLastError()
 
-		// make feed/last-feed entry for that source with category
-		// they must be real input, we need to take them out for latter
-		// use, such as get metric of only inputs.
-		inputsFeedVec.WithLabelValues(source, catStr).Inc()
-		inputsLastFeedVec.WithLabelValues(source, catStr).Set(float64(time.Now().Unix()))
+	for _, opt := range opts {
+		if opt != nil {
+			opt(le)
+		}
 	}
 
-	errCountVec.WithLabelValues(source, catStr).Inc()
-	lastErrVec.WithLabelValues(source, catStr, err).Set(float64(time.Now().Unix()))
+	catStr := point.SUnknownCategory
+	if len(le.Categories) == 1 {
+		catStr = le.Categories[0].String()
+	}
+
+	// make feed/last-feed entry for that source with category
+	// they must be real input, we need to take them out for latter
+	// use, such as get metric of only inputs.
+	inputsFeedVec.WithLabelValues(le.Source, catStr).Inc()
+	inputsLastFeedVec.WithLabelValues(le.Source, catStr).Set(float64(time.Now().Unix()))
+
+	errCountVec.WithLabelValues(le.Source, catStr).Inc()
+	lastErrVec.WithLabelValues(le.Input, le.Source, catStr, err).Set(float64(time.Now().Unix()))
 }
 
 func (fo *datawayOutput) Write(data *iodata) error {
@@ -98,6 +110,10 @@ func NewDatawayOutput(chanCap int) FeederOutputer {
 	return &dw
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
+var _ FeederOutputer = new(debugOutput)
+
 // debugFeederOutput send feeder data to terminal.
 type debugOutput struct{}
 
@@ -126,8 +142,16 @@ func (fo *debugOutput) Write(data *iodata) error {
 	return nil
 }
 
-func (fo *debugOutput) WriteLastError(source, err string, cat ...point.Category) {
-	cp.Errorf("[E] get error from %s: %s", source, err)
+func (fo *debugOutput) WriteLastError(err string, opts ...LastErrorOption) {
+	le := newLastError()
+
+	for _, opt := range opts {
+		if opt != nil {
+			opt(le)
+		}
+	}
+
+	cp.Errorf("[E] get error from input = %s, source = %s: %s", le.Input, le.Source, err)
 	cp.Infof(" | Ctrl+c to exit.\n")
 }
 

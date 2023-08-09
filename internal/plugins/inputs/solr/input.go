@@ -156,7 +156,9 @@ func (i *Input) RunPipeline() {
 	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
-		i.feeder.FeedLastError(inputName, err.Error())
+		i.feeder.FeedLastError(err.Error(),
+			dkio.WithLastErrorInput(inputName),
+		)
 		return
 	}
 
@@ -337,7 +339,9 @@ func (i *Input) Collect() error {
 func (i *Input) logError(err error) {
 	if err != nil {
 		l.Error(err)
-		i.feeder.FeedLastError(inputName, err.Error())
+		i.feeder.FeedLastError(err.Error(),
+			dkio.WithLastErrorInput(inputName),
+		)
 	}
 }
 

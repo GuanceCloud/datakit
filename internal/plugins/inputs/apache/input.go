@@ -129,7 +129,10 @@ func (n *Input) RunPipeline() {
 	n.tail, err = tailer.NewTailer(n.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
-		n.feeder.FeedLastError(inputName, err.Error(), point.Metric)
+		n.feeder.FeedLastError(err.Error(),
+			dkio.WithLastErrorInput(inputName),
+			dkio.WithLastErrorCategory(point.Metric),
+		)
 		return
 	}
 
@@ -178,7 +181,10 @@ func (n *Input) Run() {
 
 			m, err := n.getMetric()
 			if err != nil {
-				n.feeder.FeedLastError(inputName, err.Error(), point.Metric)
+				n.feeder.FeedLastError(err.Error(),
+					dkio.WithLastErrorInput(inputName),
+					dkio.WithLastErrorCategory(point.Metric),
+				)
 			}
 
 			if m != nil {

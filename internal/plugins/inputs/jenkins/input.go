@@ -126,7 +126,9 @@ func (n *Input) Run() {
 				}
 			}
 			if n.lastErr != nil {
-				n.feeder.FeedLastError(inputName, n.lastErr.Error())
+				n.feeder.FeedLastError(n.lastErr.Error(),
+					dkio.WithLastErrorInput(inputName),
+				)
 				n.lastErr = nil
 			}
 		case <-datakit.Exit.Wait():
@@ -189,7 +191,9 @@ func (n *Input) RunPipeline() {
 	n.tail, err = tailer.NewTailer(n.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
-		n.feeder.FeedLastError(inputName, err.Error())
+		n.feeder.FeedLastError(err.Error(),
+			dkio.WithLastErrorInput(inputName),
+		)
 		return
 	}
 

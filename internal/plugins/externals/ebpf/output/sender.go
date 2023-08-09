@@ -135,6 +135,7 @@ func (sender *Sender) doReq(url string, data []*point.Point) error {
 
 type ExternalLastErr struct {
 	Input      string `json:"input"`
+	Source     string `json:"source"`
 	ErrContent string `json:"err_content"`
 }
 

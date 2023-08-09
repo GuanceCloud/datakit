@@ -90,6 +90,7 @@ func metricsSetup() {
 			Help:      "Datakit errors(when error occurred), these errors come from inputs or any sub modules",
 		},
 		[]string{
+			"input",
 			"source",
 			"category",
 			"error",
@@ -270,11 +271,11 @@ func FeedMetrics(mfs []*dto.MetricFamily, ignoreErrBefore time.Duration) (res []
 	// we first get the input list.
 	for _, mf := range mfs {
 		switch mf.GetName() {
-		case "datakit_io_feed_total": // get collect count(feed count)
+		case "datakit_inputs_instance": // get collect count(feed count)
 			for _, m := range mf.Metric {
 				lps := m.GetLabel() // must with these labels: category/name
-				if len(lps) == 2 {
-					inputName := lps[1].GetValue()
+				if len(lps) == 1 {
+					inputName := lps[0].GetValue()
 					cs := get(inputName)
 					if cs == nil {
 						cs = &CollectorStatus{
@@ -286,6 +287,31 @@ func FeedMetrics(mfs []*dto.MetricFamily, ignoreErrBefore time.Duration) (res []
 				}
 			}
 		default: // pass
+		}
+	}
+
+	// "datakit_inputs_instance" would not exist when datakit is not running(unit tests),
+	// so we should use "datakit_io_feed_total" here.
+	if len(res) == 0 {
+		for _, mf := range mfs {
+			switch mf.GetName() {
+			case "datakit_io_feed_total": // get collect count(feed count)
+				for _, m := range mf.Metric {
+					lps := m.GetLabel() // must with these labels: category/name
+					if len(lps) == 2 {
+						inputName := lps[0].GetValue()
+						cs := get(inputName)
+						if cs == nil {
+							cs = &CollectorStatus{
+								Name:  inputName,
+								Count: int64(m.GetCounter().GetValue()),
+							}
+							res = append(res, cs)
+						}
+					}
+				}
+			default: // pass
+			}
 		}
 	}
 

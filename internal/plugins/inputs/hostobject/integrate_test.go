@@ -15,6 +15,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	dockertest "github.com/ory/dockertest/v3"
 	"github.com/stretchr/testify/require"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
@@ -101,7 +102,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 		ipt := defaultInput()
 		ipt.feeder = feeder
-		ipt.isTestMode = true
+		datakit.IsTestMode = true
 
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)

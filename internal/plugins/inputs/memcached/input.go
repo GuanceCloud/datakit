@@ -138,7 +138,9 @@ func (i *Input) gatherServer(address string, unix bool) error {
 	if unix {
 		conn, err = net.DialTimeout("unix", address, defaultTimeout)
 		if err != nil {
-			i.feeder.FeedLastError(inputName, err.Error())
+			i.feeder.FeedLastError(err.Error(),
+				dkio.WithLastErrorInput(inputName),
+			)
 			return err
 		}
 		defer conn.Close() //nolint:errcheck
@@ -150,7 +152,9 @@ func (i *Input) gatherServer(address string, unix bool) error {
 
 		conn, err = net.DialTimeout("tcp", address, defaultTimeout)
 		if err != nil {
-			i.feeder.FeedLastError(inputName, err.Error())
+			i.feeder.FeedLastError(err.Error(),
+				dkio.WithLastErrorInput(inputName),
+			)
 			return err
 		}
 		defer conn.Close() //nolint:errcheck
@@ -428,13 +432,17 @@ func (i *Input) Run() {
 		start := time.Now()
 		if err := i.Collect(); err != nil {
 			l.Errorf("Collect: %s", err)
-			i.feeder.FeedLastError(inputName, err.Error())
+			i.feeder.FeedLastError(err.Error(),
+				dkio.WithLastErrorInput(inputName),
+			)
 		}
 
 		if len(i.collectCache) > 0 {
 			if err := i.feeder.Feed(inputName, point.Metric, i.collectCache, &dkio.Option{CollectCost: time.Since(start)}); err != nil {
 				l.Errorf("FeedMeasurement: %s", err.Error())
-				i.feeder.FeedLastError(inputName, err.Error())
+				i.feeder.FeedLastError(err.Error(),
+					dkio.WithLastErrorInput(inputName),
+				)
 			}
 			i.collectCache = i.collectCache[:0]
 		}

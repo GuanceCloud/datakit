@@ -358,3 +358,67 @@ const (
 )
 
 ////////////////////////////////////////////////////////////////////////////////
+
+const (
+	containerName   = "oraemon-packet-container"
+	volumeName      = "oraemon-packet"
+	volumeMountPath = "/tmp/myapp"
+)
+
+// RunOraemon runs datakit-oraemon image which contains necessary files.
+// ATTENTION: Inputs' integration testings used RunOraemon should NOT be paralleled with each other!
+//            But they can paralleled inside themselves.
+func RunOraemon(endpoint string) (p *dockertest.Pool, resource *dockertest.Resource, mounts string, err error) {
+	p, err = GetPool(endpoint)
+	if err != nil {
+		return nil, nil, "", err
+	}
+
+	err = p.Client.RemoveVolumeWithOptions(docker.RemoveVolumeOptions{
+		Name: volumeName,
+	})
+	if err != nil {
+		if err.Error() != "no such volume" {
+			return nil, nil, "", err
+		}
+	}
+
+	_, err = p.Client.CreateVolume(docker.CreateVolumeOptions{
+		Name: volumeName,
+	})
+	if err != nil {
+		return nil, nil, "", err
+	}
+
+	mounts = volumeName + ":" + volumeMountPath
+
+	resource, err = p.RunWithOptions(
+		&dockertest.RunOptions{
+			Name:       containerName,
+			Repository: "pubrepo.jiagouyun.com/image-repo-for-testing/datakit-oraemon",
+			Tag:        "latest",
+			Mounts:     []string{mounts},
+		},
+
+		func(c *docker.HostConfig) {
+			c.RestartPolicy = docker.RestartPolicy{Name: "no"}
+			c.AutoRemove = true
+		},
+	)
+	if err != nil {
+		return nil, nil, "", err
+	}
+
+	return p, resource, mounts, nil
+}
+
+func RemoveOraemon(p *dockertest.Pool, res *dockertest.Resource) error {
+	if err := p.Purge(res); err != nil {
+		log.Println("p.Purge failed:", err.Error())
+	}
+	return p.Client.RemoveVolumeWithOptions(docker.RemoveVolumeOptions{
+		Name: volumeName,
+	})
+}
+
+////////////////////////////////////////////////////////////////////////////////

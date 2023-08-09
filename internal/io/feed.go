@@ -53,13 +53,89 @@ type Option struct {
 	PlOption *plscript.Option
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
+type LastErrorOption func(*LastError)
+
+type LastError struct {
+	Input, Source string
+	Categories    []point.Category
+}
+
+const defaultInputSource = "not-set"
+
+func newLastError() *LastError {
+	return &LastError{
+		Input:  defaultInputSource,
+		Source: defaultInputSource,
+	}
+}
+
+func WithLastErrorInput(input string) LastErrorOption {
+	return func(le *LastError) {
+		le.Input = input
+		if len(le.Source) == 0 || le.Source == defaultInputSource { // If Source is empty, filling with Input.
+			le.Source = input
+		}
+	}
+}
+
+func WithLastErrorSource(source string) LastErrorOption {
+	return func(le *LastError) {
+		le.Source = source
+		if len(le.Input) == 0 || le.Input == defaultInputSource { // If Input is empty, filling with Source.
+			le.Input = source
+		}
+	}
+}
+
+func WithLastErrorCategory(cats ...point.Category) LastErrorOption {
+	return func(le *LastError) {
+		le.Categories = cats
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 type Feeder interface {
 	Feed(name string, category point.Category, pts []*point.Point, opt ...*Option) error
-	FeedLastError(source, err string, cat ...point.Category)
+	FeedLastError(err string, opts ...LastErrorOption)
 }
+
+////////////////////////////////////////////////////////////////////////////////
+
+var _ Feeder = new(ioFeeder)
 
 // default IO feed implements.
 type ioFeeder struct{}
+
+// Feed send collected point to io upload queue. Before sending to upload queue,
+// pipeline and filter are applied to pts.
+func (f *ioFeeder) Feed(name string, category point.Category, pts []*point.Point, opts ...*Option) error {
+	inputsFeedVec.WithLabelValues(name, category.String()).Inc()
+	inputsFeedPtsVec.WithLabelValues(name, category.String()).Add(float64(len(pts)))
+	inputsLastFeedVec.WithLabelValues(name, category.String()).Set(float64(time.Now().Unix()))
+	iopts := point2dkpt(pts...)
+
+	if len(opts) > 0 && opts[0] != nil {
+		inputsCollectLatencyVec.WithLabelValues(name, category.String()).Observe(float64(opts[0].CollectCost) / float64(time.Second))
+		return defIO.doFeed(iopts, category.URL(), name, opts[0])
+	} else {
+		return defIO.doFeed(iopts, category.URL(), name, nil)
+	}
+}
+
+// FeedLastError report any error message, these messages will show in monitor
+// and integration view.
+func (*ioFeeder) FeedLastError(err string, opts ...LastErrorOption) {
+	if defIO.fo != nil {
+		defIO.fo.WriteLastError(err, opts...)
+	} else {
+		log.Warnf("feed output not set, ignored")
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
 
 // point2dkpt convert point.Point to old io/point.Point.
 func point2dkpt(pts ...*point.Point) (res []*dkpt.Point) {
@@ -91,32 +167,6 @@ func dkpt2point(pts ...*dkpt.Point) (res []*point.Point) {
 	}
 
 	return res
-}
-
-// Feed send collected point to io upload queue. Before sending to upload queue,
-// pipeline and filter are applied to pts.
-func (f *ioFeeder) Feed(name string, category point.Category, pts []*point.Point, opts ...*Option) error {
-	inputsFeedVec.WithLabelValues(name, category.String()).Inc()
-	inputsFeedPtsVec.WithLabelValues(name, category.String()).Add(float64(len(pts)))
-	inputsLastFeedVec.WithLabelValues(name, category.String()).Set(float64(time.Now().Unix()))
-	iopts := point2dkpt(pts...)
-
-	if len(opts) > 0 && opts[0] != nil {
-		inputsCollectLatencyVec.WithLabelValues(name, category.String()).Observe(float64(opts[0].CollectCost) / float64(time.Second))
-		return defIO.doFeed(iopts, category.URL(), name, opts[0])
-	} else {
-		return defIO.doFeed(iopts, category.URL(), name, nil)
-	}
-}
-
-// FeedLastError report any error message, these messages will show in monitor
-// and integration view.
-func (f *ioFeeder) FeedLastError(source, err string, cat ...point.Category) {
-	if defIO.fo != nil {
-		defIO.fo.WriteLastError(source, err, cat...)
-	} else {
-		log.Warnf("feed output not set, ignored")
-	}
 }
 
 func plAggFeed(name string, data any) error {
@@ -261,7 +311,7 @@ func (x *dkIO) doFeed(pts []*dkpt.Point, category, from string, opt *Option) err
 // Deprecated: should use DefaultFeeder to get global default feeder.
 func FeedLastError(source, err string, cat ...point.Category) {
 	if defIO.fo != nil {
-		defIO.fo.WriteLastError(source, err, cat...)
+		defIO.fo.WriteLastError(err, WithLastErrorSource(source), WithLastErrorCategory(cat...))
 	} else {
 		log.Warnf("feed output not set, ignored")
 	}

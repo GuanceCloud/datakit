@@ -125,6 +125,7 @@ var (
 	Version    = git.Version
 	Commit     = git.Commit
 	AutoUpdate = false
+	IsTestMode bool
 
 	InstallDir = optionalInstallDir[runtime.GOOS+"/"+runtime.GOARCH]
 

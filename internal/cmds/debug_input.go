@@ -12,6 +12,7 @@ import (
 
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -20,6 +21,9 @@ import (
 func debugInput(conf string) error {
 	// Enable debuging conf to set small interval to refresh result quickly.
 	config.Cfg.ProtectMode = false
+
+	// Enable test mode for tests.
+	datakit.IsTestMode = true
 
 	// setup io module
 	dkio.Start(dkio.WithFeederOutputer(dkio.NewDebugOutput()),

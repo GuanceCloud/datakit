@@ -501,7 +501,9 @@ func (i *Input) RunPipeline() {
 	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
-		i.feeder.FeedLastError(inputName, err.Error())
+		i.feeder.FeedLastError(err.Error(),
+			dkio.WithLastErrorInput(inputName),
+		)
 		return
 	}
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_elasticsearch"})
@@ -536,7 +538,9 @@ func (i *Input) Run() {
 	client, err := i.createHTTPClient()
 	if err != nil {
 		l.Error(err)
-		i.feeder.FeedLastError(inputName, err.Error())
+		i.feeder.FeedLastError(err.Error(),
+			dkio.WithLastErrorInput(inputName),
+		)
 		return
 	}
 	i.client = client
@@ -552,12 +556,16 @@ func (i *Input) Run() {
 		} else {
 			start := time.Now()
 			if err := i.Collect(); err != nil {
-				i.feeder.FeedLastError(inputName, err.Error())
+				i.feeder.FeedLastError(err.Error(),
+					dkio.WithLastErrorInput(inputName),
+				)
 				l.Error(err)
 			} else if len(i.collectCache) > 0 {
 				err := i.feeder.Feed(inputName, point.Metric, i.collectCache, &dkio.Option{CollectCost: time.Since(start)})
 				if err != nil {
-					i.feeder.FeedLastError(inputName, err.Error())
+					i.feeder.FeedLastError(err.Error(),
+						dkio.WithLastErrorInput(inputName),
+					)
 					l.Errorf(err.Error())
 				}
 				i.collectCache = i.collectCache[:0]

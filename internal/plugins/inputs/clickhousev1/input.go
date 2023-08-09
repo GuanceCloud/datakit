@@ -173,8 +173,6 @@ func (i *Input) collect() error {
 		}
 	}
 
-	ioname := inputName
-
 	start := time.Now()
 	pts, err := i.doCollect()
 	if err != nil {
@@ -191,15 +189,21 @@ func (i *Input) collect() error {
 			// each point might have different measurement name.
 			if err := i.Feeder.Feed(string(pt.Name()), point.Logging, []*point.Point{pt},
 				&io.Option{CollectCost: time.Since(start)}); err != nil {
-				i.Feeder.FeedLastError(ioname, err.Error())
+				i.Feeder.FeedLastError(err.Error(),
+					io.WithLastErrorInput(inputName),
+					io.WithLastErrorSource(i.Source),
+				)
 			}
 		}
 	} else {
-		err := i.Feeder.Feed(ioname, point.Metric, pts,
+		err := i.Feeder.Feed(inputName, point.Metric, pts,
 			&io.Option{CollectCost: time.Since(start)})
 		if err != nil {
 			i.l.Errorf("Feed: %s", err)
-			i.Feeder.FeedLastError(ioname, err.Error())
+			i.Feeder.FeedLastError(err.Error(),
+				io.WithLastErrorInput(inputName),
+				io.WithLastErrorSource(i.Source),
+			)
 		}
 	}
 	return nil
@@ -221,7 +225,10 @@ func (i *Input) doCollect() ([]*point.Point, error) {
 	pts, err := i.Collect()
 	if err != nil {
 		i.l.Errorf("Collect: %s", err)
-		i.Feeder.FeedLastError(i.Source, err.Error())
+		i.Feeder.FeedLastError(err.Error(),
+			io.WithLastErrorInput(inputName),
+			io.WithLastErrorSource(i.Source),
+		)
 
 		// Try testing the connect
 		for _, u := range i.urls {

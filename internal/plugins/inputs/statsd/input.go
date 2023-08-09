@@ -175,7 +175,10 @@ func (ipt *Input) Collect() error {
 
 	measurementInfos, err := ipt.Col.GetPoints()
 	if err != nil {
-		ipt.Feeder.FeedLastError(defaultIOName, err.Error())
+		ipt.Feeder.FeedLastError(err.Error(),
+			dkio.WithLastErrorInput(inputName),
+			dkio.WithLastErrorSource(defaultIOName),
+		)
 		ipt.l.Errorf("GetPoints: %v", err)
 	}
 	if len(measurementInfos) > 0 {
@@ -190,7 +193,10 @@ func (ipt *Input) Collect() error {
 				&dkio.Option{CollectCost: time.Since(start)})
 			if err != nil {
 				ipt.l.Errorf("Feed: %v", err)
-				ipt.Feeder.FeedLastError(v.FeedMetricName, err.Error())
+				ipt.Feeder.FeedLastError(err.Error(),
+					dkio.WithLastErrorInput(inputName),
+					dkio.WithLastErrorSource(v.FeedMetricName),
+				)
 			}
 		}
 	} else {
@@ -209,7 +215,9 @@ func (ipt *Input) Run() {
 		}
 
 		if err := ipt.setup(); err != nil {
-			ipt.Feeder.FeedLastError(inputName, err.Error())
+			ipt.Feeder.FeedLastError(err.Error(),
+				dkio.WithLastErrorInput(inputName),
+			)
 			time.Sleep(time.Second * 5)
 			continue
 		}

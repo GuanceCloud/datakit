@@ -178,7 +178,9 @@ func (i *Input) Collect() error {
 		pts, err := f()
 		if err != nil {
 			l.Errorf("collector %v[%d]: %s", f, idx, err)
-			i.feeder.FeedLastError(inputName, err.Error())
+			i.feeder.FeedLastError(err.Error(),
+				dkio.WithLastErrorInput(inputName),
+			)
 		}
 
 		if len(pts) > 0 {
@@ -314,7 +316,9 @@ func (i *Input) RunPipeline() {
 	if err != nil {
 		l.Error("NewTailer: %s", err)
 
-		i.feeder.FeedLastError(inputName, err.Error())
+		i.feeder.FeedLastError(err.Error(),
+			dkio.WithLastErrorInput(inputName),
+		)
 		return
 	}
 
@@ -344,7 +348,9 @@ func (i *Input) Run() {
 		}
 
 		if err := i.initCfg(); err != nil {
-			i.feeder.FeedLastError(inputName, err.Error())
+			i.feeder.FeedLastError(err.Error(),
+				dkio.WithLastErrorInput(inputName),
+			)
 		} else {
 			break
 		}

@@ -159,7 +159,10 @@ func (r *JVMMetricReportServerV3Old) Collect(ctx context.Context, jvm *agentv3.J
 	metrics := processMetricsV3(newjvm, start, r.ipt)
 	if len(metrics) != 0 {
 		if err := r.ipt.feeder.Feed(jvmMetricName, point.Metric, metrics, &dkio.Option{CollectCost: time.Since(start)}); err != nil {
-			r.ipt.feeder.FeedLastError(jvmMetricName, err.Error())
+			r.ipt.feeder.FeedLastError(err.Error(),
+				dkio.WithLastErrorInput(inputName),
+				dkio.WithLastErrorSource(jvmMetricName),
+			)
 		}
 	}
 
@@ -316,7 +319,10 @@ func (r *JVMMetricReportServerV3) Collect(ctx context.Context, jvm *agentv3.JVMM
 	metrics := processMetricsV3(jvm, start, r.ipt)
 	if len(metrics) != 0 {
 		if err := r.ipt.feeder.Feed(jvmMetricName, point.Metric, metrics, &dkio.Option{CollectCost: time.Since(start)}); err != nil {
-			r.ipt.feeder.FeedLastError(jvmMetricName, err.Error())
+			r.ipt.feeder.FeedLastError(err.Error(),
+				dkio.WithLastErrorInput(inputName),
+				dkio.WithLastErrorSource(jvmMetricName),
+			)
 		}
 	}
 

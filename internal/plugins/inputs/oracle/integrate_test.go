@@ -38,7 +38,16 @@ func TestIntegrate(t *testing.T) {
 		t.Skip()
 	}
 
-	testutils.PurgeRemoteByName(inputName)       // purge at first.
+	r := testutils.GetRemote()
+	dockerTCP := r.TCPURL()
+	p, res, mounts, err := testutils.RunOraemon(dockerTCP)
+	if err != nil {
+		panic("RunOraemon failed:" + err.Error())
+	}
+
+	testutils.PurgeRemoteByName(inputName) // purge at first.
+
+	defer testutils.RemoveOraemon(p, res)
 	defer testutils.PurgeRemoteByName(inputName) // purge at last.
 
 	start := time.Now()
@@ -62,6 +71,7 @@ func TestIntegrate(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				// t.Parallel() // Oracle should not be parallel, if so, it would dead and timeout due to junk machine.
 				caseStart := time.Now()
+				tc.mounts = mounts
 
 				t.Logf("testing %s...", tc.name)
 
@@ -106,7 +116,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		optsSystem     []inputs.PointCheckOption
 	}{
 		{
-			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/oracle:11g-xe-datakit-v4",
+			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/oracle:11g-xe-datakit-v5",
 			exposedPorts: []string{"1521/tcp"},
 			sid:          "XE",
 			optsProcess: []inputs.PointCheckOption{
@@ -147,7 +157,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		},
 
 		{
-			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/oracle:12c-se-datakit-v4",
+			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/oracle:12c-se-datakit-v5",
 			exposedPorts: []string{"1521/tcp"},
 			sid:          "xe",
 			optsTablespace: []inputs.PointCheckOption{
@@ -180,7 +190,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		},
 
 		{
-			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/oracle:19c-ee-datakit-v4",
+			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/oracle:19c-ee-datakit-v5",
 			exposedPorts: []string{"1521/tcp"},
 			sid:          "XE",
 			optsSystem: []inputs.PointCheckOption{
@@ -269,6 +279,7 @@ type caseSpec struct {
 	optsSystem     []inputs.PointCheckOption
 	done           chan struct{}
 	mCount         map[string]struct{}
+	mounts         string
 
 	ipt    *Input
 	feeder *dkio.MockedFeeder
@@ -326,6 +337,23 @@ func (cs *caseSpec) handler(c *gin.Context) {
 	if len(cs.mCount) == 3 {
 		cs.done <- struct{}{}
 	}
+}
+
+func (cs *caseSpec) lasterror(c *gin.Context) {
+	uri, err := url.ParseRequestURI(c.Request.URL.RequestURI())
+	if err != nil {
+		cs.t.Logf("%s", err.Error())
+		return
+	}
+	fmt.Println("uri ==>", uri)
+
+	body, err := ioutil.ReadAll(c.Request.Body)
+	defer c.Request.Body.Close()
+	if err != nil {
+		cs.t.Logf("%s", err.Error())
+		return
+	}
+	fmt.Println("lasterror ==>", string(body))
 }
 
 func (cs *caseSpec) checkPoint(pts []*point.Point) error {
@@ -443,6 +471,7 @@ func (cs *caseSpec) run() error {
 	gin.SetMode(gin.DebugMode)
 	router := gin.Default()
 	router.POST("/v1/write/metric", cs.handler)
+	router.POST("/v1/lasterror", cs.lasterror)
 
 	var (
 		listener    net.Listener
@@ -485,7 +514,7 @@ func (cs *caseSpec) run() error {
 
 	start := time.Now()
 
-	p, err := cs.getPool(dockerTCP)
+	p, err := testutils.GetPool(dockerTCP)
 	if err != nil {
 		return err
 	}
@@ -516,6 +545,7 @@ func (cs *caseSpec) run() error {
 				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), "DATAKIT_PORT=" + randPortStr, "ORACLE_PASSWORD=123456", "ORACLE_SID=" + cs.sid, "DATAKIT_INTERVAL=5s", "IMPORT_FROM_VOLUME=true"},
 
 				ExposedPorts: cs.exposedPorts,
+				Mounts:       []string{cs.mounts},
 			},
 
 			func(c *docker.HostConfig) {
@@ -589,19 +619,6 @@ func (cs *caseSpec) run() error {
 	cs.t.Logf("exit...")
 
 	return nil
-}
-
-func (cs *caseSpec) getPool(endpoint string) (*dockertest.Pool, error) {
-	p, err := dockertest.NewPool(endpoint)
-	if err != nil {
-		return nil, err
-	}
-	err = p.Client.Ping()
-	if err != nil {
-		cs.t.Logf("Could not connect to Docker: %v", err)
-		return nil, err
-	}
-	return p, nil
 }
 
 func (cs *caseSpec) getDockerFilePath() (dirName string, fileName string, err error) {

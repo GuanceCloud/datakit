@@ -81,7 +81,10 @@ func (n *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 	if err := n.feeder.Feed("jenkins_ci", point.Logging, pts, &dkio.Option{}); err != nil {
-		n.feeder.FeedLastError("jenkins_ci", err.Error())
+		n.feeder.FeedLastError(err.Error(),
+			dkio.WithLastErrorInput(inputName),
+			dkio.WithLastErrorSource("jenkins_ci"),
+		)
 		resp.WriteHeader(http.StatusInternalServerError)
 	}
 }

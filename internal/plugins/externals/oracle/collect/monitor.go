@@ -74,7 +74,7 @@ func NewMonitor() *Monitor {
 
 	for {
 		if err := m.ConnectDB(); err != nil {
-			l.Errorf("oracle connect faild %v, retry each 3 seconds...", err)
+			ReportErrorf("oracle connect faild %v, retry each 3 seconds...", err)
 			time.Sleep(time.Second * 3)
 			continue
 		}
@@ -105,6 +105,12 @@ func NewMonitor() *Monitor {
 		)
 	}
 	l.Debugf("post to datakit URL: %s", m.datakitPostURL)
+
+	datakitLastErrURL = fmt.Sprintf(
+		"http://%s/v1/lasterror",
+		net.JoinHostPort(opt.DatakitHTTPHost, strconv.Itoa(opt.DatakitHTTPPort)),
+	)
+	l.Debugf("post to datakit LastError URL: %s", datakitLastErrURL)
 
 	return m
 }
@@ -143,7 +149,7 @@ func (m *Monitor) Run() {
 		for idx := range m.collectors {
 			pt, err := m.collectors[idx].collect()
 			if err != nil {
-				l.Errorf("Collect failed: %v", err)
+				ReportErrorf("Collect failed: %v", err)
 			} else {
 				line := pt.LineProto()
 				sa.add(line)

@@ -162,12 +162,16 @@ func (i *Input) Run() {
 			start := time.Now()
 
 			if err := i.Collect(); err != nil {
-				i.feeder.FeedLastError(inputName, err.Error())
+				i.feeder.FeedLastError(err.Error(),
+					io.WithLastErrorInput(inputName),
+				)
 				l.Error(err)
 			} else {
 				if errFeed := i.feeder.Feed(inputName, point.Metric, i.client.Pts,
 					&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
-					i.feeder.FeedLastError(inputName, err.Error())
+					i.feeder.FeedLastError(err.Error(),
+						io.WithLastErrorInput(inputName),
+					)
 					l.Error(errFeed)
 				}
 			}

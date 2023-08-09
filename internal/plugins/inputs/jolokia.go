@@ -106,7 +106,10 @@ func (j *JolokiaAgent) Collect() {
 		case <-tick.C:
 			start := time.Now()
 			if err := j.Gather(); err != nil {
-				j.Feeder.FeedLastError(j.PluginName, err.Error(), point.Metric)
+				j.Feeder.FeedLastError(err.Error(),
+					dkio.WithLastErrorInput(j.PluginName),
+					dkio.WithLastErrorCategory(point.Metric),
+				)
 			}
 
 			if len(j.collectCache) > 0 {

@@ -422,7 +422,9 @@ func (i *Input) resetLastError() {
 
 func (i *Input) handleLastError() {
 	if len(i.lastErrors) > 0 {
-		i.feeder.FeedLastError(inputName, strings.Join(i.lastErrors, "; "))
+		i.feeder.FeedLastError(strings.Join(i.lastErrors, "; "),
+			io.WithLastErrorInput(inputName),
+		)
 	}
 }
 
@@ -517,7 +519,10 @@ func (i *Input) Collect() (map[gcPoint.Category][]*gcPoint.Point, error) {
 		err := g.Wait()
 		if err != nil {
 			l.Errorf("mysql dmb collect error: %v", err)
-			i.feeder.FeedLastError(inputName, err.Error(), gcPoint.Metric)
+			i.feeder.FeedLastError(err.Error(),
+				io.WithLastErrorInput(inputName),
+				io.WithLastErrorCategory(gcPoint.Metric),
+			)
 		}
 	}
 
@@ -554,7 +559,10 @@ func (i *Input) RunPipeline() {
 	i.tail, err = tailer.NewTailer(i.Log.Files, opt, i.Log.IgnoreStatus)
 	if err != nil {
 		l.Error(err)
-		i.feeder.FeedLastError(inputName, err.Error(), gcPoint.Metric)
+		i.feeder.FeedLastError(err.Error(),
+			io.WithLastErrorInput(inputName),
+			io.WithLastErrorCategory(gcPoint.Metric),
+		)
 		return
 	}
 
@@ -575,7 +583,10 @@ func (i *Input) Run() {
 	// Try until init OK.
 	for {
 		if err := i.initCfg(); err != nil {
-			i.feeder.FeedLastError(inputName, err.Error(), gcPoint.Metric)
+			i.feeder.FeedLastError(err.Error(),
+				io.WithLastErrorInput(inputName),
+				io.WithLastErrorCategory(gcPoint.Metric),
+			)
 		} else {
 			break
 		}
@@ -609,7 +620,10 @@ func (i *Input) Run() {
 			mpts, err := i.Collect()
 			if err != nil {
 				l.Warnf("i.Collect failed: %v", err)
-				i.feeder.FeedLastError(inputName, err.Error(), gcPoint.Metric)
+				i.feeder.FeedLastError(err.Error(),
+					io.WithLastErrorInput(inputName),
+					io.WithLastErrorCategory(gcPoint.Metric),
+				)
 			}
 
 			for category, pts := range mpts {
@@ -617,7 +631,10 @@ func (i *Input) Run() {
 					if err := i.feeder.Feed(inputName, category, pts,
 						&io.Option{CollectCost: time.Since(i.start)}); err != nil {
 						l.Warnf("io.Feed failed: %v", err)
-						i.feeder.FeedLastError(inputName, err.Error(), gcPoint.Metric)
+						i.feeder.FeedLastError(err.Error(),
+							io.WithLastErrorInput(inputName),
+							io.WithLastErrorCategory(gcPoint.Metric),
+						)
 					}
 				}
 			}

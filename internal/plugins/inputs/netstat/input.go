@@ -409,7 +409,9 @@ func (ipt *Input) Run() {
 		// Collect() to get data
 		if err := ipt.Collect(); err != nil {
 			l.Errorf("Collect: %s", err)
-			ipt.feeder.FeedLastError(inputName, err.Error())
+			ipt.feeder.FeedLastError(err.Error(),
+				dkio.WithLastErrorInput(inputName),
+			)
 		}
 
 		// If there is data in the collectCache, submit it

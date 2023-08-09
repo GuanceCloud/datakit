@@ -158,7 +158,10 @@ func (i *Input) collect() error {
 		&io.Option{CollectCost: time.Since(start)})
 	if err != nil {
 		i.l.Errorf("Feed: %s", err)
-		i.Feeder.FeedLastError(ioname, err.Error())
+		i.Feeder.FeedLastError(err.Error(),
+			io.WithLastErrorInput(inputName),
+			io.WithLastErrorSource(ioname),
+		)
 	}
 	return nil
 }
@@ -169,7 +172,12 @@ func (i *Input) doCollect() ([]*point.Point, error) {
 	pts, err := i.Collect()
 	if err != nil {
 		i.l.Errorf("Collect: %s", err)
-		i.Feeder.FeedLastError(i.Source, err.Error())
+
+		ioname := inputName + "/" + i.Source
+		i.Feeder.FeedLastError(err.Error(),
+			io.WithLastErrorInput(inputName),
+			io.WithLastErrorSource(ioname),
+		)
 
 		// Try testing the connect
 		for _, u := range i.urls {

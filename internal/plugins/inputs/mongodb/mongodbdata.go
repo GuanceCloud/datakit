@@ -238,7 +238,9 @@ func (d *MongodbData) flush(cost time.Duration) {
 	if len(d.collectCache) > 0 {
 		if err := d.ipt.feeder.Feed(inputName, point.Metric, d.collectCache, &dkio.Option{CollectCost: cost}); err != nil {
 			log.Errorf(err.Error())
-			d.ipt.feeder.FeedLastError(inputName, err.Error())
+			d.ipt.feeder.FeedLastError(err.Error(),
+				dkio.WithLastErrorInput(inputName),
+			)
 		}
 	}
 }
