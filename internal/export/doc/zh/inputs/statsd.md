@@ -71,8 +71,8 @@ DD_JMXFETCH_STATSD_PORT=8125
 
 如果想标记 DDTrace 采集的主机，可以使用注入 tags 的方式进行标记：
 
-- 可以使用环境变量，即 `DD_TAGS`，例如：`DD_TAGS=source_key:tomcat,host_key:cn-shanghai-sq5ei`
-- 可以使用命令行方式，即 `dd.tags`，例如：`-Ddd.tags=source_key:tomcat,host_key:cn-shanghai-sq5ei`
+- 可以使用环境变量，即 [`DD_TAGS`](statsd.md#requrements)，例如：`DD_TAGS=source_key:tomcat,host_key:cn-shanghai-sq5ei`
+- 可以使用命令行方式，即 [`dd.tags`](statsd.md#requrements)，例如：`-Ddd.tags=source_key:tomcat,host_key:cn-shanghai-sq5ei`
 
 在上面的例子中，需要在 Datakit 配置中指定 source 的 key 是 `source_key`，host 的 key 是 `host_key`。改成其它的也可以，但必须保证 Datakit 中的配置字段名与 DDTrace 中的字段名一致。
 

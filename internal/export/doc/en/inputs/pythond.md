@@ -389,3 +389,8 @@ If the results are not as expected, you can view the following log files:
 
 - `~/_datakit_pythond_cli.log`
 - `_datakit_pythond_framework_[pythond name]_.log`
+
+### Error "[module] not found" {#found}
+
+1. First, check if the module name is consistent in capitalization;
+2. If there is no problem with '1', check if all the modules imported in the Python script are installed;
