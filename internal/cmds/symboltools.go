@@ -39,39 +39,38 @@ var downloadClient = &http.Client{
 }
 
 func setupLinks(baseURL string) map[string]map[string]string {
-	if !strings.HasSuffix(baseURL, "/") {
-		baseURL += "/"
-	}
+	baseURL = CanonicalInstallBaseURL(baseURL)
+
 	return map[string]map[string]string{
 		Java: {
-			"darwin/amd64": baseURL + "datakit/sourcemap/jdk/OpenJDK11U-jdk_x64_mac_hotspot_11.0.16_8.tar.gz",
-			"darwin/arm64": baseURL + "datakit/sourcemap/jdk/OpenJDK11U-jdk_aarch64_mac_hotspot_11.0.15_10.tar.gz",
-			"linux/amd64":  baseURL + "datakit/sourcemap/jdk/OpenJDK11U-jdk_x64_linux_hotspot_11.0.16_8.tar.gz",
-			"linux/arm64":  baseURL + "datakit/sourcemap/jdk/OpenJDK11U-jdk_aarch64_linux_hotspot_11.0.16_8.tar.gz",
+			"darwin/amd64": baseURL + "sourcemap/jdk/OpenJDK11U-jdk_x64_mac_hotspot_11.0.16_8.tar.gz",
+			"darwin/arm64": baseURL + "sourcemap/jdk/OpenJDK11U-jdk_aarch64_mac_hotspot_11.0.15_10.tar.gz",
+			"linux/amd64":  baseURL + "sourcemap/jdk/OpenJDK11U-jdk_x64_linux_hotspot_11.0.16_8.tar.gz",
+			"linux/arm64":  baseURL + "sourcemap/jdk/OpenJDK11U-jdk_aarch64_linux_hotspot_11.0.16_8.tar.gz",
 		},
 
 		AndroidCommandLineTools: {
-			"darwin/amd64": baseURL + "datakit/sourcemap/R8/commandlinetools-mac-8512546_simplified.tar.gz",
-			"darwin/arm64": baseURL + "datakit/sourcemap/R8/commandlinetools-mac-8512546_simplified.tar.gz",
-			"linux/amd64":  baseURL + "datakit/sourcemap/R8/commandlinetools-linux-8512546_simplified.tar.gz",
-			"linux/arm64":  baseURL + "datakit/sourcemap/R8/commandlinetools-linux-8512546_simplified.tar.gz",
+			"darwin/amd64": baseURL + "sourcemap/R8/commandlinetools-mac-8512546_simplified.tar.gz",
+			"darwin/arm64": baseURL + "sourcemap/R8/commandlinetools-mac-8512546_simplified.tar.gz",
+			"linux/amd64":  baseURL + "sourcemap/R8/commandlinetools-linux-8512546_simplified.tar.gz",
+			"linux/arm64":  baseURL + "sourcemap/R8/commandlinetools-linux-8512546_simplified.tar.gz",
 		},
 
 		Proguard: {
-			"default": baseURL + "datakit/sourcemap/proguard/proguard-7.2.2.tar.gz",
+			"default": baseURL + "sourcemap/proguard/proguard-7.2.2.tar.gz",
 		},
 
 		AndroidNDK: {
-			"darwin/amd64": baseURL + "datakit/sourcemap/ndk/android-ndk-r22b-x64-mac-simplified.tar.gz",
-			"darwin/arm64": baseURL + "datakit/sourcemap/ndk/android-ndk-r22b-x64-mac-simplified.tar.gz",
-			"linux/amd64":  baseURL + "datakit/sourcemap/ndk/android-ndk-r25-x64-linux-simplified.tar.gz",
-			"linux/arm64":  baseURL + "datakit/sourcemap/ndk/android-ndk-r25-x64-linux-simplified.tar.gz",
+			"darwin/amd64": baseURL + "sourcemap/ndk/android-ndk-r22b-x64-mac-simplified.tar.gz",
+			"darwin/arm64": baseURL + "sourcemap/ndk/android-ndk-r22b-x64-mac-simplified.tar.gz",
+			"linux/amd64":  baseURL + "sourcemap/ndk/android-ndk-r25-x64-linux-simplified.tar.gz",
+			"linux/arm64":  baseURL + "sourcemap/ndk/android-ndk-r25-x64-linux-simplified.tar.gz",
 		},
 		Atosl: {
-			"darwin/amd64": baseURL + "datakit/sourcemap/atosl/atosl-darwin-x64",
-			"darwin/arm64": baseURL + "datakit/sourcemap/atosl/atosl-darwin-arm64",
-			"linux/amd64":  baseURL + "datakit/sourcemap/atosl/atosl-linux-x64",
-			"linux/arm64":  baseURL + "datakit/sourcemap/atosl/atosl-linux-arm64",
+			"darwin/amd64": baseURL + "sourcemap/atosl/atosl-darwin-x64",
+			"darwin/arm64": baseURL + "sourcemap/atosl/atosl-darwin-arm64",
+			"linux/amd64":  baseURL + "sourcemap/atosl/atosl-linux-x64",
+			"linux/arm64":  baseURL + "sourcemap/atosl/atosl-linux-arm64",
 		},
 	}
 }

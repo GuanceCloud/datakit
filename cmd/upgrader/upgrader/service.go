@@ -359,6 +359,10 @@ func upgrade(ctx *gin.Context) {
 		L().Warnf("unable to check version info from command line: %s", err)
 	}
 
+	if Cfg.InstallerBaseURL != "" {
+		cmds.OnlineBaseURL = Cfg.InstallerBaseURL
+	}
+
 	versions, err := cmds.GetOnlineVersions()
 	if err != nil {
 		errorResponse(ctx, http.StatusInternalServerError, fmt.Errorf("unable to find newer Datakit version: %w", err))
@@ -402,20 +406,15 @@ func upgrade(ctx *gin.Context) {
 }
 
 func saveUpgradeScript(downloadURL string) (string, error) {
-	downloadURL = strings.TrimSpace(downloadURL)
+	downloadURL = strings.TrimRight(downloadURL, "/ ")
+	scriptName := "datakit-upgrade.sh"
 	if runtime.GOOS == datakit.OSWindows {
 		downloadURL = fmt.Sprintf("%s/install.ps1", downloadURL)
+		scriptName = "datakit-upgrade.ps1"
 	} else {
 		downloadURL = fmt.Sprintf("%s/install.sh", downloadURL)
 	}
 
-	scriptName := "datakit-upgrade.sh"
-	if runtime.GOOS == datakit.OSWindows {
-		scriptName = "datakit-upgrade.ps1"
-		if strings.HasSuffix(downloadURL, ".sh") {
-			downloadURL = downloadURL[:len(downloadURL)-3] + ".ps1"
-		}
-	}
 	scriptFile := filepath.Join(datakit.InstallDir, scriptName)
 
 	f, err := os.OpenFile(scriptFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644) // nolint:gosec
@@ -481,6 +480,11 @@ func execUpdateCmd(scriptFile string) error {
 	if proxy != "" {
 		envs = append(envs, "HTTPS_PROXY="+proxy)
 	}
+
+	if Cfg.InstallerBaseURL != "" {
+		envs = append(envs, fmt.Sprintf("DK_INSTALLER_BASE_URL=%s", cmds.CanonicalInstallBaseURL(Cfg.InstallerBaseURL)))
+	}
+
 	cmd.Env = envs
 
 	L().Infof("run upgrade script envs: %s", strings.Join(cmd.Env, " \t "))

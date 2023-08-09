@@ -207,7 +207,7 @@ func downloadFiles(to string) error {
 		}
 		dl.CurDownloading = upgrader.BuildBinName
 		if err := dl.Download(cli, dkUpgraderURL, to, true, flagDownloadOnly); err != nil {
-			return fmt.Errorf("unable to download %s from [%s]: %w", upgrader.BuildBinName, dkUpgraderURL, err)
+			l.Warnf("unable to download %s from [%s]: %s", upgrader.BuildBinName, dkUpgraderURL, err)
 		}
 	}
 
@@ -301,9 +301,8 @@ func applyFlags() {
 			l.Errorf("ENV:$DK_INSTALLER_BASE_URL can not parse to URL, err=%v", err)
 			os.Exit(0)
 		}
-		if !strings.HasSuffix(InstallerBaseURL, "/") {
-			InstallerBaseURL += "/"
-		}
+
+		InstallerBaseURL = cmds.CanonicalInstallBaseURL(InstallerBaseURL)
 
 		cp.Infof("Set installer base URL to %s\n", InstallerBaseURL)
 		dataURL = InstallerBaseURL + "data.tar.gz"
@@ -312,6 +311,8 @@ func applyFlags() {
 			runtime.GOOS,
 			runtime.GOARCH,
 			DataKitVersion)
+
+		dkUpgraderURL = InstallerBaseURL + fmt.Sprintf("%s-%s-%s.tar.gz", upgrader.BuildBinName, runtime.GOOS, runtime.GOARCH)
 	}
 }
 
@@ -407,7 +408,8 @@ Data           : %s
 __downloadOK:
 	datakit.InitDirs()
 
-	upgrader2.InstallUpgradeService(userName, flagDKUpgrade, flagInstallOnly, flagUpgradeManagerService, flagUpgradeServIPWhiteList)
+	upgrader2.InstallUpgradeService(userName, flagDKUpgrade,
+		flagInstallOnly, flagUpgradeManagerService, flagUpgradeServIPWhiteList, InstallerBaseURL)
 
 	if flagDKUpgrade { // upgrade new version
 		cp.Infof("Upgrading to version %s...\n", DataKitVersion)

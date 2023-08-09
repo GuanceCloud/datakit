@@ -8,8 +8,47 @@ package cmds
 import (
 	T "testing"
 
+	"github.com/GuanceCloud/cliutils/testutil"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestCanonicalInstallBaseUrl(t *T.T) {
+	type testCase struct {
+		name     string
+		param    string
+		expected string
+	}
+
+	testCases := []testCase{
+		{
+			name:     "no-slash-no-datakit",
+			param:    "https://static.guance.com",
+			expected: "https://static.guance.com/datakit/",
+		},
+		{
+			name:     "with-slash-no-datakit",
+			param:    "https://static.guance.com/",
+			expected: "https://static.guance.com/datakit/",
+		},
+
+		{
+			name:     "with-datakit-no-slash",
+			param:    "https://static.guance.com/datakit",
+			expected: "https://static.guance.com/datakit/",
+		},
+		{
+			name:     "with-datakit-with-slash",
+			param:    "https://static.guance.com/datakit/",
+			expected: "https://static.guance.com/datakit/",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *T.T) {
+			testutil.Equals(t, tc.expected, CanonicalInstallBaseURL(tc.param))
+		})
+	}
+}
 
 func TestUpgradeCommand(t *T.T) {
 	t.Run("win-upgrade", func(t *T.T) {

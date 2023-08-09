@@ -76,17 +76,19 @@ func StopUpgradeService(username string) {
 }
 
 func InstallUpgradeService(username string, flagDKUpgrade bool, flagInstallOnly int,
-	flagUpgradeManagerService int, flagUpgradeServIPWhiteList string,
+	flagUpgradeManagerService int, flagUpgradeServIPWhiteList string, installBaseURL string,
 ) {
 	l = logger.SLogger(upgrader.ServiceName)
 
 	serv, err := newUpgradeService(username)
 	if err != nil {
-		l.Fatalf("unable to create upgrade service: %s", err)
+		l.Warnf("unable to create upgrade service: %s", err)
+		return
 	}
 
 	if err := upgrader.CreateDirs(); err != nil {
-		l.Fatalf("unable to create directory: %s", err)
+		l.Warnf("unable to create directory: %s", err)
+		return
 	}
 
 	if !flagDKUpgrade || flagUpgradeManagerService == 1 {
@@ -104,6 +106,11 @@ func InstallUpgradeService(username string, flagDKUpgrade bool, flagInstallOnly 
 		if flagUpgradeServIPWhiteList != "" {
 			upgrader.Cfg.IPWhiteList = strings.Split(strings.TrimSpace(flagUpgradeServIPWhiteList), ",")
 		}
+
+		if installBaseURL != "" {
+			upgrader.Cfg.InstallerBaseURL = installBaseURL
+		}
+
 		if loadMainConfOK {
 			if err := upgrader.Cfg.CreateCfgFile(); err != nil {
 				l.Warnf("unable to create main config file: %s", err)

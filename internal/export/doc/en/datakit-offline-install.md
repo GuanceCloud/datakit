@@ -92,7 +92,7 @@ When there is no external network in the environment, the installation package c
 There are two strategies to choose from for full offline installation:
 
 - Simple mode: Directly copy the files in the U disk to each host and install DataKit. However, Simple Mode currently does **not support** [setting through environment variables](datakit-install.md#extra-envs) during installation.
-- Advanced mode: Deploy an Nginx on the intranet and build a file server with Nginx instead of static.guance.com.
+- Advanced mode: Deploy a Nginx on the intranet and build a file server with Nginx instead of static.guance.com.
 
 ### Simple Mode {#offline-simple}
 
@@ -104,41 +104,48 @@ The address of the following files can be downloaded through wget and other down
 
 - Download the packet [data.tar.gz](https://static.guance.com/datakit/data.tar.gz) first, which is the same for every platform.
 
-- Then download two more installers:
+- Then download more installers as below:
 
 === "Windows 32 bit"
 
-    - [Installer](https://static.guance.com/datakit/installer-windows-386.exe){:target="_blank"}
-    - [DataKit](https://static.guance.com/datakit/datakit-windows-386-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Installer`](https://static.guance.com/datakit/installer-windows-386.exe){:target="_blank"}
+    - [`DataKit`](https://static.guance.com/datakit/datakit-windows-386-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`DK_upgrader`](https://static.guance.com/datakit/dk_upgrader-windows-386.tar.gz){:target="_blank"}
 
 === "Windows 64 bit"
 
-    - [Installer](https://static.guance.com/datakit/installer-windows-amd64.exe){:target="_blank"}
-    - [DataKit](https://static.guance.com/datakit/datakit-windows-amd64-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Installer`](https://static.guance.com/datakit/installer-windows-amd64.exe){:target="_blank"}
+    - [`DataKit`](https://static.guance.com/datakit/datakit-windows-amd64-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`DK_upgrader`](https://static.guance.com/datakit/dk_upgrader-windows-amd64.tar.gz){:target="_blank"}
 
 === "Linux X86 32 bit"
 
-    - [Installer](https://static.guance.com/datakit/installer-linux-386){:target="_blank"}
-    - [DataKit](https://static.guance.com/datakit/datakit-linux-386-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Installer`](https://static.guance.com/datakit/installer-linux-386){:target="_blank"}
+    - [`DataKit`](https://static.guance.com/datakit/datakit-linux-386-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`DK_upgrader`](https://static.guance.com/datakit/dk_upgrader-linux-386.tar.gz){:target="_blank"}
 
 === "Linux X86 64 bit"
 
-    - [Installer](https://static.guance.com/datakit/installer-linux-amd64){:target="_blank"}
-    - [DataKit](https://static.guance.com/datakit/datakit-linux-amd64-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Installer`](https://static.guance.com/datakit/installer-linux-amd64){:target="_blank"}
+    - [`DataKit`](https://static.guance.com/datakit/datakit-linux-amd64-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`DK_upgrader`](https://static.guance.com/datakit/dk_upgrader-linux-amd64.tar.gz){:target="_blank"}
 
 === "Linux Arm 32 bit"
 
-    - [Installer](https://static.guance.com/datakit/installer-linux-arm){:target="_blank"}
-    - [DataKit](https://static.guance.com/datakit/datakit-linux-arm-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Installer`](https://static.guance.com/datakit/installer-linux-arm){:target="_blank"}
+    - [`DataKit`](https://static.guance.com/datakit/datakit-linux-arm-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`DK_upgrader`](https://static.guance.com/datakit/dk_upgrader-linux-arm.tar.gz){:target="_blank"}
 
 === "Linux Arm 64 bit"
 
-    - [Installer](https://static.guance.com/datakit/installer-linux-arm64){:target="_blank"}
-    - [DataKit](https://static.guance.com/datakit/datakit-linux-arm64-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Installer`](https://static.guance.com/datakit/installer-linux-arm64){:target="_blank"}
+    - [`DataKit`](https://static.guance.com/datakit/datakit-linux-arm64-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`DK_upgrader`](https://static.guance.com/datakit/dk_upgrader-linux-arm64.tar.gz){:target="_blank"}
 
-After downloading, you should have three files (`<OS-ARCH>` here refers to the platform-specific installation package):
+After downloading, you should have a few files as below (`<OS-ARCH>` here refers to the platform-specific installation package):
 
 - `datakit-<OS-ARCH>.tar.gz`
+- `dk_upgrader-<OS-ARCH>.tar.gz`
 - `installer-<OS-ARCH>` or `installer-<OS-ARCH>.exe`
 - `data.tar.gz`
 
@@ -152,7 +159,7 @@ Copy these files to the corresponding machine (via USB flash drive or scp and ot
     
     ```shell
     chmod +x installer-linux-amd64
-    ./installer-linux-amd64 --offline --dataway "https://openway.guance.com?token=<YOUR-TOKEN>" --srcs datakit-linux-amd64-{{ .Version }}.tar.gz,data.tar.gz
+    ./installer-linux-amd64 --offline --dataway "https://openway.guance.com?token=<YOUR-TOKEN>" --srcs datakit-linux-amd64-{{ .Version }}.tar.gz,dk_upgrader-linux-amd64.tar.gz,data.tar.gz
     ```
 
 === "Windows"
@@ -160,7 +167,7 @@ Copy these files to the corresponding machine (via USB flash drive or scp and ot
     You need to run the Powershell with administrator privileges to execute:
     
     ```powershell
-    .\installer-windows-amd64.exe --offline --dataway "https://openway.guance.com?token=<YOUR-TOKEN>" --srcs .\datakit-windows-amd64-{{ .Version }}.tar.gz,.\data.tar.gz
+    .\installer-windows-amd64.exe --offline --dataway "https://openway.guance.com?token=<YOUR-TOKEN>" --srcs .\datakit-windows-amd64-{{ .Version }}.tar.gz,.\dk_upgrader-windows-amd64.tar.gz,.\data.tar.gz
     ```
 
 #### Upgrade {#simple-upgrade}
@@ -232,6 +239,7 @@ wget -P /datakit https://static.guance.com/datakit/version
 wget -P /datakit https://static.guance.com/datakit/data.tar.gz
 wget -P /datakit https://static.guance.com/datakit/installer-linux-amd64-{{ .Version }}
 wget -P /datakit https://static.guance.com/datakit/datakit-linux-amd64-{{ .Version }}.tar.gz
+wget -P /datakit https://static.guance.com/datakit/dk_upgrader-linux-amd64.tar.gz
 
 # Download other toolkits: sources is the installation package used to turn on the RUM sourcemap function. If this function is not turned on, you can choose not to download it.
 sources=(
@@ -244,22 +252,29 @@ sources=(
   "/datakit/sourcemap/proguard/proguard-7.2.2.tar.gz"
   "/datakit/sourcemap/ndk/android-ndk-r22b-x64-mac-simplified.tar.gz"
   "/datakit/sourcemap/ndk/android-ndk-r25-x64-linux-simplified.tar.gz"
-  "/datakit/sourcemap/libs/libdwarf-code-20200114.tar.gz"
-  "/datakit/sourcemap/libs/binutils-2.24.tar.gz"
-  "/datakit/sourcemap/atosl/atosl-20220804-x64-linux.tar.gz"
+  "/datakit/sourcemap/atosl/atosl-darwin-x64"
+  "/datakit/sourcemap/atosl/atosl-darwin-arm64"
+  "/datakit/sourcemap/atosl/atosl-linux-x64"
+  "/datakit/sourcemap/atosl/atosl-linux-arm64"
 )
 
 mkdir -p /datakit/sourcemap/jdk \
   /datakit/sourcemap/R8       \
   /datakit/sourcemap/proguard \
   /datakit/sourcemap/ndk      \
-  /datakit/sourcemap/libs     \
   /datakit/sourcemap/atosl
 
 for((i=0;i<${#sources[@]};i++)); do
   wget https://static.guance.com${sources[$i]} -O ${sources[$i]}
 done
 ```
+
+<!-- markdownlint-disable MD046 -->
+???+ Attention
+
+    You must append suffix **.exe** to the download link of `Installer` on Windows, for example: [*https://static.guance.com/datakit/installer-windows-386-{{.Version}}.exe*](https://static.guance.com/datakit/installer-windows-386-{{.Version}}.exe) for Windows 32bit and
+    [*https://static.guance.com/datakit/installer-windows-amd64-{{.Version}}.exe*](https://static.guance.com/datakit/installer-windows-amd64-{{.Version}}.exe) for Windows 64bit.
+<!-- markdownlint-enable -->
 
 #### Install {#advance-install}
 
