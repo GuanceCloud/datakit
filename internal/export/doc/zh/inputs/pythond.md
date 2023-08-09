@@ -405,3 +405,8 @@ sudo datakit service -R
 
 - `~/_datakit_pythond_cli.log`
 - `_datakit_pythond_framework_[pythond name]_.log`
+
+### 错误提示 "[module] not found" {#found}
+
+1. 首先检测模块名的大小写是否一致；
+2. 如果 `1` 没有问题，则检测 python 脚本中引入的模块是否全部都有安装；
