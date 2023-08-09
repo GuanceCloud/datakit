@@ -76,8 +76,8 @@ func TestFeedMetrics(t *T.T) {
 		reg := prometheus.NewRegistry()
 		reg.MustRegister(Metrics()...)
 
-		lastErrVec.WithLabelValues("abc", "cat_abc", "err_abc").Set(float64(time.Now().Unix()))
-		lastErrVec.WithLabelValues("def", "cat_def", "err_def").Set(float64(time.Now().Unix()))
+		lastErrVec.WithLabelValues("input_ipt", "abc", "cat_abc", "err_abc").Set(float64(time.Now().Unix()))
+		lastErrVec.WithLabelValues("input_ipt", "def", "cat_def", "err_def").Set(float64(time.Now().Unix()))
 
 		inputsFeedVec.WithLabelValues("abc", "cat_abc").Inc()
 		inputsFeedVec.WithLabelValues("def", "cat_def").Inc()
@@ -99,7 +99,7 @@ func TestFeedMetrics(t *T.T) {
 	})
 
 	t.Run("exclude-expired-error", func(t *T.T) {
-		lastErrVec.WithLabelValues("abc", "cat_abc", "err_abc").Set(float64(time.Now().Unix() - 100))
+		lastErrVec.WithLabelValues("input_ipt", "abc", "cat_abc", "err_abc").Set(float64(time.Now().Unix() - 100))
 
 		inputsFeedVec.WithLabelValues("abc", "cat_abc").Inc()
 

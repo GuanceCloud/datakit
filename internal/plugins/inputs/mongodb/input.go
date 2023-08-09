@@ -202,7 +202,9 @@ func (ipt *Input) RunPipeline() {
 	if err != nil {
 		log.Errorf("NewTailer: %s", err)
 
-		ipt.feeder.FeedLastError(inputName, err.Error())
+		ipt.feeder.FeedLastError(err.Error(),
+			dkio.WithLastErrorInput(inputName),
+		)
 		return
 	}
 
@@ -253,7 +255,9 @@ func (ipt *Input) Run() {
 			log.Debugf("not leader, skipped")
 		} else if err := ipt.gather(); err != nil {
 			log.Errorf("gather: %s", err.Error())
-			ipt.feeder.FeedLastError(inputName, err.Error())
+			ipt.feeder.FeedLastError(err.Error(),
+				dkio.WithLastErrorInput(inputName),
+			)
 		}
 
 		select {

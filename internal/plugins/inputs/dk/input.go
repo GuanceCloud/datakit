@@ -197,7 +197,11 @@ func (i *Input) Run() {
 		pts, err := i.prom.CollectFromHTTPV2(i.url)
 		if err != nil {
 			l.Warnf("prom.CollectFromHTTPV2: %s, ignored", err.Error())
-			i.Feeder.FeedLastError(source, err.Error(), point.Metric)
+			i.Feeder.FeedLastError(err.Error(),
+				io.WithLastErrorInput(inputName),
+				io.WithLastErrorSource(source),
+				io.WithLastErrorCategory(point.Metric),
+			)
 		} else {
 			if err := i.Feeder.Feed(source, point.Metric,
 				pts,

@@ -141,7 +141,9 @@ func (i *Input) RunPipeline() {
 	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
-		i.feeder.FeedLastError(inputName, err.Error())
+		i.feeder.FeedLastError(err.Error(),
+			dkio.WithLastErrorInput(inputName),
+		)
 		return
 	}
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_influxdb"})
@@ -164,7 +166,9 @@ func (i *Input) Run() {
 		tlsCfg, err = i.TLSConf.TLSConfig()
 		if err != nil {
 			l.Errorf("TLSConfig: %s", err)
-			i.feeder.FeedLastError(inputName, err.Error())
+			i.feeder.FeedLastError(err.Error(),
+				dkio.WithLastErrorInput(inputName),
+			)
 			return
 		}
 	} else {
@@ -187,7 +191,9 @@ func (i *Input) Run() {
 			start := time.Now()
 			if err := i.Collect(); err != nil {
 				l.Errorf("Collect: %s", err)
-				i.feeder.FeedLastError(inputName, err.Error())
+				i.feeder.FeedLastError(err.Error(),
+					dkio.WithLastErrorInput(inputName),
+				)
 			}
 
 			if len(i.collectCache) > 0 {
@@ -196,7 +202,9 @@ func (i *Input) Run() {
 					&dkio.Option{CollectCost: time.Since(start)},
 				); err != nil {
 					l.Errorf("Feed failed: %v", err)
-					i.feeder.FeedLastError(inputName, err.Error())
+					i.feeder.FeedLastError(err.Error(),
+						dkio.WithLastErrorInput(inputName),
+					)
 				}
 				i.collectCache = make([]*point.Point, 0)
 			}

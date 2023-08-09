@@ -19,6 +19,8 @@ var (
 	chanCap = 128
 )
 
+var _ Feeder = new(MockedFeeder)
+
 type MockedFeeder struct {
 	ch chan []*point.Point
 
@@ -41,8 +43,16 @@ func (f *MockedFeeder) Feed(name string, category point.Category, pts []*point.P
 	return nil
 }
 
-func (f *MockedFeeder) FeedLastError(name, errInfo string, cat ...point.Category) {
-	f.lastErrors = append(f.lastErrors, [2]string{name, errInfo})
+func (f *MockedFeeder) FeedLastError(err string, opts ...LastErrorOption) {
+	le := newLastError()
+
+	for _, opt := range opts {
+		if opt != nil {
+			opt(le)
+		}
+	}
+
+	f.lastErrors = append(f.lastErrors, [2]string{le.Input, err})
 }
 
 func (f *MockedFeeder) Clear() {

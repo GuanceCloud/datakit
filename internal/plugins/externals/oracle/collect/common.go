@@ -14,6 +14,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -42,8 +43,9 @@ type Option struct {
 }
 
 var (
-	opt *Option
-	l   *logger.Logger
+	opt            *Option
+	l              *logger.Logger
+	SignaIterrrupt = make(chan os.Signal, 1)
 
 	dic = map[string]string{
 		"buffer_cache_hit_ratio":       "buffer_cachehit_ratio",
@@ -151,7 +153,7 @@ func writeData(data []byte, urlPath string) error {
 	defer ctxCancel()
 	httpReq, err := http.NewRequest("POST", urlPath, bytes.NewBuffer(data))
 	if err != nil {
-		l.Errorf("[error] %s", err.Error())
+		l.Errorf(err.Error())
 		return err
 	}
 
@@ -161,7 +163,7 @@ func writeData(data []byte, urlPath string) error {
 
 	resp, err := ctxhttp.Do(tmctx, http.DefaultClient, httpReq)
 	if err != nil {
-		l.Errorf("[error] %s", err.Error())
+		l.Errorf(err.Error())
 		return err
 	}
 	defer resp.Body.Close() //nolint:errcheck

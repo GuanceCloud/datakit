@@ -18,6 +18,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmpmeasurement"
 )
 
+const trapsObject = "traps-object"
+
 // TrapForwarder consumes from a trapsIn channel, format traps and send them as EventPlatformEvents
 // The TrapForwarder is an intermediate step between the listener and the epforwarder in order to limit the processing of the listener
 // to the minimum. The forwarder process payloads received by the listener via the trapsIn channel, formats them and finally
@@ -113,10 +115,14 @@ func (tf *TrapForwarder) sendTrap(packet *SnmpPacket) {
 		TS:     tn,
 	}
 
-	if err := tf.feeder.Feed("traps-object", point.Object,
+	if err := tf.feeder.Feed(trapsObject, point.Object,
 		[]*point.Point{metric.Point()},
 		&dkio.Option{CollectCost: time.Since(tn)}); err != nil {
 		l.Errorf("Feed object err: %v", err)
-		tf.feeder.FeedLastError(snmpmeasurement.SNMPObjectName, err.Error())
+		tf.feeder.FeedLastError(err.Error(),
+			dkio.WithLastErrorInput(snmpmeasurement.InputName),
+			dkio.WithLastErrorSource(trapsObject),
+			dkio.WithLastErrorCategory(point.Object),
+		)
 	}
 }

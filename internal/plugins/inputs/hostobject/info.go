@@ -321,7 +321,7 @@ func getDiskInfo(excludeDevice []string, extraDevice []string, ignoreZeroBytesDi
 func (ipt *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 	var msg HostObjectMessage
 
-	if !ipt.isTestMode {
+	if !datakit.IsTestMode {
 		// getEnabledInputs only called each 5min(default), so we can
 		// gather all prometheus metrics each time.
 		stat := io.FeedMetrics(ipt.mfs, ipt.IgnoreInputsErrorsBefore.Duration)

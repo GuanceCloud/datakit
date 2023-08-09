@@ -148,14 +148,18 @@ func (ipt *Input) Run() {
 
 			if err := ipt.Collect(); err != nil {
 				l.Errorf("Collect: %s", err)
-				ipt.feeder.FeedLastError(inputName, err.Error())
+				ipt.feeder.FeedLastError(err.Error(),
+					io.WithLastErrorInput(inputName),
+				)
 			}
 
 			if len(ipt.collectCache) > 0 {
 				err := ipt.feeder.Feed(inputName, point.Metric, ipt.collectCache, &io.Option{CollectCost: time.Since(start)})
 				if err != nil {
 					l.Errorf("FeedMeasurement: %s", err.Error())
-					ipt.feeder.FeedLastError(inputName, err.Error())
+					ipt.feeder.FeedLastError(err.Error(),
+						io.WithLastErrorInput(inputName),
+					)
 				}
 				ipt.collectCache = ipt.collectCache[:0]
 			}

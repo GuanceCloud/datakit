@@ -61,7 +61,9 @@ func (ipt *Input) Run() {
 
 				if err := ipt.handleData(dataCache); err != nil {
 					l.Errorf("Collect: %s", err)
-					ipt.Feeder.FeedLastError(inputName, err.Error())
+					ipt.Feeder.FeedLastError(err.Error(),
+						io.WithLastErrorInput(inputName),
+					)
 				}
 				// If there is data in the cache, submit it.
 				if len(ipt.collectCache) > 0 {
@@ -69,7 +71,9 @@ func (ipt *Input) Run() {
 						&io.Option{CollectCost: time.Since(start)})
 					if err != nil {
 						l.Errorf("Feed: %V", err)
-						ipt.Feeder.FeedLastError(inputName, err.Error())
+						ipt.Feeder.FeedLastError(err.Error(),
+							io.WithLastErrorInput(inputName),
+						)
 					}
 				}
 				dataCache = make([]dataStruct, 0)

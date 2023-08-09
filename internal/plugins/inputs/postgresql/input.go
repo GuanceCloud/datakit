@@ -823,7 +823,9 @@ func (ipt *Input) RunPipeline() {
 	ipt.tail, err = tailer.NewTailer(ipt.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
-		ipt.feeder.FeedLastError(inputName, err.Error())
+		ipt.feeder.FeedLastError(err.Error(),
+			io.WithLastErrorInput(inputName),
+		)
 		return
 	}
 
@@ -927,7 +929,10 @@ func (ipt *Input) Run() {
 	for {
 		if err := ipt.init(); err != nil {
 			l.Errorf("failed to init postgresql: %s", err.Error())
-			ipt.feeder.FeedLastError(inputName, err.Error(), point.Metric)
+			ipt.feeder.FeedLastError(err.Error(),
+				io.WithLastErrorInput(inputName),
+				io.WithLastErrorCategory(point.Metric),
+			)
 		} else {
 			break
 		}
@@ -967,7 +972,9 @@ func (ipt *Input) Run() {
 
 			start := time.Now()
 			if err := ipt.Collect(); err != nil {
-				ipt.feeder.FeedLastError(inputName, err.Error())
+				ipt.feeder.FeedLastError(err.Error(),
+					io.WithLastErrorInput(inputName),
+				)
 				l.Error(err)
 			}
 
@@ -975,7 +982,9 @@ func (ipt *Input) Run() {
 				err := ipt.feeder.Feed(inputName, point.Metric, ipt.collectCache,
 					&io.Option{CollectCost: time.Since(start)})
 				if err != nil {
-					ipt.feeder.FeedLastError(inputName, err.Error())
+					ipt.feeder.FeedLastError(err.Error(),
+						io.WithLastErrorInput(inputName),
+					)
 					l.Error(err.Error())
 				}
 				ipt.collectCache = ipt.collectCache[:0]

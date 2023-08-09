@@ -18,7 +18,7 @@ func TestCollect(t *testing.T) {
 
 	// ipt.OnlyPhysicalDevice = true
 
-	ipt.isTestMode = true
+	datakit.IsTestMode = true
 	if err := ipt.doCollect(); err != nil {
 		t.Error(err)
 	}

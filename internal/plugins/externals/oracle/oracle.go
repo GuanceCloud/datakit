@@ -9,7 +9,10 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 
 	"github.com/GuanceCloud/cliutils/logger"
 	_ "github.com/godror/godror"
@@ -20,13 +23,15 @@ import (
 
 var (
 	opt collect.Option
-	l   = logger.DefaultSLogger("oracle")
+	l   = logger.DefaultSLogger(collect.InputName)
 )
 
 func main() {
+	signal.Notify(collect.SignaIterrrupt, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
+
 	_, err := flags.Parse(&opt)
 	if err != nil {
-		fmt.Println("Parse error:", err)
+		fmt.Println("Parse error:", err.Error())
 		return
 	}
 
@@ -39,16 +44,16 @@ func main() {
 		Level: opt.LogLevel,
 		Flags: logger.OPT_DEFAULT,
 	}); err != nil {
-		l.Errorf("set root log failed: %s", err.Error())
+		fmt.Println("set root log failed:", err.Error())
 	}
 
 	if opt.InstanceDesc != "" { // add description to logger
-		l = logger.SLogger("oracle-" + opt.InstanceDesc)
+		l = logger.SLogger(collect.InputName + "-" + opt.InstanceDesc)
 	} else {
-		l = logger.SLogger("oracle")
+		l = logger.SLogger(collect.InputName)
 	}
 
-	l.Debugf("election: %t", opt.Election)
+	l.Infof("election: %t", opt.Election)
 
 	l.Infof("datakit: host=%s, port=%d", opt.DatakitHTTPHost, opt.DatakitHTTPPort)
 

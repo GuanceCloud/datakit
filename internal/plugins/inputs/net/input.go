@@ -301,11 +301,17 @@ func (i *Input) Run() {
 			if err := i.Collect(); err == nil {
 				if err := i.feeder.Feed(netMetricName, point.Metric, i.collectCache,
 					&dkio.Option{CollectCost: time.Since(start)}); err != nil {
-					i.feeder.FeedLastError(inputName, err.Error(), point.Metric)
+					i.feeder.FeedLastError(err.Error(),
+						dkio.WithLastErrorInput(inputName),
+						dkio.WithLastErrorCategory(point.Metric),
+					)
 					l.Error(err)
 				}
 			} else {
-				i.feeder.FeedLastError(inputName, err.Error(), point.Metric)
+				i.feeder.FeedLastError(err.Error(),
+					dkio.WithLastErrorInput(inputName),
+					dkio.WithLastErrorCategory(point.Metric),
+				)
 				l.Error(err)
 			}
 		case <-datakit.Exit.Wait():

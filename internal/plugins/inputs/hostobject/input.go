@@ -70,10 +70,9 @@ type Input struct {
 
 	collectData *hostMeasurement
 
-	semStop    *cliutils.Sem // start stop signal
-	isTestMode bool
-	feeder     dkio.Feeder
-	Tagger     dkpt.GlobalTagger
+	semStop *cliutils.Sem // start stop signal
+	feeder  dkio.Feeder
+	Tagger  dkpt.GlobalTagger
 
 	mfs []*dto.MetricFamily
 }
@@ -108,11 +107,17 @@ func (ipt *Input) Run() {
 		l.Debugf("start collecting...")
 		start := time.Now()
 		if err := ipt.doCollect(); err != nil {
-			ipt.feeder.FeedLastError(InputName, err.Error(), point.Object)
+			ipt.feeder.FeedLastError(err.Error(),
+				dkio.WithLastErrorInput(InputName),
+				dkio.WithLastErrorCategory(point.Object),
+			)
 		} else if err := ipt.feeder.Feed(InputName,
 			point.Object, []*point.Point{ipt.collectData.Point()},
 			&dkio.Option{CollectCost: time.Since(start)}); err != nil {
-			ipt.feeder.FeedLastError(InputName, err.Error(), point.Object)
+			ipt.feeder.FeedLastError(err.Error(),
+				dkio.WithLastErrorInput(InputName),
+				dkio.WithLastErrorCategory(point.Object),
+			)
 		}
 
 		select {
@@ -222,7 +227,6 @@ func (*hostMeasurement) Info() *inputs.MeasurementInfo {
 			"cpu_usage":                  &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent, Desc: "CPU usage"},
 			"mem_used_percent":           &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent, Desc: "memory usage"},
 			"load":                       &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "system load"},
-			"state":                      &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Host Status"},
 			"disk_used_percent":          &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent, Desc: "disk usage"},
 			"diskio_read_bytes_per_sec":  &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.BytesPerSec, Desc: "disk read rate"},
 			"diskio_write_bytes_per_sec": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.BytesPerSec, Desc: "disk write rate"},
@@ -275,7 +279,6 @@ func (ipt *Input) doCollect() error {
 			"cpu_usage":                  message.Host.cpuPercent,
 			"mem_used_percent":           message.Host.Mem.usedPercent,
 			"load":                       message.Host.load5,
-			"state":                      "online",
 			"disk_used_percent":          message.Host.diskUsedPercent,
 			"diskio_read_bytes_per_sec":  message.Host.diskIOReadBytesPerSec,
 			"diskio_write_bytes_per_sec": message.Host.diskIOWriteBytesPerSec,
@@ -292,7 +295,7 @@ func (ipt *Input) doCollect() error {
 		ts: time.Now(),
 	}
 
-	if !ipt.isTestMode {
+	if !datakit.IsTestMode {
 		ipt.collectData.fields["Scheck"] = message.Collectors[0].Version
 	}
 
@@ -326,7 +329,7 @@ func (ipt *Input) doCollect() error {
 }
 
 func (ipt *Input) Collect() (map[string][]*dkpt.Point, error) {
-	ipt.isTestMode = true
+	datakit.IsTestMode = true
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 	if err := ipt.doCollect(); err != nil {
 		return nil, err

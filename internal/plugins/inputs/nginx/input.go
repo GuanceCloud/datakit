@@ -186,7 +186,9 @@ func (n *Input) Run() {
 			} else if len(points) > 0 {
 				if err := n.feeder.Feed(inputName, point.Metric, points, &io.Option{CollectCost: time.Since(n.start)}); err != nil {
 					l.Errorf(err.Error())
-					n.feeder.FeedLastError(inputName, err.Error())
+					n.feeder.FeedLastError(err.Error(),
+						io.WithLastErrorInput(inputName),
+					)
 				} else {
 					n.collectCache = n.collectCache[:0]
 				}

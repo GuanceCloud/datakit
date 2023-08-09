@@ -189,7 +189,9 @@ func (i *Input) RunPipeline() {
 	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
-		i.feeder.FeedLastError(inputName, err.Error())
+		i.feeder.FeedLastError(err.Error(),
+			io.WithLastErrorInput(inputName),
+		)
 		return
 	}
 
@@ -221,7 +223,9 @@ func (i *Input) Run() {
 	for {
 		if err := i.initDB(); err != nil {
 			l.Errorf("initDB: %s", err.Error())
-			i.feeder.FeedLastError(inputName, err.Error())
+			i.feeder.FeedLastError(i.lastErr.Error(),
+				io.WithLastErrorInput(inputName),
+			)
 		} else {
 			break
 		}
@@ -270,7 +274,9 @@ func (i *Input) Run() {
 			}
 
 			if i.lastErr != nil {
-				i.feeder.FeedLastError(inputName, i.lastErr.Error())
+				i.feeder.FeedLastError(i.lastErr.Error(),
+					io.WithLastErrorInput(inputName),
+				)
 				i.lastErr = nil
 			}
 

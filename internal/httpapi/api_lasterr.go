@@ -16,9 +16,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
 
-// errMessage 错误信息.
 type errMessage struct {
 	Input      string `json:"input"`
+	Source     string `json:"source"`
 	ErrContent string `json:"err_content"`
 }
 
@@ -30,7 +30,11 @@ func apiGetDatakitLastError(c *gin.Context) {
 		uhttp.HttpErr(c, err)
 		return
 	}
-	io.FeedLastError(em.Input, em.ErrContent)
+
+	io.DefaultFeeder().FeedLastError(em.ErrContent,
+		io.WithLastErrorInput(em.Input),
+		io.WithLastErrorSource(em.Source),
+	)
 }
 
 func doAPIGetDatakitLastError(r *http.Request, w http.ResponseWriter) (*errMessage, error) {
