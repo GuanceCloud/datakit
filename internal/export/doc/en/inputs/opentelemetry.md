@@ -64,34 +64,44 @@ if you want to use the HTTP protocol, you need to configure `trace` and `trace` 
 
 The default request routes of otlp are `v1/traces` and `v1/metrics`, which need to be configured separately for these two. If you modify the routing in the configuration file, just replace the routing address below.
 
-example:
+## Tracing {#tracing}
+
+Datakit only accepts OTLP data. OTLP has clear data types: `gRPC`, `http/protobuf` and `http/json`. For specific configuration, please refer to:
 
 ```shell
-java -javaagent:/usr/local/opentelemetry-javaagent-1.26.1-guance.jar \
- -Dotel.exporter=otlp \
- -Dotel.exporter.otlp.protocol=http/protobuf \
- -Dotel.exporter.otlp.traces.endpoint=http://localhost:9529/otel/v1/trace \
- -Dotel.exporter.otlp.metrics.endpoint=http://localhost:9529/otel/v1/metric \
- -jar tmall.jar
+# OpenTelemetry Agent default is gRPC
+-Dotel.exporter=otlp \
+-Dotel.exporter.otlp.protocol=grpc \
+-Dotel.exporter.otlp.endpoint=http://datakit-endpoint:4317
 
-# If the default routes in the configuration file are changed to `v1/traces` and `v1/metrics`,
-# then the above command can be written as follows:
-java -javaagent:/usr/local/opentelemetry-javaagent-1.26.1-guance.jar \
- -Dotel.exporter=otlp \
- -Dotel.exporter.otlp.protocol=http/protobuf \
- -Dotel.exporter.otlp.endpoint=http://localhost:9529/ \
- -jar tmall.jar
+# use http/protobuf
+-Dotel.exporter=otlp \
+-Dotel.exporter.otlp.protocol=http/protobuf \
+-Dotel.exporter.otlp.traces.endpoint=http://datakit-endpoint:9529/otel/v1/trace \
+-Dotel.exporter.otlp.metrics.endpoint=http://datakit-endpoint:9529/otel/v1/metric 
+
+# use http/json
+-Dotel.exporter=otlp \
+-Dotel.exporter.otlp.protocol=http/json \
+-Dotel.exporter.otlp.traces.endpoint=http://datakit-endpoint:9529/otel/v1/trace \
+-Dotel.exporter.otlp.metrics.endpoint=http://datakit-endpoint:9529/otel/v1/metric
 ```
 
 ### Best Practices {#bp}
 
 Datakit currently provides [Go language](opentelemetry-go.md)、[Java](opentelemetry-java.md) languages, with other languages available later.
 
-## Measurements {#measurements}
+## Metric {#metric}
 
-{{range $i, $m := .Measurements}}
+The OpenTelemetry Java Agent obtains the MBean's indicator information from the application through the JMX protocol, and the Java Agent reports the selected JMX indicator through the internal SDK, which means that all indicators are configurable.
 
-{{if eq $m.Type "tracing"}}
+You can enable and disable JMX metrics collection by command `otel.jmx.enabled=true/false`, which is enabled by default.
+
+To control the time interval between MBean detection attempts, one can use the otel.jmx.discovery.delay property, which defines the number of milliseconds to elapse between the first and the next detection cycle.
+
+In addition, the acquisition configuration of some third-party software built in the Agent. For details, please refer to: [JMX Metric Insight](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation/jmx-metrics/javaagent/README.md){:target="_blank"}
+
+{{ range $i, $m := .Measurements }}
 
 ### `{{$m.Name}}`
 
@@ -104,9 +114,8 @@ Datakit currently provides [Go language](opentelemetry-go.md)、[Java](opentelem
 - metric list
 
 {{$m.FieldsMarkdownTable}}
-{{end}}
 
-{{end}}
+{{ end }}
 
 ## More Docs {#more-readings}
 - Go open source address [opentelemetry-go](https://github.com/open-telemetry/opentelemetry-go){:target="_blank"}
