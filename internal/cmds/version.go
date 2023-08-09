@@ -145,7 +145,12 @@ func getLocalVersion(ver string) (*version.VerInfo, error) {
 func getVersion(addr string) (*version.VerInfo, error) {
 	cli := getcli()
 	cli.Timeout = time.Second * 5
-	urladdr := addr + "/version"
+	urladdr := addr
+	if strings.HasSuffix(addr, "/") {
+		urladdr += "version"
+	} else {
+		urladdr += "/version"
+	}
 
 	req, err := nhttp.NewRequest("GET", urladdr, nil)
 	if err != nil {
@@ -177,6 +182,25 @@ func getVersion(addr string) (*version.VerInfo, error) {
 	return &ver, nil
 }
 
+// CanonicalInstallBaseURL add support for install_base_url with the suffix "/datakit" or not.
+// The canonical install_base_url ends with "/datakit/".
+func CanonicalInstallBaseURL(installBaseURL string) string {
+	suffix := "/datakit/"
+	sb := &strings.Builder{}
+	sb.Grow(len(installBaseURL) + len(suffix))
+	sb.WriteString(installBaseURL)
+
+	if !strings.HasSuffix(installBaseURL, "/") {
+		sb.WriteByte('/')
+	}
+
+	if !strings.HasSuffix(sb.String(), suffix) {
+		sb.WriteString("datakit/")
+	}
+
+	return sb.String()
+}
+
 func GetOnlineVersions() (map[string]*version.VerInfo, error) {
 	res := map[string]*version.VerInfo{}
 
@@ -186,7 +210,7 @@ func GetOnlineVersions() (map[string]*version.VerInfo, error) {
 	}
 
 	versionInfos := map[string]string{
-		versionTypeOnline: (OnlineBaseURL + "/datakit"),
+		versionTypeOnline: CanonicalInstallBaseURL(OnlineBaseURL),
 	}
 
 	for k, v := range versionInfos {

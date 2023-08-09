@@ -246,7 +246,7 @@ func runAtosCMD(atosCMDPath, symbolFile, loadAddress string, addresses []string)
 	}
 	args = append(args, addresses...)
 	cmd := exec.Command(atosCMDPath, args...) //nolint:gosec
-	cmd.Env = []string{"HOME=/root"}          // run the tool "atosl" must set this env, why?
+	cmd.Env = []string{"HOME=/var/tmp"}       // atosl need this dir to store cache data, so we must ensure it exists.
 	log.Infof("%s %s", atosCMDPath, strings.Join(args, " "))
 	stdout, err := cmd.Output()
 	if err != nil {

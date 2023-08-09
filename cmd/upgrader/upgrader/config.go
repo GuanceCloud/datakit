@@ -21,6 +21,7 @@ import (
 var sampleConfig = `
 listen = "0.0.0.0:9542"
 ip_whitelist = []
+install_base_url = ""
 
 [logging]
   log = "/var/log/dk_upgrader/log"
@@ -39,9 +40,10 @@ type LoggerCfg struct {
 }
 
 type MainConfig struct {
-	Listen      string     `toml:"listen"`
-	IPWhiteList []string   `toml:"ip_whitelist"`
-	Logging     *LoggerCfg `toml:"logging"`
+	Listen           string     `toml:"listen"`
+	IPWhiteList      []string   `toml:"ip_whitelist"`
+	InstallerBaseURL string     `toml:"install_base_url"`
+	Logging          *LoggerCfg `toml:"logging"`
 }
 
 func (c *MainConfig) LoadMainTOML(f string) error {
@@ -107,8 +109,9 @@ func DefaultMainConfig() *MainConfig {
 	L().Warnf("unable to decode config sample: %s", err)
 
 	conf := &MainConfig{
-		Listen:      "0.0.0.0:9542",
-		IPWhiteList: []string{},
+		Listen:           "0.0.0.0:9542",
+		IPWhiteList:      []string{},
+		InstallerBaseURL: "",
 		Logging: &LoggerCfg{
 			LoggerCfg: &config.LoggerCfg{
 				Log:           "/var/log/dk_upgrader/log",
