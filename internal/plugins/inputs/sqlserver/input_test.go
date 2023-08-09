@@ -186,12 +186,13 @@ func TestPipeline(t *T.T) {
 				&dkpt.PointOption{Category: point.Logging.URL()})
 			assert.NoError(t, err)
 
-			after, dropped, err := p.Run(point.Logging, pt, nil, &dkpt.PointOption{Category: point.Logging.URL()}, nil, nil)
+			after, err := p.Run(point.Logging, pt, nil, &dkpt.PointOption{Category: point.Logging.URL()}, nil, nil)
 
 			assert.NoError(t, err)
-			assert.False(t, dropped)
+			assert.False(t, after.Dropped())
 
-			assert.Equal(t, expected[idx].String(), after.String())
+			dkpt, _ := after.DkPoint()
+			assert.Equal(t, expected[idx].String(), dkpt.String())
 		}
 	})
 }

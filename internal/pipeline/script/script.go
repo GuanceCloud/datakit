@@ -24,6 +24,7 @@ type Option struct {
 	MaxFieldValLen        int // deprecated
 	DisableAddStatusField bool
 	IgnoreStatus          []string
+	ScriptMap             map[string]string
 }
 
 type PlScript struct {

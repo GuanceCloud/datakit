@@ -129,7 +129,7 @@ func pipelineDebugger(category, plname, ns, txt string, isPt bool) error {
 		pt = ptsW[0]
 	}
 
-	res, dropFlag, err := (&pipeline.Pipeline{
+	plRes, err := (&pipeline.Pipeline{
 		Script: plScript,
 	}).Run(cat, pt, nil, opt, nil)
 	if err != nil {
@@ -137,8 +137,14 @@ func pipelineDebugger(category, plname, ns, txt string, isPt bool) error {
 	}
 	cost := time.Since(start)
 
-	if res == nil {
+	if plRes == nil {
 		cp.Errorf("[E] No data extracted from pipeline\n")
+		return nil
+	}
+
+	res, err := plRes.DkPoint()
+	if err != nil {
+		cp.Errorf("conv to dk point: %s", err.Error())
 		return nil
 	}
 
@@ -199,7 +205,7 @@ func pipelineDebugger(category, plname, ns, txt string, isPt bool) error {
 
 	cp.Infof("---------------\n")
 	cp.Infof("Extracted %d fields, %d tags; measurement(M)<source(L),class(O)...>: %s, drop: %v, cost: %v\n",
-		len(fields), len(tags), measurementName, dropFlag, cost)
+		len(fields), len(tags), measurementName, plRes.Dropped(), cost)
 
 	return nil
 }

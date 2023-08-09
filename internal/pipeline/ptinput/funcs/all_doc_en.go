@@ -173,6 +173,9 @@ var (
 
 	//go:embed md/conv_traceid_w3c_to_dd.en.md
 	docConvTraceIDEN string
+
+	//go:embed md/create_point.en.md
+	docCreatePointEN string
 )
 
 const (
@@ -527,6 +530,13 @@ var (
 		Doc: docConvTraceIDEN,
 		FnCategory: map[string][]string{
 			langTagEnUS: {eStringOp},
+		},
+	}
+
+	createPointMarkdownEN = PLDoc{
+		Doc: docCreatePointEN,
+		FnCategory: map[string][]string{
+			langTagEnUS: {eOther},
 		},
 	}
 )
