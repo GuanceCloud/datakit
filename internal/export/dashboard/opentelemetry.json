@@ -1,0 +1,4165 @@
+{
+  "dashboardBindSet": [],
+  "dashboardExtend": {},
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "dashboardType": "CUSTOM",
+  "iconSet": {
+    "icon": "https://static-res.guance.com/dataflux-template/dashboard/opentelemetry/opentelemetry-logo.svg",
+    "url": "https://static-res.guance.com/dataflux-template/dashboard/opentelemetry/opentelemetry-logo.png"
+  },
+  "main": {
+    "charts": [
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "{{.Dashboard.buffer_count}}",
+                "name": "{{.Dashboard.buffer_count}}",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "b"
+                ]
+              },
+              {
+                "key": "{{.Dashboard.buffer_memory_used}}",
+                "name": "{{.Dashboard.buffer_memory_used}}",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "b"
+                ]
+              }
+            ],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "jvm"
+        },
+        "name": "JVM Buffer",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 7.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.buffer_count}}",
+              "code": "A",
+              "dataSource": "otel-service",
+              "field": "jvm.buffer.count",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`jvm.buffer.count`) AS `{{.Dashboard.buffer_count}}`) { `service.name` = '#{service_name}' and `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.buffer_memory_used}}",
+              "code": "B",
+              "dataSource": "otel-service",
+              "field": "jvm.buffer.memory.used",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "231891b0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "2e3ac220-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "id"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`jvm.buffer.memory.used`) AS `{{.Dashboard.buffer_memory_used}}`) { `service.name` = '#{service_name}' and `host` = '#{host}' } BY `id`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.buffer_total_capacity}}",
+              "code": "C",
+              "dataSource": "otel-service",
+              "field": "jvm.buffer.total.capacity",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "2630ce30-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "321da1a0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "id"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`jvm.buffer.total.capacity`) AS `{{.Dashboard.buffer_total_capacity}}`) { `service.name` = '#{service_name}' and `host` = '#{host}' } BY `id`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "jvm"
+        },
+        "name": "JVM Class",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 7.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.classes_loaded}}",
+              "code": "A",
+              "dataSource": "otel-service",
+              "field": "jvm.classes.loaded",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`jvm.classes.loaded`) AS `{{.Dashboard.classes_loaded}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.classes_unloaded}}",
+              "code": "B",
+              "dataSource": "otel-service",
+              "field": "jvm.classes.unloaded",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`jvm.classes.unloaded`) AS `{{.Dashboard.classes_unloaded}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "{{.Dashboard.gc_live_data_size}}",
+                "name": "{{.Dashboard.gc_live_data_size}}",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "b"
+                ]
+              },
+              {
+                "key": "{{.Dashboard.gc_max_data_size}}",
+                "name": "{{.Dashboard.gc_max_data_size}}",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "b"
+                ]
+              },
+              {
+                "key": "{{.Dashboard.gc_overhead}}",
+                "name": "{{.Dashboard.gc_overhead}}",
+                "unit": "",
+                "units": [
+                  "percent",
+                  "percent_decimal"
+                ]
+              }
+            ],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "jvm"
+        },
+        "name": "JVM GC",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 27.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.gc_live_data_size}}",
+              "code": "A",
+              "dataSource": "otel-service",
+              "field": "jvm.gc.live.data.size",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`jvm.gc.live.data.size`) AS `{{.Dashboard.gc_live_data_size}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.gc_max_data_size}}",
+              "code": "B",
+              "dataSource": "otel-service",
+              "field": "jvm.gc.max.data.size",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`jvm.gc.max.data.size`) AS `{{.Dashboard.gc_max_data_size}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.gc_overhead}}",
+              "code": "C",
+              "dataSource": "otel-service",
+              "field": "jvm.gc.overhead",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`jvm.gc.overhead`) AS `{{.Dashboard.gc_overhead}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "B",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "{{.Dashboard.memory_max}}",
+                "name": "{{.Dashboard.memory_max}}",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "b"
+                ]
+              },
+              {
+                "key": "{{.Dashboard.memory_used}}",
+                "name": "{{.Dashboard.memory_used}}",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "b"
+                ]
+              }
+            ],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "jvm"
+        },
+        "name": "JVM Memory",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 17.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.memory_max}}",
+              "code": "B",
+              "dataSource": "otel-service",
+              "field": "jvm.memory.max",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`jvm.memory.max`) AS `{{.Dashboard.memory_max}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.memory_used}}",
+              "code": "C",
+              "dataSource": "otel-service",
+              "field": "jvm.memory.used",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`jvm.memory.used`) AS `{{.Dashboard.memory_used}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "jvm"
+        },
+        "name": "JVM Thread",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 16,
+          "y": 17.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.threads_daemon}}",
+              "code": "A",
+              "dataSource": "otel-service",
+              "field": "jvm.threads.daemon",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`jvm.threads.daemon`) AS `{{.Dashboard.threads_daemon}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.threads_live}}",
+              "code": "B",
+              "dataSource": "otel-service",
+              "field": "jvm.threads.live",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`jvm.threads.live`) AS `{{.Dashboard.threads_live}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.threads_peak}}",
+              "code": "C",
+              "dataSource": "otel-service",
+              "field": "jvm.threads.peak",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`jvm.threads.peak`) AS `{{.Dashboard.threads_peak}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "{{.Dashboard.cpu_usage}}",
+                "name": "{{.Dashboard.cpu_usage}}",
+                "unit": "",
+                "units": [
+                  "percent",
+                  "percent"
+                ]
+              }
+            ],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "System"
+        },
+        "name": "CPU",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 40
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.cpu_core}}",
+              "code": "A",
+              "dataSource": "otel-service",
+              "field": "system.cpu.count",
+              "fieldFunc": "max",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(MAX(`system.cpu.count`) AS `{{.Dashboard.cpu_core}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.cpu_usage}}",
+              "code": "B",
+              "dataSource": "otel-service",
+              "field": "system.cpu.usage",
+              "fieldFunc": "max",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(MAX(`system.cpu.usage`) AS `{{.Dashboard.cpu_usage}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.load_average_1m}}",
+              "code": "C",
+              "dataSource": "otel-service",
+              "field": "system.load.average.1m",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(LAST(`system.load.average.1m`) AS `{{.Dashboard.load_average_1m}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "alias": [],
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "B",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.process}}"
+        },
+        "name": "{{.Dashboard.open_file}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 52.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.files_max}}",
+              "code": "B",
+              "dataSource": "otel-service",
+              "field": "process.files.max",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`process.files.max`) AS `{{.Dashboard.files_max}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.files_open}}",
+              "code": "C",
+              "dataSource": "otel-service",
+              "field": "process.files.open",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`process.files.open`) AS `{{.Dashboard.files_open}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "alias": [],
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "HTTP"
+        },
+        "name": "session",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 109
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.sessions_active_current}}",
+              "code": "A",
+              "dataSource": "otel-service",
+              "field": "tomcat.sessions.active.current",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`tomcat.sessions.active.current`) AS `{{.Dashboard.sessions_active_current}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.sessions_active_max}}",
+              "code": "B",
+              "dataSource": "otel-service",
+              "field": "tomcat.sessions.active.max",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`tomcat.sessions.active.max`) AS `{{.Dashboard.sessions_active_max}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.sessions_alive_max}}",
+              "code": "C",
+              "dataSource": "otel-service",
+              "field": "tomcat.sessions.alive.max",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`tomcat.sessions.alive.max`) AS `{{.Dashboard.sessions_alive_max}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.sessions_created}}",
+              "code": "D",
+              "dataSource": "otel-service",
+              "field": "tomcat.sessions.created",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`tomcat.sessions.created`) AS `{{.Dashboard.sessions_created}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.sessions_expired}}",
+              "code": "E",
+              "dataSource": "otel-service",
+              "field": "tomcat.sessions.expired",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`tomcat.sessions.expired`) AS `{{.Dashboard.sessions_expired}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.sessions_rejected}}",
+              "code": "F",
+              "dataSource": "otel-service",
+              "field": "tomcat.sessions.rejected",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`tomcat.sessions.rejected`) AS `{{.Dashboard.sessions_rejected}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "alias": [],
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "{{.Dashboard.disk_free}}",
+                "name": "{{.Dashboard.disk_free}}",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "b"
+                ]
+              },
+              {
+                "key": "{{.Dashboard.disk_total}}",
+                "name": "{{.Dashboard.disk_total}}",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "b"
+                ]
+              }
+            ],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "System"
+        },
+        "name": "disk",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 40
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.disk_free}}",
+              "code": "A",
+              "dataSource": "otel-service",
+              "field": "disk.free",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`disk.free`) AS `{{.Dashboard.disk_free}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.disk_total}}",
+              "code": "B",
+              "dataSource": "otel-service",
+              "field": "disk.total",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`disk.total`) AS `{{.Dashboard.disk_total}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "C",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "{{.Dashboard.buffer_usage}}",
+                "name": "{{.Dashboard.buffer_usage}}",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              },
+              {
+                "key": "{{.Dashboard.buffer_limit}}",
+                "name": "{{.Dashboard.buffer_limit}}",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.process}}"
+        },
+        "name": "{{.Dashboard.jvm_buffer}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 52.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.buffer_usage}}",
+              "code": "C",
+              "dataSource": "otel-service",
+              "field": "process.runtime.jvm.buffer.usage",
+              "fieldFunc": "max",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "pool"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(MAX(`process.runtime.jvm.buffer.usage`) AS `{{.Dashboard.buffer_usage}}`) BY `pool`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.buffer_limit}}",
+              "code": "A",
+              "dataSource": "otel-service",
+              "field": "process.runtime.jvm.buffer.limit",
+              "fieldFunc": "max",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "pool"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(MAX(`process.runtime.jvm.buffer.limit`) AS `{{.Dashboard.buffer_limit}}`) BY `pool`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.buffer_count}}",
+              "code": "B",
+              "dataSource": "otel-service",
+              "field": "process.runtime.jvm.buffer.count",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`process.runtime.jvm.buffer.count`) AS `{{.Dashboard.buffer_count}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "{{.Dashboard.memory_usage}}",
+                "name": "{{.Dashboard.memory_usage}}",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              },
+              {
+                "key": "{{.Dashboard.memory_committed}}",
+                "name": "{{.Dashboard.memory_committed}}",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              },
+              {
+                "key": "{{.Dashboard.memory_init}}",
+                "name": "{{.Dashboard.memory_init}}",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.process}}"
+        },
+        "name": "{{.Dashboard.memory}}",
+        "pos": {
+          "h": 20,
+          "w": 8,
+          "x": 16,
+          "y": 52.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.memory_usage}}",
+              "code": "A",
+              "dataSource": "otel-service",
+              "field": "process.runtime.jvm.memory.usage",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "pool"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`process.runtime.jvm.memory.usage`) AS `{{.Dashboard.memory_usage}}`) BY `pool`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.memory_committed}}",
+              "code": "B",
+              "dataSource": "otel-service",
+              "field": "process.runtime.jvm.memory.committed",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "pool"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`process.runtime.jvm.memory.committed`) AS `{{.Dashboard.memory_committed}}`) BY `pool`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.memory_init}}",
+              "code": "C",
+              "dataSource": "otel-service",
+              "field": "process.runtime.jvm.memory.init",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "pool"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`process.runtime.jvm.memory.init`) AS `{{.Dashboard.memory_init}}`) BY `pool`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "colors": [],
+            "currentChartType": "bar",
+            "direction": "vertical",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "showTopSize": false,
+            "showTopWithMetric": "",
+            "stackContent": "group",
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "topSize": 10,
+            "units": [],
+            "xAxisShowType": "groupBy"
+          }
+        },
+        "group": {
+          "name": "HTTP"
+        },
+        "name": "{{.Dashboard.http_request}}",
+        "pos": {
+          "h": 24,
+          "w": 13,
+          "x": 0,
+          "y": 85
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "otel-service",
+              "field": "http.server.requests",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "outcome",
+                "uri"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(LAST(`http.server.requests`)) BY `outcome`, `uri`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "bar",
+            "unit": ""
+          }
+        ],
+        "type": "bar"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.process}}"
+        },
+        "name": "{{.Dashboard.threads}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 62.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.threads_count}}",
+              "code": "A",
+              "dataSource": "otel-service",
+              "field": "process.runtime.jvm.threads.count",
+              "fieldFunc": "max",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "service.name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(MAX(`process.runtime.jvm.threads.count`) AS `{{.Dashboard.threads_count}}`) BY `service.name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "alias": [],
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.process}}"
+        },
+        "name": "class",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 16,
+          "y": 72.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "current_load",
+              "code": "A",
+              "dataSource": "otel-service",
+              "field": "process.runtime.jvm.classes.current_loaded",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "service.name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`process.runtime.jvm.classes.current_loaded`) AS `current_load`) BY `service.name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "load",
+              "code": "B",
+              "dataSource": "otel-service",
+              "field": "process.runtime.jvm.classes.loaded",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "service.name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`process.runtime.jvm.classes.loaded`) AS `load`) BY `service.name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "unload",
+              "code": "C",
+              "dataSource": "otel-service",
+              "field": "process.runtime.jvm.classes.unloaded",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "service.name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`process.runtime.jvm.classes.unloaded`) AS `unload`) BY `service.name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "{{.Dashboard.cpu_utilization}}",
+                "name": "{{.Dashboard.cpu_utilization}}",
+                "unit": "",
+                "units": [
+                  "percent",
+                  "percent_decimal"
+                ]
+              }
+            ],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.process}}"
+        },
+        "name": "cpu",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 72.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.cpu_load_1m}}",
+              "code": "A",
+              "dataSource": "otel-service",
+              "field": "process.runtime.jvm.system.cpu.load_1m",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "service.name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`process.runtime.jvm.system.cpu.load_1m`) AS `{{.Dashboard.cpu_load_1m}}`) BY `service.name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.cpu_utilization}}",
+              "code": "B",
+              "dataSource": "otel-service",
+              "field": "process.runtime.jvm.cpu.utilization",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "service.name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`process.runtime.jvm.cpu.utilization`) AS `{{.Dashboard.cpu_utilization}}`) BY `service.name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "jvm"
+        },
+        "name": "thread state",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 16,
+          "y": 7.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.threads_states}}",
+              "code": "A",
+              "dataSource": "otel-service",
+              "field": "jvm.threads.states",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "state"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`jvm.threads.states`) AS `{{.Dashboard.threads_states}}`) BY `state`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "colors": [],
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "last(process.uptime)",
+                "name": "last(process.uptime)",
+                "unit": "",
+                "units": [
+                  "time",
+                  "ms"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.uptime}}",
+        "pos": {
+          "h": 5,
+          "w": 8,
+          "x": 6,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "otel-service",
+              "field": "process.uptime",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "e8cc19a0-35ca-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "ee85dc00-35ca-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "labelOp": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(LAST(`process.uptime`)) { `service.name` = '#{service_name}' and `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "alias": [],
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "{{.Dashboard.allocated}}",
+                "name": "{{.Dashboard.allocated}}",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "b"
+                ]
+              },
+              {
+                "key": "{{.Dashboard.promoted}}",
+                "name": "{{.Dashboard.promoted}}",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "b"
+                ]
+              }
+            ],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "jvm"
+        },
+        "name": "{{.Dashboard.gc_committed}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 27.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.allocated}}",
+              "code": "A",
+              "dataSource": "otel-service",
+              "field": "jvm.gc.memory.allocated",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`jvm.gc.memory.allocated`) AS `{{.Dashboard.allocated}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.promoted}}",
+              "code": "B",
+              "dataSource": "otel-service",
+              "field": "jvm.gc.memory.promoted",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`jvm.gc.memory.promoted`) AS `{{.Dashboard.promoted}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "committed",
+                "name": "committed",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "jvm"
+        },
+        "name": "JVM Memory Committe",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 17.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "committed",
+              "code": "A",
+              "dataSource": "otel-service",
+              "field": "jvm.memory.committed",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "id"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`jvm.memory.committed`) AS `committed`) BY `id`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "alias": [],
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.process}}"
+        },
+        "name": "{{.Dashboard.sequence}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 62.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.active}}",
+              "code": "A",
+              "dataSource": "otel-service",
+              "field": "executor.active",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`executor.active`) AS `{{.Dashboard.active}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.completed}}",
+              "code": "B",
+              "dataSource": "otel-service",
+              "field": "executor.completed",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`executor.completed`) AS `{{.Dashboard.completed}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.queued}}",
+              "code": "C",
+              "dataSource": "otel-service",
+              "field": "executor.queued",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`executor.queued`) AS `{{.Dashboard.queued}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.queue_remaining}}",
+              "code": "D",
+              "dataSource": "otel-service",
+              "field": "executor.queue.remaining",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`executor.queue.remaining`) AS `{{.Dashboard.queue_remaining}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "alias": [],
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.process}}"
+        },
+        "name": "{{.Dashboard.pool_task}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 72.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.pool_core}}",
+              "code": "A",
+              "dataSource": "otel-service",
+              "field": "executor.pool.core",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`executor.pool.core`) AS `{{.Dashboard.pool_core}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.pool_max}}",
+              "code": "B",
+              "dataSource": "otel-service",
+              "field": "executor.pool.max",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`executor.pool.max`) AS `{{.Dashboard.pool_max}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.pool_size}}",
+              "code": "C",
+              "dataSource": "otel-service",
+              "field": "executor.pool.size",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`executor.pool.size`) AS `{{.Dashboard.pool_size}}`)",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "colors": [],
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "last(application.ready.time)",
+                "name": "last(application.ready.time)",
+                "unit": "",
+                "units": [
+                  "time",
+                  "ms"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.ready_time}}",
+        "pos": {
+          "h": 5,
+          "w": 6,
+          "x": 0,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "otel-service",
+              "field": "application.ready.time",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "b30bb960-35ca-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "c0c1db20-35ca-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(LAST(`application.ready.time`)) { `service.name` = '#{service_name}' and `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "colors": [],
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "last(process.start.time)",
+                "name": "last(process.start.time)",
+                "unit": "",
+                "units": [
+                  "timeStamp",
+                  "ms"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.start_time}}",
+        "pos": {
+          "h": 5,
+          "w": 6,
+          "x": 14,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "otel-service",
+              "field": "process.start.time",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "fb3e8af0-35ca-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "fe2186a0-35ca-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(LAST(`process.start.time`)) { `service.name` = '#{service_name}' and `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "alias": [],
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "{{.Dashboard.server_duration}}",
+                "name": "{{.Dashboard.server_duration}}",
+                "unit": "",
+                "units": [
+                  "time",
+                  "ms"
+                ]
+              }
+            ],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "HTTP"
+        },
+        "name": "{{.Dashboard.server_duration}}",
+        "pos": {
+          "h": 24,
+          "w": 11,
+          "x": 13,
+          "y": 85
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.server_duration}}",
+              "code": "A",
+              "dataSource": "otel-service",
+              "field": "http.server.duration",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "service.name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{service_name}"
+                },
+                {
+                  "id": "296a9c70-35cb-11ee-aa40-c544b4bc047d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "http.route"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`otel-service`:(AVG(`http.server.duration`) AS `{{.Dashboard.server_duration}}`) BY `http.route`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      }
+    ],
+    "groups": [
+      "jvm",
+      "System",
+      "{{.Dashboard.process}}",
+      "HTTP"
+    ],
+    "type": "template",
+    "vars": [
+      {
+        "code": "service_name",
+        "datasource": "ftinfluxdb",
+        "definition": {
+          "defaultVal": {
+            "label": "",
+            "value": ""
+          },
+          "field": "",
+          "metric": "otel-service",
+          "object": "",
+          "tag": "service.name",
+          "value": ""
+        },
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "name": "{{.Dashboard.service_name}}",
+        "seq": 0,
+        "type": "TAG",
+        "valueSort": "asc"
+      },
+      {
+        "code": "host",
+        "datasource": "ftinfluxdb",
+        "definition": {
+          "defaultVal": {
+            "label": "",
+            "value": ""
+          },
+          "field": "",
+          "metric": "otel-service",
+          "object": "",
+          "tag": "host",
+          "value": ""
+        },
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "name": "{{.Dashboard.host}}",
+        "seq": 1,
+        "type": "TAG",
+        "valueSort": "asc"
+      },
+      {
+        "code": "otel-version",
+        "datasource": "ftinfluxdb",
+        "definition": {
+          "defaultVal": {
+            "label": "",
+            "value": ""
+          },
+          "field": "",
+          "metric": "otel-service",
+          "object": "",
+          "tag": "telemetry.auto.version",
+          "value": ""
+        },
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "name": "{{.Dashboard.otel_version}}",
+        "seq": 2,
+        "type": "TAG",
+        "valueSort": "asc"
+      }
+    ]
+  },
+  "summary": "",
+  "tagInfo": [
+    {
+      "id": "tag_e6c22ae6c4dd42e2a879784f98bfe31f",
+      "name": "jvm"
+    },
+    {
+      "id": "tag_5a0620fc4aba44afad93435643f294c0",
+      "name": "opentelemetry"
+    },
+    {
+      "id": "tag_7b18e2950d7c472c9cf0bb9d8c557147",
+      "name": "otel"
+    }
+  ],
+  "tags": [],
+  "thumbnail": "",
+  "title": "Opentelemetry JVM"
+}

@@ -3,8 +3,8 @@ title     : 'OpenTelemetry'
 summary   : '接收 OpenTelemetry 指标、日志、APM 数据'
 __int_icon      : 'icon/opentelemetry'
 dashboard :
-  - desc  : '暂无'
-    path  : '-'
+  - desc  : 'Opentelemetry JVM 监控视图'
+    path  : 'dashboard/zh/opentelemetry'
 monitor   :
   - desc  : '暂无'
     path  : '-'
@@ -75,25 +75,39 @@ OTEL 提供与 vendor 无关的实现，根据用户的需要将观测类数据�
 
 使用 OTEL HTTP exporter 时注意环境变量的配置，由于 Datakit 的默认配置是 `/otel/v1/trace` 和 `/otel/v1/metric`，所以想要使用 HTTP 协议的话，需要单独配置 `trace` 和 `metric`，
 
-OpenTelemetry 的默认的请求路由是 `v1/traces` 和 `v1/metrics`, 需要为这两个单独进行配置。如果修改了配置文件中的路由，替换下面的路由地址即可。
+## 链路 {#tracing}
 
-比如：
+Trace（链路）是由多个 span 组成的一条链路信息。
+无论是单个服务还是一个服务集群，链路信息提供了一个请求发生到结束所经过的所有服务之间完整路径的集合。
+
+Datakit 只接收 OTLP 的数据，OTLP 有三种数据类型： `gRPC` ， `http/protobuf` 和 `http/json` ，具体配置可以参考：
 
 ```shell
-java -javaagent:/usr/local/opentelemetry-javaagent-1.26.1-guance.jar \
- -Dotel.exporter=otlp \
- -Dotel.exporter.otlp.protocol=http/protobuf \
- -Dotel.exporter.otlp.traces.endpoint=http://localhost:9529/otel/v1/trace \
- -Dotel.exporter.otlp.metrics.endpoint=http://localhost:9529/otel/v1/metric \
- -jar tmall.jar
+# OpenTelemetry 默认采用 gPRC 协议发送到 Datakit
+-Dotel.exporter=otlp \
+-Dotel.exporter.otlp.protocol=grpc \
+-Dotel.exporter.otlp.endpoint=http://datakit-endpoint:4317
 
-# 如果修改了配置文件中的默认路由为 `v1/traces` 和 `v1/metrics` 那么 上面的命令可以这么写：
-java -javaagent:/usr/local/opentelemetry-javaagent-1.26.1-guance.jar \
- -Dotel.exporter=otlp \
- -Dotel.exporter.otlp.protocol=http/protobuf \
- -Dotel.exporter.otlp.endpoint=http://localhost:9529/ \
- -jar tmall.jar
+# 使用 http/protobuf 方式
+-Dotel.exporter=otlp \
+-Dotel.exporter.otlp.protocol=http/protobuf \
+-Dotel.exporter.otlp.traces.endpoint=http://datakit-endpoint:9529/otel/v1/trace \
+-Dotel.exporter.otlp.metrics.endpoint=http://datakit-endpoint:9529/otel/v1/metric 
+
+# 使用 http/json 方式
+-Dotel.exporter=otlp \
+-Dotel.exporter.otlp.protocol=http/json \
+-Dotel.exporter.otlp.traces.endpoint=http://datakit-endpoint:9529/otel/v1/trace \
+-Dotel.exporter.otlp.metrics.endpoint=http://datakit-endpoint:9529/otel/v1/metric
 ```
+
+### 链路采样 {#sample}
+
+可以采用头部采样或者尾部采样，具体可以查看两篇最佳实践：
+
+- 需要配合 collector 的尾部采样： [OpenTelemetry 采样最佳实践](../best-practices/cloud-native/opentelemetry-simpling)
+- Agent 端的头部采样： [OpenTelemetry Java Agent 端采样策略](../best-practices/cloud-native/otel-agent-sampling/)
+
 
 ### 示例 {#examples}
 
@@ -102,11 +116,17 @@ Datakit 目前提供了如下两种语言的最佳实践：
 - [Golang](opentelemetry-go.md)
 - [Java](opentelemetry-java.md)
 
-## 链路字段 {#tracing}
+## 指标 {#metric}
 
-{{range $i, $m := .Measurements}}
+OpenTelemetry Java Agent 从应用程序中通过 JMX 协议获取 MBean 的指标信息，Java Agent 通过内部 SDK 报告选定的 JMX 指标，这意味着所有的指标都是可以配置的。
 
-{{if eq $m.Type "tracing"}}
+可以通过命令 `otel.jmx.enabled=true/false` 开启和关闭 JMX 指标采集，默认是开启的。
+
+为了控制 MBean 检测尝试之间的时间间隔，可以使用 `otel.jmx.discovery.delay` 命令，该属性定义了在第一个和下一个检测周期之间通过的毫秒数。
+
+另外 Agent 内置的一些三方软件的采集配置。具体可以参考： [GitHub OTEL JMX Metric](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation/jmx-metrics/javaagent/README.md){:target="_blank"}
+
+{{ range $i, $m := .Measurements }}
 
 ### `{{$m.Name}}`
 
@@ -119,9 +139,8 @@ Datakit 目前提供了如下两种语言的最佳实践：
 - 指标列表
 
 {{$m.FieldsMarkdownTable}}
-{{end}}
 
-{{end}}
+{{ end }}
 
 ## 更多文档 {#more-readings}
 
