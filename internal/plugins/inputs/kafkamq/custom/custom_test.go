@@ -7,6 +7,8 @@
 package custom
 
 import (
+	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -112,4 +114,26 @@ func TestCustom_Process(t *testing.T) {
 			}
 		})
 	}
+}
+
+type KafkaMessage struct {
+	Topic string `json:"topic"`
+	Value []byte `json:"value"`
+}
+
+func TestMashellJson(t *testing.T) {
+	messages := []KafkaMessage{
+		{Topic: "bfySpan", Value: []byte("value1")},
+		{Topic: "bfySpan", Value: []byte("value2")},
+		{Topic: "bfySpan", Value: []byte("value3")},
+		{Topic: "bfySpan", Value: []byte("value4")},
+	}
+
+	// 将多个消息打包为HTTP请求的主体
+	jsonData, err := json.MarshalIndent(messages, "", "	")
+	if err != nil {
+		fmt.Println("Error marshaling JSON:", err)
+		return
+	}
+	fmt.Println(string(jsonData))
 }

@@ -12,6 +12,7 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/kafkamq/custom"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/kafkamq/handle"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/kafkamq/jaeger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/kafkamq/skywalking"
 )
@@ -82,6 +83,15 @@ const mqSampleConfig = `
     #  "rum_topic"="rum_01.p"
     #  "rum_02"="rum_02.p"
 
+  #[inputs.kafkamq.remote_handle]
+    ## Required！
+    #endpoint="http://localhost:8080"
+    ## Required！ topics
+    #topics=["spans","my-spans"]
+    # send_message_count = 100
+    # debug = false
+    # is_response_point = true
+    # header_check = false
 
   ## todo: add other input-mq
 `
@@ -106,9 +116,10 @@ type Input struct {
 	TLSSaslPlainPassword string   `toml:"tls_sasl_plain_password"`
 	Offsets              int64    `toml:"offsets"`
 
-	SkyWalking *skywalking.SkyConsumer `toml:"skywalking"` // 命名时 注意区分源
-	Jaeger     *jaeger.Consumer        `toml:"jaeger"`     // 命名时 注意区分源
-	Custom     *custom.Custom          `toml:"custom"`     // 自定义 topic
+	SkyWalking *skywalking.SkyConsumer `toml:"skywalking"`    // 命名时 注意区分源
+	Jaeger     *jaeger.Consumer        `toml:"jaeger"`        // 命名时 注意区分源
+	Custom     *custom.Custom          `toml:"custom"`        // 自定义 topic
+	Handle     *handle.Handle          `toml:"remote_handle"` // 自定义 handle
 
 	kafka  *kafkaConsumer
 	feeder dkio.Feeder
@@ -162,6 +173,11 @@ func (ipt *Input) Run() {
 
 	if ipt.Jaeger != nil {
 		ipt.kafka.registerP(ipt.Jaeger)
+	}
+
+	if ipt.Handle != nil {
+		ipt.Handle.SetFeeder(ipt.feeder)
+		ipt.kafka.registerP(ipt.Handle)
 	}
 
 	go ipt.kafka.start()

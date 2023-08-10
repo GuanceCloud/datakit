@@ -171,6 +171,70 @@ drop_key(message_len)
 
 配置好 Pipeline 脚本，重启 Datakit 即可。
 
+## Handle {#handle}
+
+配置文件：
+
+```toml
+ [inputs.kafkamq.remote_handle]
+    ## Required！
+    endpoint="http://localhost:8080"
+    ## Required！ topics
+    topics=["spans","my-spans"]
+    send_message_count = 100
+    debug = false
+    is_response_point = true
+    # header_check = false
+```
+
+KafkaMQ 提供一种插件机制：将数据（[]byte）通过 HTTP 发送到外部 handle，经过处理后可以再通过 response 返回行协议的格式数据。实现定制化数据处理。
+
+配置说明：
+
+- `endpoint` Handle 地址
+- `send_message_count` 一次发送的消息点数。
+- `topics`  消息的 topic 数组
+- `debug` bool 值 当开启 debug 功能， `message_points` 则无效，如果开启 debug 模式，则将原始消息体中的数据发送，不再进行消息合并。
+- `is_response_point` 是否将行协议数据发送回来
+- `header_check` 特殊的头部检测（ bfy 定制化，并非通用）
+
+
+KafkaMQ 收到消息后，合并成一个包含 `send_message_count` 条消息的包，发送到指定的 handle 地址上，数据结构如下：
+
+```txt
+[
+  {"topic": "bfySpan", "value": "dmFsdWUx"},
+  {"topic": "bfySpan", "value": "dmFsdWUx"},
+  {"topic": "bfySpan", "value": "dmFsdWUx"},
+  {"topic": "bfySpan", "value": "dmFsdWUx"},
+  ...
+]
+```
+
+返回的数据应当遵循 `v1/write/tracing` 接口规定， [接口文档](apis.md#api-v1-write)
+
+返回的 header 头部也应该说明该数据的类型：默认就是 `tracing`
+
+```txt
+X-category=tracing  
+```
+
+[DataKit 支持数据类型](apis/#category)
+
+只要接收到数据 就代表 KafkaMQ 将数据发送成功，无论解析如何 就应该返回 200， 后等待下一个请求。
+
+如果解析失败，则建议将 KafkaMQ 配置中的 `debug=true` 这时候，不会再进行 JSON 的组装和序列化。 而是 请求的 `body` 就是消息本身。
+
+---
+
+外部插件有一些约束：
+
+- KafkaMQ 接收数据但不负责解析后序列化，因为这是定制化开发，无法为所有用户使用。
+- 外部插件解析后的数据可以发送到 [dk apis](apis.md#api-v1-write) ，也可以返回到 KafkaMQ 再发送到观测云。
+- 通过 response 返回到 KafkaMQ 必须是 ***行协议格式***，如果是 `JSON` 格式需要带上头部信息： `Content-Type:application/json` 另外，返回的头部信息也应该带上类型： `X-category:tracing` 表示这个链路信息。
+- 外部插件收到数据，无论解析失败与否 都应该返回 200。
+- KafkaMQ 发送数据到外部插件如果出现超时，端口不存在等问题。会尝试重连。不再消费 Kafka 中的消息。
+
 ## 基准测试 {#benchmark}
 
 消息的消费能力受限于网络和带宽的限制，所以基准测试只是测试 Datakit 的消费能力而不是 IO 能力。本次测试的机器配置是 4 核 8 线程、16G 内存。测试过程中 CPU 峰值 60%~70%，内存增加 10%。
