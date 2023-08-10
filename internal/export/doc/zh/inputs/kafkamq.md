@@ -211,7 +211,7 @@ KafkaMQ 收到消息后，合并成一个包含 `send_message_count` 条消息�
 ]
 ```
 
-返回的数据应当遵循 `v1/write/tracing` 接口规定， [接口文档](apis.md#api-v1-write)
+返回的数据应当遵循 `v1/write/tracing` 接口规定， [接口文档](../datakit/apis.md#api-v1-write)
 
 返回的 header 头部也应该说明该数据的类型：默认就是 `tracing`
 
@@ -219,7 +219,7 @@ KafkaMQ 收到消息后，合并成一个包含 `send_message_count` 条消息�
 X-category=tracing  
 ```
 
-[DataKit 支持数据类型](apis/#category)
+[DataKit 支持数据类型](../datakit/apis.md/#category)
 
 只要接收到数据 就代表 KafkaMQ 将数据发送成功，无论解析如何 就应该返回 200， 后等待下一个请求。
 
@@ -230,7 +230,7 @@ X-category=tracing
 外部插件有一些约束：
 
 - KafkaMQ 接收数据但不负责解析后序列化，因为这是定制化开发，无法为所有用户使用。
-- 外部插件解析后的数据可以发送到 [dk apis](apis.md#api-v1-write) ，也可以返回到 KafkaMQ 再发送到观测云。
+- 外部插件解析后的数据可以发送到 [dk apis](../datakit/apis.md#api-v1-write) ，也可以返回到 KafkaMQ 再发送到观测云。
 - 通过 response 返回到 KafkaMQ 必须是 ***行协议格式***，如果是 `JSON` 格式需要带上头部信息： `Content-Type:application/json` 另外，返回的头部信息也应该带上类型： `X-category:tracing` 表示这个链路信息。
 - 外部插件收到数据，无论解析失败与否 都应该返回 200。
 - KafkaMQ 发送数据到外部插件如果出现超时，端口不存在等问题。会尝试重连。不再消费 Kafka 中的消息。
