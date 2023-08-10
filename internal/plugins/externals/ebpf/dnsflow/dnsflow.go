@@ -118,7 +118,7 @@ func (tracer *DNSFlowTracer) readPacket(ctx context.Context, tp *afpacket.TPacke
 func (tracer *DNSFlowTracer) Run(ctx context.Context, tp *afpacket.TPacket, gTag map[string]string,
 	dnsRecord *DNSAnswerRecord, feedAddr string,
 ) {
-	mCh := make(chan []*point.Point, 8)
+	mCh := make(chan []*point.Point, 256)
 	agg := FlowAgg{}
 	go tracer.readPacket(ctx, tp)
 	go func() {

@@ -19,6 +19,21 @@ struct bpf_map_def SEC("maps/bpfmap_l7_buffer") bpfmap_l7_buffer = {
     .max_entries = 1,
 };
 
+static __always_inline struct l7_buffer *get_l7_buffer_percpu()
+{
+    __s32 index = 0;
+    struct l7_buffer *l7buffer = bpf_map_lookup_elem(&bpfmap_l7_buffer, &index);
+    if (l7buffer == NULL)
+    {
+        return NULL;
+    }
+
+    l7buffer->len = 0;
+    l7buffer->req_ts = 0;
+
+    return l7buffer;
+}
+
 // Upload tcp payload data to user mode agent program.
 struct bpf_map_def SEC("maps/bpfmap_l7_buffer_out") bpfmap_l7_buffer_out = {
     .type = BPF_MAP_TYPE_PERF_EVENT_ARRAY,
@@ -53,8 +68,8 @@ struct bpf_map_def SEC("maps/bpfmap_ssl_read_args") bpfmap_ssl_read_args = {
 struct bpf_map_def SEC("maps/bpfmap_bio_new_socket_args")
     bpf_map_bio_new_socket_args = {
         .type = BPF_MAP_TYPE_HASH,
-        .key_size = sizeof(__u64),    // pid_tgid
-        .value_size = sizeof(__u32),  // fd
+        .key_size = sizeof(__u64),   // pid_tgid
+        .value_size = sizeof(__u32), // fd
         .max_entries = 1024,
 };
 
@@ -111,4 +126,12 @@ struct bpf_map_def SEC("maps/bpfmap_syscall_writev_arg")
         .max_entries = 1024,
 };
 
-#endif  // !__BPFMAP_L7_H
+struct bpf_map_def SEC("maps/bpfmap_syscall_sendfile_arg")
+    bpfmap_syscall_sendfile_arg = {
+        .type = BPF_MAP_TYPE_HASH,
+        .key_size = sizeof(__u64),
+        .value_size = sizeof(struct syscall_sendfile_arg),
+        .max_entries = 1024,
+};
+
+#endif // !__BPFMAP_L7_H

@@ -24,6 +24,7 @@ import (
 	dknetflow "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/netflow"
 	dkout "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/output"
 	sysmonitor "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/sysmonitor"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/tracing"
 	"golang.org/x/sys/unix"
 )
 
@@ -48,6 +49,8 @@ const (
 	ConnL4Mask uint32 = dknetflow.ConnL4Mask
 	ConnL4TCP  uint32 = dknetflow.ConnL4TCP
 	ConnL4UDP  uint32 = dknetflow.ConnL4UDP
+
+	PayloadBufSize = 2048
 )
 
 var (
@@ -67,8 +70,7 @@ type (
 	ConnectionInfo  dknetflow.ConnectionInfo
 
 	CPayloadID C.struct_payload_id
-
-	HTTPStats struct {
+	HTTPStats  struct {
 		Direction string
 
 		ReqMethod uint8
@@ -79,6 +81,9 @@ type (
 		HTTPVersion uint32
 
 		Pid uint64
+
+		Recv int
+		Send int
 
 		ReqTS  uint64
 		RespTS uint64
@@ -166,6 +171,15 @@ func NewHTTPFlowManger(constEditor []manager.ConstantEditor, ctMap *ebpf.Map,
 			},
 			{
 				Section: "tracepoint/syscalls/sys_exit_readv",
+			},
+			{
+				Section: "tracepoint/syscalls/sys_enter_close",
+			},
+			{
+				Section: "tracepoint/syscalls/sys_enter_sendfile64",
+			},
+			{
+				Section: "tracepoint/syscalls/sys_exit_sendfile64",
 			},
 		},
 		PerfMaps: []*manager.PerfMap{
@@ -316,6 +330,8 @@ func (tracer *HTTPFlowTracer) reqFinishedEventHandler(cpu int, data []byte,
 			RespCode:    uint32(eventC.http.status_code),
 			ReqTS:       uint64(eventC.http.req_ts),
 			RespTS:      uint64(eventC.http.resp_ts),
+			Recv:        int(eventC.http.recv_bytes),
+			Send:        int(eventC.http.sent_bytes),
 			Pid:         uint64(eventC.conn_info.pid),
 		},
 	}
@@ -325,15 +341,36 @@ func (tracer *HTTPFlowTracer) reqFinishedEventHandler(cpu int, data []byte,
 
 func (tracer *HTTPFlowTracer) bufHandle(cpu int, data []byte,
 	perfmap *manager.PerfMap, manager *manager.Manager) {
+	ts := time.Now().UnixNano()
+
 	bufferC := *((*CL7Buffer)(unsafe.Pointer(&data[0])))
 
-	_reqCache.AppendPayload(&bufferC)
+	bufLen := int(bufferC.len)
+
+	if bufLen <= 0 {
+		return
+	}
+
+	b := *(*[PayloadBufSize]byte)(unsafe.Pointer(&bufferC.payload))
+
+	// if err := os.WriteFile(fmt.Sprintf("./tcp_payload_dump/%d", time.Now().UnixNano()),
+	// 	b[:bufLen], 0o777); err != nil {
+	// 	fmt.Println(err)
+	// }
+
+	info, ok := tracing.ParseHTTP1xHeader(b[:bufLen], ts)
+	if !ok {
+		return
+	}
+
+	_reqCache.AppendPayload(CPayloadID(bufferC.id), info)
 }
 
 func (tracer *HTTPFlowTracer) feedHandler(ctx context.Context, interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	mergeTicker := time.NewTicker(time.Second * 15)
 	cleanCacheTicker := time.NewTicker(time.Second * 90)
+
 	agg := FlowAgg{}
 	for {
 		select {

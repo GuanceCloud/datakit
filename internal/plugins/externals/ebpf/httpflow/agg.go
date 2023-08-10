@@ -34,8 +34,10 @@ type aggKey struct {
 }
 
 type aggValue struct {
-	latency []int
-	count   int
+	latency   []int
+	count     int
+	recvBytes int64
+	sendBytes int64
 }
 
 func calLatency(l []int) int {
@@ -108,6 +110,9 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 
 		"status_code": key.statusCode,
 		"latency":     calLatency(value.latency),
+
+		"bytes_read":    value.recvBytes,
+		"bytes_written": value.sendBytes,
 
 		"truncated": key.pathTrunc,
 
@@ -214,12 +219,16 @@ func (agg *FlowAgg) Append(httpFinReq *HTTPReqFinishedInfo) error {
 		v.count++
 		v.latency = append(v.latency,
 			int(httpFinReq.HTTPStats.RespTS-httpFinReq.HTTPStats.ReqTS))
+		v.recvBytes += int64(httpFinReq.HTTPStats.Recv)
+		v.sendBytes += int64(httpFinReq.HTTPStats.Send)
 	} else {
 		agg.data[key] = &aggValue{
 			count: 1,
 			latency: []int{
 				int(httpFinReq.HTTPStats.RespTS - httpFinReq.HTTPStats.ReqTS),
 			},
+			recvBytes: int64(httpFinReq.HTTPStats.Recv),
+			sendBytes: int64(httpFinReq.HTTPStats.Send),
 		}
 	}
 

@@ -209,6 +209,20 @@ static __always_inline __u64 load_offset_file_private_data()
     return var;
 }
 
+static __always_inline __u64 load_offset_copied_seq()
+{
+    __u64 var = 0;
+    LOAD_OFFSET("offset_copied_seq", var);
+    return var;
+}
+
+static __always_inline __u64 load_offset_write_seq()
+{
+    __u64 var = 0;
+    LOAD_OFFSET("offset_write_seq", var);
+    return var;
+}
+
 // value of sknet: &(struct net *) or &(struct possible_net_t)
 static __always_inline __u32 read_netns(void *sk)
 {
@@ -224,6 +238,25 @@ static __always_inline __u32 read_netns(void *sk)
     return inum;
 }
 
+static __always_inline __u32 read_write_seq(void *sk)
+{
+    __u32 write_seq = 0;
+
+    __u64 offset_write_seq = load_offset_write_seq();
+    bpf_probe_read(&write_seq, sizeof(write_seq),
+                   (__u8 *)sk + offset_write_seq);
+    return write_seq;
+}
+
+static __always_inline __u32 read_copied_seq(void *sk)
+{
+    __u32 copied_seq = 0;
+
+    __u64 offset_copied_seq = load_offset_copied_seq();
+    bpf_probe_read(&copied_seq, sizeof(copied_seq),
+                   (__u8 *)sk + offset_copied_seq);
+    return copied_seq;
+}
 
 static __always_inline void swap_u16(__u16 *v)
 {

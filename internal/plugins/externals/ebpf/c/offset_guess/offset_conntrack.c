@@ -39,7 +39,7 @@ static __always_inline void write_offset_ct(struct offset_conntrack *offset)
 static __always_inline void ct_get_netns(struct nf_conn *ct, struct offset_conntrack *offset)
 {
     struct net *sknet = NULL;
-    bpf_probe_read(&sknet, sizeof(sknet), (__u8 *)ct + offset->offset_net);
+    bpf_probe_read(&sknet, sizeof(sknet), (__u8 *)ct + offset->offset_ct_net);
     int err = bpf_probe_read(&offset->netns, sizeof(__u32), (__u8 *)sknet + offset->offset_ns_common_inum);
     if (err == -EFAULT || offset->offset_ns_common_inum > 200)
     {
@@ -118,11 +118,11 @@ int kprobe___nf_conntrack_hash_insert(struct pt_regs *ctx)
 
     // origin tuple: &ct->tuplehash[0].tuple
     get_nf_conntrack_tuple(&offset.origin,
-                           (struct nf_conntrack_tuple *)((__u8 *)(ct) + offset.offset_origin_tuple));
+                           (struct nf_conntrack_tuple *)((__u8 *)(ct) + offset.offset_ct_origin_tuple));
 
     // reply tuple: &ct->tuplehash[1].tuple
     get_nf_conntrack_tuple(&offset.reply,
-                           (struct nf_conntrack_tuple *)((__u8 *)(ct) + offset.offset_reply_tuple));
+                           (struct nf_conntrack_tuple *)((__u8 *)(ct) + offset.offset_ct_reply_tuple));
 
     ct_get_netns(ct, &offset);
 #ifdef __DK_DEBUG__

@@ -9,6 +9,7 @@
 #include "bpf_helpers.h"
 #include "offset.h"
 #include "filter.h"
+#include "../netflow/conn_stats.h"
 
 static __always_inline void swap_u16(__u16 *v)
 {

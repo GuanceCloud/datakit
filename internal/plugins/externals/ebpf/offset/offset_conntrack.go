@@ -112,11 +112,11 @@ func GuessOffsetConntrack(guessed *OffsetConntrackC) ([]manager.ConstantEditor, 
 
 	status := newGuessConntrack()
 	if guessed != nil {
-		copyOffsetCT(guessed, status)
+		copyOffsetCT(guessed, &status)
 	}
 	offsetCheck := OffsetCheck{}
 	for {
-		if err := guessConntrack(serverAddr, conninfo, bpfmap, &offsetCheck, status); err != nil {
+		if err := guessConntrack(serverAddr, conninfo, bpfmap, &offsetCheck, &status); err != nil {
 			return nil, nil, err
 		}
 
@@ -125,9 +125,9 @@ func GuessOffsetConntrack(guessed *OffsetConntrackC) ([]manager.ConstantEditor, 
 			offsetCheck.ctNetOk > MINSUCCESS &&
 			offsetCheck.netnsInumOk > MINSUCCESS {
 			newstatus := newGuessConntrack()
-			copyOffsetCT(status, newstatus)
+			copyOffsetCT(&status, &newstatus)
 
-			return newConntrackConstEditor(newstatus), newstatus, nil
+			return newConntrackConstEditor(&newstatus), &newstatus, nil
 		}
 	}
 }
@@ -183,9 +183,9 @@ func guessConntrack(svc string, conninfo Conninfo, ebpfMap *ebpf.Map,
 	tryGuessConntrack(statusAct, offsetCk, &conninfo, GUESS_CONNTRACK_TUPLE_REPLY)
 	tryGuessConntrack(statusAct, offsetCk, &conninfo, GUESS_NS_COMMON_INUM)
 
-	if status.offset_origin_tuple > 512 ||
-		status.offset_reply_tuple > 512 ||
-		status.offset_net > 512 {
+	if status.offset_ct_origin_tuple > 512 ||
+		status.offset_ct_reply_tuple > 512 ||
+		status.offset_ct_net > 512 {
 		return fmt.Errorf("guess conntrack: offset > 512")
 	}
 
@@ -206,20 +206,20 @@ func updateMapConntrack(m *ebpf.Map, status *OffsetConntrackC) error {
 func newConntrackConstEditor(offset *OffsetConntrackC) []manager.ConstantEditor {
 	return []manager.ConstantEditor{
 		{
-			Name:  "offset_net",
-			Value: uint64(offset.offset_net),
+			Name:  "offset_ct_net",
+			Value: uint64(offset.offset_ct_net),
 		},
 		{
 			Name:  "offset_ns_common_inum",
 			Value: uint64(offset.offset_ns_common_inum),
 		},
 		{
-			Name:  "offset_origin_tuple",
-			Value: uint64(offset.offset_origin_tuple),
+			Name:  "offset_ct_origin_tuple",
+			Value: uint64(offset.offset_ct_origin_tuple),
 		},
 		{
-			Name:  "offset_reply_tuple",
-			Value: uint64(offset.offset_reply_tuple),
+			Name:  "offset_ct_reply_tuple",
+			Value: uint64(offset.offset_ct_reply_tuple),
 		},
 	}
 }

@@ -35,6 +35,10 @@ func OffsetConntrackBin() ([]byte, error) {
 	return binData.ReadFile("bin/amd64/offset_conntrack.o")
 }
 
+func OffsetTCPSeqBin() ([]byte, error) {
+	return binData.ReadFile("bin/amd64/offset_tcp_seq.o")
+}
+
 func BashHistoryBin() ([]byte, error) {
 	return binData.ReadFile("bin/amd64/bash_history.o")
 }

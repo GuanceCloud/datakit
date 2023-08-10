@@ -4,7 +4,6 @@
 #include "l7_stats.h"
 #include "l7_utils.h"
 #include "tp_syscall_arg.h"
-#include "print_apiflow.h"
 
 // ============================= syscall =========================
 
@@ -31,6 +30,14 @@ int tracepoint__sys_enter_write(struct tp_syscall_read_write_args *ctx)
         .ts = bpf_ktime_get_ns(),
     };
 
+    struct sock *sk = NULL;
+    enum sock_type sktype = 0;
+
+    if (get_sock_from_skt(skt, &sk, &sktype) != 0 || sktype != SOCK_STREAM)
+    {
+        return 0;
+    }
+
     __u64 pid_tgid = bpf_get_current_pid_tgid();
 
     bpf_map_update_elem(&bpfmap_syscall_write_arg, &pid_tgid, &arg, BPF_ANY);
@@ -41,38 +48,46 @@ int tracepoint__sys_enter_write(struct tp_syscall_read_write_args *ctx)
 SEC("tracepoint/syscalls/sys_exit_write")
 int tracepoint__sys_exit_write(struct tp_syscall_exit_args *ctx)
 {
-    __u32 cpuid = bpf_get_smp_processor_id();
     __u64 pid_tgid = bpf_get_current_pid_tgid();
+    struct connection_info conn = {0};
 
     __s64 buf_size = ctx->ret;
     struct syscall_read_write_arg *arg = (struct syscall_read_write_arg *)bpf_map_lookup_elem(&bpfmap_syscall_write_arg, &pid_tgid);
-    if (buf_size <= 0 || arg == NULL || arg->fd < 3) // fd 0-2: stdin, stdout, stderr
+    if (arg == NULL || arg->fd < 3) // fd 0-2: stdin, stdout, stderr
+    {
+        bpf_map_delete_elem(&bpfmap_syscall_read_arg, &pid_tgid);
+        return 0;
+    }
+
+    if (buf_size <= 0)
     {
         goto clean;
     }
 
-    arg->ts = bpf_ktime_get_ns();
+    // arg->ts = bpf_ktime_get_ns();
 
-    struct connection_info conn = {0};
     struct layer7_http stats = {0};
-    req_resp_t req_resp = checkHTTP(arg->skt, arg->buf, arg->ts, &conn, &stats);
+    req_resp_t req_resp = checkHTTP(arg->skt, arg->buf,
+                                    &conn, &stats, ctx->ret);
     if (req_resp == HTTP_REQ_UNKNOWN)
     {
         goto clean;
     }
+    upate_req_payload_id(&stats, pid_tgid, arg->ts);
 
-    int index = 0;
-    struct l7_buffer *l7buffer = bpf_map_lookup_elem(&bpfmap_l7_buffer, &index);
+    struct l7_buffer *l7buffer = get_l7_buffer_percpu();
     if (l7buffer == NULL)
     {
         goto clean;
     }
 
-    copy_data_from_buffer(arg->buf, ctx->ret, &stats.req_payload_id, l7buffer);
+    copy_data_from_buffer(arg->buf, ctx->ret, &stats.req_payload_id, l7buffer, P_SYSCALL_WRITE);
 
-    parse_http1x(ctx, l7buffer, arg->ts, &conn, &stats, req_resp, MSG_WRITE);
+    parse_http1x(ctx, l7buffer, arg->ts, &conn, &stats, req_resp,
+                 MSG_WRITE, P_SYSCALL_WRITE);
 
 clean:
+    http_try_upload(ctx, &conn, 0, buf_size, arg->ts, bpf_ktime_get_ns(), P_SYSCALL_WRITE);
     bpf_map_delete_elem(&bpfmap_syscall_write_arg, &pid_tgid);
     return 0;
 }
@@ -100,6 +115,14 @@ int tracepoint__sys_enter_read(struct tp_syscall_read_write_args *ctx)
         .ts = bpf_ktime_get_ns(),
     };
 
+    struct sock *sk = NULL;
+    enum sock_type sktype = 0;
+
+    if (get_sock_from_skt(skt, &sk, &sktype) != 0 || sktype != SOCK_STREAM)
+    {
+        return 0;
+    }
+
     __u64 pid_tgid = bpf_get_current_pid_tgid();
 
     bpf_map_update_elem(&bpfmap_syscall_read_arg, &pid_tgid, &arg, BPF_ANY);
@@ -110,39 +133,47 @@ int tracepoint__sys_enter_read(struct tp_syscall_read_write_args *ctx)
 SEC("tracepoint/syscalls/sys_exit_read")
 int tracepoint__sys_exit_read(struct tp_syscall_exit_args *ctx)
 {
-    __u32 cpuid = bpf_get_smp_processor_id();
     __u64 pid_tgid = bpf_get_current_pid_tgid();
+    struct connection_info conn = {0};
 
     __s64 buf_size = ctx->ret;
     struct syscall_read_write_arg *arg = (struct syscall_read_write_arg *)bpf_map_lookup_elem(&bpfmap_syscall_read_arg, &pid_tgid);
-    if (buf_size <= 0 || arg == NULL || arg->fd <= 2) // fd 0-2: stdin, stdout, stderr
+    if (arg == NULL || arg->fd <= 2) // fd 0-2: stdin, stdout, stderr
+    {
+        bpf_map_delete_elem(&bpfmap_syscall_read_arg, &pid_tgid);
+        return 0;
+    }
+
+    if (buf_size <= 0)
     {
         goto clean;
     }
 
-    arg->ts = bpf_ktime_get_ns();
+    // arg->ts = bpf_ktime_get_ns();
 
-    struct connection_info conn = {0};
     struct layer7_http stats = {0};
-    req_resp_t req_resp = checkHTTP(arg->skt, arg->buf, arg->ts, &conn, &stats);
+    req_resp_t req_resp = checkHTTP(arg->skt, arg->buf,
+                                    &conn, &stats, ctx->ret);
     if (req_resp == HTTP_REQ_UNKNOWN)
     {
         goto clean;
     }
+    upate_req_payload_id(&stats, pid_tgid, arg->ts);
 
     // If it is resp, this buffer is not used.
-    int index = 0;
-    struct l7_buffer *l7buffer = bpf_map_lookup_elem(&bpfmap_l7_buffer, &index);
+    struct l7_buffer *l7buffer = get_l7_buffer_percpu();
     if (l7buffer == NULL)
     {
         goto clean;
     }
 
-    copy_data_from_buffer(arg->buf, ctx->ret, &stats.req_payload_id, l7buffer);
+    copy_data_from_buffer(arg->buf, ctx->ret, &stats.req_payload_id, l7buffer, P_SYSCALL_READ);
 
-    parse_http1x(ctx, l7buffer, arg->ts, &conn, &stats, req_resp, MSG_READ);
+    parse_http1x(ctx, l7buffer, arg->ts, &conn, &stats, req_resp,
+                 MSG_READ, P_SYSCALL_READ);
 
 clean:
+    http_try_upload(ctx, &conn, buf_size, 0, arg->ts, bpf_ktime_get_ns(), P_SYSCALL_READ);
     bpf_map_delete_elem(&bpfmap_syscall_read_arg, &pid_tgid);
     return 0;
 }
@@ -169,7 +200,16 @@ int tracepoint__sys_enter_sendto(struct tp_syscall_read_write_args *ctx)
         .fd = ctx->fd,
         .skt = skt,
         .ts = bpf_ktime_get_ns(),
+
     };
+
+    struct sock *sk = NULL;
+    enum sock_type sktype = 0;
+
+    if (get_sock_from_skt(skt, &sk, &sktype) != 0 || sktype != SOCK_STREAM)
+    {
+        return 0;
+    }
 
     __u64 pid_tgid = bpf_get_current_pid_tgid();
 
@@ -181,38 +221,47 @@ int tracepoint__sys_enter_sendto(struct tp_syscall_read_write_args *ctx)
 SEC("tracepoint/syscalls/sys_exit_sendto")
 int tracepoint__sys_exit_sendto(struct tp_syscall_exit_args *ctx)
 {
-    __u32 cpuid = bpf_get_smp_processor_id();
     __u64 pid_tgid = bpf_get_current_pid_tgid();
+    struct connection_info conn = {0};
 
     __s64 buf_size = ctx->ret;
     struct syscall_read_write_arg *arg = (struct syscall_read_write_arg *)bpf_map_lookup_elem(&bpfmap_syscall_write_arg, &pid_tgid);
-    if (buf_size <= 0 || arg == NULL || arg->fd < 3) // fd 0-2: stdin, stdout, stderr
+    if (arg == NULL || arg->fd < 3) // fd 0-2: stdin, stdout, stderr
+    {
+        bpf_map_delete_elem(&bpfmap_syscall_write_arg, &pid_tgid);
+        return 0;
+    }
+
+    if (buf_size <= 0)
     {
         goto clean;
     }
 
-    arg->ts = bpf_ktime_get_ns();
+    // arg->ts = bpf_ktime_get_ns();
 
-    struct connection_info conn = {0};
     struct layer7_http stats = {0};
-    req_resp_t req_resp = checkHTTP(arg->skt, arg->buf, arg->ts, &conn, &stats);
+    req_resp_t req_resp = checkHTTP(arg->skt, arg->buf,
+                                    &conn, &stats, ctx->ret);
     if (req_resp == HTTP_REQ_UNKNOWN)
     {
         goto clean;
     }
+    upate_req_payload_id(&stats, pid_tgid, arg->ts);
 
-    int index = 0;
-    struct l7_buffer *l7buffer = bpf_map_lookup_elem(&bpfmap_l7_buffer, &index);
+    struct l7_buffer *l7buffer = get_l7_buffer_percpu();
     if (l7buffer == NULL)
     {
         goto clean;
     }
 
-    copy_data_from_buffer(arg->buf, ctx->ret, &stats.req_payload_id, l7buffer);
+    copy_data_from_buffer(arg->buf, ctx->ret, &stats.req_payload_id, l7buffer, P_SYSCALL_SENDTO);
 
-    parse_http1x(ctx, l7buffer, arg->ts, &conn, &stats, req_resp, MSG_WRITE);
+    parse_http1x(ctx, l7buffer, arg->ts, &conn, &stats, req_resp,
+                 MSG_WRITE, P_SYSCALL_SENDTO);
 
 clean:
+    http_try_upload(ctx, &conn, 0, buf_size, arg->ts, bpf_ktime_get_ns(), P_SYSCALL_SENDTO);
+
     bpf_map_delete_elem(&bpfmap_syscall_write_arg, &pid_tgid);
     return 0;
 }
@@ -238,7 +287,16 @@ int tracepoint__sys_enter_recvfrom(struct tp_syscall_read_write_args *ctx)
         .fd = ctx->fd,
         .skt = skt,
         .ts = bpf_ktime_get_ns(),
+
     };
+
+    struct sock *sk = NULL;
+    enum sock_type sktype = 0;
+
+    if (get_sock_from_skt(skt, &sk, &sktype) != 0 || sktype != SOCK_STREAM)
+    {
+        return 0;
+    }
 
     __u64 pid_tgid = bpf_get_current_pid_tgid();
 
@@ -250,39 +308,47 @@ int tracepoint__sys_enter_recvfrom(struct tp_syscall_read_write_args *ctx)
 SEC("tracepoint/syscalls/sys_exit_recvfrom")
 int tracepoint__sys_exit_recvfrom(struct tp_syscall_exit_args *ctx)
 {
-    __u32 cpuid = bpf_get_smp_processor_id();
     __u64 pid_tgid = bpf_get_current_pid_tgid();
+    struct connection_info conn = {0};
 
     __s64 buf_size = ctx->ret;
     struct syscall_read_write_arg *arg = (struct syscall_read_write_arg *)bpf_map_lookup_elem(&bpfmap_syscall_read_arg, &pid_tgid);
-    if (buf_size <= 0 || arg == NULL || arg->fd <= 2) // fd 0-2: stdin, stdout, stderr
+    if (arg == NULL || arg->fd < 3) // fd 0-2: stdin, stdout, stderr
+    {
+        bpf_map_delete_elem(&bpfmap_syscall_read_arg, &pid_tgid);
+        return 0;
+    }
+
+    if (buf_size <= 0)
     {
         goto clean;
     }
 
-    arg->ts = bpf_ktime_get_ns();
+    // arg->ts = bpf_ktime_get_ns();
 
-    struct connection_info conn = {0};
     struct layer7_http stats = {0};
-    req_resp_t req_resp = checkHTTP(arg->skt, arg->buf, arg->ts, &conn, &stats);
+    req_resp_t req_resp = checkHTTP(arg->skt, arg->buf,
+                                    &conn, &stats, ctx->ret);
     if (req_resp == HTTP_REQ_UNKNOWN)
     {
         goto clean;
     }
+    upate_req_payload_id(&stats, pid_tgid, arg->ts);
 
     // If it is resp, this buffer is not used.
-    int index = 0;
-    struct l7_buffer *l7buffer = bpf_map_lookup_elem(&bpfmap_l7_buffer, &index);
+    struct l7_buffer *l7buffer = get_l7_buffer_percpu();
     if (l7buffer == NULL)
     {
         goto clean;
     }
 
-    copy_data_from_buffer(arg->buf, ctx->ret, &stats.req_payload_id, l7buffer);
+    copy_data_from_buffer(arg->buf, ctx->ret, &stats.req_payload_id, l7buffer, P_SYSCALL_RECVFROM);
 
-    parse_http1x(ctx, l7buffer, arg->ts, &conn, &stats, req_resp, MSG_READ);
+    parse_http1x(ctx, l7buffer, arg->ts, &conn, &stats, req_resp,
+                 MSG_READ, P_SYSCALL_RECVFROM);
 
 clean:
+    http_try_upload(ctx, &conn, buf_size, 0, arg->ts, bpf_ktime_get_ns(), P_SYSCALL_RECVFROM);
     bpf_map_delete_elem(&bpfmap_syscall_read_arg, &pid_tgid);
     return 0;
 }
@@ -290,7 +356,6 @@ clean:
 SEC("tracepoint/syscalls/sys_enter_writev")
 int tracepoint__sys_enter_writev(struct tp_syscall_writev_readv_args *ctx)
 {
-
     if (ctx->fd < 3)
     {
         return 0;
@@ -310,7 +375,16 @@ int tracepoint__sys_enter_writev(struct tp_syscall_writev_readv_args *ctx)
         .vlen = ctx->vlen,
         .skt = skt,
         .ts = bpf_ktime_get_ns(),
+
     };
+
+    struct sock *sk = NULL;
+    enum sock_type sktype = 0;
+
+    if (get_sock_from_skt(skt, &sk, &sktype) != 0 || sktype != SOCK_STREAM)
+    {
+        return 0;
+    }
 
     __u64 pid_tgid = bpf_get_current_pid_tgid();
 
@@ -322,17 +396,23 @@ int tracepoint__sys_enter_writev(struct tp_syscall_writev_readv_args *ctx)
 SEC("tracepoint/syscalls/sys_exit_writev")
 int tracepoint__sys_exit_writev(struct tp_syscall_exit_args *ctx)
 {
-    __u32 cpuid = bpf_get_smp_processor_id();
     __u64 pid_tgid = bpf_get_current_pid_tgid();
+    struct connection_info conn = {0};
 
     __s64 buf_size = ctx->ret;
     struct syscall_readv_writev_arg *arg = (struct syscall_readv_writev_arg *)bpf_map_lookup_elem(&bpfmap_syscall_writev_arg, &pid_tgid);
-    if (buf_size <= 0 || arg == NULL || arg->fd < 3) // fd 0-2: stdin, stdout, stderr
+    if (arg == NULL || arg->fd < 3) // fd 0-2: stdin, stdout, stderr
     {
+        bpf_map_delete_elem(&bpfmap_syscall_read_arg, &pid_tgid);
+        return 0;
+    }
+
+    if (buf_size <= 0)
+    { // FIN, error, ...
         goto clean;
     }
 
-    arg->ts = bpf_ktime_get_ns();
+    // arg->ts = bpf_ktime_get_ns();
 
     if (arg->vlen == 0)
     {
@@ -341,17 +421,21 @@ int tracepoint__sys_exit_writev(struct tp_syscall_exit_args *ctx)
     struct iovec vec = {0};
     bpf_probe_read(&vec, sizeof(vec), arg->vec);
 
-    struct connection_info conn = {0};
     struct layer7_http stats = {0};
-    req_resp_t req_resp = checkHTTP(arg->skt, vec.iov_base, arg->ts, &conn, &stats);
+    req_resp_t req_resp = checkHTTP(arg->skt, vec.iov_base,
+                                    &conn, &stats, ctx->ret);
     if ((req_resp != HTTP_REQ_REQ) && (req_resp != HTTP_REQ_RESP))
     {
         goto clean;
     }
 
+    if (req_resp == HTTP_REQ_REQ)
+    {
+        upate_req_payload_id(&stats, pid_tgid, arg->ts);
+    }
+
     // If it is resp, this buffer is not used.
-    int index = 0;
-    struct l7_buffer *l7buffer = bpf_map_lookup_elem(&bpfmap_l7_buffer, &index);
+    struct l7_buffer *l7buffer = get_l7_buffer_percpu();
     if (l7buffer == NULL)
     {
         goto clean;
@@ -359,9 +443,12 @@ int tracepoint__sys_exit_writev(struct tp_syscall_exit_args *ctx)
 
     copy_data_from_iovec(arg->vec, arg->vlen, &stats.req_payload_id, l7buffer);
 
-    parse_http1x(ctx, l7buffer, arg->ts, &conn, &stats, req_resp, MSG_WRITE);
+    parse_http1x(ctx, l7buffer, arg->ts, &conn, &stats, req_resp,
+                 MSG_WRITE, P_SYSCALL_WRITEV);
 
 clean:
+    http_try_upload(ctx, &conn, 0, buf_size, arg->ts, bpf_ktime_get_ns(), P_SYSCALL_WRITEV);
+
     bpf_map_delete_elem(&bpfmap_syscall_read_arg, &pid_tgid);
     return 0;
 }
@@ -369,7 +456,6 @@ clean:
 SEC("tracepoint/syscalls/sys_enter_readv")
 int tracepoint__sys_enter_readv(struct tp_syscall_writev_readv_args *ctx)
 {
-
     if (ctx->fd < 3)
     {
         return 0;
@@ -391,6 +477,14 @@ int tracepoint__sys_enter_readv(struct tp_syscall_writev_readv_args *ctx)
         .ts = bpf_ktime_get_ns(),
     };
 
+    struct sock *sk = NULL;
+    enum sock_type sktype = 0;
+
+    if (get_sock_from_skt(skt, &sk, &sktype) != 0 || sktype != SOCK_STREAM)
+    {
+        return 0;
+    }
+
     __u64 pid_tgid = bpf_get_current_pid_tgid();
 
     bpf_map_update_elem(&bpfmap_syscall_readv_arg, &pid_tgid, &arg, BPF_ANY);
@@ -401,17 +495,23 @@ int tracepoint__sys_enter_readv(struct tp_syscall_writev_readv_args *ctx)
 SEC("tracepoint/syscalls/sys_exit_readv")
 int tracepoint__sys_exit_readv(struct tp_syscall_exit_args *ctx)
 {
-    __u32 cpuid = bpf_get_smp_processor_id();
     __u64 pid_tgid = bpf_get_current_pid_tgid();
+    struct connection_info conn = {0};
 
     __s64 buf_size = ctx->ret;
     struct syscall_readv_writev_arg *arg = (struct syscall_readv_writev_arg *)bpf_map_lookup_elem(&bpfmap_syscall_readv_arg, &pid_tgid);
-    if (buf_size <= 0 || arg == NULL || arg->fd < 3) // fd 0-2: stdin, stdout, stderr
+    if (arg == NULL || arg->fd < 3) // fd 0-2: stdin, stdout, stderr
+    {
+        bpf_map_delete_elem(&bpfmap_syscall_read_arg, &pid_tgid);
+        return 0;
+    }
+
+    if (buf_size <= 0)
     {
         goto clean;
     }
 
-    arg->ts = bpf_ktime_get_ns();
+    // arg->ts = bpf_ktime_get_ns();
 
     if (arg->vlen == 0)
     {
@@ -420,17 +520,17 @@ int tracepoint__sys_exit_readv(struct tp_syscall_exit_args *ctx)
     struct iovec vec = {0};
     bpf_probe_read(&vec, sizeof(vec), arg->vec);
 
-    struct connection_info conn = {0};
     struct layer7_http stats = {0};
-    req_resp_t req_resp = checkHTTP(arg->skt, vec.iov_base, arg->ts, &conn, &stats);
+    req_resp_t req_resp = checkHTTP(arg->skt, vec.iov_base,
+                                    &conn, &stats, ctx->ret);
     if ((req_resp != HTTP_REQ_REQ) && (req_resp != HTTP_REQ_RESP))
     {
         goto clean;
     }
+    upate_req_payload_id(&stats, pid_tgid, arg->ts);
 
     // If it is resp, this buffer is not used.
-    int index = 0;
-    struct l7_buffer *l7buffer = bpf_map_lookup_elem(&bpfmap_l7_buffer, &index);
+    struct l7_buffer *l7buffer = get_l7_buffer_percpu();
     if (l7buffer == NULL)
     {
         goto clean;
@@ -438,12 +538,127 @@ int tracepoint__sys_exit_readv(struct tp_syscall_exit_args *ctx)
 
     copy_data_from_iovec(arg->vec, arg->vlen, &stats.req_payload_id, l7buffer);
 
-    parse_http1x(ctx, l7buffer, arg->ts, &conn, &stats, req_resp, MSG_READ);
+    parse_http1x(ctx, l7buffer, arg->ts, &conn, &stats, req_resp,
+                 MSG_READ, P_SYSCALL_READV);
 
 clean:
+    http_try_upload(ctx, &conn, buf_size, 0, arg->ts, bpf_ktime_get_ns(), P_SYSCALL_READV);
+
     bpf_map_delete_elem(&bpfmap_syscall_read_arg, &pid_tgid);
     return 0;
 }
+
+SEC("tracepoint/syscalls/sys_enter_close")
+int tracepoint__syscall_enter_close(struct tp_syscall_close_args *ctx)
+{
+    __u64 pid_tgid = bpf_get_current_pid_tgid();
+    struct task_struct *task = bpf_get_current_task();
+    struct socket *skt = get_socket_from_fd(task, ctx->fd);
+
+    struct sock *sk = NULL;
+    enum sock_type sktype = 0;
+
+    if (get_sock_from_skt(skt, &sk, &sktype) != 0)
+    {
+        return 0;
+    }
+
+    // tcp only
+    switch (sktype)
+    {
+    case SOCK_STREAM:
+        break;
+    default:
+        return 0;
+    }
+
+    struct connection_info conn = {0};
+
+    if (read_connection_info(sk, &conn, pid_tgid, CONN_L4_TCP) != 0)
+    {
+        return 0;
+    }
+
+    http_try_upload(ctx, &conn, 0, 0, 0, bpf_ktime_get_ns(), P_SYSCALL_CLOSE);
+
+    return 0;
+}
+
+SEC("tracepoint/syscalls/sys_enter_sendfile64")
+int tracepoint__sys_enter_sendfile64(struct tp_syscall_sendfile_arg *ctx)
+{
+    if (ctx->out_fd < 3)
+    {
+        return 0;
+    }
+
+    bpf_printk("ddd %d", ctx->out_fd);
+    struct task_struct *task = bpf_get_current_task();
+
+    struct socket *skt = get_socket_from_fd(task, ctx->out_fd);
+    if (skt == NULL)
+    {
+        return 0;
+    }
+
+    struct syscall_sendfile_arg arg = {
+        .fd = ctx->out_fd,
+        .skt = skt,
+        .ts = bpf_ktime_get_ns(),
+    };
+
+    __u64 pid_tgid = bpf_get_current_pid_tgid();
+
+    bpf_map_update_elem(&bpfmap_syscall_sendfile_arg, &pid_tgid, &arg, BPF_ANY);
+
+    return 0;
+}
+
+SEC("tracepoint/syscalls/sys_exit_sendfile64")
+int tracepoint__sys_exit_sendfile64(struct tp_syscall_exit_args *ctx)
+{
+    __u64 pid_tgid = bpf_get_current_pid_tgid();
+
+    struct connection_info conn = {0};
+
+    struct syscall_sendfile_arg *arg = (struct syscall_sendfile_arg *)bpf_map_lookup_elem(
+        &bpfmap_syscall_sendfile_arg, &pid_tgid);
+
+    if (arg == NULL || arg->fd < 3)
+    {
+        goto end_run;
+    }
+
+    struct sock *sk = NULL;
+    enum sock_type sktype = 0;
+
+    if (get_sock_from_skt(arg->skt, &sk, &sktype) != 0)
+    {
+        goto end_run;
+    }
+
+    // tcp only
+    switch (sktype)
+    {
+    case SOCK_STREAM:
+        break;
+    default:
+        goto end_run;
+    }
+
+    if (read_connection_info(sk, &conn, pid_tgid, CONN_L4_TCP) != 0)
+    {
+        goto end_run;
+    }
+
+    http_try_upload(ctx, &conn, 0, ctx->ret, arg->ts, bpf_ktime_get_ns(), P_SYSCALL_SENDFILE);
+end_run:
+    bpf_map_delete_elem(&bpfmap_syscall_sendfile_arg, &pid_tgid);
+    return 0;
+}
+
+// SEC("tracepoint/syscalls/sys_enter_sendmmsg")
+// int tracepoint__sys_enter_sendmmsg(struct tp_syscall_exit)
 
 // ---------------------------------------- uprobe --------------------------------------------
 
@@ -517,6 +732,7 @@ int uprobe__SSL_read(struct pt_regs *ctx)
     args.ctx = (void *)PT_REGS_PARM1(ctx);
     args.buf = (void *)PT_REGS_PARM2(ctx);
     args.num = (__s32)PT_REGS_PARM3(ctx);
+    args.ts = bpf_ktime_get_ns();
 
     bpf_map_update_elem(&bpfmap_ssl_read_args, &pid_tgid, &args, BPF_ANY);
     return 0;
@@ -526,6 +742,7 @@ SEC("uretprobe/SSL_read")
 int uretprobe__SSL_read(struct pt_regs *ctx)
 {
     __u64 pid_tgid = bpf_get_current_pid_tgid();
+    struct connection_info conn = {0};
 
     struct ssl_read_args *args = bpf_map_lookup_elem(&bpfmap_ssl_read_args, &pid_tgid);
     if (args == NULL)
@@ -549,28 +766,27 @@ int uretprobe__SSL_read(struct pt_regs *ctx)
         goto clean;
     }
 
-    __u64 ts = bpf_ktime_get_ns();
-
-    struct connection_info conn = {0};
     struct layer7_http stats = {0};
-    req_resp_t req_resp = checkHTTP(skt, args->buf, ts, &conn, &stats);
+    req_resp_t req_resp = checkHTTPS(skt, args->buf,
+                                     &conn, &stats, args->num);
     if (req_resp == HTTP_REQ_UNKNOWN)
     {
         goto clean;
     }
+    upate_req_payload_id(&stats, pid_tgid, args->ts);
 
     // If it is resp, this buffer is not used.
-    int index = 0;
-    struct l7_buffer *l7buffer = bpf_map_lookup_elem(&bpfmap_l7_buffer, &index);
+    struct l7_buffer *l7buffer = get_l7_buffer_percpu();
     if (l7buffer == NULL)
     {
         goto clean;
     }
 
-    copy_data_from_buffer(args->buf, args->num, &stats.req_payload_id, l7buffer);
-    parse_http1x(ctx, l7buffer, ts, &conn, &stats, req_resp, MSG_READ);
+    copy_data_from_buffer(args->buf, args->num, &stats.req_payload_id, l7buffer, P_USR_SSL_READ);
+    parse_http1x(ctx, l7buffer, args->ts, &conn, &stats, req_resp, MSG_READ, P_USR_SSL_READ);
 
 clean:
+    http_try_upload(ctx, &conn, 0, 0, 0, bpf_ktime_get_ns(), P_USR_SSL_READ);
     bpf_map_delete_elem(&bpfmap_ssl_read_args, &pid_tgid);
     return 0;
 }
@@ -603,22 +819,25 @@ int uprobe__SSL_write(struct pt_regs *ctx)
 
     struct connection_info conn = {0};
     struct layer7_http stats = {0};
-    req_resp_t req_resp = checkHTTP(skt, write_buf, ts, &conn, &stats);
+    req_resp_t req_resp = checkHTTPS(skt, write_buf,
+                                     &conn, &stats, num);
     if (req_resp == HTTP_REQ_UNKNOWN)
     {
+        http_try_upload(ctx, &conn, 0, 0, 9, ts, P_USR_SSL_WRITE);
         return 0;
     }
+    upate_req_payload_id(&stats, pid_tgid, ts);
 
     // If it is resp, this buffer is not used.
-    int index = 0;
-    struct l7_buffer *l7buffer = bpf_map_lookup_elem(&bpfmap_l7_buffer, &index);
+    struct l7_buffer *l7buffer = get_l7_buffer_percpu();
     if (l7buffer == NULL)
     {
         return 0;
     }
 
-    copy_data_from_buffer(write_buf, num, &stats.req_payload_id, l7buffer);
-    parse_http1x(ctx, l7buffer, ts, &conn, &stats, req_resp, MSG_WRITE);
+    copy_data_from_buffer(write_buf, num, &stats.req_payload_id, l7buffer, P_USR_SSL_WRITE);
+    parse_http1x(ctx, l7buffer, ts, &conn, &stats, req_resp, MSG_WRITE, P_USR_SSL_WRITE);
+    http_try_upload(ctx, &conn, 0, 0, 0, ts, P_USR_SSL_WRITE);
 
     return 0;
 }
