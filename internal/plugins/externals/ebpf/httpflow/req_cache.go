@@ -7,12 +7,13 @@ import (
 	"sync"
 
 	"github.com/shirou/gopsutil/host"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/tracing"
 )
 
 var _reqCache = NewReqCache()
 
 type ReqCache struct {
-	pathMap   map[CPayloadID]string
+	pathMap   map[CPayloadID]*tracing.TraceInfo
 	finReqMap map[CPayloadID]*HTTPReqFinishedInfo
 
 	mutex sync.Mutex
@@ -20,51 +21,19 @@ type ReqCache struct {
 
 func NewReqCache() *ReqCache {
 	return &ReqCache{
-		pathMap:   map[CPayloadID]string{},
+		pathMap:   map[CPayloadID]*tracing.TraceInfo{},
 		finReqMap: map[CPayloadID]*HTTPReqFinishedInfo{},
 	}
 }
 
-func (cache *ReqCache) AppendPayload(buf *CL7Buffer) {
-	if buf == nil {
+func (cache *ReqCache) AppendPayload(payloadID CPayloadID, info *tracing.TraceInfo) {
+	if info == nil {
 		return
 	}
-	bufLen := int(buf.len)
-	// l.Info("len ", bufLen)
-	// l.Info(string(buf.payload[:bufLen]))
-
-	if bufLen > len(buf.payload) {
-		bufLen = len(buf.payload)
-	}
-
-	fistSpace := true
-	var start, end int = -1, bufLen
-	for i := 0; i < bufLen; i++ {
-		if buf.payload[i] == ' ' {
-			if fistSpace {
-				fistSpace = false
-				start = i + 1
-			} else {
-				end = i
-				break
-			}
-		}
-		if buf.payload[i] == '?' {
-			end = i
-			break
-		}
-	}
-
-	if !(start > 0 && end > start && end <= bufLen) {
-		return
-	}
-
-	reqPath := string(buf.payload[start:end])
-
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
 
-	cache.pathMap[CPayloadID(buf.id)] = reqPath
+	cache.pathMap[payloadID] = info
 }
 
 const connExpirationInterval = 61 // 61s
@@ -96,10 +65,9 @@ func (cache *ReqCache) MergeReq() []*HTTPReqFinishedInfo {
 	defer cache.mutex.Unlock()
 
 	var finReqList []*HTTPReqFinishedInfo
-
 	for id, finReq := range cache.finReqMap {
-		if path, ok := cache.pathMap[id]; ok {
-			finReq.HTTPStats.Path = path
+		if traceInfo, ok := cache.pathMap[id]; ok && traceInfo != nil {
+			finReq.HTTPStats.Path = traceInfo.Path
 			finReqList = append(finReqList, finReq)
 			delete(cache.pathMap, id)
 			delete(cache.finReqMap, id)

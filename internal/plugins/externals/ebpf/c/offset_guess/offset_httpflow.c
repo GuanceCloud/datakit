@@ -10,7 +10,6 @@
 #include "load_const.h"
 #include "filter.h"
 
-
 static __always_inline __s32 read_offset(struct offset_httpflow *dst)
 {
     __u64 key = 0;
@@ -134,7 +133,9 @@ int kpretrobe_sock_common_getsockopt(struct pt_regs *ctx)
         return 0;
     }
 
-    struct comm_getsockopt_arg * arg = bpf_map_lookup_elem(&bpf_map_sock_common_getsockopt_arg, &pid_tgid);
+    struct comm_getsockopt_arg *arg =
+        bpf_map_lookup_elem(&bpf_map_sock_common_getsockopt_arg, &pid_tgid);
+
     if (arg == NULL)
     {
         return 0;

@@ -116,13 +116,15 @@ func (m *HTTPFlowM) Info() *inputs.MeasurementInfo {
 			"sub_source":              inputs.TagInfo{Desc: "Some specific connection classifications, such as the sub_source value for Kubernetes network traffic is K8s."},
 		},
 		Fields: map[string]interface{}{
-			"truncated":    newFInfBool("The length of the request path has reached the upper limit of the number of bytes collected, and the request path may be truncated.", inputs.UnknownUnit),
-			"path":         newFString("Request path."),
-			"status_code":  newFInfInt("Http status codes.", inputs.UnknownUnit),
-			"method":       newFString("GET/POST/..."),
-			"latency":      newFInfInt("TTFB.", inputs.DurationNS),
-			"http_version": newFString("1.1 / 1.0 ..."),
-			"count":        newFInfInt("The total number of HTTP requests in a collection cycle.", inputs.UnknownUnit),
+			"truncated":     newFInfBool("The length of the request path has reached the upper limit of the number of bytes collected, and the request path may be truncated.", inputs.UnknownUnit),
+			"path":          newFString("Request path."),
+			"status_code":   newFInfInt("Http status codes.", inputs.UnknownUnit),
+			"method":        newFString("GET/POST/..."),
+			"latency":       newFInfInt("TTFB.", inputs.DurationNS),
+			"http_version":  newFString("1.1 / 1.0 ..."),
+			"count":         newFInfInt("The total number of HTTP requests in a collection cycle.", inputs.UnknownUnit),
+			"bytes_read":    newFInfInt("The number of bytes read.", inputs.SizeByte),
+			"bytes_written": newFInfInt("The number of bytes written.", inputs.SizeByte),
 		},
 	}
 }

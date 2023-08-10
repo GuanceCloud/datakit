@@ -25,6 +25,10 @@ func OffsetHttpflowBin() ([]byte, error) {
 	return nil, fmt.Errorf("unsupportd platform: %s, %s", runtime.GOOS, runtime.GOARCH)
 }
 
+func OffsetConntrackBin() ([]byte, error) {
+	return nil, fmt.Errorf("unsupportd platform: %s, %s", runtime.GOOS, runtime.GOARCH)
+}
+
 func BashHistoryBin() ([]byte, error) {
 	return nil, fmt.Errorf("unsupportd platform: %s, %s", runtime.GOOS, runtime.GOARCH)
 }

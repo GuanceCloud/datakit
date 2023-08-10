@@ -6,10 +6,12 @@
 
 enum
 {
-    L7_BUFFER_SIZE = 1 << 10, // 2^10
+#define L7_BUFFER_LEFT_SHIFT 11
+    L7_BUFFER_SIZE = (1 << L7_BUFFER_LEFT_SHIFT), // 2^10
 #define L7_BUFFER_SIZE L7_BUFFER_SIZE
-    L7_BUFFER_SIZE_MASK = 0xFFF // or 0x7FFFFFFF, need to be larger than buffer size
+    L7_BUFFER_SIZE_MASK = (L7_BUFFER_SIZE - 1), // need to be larger than buffer size
 #define L7_BUFFER_SIZE_MASK L7_BUFFER_SIZE_MASK
+
 };
 
 typedef enum
@@ -18,6 +20,29 @@ typedef enum
     HTTP_REQ_REQ = 0b01,
     HTTP_REQ_RESP = 0b10
 } req_resp_t;
+
+typedef enum
+{
+    P_UNKNOWN,
+
+    P_SYSCALL_WRITE,
+    P_SYSCALL_READ,
+    P_SYSCALL_SENDTO,
+    P_SYSCALL_RECVFROM,
+    P_SYSCALL_WRITEV,
+    P_SYSCALL_READV,
+    P_SYSCALL_SENDFILE,
+
+    P_SYSCALL_CLOSE,
+
+    P_USR_SSL_READ,
+    P_USR_SSL_WRITE
+
+} k_u_func_t;
+
+#define P_GROUP_UNKNOWN 0
+#define P_GROUP_READ 1
+#define P_GROUP_WRITE 2
 
 // Need to associate payload and conn info.
 struct payload_id
@@ -54,16 +79,42 @@ struct layer7_http
 
     __u32 direction;
     __u32 method;
+
     __u64 req_ts;
 
     __u32 http_version;
     __u32 status_code;
+
     __u64 resp_ts;
 
     __be32 nat_daddr[4]; // dst ip address
     __u16 nat_dport;     // dst port
     __u16 _pad0;
-    __u32 _pad1;
+
+    __u32 req_func;
+    __u32 resp_func;
+
+    __s32 sent_bytes;
+    __s32 recv_bytes;
+
+    __u64 span_id;
+};
+
+struct span_info
+{
+    struct payload_id req_payload_id;
+
+    __u32 pid;
+    __u32 tid;
+
+    __u32 k_u_fn;
+    __s32 bytes;
+
+    __u64 start;
+    __u64 end;
+
+    __u64 parent_span;
+    __u64 span;
 };
 
 struct http_req_finished
@@ -77,6 +128,9 @@ struct ssl_read_args
     void *ctx;
     void *buf;
     __s32 num;
+    __s32 _pad0;
+
+    __u64 ts;
 };
 
 struct syscall_read_write_arg
@@ -95,6 +149,13 @@ struct syscall_readv_writev_arg
     struct iovec *vec;
     __u64 vlen;
 
+    struct socket *skt;
+    __u64 ts;
+};
+
+struct syscall_sendfile_arg
+{
+    __u64 fd;
     struct socket *skt;
     __u64 ts;
 };

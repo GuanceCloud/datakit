@@ -93,13 +93,19 @@ offset_conntrack.o:
 		-c $(SRC_PATH)/c/offset_guess/offset_conntrack.c \
 		-o - | llc -march=bpf -filetype=obj -o $(BIN_PATH)/offset_conntrack.o
 
+offset_tcp_seq.o:
+	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
+		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
+		-c $(SRC_PATH)/c/offset_guess/offset_tcp_seq.c \
+		-o - | llc -march=bpf -filetype=obj -o $(BIN_PATH)/offset_tcp_seq.o
+
 bash_history.o: 
 	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
 		-c $(SRC_PATH)/c/bash_history/bash_history.c \
 		-o - | llc -march=bpf -filetype=obj -o $(BIN_PATH)/bash_history.o
 
-bindata: offset_guess.o offset_httpflow.o offset_conntrack.o \
-			netflow.o bash_history.o conntrack.o
+bindata: offset_guess.o offset_httpflow.o offset_conntrack.o offset_tcp_seq.o \
+			netflow.o bash_history.o conntrack.o 
 	llvm-strip $(BIN_PATH)/*.o --no-strip-all -R .BTF
 
 buildexec: bindata

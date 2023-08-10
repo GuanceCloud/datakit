@@ -6,6 +6,7 @@
 #endif // !PROCNAMELEN
 
 #include <linux/types.h>
+// #include "../netflow/conn_stats.h"
 
 #define ERR_G_NOERROR 0
 #define ERR_G_NS_INUM 19
@@ -35,19 +36,9 @@ enum GUESS
     GUESS_SOCKET_SK,
 };
 
-enum ConnLayerP
-{
-    CONN_L3_MASK = 0xFF, // 0xFF
-    CONN_L3_IPv4 = 0x00, // 0x00
-    CONN_L3_IPv6 = 0x01, // 0x01
-
-    CONN_L4_MASK = 0xFF00, // 0xFF00
-    CONN_L4_TCP = 0x0000,  // 0x00 << 8
-    CONN_L4_UDP = 0x0100,  // 0x01 << 8
-};
-
 struct offset_guess
 {
+    // netflow
     __u64 offset_sk_num;
     __u64 offset_inet_sport;
     __u64 offset_sk_family;
@@ -69,8 +60,22 @@ struct offset_guess
     __u64 offset_skaddr_sin_port;
     __u64 offset_skaddr6_sin6_port;
     __u64 offset_sk_net;
-    __u64 offset_ns_common_inum;
+    __u64 offset_ns_common_inum; // +conntrack
     __u64 offset_socket_sk;
+    // tcp seq
+    __u64 offset_copied_seq;
+    __u64 offset_write_seq;
+
+    // apiflow
+    __u64 offset_task_struct_files;
+    __u64 offset_files_struct_fdt;
+    __u64 offset_socket_file;
+    __u64 offset_file_private_data;
+
+    // conntrack
+    __u64 offset_ct_net;
+    __u64 offset_origin_tuple;
+    __u64 offset_reply_tuple;
 
     __u8 process_name[PROCNAMELEN];
     __s64 err;
@@ -121,6 +126,54 @@ struct offset_httpflow
     __s32 fd;
 };
 
+struct packet_tuple
+{
+    __u32 src_ip[4];
+    __u32 dst_ip[4];
+
+    __u16 src_port;
+    __u16 dst_port;
+
+    __u32 _pad0;
+};
+
+struct packet_info
+{
+    __u8 ctrl_syn;
+    __u8 ctrl_syn_ack;
+    __u8 ctrl_ack;
+
+    __u8 scale;
+
+    __u16 rcv_wnd;
+
+    __u16 _pad0;
+
+    __u32 seq;
+    __u32 ack;
+};
+
+struct offset_tcp_seq
+{
+    __u8 process_name[PROCNAMELEN];
+    __u64 pid_tgid;
+
+    // guessed offset
+    __s32 gs_rtt;
+
+    // from packet data, now unused
+    // __s32 da_seq;
+    // __s32 da_ack;
+    // __s32 da_wnd;
+    //
+    // __s32 _pad0;
+
+    __s32 offset_copied_seq;
+    __s32 offset_write_seq;
+
+    __s32 state; // 0b1 | 0b10, ok
+};
+
 struct nf_conn_tuple
 {
     __u32 src_ip[4];
@@ -144,10 +197,10 @@ struct offset_conntrack
     __u64 pid_tgid;
     // __u32 conn_type; // (tcp/udp | IPv4/IPv6)
 
-    __u64 offset_origin_tuple;
-    __u64 offset_reply_tuple;
+    __u64 offset_ct_origin_tuple;
+    __u64 offset_ct_reply_tuple;
 
-    __u64 offset_net;
+    __u64 offset_ct_net;
     __u64 offset_ns_common_inum;
 
     struct nf_conn_tuple origin, reply;

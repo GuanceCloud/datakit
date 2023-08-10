@@ -20,7 +20,7 @@ func NewConntrackManger(constEditor []manager.ConstantEditor) (*manager.Manager,
 				Section: "kprobe/__nf_conntrack_hash_insert",
 			},
 			{
-				Section: "kprobe/nf_ct_delete_from_lists",
+				Section: "kprobe/nf_ct_delete",
 			},
 		},
 	}

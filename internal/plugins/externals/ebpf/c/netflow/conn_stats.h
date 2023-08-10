@@ -58,14 +58,6 @@ struct connection_info
     __u32 meta;  // first byte: 0x0000|IPv4 or 0x0001|IPv6; second byte 0x0000|TCP or 0x0100|UDP; ...
 };
 
-struct conn_skb_l4_info
-{
-    __u16 hdr_len;
-    __u16 tcp_flags; // 12bits
-    __u16 offset;
-    // __u32 seg_seq;  // seq
-    // __u32 seg_ack;  // ack
-};
 
 struct connection_stats
 {

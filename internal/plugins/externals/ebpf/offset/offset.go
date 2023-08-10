@@ -6,6 +6,7 @@ package offset
 import (
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"runtime"
@@ -173,6 +174,31 @@ func NewConstEditor(offsetGuess *OffsetGuessC) []manager.ConstantEditor {
 	}
 }
 
+func NewConstEditorTCPSeq(offset *OffsetTCPSeqC) []manager.ConstantEditor {
+	return []manager.ConstantEditor{
+		{
+			Name:  "offset_copied_seq",
+			Value: uint64(offset.offset_copied_seq),
+		},
+		{
+			Name:  "offset_write_seq",
+			Value: uint64(offset.offset_write_seq),
+		},
+	}
+}
+
+func SetTCPSeqOffset(dst *OffsetGuessC, src *OffsetTCPSeqC) {
+	dst.offset_copied_seq = _Ctype_ulonglong(src.offset_copied_seq)
+	dst.offset_write_seq = _Ctype_ulonglong(src.offset_write_seq)
+}
+
+func GetTCPSeqOffset(offset *OffsetGuessC) *OffsetTCPSeqC {
+	return &OffsetTCPSeqC{
+		offset_copied_seq: _Ctype_int(offset.offset_copied_seq),
+		offset_write_seq:  _Ctype_int(offset.offset_write_seq),
+	}
+}
+
 // GuessOffset guess the offset of the structure field, such as tcp_sock.srtt_us.
 func GuessOffset(bpfManager *manager.Manager, guessed *OffsetGuessC, ipv6Disabled bool) (*OffsetGuessC, error) {
 	runtime.LockOSThread()
@@ -302,9 +328,6 @@ func guessTCP4(serverAddr string, conninfo Conninfo, ebpfMapGuess *ebpf.Map,
 	tcpConn, ok := conn.(*net.TCPConn)
 	if !ok {
 		return fmt.Errorf("conv conn to tcp conn")
-	}
-	if err := tcpConn.SetLinger(0); err != nil {
-		return err
 	}
 
 	sport, err := strconv.Atoi(strings.Split(tcpConn.LocalAddr().String(), ":")[1])
@@ -489,6 +512,8 @@ func runTCPServer(ctx context.Context, network, address string) (uint16, error) 
 	}
 
 	addr := netListen.Addr().String()
+
+	l.Debug("start the tcp server to guess the offset: ", addr)
 	var serverPort int
 	if addr[:1] == "[" {
 		serverPort, err = strconv.Atoi(strings.Split(addr, "]")[1][1:])
@@ -512,6 +537,17 @@ func runTCPServer(ctx context.Context, network, address string) (uint16, error) 
 			if err != nil {
 				return
 			}
+
+			if tp, ok := conn.(*net.TCPConn); ok {
+				// wait for the client to send fin
+				_, _ = io.Copy(io.Discard, tp)
+
+				// send RST to avoid generating a lot of TIME_WAIT
+				if err := tp.SetLinger(0); err != nil {
+					return
+				}
+			}
+
 			if err = conn.Close(); err != nil {
 				l.Error(err)
 				return

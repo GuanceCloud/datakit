@@ -12,21 +12,21 @@
 static __always_inline __u64 load_offset_origin_tuple()
 {
     __u64 var = 0;
-    LOAD_OFFSET("offset_origin_tuple", var);
+    LOAD_OFFSET("offset_ct_origin_tuple", var);
     return var;
 }
 
 static __always_inline __u64 load_offset_reply_tuple()
 {
     __u64 var = 0;
-    LOAD_OFFSET("offset_reply_tuple", var);
+    LOAD_OFFSET("offset_ct_reply_tuple", var);
     return var;
 }
 
-static __always_inline __u64 load_offset_net()
+static __always_inline __u64 load_offset_ct_net()
 {
     __u64 var = 0;
-    LOAD_OFFSET("offset_net", var);
+    LOAD_OFFSET("offset_ct_net", var);
     return var;
 }
 
@@ -45,7 +45,7 @@ static __always_inline void swap_u16(__u16 *v)
 static __always_inline void ct_get_netns(struct nf_conn *ct, struct nf_origin_tuple *tuple)
 {
     struct net *sknet = NULL;
-    __u64 offset = load_offset_net();
+    __u64 offset = load_offset_ct_net();
     bpf_probe_read(&sknet, sizeof(sknet), (__u8 *)ct + offset);
     offset = load_offset_ns_common_inum();
     bpf_probe_read(&tuple->netns, sizeof(__u32), (__u8 *)sknet + offset);
@@ -152,8 +152,8 @@ int kprobe___nf_conntrack_hash_insert(struct pt_regs *ctx)
     return 0;
 }
 
-SEC("kprobe/nf_ct_delete_from_lists")
-int kprobe_nf_ct_delete_from_lists(struct pt_regs *ctx)
+SEC("kprobe/nf_ct_delete")
+int kprobe_nf_ct_delete(struct pt_regs *ctx)
 {
     struct nf_conn *ct = (struct nf_conn *)PT_REGS_PARM1(ctx);
 
