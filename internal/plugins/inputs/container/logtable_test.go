@@ -100,10 +100,13 @@ func TestLogTableString(t *testing.T) {
 					"/var/log/02/2": nil,
 					"/var/log/02/1": nil,
 				},
+				"1234567890123": {
+					"/var/log/01/1": nil,
+				},
 			},
 		}
 
-		out := "{id:id-01,paths:[/var/log/01/1,/var/log/01/2]}, {id:id-02,paths:[/var/log/02/1,/var/log/02/2]}, {id:id-03,paths:[/var/log/03/1,/var/log/03/2]}"
+		out := "{id:123456789012,paths:[/var/log/01/1]}, {id:id-01,paths:[/var/log/01/1,/var/log/01/2]}, {id:id-02,paths:[/var/log/02/1,/var/log/02/2]}, {id:id-03,paths:[/var/log/03/1,/var/log/03/2]}"
 
 		assert.Equal(t, out, in.String())
 	})

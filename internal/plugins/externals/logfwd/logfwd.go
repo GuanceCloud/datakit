@@ -289,7 +289,7 @@ func (lg *logging) setup() {
 		lg.Tags["pod_name"] = podName
 	}
 	if podNamespace != "" {
-		lg.Tags["pod_namespace"] = podNamespace
+		lg.Tags["namespace"] = podNamespace
 	}
 
 	if targetContainerImage != "" {

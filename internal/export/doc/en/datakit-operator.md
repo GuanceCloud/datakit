@@ -12,7 +12,7 @@ Datakit Operator is a collaborative project between Datakit and Kubernetes orche
 
 Currently, Datakit Operator provides the following functions:
 
-- Injection DDTrace SDK(Java/Python/JavaScript) and related environments. See [documentation](datakit-operator.md#datakit-operator-inject-lib).
+- Injection DDTrace SDK(Java/Python/Node.js) and related environments. See [documentation](datakit-operator.md#datakit-operator-inject-lib).
 - Injection Sidecar logfwd to collect Pod logging. See [documentation](datakit-operator.md#datakit-operator-inject-logfwd).
 - Support task distribution for Datakit plugins. See [documentation](election.md#plugins-election).
 

@@ -351,7 +351,6 @@ func (t *Single) dockerHandler(lines []string) {
 }
 
 func (t *Single) generateJSONLogs(lines []string) []string {
-	var err error
 	pending := []string{}
 
 	tags := make(map[string]string)
@@ -365,11 +364,11 @@ func (t *Single) generateJSONLogs(lines []string) []string {
 		}
 
 		var msg dockerMessage
-		if err := json.Unmarshal([]byte(line), &msg); err != nil {
+		err := json.Unmarshal([]byte(line), &msg)
+		if err != nil {
 			t.opt.log.Warnf("unmarshal err: %s, data: %s, ignored", err, line)
 			msg = dockerMessage{
-				Log:    line,
-				Stream: "stdout",
+				Log: line,
 			}
 		}
 
@@ -385,13 +384,9 @@ func (t *Single) generateJSONLogs(lines []string) []string {
 			t.partialContentBuff.WriteString(msg.Log)
 			originalText = t.partialContentBuff.String()
 			t.partialContentBuff.Reset()
-			t.opt.log.Debugf("flush text: %s", originalText)
 		} else {
 			originalText = msg.Log
-			t.opt.log.Debugf("no text: %s", originalText)
 		}
-
-		tags["stream"] = msg.Stream
 
 		var text string
 		text, err = t.decode(originalText)
@@ -404,8 +399,7 @@ func (t *Single) generateJSONLogs(lines []string) []string {
 			continue
 		}
 
-		logstr := removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
-		pending = append(pending, logstr)
+		pending = append(pending, text)
 	}
 
 	return pending
@@ -424,20 +418,43 @@ func (t *Single) generateCRILogs(lines []string) []string {
 		}
 
 		var criMsg logMessage
-		var text string
 
-		if err := parseCRILog([]byte(line), &criMsg); err != nil {
+		err := parseCRILog([]byte(line), &criMsg)
+		if err != nil {
 			t.opt.log.Warnf("parse cri-o log err: %s, data: %s", err, line)
+			criMsg = logMessage{
+				log: line,
+			}
+		}
+
+		if criMsg.isPartial {
+			t.opt.log.Debugf("partial text: %s, write buff", criMsg.log)
+			t.partialContentBuff.WriteString(criMsg.log)
 			continue
 		}
-		text = t.multiline(criMsg.log)
 
+		var originalText string
+
+		if t.partialContentBuff.Len() != 0 {
+			t.partialContentBuff.WriteString(criMsg.log)
+			originalText = t.partialContentBuff.String()
+			t.partialContentBuff.Reset()
+		} else {
+			originalText = criMsg.log
+		}
+
+		var text string
+		text, err = t.decode(originalText)
+		if err != nil {
+			t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
+		}
+
+		text = t.multiline(multiline.TrimRightSpace(text))
 		if text == "" {
 			continue
 		}
 
-		logstr := removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
-		pending = append(pending, logstr)
+		pending = append(pending, text)
 	}
 
 	return pending
@@ -462,8 +479,7 @@ func (t *Single) defaultHandler(lines []string) {
 			continue
 		}
 
-		logstr := removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
-		pending = append(pending, logstr)
+		pending = append(pending, text)
 	}
 	if len(pending) == 0 {
 		return
@@ -677,6 +693,7 @@ func (b *buffer) split() []string {
 	return res
 }
 
+//nolint
 func removeAnsiEscapeCodes(oldtext string, run bool) string {
 	if !run {
 		return oldtext
