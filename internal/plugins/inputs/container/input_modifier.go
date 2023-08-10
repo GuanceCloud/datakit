@@ -7,7 +7,6 @@ package container
 
 import (
 	"regexp"
-	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/multiline"
 )
@@ -30,7 +29,6 @@ func (i *Input) setLoggingAutoMultilineToLogConfigs(configs logConfigs) {
 }
 
 func (i *Input) setLoggingExtraSourceMapToLogConfigs(configs logConfigs) {
-	// gitlab #903
 	for re, newSource := range i.LoggingExtraSourceMap {
 		for _, cfg := range configs {
 			match, err := regexp.MatchString(re, cfg.Source)
@@ -60,42 +58,6 @@ func (i *Input) setLoggingSourceMultilineMapToLogConfigs(configs logConfigs) {
 		if mult != "" {
 			l.Debugf("replaced multiline '%s' with '%s' to source %s", cfg.Multiline, mult, source)
 			cfg.Multiline = mult
-		}
-	}
-}
-
-func (i *Input) setExtractK8sLabelAsTagsToLogConfigs(configs logConfigs, labels map[string]string) {
-	if !i.ExtractK8sLabelAsTags {
-		return
-	}
-
-	for _, cfg := range configs {
-		if cfg.Tags == nil {
-			cfg.Tags = make(map[string]string)
-		}
-		for k, v := range labels {
-			if _, ok := cfg.Tags[k]; !ok {
-				// replace dot
-				k := strings.ReplaceAll(k, ".", "_")
-				cfg.Tags[k] = v
-			}
-		}
-	}
-}
-
-func (i *Input) setGlobalTagsToLogConfigs(configs logConfigs) {
-	i.setTagsToLogConfigs(configs, i.Tags)
-}
-
-func (i *Input) setTagsToLogConfigs(configs logConfigs, m map[string]string) {
-	for _, cfg := range configs {
-		if cfg.Tags == nil {
-			cfg.Tags = make(map[string]string)
-		}
-		for k, v := range m {
-			if _, ok := cfg.Tags[k]; !ok {
-				cfg.Tags[k] = v
-			}
 		}
 	}
 }

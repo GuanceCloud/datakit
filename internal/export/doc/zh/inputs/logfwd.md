@@ -104,7 +104,7 @@ logfwd 主配置是 JSON 格式，以下是配置示例：
 | `LOGFWD_GLOBAL_SOURCE`           | 配置全局 source，优先级最高                                                                                             |
 | `LOGFWD_GLOBAL_SERVICE`          | 配置全局 service，优先级最高                                                                                            |
 | `LOGFWD_POD_NAME`                | 指定 pod name，会 tags 中添加 `pod_name`                                                                                |
-| `LOGFWD_POD_NAMESPACE`           | 指定 pod namespace，会 tags 中添加 `pod_namespace`                                                                      |
+| `LOGFWD_POD_NAMESPACE`           | 指定 pod namespace，会 tags 中添加 `namespace`                                                                          |
 | `LOGFWD_ANNOTATION_DATAKIT_LOGS` | 使用当前 Pod 的 Annotations `datakit/logs` 配置，优先级比 logfwd JSON 配置更高                                          |
 
 #### 安装和运行 {#install-run}

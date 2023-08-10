@@ -153,8 +153,8 @@ func TestParseLogConfigs(t *testing.T) {
 	}
 
 	for idx, tc := range cases {
-		info := &containerLogInfo{
-			logConfigStr: tc.in,
+		info := &logInstance{
+			configStr: tc.in,
 		}
 
 		err := info.parseLogConfigs()
@@ -167,7 +167,7 @@ func TestParseLogConfigs(t *testing.T) {
 			continue
 		}
 
-		res := info.logConfigs
+		res := info.configs
 
 		if tc.contentFail {
 			assert.Equal(t, tc.contentFail, assert.NotEqual(t, tc.out, res))

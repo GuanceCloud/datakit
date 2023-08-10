@@ -7,17 +7,21 @@ package container
 
 import (
 	"encoding/json"
+	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/container/discovery"
 	timex "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
 )
 
 // ReadEnv , support envs：
+//   ENV_INPUT_CONTAINER_ENDPOINTS : []string
 //   ENV_INPUT_CONTAINER_DOCKER_ENDPOINT : string
 //   ENV_INPUT_CONTAINER_CONTAINERD_ADDRESS : string
-//   ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES : booler
+//   ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS : booler
 //   ENV_INPUT_CONTAINER_LOGGING_SEARCH_INTERVAL : string ("10s")
 //   ENV_INPUT_CONTAINER_ENABLE_CONTAINER_METRIC : booler
 //   ENV_INPUT_CONTAINER_ENABLE_K8S_METRIC : booler
@@ -26,9 +30,7 @@ import (
 //   ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_ANNOTATIONS booler
 //   ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_MONITORS        booler
 //   ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_MONITORS    booler
-//   ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS: booler
 //   ENV_INPUT_CONTAINER_TAGS : "a=b,c=d"
-//   ENV_INPUT_CONTAINER_EXCLUDE_PAUSE_CONTAINER : booler
 //   ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG : []string
 //   ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG : []string
 //   ENV_INPUT_CONTAINER_KUBERNETES_URL : string
@@ -36,50 +38,41 @@ import (
 //   ENV_INPUT_CONTAINER_BEARER_TOKEN_STRING : string
 //   ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP : string
 //   ENV_INPUT_CONTAINER_LOGGING_SOURCE_MULTILINE_MAP_JSON : string (JSON map)
-//   ENV_INPUT_CONTAINER_LOGGING_BLOCKING_MODE : booler
 //   ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_DETECTION: booler
 //   ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_EXTRA_PATTERNS_JSON : string (JSON string array)
 //   ENV_INPUT_CONTAINER_LOGGING_MIN_FLUSH_INTERVAL: string ("10s")
 //   ENV_INPUT_CONTAINER_LOGGING_MAX_MULTILINE_LIFE_DURATION : string ("5s")
 //   ENV_INPUT_CONTAINER_PROMETHEUS_MONITORING_MATCHES_CONFIG : string (JSON to prometheusMonitoringExtraConfig)
 func (i *Input) ReadEnv(envs map[string]string) {
+	if endpointStr, ok := envs["ENV_INPUT_CONTAINER_ENDPOINTS"]; ok {
+		arrays := strings.Split(endpointStr, ",")
+		i.Endpoints = append(i.Endpoints, arrays...)
+	}
+
 	if endpoint, ok := envs["ENV_INPUT_CONTAINER_DOCKER_ENDPOINT"]; ok {
-		i.DockerEndpoint = endpoint
+		i.DeprecatedDockerEndpoint = endpoint
 	}
 
 	if address, ok := envs["ENV_INPUT_CONTAINER_CONTAINERD_ADDRESS"]; ok {
-		i.ContainerdAddress = address
+		i.DeprecatedContainerdAddress = address
 	}
 
-	if v, ok := envs["ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP"]; ok {
-		i.LoggingExtraSourceMap = config.ParseGlobalTags(v)
+	if str, ok := envs["ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP"]; ok {
+		i.LoggingExtraSourceMap = config.ParseGlobalTags(str)
 	}
 
-	if v, ok := envs["ENV_INPUT_CONTAINER_LOGGING_SEARCH_INTERVAL"]; ok {
-		i.LoggingSearchInterval = v
-	}
-
-	if v, ok := envs["ENV_INPUT_CONTAINER_LOGGING_SOURCE_MULTILINE_MAP_JSON"]; ok {
-		if err := json.Unmarshal([]byte(v), &i.LoggingSourceMultilineMap); err != nil {
+	if str, ok := envs["ENV_INPUT_CONTAINER_LOGGING_SOURCE_MULTILINE_MAP_JSON"]; ok {
+		if err := json.Unmarshal([]byte(str), &i.LoggingSourceMultilineMap); err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_SOURCE_MULTILINE_MAP_JSON to map: %s, ignore", err)
 		}
 	}
 
-	if remove, ok := envs["ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES"]; ok {
-		b, err := strconv.ParseBool(remove)
+	if enable, ok := envs["ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS"]; ok {
+		b, err := strconv.ParseBool(enable)
 		if err != nil {
-			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES to bool: %s, ignore", err)
+			l.Warnf("parse ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS to bool: %s, ignore", err)
 		} else {
-			i.LoggingRemoveAnsiEscapeCodes = b
-		}
-	}
-
-	if disable, ok := envs["ENV_INPUT_CONTAINER_LOGGING_BLOCKING_MODE"]; ok {
-		b, err := strconv.ParseBool(disable)
-		if err != nil {
-			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_BLOCKING_MODE to bool: %s, ignore", err)
-		} else {
-			i.LoggingBlockingMode = b
+			i.EnableExtractK8sLabelAsTags = b
 		}
 	}
 
@@ -89,15 +82,6 @@ func (i *Input) ReadEnv(envs map[string]string) {
 			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_CONTAINER_METRIC to bool: %s, ignore", err)
 		} else {
 			i.EnableContainerMetric = b
-		}
-	}
-
-	if enable, ok := envs["ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS"]; ok {
-		b, err := strconv.ParseBool(enable)
-		if err != nil {
-			l.Warnf("parse ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS to bool: %s, ignore", err)
-		} else {
-			i.ExtractK8sLabelAsTags = b
 		}
 	}
 
@@ -116,6 +100,15 @@ func (i *Input) ReadEnv(envs map[string]string) {
 			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_POD_METRIC to bool: %s, ignore", err)
 		} else {
 			i.EnablePodMetric = b
+		}
+	}
+
+	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_K8S_EVENT"]; ok {
+		b, err := strconv.ParseBool(enable)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_K8S_EVENT to bool: %s, ignore", err)
+		} else {
+			i.EnableK8sEvent = b
 		}
 	}
 
@@ -152,15 +145,6 @@ func (i *Input) ReadEnv(envs map[string]string) {
 		}
 	}
 
-	if exclude, ok := envs["ENV_INPUT_CONTAINER_EXCLUDE_PAUSE_CONTAINER"]; ok {
-		b, err := strconv.ParseBool(exclude)
-		if err != nil {
-			l.Warnf("parse ENV_INPUT_CONTAINER_EXCLUDE_PAUSE_CONTAINER to bool: %s, ignore", err)
-		} else {
-			i.ExcludePauseContainer = b
-		}
-	}
-
 	if open, ok := envs["ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_DETECTION"]; ok {
 		b, err := strconv.ParseBool(open)
 		if err != nil {
@@ -170,8 +154,8 @@ func (i *Input) ReadEnv(envs map[string]string) {
 		}
 	}
 
-	if v, ok := envs["ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_EXTRA_PATTERNS_JSON"]; ok {
-		if err := json.Unmarshal([]byte(v), &i.LoggingAutoMultilineExtraPatterns); err != nil {
+	if str, ok := envs["ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_EXTRA_PATTERNS_JSON"]; ok {
+		if err := json.Unmarshal([]byte(str), &i.LoggingAutoMultilineExtraPatterns); err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_EXTRA_PATTERNS_JSON to map: %s, ignore", err)
 		}
 	}
@@ -185,13 +169,11 @@ func (i *Input) ReadEnv(envs map[string]string) {
 
 	if str, ok := envs["ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG"]; ok {
 		arrays := strings.Split(str, ",")
-		l.Debugf("add CONTAINER_INCLUDE_LOG from ENV: %v", arrays)
 		i.ContainerIncludeLog = append(i.ContainerIncludeLog, arrays...)
 	}
 
 	if str, ok := envs["ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG"]; ok {
 		arrays := strings.Split(str, ",")
-		l.Debugf("add CONTAINER_EXCLUDE_LOG from ENV: %v", arrays)
 		i.ContainerExcludeLog = append(i.ContainerExcludeLog, arrays...)
 	}
 
@@ -207,8 +189,16 @@ func (i *Input) ReadEnv(envs map[string]string) {
 		i.K8sBearerTokenString = str
 	}
 
+	if durStr, ok := envs["ENV_INPUT_CONTAINER_LOGGING_SEARCH_INTERVAL"]; ok {
+		if dur, err := time.ParseDuration(durStr); err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_SEARCH_INTERVAL to time.Duration: %s, ignore", err)
+		} else {
+			i.LoggingSearchInterval = dur
+		}
+	}
+
 	if durStr, ok := envs["ENV_INPUT_CONTAINER_LOGGING_MIN_FLUSH_INTERVAL"]; ok {
-		if dur, err := timex.ParseDuration(durStr); err != nil {
+		if dur, err := time.ParseDuration(durStr); err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_MIN_FLUSH_INTERVAL to time.Duration: %s, ignore", err)
 		} else {
 			i.LoggingMinFlushInterval = dur
@@ -222,13 +212,20 @@ func (i *Input) ReadEnv(envs map[string]string) {
 			i.LoggingMaxMultilineLifeDuration = dur
 		}
 	}
+}
 
-	if confStr, ok := envs["ENV_INPUT_CONTAINER_PROMETHEUS_MONITORING_MATCHES_CONFIG"]; ok {
-		var conf prometheusMonitoringExtraConfig
-		if err := json.Unmarshal([]byte(confStr), &conf); err != nil {
-			l.Warnf("parse ENV_INPUT_CONTAINER_PROMETHEUS_MONITORING_MATCHES_CONFIG to config structure: %s, ignore", err)
-		} else {
-			i.prometheusMonitoringExtraConfig = &conf
-		}
+func getPromMatchsConfigFromEnv() *discovery.PrometheusMonitoringExtraConfig {
+	confStr := os.Getenv("ENV_INPUT_CONTAINER_PROMETHEUS_MONITORING_MATCHES_CONFIG")
+	if confStr == "" {
+		return nil
 	}
+
+	var conf discovery.PrometheusMonitoringExtraConfig
+
+	if err := json.Unmarshal([]byte(confStr), &conf); err != nil {
+		l.Warnf("parse ENV_INPUT_CONTAINER_PROMETHEUS_MONITORING_MATCHES_CONFIG to config structure: %s, ignore", err)
+		return nil
+	}
+
+	return &conf
 }

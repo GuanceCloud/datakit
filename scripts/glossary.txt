@@ -61,6 +61,7 @@ JXMFetch
 KafkaMQ
 keyevent
 Kodo
+kubedns
 kubelet
 Kubernetes
 libc
@@ -96,7 +97,7 @@ Pyroscope
 Pythond
 RabbitMQ
 Redisson
-replicasets
+ReplicaSet
 rwlock
 Scheck
 Servlet

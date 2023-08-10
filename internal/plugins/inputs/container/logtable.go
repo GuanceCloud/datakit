@@ -120,7 +120,12 @@ func (t *logTable) String() string {
 		}
 		sort.Strings(p)
 
-		str = append(str, fmt.Sprintf("{id:%s,paths:[%s]}", id, strings.Join(p, ",")))
+		shortID := id
+		if len(id) > 12 {
+			shortID = id[:12]
+		}
+
+		str = append(str, fmt.Sprintf("{id:%s,paths:[%s]}", shortID, strings.Join(p, ",")))
 	}
 
 	return strings.Join(str, ", ")

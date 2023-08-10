@@ -31,115 +31,100 @@ type logConfig struct {
 
 type logConfigs []*logConfig
 
-func (lc logConfigs) enabled() bool {
+type logInstance struct {
+	id            string
+	containerName string
+	logPath       string
+	configStr     string
+	configs       logConfigs
+
+	podName      string
+	podNamespace string
+	ownerKind    ownerKind
+	ownerName    string
+}
+
+func (lc *logInstance) enabled() bool {
 	b := false
-	for _, c := range lc {
-		b = b || !c.Disable
+	for _, cfg := range lc.configs {
+		b = b || !cfg.Disable
 	}
 	return b
 }
 
-func parseLogConfig(cfg string) (logConfigs, error) {
-	if cfg == "" {
-		return nil, fmt.Errorf("logsconf is empty")
-	}
-
-	var configs logConfigs
-	if err := json.Unmarshal([]byte(cfg), &configs); err != nil {
-		return nil, err
-	}
-
-	return configs, nil
-}
-
-type containerLogInfo struct {
-	runtimeType   string
-	id            string
-	originalName  string
-	containerName string
-	image         string
-	podName       string
-	podNamespace  string
-	logPath       string
-	createdAt     int64
-
-	tags      map[string]string
-	podLabels map[string]string
-
-	logConfigStr string
-	logConfigs   logConfigs
-}
-
-func (info *containerLogInfo) enabled() bool {
-	return info.logConfigs.enabled()
-}
-
-func (info *containerLogInfo) fillTags() {
-	info.tags = map[string]string{
-		"container_id":           info.id,
-		"container_runtime_name": info.originalName,
-		"container_name":         info.containerName,
-	}
-
-	if info.podName != "" {
-		info.tags["pod_name"] = info.podName
-	}
-	if info.podNamespace != "" {
-		info.tags["namespace"] = info.podNamespace
-	}
-
-	if info.image != "" {
-		imageName, imageShortName, imageTag := ParseImage(info.image)
-		info.tags["image"] = info.image
-		info.tags["image_name"] = imageName
-		info.tags["image_short_name"] = imageShortName
-		info.tags["image_tag"] = imageTag
-	}
-
-	if containerIsFromKubernetes(info.containerName) {
-		info.tags["container_type"] = "kubernetes"
-	} else {
-		info.tags["container_type"] = info.runtimeType
-	}
-}
-
-func (info *containerLogInfo) parseLogConfigs() error {
-	if info.logConfigStr != "" {
-		configs, err := parseLogConfig(info.logConfigStr)
-		if err != nil {
-			return fmt.Errorf("failed to parse configs from container %s, err: %w", info.containerName, err)
+func (lc *logInstance) parseLogConfigs() error {
+	if lc.configStr != "" {
+		var configs logConfigs
+		if err := json.Unmarshal([]byte(lc.configStr), &configs); err != nil {
+			return fmt.Errorf("failed to parse configs from container %s, err: %w, data: %s",
+				lc.containerName, err, lc.configStr)
 		}
-		info.logConfigs = configs
+		lc.configs = configs
 	}
 	return nil
 }
 
-func (info *containerLogInfo) addStdout() {
-	if len(info.logConfigs) == 0 {
-		info.logConfigs = append(info.logConfigs, &logConfig{
-			Type:   "stdout/stderr",
-			Path:   info.logPath,
-			Source: info.containerName,
+func (lc *logInstance) addStdout() {
+	if len(lc.configs) == 0 {
+		lc.configs = append(lc.configs, &logConfig{
+			Path:   lc.logPath,
+			Source: lc.containerName,
 		})
 		return
 	}
-	for _, cfg := range info.logConfigs {
-		if (cfg.Type == "" || cfg.Type == "stdout") && cfg.Path == "" {
-			cfg.Path = info.logPath
+
+	for _, cfg := range lc.configs {
+		if cfg.Type == "" && cfg.Path == "" {
+			cfg.Path = lc.logPath
 		}
 	}
 }
 
-func getPodNameForLabels(labels map[string]string) string {
-	return labels["io.kubernetes.pod.name"]
+func (lc *logInstance) fillLogType(runtimeName string) {
+	for _, cfg := range lc.configs {
+		if cfg.Type != "" {
+			continue
+		}
+		cfg.Type = runtimeName
+	}
 }
 
-func getPodNamespaceForLabels(labels map[string]string) string {
-	return labels["io.kubernetes.pod.namespace"]
+func (lc *logInstance) setTagsToLogConfigs(m map[string]string) {
+	for _, cfg := range lc.configs {
+		if cfg.Tags == nil {
+			cfg.Tags = make(map[string]string)
+		}
+		for k, v := range m {
+			if _, ok := cfg.Tags[k]; !ok {
+				cfg.Tags[k] = v
+			}
+		}
+	}
 }
 
-func getContainerNameForLabels(labels map[string]string) string {
-	return labels["io.kubernetes.container.name"]
+func (lc *logInstance) tags() map[string]string {
+	m := map[string]string{
+		"container_id":   lc.id,
+		"container_name": lc.containerName,
+	}
+
+	if lc.podName != "" {
+		m["pod_name"] = lc.podName
+		m["namespace"] = lc.podNamespace
+	}
+
+	switch lc.ownerKind {
+	case deploymentKind:
+		m["deployment"] = lc.ownerName
+	case daemonsetKind:
+		m["daemonset"] = lc.ownerName
+	case statefulsetKind:
+		m["statefulset"] = lc.ownerName
+	default:
+		// skip
+	}
+
+	return m
 }
 
 func logsJoinRootfs(logs string) string {

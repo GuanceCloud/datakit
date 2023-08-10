@@ -255,9 +255,6 @@ spec:
       #   configMap:
       #     name: python-scripts
       - hostPath:
-          path: /root/datakit_cache
-        name: cache
-      - hostPath:
           path: /
         name: rootfs
       - hostPath:

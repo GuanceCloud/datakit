@@ -259,7 +259,7 @@ func TestLoggingMerge(t *testing.T) {
 
 func TestLoggingSetup(t *testing.T) {
 	podName = "test_pod_name"
-	podNamespace = "test_pod_namespace"
+	podNamespace = "test_namespace"
 
 	cases := []struct {
 		in  *logging
@@ -273,9 +273,9 @@ func TestLoggingSetup(t *testing.T) {
 				Source:  "t_source",
 				Service: "t_source", // use $source
 				Tags: map[string]string{
-					"pod_namespace": "test_pod_namespace",
-					"pod_name":      "test_pod_name",
-					"service":       "t_source",
+					"namespace": "test_namespace",
+					"pod_name":  "test_pod_name",
+					"service":   "t_source",
 				},
 			},
 		},
@@ -287,9 +287,9 @@ func TestLoggingSetup(t *testing.T) {
 				Source:  "default", // use default
 				Service: "t_service",
 				Tags: map[string]string{
-					"pod_namespace": "test_pod_namespace",
-					"pod_name":      "test_pod_name",
-					"service":       "t_service",
+					"namespace": "test_namespace",
+					"pod_name":  "test_pod_name",
+					"service":   "t_service",
 				},
 			},
 		},
@@ -299,9 +299,9 @@ func TestLoggingSetup(t *testing.T) {
 				Source:  "default", // use default
 				Service: "default",
 				Tags: map[string]string{
-					"pod_namespace": "test_pod_namespace",
-					"pod_name":      "test_pod_name",
-					"service":       "default",
+					"namespace": "test_namespace",
+					"pod_name":  "test_pod_name",
+					"service":   "default",
 				},
 			},
 		},

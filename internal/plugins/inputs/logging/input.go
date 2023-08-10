@@ -99,10 +99,10 @@ type Input struct {
 	Tags                            map[string]string `toml:"tags"`
 	BlockingMode                    bool              `toml:"blocking_mode"`
 	FromBeginning                   bool              `toml:"from_beginning,omitempty"`
-	DockerMode                      bool              `toml:"docker_mode,omitempty"`
 	IgnoreDeadLog                   string            `toml:"ignore_dead_log"`
 	MinFlushInterval                time.Duration     `toml:"-"`
 	MaxMultilineLifeDuration        time.Duration     `toml:"-"`
+	Mode                            string            `toml:"mode,omitempty"`
 
 	DeprecatedEnableDiskCache bool   `toml:"enable_diskcache,omitempty"`
 	DeprecatedPipeline        string `toml:"pipeline_path"`
@@ -155,8 +155,13 @@ func (ipt *Input) Run() {
 		Done:              ipt.semStop.Wait(),
 	}
 
-	if ipt.DockerMode {
+	switch ipt.Mode {
+	case "docker":
 		opt.Mode = tailer.DockerMode
+	case "cri":
+		opt.Mode = tailer.ContainerdMode
+	default:
+		opt.Mode = tailer.FileMode
 	}
 
 	if ipt.MultilineMatch != "" {
