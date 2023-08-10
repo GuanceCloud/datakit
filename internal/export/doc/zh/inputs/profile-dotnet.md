@@ -41,8 +41,8 @@
 <!-- markdownlint-disable MD046 -->
 ???+ Note "目录说明"
 
-    .NET Core 编译（build）后的输出目录通常位于项目根目录下的 *./bin/<Configuration\>/<Framework\>* ，在本文档中为 *./bin/Release/net7.0*。
-    .NET Core 发布（publish）后的输出目录位于你发布时用 `-o | --output <OUTPUT_DIR>` 参数指定的位置。
+    .NET Core 编译（build）后的输出目录通常位于项目根目录下的 *./bin/<Configuration\>/<Framework\>*，可以用参数指定 `-o|--output <OUTPUT_DIR>`，在本文档中假设为 *./bin/Release/net7.0*。
+    .NET Core 发布（publish）后的输出目录默认位于项目根目录下的 *./bin/<Configuration\>/<Framework\>/publish*，同样可以用参数指定 `-o|--output <OUTPUT_DIR>`，在本文档中假设为 *./bin/Release/net7.0/publish*。
 <!-- markdownlint-enable -->
 
 
