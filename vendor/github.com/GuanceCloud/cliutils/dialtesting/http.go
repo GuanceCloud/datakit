@@ -375,12 +375,13 @@ func (t *HTTPTask) Run() error {
 		goto result
 	}
 
-	t.downloadTime = float64(time.Since(t1)) / float64(time.Microsecond)
 	t.reqCost = time.Since(t.reqStart)
 	t.respBody, err = ioutil.ReadAll(t.resp.Body)
 	if err != nil {
 		goto result
 	}
+
+	t.downloadTime = float64(time.Since(t1)) / float64(time.Microsecond)
 
 result:
 	if err != nil {
