@@ -81,6 +81,12 @@ You can view the overlay mount point through `cat /proc/mounts`
 
 In addition to CentOS 7.6+ and Ubuntu 16.04, other distributions recommend that the Linux kernel version is higher than 4.9, otherwise the ebpf collector may not start.
 
+If you want to enable the  *ebpf-conntrack*  plugin, usually requires a higher kernel version, such as v5.4.0 etc., please confirm whether the symbols in the kernel contain `nf_ct_delete` and `__nf_conntrack_hash_insert`, you can execute the following command to view:
+
+```sh
+cat /proc/kallsyms | awk '{print $3}' | grep "^nf_ct_delete$\|^__nf_conntrack_hash_insert$"
+```
+
 ???+ warning "kernel restrictions"
 
     When the DataKit version is lower than **v1.5.2**, the httpflow data collection in the ebpf-net category cannot be enabled for CentOS 7.6+, because its Linux 3.10.x kernel does not support the BPF_PROG_TYPE_SOCKET_FILTER type in the eBPF program;
