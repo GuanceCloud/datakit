@@ -105,8 +105,8 @@ Datakit 只接收 OTLP 的数据，OTLP 有三种数据类型： `gRPC` ， `htt
 
 可以采用头部采样或者尾部采样，具体可以查看两篇最佳实践：
 
-- 需要配合 collector 的尾部采样： [OpenTelemetry 采样最佳实践](../best-practices/cloud-native/opentelemetry-simpling)
-- Agent 端的头部采样： [OpenTelemetry Java Agent 端采样策略](../best-practices/cloud-native/otel-agent-sampling/)
+- 需要配合 collector 的尾部采样： [OpenTelemetry 采样最佳实践](../best-practices/cloud-native/opentelemetry-simpling.md)
+- Agent 端的头部采样： [OpenTelemetry Java Agent 端采样策略](../best-practices/cloud-native/otel-agent-sampling.md)
 
 
 ### 示例 {#examples}

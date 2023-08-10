@@ -2,8 +2,8 @@
 ---
 
 
-[:octicons-tag-24: Version-1.9.0](changelog.md#cl-1.9.0) ·
-[:octicons-beaker-24: Experimental](index.md#experimental)
+[:octicons-tag-24: Version-1.9.0](../datakit/changelog.md#cl-1.9.0) ·
+[:octicons-beaker-24: Experimental](../datakit/index.md#experimental)
 
 ---
 

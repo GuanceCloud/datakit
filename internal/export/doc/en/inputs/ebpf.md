@@ -17,7 +17,7 @@ eBPF collector, collecting host network TCP, UDP connection information, Bash ex
     * Data category: Logging
     * Collect Bash execution log, including Bash process number, user name, executed command and time, etc.;
 
-* `ebpf-conntrack`: [:octicons-tag-24: Version-1.8.0](changelog.md#cl-1.8.0) · [:octicons-beaker-24: Experimental](index.md#experimental)
+* `ebpf-conntrack`: [:octicons-tag-24: Version-1.8.0](../datakit/changelog.md#cl-1.8.0) · [:octicons-beaker-24: Experimental](../datakit/index.md#experimental)
     * Add two tags `dst_nat_ip` and `dst_nat_port` to the network flow data.
 
 ## Preconditions {#requirements}
@@ -37,8 +37,8 @@ When deploying in Kubernetes environment, you must mount the host's' `/sys/kerne
 
 ### HTTPS Support {#https}
 
-[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) ·
-[:octicons-beaker-24: Experimental](index.md#experimental)
+[:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6) ·
+[:octicons-beaker-24: Experimental](../datakit/index.md#experimental)
 
 If ebpf-net is required to start https request data collection support for processes in the container, you need to mount the overlay directory to the container.
 

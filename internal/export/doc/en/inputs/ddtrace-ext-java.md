@@ -24,7 +24,7 @@ Here we mainly introduce some extended functions of DDTrace-java. List of main f
 
 ## supported trace-128-id {#trace_128_bit_id}
 
-[:octicons-tag-24: Datakit-1.8.0](changelog.md#cl-1.8.0)
+[:octicons-tag-24: Datakit-1.8.0](../datakit/changelog.md#cl-1.8.0)
 [:octicons-tag-24: DDTrace-1.4.0-guance](ddtrace-ext-changelog.md#cl-1.14.0-guance)
 
 The default trace-id of the DDTrace agent is 64 bit, and the Datakit also supports 64 bit trace-id in the received link data. 

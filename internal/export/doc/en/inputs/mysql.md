@@ -306,7 +306,7 @@ UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name = 'events
 
 ### Log {#logging}
 
-[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)
+[:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6)
 
 {{ range $i, $m := .Measurements }}
 

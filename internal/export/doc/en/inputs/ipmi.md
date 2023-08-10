@@ -1,7 +1,11 @@
 
 # IPMI
 
-- Operating system support: :fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple: :material-kubernetes: :material-docker:  · [:fontawesome-solid-flag-checkered:](index.md#legends "支持选举") | *Author：张连山*
+---
+
+{{.AvailableArchs}}
+
+---
 
 IPMI metrics show the current, voltage, power consumption, occupancy rate, fan speed, temperature and equipment status of the monitored equipment.
 

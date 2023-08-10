@@ -219,7 +219,7 @@ KafkaMQ 收到消息后，合并成一个包含 `send_message_count` 条消息�
 X-category=tracing  
 ```
 
-[DataKit 支持数据类型](../datakit/apis.md/#category)
+[DataKit 支持数据类型](../datakit/apis.md#category)
 
 只要接收到数据 就代表 KafkaMQ 将数据发送成功，无论解析如何 就应该返回 200， 后等待下一个请求。
 

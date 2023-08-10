@@ -2,7 +2,7 @@
 
 ---
 
-{{.AvailableArchs}} · [:octicons-tag-24: Version-1.10.0](changelog.md#cl-1.10.0)
+{{.AvailableArchs}} · [:octicons-tag-24: Version-1.10.0](../datakit/changelog.md#cl-1.10.0)
 
 ---
 

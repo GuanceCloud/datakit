@@ -5,7 +5,7 @@
 
 ---
 
-[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental) 
+[:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](../datakit/index.md#experimental) 
 
 ## Introduction {#intro}
 

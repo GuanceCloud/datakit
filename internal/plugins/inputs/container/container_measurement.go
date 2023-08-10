@@ -28,7 +28,7 @@ func (c *containerMetric) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"container_id":           inputs.NewTagInfo(`Container ID`),
 			"container_name":         inputs.NewTagInfo("Container name from k8s (label `io.kubernetes.container.name`). If empty then use $container_runtime_name."),
-			"container_runtime_name": inputs.NewTagInfo(`Container name from runtime (like 'docker ps'). If empty then use 'unknown' ([:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)).`),
+			"container_runtime_name": inputs.NewTagInfo(`Container name from runtime (like 'docker ps'). If empty then use 'unknown' ([:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6)).`),
 			"container_runtime":      inputs.NewTagInfo(`Container runtime (this container from Docker/Containerd/cri-o).`),
 			"container_type":         inputs.NewTagInfo(`The type of the container (this container is created by Kubernetes/Docker/Containerd/cri-o).`),
 			"image":                  inputs.NewTagInfo("The full name of the container image, example `nginx.org/nginx:1.21.0`."),
@@ -76,7 +76,7 @@ func (c *containerObject) Info() *inputs.MeasurementInfo {
 			"name":                   inputs.NewTagInfo(`The ID of the container.`),
 			"container_id":           inputs.NewTagInfo(`Container ID`),
 			"container_name":         inputs.NewTagInfo("Container name from k8s (label `io.kubernetes.container.name`). If empty then use $container_runtime_name."),
-			"container_runtime_name": inputs.NewTagInfo(`Container name from runtime (like 'docker ps'). If empty then use 'unknown' ([:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)).`),
+			"container_runtime_name": inputs.NewTagInfo(`Container name from runtime (like 'docker ps'). If empty then use 'unknown' ([:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6)).`),
 			"container_runtime":      inputs.NewTagInfo(`Container runtime (this container from Docker/Containerd/cri-o).`),
 			"container_type":         inputs.NewTagInfo(`The type of the container (this container is created by Kubernetes/Docker/Containerd/cri-o).`),
 			"image":                  inputs.NewTagInfo("The full name of the container image, example `nginx.org/nginx:1.21.0`."),
@@ -131,8 +131,8 @@ func (c *containerLog) Info() *inputs.MeasurementInfo {
 		},
 		Fields: map[string]interface{}{
 			"status":          &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The status of the logging, only supported `info/emerg/alert/critical/error/warning/debug/OK/unknown`."},
-			"log_read_lines":  &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The lines of the read file ([:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6))."},
-			"log_read_offset": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "The offset of the read file ([:octicons-tag-24: Version-1.4.8](changelog.md#cl-1.4.8) · [:octicons-beaker-24: Experimental](index.md#experimental))."},
+			"log_read_lines":  &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The lines of the read file ([:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6))."},
+			"log_read_offset": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "The offset of the read file ([:octicons-tag-24: Version-1.4.8](../datakit/changelog.md#cl-1.4.8) · [:octicons-beaker-24: Experimental](../datakit/index.md#experimental))."},
 			"log_read_time":   &inputs.FieldInfo{DataType: inputs.DurationSecond, Unit: inputs.UnknownUnit, Desc: "The timestamp of the read file."},
 			"message_length":  &inputs.FieldInfo{DataType: inputs.SizeByte, Unit: inputs.NCount, Desc: "The length of the message content."},
 			"message":         &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The text of the logging."},

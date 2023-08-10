@@ -2,7 +2,7 @@
 # NSQ
 ---
 
-{{.AvailableArchs}}index.md#legends "支持选举")
+{{.AvailableArchs}}
 
 ---
 

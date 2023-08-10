@@ -1,6 +1,6 @@
 # NodeJS Profiling
 
-[:octicons-tag-24: Version-1.9.0](changelog.md#cl-1.9.0)
+[:octicons-tag-24: Version-1.9.0](../datakit/changelog.md#cl-1.9.0)
 
 At present, DataKit supports one way to collect NodeJS profiling data, namely [Pyroscope](https://pyroscope.io/){:target="_blank"}.
 

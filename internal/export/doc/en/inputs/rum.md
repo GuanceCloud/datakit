@@ -26,7 +26,7 @@ RUM (Real User Monitor) collector is used to collect user access monitoring data
 It is recommended that RUM be deployed separately on the public network, not with existing services (such as Kubernetes cluster). As the traffic on RUM interface may be very large, the traffic within the cluster will be disturbed by it, and some possible resource scheduling mechanisms within the cluster may affect the operation of RUM services.
 
 - On the DataKit [install IP geo-Repository](datakit-tools-how-to.md#install-ipdb)
-- Since [1.2.7](changelog.md#cl-1.2.7), due to the adjustment of the installation method of IP geographic information base, the default installation no longer comes with its own IP information base, but needs to be installed manually.
+- Since [1.2.7](../datakit/changelog.md#cl-1.2.7), due to the adjustment of the installation method of IP geographic information base, the default installation no longer comes with its own IP information base, but needs to be installed manually.
 
 ## Configuration {#config}
 
@@ -341,7 +341,7 @@ We can easily copy and modify the [built-in CDN Dict](built-in_cdn_dict_config.m
 
 ## RUM Session Replay {#rum-session-replay}
 
-Starting from version [:octicons-tag-24: Version-1.5.5](changelog.md#cl-1.5.5), Datakit support to collect the data of RUM Session Replay. It needs you to add item `session_replay_endpoints` to RUM configuration as bellow and then restart Datakit. 
+Starting from version [:octicons-tag-24: Version-1.5.5](../datakit/changelog.md#cl-1.5.5), Datakit support to collect the data of RUM Session Replay. It needs you to add item `session_replay_endpoints` to RUM configuration as bellow and then restart Datakit. 
 
 ```toml
 [[inputs.rum]]
