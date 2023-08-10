@@ -89,6 +89,12 @@ eBPF 采集器，采集主机网络 TCP、UDP 连接信息，Bash 执行日志�
 
 除 CentOS 7.6+ 和 Ubuntu 16.04 以外，其他发行版本推荐 Linux 内核版本高于 4.9，否则可能无法启动 eBPF 采集器
 
+如果要启用 *ebpf-conntrack* 插件，通常需要较高的内核版本，如 v5.4.0 等，请确认内核中的符号是否包含 `nf_ct_delete` 和 `__nf_conntrack_hash_insert`，可执行以下命令查看：
+
+```sh
+cat /proc/kallsyms | awk '{print $3}' | grep "^nf_ct_delete$\|^__nf_conntrack_hash_insert$"
+```
+
 <!-- markdownlint-disable MD046 -->
 ???+ warning "内核限制"
 

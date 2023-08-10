@@ -747,14 +747,14 @@ int uretprobe__SSL_read(struct pt_regs *ctx)
     struct ssl_read_args *args = bpf_map_lookup_elem(&bpfmap_ssl_read_args, &pid_tgid);
     if (args == NULL)
     {
-        goto clean;
+        return 0;
     }
 
     void *ssl_ctx = args->ctx;
     __u64 *fd_ptr = (__u64 *)bpf_map_lookup_elem(&bpfmap_ssl_ctx_sockfd, &ssl_ctx);
     if (fd_ptr == NULL)
     {
-        goto clean;
+        return 0;
     }
 
     struct task_struct *task = bpf_get_current_task();
@@ -762,6 +762,11 @@ int uretprobe__SSL_read(struct pt_regs *ctx)
     struct socket *skt = get_socket_from_fd(task, *fd_ptr);
 
     if (skt == NULL)
+    {
+        return 0;
+    }
+
+    if (args->num <= 0)
     {
         goto clean;
     }
@@ -819,24 +824,32 @@ int uprobe__SSL_write(struct pt_regs *ctx)
 
     struct connection_info conn = {0};
     struct layer7_http stats = {0};
+
+    if (num <= 0)
+    {
+        goto clean;
+    }
+
     req_resp_t req_resp = checkHTTPS(skt, write_buf,
                                      &conn, &stats, num);
     if (req_resp == HTTP_REQ_UNKNOWN)
     {
-        http_try_upload(ctx, &conn, 0, 0, 9, ts, P_USR_SSL_WRITE);
-        return 0;
+        goto clean;
     }
+
     upate_req_payload_id(&stats, pid_tgid, ts);
 
     // If it is resp, this buffer is not used.
     struct l7_buffer *l7buffer = get_l7_buffer_percpu();
     if (l7buffer == NULL)
     {
-        return 0;
+        goto clean;
     }
 
     copy_data_from_buffer(write_buf, num, &stats.req_payload_id, l7buffer, P_USR_SSL_WRITE);
     parse_http1x(ctx, l7buffer, ts, &conn, &stats, req_resp, MSG_WRITE, P_USR_SSL_WRITE);
+
+clean:
     http_try_upload(ctx, &conn, 0, 0, 0, ts, P_USR_SSL_WRITE);
 
     return 0;

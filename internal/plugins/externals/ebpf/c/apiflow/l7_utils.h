@@ -577,7 +577,7 @@ static __always_inline int http_try_upload(void *ctx, struct connection_info *co
 static __always_inline req_resp_t checkHTTP(struct socket *skt, __u8 *buf,
                                             struct connection_info *conn,
                                             struct layer7_http *stats,
-                                            __u64 buf_size)
+                                            __s64 buf_size)
 {
     struct sock *sk = NULL;
     enum sock_type sktype = 0;
@@ -612,15 +612,16 @@ static __always_inline req_resp_t checkHTTP(struct socket *skt, __u8 *buf,
     // bpf_printk("r byte: %d, r %s", buf_size, tmp_buf);
 
     __u8 tmp_buffer[32] = {0};
-    if (buf_size > 32)
+    int tmp_size = 0;
+    if (tmp_size >= 32)
     {
-        buf_size = 32;
+        tmp_size = 32;
     }
-
-    if (buf_size > 0)
+    else
     {
-        bpf_probe_read(&tmp_buffer, buf_size, buf);
+        tmp_size = buf_size & 0x1F;
     }
+    bpf_probe_read(&tmp_buffer, tmp_size, buf);
 
     // Determine request/response and whether it is a server.
     return parse_layer7_http1(tmp_buffer, stats);
@@ -629,7 +630,7 @@ static __always_inline req_resp_t checkHTTP(struct socket *skt, __u8 *buf,
 static __always_inline req_resp_t checkHTTPS(struct socket *skt, __u8 *buf,
                                              struct connection_info *conn,
                                              struct layer7_http *stats,
-                                             __u64 buf_size)
+                                             __s64 buf_size)
 {
     struct sock *sk = NULL;
     enum sock_type sktype = 0;
@@ -658,15 +659,17 @@ static __always_inline req_resp_t checkHTTPS(struct socket *skt, __u8 *buf,
     // bpf_printk("r byte: %d, r %s", buf_size, tmp_buf);
 
     __u8 tmp_buffer[32] = {0};
-    if (buf_size > 32)
-    {
-        buf_size = 32;
-    }
 
-    if (buf_size > 0)
+    int tmp_size = 0;
+    if (tmp_size >= 32)
     {
-        bpf_probe_read(&tmp_buffer, buf_size, buf);
+        tmp_size = 32;
     }
+    else
+    {
+        tmp_size = buf_size & 0x1F;
+    }
+    bpf_probe_read(&tmp_buffer, tmp_size, buf);
 
     // Determine request/response and whether it is a server.
     return parse_layer7_http1(tmp_buffer, stats);
