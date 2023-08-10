@@ -29,11 +29,11 @@ It is divided into two parts, one is to configure DataKit to start the correspon
       # more_tag = "some_other_value"
     ```
     
-    Once configured, [restart DataKit](datakit-service-how-to.md#manage-service).
+    Once configured, [restart DataKit](../datakit/datakit-service-how-to.md#manage-service).
 
 === "Kubernetes"
 
-    The collector can now be turned on by [injecting logfwdserver collector configuration in ConfigMap mode](datakit-daemonset-deploy.md#configmap-setting).
+    The collector can now be turned on by [injecting logfwdserver collector configuration in ConfigMap mode](../datakit/datakit-daemonset-deploy.md#configmap-setting).
 
 ### logfwd Usage and Configuration  {#config}
 
@@ -314,6 +314,6 @@ MiB Swap:   2048.0 total,      0.0 free,   2048.0 used.   8793.3 avail Mem
 - [Log collection configuration for specifying pod in Kubernetes](container-log.md#logging-with-annotation-or-label)
 - [Third-party log access](logstreaming.md)
 - [Introduction of DataKit configuration mode in Kubernetes environment](k8s-config-how-to.md)
-- [Install DataKit as DaemonSet](datakit-daemonset-deploy.md)
+- [Install DataKit as DaemonSet](../datakit/datakit-daemonset-deploy.md)
 - [Deploy `logfwdserver` on DataKit](logfwdserver.md)
 - [Proper use of regular expressions to configure](datakit-input-conf.md#debug-regex)

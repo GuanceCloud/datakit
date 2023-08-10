@@ -57,7 +57,7 @@ Couchbase 采集器支持远程采集，可以运行在多种操作系统中。
     {{ CodeBlock .InputSample 4 }}
     ```
 
-    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
+    配置好后，[重启 DataKit](../datakit/datakit-service-how-to.md#manage-service) 即可。
 
 === "Kubernetes"
 
@@ -80,7 +80,7 @@ Couchbase 采集器支持远程采集，可以运行在多种操作系统中。
     | `ENV_INPUT_COUCHBASE_TAGS`            | `tags`            | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
     | `ENV_INPUT_COUCHBASE_ELECTION`        | `election`        | `true` or `false`                                       |
 
-    也可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+    也可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 
 <!-- markdownlint-enable -->
 

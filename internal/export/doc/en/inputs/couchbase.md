@@ -58,7 +58,7 @@ Already tested version:
     {{ CodeBlock .InputSample 4 }}
     ```
 
-    Once configured, [restart DataKit](datakit-service-how-to.md#manage-service).
+    Once configured, [restart DataKit](../datakit/datakit-service-how-to.md#manage-service).
 
 === "Kubernetes"
 
@@ -82,7 +82,7 @@ Already tested version:
     | `ENV_INPUT_COUCHBASE_TAGS`            | `tags`            | `tag1=value1,tag2=value2`                               |
     | `ENV_INPUT_COUCHBASE_ELECTION`        | `election`        | `true` or `false`                                       |
 
-    The collector can also be turned on by [ConfigMap injection collector configuration](datakit-daemonset-deploy.md#configmap-setting).
+    The collector can also be turned on by [ConfigMap injection collector configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
 
 <!-- markdownlint-enable -->
 

@@ -38,7 +38,7 @@ System 采集器收集系统负载、正常运行时间、CPU 核心数量以及
     {{ CodeBlock .InputSample 4 }}
     ```
 
-    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
+    配置好后，[重启 DataKit](../datakit/datakit-service-how-to.md#manage-service) 即可。
 
 === "Kubernetes"
 

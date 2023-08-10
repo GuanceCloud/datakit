@@ -28,7 +28,7 @@ The Zipkin Agent embedded in Datakit is used to receive, calculate and analyze t
 
 === "Kubernetes"
 
-    At present, the collector can be turned on by [injecting the collector configuration in ConfigMap mode](datakit-daemonset-deploy.md#configmap-setting).
+    At present, the collector can be turned on by [injecting the collector configuration in ConfigMap mode](../datakit/datakit-daemonset-deploy.md#configmap-setting).
 
     Multiple environment variables supported that can be used in Kubernetes showing below:
 

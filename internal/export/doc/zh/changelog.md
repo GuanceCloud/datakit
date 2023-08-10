@@ -163,6 +163,8 @@
 
 - Profile 数据的时间戳单位从纳秒改成微秒（#1679）
 
+<!-- markdown-link-check-disable -->
+
 ---
 
 ## 1.9.2(2023/06/20) {#cl-1.9.2}
@@ -171,7 +173,7 @@
 
 ### 新加功能 {#cl-1.9.2-new}
 
-- 新增 [Chrony 采集器](chrony.md)（#1671）
+- 新增 [Chrony 采集器](../integrations/chrony.md)（#1671）
 - 新增 RUM Headless 支持（#1644）
 - Pipeline
     - 新增 [offload 功能](../developers/pipeline/pipeline-offload.md)（#1634）
@@ -214,8 +216,8 @@
 
 ### 新加功能 {#cl-1.9.0-new}
 
-- 新增 [NodeJS Profiling](profile-nodejs.md) 接入支持（#1638）
-- 新增点评 [Cat](cat.md) 接入支持（#1593）
+- 新增 [NodeJS Profiling](../integrations/profile-nodejs.md) 接入支持（#1638）
+- 新增点评 [Cat](../integrations/cat.md) 接入支持（#1593）
 - 新增采集器配置[调试方法](why-no-data.md#check-input-conf)（#1649）
 
 ### 问题修复 {#cl-1.9.0-fix}
@@ -225,8 +227,8 @@
 ### 功能优化 {#cl-1.9.0-opt}
 
 - K8s DaemonSet 对象增加 `age` 字段（#1670）
-- 优化 [PostgreSQL](postgresql.md) 启动设置（#1658）
-- SkyWalking 增加 [`/v3/log/`](skywalking.md) 支持（#1654）
+- 优化 [PostgreSQL](../integrations/postgresql.md) 启动设置（#1658）
+- SkyWalking 增加 [`/v3/log/`](../integrations/skywalking.md) 支持（#1654）
 - 优化日志采集处理（#1652/#1651）
 - 优化[升级文档](datakit-update.md#prepare)（#1653）
 - 其它重构和优化（#1673/#1650/#1630）
@@ -270,7 +272,7 @@
 - 优化 localhost 采集的 `host` 字段问题（#1637）
 - 优化 Datakit 自身指标，新增 [Datakit 自身指标文档](datakit-metrics.md)（#1639/#1492）
 - 优化 Pod 上的 Prometheus 指标采集，自动支持所有 Prometheus 指标类型（#1636）
-- 新增 Trace 类采集的[性能测试文档](datakit-trace-performance.md)（#1616）
+- 新增 Trace 类采集的[性能测试文档](../integrations/datakit-trace-performance.md)（#1616）
 - 新增 Kubernetes DaemonSet 对象采集（#1643）
 - Pinpoint gRPC 服务支持 `x-b3-traceid` 透传 Trace ID（#1605）
 - 优化集群选举策略（#1534）
@@ -317,7 +319,7 @@
 本次发布属于 Hotfix 发布，修复如下问题：
 
 - 老版本升级上来可能导致黑名单不生效(#1603)
-- [Prom](prom.md) 采集 `info` 类数据问题(#1544)
+- [Prom](../integrations/prom.md) 采集 `info` 类数据问题(#1544)
 - 修复 Dataway Sinker 模块可能导致的数据丢失问题(#1606)
 
 ---
@@ -328,7 +330,7 @@
 
 ### 新加功能 {#cl-1.6.0-new}
 
-- 新增 [Pinpoint](pinpoint.md) API 接入(#973)
+- 新增 [Pinpoint](../integrations/pinpoint.md) API 接入(#973)
 
 ### 功能优化 {#cl-1.6.0-opt}
 
@@ -2539,3 +2541,4 @@ volumes:
 ### 功能优化 {#cl-x.x.x-opt}
 ### 兼容调整 {#cl-x.x.x-brk}
 -->
+<!-- markdown-link-check-enable -->

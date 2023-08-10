@@ -119,7 +119,7 @@ setenforce 0
 
     In Kubernetes, collection can be started by ConfigMap or directly enabling ebpf collector by default:
     
-    1. Refer to the generic [Installation Sample](datakit-daemonset-deploy.md#configmap-setting) for the ConfigMap mode.
+    1. Refer to the generic [Installation Sample](../datakit/datakit-daemonset-deploy.md#configmap-setting) for the ConfigMap mode.
     2. Append `ebpf` to the environment variable `ENV_ENABLE_INPUTS` in datakit.yaml, using the default configuration, which only turns on ebpf-net network data collection.
     
     ```yaml

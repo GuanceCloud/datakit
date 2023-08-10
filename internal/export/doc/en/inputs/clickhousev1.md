@@ -46,11 +46,11 @@ See [ClickHouse official documents](https://ClickHouse.com/docs/en/operations/se
     {{ CodeBlock .InputSample 4 }}
     ```
     
-    After configuration, [restart DataKit](datakit-service-how-to.md#manage-service).
+    After configuration, [restart DataKit](../datakit/datakit-service-how-to.md#manage-service).
 
 === "Kubernetes"
 
-    At present, you can [inject collector configuration in ConfigMap mode](datakit-daemonset-deploy.md#configmap-setting)。
+    At present, you can [inject collector configuration in ConfigMap mode](../datakit/datakit-daemonset-deploy.md#configmap-setting)。
 
 ## Measurements {#measurements}
 
