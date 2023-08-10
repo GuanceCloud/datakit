@@ -35,7 +35,7 @@ CPU 采集器用于系统 CPU 使用率等指标的采集。
     {{ CodeBlock .InputSample 4 }}
     ```
 
-    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
+    配置好后，[重启 DataKit](../datakit/datakit-service-how-to.md#manage-service) 即可。
 
 === "Kubernetes"
 

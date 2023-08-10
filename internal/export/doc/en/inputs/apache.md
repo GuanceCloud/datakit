@@ -48,11 +48,11 @@ sudo apachectl restart
     {{ CodeBlock .InputSample 4 }}
     ```
     
-    After configuration, [restart DataKit](datakit-service-how-to.md#manage-service).
+    After configuration, [restart DataKit](../datakit/datakit-service-how-to.md#manage-service).
 
 === "Kubernetes"
 
-    The collector can now be turned on by [configMap injection collector configuration](datakit-daemonset-deploy.md#configmap-setting).
+    The collector can now be turned on by [configMap injection collector configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
 
 ## Measurement {#measurements}
 

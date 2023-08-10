@@ -13,6 +13,7 @@ import (
 	"time"
 
 	tu "github.com/GuanceCloud/cliutils/testutil"
+	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
@@ -292,6 +293,43 @@ func TestNewPoint(t *testing.T) {
 			t.Logf("point: %s", x)
 		})
 	}
+}
+
+func TestBadPoint(t *testing.T) {
+	t.Run("measurement-name-with-space", func(t *testing.T) {
+		pt, err := NewPoint("abc ",
+			map[string]string{"t1": "val1", "t2": "val2"},
+			map[string]any{"f1": "str", "f2": 123},
+			nil)
+
+		assert.NoError(t, err)
+
+		t.Logf("%q", pt.String())
+	})
+
+	// nolint: gocritic
+	t.Run("tag-key-with-space", func(t *testing.T) {
+		pt, err := NewPoint("abc",
+			map[string]string{" t1": "val1", "t2": "val2"},
+			map[string]any{"f1": "str", "f2": 123},
+			nil)
+
+		assert.NoError(t, err)
+
+		t.Logf("%q", pt.String())
+	})
+
+	// nolint: gocritic
+	t.Run("field-key-with-space", func(t *testing.T) {
+		pt, err := NewPoint("abc",
+			nil,
+			map[string]any{" f1": "str", "f2": 123},
+			&PointOption{Category: datakit.Logging})
+
+		assert.NoError(t, err)
+
+		t.Logf("%q", pt.String())
+	})
 }
 
 var benchCases = []struct {

@@ -12,7 +12,7 @@ import (
 	"fmt"
 )
 
-var errNotSupported = fmt.Errorf("Non-linux systems are not supported")
+var errNotSupported = fmt.Errorf("non-linux systems are not supported")
 
 func newCPUInfo(_ string) (cpuInfo, error) {
 	return nil, errNotSupported
@@ -21,6 +21,7 @@ func newCPUInfo(_ string) (cpuInfo, error) {
 func newMemInfo(_ string) (memInfo, error) {
 	return nil, errNotSupported
 }
+
 func newNetworkStat(_ string, _ int) (networkStat, error) {
 	return nil, errNotSupported
 }

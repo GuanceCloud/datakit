@@ -121,7 +121,7 @@ Here, we use DataKit CRD extension to collect Ingress metrics, that is, we colle
 
 #### Prerequirements {#nginx-requirements}
 
-- Deployed [DaemonSet DataKit](datakit-daemonset-deploy.md)
+- Deployed [DaemonSet DataKit](../datakit/datakit-daemonset-deploy.md)
 - If the `Deployment` is called `ingress-nginx-controller`, the yaml configuration over there is as follows:
 
   ``` yaml

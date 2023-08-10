@@ -44,7 +44,7 @@ It is recommended that RUM be deployed separately on the public network, not wit
     default_enabled_inputs = [ "rum", "cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net", "host_processes" ]
     ```
 
-    After configuration, [restart DataKit](datakit-service-how-to.md#manage-service).
+    After configuration, [restart DataKit](../datakit/datakit-service-how-to.md#manage-service).
 
 === "Kubernetes"
 

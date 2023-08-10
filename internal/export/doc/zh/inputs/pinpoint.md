@@ -48,11 +48,11 @@ Datakit 内置的 Pinpoint Agent 用于接收，运算，分析 Pinpoint Tracing
     address = "127.0.0.1:9991"
     ```
 
-    配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
+    配置好后，[重启 DataKit](../datakit/datakit-service-how-to.md#manage-service) 即可。
 
 === "Kubernetes"
 
-    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+    目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 
     在 Kubernetes 中支持的环境变量如下表：
 

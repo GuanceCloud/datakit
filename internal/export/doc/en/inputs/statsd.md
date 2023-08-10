@@ -49,7 +49,7 @@ For example, Tomcat or Kafka:
 
 === "Kubernetes"
 
-    The collector can now be turned on by [configMap injection collector configuration](datakit-daemonset-deploy.md#configmap-setting).
+    The collector can now be turned on by [configMap injection collector configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
 
 ### Tag data sources {#config-tag}
 
