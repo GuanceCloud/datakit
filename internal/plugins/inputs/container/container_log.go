@@ -88,11 +88,17 @@ func (c *container) queryContainerLogInfo(info *runtime.Container) *logInstance 
 	podNamespace := getPodNamespaceForLabels(info.Labels)
 
 	instance := &logInstance{
-		id:            info.ID,
-		containerName: info.Name,
-		logPath:       info.LogPath,
-		podName:       podName,
-		podNamespace:  podNamespace,
+		id:           info.ID,
+		logPath:      info.LogPath,
+		podName:      podName,
+		podNamespace: podNamespace,
+	}
+
+	containerName := getContainerNameForLabels(info.Labels)
+	if containerName != "" {
+		instance.containerName = info.Name
+	} else {
+		instance.containerName = containerName
 	}
 
 	if c.k8sClient != nil && podName != "" {
