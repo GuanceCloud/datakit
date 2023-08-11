@@ -96,9 +96,9 @@ func (c *container) queryContainerLogInfo(info *runtime.Container) *logInstance 
 
 	containerName := getContainerNameForLabels(info.Labels)
 	if containerName != "" {
-		instance.containerName = info.Name
-	} else {
 		instance.containerName = containerName
+	} else {
+		instance.containerName = info.Name
 	}
 
 	if c.k8sClient != nil && podName != "" {
