@@ -101,11 +101,32 @@ func ParseHTTP1xHeader(payload []byte, ts int64) (*TraceInfo, bool) {
 	if len(req) != 3 {
 		return nil, false
 	}
-	uri := strings.Split(req[1], "?")
+	uriAndParam := strings.Split(req[1], "?")
+
+	uri := uriAndParam[0]
+
+	switch {
+	case len(uri) > 8 && (uri[:8] == "https://"):
+		off := strings.Index(uri[8:], "/")
+		if off == -1 {
+			return nil, false
+		} else {
+			uri = uri[off+8:]
+		}
+	case len(uri) > 7 && (uri[:7] == "http://"):
+		off := strings.Index(uri[7:], "/")
+		if off == -1 {
+			return nil, false
+		}
+		uri = uri[off+7:]
+	case (len(uri) > 0) && (uri[:1] == "/"):
+	default:
+		return nil, false
+	}
 
 	tInfo := &TraceInfo{
 		Method:  req[0],
-		Path:    uri[0],
+		Path:    uri,
 		Version: req[2],
 		TS:      ts,
 	}

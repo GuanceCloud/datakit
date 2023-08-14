@@ -53,13 +53,14 @@ struct payload_id
     __u32 prandom;
 };
 
-struct l7_buffer
+typedef struct l7_buffer
 {
     struct payload_id id;
     __s32 len;
     __u8 payload[L7_BUFFER_SIZE];
     __u64 req_ts;
-};
+} proto_buffer_t;
+
 
 // struct http_stats
 // {
