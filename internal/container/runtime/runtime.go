@@ -16,7 +16,7 @@ type Container struct {
 	ID      string
 	Pid     int // process id on the host
 	Name    string
-	Image   Image
+	Image   string
 	Labels  map[string]string
 	Envs    map[string]string
 	LogPath string
@@ -29,13 +29,6 @@ type Container struct {
 	// example: "Up 5 hours"
 	// https://github.com/moby/moby/blob/73e09ddecf03477c690b2016a613b06156b54969/container/state.go#L76
 	Status string
-}
-
-type Image struct {
-	Image     string // example: "nginx.org/nginx:1.21.0"
-	ImageName string // example: "nginx.org/nginx"
-	ShortName string // example: "nginx"
-	Tag       string // example: "1.21.0"
 }
 
 type ContainerStatus struct {

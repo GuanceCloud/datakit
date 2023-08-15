@@ -89,17 +89,9 @@ func (d *dockerClient) ListContainers() ([]*Container, error) {
 			Labels:         copyMap(c.Labels),
 			RuntimeName:    d.runtimeName,
 			RuntimeVersion: d.runtimeVersion,
+			Image:          c.Image,
 			State:          c.State,
 			Status:         c.Status,
-		}
-
-		image := digestImage(c.Image)
-		imageName, shortName, tag := ParseImage(image)
-		container.Image = Image{
-			Image:     image,
-			ImageName: imageName,
-			ShortName: shortName,
-			Tag:       tag,
 		}
 
 		status, err := d.ContainerStatus(c.ID)

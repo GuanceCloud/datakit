@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/runtime"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
@@ -34,13 +35,14 @@ type logConfigs []*logConfig
 type logInstance struct {
 	id            string
 	containerName string
+	image         string
 	logPath       string
 	configStr     string
 	configs       logConfigs
 
 	podName      string
 	podNamespace string
-	ownerKind    ownerKind
+	ownerKind    string
 	ownerName    string
 }
 
@@ -103,9 +105,14 @@ func (lc *logInstance) setTagsToLogConfigs(m map[string]string) {
 }
 
 func (lc *logInstance) tags() map[string]string {
+	imageName, shortName, imageTag := runtime.ParseImage(lc.image)
 	m := map[string]string{
-		"container_id":   lc.id,
-		"container_name": lc.containerName,
+		"container_id":     lc.id,
+		"container_name":   lc.containerName,
+		"image":            lc.image,
+		"image_name":       imageName,
+		"image_short_name": shortName,
+		"image_tag":        imageTag,
 	}
 
 	if lc.podName != "" {
@@ -113,15 +120,8 @@ func (lc *logInstance) tags() map[string]string {
 		m["namespace"] = lc.podNamespace
 	}
 
-	switch lc.ownerKind {
-	case deploymentKind:
-		m["deployment"] = lc.ownerName
-	case daemonsetKind:
-		m["daemonset"] = lc.ownerName
-	case statefulsetKind:
-		m["statefulset"] = lc.ownerName
-	default:
-		// skip
+	if lc.ownerKind != "" && lc.ownerName != "" {
+		m[lc.ownerKind] = lc.ownerName
 	}
 
 	return m

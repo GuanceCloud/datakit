@@ -7,7 +7,6 @@ package container
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -18,7 +17,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	k8sclient "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/client"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type container struct {
@@ -142,7 +140,7 @@ func (c *container) Logging() error {
 			continue
 		}
 
-		if !c.shouldPullContainerLog(info, instance) {
+		if !c.shouldPullContainerLog(instance) {
 			continue
 		}
 
@@ -150,7 +148,6 @@ func (c *container) Logging() error {
 		instance.fillLogType(info.RuntimeName)
 		instance.setTagsToLogConfigs(instance.tags())
 		instance.setTagsToLogConfigs(c.ipt.Tags)
-		instance.setTagsToLogConfigs(imageToTags(info.Image))
 
 		c.ipt.setLoggingExtraSourceMapToLogConfigs(instance.configs)
 		c.ipt.setLoggingSourceMultilineMapToLogConfigs(instance.configs)
@@ -168,11 +165,11 @@ func (c *container) Name() string {
 	return "container"
 }
 
-func (c *container) shouldPullContainerLog(info *runtime.Container, instance *logInstance) bool {
-	if instance.enabled() {
+func (c *container) shouldPullContainerLog(ins *logInstance) bool {
+	if ins.enabled() {
 		return true
 	}
-	if c.ignoreImageForLogging(info.Image.Image) {
+	if c.ignoreImageForLogging(ins.image) {
 		return false
 	}
 	return true
@@ -189,11 +186,6 @@ func (c *container) transToPoint(info *runtime.Container) typed.PointKV {
 	} else {
 		p.SetTag("container_runtime_name", "unknown")
 	}
-
-	p.SetTag("image", info.Image.Image)
-	p.SetTag("image_name", info.Image.ImageName)
-	p.SetTag("image_short_name", info.Image.ShortName)
-	p.SetTag("image_tag", info.Image.Tag)
 
 	if name := getContainerNameForLabels(info.Labels); name != "" {
 		p.SetTag("container_name", name)
@@ -254,77 +246,34 @@ func (c *container) transToPoint(info *runtime.Container) typed.PointKV {
 		p.SetTag("namespace", namespace)
 	}
 
+	image := info.Image
+
 	if c.k8sClient != nil && podName != "" {
-		owner, err := c.queryOwnerFromK8s(context.Background(), podName, namespace)
+		podInfo, err := c.queryPodInfo(context.Background(), podName, namespace)
 		if err != nil {
 			l.Warnf("container %s, %s", info.Name, err)
 		} else {
-			switch owner.ownerKind {
-			case deploymentKind:
-				p.SetTag("deployment", owner.ownerName)
-			case daemonsetKind:
-				p.SetTag("daemonset", owner.ownerName)
-			case statefulsetKind:
-				p.SetTag("statefulset", owner.ownerName)
-			default:
-				// skip
+			ownerKind, ownerName := podInfo.owner()
+			if ownerKind != "" && ownerName != "" {
+				p.SetTag(ownerKind, ownerName)
+			}
+
+			// use Image from Pod Container
+			img := podInfo.containerImage(getContainerNameForLabels(info.Labels))
+			if img != "" {
+				image = img
 			}
 		}
 	}
+
+	imageName, shortName, imageTag := runtime.ParseImage(image)
+	p.SetTag("image", image)
+	p.SetTag("image_name", imageName)
+	p.SetTag("image_short_name", shortName)
+	p.SetTag("image_tag", imageTag)
 
 	p.SetTags(c.ipt.Tags)
 	return p
-}
-
-type ownerKind string
-
-const (
-	deploymentKind  ownerKind = "Deployment"
-	daemonsetKind   ownerKind = "DaemonSet"
-	statefulsetKind ownerKind = "StatefulSet"
-)
-
-type ownerInfo struct {
-	podName        string
-	namespace      string
-	podAnnotations map[string]string
-
-	ownerKind ownerKind
-	ownerName string
-}
-
-func (c *container) queryOwnerFromK8s(ctx context.Context, podName, podNamespace string) (*ownerInfo, error) {
-	pod, err := c.k8sClient.GetPodsForNamespace(podNamespace).Get(ctx, podName, metav1.GetOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("unable query pod %s, err: %w", podName, err)
-	}
-
-	owner := ownerInfo{
-		podName:        podName,
-		namespace:      podNamespace,
-		podAnnotations: pod.GetAnnotations(),
-	}
-
-	if len(pod.OwnerReferences) != 0 {
-		switch pod.OwnerReferences[0].Kind {
-		case "ReplicaSet":
-			replica, repErr := c.k8sClient.GetReplicaSetsForNamespace(podNamespace).Get(ctx, pod.OwnerReferences[0].Name, metav1.GetOptions{})
-			if repErr == nil && len(replica.OwnerReferences) != 0 {
-				owner.ownerKind = deploymentKind
-				owner.ownerName = replica.OwnerReferences[0].Name
-			}
-		case "DaemonSet":
-			owner.ownerKind = daemonsetKind
-			owner.ownerName = pod.OwnerReferences[0].Name
-		case "StatefulSet":
-			owner.ownerKind = statefulsetKind
-			owner.ownerName = pod.OwnerReferences[0].Name
-		default:
-			// skip
-		}
-	}
-
-	return &owner, nil
 }
 
 func newFilters(include, exclude []string) (filter.Filter, error) {
@@ -375,13 +324,4 @@ func splitRules(arr []string) (rules []string) {
 func containerIsFromKubernetes(labels map[string]string) bool {
 	uid, ok := labels["io.kubernetes.pod.uid"]
 	return ok && uid != ""
-}
-
-func imageToTags(image runtime.Image) map[string]string {
-	return map[string]string{
-		"image":            image.Image,
-		"image_name":       image.ImageName,
-		"image_short_name": image.ShortName,
-		"image_tag":        image.Tag,
-	}
 }

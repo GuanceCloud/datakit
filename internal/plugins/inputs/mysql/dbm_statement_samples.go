@@ -106,9 +106,10 @@ func (m *dbmSampleMeasurement) LineProto() (*point.Point, error) {
 	return point.NewPoint(m.name, m.tags, m.fields, point.LOptElectionV2(m.election))
 }
 
+//nolint:lll
 func (m *dbmSampleMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Desc: "选取部分执行耗时较高的 SQL 语句，获取其执行计划，并采集实际执行过程中的各种性能指标。",
+		Desc: "Select some of the SQL statements with high execution time, collect their execution plans, and collect various performance indicators during the actual execution process.",
 		Name: "mysql_dbm_sample",
 		Type: "logging",
 		Fields: map[string]interface{}{

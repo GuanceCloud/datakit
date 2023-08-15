@@ -46,10 +46,10 @@ type tls struct {
 }
 
 type customQuery struct {
-	sql    string   `toml:"sql"`
-	metric string   `toml:"metric"`
-	tags   []string `toml:"tags"`
-	fields []string `toml:"fields"`
+	SQL    string   `toml:"sql"`
+	Metric string   `toml:"metric"`
+	Tags   []string `toml:"tags"`
+	Fields []string `toml:"fields"`
 
 	md5Hash string
 }

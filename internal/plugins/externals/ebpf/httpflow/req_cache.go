@@ -66,9 +66,11 @@ func (cache *ReqCache) MergeReq() []*HTTPReqFinishedInfo {
 
 	var finReqList []*HTTPReqFinishedInfo
 	for id, finReq := range cache.finReqMap {
-		if traceInfo, ok := cache.pathMap[id]; ok && traceInfo != nil {
-			finReq.HTTPStats.Path = traceInfo.Path
-			finReqList = append(finReqList, finReq)
+		if traceInfo, ok := cache.pathMap[id]; ok {
+			if traceInfo != nil {
+				finReq.HTTPStats.Path = traceInfo.Path
+				finReqList = append(finReqList, finReq)
+			}
 			delete(cache.pathMap, id)
 			delete(cache.finReqMap, id)
 		} else {

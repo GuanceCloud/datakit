@@ -102,7 +102,7 @@ func (m *dbmActivityMeasurement) Point() *gcPoint.Point {
 
 func (m *dbmActivityMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Desc: "记录当前线程的等待事件信息",
+		Desc: "Collect the waiting event of the current thread",
 		Name: "mysql_dbm_activity",
 		Type: "logging",
 		Fields: map[string]interface{}{

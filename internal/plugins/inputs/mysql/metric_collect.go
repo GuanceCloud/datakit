@@ -717,13 +717,16 @@ func (i *Input) collectMysqlCustomQueries() error {
 	i.mCustomQueries = map[string][]map[string]interface{}{}
 
 	for _, item := range i.Query {
-		arr := getCleanMysqlCustomQueries(i.q(item.sql))
+		arr := getCleanMysqlCustomQueries(i.q(item.SQL))
 		if arr == nil {
 			continue
 		}
-		hs := hashcode.GetMD5String32([]byte(item.sql))
-		i.mCustomQueries[hs] = make([]map[string]interface{}, 0)
-		i.mCustomQueries[hs] = arr
+		if item.md5Hash == "" {
+			hs := hashcode.GetMD5String32([]byte(item.SQL))
+			item.md5Hash = hs
+		}
+		i.mCustomQueries[item.md5Hash] = make([]map[string]interface{}, 0)
+		i.mCustomQueries[item.md5Hash] = arr
 	}
 
 	return nil

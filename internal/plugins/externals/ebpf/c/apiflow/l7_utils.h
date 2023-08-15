@@ -358,7 +358,6 @@ parse_layer7_http1(__u8 *buffer, struct layer7_http *stats)
         if (buffer[1] == 'T' && buffer[2] == 'T' &&
             buffer[3] == 'P') // response payload
         {
-            stats->status_code = HTTP_REQ_RESP;
             goto HTTPRESPONSE;
         }
         else if (buffer[1] == 'E' && buffer[2] == 'A' && buffer[3] == 'D' &&
@@ -476,7 +475,7 @@ static __always_inline int http_try_upload_keep_alive_fin(void *ctx,
     struct layer7_http *http_info =
         bpf_map_lookup_elem(&bpfmap_http_stats, conn);
 
-    if (http_info == NULL)
+    if (http_info == NULL || http_info->resp_func == P_UNKNOWN)
     {
         return 0;
     }
@@ -612,16 +611,17 @@ static __always_inline req_resp_t checkHTTP(struct socket *skt, __u8 *buf,
     // bpf_printk("r byte: %d, r %s", buf_size, tmp_buf);
 
     __u8 tmp_buffer[32] = {0};
-    int tmp_size = 0;
-    if (tmp_size >= 32)
+    int size_copy = 0;
+    if (buf_size > 31)
     {
-        tmp_size = 32;
+        size_copy = 31;
     }
     else
     {
-        tmp_size = buf_size & 0x1F;
+        size_copy = buf_size & 0x1F;
     }
-    bpf_probe_read(&tmp_buffer, tmp_size, buf);
+
+    bpf_probe_read(&tmp_buffer, size_copy, buf);
 
     // Determine request/response and whether it is a server.
     return parse_layer7_http1(tmp_buffer, stats);
@@ -660,16 +660,16 @@ static __always_inline req_resp_t checkHTTPS(struct socket *skt, __u8 *buf,
 
     __u8 tmp_buffer[32] = {0};
 
-    int tmp_size = 0;
-    if (tmp_size >= 32)
+    int size_copy = 0;
+    if (buf_size > 31)
     {
-        tmp_size = 32;
+        size_copy = 31;
     }
     else
     {
-        tmp_size = buf_size & 0x1F;
+        size_copy = buf_size & 0x1F;
     }
-    bpf_probe_read(&tmp_buffer, tmp_size, buf);
+    bpf_probe_read(&tmp_buffer, size_copy, buf);
 
     // Determine request/response and whether it is a server.
     return parse_layer7_http1(tmp_buffer, stats);

@@ -20,7 +20,6 @@ type baseMeasurement struct {
 	election bool
 }
 
-// 生成行协议.
 func (m *baseMeasurement) LineProto() (*point.Point, error) {
 	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
 }
@@ -38,8 +37,6 @@ func (m *baseMeasurement) Point() *gcPoint.Point {
 		opts...)
 }
 
-// 指定指标.
-//
 //nolint:lll
 func (m *baseMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 	return &inputs.MeasurementInfo{

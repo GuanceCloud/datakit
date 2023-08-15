@@ -23,16 +23,16 @@ func (c *container) cleanMissingContainerLog(newIDs []string) {
 	}
 }
 
-func (c *container) tailingLogs(instance *logInstance) {
-	g := goroutine.NewGroup(goroutine.Option{Name: "container-logs/" + instance.containerName})
+func (c *container) tailingLogs(ins *logInstance) {
+	g := goroutine.NewGroup(goroutine.Option{Name: "container-logs/" + ins.containerName})
 	done := make(chan interface{})
 
-	for _, cfg := range instance.configs {
+	for _, cfg := range ins.configs {
 		if cfg.Disable {
 			continue
 		}
 
-		if c.logTable.inTable(instance.id, cfg.Path) {
+		if c.logTable.inTable(ins.id, cfg.Path) {
 			continue
 		}
 
@@ -66,15 +66,15 @@ func (c *container) tailingLogs(instance *logInstance) {
 
 		tail, err := tailer.NewTailerSingle(path, opt)
 		if err != nil {
-			l.Errorf("failed to create container-log collection %s for %s, err: %s", path, instance.containerName, err)
+			l.Errorf("failed to create container-log collection %s for %s, err: %s", path, ins.containerName, err)
 			continue
 		}
 
-		c.logTable.addToTable(instance.id, cfg.Path, done)
+		c.logTable.addToTable(ins.id, cfg.Path, done)
 
 		g.Go(func(ctx context.Context) error {
 			defer func() {
-				c.logTable.removePathFromTable(instance.id, cfg.Path)
+				c.logTable.removePathFromTable(ins.id, cfg.Path)
 				l.Infof("remove container log collection from source %s", opt.Source)
 			}()
 			tail.Run()
@@ -87,47 +87,48 @@ func (c *container) queryContainerLogInfo(info *runtime.Container) *logInstance 
 	podName := getPodNameForLabels(info.Labels)
 	podNamespace := getPodNamespaceForLabels(info.Labels)
 
-	instance := &logInstance{
-		id:           info.ID,
-		logPath:      info.LogPath,
-		podName:      podName,
-		podNamespace: podNamespace,
+	ins := &logInstance{
+		id:            info.ID,
+		containerName: info.Name,
+		image:         info.Image,
+		logPath:       info.LogPath,
+		podName:       podName,
+		podNamespace:  podNamespace,
 	}
 
-	containerName := getContainerNameForLabels(info.Labels)
-	if containerName != "" {
-		instance.containerName = containerName
-	} else {
-		instance.containerName = info.Name
+	if name := getContainerNameForLabels(info.Labels); name != "" {
+		ins.containerName = name
 	}
 
 	if c.k8sClient != nil && podName != "" {
-		owner, err := c.queryOwnerFromK8s(context.Background(), podName, podNamespace)
+		podInfo, err := c.queryPodInfo(context.Background(), podName, podNamespace)
 		if err != nil {
 			l.Warn(err)
 		} else {
 			// ex: datakit/logs
-			if v := owner.podAnnotations[fmt.Sprintf(logConfigAnnotationKeyFormat, "")]; v != "" {
-				instance.configStr = v
+			if v := podInfo.pod.Annotations[fmt.Sprintf(logConfigAnnotationKeyFormat, "")]; v != "" {
+				ins.configStr = v
 			}
 
 			// ex: datakit/nginx.logs
-			if v := owner.podAnnotations[fmt.Sprintf(logConfigAnnotationKeyFormat, instance.containerName+".")]; v != "" {
-				instance.configStr = v
+			if v := podInfo.pod.Annotations[fmt.Sprintf(logConfigAnnotationKeyFormat, ins.containerName+".")]; v != "" {
+				ins.configStr = v
 			}
 
-			instance.ownerKind = owner.ownerKind
-			instance.ownerName = owner.ownerName
+			ins.ownerKind, ins.ownerName = podInfo.owner()
+
+			// use Image from Pod Container
+			ins.image = podInfo.containerImage(ins.containerName)
 		}
 	}
 
 	// ex: DATAKIT_LOGS_CONFIG
 	if info.Envs != nil {
 		if str, ok := info.Envs["DATAKIT_LOGS_CONFIG"]; ok {
-			instance.configStr = str
+			ins.configStr = str
 		}
 	}
 
-	l.Debugf("container %s use config: %v", instance.containerName, instance)
-	return instance
+	l.Debugf("container %s use config: %v", ins.containerName, ins)
+	return ins
 }

@@ -63,25 +63,21 @@ type promRunner struct {
 	lastTime time.Time
 }
 
-func newPromRunnerWithURLParams(source, host, port, scheme, path string, tags map[string]string) (*promRunner, error) {
+func newPromRunnerWithURLParams(source, measurementName, host, port, scheme, path string) (*promRunner, error) {
 	u, err := getPromURL(host, port, scheme, path)
 	if err != nil {
 		return nil, err
 	}
 
-	return newPromRunner(source, []string{u.String()}, "", tags)
+	return newPromRunner(source, measurementName, []string{u.String()}, "")
 }
 
-func newPromRunner(source string, urls []string, interval string, tags map[string]string) (*promRunner, error) {
-	tagsTemp := make(map[string]string, len(tags))
-	for k, v := range tags {
-		tagsTemp[k] = v
-	}
-
+func newPromRunner(source, measurementName string, urls []string, interval string) (*promRunner, error) {
 	c := &promConfig{
-		Source: source,
-		URLs:   urls,
-		Tags:   tagsTemp,
+		Source:          source,
+		URLs:            urls,
+		MeasurementName: measurementName,
+		Tags:            make(map[string]string),
 	}
 
 	if val, err := time.ParseDuration(interval); err != nil {
@@ -119,6 +115,9 @@ func newPromRunnerWithTomlConfig(str string) ([]*promRunner, error) {
 }
 
 func newPromRunnerWithConfig(c *promConfig) (*promRunner, error) {
+	if c.Tags == nil {
+		c.Tags = make(map[string]string)
+	}
 	opts := []iprom.PromOption{
 		iprom.WithLogger(klog), // WithLogger must in the first
 		iprom.WithSource(c.Source),
@@ -165,18 +164,17 @@ func newPromRunnerWithConfig(c *promConfig) (*promRunner, error) {
 
 func (p *promRunner) addTags(tags map[string]string) {
 	for k, v := range tags {
-		p.addSingleTag(k, v)
+		p.addTag(k, v)
 	}
 }
 
-func (p *promRunner) addSingleTag(k, v string) {
+func (p *promRunner) addTag(k, v string) {
 	if p.conf == nil {
 		return
 	}
 	if p.conf.Tags == nil {
 		p.conf.Tags = make(map[string]string)
 	}
-
 	p.conf.Tags[k] = v
 }
 

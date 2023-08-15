@@ -18,7 +18,6 @@ type tbMeasurement struct {
 	election bool
 }
 
-// 生成行协议.
 func (m *tbMeasurement) LineProto() (*point.Point, error) {
 	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
 }
@@ -36,11 +35,10 @@ func (m *tbMeasurement) Point() *gcPoint.Point {
 		opts...)
 }
 
-// 指定指标.
 //nolint:lll
 func (m *tbMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Desc: "MySQL 表指标",
+		Desc: "MySQL table information",
 		Type: "metric",
 		Name: "mysql_table_schema",
 		Fields: map[string]interface{}{
