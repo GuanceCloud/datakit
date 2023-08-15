@@ -509,7 +509,7 @@ func assertSelectedMeasurments(selected []string) func(pts []*point.Point, cs *c
 					cs.t.Logf("[%s] check measurement %s failed: %+#v", cs.t.Name(), name, msg)
 				}
 				if len(msgs) > 0 {
-					return fmt.Errorf("check measurement %s failed: collected points are as expected ", name)
+					return fmt.Errorf("check measurement %s failed: collected points are not as expected ", name)
 				}
 				pointMap[name] = true
 			} else {

@@ -41,7 +41,7 @@ func (m *dbmStateMeasurement) Point() *gcPoint.Point {
 
 func (m *dbmStateMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Desc: "记录查询语句的执行次数、等待耗时、锁定时间和查询的记录行数等。",
+		Desc: "Record the number of executions of the query statement, wait time, lock time, and the number of rows queried.",
 		Name: "mysql_dbm_metric",
 		Type: "logging",
 		Fields: map[string]interface{}{

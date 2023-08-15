@@ -378,7 +378,10 @@ func RunOraemon(endpoint string) (p *dockertest.Pool, resource *dockertest.Resou
 		Name: volumeName,
 	})
 	if err != nil {
-		if err.Error() != "no such volume" {
+		switch err.Error() {
+		case "no such volume", "volume in use and cannot be removed":
+			// Ignore.
+		default:
 			return nil, nil, "", err
 		}
 	}

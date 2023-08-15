@@ -18,7 +18,6 @@ type userMeasurement struct {
 	election bool
 }
 
-// 生成行协议.
 func (m *userMeasurement) LineProto() (*point.Point, error) {
 	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
 }
@@ -36,11 +35,10 @@ func (m *userMeasurement) Point() *gcPoint.Point {
 		opts...)
 }
 
-// 指定指标.
 //nolint:lll
 func (m *userMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Desc: "MySQL 用户指标",
+		Desc: "MySQL user information",
 		Name: "mysql_user_status",
 		Type: "metric",
 		Fields: map[string]interface{}{
