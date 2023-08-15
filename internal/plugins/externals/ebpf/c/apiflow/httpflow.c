@@ -423,7 +423,7 @@ int tracepoint__sys_exit_writev(struct tp_syscall_exit_args *ctx)
 
     struct layer7_http stats = {0};
     req_resp_t req_resp = checkHTTP(arg->skt, vec.iov_base,
-                                    &conn, &stats, ctx->ret);
+                                    &conn, &stats, vec.iov_len);
     if ((req_resp != HTTP_REQ_REQ) && (req_resp != HTTP_REQ_RESP))
     {
         goto clean;
@@ -522,7 +522,7 @@ int tracepoint__sys_exit_readv(struct tp_syscall_exit_args *ctx)
 
     struct layer7_http stats = {0};
     req_resp_t req_resp = checkHTTP(arg->skt, vec.iov_base,
-                                    &conn, &stats, ctx->ret);
+                                    &conn, &stats, vec.iov_len);
     if ((req_resp != HTTP_REQ_REQ) && (req_resp != HTTP_REQ_RESP))
     {
         goto clean;

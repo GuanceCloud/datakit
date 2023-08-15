@@ -350,6 +350,9 @@ func (tracer *HTTPFlowTracer) bufHandle(cpu int, data []byte,
 	if bufLen <= 0 {
 		return
 	}
+	if bufLen > PayloadBufSize {
+		bufLen = PayloadBufSize
+	}
 
 	b := *(*[PayloadBufSize]byte)(unsafe.Pointer(&bufferC.payload))
 
@@ -358,7 +361,10 @@ func (tracer *HTTPFlowTracer) bufHandle(cpu int, data []byte,
 	// 	fmt.Println(err)
 	// }
 
-	info, ok := tracing.ParseHTTP1xHeader(b[:bufLen], ts)
+	bufCopy := make([]byte, 0, bufLen)
+	bufCopy = append(bufCopy, b[:bufLen]...)
+
+	info, ok := tracing.ParseHTTP1xHeader(bufCopy, ts)
 	if !ok {
 		return
 	}
