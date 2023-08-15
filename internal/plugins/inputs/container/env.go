@@ -7,13 +7,11 @@ package container
 
 import (
 	"encoding/json"
-	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/container/discovery"
 	timex "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
 )
 
@@ -42,7 +40,6 @@ import (
 //   ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_EXTRA_PATTERNS_JSON : string (JSON string array)
 //   ENV_INPUT_CONTAINER_LOGGING_MIN_FLUSH_INTERVAL: string ("10s")
 //   ENV_INPUT_CONTAINER_LOGGING_MAX_MULTILINE_LIFE_DURATION : string ("5s")
-//   ENV_INPUT_CONTAINER_PROMETHEUS_MONITORING_MATCHES_CONFIG : string (JSON to prometheusMonitoringExtraConfig)
 func (i *Input) ReadEnv(envs map[string]string) {
 	if endpointStr, ok := envs["ENV_INPUT_CONTAINER_ENDPOINTS"]; ok {
 		arrays := strings.Split(endpointStr, ",")
@@ -212,20 +209,4 @@ func (i *Input) ReadEnv(envs map[string]string) {
 			i.LoggingMaxMultilineLifeDuration = dur
 		}
 	}
-}
-
-func getPromMatchsConfigFromEnv() *discovery.PrometheusMonitoringExtraConfig {
-	confStr := os.Getenv("ENV_INPUT_CONTAINER_PROMETHEUS_MONITORING_MATCHES_CONFIG")
-	if confStr == "" {
-		return nil
-	}
-
-	var conf discovery.PrometheusMonitoringExtraConfig
-
-	if err := json.Unmarshal([]byte(confStr), &conf); err != nil {
-		l.Warnf("parse ENV_INPUT_CONTAINER_PROMETHEUS_MONITORING_MATCHES_CONFIG to config structure: %s, ignore", err)
-		return nil
-	}
-
-	return &conf
 }

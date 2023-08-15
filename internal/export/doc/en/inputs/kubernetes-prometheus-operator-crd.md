@@ -59,18 +59,17 @@ There is now a nacos metrics service in the Kubernetes cluster that collects met
 1. Install Prometheus-Operator
 
 ```
-$ wget https://github.com/prometheus-operator/prometheus-operator/blob/main/bundle.yaml
+$ wget https://github.com/prometheus-operator/prometheus-operator/releases/download/v0.62.0/bundle.yaml
 $ kubectl apply -f bundle.yaml
 $ kubectl get crd
 NAME                                        CREATED AT
-alertmanagerconfigs.monitoring.coreos.com   2022-11-02T16:31:33Z
-alertmanagers.monitoring.coreos.com         2022-11-02T16:31:33Z
-podmonitors.monitoring.coreos.com           2022-11-02T16:31:33Z
-probes.monitoring.coreos.com                2022-11-02T16:31:33Z
-prometheuses.monitoring.coreos.com          2022-11-02T16:31:33Z
-prometheusrules.monitoring.coreos.com       2022-11-02T16:31:34Z
-servicemonitors.monitoring.coreos.com       2022-11-02T16:31:34Z
-thanosrulers.monitoring.coreos.com          2022-11-02T16:31:34Z
+alertmanagerconfigs.monitoring.coreos.com   2023-08-11T16:31:33Z
+alertmanagers.monitoring.coreos.com         2023-08-11T16:31:33Z
+podmonitors.monitoring.coreos.com           2023-08-11T16:31:33Z
+probes.monitoring.coreos.com                2023-08-11T16:31:33Z
+prometheuses.monitoring.coreos.com          2023-08-11T16:31:33Z
+servicemonitors.monitoring.coreos.com       2023-08-11T16:31:34Z
+thanosrulers.monitoring.coreos.com          2023-08-11T16:31:34Z
 ```
 
 2. Create PodMonitor
@@ -107,125 +106,9 @@ Several important configuration items should be consistent with nacos:
 
 Configuration parameters [document](https://doc.crds.dev/github.com/prometheus-operator/kube-prometheus/monitoring.coreos.com/PodMonitor/v1@v0.7.0){:target="_blank"}. Currently, Datakit only supports the requirement part, and does not support authentication configurations such as `baseAuth`, `bearerToeknSecret` and `tlsConfig`.
 
-### Turn on Datakit Collection {#config}
+### Measurements and Tags {#measurement-and-tags}
 
-Add the environment variable `ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_MONITORS` to datakit.yaml with a value of `"true"` to start PodMonitor metrics collection.
-
-To work with metric data in more detail, Datakit provides the environment variable `ENV_INPUT_CONTAINER_PROMETHEUS_MONITORING_MATCHES_CONFIG` in JSON format, as follows:
-
-```json
-{
-    "matches": [
-        {
-            "namespaceSelector": {
-                "any": true,
-                "matchNamespaces": []
-            },
-            "selector": {
-                 "matchLabels": {
-                     "app": "nacos"
-                 },
-                 "matchExpressions": [
-                     {
-                         "key": "environment",
-                         "operator": "NotIn",
-                         "values": [ "production" ]
-                     }
-                 ]
-            },
-            "promConfig": {
-                "metric_types": ["counter", "gauge"],
-                "measurement_prefix": "nacos_",
-                "measurement_name": "prom",
-                "tags": {
-                    "key1": "value1"
-                }
-            }
-        }
-    ]
-}
-```
-
-- matches: array format, allowing multiple matches, only the first successful match will take effect.
-    - namespaceSelector: Specify the namespace of the object
-        - any：booler type, whether to accept all namespaces
-        - matchNamespaces: an array of strings that specifies a list of namespaces
-    - selector: Select the Pod object
-        - matchLabels: The map of the K/V key-value pair, equivalent to the IN of the matchExpressions operator with all conditions being AND
-        - matchExpressions: List of matching expressions
-            - key: A string value that represents the key of the label
-            - operator: A string value that represents the relationship between key and values and can only be In, NotIn, Exists, and DoesNotExist
-            - values: an array of strings that must be empty if the operator is In or NotIn; If it is another operator, it must not be empty.
-    - promConfig: Corresponding configuration of prom collector
-        - metric_types
-        - metric_name_filter
-        - measurement_prefix
-        - measurement_name
-        - measurements
-            - prefix
-            - name
-        - tags_ignore
-        - tags_rename
-            - overwrite_exist_tags
-            - mapping
-        - ignore_tag_kv_match
-        - ignore_req_err
-        - http_headers
-        - as_logging
-            - enable
-            - service
-        - tags
-        - auth
-
-`promConfig` supports most of the conf fields of the prom collector, which are listed in the above field list, as shown in [doc](prom.md)。
-
-???+ attention
-
-    matchLabels and matchExpressions are Kubernetes' common match methods, as shown in [doc](https://kubernetes.io/zh-cn/docs/concepts/overview/working-with-objects/labels/#label-selectors){:target="_blank"}。
-
-???+ attention
-
-    The value of the environment variable `ENV_INPUT_CONTAINER_PROMETHEUS_MONITORING_MATCHES_CONFIG` is in JSON format and needs to be compressed into a line and escaped. You can store the configuration through ConfigMap, and then specify the replacement by ENV. For example:
-    ```yaml
-    apiVersion: v1
-    kind: ConfigMap
-    metadata:
-      name: datakit-prom-crd
-    data:
-      prom-match-config: |
-        {
-            "matches":[
-                {
-                    "namespaceSelector":{
-                        "any":true
-                    },
-                    "selector":{
-                        "matchLabels":{
-                            "app":"nacos"
-                        }
-                    },
-                    "promConfig":{
-                        "metric_types":[
-                            "counter",
-                            "gauge"
-                        ],
-                        "measurement_prefix":"nacos_"
-                    }
-                }
-            ]
-        }
-    ```
-
-    ENV uses ConfigMap content:
-    ```
-      - env:
-        - name: ENV_INPUT_CONTAINER_PROMETHEUS_MONITORING_MATCHES_CONFIG
-          valueFrom:
-            configMapKeyRef:
-              name: datakit-prom-crd  # name of configmap
-              key: prom-match-config # The primary key name of configmap
-              optional: false
-    ```
+Refer to [doc](kubernetes-prom.md#measurement-and-tags).
 
 ### Check {#check}
 

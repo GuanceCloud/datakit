@@ -22,7 +22,6 @@ type Config struct {
 	EnablePrometheusPodMonitors        bool
 	EnablePrometheusServiceMonitors    bool
 	ExtraTags                          map[string]string
-	PrometheusMonitoringExtraConfig    *PrometheusMonitoringExtraConfig
 }
 
 type Discovery struct {
@@ -30,15 +29,13 @@ type Discovery struct {
 	cfg           *Config
 	localNodeName string
 
-	paused func() bool
-	done   <-chan interface{}
+	done <-chan interface{}
 }
 
-func NewDiscovery(client client.Client, cfg *Config, paused func() bool, done <-chan interface{}) *Discovery {
+func NewDiscovery(client client.Client, cfg *Config, done <-chan interface{}) *Discovery {
 	return &Discovery{
 		client: client,
 		cfg:    cfg,
-		paused: paused,
 		done:   done,
 	}
 }
@@ -71,16 +68,11 @@ func (d *Discovery) start() {
 	collectTicker := time.NewTicker(time.Second * 1)
 	defer collectTicker.Stop()
 
-	runners, electionRunners := d.getRunners()
+	runners := d.getRunners()
 
 	for {
 		for _, r := range runners {
 			r.runOnce()
-		}
-		if d.election() && !d.paused() {
-			for _, r := range electionRunners {
-				r.runOnce()
-			}
 		}
 
 		select {
@@ -93,7 +85,7 @@ func (d *Discovery) start() {
 			return
 
 		case <-updateTicker.C:
-			runners, electionRunners = d.getRunners()
+			runners = d.getRunners()
 
 		case <-collectTicker.C:
 			// nil
@@ -101,46 +93,25 @@ func (d *Discovery) start() {
 	}
 }
 
-func (d *Discovery) election() bool {
-	return d.cfg.EnablePrometheusServiceAnnotations || d.cfg.EnablePrometheusServiceMonitors
-}
-
-// getRunners return runners and election runners.
-func (d *Discovery) getRunners() (runners []*promRunner, electionRunners []*promRunner) {
-	runners = d.fetchRunners()
-	klog.Infof("fetch input list, len %d", len(runners))
-
-	if d.election() {
-		electionRunners = d.fetchElectionRunners()
-		klog.Infof("fetch election input list, len %d", len(electionRunners))
-	}
-
-	return
-}
-
-func (d *Discovery) fetchRunners() []*promRunner {
+func (d *Discovery) getRunners() []*promRunner {
 	runners := []*promRunner{}
 	runners = append(runners, d.newPromFromPodAnnotationExport()...)
 	runners = append(runners, d.newPromFromDatakitCRD()...)
 
 	if d.cfg.EnablePrometheusPodAnnotations {
-		runners = append(runners, d.newPromFromPodAnnotationKeys()...)
+		runners = append(runners, d.newPromFromPodAnnotations()...)
 	}
-	if d.cfg.EnablePrometheusPodMonitors {
-		runners = append(runners, d.newPromForPodMonitors()...)
-	}
-	return runners
-}
-
-func (d *Discovery) fetchElectionRunners() []*promRunner {
-	runners := []*promRunner{}
-
 	if d.cfg.EnablePrometheusServiceAnnotations {
 		runners = append(runners, d.newPromFromServiceAnnotations()...)
+	}
+
+	if d.cfg.EnablePrometheusPodMonitors {
+		runners = append(runners, d.newPromForPodMonitors()...)
 	}
 	if d.cfg.EnablePrometheusServiceMonitors {
 		runners = append(runners, d.newPromForServiceMonitors()...)
 	}
 
+	klog.Infof("fetch prom input list, len %d", len(runners))
 	return runners
 }

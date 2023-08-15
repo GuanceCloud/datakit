@@ -13,43 +13,41 @@ import (
 	"time"
 
 	kubev1guancebeta1 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/typed/guance/v1beta1"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 	apicorev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (d *Discovery) newPromFromPodAnnotationKeys() []*promRunner {
+const defaultNamespace = ""
+
+func (d *Discovery) newPromFromPodAnnotations() []*promRunner {
 	var res []*promRunner
 
-	opt := metav1.ListOptions{FieldSelector: "spec.nodeName=" + d.localNodeName}
-	list, err := d.client.GetPods().List(context.Background(), opt)
-	if err != nil {
-		klog.Warnf("failed to get pods, err: %s", err)
-		return nil
-	}
+	pods := d.getLocalPodsFromLabelSelector("pod-export", defaultNamespace, nil)
 
-	for _, item := range list.Items {
-		if !parseScrapeFromProm(item.Annotations[annotationPrometheusioScrape]) {
+	for _, pod := range pods {
+		if !parseScrapeFromProm(pod.Annotations[annotationPrometheusioScrape]) {
 			continue
 		}
 
 		runner, err := newPromRunnerWithURLParams(
-			"k8s.pod/"+item.Name,
-			item.Status.PodIP, // podIP:port
-			item.Annotations[annotationPrometheusioPort],
-			item.Annotations[annotationPrometheusioScheme],
-			item.Annotations[annotationPrometheusioPath],
-			d.cfg.ExtraTags,
+			"k8s.pod/"+pod.Name,
+			queryPodOwner(pod),
+			pod.Status.PodIP, // podIP:port
+			pod.Annotations[annotationPrometheusioPort],
+			pod.Annotations[annotationPrometheusioScheme],
+			pod.Annotations[annotationPrometheusioPath],
 		)
 		if err != nil {
-			klog.Warnf("failed to new prom runner of pod %s, err: %s, skip", item.Name, err)
+			klog.Warnf("failed to new prom runner of pod %s, err: %s, skip", pod.Name, err)
 			continue
 		}
 
-		runner.addSingleTag("namespace", item.Namespace)
-		runner.addSingleTag("pod", item.Name)
+		runner.addTag("namespace", pod.Namespace)
+		runner.addTag("pod_name", pod.Name)
 		runner.addTags(d.cfg.ExtraTags)
 
-		klog.Infof("create prom runner of pod %s, urls %s", item.Name, runner.conf.URLs)
+		klog.Infof("create prom runner of pod %s, urls %s", pod.Name, runner.conf.URLs)
 		res = append(res, runner)
 	}
 
@@ -59,36 +57,38 @@ func (d *Discovery) newPromFromPodAnnotationKeys() []*promRunner {
 func (d *Discovery) newPromFromServiceAnnotations() []*promRunner {
 	var res []*promRunner
 
-	list, err := d.client.GetServices().List(context.Background(), metaV1ListOption)
-	if err != nil {
-		klog.Warnf("failed to get services, err: %s", err)
-		return nil
-	}
+	svcs := d.getServicesFromLabelSelector("service-export", defaultNamespace, nil)
 
-	for _, item := range list.Items {
-		if !parseScrapeFromProm(item.Annotations[annotationPrometheusioScrape]) {
+	for _, svc := range svcs {
+		if !parseScrapeFromProm(svc.Annotations[annotationPrometheusioScrape]) {
 			continue
 		}
 
-		runner, err := newPromRunnerWithURLParams(
-			"k8s.service/"+item.Name,
-			fmt.Sprintf("%s.%s", item.Name, item.Namespace), // service_name.service_namespace:port
-			item.Annotations[annotationPrometheusioPort],
-			item.Annotations[annotationPrometheusioScheme],
-			item.Annotations[annotationPrometheusioPath],
-			d.cfg.ExtraTags,
-		)
-		if err != nil {
-			klog.Warnf("failed to new prom runner of service %s, err: %s, skip", item.Name, err)
-			continue
+		selector := &metav1.LabelSelector{MatchLabels: svc.Spec.Selector}
+		pods := d.getLocalPodsFromLabelSelector("service-export-to-pod", defaultNamespace, selector)
+
+		for _, pod := range pods {
+			runner, err := newPromRunnerWithURLParams(
+				fmt.Sprintf("k8s.service(%s)-pod/%s", svc.Name, pod.Name),
+				queryPodOwner(pod),
+				pod.Status.PodIP, // podIP:port
+				svc.Annotations[annotationPrometheusioPort],
+				svc.Annotations[annotationPrometheusioScheme],
+				svc.Annotations[annotationPrometheusioPath],
+			)
+			if err != nil {
+				klog.Warnf("failed to new prom runner of service %s to pod %s, err: %s, skip", svc.Name, pod.Name, err)
+				continue
+			}
+
+			runner.addTag("namespace", svc.Namespace)
+			runner.addTag("service_name", svc.Name)
+			runner.addTag("pod_name", pod.Name)
+			runner.addTags(d.cfg.ExtraTags)
+
+			klog.Infof("created prom runner of service %s to pod %s, urls %s", svc.Name, pod.Name, runner.conf.URLs)
+			res = append(res, runner)
 		}
-
-		runner.addSingleTag("namespace", item.Namespace)
-		runner.addSingleTag("service", item.Name)
-		runner.addTags(d.cfg.ExtraTags)
-
-		klog.Infof("created prom runner of service %s, urls %s", item.Name, runner.conf.URLs)
-		res = append(res, runner)
 	}
 
 	return res
@@ -97,31 +97,26 @@ func (d *Discovery) newPromFromServiceAnnotations() []*promRunner {
 func (d *Discovery) newPromFromPodAnnotationExport() []*promRunner {
 	var res []*promRunner
 
-	opt := metav1.ListOptions{FieldSelector: "spec.nodeName=" + d.localNodeName}
-	list, err := d.client.GetPods().List(context.Background(), opt)
-	if err != nil {
-		klog.Warnf("failed to get pods from node %s, err: %s", d.localNodeName, err)
-		return nil
-	}
+	pods := d.getLocalPodsFromLabelSelector("pod-export-config", defaultNamespace, nil)
 
-	for idx, item := range list.Items {
-		cfg, ok := item.GetAnnotations()[annotationPromExport]
+	for _, pod := range pods {
+		cfg, ok := pod.Annotations[annotationPromExport]
 		if !ok {
 			continue
 		}
 
-		runners, err := newPromRunnersForPod(&list.Items[idx], cfg)
+		runners, err := newPromRunnersForPod(pod, cfg)
 		if err != nil {
-			klog.Warnf("failed to new prom runner of pod %s export, err: %s, skip", item.Name, err)
+			klog.Warnf("failed to new prom runner of pod %s export-config, err: %s, skip", pod.Name, err)
 			continue
 		}
 
 		for _, runner := range runners {
-			runner.addSingleTag("namespace", item.Namespace)
-			runner.addSingleTag("pod", item.Name)
+			runner.addTag("namespace", pod.Namespace)
+			runner.addTag("pod_name", pod.Name)
 			runner.addTags(d.cfg.ExtraTags)
 
-			klog.Infof("created prom runner of PodExport %s, urls %s", item.Name, runner.conf.URLs)
+			klog.Infof("created prom runner of pod-export-config %s, urls %s", pod.Name, runner.conf.URLs)
 			res = append(res, runner)
 		}
 	}
@@ -142,8 +137,8 @@ func (d *Discovery) newPromFromDatakitCRD() []*promRunner {
 		}
 
 		for _, runner := range runners {
-			runner.addSingleTag("namespace", pod.Namespace)
-			runner.addSingleTag("pod", pod.Name)
+			runner.addTag("namespace", pod.Namespace)
+			runner.addTag("pod_name", pod.Name)
 			runner.addTags(d.cfg.ExtraTags)
 
 			res = append(res, runner)
@@ -171,32 +166,32 @@ func (d *Discovery) newPromForPodMonitors() []*promRunner {
 		if item == nil {
 			continue
 		}
+		if len(item.Spec.PodMetricsEndpoints) == 0 {
+			continue
+		}
 
 		pods := []*apicorev1.Pod{}
 
 		if item.Spec.NamespaceSelector.Any {
-			pods = d.getPodsFromLabelSelector("", "PodMonitor", &list.Items[idx].Spec.Selector)
+			pods = d.getLocalPodsFromLabelSelector("PodMonitor", defaultNamespace, &list.Items[idx].Spec.Selector)
 		} else {
 			if len(item.Spec.NamespaceSelector.MatchNames) != 0 {
 				for _, namespace := range item.Spec.NamespaceSelector.MatchNames {
-					pods = append(pods, d.getPodsFromLabelSelector(namespace, "PodMonitor", &list.Items[idx].Spec.Selector)...)
+					pods = append(pods, d.getLocalPodsFromLabelSelector("PodMonitor", namespace, &list.Items[idx].Spec.Selector)...)
 				}
 			} else {
-				pods = d.getPodsFromLabelSelector(item.Namespace, "PodMonitor", &list.Items[idx].Spec.Selector)
+				pods = d.getLocalPodsFromLabelSelector("PodMonitor", item.Namespace, &list.Items[idx].Spec.Selector)
 			}
 		}
 
 		klog.Infof("find %d pods from PodMonitor %s", len(pods), item.Name)
 
-		for _, pod := range pods {
-			for _, metricsEndpoints := range item.Spec.PodMetricsEndpoints {
-				var port int
-				if metricsEndpoints.Port != "" {
-					port = findContainerPort(pod, metricsEndpoints.Port)
-					if port == -1 {
-						klog.Warnf("not found port %s for PodMonitor %s pod %s, skip", metricsEndpoints.Port, item.Name, pod.Name)
-						continue
-					}
+		for _, metricsEndpoints := range item.Spec.PodMetricsEndpoints {
+			for _, pod := range pods {
+				port := findContainerPortForPod(pod, metricsEndpoints.Port)
+				if port == -1 {
+					klog.Warnf("not found port %s for PodMonitor %s pod %s, skip", metricsEndpoints.Port, item.Name, pod.Name)
+					continue
 				}
 
 				u, err := getPromURL(pod.Status.PodIP, strconv.Itoa(port), metricsEndpoints.Scheme, metricsEndpoints.Path)
@@ -207,22 +202,14 @@ func (d *Discovery) newPromForPodMonitors() []*promRunner {
 				u.RawQuery = url.Values(metricsEndpoints.Params).Encode()
 
 				conf := &promConfig{
-					Source: fmt.Sprintf("k8s.podMonitor/%s::%s", item.Name, pod.Name),
-					URLs:   []string{u.String()},
+					Source:          fmt.Sprintf("k8s.podMonitor(%s)-pod/%s", item.Name, pod.Name),
+					URLs:            []string{u.String()},
+					MeasurementName: queryPodOwner(pod),
 				}
 				if val, err := time.ParseDuration(metricsEndpoints.Interval); err != nil {
 					conf.Interval = defaultPrometheusioInterval
 				} else {
 					conf.Interval = val
-				}
-
-				if d.cfg.PrometheusMonitoringExtraConfig != nil {
-					klog.Debugf("matching promConfig %#v", d.cfg.PrometheusMonitoringExtraConfig)
-					newconf := d.cfg.PrometheusMonitoringExtraConfig.matchPromConfig(pod.Labels, pod.Namespace)
-					if newconf != nil {
-						klog.Debugf("use promConfig %#v for PodMonitor %s podName %s", newconf, item.Name, pod.Name)
-						conf = mergePromConfig(conf, newconf)
-					}
 				}
 
 				runner, err := newPromRunnerWithConfig(conf)
@@ -231,8 +218,8 @@ func (d *Discovery) newPromForPodMonitors() []*promRunner {
 					continue
 				}
 
-				runner.addSingleTag("namespace", pod.Namespace)
-				runner.addSingleTag("pod", pod.Name)
+				runner.addTag("namespace", pod.Namespace)
+				runner.addTag("pod_name", pod.Name)
 				runner.addTags(d.cfg.ExtraTags)
 
 				klog.Infof("create prom runner for PodMonitor %s pod %s, urls: %#v", item.Name, pod.Name, runner.conf.URLs)
@@ -249,7 +236,7 @@ func (d *Discovery) newPromForServiceMonitors() []*promRunner {
 
 	list, err := d.client.GetPrmetheusServiceMonitors().List(context.Background(), metaV1ListOption)
 	if err != nil {
-		klog.Warnf("failed to get ServiceMonitor, err: %s", d.localNodeName, err)
+		klog.Warnf("failed to get ServiceMonitor, err: %s", err)
 		return nil
 	}
 
@@ -257,72 +244,70 @@ func (d *Discovery) newPromForServiceMonitors() []*promRunner {
 		if item == nil {
 			continue
 		}
+		if len(item.Spec.Endpoints) == 0 {
+			continue
+		}
 
-		var services []*apicorev1.Service
+		var svcs []*apicorev1.Service
 
 		if item.Spec.NamespaceSelector.Any {
-			services = d.getServicesFromLabelSelector("", "ServiceMonitor", &list.Items[idx].Spec.Selector)
+			svcs = d.getServicesFromLabelSelector("ServiceMonitor", defaultNamespace, &list.Items[idx].Spec.Selector)
 		} else {
 			if len(item.Spec.NamespaceSelector.MatchNames) != 0 {
 				for _, namespace := range item.Spec.NamespaceSelector.MatchNames {
-					services = append(services, d.getServicesFromLabelSelector(namespace, "ServiceMonitor", &list.Items[idx].Spec.Selector)...)
+					svcs = append(svcs, d.getServicesFromLabelSelector("ServiceMonitor", namespace, &list.Items[idx].Spec.Selector)...)
 				}
 			} else {
-				services = d.getServicesFromLabelSelector(item.Namespace, "ServiceMonitor", &list.Items[idx].Spec.Selector)
+				svcs = d.getServicesFromLabelSelector("ServiceMonitor", item.Namespace, &list.Items[idx].Spec.Selector)
 			}
 		}
 
-		klog.Infof("find %d services from ServiceMonitor %s", len(services), item.Name)
+		klog.Infof("find %d services from ServiceMonitor %s", len(svcs), item.Name)
 
-		for _, service := range services {
+		for _, svc := range svcs {
+			selector := &metav1.LabelSelector{MatchLabels: svc.Spec.Selector}
+			pods := d.getLocalPodsFromLabelSelector("ServiceMonitor", defaultNamespace, selector)
+
 			for _, endpoint := range item.Spec.Endpoints {
-				var port int
-				if endpoint.Port != "" {
-					port = findServicePort(service, endpoint.Port)
+				for _, pod := range pods {
+					port := findContainerPortForService(svc, pod, endpoint.Port)
 					if port == -1 {
-						klog.Warnf("not found port %s for ServiceMonitor %s service %s, skip", endpoint.Port, item.Name, service.Name)
+						klog.Warnf("not found port %s for ServiceMonitor %s pod %s, skip", endpoint.Port, item.Name, pod.Name)
 						continue
 					}
-				}
 
-				u, err := getPromURL(fmt.Sprintf("%s.%s", service.Name, service.Namespace), strconv.Itoa(port), endpoint.Scheme, endpoint.Path)
-				if err != nil {
-					// unreachable
-					continue
-				}
-				u.RawQuery = url.Values(endpoint.Params).Encode()
-
-				conf := &promConfig{
-					Source: fmt.Sprintf("k8s.serviceMonitor/%s::%s", item.Name, service.Name),
-					URLs:   []string{u.String()},
-				}
-				if val, err := time.ParseDuration(endpoint.Interval); err != nil {
-					conf.Interval = defaultPrometheusioInterval
-				} else {
-					conf.Interval = val
-				}
-
-				if d.cfg.PrometheusMonitoringExtraConfig != nil {
-					klog.Debugf("matching promConfig %#v", d.cfg.PrometheusMonitoringExtraConfig)
-					newConf := d.cfg.PrometheusMonitoringExtraConfig.matchPromConfig(service.Labels, service.Namespace)
-					if newConf != nil {
-						klog.Debugf("use promConfig %#v for serviceMonitor %s service %s", newConf, item.Name, service.Name)
-						conf = mergePromConfig(conf, newConf)
+					u, err := getPromURL(pod.Status.PodIP, strconv.Itoa(port), endpoint.Scheme, endpoint.Path)
+					if err != nil {
+						// unreachable
+						continue
 					}
+					u.RawQuery = url.Values(endpoint.Params).Encode()
+
+					conf := &promConfig{
+						Source:          fmt.Sprintf("k8s.serviceMonitor(%s)-service(%s)-pod/%s", item.Name, svc.Name, pod.Name),
+						URLs:            []string{u.String()},
+						MeasurementName: queryPodOwner(pod),
+					}
+					if val, err := time.ParseDuration(endpoint.Interval); err != nil {
+						conf.Interval = defaultPrometheusioInterval
+					} else {
+						conf.Interval = val
+					}
+
+					runner, err := newPromRunnerWithConfig(conf)
+					if err != nil {
+						klog.Warnf("failed to new PromRunner of serviceMonitor %s service %s, err: %s", item.Name, service.Name, err)
+						continue
+					}
+
+					runner.addTag("namespace", pod.Namespace)
+					runner.addTag("pod_name", pod.Name)
+					runner.addTag("service_name", svc.Name)
+					runner.addTags(d.cfg.ExtraTags)
+
+					klog.Infof("create prom runner for ServiceMonitor %s service %s, urls: %s", item.Name, service.Name, runner.conf.URLs)
+					res = append(res, runner)
 				}
-
-				runner, err := newPromRunnerWithConfig(conf)
-				if err != nil {
-					klog.Warnf("failed to new PromRunner of serviceMonitor %s service %s, err: %s", item.Name, service.Name, err)
-					continue
-				}
-
-				runner.addSingleTag("namespace", service.Namespace)
-				runner.addSingleTag("service", service.Name)
-				runner.addTags(d.cfg.ExtraTags)
-
-				klog.Infof("create prom runner for ServiceMonitor %s service %s, urls: %s", item.Name, service.Name, runner.conf.URLs)
-				res = append(res, runner)
 			}
 		}
 	}
@@ -352,7 +337,7 @@ func (d *Discovery) processCRDWithPod(fn datakitCRDHandler) error {
 				if err != nil {
 					klog.Debugf("not found DaemonSet %s LabelSelector, error %s, namespace %s", ins.K8sDaemonSet, err, ins.K8sNamespace)
 				} else {
-					t := d.getPodsFromLabelSelector(ins.K8sNamespace, ins.K8sDaemonSet, selector)
+					t := d.getLocalPodsFromLabelSelector("datakit-crd/"+ins.K8sDaemonSet, ins.K8sNamespace, selector)
 					pods = append(pods, t...)
 				}
 			}
@@ -362,7 +347,7 @@ func (d *Discovery) processCRDWithPod(fn datakitCRDHandler) error {
 				if err != nil {
 					klog.Debugf("not found Deployment %s LabelSelector, error %s, namespace %s", ins.K8sDeployment, err, ins.K8sNamespace)
 				} else {
-					t := d.getPodsFromLabelSelector(ins.K8sNamespace, ins.K8sDeployment, selector)
+					t := d.getLocalPodsFromLabelSelector("datakit-crd/"+ins.K8sDeployment, ins.K8sNamespace, selector)
 					pods = append(pods, t...)
 				}
 			}
@@ -376,42 +361,38 @@ func (d *Discovery) processCRDWithPod(fn datakitCRDHandler) error {
 	return nil
 }
 
-func (d *Discovery) getServicesFromLabelSelector(namespace, appName string, selector *metav1.LabelSelector) (res []*apicorev1.Service) {
-	if selector == nil {
-		return nil
-	}
+func (d *Discovery) getLocalPodsFromLabelSelector(source, namespace string, selector *metav1.LabelSelector) (res []*apicorev1.Pod) {
 	opt := metav1.ListOptions{
-		LabelSelector: newLabelSelector(selector.MatchLabels, selector.MatchExpressions).String(),
+		FieldSelector: "spec.nodeName=" + d.localNodeName,
+	}
+	if selector != nil {
+		opt.LabelSelector = newLabelSelector(selector.MatchLabels, selector.MatchExpressions).String()
 	}
 
-	services, err := d.client.GetServicesForNamespace(namespace).List(context.Background(), opt)
+	list, err := d.client.GetPodsForNamespace(namespace).List(context.Background(), opt)
 	if err != nil {
-		klog.Warnf("failed to get services from node %s, namespace %s, app %s, err: %s",
-			d.localNodeName, namespace, appName, err)
+		klog.Warnf("failed to get pods from namespace '%s' by %s, err: %s, skip", namespace, source, err)
 		return
 	}
-	for idx := range services.Items {
-		res = append(res, &services.Items[idx])
+	for idx := range list.Items {
+		res = append(res, &list.Items[idx])
 	}
 	return
 }
 
-func (d *Discovery) getPodsFromLabelSelector(namespace, appName string, selector *metav1.LabelSelector) (res []*apicorev1.Pod) {
-	if selector == nil {
-		return nil
+func (d *Discovery) getServicesFromLabelSelector(source, namespace string, selector *metav1.LabelSelector) (res []*apicorev1.Service) {
+	opt := metav1.ListOptions{}
+	if selector != nil {
+		opt.LabelSelector = newLabelSelector(selector.MatchLabels, selector.MatchExpressions).String()
 	}
-	opt := metav1.ListOptions{
-		LabelSelector: newLabelSelector(selector.MatchLabels, selector.MatchExpressions).String(),
-		FieldSelector: "spec.nodeName=" + d.localNodeName,
-	}
-	pods, err := d.client.GetPodsForNamespace(namespace).List(context.Background(), opt)
+
+	list, err := d.client.GetServicesForNamespace(namespace).List(context.Background(), opt)
 	if err != nil {
-		klog.Warnf("failed to get pods from node %s, namespace %s, app %s, err: %s",
-			d.localNodeName, namespace, appName, err)
+		klog.Warnf("failed to get services from namespace '%s' by %s, err: %s, skip", namespace, source, err)
 		return
 	}
-	for idx := range pods.Items {
-		res = append(res, &pods.Items[idx])
+	for idx := range list.Items {
+		res = append(res, &list.Items[idx])
 	}
 	return
 }
@@ -438,7 +419,7 @@ func (d *Discovery) getDeploymentLabelSelector(namespace, deployment string) (*m
 	return deploymentObj.Spec.Selector, nil
 }
 
-func newPromRunnersForPod(item *apicorev1.Pod, inputConfig string) ([]*promRunner, error) {
-	cfg := completePromConfig(inputConfig, item)
+func newPromRunnersForPod(pod *apicorev1.Pod, inputConfig string) ([]*promRunner, error) {
+	cfg := completePromConfig(inputConfig, pod)
 	return newPromRunnerWithTomlConfig(cfg)
 }

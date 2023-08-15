@@ -25,22 +25,11 @@
 
 ```toml
 [[inputs.prom]]
-  ## Exporter 地址
   url = "http://$IP:9100/metrics"
 
   source = "<your-service-name>"
-  metric_types = ["counter", "gauge"]
-
-  measurement_name = "prom"
-  # metric_name_filter = ["cpu"]
-  # measurement_prefix = ""
-  #tags_ignore = ["xxxx"]
-
-  interval = "10s"
-
-  #[[inputs.prom.measurements]]
-  # prefix = "cpu_"
-  # name = "cpu"
+  measurement_name = "$OWNER"
+  interval = "30s"
 
   [inputs.prom.tags]
     # namespace = "$NAMESPACE"
@@ -50,6 +39,7 @@
 
 其中支持如下几个通配符：
 
+- `$OWNER`：通配 Pod 的 workload 名称（取自第一个 ownerReference name），例如该 Pod 所属的 Deployment 或 DaemonSet 名字
 - `$IP`：通配 Pod 的内网 IP
 - `$NAMESPACE`：Pod Namespace
 - `$PODNAME`：Pod Name
@@ -101,23 +91,13 @@ spec:
             url = "http://$IP:9100/metrics"
           
             source = "<your-service-name>"
-            metric_types = ["counter", "gauge"]
-            # metric_name_filter = ["cpu"]
-            # measurement_prefix = ""
-            # measurement_name = "prom"
+            measurement_name = "$OWNER"
+            interval = "30s"
           
-            interval = "10s"
-          
-            # tags_ignore = ["xxxx"]
-          
-            #[[inputs.prom.measurements]]
-            # prefix = "cpu_"
-            # name = "cpu"
-          
-            [inputs.prom.tags] # 视情况开启下面的 Tags
-            #namespace = "$NAMESPACE"
-            #pod_name = "$PODNAME"
-            #node_name = "$NODENAME"
+            [inputs.prom.tags]
+              namespace = "$NAMESPACE"
+              pod_name = "$PODNAME"
+              node_name = "$NODENAME"
 ```
 
 <!-- markdownlint-disable MD046 -->
@@ -186,20 +166,46 @@ spec:
     targetPort: http-web-svc
 ```
 
-Datakit 会自动发现带有 `prometheus.io/scrape: "true"` 的 Service，并根据其另外的配置项，构建 prom 采集：
+Datakit 会自动发现带有 `prometheus.io/scrape: "true"` 的 Service，并通过 `selector` 找到匹配的 Pod，构建 prom 采集：
 
 - `prometheus.io/scrape`：只采集为 "true "的 Service，必选项
 - `prometheus.io/port`：指定 metrics 端口，必选项
 - `prometheus.io/scheme`：根据 metrics endpoint 选择 `https` 和 `http`，默认是 `http`
 - `prometheus.io/path`：配置 metrics path，默认是 `/metrics`
 
-以上文的 Service yaml 配置为例，最终 Datakit 会访问 `http://nginx-service.ns-testing:8080/metrics` 采集 Prometheus 指标。
+采集目标的 IP 地址是 `PodIP`。
 
-采集间隔为 1 分钟。
+<!-- markdownlint-disable MD046 -->
+???+ attention
+
+    Datakit 并不是去采集 Service 本身，而且采集 Service 配对的 Pod。
+<!-- markdownlint-enable -->
+
+默认采集间隔为 1 分钟。
 
 ### 指标集和 tags {#measurement-and-tags}
 
-自动发现 Pod/Service Prometheus，其指标集名称是由 Datakit 解析所得，默认会将指标名称以下划线 `_` 进行切割，切割后的第一个字段作为指标集名称，剩下字段作为当前指标名称。
+自动发现 Pod/Service Prometheus，其指标集名称是由 Datakit 解析 Pod OwnerReferences 所得，以下面这个 Pod 详情为例：
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: "2023-08-15T06:32:41Z"
+  generateName: prom-server-
+  labels:
+    app.kubernetes.io/name: proxy
+    pod-template-generation: "1"
+  name: prom-server-lsk4g
+  ownerReferences:
+  - apiVersion: apps/v1
+    kind: DaemonSet
+    name: prom-server
+```
+
+它的 Prometheus 数据指标集为 `prom-server`。
+
+如果该 Pod 没有 OwnerReferences，会默认会将指标名称以下划线 `_` 进行切割，切割后的第一个字段作为指标集名称，剩下字段作为当前指标名称。
 
 例如以下的 Prometheus 原数据：
 
@@ -212,7 +218,7 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 
 Datakit 会添加额外 tag 用来在 Kubernetes 集群中定位这个资源：
 
-- 对于 `Service` 会添加 `namespace` 和 `service_name` 两个 tag
+- 对于 `Service` 会添加 `namespace` 和 `service_name` `pod_name` 三个 tag
 - 对于 `Pod` 会添加 `namespace` 和 `pod_name` 两个 tag
 
 ## 延伸阅读 {#more-readings}
