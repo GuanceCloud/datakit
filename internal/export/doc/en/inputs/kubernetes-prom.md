@@ -24,22 +24,11 @@ You need to add specific template annotations to the Kubernetes deployment to ca
 
 ```toml
 [[inputs.prom]]
-  ## Exporter 地址
   url = "http://$IP:9100/metrics"
 
   source = "<your-service-name>"
-  metric_types = ["counter", "gauge"]
-
-  measurement_name = "prom"
-  # metric_name_filter = ["cpu"]
-  # measurement_prefix = ""
-  #tags_ignore = ["xxxx"]
-
-  interval = "10s"
-
-  #[[inputs.prom.measurements]]
-  # prefix = "cpu_"
-  # name = "cpu"
+  measurement_name = "$OWNER"
+  interval = "30s"
 
   [inputs.prom.tags]
     # namespace = "$NAMESPACE"
@@ -49,6 +38,7 @@ You need to add specific template annotations to the Kubernetes deployment to ca
 
 The following wildcard characters are supported:
 
+- `$OWNER`: refer from Pod owner name
 - `$IP`: Intranet IP of the Pod
 - `$NAMESPACE`: Pod Namespace
 - `$PODNAME`: Pod Name
@@ -96,25 +86,15 @@ spec:
         datakit/prom.instances: |
           [[inputs.prom]]
             url = "http://$IP:9100/metrics"
-          
+
             source = "<your-service-name>"
-            metric_types = ["counter", "gauge"]
-            # metric_name_filter = ["cpu"]
-            # measurement_prefix = ""
-            # measurement_name = "prom"
-          
-            interval = "10s"
-          
-            # tags_ignore = ["xxxx"]
-          
-            #[[inputs.prom.measurements]]
-            # prefix = "cpu_"
-            # name = "cpu"
-          
-            [inputs.prom.tags] # 视情况开启下面的 Tags
-            #namespace = "$NAMESPACE"
-            #pod_name = "$PODNAME"
-            #node_name = "$NODENAME"
+            measurement_name = "$OWNER"
+            interval = "30s"
+
+            [inputs.prom.tags]
+              namespace = "$NAMESPACE"
+              pod_name = "$PODNAME"
+              node_name = "$NODENAME"
 ```
 
 ???+ attention
@@ -182,20 +162,45 @@ spec:
     targetPort: http-web-svc
 ```
 
-Datakit automatically discovers a Service with `prometheus.io/scrape: "true"` and builds a prom collection based on its additional configuration items:
+Datakit automatically discovers a Service with `prometheus.io/scrape: "true"` and builds a prom collection with `selector` to find a matching Pod:
 
 - `prometheus.io/scrape`: Only services as "true" are collected, required
 - `prometheus.io/port`: Specify the metrics port, required
 - `prometheus.io/scheme`: Select `https` and `http` according to metrics endpoint, default is `http`
 - `prometheus.io/path`: Configure the metrics path, default to `/metrics`
 
-Eventually Datakit accesses `http://nginx-service.ns-testing:8080/metrics` to collect prometheus metrics, taking the Service yaml configuration above as an example.
+The IP address of the collect target is `PodIP`.
+
+???+ attention
+
+    Datakit doesn't collects the Service itself, it collects the Pod that the Service is paired with.
+
 
 The collection interval is 1 minute.
 
 ### Measurements and Tags {#measurement-and-tags}
 
-Automatically discover Service prometheus, whose measurement name is parsed by Datakit. By default, the metric name will be cut with an underscore `_`. The first field after cutting will be the measurement name, and the remaining fields will be the current metric name.
+Autodiscover Pod/Service Prometheus, whose metrics set name is obtained by Datakit parsing the Pod OwnerReference, as exemplified by the following Pod details:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: "2023-08-15T06:32:41Z"
+  generateName: prom-server-
+  labels:
+    app.kubernetes.io/name: proxy
+    pod-template-generation: "1"
+  name: prom-server-lsk4g
+  ownerReferences:
+  - apiVersion: apps/v1
+    kind: DaemonSet
+    name: prom-server
+```
+
+Its Prometheus metric name set is `prom-server`.
+
+If the pod does not have OwnerReferences, the metric name will be cut with an underscore `_`. The first field after cutting will be the measurement name, and the remaining fields will be the current metric name.
 
 For example, the following prometheus raw data:
 
@@ -208,7 +213,7 @@ Distinguished by the first underscore, `promhttp` on the left is the metric set 
 
 Datakit will add additional tags to locate this resource in a Kubernetes cluster:
 
-- For `Service`, two tags `namespace` and `service_name` will be added.
+- For `Service`, two tags `namespace` and `service_name` `pod_name` will be added.
 - For `Pod`, two tags `namespace` and `pod_name` will be added.
 
 ## Extended Reading {#more-readings}

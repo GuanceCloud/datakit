@@ -68,10 +68,9 @@ func (ct *criClient) ListContainers() ([]*Container, error) {
 			CreatedAt:      c.GetCreatedAt(),
 			RuntimeName:    ct.runtimeName,
 			RuntimeVersion: ct.runtimeVersion,
+			Image:          c.GetImage().GetImage(),
 			State:          "Running",
 		}
-
-		image := digestImage(c.GetImage().GetImage())
 
 		status, err := ct.ContainerStatus(c.GetId())
 		if err != nil {
@@ -80,15 +79,9 @@ func (ct *criClient) ListContainers() ([]*Container, error) {
 			container.Pid = status.Pid
 			container.LogPath = status.LogPath
 			container.Envs = status.Envs
-			image = status.Image
 		}
-
-		imageName, shortName, tag := ParseImage(image)
-		container.Image = Image{
-			Image:     image,
-			ImageName: imageName,
-			ShortName: shortName,
-			Tag:       tag,
+		if status.Image != "" {
+			container.Image = status.Image
 		}
 
 		containers = append(containers, container)

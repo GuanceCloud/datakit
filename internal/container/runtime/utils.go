@@ -46,11 +46,6 @@ func ParseImage(image string) (string, string, string) {
 	return imageName, shortName, imageVersion
 }
 
-func digestImage(image string) string {
-	s, _, _ := strings.Cut(image, "@sha256")
-	return s
-}
-
 func copyMap(m map[string]string) map[string]string {
 	res := make(map[string]string, len(m))
 	for k, v := range m {

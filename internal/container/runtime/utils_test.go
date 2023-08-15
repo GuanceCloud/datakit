@@ -33,20 +33,3 @@ func TestParseImage(t *testing.T) {
 		assert.Equal(t, tc.outImageVersion, imageVersion)
 	}
 }
-
-func TestDigestImage(t *testing.T) {
-	cases := []struct {
-		in  string
-		out string
-	}{
-		{
-			"docker.io/library/busybox:latest@sha256:7cc4b5aefd1d0cadf8d97d4350462ba51c694ebca145b08d7d41b41acc8db5aa",
-			"docker.io/library/busybox:latest",
-		},
-	}
-
-	for _, tc := range cases {
-		image := digestImage(tc.in)
-		assert.Equal(t, tc.out, image)
-	}
-}

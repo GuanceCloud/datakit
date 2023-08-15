@@ -12,7 +12,24 @@ import (
 	"strings"
 
 	apicorev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
+
+func queryPodOwner(pod *apicorev1.Pod) string {
+	if len(pod.OwnerReferences) != 0 {
+		switch pod.OwnerReferences[0].Kind {
+		case "ReplicaSet":
+			if hash, ok := pod.Labels["pod-template-hash"]; ok {
+				return strings.TrimRight(pod.OwnerReferences[0].Name, "-"+hash)
+			}
+		case "DaemonSet", "StatefulSet":
+			return pod.OwnerReferences[0].Name
+		default:
+			// skip
+		}
+	}
+	return ""
+}
 
 func completePromConfig(config string, item *apicorev1.Pod) string {
 	podIP := item.Status.PodIP
@@ -35,6 +52,8 @@ func completePromConfig(config string, item *apicorev1.Pod) string {
 		podIP = item.Status.PodIPs[idx].IP
 	}()
 
+	ownerName := queryPodOwner(item)
+	config = strings.ReplaceAll(config, "$OWNER", ownerName)
 	config = strings.ReplaceAll(config, "$IP", podIP)
 	config = strings.ReplaceAll(config, "$NAMESPACE", item.Namespace)
 	config = strings.ReplaceAll(config, "$PODNAME", item.Name)
@@ -65,8 +84,11 @@ func parseScrapeFromProm(scrape string) bool {
 	return b
 }
 
-func findContainerPort(item *apicorev1.Pod, portName string) int {
-	for _, container := range item.Spec.Containers {
+func findContainerPortForPod(pod *apicorev1.Pod, portName string) int {
+	if portName == "" {
+		return -1
+	}
+	for _, container := range pod.Spec.Containers {
 		for _, port := range container.Ports {
 			if port.Name == portName {
 				return int(port.ContainerPort)
@@ -76,11 +98,23 @@ func findContainerPort(item *apicorev1.Pod, portName string) int {
 	return -1
 }
 
-func findServicePort(item *apicorev1.Service, portName string) int {
-	for _, s := range item.Spec.Ports {
-		if s.Name == portName {
-			return int(s.Port)
+func findContainerPortForService(svc *apicorev1.Service, pod *apicorev1.Pod, portName string) int {
+	if portName == "" {
+		return -1
+	}
+
+	for _, s := range svc.Spec.Ports {
+		if s.Name != portName {
+			continue
+		}
+
+		switch s.TargetPort.Type {
+		case intstr.Int:
+			return s.TargetPort.IntValue()
+		case intstr.String:
+			return findContainerPortForPod(pod, s.TargetPort.String())
 		}
 	}
+
 	return -1
 }

@@ -273,13 +273,9 @@ func newDiscovery(ipt *Input) (*discovery.Discovery, error) {
 		EnablePrometheusPodMonitors:        ipt.EnableAutoDiscoveryOfPrometheusPodMonitors,
 		EnablePrometheusServiceMonitors:    ipt.EnableAutoDiscoveryOfPrometheusServiceMonitors,
 		ExtraTags:                          ipt.Tags,
-		PrometheusMonitoringExtraConfig:    getPromMatchsConfigFromEnv(),
 	}
 
-	checkPaused := func() bool {
-		return ipt.pause.Load()
-	}
-	return discovery.NewDiscovery(client, &cfg, checkPaused, ipt.semStop.Wait()), nil
+	return discovery.NewDiscovery(client, &cfg, ipt.semStop.Wait()), nil
 }
 
 func newKubernetesClient(ipt *Input) (k8sclient.Client, error) {
