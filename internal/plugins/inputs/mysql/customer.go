@@ -21,7 +21,6 @@ type customerMeasurement struct {
 	election bool
 }
 
-// 生成行协议.
 func (m *customerMeasurement) LineProto() (*point.Point, error) {
 	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
 }
@@ -39,7 +38,6 @@ func (m *customerMeasurement) Point() *gcPoint.Point {
 		opts...)
 }
 
-// 指定指标.
 func (m *customerMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "mysql_customer",

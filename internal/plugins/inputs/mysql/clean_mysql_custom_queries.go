@@ -8,7 +8,6 @@ package mysql
 import (
 	"reflect"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -33,7 +32,7 @@ func getCleanMysqlCustomQueries(r rows) []map[string]interface{} {
 
 		item := make(map[string]interface{})
 		for i, data := range cache {
-			key := strings.ToLower(columns[i])
+			key := columns[i]
 			val := *data.(*interface{})
 
 			if val != nil {

@@ -397,7 +397,7 @@ func (i *Input) buildMysqlCustomQueries() ([]*gcPoint.Point, error) {
 
 		for _, item := range items {
 			m := &customerMeasurement{
-				name:     qy.metric,
+				name:     qy.Metric,
 				tags:     map[string]string{},
 				fields:   make(map[string]interface{}),
 				election: i.Election,
@@ -408,8 +408,8 @@ func (i *Input) buildMysqlCustomQueries() ([]*gcPoint.Point, error) {
 				m.tags[key] = value
 			}
 
-			if len(qy.tags) > 0 && len(qy.fields) == 0 {
-				for _, tgKey := range qy.tags {
+			if len(qy.Tags) > 0 && len(qy.Fields) == 0 {
+				for _, tgKey := range qy.Tags {
 					if value, ok := item[tgKey]; ok {
 						m.tags[tgKey] = cast.ToString(value)
 						delete(item, tgKey)
@@ -418,22 +418,23 @@ func (i *Input) buildMysqlCustomQueries() ([]*gcPoint.Point, error) {
 				m.fields = item
 			}
 
-			if len(qy.tags) > 0 && len(qy.fields) > 0 {
-				for _, tgKey := range qy.tags {
+			if len(qy.Tags) > 0 && len(qy.Fields) > 0 {
+				for _, tgKey := range qy.Tags {
 					if value, ok := item[tgKey]; ok {
 						m.tags[tgKey] = cast.ToString(value)
 						delete(item, tgKey)
 					}
 				}
 
-				for _, fdKey := range qy.fields {
+				for _, fdKey := range qy.Fields {
 					if value, ok := item[fdKey]; ok {
-						m.fields[fdKey] = value
+						// transform all fields to float64
+						m.fields[fdKey] = cast.ToFloat64(value)
 					}
 				}
 			}
 
-			if len(qy.tags) == 0 && len(qy.fields) == 0 {
+			if len(qy.Tags) == 0 && len(qy.Fields) == 0 {
 				m.fields = item
 			}
 			m.ts = time.Now()

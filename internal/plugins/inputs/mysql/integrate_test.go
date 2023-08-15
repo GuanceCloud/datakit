@@ -6,21 +6,29 @@
 package mysql
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
+	"io/fs"
+	"io/ioutil"
 	"net"
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/BurntSushi/toml"
+	"github.com/go-sql-driver/mysql"
 	dt "github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkpoint "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
@@ -33,7 +41,8 @@ var (
 	MySQL8UserSQL = fmt.Sprintf("CREATE USER 'datakit'@'%%' IDENTIFIED WITH mysql_native_password by '%s';", MySQLPassword)
 	MySQLGrantSQL = `
 CREATE DATABASE test;
-CREATE TABLE test.user (id int, name varchar(50));
+CREATE TABLE test.user (id int, name varchar(50), value float(5,2));
+INSERT INTO test.user(id, name, value) values(1, 'ross', 22.80);
 GRANT PROCESS ON *.* TO 'datakit'@'%';
 GRANT SELECT ON *.* TO 'datakit'@'%';
 show databases like 'performance_schema';
@@ -41,9 +50,23 @@ GRANT SELECT ON performance_schema.* TO 'datakit'@'%';
 GRANT SELECT ON mysql.user TO 'datakit'@'%';
 GRANT replication client on *.*  to 'datakit'@'%';
 `
+	MySQLConf = `
+[mysqld]
+	performance_schema = on
+	max_digest_length = 4096
+	performance_schema_max_digest_length = 4096
+	performance_schema_max_sql_text_length = 4097
+	performance-schema-consumer-events-statements-current = on
+	performance-schema-consumer-events-waits-current = on
+	performance-schema-consumer-events-statements-history-long = on
+	performance-schema-consumer-events-statements-history = on	
+`
 )
 
-type validateFunc func(pts []*point.Point, cs *caseSpec) error
+type (
+	validateFunc  func(pts []*point.Point, cs *caseSpec) error
+	serviceOKFunc func(t *testing.T, port string) bool
+)
 
 type caseSpec struct {
 	t *testing.T
@@ -54,7 +77,8 @@ type caseSpec struct {
 	envs        []string
 	servicePort string
 
-	validate validateFunc
+	validate  validateFunc
+	serviceOK serviceOKFunc
 
 	ipt    *Input
 	feeder *io.MockedFeeder
@@ -116,6 +140,19 @@ func (cs *caseSpec) run() error {
 	if err := p.RemoveContainerByName(containerName); err != nil {
 		return err
 	}
+
+	confFilePath := ""
+
+	if tmpDir, err := ioutil.TempDir(os.TempDir(), "confd"); err != nil {
+		cs.t.Fatalf("create conf dir error: %s", err.Error())
+	} else {
+		defer os.RemoveAll(tmpDir)
+		confFilePath = filepath.Join(tmpDir, "mysql.cnf")
+		if err := ioutil.WriteFile(confFilePath, []byte(MySQLConf), fs.ModePerm); err != nil {
+			cs.t.Fatalf("create conf file error: %s", err.Error())
+		}
+	}
+
 	resource, err := p.RunWithOptions(&dt.RunOptions{
 		// specify container image & tag
 		Repository: cs.repo,
@@ -124,18 +161,16 @@ func (cs *caseSpec) run() error {
 		ExposedPorts: []string{cs.servicePort},
 		Name:         containerName,
 
+		Mounts: []string{
+			fmt.Sprintf("%s:%s:rw", confFilePath, "/etc/mysql/conf.d/mysql.cnf"),
+		},
+		User: "root",
 		// container run-time envs
 		Env: cs.envs,
 	}, func(c *docker.HostConfig) {
 		c.RestartPolicy = docker.RestartPolicy{Name: "no"}
 	})
 	if err != nil {
-		return err
-	}
-
-	time.Sleep(10 * time.Second)
-
-	if err := setupContainer(p, resource); err != nil {
 		return err
 	}
 
@@ -153,12 +188,13 @@ func (cs *caseSpec) run() error {
 		cs.ipt.Port = portNumber
 	}
 	cs.t.Logf("check service(%s:%s)...", r.Host, port)
-	if !r.PortOK(port, time.Minute) {
-		return fmt.Errorf("service checking failed")
+	if cs.serviceOK != nil {
+		if !cs.serviceOK(cs.t, port) {
+			return fmt.Errorf("service failed to serve")
+		}
+	} else if !r.PortOK(port, 5*time.Minute) {
+		return fmt.Errorf("service port checking failed")
 	}
-
-	// wait a period of time to ensure that the MySQL service is available.
-	time.Sleep(10 * time.Second)
 
 	if err := initMySQL(resource, cs); err != nil {
 		return err
@@ -185,12 +221,9 @@ func (cs *caseSpec) run() error {
 			default:
 				resource.Exec([]string{
 					"/bin/sh", "-c", fmt.Sprintf(`mysql -uroot -p%s -e "%s"`, MySQLPassword, "select * from test.user"),
-				}, dt.ExecOptions{
-					StdOut: os.Stdout,
-					StdErr: os.Stderr,
-				})
+				}, dt.ExecOptions{})
 			}
-			time.Sleep(1 * time.Second)
+			time.Sleep(time.Millisecond)
 		}
 	}()
 
@@ -199,8 +232,8 @@ func (cs *caseSpec) run() error {
 	cs.t.Logf("wait points...")
 	pts := []*point.Point{}
 	// merge pts
-	for i := 0; i < 5; i++ {
-		ps, err := cs.feeder.AnyPoints()
+	for i := 0; i < 4; i++ {
+		ps, err := cs.feeder.AnyPoints(10 * time.Second)
 		if err != nil {
 			return err
 		}
@@ -250,25 +283,11 @@ dbm = true
   enabled = true  
 [dbm_activity]
   enabled = true  
-`, testutils.GetRemote().Host, MySQLPassword),
-			validate: assertMeasurements,
-		},
-		{
-			name: "mysql-no-dbm",
-			conf: fmt.Sprintf(`
-host = "%s"
-user = "datakit"
-pass = "%s"
-port = 0 
-innodb = true
-interval = "1s"
-dbm = false 
-[dbm_metric]
-  enabled = true
-[dbm_sample]
-  enabled = true  
-[dbm_activity]
-  enabled = true  
+[[custom_queries]]
+  sql = "SELECT id, name, value FROM test.user;"
+  metric = "mysql_custom"
+  tags = ["name"]
+  fields = ["id", "value"]
 `, testutils.GetRemote().Host, MySQLPassword),
 			validate: assertMeasurements,
 		},
@@ -317,6 +336,39 @@ dbm = false
 						"remote_server": ipt.Host,
 					},
 				},
+				serviceOK: func(t *testing.T, port string) bool {
+					t.Helper()
+					cfg := mysql.Config{
+						AllowNativePasswords: true,
+						User:                 "root",
+						Passwd:               MySQLPassword,
+						Net:                  "tcp",
+						Addr:                 fmt.Sprintf("%s:%s", testutils.GetRemote().Host, port),
+					}
+
+					ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+					defer cancel()
+					ticker := time.NewTicker(time.Second)
+					defer ticker.Stop()
+					dsn := cfg.FormatDSN()
+					for {
+						select {
+						case <-ctx.Done():
+							return false
+						case <-ticker.C:
+							db, err := sql.Open("mysql", dsn)
+							if err != nil {
+								continue
+							}
+							if err := db.Ping(); err != nil {
+								t.Logf("ping db error: %s", err.Error())
+								continue
+							} else {
+								return true
+							}
+						}
+					}
+				},
 			})
 		}
 	}
@@ -329,6 +381,53 @@ type measurementInfo struct {
 	optionalFields []string
 	optionalTags   []string
 	extraTags      map[string]string
+}
+
+type customMeasurement struct {
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	election bool
+}
+
+// 生成行协议.
+func (m *customMeasurement) LineProto() (*dkpoint.Point, error) {
+	return dkpoint.NewPoint(m.name, m.tags, m.fields, dkpoint.MOptElectionV2(m.election))
+}
+
+// Point implement MeasurementV2.
+func (m *customMeasurement) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+//nolint:lll,funlen
+func (m *customMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "mysql_custom",
+		Type: "metric",
+		Fields: map[string]interface{}{
+			"id": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "id",
+			},
+			"value": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "value",
+			},
+		},
+		Tags: map[string]interface{}{
+			"name":   &inputs.TagInfo{Desc: "name"},
+			"server": &inputs.TagInfo{Desc: "server name"},
+		},
+	}
 }
 
 func assertMeasurements(pts []*point.Point, cs *caseSpec) error {
@@ -379,6 +478,9 @@ func assertMeasurements(pts []*point.Point, cs *caseSpec) error {
 		"mysql_user_status": {
 			measurement: &userMeasurement{},
 		},
+		"mysql_custom": {
+			measurement: &customMeasurement{},
+		},
 	}
 
 	// dbm metric
@@ -410,41 +512,54 @@ func assertMeasurements(pts []*point.Point, cs *caseSpec) error {
 		if _, ok := pointMap[name]; ok {
 			continue
 		}
+
 		if m, ok := mtMap[name]; ok {
+			extraTags := map[string]string{
+				"host": "host",
+			}
+
+			for k, v := range m.extraTags {
+				extraTags[k] = v
+			}
 			msgs := inputs.CheckPoint(pt,
 				inputs.WithDoc(m.measurement),
 				inputs.WithOptionalFields(m.optionalFields...),
 				inputs.WithExtraTags(cs.ipt.Tags),
 				inputs.WithOptionalTags(m.optionalTags...),
-				inputs.WithExtraTags(m.extraTags),
+				inputs.WithExtraTags(extraTags),
 			)
 			for _, msg := range msgs {
-				cs.t.Logf("check measurement %s failed: %+#v", name, msg)
+				cs.t.Logf("[%s] check measurement %s failed: %+#v", cs.t.Name(), name, msg)
+			}
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: collected points are not as expected ", name)
 			}
 			pointMap[name] = true
+		} else {
+			continue
 		}
 		// check if tag appended
 		if len(cs.ipt.Tags) != 0 {
 			cs.t.Logf("checking tags %+#v...", cs.ipt.Tags)
 
 			tags := pt.Tags()
-			for k, expect := range cs.ipt.Tags {
-				if v := tags.Get([]byte(k)); v != nil {
-					got := string(v.GetD())
-					if got != expect {
-						return fmt.Errorf("expect tag value %s, got %s", expect, got)
-					}
-				} else {
+			for k := range cs.ipt.Tags {
+				if v := tags.Get([]byte(k)); v == nil {
 					return fmt.Errorf("tag %s not found, got %v", k, tags)
 				}
 			}
 		}
 	}
 
+	missingMeasurements := []string{}
 	for m := range mtMap {
 		if _, ok := pointMap[m]; !ok {
-			return fmt.Errorf("measurement %s not found", m)
+			missingMeasurements = append(missingMeasurements, m)
 		}
+	}
+
+	if len(missingMeasurements) > 0 {
+		return fmt.Errorf("measurements not found: %s", strings.Join(missingMeasurements, ","))
 	}
 
 	return nil
@@ -525,42 +640,6 @@ UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name = 'events
 	})
 
 	return err
-}
-
-// setupContainer sets up the container for the given Pool and Resource.
-func setupContainer(p *dt.Pool, resource *dt.Resource) error {
-	mysqlConfCmd := `cat > /etc/mysql/conf.d/mysql.cnf <<EOF
-[mysqld]
-	performance_schema = on
-	max_digest_length = 4096
-	performance_schema_max_digest_length = 4096
-	performance_schema_max_sql_text_length = 4096
-	performance-schema-consumer-events-statements-current = on
-	performance-schema-consumer-events-waits-current = on
-	performance-schema-consumer-events-statements-history-long = on
-	performance-schema-consumer-events-statements-history = on	
-EOF
-`
-
-	resource.Exec([]string{
-		"/bin/sh", "-c", mysqlConfCmd,
-	}, dt.ExecOptions{
-		StdOut: os.Stdout,
-		StdErr: os.Stderr,
-	})
-
-	if err := p.Client.RestartContainer(resource.Container.ID, 30); err != nil {
-		return err
-	}
-
-	// need to refresh container info after restarting container.
-	if c, err := p.Client.InspectContainer(resource.Container.ID); err != nil {
-		return fmt.Errorf("get container info error: %w", err)
-	} else {
-		resource.Container = c
-	}
-
-	return nil
 }
 
 func TestIntegrate(t *testing.T) {

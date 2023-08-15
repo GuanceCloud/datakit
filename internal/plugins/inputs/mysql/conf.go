@@ -32,7 +32,7 @@ const (
   ## user
   users = []
 
-  ## 开启数据库性能指标采集
+  ## Set dbm to true to collect database activity 
   # dbm = false
 
   # [inputs.mysql.log]
@@ -59,18 +59,18 @@ const (
   # [[inputs.mysql.custom_queries]]
   #   sql = "SELECT foo, COUNT(*) FROM table.events GROUP BY foo"
   #   metric = "xxxx"
-  #   tagKeys = ["column1", "column1"]
-  #   fieldKeys = ["column3", "column1"]
+  #   tags = ["column1", "column1"]
+  #   fields = ["column3", "column1"]
   
-  ## 监控指标配置
+  ## Config dbm metric 
   [inputs.mysql.dbm_metric]
     enabled = true
   
-  ## 监控采样配置
+  ## Config dbm sample 
   [inputs.mysql.dbm_sample]
     enabled = true  
 
-  ## 等待事件采集
+  ## Config dbm activity
   [inputs.mysql.dbm_activity]
     enabled = true  
 
