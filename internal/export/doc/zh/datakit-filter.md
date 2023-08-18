@@ -51,6 +51,11 @@ Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛�
 - Tag（标签）：对所有的数据类型，均可以在其 Tag 上执行过滤。
 - Field（指标）：对所有的数据类型，均可以在其 Field 上执行过滤。
 
+<!-- markdownlint-disable MD046 -->
+???+ attention
+    在 RUM 数据中，可能会在 Tracing 数据上触发一个 root span，该 root span 是在**中心生成**的，其目的是避免由 RUM 触发的链路数据缺少 root span 而凭空创建的一个 span（保持链路的完整性）。由于该 span 不经过 Datakit，故其无法通过过滤器来丢弃。同理，该数据也无法进行 Pipeline 处理。
+<!-- markdownlint-enable -->
+
 ### DataKit 中手动配置 filter {#manual}
 
 在 `datakt.conf` 中，可手动配置黑名单过滤，示例如下：
