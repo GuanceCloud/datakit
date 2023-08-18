@@ -47,16 +47,18 @@ type installCmd struct {
 
 // String get install command string format.
 func (x *installCmd) String() (out string) {
+	sourceURL := strings.TrimRight(x.sourceURL, "/")
+
 	if x.upgrade {
 		x.envs["DK_UPGRADE"] = "1"
 
 		switch x.platform {
 		case "windows":
 			x.temp = windowsUpgradeCmdTemplate
-			out = fmt.Sprintf(x.temp, x.envsStr(), x.bitstransferOpts, x.sourceURL, x.version)
+			out = fmt.Sprintf(x.temp, x.envsStr(), x.bitstransferOpts, sourceURL, x.version)
 		case "unix":
 			x.temp = unixUpgradeCmdTemplate
-			out = fmt.Sprintf(x.temp, x.envsStr(), x.sourceURL, x.version)
+			out = fmt.Sprintf(x.temp, x.envsStr(), sourceURL, x.version)
 		}
 	} else {
 		if _, ok := x.envs["DK_DATAWAY"]; !ok {
@@ -66,10 +68,10 @@ func (x *installCmd) String() (out string) {
 		switch x.platform {
 		case "windows":
 			x.temp = windowsInstallCmdTemplate
-			out = fmt.Sprintf(x.temp, x.envsStr(), x.bitstransferOpts, x.sourceURL, x.version)
+			out = fmt.Sprintf(x.temp, x.envsStr(), x.bitstransferOpts, sourceURL, x.version)
 		case "unix":
 			x.temp = unixInstallCmdTemplate
-			out = fmt.Sprintf(x.temp, x.envsStr(), x.sourceURL, x.version)
+			out = fmt.Sprintf(x.temp, x.envsStr(), sourceURL, x.version)
 		}
 	}
 
