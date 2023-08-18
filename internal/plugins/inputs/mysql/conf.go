@@ -40,28 +40,33 @@ const (
   # files = ["/var/log/mysql/*.log"]
 
   ## glob filteer
-  #ignore = [""]
+  # ignore = [""]
 
   ## optional encodings:
   ##    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
-  #character_encoding = ""
+  # character_encoding = ""
 
   ## The pattern should be a regexp. Note the use of '''this regexp'''
   ## regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
-  #multiline_match = '''^(# Time|\d{4}-\d{2}-\d{2}|\d{6}\s+\d{2}:\d{2}:\d{2}).*'''
+  # multiline_match = '''^(# Time|\d{4}-\d{2}-\d{2}|\d{6}\s+\d{2}:\d{2}:\d{2}).*'''
 
   ## grok pipeline script path
-  #pipeline = "mysql.p"
+  # pipeline = "mysql.p"
 
   ## Set true to enable election
   election = true
 
+  ## Run a custom SQL query and collect corresponding metrics.
   # [[inputs.mysql.custom_queries]]
-  #   sql = "SELECT foo, COUNT(*) FROM table.events GROUP BY foo"
-  #   metric = "xxxx"
-  #   tags = ["column1", "column1"]
-  #   fields = ["column3", "column1"]
-  
+  #   sql = '''
+  #     select ENGINE as engine,TABLE_SCHEMA as table_schema,count(*) as table_count 
+  #     from information_schema.tables 
+  #     group by engine,table_schema
+  #   '''
+  #   metric = "mysql_custom"
+  #   tags = ["engine", "table_schema"]
+  #   fields = ["table_count"] 
+
   ## Config dbm metric 
   [inputs.mysql.dbm_metric]
     enabled = true
