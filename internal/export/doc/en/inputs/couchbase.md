@@ -43,11 +43,10 @@ Already tested version:
 
   Visit URL in browser `<ip>:8091` can open Couchbase manage UI.
 
-
+<!-- markdownlint-disable MD046 -->
 ???+ tip
-
-  To collect data, several ports `8091` `9102` `18091` `19102` need to be used. 
-  When collecting data remotely, these ports need to be opened.
+    - To collect data, several ports `8091` `9102` `18091` `19102` need to be used. When collecting data remotely, these ports need to be opened.
+<!-- markdownlint-enable -->
 
 <!-- markdownlint-disable MD046 -->
 === "Host Installation"

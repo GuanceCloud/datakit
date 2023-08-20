@@ -1,0 +1,1271 @@
+{
+    "dashboardBindSet": [],
+    "dashboardExtend": {},
+    "dashboardMapping": [],
+    "dashboardOwnerType": "node",
+    "dashboardType": "CUSTOM",
+    "iconSet": {},
+    "main": {
+      "charts": [
+        {
+          "extend": {
+            "fixedGroupByTime": null,
+            "fixedTime": "",
+            "isRefresh": true,
+            "settings": {
+              "alias": [],
+              "bgColor": "",
+              "colors": [],
+              "compareType": "",
+              "currentChartType": "singlestat",
+              "downsample": "last",
+              "fixedTime": "",
+              "fontColor": "",
+              "isTimeInterval": false,
+              "levels": [],
+              "lineColor": "#3AB8FF",
+              "mappings": [],
+              "openCompare": false,
+              "openThousandsSeparator": true,
+              "precision": "2",
+              "showFieldMapping": false,
+              "showLine": false,
+              "showLineAxis": false,
+              "showTitle": true,
+              "timeInterval": "default",
+              "titleDesc": "{{.Dashboard.uptime_seconds_note}}",
+              "units": [
+                {
+                  "key": "last(uptime_seconds)",
+                  "name": "last(uptime_seconds)",
+                  "unit": "",
+                  "units": [
+                    "time",
+                    "s"
+                  ]
+                }
+              ]
+            }
+          },
+          "group": {
+            "name": null
+          },
+          "name": "{{.Dashboard.uptime_seconds}}",
+          "pos": {
+            "h": 6,
+            "w": 5,
+            "x": 0,
+            "y": 0
+          },
+          "queries": [
+            {
+              "color": "",
+              "datasource": "dataflux",
+              "name": "",
+              "qtype": "dql",
+              "query": {
+                "alias": "",
+                "code": "A",
+                "dataSource": "couchdb",
+                "field": "uptime_seconds",
+                "fieldFunc": "last",
+                "fieldType": "float",
+                "fill": null,
+                "filters": [],
+                "funcList": [],
+                "groupBy": [
+                  "instance"
+                ],
+                "groupByTime": "",
+                "indexFilter": "",
+                "namespace": "metric",
+                "q": "M::`couchdb`:(LAST(`uptime_seconds`)) BY `instance`",
+                "queryFuncs": [],
+                "type": "simple"
+              },
+              "type": "singlestat",
+              "unit": ""
+            }
+          ],
+          "type": "singlestat"
+        },
+        {
+          "extend": {
+            "fixedGroupByTime": null,
+            "fixedTime": "",
+            "isRefresh": true,
+            "settings": {
+              "alias": [],
+              "chartType": "line",
+              "colors": [],
+              "compareColors": {
+                "dayCompare": "rgba(213,217,226,0.5)",
+                "hourCompare": "#D5D9E2",
+                "monthCompare": "rgba(213,217,226,0.12)",
+                "weekCompare": "rgba(213,217,226,0.25)"
+              },
+              "compareColorsDark": {
+                "dayCompare": "rgba(213,217,226,0.5)",
+                "hourCompare": "#D5D9E2",
+                "monthCompare": "rgba(213,217,226,0.12)",
+                "weekCompare": "rgba(213,217,226,0.25)"
+              },
+              "compareColorsLight": {
+                "dayCompare": "rgba(11,11,12,0.5)",
+                "hourCompare": "#0B0B0C",
+                "monthCompare": "rgba(11,11,12,0.12)",
+                "weekCompare": "rgba(11,11,12,0.3)"
+              },
+              "compareType": [],
+              "currentChartType": "sequence",
+              "density": "medium",
+              "fixedTime": "",
+              "isPercent": false,
+              "isTimeInterval": true,
+              "legendPostion": "none",
+              "legendValues": "",
+              "levels": [],
+              "onlyShowGroupName": false,
+              "openCompare": false,
+              "openStack": false,
+              "showFieldMapping": false,
+              "showLine": false,
+              "showTitle": true,
+              "stackType": "time",
+              "timeInterval": "auto",
+              "titleDesc": "{{.Dashboard.erlang_memory_bytes_note}}",
+              "units": [
+                {
+                  "key": "avg(erlang_memory_bytes)",
+                  "name": "avg(erlang_memory_bytes)",
+                  "unit": "",
+                  "units": [
+                    "digital",
+                    "b"
+                  ]
+                }
+              ],
+              "xAxisShowType": "time",
+              "yAxixMaxVal": null,
+              "yAxixMinVal": null
+            }
+          },
+          "group": {
+            "name": null
+          },
+          "name": "{{.Dashboard.erlang_memory_bytes}}",
+          "pos": {
+            "h": 10,
+            "w": 8,
+            "x": 0,
+            "y": 26
+          },
+          "queries": [
+            {
+              "color": "",
+              "datasource": "dataflux",
+              "name": "",
+              "qtype": "dql",
+              "query": {
+                "alias": "",
+                "code": "A",
+                "dataSource": "couchdb",
+                "field": "erlang_memory_bytes",
+                "fieldFunc": "avg",
+                "fieldType": "float",
+                "fill": null,
+                "filters": [],
+                "funcList": [],
+                "groupBy": [
+                  "instance",
+                  "memory_type"
+                ],
+                "groupByTime": "",
+                "indexFilter": "",
+                "namespace": "metric",
+                "q": "M::`couchdb`:(AVG(`erlang_memory_bytes`)) BY `instance`, `memory_type`",
+                "queryFuncs": [],
+                "type": "simple"
+              },
+              "type": "sequence",
+              "unit": ""
+            }
+          ],
+          "type": "sequence"
+        },
+        {
+          "extend": {
+            "fixedGroupByTime": null,
+            "fixedTime": "",
+            "isRefresh": false,
+            "settings": {
+              "alias": [],
+              "chartType": "line",
+              "colors": [],
+              "compareColors": {
+                "dayCompare": "rgba(213,217,226,0.5)",
+                "hourCompare": "#D5D9E2",
+                "monthCompare": "rgba(213,217,226,0.12)",
+                "weekCompare": "rgba(213,217,226,0.25)"
+              },
+              "compareColorsDark": {
+                "dayCompare": "rgba(213,217,226,0.5)",
+                "hourCompare": "#D5D9E2",
+                "monthCompare": "rgba(213,217,226,0.12)",
+                "weekCompare": "rgba(213,217,226,0.25)"
+              },
+              "compareColorsLight": {
+                "dayCompare": "rgba(11,11,12,0.5)",
+                "hourCompare": "#0B0B0C",
+                "monthCompare": "rgba(11,11,12,0.12)",
+                "weekCompare": "rgba(11,11,12,0.3)"
+              },
+              "compareType": [],
+              "currentChartType": "sequence",
+              "density": "medium",
+              "fixedTime": "",
+              "isPercent": false,
+              "isTimeInterval": true,
+              "legendPostion": "none",
+              "legendValues": "",
+              "levels": [],
+              "mainMeasurementQueryCode": "A",
+              "onlyShowGroupName": false,
+              "openCompare": false,
+              "openStack": false,
+              "showFieldMapping": false,
+              "showLine": false,
+              "showTitle": true,
+              "slimit": 20,
+              "stackType": "time",
+              "timeInterval": "auto",
+              "titleDesc": "{{.Dashboard.httpd_request_methods_note}}",
+              "units": [],
+              "xAxisShowType": "time",
+              "yAxixMaxVal": null,
+              "yAxixMinVal": null
+            }
+          },
+          "group": {
+            "name": null
+          },
+          "name": "{{.Dashboard.httpd_request_methods}}",
+          "pos": {
+            "h": 10,
+            "w": 8,
+            "x": 8,
+            "y": 16
+          },
+          "queries": [
+            {
+              "color": "",
+              "datasource": "dataflux",
+              "name": "",
+              "qtype": "dql",
+              "query": {
+                "alias": "",
+                "code": "A",
+                "dataSource": "couchdb",
+                "field": "httpd_request_methods",
+                "fieldFunc": "avg",
+                "fieldType": "float",
+                "fill": null,
+                "filters": [],
+                "funcList": [],
+                "groupBy": [
+                  "instance",
+                  "method"
+                ],
+                "groupByTime": "",
+                "indexFilter": "",
+                "namespace": "metric",
+                "q": "M::`couchdb`:(AVG(`httpd_request_methods`)) BY `instance`, `method`",
+                "queryFuncs": [],
+                "type": "simple"
+              },
+              "type": "sequence",
+              "unit": ""
+            }
+          ],
+          "type": "sequence"
+        },
+        {
+          "extend": {
+            "fixedGroupByTime": null,
+            "fixedTime": "",
+            "isRefresh": true,
+            "settings": {
+              "alias": [],
+              "bgColor": "",
+              "colors": [],
+              "compareType": "",
+              "currentChartType": "singlestat",
+              "downsample": "last",
+              "fixedTime": "",
+              "fontColor": "",
+              "isTimeInterval": false,
+              "levels": [],
+              "lineColor": "#3AB8FF",
+              "mappings": [],
+              "openCompare": false,
+              "openThousandsSeparator": true,
+              "precision": "2",
+              "showFieldMapping": false,
+              "showLine": false,
+              "showLineAxis": false,
+              "showTitle": true,
+              "timeInterval": "default",
+              "titleDesc": "{{.Dashboard.open_databases_note}}",
+              "units": [
+                {
+                  "key": "avg(open_databases_total)",
+                  "name": "avg(open_databases_total)",
+                  "unit": "DBs",
+                  "units": [
+                    "custom",
+                    "DBs"
+                  ]
+                }
+              ]
+            }
+          },
+          "group": {
+            "name": null
+          },
+          "name": "{{.Dashboard.open_databases}}",
+          "pos": {
+            "h": 6,
+            "w": 4,
+            "x": 5,
+            "y": 0
+          },
+          "queries": [
+            {
+              "color": "",
+              "datasource": "dataflux",
+              "name": "",
+              "qtype": "dql",
+              "query": {
+                "alias": "",
+                "code": "A",
+                "dataSource": "couchdb",
+                "field": "open_databases_total",
+                "fieldFunc": "avg",
+                "fieldType": "float",
+                "fill": null,
+                "filters": [],
+                "funcList": [],
+                "groupBy": [
+                  "instance",
+                  "method"
+                ],
+                "groupByTime": "",
+                "indexFilter": "",
+                "namespace": "metric",
+                "q": "M::`couchdb`:(AVG(`open_databases_total`)) BY `instance`, `method`",
+                "queryFuncs": [],
+                "type": "simple"
+              },
+              "type": "singlestat",
+              "unit": ""
+            }
+          ],
+          "type": "singlestat"
+        },
+        {
+          "extend": {
+            "fixedGroupByTime": null,
+            "fixedTime": "",
+            "isRefresh": true,
+            "settings": {
+              "alias": [],
+              "bgColor": "",
+              "colors": [],
+              "compareType": "",
+              "currentChartType": "singlestat",
+              "downsample": "last",
+              "fixedTime": "",
+              "fontColor": "",
+              "isTimeInterval": false,
+              "levels": [],
+              "lineColor": "#3AB8FF",
+              "mappings": [],
+              "openCompare": false,
+              "openThousandsSeparator": true,
+              "precision": "2",
+              "showFieldMapping": false,
+              "showLine": false,
+              "showLineAxis": false,
+              "showTitle": true,
+              "timeInterval": "default",
+              "titleDesc": "{{.Dashboard.open_os_files_note}}",
+              "units": [
+                {
+                  "key": "avg(open_os_files_total)",
+                  "name": "avg(open_os_files_total)",
+                  "unit": "files",
+                  "units": [
+                    "custom",
+                    "files"
+                  ]
+                }
+              ]
+            }
+          },
+          "group": {
+            "name": null
+          },
+          "name": "{{.Dashboard.open_os_files}}",
+          "pos": {
+            "h": 6,
+            "w": 5,
+            "x": 9,
+            "y": 0
+          },
+          "queries": [
+            {
+              "color": "",
+              "datasource": "dataflux",
+              "name": "",
+              "qtype": "dql",
+              "query": {
+                "alias": "",
+                "code": "A",
+                "dataSource": "couchdb",
+                "field": "open_os_files_total",
+                "fieldFunc": "avg",
+                "fieldType": "float",
+                "fill": null,
+                "filters": [],
+                "funcList": [],
+                "groupBy": [
+                  "instance",
+                  "method"
+                ],
+                "groupByTime": "",
+                "indexFilter": "",
+                "namespace": "metric",
+                "q": "M::`couchdb`:(AVG(`open_os_files_total`)) BY `instance`, `method`",
+                "queryFuncs": [],
+                "type": "simple"
+              },
+              "type": "singlestat",
+              "unit": ""
+            }
+          ],
+          "type": "singlestat"
+        },
+        {
+          "extend": {
+            "fixedGroupByTime": null,
+            "fixedTime": "",
+            "isRefresh": false,
+            "settings": {
+              "alias": [],
+              "bgColor": "",
+              "colors": [],
+              "compareType": "",
+              "currentChartType": "singlestat",
+              "downsample": "last",
+              "fixedTime": "",
+              "fontColor": "",
+              "isTimeInterval": false,
+              "levels": [],
+              "lineColor": "#3AB8FF",
+              "mappings": [],
+              "openCompare": false,
+              "openThousandsSeparator": true,
+              "precision": "2",
+              "showFieldMapping": false,
+              "showLine": false,
+              "showLineAxis": false,
+              "showTitle": true,
+              "timeInterval": "default",
+              "titleDesc": "{{.Dashboard.auth_cache_hits_note}}",
+              "units": [
+                {
+                  "key": "avg(auth_cache_hits_total)",
+                  "name": "avg(auth_cache_hits_total)",
+                  "unit": "hits",
+                  "units": [
+                    "custom",
+                    "hits"
+                  ]
+                }
+              ]
+            }
+          },
+          "group": {
+            "name": null
+          },
+          "name": "{{.Dashboard.auth_cache_hits}}",
+          "pos": {
+            "h": 6,
+            "w": 5,
+            "x": 14,
+            "y": 0
+          },
+          "queries": [
+            {
+              "color": "",
+              "datasource": "dataflux",
+              "name": "",
+              "qtype": "dql",
+              "query": {
+                "alias": "",
+                "code": "A",
+                "dataSource": "couchdb",
+                "field": "auth_cache_hits_total",
+                "fieldFunc": "avg",
+                "fieldType": "float",
+                "fill": null,
+                "filters": [],
+                "funcList": [],
+                "groupBy": [
+                  "instance",
+                  "method"
+                ],
+                "groupByTime": "",
+                "indexFilter": "",
+                "namespace": "metric",
+                "q": "M::`couchdb`:(AVG(`auth_cache_hits_total`)) BY `instance`, `method`",
+                "queryFuncs": [],
+                "type": "simple"
+              },
+              "type": "singlestat",
+              "unit": ""
+            }
+          ],
+          "type": "singlestat"
+        },
+        {
+          "extend": {
+            "fixedGroupByTime": null,
+            "fixedTime": "",
+            "isRefresh": false,
+            "settings": {
+              "alias": [],
+              "bgColor": "",
+              "colors": [],
+              "compareType": "",
+              "currentChartType": "singlestat",
+              "downsample": "last",
+              "fixedTime": "",
+              "fontColor": "",
+              "isTimeInterval": false,
+              "levels": [],
+              "lineColor": "#3AB8FF",
+              "mappings": [],
+              "openCompare": false,
+              "openThousandsSeparator": true,
+              "precision": "2",
+              "showFieldMapping": false,
+              "showLine": false,
+              "showLineAxis": false,
+              "showTitle": true,
+              "timeInterval": "default",
+              "titleDesc": "{{.Dashboard.auth_cache_misses_note}}",
+              "units": [
+                {
+                  "key": "avg(auth_cache_misses_total)",
+                  "name": "avg(auth_cache_misses_total)",
+                  "unit": "misses",
+                  "units": [
+                    "custom",
+                    "misses"
+                  ]
+                }
+              ]
+            }
+          },
+          "group": {
+            "name": null
+          },
+          "name": "{{.Dashboard.auth_cache_misses}}",
+          "pos": {
+            "h": 6,
+            "w": 5,
+            "x": 19,
+            "y": 0
+          },
+          "queries": [
+            {
+              "color": "",
+              "datasource": "dataflux",
+              "name": "",
+              "qtype": "dql",
+              "query": {
+                "alias": "",
+                "code": "A",
+                "dataSource": "couchdb",
+                "field": "auth_cache_misses_total",
+                "fieldFunc": "avg",
+                "fieldType": "float",
+                "fill": null,
+                "filters": [],
+                "funcList": [],
+                "groupBy": [
+                  "instance",
+                  "method"
+                ],
+                "groupByTime": "",
+                "indexFilter": "",
+                "namespace": "metric",
+                "q": "M::`couchdb`:(AVG(`auth_cache_misses_total`)) BY `instance`, `method`",
+                "queryFuncs": [],
+                "type": "simple"
+              },
+              "type": "singlestat",
+              "unit": ""
+            }
+          ],
+          "type": "singlestat"
+        },
+        {
+          "extend": {
+            "fixedGroupByTime": null,
+            "fixedTime": "",
+            "isRefresh": false,
+            "settings": {
+              "alias": [],
+              "chartType": "line",
+              "colors": [],
+              "compareColors": {
+                "dayCompare": "rgba(213,217,226,0.5)",
+                "hourCompare": "#D5D9E2",
+                "monthCompare": "rgba(213,217,226,0.12)",
+                "weekCompare": "rgba(213,217,226,0.25)"
+              },
+              "compareColorsDark": {
+                "dayCompare": "rgba(213,217,226,0.5)",
+                "hourCompare": "#D5D9E2",
+                "monthCompare": "rgba(213,217,226,0.12)",
+                "weekCompare": "rgba(213,217,226,0.25)"
+              },
+              "compareColorsLight": {
+                "dayCompare": "rgba(11,11,12,0.5)",
+                "hourCompare": "#0B0B0C",
+                "monthCompare": "rgba(11,11,12,0.12)",
+                "weekCompare": "rgba(11,11,12,0.3)"
+              },
+              "compareType": [],
+              "currentChartType": "sequence",
+              "density": "medium",
+              "fixedTime": "",
+              "isPercent": false,
+              "isTimeInterval": true,
+              "legendPostion": "none",
+              "legendValues": "",
+              "levels": [],
+              "mainMeasurementQueryCode": "A",
+              "onlyShowGroupName": false,
+              "openCompare": false,
+              "openStack": false,
+              "showFieldMapping": false,
+              "showLine": false,
+              "showTitle": true,
+              "slimit": 20,
+              "stackType": "time",
+              "timeInterval": "auto",
+              "titleDesc": "{{.Dashboard.httpd_requests_note}}",
+              "units": [],
+              "xAxisShowType": "time",
+              "yAxixMaxVal": null,
+              "yAxixMinVal": null
+            }
+          },
+          "group": {
+            "name": null
+          },
+          "name": "{{.Dashboard.httpd_requests}}",
+          "pos": {
+            "h": 10,
+            "w": 8,
+            "x": 0,
+            "y": 16
+          },
+          "queries": [
+            {
+              "color": "",
+              "datasource": "dataflux",
+              "name": "",
+              "qtype": "dql",
+              "query": {
+                "alias": "",
+                "code": "A",
+                "dataSource": "couchdb",
+                "field": "httpd_requests_total",
+                "fieldFunc": "avg",
+                "fieldType": "float",
+                "fill": null,
+                "fillNum": null,
+                "filters": [],
+                "funcList": [],
+                "groupBy": [
+                  "instance"
+                ],
+                "groupByTime": "",
+                "labelOp": "",
+                "namespace": "metric",
+                "q": "M::`couchdb`:(AVG(`httpd_requests_total`)) BY `instance`",
+                "queryFuncs": [],
+                "type": "simple",
+                "withLabels": []
+              },
+              "type": "sequence",
+              "unit": ""
+            }
+          ],
+          "type": "sequence"
+        },
+        {
+          "extend": {
+            "fixedGroupByTime": null,
+            "fixedTime": "",
+            "isRefresh": false,
+            "settings": {
+              "alias": [],
+              "chartType": "line",
+              "colors": [],
+              "compareColors": {
+                "dayCompare": "rgba(213,217,226,0.5)",
+                "hourCompare": "#D5D9E2",
+                "monthCompare": "rgba(213,217,226,0.12)",
+                "weekCompare": "rgba(213,217,226,0.25)"
+              },
+              "compareColorsDark": {
+                "dayCompare": "rgba(213,217,226,0.5)",
+                "hourCompare": "#D5D9E2",
+                "monthCompare": "rgba(213,217,226,0.12)",
+                "weekCompare": "rgba(213,217,226,0.25)"
+              },
+              "compareColorsLight": {
+                "dayCompare": "rgba(11,11,12,0.5)",
+                "hourCompare": "#0B0B0C",
+                "monthCompare": "rgba(11,11,12,0.12)",
+                "weekCompare": "rgba(11,11,12,0.3)"
+              },
+              "compareType": [],
+              "currentChartType": "sequence",
+              "density": "medium",
+              "fixedTime": "",
+              "isPercent": false,
+              "isTimeInterval": true,
+              "legendPostion": "none",
+              "legendValues": "",
+              "levels": [],
+              "mainMeasurementQueryCode": "A",
+              "onlyShowGroupName": false,
+              "openCompare": false,
+              "openStack": false,
+              "showFieldMapping": false,
+              "showLine": false,
+              "showTitle": true,
+              "slimit": 20,
+              "stackType": "time",
+              "timeInterval": "auto",
+              "titleDesc": "{{.Dashboard.httpd_bulk_requests_note}}",
+              "units": [],
+              "xAxisShowType": "time",
+              "yAxixMaxVal": null,
+              "yAxixMinVal": null
+            }
+          },
+          "group": {
+            "name": null
+          },
+          "name": "{{.Dashboard.httpd_bulk_requests}}",
+          "pos": {
+            "h": 10,
+            "w": 8,
+            "x": 8,
+            "y": 6
+          },
+          "queries": [
+            {
+              "color": "",
+              "datasource": "dataflux",
+              "name": "",
+              "qtype": "dql",
+              "query": {
+                "alias": "",
+                "code": "A",
+                "dataSource": "couchdb",
+                "field": "httpd_bulk_requests_total",
+                "fieldFunc": "avg",
+                "fieldType": "float",
+                "fill": null,
+                "fillNum": null,
+                "filters": [],
+                "funcList": [],
+                "groupBy": [
+                  "instance"
+                ],
+                "groupByTime": "",
+                "labelOp": "",
+                "namespace": "metric",
+                "q": "M::`couchdb`:(AVG(`httpd_bulk_requests_total`)) BY `instance`",
+                "queryFuncs": [],
+                "type": "simple",
+                "withLabels": []
+              },
+              "type": "sequence",
+              "unit": ""
+            }
+          ],
+          "type": "sequence"
+        },
+        {
+          "extend": {
+            "fixedGroupByTime": null,
+            "fixedTime": "",
+            "isRefresh": false,
+            "settings": {
+              "alias": [],
+              "chartType": "line",
+              "colors": [],
+              "compareColors": {
+                "dayCompare": "rgba(213,217,226,0.5)",
+                "hourCompare": "#D5D9E2",
+                "monthCompare": "rgba(213,217,226,0.12)",
+                "weekCompare": "rgba(213,217,226,0.25)"
+              },
+              "compareColorsDark": {
+                "dayCompare": "rgba(213,217,226,0.5)",
+                "hourCompare": "#D5D9E2",
+                "monthCompare": "rgba(213,217,226,0.12)",
+                "weekCompare": "rgba(213,217,226,0.25)"
+              },
+              "compareColorsLight": {
+                "dayCompare": "rgba(11,11,12,0.5)",
+                "hourCompare": "#0B0B0C",
+                "monthCompare": "rgba(11,11,12,0.12)",
+                "weekCompare": "rgba(11,11,12,0.3)"
+              },
+              "compareType": [],
+              "currentChartType": "sequence",
+              "density": "medium",
+              "fixedTime": "",
+              "isPercent": false,
+              "isTimeInterval": true,
+              "legendPostion": "none",
+              "legendValues": "",
+              "levels": [],
+              "mainMeasurementQueryCode": "A",
+              "onlyShowGroupName": false,
+              "openCompare": false,
+              "openStack": false,
+              "showFieldMapping": false,
+              "showLine": false,
+              "showTitle": true,
+              "slimit": 20,
+              "stackType": "time",
+              "timeInterval": "auto",
+              "titleDesc": "{{.Dashboard.collect_results_time_seconds_note}}",
+              "units": [
+                {
+                  "key": "avg(collect_results_time_seconds)",
+                  "name": "avg(collect_results_time_seconds)",
+                  "unit": "",
+                  "units": [
+                    "time",
+                    "ms"
+                  ]
+                },
+                {
+                  "key": "avg(collect_results_time_seconds_sum)",
+                  "name": "avg(collect_results_time_seconds_sum)",
+                  "unit": "",
+                  "units": [
+                    "time",
+                    "ms"
+                  ]
+                },
+                {
+                  "key": "avg(collect_results_time_seconds_count)",
+                  "name": "avg(collect_results_time_seconds_count)",
+                  "unit": "",
+                  "units": [
+                    "time",
+                    "ms"
+                  ]
+                }
+              ],
+              "xAxisShowType": "time",
+              "yAxixMaxVal": null,
+              "yAxixMinVal": null
+            }
+          },
+          "group": {
+            "name": null
+          },
+          "name": "{{.Dashboard.collect_results_time_seconds}}",
+          "pos": {
+            "h": 10,
+            "w": 8,
+            "x": 16,
+            "y": 6
+          },
+          "queries": [
+            {
+              "color": "",
+              "datasource": "dataflux",
+              "name": "",
+              "qtype": "dql",
+              "query": {
+                "alias": "",
+                "code": "A",
+                "dataSource": "couchdb",
+                "field": "collect_results_time_seconds",
+                "fieldFunc": "avg",
+                "fieldType": "float",
+                "fill": null,
+                "filters": [],
+                "funcList": [],
+                "groupBy": [
+                  "instance",
+                  "quantile"
+                ],
+                "groupByTime": "",
+                "indexFilter": "",
+                "namespace": "metric",
+                "q": "M::`couchdb`:(AVG(`collect_results_time_seconds`)) BY `instance`, `quantile`",
+                "queryFuncs": [],
+                "type": "simple"
+              },
+              "type": "sequence",
+              "unit": ""
+            },
+            {
+              "color": "",
+              "datasource": "dataflux",
+              "name": "",
+              "qtype": "dql",
+              "query": {
+                "alias": "",
+                "code": "B",
+                "dataSource": "couchdb",
+                "field": "collect_results_time_seconds_count",
+                "fieldFunc": "avg",
+                "fieldType": "float",
+                "fill": null,
+                "filters": [],
+                "funcList": [],
+                "groupBy": [
+                  "instance"
+                ],
+                "groupByTime": "",
+                "indexFilter": "",
+                "namespace": "metric",
+                "q": "M::`couchdb`:(AVG(`collect_results_time_seconds_count`)) BY `instance`",
+                "queryFuncs": [],
+                "type": "simple"
+              },
+              "type": "sequence",
+              "unit": ""
+            },
+            {
+              "color": "",
+              "datasource": "dataflux",
+              "name": "",
+              "qtype": "dql",
+              "query": {
+                "alias": "",
+                "code": "C",
+                "dataSource": "couchdb",
+                "field": "collect_results_time_seconds_sum",
+                "fieldFunc": "avg",
+                "fieldType": "float",
+                "fill": null,
+                "filters": [],
+                "funcList": [],
+                "groupBy": [
+                  "instance"
+                ],
+                "groupByTime": "",
+                "indexFilter": "",
+                "namespace": "metric",
+                "q": "M::`couchdb`:(AVG(`collect_results_time_seconds_sum`)) BY `instance`",
+                "queryFuncs": [],
+                "type": "simple"
+              },
+              "type": "sequence",
+              "unit": ""
+            }
+          ],
+          "type": "sequence"
+        },
+        {
+          "extend": {
+            "fixedGroupByTime": null,
+            "fixedTime": "",
+            "isRefresh": false,
+            "settings": {
+              "alias": [],
+              "chartType": "bar",
+              "colors": [
+                {
+                  "color": "#498BFE",
+                  "key": "avg(database_reads_total){instance: 127.0.0.1:17986}",
+                  "name": "avg(database_reads_total){instance: 127.0.0.1:17986}"
+                },
+                {
+                  "color": "#41CEC7",
+                  "key": "avg(database_writes_total){instance: 127.0.0.1:17986}",
+                  "name": "avg(database_writes_total){instance: 127.0.0.1:17986}"
+                },
+                {
+                  "color": "#FFBD5F",
+                  "key": "avg(database_purges_total){instance: 127.0.0.1:17986}",
+                  "name": "avg(database_purges_total){instance: 127.0.0.1:17986}"
+                }
+              ],
+              "compareColors": {
+                "dayCompare": "rgba(213,217,226,0.5)",
+                "hourCompare": "#D5D9E2",
+                "monthCompare": "rgba(213,217,226,0.12)",
+                "weekCompare": "rgba(213,217,226,0.25)"
+              },
+              "compareColorsDark": {
+                "dayCompare": "rgba(213,217,226,0.5)",
+                "hourCompare": "#D5D9E2",
+                "monthCompare": "rgba(213,217,226,0.12)",
+                "weekCompare": "rgba(213,217,226,0.25)"
+              },
+              "compareColorsLight": {
+                "dayCompare": "rgba(11,11,12,0.5)",
+                "hourCompare": "#0B0B0C",
+                "monthCompare": "rgba(11,11,12,0.12)",
+                "weekCompare": "rgba(11,11,12,0.3)"
+              },
+              "compareType": [],
+              "currentChartType": "sequence",
+              "density": "medium",
+              "fixedTime": "",
+              "isPercent": false,
+              "isTimeInterval": true,
+              "legendPostion": "none",
+              "legendValues": "",
+              "levels": [],
+              "mainMeasurementQueryCode": "A",
+              "onlyShowGroupName": false,
+              "openCompare": false,
+              "openStack": false,
+              "showFieldMapping": false,
+              "showLine": false,
+              "showTitle": true,
+              "slimit": 20,
+              "stackType": "time",
+              "timeInterval": "auto",
+              "titleDesc": "{{.Dashboard.database_reads_writes_note}}",
+              "units": [],
+              "xAxisShowType": "time",
+              "yAxixMaxVal": null,
+              "yAxixMinVal": null
+            }
+          },
+          "group": {
+            "name": null
+          },
+          "name": "{{.Dashboard.database_reads_writes}}",
+          "pos": {
+            "h": 10,
+            "w": 8,
+            "x": 0,
+            "y": 6
+          },
+          "queries": [
+            {
+              "color": "",
+              "datasource": "dataflux",
+              "name": "",
+              "qtype": "dql",
+              "query": {
+                "alias": "",
+                "code": "A",
+                "dataSource": "couchdb",
+                "field": "database_reads_total",
+                "fieldFunc": "avg",
+                "fieldType": "float",
+                "fill": null,
+                "filters": [],
+                "funcList": [],
+                "groupBy": [
+                  "instance"
+                ],
+                "groupByTime": "",
+                "indexFilter": "",
+                "namespace": "metric",
+                "q": "M::`couchdb`:(AVG(`database_reads_total`)) BY `instance`",
+                "queryFuncs": [],
+                "type": "simple"
+              },
+              "type": "sequence",
+              "unit": ""
+            },
+            {
+              "color": "",
+              "datasource": "dataflux",
+              "name": "",
+              "qtype": "dql",
+              "query": {
+                "alias": "",
+                "code": "B",
+                "dataSource": "couchdb",
+                "field": "database_writes_total",
+                "fieldFunc": "avg",
+                "fieldType": "float",
+                "fill": null,
+                "filters": [],
+                "funcList": [],
+                "groupBy": [
+                  "instance"
+                ],
+                "groupByTime": "",
+                "indexFilter": "",
+                "namespace": "metric",
+                "q": "M::`couchdb`:(AVG(`database_writes_total`)) BY `instance`",
+                "queryFuncs": [],
+                "type": "simple"
+              },
+              "type": "sequence",
+              "unit": ""
+            },
+            {
+              "color": "",
+              "datasource": "dataflux",
+              "name": "",
+              "qtype": "dql",
+              "query": {
+                "alias": "",
+                "code": "C",
+                "dataSource": "couchdb",
+                "field": "database_purges_total",
+                "fieldFunc": "avg",
+                "fieldType": "float",
+                "fill": null,
+                "filters": [],
+                "funcList": [],
+                "groupBy": [
+                  "instance"
+                ],
+                "groupByTime": "",
+                "indexFilter": "",
+                "namespace": "metric",
+                "q": "M::`couchdb`:(AVG(`database_purges_total`)) BY `instance`",
+                "queryFuncs": [],
+                "type": "simple"
+              },
+              "type": "sequence",
+              "unit": ""
+            }
+          ],
+          "type": "sequence"
+        },
+        {
+          "extend": {
+            "fixedGroupByTime": null,
+            "fixedTime": "",
+            "isRefresh": false,
+            "settings": {
+              "alias": [],
+              "chartType": "line",
+              "colors": [],
+              "compareColors": {
+                "dayCompare": "rgba(213,217,226,0.5)",
+                "hourCompare": "#D5D9E2",
+                "monthCompare": "rgba(213,217,226,0.12)",
+                "weekCompare": "rgba(213,217,226,0.25)"
+              },
+              "compareColorsDark": {
+                "dayCompare": "rgba(213,217,226,0.5)",
+                "hourCompare": "#D5D9E2",
+                "monthCompare": "rgba(213,217,226,0.12)",
+                "weekCompare": "rgba(213,217,226,0.25)"
+              },
+              "compareColorsLight": {
+                "dayCompare": "rgba(11,11,12,0.5)",
+                "hourCompare": "#0B0B0C",
+                "monthCompare": "rgba(11,11,12,0.12)",
+                "weekCompare": "rgba(11,11,12,0.3)"
+              },
+              "compareType": [],
+              "currentChartType": "sequence",
+              "density": "medium",
+              "fixedTime": "",
+              "isPercent": false,
+              "isTimeInterval": true,
+              "legendPostion": "none",
+              "legendValues": "",
+              "levels": [],
+              "mainMeasurementQueryCode": "A",
+              "onlyShowGroupName": false,
+              "openCompare": false,
+              "openStack": false,
+              "showFieldMapping": false,
+              "showLine": false,
+              "showTitle": true,
+              "slimit": 20,
+              "stackType": "time",
+              "timeInterval": "auto",
+              "titleDesc": "{{.Dashboard.httpd_status_codes_note}}",
+              "units": [],
+              "xAxisShowType": "time",
+              "yAxixMaxVal": null,
+              "yAxixMinVal": null
+            }
+          },
+          "group": {
+            "name": null
+          },
+          "name": "{{.Dashboard.httpd_status_codes}}",
+          "pos": {
+            "h": 10,
+            "w": 8,
+            "x": 16,
+            "y": 16
+          },
+          "queries": [
+            {
+              "color": "",
+              "datasource": "dataflux",
+              "name": "",
+              "qtype": "dql",
+              "query": {
+                "alias": "",
+                "code": "A",
+                "dataSource": "couchdb",
+                "field": "httpd_status_codes",
+                "fieldFunc": "avg",
+                "fieldType": "float",
+                "fill": null,
+                "filters": [],
+                "funcList": [],
+                "groupBy": [
+                  "instance",
+                  "code"
+                ],
+                "groupByTime": "",
+                "indexFilter": "",
+                "namespace": "metric",
+                "q": "M::`couchdb`:(AVG(`httpd_status_codes`)) BY `instance`, `code`",
+                "queryFuncs": [],
+                "type": "simple"
+              },
+              "type": "sequence",
+              "unit": ""
+            }
+          ],
+          "type": "sequence"
+        }
+      ],
+      "groups": [],
+      "type": "template",
+      "vars": []
+    },
+    "summary": "",
+    "tagInfo": [],
+    "tags": [],
+    "thumbnail": "",
+    "title": "couchdb"
+  }
