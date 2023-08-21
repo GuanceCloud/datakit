@@ -6,24 +6,31 @@
 package filter
 
 import (
-	"fmt"
-
+	fp "github.com/GuanceCloud/cliutils/filter"
 	"github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/parser"
 	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 // Before checks, should adjust tags under some conditions.
 // Must stay the same 'switch' logic with kodo project function named 'getSourceValue' in source file apis/esFields.go.
 
-var _ parser.KVs = (*tfData)(nil)
+var _ fp.KVs = (*TFData)(nil)
 
-func newTFData(category point.Category, pt *dkpt.Point) (*tfData, error) {
-	tags := pt.Tags()
-	fields, err := pt.Fields()
-	if err != nil {
-		return nil, err
+func NewTFDataFromMap(data map[string]string) *TFData {
+	return &TFData{
+		Tags: data,
 	}
+}
+
+func NewTFData(category point.Category, pt *dkpt.Point) *TFData {
+	res := &TFData{
+		Tags: pt.Tags(),
+	}
+
+	fields, err := pt.Fields()
+	if err == nil {
+		res.Fields = fields
+	} // ignore error here
 
 	// Before checks, should adjust tags under some conditions.
 	// Must stay the same 'switch' logic with kodo project function named 'getSourceValue' in source file apis/esFields.go.
@@ -33,36 +40,56 @@ func newTFData(category point.Category, pt *dkpt.Point) (*tfData, error) {
 		point.Network,
 		point.KeyEvent,
 		point.RUM:
-		tags["source"] = pt.Name() // set measurement name as tag `source'
+		res.Tags["source"] = pt.Name() // set measurement name as tag `source'
+
 	case
 		point.Tracing,
 		point.Security,
 		point.Profiling:
 		// using measurement name as tag `service'.
+
 	case point.Metric, point.MetricDeprecated:
-		tags["measurement"] = pt.Name() // set measurement name as tag `measurement'
+		res.Tags["measurement"] = pt.Name() // set measurement name as tag `measurement'
+
 	case point.Object, point.CustomObject:
-		tags["class"] = pt.Name() // set measurement name as tag `class'
+		res.Tags["class"] = pt.Name() // set measurement name as tag `class'
+
 	case point.DynamicDWCategory, point.UnknownCategory:
-		return nil, fmt.Errorf("unsupport category: %s", category)
+		// pass
 	}
-	return &tfData{
-		tags:   tags,
-		fields: fields,
-	}, nil
+
+	res.Tags["category"] = category.String()
+
+	return res
 }
 
-type tfData struct {
-	tags   map[string]string
-	fields map[string]any
+type TFData struct {
+	Tags   map[string]string
+	Fields map[string]any
 }
 
-func (d *tfData) Get(name string) (any, bool) {
-	if v, ok := d.tags[name]; ok {
+func (d *TFData) MergeStringKVs() {
+	for k, v := range d.Fields {
+		switch str := v.(type) {
+		case string:
+			if d.Tags == nil {
+				d.Tags = map[string]string{}
+			}
+			d.Tags[k] = str
+		default:
+			// pass: ignore non-string field
+		}
+	}
+
+	d.Fields = nil
+}
+
+func (d *TFData) Get(name string) (any, bool) {
+	if v, ok := d.Tags[name]; ok {
 		return v, true
 	}
 
-	if v, ok := d.fields[name]; ok {
+	if v, ok := d.Fields[name]; ok {
 		return v, true
 	}
 

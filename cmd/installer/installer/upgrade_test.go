@@ -12,7 +12,6 @@ import (
 	bstoml "github.com/BurntSushi/toml"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 )
 
 func Test_setupDefaultInputs(t *T.T) {
@@ -262,35 +261,6 @@ func TestUpgradeMainConfig(t *T.T) {
 				c.IO.OutputFile = "/some/messy/file"
 				c.IO.FlushInterval = "100s"
 
-				return c
-			}(),
-		},
-
-		{
-			name: `upgrade-sinker`,
-			old: func() *config.Config {
-				c := config.DefaultConfig()
-				c.SinkersDeprecated = &config.SinkerDeprecated{Arr: []*dataway.Sinker{
-					{
-						Categories: []string{"M", "L"},
-						Filters:    []string{},
-						URL:        "some-dw-sinker",
-					},
-				}}
-				return c
-			}(),
-
-			expect: func() *config.Config {
-				c := config.DefaultConfig()
-				c.Dataway.Sinkers = []*dataway.Sinker{
-					{
-						Categories: []string{"M", "L"},
-						Filters:    []string{},
-						URL:        "some-dw-sinker",
-					},
-				}
-
-				t.Logf("c.dataway: %#v", c.Dataway)
 				return c
 			}(),
 		},

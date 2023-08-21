@@ -31,6 +31,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
@@ -480,25 +482,25 @@ func (r *reverseProxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 					md.Format = JFR
 				}
 			}
-			startTime, err := resolveStartTime(metadata)
+			startTime, err := resolveStartTime(metadata.formValue)
 			if err != nil {
 				log.Warnf("unable to resolve profile start time: %s", err)
 			} else {
 				md.Start = rfc3339Time(startTime)
 			}
 
-			endTime, err := resolveEndTime(metadata)
+			endTime, err := resolveEndTime(metadata.formValue)
 			if err != nil {
 				log.Warnf("unable to resolve profile end time: %s", err)
 			} else {
 				md.End = rfc3339Time(endTime)
 			}
 
-			tags := NewTags(metadata["tags[]"])
-			lang := resolveLang(metadata, tags)
+			tags := metadata.tags
+			lang := resolveLang(metadata.formValue, tags)
 			md.Language = lang
 
-			md.TagsProfiler = strings.Join(metadata["tags[]"], ",")
+			md.TagsProfiler = strings.Join(metadata.formValue[profileTagsKey], ",")
 
 			encoder := json.NewEncoder(f)
 			if err := encoder.Encode(md); err != nil {
@@ -529,6 +531,14 @@ func (r *reverseProxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	req.Header.Set(workspaceUUIDHeaderKey, "no-longer-in-use")
 	req.Header.Set(profileIDHeaderKey, profileID)
 	req.Header.Set(timestampHeaderKey, strconv.FormatInt(unixNano, 10))
+
+	xGlobalTag := dataway.HTTPHeaderGlobalTagValue(filter.NewTFDataFromMap(metadata.tags), config.Cfg.Dataway.GlobalTags(),
+		config.Cfg.Dataway.CustomTagKeys())
+	if xGlobalTag == "" {
+		xGlobalTag = config.Cfg.Dataway.GlobalTagsHTTPHeaderValue()
+	}
+
+	req.Header.Set(dataway.HeaderXGlobalTags, xGlobalTag)
 
 	r.proxy.ServeHTTP(w, req)
 }

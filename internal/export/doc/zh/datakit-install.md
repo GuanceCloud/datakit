@@ -169,7 +169,21 @@ NAME1="value1" NAME2="value2"
 
 ### Sinker 相关配置 {#env-sink}
 
-- `DK_SINKER`：用于指定 Dataway Sinker 配置，它的值是一个 JSON 字符串，参见[这里的示例](datakit-daemonset-deploy.md#env-sinker)。
+通过 `DK_SINKER_GLOBAL_CUSTOMER_KEYS` 用于设置 sinker 过滤的 tag/field key 名称，其形式如下：
+
+<!-- markdownlint-disable MD046 -->
+=== "Linux/macOS"
+
+    ```shell
+{{ InstallCmd 4 (.WithPlatform "unix") (.WithEnvs "DK_SINKER_GLOBAL_CUSTOMER_KEYS" "key1,key2" ) (.WithEnvs "DK_DATAWAY_ENABLE_SINKER" "on" ) }}
+    ```
+
+=== "Windows"
+
+    ```powershell
+{{ InstallCmd 4 (.WithPlatform "windows") (.WithEnvs "DK_SINKER_GLOBAL_CUSTOMER_KEYS" "key1,key2" ) (.WithEnvs "DK_DATAWAY_ENABLE_SINKER" "on" ) }}
+    ```
+<!-- markdownlint-enable -->
 
 ### cgroup 配置相关 {#env-cgroup}
 

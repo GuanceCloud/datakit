@@ -11,30 +11,13 @@ import (
 	"strings"
 	"time"
 
+	fp "github.com/GuanceCloud/cliutils/filter"
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/parser"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/offload"
 )
-
-// LoadSink unmarshal sinker JSON string to dataway's sinker.
-func (c *Config) LoadSink(v string) {
-	if c.Dataway == nil {
-		c.Dataway = &dataway.Dataway{}
-	}
-
-	var arr []dataway.Sinker
-	if err := json.Unmarshal([]byte(v), &arr); err != nil {
-		l.Warnf("invalid env key ENV_SINKER, value %q: %s", v, err)
-		return
-	} else {
-		for i := range arr {
-			c.Dataway.Sinkers = append(c.Dataway.Sinkers, &arr[i])
-		}
-	}
-}
 
 func (c *Config) loadDataway() {
 	// 多个 dataway 支持 ',' 分割
@@ -91,6 +74,16 @@ func (c *Config) loadDataway() {
 		} else {
 			l.Warnf("invalid ENV_DATAWAY_IDLE_TIMEOUT(%q): %s, ignored", v, err)
 		}
+	}
+
+	if v := datakit.GetEnv("ENV_DATAWAY_ENABLE_SINKER"); v != "" {
+		c.Dataway.EnableSinker = true
+		l.Infof("enable sinker on dataway")
+	}
+
+	if v := datakit.GetEnv("ENV_SINKER_GLOBAL_CUSTOMER_KEYS"); v != "" {
+		c.Dataway.GlobalCustomerKeys = dataway.ParseGlobalCustomerKeys(v)
+		l.Infof("set global custom keys to %v", c.Dataway.GlobalCustomerKeys)
 	}
 }
 
@@ -323,10 +316,6 @@ func (c *Config) LoadEnvs() error {
 
 	c.loadDataway()
 
-	if v := datakit.GetEnv("ENV_SINKER"); v != "" {
-		c.LoadSink(v)
-	}
-
 	if v := datakit.GetEnv("ENV_HOSTNAME"); v != "" {
 		c.Hostname = v
 	}
@@ -361,7 +350,7 @@ func (c *Config) LoadEnvs() error {
 		} else {
 			for k, arr := range x {
 				for _, c := range arr {
-					arr, err := parser.GetConds(c)
+					arr, err := fp.GetConds(c)
 					if err != nil {
 						l.Warnf("parse filter condition failed %q: %q, ignored", k, c)
 					}

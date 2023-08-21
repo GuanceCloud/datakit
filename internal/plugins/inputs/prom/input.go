@@ -385,11 +385,16 @@ func (i *Input) Init() error {
 			}
 		}
 
+		var globalTags map[string]string
 		if i.Election {
-			i.urlTags[u] = inputs.MergeTags(i.Tagger.ElectionTags(), i.Tags, u)
+			globalTags = i.Tagger.ElectionTags()
+			i.l.Infof("add global election tags %q", globalTags)
 		} else {
-			i.urlTags[u] = inputs.MergeTags(i.Tagger.HostTags(), i.Tags, u)
+			globalTags = i.Tagger.HostTags()
+			i.l.Infof("add global host tags %q", globalTags)
 		}
+
+		i.urlTags[u] = inputs.MergeTags(globalTags, i.Tags, u)
 	}
 
 	opts := []iprom.PromOption{

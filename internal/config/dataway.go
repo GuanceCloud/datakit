@@ -7,7 +7,6 @@ package config
 
 import (
 	"fmt"
-	"runtime"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
@@ -31,17 +30,14 @@ func (c *Config) SetupDataway() error {
 		c.RunMode = datakit.ModeNormal
 	}
 
-	dataway.DatakitUserAgent = fmt.Sprintf("datakit-%s-%s/%s", runtime.GOOS, runtime.GOARCH, datakit.Version)
-
 	c.Dataway.Hostname = c.Hostname
 
-	// NOTE: this should not happen, the installer will rewrite datakit.conf
-	// to move top-level sinker config to dataway.
-	if c.SinkersDeprecated != nil && len(c.SinkersDeprecated.Arr) > 0 {
-		c.Dataway.Sinkers = c.SinkersDeprecated.Arr
-	}
+	l.Infof("setup dataway with global host tags %q, election tags %q",
+		c.GlobalHostTags, c.Election.Tags)
 
-	if err := c.Dataway.Init(); err != nil {
+	if err := c.Dataway.Init(
+		dataway.WithGlobalTags(c.GlobalHostTags, c.Election.Tags),
+	); err != nil {
 		return err
 	}
 

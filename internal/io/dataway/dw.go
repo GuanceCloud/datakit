@@ -8,6 +8,8 @@ package dataway
 
 import (
 	"fmt"
+	"runtime"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -15,7 +17,10 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
 )
+
+const HeaderXGlobalTags = "X-Global-Tags"
 
 type IDataway interface {
 	Write(...WriteOption) error
@@ -67,8 +72,6 @@ type Dataway struct {
 
 	Hostname string `toml:"-"`
 
-	Sinkers []*Sinker `toml:"sinkers,omitempty"`
-
 	// Deprecated
 	DeprecatedHost   string `toml:"host,omitempty"`
 	DeprecatedScheme string `toml:"scheme,omitempty"`
@@ -82,15 +85,56 @@ type Dataway struct {
 	Proxy bool `toml:"proxy,omitempty"`
 
 	EnableHTTPTrace bool `toml:"enable_httptrace"`
+	EnableSinker    bool `toml:"enable_sinker"`
+
+	GlobalCustomerKeys []string `toml:"global_customer_keys"`
 
 	eps        []*endPoint
 	locker     sync.RWMutex
 	dnsCachers []*dnsCacher
 
+	globalTags                map[string]string
+	globalTagsHTTPHeaderValue string
+
 	// metrics
 }
 
-func (dw *Dataway) Init() error {
+type dwopt func(*Dataway)
+
+func ParseGlobalCustomerKeys(v string) (arr []string) {
+	for _, elem := range strings.Split(v, ",") { // remove white space
+		if x := strings.TrimSpace(elem); len(x) > 0 {
+			arr = append(arr, x)
+		}
+	}
+	return
+}
+
+func WithGlobalTags(maps ...map[string]string) dwopt {
+	return func(dw *Dataway) {
+		if dw.globalTags == nil {
+			dw.globalTags = map[string]string{}
+		}
+
+		for _, tags := range maps {
+			for k, v := range tags {
+				dw.globalTags[k] = v
+			}
+		}
+
+		log.Infof("dataway set globals: %+#v", dw.globalTags)
+	}
+}
+
+func (dw *Dataway) Init(opts ...dwopt) error {
+	log = logger.SLogger("dataway")
+
+	for _, opt := range opts {
+		if opt != nil {
+			opt(dw)
+		}
+	}
+
 	if err := dw.doInit(); err != nil {
 		return err
 	}
@@ -115,10 +159,6 @@ func (dw *Dataway) ClientsCount() int {
 	return len(dw.eps)
 }
 
-func (dw *Dataway) IsLogFilter() bool {
-	return len(dw.eps) == 1
-}
-
 func (dw *Dataway) GetTokens() []string {
 	var arr []string
 	for _, ep := range dw.eps {
@@ -130,9 +170,18 @@ func (dw *Dataway) GetTokens() []string {
 	return arr
 }
 
-func (dw *Dataway) doInit() error {
-	log = logger.SLogger("dataway")
+// TagHeaderValue create X-Global-Tags header value in the
+// form of key=val,key=val with ASC sorted.
+func TagHeaderValue(tags map[string]string) string {
+	var arr []string
+	for k, v := range tags {
+		arr = append(arr, fmt.Sprintf("%s=%s", k, v))
+	}
+	sort.Strings(arr)
+	return strings.Join(arr, ",")
+}
 
+func (dw *Dataway) doInit() error {
 	// 如果 env 已传入了 dataway 配置, 则不再追加老的 dataway 配置,
 	// 避免俩边配置了同样的 dataway, 造成数据混乱
 	if dw.DeprecatedURL != "" && len(dw.URLs) == 0 {
@@ -151,22 +200,24 @@ func (dw *Dataway) doInit() error {
 		dw.MaxIdleConnsPerHost = 64
 	}
 
-	var setupOKSinker []*Sinker
-	for _, s := range dw.Sinkers {
-		if err := s.Setup(); err != nil {
-			log.Warnf("sinker %s setup failed: %s", s.String(), err.Error())
-		} else {
-			setupOKSinker = append(setupOKSinker, s)
-		}
+	log.Infof("set %d global tags to dataway", len(dw.globalTags))
+	if len(dw.globalTags) > 0 && dw.EnableSinker {
+		dw.globalTagsHTTPHeaderValue = TagHeaderValue(dw.globalTags)
 	}
-
-	dw.Sinkers = setupOKSinker
-	log.Infof("after sinker setup, %d sinker setup ok", len(dw.Sinkers))
 
 	for _, u := range dw.URLs {
 		ep, err := newEndpoint(u,
 			withProxy(dw.HTTPProxy),
 			withAPIs(dwAPIs),
+			withHTTPHeaders(map[string]string{
+				HeaderXGlobalTags: dw.globalTagsHTTPHeaderValue,
+
+				// DatakitUserAgent define HTTP User-Agent header.
+				// user-agent format. See
+				// 	 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
+				"User-Agent": fmt.Sprintf("datakit-%s-%s/%s/%s",
+					runtime.GOOS, runtime.GOARCH, git.Version, datakit.DatakitHostName),
+			}),
 			withHTTPTimeout(dw.HTTPTimeout),
 			withHTTPTrace(dw.EnableHTTPTrace),
 			withMaxHTTPIdleConnectionPerHost(dw.MaxIdleConnsPerHost),
@@ -184,6 +235,18 @@ func (dw *Dataway) doInit() error {
 	}
 
 	return nil
+}
+
+func (dw *Dataway) GlobalTags() map[string]string {
+	return dw.globalTags
+}
+
+func (dw *Dataway) CustomTagKeys() []string {
+	return dw.GlobalCustomerKeys
+}
+
+func (dw *Dataway) GlobalTagsHTTPHeaderValue() string {
+	return dw.globalTagsHTTPHeaderValue
 }
 
 func (dw *Dataway) addDNSCache(host string) {

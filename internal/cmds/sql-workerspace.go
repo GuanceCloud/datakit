@@ -23,7 +23,7 @@ type workerSpace struct {
 }
 
 func switchToken(s string) {
-	// 切换空间 前提: 之前没有切换过 或者切回到默认的空间
+	// 切换空间前提: 之前没有切换过 或者切回到默认的空间
 	// 查询缓存中有没有改token或者workspace
 	// 将token赋值之后 提示‘已经切换到了xxx空间’
 	name := strings.TrimSpace(strings.TrimPrefix(s, "use"))

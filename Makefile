@@ -325,7 +325,7 @@ shame_logging:
 ip2isp:
 	$(call build_ip2isp)
 
-deps: prepare gofmt lfparser_disable_line
+deps: prepare gofmt 
 
 # ignore files under vendor/.git/git
 gofmt:
@@ -359,11 +359,6 @@ endif
 		printf "$(RED)[FAIL] lint failed\n$(NC)" $$pkg; \
 		exit -1; \
 	fi
-
-lfparser_disable_line:
-	@rm -rf internal/io/parser/gram_y.go
-	@rm -rf internal/io/parser/parser_y.go
-	@goyacc -l -o internal/io/parser/gram_y.go internal/io/parser/gram.y # use -l to disable `//line`
 
 prepare:
 	@mkdir -p internal/git

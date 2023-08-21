@@ -421,11 +421,18 @@ if ($x -ne $null) {
 	Write-COutput yellow "* set ipdb type"
 }
 
-$sinker=""
-$x = [Environment]::GetEnvironmentVariable("DK_SINKER")
+$enable_sinker=""
+$x = [Environment]::GetEnvironmentVariable("DK_DATAWAY_ENABLE_SINKER")
 if ($x -ne $null) {
-	$sinker= $x
-	Write-COutput yellow "* set sinker"
+	$enable_sinker = "on"
+	Write-COutput yellow "* set dataway sinker on"
+}
+
+$global_customer_keys=""
+$x = [Environment]::GetEnvironmentVariable("DK_SINKER_GLOBAL_CUSTOMER_KEYS")
+if ($x -ne $null) {
+	$global_customer_keys = $x
+	Write-COutput yellow "* set sinker global customer keys"
 }
 
 ##########################
@@ -515,7 +522,8 @@ if ($upgrade -ne $null) { # upgrade
 			"--ipdb-type='${ipdb_type}'",
 			"--pprof-listen='${pprof_listen}'",
 			"--upgrade-ip-whitelist='${upgrade_ip_whitelist}'",
-			"--sinker='${sinker}'" # Do NOT add trailing `,' here!
+			"--enable-dataway-sinker='${enable_sinker}'",
+		  "--sinker-global-customer-keys='${global_customer_keys}'" # Do NOT add trailing `,' here!
 				)
 }
 

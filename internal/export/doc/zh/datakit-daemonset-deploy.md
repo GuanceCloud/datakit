@@ -229,14 +229,14 @@ spec:
 
 ### Dataway 配置相关环境变量 {#env-dataway}
 
-| 环境变量名称                   | 类型     | 默认值 | 必须   | 说明                                                         |
-| ---------:                     | ----:    | ---:   | ------ | ----                                                         |
-| `ENV_DATAWAY`                  | string   | 无     | 是     | 配置 DataWay 地址，如 `https://openway.guance.com?token=xxx` |
-| `ENV_DATAWAY_TIMEOUT`          | duration | "30s"  | 否     | 配置 DataWay 请求超时                                        |
-| `ENV_DATAWAY_ENABLE_HTTPTRACE` | bool     | -      | 否     | 开启 DataWay 请求时 HTTP 层面的指标暴露                      |
-| `ENV_DATAWAY_HTTP_PROXY`       | string   | 无     | 否     | 设置 DataWay HTTP 代理                                       |
-| `ENV_DATAWAY_MAX_IDLE_CONNS`   | int      | 无     | 否     | 设置 DataWay HTTP 连接池大小（[:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0)）|
-| `ENV_DATAWAY_IDLE_TIMEOUT`     | duration | "90s"  | 否     | 设置 DataWay HTTP Keep-Alive 时长（[:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0)）|
+| 环境变量名称                   | 类型     | 默认值 | 必须   | 说明                                                                                                                                 |
+| ---------:                     | ----:    | ---:   | ------ | ----                                                                                                                                 |
+| `ENV_DATAWAY`                  | string   | 无     | 是     | 配置 DataWay 地址，如 `https://openway.guance.com?token=xxx`                                                                         |
+| `ENV_DATAWAY_TIMEOUT`          | duration | "30s"  | 否     | 配置 DataWay 请求超时                                                                                                                |
+| `ENV_DATAWAY_ENABLE_HTTPTRACE` | bool     | -      | 否     | 开启 DataWay 请求时 HTTP 层面的指标暴露                                                                                              |
+| `ENV_DATAWAY_HTTP_PROXY`       | string   | 无     | 否     | 设置 DataWay HTTP 代理                                                                                                               |
+| `ENV_DATAWAY_MAX_IDLE_CONNS`   | int      | 无     | 否     | 设置 DataWay HTTP 连接池大小（[:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0)）                                             |
+| `ENV_DATAWAY_IDLE_TIMEOUT`     | duration | "90s"  | 否     | 设置 DataWay HTTP Keep-Alive 时长（[:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0)）                                        |
 
 ### 日志配置相关环境变量 {#env-log}
 
@@ -314,36 +314,10 @@ spec:
 
 ### Sinker 配置相关环境变量 {#env-sinker}
 
-| 环境变量名称 | 类型         | 默认值 | 必须   | 说明                             |
-| ---------:   | ----:        | ---:   | ------ | ----                             |
-| `ENV_SINKER` | string(JSON) | 无     | 否     | 安装时指定 Dataway Sinker 的配置 |
-
-Sinker 用来指定 [Dataway 的 Sinker 配置](datakit-sink-dataway.md)，它是一个形如下面的 JSON 格式：
-
-```json
-[
-    {
-        "categories": ["L", "M"],
-        "filters": [
-            "{measurement='cpu' and tag='some-host'}"
-        ],
-        "proxy": "",
-        "url": "http://openway.guance.com?token=<YOUR-TOKEN>"
-    }
-]
-```
-
-在配置 ENV 时，我们需要将其变成一行：
-
-```json
-[ { "categories": ["L", "M"], "filters": [ "{measurement='cpu' and tag='some-host'}" ], "url": "http://openway.guance.com?token=<YOUR-TOKEN>" } ]
-```
-
-如果将这一行 JSON 应用在命令行中，需要对其中的 `"` 进行转义，如：
-
-```shell
-DK_SINKER="[ { \"categories\": [\"L\", \"M\"], \"filters\": [ \"{measurement='cpu' and tag='some-host'}\" ], \"url\": \"http://openway.guance.com?token=<YOUR-TOKEN>\" } ]"
-```
+| 环境变量名称                      | 类型   | 默认值 | 必须   | 说明                                                                                                                                 |
+| ---------:                        | ----:  | ---:   | ------ | ----                                                                                                                                 |
+| `ENV_SINKER_GLOBAL_CUSTOMER_KEYS` | string | 无     | 否     | 指定 Sinker 分流的自定义字段列表，各个 Key 之间以英文逗号分割                                                                        |
+| `ENV_DATAWAY_ENABLE_SINKER`       | bool   | -      | 否     | 开启 DataWay 发送数据时的 Sinker 功能（[:octicons-tag-24: Version-1.14.0](changelog.md#cl-1.14.0)），该功能需新版本 Dataway 才能生效 |
 
 ### IO 模块配置相关环境变量 {#env-io}
 

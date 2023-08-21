@@ -24,7 +24,8 @@ import (
 )
 
 const (
-	eventJSONFile = "event"
+	eventJSONFile  = "event"
+	profileTagsKey = "tags[]"
 )
 
 const (
@@ -126,7 +127,7 @@ type Metadata struct {
 	End          rfc3339Time `json:"end"`
 }
 
-func NewTags(originTags []string) Tags {
+func newTags(originTags []string) Tags {
 	pt := make(Tags)
 	for _, tag := range originTags {
 		// 有":"， 用:切割成键值对
@@ -314,7 +315,12 @@ func json2StringMap(m map[string]interface{}) map[string][]string {
 	return formatted
 }
 
-func parseMetadata(req *http.Request) (map[string][]string, int64, error) {
+type resolvedMetadata struct {
+	formValue map[string][]string
+	tags      Tags
+}
+
+func parseMetadata(req *http.Request) (*resolvedMetadata, int64, error) {
 	if err := req.ParseMultipartForm(profileMaxSize); err != nil {
 		return nil, 0, fmt.Errorf("unable to parse multipart: %w", err)
 	}
@@ -327,8 +333,11 @@ func parseMetadata(req *http.Request) (map[string][]string, int64, error) {
 	}
 
 	if req.MultipartForm.Value != nil {
-		if _, ok := req.MultipartForm.Value["tags[]"]; ok {
-			return req.MultipartForm.Value, filesize, nil
+		if _, ok := req.MultipartForm.Value[profileTagsKey]; ok {
+			return &resolvedMetadata{
+				formValue: req.MultipartForm.Value,
+				tags:      newTags(req.MultipartForm.Value[profileTagsKey]),
+			}, filesize, nil
 		}
 	}
 	if eventFiles, ok := req.MultipartForm.File[eventJSONFile]; ok {
@@ -348,34 +357,37 @@ func parseMetadata(req *http.Request) (map[string][]string, int64, error) {
 			}
 			metadata := json2StringMap(events)
 			if len(metadata["tags_profiler"]) == 1 {
-				metadata["tags[]"] = strings.Split(metadata["tags_profiler"][0], ",")
+				metadata[profileTagsKey] = strings.Split(metadata["tags_profiler"][0], ",")
 				delete(metadata, "tags_profiler")
 			}
-			if _, ok := metadata["tags[]"]; !ok {
+			if _, ok := metadata[profileTagsKey]; !ok {
 				return nil, filesize, fmt.Errorf("the profiling data format not supported, tags[] field missing")
 			}
-			return metadata, filesize, nil
+			return &resolvedMetadata{
+				formValue: metadata,
+				tags:      newTags(metadata[profileTagsKey]),
+			}, filesize, nil
 		}
 	}
 	return nil, filesize, fmt.Errorf("the profiling data format not supported, check your datadog trace library version")
 }
 
-func cache(req *http.Request, metadata map[string][]string, fileSize int64) (string, int64, error) {
-	profileStart, err := resolveStartTime(metadata)
+func cache(req *http.Request, metadata *resolvedMetadata, fileSize int64) (string, int64, error) {
+	profileStart, err := resolveStartTime(metadata.formValue)
 	if err != nil {
 		return "", 0, fmt.Errorf("can not resolve profile start time: %w", err)
 	}
 
-	profileEnd, err := resolveEndTime(metadata)
+	profileEnd, err := resolveEndTime(metadata.formValue)
 	if err != nil {
 		return "", 0, fmt.Errorf("can not resolve profile end time: %w", err)
 	}
 
 	startMicroSeconds, endMicroSeconds := profileStart.UnixMicro(), profileEnd.UnixMicro()
 
-	tags := NewTags(metadata["tags[]"])
+	tags := metadata.tags
 
-	runtime := getForm("runtime", metadata)
+	runtime := getForm("runtime", metadata.formValue)
 	if runtime == "" {
 		runtime = tags.Get("runtime")
 	}
@@ -388,7 +400,7 @@ func cache(req *http.Request, metadata map[string][]string, fileSize int64) (str
 		TagRuntimeArch: tags.Get("runtime_arch"),
 		TagEnv:         tags.Get("env"),
 		TagVersion:     tags.Get("version"),
-		TagLanguage:    resolveLang(metadata, tags).String(),
+		TagLanguage:    resolveLang(metadata.formValue, tags).String(),
 		TagRuntime:     runtime,
 	}
 	if pointTags[TagService] == "" {
@@ -401,7 +413,7 @@ func cache(req *http.Request, metadata map[string][]string, fileSize int64) (str
 		FieldProfileID:  profileID,
 		FieldRuntimeID:  tags.Get("runtime-id"),
 		FieldPid:        tags.Get("pid"),
-		FieldFormat:     getForm("format", metadata),
+		FieldFormat:     getForm("format", metadata.formValue),
 		FieldLibraryVer: tags.Get("profiler_version"),
 		FieldDatakitVer: datakit.Version,
 		FieldStart:      startMicroSeconds,

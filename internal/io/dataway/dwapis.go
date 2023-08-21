@@ -17,14 +17,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
-func (dw *Dataway) GetLogFilter() ([]byte, error) {
-	if len(dw.eps) == 0 {
-		return nil, fmt.Errorf("[error] dataway url empty")
-	}
-
-	return dw.eps[0].getLogFilter()
-}
-
 type checkTokenResult struct {
 	Code      int    `json:"code"`
 	ErrorCode string `json:"errorCode"`
@@ -36,8 +28,8 @@ func (dw *Dataway) WorkspaceQuery(body []byte) (*http.Response, error) {
 		return nil, fmt.Errorf("no dataway available")
 	}
 
-	dc := dw.eps[0]
-	requrl, ok := dc.categoryURL[datakit.Workspace]
+	ep := dw.eps[0]
+	requrl, ok := ep.categoryURL[datakit.Workspace]
 	if !ok {
 		return nil, fmt.Errorf("no workspace query URL available")
 	}
@@ -48,7 +40,12 @@ func (dw *Dataway) WorkspaceQuery(body []byte) (*http.Response, error) {
 		return nil, err
 	}
 
-	return dw.eps[0].sendReq(req)
+	// Common HTTP headers appended, such as User-Agent, X-Global-Tags
+	for k, v := range ep.httpHeaders {
+		req.Header.Set(k, v)
+	}
+
+	return ep.sendReq(req)
 }
 
 func (dw *Dataway) DQLQuery(body []byte) (*http.Response, error) {
@@ -56,8 +53,8 @@ func (dw *Dataway) DQLQuery(body []byte) (*http.Response, error) {
 		return nil, fmt.Errorf("no dataway available")
 	}
 
-	dc := dw.eps[0]
-	requrl, ok := dc.categoryURL[datakit.QueryRaw]
+	ep := dw.eps[0]
+	requrl, ok := ep.categoryURL[datakit.QueryRaw]
 	if !ok {
 		return nil, fmt.Errorf("no DQL query URL available")
 	}
@@ -65,6 +62,11 @@ func (dw *Dataway) DQLQuery(body []byte) (*http.Response, error) {
 	req, err := http.NewRequest("POST", requrl, bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
+	}
+
+	// Common HTTP headers appended, such as User-Agent, X-Global-Tags
+	for k, v := range ep.httpHeaders {
+		req.Header.Set(k, v)
 	}
 
 	return dw.eps[0].sendReq(req)
@@ -94,6 +96,11 @@ func (dw *Dataway) Election(namespace, id string, reqBody io.Reader) ([]byte, er
 	if err != nil {
 		log.Error(err)
 		return nil, err
+	}
+
+	// Common HTTP headers appended, such as User-Agent, X-Global-Tags
+	for k, v := range ep.httpHeaders {
+		req.Header.Set(k, v)
 	}
 
 	resp, err := ep.sendReq(req)
@@ -145,6 +152,11 @@ func (dw *Dataway) ElectionHeartbeat(namespace, id string, reqBody io.Reader) ([
 		return nil, err
 	}
 
+	// Common HTTP headers appended, such as User-Agent, X-Global-Tags
+	for k, v := range ep.httpHeaders {
+		req.Header.Set(k, v)
+	}
+
 	resp, err := ep.sendReq(req)
 	if err != nil {
 		log.Error(err)
@@ -180,6 +192,11 @@ func (dw *Dataway) DatawayList() ([]string, int, error) {
 	req, err := http.NewRequest("GET", requrl, nil)
 	if err != nil {
 		return nil, datawayListIntervalDefault, err
+	}
+
+	// Common HTTP headers appended, such as User-Agent, X-Global-Tags
+	for k, v := range ep.httpHeaders {
+		req.Header.Set(k, v)
 	}
 
 	resp, err := ep.sendReq(req)
@@ -227,6 +244,11 @@ func (dw *Dataway) UpsertObjectLabels(tkn string, body []byte) (*http.Response, 
 		return nil, fmt.Errorf("delete object label error: %w", err)
 	}
 
+	// Common HTTP headers appended, such as User-Agent, X-Global-Tags
+	for k, v := range ep.httpHeaders {
+		req.Header.Set(k, v)
+	}
+
 	return ep.sendReq(req)
 }
 
@@ -246,6 +268,11 @@ func (dw *Dataway) DeleteObjectLabels(tkn string, body []byte) (*http.Response, 
 	req, err := http.NewRequest("DELETE", requrl, rBody)
 	if err != nil {
 		return nil, fmt.Errorf("delete object label error: %w", err)
+	}
+
+	// Common HTTP headers appended, such as User-Agent, X-Global-Tags
+	for k, v := range ep.httpHeaders {
+		req.Header.Set(k, v)
 	}
 
 	return ep.sendReq(req)
@@ -269,6 +296,11 @@ func (dw *Dataway) UploadLog(r io.Reader, hostName string) (*http.Response, erro
 	req, err := http.NewRequest("POST", reqURL, r)
 	if err != nil {
 		return nil, fmt.Errorf("upload failed: %w", err)
+	}
+
+	// Common HTTP headers appended, such as User-Agent, X-Global-Tags
+	for k, v := range ep.httpHeaders {
+		req.Header.Set(k, v)
 	}
 
 	req.Header.Add("Host-Name", hostName)

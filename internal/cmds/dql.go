@@ -91,7 +91,6 @@ func (dc *dqlCmd) prepare() error {
 	dc.dqlcli = &http.Client{}
 	setCmdRootLog(dc.log)
 
-	// TODO: we should ping the datakit here.
 	return nil
 }
 
@@ -370,7 +369,10 @@ func (dc *dqlCmd) doDQL(s string) ([]*queryResult, error) {
 	}
 
 	req, err := http.NewRequest("POST",
-		fmt.Sprintf("http://%s%s", dc.host, dqlraw), bytes.NewBuffer(j))
+		fmt.Sprintf("http://%s%s",
+			dc.host,
+			dqlraw),
+		bytes.NewBuffer(j))
 	if err != nil {
 		cp.Errorf("http.NewRequest: %s\n", err.Error())
 		return nil, err
@@ -387,6 +389,8 @@ func (dc *dqlCmd) doDQL(s string) ([]*queryResult, error) {
 		cp.Errorf("ioutil.ReadAll: %s\n", err.Error())
 		return nil, err
 	}
+
+	l.Debugf("dql query body: %s", string(body))
 
 	defer resp.Body.Close() //nolint:errcheck
 	if resp.StatusCode/100 != 2 {
