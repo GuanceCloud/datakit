@@ -23,32 +23,6 @@ func TestLoadEnv(t *testing.T) {
 		expect *Config
 	}{
 		{
-			name: `sinkers`,
-			envs: map[string]string{
-				"ENV_SINKER": `[
-					{
-						"categories": ["L", "M"],
-						"filters": [
-							"{measurement='cpu' and tag='some-host'}"
-							],
-						"url": "http://dataway-host?token=some-token"
-					}
-				]`,
-			},
-
-			expect: func() *Config {
-				cfg := DefaultConfig()
-				cfg.Dataway.Sinkers = append(cfg.Dataway.Sinkers, &dataway.Sinker{
-					Categories: []string{"L", "M"},
-					Filters:    []string{`{measurement='cpu' and tag='some-host'}`},
-					URL:        "http://dataway-host?token=some-token",
-				})
-
-				return cfg
-			}(),
-		},
-
-		{
 			name: `bad-sinkers`,
 			envs: map[string]string{
 				"ENV_SINKER": `[ some bad json `,
@@ -307,6 +281,7 @@ func TestLoadEnv(t *testing.T) {
 				"ENV_DATAWAY_ENABLE_HTTPTRACE":        "on",
 				"ENV_DATAWAY_MAX_IDLE_CONNS":          "100",
 				"ENV_DATAWAY_IDLE_TIMEOUT":            "100s",
+				"ENV_SINKER_GLOBAL_CUSTOMER_KEYS":     " , key1,key2 ,",
 			},
 
 			expect: func() *Config {
@@ -319,6 +294,7 @@ func TestLoadEnv(t *testing.T) {
 					EnableHTTPTrace:     true,
 					IdleTimeout:         100 * time.Second,
 					HTTPTimeout:         time.Minute,
+					GlobalCustomerKeys:  []string{"key1", "key2"},
 				}
 
 				return cfg

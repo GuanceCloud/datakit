@@ -1,5 +1,5 @@
 %{
-package parser
+package filter
 
 import (
 	"time"

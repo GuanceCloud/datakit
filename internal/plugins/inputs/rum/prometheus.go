@@ -35,7 +35,7 @@ const (
 	LocateStatusGEONil     = "nil"
 )
 
-var (
+const (
 	namespace = "datakit"
 	subSystem = "rum"
 )
@@ -45,7 +45,7 @@ var ClientRealIPCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
 	Subsystem: subSystem,
 	Name:      "locate_statistics_total",
 	Help:      "locate by ip addr statistics",
-}, []string{"ip_status", "locate_status"})
+}, []string{"app_id", "ip_status", "locate_status"})
 
 var sourceMapCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 	Namespace: namespace,
@@ -53,7 +53,7 @@ var sourceMapCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 	Name:      "source_map_total",
 	Help:      "source map result statistics",
 },
-	[]string{"sdk_name", "status", "remark"},
+	[]string{"app_id", "sdk_name", "status", "remark"},
 )
 
 var loadedZipGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -77,11 +77,13 @@ var sourceMapDurationSummary = prometheus.NewSummaryVec(prometheus.SummaryOpts{
 
 type sourceMapStatus struct {
 	sdkName string
+	appid   string
 	status  string
 	remark  string
 }
 
 type ipLocationStatus struct {
+	appid        string
 	ipStatus     string
 	locateStatus string
 }

@@ -30,5 +30,6 @@ func putWriter(w *writer) {
 	w.cacheClean = false
 	w.cacheAll = false
 	w.fc = nil
+	w.httpHeaders = nil
 	wpool.Put(w)
 }

@@ -138,6 +138,16 @@ if [ -n "$DK_DATAWAY" ]; then
 	dataway=$DK_DATAWAY
 fi
 
+global_customer_keys=
+if [ -n "$DK_SINKER_GLOBAL_CUSTOMER_KEYS" ]; then
+	global_customer_keys=$DK_SINKER_GLOBAL_CUSTOMER_KEYS
+fi
+
+dataway_sinker=
+if [ -n "$DK_DATAWAY_ENABLE_SINKER" ]; then
+	dataway_sinker=1
+fi
+
 upgrade=
 if [ -n "$DK_UPGRADE" ]; then
 	upgrade=$DK_UPGRADE
@@ -439,12 +449,6 @@ if [ -n "$DK_GIN_LOG" ]; then
 	gin_log=$DK_GIN_LOG
 fi
 
-
-sinker=""
-if [ -n "$DK_SINKER" ]; then
-	sinker=$DK_SINKER
-fi
-
 user_name=""
 if [ -n "$DK_USER_NAME" ]; then
 	user_name=$DK_USER_NAME
@@ -530,7 +534,8 @@ $sudo_cmd $installer \
 		--log-level="${log_level}" \
 		--log="${log}" \
 		--ipdb-type="${ipdb_type}" \
-		--sinker="${sinker}" \
+		--sinker-global-customer-keys="${global_customer_keys}" \
+		--enable-dataway-sinker="${dataway_sinker}" \
 		--user-name="${user_name}" \
 		--upgrade-ip-whitelist="${upgrade_ip_whitelist}" \
 		--gin-log="${gin_log}"

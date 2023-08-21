@@ -20,10 +20,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/offload"
 )
 
-type SinkerDeprecated struct {
-	Arr []*dataway.Sinker `toml:"sink"`
-}
-
 type Config struct {
 	DefaultEnabledInputs []string `toml:"default_enabled_inputs"`
 
@@ -73,8 +69,6 @@ type Config struct {
 
 	Dataway  *dataway.Dataway   `toml:"dataway"`
 	Operator *operator.Operator `toml:"-"`
-
-	SinkersDeprecated *SinkerDeprecated `toml:"sinks"`
 
 	GlobalHostTags       map[string]string `toml:"global_host_tags"`
 	GlobalTagsDeprecated map[string]string `toml:"global_tags,omitempty"`

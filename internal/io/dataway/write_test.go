@@ -164,8 +164,7 @@ func TestWriteWithCache(t *T.T) {
 }
 
 func TestWritePoints(t *T.T) {
-	t.Run("write-100pts-with-sinker", func(t *T.T) {
-		// server to accept not-sinked points(2 pts)
+	t.Run("write-100pts-with-group", func(t *T.T) {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, datakit.Logging, r.URL.Path)
 
@@ -174,36 +173,24 @@ func TestWritePoints(t *T.T) {
 			assert.NoError(t, err)
 			t.Logf("body: %d", len(body))
 
+			var x []byte
+
 			assert.Equal(t, "gzip", r.Header.Get("Content-Encoding"))
 
-			x, err := uhttp.Unzip(body)
+			x, err = uhttp.Unzip(body)
 			assert.NoError(t, err)
 
 			pts, err := lp.ParsePoints(x, nil)
 			assert.NoError(t, err)
 			assert.Len(t, pts, 100)
 
-			w.WriteHeader(200)
-		}))
+			for k := range r.Header {
+				t.Logf("%s: %s", k, r.Header.Get(k))
+			}
 
-		// server to accept sinked points(random 100 pts)
-		sinkerServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			assert.Equal(t, datakit.Logging, r.URL.Path)
+			assert.Equal(t, "tag1=value1,tag2=value2", r.Header.Get(HeaderXGlobalTags))
 
-			body, err := ioutil.ReadAll(r.Body)
-			defer r.Body.Close()
-			assert.NoError(t, err)
-			t.Logf("body: %d", len(body))
-
-			assert.Equal(t, "gzip", r.Header.Get("Content-Encoding"))
-
-			x, err := uhttp.Unzip(body)
-			assert.NoError(t, err)
-
-			pts, err := lp.ParsePoints(x, nil)
-			assert.NoError(t, err)
-			assert.Len(t, pts, 2)
-
+			time.Sleep(time.Second) // intended
 			w.WriteHeader(200)
 		}))
 
@@ -213,61 +200,20 @@ func TestWritePoints(t *T.T) {
 
 		pts := dkpt.RandPoints(100)
 
-		// add 2 sinked-point
-		pts = append(pts,
-			dkpt.MustNewPoint("sinked-1", nil, map[string]any{"f1": 123}, &dkpt.PointOption{Category: datakit.Logging}),
-			dkpt.MustNewPoint("sinked-2", nil, map[string]any{"f2": 123}, &dkpt.PointOption{Category: datakit.Logging}))
-
-		// setup sinker
-		sinker := &Sinker{
-			Categories: []string{"L"},
-			Filters: []string{
-				`{source='sinked-1'}`,
-				`{source='sinked-2'}`,
-			}, // all random points send to default dataway
-			URL: sinkerServer.URL,
-		}
-		assert.NoError(t, sinker.Setup())
-
-		// setup dataway
 		dw := &Dataway{
-			URLs:    []string{fmt.Sprintf("%s?token=tkn_for_test", ts.URL)},
-			Sinkers: []*Sinker{sinker},
+			URLs:         []string{fmt.Sprintf("%s?token=tkn_11111111111111111111", ts.URL)},
+			EnableSinker: true,
 		}
-		assert.NoError(t, dw.Init())
+		assert.NoError(t, dw.Init(
+			WithGlobalTags(map[string]string{
+				"tag1": "value1",
+				"tag2": "value2",
+			})))
 
-		// send points via dataway
 		assert.NoError(t, dw.Write(WithCategory(point.Logging), WithPoints(pts)))
-
-		// check metrics on sinker
-		mfs, err := reg.Gather()
-		assert.NoError(t, err)
-		t.Logf("metrics: %s", metrics.MetricFamily2Text(mfs))
-
-		assert.Equal(t, 1.0, // one sink
-			metrics.GetMetricOnLabels(mfs,
-				"datakit_io_dataway_sink_total",
-				point.Logging.String()).GetCounter().GetValue())
-
-		assert.Equal(t, 2.0, // with 2 points sinked
-			metrics.GetMetricOnLabels(mfs,
-				"datakit_io_dataway_sink_point_total",
-				point.Logging.String(), http.StatusText(http.StatusOK)).GetCounter().GetValue())
-
-		assert.Equal(t, uint64(2), // 2 dataway request: each sink got a API request
-			metrics.GetMetricOnLabels(mfs,
-				"datakit_io_dataway_api_latency_seconds",
-				point.Logging.URL(), http.StatusText(http.StatusOK)).GetSummary().GetSampleCount())
-
-		assert.Equal(t, 102.0, // 102 points
-			metrics.GetMetricOnLabels(mfs,
-				"datakit_io_dataway_point_total",
-				point.Logging.String(), http.StatusText(http.StatusOK)).GetCounter().GetValue())
 
 		t.Cleanup(func() {
 			ts.Close()
-			sinkerServer.Close()
-
 			metricsReset()
 			diskcache.ResetMetrics()
 		})
@@ -315,5 +261,110 @@ func TestWritePoints(t *T.T) {
 			metricsReset()
 			diskcache.ResetMetrics()
 		})
+	})
+}
+
+func TestGroupPoint(t *T.T) {
+	t.Run("basic", func(t *T.T) {
+		dw := &Dataway{
+			URLs: []string{
+				"https://fake-dataway.com?token=tkn_xxxxxxxxxx",
+			},
+			GlobalCustomerKeys: []string{"namespace", "app"},
+			EnableSinker:       true,
+		}
+
+		assert.NoError(t, dw.Init(WithGlobalTags(map[string]string{
+			"tag1": "value1",
+			"tag2": "value2",
+		})))
+
+		pts := []*dkpt.Point{
+			dkpt.MustNewPoint("some", map[string]string{"t1": "v1", "tag1": "new-value"}, map[string]any{"f1": false}, nil),
+			dkpt.MustNewPoint("some", map[string]string{"t1": "v1"}, map[string]any{"f1": false}, nil),
+			dkpt.MustNewPoint("some", map[string]string{"t1": "v1", "tag2": "new-value"}, map[string]any{"f1": false}, nil),
+			dkpt.MustNewPoint("some", nil /* no tags */, map[string]any{"f1": false}, nil),
+		}
+
+		res := dw.groupPoints(point.Metric, pts)
+
+		assert.Len(t, res["tag1=new-value,tag2=value2"], 1)
+		assert.Len(t, res["tag1=value1,tag2=new-value"], 1)
+		assert.Len(t, res["tag1=value1,tag2=value2"], 2)
+	})
+
+	t.Run("no-global-tags", func(t *T.T) {
+		dw := &Dataway{
+			URLs: []string{
+				"https://fake-dataway.com?token=tkn_xxxxxxxxxx",
+			},
+
+			EnableSinker:       true,
+			GlobalCustomerKeys: []string{"namespace", "app"},
+		}
+
+		assert.NoError(t, dw.Init())
+
+		pts := []*dkpt.Point{
+			dkpt.MustNewPoint("some", map[string]string{"t1": "v1", "tag1": "new-value"}, map[string]any{"f1": false}, nil),
+			dkpt.MustNewPoint("some", map[string]string{"t1": "v1"}, map[string]any{"f1": false}, nil),
+			dkpt.MustNewPoint("some", map[string]string{"t1": "v1", "tag2": "new-value"}, map[string]any{"f1": false}, nil),
+			dkpt.MustNewPoint("some", map[string]string{"namespace": "ns1", "tag2": "new-value"}, map[string]any{"f1": false}, nil),
+			dkpt.MustNewPoint("some", nil /* no tags */, map[string]any{"f1": false}, nil),
+		}
+
+		res := dw.groupPoints(point.Logging, pts)
+		assert.Len(t, res["namespace=ns1"], 1)
+		assert.Len(t, res[""], 4)
+	})
+
+	t.Run("no-global-tags-on-object", func(t *T.T) {
+		dw := &Dataway{
+			URLs: []string{
+				"https://fake-dataway.com?token=tkn_xxxxxxxxxx",
+			},
+			GlobalCustomerKeys: []string{"class"},
+			EnableSinker:       true,
+		}
+
+		assert.NoError(t, dw.Init())
+
+		pts := []*dkpt.Point{
+			dkpt.MustNewPoint("some", map[string]string{"t1": "v1", "tag1": "new-value"}, map[string]any{"f1": false}, nil),
+			dkpt.MustNewPoint("some", map[string]string{"t1": "v1"}, map[string]any{"f1": false}, nil),
+			dkpt.MustNewPoint("some", map[string]string{"t1": "v1", "tag2": "new-value"}, map[string]any{"f1": false}, nil),
+			dkpt.MustNewPoint("some", map[string]string{"namespace": "ns1", "tag2": "new-value"}, map[string]any{"f1": false}, nil),
+			dkpt.MustNewPoint("some", nil /* no tags */, map[string]any{"f1": false}, nil),
+		}
+
+		res := dw.groupPoints(point.Object, pts)
+
+		for k := range res {
+			t.Logf("key: %s", k)
+		}
+
+		assert.Len(t, res["class=some"], 5)
+	})
+
+	t.Run("no-global-tags-no-customer-tag-keys", func(t *T.T) {
+		dw := &Dataway{
+			URLs: []string{
+				"https://fake-dataway.com?token=tkn_xxxxxxxxxx",
+			},
+			EnableSinker: true,
+		}
+
+		assert.NoError(t, dw.Init())
+
+		pts := []*dkpt.Point{
+			dkpt.MustNewPoint("some", map[string]string{"t1": "v1", "tag1": "new-value"}, map[string]any{"f1": false}, nil),
+			dkpt.MustNewPoint("some", map[string]string{"t1": "v1"}, map[string]any{"f1": false}, nil),
+			dkpt.MustNewPoint("some", map[string]string{"t1": "v1", "tag2": "new-value"}, map[string]any{"f1": false}, nil),
+			dkpt.MustNewPoint("some", map[string]string{"namespace": "ns1", "tag2": "new-value"}, map[string]any{"f1": false}, nil),
+			dkpt.MustNewPoint("some", nil /* no tags */, map[string]any{"f1": false}, nil),
+		}
+
+		res := dw.groupPoints(point.Object, pts)
+		assert.Len(t, res[""], 5)
 	})
 }

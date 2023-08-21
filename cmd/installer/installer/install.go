@@ -18,6 +18,7 @@ import (
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 )
 
@@ -57,11 +58,13 @@ func Install(svc service.Service) {
 			cp.Errorf("%s\n", err.Error())
 			l.Fatal(err)
 		}
-		cp.Infof("Set dataway to %s\n", Dataway)
-	}
 
-	if Sinker != "" {
-		mc.LoadSink(Sinker)
+		cp.Infof("Set dataway to %s\n", Dataway)
+
+		mc.Dataway.GlobalCustomerKeys = dataway.ParseGlobalCustomerKeys(SinkerGlobalCustomerKeys)
+		mc.Dataway.EnableSinker = (EnableSinker != "")
+
+		cp.Infof("Set dataway global sinker customer keys: %v\n", mc.Dataway.GlobalCustomerKeys)
 	}
 
 	if OTA {

@@ -355,7 +355,7 @@ func (c *Config) setLogging() {
 	l.Infof("set root logger(options: %+#v)ok", lopt)
 }
 
-// setup global host/env tags.
+// setup global host/election tags.
 func (c *Config) setupGlobalTags() {
 	c.parseGlobalHostTags()
 
@@ -365,12 +365,16 @@ func (c *Config) setupGlobalTags() {
 		}
 	}
 
+	if len(c.GlobalHostTags) == 0 {
+		c.GlobalHostTags["host"] = c.Hostname
+	}
+
 	for k, v := range c.GlobalHostTags {
 		point.SetGlobalHostTags(k, v)
 	}
 
-	// 此处不将 host 计入 c.GlobalHostTags，因为 c.GlobalHostTags 是读取的用户配置，而 host
-	// 是不允许修改的, 故单独添加这个 tag 到 io 模块
+	// 此处不将 host 计入 c.GlobalHostTags，因为 c.GlobalHostTags 是读取
+	// 的用户配置，而 host 是不允许修改的, 故单独添加这个 tag 到 io 模块
 	point.SetGlobalHostTags("host", c.Hostname)
 
 	if c.Election.Enable {
@@ -387,6 +391,11 @@ func (c *Config) setupGlobalTags() {
 		point.ClearGlobalElectionTags()
 		globalHostTags := point.GlobalHostTags()
 		point.SetGlobalElectionTagsByMap(globalHostTags)
+
+		// also copy global host tags to global election tags
+		for k, v := range c.GlobalHostTags {
+			c.Election.Tags[k] = v
+		}
 	}
 }
 
@@ -413,10 +422,14 @@ func (c *Config) ApplyMainConfig() error {
 		}
 	}
 
+	c.setupGlobalTags()
+
 	if c.Dataway != nil && len(c.Dataway.URLs) > 0 {
 		if err := c.SetupDataway(); err != nil {
 			return err
 		}
+	} else {
+		l.Warnf("dataway not set")
 	}
 
 	datakit.AutoUpdate = c.AutoUpdate
@@ -433,8 +446,6 @@ func (c *Config) ApplyMainConfig() error {
 			c.IO.OutputFile = c.OutputFileDeprecated
 		}
 	}
-
-	c.setupGlobalTags()
 
 	// remove deprecated UUID field in main configure
 	if c.UUIDDeprecated != "" {

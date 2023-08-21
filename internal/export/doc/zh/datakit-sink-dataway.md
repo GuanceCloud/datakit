@@ -1,5 +1,9 @@
 
-# Dataway Sink
+# Datakit Sink
+---
+
+:warning: Datakit 侧的 Sinker 功能已经在[:octicons-tag-24: Version-1.13.0](changelog.md#cl-1.13.0)中废弃，请使用 [Dataway 端的 Sinker 方案](dataway-sink.md)。
+
 ---
 
 如果希望将数据打到不同的工作空间，可以使用 Dataway Sinker 功能：

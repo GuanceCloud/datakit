@@ -43,6 +43,7 @@ func (ipt *Input) parseCallback(p *point.Point) (*point.Point, error) {
 		// handle sourcemap
 		sdkName := tags["sdk_name"]
 		status := &sourceMapStatus{
+			appid:   tags["app_id"],
 			sdkName: sdkName,
 			status:  StatusUnknown,
 			remark:  "",
@@ -55,7 +56,7 @@ func (ipt *Input) parseCallback(p *point.Point) (*point.Point, error) {
 			}
 			status.remark = err.Error()
 			// Do nothing, return original point.
-			sourceMapCount.WithLabelValues(status.sdkName, status.status, utf8SubStr(status.remark, 8)).Inc()
+			sourceMapCount.WithLabelValues(status.appid, status.sdkName, status.status, utf8SubStr(status.remark, 8)).Inc()
 			return p, nil
 		}
 		return px, nil
@@ -115,10 +116,11 @@ func (ipt *Input) handleRUM(resp http.ResponseWriter, req *http.Request) {
 	)
 
 	ipStatus := &ipLocationStatus{}
+	defer func() {
+		ClientRealIPCounter.WithLabelValues(ipStatus.appid, ipStatus.ipStatus, ipStatus.locateStatus).Inc()
+	}()
 
 	opts = append(opts, point.WithExtraTags(geoTags(getSrcIP(apiConfig, req, ipStatus), ipStatus)), point.WithCallback(ipt.parseCallback))
-
-	ClientRealIPCounter.WithLabelValues(ipStatus.ipStatus, ipStatus.locateStatus).Inc()
 
 	if pts, err = httpapi.HandleWriteBody(body, isJSON, opts...); err != nil {
 		log.Error(err.Error())
@@ -133,6 +135,9 @@ func (ipt *Input) handleRUM(resp http.ResponseWriter, req *http.Request) {
 
 		return
 	}
+
+	tags := pts[0].InfluxTags()
+	ipStatus.appid = tags["app_id"]
 
 	log.Debugf("### received %d(%s) points from %s, pipeline source: %v", len(pts), req.URL.Path, inputName, pipelineSource)
 

@@ -250,7 +250,7 @@ $ systemctl status datakit
 
 ### DataWay Sinker 配置 {#dataway-sink}
 
-参见[这里](datakit-sink-dataway.md)
+参见[这里](dataway-sink.md)
 
 ### 使用 Git 管理 DataKit 配置 {#using-gitrepo}
 

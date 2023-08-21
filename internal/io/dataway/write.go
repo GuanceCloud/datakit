@@ -7,10 +7,14 @@ package dataway
 
 import (
 	"errors"
+	"fmt"
+	"sort"
+	"strings"
 
 	"github.com/GuanceCloud/cliutils/diskcache"
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/failcache"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	pb "google.golang.org/protobuf/proto"
 )
@@ -64,14 +68,19 @@ func WithGzip(on bool) WriteOption {
 	}
 }
 
+type groupedPoints []*dkpt.Point
+
 type writer struct {
 	category   point.Category
 	dynamicURL string
 
-	pts                  []*dkpt.Point
+	pts []*dkpt.Point
+
 	gzip                 bool
 	isSinker             bool
 	cacheClean, cacheAll bool
+
+	httpHeaders map[string]string
 
 	fc failcache.Cache
 }
@@ -112,6 +121,76 @@ func (dw *Dataway) cleanCache(w *writer, data []byte) error {
 	return nil
 }
 
+// HTTPHeaderGlobalTagValue create X-Global-Tags header value.
+func HTTPHeaderGlobalTagValue(tfdata *filter.TFData, globalTags map[string]string, customerKeys []string) string {
+	if len(globalTags) == 0 && len(customerKeys) == 0 {
+		return ""
+	}
+
+	tfdata.MergeStringKVs()
+
+	strKV := tfdata.Tags
+
+	if len(strKV) == 0 {
+		return ""
+	}
+
+	merge := false
+	for k, v := range strKV {
+		if x, ok := globalTags[k]; ok && x != v { // override value in global tags
+			merge = true
+			break
+		}
+
+		for _, x := range customerKeys {
+			if x == k {
+				merge = true
+				break
+			}
+		}
+	}
+
+	if !merge {
+		return ""
+	}
+
+	// do merge.
+	var arr []string
+	for k, v := range globalTags {
+		if x, ok := strKV[k]; ok && x != v {
+			arr = append(arr, fmt.Sprintf("%s=%s", k, x)) // replace with value in @tfdata
+		} else {
+			arr = append(arr, fmt.Sprintf("%s=%s", k, v))
+		}
+	}
+
+	for k, v := range strKV {
+		for _, x := range customerKeys {
+			if k == x {
+				arr = append(arr, fmt.Sprintf("%s=%s", k, v)) // append customer tag key's value
+			}
+		}
+	}
+
+	sort.Strings(arr)
+	return strings.Join(arr, ",")
+}
+
+func (dw *Dataway) groupPoints(cat point.Category, pts []*dkpt.Point) map[string]groupedPoints {
+	res := map[string]groupedPoints{}
+	for _, pt := range pts {
+		tfdata := filter.NewTFData(cat, pt)
+
+		tv := HTTPHeaderGlobalTagValue(tfdata, dw.globalTags, dw.GlobalCustomerKeys)
+		if tv == "" {
+			tv = dw.globalTagsHTTPHeaderValue
+		}
+		res[tv] = append(res[tv], pt)
+	}
+
+	return res
+}
+
 func (dw *Dataway) Write(opts ...WriteOption) error {
 	w := getWriter()
 	defer putWriter(w)
@@ -145,36 +224,30 @@ func (dw *Dataway) Write(opts ...WriteOption) error {
 		return nil
 	}
 
-	// Points in cache do not send to sinkers.
-	// sink points to multiple sinkers, after sinker, not-sinked points
-	// are passed to default dataway.
-	if len(dw.Sinkers) > 0 {
-		var remainPts []*dkpt.Point
-		for _, sinker := range dw.Sinkers {
-			log.Debugf("try sink %q to %s...", w.category, sinker)
-
-			arr, err := sinker.sink(w.category, w.pts)
-			if err != nil {
-				log.Warnf("sink %d points to %q failed, remains %d, ignored", len(w.pts), w.category, len(arr))
-			}
-
-			for _, i := range arr {
-				remainPts = append(remainPts, w.pts[i])
-			}
-		}
-
-		if len(remainPts) == 0 { // no point remaining
-			return nil
-		}
-
-		// sending remaining points
-		w.pts = remainPts
+	// split single point array into multiple part according to
+	// different X-Global-Tags.
+	var groupedPts map[string]groupedPoints
+	if dw.EnableSinker && (len(dw.globalTags) > 0 || len(dw.GlobalCustomerKeys) > 0) {
+		groupedPts = dw.groupPoints(w.category, w.pts)
 	}
 
-	// write points to multiple endpoints
-	for _, ep := range dw.eps {
-		if err := ep.writePoints(w); err != nil {
-			return err
+	if len(groupedPts) > 0 && len(dw.eps) > 0 {
+		w.httpHeaders = map[string]string{}
+		for k, pts := range groupedPts {
+			w.httpHeaders[HeaderXGlobalTags] = k
+			w.pts = pts
+
+			// only apply to 1st dataway address
+			if err := dw.eps[0].writePoints(w); err != nil {
+				return err
+			}
+		}
+	} else {
+		// write points to multiple endpoints
+		for _, ep := range dw.eps {
+			if err := ep.writePoints(w); err != nil {
+				return err
+			}
 		}
 	}
 

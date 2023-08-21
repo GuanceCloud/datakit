@@ -11,11 +11,11 @@ import (
 	"sync"
 	"time"
 
+	fp "github.com/GuanceCloud/cliutils/filter"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/GuanceCloud/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/parser"
 	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
@@ -37,7 +37,7 @@ type filter struct {
 	// where filters/conditions come from(local/remote)
 	source string
 
-	conditions    map[string]parser.WhereConditions
+	conditions    map[string]fp.WhereConditions
 	rawConditions map[string]string
 
 	puller IPuller
@@ -81,10 +81,10 @@ func (f *filter) pull(what string) {
 }
 
 // GetConds returns Filter's Parser Conditions and error.
-func GetConds(filterArr []string) (parser.WhereConditions, error) {
-	var conds parser.WhereConditions
+func GetConds(filterArr []string) (fp.WhereConditions, error) {
+	var conds fp.WhereConditions
 	for _, v := range filterArr {
-		cond, err := parser.GetConds(v)
+		cond, err := fp.GetConds(v)
 		if err != nil {
 			filterParseErrorVec.WithLabelValues(err.Error(), v).Set(float64(time.Now().Unix()))
 			return nil, err
@@ -100,16 +100,11 @@ func GetConds(filterArr []string) (parser.WhereConditions, error) {
 
 // CheckPointFiltered returns whether the point matches the fitler rule.
 // If returns true means they are matched.
-func CheckPointFiltered(conds parser.WhereConditions, category point.Category, pt *dkpt.Point) (bool, error) {
-	tfData, err := newTFData(category, pt)
-	if err != nil {
-		return false, err
-	}
-
-	return filtered(conds, tfData), nil
+func CheckPointFiltered(conds fp.WhereConditions, category point.Category, pt *dkpt.Point) (bool, error) {
+	return filtered(conds, NewTFData(category, pt)), nil
 }
 
-func filtered(conds parser.WhereConditions, data parser.KVs) bool {
+func filtered(conds fp.WhereConditions, data fp.KVs) bool {
 	return conds.Eval(data)
 }
 
@@ -186,7 +181,7 @@ func (f *filter) start() {
 
 func newFilter(p IPuller) *filter {
 	return &filter{
-		conditions:    map[string]parser.WhereConditions{},
+		conditions:    map[string]fp.WhereConditions{},
 		rawConditions: map[string]string{},
 
 		puller: p,
@@ -201,7 +196,7 @@ func newFilter(p IPuller) *filter {
 func StartFilter(p IPuller) {
 	l = logger.SLogger(packageName)
 
-	parser.Init()
+	fp.Init()
 
 	var f rtpanic.RecoverCallback
 

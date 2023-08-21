@@ -42,6 +42,10 @@ func (l *flock) lock() error {
 			return err
 		}
 
+		if len(x) == 0 {
+			goto write
+		}
+
 		pidInFile, err := strconv.Atoi(string(x))
 		if err != nil {
 			return err

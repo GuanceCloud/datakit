@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"net/http/httptrace"
 	"net/url"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -23,7 +22,6 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/avast/retry-go"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpcli"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	dnet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
@@ -31,12 +29,6 @@ import (
 )
 
 var (
-	// DatakitUserAgent define HTTP User-Agent header.
-	// user-agent format. See
-	// 	 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
-	DatakitUserAgent = fmt.Sprintf("datakit-%s-%s/%s/%s",
-		runtime.GOOS, runtime.GOARCH, git.Version, datakit.DatakitHostName)
-
 	httpFailRatio      = 0 // %n
 	httpFailStart      time.Time
 	httpFailDuration   time.Duration
@@ -65,11 +57,14 @@ func init() {
 }
 
 type endPoint struct {
-	token       string
-	host        string
-	scheme      string
+	token  string
+	host   string
+	scheme string
+
+	httpHeaders,
 	categoryURL map[string]string
-	httpCli     *http.Client
+
+	httpCli *http.Client
 
 	// optionals
 	proxy       string
@@ -140,6 +135,18 @@ func withProxy(proxy string) endPointOption {
 	}
 }
 
+func withHTTPHeaders(headers map[string]string) endPointOption {
+	return func(ep *endPoint) {
+		for k, v := range headers {
+			if len(v) > 0 { // ignore empty header value
+				ep.httpHeaders[k] = v
+			} else {
+				log.Warnf("ignore empty value on header %q", k)
+			}
+		}
+	}
+}
+
 func newEndpoint(urlstr string, opts ...endPointOption) (*endPoint, error) {
 	u, err := url.ParseRequestURI(urlstr)
 	if err != nil {
@@ -149,6 +156,7 @@ func newEndpoint(urlstr string, opts ...endPointOption) (*endPoint, error) {
 
 	ep := &endPoint{
 		categoryURL: map[string]string{},
+		httpHeaders: map[string]string{},
 		token:       u.Query().Get("token"),
 		host:        u.Host,
 		scheme:      u.Scheme,
@@ -353,8 +361,19 @@ func (ep *endPoint) writePointData(b *body, w *writer) error {
 	if w.gzip {
 		req.Header.Set("Content-Encoding", "gzip")
 	}
-
 	req.Header.Set("X-Points", fmt.Sprintf("%d", b.npts))
+
+	// Common HTTP headers appended, such as User-Agent, X-Global-Tags
+	log.Debugf("set %d endpoint http headers", len(ep.httpHeaders))
+	for k, v := range ep.httpHeaders {
+		req.Header.Set(k, v)
+	}
+
+	// Append extra HTTP headers to request.
+	// Here may attach X-Global-Tags again.
+	for k, v := range w.httpHeaders {
+		req.Header.Set(k, v)
+	}
 
 	resp, err := ep.sendReq(req)
 
@@ -425,38 +444,6 @@ func (ep *endPoint) GetCategoryURL() map[string]string {
 	return ep.categoryURL
 }
 
-func (ep *endPoint) getLogFilter() ([]byte, error) {
-	url, ok := ep.categoryURL[datakit.LogFilter]
-	if !ok {
-		return nil, fmt.Errorf("LogFilter API missing, should not been here")
-	}
-
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := ep.sendReq(req)
-	if err != nil {
-		log.Error(err.Error())
-
-		return nil, err
-	}
-
-	defer resp.Body.Close() //nolint:errcheck
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Error(err.Error())
-
-		return nil, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("getLogFilter failed with status code %d, body: %s", resp.StatusCode, string(body))
-	}
-
-	return body, nil
-}
-
 func (ep *endPoint) datakitPull(args string) ([]byte, error) {
 	url, ok := ep.categoryURL[datakit.DatakitPull]
 	if !ok {
@@ -466,6 +453,11 @@ func (ep *endPoint) datakitPull(args string) ([]byte, error) {
 	req, err := http.NewRequest(http.MethodGet, url+"&"+args, nil)
 	if err != nil {
 		return nil, err
+	}
+
+	// Common HTTP headers appended, such as User-Agent, X-Global-Tags
+	for k, v := range ep.httpHeaders {
+		req.Header.Set(k, v)
 	}
 
 	resp, err := ep.sendReq(req)
@@ -538,11 +530,9 @@ func (ep *endPoint) doSendReq(req *http.Request) (*http.Response, error) {
 		httpCodeStr = "unknown"
 	)
 
-	req.Header.Set("User-Agent", DatakitUserAgent)
-
 	defer func() {
 		urlPath := req.URL.Path
-		// It's a bad-designed API path, we rename it in metrics.
+		// It's a bad-designed API path, we rename it in prometheus metrics.
 		// the original URL is `/v1/check/token/tkn_xxxxxxxxxxxxxxxxxxx'
 		if strings.HasPrefix(req.URL.Path, "/v1/check/token") {
 			urlPath = "/v1/check/token"

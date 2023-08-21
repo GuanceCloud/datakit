@@ -122,7 +122,8 @@ var (
 
 	PProfListen string
 
-	Sinker string
+	EnableSinker,
+	SinkerGlobalCustomerKeys string
 
 	CgroupDisabled int
 	LimitCPUMax,
@@ -325,7 +326,6 @@ func getDataway() (*dataway.Dataway, error) {
 			if err := dataway.CheckToken(tokens[0]); err != nil {
 				return nil, err
 			}
-			config.Cfg.Dataway = dw
 			return dw, nil
 		}
 	} else {

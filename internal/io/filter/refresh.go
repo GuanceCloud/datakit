@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/parser"
+	fp "github.com/GuanceCloud/cliutils/filter"
 )
 
 func (f *filter) refresh(body []byte) error {
@@ -47,7 +47,7 @@ func (f *filter) refresh(body []byte) error {
 	f.md5 = bodymd5
 	// Clear old conditions: we refresh all conditions if any changed(new/delete
 	// conditons or refresh old conditions)
-	f.conditions = map[string]parser.WhereConditions{}
+	f.conditions = map[string]fp.WhereConditions{}
 	for k, v := range filters.Filters {
 		conds, err := GetConds(v)
 		if err != nil {

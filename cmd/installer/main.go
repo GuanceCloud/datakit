@@ -161,7 +161,8 @@ func init() {
 	flag.StringVar(&installer.PProfListen, "pprof-listen", "", "pprof listen")
 
 	// sinker flags
-	flag.StringVar(&installer.Sinker, "sinker", "", "sinker configures")
+	flag.StringVar(&installer.EnableSinker, "enable-dataway-sinker", "", "enable dataway sinker")
+	flag.StringVar(&installer.SinkerGlobalCustomerKeys, "sinker-global-customer-keys", "", "sinker configures")
 
 	// cgroup flags
 	flag.IntVar(&installer.CgroupDisabled, "cgroup-disabled", 0, "enable disable cgroup(Linux) limits for CPU and memory")

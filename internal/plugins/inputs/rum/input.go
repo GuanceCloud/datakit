@@ -23,17 +23,18 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/metrics"
 	"github.com/gobwas/glob"
-	"google.golang.org/protobuf/proto"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/workerpool"
+	"google.golang.org/protobuf/proto"
 )
 
 var (
@@ -43,7 +44,7 @@ var (
 
 const (
 	inputName         = "rum"
-	ReplayFileMaxSize = 1 << 22 // 1024 * 1024 * 4  4Mib
+	ReplayBodyMaxSize = 6 << 20 // 6Mib
 	ProxyErrorHeader  = "X-Proxy-Error"
 	// nolint: lll
 	sampleConfig = `
@@ -181,7 +182,72 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&trace.TraceMeasurement{Name: inputName}}
 }
 
-func replayUploadHandler() (*httputil.ReverseProxy, error) {
+type sessionReplayProxy struct {
+	proxy *httputil.ReverseProxy
+}
+
+func (s *sessionReplayProxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	if req.ContentLength > ReplayBodyMaxSize {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = io.Copy(w, strings.NewReader(fmt.Sprintf("request body size [%d] exceeds the limit", req.ContentLength)))
+		return
+	}
+
+	if req.Body != nil {
+		req.Body = http.MaxBytesReader(w, req.Body, ReplayBodyMaxSize)
+	}
+
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		if strings.Contains(err.Error(), "request body too large") {
+			w.WriteHeader(http.StatusBadRequest)
+		} else {
+			w.WriteHeader(http.StatusBadGateway)
+		}
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
+
+	_ = req.Body.Close()
+
+	req.Body = io.NopCloser(bytes.NewReader(body))
+
+	if err := req.ParseMultipartForm(ReplayBodyMaxSize); err != nil {
+		w.WriteHeader(http.StatusBadGateway)
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
+
+	globalTags := config.Cfg.Dataway.GlobalTags()
+	customTagKeys := config.Cfg.Dataway.CustomTagKeys()
+
+	tags := map[string]string{
+		"category": "session_replay",
+	}
+
+	for k, v := range req.MultipartForm.Value {
+		if _, ok := tags[k]; !ok {
+			if len(v) == 0 {
+				tags[k] = ""
+			} else {
+				tags[k] = v[0]
+			}
+		}
+	}
+
+	headerValue := dataway.HTTPHeaderGlobalTagValue(filter.NewTFDataFromMap(tags), globalTags, customTagKeys)
+	if headerValue == "" {
+		headerValue = config.Cfg.Dataway.GlobalTagsHTTPHeaderValue()
+	}
+	req.Header.Set(dataway.HeaderXGlobalTags, headerValue)
+
+	_ = req.Body.Close()
+	req.Body = io.NopCloser(bytes.NewReader(body))
+
+	s.proxy.ServeHTTP(w, req)
+}
+
+func replayUploadHandler() (http.Handler, error) {
 	endpoints := config.Cfg.Dataway.GetAvailableEndpoints()
 
 	if len(endpoints) == 0 {
@@ -213,37 +279,22 @@ func replayUploadHandler() (*httputil.ReverseProxy, error) {
 		return nil, fmt.Errorf("no available dataway endpoint")
 	}
 
-	return &httputil.ReverseProxy{
-		Director: func(req *http.Request) {
-			if req.ContentLength > ReplayFileMaxSize {
-				req.URL = nil // this will trigger a proxy err, and let request complete earlier
-				req.Header.Set(ProxyErrorHeader, fmt.Sprintf("request body size [%d] exceeds the limit", req.ContentLength))
-				return
-			}
+	return &sessionReplayProxy{
+		proxy: &httputil.ReverseProxy{
+			Director: func(req *http.Request) {
+				req.URL = validURL
+				req.Host = validURL.Host
+			},
 
-			req.URL = validURL
-			req.Host = validURL.Host
-			if req.Body != nil {
-				req.Body = newLimitReader(req.Body, ReplayFileMaxSize)
-			}
-		},
-
-		ErrorHandler: func(w http.ResponseWriter, req *http.Request, err error) {
-			proxyErr := req.Header.Get(ProxyErrorHeader)
-			if proxyErr != "" {
-				log.Errorf("proxy error: %s", proxyErr)
-				w.WriteHeader(http.StatusBadRequest)
-				_, _ = w.Write([]byte(proxyErr))
-				return
-			}
-			if errors.Is(err, errLimitReader) {
-				log.Errorf("request body is too large: %s", err)
-				w.WriteHeader(http.StatusBadRequest)
-			} else {
-				log.Errorf("other rum replay err: %s", err)
-				w.WriteHeader(http.StatusBadGateway)
-			}
-			_, _ = w.Write([]byte(err.Error()))
+			ErrorHandler: func(w http.ResponseWriter, req *http.Request, err error) {
+				log.Errorf("rum session replay proxy receive an err: %s", err)
+				if strings.Contains(err.Error(), "request body too large") {
+					w.WriteHeader(http.StatusBadRequest)
+				} else {
+					w.WriteHeader(http.StatusBadGateway)
+				}
+				_, _ = w.Write([]byte(err.Error()))
+			},
 		},
 	}, nil
 }
