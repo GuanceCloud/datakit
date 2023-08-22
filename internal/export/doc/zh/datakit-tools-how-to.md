@@ -373,6 +373,45 @@ datakit tool --completer-script > datakit-completer.sh
 
 ## DataKit 调试命令 {#debugging}
 
+### 调试黑名单 {#debug-filter}
+
+[:octicons-tag-24: Version-1.14.0](changelog.md#cl-1.14.0)
+
+为了调试某条数据是否会被中心配置的黑名单过滤，我们可以用如下命令：
+
+
+<!-- markdownlint-disable MD046 -->
+=== "Linux/macOS"
+
+    ```shell
+    $ datakit debug --filter=/usr/local/datakit/data/.pull --data=/path/to/lineproto.data"
+    
+    Dropped
+    
+        ddtrace,http_url=/webproxy/api/online_status,service=web_front f1=1i 1691755988000000000
+    
+    By 7th rule(cost 1.017708ms) from category "tracing":
+    
+        { service = 'web_front' and ( http_url in [ '/webproxy/api/online_status' ] )}
+    ```
+
+=== "Windows"
+
+    ```powershell
+    PS > datakit.exe debug --filter 'C:\Program Files\datakit\data\.pull' --data '\path\to\lineproto.data'
+    
+    Dropped
+    
+        ddtrace,http_url=/webproxy/api/online_status,service=web_front f1=1i 1691755988000000000
+    
+    By 7th rule(cost 1.017708ms) from category "tracing":
+    
+        { service = 'web_front' and ( http_url in [ '/webproxy/api/online_status' ] )}
+    ```
+<!-- markdownlint-enable -->
+
+此处输出表明，文件 *lineproto.data* 中的这条数据，被位于 *.pull* 文件中 `tracing` 所在分类的第 7 条（从 1 开始计数）规则匹配。一旦匹配，则该条数据将被丢弃。
+
 ### 使用 glob 规则获取文件路径 {#glob-conf}
 [:octicons-tag-24: Version-1.8.0](changelog.md#cl-1.8.0)
 

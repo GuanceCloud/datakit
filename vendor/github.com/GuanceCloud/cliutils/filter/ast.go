@@ -909,19 +909,19 @@ func (x WhereConditions) String() string {
 	return strings.Join(arr, "; ")
 }
 
-func (x WhereConditions) Eval(data KVs) bool {
-	for _, item := range x {
+func (x WhereConditions) Eval(data KVs) int {
+	for idx, item := range x {
 		switch c := item.(type) {
 		case *WhereCondition:
 			if c.Eval(data) {
-				return true
+				return idx
 			}
 
 		default:
 			log.Warnf("invalid where condition: %s", c)
-			return false
+			return -1
 		}
 	}
 
-	return false
+	return -1
 }

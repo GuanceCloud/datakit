@@ -196,6 +196,8 @@ var (
 	flagDebugBugReport  = fsDebug.Bool("bug-report", false, "export DataKit running information for troubleshooting")
 	flagDebugInputConf  = fsDebug.String("input-conf", "", "input TOML conf path")
 	flagDebugHTTPListen = fsDebug.String("http-listen", "", "setup HTTP server on debugging some inputs(such as some Trace/RUM/...)")
+	flagDebugFilter     = fsDebug.String("filter", "", "filter configure file(JSON)")
+	flagDebugData       = fsDebug.String("data", "", "data used during debugging")
 
 	fsDebugUsage = func() {
 		fmt.Printf("usage: datakit debug [options]\n\n")
