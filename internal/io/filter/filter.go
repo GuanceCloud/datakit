@@ -105,7 +105,7 @@ func CheckPointFiltered(conds fp.WhereConditions, category point.Category, pt *d
 }
 
 func filtered(conds fp.WhereConditions, data fp.KVs) bool {
-	return conds.Eval(data)
+	return conds.Eval(data) >= 0
 }
 
 func (f *filter) doFilter(category point.Category, pts []*dkpt.Point) ([]*dkpt.Point, int) {

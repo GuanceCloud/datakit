@@ -15,6 +15,13 @@ import (
 
 func runDebugFlags() error {
 	switch {
+	case *flagDebugFilter != "":
+		if err := debugFilter([]byte(*flagDebugFilter),
+			[]byte(*flagDebugData)); err != nil {
+			cp.Errorf("[E] %s\n", err.Error())
+		}
+		os.Exit(0)
+
 	case *flagDebugInputConf != "":
 
 		// Try load global settings, we need to load global-host/env tags
