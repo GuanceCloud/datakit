@@ -54,6 +54,7 @@ func (m *systemMetrics) collect() (*point.Point, error) {
 
 // SYSMETRICS_QUERY is the get system info SQL query for Oracle for 12c2 and 12c2+.
 // https://docs.oracle.com/en/database/oracle/oracle-database/12.2/refrn/V-CON_SYSMETRIC.html#GUID-B7A51ACA-952B-47FE-9BC5-B265A120A9F7
+//
 //nolint:stylecheck
 const SYSMETRICS_QUERY = `SELECT 
 	metric_name,
@@ -65,6 +66,7 @@ const SYSMETRICS_QUERY = `SELECT
   WHERE s.con_id = c.con_id(+)`
 
 // SYSMETRICS_QUERY_OLD is the get system info SQL query for Oracle for for 12c1 and 12c1-.
+//
 //nolint:stylecheck
 const SYSMETRICS_QUERY_OLD = `SELECT 
     VALUE, 

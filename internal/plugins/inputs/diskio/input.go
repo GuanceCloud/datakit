@@ -303,12 +303,13 @@ func (i *Input) Terminate() {
 }
 
 // ReadEnv support envs：
-//   ENV_INPUT_DISKIO_SKIP_SERIAL_NUMBER : booler
-//   ENV_INPUT_DISKIO_TAGS : "a=b,c=d"
-//   ENV_INPUT_DISKIO_INTERVAL : datakit.Duration
-//   ENV_INPUT_DISKIO_DEVICES : []string
-//   ENV_INPUT_DISKIO_DEVICE_TAGS : []string
-//   ENV_INPUT_DISKIO_NAME_TEMPLATES : []string
+//
+//	ENV_INPUT_DISKIO_SKIP_SERIAL_NUMBER : booler
+//	ENV_INPUT_DISKIO_TAGS : "a=b,c=d"
+//	ENV_INPUT_DISKIO_INTERVAL : datakit.Duration
+//	ENV_INPUT_DISKIO_DEVICES : []string
+//	ENV_INPUT_DISKIO_DEVICE_TAGS : []string
+//	ENV_INPUT_DISKIO_NAME_TEMPLATES : []string
 func (i *Input) ReadEnv(envs map[string]string) {
 	if skip, ok := envs["ENV_INPUT_DISKIO_SKIP_SERIAL_NUMBER"]; ok {
 		b, err := strconv.ParseBool(skip)

@@ -12,13 +12,13 @@ import (
 )
 
 /*
-   类型: sky, jaeger, custom
-   指标:
-   	1 消费数量 ： tag:分区，topic，类型\状态  val:数量
+	   类型: sky, jaeger, custom
+	   指标:
+	   	1 消费数量 ： tag:分区，topic，类型\状态  val:数量
 
-   	1 group选举次数 ： topic，类型  val:数量
+	   	1 group选举次数 ： topic，类型  val:数量
 
-	当dk运行时，访问 localhost:9529/metrics
+		当dk运行时，访问 localhost:9529/metrics
 */
 var kafkaConsumeMessages,
 	kafkaGroupElection *prometheus.CounterVec

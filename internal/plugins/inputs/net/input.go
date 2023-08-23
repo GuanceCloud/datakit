@@ -332,11 +332,12 @@ func (i *Input) Terminate() {
 }
 
 // ReadEnv , support envs：
-//   ENV_INPUT_NET_IGNORE_PROTOCOL_STATS : booler
-//   ENV_INPUT_NET_ENABLE_VIRTUAL_INTERFACES : booler
-//   ENV_INPUT_NET_TAGS : "a=b,c=d"
-//   ENV_INPUT_NET_INTERVAL : datakit.Duration
-//   ENV_INPUT_NET_INTERFACES : []string
+//
+//	ENV_INPUT_NET_IGNORE_PROTOCOL_STATS : booler
+//	ENV_INPUT_NET_ENABLE_VIRTUAL_INTERFACES : booler
+//	ENV_INPUT_NET_TAGS : "a=b,c=d"
+//	ENV_INPUT_NET_INTERVAL : datakit.Duration
+//	ENV_INPUT_NET_INTERFACES : []string
 func (i *Input) ReadEnv(envs map[string]string) {
 	if ignore, ok := envs["ENV_INPUT_NET_IGNORE_PROTOCOL_STATS"]; ok {
 		b, err := strconv.ParseBool(ignore)

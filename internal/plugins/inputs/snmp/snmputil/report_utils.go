@@ -72,8 +72,9 @@ func processValueUsingSymbolConfig(value ResultValue, symbol SymbolConfig) (Resu
 	return value, nil
 }
 
-//nolint:lll
 // getTagsFromMetricTagConfigList retrieve tags using the metric config and values.
+//
+//nolint:lll
 func getTagsFromMetricTagConfigList(mtcl MetricTagConfigList, fullIndex string, values *ResultValueStore) []string {
 	var rowTags []string
 	indexes := strings.Split(fullIndex, ".")

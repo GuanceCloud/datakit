@@ -187,7 +187,8 @@ func writeData(data []byte, urlPath string) error {
 // MergeTags merge all optional tags from global tags/inputs config tags and host tags
 // from remote URL.
 // NOTE: This function needs to synchronize with the same name function in the file
-//       internal/plugins/inputs/inputs.go of project Datakit.
+//
+//	internal/plugins/inputs/inputs.go of project Datakit.
 func MergeTags(global, origin map[string]string, remote string) map[string]string {
 	out := map[string]string{}
 

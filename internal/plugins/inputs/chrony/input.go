@@ -305,19 +305,20 @@ func (ipt *Input) getPts(data []datakit.SSHData) ([]*point.Point, error) {
 // getFields get fields and tags from data.
 //
 // Data like:
-//  Reference ID    : CA760182 (202.118.1.130)
-//  Stratum         : 2
-//  Ref time (UTC)  : Wed Jun 07 06:22:16 2023
-//  System time     : 0.000000000 seconds slow of NTP time
-//  Last offset     : -0.000291720 seconds
-//  RMS offset      : 0.004762660 seconds
-//  Frequency       : 1.452 ppm slow
-//  Residual freq   : -0.094 ppm
-//  Skew            : 4.524 ppm
-//  Root delay      : 0.041327540 seconds
-//  Root dispersion : 0.003143095 seconds
-//  Update interval : 65.3 seconds
-//  Leap status     : Normal
+//
+//	Reference ID    : CA760182 (202.118.1.130)
+//	Stratum         : 2
+//	Ref time (UTC)  : Wed Jun 07 06:22:16 2023
+//	System time     : 0.000000000 seconds slow of NTP time
+//	Last offset     : -0.000291720 seconds
+//	RMS offset      : 0.004762660 seconds
+//	Frequency       : 1.452 ppm slow
+//	Residual freq   : -0.094 ppm
+//	Skew            : 4.524 ppm
+//	Root delay      : 0.041327540 seconds
+//	Root dispersion : 0.003143095 seconds
+//	Update interval : 65.3 seconds
+//	Leap status     : Normal
 func getFields(out string) (map[string]interface{}, map[string]string, error) {
 	tags := map[string]string{}
 	fields := map[string]interface{}{}

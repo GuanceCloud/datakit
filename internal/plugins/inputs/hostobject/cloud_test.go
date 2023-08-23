@@ -43,8 +43,8 @@ data`,
 		},
 
 		{
-			body: `		abc`,
-			expect: `		abc`,
+			body:   `abc`,
+			expect: `abc`,
 		},
 	}
 

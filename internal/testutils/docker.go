@@ -367,7 +367,8 @@ const (
 
 // RunOraemon runs datakit-oraemon image which contains necessary files.
 // ATTENTION: Inputs' integration testings used RunOraemon should NOT be paralleled with each other!
-//            But they can paralleled inside themselves.
+//
+//	But they can paralleled inside themselves.
 func RunOraemon(endpoint string) (p *dockertest.Pool, resource *dockertest.Resource, mounts string, err error) {
 	p, err = GetPool(endpoint)
 	if err != nil {

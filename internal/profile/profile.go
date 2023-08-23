@@ -144,8 +144,9 @@ type SpanProfileMap struct {
 	RuntimeId string
 }
 
-//nolint:stylecheck
 // Sample 代表profile中的某个样本详情.
+//
+//nolint:stylecheck
 type Sample struct {
 	Values        []SampleValue     `json:"values"`         // 采样到的一些数值，比如占用cpu时间，内存使用大小
 	SpanId        string            `json:"span_id"`        // 关联的trace span id

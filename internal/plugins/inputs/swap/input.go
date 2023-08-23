@@ -193,8 +193,9 @@ func (ipt *Input) Terminate() {
 }
 
 // ReadEnv support envs：
-//   ENV_INPUT_SWAP_TAGS : "a=b,c=d"
-//   ENV_INPUT_SWAP_INTERVAL : datakit.Duration
+//
+//	ENV_INPUT_SWAP_TAGS : "a=b,c=d"
+//	ENV_INPUT_SWAP_INTERVAL : datakit.Duration
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	if tagsStr, ok := envs["ENV_INPUT_SWAP_TAGS"]; ok {
 		tags := config.ParseGlobalTags(tagsStr)

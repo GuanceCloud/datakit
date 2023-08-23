@@ -30,8 +30,9 @@ func (mm *TaskmanagerMeasurement) LineProto() (*point.Point, error) {
 	return point.NewPoint(mm.name, mm.tags, mm.fields, point.MOptElection())
 }
 
-//nolint:lll
 // Info flink_jobmanager_.
+//
+//nolint:lll
 func (*JobmanagerMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "flink_jobmanager",
@@ -75,8 +76,9 @@ func (*JobmanagerMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-//nolint:lll
 // Info flink_taskmanager_.
+//
+//nolint:lll
 func (*TaskmanagerMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "flink_taskmanager",

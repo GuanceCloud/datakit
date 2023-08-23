@@ -20,13 +20,14 @@ import (
 
 //------------------------------------------------------------------------------
 
-//nolint:lll
 // GetResultValueFromPDU converts gosnmp.SnmpPDU to ResultValue
 // See possible types here: https://github.com/gosnmp/gosnmp/blob/master/helper.go#L59-L271
 //
-// - gosnmp.Opaque: No support for gosnmp.Opaque since the type is processed recursively and never returned:
-//   is never returned https://github.com/gosnmp/gosnmp/blob/dc320dac5b53d95a366733fd95fb5851f2099387/helper.go#L195-L205
-// - gosnmp.Boolean: seems not exist anymore and not handled by gosnmp.
+//   - gosnmp.Opaque: No support for gosnmp.Opaque since the type is processed recursively and never returned:
+//     is never returned https://github.com/gosnmp/gosnmp/blob/dc320dac5b53d95a366733fd95fb5851f2099387/helper.go#L195-L205
+//   - gosnmp.Boolean: seems not exist anymore and not handled by gosnmp.
+//
+//nolint:lll
 func GetResultValueFromPDU(pduVariable gosnmp.SnmpPDU) (string, ResultValue, error) {
 	name := strings.TrimLeft(pduVariable.Name, ".") // remove leading dot
 	value, err := GetValueFromPDU(pduVariable)
@@ -54,10 +55,11 @@ func ResultToScalarValues(result *gosnmp.SnmpPacket) ScalarResultValuesType {
 	return returnValues
 }
 
-//nolint:lll
 // ResultToColumnValues builds column values
 // - ColumnResultValuesType: column values
 // - nextOidsMap: represent the oids that can be used to retrieve following rows/values.
+//
+//nolint:lll
 func ResultToColumnValues(columnOids []string, snmpPacket *gosnmp.SnmpPacket) (ColumnResultValuesType, map[string]string) {
 	returnValues := make(ColumnResultValuesType, len(columnOids))
 	nextOidsMap := make(map[string]string, len(columnOids))
@@ -147,8 +149,9 @@ func (sv ResultValue) ToString() (string, error) {
 	return StandardTypeToString(sv.Value)
 }
 
-//nolint:lll
 // ExtractStringValue extract value using a regex.
+//
+//nolint:lll
 func (sv ResultValue) ExtractStringValue(extractValuePattern *regexp.Regexp) (ResultValue, error) {
 	switch sv.Value.(type) {
 	case string, []byte:

@@ -5,7 +5,7 @@
 
 // Package v1beta1 wraps Datakit resource by kubernetes client-gen.
 
-//nolint
+// nolint
 package v1beta1
 
 import (

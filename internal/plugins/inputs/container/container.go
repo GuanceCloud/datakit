@@ -306,8 +306,9 @@ func getContainerNameForLabels(labels map[string]string) string {
 }
 
 // splitRules
-//   split 'image:' kv，return values
-//   ex, in: ["image:img_*", "image:img01*", "xx:xx"] return: ["img_*", "img01*"]
+//
+//	split 'image:' kv，return values
+//	ex, in: ["image:img_*", "image:img01*", "xx:xx"] return: ["img_*", "img01*"]
 func splitRules(arr []string) (rules []string) {
 	for _, str := range arr {
 		x := strings.Split(str, ":")

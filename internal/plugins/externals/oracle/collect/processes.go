@@ -52,6 +52,7 @@ func (m *processMetrics) collect() (*point.Point, error) {
 }
 
 // PGA_QUERY is the get process info SQL query for Oracle 11g+.
+//
 //nolint:stylecheck
 const PGA_QUERY = `SELECT 
 	name pdb_name, 
@@ -66,6 +67,7 @@ const PGA_QUERY = `SELECT
   	c.con_id(+) = p.con_id`
 
 // PGA_QUERY_OLD is the get process info SQL query for Oracle 11g and 11g-.
+//
 //nolint:stylecheck
 const PGA_QUERY_OLD = `SELECT 
     PROGRAM, 

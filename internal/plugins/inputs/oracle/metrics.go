@@ -44,6 +44,7 @@ func (m *processMeasurement) LineProto() (*dkpt.Point, error) {
 }
 
 // https://docs.oracle.com/en/database/oracle/oracle-database/19/refrn/V-PROCESS.html#GUID-BBE32620-1043-4345-9448-51DB21547FEB
+//
 //nolint:lll
 func (m *processMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{

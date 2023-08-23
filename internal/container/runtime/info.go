@@ -49,7 +49,8 @@ func parseCriInfo(in string) (*criInfo, error) {
 }
 
 // parseDockerEnv, return the value corresponding to this key in 'envs'
-//    example: "PATH=/usr/local/sbin:/usr/local/bin", return "PATH : /usr/local/sbin:/usr/local/bin"
+//
+//	example: "PATH=/usr/local/sbin:/usr/local/bin", return "PATH : /usr/local/sbin:/usr/local/bin"
 func parseDockerEnv(envs []string) map[string]string {
 	m := make(map[string]string, len(envs))
 	for _, envStr := range envs {

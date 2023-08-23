@@ -8,7 +8,7 @@
 
 package tailer
 
-//nolint
+// nolint
 func getFileKey(file string) string {
 	return file
 }

@@ -74,9 +74,9 @@ func (d *Duration) UnitString(unit time.Duration) string {
 //
 // You should call it within defer calling:
 //
-//   	defer Cost(time.Now(), func(du time.Duration) {
-//      // do something on du...
-//    })
+//		defer Cost(time.Now(), func(du time.Duration) {
+//	   // do something on du...
+//	 })
 func Cost(start time.Time, f func(du time.Duration)) {
 	if f != nil {
 		f(time.Since(start))

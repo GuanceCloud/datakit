@@ -52,6 +52,7 @@ func (wc *WriteCounter) PrintProgress() {
 }
 
 // Extract unzip files from @r to directory @to.
+//
 //nolint:cyclop
 func Extract(r io.Reader, to string) error {
 	gzr, err := gzip.NewReader(r)

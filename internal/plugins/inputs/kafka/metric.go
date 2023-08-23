@@ -77,7 +77,9 @@ type KafkaConnectMment struct {
 }
 
 // TODO: add more desc & units
-//    refer to https://github.com/DataDog/integrations-core/blob/master/confluent_platform/metadata.csv
+//
+//	refer to https://github.com/DataDog/integrations-core/blob/master/confluent_platform/metadata.csv
+//
 //nolint:lll
 var connectFields = map[string]interface{}{
 	"commit_id":                            &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},

@@ -693,7 +693,7 @@ func (b *buffer) split() []string {
 	return res
 }
 
-//nolint
+// nolint
 func removeAnsiEscapeCodes(oldtext string, run bool) string {
 	if !run {
 		return oldtext
@@ -727,8 +727,10 @@ type logMessage struct {
 }
 
 // parseCRILog parses logs in CRI log format. CRI Log format example:
-//   2016-10-06T00:17:09.669794202Z stdout P log content 1
-//   2016-10-06T00:17:09.669794203Z stderr F log content 2
+//
+//	2016-10-06T00:17:09.669794202Z stdout P log content 1
+//	2016-10-06T00:17:09.669794203Z stderr F log content 2
+//
 // refer to https://github.com/kubernetes/kubernetes/blob/master/pkg/kubelet/kuberuntime/logs/logs.go#L128
 func parseCRILog(log []byte, msg *logMessage) error {
 	var err error

@@ -13,7 +13,7 @@ import (
 	"syscall"
 )
 
-//nolint
+// nolint
 func getFileKey(file string) string {
 	var inodeStr = "inode"
 	var stat syscall.Stat_t

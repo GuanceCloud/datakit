@@ -18,6 +18,7 @@ var elasticsearchMeasurementFields = map[string]interface{}{
 }
 
 // nodeStats.
+//
 //nolint:lll
 var nodeStatsTags = map[string]interface{}{
 	"cluster_name":                     inputs.NewTagInfo("Name of the cluster, based on the Cluster name setting setting."),
@@ -132,6 +133,7 @@ var clusterHealthIndicesFields = map[string]interface{}{
 
 // indicesStatsShardsTotal
 // NOTE: no tags.
+//
 //nolint:lll
 var indicesStatsShardsTotalFields = map[string]interface{}{
 	"failed":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of failed indexing operations"},
@@ -140,6 +142,7 @@ var indicesStatsShardsTotalFields = map[string]interface{}{
 }
 
 // indicesStats.
+//
 //nolint:lll
 var indicesStatsTags = map[string]interface{}{
 	"cluster_name": inputs.NewTagInfo("Name of the cluster, based on the Cluster name setting setting."),
