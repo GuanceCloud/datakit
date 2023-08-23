@@ -173,6 +173,7 @@ func (*netStatMeasurement) LineProto() (*dkpt.Point, error) {
 }
 
 // Info , reflected in the document
+//
 //nolint:lll
 func (*netStatMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{

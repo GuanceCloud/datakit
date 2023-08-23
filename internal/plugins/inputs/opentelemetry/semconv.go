@@ -18,6 +18,7 @@ const (
 // Attributes binding to instrument
 
 // Attributes binding to span.
+//
 //nolint:deadcode,unused,varcheck
 const (
 	// HTTP.

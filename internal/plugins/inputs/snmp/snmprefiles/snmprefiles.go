@@ -77,8 +77,9 @@ func releaseTrapsDB(targetRoot string) error {
 //------------------------------------------------------------------------------
 
 // example:
-//   targetRoot = conf.d    emdDir = profiles
-//   targetRoot = conf.d    emdDir = traps_db
+//
+//	targetRoot = conf.d    emdDir = profiles
+//	targetRoot = conf.d    emdDir = traps_db
 func releaseEMDFiles(targetRoot, emdDir string, emdFS *embed.FS) error {
 	files, _ := fs.ReadDir(emdFS, emdDir)
 	for _, file := range files {

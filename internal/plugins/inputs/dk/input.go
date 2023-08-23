@@ -100,9 +100,9 @@ func (*Input) Singleton() {}
 
 // ReadEnv accept specific ENV settings to input.
 //
-//  ENV_INPUT_DK_ENABLE_ALL_METRICS(bool)
-//  ENV_INPUT_DK_ADD_METRICS(json-string-list)
-//  ENV_INPUT_DK_ONLY_METRICS(json-string-list)
+//	ENV_INPUT_DK_ENABLE_ALL_METRICS(bool)
+//	ENV_INPUT_DK_ADD_METRICS(json-string-list)
+//	ENV_INPUT_DK_ONLY_METRICS(json-string-list)
 func (i *Input) ReadEnv(envs map[string]string) {
 	if _, ok := envs["ENV_INPUT_DK_ENABLE_ALL_METRICS"]; ok {
 		i.MetricFilter = nil

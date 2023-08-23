@@ -7,8 +7,8 @@
 // +build linux
 
 /*
-	Test this file with docker:
-	docker run --rm -it -w /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/sensors -v $GOPATH:/root/go ubuntu.golang:latest go test -v .
+Test this file with docker:
+docker run --rm -it -w /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/sensors -v $GOPATH:/root/go ubuntu.golang:latest go test -v .
 */
 package sensors
 

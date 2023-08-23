@@ -143,8 +143,9 @@ func IsStringPrintable(bytesValue []byte) bool {
 	return true
 }
 
-//nolint:lll
 // GetValueFromPDU converts the value from an  SnmpPDU to a standard type.
+//
+//nolint:lll
 func GetValueFromPDU(pduVariable gosnmp.SnmpPDU) (interface{}, error) {
 	switch pduVariable.Type { //nolint:exhaustive
 	case gosnmp.OctetString, gosnmp.BitString:

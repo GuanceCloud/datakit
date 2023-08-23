@@ -76,10 +76,11 @@ func (di *deviceInfo) initialize() error {
 
 // getValuesAndTags gets SNMP device metrics' values and tags.
 // Return values:
-//     bool:                       reachable
-//     []string:                   tags
-//     *snmputil.ResultValueStore: values
-//     bool:                       isErrClosed
+//
+//	bool:                       reachable
+//	[]string:                   tags
+//	*snmputil.ResultValueStore: values
+//	bool:                       isErrClosed
 func (di *deviceInfo) getValuesAndTags() (bool, []string, *snmputil.ResultValueStore, error, bool) {
 	var deviceReachable bool
 	var checkErrors, tags []string

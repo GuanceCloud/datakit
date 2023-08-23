@@ -287,11 +287,12 @@ func (ipt *Input) Terminate() {
 }
 
 // ReadEnv support envs：
-//   ENV_INPUT_DISK_EXCLUDE_DEVICE : []string
-//   ENV_INPUT_DISK_EXTRA_DEVICE : []string
-//   ENV_INPUT_DISK_TAGS : "a=b,c=d"
-//   ENV_INPUT_DISK_ONLY_PHYSICAL_DEVICE : bool
-//   ENV_INPUT_DISK_INTERVAL : datakit.Duration
+//
+//	ENV_INPUT_DISK_EXCLUDE_DEVICE : []string
+//	ENV_INPUT_DISK_EXTRA_DEVICE : []string
+//	ENV_INPUT_DISK_TAGS : "a=b,c=d"
+//	ENV_INPUT_DISK_ONLY_PHYSICAL_DEVICE : bool
+//	ENV_INPUT_DISK_INTERVAL : datakit.Duration
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	if fsList, ok := envs["ENV_INPUT_DISK_EXTRA_DEVICE"]; ok {
 		list := strings.Split(fsList, ",")

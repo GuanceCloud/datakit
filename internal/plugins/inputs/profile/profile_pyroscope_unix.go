@@ -470,20 +470,21 @@ func (report *pyroscopeDatakitReport) Delete(name string) {
 Put implements storage.Putter interface
 
 // pkg/storage/types.go
-type Putter interface {
-	Put(context.Context, *PutInput) error
-}
 
-type PutInput struct {
-	StartTime       time.Time
-	EndTime         time.Time
-	Key             *segment.Key
-	Val             *tree.Tree
-	SpyName         string
-	SampleRate      uint32
-	Units           metadata.Units
-	AggregationType metadata.AggregationType
-}.
+	type Putter interface {
+		Put(context.Context, *PutInput) error
+	}
+
+	type PutInput struct {
+		StartTime       time.Time
+		EndTime         time.Time
+		Key             *segment.Key
+		Val             *tree.Tree
+		SpyName         string
+		SampleRate      uint32
+		Units           metadata.Units
+		AggregationType metadata.AggregationType
+	}.
 */
 func (report *pyroscopeDatakitReport) Put(ctx context.Context, putInput *storage.PutInput) error {
 	var profiledatas []*profileData

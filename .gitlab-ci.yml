@@ -5,8 +5,8 @@ before_script:
   - cd /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
   - source ~/.ossenv
   - echo $DK_BPF_KERNEL_SRC_PATH
-  - export PATH=/usr/local/go1.18.3/bin:$PATH
-  - export GOROOT=/usr/local/go1.18.3
+  - export PATH=/usr/local/go1.19.12/bin:$PATH
+  - export GOROOT=/usr/local/go1.19.12
   - go version
 
 variables:

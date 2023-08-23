@@ -196,7 +196,8 @@ func GetInput() ([]byte, error) {
 }
 
 // AddConfigInfoPath add or update input info.
-//  if fp is empty, add new config when inputName not exist, or set ConfigPaths empty when exist.
+//
+//	if fp is empty, add new config when inputName not exist, or set ConfigPaths empty when exist.
 func AddConfigInfoPath(inputName string, fp string, loaded int8) {
 	if c, ok := ConfigInfo[inputName]; ok {
 		if len(fp) == 0 {

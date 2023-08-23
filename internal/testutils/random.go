@@ -4,6 +4,7 @@
 // Copyright 2021-present Guance, Inc.
 
 // Package testutils used to help generating testing data
+//
 //nolint:gosec
 package testutils
 

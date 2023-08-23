@@ -24,7 +24,9 @@ const (
 )
 
 // RequestTimesStats request times/errors/timeout
-//    SEARCH(select) and UPDATE(update)
+//
+//	SEARCH(select) and UPDATE(update)
+//
 // Use map instead, fields need to be filtered.
 type RequestTimesStats struct {
 	Count     int64   `json:"count"`

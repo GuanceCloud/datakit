@@ -7,6 +7,7 @@
 // +build windows
 
 // Package winevent Input plugin to collect Windows Event Log messages
+//
 //revive:disable-next-line:var-naming
 package winevent
 

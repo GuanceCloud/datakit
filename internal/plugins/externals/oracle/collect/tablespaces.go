@@ -52,6 +52,7 @@ func (m *tablespaceMetrics) collect() (*point.Point, error) {
 }
 
 // QUERY is the get tablespace info SQL query for Oracle 11g+.
+//
 //nolint:stylecheck
 const QUERY = `SELECT
   c.name pdb_name,
@@ -66,6 +67,7 @@ WHERE
   m.tablespace_name(+) = t.tablespace_name and c.con_id(+) = t.con_id`
 
 // QUERY_OLD is the get tablespace info SQL query for Oracle 11g and 11g-.
+//
 //nolint:stylecheck
 const QUERY_OLD = `SELECT
   m.tablespace_name,

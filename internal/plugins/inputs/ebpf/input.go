@@ -209,11 +209,12 @@ func (*Input) AvailableArchs() []string {
 }
 
 // ReadEnv support envs：
-//   ENV_INPUT_EBPF_ENABLED_PLUGINS : []string
-//   ENV_INPUT_EBPF_L7NET_ENABLED   : []string
-//   ENV_INPUT_EBPF_IPV6_DISABLED   : bool
-// 	 ENV_INPUT_EBPF_EPHEMERAL_PORT  : int32
-//   ENV_INPUT_EBPF_INTERVAL        : string
+//
+//	  ENV_INPUT_EBPF_ENABLED_PLUGINS : []string
+//	  ENV_INPUT_EBPF_L7NET_ENABLED   : []string
+//	  ENV_INPUT_EBPF_IPV6_DISABLED   : bool
+//		 ENV_INPUT_EBPF_EPHEMERAL_PORT  : int32
+//	  ENV_INPUT_EBPF_INTERVAL        : string
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	if pluginList, ok := envs["ENV_INPUT_EBPF_ENABLED_PLUGINS"]; ok {
 		l.Debugf("add enabled_plugins from ENV: %v", pluginList)

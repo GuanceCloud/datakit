@@ -264,11 +264,12 @@ func (ipt *Input) Terminate() {
 }
 
 // ReadEnv support envs：
-//   ENV_INPUT_CPU_PERCPU : booler
-//   ENV_INPUT_CPU_ENABLE_TEMPERATURE : booler
-//   ENV_INPUT_CPU_INTERVAL : datakit.Duration
-//   ENV_INPUT_CPU_DISABLE_TEMPERATURE_COLLECT : bool
-//   ENV_INPUT_CPU_ENABLE_LOAD5S : bool
+//
+//	ENV_INPUT_CPU_PERCPU : booler
+//	ENV_INPUT_CPU_ENABLE_TEMPERATURE : booler
+//	ENV_INPUT_CPU_INTERVAL : datakit.Duration
+//	ENV_INPUT_CPU_DISABLE_TEMPERATURE_COLLECT : bool
+//	ENV_INPUT_CPU_ENABLE_LOAD5S : bool
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	if percpu, ok := envs["ENV_INPUT_CPU_PERCPU"]; ok {
 		b, err := strconv.ParseBool(percpu)

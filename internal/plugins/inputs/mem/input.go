@@ -241,8 +241,9 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 // ReadEnv support envs：
-//   ENV_INPUT_MEM_TAGS : "a=b,c=d"
-//   ENV_INPUT_MEM_INTERVAL : datakit.Duration
+//
+//	ENV_INPUT_MEM_TAGS : "a=b,c=d"
+//	ENV_INPUT_MEM_INTERVAL : datakit.Duration
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	if tagsStr, ok := envs["ENV_INPUT_MEM_TAGS"]; ok {
 		tags := config.ParseGlobalTags(tagsStr)

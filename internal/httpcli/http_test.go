@@ -199,7 +199,7 @@ func httpGinServer(t *testing.T, host string) *http.Server {
 	go func() {
 		for {
 			if err := srv.ListenAndServe(); err != nil {
-				if !errors.As(err, &http.ErrServerClosed) {
+				if !errors.Is(err, http.ErrServerClosed) {
 					t.Errorf("start server at %s failed: %s, retrying(%d)...",
 						srv.Addr, err.Error(), retryCnt)
 					retryCnt++

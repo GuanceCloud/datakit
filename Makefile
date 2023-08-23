@@ -349,10 +349,10 @@ lint: deps copyright_check md_lint
 	@truncate -s 0 lint.err
 ifeq ($(AUTO_FIX),on)
 		@printf "$(HL)lint with auto fix...\n$(NC)"; \
-		$(GOLINT_BINARY) run --fix --allow-parallel-runners;
+			$(GOLINT_BINARY) run --fix --allow-parallel-runners;
 else
 		@printf "$(HL)lint without auto fix...\n$(NC)"; \
-		$(GOLINT_BINARY) run --allow-parallel-runners;
+			$(GOLINT_BINARY) run --allow-parallel-runners;
 endif
 
 	@if [ $$? != 0 ]; then \

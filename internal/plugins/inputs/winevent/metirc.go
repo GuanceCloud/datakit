@@ -4,6 +4,7 @@
 // Copyright 2021-present Guance, Inc.
 
 // Package winevent collect Windows event metrics
+//
 //nolint:lll
 package winevent
 

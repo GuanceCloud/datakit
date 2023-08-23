@@ -105,7 +105,7 @@ func (t *TCPTask) Run() error {
 	return nil
 }
 
-//nolint
+// nolint
 func (i *Input) runTCP(t *TCPTask) error {
 	err := t.Run() //nolint:errcheck
 	// 无论成功或失败，都要记录测试结果
