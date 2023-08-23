@@ -6,7 +6,7 @@
 
 ---
 
-## Dataway Sinker 功能介绍
+## Dataway Sinker 功能介绍 {#sink-intro}
 
 在日常的数据采集过程中，由于存在多个不同的工作空间，我们可能需要将不同的数据打到不同的工作空间。比如在一个公用的 Kubernetes 集群中，所采集的数据可能涉及不同团队或业务部门，这时候我们可以将带有特定属性的数据分别打到各个不同的工作空间，以实现基础设施公用场景下的细粒度采集。
 
@@ -85,7 +85,7 @@ $ etcdctl role grant-permission sinker readwrite /ping       # 用于检测连�
     ```
 <!-- markdownlint-enable -->
 
-### 写入 Sinker 规则
+### 写入 Sinker 规则 {#prepare-sink-rules}
 
 假定 *sinker.json* 规则定义如下：
 
@@ -143,7 +143,7 @@ bash -c "$(curl https://static.guance.com/dataway/install.sh)"
 
 ## Dataway 设置 {#dw-config}
 
-除了 Dataway 常规的设置之外，需要额外设置几个配置：
+除了 Dataway 常规的设置之外，需要额外设置几个配置（位于 */usr/local/cloudcare/dataflux/dataway/* 目录下）：
 
 ```yaml
 # 此处设置 Dataway 要上传的地址，一般为 Kodo，但也可以是另一个 Dataway
@@ -220,7 +220,7 @@ Datakit 会在其采集的数据中，寻找带有这些 Key 的字段（只寻�
 
 除拨测外，[常规的数据分类](apis.md#category)外，还支持 [Session Replay](../integrations/rum.md#rum-session-replay) 以及 [Profiling](../integrations/profile.md) 等二进制文件数据。
 
-## Dataway 指标采集 {#metrics}
+## Dataway 指标采集 {#collect-metrics}
 
 Dataway 自身暴露了 Prometheus 指标，通过 Datakit 自带的 `prom` 采集器能采集其指标，采集器示例配置如下：
 
@@ -244,6 +244,64 @@ Dataway 自身暴露了 Prometheus 指标，通过 Datakit 自带的 `prom` 采�
 
     如果要采集 Dataway HTTP 请求 Kodo（或者下一跳 Dataway）的指标，需要手动开启 `http_client_trace` 配置。也可以在安装阶段，指定 `DW_HTTP_CLIENT_TRACE=on`。
 <!-- markdownlint-enable -->
+
+### Dataway 指标列表 {#metrics}
+
+以下是 Dataway 暴露的指标，通过请求 `http://localhost:9090/metrics` 即可获取这些指标，可通过如下命令实时查看（3s）某个具体的指标：
+
+> 某些指标如果查询不到，可能是相关业务模块尚未运行所致。
+
+```shell
+watch -n 3 'curl -s http://localhost:9090 | grep -a <METRIC-NAME>'
+```
+
+|TYPE|NAME|LABELS|HELP|
+|---|---|---|---|
+|COUNTER|`dataway_http_api_dropped_total`|`api,method`|API request dropped when sinker rule match failed|
+|COUNTER|`dataway_http_api_signed_total`|`api,method`|API signature count|
+|SUMMARY|`dataway_http_api_reusable_body_read_bytes`|`api,method`|API re-read body on forking request|
+|COUNTER|`dataway_http_api_forked_total`|`api,method,token`|API request forked total|
+|GAUGE|`dataway_http_info`|`cascaded,docker,http_client_trace,listen,release_date,remote,secret,token,version`|Dataway API basic info|
+|GAUGE|`dataway_cpu_usage`|`N/A`|Dataway CPU usage(%)|
+|GAUGE|`dataway_open_files`|`N/A`|Dataway open files|
+|GAUGE|`dataway_cpu_cores`|`N/A`|Dataway CPU cores|
+|COUNTER|`dataway_process_ctx_switch_total`|`N/A`|Dataway process context switch count(Linux only)|
+|COUNTER|`dataway_process_io_count_total`|`N/A`|Dataway process IO count count|
+|COUNTER|`dataway_process_io_bytes_total`|`N/A`|Dataway process IO bytes count|
+|GAUGE|`dataway_last_heartbeat_time`|`N/A`|Dataway last heartbeat with Kodo timestamp|
+|SUMMARY|`dataway_http_api_dropped_expired_cache`|`api,method`|Dropped expired cache data|
+|SUMMARY|`dataway_http_api_elapsed_seconds`|`api,method,status`|API request latency|
+|SUMMARY|`dataway_http_api_req_size_bytes`|`api,method,status`|API request size|
+|COUNTER|`dataway_http_api_total`|`api,method,status`|API request count|
+|COUNTER|`dataway_httpcli_tcp_conn_total`|`server,remote,type`|HTTP TCP connection count|
+|COUNTER|`dataway_httpcli_conn_reused_from_idle_total`|`server`|HTTP connection reused from idle count|
+|SUMMARY|`dataway_httpcli_conn_idle_time_seconds`|`server`|HTTP connection idle time|
+|SUMMARY|`dataway_httpcli_dns_cost_seconds`|`server`|HTTP DNS cost|
+|SUMMARY|`dataway_httpcli_tls_handshake_seconds`|`server`|HTTP TLS handshake cost|
+|SUMMARY|`dataway_httpcli_http_connect_cost_seconds`|`server`|HTTP connect cost|
+|SUMMARY|`dataway_httpcli_got_first_resp_byte_cost_seconds`|`server`|Got first response byte cost|
+|COUNTER|`dataway_sinker_pull_total`|`event,source`|Sinker pulled or pushed counter|
+|GAUGE|`dataway_sinker_rule_error`|`error`|Rule errors|
+|GAUGE|`dataway_sinker_rule_last_applied_time`|`source`|Rule last applied time(Unix timestamp)|
+|SUMMARY|`dataway_sinker_rule_cost_seconds`|`N/A`|Rule cost time seconds|
+|COUNTER|`diskcache_put_total`|`N/A`|cache Put() count|
+|COUNTER|`diskcache_put_bytes_total`|`N/A`|cache Put() bytes count|
+|COUNTER|`diskcache_get_total`|`N/A`|cache Get() count|
+|COUNTER|`diskcache_wakeup_total`|`N/A`|wakeup count on sleeping write file|
+|COUNTER|`diskcache_get_bytes_total`|`N/A`|cache Get() bytes count|
+|GAUGE|`diskcache_capacity`|`N/A`|current capacity(in bytes)|
+|GAUGE|`diskcache_max_data`|`N/A`|max data to Put(in bytes), default 0|
+|GAUGE|`diskcache_batch_size`|`N/A`|data file size(in bytes)|
+|GAUGE|`diskcache_size`|`N/A`|current cache size(in bytes)|
+|GAUGE|`diskcache_open_time`|`N/A`|current cache Open time in unix timestamp(second)|
+|GAUGE|`diskcache_last_close_time`|`N/A`|current cache last Close time in unix timestamp(second)|
+|GAUGE|`diskcache_datafiles`|`N/A`|current un-read data files|
+|SUMMARY|`diskcache_get_latency`|`N/A`|Get() time cost(micro-second)|
+|SUMMARY|`diskcache_put_latency`|`N/A`|Put() time cost(micro-second)|
+|COUNTER|`diskcache_dropped_bytes_total`|`N/A`|dropped bytes during Put() when capacity reached.|
+|COUNTER|`diskcache_dropped_total`|`N/A`|dropped files during Put() when capacity reached.|
+|COUNTER|`diskcache_rotate_total`|`N/A`|cache rotate count, mean file rotate from data to data.0000xxx|
+|COUNTER|`diskcache_remove_total`|`N/A`|removed file count, if some file read EOF, remove it from un-read list|
 
 ## FAQ {#faq}
 

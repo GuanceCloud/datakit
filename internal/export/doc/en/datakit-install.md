@@ -160,9 +160,21 @@ The environment variables supported by the installation script are as follows (s
 
 ### On Sinker Configuration {#env-sink}
 
-- `DK_SINKER`: Used to setup Dataway sinker, it's a JSON string, please refer to [here](datakit-daemonset-deploy.md#env-sinker) for more info.
+`DK_SINKER_GLOBAL_CUSTOMER_KEYS` used to setup sinker tag/field keys, here is the example: 
 
-See [M3DB example](datakit-sink-m3db.md)
+<!-- markdownlint-disable MD046 -->
+=== "Linux/macOS"
+
+    ```shell
+{{ InstallCmd 4 (.WithPlatform "unix") (.WithEnvs "DK_SINKER_GLOBAL_CUSTOMER_KEYS" "key1,key2" ) (.WithEnvs "DK_DATAWAY_ENABLE_SINKER" "on" ) }}
+    ```
+
+=== "Windows"
+
+    ```powershell
+{{ InstallCmd 4 (.WithPlatform "windows") (.WithEnvs "DK_SINKER_GLOBAL_CUSTOMER_KEYS" "key1,key2" ) (.WithEnvs "DK_DATAWAY_ENABLE_SINKER" "on" ) }}
+    ```
+<!-- markdownlint-enable -->
 
 ### On Cgroup Configuration {#env-cgroup}
 

@@ -1,24 +1,399 @@
 # Changelog
 ---
 
-<!--
-[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental)
-[:fontawesome-solid-flag-checkered:](index.md#legends "支持选举")
+## 1.13.2 (2023/08/15) {#cl-1.13.2}
 
-    ```toml
-        
-    ```
+### Bug fixes {#cl-1.13.2-fix}
 
-# add external links
-[some text](http://external-host.com){:target="_blank"}
+- Fix MySQL custom collection failure. (#1831)
+- Fix Prometheus Export has Service scope and execution errors. (#1828)
+- Unexpected HTTP response codes and delays with the eBPF collector. (#1829)
 
-This release is an iterative release with the following updates:
+### Function optimization {#cl-1.13.2-opt}
 
-### New Features {#cl-1.4.19-new}
-### Bug Fixes {#cl-1.4.19-fix}
-### Features Optimizations {#cl-1.4.19-opt}
-### Breaking Changes {#cl-1.4.19-brk}
--->
+- Improve the value of the image field for container collection. (#1830)
+- MySQL integration test optimization to improve test speed. (#1826)
+
+---
+
+## 1.13.1 (2023/08/11) {#cl-1.13.1}
+
+- Fix container log `source` field naming issue (#1827)
+
+---
+
+## 1.13.0 (2023/08/10) {#cl-1.13.0}
+
+This release is an iterative release, mainly including the following updates:
+
+### New features {#cl-1.13.0-new}
+
+- Host Object Collector supports debug commands(#1802)
+- KafkaMQ adds support for external plugin handle function(#1797)
+- Input *container* supports cri-o runtime(#1763)
+- Pipeline adds `create_point` function for metrics(#1803)
+- Added PHP profiling support(#1811)
+
+### Bug fixes {#cl-1.13.0-fix}
+
+- Fix Cat collector NPE exception.
+- Fix the http response_download time of the dial test collector. (#1820)
+- Fixed the problem that containerd log collection did not splice partial logs normally. (#1825)
+- Fix eBPF collector `ebpf-conntrack` plug-in probe failure. (#1793)
+
+### Function optimization {#cl-1.13.0-opt}
+
+- Bug-report command optimization (#1810)
+- The RabbitMQ collector supports multiple simultaneous runs. (#1756)
+- Host object grabber tweaks. Remove the state field. (#1802)
+- Optimize the error reporting mechanism. Solve the problem that the eBPF collector cannot report errors. (#1802)
+- The Oracle external collector has been added to send information to the center in the event of an error. (#1802)
+- Optimize Pythond documentation, add module not found solution case. (#1807)
+- Added global tag integration test cases for some collectors. (#1791)
+- Optimize Oracle integration tests. (#1802)
+- OpenTelemetry adds metrics sets and dashboards.
+- Adjust the k8s event field. (#1766)
+- Added new container collection field. (#1819)
+- eBPF collector adds flow field to `httpflow`. (#1790)
+
+---
+
+## 1.12.3 (2023/08/03) {#cl-1.12.3}
+
+- Fixed the problem of delayed release of log collection files under Windows (#1805)
+- Fix the problem that the head log of the new container is not collected
+- Fixed several regular expressions that could cause crashes (#1781)
+- Fix the problem that the installation package is too large (#1804)
+- Fix the problem that the log collector may fail to open the disk cache
+
+---
+
+## 1.12.2 (2023/07/31) {#cl-1.12.2}
+
+- Fix OpenTelemetry Metric and Trace routing configuration issues
+
+---
+
+## 1.12.1 (2023/07/28) {#cl-1.12.1}
+
+- Fix the old version of DDTrace Python Profile access problem (#1800)
+
+---
+
+## 1.12.0 (2023/07/27) {#cl-1.12.0}
+
+This release is an iterative release, mainly including the following updates:
+
+### New features {#cl-1.12.0-new}
+
+- [HTTP API](apis.md##api-sourcemap) Add sourcemap file upload (#1782)
+- Added support for .net Profiling access (#1772)
+- Added Couchbase collector (#1717)
+
+### Bug fixes {#cl-1.12.0-fix}
+
+- Fix the problem that the `owner` field is missing in the dial test collector (#1789)
+- Fixed the missing `host` problem of the DDTrace collector, and changed the tag collection of various Traces to a blacklist mechanism [^trace-black-list] (#1776)
+- Fix RUM API cross domain issue (#1785)
+
+[^trace-black-list]: Various types of Trace will carry various business fields (called Tag, Annotation or Attribute, etc.) on its data. In order to collect more data, Datakit accepts these fields by default.
+
+### Function optimization {#cl-1.12.0-opt}
+
+- Optimize SNMP collector encryption algorithm identification method; optimize SNMP collector documentation, add more example explanations (#1795)
+- Add Pythond collector Kubernetes deployment example, add Git deployment example (#1732)
+- Add InfluxDB, Solr, NSQ, Net collector integration tests (#1758/#1736/#1759/#1760)
+- Add Flink metrics (#1777)
+- Extend Memcached, MySQL metrics collection (#1773/#1742)
+- Update Datakit's own indicator exposure (#1492)
+- Pipeline adds more operator support (#1749)
+- Dial test collector
+    - Added built-in dashboard for dial test collector (#1765)
+    - Optimized the startup of dial test tasks to avoid concentrated consumption of resources (#1779)
+- Documentation updates (#1769/#1775/#1761/#1642)
+- Other optimizations (#1777/#1794/#1778/#1783/#1775/#1774/#1737)
+
+---
+
+## 1.11.0 (2023/07/11) {#cl-1.11.0}
+
+This release is an iterative release, including the following updates:
+
+### New features {#cl-1.11.0-new}
+
+- Added dk collector, removed self collector (#1648)
+
+### Bug fixes {#cl-1.11.0-fix}
+
+- Fix the problem of timeline redundancy in the Redis collector (#1743), improve the integration test
+- Fix Oracle collector dynamic library security issue (#1730)
+- Fix DCA service startup failure (#1731)
+- Fix MySQL/ElasticSearch collector integration test (#1720)
+
+### Function optimization {#cl-1.11.0-opt}
+
+- Optimize etcd collector (#1741)
+- StatsD collector supports configuration to distinguish different data sources (#1728)
+- Tomcat collector supports version 10 and above, Jolokia is deprecated (#1703)
+- Container log collection supports configuring files in the container (#1723)
+- SQLServer collector index improvement and integration test function refactoring (#1694)
+
+### Compatibility adjustments {#cl-1.11.0-brk}
+
+The following compatibility modifications may cause problems in data collection. If you use the following functions, please consider whether to upgrade or adopt a new corresponding solution.
+
+1. Remove `deployment` tag from container logs
+1. Remove the logic that the `source` field of the container stdout log is named after `short_image_name`. Now just use the container name or the label `io.kubernetes.container.name` in Kubernetes to name [^cl-1.11.0-brk-why-1].
+1. Remove the function of collecting the external file path through the container label (`datakit/logs/inside`), and change it to [container environment variable (`DATAKIT_LOGS_CONFIG`)](../integrations/container-log.md) way to achieve [^cl-1.11.0-brk-why-2].
+
+[^cl-1.11.0-brk-why-1]: In Kubernetes, the value of `io.kubernetes.container.name` remains unchanged, and in the host container, the container name does not change much, so it is no longer used The original image name as the source for the `source` field.
+[^cl-1.11.0-brk-why-2]: It is more convenient to add environment variables to the container than to modify the label of the container (in general, the image needs to be rebuilt) (when starting the container, just inject the environment variable ).
+
+---
+
+## 1.10.2 (2023/07/04) {#cl-1.10.2}
+
+- Fixed prom collector recognition problem in Kubernetes
+
+## 1.10.1 (2023/06/30) {#cl-1.10.1}
+
+- Fix OpenTelemetry HTTP routing support customization
+- Fix the problem that the field of `started_duration` in the host process object is missing
+
+---
+
+## 1.10.0 (2023/06/29) {#cl-1.10.0}
+
+This release is an iterative release, including the following updates:
+
+### Bug fixes {#cl-1.10.0-fix}
+
+- Fix profiling data upload problem in Proxy environment (#1710)
+- Fixed the problem that the default collector is enabled during the upgrade process (#1709)
+- Fixed the log truncated problem in SQLServer collection data (#1689)
+- Fix the problem of Metric Server indicator collection in Kubernetes (#1719)
+
+### Function optimization {#cl-1.10.0-opt}
+
+- KafkaMQ supports multi-line cutting configuration at topic level (#1661)
+- When Kubernetes DaemonSet is installed, it supports modifying the number of Datakit log shards and shard size through ENV (#1711)
+- Added `memory_capacity` and `memory_used_percent` two fields for Kubernetes Pod metrics and object collection (#1721)
+- OpenTelemetry HTTP routing supports customization (#1718)
+- Oracle collector optimizes the missing problem of the `oracle_system` index set, optimizes the collection logic and adds some indexes (#1693)
+- Pipeline adds `in` operator, adds `value_type()` and `valid_json()` functions, adjusts the behavior of `load_json()` function after deserialization fails (#1712)
+- Added `started_duration` field for collection in host process object (#1722)
+- Optimize the logic of dial test data sending (#1708)
+- Update more integration tests (#1666/#1667/#1668/#1693/#1599/#1573/#1572/#1563/#1512/#1715)
+- Module refactoring and optimization (#1714/#1680/#1656)
+
+### Compatibility adjustments {#cl-1.10.0-brk}
+
+- Changed the timestamp unit of Profile data from nanoseconds to microseconds (#1679)
+
+<!-- markdown-link-check-disable -->
+
+---
+
+## 1.9.2 (2023/06/20) {#cl-1.9.2}
+
+This release is an iterative mid-term release, adding some functions for docking with the center and some bug fixes and optimizations:
+
+### New features {#cl-1.9.2-new}
+
+- Added [Chrony collector](../integrations/chrony.md) (#1671)
+- Added RUM Headless support (#1644)
+-Pipeline
+    - Added [offload function](../developers/pipeline/pipeline-offload.md) (#1634)
+    - Restructured existing documentation (#1686)
+
+### Bug fixes {#cl-1.9.2-fix}
+
+- Fix some bugs that could cause crashes (!2249)
+- Added Host header support for HTTP network dialing test and fixed random error reporting (#1676)
+- Fix automatic discovery of Pod Monitor and Service Monitor in Kubernetes (#1695)
+- Fixed Monitor issues (#1702/!2258)
+- Fix Pipeline data mishandling bug (#1699)
+
+### Function optimization {#cl-1.9.2-opt}
+
+- Add more information in Datakit HTTP API return for easier troubleshooting (#1697/#1701)
+- Miscellaneous refactoring (#1681/#1677)
+- RUM collector adds more Prometheus metrics exposure (#1545)
+- Enable Datakit's pprof function by default, which is convenient for troubleshooting (#1698)
+
+### Compatibility Adjustments {#cl-1.9.2-brk}
+
+- Remove support for logging collection from Kubernetes CRD `guance.com/datakits v1bate1` (#1705)
+
+---
+
+## 1.9.1 (2023/06/13) {#cl-1.9.1}
+
+This release is a bug fix, mainly fixing the following issues:
+
+- Fix DQL query issue (#1688)
+- Fix the crash problem that may be caused by high-frequency writing of the HTTP interface (#1678)
+- Fix `datakit monitor` command parameter override issue (!2232)
+- Fixed retry error when uploading data via HTTP (#1687)
+
+---
+
+## 1.9.0 (2023/06/08) {#cl-1.9.0}
+This release is an iterative release, mainly including the following updates:
+
+### New features {#cl-1.9.0-new}
+
+- Added [NodeJS Profiling](../integrations/profile-nodejs.md) access support (#1638)
+- Add comment [Cat](../integrations/cat.md) access support (#1593)
+- Added collector configuration [debugging method](why-no-data.md#check-input-conf) (#1649)
+
+### Bug fixes {#cl-1.9.0-fix}
+
+- Fix the connection leak problem caused by Prometheus indicator collection in K8s (#1662)
+
+### Function optimization {#cl-1.9.0-opt}
+
+- K8s DaemonSet object adds `age` field (#1670)
+- Optimize [PostgreSQL](../integrations/postgresql.md) startup settings (#1658)
+- Added [`/v3/log/`](../integrations/skywalking.md) support for SkyWalking (#1654)
+- Optimize log collection processing (#1652/#1651)
+- Optimize [Update Documentation](datakit-update.md#prepare) (#1653)
+- Other refactorings and optimizations (#1673/#1650/#1630)
+- Added some integration tests (#1440/#1429)
+    - PostgreSQL
+    - Network dial test
+
+---
+
+## 1.8.1 (2023/06/01) {#cl-1.8.1}
+This release is a bug fix, mainly fixing the following issues:
+
+- Fix the crash problem when KafkaMQ is multi-opened (#1660)
+- Fixed the problem of incomplete collection of disk devices in DaemonSet mode (#1655)
+
+---
+
+## 1.8.0 (2023/05/25) {#cl-1.8.0}
+This release is an iterative release, mainly including the following updates:
+
+### New features {#cl-1.8.0-new}
+
+- Datakit adds two debugging commands, which are convenient for users to write glob and regular expressions during configuration (#1635)
+- Added two-way transparent transmission of Trace ID between DDTrace and OpenTelemetry (#1633)
+
+### Bug fixes {#cl-1.8.0-fix}
+
+- Fix dialing precheck issue (#1629)
+- Fix two field issues in SNMP collection (#1632)
+- Fixed the default port conflict between the upgrade service and other services (#1646)
+
+### Function optimization {#cl-1.8.0-opt}
+
+- When eBPF collects Kubernetes network data, it supports converting Cluster IP to Pod IP (need to be opened manually) (#1617)
+- Added a batch of integration tests (#1430/#1574/#1575)
+- Optimize container network related metrics (#1397)
+- Bug report function adds crash information collection (#1625)
+- PostgreSQL collector
+    - Add custom SQL metrics collection (#1626)
+    - Add DB level tag (#1628)
+- Optimize the `host` field problem of localhost collection (#1637)
+- Optimize Datakit's own metrics, add [Datakit's own metrics document](datakit-metrics.md) (#1639/#1492)
+- Optimize Prometheus metrics collection on Pod, automatically support all Prometheus metrics types (#1636)
+- Added [Performance Test Document](../integrations/datakit-trace-performance.md) collected by Trace class (#1616)
+- Added Kubernetes DaemonSet object collection (#1643)
+- Pinpoint gRPC service supports `x-b3-traceid` to transparently transmit Trace ID (#1605)
+- Optimize cluster election strategy (#1534)
+- Other optimizations (#1609#1624)
+
+### Compatibility adjustments {#cl-1.8.0-brk}
+
+- In container collector, remove `kube_cluster_role` object collection (#1643)
+
+---
+
+## 1.7.0 (2023/05/11) {#cl-1.7.0}
+This release is an iterative release, mainly including the following updates:
+
+### New features {#cl-1.7.0-new}
+
+- RUM Sourcemap adds applet support (#1608)
+- Added a new collection election strategy to support Cluster-level elections in the K8s environment (#1534)
+
+### Bug fixes {#cl-1.7.0-fix}
+
+- When Datakit uploads, if the center returns a 5XX status code, the number of Layer 4 connections will increase. This version fixes the problem. At the same time, [*datakit.conf*](datakit-conf.md#maincfg-example) (K8s can be configured through [environment variable configuration](datakit-daemonset-deploy.md#env-dataway) ) to expose more connection-related configuration parameters (DK001-15)
+
+### Function optimization {#cl-1.7.0-opt}
+
+- Optimize the collection of process objects. Some fields that may cause high consumption (such as the number of open files/ports) are closed by default. These fields can be manually enabled through the collector configuration or environment variables. These fields may be important, but we still believe that by default, this should not cause unexpected performance overhead on the host (#1543)
+- Datakit's own indicator optimization:
+    - Added Prometheus index exposure for the dial test collector, which is convenient for troubleshooting some potential problems of the dial test collector itself (#1591)
+    - Increase the HTTP level indicator exposure when Datakit reports (#1597)
+    - Increased indicator exposure during KafkaMQ collection
+- Optimize the collection of PostgreSQL indicators, and add more related indicators (#1596)
+- Optimize JVM-related metrics collection, mainly document updates (#1600)
+-Pinpoint
+    - Add more developer documentation (#1601)
+    - Pinpoint fix gRPC Service support (#1605)
+- Optimize the discrepancy of disk index collection on different platforms (#1607)
+- Other engineering optimizations (#1621/#1611/#1610)
+- Added several integration tests (#1438/#1561/#1585/#1435/#1513)
+
+---
+
+## 1.6.1 (2023/04/27) {#cl-1.6.1}
+
+This release is a Hotfix release, which fixes the following issues:
+
+- The blacklist may not take effect when the old version is upgraded (#1603)
+- [Prom](../integrations/prom.md) collecting `info` type data problem (#1544)
+- Fix data loss problem caused by Dataway Sinker module (#1606)
+
+---
+
+## 1.6.0 (2023/04/20) {#cl-1.6.0}
+
+This release is an iterative release, mainly including the following updates:
+
+### New features {#cl-1.6.0-new}
+
+- Added [Pinpoint](../integrations/pinpoint.md) API access (#973)
+
+### Function optimization {#cl-1.6.0-opt}
+
+- Optimize the output method of Windows installation script and upgrade script, so that it is easy to paste and copy directly in the terminal (#1557)
+- Optimize Datakit's own document construction process (#1578)
+- Optimize OpenTelemetry field handling (#1514)
+- [Prom](prom.md) Collector supports collecting labels of type `info` and appending them to all associated indicators (enabled by default) (#1544)
+- In [system collector](system.md), add CPU and memory usage percentage indicators (#1565)
+- Datakit adds data point markers (`X-Points`) in the sent data to facilitate the construction of central related indicators (#1410)
+    - In addition, the `User-Agent` tag of Datakit HTTP has been optimized and changed to `datakit-<os>-<arch>/<version>`.
+- [KafkaMQ](kafkamq.md):
+    - Support for processing Jaeger data (#1526)
+    - Optimize the processing of SkyWalking data (#1530)
+    - Added third-party RUM access function (#1581)
+- [SkyWalking](skywalking.md) added HTTP access function (#1533)
+- Add the following integration tests:
+- [Apache](apache.md)(#1553)
+    - [JVM](jvm.md)(#1559)
+    - [Memcached](memcached.md)(#1552)
+    - [MongoDB](mongodb.md)(#1525)
+    - [RabbitMQ](rabbitmq.md)(#1560)
+    - [Statsd](statsd.md)(#1562)
+    - [Tomcat](tomcat.md)(#1566)
+    - [etcd](etcd.md)(#1434)
+
+### Bug fixes {#cl-1.6.0-fix}
+
+- Fix [JSON format](apis.md#api-json-example) cannot recognize time precision when writing data (#1567)
+- Fix the problem that the dial test collector does not work (#1582)
+- Fix eBPF validator issue on Euler system (#1568)
+- Fix RUM sourcemap segfault (#1458)
+<!-- - Fix the problem that the process object collector may cause high CPU. By default, the collection of some high-consumption fields (listen ports) is turned off (#1543) -->
+
+### Compatibility adjustments {#cl-1.6.0-brk}
+
+- Remove the old command line style, for example, the original `datakit --version` will no longer work and must be replaced by `datakit version`. For details, see [Usage of various commands] (datakit-tools-how-to.md)
 
 ## 1.5.10(2023/04/13) {#cl-1.5.10}
 

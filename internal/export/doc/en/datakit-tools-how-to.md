@@ -361,6 +361,44 @@ datakit tool --parse-lp /path/to/file --json
 
 ## DataKit Debugging Commands {#debugging}
 
+### Debugging Blacklist(Filter){#debug-filter}
+
+[:octicons-tag-24: Version-1.14.0](changelog.md#cl-1.14.0)
+
+To check if data is filtered by Blacklist(Filter), we can test by using following datakit commands:
+
+<!-- markdownlint-disable MD046 -->
+=== "Linux/macOS"
+
+    ```shell
+    $ datakit debug --filter=/usr/local/datakit/data/.pull --data=/path/to/lineproto.data"
+    
+    Dropped
+    
+        ddtrace,http_url=/webproxy/api/online_status,service=web_front f1=1i 1691755988000000000
+    
+    By 7th rule(cost 1.017708ms) from category "tracing":
+    
+        { service = 'web_front' and ( http_url in [ '/webproxy/api/online_status' ] )}
+    ```
+
+=== "Windows"
+
+    ```powershell
+    PS > datakit.exe debug --filter 'C:\Program Files\datakit\data\.pull' --data '\path\to\lineproto.data'
+    
+    Dropped
+    
+        ddtrace,http_url=/webproxy/api/online_status,service=web_front f1=1i 1691755988000000000
+    
+    By 7th rule(cost 1.017708ms) from category "tracing":
+    
+        { service = 'web_front' and ( http_url in [ '/webproxy/api/online_status' ] )}
+    ```
+<!-- markdownlint-enable -->
+
+The output said that, data in file *lineproto.data* has been matched by the 7th(start from 1) rule from category `tracing`, the matched data is dropped and will not upload.
+
 ### Using Glob Rules to Retrieve File Paths {#glob-conf}
 [:octicons-tag-24: Version-1.8.0](changelog.md#cl-1.8.0)
 
