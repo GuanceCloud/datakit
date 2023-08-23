@@ -31,7 +31,7 @@
 - 主机对象采集器支持调试命令。（#1802）
 - KafkaMQ 增加支持外部插件 handle 功能 (#1797)
 - 容器采集支持 cri-o 运行时。 (#1763)
-- Pipeline 增加用于指标生成的 create_point 函数 (#1803)
+- Pipeline 增加用于指标生成的 `create_point` 函数 (#1803)
 - 增加 PHP 语言的 Profiling 支持 （#1811）
 
 ### 问题修复 {#cl-1.13.0-fix}

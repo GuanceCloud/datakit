@@ -170,7 +170,7 @@ crontab -u root -l
 确保 crontab 服务启动：
 
 ```shell
-service cron restart
+service crond restart
 ```
 
 如果安装成功且有尝试更新，则在 `upgrade_log` 中能看到类似如下日志：

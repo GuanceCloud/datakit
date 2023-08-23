@@ -250,46 +250,20 @@ For string/bool/string-list/duration, it is recommended to use double quotation 
 
 ### Git Configuration Related Environment Variable {#env-git}
 
-| Environment Variable Name       | Type     | Default Value | Required   | Description                                                                                                   |
-| :---------         | :----    | :---   | :----- | :---                                                                                                   |
-| `ENV_GIT_BRANCH`   | string   | None     | No     | Specifies the branch to pull. <stong>If it is empty, it is the default.</strong> And the default is the remotely specified main branch, which is usually `master`.                |
-| `ENV_GIT_INTERVAL` | duration | None     | No     | The interval of timed pull. (e.g. `1m`)                                                                            |
-| `ENV_GIT_KEY_PATH` | string   | None     | No     | The full path of the local PrivateKey. (e.g. `/Users/username/.ssh/id_rsa`）                                         |
-| `ENV_GIT_KEY_PW`   | string   | None     | No     | Use password of local PrivateKey. (e.g. `passwd`）                                                            |
-| `ENV_GIT_URL`      | string   | None     | No     | Manage the remote git repo address of the configuration file. (e.g. `http://username:password@github.com/username/repository.git`） |
+| Environment Variable Name | Type     | Default Value | Required | Description                                                                                                                                                        |
+| :---------                | :----    | :---          | :-----   | :---                                                                                                                                                               |
+| `ENV_GIT_BRANCH`          | string   | None          | No       | Specifies the branch to pull. <stong>If it is empty, it is the default.</strong> And the default is the remotely specified main branch, which is usually `master`. |
+| `ENV_GIT_INTERVAL`        | duration | None          | No       | The interval of timed pull. (e.g. `1m`)                                                                                                                            |
+| `ENV_GIT_KEY_PATH`        | string   | None          | No       | The full path of the local PrivateKey. (e.g. `/Users/username/.ssh/id_rsa`）                                                                                       |
+| `ENV_GIT_KEY_PW`          | string   | None          | No       | Use password of local PrivateKey. (e.g. `passwd`）                                                                                                                 |
+| `ENV_GIT_URL`             | string   | None          | No       | Manage the remote git repo address of the configuration file. (e.g. `http://username:password@github.com/username/repository.git`）                                |
 
-### Sinker Configuring Related Environment Variables {#env-sinker}
+### Sinker {#env-sinker}
 
-| Environment Variable Name | Type         | Default Value | Required | Description                                    |
-| :---------                | :----        | :---          | :-----   | :---                                           |
-| `ENV_SINKER`              | string(JSON) | None          | No       | Specify Dataway sinker on different categories |
-
-ENV_SINKER used to configure [dataway sinker](datakit-sink-dataway.md), it's a JSON string like this:
-
-```json
-[
-	{
-		"categories": ["L", "M"],
-		"filters": [
-			"{measurement='cpu' and tag='some-host'}"
-		],
-		"proxy": "",
-		"url": "http://openway.guance.com?token=<YOUR-TOKEN>"
-	}
-]
-```
-
-while set the ENV, we must convert the JSON into single line:
-
-```json
-[ { "categories": ["L", "M"], "filters": [ "{measurement='cpu' and tag='some-host'}" ], "url": "http://openway.guance.com?token=<YOUR-TOKEN>" } ]
-```
-
-If the one-line JSON applied in command line(such as Shell), we have to escape `"`:
-
-```shell
-DK_SINKER="[ { \"categories\": [\"L\", \"M\"], \"filters\": [ \"{measurement='cpu' and tag='some-host'}\" ], \"url\": \"http://openway.guance.com?token=<YOUR-TOKEN>\" } ]"
-```
+| Environment Variable Name         | Type   | Default Value | Required | Description                                                                         |
+| :---------                        | :----  | :---          | :-----   | :---                                                                                |
+| `ENV_SINKER_GLOBAL_CUSTOMER_KEYS` | string | None          | No       | Sinker Global Customer Key list, keys are splited with `,`                          |
+| `ENV_DATAWAY_ENABLE_SINKER`       | bool   | None          | No       | Enable DataWay Sinker ([:octicons-tag-24: Version-1.14.0](changelog.md#cl-1.14.0)). |
 
 ### IO Module Configuring Related Environment Variables {#env-io}
 

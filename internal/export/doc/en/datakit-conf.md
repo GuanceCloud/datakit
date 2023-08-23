@@ -234,6 +234,10 @@ $ systemctl status datakit
 
 See [here](election.md#config)
 
+### Dataway Sinker {#dataway-sink}
+
+See [here](dataway-sink.md)
+
 ### Managing DataKit Configuration with Git {#using-gitrepo}
 
 Because the configuration of various collectors in DataKit is text type, it takes a lot of energy to modify and take effect one by one. Here we can use Git to manage these configurations, with the following advantages:

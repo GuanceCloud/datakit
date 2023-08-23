@@ -166,7 +166,7 @@ crontab -u root -l
 Make sure the crontab service starts:
 
 ```shell
-service cron restart
+service crond restart
 ```
 
 If the installation is successful and an upgrade is attempted, you can see logs like the following in `upgrade_log`:
