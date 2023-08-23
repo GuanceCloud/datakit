@@ -378,5 +378,5 @@ DataKit 内置了一个主流 CDN 厂家信息列表，如果发现你所使用�
 <!-- markdownlint-disable MD046 -->
 ???+ info
 
-    RUM 配置文件默认位于 `/usr/local/datakit/conf.d/rum/rum.conf`，具体根据你所使用的操作系统和 Datakit 安装位置确定。
+    RUM 配置文件默认位于 */usr/local/datakit/conf.d/rum/rum.conf*（Linux/macOS）和 *C:\\Program Files\\datakit\\conf.d\\rum*（Windows），具体根据你所使用的操作系统和 Datakit 安装位置确定。
 <!-- markdownlint-enable -->

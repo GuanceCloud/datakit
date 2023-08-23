@@ -35,8 +35,8 @@ func (ipt *Input) parseCallback(p *point.Point) (*point.Point, error) {
 		return nil, httpapi.ErrRUMAppIDNotInWhiteList
 	}
 
-	if _, ok := rumMetricNames[name]; !ok {
-		return nil, uhttp.Errorf(httpapi.ErrUnknownRUMMeasurement, "unknow RUM measurement: %s", name)
+	if _, ok := ipt.measurementMap[name]; !ok {
+		return nil, uhttp.Errorf(httpapi.ErrUnknownRUMMeasurement, "unknown RUM measurement: %s", name)
 	}
 
 	if name == Error {

@@ -69,13 +69,7 @@ var (
 		SdkAndroid:    httpapi.SourceMapDirAndroid,
 		SdkIOS:        httpapi.SourceMapDirIOS,
 	}
-	rumMetricNames = map[string]bool{
-		`view`:      true,
-		`resource`:  true,
-		`error`:     true,
-		`long_task`: true,
-		`action`:    true,
-	}
+
 	rumMetricAppID         = "app_id"
 	sourceMapTokenBuckets  = newExecCmdTokenBuckets(200)
 	webSourcemapCache      = make(webSourceMapDict)

@@ -54,8 +54,11 @@ const (
   ## Default value set as below. DO NOT MODIFY THESE ENDPOINTS if not necessary.
   endpoints = ["/v1/write/rum"]
 
-  ## use to upload rum screenshot,html,etc...
+  ## used to upload rum session replay.
   session_replay_endpoints = ["/v1/write/rum/replay"]
+
+  ## specify which metrics should be captured.
+  measurements = ["view", "resource", "action", "long_task", "error", "telemetry"]
 
   ## Android command-line-tools HOME
   android_cmdline_home = "/usr/local/datakit/data/rum/tools/cmdline-tools"
@@ -101,13 +104,23 @@ const (
 )
 
 const (
-	Session  = "session"
-	View     = "view"
-	Resource = "resource"
-	Action   = "action"
-	LongTask = "long task"
-	Error    = "error"
+	Session   = "session"
+	View      = "view"
+	Resource  = "resource"
+	Action    = "action"
+	LongTask  = "long_task"
+	Error     = "error"
+	Telemetry = "telemetry"
 )
+
+var defaultCaptureMetrics = []string{
+	View,
+	Resource,
+	Error,
+	LongTask,
+	Action,
+	Telemetry,
+}
 
 var (
 	log        = logger.DefaultSLogger(inputName)
@@ -118,8 +131,10 @@ var (
 var kunlunCDNGlob = glob.MustCompile(`*.kunlun*.com`)
 
 type Input struct {
-	Endpoints              []string                     `toml:"endpoints"`
-	SessionReplayEndpoints []string                     `toml:"session_replay_endpoints"`
+	Endpoints              []string `toml:"endpoints"`
+	SessionReplayEndpoints []string `toml:"session_replay_endpoints"`
+	Measurements           []string `toml:"measurements"`
+	measurementMap         map[string]struct{}
 	JavaHome               string                       `toml:"java_home"`
 	AndroidCmdLineHome     string                       `toml:"android_cmdline_home"`
 	ProguardHome           string                       `toml:"proguard_home"`
@@ -129,8 +144,7 @@ type Input struct {
 	LocalCacheConfig       *storage.StorageConfig       `toml:"storage"`
 	CDNMap                 string                       `toml:"cdn_map"`
 	feeder                 dkio.Feeder
-
-	rumDataDir string
+	rumDataDir             string
 }
 
 type CDN struct {
@@ -411,10 +425,26 @@ func (ipt *Input) loadCDNListConf() error {
 	return nil
 }
 
+func (ipt *Input) InitMeasurementMap() {
+	if ipt.measurementMap == nil {
+		if len(ipt.Measurements) == 0 {
+			ipt.Measurements = defaultCaptureMetrics
+		}
+		ipt.measurementMap = make(map[string]struct{}, len(ipt.Measurements))
+
+		for _, measure := range ipt.Measurements {
+			ipt.measurementMap[measure] = struct{}{}
+		}
+	}
+}
+
 func (ipt *Input) Run() {
 	log.Infof("### RUM agent serving on: %+#v", ipt.Endpoints)
 
 	metrics.MustRegister(ClientRealIPCounter, sourceMapCount, loadedZipGauge, sourceMapDurationSummary)
+
+	ipt.InitMeasurementMap()
+	log.Infof("captured measurements are: %s", strings.Join(ipt.Measurements, ","))
 
 	if err := ipt.extractArchives(true); err != nil {
 		log.Errorf("init extract zip archives encounter err: %s", err)
