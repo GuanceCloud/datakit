@@ -9,11 +9,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"io/fs"
-	"io/ioutil"
 	"net"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -49,17 +46,6 @@ show databases like 'performance_schema';
 GRANT SELECT ON performance_schema.* TO 'datakit'@'%';
 GRANT SELECT ON mysql.user TO 'datakit'@'%';
 GRANT replication client on *.*  to 'datakit'@'%';
-`
-	MySQLConf = `
-[mysqld]
-	performance_schema = on
-	max_digest_length = 4096
-	performance_schema_max_digest_length = 4096
-	performance_schema_max_sql_text_length = 4097
-	performance-schema-consumer-events-statements-current = on
-	performance-schema-consumer-events-waits-current = on
-	performance-schema-consumer-events-statements-history-long = on
-	performance-schema-consumer-events-statements-history = on	
 `
 )
 
@@ -141,18 +127,6 @@ func (cs *caseSpec) run() error {
 		return err
 	}
 
-	confFilePath := ""
-
-	if tmpDir, err := ioutil.TempDir(os.TempDir(), "confd"); err != nil {
-		cs.t.Fatalf("create conf dir error: %s", err.Error())
-	} else {
-		defer os.RemoveAll(tmpDir)
-		confFilePath = filepath.Join(tmpDir, "mysql.cnf")
-		if err := ioutil.WriteFile(confFilePath, []byte(MySQLConf), fs.ModePerm); err != nil {
-			cs.t.Fatalf("create conf file error: %s", err.Error())
-		}
-	}
-
 	resource, err := p.RunWithOptions(&dt.RunOptions{
 		// specify container image & tag
 		Repository: cs.repo,
@@ -161,9 +135,6 @@ func (cs *caseSpec) run() error {
 		ExposedPorts: []string{cs.servicePort},
 		Name:         containerName,
 
-		Mounts: []string{
-			fmt.Sprintf("%s:%s:rw", confFilePath, "/etc/mysql/conf.d/mysql.cnf"),
-		},
 		User: "root",
 		// container run-time envs
 		Env: cs.envs,

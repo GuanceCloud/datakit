@@ -408,35 +408,20 @@ func (i *Input) buildMysqlCustomQueries() ([]*gcPoint.Point, error) {
 				m.tags[key] = value
 			}
 
-			if len(qy.Tags) > 0 && len(qy.Fields) == 0 {
-				for _, tgKey := range qy.Tags {
-					if value, ok := item[tgKey]; ok {
-						m.tags[tgKey] = cast.ToString(value)
-						delete(item, tgKey)
-					}
-				}
-				m.fields = item
-			}
-
-			if len(qy.Tags) > 0 && len(qy.Fields) > 0 {
-				for _, tgKey := range qy.Tags {
-					if value, ok := item[tgKey]; ok {
-						m.tags[tgKey] = cast.ToString(value)
-						delete(item, tgKey)
-					}
-				}
-
-				for _, fdKey := range qy.Fields {
-					if value, ok := item[fdKey]; ok {
-						// transform all fields to float64
-						m.fields[fdKey] = cast.ToFloat64(value)
-					}
+			for _, tgKey := range qy.Tags {
+				if value, ok := item[tgKey]; ok {
+					m.tags[tgKey] = cast.ToString(value)
+					delete(item, tgKey)
 				}
 			}
 
-			if len(qy.Tags) == 0 && len(qy.Fields) == 0 {
-				m.fields = item
+			for _, fdKey := range qy.Fields {
+				if value, ok := item[fdKey]; ok {
+					// transform all fields to float64
+					m.fields[fdKey] = cast.ToFloat64(value)
+				}
 			}
+
 			m.ts = time.Now()
 
 			if len(m.fields) > 0 {
