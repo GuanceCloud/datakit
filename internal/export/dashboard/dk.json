@@ -1,6 +1,17 @@
 {
   "dashboardBindSet": [],
-  "dashboardExtend": {},
+  "dashboardExtend": {
+    "groupUnfoldStatus": {
+      "Dataway": false,
+      "Goroutine": true,
+      "HTTP request": false,
+      "HTTP-API": true,
+      "Pipeline": false,
+      "{{.Dashboard.group_blacklist}}": false,
+      "{{.Dashboard.group_collectors}}": false,
+      "{{.Dashboard.group_diskcache}}": false
+    }
+  },
   "dashboardMapping": [],
   "dashboardOwnerType": "node",
   "dashboardType": "CUSTOM",
@@ -3030,7 +3041,7 @@
       {
         "extend": {
           "fixedTime": "",
-          "isRefresh": false,
+          "isRefresh": true,
           "settings": {
             "alias": [],
             "bar": {
@@ -3057,7 +3068,17 @@
             "timeInterval": "default",
             "titleDesc": "",
             "topSize": 10,
-            "units": []
+            "units": [
+              {
+                "key": "avg(datakit_cpu_usage)",
+                "name": "avg(datakit_cpu_usage)",
+                "unit": "",
+                "units": [
+                  "percent",
+                  "percent"
+                ]
+              }
+            ]
           }
         },
         "group": {
@@ -3884,7 +3905,7 @@
       {
         "extend": {
           "fixedTime": "",
-          "isRefresh": false,
+          "isRefresh": true,
           "settings": {
             "alias": [],
             "bar": {
@@ -3911,7 +3932,17 @@
             "timeInterval": "default",
             "titleDesc": "",
             "topSize": 10,
-            "units": []
+            "units": [
+              {
+                "key": "avg(datakit_heap_alloc_bytes)",
+                "name": "avg(datakit_heap_alloc_bytes)",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ]
           }
         },
         "group": {
@@ -4005,7 +4036,17 @@
             "stackType": "time",
             "timeInterval": "auto",
             "titleDesc": "{{.Dashboard.cpu_usage_note}}",
-            "units": [],
+            "units": [
+              {
+                "key": "Datakit  CPU%",
+                "name": "Datakit  CPU%",
+                "unit": "",
+                "units": [
+                  "percent",
+                  "percent"
+                ]
+              }
+            ],
             "xAxisShowType": "time",
             "yAxixMaxVal": null,
             "yAxixMinVal": null
@@ -4054,6 +4095,41 @@
               "queryFuncs": [],
               "type": "simple",
               "withLabels": []
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "CPU Cores",
+              "code": "B",
+              "dataSource": "dk",
+              "field": "datakit_cpu_cores",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "867a0620-417f-11ee-aa25-7f7df7ca8b4e",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`dk`:(AVG(`datakit_cpu_cores`) AS `CPU Cores`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
             },
             "type": "sequence",
             "unit": ""

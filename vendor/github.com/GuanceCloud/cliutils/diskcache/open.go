@@ -30,6 +30,14 @@ func Open(opts ...CacheOption) (*DiskCache, error) {
 	}
 
 	defer func() {
+		c.labels = append(c.labels,
+			fmt.Sprintf("%v", c.noFallbackOnError),
+			fmt.Sprintf("%v", c.noLock),
+			fmt.Sprintf("%v", c.noPos),
+			fmt.Sprintf("%v", c.noSync),
+			c.path,
+		)
+
 		openTimeVec.WithLabelValues(c.labels...).Set(float64(time.Now().Unix()))
 	}()
 
@@ -55,19 +63,6 @@ func defaultInstance() *DiskCache {
 			Name: nil,
 		},
 	}
-}
-
-func (c *DiskCache) setupLabels() {
-	// NOTE: make them sorted. In Prometheus outputted text, these
-	// label-keys are sorted.
-	c.labels = append(
-		c.labels,
-		fmt.Sprintf("%v", c.noFallbackOnError),
-		fmt.Sprintf("%v", c.noLock),
-		fmt.Sprintf("%v", c.noPos),
-		fmt.Sprintf("%v", c.noSync),
-		c.path,
-	)
 }
 
 func (c *DiskCache) doOpen() error {
@@ -110,12 +105,10 @@ func (c *DiskCache) doOpen() error {
 
 	c.syncEnv()
 
-	c.setupLabels()
-
 	// set stable metrics
-	capVec.WithLabelValues(c.labels...).Set(float64(c.capacity))
-	maxDataVec.WithLabelValues(c.labels...).Set(float64(c.maxDataSize))
-	batchSizeVec.WithLabelValues(c.labels...).Set(float64(c.batchSize))
+	capVec.WithLabelValues(c.path).Set(float64(c.capacity))
+	maxDataVec.WithLabelValues(c.path).Set(float64(c.maxDataSize))
+	batchSizeVec.WithLabelValues(c.path).Set(float64(c.batchSize))
 
 	// write append fd, always write to the same-name file
 	if err := c.openWriteFile(); err != nil {
@@ -167,7 +160,7 @@ func (c *DiskCache) Close() error {
 	defer c.rwlock.Unlock()
 
 	defer func() {
-		lastCloseTimeVec.WithLabelValues(c.labels...).Set(float64(time.Now().Unix()))
+		lastCloseTimeVec.WithLabelValues(c.path).Set(float64(time.Now().Unix()))
 	}()
 
 	if c.rfd != nil {

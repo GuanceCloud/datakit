@@ -20,10 +20,10 @@ func (c *DiskCache) Put(data []byte) error {
 	defer c.wlock.Unlock()
 
 	defer func() {
-		putVec.WithLabelValues(c.labels...).Inc()
-		putBytesVec.WithLabelValues(c.labels...).Add(float64(len(data)))
-		putLatencyVec.WithLabelValues(c.labels...).Observe(float64(time.Since(start) / time.Microsecond))
-		sizeVec.WithLabelValues(c.labels...).Set(float64(c.size))
+		putVec.WithLabelValues(c.path).Inc()
+		putBytesVec.WithLabelValues(c.path).Add(float64(len(data)))
+		putLatencyVec.WithLabelValues(c.path).Observe(float64(time.Since(start) / time.Microsecond))
+		sizeVec.WithLabelValues(c.path).Set(float64(c.size))
 	}()
 
 	if c.capacity > 0 && c.size+int64(len(data)) > c.capacity {

@@ -164,7 +164,7 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
     Run echo 'i=0; \n\
     while true; \n\
     do \n\
-        echo "$(date +"%Y-%m-%d %H:%M:%S")  [$i]  Bash For Loop Examples. Hello, world! Testing output." >> /tmp/opt01/log; \n\
+        echo "$(date +"%Y-%m-%d %H:%M:%S")  [$i]  Bash For Loop Examples. Hello, world! Testing output." >> /tmp/opt/log; \n\
         i=$((i+1)); \n\
         sleep 1; \n\
     done \n'\
@@ -175,9 +175,9 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
     $ docker build -t testing/log-to-file:v1 .
 
     ## 启动容器，添加环境变量 DATAKIT_LOGS_CONFIG，注意字符转义
-    ## 跟配置 stdout 不同，"type" 和 "path" 是必填字段
-    ## 注意 "path" 的值是 "/tmp/opt02/log" 而不是 "/tmp/opt01/log"，"opt01" 是容器内路径，实际 volume 出来是 "opt02"
-    $ docker run --env DATAKIT_LOGS_CONFIG="[{\"disable\":false,\"type\":\"file\",\"path\":\"/tmp/opt02/log\",\"source\":\"testing-source\",\"service\":\"testing-service\"}]" -v /tmp/opt02:/tmp/opt01  -d testing/log-to-file:v1
+    ## 指定非 stdout 路径，"type" 和 "path" 是必填字段，且需要创建采集路径的 volume
+    ## 例如采集 `/tmp/opt/log` 文件，需要添加 `/tmp/opt` 的匿名 volume
+    $ docker run --env DATAKIT_LOGS_CONFIG="[{\"disable\":false,\"type\":\"file\",\"path\":\"/tmp/opt/log\",\"source\":\"testing-source\",\"service\":\"testing-service\"}]" -v /tmp/opt  -d testing/log-to-file:v1
     ```
 
 === "Kubernetes Pod Annotation"
@@ -189,13 +189,13 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
       name: logging
       annotations:
         ## 添加配置，且指定容器为 logging
-        ## 同时配置了 file 和 stdout 两种采集，注意 "path" 的 "/tmp/opt02/log" 是 volume path
+        ## 同时配置了 file 和 stdout 两种采集。注意要采集 "/tmp/opt/log" 文件，需要先给 "/tmp/opt" 添加 emptyDir volume
         datakit/logging.logs: |
           [
             {
               "disable": false,
               "type": "file",
-              "path":"/tmp/opt02/log",
+              "path":"/tmp/opt/log",
               "source":  "logging-file",
               "tags" : {
                 "some_tag": "some_value"
@@ -218,17 +218,16 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
           while true;
           do
             echo "$(date +'%F %H:%M:%S')  [$i]  Bash For Loop Examples. Hello, world! Testing output.";
-            echo "$(date +'%F %H:%M:%S')  [$i]  Bash For Loop Examples. Hello, world! Testing output." >> /tmp/opt01/log;
+            echo "$(date +'%F %H:%M:%S')  [$i]  Bash For Loop Examples. Hello, world! Testing output." >> /tmp/opt/log;
             i=$((i+1));
             sleep 1;
           done
         volumeMounts:
-        - mountPath: /tmp/opt01
-          name: opt
+        - mountPath: /tmp/opt
+          name: datakit-vol-opt
       volumes:
-      - name: opt
-        hostPath:
-          path: /tmp/opt02
+      - name: datakit-vol-opt
+        emptyDir: {}
     ```
 
     执行 Kubernetes 命令，应用该配置：
@@ -301,7 +300,7 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
       {
           "disable": false,
           "type": "file",
-          "path":"/tmp/opt02/log",
+          "path":"/tmp/opt/log",
           "source":  "logging-file",
           "tags" : {
             "some_tag": "some_value"

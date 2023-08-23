@@ -1,6 +1,6 @@
 module gitlab.jiagouyun.com/cloudcare-tools/datakit
 
-go 1.18
+go 1.19
 
 require (
 	github.com/BurntSushi/toml v1.2.1
@@ -8,7 +8,7 @@ require (
 	github.com/DataDog/datadog-go v4.8.3+incompatible
 	github.com/DataDog/ebpf v0.0.0-20210419131141-ea64821c9793
 	github.com/DataDog/gopsutil v1.1.0
-	github.com/GuanceCloud/cliutils v0.1.5-0.20230821054931-f02fe08daf8c
+	github.com/GuanceCloud/cliutils v0.1.5-0.20230823055427-7132a0577d92
 	github.com/GuanceCloud/confd v0.1.101
 	github.com/GuanceCloud/grok v1.1.2
 	github.com/GuanceCloud/platypus v0.2.7
@@ -66,7 +66,7 @@ require (
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 	github.com/openzipkin/zipkin-go v0.2.2
 	github.com/ory/dockertest/v3 v3.9.1
-	github.com/oschwald/geoip2-golang v1.7.0
+	github.com/oschwald/geoip2-golang v1.9.0
 	github.com/pborman/ansi v1.0.0
 	github.com/pkg/sftp v1.11.0
 	github.com/prometheus-operator/prometheus-operator/pkg/client v0.51.2
@@ -80,7 +80,7 @@ require (
 	github.com/rivo/tview v0.0.0-20220129131435-1f7581b67bd1
 	github.com/shirou/gopsutil v3.21.8+incompatible
 	github.com/shirou/gopsutil/v3 v3.22.7
-	github.com/sirupsen/logrus v1.9.0
+	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cast v1.5.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.4
@@ -270,7 +270,7 @@ require (
 	github.com/opentracing-contrib/go-grpc v0.0.0-20210225150812-73cb765af46e // indirect
 	github.com/opentracing-contrib/go-stdlib v1.0.0 // indirect
 	github.com/opentracing/opentracing-go v1.2.1-0.20220228012449-10b1cf09e00b // indirect
-	github.com/oschwald/maxminddb-golang v1.9.0 // indirect
+	github.com/oschwald/maxminddb-golang v1.11.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.6 // indirect
 	github.com/philhofer/fwd v1.1.1 // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
@@ -359,6 +359,10 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.3.0
 )
+
+require github.com/netsampler/goflow2 v1.3.5
+
+require github.com/libp2p/go-reuseport v0.3.0 // indirect
 
 replace (
 	github.com/c-bata/go-prompt => github.com/coanor/go-prompt v0.2.6

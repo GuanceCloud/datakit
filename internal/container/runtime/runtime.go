@@ -29,6 +29,10 @@ type Container struct {
 	// example: "Up 5 hours"
 	// https://github.com/moby/moby/blob/73e09ddecf03477c690b2016a613b06156b54969/container/state.go#L76
 	Status string
+
+	// Target To Source
+	// example: map["/tmp/opt"] = "/var/lib/docker/volumes/<id>/_data"
+	Mounts map[string]string
 }
 
 type ContainerStatus struct {
@@ -38,6 +42,10 @@ type ContainerStatus struct {
 	Image   string
 	LogPath string
 	Envs    map[string]string
+
+	// Target To Source
+	// example: map["/tmp/opt"] = "/var/lib/docker/volumes/<id>/_data"
+	Mounts map[string]string
 }
 
 type ContainerTop struct {

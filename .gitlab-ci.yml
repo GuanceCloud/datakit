@@ -4,6 +4,7 @@ before_script:
   - cp -r ./. /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
   - cd /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
   - source ~/.ossenv
+  - uname -a
   - echo $DK_BPF_KERNEL_SRC_PATH
   - export PATH=/usr/local/go1.19.12/bin:$PATH
   - export GOROOT=/usr/local/go1.19.12
@@ -89,7 +90,7 @@ release-ebpf-amd64-testing:
   stage: deploy_ebpf
   resource_group: production
   needs: [test-datakit-testing]
-  image: vircoys/datakit-developer:1.5
+  image: pubrepo.jiagouyun.com/ebpf-dev/datakit-developer:1.7
   only:
     - testing
     - /^testing-.*$/
@@ -103,7 +104,7 @@ release-ebpf-aarch64-testing:
   stage: deploy_ebpf
   resource_group: production
   needs: [test-datakit-testing]
-  image: vircoys/datakit-developer:1.5
+  image: pubrepo.jiagouyun.com/ebpf-dev/datakit-developer:1.7
   only:
     - testing
     - /^testing-.*$/
@@ -117,7 +118,7 @@ release-ebpf-amd64-production:
   stage: deploy_ebpf
   resource_group: production
   needs: [test-datakit-production]
-  image: vircoys/datakit-developer:1.5
+  image: pubrepo.jiagouyun.com/ebpf-dev/datakit-developer:1.7
   only:
     - master
     - unstable
@@ -131,7 +132,7 @@ release-ebpf-aarch64-production:
   stage: deploy_ebpf
   resource_group: production
   needs: [test-datakit-production]
-  image: vircoys/datakit-developer:1.5
+  image: pubrepo.jiagouyun.com/ebpf-dev/datakit-developer:1.7
   only:
     - master
     - unstable

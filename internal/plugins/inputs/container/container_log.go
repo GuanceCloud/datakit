@@ -8,11 +8,15 @@ package container
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/runtime"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
+	apicorev1 "k8s.io/api/core/v1"
 )
+
+const emptyDirMountToHost = "/var/lib/kubelet/pods/%s/volumes/kubernetes.io~empty-dir/%s/"
 
 func (c *container) cleanMissingContainerLog(newIDs []string) {
 	missingIDs := c.logTable.findDifferences(newIDs)
@@ -34,6 +38,12 @@ func (c *container) tailingLogs(ins *logInstance) {
 
 		if c.logTable.inTable(ins.id, cfg.Path) {
 			continue
+		}
+
+		path := cfg.Path
+		if cfg.TargetPath != "" {
+			path = cfg.TargetPath
+			l.Infof("container log %s redirect to host path %s", cfg.Path, cfg.TargetPath)
 		}
 
 		opt := &tailer.Option{
@@ -60,13 +70,13 @@ func (c *container) tailingLogs(ins *logInstance) {
 
 		_ = opt.Init()
 
-		path := logsJoinRootfs(cfg.Path)
+		path = logsJoinRootfs(path)
 
-		l.Infof("add container log collection with path: %s from source %s", path, opt.Source)
+		l.Infof("add container log collection with path %s(%s) from source %s", cfg.Path, path, opt.Source)
 
 		tail, err := tailer.NewTailerSingle(path, opt)
 		if err != nil {
-			l.Errorf("failed to create container-log collection %s for %s, err: %s", path, ins.containerName, err)
+			l.Errorf("failed to create container-log collection %s(%s) for %s, err: %s", cfg.Path, path, ins.containerName, err)
 			continue
 		}
 
@@ -74,7 +84,7 @@ func (c *container) tailingLogs(ins *logInstance) {
 
 		g.Go(func(ctx context.Context) error {
 			defer func() {
-				c.logTable.removePathFromTable(ins.id, cfg.Path)
+				c.logTable.removePathFromTable(ins.id, path)
 				l.Infof("remove container log collection from source %s", opt.Source)
 			}()
 			tail.Run()
@@ -94,6 +104,7 @@ func (c *container) queryContainerLogInfo(info *runtime.Container) *logInstance 
 		logPath:       info.LogPath,
 		podName:       podName,
 		podNamespace:  podNamespace,
+		volMounts:     info.Mounts,
 	}
 
 	if name := getContainerNameForLabels(info.Labels); name != "" {
@@ -119,6 +130,17 @@ func (c *container) queryContainerLogInfo(info *runtime.Container) *logInstance 
 
 			// use Image from Pod Container
 			ins.image = podInfo.containerImage(ins.containerName)
+
+			for _, volume := range podInfo.pod.Spec.Volumes {
+				if volume.EmptyDir == nil {
+					continue
+				}
+
+				mountPath := findContainerVolumeMount(podInfo.pod.Spec.Containers, volume.Name)
+				if mountPath != "" {
+					ins.volMounts[filepath.Clean(mountPath)] = fmt.Sprintf(emptyDirMountToHost, string(podInfo.pod.UID), volume.Name)
+				}
+			}
 		}
 	}
 
@@ -131,4 +153,15 @@ func (c *container) queryContainerLogInfo(info *runtime.Container) *logInstance 
 
 	l.Debugf("container %s use config: %v", ins.containerName, ins)
 	return ins
+}
+
+func findContainerVolumeMount(containers []apicorev1.Container, mountName string) string {
+	for _, container := range containers {
+		for _, mount := range container.VolumeMounts {
+			if mount.Name == mountName {
+				return mount.MountPath
+			}
+		}
+	}
+	return ""
 }
