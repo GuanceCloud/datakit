@@ -66,6 +66,8 @@ DD_ENV=testing DD_SERVICE=python-profiling-manual DD_VERSION=1.2.3 python3 app.p
 
 ## `py-spy` 接入 {#py-spy}
 
+### 主机环境下使用 {#py-spy-on-host}
+
 `py-spy` 是由开源社区提供的一款无侵入式的 Python 性能指标采样工具，具有单独运行和对目标程序负载影响低等优点。默认情况下 `py-spy` 会根据指定的参数输出不同格式的采样数据到本地文件，为简化 `py-spy` 和 DataKit 的集成，观测云提供了一个分支版本 [`py-spy-for-datakit`](https://github.com/GuanceCloud/py-spy-for-datakit){:target="_blank"}， 在原版本基础上做了少量修改，支持自动把 profiling
 数据发送到 DataKit。
 
@@ -145,3 +147,7 @@ py-spy-for-datakit datakit \
 ```
 
 如果没有发生错误，稍等一两分钟后即可在观测云平台 [应用性能监测 -> Profile](https://console.guance.com/tracing/profile){:target="_blank"} 页面查看具体的性能指标数据。
+
+### k8s 环境下使用 {#py-spy-on-k8s}
+
+请参考 [使用 `datakit-operator` 注入 `py-spy`](../datakit/datakit-operator.md#inject-py-spy){:target="_blank"}。

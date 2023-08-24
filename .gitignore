@@ -21,6 +21,7 @@ __debug_bin
 *.pyc
 *.rpm
 *.tar.gz
+!k8s-profilers/async-profiler/*
 *.yaml
 *.zip
 test.*/

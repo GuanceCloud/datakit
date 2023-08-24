@@ -3,36 +3,74 @@
 
 ---
 
-DataKit 支持两种采集器来采集 Java profiling 数据，即 [`dd-trace-java`](https://github.com/DataDog/dd-trace-java){:target="_blank"} 和 [async-profiler](https://github.com/async-profiler/async-profiler){:target="_blank"}。
+DataKit 支持两种采集器来采集 Java profiling 数据， [`dd-trace-java`](https://github.com/DataDog/dd-trace-java){:target="_blank"} 和 [async-profiler](https://github.com/async-profiler/async-profiler){:target="_blank"}。
 
 ## `dd-trace-java` {#ddtrace}
 
-从页面 [https://github.com/DataDog/dd-trace-java/releases](https://github.com/DataDog/dd-trace-java/releases){:target="_blank"} 下载 `dd-trace-java`.
+从页面 [`dd-trace-java`](https://github.com/DataDog/dd-trace-java/releases){:target="_blank"} 下载 `dd-trace-java`.
 
 <!-- markdownlint-disable MD046 -->
-???+ Note "版本要求"
+???+ Note
 
-    Datakit 目前支持 `dd-trace-java 1.15.x` 及以下版本，更高版本未经测试，兼容性未知，如遇兼容性问题，可反馈给我们。
-
-    JDK 版本要求：
-
-    - OpenJDK 11.0.17+, 17.0.5+
-    - Oracle JDK 11.0.17+, 17.0.5+
-    - OpenJDK 8 version 8u352+
+    Datakit 目前支持 `dd-trace-java 1.19.x` 及以下版本，更高版本未经测试，兼容性未知，如遇兼容性问题，可反馈给我们。
 <!-- markdownlint-enable -->
 
-运行 Java Code
+`dd-trace-java` 目前集成了两套分析引擎：[`Datadog Profiler`](https://github.com/datadog/java-profiler){:target="_blank"} 和 JDK 内置的 [`JFR(Java Flight Recorder)`](https://docs.oracle.com/javacomponents/jmc-5-4/jfr-runtime-guide/about.htm){:target="_blank"}，
+两种引擎对平台和 JDK 版本都有各自的一些要求，列举如下：
+
+<!-- markdownlint-disable MD046 -->
+=== "Datadog Profiler"
+
+    `Datadog Profiler` 目前仅支持 Linux 系统，对 JDK 的版本要求：
+
+    - OpenJDK 8u352+, 11.0.17+, 17.0.5+ (包括 [`Eclipse Adoptium`](https://projects.eclipse.org/projects/adoptium){:target="_blank"}， [`Amazon Corretto`](https://aws.amazon.com/cn/corretto/){:target="_blank"}， [`Azul Zulu`](https://www.azul.com/downloads/?package=jdk#zulu){:target="_blank"} 等构建的相应版本)
+    - Oracle JDK 8u352+, 11.0.17+, 17.0.5+
+    - OpenJ9 JDK 8u372+, 11.0.18+, 17.0.6+
+
+=== "Java Flight Recorder"
+
+    - OpenJDK 11+
+    - Oracle JDK 11+
+    - OpenJDK 8 (version 1.8.0.262/8u262+)
+    - Oracle JDK 8 (需开启商业特性)
+    
+    ???+ Note
+
+        `JFR` 是 Oracle JDK 8 的商业特性，默认是关闭的，如需启用需在启动项目时增加参数 `-XX:+UnlockCommercialFeatures -XX:+FlightRecorder`，而从 JDK 11 开始，`JFR` 已经成为开源项目且不再是 Oracle JDK 的商业特性。
+<!-- markdownlint-enable -->
+
+
+开启 profiling
 
 ```shell
 java -javaagent:/<your-path>/dd-java-agent.jar \
+    -XX:FlightRecorderOptions=stackdepth=256 \
+    -Ddd.agent.host=127.0.0.1 \
+    -Ddd.trace.agent.port=9529 \
     -Ddd.service=profiling-demo \
     -Ddd.env=dev \
     -Ddd.version=1.2.3  \
     -Ddd.profiling.enabled=true  \
-    -XX:FlightRecorderOptions=stackdepth=256 \
-    -Ddd.trace.agent.port=9529 \
+    -Ddd.profiling.ddprof.enabled=true \
+    -Ddd.profiling.ddprof.cpu.enabled=true \
+    -Ddd.profiling.ddprof.wall.enabled=true \
+    -Ddd.profiling.ddprof.alloc.enabled=true \
+    -Ddd.profiling.ddprof.liveheap.enabled=true \
     -jar your-app.jar 
 ```
+
+部分参数说明：
+
+| 参数名                                      | 对应的环境变量                              | 说明                                                                     |
+|------------------------------------------|--------------------------------------|------------------------------------------------------------------------|
+| `-Ddd.profiling.enabled`                 | DD_PROFILING_ENABLED                 | 是否开启 profiling 功能                                                      |
+| `-Ddd.profiling.allocation.enabled`      | DD_PROFILING_ALLOCATION_ENABLED      | 是否开启 `JFR` 引擎的内存分析，对性能有一定影响，开启后关注对性能的影响                                |
+| `-Ddd.profiling.ddprof.enabled`          | DD_PROFILING_DDPROF_ENABLED          | 是否启用 `Datadog Profiler` 分析引擎                                           |
+| `-Ddd.profiling.ddprof.cpu.enabled`      | DD_PROFILING_DDPROF_CPU_ENABLED      | 是否启用 `Datadog Profiler` CPU 分析                                         |
+| `-Ddd.profiling.ddprof.wall.enabled`     | DD_PROFILING_DDPROF_WALL_ENABLED     | 是否启用 `Datadog Profiler` Wall time 采集，此选项关系到 Trace 和 Profile 之间的关联，建议开启 |
+| `-Ddd.profiling.ddprof.alloc.enabled`    | DD_PROFILING_DDPROF_ALLOC_ENABLED    | 是否启用 `Datadog Profiler` 引擎的内存分析                                        |
+| `-Ddd.profiling.ddprof.liveheap.enabled` | DD_PROFILING_DDPROF_LIVEHEAP_ENABLED | 是否启用 `Datadog Profiler` 引擎 Heap 分析                                     |
+
 
 程序运行后，约 1 分钟后即可在观测云平台查看相关数据。
 
@@ -155,6 +193,7 @@ java -Ddk.service=<service-name> ... -jar <your-jar>
 
 - [自动化脚本（推荐）](profile-java.md#script)
 - [手动操作](profile-java.md#manual)
+- [k8s 环境下使用](../datakit/datakit-operator.md#inject-async-profiler)
 
 #### 自动化脚本 {#script}
 
@@ -368,7 +407,7 @@ bash collect.sh
 DATAKIT_URL=http://localhost:9529 APP_ENV=test APP_VERSION=1.0.0 HOST_NAME=datakit PROFILING_EVENT=cpu,alloc PROFILING_DURATION=20 PROCESS_ID=98789,33432 bash collect.sh
 ```
 
-## 手动操作 {#manual}
+#### 手动操作 {#manual}
 
 相比自动化脚本，手动操作自由度高，可满足不同的场景需求。
 
@@ -421,3 +460,7 @@ $ curl http://localhost:9529/profiling/v1/input \
 ```
 
 当上述请求返回结果格式为 `{"content":{"ProfileID":"xxxxxxxx"}}` 时，表明上传成功。DataKit 会产生一条 profiling 记录，并将 jfr 文件保存至相应的后端存储，便于后续分析使用。
+
+#### k8s 环境下使用
+
+请参考 [使用 `datakit-operator` 注入 `async-profiler`](../datakit/datakit-operator.md#inject-async-profiler){:target="_blank"}。
