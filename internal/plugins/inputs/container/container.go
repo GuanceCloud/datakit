@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/runtime"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/filter"
@@ -26,6 +27,7 @@ type container struct {
 
 	loggingFilter filter.Filter
 	logTable      *logTable
+	extraTags     map[string]string
 }
 
 func newContainer(ipt *Input, endpoint string, mountPoint string, k8sClient k8sclient.Client) (Collector, error) {
@@ -47,12 +49,15 @@ func newContainer(ipt *Input, endpoint string, mountPoint string, k8sClient k8sc
 		return nil, err
 	}
 
+	tags := inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")
+
 	return &container{
 		ipt:           ipt,
 		runtime:       r,
 		k8sClient:     k8sClient,
 		loggingFilter: filter,
 		logTable:      newLogTable(),
+		extraTags:     tags,
 	}, nil
 }
 
@@ -147,7 +152,8 @@ func (c *container) Logging() error {
 		instance.addStdout()
 		instance.fillLogType(info.RuntimeName)
 		instance.setTagsToLogConfigs(instance.tags())
-		instance.setTagsToLogConfigs(c.ipt.Tags)
+		instance.setTagsToLogConfigs(c.extraTags)
+		instance.setCustomerTags(instance.podLabels, config.Cfg.Dataway.GlobalCustomerKeys)
 
 		c.ipt.setLoggingExtraSourceMapToLogConfigs(instance.configs)
 		c.ipt.setLoggingSourceMultilineMapToLogConfigs(instance.configs)
@@ -263,6 +269,8 @@ func (c *container) transToPoint(info *runtime.Container) typed.PointKV {
 			if img != "" {
 				image = img
 			}
+
+			p.SetCustomerTags(podInfo.pod.Labels, config.Cfg.Dataway.GlobalCustomerKeys)
 		}
 	}
 
@@ -272,7 +280,7 @@ func (c *container) transToPoint(info *runtime.Container) typed.PointKV {
 	p.SetTag("image_short_name", shortName)
 	p.SetTag("image_tag", imageTag)
 
-	p.SetTags(c.ipt.Tags)
+	p.SetTags(c.extraTags)
 	return p
 }
 

@@ -162,13 +162,24 @@ func newPromRunnerWithConfig(c *promConfig) (*promRunner, error) {
 	}, nil
 }
 
-func (p *promRunner) addTags(tags map[string]string) {
-	for k, v := range tags {
-		p.addTag(k, v)
+func (p *promRunner) setCustomerTags(m map[string]string, keys []string) {
+	if len(keys) == 0 || len(m) == 0 {
+		return
+	}
+	for _, key := range keys {
+		if v, ok := m[key]; ok {
+			p.setTag(key, v)
+		}
 	}
 }
 
-func (p *promRunner) addTag(k, v string) {
+func (p *promRunner) setTags(tags map[string]string) {
+	for k, v := range tags {
+		p.setTag(k, v)
+	}
+}
+
+func (p *promRunner) setTag(k, v string) {
 	if p.conf == nil {
 		return
 	}
@@ -206,10 +217,7 @@ func (p *promRunner) runOnce() {
 		for _, pt := range pts {
 			// We need to feed each point separately because
 			// each point might have different measurement name.
-			err := p.feeder.Feed(
-				string(pt.Name()),
-				point.Logging,
-				[]*point.Point{pt},
+			err := p.feeder.Feed(string(pt.Name()), point.Logging, []*point.Point{pt},
 				&io.Option{CollectCost: time.Since(start)},
 			)
 			if err != nil {
@@ -217,10 +225,7 @@ func (p *promRunner) runOnce() {
 			}
 		}
 	} else {
-		err := p.feeder.Feed(
-			p.conf.Source,
-			point.Metric,
-			pts,
+		err := p.feeder.Feed(p.conf.Source, point.Metric, pts,
 			&io.Option{CollectCost: time.Since(start)},
 		)
 		if err != nil {

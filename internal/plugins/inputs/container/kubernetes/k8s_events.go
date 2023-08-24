@@ -151,6 +151,7 @@ func (k *Kube) gatherEvent(item *kubewatch.Event) ([]inputs.Measurement, error) 
 	p.SetField("involved_name", e.InvolvedObject.Name)
 	p.SetField("involved_namespace", e.InvolvedObject.Namespace)
 	p.SetField("message", e.Message)
+	p.SetCustomerTags(e.Labels, getGlobalCustomerKeys())
 
 	ev := event{p}
 	return []inputs.Measurement{&ev}, nil

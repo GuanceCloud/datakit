@@ -48,6 +48,7 @@ func composeCronjobMetric(list *apibatchv1.CronJobList) []measurement {
 			met.SetField("spec_suspend", *item.Spec.Suspend)
 		}
 
+		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
 		res = append(res, &cronjobMetric{met})
 	}
 
@@ -92,6 +93,7 @@ func composeCronjobObject(list *apibatchv1.CronJobList) []measurement {
 		obj.DeleteField("annotations")
 		obj.DeleteField("yaml")
 
+		obj.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
 		res = append(res, &cronjobObject{obj})
 	}
 
@@ -115,7 +117,7 @@ func (*cronjobMetric) Info() *inputs.MeasurementInfo {
 		Desc: "The metric of the Kubernetes CronJob.",
 		Type: "metric",
 		Tags: map[string]interface{}{
-			"uid":       inputs.NewTagInfo("The UID of cronjob."),
+			"uid":       inputs.NewTagInfo("The UID of CronJob."),
 			"cronjob":   inputs.NewTagInfo("Name must be unique within a namespace."),
 			"namespace": inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 		},
@@ -142,8 +144,8 @@ func (*cronjobObject) Info() *inputs.MeasurementInfo {
 		Desc: "The object of the Kubernetes CronJob.",
 		Type: "object",
 		Tags: map[string]interface{}{
-			"name":          inputs.NewTagInfo("The UID of cronjob."),
-			"uid":           inputs.NewTagInfo("The UID of cronjob."),
+			"name":          inputs.NewTagInfo("The UID of CronJob."),
+			"uid":           inputs.NewTagInfo("The UID of CronJob."),
 			"cron_job_name": inputs.NewTagInfo("Name must be unique within a namespace."),
 			"namespace":     inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 		},

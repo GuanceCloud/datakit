@@ -44,13 +44,15 @@ func composeDaemonsetMetric(list *apiappsv1.DaemonSetList) []measurement {
 		met.SetTag("daemonset", item.Name)
 		met.SetTag("namespace", item.Namespace)
 
-		met.SetField("scheduled", item.Status.CurrentNumberScheduled)
 		met.SetField("desired", item.Status.DesiredNumberScheduled)
+		met.SetField("scheduled", item.Status.CurrentNumberScheduled)
 		met.SetField("misscheduled", item.Status.NumberMisscheduled)
 		met.SetField("ready", item.Status.NumberReady)
 		met.SetField("updated", item.Status.UpdatedNumberScheduled)
+		met.SetField("daemons_available", item.Status.NumberAvailable)
 		met.SetField("daemons_unavailable", item.Status.NumberUnavailable)
 
+		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
 		res = append(res, &daemonsetMetric{met})
 	}
 
@@ -77,11 +79,12 @@ func composeDaemonsetObject(list *apiappsv1.DaemonSetList) []measurement {
 		obj.SetTag("namespace", item.Namespace)
 
 		obj.SetField("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3)
-		obj.SetField("scheduled", item.Status.CurrentNumberScheduled)
 		obj.SetField("desired", item.Status.DesiredNumberScheduled)
+		obj.SetField("scheduled", item.Status.CurrentNumberScheduled)
 		obj.SetField("misscheduled", item.Status.NumberMisscheduled)
 		obj.SetField("ready", item.Status.NumberReady)
 		obj.SetField("updated", item.Status.UpdatedNumberScheduled)
+		obj.SetField("daemons_available", item.Status.NumberAvailable)
 		obj.SetField("daemons_unavailable", item.Status.NumberUnavailable)
 
 		if y, err := yaml.Marshal(item); err == nil {
@@ -94,6 +97,7 @@ func composeDaemonsetObject(list *apiappsv1.DaemonSetList) []measurement {
 		obj.DeleteField("annotations")
 		obj.DeleteField("yaml")
 
+		obj.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
 		res = append(res, &daemonsetObject{obj})
 	}
 
@@ -122,11 +126,12 @@ func (*daemonsetMetric) Info() *inputs.MeasurementInfo {
 			"namespace": inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 		},
 		Fields: map[string]interface{}{
-			"scheduled":           &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of nodes that are running at least one daemon pod and are supposed to run the daemon pod."},
 			"desired":             &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The total number of nodes that should be running the daemon pod (including nodes correctly running the daemon pod)."},
+			"scheduled":           &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of nodes that are running at least one daemon pod and are supposed to run the daemon pod."},
 			"misscheduled":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of nodes that are running the daemon pod, but are not supposed to run the daemon pod."},
 			"ready":               &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of nodes that should be running the daemon pod and have one or more of the daemon pod running and ready."},
 			"updated":             &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The total number of nodes that are running updated daemon pod."},
+			"daemons_available":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of nodes that should be running the daemon pod and have one or more of the daemon pod running and available (ready for at least spec.minReadySeconds)."},
 			"daemons_unavailable": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of nodes that should be running the daemon pod and have none of the daemon pod running and available (ready for at least spec.minReadySeconds)."},
 		},
 	}
@@ -156,11 +161,12 @@ func (*daemonsetObject) Info() *inputs.MeasurementInfo {
 		},
 		Fields: map[string]interface{}{
 			"age":                 &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},
-			"scheduled":           &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of nodes that are running at least one daemon pod and are supposed to run the daemon pod."},
 			"desired":             &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The total number of nodes that should be running the daemon pod (including nodes correctly running the daemon pod)."},
+			"scheduled":           &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of nodes that are running at least one daemon pod and are supposed to run the daemon pod."},
 			"misscheduled":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of nodes that are running the daemon pod, but are not supposed to run the daemon pod."},
 			"ready":               &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of nodes that should be running the daemon pod and have one or more of the daemon pod running and ready."},
 			"updated":             &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The total number of nodes that are running updated daemon pod."},
+			"daemons_available":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of nodes that should be running the daemon pod and have one or more of the daemon pod running and available (ready for at least spec.minReadySeconds)."},
 			"daemons_unavailable": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of nodes that should be running the daemon pod and have none of the daemon pod running and available (ready for at least spec.minReadySeconds)."},
 			"message":             &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Object details"},
 		},

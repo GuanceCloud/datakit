@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	kubev1guancebeta1 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/typed/guance/v1beta1"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 	apicorev1 "k8s.io/api/core/v1"
@@ -43,9 +44,10 @@ func (d *Discovery) newPromFromPodAnnotations() []*promRunner {
 			continue
 		}
 
-		runner.addTag("namespace", pod.Namespace)
-		runner.addTag("pod_name", pod.Name)
-		runner.addTags(d.cfg.ExtraTags)
+		runner.setTag("namespace", pod.Namespace)
+		runner.setTag("pod_name", pod.Name)
+		runner.setTags(d.cfg.ExtraTags)
+		runner.setCustomerTags(pod.Labels, config.Cfg.Dataway.GlobalCustomerKeys)
 
 		klog.Infof("create prom runner of pod %s, urls %s", pod.Name, runner.conf.URLs)
 		res = append(res, runner)
@@ -81,10 +83,11 @@ func (d *Discovery) newPromFromServiceAnnotations() []*promRunner {
 				continue
 			}
 
-			runner.addTag("namespace", svc.Namespace)
-			runner.addTag("service_name", svc.Name)
-			runner.addTag("pod_name", pod.Name)
-			runner.addTags(d.cfg.ExtraTags)
+			runner.setTag("namespace", pod.Namespace)
+			runner.setTag("service_name", svc.Name)
+			runner.setTag("pod_name", pod.Name)
+			runner.setTags(d.cfg.ExtraTags)
+			runner.setCustomerTags(pod.Labels, config.Cfg.Dataway.GlobalCustomerKeys)
 
 			klog.Infof("created prom runner of service %s to pod %s, urls %s", svc.Name, pod.Name, runner.conf.URLs)
 			res = append(res, runner)
@@ -112,9 +115,10 @@ func (d *Discovery) newPromFromPodAnnotationExport() []*promRunner {
 		}
 
 		for _, runner := range runners {
-			runner.addTag("namespace", pod.Namespace)
-			runner.addTag("pod_name", pod.Name)
-			runner.addTags(d.cfg.ExtraTags)
+			runner.setTag("namespace", pod.Namespace)
+			runner.setTag("pod_name", pod.Name)
+			runner.setTags(d.cfg.ExtraTags)
+			runner.setCustomerTags(pod.Labels, config.Cfg.Dataway.GlobalCustomerKeys)
 
 			klog.Infof("created prom runner of pod-export-config %s, urls %s", pod.Name, runner.conf.URLs)
 			res = append(res, runner)
@@ -137,9 +141,10 @@ func (d *Discovery) newPromFromDatakitCRD() []*promRunner {
 		}
 
 		for _, runner := range runners {
-			runner.addTag("namespace", pod.Namespace)
-			runner.addTag("pod_name", pod.Name)
-			runner.addTags(d.cfg.ExtraTags)
+			runner.setTag("namespace", pod.Namespace)
+			runner.setTag("pod_name", pod.Name)
+			runner.setTags(d.cfg.ExtraTags)
+			runner.setCustomerTags(pod.Labels, config.Cfg.Dataway.GlobalCustomerKeys)
 
 			res = append(res, runner)
 		}
@@ -218,9 +223,10 @@ func (d *Discovery) newPromForPodMonitors() []*promRunner {
 					continue
 				}
 
-				runner.addTag("namespace", pod.Namespace)
-				runner.addTag("pod_name", pod.Name)
-				runner.addTags(d.cfg.ExtraTags)
+				runner.setTag("namespace", pod.Namespace)
+				runner.setTag("pod_name", pod.Name)
+				runner.setTags(d.cfg.ExtraTags)
+				runner.setCustomerTags(pod.Labels, config.Cfg.Dataway.GlobalCustomerKeys)
 
 				klog.Infof("create prom runner for PodMonitor %s pod %s, urls: %#v", item.Name, pod.Name, runner.conf.URLs)
 				res = append(res, runner)
@@ -300,10 +306,11 @@ func (d *Discovery) newPromForServiceMonitors() []*promRunner {
 						continue
 					}
 
-					runner.addTag("namespace", pod.Namespace)
-					runner.addTag("pod_name", pod.Name)
-					runner.addTag("service_name", svc.Name)
-					runner.addTags(d.cfg.ExtraTags)
+					runner.setTag("namespace", pod.Namespace)
+					runner.setTag("pod_name", pod.Name)
+					runner.setTag("service_name", svc.Name)
+					runner.setTags(d.cfg.ExtraTags)
+					runner.setCustomerTags(pod.Labels, config.Cfg.Dataway.GlobalCustomerKeys)
 
 					klog.Infof("create prom runner for ServiceMonitor %s service %s, urls: %s", item.Name, service.Name, runner.conf.URLs)
 					res = append(res, runner)

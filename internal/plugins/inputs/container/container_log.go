@@ -126,6 +126,7 @@ func (c *container) queryContainerLogInfo(info *runtime.Container) *logInstance 
 				ins.configStr = v
 			}
 
+			ins.podLabels = podInfo.pod.Labels
 			ins.ownerKind, ins.ownerName = podInfo.owner()
 
 			// use Image from Pod Container

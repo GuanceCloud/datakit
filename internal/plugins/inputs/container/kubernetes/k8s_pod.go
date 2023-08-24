@@ -8,6 +8,7 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
@@ -54,23 +55,21 @@ func gatherPodMetric(ctx context.Context, client k8sClient) ([]measurement, erro
 		}
 
 		if len(pod.OwnerReferences) != 0 {
-			ownerName := pod.OwnerReferences[0].Name
-			ownerKind := pod.OwnerReferences[0].Kind
-			switch ownerKind {
+			switch pod.OwnerReferences[0].Kind {
 			case "ReplicaSet":
-				replica, repErr := client.GetReplicaSetsForNamespace(pod.Namespace).Get(context.TODO(), ownerName, metaV1GetOption)
-				if repErr == nil && len(replica.OwnerReferences) != 0 {
-					met.SetTag("deployment", replica.OwnerReferences[0].Name)
+				if hash, ok := pod.Labels["pod-template-hash"]; ok {
+					met.SetTag("deployment", strings.TrimRight(pod.OwnerReferences[0].Name, "-"+hash))
 				}
 			case "DaemonSet":
-				met.SetTag("daemonset", ownerName)
+				met.SetTag("daemonset", pod.OwnerReferences[0].Name)
 			case "StatefulSet":
-				met.SetTag("statefulset", ownerName)
+				met.SetTag("statefulset", pod.OwnerReferences[0].Name)
 			default:
 				// skip
 			}
 		}
 
+		met.SetCustomerTags(pod.Labels, getGlobalCustomerKeys())
 		res = append(res, &podMetric{*met})
 	}
 
@@ -83,7 +82,6 @@ func composePodMetric(item *apicorev1.Pod) *typed.PointKV {
 	met.SetTag("uid", fmt.Sprintf("%v", item.UID))
 	met.SetTag("pod", item.Name)
 	met.SetTag("namespace", item.Namespace)
-	// "condition"
 
 	met.SetField("ready", 0)
 	// "scheduled", "volumes_persistentvolumeclaims_readonly","unschedulable"
@@ -127,23 +125,21 @@ func gatherPodObject(ctx context.Context, client k8sClient) ([]measurement, erro
 		}
 
 		if len(pod.OwnerReferences) != 0 {
-			ownerName := pod.OwnerReferences[0].Name
-			ownerKind := pod.OwnerReferences[0].Kind
-			switch ownerKind {
+			switch pod.OwnerReferences[0].Kind {
 			case "ReplicaSet":
-				replica, repErr := client.GetReplicaSetsForNamespace(pod.Namespace).Get(context.TODO(), ownerName, metaV1GetOption)
-				if repErr == nil && len(replica.OwnerReferences) != 0 {
-					obj.SetTag("deployment", replica.OwnerReferences[0].Name)
+				if hash, ok := pod.Labels["pod-template-hash"]; ok {
+					obj.SetTag("deployment", strings.TrimRight(pod.OwnerReferences[0].Name, "-"+hash))
 				}
 			case "DaemonSet":
-				obj.SetTag("daemonset", ownerName)
+				obj.SetTag("daemonset", pod.OwnerReferences[0].Name)
 			case "StatefulSet":
-				obj.SetTag("statefulset", ownerName)
+				obj.SetTag("statefulset", pod.OwnerReferences[0].Name)
 			default:
 				// skip
 			}
 		}
 
+		obj.SetCustomerTags(pod.Labels, getGlobalCustomerKeys())
 		res = append(res, &podObject{*obj})
 	}
 
@@ -298,8 +294,8 @@ func (*podObject) Info() *inputs.MeasurementInfo {
 		Desc: "The object of the Kubernetes Pod.",
 		Type: "object",
 		Tags: map[string]interface{}{
-			"name":        inputs.NewTagInfo("The UID of pod."),
-			"uid":         inputs.NewTagInfo("The UID of pod."),
+			"name":        inputs.NewTagInfo("The UID of Pod."),
+			"uid":         inputs.NewTagInfo("The UID of Pod."),
 			"pod_name":    inputs.NewTagInfo("Name must be unique within a namespace."),
 			"node_name":   inputs.NewTagInfo("NodeName is a request to schedule this pod onto a specific node."),
 			"namespace":   inputs.NewTagInfo("Namespace defines the space within each name must be unique."),

@@ -66,6 +66,7 @@ func composeJobMetric(list *apibatchv1.JobList) []measurement {
 		met.SetField("completion_succeeded", succeeded)
 		met.SetField("completion_failed", failed)
 
+		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
 		res = append(res, &jobMetric{met})
 	}
 
@@ -124,6 +125,7 @@ func composeJobObject(list *apibatchv1.JobList) []measurement {
 		obj.DeleteField("annotations")
 		obj.DeleteField("yaml")
 
+		obj.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
 		res = append(res, &jobObject{obj})
 	}
 
@@ -147,7 +149,7 @@ func (*jobMetric) Info() *inputs.MeasurementInfo {
 		Desc: "The metric of the Kubernetes Job.",
 		Type: "metric",
 		Tags: map[string]interface{}{
-			"uid":       inputs.NewTagInfo("The UID of job."),
+			"uid":       inputs.NewTagInfo("The UID of Job."),
 			"job":       inputs.NewTagInfo("Name must be unique within a namespace."),
 			"namespace": inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 		},
@@ -178,8 +180,8 @@ func (*jobObject) Info() *inputs.MeasurementInfo {
 		Desc: "The object of the Kubernetes Job.",
 		Type: "object",
 		Tags: map[string]interface{}{
-			"name":      inputs.NewTagInfo("The UID of job."),
-			"uid":       inputs.NewTagInfo("The UID of job."),
+			"name":      inputs.NewTagInfo("The UID of Job."),
+			"uid":       inputs.NewTagInfo("The UID of Job."),
 			"job_name":  inputs.NewTagInfo("Name must be unique within a namespace."),
 			"namespace": inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 		},
