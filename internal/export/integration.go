@@ -348,6 +348,28 @@ func (i *Integration) exportMonitor(lang inputs.I18n) error {
 			return err
 		}
 	}
+
+	// read xx.json under monitor
+	templateDir := "monitor"
+	templateEntry, err := AllMonitors.ReadDir(templateDir)
+	if err != nil {
+		return err
+	}
+
+	for _, e := range templateEntry {
+		if e.IsDir() {
+			l.Debugf("ignore dir %q under %s", e.Name(), templateDir)
+			continue
+		}
+
+		l.Debugf("export monitor %q", e.Name())
+
+		name := strings.Split(e.Name(), ".")[0] // cpu.json-> cpu
+		if err := i.buildMonitor(name, lang); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

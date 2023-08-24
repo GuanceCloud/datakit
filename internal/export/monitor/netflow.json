@@ -1,0 +1,90 @@
+{
+  "checkers": [
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "netflow",
+              "field": "*",
+              "fieldFunc": "count",
+              "fieldType": "",
+              "fill": "",
+              "filters": [],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`netflow`:(COUNT(`*`)) { `index` = 'default' }",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "uuid": "6c5de64c-c36c-49c2-af7e-4e34ff5e2091"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "0"
+                ],
+                "operator": "="
+              }
+            ],
+            "status": "critical"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "atAccounts": [],
+        "atNoDataAccounts": [],
+        "channels": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "0"
+                  ],
+                  "operator": "="
+                }
+              ],
+              "status": "critical"
+            }
+          ]
+        },
+        "every": "5m",
+        "groupBy": [],
+        "interval": 300,
+        "message": "<<.Monitor.message>>",
+        "noDataMessage": "",
+        "noDataTitle": "",
+        "recoverNeedPeriodCount": 2,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "L::`netflow`:(COUNT(`*`)) { `index` = 'default' }",
+            "qtype": "dql"
+          }
+        ],
+        "title": "<<.Monitor.title>>",
+        "type": "simpleCheck"
+      },
+      "monitorName": "默认"
+    }
+  ]
+}
