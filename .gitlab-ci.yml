@@ -89,7 +89,7 @@ release-ebpf-amd64-testing:
   stage: deploy_ebpf
   resource_group: production
   needs: [test-datakit-testing]
-  image: vircoys/datakit-developer:1.5
+  image: pubrepo.jiagouyun.com/ebpf-dev/datakit-developer:1.7
   only:
     - testing
     - /^testing-.*$/
@@ -103,7 +103,7 @@ release-ebpf-aarch64-testing:
   stage: deploy_ebpf
   resource_group: production
   needs: [test-datakit-testing]
-  image: vircoys/datakit-developer:1.5
+  image: pubrepo.jiagouyun.com/ebpf-dev/datakit-developer:1.7
   only:
     - testing
     - /^testing-.*$/
@@ -117,7 +117,7 @@ release-ebpf-amd64-production:
   stage: deploy_ebpf
   resource_group: production
   needs: [test-datakit-production]
-  image: vircoys/datakit-developer:1.5
+  image: pubrepo.jiagouyun.com/ebpf-dev/datakit-developer:1.7
   only:
     - master
     - unstable
@@ -131,7 +131,7 @@ release-ebpf-aarch64-production:
   stage: deploy_ebpf
   resource_group: production
   needs: [test-datakit-production]
-  image: vircoys/datakit-developer:1.5
+  image: pubrepo.jiagouyun.com/ebpf-dev/datakit-developer:1.7
   only:
     - master
     - unstable
