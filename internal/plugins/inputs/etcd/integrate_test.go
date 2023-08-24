@@ -18,10 +18,8 @@ import (
 	dt "github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/require"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/prom"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
@@ -83,6 +81,14 @@ func TestIntegrate(t *testing.T) {
 	}
 }
 
+func getOptionalFields() []string {
+	out := inputs.GetOptionalFieldsKeys(etcdFields)
+
+	out = append(out, inputs.GetGeneralOptionalFieldsKeys()...)
+
+	return out
+}
+
 func getConfAccessPoint(host, port string) string {
 	return fmt.Sprintf("http://%s/metrics", net.JoinHostPort(host, port))
 }
@@ -102,120 +108,12 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// etcd 3.5.7
 		////////////////////////////////////////////////////////////////////////
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/bitnami/etcd:3.5.7",
-			conf: `source = "etcd"
-metric_types = ["counter", "gauge"]
-interval = "10s"
-measurement_name = "etcd"`, // set conf URL later.
+			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/bitnami/etcd:3.5.7",
+			conf:         `interval = "10s"`, // set conf URL later.
 			exposedPorts: []string{"2379/tcp"},
 			opts: []inputs.PointCheckOption{
 				inputs.WithOptionalFields(
-					"etcd_cluster_version",
-					"etcd_debugging_auth_revision",
-					"etcd_debugging_lease_granted_total",
-					"etcd_debugging_lease_renewed_total",
-					"etcd_debugging_lease_revoked_total",
-					"etcd_debugging_mvcc_compact_revision",
-					"etcd_debugging_mvcc_current_revision",
-					"etcd_debugging_mvcc_db_compaction_keys_total",
-					"etcd_debugging_mvcc_db_compaction_last",
-					"etcd_debugging_mvcc_db_total_size_in_bytes",
-					"etcd_debugging_mvcc_delete_total",
-					"etcd_debugging_mvcc_events_total",
-					"etcd_debugging_mvcc_keys_total",
-					"etcd_debugging_mvcc_pending_events_total",
-					"etcd_debugging_mvcc_put_total",
-					"etcd_debugging_mvcc_put_total",
-					"etcd_debugging_mvcc_range_total",
-					"etcd_debugging_mvcc_slow_watcher_total",
-					"etcd_debugging_mvcc_total_put_size_in_bytes",
-					"etcd_debugging_mvcc_txn_total",
-					"etcd_debugging_mvcc_watch_stream_total",
-					"etcd_debugging_mvcc_watcher_total",
-					"etcd_debugging_server_lease_expired_total",
-					"etcd_debugging_store_expires_total",
-					"etcd_debugging_store_reads_total",
-					"etcd_debugging_store_watch_requests_total",
-					"etcd_debugging_store_watchers",
-					"etcd_debugging_store_writes_total",
-					"etcd_disk_defrag_inflight",
-					"etcd_disk_wal_write_bytes_total",
-					"etcd_grpc_proxy_cache_hits_total",
-					"etcd_grpc_proxy_cache_keys_total",
-					"etcd_grpc_proxy_cache_misses_total",
-					"etcd_grpc_proxy_events_coalescing_total",
-					"etcd_grpc_proxy_watchers_coalescing_total",
-					"etcd_mvcc_db_open_read_transactions",
-					"etcd_mvcc_db_total_size_in_bytes",
-					"etcd_mvcc_db_total_size_in_use_in_bytes",
-					"etcd_mvcc_delete_total",
-					"etcd_mvcc_put_total",
-					"etcd_mvcc_range_total",
-					"etcd_mvcc_txn_total",
-					"etcd_network_client_grpc_received_bytes_total",
-					"etcd_network_client_grpc_sent_bytes_total",
-					"etcd_server_go_version",
-					"etcd_server_has_leader",
-					"etcd_server_health_failures",
-					"etcd_server_health_success",
-					"etcd_server_heartbeat_send_failures_total",
-					"etcd_server_id",
-					"etcd_server_is_leader",
-					"etcd_server_is_learner",
-					"etcd_server_leader_changes_seen_total",
-					"etcd_server_learner_promote_successes",
-					"etcd_server_proposals_applied_total",
-					"etcd_server_proposals_committed_total",
-					"etcd_server_proposals_failed_total",
-					"etcd_server_proposals_pending",
-					"etcd_server_quota_backend_bytes",
-					"etcd_server_read_indexes_failed_total",
-					"etcd_server_slow_apply_total",
-					"etcd_server_slow_read_indexes_total",
-					"etcd_server_snapshot_apply_in_progress_total",
-					"etcd_server_version",
-					"go_goroutines",
-					"go_info",
-					"go_memstats_alloc_bytes_total",
-					"go_memstats_alloc_bytes",
-					"go_memstats_buck_hash_sys_bytes",
-					"go_memstats_frees_total",
-					"go_memstats_gc_cpu_fraction",
-					"go_memstats_gc_sys_bytes",
-					"go_memstats_heap_alloc_bytes",
-					"go_memstats_heap_idle_bytes",
-					"go_memstats_heap_inuse_bytes",
-					"go_memstats_heap_objects",
-					"go_memstats_heap_released_bytes",
-					"go_memstats_heap_sys_bytes",
-					"go_memstats_last_gc_time_seconds",
-					"go_memstats_lookups_total",
-					"go_memstats_mallocs_total",
-					"go_memstats_mcache_inuse_bytes",
-					"go_memstats_mcache_sys_bytes",
-					"go_memstats_mspan_inuse_bytes",
-					"go_memstats_mspan_sys_bytes",
-					"go_memstats_next_gc_bytes",
-					"go_memstats_other_sys_bytes",
-					"go_memstats_stack_inuse_bytes",
-					"go_memstats_stack_sys_bytes",
-					"go_memstats_sys_bytes",
-					"go_threads",
-					"grpc_server_handled_total",
-					"grpc_server_msg_received_total",
-					"grpc_server_msg_sent_total",
-					"grpc_server_started_total",
-					"os_fd_limit",
-					"os_fd_used",
-					"process_cpu_seconds_total",
-					"process_max_fds",
-					"process_open_fds",
-					"process_resident_memory_bytes",
-					"process_start_time_seconds",
-					"process_virtual_memory_bytes",
-					"process_virtual_memory_max_bytes",
-					"promhttp_metric_handler_requests_in_flight",
-					"promhttp_metric_handler_requests_total",
+					getOptionalFields()...,
 				),
 				inputs.WithOptionalTags(
 					"action",
@@ -231,6 +129,7 @@ measurement_name = "etcd"`, // set conf URL later.
 					"server_version",
 					"version",
 				),
+				inputs.WithIgnoreTags("op", "success", "le", "quantile"),
 			},
 		},
 
@@ -238,120 +137,12 @@ measurement_name = "etcd"`, // set conf URL later.
 		// etcd 3.4.24
 		////////////////////////////////////////////////////////////////////////
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/bitnami/etcd:3.4.24",
-			conf: `source = "etcd"
-metric_types = ["counter", "gauge"]
-interval = "10s"
-measurement_name = "etcd"`, // set conf URL later.
+			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/bitnami/etcd:3.4.24",
+			conf:         `interval = "10s"`, // set conf URL later.
 			exposedPorts: []string{"2379/tcp"},
 			opts: []inputs.PointCheckOption{
 				inputs.WithOptionalFields(
-					"etcd_cluster_version",
-					"etcd_debugging_auth_revision",
-					"etcd_debugging_lease_granted_total",
-					"etcd_debugging_lease_renewed_total",
-					"etcd_debugging_lease_revoked_total",
-					"etcd_debugging_mvcc_compact_revision",
-					"etcd_debugging_mvcc_current_revision",
-					"etcd_debugging_mvcc_db_compaction_keys_total",
-					"etcd_debugging_mvcc_db_compaction_last",
-					"etcd_debugging_mvcc_db_total_size_in_bytes",
-					"etcd_debugging_mvcc_delete_total",
-					"etcd_debugging_mvcc_events_total",
-					"etcd_debugging_mvcc_keys_total",
-					"etcd_debugging_mvcc_pending_events_total",
-					"etcd_debugging_mvcc_put_total",
-					"etcd_debugging_mvcc_put_total",
-					"etcd_debugging_mvcc_range_total",
-					"etcd_debugging_mvcc_slow_watcher_total",
-					"etcd_debugging_mvcc_total_put_size_in_bytes",
-					"etcd_debugging_mvcc_txn_total",
-					"etcd_debugging_mvcc_watch_stream_total",
-					"etcd_debugging_mvcc_watcher_total",
-					"etcd_debugging_server_lease_expired_total",
-					"etcd_debugging_store_expires_total",
-					"etcd_debugging_store_reads_total",
-					"etcd_debugging_store_watch_requests_total",
-					"etcd_debugging_store_watchers",
-					"etcd_debugging_store_writes_total",
-					"etcd_disk_defrag_inflight",
-					"etcd_disk_wal_write_bytes_total",
-					"etcd_grpc_proxy_cache_hits_total",
-					"etcd_grpc_proxy_cache_keys_total",
-					"etcd_grpc_proxy_cache_misses_total",
-					"etcd_grpc_proxy_events_coalescing_total",
-					"etcd_grpc_proxy_watchers_coalescing_total",
-					"etcd_mvcc_db_open_read_transactions",
-					"etcd_mvcc_db_total_size_in_bytes",
-					"etcd_mvcc_db_total_size_in_use_in_bytes",
-					"etcd_mvcc_delete_total",
-					"etcd_mvcc_put_total",
-					"etcd_mvcc_range_total",
-					"etcd_mvcc_txn_total",
-					"etcd_network_client_grpc_received_bytes_total",
-					"etcd_network_client_grpc_sent_bytes_total",
-					"etcd_server_go_version",
-					"etcd_server_has_leader",
-					"etcd_server_health_failures",
-					"etcd_server_health_success",
-					"etcd_server_heartbeat_send_failures_total",
-					"etcd_server_id",
-					"etcd_server_is_leader",
-					"etcd_server_is_learner",
-					"etcd_server_leader_changes_seen_total",
-					"etcd_server_learner_promote_successes",
-					"etcd_server_proposals_applied_total",
-					"etcd_server_proposals_committed_total",
-					"etcd_server_proposals_failed_total",
-					"etcd_server_proposals_pending",
-					"etcd_server_quota_backend_bytes",
-					"etcd_server_read_indexes_failed_total",
-					"etcd_server_slow_apply_total",
-					"etcd_server_slow_read_indexes_total",
-					"etcd_server_snapshot_apply_in_progress_total",
-					"etcd_server_version",
-					"go_goroutines",
-					"go_info",
-					"go_memstats_alloc_bytes_total",
-					"go_memstats_alloc_bytes",
-					"go_memstats_buck_hash_sys_bytes",
-					"go_memstats_frees_total",
-					"go_memstats_gc_cpu_fraction",
-					"go_memstats_gc_sys_bytes",
-					"go_memstats_heap_alloc_bytes",
-					"go_memstats_heap_idle_bytes",
-					"go_memstats_heap_inuse_bytes",
-					"go_memstats_heap_objects",
-					"go_memstats_heap_released_bytes",
-					"go_memstats_heap_sys_bytes",
-					"go_memstats_last_gc_time_seconds",
-					"go_memstats_lookups_total",
-					"go_memstats_mallocs_total",
-					"go_memstats_mcache_inuse_bytes",
-					"go_memstats_mcache_sys_bytes",
-					"go_memstats_mspan_inuse_bytes",
-					"go_memstats_mspan_sys_bytes",
-					"go_memstats_next_gc_bytes",
-					"go_memstats_other_sys_bytes",
-					"go_memstats_stack_inuse_bytes",
-					"go_memstats_stack_sys_bytes",
-					"go_memstats_sys_bytes",
-					"go_threads",
-					"grpc_server_handled_total",
-					"grpc_server_msg_received_total",
-					"grpc_server_msg_sent_total",
-					"grpc_server_started_total",
-					"os_fd_limit",
-					"os_fd_used",
-					"process_cpu_seconds_total",
-					"process_max_fds",
-					"process_open_fds",
-					"process_resident_memory_bytes",
-					"process_start_time_seconds",
-					"process_virtual_memory_bytes",
-					"process_virtual_memory_max_bytes",
-					"promhttp_metric_handler_requests_in_flight",
-					"promhttp_metric_handler_requests_total",
+					getOptionalFields()...,
 				),
 				inputs.WithOptionalTags(
 					"action",
@@ -367,6 +158,7 @@ measurement_name = "etcd"`, // set conf URL later.
 					"server_version",
 					"version",
 				),
+				inputs.WithIgnoreTags("op", "success", "le", "quantile"),
 			},
 		},
 
@@ -374,120 +166,12 @@ measurement_name = "etcd"`, // set conf URL later.
 		// etcd 3.3.27
 		////////////////////////////////////////////////////////////////////////
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/bitnami/etcd:3.3.27",
-			conf: `source = "etcd"
-metric_types = ["counter", "gauge"]
-interval = "10s"
-measurement_name = "etcd"`, // set conf URL later.
+			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/bitnami/etcd:3.3.27",
+			conf:         `interval = "10s"`, // set conf URL later.
 			exposedPorts: []string{"2379/tcp"},
 			opts: []inputs.PointCheckOption{
 				inputs.WithOptionalFields(
-					"etcd_cluster_version",
-					"etcd_debugging_auth_revision",
-					"etcd_debugging_lease_granted_total",
-					"etcd_debugging_lease_renewed_total",
-					"etcd_debugging_lease_revoked_total",
-					"etcd_debugging_mvcc_compact_revision",
-					"etcd_debugging_mvcc_current_revision",
-					"etcd_debugging_mvcc_db_compaction_keys_total",
-					"etcd_debugging_mvcc_db_compaction_last",
-					"etcd_debugging_mvcc_db_total_size_in_bytes",
-					"etcd_debugging_mvcc_delete_total",
-					"etcd_debugging_mvcc_events_total",
-					"etcd_debugging_mvcc_keys_total",
-					"etcd_debugging_mvcc_pending_events_total",
-					"etcd_debugging_mvcc_put_total",
-					"etcd_debugging_mvcc_put_total",
-					"etcd_debugging_mvcc_range_total",
-					"etcd_debugging_mvcc_slow_watcher_total",
-					"etcd_debugging_mvcc_total_put_size_in_bytes",
-					"etcd_debugging_mvcc_txn_total",
-					"etcd_debugging_mvcc_watch_stream_total",
-					"etcd_debugging_mvcc_watcher_total",
-					"etcd_debugging_server_lease_expired_total",
-					"etcd_debugging_store_expires_total",
-					"etcd_debugging_store_reads_total",
-					"etcd_debugging_store_watch_requests_total",
-					"etcd_debugging_store_watchers",
-					"etcd_debugging_store_writes_total",
-					"etcd_disk_defrag_inflight",
-					"etcd_disk_wal_write_bytes_total",
-					"etcd_grpc_proxy_cache_hits_total",
-					"etcd_grpc_proxy_cache_keys_total",
-					"etcd_grpc_proxy_cache_misses_total",
-					"etcd_grpc_proxy_events_coalescing_total",
-					"etcd_grpc_proxy_watchers_coalescing_total",
-					"etcd_mvcc_db_open_read_transactions",
-					"etcd_mvcc_db_total_size_in_bytes",
-					"etcd_mvcc_db_total_size_in_use_in_bytes",
-					"etcd_mvcc_delete_total",
-					"etcd_mvcc_put_total",
-					"etcd_mvcc_range_total",
-					"etcd_mvcc_txn_total",
-					"etcd_network_client_grpc_received_bytes_total",
-					"etcd_network_client_grpc_sent_bytes_total",
-					"etcd_server_go_version",
-					"etcd_server_has_leader",
-					"etcd_server_health_failures",
-					"etcd_server_health_success",
-					"etcd_server_heartbeat_send_failures_total",
-					"etcd_server_id",
-					"etcd_server_is_leader",
-					"etcd_server_is_learner",
-					"etcd_server_leader_changes_seen_total",
-					"etcd_server_learner_promote_successes",
-					"etcd_server_proposals_applied_total",
-					"etcd_server_proposals_committed_total",
-					"etcd_server_proposals_failed_total",
-					"etcd_server_proposals_pending",
-					"etcd_server_quota_backend_bytes",
-					"etcd_server_read_indexes_failed_total",
-					"etcd_server_slow_apply_total",
-					"etcd_server_slow_read_indexes_total",
-					"etcd_server_snapshot_apply_in_progress_total",
-					"etcd_server_version",
-					"go_goroutines",
-					"go_info",
-					"go_memstats_alloc_bytes_total",
-					"go_memstats_alloc_bytes",
-					"go_memstats_buck_hash_sys_bytes",
-					"go_memstats_frees_total",
-					"go_memstats_gc_cpu_fraction",
-					"go_memstats_gc_sys_bytes",
-					"go_memstats_heap_alloc_bytes",
-					"go_memstats_heap_idle_bytes",
-					"go_memstats_heap_inuse_bytes",
-					"go_memstats_heap_objects",
-					"go_memstats_heap_released_bytes",
-					"go_memstats_heap_sys_bytes",
-					"go_memstats_last_gc_time_seconds",
-					"go_memstats_lookups_total",
-					"go_memstats_mallocs_total",
-					"go_memstats_mcache_inuse_bytes",
-					"go_memstats_mcache_sys_bytes",
-					"go_memstats_mspan_inuse_bytes",
-					"go_memstats_mspan_sys_bytes",
-					"go_memstats_next_gc_bytes",
-					"go_memstats_other_sys_bytes",
-					"go_memstats_stack_inuse_bytes",
-					"go_memstats_stack_sys_bytes",
-					"go_memstats_sys_bytes",
-					"go_threads",
-					"grpc_server_handled_total",
-					"grpc_server_msg_received_total",
-					"grpc_server_msg_sent_total",
-					"grpc_server_started_total",
-					"os_fd_limit",
-					"os_fd_used",
-					"process_cpu_seconds_total",
-					"process_max_fds",
-					"process_open_fds",
-					"process_resident_memory_bytes",
-					"process_start_time_seconds",
-					"process_virtual_memory_bytes",
-					"process_virtual_memory_max_bytes",
-					"promhttp_metric_handler_requests_in_flight",
-					"promhttp_metric_handler_requests_total",
+					getOptionalFields()...,
 				),
 				inputs.WithOptionalTags(
 					"action",
@@ -503,6 +187,7 @@ measurement_name = "etcd"`, // set conf URL later.
 					"server_version",
 					"version",
 				),
+				inputs.WithIgnoreTags("op", "success", "le", "quantile"),
 			},
 		},
 	}
@@ -513,8 +198,8 @@ measurement_name = "etcd"`, // set conf URL later.
 	for _, base := range bases {
 		feeder := io.NewMockedFeeder()
 
-		ipt := prom.NewProm() // This is real prom
-		ipt.Feeder = feeder   // Flush metric data to testing_metrics
+		ipt := defaultInput()
+		ipt.Feeder = feeder // Flush metric data to testing_metrics
 
 		// URL from ENV.
 		_, err := toml.Decode(base.conf, ipt)
@@ -567,7 +252,7 @@ type caseSpec struct {
 	opts         []inputs.PointCheckOption
 	mCount       map[string]struct{}
 
-	ipt    *prom.Input // This is real prom
+	ipt    *Input // This is real prom
 	feeder *io.MockedFeeder
 
 	pool     *dt.Pool
@@ -670,7 +355,7 @@ func (cs *caseSpec) run() error {
 	if err := cs.getMappingPorts(); err != nil {
 		return err
 	}
-	cs.ipt.URL = getConfAccessPoint(r.Host, cs.serverPorts[0]) // set conf URL here.
+	cs.ipt.URLs = []string{getConfAccessPoint(r.Host, cs.serverPorts[0])} // set conf URL here.
 
 	cs.t.Logf("check service(%s:%v)...", r.Host, cs.serverPorts)
 

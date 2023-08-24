@@ -74,7 +74,11 @@ type urlTags map[string]string
 
 func (*Input) SampleConfig() string { return sampleCfg }
 
-func (*Input) SampleMeasurement() []inputs.Measurement { return nil }
+func (*Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{
+		&etcdMeasurement{},
+	}
+}
 
 func (*Input) AvailableArchs() []string { return datakit.AllOSWithElection }
 
@@ -100,10 +104,6 @@ func (i *Input) Run() {
 	if i.setup() {
 		return
 	}
-
-	// for etcd only.
-	i.Source = inputName
-	i.MeasurementName = inputName
 
 	tick := time.NewTicker(i.Interval)
 	defer tick.Stop()
@@ -251,6 +251,10 @@ func (i *Input) Terminate() {
 }
 
 func (i *Input) setup() bool {
+	// for etcd only.
+	i.Source = inputName
+	i.MeasurementName = inputName
+
 	for {
 		select {
 		case <-datakit.Exit.Wait():
