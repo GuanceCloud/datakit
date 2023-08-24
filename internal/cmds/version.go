@@ -42,13 +42,18 @@ func runVersionFlags(disableUpgradeInfo bool) error {
 }
 
 func showVersion(curverStr string) {
+	buildTag := "full"
+	if Lite {
+		buildTag = "lite"
+	}
 	fmt.Printf(`
        Version: %s
         Commit: %s
         Branch: %s
  Build At(UTC): %s
 Golang Version: %s
-`, curverStr, git.Commit, git.Branch, git.BuildAt, git.Golang)
+     Build Tag: %s
+`, curverStr, git.Commit, git.Branch, git.BuildAt, git.Golang, buildTag)
 }
 
 type newVersionInfo struct {

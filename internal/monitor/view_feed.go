@@ -99,12 +99,11 @@ func (app *monitorAPP) renderInputsFeedTable(mfs map[string]*dto.MetricFamily, c
 		}
 		col++
 
+		table.SetCell(row, col, tview.NewTableCell("-").
+			SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
 		if ptsFilter != nil {
 			x := metricWithLabel(ptsFilter, cat, inputName)
-			if x == nil {
-				table.SetCell(row, col, tview.NewTableCell("-").
-					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
-			} else {
+			if x != nil {
 				table.SetCell(row, col, tview.NewTableCell(number(x.GetCounter().GetValue())).
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 			}

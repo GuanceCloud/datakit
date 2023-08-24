@@ -57,6 +57,14 @@ func (app *monitorAPP) renderBasicInfoTable(mfs map[string]*dto.MetricFamily) {
 			table.SetCell(row, 0, tview.NewTableCell("Branch").SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 			table.SetCell(row, 1, tview.NewTableCell(val).SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignLeft))
 			row++
+		case "lite":
+			buildTag := "full"
+			if val == "true" {
+				buildTag = "lite"
+			}
+			table.SetCell(row, 0, tview.NewTableCell("Build Tag").SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
+			table.SetCell(row, 1, tview.NewTableCell(buildTag).SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignLeft))
+			row++
 		case "os_arch":
 			table.SetCell(row, 0, tview.NewTableCell("OS/Arch").SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 			table.SetCell(row, 1, tview.NewTableCell(val).SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignLeft))

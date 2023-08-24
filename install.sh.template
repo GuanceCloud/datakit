@@ -18,14 +18,14 @@ updateHosts() {
 			if [ -n "$matches_in_hosts" ]
 			then
 				# iterate over the line numbers on which matches were found
-				while read -r line_number; do
+				for line_number in $matches_in_hosts; do
 					# replace the text of each line with the desired host entry
 					if [[ "$OSTYPE" == "darwin"* ]]; then
 						$sudo_cmd sed -i '' "${line_number}s/.*/${host_entry} /" /etc/hosts
 					else
 						$sudo_cmd sed -i "${line_number}s/.*/${host_entry} /" /etc/hosts
 					fi
-				done <<< "$matches_in_hosts"
+				done
 			else
 				echo "$host_entry" | $sudo_cmd tee -a /etc/hosts > /dev/null
 			fi
@@ -35,23 +35,22 @@ updateHosts() {
 
 set -e
 
-domain=(
-	"static.guance.com"
-	"openway.guance.com"
-	"dflux-dial.guance.com"
+domain="
+static.guance.com
+openway.guance.com
+dflux-dial.guance.com
+static.dataflux.cn
+openway.dataflux.cn
+dflux-dial.dataflux.cn
+zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com
+"
 
-	"static.dataflux.cn"
-	"openway.dataflux.cn"
-	"dflux-dial.dataflux.cn"
-
-	"zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com"
-)
-
-# detect root user
-if [ "$UID" = "0" ]; then
-	sudo_cmd=''
-else
-	sudo_cmd='sudo'
+sudo_cmd=''
+if type sudo >/dev/null 2>&1; then
+	# detect root user
+	if [ "$UID" != "0" ]; then
+		sudo_cmd='sudo'
+	fi
 fi
 
 ##################
@@ -136,6 +135,11 @@ installer=/tmp/dk-installer
 dataway=
 if [ -n "$DK_DATAWAY" ]; then
 	dataway=$DK_DATAWAY
+fi
+
+lite=
+if [ -n "$DK_LITE" ]; then
+	lite=$DK_LITE
 fi
 
 global_customer_keys=
@@ -274,7 +278,7 @@ if [ -n "$DK_PROXY_TYPE" ]; then
 			if [ "$proxy" != "" ]; then
 				printf "\n* got nginx Proxy: %s\n" "$proxy"
 
-				for i in "${domain[@]}"; do
+				for i in $domain; do
 					updateHosts "$proxy" "$i"
 				done
 			fi
@@ -478,7 +482,7 @@ if [ "$upgrade" ]; then
 	printf "\n* Upgrading DataKit...\n"
 	$sudo_cmd $installer \
 		--install-log="$install_log" \
-		--upgrade --upgrade-manager="${upgrade_manager}" --upgrade-ip-whitelist="${upgrade_ip_whitelist}" --proxy="${proxy}" --installer_base_url="$installer_base_url"
+		--upgrade --lite="${lite}" --upgrade-manager="${upgrade_manager}" --upgrade-ip-whitelist="${upgrade_ip_whitelist}" --proxy="${proxy}" --installer_base_url="$installer_base_url"
 else
 printf "\n* Installing DataKit...\n"
 $sudo_cmd $installer \
@@ -497,6 +501,7 @@ $sudo_cmd $installer \
 		--listen="${http_listen}" \
 		--port="${http_port}" \
 		--proxy="${proxy}" \
+		--lite="${lite}" \
 		--env_hostname="${env_hostname}" \
 		--dca-enable="${dca_enable}" \
 		--dca-listen="${dca_listen}" \

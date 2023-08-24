@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -40,6 +41,7 @@ var (
 	// injected during building: -X.
 	InputsReleaseType = ""
 	ReleaseVersion    = ""
+	Lite              = "false"
 )
 
 func main() {
@@ -50,8 +52,13 @@ func main() {
 		datakit.Version = ReleaseVersion
 	}
 
+	if v, err := strconv.ParseBool(Lite); err == nil {
+		datakit.Lite = v
+	}
+
 	cmds.ReleaseVersion = ReleaseVersion
 	cmds.InputsReleaseType = InputsReleaseType
+	cmds.Lite = datakit.Lite
 
 	var workdir string
 	// Debugging running, not start as service

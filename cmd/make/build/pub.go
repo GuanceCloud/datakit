@@ -180,6 +180,11 @@ func PubDatakit() error {
 		gzName, gzPath := tarFiles(PubDir, BuildDir, AppName, parts[0], parts[1], TarWithRlsVer)
 		// gzName := fmt.Sprintf("%s-%s-%s.tar.gz", AppName, goos+"-"+goarch, ReleaseVersion)
 
+		if isExtraLite() {
+			gzName, gzPath := tarFiles(PubDir, BuildDir, AppName+"_lite", parts[0], parts[1], TarWithRlsVer)
+			basics[gzName] = gzPath
+		}
+
 		upgraderGZFile, upgraderGZPath := tarFiles(PubDir, BuildDir, upgrader.BuildBinName, parts[0], parts[1], TarNoRlsVer)
 
 		installerExe := fmt.Sprintf("installer-%s-%s", goos, goarch)
