@@ -70,6 +70,7 @@ func NewEndpointPairPortRollupStore(portRollupThreshold int) *EndpointPairPortRo
 }
 
 // Add will record new sourcePort and destPort for a specific sourceAddr and destAddr.
+//
 //nolint:lll
 func (prs *EndpointPairPortRollupStore) Add(sourceAddr []byte, destAddr []byte, sourcePort uint16, destPort uint16) {
 	srcToDestKey := buildStoreKey(sourceAddr, destAddr, isSourceEndpoint, sourcePort)
@@ -82,6 +83,7 @@ func (prs *EndpointPairPortRollupStore) Add(sourceAddr []byte, destAddr []byte, 
 }
 
 // AddToStore will add ports to store.
+//
 //nolint:lll
 func (prs *EndpointPairPortRollupStore) AddToStore(store map[string][]uint16, srcToDestKey string, destToSrcKey string, sourceAddr []byte, destAddr []byte, sourcePort uint16, destPort uint16, curStoreIsEphemeralStatus IsEphemeralStatus) {
 	prs.storeMu.Lock()
@@ -200,6 +202,7 @@ func (prs *EndpointPairPortRollupStore) UseNewStoreAsCurrentStore() {
 // and convert it to a key with `string` type. The actual elements of the key are in `[]byte`,
 // but we cast them to `string` and concat into a single `string` to be able to use it as map key
 // (`[]byte` is mutable and can't be used as map key).
+//
 //nolint:lll
 func buildStoreKey(sourceAddr []byte, destAddr []byte, endpointT endpointType, port uint16) string {
 	portPart1, portPart2 := uint8(port>>8), uint8(port&0xff)

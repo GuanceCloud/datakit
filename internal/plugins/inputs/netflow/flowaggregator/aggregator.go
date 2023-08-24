@@ -63,6 +63,7 @@ type SequenceDeltaValue struct {
 }
 
 // NewFlowAggregator returns a new FlowAggregator.
+//
 //nolint:lll
 func NewFlowAggregator(config *config.NetflowConfig, combinedTags map[string]string, feeder dkio.Feeder, source string) *FlowAggregator {
 	flushInterval := time.Duration(config.AggregatorFlushInterval) * time.Second
@@ -197,6 +198,7 @@ func (agg *FlowAggregator) flushLoop() {
 }
 
 // Flush flushes the aggregator.
+//
 //nolint:lll
 func (agg *FlowAggregator) flush() int {
 	flowsContexts := agg.flowAcc.getFlowContextCount()

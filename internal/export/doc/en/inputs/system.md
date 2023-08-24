@@ -61,3 +61,9 @@ For all of the following data collections, a global tag named `host` is appended
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
+
+## FAQ {#faq}
+
+### Why no `cpu_total_usage`? {#no-cpu}
+
+Some CPU acquisition features are not supported on some platforms, such as macOS.

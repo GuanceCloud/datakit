@@ -38,6 +38,7 @@ type FlowRunnableState interface {
 }
 
 // StartFlowRoutine starts one of the goflow flow routine depending on the flow type.
+//
 //nolint:lll
 func StartFlowRoutine(flowType common.FlowType, hostname string, port uint16, workers int, namespace string, flowInChan chan *common.Flow) (*FlowStateWrapper, error) {
 	var flowState FlowRunnableState

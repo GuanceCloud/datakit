@@ -14,14 +14,17 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/host"
 	"github.com/shirou/gopsutil/load"
+	"github.com/shirou/gopsutil/process"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	conntrackutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hostutil/conntrack"
 	filefdutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hostutil/filefd"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/mem"
 )
@@ -59,9 +62,11 @@ type Input struct {
 	Fielddrop []string // Deprecated
 	Tags      map[string]string
 
-	collectCache []inputs.Measurement
+	collectCache []*point.Point
 
 	semStop *cliutils.Sem // start stop signal
+	feeder  dkio.Feeder
+	Tagger  dkpt.GlobalTagger
 }
 
 func (ipt *Input) Singleton() {
@@ -89,7 +94,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 
 func (ipt *Input) Collect() error {
 	// clear collectCache
-	ipt.collectCache = make([]inputs.Measurement, 0)
+	ipt.collectCache = make([]*point.Point, 0)
 
 	ts := time.Now()
 
@@ -107,6 +112,8 @@ func (ipt *Input) Collect() error {
 	for k, v := range ipt.Tags {
 		tags[k] = v
 	}
+
+	tags = inputs.MergeTags(ipt.Tagger.HostTags(), tags, "")
 
 	if runtime.GOOS == "linux" {
 		conntrackStat := conntrackutil.GetConntrackInfo()
@@ -129,7 +136,7 @@ func (ipt *Input) Collect() error {
 			ts:   ts,
 		}
 
-		ipt.collectCache = append(ipt.collectCache, &conntrackM)
+		ipt.collectCache = append(ipt.collectCache, conntrackM.Point())
 
 		filefdStat, err := filefdutil.GetFileFdInfo()
 		if err != nil {
@@ -145,16 +152,13 @@ func (ipt *Input) Collect() error {
 				ts:   ts,
 			}
 
-			ipt.collectCache = append(ipt.collectCache, &filefdM)
+			ipt.collectCache = append(ipt.collectCache, filefdM.Point())
 		}
 	}
 
 	cpuTotal, err := cpu.Percent(0, false)
 	if err != nil {
 		l.Warnf("CPU stat error: %s, ignored", err.Error())
-	}
-	if len(cpuTotal) == 0 {
-		return errors.New("get CPU stat fail")
 	}
 
 	vm, err := mem.VirtualMemoryStat()
@@ -165,21 +169,32 @@ func (ipt *Input) Collect() error {
 		return errors.New("get virtual memory stat fail")
 	}
 
+	pids, err := process.Pids()
+	if err != nil {
+		l.Warnf("error getting Pids: %w", err)
+	}
+	processCount := len(pids)
+
+	fields := map[string]interface{}{
+		"load1_per_core":  loadAvg.Load1 / float64(numCPUs),
+		"load1":           loadAvg.Load1,
+		"load15_per_core": loadAvg.Load15 / float64(numCPUs),
+		"load15":          loadAvg.Load15,
+		"load5_per_core":  loadAvg.Load5 / float64(numCPUs),
+		"load5":           loadAvg.Load5,
+		"memory_usage":    vm.UsedPercent,
+		"n_cpus":          numCPUs,
+		"process_count":   processCount,
+	}
+	if len(cpuTotal) > 0 {
+		fields["cpu_total_usage"] = cpuTotal[0]
+	}
+
 	sysM := systemMeasurement{
-		name: metricNameSystem,
-		fields: map[string]interface{}{
-			"load1":           loadAvg.Load1,
-			"load5":           loadAvg.Load5,
-			"load15":          loadAvg.Load15,
-			"load1_per_core":  loadAvg.Load1 / float64(numCPUs),
-			"load5_per_core":  loadAvg.Load5 / float64(numCPUs),
-			"load15_per_core": loadAvg.Load15 / float64(numCPUs),
-			"n_cpus":          numCPUs,
-			"cpu_total_usage": cpuTotal[0],
-			"memory_usage":    vm.UsedPercent,
-		},
-		tags: tags,
-		ts:   ts,
+		name:   metricNameSystem,
+		fields: fields,
+		tags:   tags,
+		ts:     ts,
 	}
 
 	users, err := host.Users()
@@ -194,7 +209,7 @@ func (ipt *Input) Collect() error {
 	}
 	sysM.fields["uptime"] = uptime
 
-	ipt.collectCache = append(ipt.collectCache, &sysM)
+	ipt.collectCache = append(ipt.collectCache, sysM.Point())
 
 	return err
 }
@@ -209,13 +224,15 @@ func (ipt *Input) Run() {
 		start := time.Now()
 		if err := ipt.Collect(); err != nil {
 			l.Errorf("Collect: %s", err)
-			io.FeedLastError(inputName, err.Error())
+			ipt.feeder.FeedLastError(err.Error(),
+				dkio.WithLastErrorInput(inputName),
+			)
 		}
 
 		if len(ipt.collectCache) > 0 {
-			if err := inputs.FeedMeasurement(inputName, datakit.Metric, ipt.collectCache,
-				&io.Option{CollectCost: time.Since(start)}); err != nil {
-				l.Errorf("FeedMeasurement: %s", err)
+			if err := ipt.feeder.Feed(inputName, point.Metric, ipt.collectCache,
+				&dkio.Option{CollectCost: time.Since(start)}); err != nil {
+				l.Errorf("Feed failed: %v", err)
 			}
 		}
 
@@ -263,13 +280,19 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 }
 
+func defaultInput() *Input {
+	return &Input{
+		Interval: datakit.Duration{Duration: time.Second * 10},
+
+		semStop: cliutils.NewSem(),
+		Tags:    make(map[string]string),
+		feeder:  dkio.DefaultFeeder(),
+		Tagger:  dkpt.DefaultGlobalTagger(),
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{
-			Interval: datakit.Duration{Duration: time.Second * 10},
-
-			semStop: cliutils.NewSem(),
-			Tags:    make(map[string]string),
-		}
+		return defaultInput()
 	})
 }

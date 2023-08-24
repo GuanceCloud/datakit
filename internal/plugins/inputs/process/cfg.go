@@ -6,9 +6,11 @@
 package process
 
 import (
+	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	"github.com/GuanceCloud/cliutils/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -50,8 +52,19 @@ type ProcessMetric struct {
 	ts     time.Time
 }
 
-func (m *ProcessMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
+// Point implement MeasurementV2.
+func (m *ProcessMetric) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(m.ts))
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *ProcessMetric) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -84,8 +97,19 @@ type ProcessObject struct {
 	ts     time.Time
 }
 
-func (m *ProcessObject) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.OOpt())
+// Point implement MeasurementV2.
+func (m *ProcessObject) Point() *point.Point {
+	opts := point.DefaultObjectOptions()
+	opts = append(opts, point.WithTime(m.ts))
+
+	return point.NewPointV2([]byte(m.name),
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *ProcessObject) LineProto() (*dkpt.Point, error) {
+	// return point.NewPoint(m.name, m.tags, m.fields, point.OOpt())
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -105,7 +129,6 @@ func (m *ProcessObject) Info() *inputs.MeasurementInfo {
 			"cpu_usage_top":    newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "CPU 使用占比（%*100）, 一个采集周期内的进程的 CPU 使用率均值"),
 			"mem_used_percent": newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "内存使用占比（%*100）"),
 			"open_files":       newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "打开的文件个数(仅支持 Linux)"),
-			"open_files_list":  newOtherFieldInfo(inputs.String, inputs.UnknownType, inputs.UnknownUnit, "进程打开的文件及其描述符列表(仅支持 Linux)"),
 			"work_directory":   newOtherFieldInfo(inputs.String, inputs.Gauge, inputs.UnknownUnit, "工作目录(仅支持 Linux)"),
 			"cmdline":          newOtherFieldInfo(inputs.String, inputs.Gauge, inputs.UnknownUnit, "进程的命令行参数"),
 			"state_zombie":     newOtherFieldInfo(inputs.Bool, inputs.Gauge, inputs.UnknownUnit, "是否是僵尸进程"),

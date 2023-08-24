@@ -79,3 +79,9 @@ System 采集器收集系统负载、正常运行时间、CPU 核心数量以及
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
+
+## FAQ {#faq}
+
+### 为什么没有 `cpu_total_usage` 指标？ {#no-cpu}
+
+CPU 部分采集功能不支持部分平台，如 macOS。

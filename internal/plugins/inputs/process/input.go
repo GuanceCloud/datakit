@@ -24,7 +24,8 @@ import (
 	"github.com/tweekmonster/luser"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -56,6 +57,8 @@ type Input struct {
 	isTest  bool
 
 	semStop *cliutils.Sem // start stop signal
+	feeder  dkio.Feeder
+	Tagger  dkpt.GlobalTagger
 }
 
 func (p *Input) Singleton() {
@@ -370,7 +373,7 @@ func (p *Input) Parse(ps *pr.Process, procRec *procRecorder, tn time.Time) (user
 }
 
 func (p *Input) WriteObject(processList []*pr.Process, procRec *procRecorder, tn time.Time) {
-	var collectCache []inputs.Measurement
+	var collectCache []*point.Point
 
 	for _, ps := range processList {
 		username, state, name, fields, message := p.Parse(ps, procRec, tn)
@@ -394,14 +397,7 @@ func (p *Input) WriteObject(processList []*pr.Process, procRec *procRecorder, tn
 				if err != nil {
 					l.Warnf("process:%s,pid:%d get openfile err:%s", name, ps.Pid, err.Error())
 				} else {
-					data, err := json.Marshal(openFiles)
-					if err != nil {
-						l.Warnf("failed to get open files list: %v", err)
-					}
-
-					message["open_files"] = openFiles
 					fields["open_files"] = len(openFiles)
-					fields["open_files_list"] = string(data)
 				}
 			}
 		}
@@ -409,6 +405,8 @@ func (p *Input) WriteObject(processList []*pr.Process, procRec *procRecorder, tn
 		for k, v := range p.Tags {
 			tags[k] = v
 		}
+
+		tags = inputs.MergeTags(p.Tagger.HostTags(), tags, "")
 
 		stateZombie := false
 		if state == "zombie" {
@@ -473,27 +471,32 @@ func (p *Input) WriteObject(processList []*pr.Process, procRec *procRecorder, tn
 			fields: fields,
 			ts:     tn,
 		}
-		collectCache = append(collectCache, obj)
+		collectCache = append(collectCache, obj.Point())
 	}
 	if len(collectCache) == 0 {
 		return
 	}
-	if err := inputs.FeedMeasurement(inputName+"/object",
-		datakit.Object,
+
+	if err := p.feeder.Feed(inputName+"/object",
+		point.Object,
 		collectCache,
-		&io.Option{CollectCost: time.Since(tn)}); err != nil {
+		&dkio.Option{CollectCost: time.Since(tn)}); err != nil {
 		l.Errorf("FeedMeasurement err :%s", err.Error())
 		p.lastErr = err
 	}
 
 	if p.lastErr != nil {
-		io.FeedLastError(inputName, p.lastErr.Error(), point.Object)
+		p.feeder.FeedLastError(p.lastErr.Error(),
+			dkio.WithLastErrorInput(inputName),
+			dkio.WithLastErrorCategory(point.Object),
+		)
 		p.lastErr = nil
 	}
 }
 
 func (p *Input) WriteMetric(processList []*pr.Process, procRec *procRecorder, tn time.Time) {
-	var collectCache []inputs.Measurement
+	var collectCache []*point.Point
+
 	for _, ps := range processList {
 		cmd, err := ps.Cmdline() // 无cmd的进程 没有采集指标的意义
 		if err != nil || cmd == "" {
@@ -508,6 +511,7 @@ func (p *Input) WriteMetric(processList []*pr.Process, procRec *procRecorder, tn
 		for k, v := range p.Tags {
 			tags[k] = v
 		}
+		tags = inputs.MergeTags(p.Tagger.HostTags(), tags, "")
 		metric := &ProcessMetric{
 			name:   inputName,
 			tags:   tags,
@@ -517,20 +521,25 @@ func (p *Input) WriteMetric(processList []*pr.Process, procRec *procRecorder, tn
 		if len(fields) == 0 {
 			continue
 		}
-		collectCache = append(collectCache, metric)
+		collectCache = append(collectCache, metric.Point())
 	}
 	if len(collectCache) == 0 {
 		return
 	}
-	if err := inputs.FeedMeasurement(inputName+"/metric",
-		datakit.Metric,
+
+	if err := p.feeder.Feed(inputName+"/metric",
+		point.Metric,
 		collectCache,
-		&io.Option{CollectCost: time.Since(tn)}); err != nil {
+		&dkio.Option{CollectCost: time.Since(tn)}); err != nil {
 		l.Errorf("FeedMeasurement err :%s", err.Error())
 		p.lastErr = err
 	}
+
 	if p.lastErr != nil {
-		io.FeedLastError(inputName, p.lastErr.Error(), point.Metric)
+		p.feeder.FeedLastError(p.lastErr.Error(),
+			dkio.WithLastErrorInput(inputName),
+			dkio.WithLastErrorCategory(point.Metric),
+		)
 		p.lastErr = nil
 	}
 }
@@ -549,14 +558,20 @@ func getListeningPortsJSON(proc *pr.Process) ([]byte, error) {
 	return json.Marshal(listening)
 }
 
+func defaultInput() *Input {
+	return &Input{
+		ObjectInterval: datakit.Duration{Duration: 5 * time.Minute},
+		MetricInterval: datakit.Duration{Duration: 30 * time.Second},
+
+		semStop: cliutils.NewSem(),
+		Tags:    make(map[string]string),
+		feeder:  dkio.DefaultFeeder(),
+		Tagger:  dkpt.DefaultGlobalTagger(),
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{
-			ObjectInterval: datakit.Duration{Duration: 5 * time.Minute},
-			MetricInterval: datakit.Duration{Duration: 30 * time.Second},
-
-			semStop: cliutils.NewSem(),
-			Tags:    make(map[string]string),
-		}
+		return defaultInput()
 	})
 }
