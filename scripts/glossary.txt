@@ -125,6 +125,10 @@ Websphere
 xpack
 zhangsan
 Zipkin
+NetFlow
+netflow
+sflow
+ipfix
 
 # 缩写
 CNCF

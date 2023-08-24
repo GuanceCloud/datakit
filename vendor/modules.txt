@@ -1083,6 +1083,9 @@ github.com/leodido/go-urn
 github.com/lib/pq
 github.com/lib/pq/oid
 github.com/lib/pq/scram
+# github.com/libp2p/go-reuseport v0.3.0
+## explicit; go 1.19
+github.com/libp2p/go-reuseport
 # github.com/lucasb-eyer/go-colorful v1.2.0
 ## explicit; go 1.12
 github.com/lucasb-eyer/go-colorful
@@ -1156,6 +1159,20 @@ github.com/mwitkow/go-conntrack
 # github.com/naoina/go-stringutil v0.1.0
 ## explicit
 github.com/naoina/go-stringutil
+# github.com/netsampler/goflow2 v1.3.5
+## explicit; go 1.18
+github.com/netsampler/goflow2/decoders
+github.com/netsampler/goflow2/decoders/netflow
+github.com/netsampler/goflow2/decoders/netflow/templates
+github.com/netsampler/goflow2/decoders/netflow/templates/memory
+github.com/netsampler/goflow2/decoders/netflowlegacy
+github.com/netsampler/goflow2/decoders/sflow
+github.com/netsampler/goflow2/decoders/utils
+github.com/netsampler/goflow2/format
+github.com/netsampler/goflow2/pb
+github.com/netsampler/goflow2/producer
+github.com/netsampler/goflow2/transport
+github.com/netsampler/goflow2/utils
 # github.com/oklog/run v1.1.0
 ## explicit; go 1.13
 github.com/oklog/run
@@ -1214,11 +1231,11 @@ github.com/ory/dockertest/v3/docker/types/network
 github.com/ory/dockertest/v3/docker/types/registry
 github.com/ory/dockertest/v3/docker/types/strslice
 github.com/ory/dockertest/v3/docker/types/versions
-# github.com/oschwald/geoip2-golang v1.7.0
-## explicit; go 1.17
+# github.com/oschwald/geoip2-golang v1.9.0
+## explicit; go 1.19
 github.com/oschwald/geoip2-golang
-# github.com/oschwald/maxminddb-golang v1.9.0
-## explicit; go 1.17
+# github.com/oschwald/maxminddb-golang v1.11.0
+## explicit; go 1.19
 github.com/oschwald/maxminddb-golang
 # github.com/pborman/ansi v1.0.0
 ## explicit
@@ -1415,7 +1432,7 @@ github.com/shirou/gopsutil/v3/process
 # github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4
 ## explicit
 github.com/shirou/w32
-# github.com/sirupsen/logrus v1.9.0
+# github.com/sirupsen/logrus v1.9.3
 ## explicit; go 1.13
 github.com/sirupsen/logrus
 # github.com/spf13/cast v1.5.0

@@ -137,7 +137,7 @@ func (v *verifier) verifyDataSection(offsets map[uint]bool) error {
 	var offset uint
 	bufferLen := uint(len(decoder.buffer))
 	for offset < bufferLen {
-		var data interface{}
+		var data any
 		rv := reflect.ValueOf(&data)
 		newOffset, err := decoder.decode(offset, rv, 0)
 		if err != nil {
@@ -157,11 +157,14 @@ func (v *verifier) verifyDataSection(offsets map[uint]bool) error {
 
 		pointer := offset
 
-		if _, ok := offsets[pointer]; ok {
-			delete(offsets, pointer)
-		} else {
-			return newInvalidDatabaseError("found data (%v) at %v that the search tree does not point to", data, pointer)
+		if _, ok := offsets[pointer]; !ok {
+			return newInvalidDatabaseError(
+				"found data (%v) at %v that the search tree does not point to",
+				data,
+				pointer,
+			)
 		}
+		delete(offsets, pointer)
 
 		offset = newOffset
 	}
@@ -186,8 +189,8 @@ func (v *verifier) verifyDataSection(offsets map[uint]bool) error {
 
 func testError(
 	field string,
-	expected interface{},
-	actual interface{},
+	expected any,
+	actual any,
 ) error {
 	return newInvalidDatabaseError(
 		"%v - Expected: %v Actual: %v",

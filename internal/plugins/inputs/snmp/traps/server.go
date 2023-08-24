@@ -16,7 +16,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/gosnmp/gosnmp"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmputil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 )
 
 const (
@@ -111,7 +111,7 @@ func checkDefaultConfig(c *TrapsServerOpt, agentHostName string) error {
 		c.Namespace = defaultNamespace
 	}
 	var err error
-	c.Namespace, err = snmputil.NormalizeNamespace(c.Namespace)
+	c.Namespace, err = dkstring.NormalizeNamespace(c.Namespace)
 	if err != nil {
 		return fmt.Errorf("unable to load config: %w", err)
 	}
