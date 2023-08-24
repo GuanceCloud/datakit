@@ -341,7 +341,7 @@ We can easily copy and modify the [built-in CDN Dict](built-in_cdn_dict_config.m
 
 ## RUM Session Replay {#rum-session-replay}
 
-Starting from version [:octicons-tag-24: Version-1.5.5](../datakit/changelog.md#cl-1.5.5), Datakit support to collect the data of RUM Session Replay. It needs you to add item `session_replay_endpoints` to RUM configuration as bellow and then restart Datakit. 
+As of version [:octicons-tag-24: Version-1.5.5](../datakit/changelog.md#cl-1.5.5), Datakit support to collect the data of RUM Session Replay. It needs you to add item `session_replay_endpoints` to RUM configuration as bellow and then restart Datakit. 
 
 ```toml
 [[inputs.rum]]
@@ -356,6 +356,8 @@ Starting from version [:octicons-tag-24: Version-1.5.5](../datakit/changelog.md#
   ...
 ```
 
+<!-- markdownlint-disable MD046 -->
 ???+ info
 
-    RUM configuration file is located at `/usr/local/datakit/conf.d/rum/rum.conf` by default, depending on the operating system you use and the installation location of the Datakit.
+    RUM configuration file is located at */usr/local/datakit/conf.d/rum/rum.conf*(Linux/macOS) and *C:\\Program Files\\datakit\\conf.d\\rum*（Windows） by default, which depend on the operating system you use and the installation location of Datakit.
+<!-- markdownlint-enable -->
