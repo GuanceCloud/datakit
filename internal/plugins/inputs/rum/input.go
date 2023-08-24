@@ -113,15 +113,6 @@ const (
 	Telemetry = "telemetry"
 )
 
-var defaultCaptureMetrics = []string{
-	View,
-	Resource,
-	Error,
-	LongTask,
-	Action,
-	Telemetry,
-}
-
 var (
 	log        = logger.DefaultSLogger(inputName)
 	wkpool     *workerpool.WorkerPool
@@ -425,13 +416,9 @@ func (ipt *Input) loadCDNListConf() error {
 	return nil
 }
 
-func (ipt *Input) InitMeasurementMap() {
+func (ipt *Input) initMeasurementMap() {
 	if ipt.measurementMap == nil {
-		if len(ipt.Measurements) == 0 {
-			ipt.Measurements = defaultCaptureMetrics
-		}
 		ipt.measurementMap = make(map[string]struct{}, len(ipt.Measurements))
-
 		for _, measure := range ipt.Measurements {
 			ipt.measurementMap[measure] = struct{}{}
 		}
@@ -443,7 +430,7 @@ func (ipt *Input) Run() {
 
 	metrics.MustRegister(ClientRealIPCounter, sourceMapCount, loadedZipGauge, sourceMapDurationSummary)
 
-	ipt.InitMeasurementMap()
+	ipt.initMeasurementMap()
 	log.Infof("captured measurements are: %s", strings.Join(ipt.Measurements, ","))
 
 	if err := ipt.extractArchives(true); err != nil {
@@ -540,6 +527,14 @@ func defaultInput() *Input {
 	return &Input{
 		feeder:     dkio.DefaultFeeder(),
 		rumDataDir: datakit.DataRUMDir,
+		Measurements: []string{
+			View,
+			Resource,
+			Error,
+			LongTask,
+			Action,
+			Telemetry,
+		},
 	}
 }
 
