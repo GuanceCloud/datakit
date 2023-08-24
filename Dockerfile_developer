@@ -1,4 +1,4 @@
-FROM pubrepo.guance.com/base/ubuntu:18.04 AS base
+FROM pubrepo.guance.com/base/ubuntu:20.04 AS base
 
 ARG TARGETARCH
 
@@ -9,7 +9,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
   && apt-get install -y gcc \
   && if [ "${TARGETARCH}" = "amd64" ]; then apt-get install -y gcc-multilib ; fi
 
-ENV DK_BUILD_GO_VERSION=1.18.3
+ENV DK_BUILD_GO_VERSION=1.19.12
 
 RUN curl -Lo go${DK_BUILD_GO_VERSION}.linux-${TARGETARCH}.tar.gz  https://go.dev/dl/go${DK_BUILD_GO_VERSION}.linux-${TARGETARCH}.tar.gz \
   && rm -rf /usr/local/go \
@@ -20,13 +20,15 @@ RUN curl -Lo go${DK_BUILD_GO_VERSION}.linux-${TARGETARCH}.tar.gz  https://go.dev
 
 ENV PATH=$PATH:/usr/local/go${DK_BUILD_GO_VERSION}/bin GOROOT=/usr/local/go${DK_BUILD_GO_VERSION}
 
-RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.2 \
-  && go install github.com/gobuffalo/packr/v2/packr2@latest \
+RUN curl -Lo golangci-lint-1.46.2-linux-${TARGETARCH}.deb \
+    https://github.com/golangci/golangci-lint/releases/download/v1.46.2/golangci-lint-1.46.2-linux-${TARGETARCH}.deb \
+  && dpkg -i golangci-lint-1.46.2-linux-${TARGETARCH}.deb \
+  && rm -f golangci-lint-1.46.2-linux-${TARGETARCH}.deb \
   && go install mvdan.cc/gofumpt@latest \
   && go install golang.org/x/tools/cmd/goyacc@latest \
   && cp -r $HOME/go/bin/* /usr/local/bin
 
-ENV KERNEL_SRC_VERSION=5.4.0-99-generic
+ENV KERNEL_SRC_VERSION=5.8.0-63-generic
 ENV DK_BPF_KERNEL_SRC_PATH=/usr/src/linux-headers-${KERNEL_SRC_VERSION}
 
 RUN mkdir -p /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/ \
