@@ -1,6 +1,41 @@
 # 更新日志
 ---
 
+## 1.14.0(2023/08/24) {#cl-1.14.0}
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.14.0-new}
+
+- 新增采集器 [NetFlow](../integrations/netflow.md)（#1821）
+- 新增[黑名单调试器](datakit-tools-how-to.md#debug-filter)（#1787）
+- 新增 Kubernetes StatefulSet 指标和对象采集，新增 `replicas_desired` 对象字段（#1822）
+- 新增 [DK_LITE](datakit-install.md#lite-install) 环境变量，用于安装 DataKit 精简版（#123）
+
+### 问题修复 {#cl-1.14.0-fix}
+
+- 修复 container 和 Kubernetes 采集没有正确添加 HostTags 和 ElectionTags 的问题（#1833）
+- 修复 [MySQL](../integrations/mysql.md#input-config) 自定义采集 Tags 为空时指标无法采集的问题（#1835）
+
+### 功能优化 {#cl-1.14.0-opt}
+
+- 增加 System 采集器中的 [process_count](../integrations/system.md#metric) 指标表示当前机器的进程数（#1838）
+- 去掉 Process 采集器中的 [open_files_list](../integrations/host_processes.md#object) 字段（#1838）
+- 增加[主机对象](../integrations/hostobject.md#faq)采集器文档中指标丢失的处理案例（#1838）
+- 优化 Datakit 视图，完善 Datakit Prometheus 指标文档
+- 优化 Pod/容器 日志采集的 [mount 方式](container-log.md#logging-with-inside-config) (#1844)
+- 增加 Process、System 采集器集成测试（#1841/#1842）
+- 优化 etcd 集成测试（#1847）
+- 升级 Golang 1.19.12（#1516）
+- 增加通过 `ash` 命令[安装 DataKit](datakit-install.md#get-install) (#123)
+- [RUM 采集](../integrations/rum.md)支持自定义指标集，默认的指标集新增 `telemetry`（#1843）
+
+### 兼容调整 {#cl-1.14.0-brk}
+
+- 移除 Datakit 端的 Sinker 功能，将其功能转移到 [Dataway 侧实现](dataway-sink.md)（#1801）
+- 移除 Kubernetes Deployment 指标数据的 `pasued` 和 `condition` 字段，新增对象数据 `paused` 字段
+
+---
+
 ## 1.13.2(2023/08/15) {#cl-1.13.2}
 
 ### 问题修复 {#cl-1.13.2-fix}

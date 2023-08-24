@@ -1,6 +1,41 @@
 # Changelog
 ---
 
+
+## 1.14.0 (2023/08/24) {#cl-1.14.0}
+
+This release is an iterative release, mainly including the following updates:
+
+### New features {#cl-1.12.0-new}
+
+- Added collector [NetFlow](../integrations/netflow.md) (#1821)
+- Added [Filter(Blacklist) Debugger](datakit-tools-how-to.md#debug-filter) (#1787)
+- Added Kubernetes StatefulSet metrics and object collection, added `replicas_desired` object field (#1822)
+- Added [DK_LITE](datakit-install.md#lite-install) environment variable for installing DataKit Lite (#123)
+
+### Bug fixes {#cl-1.14.0-fix}
+
+- Fixed the problem that container and Kubernetes collection did not add HostTags and ElectionTags correctly (#1833)
+- Fixed [MySQL](../integrations/mysql.md#input-config) the problem that the indicator cannot be collected when the custom collection Tags is empty (#1835)
+
+### Function optimization {#cl-1.14.0-opt}
+
+- Added the [process_count](../integrations/system.md#metric) metric in the System collector to indicate the number of processes on the current machine (#1838)
+- Remove [open_files_list](../integrations/host_processes.md#object) field in Process collector (#1838)
+- Added the handling case of index loss in the collector document of [host object](../integrations/hostobject.md#faq) (#1838)
+- Optimize the Datakit view and improve the Datakit Prometheus indicator documentation
+- Optimize the [mount method] of Pod/container log collection (container-log.md#logging-with-inside-config) (#1844)
+- Add Process and System collector integration tests (#1841/#1842)
+- Optimize etcd integration tests (#1847)
+- Upgrade Golang 1.19.12 (#1516)
+- Added [Install DataKit] via `ash` command (datakit-install.md#get-install) (#123)
+- [RUM](../integrations/rum.md) supports custom indicator set, the default indicator set adds `telemetry` (#1843)
+
+### Compatibility adjustments {#cl-1.14.0-brk}
+
+- Remove the Sinker function on the Datakit side and transfer its function to [Dataway side implementation](dataway-sink.md) (#1801)
+- Remove `pasued` and `condition` fields from Kubernetes Deployment metrics data, and add object data `paused` field
+
 ## 1.13.2 (2023/08/15) {#cl-1.13.2}
 
 ### Bug fixes {#cl-1.13.2-fix}

@@ -177,6 +177,7 @@ ulimit = 64000
   # Customer tag or field keys that will extract from exist points
   # to build the X-Global-Tags HTTP header value.
   global_customer_keys = []
+  enable_sinker        = false # disable sinker
 
 ################################################
 # Datakit logging configure
