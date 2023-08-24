@@ -266,6 +266,9 @@ func (c *ptChecker) checkOnDoc(pt *point.Point) {
 	for _, v := range c.optionalFields {
 		if len(v) > 0 {
 			mGotFields[v] = struct{}{}
+			if _, ok := c.mInfo.Fields[v]; !ok {
+				c.mInfo.Fields[v] = struct{}{}
+			}
 		}
 	}
 	if len(c.mInfo.Fields) != len(mGotFields) {
@@ -335,7 +338,9 @@ func (c *ptChecker) checkOnDoc(pt *point.Point) {
 
 				// TODO: check metric type(gauge/count) and unit.
 			default:
-				c.addMsg(fmt.Sprintf("missing type info on field %q", key))
+				if !c.isOptionalField(key) {
+					c.addMsg(fmt.Sprintf("missing type info on field %q", key))
+				}
 			}
 		}
 	}

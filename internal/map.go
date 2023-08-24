@@ -14,3 +14,12 @@ func CopyMapString(in map[string]string) map[string]string {
 	}
 	return out
 }
+
+// CopyMapStringInterface returns a copy of incoming map[string]interface{}.
+func CopyMapStringInterface(in map[string]interface{}) map[string]interface{} {
+	out := make(map[string]interface{}, len(in))
+	for k, v := range in {
+		out[k] = v
+	}
+	return out
+}

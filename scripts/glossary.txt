@@ -197,6 +197,14 @@ unroutable
 wakeup
 wakeups
 dialtesting
+bboltdb
+unsynced
+defrag
+txns
+fsyncing
+goroutines
+mallocs
+mspan
 
 # 连词
 golangci
