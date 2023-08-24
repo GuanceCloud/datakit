@@ -91,7 +91,7 @@ log.Println(m.LineProto()) // get line-protocol format of metrics
 
 ## Prometheus 指标
 
-所有指标均有如下 label：
+所有指标可选的 label 列表如下：
 
 | label                | 取值               | 说明                                                          |
 | ---                  | ---                | ---                                                           |
@@ -103,26 +103,26 @@ log.Println(m.LineProto()) // get line-protocol format of metrics
 
 指标列表如下：
 
-| 指标                          | 类型    | 说明                                                           |
-| ---                           | ---     | ---                                                            |
-| diskcache_batch_size          | gauge   | HELP diskcache_batch_size data file size(in bytes)             |
-| diskcache_capacity            | gauge   | current capacity(in bytes)                                     |
-| diskcache_datafiles           | gauge   | current un-readed data files                                   |
-| diskcache_dropped_bytes_total | counter | dropped bytes during Put() when capacity reached               |
-| diskcache_dropped_total       | counter | dropped files during Put() when capacity reached               |
-| diskcache_get_bytes_total     | counter | cache Get() bytes count                                        |
-| diskcache_get_latency_sum     | summary | Get() time cost(micro-second)                                  |
-| diskcache_get_latency_count   | summary | Get() time cost(micro-second)                                  |
-| diskcache_get_total           | counter | cache Get() count                                              |
-| diskcache_max_data            | gauge   | max data to Put(in bytes), default 0                           |
-| diskcache_open_time           | gauge   | current cache Open time in unix timestamp(second)              |
-| diskcache_put_bytes_total     | counter | cache Put() bytes count                                        |
-| diskcache_put_latency_sum     | summary | Put() time cost(micro-second)                                  |
-| diskcache_put_latency_count   | summary | Put() time cost(micro-second)                                  |
-| diskcache_put_total           | counter | cache Put() count                                              |
-| diskcache_rotate_total        | counter | cache rotate count, mean file rotate from data to data.0000xxx |
-| diskcache_wakeup_total        | counter | total wakeup count                                             |
-| diskcache_size                | gauge   | current cache size(in bytes)                                   |
+| TYPE    | NAME                            | LABELS                                             | HELP                                                                     |
+| ---     | ---                             | ---                                                | ---                                                                      |
+| COUNTER | `diskcache_put_bytes_total`     | `path`                                             | Cache Put() bytes count                                                  |
+| COUNTER | `diskcache_get_total`           | `path`                                             | Cache Get() count                                                        |
+| COUNTER | `diskcache_wakeup_total`        | `path`                                             | Wakeup count on sleeping write file                                      |
+| COUNTER | `diskcache_get_bytes_total`     | `path`                                             | Cache Get() bytes count                                                  |
+| GAUGE   | `diskcache_capacity`            | `path`                                             | Current capacity(in bytes)                                               |
+| GAUGE   | `diskcache_max_data`            | `path`                                             | Max data to Put(in bytes), default 0                                     |
+| GAUGE   | `diskcache_batch_size`          | `path`                                             | Data file size(in bytes)                                                 |
+| GAUGE   | `diskcache_size`                | `path`                                             | Current cache size(in bytes)                                             |
+| GAUGE   | `diskcache_open_time`           | `no_fallback_on_error,no_lock,no_pos,no_sync,path` | Current cache Open time in unix timestamp(second)                        |
+| GAUGE   | `diskcache_last_close_time`     | `path`                                             | Current cache last Close time in unix timestamp(second)                  |
+| GAUGE   | `diskcache_datafiles`           | `path`                                             | Current un-readed data files                                             |
+| SUMMARY | `diskcache_get_latency`         | `path`                                             | Get() time cost(micro-second)                                            |
+| SUMMARY | `diskcache_put_latency`         | `path`                                             | Put() time cost(micro-second)                                            |
+| COUNTER | `diskcache_dropped_bytes_total` | `path`                                             | Dropped bytes during Put() when capacity reached.                        |
+| COUNTER | `diskcache_dropped_total`       | `path`                                             | Dropped files during Put() when capacity reached.                        |
+| COUNTER | `diskcache_rotate_total`        | `path`                                             | Cache rotate count, mean file rotate from data to data.0000xxx           |
+| COUNTER | `diskcache_remove_total`        | `path`                                             | Removed file count, if some file read EOF, remove it from un-readed list |
+| COUNTER | `diskcache_put_total`           | `path`                                             | Cache Put() count                                                        |
 
 ## 性能估算
 

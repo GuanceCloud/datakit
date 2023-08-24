@@ -91,8 +91,8 @@ func WithExtraCapacity(size int64) CacheOption {
 	return func(c *DiskCache) {
 		if c.capacity+size > 0 {
 			c.capacity += size
-			if len(c.labels) == len(expLabels) {
-				capVec.WithLabelValues(c.labels...).Set(float64(c.capacity))
+			if c.path != "" {
+				capVec.WithLabelValues(c.path).Set(float64(c.capacity))
 			}
 		}
 	}

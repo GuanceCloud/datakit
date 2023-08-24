@@ -30,9 +30,9 @@ func (c *DiskCache) rotate() error {
 	defer c.rwlock.Unlock()
 
 	defer func() {
-		rotateVec.WithLabelValues(c.labels...).Inc()
-		sizeVec.WithLabelValues(c.labels...).Set(float64(c.size))
-		datafilesVec.WithLabelValues(c.labels...).Set(float64(len(c.dataFiles)))
+		rotateVec.WithLabelValues(c.path).Inc()
+		sizeVec.WithLabelValues(c.path).Set(float64(c.size))
+		datafilesVec.WithLabelValues(c.path).Set(float64(len(c.dataFiles)))
 	}()
 
 	eof := make([]byte, dataHeaderLen)
@@ -91,9 +91,9 @@ func (c *DiskCache) removeCurrentReadingFile() error {
 	defer c.rwlock.Unlock()
 
 	defer func() {
-		sizeVec.WithLabelValues(c.labels...).Set(float64(c.size))
-		removeVec.WithLabelValues(c.labels...).Inc()
-		datafilesVec.WithLabelValues(c.labels...).Set(float64(len(c.dataFiles)))
+		sizeVec.WithLabelValues(c.path).Set(float64(c.size))
+		removeVec.WithLabelValues(c.path).Inc()
+		datafilesVec.WithLabelValues(c.path).Set(float64(len(c.dataFiles)))
 	}()
 
 	if c.rfd != nil {

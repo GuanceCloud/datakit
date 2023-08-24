@@ -38,27 +38,4 @@ these metrics.
 
 ## Measurements {#metric}
 
-For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration through `[inputs.cpu.tags]`:
-
-``` toml
- [inputs.cpu.tags]
-  # some_tag = "some_value"
-  # more_tag = "some_other_value"
-  # ...
-```
-
-{{ range $i, $m := .Measurements }}
-
-### `{{$m.Name}}`
-
-{{$m.Desc}}
-
-- tag
-
-{{$m.TagsMarkdownTable}}
-
-- Metric list
-
-{{$m.FieldsMarkdownTable}}
-
-{{ end }}
+Datakit exported Prometheus metrics, see [here](../datakit/datakit-metrics.md) for full metric list.

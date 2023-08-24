@@ -1,6 +1,6 @@
 module gitlab.jiagouyun.com/cloudcare-tools/datakit
 
-go 1.18
+go 1.19
 
 require (
 	github.com/BurntSushi/toml v1.2.1
@@ -8,7 +8,7 @@ require (
 	github.com/DataDog/datadog-go v4.8.3+incompatible
 	github.com/DataDog/ebpf v0.0.0-20210419131141-ea64821c9793
 	github.com/DataDog/gopsutil v1.1.0
-	github.com/GuanceCloud/cliutils v0.1.5-0.20230821054931-f02fe08daf8c
+	github.com/GuanceCloud/cliutils v0.1.5-0.20230823055427-7132a0577d92
 	github.com/GuanceCloud/confd v0.1.101
 	github.com/GuanceCloud/grok v1.1.2
 	github.com/GuanceCloud/platypus v0.2.7

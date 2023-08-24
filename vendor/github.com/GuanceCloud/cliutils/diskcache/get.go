@@ -34,17 +34,17 @@ func (c *DiskCache) Get(fn Fn) error {
 
 	defer func() {
 		if uint32(nbytes) != EOFHint {
-			getBytesVec.WithLabelValues(c.labels...).Add(float64(nbytes))
+			getBytesVec.WithLabelValues(c.path).Add(float64(nbytes))
 
 			// get on EOF not counted as a real Get
-			getVec.WithLabelValues(c.labels...).Inc()
-			getLatencyVec.WithLabelValues(c.labels...).Observe(float64(time.Since(start) / time.Microsecond))
+			getVec.WithLabelValues(c.path).Inc()
+			getLatencyVec.WithLabelValues(c.path).Observe(float64(time.Since(start) / time.Microsecond))
 		}
 	}()
 
 	// wakeup sleeping write file, rotate it for succession reading!
 	if time.Since(c.wfdLastWrite) > c.wakeup && c.curBatchSize > 0 {
-		wakeupVec.WithLabelValues(c.labels...).Inc()
+		wakeupVec.WithLabelValues(c.path).Inc()
 
 		if err = func() error {
 			c.wlock.Lock()

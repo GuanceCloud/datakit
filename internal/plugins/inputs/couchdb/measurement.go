@@ -22,6 +22,7 @@ func (m *Measurement) LineProto() (*dkpt.Point, error) {
 
 // Info ...
 // See also: all *.cfg file in https://github.com/apache/couchdb
+//
 //nolint:lll
 func (m *Measurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{

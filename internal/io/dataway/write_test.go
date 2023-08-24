@@ -142,17 +142,17 @@ func TestWriteWithCache(t *T.T) {
 
 		t.Logf("metrics: %s", metrics.MetricFamily2Text(mfs))
 
-		m := metrics.GetMetricOnLabels(mfs, "diskcache_get_total", fc.Labels()...)
+		m := metrics.GetMetricOnLabels(mfs, "diskcache_get_total", p)
 		// only 1 get(in dw.Write with-cache-clean)
 		assert.Equal(t, 1.0, m.GetCounter().GetValue())
 
 		// 1 put(dw.Write with-cache-clean failed do not add another Put)
-		m = metrics.GetMetricOnLabels(mfs, "diskcache_put_total", fc.Labels()...)
+		m = metrics.GetMetricOnLabels(mfs, "diskcache_put_total", p)
 		assert.Equal(t, 1.0, m.GetCounter().GetValue())
 
 		// put-bytes twice as get-bytes
-		mput := metrics.GetMetricOnLabels(mfs, "diskcache_put_bytes_total", fc.Labels()...).GetCounter().GetValue()
-		mget := metrics.GetMetricOnLabels(mfs, "diskcache_get_bytes_total", fc.Labels()...).GetCounter().GetValue()
+		mput := metrics.GetMetricOnLabels(mfs, "diskcache_put_bytes_total", p).GetCounter().GetValue()
+		mget := metrics.GetMetricOnLabels(mfs, "diskcache_get_bytes_total", p).GetCounter().GetValue()
 		assert.Equal(t, 1.0, mput/mget)
 
 		t.Cleanup(func() {

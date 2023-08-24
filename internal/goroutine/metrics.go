@@ -23,7 +23,7 @@ func metricsSetup() {
 			Namespace: "datakit",
 			Subsystem: "goroutine",
 			Name:      "alive",
-			Help:      "Alive Goroutines",
+			Help:      "Alive Goroutine count",
 		},
 		[]string{
 			"name",
@@ -35,7 +35,7 @@ func metricsSetup() {
 			Namespace: "datakit",
 			Subsystem: "goroutine",
 			Name:      "stopped_total",
-			Help:      "Stopped Goroutines",
+			Help:      "Stopped Goroutine count",
 		},
 		[]string{
 			"name",

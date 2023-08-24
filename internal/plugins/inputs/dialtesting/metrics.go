@@ -43,7 +43,7 @@ func metricsSetup() {
 			Namespace: "datakit",
 			Subsystem: "dialtesting",
 			Name:      "dataway_send_failed_number",
-			Help:      "The number of failed sending for each dataway",
+			Help:      "The number of failed sending for each Dataway",
 		},
 		[]string{"region", "protocol", "dataway"},
 	)
@@ -103,7 +103,7 @@ func metricsSetup() {
 			Namespace: "datakit",
 			Subsystem: "dialtesting",
 			Name:      "worker_job_chan_number",
-			Help:      "The number of the chan for the jobs",
+			Help:      "The number of the channel for the jobs",
 		},
 		[]string{"type"},
 	)
