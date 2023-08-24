@@ -41,17 +41,20 @@ func composeReplicasetMetric(list *apiappsv1.ReplicaSetList) []measurement {
 		met := typed.NewPointKV()
 
 		met.SetTag("uid", fmt.Sprintf("%v", item.UID))
-		met.SetTag("replica_set", item.Name)
+		met.SetTag("replicaset", item.Name)
+		met.SetTag("replica_set", item.Name) // Deprecated
 		met.SetTag("namespace", item.Namespace)
 
-		met.SetField("fully_labeled_replicas", item.Status.FullyLabeledReplicas)
 		met.SetField("replicas", item.Status.Replicas)
 		met.SetField("replicas_ready", item.Status.ReadyReplicas)
+		met.SetField("replicas_available", item.Status.AvailableReplicas)
+		met.SetField("fully_labeled_replicas", item.Status.FullyLabeledReplicas)
 
 		if item.Spec.Replicas != nil {
 			met.SetField("replicas_desired", *item.Spec.Replicas)
 		}
 
+		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
 		res = append(res, &replicasetMetric{met})
 	}
 
@@ -73,19 +76,32 @@ func composeReplicasetObject(list *apiappsv1.ReplicaSetList) []measurement {
 		obj := typed.NewPointKV()
 
 		obj.SetTag("name", fmt.Sprintf("%v", item.UID))
-		obj.SetTag("replica_set_name", item.Name)
+		obj.SetTag("uid", fmt.Sprintf("%v", item.UID))
+		obj.SetTag("replicaset_name", item.Name)
+		obj.SetTag("replica_set_name", item.Name) // Deprecated
 		obj.SetTag("namespace", item.Namespace)
 
-		for _, ref := range item.OwnerReferences {
-			if ref.Kind == "Deployment" {
-				obj.SetTag("deployment", ref.Name)
-				break
+		if len(item.OwnerReferences) != 0 {
+			switch item.OwnerReferences[0].Kind {
+			case "Deployment":
+				obj.SetTag("deployment", item.OwnerReferences[0].Name)
+			case "StatefulSet":
+				obj.SetTag("statefulset", item.OwnerReferences[0].Name)
+			default:
+				// nil
 			}
 		}
 
 		obj.SetField("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3)
-		obj.SetField("ready", item.Status.ReadyReplicas)
-		obj.SetField("available", item.Status.AvailableReplicas)
+		obj.SetField("replicas", item.Status.Replicas)
+		obj.SetField("replicas_ready", item.Status.ReadyReplicas)
+		obj.SetField("replicas_available", item.Status.AvailableReplicas)
+		obj.SetField("ready", item.Status.ReadyReplicas)         // Deprecated
+		obj.SetField("available", item.Status.AvailableReplicas) // Deprecated
+
+		if item.Spec.Replicas != nil {
+			obj.SetField("replicas_desired", *item.Spec.Replicas)
+		}
 
 		if y, err := yaml.Marshal(item); err == nil {
 			obj.SetField("yaml", string(y))
@@ -97,6 +113,7 @@ func composeReplicasetObject(list *apiappsv1.ReplicaSetList) []measurement {
 		obj.DeleteField("annotations")
 		obj.DeleteField("yaml")
 
+		obj.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
 		res = append(res, &replicasetObject{obj})
 	}
 
@@ -120,15 +137,17 @@ func (*replicasetMetric) Info() *inputs.MeasurementInfo {
 		Desc: "The metric of the Kubernetes ReplicaSet.",
 		Type: "metric",
 		Tags: map[string]interface{}{
-			"uid":         inputs.NewTagInfo("The UID of ReplicaSet."),
-			"replica_set": inputs.NewTagInfo("Name must be unique within a namespace."),
-			"namespace":   inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"uid":              inputs.NewTagInfo("The UID of ReplicaSet."),
+			"replicaset_name":  inputs.NewTagInfo("Name must be unique within a namespace."),
+			"replica_set_name": inputs.NewTagInfo("Name must be unique within a namespace. (Deprecated)"),
+			"namespace":        inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 		},
 		Fields: map[string]interface{}{
-			"replicas_desired":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Replicas is the number of desired replicas."},
-			"fully_labeled_replicas": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of fully labeled replicas per ReplicaSet."},
+			"replicas":               &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The most recently observed number of replicas."},
+			"replicas_desired":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of desired replicas."},
 			"replicas_ready":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of ready replicas for this replica set."},
-			"replicas":               &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Replicas is the most recently observed number of replicas."},
+			"replicas_available":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of available replicas (ready for at least minReadySeconds) for this replica set."},
+			"fully_labeled_replicas": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of fully labeled replicas per ReplicaSet."},
 		},
 	}
 }
@@ -151,15 +170,22 @@ func (*replicasetObject) Info() *inputs.MeasurementInfo {
 		Type: "object",
 		Tags: map[string]interface{}{
 			"name":             inputs.NewTagInfo("The UID of ReplicaSet."),
-			"replica_set_name": inputs.NewTagInfo("Name must be unique within a namespace."),
+			"uid":              inputs.NewTagInfo("The UID of ReplicaSet."),
+			"replicaset_name":  inputs.NewTagInfo("Name must be unique within a namespace."),
+			"replica_set_name": inputs.NewTagInfo("Name must be unique within a namespace. (Deprecated)"),
 			"namespace":        inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
-			"deployment":       inputs.NewTagInfo("The name of the deployment which the object belongs to."),
+			"deployment":       inputs.NewTagInfo("The name of the Deployment which the object belongs to."),
+			"statefulset":      inputs.NewTagInfo("The name of the StatefulSet which the object belongs to."),
 		},
 		Fields: map[string]interface{}{
-			"age":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "age (seconds)"},
-			"ready":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "The number of ready replicas for this replica set."},
-			"available": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "The number of available replicas (ready for at least minReadySeconds) for this replica set."},
-			"message":   &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Object details"},
+			"age":                &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},
+			"replicas":           &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The most recently observed number of replicas."},
+			"replicas_desired":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of desired replicas."},
+			"replicas_ready":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of ready replicas for this replica set."},
+			"replicas_available": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of available replicas (ready for at least minReadySeconds) for this replica set."},
+			"message":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Object details"},
+			"ready":              &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "The number of ready replicas for this replica set. (Deprecated)"},
+			"available":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "The number of available replicas (ready for at least minReadySeconds) for this replica set. (Deprecated)"},
 		},
 	}
 }

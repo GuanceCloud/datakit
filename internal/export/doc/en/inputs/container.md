@@ -191,6 +191,14 @@ For all of the following data collections, a global tag named `host` is appended
 
 {{ end }}
 
+## Link Dataway Sink Function {#link-dataway-sink}
+
+Dataway Sink [see documentation](dataway-sink.md#sink-intro).
+
+All collected Kubernetes resources will have a Label that matches the CustomerKey. For example, if the CustomerKey is `name`, DaemonSets, Deployments, Pods, and other resources will search for `name` in their own current Labels and add it to tags.
+
+Containers will add Customer Labels of the Pods they belong to.
+
 ## FAQ {#faq}
 
 ### Kubernetes YAML Sensitive Field Mask {#yaml-secret}

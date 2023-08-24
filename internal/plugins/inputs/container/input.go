@@ -15,6 +15,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
+
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 var (
@@ -54,6 +57,9 @@ type Input struct {
 
 	Tags map[string]string `toml:"tags"`
 	DeprecatedConf
+
+	Feeder dkio.Feeder
+	Tagger dkpt.GlobalTagger
 
 	semStop *cliutils.Sem // start stop signal
 	pause   *atomic.Bool
@@ -114,6 +120,8 @@ func newInput() *Input {
 		LoggingExtraSourceMap:     make(map[string]string),
 		LoggingSourceMultilineMap: make(map[string]string),
 		Election:                  true,
+		Feeder:                    dkio.DefaultFeeder(),
+		Tagger:                    dkpt.DefaultGlobalTagger(),
 		pause:                     &atomic.Bool{},
 		chPause:                   make(chan bool, inputs.ElectionPauseChannelLength),
 		semStop:                   cliutils.NewSem(),

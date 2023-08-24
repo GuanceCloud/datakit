@@ -43,6 +43,7 @@ type logInstance struct {
 
 	podName      string
 	podNamespace string
+	podLabels    map[string]string
 	ownerKind    string
 	ownerName    string
 
@@ -123,6 +124,23 @@ func (lc *logInstance) setTagsToLogConfigs(m map[string]string) {
 		for k, v := range m {
 			if _, ok := cfg.Tags[k]; !ok {
 				cfg.Tags[k] = v
+			}
+		}
+	}
+}
+
+func (lc *logInstance) setCustomerTags(m map[string]string, keys []string) {
+	if len(keys) == 0 || len(m) == 0 {
+		return
+	}
+
+	for _, cfg := range lc.configs {
+		if cfg.Tags == nil {
+			cfg.Tags = make(map[string]string)
+		}
+		for _, key := range keys {
+			if v, ok := m[key]; ok {
+				cfg.Tags[key] = v
 			}
 		}
 	}

@@ -10,11 +10,13 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"sync/atomic"
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/client"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -29,8 +31,8 @@ type Config struct {
 	EnablePodMetric             bool
 	EnableK8sEvent              bool
 	EnableExtractK8sLabelAsTags bool
-
-	ExtraTags map[string]string
+	ExtraTags                   map[string]string
+	GlobalCustomerKeys          []string
 }
 
 type Kube struct {
@@ -44,6 +46,8 @@ type Kube struct {
 	done   <-chan interface{}
 }
 
+var getGlobalCustomerKeys = func() []string { return nil }
+
 func NewKubeCollector(client client.Client, cfg *Config, paused func() bool, done <-chan interface{}) (*Kube, error) {
 	klog = logger.SLogger("k8s")
 
@@ -52,6 +56,10 @@ func NewKubeCollector(client client.Client, cfg *Config, paused func() bool, don
 	}
 	if cfg == nil {
 		return nil, fmt.Errorf("invalid kubernetes collector config, cannot be nil")
+	}
+
+	getGlobalCustomerKeys = func() []string {
+		return cfg.GlobalCustomerKeys
 	}
 
 	return &Kube{
@@ -73,34 +81,44 @@ func (k *Kube) Metric() ([]inputs.Measurement, error) {
 		return nil, nil
 	}
 
+	counterWithName := make(map[string]map[string]int) // example: map["pod"]["kube-system"] = 10
 	var res []inputs.Measurement
+	var mu sync.Mutex
 
-	// example: map["pod"]["kube-system"] = 10
-	counterWithName := make(map[string]map[string]int)
+	g := goroutine.NewGroup(goroutine.Option{Name: "k8s-metrics"})
 
 	for name, fn := range metricResourceList {
-		ctx := context.Background()
-		if name == "pod" {
-			ctx = context.WithValue(ctx, canCollectPodMetricsKey, k.canCollectPodMetrics)
-			ctx = context.WithValue(ctx, setExtraK8sLabelAsTagsKey, k.cfg.EnableExtractK8sLabelAsTags)
-		}
+		func(name string, fn resourceHandle) {
+			g.Go(func(_ context.Context) error {
+				ctx := context.Background()
+				if name == "pod" {
+					ctx = context.WithValue(ctx, canCollectPodMetricsKey, k.canCollectPodMetrics)
+					ctx = context.WithValue(ctx, setExtraK8sLabelAsTagsKey, k.cfg.EnableExtractK8sLabelAsTags)
+				}
 
-		meas, err := fn(ctx, k.client)
-		if err != nil {
-			klog.Warnf("failed to get %s resources, err: %s, ignored", name, err)
-			continue
-		}
+				meas, err := fn(ctx, k.client)
+				if err != nil {
+					klog.Warnf("failed to get %s resources, err: %s, ignored", name, err)
+					return nil
+				}
 
-		for _, mea := range meas {
-			mea.addExtraTags(k.cfg.ExtraTags)
-			res = append(res, mea)
+				mu.Lock()
+				for _, mea := range meas {
+					mea.addExtraTags(k.cfg.ExtraTags)
+					res = append(res, mea)
 
-			if counterWithName[name] == nil {
-				counterWithName[name] = make(map[string]int)
-			}
-			counterWithName[name][mea.namespace()]++
-		}
+					if counterWithName[name] == nil {
+						counterWithName[name] = make(map[string]int)
+					}
+					counterWithName[name][mea.namespace()]++
+				}
+				mu.Unlock()
+				return nil
+			})
+		}(name, fn)
 	}
+
+	_ = g.Wait()
 
 	ns := transToNamespaceMeasurements(counterWithName)
 	res = append(res, ns...)
@@ -113,25 +131,37 @@ func (k *Kube) Object() ([]inputs.Measurement, error) {
 	k.canCollectPodMetrics = k.verifyMetricsServerAccess()
 
 	var res []inputs.Measurement
+	var mu sync.Mutex
+
+	g := goroutine.NewGroup(goroutine.Option{Name: "k8s-object"})
 
 	for name, fn := range objectResourceList {
-		ctx := context.Background()
-		if name == "pod" {
-			ctx = context.WithValue(ctx, canCollectPodMetricsKey, k.canCollectPodMetrics)
-			ctx = context.WithValue(ctx, setExtraK8sLabelAsTagsKey, k.cfg.EnableExtractK8sLabelAsTags)
-		}
+		func(name string, fn resourceHandle) {
+			g.Go(func(_ context.Context) error {
+				ctx := context.Background()
+				if name == "pod" {
+					ctx = context.WithValue(ctx, canCollectPodMetricsKey, k.canCollectPodMetrics)
+					ctx = context.WithValue(ctx, setExtraK8sLabelAsTagsKey, k.cfg.EnableExtractK8sLabelAsTags)
+				}
 
-		meas, err := fn(ctx, k.client)
-		if err != nil {
-			klog.Warnf("failed to get %s resources, err: %s, ignored", name, err)
-			continue
-		}
+				meas, err := fn(ctx, k.client)
+				if err != nil {
+					klog.Warnf("failed to get %s resources, err: %s, ignored", name, err)
+					return nil
+				}
 
-		for _, mea := range meas {
-			mea.addExtraTags(k.cfg.ExtraTags)
-			res = append(res, mea)
-		}
+				mu.Lock()
+				for _, mea := range meas {
+					mea.addExtraTags(k.cfg.ExtraTags)
+					res = append(res, mea)
+				}
+				mu.Unlock()
+				return nil
+			})
+		}(name, fn)
 	}
+
+	_ = g.Wait()
 
 	return res, nil
 }
@@ -216,14 +246,15 @@ func (*count) Info() *inputs.MeasurementInfo {
 			"namespace": &inputs.TagInfo{Desc: "namespace"},
 		},
 		Fields: map[string]interface{}{
-			"cronjob":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "cronjob count"},
-			"daemonset":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "service count"},
-			"deployment":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "deployment count"},
-			"job":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "job count"},
-			"node":        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "node count"},
-			"pod":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "pod count"},
-			"replica_set": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "replica_set count"},
-			"service":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "service count"},
+			"cronjob":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "CronJob count"},
+			"daemonset":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "Service count"},
+			"deployment":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "Deployment count"},
+			"job":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "Job count"},
+			"node":        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "Node count"},
+			"pod":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "Pod count"},
+			"replicaset":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "ReplicaSet count"},
+			"statefulset": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "StatefulSet count"},
+			"service":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "Service count"},
 		},
 	}
 }

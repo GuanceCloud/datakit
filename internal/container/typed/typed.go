@@ -36,6 +36,17 @@ func (p PointKV) SetTags(m map[string]string) {
 	}
 }
 
+func (p PointKV) SetCustomerTags(m map[string]string, keys []string) {
+	if len(keys) == 0 || len(m) == 0 {
+		return
+	}
+	for _, key := range keys {
+		if v, ok := m[key]; ok {
+			p.SetTag(key, v)
+		}
+	}
+}
+
 func (p PointKV) SetField(key string, value interface{}) { p.fields[key] = value }
 
 func (p PointKV) SetFields(m map[string]interface{}) {

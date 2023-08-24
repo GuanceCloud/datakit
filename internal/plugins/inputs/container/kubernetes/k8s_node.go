@@ -69,6 +69,7 @@ func composeNodeMetric(list *apicorev1.NodeList) []measurement {
 		e2 := item.Status.Capacity["ephemeral-storage"]
 		met.SetField("ephemeral_storage_capacity", e2.AsApproximateFloat64())
 
+		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
 		res = append(res, &nodeMetric{met})
 	}
 
@@ -120,6 +121,7 @@ func composeNodeObject(list *apicorev1.NodeList) []measurement {
 		obj.DeleteField("annotations")
 		obj.DeleteField("yaml")
 
+		obj.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
 		res = append(res, &nodeObject{obj})
 	}
 
@@ -143,7 +145,7 @@ func (*nodeMetric) Info() *inputs.MeasurementInfo {
 		Desc: "The metric of the Kubernetes Node.",
 		Type: "metric",
 		Tags: map[string]interface{}{
-			"uid":  inputs.NewTagInfo("The UID of node."),
+			"uid":  inputs.NewTagInfo("The UID of Node."),
 			"node": inputs.NewTagInfo("Name must be unique within a namespace"),
 		},
 		Fields: map[string]interface{}{
@@ -176,8 +178,8 @@ func (*nodeObject) Info() *inputs.MeasurementInfo {
 		Desc: "The object of the Kubernetes Node.",
 		Type: "object",
 		Tags: map[string]interface{}{
-			"name":        inputs.NewTagInfo("The UID of node."),
-			"uid":         inputs.NewTagInfo("The UID of node."),
+			"name":        inputs.NewTagInfo("The UID of Node."),
+			"uid":         inputs.NewTagInfo("The UID of Node."),
 			"node_name":   inputs.NewTagInfo("Name must be unique within a namespace."),
 			"namespace":   inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 			"internal_ip": inputs.NewTagInfo("Node internal IP"),

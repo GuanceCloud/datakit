@@ -52,6 +52,7 @@ func composeEndpointMetric(list *apicorev1.EndpointsList) []measurement {
 		met.SetField("address_available", available)
 		met.SetField("address_not_ready", notReady)
 
+		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
 		res = append(res, &endpointMetric{met})
 	}
 
@@ -75,7 +76,7 @@ func (*endpointMetric) Info() *inputs.MeasurementInfo {
 		Desc: "The metric of the Kubernetes Endpoints.",
 		Type: "metric",
 		Tags: map[string]interface{}{
-			"uid":       inputs.NewTagInfo("The UID of endpoint."),
+			"uid":       inputs.NewTagInfo("The UID of Endpoint."),
 			"endpoint":  inputs.NewTagInfo("Name must be unique within a namespace."),
 			"namespace": inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 		},

@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	k8sclient "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/client"
@@ -125,12 +127,8 @@ func (i *Input) collectMetric(collectors []Collector) {
 			continue
 		}
 
-		if err := inputs.FeedMeasurement(
-			c.Name()+"-metric",
-			datakit.Metric,
-			res,
-			&io.Option{CollectCost: time.Since(start)},
-		); err != nil {
+		err = inputs.FeedMeasurement(c.Name()+"-metric", datakit.Metric, res, &io.Option{CollectCost: time.Since(start)})
+		if err != nil {
 			l.Warn("feed %s metric err: %s", c.Name(), err)
 		}
 	}
@@ -153,12 +151,8 @@ func (i *Input) collectObject(collectors []Collector) {
 			continue
 		}
 
-		if err := inputs.FeedMeasurement(
-			c.Name()+"-object",
-			datakit.Object,
-			res,
-			&io.Option{CollectCost: time.Since(start)},
-		); err != nil {
+		err = inputs.FeedMeasurement(c.Name()+"-object", datakit.Object, res, &io.Option{CollectCost: time.Since(start)})
+		if err != nil {
 			l.Warn("feed %s object err: %s", c.Name(), err)
 		}
 	}
@@ -246,12 +240,15 @@ func newCollectorsFromKubernetes(ipt *Input) (Collector, error) {
 		return nil, err
 	}
 
+	tags := inputs.MergeTags(ipt.Tagger.ElectionTags(), ipt.Tags, "")
+
 	cfg := kubernetes.Config{
 		EnableK8sMetric:             ipt.EnableK8sMetric,
 		EnablePodMetric:             ipt.EnablePodMetric,
 		EnableK8sEvent:              ipt.EnableK8sEvent,
 		EnableExtractK8sLabelAsTags: ipt.EnableExtractK8sLabelAsTags,
-		ExtraTags:                   ipt.Tags,
+		ExtraTags:                   tags,
+		GlobalCustomerKeys:          config.Cfg.Dataway.GlobalCustomerKeys,
 	}
 
 	checkPaused := func() bool {
@@ -267,12 +264,14 @@ func newDiscovery(ipt *Input) (*discovery.Discovery, error) {
 		return nil, err
 	}
 
+	tags := inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")
+
 	cfg := discovery.Config{
 		EnablePrometheusPodAnnotations:     ipt.EnableAutoDiscoveryOfPrometheusPodAnnotations,
 		EnablePrometheusServiceAnnotations: ipt.EnableAutoDiscoveryOfPrometheusServiceAnnotations,
 		EnablePrometheusPodMonitors:        ipt.EnableAutoDiscoveryOfPrometheusPodMonitors,
 		EnablePrometheusServiceMonitors:    ipt.EnableAutoDiscoveryOfPrometheusServiceMonitors,
-		ExtraTags:                          ipt.Tags,
+		ExtraTags:                          tags,
 	}
 
 	return discovery.NewDiscovery(client, &cfg, ipt.semStop.Wait()), nil
