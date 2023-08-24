@@ -12,11 +12,7 @@ before_script:
 
 variables:
   PROJECT: "datakit"
-<<<<<<< HEAD
   CI_VERSION: "1.14.0"
-=======
-  CI_VERSION: "1.13.1"
->>>>>>> hotfix
   TEST_VERSION: "1.999.0"
 
 stages:
@@ -29,7 +25,7 @@ ci_lint_and_ut:
   stage: deploy
   resource_group: production
   except:
-    #- tags # disable CI on tag push
+    - tags # disable CI on tag push
     - dev  # dev & master branches are 'merged to' branch, all things should have be done before merge, so skip these 2 branches
     - master
   script:
