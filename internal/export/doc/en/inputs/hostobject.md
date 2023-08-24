@@ -227,3 +227,9 @@ The `collectors` field is a list of objects with the following fields for each o
 | `last_err`      | For the last error message, only the errors within the last 30 seconds (inclusive) are reported. | string |
 | `last_err_time` | The last time an error was reported (Unix timestamp in seconds).        | int    |
 | `last_time`     | Last collection time (Unix timestamp in seconds)       | int    |
+
+## FAQ {#faq}
+
+### Why no `entries` and `entries_limit`, the value shows -1？ {#no-entries}
+
+Need to load `nf_conntrack` module, run `modprobe nf_conntrack` in a terminal.

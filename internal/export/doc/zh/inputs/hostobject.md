@@ -245,3 +245,9 @@ Datakit 默认开启云同步，目前支持阿里云/腾讯云/AWS/华为云/�
 | `last_err`      | 最后一次报错信息，只报告最近 30 秒（含）以内的错误 | string |
 | `last_err_time` | 最后一次报错时间（Unix 时间戳，单位为秒）          |  int   |
 | `last_time`     | 最近一次采集时间（Unix 时间戳，单位为秒）          |  int   |
+
+## FAQ {#faq}
+
+### 为什么 `entries` 和 `entries_limit` 采集不到，显示为 -1？ {#no-entries}
+
+需要加载 `nf_conntrack` 模块，终端执行 `modprobe nf_conntrack` 即可。

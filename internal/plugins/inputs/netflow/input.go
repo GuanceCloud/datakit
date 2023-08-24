@@ -163,6 +163,7 @@ func getFlows(ipt *Input) []*common.FlowOpt {
 }
 
 // NewNetflowServer configures and returns a running SNMP traps server.
+//
 //nolint:lll
 func NewNetflowServer(ipt *Input) (*Server, error) {
 	var listeners []*netflowListener

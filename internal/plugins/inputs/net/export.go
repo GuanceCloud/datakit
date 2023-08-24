@@ -7,6 +7,11 @@ package net
 
 import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 
+var (
+	_ inputs.Dashboard = (*Input)(nil)
+	_ inputs.Monitor   = (*Input)(nil)
+)
+
 func (i *Input) Dashboard(lang inputs.I18n) map[string]string {
 	switch lang {
 	case inputs.I18nZh:

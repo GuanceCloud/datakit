@@ -41,6 +41,7 @@ type ListenerConfig struct {
 }
 
 // ReadConfig builds and returns configuration from Agent configuration.
+//
 //nolint:lll
 func ReadConfig(flows []*common.FlowOpt, namespace string) (*NetflowConfig, error) {
 	var mainConfig NetflowConfig
