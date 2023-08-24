@@ -168,7 +168,7 @@ Here is a complete example:
     RUN echo 'i=0; \n\
     while true; \n\
     do \n\
-        echo "$(date +"%Y-%m-%d %H:%M:%S")  [$i]  Bash For Loop Examples. Hello, world! Testing output." >> /tmp/opt01/log; \n\
+        echo "$(date +"%Y-%m-%d %H:%M:%S")  [$i]  Bash For Loop Examples. Hello, world! Testing output." >> /tmp/opt/log; \n\
         i=$((i+1)); \n\
         sleep 1; \n\
     done \n'\
@@ -178,11 +178,10 @@ Here is a complete example:
     ## Build the image
     $ docker build -t testing/log-to-file:v1 .
     
-    ## Start the container, add the environment variable DATAKIT_LOGS_CONFIG (note the character escaping)
-    ## Unlike configuring stdout, "type" and "path" are mandatory fields.
-    ## Note that the value of "path" is "/tmp/opt02/log" instead of "/tmp/opt01/log".
-    ## "opt01" is the path inside the container, and it is actually volume as "opt02"
-    $ docker run --env DATAKIT_LOGS_CONFIG="[{\"disable\":false,\"type\":\"file\",\"path\":\"/tmp/opt02/log\",\"source\":\"testing-source\",\"service\":\"testing-service\"}]" -v /tmp/opt02:/tmp/opt01  -d testing/log-to-file:v1
+    ## Start the container, add the environment variable DATAKIT_LOGS_CONFIG (note the character escaping).
+    ## Unlike configuring stdout, "type" and "path" are mandatory fields, and add the path volume.
+    ## Path `/tmp/opt/log` add the `/tmp/opt` anonymous volumes.
+    $ docker run --env DATAKIT_LOGS_CONFIG="[{\"disable\":false,\"type\":\"file\",\"path\":\"/tmp/opt/log\",\"source\":\"testing-source\",\"service\":\"testing-service\"}]" -v /tmp/opt -d testing/log-to-file:v1
     ```
 
 
@@ -195,14 +194,14 @@ Here is a complete example:
     metadata:
       name: logging
       annotations:
-        ## Add the configuration and specify the container as logging
-        ## Configure both file and stdout collection. Note that the "path" "/tmp/opt02/log" is the volume path
+        ## Add the configuration and specify the container as logging.
+        ## Configure both file and stdout collection, need to add the emptyDir volume to "/tmp/opt" first.
         datakit/logging.logs: |
           [
             {
               "disable": false,
               "type": "file",
-              "path":"/tmp/opt02/log",
+              "path":"/tmp/opt/log",
               "source":  "logging-file",
               "tags" : {
                 "some_tag": "some_value"
@@ -225,17 +224,16 @@ Here is a complete example:
               while true;
               do
                 echo "$(date +'%F %H:%M:%S')  [$i]  Bash For Loop Examples. Hello, world! Testing output.";
-                echo "$(date +'%F %H:%M:%S')  [$i]  Bash For Loop Examples. Hello, world! Testing output." >> /tmp/opt01/log;
+                echo "$(date +'%F %H:%M:%S')  [$i]  Bash For Loop Examples. Hello, world! Testing output." >> /tmp/opt/log;
                 i=$((i+1));
                 sleep 1;
               done
             volumeMounts:
-            - mountPath: /tmp/opt01
+            - mountPath: /tmp/opt
               name: opt
           volumes:
           - name: opt
-            hostPath:
-              path: /tmp/opt02
+	    emptyDir: {}
     ```
 
     ``` yaml
@@ -311,7 +309,7 @@ By default, DataKit collects stdout/stderr logs for all containers on your machi
       {
           "disable": false,
           "type": "file",
-          "path":"/tmp/opt02/log",
+          "path":"/tmp/opt/log",
           "source":  "logging-file",
           "tags" : {
             "some_tag": "some_value"

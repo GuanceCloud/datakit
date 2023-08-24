@@ -70,6 +70,7 @@ func (ct *criClient) ListContainers() ([]*Container, error) {
 			RuntimeVersion: ct.runtimeVersion,
 			Image:          c.GetImage().GetImage(),
 			State:          "Running",
+			Mounts:         make(map[string]string),
 		}
 
 		status, err := ct.ContainerStatus(c.GetId())

@@ -21,6 +21,7 @@ type logConfig struct {
 	Disable           bool              `json:"disable"`
 	Type              string            `json:"type"`
 	Path              string            `json:"path"`
+	TargetPath        string            `json:"-"`
 	Source            string            `json:"source"`
 	Service           string            `json:"service"`
 	CharacterEncoding string            `json:"character_encoding"`
@@ -44,6 +45,11 @@ type logInstance struct {
 	podNamespace string
 	ownerKind    string
 	ownerName    string
+
+	// volMounts Source to HostTarget
+	// example: map["/tmp/opt"] = "/var/lib/docker/volumes/<id>/_data"
+	//          map["/tmp/opt"] = "/var/lib/kubelet/pods/<pod-id>/volumes/kubernetes.io~empty-dir/<volume-name>/"
+	volMounts map[string]string
 }
 
 func (lc *logInstance) enabled() bool {
@@ -62,6 +68,24 @@ func (lc *logInstance) parseLogConfigs() error {
 				lc.containerName, err, lc.configStr)
 		}
 		lc.configs = configs
+
+		for _, cfg := range lc.configs {
+			base := filepath.Base(cfg.Path)
+			dir := filepath.Dir(cfg.Path)
+
+			target, ok := lc.volMounts[filepath.Clean(dir)]
+			if !ok {
+				continue
+			}
+			cfg.TargetPath = filepath.Join(filepath.Clean(target), base)
+
+			// add target fileapath
+			if cfg.Tags == nil {
+				cfg.Tags = make(map[string]string)
+			}
+			cfg.Tags["filepath"] = cfg.Path
+			cfg.Tags["target_filepath"] = cfg.TargetPath
+		}
 	}
 	return nil
 }

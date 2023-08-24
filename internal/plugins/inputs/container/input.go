@@ -8,10 +8,10 @@ package container
 
 import (
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
@@ -56,7 +56,7 @@ type Input struct {
 	DeprecatedConf
 
 	semStop *cliutils.Sem // start stop signal
-	pause   *typed.AtomicBool
+	pause   *atomic.Bool
 	chPause chan bool
 }
 
@@ -114,7 +114,7 @@ func newInput() *Input {
 		LoggingExtraSourceMap:     make(map[string]string),
 		LoggingSourceMultilineMap: make(map[string]string),
 		Election:                  true,
-		pause:                     &typed.AtomicBool{},
+		pause:                     &atomic.Bool{},
 		chPause:                   make(chan bool, inputs.ElectionPauseChannelLength),
 		semStop:                   cliutils.NewSem(),
 	}

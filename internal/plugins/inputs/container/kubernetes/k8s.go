@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync/atomic"
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
@@ -37,7 +38,7 @@ type Kube struct {
 	client k8sClient
 
 	canCollectPodMetrics bool
-	onWatchingEvent      typed.AtomicBool
+	onWatchingEvent      *atomic.Bool
 
 	paused func() bool
 	done   <-chan interface{}
@@ -54,10 +55,11 @@ func NewKubeCollector(client client.Client, cfg *Config, paused func() bool, don
 	}
 
 	return &Kube{
-		cfg:    cfg,
-		client: client,
-		paused: paused,
-		done:   done,
+		cfg:             cfg,
+		client:          client,
+		paused:          paused,
+		done:            done,
+		onWatchingEvent: &atomic.Bool{},
 	}, nil
 }
 

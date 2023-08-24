@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/docker/docker/api/types"
@@ -99,6 +100,7 @@ func (d *dockerClient) ListContainers() ([]*Container, error) {
 			container.Pid = status.Pid
 			container.LogPath = status.LogPath
 			container.Envs = status.Envs
+			container.Mounts = status.Mounts
 		}
 
 		containers = append(containers, container)
@@ -117,6 +119,14 @@ func (d *dockerClient) ContainerStatus(id string) (*ContainerStatus, error) {
 		ID:      id,
 		Name:    inspect.Name,
 		LogPath: inspect.LogPath,
+		Mounts:  make(map[string]string),
+	}
+
+	for _, mount := range inspect.Mounts {
+		if mount.Driver != "local" {
+			continue
+		}
+		status.Mounts[filepath.Clean(mount.Destination)] = mount.Source
 	}
 
 	if inspect.Config != nil {
