@@ -33,15 +33,6 @@ var (
 	putLatencyVec *prometheus.SummaryVec
 
 	ns = "diskcache"
-
-	expLabels = []string{
-		// NOTE: make them sorted.
-		"no_fallback_on_error",
-		"no_lock",
-		"no_pos",
-		"no_sync",
-		"path",
-	}
 )
 
 func setupMetrics() {
@@ -51,7 +42,7 @@ func setupMetrics() {
 			Name:      "get_latency",
 			Help:      "Get() time cost(micro-second)",
 		},
-		expLabels,
+		[]string{"path"},
 	)
 
 	putLatencyVec = prometheus.NewSummaryVec(
@@ -60,150 +51,158 @@ func setupMetrics() {
 			Name:      "put_latency",
 			Help:      "Put() time cost(micro-second)",
 		},
-		expLabels,
+		[]string{"path"},
 	)
 
 	droppedBytesVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: ns,
 			Name:      "dropped_bytes_total",
-			Help:      "dropped bytes during Put() when capacity reached.",
+			Help:      "Dropped bytes during Put() when capacity reached.",
 		},
-		expLabels,
+		[]string{"path"},
 	)
 
 	droppedBatchVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: ns,
 			Name:      "dropped_total",
-			Help:      "dropped files during Put() when capacity reached.",
+			Help:      "Dropped files during Put() when capacity reached.",
 		},
-		expLabels,
+		[]string{"path"},
 	)
 
 	rotateVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: ns,
 			Name:      "rotate_total",
-			Help:      "cache rotate count, mean file rotate from data to data.0000xxx",
+			Help:      "Cache rotate count, mean file rotate from data to data.0000xxx",
 		},
-		expLabels,
+		[]string{"path"},
 	)
 
 	removeVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: ns,
 			Name:      "remove_total",
-			Help:      "removed file count, if some file read EOF, remove it from un-readed list",
+			Help:      "Removed file count, if some file read EOF, remove it from un-read list",
 		},
-		expLabels,
+		[]string{"path"},
 	)
 
 	putVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: ns,
 			Name:      "put_total",
-			Help:      "cache Put() count",
+			Help:      "Cache Put() count",
 		},
-		expLabels,
+		[]string{"path"},
 	)
 
 	putBytesVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: ns,
 			Name:      "put_bytes_total",
-			Help:      "cache Put() bytes count",
+			Help:      "Cache Put() bytes count",
 		},
-		expLabels,
+		[]string{"path"},
 	)
 
 	getVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: ns,
 			Name:      "get_total",
-			Help:      "cache Get() count",
+			Help:      "Cache Get() count",
 		},
-		expLabels,
+		[]string{"path"},
 	)
 
 	wakeupVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: ns,
 			Name:      "wakeup_total",
-			Help:      "wakeup count on sleeping write file",
-		}, expLabels,
+			Help:      "Wakeup count on sleeping write file",
+		},
+		[]string{"path"},
 	)
 
 	getBytesVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: ns,
 			Name:      "get_bytes_total",
-			Help:      "cache Get() bytes count",
+			Help:      "Cache Get() bytes count",
 		},
-		expLabels,
+		[]string{"path"},
 	)
 
 	capVec = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: ns,
 			Name:      "capacity",
-			Help:      "current capacity(in bytes)",
+			Help:      "Current capacity(in bytes)",
 		},
-		expLabels,
+		[]string{"path"},
 	)
 
 	maxDataVec = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: ns,
 			Name:      "max_data",
-			Help:      "max data to Put(in bytes), default 0",
+			Help:      "Max data to Put(in bytes), default 0",
 		},
-		expLabels,
+		[]string{"path"},
 	)
 
 	batchSizeVec = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: ns,
 			Name:      "batch_size",
-			Help:      "data file size(in bytes)",
+			Help:      "Data file size(in bytes)",
 		},
-		expLabels,
+		[]string{"path"},
 	)
 
 	sizeVec = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: ns,
 			Name:      "size",
-			Help:      "current cache size(in bytes)",
+			Help:      "Current cache size(in bytes)",
 		},
-		expLabels,
+		[]string{"path"},
 	)
 
 	openTimeVec = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: ns,
 			Name:      "open_time",
-			Help:      "current cache Open time in unix timestamp(second)",
+			Help:      "Current cache Open time in unix timestamp(second)",
 		},
-		expLabels,
+		[]string{
+			// NOTE: make them sorted.
+			"no_fallback_on_error",
+			"no_lock",
+			"no_pos",
+			"no_sync",
+			"path",
+		},
 	)
 
 	lastCloseTimeVec = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: ns,
 			Name:      "last_close_time",
-			Help:      "current cache last Close time in unix timestamp(second)",
+			Help:      "Current cache last Close time in unix timestamp(second)",
 		},
-		expLabels,
+		[]string{"path"},
 	)
 
 	datafilesVec = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: ns,
 			Name:      "datafiles",
-			Help:      "current un-readed data files",
+			Help:      "Current un-read data files",
 		},
-		expLabels,
+		[]string{"path"},
 	)
 
 	metrics.MustRegister(
@@ -270,9 +269,9 @@ func ResetMetrics() {
 }
 
 // Labels export cache's labels used to query prometheus metrics.
-func (c *DiskCache) Labels() []string {
-	return c.labels
-}
+//func (c *DiskCache) Labels() []string {
+//	return c.labels
+//}
 
 func Metrics() []prometheus.Collector {
 	return []prometheus.Collector{
