@@ -122,6 +122,7 @@ var (
 		[]string{
 			"hostname",
 			"cgroup",
+			"lite",
 		},
 
 		// these are const labels.
@@ -191,7 +192,7 @@ func (rc runtimeInfoCollector) Collect(ch chan<- p8s.Metric) {
 	ch <- p8s.MustNewConstMetric(riUptimeDesc,
 		p8s.GaugeValue,
 		float64(time.Since(Uptime)/time.Second),
-		datakit.DatakitHostName, cgroup.Info())
+		datakit.DatakitHostName, cgroup.Info(), fmt.Sprintf("%v", datakit.Lite))
 	ch <- p8s.MustNewConstMetric(riBeyondUsage, p8s.GaugeValue, float64(BeyondUsage))
 
 	if ri.numCtxSwitch != nil {

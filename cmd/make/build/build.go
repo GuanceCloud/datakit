@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -201,12 +202,20 @@ func Compile() error {
 			return err
 		}
 
+		// build lite datakit
+		if isExtraLite() {
+			dir := fmt.Sprintf("%s/%s_lite-%s-%s", BuildDir, AppName, goos, goarch)
+			if err := compileArch(AppBin, goos, goarch, dir, MainEntry, "datakit_lite && with_inputs"); err != nil {
+				return err
+			}
+		}
+
 		if err := compileArch(AppBin, goos, goarch, dir, MainEntry, "with_inputs"); err != nil {
 			return err
 		}
 
 		upgraderDir := fmt.Sprintf("%s/%s-%s-%s", BuildDir, upgrader.BuildBinName, goos, goarch)
-		l.Debugf("upgraderDir = %s", dir)
+		l.Debugf("upgraderDir = %s", upgraderDir)
 		if err := compileArch(upgrader.BuildBinName,
 			goos,
 			goarch,
@@ -237,6 +246,11 @@ func Compile() error {
 }
 
 func compileArch(bin, goos, goarch, dir, mainEntranceFile, tags string) error {
+	isLite := false
+	if strings.Contains(tags, "datakit_lite") {
+		isLite = true
+	}
+
 	output := filepath.Join(dir, bin)
 	if goos == datakit.OSWindows {
 		output += winBinSuffix
@@ -271,7 +285,7 @@ func compileArch(bin, goos, goarch, dir, mainEntranceFile, tags string) error {
 	cmdArgs = append(cmdArgs, []string{
 		"-o", output,
 		"-ldflags",
-		fmt.Sprintf("-w -s -X main.InputsReleaseType=%s -X main.ReleaseVersion=%s", InputsReleaseType, ReleaseVersion),
+		fmt.Sprintf("-w -s -X main.Lite=%v -X main.InputsReleaseType=%s -X main.ReleaseVersion=%s", isLite, InputsReleaseType, ReleaseVersion),
 		mainEntranceFile,
 	}...)
 
@@ -300,4 +314,19 @@ func compileArch(bin, goos, goarch, dir, mainEntranceFile, tags string) error {
 		return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s", cmdArgs, envs, err, string(msg))
 	}
 	return nil
+}
+
+// is_extra_lite check whether to build lite datakit.
+func isExtraLite() bool {
+	extraLite := true
+	liteDisable := os.Getenv("LITE_DISABLE")
+	if len(liteDisable) > 0 {
+		if v, err := strconv.ParseBool(liteDisable); err != nil {
+			l.Warnf("parse LITE_DISABLE error: %s, ignore", err.Error())
+		} else {
+			extraLite = !v
+		}
+	}
+
+	return extraLite
 }

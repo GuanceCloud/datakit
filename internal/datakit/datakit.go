@@ -124,6 +124,7 @@ var (
 	Docker     = false
 	Version    = git.Version
 	Commit     = git.Commit
+	Lite       = false
 	AutoUpdate = false
 	IsTestMode bool
 

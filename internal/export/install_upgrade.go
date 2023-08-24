@@ -26,18 +26,20 @@ Import-Module bitstransfer;
 start-bitstransfer %s -source %s/install%s.ps1 -destination .install.ps1;
 powershell .install.ps1;`
 
-	unixInstallCmdTemplate = `%s bash -c "$(curl -L %s/install%s.sh)"`
+	unixInstallCmdTemplate = `%s %s -c "$(curl -L %s/install%s.sh)"`
 
-	unixUpgradeCmdTemplate = `%s bash -c "$(curl -L %s/install%s.sh)"`
+	unixUpgradeCmdTemplate = `%s %s -c "$(curl -L %s/install%s.sh)"`
 )
 
 type installCmd struct {
 	upgrade,
 	inJSON,
+	lite,
 	oneline bool
 	indent int
 	temp,
 	platform,
+	shell,
 	version,
 	dwURL,
 	bitstransferOpts,
@@ -49,8 +51,15 @@ type installCmd struct {
 func (x *installCmd) String() (out string) {
 	sourceURL := strings.TrimRight(x.sourceURL, "/")
 
+	if len(x.shell) == 0 {
+		x.shell = "bash"
+	}
+
 	if x.upgrade {
 		x.envs["DK_UPGRADE"] = "1"
+		if x.lite {
+			x.envs["DK_LITE"] = "1"
+		}
 
 		switch x.platform {
 		case "windows":
@@ -58,7 +67,7 @@ func (x *installCmd) String() (out string) {
 			out = fmt.Sprintf(x.temp, x.envsStr(), x.bitstransferOpts, sourceURL, x.version)
 		case "unix":
 			x.temp = unixUpgradeCmdTemplate
-			out = fmt.Sprintf(x.temp, x.envsStr(), sourceURL, x.version)
+			out = fmt.Sprintf(x.temp, x.envsStr(), x.shell, sourceURL, x.version)
 		}
 	} else {
 		if _, ok := x.envs["DK_DATAWAY"]; !ok {
@@ -71,7 +80,7 @@ func (x *installCmd) String() (out string) {
 			out = fmt.Sprintf(x.temp, x.envsStr(), x.bitstransferOpts, sourceURL, x.version)
 		case "unix":
 			x.temp = unixInstallCmdTemplate
-			out = fmt.Sprintf(x.temp, x.envsStr(), sourceURL, x.version)
+			out = fmt.Sprintf(x.temp, x.envsStr(), x.shell, sourceURL, x.version)
 		}
 	}
 
@@ -170,6 +179,13 @@ func (p *Params) WithPlatform(platform string) InstallOpt {
 	}
 }
 
+// WithShell used to set shell for unix.
+func (p *Params) WithShell(shell string) InstallOpt {
+	return func(x *installCmd) {
+		x.shell = shell
+	}
+}
+
 // WithUpgrade used to set upgrade flag.
 func (p *Params) WithUpgrade(on bool) InstallOpt {
 	return func(x *installCmd) {
@@ -187,6 +203,7 @@ func (p *Params) WithIndent(n int) InstallOpt {
 // WithSourceURL used to select install source URL.
 func (p *Params) WithSourceURL(url string) InstallOpt {
 	return func(x *installCmd) {
+		url = strings.TrimSuffix(url, "/")
 		x.sourceURL = url
 	}
 }
@@ -198,6 +215,7 @@ func DefaultInstallCmd() *installCmd {
 		dwURL:     "https://openway.guance.com",
 		sourceURL: "https://static.guance.com/datakit",
 		envs:      map[string]string{},
+		shell:     "bash",
 	}
 }
 

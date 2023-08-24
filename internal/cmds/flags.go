@@ -19,6 +19,7 @@ import (
 var (
 	ReleaseVersion    string
 	InputsReleaseType string
+	Lite              bool
 	windowsCmdErrMsg  = "Stop-Service -Name datakit"
 	darwinCmdErrMsg   = "sudo launchctl unload -w /Library/LaunchDaemons/cn.dataflux.datakit.plist"
 	linuxCmdErrMsg    = "systemctl stop datakit"

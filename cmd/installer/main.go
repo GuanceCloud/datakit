@@ -19,7 +19,9 @@ import (
 	"os/user"
 	"path"
 	"path/filepath"
+	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -53,8 +55,16 @@ var (
 			runtime.GOOS,
 			runtime.GOARCH,
 			DataKitVersion))
+	datakitLiteURL = "https://" + path.Join(DataKitBaseURL,
+		fmt.Sprintf("datakit_lite-%s-%s-%s.tar.gz",
+			runtime.GOOS,
+			runtime.GOARCH,
+			DataKitVersion))
 	InstallerBaseURL = ""
 	l                = logger.DefaultSLogger("installer")
+
+	isLite  = false
+	liteReg = regexp.MustCompile(`Build Tag:\s*lite`)
 )
 
 // Installer flags.
@@ -67,6 +77,7 @@ var (
 	flagUpgradeServIPWhiteList,
 	flagUserName,
 	flagInstallLog,
+	flagLite,
 	flagSrc string
 
 	flagUpgradeManagerService,
@@ -90,6 +101,7 @@ func init() {
 	flag.BoolVar(&flagDownloadOnly, "download-only", false, "only download install packages")
 	flag.StringVar(&InstallerBaseURL, "installer_base_url", "", "install datakit and data BaseUrl")
 	flag.StringVar(&flagUserName, "user-name", "root", "install log") // user & group.
+	flag.StringVar(&flagLite, "lite", "", "install datakit lite")
 
 	flag.StringVar(&installer.Dataway, "dataway", "", "DataWay host(https://guance.openway.com?token=xxx)")
 	flag.StringVar(&installer.Proxy, "proxy", "", "http proxy http://ip:port for datakit")
@@ -171,6 +183,25 @@ func init() {
 	flag.Int64Var(&installer.LimitMemMax, "limit-mem", 4096, "Cgroup memory limit")
 }
 
+func setDatakitLite() {
+	if len(flagLite) > 0 {
+		v, err := strconv.ParseBool(flagLite)
+		if err != nil {
+			l.Warnf("parse flag 'lite' error: %s", err.Error())
+		} else {
+			isLite = v
+		}
+	} else if flagDKUpgrade { // only for upgrading datakit
+		cmd := exec.Command(dkservice.Executable, "version") //nolint:gosec
+		res, err := cmd.CombinedOutput()
+		if err != nil {
+			l.Warnf("check version failed: %s", err.Error())
+		} else {
+			isLite = liteReg.Match(res)
+		}
+	}
+}
+
 func downloadFiles(to string) error {
 	dl.CurDownloading = "datakit"
 
@@ -190,7 +221,12 @@ func downloadFiles(to string) error {
 
 	cli := httpcli.Cli(cliopt)
 
-	if err := dl.Download(cli, datakitURL, to, true, flagDownloadOnly); err != nil {
+	dkURL := datakitURL
+	if isLite {
+		dkURL = datakitLiteURL
+	}
+
+	if err := dl.Download(cli, dkURL, to, true, flagDownloadOnly); err != nil {
 		return err
 	}
 
@@ -384,6 +420,7 @@ Data           : %s
 	}
 
 	applyFlags()
+	setDatakitLite()
 
 	// 迁移老版本 datakit 数据目录
 	mvOldDatakit(svc)

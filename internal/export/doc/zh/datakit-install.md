@@ -17,10 +17,18 @@
 <!-- markdownlint-disable MD046 -->
 === "Linux/macOS"
 
-    命令如下：
-    
+    安装命令支持 `bash` 和 `ash`([:octicons-tag-24: Version-1.14.0](changelog.md#cl-1.14.0)) :
+
+    - `bash`
+
     ```shell
 {{ InstallCmd 4 (.WithPlatform "unix") }}
+    ```
+
+    - `ash`
+
+    ```shell
+{{ InstallCmd 4 (.WithPlatform "unix") (.WithShell "ash") }}
     ```
 
     安装完成后，在终端会看到安装成功的提示。
@@ -33,6 +41,43 @@
 {{ InstallCmd 4 (.WithPlatform "windows") }}
     ```
 <!-- markdownlint-enable -->
+
+### 安装精简版的 DataKit {#lite-install}
+
+可以通过在安装命令中添加 `DK_LITE` 环境变量来安装精简版的 DataKit ([:octicons-tag-24: Version-1.14.0](changelog.md#cl-1.14.0)) :
+
+<!-- markdownlint-disable MD046 -->
+=== "Linux/macOS"
+
+    ```shell
+{{ InstallCmd 4 (.WithPlatform "unix") (.WithEnvs "DK_LITE" "1" ) }}
+    ```
+
+=== "Windows"
+
+    ```powershell
+{{ InstallCmd 4 (.WithPlatform "windows") (.WithEnvs "DK_LITE" "1" ) }}
+    ```
+
+<!-- markdownlint-enable -->
+
+精简版 DataKit 只包含以下采集器：
+
+| 采集器名称                                                        | 说明                                                                         |
+| ---                                                               | ---                                                                          |
+| [CPU（`cpu`）](../integrations/cpu.md)                            | 采集主机的 CPU 使用情况                                                        |
+| [Disk（`disk`）](../integrations/disk.md)                         | 采集磁盘占用情况                                                             |
+| [磁盘 IO（`diskio`）](../integrations/diskio.md)                  | 采集主机的磁盘 IO 情况                                                         |
+| [内存（`mem`）](../integrations/mem.md)                           | 采集主机的内存使用情况                                                       |
+| [Swap（`swap`）](../integrations/swap.md)                         | 采集 Swap 内存使用情况                                                         |
+| [System（`system`）](../integrations/system.md)                   | 采集主机操作系统负载                                                         |
+| [Net（`net`）](../integrations/net.md)                            | 采集主机网络流量情况                                                         |
+| [主机进程（`host_processes`）](../integrations/host_processes.md) | 采集主机上常驻（存活 10min 以上）进程列表                                      |
+| [主机对象（`hostobject`）](../integrations/hostobject.md)         | 采集主机基础信息（如操作系统信息、硬件信息等）                               |
+| [Datakit（`dk`）](../integrations/dk.md)                          | 采集 Datakit 自身运行指标收集                                                |
+| [用户访问监测 (`rum`)](../integrations/rum.md)                    | 用于收集用户访问监测数据                                                |
+| [网络拨测 (`dialtesting`)](../integrations/dialtesting.md)        | 采集网络拨测数据                                                |
+| [Prom 采集 (`prom`)](../integrations/prom.md)                     | 采集 Prometheus Exporters 暴露出来的指标数据                          |
 
 ### 安装指定版本的 DataKit {#version-install}
 
@@ -93,6 +138,7 @@ NAME1="value1" NAME2="value2"
 - `DK_CLOUD_PROVIDER`：支持安装阶段填写云厂商(`aliyun/aws/tencent/hwcloud/azure`)
 - `DK_USER_NAME`：Datakit 服务运行时的用户名。目前仅支持 `root` 和 `datakit`, 默认为 `root`。
 - `DK_DEF_INPUTS`：[默认开启的采集器](datakit-input-conf.md#default-enabled-inputs)配置。如果要禁用某些采集器，需手动将其屏蔽，比如，要禁用 `cpu` 和 `mem` 采集器，需这样指定：`-cpu,-mem`，即除了这两个采集器之外，其它默认采集器均开启。
+- `DK_LITE`：安装精简版 DataKit 时，可设置该变量为 `1`。([:octicons-tag-24: Version-1.14.0](changelog.md#cl-1.14.0))
 
 <!-- markdownlint-disable MD046 -->
 ???+ tip "禁用所有默认采集器 [:octicons-tag-24: Version-1.5.5](changelog.md#cl-1.5.5)"
