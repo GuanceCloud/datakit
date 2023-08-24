@@ -76,6 +76,21 @@ Datakit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
             "images": {
                 "logfwd_image": "pubrepo.guance.com/datakit/logfwd:1.5.8"
             }
+        },
+        "profiler": {
+            "images": {
+                "java_profiler_image":   "pubrepo.jiagouyun.com/dataflux/async-profiler:0.1.0",
+                "python_profiler_image": "pubrepo.jiagouyun.com/dataflux/py-spy:0.1.0",
+                "golang_profiler_image": "pubrepo.jiagouyun.com/dataflux/pprof:0.1.0"
+            },
+            "envs": {
+                "DK_AGENT_HOST":  "datakit-service.datakit.svc",
+                "DK_AGENT_PORT":  "9529",
+                "DK_PROFILE_VERSION": "1.2.333",
+                "DK_PROFILE_ENV": "prod",
+                "DK_PROFILE_DURATION": "240",
+                "DK_PROFILE_SCHEDULE": "0 * * * *"
+            }
         }
     }
 }
