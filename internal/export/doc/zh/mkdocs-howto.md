@@ -14,21 +14,21 @@
 1. 在 *man/docs/zh* 下添加文档，如果是采集器文档，添加到 *man/docs/zh/inputs* 目录下
 1. 文档编写
 1. 如有必要，在 *man/docs/en* 下添加对应的英文文档
-1. 在项目根目录下执行 *mkdocs.sh* 脚本
+1. 在项目根目录下执行 *export.sh* 脚本
 
 ### 文档本地调试 {#debug}
 
-执行 *mkdocs.sh* 的时候，可以先看一下其支持的命令行参数：
+执行 *export.sh* 的时候，可以先看一下其支持的命令行参数：
 
 ```shell
-./mkdocs.sh -h
+./export.sh -h
 ```
 
-*mkdocs.sh* 依赖的基础环境：
+*export.sh* 依赖的基础环境：
 
-1. 先将[文档库](https://gitlab.jiagouyun.com/zy-docs/dataflux-doc){:target="_blank"} clone 到本地目录 *~/git/dataflux-doc*，此处默认即使用这个本地目录。*mkdocs.sh* 会将 Datakit 文档生成并拷贝到该 repo 对应的目录下。
+1. 先将[文档库](https://gitlab.jiagouyun.com/zy-docs/dataflux-doc){:target="_blank"} clone 到本地目录 *~/git/dataflux-doc*，此处默认即使用这个本地目录。*export.sh* 会将 Datakit 文档生成并拷贝到该 repo 对应的目录下。
 1. 在 *dataflux-doc* 项目下，有一个 *requirements.txt*，执行 `pip install -r requirements.txt` 安装对应依赖
-1. 回到 Datakit 代码目录，执行根目录下的 `./mkdocs.sh` 即可
+1. 回到 Datakit 代码目录，执行根目录下的 `./export.sh` 即可
 
 ## MkDocs 技巧分享 {#mkdocs-tips}
 
@@ -198,7 +198,7 @@
 
 cspell 在检测单词（这里主要指英文单词，目前还不能检测中文拼写问题）拼写错误时非常有效，有时候我们难以避免将一些单词拼错，或者，我们有时对一些标准术语的拼写出现前后不一致的情况（比如 `Datakit/DataKit/datakit` 等多种写法）。
 
-在项目根目录的 *cspell* 目录下存放者 cspell 的检测设定，我们需重点关注其中的词汇表文件 *glossary.txt*，其中我们定义了专有名词、缩写等几个部分。
+在项目根目录的 *scripts* 目录下存放者 cspell 的检测设置，我们需重点关注其中的词汇表文件 *glossary.txt*，其中我们定义了专有名词、缩写等几个部分。
 
 在如下几种情况下，我们需要修改 *glossary.txt* 文件：
 
@@ -206,7 +206,7 @@ cspell 在检测单词（这里主要指英文单词，目前还不能检测中�
 - 如果有新的缩写，比如 `JDBC`，我们将其添加到缩写列表中
 - 如果有合成词，这种比较少见，将其添加到合成词中即可
 - 需重点关注极限词，我们在正文中（相对行内代码以及代码块而言）会严禁使用的一些词语，比如，我们要求 `Java` 不能写成 `java/JAVA`，`JSON` 不能写成 `Json/json` 等
-- 如果拼写实在绕不过去，除了将其加到对应的词汇表，还能将其用行内代码形式来排版，我们在拼写检查中，忽略了代码片段、URL 链接等文本的检查（参见 *cspell/cspell.json* 中的 `ignoreRegExpList` 配置）
+- 如果拼写实在绕不过去，除了将其加到对应的词汇表，还能将其用行内代码形式来排版，我们在拼写检查中，忽略了代码片段、URL 链接等文本的检查（参见 *scripts/cspell.json* 中的 `ignoreRegExpList` 配置）
 
 #### 中英文混排检测 {#zh-en-mix}
 
