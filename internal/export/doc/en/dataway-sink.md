@@ -394,6 +394,22 @@ Datakit reserved some GCK(*Global Customer Keys*), these keys are not collected 
 
 ```
 
+- `__dataway_api` used in specific API requests, we can redirect(sink) the request to specific URL via sinker rule. For example, to redirect Pipeline pull APIs and election APIs to your workspace, we can do like this(election API refers to 2 APIs)
+
+``` json
+{
+    "strict": true,
+    "rules": [
+        {
+            "rules": [
+                "{ __dataway_api in ['/v1/datakit/pull', '/v1/election', '/v1/election/heartbeat'  }",
+            ],
+            "url": "https://openway.guance.com?token=<YOUR-TOKEN>",
+        }
+    ]
+}
+```
+
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 

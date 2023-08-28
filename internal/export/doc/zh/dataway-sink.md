@@ -396,7 +396,22 @@ Datakit 内置了一下几个可用的自定义 Key，它们一般不会出现�
         }
     ]
 }
+```
 
+- `__dataway_api` 针对特定的 API 路由，可以实现将指定的规则应用到该请求上。比如针对 Pipeline 的同步请求和选举请求（选举功能涉及两个 API 调用）：
+
+``` json
+{
+    "strict": true,
+    "rules": [
+        {
+            "rules": [
+                "{ __dataway_api in ['/v1/datakit/pull', '/v1/election', '/v1/election/heartbeat'  }",
+            ],
+            "url": "https://openway.guance.com?token=<YOUR-TOKEN>",
+        }
+    ]
+}
 ```
 
 <!-- markdownlint-disable MD046 -->

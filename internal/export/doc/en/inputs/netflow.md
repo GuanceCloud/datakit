@@ -176,6 +176,12 @@ For all of the following data collections, a global tag named  `host` is appende
   # ...
 ```
 
+<!-- markdownlint-disable MD046 -->
+???+ info
+
+    The data collected by Netflow is stored as logging category(`L`).
+<!-- markdownlint-enable -->
+
 {{ range $i, $m := .Measurements }}
 
 ### `{{$m.Name}}` {#{{$m.Name}}}
