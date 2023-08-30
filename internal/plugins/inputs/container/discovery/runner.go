@@ -370,7 +370,8 @@ func (d *Discovery) processCRDWithPod(fn datakitCRDHandler) error {
 
 func (d *Discovery) getLocalPodsFromLabelSelector(source, namespace string, selector *metav1.LabelSelector) (res []*apicorev1.Pod) {
 	opt := metav1.ListOptions{
-		FieldSelector: "spec.nodeName=" + d.localNodeName,
+		ResourceVersion: "0",
+		FieldSelector:   "spec.nodeName=" + d.localNodeName,
 	}
 	if selector != nil {
 		opt.LabelSelector = newLabelSelector(selector.MatchLabels, selector.MatchExpressions).String()
@@ -388,7 +389,9 @@ func (d *Discovery) getLocalPodsFromLabelSelector(source, namespace string, sele
 }
 
 func (d *Discovery) getServicesFromLabelSelector(source, namespace string, selector *metav1.LabelSelector) (res []*apicorev1.Service) {
-	opt := metav1.ListOptions{}
+	opt := metav1.ListOptions{
+		ResourceVersion: "0",
+	}
 	if selector != nil {
 		opt.LabelSelector = newLabelSelector(selector.MatchLabels, selector.MatchExpressions).String()
 	}

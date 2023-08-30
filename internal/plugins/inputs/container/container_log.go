@@ -56,6 +56,7 @@ func (c *container) tailingLogs(ins *logInstance) {
 			BlockingMode:             c.ipt.LoggingBlockingMode,
 			MinFlushInterval:         c.ipt.LoggingMinFlushInterval,
 			MaxMultilineLifeDuration: c.ipt.LoggingMaxMultilineLifeDuration,
+			RemoveAnsiEscapeCodes:    c.ipt.LoggingRemoveAnsiEscapeCodes,
 			Done:                     done,
 		}
 

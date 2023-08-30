@@ -41,6 +41,7 @@ import (
 //	ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_EXTRA_PATTERNS_JSON : string (JSON string array)
 //	ENV_INPUT_CONTAINER_LOGGING_MIN_FLUSH_INTERVAL: string ("10s")
 //	ENV_INPUT_CONTAINER_LOGGING_MAX_MULTILINE_LIFE_DURATION : string ("5s")
+//	ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES : booler
 func (i *Input) ReadEnv(envs map[string]string) {
 	if endpointStr, ok := envs["ENV_INPUT_CONTAINER_ENDPOINTS"]; ok {
 		arrays := strings.Split(endpointStr, ",")
@@ -208,6 +209,15 @@ func (i *Input) ReadEnv(envs map[string]string) {
 			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_MAX_MULTILINE_LIFE_DURATION to time.Duration: %s, ignore", err)
 		} else {
 			i.LoggingMaxMultilineLifeDuration = dur
+		}
+	}
+
+	if remove, ok := envs["ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES"]; ok {
+		b, err := strconv.ParseBool(remove)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES to bool: %s, ignore", err)
+		} else {
+			i.LoggingRemoveAnsiEscapeCodes = b
 		}
 	}
 }

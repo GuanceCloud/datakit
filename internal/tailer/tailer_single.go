@@ -394,6 +394,7 @@ func (t *Single) generateJSONLogs(lines []string) []string {
 			t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
 		}
 
+		text = removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
 		text = t.multiline(multiline.TrimRightSpace(text))
 		if text == "" {
 			continue
@@ -449,6 +450,7 @@ func (t *Single) generateCRILogs(lines []string) []string {
 			t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
 		}
 
+		text = removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
 		text = t.multiline(multiline.TrimRightSpace(text))
 		if text == "" {
 			continue
@@ -474,6 +476,7 @@ func (t *Single) defaultHandler(lines []string) {
 			t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
 		}
 
+		text = removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
 		text = t.multiline(multiline.TrimRightSpace(text))
 		if text == "" {
 			continue
@@ -693,18 +696,15 @@ func (b *buffer) split() []string {
 	return res
 }
 
-// nolint
 func removeAnsiEscapeCodes(oldtext string, run bool) string {
 	if !run {
 		return oldtext
 	}
-
 	newtext, err := ansi.Strip([]byte(oldtext))
 	if err != nil {
 		// l.Debugf("remove ansi code error: %w", err)
 		return oldtext
 	}
-
 	return string(newtext)
 }
 

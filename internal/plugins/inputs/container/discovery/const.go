@@ -21,6 +21,6 @@ var (
 	defaultPromScheme = "http"
 	defaultPromPath   = "/metrics"
 
-	metaV1ListOption = metav1.ListOptions{}
-	metaV1GetOption  = metav1.GetOptions{}
+	metaV1ListOption = metav1.ListOptions{ResourceVersion: "0"}
+	metaV1GetOption  = metav1.GetOptions{ResourceVersion: "0"}
 )

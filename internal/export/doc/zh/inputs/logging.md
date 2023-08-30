@@ -81,11 +81,17 @@ monitor   :
       auto_multiline_detection = true
       ## 配置自动多行的 patterns 列表，内容是多行规则的数组，即多个 multiline_match，如果为空则使用默认规则详见文档
       auto_multiline_extra_patterns = []
-    
+
+      ## 是否删除 ANSI 转义码，例如标准输出的文本颜色等
+      remove_ansi_escape_codes = false
+
+      ## 是否开启阻塞模式，阻塞模式会在数据发送失败后持续重试，而不是丢弃该数据
+      blocking_mode = true
+
       ## 忽略不活跃的文件，例如文件最后一次修改是 20 分钟之前，距今超出 10m，则会忽略此文件
       ## 时间单位支持 "ms", "s", "m", "h"
       ignore_dead_log = "1h"
-    
+
       ## 是否从文件首部开始读取
       from_beginning = false
     
@@ -373,6 +379,31 @@ Pipeline 的几个注意事项：
 
     日志采集在启动时，会根据 key 取得 position 作为读取偏移量，避免漏采和重复采集。
 <!-- markdownlint-enable -->
+
+### 日志的特殊字节码处理 {#ansi-decode}
+
+日志可能会包含一些不可读的字节码（比如终端输出的颜色等），可以将 `remove_ansi_escape_codes` 设置为 true 对其删除过滤。
+
+<!-- markdownlint-disable MD046 -->
+???+ attention
+
+    对于此类颜色字符，通常建议在日志输出框架中关闭，而不是由 Datakit 进行过滤。特殊字符的筛选和过滤是由正则表达式处理，性能较差，同时可能存在未定义行为，例如过滤错误、日志多行失效等。
+<!-- markdownlint-enable -->
+
+处理性能基准测试结果如下，仅供参考：
+
+```text
+goos: linux
+goarch: amd64
+pkg: gitlab.jiagouyun.com/cloudcare-tools/test
+cpu: Intel(R) Core(TM) i7-4770HQ CPU @ 2.20GHz
+BenchmarkRemoveAnsiCodes
+BenchmarkRemoveAnsiCodes-8        636033              1616 ns/op
+PASS
+ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
+```
+
+每一条文本的处理耗时增加 1616 ns 不等。如果不开启此功能将无额外损耗。
 
 ## 日志 {#logging}
 
