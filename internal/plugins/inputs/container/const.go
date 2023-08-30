@@ -55,6 +55,9 @@ const sampleCfg = `
   logging_auto_multiline_detection = true
   logging_auto_multiline_extra_patterns = []
 
+  ## Removes ANSI escape codes from text strings.
+  logging_remove_ansi_escape_codes = false
+
   ## Search logging interval, default "60s"
   #logging_search_interval = ""
 
@@ -70,8 +73,7 @@ const sampleCfg = `
 `
 
 type DeprecatedConf struct {
-	LoggingRemoveAnsiEscapeCodes bool `toml:"logging_remove_ansi_escape_codes"`
-	LoggingBlockingMode          bool `toml:"logging_blocking_mode"`
-	ExcludePauseContainer        bool `toml:"exclude_pause_container"`
-	DisableK8sEvents             bool `toml:"disable_k8s_events"`
+	LoggingBlockingMode   bool `toml:"logging_blocking_mode"`
+	ExcludePauseContainer bool `toml:"exclude_pause_container"`
+	DisableK8sEvents      bool `toml:"disable_k8s_events"`
 }
