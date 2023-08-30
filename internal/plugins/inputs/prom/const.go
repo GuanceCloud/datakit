@@ -10,6 +10,11 @@ const sampleCfg = `
   ## Exporter URLs.
   urls = ["http://127.0.0.1:9100/metrics", "http://127.0.0.1:9200/metrics"]
 
+  ## Stream Size. 
+  ## The source stream segmentation size.
+  ## Default 0, source stream undivided. 
+  # stream_size = 0
+
   ## Unix Domain Socket URL. Using socket to request data when not empty.
   uds_path = ""
 
@@ -82,9 +87,9 @@ const sampleCfg = `
   ## Customize authentification. For now support Bearer Token only.
   ## Filling in 'token' or 'token_file' is acceptable.
   # [inputs.prom.auth]
-  # type = "bearer_token"
-  # token = "xxxxxxxx"
-  # token_file = "/tmp/token"
+    # type = "bearer_token"
+    # token = "xxxxxxxx"
+    # token_file = "/tmp/token"
 
   ## Customize measurement set name.
   ## Treat those metrics with prefix as one set.
@@ -98,19 +103,20 @@ const sampleCfg = `
     name = "etcd_server"
 
   ## Not collecting those data when tag matched.
-  [inputs.prom.ignore_tag_kv_match]
-  # key1 = [ "val1.*", "val2.*"]
-  # key2 = [ "val1.*", "val2.*"]
+  # [inputs.prom.ignore_tag_kv_match]
+    # key1 = [ "val1.*", "val2.*"]
+    # key2 = [ "val1.*", "val2.*"]
 
   ## Add HTTP headers to data pulling.
-  [inputs.prom.http_headers]
-  # Root = "passwd"
-  # Michael = "1234"
+  # [inputs.prom.http_headers]
+    # Root = "passwd"
+    # Michael = "1234"
 
   ## Rename tag key in prom data.
   [inputs.prom.tags_rename]
     overwrite_exist_tags = false
-    [inputs.prom.tags_rename.mapping]
+
+  # [inputs.prom.tags_rename.mapping]
     # tag1 = "new-name-1"
     # tag2 = "new-name-2"
     # tag3 = "new-name-3"
@@ -122,9 +128,9 @@ const sampleCfg = `
     service = "service_name"
 
   ## Customize tags.
-  [inputs.prom.tags]
-  # some_tag = "some_value"
-  # more_tag = "some_other_value"
+  # [inputs.prom.tags]
+    # some_tag = "some_value"
+    # more_tag = "some_other_value"
   
   ## (Optional) Collect interval: (defaults to "30s").
   # interval = "30s"
