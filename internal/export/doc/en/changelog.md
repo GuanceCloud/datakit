@@ -1,12 +1,17 @@
 # Changelog
 ---
 
+### Bug fixes {#cl-1.14.1-fix}
+
+- Optimize Prometheus metrics collecting(streaming collection) in Kubernetes to avoid possible large memory usage(#1853/#1845)
+
+---
 
 ## 1.14.0 (2023/08/24) {#cl-1.14.0}
 
 This release is an iterative release, mainly including the following updates:
 
-### New features {#cl-1.12.0-new}
+### New features {#cl-1.14.0-new}
 
 - Added collector [NetFlow](../integrations/netflow.md) (#1821)
 - Added [Filter(Blacklist) Debugger](datakit-tools-how-to.md#debug-filter) (#1787)

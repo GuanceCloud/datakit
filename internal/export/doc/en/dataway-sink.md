@@ -249,7 +249,7 @@ Here are all metrics exported by Dataway, we can request `http://localhost:9090/
 > If the metrics not shown, maybe related module not working for now.
 
 ```shell
-watch -n 3 'curl -s http://localhost:9090 | grep -a <METRIC-NAME>'
+watch -n 3 'curl -s http://localhost:9090/metrics | grep -a <METRIC-NAME>'
 ```
 
 |TYPE|NAME|LABELS|HELP|
