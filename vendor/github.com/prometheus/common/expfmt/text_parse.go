@@ -18,14 +18,15 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"math"
 	"strconv"
 	"strings"
 
 	dto "github.com/prometheus/client_model/go"
 
-	"github.com/golang/protobuf/proto" //nolint:staticcheck // Ignore SA1019. Need to keep deprecated package for compatibility.
 	"github.com/prometheus/common/model"
+	"google.golang.org/protobuf/proto"
 )
 
 // A stateFn is a function that represents a state in a state machine. By
@@ -53,8 +54,11 @@ type TextParser struct {
 	buf                  *bufio.Reader // Where the parsed input is read through.
 	err                  error         // Most recent error.
 	lineCount            int           // Tracks the line count for error messages.
-	currentByte          byte          // The most recent byte read.
-	currentToken         bytes.Buffer  // Re-used each time a token has to be gathered from multiple bytes.
+	batchSize            int
+	batchCallback        BatchCallback
+	previousByte         byte         // The most recent byte read.
+	currentByte          byte         // The most recent byte read.
+	currentToken         bytes.Buffer // Re-used each time a token has to be gathered from multiple bytes.
 	currentMF            *dto.MetricFamily
 	currentMetric        *dto.Metric
 	currentLabelPair     *dto.LabelPair
@@ -72,6 +76,35 @@ type TextParser struct {
 	// count and sum of that summary/histogram.
 	currentIsSummaryCount, currentIsSummarySum     bool
 	currentIsHistogramCount, currentIsHistogramSum bool
+}
+
+type textParserOpt func(*TextParser)
+
+// BatchCallback is the callback during parsing when bach size full.
+type BatchCallback func(mf map[string]*dto.MetricFamily) error
+
+// WithBatchCallback set batch size and batch callback.
+func WithBatchCallback(batchSize int, f BatchCallback) textParserOpt {
+	return func(tp *TextParser) {
+		if batchSize > 0 {
+			tp.batchSize = batchSize
+		}
+		tp.batchCallback = f
+	}
+}
+
+// NewTextParser create a parser with options.
+func NewTextParser(opts ...textParserOpt) *TextParser {
+	p := &TextParser{
+		batchSize: 2,
+	}
+
+	for _, opt := range opts {
+		if opt != nil {
+			opt(p)
+		}
+	}
+	return p
 }
 
 // TextToMetricFamilies reads 'in' as the simple and flat text-based exchange
@@ -99,12 +132,44 @@ type TextParser struct {
 // input concurrently, instantiate a separate Parser for each goroutine.
 func (p *TextParser) TextToMetricFamilies(in io.Reader) (map[string]*dto.MetricFamily, error) {
 	p.reset(in)
+
 	for nextState := p.startOfLine; nextState != nil; nextState = nextState() {
 		// Magic happens here...
 	}
+
+	return p.returnMetrics()
+}
+
+// StreamingParse read 'in' on batch size. Batch callback MUST set
+// during streaming parse.
+func (p *TextParser) StreamingParse(in io.Reader) error {
+
+	if p.batchCallback == nil {
+		return fmt.Errorf("batch callback not set on streaming parser")
+	}
+
+	p.reset(in)
+
+	for nextState := p.startOfLine; nextState != nil; nextState = nextState() {
+		// Magic happens here...
+	}
+
+	mfs, err := p.returnMetrics()
+	if err != nil {
+		return err
+	}
+
+	// clear memory
+	p.metricFamiliesByName = map[string]*dto.MetricFamily{}
+
+	return p.batchCallback(mfs)
+}
+
+func (p *TextParser) returnMetrics() (map[string]*dto.MetricFamily, error) {
 	// Get rid of empty metric families.
 	for k, mf := range p.metricFamiliesByName {
 		if len(mf.GetMetric()) == 0 {
+			log.Printf("no metric on %q", k)
 			delete(p.metricFamiliesByName, k)
 		}
 	}
@@ -140,6 +205,7 @@ func (p *TextParser) reset(in io.Reader) {
 // startOfLine represents the state where the next byte read from p.buf is the
 // start of a line (or whitespace leading up to it).
 func (p *TextParser) startOfLine() stateFn {
+
 	p.lineCount++
 	if p.skipBlankTab(); p.err != nil {
 		// This is the only place that we expect to see io.EOF,
@@ -151,6 +217,35 @@ func (p *TextParser) startOfLine() stateFn {
 		}
 		return nil
 	}
+
+	// should batch callback
+	if p.currentByte == '#' {
+		if p.batchSize > 0 && p.batchCallback != nil && len(p.metricFamiliesByName) >= p.batchSize {
+			if p.previousByte != '#' {
+				mfs, err := p.returnMetrics()
+				if err != nil {
+					// TODO: should we terminate here?
+				} else {
+					p.batchCallback(mfs)
+
+					// clear memory
+					p.metricFamiliesByName = map[string]*dto.MetricFamily{}
+					p.err = nil
+					p.lineCount = 0
+					if p.summaries == nil || len(p.summaries) > 0 {
+						p.summaries = map[uint64]*dto.Metric{}
+					}
+					if p.histograms == nil || len(p.histograms) > 0 {
+						p.histograms = map[uint64]*dto.Metric{}
+					}
+					p.currentQuantile = math.NaN()
+					p.currentBucket = math.NaN()
+				}
+			}
+		}
+	}
+	p.previousByte = p.currentByte
+
 	switch p.currentByte {
 	case '#':
 		return p.startComment

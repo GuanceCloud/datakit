@@ -148,29 +148,33 @@ func (p *Prom) getNamesByDefault(name string) (measurementName string, fieldName
 	return
 }
 
-func (p *Prom) tagKVMatched(tags map[string]string) bool {
+func (p *Prom) filterIgnoreTagKV(tags map[string]string) map[string]string {
 	if p.opt.ignoreTagKV == nil {
-		return false
+		return tags
 	}
 
+	newTags := map[string]string{}
+
 	for k, v := range tags {
+		newTags[k] = v
 		if res, ok := p.opt.ignoreTagKV[k]; ok {
 			for _, re := range res {
 				if re.MatchString(v) {
-					return true
+					delete(newTags, k)
+					break
 				}
 			}
 		}
 	}
 
-	return false
+	return newTags
 }
 
 func (p *Prom) getTags(labels []*dto.LabelPair, measurementName string, u string) map[string]string {
 	tags := map[string]string{}
 
 	if !p.opt.disableInfoTag {
-		for k, v := range p.infoTags {
+		for k, v := range p.InfoTags {
 			tags[k] = v
 		}
 	}
@@ -260,6 +264,8 @@ func (p *Prom) renameTags(tags map[string]string) {
 func (p *Prom) swapTypeInfoToFront(nf []nameAndFamily) {
 	var i int
 	for j := 0; j < len(nf); j++ {
+		temp := nf[j].metricFamily.GetType()
+		_ = temp
 		if nf[j].metricFamily.GetType() == dto.MetricType_INFO {
 			nf[i], nf[j] = nf[j], nf[i]
 			i++
@@ -279,19 +285,35 @@ func (p *Prom) filterMetricFamilies(metricFamilies map[string]*dto.MetricFamily)
 
 // text2Metrics converts raw prometheus metric text to line protocol point.
 func (p *Prom) text2Metrics(in io.Reader, u string) (pts []*point.Point, lastErr error) {
+	for k := range p.InfoTags {
+		delete(p.InfoTags, k)
+	}
+
+	if p.opt.batchCallback != nil {
+		return p.text2MetricsBatch(in, u)
+	} else {
+		return p.text2MetricsNoBatch(in, u)
+	}
+}
+
+func (p *Prom) text2MetricsBatch(in io.Reader, u string) (pts []*point.Point, lastErr error) {
+	err := p.parser.StreamingParse(in)
+	return nil, err
+}
+
+func (p *Prom) text2MetricsNoBatch(in io.Reader, u string) (pts []*point.Point, lastErr error) {
 	metricFamilies, err := p.parser.TextToMetricFamilies(in)
 	if err != nil {
 		return nil, err
 	}
 
+	return p.MetricFamilies2points(metricFamilies, u)
+}
+
+func (p *Prom) MetricFamilies2points(metricFamilies map[string]*dto.MetricFamily, u string) (pts []*point.Point, lastErr error) {
 	filteredMetricFamilies := p.filterMetricFamilies(metricFamilies)
 	p.swapTypeInfoToFront(filteredMetricFamilies)
-
-	defer func() {
-		for k := range p.infoTags {
-			delete(p.infoTags, k)
-		}
-	}()
+	var err error
 
 	opts := point.DefaultMetricOptions()
 	for _, nf := range filteredMetricFamilies {
@@ -314,17 +336,14 @@ func (p *Prom) text2Metrics(in io.Reader, u string) (pts []*point.Point, lastErr
 					fields["status"] = statusInfo
 				}
 
-				tags := p.getTags(m.GetLabel(), measurementName, u)
-
-				if !p.tagKVMatched(tags) {
-					pt := point.NewPointV2([]byte(measurementName),
-						append(point.NewTags(tags), point.NewKVs(fields)...),
-						opts...)
-					if err != nil {
-						lastErr = err
-					} else {
-						pts = append(pts, pt)
-					}
+				tags := p.filterIgnoreTagKV(p.getTags(m.GetLabel(), measurementName, u))
+				pt := point.NewPointV2([]byte(measurementName),
+					append(point.NewTags(tags), point.NewKVs(fields)...),
+					opts...)
+				if err != nil {
+					lastErr = err
+				} else {
+					pts = append(pts, pt)
 				}
 			}
 
@@ -337,17 +356,15 @@ func (p *Prom) text2Metrics(in io.Reader, u string) (pts []*point.Point, lastErr
 				if p.opt.asLogging != nil && p.opt.asLogging.Enable {
 					fields["status"] = statusInfo
 				}
-				tags := p.getTags(m.GetLabel(), measurementName, u)
 
-				if !p.tagKVMatched(tags) {
-					pt := point.NewPointV2([]byte(measurementName),
-						append(point.NewTags(tags), point.NewKVs(fields)...),
-						opts...)
-					if err != nil {
-						lastErr = err
-					} else {
-						pts = append(pts, pt)
-					}
+				tags := p.filterIgnoreTagKV(p.getTags(m.GetLabel(), measurementName, u))
+				pt := point.NewPointV2([]byte(measurementName),
+					append(point.NewTags(tags), point.NewKVs(fields)...),
+					opts...)
+				if err != nil {
+					lastErr = err
+				} else {
+					pts = append(pts, pt)
 				}
 
 				for _, q := range m.GetSummary().Quantile {
@@ -364,18 +381,15 @@ func (p *Prom) text2Metrics(in io.Reader, u string) (pts []*point.Point, lastErr
 						fields["status"] = statusInfo
 					}
 
-					tags := p.getTags(m.GetLabel(), measurementName, u)
+					tags := p.filterIgnoreTagKV(p.getTags(m.GetLabel(), measurementName, u))
 					tags["quantile"] = fmt.Sprint(q.GetQuantile())
-
-					if !p.tagKVMatched(tags) {
-						pt := point.NewPointV2([]byte(measurementName),
-							append(point.NewTags(tags), point.NewKVs(fields)...),
-							opts...)
-						if err != nil {
-							lastErr = err
-						} else {
-							pts = append(pts, pt)
-						}
+					pt := point.NewPointV2([]byte(measurementName),
+						append(point.NewTags(tags), point.NewKVs(fields)...),
+						opts...)
+					if err != nil {
+						lastErr = err
+					} else {
+						pts = append(pts, pt)
 					}
 				}
 			}
@@ -390,17 +404,14 @@ func (p *Prom) text2Metrics(in io.Reader, u string) (pts []*point.Point, lastErr
 					fields["status"] = statusInfo
 				}
 
-				tags := p.getTags(m.GetLabel(), measurementName, u)
-
-				if !p.tagKVMatched(tags) {
-					pt := point.NewPointV2([]byte(measurementName),
-						append(point.NewTags(tags), point.NewKVs(fields)...),
-						opts...)
-					if err != nil {
-						lastErr = err
-					} else {
-						pts = append(pts, pt)
-					}
+				tags := p.filterIgnoreTagKV(p.getTags(m.GetLabel(), measurementName, u))
+				pt := point.NewPointV2([]byte(measurementName),
+					append(point.NewTags(tags), point.NewKVs(fields)...),
+					opts...)
+				if err != nil {
+					lastErr = err
+				} else {
+					pts = append(pts, pt)
 				}
 
 				for _, b := range m.GetHistogram().GetBucket() {
@@ -411,17 +422,14 @@ func (p *Prom) text2Metrics(in io.Reader, u string) (pts []*point.Point, lastErr
 						fields["status"] = statusInfo
 					}
 
-					tags := p.getTagsWithLE(m.GetLabel(), measurementName, b)
-
-					if !p.tagKVMatched(tags) {
-						pt := point.NewPointV2([]byte(measurementName),
-							append(point.NewTags(tags), point.NewKVs(fields)...),
-							opts...)
-						if err != nil {
-							lastErr = err
-						} else {
-							pts = append(pts, pt)
-						}
+					tags := p.filterIgnoreTagKV(p.getTagsWithLE(m.GetLabel(), measurementName, b))
+					pt := point.NewPointV2([]byte(measurementName),
+						append(point.NewTags(tags), point.NewKVs(fields)...),
+						opts...)
+					if err != nil {
+						lastErr = err
+					} else {
+						pts = append(pts, pt)
 					}
 				}
 			}
@@ -434,7 +442,7 @@ func (p *Prom) text2Metrics(in io.Reader, u string) (pts []*point.Point, lastErr
 			// https://github.com/OpenObservability/OpenMetrics/blob/main/specification/OpenMetrics.md#info
 			for _, m := range value.GetMetric() {
 				for _, l := range m.GetLabel() {
-					p.infoTags[l.GetName()] = l.GetValue()
+					p.InfoTags[l.GetName()] = l.GetValue()
 				}
 			}
 		}

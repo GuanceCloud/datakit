@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 )
 
 type option struct {
@@ -44,7 +45,9 @@ type option struct {
 
 	auth map[string]string
 
-	l *logger.Logger
+	batchCallback func([]*point.Point) error
+	streamSize    int
+	l             *logger.Logger
 }
 
 type PromOption func(opt *option)
@@ -123,4 +126,12 @@ func WithHTTPHeaders(m map[string]string) PromOption {
 func WithTags(m map[string]string) PromOption { return func(opt *option) { opt.tags = m } }
 func WithDisableInfoTag(b bool) PromOption    { return func(opt *option) { opt.disableInfoTag = b } }
 func WithAuth(m map[string]string) PromOption { return func(opt *option) { opt.auth = m } }
-func WithLogger(l *logger.Logger) PromOption  { return func(opt *option) { opt.l = l } }
+func WithMaxBatchCallback(i int, f func([]*point.Point) error) PromOption {
+	return func(opt *option) {
+		if i > 0 && f != nil {
+			opt.streamSize = i
+			opt.batchCallback = f
+		}
+	}
+}
+func WithLogger(l *logger.Logger) PromOption { return func(opt *option) { opt.l = l } }
