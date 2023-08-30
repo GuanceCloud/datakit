@@ -263,6 +263,9 @@ spec:
       - hostPath:
           path: /sys/kernel/debug
         name: debugfs
+      - hostPath:
+          path: /root/datakit_cache
+        name: cache
       # # ---iploc-start
       #- emptyDir: {}
       #  name: datakit-ipdb
