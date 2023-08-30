@@ -22,6 +22,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
+	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -66,7 +67,7 @@ type Prom struct {
 	opt      *option
 	client   *http.Client
 	parser   expfmt.TextParser
-	infoTags map[string]string
+	InfoTags map[string]string
 }
 
 func NewProm(promOpts ...PromOption) (*Prom, error) {
@@ -85,7 +86,22 @@ func NewProm(promOpts ...PromOption) (*Prom, error) {
 		opt.timeout = httpTimeout
 	}
 
-	p := Prom{opt: &opt, infoTags: make(map[string]string)}
+	p := Prom{opt: &opt, InfoTags: make(map[string]string)}
+
+	var f expfmt.BatchCallback = func(mf map[string]*dto.MetricFamily) error {
+		pts, err := p.MetricFamilies2points(mf, "")
+		if err != nil {
+			return err
+		}
+
+		collectPointsTotalVec.WithLabelValues(p.opt.source).Observe(float64(len(pts)))
+
+		return p.opt.batchCallback(pts)
+	}
+	if opt.streamSize > 0 && opt.batchCallback != nil {
+		parse := expfmt.NewTextParser(expfmt.WithBatchCallback(opt.streamSize, f))
+		p.parser = *parse
+	}
 
 	cliopts := httpcli.NewOptions()
 	cliopts.DialTimeout = opt.timeout

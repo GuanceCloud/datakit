@@ -370,7 +370,7 @@ replace (
 	github.com/kardianos/service => github.com/GuanceCloud/service v1.2.1-rc3
 	github.com/ory/dockertest/v3 v3.9.1 => github.com/GuanceCloud/dockertest/v3 v3.9.4
 	github.com/prometheus/client_model => github.com/GuanceCloud/client_model v0.0.0-20230418154757-93bd4e878a5e
-	github.com/prometheus/common => github.com/GuanceCloud/promcommon v0.0.0-20230424035348-b908fc8f60ec
+	github.com/prometheus/common => github.com/GuanceCloud/promcommon v0.0.0-20230828165048-8a8ac696e616
 	github.com/prometheus/prometheus => github.com/prometheus/prometheus v1.8.2-0.20210720084720-59d02b5ef003
 	github.com/pyroscope-io/pyroscope v0.36.0 => github.com/GuanceCloud/pyroscope v0.36.1
 	github.com/weaveworks/common => github.com/pyh4/common v0.0.0-20220923021349-874c8cc0db2c

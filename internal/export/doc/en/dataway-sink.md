@@ -249,7 +249,7 @@ Here are all metrics exported by Dataway, we can request `http://localhost:9090/
 > If the metrics not shown, maybe related module not working for now.
 
 ```shell
-watch -n 3 'curl -s http://localhost:9090 | grep -a <METRIC-NAME>'
+watch -n 3 'curl -s http://localhost:9090/metrics | grep -a <METRIC-NAME>'
 ```
 
 |TYPE|NAME|LABELS|HELP|
@@ -392,6 +392,22 @@ Datakit reserved some GCK(*Global Customer Keys*), these keys are not collected 
     ]
 }
 
+```
+
+- `__dataway_api` used in specific API requests, we can redirect(sink) the request to specific URL via sinker rule. For example, to redirect Pipeline pull APIs and election APIs to your workspace, we can do like this(election API refers to 2 APIs)
+
+``` json
+{
+    "strict": true,
+    "rules": [
+        {
+            "rules": [
+                "{ __dataway_api in ['/v1/datakit/pull', '/v1/election', '/v1/election/heartbeat'  }",
+            ],
+            "url": "https://openway.guance.com?token=<YOUR-TOKEN>",
+        }
+    ]
+}
 ```
 
 <!-- markdownlint-disable MD046 -->

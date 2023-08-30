@@ -1,6 +1,14 @@
 # 更新日志
 ---
 
+## 1.14.1(2023/08/30) {#cl-1.14.1}
+
+### 问题修复 {#cl-1.14.1-fix}
+
+- Kubernetes 中 Prometheus 指标采集优化（流式采集），避免可能的大量内存占用（#1853/#1845）
+
+---
+
 ## 1.14.0(2023/08/24) {#cl-1.14.0}
 本次发布属于迭代发布，主要有如下更新：
 
@@ -13,7 +21,7 @@
 
 ### 问题修复 {#cl-1.14.0-fix}
 
-- 修复 container 和 Kubernetes 采集没有正确添加 HostTags 和 ElectionTags 的问题（#1833）
+- 修复 Container 和 Kubernetes 采集没有正确添加 HostTags 和 ElectionTags 的问题（#1833）
 - 修复 [MySQL](../integrations/mysql.md#input-config) 自定义采集 Tags 为空时指标无法采集的问题（#1835）
 
 ### 功能优化 {#cl-1.14.0-opt}
@@ -22,7 +30,7 @@
 - 去掉 Process 采集器中的 [open_files_list](../integrations/host_processes.md#object) 字段（#1838）
 - 增加[主机对象](../integrations/hostobject.md#faq)采集器文档中指标丢失的处理案例（#1838）
 - 优化 Datakit 视图，完善 Datakit Prometheus 指标文档
-- 优化 Pod/容器 日志采集的 [mount 方式](container-log.md#logging-with-inside-config) (#1844)
+- 优化 Pod/容器 日志采集的 [mount 方式](../integrations/container-log.md#logging-with-inside-config) (#1844)
 - 增加 Process、System 采集器集成测试（#1841/#1842）
 - 优化 etcd 集成测试（#1847）
 - 升级 Golang 1.19.12（#1516）

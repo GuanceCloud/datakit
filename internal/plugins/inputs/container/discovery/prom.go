@@ -20,6 +20,7 @@ import (
 var (
 	defaultPrometheusioInterval         = time.Second * 60
 	defaultPrometheusioConnectKeepAlive = time.Second * 20
+	defaultStreamSize                   = 10
 )
 
 type promConfig struct {
@@ -118,6 +119,37 @@ func newPromRunnerWithConfig(c *promConfig) (*promRunner, error) {
 	if c.Tags == nil {
 		c.Tags = make(map[string]string)
 	}
+	if c.URL != "" {
+		c.URLs = append(c.URLs, c.URL)
+	}
+
+	p := &promRunner{
+		conf:     c,
+		feeder:   io.DefaultFeeder(),
+		lastTime: time.Now(),
+	}
+
+	callbackFunc := func(pts []*point.Point) error {
+		if p.conf.AsLogging != nil && p.conf.AsLogging.Enable {
+			for _, pt := range pts {
+				err := p.feeder.Feed(string(pt.Name()), point.Logging, []*point.Point{pt},
+					&io.Option{CollectCost: time.Since(p.lastTime)},
+				)
+				if err != nil {
+					klog.Warnf("failed to feed prom logging: %s, ignored", err)
+				}
+			}
+		} else {
+			err := p.feeder.Feed(p.conf.Source, point.Metric, pts,
+				&io.Option{CollectCost: time.Since(p.lastTime)},
+			)
+			if err != nil {
+				klog.Warnf("failed to feed prom metrics: %s, ignored", err)
+			}
+		}
+		return nil
+	}
+
 	opts := []iprom.PromOption{
 		iprom.WithLogger(klog), // WithLogger must in the first
 		iprom.WithSource(c.Source),
@@ -143,6 +175,7 @@ func newPromRunnerWithConfig(c *promConfig) (*promRunner, error) {
 		iprom.WithTags(c.Tags),
 		iprom.WithDisableInfoTag(c.DisableInfoTag),
 		iprom.WithAuth(c.Auth),
+		iprom.WithMaxBatchCallback(defaultStreamSize, callbackFunc),
 	}
 
 	pm, err := iprom.NewProm(opts...)
@@ -150,16 +183,8 @@ func newPromRunnerWithConfig(c *promConfig) (*promRunner, error) {
 		return nil, fmt.Errorf("failed to create prom: %w", err)
 	}
 
-	if c.URL != "" {
-		c.URLs = append(c.URLs, c.URL)
-	}
-
-	return &promRunner{
-		conf:     c,
-		pm:       pm,
-		feeder:   io.DefaultFeeder(),
-		lastTime: time.Now(),
-	}, nil
+	p.pm = pm
+	return p, nil
 }
 
 func (p *promRunner) setCustomerTags(m map[string]string, keys []string) {
@@ -200,56 +225,14 @@ func (p *promRunner) runOnce() {
 	klog.Debugf("running collect from source %s", p.conf.Source)
 	p.lastTime = time.Now()
 
-	start := time.Now()
-
-	pts, err := p.collect()
-	if err != nil {
-		klog.Warnf("failed to collect prom: %w", err)
-		return
-	}
-	if len(pts) == 0 {
-		klog.Warnf("points got nil from collect")
-		return
-	}
-
-	if p.conf.AsLogging != nil && p.conf.AsLogging.Enable {
-		// Feed measurement as logging.
-		for _, pt := range pts {
-			// We need to feed each point separately because
-			// each point might have different measurement name.
-			err := p.feeder.Feed(string(pt.Name()), point.Logging, []*point.Point{pt},
-				&io.Option{CollectCost: time.Since(start)},
-			)
-			if err != nil {
-				klog.Warnf("failed to feed prom logging: %s, ignored", err)
-			}
-		}
-	} else {
-		err := p.feeder.Feed(p.conf.Source, point.Metric, pts,
-			&io.Option{CollectCost: time.Since(start)},
-		)
-		if err != nil {
-			klog.Warnf("failed to feed prom metrics: %s, ignored", err)
-		}
-	}
-}
-
-func (p *promRunner) collect() ([]*point.Point, error) {
-	if p.pm == nil {
-		return nil, fmt.Errorf("unreachable, invalid prom")
-	}
-
-	var points []*point.Point
-
 	for _, u := range p.conf.URLs {
-		pts, err := p.pm.CollectFromHTTPV2(u)
+		// use callback processor, not return pts
+		_, err := p.pm.CollectFromHTTPV2(u)
 		if err != nil {
-			return nil, err
+			klog.Warnf("failed to collect prom: %w", err)
+			return
 		}
-		points = append(points, pts...)
 	}
-
-	return points, nil
 }
 
 func getPromURL(host, port, scheme, path string) (*url.URL, error) {

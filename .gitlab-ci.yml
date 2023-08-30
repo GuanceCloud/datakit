@@ -12,7 +12,7 @@ before_script:
 
 variables:
   PROJECT: "datakit"
-  CI_VERSION: "1.14.0"
+  CI_VERSION: "1.14.1"
   TEST_VERSION: "1.999.0"
 
 stages:
@@ -198,3 +198,15 @@ current-testing:
   tags:
     - cloudcare-ft
 
+
+build-profiling-image:
+  stage: deploy
+  resource_group: production
+  only:
+    - /^k8s_profilers[-_].*$/
+  script:
+    - pwd
+    - cd k8s-profilers && make build
+    - pwd
+  tags:
+    - cloudcare-ft

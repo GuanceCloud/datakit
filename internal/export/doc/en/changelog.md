@@ -1,12 +1,17 @@
 # Changelog
 ---
 
+### Bug fixes {#cl-1.14.1-fix}
+
+- Optimize Prometheus metrics collecting(streaming collection) in Kubernetes to avoid possible large memory usage(#1853/#1845)
+
+---
 
 ## 1.14.0 (2023/08/24) {#cl-1.14.0}
 
 This release is an iterative release, mainly including the following updates:
 
-### New features {#cl-1.12.0-new}
+### New features {#cl-1.14.0-new}
 
 - Added collector [NetFlow](../integrations/netflow.md) (#1821)
 - Added [Filter(Blacklist) Debugger](datakit-tools-how-to.md#debug-filter) (#1787)
@@ -15,7 +20,7 @@ This release is an iterative release, mainly including the following updates:
 
 ### Bug fixes {#cl-1.14.0-fix}
 
-- Fixed the problem that container and Kubernetes collection did not add HostTags and ElectionTags correctly (#1833)
+- Fixed the problem that Container and Kubernetes collection did not add HostTags and ElectionTags correctly (#1833)
 - Fixed [MySQL](../integrations/mysql.md#input-config) the problem that the indicator cannot be collected when the custom collection Tags is empty (#1835)
 
 ### Function optimization {#cl-1.14.0-opt}
@@ -24,11 +29,11 @@ This release is an iterative release, mainly including the following updates:
 - Remove [open_files_list](../integrations/host_processes.md#object) field in Process collector (#1838)
 - Added the handling case of index loss in the collector document of [host object](../integrations/hostobject.md#faq) (#1838)
 - Optimize the Datakit view and improve the Datakit Prometheus indicator documentation
-- Optimize the [mount method] of Pod/container log collection (container-log.md#logging-with-inside-config) (#1844)
+- Optimize the mount method of [Pod/container log collection](../integration/container-log.md#logging-with-inside-config) (#1844)
 - Add Process and System collector integration tests (#1841/#1842)
 - Optimize etcd integration tests (#1847)
 - Upgrade Golang 1.19.12 (#1516)
-- Added [Install DataKit] via `ash` command (datakit-install.md#get-install) (#123)
+- Added [Install DataKit](datakit-install.md#get-install) via `ash` command(#123)
 - [RUM](../integrations/rum.md) supports custom indicator set, the default indicator set adds `telemetry` (#1843)
 
 ### Compatibility adjustments {#cl-1.14.0-brk}
@@ -128,7 +133,7 @@ This release is an iterative release, mainly including the following updates:
 ### Bug fixes {#cl-1.12.0-fix}
 
 - Fix the problem that the `owner` field is missing in the dial test collector (#1789)
-- Fixed the missing `host` problem of the DDTrace collector, and changed the tag collection of various Traces to a blacklist mechanism [^trace-black-list] (#1776)
+- Fixed the missing `host` problem of the DDTrace collector, and changed the tag collection of various Traces to a blacklist mechanism [^trace-black-list](#1776)
 - Fix RUM API cross domain issue (#1785)
 
 [^trace-black-list]: Various types of Trace will carry various business fields (called Tag, Annotation or Attribute, etc.) on its data. In order to collect more data, Datakit accepts these fields by default.
@@ -428,7 +433,7 @@ This release is an iterative release, mainly including the following updates:
 
 ### Compatibility adjustments {#cl-1.6.0-brk}
 
-- Remove the old command line style, for example, the original `datakit --version` will no longer work and must be replaced by `datakit version`. For details, see [Usage of various commands] (datakit-tools-how-to.md)
+- Remove the old command line style, for example, the original `datakit --version` will no longer work and must be replaced by `datakit version`. For details, see [Usage of various commands](datakit-tools-how-to.md)
 
 ## 1.5.10(2023/04/13) {#cl-1.5.10}
 

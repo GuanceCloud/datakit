@@ -67,7 +67,13 @@ This document focuses on local disk log collection and Socket log collection:
       auto_multiline_detection = true
       ## Configure the automatic multiline patterns list, which is an array of multiline rules, i.e. multiple multiline_matches. If it is empty, use the default rule. See the document for details
       auto_multiline_extra_patterns = []
-    
+
+      ## Removes ANSI escape codes from text strings.
+      remove_ansi_escape_codes = false
+
+      ## If the data sent failure, will retry forevery.
+      blocking_mode = true
+
       ## Ignore inactive files. For example, files that were last modified 20 minutes ago and more than 10m ago will be ignored
       ## Time unit supports "ms", "s", "m", "h"
       ignore_dead_log = "1h"
@@ -324,16 +330,41 @@ A few considerations for Pipeline:
 
 Use glob rules to specify log files more conveniently, as well as automatic discovery and file filtering.
 
-| Wildcard character   | Description                               | Regular Example       | Matching Sample                  | Mismatch                      |
-| :--      | ---                                | ---            | ---                       | ----                        |
-| `*`      | Match any number of any characters, including none     | `Law*`         | Law, Laws, Lawyer         | GrokLaw, La, aw             |
-| `?`      | Match any single character                   | `?at`          | Cat, cat, Bat, bat        | at                          |
-| `[abc]`  | Match a character given in parentheses           | `[CB]at`       | Cat, Bat                  | cat, bat                    |
-| `[a-z]`  | Match a character in the range given in parentheses   | `Letter[0-9]`  | Letter0, Letter1, Letter9 | Letters, Letter, Letter10   |
-| `[!abc]` | Match a character not given in parentheses         | `[!C]at`       | Bat, bat, cat             | Cat                         |
-| `[!a-z]` | Match a character that is not within the given range in parentheses | `Letter[!3-5]` | Letter1…                  | Letter3 … Letter5, Letterxx |
+| Wildcard character | Description                                                         | Regular Example | Matching Sample           | Mismatch                    |
+| :--                | ---                                                                 | ---             | ---                       | ----                        |
+| `*`                | Match any number of any characters, including none                  | `Law*`          | Law, Laws, Lawyer         | GrokLaw, La, aw             |
+| `?`                | Match any single character                                          | `?at`           | Cat, cat, Bat, bat        | at                          |
+| `[abc]`            | Match a character given in parentheses                              | `[CB]at`        | Cat, Bat                  | cat, bat                    |
+| `[a-z]`            | Match a character in the range given in parentheses                 | `Letter[0-9]`   | Letter0, Letter1, Letter9 | Letters, Letter, Letter10   |
+| `[!abc]`           | Match a character not given in parentheses                          | `[!C]at`        | Bat, bat, cat             | Cat                         |
+| `[!a-z]`           | Match a character that is not within the given range in parentheses | `Letter[!3-5]`  | Letter1…                  | Letter3 … Letter5, Letterxx |
 
 Also, in addition to the glob standard rules described above, the collector also supports `**` recursive file traversal, as shown in the sample configuration. For more information on Grok, see [here](https://rgb-24bit.github.io/blog/2018/glob.html){:target="_blank"}。
+
+### Special Bytecode Filtering for Logs {#ansi-decode}
+
+The log may contain some unreadable bytecodes (such as the color of terminal output, etc.), which can be deleted and filtered by setting `remove_ansi_escape_codes` to true.
+
+<!-- markdownlint-disable MD046 -->
+???+ attention
+
+    For such ansi characters, it is usually recommended to turn them off in the log output frame instead of having them filtered by Datakit. Filtering of asni characters is handled by regular expressions, which have poor performance and may have undefined behaviors (filtering errors or multiline failures).
+<!-- markdownlint-enable -->
+
+The benchmark results are for reference only:
+
+```text
+goos: linux
+goarch: amd64
+pkg: gitlab.jiagouyun.com/cloudcare-tools/test
+cpu: Intel(R) Core(TM) i7-4770HQ CPU @ 2.20GHz
+BenchmarkRemoveAnsiCodes
+BenchmarkRemoveAnsiCodes-8        636033              1616 ns/op
+PASS
+ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
+```
+
+The processing time of each text increases by 1616 ns. If this function is not turned on, there will be no extra loss.
 
 ## Measurements {#measurements}
 

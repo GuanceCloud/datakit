@@ -79,9 +79,9 @@ Datakit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
         },
         "profiler": {
             "images": {
-                "java_profiler_image":   "pubrepo.jiagouyun.com/dataflux/async-profiler:0.1.0",
-                "python_profiler_image": "pubrepo.jiagouyun.com/dataflux/py-spy:0.1.0",
-                "golang_profiler_image": "pubrepo.jiagouyun.com/dataflux/pprof:0.1.0"
+                "java_profiler_image":   "pubrepo.jiagouyun.com/datakit-operator/async-profiler:0.1.0",
+                "python_profiler_image": "pubrepo.jiagouyun.com/datakit-operator/py-spy:0.1.0",
+                "golang_profiler_image": "pubrepo.jiagouyun.com/datakit-operator/go-pprof:0.1.0"
             },
             "envs": {
                 "DK_AGENT_HOST":  "datakit-service.datakit.svc",
@@ -117,22 +117,24 @@ Datakit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
 - `envs` 同样是多个 Key/Value，但是 Key 和 Value 不固定。Datakit Operator 会在目标容器中注入所有 Key/Value 环境变量。例如在 `envs` 中添加一个 `FAKE_ENV`：
 
 ```json
-    "admission_inject": {
-        "ddtrace": {
-            "images": {
-                "java_agent_image":   "pubrepo.guance.com/datakit-operator/dd-lib-java-init:v1.8.4-guance",
-                "python_agent_image": "pubrepo.guance.com/datakit-operator/dd-lib-python-init:v1.6.2",
-                "js_agent_image":     "pubrepo.guance.com/datakit-operator/dd-lib-js-init:v3.9.2"
-            },
-            "envs": {
-                "DD_AGENT_HOST":           "datakit-service.datakit.svc",
-                "DD_TRACE_AGENT_PORT":     "9529",
-                "DD_JMXFETCH_STATSD_HOST": "datakit-service.datakit.svc",
-                "DD_JMXFETCH_STATSD_PORT": "8125",
-                "FAKE_ENV":                "ok"
-            }
-        }
+{
+  "admission_inject": {
+    "ddtrace": {
+      "images": {
+        "java_agent_image": "pubrepo.guance.com/datakit-operator/dd-lib-java-init:v1.8.4-guance",
+        "python_agent_image": "pubrepo.guance.com/datakit-operator/dd-lib-python-init:v1.6.2",
+        "js_agent_image": "pubrepo.guance.com/datakit-operator/dd-lib-js-init:v3.9.2"
+      },
+      "envs": {
+        "DD_AGENT_HOST": "datakit-service.datakit.svc",
+        "DD_TRACE_AGENT_PORT": "9529",
+        "DD_JMXFETCH_STATSD_HOST": "datakit-service.datakit.svc",
+        "DD_JMXFETCH_STATSD_PORT": "8125",
+        "FAKE_ENV": "ok"
+      }
     }
+  }
+}
 ```
 
 所有注入 `ddtrace` agent 的容器，都会添加 `envs` 的 5 个环境变量。
@@ -145,6 +147,8 @@ Datakit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
 
 - 注入 `ddtrace` agent 和 environment 的功能
 - 挂载 `logfwd` sidecar 并开启日志采集的功能
+- 注入 [`async-profiler`](https://github.com/async-profiler/async-profiler){:target="_blank"} *:octicons-beaker-24: Experimental* 采集 JVM 程序的 profile 数据
+- 注入 [`py-spy`](https://github.com/benfred/py-spy){:target="_blank"} *:octicons-beaker-24: Experimental* 采集 Python 应用的 profile 数据
 
 <!-- markdownlint-disable MD046 -->
 ???+ info
@@ -309,6 +313,196 @@ $ log-container datakit-logfwd
 ```
 
 最终可以在观测云日志平台查看日志是否采集。
+
+### 注入 `async-profiler` 工具采集 JVM 应用性能数据 {#inject-async-profiler}
+
+#### 前置条件 {#async-profiler-prerequisites}
+
+- 集群已安装 [Datakit](https://docs.guance.com/datakit/datakit-daemonset-deploy/){:target="_blank"}。
+- [开启 profile](https://docs.guance.com/datakit/datakit-daemonset-deploy/#using-k8-env){:target="_blank"} 采集器。
+- Linux 内核参数 [kernel.perf_event_paranoid](https://www.kernel.org/doc/Documentation/sysctl/kernel.txt){:target="_blank"} 值设置为 2 及以下。
+
+<!-- markdownlint-disable MD046 -->
+???+ note
+
+    `async-profiler` 使用 [`perf_events`](https://perf.wiki.kernel.org/index.php/Main_Page){:target="_blank"} 工具来抓取 Linux 的内核调用堆栈，非特权进程依赖内核的相应设置，可以使用以下命令来修改内核参数：
+    ```shell
+    $ sudo sysctl kernel.perf_event_paranoid=1
+    $ sudo sysctl kernel.kptr_restrict=0
+    # 或者
+    $ sudo sh -c 'echo 1 >/proc/sys/kernel/perf_event_paranoid'
+    $ sudo sh -c 'echo 0 >/proc/sys/kernel/kptr_restrict'
+    ```
+<!-- markdownlint-enable -->
+
+
+在你的 [Pod 控制器](https://kubernetes.io/docs/concepts/workloads/controllers/){:target="_blank"} 资源配置文件中的
+`.spec.template.metadata.annotations` 节点下添加 annotation：`admission.datakit/java-profiler.version: "latest"`，然后应用该资源配置文件，
+Datakit-Operator 会自动在相应的 Pod 中创建一个名为 `datakit-profiler` 的容器来辅助进行 profiling。
+
+
+接下来以一个名为 `movies-java` 的 `Deployment` 资源配置文件为例进行说明。
+
+```yaml
+kind: Deployment
+metadata:
+  name: movies-java
+  labels:
+    app: movies-java
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: movies-java
+  template:
+    metadata:
+      name: movies-java
+      labels:
+        app: movies-java
+      annotations:
+        admission.datakit/java-profiler.version: "latest"
+    spec:
+      containers:
+        - name: movies-java
+          image: zhangyicloud/movies-java:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: JAVA_OPTS
+              value: ""
+
+      restartPolicy: Always
+```
+
+应用配置文件并检查是否生效：
+
+```shell
+$ kubectl apply -f deployment-movies-java.yaml
+$ kubectl get pods | grep movies-java
+movies-java-784f4bb8c7-59g6s   2/2     Running   0          47s
+$ kubectl describe pod movies-java-784f4bb8c7-59g6s | grep datakit-profiler
+      /app/datakit-profiler from datakit-profiler-volume (rw)
+  datakit-profiler:
+      /app/datakit-profiler from datakit-profiler-volume (rw)
+  datakit-profiler-volume:
+  Normal  Created    12m   kubelet            Created container datakit-profiler
+  Normal  Started    12m   kubelet            Started container datakit-profiler
+```
+
+稍等几分钟后即可在观测云控制台 [应用性能检监测-Profiling](https://console.guance.com/tracing/profile){:target="_blank"} 页面查看应用性能数据。
+
+<!-- markdownlint-disable MD046 -->
+???+ note
+
+    默认使用命令 `jps -q -J-XX:+PerfDisableSharedMem | head -n 20` 来查找容器中的 JVM 进程，出于性能的考虑，最多只会采集 20 个进程的数据。
+
+???+ note
+
+    可以通过修改 `datakit-operator.yaml` 配置文件中的 `datakit-operator-config` 下的环境变量来配置 profiling 的行为。
+    
+    | 环境变量 | 说明 | 默认值 |
+    |----|--|-----|
+    |  `DK_PROFILE_SCHEDULE`  | profiling 的运行计划，使用与 Linux [Crontab](https://man7.org/linux/man-pages/man5/crontab.5.html){:target="_blank"} 相同的语法，如 `*/10 * * * *` |  `0 * * * *`（每小时调度一次）   |
+    | `DK_PROFILE_DURATION`   | 每次 profiling 持续的时间，单位秒 |   240（4 分钟） |
+
+
+???+ note
+
+    若无法看到数据，可以进入 `datakit-profiler` 容器查看相应日志进行排查：
+    ```shell
+    $ kubectl exec -it movies-java-784f4bb8c7-59g6s -c datakit-profiler -- bash
+    $ tail -n 2000 log/main.log
+    ```
+<!-- markdownlint-enable -->
+
+
+
+### 注入 `py-spy` 工具采集 Python 应用性能数据 {#inject-py-spy}
+
+#### 前置条件 {#py-spy-prerequisites}
+
+- 当前只支持 Python 官方解释器（`CPython`）
+
+在你的 [Pod 控制器](https://kubernetes.io/docs/concepts/workloads/controllers/){:target="_blank"} 资源配置文件中的
+`.spec.template.metadata.annotations` 节点下添加 annotation：`admission.datakit/python-profiler.version: "latest"`，然后应用该资源配置文件，
+Datakit-Operator 会自动在相应的 Pod 中创建一个名为 `datakit-profiler` 的容器来辅助进行 profiling。
+
+接下来将以一个名为 "movies-python" 的 `Deployment` 资源配置文件为例进行说明。
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: movies-python
+  labels:
+    app: movies-python
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: movies-python
+  template:
+    metadata:
+      name: movies-python
+      labels:
+        app: movies-python
+      annotations:
+        admission.datakit/python-profiler.version: "latest"
+    spec:
+      containers:
+        - name: movies-python
+          image: zhangyicloud/movies-python:latest
+          imagePullPolicy: Always
+          command:
+            - "gunicorn"
+            - "-w"
+            - "4"
+            - "--bind"
+            - "0.0.0.0:8080"
+            - "app:app"
+```
+
+应用资源配置并验证是否生效：
+
+```shell
+$ kubectl apply -f deployment-movies-python.yaml
+$
+$ kubectl get pods | grep movies-python
+movies-python-78b6cf55f-ptzxf   2/2     Running   0          64s
+$ 
+$ kubectl describe pod movies-python-78b6cf55f-ptzxf | grep datakit-profiler
+      /app/datakit-profiler from datakit-profiler-volume (rw)
+  datakit-profiler:
+      /app/datakit-profiler from datakit-profiler-volume (rw)
+  datakit-profiler-volume:
+  Normal  Created    98s   kubelet            Created container datakit-profiler
+  Normal  Started    97s   kubelet            Started container datakit-profiler
+```
+
+稍等几分钟后即可在观测云控制台 [应用性能检监测-Profiling](https://console.guance.com/tracing/profile){:target="_blank"} 页面查看应用性能数据。
+
+<!-- markdownlint-disable MD046 -->
+???+ note
+
+    默认使用命令 `ps -e -o pid,cmd --no-headers | grep -v grep | grep "python" | head -n 20` 来查找容器中的 `Python` 进程，出于性能考虑，最多只会采集 20 个进程的数据。
+
+???+ note
+
+    可以通过修改 `datakit-operator.yaml` 配置文件中的 ConfigMap `datakit-operator-config`  下的环境变量来配置 profiling 的行为。
+
+    | 环境变量 | 说明 | 默认值 |
+    |----|--|-----|
+    |  `DK_PROFILE_SCHEDULE`  | profiling 的运行计划，使用与 Linux [Crontab](https://man7.org/linux/man-pages/man5/crontab.5.html){:target="_blank"} 相同的语法，如 `*/10 * * * *` |  `0 * * * *`（每小时调度一次）   |
+    | `DK_PROFILE_DURATION`   | 每次 profiling 持续的时间，单位秒 |   240（4 分钟） |
+
+
+???+ note
+
+    若无法看到数据，可以进入 `datakit-profiler` 容器查看相应日志进行排查：
+    ```shell
+    $ kubectl exec -it movies-python-78b6cf55f-ptzxf -c datakit-profiler -- bash
+    $ tail -n 2000 log/main.log
+    ```
+<!-- markdownlint-enable -->
 
 ---
 

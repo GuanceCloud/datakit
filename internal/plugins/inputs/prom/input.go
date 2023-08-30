@@ -38,8 +38,6 @@ const (
 	defaultMaxFileSize int64 = 32 * 1024 * 1024
 )
 
-var l = logger.DefaultSLogger(inputName)
-
 type Input struct {
 	Source           string        `toml:"source"`
 	Interval         time.Duration `toml:"interval"`
@@ -48,6 +46,7 @@ type Input struct {
 
 	URL                    string       `toml:"url,omitempty"` // Deprecated
 	URLs                   []string     `toml:"urls"`
+	StreamSize             int          `toml:"stream_size"`
 	IgnoreReqErr           bool         `toml:"ignore_req_err"`
 	MetricTypes            []string     `toml:"metric_types"`
 	MetricNameFilter       []string     `toml:"metric_name_filter"`
@@ -96,9 +95,16 @@ type Input struct {
 
 	// Input holds logger because prom have different types of instances.
 	l *logger.Logger
+
+	startTime    time.Time
+	currentURL   string
+	callbackFunc func([]*point.Point) error
 }
 
-type urlTags map[string]string
+type urlTags []struct {
+	key   []byte
+	value []byte
+}
 
 func (*Input) SampleConfig() string { return sampleCfg }
 
@@ -125,9 +131,7 @@ func (i *Input) ElectionEnabled() bool {
 }
 
 func (i *Input) Run() {
-	if i.setup() {
-		return
-	}
+	i.l = logger.SLogger(inputName + "/" + i.Source)
 
 	tick := time.NewTicker(i.Interval)
 	defer tick.Stop()
@@ -162,20 +166,57 @@ func (i *Input) Run() {
 
 func (i *Input) collect() error {
 	if !i.isInitialized {
+		// Callback func.
+		if i.StreamSize > 0 {
+			i.callbackFunc = func(pts []*point.Point) error {
+				// Append tags to points
+				for _, v := range i.urlTags[i.currentURL] {
+					for _, pt := range pts {
+						pt.AddTag(v.key, v.value)
+					}
+				}
+
+				if i.AsLogging != nil && i.AsLogging.Enable {
+					// Feed measurement as logging.
+					for _, pt := range pts {
+						// We need to feed each point separately because
+						// each point might have different measurement name.
+						if err := i.Feeder.Feed(string(pt.Name()), point.Logging, []*point.Point{pt},
+							&io.Option{CollectCost: time.Since(i.startTime)}); err != nil {
+							i.Feeder.FeedLastError(err.Error(),
+								io.WithLastErrorInput(inputName),
+								io.WithLastErrorSource(inputName+"/"+i.Source),
+							)
+						}
+					}
+				} else {
+					err := i.Feeder.Feed(inputName+"/"+i.Source, point.Metric, pts,
+						&io.Option{CollectCost: time.Since(i.startTime)})
+					if err != nil {
+						i.l.Errorf("Feed: %s", err)
+						i.Feeder.FeedLastError(err.Error(),
+							io.WithLastErrorInput(inputName),
+							io.WithLastErrorSource(inputName+"/"+i.Source),
+						)
+					}
+				}
+
+				return nil
+			}
+		}
+
 		if err := i.Init(); err != nil {
 			return err
 		}
 	}
 
-	ioname := inputName + "/" + i.Source
-
-	start := time.Now()
+	i.startTime = time.Now()
 	pts, err := i.doCollect()
 	if err != nil {
 		return err
 	}
 	if pts == nil {
-		return fmt.Errorf("points got nil from doCollect")
+		return nil
 	}
 
 	if i.AsLogging != nil && i.AsLogging.Enable {
@@ -184,21 +225,21 @@ func (i *Input) collect() error {
 			// We need to feed each point separately because
 			// each point might have different measurement name.
 			if err := i.Feeder.Feed(string(pt.Name()), point.Logging, []*point.Point{pt},
-				&io.Option{CollectCost: time.Since(start)}); err != nil {
+				&io.Option{CollectCost: time.Since(i.startTime)}); err != nil {
 				i.Feeder.FeedLastError(err.Error(),
 					io.WithLastErrorInput(inputName),
-					io.WithLastErrorSource(ioname),
+					io.WithLastErrorSource(inputName+"/"+i.Source),
 				)
 			}
 		}
 	} else {
-		err := i.Feeder.Feed(ioname, point.Metric, pts,
-			&io.Option{CollectCost: time.Since(start)})
+		err := i.Feeder.Feed(inputName+"/"+i.Source, point.Metric, pts,
+			&io.Option{CollectCost: time.Since(i.startTime)})
 		if err != nil {
 			i.l.Errorf("Feed: %s", err)
 			i.Feeder.FeedLastError(err.Error(),
 				io.WithLastErrorInput(inputName),
-				io.WithLastErrorSource(ioname),
+				io.WithLastErrorSource(inputName+"/"+i.Source),
 			)
 		}
 	}
@@ -238,10 +279,6 @@ func (i *Input) doCollect() ([]*point.Point, error) {
 		return nil, err
 	}
 
-	if pts == nil {
-		return nil, fmt.Errorf("points got nil from Collect")
-	}
-
 	return pts, nil
 }
 
@@ -256,6 +293,8 @@ func (i *Input) Collect() ([]*point.Point, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		i.currentURL = u
 		var pts []*point.Point
 		if uu.Scheme != "http" && uu.Scheme != "https" {
 			pts, err = i.CollectFromFile(u)
@@ -266,10 +305,10 @@ func (i *Input) Collect() ([]*point.Point, error) {
 			return nil, err
 		}
 
-		// append tags to points
-		for k, v := range i.urlTags[u] {
+		// Append tags to points
+		for _, v := range i.urlTags[u] {
 			for _, pt := range pts {
-				pt.AddTag([]byte(k), []byte(v))
+				pt.AddTag(v.key, v.value)
 			}
 		}
 
@@ -323,26 +362,6 @@ func (i *Input) Terminate() {
 	}
 }
 
-func (i *Input) setup() bool {
-	for {
-		select {
-		case <-datakit.Exit.Wait():
-			l.Info("exit")
-			return true
-		default:
-			// nil
-		}
-		time.Sleep(1 * time.Second) // sleep a while
-		if err := i.Init(); err != nil {
-			continue
-		} else {
-			break
-		}
-	}
-
-	return false
-}
-
 func (i *Input) Pause() error {
 	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	select {
@@ -394,7 +413,15 @@ func (i *Input) Init() error {
 			i.l.Infof("add global host tags %q", globalTags)
 		}
 
-		i.urlTags[u] = inputs.MergeTags(globalTags, i.Tags, u)
+		temp := inputs.MergeTags(globalTags, i.Tags, u)
+		tempTags := urlTags{}
+		for k, v := range temp {
+			tempTags = append(tempTags, struct {
+				key   []byte
+				value []byte
+			}{key: []byte(k), value: []byte(v)})
+		}
+		i.urlTags[u] = tempTags
 	}
 
 	opts := []iprom.PromOption{
@@ -422,6 +449,7 @@ func (i *Input) Init() error {
 		iprom.WithIgnoreTagKV(i.IgnoreTagKV),
 		iprom.WithHTTPHeaders(i.HTTPHeaders),
 		iprom.WithDisableInfoTag(i.DisableInfoTag),
+		iprom.WithMaxBatchCallback(i.StreamSize, i.callbackFunc),
 		iprom.WithAuth(i.Auth),
 	}
 

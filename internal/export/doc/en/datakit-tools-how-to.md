@@ -371,7 +371,7 @@ To check if data is filtered by Blacklist(Filter), we can test by using followin
 === "Linux/macOS"
 
     ```shell
-    $ datakit debug --filter=/usr/local/datakit/data/.pull --data=/path/to/lineproto.data"
+    $ datakit debug --filter=/usr/local/datakit/data/.pull --data=/path/to/lineproto.data
     
     Dropped
     

@@ -1,57 +1,61 @@
-# Documentation Guide
+# MkDocs documentation writing
+
 ---
 
-This article mainly expounds the following problems:
+This paper mainly addresses the following issues:
 
-- How to create Datakit's documents
-- How to write better documents under Mkdocs
+- Documentation steps related to Datakit
+- How to write better documentation with MkDocs
 
-## DataKit Related Writing Steps {#steps}
+## DataKit related writing steps {#steps}
 
-We can following these steps to create new Datakit documents:
+The steps to write a new document are:
 
-1. Create markdown under *man/docs/zh*, if the new document related to inputs(collector), create the new documents under *man/docs/zh/inputs*
-1. Write and review the documents
-1. Add translated version of the new document under  *man/docs/en*(or *man/docs/en/inputs*)
-1. Run *mkdocs.sh* under project root path.
+1. Add documents under *man/docs/zh*, if it is a collector document, add it to *man/docs/zh/inputs* directory
+1. Write your documents
+1. If necessary, add the corresponding English document under *man/docs/en*
+1. Execute the *export.sh* script in the project root directory
 
-### Debugging your local documents {#debug}
+### Document local debugging {#debug}
 
-We can show more flags that "mkdocs.sh" available:
+When executing *export.sh*, you can first look at the command line parameters it supports:
 
 ```shell
-./mkdocs.sh -h
+$ ./export.sh -h
+...
 ```
 
-*mkdocs.sh* depends on some settings, following these steps to setup them:
+*export.sh* depends on the basic environment:
 
-1. Clone our [big documents repository](https://gitlab.jiagouyun.com/zy-docs/dataflux-doc){:target="_blank"} to your local *~/git/dataflux-doc*. Here *./mkdocs.sh* use these path default to export documents
-1. Under *dataflux-doc*, there was a *requirements.txt*, we can run `pip install -r requirements.txt` to setup various dependencies
-1. Back to Datakit repository, run `./mkdocs.sh`
+1. First clone the [document library](https://gitlab.jiagouyun.com/zy-docs/dataflux-doc){:target="_blank"} to the local directory *~/git/dataflux-doc*, here This local directory is used by default. *export.sh* will generate and copy the Datakit documentation to the corresponding directory of the repo.
 
-## Mkdocs Tips Sharing {#mkdocs-tips}
+1. Under the *dataflux-doc* project, there is a *requirements.txt*, execute `pip install -r requirements.txt` to install the corresponding dependencies
 
-### Tag Experimental Functionality {#experimental}
+1. Go back to the Datakit code directory and execute `./export.sh` in the root directory
 
-In some newly released functions, if they are experimental functions, special tags can be added in the chapters, such as:
+## MkDocs Tips Sharing {#mkdocs-tips}
+
+### Mark experimental features {#experimental}
+
+In some newly released functions, if it is an experimental function, a special mark can be added to the chapter, such as:
 
 ```markdown
 ## This is a new feature {#ref-to-new-feature}
 
 [:octicons-beaker-24: Experimental](index.md#experimental)
 
-New feature text description...
+New Feature Text Description...
 ```
 
-The effect is to add such a legend below the chapter:
+The effect is to add a legend like this below the chapter:
 
 [:octicons-beaker-24: Experimental](index.md#experimental)
 
-Clicking on the legend will jump to the description of the experimental function.
+Clicking on the legend will jump you to a description of the experimental feature.
 
-### Tags Feature Version Information {#version}
+### Mark the version information of the function {#version}
 
-Some new features are released in a specific version. In this case, we can add some version logos as follows:
+The release of some new features is only available in a specific version. In this case, we can add some version identifiers. The method is as follows:
 
 ```markdown
 ## This is a new feature {#ref-to-new-feature}
@@ -59,7 +63,7 @@ Some new features are released in a specific version. In this case, we can add s
 [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)
 ```
 
-If it happens that this is still an experimental function, you can arrange them together and divide them with `·`:
+If this happens to be an experimental feature, you can line them up and separate them with `·`:
 
 ```markdown
 ## This is a new feature {#ref-to-new-feature}
@@ -68,54 +72,54 @@ If it happens that this is still an experimental function, you can arrange them 
 [:octicons-beaker-24: Experimental](index.md#experimental)
 ```
 
-Here, we take changelog of DataKit 1.4. 6 as an example, and click the corresponding icon to jump to the corresponding version release history:
+Here, we take the changelog of DataKit 1.4.6 as an example, click the corresponding icon to jump to the corresponding version release history:
 
 [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) ·
 [:octicons-beaker-24: Experimental](index.md#experimental)
 
-### Outer-linkers {#outer-linkers}
+### Outer link jump {#outer-linkers}
 
-In some documents, we need to add some instructions on the external chain, and it is best to do some processing on the external chain, so that it can open a new browser tab instead of jumping out of the current document library directly:
+In some documents, we need to add some external link instructions. It is best to do some processing on the external link so that it opens a new browser tab instead of directly jumping out of the current document library:
 
 ```markdown
-[See here](https://some-outer-links.com){:target="_blank"}
+[Please refer here](https://some-outer-links.com){:target="_blank"}
 ```
 
-### Preset Chapter Links {#set-links}
+### Preset chapter links {#set-links}
 
-We can predefine its links at sections of the document, such as:
+We can pre-define its links at the chapters of the document, for example:
 
 ```markdown
 // some-doc.md
-## This is a new chapter {#new-feature}
+## This is a new section {#new-feature}
 ```
 
-Then in other places, we can quote directly here:
+Then in other places, we can directly quote here:
 
 ```markdown
-Please refer to this [new function](some-doc.md#new-feature)
+Please refer to this [new feature](some-doc.md#new-feature)
 ```
 
-If referenced within a document:
+If it is referenced in the document, it must also add the name of the current document**. For the reason, see [404 detection later](mkdocs-howto.md#404-check) description:
 
 ```markdown
-Please refer to this [new function](#new-feature)
+Please refer to this [new feature](current.md#new-feature)
 ```
 
-If cross-document library references:
+If referenced across document libraries:
 
 ```markdown
-Refer to this [new function](../integrations/some-doc.md#new-feature) in the integration library 
+Please refer to this [new feature](../integrations/some-doc.md#new-feature) in the integrations repository
 ```
 
-### Add a Note to the Document {#note}
+### Add notes to documentation {#note}
 
-The preparation of some documents, need to provide some warning information, such as the use of a certain function, need to meet some additional conditions, or give some technical instructions. In this case, we can use markdown extension of Mkdocs, such as
+The writing of some documents requires some warning information, such as the use of a certain function, which needs to meet certain conditions, or give some technical instructions. In this case, we can use the markdown extension of MKDocs, for example:
 
 ```markdown
 ??? attention
 
-    Here's a precondition note...
+    Here is a description of the preconditions...
 ```
 
 ```markdown
@@ -124,28 +128,140 @@ The preparation of some documents, need to provide some warning information, suc
     Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla et euismod nulla. Curabitur feugiat, tortor non consequat finibus, justo purus auctor massa, nec semper lorem quam in massa.
 ```
 
-This is not just a simple explanation:
+Rather than just a simple statement:
 
-```
-> Here is a simple explanation...
+```markdown
+> Here's a rough explanation...
 ```
 
-For more flexible warning usage, see [here](https://squidfunk.github.io/mkdocs-material/reference/admonitions/){:target="_blank"}
+For more beautiful alert usage, see [here](https://squidfunk.github.io/mkdocs-material/reference/admonitions/){:target="_blank"}
 
 ### Tab Typesetting {#tab}
 
-Some specific functions may be used differently in different scenarios. The general practice is to list them separately in the document, which will make the document lengthy. A better way is to organize the use of different scenarios in the way of tag typesetting, so that the document page will be very concise:
+Some specific functions may be used in different ways in different scenarios. The general method is to list them separately in the document, which will make the document lengthy. A better way is to use tags in different scenarios. Organize it in such a way that the documentation page will be very concise:
 
-=== "A 情况下这么使用"
-     
-    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla et euismod nulla. Curabitur feugiat, tortor non consequat finibus, justo purus auctor massa, nec semper lorem quam in massa.
+<!-- markdownlint-disable MD046 -->
+=== "Use this in case A"
 
-=== "B 情况下这么使用"
+    In case A...
 
-    .assam ni mauq merol repmes cen ,assam rotcua surup otsuj ,subinif tauqesnoc non rotrot ,taiguef rutibaruC .allun domsiue te alluN .tile gnicsipida rutetcesnoc ,tema tis rolod muspi meroL
+=== "Use this in case B"
+
+    In case B...
+<!-- markdownlint-enable -->
 
 For specific usage, see [here](https://squidfunk.github.io/mkdocs-material/reference/content-tabs/){:target="_blank"}
 
-## More Readings {#more-reading}
+### Markdown format check and spell check {#mdlint-cspell}
 
-- [Material for  Mkdocs](https://squidfunk.github.io/mkdocs-material/reference/admonitions/){:target="_blank"}
+In order to standardize the basic writing of Markdown and keep the spelling of technical documents consistent (relatively correct and consistent), Datakit's documents have added typesetting checks and spelling checks, which are detected by the following two tools:
+
+- [markdownlint](https://github.com/igorshubovych/markdownlint-cli){:target="_blank"}: checks whether basic Markdown typography conforms to existing recognized standards
+- [cspell](https://cspell.org/){:target="_blank"}: Check whether the word spelling is correct, and make mandatory unification of some proprietary spellings
+
+#### Format checking {#mdlint}
+
+Since the Markdown format of MkDocs introduces a lot of extended functions, it breaks the established standard of standard Markdown, which leads to some false positives in markdownlint's current inspection of MkDocs. Through the following methods, we can block the specified text blocks. check item.
+
+For example, the following documents are for displaying Tab-style documents, but the standard Markdown considers the indentation here to be a code block, but does not specify the language type of the code, which will trigger [MD046](https://github.com/DavidAnson /markdownlint/blob/main/doc/Rules.md#md046---code-block-style){:target="_blank"} The inspection item reports an error, but we can block it by adding comments in the corresponding format at the beginning and end This check item:
+
+```markdown
+<!-- markdownlint-disable MD046 -->
+=== "Host Deployment"
+
+    Enter the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
+
+    ...
+=== "Kubernetes"
+
+    Kubernetes supports modifying configuration parameters in the form of environment variables:
+
+    | Environment variable name | Corresponding configuration parameter item | Parameter example |
+    | :--- | --- | --- |
+    | `ENV_INPUT_CPU_PERCPU` | `percpu` | `true/false` |
+    ...
+<!-- markdownlint-enable -->
+```
+
+If you want to block multiple related checks, the format is as follows (separate the corresponding detection items with spaces):
+
+```markdown
+<!-- markdownlint-disable MD046 MD047 MD048 -->
+...
+<!-- markdownlint-enable -->
+```
+
+Precautions:
+
+- Be sure to remember to enable all detection items in the appropriate position
+- If it is not a false positive, but because the document does violate the corresponding rules, and the document can pass the test by rewriting the document, then do not block the detection item, and bravely correct the corresponding document
+
+#### Spell Check {#cspell}
+
+CSpell is very effective in detecting misspellings of words (here mainly refers to English words, and Chinese spelling problems cannot be detected at present). Sometimes it is difficult for us to avoid spelling some words wrong, or we sometimes have inconsistencies in the spelling of some standard terms Situation (such as `Datakit/DataKit/datakit` and other ways of writing).
+
+The detection settings of cspell are stored in the *scripts* directory of the project root directory. We need to focus on the glossary file *glossary.txt*, in which we define proper nouns, abbreviations and other parts.
+
+In the following situations, we need to modify the *glossary.txt* file:
+
+- If there is a new proper noun, like `Datakit`, we add it to the list of proper nouns
+- If there is a new abbreviation, like `JDBC`, we add it to the list of abbreviations
+- If there is a compound word, which is relatively rare, just add it to the compound word
+- Pay attention to limit words, some words that are strictly prohibited in the text (relative to inline codes and code blocks), for example, we require that `Java` cannot be written as `java/JAVA`, and `JSON` cannot be written as `Json /json` etc.
+- If the spelling is really unavoidable, in addition to adding it to the corresponding vocabulary, it can also be typeset in the form of inline code. In the spell check, we ignore the check of text such as code fragments and URL links (see *scripts `ignoreRegExpList` configuration in /cspell.json*)
+
+#### Mixed Chinese and English detection {#zh-en-mix}
+
+Mixed Chinese and English involves two aspects:
+
+- Add an English space between all Chinese and English mixed (including numbers and Chinese mixed) text to relieve reading fatigue
+
+For example, the following will look more sparse and not visually cramped:
+
+```markdown
+We want to add 1 English space between English and Chinese ...
+```
+
+However, there is no need to add spaces between Chinese punctuation marks and English (including numbers), because without spaces, this kind of layout will not make people feel uncomfortable:
+
+```markdown
+I write an English sentence, but it is followed by a Chinese comma ...
+```
+
+- In all Chinese contexts, use Chinese punctuation instead of English punctuation (such as `,.:()'!` cannot appear directly before or after Chinese characters)
+
+<!-- markdownlint-disable MD046 -->
+??? warning
+
+    All Chinese and English mixed layouts need to follow this setting, whether it is code layout or not.
+<!-- markdownlint-enable -->
+
+### 404 link check {#404-check}
+
+In the daily document writing process, we generally make the following types of document links:
+
+- Links to other documents within the docbase in the form: `This is a section of text with [internal document link](some-other.md#some-section)`
+
+- Links to external sites in the form: `This is a text with [external site link](https://host.com#some-section){:target="_blank"}`
+
+- References to other sections of the current document, such as: `See description of [previous chapter](#prev-section)`, or `See description of [previous chapter](current.md#prev-section) describe `
+
+In order to avoid false positives from the 404 detection program, the following specifications must be followed:
+
+<!-- markdownlint-disable MD038 -->
+
+- Links in the site can have two forms technically, one is in the form of `[xxx](datakit/datakit-conf/#config-http-server)`, and the other is in the form of `[xxx](datakit-conf.md# config-http-server)`, these two writing methods can jump normally on the page, but **the former cannot pass the 404 detection**, please use the second form.
+
+- All links that refer to the current document chapter must have the current document name in the link, such as `see the description of [previous chapter](current.md#prev-section)`, not just the chapter name. Only section names are considered illegal links.
+
+- The form of the link must be exact and not:
+
+    - With meaningless extra spaces like ` see this [invalid link](https://invalid-link.com)`
+    - Extra `#` like ` see this [invalid link](some.md#invalid-link/#)`
+
+- If there is a link description in the normal text, the link needs to be formatted with a code font, otherwise a 404 false positive will be triggered. For example: `` Please set the host address to `http://localhost:8080` ``, after the localhost link in this article is decorated with code fonts, it will not trigger 404 false positives.
+<!-- markdownlint-enable -->
+
+## More Reading {#more-reading}
+
+- [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/reference/admonitions/){:target="_blank"}

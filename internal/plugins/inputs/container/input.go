@@ -54,6 +54,7 @@ type Input struct {
 	LoggingSearchInterval             time.Duration     `toml:"logging_search_interval"`
 	LoggingMinFlushInterval           time.Duration     `toml:"logging_min_flush_nterval"`
 	LoggingMaxMultilineLifeDuration   time.Duration     `toml:"logging_max_multiline_life_duration"`
+	LoggingRemoveAnsiEscapeCodes      bool              `toml:"logging_remove_ansi_escape_codes"`
 
 	Tags map[string]string `toml:"tags"`
 	DeprecatedConf
