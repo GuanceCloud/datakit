@@ -68,6 +68,7 @@ type Prom struct {
 	client   *http.Client
 	parser   expfmt.TextParser
 	InfoTags map[string]string
+	ptCount  int
 }
 
 func NewProm(promOpts ...PromOption) (*Prom, error) {
@@ -93,8 +94,6 @@ func NewProm(promOpts ...PromOption) (*Prom, error) {
 		if err != nil {
 			return err
 		}
-
-		collectPointsTotalVec.WithLabelValues(p.opt.source).Observe(float64(len(pts)))
 
 		return p.opt.batchCallback(pts)
 	}
@@ -207,7 +206,8 @@ func (p *Prom) CollectFromHTTPV2(u string) ([]*point.Point, error) {
 		return nil, err
 	}
 	defer func() {
-		collectPointsTotalVec.WithLabelValues(p.opt.source).Observe(float64(len(pts)))
+		collectPointsTotalVec.WithLabelValues(p.opt.source).Observe(float64(p.ptCount))
+		p.ptCount = 0
 		httpGetBytesVec.WithLabelValues(p.opt.source).Observe(float64(wCounter.total))
 	}()
 	return pts, nil
