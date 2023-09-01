@@ -406,7 +406,7 @@ Datakit 内置了一下几个可用的自定义 Key，它们一般不会出现�
     "rules": [
         {
             "rules": [
-                "{ __dataway_api in ['/v1/datakit/pull', '/v1/election', '/v1/election/heartbeat'  }",
+                "{ __dataway_api in ['/v1/datakit/pull', '/v1/election', '/v1/election/heartbeat'] }",
             ],
             "url": "https://openway.guance.com?token=<YOUR-TOKEN>",
         }
