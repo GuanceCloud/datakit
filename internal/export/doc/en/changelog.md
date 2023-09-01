@@ -5,6 +5,9 @@
 
 - Optimize Prometheus metrics collecting(streaming collection) in Kubernetes to avoid possible large memory usage(#1853/#1845)
 
+- Fix [colored loggging](../integrations/logging.md#ansi-decode)
+    - For Kubernetes, the environment key is `ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES`
+
 ---
 
 ## 1.14.0 (2023/08/24) {#cl-1.14.0}

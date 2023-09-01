@@ -6,6 +6,8 @@
 ### 问题修复 {#cl-1.14.1-fix}
 
 - Kubernetes 中 Prometheus 指标采集优化（流式采集），避免可能的大量内存占用（#1853/#1845）
+- 修复日志[颜色字符处理](../integrations/logging.md#ansi-decode)
+    - Kubernetes 下环境变量为 `ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES`
 
 ---
 
