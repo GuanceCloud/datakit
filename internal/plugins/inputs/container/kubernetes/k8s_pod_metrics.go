@@ -14,7 +14,7 @@ import (
 )
 
 type podSrvMetric struct {
-	cpuUsage         int64
+	cpuUsage         int64 // Milli
 	memoryUsageBytes int64
 }
 
@@ -43,11 +43,22 @@ func parsePodMetrics(item *v1beta1.PodMetrics) (*podSrvMetric, error) {
 		}
 	}
 
-	cpuUsage, _ := cpu.AsInt64()
+	cpuUsage, ok := cpu.AsInt64()
+	if !ok {
+		cpuUsage, ok = cpu.AsDec().Unscaled()
+		if !ok {
+			cpuUsage = 0
+		}
+	}
 	memUsage, _ := mem.AsInt64()
 
+	// rounded up to Milli
+	if cpuUsage < 1000000 {
+		cpuUsage = 1000000
+	}
+
 	return &podSrvMetric{
-		cpuUsage:         cpuUsage,
+		cpuUsage:         cpuUsage / 1e6,
 		memoryUsageBytes: memUsage,
 	}, nil
 }
@@ -70,7 +81,7 @@ func getCapacityFromNode(ctx context.Context, client k8sClient, nodeName string)
 	}
 
 	c := node.Status.Capacity["cpu"]
-	cpuCapacity, _ = c.AsInt64()
+	cpuCapacity, _ = c.AsDec().Unscaled()
 
 	m := node.Status.Capacity["memory"]
 	memCapacity, _ = m.AsInt64()

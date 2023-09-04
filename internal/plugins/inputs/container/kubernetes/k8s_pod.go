@@ -8,6 +8,7 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -207,13 +208,16 @@ func queryPodFromMetricsServer(ctx context.Context, client k8sClient, item *apic
 		return p, err
 	}
 
-	p.SetField("cpu_usage", float64(podMet.cpuUsage)*100) // percentage
+	// Milli to 1 core to percentage
+	cpuUsage := float64(podMet.cpuUsage) / 1000 * 100
+
+	p.SetField("cpu_usage", cpuUsage)
 	p.SetField("mem_usage", podMet.memoryUsageBytes)
 
 	memLimit := getMemoryCapacityFromResourceLimit(item.Spec.Containers)
 	p.SetField("mem_limit", memLimit)
 	if memLimit != 0 {
-		p.SetField("mem_used_percent_base_limit", float64(podMet.memoryUsageBytes)/float64(memLimit))
+		p.SetField("mem_used_percent_base_limit", float64(podMet.memoryUsageBytes)/float64(memLimit)*100)
 	}
 
 	cpuCapacity, memCapacity := getCapacityFromNode(ctx, client, item.Spec.NodeName)
@@ -221,12 +225,15 @@ func queryPodFromMetricsServer(ctx context.Context, client k8sClient, item *apic
 	p.SetField("mem_capacity", memCapacity)
 
 	if cpuCapacity != 0 {
-		cores := cpuCapacity / 1000
-		p.SetField("cpu_usage_base100", float64(podMet.cpuUsage)*100/float64(cores))
+		x := cpuUsage / float64(cpuCapacity)
+		if !math.IsNaN(x) {
+			x = 0.0
+		}
+		p.SetField("cpu_usage_base100", x)
 	}
 
 	if memCapacity != 0 {
-		p.SetField("mem_used_percent", float64(podMet.memoryUsageBytes)/float64(memCapacity))
+		p.SetField("mem_used_percent", float64(podMet.memoryUsageBytes)/float64(memCapacity)*100)
 	}
 
 	// maintain compatibility
@@ -264,7 +271,7 @@ func (*podMetric) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{
 			"ready":                       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Describes whether the pod is ready to serve requests."},
 			"cpu_usage":                   &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The sum of the cpu usage of all containers in this Pod."},
-			"cpu_usage_base100":           &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The normalized cpu usage, with a maximum of 100%."},
+			"cpu_usage_base100":           &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The normalized cpu usage, with a maximum of 100%. (Experimental)"},
 			"memory_usage_bytes":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The sum of the memory usage of all containers in this Pod (Deprecated use `mem_usage`)."},
 			"memory_capacity":             &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The total memory in the host machine (Deprecated use `mem_capacity`)."},
 			"memory_used_percent":         &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage usage of the memory (refer from `mem_used_percent`"},
@@ -313,7 +320,7 @@ func (*podObject) Info() *inputs.MeasurementInfo {
 			"ready":                       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Describes whether the pod is ready to serve requests."},
 			"available":                   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Number of containers"},
 			"cpu_usage":                   &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The sum of the cpu usage of all containers in this Pod."},
-			"cpu_usage_base100":           &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The normalized cpu usage, with a maximum of 100%."},
+			"cpu_usage_base100":           &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The normalized cpu usage, with a maximum of 100%. (Experimental)"},
 			"memory_usage_bytes":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The sum of the memory usage of all containers in this Pod (Deprecated use `mem_usage`)."},
 			"memory_capacity":             &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The total memory in the host machine (Deprecated use `mem_capacity`)."},
 			"memory_used_percent":         &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage usage of the memory (refer from `mem_used_percent`"},
