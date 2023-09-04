@@ -226,7 +226,7 @@ func queryPodFromMetricsServer(ctx context.Context, client k8sClient, item *apic
 
 	if cpuCapacity != 0 {
 		x := cpuUsage / float64(cpuCapacity)
-		if !math.IsNaN(x) {
+		if math.IsNaN(x) {
 			x = 0.0
 		}
 		p.SetField("cpu_usage_base100", x)
