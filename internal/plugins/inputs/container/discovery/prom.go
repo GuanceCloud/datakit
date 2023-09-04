@@ -123,6 +123,16 @@ func newPromRunnerWithConfig(c *promConfig) (*promRunner, error) {
 		c.URLs = append(c.URLs, c.URL)
 	}
 
+	for _, u := range c.URLs {
+		uu, err := url.Parse(u)
+		if err != nil {
+			return nil, fmt.Errorf("invalid url %s, err: %w", u, err)
+		}
+		if _, ok := c.Tags["instance"]; !ok {
+			c.Tags["instance"] = uu.Host
+		}
+	}
+
 	p := &promRunner{
 		conf:     c,
 		feeder:   io.DefaultFeeder(),
@@ -211,6 +221,9 @@ func (p *promRunner) setTag(k, v string) {
 	if p.conf.Tags == nil {
 		p.conf.Tags = make(map[string]string)
 	}
+	if _, ok := p.conf.Tags[k]; ok {
+		return
+	}
 	p.conf.Tags[k] = v
 }
 
@@ -229,7 +242,7 @@ func (p *promRunner) runOnce() {
 		// use callback processor, not return pts
 		_, err := p.pm.CollectFromHTTPV2(u)
 		if err != nil {
-			klog.Warnf("failed to collect prom: %w", err)
+			klog.Warnf("failed to collect prom: %s", err)
 			return
 		}
 	}
