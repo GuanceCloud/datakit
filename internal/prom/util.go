@@ -285,6 +285,7 @@ func (p *Prom) filterMetricFamilies(metricFamilies map[string]*dto.MetricFamily)
 
 // text2Metrics converts raw prometheus metric text to line protocol point.
 func (p *Prom) text2Metrics(in io.Reader, u string) (pts []*point.Point, lastErr error) {
+	p.ptCount = 0
 	for k := range p.InfoTags {
 		delete(p.InfoTags, k)
 	}
@@ -451,6 +452,7 @@ func (p *Prom) MetricFamilies2points(metricFamilies map[string]*dto.MetricFamily
 	if lastErr != nil {
 		return pts, fmt.Errorf("text2Metrics encountered make point error: %w", lastErr)
 	}
+	p.ptCount += len(pts)
 	return pts, nil
 }
 
