@@ -78,6 +78,7 @@
 | [用户访问监测 (`rum`)](../integrations/rum.md)                    | 用于收集用户访问监测数据                                                |
 | [网络拨测 (`dialtesting`)](../integrations/dialtesting.md)        | 采集网络拨测数据                                                |
 | [Prom 采集 (`prom`)](../integrations/prom.md)                     | 采集 Prometheus Exporters 暴露出来的指标数据                          |
+| [日志采集 (`logging`)](../integrations/logging.md)                 | 采集文件日志数据                          |
 
 ### 安装指定版本的 DataKit {#version-install}
 
