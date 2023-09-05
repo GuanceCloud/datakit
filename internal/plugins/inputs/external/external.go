@@ -26,35 +26,37 @@ const (
 	configSample = `
 [[inputs.external]]
 
-	# 外部采集器名称
-	name = 'some-external-inputs'  # required
+    # Collector's name.
+    name = 'some-external-inputs'  # required
 
-	# 是否以后台方式运行外部采集器
-	daemon = false
+    # Whether or not to run the external program in the background.
+    daemon = false
 
-	# 如果以非 daemon 方式运行外部采集器，则以该间隔多次运行外部采集器
-	#interval = '10s'
+    # If the external program running in a Non-daemon mode,
+    #     runs it in every this interval time.
+    #interval = '10s'
 
-	# 运行外部采集器所需的环境变量
-	#envs = ['LD_LIBRARY_PATH=/path/to/lib:$LD_LIBRARY_PATH',]
+    # The environment variables running the external program.
+    #envs = ['LD_LIBRARY_PATH=/path/to/lib:$LD_LIBRARY_PATH',]
 
-	# 外部采集器可执行程序路径(尽可能写绝对路径)
-	cmd = "python" # required
+    # The external program' full path. Filling in absolute path whenever possible.
+    cmd = "python" # required
 
-	# 如果该外部采集器参与选举，则开启该选项
-	# 注意，如果参与选举，则必须以 daemon 形式运行（即 daemon 自动为 true）
-	election = false
-	args = []
+    # Filling "true" if this collecor is involved in the election.
+    # Note: The external program must running in a daemon mode if involving the election.
+    election = false
+    args = []
 
-[[inputs.external.tags]]
-	# tag1 = "val1"
-	# tag2 = "val2"
-	`
+    [[inputs.external.tags]]
+        # tag1 = "val1"
+        # tag2 = "val2"
+`
 )
 
 var (
-	inputName = "external"
-	l         = logger.DefaultSLogger(inputName)
+	inputName                = "external"
+	l                        = logger.DefaultSLogger(inputName)
+	_         inputs.InputV2 = (*ExternalInput)(nil)
 )
 
 type ExternalInput struct {
@@ -102,6 +104,12 @@ func (*ExternalInput) Catalog() string {
 func (*ExternalInput) SampleConfig() string {
 	return configSample
 }
+
+func (*ExternalInput) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{}
+}
+
+func (*ExternalInput) AvailableArchs() []string { return datakit.AllOSWithElection }
 
 func (ex *ExternalInput) precheck() error {
 	ex.duration = time.Second * 10
