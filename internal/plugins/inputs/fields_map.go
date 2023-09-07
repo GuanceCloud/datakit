@@ -7,25 +7,25 @@ package inputs
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// AppendGeneralFields appends general fields. Assign only if not exist.
-func AppendGeneralFields(in map[string]interface{}) {
-	for _, v := range generalFieldsInstance {
+// AppendGolangGeneralFields appends general fields. Assign only if not exist.
+func AppendGolangGeneralFields(in map[string]interface{}) {
+	for _, v := range golangGeneralFieldsInstance {
 		v.Append(in)
 	}
 }
 
-// GetGeneralOptionalFieldsKeys returns general optional fields keys.
-func GetGeneralOptionalFieldsKeys() []string {
+// GetGolangGeneralOptionalFieldsKeys returns general optional fields keys.
+func GetGolangGeneralOptionalFieldsKeys() []string {
 	var out []string
 
-	for _, v := range generalFieldsInstance {
+	for _, v := range golangGeneralFieldsInstance {
 		out = append(out, v.OptionalFieldsKeys()...)
 	}
 
 	return out
 }
 
-var generalFieldsInstance = []IFieldsMap{
+var golangGeneralFieldsInstance = []IFieldsMap{
 	newGoRuntimeMemStatsFields(),
 	newGoBaseStatsFields(),
 	newProcessStatsFields(),

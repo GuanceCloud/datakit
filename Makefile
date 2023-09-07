@@ -349,9 +349,11 @@ lint: deps copyright_check md_lint
 	@truncate -s 0 lint.err
 ifeq ($(AUTO_FIX),on)
 		@printf "$(HL)lint with auto fix...\n$(NC)"; \
+			CGO_CFLAGS=-I/opt/ibm/clidriver/include CGO_LDFLAGS=-L/opt/ibm/clidriver/lib \
 			$(GOLINT_BINARY) run --fix --allow-parallel-runners;
 else
 		@printf "$(HL)lint without auto fix...\n$(NC)"; \
+			CGO_CFLAGS=-I/opt/ibm/clidriver/include CGO_LDFLAGS=-L/opt/ibm/clidriver/lib \
 			$(GOLINT_BINARY) run --allow-parallel-runners;
 endif
 

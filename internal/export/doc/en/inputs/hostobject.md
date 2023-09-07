@@ -230,6 +230,6 @@ The `collectors` field is a list of objects with the following fields for each o
 
 ## FAQ {#faq}
 
-### Why no `entries` and `entries_limit`, the value shows -1？ {#no-entries}
+### :material-chat-question: Why no `entries` and `entries_limit`, the value shows -1？ {#no-entries}
 
 Need to load `nf_conntrack` module, run `modprobe nf_conntrack` in a terminal.

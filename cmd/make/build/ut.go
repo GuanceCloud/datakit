@@ -25,6 +25,7 @@ import (
 
 // hugePackages is those packages that whose testing so much performance consumption.
 var hugePackages = map[string]bool{
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/db2":     true,
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/kafkamq": true,
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/mysql":   true,
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/oracle":  true,
@@ -249,6 +250,9 @@ func doWork(id int, j Job) {
 		"GO111MODULE=off",
 		"CGO_ENABLED=1",
 		"LOGGER_PATH=nul", // disable logging
+		"CGO_CFLAGS=-I/opt/ibm/clidriver/include",
+		"CGO_LDFLAGS=-L/opt/ibm/clidriver/lib",
+		"LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/ibm/clidriver/lib",
 	}...)
 
 	res, err := tcmd.CombinedOutput()

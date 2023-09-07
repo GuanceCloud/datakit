@@ -3,7 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package collect
+package coracle
 
 import (
 	"database/sql"
@@ -11,13 +11,14 @@ import (
 	"strings"
 
 	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/oracle/collect/ccommon"
 )
 
 type tablespaceMetrics struct {
 	x collectParameters
 }
 
-var _ dbMetricsCollector = (*tablespaceMetrics)(nil)
+var _ ccommon.DBMetricsCollector = (*tablespaceMetrics)(nil)
 
 func newTablespaceMetrics(opts ...collectOption) *tablespaceMetrics {
 	m := &tablespaceMetrics{}
@@ -31,24 +32,25 @@ func newTablespaceMetrics(opts ...collectOption) *tablespaceMetrics {
 	return m
 }
 
-func (m *tablespaceMetrics) collect() (*point.Point, error) {
-	l.Debug("tablespaceMetrics Collect entry")
+func (m *tablespaceMetrics) Collect() (*point.Point, error) {
+	l.Debug("Collect entry")
 
 	tf, err := m.tablespaces()
 	if err != nil {
 		return nil, err
 	}
 
-	if tf.isEmpty() {
+	if tf.IsEmpty() {
 		return nil, fmt.Errorf("tablespace empty data")
 	}
 
-	opt := &buildPointOpt{
-		tf:         tf,
-		metricName: metricNameTablespace,
-		m:          m.x.m,
+	opt := &ccommon.BuildPointOpt{
+		TF:         tf,
+		MetricName: m.x.MetricName,
+		Tags:       m.x.Ipt.tags,
+		Host:       m.x.Ipt.host,
 	}
-	return buildPoint(opt), nil
+	return ccommon.BuildPoint(l, opt), nil
 }
 
 // QUERY is the get tablespace info SQL query for Oracle 11g+.
@@ -99,18 +101,18 @@ type RowDBOld struct {
 	OffUse         float64        `db:"OFF_USE"`
 }
 
-func (m *tablespaceMetrics) tablespaces() (*tagField, error) {
-	tf := newTagField()
+func (m *tablespaceMetrics) tablespaces() (*ccommon.TagField, error) {
+	tf := ccommon.NewTagField()
 
 	rows := []RowDB{}
-	err := selectWrapper(m.x.m, &rows, QUERY)
+	err := selectWrapper(m.x.Ipt, &rows, QUERY)
 	if err != nil {
 		l.Debug("tablespace: dpiStmt_execute: ORA-00942: table or view does not exist")
 
 		if strings.Contains(err.Error(), "dpiStmt_execute: ORA-00942: table or view does not exist") {
 			// oracle old version. 11g
 			rowsOld := []RowDBOld{}
-			if err = selectWrapper(m.x.m, &rowsOld, QUERY_OLD); err != nil {
+			if err = selectWrapper(m.x.Ipt, &rowsOld, QUERY_OLD); err != nil {
 				return nil, fmt.Errorf("failed to collect old tablespace info: %w", err)
 			}
 
@@ -133,15 +135,15 @@ func (m *tablespaceMetrics) tablespaces() (*tagField, error) {
 
 	for _, r := range rows {
 		if r.PdbName.Valid {
-			tf.addTag(pdbName, r.PdbName.String)
+			tf.AddTag(pdbName, r.PdbName.String)
 		}
 
-		tf.addTag(tablespaceName, r.TablespaceName)
+		tf.AddTag(tablespaceName, r.TablespaceName)
 
-		tf.addField("in_use", r.InUse)
-		tf.addField("off_use", r.Offline)
-		tf.addField("ts_size", r.Size)
-		tf.addField("used_space", r.Used)
+		tf.AddField("in_use", r.InUse, dic)
+		tf.AddField("off_use", r.Offline, dic)
+		tf.AddField("ts_size", r.Size, dic)
+		tf.AddField("used_space", r.Used, dic)
 	}
 
 	return tf, nil

@@ -144,7 +144,13 @@ func (ex *ExternalInput) start() error {
 
 // needElectionFlag decides if an external input start-up needs flag 'election = T/F'.
 func needElectionFlag(name string) bool {
-	return name == "oracle"
+	list := []string{"oracle", "db2"}
+	for _, v := range list {
+		if name == v {
+			return true
+		}
+	}
+	return false
 }
 
 func (ex *ExternalInput) Run() {

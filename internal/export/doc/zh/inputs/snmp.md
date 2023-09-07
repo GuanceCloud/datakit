@@ -249,7 +249,7 @@ metrics:
 
 ## FAQ {#faq}
 
-### Datakit 是如何发现设备的? {#faq-discover}
+### :material-chat-question: Datakit 是如何发现设备的? {#faq-discover}
 
 Datakit 支持 "指定设备" 和 "自动发现" 两种模式。两种模式可以同时开启。
 
@@ -257,13 +257,17 @@ Datakit 支持 "指定设备" 和 "自动发现" 两种模式。两种模式可�
 
 自动发现模式下，Datakit 向指定 IP 网段内的所有地址逐一发送 SNMP 协议数据包，如果其响应可以匹配到相应的 Profile，那么 Datakit 认为该 IP 上有一个 SNMP 设备。
 
-### 在观测云上看不到我想要的指标怎么办? {#faq-not-support}
+### :material-chat-question: 在观测云上看不到我想要的指标怎么办? {#faq-not-support}
 
 Datakit 可以从所有 SNMP 设备中收集通用的基线指标。如果你发现被采集的设备上报的数据中没有你想要的指标，那么，你可以需要为该设备[自定义一份 Profile](snmp.md#advanced-custom-oid)。
 
 为了完成上述工作，你很可能需要从设备厂商的官网下载该设备型号的 OID 手册。
 
-### 为什么开启 SNMP 设备采集但看不到指标? {#faq-no-metrics}
+<!-- markdownlint-disable MD013 -->
+
+### :material-chat-question: 为什么开启 SNMP 设备采集但看不到指标? {#faq-no-metrics}
+
+<!-- markdownlint-enable -->
 
 尝试为你的设备放开 ACLs/防火墙 规则。
 

@@ -400,7 +400,7 @@ func RunOraemon(endpoint string) (p *dockertest.Pool, resource *dockertest.Resou
 		&dockertest.RunOptions{
 			Name:       containerName,
 			Repository: "pubrepo.jiagouyun.com/image-repo-for-testing/datakit-oraemon",
-			Tag:        "latest",
+			Tag:        "v1",
 			Mounts:     []string{mounts},
 		},
 

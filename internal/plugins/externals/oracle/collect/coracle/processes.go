@@ -3,7 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package collect
+package coracle
 
 import (
 	"database/sql"
@@ -11,13 +11,14 @@ import (
 	"strings"
 
 	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/oracle/collect/ccommon"
 )
 
 type processMetrics struct {
 	x collectParameters
 }
 
-var _ dbMetricsCollector = (*processMetrics)(nil)
+var _ ccommon.DBMetricsCollector = (*processMetrics)(nil)
 
 func newProcessMetrics(opts ...collectOption) *processMetrics {
 	m := &processMetrics{}
@@ -31,24 +32,25 @@ func newProcessMetrics(opts ...collectOption) *processMetrics {
 	return m
 }
 
-func (m *processMetrics) collect() (*point.Point, error) {
-	l.Debug("processMetrics Collect entry")
+func (m *processMetrics) Collect() (*point.Point, error) {
+	l.Debug("Collect entry")
 
 	tf, err := m.processMemory()
 	if err != nil {
 		return nil, err
 	}
 
-	if tf.isEmpty() {
+	if tf.IsEmpty() {
 		return nil, fmt.Errorf("process empty data")
 	}
 
-	opt := &buildPointOpt{
-		tf:         tf,
-		metricName: metricNameProcess,
-		m:          m.x.m,
+	opt := &ccommon.BuildPointOpt{
+		TF:         tf,
+		MetricName: m.x.MetricName,
+		Tags:       m.x.Ipt.tags,
+		Host:       m.x.Ipt.host,
 	}
-	return buildPoint(opt), nil
+	return ccommon.BuildPoint(l, opt), nil
 }
 
 // PGA_QUERY is the get process info SQL query for Oracle 11g+.
@@ -87,17 +89,17 @@ type processesRowDB struct {
 	PGAMaxMem      float64        `db:"PGA_MAX_MEM"`
 }
 
-func (m *processMetrics) processMemory() (*tagField, error) {
-	tf := newTagField()
+func (m *processMetrics) processMemory() (*ccommon.TagField, error) {
+	tf := ccommon.NewTagField()
 	rows := []processesRowDB{}
 
-	err := selectWrapper(m.x.m, &rows, PGA_QUERY)
+	err := selectWrapper(m.x.Ipt, &rows, PGA_QUERY)
 	if err != nil {
 		l.Debug("process: dpiStmt_execute: ORA-00942: table or view does not exist")
 
 		if strings.Contains(err.Error(), "dpiStmt_execute: ORA-00942: table or view does not exist") {
 			// oracle old version. 11g
-			if err = selectWrapper(m.x.m, &rows, PGA_QUERY_OLD); err != nil {
+			if err = selectWrapper(m.x.Ipt, &rows, PGA_QUERY_OLD); err != nil {
 				return nil, fmt.Errorf("failed to collect old processes info: %w", err)
 			}
 		} else {
@@ -107,21 +109,21 @@ func (m *processMetrics) processMemory() (*tagField, error) {
 
 	for _, r := range rows {
 		if r.PdbName.Valid {
-			tf.addTag(pdbName, r.PdbName.String)
+			tf.AddTag(pdbName, r.PdbName.String)
 		}
 
 		if r.Program.Valid {
-			tf.addTag(programName, r.Program.String)
+			tf.AddTag(programName, r.Program.String)
 		}
 
 		if r.PID > 0 {
-			tf.addField("pid", r.PID)
+			tf.AddField("pid", r.PID, dic)
 		}
 
-		tf.addField("pga_alloc_mem", r.PGAAllocMem)
-		tf.addField("pga_freeable_mem", r.PGAFreeableMem)
-		tf.addField("pga_max_mem", r.PGAMaxMem)
-		tf.addField("pga_used_mem", r.PGAUsedMem)
+		tf.AddField("pga_alloc_mem", r.PGAAllocMem, dic)
+		tf.AddField("pga_freeable_mem", r.PGAFreeableMem, dic)
+		tf.AddField("pga_max_mem", r.PGAMaxMem, dic)
+		tf.AddField("pga_used_mem", r.PGAUsedMem, dic)
 	}
 
 	return tf, nil

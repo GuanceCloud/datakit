@@ -9,56 +9,30 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"os/signal"
-	"path/filepath"
-	"syscall"
 
-	"github.com/GuanceCloud/cliutils/logger"
 	_ "github.com/godror/godror"
 	"github.com/jessevdk/go-flags"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/oracle/collect"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/oracle/collect/ccommon"
 )
 
-var (
-	opt collect.Option
-	l   = logger.DefaultSLogger(collect.InputName)
-)
+var opt ccommon.Option
 
 func main() {
-	signal.Notify(collect.SignaIterrrupt, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
+	// input := bufio.NewScanner(os.Stdin)
+	// input.Scan()
+	// fmt.Println(input.Text())
 
-	_, err := flags.Parse(&opt)
-	if err != nil {
-		fmt.Println("Parse error:", err.Error())
+	if _, err := flags.Parse(&opt); err != nil {
+		fmt.Println("flags.Parse error:", err.Error())
 		return
 	}
 
-	if opt.Log == "" {
-		opt.Log = filepath.Join(datakit.InstallDir, "externals", "oracle.log")
-	}
+	collect.PrintInfof("election: %t", opt.Election)
 
-	if err := logger.InitRoot(&logger.Option{
-		Path:  opt.Log,
-		Level: opt.LogLevel,
-		Flags: logger.OPT_DEFAULT,
-	}); err != nil {
-		fmt.Println("set root log failed:", err.Error())
-	}
+	collect.PrintInfof("Datakit: host=%s, port=%d", opt.DatakitHTTPHost, opt.DatakitHTTPPort)
 
-	if opt.InstanceDesc != "" { // add description to logger
-		l = logger.SLogger(collect.InputName + "-" + opt.InstanceDesc)
-	} else {
-		l = logger.SLogger(collect.InputName)
-	}
+	collect.Run(&opt)
 
-	l.Infof("election: %t", opt.Election)
-
-	l.Infof("datakit: host=%s, port=%d", opt.DatakitHTTPHost, opt.DatakitHTTPPort)
-
-	collect.Set(&opt, l)
-
-	m := collect.NewMonitor()
-	m.Run()
+	fmt.Println("exiting...")
 }

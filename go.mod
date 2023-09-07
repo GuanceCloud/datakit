@@ -360,7 +360,10 @@ require (
 	sigs.k8s.io/yaml v1.3.0
 )
 
-require github.com/netsampler/goflow2 v1.3.5
+require (
+	github.com/ibmdb/go_ibm_db v0.4.4
+	github.com/netsampler/goflow2 v1.3.5
+)
 
 require github.com/libp2p/go-reuseport v0.3.0 // indirect
 

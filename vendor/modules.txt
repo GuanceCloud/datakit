@@ -950,6 +950,10 @@ github.com/hashicorp/vault/sdk/physical/inmem
 # github.com/hashicorp/yamux v0.1.1
 ## explicit; go 1.15
 github.com/hashicorp/yamux
+# github.com/ibmdb/go_ibm_db v0.4.4
+## explicit
+github.com/ibmdb/go_ibm_db
+github.com/ibmdb/go_ibm_db/api
 # github.com/imdario/mergo v0.3.12
 ## explicit; go 1.13
 github.com/imdario/mergo

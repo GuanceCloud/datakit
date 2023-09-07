@@ -43,7 +43,7 @@ func (m *etcdMeasurement) LineProto() (*dkpt.Point, error) {
 func (m *etcdMeasurement) Info() *inputs.MeasurementInfo {
 	fields := internal.CopyMapStringInterface(etcdFields)
 
-	inputs.AppendGeneralFields(fields)
+	inputs.AppendGolangGeneralFields(fields)
 
 	return &inputs.MeasurementInfo{
 		Name:   inputName,
