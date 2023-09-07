@@ -39,12 +39,29 @@ var externals = []*dkexternal{
 		entry: "oracle.go",
 		osarchs: map[string]bool{
 			"linux/amd64": true,
-			"linux/386":   true,
 		},
 
 		buildArgs: nil,
 		envs: []string{
 			"CGO_ENABLED=1",
+		},
+	},
+	{
+		// requirement: apt-get install gcc-multilib
+		name: "db2",
+		lang: "go",
+
+		entry: "db2.go",
+		osarchs: map[string]bool{
+			"linux/amd64": true,
+		},
+
+		buildArgs: nil,
+		envs: []string{
+			"CGO_ENABLED=1",
+			"CGO_CFLAGS=-I/opt/ibm/clidriver/include",
+			"CGO_LDFLAGS=-L/opt/ibm/clidriver/lib",
+			"LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/ibm/clidriver/lib",
 		},
 	},
 	{

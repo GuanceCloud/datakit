@@ -129,6 +129,9 @@ NetFlow
 netflow
 sflow
 ipfix
+XDAs
+Tablespace
+clidriver
 DIMM
 
 # 缩写

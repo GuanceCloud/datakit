@@ -9,7 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -303,7 +303,7 @@ func (cs *caseSpec) handler(c *gin.Context) {
 		return
 	}
 
-	body, err := ioutil.ReadAll(c.Request.Body)
+	body, err := io.ReadAll(c.Request.Body)
 	defer c.Request.Body.Close()
 	if err != nil {
 		cs.t.Logf("%s", err.Error())
@@ -347,7 +347,7 @@ func (cs *caseSpec) lasterror(c *gin.Context) {
 	}
 	fmt.Println("uri ==>", uri)
 
-	body, err := ioutil.ReadAll(c.Request.Body)
+	body, err := io.ReadAll(c.Request.Body)
 	defer c.Request.Body.Close()
 	if err != nil {
 		cs.t.Logf("%s", err.Error())
@@ -626,15 +626,15 @@ func (cs *caseSpec) getDockerFilePath() (dirName string, fileName string, err er
 		return
 	}
 
-	tmpDir, err := ioutil.TempDir("", "dockerfiles_")
+	tmpDir, err := os.MkdirTemp("", "dockerfiles_")
 	if err != nil {
-		cs.t.Logf("ioutil.TempDir failed: %s", err.Error())
+		cs.t.Logf("os.MkdirTemp.TempDir failed: %s", err.Error())
 		return "", "", err
 	}
 
-	tmpFile, err := ioutil.TempFile(tmpDir, "dockerfile_")
+	tmpFile, err := os.CreateTemp(tmpDir, "dockerfile_")
 	if err != nil {
-		cs.t.Logf("ioutil.TempFile failed: %s", err.Error())
+		cs.t.Logf("os.CreateTemp failed: %s", err.Error())
 		return "", "", err
 	}
 

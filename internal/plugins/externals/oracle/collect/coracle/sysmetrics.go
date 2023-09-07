@@ -3,7 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package collect
+package coracle
 
 import (
 	"database/sql"
@@ -12,13 +12,14 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/oracle/collect/ccommon"
 )
 
 type systemMetrics struct {
 	x collectParameters
 }
 
-var _ dbMetricsCollector = (*systemMetrics)(nil)
+var _ ccommon.DBMetricsCollector = (*systemMetrics)(nil)
 
 func newSystemMetrics(opts ...collectOption) *systemMetrics {
 	m := &systemMetrics{}
@@ -32,24 +33,25 @@ func newSystemMetrics(opts ...collectOption) *systemMetrics {
 	return m
 }
 
-func (m *systemMetrics) collect() (*point.Point, error) {
-	l.Debug("systemMetrics Collect entry")
+func (m *systemMetrics) Collect() (*point.Point, error) {
+	l.Debug("Collect entry")
 
 	tf, err := m.sysMetrics()
 	if err != nil {
 		return nil, err
 	}
 
-	if tf.isEmpty() {
+	if tf.IsEmpty() {
 		return nil, fmt.Errorf("system empty data")
 	}
 
-	opt := &buildPointOpt{
-		tf:         tf,
-		metricName: metricNameSystem,
-		m:          m.x.m,
+	opt := &ccommon.BuildPointOpt{
+		TF:         tf,
+		MetricName: m.x.MetricName,
+		Tags:       m.x.Ipt.tags,
+		Host:       m.x.Ipt.host,
 	}
-	return buildPoint(opt), nil
+	return ccommon.BuildPoint(l, opt), nil
 }
 
 // SYSMETRICS_QUERY is the get system info SQL query for Oracle for 12c2 and 12c2+.
@@ -156,8 +158,8 @@ var SYSMETRICS_COLS = map[string]sysMetricsDefinition{
 	"User Rollbacks Per Sec":                   {DDmetric: "user_rollbacks"},
 }
 
-func (*systemMetrics) addMetric(tf *tagField, r sysmetricsRowDB, seen map[string]bool) {
-	tf.setTS(time.Now())
+func (*systemMetrics) addMetric(tf *ccommon.TagField, r sysmetricsRowDB, seen map[string]bool) {
+	tf.SetTS(time.Now())
 
 	if metric, ok := SYSMETRICS_COLS[r.MetricName]; ok {
 		value := r.Value
@@ -167,25 +169,25 @@ func (*systemMetrics) addMetric(tf *tagField, r sysmetricsRowDB, seen map[string
 
 		l.Debugf("%s: %f", metric.DDmetric, value)
 		if r.PdbName.Valid {
-			tf.addTag(pdbName, r.PdbName.String)
+			tf.AddTag(pdbName, r.PdbName.String)
 		}
-		tf.addField(metric.DDmetric, value)
+		tf.AddField(metric.DDmetric, value, dic)
 		seen[r.MetricName] = true
 	}
 }
 
-func (m *systemMetrics) sysMetrics() (*tagField, error) {
-	tf := newTagField()
+func (m *systemMetrics) sysMetrics() (*ccommon.TagField, error) {
+	tf := ccommon.NewTagField()
 	seenInContainerMetrics := make(map[string]bool)
 
 	metricRows := []sysmetricsRowDB{}
-	err := selectWrapper(m.x.m, &metricRows, fmt.Sprintf(SYSMETRICS_QUERY, "v$con_sysmetric"))
+	err := selectWrapper(m.x.Ipt, &metricRows, fmt.Sprintf(SYSMETRICS_QUERY, "v$con_sysmetric"))
 	if err != nil {
 		l.Debug("system: dpiStmt_execute: ORA-00942: table or view does not exist")
 
 		if strings.Contains(err.Error(), "dpiStmt_execute: ORA-00942: table or view does not exist") {
 			// oracle old version. 12c2-
-			if err = selectWrapper(m.x.m, &metricRows, SYSMETRICS_QUERY_OLD); err != nil {
+			if err = selectWrapper(m.x.Ipt, &metricRows, SYSMETRICS_QUERY_OLD); err != nil {
 				return nil, fmt.Errorf("failed to collect old sysmetrics: %w", err)
 			}
 
@@ -204,7 +206,7 @@ func (m *systemMetrics) sysMetrics() (*tagField, error) {
 	}
 
 	seenInGlobalMetrics := make(map[string]bool)
-	err = selectWrapper(m.x.m, &metricRows, fmt.Sprintf(SYSMETRICS_QUERY, "v$sysmetric")+" ORDER BY begin_time ASC, metric_name ASC")
+	err = selectWrapper(m.x.Ipt, &metricRows, fmt.Sprintf(SYSMETRICS_QUERY, "v$sysmetric")+" ORDER BY begin_time ASC, metric_name ASC")
 	if err != nil {
 		return nil, fmt.Errorf("failed to collect sysmetrics: %w", err)
 	}

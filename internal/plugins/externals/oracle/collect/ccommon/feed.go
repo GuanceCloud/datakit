@@ -3,21 +3,23 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package collect
+package ccommon
 
 import (
 	"encoding/json"
 	"fmt"
 	"os"
 	"time"
+
+	"github.com/GuanceCloud/cliutils/logger"
 )
+
+////////////////////////////////////////////////////////////////////////////////
 
 var (
-	datakitLastErrURL string
+	DatakitLastErrURL string
 	feedErrInterval   = time.Second * 30
 )
-
-const InputName = "oracle"
 
 type ExternalLastErr struct {
 	Input      string `json:"input"`
@@ -25,10 +27,10 @@ type ExternalLastErr struct {
 	ErrContent string `json:"err_content"`
 }
 
-func FeedLastError(errString string) error {
+func FeedLastError(inputName string, l *logger.Logger, errString string) error {
 	lastError := &ExternalLastErr{
-		Input:      InputName,
-		Source:     InputName,
+		Input:      inputName,
+		Source:     inputName,
 		ErrContent: errString,
 	}
 
@@ -38,22 +40,22 @@ func FeedLastError(errString string) error {
 		return err
 	}
 
-	if err := writeData(data, datakitLastErrURL); err != nil {
-		l.Errorf("FeedLastError writeData failed: %v", err)
+	if err := WriteData(l, data, DatakitLastErrURL); err != nil {
+		l.Errorf("FeedLastError WriteData failed: %v", err)
 		return err
 	}
 
 	return nil
 }
 
-func FeedLastErrorLoop(errString string, ch chan os.Signal) {
+func FeedLastErrorLoop(inputName string, l *logger.Logger, errString string, ch chan os.Signal) {
 	l.Error(errString)
 
 	ticker := time.NewTicker(feedErrInterval)
 	defer ticker.Stop()
 
 	for {
-		if err := FeedLastError(errString); err != nil {
+		if err := FeedLastError(inputName, l, errString); err != nil {
 			l.Error(err)
 		}
 
@@ -65,12 +67,14 @@ func FeedLastErrorLoop(errString string, ch chan os.Signal) {
 	}
 }
 
-func ReportErrorf(format string, args ...interface{}) {
+func ReportErrorf(inputName string, l *logger.Logger, format string, args ...interface{}) {
 	go func() {
 		l.Errorf(format, args...)
 
-		if err := FeedLastError(fmt.Sprintf(format, args...)); err != nil {
+		if err := FeedLastError(inputName, l, fmt.Sprintf(format, args...)); err != nil {
 			l.Errorf("FeedLastError failed: %v", err)
 		}
 	}()
 }
+
+////////////////////////////////////////////////////////////////////////////////

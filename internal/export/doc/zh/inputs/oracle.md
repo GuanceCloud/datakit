@@ -109,8 +109,8 @@ GRANT SELECT ON DBA_USERS TO datakit;
 根据操作系统和 Oracle 版本选择安装对应的安装包，参考[这里](https://oracle.github.io/odpi/doc/installation.html){:target="_blank"}，如：
 
 ```shell
-wget https://download.oracle.com/otn_software/linux/instantclient/211000/instantclient-basiclite-linux.x64-21.1.0.0.0.zip
-unzip instantclient-basiclite-linux.x64-21.1.0.0.0.zip
+wget https://download.oracle.com/otn_software/linux/instantclient/2110000/instantclient-basiclite-linux.x64-21.10.0.0.0dbru.zip
+unzip instantclient-basiclite-linux.x64-21.10.0.0.0dbru.zip
 ```
 
 将解压后的目录文件路径添加到以下配置信息中的 `LD_LIBRARY_PATH` 环境变量路径中。
@@ -118,7 +118,7 @@ unzip instantclient-basiclite-linux.x64-21.1.0.0.0.zip
 > 也可以直接下载我们预先准备好的依赖包：
 
 ```shell
-wget -q https://static.guance.com/otn_software/instantclient/instantclient-basiclite-linux.x64-19.8.0.0.0dbru.zip \
+wget -q https://static.guance.com/otn_software/instantclient/instantclient-basiclite-linux.x64-21.10.0.0.0dbru.zip \
     -O /usr/local/datakit/externals/instantclient-basiclite-linux.zip \
     && unzip /usr/local/datakit/externals/instantclient-basiclite-linux.zip -d /opt/oracle;
 ```
@@ -206,11 +206,11 @@ $ ldd <DataKit 安装目录>/externals/oracle
 externals/oracle: /lib64/libc.so.6: version  `GLIBC_2.14` not found (required by externals/oracle)
 ```
 
-- Oracle 采集器只能在 Linux/amd64 架构的 DataKit 使用，其它平台均不支持
+- Oracle 采集器只能在 Linux/AMD64 架构的 DataKit 使用，其它平台均不支持
 
-这意味着 Oracle 这个采集器只能在 amd64(X86) 的 Linux 上运行，其它平台一律无法运行当前的 Oracle 采集器。
+这意味着 Oracle 这个采集器只能在 AMD64 的 Linux 上运行，其它平台一律无法运行当前的 Oracle 采集器。
 
-### 为什么看不到 `oracle_system` 指标集? {#faq-no-system}
+### :material-chat-question: 为什么看不到 `oracle_system` 指标集? {#faq-no-system}
 
 需要数据库运行起来之后，过 1 分钟才能看到。
 

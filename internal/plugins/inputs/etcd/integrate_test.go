@@ -84,7 +84,7 @@ func TestIntegrate(t *testing.T) {
 func getOptionalFields() []string {
 	out := inputs.GetOptionalFieldsKeys(etcdFields)
 
-	out = append(out, inputs.GetGeneralOptionalFieldsKeys()...)
+	out = append(out, inputs.GetGolangGeneralOptionalFieldsKeys()...)
 
 	return out
 }

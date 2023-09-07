@@ -3,7 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package collect
+package ccommon
 
 import (
 	"fmt"
@@ -17,13 +17,13 @@ import (
 func TestFeedLastErrorLoop(t *testing.T) {
 	const defaultErrInterval = time.Second * 30
 
-	l = logger.SLogger(InputName)
-	datakitLastErrURL = "http://127.0.0.1:9529/v1/lasterror"
+	const inputName = "db2"
+	l := logger.SLogger(inputName)
+	DatakitLastErrURL = GetLastErrorURL("127.0.0.1", 9529)
 
 	defer func() {
 		// Restore variables' value.
-		l = nil
-		datakitLastErrURL = ""
+		DatakitLastErrURL = ""
 	}()
 
 	type args struct {
@@ -60,7 +60,7 @@ func TestFeedLastErrorLoop(t *testing.T) {
 				}
 			}()
 
-			FeedLastErrorLoop(tt.args.errString, tt.args.ch)
+			FeedLastErrorLoop(inputName, l, tt.args.errString, tt.args.ch)
 		})
 	}
 }
@@ -70,5 +70,28 @@ func TestPrint(t *testing.T) {
 
 	t.Run("Println", func(t *testing.T) {
 		fmt.Println("failed:", err.Error())
+	})
+}
+
+func TestFeedEvent(t *testing.T) {
+	const inputName = "db2"
+	t.Run("normal", func(t *testing.T) {
+		l := logger.SLogger(inputName)
+
+		event := &DFEvent{
+			Name:        inputName,
+			EventPrefix: EventPrefixDb2,
+			Tags: map[string]string{
+				"host":   "1.2.3.4",
+				"source": inputName,
+			},
+			Date:    time.Now().Unix(),
+			Status:  "warning",
+			Title:   "Table space state change",
+			Message: fmt.Sprintf("State of `%s` changed from `%s` to `%s`.", "test", "NORMAL", "DOWN"),
+		}
+
+		datakitPostEventURL := GetPostURL(false, CategoryEvent, inputName, "127.0.0.1", 9529)
+		FeedEvent(l, event, datakitPostEventURL)
 	})
 }

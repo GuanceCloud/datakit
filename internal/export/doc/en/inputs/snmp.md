@@ -228,7 +228,7 @@ All of the following data collections are appended by default with the name `hos
 
 ## FAQ {#faq}
 
-### How dows Datakit find devices? {#faq-discover}
+### :material-chat-question: How dows Datakit find devices? {#faq-discover}
 
 Datakit supports "Specified device mode" and "auto-discovery mode" two modes. The two modes can enabled at the same time.
 
@@ -236,13 +236,13 @@ In "specified device mode", Datakit communicates with the specificed IP device u
 
 In "auto-discovery mode", Datakit sends SNMP packets to all address in the specified IP segment one by one, and if the response matches the corresponding profile, Datakit assumes that there is a SNMP device on that IP.
 
-### I can't find metrics I'm looking for in [Guance](https://console.guance.com/){:target="_blank"}, what should I do?  {#faq-not-support}
+### :material-chat-question: I can't find metrics I'm looking for in [Guance](https://console.guance.com/){:target="_blank"}, what should I do?  {#faq-not-support}
 
 Datakit collects generic base-line metrics from all devices. If you can't find the metric you want, you can [write a custom profile](snmp.md#advanced-custom-oid).
 
 To archiving this, you probably needs to download the device's OID manual from its official website.
 
-### Why I can't see any metrics in [Guance](https://console.guance.com/){:target="_blank"} after I completed configruation? {#faq-no-metrics}
+### :material-chat-question: Why I can't see any metrics in [Guance](https://console.guance.com/){:target="_blank"} after I completed configruation? {#faq-no-metrics}
 
 Try loosening ACLs/firewall rules for your devices.
 

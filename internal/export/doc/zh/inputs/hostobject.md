@@ -248,6 +248,10 @@ Datakit 默认开启云同步，目前支持阿里云/腾讯云/AWS/华为云/�
 
 ## FAQ {#faq}
 
-### 为什么 `entries` 和 `entries_limit` 采集不到，显示为 -1？ {#no-entries}
+<!-- markdownlint-disable MD013 -->
+
+### :material-chat-question: 为什么 `entries` 和 `entries_limit` 采集不到，显示为 -1？ {#no-entries}
+
+<!-- markdownlint-enable -->
 
 需要加载 `nf_conntrack` 模块，终端执行 `modprobe nf_conntrack` 即可。

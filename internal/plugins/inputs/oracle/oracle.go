@@ -17,12 +17,13 @@ const (
 	configSample = `
 [[inputs.external]]
   daemon = true
-  name = 'oracle'
-  cmd  = "/usr/local/datakit/externals/oracle"
+  name   = 'oracle'
+  cmd    = "/usr/local/datakit/externals/oracle"
 
   ## Set true to enable election
   election = true
 
+  ## The "--inputs" line below should not be modified.
   args = [
     '--interval'       , '1m'                        ,
     '--host'           , '<your-oracle-host>'        ,
@@ -32,7 +33,7 @@ const (
     '--service-name'   , '<oracle-service-name>'     ,
   ]
   envs = [
-    'LD_LIBRARY_PATH=/opt/oracle/instantclient_19_8:$LD_LIBRARY_PATH',
+    'LD_LIBRARY_PATH=/opt/oracle/instantclient_21_10:$LD_LIBRARY_PATH',
   ]
 
   [inputs.external.tags]
@@ -40,15 +41,14 @@ const (
     # more_tag = "some_other_value"
 
   #############################
-  # 参数说明(标 * 为必选项)
+  # Parameter Description (Marked with * is mandatory field)
   #############################
-  # *--interval       : 采集的频度，最小粒度 5m
-  # *--host           : Oracle 实例地址(ip)
-  #  --port           : Oracle 监听端口
-  # *--username       : Oracle 用户名
-  # *--password       : Oracle 密码
-  # *--service-name   : Oracle 的服务名
-  # *--query          : 自定义查询语句，格式为 <sql:metricName:tags>，sql 为自定义采集的语句，tags 填入使用 tag 字段
+  # *--interval       : Collect interval (Default is 1m)
+  # *--host           : Oracle instance address (IP)
+  # *--port           : Oracle listen port (Default is 1521)
+  # *--username       : Oracle username
+  # *--password       : Oracle password
+  # *--service-name   : Oracle service name
 `
 )
 
@@ -63,7 +63,7 @@ type Input struct {
 }
 
 func (i *Input) Run() {
-	l.Info("Only for Oracle measurement documentation information, should not be here.")
+	l.Info("Only for measurement documentation information, should not be here.")
 }
 
 func (i *Input) Catalog() string { return catalogName }
