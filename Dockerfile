@@ -1,4 +1,4 @@
-FROM pubrepo.guance.com/base/ubuntu:18.04 AS base
+FROM pubrepo.guance.com/base/ubuntu:20.04 AS base
 ARG TARGETARCH
 
 RUN mkdir -p /usr/local/datakit \
@@ -9,8 +9,9 @@ COPY dist/datakit-linux-${TARGETARCH}/ /usr/local/datakit/
 
 RUN sed -i 's/\(archive\|security\|ports\).ubuntu.com/mirrors.aliyun.com/' /etc/apt/sources.list \
     && apt-get update \
-    && apt-get install -y libaio-dev libaio1 unzip wget curl python3 python3-pip \
-    && pip3 install requests -i http://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
+    && apt-get --no-install-recommends install -y libaio-dev libaio1 unzip wget curl python3 python3-pip \
+    && pip3 install requests -i http://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com \
+    && rm -rf /var/lib/apt/lists/*
 
 # download 3rd party libraries
 RUN \
@@ -18,7 +19,8 @@ RUN \
     amd64) \
       wget -q https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/otn_software/instantclient/instantclient-basiclite-linux.x64-21.10.0.0.0dbru.zip \
       			-O /usr/local/datakit/externals/instantclient-basiclite-linux.zip \
-      			&& unzip /usr/local/datakit/externals/instantclient-basiclite-linux.zip -d /opt/oracle; \
+      			&& unzip /usr/local/datakit/externals/instantclient-basiclite-linux.zip -d /opt/oracle \
+            && rm /usr/local/datakit/externals/instantclient-basiclite-linux.zip; \
       ;; \
   esac;
 
