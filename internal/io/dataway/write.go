@@ -77,7 +77,6 @@ type writer struct {
 	pts []*dkpt.Point
 
 	gzip                 bool
-	isSinker             bool
 	cacheClean, cacheAll bool
 
 	httpHeaders map[string]string
@@ -229,6 +228,10 @@ func (dw *Dataway) Write(opts ...WriteOption) error {
 	var groupedPts map[string]groupedPoints
 	if dw.EnableSinker && (len(dw.globalTags) > 0 || len(dw.GlobalCustomerKeys) > 0) {
 		groupedPts = dw.groupPoints(w.category, w.pts)
+
+		if len(groupedPts) > 1 {
+			groupedRequestVec.WithLabelValues(w.category.String()).Add(float64(len(groupedPts) - 1))
+		}
 	}
 
 	if len(groupedPts) > 0 && len(dw.eps) > 0 {
