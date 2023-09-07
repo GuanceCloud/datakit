@@ -168,7 +168,7 @@ func dkpt2point(pts ...*dkpt.Point) (res []*point.Point) {
 	return res
 }
 
-func plAggFeed(name string, data any) error {
+func plAggFeed(cat point.Category, name string, data any) error {
 	if data == nil {
 		return nil
 	}
@@ -183,7 +183,7 @@ func plAggFeed(name string, data any) error {
 	from.WriteString("/")
 	from.WriteString(name)
 
-	catStr := point.Metric.String()
+	catStr := cat.String()
 
 	// cover
 	name = from.String()
@@ -193,7 +193,7 @@ func plAggFeed(name string, data any) error {
 	inputsLastFeedVec.WithLabelValues(name, catStr).Set(float64(time.Now().Unix()))
 
 	bf := len(pts)
-	pts = filter.FilterPts(point.Metric, pts)
+	pts = filter.FilterPts(cat, pts)
 
 	inputsFilteredPtsVec.WithLabelValues(
 		name,
@@ -207,7 +207,7 @@ func plAggFeed(name string, data any) error {
 
 	if defIO.fo != nil {
 		return defIO.fo.Write(&iodata{
-			category: point.Metric,
+			category: cat,
 			pts:      pts,
 			from:     name,
 		})

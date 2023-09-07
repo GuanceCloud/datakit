@@ -6,18 +6,28 @@
 package plmap
 
 import (
+	"fmt"
+	"runtime"
 	"sync"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/spf13/cast"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hash"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
+
+var l = logger.DefaultSLogger("pl-map")
+
+func InitPlMap() {
+	l = logger.SLogger("pl-map")
+}
 
 type AggBuckets struct {
 	uploadDataFn UploadFunc
 	// key: [hash(name), hash(...tagName)]
-	data map[string]*bucket
+	data map[point.Category]map[string]*bucket
 
 	sync.RWMutex
 }
@@ -25,24 +35,31 @@ type AggBuckets struct {
 func NewAggBuks(upFn UploadFunc) *AggBuckets {
 	return &AggBuckets{
 		uploadDataFn: upFn,
-		data:         map[string]*bucket{},
+		data:         map[point.Category]map[string]*bucket{},
 	}
 }
 
-func (a *AggBuckets) CreateBucket(name string, interval time.Duration, count int,
-	keepValue bool, constTags map[string]string,
+func (a *AggBuckets) CreateBucket(cat point.Category, name string, interval time.Duration,
+	count int, keepValue bool, constTags map[string]string,
 ) {
 	a.Lock()
 	defer a.Unlock()
 
 	if a.data == nil {
-		a.data = map[string]*bucket{}
+		a.data = map[point.Category]map[string]*bucket{}
 	}
 
-	buk, ok := a.data[name]
+	catBuk, ok := a.data[cat]
 	if !ok {
-		buk = newBucket(name, interval, count, keepValue, a.uploadDataFn)
-		a.data[name] = buk
+		catBuk = map[string]*bucket{}
+		a.data[cat] = catBuk
+	}
+
+	buk, ok := catBuk[name]
+	if !ok {
+		buk = newBucket(cat, name, interval, count, keepValue, a.uploadDataFn)
+		catBuk[name] = buk
+
 		buk.startScan()
 	}
 
@@ -59,21 +76,27 @@ func (a *AggBuckets) StopAllBukScanner() {
 	a.Lock()
 	defer a.Unlock()
 
-	for name, b := range a.data {
-		b.stopScan()
-		delete(a.data, name)
+	for _, catBuk := range a.data {
+		for name, b := range catBuk {
+			b.stopScan()
+			delete(catBuk, name)
+		}
 	}
 }
 
-func (a *AggBuckets) GetBucket(name string) (*bucket, bool) {
+func (a *AggBuckets) GetBucket(cat point.Category, name string) (*bucket, bool) {
 	a.RLock()
 	defer a.RUnlock()
 
 	if a.data == nil {
 		return nil, false
 	}
-	v, ok := a.data[name]
-	return v, ok
+	if buks, ok := a.data[cat]; !ok {
+		return nil, false
+	} else {
+		v, ok := buks[name]
+		return v, ok
+	}
 }
 
 type aggFields struct {
@@ -119,6 +142,8 @@ func (g *ptsGroup) addMetric(tagsValue []string, name, action string, value any)
 type bucket struct {
 	bukName string
 
+	category point.Category
+
 	interval   time.Duration
 	keepValue  bool
 	countLimit int
@@ -149,13 +174,26 @@ func (buk *bucket) startScan() {
 	go func() {
 		ticker := time.NewTicker(buk.interval)
 		defer ticker.Stop()
+
+		defer func() {
+			if r := recover(); r != nil {
+				buf := make([]byte, 4096) //nolint:gomnd
+				buf = buf[:runtime.Stack(buf, false)]
+
+				if e, ok := r.(error); ok {
+					buf = append([]byte(fmt.Sprintf("%s\n", e.Error())), buf...)
+				}
+				l.Error("%s", buf)
+			}
+		}()
+
 		for {
 			select {
 			case <-ticker.C:
 				buk.Lock()
 				pts := endAgg(buk)
 				if len(pts) > 0 && buk.uploadFn != nil {
-					_ = buk.uploadFn(buk.bukName, pts)
+					_ = buk.uploadFn(buk.category, buk.bukName, pts)
 				}
 				buk.Unlock()
 			case <-stop:
@@ -177,7 +215,7 @@ func (buk *bucket) stopScan() {
 
 	if buk.uploadFn != nil {
 		pts := endAgg(buk)
-		_ = buk.uploadFn(buk.bukName, pts)
+		_ = buk.uploadFn(buk.category, buk.bukName, pts)
 	}
 }
 
@@ -224,7 +262,7 @@ func (buk *bucket) AddMetric(fieldName, action string, tagsName,
 			if buk.curCount >= buk.countLimit {
 				if buk.uploadFn != nil {
 					pts := endAgg(buk)
-					_ = buk.uploadFn(buk.bukName, pts)
+					_ = buk.uploadFn(buk.category, buk.bukName, pts)
 				}
 				buk.curCount = 0
 			}
@@ -235,8 +273,8 @@ func (buk *bucket) AddMetric(fieldName, action string, tagsName,
 	return false
 }
 
-func newBucket(name string, interval time.Duration, count int,
-	keepValue bool, uploadFn UploadFunc,
+func newBucket(cat point.Category, name string, interval time.Duration,
+	count int, keepValue bool, uploadFn UploadFunc,
 ) *bucket {
 	return &bucket{
 		bukName:    name,
@@ -246,12 +284,13 @@ func newBucket(name string, interval time.Duration, count int,
 		by:         map[uint64][]string{},
 		group:      map[uint64]*ptsGroup{},
 		uploadFn:   uploadFn,
+		category:   cat,
 	}
 }
 
-func conv2Pt(name string, tagsName []string, aggTF *aggFields,
+func conv2Pt(cat point.Category, name string, tagsName []string, aggTF *aggFields,
 	extraTags map[string]string,
-) (*point.Point, bool) {
+) (*dkpt.Point, bool) {
 	if len(tagsName) != len(aggTF.tags) {
 		return nil, false
 	}
@@ -271,7 +310,10 @@ func conv2Pt(name string, tagsName []string, aggTF *aggFields,
 			fields[k] = v.Value()
 		}
 	}
-	if pt, err := point.NewPoint(name, tags, fields, point.MOpt()); err != nil {
+
+	if pt, err := dkpt.NewPoint(name, tags, fields, &dkpt.PointOption{
+		Category: cat.URL(),
+	}); err != nil {
 		return nil, false
 	} else {
 		return pt, true
@@ -279,8 +321,8 @@ func conv2Pt(name string, tagsName []string, aggTF *aggFields,
 }
 
 // 结束聚合.
-func endAgg(b *bucket) []*point.Point {
-	pts := []*point.Point{}
+func endAgg(b *bucket) []*dkpt.Point {
+	pts := []*dkpt.Point{}
 
 	for tagNameHash, group := range b.group {
 		if group == nil {
@@ -291,7 +333,7 @@ func endAgg(b *bucket) []*point.Point {
 			continue
 		}
 		for _, tl := range group.timeline {
-			if pt, ok := conv2Pt(b.bukName, tagsName, tl, b.extraTags); ok {
+			if pt, ok := conv2Pt(b.category, b.bukName, tagsName, tl, b.extraTags); ok {
 				pts = append(pts, pt)
 			}
 		}

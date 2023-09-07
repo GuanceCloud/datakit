@@ -6,11 +6,13 @@
 // Package plmap used to store data during pl script execution
 package plmap
 
+import "github.com/GuanceCloud/cliutils/point"
+
 // type PtSource [3]string // source,sub_source,tmp_source
 
 const FeedName = "pl_agg"
 
-type UploadFunc func(ptID string, elem any) error
+type UploadFunc func(cat point.Category, ptID string, elem any) error
 
 type PlMapIface interface {
 	SetUploadFunc(UploadFunc)

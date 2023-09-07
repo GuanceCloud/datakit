@@ -144,7 +144,7 @@ func CreatePoint(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError
 				}
 			} else {
 				return runtime.NewRunError(ctx, fmt.Sprintf(
-					"type of parameter expected to be int64, got %s",
+					"type of parameter expected to be str, got %s",
 					reflect.TypeOf(catName)), arg.StartPos())
 			}
 		}

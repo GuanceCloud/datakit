@@ -1,6 +1,6 @@
 ### `agg_metric()` {#fn-agg-metric}
 
-函数原型：`fn agg_metric(bucket: str, new_field: str, agg_fn: str, agg_by: []string, agg_field: str)`
+函数原型：`fn agg_metric(bucket: str, new_field: str, agg_fn: str, agg_by: []string, agg_field: str, category: str = "M")`
 
 函数说明：根据输入的数据中的字段的名，自动取值后作为聚合数据的 tag，并将这些聚合数据存储在对应的 bucket 中
 
@@ -11,6 +11,7 @@
 - `agg_fn`: 聚合函数，可以是 `"avg"`,`"sum"`,`"min"`,`"max"`,`"set"` 中的一种
 - `agg_by`: 输入的数据中的字段的名，将作为聚合出的数据的 tag，这些字段的值只能是字符串类型的数据
 - `agg_field`: 输入的数据中的字段名，自动获取字段值进行聚合
+- `category`: 聚合数据的数据类别，可选参数，默认值为 "M"，表示指标类别数据。
 
 示例：
 

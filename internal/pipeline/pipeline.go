@@ -145,6 +145,7 @@ func (p *Pipeline) Run(cat point.Category, pt *dkpt.Point, plOpt *plscript.Optio
 func Init(pipelineCfg *PipelineCfg) error {
 	l = logger.SLogger("pipeline")
 	plscript.InitStore()
+	plmap.InitPlMap()
 	funcs.InitLog()
 	plrefertable.InitLog()
 	relation.InitRelationLog()
