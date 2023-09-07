@@ -1,6 +1,36 @@
 # Changelog
 ---
 
+## 1.15.0 (2023/09/07) {#cl-1.15.0}
+
+This release is an iterative release, mainly including the following updates:
+
+### New features {#cl-1.15.0-new}
+
+- [Windows](datakit-install.md#resource-limit) support memory/CPU limit (#1850)
+- Added [IBM Db2 Collector](../integrations/db2.md) (#1818)
+
+### Bug fixes {#cl-1.15.0-fix}
+
+- Fix the double star(`**`) problem of container acquisition configuration include/exclude (#1855)
+- Fixed a field error in k8s Service object data
+
+### Function optimization {#cl-1.15.0-opt}
+
+- [DataKit Lite](datakit-install.md#lite-install) support logging module (#1861)
+- [`bug report`](why-no-data.md#bug-report) supports disabling profile data collection (#1868)
+- Added [documentation](../integrations/tracing-propagator.md) for different Trace delivery instructions (#1824)
+- Pipeline added functions `parse_int` and `format_int` (#1824)
+- Pipeline data aggregation functions `agg_create` and `agg_metric` support outputting any type of data (#1865)
+- Optimize Datakit image size (#1869)
+- Optimize the `--bug-report` command to turn off Profile collection (to avoid pressure on the current Datakit) (#1868)
+- Added [Datakit Metric Performance Test Report](../integrations/datakit-metric-performance.md) (#1867)
+- Add [documentation of external collector](../integrations/external.md) (#1851)
+
+### Compatibility adjustments {#cl-1.15.0-brk}
+
+---
+
 ## 1.14.2(2023/09/04) {#cl-1.14.2}
 
 ### Bug fixes {#cl-1.14.2-fix}

@@ -1,6 +1,35 @@
 # 更新日志
 ---
 
+## 1.15.0(2023/09/07) {#cl-1.15.0}
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.15.0-new}
+
+- [Windows](datakit-install.md#resource-limit) 支持内存/CPU 限制（#1850）
+- 新增 [IBM Db2 采集器](../integrations/db2.md)（#1818）
+
+### 问题修复 {#cl-1.15.0-fix}
+
+- 修复容器采集配置 include/exclude 的 double star 问题 (#1855)
+- 修复一处 k8s Service 对象数据的字段错误
+
+### 功能优化 {#cl-1.15.0-opt}
+
+- [DataKit 精简版](datakit-install.md#lite-install)支持 logging 模块（#1861）
+- [`bug report`](why-no-data.md#bug-report) 支持禁用 profile 数据采集（#1868）
+- 增加不同 Trace 传递说明的[文档](../integrations/tracing-propagator.md)（#1824）
+- Pipeline 增加函数 `parse_int` 和 `format_int`（#1824）
+- Pipeline 数据聚合函数 `agg_create` 和 `agg_metric` 支持输出任意类别的数据（#1865）
+- 优化 Datakit 镜像大小（#1869）
+- 优化 `--bug-report` 命令，可关闭 Profile 收集（避免给当前 Datakit 造成压力）（#1868）
+- 增加[Datakit 指标性能测试报告](../integrations/datakit-metric-performance.md)（#1867）
+- 增加[external 采集器的使用文档](../integrations/external.md)（#1851）
+
+### 兼容调整 {#cl-1.15.0-brk}
+
+---
+
 ## 1.14.2(2023/09/04) {#cl-1.14.2}
 
 ### 问题修复 {#cl-1.14.2-fix}
