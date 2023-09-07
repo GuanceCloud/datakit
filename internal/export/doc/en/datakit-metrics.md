@@ -49,9 +49,7 @@ We can also playing other metrics too(change the `grep` string), all available m
 |*internal/httpcli*|SUMMARY|`datakit_httpcli_http_connect_cost_seconds`|`from`|HTTP connect cost|
 |*internal/httpcli*|SUMMARY|`datakit_httpcli_got_first_resp_byte_cost_seconds`|`from`|Got first response byte cost|
 |*internal/io/dataway*|COUNTER|`datakit_io_http_retry_total`|`api,status`|Dataway HTTP retried count|
-|*internal/io/dataway*|COUNTER|`datakit_io_dataway_sink_total`|`category`|Dataway Sinked count, partitioned by category.|
-|*internal/io/dataway*|COUNTER|`datakit_io_dataway_not_sink_point_total`|`category`|Dataway not-Sinked points(condition or category not match)|
-|*internal/io/dataway*|COUNTER|`datakit_io_dataway_sink_point_total`|`category,status`|Dataway Sinked points, partitioned by category and point send status(ok/failed/dropped)|
+|*internal/io/dataway*|COUNTER|`datakit_io_grouped_request_total`|`category`|Grouped requests under sinker|
 |*internal/io/dataway*|SUMMARY|`datakit_io_flush_failcache_bytes`|`category`|IO flush fail-cache bytes(in gzip) summary|
 |*internal/io/dataway*|COUNTER|`datakit_io_dataway_point_total`|`category,status`|Dataway uploaded points, partitioned by category and send status(HTTP status)|
 |*internal/io/dataway*|COUNTER|`datakit_io_dataway_point_bytes_total`|`category,enc,status`|Dataway uploaded points bytes, partitioned by category and pint send status(HTTP status)|
@@ -83,7 +81,7 @@ We can also playing other metrics too(change the `grep` string), all available m
 |*internal/metrics*|GAUGE|`datakit_cpu_usage`|`N/A`|Datakit CPU usage(%)|
 |*internal/metrics*|GAUGE|`datakit_open_files`|`N/A`|Datakit open files(only available on Linux)|
 |*internal/metrics*|GAUGE|`datakit_cpu_cores`|`N/A`|Datakit CPU cores|
-|*internal/metrics*|GAUGE|`datakit_uptime_seconds`|`hostname,cgroup,branch=?,os_arch=?,docker=?,auto_update=?,version=?,build_at=?`|Datakit uptime|
+|*internal/metrics*|GAUGE|`datakit_uptime_seconds`|`hostname,cgroup,lite,version=?,build_at=?,branch=?,os_arch=?,docker=?,auto_update=?`|Datakit uptime|
 |*internal/metrics*|GAUGE|`datakit_data_overuse`|`N/A`|Does current workspace's data(metric/logging) usage(if 0 not beyond, or with a unix timestamp when overuse occurred)|
 |*internal/metrics*|COUNTER|`datakit_process_ctx_switch_total`|`type`|Datakit process context switch count(Linux only)|
 |*internal/metrics*|COUNTER|`datakit_process_io_count_total`|`type`|Datakit process IO count|

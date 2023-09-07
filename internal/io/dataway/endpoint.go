@@ -346,10 +346,6 @@ func (ep *endPoint) writePointData(b *body, w *writer) error {
 
 		ptsCounterVec.WithLabelValues(cat, "total").Add(float64(b.npts))
 		ptsCounterVec.WithLabelValues(cat, httpCodeStr).Add(float64(b.npts))
-
-		if w.isSinker {
-			sinkPtsVec.WithLabelValues(cat, httpCodeStr).Add(float64(b.npts))
-		}
 	}()
 
 	req, err := http.NewRequest("POST", requrl, bytes.NewBuffer(b.buf))

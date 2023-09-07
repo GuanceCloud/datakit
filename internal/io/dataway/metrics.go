@@ -13,10 +13,8 @@ import (
 var (
 	ptsCounterVec,
 	bytesCounterVec,
-	sinkCounterVec,
 	httpRetry,
-	notSinkPtsVec,
-	sinkPtsVec *prometheus.CounterVec
+	groupedRequestVec *prometheus.CounterVec
 
 	flushFailCacheVec,
 	apiSumVec *prometheus.SummaryVec
@@ -28,10 +26,8 @@ func Metrics() []prometheus.Collector {
 		ptsCounterVec,
 		bytesCounterVec,
 		apiSumVec,
-		sinkCounterVec,
 		httpRetry,
-		notSinkPtsVec,
-		sinkPtsVec,
+		groupedRequestVec,
 		flushFailCacheVec,
 	}
 }
@@ -42,11 +38,9 @@ func metricsReset() {
 	apiSumVec.Reset()
 
 	httpRetry.Reset()
-	sinkCounterVec.Reset()
 	httpRetry.Reset()
 	flushFailCacheVec.Reset()
-	notSinkPtsVec.Reset()
-	sinkPtsVec.Reset()
+	groupedRequestVec.Reset()
 }
 
 func doRegister() {
@@ -56,10 +50,8 @@ func doRegister() {
 		apiSumVec,
 
 		flushFailCacheVec,
-		sinkCounterVec,
 		httpRetry,
-		notSinkPtsVec,
-		sinkPtsVec,
+		groupedRequestVec,
 	)
 }
 
@@ -115,38 +107,16 @@ func init() {
 		[]string{"api", "status"},
 	)
 
-	sinkCounterVec = prometheus.NewCounterVec(
+	groupedRequestVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "datakit",
 			Subsystem: "io",
-			Name:      "dataway_sink_total",
-			Help:      "Dataway Sinked count, partitioned by category.",
+			Name:      "grouped_request_total",
+			Help:      "Grouped requests under sinker",
 		},
 		[]string{
 			"category",
 		},
-	)
-
-	notSinkPtsVec = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "datakit",
-			Subsystem: "io",
-			Name:      "dataway_not_sink_point_total",
-			Help:      "Dataway not-Sinked points(condition or category not match)",
-		},
-		[]string{
-			"category",
-		},
-	)
-
-	sinkPtsVec = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "datakit",
-			Subsystem: "io",
-			Name:      "dataway_sink_point_total",
-			Help:      "Dataway Sinked points, partitioned by category and point send status(ok/failed/dropped)",
-		},
-		[]string{"category", "status"},
 	)
 
 	doRegister()
