@@ -22,7 +22,7 @@ func TestAgg(t *testing.T) {
 		name, pl string
 		in       []string
 		fail     bool
-		out      map[string]map[string]any
+		out      map[cliPt.Category]map[string]map[string]any
 	}{
 		{
 			name: "",
@@ -37,16 +37,35 @@ func TestAgg(t *testing.T) {
 
 				agg_metric("abc", "f1", "avg", ["t2","t0"], "f0")
 				agg_metric("def", "f1", "avg", ["t1", "t2"], "f0")
+
+				agg_create("abc", on_interval="5s",on_count=0, const_tags={"a":"b"}, 
+						category="logging")
+				agg_create("def", category="logging")
+
+				agg_metric("abc", "f1", "avg", ["t2","t0"], "f0", category="logging")
+				agg_metric("def", "f1", "avg", ["t1", "t2"], "f0", "logging")
 				`,
 			in: []string{`1`, `2`},
-			out: map[string]map[string]any{
-				"abc": {
-					"f1": float64(1.5),
-					"t0": "t1111",
+			out: map[cliPt.Category]map[string]map[string]any{
+				cliPt.Metric: {
+					"abc": {
+						"f1": float64(1.5),
+						"t0": "t1111",
+					},
+					"def": {
+						"f1": float64(1.5),
+						"t1": "t1111",
+					},
 				},
-				"def": {
-					"f1": float64(1.5),
-					"t1": "t1111",
+				cliPt.Logging: {
+					"abc": {
+						"f1": float64(1.5),
+						"t0": "t1111",
+					},
+					"def": {
+						"f1": float64(1.5),
+						"t1": "t1111",
+					},
 				},
 			},
 		},
@@ -64,9 +83,14 @@ func TestAgg(t *testing.T) {
 				return
 			}
 
-			ptsLi := map[string][]*point.Point{}
-			fn := func(n string, d any) error {
-				ptsLi[n] = append(ptsLi[n], d.([]*point.Point)...)
+			ptsLi := map[cliPt.Category]map[string][]*point.Point{}
+			fn := func(cat cliPt.Category, n string, d any) error {
+				catBuk, ok := ptsLi[cat]
+				if !ok {
+					catBuk = map[string][]*point.Point{}
+					ptsLi[cat] = catBuk
+				}
+				catBuk[n] = append(catBuk[n], d.([]*point.Point)...)
 				return nil
 			}
 
@@ -83,20 +107,22 @@ func TestAgg(t *testing.T) {
 
 			buks.StopAllBukScanner()
 
-			for bukName, kv := range tc.out {
-				for k, v := range kv {
-					if len(ptsLi[bukName]) == 0 {
-						t.Fatal("no data")
-					}
-					pt := ptsLi[bukName][0]
-					f, _ := pt.Fields()
-					tags := pt.Tags()
-					if _, ok := f[k]; ok {
-						assert.Equal(t, v, f[k])
-					} else if _, ok := tags[k]; ok {
-						assert.Equal(t, v, tags[k])
-					} else {
-						t.Error(k)
+			for cat, catBuk := range tc.out {
+				for bukName, kv := range catBuk {
+					for k, v := range kv {
+						if len(ptsLi[cat][bukName]) == 0 {
+							t.Fatal("no data")
+						}
+						pt := ptsLi[cat][bukName][0]
+						f, _ := pt.Fields()
+						tags := pt.Tags()
+						if _, ok := f[k]; ok {
+							assert.Equal(t, v, f[k])
+						} else if _, ok := tags[k]; ok {
+							assert.Equal(t, v, tags[k])
+						} else {
+							t.Error(k)
+						}
 					}
 				}
 			}

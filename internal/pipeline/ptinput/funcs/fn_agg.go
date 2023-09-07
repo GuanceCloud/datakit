@@ -7,8 +7,10 @@ package funcs
 
 import (
 	"fmt"
+	"reflect"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/GuanceCloud/platypus/pkg/ast"
 	"github.com/GuanceCloud/platypus/pkg/engine/runtime"
 	"github.com/GuanceCloud/platypus/pkg/errchain"
@@ -17,7 +19,7 @@ import (
 func AggCreateChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 	if err := reindexFuncArgs(funcExpr, []string{
 		"bucket", "on_interval", "on_count",
-		"keep_value", "const_tags",
+		"keep_value", "const_tags", "category",
 	}, 1); err != nil {
 		return runtime.NewRunError(ctx, err.Error(), funcExpr.NamePos)
 	}
@@ -86,8 +88,26 @@ func AggCreate(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 		return nil
 	}
 
+	ptCat := point.Metric
+	if arg := funcExpr.Param[5]; arg != nil {
+		if catName, _, err := runtime.RunStmt(ctx, arg); err != nil {
+			return nil
+		} else if catName != nil {
+			if catN, ok := catName.(string); ok {
+				ptCat = ptCategory(catN)
+				if ptCat == point.UnknownCategory {
+					return nil
+				}
+			} else {
+				return runtime.NewRunError(ctx, fmt.Sprintf(
+					"type of parameter expected to be int64, got %s",
+					reflect.TypeOf(catName)), arg.StartPos())
+			}
+		}
+	}
+
 	bukName := funcExpr.Param[0].StringLiteral.Val
-	if _, ok := buks.GetBucket(bukName); ok {
+	if _, ok := buks.GetBucket(ptCat, bukName); ok {
 		return nil
 	}
 
@@ -120,7 +140,7 @@ func AggCreate(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 		}
 	}
 
-	buks.CreateBucket(bukName, interval, count, keepValue, constTags)
+	buks.CreateBucket(ptCat, bukName, interval, count, keepValue, constTags)
 
 	return nil
 }
@@ -128,7 +148,7 @@ func AggCreate(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 func AggAddMetricChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 	if err := reindexFuncArgs(funcExpr, []string{
 		"bucket", "new_field", "agg_fn",
-		"agg_by", "agg_field",
+		"agg_by", "agg_field", "category",
 	}, 5); err != nil {
 		return runtime.NewRunError(ctx, err.Error(), funcExpr.NamePos)
 	}
@@ -208,9 +228,26 @@ func AggAddMetric(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlErro
 	aggFn := funcExpr.Param[2].StringLiteral.Val
 
 	aggBy, ok := funcExpr.PrivateData.([]string)
-
 	if !ok {
 		return nil
+	}
+
+	ptCat := point.Metric
+	if arg := funcExpr.Param[5]; arg != nil {
+		if catName, _, err := runtime.RunStmt(ctx, arg); err != nil {
+			return nil
+		} else if catName != nil {
+			if catN, ok := catName.(string); ok {
+				ptCat = ptCategory(catN)
+				if ptCat == point.UnknownCategory {
+					return nil
+				}
+			} else {
+				return runtime.NewRunError(ctx, fmt.Sprintf(
+					"type of parameter expected to be int64, got %s",
+					reflect.TypeOf(catName)), arg.StartPos())
+			}
+		}
 	}
 
 	byValue := []string{}
@@ -237,7 +274,7 @@ func AggAddMetric(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlErro
 		return nil
 	}
 
-	buk, ok := buks.GetBucket(bukName)
+	buk, ok := buks.GetBucket(ptCat, bukName)
 	if !ok {
 		return nil
 	}

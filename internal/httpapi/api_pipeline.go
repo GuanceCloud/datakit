@@ -462,7 +462,7 @@ type pldebugFeed struct {
 	sync.Mutex
 }
 
-func (f *pldebugFeed) uploadfn(name string, data any) error {
+func (f *pldebugFeed) uploadfn(cat clipt.Category, name string, data any) error {
 	f.Lock()
 	defer f.Unlock()
 

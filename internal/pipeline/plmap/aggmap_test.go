@@ -9,28 +9,29 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 func TestAggBuckets(t *testing.T) {
-	ptsLi := map[string][]*point.Point{}
-	var fn UploadFunc = func(n string, d any) error {
-		ptsLi[n] = append(ptsLi[n], d.([]*point.Point)...)
+	ptsLi := map[string][]*dkpt.Point{}
+	var fn UploadFunc = func(cat point.Category, n string, d any) error {
+		ptsLi[n] = append(ptsLi[n], d.([]*dkpt.Point)...)
 		return nil
 	}
 
 	buks := NewAggBuks(fn)
-	buks.CreateBucket("bucket_a", time.Second*5, 0, false, nil)
-	buks.CreateBucket("bucket_a", time.Second, 0, false, nil)
-	buks.CreateBucket("bucket_a", time.Second, 0, false, nil)
-	buks.CreateBucket("bucket_b", time.Second, 0, false, nil)
+	buks.CreateBucket(point.Metric, "bucket_a", time.Second*5, 0, false, nil)
+	buks.CreateBucket(point.Metric, "bucket_a", time.Second, 0, false, nil)
+	buks.CreateBucket(point.Metric, "bucket_a", time.Second, 0, false, nil)
+	buks.CreateBucket(point.Metric, "bucket_b", time.Second, 0, false, nil)
 
-	v, ok := buks.GetBucket("bucket_a")
+	v, ok := buks.GetBucket(point.Metric, "bucket_a")
 	assert.NotEqual(t, nil, v)
 	assert.Equal(t, true, ok)
 
-	if v, ok := buks.GetBucket("bucket_b"); ok {
+	if v, ok := buks.GetBucket(point.Metric, "bucket_b"); ok {
 		assert.NotEqual(t, nil, v)
 		v.stopScan()
 	} else {
@@ -45,31 +46,52 @@ func TestAggBuckets(t *testing.T) {
 }
 
 func TestAggBuckets2(t *testing.T) {
-	ptsLi := map[string][]*point.Point{}
-	var fn UploadFunc = func(n string, d any) error {
-		ptsLi[n] = append(ptsLi[n], d.([]*point.Point)...)
+	ptsLi := map[point.Category]map[string][]*dkpt.Point{}
+	var fn UploadFunc = func(cat point.Category, n string, d any) error {
+		if ptsLi[cat] == nil {
+			ptsLi[cat] = map[string][]*dkpt.Point{}
+		}
+
+		ptsLi[cat][n] = append(ptsLi[cat][n], d.([]*dkpt.Point)...)
 		return nil
 	}
 
 	buks := NewAggBuks(fn)
-	buks.CreateBucket("bucket_a", 5, 0, false, nil)
-	buks.CreateBucket("bucket_a", 0, 2, false, nil)
-	buks.CreateBucket("bucket_a", 0, 2, false, nil)
-	buks.CreateBucket("bucket_b", 0, 2, false, nil)
+	buks.CreateBucket(point.Metric, "bucket_a", time.Second*5, 0, false, nil)
+	buks.CreateBucket(point.Metric, "bucket_a", 0, 2, false, nil)
+	buks.CreateBucket(point.Metric, "bucket_a", 0, 2, false, nil)
+	buks.CreateBucket(point.Metric, "bucket_b", 0, 2, false, nil)
+	buks.CreateBucket(point.Logging, "bucket_b", 0, 2, false, nil)
 
-	v, ok := buks.GetBucket("bucket_a")
+	v, ok := buks.GetBucket(point.Metric, "bucket_a")
 	assert.NotEqual(t, nil, v)
 	assert.Equal(t, true, ok)
 
-	if v, ok := buks.GetBucket("bucket_b"); ok {
+	v.AddMetric("f1", "avg", []string{"t1"}, []string{"t1_val"}, 1)
+	v.AddMetric("f1", "avg", []string{"t1"}, []string{"t1_val"}, 2)
+	v.AddMetric("f1", "avg", []string{"t1"}, []string{"t1_val"}, 3)
+
+	if v, ok := buks.GetBucket(point.Metric, "bucket_b"); ok {
 		assert.NotEqual(t, nil, v)
+
+		v.AddMetric("f1", "avg", []string{"t1"}, []string{"t1_val"}, 1)
+		v.AddMetric("f1", "avg", []string{"t1"}, []string{"t1_val"}, 2)
+		v.AddMetric("f1", "avg", []string{"t1"}, []string{"t1_val"}, 3)
 		v.stopScan()
 	} else {
 		assert.Equal(t, true, ok)
 	}
-	v.AddMetric("f1", "avg", []string{"t1"}, []string{"t1_val"}, 1)
-	v.AddMetric("f1", "avg", []string{"t1"}, []string{"t1_val"}, 2)
-	v.AddMetric("f1", "avg", []string{"t1"}, []string{"t1_val"}, 3)
+
+	if v, ok := buks.GetBucket(point.Logging, "bucket_b"); ok {
+		assert.NotEqual(t, nil, v)
+
+		v.AddMetric("f1", "avg", []string{"t1"}, []string{"t1_val"}, 1)
+		v.AddMetric("f1", "avg", []string{"t1"}, []string{"t1_val"}, 2)
+		v.AddMetric("f1", "avg", []string{"t1"}, []string{"t1_val"}, 3)
+		v.stopScan()
+	} else {
+		assert.Equal(t, true, ok)
+	}
 
 	buks.StopAllBukScanner()
 
