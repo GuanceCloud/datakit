@@ -42,8 +42,9 @@ func composeServiceObject(list *apicorev1.ServiceList) []measurement {
 		obj.SetTag("name", fmt.Sprintf("%v", item.UID))
 		obj.SetTag("uid", fmt.Sprintf("%v", item.UID))
 		obj.SetTag("service_name", item.Name)
-		obj.SetTag("namespace", fmt.Sprintf("%v", item.Spec.Type))
-		obj.SetTag("type", item.Namespace)
+
+		obj.SetTag("namespace", item.Namespace)
+		obj.SetTag("type", fmt.Sprintf("%v", item.Spec.Type))
 
 		obj.SetField("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3)
 		obj.SetField("cluster_ip", item.Spec.ClusterIP)
