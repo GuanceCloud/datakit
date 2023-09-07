@@ -12,7 +12,7 @@ Amazon PrivateLink 是一项高度可用的可扩展技术，使您能够将 VPC
 - **更安全**：数据不经过公网，完全在私网内流转，数据更安全
 - **更低资费**：相比公网带宽的高费用，虚拟互联网的资费成本更低
 
-目前已上架的服务为 **cn-northwest-1、us-west-2** 两个地域，其他地域的也即将上架，架构如下：
+目前已上架的服务为 **cn-northwest-1、us-west-2、 ap-southeast-1** 两个地域，其他地域的也即将上架，架构如下：
 
 ![not-set](https://static.guance.com/images/datakit/aws_privatelink.png)
 
@@ -29,6 +29,7 @@ Amazon PrivateLink 是一项高度可用的可扩展技术，使您能够将 VPC
 | --------          | ----------------------    | -----------                          |
 | 中国区 2（宁夏）  | `cn-northwest-1` (宁夏)   | `cn.com.amazonaws.vpce.cn-northwest-1.vpce-svc-070f9283a2c0d1f0c` |
 | 海外区 1（俄勒冈）  | `us-west-2` (俄勒冈)     |  `com.amazonaws.vpce.us-west-2.vpce-svc-084745e0ec33f0b44` |
+| 亚太区 1（新加坡）  | `ap-southeast-1` (新加坡)     |  `com.amazonaws.vpce.ap-southeast-1.vpce-svc-070194ed9d834d571` |
 
 ### 不同 Region 的私网数据网关默认 Endpoint {#region-endpoint}
 
@@ -36,6 +37,7 @@ Amazon PrivateLink 是一项高度可用的可扩展技术，使您能够将 VPC
 | --------          | ----------------------    | -----------                          |
 | 中国区 2（宁夏）  | `cn-northwest-1` (宁夏)   | `https://aws-openway.guance.com`         |
 | 海外区 1（俄勒冈）  |  `us-west-2` (俄勒冈)          | `https://us1-openway.guance.com` |
+| 亚太区 1（新加坡）  |  `ap-southeast-1` (新加坡)         | `https://ap1-openway.guance.one` |
 
 ### 配置服务订阅 {#config-sub}
 
