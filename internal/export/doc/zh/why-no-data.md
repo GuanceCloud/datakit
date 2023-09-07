@@ -261,10 +261,16 @@ log info: path/to/tkn_xxxxx/your-hostname/datakit-log-2021-11-08-1636340937.zip 
 
 [:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9) · [:octicons-beaker-24: Experimental](index.md#experimental)
 
-在排查 DataKit 故障原因时，需要手动收集各种相关信息（如日志、配置文件和监控数据等），这通常比较繁琐。为了简化这个过程，DataKit 提供了一个命令，可以一次性获取所有相关信息并将其打包到一个文件中。使用方式如下：
+在排查 DataKit 故障原因时，需要手动收集各种相关信息（如日志、配置文件、profile 和监控数据等），这通常比较繁琐。为了简化这个过程，DataKit 提供了一个命令，可以一次性获取所有相关信息并将其打包到一个文件中。使用方式如下：
 
 ```shell
 datakit debug --bug-report
+```
+
+默认情况下，该命令会收集 profile 数据，这可能会对 DataKit 产生一定的性能影响，可以通过下面命令来禁用采集 profile ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.0))：
+
+```shell
+datakit debug --bug-report --disable-profile
 ```
 
 执行成功后，在当前目录下生成一个 zip 文件，命名格式为 `info-<时间戳毫秒数>.zip`。

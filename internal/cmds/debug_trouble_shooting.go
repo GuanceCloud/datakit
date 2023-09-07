@@ -49,33 +49,41 @@ func (info *datakitInfo) clean() error {
 }
 
 func (info *datakitInfo) collect() error {
-	cp.Infof("1. collect log files\n")
+	num := 1
+	cp.Infof("%d. collect log files\n", num)
 	if err := info.collectLog(); err != nil {
 		cp.Warnf("collect log files error: %s\n", err.Error())
 	}
+	num++
 
-	cp.Infof("2. collect config files\n")
+	cp.Infof("%d. collect config files\n", num)
 	if err := info.collectConfig(); err != nil {
 		cp.Warnf("collect config files error: %s\n", err.Error())
 	}
+	num++
 
-	cp.Infof("3. collect env\n")
+	cp.Infof("%d. collect env\n", num)
 	if err := info.collectEnv(); err != nil {
 		cp.Warnf("collect env error: %s\n", err.Error())
 	}
+	num++
 
-	cp.Infof("4. collect profile\n")
-	if err := info.collectProfile(); err != nil {
-		cp.Warnf("collect profile data error: %s, ignored\n", err.Error())
+	if !*flagDebugDisableProfile {
+		cp.Infof("%d. collect profile\n", num)
+		if err := info.collectProfile(); err != nil {
+			cp.Warnf("collect profile data error: %s, ignored\n", err.Error())
+		}
+		num++
 	}
 
-	cp.Infof("5. collect metrics\n")
+	cp.Infof("%d. collect metrics\n", num)
 	if err := info.collectMetrics(); err != nil {
 		cp.Warnf("collect metrics error: %s\n", err.Error())
 	}
+	num++
 
 	if runtime.GOOS == "linux" {
-		cp.Infof("6. collect systemd log\n")
+		cp.Infof("%d. collect systemd log\n", num)
 		if err := info.collectSystemdLog(); err != nil {
 			cp.Warnf("collect systemd log error: %s\n", err.Error())
 		}
