@@ -129,6 +129,7 @@ NetFlow
 netflow
 sflow
 ipfix
+DIMM
 
 # 缩写
 CNCF
