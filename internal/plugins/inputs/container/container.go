@@ -313,18 +313,23 @@ func getContainerNameForLabels(labels map[string]string) string {
 	return labels["io.kubernetes.container.name"]
 }
 
-// splitRules
+// splitRules, return image name
 //
-//	split 'image:' kv，return values
-//	ex, in: ["image:img_*", "image:img01*", "xx:xx"] return: ["img_*", "img01*"]
+//	e.g. in: ["image:img_*", "image:img01*", "xx:xx"] return: ["img_*", "img01*"]
 func splitRules(arr []string) (rules []string) {
 	for _, str := range arr {
-		x := strings.Split(str, ":")
-		if len(x) != 2 {
+		if !strings.HasPrefix(str, "image:") {
 			continue
 		}
-		if strings.HasPrefix(str, "image:") {
-			rules = append(rules, x[1])
+
+		rule := strings.TrimPrefix(str, "image:")
+		if rule != "" {
+			// trans to double star
+			if rule == "*" {
+				rules = append(rules, "**")
+				continue
+			}
+			rules = append(rules, rule)
 		}
 	}
 	return
