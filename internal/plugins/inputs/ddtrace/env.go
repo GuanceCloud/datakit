@@ -22,6 +22,7 @@ var _ inputs.ReadEnv = &Input{}
 // ReadEnv load config from environment values
 // ENV_INPUT_DDTRACE_ENDPOINTS : JSON string
 // ENV_INPUT_DDTRACE_IGNORE_TAGS : JSON string
+// ENV_INPUT_DDTRACE_COMPATIBLE_OTEL : bool
 // ENV_INPUT_DDTRACE_KEEP_RARE_RESOURCE : bool
 // ENV_INPUT_DDTRACE_OMIT_ERR_STATUS : JSON string
 // ENV_INPUT_DDTRACE_CLOSE_RESOURCE : JSON string
@@ -43,7 +44,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	log = logger.SLogger(inputName)
 
 	for _, key := range []string{
-		"ENV_INPUT_DDTRACE_ENDPOINTS", "ENV_INPUT_DDTRACE_IGNORE_TAGS", "ENV_INPUT_DDTRACE_KEEP_RARE_RESOURCE",
+		"ENV_INPUT_DDTRACE_ENDPOINTS", "ENV_INPUT_DDTRACE_COMPATIBLE_OTEL", "ENV_INPUT_DDTRACE_IGNORE_TAGS", "ENV_INPUT_DDTRACE_KEEP_RARE_RESOURCE",
 		"ENV_INPUT_DDTRACE_OMIT_ERR_STATUS", "ENV_INPUT_DDTRACE_CLOSE_RESOURCE", "ENV_INPUT_DDTRACE_SAMPLER",
 		"ENV_INPUT_DDTRACE_TAGS", "ENV_INPUT_DDTRACE_THREADS", "ENV_INPUT_DDTRACE_STORAGE",
 	} {
@@ -58,6 +59,12 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
 			} else {
 				ipt.Endpoints = list
+			}
+		case "ENV_INPUT_DDTRACE_COMPATIBLE_OTEL":
+			if ok, err := strconv.ParseBool(value); err != nil {
+				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
+			} else {
+				ipt.CompatibleOTEL = ok
 			}
 		case "ENV_INPUT_DDTRACE_IGNORE_TAGS":
 			var list []string

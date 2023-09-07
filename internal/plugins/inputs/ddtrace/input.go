@@ -55,6 +55,10 @@ const (
   ## sampler. If you want to get rid of some error status, you can set the error status list here.
   # omit_err_status = ["404"]
 
+  ## compatible otel: It is possible to compatible OTEL Trace with DDTrace trace.
+  ## make span_id and parent_id to hex encoding.
+  # compatible_otel=true
+
   ## Ignore tracing resources map like service:[resources...].
   ## The service name is the full service name in current application.
   ## The resource list is regular expressions uses to block resource names.
@@ -101,6 +105,8 @@ var (
 	tags               map[string]string
 	wkpool             *workerpool.WorkerPool
 	localCache         *storage.Storage
+	traceBase          = 10
+	spanBase           = 10
 )
 
 type Input struct {
@@ -112,6 +118,7 @@ type Input struct {
 	CustomerTags     []string                     `toml:"customer_tags"`            // deprecated
 	Endpoints        []string                     `toml:"endpoints"`
 	IgnoreTags       []string                     `toml:"ignore_tags"`
+	CompatibleOTEL   bool                         `toml:"compatible_otel"`
 	KeepRareResource bool                         `toml:"keep_rare_resource"`
 	OmitErrStatus    []string                     `toml:"omit_err_status"`
 	CloseResource    map[string][]string          `toml:"close_resource"`
@@ -280,7 +287,9 @@ func (ipt *Input) Run() {
 		}
 	}
 	tags = ipt.Tags
-
+	if ipt.CompatibleOTEL {
+		spanBase = 16
+	}
 	log.Debugf("### %s agent is running...", inputName)
 
 	select {

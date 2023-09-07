@@ -75,6 +75,24 @@ OTEL 提供与 vendor 无关的实现，根据用户的需要将观测类数据�
 
 使用 OTEL HTTP exporter 时注意环境变量的配置，由于 Datakit 的默认配置是 `/otel/v1/trace` 和 `/otel/v1/metric`，所以想要使用 HTTP 协议的话，需要单独配置 `trace` 和 `metric`，
 
+## SDK 常规配置 {#sdk-configuration}
+
+| 命令                           | 说明                                         | 默认                    | 注意                                          |
+|:------------------------------|:--------------------------------------------|:------------------------|:---------------------------------------------|
+| `OTEL_SDK_DISABLED`           | 关闭 SDK                                     | false                   | 关闭后将不会产生任何链路指标信息                   |
+| `OTEL_RESOURCE_ATTRIBUTES`    | "service.name=App,username=liu"             |                         | 每一个 span 中都会有该 tag 信息                  |
+| `OTEL_SERVICE_NAME`           | 服务名，等效于上面 "service.name=App"           |                         | 优先级高于上面                                 |
+| `OTEL_LOG_LEVEL`              | 日志级别                                      | `info`                  |                                              |
+| `OTEL_PROPAGATORS`            | 透传协议                                      | `tracecontext,baggage`  |                                              |
+| `OTEL_TRACES_SAMPLER`         | 采样                                         | `parentbased_always_on` |                                              |
+| `OTEL_TRACES_SAMPLER_ARG`     | 配合上面采样 参数                              | 1.0                     | 0 - 1.0                                      |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | 协议包括： `grpc`,`http/protobuf`,`http/json` | gRPC                    |                                              |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP 地址                                    | <http://localhost:4317> | <http://datakit-endpoint:9529/otel/v1/trace> |
+| `OTEL_TRACES_EXPORTER`        | 链路导出器                                    | `otlp`                  |                                              |
+
+
+> 您可以将 `otel.javaagent.debug=true` 参数传递给 Agent 以查看调试日志。请注意，这些日志内容相当冗长，生产环境下谨慎使用。
+
 ## 链路 {#tracing}
 
 Trace（链路）是由多个 span 组成的一条链路信息。
