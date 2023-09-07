@@ -307,9 +307,9 @@ if [ -n "$DK_LIMIT_MEMMAX" ]; then
 	limit_memmax=$DK_LIMIT_MEMMAX
 fi
 
-cgroup_disabled=0
-if [ -n "$DK_CGROUP_DISABLED" ]; then
-	cgroup_disabled=1
+limit_disabled=0
+if [ -n "$DK_LIMIT_DISABLED" ]; then
+	limit_disabled=1
 fi
 
 install_log=/var/log/datakit/install.log
@@ -531,8 +531,8 @@ $sudo_cmd $installer \
 		--git-pull-interval="${git_pull_interval}" \
 		--limit-cpumax="${limit_cpumax}" \
 		--limit-cpumin="${limit_cpumin}" \
-		--limit-mem="${limit_memmax}" \
-		--cgroup-disabled="${cgroup_disabled}" \
+		--limit-memmax="${limit_memmax}" \
+		--limit-disabled="${limit_disabled}" \
 		--enable-election="${enable_election}" \
 		--rum-origin-ip-header="${rum_origin_ip_header}" \
 		--disable-404page="${disable_404page}" \

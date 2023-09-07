@@ -3,22 +3,44 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
+//go:build linux
+// +build linux
+
+// Package cgroup set cgroup limit in linux
 package cgroup
 
 import (
+	"fmt"
 	"os"
 	"runtime"
 
+	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/containerd/cgroups/v3"
 	"github.com/containerd/cgroups/v3/cgroup1"
 	"github.com/containerd/cgroups/v3/cgroup2"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 
+var (
+	cg     *Cgroup
+	l      = logger.DefaultSLogger("cgroup")
+	period = uint64(1000000) //nolint:gomnd
+)
+
 const (
 	cgroupName         = "datakit"
 	defaultCgroup2Path = "/sys/fs/cgroup"
+	MB                 = 1024 * 1024
 )
+
+type CgroupOptions struct {
+	Path   string
+	CPUMax float64
+	MemMax int64
+
+	DisableOOM bool
+	Enable     bool
+}
 
 type Cgroup struct {
 	opt       *CgroupOptions
@@ -26,9 +48,6 @@ type Cgroup struct {
 	quotaHigh int64
 	err       error
 }
-
-// 1 second.
-var period = uint64(1000000) //nolint:gomnd
 
 func (c *Cgroup) cpuSetup() {
 	c.cpuHigh = c.opt.CPUMax * float64(runtime.NumCPU()) / 100 //nolint:gomnd
@@ -59,9 +78,8 @@ func (c *Cgroup) makeLinuxResource() *specs.LinuxResources {
 			Swappiness:       &swappiness,
 			DisableOOMKiller: &c.opt.DisableOOM,
 		}
-	} else {
-		l.Infof("memory limit not set")
 	}
+
 	return resource
 }
 
@@ -70,8 +88,7 @@ func (c *Cgroup) setupV1(resource *specs.LinuxResources, pid int) error {
 
 	control, err := cgroup1.New(cgroup1.StaticPath(c.opt.Path), resource)
 	if err != nil {
-		l.Errorf("cgroups.New(%+#v): %s", resource, err)
-		return err
+		return fmt.Errorf("cgroups.New(%+#v): %w", resource, err)
 	}
 
 	return control.Add(cgroup1.Process{Pid: pid, Subsystem: cgroupName})
@@ -114,7 +131,7 @@ func (c *Cgroup) delControl() {
 	}
 }
 
-func (c *Cgroup) start() {
+func (c *Cgroup) start() error {
 	resource := c.makeLinuxResource()
 	pid := os.Getpid()
 	if cgroups.Mode() == cgroups.Unified {
@@ -126,8 +143,33 @@ func (c *Cgroup) start() {
 	}
 
 	if c.err != nil {
-		l.Warnf("cgroup setup err=%v", c.err)
+		return fmt.Errorf("cgroup setup err=%w", c.err)
 	} else {
 		l.Infof("add Datakit pid:%d to cgroup", pid)
+	}
+
+	return nil
+}
+
+func Run(opt *CgroupOptions) error {
+	l = logger.SLogger("cgroup")
+	cg = &Cgroup{opt: opt}
+	return cg.start()
+}
+
+func (c *Cgroup) String() string {
+	return fmt.Sprintf("path: %s, mem: %dMB, cpu: %.2f",
+		c.opt.Path, c.opt.MemMax/MB, c.opt.CPUMax)
+}
+
+func Info() string {
+	if cg == nil {
+		return "not ready"
+	}
+
+	if cg.err != nil {
+		return cg.err.Error()
+	} else {
+		return cg.String()
 	}
 }

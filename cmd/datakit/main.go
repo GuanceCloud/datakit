@@ -17,7 +17,6 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/checkutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/confd"
@@ -32,6 +31,7 @@ import (
 	plRemote "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/remote"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/all"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/resourcelimit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 )
 
@@ -84,8 +84,13 @@ func main() {
 		// start the entry under docker.
 		run()
 	} else {
-		// Auto enable cgroup limit under host running(debug mode and service mode)
-		cgroup.Run(config.Cfg.Cgroup)
+		// Auto enable resource limit under host running(debug mode and service mode)
+		if config.Cfg.ResourceLimitOptionsDeprecated != nil {
+			config.Cfg.ResourceLimitOptions = config.Cfg.ResourceLimitOptionsDeprecated
+		}
+		if config.Cfg.ResourceLimitOptions != nil {
+			resourcelimit.Run(config.Cfg.ResourceLimitOptions)
+		}
 
 		if workdir != "" {
 			run()

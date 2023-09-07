@@ -3,14 +3,12 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-// Package cgroup wraps Linux cgroup functions.
-package cgroup
+// Package resourcelimit limit datakit cpu or memory usage
+package resourcelimit
 
 import (
 	"context"
-	"fmt"
 	"os"
-	"runtime"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -18,17 +16,18 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
+var l = logger.DefaultSLogger("resourcelimit")
+
 var (
-	cg   *Cgroup
-	self *process.Process
-	l    = logger.DefaultSLogger("cgroup")
+	self             *process.Process
+	resourceLimitOpt *ResourceLimitOptions
 )
 
 const (
 	MB = 1024 * 1024
 )
 
-type CgroupOptions struct {
+type ResourceLimitOptions struct {
 	Path   string  `toml:"path"`
 	CPUMax float64 `toml:"cpu_max"`
 	MemMax int64   `toml:"mem_max_mb"`
@@ -46,53 +45,28 @@ func init() {
 	}
 }
 
-func Run(c *CgroupOptions) {
-	l = logger.SLogger("cgroup")
+func Run(c *ResourceLimitOptions) {
+	l = logger.SLogger("resourcelimit")
+
+	resourceLimitOpt = c
 
 	if c == nil || !c.Enable {
 		return
 	}
-
-	cg = &Cgroup{opt: c}
 
 	if !(0 < c.CPUMax && c.CPUMax < 100) {
 		l.Errorf("CPUMax and CPUMin should be in range of (0.0, 100.0)")
 		return
 	}
 
-	g := datakit.G("internal_cgroup")
+	g := datakit.G("internal_resourcelimit")
 
 	g.Go(func(ctx context.Context) error {
-		cg.start()
+		if err := run(c); err != nil {
+			l.Warnf("run resource limit error: %s", err.Error)
+		}
 		return nil
 	})
-}
-
-func (c *Cgroup) String() string {
-	if !c.opt.Enable {
-		return "-"
-	}
-
-	return fmt.Sprintf("path: %s, mem: %dMB, cpu: %.2f",
-		c.opt.Path, c.opt.MemMax/MB, c.opt.CPUMax)
-}
-
-func Info() string {
-	if cg == nil {
-		return "not ready"
-	}
-
-	switch runtime.GOOS {
-	case "linux":
-		if cg.err != nil {
-			return cg.err.Error()
-		} else {
-			return cg.String()
-		}
-
-	default:
-		return "-"
-	}
 }
 
 func MyMemPercent() (float32, error) {
@@ -117,4 +91,12 @@ func MyIOCountersStat() *process.IOCountersStat {
 	} else {
 		return nil
 	}
+}
+
+func Info() string {
+	if resourceLimitOpt == nil || !resourceLimitOpt.Enable {
+		return "-"
+	}
+
+	return info()
 }

@@ -238,14 +238,14 @@ ulimit = 64000
   ENV_HOSTNAME = ""
 
 ################################################
-# cgroup configures
+# resource limit configures
 ################################################
-[cgroup]
+[resource_limit]
 
-  # enable or disable cgroup
+  # enable or disable resource limit 
   enable = true
 
-  # cgroup path
+  # Linux only, cgroup path
   path = "/datakit"
 
   # set max CPU usage(%, max 100.0, no matter how many CPU cores here)

@@ -3,6 +3,9 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
+//go:build linux
+// +build linux
+
 package cgroup
 
 import (
@@ -40,7 +43,6 @@ func TestCgroup_makeLinuxResource(t *testing.T) {
 					CPUMax:     0.30,
 					MemMax:     20,
 					DisableOOM: false,
-					Enable:     true,
 				},
 			},
 			want: mockLinuxResource(0.30, 20),

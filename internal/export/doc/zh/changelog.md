@@ -487,7 +487,7 @@
 ### 功能优化 {#cl-1.5.9-opt}
 
 - 优化升级功能，避免 *datakit.conf* 文件被破坏(#1449)
-- 优化 [cgroup 配置](datakit-conf.md#enable-cgroup)，移除 CPU 最小值限制(#1538)
+- 优化 [cgroup 配置](datakit-conf.md#resource-limit)，移除 CPU 最小值限制(#1538)
 - 优化 *self* 采集器，我们能选择是否开启该采集器，同时对其采集性能做了一些优化(#1386)
 - 由于有了新的故障排查手段，简化了现有 monitor 展示(#1505)
 - [Prom 采集器](prom.md)允许增加 *instance tag*，以保持跟原生 Prometheus 体系一致(#1517)
@@ -526,7 +526,7 @@
 ### 功能优化 {#cl-1.5.8-opt}
 
 - 补全 Jenkins 采集器内存有关的指标(#1489)
-- 完善 [cgroup v2](datakit-conf.md#enable-cgroup) 支持(#1494)
+- 完善 [cgroup v2](datakit-conf.md#resource-limit) 支持(#1494)
 - Kubernetes 安装时增加环境变量（`ENV_CLUSTER_K8S_NAME`）来配置 cluster 名称(#1504)
 - Pipeline
     - [`kv_split()`](../developers/pipeline/pipeline-built-in-function.md#fn-kv_split) 函数增加强制保护措施，避免数据膨胀(#1510)

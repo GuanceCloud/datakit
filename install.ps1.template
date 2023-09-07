@@ -199,6 +199,27 @@ if ($x -ne $null) {
 	Write-COutput yellow "* set install only"
 }
 
+$limit_disabled="0"
+$x = [Environment]::GetEnvironmentVariable("DK_LIMIT_DISABLED") 
+if ($x -ne $null) {
+	$limit_disabled = "1"
+	Write-COutput yellow "* set limit disabled"
+}
+
+$limit_cpumax="30"
+$x = [Environment]::GetEnvironmentVariable("DK_LIMIT_CPUMAX") 
+if ($x -ne $null) {
+	$limit_cpumax = $x
+	Write-COutput yellow "* set limit cpumax"
+}
+
+$limit_memmax="4096"
+$x = [Environment]::GetEnvironmentVariable("DK_LIMIT_MEMMAX") 
+if ($x -ne $null) {
+	$limit_memmax = $x
+	Write-COutput yellow "* set limit memmax"
+}
+
 $dca_white_list=
 $x = [Environment]::GetEnvironmentVariable("DK_DCA_WHITE_LIST") 
 if ($x -ne $null) {
@@ -500,6 +521,9 @@ if ($upgrade -ne $null) { # upgrade
 			"--dca-enable='${dca_enable}'",
 			"--dca-listen='${dca_listen}'",
 			"--dca-white-list='${dca_white_list}'",
+			"--limit-disabled='${limit_disabled}'",
+			"--limit-cpumax='${limit_cpumax}'",
+			"--limit-memmax='${limit_memmax}'",
 			"--confd-backend='${confd_backend}'",
 			"--confd-basic-auth='${confd_basic_auth}'",
 			"--confd-client-ca-keys='${confd_client_ca_keys}'",

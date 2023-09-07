@@ -328,26 +328,6 @@ func (ipt *Input) doCollect() error {
 	return nil
 }
 
-func (ipt *Input) Collect() (map[string][]*dkpt.Point, error) {
-	datakit.IsTestMode = true
-	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
-	if err := ipt.doCollect(); err != nil {
-		return nil, err
-	}
-
-	var pts []*dkpt.Point
-	if pt, err := ipt.collectData.LineProto(); err != nil {
-		return nil, err
-	} else {
-		pts = append(pts, pt)
-	}
-
-	mpts := make(map[string][]*dkpt.Point)
-	mpts[datakit.Object] = pts
-
-	return mpts, nil
-}
-
 func defaultInput() *Input {
 	return &Input{
 		Interval:                 &datakit.Duration{Duration: 5 * time.Minute},
