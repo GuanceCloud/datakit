@@ -74,6 +74,8 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"valid_json()":             &validJSONMarkdown,
 	"conv_traceid_w3c_to_dd()": &convTraceID128MD,
 	"create_point()":           &createPointMarkdown,
+	"parse_int()":              &parseIntMarkdown,
+	"format_int()":             &formatIntMarkdown,
 }
 
 var PipelineFunctionDocsEN = map[string]*PLDoc{
@@ -132,6 +134,8 @@ var PipelineFunctionDocsEN = map[string]*PLDoc{
 	"valid_json()":             &validJSONMarkdownEN,
 	"conv_traceid_w3c_to_dd()": &convTraceID128MDEN,
 	"create_point()":           &createPointMarkdownEN,
+	"parse_int()":              &parseIntMarkdownEN,
+	"format_int()":             &formatIntMarkdownEN,
 }
 
 // embed docs.
@@ -301,6 +305,12 @@ var (
 
 	//go:embed md/create_point.md
 	docCreatePoint string
+
+	//go:embed md/parse_int.md
+	docParseInt string
+
+	//go:embed md/format_int.md
+	docFormatInt string
 )
 
 const (
@@ -660,6 +670,19 @@ var (
 		Doc: docCreatePoint,
 		FnCategory: map[string][]string{
 			langTagZhCN: {cOther},
+		},
+	}
+	parseIntMarkdown = PLDoc{
+		Doc: docParseInt,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cStringOp},
+		},
+	}
+
+	formatIntMarkdown = PLDoc{
+		Doc: docFormatInt,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cStringOp},
 		},
 	}
 )
