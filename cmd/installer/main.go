@@ -176,11 +176,11 @@ func init() {
 	flag.StringVar(&installer.EnableSinker, "enable-dataway-sinker", "", "enable dataway sinker")
 	flag.StringVar(&installer.SinkerGlobalCustomerKeys, "sinker-global-customer-keys", "", "sinker configures")
 
-	// cgroup flags
-	flag.IntVar(&installer.CgroupDisabled, "cgroup-disabled", 0, "enable disable cgroup(Linux) limits for CPU and memory")
-	flag.Float64Var(&installer.LimitCPUMax, "limit-cpumax", 30.0, "Cgroup CPU max usage")
-	flag.Float64Var(&installer.LimitCPUMin, "limit-cpumin", 5.0, "Cgroup CPU min usage")
-	flag.Int64Var(&installer.LimitMemMax, "limit-mem", 4096, "Cgroup memory limit")
+	// resource limit flags
+	flag.IntVar(&installer.LimitDisabled, "limit-disabled", 0, "enable disable resource limits for CPU and memory in linux and windows")
+	flag.Float64Var(&installer.LimitCPUMax, "limit-cpumax", 30.0, "CPU max usage")
+	flag.Float64Var(&installer.LimitCPUMin, "limit-cpumin", 5.0, "CPU min usage")
+	flag.Int64Var(&installer.LimitMemMax, "limit-memmax", 4096, "memory limit")
 }
 
 func setDatakitLite() {

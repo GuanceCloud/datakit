@@ -14,7 +14,6 @@ import (
 
 	"github.com/GuanceCloud/cliutils/metrics"
 	dto "github.com/prometheus/client_model/go"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
@@ -22,6 +21,7 @@ import (
 	dkm "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	plstats "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/stats"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/resourcelimit"
 )
 
 type DatakitStats struct {
@@ -34,16 +34,16 @@ type DatakitStats struct {
 
 	AvailableInputs []string `json:"available_inputs"`
 
-	HostName   string `json:"hostname"`
-	Version    string `json:"version"`
-	BuildAt    string `json:"build_at"`
-	Branch     string `json:"branch"`
-	Uptime     string `json:"uptime"`
-	OSArch     string `json:"os_arch"`
-	IOChanStat string `json:"io_chan_stats"`
-	Elected    string `json:"elected"`
-	Cgroup     string `json:"cgroup"`
-	CSS        string `json:"-"`
+	HostName      string `json:"hostname"`
+	Version       string `json:"version"`
+	BuildAt       string `json:"build_at"`
+	Branch        string `json:"branch"`
+	Uptime        string `json:"uptime"`
+	OSArch        string `json:"os_arch"`
+	IOChanStat    string `json:"io_chan_stats"`
+	Elected       string `json:"elected"`
+	ResourceLimit string `json:"resource_limit"`
+	CSS           string `json:"-"`
 
 	OpenFiles int `json:"open_files"`
 
@@ -200,7 +200,7 @@ func getRuntimeInfo() *RuntimeInfo {
 	runtime.ReadMemStats(&m)
 
 	var usage float64
-	if u, err := cgroup.MyCPUPercent(0); err != nil {
+	if u, err := resourcelimit.MyCPUPercent(0); err != nil {
 		l.Warnf("get CPU usage failed: %s, ignored", err.Error())
 	} else {
 		usage = u
@@ -237,7 +237,7 @@ func GetStats() (*DatakitStats, error) {
 		Elected:       fmt.Sprintf("%s::%s|%s", elecMetric.Status, elecMetric.Namespace, elecMetric.WhoElected),
 		AutoUpdate:    datakit.AutoUpdate,
 		HostName:      datakit.DatakitHostName,
-		Cgroup:        cgroup.Info(),
+		ResourceLimit: resourcelimit.Info(),
 		OpenFiles:     datakit.OpenFiles(),
 		GolangRuntime: getRuntimeInfo(),
 

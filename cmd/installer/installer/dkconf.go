@@ -125,7 +125,7 @@ var (
 	EnableSinker,
 	SinkerGlobalCustomerKeys string
 
-	CgroupDisabled int
+	LimitDisabled int
 	LimitCPUMax,
 	LimitCPUMin float64
 	LimitMemMax int64

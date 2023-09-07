@@ -482,7 +482,7 @@ This release is an iteration release and includes the following updates:
 ### Feature Optimization {#cl-1.5.9-opt}
 
 - Optimized the upgrade function to avoid damaging the *datakit.conf* file (#1449)
-- Optimized the [cgroup configuration](datakit-conf.md#enable-cgroup) and removed the minimum CPU limit (#1538)
+- Optimized the [cgroup configuration](datakit-conf.md#resource-limit) and removed the minimum CPU limit (#1538)
 - Optimized the *self* input to allow users to choose whether or not to enable it, and also improved its performance (#1386)
 - Simplified monitor due to the addition of new troubleshooting methods (#1505)
 - Added the ability to add an *instance tag* to the [Prom input](prom.md) to maintain compatibility with the native Prometheus system (#1517)
@@ -522,7 +522,7 @@ This release is an iterative release, mainly for bug fixes and feature improveme
 ### Feature Optimization {#cl-1.5.8-opt}
 
 - Add memory-related metrics for the [Jenkins](jenkins.md) input(#1489)
-- Improve support for [cgroup v2](datakit-conf.md#enable-cgroup) (#1494)
+- Improve support for [cgroup v2](datakit-conf.md#resource-limit) (#1494)
 - Add an environment variable (`ENV_CLUSTER_K8S_NAME`) to configure the cluster name during Kubernetes installation (#1504)
 - Pipeline
   - Add protective measures to the [`kv_split()`](../developers/pipeline/pipeline-built-in-function.md#fn-kv_split) function to prevent data inflation (#1510)

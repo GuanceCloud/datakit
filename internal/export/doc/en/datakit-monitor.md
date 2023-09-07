@@ -29,7 +29,7 @@ The information of each UI block in the above figure is:
     - `Uptime`: Startup time of DataKit
     - `Branch`: The current code branch of DataKit, which is generally master
     - `Build`：DataKit release date
-    - `CGroup`: Show the cgroup configuration of the current DataKit, where mem refers to the maximum memory limit and cpu refers to the usage limit (If cgroup not set, the value is `-`)
+    - `Resource Limit`: Show the resource limit configuration of the current DataKit, where mem refers to the maximum memory limit and cpu refers to the usage limit  (If cgroup not set, the value is `-`)
     - `Hostname`: Current hostname
     - `OS/Arch`: Current software and hardware platforms of DataKit
     - `Elected`: Election info(See [Election](election.md#status))

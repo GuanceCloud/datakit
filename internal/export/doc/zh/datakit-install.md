@@ -232,14 +232,13 @@ NAME1="value1" NAME2="value2"
     ```
 <!-- markdownlint-enable -->
 
-### cgroup 配置相关 {#env-cgroup}
+### 资源限制配置相关 {#env-cgroup}
 
-以下安装选项仅 Linux 平台支持：
+目前仅支持 Linux 和 Windows ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.0)) 操作系统。
 
-- `DK_CGROUP_DISABLED`：Linux 系统下关闭 Cgroup 功能（默认开启）
-- `DK_LIMIT_CPUMAX`：Linux 系统下支持 CPU 的最大功率，默认 30.0
-- `DK_LIMIT_CPUMIN`：Linux 系统下支持 CPU 的最小功率，默认 5.0
-- `DK_LIMIT_MEMMAX`：Linux 系统下限制内存（含 swap）最大用量，默认 4096（4GB）
+- `DK_LIMIT_DISABLED`：关闭资源限制功能（默认开启）
+- `DK_LIMIT_CPUMAX`：支持 CPU 的最大功率，默认 30.0
+- `DK_LIMIT_MEMMAX`：限制内存（含 swap）最大用量，默认 4096（4GB）
 
 ### 其它安装选项 {#env-others}
 

@@ -73,8 +73,8 @@ func (app *monitorAPP) renderBasicInfoTable(mfs map[string]*dto.MetricFamily) {
 			table.SetCell(row, 0, tview.NewTableCell("Hostname").SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 			table.SetCell(row, 1, tview.NewTableCell(val).SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignLeft))
 			row++
-		case "cgroup":
-			table.SetCell(row, 0, tview.NewTableCell("CGroup").SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
+		case "resource_limit":
+			table.SetCell(row, 0, tview.NewTableCell("Resource Limit").SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 			table.SetCell(row, 1, tview.NewTableCell(val).SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignLeft))
 			row++
 		default:

@@ -14,9 +14,9 @@ import (
 	"github.com/GuanceCloud/cliutils/metrics"
 	p8s "github.com/prometheus/client_golang/prometheus"
 	"github.com/shirou/gopsutil/v3/process"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/resourcelimit"
 )
 
 var (
@@ -49,7 +49,7 @@ func getRuntimeInfo() *runtimeInfo {
 	runtime.ReadMemStats(&m)
 
 	var usage float64
-	if u, err := cgroup.MyCPUPercent(time.Second); err == nil {
+	if u, err := resourcelimit.MyCPUPercent(time.Second); err == nil {
 		usage = u
 	}
 
@@ -61,8 +61,8 @@ func getRuntimeInfo() *runtimeInfo {
 
 		gcPauseTotal:    m.PauseTotalNs,
 		gcNum:           m.NumGC,
-		ioCountersstats: cgroup.MyIOCountersStat(),
-		numCtxSwitch:    cgroup.MyCtxSwitch(),
+		ioCountersstats: resourcelimit.MyIOCountersStat(),
+		numCtxSwitch:    resourcelimit.MyCtxSwitch(),
 	}
 }
 
@@ -121,7 +121,7 @@ var (
 		// hostname and cgroup set after init(), so make it a non-const-label.
 		[]string{
 			"hostname",
-			"cgroup",
+			"resource_limit",
 			"lite",
 		},
 
@@ -192,7 +192,7 @@ func (rc runtimeInfoCollector) Collect(ch chan<- p8s.Metric) {
 	ch <- p8s.MustNewConstMetric(riUptimeDesc,
 		p8s.GaugeValue,
 		float64(time.Since(Uptime)/time.Second),
-		datakit.DatakitHostName, cgroup.Info(), fmt.Sprintf("%v", datakit.Lite))
+		datakit.DatakitHostName, resourcelimit.Info(), fmt.Sprintf("%v", datakit.Lite))
 	ch <- p8s.MustNewConstMetric(riBeyondUsage, p8s.GaugeValue, float64(BeyondUsage))
 
 	if ri.numCtxSwitch != nil {

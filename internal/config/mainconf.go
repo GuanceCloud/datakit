@@ -12,12 +12,12 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/tracer"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/operator"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/offload"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/resourcelimit"
 )
 
 type Config struct {
@@ -73,8 +73,9 @@ type Config struct {
 	GlobalHostTags       map[string]string `toml:"global_host_tags"`
 	GlobalTagsDeprecated map[string]string `toml:"global_tags,omitempty"`
 
-	Environments map[string]string     `toml:"environments"`
-	Cgroup       *cgroup.CgroupOptions `toml:"cgroup"`
+	Environments                   map[string]string                   `toml:"environments"`
+	ResourceLimitOptionsDeprecated *resourcelimit.ResourceLimitOptions `toml:"cgroup,omitempty"`
+	ResourceLimitOptions           *resourcelimit.ResourceLimitOptions `toml:"resource_limit"`
 
 	Disable404PageDeprecated bool `toml:"disable_404page,omitempty"`
 	ProtectMode              bool `toml:"protect_mode"`
@@ -173,7 +174,7 @@ func DefaultConfig() *Config {
 			GinLog:        filepath.Join("/var/log/datakit", "gin.log"),
 		},
 
-		Cgroup: &cgroup.CgroupOptions{
+		ResourceLimitOptions: &resourcelimit.ResourceLimitOptions{
 			Path:   "/datakit",
 			Enable: true,
 			CPUMax: 20.0,

@@ -220,14 +220,13 @@ The environment variables supported by the installation script are as follows (s
     ```
 <!-- markdownlint-enable -->
 
-### On Cgroup Configuration {#env-cgroup}
+### On Resource Limit Configuration {#env-cgroup}
 
-The following installation options are supported only on Linux platforms:
+Only Linux and Windows ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.0)) operating system are supported.
 
-- `DK_CGROUP_DISABLED`: Turn off Cgroup function on Linux system (on by default)
-- `DK_LIMIT_CPUMAX`: Maximum CPU power supported on Linux system, default 30.0
-- `DK_LIMIT_CPUMIN`: Minimum CPU power supported on Linux system, default 5.0
-- `DK_LIMIT_MEMMAX`: Limit memory (including swap) on Linux, default 4096 (4GB)
+- `DK_LIMIT_DISABLED`: Turn off Resource limit function (on by default)
+- `DK_LIMIT_CPUMAX`: Maximum CPU power, default 30.0
+- `DK_LIMIT_MEMMAX`: Limit memory (including swap), default 4096 (4GB)
 
 ### Other Installation Options {#env-others}
 

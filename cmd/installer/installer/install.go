@@ -120,26 +120,26 @@ func Install(svc service.Service) {
 	}
 	l.Infof("pprof enabled? %v, listen on %s", config.Cfg.EnablePProf, config.Cfg.PProfListen)
 
-	// Only linux support cgroup.
-	if CgroupDisabled != 1 && runtime.GOOS == datakit.OSLinux {
-		mc.Cgroup.Enable = true
+	// Only supports linux and windows
+	if LimitDisabled != 1 && (runtime.GOOS == datakit.OSLinux || runtime.GOOS == datakit.OSWindows) {
+		mc.ResourceLimitOptions.Enable = true
 
 		if LimitCPUMax > 0 {
-			mc.Cgroup.CPUMax = LimitCPUMax
+			mc.ResourceLimitOptions.CPUMax = LimitCPUMax
 		}
 
 		if LimitMemMax > 0 {
-			l.Infof("cgroup set max memory to %dMB", LimitMemMax)
-			mc.Cgroup.MemMax = LimitMemMax
+			l.Infof("resource limit set max memory to %dMB", LimitMemMax)
+			mc.ResourceLimitOptions.MemMax = LimitMemMax
 		} else {
-			l.Infof("cgroup max memory not set")
+			l.Infof("resource limit max memory not set")
 		}
 
-		l.Infof("croups enabled under %s, cpu: %f, mem: %dMB",
-			runtime.GOOS, mc.Cgroup.CPUMax, mc.Cgroup.MemMax)
+		l.Infof("resource limit enabled under %s, cpu: %f, mem: %dMB",
+			runtime.GOOS, mc.ResourceLimitOptions.CPUMax, mc.ResourceLimitOptions.MemMax)
 	} else {
-		mc.Cgroup.Enable = false
-		l.Infof("cgroup disabled, OS: %s", runtime.GOOS)
+		mc.ResourceLimitOptions.Enable = false
+		l.Infof("resource limit disabled, OS: %s", runtime.GOOS)
 	}
 
 	if HostName != "" {

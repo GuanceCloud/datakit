@@ -3,16 +3,16 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package cgroup
+package resourcelimit
 
 import (
-	T "testing"
+	"testing"
 	"time"
 )
 
-func TestProcessInfo(t *T.T) {
+func TestProcessInfo(t *testing.T) {
 	t.Skip()
-	t.Run("ctx-switch", func(t *T.T) {
+	t.Run("ctx-switch", func(t *testing.T) {
 		for i := 0; i < 10; i++ {
 			ctxswitch := MyCtxSwitch()
 			if ctxswitch == nil {
@@ -29,9 +29,9 @@ func TestProcessInfo(t *T.T) {
 	})
 }
 
-func TestCPUUsage(t *T.T) {
+func TestCPUUsage(t *testing.T) {
 	t.Skip()
-	t.Run("cpu-100", func(t *T.T) {
+	t.Run("cpu-100", func(t *testing.T) {
 		for i := 0; i < 4; i++ {
 			go func() {
 				n := 0

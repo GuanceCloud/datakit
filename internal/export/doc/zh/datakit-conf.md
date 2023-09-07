@@ -206,13 +206,13 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
     这里的 `cache_max_size_gb` 指每个分类（Category）的缓存大小，总共 10 个分类的话，如果每个指定 5GB，理论上会占用 50GB 左右的空间。
 <!-- markdownlint-enable -->
 
-### cgroup 限制  {#enable-cgroup}
+### 资源限制  {#resource-limit}
 
-由于 DataKit 上处理的数据量无法估计，如果不对 DataKit 消耗的资源做物理限制，将有可能消耗所在节点大量资源。这里我们可以借助 cgroup 来限制，在 *datakit.conf* 中有如下配置：
+由于 DataKit 上处理的数据量无法估计，如果不对 DataKit 消耗的资源做物理限制，将有可能消耗所在节点大量资源。这里我们可以借助 Linux 的 cgroup 和 Windows 的 job object 来限制，在 *datakit.conf* 中有如下配置：
 
 ```toml
-[cgroup]
-  path = "/datakit" # cgroup 限制目录，如 /sys/fs/cgroup/memory/datakit, /sys/fs/cgroup/cpu/datakit
+[resource_limit]
+  path = "/datakit" # Linux cgroup 限制目录，如 /sys/fs/cgroup/memory/datakit, /sys/fs/cgroup/cpu/datakit
 
   # 允许 CPU 最大使用率（百分制）
   cpu_max = 20.0
@@ -236,8 +236,8 @@ $ systemctl status datakit
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    - cgroup 限制只在[宿主机安装](datakit-install.md)的时候会默认开启
-    - cgroup 只支持 CPU 使用率和内存使用量（mem+swap）控制，且只支持 Linux 操作系统。
+    - 资源限制只在[宿主机安装](datakit-install.md)的时候会默认开启
+    - 只支持 CPU 使用率和内存使用量（mem+swap）控制，且只支持 Linux 和 windows ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.0)) 操作系统。
 
 ???+ tip
 
@@ -266,7 +266,7 @@ ulimit = 64000
 
 ulimit 默认配置为 64000。在 Kubernetes 中，通过[设置 `ENV_ULIMIT`](datakit-daemonset-deploy.md#env-others) 即可。
 
-### :material-chat-question: cgroup CPU 使用率说明 {#cgroup-how}
+### :material-chat-question: 资源限制 CPU 使用率说明 {#cgroup-how}
 
 CPU 使用率是百分比制（最大值 100.0），以一个 8 核心的 CPU 为例，如果限额 `cpu_max` 为 20.0（即 20%），则 DataKit 最大的 CPU 消耗，在 top 命令上将显示为 160% 左右。
 

@@ -194,13 +194,13 @@ When DataKit fails to send data, disk cache can be turned on in order not to los
 
     The `cache_max_size_gb` used to control max disk capacity of each data category. For there are 10 categories, if each on configureed with 5GB, the max disk usage may reach to 50GB.
 
-### cgroup Limit  {#enable-cgroup}
+### Resource Limit  {#resource-limit}
 
-Because the amount of data processed on the DataKit cannot be estimated, if the resources consumed by the DataKit are not physically limited, it may consume a large amount of resources of the node where it is located. Here we can limit it with the help of cgroup, which has the following configuration in *datakit.conf*:
+Because the amount of data processed on the DataKit cannot be estimated, if the resources consumed by the DataKit are not physically limited, it may consume a large amount of resources of the node where it is located. Here we can limit it with the help of cgroup in Linux or job object in Windows, which has the following configuration in *datakit.conf*:
 
 ```toml
-[cgroup]
-  path = "/datakit" # cgroup restricts directories, such as /sys/fs/cgroup/memory/datakit, /sys/fs/cgroup/cpu/datakit
+[resource_limit]
+  path = "/datakit" # Linux cgroup restricts directories, such as /sys/fs/cgroup/memory/datakit, /sys/fs/cgroup/cpu/datakit
 
   # Maximum CPU utilization allowed (percentile)
   cpu_max = 20.0
@@ -223,8 +223,8 @@ $ systemctl status datakit
 
 ???+ attention
 
-    - cgroup restriction will only be turned on by default during [host installation](datakit-install.md).
-    - cgourp only supports CPU usage and memory usage (mem + swap) controls, and only supports Linux operating systems.
+    - resource restriction will only be turned on by default during [host installation](datakit-install.md).
+    - resource limit only supports CPU usage and memory usage (mem + swap) controls, and only supports Linux and Windows ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.0)) operating systems.
 
 ???+ tip
 
@@ -332,7 +332,7 @@ ulimit = 64000
 
 ulimit is configured to 64000 by default.
 
-### :material-chat-question: cgroup CPU Utilization Rate Description {#cgroup-how}
+### :material-chat-question: CPU Utilization Rate Description for Resource Limit {#cgroup-how}
 
 CPU utilization is on a percentage basis (maximum 100.0). For an 8-core CPU, if the limit `cpu_max` is 20.0 (that is, 20%), the maximum CPU consumption of DataKit, will be displayed as about 160% on the top command. 
 

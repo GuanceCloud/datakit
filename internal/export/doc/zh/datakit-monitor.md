@@ -30,7 +30,7 @@ DataKit 基本 Monitor 页面信息如下图所示：
     - `Uptime`：DataKit 的启动时间
     - `Branch`：DataKit 当前的代码分支，一般情况下都是 master
     - `Build`：DataKit 的发布时间
-    - `CGroup`：展示当前 DataKit 的 cgroup 配置，其中 `mem` 指最大内存限制，`cpu` 指使用率限制范围（如果展示为 `-` 表示当前 cgroup 未设置）
+    - `Resource Limit`：展示当前 DataKit 的资源限制配置，其中 `mem` 指最大内存限制，`cpu` 指使用率限制范围 （如果展示为 `-` 表示当前 cgroup 未设置）
     - `Hostname`：当前主机名
     - `OS/Arch`：当前 DataKit 的软硬件平台
     - `Version`：DataKit 当前的版本号
