@@ -64,6 +64,23 @@ if you want to use the HTTP protocol, you need to configure `trace` and `trace` 
 
 The default request routes of otlp are `v1/traces` and `v1/metrics`, which need to be configured separately for these two. If you modify the routing in the configuration file, just replace the routing address below.
 
+## General SDK Configuration {#sdk-configuration}
+
+| Command                       | doc                                                     | default                 | note                                                                                                         |
+|:------------------------------|:--------------------------------------------------------|:------------------------|:-------------------------------------------------------------------------------------------------------------|
+| `OTEL_SDK_DISABLED`           | Disable the SDK for all signals                         | false                   | Boolean value. If “true”, a no-op SDK implementation will be used for all telemetry signals                  |
+| `OTEL_RESOURCE_ATTRIBUTES`    | Key-value pairs to be used as resource attributes       |                         |                                                                                                              |
+| `OTEL_SERVICE_NAME`           | Sets the value of the `service.name` resource attribute |                         | If `service.name` is also provided in `OTEL_RESOURCE_ATTRIBUTES`, then `OTEL_SERVICE_NAME` takes precedence. |
+| `OTEL_LOG_LEVEL`              | Log level used by the SDK logger                        | `info`                  |                                                                                                              |
+| `OTEL_PROPAGATORS`            | Propagators to be used as a comma-separated list        | `tracecontext,baggage`  | Values MUST be deduplicated in order to register a `Propagator` only once.                                   |
+| `OTEL_TRACES_SAMPLER`         | Sampler to be used for traces                           | `parentbased_always_on` |                                                                                                              |
+| `OTEL_TRACES_SAMPLER_ARG`     | String value to be used as the sampler argument         | 1.0                     | 0 - 1.0                                                                                                      |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | `grpc`,`http/protobuf`,`http/json`                      | gRPC                    |                                                                                                              |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP Addr                                               | <http://localhost:4317> | <http://datakit-endpoint:9529/otel/v1/trace>                                                                 |
+| `OTEL_TRACES_EXPORTER`        | Trace Exporter                                          | `otlp`                  |                                                                                                              |
+
+> You can pass the 'otel.javaagent.debug=true' parameter to the agent to view debugging logs. Please note that these logs are quite lengthy and should be used with caution in production environments.
+
 ## Tracing {#tracing}
 
 Datakit only accepts OTLP data. OTLP has clear data types: `gRPC`, `http/protobuf` and `http/json`. For specific configuration, please refer to:
