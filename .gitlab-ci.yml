@@ -24,10 +24,8 @@ stages:
 ci_lint_and_ut: 
   stage: deploy
   resource_group: production
-  except:
-    - tags # disable CI on tag push
-    - dev  # dev & master branches are 'merged to' branch, all things should have be done before merge, so skip these 2 branches
-    - master
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event' 
   script:
     - nvm use v16.14.0
     - make clean
