@@ -257,10 +257,17 @@ After running the command, all log files in the log directory are packaged and c
 
 [:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9) · [:octicons-beaker-24: Experimental](index.md#experimental)
 
-When troubleshooting issues with DataKit, it is necessary to manually collect various relevant information such as logs, configuration files, and monitoring data. This process can be cumbersome. To simplify this process, DataKit provides a command that can retrieve all the relevant information at once and package it into a file. Usage is as follows:
+When troubleshooting issues with DataKit, it is necessary to manually collect various relevant information such as logs, configuration files, profile data and monitoring data. This process can be cumbersome. To simplify this process, DataKit provides a command that can retrieve all the relevant information at once and package it into a file. Usage is as follows:
 
 ```shell
 datakit debug --bug-report
+```
+
+This command will collect profile data by default which may have a certain performance impact on DataKit. And you can disable collecting profile data by running command ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.0)):
+
+
+```shell
+datakit debug --bug-report --disable-profile
 ```
 
 After successful execution, a zip file will be generated in the current directory with the naming format of `info-<timestamp in milliseconds>.zip`。
