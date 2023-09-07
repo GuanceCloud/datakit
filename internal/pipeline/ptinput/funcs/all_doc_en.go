@@ -176,6 +176,12 @@ var (
 
 	//go:embed md/create_point.en.md
 	docCreatePointEN string
+
+	//go:embed md/parse_int.en.md
+	docParseIntEN string
+
+	//go:embed md/format_int.en.md
+	docFormatIntEN string
 )
 
 const (
@@ -537,6 +543,20 @@ var (
 		Doc: docCreatePointEN,
 		FnCategory: map[string][]string{
 			langTagEnUS: {eOther},
+		},
+	}
+
+	parseIntMarkdownEN = PLDoc{
+		Doc: docParseIntEN,
+		FnCategory: map[string][]string{
+			langTagEnUS: {eStringOp},
+		},
+	}
+
+	formatIntMarkdownEN = PLDoc{
+		Doc: docFormatIntEN,
+		FnCategory: map[string][]string{
+			langTagEnUS: {eStringOp},
 		},
 	}
 )

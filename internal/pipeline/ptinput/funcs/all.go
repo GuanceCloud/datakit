@@ -75,6 +75,8 @@ var FuncsMap = map[string]runtime.FuncCall{
 	"valid_json":             ValidJSON,
 	"conv_traceid_w3c_to_dd": ConvTraceIDW3C2DD,
 	"create_point":           CreatePoint,
+	"parse_int":              ParseInt,
+	"format_int":             FormatInt,
 	// disable
 	"json_all": JSONAll,
 }
@@ -137,7 +139,8 @@ var FuncsCheckMap = map[string]runtime.FuncCheck{
 	"valid_json":             ValidJSONChecking,
 	"conv_traceid_w3c_to_dd": ConvTraceIDW3C2DDChecking,
 	"create_point":           CreatePointChecking,
-
+	"parse_int":              ParseIntChecking,
+	"format_int":             FormatIntChecking,
 	// disable
 	"json_all": JSONAllChecking,
 }
