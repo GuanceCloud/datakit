@@ -1,6 +1,14 @@
 # 更新日志
 ---
 
+## 1.15.1(2023/09/12) {#cl-1.15.1}
+
+### 问题修复 {#cl-1.15.1-fix}
+
+- 修复 logfwd 重复采集的问题
+
+---
+
 ## 1.15.0(2023/09/07) {#cl-1.15.0}
 本次发布属于迭代发布，主要有如下更新：
 
@@ -16,17 +24,16 @@
 
 ### 功能优化 {#cl-1.15.0-opt}
 
-- [DataKit 精简版](datakit-install.md#lite-install)支持 logging 模块（#1861）
-- [`bug report`](why-no-data.md#bug-report) 支持禁用 profile 数据采集（#1868）
-- 增加不同 Trace 传递说明的[文档](../integrations/tracing-propagator.md)（#1824）
-- Pipeline 增加函数 `parse_int` 和 `format_int`（#1824）
-- Pipeline 数据聚合函数 `agg_create` 和 `agg_metric` 支持输出任意类别的数据（#1865）
+- [DataKit 精简版](datakit-install.md#lite-install)支持[日志](../integrations/logging.md)采集（#1861）
+- [Bug Report](why-no-data.md#bug-report) 支持禁用 profile 数据采集（避免给当前 Datakit 造成压力）（#1868）
+- Pipeline
+    - 增加函数 `parse_int()` 和 `format_int()`（#1824）
+    - 数据聚合函数 `agg_create()` 和 `agg_metric()` 支持输出任意类别的数据（#1865）
 - 优化 Datakit 镜像大小（#1869）
-- 优化 `--bug-report` 命令，可关闭 Profile 收集（避免给当前 Datakit 造成压力）（#1868）
-- 增加[Datakit 指标性能测试报告](../integrations/datakit-metric-performance.md)（#1867）
-- 增加[external 采集器的使用文档](../integrations/external.md)（#1851）
-
-### 兼容调整 {#cl-1.15.0-brk}
+- 文档
+    - 增加[Datakit 指标性能测试报告](../integrations/datakit-metric-performance.md)（#1867）
+    - 增加[external 采集器的使用文档](../integrations/external.md)（#1851）
+    - 增加不同 Trace 传递说明的[文档](../integrations/tracing-propagator.md)（#1824）
 
 ---
 
