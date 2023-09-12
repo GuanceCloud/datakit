@@ -179,7 +179,7 @@ func startTailing(lg *logging, fn tailer.ForwardFunc, stop <-chan struct{}) {
 		MultilinePatterns:     []string{lg.MultilineMatch},
 		RemoveAnsiEscapeCodes: lg.RemoveAnsiEscapeCodes,
 		ForwardFunc:           fn,
-		FromBeginning:         true,
+		FromBeginning:         false,
 		IgnoreDeadLog:         time.Hour * 12,
 	}
 
