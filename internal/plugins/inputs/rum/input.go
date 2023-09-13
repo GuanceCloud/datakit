@@ -23,6 +23,7 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/metrics"
 	"github.com/gobwas/glob"
+	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
@@ -428,7 +429,16 @@ func (ipt *Input) initMeasurementMap() {
 func (ipt *Input) Run() {
 	log.Infof("### RUM agent serving on: %+#v", ipt.Endpoints)
 
-	metrics.MustRegister(ClientRealIPCounter, sourceMapCount, loadedZipGauge, sourceMapDurationSummary)
+	for _, m := range []prometheus.Collector{
+		ClientRealIPCounter,
+		sourceMapCount,
+		loadedZipGauge,
+		sourceMapDurationSummary,
+	} {
+		if err := metrics.Register(m); err != nil {
+			log.Warnf("regist metrics failed: %s, ignored", err)
+		}
+	}
 
 	ipt.initMeasurementMap()
 	log.Infof("captured measurements are: %s", strings.Join(ipt.Measurements, ","))

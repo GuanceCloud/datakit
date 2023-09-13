@@ -404,7 +404,7 @@ func tryStartServer(srv *http.Server, canReload bool, semReload, semReloadComple
 		}
 
 		if portInUse(srv.Addr) {
-			l.Warnf("start server at %s ,Port is already used", srv.Addr)
+			l.Warnf("start server at %s, port is already used", srv.Addr)
 		} else {
 			break
 		}

@@ -129,7 +129,7 @@ The environment variables supported by the installation script are as follows (s
 - `DK_GLOBAL_HOST_TAGS`: Support the installation phase to fill in the global host tag, format example: `host=__datakit_hostname,host_ip=__datakit_ip` (multiple tags are separated by English commas)
 - `DK_GLOBAL_ELECTION_TAGS`: Support filling in the global election tag during the installation phase，format example: `project=my-porject,cluster=my-cluster` (support filling in the global election tag during the installation phase)
 - `DK_DEF_INPUTS`: List of collector names opened by default, format example: `cpu,mem,disk`. We can also ban some default inputs by putting a `-` prefix at input name, such as `-cpu,-mem,-disk`. But if mixed them, such as `cpu,mem,-disk,-system`, we only accept the banned list, the effect is only `disk` and `system` disabled, but others enabled.
-- `DK_CLOUD_PROVIDER`: Support filling in cloud vendors during installation (`aliyun/aws/tencent/hwcloud/azure`)
+- `DK_CLOUD_PROVIDER`: Support filling in cloud vendors during installation (Currently support following clouds `aliyun/aws/tencent/hwcloud/azure`). **Deprecated:** Datakit can infer cloud type automatically.
 - `DK_LITE`： When installing the simplified DataKit, you can set this variable to `1`. ([:octicons-tag-24: Version-1.14.0](changelog.md#cl-1.14.0))
 
 ???+ tip "Disable all default inputs[:octicons-tag-24: Version-1.5.5](changelog.md#cl-1.5.5)"
