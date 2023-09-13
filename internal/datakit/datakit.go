@@ -118,8 +118,9 @@ const (
 )
 
 var (
-	Exit = cliutils.NewSem()
-	WG   = sync.WaitGroup{}
+	Exit           = cliutils.NewSem()
+	WG             = sync.WaitGroup{}
+	globalExitTime time.Time
 
 	Docker     = false
 	Version    = git.Version
@@ -354,15 +355,19 @@ func G(name string) *goroutine.Group {
 // GWait wait all goroutine group exit.
 func GWait() {
 	for _, g := range goroutines {
-		// just ignore error
-		l.Infof("goroutine Group %s waiting", g.Name())
-		_ = g.Wait()
-		l.Infof("goroutine Group %s exit", g.Name())
+		if err := g.Wait(); err != nil {
+			l.Warnf("wait %q failed: %s, ignored", g.Name(), err.Error())
+		}
+
+		// logging exit waiting time to find these slow-exit modules
+		l.Infof("goroutine Group %q exit, wait %s", g.Name(), time.Since(globalExitTime))
 	}
-	l.Info("all goroutine group exit successfully")
+
+	l.Infof("all goroutine group exited, total wait %s", time.Since(globalExitTime))
 }
 
 func Quit() {
+	globalExitTime = time.Now()
 	_ = os.Remove(pidFile)
 
 	Exit.Close()
