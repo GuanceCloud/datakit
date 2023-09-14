@@ -89,7 +89,7 @@ This release is an iterative release, mainly including the following updates:
 
 ### Compatibility adjustments {#cl-1.14.0-brk}
 
-- Remove the Sinker function on the Datakit side and transfer its function to [Dataway side implementation](dataway-sink.md) (#1801)
+- Remove the Sinker function on the Datakit side and transfer its function to [Dataway side implementation](../deployment/dataway-sink.md) (#1801)
 - Remove `pasued` and `condition` fields from Kubernetes Deployment metrics data, and add object data `paused` field
 
 ## 1.13.2 (2023/08/15) {#cl-1.13.2}

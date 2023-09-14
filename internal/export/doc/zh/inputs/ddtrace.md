@@ -147,7 +147,7 @@ DDTrace 是 DataDog 开源的 APM 产品，Datakit 内嵌的 DDTrace Agent 用�
 
 ### HTTP 设置 {#http}
 
-如果 Trace 数据是跨机器发送过来的，那么需要设置 [DataKit 的 HTTP 设置](datakit-conf.md#config-http-server)。
+如果 Trace 数据是跨机器发送过来的，那么需要设置 [DataKit 的 HTTP 设置](../datakit/datakit-conf.md#config-http-server)。
 
 如果有 DDTrace 数据发送给 Datakit，那么在 [DataKit 的 monitor](../datakit/datakit-monitor.md) 上能看到：
 

@@ -236,7 +236,7 @@ See [here](election.md#config)
 
 ### Dataway Sinker {#dataway-sink}
 
-See [here](dataway-sink.md)
+See [here](../deployment/dataway-sink.md)
 
 ### Managing DataKit Configuration with Git {#using-gitrepo}
 

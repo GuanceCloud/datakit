@@ -2,8 +2,11 @@
   "dashboardBindSet": [],
   "dashboardExtend": {
     "groupUnfoldStatus": {
+      "Disk Cache": true,
       "HTTP API": true,
-      "HTTP Client": true
+      "HTTP Client": true,
+      "Process Info": true,
+      "Sinker": false
     }
   },
   "dashboardMapping": [],
@@ -72,7 +75,7 @@
           "h": 10,
           "w": 8,
           "x": 0,
-          "y": 47
+          "y": 50.5
         },
         "queries": [
           {
@@ -81,7 +84,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "",
+              "alias": "Diff",
               "code": "A",
               "dataSource": "dw",
               "field": "dataway_http_api_total",
@@ -106,7 +109,7 @@
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`dw`:(AVG(`dataway_http_api_total`)) { `instance` = '#{instance}' } BY `method`, `api`",
+              "q": "M::`dw`:(AVG(`dataway_http_api_total`) AS `Diff`) { `instance` = '#{instance}' } BY `method`, `api`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -176,7 +179,7 @@
           "h": 10,
           "w": 8,
           "x": 16,
-          "y": 37
+          "y": 40.5
         },
         "queries": [
           {
@@ -185,7 +188,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "",
+              "alias": "Failed",
               "code": "A",
               "dataSource": "dw",
               "field": "dataway_http_api_total",
@@ -213,12 +216,13 @@
               "funcList": [],
               "groupBy": [
                 "method",
-                "api"
+                "api",
+                "status"
               ],
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`dw`:(AVG(`dataway_http_api_total`)) { `status` != 'OK' and `instance` = '#{instance}' } BY `method`, `api`",
+              "q": "M::`dw`:(AVG(`dataway_http_api_total`) AS `Failed`) { `status` != 'OK' and `instance` = '#{instance}' } BY `method`, `api`, `status`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -288,7 +292,7 @@
           "h": 10,
           "w": 12,
           "x": 0,
-          "y": 19.5
+          "y": 38
         },
         "queries": [
           {
@@ -403,14 +407,14 @@
           }
         },
         "group": {
-          "name": null
+          "name": "Process Info"
         },
         "name": "Memory",
         "pos": {
           "h": 10,
-          "w": 24,
+          "w": 8,
           "x": 0,
-          "y": 7
+          "y": 15.5
         },
         "queries": [
           {
@@ -546,7 +550,7 @@
           "h": 10,
           "w": 8,
           "x": 16,
-          "y": 47
+          "y": 50.5
         },
         "queries": [
           {
@@ -645,12 +649,12 @@
         "group": {
           "name": "HTTP API"
         },
-        "name": "API Latency",
+        "name": "API Latency(Status: OK)",
         "pos": {
           "h": 10,
           "w": 8,
           "x": 0,
-          "y": 37
+          "y": 40.5
         },
         "queries": [
           {
@@ -677,6 +681,14 @@
                       "op": "=",
                       "type": "",
                       "value": "#{instance}"
+                    },
+                    {
+                      "id": "285510c0-3a8c-11ee-a34e-11e941fdf54c",
+                      "logic": "and",
+                      "name": "status",
+                      "op": "=",
+                      "type": "",
+                      "value": "OK"
                     }
                   ],
                   "funcList": [],
@@ -686,7 +698,7 @@
                   "groupByTime": "",
                   "indexFilter": "",
                   "namespace": "metric",
-                  "q": "M::`dw`:(AVG(`dataway_http_api_elapsed_seconds_sum`)) { `instance` = '#{instance}' } BY `api`",
+                  "q": "M::`dw`:(AVG(`dataway_http_api_elapsed_seconds_sum`)) { `instance` = '#{instance}' and `status` = 'OK' } BY `api`",
                   "queryFuncs": [],
                   "type": "simple"
                 },
@@ -706,6 +718,14 @@
                       "op": "=",
                       "type": "",
                       "value": "#{instance}"
+                    },
+                    {
+                      "id": "2df04ea0-3a8c-11ee-a34e-11e941fdf54c",
+                      "logic": "and",
+                      "name": "status",
+                      "op": "=",
+                      "type": "",
+                      "value": "OK"
                     }
                   ],
                   "funcList": [],
@@ -715,7 +735,7 @@
                   "groupByTime": "",
                   "indexFilter": "",
                   "namespace": "metric",
-                  "q": "M::`dw`:(AVG(`dataway_http_api_elapsed_seconds_count`)) { `instance` = '#{instance}' } BY `api`",
+                  "q": "M::`dw`:(AVG(`dataway_http_api_elapsed_seconds_count`)) { `instance` = '#{instance}' and `status` = 'OK' } BY `api`",
                   "queryFuncs": [],
                   "type": "simple"
                 }
@@ -723,7 +743,7 @@
               "code": "A",
               "expression": "A/B",
               "funcList": [],
-              "q": "eval(A/B, alias='Latency', A=\"M::`dw`:(AVG(`dataway_http_api_elapsed_seconds_sum`)) { `instance` = '#{instance}' } BY `api`\", B=\"M::`dw`:(AVG(`dataway_http_api_elapsed_seconds_count`)) { `instance` = '#{instance}' } BY `api`\")",
+              "q": "eval(A/B, alias='Latency', A=\"M::`dw`:(AVG(`dataway_http_api_elapsed_seconds_sum`)) { `instance` = '#{instance}' and `status` = 'OK' } BY `api`\", B=\"M::`dw`:(AVG(`dataway_http_api_elapsed_seconds_count`)) { `instance` = '#{instance}' and `status` = 'OK' } BY `api`\")",
               "type": "expression"
             },
             "type": "sequence",
@@ -802,7 +822,7 @@
           "h": 10,
           "w": 8,
           "x": 8,
-          "y": 37
+          "y": 40.5
         },
         "queries": [
           {
@@ -811,7 +831,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "Body",
+              "alias": "Payload",
               "children": [
                 {
                   "alias": "",
@@ -875,7 +895,7 @@
               "code": "A",
               "expression": "A/B",
               "funcList": [],
-              "q": "eval(A/B, alias='Body', A=\"M::`dw`:(AVG(`dataway_http_api_req_size_bytes_sum`)) { `instance` = '#{instance}' } BY `api`\", B=\"M::`dw`:(AVG(`dataway_http_api_req_size_bytes_count`)) { `instance` = '#{instance}' } BY `api`\")",
+              "q": "eval(A/B, alias='Payload', A=\"M::`dw`:(AVG(`dataway_http_api_req_size_bytes_sum`)) { `instance` = '#{instance}' } BY `api`\", B=\"M::`dw`:(AVG(`dataway_http_api_req_size_bytes_count`)) { `instance` = '#{instance}' } BY `api`\")",
               "type": "expression"
             },
             "type": "sequence",
@@ -944,7 +964,7 @@
           "h": 10,
           "w": 8,
           "x": 8,
-          "y": 47
+          "y": 50.5
         },
         "queries": [
           {
@@ -1033,9 +1053,9 @@
         "group": {
           "name": null
         },
-        "name": "Info",
+        "name": "Instances",
         "pos": {
-          "h": 7,
+          "h": 13,
           "w": 24,
           "x": 0,
           "y": 0
@@ -1130,7 +1150,7 @@
           "h": 5,
           "w": 24,
           "x": 0,
-          "y": 29.5
+          "y": 48
         },
         "queries": [
           {
@@ -1235,7 +1255,7 @@
           "h": 10,
           "w": 12,
           "x": 12,
-          "y": 19.5
+          "y": 38
         },
         "queries": [
           {
@@ -1373,7 +1393,7 @@
           "h": 10,
           "w": 8,
           "x": 0,
-          "y": 59.5
+          "y": 63
         },
         "queries": [
           {
@@ -1484,7 +1504,7 @@
           "h": 10,
           "w": 8,
           "x": 8,
-          "y": 59.5
+          "y": 63
         },
         "queries": [
           {
@@ -1605,7 +1625,7 @@
           "h": 10,
           "w": 8,
           "x": 16,
-          "y": 59.5
+          "y": 63
         },
         "queries": [
           {
@@ -1685,12 +1705,1473 @@
           }
         ],
         "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "avg(dataway_cpu_usage)",
+                "name": "avg(dataway_cpu_usage)",
+                "unit": "",
+                "units": []
+              }
+            ],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "Process Info"
+        },
+        "name": "CPU(%)",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 15.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "dw",
+              "field": "dataway_cpu_usage",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "2fb5c6c0-3b18-11ee-a34e-11e941fdf54c",
+                  "logic": "and",
+                  "name": "instance",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{instance}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`dw`:(AVG(`dataway_cpu_usage`)) { `instance` = '#{instance}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "B",
+              "dataSource": "dw",
+              "field": "dataway_cpu_cores",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "555ee3c0-3b18-11ee-a34e-11e941fdf54c",
+                  "logic": "and",
+                  "name": "instance",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{instance}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`dw`:(AVG(`dataway_cpu_cores`)) { `instance` = '#{instance}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "Process Info"
+        },
+        "name": "Context Switch",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 25.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "dw",
+              "field": "dataway_process_ctx_switch_total",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a906c0b0-3b18-11ee-a34e-11e941fdf54c",
+                  "logic": "and",
+                  "name": "instance",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{instance}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "type"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`dw`:(AVG(`dataway_process_ctx_switch_total`)) { `instance` = '#{instance}' } BY `type`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "avg(dataway_process_io_bytes_total)",
+                "name": "avg(dataway_process_io_bytes_total)",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "Process Info"
+        },
+        "name": "IO Count/Bytes",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 25.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "dw",
+              "field": "dataway_process_io_count_total",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a906c0b0-3b18-11ee-a34e-11e941fdf54c",
+                  "logic": "and",
+                  "name": "instance",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{instance}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "type"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`dw`:(AVG(`dataway_process_io_count_total`)) { `instance` = '#{instance}' } BY `type`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "B",
+              "dataSource": "dw",
+              "field": "dataway_process_io_bytes_total",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "c5c0f610-3b1a-11ee-a34e-11e941fdf54c",
+                  "logic": "and",
+                  "name": "instance",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{instance}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "type"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`dw`:(AVG(`dataway_process_io_bytes_total`)) { `instance` = '#{instance}' } BY `type`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "avg(dataway_process_io_bytes_total)",
+                "name": "avg(dataway_process_io_bytes_total)",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "Process Info"
+        },
+        "name": "Open Files",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 16,
+          "y": 15.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "dw",
+              "field": "dataway_open_files",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a906c0b0-3b18-11ee-a34e-11e941fdf54c",
+                  "logic": "and",
+                  "name": "instance",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{instance}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`dw`:(AVG(`dataway_open_files`)) { `instance` = '#{instance}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "avg(dataway_cpu_usage)",
+                "name": "avg(dataway_cpu_usage)",
+                "unit": "",
+                "units": []
+              }
+            ],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "Process Info"
+        },
+        "name": "Goroutines",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 16,
+          "y": 25.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "dw",
+              "field": "go_goroutines",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "2fb5c6c0-3b18-11ee-a34e-11e941fdf54c",
+                  "logic": "and",
+                  "name": "instance",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{instance}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`dw`:(AVG(`go_goroutines`)) { `instance` = '#{instance}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "B",
+              "dataSource": "dw",
+              "field": "go_sched_goroutines_goroutines",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`dw`:(AVG(`go_sched_goroutines_goroutines`))",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "Disk Cache"
+        },
+        "name": "Data Files",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 75.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "dw",
+              "field": "diskcache_datafiles",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "c6fd13f0-3be8-11ee-a228-819b23b86a5b",
+                  "logic": "and",
+                  "name": "instance",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{instance}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`dw`:(AVG(`diskcache_datafiles`)) { `instance` = '#{instance}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "avg(diskcache_get_bytes_total)",
+                "name": "avg(diskcache_get_bytes_total)",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              },
+              {
+                "key": "avg(diskcache_put_bytes_total)",
+                "name": "avg(diskcache_put_bytes_total)",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "Disk Cache"
+        },
+        "name": "Put/Get Bytes",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 75.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "dw",
+              "field": "diskcache_get_bytes_total",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "76eaf310-3b47-11ee-a228-819b23b86a5b",
+                  "logic": "and",
+                  "name": "instance",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{instance}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`dw`:(AVG(`diskcache_get_bytes_total`)) { `instance` = '#{instance}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "B",
+              "dataSource": "dw",
+              "field": "diskcache_put_bytes_total",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a66d93e0-3b47-11ee-a228-819b23b86a5b",
+                  "logic": "and",
+                  "name": "instance",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{instance}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`dw`:(AVG(`diskcache_put_bytes_total`)) { `instance` = '#{instance}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "avg(diskcache_capacity)",
+                "name": "avg(diskcache_capacity)",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "Disk Cache"
+        },
+        "name": "Cache Capacity",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 16,
+          "y": 75.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "dw",
+              "field": "diskcache_capacity",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "d0706e10-3b47-11ee-a228-819b23b86a5b",
+                  "logic": "and",
+                  "name": "instance",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{instance}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`dw`:(AVG(`diskcache_capacity`)) { `instance` = '#{instance}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "avg(diskcache_size)",
+                "name": "avg(diskcache_size)",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "Disk Cache"
+        },
+        "name": "Cache Size",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 85.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "dw",
+              "field": "diskcache_size",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "b3a9d540-3b48-11ee-a228-819b23b86a5b",
+                  "logic": "and",
+                  "name": "instance",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{instance}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`dw`:(AVG(`diskcache_size`)) { `instance` = '#{instance}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "avg(diskcache_dropped_bytes_total)",
+                "name": "avg(diskcache_dropped_bytes_total)",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "Disk Cache"
+        },
+        "name": "Drop Bytes",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 85.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "dw",
+              "field": "diskcache_dropped_bytes_total",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "b3a9d540-3b48-11ee-a228-819b23b86a5b",
+                  "logic": "and",
+                  "name": "instance",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{instance}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`dw`:(AVG(`diskcache_dropped_bytes_total`)) { `instance` = '#{instance}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "Get Cost",
+                "name": "Get Cost",
+                "unit": "",
+                "units": [
+                  "time",
+                  "s"
+                ]
+              },
+              {
+                "key": "Put Cost",
+                "name": "Put Cost",
+                "unit": "",
+                "units": [
+                  "time",
+                  "s"
+                ]
+              }
+            ],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "Disk Cache"
+        },
+        "name": "Put/Get Latency",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 16,
+          "y": 75.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Get Cost",
+              "children": [
+                {
+                  "alias": "",
+                  "code": "A",
+                  "dataSource": "dw",
+                  "field": "diskcache_get_latency_sum",
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "fill": null,
+                  "filters": [
+                    {
+                      "id": "5a687d00-3be9-11ee-a228-819b23b86a5b",
+                      "logic": "and",
+                      "name": "instance",
+                      "op": "=",
+                      "type": "",
+                      "value": "#{instance}"
+                    }
+                  ],
+                  "funcList": [],
+                  "groupBy": [],
+                  "groupByTime": "",
+                  "indexFilter": "",
+                  "namespace": "metric",
+                  "q": "M::`dw`:(AVG(`diskcache_get_latency_sum`)) { `instance` = '#{instance}' }",
+                  "queryFuncs": [],
+                  "type": "simple"
+                },
+                {
+                  "alias": "",
+                  "code": "B",
+                  "dataSource": "dw",
+                  "field": "diskcache_get_latency_count",
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "fill": null,
+                  "filters": [
+                    {
+                      "id": "5fe05460-3be9-11ee-a228-819b23b86a5b",
+                      "logic": "and",
+                      "name": "instance",
+                      "op": "=",
+                      "type": "",
+                      "value": "#{instance}"
+                    }
+                  ],
+                  "funcList": [],
+                  "groupBy": [],
+                  "groupByTime": "",
+                  "indexFilter": "",
+                  "namespace": "metric",
+                  "q": "M::`dw`:(AVG(`diskcache_get_latency_count`)) { `instance` = '#{instance}' }",
+                  "queryFuncs": [],
+                  "type": "simple"
+                }
+              ],
+              "code": "A",
+              "expression": "A/B",
+              "funcList": [],
+              "q": "eval(A/B, alias='Get Cost', A=\"M::`dw`:(AVG(`diskcache_get_latency_sum`)) { `instance` = '#{instance}' }\", B=\"M::`dw`:(AVG(`diskcache_get_latency_count`)) { `instance` = '#{instance}' }\")",
+              "type": "expression"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Put Cost",
+              "children": [
+                {
+                  "alias": "",
+                  "code": "A",
+                  "dataSource": "dw",
+                  "field": "diskcache_put_latency_sum",
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "fill": null,
+                  "filters": [
+                    {
+                      "id": "65726a80-3be9-11ee-a228-819b23b86a5b",
+                      "logic": "and",
+                      "name": "instance",
+                      "op": "=",
+                      "type": "",
+                      "value": "#{instance}"
+                    }
+                  ],
+                  "funcList": [],
+                  "groupBy": [],
+                  "groupByTime": "",
+                  "indexFilter": "",
+                  "namespace": "metric",
+                  "q": "M::`dw`:(AVG(`diskcache_put_latency_sum`)) { `instance` = '#{instance}' }",
+                  "queryFuncs": [],
+                  "type": "simple"
+                },
+                {
+                  "alias": "",
+                  "code": "B",
+                  "dataSource": "dw",
+                  "field": "diskcache_put_latency_count",
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "fill": null,
+                  "filters": [
+                    {
+                      "id": "69cc9ce0-3be9-11ee-a228-819b23b86a5b",
+                      "logic": "and",
+                      "name": "instance",
+                      "op": "=",
+                      "type": "",
+                      "value": "#{instance}"
+                    }
+                  ],
+                  "funcList": [],
+                  "groupBy": [],
+                  "groupByTime": "",
+                  "indexFilter": "",
+                  "namespace": "metric",
+                  "q": "M::`dw`:(AVG(`diskcache_put_latency_count`)) { `instance` = '#{instance}' }",
+                  "queryFuncs": [],
+                  "type": "simple"
+                }
+              ],
+              "code": "B",
+              "expression": "A/B",
+              "funcList": [],
+              "q": "eval(A/B, alias='Put Cost', A=\"M::`dw`:(AVG(`diskcache_put_latency_sum`)) { `instance` = '#{instance}' }\", B=\"M::`dw`:(AVG(`diskcache_put_latency_count`)) { `instance` = '#{instance}' }\")",
+              "type": "expression"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
       }
     ],
     "groups": [
+      "Process Info",
       "Sinker",
       "HTTP API",
-      "HTTP Client"
+      "HTTP Client",
+      "Disk Cache"
     ],
     "type": "template",
     "vars": [
@@ -1719,7 +3200,6 @@
   },
   "summary": "",
   "tagInfo": [],
-  "tags": [],
   "thumbnail": "",
-  "title": "dw-en"
+  "title": "Dataway Dashboard"
 }

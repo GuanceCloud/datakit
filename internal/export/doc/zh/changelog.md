@@ -86,7 +86,7 @@
 
 ### 兼容调整 {#cl-1.14.0-brk}
 
-- 移除 Datakit 端的 Sinker 功能，将其功能转移到 [Dataway 侧实现](dataway-sink.md)（#1801）
+- 移除 Datakit 端的 Sinker 功能，将其功能转移到 [Dataway 侧实现](../deployment/dataway-sink.md)（#1801）
 - 移除 Kubernetes Deployment 指标数据的 `pasued` 和 `condition` 字段，新增对象数据 `paused` 字段
 
 ---
