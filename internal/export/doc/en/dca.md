@@ -11,6 +11,35 @@
 
 DCA is mainly used to manage DataKit, such as DataKit list view, configuration file management, Pipeline management and help document view. At present, it supports two usage modes, namely desktop and web page.
 
+DCA network topology model explained:
+
+```mermaid
+flowchart LR;
+
+dca(DCA);
+dk1(Datakit);
+dk2(Datakit);
+dk3(Datakit);
+guance(Guance Cloud);
+dca_web(Web);
+%%%
+
+subgraph "Cluster"
+direction BT
+dca_web --> |Update Datakit config|dca;
+
+dca --> dk1;
+dca --> dk2;
+dca --> dk3;
+end
+
+dk1 -.-> |Upload data|guance;
+dk2 -.-> |Upload data|guance;
+dk3 -.-> |Upload data|guance;
+dca -.-> |Login|guance;
+guance -.-> |Datakit list| dca
+```
+
 ## Start DCA Service {#config}
 
 === "DCA enabled on host installation"

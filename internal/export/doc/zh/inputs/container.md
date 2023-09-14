@@ -243,10 +243,9 @@ monitor:
 {{ end }}
 <!-- markdownlint-enable -->
 
-
 ## 联动 Dataway Sink 功能 {#link-dataway-sink}
 
-Dataway Sink [详见文档](../datakit/dataway-sink.md#sink-intro)。
+Dataway Sink [详见文档](../deployment/dataway-sink.md)。
 
 所有的 Kubernetes 资源采集，都会添加与 CustomerKey 匹配的 Label。例如 CustomerKey 是 `name`，DaemonSet、Deployment、Pod 等资源，会在自己当前的 Labels 中找到 `name`，并将其添加到 tags。
 
