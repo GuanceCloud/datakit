@@ -31,11 +31,11 @@ const (
   ## Enable process metric collecting
   open_metric = false
 
-  ## Enable listen ports tag
-  ## enable_listen_ports = true
+  ## Enable listen ports tag, default is false
+  enable_listen_ports = false
 
-  ## Enable open files field
-  ## enable_open_files = true
+  ## Enable open files field, default is false
+  enable_open_files = false
 
   # Extra tags
   [inputs.host_processes.tags]
@@ -79,7 +79,7 @@ func (m *ProcessMetric) Info() *inputs.MeasurementInfo {
 			"cpu_usage":        newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "CPU 使用占比，进程自启动以来所占 CPU 百分比，该值相对会比较稳定（跟 `top` 的瞬时百分比不同）"),
 			"cpu_usage_top":    newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "CPU 使用占比，一个采集周期内的进程的 CPU 使用率均值"),
 			"mem_used_percent": newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "内存使用占比"),
-			"open_files":       newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "打开文件个数(仅支持 Linux)"),
+			"open_files":       newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "打开文件个数(仅支持 Linux, 且需开启 `enable_open_files` 选项)"),
 		},
 		Tags: map[string]interface{}{
 			"username":     inputs.NewTagInfo("用户名"),
@@ -128,7 +128,7 @@ func (m *ProcessObject) Info() *inputs.MeasurementInfo {
 			"cpu_usage":        newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "CPU 使用占比（%*100），进程自启动以来所占 CPU 百分比，该值相对会比较稳定（跟 `top` 的瞬时百分比不同）"),
 			"cpu_usage_top":    newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "CPU 使用占比（%*100）, 一个采集周期内的进程的 CPU 使用率均值"),
 			"mem_used_percent": newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "内存使用占比（%*100）"),
-			"open_files":       newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "打开的文件个数(仅支持 Linux)"),
+			"open_files":       newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "打开的文件个数(仅支持 Linux, 且需开启 `enable_open_files` 选项)"),
 			"work_directory":   newOtherFieldInfo(inputs.String, inputs.Gauge, inputs.UnknownUnit, "工作目录(仅支持 Linux)"),
 			"cmdline":          newOtherFieldInfo(inputs.String, inputs.Gauge, inputs.UnknownUnit, "进程的命令行参数"),
 			"state_zombie":     newOtherFieldInfo(inputs.Bool, inputs.Gauge, inputs.UnknownUnit, "是否是僵尸进程"),

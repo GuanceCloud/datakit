@@ -369,6 +369,15 @@ func (p *Input) Parse(ps *pr.Process, procRec *procRecorder, tn time.Time) (user
 		fields["threads"] = Threads
 	}
 
+	if runtime.GOOS == "linux" && p.OpenFiles {
+		OpenFiles, err := ps.OpenFiles()
+		if err != nil {
+			l.Warnf("process:%s,pid:%d get openfile err:%s", name, ps.Pid, err.Error())
+		} else {
+			fields["open_files"] = len(OpenFiles)
+		}
+	}
+
 	return username, state, name, fields, message
 }
 
@@ -388,17 +397,6 @@ func (p *Input) WriteObject(processList []*pr.Process, procRec *procRecorder, tn
 				l.Warnf("getListeningPortsJSON: %v", err)
 			} else {
 				tags["listen_ports"] = string(listeningPorts)
-			}
-		}
-
-		if runtime.GOOS == "linux" {
-			if p.OpenFiles {
-				openFiles, err := ps.OpenFiles()
-				if err != nil {
-					l.Warnf("process:%s,pid:%d get openfile err:%s", name, ps.Pid, err.Error())
-				} else {
-					fields["open_files"] = len(openFiles)
-				}
 			}
 		}
 
