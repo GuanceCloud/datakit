@@ -302,6 +302,11 @@ func (x *dkIO) doFeed(pts []*dkpt.Point, category, from string, opt *Option) err
 	// points.
 	if x.fo != nil {
 		for cat, v := range plCreate {
+			crName := "create_point/" + from
+			crCat := cat.String()
+			inputsFeedVec.WithLabelValues(crName, crCat).Inc()
+			inputsFeedPtsVec.WithLabelValues(crName, crCat).Add(float64(len(v)))
+			inputsLastFeedVec.WithLabelValues(crName, crCat).Set(float64(time.Now().Unix()))
 			if err := x.fo.Write(&iodata{
 				category: cat,
 				pts:      v,

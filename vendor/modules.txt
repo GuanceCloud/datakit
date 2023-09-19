@@ -91,8 +91,8 @@ github.com/GuanceCloud/kubernetes/pkg/probe/exec
 # github.com/GuanceCloud/mdcheck v0.0.0-20230718065937-44c6728c995f
 ## explicit; go 1.18
 github.com/GuanceCloud/mdcheck/check
-# github.com/GuanceCloud/platypus v0.2.7
-## explicit; go 1.18
+# github.com/GuanceCloud/platypus v0.2.8
+## explicit; go 1.19
 github.com/GuanceCloud/platypus/internal/logger
 github.com/GuanceCloud/platypus/pkg/ast
 github.com/GuanceCloud/platypus/pkg/engine

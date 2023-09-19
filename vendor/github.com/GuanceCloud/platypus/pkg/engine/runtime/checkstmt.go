@@ -32,7 +32,7 @@ func RunStmtCheck(ctx *Context, ctxCheck *ContextCheck, node *ast.Node) *errchai
 	if node == nil {
 		return nil
 	}
-	switch node.NodeType { //nolint:exhaustive
+	switch node.NodeType {
 	case ast.TypeInvalid:
 		// skip
 	case ast.TypeIdentifier:
@@ -64,7 +64,8 @@ func RunStmtCheck(ctx *Context, ctxCheck *ContextCheck, node *ast.Node) *errchai
 		return RunArithmeticExprCheck(ctx, ctxCheck, node.ArithmeticExpr)
 	case ast.TypeConditionalExpr:
 		return RunConditionExprCheck(ctx, ctxCheck, node.ConditionalExpr)
-
+	case ast.TypeUnaryExpr:
+		return RunUnaryExprCheck(ctx, ctxCheck, node.UnaryExpr)
 	case ast.TypeAssignmentExpr:
 		return RunAssignmentExprCheck(ctx, ctxCheck, node.AssignmentExpr)
 
@@ -148,6 +149,13 @@ func RunConditionExprCheck(ctx *Context, ctxCheck *ContextCheck, expr *ast.Condi
 	if err := RunStmtCheck(ctx, ctxCheck, expr.LHS); err != nil {
 		return err
 	}
+	if err := RunStmtCheck(ctx, ctxCheck, expr.RHS); err != nil {
+		return err
+	}
+	return nil
+}
+
+func RunUnaryExprCheck(ctx *Context, ctxCheck *ContextCheck, expr *ast.UnaryExpr) *errchain.PlError {
 	if err := RunStmtCheck(ctx, ctxCheck, expr.RHS); err != nil {
 		return err
 	}

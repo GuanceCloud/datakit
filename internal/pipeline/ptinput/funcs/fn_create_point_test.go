@@ -57,7 +57,7 @@ func TestCreatePoint(t *testing.T) {
 				r[x] = d["c"][x]
 			}
 			r["b"] = d["b"]
-			create_point("n1", {"a": d["a"]}, r, after_use="abc.p")
+			create_point("n1", {"a": d["a"]}, r, category="M",after_use="abc.p")
 			`,
 				"abc.p": `add_key("aa", 1)`,
 			},

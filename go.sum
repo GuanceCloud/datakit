@@ -154,8 +154,8 @@ github.com/GuanceCloud/kubernetes v0.0.0-20230801080916-ca299820872b h1:9pkl38Cr
 github.com/GuanceCloud/kubernetes v0.0.0-20230801080916-ca299820872b/go.mod h1:Acv+3eRHxCb4Qvs1YQcZ17X/D0H7DArQrew+WJtsLiE=
 github.com/GuanceCloud/mdcheck v0.0.0-20230718065937-44c6728c995f h1:0+A0eeT48LSlnDpVOQ/sqoW/lbYmerKKF7NVNBlgnww=
 github.com/GuanceCloud/mdcheck v0.0.0-20230718065937-44c6728c995f/go.mod h1:xrC7I8mMBOD93+A7fLJXU1lBaej49hZj7DaaFXFdSBE=
-github.com/GuanceCloud/platypus v0.2.7 h1:XVwlmkt+G1dygXp/t+8jU3vI9bz9DszSdX2r8F8vWpo=
-github.com/GuanceCloud/platypus v0.2.7/go.mod h1:budRXgqN8vm48Y8njJj/IJkcB0d87CqJeQILejf7wjU=
+github.com/GuanceCloud/platypus v0.2.8 h1:DKhMJa8+sSIcLfootuulZSq2v0PEGpCft3J5xbJDJQ8=
+github.com/GuanceCloud/platypus v0.2.8/go.mod h1:H9Sol/SI+A9ppJUohdn9m/UA0aiNvh+G0/GnY6IVDnI=
 github.com/GuanceCloud/promcommon v0.0.0-20230828165048-8a8ac696e616 h1:l2/OF8jg2mcvAv5OzJWyooCEEcL2b0yATSl/iXUrvQ8=
 github.com/GuanceCloud/promcommon v0.0.0-20230828165048-8a8ac696e616/go.mod h1:zuawsU7vK4z3rZC2qaOYnhJO2rHD0CIUAgbyJxpjIf0=
 github.com/GuanceCloud/pyroscope v0.36.1 h1:u9hR7N+5ASIddXSVJAXYQG/EaXuUzKG2GkRRuUvfMjE=
