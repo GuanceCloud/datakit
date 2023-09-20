@@ -22,8 +22,8 @@ MySQL metrics collection, which collects the following data:
 ```sql
 CREATE USER 'datakit'@'localhost' IDENTIFIED BY '<UNIQUEPASSWORD>';
 
--- MySQL 8.0+ create the datakit user with the native password hashing method
-CREATE USER 'datakit'@'localhost' IDENTIFIED WITH mysql_native_password by '<UNIQUEPASSWORD>';
+-- MySQL 8.0+ create the datakit user with the caching_sha2_password method
+CREATE USER 'datakit'@'localhost' IDENTIFIED WITH caching_sha2_password by '<UNIQUEPASSWORD>';
 ```
 
 - Authorization

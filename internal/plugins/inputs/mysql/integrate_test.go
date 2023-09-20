@@ -35,7 +35,7 @@ const RepoURL = "pubrepo.jiagouyun.com/image-repo-for-testing/mysql/"
 var (
 	MySQLPassword = "Abc123!"
 	MySQL5UserSQL = fmt.Sprintf("CREATE USER 'datakit'@'%%' IDENTIFIED BY '%s';", MySQLPassword)
-	MySQL8UserSQL = fmt.Sprintf("CREATE USER 'datakit'@'%%' IDENTIFIED WITH mysql_native_password by '%s';", MySQLPassword)
+	MySQL8UserSQL = fmt.Sprintf("CREATE USER 'datakit'@'%%' IDENTIFIED WITH caching_sha2_password by '%s';", MySQLPassword)
 	MySQLGrantSQL = `
 CREATE DATABASE test;
 CREATE TABLE test.user (id int, name varchar(50), value float(5,2));
