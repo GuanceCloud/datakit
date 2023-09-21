@@ -70,7 +70,7 @@ func completeSource(source string) string {
 		return source
 	}
 
-	return "default"
+	return defaultMeasurementName
 }
 
 func completeService(defaultService, service string) string {
