@@ -47,7 +47,7 @@ datakit-operator-f948897fb-5w5nm   1/1     Running   0          15s
 
 ### Relevant Configuration {#datakit-operator-jsonconfig}
 
-[:octicons-tag-24: Datakit Operator v1.2.1]
+[:octicons-tag-24: Datakit Operator v1.4.2]
 
 The configuration for the Datakit Operator is in JSON format and is stored as a separate ConfigMap in Kubernetes, which is loaded into the container as an environment variable.
 
@@ -60,7 +60,7 @@ The default configuration is as follows:
     "admission_inject": {
         "ddtrace": {
             "images": {
-                "java_agent_image":   "pubrepo.guance.com/datakit-operator/dd-lib-java-init:v1.8.4-guance",
+                "java_agent_image":   "pubrepo.guance.com/datakit-operator/dd-lib-java-init:v1.20.2-guance",
                 "python_agent_image": "pubrepo.guance.com/datakit-operator/dd-lib-python-init:v1.6.2",
                 "js_agent_image":     "pubrepo.guance.com/datakit-operator/dd-lib-js-init:v3.9.2"
             },
@@ -68,12 +68,16 @@ The default configuration is as follows:
                 "DD_AGENT_HOST":           "datakit-service.datakit.svc",
                 "DD_TRACE_AGENT_PORT":     "9529",
                 "DD_JMXFETCH_STATSD_HOST": "datakit-service.datakit.svc",
-                "DD_JMXFETCH_STATSD_PORT": "8125"
+                "DD_JMXFETCH_STATSD_PORT": "8125",
+                "POD_NAME":                "{fieldRef:metadata.name}",
+                "POD_NAMESPACE":           "{fieldRef:metadata.namespace}",
+                "NODE_NAME":               "{fieldRef:spec.nodeName}",
+                "DD_TAGS":                 "pod_name:$(POD_NAME),pod_namespace:$(POD_NAMESPACE),host:$(NODE_NAME)"
             }
         },
         "logfwd": {
             "images": {
-                "logfwd_image": "pubrepo.guance.com/datakit/logfwd:1.5.8"
+                "logfwd_image": "pubrepo.guance.com/datakit/logfwd:1.15.2"
             }
         },
         "profiler": {
@@ -126,8 +130,6 @@ In `admission_inject`, you can configure `ddtrace` and `logfwd` more finely:
             "envs": {
                 "DD_AGENT_HOST":           "datakit-service.datakit.svc",
                 "DD_TRACE_AGENT_PORT":     "9529",
-                "DD_JMXFETCH_STATSD_HOST": "datakit-service.datakit.svc",
-                "DD_JMXFETCH_STATSD_PORT": "8125",
                 "FAKE_ENV":                "ok"
             }
         }
@@ -135,6 +137,22 @@ In `admission_inject`, you can configure `ddtrace` and `logfwd` more finely:
 ```
 
 All containers that have `ddtrace` agent injected into them will have five environment variables added to their `envs`.
+
+In Datakit Operator v1.4.2 and later versions, `envs` `envs` support for the Kubernetes Downward API [environment variable fetch field](https://kubernetes.io/docs/concepts/workloads/pods/downward-api/#available-fields). The following are now supported:
+
+- `metadata.name`: The pod's name.
+- `metadata.namespace`:  The pod's namespace.
+- `metadata.uid`:  The pod's unique ID.
+- `metadata.annotations['<KEY>']`:  The value of the pod's annotation named `<KEY>` (for example, metadata.annotations['myannotation']).
+- `metadata.labels['<KEY>']`:  The text value of the pod's label named `<KEY>` (for example, metadata.labels['mylabel']).
+- `spec.serviceAccountName`:  The name of the pod's service account.
+- `spec.nodeName`:  The name of the node where the Pod is executing.
+- `status.hostIP`:  The primary IP address of the node to which the Pod is assigned.
+- `status.hostIPs`:  The IP addresses is a dual-stack version of status.hostIP, the first is always the same as status.hostIP. The field is available if you enable the PodHostIPs feature gate.
+- `status.podIP`:  The pod's primary IP address (usually, its IPv4 address).
+- `status.podIPs`:  The IP addresses is a dual-stack version of status.podIP, the first is always the same as status.podIP.
+
+If that write is not recognized, it is converted to a plain string and added to the environment variable. For example `"POD_NAME":"{fieldRef:metadata.PODNAME}"`, which is the wrong way to write it, ends up in the environment variable being `POD_NAME={fieldRef:metadata.PODNAME}`.
 
 ## Using Datakit-Operator to Inject Files and Programs {#datakit-operator-inject-sidecar}
 

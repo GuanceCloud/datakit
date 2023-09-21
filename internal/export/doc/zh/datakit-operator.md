@@ -48,7 +48,7 @@ datakit-operator-f948897fb-5w5nm   1/1     Running   0          15s
 
 ### 相关配置 {#datakit-operator-jsonconfig}
 
-[:octicons-tag-24: Datakit Operator v1.2.1]
+[:octicons-tag-24: Datakit Operator v1.4.2]
 
 Datakit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap 存放，以环境变量方式加载到容器中。
 
@@ -61,7 +61,7 @@ Datakit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
     "admission_inject": {
         "ddtrace": {
             "images": {
-                "java_agent_image":   "pubrepo.guance.com/datakit-operator/dd-lib-java-init:v1.8.4-guance",
+                "java_agent_image":   "pubrepo.guance.com/datakit-operator/dd-lib-java-init:v1.20.2-guance",
                 "python_agent_image": "pubrepo.guance.com/datakit-operator/dd-lib-python-init:v1.6.2",
                 "js_agent_image":     "pubrepo.guance.com/datakit-operator/dd-lib-js-init:v3.9.2"
             },
@@ -69,12 +69,16 @@ Datakit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
                 "DD_AGENT_HOST":           "datakit-service.datakit.svc",
                 "DD_TRACE_AGENT_PORT":     "9529",
                 "DD_JMXFETCH_STATSD_HOST": "datakit-service.datakit.svc",
-                "DD_JMXFETCH_STATSD_PORT": "8125"
+                "DD_JMXFETCH_STATSD_PORT": "8125",
+                "POD_NAME":                "{fieldRef:metadata.name}",
+                "POD_NAMESPACE":           "{fieldRef:metadata.namespace}",
+                "NODE_NAME":               "{fieldRef:spec.nodeName}",
+                "DD_TAGS":                 "pod_name:$(POD_NAME),pod_namespace:$(POD_NAMESPACE),host:$(NODE_NAME)"
             }
         },
         "logfwd": {
             "images": {
-                "logfwd_image": "pubrepo.guance.com/datakit/logfwd:1.5.8"
+                "logfwd_image": "pubrepo.guance.com/datakit/logfwd:1.15.2"
             }
         },
         "profiler": {
@@ -114,30 +118,44 @@ Datakit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
     如果已经在 Annotation 的 `admission.datakit/java-lib.version` 指定了版本，例如 `admission.datakit/java-lib.version:v2.0.1-guance` 或 `admission.datakit/java-lib.version:latest`，会使用这个 `v2.0.1-guance` 版本。
 <!-- markdownlint-enable -->
 
-- `envs` 同样是多个 Key/Value，但是 Key 和 Value 不固定。Datakit Operator 会在目标容器中注入所有 Key/Value 环境变量。例如在 `envs` 中添加一个 `FAKE_ENV`：
+- `envs` 同样是多个 Key/Value，Datakit Operator 会在目标容器中注入所有 Key/Value 环境变量。例如在 `envs` 中添加一个 `FAKE_ENV`：
 
 ```json
 {
-  "admission_inject": {
-    "ddtrace": {
-      "images": {
-        "java_agent_image": "pubrepo.guance.com/datakit-operator/dd-lib-java-init:v1.8.4-guance",
-        "python_agent_image": "pubrepo.guance.com/datakit-operator/dd-lib-python-init:v1.6.2",
-        "js_agent_image": "pubrepo.guance.com/datakit-operator/dd-lib-js-init:v3.9.2"
-      },
-      "envs": {
-        "DD_AGENT_HOST": "datakit-service.datakit.svc",
-        "DD_TRACE_AGENT_PORT": "9529",
-        "DD_JMXFETCH_STATSD_HOST": "datakit-service.datakit.svc",
-        "DD_JMXFETCH_STATSD_PORT": "8125",
-        "FAKE_ENV": "ok"
-      }
+    "admission_inject": {
+        "ddtrace": {
+            "images": {
+                "java_agent_image": "pubrepo.guance.com/datakit-operator/dd-lib-java-init:v1.8.4-guance",
+                "python_agent_image": "pubrepo.guance.com/datakit-operator/dd-lib-python-init:v1.6.2",
+                "js_agent_image": "pubrepo.guance.com/datakit-operator/dd-lib-js-init:v3.9.2"
+            },
+            "envs": {
+                "DD_AGENT_HOST": "datakit-service.datakit.svc",
+                "DD_TRACE_AGENT_PORT": "9529",
+                "FAKE_ENV": "ok"
+            }
+        }
     }
-  }
 }
 ```
 
-所有注入 `ddtrace` agent 的容器，都会添加 `envs` 的 5 个环境变量。
+所有注入 `ddtrace` agent 的容器，都会添加 `envs` 的 3 个环境变量。
+
+在 Datakit Operator v1.4.2 及以后版本，`envs` 支持 Kubernetes Downward API 的 [环境变量取值字段](https://kubernetes.io/zh-cn/docs/concepts/workloads/pods/downward-api/#downwardapi-fieldRef)。现支持以下几种：
+
+- `metadata.name`：Pod 的名称
+- `metadata.namespace`： Pod 的命名空间
+- `metadata.uid`： Pod 的唯一 ID
+- `metadata.annotations['<KEY>']`： Pod 的注解 `<KEY>` 的值（例如：metadata.annotations['myannotation']）
+- `metadata.labels['<KEY>']`： Pod 的标签 `<KEY>` 的值（例如：metadata.labels['mylabel']）
+- `spec.serviceAccountName`： Pod 的服务账号名称
+- `spec.nodeName`： Pod 运行时所处的节点名称
+- `status.hostIP`： Pod 所在节点的主 IP 地址
+- `status.hostIPs`： 这组 IP 地址是 status.hostIP 的双协议栈版本，第一个 IP 始终与 status.hostIP 相同。 该字段在启用了 PodHostIPs 特性门控后可用。
+- `status.podIP`： Pod 的主 IP 地址（通常是其 IPv4 地址）
+- `status.podIPs`： 这组 IP 地址是 status.podIP 的双协议栈版本，第一个 IP 始终与 status.podIP 相同。
+
+如果该写法无法识别，会将其转换成纯字符串添加到环境变量。例如 `"POD_NAME": "{fieldRef:metadata.PODNAME}"`，这是错误的写法，最终在环境变量是 `POD_NAME={fieldRef:metadata.PODNAME}`。
 
 ## 使用 Datakit Operator 注入文件和程序 {#datakit-operator-inject-sidecar}
 
