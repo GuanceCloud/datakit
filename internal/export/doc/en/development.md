@@ -170,6 +170,8 @@ datakit -M --vvv            # Check the operation of all collectors
     # Centos: TODO
     ```
 
+    - IBM Db2 ODBC/CLI driver (Linux only). The guide is in [IBM Db2 integration document](../integrations/db2.md#reqirement){:target="_blank"}。
+
 === "Mac"
 
     not supported
