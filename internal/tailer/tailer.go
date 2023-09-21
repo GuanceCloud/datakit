@@ -100,6 +100,18 @@ const (
 	ContainerdMode
 )
 
+func (mode Mode) String() string {
+	switch mode {
+	case FileMode:
+		return "file"
+	case DockerMode:
+		return "docker-json"
+	case ContainerdMode:
+		return "cri-log"
+	}
+	return "unknown"
+}
+
 func (opt *Option) Init() error {
 	if opt.Source == "" {
 		opt.Source = defaultSource
@@ -274,4 +286,9 @@ func (t *Tailer) getFileList() []string {
 		list = append(list, filename)
 	}
 	return list
+}
+
+//nolint:gochecknoinits
+func init() {
+	setupMetrics()
 }

@@ -82,9 +82,9 @@ func (i *Input) runCollect() {
 	collectors := i.newCollector()
 
 	// first collect
-	i.collectMetric(collectors)
-	i.collectObject(collectors)
 	i.collectLogging(collectors)
+	i.collectObject(collectors)
+	i.collectMetric(collectors)
 
 	for {
 		select {

@@ -16,7 +16,7 @@ import (
 
 const (
 	defaultMaxLength       = 32 * 1024 * 1024
-	defaultMaxLifeDuration = time.Second * 3
+	defaultMaxLifeDuration = time.Second * 5
 )
 
 type Option struct {
@@ -69,21 +69,21 @@ func New(patterns []string, opt *Option) (*Multiline, error) {
 	}, err
 }
 
-func (m *Multiline) ProcessLineString(text string) string {
-	textBytes := []byte(text)
-	return string(m.ProcessLine(textBytes))
+func (m *Multiline) ProcessLineString(text string) (string, State) {
+	t, b := m.ProcessLine([]byte(text))
+	return string(t), b
 }
 
 var newLine = []byte{'\n'}
 
-func (m *Multiline) ProcessLine(text []byte) []byte {
+func (m *Multiline) ProcessLine(text []byte) ([]byte, State) {
 	// --匹配成功--
 	// 清空 buff 并写入新的文本，符合多行行为。记录当前时间。
 	if m.Match(text) {
 		previousText := m.Flush()
 		m.buff.Write(text)
 		m.lastWriteTime = time.Now()
-		return previousText
+		return previousText, NewMultiline
 	}
 
 	// --匹配失败--
@@ -91,7 +91,7 @@ func (m *Multiline) ProcessLine(text []byte) []byte {
 	// 这一条文本匹配失败，原应该追加写入到 buff 中，但是此时 buff 为空，说明这条文本没有头，是一条“僵尸多行文本”
 	// 为了避免匹配失败的文本堆积在 buff 中，需要在此处直接 return
 	if m.buff.Len() == 0 {
-		return text
+		return text, NoContext
 	}
 
 	// buff 不为空，说明 buff 中存在匹配成功的文本
@@ -102,16 +102,16 @@ func (m *Multiline) ProcessLine(text []byte) []byte {
 	// flush 规则一：单次多行采集时长超出限制
 	if time.Since(m.lastWriteTime) > m.opt.MaxLifeDuration {
 		previousText := m.Flush()
-		return previousText
+		return previousText, OverTime
 	}
 
 	// flush 规则二：buff 长度超过限制
 	if m.buff.Len() > m.opt.MaxLength {
-		return m.Flush()
+		return m.Flush(), OverLength
 	}
 
 	// 不符合 flush 条件，文本数据都在 buff 中
-	return nil
+	return nil, Written
 }
 
 func (m *Multiline) BuffLength() int {

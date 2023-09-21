@@ -104,6 +104,7 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 	t.readBuff = make([]byte, readBuffSize)
 	t.tags = t.buildTags(opt.GlobalTags)
 
+	openfileVec.WithLabelValues(t.opt.Mode.String()).Inc()
 	return t, nil
 }
 
@@ -115,6 +116,8 @@ func (t *Single) Run() {
 func (t *Single) Close() {
 	t.recordingLastCache()
 	t.closeFile()
+
+	openfileVec.WithLabelValues(t.opt.Mode.String()).Dec()
 	t.opt.log.Infof("closing: file %s", t.filepath)
 }
 
@@ -222,6 +225,8 @@ func (t *Single) reopen() error {
 
 	t.offset = ret
 	t.opt.log.Infof("reopen file %s, offset %d", t.filepath, t.offset)
+
+	rotateVec.WithLabelValues(t.opt.Source, t.filename).Inc()
 	return nil
 }
 
@@ -366,14 +371,12 @@ func (t *Single) generateJSONLogs(lines []string) []string {
 		var msg dockerMessage
 		err := json.Unmarshal([]byte(line), &msg)
 		if err != nil {
-			t.opt.log.Warnf("unmarshal err: %s, data: %s, ignored", err, line)
-			msg = dockerMessage{
-				Log: line,
-			}
+			parseFailVec.WithLabelValues(t.opt.Source, t.filename, t.opt.Mode.String()).Inc()
+			t.opt.log.Warnf("json-data parsed err: %s, data: %s, ignored", err, line)
+			continue
 		}
 
 		if isJSONLogPartialContent(msg.Log) {
-			t.opt.log.Debugf("partial text: %s, write buff", msg.Log)
 			t.partialContentBuff.WriteString(msg.Log)
 			continue
 		}
@@ -394,13 +397,13 @@ func (t *Single) generateJSONLogs(lines []string) []string {
 			t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
 		}
 
-		text = removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
 		text = t.multiline(multiline.TrimRightSpace(text))
 		if text == "" {
 			continue
 		}
 
-		pending = append(pending, text)
+		logstr := removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
+		pending = append(pending, logstr)
 	}
 
 	return pending
@@ -422,14 +425,12 @@ func (t *Single) generateCRILogs(lines []string) []string {
 
 		err := parseCRILog([]byte(line), &criMsg)
 		if err != nil {
-			t.opt.log.Warnf("parse cri-o log err: %s, data: %s", err, line)
-			criMsg = logMessage{
-				log: line,
-			}
+			parseFailVec.WithLabelValues(t.opt.Source, t.filename, t.opt.Mode.String()).Inc()
+			t.opt.log.Warnf("cri-log parsed err: %s, data: %s, ignored", err, line)
+			continue
 		}
 
 		if criMsg.isPartial {
-			t.opt.log.Debugf("partial text: %s, write buff", criMsg.log)
 			t.partialContentBuff.WriteString(criMsg.log)
 			continue
 		}
@@ -450,13 +451,13 @@ func (t *Single) generateCRILogs(lines []string) []string {
 			t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
 		}
 
-		text = removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
 		text = t.multiline(multiline.TrimRightSpace(text))
 		if text == "" {
 			continue
 		}
 
-		pending = append(pending, text)
+		logstr := removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
+		pending = append(pending, logstr)
 	}
 
 	return pending
@@ -476,13 +477,13 @@ func (t *Single) defaultHandler(lines []string) {
 			t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
 		}
 
-		text = removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
 		text = t.multiline(multiline.TrimRightSpace(text))
 		if text == "" {
 			continue
 		}
 
-		pending = append(pending, text)
+		logstr := removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
+		pending = append(pending, logstr)
 	}
 	if len(pending) == 0 {
 		return
@@ -658,7 +659,10 @@ func (t *Single) multiline(text string) string {
 	if t.mult == nil {
 		return text
 	}
-	return t.mult.ProcessLineString(text)
+
+	res, state := t.mult.ProcessLineString(text)
+	multilineVec.WithLabelValues(t.opt.Source, t.filename, state.String()).Inc()
+	return res
 }
 
 type buffer struct {
