@@ -2,7 +2,6 @@
   "dashboardBindSet": [],
   "dashboardExtend": {
     "groupUnfoldStatus": {
-      "Network Conversation": true,
       "{{.Dashboard.category_conversations}}": true,
       "{{.Dashboard.category_detail}}": true,
       "{{.Dashboard.category_netflow}}": true,
