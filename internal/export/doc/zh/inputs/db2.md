@@ -61,12 +61,38 @@ MD5: `A03356C83E20E74E06A3CC679424A47D`
 
 - 对于部分系统可能还需要安装额外的依赖库：
 
-```shell
+```sh
 # Ubuntu/Debian
 apt-get install -y libxml2
 
 # CentOS
 yum install -y libxml2
+```
+
+- 以管理员权限进入 `db2` 命令行模式执行以下命令开启监控功能：
+
+```sh
+update dbm cfg using HEALTH_MON on
+update dbm cfg using DFT_MON_STMT on
+update dbm cfg using DFT_MON_LOCK on
+update dbm cfg using DFT_MON_TABLE on
+update dbm cfg using DFT_MON_BUFPOOL on
+```
+
+以上语句开启了以下监控： Statement, Lock, Tables, Buffer pool 。
+
+可以通过 `get dbm cfg` 命令查看开启的监控状态：
+
+```sh
+ Default database monitor switches
+   Buffer pool                         (DFT_MON_BUFPOOL) = ON
+   Lock                                   (DFT_MON_LOCK) = ON
+   Sort                                   (DFT_MON_SORT) = OFF
+   Statement                              (DFT_MON_STMT) = ON
+   Table                                 (DFT_MON_TABLE) = ON
+   Timestamp                         (DFT_MON_TIMESTAMP) = ON
+   Unit of work                            (DFT_MON_UOW) = OFF
+ Monitor health of instance and databases   (HEALTH_MON) = ON
 ```
 
 ### 采集器配置 {#input-config}

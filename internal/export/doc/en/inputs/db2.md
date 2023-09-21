@@ -53,6 +53,32 @@ apt-get install -y libxml2
 yum install -y libxml2
 ```
 
+- Switch to the instance master user and run these commands at the `db2` prompt:
+
+```sh
+update dbm cfg using HEALTH_MON on
+update dbm cfg using DFT_MON_STMT on
+update dbm cfg using DFT_MON_LOCK on
+update dbm cfg using DFT_MON_TABLE on
+update dbm cfg using DFT_MON_BUFPOOL on
+```
+
+These commands will enable the database system monitor switches for each of the objects you want to monitor: Statement, Lock, Tables, Buffer pool.
+
+Next, run `get dbm cfg` and you should see the following:
+
+```sh
+ Default database monitor switches
+   Buffer pool                         (DFT_MON_BUFPOOL) = ON
+   Lock                                   (DFT_MON_LOCK) = ON
+   Sort                                   (DFT_MON_SORT) = OFF
+   Statement                              (DFT_MON_STMT) = ON
+   Table                                 (DFT_MON_TABLE) = ON
+   Timestamp                         (DFT_MON_TIMESTAMP) = ON
+   Unit of work                            (DFT_MON_UOW) = OFF
+ Monitor health of instance and databases   (HEALTH_MON) = ON
+```
+
 ## Configuration {#config}
 
 === "Host Installation"

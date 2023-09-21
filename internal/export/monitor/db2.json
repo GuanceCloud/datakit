@@ -1,0 +1,144 @@
+{
+  "checkers": [
+    {
+      "dashboardName": "db2",
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "db2_database",
+              "field": "status",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "funcList": [],
+              "groupBy": [
+                "db2_server"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`db2_database`:(AVG(`status`)) BY `db2_server`",
+              "type": "simple"
+            },
+            "uuid": "ef3d0914-3ff0-4666-a6a4-201628cd4836"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "1.5"
+                ],
+                "operator": ">"
+              }
+            ],
+            "status": "critical"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "1"
+                ],
+                "operator": ">"
+              }
+            ],
+            "status": "error"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "0"
+                ],
+                "operator": ">"
+              }
+            ],
+            "status": "warning"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "atAccounts": [],
+        "atNoDataAccounts": [],
+        "channels": [],
+        "checkerOpt": {
+          "infoEvent": false,
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "1.5"
+                  ],
+                  "operator": ">"
+                }
+              ],
+              "status": "critical"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "1"
+                  ],
+                  "operator": ">"
+                }
+              ],
+              "status": "error"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "0"
+                  ],
+                  "operator": ">"
+                }
+              ],
+              "status": "warning"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "db2_server"
+        ],
+        "interval": 60,
+        "message": "<<.Monitor.message>>",
+        "noDataMessage": "",
+        "noDataTitle": "",
+        "recoverNeedPeriodCount": 2,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`db2_database`:(AVG(`status`)) BY `db2_server`",
+            "qtype": "dql"
+          }
+        ],
+        "title": "<<.Monitor.title>>",
+        "type": "simpleCheck"
+      },
+      "monitorName": "默认",
+      "tagInfo": []
+    }
+  ]
+}
