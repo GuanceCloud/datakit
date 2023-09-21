@@ -97,7 +97,7 @@ func (info *datakitInfo) collectSystemdLog() error {
 	if err != nil {
 		return err
 	}
-	cmd := exec.Command("journalctl", "-u", "datakit.service", "-b", "--no-pager")
+	cmd := exec.Command("journalctl", "-u", "datakit.service", "-n", "10000", "--no-pager") // last 10000 lines
 	res, err := cmd.CombinedOutput()
 	if err != nil {
 		return err
