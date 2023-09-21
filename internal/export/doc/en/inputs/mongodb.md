@@ -21,11 +21,32 @@ MongoDb database, Collection, MongoDb database cluster running status data Colle
 - Developed and used MongoDB version `4.4.5`;
 - Write the configuration file in the corresponding directory and then start DataKit to complete the configuration;
 - For secure connections using TLS, please configure the response certificate file path and configuration under `## TLS connection config` in the configuration file;
-- If MongoDb has access control enabled, you need to configure the necessary user rights to establish an authorized connection. For example:
+- If MongoDB has access control enabled, you need to configure the necessary user rights to establish an authorized connection:
 
-```mongodb
-> db.grantRolesToUser("user", [{role: "read", actions: "find", db: "local"}])
+```sh
+# Run MongoDB shell.
+$ mongo
+
+# Authenticate as the admin/root user.
+> use admin
+> db.auth("<admin OR root>", "<YOUR_MONGODB_ADMIN_PASSWORD>")
+
+# Create the user for the Datakit.
+> db.createUser({
+  "user": "datakit",
+  "pwd": "<YOUR_COLLECT_PASSWORD>",
+  "roles": [
+    { role: "read", db: "admin" },
+    { role: "clusterMonitor", db: "admin" },
+    { role: "backup", db: "admin" },
+    { role: "read", db: "local" }
+  ]
+})
 ```
+
+>More authorization information can refer to official documentation [Built-In Roles](https://www.mongodb.com/docs/manual/reference/built-in-roles/){:target="_blank"}。
+
+After done with commands above, filling the `user` and `pwd` to Datakit configuration file `conf.d/db/mongodb.conf`.
 
 ## Configuration {#config}
 

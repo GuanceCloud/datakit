@@ -24,6 +24,18 @@ Alternatively, you can start Jolokia separately and point it to the Kafka proces
 java -jar </path/to/jolokia-jvm-agent.jar> --host 127.0.0.1 --port=8080 start <Kafka-PID>
 ```
 
+???+ attention
+
+    Jolokia not allows change port number in the running state. If found command with `--port` can't change the port, this indicates Jolokia is still in running.
+
+    If want to change Jolokia port, you must exit Jolokia first and restart it.
+
+???+ tip
+
+    Exit Jolokia command: `java -jar </path/to/jolokia-jvm-agent.jar> --quiet stop <Kafka-PID>`
+
+    For more Jolokia command information can refer to [here](https://jolokia.org/reference/html/agents.html#jvm-agent){:target="_blank"}.
+
 After Kafka service is started, if you need to collect Producer/Consumer/Connector indicators, you need to configure Jolokia for them respectively.
 
 Referring to [KAFKA QUICKSTART](https://kafka.apache.org/quickstart){:target="_blank"}, configure the `KAFKA_OPTS` environment variable for the example of Producer, as follows:
