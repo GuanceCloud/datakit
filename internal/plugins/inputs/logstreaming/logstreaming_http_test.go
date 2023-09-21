@@ -21,8 +21,8 @@ import (
 
 func TestInput_processLogBody(t *testing.T) {
 	// influxdb
-	pt, _ := influxdb.NewPoint("test_logging", map[string]string{"host": "hostName"}, map[string]interface{}{"message": "this is message"})
-	pt2, _ := influxdb.NewPoint("test_logging", map[string]string{"host": "hostName"}, map[string]interface{}{"message": "this is message01"})
+	pt, _ := influxdb.NewPoint("test_logging", map[string]string{"host": "hostName"}, map[string]interface{}{"message": "this is message", "status": "unknown"})
+	pt2, _ := influxdb.NewPoint("test_logging", map[string]string{"host": "hostName"}, map[string]interface{}{"message": "this is message01", "status": "unknown"})
 
 	buf := &bytes.Buffer{}
 	buf.WriteString(pt.PrecisionString("ns"))

@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"google.golang.org/protobuf/proto"
 
@@ -27,6 +28,7 @@ import (
 var (
 	_ inputs.InputV2   = &Input{}
 	_ inputs.HTTPInput = &Input{}
+	_ inputs.Singleton = (*Input)(nil)
 )
 
 const (
@@ -63,7 +65,8 @@ type Input struct {
 	WPConfig         *workerpool.WorkerPoolConfig `toml:"threads"`
 	LocalCacheConfig *storage.StorageConfig       `toml:"storage"`
 
-	feeder dkio.Feeder
+	feeder  dkio.Feeder
+	semStop *cliutils.Sem // start stop signal
 }
 
 func (*Input) Catalog() string { return "log" }
@@ -71,6 +74,8 @@ func (*Input) Catalog() string { return "log" }
 func (*Input) AvailableArchs() []string { return datakit.AllOS }
 
 func (*Input) SampleConfig() string { return sampleCfg }
+
+func (*Input) Singleton() {}
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&logstreamingMeasurement{}}
@@ -139,22 +144,47 @@ func (ipt *Input) RegHTTPHandler() {
 
 func (ipt *Input) Run() {
 	log.Info("### register logstreaming router")
-	if ipt.feeder == nil {
-		ipt.feeder = dkio.DefaultFeeder()
+
+	select {
+	case <-datakit.Exit.Wait():
+		ipt.exit()
+		log.Info(inputName + " exit")
+		return
+	case <-ipt.semStop.Wait():
+		ipt.exit()
+		log.Info(inputName + " return")
+		return
 	}
-	<-datakit.Exit.Wait()
-	ipt.Terminate()
 }
 
-func (*Input) Terminate() {
+func (*Input) exit() {
 	if wkpool != nil {
 		wkpool.Shutdown()
 		log.Debug("### workerpool closed")
+	}
+	if localCache != nil {
+		if err := localCache.Close(); err != nil {
+			log.Error(err.Error())
+		}
+		log.Debug("### storage closed")
+	}
+}
+
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+	}
+}
+
+func defaultInput() *Input {
+	return &Input{
+		feeder:  dkio.DefaultFeeder(),
+		semStop: cliutils.NewSem(),
 	}
 }
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{}
+		return defaultInput()
 	})
 }
