@@ -10,31 +10,58 @@ import (
 	"fmt"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 
 	apicorev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	endpointMetricMeasurement = "kube_endpoint"
 )
 
 //nolint:gochecknoinits
 func init() {
-	registerMetricResource("endpoint", gatherEndpointMetric)
-	registerMeasurement(&endpointMetric{})
+	registerResource("endpoint", true, newEndpoint)
+	registerMeasurements(&endpointMetric{})
 }
 
-func gatherEndpointMetric(ctx context.Context, client k8sClient) ([]measurement, error) {
-	list, err := client.GetEndpoints().List(ctx, metaV1ListOption)
+type endpoint struct {
+	client    k8sClient
+	continued string
+}
+
+func newEndpoint(client k8sClient) resource {
+	return &endpoint{client: client}
+}
+
+func (e *endpoint) hasNext() bool { return e.continued != "" }
+
+func (e *endpoint) getMetadata(ctx context.Context, ns string) (metadata, error) {
+	opt := metav1.ListOptions{
+		Limit:    queryLimit,
+		Continue: e.continued,
+	}
+
+	list, err := e.client.GetEndpoints(ns).List(ctx, opt)
 	if err != nil {
 		return nil, err
 	}
-	return composeEndpointMetric(list), nil
+
+	e.continued = list.Continue
+	return &endpointMetadata{list}, nil
 }
 
-func composeEndpointMetric(list *apicorev1.EndpointsList) []measurement {
-	var res []measurement
+type endpointMetadata struct {
+	list *apicorev1.EndpointsList
+}
 
-	for _, item := range list.Items {
-		met := typed.NewPointKV()
+func (m *endpointMetadata) transformMetric() pointKVs {
+	var res pointKVs
+
+	for _, item := range m.list.Items {
+		met := typed.NewPointKV(endpointMetricMeasurement)
 
 		met.SetTag("uid", fmt.Sprintf("%v", item.UID))
 		met.SetTag("endpoint", item.Name)
@@ -53,26 +80,24 @@ func composeEndpointMetric(list *apicorev1.EndpointsList) []measurement {
 		met.SetField("address_not_ready", notReady)
 
 		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
-		res = append(res, &endpointMetric{met})
+		res = append(res, met)
 	}
 
 	return res
 }
 
-type endpointMetric struct{ typed.PointKV }
-
-func (e *endpointMetric) namespace() string { return e.GetTag("namespace") }
-
-func (e *endpointMetric) addExtraTags(m map[string]string) { e.SetTags(m) }
-
-func (e *endpointMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint("kube_endpoint", e.Tags(), e.Fields(), metricOpt)
+func (m *endpointMetadata) transformObject() pointKVs {
+	return nil
 }
+
+type endpointMetric struct{}
+
+func (*endpointMetric) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*endpointMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "kube_endpoint",
+		Name: endpointMetricMeasurement,
 		Desc: "The metric of the Kubernetes Endpoints.",
 		Type: "metric",
 		Tags: map[string]interface{}{

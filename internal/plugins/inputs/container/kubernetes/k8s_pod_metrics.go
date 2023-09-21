@@ -10,6 +10,7 @@ import (
 	"fmt"
 
 	apicorev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1beta1 "k8s.io/metrics/pkg/apis/metrics/v1beta1"
 )
 
@@ -19,7 +20,7 @@ type podSrvMetric struct {
 }
 
 func queryPodMetrics(ctx context.Context, client k8sClient, name string, namespace string) (*podSrvMetric, error) {
-	item, err := client.GetPodMetricsesForNamespace(namespace).Get(ctx, name, metaV1GetOption)
+	item, err := client.GetPodMetricses(namespace).Get(ctx, name, metav1.GetOptions{ResourceVersion: "0"})
 	if err != nil {
 		return nil, fmt.Errorf("falied of query metrics-server for pod %s, err: %w", name, err)
 	}
@@ -75,7 +76,7 @@ func getMemoryCapacityFromResourceLimit(containers []apicorev1.Container) int64 
 
 // getMemoryCapacityFromNode return memory capacity for node.
 func getCapacityFromNode(ctx context.Context, client k8sClient, nodeName string) (cpuCapacity int64, memCapacity int64) {
-	node, err := client.GetNodes().Get(ctx, nodeName, metaV1GetOption)
+	node, err := client.GetNodes().Get(ctx, nodeName, metav1.GetOptions{ResourceVersion: "0"})
 	if err != nil {
 		return
 	}

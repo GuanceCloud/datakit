@@ -13,195 +13,194 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
 
 	apicorev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	podMetricMeasurement = "kube_pod"
+	podObjectMeasurement = "kubelet_pod"
 )
 
 //nolint:gochecknoinits
 func init() {
-	registerMetricResource("pod", gatherPodMetric)
-	registerObjectResource("pod", gatherPodObject)
-	registerMeasurement(&podMetric{})
-	registerMeasurement(&podObject{})
+	registerResource("pod", true, newPod)
+	registerMeasurements(&podMetric{}, &podObject{})
 }
 
-func gatherPodMetric(ctx context.Context, client k8sClient) ([]measurement, error) {
-	list, err := client.GetPods().List(ctx, metaV1ListOption)
+type pod struct {
+	client    k8sClient
+	continued string
+}
+
+func newPod(client k8sClient) resource {
+	return &pod{client: client}
+}
+
+func (p *pod) hasNext() bool { return p.continued != "" }
+
+func (p *pod) getMetadata(ctx context.Context, ns string) (metadata, error) {
+	opt := metav1.ListOptions{
+		Limit:    queryLimit,
+		Continue: p.continued,
+	}
+
+	list, err := p.client.GetPods(ns).List(ctx, opt)
 	if err != nil {
 		return nil, err
 	}
 
-	var res []measurement
+	p.continued = list.Continue
+	return &podMetadata{p, list}, nil
+}
 
-	for idx, pod := range list.Items {
-		met := composePodMetric(&list.Items[idx])
+type podMetadata struct {
+	opt  *pod
+	list *apicorev1.PodList
+}
 
-		if b, ok := ctx.Value(canCollectPodMetricsKey).(bool); ok && b {
-			p, err := queryPodFromMetricsServer(ctx, client, &list.Items[idx])
+func (m *podMetadata) transformMetric() pointKVs {
+	var res pointKVs
+
+	for idx, item := range m.list.Items {
+		met := typed.NewPointKV(podMetricMeasurement)
+
+		met.SetTag("uid", fmt.Sprintf("%v", item.UID))
+		met.SetTag("pod", item.Name)
+		met.SetTag("namespace", item.Namespace)
+
+		met.SetField("ready", 0)
+		// "scheduled", "volumes_persistentvolumeclaims_readonly","unschedulable"
+
+		containerReadyCount := 0
+		for _, cs := range item.Status.ContainerStatuses {
+			if cs.State.Running != nil {
+				containerReadyCount++
+			}
+		}
+		met.SetField("ready", containerReadyCount)
+
+		if len(item.OwnerReferences) != 0 {
+			switch item.OwnerReferences[0].Kind {
+			case "ReplicaSet":
+				if hash, ok := item.Labels["pod-template-hash"]; ok {
+					met.SetTag("deployment", strings.TrimRight(item.OwnerReferences[0].Name, "-"+hash))
+				}
+			case "DaemonSet":
+				met.SetTag("daemonset", item.OwnerReferences[0].Name)
+			case "StatefulSet":
+				met.SetTag("statefulset", item.OwnerReferences[0].Name)
+			default:
+				// skip
+			}
+		}
+
+		if setExtraK8sLabelAsTags() {
+			for k, v := range item.Labels {
+				met.SetTag(transLabelKey(k), v)
+			}
+		}
+
+		if canCollectPodMetrics() {
+			p, err := queryPodFromMetricsServer(context.Background(), m.opt.client, &m.list.Items[idx])
 			if err != nil {
-				klog.Warnf("pod %s from metrics-server fail, err: %s, skip", pod.Name, err)
+				klog.Warnf("pod %s from metrics-server fail, err: %s, skip", item.Name, err)
 			} else {
 				met.SetTags(p.Tags())
 				met.SetFields(p.Fields())
 			}
 		}
 
-		if set, ok := ctx.Value(setExtraK8sLabelAsTagsKey).(bool); ok && set {
-			for k, v := range list.Items[idx].Labels {
-				met.SetTag(transLabelKey(k), v)
+		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
+		res = append(res, met)
+	}
+
+	return res
+}
+
+func (m *podMetadata) transformObject() pointKVs {
+	var res pointKVs
+
+	for idx, item := range m.list.Items {
+		obj := typed.NewPointKV(podObjectMeasurement)
+
+		obj.SetTag("name", fmt.Sprintf("%v", item.UID))
+		obj.SetTag("uid", fmt.Sprintf("%v", item.UID))
+		obj.SetTag("pod_name", item.Name)
+		obj.SetTag("pod_ip", item.Status.PodIP)
+		obj.SetTag("node_name", item.Spec.NodeName)
+		obj.SetTag("host", item.Spec.NodeName) // 指向 pod 所在的 node，便于关联
+		obj.SetTag("phase", fmt.Sprintf("%v", item.Status.Phase))
+		obj.SetTag("qos_class", fmt.Sprintf("%v", item.Status.QOSClass))
+		obj.SetTag("status", fmt.Sprintf("%v", item.Status.Phase))
+		obj.SetTag("namespace", item.Namespace)
+
+		obj.SetField("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3)
+		obj.SetField("available", len(item.Status.ContainerStatuses))
+
+		if y, err := yaml.Marshal(item); err == nil {
+			obj.SetField("yaml", string(y))
+		}
+
+		for _, containerStatus := range item.Status.ContainerStatuses {
+			if containerStatus.State.Waiting != nil {
+				obj.SetTag("status", containerStatus.State.Waiting.Reason)
+				break
 			}
 		}
 
-		if len(pod.OwnerReferences) != 0 {
-			switch pod.OwnerReferences[0].Kind {
-			case "ReplicaSet":
-				if hash, ok := pod.Labels["pod-template-hash"]; ok {
-					met.SetTag("deployment", strings.TrimRight(pod.OwnerReferences[0].Name, "-"+hash))
-				}
-			case "DaemonSet":
-				met.SetTag("daemonset", pod.OwnerReferences[0].Name)
-			case "StatefulSet":
-				met.SetTag("statefulset", pod.OwnerReferences[0].Name)
-			default:
-				// skip
+		containerReadyCount := 0
+		for _, cs := range item.Status.ContainerStatuses {
+			if cs.State.Running != nil {
+				containerReadyCount++
+			}
+		}
+		obj.SetField("ready", containerReadyCount)
+
+		maxRestarts := 0
+		for _, containerStatus := range item.Status.ContainerStatuses {
+			if int(containerStatus.RestartCount) > maxRestarts {
+				maxRestarts = int(containerStatus.RestartCount)
+			}
+		}
+		obj.SetField("restarts", maxRestarts)
+
+		obj.SetFields(transLabels(item.Labels))
+		obj.SetField("annotations", typed.MapToJSON(item.Annotations))
+		obj.SetField("message", typed.TrimString(obj.String(), maxMessageLength))
+		obj.DeleteField("annotations")
+		obj.DeleteField("yaml")
+		obj.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
+
+		if setExtraK8sLabelAsTags() {
+			for k, v := range item.Labels {
+				obj.SetTag(transLabelKey(k), v)
 			}
 		}
 
-		met.SetCustomerTags(pod.Labels, getGlobalCustomerKeys())
-		res = append(res, &podMetric{*met})
-	}
-
-	return res, nil
-}
-
-func composePodMetric(item *apicorev1.Pod) *typed.PointKV {
-	met := typed.NewPointKV()
-
-	met.SetTag("uid", fmt.Sprintf("%v", item.UID))
-	met.SetTag("pod", item.Name)
-	met.SetTag("namespace", item.Namespace)
-
-	met.SetField("ready", 0)
-	// "scheduled", "volumes_persistentvolumeclaims_readonly","unschedulable"
-
-	containerReadyCount := 0
-	for _, cs := range item.Status.ContainerStatuses {
-		if cs.State.Running != nil {
-			containerReadyCount++
-		}
-	}
-	met.SetField("ready", containerReadyCount)
-
-	return &met
-}
-
-func gatherPodObject(ctx context.Context, client k8sClient) ([]measurement, error) {
-	list, err := client.GetPods().List(ctx, metaV1ListOption)
-	if err != nil {
-		return nil, err
-	}
-
-	var res []measurement
-
-	for idx, pod := range list.Items {
-		obj := composePodObject(&list.Items[idx])
-
-		if b, ok := ctx.Value(canCollectPodMetricsKey).(bool); ok && b {
-			p, err := queryPodFromMetricsServer(ctx, client, &list.Items[idx])
+		if canCollectPodMetrics() {
+			p, err := queryPodFromMetricsServer(context.Background(), m.opt.client, &m.list.Items[idx])
 			if err != nil {
-				klog.Warnf("pod %s from metrics-server fail, err: %s, skip", pod.Name, err)
+				klog.Warnf("pod %s from metrics-server fail, err: %s, skip", item.Name, err)
 			} else {
 				obj.SetTags(p.Tags())
 				obj.SetFields(p.Fields())
 			}
 		}
 
-		if set, ok := ctx.Value(setExtraK8sLabelAsTagsKey).(bool); ok && set {
-			for k, v := range pod.Labels {
-				obj.SetTag(transLabelKey(k), v)
-			}
-		}
-
-		if len(pod.OwnerReferences) != 0 {
-			switch pod.OwnerReferences[0].Kind {
-			case "ReplicaSet":
-				if hash, ok := pod.Labels["pod-template-hash"]; ok {
-					obj.SetTag("deployment", strings.TrimRight(pod.OwnerReferences[0].Name, "-"+hash))
-				}
-			case "DaemonSet":
-				obj.SetTag("daemonset", pod.OwnerReferences[0].Name)
-			case "StatefulSet":
-				obj.SetTag("statefulset", pod.OwnerReferences[0].Name)
-			default:
-				// skip
-			}
-		}
-
-		obj.SetCustomerTags(pod.Labels, getGlobalCustomerKeys())
-		res = append(res, &podObject{*obj})
+		obj.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
+		res = append(res, obj)
 	}
 
-	return res, nil
+	return res
 }
 
-func composePodObject(item *apicorev1.Pod) *typed.PointKV {
-	obj := typed.NewPointKV()
-
-	obj.SetTag("name", fmt.Sprintf("%v", item.UID))
-	obj.SetTag("uid", fmt.Sprintf("%v", item.UID))
-	obj.SetTag("pod_name", item.Name)
-	obj.SetTag("pod_ip", item.Status.PodIP)
-	obj.SetTag("node_name", item.Spec.NodeName)
-	obj.SetTag("host", item.Spec.NodeName) // 指向 pod 所在的 node，便于关联
-	obj.SetTag("phase", fmt.Sprintf("%v", item.Status.Phase))
-	obj.SetTag("qos_class", fmt.Sprintf("%v", item.Status.QOSClass))
-	obj.SetTag("status", fmt.Sprintf("%v", item.Status.Phase))
-	obj.SetTag("namespace", item.Namespace)
-
-	obj.SetField("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3)
-	obj.SetField("available", len(item.Status.ContainerStatuses))
-
-	if y, err := yaml.Marshal(item); err == nil {
-		obj.SetField("yaml", string(y))
-	}
-
-	for _, containerStatus := range item.Status.ContainerStatuses {
-		if containerStatus.State.Waiting != nil {
-			obj.SetTag("status", containerStatus.State.Waiting.Reason)
-			break
-		}
-	}
-
-	containerReadyCount := 0
-	for _, cs := range item.Status.ContainerStatuses {
-		if cs.State.Running != nil {
-			containerReadyCount++
-		}
-	}
-	obj.SetField("ready", containerReadyCount)
-
-	maxRestarts := 0
-	for _, containerStatus := range item.Status.ContainerStatuses {
-		if int(containerStatus.RestartCount) > maxRestarts {
-			maxRestarts = int(containerStatus.RestartCount)
-		}
-	}
-	obj.SetField("restarts", maxRestarts)
-
-	obj.SetFields(transLabels(item.Labels))
-	obj.SetField("annotations", typed.MapToJSON(item.Annotations))
-	obj.SetField("message", typed.TrimString(obj.String(), maxMessageLength))
-	obj.DeleteField("annotations")
-	obj.DeleteField("yaml")
-
-	return &obj
-}
-
-func queryPodFromMetricsServer(ctx context.Context, client k8sClient, item *apicorev1.Pod) (typed.PointKV, error) {
-	p := typed.NewPointKV()
+func queryPodFromMetricsServer(ctx context.Context, client k8sClient, item *apicorev1.Pod) (*typed.PointKV, error) {
+	p := typed.NewPointKV("NULL")
 
 	podMet, err := queryPodMetrics(ctx, client, item.Name, item.Namespace)
 	if err != nil {
@@ -244,20 +243,14 @@ func queryPodFromMetricsServer(ctx context.Context, client k8sClient, item *apic
 	return p, nil
 }
 
-type podMetric struct{ typed.PointKV }
+type podMetric struct{}
 
-func (p *podMetric) namespace() string { return p.GetTag("namespace") }
-
-func (p *podMetric) addExtraTags(m map[string]string) { p.SetTags(m) }
-
-func (p *podMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint("kube_pod", p.Tags(), p.Fields(), metricOpt)
-}
+func (*podMetric) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*podMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "kube_pod",
+		Name: podMetricMeasurement,
 		Desc: "The metric of the Kubernetes Pod.",
 		Type: "metric",
 		Tags: map[string]interface{}{
@@ -284,20 +277,14 @@ func (*podMetric) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type podObject struct{ typed.PointKV }
+type podObject struct{}
 
-func (p *podObject) namespace() string { return p.GetTag("namespace") }
-
-func (p *podObject) addExtraTags(m map[string]string) { p.SetTags(m) }
-
-func (p *podObject) LineProto() (*point.Point, error) {
-	return point.NewPoint("kubelet_pod", p.Tags(), p.Fields(), objectOpt)
-}
+func (*podObject) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*podObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "kubelet_pod",
+		Name: podObjectMeasurement,
 		Desc: "The object of the Kubernetes Pod.",
 		Type: "object",
 		Tags: map[string]interface{}{

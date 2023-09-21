@@ -16,21 +16,31 @@ import (
 
 func TestComposePodMetric(t *testing.T) {
 	t.Run("compose pod metric", func(t *testing.T) {
-		in := &apicorev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "pod-name-testing",
-				Namespace: "pod-namespace-testing",
-				UID:       "pod-uid-testing",
+		in := &apicorev1.PodList{
+			Items: []apicorev1.Pod{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "pod-name-testing",
+						Namespace: "pod-namespace-testing",
+						UID:       "pod-uid-testing",
+					},
+				},
 			},
 		}
 
-		out := typed.NewPointKV()
+		out := typed.NewPointKV(podMetricMeasurement)
 		out.SetTag("uid", "pod-uid-testing")
 		out.SetTag("pod", "pod-name-testing")
 		out.SetTag("namespace", "pod-namespace-testing")
 		out.SetField("ready", 0)
 
-		res := composePodMetric(in)
-		assert.Equal(t, &out, res)
+		outPts := pointKVs{out}
+
+		p := &podMetadata{
+			list: in,
+		}
+		res := p.transformMetric()
+
+		assert.Equal(t, outPts, res)
 	})
 }

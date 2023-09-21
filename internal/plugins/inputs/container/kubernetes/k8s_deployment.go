@@ -11,34 +11,60 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
 
 	apiappsv1 "k8s.io/api/apps/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	deploymentMetricMeasurement = "kube_deployment"
+	deploymentObjectMeasurement = "kubernetes_deployments"
 )
 
 //nolint:gochecknoinits
 func init() {
-	registerMetricResource("deployment", gatherDeploymentMetric)
-	registerObjectResource("deployment", gatherDeploymentObject)
-	registerMeasurement(&deploymentMetric{})
-	registerMeasurement(&deploymentObject{})
+	registerResource("deployment", true, newDeployment)
+	registerMeasurements(&deploymentMetric{}, &deploymentObject{})
 }
 
-func gatherDeploymentMetric(ctx context.Context, client k8sClient) ([]measurement, error) {
-	list, err := client.GetDeployments().List(ctx, metaV1ListOption)
+type deployment struct {
+	client    k8sClient
+	continued string
+}
+
+func newDeployment(client k8sClient) resource {
+	return &deployment{client: client}
+}
+
+func (d *deployment) hasNext() bool { return d.continued != "" }
+
+func (d *deployment) getMetadata(ctx context.Context, ns string) (metadata, error) {
+	opt := metav1.ListOptions{
+		Limit:    queryLimit,
+		Continue: d.continued,
+	}
+
+	list, err := d.client.GetDeployments(ns).List(ctx, opt)
 	if err != nil {
 		return nil, err
 	}
-	return composeDeploymentMetric(list), nil
+
+	d.continued = list.Continue
+	return &deploymentMetadata{list}, nil
 }
 
-func composeDeploymentMetric(list *apiappsv1.DeploymentList) []measurement {
-	var res []measurement
+type deploymentMetadata struct {
+	list *apiappsv1.DeploymentList
+}
 
-	for _, item := range list.Items {
-		met := typed.NewPointKV()
+func (m *deploymentMetadata) transformMetric() pointKVs {
+	var res pointKVs
+
+	for _, item := range m.list.Items {
+		met := typed.NewPointKV(deploymentMetricMeasurement)
 
 		met.SetTag("uid", fmt.Sprintf("%v", item.UID))
 		met.SetTag("deployment", item.Name)
@@ -66,25 +92,17 @@ func composeDeploymentMetric(list *apiappsv1.DeploymentList) []measurement {
 		}
 
 		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
-		res = append(res, &deploymentMetric{met})
+		res = append(res, met)
 	}
 
 	return res
 }
 
-func gatherDeploymentObject(ctx context.Context, client k8sClient) ([]measurement, error) {
-	list, err := client.GetDeployments().List(ctx, metaV1ListOption)
-	if err != nil {
-		return nil, err
-	}
-	return composeDeploymentObject(list), nil
-}
+func (m *deploymentMetadata) transformObject() pointKVs {
+	var res pointKVs
 
-func composeDeploymentObject(list *apiappsv1.DeploymentList) []measurement {
-	var res []measurement
-
-	for _, item := range list.Items {
-		obj := typed.NewPointKV()
+	for _, item := range m.list.Items {
+		obj := typed.NewPointKV(deploymentObjectMeasurement)
 
 		obj.SetTag("name", fmt.Sprintf("%v", item.UID))
 		obj.SetTag("uid", fmt.Sprintf("%v", item.UID))
@@ -136,26 +154,20 @@ func composeDeploymentObject(list *apiappsv1.DeploymentList) []measurement {
 		obj.DeleteField("yaml")
 
 		obj.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
-		res = append(res, &deploymentObject{obj})
+		res = append(res, obj)
 	}
 
 	return res
 }
 
-type deploymentMetric struct{ typed.PointKV }
+type deploymentMetric struct{}
 
-func (d *deploymentMetric) namespace() string { return d.GetTag("namespace") }
-
-func (d *deploymentMetric) addExtraTags(m map[string]string) { d.SetTags(m) }
-
-func (d *deploymentMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint("kube_deployment", d.Tags(), d.Fields(), metricOpt)
-}
+func (*deploymentMetric) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*deploymentMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "kube_deployment",
+		Name: deploymentMetricMeasurement,
 		Desc: "The metric of the Kubernetes Deployment.",
 		Type: "metric",
 		Tags: map[string]interface{}{
@@ -176,20 +188,14 @@ func (*deploymentMetric) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type deploymentObject struct{ typed.PointKV }
+type deploymentObject struct{}
 
-func (d *deploymentObject) namespace() string { return d.GetTag("namespace") }
-
-func (d *deploymentObject) addExtraTags(m map[string]string) { d.SetTags(m) }
-
-func (d *deploymentObject) LineProto() (*point.Point, error) {
-	return point.NewPoint("kubernetes_deployments", d.Tags(), d.Fields(), objectOpt)
-}
+func (*deploymentObject) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*deploymentObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "kubernetes_deployments",
+		Name: deploymentObjectMeasurement,
 		Desc: "The object of the Kubernetes Deployment.",
 		Type: "object",
 		Tags: map[string]interface{}{

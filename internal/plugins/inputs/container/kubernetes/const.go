@@ -6,62 +6,26 @@
 package kubernetes
 
 import (
-	"context"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
-	globalName = "kubernetes"
+	name                   = "kubernetes"
+	maxMessageLength       = 256 * 1024 // 256KB
+	queryLimit       int64 = 100
 
-	maxMessageLength = 256 * 1024 // 256KB
-	metaV1ListOption = metav1.ListOptions{}
-	metaV1GetOption  = metav1.GetOptions{}
-
-	metricOpt  = &point.PointOption{Category: datakit.Metric, GlobalElectionTags: true}
-	objectOpt  = &point.PointOption{Category: datakit.Object, GlobalElectionTags: true}
-	loggingOpt = &point.PointOption{Category: datakit.Logging, GlobalElectionTags: true}
-
-	metricResourceList = map[string]resourceHandle{}
-	objectResourceList = map[string]resourceHandle{}
+	measurements []inputs.Measurement
 )
 
-type measurement interface {
-	inputs.Measurement
-	namespace() string
-	addExtraTags(map[string]string)
+type pointKVs []*typed.PointKV
+
+func Measurements() []inputs.Measurement {
+	return measurements
 }
 
-type resourceHandle func(context.Context, k8sClient) ([]measurement, error)
-
-func registerMetricResource(name string, handle resourceHandle) {
-	metricResourceList[name] = handle
+func registerMeasurements(meas ...inputs.Measurement) {
+	measurements = append(measurements, meas...)
 }
 
-func registerObjectResource(name string, handle resourceHandle) {
-	objectResourceList[name] = handle
-}
-
-var pointMeasurements []inputs.Measurement
-
-func PointMeasurement() []inputs.Measurement {
-	return pointMeasurements
-}
-
-func registerMeasurement(mea inputs.Measurement) {
-	pointMeasurements = append(pointMeasurements, mea)
-}
-
-func Name() string {
-	return globalName
-}
-
-type contextKeyType string
-
-const (
-	canCollectPodMetricsKey   contextKeyType = "canCollectPodMetrics"
-	setExtraK8sLabelAsTagsKey contextKeyType = "setExtraK8sLabelAsTags"
-)
+func Name() string { return name }

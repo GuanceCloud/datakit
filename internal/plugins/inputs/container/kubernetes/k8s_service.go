@@ -12,32 +12,63 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
 
 	apicorev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	serviceObjectMeasurement = "kubernetes_services"
 )
 
 //nolint:gochecknoinits
 func init() {
-	registerObjectResource("service", gatherServiceObject)
-	registerMeasurement(&serviceObject{})
+	registerResource("service", true, newService)
+	registerMeasurements(&serviceObject{})
 }
 
-func gatherServiceObject(ctx context.Context, client k8sClient) ([]measurement, error) {
-	list, err := client.GetServices().List(ctx, metaV1ListOption)
+type service struct {
+	client    k8sClient
+	continued string
+}
+
+func newService(client k8sClient) resource {
+	return &service{client: client}
+}
+
+func (s *service) hasNext() bool { return s.continued != "" }
+
+func (s *service) getMetadata(ctx context.Context, ns string) (metadata, error) {
+	opt := metav1.ListOptions{
+		Limit:    queryLimit,
+		Continue: s.continued,
+	}
+
+	list, err := s.client.GetServices(ns).List(ctx, opt)
 	if err != nil {
 		return nil, err
 	}
-	return composeServiceObject(list), nil
+
+	s.continued = list.Continue
+	return &serviceMetadata{list}, nil
 }
 
-func composeServiceObject(list *apicorev1.ServiceList) []measurement {
-	var res []measurement
+type serviceMetadata struct {
+	list *apicorev1.ServiceList
+}
 
-	for _, item := range list.Items {
-		obj := typed.NewPointKV()
+func (m *serviceMetadata) transformMetric() pointKVs {
+	return nil
+}
+
+func (m *serviceMetadata) transformObject() pointKVs {
+	var res pointKVs
+
+	for _, item := range m.list.Items {
+		obj := typed.NewPointKV(serviceObjectMeasurement)
 
 		obj.SetTag("name", fmt.Sprintf("%v", item.UID))
 		obj.SetTag("uid", fmt.Sprintf("%v", item.UID))
@@ -64,26 +95,20 @@ func composeServiceObject(list *apicorev1.ServiceList) []measurement {
 		obj.DeleteField("yaml")
 
 		obj.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
-		res = append(res, &serviceObject{obj})
+		res = append(res, obj)
 	}
 
 	return res
 }
 
-type serviceObject struct{ typed.PointKV }
+type serviceObject struct{}
 
-func (s *serviceObject) namespace() string { return s.GetTag("namespace") }
-
-func (s *serviceObject) addExtraTags(m map[string]string) { s.SetTags(m) }
-
-func (s *serviceObject) LineProto() (*point.Point, error) {
-	return point.NewPoint("kubernetes_services", s.Tags(), s.Fields(), objectOpt)
-}
+func (*serviceObject) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*serviceObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "kubernetes_services",
+		Name: serviceObjectMeasurement,
 		Desc: "The object of the Kubernetes Service.",
 		Type: "object",
 		Tags: map[string]interface{}{

@@ -161,7 +161,7 @@ func (d *Discovery) newPromFromDatakitCRD() []*promRunner {
 func (d *Discovery) newPromForPodMonitors() []*promRunner {
 	var res []*promRunner
 
-	list, err := d.client.GetPrmetheusPodMonitors().List(context.Background(), metaV1ListOption)
+	list, err := d.client.GetPrmetheusPodMonitors(defaultNamespace).List(context.Background(), metaV1ListOption)
 	if err != nil {
 		klog.Warnf("failed to get PodMonitor, err: %s", err)
 		return nil
@@ -240,7 +240,7 @@ func (d *Discovery) newPromForPodMonitors() []*promRunner {
 func (d *Discovery) newPromForServiceMonitors() []*promRunner {
 	var res []*promRunner
 
-	list, err := d.client.GetPrmetheusServiceMonitors().List(context.Background(), metaV1ListOption)
+	list, err := d.client.GetPrmetheusServiceMonitors(defaultNamespace).List(context.Background(), metaV1ListOption)
 	if err != nil {
 		klog.Warnf("failed to get ServiceMonitor, err: %s", err)
 		return nil
@@ -325,7 +325,7 @@ func (d *Discovery) newPromForServiceMonitors() []*promRunner {
 type datakitCRDHandler func(kubev1guancebeta1.DatakitInstance, *apicorev1.Pod)
 
 func (d *Discovery) processCRDWithPod(fn datakitCRDHandler) error {
-	list, err := d.client.GetDatakits().List(context.Background(), metaV1ListOption)
+	list, err := d.client.GetDatakits(defaultNamespace).List(context.Background(), metaV1ListOption)
 	if err != nil {
 		return err
 	}
@@ -377,7 +377,7 @@ func (d *Discovery) getLocalPodsFromLabelSelector(source, namespace string, sele
 		opt.LabelSelector = newLabelSelector(selector.MatchLabels, selector.MatchExpressions).String()
 	}
 
-	list, err := d.client.GetPodsForNamespace(namespace).List(context.Background(), opt)
+	list, err := d.client.GetPods(namespace).List(context.Background(), opt)
 	if err != nil {
 		klog.Warnf("failed to get pods from namespace '%s' by %s, err: %s, skip", namespace, source, err)
 		return
@@ -396,7 +396,7 @@ func (d *Discovery) getServicesFromLabelSelector(source, namespace string, selec
 		opt.LabelSelector = newLabelSelector(selector.MatchLabels, selector.MatchExpressions).String()
 	}
 
-	list, err := d.client.GetServicesForNamespace(namespace).List(context.Background(), opt)
+	list, err := d.client.GetServices(namespace).List(context.Background(), opt)
 	if err != nil {
 		klog.Warnf("failed to get services from namespace '%s' by %s, err: %s, skip", namespace, source, err)
 		return
@@ -408,7 +408,7 @@ func (d *Discovery) getServicesFromLabelSelector(source, namespace string, selec
 }
 
 func (d *Discovery) getDaemonSetLabelSelector(namespace, daemonset string) (*metav1.LabelSelector, error) {
-	daemonsetObj, err := d.client.GetDaemonSetsForNamespace(namespace).Get(context.Background(), daemonset, metaV1GetOption)
+	daemonsetObj, err := d.client.GetDaemonSets(namespace).Get(context.Background(), daemonset, metaV1GetOption)
 	if err != nil {
 		return nil, err
 	}
@@ -419,7 +419,7 @@ func (d *Discovery) getDaemonSetLabelSelector(namespace, daemonset string) (*met
 }
 
 func (d *Discovery) getDeploymentLabelSelector(namespace, deployment string) (*metav1.LabelSelector, error) {
-	deploymentObj, err := d.client.GetDeploymentsForNamespace(namespace).Get(context.Background(), deployment, metaV1GetOption)
+	deploymentObj, err := d.client.GetDeployments(namespace).Get(context.Background(), deployment, metaV1GetOption)
 	if err != nil {
 		return nil, err
 	}
