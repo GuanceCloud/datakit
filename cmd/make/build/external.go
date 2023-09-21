@@ -39,6 +39,7 @@ var externals = []*dkexternal{
 		entry: "oracle.go",
 		osarchs: map[string]bool{
 			"linux/amd64": true,
+			"linux/arm64": true,
 		},
 
 		buildArgs: nil,
@@ -141,10 +142,16 @@ func buildExternals(dir, goos, goarch string, standalone bool) error {
 			continue
 		}
 
-		if ex.name == "ebpf" {
-			if goarch != runtime.GOARCH {
-				l.Warnf("skip, ebpf does not support cross compilation")
+		if goarch != runtime.GOARCH {
+			switch ex.name {
+			case "ebpf":
+				l.Warnf("skip, " + ex.name + " does not support cross compilation")
 				continue
+			case "oracle":
+				l.Infof("building " + ex.name + " by cross compilation...")
+
+				ex.envs = append(ex.envs, "CC=/opt/linaro/aarch64-linux-gnu/gcc-linaro-4.9-2016.02-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-gcc")
+				ex.envs = append(ex.envs, "CXX=/opt/linaro/aarch64-linux-gnu/gcc-linaro-4.9-2016.02-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-g++")
 			}
 		}
 
@@ -160,6 +167,7 @@ func buildExternals(dir, goos, goarch string, standalone bool) error {
 			outdir = filepath.Join(dir, "externals")
 		}
 
+		l.Info("lang = ", ex.lang)
 		switch strings.ToLower(ex.lang) {
 		case "go", "golang":
 
