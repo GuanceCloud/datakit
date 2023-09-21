@@ -11,34 +11,60 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
 
 	apiappsv1 "k8s.io/api/apps/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	replicasetMetricMeasurement = "kube_replicaset"
+	replicasetObjectMeasurement = "kubernetes_replica_sets"
 )
 
 //nolint:gochecknoinits
 func init() {
-	registerMetricResource("replicaset", gatherReplicasetMetric)
-	registerObjectResource("replicaset", gatherReplicasetObject)
-	registerMeasurement(&replicasetMetric{})
-	registerMeasurement(&replicasetObject{})
+	registerResource("replicaset", true, newReplicaset)
+	registerMeasurements(&replicasetMetric{}, &replicasetObject{})
 }
 
-func gatherReplicasetMetric(ctx context.Context, client k8sClient) ([]measurement, error) {
-	list, err := client.GetReplicaSets().List(ctx, metaV1ListOption)
+type replicaset struct {
+	client    k8sClient
+	continued string
+}
+
+func newReplicaset(client k8sClient) resource {
+	return &replicaset{client: client}
+}
+
+func (r *replicaset) hasNext() bool { return r.continued != "" }
+
+func (r *replicaset) getMetadata(ctx context.Context, ns string) (metadata, error) {
+	opt := metav1.ListOptions{
+		Limit:    queryLimit,
+		Continue: r.continued,
+	}
+
+	list, err := r.client.GetReplicaSets(ns).List(ctx, opt)
 	if err != nil {
 		return nil, err
 	}
-	return composeReplicasetMetric(list), nil
+
+	r.continued = list.Continue
+	return &replicasetMetadata{list}, nil
 }
 
-func composeReplicasetMetric(list *apiappsv1.ReplicaSetList) []measurement {
-	var res []measurement
+type replicasetMetadata struct {
+	list *apiappsv1.ReplicaSetList
+}
 
-	for _, item := range list.Items {
-		met := typed.NewPointKV()
+func (m *replicasetMetadata) transformMetric() pointKVs {
+	var res pointKVs
+
+	for _, item := range m.list.Items {
+		met := typed.NewPointKV(replicasetMetricMeasurement)
 
 		met.SetTag("uid", fmt.Sprintf("%v", item.UID))
 		met.SetTag("replicaset", item.Name)
@@ -55,25 +81,17 @@ func composeReplicasetMetric(list *apiappsv1.ReplicaSetList) []measurement {
 		}
 
 		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
-		res = append(res, &replicasetMetric{met})
+		res = append(res, met)
 	}
 
 	return res
 }
 
-func gatherReplicasetObject(ctx context.Context, client k8sClient) ([]measurement, error) {
-	list, err := client.GetReplicaSets().List(ctx, metaV1ListOption)
-	if err != nil {
-		return nil, err
-	}
-	return composeReplicasetObject(list), nil
-}
+func (m *replicasetMetadata) transformObject() pointKVs {
+	var res pointKVs
 
-func composeReplicasetObject(list *apiappsv1.ReplicaSetList) []measurement {
-	var res []measurement
-
-	for _, item := range list.Items {
-		obj := typed.NewPointKV()
+	for _, item := range m.list.Items {
+		obj := typed.NewPointKV(replicasetObjectMeasurement)
 
 		obj.SetTag("name", fmt.Sprintf("%v", item.UID))
 		obj.SetTag("uid", fmt.Sprintf("%v", item.UID))
@@ -114,26 +132,20 @@ func composeReplicasetObject(list *apiappsv1.ReplicaSetList) []measurement {
 		obj.DeleteField("yaml")
 
 		obj.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
-		res = append(res, &replicasetObject{obj})
+		res = append(res, obj)
 	}
 
 	return res
 }
 
-type replicasetMetric struct{ typed.PointKV }
+type replicasetMetric struct{}
 
-func (r *replicasetMetric) namespace() string { return r.GetTag("namespace") }
-
-func (r *replicasetMetric) addExtraTags(m map[string]string) { r.SetTags(m) }
-
-func (r *replicasetMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint("kube_replicaset", r.Tags(), r.Fields(), metricOpt)
-}
+func (*replicasetMetric) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*replicasetMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "kube_replicaset",
+		Name: replicasetMetricMeasurement,
 		Desc: "The metric of the Kubernetes ReplicaSet.",
 		Type: "metric",
 		Tags: map[string]interface{}{
@@ -152,20 +164,14 @@ func (*replicasetMetric) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type replicasetObject struct{ typed.PointKV }
+type replicasetObject struct{}
 
-func (r *replicasetObject) namespace() string { return r.GetTag("namespace") }
-
-func (r *replicasetObject) addExtraTags(m map[string]string) { r.SetTags(m) }
-
-func (r *replicasetObject) LineProto() (*point.Point, error) {
-	return point.NewPoint("kubernetes_replica_sets", r.Tags(), r.Fields(), objectOpt)
-}
+func (*replicasetObject) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*replicasetObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "kubernetes_replica_sets",
+		Name: replicasetObjectMeasurement,
 		Desc: "The object of the Kubernetes ReplicaSet.",
 		Type: "object",
 		Tags: map[string]interface{}{

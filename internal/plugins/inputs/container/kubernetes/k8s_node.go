@@ -11,34 +11,60 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
 
 	apicorev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	nodeMetricMeasurement = "kube_node"
+	nodeObjectMeasurement = "kubernetes_nodes"
 )
 
 //nolint:gochecknoinits
 func init() {
-	registerMetricResource("node", gatherNodeMetric)
-	registerObjectResource("node", gatherNodeObject)
-	registerMeasurement(&nodeMetric{})
-	registerMeasurement(&nodeObject{})
+	registerResource("node", false, newNode)
+	registerMeasurements(&nodeMetric{}, &nodeObject{})
 }
 
-func gatherNodeMetric(ctx context.Context, client k8sClient) ([]measurement, error) {
-	list, err := client.GetNodes().List(ctx, metaV1ListOption)
+type node struct {
+	client    k8sClient
+	continued string
+}
+
+func newNode(client k8sClient) resource {
+	return &node{client: client}
+}
+
+func (n *node) hasNext() bool { return n.continued != "" }
+
+func (n *node) getMetadata(ctx context.Context, _ string) (metadata, error) {
+	opt := metav1.ListOptions{
+		Limit:    queryLimit,
+		Continue: n.continued,
+	}
+
+	list, err := n.client.GetNodes().List(ctx, opt)
 	if err != nil {
 		return nil, err
 	}
-	return composeNodeMetric(list), nil
+
+	n.continued = list.Continue
+	return &nodeMetadata{list}, nil
 }
 
-func composeNodeMetric(list *apicorev1.NodeList) []measurement {
-	var res []measurement
+type nodeMetadata struct {
+	list *apicorev1.NodeList
+}
 
-	for _, item := range list.Items {
-		met := typed.NewPointKV()
+func (m *nodeMetadata) transformMetric() pointKVs {
+	var res pointKVs
+
+	for _, item := range m.list.Items {
+		met := typed.NewPointKV(nodeMetricMeasurement)
 
 		met.SetTag("uid", fmt.Sprintf("%v", item.UID))
 		met.SetTag("node", item.Name)
@@ -70,25 +96,17 @@ func composeNodeMetric(list *apicorev1.NodeList) []measurement {
 		met.SetField("ephemeral_storage_capacity", e2.AsApproximateFloat64())
 
 		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
-		res = append(res, &nodeMetric{met})
+		res = append(res, met)
 	}
 
 	return res
 }
 
-func gatherNodeObject(ctx context.Context, client k8sClient) ([]measurement, error) {
-	list, err := client.GetNodes().List(ctx, metaV1ListOption)
-	if err != nil {
-		return nil, err
-	}
-	return composeNodeObject(list), nil
-}
+func (m *nodeMetadata) transformObject() pointKVs {
+	var res pointKVs
 
-func composeNodeObject(list *apicorev1.NodeList) []measurement {
-	var res []measurement
-
-	for _, item := range list.Items {
-		obj := typed.NewPointKV()
+	for _, item := range m.list.Items {
+		obj := typed.NewPointKV(nodeObjectMeasurement)
 
 		obj.SetTag("name", fmt.Sprintf("%v", item.UID))
 		obj.SetTag("uid", fmt.Sprintf("%v", item.UID))
@@ -122,26 +140,20 @@ func composeNodeObject(list *apicorev1.NodeList) []measurement {
 		obj.DeleteField("yaml")
 
 		obj.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
-		res = append(res, &nodeObject{obj})
+		res = append(res, obj)
 	}
 
 	return res
 }
 
-type nodeMetric struct{ typed.PointKV }
+type nodeMetric struct{}
 
-func (n *nodeMetric) namespace() string { return n.GetTag("namespace") }
-
-func (n *nodeMetric) addExtraTags(m map[string]string) { n.SetTags(m) }
-
-func (n *nodeMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint("kube_node", n.Tags(), n.Fields(), metricOpt)
-}
+func (*nodeMetric) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*nodeMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "kube_node",
+		Name: nodeMetricMeasurement,
 		Desc: "The metric of the Kubernetes Node.",
 		Type: "metric",
 		Tags: map[string]interface{}{
@@ -161,20 +173,14 @@ func (*nodeMetric) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type nodeObject struct{ typed.PointKV }
+type nodeObject struct{}
 
-func (n *nodeObject) namespace() string { return n.GetTag("namespace") }
-
-func (n *nodeObject) addExtraTags(m map[string]string) { n.SetTags(m) }
-
-func (n *nodeObject) LineProto() (*point.Point, error) {
-	return point.NewPoint("kubernetes_nodes", n.Tags(), n.Fields(), objectOpt)
-}
+func (*nodeObject) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*nodeObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "kubernetes_nodes",
+		Name: nodeObjectMeasurement,
 		Desc: "The object of the Kubernetes Node.",
 		Type: "object",
 		Tags: map[string]interface{}{

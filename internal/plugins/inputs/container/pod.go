@@ -33,8 +33,33 @@ func (p *podInfo) owner() (string, string) {
 	return strings.ToLower(p.ownerKind), p.ownerName
 }
 
+func (p *podInfo) cpuLimit(containerName string) int64 {
+	if containerName == "" {
+		return 0
+	}
+
+	for _, c := range p.pod.Spec.Containers {
+		if c.Name != containerName {
+			continue
+		}
+
+		cpu := c.Resources.Limits["cpu"]
+
+		limit, ok := cpu.AsInt64()
+		if !ok {
+			limit, ok = cpu.AsDec().Unscaled()
+			if !ok {
+				limit = 0
+			}
+		}
+		return limit
+	}
+
+	return 0
+}
+
 func (c *container) queryPodInfo(ctx context.Context, podName, podNamespace string) (*podInfo, error) {
-	pod, err := c.k8sClient.GetPodsForNamespace(podNamespace).Get(ctx, podName, metav1.GetOptions{})
+	pod, err := c.k8sClient.GetPods(podNamespace).Get(ctx, podName, metav1.GetOptions{ResourceVersion: "0"})
 	if err != nil {
 		return nil, fmt.Errorf("unable query pod %s, err: %w", podName, err)
 	}

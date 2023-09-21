@@ -22,7 +22,6 @@ import (
 	batchv1 "k8s.io/client-go/kubernetes/typed/batch/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	extensionsv1beta1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
-	rbacv1 "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/flowcontrol"
 	metricsv1beta1 "k8s.io/metrics/pkg/client/clientset/versioned/typed/metrics/v1beta1"
@@ -31,39 +30,31 @@ import (
 )
 
 type Client interface {
-	// resources
-	GetDeployments() appsv1.DeploymentInterface
-	GetDaemonSets() appsv1.DaemonSetInterface
-	GetReplicaSets() appsv1.ReplicaSetInterface
-	GetStatefulSets() appsv1.StatefulSetInterface
-	GetJobs() batchv1.JobInterface
-	GetCronJobs() batchv1.CronJobInterface
-	GetEndpoints() corev1.EndpointsInterface
-	GetServices() corev1.ServiceInterface
-	GetNodes() corev1.NodeInterface
 	GetNamespaces() corev1.NamespaceInterface
-	GetPods() corev1.PodInterface
-	GetClusterRoles() rbacv1.ClusterRoleInterface
-	GetIngress() extensionsv1beta1.IngressInterface
-	GetEvents() corev1.EventInterface
+	GetNodes() corev1.NodeInterface
+
+	// resources
+	GetDeployments(ns string) appsv1.DeploymentInterface
+	GetDaemonSets(ns string) appsv1.DaemonSetInterface
+	GetReplicaSets(ns string) appsv1.ReplicaSetInterface
+	GetStatefulSets(ns string) appsv1.StatefulSetInterface
+	GetJobs(ns string) batchv1.JobInterface
+	GetCronJobs(ns string) batchv1.CronJobInterface
+	GetEndpoints(ns string) corev1.EndpointsInterface
+	GetServices(ns string) corev1.ServiceInterface
+	GetPods(ns string) corev1.PodInterface
+	GetIngress(ns string) extensionsv1beta1.IngressInterface
+	GetEvents(ns string) corev1.EventInterface
 
 	// CRDs
-	GetDatakits() guancev1beta1.DatakitInterface
-	GetPrmetheusPodMonitors() prometheusmonitoringv1.PodMonitorInterface
-	GetPrmetheusServiceMonitors() prometheusmonitoringv1.ServiceMonitorInterface
-
-	// for namespace
-	GetPodsForNamespace(string) corev1.PodInterface
-	GetReplicaSetsForNamespace(string) appsv1.ReplicaSetInterface
-	GetDaemonSetsForNamespace(string) appsv1.DaemonSetInterface
-	GetDeploymentsForNamespace(string) appsv1.DeploymentInterface
-	GetServicesForNamespace(string) corev1.ServiceInterface
+	GetDatakits(ns string) guancev1beta1.DatakitInterface
+	GetPrmetheusPodMonitors(ns string) prometheusmonitoringv1.PodMonitorInterface
+	GetPrmetheusServiceMonitors(ns string) prometheusmonitoringv1.ServiceMonitorInterface
 
 	// plugins
 	// metrics-server
-	GetPodMetricses() metricsv1beta1.PodMetricsInterface
-	GetPodMetricsesForNamespace(namespace string) metricsv1beta1.PodMetricsInterface
-	GetNodeMetricses() metricsv1beta1.NodeMetricsInterface
+	GetPodMetricses(ns string) metricsv1beta1.PodMetricsInterface
+	GetNodeMetricses(ns string) metricsv1beta1.NodeMetricsInterface
 }
 
 const (
@@ -174,106 +165,78 @@ func newKubernetesClient(restConfig *rest.Config) (*client, error) {
 	}, nil
 }
 
-func (c *client) GetDeployments() appsv1.DeploymentInterface {
-	return c.clientset.AppsV1().Deployments(NAMESPACE)
-}
-
-func (c *client) GetDeploymentsForNamespace(namespace string) appsv1.DeploymentInterface {
-	return c.clientset.AppsV1().Deployments(namespace)
-}
-
-func (c *client) GetDaemonSets() appsv1.DaemonSetInterface {
-	return c.clientset.AppsV1().DaemonSets(NAMESPACE)
-}
-
-func (c *client) GetDaemonSetsForNamespace(namespace string) appsv1.DaemonSetInterface {
-	return c.clientset.AppsV1().DaemonSets(namespace)
-}
-
-func (c *client) GetReplicaSets() appsv1.ReplicaSetInterface {
-	return c.clientset.AppsV1().ReplicaSets(NAMESPACE)
-}
-
-func (c *client) GetStatefulSets() appsv1.StatefulSetInterface {
-	return c.clientset.AppsV1().StatefulSets(NAMESPACE)
-}
-
-func (c *client) GetJobs() batchv1.JobInterface {
-	return c.clientset.BatchV1().Jobs(NAMESPACE)
-}
-
-func (c *client) GetCronJobs() batchv1.CronJobInterface {
-	return c.clientset.BatchV1().CronJobs(NAMESPACE)
-}
-
-func (c *client) GetEndpoints() corev1.EndpointsInterface {
-	return c.clientset.CoreV1().Endpoints(NAMESPACE)
-}
-
-func (c *client) GetServices() corev1.ServiceInterface {
-	return c.clientset.CoreV1().Services(NAMESPACE)
-}
-
-func (c *client) GetServicesForNamespace(namespace string) corev1.ServiceInterface {
-	return c.clientset.CoreV1().Services(namespace)
+func (c *client) GetNamespaces() corev1.NamespaceInterface {
+	return c.clientset.CoreV1().Namespaces()
 }
 
 func (c *client) GetNodes() corev1.NodeInterface {
 	return c.clientset.CoreV1().Nodes()
 }
 
-func (c *client) GetNamespaces() corev1.NamespaceInterface {
-	return c.clientset.CoreV1().Namespaces()
+func (c *client) GetDeployments(ns string) appsv1.DeploymentInterface {
+	return c.clientset.AppsV1().Deployments(ns)
 }
 
-func (c *client) GetPods() corev1.PodInterface {
-	return c.clientset.CoreV1().Pods(NAMESPACE)
+func (c *client) GetDaemonSets(ns string) appsv1.DaemonSetInterface {
+	return c.clientset.AppsV1().DaemonSets(ns)
 }
 
-func (c *client) GetPodsForNamespace(namespace string) corev1.PodInterface {
-	return c.clientset.CoreV1().Pods(namespace)
+func (c *client) GetReplicaSets(ns string) appsv1.ReplicaSetInterface {
+	return c.clientset.AppsV1().ReplicaSets(ns)
 }
 
-func (c *client) GetReplicaSetsForNamespace(namespace string) appsv1.ReplicaSetInterface {
-	return c.clientset.AppsV1().ReplicaSets(namespace)
+func (c *client) GetStatefulSets(ns string) appsv1.StatefulSetInterface {
+	return c.clientset.AppsV1().StatefulSets(ns)
 }
 
-func (c *client) GetClusterRoles() rbacv1.ClusterRoleInterface {
-	return c.clientset.RbacV1().ClusterRoles()
+func (c *client) GetJobs(ns string) batchv1.JobInterface {
+	return c.clientset.BatchV1().Jobs(ns)
 }
 
-func (c *client) GetIngress() extensionsv1beta1.IngressInterface {
-	return c.clientset.ExtensionsV1beta1().Ingresses(NAMESPACE)
+func (c *client) GetCronJobs(ns string) batchv1.CronJobInterface {
+	return c.clientset.BatchV1().CronJobs(ns)
 }
 
-func (c *client) GetEvents() corev1.EventInterface {
-	return c.clientset.CoreV1().Events(NAMESPACE)
+func (c *client) GetEndpoints(ns string) corev1.EndpointsInterface {
+	return c.clientset.CoreV1().Endpoints(ns)
+}
+
+func (c *client) GetServices(ns string) corev1.ServiceInterface {
+	return c.clientset.CoreV1().Services(ns)
+}
+
+func (c *client) GetPods(ns string) corev1.PodInterface {
+	return c.clientset.CoreV1().Pods(ns)
+}
+
+func (c *client) GetIngress(ns string) extensionsv1beta1.IngressInterface {
+	return c.clientset.ExtensionsV1beta1().Ingresses(ns)
+}
+
+func (c *client) GetEvents(ns string) corev1.EventInterface {
+	return c.clientset.CoreV1().Events(ns)
 }
 
 /// CRDs
 
-func (c *client) GetDatakits() guancev1beta1.DatakitInterface {
-	return c.guanceV1beta1.Datakits(NAMESPACE)
+func (c *client) GetDatakits(ns string) guancev1beta1.DatakitInterface {
+	return c.guanceV1beta1.Datakits(ns)
 }
 
-func (c *client) GetPrmetheusPodMonitors() prometheusmonitoringv1.PodMonitorInterface {
-	return c.prometheusMonitoringV1.MonitoringV1().PodMonitors(NAMESPACE)
+func (c *client) GetPrmetheusPodMonitors(ns string) prometheusmonitoringv1.PodMonitorInterface {
+	return c.prometheusMonitoringV1.MonitoringV1().PodMonitors(ns)
 }
 
-func (c *client) GetPrmetheusServiceMonitors() prometheusmonitoringv1.ServiceMonitorInterface {
-	return c.prometheusMonitoringV1.MonitoringV1().ServiceMonitors(NAMESPACE)
+func (c *client) GetPrmetheusServiceMonitors(ns string) prometheusmonitoringv1.ServiceMonitorInterface {
+	return c.prometheusMonitoringV1.MonitoringV1().ServiceMonitors(ns)
 }
 
 /// plugins
 
-func (c *client) GetPodMetricses() metricsv1beta1.PodMetricsInterface {
-	return c.metricsV1beta1.PodMetricses(NAMESPACE)
+func (c *client) GetPodMetricses(ns string) metricsv1beta1.PodMetricsInterface {
+	return c.metricsV1beta1.PodMetricses(ns)
 }
 
-func (c *client) GetPodMetricsesForNamespace(namespace string) metricsv1beta1.PodMetricsInterface {
-	return c.metricsV1beta1.PodMetricses(namespace)
-}
-
-func (c *client) GetNodeMetricses() metricsv1beta1.NodeMetricsInterface {
+func (c *client) GetNodeMetricses(ns string) metricsv1beta1.NodeMetricsInterface {
 	return c.metricsV1beta1.NodeMetricses()
 }

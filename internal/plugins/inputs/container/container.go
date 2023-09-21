@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/runtime"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
@@ -61,23 +62,69 @@ func newContainer(ipt *Input, endpoint string, mountPoint string, k8sClient k8sc
 	}, nil
 }
 
-func (c *container) Metric() ([]inputs.Measurement, error) {
-	cList, err := c.runtime.ListContainers()
-	if err != nil {
-		return nil, err
+func (c *container) Metric(feed func(pts []*point.Point) error) {
+	if !c.ipt.EnableContainerMetric {
+		l.Info("collect container metric: offf")
+		return
+	}
+	c.gather("metric", feed)
+}
+
+func (c *container) Object(feed func(pts []*point.Point) error) {
+	c.gather("object", feed)
+}
+
+func (c *container) gather(category string, feed func(pts []*point.Point) error) {
+	wrapFeed := func(pts []*point.Point) error {
+		err := feed(pts)
+		if err == nil {
+			collectPtsVec.WithLabelValues(category).Add(float64(len(pts)))
+		}
+		return err
 	}
 
-	var res []inputs.Measurement
+	start := time.Now()
+	c.gatherResource(category, wrapFeed)
+
+	collectCostVec.WithLabelValues(category).Observe(time.Since(start).Seconds())
+}
+
+func (c *container) gatherResource(category string, feed func(pts []*point.Point) error) {
+	var opts []point.Option
+
+	switch category {
+	case "metric":
+		opts = point.DefaultMetricOptions()
+	case "object":
+		opts = point.DefaultObjectOptions()
+	default:
+		return
+	}
+
+	cList, err := c.runtime.ListContainers()
+	if err != nil {
+		l.Warn(err)
+		return
+	}
+
+	var res []*typed.PointKV
 	var mu sync.Mutex
 
-	g := goroutine.NewGroup(goroutine.Option{Name: "container-metric"})
+	g := goroutine.NewGroup(goroutine.Option{Name: "container-" + category})
 
 	for idx := range cList {
 		func(info *runtime.Container) {
 			g.Go(func(ctx context.Context) error {
-				point := c.transToPoint(info)
+				pt := c.transformPoint(info)
+				pt.SetTags(c.extraTags)
+
+				if category == "object" {
+					pt.SetTag("name", info.ID)
+					pt.SetField("age", time.Since(time.Unix(0, info.CreatedAt)).Milliseconds()/1e3)
+				}
+
 				mu.Lock()
-				res = append(res, &containerMetric{point})
+				res = append(res, pt)
 				mu.Unlock()
 				return nil
 			})
@@ -86,44 +133,16 @@ func (c *container) Metric() ([]inputs.Measurement, error) {
 
 	_ = g.Wait()
 
-	return res, nil
+	if err := feed(transToPoint(res, opts)); err != nil {
+		l.Warnf("feed container-%s error: %s", category, err)
+	}
 }
 
-func (c *container) Object() ([]inputs.Measurement, error) {
-	cList, err := c.runtime.ListContainers()
-	if err != nil {
-		return nil, err
-	}
-
-	var res []inputs.Measurement
-	var mu sync.Mutex
-
-	g := goroutine.NewGroup(goroutine.Option{Name: "container-object"})
-
-	for idx := range cList {
-		func(info *runtime.Container) {
-			g.Go(func(ctx context.Context) error {
-				point := c.transToPoint(info)
-				point.SetTag("name", info.ID)
-				point.SetField("age", time.Since(time.Unix(0, info.CreatedAt)).Milliseconds()/1e3)
-
-				mu.Lock()
-				res = append(res, &containerObject{point})
-				mu.Unlock()
-				return nil
-			})
-		}(cList[idx])
-	}
-
-	_ = g.Wait()
-
-	return res, nil
-}
-
-func (c *container) Logging() error {
+func (c *container) Logging(_ func([]*point.Point) error) {
 	cList, err := c.runtime.ListContainers()
 	if len(cList) == 0 && err != nil {
-		return err
+		l.Warn("not found containers, err: %s", err)
+		return
 	}
 
 	var newIDs []string
@@ -153,7 +172,7 @@ func (c *container) Logging() error {
 		instance.fillLogType(info.RuntimeName)
 		instance.setTagsToLogConfigs(instance.tags())
 		instance.setTagsToLogConfigs(c.extraTags)
-		instance.setCustomerTags(instance.podLabels, config.Cfg.Dataway.GlobalCustomerKeys)
+		instance.setCustomerTags(instance.podLabels, getGlobalCustomerKeys())
 
 		c.ipt.setLoggingExtraSourceMapToLogConfigs(instance.configs)
 		c.ipt.setLoggingSourceMultilineMapToLogConfigs(instance.configs)
@@ -163,8 +182,6 @@ func (c *container) Logging() error {
 	}
 
 	l.Infof("current container logtable: %s", c.logTable.String())
-
-	return nil
 }
 
 func (c *container) Name() string {
@@ -181,8 +198,9 @@ func (c *container) shouldPullContainerLog(ins *logInstance) bool {
 	return true
 }
 
-func (c *container) transToPoint(info *runtime.Container) typed.PointKV {
-	p := typed.NewPointKV()
+func (c *container) transformPoint(info *runtime.Container) *typed.PointKV {
+	p := typed.NewPointKV(containerMeasurement)
+
 	p.SetTag("container_id", info.ID)
 	p.SetTag("container_runtime", info.RuntimeName)
 	p.SetTag("state", info.State)
@@ -270,6 +288,7 @@ func (c *container) transToPoint(info *runtime.Container) typed.PointKV {
 				image = img
 			}
 
+			p.SetField("cpu_limit", podInfo.cpuLimit(getContainerNameForLabels(info.Labels)))
 			p.SetCustomerTags(podInfo.pod.Labels, config.Cfg.Dataway.GlobalCustomerKeys)
 		}
 	}
@@ -280,7 +299,6 @@ func (c *container) transToPoint(info *runtime.Container) typed.PointKV {
 	p.SetTag("image_short_name", shortName)
 	p.SetTag("image_tag", imageTag)
 
-	p.SetTags(c.extraTags)
 	return p
 }
 
@@ -338,4 +356,22 @@ func splitRules(arr []string) (rules []string) {
 func containerIsFromKubernetes(labels map[string]string) bool {
 	uid, ok := labels["io.kubernetes.pod.uid"]
 	return ok && uid != ""
+}
+
+func transToPoint(pts []*typed.PointKV, opts []point.Option) []*point.Point {
+	if len(pts) == 0 {
+		return nil
+	}
+
+	var res []*point.Point
+	for _, pt := range pts {
+		r := point.NewPointV2(
+			[]byte(pt.Name()),
+			append(point.NewTags(pt.Tags()), point.NewKVs(pt.Fields())...),
+			opts...,
+		)
+		res = append(res, r)
+	}
+
+	return res
 }

@@ -11,32 +11,36 @@ import (
 )
 
 type PointKV struct {
+	name   string
 	tags   map[string]string
 	fields map[string]interface{}
 }
 
-func NewPointKV() PointKV {
-	return PointKV{
+func NewPointKV(name string) *PointKV {
+	return &PointKV{
+		name:   name,
 		tags:   make(map[string]string),
 		fields: make(map[string]interface{}),
 	}
 }
 
-func (p PointKV) Tags() map[string]string { return p.tags }
+func (p *PointKV) Name() string { return p.name }
 
-func (p PointKV) Fields() map[string]interface{} { return p.fields }
+func (p *PointKV) Tags() map[string]string { return p.tags }
 
-func (p PointKV) SetTag(key, value string) { p.tags[key] = value }
+func (p *PointKV) Fields() map[string]interface{} { return p.fields }
 
-func (p PointKV) GetTag(key string) string { return p.tags[key] }
+func (p *PointKV) SetTag(key, value string) { p.tags[key] = value }
 
-func (p PointKV) SetTags(m map[string]string) {
+func (p *PointKV) GetTag(key string) string { return p.tags[key] }
+
+func (p *PointKV) SetTags(m map[string]string) {
 	for k, v := range m {
 		p.SetTag(k, v)
 	}
 }
 
-func (p PointKV) SetCustomerTags(m map[string]string, keys []string) {
+func (p *PointKV) SetCustomerTags(m map[string]string, keys []string) {
 	if len(keys) == 0 || len(m) == 0 {
 		return
 	}
@@ -47,21 +51,21 @@ func (p PointKV) SetCustomerTags(m map[string]string, keys []string) {
 	}
 }
 
-func (p PointKV) SetField(key string, value interface{}) { p.fields[key] = value }
+func (p *PointKV) SetField(key string, value interface{}) { p.fields[key] = value }
 
-func (p PointKV) SetFields(m map[string]interface{}) {
+func (p *PointKV) SetFields(m map[string]interface{}) {
 	for k, v := range m {
 		p.SetField(k, v)
 	}
 }
 
-func (p PointKV) GetField(key string) interface{} { return p.fields[key] }
+func (p *PointKV) GetField(key string) interface{} { return p.fields[key] }
 
-func (p PointKV) DeleteTag(key string) { delete(p.tags, key) }
+func (p *PointKV) DeleteTag(key string) { delete(p.tags, key) }
 
-func (p PointKV) DeleteField(key string) { delete(p.fields, key) }
+func (p *PointKV) DeleteField(key string) { delete(p.fields, key) }
 
-func (p PointKV) String() string {
+func (p *PointKV) String() string {
 	if len(p.tags) == 0 && len(p.fields) == 0 {
 		return ""
 	}

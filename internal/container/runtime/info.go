@@ -30,7 +30,7 @@ func (c *criInfo) getPid() int {
 func (c *criInfo) getConfigEnvs() map[string]string {
 	m := make(map[string]string, len(c.Config.Envs))
 	for _, env := range c.Config.Envs {
-		m[env.Key] = m[env.Value]
+		m[env.Key] = env.Value
 	}
 	return m
 }
@@ -50,7 +50,7 @@ func parseCriInfo(in string) (*criInfo, error) {
 
 // parseDockerEnv, return the value corresponding to this key in 'envs'
 //
-//	example: "PATH=/usr/local/sbin:/usr/local/bin", return "PATH : /usr/local/sbin:/usr/local/bin"
+//	e.g. "PATH=/usr/local/sbin:/usr/local/bin", return "PATH : /usr/local/sbin:/usr/local/bin"
 func parseDockerEnv(envs []string) map[string]string {
 	m := make(map[string]string, len(envs))
 	for _, envStr := range envs {

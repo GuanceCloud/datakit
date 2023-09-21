@@ -11,34 +11,60 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
 
 	apiappsv1 "k8s.io/api/apps/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	statefulsetMetricMeasurement = "kube_statefulset"
+	statefulsetObjectMeasurement = "kubernetes_statefulsets"
 )
 
 //nolint:gochecknoinits
 func init() {
-	registerMetricResource("statefulset", gatherStatefulsetMetric)
-	registerObjectResource("statefulset", gatherStatefulsetObject)
-	registerMeasurement(&statefulsetMetric{})
-	registerMeasurement(&statefulsetObject{})
+	registerResource("statefulset", true, newStatefulset)
+	registerMeasurements(&statefulsetMetric{}, &statefulsetObject{})
 }
 
-func gatherStatefulsetMetric(ctx context.Context, client k8sClient) ([]measurement, error) {
-	list, err := client.GetStatefulSets().List(ctx, metaV1ListOption)
+type statefulset struct {
+	client    k8sClient
+	continued string
+}
+
+func newStatefulset(client k8sClient) resource {
+	return &statefulset{client: client}
+}
+
+func (s *statefulset) hasNext() bool { return s.continued != "" }
+
+func (s *statefulset) getMetadata(ctx context.Context, ns string) (metadata, error) {
+	opt := metav1.ListOptions{
+		Limit:    queryLimit,
+		Continue: s.continued,
+	}
+
+	list, err := s.client.GetStatefulSets(ns).List(ctx, opt)
 	if err != nil {
 		return nil, err
 	}
-	return composeStatefulsetMetric(list), nil
+
+	s.continued = list.Continue
+	return &statefulsetMetadata{list}, nil
 }
 
-func composeStatefulsetMetric(list *apiappsv1.StatefulSetList) []measurement {
-	var res []measurement
+type statefulsetMetadata struct {
+	list *apiappsv1.StatefulSetList
+}
 
-	for _, item := range list.Items {
-		met := typed.NewPointKV()
+func (m *statefulsetMetadata) transformMetric() pointKVs {
+	var res pointKVs
+
+	for _, item := range m.list.Items {
+		met := typed.NewPointKV(statefulsetMetricMeasurement)
 
 		met.SetTag("uid", fmt.Sprintf("%v", item.UID))
 		met.SetTag("statefulset", item.Name)
@@ -55,25 +81,17 @@ func composeStatefulsetMetric(list *apiappsv1.StatefulSetList) []measurement {
 		}
 
 		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
-		res = append(res, &statefulsetMetric{met})
+		res = append(res, met)
 	}
 
 	return res
 }
 
-func gatherStatefulsetObject(ctx context.Context, client k8sClient) ([]measurement, error) {
-	list, err := client.GetStatefulSets().List(ctx, metaV1ListOption)
-	if err != nil {
-		return nil, err
-	}
-	return composeStatefulsetObject(list), nil
-}
+func (m *statefulsetMetadata) transformObject() pointKVs {
+	var res pointKVs
 
-func composeStatefulsetObject(list *apiappsv1.StatefulSetList) []measurement {
-	var res []measurement
-
-	for _, item := range list.Items {
-		obj := typed.NewPointKV()
+	for _, item := range m.list.Items {
+		obj := typed.NewPointKV(statefulsetObjectMeasurement)
 
 		obj.SetTag("name", fmt.Sprintf("%v", item.UID))
 		obj.SetTag("uid", fmt.Sprintf("%v", item.UID))
@@ -102,26 +120,20 @@ func composeStatefulsetObject(list *apiappsv1.StatefulSetList) []measurement {
 		obj.DeleteField("yaml")
 
 		obj.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
-		res = append(res, &statefulsetObject{obj})
+		res = append(res, obj)
 	}
 
 	return res
 }
 
-type statefulsetMetric struct{ typed.PointKV }
+type statefulsetMetric struct{}
 
-func (d *statefulsetMetric) namespace() string { return d.GetTag("namespace") }
-
-func (d *statefulsetMetric) addExtraTags(m map[string]string) { d.SetTags(m) }
-
-func (d *statefulsetMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint("kube_statefulset", d.Tags(), d.Fields(), metricOpt)
-}
+func (*statefulsetMetric) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*statefulsetMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "kube_statefulset",
+		Name: statefulsetMetricMeasurement,
 		Desc: "The metric of the Kubernetes StatefulSet.",
 		Type: "metric",
 		Tags: map[string]interface{}{
@@ -140,20 +152,14 @@ func (*statefulsetMetric) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type statefulsetObject struct{ typed.PointKV }
+type statefulsetObject struct{}
 
-func (d *statefulsetObject) namespace() string { return d.GetTag("namespace") }
-
-func (d *statefulsetObject) addExtraTags(m map[string]string) { d.SetTags(m) }
-
-func (d *statefulsetObject) LineProto() (*point.Point, error) {
-	return point.NewPoint("kubernetes_statefulsets", d.Tags(), d.Fields(), objectOpt)
-}
+func (*statefulsetObject) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*statefulsetObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "kubernetes_statefulsets",
+		Name: statefulsetObjectMeasurement,
 		Desc: "The object of the Kubernetes StatefulSet.",
 		Type: "object",
 		Tags: map[string]interface{}{

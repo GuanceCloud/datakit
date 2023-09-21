@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
@@ -86,7 +87,7 @@ func (d *dockerClient) ListContainers() ([]*Container, error) {
 		container := &Container{
 			ID:             c.ID,
 			Name:           getDockerContainerName(c.Names),
-			CreatedAt:      c.Created,
+			CreatedAt:      time.Unix(c.Created, 0).UnixNano(),
 			Labels:         copyMap(c.Labels),
 			RuntimeName:    d.runtimeName,
 			RuntimeVersion: d.runtimeVersion,

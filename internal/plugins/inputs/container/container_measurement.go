@@ -6,21 +6,18 @@
 package container
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 const containerMeasurement = "docker_containers"
 
-type containerMetric struct{ typed.PointKV }
+type containerMetric struct{}
 
-func (c *containerMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint(containerMeasurement, c.Tags(), c.Fields(), point.MOpt())
-}
+func (*containerMetric) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
-func (c *containerMetric) Info() *inputs.MeasurementInfo {
+func (*containerMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: containerMeasurement,
 		Type: "metric",
@@ -60,14 +57,12 @@ func (c *containerMetric) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type containerObject struct{ typed.PointKV }
+type containerObject struct{}
 
-func (c *containerObject) LineProto() (*point.Point, error) {
-	return point.NewPoint(containerMeasurement, c.Tags(), c.Fields(), point.OOpt())
-}
+func (*containerObject) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
-func (c *containerObject) Info() *inputs.MeasurementInfo {
+func (*containerObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: containerMeasurement,
 		Desc: "The object of containers, only supported Running status.",
@@ -112,10 +107,10 @@ func (c *containerObject) Info() *inputs.MeasurementInfo {
 
 type containerLog struct{}
 
-func (c *containerLog) LineProto() (*point.Point, error) { return nil, nil }
+func (*containerLog) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
-func (c *containerLog) Info() *inputs.MeasurementInfo {
+func (*containerLog) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "Use Logging Source",
 		Desc: "The logging of the container.",

@@ -11,34 +11,60 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
 
 	apibatchv1 "k8s.io/api/batch/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	cronjobMetricMeasurement = "kube_cronjob"
+	cronjobObjectMeasurement = "kubernetes_cron_jobs"
 )
 
 //nolint:gochecknoinits
 func init() {
-	registerMetricResource("cronjob", gatherCronjobMetric)
-	registerObjectResource("cronjob", gatherCronjobObject)
-	registerMeasurement(&cronjobMetric{})
-	registerMeasurement(&cronjobObject{})
+	registerResource("cronjob", true, newCronjob)
+	registerMeasurements(&cronjobMetric{}, &cronjobObject{})
 }
 
-func gatherCronjobMetric(ctx context.Context, client k8sClient) ([]measurement, error) {
-	list, err := client.GetCronJobs().List(ctx, metaV1ListOption)
+type cronjob struct {
+	client    k8sClient
+	continued string
+}
+
+func newCronjob(client k8sClient) resource {
+	return &cronjob{client: client}
+}
+
+func (c *cronjob) hasNext() bool { return c.continued != "" }
+
+func (c *cronjob) getMetadata(ctx context.Context, ns string) (metadata, error) {
+	opt := metav1.ListOptions{
+		Limit:    queryLimit,
+		Continue: c.continued,
+	}
+
+	list, err := c.client.GetCronJobs(ns).List(ctx, opt)
 	if err != nil {
 		return nil, err
 	}
-	return composeCronjobMetric(list), nil
+
+	c.continued = list.Continue
+	return &cronjobMetadata{list}, nil
 }
 
-func composeCronjobMetric(list *apibatchv1.CronJobList) []measurement {
-	var res []measurement
+type cronjobMetadata struct {
+	list *apibatchv1.CronJobList
+}
 
-	for _, item := range list.Items {
-		met := typed.NewPointKV()
+func (m *cronjobMetadata) transformMetric() pointKVs {
+	var res pointKVs
+
+	for _, item := range m.list.Items {
+		met := typed.NewPointKV(cronjobMetricMeasurement)
 
 		met.SetTag("uid", fmt.Sprintf("%v", item.UID))
 		met.SetTag("cronjob", item.Name)
@@ -49,25 +75,17 @@ func composeCronjobMetric(list *apibatchv1.CronJobList) []measurement {
 		}
 
 		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
-		res = append(res, &cronjobMetric{met})
+		res = append(res, met)
 	}
 
 	return res
 }
 
-func gatherCronjobObject(ctx context.Context, client k8sClient) ([]measurement, error) {
-	list, err := client.GetCronJobs().List(ctx, metaV1ListOption)
-	if err != nil {
-		return nil, err
-	}
-	return composeCronjobObject(list), nil
-}
+func (m *cronjobMetadata) transformObject() pointKVs {
+	var res pointKVs
 
-func composeCronjobObject(list *apibatchv1.CronJobList) []measurement {
-	var res []measurement
-
-	for _, item := range list.Items {
-		obj := typed.NewPointKV()
+	for _, item := range m.list.Items {
+		obj := typed.NewPointKV(cronjobObjectMeasurement)
 
 		obj.SetTag("name", fmt.Sprintf("%v", item.UID))
 		obj.SetTag("uid", fmt.Sprintf("%v", item.UID))
@@ -94,26 +112,20 @@ func composeCronjobObject(list *apibatchv1.CronJobList) []measurement {
 		obj.DeleteField("yaml")
 
 		obj.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
-		res = append(res, &cronjobObject{obj})
+		res = append(res, obj)
 	}
 
 	return res
 }
 
-type cronjobMetric struct{ typed.PointKV }
+type cronjobMetric struct{}
 
-func (c *cronjobMetric) namespace() string { return c.GetTag("namespace") }
-
-func (c *cronjobMetric) addExtraTags(m map[string]string) { c.SetTags(m) }
-
-func (c *cronjobMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint("kube_cronjob", c.Tags(), c.Fields(), metricOpt)
-}
+func (*cronjobMetric) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*cronjobMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "kube_cronjob",
+		Name: cronjobMetricMeasurement,
 		Desc: "The metric of the Kubernetes CronJob.",
 		Type: "metric",
 		Tags: map[string]interface{}{
@@ -127,20 +139,14 @@ func (*cronjobMetric) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type cronjobObject struct{ typed.PointKV }
+type cronjobObject struct{}
 
-func (c *cronjobObject) namespace() string { return c.GetTag("namespace") }
-
-func (c *cronjobObject) addExtraTags(m map[string]string) { c.SetTags(m) }
-
-func (c *cronjobObject) LineProto() (*point.Point, error) {
-	return point.NewPoint("kubernetes_cron_jobs", c.Tags(), c.Fields(), objectOpt)
-}
+func (*cronjobObject) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*cronjobObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "kubernetes_cron_jobs",
+		Name: cronjobObjectMeasurement,
 		Desc: "The object of the Kubernetes CronJob.",
 		Type: "object",
 		Tags: map[string]interface{}{

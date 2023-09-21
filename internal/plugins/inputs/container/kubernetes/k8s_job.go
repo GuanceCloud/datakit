@@ -11,34 +11,60 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
 
 	apibatchv1 "k8s.io/api/batch/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	jobMetricMeasurement = "kube_job"
+	jobObjectMeasurement = "kubernetes_jobs"
 )
 
 //nolint:gochecknoinits
 func init() {
-	registerMetricResource("job", gatherJobMetric)
-	registerObjectResource("job", gatherJobObject)
-	registerMeasurement(&jobMetric{})
-	registerMeasurement(&jobObject{})
+	registerResource("job", true, newJob)
+	registerMeasurements(&jobMetric{}, &jobObject{})
 }
 
-func gatherJobMetric(ctx context.Context, client k8sClient) ([]measurement, error) {
-	list, err := client.GetJobs().List(ctx, metaV1ListOption)
+type job struct {
+	client    k8sClient
+	continued string
+}
+
+func newJob(client k8sClient) resource {
+	return &job{client: client}
+}
+
+func (j *job) hasNext() bool { return j.continued != "" }
+
+func (j *job) getMetadata(ctx context.Context, ns string) (metadata, error) {
+	opt := metav1.ListOptions{
+		Limit:    queryLimit,
+		Continue: j.continued,
+	}
+
+	list, err := j.client.GetJobs(ns).List(ctx, opt)
 	if err != nil {
 		return nil, err
 	}
-	return composeJobMetric(list), nil
+
+	j.continued = list.Continue
+	return &jobMetadata{list}, nil
 }
 
-func composeJobMetric(list *apibatchv1.JobList) []measurement {
-	var res []measurement
+type jobMetadata struct {
+	list *apibatchv1.JobList
+}
 
-	for _, item := range list.Items {
-		met := typed.NewPointKV()
+func (m *jobMetadata) transformMetric() pointKVs {
+	var res pointKVs
+
+	for _, item := range m.list.Items {
+		met := typed.NewPointKV(jobMetricMeasurement)
 
 		met.SetTag("uid", fmt.Sprintf("%v", item.UID))
 		met.SetTag("job", item.Name)
@@ -67,25 +93,17 @@ func composeJobMetric(list *apibatchv1.JobList) []measurement {
 		met.SetField("completion_failed", failed)
 
 		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
-		res = append(res, &jobMetric{met})
+		res = append(res, met)
 	}
 
 	return res
 }
 
-func gatherJobObject(ctx context.Context, client k8sClient) ([]measurement, error) {
-	list, err := client.GetJobs().List(ctx, metaV1ListOption)
-	if err != nil {
-		return nil, err
-	}
-	return composeJobObject(list), nil
-}
+func (m *jobMetadata) transformObject() pointKVs {
+	var res pointKVs
 
-func composeJobObject(list *apibatchv1.JobList) []measurement {
-	var res []measurement
-
-	for _, item := range list.Items {
-		obj := typed.NewPointKV()
+	for _, item := range m.list.Items {
+		obj := typed.NewPointKV(jobObjectMeasurement)
 
 		obj.SetTag("name", fmt.Sprintf("%v", item.UID))
 		obj.SetTag("uid", fmt.Sprintf("%v", item.UID))
@@ -101,7 +119,6 @@ func composeJobObject(list *apibatchv1.JobList) []measurement {
 		obj.SetField("active_deadline", 0)
 		obj.SetField("backoff_limit", 0)
 
-		// 因为原数据类型（例如 item.Spec.Parallelism）就是 int32，所以此处也用 int32
 		if item.Spec.Parallelism != nil {
 			obj.SetField("parallelism", *item.Spec.Parallelism)
 		}
@@ -126,26 +143,20 @@ func composeJobObject(list *apibatchv1.JobList) []measurement {
 		obj.DeleteField("yaml")
 
 		obj.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
-		res = append(res, &jobObject{obj})
+		res = append(res, obj)
 	}
 
 	return res
 }
 
-type jobMetric struct{ typed.PointKV }
+type jobMetric struct{}
 
-func (j *jobMetric) namespace() string { return j.GetTag("namespace") }
-
-func (j *jobMetric) addExtraTags(m map[string]string) { j.SetTags(m) }
-
-func (j *jobMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint("kube_job", j.Tags(), j.Fields(), metricOpt)
-}
+func (*jobMetric) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*jobMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "kube_job",
+		Name: jobMetricMeasurement,
 		Desc: "The metric of the Kubernetes Job.",
 		Type: "metric",
 		Tags: map[string]interface{}{
@@ -163,20 +174,14 @@ func (*jobMetric) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type jobObject struct{ typed.PointKV }
+type jobObject struct{}
 
-func (j *jobObject) namespace() string { return j.GetTag("namespace") }
-
-func (j *jobObject) addExtraTags(m map[string]string) { j.SetTags(m) }
-
-func (j *jobObject) LineProto() (*point.Point, error) {
-	return point.NewPoint("kubernetes_jobs", j.Tags(), j.Fields(), objectOpt)
-}
+func (*jobObject) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*jobObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "kubernetes_jobs",
+		Name: jobObjectMeasurement,
 		Desc: "The object of the Kubernetes Job.",
 		Type: "object",
 		Tags: map[string]interface{}{

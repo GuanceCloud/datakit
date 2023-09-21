@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -23,7 +24,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/container/kubernetes"
 )
 
-var l = logger.DefaultSLogger(inputName)
+var (
+	l                     = logger.DefaultSLogger(inputName)
+	getGlobalCustomerKeys = func() []string { return nil }
+)
 
 func getCollectorMeasurement() []inputs.Measurement {
 	res := []inputs.Measurement{
@@ -31,7 +35,7 @@ func getCollectorMeasurement() []inputs.Measurement {
 		&containerObject{},
 		&containerLog{},
 	}
-	res = append(res, kubernetes.PointMeasurement()...)
+	res = append(res, kubernetes.Measurements()...)
 	return res
 }
 
@@ -44,6 +48,8 @@ func (i *Input) setup() {
 	}
 	i.Endpoints = unique(i.Endpoints)
 	l.Infof("endpoints: %v", i.Endpoints)
+
+	getGlobalCustomerKeys = func() []string { return config.Cfg.Dataway.GlobalCustomerKeys }
 }
 
 func (i *Input) Run() {
@@ -106,31 +112,14 @@ func (i *Input) runCollect() {
 }
 
 func (i *Input) collectMetric(collectors []Collector) {
-	if !i.EnableContainerMetric {
-		l.Info("collect container metric: offf")
-		return
-	}
-
 	for _, c := range collectors {
 		if i.pause.Load() && c.Name() == kubernetes.Name() {
 			continue
 		}
-
-		start := time.Now()
-
-		res, err := c.Metric()
-		if err != nil {
-			l.Warn("collect %s metric err: %s", c.Name(), err)
-			continue
+		fn := func(pts []*point.Point) error {
+			return i.Feeder.Feed(c.Name()+"-metric", point.Metric, pts, &io.Option{Blocking: true})
 		}
-		if len(res) == 0 {
-			continue
-		}
-
-		err = inputs.FeedMeasurement(c.Name()+"-metric", datakit.Metric, res, &io.Option{CollectCost: time.Since(start)})
-		if err != nil {
-			l.Warn("feed %s metric err: %s", c.Name(), err)
-		}
+		c.Metric(fn)
 	}
 }
 
@@ -139,30 +128,19 @@ func (i *Input) collectObject(collectors []Collector) {
 		if i.pause.Load() && c.Name() == kubernetes.Name() {
 			continue
 		}
-
-		start := time.Now()
-
-		res, err := c.Object()
-		if err != nil {
-			l.Warn("collect %s object err: %s", c.Name(), err)
-			continue
+		fn := func(pts []*point.Point) error {
+			return i.Feeder.Feed(c.Name()+"-object", point.Object, pts, &io.Option{Blocking: true})
 		}
-		if len(res) == 0 {
-			continue
-		}
-
-		err = inputs.FeedMeasurement(c.Name()+"-object", datakit.Object, res, &io.Option{CollectCost: time.Since(start)})
-		if err != nil {
-			l.Warn("feed %s object err: %s", c.Name(), err)
-		}
+		c.Object(fn)
 	}
 }
 
 func (i *Input) collectLogging(collectors []Collector) {
 	for _, c := range collectors {
-		if err := c.Logging(); err != nil {
-			l.Warn("update %s log collect fail, err: %s", c.Name(), err)
+		fn := func(pts []*point.Point) error {
+			return i.Feeder.Feed(c.Name()+"-logging", point.Logging, pts, &io.Option{Blocking: true})
 		}
+		c.Logging(fn)
 	}
 }
 
@@ -198,9 +176,9 @@ func (i *Input) newCollector() []Collector {
 
 type Collector interface {
 	Name() string
-	Metric() ([]inputs.Measurement, error)
-	Object() ([]inputs.Measurement, error)
-	Logging() error
+	Metric(func(pts []*point.Point) error)
+	Object(func(pts []*point.Point) error)
+	Logging(func(pts []*point.Point) error)
 }
 
 func newCollectorsFromContainerEndpoints(ipt *Input) []Collector {
@@ -243,12 +221,14 @@ func newCollectorsFromKubernetes(ipt *Input) (Collector, error) {
 	tags := inputs.MergeTags(ipt.Tagger.ElectionTags(), ipt.Tags, "")
 
 	cfg := kubernetes.Config{
+		NodeName:                    config.Cfg.Hostname,
 		EnableK8sMetric:             ipt.EnableK8sMetric,
+		EnableK8sObject:             true,
 		EnablePodMetric:             ipt.EnablePodMetric,
 		EnableK8sEvent:              ipt.EnableK8sEvent,
 		EnableExtractK8sLabelAsTags: ipt.EnableExtractK8sLabelAsTags,
 		ExtraTags:                   tags,
-		GlobalCustomerKeys:          config.Cfg.Dataway.GlobalCustomerKeys,
+		GlobalCustomerKeys:          getGlobalCustomerKeys(),
 	}
 
 	checkPaused := func() bool {

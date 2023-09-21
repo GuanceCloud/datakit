@@ -116,6 +116,8 @@ func (i *Input) Resume() error {
 }
 
 func newInput() *Input {
+	pause := &atomic.Bool{}
+	pause.Store(true)
 	return &Input{
 		Tags:                      make(map[string]string),
 		LoggingExtraSourceMap:     make(map[string]string),
@@ -123,7 +125,7 @@ func newInput() *Input {
 		Election:                  true,
 		Feeder:                    dkio.DefaultFeeder(),
 		Tagger:                    dkpt.DefaultGlobalTagger(),
-		pause:                     &atomic.Bool{},
+		pause:                     pause,
 		chPause:                   make(chan bool, inputs.ElectionPauseChannelLength),
 		semStop:                   cliutils.NewSem(),
 	}
@@ -134,4 +136,5 @@ func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return newInput()
 	})
+	setupMetrics()
 }

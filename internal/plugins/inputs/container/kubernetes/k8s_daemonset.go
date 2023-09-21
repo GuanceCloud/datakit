@@ -11,34 +11,60 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
 
 	apiappsv1 "k8s.io/api/apps/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	daemonsetMetricMeasurement = "kube_daemonset"
+	daemonsetObjectMeasurement = "kubernetes_daemonset"
 )
 
 //nolint:gochecknoinits
 func init() {
-	registerMetricResource("daemonset", gatherDaemonsetMetric)
-	registerObjectResource("daemonset", gatherDaemonsetObject)
-	registerMeasurement(&daemonsetMetric{})
-	registerMeasurement(&daemonsetObject{})
+	registerResource("daemonset", true, newDaemonset)
+	registerMeasurements(&daemonsetMetric{}, &daemonsetObject{})
 }
 
-func gatherDaemonsetMetric(ctx context.Context, client k8sClient) ([]measurement, error) {
-	list, err := client.GetDaemonSets().List(ctx, metaV1ListOption)
+type daemonset struct {
+	client    k8sClient
+	continued string
+}
+
+func newDaemonset(client k8sClient) resource {
+	return &daemonset{client: client}
+}
+
+func (d *daemonset) hasNext() bool { return d.continued != "" }
+
+func (d *daemonset) getMetadata(ctx context.Context, ns string) (metadata, error) {
+	opt := metav1.ListOptions{
+		Limit:    queryLimit,
+		Continue: d.continued,
+	}
+
+	list, err := d.client.GetDaemonSets(ns).List(ctx, opt)
 	if err != nil {
 		return nil, err
 	}
-	return composeDaemonsetMetric(list), nil
+
+	d.continued = list.Continue
+	return &daemonsetMetadata{list}, nil
 }
 
-func composeDaemonsetMetric(list *apiappsv1.DaemonSetList) []measurement {
-	var res []measurement
+type daemonsetMetadata struct {
+	list *apiappsv1.DaemonSetList
+}
 
-	for _, item := range list.Items {
-		met := typed.NewPointKV()
+func (m *daemonsetMetadata) transformMetric() pointKVs {
+	var res pointKVs
+
+	for _, item := range m.list.Items {
+		met := typed.NewPointKV(daemonsetMetricMeasurement)
 
 		met.SetTag("uid", fmt.Sprintf("%v", item.UID))
 		met.SetTag("daemonset", item.Name)
@@ -53,25 +79,17 @@ func composeDaemonsetMetric(list *apiappsv1.DaemonSetList) []measurement {
 		met.SetField("daemons_unavailable", item.Status.NumberUnavailable)
 
 		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
-		res = append(res, &daemonsetMetric{met})
+		res = append(res, met)
 	}
 
 	return res
 }
 
-func gatherDaemonsetObject(ctx context.Context, client k8sClient) ([]measurement, error) {
-	list, err := client.GetDaemonSets().List(ctx, metaV1ListOption)
-	if err != nil {
-		return nil, err
-	}
-	return composeDaemonsetObject(list), nil
-}
+func (m *daemonsetMetadata) transformObject() pointKVs {
+	var res pointKVs
 
-func composeDaemonsetObject(list *apiappsv1.DaemonSetList) []measurement {
-	var res []measurement
-
-	for _, item := range list.Items {
-		obj := typed.NewPointKV()
+	for _, item := range m.list.Items {
+		obj := typed.NewPointKV(daemonsetObjectMeasurement)
 
 		obj.SetTag("name", fmt.Sprintf("%v", item.UID))
 		obj.SetTag("uid", fmt.Sprintf("%v", item.UID))
@@ -98,26 +116,20 @@ func composeDaemonsetObject(list *apiappsv1.DaemonSetList) []measurement {
 		obj.DeleteField("yaml")
 
 		obj.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
-		res = append(res, &daemonsetObject{obj})
+		res = append(res, obj)
 	}
 
 	return res
 }
 
-type daemonsetMetric struct{ typed.PointKV }
+type daemonsetMetric struct{}
 
-func (d *daemonsetMetric) namespace() string { return d.GetTag("namespace") }
-
-func (d *daemonsetMetric) addExtraTags(m map[string]string) { d.SetTags(m) }
-
-func (d *daemonsetMetric) LineProto() (*point.Point, error) {
-	return point.NewPoint("kube_daemonset", d.Tags(), d.Fields(), metricOpt)
-}
+func (*daemonsetMetric) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*daemonsetMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "kube_daemonset",
+		Name: daemonsetMetricMeasurement,
 		Desc: "The metric of the Kubernetes DaemonSet.",
 		Type: "metric",
 		Tags: map[string]interface{}{
@@ -139,18 +151,12 @@ func (*daemonsetMetric) Info() *inputs.MeasurementInfo {
 
 type daemonsetObject struct{ typed.PointKV }
 
-func (d *daemonsetObject) namespace() string { return d.GetTag("namespace") }
-
-func (d *daemonsetObject) addExtraTags(m map[string]string) { d.SetTags(m) }
-
-func (d *daemonsetObject) LineProto() (*point.Point, error) {
-	return point.NewPoint("kubernetes_daemonset", d.Tags(), d.Fields(), objectOpt)
-}
+func (*daemonsetObject) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*daemonsetObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "kubernetes_daemonset",
+		Name: daemonsetObjectMeasurement,
 		Desc: "The object of the Kubernetes DaemonSet.",
 		Type: "object",
 		Tags: map[string]interface{}{
