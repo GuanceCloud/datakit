@@ -13,50 +13,52 @@ import (
 )
 
 func TestMultilineMatch(t *testing.T) {
-	cases := []struct {
-		name    string
-		pattern string
-		in, out []string
-	}{
-		{
-			name:    "mysql-slowlog",
-			pattern: "^(# Time|\\d{4}-\\d{2}-\\d{2}|\\d{6}\\s+\\d{2}:\\d{2}:\\d{2})",
-			in: []string{
-				"# Time: 2021-05-31T11:15:26.043419Z",
-				"# User@Host: datakitMonitor[datakitMonitor] @ localhost []  Id:  1228",
-				"# Query_time: 0.015214  Lock_time: 0.000112 Rows_sent: 4  Rows_examined: 288",
-				"SET timestamp=1622459726;",
-				"SELECT   table_schema, IFNULL(SUM(data_length+index_length)/1024/1024,0) AS total_mb",
-				"                FROM     information_schema.tables",
-				"                GROUP BY table_schema;",
-			},
-			out: []string{"# Time: 2021-05-31T11:15:26.043419Z\n# User@Host: datakitMonitor[datakitMonitor] @ localhost []  Id:  1228\n# Query_time: 0.015214  Lock_time: 0.000112 Rows_sent: 4  Rows_examined: 288\nSET timestamp=1622459726;\nSELECT   table_schema, IFNULL(SUM(data_length+index_length)/1024/1024,0) AS total_mb\n                FROM     information_schema.tables\n                GROUP BY table_schema;"},
-		},
-		{
-			name:    "flushing-two-groups",
-			pattern: "^\\S",
-			in:      []string{"2021-05-31T11:15:26.043419Z INFO", "2021-05-31T11:15:26.043419Z WARN"},
-			out:     []string{"2021-05-31T11:15:26.043419Z INFO", "2021-05-31T11:15:26.043419Z WARN"},
-		},
-	}
+	t.Run("mysql-slowlog", func(t *testing.T) {
+		pattern := "^(# Time|\\d{4}-\\d{2}-\\d{2}|\\d{6}\\s+\\d{2}:\\d{2}:\\d{2})"
+		in := []string{
+			"# Time: 2021-05-31T11:15:26.043419Z",
+			"# User@Host: datakitMonitor[datakitMonitor] @ localhost []  Id:  1228",
+			"# Query_time: 0.015214  Lock_time: 0.000112 Rows_sent: 4  Rows_examined: 288",
+			"SET timestamp=1622459726;",
+			"SELECT   table_schema, IFNULL(SUM(data_length+index_length)/1024/1024,0) AS total_mb",
+			"                FROM     information_schema.tables",
+			"                GROUP BY table_schema;",
+		}
+		out := "# Time: 2021-05-31T11:15:26.043419Z\n# User@Host: datakitMonitor[datakitMonitor] @ localhost []  Id:  1228\n# Query_time: 0.015214  Lock_time: 0.000112 Rows_sent: 4  Rows_examined: 288\nSET timestamp=1622459726;\nSELECT   table_schema, IFNULL(SUM(data_length+index_length)/1024/1024,0) AS total_mb\n                FROM     information_schema.tables\n                GROUP BY table_schema;"
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			m, err := New([]string{tc.pattern}, nil)
-			assert.NoError(t, err)
+		m, err := New([]string{pattern}, nil)
+		assert.NoError(t, err)
 
-			outIdx := 0
-			for _, line := range tc.in {
-				res := m.ProcessLineString(line)
-				if res != "" {
-					assert.Equal(t, tc.out[outIdx], res)
-					outIdx++
-				}
+		for idx := range in {
+			_, state := m.ProcessLineString(in[idx])
+
+			if idx == 0 {
+				assert.Equal(t, NewMultiline, state)
+			} else {
+				assert.Equal(t, Written, state)
 			}
+		}
 
-			assert.Equal(t, tc.out[outIdx], m.FlushString())
-		})
-	}
+		assert.Equal(t, out, m.FlushString())
+	})
+
+	t.Run("flushing-two-groups", func(t *testing.T) {
+		pattern := "^\\S"
+		in := []string{"2021-05-31T11:15:26.043419Z INFO", "2021-05-31T11:15:26.043419Z WARN"}
+		out := []string{"2021-05-31T11:15:26.043419Z INFO", "2021-05-31T11:15:26.043419Z WARN"}
+
+		m, err := New([]string{pattern}, nil)
+		assert.NoError(t, err)
+
+		_, state := m.ProcessLineString(in[0])
+		assert.Equal(t, NewMultiline, state)
+
+		res, state := m.ProcessLineString(in[1])
+		assert.Equal(t, NewMultiline, state)
+
+		assert.Equal(t, out[0], res)
+		assert.Equal(t, out[1], m.FlushString())
+	})
 }
 
 func TestMultilineMatchLimit(t *testing.T) {
@@ -68,8 +70,9 @@ func TestMultilineMatchLimit(t *testing.T) {
 		assert.Equal(t, 0, m.BuffLength())
 
 		// 当 buff 为空时，即使匹配失败也会 flush
-		res := m.ProcessLineString("\tnomatched-head-is-space")
+		res, state := m.ProcessLineString("\tnomatched-head-is-space")
 		assert.Equal(t, "\tnomatched-head-is-space", res)
+		assert.Equal(t, NoContext, state)
 	})
 
 	t.Run("flush-duration", func(t *testing.T) {
@@ -81,12 +84,14 @@ func TestMultilineMatchLimit(t *testing.T) {
 		m, err := New(patterns, opt)
 		assert.NoError(t, err)
 
-		_ = m.ProcessLineString("2021-05-31T11:15:26.043419Z INFO")
+		_, state := m.ProcessLineString("2021-05-31T11:15:26.043419Z INFO")
+		assert.Equal(t, NewMultiline, state)
 
 		time.Sleep(time.Millisecond * 150)
 
-		res := m.ProcessLineString("\t1234567890-1234567890-1234567890")
+		res, state := m.ProcessLineString("\t1234567890-1234567890-1234567890")
 		assert.Equal(t, "2021-05-31T11:15:26.043419Z INFO\n\t1234567890-1234567890-1234567890", res)
+		assert.Equal(t, OverTime, state)
 	})
 
 	t.Run("max-length-50", func(t *testing.T) {
@@ -98,9 +103,12 @@ func TestMultilineMatchLimit(t *testing.T) {
 		m, err := New(patterns, opt)
 		assert.NoError(t, err)
 
-		_ = m.ProcessLineString("2021-05-31T11:15:26.043419Z INFO")
-		res := m.ProcessLineString("\t1234567890-1234567890-1234567890")
+		_, state := m.ProcessLineString("2021-05-31T11:15:26.043419Z INFO")
+		assert.Equal(t, NewMultiline, state)
+
+		res, state := m.ProcessLineString("\t1234567890-1234567890-1234567890")
 		assert.Equal(t, "2021-05-31T11:15:26.043419Z INFO\n\t1234567890-1234567890-1234567890", res)
+		assert.Equal(t, OverLength, state)
 	})
 }
 

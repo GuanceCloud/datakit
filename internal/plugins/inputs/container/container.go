@@ -181,7 +181,7 @@ func (c *container) Logging(_ func([]*point.Point) error) {
 		c.tailingLogs(instance)
 	}
 
-	l.Infof("current container logtable: %s", c.logTable.String())
+	l.Debugf("current container logtable: %s", c.logTable.String())
 }
 
 func (c *container) Name() string {
