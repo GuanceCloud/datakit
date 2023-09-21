@@ -8,6 +8,7 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
@@ -133,6 +134,19 @@ func (m *nodeMetadata) transformObject() pointKVs {
 			obj.SetField("yaml", string(y))
 		}
 
+		if item.Spec.Unschedulable {
+			obj.SetField("unschedulable", "yes")
+		} else {
+			obj.SetField("unschedulable", "no")
+		}
+
+		for _, condition := range item.Status.Conditions {
+			if condition.Type == apicorev1.NodeReady {
+				obj.SetField("node_ready", strings.ToLower(string(condition.Status)))
+				break
+			}
+		}
+
 		obj.SetFields(transLabels(item.Labels))
 		obj.SetField("annotations", typed.MapToJSON(item.Annotations))
 		obj.SetField("message", typed.TrimString(obj.String(), maxMessageLength))
@@ -195,6 +209,8 @@ func (*nodeObject) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{
 			"age":             &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},
 			"kubelet_version": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Kubelet Version reported by the node."},
+			"node_ready":      &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "NodeReady means kubelet is healthy and ready to accept pods (true/false/unknown)"},
+			"unschedulable":   &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Unschedulable controls node schedulability of new pods (yes/no)."},
 			"message":         &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Object details"},
 		},
 	}
