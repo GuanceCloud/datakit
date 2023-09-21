@@ -8,7 +8,6 @@ package pinpoint
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -76,7 +75,6 @@ var (
 	log            = logger.DefaultSLogger(inputName)
 	afterGatherRun itrace.AfterGatherFunc
 	tags           map[string]string
-	reqMetaTab     = &sync.Map{}
 	agentMetaData  = &AgentMetaData{}
 	gsvr           *grpc.Server
 	localCache     *storage.Storage
@@ -108,7 +106,8 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 
 func (ipt *Input) Run() {
 	log = logger.SLogger(inputName)
-
+	InitMetaCache()
+	metaCache.writeToFile()
 	var err error
 	if ipt.LocalCacheConfig != nil {
 		if localCache, err = storage.NewStorage(ipt.LocalCacheConfig, log); err != nil {

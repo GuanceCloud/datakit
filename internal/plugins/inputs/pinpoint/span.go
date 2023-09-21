@@ -12,7 +12,7 @@ import (
 	"math/rand"
 	"sort"
 	"strconv"
-	"sync"
+	"strings"
 	"time"
 
 	ppv1 "github.com/GuanceCloud/tracing-protos/pinpoint-gen-go/v1"
@@ -32,7 +32,7 @@ func (md grpcMeta) Get(key string) string {
 	return ""
 }
 
-func ConvertPSpanToDKTrace(inputName string, x *ppv1.PSpan, meta metadata.MD, apiMetaTab *sync.Map) itrace.DatakitTrace {
+func ConvertPSpanToDKTrace(inputName string, x *ppv1.PSpan, meta metadata.MD) itrace.DatakitTrace {
 	root := &itrace.DatakitSpan{
 		TraceID:    getTraceID(x.TransactionId, meta),
 		SpanID:     strconv.FormatUint(uint64(x.SpanId), 10),
@@ -70,14 +70,14 @@ func ConvertPSpanToDKTrace(inputName string, x *ppv1.PSpan, meta metadata.MD, ap
 	trace := itrace.DatakitTrace{root}
 	if len(x.SpanEvent) != 0 {
 		sort.Sort(PSpanEventList(x.SpanEvent))
-		etrace := expandSpanEventsToDKTrace(root, x.SpanEvent, apiMetaTab)
+		etrace := expandSpanEventsToDKTrace(root, x.SpanEvent)
 		trace = append(trace, etrace...)
 	}
 
 	return trace
 }
 
-func ConvertPSpanChunkToDKTrace(inputName string, x *ppv1.PSpanChunk, meta metadata.MD, apiMetaTab *sync.Map) itrace.DatakitTrace {
+func ConvertPSpanChunkToDKTrace(inputName string, x *ppv1.PSpanChunk, meta metadata.MD) itrace.DatakitTrace {
 	root := &itrace.DatakitSpan{
 		TraceID:    getTraceID(x.TransactionId, meta),
 		ParentID:   "0",
@@ -93,7 +93,7 @@ func ConvertPSpanChunkToDKTrace(inputName string, x *ppv1.PSpanChunk, meta metad
 
 	if len(x.SpanEvent) != 0 {
 		root.Service = getServiceType(x.SpanEvent[0].ServiceType)
-		root.Resource, root.Operation = PSpanEventList(x.SpanEvent).APIInfo(apiMetaTab)
+		root.Resource, root.Operation = PSpanEventList(x.SpanEvent).APIInfo()
 	}
 	if bts, err := json.Marshal(x); err == nil {
 		root.Content = string(bts)
@@ -102,7 +102,7 @@ func ConvertPSpanChunkToDKTrace(inputName string, x *ppv1.PSpanChunk, meta metad
 	trace := itrace.DatakitTrace{root}
 	if len(x.SpanEvent) != 0 {
 		sort.Sort(PSpanEventList(x.SpanEvent))
-		etrace := expandSpanEventsToDKTrace(root, x.SpanEvent, apiMetaTab)
+		etrace := expandSpanEventsToDKTrace(root, x.SpanEvent)
 		trace = append(trace, etrace...)
 	}
 
@@ -130,13 +130,13 @@ func (x PSpanEventList) Duration() int32 {
 	return last
 }
 
-func (x PSpanEventList) APIInfo(apiMetaTab *sync.Map) (res, opt string) {
-	res, opt, _ = getAPIInfo(x[0].ApiId, apiMetaTab)
+func (x PSpanEventList) APIInfo() (res, opt string) {
+	res, opt, _ = findAPIInfo(x[0].ApiId)
 
 	return res, opt
 }
 
-func expandSpanEventsToDKTrace(root *itrace.DatakitSpan, events PSpanEventList, apiMetaTab *sync.Map) itrace.DatakitTrace {
+func expandSpanEventsToDKTrace(root *itrace.DatakitSpan, events PSpanEventList) itrace.DatakitTrace {
 	if root == nil || len(events) == 0 {
 		return nil
 	}
@@ -168,7 +168,7 @@ func expandSpanEventsToDKTrace(root *itrace.DatakitSpan, events PSpanEventList, 
 		if e.NextEvent != nil {
 			dkspan.SpanType = itrace.SPAN_TYPE_EXIT
 		}
-		if res, opt, ok := getAPIInfo(e.ApiId, apiMetaTab); ok {
+		if res, opt, ok := findAPIInfo(e.ApiId); ok {
 			dkspan.Resource = res
 			dkspan.Operation = opt
 		}
@@ -177,6 +177,15 @@ func expandSpanEventsToDKTrace(root *itrace.DatakitSpan, events PSpanEventList, 
 			dkspan.Metrics[itrace.FIELD_ERR_MESSAGE] = e.ExceptionInfo.String()
 		}
 		for _, anno := range e.Annotation {
+			if anno.Key == SQLAnnoKey {
+				if val := anno.Value.GetIntStringStringValue(); val != nil {
+					res, opt, ok := findAPIInfo(val.IntValue)
+					if ok {
+						dkspan.Resource = strings.ReplaceAll(res, "\n", " ")
+						dkspan.Operation = opt
+					}
+				}
+			}
 			dkspan.Tags[getAnnotationKey(anno.Key)] = anno.Value.String()
 		}
 		if bts, err := json.Marshal(e); err == nil {
@@ -195,46 +204,4 @@ func getTraceID(transid *ppv1.PTransactionId, meta metadata.MD) string {
 	} else {
 		return fmt.Sprintf("unknow-pinpoint-agent^%d^1", time.Now().UnixMilli())
 	}
-}
-
-type requestMetaData struct {
-	ID   int32
-	Meta interface{}
-}
-
-func (md *requestMetaData) GetSqlMetaData() (*ppv1.PSqlMetaData, bool) { // nolint: stylecheck
-	v, ok := md.Meta.(*ppv1.PSqlMetaData)
-
-	return v, ok
-}
-
-func (md *requestMetaData) GetApiMetaData() (*ppv1.PApiMetaData, bool) { // nolint: stylecheck
-	v, ok := md.Meta.(*ppv1.PApiMetaData)
-
-	return v, ok
-}
-
-func (md *requestMetaData) GetStringMetaData() (*ppv1.PStringMetaData, bool) { // nolint: stylecheck
-	v, ok := md.Meta.(*ppv1.PStringMetaData)
-
-	return v, ok
-}
-
-func getAPIInfo(apiID int32, apiMetaTab *sync.Map) (res, opt string, ok bool) {
-	var meta interface{}
-	if meta, ok = apiMetaTab.Load(concatReqID(reqapi, apiID)); ok {
-		var md *requestMetaData
-		if md, ok = meta.(*requestMetaData); ok {
-			var amd *ppv1.PApiMetaData
-			if amd, ok = md.GetApiMetaData(); ok {
-				res = amd.ApiInfo
-				opt = fmt.Sprintf("id:%d line:%d %s:%s", apiID, amd.Line, amd.Location, amd.ApiInfo)
-				ok = true
-
-				return
-			}
-		}
-	}
-
-	return
 }

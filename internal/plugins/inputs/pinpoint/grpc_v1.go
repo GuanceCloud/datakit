@@ -8,18 +8,30 @@ package pinpoint
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net"
+	"os"
+	"path/filepath"
+	"time"
 
 	ppv1 "github.com/GuanceCloud/tracing-protos/pinpoint-gen-go/v1"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	istorage "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
+)
+
+var (
+	cacheName               = "resource.json"
+	defaultResourceCacheDir = filepath.Join(datakit.CacheDir, "pp_resources")
+	cacheFullPath           = filepath.Join(defaultResourceCacheDir, cacheName)
+	metaCache               *MetaCache
 )
 
 func runGRPCV1(addr string) {
@@ -128,20 +140,109 @@ func (agtsvr *AgentServer) PingSession(ping ppv1.Agent_PingSessionServer) error 
 	return ping.SendMsg(msg)
 }
 
-type reqtype string
-
-const (
-	reqsql reqtype = "sql-request"
-	reqapi reqtype = "sql-api"
-	reqstr reqtype = "sql-string"
-)
-
-func concatReqID(req reqtype, id int32) string {
-	return fmt.Sprintf("%d:%s", id, req)
+type MetaCache struct {
+	reWriteFile  bool
+	PSqlDatas    map[int32]*ppv1.PSqlMetaData    `json:"p_sql_datas"`
+	PApiDatas    map[int32]*ppv1.PApiMetaData    `json:"p_api_datas"`
+	PStringDatas map[int32]*ppv1.PStringMetaData `json:"p_string_datas"`
 }
 
-func newMetaData(id int32, meta interface{}) *requestMetaData {
-	return &requestMetaData{ID: id, Meta: meta}
+func InitMetaCache() {
+	metaCache = &MetaCache{
+		PSqlDatas:    make(map[int32]*ppv1.PSqlMetaData),
+		PApiDatas:    make(map[int32]*ppv1.PApiMetaData),
+		PStringDatas: make(map[int32]*ppv1.PStringMetaData),
+	}
+
+	_, err := os.Stat(cacheFullPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			_ = os.MkdirAll(defaultResourceCacheDir, 0o600)
+		}
+		return
+	}
+	bts, err := os.ReadFile(filepath.Clean(cacheFullPath))
+	if err != nil {
+		log.Warnf("readFromFile err=%v", err)
+		return
+	}
+	err = json.Unmarshal(bts, metaCache)
+	if err != nil {
+		log.Warnf("json unMarshal err=%v", err)
+	}
+}
+
+func (mc *MetaCache) store(meta proto.Message) {
+	switch ps := meta.(type) {
+	case *ppv1.PSqlMetaData:
+		log.Debugf("store sql id=%d v=%s", ps.SqlId, ps.Sql)
+		mc.PSqlDatas[ps.SqlId] = ps
+
+		mc.reWriteFile = true
+	case *ppv1.PApiMetaData:
+		log.Debugf("api id=%d  v=%v", ps.ApiId, ps.ApiInfo)
+		mc.PApiDatas[ps.ApiId] = ps
+
+		mc.reWriteFile = true
+	case *ppv1.PStringMetaData:
+		log.Debugf("string id=%d v =%s", ps.StringId, ps.StringValue)
+		mc.PStringDatas[ps.StringId] = ps
+
+		mc.reWriteFile = true
+	default:
+		log.Infof("unknown type %v", meta)
+	}
+}
+
+func (mc *MetaCache) writeToFile() {
+	ticker := time.NewTicker(time.Second * 30)
+	go func() {
+		for range ticker.C {
+			log.Debugf("mc=%+v", mc.reWriteFile)
+			if mc.reWriteFile {
+				f, err := os.OpenFile(filepath.Clean(cacheFullPath), os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0o600)
+				if err != nil {
+					log.Debugf("openFile err=%v", err)
+					continue
+				}
+				bts, err := json.MarshalIndent(mc, "", "	")
+				if err != nil {
+					log.Errorf("err = %v", err)
+				} else {
+					if _, err = f.Write(bts); err != nil {
+						log.Errorf("write err=%v", err)
+					}
+				}
+				mc.reWriteFile = false
+				_ = f.Sync()
+				_ = f.Close()
+			}
+		}
+	}()
+}
+
+func findAPIInfo(apiID int32) (res, opt string, find bool) {
+	if metaCache != nil {
+		if data, ok := metaCache.PApiDatas[apiID]; ok {
+			res = data.ApiInfo
+			opt = fmt.Sprintf("id:%d line:%d %s:%s", apiID, data.Line, data.Location, data.ApiInfo)
+			find = true
+			return
+		}
+		if data, ok := metaCache.PSqlDatas[apiID]; ok {
+			res = data.Sql
+			opt = fmt.Sprintf("id:%d :%s", apiID, data.Sql)
+			find = true
+			return
+		}
+		if data, ok := metaCache.PStringDatas[apiID]; ok {
+			res = data.StringValue
+			opt = fmt.Sprintf("id:%d res:%s", data.StringId, res)
+			find = true
+			return
+		}
+	}
+	return
 }
 
 type MetadataServer struct {
@@ -149,26 +250,24 @@ type MetadataServer struct {
 }
 
 func (mdsvr *MetadataServer) RequestSqlMetaData(ctx context.Context, meta *ppv1.PSqlMetaData) (*ppv1.PResult, error) { // nolint: stylecheck
-	if reqMetaTab != nil && meta != nil {
-		reqMetaTab.Store(concatReqID(reqsql, meta.SqlId), newMetaData(meta.SqlId, meta))
+	if metaCache != nil {
+		metaCache.store(meta)
 	}
 
 	return &ppv1.PResult{Success: true, Message: "ok"}, nil
 }
 
 func (mdsvr *MetadataServer) RequestApiMetaData(ctx context.Context, meta *ppv1.PApiMetaData) (*ppv1.PResult, error) { // nolint: stylecheck
-	if reqMetaTab != nil && meta != nil {
-		reqMetaTab.Store(concatReqID(reqapi, meta.ApiId), newMetaData(meta.ApiId, meta))
+	if metaCache != nil {
+		metaCache.store(meta)
 	}
-
 	return &ppv1.PResult{Success: true, Message: "ok"}, nil
 }
 
 func (mdsvr *MetadataServer) RequestStringMetaData(ctx context.Context, meta *ppv1.PStringMetaData) (*ppv1.PResult, error) {
-	if reqMetaTab != nil && meta != nil {
-		reqMetaTab.Store(concatReqID(reqstr, meta.StringId), newMetaData(meta.StringId, meta))
+	if metaCache != nil {
+		metaCache.store(meta)
 	}
-
 	return &ppv1.PResult{Success: true, Message: "ok"}, nil
 }
 
@@ -182,7 +281,7 @@ func (*ProfilerCommandServiceServer) HandleCommand(handler ppv1.ProfilerCommandS
 
 		return err
 	}
-
+	time.Sleep(time.Second)
 	return nil
 }
 
@@ -194,7 +293,7 @@ func (*ProfilerCommandServiceServer) HandleCommandV2(handler ppv1.ProfilerComman
 		return err
 	}
 	log.Debugf("### profiler handle command v2 %#v", msg)
-
+	time.Sleep(time.Second)
 	return nil
 }
 
@@ -305,9 +404,9 @@ func (*SpanServer) SendSpan(spanSvr ppv1.Span_SendSpanServer) error {
 func parsePPSpanMessage(meta metadata.MD, msg *ppv1.PSpanMessage) (itrace.DatakitTrace, error) {
 	var trace itrace.DatakitTrace
 	if ppspan := msg.GetSpan(); ppspan != nil {
-		trace = ConvertPSpanToDKTrace(inputName, ppspan, meta, reqMetaTab)
+		trace = ConvertPSpanToDKTrace(inputName, ppspan, meta)
 	} else if ppchunk := msg.GetSpanChunk(); ppchunk != nil {
-		trace = ConvertPSpanChunkToDKTrace(inputName, ppchunk, meta, reqMetaTab)
+		trace = ConvertPSpanChunkToDKTrace(inputName, ppchunk, meta)
 	} else {
 		return nil, errors.New("### empty span message")
 	}
