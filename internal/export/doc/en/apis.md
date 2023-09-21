@@ -538,11 +538,11 @@ HTTP Code: 400
 ```
 
 
-## `/v1/sourcemap` | `PUT` {#api-sourcemap}
+## `/v1/sourcemap` | `PUT` {#api-sourcemap-upload}
 
 [:octicons-tag-24: Version-1.12.0](changelog.md#cl-1.12.0)
 
-Upload the sourcemap file.
+Upload the sourcemap file. This api needs [RUM collector](../integrations/rum.md).
 
 Description of the parameter.
 
@@ -550,13 +550,14 @@ Description of the parameter.
 | -------------: | ----------------------------------------------------------------------------- | -------- |
 | `token`    | The token is from the `dataway` address configured in `datakit.conf`                 | `string` |
 | `app_id`   | The unique ID generated when you create a application, such as `test-sourcmap`      | `string` |
-|  `env`     | The environment variable, such as `prod`                                              | `string` |
-|  `version` | The version of the application, such as `1.0.0`                                   | `string` |
+| `env`     | The environment variable, such as `prod`                                              | `string` |
+| `version` | The version of the application, such as `1.0.0`                                   | `string` |
+| `platform` | The platform, such as `web/miniapp/android/ios` and `web` is default             | `string` |
 
 Example of request:
 
 ``` shell
-curl -X PUT -H "X-Token: tkn_xxxxxx" "http://localhost:9529/v1/sourcemap?app_id=test_sourcemap&env=production&version=1.0.0&token=tkn_xxxxx" \
+curl -X PUT "http://localhost:9529/v1/sourcemap?app_id=test_sourcemap&env=production&version=1.0.0&token=tkn_xxxxx&platform=web" \
 -F "file=@./sourcemap.zip" \
 -H "Content-Type: multipart/form-data"
 ```
@@ -565,11 +566,9 @@ Example of successful return:
 
 ``` json
 {
-    "code":200,
-    "content":"uploaded to [/datakit/dir/data/rum/web/test_sourcemap-production-1.0.0.zip]!",
-    "errorCode":"",
-    "errorMsg":"",
-    "success":true
+  "content": "uploaded to [/path/to/datakit/data/rum/web/test_sourcemap-production-1.0.0.zip]!",
+  "errorMsg": "",
+  "success": true
 }
 ```
 
@@ -577,11 +576,99 @@ Example of failing return:
 
 ``` json
 {
-    "code":401,
-    "content":null,
-    "errorCode":"auth.failed",
-    "errorMsg":"auth failed",
-    "success":false
+  "content": null,
+  "errorMsg": "app_id not found",
+  "success": false
+}
+```
+
+## `/v1/sourcemap` | `DELETE` {#api-sourcemap-delete}
+
+[:octicons-tag-24: Version-1.16.0](changelog.md#cl-1.16.0)
+
+Delete the sourcemap file. This api needs [RUM collector](../integrations/rum.md).
+
+Description of the parameter.
+
+|           Parameter | Description                                                              | Type     |
+| -------------: | ----------------------------------------------------------------------------- | -------- |
+| `token`    | The token is from the `dataway` address configured in `datakit.conf`                 | `string` |
+| `app_id`   | The unique ID generated when you create a application, such as `test-sourcmap`      | `string` |
+| `env`     | The environment variable, such as `prod`                                              | `string` |
+| `version` | The version of the application, such as `1.0.0`                                   | `string` |
+| `platform` | The platform, such as `web/miniapp/android/ios` and `web` is default             | `string` |
+
+Example of request:
+
+``` shell
+curl -X DELETE "http://localhost:9529/v1/sourcemap?app_id=test_sourcemap&env=production&version=1.0.0&token=tkn_xxxxx&platform=web"
+```
+
+Example of successful return:
+
+``` json
+{
+  "content":"deleted [/path/to/datakit/data/rum/web/test_sourcemap-production-1.0.0.zip]!",
+  "errorMsg":"",
+  "success":true
+}
+```
+
+Example of failing return:
+
+``` json
+{
+  "content": null,
+  "errorMsg": "delete sourcemap file [/path/to/datakit/data/rum/web/test_sourcemap-production-1.0.0.zip] failed: remove /path/to/datakit/data/rum/web/test_sourcemap-production-1.0.0.zip: no such file or directory",
+  "success": false
+}
+```
+
+## `/v1/sourcemap/check` | `GET` {#api-sourcemap-check}
+
+[:octicons-tag-24: Version-1.16.0](changelog.md#cl-1.16.0)
+
+Check whether sourcemap is properly configured and only web is supported. This api needs [RUM collector](../integrations/rum.md).
+
+Description of the parameter.
+
+|           Parameter | Description                                                              | Type     |
+| -------------: | ----------------------------------------------------------------------------- | -------- |
+| `error_stack`    | The error stack                                                             | `string` |
+| `app_id`   | The unique ID generated when you create a application, such as `test-sourcmap`      | `string` |
+| `env`     | The environment variable, such as `prod`                                              | `string` |
+| `version` | The version of the application, such as `1.0.0`                                   | `string` |
+| `platform` | The platform, such as `web/miniapp/android/ios` and `web` is default             | `string` |
+
+Example of request:
+
+``` shell
+curl "http://localhost:9529/v1/sourcemap/check?app_id=test_sourcemap&env=production&version=1.0.0&error_stack=at%20test%20%40%20http%3A%2F%2Flocalhost%3A8080%2Fmain.min.js%3A1%3A48"
+```
+
+Example of successful return:
+
+``` json
+{
+  "content": {
+    "error_stack": "at test @ main.js:6:6",
+    "original_error_stack": "at test @ http://localhost:8080/main.min.js:1:48"
+  },
+  "errorMsg": "",
+  "success": true
+}
+```
+
+Example of failing return:
+
+``` json
+{
+  "content": {
+    "error_stack": "at test @ http://localhost:8080/main.min.js:1:483",
+    "original_error_stack": "at test @ http://localhost:8080/main.min.js:1:483"
+  },
+  "errorMsg": "fetch original source information failed, make sure sourcemap file [main.min.js.map] is valid",
+  "success": false
 }
 ```
 

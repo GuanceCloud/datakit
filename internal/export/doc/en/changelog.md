@@ -177,7 +177,7 @@ This release is an iterative release, mainly including the following updates:
 
 ### New features {#cl-1.12.0-new}
 
-- [HTTP API](apis.md##api-sourcemap) Add sourcemap file upload (#1782)
+- [HTTP API](apis.md##api-sourcemap-upload) Add sourcemap file upload (#1782)
 - Added support for .net Profiling access (#1772)
 - Added Couchbase collector (#1717)
 

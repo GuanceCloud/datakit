@@ -375,6 +375,11 @@ func (ipt *Input) RegHTTPHandler() {
 			log.Infof("register RUM replay upload endpoint: %s", endpoint)
 		}
 	}
+
+	// add handler for sourcemap related api
+	httpapi.RegHTTPRoute(http.MethodGet, "/v1/sourcemap/check", ipt.handleSourcemapCheck)
+	httpapi.RegHTTPRoute(http.MethodPut, "/v1/sourcemap", ipt.handleSourcemapUpload)
+	httpapi.RegHTTPRoute(http.MethodDelete, "/v1/sourcemap", ipt.handleSourcemapDelete)
 }
 
 func (ipt *Input) loadCDNListConf() error {

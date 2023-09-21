@@ -36,28 +36,6 @@ import (
 	clipt "github.com/GuanceCloud/cliutils/point"
 )
 
-const (
-	SourceMapDirWeb     = "web"
-	SourceMapDirMini    = "miniapp"
-	SourceMapDirAndroid = "android"
-	SourceMapDirIOS     = "ios"
-	ZipExt              = ".zip"
-)
-
-// GetSourcemapZipFileName zip file name.
-func GetSourcemapZipFileName(appID, env, version string) string {
-	if env == "" {
-		env = "none"
-	}
-	if version == "" {
-		version = "none"
-	}
-
-	fileName := fmt.Sprintf("%s-%s-%s%s", appID, env, version, ZipExt)
-
-	return strings.ReplaceAll(fileName, string(filepath.Separator), "__")
-}
-
 var dcaErrorMessage = map[string]string{
 	"server.error": "server error",
 }
@@ -982,73 +960,4 @@ func dcaTestPipelines(c *gin.Context) {
 		}
 	}
 	context.success(&runResult)
-}
-
-type rumQueryParam struct {
-	ApplicationID string `form:"app_id"`
-	Env           string `form:"env"`
-	Version       string `form:"version"`
-	Platform      string `form:"platform"`
-}
-
-// upload sourcemap
-// curl -X POST 'http://localhost:9531/v1/rum/sourcemap?app_id=app_xxxx&env=release&version=1.0.1'
-//
-//	-F "file=@/tmp/code.zip"
-//	-H "Content-Type: multipart/form-data".
-func dcaUploadSourcemap(c *gin.Context) {
-	uploadSourcemap(c)
-}
-
-func dcaDeleteSourcemap(c *gin.Context) {
-	context := getContext(c)
-
-	var param rumQueryParam
-
-	if c.ShouldBindQuery(&param) != nil {
-		context.fail(dcaError{ErrorCode: "query.parse.error", ErrorMsg: "query string parse error"})
-		return
-	}
-
-	if param.ApplicationID == "" {
-		context.fail(dcaError{ErrorCode: "query.param.required", ErrorMsg: "app_id, env, version required"})
-		return
-	}
-
-	if param.Platform == "" {
-		param.Platform = SourceMapDirWeb
-	}
-
-	if param.Platform != SourceMapDirWeb && param.Platform != SourceMapDirMini &&
-		param.Platform != SourceMapDirAndroid && param.Platform != SourceMapDirIOS {
-		l.Errorf("platform [%s] not supported", param.Platform)
-		context.fail(dcaError{
-			ErrorCode: "param.invalid",
-			ErrorMsg:  fmt.Sprintf("platform [%s] not supported, please use web, miniapp, android or ios", param.Platform),
-		})
-		return
-	}
-
-	fileName := GetSourcemapZipFileName(param.ApplicationID, param.Env, param.Version)
-	rumDir := filepath.Join(GetRumSourcemapDir(), param.Platform)
-	zipFilePath := filepath.Clean(filepath.Join(rumDir, fileName))
-
-	// check filename
-	if !strings.HasPrefix(zipFilePath, rumDir) {
-		context.fail(dcaError{
-			ErrorCode: "param.invalid",
-			ErrorMsg:  "invalid param, should not contain illegal char, such as  '../, /'",
-		})
-		return
-	}
-
-	if err := os.Remove(zipFilePath); err != nil {
-		l.Errorf("delete zip file failed: %s, %s", zipFilePath, err.Error())
-		context.fail(dcaError{
-			ErrorCode: "delete.error",
-			ErrorMsg:  "delete sourcemap file failed.",
-		})
-		return
-	}
-	context.success("delete file successfully")
 }

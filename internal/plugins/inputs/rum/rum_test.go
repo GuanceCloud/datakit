@@ -41,7 +41,7 @@ func TestHandleSourcemap(t *testing.T) {
 
 	datakit.DataDir = path.Join(tmpDir, "data")
 
-	sourcemapFileName := httpapi.GetSourcemapZipFileName(
+	sourcemapFileName := GetSourcemapZipFileName(
 		"appid_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
 		"production",
 		"1.0.0")
@@ -148,7 +148,7 @@ func TestHandleSourcemap(t *testing.T) {
 		}
 
 		for _, item := range cases {
-			assert.Equal(t, getSourceMapString(item.src, item.sourceMapItem), item.dest, item.desc)
+			assert.Equal(t, getSourceMapString(item.src, item.sourceMapItem, nil), item.dest, item.desc)
 		}
 	})
 }
