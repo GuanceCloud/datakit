@@ -135,7 +135,6 @@ func (m *ProcessObject) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"name":         inputs.NewTagInfo("name 字段，由 `[host-name]_[pid]` 组成"),
-			"class":        inputs.NewTagInfo("固定为 `host_processes`"),
 			"username":     inputs.NewTagInfo("用户名"),
 			"host":         inputs.NewTagInfo("主机名"),
 			"state":        inputs.NewTagInfo("进程状态，暂不支持 Windows"),

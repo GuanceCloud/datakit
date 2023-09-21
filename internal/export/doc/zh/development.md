@@ -363,6 +363,8 @@ datakit -M --vvv            # 检查所有采集器的运行情况
     # Centos: TODO
     ```
 
+    - IBM Db2 ODBC/CLI driver（仅限 Linux 操作系统）。方法参见 [IBM Db2 的集成文档](../integrations/db2.md#reqirement){:target="_blank"}。
+
 === "Mac"
 
     暂不支持

@@ -133,6 +133,7 @@ XDAs
 Tablespace
 clidriver
 DIMM
+ODBC
 
 # 缩写
 CNCF

@@ -86,7 +86,21 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		opts []inputs.PointCheckOption
 	}{
 		{
-			name: "process_normal",
+			name: "process_no_metric",
+			conf: `min_run_time = "1s"
+			open_metric = false`, // set conf URL later.
+			opts: []inputs.PointCheckOption{
+				inputs.WithOptionalFields(
+					"open_files",
+					"work_directory",
+				),
+				inputs.WithOptionalTags(
+					"listen_ports",
+				),
+			},
+		},
+		{
+			name: "process_metric",
 			conf: `min_run_time = "1s"
 			open_metric = true`, // set conf URL later.
 			opts: []inputs.PointCheckOption{
@@ -160,7 +174,11 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 
 		switch measurement {
 		case inputName:
-			opts = append(opts, inputs.WithDoc(&ProcessMetric{}))
+			if _, ok := pt.InfluxTags()["name"]; ok {
+				opts = append(opts, inputs.WithDoc(&ProcessObject{}))
+			} else {
+				opts = append(opts, inputs.WithDoc(&ProcessMetric{}))
+			}
 
 			msgs := inputs.CheckPoint(pt, opts...)
 
