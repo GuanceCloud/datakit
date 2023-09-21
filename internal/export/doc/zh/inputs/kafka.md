@@ -40,6 +40,22 @@ export KAFKA_OPTS="$KAFKA_OPTS -javaagent:/usr/local/datakit/data/jolokia-jvm-ag
 java -jar </path/to/jolokia-jvm-agent.jar> --host 127.0.0.1 --port=8080 start <Kafka-PID>
 ```
 
+<!-- markdownlint-disable MD046 -->
+
+???+ attention
+
+    Jolokia 不允许运行过程中修改端口号。如果发现通过 `--port` 命令无法修改端口号，就是这个原因。
+
+    若想修改 Jolokia 端口号必须先退出 Jolokia 再启动才能成功。
+
+???+ tip
+
+    退出 Jolokia 命令是： `java -jar </path/to/jolokia-jvm-agent.jar> --quiet stop <Kafka-PID>`
+
+    更多 Jolokia 命令信息可参考[这里](https://jolokia.org/reference/html/agents.html#jvm-agent){:target="_blank"}。
+
+<!-- markdownlint-enable -->
+
 在开启 Kafka 服务后，如需采集 Producer/Consumer/Connector 指标，则需分别为其配置 Jolokia。
 
 参考 [Kafka Quick Start](https://kafka.apache.org/quickstart){:target="_blank"} ，以 Producer 为例，先配置 `KAFKA_OPTS` 环境变量，示例如下：
