@@ -86,8 +86,10 @@ func RunPl(category point.Category, pts []*dkpt.Point,
 		if pts := inputData.GetSubPoint(); len(pts) > 0 {
 			for _, pt := range pts {
 				if !pt.Dropped() {
-					if dkpt, err := pt.DkPoint(); err != nil {
+					if dkpt, err := pt.DkPoint(); err == nil {
 						subPt[pt.Category()] = append(subPt[pt.Category()], dkpt)
+					} else {
+						l.Warn(err)
 					}
 				}
 			}
