@@ -162,7 +162,7 @@ DCA Web is the Web version of DCA client, which provides the interface proxy of 
                   value: https://console-api.guance.com
                 - name: DCA_LOG_ENABLE_STDOUT
                   value: 'true'
-              image: pubrepo.guance.com/tools/dca:0.0.7
+              image: pubrepo.guance.com/tools/dca:0.0.8
               imagePullPolicy: Always
               name: dca
               ports:

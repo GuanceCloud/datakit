@@ -176,7 +176,7 @@ DCA web 是 DCA 客户端的 web 版本，它通过部署一个后端服务来�
                   value: https://console-api.guance.com
                 - name: DCA_LOG_ENABLE_STDOUT
                   value: 'true'
-              image: pubrepo.guance.com/tools/dca:0.0.7
+              image: pubrepo.guance.com/tools/dca:0.0.8
               imagePullPolicy: Always
               name: dca
               ports:
