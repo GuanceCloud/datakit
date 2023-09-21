@@ -305,32 +305,42 @@ sudo datakit install --symbol-tools
 
 ### 文件上传和删除 {#upload-delete}
 
-打包完成后，除了手动拷贝至 DataKit 相关目录，还可通过 http 接口上传和删除该文件，前提是 Datakit 开启了 DCA 服务。
+打包完成后，除了手动拷贝至 DataKit 相关目录，还可通过 http 接口上传和删除该文件。
 
-上传：
+> 从 Datakit [:octicons-tag-24: Version-1.16.0](../datakit/changelog.md#cl-1.16.0) 起，原先通过 DCA 服务来提供的 sourcemap 相关接口已经弃用，转至 DataKit 服务中。
+
+[上传](../datakit/apis.md#api-sourcemap-upload)：
 
 ```shell
-curl -X POST '<dca_address>/v1/rum/sourcemap?app_id=<app_id>&env=<env>&version=<version>&platform=<platform>' -F "file=@<sourcemap_path>" -H "Content-Type: multipart/form-data"
+curl -X PUT '<datakit_address>/v1/sourcemap?app_id=<app_id>&env=<env>&version=<version>&platform=<platform>&token=<token>' -F "file=@<sourcemap_path>" -H "Content-Type: multipart/form-data"
 ```
 
-删除：
+[删除](../datakit/apis.md#api-sourcemap-delete)：
 
 ```shell
-curl -X DELETE '<dca_address>/v1/rum/sourcemap?app_id=<app_id>&env=<env>&version=<version>&platform=<platform>'
+curl -X DELETE '<datakit_address>/v1/sourcemap?app_id=<app_id>&env=<env>&version=<version>&platform=<platform>&token=<token>'
+```
+
+[验证 sourcemap](../datakit/apis.md#api-sourcemap-check):
+
+```shell
+curl -X GET '<datakit_address>/v1/sourcemap/check?app_id=<app_id>&env=<env>&version=<version>&platform=<platform>&error_stack=<error_stack>'
 ```
 
 变量说明：
 
-- `<dca_address>`: DCA 服务的地址，如 `http://localhost:9531`
+- `<datakit_address>`: DataKit 服务的地址，如 `http://localhost:9529`
+- `<token>`: 配置文件 `datakit.conf` 中 `dataway` 的 token
 - `<app_id>`: 对应 RUM 的 `applicationId`
 - `<env>`: 对应 RUM 的 `env`
 - `<version>`: 对应 RUM 的 `version`
 - `<platform>` 应用平台，当前支持 `web/miniapp/android/ios`
 - `<sourcemap_path>`: 待上传的 `sourcemap` 压缩包文件路径
+- `<error_stack>`: 需要验证的 `error_stack`
 
 <!-- markdownlint-disable MD046 -->
 ???+ attention
-
+    - 上传和删除接口需要进行 `token` 认证
     - 该转换过程，只针对 `error` 指标集
     - 当前只支持 Javascript/Android/iOS 的 sourcemap 转换
     - 如果未找到对应的 sourcemap 文件，将不进行转换

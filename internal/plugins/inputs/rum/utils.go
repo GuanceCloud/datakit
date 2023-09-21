@@ -25,7 +25,6 @@ import (
 	"github.com/go-sourcemap/sourcemap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ip2isp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput/funcs"
@@ -63,11 +62,11 @@ var (
 		"x86_64":      {},
 	}
 	srcMapDirs = map[string]string{
-		SdkWeb:        httpapi.SourceMapDirWeb,
-		SdkWebMiniApp: httpapi.SourceMapDirMini,
-		SdkWebUniApp:  httpapi.SourceMapDirMini,
-		SdkAndroid:    httpapi.SourceMapDirAndroid,
-		SdkIOS:        httpapi.SourceMapDirIOS,
+		SdkWeb:        SourceMapDirWeb,
+		SdkWebMiniApp: SourceMapDirMini,
+		SdkWebUniApp:  SourceMapDirMini,
+		SdkAndroid:    SourceMapDirAndroid,
+		SdkIOS:        SourceMapDirIOS,
 	}
 
 	rumMetricAppID         = "app_id"
@@ -99,14 +98,6 @@ func (ipt *Input) getWebSourceMapDirs() map[string]struct{} {
 }
 
 func (ipt *Input) loadSourcemapFile() error {
-	// update sourcemap cache when the new file is uploaded
-	httpapi.RegisterSourcemapCallback(func(s string) {
-		err := updateSourcemapCache(s)
-		if err != nil {
-			log.Warnf("update sourcemap cache failed: %s", err.Error())
-		}
-	})
-
 	sourceMapDirs := ipt.getWebSourceMapDirs()
 
 	webSourcemapLock.Lock()
@@ -131,14 +122,14 @@ func (ipt *Input) loadSourcemapFile() error {
 		}
 	}
 
-	loadedZipGauge.WithLabelValues(httpapi.SourceMapDirWeb).Set(float64(len(webSourcemapCache)))
+	loadedZipGauge.WithLabelValues(SourceMapDirWeb).Set(float64(len(webSourcemapCache)))
 	return nil
 }
 
 func (ipt *Input) getRumSourcemapDir(sdkName string) string {
 	dir, ok := srcMapDirs[sdkName]
 	if !ok {
-		dir = httpapi.SourceMapDirWeb
+		dir = SourceMapDirWeb
 	}
 
 	return filepath.Join(ipt.rumDataDir, dir)
@@ -452,14 +443,22 @@ func scanModuleSymbolFile(dir string, moduleName string) (string, error) {
 	return "", fmt.Errorf("IOS dSYM symbol file for module[%s] not found", moduleName)
 }
 
-func getSourcemap(errStack string, sourcemapItem map[string]*sourcemap.Consumer) string {
+func getSourcemap(errStack string, sourcemapItem map[string]*sourcemap.Consumer, status *sourceMapStatus) string {
 	replaceStr := replaceRegexp.ReplaceAllStringFunc(errStack, func(str string) string {
-		return str[0:2] + getSourceMapString(str[2:], sourcemapItem)
+		return str[0:2] + getSourceMapString(str[2:], sourcemapItem, status)
 	})
 	return replaceStr
 }
 
-func getSourceMapString(str string, sourcemapItem map[string]*sourcemap.Consumer) string {
+func getSourceMapString(str string, sourcemapItem map[string]*sourcemap.Consumer, status *sourceMapStatus) string {
+	var err error
+	defer func() {
+		if err != nil && status != nil {
+			status.status = StatusError
+			status.reason = err.Error()
+		}
+	}()
+
 	parts := strings.Split(str, ":")
 	partsLen := len(parts)
 	if partsLen < 3 {
@@ -478,7 +477,8 @@ func getSourceMapString(str string, sourcemapItem map[string]*sourcemap.Consumer
 
 	urlObj, err := url.Parse(srcPath)
 	if err != nil {
-		log.Warnf("parse url failed, %s, %s", srcPath, err.Error())
+		err = fmt.Errorf("parse url failed, %s, %w", srcPath, err)
+		log.Warn(err.Error())
 		return str
 	}
 
@@ -487,7 +487,8 @@ func getSourceMapString(str string, sourcemapItem map[string]*sourcemap.Consumer
 
 	smap, ok := sourcemapItem[sourceMapFileName]
 	if !ok {
-		log.Warnf("parse sourcemap for [%s] failed: sourcemap file [%s] is required", str, sourceMapFileName)
+		err = fmt.Errorf("parse sourcemap for [%s] failed: sourcemap file [%s] is required", str, sourceMapFileName)
+		log.Warn(err.Error())
 		return str
 	}
 
@@ -495,6 +496,9 @@ func getSourceMapString(str string, sourcemapItem map[string]*sourcemap.Consumer
 
 	if ok {
 		return fmt.Sprintf("%s:%v:%v", file, line, col)
+	} else {
+		err = fmt.Errorf("fetch original source information failed, make sure sourcemap file [%s] is valid", sourceMapFileName)
+		log.Warn(err.Error())
 	}
 
 	return str
@@ -534,7 +538,7 @@ func copyZipItem(item *zip.File, dst string) error {
 
 func extractZipFile(zipFileAbsPath string) error {
 	zipFileDir := filepath.Dir(zipFileAbsPath)
-	extractTo := strings.TrimSuffix(filepath.Base(zipFileAbsPath), httpapi.ZipExt)
+	extractTo := strings.TrimSuffix(filepath.Base(zipFileAbsPath), ZipExt)
 	tmpExtractTo := "." + extractTo
 
 	reader, err := zip.OpenReader(zipFileAbsPath)
@@ -625,7 +629,7 @@ func loadZipFile(zipFile string) (map[string]*sourcemap.Consumer, error) {
 
 func updateSourcemapCache(zipFile string) error {
 	fileName := filepath.Base(zipFile)
-	if !strings.HasSuffix(fileName, httpapi.ZipExt) {
+	if !strings.HasSuffix(fileName, ZipExt) {
 		return fmt.Errorf(`suffix name is not ".zip" [%s]`, zipFile)
 	}
 	log.Infof("reload source map archive: %s", zipFile)
@@ -637,7 +641,7 @@ func updateSourcemapCache(zipFile string) error {
 	webSourcemapLock.Lock()
 	defer webSourcemapLock.Unlock()
 	if _, ok := webSourcemapCache[fileName]; !ok {
-		loadedZipGauge.WithLabelValues(httpapi.SourceMapDirWeb).Inc()
+		loadedZipGauge.WithLabelValues(SourceMapDirWeb).Inc()
 	}
 	webSourcemapCache[fileName] = sourcemapItem
 	webSourceCacheLoadTime[fileName] = time.Now()
@@ -664,7 +668,7 @@ func deleteSourcemapCache(zipFiles ...string) {
 		}
 	}
 	if cnt > 0 {
-		loadedZipGauge.WithLabelValues(httpapi.SourceMapDirWeb).Sub(float64(cnt))
+		loadedZipGauge.WithLabelValues(SourceMapDirWeb).Sub(float64(cnt))
 	}
 }
 

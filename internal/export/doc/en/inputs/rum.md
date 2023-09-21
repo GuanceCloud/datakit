@@ -286,28 +286,37 @@ If a software installation fails during the installation process, you may need t
 
 ### File Upload and Delete {#upload-delete}
 
-After packaging, in addition to manually copying to Datakit related directories, the file can also be uploaded and deleted through http interface, provided that Datakit starts DCA service.
+After packaging, in addition to manually copying to Datakit related directories, the file can also be uploaded and deleted through http interface.
 
-Upload:
+> From Datakit [:octicons-tag-24: Version-1.16.0](../datakit/changelog.md#cl-1.16.0), sourcemap related apis were moved from DCA service to DataKit service.
+
+[Upload](../datakit/apis.md#api-sourcemap-upload):
 
 ```shell
-curl -X POST '<dca_address>/v1/rum/sourcemap?app_id=<app_id>&env=<env>&version=<version>&platform=<platform>' -F "file=@<sourcemap_path>" -H "Content-Type: multipart/form-data"
+curl -X PUT '<datakit_address>/v1/sourcemap?app_id=<app_id>&env=<env>&version=<version>&platform=<platform>&token=<token>' -F "file=@<sourcemap_path>" -H "Content-Type: multipart/form-data"
 ```
 
-Delete:
+[Delete](../datakit/apis.md#api-sourcemap-delete):
 
 ```shell
-curl -X DELETE '<dca_address>/v1/rum/sourcemap?app_id=<app_id>&env=<env>&version=<version>&platform=<platform>'
+curl -X DELETE '<datakit_address>/v1/sourcemap?app_id=<app_id>&env=<env>&version=<version>&platform=<platform>&token=<token>'
+```
+
+[Verify sourcemap](../datakit/apis.md#api-sourcemap-check):
+```shell
+curl -X GET '<datakit_address>/v1/sourcemap/check?app_id=<app_id>&env=<env>&version=<version>&platform=<platform>&error_stack=<error_stack>'
 ```
 
 Variable description:
 
-- `<dca_address>`: DCA shost，such as `http://localhost:9531`
+- `<datakit_address>`: DataKit host，such as `http://localhost:9529`
+- `<token>`: The token is specified by dataway field in `datakit.conf`
 - `<app_id>`: RUM's application ID
 - `<env>`: RUM's tag `env`
 - `<version>`: RUM's tag `version`
 - `<platform>` RUM supported platform, currently support `web/miniapp/android/ios`
 - `<sourcemap_path>`: Path of zipped file path
+- `<error_stack>`: The error stack string
 
 <!-- markdownlint-disable MD046 -->
 ???+ attention

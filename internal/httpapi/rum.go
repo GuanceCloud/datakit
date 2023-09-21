@@ -6,33 +6,9 @@
 package httpapi
 
 import (
-	"sync"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ip2isp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput/funcs"
 )
-
-var (
-	sourcemapLock         sync.RWMutex
-	sourcemapCallbackList []SourcemapCallbackFunc
-)
-
-type SourcemapCallbackFunc func(string)
-
-func RegisterSourcemapCallback(callback SourcemapCallbackFunc) {
-	sourcemapLock.Lock()
-	defer sourcemapLock.Unlock()
-	sourcemapCallbackList = append(sourcemapCallbackList, callback)
-}
-
-func runSourcemapCallback(zipFilePath string) {
-	sourcemapLock.RLock()
-	defer sourcemapLock.RUnlock()
-	for _, cb := range sourcemapCallbackList {
-		cb(zipFilePath)
-	}
-}
 
 func geoTags(srcip string) (tags map[string]string) {
 	// default set to be unknown
@@ -95,8 +71,4 @@ func geoTags(srcip string) (tags map[string]string) {
 	}
 
 	return tags
-}
-
-func GetRumSourcemapDir() string {
-	return datakit.DataRUMDir
 }

@@ -194,9 +194,6 @@ func setupDcaRouter() *gin.Engine {
 	router.POST("/v1/dca/pipelines", dcaCreatePipeline)
 	router.PATCH("/v1/dca/pipelines", dcaUpdatePipeline)
 
-	router.DELETE("/v1/rum/sourcemap", dcaDeleteSourcemap)
-	router.POST("/v1/rum/sourcemap", dcaUploadSourcemap)
-
 	router.GET("/v1/filter", dcaGetFilter)
 	router.GET("/v1/stats/:type", dcaStatsByType)
 

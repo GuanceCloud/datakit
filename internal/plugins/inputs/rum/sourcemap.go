@@ -8,10 +8,12 @@ package rum
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"io/fs"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -22,8 +24,8 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	jsoniter "github.com/json-iterator/go"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 )
 
@@ -32,6 +34,13 @@ const (
 	AndroidCommandLineTools = "cmdline-tools"
 	AndroidNDK              = "android-ndk"
 	Atosl                   = "atosl"
+	SourceMapDirWeb         = "web"
+	SourceMapDirMini        = "miniapp"
+	SourceMapDirAndroid     = "android"
+	SourceMapDirIOS         = "ios"
+	ZipExt                  = ".zip"
+
+	maxSourcemapUploadSize = 100 * 1024 * 1024 // 100Mib
 )
 
 var (
@@ -71,7 +80,7 @@ func isDir(dir string) bool {
 }
 
 func getExtractDir(archivePath string) string {
-	return strings.TrimSuffix(archivePath, httpapi.ZipExt)
+	return strings.TrimSuffix(archivePath, ZipExt)
 }
 
 func readDict(file string, loose bool) (ArchiveMetaDict, error) {
@@ -106,6 +115,20 @@ func writeDict(file string, dict ArchiveMetaDict) error {
 		return fmt.Errorf("unable to write archive meta dict file: %w", err)
 	}
 	return nil
+}
+
+// GetSourcemapZipFileName zip file name.
+func GetSourcemapZipFileName(appID, env, version string) string {
+	if env == "" {
+		env = "none"
+	}
+	if version == "" {
+		version = "none"
+	}
+
+	fileName := fmt.Sprintf("%s-%s-%s%s", appID, env, version, ZipExt)
+
+	return strings.ReplaceAll(fileName, string(filepath.Separator), "__")
 }
 
 func (ipt *Input) extractArchives(loose bool) error {
@@ -207,7 +230,7 @@ func scanArchives(dir string) ([]*SourceMapArchive, error) {
 		entries, err := f.Readdir(40)
 
 		for _, entry := range entries {
-			if entry.IsDir() || !strings.HasSuffix(entry.Name(), httpapi.ZipExt) {
+			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ZipExt) {
 				continue
 			}
 
@@ -301,7 +324,7 @@ func (ipt *Input) resolveWebSourceMap(p *point.Point, sdkName string, status *so
 	version := tags["version"]
 
 	if appID != "" {
-		zipFile := httpapi.GetSourcemapZipFileName(appID, env, version)
+		zipFile := GetSourcemapZipFileName(appID, env, version)
 		webSourcemapLock.RLock()
 		_, cacheExists := webSourcemapCache[zipFile]
 		loadTime := webSourceCacheLoadTime[zipFile]
@@ -324,14 +347,16 @@ func (ipt *Input) resolveWebSourceMap(p *point.Point, sdkName string, status *so
 		}
 		if cacheExists {
 			start := time.Now()
-			errorStackSource := getSourcemap(errStackStr, webSourcemapCache[zipFile])
+			errorStackSource := getSourcemap(errStackStr, webSourcemapCache[zipFile], status)
 			sourceMapDurationSummary.WithLabelValues(sdkName, appID, env, version).Observe(float64(time.Since(start)) / promDurationUnit)
 			errorStackSourceBase64 := base64.StdEncoding.EncodeToString([]byte(errorStackSource))
 			status.status = StatusOK
 			p.MustAdd([]byte("error_stack_source_base64"), errorStackSourceBase64)
 		} else {
 			status.status = StatusZipNotFound
-			log.Warnf("source map file [%s] not exists", filepath.Join(ipt.getRumSourcemapDir(sdkName), zipFile))
+			reason := fmt.Sprintf("source map file [%s] not exists", filepath.Join(ipt.getRumSourcemapDir(sdkName), zipFile))
+			status.reason = reason
+			log.Warn(reason)
 		}
 	} else {
 		status.status = StatusLackField
@@ -357,8 +382,8 @@ func (ipt *Input) resolveAndroidSourceMap(p *point.Point, sdkName string, status
 	version := tags["version"]
 
 	if appID != "" {
-		zipFile := httpapi.GetSourcemapZipFileName(appID, env, version)
-		zipFileAbsDir := filepath.Join(ipt.getRumSourcemapDir(sdkName), strings.TrimSuffix(zipFile, httpapi.ZipExt))
+		zipFile := GetSourcemapZipFileName(appID, env, version)
+		zipFileAbsDir := filepath.Join(ipt.getRumSourcemapDir(sdkName), strings.TrimSuffix(zipFile, ZipExt))
 
 		errorType := tags["error_type"]
 		if errorType == JavaCrash {
@@ -498,8 +523,8 @@ func (ipt *Input) resolveIOSSourceMap(p *point.Point, sdkName string, status *so
 	version := tags["version"]
 
 	if appID != "" {
-		zipFile := httpapi.GetSourcemapZipFileName(appID, env, version)
-		zipFileAbsDir := filepath.Join(ipt.getRumSourcemapDir(sdkName), strings.TrimSuffix(zipFile, httpapi.ZipExt))
+		zipFile := GetSourcemapZipFileName(appID, env, version)
+		zipFileAbsDir := filepath.Join(ipt.getRumSourcemapDir(sdkName), strings.TrimSuffix(zipFile, ZipExt))
 
 		atosBinPath := ipt.AtosBinPath
 		if runtime.GOOS == "darwin" {
@@ -579,4 +604,305 @@ func (ipt *Input) resolveIOSSourceMap(p *point.Point, sdkName string, status *so
 		return p, nil
 	}
 	return p, nil
+}
+
+type sourcemapResponse struct {
+	Content  interface{} `json:"content"`
+	ErrorMsg string      `json:"errorMsg"`
+	Success  bool        `json:"success"`
+}
+
+type sourcemapCheckRes struct {
+	ErrorStack         string `json:"error_stack"`
+	OriginalErrorStack string `json:"original_error_stack"`
+}
+
+// handleSourcemapCheck check whether sourcemap is valid. Only support web sourcemap now.
+// TODO: support android and ios sourcemap.
+func (ipt *Input) handleSourcemapCheck(w http.ResponseWriter, r *http.Request, _ ...interface{}) (interface{}, error) {
+	var (
+		sdkName string
+
+		query      = r.URL.Query()
+		platform   = query.Get("platform")
+		appID      = query.Get("app_id")
+		env        = query.Get("env")
+		version    = query.Get("version")
+		errorStack = query.Get("error_stack")
+	)
+
+	res := &sourcemapResponse{
+		ErrorMsg: "",
+		Success:  false,
+	}
+
+	switch platform {
+	case "android":
+		sdkName = SdkAndroid
+	case "ios":
+		sdkName = SdkIOS
+	case "web":
+		sdkName = SdkWeb
+	case "miniapp":
+		sdkName = SdkWebMiniApp
+	default:
+		sdkName = SdkWeb
+	}
+
+	status := &sourceMapStatus{
+		appid:   appID,
+		sdkName: sdkName,
+		status:  StatusUnknown,
+	}
+
+	tags := map[string]string{
+		"app_id":  appID,
+		"env":     env,
+		"version": version,
+	}
+	fields := map[string]interface{}{
+		"error_stack": query.Get("error_stack"),
+	}
+
+	pt := point.NewPointV2([]byte("check_sourcemap"), append(point.NewTags(tags), point.NewKVs(fields)...))
+	pt, _ = ipt.parseSourcemap(pt, sdkName, status)
+
+	content := &sourcemapCheckRes{
+		OriginalErrorStack: errorStack,
+	}
+	parsedFields := pt.InfluxFields()
+	originStackB64Field := parsedFields["error_stack_source_base64"]
+	originStackB64, ok := originStackB64Field.(string)
+	if !ok || originStackB64 == "" {
+		log.Warnf("error_stack_source_base64 not found")
+	} else {
+		originStack, parseErr := base64.StdEncoding.DecodeString(originStackB64)
+		if parseErr != nil {
+			log.Warnf("parse sourcemap fail: %w", parseErr)
+		} else {
+			content.ErrorStack = string(originStack)
+		}
+	}
+
+	res.Content = content
+	res.Success = status.reason == ""
+	if !res.Success {
+		res.ErrorMsg = status.reason
+	}
+
+	w.Header().Add("Content-Type", "application/json;charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	sendResponse(res, w)
+
+	return nil, nil
+}
+
+// handleSourcemapUpload upload sourcemap.
+func (ipt *Input) handleSourcemapUpload(w http.ResponseWriter, r *http.Request, _ ...interface{}) (interface{}, error) {
+	query := r.URL.Query()
+	platform := query.Get("platform")
+	appID := query.Get("app_id")
+	env := query.Get("env")
+	version := query.Get("version")
+	token := query.Get("token")
+
+	if err := checkToken(token); err != nil {
+		sendResponse(&sourcemapResponse{
+			ErrorMsg: fmt.Sprintf("invalid token: %s", err.Error()),
+			Success:  false,
+		}, w)
+
+		return nil, nil
+	}
+
+	if appID == "" {
+		sendResponse(&sourcemapResponse{
+			ErrorMsg: "app_id not found",
+			Success:  false,
+		}, w)
+
+		return nil, nil
+	}
+
+	if platform == "" {
+		platform = SourceMapDirWeb
+	}
+
+	if platform != SourceMapDirWeb && platform != SourceMapDirAndroid && platform != SourceMapDirIOS {
+		sendResponse(&sourcemapResponse{
+			ErrorMsg: fmt.Sprintf("platform [%s] not supported, please use web, miniapp, android or ios", platform),
+			Success:  false,
+		}, w)
+
+		return nil, nil
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, maxSourcemapUploadSize)
+	if err := r.ParseMultipartForm(maxSourcemapUploadSize); err != nil {
+		sendResponse(&sourcemapResponse{
+			ErrorMsg: err.Error(),
+			Success:  false,
+		}, w)
+
+		return nil, nil
+	}
+
+	file, _, err := r.FormFile("file")
+	if err != nil {
+		sendResponse(&sourcemapResponse{
+			ErrorMsg: err.Error(),
+			Success:  false,
+		}, w)
+	}
+	defer file.Close() //nolint:errcheck
+
+	fileName := GetSourcemapZipFileName(appID, env, version)
+	rumDir := filepath.Join(datakit.DataRUMDir, platform)
+
+	if !path.IsDir(rumDir) {
+		err := os.MkdirAll(rumDir, datakit.ConfPerm)
+		if err != nil {
+			sendResponse(&sourcemapResponse{
+				ErrorMsg: fmt.Sprintf("create rum dir [%s] failed: %s", rumDir, err.Error()),
+				Success:  false,
+			}, w)
+			return nil, nil
+		}
+	}
+
+	dst := filepath.Clean(filepath.Join(rumDir, fileName))
+	if !strings.HasPrefix(dst, rumDir) {
+		sendResponse(&sourcemapResponse{
+			ErrorMsg: fmt.Sprintf("invalid file name [%s], should not contain illegal char, such as  '../, /'", fileName),
+			Success:  false,
+		}, w)
+
+		return nil, nil
+	}
+
+	out, err := os.Create(dst)
+	if err != nil {
+		sendResponse(&sourcemapResponse{
+			ErrorMsg: fmt.Sprintf("create sourcemap file [%s] failed: %s", dst, err.Error()),
+			Success:  false,
+		}, w)
+		return nil, nil
+	}
+	defer out.Close() //nolint:errcheck,gosec
+
+	if _, err := io.Copy(out, file); err != nil {
+		sendResponse(&sourcemapResponse{
+			ErrorMsg: fmt.Sprintf("write sourcemap file [%s] failed: %s", dst, err.Error()),
+			Success:  false,
+		}, w)
+		return nil, nil
+	}
+
+	if err := updateSourcemapCache(dst); err != nil {
+		log.Warnf("update sourcemap cache failed: %s", err.Error())
+	}
+
+	sendResponse(&sourcemapResponse{
+		Success: true,
+		Content: fmt.Sprintf("uploaded to [%s]!", dst),
+	}, w)
+
+	return nil, nil
+}
+
+func sendResponse(res *sourcemapResponse, w http.ResponseWriter) {
+	jsonBuf, _ := json.Marshal(res)
+	if _, err := w.Write(jsonBuf); err != nil {
+		log.Warnf("write response fail: %s", err.Error())
+	}
+}
+
+// checkToken check whether token is valid.
+func checkToken(token string) error {
+	if config.Cfg.Dataway == nil {
+		return fmt.Errorf("dataway is not initialized")
+	}
+
+	localTokens := config.Cfg.Dataway.GetTokens()
+	if len(localTokens) == 0 {
+		return fmt.Errorf("dataway token is not set")
+	}
+
+	if token != localTokens[0] {
+		return fmt.Errorf("token is missing or not correct")
+	}
+
+	return nil
+}
+
+// handleSourcemapDelete delete sourcemap.
+func (ipt *Input) handleSourcemapDelete(w http.ResponseWriter, r *http.Request, _ ...interface{}) (interface{}, error) {
+	query := r.URL.Query()
+	platform := query.Get("platform")
+	appID := query.Get("app_id")
+	env := query.Get("env")
+	version := query.Get("version")
+	token := query.Get("token")
+
+	if err := checkToken(token); err != nil {
+		sendResponse(&sourcemapResponse{
+			ErrorMsg: fmt.Sprintf("invalid token: %s", err.Error()),
+			Success:  false,
+		}, w)
+
+		return nil, nil
+	}
+
+	if appID == "" {
+		sendResponse(&sourcemapResponse{
+			ErrorMsg: "app_id not found",
+			Success:  false,
+		}, w)
+
+		return nil, nil
+	}
+
+	if platform == "" {
+		platform = SourceMapDirWeb
+	}
+
+	if platform != SourceMapDirWeb && platform != SourceMapDirAndroid && platform != SourceMapDirIOS {
+		sendResponse(&sourcemapResponse{
+			ErrorMsg: fmt.Sprintf("platform [%s] not supported, please use web, miniapp, android or ios", platform),
+			Success:  false,
+		}, w)
+
+		return nil, nil
+	}
+
+	fileName := GetSourcemapZipFileName(appID, env, version)
+	rumDir := filepath.Join(ipt.rumDataDir, platform)
+	zipFilePath := filepath.Clean(filepath.Join(rumDir, fileName))
+
+	if !strings.HasPrefix(zipFilePath, rumDir) {
+		sendResponse(&sourcemapResponse{
+			ErrorMsg: fmt.Sprintf("invalid file name [%s], should not contain illegal char, such as  '../, /'", fileName),
+			Success:  false,
+		}, w)
+
+		return nil, nil
+	}
+
+	if err := os.Remove(zipFilePath); err != nil {
+		sendResponse(&sourcemapResponse{
+			ErrorMsg: fmt.Sprintf("delete sourcemap file [%s] failed: %s", zipFilePath, err.Error()),
+			Success:  false,
+		}, w)
+
+		return nil, nil
+	}
+
+	deleteSourcemapCache(zipFilePath)
+
+	sendResponse(&sourcemapResponse{
+		Success: true,
+		Content: fmt.Sprintf("deleted [%s]!", zipFilePath),
+	}, w)
+
+	return nil, nil
 }

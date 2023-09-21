@@ -80,6 +80,7 @@ type sourceMapStatus struct {
 	appid   string
 	status  string
 	remark  string
+	reason  string
 }
 
 type ipLocationStatus struct {
