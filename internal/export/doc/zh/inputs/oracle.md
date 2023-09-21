@@ -108,22 +108,47 @@ GRANT SELECT ON DBA_USERS TO datakit;
 
 根据操作系统和 Oracle 版本选择安装对应的安装包，参考[这里](https://oracle.github.io/odpi/doc/installation.html){:target="_blank"}，如：
 
-```shell
-wget https://download.oracle.com/otn_software/linux/instantclient/2110000/instantclient-basiclite-linux.x64-21.10.0.0.0dbru.zip
-unzip instantclient-basiclite-linux.x64-21.10.0.0.0dbru.zip
-```
+<!-- markdownlint-disable MD046 -->
 
-将解压后的目录文件路径添加到以下配置信息中的 `LD_LIBRARY_PATH` 环境变量路径中。
+=== "x86_64 系统"
 
-> 也可以直接下载我们预先准备好的依赖包：
+    ```shell
+    wget https://download.oracle.com/otn_software/linux/instantclient/2110000/instantclient-basiclite-linux.x64-21.10.0.0.0dbru.zip
+    unzip instantclient-basiclite-linux.x64-21.10.0.0.0dbru.zip
+    ```
 
-```shell
-wget -q https://static.guance.com/otn_software/instantclient/instantclient-basiclite-linux.x64-21.10.0.0.0dbru.zip \
-    -O /usr/local/datakit/externals/instantclient-basiclite-linux.zip \
-    && unzip /usr/local/datakit/externals/instantclient-basiclite-linux.zip -d /opt/oracle;
-```
+    将解压后的目录文件路径添加到以下配置信息中的 `LD_LIBRARY_PATH` 环境变量路径中。
 
-另外，可能还需要安装额外的依赖库：
+    > 也可以直接下载我们预先准备好的依赖包：
+
+    ```shell
+    wget -q https://static.guance.com/otn_software/instantclient/instantclient-basiclite-linux.x64-21.10.0.0.0dbru.zip \
+        -O /usr/local/datakit/externals/instantclient-basiclite-linux.zip \
+        && unzip /usr/local/datakit/externals/instantclient-basiclite-linux.zip -d /opt/oracle \
+        && mv /opt/oracle/instantclient_21_10 /opt/oracle/instantclient;
+    ```
+
+=== "ARM64 系统"
+
+    ```shell
+    wget https://download.oracle.com/otn_software/linux/instantclient/2110000/instantclient-basiclite-linux.arm64-19.19.0.0.0dbru.zip
+    unzip instantclient-basiclite-linux.arm64-19.19.0.0.0dbru.zip
+    ```
+
+    将解压后的目录文件路径添加到以下配置信息中的 `LD_LIBRARY_PATH` 环境变量路径中。
+
+    > 也可以直接下载我们预先准备好的依赖包：
+
+    ```shell
+    wget -q https://static.guance.com/otn_software/instantclient/instantclient-basiclite-linux.arm64-19.19.0.0.0dbru.zip \
+        -O /usr/local/datakit/externals/instantclient-basiclite-linux.zip \
+        && unzip /usr/local/datakit/externals/instantclient-basiclite-linux.zip -d /opt/oracle \
+        && mv /opt/oracle/instantclient_19_19 /opt/oracle/instantclient;
+    ```
+
+<!-- markdownlint-enable -->
+
+- 部分系统需要安装额外的依赖库：
 
 ```shell
 apt-get install -y libaio-dev libaio1

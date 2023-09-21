@@ -91,26 +91,47 @@ GRANT SELECT ON DBA_USERS TO datakit;
     Some of the SQL above may lead to non-existent failure due to diverse Oracle version, just ignore it.
 
 
-- Assemble dependency package
+- Deploy dependency package
 
-Select the appropriate installation package based on the operating system and Oracle version, refer to [here](https://oracle.github.io/odpi/doc/installation.html){:target="_blank"}，如：
+Select the appropriate installation package based on the operating system and Oracle version, refer to [here](https://oracle.github.io/odpi/doc/installation.html){:target="_blank"}. For example：
 
-```shell
-wget https://download.oracle.com/otn_software/linux/instantclient/2110000/instantclient-basiclite-linux.x64-21.10.0.0.0dbru.zip
-unzip instantclient-basiclite-linux.x64-21.10.0.0.0dbru.zip
-```
+=== "x86_64 OS"
 
-Add the extracted directory file path to the `LD_LIBRARY_PATH` environment variable path in the following configuration information.
+    ```shell
+    wget https://download.oracle.com/otn_software/linux/instantclient/2110000/instantclient-basiclite-linux.x64-21.10.0.0.0dbru.zip
+    unzip instantclient-basiclite-linux.x64-21.10.0.0.0dbru.zip
+    ```
 
-> You can also download our pre-prepared dependency package directly:
+    Add the extracted directory file path to the `LD_LIBRARY_PATH` environment variable path in the following configuration information.
 
-```shell
-wget -q https://static.guance.com/otn_software/instantclient/instantclient-basiclite-linux.x64-21.10.0.0.0dbru.zip \
-    -O /usr/local/datakit/externals/instantclient-basiclite-linux.zip \
-    && unzip /usr/local/datakit/externals/instantclient-basiclite-linux.zip -d /opt/oracle;
-```
+    > You can also download our pre-prepared dependency package directly:
 
-In addition, you may need to install additional dependent libraries: 
+    ```shell
+    wget -q https://static.guance.com/otn_software/instantclient/instantclient-basiclite-linux.x64-21.10.0.0.0dbru.zip \
+        -O /usr/local/datakit/externals/instantclient-basiclite-linux.zip \
+        && unzip /usr/local/datakit/externals/instantclient-basiclite-linux.zip -d /opt/oracle \
+        && mv /opt/oracle/instantclient_21_10 /opt/oracle/instantclient;
+    ```
+
+=== "ARM64 OS"
+
+    ```shell
+    wget https://download.oracle.com/otn_software/linux/instantclient/2110000/instantclient-basiclite-linux.arm64-19.19.0.0.0dbru.zip
+    unzip instantclient-basiclite-linux.arm64-19.19.0.0.0dbru.zip
+    ```
+
+    Add the extracted directory file path to the `LD_LIBRARY_PATH` environment variable path in the following configuration information.
+
+    > You can also download our pre-prepared dependency package directly:
+
+    ```shell
+    wget -q https://static.guance.com/otn_software/instantclient/instantclient-basiclite-linux.arm64-19.19.0.0.0dbru.zip \
+        -O /usr/local/datakit/externals/instantclient-basiclite-linux.zip \
+        && unzip /usr/local/datakit/externals/instantclient-basiclite-linux.zip -d /opt/oracle \
+        && mv /opt/oracle/instantclient_19_19 /opt/oracle/instantclient;
+    ```
+
+- For some OS need to install additional dependent libraries: 
 
 ```shell
 apt-get install -y libaio-dev libaio1

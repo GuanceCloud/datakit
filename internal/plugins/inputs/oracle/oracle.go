@@ -33,7 +33,7 @@ const (
     '--service-name'   , '<oracle-service-name>'     ,
   ]
   envs = [
-    'LD_LIBRARY_PATH=/opt/oracle/instantclient_21_10:$LD_LIBRARY_PATH',
+    'LD_LIBRARY_PATH=/opt/oracle/instantclient:$LD_LIBRARY_PATH',
   ]
 
   [inputs.external.tags]
