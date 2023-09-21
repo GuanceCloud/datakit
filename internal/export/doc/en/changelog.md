@@ -1,6 +1,39 @@
 # Changelog
 ---
 
+## 1.16.0(2023/09/21) {#cl-1.16.0}
+This release is an iterative release, mainly including the following updates:
+
+### New features {#cl-1.16.0-new}
+
+- Added the Neo4j collector (#1846)
+- The [RUM](../integrations/rum.md#upload-delete) collector has added API for uploading, deleting, and verifying sourcemap files, and removed the sourcemap upload and deletion API from the DCA service (#1860)
+- Added a monitoring view and detection libraries for the IBM Db2 collector（#1862）
+
+### Bug fixes {#cl-1.16.0-fix}
+
+- Fixed an issue where environment variable `ENV_GLOBAL_HOST_TAGS` couldn't fetch the hostname of the machine by `__datakit_hostname` (#1874)
+- Fixed an issue where the open_files field was missing from the metrics data of the [host_processes](../integrations/host_processes.md) collector (#1875)
+- Fixed an issue where the Pinpoint collector had a large number of empty resources and was using too much memory (#1857 #1849) 
+
+### Function optimization {#cl-1.16.0-opt}
+
+- Optimized the efficiency of Kubernetes metrics collection and object collection (#1854)
+- Optimized the metrics output of log collection (#1881)
+- The Kubernetes Node object collector has added two new fields: `unschedulable` and `node_ready` (#1886)
+- The [Oracle](../integrations/oracle.md) collector now supports Linux ARM64 architecture (#1859)
+- The `logstreaming` collector has added integration tests (#1570)
+- The [Datakit development documentation](development.md) added content about IBM Db2 collector (#1870)
+- Improve the documentation of the [Kafka](../integrations/kafka.md) and [MongoDB](../integrations/mongodb.md) collectors (#1883)
+- When creating a monitoring account for [MySQL](../integrations/mysql.md), MySQL 8.0+ now defaults to use the `caching_sha2_password` encryption method (#1882)
+- Optimized the syslog file size issue in the [`bug report`](why-no-data.md#bug-report) command (#1872)
+
+### Breaking Changes {#cl-1.16.0-bc}
+
+- Removed the sourcemap file upload and deletion API from the DCA service and moved them to the [RUM](../integrations/rum.md#upload-delete) collector
+
+---
+
 ## 1.15.1(2023/09/12) {#cl-1.15.1}
 
 ### Bug fix {#cl-1.15.1-fix}

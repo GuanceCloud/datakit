@@ -1,6 +1,39 @@
 # 更新日志
 ---
 
+## 1.16.0(2023/09/21) {#cl-1.16.0}
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.16.0-new}
+
+- 新增 Neo4j 采集器（#1846）
+- [RUM](../integrations/rum.md#upload-delete) 采集器新增 sourcemap 文件上传、删除和校验接口，并移除 DCA 服务中 sourcemap 上传和删除接口 (#1860)
+- 新增 IBM Db2 采集器的监控视图和检测库（#1862）
+
+### 问题修复 {#cl-1.16.0-fix}
+
+- 修复环境变量 `ENV_GLOBAL_HOST_TAGS` 中使用 `__datakit_hostname` 无法获取主机 hostname 的问题 (#1874)
+- 修复 [host_processes](../integrations/host_processes.md) 采集器指标数据缺少 `open_files` 字段 (#1875)
+- 修复 Pinpoint 采集器 resource 大量为空的情况和 Pinpoint 占用内存过高问题 (#1857 #1849)
+
+### 功能优化 {#cl-1.16.0-opt}
+
+- 优化 Kubernetes 指标采集和对象采集的效率 (#1854)
+- 优化日志采集的 metrics 输出 (#1881)
+- Kubernetes Node 对象采集添加 unschedulable 和 node_ready 两个新字段 (#1886)
+- [Oracle 采集器](../integrations/oracle.md)支持 Linux ARM64 架构（#1859）
+- `logstreaming` 采集器增加集成测试（#1570）
+- [Datakit 开发文档](development.md)中增加 IBM Db2 采集器内容（#1870）
+- [Kafka](../integrations/kafka.md)、[MongoDB](../integrations/mongodb.md) 采集器文档完善（#1883）
+- [MySQL](../integrations/mysql.md) 采集器监控帐号创建时，MySQL 8.0+ 默认采用 `caching_sha2_password` 加密方式 (#1882)
+- 优化 [`bug report`](why-no-data.md#bug-report) 命令采集 syslog 文件过大问题（#1872）
+
+### Breaking Changes {#cl-1.16.0-bc}
+
+- 删除 DCA 服务中的 sourcemap 文件上传和删除接口，相关接口移至 [RUM](../integrations/rum.md#upload-delete) 采集器
+
+---
+
 ## 1.15.1(2023/09/12) {#cl-1.15.1}
 
 ### 问题修复 {#cl-1.15.1-fix}
