@@ -93,6 +93,11 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 				inputs.WithOptionalFields(
 					"open_files",
 					"work_directory",
+					"cpu_usage_top",
+					"mem_used_percent",
+					"rss",
+					"threads",
+					"cpu_usage",
 				),
 				inputs.WithOptionalTags(
 					"listen_ports",
