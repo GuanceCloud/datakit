@@ -290,14 +290,23 @@ func (c *Config) parseGlobalHostTags() {
 
 		switch strings.ToLower(v) {
 		case `__datakit_hostname`, `$datakit_hostname`:
+			hostName := ""
 			if c.Hostname == "" {
 				if err := c.setHostname(); err != nil {
 					l.Warnf("setHostname: %s, ignored", err)
+				} else {
+					hostName = c.Hostname
+				}
+			} else {
+				if hn, err := c.getHostName(); err != nil {
+					l.Errorf("get hostname failed: %s", err.Error())
+				} else {
+					hostName = hn
 				}
 			}
 
-			c.GlobalHostTags[k] = c.Hostname
-			l.Debugf("set global tag %s: %s", k, c.Hostname)
+			c.GlobalHostTags[k] = hostName
+			l.Debugf("set global tag %s: %s", k, hostName)
 
 		case `__datakit_ip`, `$datakit_ip`:
 			c.GlobalHostTags[k] = "unavailable"
@@ -469,26 +478,28 @@ func (c *Config) ApplyMainConfig() error {
 }
 
 func (c *Config) setHostname() error {
-	// try get hostname from configure
-	if v, ok := c.Environments["ENV_HOSTNAME"]; ok && v != "" {
-		c.Hostname = v
-		l.Infof("set hostname to %s from config ENV_HOSTNAME", v)
+	if hn, err := c.getHostName(); err != nil {
+		return err
+	} else {
+		c.Hostname = hn
 		datakit.DatakitHostName = c.Hostname
 		return nil
+	}
+}
+
+func (c *Config) getHostName() (string, error) {
+	// try get hostname from configure
+	if v, ok := c.Environments["ENV_HOSTNAME"]; ok && v != "" {
+		return v, nil
 	}
 
 	// get real hostname
 	hn, err := os.Hostname()
 	if err != nil {
-		l.Errorf("get hostname failed: %s", err.Error())
-		return err
+		return "", err
+	} else {
+		return hn, nil
 	}
-
-	c.Hostname = hn
-
-	l.Infof("hostname: %s", c.Hostname)
-	datakit.DatakitHostName = c.Hostname
-	return nil
 }
 
 func (c *Config) EnableDefaultsInputs(inputlist string) {
