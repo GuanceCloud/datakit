@@ -1,0 +1,1313 @@
+{
+    "dashboardBindSet": [],
+    "dashboardExtend": {},
+    "dashboardMapping": [],
+    "dashboardOwnerType": "node",
+    "dashboardType": "CUSTOM",
+    "iconSet": {},
+    "main": {
+        "charts": [
+            {
+                "extend": {
+                    "fixedGroupByTime": null,
+                    "fixedTime": "",
+                    "isRefresh": false,
+                    "settings": {
+                        "alias": [],
+                        "bgColor": "",
+                        "colors": [],
+                        "compareType": "",
+                        "currentChartType": "singlestat",
+                        "downsample": "last",
+                        "fixedTime": "",
+                        "fontColor": "",
+                        "isTimeInterval": false,
+                        "levels": [],
+                        "lineColor": "#3AB8FF",
+                        "mappings": [],
+                        "openCompare": false,
+                        "openThousandsSeparator": true,
+                        "precision": "all",
+                        "showFieldMapping": false,
+                        "showLine": false,
+                        "showLineAxis": false,
+                        "showTitle": true,
+                        "timeInterval": "default",
+                        "titleDesc": "{{.Dashboard.dbms_page_cache_usage_ratio_note}}",
+                        "units": [
+                            {
+                                "key": "avg(dbms_page_cache_usage_ratio)",
+                                "name": "avg(dbms_page_cache_usage_ratio)",
+                                "unit": "",
+                                "units": [
+                                    "percent",
+                                    "percent"
+                                ]
+                            }
+                        ]
+                    }
+                },
+                "group": {
+                    "name": null
+                },
+                "name": "{{.Dashboard.dbms_page_cache_usage_ratio}}",
+                "pos": {
+                    "h": 6,
+                    "w": 5,
+                    "x": 0,
+                    "y": 0
+                },
+                "queries": [
+                    {
+                        "color": "",
+                        "datasource": "dataflux",
+                        "name": "",
+                        "qtype": "dql",
+                        "query": {
+                            "alias": "",
+                            "code": "A",
+                            "dataSource": "neo4j",
+                            "field": "dbms_page_cache_usage_ratio",
+                            "fieldFunc": "avg",
+                            "fieldType": "float",
+                            "fill": null,
+                            "filters": [],
+                            "funcList": [],
+                            "groupBy": [
+                                "db",
+                                "instance"
+                            ],
+                            "groupByTime": "",
+                            "indexFilter": "",
+                            "namespace": "metric",
+                            "q": "M::`neo4j`:(AVG(`dbms_page_cache_usage_ratio`)) BY `db`, `instance`",
+                            "queryFuncs": [],
+                            "type": "simple"
+                        },
+                        "type": "singlestat",
+                        "unit": ""
+                    }
+                ],
+                "type": "singlestat"
+            },
+            {
+                "extend": {
+                    "fixedGroupByTime": null,
+                    "fixedTime": "",
+                    "isRefresh": false,
+                    "settings": {
+                        "alias": [],
+                        "chartType": "line",
+                        "colors": [],
+                        "compareColors": {
+                            "dayCompare": "rgba(213,217,226,0.5)",
+                            "hourCompare": "#D5D9E2",
+                            "monthCompare": "rgba(213,217,226,0.12)",
+                            "weekCompare": "rgba(213,217,226,0.25)"
+                        },
+                        "compareColorsDark": {
+                            "dayCompare": "rgba(213,217,226,0.5)",
+                            "hourCompare": "#D5D9E2",
+                            "monthCompare": "rgba(213,217,226,0.12)",
+                            "weekCompare": "rgba(213,217,226,0.25)"
+                        },
+                        "compareColorsLight": {
+                            "dayCompare": "rgba(11,11,12,0.5)",
+                            "hourCompare": "#0B0B0C",
+                            "monthCompare": "rgba(11,11,12,0.12)",
+                            "weekCompare": "rgba(11,11,12,0.3)"
+                        },
+                        "compareType": [],
+                        "currentChartType": "sequence",
+                        "density": "medium",
+                        "fixedTime": "",
+                        "isPercent": false,
+                        "isTimeInterval": true,
+                        "legendPostion": "none",
+                        "legendValues": "",
+                        "levels": [],
+                        "mainMeasurementQueryCode": "A",
+                        "onlyShowGroupName": false,
+                        "openCompare": false,
+                        "openStack": false,
+                        "showFieldMapping": false,
+                        "showLine": false,
+                        "showTitle": true,
+                        "slimit": 20,
+                        "stackType": "time",
+                        "timeInterval": "auto",
+                        "titleDesc": "{{.Dashboard.database_cypher_replan_events_total_note}}",
+                        "units": [],
+                        "xAxisShowType": "time",
+                        "yAxixMaxVal": null,
+                        "yAxixMinVal": null
+                    }
+                },
+                "group": {
+                    "name": null
+                },
+                "name": "{{.Dashboard.database_cypher_replan_events_total}}",
+                "pos": {
+                    "h": 10,
+                    "w": 8,
+                    "x": 8,
+                    "y": 16
+                },
+                "queries": [
+                    {
+                        "color": "",
+                        "datasource": "dataflux",
+                        "name": "",
+                        "qtype": "dql",
+                        "query": {
+                            "alias": "",
+                            "code": "A",
+                            "dataSource": "neo4j",
+                            "field": "database_cypher_replan_events_total",
+                            "fieldFunc": "avg",
+                            "fieldType": "float",
+                            "fill": null,
+                            "filters": [],
+                            "funcList": [],
+                            "groupBy": [
+                                "db",
+                                "instance"
+                            ],
+                            "groupByTime": "",
+                            "indexFilter": "",
+                            "namespace": "metric",
+                            "q": "M::`neo4j`:(AVG(`database_cypher_replan_events_total`)) BY `db`, `instance`",
+                            "queryFuncs": [],
+                            "type": "simple"
+                        },
+                        "type": "sequence",
+                        "unit": ""
+                    }
+                ],
+                "type": "sequence"
+            },
+            {
+                "extend": {
+                    "fixedGroupByTime": null,
+                    "fixedTime": "",
+                    "isRefresh": false,
+                    "settings": {
+                        "alias": [],
+                        "bgColor": "",
+                        "colors": [],
+                        "compareType": "",
+                        "currentChartType": "singlestat",
+                        "downsample": "last",
+                        "fixedTime": "",
+                        "fontColor": "",
+                        "isTimeInterval": false,
+                        "levels": [],
+                        "lineColor": "#3AB8FF",
+                        "mappings": [],
+                        "openCompare": false,
+                        "openThousandsSeparator": true,
+                        "precision": "0",
+                        "showFieldMapping": false,
+                        "showLine": false,
+                        "showLineAxis": false,
+                        "showTitle": true,
+                        "timeInterval": "default",
+                        "titleDesc": "{{.Dashboard.dbms_page_cache_page_faults_total_note}}",
+                        "units": [
+                            {
+                                "key": "avg(open_os_files_total)",
+                                "name": "avg(open_os_files_total)",
+                                "unit": "times",
+                                "units": [
+                                    "custom",
+                                    "times"
+                                ]
+                            }
+                        ]
+                    }
+                },
+                "group": {
+                    "name": null
+                },
+                "name": "{{.Dashboard.dbms_page_cache_page_faults_total}}",
+                "pos": {
+                    "h": 6,
+                    "w": 5,
+                    "x": 5,
+                    "y": 0
+                },
+                "queries": [
+                    {
+                        "color": "",
+                        "datasource": "dataflux",
+                        "name": "",
+                        "qtype": "dql",
+                        "query": {
+                            "alias": "",
+                            "code": "A",
+                            "dataSource": "neo4j",
+                            "field": "dbms_page_cache_page_faults_total",
+                            "fieldFunc": "avg",
+                            "fieldType": "float",
+                            "fill": null,
+                            "filters": [],
+                            "funcList": [],
+                            "groupBy": [
+                                "db",
+                                "instance"
+                            ],
+                            "groupByTime": "",
+                            "indexFilter": "",
+                            "namespace": "metric",
+                            "q": "M::`neo4j`:(AVG(`dbms_page_cache_page_faults_total`)) BY `db`, `instance`",
+                            "queryFuncs": [],
+                            "type": "simple"
+                        },
+                        "type": "singlestat",
+                        "unit": ""
+                    }
+                ],
+                "type": "singlestat"
+            },
+            {
+                "extend": {
+                    "fixedGroupByTime": null,
+                    "fixedTime": "",
+                    "isRefresh": true,
+                    "settings": {
+                        "alias": [],
+                        "bgColor": "",
+                        "colors": [],
+                        "compareType": "",
+                        "currentChartType": "singlestat",
+                        "downsample": "last",
+                        "fixedTime": "",
+                        "fontColor": "",
+                        "isTimeInterval": false,
+                        "levels": [],
+                        "lineColor": "#3AB8FF",
+                        "mappings": [],
+                        "openCompare": false,
+                        "openThousandsSeparator": true,
+                        "precision": "0",
+                        "showFieldMapping": false,
+                        "showLine": false,
+                        "showLineAxis": false,
+                        "showTitle": true,
+                        "timeInterval": "default",
+                        "titleDesc": "{{.Dashboard.dbms_page_cache_flushes_total_note}}",
+                        "units": [
+                            {
+                                "key": "avg(dbms_page_cache_flushes_total)",
+                                "name": "avg(dbms_page_cache_flushes_total)",
+                                "unit": "files",
+                                "units": [
+                                    "custom",
+                                    "files"
+                                ]
+                            }
+                        ]
+                    }
+                },
+                "group": {
+                    "name": null
+                },
+                "name": "{{.Dashboard.dbms_page_cache_flushes_total}}",
+                "pos": {
+                    "h": 6,
+                    "w": 4,
+                    "x": 10,
+                    "y": 0
+                },
+                "queries": [
+                    {
+                        "color": "",
+                        "datasource": "dataflux",
+                        "name": "",
+                        "qtype": "dql",
+                        "query": {
+                            "alias": "",
+                            "code": "A",
+                            "dataSource": "neo4j",
+                            "field": "dbms_page_cache_flushes_total",
+                            "fieldFunc": "avg",
+                            "fieldType": "",
+                            "fill": null,
+                            "filters": [],
+                            "funcList": [],
+                            "groupBy": [
+                                "db",
+                                "instance"
+                            ],
+                            "groupByTime": "",
+                            "indexFilter": "",
+                            "namespace": "metric",
+                            "q": "M::`neo4j`:(AVG(`dbms_page_cache_flushes_total`)) BY `db`, `instance`",
+                            "queryFuncs": [],
+                            "type": "simple"
+                        },
+                        "type": "singlestat",
+                        "unit": ""
+                    }
+                ],
+                "type": "singlestat"
+            },
+            {
+                "extend": {
+                    "fixedGroupByTime": null,
+                    "fixedTime": "",
+                    "isRefresh": false,
+                    "settings": {
+                        "alias": [],
+                        "chartType": "line",
+                        "colors": [],
+                        "compareColors": {
+                            "dayCompare": "rgba(213,217,226,0.5)",
+                            "hourCompare": "#D5D9E2",
+                            "monthCompare": "rgba(213,217,226,0.12)",
+                            "weekCompare": "rgba(213,217,226,0.25)"
+                        },
+                        "compareColorsDark": {
+                            "dayCompare": "rgba(213,217,226,0.5)",
+                            "hourCompare": "#D5D9E2",
+                            "monthCompare": "rgba(213,217,226,0.12)",
+                            "weekCompare": "rgba(213,217,226,0.25)"
+                        },
+                        "compareColorsLight": {
+                            "dayCompare": "rgba(11,11,12,0.5)",
+                            "hourCompare": "#0B0B0C",
+                            "monthCompare": "rgba(11,11,12,0.12)",
+                            "weekCompare": "rgba(11,11,12,0.3)"
+                        },
+                        "compareType": [],
+                        "currentChartType": "sequence",
+                        "density": "medium",
+                        "fixedTime": "",
+                        "isPercent": false,
+                        "isTimeInterval": true,
+                        "legendPostion": "none",
+                        "legendValues": "",
+                        "levels": [],
+                        "mainMeasurementQueryCode": "A",
+                        "onlyShowGroupName": false,
+                        "openCompare": false,
+                        "openStack": false,
+                        "showFieldMapping": false,
+                        "showLine": false,
+                        "showTitle": true,
+                        "slimit": 20,
+                        "stackType": "time",
+                        "timeInterval": "auto",
+                        "titleDesc": "{{.Dashboard.dbms_bolt_connections_note}}",
+                        "units": [],
+                        "xAxisShowType": "time",
+                        "yAxixMaxVal": null,
+                        "yAxixMinVal": null
+                    }
+                },
+                "group": {
+                    "name": null
+                },
+                "name": "{{.Dashboard.dbms_bolt_connections}}",
+                "pos": {
+                    "h": 10,
+                    "w": 8,
+                    "x": 0,
+                    "y": 16
+                },
+                "queries": [
+                    {
+                        "color": "",
+                        "datasource": "dataflux",
+                        "name": "",
+                        "qtype": "dql",
+                        "query": {
+                            "alias": "",
+                            "code": "A",
+                            "dataSource": "neo4j",
+                            "field": "dbms_bolt_connections_opened_total",
+                            "fieldFunc": "avg",
+                            "fieldType": "float",
+                            "fill": null,
+                            "fillNum": null,
+                            "filters": [],
+                            "funcList": [],
+                            "groupBy": [
+                                "db",
+                                "instance"
+                            ],
+                            "groupByTime": "",
+                            "labelOp": "",
+                            "namespace": "metric",
+                            "q": "M::`neo4j`:(AVG(`dbms_bolt_connections_opened_total`)) BY `db`, `instance`",
+                            "queryFuncs": [],
+                            "type": "simple",
+                            "withLabels": []
+                        },
+                        "type": "sequence",
+                        "unit": ""
+                    },
+                    {
+                        "color": "",
+                        "datasource": "dataflux",
+                        "name": "",
+                        "qtype": "dql",
+                        "query": {
+                            "alias": "",
+                            "code": "B",
+                            "dataSource": "neo4j",
+                            "field": "dbms_bolt_connections_closed_total",
+                            "fieldFunc": "avg",
+                            "fieldType": "float",
+                            "fill": null,
+                            "filters": [],
+                            "funcList": [],
+                            "groupBy": [
+                                "db",
+                                "instance"
+                            ],
+                            "groupByTime": "",
+                            "indexFilter": "",
+                            "namespace": "metric",
+                            "q": "M::`neo4j`:(AVG(`dbms_bolt_connections_closed_total`)) BY `db`, `instance`",
+                            "queryFuncs": [],
+                            "type": "simple"
+                        },
+                        "type": "sequence",
+                        "unit": ""
+                    },
+                    {
+                        "color": "",
+                        "datasource": "dataflux",
+                        "name": "",
+                        "qtype": "dql",
+                        "query": {
+                            "alias": "",
+                            "code": "C",
+                            "dataSource": "neo4j",
+                            "field": "dbms_bolt_connections_running",
+                            "fieldFunc": "avg",
+                            "fieldType": "float",
+                            "fill": null,
+                            "filters": [],
+                            "funcList": [],
+                            "groupBy": [
+                                "db",
+                                "instance"
+                            ],
+                            "groupByTime": "",
+                            "indexFilter": "",
+                            "namespace": "metric",
+                            "q": "M::`neo4j`:(AVG(`dbms_bolt_connections_running`)) BY `db`, `instance`",
+                            "queryFuncs": [],
+                            "type": "simple"
+                        },
+                        "type": "sequence",
+                        "unit": ""
+                    },
+                    {
+                        "color": "",
+                        "datasource": "dataflux",
+                        "name": "",
+                        "qtype": "dql",
+                        "query": {
+                            "alias": "",
+                            "code": "D",
+                            "dataSource": "neo4j",
+                            "field": "dbms_bolt_connections_idle",
+                            "fieldFunc": "avg",
+                            "fieldType": "float",
+                            "fill": null,
+                            "filters": [],
+                            "funcList": [],
+                            "groupBy": [
+                                "db",
+                                "instance"
+                            ],
+                            "groupByTime": "",
+                            "indexFilter": "",
+                            "namespace": "metric",
+                            "q": "M::`neo4j`:(AVG(`dbms_bolt_connections_idle`)) BY `db`, `instance`",
+                            "queryFuncs": [],
+                            "type": "simple"
+                        },
+                        "type": "sequence",
+                        "unit": ""
+                    }
+                ],
+                "type": "sequence"
+            },
+            {
+                "extend": {
+                    "fixedGroupByTime": null,
+                    "fixedTime": "",
+                    "isRefresh": true,
+                    "settings": {
+                        "alias": [],
+                        "chartType": "line",
+                        "colors": [],
+                        "compareColors": {
+                            "dayCompare": "rgba(213,217,226,0.5)",
+                            "hourCompare": "#D5D9E2",
+                            "monthCompare": "rgba(213,217,226,0.12)",
+                            "weekCompare": "rgba(213,217,226,0.25)"
+                        },
+                        "compareColorsDark": {
+                            "dayCompare": "rgba(213,217,226,0.5)",
+                            "hourCompare": "#D5D9E2",
+                            "monthCompare": "rgba(213,217,226,0.12)",
+                            "weekCompare": "rgba(213,217,226,0.25)"
+                        },
+                        "compareColorsLight": {
+                            "dayCompare": "rgba(11,11,12,0.5)",
+                            "hourCompare": "#0B0B0C",
+                            "monthCompare": "rgba(11,11,12,0.12)",
+                            "weekCompare": "rgba(11,11,12,0.3)"
+                        },
+                        "compareType": [],
+                        "currentChartType": "sequence",
+                        "density": "medium",
+                        "fixedTime": "",
+                        "isPercent": false,
+                        "isTimeInterval": true,
+                        "legendPostion": "none",
+                        "legendValues": "",
+                        "levels": [],
+                        "mainMeasurementQueryCode": "A",
+                        "onlyShowGroupName": false,
+                        "openCompare": false,
+                        "openStack": false,
+                        "showFieldMapping": false,
+                        "showLine": false,
+                        "showTitle": true,
+                        "slimit": 20,
+                        "stackType": "time",
+                        "timeInterval": "auto",
+                        "titleDesc": "{{.Dashboard.dbms_vm_file_descriptors_note}}",
+                        "units": [],
+                        "xAxisShowType": "time",
+                        "yAxixMaxVal": null,
+                        "yAxixMinVal": null
+                    }
+                },
+                "group": {
+                    "name": null
+                },
+                "name": "{{.Dashboard.dbms_vm_file_descriptors}}",
+                "pos": {
+                    "h": 10,
+                    "w": 8,
+                    "x": 8,
+                    "y": 6
+                },
+                "queries": [
+                    {
+                        "color": "",
+                        "datasource": "dataflux",
+                        "name": "",
+                        "qtype": "dql",
+                        "query": {
+                            "alias": "",
+                            "code": "A",
+                            "dataSource": "neo4j",
+                            "field": "dbms_vm_file_descriptors_count",
+                            "fieldFunc": "avg",
+                            "fieldType": "float",
+                            "fill": null,
+                            "fillNum": null,
+                            "filters": [],
+                            "funcList": [],
+                            "groupBy": [
+                                "db",
+                                "instance"
+                            ],
+                            "groupByTime": "",
+                            "labelOp": "",
+                            "namespace": "metric",
+                            "q": "M::`neo4j`:(AVG(`dbms_vm_file_descriptors_count`)) BY `db`, `instance`",
+                            "queryFuncs": [],
+                            "type": "simple",
+                            "withLabels": []
+                        },
+                        "type": "sequence",
+                        "unit": ""
+                    },
+                    {
+                        "color": "",
+                        "datasource": "dataflux",
+                        "name": "",
+                        "qtype": "dql",
+                        "query": {
+                            "alias": "",
+                            "code": "B",
+                            "dataSource": "neo4j",
+                            "field": "dbms_vm_file_descriptors_maximum",
+                            "fieldFunc": "avg",
+                            "fieldType": "",
+                            "fill": null,
+                            "filters": [],
+                            "funcList": [],
+                            "groupBy": [
+                                "db",
+                                "instance"
+                            ],
+                            "groupByTime": "",
+                            "indexFilter": "",
+                            "namespace": "metric",
+                            "q": "M::`neo4j`:(AVG(`dbms_vm_file_descriptors_maximum`)) BY `db`, `instance`",
+                            "queryFuncs": [],
+                            "type": "simple"
+                        },
+                        "type": "sequence",
+                        "unit": ""
+                    }
+                ],
+                "type": "sequence"
+            },
+            {
+                "extend": {
+                    "fixedGroupByTime": null,
+                    "fixedTime": "",
+                    "isRefresh": true,
+                    "settings": {
+                        "alias": [],
+                        "chartType": "line",
+                        "colors": [],
+                        "compareColors": {
+                            "dayCompare": "rgba(213,217,226,0.5)",
+                            "hourCompare": "#D5D9E2",
+                            "monthCompare": "rgba(213,217,226,0.12)",
+                            "weekCompare": "rgba(213,217,226,0.25)"
+                        },
+                        "compareColorsDark": {
+                            "dayCompare": "rgba(213,217,226,0.5)",
+                            "hourCompare": "#D5D9E2",
+                            "monthCompare": "rgba(213,217,226,0.12)",
+                            "weekCompare": "rgba(213,217,226,0.25)"
+                        },
+                        "compareColorsLight": {
+                            "dayCompare": "rgba(11,11,12,0.5)",
+                            "hourCompare": "#0B0B0C",
+                            "monthCompare": "rgba(11,11,12,0.12)",
+                            "weekCompare": "rgba(11,11,12,0.3)"
+                        },
+                        "compareType": [],
+                        "currentChartType": "sequence",
+                        "density": "medium",
+                        "fixedTime": "",
+                        "isPercent": false,
+                        "isTimeInterval": true,
+                        "legendPostion": "none",
+                        "legendValues": "",
+                        "levels": [],
+                        "mainMeasurementQueryCode": "A",
+                        "onlyShowGroupName": false,
+                        "openCompare": false,
+                        "openStack": false,
+                        "showFieldMapping": false,
+                        "showLine": false,
+                        "showTitle": true,
+                        "slimit": 20,
+                        "stackType": "time",
+                        "timeInterval": "auto",
+                        "titleDesc": "{{.Dashboard.database_ids_in_use_note}}",
+                        "units": [
+                            {
+                                "key": "avg(database_ids_in_use_relationship_type)",
+                                "name": "avg(database_ids_in_use_relationship_type)",
+                                "unit": "count",
+                                "units": [
+                                    "custom",
+                                    "count"
+                                ]
+                            },
+                            {
+                                "key": "avg(database_ids_in_use_property)",
+                                "name": "avg(database_ids_in_use_property)",
+                                "unit": "count",
+                                "units": [
+                                    "custom",
+                                    "count"
+                                ]
+                            },
+                            {
+                                "key": "avg(database_ids_in_use_relationship)",
+                                "name": "avg(database_ids_in_use_relationship)",
+                                "unit": "count",
+                                "units": [
+                                    "custom",
+                                    "count"
+                                ]
+                            },
+                            {
+                                "key": "avg(database_ids_in_use_node)",
+                                "name": "avg(database_ids_in_use_node)",
+                                "unit": "count",
+                                "units": [
+                                    "custom",
+                                    "count"
+                                ]
+                            }
+                        ],
+                        "xAxisShowType": "time",
+                        "yAxixMaxVal": null,
+                        "yAxixMinVal": null
+                    }
+                },
+                "group": {
+                    "name": null
+                },
+                "name": "{{.Dashboard.database_ids_in_use}}",
+                "pos": {
+                    "h": 10,
+                    "w": 8,
+                    "x": 16,
+                    "y": 6
+                },
+                "queries": [
+                    {
+                        "color": "",
+                        "datasource": "dataflux",
+                        "name": "",
+                        "qtype": "dql",
+                        "query": {
+                            "alias": "",
+                            "code": "A",
+                            "dataSource": "neo4j",
+                            "field": "database_ids_in_use_relationship_type",
+                            "fieldFunc": "avg",
+                            "fieldType": "float",
+                            "fill": null,
+                            "filters": [],
+                            "funcList": [],
+                            "groupBy": [
+                                "db",
+                                "instance"
+                            ],
+                            "groupByTime": "",
+                            "indexFilter": "",
+                            "namespace": "metric",
+                            "q": "M::`neo4j`:(AVG(`database_ids_in_use_relationship_type`)) BY `db`, `instance`",
+                            "queryFuncs": [],
+                            "type": "simple"
+                        },
+                        "type": "sequence",
+                        "unit": ""
+                    },
+                    {
+                        "color": "",
+                        "datasource": "dataflux",
+                        "name": "",
+                        "qtype": "dql",
+                        "query": {
+                            "alias": "",
+                            "code": "B",
+                            "dataSource": "neo4j",
+                            "field": "database_ids_in_use_property",
+                            "fieldFunc": "avg",
+                            "fieldType": "float",
+                            "fill": null,
+                            "filters": [],
+                            "funcList": [],
+                            "groupBy": [
+                                "db",
+                                "instance"
+                            ],
+                            "groupByTime": "",
+                            "indexFilter": "",
+                            "namespace": "metric",
+                            "q": "M::`neo4j`:(AVG(`database_ids_in_use_property`)) BY `db`, `instance`",
+                            "queryFuncs": [],
+                            "type": "simple"
+                        },
+                        "type": "sequence",
+                        "unit": ""
+                    },
+                    {
+                        "color": "",
+                        "datasource": "dataflux",
+                        "name": "",
+                        "qtype": "dql",
+                        "query": {
+                            "alias": "",
+                            "code": "C",
+                            "dataSource": "neo4j",
+                            "field": "database_ids_in_use_relationship",
+                            "fieldFunc": "avg",
+                            "fieldType": "float",
+                            "fill": null,
+                            "filters": [],
+                            "funcList": [],
+                            "groupBy": [
+                                "db",
+                                "instance"
+                            ],
+                            "groupByTime": "",
+                            "indexFilter": "",
+                            "namespace": "metric",
+                            "q": "M::`neo4j`:(AVG(`database_ids_in_use_relationship`)) BY `db`, `instance`",
+                            "queryFuncs": [],
+                            "type": "simple"
+                        },
+                        "type": "sequence",
+                        "unit": ""
+                    },
+                    {
+                        "color": "",
+                        "datasource": "dataflux",
+                        "name": "",
+                        "qtype": "dql",
+                        "query": {
+                            "alias": "",
+                            "code": "D",
+                            "dataSource": "neo4j",
+                            "field": "database_ids_in_use_node",
+                            "fieldFunc": "avg",
+                            "fieldType": "float",
+                            "fill": null,
+                            "filters": [],
+                            "funcList": [],
+                            "groupBy": [
+                                "db",
+                                "instance"
+                            ],
+                            "groupByTime": "",
+                            "indexFilter": "",
+                            "namespace": "metric",
+                            "q": "M::`neo4j`:(AVG(`database_ids_in_use_node`)) BY `db`, `instance`",
+                            "queryFuncs": [],
+                            "type": "simple"
+                        },
+                        "type": "sequence",
+                        "unit": ""
+                    }
+                ],
+                "type": "sequence"
+            },
+            {
+                "extend": {
+                    "fixedGroupByTime": null,
+                    "fixedTime": "",
+                    "isRefresh": true,
+                    "settings": {
+                        "alias": [],
+                        "chartType": "bar",
+                        "colors": [],
+                        "compareColors": {
+                            "dayCompare": "rgba(213,217,226,0.5)",
+                            "hourCompare": "#D5D9E2",
+                            "monthCompare": "rgba(213,217,226,0.12)",
+                            "weekCompare": "rgba(213,217,226,0.25)"
+                        },
+                        "compareColorsDark": {
+                            "dayCompare": "rgba(213,217,226,0.5)",
+                            "hourCompare": "#D5D9E2",
+                            "monthCompare": "rgba(213,217,226,0.12)",
+                            "weekCompare": "rgba(213,217,226,0.25)"
+                        },
+                        "compareColorsLight": {
+                            "dayCompare": "rgba(11,11,12,0.5)",
+                            "hourCompare": "#0B0B0C",
+                            "monthCompare": "rgba(11,11,12,0.12)",
+                            "weekCompare": "rgba(11,11,12,0.3)"
+                        },
+                        "compareType": [],
+                        "currentChartType": "sequence",
+                        "density": "medium",
+                        "fixedTime": "",
+                        "isPercent": false,
+                        "isTimeInterval": true,
+                        "legendPostion": "none",
+                        "legendValues": "",
+                        "levels": [],
+                        "mainMeasurementQueryCode": "A",
+                        "onlyShowGroupName": false,
+                        "openCompare": false,
+                        "openStack": false,
+                        "showFieldMapping": false,
+                        "showLine": false,
+                        "showTitle": true,
+                        "slimit": 20,
+                        "stackType": "time",
+                        "timeInterval": "auto",
+                        "titleDesc": "{{.Dashboard.database_db_query_execution_latency_millis_note}}",
+                        "units": [],
+                        "xAxisShowType": "time",
+                        "yAxixMaxVal": null,
+                        "yAxixMinVal": null
+                    }
+                },
+                "group": {
+                    "name": null
+                },
+                "name": "{{.Dashboard.database_db_query_execution_latency_millis}}",
+                "pos": {
+                    "h": 10,
+                    "w": 8,
+                    "x": 0,
+                    "y": 6
+                },
+                "queries": [
+                    {
+                        "color": "",
+                        "datasource": "dataflux",
+                        "name": "",
+                        "qtype": "dql",
+                        "query": {
+                            "alias": "",
+                            "code": "A",
+                            "dataSource": "neo4j",
+                            "field": "database_db_query_execution_latency_millis",
+                            "fieldFunc": "avg",
+                            "fieldType": "float",
+                            "fill": null,
+                            "filters": [],
+                            "funcList": [],
+                            "groupBy": [
+                                "db",
+                                "instance",
+                                "quantile"
+                            ],
+                            "groupByTime": "",
+                            "indexFilter": "",
+                            "namespace": "metric",
+                            "q": "M::`neo4j`:(AVG(`database_db_query_execution_latency_millis`)) BY `db`, `instance`, `quantile`",
+                            "queryFuncs": [],
+                            "type": "simple"
+                        },
+                        "type": "sequence",
+                        "unit": ""
+                    },
+                    {
+                        "color": "",
+                        "datasource": "dataflux",
+                        "name": "",
+                        "qtype": "dql",
+                        "query": {
+                            "alias": "",
+                            "code": "B",
+                            "dataSource": "neo4j",
+                            "field": "database_db_query_execution_latency_millis_count",
+                            "fieldFunc": "avg",
+                            "fieldType": "float",
+                            "fill": null,
+                            "filters": [],
+                            "funcList": [],
+                            "groupBy": [
+                                "db",
+                                "instance"
+                            ],
+                            "groupByTime": "",
+                            "indexFilter": "",
+                            "namespace": "metric",
+                            "q": "M::`neo4j`:(AVG(`database_db_query_execution_latency_millis_count`)) BY `db`, `instance`",
+                            "queryFuncs": [],
+                            "type": "simple"
+                        },
+                        "type": "sequence",
+                        "unit": ""
+                    },
+                    {
+                        "color": "",
+                        "datasource": "dataflux",
+                        "name": "",
+                        "qtype": "dql",
+                        "query": {
+                            "alias": "",
+                            "code": "C",
+                            "dataSource": "neo4j",
+                            "field": "database_db_query_execution_latency_millis_sum",
+                            "fieldFunc": "avg",
+                            "fieldType": "float",
+                            "fill": null,
+                            "filters": [],
+                            "funcList": [],
+                            "groupBy": [
+                                "db",
+                                "instance"
+                            ],
+                            "groupByTime": "",
+                            "indexFilter": "",
+                            "namespace": "metric",
+                            "q": "M::`neo4j`:(AVG(`database_db_query_execution_latency_millis_sum`)) BY `db`, `instance`",
+                            "queryFuncs": [],
+                            "type": "simple"
+                        },
+                        "type": "sequence",
+                        "unit": ""
+                    }
+                ],
+                "type": "sequence"
+            },
+            {
+                "extend": {
+                    "fixedGroupByTime": null,
+                    "fixedTime": "",
+                    "isRefresh": false,
+                    "settings": {
+                        "alias": [],
+                        "chartType": "line",
+                        "colors": [],
+                        "compareColors": {
+                            "dayCompare": "rgba(213,217,226,0.5)",
+                            "hourCompare": "#D5D9E2",
+                            "monthCompare": "rgba(213,217,226,0.12)",
+                            "weekCompare": "rgba(213,217,226,0.25)"
+                        },
+                        "compareColorsDark": {
+                            "dayCompare": "rgba(213,217,226,0.5)",
+                            "hourCompare": "#D5D9E2",
+                            "monthCompare": "rgba(213,217,226,0.12)",
+                            "weekCompare": "rgba(213,217,226,0.25)"
+                        },
+                        "compareColorsLight": {
+                            "dayCompare": "rgba(11,11,12,0.5)",
+                            "hourCompare": "#0B0B0C",
+                            "monthCompare": "rgba(11,11,12,0.12)",
+                            "weekCompare": "rgba(11,11,12,0.3)"
+                        },
+                        "compareType": [],
+                        "currentChartType": "sequence",
+                        "density": "medium",
+                        "fixedTime": "",
+                        "isPercent": false,
+                        "isTimeInterval": true,
+                        "legendPostion": "none",
+                        "legendValues": "",
+                        "levels": [],
+                        "mainMeasurementQueryCode": "A",
+                        "onlyShowGroupName": false,
+                        "openCompare": false,
+                        "openStack": false,
+                        "showFieldMapping": false,
+                        "showLine": false,
+                        "showTitle": true,
+                        "slimit": 20,
+                        "stackType": "time",
+                        "timeInterval": "auto",
+                        "titleDesc": "{{.Dashboard.database_transaction_last_committed_tx_id_total_note}}",
+                        "units": [],
+                        "xAxisShowType": "time",
+                        "yAxixMaxVal": null,
+                        "yAxixMinVal": null
+                    }
+                },
+                "group": {
+                    "name": null
+                },
+                "name": "{{.Dashboard.database_transaction_last_committed_tx_id_total}}",
+                "pos": {
+                    "h": 10,
+                    "w": 8,
+                    "x": 16,
+                    "y": 16
+                },
+                "queries": [
+                    {
+                        "color": "",
+                        "datasource": "dataflux",
+                        "name": "",
+                        "qtype": "dql",
+                        "query": {
+                            "alias": "",
+                            "code": "A",
+                            "dataSource": "neo4j",
+                            "field": "database_transaction_last_committed_tx_id_total",
+                            "fieldFunc": "avg",
+                            "fieldType": "float",
+                            "fill": null,
+                            "filters": [],
+                            "funcList": [],
+                            "groupBy": [
+                                "db",
+                                "instance"
+                            ],
+                            "groupByTime": "",
+                            "indexFilter": "",
+                            "namespace": "metric",
+                            "q": "M::`neo4j`:(AVG(`database_transaction_last_committed_tx_id_total`)) BY `db`, `instance`",
+                            "queryFuncs": [],
+                            "type": "simple"
+                        },
+                        "type": "sequence",
+                        "unit": ""
+                    }
+                ],
+                "type": "sequence"
+            },
+            {
+                "extend": {
+                    "fixedGroupByTime": null,
+                    "fixedTime": "",
+                    "isRefresh": false,
+                    "settings": {
+                        "alias": [],
+                        "bgColor": "",
+                        "colors": [],
+                        "compareType": "",
+                        "currentChartType": "singlestat",
+                        "downsample": "last",
+                        "fixedTime": "",
+                        "fontColor": "",
+                        "isTimeInterval": false,
+                        "levels": [],
+                        "lineColor": "#3AB8FF",
+                        "mappings": [],
+                        "openCompare": false,
+                        "openThousandsSeparator": true,
+                        "precision": "0",
+                        "showFieldMapping": false,
+                        "showLine": false,
+                        "showLineAxis": false,
+                        "showTitle": true,
+                        "timeInterval": "default",
+                        "titleDesc": "{{.Dashboard.dbms_vm_heap_committed_note}}",
+                        "units": [
+                            {
+                                "key": "avg(dbms_page_cache_flushes_total)",
+                                "name": "avg(dbms_page_cache_flushes_total)",
+                                "unit": "files",
+                                "units": [
+                                    "custom",
+                                    "files"
+                                ]
+                            }
+                        ]
+                    }
+                },
+                "group": {
+                    "name": null
+                },
+                "name": "{{.Dashboard.dbms_vm_heap_committed}}",
+                "pos": {
+                    "h": 6,
+                    "w": 5,
+                    "x": 14,
+                    "y": 0
+                },
+                "queries": [
+                    {
+                        "color": "",
+                        "datasource": "dataflux",
+                        "name": "",
+                        "qtype": "dql",
+                        "query": {
+                            "alias": "",
+                            "code": "A",
+                            "dataSource": "neo4j",
+                            "field": "dbms_vm_heap_committed",
+                            "fieldFunc": "avg",
+                            "fieldType": "",
+                            "fill": null,
+                            "filters": [],
+                            "funcList": [],
+                            "groupBy": [
+                                "db",
+                                "instance"
+                            ],
+                            "groupByTime": "",
+                            "indexFilter": "",
+                            "namespace": "metric",
+                            "q": "M::`neo4j`:(AVG(`dbms_vm_heap_committed`)) BY `db`, `instance`",
+                            "queryFuncs": [],
+                            "type": "simple"
+                        },
+                        "type": "singlestat",
+                        "unit": ""
+                    }
+                ],
+                "type": "singlestat"
+            },
+            {
+                "extend": {
+                    "fixedGroupByTime": null,
+                    "fixedTime": "",
+                    "isRefresh": false,
+                    "settings": {
+                        "alias": [],
+                        "bgColor": "",
+                        "colors": [],
+                        "compareType": "",
+                        "currentChartType": "singlestat",
+                        "downsample": "last",
+                        "fixedTime": "",
+                        "fontColor": "",
+                        "isTimeInterval": false,
+                        "levels": [],
+                        "lineColor": "#3AB8FF",
+                        "mappings": [],
+                        "openCompare": false,
+                        "openThousandsSeparator": true,
+                        "precision": "0",
+                        "showFieldMapping": false,
+                        "showLine": false,
+                        "showLineAxis": false,
+                        "showTitle": true,
+                        "timeInterval": "default",
+                        "titleDesc": "{{.Dashboard.dbms_vm_heap_used_note}}",
+                        "units": [
+                            {
+                                "key": "avg(dbms_page_cache_flushes_total)",
+                                "name": "avg(dbms_page_cache_flushes_total)",
+                                "unit": "files",
+                                "units": [
+                                    "custom",
+                                    "files"
+                                ]
+                            }
+                        ]
+                    }
+                },
+                "group": {
+                    "name": null
+                },
+                "name": "{{.Dashboard.dbms_vm_heap_used}}",
+                "pos": {
+                    "h": 6,
+                    "w": 5,
+                    "x": 19,
+                    "y": 0
+                },
+                "queries": [
+                    {
+                        "color": "",
+                        "datasource": "dataflux",
+                        "name": "",
+                        "qtype": "dql",
+                        "query": {
+                            "alias": "",
+                            "code": "A",
+                            "dataSource": "neo4j",
+                            "field": "dbms_vm_heap_used",
+                            "fieldFunc": "avg",
+                            "fieldType": "float",
+                            "fill": null,
+                            "filters": [],
+                            "funcList": [],
+                            "groupBy": [
+                                "db",
+                                "instance"
+                            ],
+                            "groupByTime": "",
+                            "indexFilter": "",
+                            "namespace": "metric",
+                            "q": "M::`neo4j`:(AVG(`dbms_vm_heap_used`)) BY `db`, `instance`",
+                            "queryFuncs": [],
+                            "type": "simple"
+                        },
+                        "type": "singlestat",
+                        "unit": ""
+                    }
+                ],
+                "type": "singlestat"
+            }
+        ],
+        "groups": [],
+        "type": "template",
+        "vars": []
+    },
+    "summary": "",
+    "tagInfo": [],
+    "thumbnail": "",
+    "title": "neo4j"
+}

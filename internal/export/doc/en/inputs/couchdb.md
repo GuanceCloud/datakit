@@ -36,7 +36,7 @@ See [official document](https://docs.couchdb.org/en/stable/install/index.html){:
 
 - Verify correct installation
 
-  Visit URL in browser `<ip>:5984/_utils/` can open Couchbase manage UI.
+  Visit URL in browser `<ip>:5984/_utils/` can open CouchDB manage UI.
 
 - Open CouchDB Prometheus port
   
