@@ -80,11 +80,9 @@ func (i *Input) runCollect() {
 	defer loggingTick.Stop()
 
 	collectors := i.newCollector()
+	electionCollectors := i.newElectionCollector()
 
-	// first collect
-	i.collectLogging(collectors)
-	i.collectObject(collectors)
-	i.collectMetric(collectors)
+	firstCollectElection := true
 
 	for {
 		select {
@@ -98,24 +96,45 @@ func (i *Input) runCollect() {
 
 		case <-metricTick.C:
 			i.collectMetric(collectors)
+			if i.pause.Load() {
+				i.collectMetric(electionCollectors)
+			}
 
 		case <-objectTick.C:
+			time.Sleep(time.Second) // window time
 			i.collectObject(collectors)
+			if i.pause.Load() {
+				i.collectObject(electionCollectors)
+			}
 
 		case <-loggingTick.C:
 			i.collectLogging(collectors)
+			if i.pause.Load() {
+				i.collectLogging(electionCollectors)
+			}
 
 		case pause := <-i.chPause:
 			i.pause.Store(pause)
+
+			if pause && firstCollectElection {
+				l.Info("first collect election metrics and objects")
+
+				i.collectMetric(electionCollectors)
+				time.Sleep(time.Second) // window time
+				i.collectObject(electionCollectors)
+
+				firstCollectElection = false
+			}
 		}
 	}
 }
 
+// if i.pause.Load() && c.Name() == kubernetes.Name() {
+// 	continue
+// }
+
 func (i *Input) collectMetric(collectors []Collector) {
 	for _, c := range collectors {
-		if i.pause.Load() && c.Name() == kubernetes.Name() {
-			continue
-		}
 		fn := func(pts []*point.Point) error {
 			return i.Feeder.Feed(c.Name()+"-metric", point.Metric, pts, &io.Option{Blocking: true})
 		}
@@ -125,9 +144,6 @@ func (i *Input) collectMetric(collectors []Collector) {
 
 func (i *Input) collectObject(collectors []Collector) {
 	for _, c := range collectors {
-		if i.pause.Load() && c.Name() == kubernetes.Name() {
-			continue
-		}
 		fn := func(pts []*point.Point) error {
 			return i.Feeder.Feed(c.Name()+"-object", point.Object, pts, &io.Option{Blocking: true})
 		}
@@ -161,7 +177,11 @@ func (i *Input) startDiscovery() {
 func (i *Input) newCollector() []Collector {
 	collectors := []Collector{}
 	collectors = append(collectors, newCollectorsFromContainerEndpoints(i)...)
+	return collectors
+}
 
+func (i *Input) newElectionCollector() []Collector {
+	collectors := []Collector{}
 	if datakit.Docker {
 		k8sCollectors, err := newCollectorsFromKubernetes(i)
 		if err != nil {
@@ -170,7 +190,6 @@ func (i *Input) newCollector() []Collector {
 			collectors = append(collectors, k8sCollectors)
 		}
 	}
-
 	return collectors
 }
 
@@ -321,7 +340,7 @@ func checkEndpoint(endpoint string) error {
 	}
 
 	if info.IsDir() {
-		return fmt.Errorf("endpoint cannot be a directory")
+		return fmt.Errorf("endpoint %s cannot be a directory", u.Path)
 	}
 
 	return nil

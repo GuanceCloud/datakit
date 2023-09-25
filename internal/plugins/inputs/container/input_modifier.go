@@ -16,14 +16,13 @@ func (i *Input) setLoggingAutoMultilineToLogConfigs(configs logConfigs) {
 		return
 	}
 	for _, cfg := range configs {
-		if cfg.Multiline != "" {
-			cfg.MultilinePatterns = []string{cfg.Multiline}
+		if len(cfg.MultilinePatterns) != 0 {
+			continue
+		}
+		if len(i.LoggingAutoMultilineExtraPatterns) != 0 {
+			cfg.MultilinePatterns = i.LoggingAutoMultilineExtraPatterns
 		} else {
-			if len(i.LoggingAutoMultilineExtraPatterns) != 0 {
-				cfg.MultilinePatterns = i.LoggingAutoMultilineExtraPatterns
-			} else {
-				cfg.MultilinePatterns = multiline.GlobalPatterns
-			}
+			cfg.MultilinePatterns = multiline.GlobalPatterns
 		}
 	}
 }

@@ -71,6 +71,10 @@ func (lc *logInstance) parseLogConfigs() error {
 		lc.configs = configs
 
 		for _, cfg := range lc.configs {
+			if cfg.Multiline != "" {
+				cfg.MultilinePatterns = []string{cfg.Multiline}
+			}
+
 			base := filepath.Base(cfg.Path)
 			dir := filepath.Dir(cfg.Path)
 
@@ -113,6 +117,15 @@ func (lc *logInstance) fillLogType(runtimeName string) {
 			continue
 		}
 		cfg.Type = runtimeName
+	}
+}
+
+func (lc *logInstance) fillSource() {
+	for _, cfg := range lc.configs {
+		if cfg.Source != "" {
+			continue
+		}
+		cfg.Source = lc.containerName
 	}
 }
 

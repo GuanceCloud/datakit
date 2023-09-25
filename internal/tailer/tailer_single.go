@@ -226,7 +226,7 @@ func (t *Single) reopen() error {
 	t.offset = ret
 	t.opt.log.Infof("reopen file %s, offset %d", t.filepath, t.offset)
 
-	rotateVec.WithLabelValues(t.opt.Source, t.filename).Inc()
+	rotateVec.WithLabelValues(t.opt.Source, t.filepath).Inc()
 	return nil
 }
 
@@ -371,7 +371,7 @@ func (t *Single) generateJSONLogs(lines []string) []string {
 		var msg dockerMessage
 		err := json.Unmarshal([]byte(line), &msg)
 		if err != nil {
-			parseFailVec.WithLabelValues(t.opt.Source, t.filename, t.opt.Mode.String()).Inc()
+			parseFailVec.WithLabelValues(t.opt.Source, t.filepath, t.opt.Mode.String()).Inc()
 			t.opt.log.Warnf("json-data parsed err: %s, data: %s, ignored", err, line)
 			continue
 		}
@@ -425,7 +425,7 @@ func (t *Single) generateCRILogs(lines []string) []string {
 
 		err := parseCRILog([]byte(line), &criMsg)
 		if err != nil {
-			parseFailVec.WithLabelValues(t.opt.Source, t.filename, t.opt.Mode.String()).Inc()
+			parseFailVec.WithLabelValues(t.opt.Source, t.filepath, t.opt.Mode.String()).Inc()
 			t.opt.log.Warnf("cri-log parsed err: %s, data: %s, ignored", err, line)
 			continue
 		}
@@ -435,29 +435,30 @@ func (t *Single) generateCRILogs(lines []string) []string {
 			continue
 		}
 
-		var originalText string
+		var contents []string
 
 		if t.partialContentBuff.Len() != 0 {
-			t.partialContentBuff.WriteString(criMsg.log)
-			originalText = t.partialContentBuff.String()
+			contents = append(contents, t.partialContentBuff.String())
 			t.partialContentBuff.Reset()
-		} else {
-			originalText = criMsg.log
 		}
+		contents = append(contents, criMsg.log)
 
-		var text string
-		text, err = t.decode(originalText)
-		if err != nil {
-			t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
+		for _, content := range contents {
+			var text string
+
+			text, err = t.decode(content)
+			if err != nil {
+				t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
+			}
+
+			text = t.multiline(multiline.TrimRightSpace(text))
+			if text == "" {
+				continue
+			}
+
+			logstr := removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
+			pending = append(pending, logstr)
 		}
-
-		text = t.multiline(multiline.TrimRightSpace(text))
-		if text == "" {
-			continue
-		}
-
-		logstr := removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
-		pending = append(pending, logstr)
 	}
 
 	return pending
@@ -661,7 +662,7 @@ func (t *Single) multiline(text string) string {
 	}
 
 	res, state := t.mult.ProcessLineString(text)
-	multilineVec.WithLabelValues(t.opt.Source, t.filename, state.String()).Inc()
+	multilineVec.WithLabelValues(t.opt.Source, t.filepath, state.String()).Inc()
 	return res
 }
 

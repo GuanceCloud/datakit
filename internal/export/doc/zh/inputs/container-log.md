@@ -82,23 +82,23 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
     $ docker build -t testing/log-output:v1 .
 
     ## 启动容器，添加环境变量 DATAKIT_LOGS_CONFIG
-    $ docker run --name log-output -env DATAKIT_LOGS_CONFIG='[{"disable":false,"source":"testing-source","service":"testing-service"}]' -d testing/log-output:v1
+    $ docker run --name log-output -env DATAKIT_LOGS_CONFIG='[{"disable":false,"source":"log-source","service":"log-service"}]' -d testing/log-output:v1
     ```
 
 === "Kubernetes Pod Annotation"
 
-    ``` yaml title="log-output.yaml"
+    ``` yaml title="log-demo.yaml"
     apiVersion: v1
     kind: Pod
     metadata:
-      name: log-output
+      name: log-demo
       annotations:
         ## 添加配置，且指定容器为 log-output
         datakit/log-output.logs: |
           [{
               "disable": false,
-              "source":  "testing-source-02",
-              "service": "testing-service",
+              "source":  "log-output-source",
+              "service": "log-output-service",
               "tags" : {
                 "some_tag": "some_value"
               }
@@ -135,8 +135,10 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
     `multiline_match` 的值是双重转义，4 根斜杠才能表示实际的 1 根，例如 `\"multiline_match\":\"^\\\\d{4}\"` 等价 `"multiline_match":"^\d{4}"`，示例：
 
     ```shell
-    kubectl annotate pods my-pod datakit/logs="[{\"disable\":false,\"source\":\"testing-source\",\"service\":\"testing-service\",\"pipeline\":\"test.p\",\"only_images\":[\"image:<your_image_regexp>\"],\"multiline_match\":\"^\\\\d{4}-\\\\d{2}\"}]"
+    kubectl annotate pods my-pod datakit/logs="[{\"disable\":false,\"source\":\"log-source\",\"service\":\"log-service\",\"pipeline\":\"test.p\",\"multiline_match\":\"^\\\\d{4}-\\\\d{2}\"}]"
     ``` 
+
+    如果一个 Pod/容器日志已经在采集中，此时再通过 `kubectl annotate` 命令添加配置不生效。
 
 <!-- markdownlint-enable -->
 
@@ -177,7 +179,7 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
     ## 启动容器，添加环境变量 DATAKIT_LOGS_CONFIG，注意字符转义
     ## 指定非 stdout 路径，"type" 和 "path" 是必填字段，且需要创建采集路径的 volume
     ## 例如采集 `/tmp/opt/log` 文件，需要添加 `/tmp/opt` 的匿名 volume
-    $ docker run --env DATAKIT_LOGS_CONFIG="[{\"disable\":false,\"type\":\"file\",\"path\":\"/tmp/opt/log\",\"source\":\"testing-source\",\"service\":\"testing-service\"}]" -v /tmp/opt  -d testing/log-to-file:v1
+    $ docker run --env DATAKIT_LOGS_CONFIG="[{\"disable\":false,\"type\":\"file\",\"path\":\"/tmp/opt/log\",\"source\":\"log-source\",\"service\":\"log-service\"}]" -v /tmp/opt  -d testing/log-to-file:v1
     ```
 
 === "Kubernetes Pod Annotation"
@@ -186,11 +188,11 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
     apiVersion: v1
     kind: Pod
     metadata:
-      name: logging
+      name: log-demo
       annotations:
-        ## 添加配置，且指定容器为 logging
+        ## 添加配置，且指定容器为 logging-demo
         ## 同时配置了 file 和 stdout 两种采集。注意要采集 "/tmp/opt/log" 文件，需要先给 "/tmp/opt" 添加 emptyDir volume
-        datakit/logging.logs: |
+        datakit/logging-demo.logs: |
           [
             {
               "disable": false,
@@ -205,10 +207,10 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
               "disable": false,
               "source":  "logging-output"
             }
-          ]"
+          ]
     spec:
       containers:
-      - name: logging
+      - name: logging-demo
         image: pubrepo.guance.com/base/ubuntu:18.04
         args:
         - /bin/sh
@@ -321,6 +323,40 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
 
 ## FAQ {#faq}
 
+### :material-chat-question: 日志目录的软链接问题 {#log-path-link}
+
+正常情况下，Datakit 会从容器/Kubernetes API 找到日志文件的路径，然后采集该文件。
+
+一些特殊环境，会对该日志所在目录做一个软连接，Datakit 无法提前获知软连接的目标，无法挂载该目录，导致找不到该日志文件，无法进行采集。
+
+例如，现找到一个容器日志文件，路径是 `/var/log/pods/default_log-demo_f2617302-9d3a-48b5-b4e0-b0d59f1f0cd9/log-output/0.log`，但是在当前环境，`/var/log/pods` 是一个软连接指向 `/mnt/container_logs`，见下：
+
+```shell
+root@node-01:~# ls /var/log -lh
+total 284K
+lrwxrwxrwx 1 root root   20 Oct  8 10:06 pods -> /mnt/container_logs/
+```
+
+Datakit 需要挂载 `/mnt/container_logs` hostPath 才能使得正常采集，例如在 `datakit.yaml` 中添加以下：
+
+```yaml
+    # 省略
+    spec:
+      containers:
+      - name: datakit
+        image: pubrepo.jiagouyun.com/datakit/datakit:1.16.0
+        volumeMounts:
+        - mountPath: /mnt/container_logs
+          name: container-logs
+      # 省略
+      volumes:
+      - hostPath:
+          path: /mnt/container_logs
+        name: container-logs
+```
+
+这种情况不太常见，一般只有提前知道该路径有软连接，或查看 Datakit 日志发现采集报错才执行。
+
 ### :material-chat-question: 容器日志采集的 source 设置 {#config-logging-source}
 
 在容器环境下，日志来源（`source`）设置是一个很重要的配置项，它直接影响在页面上的展示效果。但如果挨个给每个容器的日志配置一个 source 未免残暴。如果不手动配置容器日志来源，DataKit 有如下规则（优先级递减）用于自动推断容器日志的来源：
@@ -330,6 +366,7 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
 - Kubernetes 指定的容器名：从容器的 `io.kubernetes.container.name` 这个 label 上取值
 - 容器本身的名称：通过 `docker ps` 或 `crictl ps` 能看到的容器名
 - `default`: 默认的 `source`
+
 
 ## 延伸阅读 {#more-reading}
 

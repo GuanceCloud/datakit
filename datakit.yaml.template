@@ -4,6 +4,7 @@ metadata:
   name: datakit
 
 ---
+
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -205,6 +206,8 @@ spec:
           name: run
         - mountPath: /sys/kernel/debug
           name: debugfs
+        - mountPath: /var/lib/containerd/container_logs
+          name: container-logs
         # # ---iploc-start
         #- mountPath: /usr/local/datakit/data/ipdb/iploc/
         #  name: datakit-ipdb
@@ -266,6 +269,9 @@ spec:
       - hostPath:
           path: /root/datakit_cache
         name: cache
+      - hostPath:
+          path: /var/lib/containerd/container_logs
+        name: container-logs
       # # ---iploc-start
       #- emptyDir: {}
       #  name: datakit-ipdb
