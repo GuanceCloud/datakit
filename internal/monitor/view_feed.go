@@ -16,6 +16,20 @@ import (
 	"github.com/rivo/tview"
 )
 
+func (app *monitorAPP) selected(x string) bool {
+	if len(app.onlyInputs) == 0 {
+		return true
+	}
+
+	for _, o := range app.onlyInputs {
+		if o == x {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (app *monitorAPP) renderInputsFeedTable(mfs map[string]*dto.MetricFamily, colArr []string) {
 	table := app.inputsStatTable
 
@@ -55,9 +69,12 @@ func (app *monitorAPP) renderInputsFeedTable(mfs map[string]*dto.MetricFamily, c
 	// render all inputs feed info, row by row
 	//
 	for _, m := range feedTotal.Metric {
-		lps := m.GetLabel()
-		var inputName,
+		var (
+			inputName,
 			cat string
+
+			lps = m.GetLabel()
+		)
 
 		for _, lp := range lps {
 			val := lp.GetValue()
@@ -65,21 +82,26 @@ func (app *monitorAPP) renderInputsFeedTable(mfs map[string]*dto.MetricFamily, c
 			switch lp.GetName() {
 			case "name":
 				inputName = val
-				table.SetCell(row, 0,
-					tview.NewTableCell(val).
-						SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 
 			case "category": //nolint:goconst
-
 				cat = val
 
-				table.SetCell(row, 1,
-					tview.NewTableCell(point.CatString(val).Alias() /* metric -> M */).
-						SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
 			default:
 				// pass
 			}
 		}
+
+		if !app.selected(inputName) {
+			continue
+		}
+
+		table.SetCell(row, 0,
+			tview.NewTableCell(inputName).
+				SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
+
+		table.SetCell(row, 1,
+			tview.NewTableCell(point.CatString(cat).Alias() /* metric -> M */).
+				SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
 
 		col := 2
 
