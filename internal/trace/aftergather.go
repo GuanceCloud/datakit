@@ -167,6 +167,8 @@ func processUnknown(dkspan *DatakitSpan) {
 	}
 }
 
+var replacer = strings.NewReplacer(".", "_")
+
 // BuildPoint builds point from DatakitSpan.
 func BuildPoint(dkspan *DatakitSpan, opts ...point.Option) (*point.Point, error) {
 	processUnknown(dkspan)
@@ -179,9 +181,7 @@ func BuildPoint(dkspan *DatakitSpan, opts ...point.Option) (*point.Point, error)
 		TAG_SPAN_STATUS: dkspan.Status,
 	}
 	for k, v := range dkspan.Tags {
-		rk := strings.ReplaceAll(k, ".", "_")
-		rk = strings.ReplaceAll(rk, "-", "_")
-		tags[rk] = v
+		tags[replacer.Replace(k)] = v
 	}
 
 	fields := map[string]interface{}{
@@ -198,9 +198,7 @@ func BuildPoint(dkspan *DatakitSpan, opts ...point.Option) (*point.Point, error)
 		fields[FIELD_TRACEID] = id
 	}
 	for k, v := range dkspan.Metrics {
-		rk := strings.ReplaceAll(k, ".", "_")
-		rk = strings.ReplaceAll(rk, "-", "_")
-		fields[rk] = v
+		fields[replacer.Replace(k)] = v
 	}
 
 	tracing := &TraceMeasurement{
