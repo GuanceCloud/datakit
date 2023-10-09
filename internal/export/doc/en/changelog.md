@@ -5,9 +5,15 @@
 
 ### Bug fixes {#cl-1.16.1-fix}
 
-- Fixed an issue where the char `-` is unsupported in the name of the `tags` and `fields` in Trace data (#1903)
-- Fixed an issue where the CPU metrics were not be collected correctly and multiple-line errors in the log (#1895)
-- Fixed an issue of the excessive memory usage of the collected data in `prom` collecor (#1905)
+- [Container](../integrations/container.md)(#1895)
+    - Fixed failed to get CPU metrics
+    - Fixed bug on handing multi-line logging text under containerd
+- Fixed [Prom collector](../integrations/prom.md) eat too many memory bug(#1905)
+
+### Breaking Changes {#cl-1.16.1-bc}
+
+- Dash(`-`) will no longer be replaced with `_` in all tracing collectors. This change was made to avoid problems when associate tracing and logging with these dash-named keys(#1903)
+- All [Prometheus exporter collector](../integrations/prom.md) by default uses streaming mode to avoid eat too much memory on collecting large exporter URLs.
 
 ---
 

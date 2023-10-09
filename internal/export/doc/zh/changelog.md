@@ -5,9 +5,13 @@
 
 ### 问题修复 {#cl-1.16.1-fix}
 
-- 修复 Trace 数据中不支持中杠字符问题（#1903）
-- 修复容器采集器 cpu 指标获取失败和日志多行错误问题（#1895）
-- 修复 prom 采集器数据内存占用过大问题（#1905）
+- 修复[K8s/容器采集器](../integrations/container.md) CPU 指标获取失败以及 containerd 下多行日志采集问题（#1895）
+- 修复 [Prom 采集器](../integrations/prom.md)内存占用过大问题（#1905）
+
+### Breaking Changes {#cl-1.16.1-bc}
+
+- Tracing 数据采集的时候，所有 meta 信息中带 `-` 的字段名不会再被替换成 `_`。之所以这么修改，是为了避免 Tracing 数据和日志数据关联不上的问题（#1903）
+- 所有 [Prom 采集器](../integrations/prom.md) 默认采用流式采集，以免未知的 Exporter 因数据量巨大造成 Datakit 大量的内存开销。
 
 ---
 
