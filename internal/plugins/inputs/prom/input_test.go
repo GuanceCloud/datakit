@@ -70,7 +70,7 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 
 		inp.Init()
 
-		pts, err := inp.Collect()
+		pts, err := inp.collectFormSource(inp.URLs[0])
 		assert.NoError(t, err)
 
 		if len(pts) == 0 {
@@ -109,7 +109,7 @@ some_info{info1="data1"} 0
 		inp.URLs = []string{srv.URL}
 		inp.Init()
 
-		pts, err := inp.Collect()
+		pts, err := inp.collectFormSource(inp.URLs[0])
 		assert.NoError(t, err)
 
 		if len(pts) == 0 {
@@ -127,7 +127,7 @@ some_info{info1="data1"} 0
 		inp.DisableInfoTag = true
 		inp.Init()
 
-		pts, err = inp.Collect()
+		pts, err = inp.collectFormSource(inp.URLs[0])
 		assert.NoError(t, err)
 
 		for _, pt := range pts {
@@ -157,7 +157,7 @@ promhttp_metric_handler_errors_total{cause="encoding",ignore_me="some"} 0
 
 		inp.Init()
 
-		pts, err := inp.Collect()
+		pts, err := inp.collectFormSource(inp.URLs[0])
 		assert.NoError(t, err)
 
 		if len(pts) == 0 {
@@ -195,7 +195,7 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 
 		inp.Init()
 
-		pts, err := inp.Collect()
+		pts, err := inp.collectFormSource(inp.URLs[0])
 		assert.NoError(t, err)
 
 		if len(pts) == 0 {
@@ -233,7 +233,7 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 
 		inp.Init()
 
-		pts, err := inp.Collect()
+		pts, err := inp.collectFormSource(inp.URLs[0])
 		assert.NoError(t, err)
 
 		if len(pts) == 0 {
@@ -269,7 +269,7 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 
 		inp.Init()
 
-		pts, err := inp.Collect()
+		pts, err := inp.collectFormSource(inp.URLs[0])
 		assert.NoError(t, err)
 
 		if len(pts) == 0 {
@@ -304,7 +304,7 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 
 		inp.Init()
 
-		pts, err := inp.Collect()
+		pts, err := inp.collectFormSource(inp.URLs[0])
 		assert.NoError(t, err)
 
 		if len(pts) == 0 {
@@ -345,7 +345,7 @@ promtcp_metric_handler_errors_total{cause="encoding"} 0
 
 		inp.Init()
 
-		pts, err := inp.Collect()
+		pts, err := inp.collectFormSource(inp.URLs[0])
 		assert.NoError(t, err)
 
 		if len(pts) == 0 {
@@ -380,7 +380,7 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 
 		inp.Init()
 
-		pts, err := inp.Collect()
+		pts, err := inp.collectFormSource(inp.URLs[0])
 		assert.NoError(t, err)
 
 		if len(pts) == 0 {
@@ -419,7 +419,7 @@ promhttp_metric_handler_errors_total{cause="encoding-3",some="foo-3"} 0
 
 		inp.Init()
 
-		pts, err := inp.Collect()
+		pts, err := inp.collectFormSource(inp.URLs[0])
 		assert.NoError(t, err)
 
 		if len(pts) == 0 {
@@ -498,7 +498,7 @@ func TestInputBatch(t *T.T) {
 			return nil
 		}
 		inp.Init()
-		_, err := inp.Collect()
+		_, err := inp.collectFormSource(inp.URLs[0])
 		close(ptCh)
 		assert.NoError(t, err)
 		wg.Wait()
@@ -558,7 +558,7 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 			return nil
 		}
 		inp.Init()
-		_, err := inp.Collect()
+		_, err := inp.collectFormSource(inp.URLs[0])
 		close(ptCh)
 		assert.NoError(t, err)
 		wg.Wait()
@@ -616,7 +616,7 @@ some_info{info1="data1"} 0
 			return nil
 		}
 		inp.Init()
-		_, err := inp.Collect()
+		_, err := inp.collectFormSource(inp.URLs[0])
 		close(ptCh)
 		assert.NoError(t, err)
 		wg.Wait()
@@ -670,7 +670,7 @@ some_info{info1="data1"} 0
 			return nil
 		}
 		inp.Init()
-		_, err := inp.Collect()
+		_, err := inp.collectFormSource(inp.URLs[0])
 		close(ptCh)
 		assert.NoError(t, err)
 		wg.Wait()
@@ -728,7 +728,7 @@ some_info{info1="data1"} 0
 			return nil
 		}
 		inp.Init()
-		_, err := inp.Collect()
+		_, err := inp.collectFormSource(inp.URLs[0])
 		close(ptCh)
 		assert.NoError(t, err)
 		wg.Wait()
@@ -786,7 +786,7 @@ some_info{info1="data1"} 0
 			return nil
 		}
 		inp.Init()
-		_, err := inp.Collect()
+		_, err := inp.collectFormSource(inp.URLs[0])
 		close(ptCh)
 		assert.NoError(t, err)
 		wg.Wait()
@@ -842,7 +842,7 @@ some_info{info1="data1"} 0
 			return nil
 		}
 		inp.Init()
-		_, err := inp.Collect()
+		_, err := inp.collectFormSource(inp.URLs[0])
 		close(ptCh)
 		assert.NoError(t, err)
 		wg.Wait()
@@ -897,7 +897,7 @@ some_info{info1="data1"} 0
 			return nil
 		}
 		inp.Init()
-		_, err := inp.Collect()
+		_, err := inp.collectFormSource(inp.URLs[0])
 		close(ptCh)
 		assert.NoError(t, err)
 		wg.Wait()
@@ -958,7 +958,7 @@ some_info{info1="data1"} 0
 			return nil
 		}
 		inp.Init()
-		_, err := inp.Collect()
+		_, err := inp.collectFormSource(inp.URLs[0])
 		close(ptCh)
 		assert.NoError(t, err)
 		wg.Wait()
@@ -1013,7 +1013,7 @@ some_info{info1="data1"} 0
 			return nil
 		}
 		inp.Init()
-		_, err := inp.Collect()
+		_, err := inp.collectFormSource(inp.URLs[0])
 		close(ptCh)
 		assert.NoError(t, err)
 		wg.Wait()
@@ -1072,7 +1072,7 @@ some_info{info1="data1"} 0
 			return nil
 		}
 		inp.Init()
-		_, err := inp.Collect()
+		_, err := inp.collectFormSource(inp.URLs[0])
 		close(ptCh)
 		assert.NoError(t, err)
 		wg.Wait()
@@ -1188,7 +1188,7 @@ func TestBatchParser(t *T.T) {
 			return nil
 		}
 		inp.Init()
-		_, err := inp.Collect()
+		err := inp.doCollect()
 		close(ptCh)
 		assert.NoError(t, err)
 		wg.Wait()
@@ -1301,7 +1301,7 @@ process_runtime_jvm_buffer_count{pool="mapped - 'non-volatile memory'"} 0.0 1680
 			return nil
 		}
 		inp.Init()
-		_, err := inp.Collect()
+		err := inp.doCollect()
 		close(ptCh)
 		assert.NoError(t, err)
 		wg.Wait()

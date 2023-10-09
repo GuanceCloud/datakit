@@ -355,6 +355,10 @@ func (cs *caseSpec) run() error {
 	if err != nil {
 		return err
 	}
+	cs.t.Logf("get len(pts)...%d", len(pts))
+	for _, v := range pts {
+		cs.t.Logf("get v.LineProto()...%s", v.LineProto())
+	}
 
 	cs.cr.AddField("point_latency", int64(time.Since(start)))
 	cs.cr.AddField("point_count", len(pts))

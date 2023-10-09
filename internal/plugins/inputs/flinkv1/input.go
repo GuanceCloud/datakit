@@ -18,6 +18,11 @@ const (
   ## Push gateway URL.
   url = "http://<pushgateway-host>:9091/metrics"
 
+  ## Stream Size. 
+  ## The source stream segmentation size.
+  ## Default 1, source stream undivided. 
+  # stream_size = 1
+
   ## Collector alias.
   source = "flink"
 
