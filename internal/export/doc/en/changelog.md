@@ -1,6 +1,16 @@
 # Changelog
 ---
 
+## 1.16.1(2023/10/09) {#cl-1.16.1}
+
+### Bug fixes {#cl-1.16.1-fix}
+
+- Fixed an issue where the char `-` is unsupported in the name of the `tags` and `fields` in Trace data (#1903)
+- Fixed an issue where the CPU metrics were not be collected correctly and multiple-line errors in the log (#1895)
+- Fixed an issue of the excessive memory usage of the collected data in `prom` collecor (#1905)
+
+---
+
 ## 1.16.0(2023/09/21) {#cl-1.16.0}
 This release is an iterative release, mainly including the following updates:
 
