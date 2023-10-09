@@ -176,13 +176,17 @@ func (i *Input) collect() error {
 					}
 				}
 
+				if len(pts) < 1 {
+					return nil
+				}
+
 				if i.AsLogging != nil && i.AsLogging.Enable {
 					// Feed measurement as logging.
 					for _, pt := range pts {
 						// We need to feed each point separately because
 						// each point might have different measurement name.
 						if err := i.Feeder.Feed(string(pt.Name()), point.Logging, []*point.Point{pt},
-							&io.Option{CollectCost: time.Since(i.startTime)}); err != nil {
+							&io.Option{CollectCost: time.Since(i.startTime), Blocking: true}); err != nil {
 							i.Feeder.FeedLastError(err.Error(),
 								io.WithLastErrorInput(inputName),
 								io.WithLastErrorSource(inputName+"/"+i.Source),
@@ -191,7 +195,7 @@ func (i *Input) collect() error {
 					}
 				} else {
 					err := i.Feeder.Feed(inputName+"/"+i.Source, point.Metric, pts,
-						&io.Option{CollectCost: time.Since(i.startTime)})
+						&io.Option{CollectCost: time.Since(i.startTime), Blocking: true})
 					if err != nil {
 						i.l.Errorf("Feed: %s", err)
 						i.Feeder.FeedLastError(err.Error(),
@@ -211,42 +215,10 @@ func (i *Input) collect() error {
 	}
 
 	i.startTime = time.Now()
-	pts, err := i.doCollect()
-	if err != nil {
-		return err
-	}
-	if pts == nil {
-		return nil
-	}
-
-	if i.AsLogging != nil && i.AsLogging.Enable {
-		// Feed measurement as logging.
-		for _, pt := range pts {
-			// We need to feed each point separately because
-			// each point might have different measurement name.
-			if err := i.Feeder.Feed(string(pt.Name()), point.Logging, []*point.Point{pt},
-				&io.Option{CollectCost: time.Since(i.startTime)}); err != nil {
-				i.Feeder.FeedLastError(err.Error(),
-					io.WithLastErrorInput(inputName),
-					io.WithLastErrorSource(inputName+"/"+i.Source),
-				)
-			}
-		}
-	} else {
-		err := i.Feeder.Feed(inputName+"/"+i.Source, point.Metric, pts,
-			&io.Option{CollectCost: time.Since(i.startTime)})
-		if err != nil {
-			i.l.Errorf("Feed: %s", err)
-			i.Feeder.FeedLastError(err.Error(),
-				io.WithLastErrorInput(inputName),
-				io.WithLastErrorSource(inputName+"/"+i.Source),
-			)
-		}
-	}
-	return nil
+	return i.doCollect()
 }
 
-func (i *Input) doCollect() ([]*point.Point, error) {
+func (i *Input) doCollect() error {
 	i.l.Debugf("collect URLs %v", i.URLs)
 
 	// If Output is configured, data is written to local file specified by Output.
@@ -256,10 +228,10 @@ func (i *Input) doCollect() ([]*point.Point, error) {
 		if err != nil {
 			i.l.Errorf("WriteMetricText2File: %s", err.Error())
 		}
-		return nil, nil
+		return nil
 	}
 
-	pts, err := i.Collect()
+	err := i.collectFormURLs()
 	if err != nil {
 		i.l.Errorf("Collect: %s", err)
 
@@ -276,46 +248,82 @@ func (i *Input) doCollect() ([]*point.Point, error) {
 			}
 		}
 
-		return nil, err
+		return err
 	}
 
-	return pts, nil
+	return nil
 }
 
 // Collect collects metrics from all URLs.
-func (i *Input) Collect() ([]*point.Point, error) {
+func (i *Input) collectFormURLs() error {
 	if i.pm == nil {
-		return nil, fmt.Errorf("i.pm is nil")
+		return fmt.Errorf("i.pm is nil")
 	}
-	var points []*point.Point
+
 	for _, u := range i.URLs {
-		uu, err := url.Parse(u)
+		pts, err := i.collectFormSource(u)
 		if err != nil {
-			return nil, err
+			i.l.Errorf("failed to get pts from %s, %s", u, err)
+			continue
 		}
 
-		i.currentURL = u
-		var pts []*point.Point
-		if uu.Scheme != "http" && uu.Scheme != "https" {
-			pts, err = i.CollectFromFile(u)
-		} else {
-			pts, err = i.CollectFromHTTP(u)
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		// Append tags to points
-		for _, v := range i.urlTags[u] {
-			for _, pt := range pts {
-				pt.AddTag(v.key, v.value)
+		if len(pts) > 0 {
+			if i.AsLogging != nil && i.AsLogging.Enable {
+				// Feed measurement as logging.
+				for _, pt := range pts {
+					// We need to feed each point separately because
+					// each point might have different measurement name.
+					if err := i.Feeder.Feed(string(pt.Name()), point.Logging, []*point.Point{pt},
+						&io.Option{CollectCost: time.Since(i.startTime)}); err != nil {
+						i.Feeder.FeedLastError(err.Error(),
+							io.WithLastErrorInput(inputName),
+							io.WithLastErrorSource(inputName+"/"+i.Source),
+						)
+					}
+				}
+			} else {
+				err := i.Feeder.Feed(inputName+"/"+i.Source, point.Metric, pts,
+					&io.Option{CollectCost: time.Since(i.startTime)})
+				if err != nil {
+					i.l.Errorf("Feed: %s", err)
+					i.Feeder.FeedLastError(err.Error(),
+						io.WithLastErrorInput(inputName),
+						io.WithLastErrorSource(inputName+"/"+i.Source),
+					)
+				}
 			}
 		}
-
-		points = append(points, pts...)
 	}
 
-	return points, nil
+	return nil
+}
+
+func (i *Input) collectFormSource(u string) (pts []*point.Point, err error) {
+	uu, err := url.Parse(u)
+	if err != nil {
+		return
+	}
+
+	i.currentURL = u
+
+	if uu.Scheme != "http" && uu.Scheme != "https" {
+		pts, err = i.CollectFromFile(u)
+	} else {
+		pts, err = i.CollectFromHTTP(u)
+	}
+	if err != nil {
+		i.l.Errorf("failed to get pts from %s, %s", u, err)
+		return
+	}
+
+	// Append tags to points
+	for _, v := range i.urlTags[u] {
+		for _, pt := range pts {
+			pt.AddTag(v.key, v.value)
+		}
+	}
+
+	return
 }
 
 func (i *Input) CollectFromHTTP(u string) ([]*point.Point, error) {
@@ -473,6 +481,7 @@ func NewProm() *Input {
 		Source:      "prom",
 		Interval:    defaultIntervalDuration,
 		Timeout:     time.Second * 30,
+		StreamSize:  1,
 		Election:    true,
 		Tags:        make(map[string]string),
 

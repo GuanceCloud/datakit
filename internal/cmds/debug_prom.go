@@ -187,7 +187,11 @@ func showPromInput(input *prom.Input) error {
 		clipts, err = input.CollectFromFile(input.Output)
 	} else {
 		// Collect from all URLs.
-		clipts, err = input.Collect()
+		if len(input.URLs) > 0 {
+			clipts, err = input.CollectFromHTTP(input.URLs[0])
+		} else {
+			err = fmt.Errorf("error urls")
+		}
 	}
 	if err != nil {
 		return err

@@ -25,6 +25,11 @@ const (
   measurement_prefix = ""
   tags_ignore = ["check"]
   interval = "10s"
+  
+  ## Stream Size. 
+  ## The source stream segmentation size.
+  ## Default 1, source stream undivided. 
+  # stream_size = 1
 
 [[inputs.prom.measurements]]
   prefix = "consul_"

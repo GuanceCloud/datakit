@@ -285,6 +285,9 @@ const clickHouseAsyncMetrics string = "ClickHouseAsyncMetrics"
 
 // formatPointSuffixes modify all points who have suffix.
 func (i *Input) formatPointSuffixes(pts []*point.Point) []*point.Point {
+	if len(pts) < 1 {
+		return pts
+	}
 	// All suffix info, store average/total message, every loop is new.
 	suffixes := suffixInfos()
 	// The points timestamp, will use in average/total point.
