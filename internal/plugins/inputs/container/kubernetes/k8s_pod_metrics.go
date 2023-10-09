@@ -15,8 +15,9 @@ import (
 )
 
 type podSrvMetric struct {
-	cpuUsage         int64 // Milli
-	memoryUsageBytes int64
+	cpuUsage          float64
+	cpuUsageNanoCores int64
+	memoryUsageBytes  int64
 }
 
 func queryPodMetrics(ctx context.Context, client k8sClient, name string, namespace string) (*podSrvMetric, error) {
@@ -44,23 +45,19 @@ func parsePodMetrics(item *v1beta1.PodMetrics) (*podSrvMetric, error) {
 		}
 	}
 
-	cpuUsage, ok := cpu.AsInt64()
+	cpuUsageNanoCores, ok := cpu.AsInt64()
 	if !ok {
-		cpuUsage, ok = cpu.AsDec().Unscaled()
+		cpuUsageNanoCores, ok = cpu.AsDec().Unscaled()
 		if !ok {
-			cpuUsage = 0
+			cpuUsageNanoCores = 0
 		}
 	}
 	memUsage, _ := mem.AsInt64()
 
-	// rounded up to Milli
-	if cpuUsage < 1000000 {
-		cpuUsage = 1000000
-	}
-
 	return &podSrvMetric{
-		cpuUsage:         cpuUsage / 1e6,
-		memoryUsageBytes: memUsage,
+		cpuUsage:          float64(cpuUsageNanoCores) / 1e9 * 100.0, // CPU core-nanoseconds per second.
+		cpuUsageNanoCores: cpuUsageNanoCores,
+		memoryUsageBytes:  memUsage,
 	}, nil
 }
 

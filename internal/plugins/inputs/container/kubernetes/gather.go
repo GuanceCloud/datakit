@@ -60,8 +60,9 @@ func (k *Kube) gather(category string, feed func([]*point.Point) error) {
 	_ = g.Wait()
 
 	if category == "metric" {
-		err := wrapFeed(transToNamespacePoint(counterWithName))
-		if err != nil {
+		pts := transToNamespacePoint(counterWithName)
+		k.addExtraTagsV2(pts)
+		if err := wrapFeed(pts); err != nil {
 			klog.Warn(err)
 		}
 	}
@@ -123,6 +124,14 @@ func (k *Kube) gatherResource(
 func (k *Kube) addExtraTags(pts pointKVs) {
 	for _, pt := range pts {
 		pt.SetTags(k.cfg.ExtraTags)
+	}
+}
+
+func (k *Kube) addExtraTagsV2(pts []*point.Point) {
+	for _, pt := range pts {
+		for k, v := range k.cfg.ExtraTags {
+			pt.MustAddTag([]byte(k), []byte(v))
+		}
 	}
 }
 

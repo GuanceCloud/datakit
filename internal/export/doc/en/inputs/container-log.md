@@ -85,7 +85,7 @@ Below is a complete example:
     $ docker build -t testing/log-output:v1 .
 
     ## Start the container, add the environment variable DATAKIT_LOGS_CONFIG (note the character escaping)
-    $ docker run --name log-output -env DATAKIT_LOGS_CONFIG='[{"disable":false,"source":"testing-source","service":"testing-service"}]' -d testing/log-output:v1
+    $ docker run --name log-output -env DATAKIT_LOGS_CONFIG='[{"disable":false,"source":"log-source","service":"log-service"}]' -d testing/log-output:v1
     ```
 
 
@@ -96,14 +96,14 @@ Below is a complete example:
     apiVersion: v1
     kind: Pod
     metadata:
-      name: log-output
+      name: log-demo
       annotations:
         ## Add the configuration and specify the container as log-output
         datakit/log-output.logs: |
           [{
               "disable": false,
-              "source":  "testing-source-02",
-              "service": "testing-service",
+              "source":  "log-output-source",
+              "service": "log-output-service",
               "tags" : {
                 "some_tag": "some_value"
               }
@@ -140,8 +140,9 @@ Below is a complete example:
     The value of `multiline_match` requires double escaping, with 4 backslashes representing a single one. For example, `\"multiline_match\":\"^\\\\d{4}\"` is equivalent to `"multiline_match":"^\d{4}"`. Here's an example:
 
     ```shell
-    kubectl annotate pods my-pod datakit/logs="[{\"disable\":false,\"source\":\"testing-source\",\"service\":\"testing-service\",\"pipeline\":\"test.p\",\"only_images\":[\"image:<your_image_regexp>\"],\"multiline_match\":\"^\\\\d{4}-\\\\d{2}\"}]"
+    kubectl annotate pods my-pod datakit/logs="[{\"disable\":false,\"source\":\"log-source\",\"service\":\"log-service\",\"pipeline\":\"test.p\",\"only_images\":[\"image:<your_image_regexp>\"],\"multiline_match\":\"^\\\\d{4}-\\\\d{2}\"}]"
     ```
+    If a Pod/Container log is already being collected, adding configuration via the `kubectl annotate` command does not take effect.
 
 
 ## Logging for Log Files Inside Containers {#logging-with-inside-config}
@@ -181,7 +182,7 @@ Here is a complete example:
     ## Start the container, add the environment variable DATAKIT_LOGS_CONFIG (note the character escaping).
     ## Unlike configuring stdout, "type" and "path" are mandatory fields, and add the path volume.
     ## Path `/tmp/opt/log` add the `/tmp/opt` anonymous volumes.
-    $ docker run --env DATAKIT_LOGS_CONFIG="[{\"disable\":false,\"type\":\"file\",\"path\":\"/tmp/opt/log\",\"source\":\"testing-source\",\"service\":\"testing-service\"}]" -v /tmp/opt -d testing/log-to-file:v1
+    $ docker run --env DATAKIT_LOGS_CONFIG="[{\"disable\":false,\"type\":\"file\",\"path\":\"/tmp/opt/log\",\"source\":\"log-source\",\"service\":\"log-service\"}]" -v /tmp/opt -d testing/log-to-file:v1
     ```
 
 
@@ -192,11 +193,11 @@ Here is a complete example:
     apiVersion: v1
     kind: Pod
     metadata:
-      name: logging
+      name: log-demo
       annotations:
-        ## Add the configuration and specify the container as logging.
+        ## Add the configuration and specify the container as logging-demo.
         ## Configure both file and stdout collection, need to add the emptyDir volume to "/tmp/opt" first.
-        datakit/logging.logs: |
+        datakit/logging-demo.logs: |
           [
             {
               "disable": false,
@@ -211,10 +212,10 @@ Here is a complete example:
               "disable": false,
               "source":  "logging-output"
             }
-          ]"
+          ]
         spec:
           containers:
-          - name: logging
+          - name: logging-demo
             image: pubrepo.guance.com/base/ubuntu:18.04
             args:
             - /bin/sh
@@ -328,6 +329,40 @@ By default, DataKit collects stdout/stderr logs for all containers on your machi
 
 
 ## FAQ {#faq}
+
+### :material-chat-question: Issue with Soft Links in Log Directories {#log-path-link}
+
+Normally, Datakit retrieves the path of log files from the container/Kubernetes API and collects the file accordingly.
+
+However, in some special environments, a soft link may be created for the directory containing the log file, and Datakit is unable to know the target of the soft link in advance, which prevents it from mounting the directory and collecting the log file.
+
+For example, suppose a container log file is located at `/var/log/pods/default_log-demo_f2617302-9d3a-48b5-b4e0-b0d59f1f0cd9/log-output/0.log`. In the current environment, `/var/log/pods` is a soft link pointing to `/mnt/container_logs`, as shown below:
+
+```shell
+root@node-01:~# ls /var/log -lh
+total 284K
+lrwxrwxrwx 1 root root   20 Oct  8 10:06 pods -> /mnt/container_logs/
+```
+
+To enable Datakit to collect the log file, `/mnt/container_logs` hostPath needs to be mounted. For example, the following can be added to `datakit.yaml`:
+
+```yaml
+    # .. omitted..
+    spec:
+      containers:
+      - name: datakit
+        image: pubrepo.jiagouyun.com/datakit/datakit:1.16.0
+        volumeMounts:
+        - mountPath: /mnt/container_logs
+          name: container-logs
+      # .. omitted..
+      volumes:
+      - hostPath:
+          path: /mnt/container_logs
+        name: container-logs
+```
+
+This situation is not very common and is usually only executed when it is known in advance that there is a soft link in the path or when Datakit logs indicate collection errors.
 
 ### :material-chat-question: Source Setting for Container Log Collection {#config-logging-source}
 

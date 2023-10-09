@@ -207,10 +207,8 @@ func queryPodFromMetricsServer(ctx context.Context, client k8sClient, item *apic
 		return p, err
 	}
 
-	// Milli to 1 core to percentage
-	cpuUsage := float64(podMet.cpuUsage) / 1000 * 100
-
-	p.SetField("cpu_usage", cpuUsage)
+	p.SetField("cpu_usage", podMet.cpuUsage)
+	p.SetField("cpu_usage_nano_cores", podMet.cpuUsageNanoCores)
 	p.SetField("mem_usage", podMet.memoryUsageBytes)
 
 	memLimit := getMemoryCapacityFromResourceLimit(item.Spec.Containers)
@@ -224,7 +222,7 @@ func queryPodFromMetricsServer(ctx context.Context, client k8sClient, item *apic
 	p.SetField("mem_capacity", memCapacity)
 
 	if cpuCapacity != 0 {
-		x := cpuUsage / float64(cpuCapacity)
+		x := podMet.cpuUsage / float64(cpuCapacity)
 		if math.IsNaN(x) {
 			x = 0.0
 		}
@@ -308,6 +306,7 @@ func (*podObject) Info() *inputs.MeasurementInfo {
 			"available":                   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Number of containers"},
 			"cpu_usage":                   &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The sum of the cpu usage of all containers in this Pod."},
 			"cpu_usage_base100":           &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The normalized cpu usage, with a maximum of 100%. (Experimental)"},
+			"cpu_usage_nano_cores":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationNS, Desc: "Total CPU usage (sum of all cores) averaged over the sample window."},
 			"memory_usage_bytes":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The sum of the memory usage of all containers in this Pod (Deprecated use `mem_usage`)."},
 			"memory_capacity":             &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The total memory in the host machine (Deprecated use `mem_capacity`)."},
 			"memory_used_percent":         &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage usage of the memory (refer from `mem_used_percent`"},

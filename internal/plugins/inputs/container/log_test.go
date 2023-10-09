@@ -53,7 +53,8 @@ func TestParseLogConfigs(t *testing.T) {
 			in: "[{\"multiline_match\":\"^\\\\[[0-9]{4}\"}]",
 			out: logConfigs{
 				&logConfig{
-					Multiline: `^\[[0-9]{4}`,
+					Multiline:         `^\[[0-9]{4}`,
+					MultilinePatterns: []string{`^\[[0-9]{4}`},
 				},
 			},
 		},
@@ -61,7 +62,8 @@ func TestParseLogConfigs(t *testing.T) {
 			in: "[{\"multiline_match\":\"^\\\\[[0-9]{4}\"}]",
 			out: logConfigs{
 				&logConfig{
-					Multiline: "^\\[[0-9]{4}",
+					Multiline:         "^\\[[0-9]{4}",
+					MultilinePatterns: []string{"^\\[[0-9]{4}"},
 				},
 			},
 		},
@@ -74,7 +76,8 @@ func TestParseLogConfigs(t *testing.T) {
 			in: "[{\"multiline_match\":\"^\\\\d{4}-\\\\d{2}\"}]",
 			out: logConfigs{
 				&logConfig{
-					Multiline: "^\\d{4}-\\d{2}",
+					Multiline:         "^\\d{4}-\\d{2}",
+					MultilinePatterns: []string{"^\\d{4}-\\d{2}"},
 				},
 			},
 		},
@@ -83,7 +86,8 @@ func TestParseLogConfigs(t *testing.T) {
 			in: "[{\"multiline_match\":\"^\\\\d{4}-\\\\d{2}\"}]",
 			out: logConfigs{
 				&logConfig{
-					Multiline: `^\d{4}-\d{2}`,
+					Multiline:         `^\d{4}-\d{2}`,
+					MultilinePatterns: []string{`^\d{4}-\d{2}`},
 				},
 			},
 		},
@@ -92,7 +96,8 @@ func TestParseLogConfigs(t *testing.T) {
 			in: "[{\"multiline_match\":\"^\\\\d{4}-\\\\d{2}\"}]",
 			out: logConfigs{
 				&logConfig{
-					Multiline: `^\\d{4}-\\d{2}`,
+					Multiline:         `^\\d{4}-\\d{2}`,
+					MultilinePatterns: []string{`^\\d{4}-\\d{2}`},
 				},
 			},
 			contentFail: true,
@@ -102,7 +107,8 @@ func TestParseLogConfigs(t *testing.T) {
 			in: "[{\"multiline_match\":\"^\\\\\\\\d{4}-\\\\\\\\d{2}\"}]",
 			out: logConfigs{
 				&logConfig{
-					Multiline: "^\\\\d{4}-\\\\d{2}",
+					Multiline:         "^\\\\d{4}-\\\\d{2}",
+					MultilinePatterns: []string{"^\\\\d{4}-\\\\d{2}"},
 				},
 			},
 		},
@@ -111,7 +117,8 @@ func TestParseLogConfigs(t *testing.T) {
 			in: "[{\"multiline_match\":\"^\\\\\\\\d{4}-\\\\\\\\d{2}\"}]",
 			out: logConfigs{
 				&logConfig{
-					Multiline: `^\\d{4}-\\d{2}`,
+					Multiline:         `^\\d{4}-\\d{2}`,
+					MultilinePatterns: []string{`^\\d{4}-\\d{2}`},
 				},
 			},
 		},
@@ -129,12 +136,13 @@ func TestParseLogConfigs(t *testing.T) {
 			in: "[{\"disable\":false,\"source\":\"testing-source\",\"service\":\"testing-service\",\"pipeline\":\"test.p\",\"multiline_match\":\"^\\\\d{4}-\\\\d{2}\", \"tags\":{\"some_tag\":\"some_value\"}}]",
 			out: logConfigs{
 				&logConfig{
-					Disable:   false,
-					Source:    "testing-source",
-					Service:   "testing-service",
-					Pipeline:  "test.p",
-					Multiline: "^\\d{4}-\\d{2}",
-					Tags:      map[string]string{"some_tag": "some_value"},
+					Disable:           false,
+					Source:            "testing-source",
+					Service:           "testing-service",
+					Pipeline:          "test.p",
+					Multiline:         "^\\d{4}-\\d{2}",
+					MultilinePatterns: []string{"^\\d{4}-\\d{2}"},
+					Tags:              map[string]string{"some_tag": "some_value"},
 				},
 			},
 		},
@@ -150,6 +158,8 @@ func TestParseLogConfigs(t *testing.T) {
 				},
 			},
 		},
+		// TODO
+		// test TargetPath
 	}
 
 	for idx, tc := range cases {

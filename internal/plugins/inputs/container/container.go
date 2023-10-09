@@ -64,7 +64,7 @@ func newContainer(ipt *Input, endpoint string, mountPoint string, k8sClient k8sc
 
 func (c *container) Metric(feed func(pts []*point.Point) error) {
 	if !c.ipt.EnableContainerMetric {
-		l.Info("collect container metric: offf")
+		l.Info("collect container metric: off")
 		return
 	}
 	c.gather("metric", feed)
@@ -88,6 +88,8 @@ func (c *container) gather(category string, feed func(pts []*point.Point) error)
 
 	collectCostVec.WithLabelValues(category).Observe(time.Since(start).Seconds())
 }
+
+const goroutineNum = 4
 
 func (c *container) gatherResource(category string, feed func(pts []*point.Point) error) {
 	var opts []point.Option
@@ -113,6 +115,10 @@ func (c *container) gatherResource(category string, feed func(pts []*point.Point
 	g := goroutine.NewGroup(goroutine.Option{Name: "container-" + category})
 
 	for idx := range cList {
+		if isPauseContainer(cList[idx]) {
+			continue
+		}
+
 		func(info *runtime.Container) {
 			g.Go(func(ctx context.Context) error {
 				pt := c.transformPoint(info)
@@ -129,6 +135,10 @@ func (c *container) gatherResource(category string, feed func(pts []*point.Point
 				return nil
 			})
 		}(cList[idx])
+
+		if (idx+1)%goroutineNum == 0 {
+			_ = g.Wait()
+		}
 	}
 
 	_ = g.Wait()
@@ -152,6 +162,10 @@ func (c *container) Logging(_ func([]*point.Point) error) {
 	c.cleanMissingContainerLog(newIDs)
 
 	for _, info := range cList {
+		if isPauseContainer(info) {
+			continue
+		}
+
 		l.Debugf("find container %s info: %#v", info.Name, info)
 
 		instance := c.queryContainerLogInfo(info)
@@ -170,6 +184,7 @@ func (c *container) Logging(_ func([]*point.Point) error) {
 
 		instance.addStdout()
 		instance.fillLogType(info.RuntimeName)
+		instance.fillSource()
 		instance.setTagsToLogConfigs(instance.tags())
 		instance.setTagsToLogConfigs(c.extraTags)
 		instance.setCustomerTags(instance.podLabels, getGlobalCustomerKeys())
@@ -329,6 +344,15 @@ func getPodNamespaceForLabels(labels map[string]string) string {
 
 func getContainerNameForLabels(labels map[string]string) string {
 	return labels["io.kubernetes.container.name"]
+}
+
+func getDockerTypeForLabels(labels map[string]string) string {
+	return labels["io.kubernetes.docker.type"]
+}
+
+func isPauseContainer(info *runtime.Container) bool {
+	typ := getDockerTypeForLabels(info.Labels)
+	return typ == "podsandbox"
 }
 
 // splitRules, return image name

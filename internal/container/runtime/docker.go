@@ -82,6 +82,7 @@ func (d *dockerClient) ListContainers() ([]*Container, error) {
 	}
 
 	var containers []*Container
+	var lastErr error
 
 	for _, c := range cList {
 		container := &Container{
@@ -97,7 +98,9 @@ func (d *dockerClient) ListContainers() ([]*Container, error) {
 		}
 
 		status, err := d.ContainerStatus(c.ID)
-		if err == nil {
+		if err != nil {
+			lastErr = err
+		} else {
 			container.Pid = status.Pid
 			container.LogPath = status.LogPath
 			container.Envs = status.Envs
@@ -107,7 +110,7 @@ func (d *dockerClient) ListContainers() ([]*Container, error) {
 		containers = append(containers, container)
 	}
 
-	return containers, nil
+	return containers, lastErr
 }
 
 func (d *dockerClient) ContainerStatus(id string) (*ContainerStatus, error) {

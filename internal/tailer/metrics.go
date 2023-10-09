@@ -27,7 +27,7 @@ func setupMetrics() {
 		},
 		[]string{
 			"source",
-			"filename",
+			"filepath",
 			"multilinestate",
 		},
 	)
@@ -41,7 +41,7 @@ func setupMetrics() {
 		},
 		[]string{
 			"source",
-			"filename",
+			"filepath",
 		},
 	)
 
@@ -54,7 +54,7 @@ func setupMetrics() {
 		},
 		[]string{
 			"source",
-			"filename",
+			"filepath",
 			"mode",
 		},
 	)

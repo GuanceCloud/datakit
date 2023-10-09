@@ -14,6 +14,8 @@ import (
 	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
+const sampleTime = time.Second * 1
+
 type criClient struct {
 	endpoint       string
 	runtimeName    string
@@ -80,9 +82,9 @@ func (ct *criClient) ListContainers() ([]*Container, error) {
 			container.Pid = status.Pid
 			container.LogPath = status.LogPath
 			container.Envs = status.Envs
-		}
-		if status.Image != "" {
-			container.Image = status.Image
+			if status.Image != "" {
+				container.Image = status.Image
+			}
 		}
 
 		containers = append(containers, container)
@@ -112,6 +114,9 @@ func (ct *criClient) ContainerStatus(id string) (*ContainerStatus, error) {
 	}, nil
 }
 
+// ContainerTop return container stats info.
+//
+//	Wait for 1 second window time.
 func (ct *criClient) ContainerTop(id string) (*ContainerTop, error) {
 	status, err := ct.ContainerStatus(id)
 	if err != nil {
@@ -129,9 +134,24 @@ func (ct *criClient) ContainerTop(id string) (*ContainerTop, error) {
 		return nil, err
 	}
 
-	// cpu usage
-	// CPU core-nanoseconds per second.
-	top.CPUUsage = float64(stats.GetCpu().GetUsageNanoCores().GetValue()/1000/1000/1000) * 100.0
+	time.Sleep(sampleTime)
+
+	newStats, err := ct.srv.ContainerStats(id)
+	if err != nil {
+		return nil, err
+	}
+
+	// cpu
+	if cpu := newStats.GetCpu().GetUsageCoreNanoSeconds().GetValue(); cpu != 0 {
+		// Only generate cpuPerc for running container
+		duration := newStats.GetCpu().GetTimestamp() - stats.GetCpu().GetTimestamp()
+		if duration == 0 {
+			return nil, fmt.Errorf("cpu stat is not updated during sample")
+		}
+		cpuPerc := float64(cpu-stats.GetCpu().GetUsageCoreNanoSeconds().GetValue()) / float64(duration) * 100
+		top.CPUUsage = cpuPerc
+	}
+
 	// memory
 	top.MemoryWorkingSet = int64(stats.GetMemory().GetWorkingSetBytes().GetValue())
 	if available := stats.GetMemory().GetAvailableBytes().GetValue(); available != 0 {
