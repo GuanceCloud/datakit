@@ -96,27 +96,27 @@ func (i *Input) runCollect() {
 
 		case <-metricTick.C:
 			i.collectMetric(collectors)
-			if i.pause.Load() {
+			if !i.pause.Load() {
 				i.collectMetric(electionCollectors)
 			}
 
 		case <-objectTick.C:
 			time.Sleep(time.Second) // window time
 			i.collectObject(collectors)
-			if i.pause.Load() {
+			if !i.pause.Load() {
 				i.collectObject(electionCollectors)
 			}
 
 		case <-loggingTick.C:
 			i.collectLogging(collectors)
-			if i.pause.Load() {
+			if !i.pause.Load() {
 				i.collectLogging(electionCollectors)
 			}
 
 		case pause := <-i.chPause:
 			i.pause.Store(pause)
 
-			if pause && firstCollectElection {
+			if !pause && firstCollectElection {
 				l.Info("first collect election metrics and objects")
 
 				i.collectMetric(electionCollectors)
@@ -128,10 +128,6 @@ func (i *Input) runCollect() {
 		}
 	}
 }
-
-// if i.pause.Load() && c.Name() == kubernetes.Name() {
-// 	continue
-// }
 
 func (i *Input) collectMetric(collectors []Collector) {
 	for _, c := range collectors {
