@@ -27,6 +27,7 @@ func setupMetrics() {
 		},
 		[]string{
 			"namespace",
+			"resource",
 			"error",
 		},
 	)
