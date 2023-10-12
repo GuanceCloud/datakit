@@ -126,6 +126,13 @@ var externals = []*dkexternal{
 func buildExternals(dir, goos, goarch string, standalone bool) error {
 	curOSArch := runtime.GOOS + "/" + runtime.GOARCH
 	for _, ex := range externals {
+		// NEVER using ex.envs for appending,
+		//       it would be modified and poisoned in the future use.
+		envs := make([]string, len(ex.envs))
+		buildArgs := make([]string, len(ex.buildArgs))
+		copy(envs, ex.envs)
+		copy(buildArgs, ex.buildArgs)
+
 		if ex.standalone != standalone {
 			continue
 		}
@@ -150,8 +157,8 @@ func buildExternals(dir, goos, goarch string, standalone bool) error {
 			case "oracle":
 				l.Infof("building " + ex.name + " by cross compilation...")
 
-				ex.envs = append(ex.envs, "CC=/opt/linaro/aarch64-linux-gnu/gcc-linaro-4.9-2016.02-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-gcc")
-				ex.envs = append(ex.envs, "CXX=/opt/linaro/aarch64-linux-gnu/gcc-linaro-4.9-2016.02-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-g++")
+				envs = append(envs, "CC="+os.Getenv("CROSS_GCC"))  //nolint:makezero
+				envs = append(envs, "CXX="+os.Getenv("CROSS_GPP")) //nolint:makezero
 			}
 		}
 
@@ -185,12 +192,12 @@ func buildExternals(dir, goos, goarch string, standalone bool) error {
 				filepath.Join("internal", "plugins", "externals", ex.name, ex.entry),
 			}
 
-			ex.envs = append(ex.envs, "GOOS="+goos, "GOARCH="+goarch)
+			envs = append(envs, "GOOS="+goos, "GOARCH="+goarch) //nolint:makezero
 
-			msg, err := runEnv(args, ex.envs)
+			msg, err := runEnv(args, envs)
 			if err != nil {
 				return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s",
-					args, ex.envs, err, string(msg))
+					args, envs, err, string(msg))
 			}
 
 		case "makefile", "Makefile":
@@ -202,24 +209,24 @@ func buildExternals(dir, goos, goarch string, standalone bool) error {
 				"ARCH=" + runtime.GOARCH,
 			}
 
-			ex.envs = append(ex.envs, "GOOS="+goos, "GOARCH="+goarch)
-			msg, err := runEnv(args, ex.envs)
+			envs = append(envs, "GOOS="+goos, "GOARCH="+goarch) //nolint:makezero
+			msg, err := runEnv(args, envs)
 			if err != nil {
 				return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s",
-					args, ex.envs, err, string(msg))
+					args, envs, err, string(msg))
 			}
 
 		default: // for python, just copy source code into build dir
-			ex.buildArgs = append(ex.buildArgs, filepath.Join(outdir, "externals"))
-			cmd := exec.Command(ex.buildCmd, ex.buildArgs...) //nolint:gosec
-			if ex.envs != nil {
-				cmd.Env = append(os.Environ(), ex.envs...)
+			buildArgs = append(buildArgs, filepath.Join(outdir, "externals")) //nolint:makezero
+			cmd := exec.Command(ex.buildCmd, buildArgs...)                    //nolint:gosec
+			if envs != nil {
+				cmd.Env = append(os.Environ(), envs...)
 			}
 
 			res, err := cmd.CombinedOutput()
 			if err != nil {
 				return fmt.Errorf("failed to build python(%s %s): %s, err: %w",
-					ex.buildCmd, strings.Join(ex.buildArgs, " "), res, err)
+					ex.buildCmd, strings.Join(buildArgs, " "), res, err)
 			}
 		}
 	}

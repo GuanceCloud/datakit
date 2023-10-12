@@ -33,6 +33,8 @@ CGO_FLAGS          = "-Wno-undef-prefix -Wno-deprecated-declarations" # to disab
 HL                 = \033[0;32m # high light
 NC                 = \033[0m    # no color
 RED                = \033[31m   # red
+CROSS_GCC_FULL     = "/opt/linaro/aarch64-linux-gnu/gcc-linaro-4.9-2016.02-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-gcc"
+CROSS_GPP_FULL     = "/opt/linaro/aarch64-linux-gnu/gcc-linaro-4.9-2016.02-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-g++"
 
 SUPPORTED_GOLINT_VERSION         = 1.46.2
 SUPPORTED_GOLINT_VERSION_ANOTHER = v1.46.2
@@ -142,7 +144,7 @@ endef
 # pub used to publish datakit version(for release/testing/local)
 define publish
 	@echo "===== publishing $(1) $(NAME) ====="
-	GO111MODULE=off CGO_CFLAGS=$(CGO_FLAGS) go run -tags with_inputs cmd/make/make.go \
+	GO111MODULE=off CGO_CFLAGS=$(CGO_FLAGS) CROSS_GCC=$(CROSS_GCC_FULL) CROSS_GPP=$(CROSS_GPP_FULL) go run -tags with_inputs cmd/make/make.go \
 		-release $(1)            \
 		-upload-addr $(2)        \
 		-download-cdn $(3)       \
