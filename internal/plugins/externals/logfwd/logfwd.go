@@ -9,6 +9,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -16,11 +17,11 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/gorilla/websocket"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
 
@@ -48,14 +49,19 @@ var (
 func main() {
 	quitChannel := make(chan struct{})
 	flag.Parse()
+	initLogger()
 
-	setLogger()
+	var err error
+	var cfg *config
 
-	cfg, err := getConfig()
-	if err != nil {
-		l.Error(err)
-		l.Info("exit")
-		os.Exit(0)
+	for {
+		cfg, err = getConfig()
+		if err != nil {
+			l.Error(err)
+			time.Sleep(time.Minute)
+			continue
+		}
+		break
 	}
 
 	l.Info("logfwd running..")
@@ -64,7 +70,7 @@ func main() {
 	<-quitChannel
 }
 
-func setLogger() {
+func initLogger() {
 	lopt := &logger.Option{
 		Level: "info",
 		Flags: (logger.OPT_DEFAULT | logger.OPT_STDOUT),
@@ -80,7 +86,6 @@ func setLogger() {
 	}
 
 	l = logger.SLogger(name)
-
 	l.Infof("set root logger(options:  %+#v) ok", lopt)
 }
 
@@ -116,29 +121,28 @@ func getConfig() (*config, error) {
 func startLog(cfg *config, stop <-chan struct{}) {
 	u := url.URL{Scheme: "ws", Host: cfg.DataKitAddr, Path: "/logfwd"}
 
-	var wg sync.WaitGroup
+	g := goroutine.NewGroup(goroutine.Option{Name: "logfwd"})
 
 	for _, c := range cfg.Loggings {
-		wg.Add(1)
+		func(lg *logging) {
+			g.Go(func(ctx context.Context) error {
+				wscli := newWsclient(&u)
+				wscli.tryConnectWebsocketSrv()
+				go wscli.start()
 
-		go func(lg *logging) {
-			defer wg.Done()
+				defer func() {
+					if err := wscli.close(); err != nil {
+						l.Errorf("failed to close websocket client, err: %w", err)
+					}
+				}()
 
-			wscli := newWsclient(&u)
-			wscli.tryConnectWebsocketSrv()
-			go wscli.start()
-
-			defer func() {
-				if err := wscli.close(); err != nil {
-					l.Errorf("failed to close websocket client, err: %w", err)
-				}
-			}()
-
-			startTailing(lg, forwardFunc(lg, wscli.writeMessage), stop)
+				startTailing(lg, forwardFunc(lg, wscli.writeMessage), stop)
+				return nil
+			})
 		}(c)
 	}
 
-	wg.Wait()
+	_ = g.Wait()
 }
 
 type writeMessage func([]byte) error

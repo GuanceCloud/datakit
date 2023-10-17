@@ -57,7 +57,7 @@ const (
   ignore_status = []
 
   ## optional encodings:
-  ##    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
+  ##    "utf-8", "utf-16le", "utf-16be", "gbk", "gb18030" or ""
   character_encoding = ""
 
   ## The pattern should be a regexp. Note the use of '''this regexp'''.

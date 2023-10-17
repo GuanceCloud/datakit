@@ -218,6 +218,7 @@ func (c *container) transformPoint(info *runtime.Container) *typed.PointKV {
 
 	p.SetTag("container_id", info.ID)
 	p.SetTag("container_runtime", info.RuntimeName)
+	p.SetTag("container_runtime_version", info.RuntimeVersion)
 	p.SetTag("state", info.State)
 
 	if info.Name != "" {

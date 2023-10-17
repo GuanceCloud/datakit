@@ -15,9 +15,9 @@ import (
 )
 
 type podSrvMetric struct {
-	cpuUsage          float64
-	cpuUsageNanoCores int64
-	memoryUsageBytes  int64
+	cpuUsage           float64
+	cpuUsageMilliCores int64
+	memoryUsageBytes   int64
 }
 
 func queryPodMetrics(ctx context.Context, client k8sClient, name string, namespace string) (*podSrvMetric, error) {
@@ -45,28 +45,34 @@ func parsePodMetrics(item *v1beta1.PodMetrics) (*podSrvMetric, error) {
 		}
 	}
 
-	cpuUsageNanoCores, ok := cpu.AsInt64()
-	if !ok {
-		cpuUsageNanoCores, ok = cpu.AsDec().Unscaled()
-		if !ok {
-			cpuUsageNanoCores = 0
-		}
-	}
+	cpuMilliCores := cpu.MilliValue()
 	memUsage, _ := mem.AsInt64()
 
 	return &podSrvMetric{
-		cpuUsage:          float64(cpuUsageNanoCores) / 1e9 * 100.0, // CPU core-nanoseconds per second.
-		cpuUsageNanoCores: cpuUsageNanoCores,
-		memoryUsageBytes:  memUsage,
+		cpuUsage:           float64(cpuMilliCores) / 1e3 * 100.0,
+		cpuUsageMilliCores: cpuMilliCores,
+		memoryUsageBytes:   memUsage,
 	}, nil
 }
 
-func getMemoryCapacityFromResourceLimit(containers []apicorev1.Container) int64 {
+func getMemoryLimitFromResource(containers []apicorev1.Container) int64 {
 	var limit int64
 	for _, c := range containers {
 		qu := c.Resources.Limits["memory"]
 		memLimit, _ := qu.AsInt64()
 		limit += memLimit
+	}
+	return limit
+}
+
+func getMaxCPULimitFromResource(containers []apicorev1.Container) int64 {
+	var limit int64
+	for _, c := range containers {
+		qu := c.Resources.Limits["cpu"]
+		cpuLimit := qu.MilliValue()
+		if cpuLimit > limit {
+			limit = cpuLimit
+		}
 	}
 	return limit
 }
@@ -79,7 +85,7 @@ func getCapacityFromNode(ctx context.Context, client k8sClient, nodeName string)
 	}
 
 	c := node.Status.Capacity["cpu"]
-	cpuCapacity, _ = c.AsDec().Unscaled()
+	cpuCapacity = c.MilliValue()
 
 	m := node.Status.Capacity["memory"]
 	memCapacity, _ = m.AsInt64()

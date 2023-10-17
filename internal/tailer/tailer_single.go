@@ -32,7 +32,8 @@ import (
 
 const (
 	defaultSleepDuration = time.Second
-	readBuffSize         = 1024 * 4
+	readBuffSize         = 1024 * 4   // 4 KiB
+	maxReadSize          = 1024 * 128 // 128 KiB
 
 	checkInterval = time.Second * 1
 )
@@ -357,12 +358,6 @@ func (t *Single) dockerHandler(lines []string) {
 
 func (t *Single) generateJSONLogs(lines []string) []string {
 	pending := []string{}
-
-	tags := make(map[string]string)
-	for k, v := range t.tags {
-		tags[k] = v
-	}
-
 	for _, line := range lines {
 		if line == "" {
 			continue
@@ -372,7 +367,7 @@ func (t *Single) generateJSONLogs(lines []string) []string {
 		err := json.Unmarshal([]byte(line), &msg)
 		if err != nil {
 			parseFailVec.WithLabelValues(t.opt.Source, t.filepath, t.opt.Mode.String()).Inc()
-			t.opt.log.Warnf("json-data parsed err: %s, data: %s, ignored", err, line)
+			t.opt.log.Warnf("json-data parsed err: %s, data: %s, ignored", err, trim(line))
 			continue
 		}
 
@@ -426,7 +421,7 @@ func (t *Single) generateCRILogs(lines []string) []string {
 		err := parseCRILog([]byte(line), &criMsg)
 		if err != nil {
 			parseFailVec.WithLabelValues(t.opt.Source, t.filepath, t.opt.Mode.String()).Inc()
-			t.opt.log.Warnf("cri-log parsed err: %s, data: %s, ignored", err, line)
+			t.opt.log.Warnf("cri-log parsed err: %s, data: %s, ignored", err, trim(line))
 			continue
 		}
 
@@ -694,6 +689,11 @@ func (b *buffer) split() []string {
 		lines = lines[:len(lines)-1]
 	}
 
+	if len(b.previousBlock) > maxReadSize {
+		res = append(res, string(b.previousBlock))
+		b.previousBlock = nil
+	}
+
 	for _, line := range lines {
 		res = append(res, string(line))
 	}
@@ -789,4 +789,11 @@ func isJSONLogPartialContent(content string) bool {
 		return true
 	}
 	return false
+}
+
+func trim(s string) string {
+	if len(s) > 64 {
+		return s[:64]
+	}
+	return s
 }
