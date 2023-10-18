@@ -38,7 +38,7 @@ var (
 
   ## A list of Mongodb servers URL
   ## Note: must escape special characters in password before connect to Mongodb server, otherwise parse will failed.
-  ## Form: "mongodb://" [user ":" pass "@"] host [ ":" port]
+  ## Form: "mongodb://[user ":" pass "@"] host [ ":" port]"
   ## Some examples:
   ## mongodb://user:pswd@localhost:27017/?authMechanism=SCRAM-SHA-256&authSource=admin
   ## mongodb://user:pswd@127.0.0.1:27017,
@@ -223,31 +223,33 @@ func (ipt *Input) Run() {
 	defTags = ipt.Tags
 
 	for _, v := range ipt.Servers {
-		if mgocli, err := ipt.createMgoClient(v); err != nil {
+		mgocli, err := ipt.createMgoClient(v)
+		if err != nil {
 			log.Error(err.Error())
 			continue
-		} else {
-			var (
-				host string
-				li   = strings.LastIndexByte(v, '@')
-			)
-			if li > 0 {
-				host = v[li+1:]
-			} else {
-				host = strings.TrimPrefix(v, "mongodb://")
-			}
-			ipt.mgoSvrs = append(ipt.mgoSvrs, &MongodbServer{
-				host: host,
-				cli:  mgocli,
-				ipt:  ipt,
-			})
 		}
+		var (
+			host string
+			li   = strings.LastIndexByte(v, '@')
+		)
+		if li > 0 {
+			host = v[li+1:]
+		} else {
+			host = strings.TrimPrefix(v, "mongodb://")
+		}
+		ipt.mgoSvrs = append(ipt.mgoSvrs, &MongodbServer{
+			host: host,
+			cli:  mgocli,
+			ipt:  ipt,
+		})
 	}
 	if len(ipt.mgoSvrs) == 0 {
 		log.Errorf("connect to all Mongodb servers failed")
 
 		return
 	}
+
+	log.Infof("%s input started", inputName)
 
 	tick := time.NewTicker(ipt.Interval.Duration)
 	for {
