@@ -161,20 +161,20 @@ func (svr *MongodbServer) gatherCollectionStats(colStatsDBs []string) (*ColStats
 		var colls []string
 		colls, err = svr.cli.Database(dbName).ListCollectionNames(context.TODO(), bson.M{})
 		if err != nil {
-			log.Errorf("Error getting collection names: %s", err)
+			log.Warnf("list collection names failed with error: %s", err.Error())
 			continue
 		}
 
 		for _, colName := range colls {
 			rslt := svr.cli.Database(dbName).RunCommand(context.TODO(), bson.M{"collStats": colName})
 			if err := rslt.Err(); err != nil {
-				log.Error(err.Error())
+				log.Warnf("collect stats from [%s:%s] failed with error: %s", dbName, colName, err.Error())
 				continue
 			}
 
 			colStatLine := &ColStatsData{}
-			if err := rslt.Decode(rslt); err != nil {
-				log.Errorf("error getting col stats from %q: error: %s", colName, err.Error())
+			if err := rslt.Decode(colStatLine); err != nil {
+				log.Warnf("decode failed with error: %s", err.Error())
 				continue
 			}
 
@@ -220,7 +220,7 @@ func (svr *MongodbServer) gatherData(gatherReplicaSetStats bool, gatherClusterSt
 	)
 	if gatherReplicaSetStats {
 		if ReplSetStats, err = svr.gatherReplSetStats(); err != nil {
-			log.Debugf("Unable to gather replica set status: %w", err)
+			log.Debugf("Unable to gather replica set status: %s", err.Error())
 		}
 		// Gather the oplog if we are a member of a replica set. Non-replica set members do not have the oplog collections.
 		if ReplSetStats != nil {
@@ -248,7 +248,7 @@ func (svr *MongodbServer) gatherData(gatherReplicaSetStats bool, gatherClusterSt
 	if gatherPerDBStats {
 		dbNames, err := svr.cli.ListDatabaseNames(context.TODO(), bson.M{})
 		if err != nil {
-			log.Debugf("Unable to get database names: %w", err)
+			log.Errorf("list database names failed with error: %w", err)
 
 			return err
 		}
@@ -256,7 +256,8 @@ func (svr *MongodbServer) gatherData(gatherReplicaSetStats bool, gatherClusterSt
 		for _, dbName := range dbNames {
 			db, err := svr.gatherDBStats(dbName)
 			if err != nil {
-				log.Debugf("Error getting db stats from %s: %w", dbName, err)
+				log.Debugf("gather db stats from [%s] failed with error: %s", dbName, err.Error())
+				continue
 			}
 			dbStats.DBs = append(dbStats.DBs, *db)
 		}
@@ -295,7 +296,7 @@ func (svr *MongodbServer) gatherData(gatherReplicaSetStats bool, gatherClusterSt
 		TopStats:     topStatData,
 		SampleTime:   time.Now(),
 	}
-	log.Debugf("collected results: %v", *result)
+	log.Debugf("### collect result: %#v", *result)
 
 	if svr.lastResult != nil {
 		duration := result.SampleTime.Sub(svr.lastResult.SampleTime)

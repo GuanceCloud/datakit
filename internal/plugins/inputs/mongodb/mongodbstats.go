@@ -1169,6 +1169,7 @@ func NewStatLine(oldMongo, newMongo *MongoStatus, key string, all bool, sampleSe
 
 		returnVal.FlushesTotalTime = newStat.WiredTiger.Transaction.TransCheckpointsTotalTimeMsecs * int64(time.Millisecond)
 	}
+
 	if newStat.WiredTiger != nil && oldStat.WiredTiger != nil {
 		returnVal.Flushes, returnVal.FlushesCnt = diff(newStat.WiredTiger.Transaction.TransCheckpoints,
 			oldStat.WiredTiger.Transaction.TransCheckpoints, sampleSecs)
@@ -1201,7 +1202,7 @@ func NewStatLine(oldMongo, newMongo *MongoStatus, key string, all bool, sampleSe
 		}
 		// BEGIN code modification
 		switch {
-		case newStat.Repl.IsMaster.(bool):
+		case newStat.Repl.IsMaster != nil && newStat.Repl.IsMaster.(bool):
 			returnVal.NodeType = "PRI"
 		case newStat.Repl.Secondary != nil && newStat.Repl.Secondary.(bool):
 			returnVal.NodeType = "SEC"
@@ -1218,6 +1219,7 @@ func NewStatLine(oldMongo, newMongo *MongoStatus, key string, all bool, sampleSe
 		oldStat.ExtraInfo.PageFaults != nil && newStat.ExtraInfo.PageFaults != nil {
 		returnVal.Faults, returnVal.FaultsCnt = diff(*(newStat.ExtraInfo.PageFaults), *(oldStat.ExtraInfo.PageFaults), sampleSecs)
 	}
+
 	if !returnVal.IsMongos && oldStat.Locks != nil {
 		globalCheck, hasGlobal := oldStat.Locks["Global"]
 		if hasGlobal && globalCheck.AcquireCount != nil {
