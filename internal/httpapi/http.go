@@ -427,7 +427,15 @@ func tryStartServer(srv *http.Server, canReload bool, semReload, semReloadComple
 
 	defer closeListener()
 
+	tryTLS := apiServer.apiConfig.HTTPSEnabled()
 	for {
+		if tryTLS {
+			l.Infof("try start server with tls at %s cert: %s privkey: %s", srv.Addr, apiServer.apiConfig.TLSConf.Cert, apiServer.apiConfig.TLSConf.PrivKey)
+			if err = srv.ServeTLS(listener, apiServer.apiConfig.TLSConf.Cert, apiServer.apiConfig.TLSConf.PrivKey); err != nil {
+				l.Warn(err.Error())
+			}
+		}
+
 		l.Infof("try start server at %s(retrying %d)...", srv.Addr, retryCnt)
 		if err = srv.Serve(listener); err != nil {
 			if !errors.Is(err, http.ErrServerClosed) {
@@ -438,7 +446,6 @@ func tryStartServer(srv *http.Server, canReload bool, semReload, semReloadComple
 				closeListener()
 				break
 			}
-
 			// retry
 			time.Sleep(time.Second)
 		}

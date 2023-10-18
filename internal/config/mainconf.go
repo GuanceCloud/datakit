@@ -147,6 +147,7 @@ func DefaultConfig() *Config {
 			PublicAPIs:          []string{},
 			Timeout:             "30s",
 			CloseIdleConnection: false,
+			TLSConf:             &TLSConfig{},
 		},
 
 		DCAConfig: &DCAConfig{

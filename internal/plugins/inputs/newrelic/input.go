@@ -3,15 +3,15 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-// Package ddtrace handle DDTrace APM traces.
-package ddtrace
+// Package newrelic handle New Relic APM traces.
+package newrelic
 
 import (
 	"bytes"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/url"
-	"regexp"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -34,37 +34,24 @@ var (
 )
 
 const (
-	inputName    = "ddtrace"
+	inputName    = "newrelic"
 	sampleConfig = `
-[[inputs.ddtrace]]
-  ## DDTrace Agent endpoints register by version respectively.
-  ## Endpoints can be skipped listen by remove them from the list.
-  ## NOTE: DO NOT EDIT.
-  endpoints = ["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]
-
-  ## ignore_tags will work as a blacklist to prevent tags send to data center.
-  ## Every value in this list is a valid string of regular expression.
-  # ignore_tags = ["block1", "block2"]
+[[inputs.newrelic]]
+  ## NewRelic Agent endpoints registered address endpoints for HTTP.
+  ## DO NOT EDIT
+  endpoints = ["/agent_listener/invoke_raw_method"]
 
   ## Keep rare tracing resources list switch.
   ## If some resources are rare enough(not presend in 1 hour), those resource will always send
   ## to data center and do not consider samplers and filters.
   # keep_rare_resource = false
 
-  ## By default every error presents in span will be send to data center and omit any filters or
-  ## sampler. If you want to get rid of some error status, you can set the error status list here.
-  # omit_err_status = ["404"]
-
-  ## compatible otel: It is possible to compatible OTEL Trace with DDTrace trace.
-  ## make span_id and parent_id to hex encoding.
-  # compatible_otel=true
-
   ## Ignore tracing resources map like service:[resources...].
   ## The service name is the full service name in current application.
   ## The resource list is regular expressions uses to block resource names.
   ## If you want to block some resources universally under all services, you can set the
   ## service name as "*". Note: double quotes "" cannot be omitted.
-  # [inputs.ddtrace.close_resource]
+  # [inputs.newrelic.close_resource]
     # service1 = ["resource1", "resource2", ...]
     # service2 = ["resource1", "resource2", ...]
     # "*" = ["close_resource_under_all_services"]
@@ -72,10 +59,10 @@ const (
 
   ## Sampler config uses to set global sampling strategy.
   ## sampling_rate used to set global sampling rate.
-  # [inputs.ddtrace.sampler]
+  # [inputs.newrelic.sampler]
     # sampling_rate = 1.0
 
-  # [inputs.ddtrace.tags]
+  # [inputs.newrelic.tags]
     # key1 = "value1"
     # key2 = "value2"
     # ...
@@ -83,44 +70,30 @@ const (
   ## Threads config controls how many goroutines an agent cloud start to handle HTTP request.
   ## buffer is the size of jobs' buffering of worker channel.
   ## threads is the total number fo goroutines at running time.
-  # [inputs.ddtrace.threads]
+  # [inputs.newrelic.threads]
     # buffer = 100
     # threads = 8
 
   ## Storage config a local storage space in hard dirver to cache trace data.
   ## path is the local file path used to cache data.
   ## capacity is total space size(MB) used to store data.
-  # [inputs.ddtrace.storage]
-    # path = "./ddtrace_storage"
+  # [inputs.newrelic.storage]
+    # path = "./newrelic_storage"
     # capacity = 5120
 `
 )
 
 var (
-	log                = logger.DefaultSLogger(inputName)
-	v1, v2, v3, v4, v5 = "/v0.1/spans", "/v0.2/traces", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces"
-	info, stats        = "/info", "/v0.6/stats"
-	afterGatherRun     itrace.AfterGatherHandler
-	ignoreTags         []*regexp.Regexp
-	tags               map[string]string
-	wkpool             *workerpool.WorkerPool
-	localCache         *storage.Storage
-	traceBase          = 10
-	spanBase           = 10
+	log            = logger.DefaultSLogger(inputName)
+	afterGatherRun itrace.AfterGatherHandler
+	tags           map[string]string
+	wkpool         *workerpool.WorkerPool
+	localCache     *storage.Storage
 )
 
 type Input struct {
-	Path             string                       `toml:"path,omitempty"`           // deprecated
-	TraceSampleConfs interface{}                  `toml:"sample_configs,omitempty"` // deprecated []*itrace.TraceSampleConfig
-	TraceSampleConf  interface{}                  `toml:"sample_config"`            // deprecated *itrace.TraceSampleConfig
-	IgnoreResources  []string                     `toml:"ignore_resources"`         // deprecated []string
-	Pipelines        map[string]string            `toml:"pipelines"`                // deprecated
-	CustomerTags     []string                     `toml:"customer_tags"`            // deprecated
 	Endpoints        []string                     `toml:"endpoints"`
-	IgnoreTags       []string                     `toml:"ignore_tags"`
-	CompatibleOTEL   bool                         `toml:"compatible_otel"`
 	KeepRareResource bool                         `toml:"keep_rare_resource"`
-	OmitErrStatus    []string                     `toml:"omit_err_status"`
 	CloseResource    map[string][]string          `toml:"close_resource"`
 	Sampler          *itrace.Sampler              `toml:"sampler"`
 	Tags             map[string]string            `toml:"tags"`
@@ -129,7 +102,7 @@ type Input struct {
 
 	feeder  dkio.Feeder
 	semStop *cliutils.Sem // start stop signal
-	Tagger  dkpt.GlobalTagger
+	tagger  dkpt.GlobalTagger
 }
 
 func (*Input) Catalog() string { return inputName }
@@ -182,7 +155,7 @@ func (ipt *Input) RegHTTPHandler() {
 					if req.URL, err = url.Parse(reqpb.Url); err != nil {
 						log.Errorf("### parse raw URL: %s failed: %s", reqpb.Url, err.Error())
 					}
-					handleDDTraces(&httpapi.NopResponseWriter{}, req)
+					handleRawMethod(&httpapi.NopResponseWriter{}, req)
 
 					log.Debugf("### process status: buffer-size: %dkb, cost: %dms, err: %v", len(reqpb.Body)>>10, time.Since(start)/time.Millisecond, err)
 
@@ -201,12 +174,12 @@ func (ipt *Input) RegHTTPHandler() {
 			itrace.WithLogger(log),
 			itrace.WithRetry(100*time.Millisecond),
 			itrace.WithIOBlockingMode(true),
-			itrace.WithPointOptions(point.WithExtraTags(ipt.Tagger.HostTags())),
+			itrace.WithPointOptions(point.WithExtraTags(ipt.tagger.HostTags())),
 			itrace.WithFeeder(ipt.feeder),
 		)
 	} else {
 		afterGather = itrace.NewAfterGather(itrace.WithLogger(log),
-			itrace.WithPointOptions(point.WithExtraTags(ipt.Tagger.HostTags())), itrace.WithFeeder(ipt.feeder))
+			itrace.WithPointOptions(point.WithExtraTags(ipt.tagger.HostTags())), itrace.WithFeeder(ipt.feeder))
 	}
 	afterGatherRun = afterGather
 
@@ -218,32 +191,6 @@ func (ipt *Input) RegHTTPHandler() {
 		closeResource.UpdateIgnResList(ipt.CloseResource)
 		afterGather.AppendFilter(closeResource.Close)
 	}
-	// add RespectUserRule filter to obey client priority rules.
-	afterGather.AppendFilter(itrace.RespectUserRule)
-	// add error status penetration
-	afterGather.AppendFilter(itrace.PenetrateErrorTracing)
-	// add omit certain error status list
-	if len(ipt.OmitErrStatus) != 0 {
-		afterGather.AppendFilter(itrace.OmitHTTPStatusCodeFilterWrapper(ipt.OmitErrStatus))
-	}
-	// add rare resource keeper
-	if ipt.KeepRareResource {
-		keepRareResource := &itrace.KeepRareResource{}
-		keepRareResource.UpdateStatus(ipt.KeepRareResource, time.Hour)
-		afterGather.AppendFilter(keepRareResource.Keep)
-	}
-	// add penetration filter for rum
-	afterGather.AppendFilter(func(log *logger.Logger, dktrace itrace.DatakitTrace) (itrace.DatakitTrace, bool) {
-		for i := range dktrace {
-			if dktrace[i].Tags["_dd.origin"] == "rum" {
-				log.Debugf("penetrate rum trace, tid: %s service: %s resource: %s.", dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource)
-
-				return dktrace, true
-			}
-		}
-
-		return dktrace, false
-	})
 	// add sampler
 	var sampler *itrace.Sampler
 	if ipt.Sampler != nil && (ipt.Sampler.SamplingRateGlobal >= 0 && ipt.Sampler.SamplingRateGlobal <= 1) {
@@ -254,54 +201,28 @@ func (ipt *Input) RegHTTPHandler() {
 	afterGather.AppendFilter(sampler.Sample)
 
 	log.Debugf("### register handlers %v for %s agent", ipt.Endpoints, inputName)
-	var isReg bool
 	for _, endpoint := range ipt.Endpoints {
-		switch endpoint {
-		case v1, v2, v3, v4, v5:
-			httpapi.RegHTTPHandler(http.MethodPost, endpoint,
-				workerpool.HTTPWrapper(httpStatusRespFunc, wkpool,
-					httpapi.HTTPStorageWrapper(storage.HTTP_KEY, httpStatusRespFunc, localCache, handleDDTraces)))
-			httpapi.RegHTTPHandler(http.MethodPut, endpoint,
-				workerpool.HTTPWrapper(httpStatusRespFunc, wkpool,
-					httpapi.HTTPStorageWrapper(storage.HTTP_KEY, httpStatusRespFunc, localCache, handleDDTraces)))
-			isReg = true
-			log.Debugf("### pattern %s registered for %s agent", endpoint, inputName)
-		default:
-			log.Debugf("### unrecognized pattern %s for %s agent", endpoint, inputName)
-		}
-	}
-	if isReg {
-		httpapi.RegHTTPHandler(http.MethodGet, info, handleDDInfo)
-		httpapi.RegHTTPHandler(http.MethodPost, info, handleDDInfo)
-		httpapi.RegHTTPHandler(http.MethodGet, stats, handleDDStats)
-		httpapi.RegHTTPHandler(http.MethodPost, stats, handleDDStats)
+		httpapi.RegHTTPHandler(http.MethodPost, endpoint,
+			workerpool.HTTPWrapper(httpStatusRespFunc, wkpool,
+				httpapi.HTTPStorageWrapper(storage.HTTP_KEY, httpStatusRespFunc, localCache, decodingWrapper(handleRawMethod))))
 	}
 }
 
 func (ipt *Input) Run() {
-	for _, v := range ipt.IgnoreTags {
-		if rexp, err := regexp.Compile(v); err != nil {
-			log.Debug(err.Error())
-		} else {
-			ignoreTags = append(ignoreTags, rexp)
-		}
-	}
+	rand.Seed(time.Now().UnixNano())
 	tags = ipt.Tags
-	if ipt.CompatibleOTEL {
-		spanBase = 16
-	}
 
 	log.Debugf("### %s agent is running...", inputName)
 
 	select {
 	case <-datakit.Exit.Wait():
 		ipt.exit()
-		log.Info("ddtrace exit")
+		log.Info("newrelic exit")
 
 		return
 	case <-ipt.semStop.Wait():
 		ipt.exit()
-		log.Info("ddtrace return")
+		log.Info("newrelic return")
 
 		return
 	}
@@ -326,16 +247,12 @@ func (ipt *Input) Terminate() {
 	}
 }
 
-func defaultInput() *Input {
-	return &Input{
-		feeder:  dkio.DefaultFeeder(),
-		semStop: cliutils.NewSem(),
-		Tagger:  dkpt.DefaultGlobalTagger(),
-	}
-}
-
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return defaultInput()
+		return &Input{
+			feeder:  dkio.DefaultFeeder(),
+			semStop: cliutils.NewSem(),
+			tagger:  dkpt.DefaultGlobalTagger(),
+		}
 	})
 }
