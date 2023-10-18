@@ -89,6 +89,6 @@ func precision(p string) (int, error) {
 	case "ns":
 		return 9, nil
 	default:
-		return 0, fmt.Errorf("unknow precision: %s", p)
+		return 0, fmt.Errorf("unknown precision: %s", p)
 	}
 }

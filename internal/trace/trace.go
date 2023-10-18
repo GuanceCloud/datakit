@@ -190,7 +190,7 @@ type DatakitSpan struct {
 	Resource   string                 `json:"resource"`    // resource or api under service
 	Operation  string                 `json:"operation"`   // api name
 	Source     string                 `json:"source"`      // client tracer name
-	SpanType   string                 `json:"span_type"`   // relative span position in tracing: entry, local, exit or unknow
+	SpanType   string                 `json:"span_type"`   // relative span position in tracing: entry, local, exit or unknown
 	SourceType string                 `json:"source_type"` // service type
 	Tags       map[string]string      `json:"tags"`
 	Metrics    map[string]interface{} `json:"metrics"`

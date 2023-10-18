@@ -333,5 +333,5 @@ ID# ATTRIBUTE_NAME          FLAGS    VALUE WORST THRESH FAIL RAW_VALUE
 | unexpect_power_loss_ct_value"      | Int  | Gauge  | NCount      | The value of unexpected power loss count.                                                                      |
 | unexpect_power_loss_ct_worst"      | Int  | Gauge  | NCount      | The worst value of unexpected power loss count.                                                                |
 | unknown_attribute_raw_value"       | Int  | Gauge  | UnknownUnit | The raw value of nknow attribute.                                                                              |
-| unknown_attribute_value"           | Int  | Gauge  | UnknownUnit | The value of unknow attribute.                                                                                 |
-| unknown_attribute_worst"           | Int  | Gauge  | UnknownUnit | The worst value of unknow attribute.                                                                           |
+| unknown_attribute_value"           | Int  | Gauge  | UnknownUnit | The value of unknown attribute.                                                                                |
+| unknown_attribute_worst"           | Int  | Gauge  | UnknownUnit | The worst value of unknown attribute.                                                                          |

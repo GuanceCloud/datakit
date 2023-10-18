@@ -261,6 +261,7 @@ func (mdsvr *MetadataServer) RequestApiMetaData(ctx context.Context, meta *ppv1.
 	if metaCache != nil {
 		metaCache.store(meta)
 	}
+
 	return &ppv1.PResult{Success: true, Message: "ok"}, nil
 }
 
@@ -268,6 +269,7 @@ func (mdsvr *MetadataServer) RequestStringMetaData(ctx context.Context, meta *pp
 	if metaCache != nil {
 		metaCache.store(meta)
 	}
+
 	return &ppv1.PResult{Success: true, Message: "ok"}, nil
 }
 
@@ -282,6 +284,7 @@ func (*ProfilerCommandServiceServer) HandleCommand(handler ppv1.ProfilerCommandS
 		return err
 	}
 	time.Sleep(time.Second)
+
 	return nil
 }
 
@@ -294,6 +297,7 @@ func (*ProfilerCommandServiceServer) HandleCommandV2(handler ppv1.ProfilerComman
 	}
 	log.Debugf("### profiler handle command v2 %#v", msg)
 	time.Sleep(time.Second)
+
 	return nil
 }
 
@@ -362,7 +366,6 @@ type SpanServer struct {
 func (*SpanServer) SendSpan(spanSvr ppv1.Span_SendSpanServer) error {
 	for {
 		md, _ := metadata.FromIncomingContext(spanSvr.Context())
-
 		msg, err := spanSvr.Recv()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
@@ -409,18 +412,6 @@ func parsePPSpanMessage(meta metadata.MD, msg *ppv1.PSpanMessage) (itrace.Dataki
 		trace = ConvertPSpanChunkToDKTrace(inputName, ppchunk, meta)
 	} else {
 		return nil, errors.New("### empty span message")
-	}
-
-	// add on global tags
-	if len(tags) != 0 {
-		for _, span := range trace {
-			if span.Tags == nil {
-				span.Tags = make(map[string]string)
-			}
-			for k, v := range tags {
-				span.Tags[k] = v
-			}
-		}
 	}
 
 	return trace, nil

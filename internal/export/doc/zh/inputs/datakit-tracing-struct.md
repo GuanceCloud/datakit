@@ -26,7 +26,7 @@ source_name,key1=value1,key2=value2 field1=value1,field2=value2 ts
 > 以下简称 DKProto
 
 | Section | Name             | Unit | Description                                                                                         |
-| ---     | ---              | ---  | ---                                                                                                 |
+| ------- | ---------------- | ---- | --------------------------------------------------------------------------------------------------- |
 | Tag     | container_host   |      | host name of container                                                                              |
 | Tag     | endpoint         |      | end point of resource                                                                               |
 | Tag     | env              |      | environment arguments                                                                               |
@@ -76,7 +76,7 @@ Service    string                 `json:"service"`     // service name
 Resource   string                 `json:"resource"`    // resource or api under service
 Operation  string                 `json:"operation"`   // api name
 Source     string                 `json:"source"`      // client tracer name
-SpanType   string                 `json:"span_type"`   // relative span position in tracing: entry, local, exit or unknow
+SpanType   string                 `json:"span_type"`   // relative span position in tracing: entry, local, exit or unknown
 SourceType string                 `json:"source_type"` // service type
 Tags       map[string]string      `json:"tags"`
 Metrics    map[string]interface{} `json:"metrics"`
@@ -91,7 +91,7 @@ Datakit Span 是 Datakit 内部使用的数据结构。第三方 Tracing Agent �
 > 以下简称 DKSpan
 
 | Field Name | Data Type                  | Unit | Description                                   | Correspond To              |
-| ---------- | ------------------------   | ---- | -------------------------------------------   | ------------------------   |
+| ---------- | -------------------------- | ---- | --------------------------------------------- | -------------------------- |
 | TraceID    | `string`                   |      | Trace ID                                      | `dkproto.fields.trace_id`  |
 | ParentID   | `string`                   |      | Parent Span ID                                | `dkproto.fields.parent_id` |
 | SpanID     | `string`                   |      | Span ID                                       | `dkproto.fields.span_id`   |
@@ -125,7 +125,7 @@ DataDog Traces Structure
 ### DDTrace Span 数据结构 {#ddtrace-span-struct}
 
 | Field Name | Data Type              | Unit | Description                                        | Correspond To                                                                                                |
-| ---        | ---                    | ---  | ---                                                | ---                                                                                                          |
+| ---------- | ---------------------- | ---- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | TraceID    | `uint64`               |      | Trace ID                                           | `dkspan.TraceID`                                                                                             |
 | ParentID   | `uint64`               |      | Parent Span ID                                     | `dkspan.ParentID`                                                                                            |
 | SpanID     | `uint64`               |      | Span ID                                            | `dkspan.SpanID`                                                                                              |
@@ -134,7 +134,7 @@ DataDog Traces Structure
 | Name       | `string`               |      | 生产此条 Span 的方法名                             | `dkspan.Operation`                                                                                           |
 | Start      | `int64`                | 纳秒 | Span 起始时间                                      | `dkspan.Start`                                                                                               |
 | Duration   | `int64`                | 纳秒 | 耗时                                               | `dkspan.Duration`                                                                                            |
-| Error      | `int32`                |      | Span 状态字段 0：无报错 1：出错                      | `dkspan.Status`                                                                                              |
+| Error      | `int32`                |      | Span 状态字段 0：无报错 1：出错                    | `dkspan.Status`                                                                                              |
 | Meta       | `map[string, string]`  |      | Span 过程元数据，环境相关和服务相关 field 从此获得 | `dkspan.Project, dkspan.Env, dkspan.Version, dkspan.ContainerHost, dkspan.HTTPMethod, dkspan.HTTPStatusCode` |
 | Metrics    | `map[string, float64]` |      | Span 采样，运算相关数据                            | 不直接对应 DKSpan                                                                                            |
 | Type       | `string`               |      | Span Type                                          | `dkspan.SourceType`                                                                                          |
@@ -171,7 +171,7 @@ resource_spans:{
 OpenTelemetry 中的 `resource_spans` 和 DKSpan 的对应关系如下：
 
 | Field Name           | Data Type           | Unit | Description    | Correspond To                                                                                                                                                       |
-| ---                  | ---                 | ---  | ---            | ---                                                                                                                                                                 |
+| -------------------- | ------------------- | ---- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | trace_id             | `[16]byte`          |      | Trace ID       | `dkspan.TraceID`                                                                                                                                                    |
 | span_id              | `[8]byte`           |      | Span ID        | `dkspan.SpanID`                                                                                                                                                     |
 | parent_span_id       | `[8]byte`           |      | Parent Span ID | `dkspan.ParentID`                                                                                                                                                   |
@@ -187,7 +187,7 @@ OpenTelemetry 中的 `resource_spans` 和 DKSpan 的对应关系如下：
 OpenTelemetry 有些独有字段， 但 DKSpan 没有字段与之对应，所以就放在了标签中，只有这些值非 0 时才会显示，如：
 
 | Field                         | Date Type | Uint | Description             | Correspond                             |
-| :---                          | :---      | :--- | :---                    | :---                                   |
+| :---------------------------- | :-------- | :--- | :---------------------- | :------------------------------------- |
 | span.dropped_attributes_count | `int`     |      | Span 被删除的标签数量   | `dkspan.tags.dropped_attributes_count` |
 | span.dropped_events_count     | `int`     |      | Span 被删除的事件数量   | `dkspan.tags.dropped_events_count`     |
 | span.dropped_links_count      | `int`     |      | Span 被删除的连接数量   | `dkspan.tags.dropped_links_count`      |
@@ -201,7 +201,7 @@ OpenTelemetry 有些独有字段， 但 DKSpan 没有字段与之对应，所以
 ### Jaeger Thrift Protocol Batch 数据结构 {#jaeger-thrift-batch-struct}
 
 | Field Name | Data Type        | Unit | Description      | Correspond to       |
-| ---------- | --------------   | ---- | ---------------- | ------------------- |
+| ---------- | ---------------- | ---- | ---------------- | ------------------- |
 | Process    | `struct pointer` |      | 进程相关数据结构 | `dkspan.Service`    |
 | SeqNo      | `int64 pointer`  |      | 序列号           | 不接对应关系 DKSpan |
 | Spans      | `array`          |      | Span 数组结构    | 见下表              |
@@ -210,7 +210,7 @@ OpenTelemetry 有些独有字段， 但 DKSpan 没有字段与之对应，所以
 ### Jaeger Thrift Protocol Span 数据结构 {#jaeger-thrift-span-struct}
 
 | Field Name    | Data Type | Unit | Description                               | Correspond To      |
-| ------------- | --------- | ---- | ----------------------------------------- | -----------------  |
+| ------------- | --------- | ---- | ----------------------------------------- | ------------------ |
 | TraceIdHigh   | `int64`   |      | Trace ID 高位与 TraceIdLow 组成 Trace ID  | `dkspan.TraceID`   |
 | TraceIdLow    | `int64`   |      | Trace ID 低位与 TraceIdHigh 组成 Trace ID | `dkspan.TraceID`   |
 | ParentSpanId  | `int64`   |      | Parent Span ID                            | `dkspan.ParentID`  |
@@ -232,7 +232,7 @@ OpenTelemetry 有些独有字段， 但 DKSpan 没有字段与之对应，所以
 <!-- markdownlint-enable -->
 
 | Field Name      | Data Type | Unit | Description                                     | Correspond To        |
-| --------------- | --------- | ---- | ----------------------------------------------- | ------------------   |
+| --------------- | --------- | ---- | ----------------------------------------------- | -------------------- |
 | TraceId         | `string`  |      | Trace ID                                        | `dkspan.TraceID`     |
 | TraceSegmentId  | `string`  |      | Segment ID 与 Span ID 一起使用唯一标志一个 Span | `dkspan.SpanID` 高位 |
 | Service         | `string`  |      | 服务名                                          | `dkspan.Service`     |
@@ -243,7 +243,7 @@ OpenTelemetry 有些独有字段， 但 DKSpan 没有字段与之对应，所以
 ### SkyWalking Span Object 数据结构 in Segment Object {#sw-span-struct}
 
 | Field Name    | Data Type | Unit | Description                                                   | Correspond To          |
-| ------------- | --------- | ---- | ------------------------------------------------------------- | --------------------   |
+| ------------- | --------- | ---- | ------------------------------------------------------------- | ---------------------- |
 | ComponentId   | `int32`   |      | 第三方框架数值化定义                                          | 未使用字段             |
 | Refs          | `array`   |      | 跨线程跨进程情况下存储 Parent Segment                         | `dkspan.ParentID` 高位 |
 | ParentSpanId  | `int32`   |      | Parent Span ID 与 Segment ID 一起使用唯一标志一个 Parent Span | `dkspan.ParentID` 低位 |
@@ -266,7 +266,7 @@ OpenTelemetry 有些独有字段， 但 DKSpan 没有字段与之对应，所以
 ### Zipkin Thrift Protocol Span 数据结构 V1 {#zk-thrift-v1-span-struct}
 
 | Field Name        | Data Type | Unit | Description         | Correspond To      |
-| ----------------- | --------- | ---- | ------------------- | ----------------   |
+| ----------------- | --------- | ---- | ------------------- | ------------------ |
 | TraceIDHigh       | `uint64`  |      | Trace ID 高位       | 无直接对应关系     |
 | TraceID           | `uint64`  |      | Trace ID            | `dkspan.TraceID`   |
 | ID                | `uint64`  |      | Span ID             | `dkspan.SpanID`    |
@@ -281,7 +281,7 @@ OpenTelemetry 有些独有字段， 但 DKSpan 没有字段与之对应，所以
 ### Zipkin Span 数据结构 V2 {#zk-thrift-v2-span-struct}
 
 | Field Name     | Data Type | Unit | Description                      | Correspond To      |
-| -------------- | --------- | ---- | -------------------------------- | -----------------  |
+| -------------- | --------- | ---- | -------------------------------- | ------------------ |
 | TraceID        | `struct`  |      | Trace ID                         | `dkspan.TraceID`   |
 | ID             | `uint64`  |      | Span ID                          | `dkspan.SpanID`    |
 | ParentID       | `uint64`  |      | Parent Span ID                   | `dkspan.ParentID`  |
