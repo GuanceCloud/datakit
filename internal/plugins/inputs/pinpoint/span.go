@@ -9,16 +9,41 @@ package pinpoint
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"math/rand"
-	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	ppv1 "github.com/GuanceCloud/tracing-protos/pinpoint-gen-go/v1"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"google.golang.org/grpc/metadata"
 )
+
+type emptyTransaction struct {
+	sync.Mutex
+	now int64
+	seq int64
+}
+
+func (uaid *emptyTransaction) NextID() string {
+	uaid.Lock()
+	defer uaid.Unlock()
+
+	ts := time.Now().UnixMilli()
+	if ts == uaid.now {
+		uaid.seq = (uaid.seq + 1) & math.MaxInt64
+		if uaid.seq == 0 {
+			for ts == uaid.now {
+				ts = time.Now().UnixMilli()
+			}
+		}
+	}
+	uaid.now = ts
+
+	return fmt.Sprintf("empty-transid^%d^%d", uaid.now, uaid.seq)
+}
 
 type grpcMeta metadata.MD
 
@@ -35,7 +60,7 @@ func (md grpcMeta) Get(key string) string {
 func ConvertPSpanToDKTrace(inputName string, x *ppv1.PSpan, meta metadata.MD) itrace.DatakitTrace {
 	root := &itrace.DatakitSpan{
 		TraceID:    getTraceID(x.TransactionId, meta),
-		SpanID:     strconv.FormatUint(uint64(x.SpanId), 10),
+		SpanID:     strconv.FormatInt(x.SpanId, 10),
 		Service:    grpcMeta(meta).Get("applicationname"),
 		Source:     inputName,
 		SpanType:   itrace.SPAN_TYPE_ENTRY,
@@ -60,16 +85,20 @@ func ConvertPSpanToDKTrace(inputName string, x *ppv1.PSpan, meta metadata.MD) it
 		root.Status = itrace.STATUS_ERR
 		root.Metrics[itrace.FIELD_ERR_MESSAGE] = x.ExceptionInfo.String()
 	}
+	for k, v := range tags {
+		root.Tags[k] = v
+	}
 	for _, anno := range x.Annotation {
 		root.Tags[getAnnotationKey(anno.Key)] = anno.Value.String()
 	}
+
 	if bts, err := json.Marshal(x); err == nil {
 		root.Content = string(bts)
 	}
 
 	trace := itrace.DatakitTrace{root}
 	if len(x.SpanEvent) != 0 {
-		sort.Sort(PSpanEventList(x.SpanEvent))
+		// sort.Sort(PSpanEventList(x.SpanEvent))
 		etrace := expandSpanEventsToDKTrace(root, x.SpanEvent)
 		trace = append(trace, etrace...)
 	}
@@ -81,11 +110,12 @@ func ConvertPSpanChunkToDKTrace(inputName string, x *ppv1.PSpanChunk, meta metad
 	root := &itrace.DatakitSpan{
 		TraceID:    getTraceID(x.TransactionId, meta),
 		ParentID:   "0",
-		SpanID:     strconv.FormatUint(uint64(x.SpanId), 10),
+		SpanID:     strconv.FormatInt(x.SpanId, 10),
 		Service:    grpcMeta(meta).Get("applicationname"),
 		Source:     inputName,
 		SpanType:   itrace.SPAN_TYPE_ENTRY,
 		SourceType: getServiceType(x.ApplicationServiceType),
+		Tags:       make(map[string]string),
 		Metrics:    map[string]interface{}{itrace.FIELD_PRIORITY: itrace.PRIORITY_AUTO_KEEP},
 		Start:      x.KeyTime * int64(time.Millisecond),
 		Duration:   int64(PSpanEventList(x.SpanEvent).Duration()) * int64(time.Millisecond),
@@ -95,13 +125,17 @@ func ConvertPSpanChunkToDKTrace(inputName string, x *ppv1.PSpanChunk, meta metad
 		root.Service = getServiceType(x.SpanEvent[0].ServiceType)
 		root.Resource, root.Operation = PSpanEventList(x.SpanEvent).APIInfo()
 	}
+	for k, v := range tags {
+		root.Tags[k] = v
+	}
+
 	if bts, err := json.Marshal(x); err == nil {
 		root.Content = string(bts)
 	}
 
 	trace := itrace.DatakitTrace{root}
 	if len(x.SpanEvent) != 0 {
-		sort.Sort(PSpanEventList(x.SpanEvent))
+		// sort.Sort(PSpanEventList(x.SpanEvent))
 		etrace := expandSpanEventsToDKTrace(root, x.SpanEvent)
 		trace = append(trace, etrace...)
 	}
@@ -198,10 +232,24 @@ func expandSpanEventsToDKTrace(root *itrace.DatakitSpan, events PSpanEventList) 
 	return trace
 }
 
+var emptyTrans = emptyTransaction{}
+
 func getTraceID(transid *ppv1.PTransactionId, meta metadata.MD) string {
 	if transid != nil {
+		if transid.AgentId == "" {
+			if agid := grpcMeta(meta).Get("agentid"); agid != "" {
+				transid.AgentId = agid
+			} else if agid = grpcMeta(meta).Get("applicationname"); agid != "" {
+				transid.AgentId = agid
+			} else {
+				transid.AgentId = "unknown-pp-agent"
+			}
+		}
+
 		return fmt.Sprintf("%s^%d^%d", transid.AgentId, transid.AgentStartTime, transid.Sequence)
-	} else {
-		return fmt.Sprintf("unknow-pinpoint-agent^%d^1", time.Now().UnixMilli())
 	}
+
+	log.Debugf("### empty transaction id %s", transid.String())
+
+	return emptyTrans.NextID()
 }

@@ -191,7 +191,7 @@ func (d *Duration) UnitString(unit time.Duration) string {
 	case time.Nanosecond:
 		return ts + "ns"
 	default:
-		return ts + "unknow"
+		return ts + "unknown"
 	}
 }
 

@@ -1,5 +1,4 @@
 
-
 # Datakit Tracing Data Structure
 
 ## Brief {#intro}
@@ -27,7 +26,7 @@ source_name,key1=value1,key2=value2 field1=value1,field2=value2 ts
 > Hereinafter referred to as dkproto
 
 | <span style="color:green">**Section**</span> | <span style="color:green">**Name**</span> | <span style="color:green">**Unit**</span> | <span style="color:green">**Description**</span>                                                    |
-|----------------------------------------------|-------------------------------------------|-------------------------------------------|-----------------------------------------------------------------------------------------------------|
+| -------------------------------------------- | ----------------------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | Tag                                          | container_host                            |                                           | host name of container                                                                              |
 | Tag                                          | endpoint                                  |                                           | end point of resource                                                                               |
 | Tag                                          | env                                       |                                           | environment arguments                                                                               |
@@ -42,7 +41,7 @@ source_name,key1=value1,key2=value2 field1=value1,field2=value2 ts
 | Tag                                          | service                                   |                                           | service name                                                                                        |
 | Tag                                          | source_type                               |                                           | source types [app, framework, cache, message_queue, custom, db, web]                                |
 | Tag                                          | status                                    |                                           | span status [ok, info, warning, error, critical]                                                    |
-| Tag                                          | span_type                                 |                                           | span types [entry, local, exit, unknow]                                                             |
+| Tag                                          | span_type                                 |                                           | span types [entry, local, exit, unknown]                                                            |
 | Tag                                          | version                                   |                                           | service version                                                                                     |
 | Field                                        | duration                                  | Microsecond                               | span duration                                                                                       |
 | Field                                        | message                                   |                                           | raw data content                                                                                    |
@@ -59,7 +58,7 @@ Span Type is the relative position of the current span in trace, and its value i
     - entry: the current api is the first call after the entry of the link into the service
     - local: the current api is the api after the entrance and before the exit
     - exit: the current api is the link's last call on the service
-    - unknow: the relative position state of the current api is not clear
+    - unknown: the relative position state of the current api is not clear
 
 Priority Rules samples priority rules for clients:
 
@@ -77,7 +76,7 @@ Priority Rules samples priority rules for clients:
     Resource   string                 `json:"resource"`    // resource or api under service
     Operation  string                 `json:"operation"`   // api name
     Source     string                 `json:"source"`      // client tracer name
-    SpanType   string                 `json:"span_type"`   // relative span position in tracing: entry, local, exit or unknow
+    SpanType   string                 `json:"span_type"`   // relative span position in tracing: entry, local, exit or unknown
     SourceType string                 `json:"source_type"` // service type
     Tags       map[string]string      `json:"tags"`
     Metrics    map[string]interface{} `json:"metrics"`
@@ -90,23 +89,23 @@ Datakit Span is a data structure used internally by Datakit. The third-party Tra
 
 > Hereinafter referred to as dkspan
 
-| Field Name | Data Type                | Unit | Description                                 | Correspond To            |
-| ---------- | ------------------------ | ---- | ------------------------------------------- | ------------------------ |
-| TraceID    | string                   |      | Trace ID                                    | dkproto.fields.trace_id  |
-| ParentID   | string                   |      | Parent Span ID                              | dkproto.fields.parent_id |
-| SpanID     | string                   |      | Span ID                                     | dkproto.fields.span_id   |
-| Service    | string                   |      | Service Name                                | dkproto.tags.service     |
-| Resource   | string                   |      | Resource Name(.e.g /get/data/from/some/api) | dkproto.fields.resource  |
-| Operation  | string                   |      | 生产此条 Span 的方法名                      | dkproto.tags.operation   |
-| Source     | string                   |      | Span 接入源(.e.g ddtrace)                   | dkproto.name             |
-| SpanType   | string                   |      | Span Type(.e.g Entry)                       | dkproto.tags.span_type   |
-| SourceType | string                   |      | Span Source Type(.e.g Web)                  | dkproto.tags.type        |
-| Tags       | map[string, string]      |      | Span Tags                                   | dkproto.tags             |
-| Metrics    | map[string, interface{}] |      | Span Metrics(for caculation)                | dkproto.fields           |
-| Start      | int64                    | Nanosecond | Span Starting time                               | dkproto.fields.start     |
-| Duration   | int64                    | Nanosecond | Time consuming                                        | dkproto.fields.duration  |
-| Status     | string                   |      | Span 状态字段                               | dkproto.tags.status      |
-| Content    | string                   |      | Span 原始数据                               | dkproto.fields.message   |
+| Field Name | Data Type                | Unit       | Description                                 | Correspond To            |
+| ---------- | ------------------------ | ---------- | ------------------------------------------- | ------------------------ |
+| TraceID    | string                   |            | Trace ID                                    | dkproto.fields.trace_id  |
+| ParentID   | string                   |            | Parent Span ID                              | dkproto.fields.parent_id |
+| SpanID     | string                   |            | Span ID                                     | dkproto.fields.span_id   |
+| Service    | string                   |            | Service Name                                | dkproto.tags.service     |
+| Resource   | string                   |            | Resource Name(.e.g /get/data/from/some/api) | dkproto.fields.resource  |
+| Operation  | string                   |            | 生产此条 Span 的方法名                      | dkproto.tags.operation   |
+| Source     | string                   |            | Span 接入源(.e.g ddtrace)                   | dkproto.name             |
+| SpanType   | string                   |            | Span Type(.e.g Entry)                       | dkproto.tags.span_type   |
+| SourceType | string                   |            | Span Source Type(.e.g Web)                  | dkproto.tags.type        |
+| Tags       | map[string, string]      |            | Span Tags                                   | dkproto.tags             |
+| Metrics    | map[string, interface{}] |            | Span Metrics(for caculation)                | dkproto.fields           |
+| Start      | int64                    | Nanosecond | Span Starting time                          | dkproto.fields.start     |
+| Duration   | int64                    | Nanosecond | Time consuming                              | dkproto.fields.duration  |
+| Status     | string                   |            | Span 状态字段                               | dkproto.tags.status      |
+| Content    | string                   |            | Span 原始数据                               | dkproto.fields.message   |
 
 ---
 
@@ -124,20 +123,20 @@ DataDog Traces Struct
 
 ### DDTrace Span Data Structure {#ddtrace-span-struct}
 
-| Field Name | Data Type            | Unit | Description                                        | Correspond To                                                                                              |
-| ---------- | -------------------- | ---- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| TraceID    | uint64               |      | Trace ID                                           | dkspan.TraceID                                                                                             |
-| ParentID   | uint64               |      | Parent Span ID                                     | dkspan.ParentID                                                                                            |
-| SpanID     | uint64               |      | Span ID                                            | dkspan.SpanID                                                                                              |
-| Service    | string               |      | Server name                                             | dkspan.Service                                                                                             |
-| Resource   | string               |      | Resource name                                             | dkspan.Resource                                                                                            |
-| Name       | string               |      | The name of the method to produce this Span                             | dkspan.Operation                                                                                           |
-| Start      | int64                | Nanosecond | Span starting time                                      | dkspan.Start                                                                                               |
-| Duration   | int64                | Nanosecond | Time consuming                                               | dkspan.Duration                                                                                            |
-| Error      | int32                |      | Span 状态字段 0:无报错 1:出错                      | dkspan.Status                                                                                              |
-| Meta       | map[string, string]  |      | Span process metadata, environment-related, and service-related fields are obtained from here | dkspan.Project, dkspan.Env, dkspan.Version, dkspan.ContainerHost, dkspan.HTTPMethod, dkspan.HTTPStatusCode |
-| Metrics    | map[string, float64] |      | Span sampling, computing related data                            | Indirect correspondence to dkspan                                                                                          |
-| Type       | string               |      | Span Type                                          | dkspan.SourceType                                                                                          |
+| Field Name | Data Type            | Unit       | Description                                                                                   | Correspond To                                                                                              |
+| ---------- | -------------------- | ---------- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| TraceID    | uint64               |            | Trace ID                                                                                      | dkspan.TraceID                                                                                             |
+| ParentID   | uint64               |            | Parent Span ID                                                                                | dkspan.ParentID                                                                                            |
+| SpanID     | uint64               |            | Span ID                                                                                       | dkspan.SpanID                                                                                              |
+| Service    | string               |            | Server name                                                                                   | dkspan.Service                                                                                             |
+| Resource   | string               |            | Resource name                                                                                 | dkspan.Resource                                                                                            |
+| Name       | string               |            | The name of the method to produce this Span                                                   | dkspan.Operation                                                                                           |
+| Start      | int64                | Nanosecond | Span starting time                                                                            | dkspan.Start                                                                                               |
+| Duration   | int64                | Nanosecond | Time consuming                                                                                | dkspan.Duration                                                                                            |
+| Error      | int32                |            | Span 状态字段 0:无报错 1:出错                                                                 | dkspan.Status                                                                                              |
+| Meta       | map[string, string]  |            | Span process metadata, environment-related, and service-related fields are obtained from here | dkspan.Project, dkspan.Env, dkspan.Version, dkspan.ContainerHost, dkspan.HTTPMethod, dkspan.HTTPStatusCode |
+| Metrics    | map[string, float64] |            | Span sampling, computing related data                                                         | Indirect correspondence to dkspan                                                                          |
+| Type       | string               |            | Span Type                                                                                     | dkspan.SourceType                                                                                          |
 
 ---
 
@@ -171,28 +170,28 @@ resource_spans:{
 
 The correspondence between `resource_spans` and dkspan in otel is as follows:
 
-| Field Name           | Data Type         | Unit | Description    | Correspond To                                                                                                                                                     |
-| -------------------- | ----------------- | ---- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| trace_id             | [16]byte          |      | Trace ID       | dkspan.TraceID                                                                                                                                                    |
-| span_id              | [8]byte           |      | Span ID        | dkspan.SpanID                                                                                                                                                     |
-| parent_span_id       | [8]byte           |      | Parent Span ID | dkspan.ParentID                                                                                                                                                   |
-| name                 | string            |      | Span Name      | dkspan.Operation                                                                                                                                                  |
-| kind                 | string            |      | Span Type      | dkspan.SpanType                                                                                                                                                   |
-| start_time_unix_nano | int64             | Nanosecond | Span starting time  | dkspan.Start                                                                                                                                                      |
-| end_time_unix_nano   | int64             | Nanosecond | Span ending time  | dkspan.Duration = end - start                                                                                                                                     |
-| status               | string            |      | Span Status    | dkspan.Status                                                                                                                                                     |
-| name                 | string            |      | resource Name  | dkspan.Resource                                                                                                                                                   |
-| resource.attributes  | map[string]string |      | resource tag  | dkspan.tags.service, dkspan.tags.project, dkspan.tags.env, dkspan.tags.version, dkspan.tags.container_host, dkspan.tags.http_method, dkspan.tags.http_status_code |
-| span.attributes      | map[string]string |      | Span tag      | dkspan.tags                                                                                                                                                       |
+| Field Name           | Data Type         | Unit       | Description        | Correspond To                                                                                                                                                     |
+| -------------------- | ----------------- | ---------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| trace_id             | [16]byte          |            | Trace ID           | dkspan.TraceID                                                                                                                                                    |
+| span_id              | [8]byte           |            | Span ID            | dkspan.SpanID                                                                                                                                                     |
+| parent_span_id       | [8]byte           |            | Parent Span ID     | dkspan.ParentID                                                                                                                                                   |
+| name                 | string            |            | Span Name          | dkspan.Operation                                                                                                                                                  |
+| kind                 | string            |            | Span Type          | dkspan.SpanType                                                                                                                                                   |
+| start_time_unix_nano | int64             | Nanosecond | Span starting time | dkspan.Start                                                                                                                                                      |
+| end_time_unix_nano   | int64             | Nanosecond | Span ending time   | dkspan.Duration = end - start                                                                                                                                     |
+| status               | string            |            | Span Status        | dkspan.Status                                                                                                                                                     |
+| name                 | string            |            | resource Name      | dkspan.Resource                                                                                                                                                   |
+| resource.attributes  | map[string]string |            | resource tag       | dkspan.tags.service, dkspan.tags.project, dkspan.tags.env, dkspan.tags.version, dkspan.tags.container_host, dkspan.tags.http_method, dkspan.tags.http_status_code |
+| span.attributes      | map[string]string |            | Span tag           | dkspan.tags                                                                                                                                                       |
 
 otel has some unique fields, but DKspan has no corresponding fields, so it is placed in the label and will only be displayed if these values are not 0, such as:
 
-| Field                         | Date Type | Uint | Description             | Correspond                           |
-| :---------------------------- | :-------- | :--- | :---------------------- | :----------------------------------- |
-| span.dropped_attributes_count | int       |      | Span number of tags removed   | dkspan.tags.dropped_attributes_count |
-| span.dropped_events_count     | int       |      | Span number of events deleted   | dkspan.tags.dropped_events_count     |
-| span.dropped_links_count      | int       |      | Span number of connections deleted   | dkspan.tags.dropped_links_count      |
-| span.events_count             | int       |      | Number of Span associated events       | dkspan.tags.events_count             |
+| Field                         | Date Type | Uint | Description                                | Correspond                           |
+| :---------------------------- | :-------- | :--- | :----------------------------------------- | :----------------------------------- |
+| span.dropped_attributes_count | int       |      | Span number of tags removed                | dkspan.tags.dropped_attributes_count |
+| span.dropped_events_count     | int       |      | Span number of events deleted              | dkspan.tags.dropped_events_count     |
+| span.dropped_links_count      | int       |      | Span number of connections deleted         | dkspan.tags.dropped_links_count      |
+| span.events_count             | int       |      | Number of Span associated events           | dkspan.tags.events_count             |
 | span.links_count              | int       |      | The number of spans associated with a span | dkspan.tags.links_count              |
 
 ---
@@ -201,28 +200,28 @@ otel has some unique fields, but DKspan has no corresponding fields, so it is pl
 
 ### Jaeger Thrift Protocol Batch Data Structure {#jaeger-thrift-batch-struct}
 
-| Field Name | Data Type      | Unit | Description      | Correspond to       |
-| ---------- | -------------- | ---- | ---------------- | ------------------- |
-| Process    | struct pointer |      | Process-related data structure | dkspan.Service      |
-| SeqNo      | int64 pointer  |      | Serial number           | Disconnected mapping relation dkspan |
-| Spans      | array          |      | Span array structure    | See the table below              |
-| Stats      | struct pointer |      | Client statistical structure   | not directly correspond to dkspan   |
+| Field Name | Data Type      | Unit | Description                    | Correspond to                        |
+| ---------- | -------------- | ---- | ------------------------------ | ------------------------------------ |
+| Process    | struct pointer |      | Process-related data structure | dkspan.Service                       |
+| SeqNo      | int64 pointer  |      | Serial number                  | Disconnected mapping relation dkspan |
+| Spans      | array          |      | Span array structure           | See the table below                  |
+| Stats      | struct pointer |      | Client statistical structure   | not directly correspond to dkspan    |
 
 ### Jaeger Thrift Protocol Span Data Structure {#jaeger-thrift-span-struct}
 
-| Field Name    | Data Type | Unit | Description                               | Correspond To     |
-| ------------- | --------- | ---- | ----------------------------------------- | ----------------- |
-| TraceIdHigh   | int64     |      | Trace ID High and TraceIdLow make up Trace ID  | dkspan.TraceID    |
-| TraceIdLow    | int64     |      | Trace ID Low and TraceIdHigh make up Trace ID | dkspan.TraceID    |
-| ParentSpanId  | int64     |      | Parent Span ID                            | dkspan.ParentID   |
-| SpanId        | int64     |      | Span ID                                   | dkspan.SpanID     |
-| OperationName | string    |      | The name of the method to produce this Span                    | dkspan.Operation  |
-| Flags         | int32     |      | Span Flags                                | not directly correspond to dkspan |
-| Logs          | array     |      | Span Logs                                 | not directly correspond to dkspan |
-| References    | array     |      | Span References                           | not directly correspond to dkspan |
-| StartTime     | int64     | Nanosecond | Span Starting time                             | dkspan.Start      |
-| Duration      | int64     | Nanosecond | Time consuming                                      | dkspan.Duration   |
-| Tags          | array     |      | Span Tags currently only takes the Span status field          | dkspan.Status     |
+| Field Name    | Data Type | Unit       | Description                                          | Correspond To                     |
+| ------------- | --------- | ---------- | ---------------------------------------------------- | --------------------------------- |
+| TraceIdHigh   | int64     |            | Trace ID High and TraceIdLow make up Trace ID        | dkspan.TraceID                    |
+| TraceIdLow    | int64     |            | Trace ID Low and TraceIdHigh make up Trace ID        | dkspan.TraceID                    |
+| ParentSpanId  | int64     |            | Parent Span ID                                       | dkspan.ParentID                   |
+| SpanId        | int64     |            | Span ID                                              | dkspan.SpanID                     |
+| OperationName | string    |            | The name of the method to produce this Span          | dkspan.Operation                  |
+| Flags         | int32     |            | Span Flags                                           | not directly correspond to dkspan |
+| Logs          | array     |            | Span Logs                                            | not directly correspond to dkspan |
+| References    | array     |            | Span References                                      | not directly correspond to dkspan |
+| StartTime     | int64     | Nanosecond | Span Starting time                                   | dkspan.Start                      |
+| Duration      | int64     | Nanosecond | Time consuming                                       | dkspan.Duration                   |
+| Tags          | array     |            | Span Tags currently only takes the Span status field | dkspan.Status                     |
 
 ---
 
@@ -230,33 +229,33 @@ otel has some unique fields, but DKspan has no corresponding fields, so it is pl
 
 ### Skywalking Segment Object Generated By Proto Buffer Protocol V3 {#sw-v3-pb-struct}
 
-| Field Name      | Data Type | Unit | Description                                     | Correspond To      |
-| --------------- | --------- | ---- | ----------------------------------------------- | ------------------ |
-| TraceId         | string    |      | Trace ID                                        | dkspan.TraceID     |
+| Field Name      | Data Type | Unit | Description                                                                                   | Correspond To       |
+| --------------- | --------- | ---- | --------------------------------------------------------------------------------------------- | ------------------- |
+| TraceId         | string    |      | Trace ID                                                                                      | dkspan.TraceID      |
 | TraceSegmentId  | string    |      | The Segment ID is used with the Span ID to uniquely identify a Span dkspan.SpanID high order. |
-| Service         | string    |      | service                                          | dkspan.Service     |
-| ServiceInstance | string    |      | Node logical relationship name                                  | Fields not used         |
-| Spans           | array     |      | Tracing Span Array                               | See the table below             |
-| IsSizeLimited   | bool      |      | whether includes all Spans on the link Span                         | Fields not used         |
+| Service         | string    |      | service                                                                                       | dkspan.Service      |
+| ServiceInstance | string    |      | Node logical relationship name                                                                | Fields not used     |
+| Spans           | array     |      | Tracing Span Array                                                                            | See the table below |
+| IsSizeLimited   | bool      |      | whether includes all Spans on the link Span                                                   | Fields not used     |
 
 ### Skywalking Span Object Data Structure in Segment Object {#sw-span-struct}
 
-| Field Name    | Data Type | Unit | Description                                                   | Correspond To        |
-| ------------- | --------- | ---- | ------------------------------------------------------------- | -------------------- |
-| ComponentId   | int32     |      | Numerical definition of third-party framework                                          | Fields not used           |
-| Refs          | array     |      | Storing Parent Segment across threads and processes                         | dkspan.ParentID high position |
-| ParentSpanId  | int32     |      | The Parent Span ID is used with the Segment ID to uniquely identify a Parent Span| dkspan.ParentID low position|
-| SpanId        | int32     |      | The Span ID is used with the Segment ID to uniquely identify a Span               | dkspan.SpanID low position   |
-| OperationName | string    |      | Span Operation Name                                           | dkspan.Operation     |
-| Peer          | string    |      | Communication peer                                                      | dkspan.Endpoint      |
-| IsError       | bool      |      | Span Status field                                                 | dkspan.Status        |
-| SpanType      | int32     |      | Span Type Numerical definition                                          | dkspan.SpanType      |
-| StartTime     | int64     | Milliseconds | Span Starting time                                                 | dkspan.Start         |
-| EndTime       | int64     | Milliseconds | Span end time subtracted from StartTime represents elapsed time                        | dkspan.Duration      |
-| Logs          | array     |      | Span Logs                                                     | Fields not used           |
-| SkipAnalysis  | bool      |      | Skip back-end analysis                                                  | Fields not used           |
-| SpanLayer     | int32     |      | Span technology stack numerical definition                                         | Fields not used           |
-| Tags          | array     |      | Span Tags                                                     | Fields not used           |
+| Field Name    | Data Type | Unit         | Description                                                                       | Correspond To                 |
+| ------------- | --------- | ------------ | --------------------------------------------------------------------------------- | ----------------------------- |
+| ComponentId   | int32     |              | Numerical definition of third-party framework                                     | Fields not used               |
+| Refs          | array     |              | Storing Parent Segment across threads and processes                               | dkspan.ParentID high position |
+| ParentSpanId  | int32     |              | The Parent Span ID is used with the Segment ID to uniquely identify a Parent Span | dkspan.ParentID low position  |
+| SpanId        | int32     |              | The Span ID is used with the Segment ID to uniquely identify a Span               | dkspan.SpanID low position    |
+| OperationName | string    |              | Span Operation Name                                                               | dkspan.Operation              |
+| Peer          | string    |              | Communication peer                                                                | dkspan.Endpoint               |
+| IsError       | bool      |              | Span Status field                                                                 | dkspan.Status                 |
+| SpanType      | int32     |              | Span Type Numerical definition                                                    | dkspan.SpanType               |
+| StartTime     | int64     | Milliseconds | Span Starting time                                                                | dkspan.Start                  |
+| EndTime       | int64     | Milliseconds | Span end time subtracted from StartTime represents elapsed time                   | dkspan.Duration               |
+| Logs          | array     |              | Span Logs                                                                         | Fields not used               |
+| SkipAnalysis  | bool      |              | Skip back-end analysis                                                            | Fields not used               |
+| SpanLayer     | int32     |              | Span technology stack numerical definition                                        | Fields not used               |
+| Tags          | array     |              | Span Tags                                                                         | Fields not used               |
 
 ---
 
@@ -264,35 +263,35 @@ otel has some unique fields, but DKspan has no corresponding fields, so it is pl
 
 ### Zipkin Thrift Protocol Span Data Structure V1 {#zk-thrift-v1-span-struct}
 
-| Field Name        | Data Type | Unit | Description         | Correspond To    |
-| ----------------- | --------- | ---- | ------------------- | ---------------- |
-| TraceIDHigh       | uint64    |      | Trace ID high position       | There is no direct mapping relationship   |
-| TraceID           | uint64    |      | Trace ID            | dkspan.TraceID   |
-| ID                | uint64    |      | Span ID             | dkspan.SpanID    |
-| ParentID          | uint64    |      | Parent Span ID      | dkspan.ParentID  |
-| Annotations       | array     |      | get Service Name   | dkspan.Service   |
-| Name              | string    |      | Span Operation Name | dkspan.Operation |
-| BinaryAnnotations | array     |      | Get Span status field  | dkspan.Status    |
-| Timestamp         | uint64    | Microsecond | Span Starting time       | dkspan.Start     |
-| Duration          | uint64    | Microsecond | Span Time consuming           | dkspan.Duration  |
-| Debug             | bool      |      | Debug status field      | Fields not used       |
+| Field Name        | Data Type | Unit        | Description            | Correspond To                           |
+| ----------------- | --------- | ----------- | ---------------------- | --------------------------------------- |
+| TraceIDHigh       | uint64    |             | Trace ID high position | There is no direct mapping relationship |
+| TraceID           | uint64    |             | Trace ID               | dkspan.TraceID                          |
+| ID                | uint64    |             | Span ID                | dkspan.SpanID                           |
+| ParentID          | uint64    |             | Parent Span ID         | dkspan.ParentID                         |
+| Annotations       | array     |             | get Service Name       | dkspan.Service                          |
+| Name              | string    |             | Span Operation Name    | dkspan.Operation                        |
+| BinaryAnnotations | array     |             | Get Span status field  | dkspan.Status                           |
+| Timestamp         | uint64    | Microsecond | Span Starting time     | dkspan.Start                            |
+| Duration          | uint64    | Microsecond | Span Time consuming    | dkspan.Duration                         |
+| Debug             | bool      |             | Debug status field     | Fields not used                         |
 
 ### Zipkin Span Data Structure V2 {#zk-thrift-v2-span-struct}
 
-| Field Name     | Data Type | Unit | Description                      | Correspond To     |
-| -------------- | --------- | ---- | -------------------------------- | ----------------- |
-| TraceID        | struct    |      | Trace ID                         | dkspan.TraceID    |
-| ID             | uint64    |      | Span ID                          | dkspan.SpanID     |
-| ParentID       | uint64    |      | Parent Span ID                   | dkspan.ParentID   |
-| Name           | string    |      | Span Operation Name              | dkspan.Operation  |
-| Debug          | bool      |      | Debug status                       | Fields not used        |
-| Sampled        | bool      |      | Sampling status field                     | Fields not used        |
-| Err            | string    |      | Error Message                    | Indirect correspondence to dkspan |
-| Kind           | string    |      | Span Type                        | dkspan.SpanType   |
-| Timestamp      | struct    | Microsecond | Microsecond time structure representation span starting time | dkspan.Start      |
-| Duration       | int64     | Microsecond | Span Time consuming                        | dkspan.Duration   |
-| Shared         | bool      |      | Shared state                         | Fields not used        |
-| LocalEndpoint  | struct    |      | to get Service Name            | dkspan.Service    |
-| RemoteEndpoint | struct    |      | Communication peer                         | dkspan.Endpoint   |
-| Annotations    | array     |      | Used to explain delay-related events           | Fields not used        |
-| Tags           | map       |      | to get Span status               | dkspan.Status     |
+| Field Name     | Data Type | Unit        | Description                                                  | Correspond To                     |
+| -------------- | --------- | ----------- | ------------------------------------------------------------ | --------------------------------- |
+| TraceID        | struct    |             | Trace ID                                                     | dkspan.TraceID                    |
+| ID             | uint64    |             | Span ID                                                      | dkspan.SpanID                     |
+| ParentID       | uint64    |             | Parent Span ID                                               | dkspan.ParentID                   |
+| Name           | string    |             | Span Operation Name                                          | dkspan.Operation                  |
+| Debug          | bool      |             | Debug status                                                 | Fields not used                   |
+| Sampled        | bool      |             | Sampling status field                                        | Fields not used                   |
+| Err            | string    |             | Error Message                                                | Indirect correspondence to dkspan |
+| Kind           | string    |             | Span Type                                                    | dkspan.SpanType                   |
+| Timestamp      | struct    | Microsecond | Microsecond time structure representation span starting time | dkspan.Start                      |
+| Duration       | int64     | Microsecond | Span Time consuming                                          | dkspan.Duration                   |
+| Shared         | bool      |             | Shared state                                                 | Fields not used                   |
+| LocalEndpoint  | struct    |             | to get Service Name                                          | dkspan.Service                    |
+| RemoteEndpoint | struct    |             | Communication peer                                           | dkspan.Endpoint                   |
+| Annotations    | array     |             | Used to explain delay-related events                         | Fields not used                   |
+| Tags           | map       |             | to get Span status                                           | dkspan.Status                     |
