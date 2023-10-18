@@ -296,7 +296,9 @@ func (col *Collector) stop() {
 
 	col.Unlock()
 
-	_ = g.Wait()
+	if err := g.Wait(); err != nil {
+		col.opts.l.Error(err.Error())
+	}
 
 	col.Lock()
 	close(col.in)
