@@ -29,10 +29,10 @@ func WithMaxRun(n int) APPOption {
 	}
 }
 
-func WithHost(ipaddr string) APPOption {
+func WithHost(schema, ipaddr string) APPOption {
 	return func(app *monitorAPP) {
-		app.url = fmt.Sprintf("http://%s/metrics", ipaddr)
-		app.isURL = fmt.Sprintf("http://%s/stats/input", ipaddr)
+		app.url = fmt.Sprintf("%s://%s/metrics", schema, ipaddr)
+		app.isURL = fmt.Sprintf("%s://%s/stats/input", schema, ipaddr)
 	}
 }
 

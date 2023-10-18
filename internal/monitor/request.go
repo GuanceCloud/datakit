@@ -6,6 +6,7 @@
 package monitor
 
 import (
+	"crypto/tls"
 	"net/http"
 
 	dto "github.com/prometheus/client_model/go"
@@ -13,7 +14,8 @@ import (
 )
 
 func requestMetrics(url string) (map[string]*dto.MetricFamily, error) {
-	resp, err := http.Get(url) //nolint:gosec
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true} // nolint:gosec
+	resp, err := http.Get(url)                                                                      // nolint:gosec
 	if err != nil {
 		return nil, err
 	}

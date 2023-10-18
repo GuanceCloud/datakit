@@ -110,6 +110,11 @@ ulimit = 64000
   # If the list empty, all app's requests accepted.
   rum_app_id_white_list = []
 
+  # Start Datakit web server with HTTPS
+  [http_api.tls]
+    cert = "path/to/certificate/file"
+    privkey = "path/to/private_key/file"
+
 ################################################
 # io configures
 ################################################

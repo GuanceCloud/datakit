@@ -19,7 +19,7 @@ func TestApp(t *T.T) {
 			w.Write(metrics)
 		}))
 
-		Start(WithHost(ts.Listener.Addr().String()), WithVerbose(true), WithMaxRun(1))
+		Start(WithHost("http", ts.Listener.Addr().String()), WithVerbose(true), WithMaxRun(1))
 		t.Cleanup(func() {
 			ts.Close()
 		})
@@ -39,7 +39,7 @@ func TestAppOnNilData(t *T.T) {
 			w.Write(emptyMetrics)
 		}))
 
-		Start(WithHost(ts.Listener.Addr().String()), WithVerbose(true), WithMaxRun(1))
+		Start(WithHost("http", ts.Listener.Addr().String()), WithVerbose(true), WithMaxRun(1))
 		t.Cleanup(func() {
 			ts.Close()
 		})

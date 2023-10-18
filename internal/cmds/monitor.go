@@ -53,8 +53,12 @@ func runMonitorFlags() error {
 		to = *flagMonitorTo
 	}
 
+	schema := "http"
+	if config.Cfg.HTTPAPI.HTTPSEnabled() {
+		schema = "https"
+	}
 	monitor.Start(
-		monitor.WithHost(to),
+		monitor.WithHost(schema, to),
 		monitor.WithMaxTableWidth(*flagMonitorMaxTableWidth),
 		monitor.WithOnlyInputs(*flagMonitorOnlyInputs),
 		monitor.WithOnlyModules(*flagMonitorModule),
