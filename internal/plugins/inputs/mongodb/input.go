@@ -254,10 +254,8 @@ func (ipt *Input) Run() {
 		if ipt.pause {
 			log.Debugf("not leader, skipped")
 		} else if err := ipt.gather(); err != nil {
-			log.Errorf("gather: %s", err.Error())
-			ipt.feeder.FeedLastError(err.Error(),
-				dkio.WithLastErrorInput(inputName),
-			)
+			log.Error(err.Error())
+			ipt.feeder.FeedLastError(err.Error(), dkio.WithLastErrorInput(inputName))
 		}
 
 		select {
@@ -313,18 +311,13 @@ func (ipt *Input) gather() error {
 	for _, svr := range ipt.mgoSvrs {
 		func(svr *MongodbServer) {
 			g.Go(func(ctx context.Context) error {
-				if err := svr.gatherData(ipt.GatherReplicaSetStats, ipt.GatherClusterStats, ipt.GatherPerDBStats, ipt.GatherPerColStats,
-					ipt.ColStatsDBs, ipt.GatherTopStat); err != nil {
-					log.Error(err.Error())
-				}
-
-				return nil
+				return svr.gatherData(ipt.GatherReplicaSetStats, ipt.GatherClusterStats, ipt.GatherPerDBStats,
+					ipt.GatherPerColStats, ipt.ColStatsDBs, ipt.GatherTopStat)
 			})
 		}(svr)
 	}
-	_ = g.Wait()
 
-	return nil
+	return g.Wait()
 }
 
 func (ipt *Input) Pause() error {

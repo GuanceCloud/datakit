@@ -188,8 +188,7 @@ func (ipt *Input) Collect() error {
 				v.PT.AddTag([]byte(kk), []byte(vv))
 			}
 
-			err = ipt.Feeder.Feed(v.FeedMetricName, point.Metric,
-				[]*point.Point{v.PT},
+			err = ipt.Feeder.Feed(v.FeedMetricName, point.Metric, []*point.Point{v.PT},
 				&dkio.Option{CollectCost: time.Since(start)})
 			if err != nil {
 				ipt.l.Errorf("Feed: %v", err)

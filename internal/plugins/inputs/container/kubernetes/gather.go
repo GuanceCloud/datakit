@@ -57,7 +57,11 @@ func (k *Kube) gather(category string, feed func([]*point.Point) error) {
 		}(typee, constructor)
 	}
 
-	_ = g.Wait()
+	if err = g.Wait(); err != nil {
+		klog.Error(err.Error())
+
+		return
+	}
 
 	if category == "metric" {
 		pts := transToNamespacePoint(counterWithName)

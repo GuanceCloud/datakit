@@ -17,6 +17,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	k8sclient "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/client"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -84,14 +85,16 @@ func (c *container) gather(category string, feed func(pts []*point.Point) error)
 	}
 
 	start := time.Now()
-	c.gatherResource(category, wrapFeed)
-
+	if err := c.gatherResource(category, wrapFeed); err != nil {
+		l.Errorf("feed container-%s error: %s", category, err.Error())
+		c.ipt.Feeder.FeedLastError(err.Error(), dkio.WithLastErrorInput(inputName))
+	}
 	collectCostVec.WithLabelValues(category).Observe(time.Since(start).Seconds())
 }
 
 const goroutineNum = 4
 
-func (c *container) gatherResource(category string, feed func(pts []*point.Point) error) {
+func (c *container) gatherResource(category string, feed func(pts []*point.Point) error) error {
 	var opts []point.Option
 
 	switch category {
@@ -100,20 +103,20 @@ func (c *container) gatherResource(category string, feed func(pts []*point.Point
 	case "object":
 		opts = point.DefaultObjectOptions()
 	default:
-		return
+		return nil
 	}
 
 	cList, err := c.runtime.ListContainers()
 	if err != nil {
 		l.Warn(err)
-		return
+
+		return nil
 	}
 
 	var res []*typed.PointKV
 	var mu sync.Mutex
 
 	g := goroutine.NewGroup(goroutine.Option{Name: "container-" + category})
-
 	for idx := range cList {
 		if isPauseContainer(cList[idx]) {
 			continue
@@ -141,10 +144,10 @@ func (c *container) gatherResource(category string, feed func(pts []*point.Point
 		}
 	}
 
-	_ = g.Wait()
-
-	if err := feed(transToPoint(res, opts)); err != nil {
-		l.Warnf("feed container-%s error: %s", category, err)
+	if err := g.Wait(); err != nil {
+		return err
+	} else {
+		return feed(transToPoint(res, opts))
 	}
 }
 

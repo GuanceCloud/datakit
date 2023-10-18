@@ -229,16 +229,14 @@ func (i *Input) Run() {
 			}
 			start := time.Now()
 			if err := i.Collect(); err == nil {
-				if err := i.feeder.Feed(
-					inputName,
-					point.Metric,
-					i.collectCache,
-					&dkio.Option{CollectCost: time.Since((start))},
-				); err != nil {
+				if err := i.feeder.Feed(inputName, point.Metric, i.collectCache,
+					&dkio.Option{CollectCost: time.Since((start))}); err != nil {
 					i.logError(err)
+					i.feeder.FeedLastError(err.Error(), dkio.WithLastErrorInput(inputName))
 				}
 			} else {
 				i.logError(err)
+				i.feeder.FeedLastError(err.Error(), dkio.WithLastErrorInput(inputName))
 			}
 			i.collectCache = make([]*point.Point, 0)
 
@@ -273,8 +271,7 @@ func (i *Input) Collect() error {
 				ts := time.Now()
 				resp := Response{}
 				if err := i.gatherData(i, URLAll(s), &resp); err != nil {
-					i.logError(err)
-					return nil
+					return err
 				}
 				for gKey, gValue := range resp.Metrics {
 					// common tags
@@ -332,8 +329,8 @@ func (i *Input) Collect() error {
 			})
 		}(s)
 	}
-	_ = g.Wait()
-	return nil
+
+	return g.Wait()
 }
 
 func (i *Input) logError(err error) {
