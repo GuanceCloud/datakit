@@ -76,6 +76,8 @@ func TestLoadEnv(t *testing.T) {
 					EnableHTTPTrace:     true,
 					IdleTimeout:         90 * time.Second,
 					HTTPTimeout:         30 * time.Second,
+					MaxRetryCount:       dataway.DefaultRetryCount,
+					RetryDelay:          dataway.DefaultRetryDelay,
 				}
 
 				cfg.HTTPAPI.RUMOriginIPHeader = "not-set"
@@ -282,6 +284,8 @@ func TestLoadEnv(t *testing.T) {
 				"ENV_DATAWAY_MAX_IDLE_CONNS":          "100",
 				"ENV_DATAWAY_IDLE_TIMEOUT":            "100s",
 				"ENV_SINKER_GLOBAL_CUSTOMER_KEYS":     " , key1,key2 ,",
+				"ENV_DATAWAY_MAX_RETRY_COUNT":         "8",
+				"ENV_DATAWAY_RETRY_DELAY":             "5s",
 			},
 
 			expect: func() *Config {
@@ -295,6 +299,8 @@ func TestLoadEnv(t *testing.T) {
 					IdleTimeout:         100 * time.Second,
 					HTTPTimeout:         time.Minute,
 					GlobalCustomerKeys:  []string{"key1", "key2"},
+					MaxRetryCount:       8,
+					RetryDelay:          time.Second * 5,
 				}
 
 				return cfg

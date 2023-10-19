@@ -76,6 +76,35 @@ func (c *Config) loadDataway() {
 		}
 	}
 
+	if v := datakit.GetEnv("ENV_DATAWAY_MAX_RETRY_COUNT"); v != "" {
+		value, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			l.Warnf("invalid ENV_DATAWAY_MAX_RETRY_COUNT: %q, must be an integer number", v)
+		} else {
+			if value < 1 {
+				l.Warnf("invalid ENV_DATAWAY_MAX_RETRY_COUNT: %q, must be greater then 0", v)
+			} else {
+				if value > 10 {
+					value = 10
+				}
+				c.Dataway.MaxRetryCount = int(value)
+			}
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_DATAWAY_RETRY_DELAY"); v != "" {
+		value, err := time.ParseDuration(v)
+		if err != nil {
+			l.Warnf("invalid ENV_DATAWAY_RETRY_DELAY: %q, must be an valid golang duration", v)
+		} else {
+			if value < 0 {
+				l.Warnf("invalid ENV_DATAWAY_RETRY_DELAY: %q, must not be a negative duration, ignored", v)
+			} else {
+				c.Dataway.RetryDelay = value
+			}
+		}
+	}
+
 	if v := datakit.GetEnv("ENV_DATAWAY_ENABLE_SINKER"); v != "" {
 		c.Dataway.EnableSinker = true
 		l.Infof("enable sinker on dataway")

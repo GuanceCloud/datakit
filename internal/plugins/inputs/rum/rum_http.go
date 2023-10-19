@@ -219,11 +219,8 @@ func writeBody(w http.ResponseWriter, statusCode int, contentType string, body [
 	if body != nil {
 		w.Header().Set("Content-Type", contentType)
 		n, err := w.Write(body)
-		if n != len(body) {
-			return fmt.Errorf("send partial http response, full length(%d), send length(%d) ", len(body), n)
-		}
-		if err != nil {
-			return fmt.Errorf("send http response popup err: %w", err)
+		if n != len(body) || err != nil {
+			return fmt.Errorf("unable to send http response, full body length(%d), send length(%d), err: %w", len(body), n, err)
 		}
 	}
 	return nil

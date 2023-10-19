@@ -74,6 +74,8 @@ type endPoint struct {
 	maxHTTPIdleConnectionPerHost int
 	maxHTTPConnections           int
 	httpIdleTimeout              time.Duration
+	maxRetryCount                int
+	retryDelay                   time.Duration
 
 	httpTrace bool
 }
@@ -129,6 +131,25 @@ func withHTTPTimeout(timeout time.Duration) endPointOption {
 	}
 }
 
+func withMaxRetryCount(count int) endPointOption {
+	return func(ep *endPoint) {
+		if count > 0 {
+			if count > 10 {
+				count = 10
+			}
+			ep.maxRetryCount = count
+		}
+	}
+}
+
+func withRetryDelay(delay time.Duration) endPointOption {
+	return func(ep *endPoint) {
+		if delay >= 0 {
+			ep.retryDelay = delay
+		}
+	}
+}
+
 func withProxy(proxy string) endPointOption {
 	return func(ep *endPoint) {
 		ep.proxy = proxy
@@ -155,11 +176,13 @@ func newEndpoint(urlstr string, opts ...endPointOption) (*endPoint, error) {
 	}
 
 	ep := &endPoint{
-		categoryURL: map[string]string{},
-		httpHeaders: map[string]string{},
-		token:       u.Query().Get("token"),
-		host:        u.Host,
-		scheme:      u.Scheme,
+		categoryURL:   map[string]string{},
+		httpHeaders:   map[string]string{},
+		token:         u.Query().Get("token"),
+		host:          u.Host,
+		scheme:        u.Scheme,
+		maxRetryCount: DefaultRetryCount,
+		retryDelay:    DefaultRetryDelay,
 	}
 
 	// apply options
@@ -480,6 +503,20 @@ func (ep *endPoint) datakitPull(args string) ([]byte, error) {
 func (ep *endPoint) sendReq(req *http.Request) (resp *http.Response, err error) {
 	status := "unknown"
 
+	// Generally, the req.GetBody in DK should not be nil, while we do this to avoid accidents.
+	if ep.maxRetryCount > 1 && req.GetBody == nil && req.Body != nil {
+		b, err := io.ReadAll(req.Body)
+		if err != nil {
+			return nil, fmt.Errorf("unable to read body: %w", err)
+		}
+		if len(b) > 0 {
+			req.Body = io.NopCloser(bytes.NewReader(b))
+			req.GetBody = func() (io.ReadCloser, error) {
+				return io.NopCloser(bytes.NewReader(b)), nil
+			}
+		}
+	}
+
 	if err := retry.Do(
 		func() error {
 			defer func() {
@@ -498,14 +535,15 @@ func (ep *endPoint) sendReq(req *http.Request) (resp *http.Response, err error) 
 
 			if resp.StatusCode/100 == 5 { // server-side error
 				status = http.StatusText(resp.StatusCode)
-				return fmt.Errorf("doSendReq: %s", resp.Status)
+				err = fmt.Errorf("doSendReq: %s", resp.Status)
+				return err
 			}
 
 			return nil
 		},
 
-		retry.Attempts(4),
-		retry.Delay(time.Second*1),
+		retry.Attempts(uint(ep.maxRetryCount)),
+		retry.Delay(ep.retryDelay),
 		retry.OnRetry(func(n uint, err error) {
 			log.Warnf("on %dth retry, error: %s", n, err)
 			httpRetry.WithLabelValues(req.URL.Path, status).Inc()

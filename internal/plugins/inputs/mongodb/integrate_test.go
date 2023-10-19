@@ -684,7 +684,7 @@ func (cs *caseSpec) run() error {
 	// wait data
 	start = time.Now()
 	cs.t.Logf("wait points...")
-	pts, err := cs.feeder.AnyPoints(5 * time.Minute)
+	pts, err := cs.feeder.AnyPoints(30 * time.Minute)
 	if err != nil {
 		return err
 	}

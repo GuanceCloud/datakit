@@ -6,19 +6,23 @@
 package dataway
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
 	"net/url"
 	"strconv"
+	"strings"
 	T "testing"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/metrics"
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/GuanceCloud/cliutils/testutil"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -42,6 +46,47 @@ func TestEndpointRetry(t *T.T) {
 	assert.Error(t, err)
 	assert.Equal(t, 500, resp.StatusCode)
 	t.Logf("resp: %+#v\nerr: %s", resp, err)
+}
+
+func TestRetryGetBodyNil(t *T.T) {
+	bodyText := `观测云提供快速实现系统可观测的解决方案，满足云、云原生、应用和业务上的监测需求。
+通过自定义监测方案，实现实时可交互仪表板、高效观测基础设施、全链路应用性能可观测等功能，保障系统稳定性`
+
+	reqCnt := 5
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		b, err := io.ReadAll(req.Body)
+		testutil.Ok(t, err)
+		testutil.Equals(t, bodyText, string(b))
+		t.Log(string(b))
+		reqCnt--
+		if reqCnt > 0 {
+			w.WriteHeader(http.StatusInternalServerError)
+		} else {
+			w.WriteHeader(http.StatusOK)
+			_, err := io.WriteString(w, "It works")
+			testutil.Ok(t, err)
+		}
+	}))
+
+	dw := fmt.Sprintf("%s?token=abc", ts.URL)
+	ep, err := newEndpoint(dw, withHTTPTrace(true),
+		withMaxRetryCount(reqCnt),
+		withRetryDelay(time.Millisecond*100),
+	)
+	assert.NoError(t, err)
+
+	req, err := http.NewRequest(http.MethodPost, dw, bufio.NewReader(strings.NewReader(bodyText)))
+	assert.NoError(t, err)
+
+	// Because the body is not any of *bytes.Buffer, *bytes.Reader and *strings.Reader, but a *bufio.Reader,
+	// so req.GetBody is nil
+	testutil.Assert(t, nil == req.GetBody, "expect req.GetBody nil")
+
+	resp, err := ep.sendReq(req)
+	testutil.Ok(t, err)
+
+	testutil.Equals(t, http.StatusOK, resp.StatusCode)
 }
 
 func TestEndpointFailedRequest(t *T.T) {

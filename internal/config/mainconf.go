@@ -132,9 +132,11 @@ func DefaultConfig() *Config {
 		},
 
 		Dataway: &dataway.Dataway{
-			URLs:        []string{"not-set"},
-			HTTPTimeout: 30 * time.Second,
-			IdleTimeout: 90 * time.Second,
+			URLs:          []string{"not-set"},
+			HTTPTimeout:   30 * time.Second,
+			IdleTimeout:   90 * time.Second,
+			MaxRetryCount: 4,
+			RetryDelay:    time.Millisecond * 200,
 		},
 		Operator: &operator.Operator{},
 

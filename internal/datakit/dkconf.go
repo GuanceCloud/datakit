@@ -172,6 +172,13 @@ ulimit = 64000
   # Dataway HTTP timeout
   timeout_v2 = "30s"
 
+  # max_retry_count specifies at most how many times the data sending operation will be tried when it fails,
+  # valid minimum value is 1 (NOT 0) and maximum value is 10.
+  max_retry_count = 4
+
+  # The interval between two retry operation, valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+  retry_delay = "200ms"
+
   # HTTP Proxy(IP:Port)
   http_proxy = ""
 
