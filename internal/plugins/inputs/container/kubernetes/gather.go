@@ -45,7 +45,7 @@ func (k *Kube) gather(category string, feed func([]*point.Point) error) {
 					namespaces = []string{""}
 				}
 
-				counts := k.gatherResource(newResource, namespaces, category, wrapFeed)
+				counts := k.gatherResource(typ.name, newResource, namespaces, category, wrapFeed)
 
 				mu.Lock()
 				counterWithName[typ.name] = counts
@@ -75,6 +75,7 @@ func (k *Kube) gather(category string, feed func([]*point.Point) error) {
 }
 
 func (k *Kube) gatherResource(
+	resourceName string,
 	newResource resourceConstructor,
 	namespaces []string,
 	category string,
@@ -118,7 +119,7 @@ func (k *Kube) gatherResource(
 	r := newResource(k.client)
 
 	for _, ns := range namespaces {
-		count := gatherAndProcessResource(r, ns, processor)
+		count := gatherAndProcessResource(resourceName, r, ns, processor)
 		counts[ns] = count
 	}
 
@@ -139,18 +140,17 @@ func (k *Kube) addExtraTagsV2(pts []*point.Point) {
 	}
 }
 
-func gatherAndProcessResource(r resource, ns string, processor func(metadata) (int, error)) (count int) {
+func gatherAndProcessResource(resourceName string, r resource, ns string, processor func(metadata) (int, error)) (count int) {
 	for {
 		data, err := r.getMetadata(context.Background(), ns)
 		if err != nil {
-			fetchErrorVec.WithLabelValues(ns, err.Error()).Set(float64(time.Now().Unix()))
-			klog.Warnf("fetch k8s resource err: %s", err)
+			fetchErrorVec.WithLabelValues(ns, resourceName, err.Error()).Set(float64(time.Now().Unix()))
 			break
 		}
 
 		num, err := processor(data)
 		if err != nil {
-			klog.Warnf("process err: %s", err)
+			klog.Warnf("resources %s process err: %s", resourceName, err)
 			continue
 		}
 		count += num
