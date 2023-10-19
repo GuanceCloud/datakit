@@ -26,8 +26,9 @@ import (
 )
 
 const (
-	CategoryMetric = "metric"
-	CategoryEvent  = "keyevent"
+	CategoryMetric  = "metric"
+	CategoryEvent   = "keyevent"
+	CategoryLogging = "logging"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -56,6 +57,7 @@ type Option struct {
 	Election        bool   `long:"election" description:"whether election of this input is enabled"`
 	Inputs          string `long:"inputs" description:"collectors should be enabled" default:"oracle"`
 	Database        string `long:"database" description:"database name"`
+	SlowQueryTime   string `long:"slow-query-time" description:"Slow query time defined" default:""`
 
 	Log      string   `long:"log" description:"log path"`
 	LogLevel string   `long:"log-level" description:"log file" default:"info"`
@@ -109,6 +111,37 @@ func BuildPoint(l *logger.Logger, opt *BuildPointOpt) *point.Point {
 	l.Debugf("got %d fields from metric %s", len(opt.TF.Fields), opt.MetricName)
 
 	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(opt.TF.TS))
+
+	setHost := false
+	host := strings.ToLower(opt.Host)
+	switch host {
+	case "", "localhost":
+		setHost = true
+	default:
+		if net.ParseIP(host).IsLoopback() {
+			setHost = true
+		}
+	}
+	if setHost {
+		host, err = os.Hostname()
+		if err != nil {
+			l.Errorf("os.Hostname failed: %v", err)
+		}
+	}
+
+	newTags := MergeTags(opt.Tags, opt.TF.Tags, host)
+
+	return point.NewPointV2([]byte(opt.MetricName),
+		append(point.NewTags(newTags), point.NewKVs(opt.TF.Fields)...),
+		opts...)
+}
+
+func BuildPointLogging(l *logger.Logger, opt *BuildPointOpt) *point.Point {
+	var err error
+	l.Debugf("got %d fields from logging %s", len(opt.TF.Fields), opt.MetricName)
+
+	opts := point.DefaultLoggingOptions()
 	opts = append(opts, point.WithTime(opt.TF.TS))
 
 	setHost := false
