@@ -11,11 +11,11 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	internalIo "io"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -110,47 +110,48 @@ type indexStat struct {
 //nolint:lll
 const sampleConfig = `
 [[inputs.elasticsearch]]
-  ## Elasticsearch 服务器配置
-  # 支持 Basic 认证
+  ## Elasticsearch server url 
+  # Basic Authentication is allowed 
   # servers = ["http://user:pass@localhost:9200"]
   servers = ["http://localhost:9200"]
 
-  ## 采集间隔
-  # 单位 "ns", "us" (or "µs"), "ms", "s", "m", "h"
+  ## Collect interval 
+  # Time unit: "ns", "us" (or "µs"), "ms", "s", "m", "h"
   interval = "10s"
 
-  ## HTTP 超时设置
+  ## HTTP timeout
   http_timeout = "5s"
 
-  ## 发行版本：elasticsearch/opendistro/opensearch
+  ## Distribution: elasticsearch, opendistro, opensearch
   distribution = "elasticsearch"
 
-  ## 默认 local 是开启的，只采集当前 Node 自身指标，如果需要采集集群所有 Node，需要将 local 设置为 false
+  ## Set local true to collect the metrics of the current node only. 
+  # Or you can set local false to collect the metrics of all nodes in the cluster.
   local = true
 
-  ## 设置为 true 可以采集 cluster health
+  ## Set true to collect the health metric of the cluster. 
   cluster_health = false
 
-  ## cluster health level 设置，indices (默认) 和 cluster
+  ## Set cluster health level, either indices or cluster.
   # cluster_health_level = "indices"
 
-  ## 设置为 true 时可以采集 cluster stats.
+  ## Whether to collect the stats of the cluster.
   cluster_stats = false
 
-  ## 只从 master Node 获取 cluster_stats，这个前提是需要设置 local = true
+  ## Set true to collect cluster stats only from the master node.
   cluster_stats_only_from_master = true
 
-  ## 需要采集的 Indices, 默认为 _all
+  ## Indices to be collected, such as _all.
   indices_include = ["_all"]
 
-  ## indices 级别，可取值：shards/cluster/indices
+  ## Indices level, may be one of "shards", "cluster", "indices".
+  # Currently only "shards" is implemented.
   indices_level = "shards"
 
-  ## node_stats 可支持配置选项有 indices/os/process/jvm/thread_pool/fs/transport/http/breaker
-  # 默认是所有
+  ## Specify the metrics to be collected for the node stats, such as "indices", "os", "process", "jvm", "thread_pool", "fs", "transport", "http", "breaker".
   # node_stats = ["jvm", "http"]
 
-  ## HTTP Basic Authentication 用户名和密码
+  ## HTTP Basic Authentication
   # username = ""
   # password = ""
 
@@ -377,7 +378,7 @@ func (i *Input) setServerInfo() error {
 				var err error
 				info := serverInfo{}
 
-				// 获取nodeID和masterID
+				// get nodeID和masterID
 				if i.ClusterStats || len(i.IndicesInclude) > 0 || len(i.IndicesLevel) > 0 {
 					// Gather node ID
 					if info.nodeID, err = i.gatherNodeID(s + "/_nodes/_local/name"); err != nil {
@@ -452,6 +453,7 @@ func (i *Input) Collect() error {
 					(i.serverInfo[s].isMaster() ||
 						!i.ClusterStatsOnlyFromMaster ||
 						!i.Local) {
+					// get indices stats
 					if i.IndicesLevel != "shards" {
 						if err := i.gatherIndicesStats(s+
 							"/"+
@@ -467,7 +469,13 @@ func (i *Input) Collect() error {
 							l.Warn(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 						}
 					}
+
+					// get settings
+					if err := i.gatherIndicesSettings(s, clusterName); err != nil {
+						l.Warn(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
+					}
 				}
+
 				return nil
 			})
 		}(serv)
@@ -603,6 +611,54 @@ func (i *Input) Terminate() {
 	}
 }
 
+func (i *Input) gatherIndicesSettings(url string, clusterName string) error {
+	settingResp := map[string]interface{}{}
+	if err := i.gatherJSONData(url+"/"+strings.Join(i.IndicesInclude, ",")+"/_settings", &settingResp); err != nil {
+		return err
+	}
+
+	for m, s := range settingResp {
+		jsonParser := JSONFlattener{}
+		if err := jsonParser.FullFlattenJSON("", s, true, true); err != nil {
+			return err
+		}
+		allFields := make(map[string]interface{})
+		for k, v := range jsonParser.Fields {
+			fieldName := strings.TrimPrefix(k, "settings_")
+			if _, ok := indicesStatsFields[fieldName]; ok {
+				if vStr, ok := v.(string); ok {
+					if vFloat, err := strconv.ParseFloat(vStr, 64); err == nil {
+						allFields[fieldName] = vFloat
+					} else {
+						l.Warnf("get indices settings error, invalid float value: %s", vStr)
+					}
+				} else {
+					allFields[fieldName] = v
+				}
+			}
+		}
+
+		tags := map[string]string{"index_name": m, "cluster_name": clusterName}
+		setHostTagIfNotLoopback(tags, url)
+		i.extendSelfTag(tags)
+
+		metric := &indicesStatsMeasurement{
+			elasticsearchMeasurement: elasticsearchMeasurement{
+				name:     "elasticsearch_indices_stats",
+				tags:     tags,
+				fields:   allFields,
+				ts:       time.Now(),
+				election: i.Election,
+			},
+		}
+
+		if len(metric.fields) > 0 {
+			i.collectCache = append(i.collectCache, metric.Point())
+		}
+	}
+	return nil
+}
+
 func (i *Input) gatherIndicesStats(url string, clusterName string) error {
 	indicesStats := &struct {
 		Shards  map[string]interface{} `json:"_shards"`
@@ -615,6 +671,7 @@ func (i *Input) gatherIndicesStats(url string, clusterName string) error {
 	}
 	now := time.Now()
 
+	allFields := make(map[string]interface{})
 	// All Stats
 	for m, s := range indicesStats.All {
 		// parse Json, ignoring strings and bools
@@ -624,36 +681,36 @@ func (i *Input) gatherIndicesStats(url string, clusterName string) error {
 			return err
 		}
 
-		allFields := make(map[string]interface{})
 		for k, v := range jsonParser.Fields {
 			_, ok := indicesStatsFields[k]
 			if ok {
 				allFields[k] = v
 			}
 		}
+	}
 
-		tags := map[string]string{"index_name": "_all", "cluster_name": clusterName}
-		setHostTagIfNotLoopback(tags, url)
-		i.extendSelfTag(tags)
+	tags := map[string]string{"index_name": "_all", "cluster_name": clusterName}
+	setHostTagIfNotLoopback(tags, url)
+	i.extendSelfTag(tags)
 
-		metric := &indicesStatsMeasurement{
-			elasticsearchMeasurement: elasticsearchMeasurement{
-				name:     "elasticsearch_indices_stats",
-				tags:     tags,
-				fields:   allFields,
-				ts:       now,
-				election: i.Election,
-			},
-		}
+	metric := &indicesStatsMeasurement{
+		elasticsearchMeasurement: elasticsearchMeasurement{
+			name:     "elasticsearch_indices_stats",
+			tags:     tags,
+			fields:   allFields,
+			ts:       now,
+			election: i.Election,
+		},
+	}
 
-		if len(metric.fields) > 0 {
-			i.collectCache = append(i.collectCache, metric.Point())
-		}
+	if len(metric.fields) > 0 {
+		i.collectCache = append(i.collectCache, metric.Point())
 	}
 
 	// Individual Indices stats
 	for id, index := range indicesStats.Indices {
-		indexTag := map[string]string{"index_name": id, "cluster_name": clusterName}
+		allFields := make(map[string]interface{})
+
 		stats := map[string]interface{}{
 			"primaries": index.Primaries,
 			"total":     index.Total,
@@ -666,29 +723,30 @@ func (i *Input) gatherIndicesStats(url string, clusterName string) error {
 				return err
 			}
 
-			allFields := make(map[string]interface{})
 			for k, v := range f.Fields {
 				_, ok := indicesStatsFields[k]
 				if ok {
 					allFields[k] = v
 				}
 			}
+		}
 
-			setHostTagIfNotLoopback(indexTag, url)
-			i.extendSelfTag(indexTag)
-			metric := &indicesStatsMeasurement{
-				elasticsearchMeasurement: elasticsearchMeasurement{
-					name:     "elasticsearch_indices_stats",
-					tags:     indexTag,
-					fields:   allFields,
-					ts:       now,
-					election: i.Election,
-				},
-			}
+		indexTag := map[string]string{"index_name": id, "cluster_name": clusterName}
+		setHostTagIfNotLoopback(indexTag, url)
+		i.extendSelfTag(indexTag)
 
-			if len(metric.fields) > 0 {
-				i.collectCache = append(i.collectCache, metric.Point())
-			}
+		metric := &indicesStatsMeasurement{
+			elasticsearchMeasurement: elasticsearchMeasurement{
+				name:     "elasticsearch_indices_stats",
+				tags:     indexTag,
+				fields:   allFields,
+				ts:       now,
+				election: i.Election,
+			},
+		}
+
+		if len(metric.fields) > 0 {
+			i.collectCache = append(i.collectCache, metric.Point())
 		}
 	}
 
@@ -955,7 +1013,7 @@ func (i *Input) gatherClusterHealth(url string, serverURL string) error {
 	}
 
 	tags := map[string]string{
-		"name":           healthStats.ClusterName, // depreciated, may be discarded in future
+		"name":           healthStats.ClusterName, // deprecated, may be discarded in future
 		"cluster_name":   healthStats.ClusterName,
 		"cluster_status": healthStats.Status,
 	}
@@ -1080,7 +1138,7 @@ func (i *Input) createHTTPClient() (*http.Client, error) {
 	return client, nil
 }
 
-func (i *Input) requestData(method string, url string, header map[string]string, body internalIo.Reader, v interface{}) error {
+func (i *Input) requestData(method string, url string, header map[string]string, body io.Reader, v interface{}) error {
 	m := "GET"
 	if len(method) > 0 {
 		m = method
@@ -1106,7 +1164,7 @@ func (i *Input) requestData(method string, url string, header map[string]string,
 		// NOTE: we are not going to read/discard r.Body under the assumption we'd prefer
 		// to let the underlying transport close the connection and re-establish a new one for
 		// future calls.
-		resBodyBytes, err := ioutil.ReadAll(r.Body)
+		resBodyBytes, err := io.ReadAll(r.Body)
 		resBody := ""
 		if err != nil {
 			l.Debugf("get response body err: %s", err.Error())
@@ -1152,7 +1210,7 @@ func (i *Input) getCatMaster(url string) (string, error) {
 		//nolint:lll
 		return "", fmt.Errorf("elasticsearch: Unable to retrieve master node information. API responded with status-code %d, expected %d", r.StatusCode, http.StatusOK)
 	}
-	response, err := ioutil.ReadAll(r.Body)
+	response, err := io.ReadAll(r.Body)
 	if err != nil {
 		return "", err
 	}
