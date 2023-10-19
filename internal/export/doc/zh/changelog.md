@@ -1,6 +1,36 @@
 # 更新日志
 ---
 
+## 1.17.0(2023/10/19) {#cl-1.17.0}
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.17.0-new}
+
+- Pod 添加 cpu_limit 指标 （#1913）
+- `New Relic` 链路数据接入（#1834）
+
+### 问题修复 {#cl-1.17.0-fix}
+
+- 修复日志单行数据太长可能导致的内存问题（#1923）
+- 修复 [disk](../integrations/disk.md) 采集器磁盘挂载点获取失败问题（#1919）
+- 修复 helm 和 yaml 中的 Service 名称不一致问题（#1910）
+- 修复 pinpoint span 中缺失 `agentid` 字段（#1897）
+- 修复采集器中 `goroutine group` 错误处理问题（#1893）
+- 修复[MongoDB](../integrations/mongodb.md) 采集器空数据上报问题（#1884）
+- 修复 [rum](../integrations/rum.md) 采集器请求中出现大量 408 和 500 状态码（#1915）
+
+### 功能优化 {#cl-1.17.0-opt}
+
+- 优化 logfwd 的退出逻辑，避免因为配置错误导致程序退出影响到业务 Pod （#1922）
+- 优化 [`ElasticSearch`](../integrations/elasticsearch.md) 采集器，增加索引指标集 `elasticsearch_indices_stats` 分片和副本等指标（#1921）
+- 增加 [disk](../integrations/disk.md) 集成测试（#1920）
+- DataKit monitor 支持 HTTPS（#1909）
+- Oracle 采集器添加慢查询日志（#1906）
+- 优化采集器 point 实现（#1900）
+- [MongoDB](../integrations/mongodb.md) 采集器集成测试增加检测授权功能（#1885）
+
+---
+
 ## 1.16.1(2023/10/09) {#cl-1.16.1}
 
 ### 问题修复 {#cl-1.16.1-fix}

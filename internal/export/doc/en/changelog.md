@@ -1,6 +1,36 @@
 # Changelog
 ---
 
+## 1.17.0(2023/10/19) {#cl-1.17.0}
+This release is an iterative release, mainly including the following updates:
+
+### New features {#cl-1.17.0-new}
+
+- Added `cpu_limt` for `Pod` (#1913)
+- Added `New Relic` tracing collector (#1834)
+
+### Bug fixes {#cl-1.17.0-fix}
+
+- Fixed the memory issue that may be caused by too long single-line data in the log (#1923)
+- Fixed an issue where [disk](../integrations/disk.md) collector failed to obtain the disk mount point (#1919)
+- Fixed the issue of inconsistent service names in helm and yaml (#1910)
+- Fixed the missing `agentid` field in pinpoint spans (#1897)
+- Fixed the bugs in `goroutine group` (#1893)
+- Fixed the empty data of [MongoDB](../integrations/mongodb.md) collector (#1884)
+- Fixed a large number of 408 and 500 status codes in the request of the rum collector (#1915)
+
+### Function optimization {#cl-1.17.0-opt}
+
+- Optimized the exit logic of `logfwd` to avoid program exit due to configuration errors affecting business pods (#1922)
+- Optimized the [`ElasticSearch`](../integrations/elasticsearch.md) collector, add index metric set `elasticsearch_indices_stats` for shard and replica metrics (#1921)
+- Added the [disk](../integrations/disk.md) integration test (#1920)
+- DataKit monitor supports HTTPS (#1909)
+- Added slow query logs for [Oracle](../integrations/oracle.md) collector (#1906)
+- Optimized collector point implementation (#1900)
+- Added detection of authorization for [MongoDB](../integrations/mongodb.md) collector integration test (#1885)
+
+---
+
 ## 1.16.1(2023/10/09) {#cl-1.16.1}
 
 ### Bug fixes {#cl-1.16.1-fix}
