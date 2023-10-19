@@ -122,7 +122,7 @@ GRANT SELECT ON DBA_USERS TO datakit;
     > 也可以直接下载我们预先准备好的依赖包：
 
     ```shell
-    wget -q https://static.guance.com/otn_software/instantclient/instantclient-basiclite-linux.x64-21.10.0.0.0dbru.zip \
+    wget https://static.guance.com/otn_software/instantclient/instantclient-basiclite-linux.x64-21.10.0.0.0dbru.zip \
         -O /usr/local/datakit/externals/instantclient-basiclite-linux.zip \
         && unzip /usr/local/datakit/externals/instantclient-basiclite-linux.zip -d /opt/oracle \
         && mv /opt/oracle/instantclient_21_10 /opt/oracle/instantclient;
@@ -131,7 +131,7 @@ GRANT SELECT ON DBA_USERS TO datakit;
 === "ARM64 系统"
 
     ```shell
-    wget https://download.oracle.com/otn_software/linux/instantclient/2110000/instantclient-basiclite-linux.arm64-19.19.0.0.0dbru.zip
+    wget https://download.oracle.com/otn_software/linux/instantclient/1919000/instantclient-basiclite-linux.arm64-19.19.0.0.0dbru.zip
     unzip instantclient-basiclite-linux.arm64-19.19.0.0.0dbru.zip
     ```
 
@@ -140,7 +140,7 @@ GRANT SELECT ON DBA_USERS TO datakit;
     > 也可以直接下载我们预先准备好的依赖包：
 
     ```shell
-    wget -q https://static.guance.com/otn_software/instantclient/instantclient-basiclite-linux.arm64-19.19.0.0.0dbru.zip \
+    wget https://static.guance.com/otn_software/instantclient/instantclient-basiclite-linux.arm64-19.19.0.0.0dbru.zip \
         -O /usr/local/datakit/externals/instantclient-basiclite-linux.zip \
         && unzip /usr/local/datakit/externals/instantclient-basiclite-linux.zip -d /opt/oracle \
         && mv /opt/oracle/instantclient_19_19 /opt/oracle/instantclient;
@@ -196,6 +196,31 @@ apt-get install -y libaio-dev libaio1
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
+
+## 慢查询支持 {#slow}
+
+Datakit 可以将执行超过用户自定义时间的 SQL 语句报告给观测云，在日志中显示，来源名是 `oracle_logging`。
+
+该功能默认情况下是关闭的，用户可以在 Oracle 的配置文件中将其打开，方法如下：
+
+将 `--slow-query-time` 后面的值从 `0s` 改成用户心中的阈值，最小值 1 毫秒。一般推荐 10 秒。
+
+```conf
+  args = [
+    ...
+    '--slow-query-time' , '10s'                        ,
+  ]
+```
+
+???+ info "字段说明"
+    - `avg_elapsed`: 该 SQL 语句执行的平均耗时。
+    - `username`：执行该语句的用户名。
+    - `failed_obfuscate`：SQL 脱敏失败的原因。只有在 SQL 脱敏失败才会出现。SQL 脱敏失败后原 SQL 会被上报。
+    更多字段解释可以查看[这里](https://docs.oracle.com/en/database/oracle/oracle-database/19/refrn/V-SQLAREA.html#GUID-09D5169F-EE9E-4297-8E01-8D191D87BDF7)。
+
+???+ attention "重要信息"
+    - 如果值是 `0s` 或空或小于 1 毫秒，则不会开启 Oracle 采集器的慢查询功能，即默认状态。
+    - 没有执行完成的 SQL 语句不会被查询到。
 
 ## FAQ {#faq}
 

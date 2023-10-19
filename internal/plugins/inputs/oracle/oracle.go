@@ -25,12 +25,13 @@ const (
 
   ## The "--inputs" line below should not be modified.
   args = [
-    '--interval'       , '1m'                        ,
-    '--host'           , '<your-oracle-host>'        ,
-    '--port'           , '1521'                      ,
-    '--username'       , '<oracle-user-name>'        ,
-    '--password'       , '<oracle-password>'         ,
-    '--service-name'   , '<oracle-service-name>'     ,
+    '--interval'        , '1m'                        ,
+    '--host'            , '<your-oracle-host>'        ,
+    '--port'            , '1521'                      ,
+    '--username'        , '<oracle-user-name>'        ,
+    '--password'        , '<oracle-password>'         ,
+    '--service-name'    , '<oracle-service-name>'     ,
+    '--slow-query-time' , '0s'                        ,
   ]
   envs = [
     'LD_LIBRARY_PATH=/opt/oracle/instantclient:$LD_LIBRARY_PATH',
@@ -43,12 +44,13 @@ const (
   #############################
   # Parameter Description (Marked with * is mandatory field)
   #############################
-  # *--interval       : Collect interval (Default is 1m)
-  # *--host           : Oracle instance address (IP)
-  # *--port           : Oracle listen port (Default is 1521)
-  # *--username       : Oracle username
-  # *--password       : Oracle password
-  # *--service-name   : Oracle service name
+  # *--interval         : Collect interval (Default is 1m)
+  # *--host             : Oracle instance address (IP)
+  # *--port             : Oracle listen port (Default is 1521)
+  # *--username         : Oracle username
+  # *--password         : Oracle password
+  # *--service-name     : Oracle service name
+  # *--slow-query-time  : Oracle slow query time threshold defined. If larger than this, the executed sql will be reported.
 `
 )
 

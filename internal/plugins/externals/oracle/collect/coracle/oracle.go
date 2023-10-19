@@ -25,6 +25,7 @@ const (
 	metricNameProcess    = "oracle_process"
 	metricNameTablespace = "oracle_tablespace"
 	metricNameSystem     = "oracle_system"
+	metricNameLogging    = "oracle_logging"
 
 	pdbName        = "pdb_name"
 	tablespaceName = "tablespace_name"
@@ -62,20 +63,23 @@ var (
 )
 
 type Input struct {
-	interval    string
-	user        string
-	password    string
-	desc        string
-	host        string
-	port        string
-	serviceName string
-	tags        map[string]string
-	election    bool
+	interval      string
+	user          string
+	password      string
+	desc          string
+	host          string
+	port          string
+	serviceName   string
+	tags          map[string]string
+	election      bool
+	SlowQueryTime time.Duration
 
-	db               *sqlx.DB
-	intervalDuration time.Duration
-	collectors       []ccommon.DBMetricsCollector
-	datakitPostURL   string
+	db                    *sqlx.DB
+	intervalDuration      time.Duration
+	collectors            []ccommon.DBMetricsCollector
+	collectorsLogging     []ccommon.DBMetricsCollector
+	datakitPostURL        string
+	datakitPostLoggingURL string
 }
 
 func NewInput(infoMsgs []string, opt *ccommon.Option) ccommon.IInput {
@@ -113,6 +117,17 @@ func NewInput(infoMsgs []string, opt *ccommon.Option) ccommon.IInput {
 		serviceName: opt.ServiceName,
 		tags:        make(map[string]string),
 		election:    opt.Election,
+	}
+
+	du, err := time.ParseDuration(opt.SlowQueryTime)
+	if err != nil {
+		l.Errorf("bad slow query %s: %s, disable slow query", opt.SlowQueryTime, err.Error())
+	} else {
+		if du >= time.Millisecond {
+			ipt.SlowQueryTime = du
+		} else {
+			l.Warnf("slow query time %v larger than 1 millisecond, skip", du)
+		}
 	}
 
 	items := strings.Split(opt.Tags, ";")
@@ -165,6 +180,17 @@ func NewInput(infoMsgs []string, opt *ccommon.Option) ccommon.IInput {
 	)
 	l.Infof("Datakit post metric URL: %s", ipt.datakitPostURL)
 
+	if ipt.SlowQueryTime > 0 {
+		slowQueryLoggingR := newSlowQueryLogging(withInput(ipt), withMetricName(metricNameLogging))
+		ipt.collectorsLogging = append(ipt.collectorsLogging, slowQueryLoggingR)
+
+		ipt.datakitPostLoggingURL = ccommon.GetPostURL(
+			opt.Election,
+			ccommon.CategoryLogging, inputName, opt.DatakitHTTPHost,
+			opt.DatakitHTTPPort,
+		)
+	}
+
 	return ipt
 }
 
@@ -198,25 +224,34 @@ func (ipt *Input) Run() {
 	defer tick.Stop()
 
 	for {
-		ba := ccommon.NewByteArray()
-
-		for idx := range ipt.collectors {
-			pt, err := ipt.collectors[idx].Collect()
-			if err != nil {
-				ccommon.ReportErrorf(inputName, l, "Collect failed: %v", err)
-			} else {
-				line := pt.LineProto()
-				ba.Add(line)
-			}
-		}
-
-		if ba.Len() > 0 {
-			if err := ccommon.WriteData(l, bytes.Join(ba.Get(), []byte("\n")), ipt.datakitPostURL); err != nil {
-				l.Errorf("writeData failed: %v", err)
-			}
-		}
+		collectAndReport(&ipt.collectors, ipt.datakitPostURL)
+		collectAndReport(&ipt.collectorsLogging, ipt.datakitPostLoggingURL)
 
 		<-tick.C
+	}
+}
+
+func collectAndReport(collectors *[]ccommon.DBMetricsCollector, reportURL string) {
+	ba := ccommon.NewByteArray()
+
+	for idx := range *collectors {
+		pt, err := (*collectors)[idx].Collect()
+		if err != nil {
+			ccommon.ReportErrorf(inputName, l, "Collect failed: %v", err)
+		} else {
+			if pt == nil {
+				continue
+			}
+
+			line := pt.LineProto()
+			ba.Add(line)
+		}
+	}
+
+	if ba.Len() > 0 {
+		if err := ccommon.WriteData(l, bytes.Join(ba.Get(), []byte("\n")), reportURL); err != nil {
+			l.Errorf("writeData failed: %v", err)
+		}
 	}
 }
 
