@@ -84,6 +84,12 @@ func (i *Input) runCollect() {
 
 	firstCollectElection := true
 
+	// frist collect
+	i.collectLogging(collectors)
+	i.collectObject(collectors)
+	time.Sleep(time.Second) // window time
+	i.collectMetric(collectors)
+
 	for {
 		select {
 		case <-datakit.Exit.Wait():
