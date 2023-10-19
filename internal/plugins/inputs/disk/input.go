@@ -15,10 +15,11 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -68,15 +69,10 @@ var (
   # more_tag = "some_other_value"`
 )
 
-type diskMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
-}
+type diskMeasurement struct{}
 
-func (m *diskMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
+func (m *diskMeasurement) LineProto() (*dkpt.Point, error) {
+	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -147,24 +143,15 @@ type Input struct {
 	IgnoreZeroBytesDisk bool `toml:"ignore_zero_bytes_disk"`
 	OnlyPhysicalDevice  bool `toml:"only_physical_device"`
 
-	collectCache         []inputs.Measurement
-	collectCacheLast1Ptr inputs.Measurement
-	diskStats            PSDiskStats
+	collectCache []*point.Point
+	diskStats    PSDiskStats
 
 	semStop *cliutils.Sem // start stop signal
+	feeder  dkio.Feeder
+	Tagger  dkpt.GlobalTagger
 }
 
-func (ipt *Input) Singleton() {
-}
-
-func (ipt *Input) appendMeasurement(name string,
-	tags map[string]string,
-	fields map[string]interface{}, ts time.Time,
-) {
-	tmp := &diskMeasurement{name: name, tags: tags, fields: fields, ts: ts}
-	ipt.collectCache = append(ipt.collectCache, tmp)
-	ipt.collectCacheLast1Ptr = tmp
-}
+func (ipt *Input) Singleton() {}
 
 func (*Input) Catalog() string {
 	return "host"
@@ -185,7 +172,7 @@ func (*Input) AvailableArchs() []string {
 }
 
 func (ipt *Input) Collect() error {
-	ipt.collectCache = make([]inputs.Measurement, 0)
+	ipt.collectCache = make([]*point.Point, 0)
 	disks, partitions, err := ipt.diskStats.FilterUsage()
 	if err != nil {
 		return fmt.Errorf("error getting disk usage info: %w", err)
@@ -230,7 +217,16 @@ func (ipt *Input) Collect() error {
 			fields["inodes_used"] = wrapUint64(du.InodesUsed)
 		}
 
-		ipt.appendMeasurement(metricName, tags, fields, ts)
+		opts := point.DefaultMetricOptions()
+		opts = append(opts, point.WithTime(ts))
+
+		tags = inputs.MergeTags(ipt.Tagger.HostTags(), tags, "")
+
+		pt := point.NewPointV2([]byte(metricName),
+			append(point.NewTags(tags), point.NewKVs(fields)...),
+			opts...)
+
+		ipt.collectCache = append(ipt.collectCache, pt)
 	}
 
 	return nil
@@ -255,14 +251,21 @@ func (ipt *Input) Run() {
 	for {
 		start := time.Now()
 		if err := ipt.Collect(); err != nil {
-			l.Errorf("Collect: %s", err)
-			io.FeedLastError(inputName, err.Error())
+			l.Errorf("Collect failed: %s", err)
+			ipt.feeder.FeedLastError(err.Error(),
+				dkio.WithLastErrorInput(inputName),
+				dkio.WithLastErrorCategory(point.Metric),
+			)
 		}
 
 		if len(ipt.collectCache) > 0 {
-			if errFeed := inputs.FeedMeasurement(metricName, datakit.Metric, ipt.collectCache,
-				&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
-				io.FeedLastError(inputName, errFeed.Error())
+			if err := ipt.feeder.Feed(metricName, point.Metric, ipt.collectCache,
+				&dkio.Option{CollectCost: time.Since(start)}); err != nil {
+				l.Warnf("Feed failed: %v", err)
+				ipt.feeder.FeedLastError(err.Error(),
+					dkio.WithLastErrorInput(inputName),
+					dkio.WithLastErrorCategory(point.Metric),
+				)
 			}
 		}
 
@@ -342,11 +345,13 @@ func unique(strSlice []string) []string {
 	return list
 }
 
-func newDefaultInput() *Input {
+func defaultInput() *Input {
 	ipt := &Input{
 		Interval: datakit.Duration{Duration: time.Second * 10},
-		semStop:  cliutils.NewSem(),
 		Tags:     make(map[string]string),
+		semStop:  cliutils.NewSem(),
+		feeder:   dkio.DefaultFeeder(),
+		Tagger:   dkpt.DefaultGlobalTagger(),
 	}
 
 	x := &PSDisk{ipt: ipt}
@@ -356,6 +361,6 @@ func newDefaultInput() *Input {
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return newDefaultInput()
+		return defaultInput()
 	})
 }

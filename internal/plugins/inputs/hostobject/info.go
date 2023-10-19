@@ -69,10 +69,11 @@ type (
 	}
 
 	DiskInfo struct {
-		Device string `json:"device"`
-		Total  uint64 `json:"total"`
-		Fstype string `json:"fstype"`
-		Opts   string `json:"-"`
+		Device     string `json:"device"`
+		Total      uint64 `json:"total"`
+		Fstype     string `json:"fstype"`
+		MountPoint string `json:"mountpoint"`
+		Opts       string `json:"-"`
 	}
 
 	HostInfo struct {
@@ -288,8 +289,9 @@ func getDiskInfo(excludeDevice []string, extraDevice []string, ignoreZeroBytesDi
 		}
 
 		info := &DiskInfo{
-			Device: p.Device,
-			Fstype: p.Fstype,
+			Device:     p.Device,
+			Fstype:     p.Fstype,
+			MountPoint: p.Mountpoint,
 		}
 
 		usage, err := diskutil.Usage(p.Mountpoint)

@@ -3,7 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package hostobject
+package disk
 
 import (
 	"fmt"
@@ -15,7 +15,6 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	dockertest "github.com/ory/dockertest/v3"
 	"github.com/stretchr/testify/require"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
@@ -82,14 +81,13 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 	t.Helper()
 
 	bases := []struct {
-		name string // Also used as build image name:tag.
-		conf string
-		opts []inputs.PointCheckOption
+		name             string // Also used as build image name:tag.
+		conf             string
+		optsMetricSystem []inputs.PointCheckOption
 	}{
 		{
-			name: "hostobject_TestMode",
-			conf: `ignore_zero_bytes_disk = true
-			disable_cloud_provider_sync = true`, // set conf URL later.
+			name: "disk_normal",
+			conf: `interval = "1s"`, // set conf URL later.
 		},
 	}
 
@@ -101,19 +99,19 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 
 		ipt := defaultInput()
 		ipt.feeder = feeder
-		datakit.IsTestMode = true
 
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)
 
+		// no election.
 		ipt.Tagger = testutils.NewTaggerHost()
 
 		cases = append(cases, &caseSpec{
-			t:      t,
-			ipt:    ipt,
-			name:   base.name,
-			feeder: feeder,
-			opts:   base.opts,
+			t:                t,
+			ipt:              ipt,
+			name:             base.name,
+			feeder:           feeder,
+			optsMetricSystem: base.optsMetricSystem,
 
 			cr: &testutils.CaseResult{
 				Name:        t.Name(),
@@ -133,8 +131,8 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 type caseSpec struct {
 	t *testing.T
 
-	name string
-	opts []inputs.PointCheckOption
+	name             string
+	optsMetricSystem []inputs.PointCheckOption
 
 	ipt    *Input
 	feeder *io.MockedFeeder
@@ -150,13 +148,13 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 	for _, pt := range pts {
 		var opts []inputs.PointCheckOption
 		opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
-		opts = append(opts, cs.opts...)
 
 		measurement := string(pt.Name())
 
 		switch measurement {
-		case hostObjMeasurementName:
-			opts = append(opts, inputs.WithDoc(&hostMeasurement{}))
+		case inputName:
+			opts = append(opts, cs.optsMetricSystem...)
+			opts = append(opts, inputs.WithDoc(&diskMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
 
@@ -169,10 +167,10 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
-			cs.mCount[hostObjMeasurementName] = struct{}{}
+			cs.mCount[inputName] = struct{}{}
 
 		default: // TODO: check other measurement
-			panic("unknown measurement: " + measurement)
+			panic("unknown measurement:" + measurement)
 		}
 
 		// check if tag appended

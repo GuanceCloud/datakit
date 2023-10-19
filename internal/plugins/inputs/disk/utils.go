@@ -100,25 +100,3 @@ func (dk *PSDisk) FilterUsage() ([]*disk.UsageStat, []*disk.PartitionStat, error
 
 	return usage, partitions, nil
 }
-
-type MountOptions []string
-
-func (opts MountOptions) Mode() string {
-	switch {
-	case opts.exists("rw"):
-		return "rw"
-	case opts.exists("ro"):
-		return "ro"
-	default:
-		return "unknown"
-	}
-}
-
-func (opts MountOptions) exists(opt string) bool {
-	for _, o := range opts {
-		if o == opt {
-			return true
-		}
-	}
-	return false
-}
