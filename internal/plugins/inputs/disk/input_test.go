@@ -14,7 +14,7 @@ import (
 )
 
 func TestCollect(t *testing.T) {
-	i := newDefaultInput()
+	i := defaultInput()
 	for x := 0; x < 1; x++ {
 		if err := i.Collect(); err != nil {
 			t.Error(err)
@@ -26,13 +26,7 @@ func TestCollect(t *testing.T) {
 	}
 	tmap := map[string]bool{}
 	for _, v := range i.collectCache {
-		m, ok := v.(*diskMeasurement)
-		if !ok {
-			t.Error("v expect to be *diskMeasurement")
-			continue
-		}
-
-		tmap[m.ts.String()] = true
+		tmap[v.Time().String()] = true
 	}
 	if len(tmap) != 1 {
 		t.Error("Need to clear collectCache.")
