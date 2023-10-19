@@ -6,6 +6,7 @@
 package config
 
 import (
+	"io"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -318,6 +319,73 @@ hostname = "should-not-set"`,
 			if err := os.Remove(tomlfile); err != nil {
 				t.Error(err)
 			}
+		})
+	}
+}
+
+func TestLoadDWRetry(t *testing.T) {
+	type Case struct {
+		name       string
+		confText   string
+		retryCount int
+		retryDelay time.Duration
+	}
+
+	testCases := []Case{
+		{
+			name: "defaultSetting",
+			confText: `
+[dataway]
+  urls = ["http://testing-openway.cloudcare.cn?token=tkn_2dc4xxxxxxxxxxxxxxxxxxxxxxxxxxxx"]
+  timeout = "30s"
+`,
+			retryCount: dataway.DefaultRetryCount,
+			retryDelay: dataway.DefaultRetryDelay,
+		},
+		{
+			name: "manualSetting",
+			confText: `
+[dataway]
+  urls = ["http://testing-openway.cloudcare.cn?token=tkn_2dc4xxxxxxxxxxxxxxxxxxxxxxxxxxxx"]
+  timeout = "30s"
+  max_retry_count = 7
+  retry_delay = "2s"
+`,
+			retryCount: 7,
+			retryDelay: time.Second * 2,
+		},
+		{
+			name: "zeroDelay",
+			confText: `
+[dataway]
+  urls = ["http://testing-openway.cloudcare.cn?token=tkn_2dc4xxxxxxxxxxxxxxxxxxxxxxxxxxxx"]
+  timeout = "30s"
+  retry_delay = "0s"
+`,
+			retryCount: dataway.DefaultRetryCount,
+			retryDelay: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			f, err := os.CreateTemp("./", "test.main.*.conf")
+			assert.NoError(t, err)
+
+			defer os.Remove(f.Name())
+
+			_, err = io.WriteString(f, tc.confText)
+			assert.NoError(t, err)
+
+			err = f.Close()
+			assert.NoError(t, err)
+
+			c := DefaultConfig()
+			err = c.LoadMainTOML(f.Name())
+			assert.NoError(t, err)
+
+			assert.Equal(t, tc.retryCount, c.Dataway.MaxRetryCount)
+			assert.Equal(t, tc.retryDelay, c.Dataway.RetryDelay)
 		})
 	}
 }

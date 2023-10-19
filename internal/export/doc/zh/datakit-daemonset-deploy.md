@@ -237,6 +237,8 @@ spec:
 | `ENV_DATAWAY_HTTP_PROXY`       | string   | 无     | 否     | 设置 DataWay HTTP 代理                                                                                                               |
 | `ENV_DATAWAY_MAX_IDLE_CONNS`   | int      | 无     | 否     | 设置 DataWay HTTP 连接池大小（[:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0)）                                             |
 | `ENV_DATAWAY_IDLE_TIMEOUT`     | duration | "90s"  | 否     | 设置 DataWay HTTP Keep-Alive 时长（[:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0)）                                        |
+|  `ENV_DATAWAY_MAX_RETRY_COUNT` |      int |             4 | No       | 指定当把数据发送到观测云中心时，最多可以发送的次数，最小值为 1（失败后不重试），最大值为 10([:octicons-tag-24: Version-1.18.0](changelog.md#cl-1.18.0))        |
+|      `ENV_DATAWAY_RETRY_DELAY` | duration |       "200ms" | No       | 数据发送失败时，两次重试之间的时间间隔，支持的时间单位有： ns、us (或 µs)、 ms、 s、 m、 h([:octicons-tag-24: Version-1.18.0](changelog.md#cl-1.18.0)) |
 
 ### 日志配置相关环境变量 {#env-log}
 

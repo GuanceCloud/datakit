@@ -20,7 +20,11 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
 )
 
-const HeaderXGlobalTags = "X-Global-Tags"
+const (
+	HeaderXGlobalTags = "X-Global-Tags"
+	DefaultRetryCount = 4
+	DefaultRetryDelay = time.Millisecond * 200
+)
 
 type IDataway interface {
 	Write(...WriteOption) error
@@ -67,6 +71,8 @@ type Dataway struct {
 
 	DeprecatedHTTPTimeout string        `toml:"timeout,omitempty"`
 	HTTPTimeout           time.Duration `toml:"timeout_v2"`
+	MaxRetryCount         int           `toml:"max_retry_count"`
+	RetryDelay            time.Duration `toml:"retry_delay"`
 
 	HTTPProxy string `toml:"http_proxy"`
 
@@ -223,6 +229,8 @@ func (dw *Dataway) doInit() error {
 			withMaxHTTPIdleConnectionPerHost(dw.MaxIdleConnsPerHost),
 			withMaxHTTPConnections(dw.MaxIdleConns),
 			withHTTPIdleTimeout(dw.IdleTimeout),
+			withMaxRetryCount(dw.MaxRetryCount),
+			withRetryDelay(dw.RetryDelay),
 		)
 		if err != nil {
 			log.Errorf("init dataway url %s failed: %s", u, err.Error())
