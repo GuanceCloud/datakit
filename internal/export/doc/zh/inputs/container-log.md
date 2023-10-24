@@ -251,9 +251,9 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
 
     ``` toml
     ## 当容器的 image 能够匹配 `hello*` 时，会采集此容器的日志
-    container_include_logging = ["image:hello*"]
+    container_include_log = ["image:hello*"]
     ## 忽略所有容器
-    container_exclude_logging = ["image:*"]
+    container_exclude_log = ["image:*"]
     ```
     
     `container_include` 和 `container_exclude` 必须以 `image` 开头，格式为一种[类正则的 Glob 通配](https://en.wikipedia.org/wiki/Glob_(programming)){:target="_blank"}：`"image:<glob 规则>"`
@@ -295,7 +295,7 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
 
 ???+ attention
 
-    通过全局配置的 container_exclude_logging 优先级低于容器的自定义配置 `disable`。例如，配置了 `container_exclude_logging = ["image:*"]` 不采集所有日志，如果有 Pod Annotation 如下：
+    通过全局配置的 container_exclude_log 优先级低于容器的自定义配置 `disable`。例如，配置了 `container_exclude_log = ["image:*"]` 不采集所有日志，如果有 Pod Annotation 如下：
 
     ```json
     [
