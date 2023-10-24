@@ -268,18 +268,19 @@ func (i *Integration) exportIntegration(lang inputs.I18n) error {
 
 		var doc []byte
 		if _, ok := inputs.Inputs[name]; ok {
+			l.Debugf("add non-input doc %q to integration", f.Name())
 			doc, err = buildInputDoc(name, md, i.opt)
 			if err != nil {
 				return err
 			}
 		} else { // non-input docs, but they related to input, we put them to integrations subdir
+			l.Debugf("add non-input doc %q to integration", f.Name())
 			doc, err = buildNonInputDocs(md, i.opt)
 			if err != nil {
 				return err
 			}
 		}
 
-		l.Debugf("add doc %q to integration", f.Name())
 		i.docs[filepath.Join(i.opt.topDir, "integration", lang.String(), f.Name())] = doc
 		n++
 	}
