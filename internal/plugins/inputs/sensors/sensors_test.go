@@ -3,9 +3,6 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-//go:build linux
-// +build linux
-
 /*
 Test this file with docker:
 docker run --rm -it -w /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/sensors -v $GOPATH:/root/go ubuntu.golang:latest go test -v .
@@ -16,9 +13,10 @@ import (
 	"log"
 	"strconv"
 	"strings"
-	"testing"
+	T "testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/command"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
@@ -79,7 +77,7 @@ type entry struct {
 	fields map[string]interface{}
 }
 
-func TestParseLogic(t *testing.T) {
+func TestParseLogic(t *T.T) {
 	var (
 		lines   = strings.Split(strings.TrimSpace(output), "\n")
 		tags    = make(map[string]string)
@@ -110,7 +108,7 @@ func TestParseLogic(t *testing.T) {
 				tags["feature"] = strings.ToLower(strings.ReplaceAll(strings.TrimSpace(parts[0]), " ", "_"))
 			case strings.HasPrefix(parts[0], " "):
 				if value, err := strconv.ParseFloat(strings.TrimSpace(parts[1]), 64); err != nil {
-					log.Println(err.Error())
+					t.Error(err.Error())
 				} else {
 					fields[strings.ToLower(strings.TrimSpace(parts[0]))] = value
 				}
@@ -124,35 +122,99 @@ func TestParseLogic(t *testing.T) {
 	entries = append(entries, entry{tags: tags, fields: fields})
 
 	for _, v := range entries {
-		log.Println(v.tags)
-		log.Println(v.fields)
-		log.Println("##############")
+		t.Logf("%v", v.tags)
+		t.Logf("%v", v.fields)
+		t.Logf("##############")
 	}
 }
 
-func TestParse(t *testing.T) {
-	input := &Input{
-		Path:     "/usr/bin/sensors",
-		Interval: datakit.Duration{Duration: 10 * time.Second},
-		Timeout:  datakit.Duration{Duration: 3 * time.Second},
-		Tags:     map[string]string{"key1": "tag1", "key2": "tag2"},
-	}
-	ms, err := input.parse(output)
-	if err != nil {
-		log.Panicln(err.Error())
-	}
-	for _, v := range ms {
-		log.Println("$$$$$$")
-		tmp, ok := v.(*sensorsMeasurement)
-		if !ok {
-			t.Error("expect sensorsMeasurement")
+func TestParseOutput(t *T.T) {
+	t.Run(`basic`, func(t *T.T) {
+		input := &Input{
+			Path:     "/usr/bin/sensors",
+			Interval: datakit.Duration{Duration: 10 * time.Second},
+			Timeout:  datakit.Duration{Duration: 3 * time.Second},
+			Tags:     map[string]string{"key1": "tag1", "key2": "tag2"},
 		}
 
-		t.Logf("%+#v", tmp)
-	}
+		cmdout := `
+coretemp-isa-0000
+Adapter: ISA adapter
+Package id 0:
+  temp1_input: 32.000
+  temp1_max: 80.000
+  temp1_crit: 100.000
+  temp1_crit_alarm: 0.000
+Core 0:
+  temp2_input: 28.000
+  temp2_max: 80.000
+  temp2_crit: 100.000
+  temp2_crit_alarm: 0.000
+Core 1:
+  temp3_input: 30.000
+  temp3_max: 80.000
+  temp3_crit: 100.000
+  temp3_crit_alarm: 0.000
+Core 2:
+  temp4_input: 29.000
+  temp4_max: 80.000
+  temp4_crit: 100.000
+  temp4_crit_alarm: 0.000
+Core 3:
+  temp5_input: 27.000
+  temp5_max: 80.000
+  temp5_crit: 100.000
+  temp5_crit_alarm: 0.000
+		`
+
+		pts, err := input.parse(cmdout)
+		assert.NoError(t, err)
+
+		for idx, pt := range pts {
+			assert.Equalf(t, "tag1", pt.Get("key1"), "%d got %s", idx, pt.Pretty())
+			assert.Equalf(t, "tag2", pt.Get("key2"), "%d got %s", idx, pt.Pretty())
+			assert.Equalf(t, "coretemp-isa-0000", pt.Get("chip"), "%d got %s", idx, pt.Pretty())
+			assert.Equalf(t, "ISA adapter", pt.Get("adapter"), "%d got %s", idx, pt.Pretty())
+		}
+
+		pt := pts[0]
+		assert.Equalf(t, "package_id_0", pt.Get("feature"), "got %s", pt.Pretty())
+		assert.Equalf(t, 32.0, pt.Get("temp1_input"), "got %s", pt.Pretty())
+		assert.Equalf(t, 80.0, pt.Get("temp1_max"), "got %s", pt.Pretty())
+		assert.Equalf(t, 100.0, pt.Get("temp1_crit"), "got %s", pt.Pretty())
+		assert.Equalf(t, 0.0, pt.Get("temp1_crit_alarm"), "got %s", pt.Pretty())
+
+		pt = pts[1]
+		assert.Equalf(t, "core_0", pt.Get("feature"), "got %s", pt.Pretty())
+		assert.Equalf(t, 28.0, pt.Get("temp2_input"), "got %s", pt.Pretty())
+		assert.Equalf(t, 80.0, pt.Get("temp2_max"), "got %s", pt.Pretty())
+		assert.Equalf(t, 100.0, pt.Get("temp2_crit"), "got %s", pt.Pretty())
+		assert.Equalf(t, 0.0, pt.Get("temp2_crit_alarm"), "got %s", pt.Pretty())
+
+		pt = pts[2]
+		assert.Equalf(t, "core_1", pt.Get("feature"), "got %s", pt.Pretty())
+		assert.Equalf(t, 30.0, pt.Get("temp3_input"), "got %s", pt.Pretty())
+		assert.Equalf(t, 80.0, pt.Get("temp3_max"), "got %s", pt.Pretty())
+		assert.Equalf(t, 100.0, pt.Get("temp3_crit"), "got %s", pt.Pretty())
+		assert.Equalf(t, 0.0, pt.Get("temp3_crit_alarm"), "got %s", pt.Pretty())
+
+		pt = pts[3]
+		assert.Equalf(t, "core_2", pt.Get("feature"), "got %s", pt.Pretty())
+		assert.Equalf(t, 29.0, pt.Get("temp4_input"), "got %s", pt.Pretty())
+		assert.Equalf(t, 80.0, pt.Get("temp4_max"), "got %s", pt.Pretty())
+		assert.Equalf(t, 100.0, pt.Get("temp4_crit"), "got %s", pt.Pretty())
+		assert.Equalf(t, 0.0, pt.Get("temp4_crit_alarm"), "got %s", pt.Pretty())
+
+		pt = pts[4]
+		assert.Equalf(t, "core_3", pt.Get("feature"), "got %s", pt.Pretty())
+		assert.Equalf(t, 27.0, pt.Get("temp5_input"), "got %s", pt.Pretty())
+		assert.Equalf(t, 80.0, pt.Get("temp5_max"), "got %s", pt.Pretty())
+		assert.Equalf(t, 100.0, pt.Get("temp5_crit"), "got %s", pt.Pretty())
+		assert.Equalf(t, 0.0, pt.Get("temp5_crit_alarm"), "got %s", pt.Pretty())
+	})
 }
 
-func TestRunCommand(t *testing.T) {
+func TestRunCommand(t *T.T) {
 	output, err := command.RunWithTimeout(3*time.Second, false, defPath, "-u")
 	if err != nil {
 		log.Println(err.Error())

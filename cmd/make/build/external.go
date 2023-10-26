@@ -60,9 +60,6 @@ var externals = []*dkexternal{
 		buildArgs: nil,
 		envs: []string{
 			"CGO_ENABLED=1",
-			"CGO_CFLAGS=-I/opt/ibm/clidriver/include",
-			"CGO_LDFLAGS=-L/opt/ibm/clidriver/lib",
-			"LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/ibm/clidriver/lib",
 		},
 	},
 	{
@@ -133,6 +130,8 @@ func buildExternals(dir, goos, goarch string, standalone bool) error {
 		copy(envs, ex.envs)
 		copy(buildArgs, ex.buildArgs)
 
+		var tags string
+
 		if ex.standalone != standalone {
 			continue
 		}
@@ -147,6 +146,25 @@ func buildExternals(dir, goos, goarch string, standalone bool) error {
 		if _, ok := ex.osarchs[osarch]; !ok {
 			l.Warnf("skip build %s under %s", ex.name, osarch)
 			continue
+		}
+
+		if ex.name == "db2" {
+			// "CGO_CFLAGS=-I/opt/ibm/clidriver/include",
+			// "CGO_LDFLAGS=-L/opt/ibm/clidriver/lib",
+			// "LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/ibm/clidriver/lib",
+
+			envs = append(envs, "CGO_CFLAGS=-I"+os.Getenv("IBM_CLI_DRIVER")+"/include") //nolint:makezero
+			envs = append(envs, "CGO_LDFLAGS=-L"+os.Getenv("IBM_CLI_DRIVER")+"/lib")    //nolint:makezero
+
+			ldLibraryFullPath := os.Getenv("IBM_CLI_DRIVER") + "/lib"
+			ldLibraryPath := os.Getenv("LD_LIBRARY_PATH")
+			if len(ldLibraryPath) > 0 {
+				ldLibraryFullPath = ldLibraryPath + ":" + ldLibraryFullPath
+			}
+
+			envs = append(envs, "LD_LIBRARY_PATH="+ldLibraryFullPath) //nolint:makezero
+
+			tags = "db2"
 		}
 
 		if goarch != runtime.GOARCH {
@@ -184,13 +202,19 @@ func buildExternals(dir, goos, goarch string, standalone bool) error {
 			default: // pass
 			}
 
-			args := []string{
-				"go", "build",
+			args := []string{"go", "build"}
+			if len(tags) > 0 {
+				args = append(args, "-tags")
+				args = append(args, "tags")
+			}
+
+			moreBuild := []string{
 				"-o", filepath.Join(outdir, out),
 				"-ldflags",
 				"-w -s",
 				filepath.Join("internal", "plugins", "externals", ex.name, ex.entry),
 			}
+			args = append(args, moreBuild...)
 
 			envs = append(envs, "GOOS="+goos, "GOARCH="+goarch) //nolint:makezero
 

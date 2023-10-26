@@ -6,11 +6,9 @@
 package process
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -57,14 +55,9 @@ func (m *ProcessMetric) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (m *ProcessMetric) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -102,14 +95,9 @@ func (m *ProcessObject) Point() *point.Point {
 	opts := point.DefaultObjectOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (m *ProcessObject) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(m.name, m.tags, m.fields, point.OOpt())
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll

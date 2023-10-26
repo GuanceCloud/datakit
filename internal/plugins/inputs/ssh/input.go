@@ -8,16 +8,17 @@ package ssh
 
 import (
 	"errors"
-	"io/ioutil"
+	"os"
 	"regexp"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/pkg/sftp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"golang.org/x/crypto/ssh"
 )
@@ -66,6 +67,8 @@ type Input struct {
 	Tags           map[string]string
 
 	semStop *cliutils.Sem // start stop signal
+	feeder  dkio.Feeder
+	Tagger  datakit.GlobalTagger
 }
 
 var errSSHCfg = errors.New("both password and privateKeyFile missed")
@@ -121,7 +124,7 @@ func (ipt *Input) getSSHClientConfig() (*ssh.ClientConfig, error) {
 			ssh.Password(ipt.Password),
 		}
 	case ipt.PrivateKeyFile != "":
-		secretCont, err := ioutil.ReadFile(ipt.PrivateKeyFile)
+		secretCont, err := os.ReadFile(ipt.PrivateKeyFile)
 		if err != nil {
 			return nil, err
 		}
@@ -192,13 +195,13 @@ func (ipt *Input) gather() {
 		collectCache, err := ipt.getMetrics(clientCfg)
 		if err != nil {
 			l.Errorf("getMetrics: %s", err.Error())
-			io.FeedLastError(inputName, err.Error())
+			dkio.FeedLastError(inputName, err.Error())
 		}
 
 		if len(collectCache) != 0 {
-			if err := inputs.FeedMeasurement(inputName, datakit.Metric, collectCache,
-				&io.Option{CollectCost: time.Since(start)}); err != nil {
-				l.Errorf("FeedMeasurement: %s", err.Error())
+			if err := ipt.feeder.Feed(inputName, point.Metric, collectCache,
+				&dkio.Option{CollectCost: time.Since(start)}); err != nil {
+				l.Errorf("Feed failed: %s", err.Error())
 			}
 		}
 
@@ -222,7 +225,7 @@ func (ipt *Input) Terminate() {
 	}
 }
 
-func (ipt *Input) getMetrics(clientCfg *ssh.ClientConfig) ([]inputs.Measurement, error) {
+func (ipt *Input) getMetrics(clientCfg *ssh.ClientConfig) ([]*point.Point, error) {
 	tags := make(map[string]string)
 	fields := make(map[string]interface{})
 
@@ -268,14 +271,14 @@ func (ipt *Input) getMetrics(clientCfg *ssh.ClientConfig) ([]inputs.Measurement,
 		fields["sftp_check"] = sftpRst
 	}
 
-	pt := &SSHMeasurement{
-		ipt.MetricsName,
-		tags,
-		fields,
-		time.Now(),
-	}
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(time.Now()))
 
-	return []inputs.Measurement{pt}, err
+	pt := point.NewPointV2(ipt.MetricsName,
+		append(point.NewTags(tags), point.NewKVs(fields)...),
+		opts...)
+
+	return []*point.Point{pt}, err
 }
 
 func getMsInterval(d time.Duration) float64 {
@@ -287,6 +290,8 @@ func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			semStop: cliutils.NewSem(),
+			feeder:  dkio.DefaultFeeder(),
+			Tagger:  datakit.DefaultGlobalTagger(),
 		}
 	})
 }

@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -80,10 +79,10 @@ func getQueues(n *Input) {
 	}
 }
 
-func (n *Input) getBindingCount(vHost, queueName string) (int, error) {
+func (ipt *Input) getBindingCount(vHost, queueName string) (int, error) {
 	var binds []interface{}
 	// 此处 vhost 可能是 / 需 encode
-	err := n.requestJSON(fmt.Sprintf("/api/queues/%s/%s/bindings", url.QueryEscape(vHost), queueName), &binds)
+	err := ipt.requestJSON(fmt.Sprintf("/api/queues/%s/%s/bindings", url.QueryEscape(vHost), queueName), &binds)
 	if err != nil {
 		return 0, err
 	}
@@ -102,14 +101,9 @@ func (m *QueueMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (m *QueueMeasurement) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll

@@ -8,7 +8,7 @@ package dataway
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	T "testing"
@@ -23,7 +23,7 @@ func TestDWAPIs(t *T.T) {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equalf(t, dw.globalTagsHTTPHeaderValue, r.Header.Get(HeaderXGlobalTags), "failed on request %s", r.URL.Path)
 
-			body, err := ioutil.ReadAll(r.Body)
+			body, err := io.ReadAll(r.Body)
 			defer r.Body.Close()
 			assert.NoError(t, err)
 			t.Logf("%s %s => body: %d", r.Method, r.URL.Path, len(body))

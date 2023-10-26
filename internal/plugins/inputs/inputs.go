@@ -253,7 +253,7 @@ func AddInput(name string, input Input) {
 	}
 	InputsInfo[name] = append(InputsInfo[name], &inputInfo{input: input})
 
-	l.Debugf("add input %s, total %d", name, len(InputsInfo[name]))
+	l.Infof("add input %q, total %d", name, len(InputsInfo[name]))
 }
 
 func RemoveInput(name string, input Input) {

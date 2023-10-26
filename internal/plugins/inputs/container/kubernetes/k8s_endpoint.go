@@ -10,7 +10,6 @@ import (
 	"fmt"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 
 	apicorev1 "k8s.io/api/core/v1"
@@ -91,8 +90,6 @@ func (m *endpointMetadata) transformObject() pointKVs {
 }
 
 type endpointMetric struct{}
-
-func (*endpointMetric) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*endpointMetric) Info() *inputs.MeasurementInfo {

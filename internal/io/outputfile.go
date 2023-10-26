@@ -34,8 +34,8 @@ func (x *dkIO) fileOutput(d *iodata) error {
 		x.outputFileSize += int64(n)
 	}
 
-	for _, pt := range d.pts {
-		if n, err := x.fd.WriteString(pt.String() + "\n"); err != nil {
+	for _, pt := range d.points {
+		if n, err := x.fd.WriteString(pt.LineProto() + "\n"); err != nil {
 			return err
 		} else {
 			x.outputFileSize += int64(n)

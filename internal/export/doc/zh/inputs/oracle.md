@@ -256,9 +256,9 @@ $ ldd <DataKit 安装目录>/externals/oracle
 externals/oracle: /lib64/libc.so.6: version  `GLIBC_2.14` not found (required by externals/oracle)
 ```
 
-- Oracle 采集器只能在 Linux/AMD64 架构的 DataKit 使用，其它平台均不支持
+- Oracle 采集器只能在 Linux x64/ARM64 架构的 DataKit 使用，其它平台均不支持
 
-这意味着 Oracle 这个采集器只能在 AMD64 的 Linux 上运行，其它平台一律无法运行当前的 Oracle 采集器。
+这意味着 Oracle 这个采集器只能在 x64/ARM64 的 Linux 上运行，其它平台一律无法运行当前的 Oracle 采集器。
 
 ### :material-chat-question: 为什么看不到 `oracle_system` 指标集? {#faq-no-system}
 

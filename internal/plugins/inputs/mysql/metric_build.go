@@ -15,29 +15,29 @@ import (
 
 // metric build line proto
 
-func (i *Input) buildMysql() ([]*gcPoint.Point, error) {
+func (ipt *Input) buildMysql() ([]*gcPoint.Point, error) {
 	m := &baseMeasurement{
-		i:        i,
+		i:        ipt,
 		resData:  make(map[string]interface{}),
 		tags:     map[string]string{},
 		fields:   make(map[string]interface{}),
-		election: i.Election,
+		election: ipt.Election,
 	}
-	setHostTagIfNotLoopback(m.tags, i.Host)
+	setHostTagIfNotLoopback(m.tags, ipt.Host)
 
 	m.name = "mysql"
-	for key, value := range i.Tags {
+	for key, value := range ipt.Tags {
 		m.tags[key] = value
 	}
 
-	for k, v := range i.globalStatus {
+	for k, v := range ipt.globalStatus {
 		m.resData[k] = v
 	}
-	for k, v := range i.globalVariables {
+	for k, v := range ipt.globalVariables {
 		m.resData[k] = v
 	}
-	if i.binLogOn {
-		m.resData["Binlog_space_usage_bytes"] = i.binlog["Binlog_space_usage_bytes"]
+	if ipt.binLogOn {
+		m.resData["Binlog_space_usage_bytes"] = ipt.binlog["Binlog_space_usage_bytes"]
 	}
 
 	if hasKey(m.resData, "Key_blocks_unused") && hasKey(m.resData, "key_cache_block_size") && hasKey(m.resData, "key_buffer_size") {
@@ -87,20 +87,20 @@ func (i *Input) buildMysql() ([]*gcPoint.Point, error) {
 	return []*gcPoint.Point{}, nil
 }
 
-func (i *Input) buildMysqlSchema() ([]*gcPoint.Point, error) {
+func (ipt *Input) buildMysqlSchema() ([]*gcPoint.Point, error) {
 	ms := []inputs.MeasurementV2{}
 
 	// SchemaSize
-	for k, v := range i.mSchemaSize {
+	for k, v := range ipt.mSchemaSize {
 		m := &schemaMeasurement{
 			name:     "mysql_schema",
 			tags:     map[string]string{},
 			fields:   make(map[string]interface{}),
-			election: i.Election,
+			election: ipt.Election,
 		}
-		setHostTagIfNotLoopback(m.tags, i.Host)
+		setHostTagIfNotLoopback(m.tags, ipt.Host)
 
-		for key, value := range i.Tags {
+		for key, value := range ipt.Tags {
 			m.tags[key] = value
 		}
 
@@ -115,16 +115,16 @@ func (i *Input) buildMysqlSchema() ([]*gcPoint.Point, error) {
 		}
 	}
 
-	for k, v := range i.mSchemaQueryExecTime {
+	for k, v := range ipt.mSchemaQueryExecTime {
 		m := &schemaMeasurement{
 			name:     "mysql_schema",
 			tags:     make(map[string]string),
 			fields:   make(map[string]interface{}),
-			election: i.Election,
+			election: ipt.Election,
 		}
-		setHostTagIfNotLoopback(m.tags, i.Host)
+		setHostTagIfNotLoopback(m.tags, ipt.Host)
 
-		for key, value := range i.Tags {
+		for key, value := range ipt.Tags {
 			m.tags[key] = value
 		}
 
@@ -147,23 +147,23 @@ func (i *Input) buildMysqlSchema() ([]*gcPoint.Point, error) {
 	return []*gcPoint.Point{}, nil
 }
 
-func (i *Input) buildMysqlInnodb() ([]*gcPoint.Point, error) {
+func (ipt *Input) buildMysqlInnodb() ([]*gcPoint.Point, error) {
 	ms := []inputs.MeasurementV2{}
 
 	m := &innodbMeasurement{
 		tags:     map[string]string{},
 		fields:   make(map[string]interface{}),
-		election: i.Election,
+		election: ipt.Election,
 	}
-	setHostTagIfNotLoopback(m.tags, i.Host)
+	setHostTagIfNotLoopback(m.tags, ipt.Host)
 
 	m.name = "mysql_innodb"
 
-	for key, value := range i.Tags {
+	for key, value := range ipt.Tags {
 		m.tags[key] = value
 	}
 
-	m.fields = getMetricFields(i.mInnodb, m.Info())
+	m.fields = getMetricFields(ipt.mInnodb, m.Info())
 
 	ms = append(ms, m)
 
@@ -174,20 +174,20 @@ func (i *Input) buildMysqlInnodb() ([]*gcPoint.Point, error) {
 	return []*gcPoint.Point{}, nil
 }
 
-func (i *Input) buildMysqlTableSchema() ([]*gcPoint.Point, error) {
+func (ipt *Input) buildMysqlTableSchema() ([]*gcPoint.Point, error) {
 	ms := []inputs.MeasurementV2{}
 
-	for _, v := range i.mTableSchema {
+	for _, v := range ipt.mTableSchema {
 		m := &tbMeasurement{
 			tags:     map[string]string{},
 			fields:   make(map[string]interface{}),
-			election: i.Election,
+			election: ipt.Election,
 		}
-		setHostTagIfNotLoopback(m.tags, i.Host)
+		setHostTagIfNotLoopback(m.tags, ipt.Host)
 
 		m.name = "mysql_table_schema"
 
-		for key, value := range i.Tags {
+		for key, value := range ipt.Tags {
 			m.tags[key] = value
 		}
 
@@ -213,35 +213,35 @@ func (i *Input) buildMysqlTableSchema() ([]*gcPoint.Point, error) {
 	return []*gcPoint.Point{}, nil
 }
 
-func (i *Input) buildMysqlUserStatus() ([]*gcPoint.Point, error) {
+func (ipt *Input) buildMysqlUserStatus() ([]*gcPoint.Point, error) {
 	ms := []inputs.MeasurementV2{}
 
-	for user := range i.mUserStatusName {
+	for user := range ipt.mUserStatusName {
 		m := &userMeasurement{
 			tags:     map[string]string{},
 			fields:   make(map[string]interface{}),
-			election: i.Election,
+			election: ipt.Election,
 		}
-		setHostTagIfNotLoopback(m.tags, i.Host)
+		setHostTagIfNotLoopback(m.tags, ipt.Host)
 
 		m.name = "mysql_user_status"
 
-		for key, value := range i.Tags {
+		for key, value := range ipt.Tags {
 			m.tags[key] = value
 		}
 
 		m.tags["user"] = user
 
-		for k, v := range i.mUserStatusVariable[user] {
+		for k, v := range ipt.mUserStatusVariable[user] {
 			m.fields[k] = v
 		}
 
-		if _, ok := i.mUserStatusConnection[user]["current_connect"]; ok {
-			m.fields["current_connect"] = i.mUserStatusConnection[user]["current_connect"]
+		if _, ok := ipt.mUserStatusConnection[user]["current_connect"]; ok {
+			m.fields["current_connect"] = ipt.mUserStatusConnection[user]["current_connect"]
 		}
 
-		if _, ok := i.mUserStatusConnection[user]["total_connect"]; ok {
-			m.fields["total_connect"] = i.mUserStatusConnection[user]["total_connect"]
+		if _, ok := ipt.mUserStatusConnection[user]["total_connect"]; ok {
+			m.fields["total_connect"] = ipt.mUserStatusConnection[user]["total_connect"]
 		}
 
 		if len(m.fields) == 0 {
@@ -258,10 +258,10 @@ func (i *Input) buildMysqlUserStatus() ([]*gcPoint.Point, error) {
 	return []*gcPoint.Point{}, nil
 }
 
-func (i *Input) buildMysqlDbmMetric() ([]*gcPoint.Point, error) {
+func (ipt *Input) buildMysqlDbmMetric() ([]*gcPoint.Point, error) {
 	ms := []inputs.MeasurementV2{}
 
-	for _, row := range i.dbmMetricRows {
+	for _, row := range ipt.dbmMetricRows {
 		m := &dbmStateMeasurement{
 			name: "mysql_dbm_metric",
 			tags: map[string]string{
@@ -269,9 +269,9 @@ func (i *Input) buildMysqlDbmMetric() ([]*gcPoint.Point, error) {
 				"status":  "info",
 			},
 			fields:   make(map[string]interface{}),
-			election: i.Election,
+			election: ipt.Election,
 		}
-		setHostTagIfNotLoopback(m.tags, i.Host)
+		setHostTagIfNotLoopback(m.tags, ipt.Host)
 
 		if len(row.digestText) > 0 {
 			m.fields["message"] = row.digestText
@@ -301,7 +301,7 @@ func (i *Input) buildMysqlDbmMetric() ([]*gcPoint.Point, error) {
 		m.fields["sum_no_index_used"] = row.sumNoIndexUsed
 		m.fields["sum_no_good_index_used"] = row.sumNoGoodIndexUsed
 
-		for key, value := range i.Tags {
+		for key, value := range ipt.Tags {
 			m.tags[key] = value
 		}
 
@@ -315,10 +315,10 @@ func (i *Input) buildMysqlDbmMetric() ([]*gcPoint.Point, error) {
 	return []*gcPoint.Point{}, nil
 }
 
-func (i *Input) buildMysqlDbmSample() ([]*gcPoint.Point, error) {
+func (ipt *Input) buildMysqlDbmSample() ([]*gcPoint.Point, error) {
 	ms := []inputs.MeasurementV2{}
 
-	for _, plan := range i.dbmSamplePlans {
+	for _, plan := range ipt.dbmSamplePlans {
 		tags := map[string]string{
 			"service":           "mysql",
 			"current_schema":    plan.currentSchema,
@@ -334,10 +334,10 @@ func (i *Input) buildMysqlDbmSample() ([]*gcPoint.Point, error) {
 			"processlist_user":  plan.processlistUser,
 			"status":            "info",
 		}
-		setHostTagIfNotLoopback(tags, i.Host)
+		setHostTagIfNotLoopback(tags, ipt.Host)
 
 		// append extra tags
-		for key, value := range i.Tags {
+		for key, value := range ipt.Tags {
 			tags[key] = value
 		}
 
@@ -367,7 +367,7 @@ func (i *Input) buildMysqlDbmSample() ([]*gcPoint.Point, error) {
 			name:     "mysql_dbm_sample",
 			tags:     tags,
 			fields:   fields,
-			election: i.Election,
+			election: ipt.Election,
 		}
 		ms = append(ms, m)
 	}
@@ -380,12 +380,12 @@ func (i *Input) buildMysqlDbmSample() ([]*gcPoint.Point, error) {
 	return []*gcPoint.Point{}, nil
 }
 
-func (i *Input) buildMysqlCustomQueries() ([]*gcPoint.Point, error) {
+func (ipt *Input) buildMysqlCustomQueries() ([]*gcPoint.Point, error) {
 	ms := []inputs.MeasurementV2{}
 
-	for hs, items := range i.mCustomQueries {
+	for hs, items := range ipt.mCustomQueries {
 		var qy *customQuery
-		for _, v := range i.Query {
+		for _, v := range ipt.Query {
 			if hs == v.md5Hash {
 				qy = v
 				break
@@ -400,11 +400,11 @@ func (i *Input) buildMysqlCustomQueries() ([]*gcPoint.Point, error) {
 				name:     qy.Metric,
 				tags:     map[string]string{},
 				fields:   make(map[string]interface{}),
-				election: i.Election,
+				election: ipt.Election,
 			}
-			setHostTagIfNotLoopback(m.tags, i.Host)
+			setHostTagIfNotLoopback(m.tags, ipt.Host)
 
-			for key, value := range i.Tags {
+			for key, value := range ipt.Tags {
 				m.tags[key] = value
 			}
 

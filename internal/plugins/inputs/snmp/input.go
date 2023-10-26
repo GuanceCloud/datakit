@@ -23,7 +23,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmpmeasurement"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmprefiles"
@@ -204,7 +203,7 @@ type Input struct {
 	jobs                 chan Job
 	autodetectProfile    bool
 	feeder               dkio.Feeder
-	Tagger               dkpt.GlobalTagger
+	Tagger               datakit.GlobalTagger
 }
 
 type TrapsConfig struct {
@@ -1232,7 +1231,7 @@ func defaultInput() *Input {
 		Tags:    make(map[string]string),
 		semStop: cliutils.NewSem(),
 		feeder:  dkio.DefaultFeeder(),
-		Tagger:  dkpt.DefaultGlobalTagger(),
+		Tagger:  datakit.DefaultGlobalTagger(),
 	}
 }
 

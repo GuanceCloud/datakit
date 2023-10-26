@@ -36,18 +36,16 @@ ci_lint_and_ut:
   tags:
     - cloudcare-ft
 
-ci_ut_only:
+# run unit testing and integration-testing
+ci_testing_only:
   stage: deploy
   resource_group: production
   only:
     - /^ut-.*$/
   script:
-    # - systemctl daemon-reload
-    # - systemctl restart docker
-    # - make
-    # - cd /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jenkins
-    # - go test -v .
     - make clean
+    - nvm use v16.14.0
+    - make lint AUTO_FIX=off
     - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY"
     - make # try build basic binaries
   tags:

@@ -17,7 +17,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
@@ -130,7 +129,7 @@ type Input struct {
 	pauseCh  chan bool
 	semStop  *cliutils.Sem // start stop signal
 	feeder   dkio.Feeder
-	Tagger   dkpt.GlobalTagger
+	Tagger   datakit.GlobalTagger
 }
 
 func (*Input) Catalog() string { return catalogName }
@@ -366,7 +365,7 @@ func defaultInput() *Input {
 	return &Input{
 		feeder:  dkio.DefaultFeeder(),
 		semStop: cliutils.NewSem(),
-		Tagger:  dkpt.DefaultGlobalTagger(),
+		Tagger:  datakit.DefaultGlobalTagger(),
 	}
 }
 

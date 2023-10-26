@@ -12,7 +12,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -22,10 +21,12 @@ import (
 	"testing"
 	"time"
 
-	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/elazarl/goproxy"
 	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
 var reqs = map[string]string{
@@ -58,7 +59,7 @@ func TestProxy(t *testing.T) {
 	proxy := goproxy.NewProxyHttpServer()
 	proxy.Verbose = true
 
-	proxyAddr := "0.0.0.0:54321"
+	proxyAddr := fmt.Sprintf("0.0.0.0:%d", testutils.RandPort("tcp"))
 
 	proxysrv := &http.Server{
 		Addr:    proxyAddr,
@@ -116,13 +117,13 @@ func TestProxy(t *testing.T) {
 	for _, tc := range cases {
 		resp, err := tc.cli.Get(tlsServer.URL)
 		if tc.fail {
-			tu.NotOk(t, err, "")
+			assert.Error(t, err)
 			t.Logf("error %s", err)
 			continue
 		} else {
-			tu.Ok(t, err)
+			assert.NoError(t, err)
 
-			body, err := ioutil.ReadAll(resp.Body)
+			body, err := io.ReadAll(resp.Body)
 			if err != nil {
 				t.Error(err)
 			}
@@ -161,13 +162,13 @@ func TestInsecureSkipVerify(t *testing.T) {
 	for _, tc := range cases {
 		resp, err := tc.cli.Get(tlsServer.URL)
 		if tc.fail {
-			tu.NotOk(t, err, "")
+			assert.Error(t, err)
 			t.Logf("error %s", err)
 			continue
 		} else {
-			tu.Ok(t, err)
+			assert.NoError(t, err)
 
-			body, err := ioutil.ReadAll(resp.Body)
+			body, err := io.ReadAll(resp.Body)
 			if err != nil {
 				t.Error(err)
 			}
@@ -245,7 +246,7 @@ func runTestClientConnections(t *testing.T, host string, tc *testClientConnectio
 					}
 
 					if resp != nil {
-						io.Copy(ioutil.Discard, resp.Body) //nolint:errcheck
+						io.Copy(io.Discard, resp.Body) //nolint:errcheck
 						if err := resp.Body.Close(); err != nil {
 							t.Error(err)
 						}
@@ -318,11 +319,11 @@ func TestClientConnections(t *testing.T) {
 			ts.URL, tc.ginServer, tc.nclients, tc.defaultOptions, tc.closeIdleManually, cw.String())
 
 		if tc.defaultOptions || tc.closeIdleManually {
-			tu.Assert(t, cw.Max >= int64(tc.nclients),
+			assert.Truef(t, cw.Max >= int64(tc.nclients),
 				"by using default transport, %d should > %d",
 				cw.Max, tc.nclients)
 		} else {
-			tu.Assert(t, cw.Max <= int64(tc.nclients),
+			assert.Truef(t, cw.Max <= int64(tc.nclients),
 				"by using specified transport, %d should == %d",
 				cw.Max, tc.nclients)
 		}
@@ -371,7 +372,7 @@ func TestClientTimeWait(t *testing.T) {
 					}
 
 					if resp != nil {
-						io.Copy(ioutil.Discard, resp.Body) //nolint:errcheck
+						io.Copy(io.Discard, resp.Body) //nolint:errcheck
 
 						if err := resp.Body.Close(); err != nil {
 							t.Error(err)

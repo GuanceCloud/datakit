@@ -6,25 +6,16 @@
 package couchdb
 
 import (
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-type Measurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-}
-
-func (m *Measurement) LineProto() (*dkpt.Point, error) {
-	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElection())
-}
+type docMeasurement struct{}
 
 // Info ...
 // See also: all *.cfg file in https://github.com/apache/couchdb
 //
 //nolint:lll
-func (m *Measurement) Info() *inputs.MeasurementInfo {
+func (*docMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "couchdb",
 		Fields: map[string]interface{}{

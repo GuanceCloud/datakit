@@ -318,10 +318,11 @@ func (ipt *Input) resolveWebSourceMap(p *point.Point, sdkName string, status *so
 	// if error_stack exists
 	errStackStr := fmt.Sprintf("%v", errStack)
 
-	tags := p.InfluxTags()
-	appID := tags["app_id"]
-	env := tags["env"]
-	version := tags["version"]
+	var (
+		appID, _   = p.Get("app_id").(string)
+		env, _     = p.Get("env").(string)
+		version, _ = p.Get("version").(string)
+	)
 
 	if appID != "" {
 		zipFile := GetSourcemapZipFileName(appID, env, version)
@@ -351,7 +352,7 @@ func (ipt *Input) resolveWebSourceMap(p *point.Point, sdkName string, status *so
 			sourceMapDurationSummary.WithLabelValues(sdkName, appID, env, version).Observe(float64(time.Since(start)) / promDurationUnit)
 			errorStackSourceBase64 := base64.StdEncoding.EncodeToString([]byte(errorStackSource))
 			status.status = StatusOK
-			p.MustAdd([]byte("error_stack_source_base64"), errorStackSourceBase64)
+			p.MustAdd("error_stack_source_base64", errorStackSourceBase64)
 		} else {
 			status.status = StatusZipNotFound
 			reason := fmt.Sprintf("source map file [%s] not exists", filepath.Join(ipt.getRumSourcemapDir(sdkName), zipFile))
@@ -376,16 +377,17 @@ func (ipt *Input) resolveAndroidSourceMap(p *point.Point, sdkName string, status
 	// if error_stack exists
 	errStackStr := fmt.Sprintf("%v", errStack)
 
-	tags := p.InfluxTags()
-	appID := tags["app_id"]
-	env := tags["env"]
-	version := tags["version"]
+	var (
+		appID, _   = p.Get("app_id").(string)
+		env, _     = p.Get("env").(string)
+		version, _ = p.Get("version").(string)
+	)
 
 	if appID != "" {
 		zipFile := GetSourcemapZipFileName(appID, env, version)
 		zipFileAbsDir := filepath.Join(ipt.getRumSourcemapDir(sdkName), strings.TrimSuffix(zipFile, ZipExt))
 
-		errorType := tags["error_type"]
+		errorType, _ := p.Get("error_type").(string)
 		if errorType == JavaCrash {
 			mappingFile := filepath.Join(zipFileAbsDir, "mapping.txt")
 			if !path.IsFileExists(mappingFile) {
@@ -436,7 +438,7 @@ func (ipt *Input) resolveAndroidSourceMap(p *point.Point, sdkName string, status
 			})
 			originStackB64 := base64.StdEncoding.EncodeToString(originStack)
 			status.status = StatusOK
-			p.MustAdd([]byte("error_stack_source_base64"), originStackB64)
+			p.MustAdd("error_stack_source_base64", originStackB64)
 			return p, nil
 		} else if errorType == NativeCrash {
 			if ipt.NDKHome == "" {
@@ -472,7 +474,10 @@ func (ipt *Input) resolveAndroidSourceMap(p *point.Point, sdkName string, status
 			cmd.Stdin = strings.NewReader(errStackStr)
 			start := time.Now()
 			originStack, err := cmd.Output()
-			sourceMapDurationSummary.WithLabelValues(sdkName, appID, env, version).Observe(float64(time.Since(start)) / promDurationUnit)
+
+			sourceMapDurationSummary.WithLabelValues(sdkName, appID, env, version).
+				Observe(float64(time.Since(start)) / promDurationUnit)
+
 			if err != nil {
 				if ee, ok := err.(*exec.ExitError); ok { //nolint:errorlint
 					return p, fmt.Errorf("run ndk-stack tool fail: %w, error_msg: %s", err, string(ee.Stderr))
@@ -493,8 +498,11 @@ func (ipt *Input) resolveAndroidSourceMap(p *point.Point, sdkName string, status
 			}
 
 			originStackB64 := base64.StdEncoding.EncodeToString(originStack)
-			log.Infof("native crash source map 处理成功， appid: %s, creat time: %s", appID, p.Time().In(time.Local).Format(time.RFC3339))
-			p.MustAdd([]byte("error_stack_source_base64"), originStackB64)
+
+			log.Infof("native crash source map 处理成功， appid: %s, creat time: %s",
+				appID, p.Time().In(time.Local).Format(time.RFC3339))
+
+			p.MustAdd("error_stack_source_base64", originStackB64)
 			status.status = StatusOK
 			return p, nil
 		}
@@ -517,10 +525,11 @@ func (ipt *Input) resolveIOSSourceMap(p *point.Point, sdkName string, status *so
 	// if error_stack exists
 	errStackStr := fmt.Sprintf("%v", errStack)
 
-	tags := p.InfluxTags()
-	appID := tags["app_id"] // nolint:ifshort
-	env := tags["env"]
-	version := tags["version"]
+	var (
+		appID, _   = p.Get("app_id").(string) // nolint:ifshort
+		env, _     = p.Get("env").(string)
+		version, _ = p.Get("version").(string)
+	)
 
 	if appID != "" {
 		zipFile := GetSourcemapZipFileName(appID, env, version)
@@ -583,7 +592,9 @@ func (ipt *Input) resolveIOSSourceMap(p *point.Point, sdkName string, status *so
 						originStackTrace = strings.ReplaceAll(originStackTrace, addr.originStr, symbols[i])
 					}
 				} else if len(symbols) > 0 && len(addresses) > 1 {
-					log.Errorf("resolved symbols count[%d] not equals addresses count[%d], try one by one", len(symbols), len(addresses))
+					log.Errorf("resolved symbols count[%d] not equals addresses count[%d], try one by one",
+						len(symbols), len(addresses))
+
 					// try resolve one by one
 					for _, addr := range addresses {
 						addrs = addrs[:0]
@@ -597,9 +608,12 @@ func (ipt *Input) resolveIOSSourceMap(p *point.Point, sdkName string, status *so
 				}
 			}
 		}
-		sourceMapDurationSummary.WithLabelValues(sdkName, appID, env, version).Observe(float64(time.Since(start)) / promDurationUnit)
+
+		sourceMapDurationSummary.WithLabelValues(sdkName, appID, env, version).
+			Observe(float64(time.Since(start)) / promDurationUnit)
+
 		originStackB64 := base64.StdEncoding.EncodeToString([]byte(originStackTrace))
-		p.MustAdd([]byte("error_stack_source_base64"), originStackB64)
+		p.MustAdd("error_stack_source_base64", originStackB64)
 		status.status = StatusOK
 		return p, nil
 	}
@@ -655,16 +669,13 @@ func (ipt *Input) handleSourcemapCheck(w http.ResponseWriter, r *http.Request, _
 		status:  StatusUnknown,
 	}
 
-	tags := map[string]string{
-		"app_id":  appID,
-		"env":     env,
-		"version": version,
-	}
-	fields := map[string]interface{}{
-		"error_stack": query.Get("error_stack"),
-	}
+	var kvs point.KVs
+	kvs = kvs.MustAddTag("app_id", appID)
+	kvs = kvs.MustAddTag("env", env)
+	kvs = kvs.MustAddTag("version", version)
+	kvs = kvs.Add("error_stack", query.Get("error_stack"), false, true)
 
-	pt := point.NewPointV2([]byte("check_sourcemap"), append(point.NewTags(tags), point.NewKVs(fields)...))
+	pt := point.NewPointV2("check_sourcemap", kvs, point.CommonLoggingOptions()...)
 	pt, _ = ipt.parseSourcemap(pt, sdkName, status)
 
 	content := &sourcemapCheckRes{

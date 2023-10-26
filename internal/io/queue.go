@@ -12,7 +12,6 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/failcache"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 func (x *dkIO) cacheData(c *consumer, d *iodata, tryClean bool) {
@@ -21,14 +20,19 @@ func (x *dkIO) cacheData(c *consumer, d *iodata, tryClean bool) {
 		return
 	}
 
+	if len(d.points) == 0 {
+		log.Warnf("no point from %q", d.from)
+		return
+	}
+
 	defer func() {
-		queuePtsVec.WithLabelValues(d.category.String()).Set(float64(len(c.pts)))
+		queuePtsVec.WithLabelValues(d.category.String()).Set(float64(len(c.points)))
 	}()
 
-	log.Debugf("get iodata(%d points) from %s|%s", len(d.pts), d.category, d.from)
+	log.Debugf("get iodata(%d points) from %s|%s", len(d.points), d.category, d.from)
 
 	if x.fd != nil && x.matchOutputFileInput(d.from) {
-		log.Debugf("write %d(%s) points to %s", len(d.pts), d.from, x.outputFile)
+		log.Debugf("write %d(%s) points to %s", len(d.points), d.from, x.outputFile)
 
 		if err := x.fileOutput(d); err != nil {
 			log.Errorf("fileOutput: %s", err)
@@ -38,11 +42,9 @@ func (x *dkIO) cacheData(c *consumer, d *iodata, tryClean bool) {
 		return
 	}
 
-	c.pts = append(c.pts, d.pts...)
+	c.points = append(c.points, d.points...)
 
-	if tryClean &&
-		x.maxCacheCount > 0 &&
-		len(c.pts) > x.maxCacheCount {
+	if tryClean && x.maxCacheCount > 0 && len(c.points) > x.maxCacheCount {
 		x.flush(c)
 
 		// reset consumer flush ticker to prevent send small packages
@@ -57,11 +59,11 @@ func (x *dkIO) flush(c *consumer) {
 		flushVec.WithLabelValues(c.category.String()).Inc()
 	}()
 
-	if err := x.doFlush(c.pts, c.category, c.fc); err != nil {
-		log.Warnf("post %d points to %s failed: %s, ignored", len(c.pts), c.category, err)
+	if err := x.doFlush(c.points, c.category, c.fc); err != nil {
+		log.Warnf("post %d points to %s failed: %s, ignored", len(c.points), c.category, err)
 	}
 
-	c.pts = c.pts[:0] // clear
+	c.points = c.points[:0] // clear
 }
 
 func (x *dkIO) flushFailCache(c *consumer) {
@@ -77,17 +79,25 @@ func (x *dkIO) flushFailCache(c *consumer) {
 	}
 }
 
-func (x *dkIO) doFlush(pts []*dkpt.Point, cat point.Category, fc failcache.Cache, dynamicURL ...string) error {
+func (x *dkIO) doFlush(points []*point.Point,
+	cat point.Category,
+	fc failcache.Cache,
+	dynamicURL ...string,
+) error {
 	if x.dw == nil {
 		return fmt.Errorf("dataway not set")
 	}
 
-	if len(pts) == 0 {
+	if len(points) == 0 {
 		return nil
 	}
 
 	opts := []dataway.WriteOption{
-		dataway.WithPoints(pts),
+		dataway.WithPoints(points),
+
+		// max cache size(in memory) upload as a batch
+		dataway.WithBatchSize(x.maxCacheCount),
+
 		dataway.WithCategory(cat),
 		dataway.WithFailCache(fc),
 		dataway.WithCacheAll(x.cacheAll),

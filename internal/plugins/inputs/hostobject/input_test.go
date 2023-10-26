@@ -19,12 +19,12 @@ func TestCollect(t *testing.T) {
 	// ipt.OnlyPhysicalDevice = true
 
 	datakit.IsTestMode = true
-	if err := ipt.doCollect(); err != nil {
+	if err := ipt.collect(); err != nil {
 		t.Error(err)
 	}
 
 	var pts []*point.Point
-	pt := ipt.collectData.Point()
+	pt := ipt.collectCache[0]
 	pts = append(pts, pt)
 
 	mpts := make(map[string][]*point.Point)

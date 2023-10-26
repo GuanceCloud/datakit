@@ -15,10 +15,11 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/win_utils/pdh"
@@ -46,9 +47,11 @@ type Input struct {
 	Log  *iisLog `toml:"log"`
 	tail *tailer.Tailer
 
-	collectCache []inputs.Measurement
+	collectCache []*point.Point
 
 	semStop *cliutils.Sem // start stop signal
+	feeder  dkio.Feeder
+	Tagger  datakit.GlobalTagger
 }
 
 type iisLog struct {
@@ -56,15 +59,15 @@ type iisLog struct {
 	Pipeline string   `toml:"pipeline"`
 }
 
-func (i *Input) Catalog() string {
+func (*Input) Catalog() string {
 	return "iis"
 }
 
-func (i *Input) SampleConfig() string {
+func (*Input) SampleConfig() string {
 	return sampleConfig
 }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&IISAppPoolWas{},
 		&IISWebService{},
@@ -72,29 +75,29 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 }
 
 // RunPipeline TODO.
-func (i *Input) RunPipeline() {
-	if i.Log == nil || len(i.Log.Files) == 0 {
+func (ipt *Input) RunPipeline() {
+	if ipt.Log == nil || len(ipt.Log.Files) == 0 {
 		return
 	}
 
 	opt := &tailer.Option{
 		Source:     "iis",
 		Service:    "iis",
-		Pipeline:   i.Log.Pipeline,
-		GlobalTags: i.Tags,
-		Done:       i.semStop.Wait(),
+		Pipeline:   ipt.Log.Pipeline,
+		GlobalTags: ipt.Tags,
+		Done:       ipt.semStop.Wait(),
 	}
 
 	var err error
-	if i.tail, err = tailer.NewTailer(i.Log.Files, opt); err != nil {
+	if ipt.tail, err = tailer.NewTailer(ipt.Log.Files, opt); err != nil {
 		l.Error(err)
-		io.FeedLastError(inputName, err.Error())
+		dkio.FeedLastError(inputName, err.Error())
 		return
 	}
 
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_iis"})
 	g.Go(func(ctx context.Context) error {
-		i.tail.Start()
+		ipt.tail.Start()
 		return nil
 	})
 }
@@ -106,14 +109,14 @@ func (*Input) PipelineConfig() map[string]string {
 	return pipelineConfig
 }
 
-func (i *Input) GetPipeline() []*tailer.Option {
+func (ipt *Input) GetPipeline() []*tailer.Option {
 	return []*tailer.Option{
 		{
 			Source:  inputName,
 			Service: inputName,
 			Pipeline: func() string {
-				if i.Log != nil {
-					return i.Log.Pipeline
+				if ipt.Log != nil {
+					return ipt.Log.Pipeline
 				}
 				return ""
 			}(),
@@ -121,61 +124,61 @@ func (i *Input) GetPipeline() []*tailer.Option {
 	}
 }
 
-func (i *Input) AvailableArchs() []string {
+func (ipt *Input) AvailableArchs() []string {
 	return []string{datakit.OSLabelWindows}
 }
 
-func (i *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 
 	l.Infof("iis input started")
 
-	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
-	tick := time.NewTicker(i.Interval.Duration)
+	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
+	tick := time.NewTicker(ipt.Interval.Duration)
 
 	defer tick.Stop()
 	for {
 		select {
 		case <-tick.C:
 			start := time.Now()
-			if err := i.Collect(); err == nil {
-				if feedErr := inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache,
-					&io.Option{CollectCost: time.Since(start)}); feedErr != nil {
+			if err := ipt.Collect(); err == nil {
+				if feedErr := ipt.feeder.Feed(inputName, point.Metric, ipt.collectCache,
+					&dkio.Option{CollectCost: time.Since(start)}); feedErr != nil {
 					l.Error(feedErr)
-					io.FeedLastError(inputName, feedErr.Error())
+					dkio.FeedLastError(inputName, feedErr.Error())
 				}
 			} else {
 				l.Error(err)
-				io.FeedLastError(inputName, err.Error())
+				dkio.FeedLastError(inputName, err.Error())
 			}
-			i.collectCache = make([]inputs.Measurement, 0)
+			ipt.collectCache = make([]*point.Point, 0)
 		case <-datakit.Exit.Wait():
-			i.exit()
+			ipt.exit()
 			l.Infof("iis input exit")
 			return
 
-		case <-i.semStop.Wait():
-			i.exit()
+		case <-ipt.semStop.Wait():
+			ipt.exit()
 			l.Infof("iis input return")
 			return
 		}
 	}
 }
 
-func (i *Input) exit() {
-	if i.tail != nil {
-		i.tail.Close()
+func (ipt *Input) exit() {
+	if ipt.tail != nil {
+		ipt.tail.Close()
 		l.Infof("iis logging exit")
 	}
 }
 
-func (i *Input) Terminate() {
-	if i.semStop != nil {
-		i.semStop.Close()
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
 	}
 }
 
-func (i *Input) Collect() error {
+func (ipt *Input) Collect() error {
 	for mName, metricCounterMap := range PerfObjMetricMap {
 		for objName := range metricCounterMap {
 			// measurement name -> instance name -> metric name -> counter query handle list index
@@ -254,7 +257,7 @@ func (i *Input) Collect() error {
 			for instanceName := range indexMap[mName] {
 				tags := map[string]string{}
 				fields := map[string]interface{}{}
-				for k, v := range i.Tags {
+				for k, v := range ipt.Tags {
 					tags[k] = v
 				}
 				for metricName := range indexMap[mName][instanceName] {
@@ -268,11 +271,17 @@ func (i *Input) Collect() error {
 				default:
 					return fmt.Errorf("action not defined, obj name: %s  measurement name: %s", objName, mName)
 				}
-				i.collectCache = append(i.collectCache, &measurement{
-					name:   mName,
-					tags:   tags,
-					fields: fields,
-				})
+
+				opts := point.DefaultMetricOptions()
+				opts = append(opts, point.WithTime(time.Now()))
+
+				tags = inputs.MergeTags(ipt.Tagger.HostTags(), tags, "")
+
+				pt := point.NewPointV2(mName,
+					append(point.NewTags(tags), point.NewKVs(fields)...),
+					opts...)
+
+				ipt.collectCache = append(ipt.collectCache, pt)
 			}
 		}
 	}
@@ -285,6 +294,8 @@ func init() { // nolint:gochecknoinits
 			Interval: datakit.Duration{Duration: time.Second * 15},
 
 			semStop: cliutils.NewSem(),
+			feeder:  dkio.DefaultFeeder(),
+			Tagger:  datakit.DefaultGlobalTagger(),
 		}
 	})
 }

@@ -6,11 +6,9 @@
 package influxdb
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -38,14 +36,9 @@ func (m *measurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (m *measurement) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
-	return nil, fmt.Errorf("not implement")
 }
 
 func (m *measurement) Info() *inputs.MeasurementInfo { return nil }
@@ -59,14 +52,9 @@ func (m *InfluxdbCqM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (m *InfluxdbCqM) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -92,14 +80,9 @@ func (m *InfluxdbHttpdM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (m *InfluxdbHttpdM) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -148,14 +131,9 @@ func (m *InfluxdbMemstatsM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (m *InfluxdbMemstatsM) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -207,14 +185,9 @@ func (m *InfluxdbQueryExecutorM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (m *InfluxdbQueryExecutorM) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -243,14 +216,9 @@ func (m *InfluxdbRuntimeM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (m *InfluxdbRuntimeM) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -289,14 +257,9 @@ func (m *InfluxdbSubscriberM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (m *InfluxdbSubscriberM) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -323,14 +286,9 @@ func (m *InfluxdbWriteM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (m *InfluxdbWriteM) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -363,14 +321,9 @@ func (m *InfluxdbDatabaseM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (m *InfluxdbDatabaseM) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -397,14 +350,9 @@ func (m *InfluxdbShardM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (m *InfluxdbShardM) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -446,14 +394,9 @@ func (m *InfluxdbTsm1EngineM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (m *InfluxdbTsm1EngineM) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -518,14 +461,9 @@ func (m *InfluxdbTsm1CacheM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (m *InfluxdbTsm1CacheM) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -565,14 +503,9 @@ func (m *InfluxdbTsm1FilestoreM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (m *InfluxdbTsm1FilestoreM) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -605,14 +538,9 @@ func (m *InfluxdbTsm1WalM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (m *InfluxdbTsm1WalM) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll

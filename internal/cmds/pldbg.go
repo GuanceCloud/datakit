@@ -9,34 +9,30 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
 
-	lp "github.com/GuanceCloud/cliutils/lineproto"
+	"github.com/GuanceCloud/cliutils/pipeline/manager"
+	"github.com/GuanceCloud/cliutils/point"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/convertutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/refertable"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 	plremote "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/remote"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/script"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/targzutil"
-
-	clipt "github.com/GuanceCloud/cliutils/point"
 )
 
 func runPLFlags() error {
 	var txt string
 
 	if *flagPLTxtFile != "" {
-		txtBytes, err := ioutil.ReadFile(*flagPLTxtFile)
+		txtBytes, err := os.ReadFile(*flagPLTxtFile)
 		if err != nil {
-			return fmt.Errorf("ioutil.ReadFile: %w", err)
+			return fmt.Errorf("os.ReadFile: %w", err)
 		}
 		txt = string(txtBytes)
 		txt = strings.TrimSuffix(txt, "\n")
@@ -56,27 +52,33 @@ func runPLFlags() error {
 		cp.Warnf("[E] txt has suffix EOL\n")
 	}
 
-	return pipelineDebugger(*flagPLCategory, *flagPLName, *flagPLNS, txt, false)
+	var cat point.Category
+	switch {
+	case point.CatString(*flagPLCategory) != point.UnknownCategory:
+		cat = point.CatString(*flagPLCategory)
+	case point.CatAlias(*flagPLCategory) != point.UnknownCategory:
+		cat = point.CatAlias(*flagPLCategory)
+	default:
+		return fmt.Errorf("unsupported category: %s", *flagPLCategory)
+	}
+
+	return pipelineDebugger(cat, *flagPLName, *flagPLNS, txt, false)
 }
 
-func pipelineDebugger(category, plname, ns, txt string, isPt bool) error {
-	category, err := convertutil.GetMapCategoryShortToFull(category)
-	if err != nil {
-		return err
-	}
-	cat := clipt.CatURL(category)
-
-	if err := pipeline.Init(config.Cfg.Pipeline); err != nil {
+func pipelineDebugger(cat point.Category, plname, ns, txt string, isPt bool) error {
+	if err := pipeline.InitPipeline(config.Cfg.Pipeline, nil, datakit.GlobalHostTags(),
+		datakit.InstallDir); err != nil {
 		return err
 	}
 
 	if config.Cfg.Pipeline != nil &&
 		config.Cfg.Pipeline.ReferTableURL != "" {
-		ok := refertable.InitFinished(time.Second * 20)
-		if ok {
-			l.Info("Initialize Reference Table: Done")
-		} else {
-			l.Error("Initialize Reference Table: Timeout")
+		if reft, ok := plval.GetRefTb(); ok && reft != nil {
+			if ok := reft.InitFinished(time.Second * 20); ok {
+				cp.Infof("Initialize Reference Table: Done")
+			} else {
+				cp.Errorf("Initialize Reference Table: Timeout")
+			}
 		}
 	}
 
@@ -94,44 +96,45 @@ func pipelineDebugger(category, plname, ns, txt string, isPt bool) error {
 		return fmt.Errorf("get pipeline failed: name:%s namespace:%s", plname, ns)
 	}
 
-	start := time.Now()
+	var (
+		start = time.Now()
 
-	opt := &point.PointOption{
-		Category: category,
-		Time:     time.Now(),
-	}
+		name = "default"
+		pt   *point.Point
+		dec  *point.Decoder
+	)
 
-	measurementName := "default"
-
-	var pt *point.Point
-
-	switch category {
-	case datakit.Logging:
+	switch cat { //nolint:exhaustive
+	case point.Logging:
 		fieldsSrc := map[string]interface{}{pipeline.FieldMessage: txt}
-		newPt, err := point.NewPoint(measurementName, nil, fieldsSrc, opt)
-		if err != nil {
-			return err
-		}
+		kvs := point.NewKVs(fieldsSrc)
+		opt := append(point.DefaultLoggingOptions(), point.WithTime(time.Now()))
+		newPt := point.NewPointV2(name, kvs, opt...)
 		pt = newPt
-	case datakit.Metric:
-		pts, err := lp.ParsePoints([]byte(txt), &lp.Option{EnablePointInKey: true})
+
+	case point.Metric:
+		dec = point.GetDecoder(point.WithDecEncoding(point.LineProtocol))
+		defer point.PutDecoder(dec)
+		pts, err := dec.Decode([]byte(txt), point.DefaultMetricOptions()...)
 		if err != nil {
 			return err
 		}
-		ptsW := point.WrapPoint(pts)
-		pt = ptsW[0]
+		pt = pts[0]
+
 	default:
-		pts, err := lp.ParsePoints([]byte(txt), nil)
+		dec = point.GetDecoder(point.WithDecEncoding(point.LineProtocol))
+		defer point.PutDecoder(dec)
+		pts, err := dec.Decode([]byte(txt), point.CommonLoggingOptions()...)
 		if err != nil {
 			return err
 		}
-		ptsW := point.WrapPoint(pts)
-		pt = ptsW[0]
+
+		pt = pts[0]
 	}
 
 	plRes, err := (&pipeline.Pipeline{
 		Script: plScript,
-	}).Run(cat, pt, nil, opt, nil)
+	}).Run(cat, pt, nil, nil)
 	if err != nil {
 		return fmt.Errorf("run pipeline failed: %w", err)
 	}
@@ -142,14 +145,10 @@ func pipelineDebugger(category, plname, ns, txt string, isPt bool) error {
 		return nil
 	}
 
-	res, err := plRes.DkPoint()
-	if err != nil {
-		cp.Errorf("conv to dk point: %s", err.Error())
-		return nil
-	}
+	res := plRes.Point()
 
-	fields, _ := res.Fields()
-	tags := res.Tags()
+	fields := res.InfluxFields()
+	tags := res.MapTags()
 
 	if len(fields) == 0 && len(tags) == 0 {
 		cp.Errorf("[E] No data extracted from pipeline\n")
@@ -179,7 +178,7 @@ func pipelineDebugger(category, plname, ns, txt string, isPt bool) error {
 		}
 	}
 
-	measurementName = res.Name()
+	name = res.Name()
 
 	if *flagPLTable {
 		fmtStr := fmt.Sprintf("%% %ds: %%v", maxWidth)
@@ -205,30 +204,30 @@ func pipelineDebugger(category, plname, ns, txt string, isPt bool) error {
 
 	cp.Infof("---------------\n")
 	cp.Infof("Extracted %d fields, %d tags; measurement(M)<source(L),class(O)...>: %s, drop: %v, cost: %v\n",
-		len(fields), len(tags), measurementName, plRes.Dropped(), cost)
+		len(fields), len(tags), name, plRes.Dropped(), cost)
 
 	return nil
 }
 
-func plScriptTmpStore(category clipt.Category) (*script.ScriptStore, map[string]map[string]error) {
-	store := script.NewScriptStore(category)
+func plScriptTmpStore(category point.Category) (*manager.ScriptStore, map[string]map[string]error) {
+	store := manager.NewScriptStore(category, manager.NewManagerCfg(nil, nil))
 
 	errs := map[string]map[string]error{}
 
 	{ // default
-		ns := script.DefaultScriptNS
+		ns := manager.DefaultScriptNS
 		plPath := filepath.Join(datakit.InstallDir, "pipeline")
-		scripts, scriptsPath := script.ReadPlScriptFromPlStructPath(plPath)
+		scripts, scriptsPath := manager.ReadPlScriptFromPlStructPath(plPath)
 		errs[ns] = store.UpdateScriptsWithNS(ns, scripts[category], scriptsPath[category])
 	}
 	{ // gitrepo
-		ns := script.GitRepoScriptNS
+		ns := manager.GitRepoScriptNS
 		plPath := filepath.Join(datakit.GitReposRepoFullPath, "pipeline")
-		scripts, scriptsPath := script.ReadPlScriptFromPlStructPath(plPath)
+		scripts, scriptsPath := manager.ReadPlScriptFromPlStructPath(plPath)
 		errs[ns] = store.UpdateScriptsWithNS(ns, scripts[category], scriptsPath[category])
 	}
 	{ // remote
-		ns := script.RemoteScriptNS
+		ns := manager.RemoteScriptNS
 		plPath := filepath.Join(datakit.PipelineRemoteDir, plremote.GetConentFileName())
 		if tarMap, err := targzutil.ReadTarToMap(plPath); err == nil {
 			allCategory := plremote.ConvertContentMapToThreeMap(tarMap)

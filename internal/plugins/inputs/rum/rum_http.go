@@ -29,9 +29,14 @@ func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) 
 }
 
 func (ipt *Input) parseCallback(p *point.Point) (*point.Point, error) {
-	name := string(p.Name())
-	tags := p.InfluxTags()
-	if !contains(tags[rumMetricAppID], config.Cfg.HTTPAPI.RUMAppIDWhiteList) {
+	name := p.Name()
+
+	appid, ok := p.Get(rumMetricAppID).(string)
+	if !ok {
+		return nil, fmt.Errorf("invalid key %q", rumMetricAppID)
+	}
+
+	if !contains(appid, config.Cfg.HTTPAPI.RUMAppIDWhiteList) {
 		return nil, httpapi.ErrRUMAppIDNotInWhiteList
 	}
 
@@ -41,9 +46,13 @@ func (ipt *Input) parseCallback(p *point.Point) (*point.Point, error) {
 
 	if name == Error {
 		// handle sourcemap
-		sdkName := tags["sdk_name"]
+		sdkName, ok := p.Get("sdk_name").(string)
+		if !ok {
+			return nil, fmt.Errorf("invalid key %q", "sdk_name")
+		}
+
 		status := &sourceMapStatus{
-			appid:   tags["app_id"],
+			appid:   appid,
 			sdkName: sdkName,
 			status:  StatusUnknown,
 			remark:  "",
@@ -102,6 +111,7 @@ func (ipt *Input) handleRUM(resp http.ResponseWriter, req *http.Request) {
 
 		return
 	}
+
 	if len(body) == 0 {
 		log.Debug(httpapi.ErrEmptyBody.Err.Error())
 		httpErr(resp, httpapi.ErrEmptyBody)
@@ -112,7 +122,7 @@ func (ipt *Input) handleRUM(resp http.ResponseWriter, req *http.Request) {
 	var (
 		pts       []*point.Point
 		apiConfig = config.Cfg.HTTPAPI
-		isJSON    = strings.Contains(req.Header.Get("Content-Type"), "application/json")
+		ct        = httpapi.GetPointEncoding(req.Header)
 	)
 
 	ipStatus := &ipLocationStatus{}
@@ -122,10 +132,9 @@ func (ipt *Input) handleRUM(resp http.ResponseWriter, req *http.Request) {
 
 	opts = append(opts, point.WithExtraTags(geoTags(getSrcIP(apiConfig, req, ipStatus), ipStatus)), point.WithCallback(ipt.parseCallback))
 
-	if pts, err = httpapi.HandleWriteBody(body, isJSON, opts...); err != nil {
-		log.Error(err.Error())
-		httpErr(resp, httpapi.ErrInvalidLinePoint)
-
+	if pts, err = httpapi.HandleWriteBody(body, ct, opts...); err != nil {
+		log.Errorf("httpapi.HandleWriteBody: %s", err.Error())
+		httpErr(resp, err)
 		return
 	}
 
@@ -136,10 +145,10 @@ func (ipt *Input) handleRUM(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	tags := pts[0].InfluxTags()
-	ipStatus.appid = tags["app_id"]
+	ipStatus.appid, _ = pts[0].Get("app_id").(string)
 
-	log.Debugf("### received %d(%s) points from %s, pipeline source: %v", len(pts), req.URL.Path, inputName, pipelineSource)
+	log.Debugf("### received %d(%s) points from %s, pipeline source: %v",
+		len(pts), req.URL.Path, inputName, pipelineSource)
 
 	feedOpt := &dkio.Option{Version: version}
 	if pipelineSource != "" {

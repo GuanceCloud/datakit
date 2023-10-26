@@ -100,7 +100,7 @@ func (mr *ModuleResult) LineProtocol() string {
 		"failed_message": mr.FailedMessage,
 	}
 
-	p := point.NewPointV2([]byte("testing_module"), append(point.NewTags(tags), point.NewKVs(fields)...))
+	p := point.NewPointV2("testing_module", append(point.NewTags(tags), point.NewKVs(fields)...))
 
 	return p.LineProto() + "\n"
 }
@@ -166,7 +166,7 @@ func (cr *CaseResult) LineProtocol() string {
 		}
 	}
 
-	p := point.NewPointV2([]byte("testing"), append(point.NewTags(tags), point.NewKVs(fields)...))
+	p := point.NewPointV2("testing", append(point.NewTags(tags), point.NewKVs(fields)...))
 
 	return p.LineProto() + "\n"
 }

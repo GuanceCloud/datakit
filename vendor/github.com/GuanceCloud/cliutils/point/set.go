@@ -8,7 +8,7 @@ package point
 import "time"
 
 func (p *Point) SetName(name string) {
-	p.name = []byte(name)
+	p.name = name
 }
 
 func (p *Point) SetTime(t time.Time) {

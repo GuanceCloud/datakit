@@ -179,7 +179,7 @@ urls = [""]
 		feeder := io.NewMockedFeeder()
 
 		ipt := NewProm()
-		ipt.Feeder = feeder
+		ipt.feeder = feeder
 
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)
@@ -252,14 +252,14 @@ type caseSpec struct {
 
 func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 	for _, pt := range pts {
-		measurement := string(pt.Name())
+		measurement := pt.Name()
 		var opts []inputs.PointCheckOption
 		opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
 
 		switch measurement {
 		case "ClickHouseProfileEvents":
 			opts = append(opts, cs.optsProfileEvents...)
-			opts = append(opts, inputs.WithDoc(&ProfileEventsMeasurement{}))
+			opts = append(opts, inputs.WithDoc(&profileEventsMeasurement{}))
 			msgs := inputs.CheckPoint(pt, opts...)
 
 			for _, msg := range msgs {
@@ -273,7 +273,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			cs.mCount[measurement] = struct{}{}
 		case "ClickHouseMetrics":
 			opts = append(opts, cs.optsMetrics...)
-			opts = append(opts, inputs.WithDoc(&MetricsMeasurement{}))
+			opts = append(opts, inputs.WithDoc(&metricsMeasurement{}))
 			msgs := inputs.CheckPoint(pt, opts...)
 
 			for _, msg := range msgs {
@@ -287,7 +287,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			cs.mCount[measurement] = struct{}{}
 		case "ClickHouseAsyncMetrics":
 			opts = append(opts, cs.optsAsyncMetrics...)
-			opts = append(opts, inputs.WithDoc(&AsyncMetricsMeasurement{}))
+			opts = append(opts, inputs.WithDoc(&asyncMetricsMeasurement{}))
 			msgs := inputs.CheckPoint(pt, opts...)
 
 			for _, msg := range msgs {
@@ -301,7 +301,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			cs.mCount[measurement] = struct{}{}
 		case "ClickHouseStatusInfo":
 			opts = append(opts, cs.optsStatusInfo...)
-			opts = append(opts, inputs.WithDoc(&StatusInfoMeasurement{}))
+			opts = append(opts, inputs.WithDoc(&statusInfoMeasurement{}))
 			msgs := inputs.CheckPoint(pt, opts...)
 
 			for _, msg := range msgs {
@@ -324,8 +324,8 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 
 			tags := pt.Tags()
 			for k, expect := range cs.ipt.Tags {
-				if v := tags.Get([]byte(k)); v != nil {
-					got := string(v.GetD())
+				if v := tags.Get(k); v != nil {
+					got := v.GetS()
 					if got != expect {
 						return fmt.Errorf("expect tag value %s, got %s", expect, got)
 					}

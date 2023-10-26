@@ -146,7 +146,7 @@ func URLAll(server string) string {
 // --------------------- solr v6.6 + -------------------
 // ----------------------- gather ----------------------
 
-func (i *Input) gatherSolrSearcher(k string, v json.RawMessage, fields map[string]interface{}) error {
+func (ipt *Input) gatherSolrSearcher(k string, v json.RawMessage, fields map[string]interface{}) error {
 	var err error
 	kSplit := strings.Split(k, ".")
 	if len(kSplit) != 3 {
@@ -170,7 +170,7 @@ func (i *Input) gatherSolrSearcher(k string, v json.RawMessage, fields map[strin
 	return err
 }
 
-func (i *Input) gatherSolrCache(k, remote string, v json.RawMessage, commTags map[string]string, ts time.Time) error {
+func (ipt *Input) gatherSolrCache(k, remote string, v json.RawMessage, commTags map[string]string, ts time.Time) error {
 	var err error
 	cacheStat := CacheStats{}
 	if err = json.Unmarshal(v, &cacheStat); err != nil {
@@ -190,10 +190,10 @@ func (i *Input) gatherSolrCache(k, remote string, v json.RawMessage, commTags ma
 	tags["category"] = kSplit[0]
 	tags["name"] = kSplit[2]
 
-	if i.Election {
-		tags = inputs.MergeTags(i.Tagger.ElectionTags(), tags, remote)
+	if ipt.Election {
+		tags = inputs.MergeTags(ipt.Tagger.ElectionTags(), tags, remote)
 	} else {
-		tags = inputs.MergeTags(i.Tagger.HostTags(), tags, remote)
+		tags = inputs.MergeTags(ipt.Tagger.HostTags(), tags, remote)
 	}
 
 	fields := map[string]interface{}{
@@ -218,12 +218,12 @@ func (i *Input) gatherSolrCache(k, remote string, v json.RawMessage, commTags ma
 		tags:   tags,
 		ts:     ts,
 	}
-	i.appendM(metric.Point())
+	ipt.appendM(metric.Point())
 
 	return err
 }
 
-func (i *Input) gatherSolrRequestTimes(k, remote string, v json.RawMessage, commTags map[string]string, ts time.Time) error {
+func (ipt *Input) gatherSolrRequestTimes(k, remote string, v json.RawMessage, commTags map[string]string, ts time.Time) error {
 	var err error
 	rqtimes := RequestTimesStats{}
 	if err = json.Unmarshal(v, &rqtimes); err != nil {
@@ -244,10 +244,10 @@ func (i *Input) gatherSolrRequestTimes(k, remote string, v json.RawMessage, comm
 	tags["category"] = kSplit[0]
 	tags["handler"] = kSplit[1]
 
-	if i.Election {
-		tags = inputs.MergeTags(i.Tagger.ElectionTags(), tags, remote)
+	if ipt.Election {
+		tags = inputs.MergeTags(ipt.Tagger.ElectionTags(), tags, remote)
 	} else {
-		tags = inputs.MergeTags(i.Tagger.HostTags(), tags, remote)
+		tags = inputs.MergeTags(ipt.Tagger.HostTags(), tags, remote)
 	}
 
 	fields := map[string]interface{}{
@@ -272,7 +272,7 @@ func (i *Input) gatherSolrRequestTimes(k, remote string, v json.RawMessage, comm
 		tags:   tags,
 		ts:     ts,
 	}
-	i.appendM(metric.Point())
+	ipt.appendM(metric.Point())
 
 	return nil
 }

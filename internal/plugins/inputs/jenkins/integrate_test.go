@@ -212,7 +212,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 		var opts []inputs.PointCheckOption
 		opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
 
-		measurement := string(pt.Name())
+		measurement := pt.Name()
 
 		switch measurement {
 		case inputName:
@@ -242,8 +242,8 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 
 			tags := pt.Tags()
 			for k, expect := range cs.ipt.Tags {
-				if v := tags.Get([]byte(k)); v != nil {
-					got := string(v.GetD())
+				if v := tags.Get(k); v != nil {
+					got := v.GetS()
 					if got != expect {
 						return fmt.Errorf("expect tag value %s, got %s", expect, got)
 					}

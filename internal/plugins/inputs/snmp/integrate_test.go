@@ -307,7 +307,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 		var opts []inputs.PointCheckOption
 		opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
 
-		measurement := string(pt.Name())
+		measurement := pt.Name()
 
 		switch measurement {
 		case snmpmeasurement.SNMPObjectName:
@@ -354,8 +354,8 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 
 			tags := pt.Tags()
 			for k, expect := range cs.ipt.Tags {
-				if v := tags.Get([]byte(k)); v != nil {
-					got := string(v.GetD())
+				if v := tags.Get(k); v != nil {
+					got := v.GetS()
 					if got != expect {
 						return fmt.Errorf("expect tag value %s, got %s", expect, got)
 					}
@@ -483,7 +483,7 @@ func (cs *caseSpec) run() error {
 	cs.t.Logf("get %d points", len(pts))
 
 	for _, v := range pts {
-		cs.t.Logf(v.LPPoint().String() + "\n")
+		cs.t.Logf(v.MustLPPoint().String() + "\n")
 	}
 
 	cs.mCount = make(map[string]struct{})

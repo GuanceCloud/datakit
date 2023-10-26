@@ -79,8 +79,8 @@ func TestGetMetric(t *testing.T) {
 					// t.Logf("count = %d, v = %s", count, v.LPPoint().String())
 
 					// 为什么使用 HasPrefix？因为后面会跟时间戳，会不断变化。
-					if strings.HasPrefix(v.LPPoint().String(), metrics[count]) {
-						t.Errorf("not equal, left = %s, right = %s", v.LPPoint().String(), metrics[count])
+					if strings.HasPrefix(v.MustLPPoint().String(), metrics[count]) {
+						t.Errorf("not equal, left = %s, right = %s", v.MustLPPoint().String(), metrics[count])
 					}
 
 					count++

@@ -13,13 +13,13 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/metrics"
+	plstats "github.com/GuanceCloud/cliutils/pipeline/stats"
 	dto "github.com/prometheus/client_model/go"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkm "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
-	plstats "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/stats"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/resourcelimit"
 )

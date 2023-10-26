@@ -9,7 +9,7 @@ package client
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -71,7 +71,7 @@ func NewKubernetesClientFromBearerToken(baseURL, path string) (Client, error) {
 		return nil, ErrInvalidBaseURL
 	}
 
-	token, err := ioutil.ReadFile(filepath.Clean(path))
+	token, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return nil, err
 	}

@@ -10,7 +10,7 @@ import (
 	"compress/gzip"
 	"crypto/md5" //nolint:gosec
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/textproto"
@@ -313,7 +313,7 @@ func Unzip(in []byte) (out []byte, err error) {
 		return
 	}
 
-	out, err = ioutil.ReadAll(gzr)
+	out, err = io.ReadAll(gzr)
 	if err != nil {
 		return
 	}
@@ -325,7 +325,7 @@ func Unzip(in []byte) (out []byte, err error) {
 }
 
 func readBody(c *gin.Context) ([]byte, error) {
-	body, err := ioutil.ReadAll(c.Request.Body)
+	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		return nil, err
 	}

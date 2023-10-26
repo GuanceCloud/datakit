@@ -11,12 +11,10 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-	"sigs.k8s.io/yaml"
-
 	apiappsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -128,8 +126,6 @@ func (m *statefulsetMetadata) transformObject() pointKVs {
 
 type statefulsetMetric struct{}
 
-func (*statefulsetMetric) LineProto() (*dkpt.Point, error) { return nil, nil }
-
 //nolint:lll
 func (*statefulsetMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
@@ -153,8 +149,6 @@ func (*statefulsetMetric) Info() *inputs.MeasurementInfo {
 }
 
 type statefulsetObject struct{}
-
-func (*statefulsetObject) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*statefulsetObject) Info() *inputs.MeasurementInfo {

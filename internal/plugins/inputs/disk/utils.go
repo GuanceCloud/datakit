@@ -6,6 +6,7 @@
 package disk
 
 import (
+	"math"
 	"os"
 	"runtime"
 	"strings"
@@ -99,4 +100,45 @@ func (dk *PSDisk) FilterUsage() ([]*disk.UsageStat, []*disk.PartitionStat, error
 	}
 
 	return usage, partitions, nil
+}
+
+type MountOptions []string
+
+func (opts MountOptions) Mode() string {
+	switch {
+	case opts.exists("rw"):
+		return "rw"
+	case opts.exists("ro"):
+		return "ro"
+	default:
+		return "unknown"
+	}
+}
+
+func (opts MountOptions) exists(opt string) bool {
+	for _, o := range opts {
+		if o == opt {
+			return true
+		}
+	}
+	return false
+}
+
+func wrapUint64(x uint64) int64 {
+	if x > uint64(math.MaxInt64) {
+		return -1
+	}
+	return int64(x)
+}
+
+func unique(strSlice []string) []string {
+	keys := make(map[string]interface{})
+	var list []string
+	for _, entry := range strSlice {
+		if _, ok := keys[entry]; !ok {
+			keys[entry] = nil
+			list = append(list, entry)
+		}
+	}
+	return list
 }

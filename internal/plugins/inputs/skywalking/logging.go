@@ -9,10 +9,10 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	loggingv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/logging/v3"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
 )
 
@@ -57,8 +57,12 @@ func processLogV3(plog *loggingv3.LogData) (*point.Point, error) {
 		return nil, errors.New("unknown log data body")
 	}
 
-	return point.NewPoint(plog.Service, extraTags,
-		map[string]interface{}{
-			pipeline.FieldMessage: line,
-		}, &point.PointOption{Category: datakit.Logging, DisableGlobalTags: true})
+	opts := point.DefaultLoggingOptions()
+	opts = append(opts, point.WithTime(time.Now()))
+	return point.NewPointV2(plog.Service,
+			append(point.NewTags(extraTags), point.NewKVs(map[string]interface{}{
+				pipeline.FieldMessage: line,
+			})...),
+			opts...),
+		nil
 }

@@ -22,7 +22,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
@@ -136,6 +135,7 @@ var (
 	wkpool            *workerpool.WorkerPool
 	localCache        *storage.Storage
 	otelSvr           *grpc.Server
+	iptGlobal         *Input
 )
 
 type httpConfig struct {
@@ -169,7 +169,7 @@ type Input struct {
 
 	feeder  dkio.Feeder
 	semStop *cliutils.Sem // start stop signal
-	Tagger  dkpt.GlobalTagger
+	Tagger  datakit.GlobalTagger
 }
 
 func (*Input) Catalog() string { return inputName }
@@ -303,6 +303,8 @@ func (ipt *Input) RegHTTPHandler() {
 				httpapi.HTTPStorageWrapper(storage.HTTP_KEY, httpStatusRespFunc, localCache, handleOTELTrace)), log, expectedHeaders))
 
 	log.Debugf("### register handler for %s of agent %s", ipt.HTTPConfig.MetricAPI, inputName)
+
+	iptGlobal = ipt
 	httpapi.RegHTTPHandler("POST", ipt.HTTPConfig.MetricAPI, httpapi.CheckExpectedHeaders(handleOTElMetrics, log, expectedHeaders))
 }
 
@@ -327,7 +329,7 @@ func (ipt *Input) Run() {
 
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_opentelemetry"})
 	g.Go(func(ctx context.Context) error {
-		runGRPCV1(ipt.GRPCConfig.Address)
+		runGRPCV1(ipt.GRPCConfig.Address, ipt)
 
 		return nil
 	})
@@ -372,7 +374,7 @@ func defaultInput() *Input {
 	return &Input{
 		feeder:  dkio.DefaultFeeder(),
 		semStop: cliutils.NewSem(),
-		Tagger:  dkpt.DefaultGlobalTagger(),
+		Tagger:  datakit.DefaultGlobalTagger(),
 	}
 }
 

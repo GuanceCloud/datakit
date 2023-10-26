@@ -7,7 +7,7 @@ package mem
 
 import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 
-func (ipt *Input) Dashboard(lang inputs.I18n) map[string]string {
+func (*Input) Dashboard(lang inputs.I18n) map[string]string {
 	switch lang {
 	case inputs.I18nZh:
 		return map[string]string{
@@ -22,11 +22,11 @@ func (ipt *Input) Dashboard(lang inputs.I18n) map[string]string {
 	}
 }
 
-func (ipt *Input) DashboardList() []string {
+func (*Input) DashboardList() []string {
 	return nil
 }
 
-func (ipt *Input) Monitor(lang inputs.I18n) map[string]string {
+func (*Input) Monitor(lang inputs.I18n) map[string]string {
 	switch lang {
 	case inputs.I18nZh:
 		return map[string]string{
@@ -41,6 +41,6 @@ func (ipt *Input) Monitor(lang inputs.I18n) map[string]string {
 	}
 }
 
-func (ipt *Input) MonitorList() []string {
+func (*Input) MonitorList() []string {
 	return nil
 }

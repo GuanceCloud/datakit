@@ -25,11 +25,14 @@ func getWriter() *writer {
 func putWriter(w *writer) {
 	w.category = point.UnknownCategory
 	w.dynamicURL = ""
-	w.pts = w.pts[:0]
+	w.points = w.points[:0]
 	w.gzip = false
 	w.cacheClean = false
 	w.cacheAll = false
+	w.batchBytesSize = 0
+	w.batchSize = 0
 	w.fc = nil
 	w.httpHeaders = nil
+	w.httpEncoding = point.LineProtocol
 	wpool.Put(w)
 }

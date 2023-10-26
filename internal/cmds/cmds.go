@@ -8,11 +8,11 @@ package cmds
 
 import (
 	"github.com/GuanceCloud/cliutils/logger"
+	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
 	prompt "github.com/c-bata/go-prompt"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
 )
 
 var (
@@ -45,7 +45,7 @@ func (c *completer) Complete(d prompt.Document) []prompt.Suggest {
 }
 
 func ipInfo(ip string) (map[string]string, error) {
-	if ipdbInstance, err := pipeline.InitIPdb(config.Cfg.Pipeline); err != nil {
+	if ipdbInstance, err := plmanager.InitIPdb(datakit.DataDir, config.Cfg.Pipeline); err != nil {
 		return nil, err
 	} else {
 		x, err := ipdbInstance.Geo(ip)

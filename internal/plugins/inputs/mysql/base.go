@@ -6,8 +6,8 @@
 package mysql
 
 import (
-	gcPoint "github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -20,20 +20,16 @@ type baseMeasurement struct {
 	election bool
 }
 
-func (m *baseMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
-}
-
 // Point implement MeasurementV2.
-func (m *baseMeasurement) Point() *gcPoint.Point {
-	opts := gcPoint.DefaultMetricOptions()
+func (m *baseMeasurement) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
 
 	if m.election {
-		opts = append(opts, gcPoint.WithExtraTags(point.GlobalElectionTags()))
+		opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
 	}
 
-	return gcPoint.NewPointV2([]byte(m.name),
-		append(gcPoint.NewTags(m.tags), gcPoint.NewKVs(m.fields)...),
+	return point.NewPointV2(m.name,
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
 }
 

@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -38,7 +39,7 @@ func initPluginPipeline() error {
 		}
 	}
 
-	if err := pipeline.Init(Cfg.Pipeline); err != nil {
+	if err := pipeline.InitPipeline(Cfg.Pipeline, io.PLAggFeed, datakit.GlobalHostTags(), datakit.InstallDir); err != nil {
 		return err
 	}
 

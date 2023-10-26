@@ -8,6 +8,7 @@ package point
 
 import (
 	mrand "math/rand"
+	"sort"
 	"strings"
 	"time"
 
@@ -17,7 +18,7 @@ import (
 type RandOption func(*ptRander)
 
 type ptRander struct {
-	pb, fixedKeys, fixedTags              bool
+	pb, fixedKeys, fixedTags, kvSorted    bool
 	ntext, ntags, nfields, keyLen, valLen int
 
 	cat Category
@@ -86,33 +87,27 @@ func WithRandKeyLen(n int) RandOption     { return func(r *ptRander) { r.keyLen 
 func WithRandValLen(n int) RandOption     { return func(r *ptRander) { r.valLen = n } }
 func WithCategory(c Category) RandOption  { return func(r *ptRander) { r.cat = c } }
 
+func WithKVSorted(on bool) RandOption {
+	return func(r *ptRander) {
+		r.kvSorted = on
+	}
+}
+
 func WithFixedKeys(on bool) RandOption {
 	return func(r *ptRander) {
-		if on {
-			r.fixedKeys = true
-		} else {
-			r.fixedKeys = false
-		}
+		r.fixedKeys = on
 	}
 }
 
 func WithFixedTags(on bool) RandOption {
 	return func(r *ptRander) {
-		if on {
-			r.fixedTags = true
-		} else {
-			r.fixedTags = false
-		}
+		r.fixedTags = on
 	}
 }
 
 func WithRandPB(on bool) RandOption {
 	return func(r *ptRander) {
-		if on {
-			r.pb = true
-		} else {
-			r.pb = false
-		}
+		r.pb = on
 	}
 }
 
@@ -145,21 +140,22 @@ func (r *ptRander) getFieldKey(i int) string {
 }
 
 func (r *ptRander) doRand() *Point {
-	tags := map[string]string{}
-	fields := map[string]interface{}{}
+	var kvs KVs
+
+	// fields := map[string]interface{}{}
 
 	switch {
 	case r.fixedTags:
 		for i := 0; i < r.ntags; i++ { // reused exist tags
-			tags[r.tagKeys[i]] = r.tagVals[i]
+			kvs = kvs.MustAddTag(r.tagKeys[i], r.tagVals[i])
 		}
 	case r.fixedKeys:
 		for i := 0; i < r.ntags; i++ { // reuse tag key but random tag value
-			tags[r.tagKeys[i]] = randStr(r.valLen)
+			kvs = kvs.MustAddTag(r.tagKeys[i], randStr(r.valLen))
 		}
 	default: // random all tags (key & value)
 		for i := 0; i < r.ntags; i++ {
-			tags[randStr(r.keyLen)] = randStr(r.valLen)
+			kvs = kvs.MustAddTag(randStr(r.keyLen), randStr(r.valLen))
 		}
 	}
 
@@ -168,8 +164,7 @@ func (r *ptRander) doRand() *Point {
 	switch r.cat {
 	case Object, CustomObject:
 		// add `name` tag
-		tags["name"] = randStr(r.valLen)
-
+		kvs = kvs.MustAddTag("name", randStr(r.valLen))
 	default:
 		// TODO:
 	}
@@ -177,16 +172,16 @@ func (r *ptRander) doRand() *Point {
 	for i := 0; i < r.nfields; i++ {
 		switch i {
 		case 1:
-			fields[r.getFieldKey(i)] = mrand.Float64()
+			kvs = kvs.Add(r.getFieldKey(i), mrand.Float64(), false, true)
 		case 2:
-			fields[r.getFieldKey(i)] = mrand.Float32()
+			kvs = kvs.Add(r.getFieldKey(i), mrand.Float32(), false, true)
 		case 3, 4, 5:
-			fields[r.getFieldKey(i)] = randStr(r.valLen)
+			kvs = kvs.Add(r.getFieldKey(i), randStr(r.valLen), false, true)
 		case 6, 7:
-			fields[r.getFieldKey(i)] = (i%2 == 0)
+			kvs = kvs.Add(r.getFieldKey(i), i%2 == 0, false, true)
 
 		default:
-			fields[r.getFieldKey(i)] = mrand.Int63()
+			kvs = kvs.Add(r.getFieldKey(i), mrand.Int63(), false, true)
 		}
 	}
 
@@ -196,30 +191,30 @@ func (r *ptRander) doRand() *Point {
 			break
 		}
 
-		fields["message"] = sampleLogs[mrand.Int63()%int64(len(sampleLogs))]
+		kvs = kvs.Add("message", sampleLogs[mrand.Int63()%int64(len(sampleLogs))], false, true)
 		n--
 
 		if n == 0 {
 			break
 		}
-		fields["error_message"] = sampleLogs[mrand.Int63()%int64(len(sampleLogs))]
+		kvs = kvs.Add("error_message", sampleLogs[mrand.Int63()%int64(len(sampleLogs))], false, true)
 		n--
 
 		if n == 0 {
 			break
 		}
-		fields["error_stack"] = sampleLogs[mrand.Int63()%int64(len(sampleLogs))]
+		kvs = kvs.Add("error_stack", sampleLogs[mrand.Int63()%int64(len(sampleLogs))], false, true)
 		n--
 	}
 
-	measurement := r.measurementPrefix + randStr(r.keyLen)
-	pt, err := NewPoint(measurement, tags, fields, WithTime(r.ts))
-	if err != nil {
-		return nil
-	}
+	pt := NewPointV2(r.measurementPrefix+randStr(r.keyLen), kvs, WithTime(r.ts))
 
 	if r.pb {
 		pt.SetFlag(Ppb)
+	}
+
+	if r.kvSorted {
+		sort.Sort(pt.kvs)
 	}
 
 	return pt

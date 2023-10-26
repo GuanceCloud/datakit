@@ -52,6 +52,14 @@ func TestGetPort(t *testing.T) {
 			t.Logf("get: %d -> %d", i, get)
 		}
 	})
+
+	t.Run("get-udp-port", func(t *testing.T) {
+		conn, get, err := RandPortUDP()
+		assert.NoError(t, err)
+		defer conn.Close()
+		assert.True(t, get > 0)
+		t.Logf("get: %d", get)
+	})
 }
 
 func TestGetContainerName(t *testing.T) {

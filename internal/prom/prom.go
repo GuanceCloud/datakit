@@ -10,7 +10,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -255,7 +254,7 @@ func (p *Prom) WriteMetricText2File(u string) error {
 	if resp.ContentLength > p.opt.maxFileSize {
 		return fmt.Errorf("content length is too large to handle, max: %d, got: %d", p.opt.maxFileSize, resp.ContentLength)
 	}
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}

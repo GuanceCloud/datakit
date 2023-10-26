@@ -9,7 +9,7 @@ package command
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os/exec"
 	"syscall"
 	"time"
@@ -45,7 +45,7 @@ func RunWithTimeout(timeout time.Duration, sudo bool, command string, args ...st
 		return nil, err
 	}
 
-	output, err := ioutil.ReadAll(&buf)
+	output, err := io.ReadAll(&buf)
 	if err != nil {
 		return nil, err
 	}

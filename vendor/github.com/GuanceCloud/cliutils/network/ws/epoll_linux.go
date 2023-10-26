@@ -3,6 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
+//go:build linux
 // +build linux
 
 package ws
@@ -90,7 +91,7 @@ func (e *epoll) Close() error {
 			return err
 		}
 
-		//if err := e.Remove(c); err != nil {
+		// if err := e.Remove(c); err != nil {
 		//	l.Errorf("e.Remove(): %s", err.Error())
 		//	return err
 		//}

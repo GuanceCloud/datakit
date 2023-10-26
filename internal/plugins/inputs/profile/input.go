@@ -26,6 +26,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
@@ -33,7 +34,6 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
@@ -99,7 +99,8 @@ const (
 )
 
 var (
-	log = logger.DefaultSLogger(inputName)
+	log       = logger.DefaultSLogger(inputName)
+	iptGlobal *Input
 
 	_ inputs.HTTPInput     = &Input{}
 	_ inputs.InputV2       = &Input{}
@@ -318,13 +319,19 @@ func (pc *profileCache) drop(profileID string) *point.Point {
 	return nil
 }
 
+func defaultInput() *Input {
+	return &Input{
+		pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
+		Election: true,
+		semStop:  cliutils.NewSem(),
+		feeder:   dkio.DefaultFeeder(),
+		Tagger:   datakit.DefaultGlobalTagger(),
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{
-			pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
-			Election: true,
-			semStop:  cliutils.NewSem(),
-		}
+		return defaultInput()
 	})
 }
 
@@ -338,32 +345,34 @@ type Input struct {
 	pauseCh  chan bool
 
 	semStop *cliutils.Sem // start stop signal
+	feeder  dkio.Feeder
+	Tagger  datakit.GlobalTagger
 }
 
-func (i *Input) Pause() error {
+func (ipt *Input) Pause() error {
 	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	defer tick.Stop()
 	select {
-	case i.pauseCh <- true:
+	case ipt.pauseCh <- true:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("pause %s failed", inputName)
 	}
 }
 
-func (i *Input) Resume() error {
+func (ipt *Input) Resume() error {
 	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	defer tick.Stop()
 	select {
-	case i.pauseCh <- false:
+	case ipt.pauseCh <- false:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
 	}
 }
 
-func (i *Input) ElectionEnabled() bool {
-	return i.Election
+func (ipt *Input) ElectionEnabled() bool {
+	return ipt.Election
 }
 
 // uploadResponse {"content":{"profileID":"fa9c3d16-1cfc-4e37-950d-129cbebd1cdb"}}.
@@ -544,7 +553,7 @@ func (r *reverseProxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 // RegHTTPHandler simply proxy profiling request to dataway.
-func (i *Input) RegHTTPHandler() {
+func (ipt *Input) RegHTTPHandler() {
 	URL, transport, err := profilingProxyURL()
 	if err != nil {
 		log.Errorf("no profiling proxy url available: %s", err)
@@ -614,18 +623,19 @@ func (i *Input) RegHTTPHandler() {
 		proxy: httpProxy,
 	}
 
-	for _, endpoint := range i.Endpoints {
+	for _, endpoint := range ipt.Endpoints {
 		httpapi.RegHTTPHandler(http.MethodPost, endpoint, proxy.ServeHTTP)
 		log.Infof("pattern: %s registered", endpoint)
 	}
 }
 
-func (i *Input) Catalog() string {
+func (ipt *Input) Catalog() string {
 	return inputName
 }
 
-func (i *Input) Run() {
+func (ipt *Input) Run() {
 	log = logger.SLogger(inputName)
+	iptGlobal = ipt
 	log.Infof("the input %s is running...", inputName)
 
 	group := goroutine.NewGroup(goroutine.Option{
@@ -636,10 +646,10 @@ func (i *Input) Run() {
 		},
 	})
 
-	for _, g := range i.Go {
+	for _, g := range ipt.Go {
 		func(g *GoProfiler) {
 			group.Go(func(ctx context.Context) error {
-				if err := g.run(i); err != nil {
+				if err := g.run(ipt); err != nil {
 					log.Errorf("go profile collect error: %s", err.Error())
 				}
 				return nil
@@ -647,10 +657,10 @@ func (i *Input) Run() {
 		}(g)
 	}
 
-	for _, g := range i.PyroscopeLists {
+	for _, g := range ipt.PyroscopeLists {
 		func(g *pyroscopeOpts) {
 			group.Go(func(ctx context.Context) error {
-				if err := g.run(i); err != nil {
+				if err := g.run(ipt); err != nil {
 					log.Errorf("pyroscope profile collect error: %s", err.Error())
 				}
 				return nil
@@ -663,21 +673,21 @@ func (i *Input) Run() {
 	}
 }
 
-func (i *Input) SampleConfig() string {
+func (ipt *Input) SampleConfig() string {
 	return sampleConfig
 }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&trace.TraceMeasurement{Name: inputName}}
 }
 
-func (i *Input) AvailableArchs() []string {
+func (ipt *Input) AvailableArchs() []string {
 	return datakit.AllOS
 }
 
-func (i *Input) Terminate() {
-	if i.semStop != nil {
-		i.semStop.Close()
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
 	}
 }
 
@@ -687,8 +697,8 @@ type pushProfileDataOpt struct {
 	profiledatas    []*profileData
 	endPoint        string
 	inputTags       map[string]string
-	election        bool
 	inputNameSuffix string
+	Input           *Input
 }
 
 type eventOpts struct {
@@ -780,8 +790,8 @@ func pushProfileData(opt *pushProfileDataOpt, event *eventOpts) error {
 			reportFormat:    event.Format,
 			endPoint:        opt.endPoint,
 			inputTags:       opt.inputTags,
-			election:        opt.election,
 			inputNameSuffix: opt.inputNameSuffix,
+			Input:           opt.Input,
 		}); err != nil {
 			return fmt.Errorf("write profile point failed: %w", err)
 		}
@@ -799,8 +809,8 @@ type writeProfilePointOpt struct {
 	reportFormat    string
 	endPoint        string
 	inputTags       map[string]string
-	election        bool
 	inputNameSuffix string
+	Input           *Input
 }
 
 func writeProfilePoint(opt *writeProfilePointOpt) error {
@@ -826,21 +836,19 @@ func writeProfilePoint(opt *writeProfilePointOpt) error {
 		FieldDuration:   opt.endTime.Sub(opt.startTime).Nanoseconds(),
 	}
 
-	pt, err := point.NewPoint(inputName, pointTags, pointFields, &point.PointOption{
-		Time:               opt.startTime,
-		Category:           datakit.Profiling,
-		Strict:             false,
-		GlobalElectionTags: opt.election,
-	})
-	if err != nil {
-		return fmt.Errorf("build profile point fail: %w", err)
+	opts := point.CommonLoggingOptions()
+	opts = append(opts, point.WithTime(opt.startTime))
+
+	if opt.Input.Election {
+		pointTags = inputs.MergeTagsWrapper(pointTags, opt.Input.Tagger.ElectionTags(), opt.inputTags, "")
+	} else {
+		pointTags = inputs.MergeTagsWrapper(pointTags, opt.Input.Tagger.HostTags(), opt.inputTags, "")
 	}
 
-	err = dkio.Feed(inputName+opt.inputNameSuffix,
-		datakit.Profiling,
-		[]*point.Point{pt},
-		&dkio.Option{CollectCost: time.Since(pt.Time())})
-	if err != nil {
+	pt := point.NewPointV2(inputName, append(point.NewTags(pointTags), point.NewKVs(pointFields)...), opts...)
+
+	if err := iptGlobal.feeder.Feed(inputName+opt.inputNameSuffix,
+		point.Profiling, []*point.Point{pt}, &dkio.Option{CollectCost: time.Since(pt.Time())}); err != nil {
 		return err
 	}
 

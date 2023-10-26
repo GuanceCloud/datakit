@@ -75,6 +75,8 @@ type (
 		ctx       context.Context
 		cancelFun context.CancelFunc
 		semStop   *cliutils.Sem
+		feeder    dkio.Feeder
+		Tagger    datakit.GlobalTagger
 		mode      string
 
 		testError error //nolint:structcheck,unused

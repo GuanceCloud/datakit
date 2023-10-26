@@ -32,9 +32,8 @@ var (
 )
 
 const (
-	inputName        = "logstreaming"
-	defaultPercision = "s"
-	sampleCfg        = `
+	inputName = "logstreaming"
+	sampleCfg = `
 [inputs.logstreaming]
   ignore_url_tags = true
 

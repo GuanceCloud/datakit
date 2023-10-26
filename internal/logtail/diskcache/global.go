@@ -12,12 +12,12 @@ import (
 	sync "sync"
 
 	"github.com/GuanceCloud/cliutils/logger"
-	pbpoint "github.com/GuanceCloud/cliutils/point"
+	"github.com/GuanceCloud/cliutils/point"
+
+	"github.com/GuanceCloud/cliutils/pipeline/manager"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
-	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/script"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	"google.golang.org/protobuf/proto"
 )
@@ -85,8 +85,26 @@ func Start(opts ...Option) error {
 						return nil
 
 					case pbdata := <-globalPBChan:
-						if err := c.handle(pbdata); err != nil {
+						pts, cfg, err := c.handle(pbdata)
+						if err != nil {
 							l.Warnf("handle err:%s", err)
+							continue
+						}
+
+						if err := c.feeder.Feed(
+							"logging/"+cfg.Source,
+							point.Logging,
+							pts,
+							&dkio.Option{
+								PlScript: map[string]string{cfg.Source: cfg.Pipeline},
+								PlOption: &manager.Option{
+									DisableAddStatusField: cfg.DisableAddStatusField,
+									IgnoreStatus:          cfg.IgnoreStatus,
+								},
+								Blocking: cfg.Blocking,
+							},
+						); err != nil {
+							l.Warnf("feed %d pts failed: %w", len(pts), err)
 						}
 					}
 				}
@@ -104,50 +122,19 @@ func Put(buf []byte) error {
 	return globalCache.Put(storageKey, buf)
 }
 
-func HandleFeedIO(p *PBData) error {
+func DecodeToPoint(p *PBData) ([]*point.Point, *PBConfig, error) {
 	cfg := p.Config
 	l.Debugf("consume pbdata, config: %#v", cfg)
 
-	pts, err := pbpoint.GetDecoder(pbpoint.WithDecEncoding(pbpoint.Protobuf)).Decode(p.Points)
+	dec := point.GetDecoder(point.WithDecEncoding(point.Protobuf))
+	defer point.PutDecoder(dec)
+
+	pts, err := dec.Decode(p.Points)
 	if err != nil {
-		return fmt.Errorf("decode pbpoint err: %w", err)
+		return nil, nil, fmt.Errorf("decode pbpoint err: %w", err)
 	}
 
-	res := []*point.Point{}
-
-	for _, pt := range pts {
-		lpt, err := point.NewPoint(
-			string(pt.Name()),
-			pt.Tags().InfluxTags(),
-			pt.Fields().InfluxFields(),
-			&point.PointOption{Time: pt.Time(), Category: datakit.Logging},
-		)
-		if err != nil {
-			l.Warnf("new point err:%s, skip", err)
-			continue
-		}
-
-		l.Debugf("consume pbdata, point %s", lpt.String())
-		res = append(res, lpt)
-	}
-
-	if err := iod.Feed(
-		"logging/"+cfg.Source,
-		datakit.Logging,
-		res,
-		&iod.Option{
-			PlScript: map[string]string{cfg.Source: cfg.Pipeline},
-			PlOption: &script.Option{
-				DisableAddStatusField: cfg.DisableAddStatusField,
-				IgnoreStatus:          cfg.IgnoreStatus,
-			},
-			Blocking: cfg.Blocking,
-		},
-	); err != nil {
-		return fmt.Errorf("feed %d pts failed: %w", len(res), err)
-	}
-
-	return nil
+	return pts, cfg, nil
 }
 
 func Close() error {

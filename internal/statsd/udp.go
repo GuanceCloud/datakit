@@ -44,9 +44,9 @@ func (col *Collector) setupUDPServer() error {
 
 // udpListen starts listening for udp packets on the configured port.
 func (col *Collector) udpListen(conn *net.UDPConn) error {
-	col.opts.l.Infof("In udpListen.")
+	col.opts.l.Debug("In udpListen.")
 	defer func() {
-		col.opts.l.Infof("Out udpListen.")
+		col.opts.l.Debug("Out udpListen.")
 	}()
 
 	if col.opts.readBufferSize > 0 {
@@ -62,7 +62,7 @@ func (col *Collector) udpListen(conn *net.UDPConn) error {
 			return nil
 		default:
 			n, addr, err := conn.ReadFromUDP(buf)
-			col.opts.l.Infof("Get conn.ReadFromUDP(buf) bytes: %d %v", n, err)
+			col.opts.l.Debugf("Get conn.ReadFromUDP(buf) bytes: %d %v", n, err)
 			if err != nil {
 				if !strings.Contains(err.Error(), "closed network") {
 					col.opts.l.Errorf("Error reading: %s", err.Error())

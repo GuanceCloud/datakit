@@ -10,47 +10,19 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/stretchr/testify/assert"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 func TestInput_getParameters(t *testing.T) {
-	type fields struct {
-		Interval         datakit.Duration
-		Tags             map[string]string
-		collectCache     []*point.Point
-		platform         string
-		BinPath          string
-		IpmiServers      []string
-		IpmiInterfaces   []string
-		IpmiUsers        []string
-		IpmiPasswords    []string
-		HexKeys          []string
-		MetricVersions   []int
-		RegexpCurrent    []string
-		RegexpVoltage    []string
-		RegexpPower      []string
-		RegexpTemp       []string
-		RegexpFanSpeed   []string
-		RegexpUsage      []string
-		RegexpCount      []string
-		RegexpStatus     []string
-		Timeout          datakit.Duration
-		DropWarningDelay datakit.Duration
-		servers          []ipmiServer
-		semStop          *cliutils.Sem
-		Election         bool
-		pause            bool
-		pauseCh          chan bool
-	}
 	type args struct {
 		i int
 	}
 	tests := []struct {
 		name              string
-		fields            fields
+		ipt               *Input
 		args              args
 		wantOpts          []string
 		wantMetricVersion int
@@ -58,7 +30,7 @@ func TestInput_getParameters(t *testing.T) {
 	}{
 		{
 			name: "ipmiserver_index=0",
-			fields: fields{
+			ipt: &Input{
 				BinPath:        "/usr/bin/ipmitool",
 				IpmiServers:    []string{"192.168.1.1"},
 				IpmiInterfaces: []string{"lanplus"},
@@ -66,6 +38,7 @@ func TestInput_getParameters(t *testing.T) {
 				IpmiPasswords:  []string{"calvin"},
 				HexKeys:        []string{},
 				MetricVersions: []int{2},
+				tagger:         datakit.DefaultGlobalTagger(),
 			},
 			args: args{
 				0,
@@ -82,7 +55,7 @@ func TestInput_getParameters(t *testing.T) {
 		},
 		{
 			name: "ipmiserver_index=1",
-			fields: fields{
+			ipt: &Input{
 				BinPath:        "/usr/bin/ipmitool",
 				IpmiServers:    []string{"192.168.1.1", "192.168.1.2"},
 				IpmiInterfaces: []string{"lanplus"},
@@ -90,6 +63,7 @@ func TestInput_getParameters(t *testing.T) {
 				IpmiPasswords:  []string{"calvin"},
 				HexKeys:        []string{},
 				MetricVersions: []int{2},
+				tagger:         datakit.DefaultGlobalTagger(),
 			},
 			args: args{
 				1,
@@ -106,7 +80,7 @@ func TestInput_getParameters(t *testing.T) {
 		},
 		{
 			name: "with hex_key",
-			fields: fields{
+			ipt: &Input{
 				BinPath:        "/usr/bin/ipmitool",
 				IpmiServers:    []string{"192.168.1.1"},
 				IpmiInterfaces: []string{"lanplus"},
@@ -114,6 +88,7 @@ func TestInput_getParameters(t *testing.T) {
 				IpmiPasswords:  []string{"calvin"},
 				HexKeys:        []string{"50415353574F5244"},
 				MetricVersions: []int{2},
+				tagger:         datakit.DefaultGlobalTagger(),
 			},
 			args: args{
 				0,
@@ -132,34 +107,9 @@ func TestInput_getParameters(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ipt := &Input{
-				Interval:         tt.fields.Interval,
-				Tags:             tt.fields.Tags,
-				collectCache:     tt.fields.collectCache,
-				platform:         tt.fields.platform,
-				BinPath:          tt.fields.BinPath,
-				IpmiServers:      tt.fields.IpmiServers,
-				IpmiInterfaces:   tt.fields.IpmiInterfaces,
-				IpmiUsers:        tt.fields.IpmiUsers,
-				IpmiPasswords:    tt.fields.IpmiPasswords,
-				HexKeys:          tt.fields.HexKeys,
-				MetricVersions:   tt.fields.MetricVersions,
-				RegexpCurrent:    tt.fields.RegexpCurrent,
-				RegexpVoltage:    tt.fields.RegexpVoltage,
-				RegexpPower:      tt.fields.RegexpPower,
-				RegexpTemp:       tt.fields.RegexpTemp,
-				RegexpFanSpeed:   tt.fields.RegexpFanSpeed,
-				RegexpUsage:      tt.fields.RegexpUsage,
-				RegexpCount:      tt.fields.RegexpCount,
-				RegexpStatus:     tt.fields.RegexpStatus,
-				Timeout:          tt.fields.Timeout,
-				DropWarningDelay: tt.fields.DropWarningDelay,
-				servers:          tt.fields.servers,
-				semStop:          tt.fields.semStop,
-				Election:         tt.fields.Election,
-				pause:            tt.fields.pause,
-				pauseCh:          tt.fields.pauseCh,
-			}
+			ipt := tt.ipt
+			ipt.setup()
+
 			gotOpts, gotMetricVersion, err := ipt.getParameters(tt.args.i)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Input.getParameters() error = %v, wantErr %v", err, tt.wantErr)
@@ -175,35 +125,7 @@ func TestInput_getParameters(t *testing.T) {
 	}
 }
 
-func TestInput_convert(t *testing.T) {
-	type fields struct {
-		Interval         datakit.Duration
-		Tags             map[string]string
-		collectCache     []*point.Point
-		platform         string
-		BinPath          string
-		IpmiServers      []string
-		IpmiInterfaces   []string
-		IpmiUsers        []string
-		IpmiPasswords    []string
-		HexKeys          []string
-		MetricVersions   []int
-		RegexpCurrent    []string
-		RegexpVoltage    []string
-		RegexpPower      []string
-		RegexpTemp       []string
-		RegexpFanSpeed   []string
-		RegexpUsage      []string
-		RegexpCount      []string
-		RegexpStatus     []string
-		Timeout          datakit.Duration
-		DropWarningDelay datakit.Duration
-		servers          []ipmiServer
-		semStop          *cliutils.Sem
-		Election         bool
-		pause            bool
-		pauseCh          chan bool
-	}
+func TestInput_getPoints(t *testing.T) {
 	type args struct {
 		data          []byte
 		metricVersion int
@@ -211,13 +133,13 @@ func TestInput_convert(t *testing.T) {
 	}
 	tests := []struct {
 		name             string
-		fields           fields
+		ipt              *Input
 		args             args
 		wantCollectCache []*point.Point
 	}{
 		{
 			name: "R740V2",
-			fields: fields{
+			ipt: &Input{
 				RegexpCurrent: []string{"current"},
 				// RegexpVoltage:  []string{"voltage"},
 				// RegexpPower:    []string{"pwr"},
@@ -226,6 +148,7 @@ func TestInput_convert(t *testing.T) {
 				// RegexpUsage:    []string{"usage"},
 				// RegexpCount:    []string{},
 				// RegexpStatus:   []string{"fan", "slot", "drive"},
+				tagger: datakit.DefaultGlobalTagger(),
 			},
 			args: args{
 				data:          []byte(dataR740V2),
@@ -257,7 +180,7 @@ func TestInput_convert(t *testing.T) {
 		},
 		{
 			name: "R740V2",
-			fields: fields{
+			ipt: &Input{
 				// RegexpCurrent: []string{"current"},
 				RegexpVoltage: []string{"voltage"},
 				// RegexpPower:    []string{"pwr"},
@@ -266,6 +189,7 @@ func TestInput_convert(t *testing.T) {
 				// RegexpUsage:    []string{"usage"},
 				// RegexpCount:    []string{},
 				// RegexpStatus:   []string{"fan", "slot", "drive"},
+				tagger: datakit.DefaultGlobalTagger(),
 			},
 			args: args{
 				data:          []byte(dataR620V1),
@@ -286,137 +210,61 @@ func TestInput_convert(t *testing.T) {
 			},
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ipt := &Input{
-				Interval:         tt.fields.Interval,
-				Tags:             tt.fields.Tags,
-				collectCache:     tt.fields.collectCache,
-				platform:         tt.fields.platform,
-				BinPath:          tt.fields.BinPath,
-				IpmiServers:      tt.fields.IpmiServers,
-				IpmiInterfaces:   tt.fields.IpmiInterfaces,
-				IpmiUsers:        tt.fields.IpmiUsers,
-				IpmiPasswords:    tt.fields.IpmiPasswords,
-				HexKeys:          tt.fields.HexKeys,
-				MetricVersions:   tt.fields.MetricVersions,
-				RegexpCurrent:    tt.fields.RegexpCurrent,
-				RegexpVoltage:    tt.fields.RegexpVoltage,
-				RegexpPower:      tt.fields.RegexpPower,
-				RegexpTemp:       tt.fields.RegexpTemp,
-				RegexpFanSpeed:   tt.fields.RegexpFanSpeed,
-				RegexpUsage:      tt.fields.RegexpUsage,
-				RegexpCount:      tt.fields.RegexpCount,
-				RegexpStatus:     tt.fields.RegexpStatus,
-				Timeout:          tt.fields.Timeout,
-				DropWarningDelay: tt.fields.DropWarningDelay,
-				servers:          tt.fields.servers,
-				semStop:          tt.fields.semStop,
-				Election:         tt.fields.Election,
-				pause:            tt.fields.pause,
-				pauseCh:          tt.fields.pauseCh,
-			}
+			ipt := tt.ipt
+			ipt.setup()
 
-			ipt.convert(tt.args.data, tt.args.metricVersion, tt.args.server)
+			pts, err := ipt.getPoints(tt.args.data, tt.args.metricVersion, tt.args.server)
+			assert.NoError(t, err)
 
-			if len(tt.wantCollectCache) != len(ipt.collectCache) {
+			if len(tt.wantCollectCache) != len(pts) {
 				t.Errorf("points number not equal: want = %d, got %d",
-					len(tt.wantCollectCache), len(ipt.collectCache))
+					len(tt.wantCollectCache), len(pts))
 				return
 			}
 			for i := 0; i < len(tt.wantCollectCache); i++ {
 				// Must modify want value timestamp to compare with got value.
 				wantCollectCache := tt.wantCollectCache[i]
-				wantCollectCache.SetTime(ipt.collectCache[i].Time())
+				wantCollectCache.SetTime(pts[i].Time())
 
-				if !ipt.collectCache[i].Equal(wantCollectCache) {
-					got := ipt.collectCache[i].LineProto()
+				if !pts[i].Equal(wantCollectCache) {
+					got := pts[i].LineProto()
 					want := tt.wantCollectCache[i].LineProto()
-					t.Errorf("Input.getParameters() got = %s,  want %s", got, want)
+					t.Errorf("%s got = %s,  want %s", tt.name, got, want)
 				}
 			}
 		})
 	}
 }
 
-func TestInput_Collect(t *testing.T) {
-	type fields struct {
-		Interval         datakit.Duration
-		Tags             map[string]string
-		collectCache     []*point.Point
-		platform         string
-		BinPath          string
-		IpmiServers      []string
-		IpmiInterfaces   []string
-		IpmiUsers        []string
-		IpmiPasswords    []string
-		HexKeys          []string
-		MetricVersions   []int
-		RegexpCurrent    []string
-		RegexpVoltage    []string
-		RegexpPower      []string
-		RegexpTemp       []string
-		RegexpFanSpeed   []string
-		RegexpUsage      []string
-		RegexpCount      []string
-		RegexpStatus     []string
-		Timeout          datakit.Duration
-		DropWarningDelay datakit.Duration
-		servers          []ipmiServer
-		semStop          *cliutils.Sem
-		Election         bool
-		pause            bool
-		pauseCh          chan bool
-	}
+func TestInput_doCollect(t *testing.T) {
 	tests := []struct {
 		name    string
-		fields  fields
+		ipt     *Input
 		wantErr bool
 	}{
 		{
 			name: "error bin_path && serverip",
-			fields: fields{
+			ipt: &Input{
 				BinPath:        "aaaa",
 				IpmiServers:    []string{"192.168.1.1", "192.168.1.2"},
 				IpmiUsers:      []string{"userdemo"},
 				IpmiPasswords:  []string{"passworddemo"},
 				IpmiInterfaces: []string{"lanplus"},
 				MetricVersions: []int{2, 1},
+				tagger:         datakit.DefaultGlobalTagger(),
 			},
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ipt := &Input{
-				Interval:         tt.fields.Interval,
-				Tags:             tt.fields.Tags,
-				collectCache:     tt.fields.collectCache,
-				platform:         tt.fields.platform,
-				BinPath:          tt.fields.BinPath,
-				IpmiServers:      tt.fields.IpmiServers,
-				IpmiInterfaces:   tt.fields.IpmiInterfaces,
-				IpmiUsers:        tt.fields.IpmiUsers,
-				IpmiPasswords:    tt.fields.IpmiPasswords,
-				HexKeys:          tt.fields.HexKeys,
-				MetricVersions:   tt.fields.MetricVersions,
-				RegexpCurrent:    tt.fields.RegexpCurrent,
-				RegexpVoltage:    tt.fields.RegexpVoltage,
-				RegexpPower:      tt.fields.RegexpPower,
-				RegexpTemp:       tt.fields.RegexpTemp,
-				RegexpFanSpeed:   tt.fields.RegexpFanSpeed,
-				RegexpUsage:      tt.fields.RegexpUsage,
-				RegexpCount:      tt.fields.RegexpCount,
-				RegexpStatus:     tt.fields.RegexpStatus,
-				Timeout:          tt.fields.Timeout,
-				DropWarningDelay: tt.fields.DropWarningDelay,
-				servers:          tt.fields.servers,
-				semStop:          tt.fields.semStop,
-				Election:         tt.fields.Election,
-				pause:            tt.fields.pause,
-				pauseCh:          tt.fields.pauseCh,
-			}
-			if err := ipt.Collect(); (err != nil) != tt.wantErr {
+			ipt := tt.ipt
+			ipt.setup()
+
+			if err := ipt.doCollect(0); (err != nil) != tt.wantErr {
 				t.Errorf("Input.Collect() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -427,7 +275,7 @@ func TestInput_Collect(t *testing.T) {
 func newTestPoint(name string, tags map[string]string, fields map[string]interface{}) *point.Point {
 	opts := point.DefaultMetricOptions()
 
-	return point.NewPointV2([]byte(name),
+	return point.NewPointV2(name,
 		append(point.NewTags(tags), point.NewKVs(fields)...),
 		opts...)
 }

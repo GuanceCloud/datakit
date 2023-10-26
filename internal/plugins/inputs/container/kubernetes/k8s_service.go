@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
 
@@ -102,8 +101,6 @@ func (m *serviceMetadata) transformObject() pointKVs {
 }
 
 type serviceObject struct{}
-
-func (*serviceObject) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*serviceObject) Info() *inputs.MeasurementInfo {

@@ -338,7 +338,7 @@ func (p *Prom) MetricFamilies2points(metricFamilies map[string]*dto.MetricFamily
 				}
 
 				tags := p.filterIgnoreTagKV(p.getTags(m.GetLabel(), measurementName, u))
-				pt := point.NewPointV2([]byte(measurementName),
+				pt := point.NewPointV2(measurementName,
 					append(point.NewTags(tags), point.NewKVs(fields)...),
 					opts...)
 				if err != nil {
@@ -359,7 +359,7 @@ func (p *Prom) MetricFamilies2points(metricFamilies map[string]*dto.MetricFamily
 				}
 
 				tags := p.filterIgnoreTagKV(p.getTags(m.GetLabel(), measurementName, u))
-				pt := point.NewPointV2([]byte(measurementName),
+				pt := point.NewPointV2(measurementName,
 					append(point.NewTags(tags), point.NewKVs(fields)...),
 					opts...)
 				if err != nil {
@@ -384,7 +384,7 @@ func (p *Prom) MetricFamilies2points(metricFamilies map[string]*dto.MetricFamily
 
 					tags := p.filterIgnoreTagKV(p.getTags(m.GetLabel(), measurementName, u))
 					tags["quantile"] = fmt.Sprint(q.GetQuantile())
-					pt := point.NewPointV2([]byte(measurementName),
+					pt := point.NewPointV2(measurementName,
 						append(point.NewTags(tags), point.NewKVs(fields)...),
 						opts...)
 					if err != nil {
@@ -406,7 +406,7 @@ func (p *Prom) MetricFamilies2points(metricFamilies map[string]*dto.MetricFamily
 				}
 
 				tags := p.filterIgnoreTagKV(p.getTags(m.GetLabel(), measurementName, u))
-				pt := point.NewPointV2([]byte(measurementName),
+				pt := point.NewPointV2(measurementName,
 					append(point.NewTags(tags), point.NewKVs(fields)...),
 					opts...)
 				if err != nil {
@@ -424,7 +424,7 @@ func (p *Prom) MetricFamilies2points(metricFamilies map[string]*dto.MetricFamily
 					}
 
 					tags := p.filterIgnoreTagKV(p.getTagsWithLE(m.GetLabel(), measurementName, b))
-					pt := point.NewPointV2([]byte(measurementName),
+					pt := point.NewPointV2(measurementName,
 						append(point.NewTags(tags), point.NewKVs(fields)...),
 						opts...)
 					if err != nil {

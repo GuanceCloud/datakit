@@ -35,7 +35,7 @@ type iisLog struct {
 	Pipeline string   `toml:"pipeline"`
 }
 
-func (i *Input) SampleConfig() string {
+func (ipt *Input) SampleConfig() string {
 	return sampleConfig
 }
 
@@ -43,7 +43,7 @@ func (*Input) Terminate() {
 	// Do nothing
 }
 
-func (i *Input) Catalog() string {
+func (ipt *Input) Catalog() string {
 	return "iis"
 }
 
@@ -51,11 +51,11 @@ func (*Input) RunPipeline() {
 	// TODO
 }
 
-func (i *Input) AvailableArchs() []string {
+func (ipt *Input) AvailableArchs() []string {
 	return []string{datakit.OSLabelWindows}
 }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&IISAppPoolWas{},
 		&IISWebService{},
@@ -69,7 +69,7 @@ func (*Input) PipelineConfig() map[string]string {
 	return pipelineConfig
 }
 
-func (i *Input) Run() {}
+func (ipt *Input) Run() {}
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {

@@ -70,13 +70,13 @@ func TestHandleSourcemap(t *testing.T) {
 		point.WithCallback(ipt.parseCallback),
 	}
 
-	pts, err := httpapi.HandleWriteBody(body, false, opts...)
+	pts, err := httpapi.HandleWriteBody(body, point.LineProtocol, opts...)
 
 	assert.NoError(t, err)
 	assert.Greater(t, len(pts), 0)
 
 	for _, p := range pts {
-		if string(p.Name()) == "error" {
+		if p.Name() == "error" {
 			fields := p.InfluxFields()
 			if _, ok := fields["error_stack"]; ok {
 				if errorStackSource, ok := fields["error_stack_source_base64"]; !ok {

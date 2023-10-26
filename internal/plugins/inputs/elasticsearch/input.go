@@ -110,12 +110,12 @@ type indexStat struct {
 //nolint:lll
 const sampleConfig = `
 [[inputs.elasticsearch]]
-  ## Elasticsearch server url 
-  # Basic Authentication is allowed 
+  ## Elasticsearch server url
+  # Basic Authentication is allowed
   # servers = ["http://user:pass@localhost:9200"]
   servers = ["http://localhost:9200"]
 
-  ## Collect interval 
+  ## Collect interval
   # Time unit: "ns", "us" (or "µs"), "ms", "s", "m", "h"
   interval = "10s"
 
@@ -125,11 +125,11 @@ const sampleConfig = `
   ## Distribution: elasticsearch, opendistro, opensearch
   distribution = "elasticsearch"
 
-  ## Set local true to collect the metrics of the current node only. 
+  ## Set local true to collect the metrics of the current node only.
   # Or you can set local false to collect the metrics of all nodes in the cluster.
   local = true
 
-  ## Set true to collect the health metric of the cluster. 
+  ## Set true to collect the health metric of the cluster.
   cluster_health = false
 
   ## Set cluster health level, either indices or cluster.
@@ -245,12 +245,12 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 }
 
-func (i *Input) ElectionEnabled() bool {
-	return i.Election
+func (ipt *Input) ElectionEnabled() bool {
+	return ipt.Election
 }
 
 //nolint:lll
-func (i *Input) LogExamples() map[string]map[string]string {
+func (ipt *Input) LogExamples() map[string]map[string]string {
 	return map[string]map[string]string{
 		inputName: {
 			"ElasticSearch log":             `[2021-06-01T11:45:15,927][WARN ][o.e.c.r.a.DiskThresholdMonitor] [master] high disk watermark [90%] exceeded on [A2kEFgMLQ1-vhMdZMJV3Iw][master][/tmp/elasticsearch-cluster/nodes/0] free: 17.1gb[7.3%], shards will be relocated away from this node; currently relocating away shards totalling [0] bytes; the node is expected to continue to exceed the high disk watermark when these relocations are complete`,
@@ -329,14 +329,14 @@ func (*Input) PipelineConfig() map[string]string {
 	return pipelineMap
 }
 
-func (i *Input) GetPipeline() []*tailer.Option {
+func (ipt *Input) GetPipeline() []*tailer.Option {
 	return []*tailer.Option{
 		{
 			Source:  inputName,
 			Service: inputName,
 			Pipeline: func() string {
-				if i.Log != nil {
-					return i.Log.Pipeline
+				if ipt.Log != nil {
+					return ipt.Log.Pipeline
 				}
 				return ""
 			}(),
@@ -344,19 +344,19 @@ func (i *Input) GetPipeline() []*tailer.Option {
 	}
 }
 
-func (i *Input) extendSelfTag(tags map[string]string) {
-	if i.Tags != nil {
-		for k, v := range i.Tags {
+func (ipt *Input) extendSelfTag(tags map[string]string) {
+	if ipt.Tags != nil {
+		for k, v := range ipt.Tags {
 			tags[k] = v
 		}
 	}
 }
 
-func (i *Input) AvailableArchs() []string {
+func (ipt *Input) AvailableArchs() []string {
 	return datakit.AllOSWithElection
 }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&nodeStatsMeasurement{},
 		&indicesStatsMeasurement{},
@@ -365,44 +365,44 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func (i *Input) setServerInfo() error {
-	if len(i.Distribution) == 0 {
-		i.Distribution = "elasticsearch"
+func (ipt *Input) setServerInfo() error {
+	if len(ipt.Distribution) == 0 {
+		ipt.Distribution = "elasticsearch"
 	}
-	i.serverInfo = make(map[string]serverInfo)
+	ipt.serverInfo = make(map[string]serverInfo)
 
 	g := goroutine.NewGroup(goroutine.Option{Name: goroutine.GetInputName(inputName)})
-	for _, serv := range i.Servers {
+	for _, serv := range ipt.Servers {
 		func(s string) {
 			g.Go(func(ctx context.Context) error {
 				var err error
 				info := serverInfo{}
 
 				// get nodeID和masterID
-				if i.ClusterStats || len(i.IndicesInclude) > 0 || len(i.IndicesLevel) > 0 {
+				if ipt.ClusterStats || len(ipt.IndicesInclude) > 0 || len(ipt.IndicesLevel) > 0 {
 					// Gather node ID
-					if info.nodeID, err = i.gatherNodeID(s + "/_nodes/_local/name"); err != nil {
+					if info.nodeID, err = ipt.gatherNodeID(s + "/_nodes/_local/name"); err != nil {
 						return fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 					}
 
 					// get cat/master information here so NodeStats can determine
 					// whether this node is the Master
-					if info.masterID, err = i.getCatMaster(s + "/_cat/master"); err != nil {
+					if info.masterID, err = ipt.getCatMaster(s + "/_cat/master"); err != nil {
 						return fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 					}
 				}
 
-				if info.version, err = i.getVersion(s); err != nil {
+				if info.version, err = ipt.getVersion(s); err != nil {
 					return fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 				}
 
 				if mask.MatchString(s) {
-					info.userPrivilege = i.getUserPrivilege(s)
+					info.userPrivilege = ipt.getUserPrivilege(s)
 				}
 
-				i.serverInfoMutex.Lock()
-				i.serverInfo[s] = info
-				i.serverInfoMutex.Unlock()
+				ipt.serverInfoMutex.Lock()
+				ipt.serverInfo[s] = info
+				ipt.serverInfoMutex.Unlock()
 
 				return nil
 			})
@@ -415,63 +415,63 @@ func (i *Input) setServerInfo() error {
 	return nil
 }
 
-func (i *Input) Collect() error {
-	if err := i.setServerInfo(); err != nil {
+func (ipt *Input) Collect() error {
+	if err := ipt.setServerInfo(); err != nil {
 		return err
 	}
 
 	g := goroutine.NewGroup(goroutine.Option{Name: goroutine.GetInputName(inputName)})
-	for _, serv := range i.Servers {
+	for _, serv := range ipt.Servers {
 		func(s string) {
 			g.Go(func(ctx context.Context) error {
 				var clusterName string
 				var err error
-				url := i.nodeStatsURL(s)
+				url := ipt.nodeStatsURL(s)
 
 				// Always gather node stats
-				if clusterName, err = i.gatherNodeStats(url); err != nil {
+				if clusterName, err = ipt.gatherNodeStats(url); err != nil {
 					l.Warn(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 				}
 
-				if i.ClusterHealth {
+				if ipt.ClusterHealth {
 					url = s + "/_cluster/health"
-					if i.ClusterHealthLevel != "" {
-						url = url + "?level=" + i.ClusterHealthLevel
+					if ipt.ClusterHealthLevel != "" {
+						url = url + "?level=" + ipt.ClusterHealthLevel
 					}
-					if err := i.gatherClusterHealth(url, s); err != nil {
+					if err := ipt.gatherClusterHealth(url, s); err != nil {
 						l.Warn(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 					}
 				}
 
-				if i.ClusterStats && (i.serverInfo[s].isMaster() || !i.ClusterStatsOnlyFromMaster || !i.Local) {
-					if err := i.gatherClusterStats(s + "/_cluster/stats"); err != nil {
+				if ipt.ClusterStats && (ipt.serverInfo[s].isMaster() || !ipt.ClusterStatsOnlyFromMaster || !ipt.Local) {
+					if err := ipt.gatherClusterStats(s + "/_cluster/stats"); err != nil {
 						l.Warn(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 					}
 				}
 
-				if len(i.IndicesInclude) > 0 &&
-					(i.serverInfo[s].isMaster() ||
-						!i.ClusterStatsOnlyFromMaster ||
-						!i.Local) {
+				if len(ipt.IndicesInclude) > 0 &&
+					(ipt.serverInfo[s].isMaster() ||
+						!ipt.ClusterStatsOnlyFromMaster ||
+						!ipt.Local) {
 					// get indices stats
-					if i.IndicesLevel != "shards" {
-						if err := i.gatherIndicesStats(s+
+					if ipt.IndicesLevel != "shards" {
+						if err := ipt.gatherIndicesStats(s+
 							"/"+
-							strings.Join(i.IndicesInclude, ",")+
+							strings.Join(ipt.IndicesInclude, ",")+
 							"/_stats?ignore_unavailable=true", clusterName); err != nil {
 							l.Warn(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 						}
 					} else {
-						if err := i.gatherIndicesStats(s+
+						if err := ipt.gatherIndicesStats(s+
 							"/"+
-							strings.Join(i.IndicesInclude, ",")+
+							strings.Join(ipt.IndicesInclude, ",")+
 							"/_stats?level=shards&ignore_unavailable=true", clusterName); err != nil {
 							l.Warn(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 						}
 					}
 
 					// get settings
-					if err := i.gatherIndicesSettings(s, clusterName); err != nil {
+					if err := ipt.gatherIndicesSettings(s, clusterName); err != nil {
 						l.Warn(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 					}
 				}
@@ -489,42 +489,42 @@ const (
 	minInterval = 1 * time.Second
 )
 
-func (i *Input) RunPipeline() {
-	if i.Log == nil || len(i.Log.Files) == 0 {
+func (ipt *Input) RunPipeline() {
+	if ipt.Log == nil || len(ipt.Log.Files) == 0 {
 		return
 	}
 
 	opt := &tailer.Option{
 		Source:            inputName,
 		Service:           inputName,
-		Pipeline:          i.Log.Pipeline,
-		GlobalTags:        i.Tags,
-		IgnoreStatus:      i.Log.IgnoreStatus,
-		CharacterEncoding: i.Log.CharacterEncoding,
-		MultilinePatterns: []string{i.Log.MultilineMatch},
-		Done:              i.semStop.Wait(),
+		Pipeline:          ipt.Log.Pipeline,
+		GlobalTags:        ipt.Tags,
+		IgnoreStatus:      ipt.Log.IgnoreStatus,
+		CharacterEncoding: ipt.Log.CharacterEncoding,
+		MultilinePatterns: []string{ipt.Log.MultilineMatch},
+		Done:              ipt.semStop.Wait(),
 	}
 
 	var err error
-	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
+	ipt.tail, err = tailer.NewTailer(ipt.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
-		i.feeder.FeedLastError(err.Error(),
+		ipt.feeder.FeedLastError(err.Error(),
 			dkio.WithLastErrorInput(inputName),
 		)
 		return
 	}
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_elasticsearch"})
 	g.Go(func(ctx context.Context) error {
-		i.tail.Start()
+		ipt.tail.Start()
 		return nil
 	})
 }
 
-func (i *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 
-	duration, err := time.ParseDuration(i.Interval)
+	duration, err := time.ParseDuration(ipt.Interval)
 	if err != nil {
 		l.Error("invalid interval, %s", err.Error())
 		return
@@ -533,87 +533,87 @@ func (i *Input) Run() {
 		return
 	}
 
-	i.duration = config.ProtectedInterval(minInterval, maxInterval, duration)
+	ipt.duration = config.ProtectedInterval(minInterval, maxInterval, duration)
 
-	i.httpTimeout = Duration{}
-	if len(i.HTTPTimeout) > 0 {
-		err := i.httpTimeout.UnmarshalTOML([]byte(i.HTTPTimeout))
+	ipt.httpTimeout = Duration{}
+	if len(ipt.HTTPTimeout) > 0 {
+		err := ipt.httpTimeout.UnmarshalTOML([]byte(ipt.HTTPTimeout))
 		if err != nil {
-			l.Warnf("invalid http timeout, %s", i.HTTPTimeout)
+			l.Warnf("invalid http timeout, %s", ipt.HTTPTimeout)
 		}
 	}
 
-	client, err := i.createHTTPClient()
+	client, err := ipt.createHTTPClient()
 	if err != nil {
 		l.Error(err)
-		i.feeder.FeedLastError(err.Error(),
+		ipt.feeder.FeedLastError(err.Error(),
 			dkio.WithLastErrorInput(inputName),
 		)
 		return
 	}
-	i.client = client
+	ipt.client = client
 
-	defer i.stop()
+	defer ipt.stop()
 
-	tick := time.NewTicker(i.duration)
+	tick := time.NewTicker(ipt.duration)
 	defer tick.Stop()
 
 	for {
-		if i.pause {
+		if ipt.pause {
 			l.Debugf("not leader, skipped")
 		} else {
 			start := time.Now()
-			if err := i.Collect(); err != nil {
-				i.feeder.FeedLastError(err.Error(),
+			if err := ipt.Collect(); err != nil {
+				ipt.feeder.FeedLastError(err.Error(),
 					dkio.WithLastErrorInput(inputName),
 				)
 				l.Error(err)
-			} else if len(i.collectCache) > 0 {
-				err := i.feeder.Feed(inputName, point.Metric, i.collectCache, &dkio.Option{CollectCost: time.Since(start)})
+			} else if len(ipt.collectCache) > 0 {
+				err := ipt.feeder.Feed(inputName, point.Metric, ipt.collectCache, &dkio.Option{CollectCost: time.Since(start)})
 				if err != nil {
-					i.feeder.FeedLastError(err.Error(),
+					ipt.feeder.FeedLastError(err.Error(),
 						dkio.WithLastErrorInput(inputName),
 					)
 					l.Errorf(err.Error())
 				}
-				i.collectCache = i.collectCache[:0]
+				ipt.collectCache = ipt.collectCache[:0]
 			}
 		}
 		select {
 		case <-datakit.Exit.Wait():
-			i.exit()
+			ipt.exit()
 			l.Info("elasticsearch exit")
 			return
 
-		case <-i.semStop.Wait():
-			i.exit()
+		case <-ipt.semStop.Wait():
+			ipt.exit()
 			l.Info("elasticsearch return")
 			return
 
 		case <-tick.C:
 
-		case i.pause = <-i.pauseCh:
+		case ipt.pause = <-ipt.pauseCh:
 			// nil
 		}
 	}
 }
 
-func (i *Input) exit() {
-	if i.tail != nil {
-		i.tail.Close()
+func (ipt *Input) exit() {
+	if ipt.tail != nil {
+		ipt.tail.Close()
 		l.Info("elasticsearch log exit")
 	}
 }
 
-func (i *Input) Terminate() {
-	if i.semStop != nil {
-		i.semStop.Close()
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
 	}
 }
 
-func (i *Input) gatherIndicesSettings(url string, clusterName string) error {
+func (ipt *Input) gatherIndicesSettings(url string, clusterName string) error {
 	settingResp := map[string]interface{}{}
-	if err := i.gatherJSONData(url+"/"+strings.Join(i.IndicesInclude, ",")+"/_settings", &settingResp); err != nil {
+	if err := ipt.gatherJSONData(url+"/"+strings.Join(ipt.IndicesInclude, ",")+"/_settings", &settingResp); err != nil {
 		return err
 	}
 
@@ -640,7 +640,7 @@ func (i *Input) gatherIndicesSettings(url string, clusterName string) error {
 
 		tags := map[string]string{"index_name": m, "cluster_name": clusterName}
 		setHostTagIfNotLoopback(tags, url)
-		i.extendSelfTag(tags)
+		ipt.extendSelfTag(tags)
 
 		metric := &indicesStatsMeasurement{
 			elasticsearchMeasurement: elasticsearchMeasurement{
@@ -648,25 +648,25 @@ func (i *Input) gatherIndicesSettings(url string, clusterName string) error {
 				tags:     tags,
 				fields:   allFields,
 				ts:       time.Now(),
-				election: i.Election,
+				election: ipt.Election,
 			},
 		}
 
 		if len(metric.fields) > 0 {
-			i.collectCache = append(i.collectCache, metric.Point())
+			ipt.collectCache = append(ipt.collectCache, metric.Point())
 		}
 	}
 	return nil
 }
 
-func (i *Input) gatherIndicesStats(url string, clusterName string) error {
+func (ipt *Input) gatherIndicesStats(url string, clusterName string) error {
 	indicesStats := &struct {
 		Shards  map[string]interface{} `json:"_shards"`
 		All     map[string]interface{} `json:"_all"`
 		Indices map[string]indexStat   `json:"indices"`
 	}{}
 
-	if err := i.gatherJSONData(url, indicesStats); err != nil {
+	if err := ipt.gatherJSONData(url, indicesStats); err != nil {
 		return err
 	}
 	now := time.Now()
@@ -691,7 +691,7 @@ func (i *Input) gatherIndicesStats(url string, clusterName string) error {
 
 	tags := map[string]string{"index_name": "_all", "cluster_name": clusterName}
 	setHostTagIfNotLoopback(tags, url)
-	i.extendSelfTag(tags)
+	ipt.extendSelfTag(tags)
 
 	metric := &indicesStatsMeasurement{
 		elasticsearchMeasurement: elasticsearchMeasurement{
@@ -699,12 +699,12 @@ func (i *Input) gatherIndicesStats(url string, clusterName string) error {
 			tags:     tags,
 			fields:   allFields,
 			ts:       now,
-			election: i.Election,
+			election: ipt.Election,
 		},
 	}
 
 	if len(metric.fields) > 0 {
-		i.collectCache = append(i.collectCache, metric.Point())
+		ipt.collectCache = append(ipt.collectCache, metric.Point())
 	}
 
 	// Individual Indices stats
@@ -733,7 +733,7 @@ func (i *Input) gatherIndicesStats(url string, clusterName string) error {
 
 		indexTag := map[string]string{"index_name": id, "cluster_name": clusterName}
 		setHostTagIfNotLoopback(indexTag, url)
-		i.extendSelfTag(indexTag)
+		ipt.extendSelfTag(indexTag)
 
 		metric := &indicesStatsMeasurement{
 			elasticsearchMeasurement: elasticsearchMeasurement{
@@ -741,25 +741,25 @@ func (i *Input) gatherIndicesStats(url string, clusterName string) error {
 				tags:     indexTag,
 				fields:   allFields,
 				ts:       now,
-				election: i.Election,
+				election: ipt.Election,
 			},
 		}
 
 		if len(metric.fields) > 0 {
-			i.collectCache = append(i.collectCache, metric.Point())
+			ipt.collectCache = append(ipt.collectCache, metric.Point())
 		}
 	}
 
 	return nil
 }
 
-func (i *Input) gatherNodeStats(url string) (string, error) {
+func (ipt *Input) gatherNodeStats(url string) (string, error) {
 	nodeStats := &struct {
 		ClusterName string               `json:"cluster_name"`
 		Nodes       map[string]*nodeStat `json:"nodes"`
 	}{}
 
-	if err := i.gatherJSONData(url, nodeStats); err != nil {
+	if err := ipt.gatherJSONData(url, nodeStats); err != nil {
 		return "", err
 	}
 
@@ -826,27 +826,27 @@ func (i *Input) gatherNodeStats(url string) (string, error) {
 		}
 
 		setHostTagIfNotLoopback(tags, url)
-		i.extendSelfTag(tags)
+		ipt.extendSelfTag(tags)
 		metric := &nodeStatsMeasurement{
 			elasticsearchMeasurement: elasticsearchMeasurement{
 				name:     "elasticsearch_node_stats",
 				tags:     tags,
 				fields:   allFields,
 				ts:       now,
-				election: i.Election,
+				election: ipt.Election,
 			},
 		}
 		if len(metric.fields) > 0 {
-			i.collectCache = append(i.collectCache, metric.Point())
+			ipt.collectCache = append(ipt.collectCache, metric.Point())
 		}
 	}
 
 	return nodeStats.ClusterName, nil
 }
 
-func (i *Input) gatherClusterStats(url string) error {
+func (ipt *Input) gatherClusterStats(url string) error {
 	clusterStats := &clusterStats{}
-	if err := i.gatherJSONData(url, clusterStats); err != nil {
+	if err := ipt.gatherJSONData(url, clusterStats); err != nil {
 		return err
 	}
 	now := time.Now()
@@ -878,25 +878,25 @@ func (i *Input) gatherClusterStats(url string) error {
 	}
 
 	setHostTagIfNotLoopback(tags, url)
-	i.extendSelfTag(tags)
+	ipt.extendSelfTag(tags)
 	metric := &clusterStatsMeasurement{
 		elasticsearchMeasurement: elasticsearchMeasurement{
 			name:     "elasticsearch_cluster_stats",
 			tags:     tags,
 			fields:   allFields,
 			ts:       now,
-			election: i.Election,
+			election: ipt.Election,
 		},
 	}
 
 	if len(metric.fields) > 0 {
-		i.collectCache = append(i.collectCache, metric.Point())
+		ipt.collectCache = append(ipt.collectCache, metric.Point())
 	}
 	return nil
 }
 
-func (i *Input) isVersion6(url string) bool {
-	serverInfo, ok := i.serverInfo[url]
+func (ipt *Input) isVersion6(url string) bool {
+	serverInfo, ok := ipt.serverInfo[url]
 	if !ok { // default
 		return false
 	} else {
@@ -909,12 +909,12 @@ func (i *Input) isVersion6(url string) bool {
 	return false
 }
 
-func (i *Input) getLifeCycleErrorCount(url string) (errCount int) {
+func (ipt *Input) getLifeCycleErrorCount(url string) (errCount int) {
 	errCount = 0
 	// default elasticsearch
-	if i.Distribution == "elasticsearch" || (len(i.Distribution) == 0) {
+	if ipt.Distribution == "elasticsearch" || (len(ipt.Distribution) == 0) {
 		// check privilege
-		privilege := i.serverInfo[url].userPrivilege
+		privilege := ipt.serverInfo[url].userPrivilege
 		if privilege != nil {
 			indexPrivilege, ok := privilege.Index["all"]
 			if ok {
@@ -926,8 +926,8 @@ func (i *Input) getLifeCycleErrorCount(url string) (errCount int) {
 		}
 
 		indicesRes := &indexState{}
-		if i.isVersion6(url) { // 6.x
-			if err := i.gatherJSONData(url+"/*/_ilm/explain", indicesRes); err != nil {
+		if ipt.isVersion6(url) { // 6.x
+			if err := ipt.gatherJSONData(url+"/*/_ilm/explain", indicesRes); err != nil {
 				l.Warn(err)
 			} else {
 				for _, index := range indicesRes.Indices {
@@ -937,7 +937,7 @@ func (i *Input) getLifeCycleErrorCount(url string) (errCount int) {
 				}
 			}
 		} else {
-			if err := i.gatherJSONData(url+"/*/_ilm/explain?only_errors", indicesRes); err != nil {
+			if err := ipt.gatherJSONData(url+"/*/_ilm/explain?only_errors", indicesRes); err != nil {
 				l.Warn(err)
 			} else {
 				errCount = len(indicesRes.Indices)
@@ -946,15 +946,15 @@ func (i *Input) getLifeCycleErrorCount(url string) (errCount int) {
 	}
 
 	// opendistro or opensearch
-	if i.Distribution == "opendistro" || i.Distribution == "opensearch" {
+	if ipt.Distribution == "opendistro" || ipt.Distribution == "opensearch" {
 		res := map[string]interface{}{}
 		pluginName := "_opendistro"
 
-		if i.Distribution == "opensearch" {
+		if ipt.Distribution == "opensearch" {
 			pluginName = "_plugins"
 		}
 
-		if err := i.gatherJSONData(url+"/"+pluginName+"/_ism/explain/*", &res); err != nil {
+		if err := ipt.gatherJSONData(url+"/"+pluginName+"/_ism/explain/*", &res); err != nil {
 			l.Warn(err)
 		} else {
 			for _, index := range res {
@@ -978,12 +978,12 @@ func (i *Input) getLifeCycleErrorCount(url string) (errCount int) {
 	return errCount
 }
 
-func (i *Input) gatherClusterHealth(url string, serverURL string) error {
+func (ipt *Input) gatherClusterHealth(url string, serverURL string) error {
 	healthStats := &clusterHealth{}
-	if err := i.gatherJSONData(url, healthStats); err != nil {
+	if err := ipt.gatherJSONData(url, healthStats); err != nil {
 		return err
 	}
-	indicesErrorCount := i.getLifeCycleErrorCount(serverURL)
+	indicesErrorCount := ipt.getLifeCycleErrorCount(serverURL)
 	now := time.Now()
 	clusterFields := map[string]interface{}{
 		"active_primary_shards":            healthStats.ActivePrimaryShards,
@@ -1019,30 +1019,30 @@ func (i *Input) gatherClusterHealth(url string, serverURL string) error {
 	}
 
 	setHostTagIfNotLoopback(tags, url)
-	i.extendSelfTag(tags)
+	ipt.extendSelfTag(tags)
 	metric := &clusterHealthMeasurement{
 		elasticsearchMeasurement: elasticsearchMeasurement{
 			name:     "elasticsearch_cluster_health",
 			tags:     tags,
 			fields:   allFields,
 			ts:       now,
-			election: i.Election,
+			election: ipt.Election,
 		},
 	}
 
 	if len(metric.fields) > 0 {
-		i.collectCache = append(i.collectCache, metric.Point())
+		ipt.collectCache = append(ipt.collectCache, metric.Point())
 	}
 
 	return nil
 }
 
-func (i *Input) gatherNodeID(url string) (string, error) {
+func (ipt *Input) gatherNodeID(url string) (string, error) {
 	nodeStats := &struct {
 		ClusterName string               `json:"cluster_name"`
 		Nodes       map[string]*nodeStat `json:"nodes"`
 	}{}
-	if err := i.gatherJSONData(url, nodeStats); err != nil {
+	if err := ipt.gatherJSONData(url, nodeStats); err != nil {
 		return "", err
 	}
 
@@ -1053,25 +1053,25 @@ func (i *Input) gatherNodeID(url string) (string, error) {
 	return "", nil
 }
 
-func (i *Input) getVersion(url string) (string, error) {
+func (ipt *Input) getVersion(url string) (string, error) {
 	clusterInfo := &struct {
 		Version struct {
 			Number string `json:"number"`
 		} `json:"version"`
 	}{}
-	if err := i.gatherJSONData(url, clusterInfo); err != nil {
+	if err := ipt.gatherJSONData(url, clusterInfo); err != nil {
 		return "", err
 	}
 
 	return clusterInfo.Version.Number, nil
 }
 
-func (i *Input) getUserPrivilege(url string) *userPrivilege {
+func (ipt *Input) getUserPrivilege(url string) *userPrivilege {
 	privilege := &userPrivilege{}
-	if i.Distribution == "elasticsearch" || len(i.Distribution) == 0 {
+	if ipt.Distribution == "elasticsearch" || len(ipt.Distribution) == 0 {
 		body := strings.NewReader(`{"cluster": ["monitor"],"index":[{"names":["all"], "privileges":["monitor","manage_ilm"]}]}`)
 		header := map[string]string{"Content-Type": "application/json"}
-		if err := i.requestData("GET", url+"/_security/user/_has_privileges", header, body, privilege); err != nil {
+		if err := ipt.requestData("GET", url+"/_security/user/_has_privileges", header, body, privilege); err != nil {
 			l.Warnf("get user privilege error: %s", err.Error())
 			return nil
 		}
@@ -1080,42 +1080,42 @@ func (i *Input) getUserPrivilege(url string) *userPrivilege {
 	return privilege
 }
 
-func (i *Input) nodeStatsURL(baseURL string) string {
+func (ipt *Input) nodeStatsURL(baseURL string) string {
 	var url string
 
-	if i.Local {
+	if ipt.Local {
 		url = baseURL + statsPathLocal
 	} else {
 		url = baseURL + statsPath
 	}
 
-	if len(i.NodeStats) == 0 {
+	if len(ipt.NodeStats) == 0 {
 		return url
 	}
 
-	return fmt.Sprintf("%s/%s", url, strings.Join(i.NodeStats, ","))
+	return fmt.Sprintf("%s/%s", url, strings.Join(ipt.NodeStats, ","))
 }
 
-func (i *Input) stop() {
-	i.client.CloseIdleConnections()
+func (ipt *Input) stop() {
+	ipt.client.CloseIdleConnections()
 }
 
-func (i *Input) createHTTPClient() (*http.Client, error) {
+func (ipt *Input) createHTTPClient() (*http.Client, error) {
 	timeout := 10 * time.Second
-	if i.httpTimeout.Duration > 0 {
-		timeout = i.httpTimeout.Duration
+	if ipt.httpTimeout.Duration > 0 {
+		timeout = ipt.httpTimeout.Duration
 	}
 	client := &http.Client{
 		Timeout: timeout,
 	}
 
-	if i.TLSOpen {
-		if i.InsecureSkipVerify {
+	if ipt.TLSOpen {
+		if ipt.InsecureSkipVerify {
 			client.Transport = &http.Transport{
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // nolint:gosec
 			}
 		} else {
-			tc, err := TLSConfig(i.CacertFile, i.CertFile, i.KeyFile)
+			tc, err := TLSConfig(ipt.CacertFile, ipt.CertFile, ipt.KeyFile)
 			if err != nil {
 				return nil, err
 			} else {
@@ -1125,8 +1125,8 @@ func (i *Input) createHTTPClient() (*http.Client, error) {
 			}
 		}
 	} else {
-		if len(i.Servers) > 0 {
-			server := i.Servers[0]
+		if len(ipt.Servers) > 0 {
+			server := ipt.Servers[0]
 			if strings.HasPrefix(server, "https://") {
 				client.Transport = &http.Transport{
 					TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // nolint:gosec
@@ -1138,7 +1138,7 @@ func (i *Input) createHTTPClient() (*http.Client, error) {
 	return client, nil
 }
 
-func (i *Input) requestData(method string, url string, header map[string]string, body io.Reader, v interface{}) error {
+func (ipt *Input) requestData(method string, url string, header map[string]string, body io.Reader, v interface{}) error {
 	m := "GET"
 	if len(method) > 0 {
 		m = method
@@ -1151,11 +1151,11 @@ func (i *Input) requestData(method string, url string, header map[string]string,
 		return err
 	}
 
-	if i.Username != "" || i.Password != "" {
-		req.SetBasicAuth(i.Username, i.Password)
+	if ipt.Username != "" || ipt.Password != "" {
+		req.SetBasicAuth(ipt.Username, ipt.Password)
 	}
 
-	r, err := i.client.Do(req)
+	r, err := ipt.client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -1184,21 +1184,21 @@ func (i *Input) requestData(method string, url string, header map[string]string,
 	return nil
 }
 
-func (i *Input) gatherJSONData(url string, v interface{}) error {
-	return i.requestData("GET", url, nil, nil, v)
+func (ipt *Input) gatherJSONData(url string, v interface{}) error {
+	return ipt.requestData("GET", url, nil, nil, v)
 }
 
-func (i *Input) getCatMaster(url string) (string, error) {
+func (ipt *Input) getCatMaster(url string) (string, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return "", err
 	}
 
-	if i.Username != "" || i.Password != "" {
-		req.SetBasicAuth(i.Username, i.Password)
+	if ipt.Username != "" || ipt.Password != "" {
+		req.SetBasicAuth(ipt.Username, ipt.Password)
 	}
 
-	r, err := i.client.Do(req)
+	r, err := ipt.client.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -1220,22 +1220,22 @@ func (i *Input) getCatMaster(url string) (string, error) {
 	return masterID, nil
 }
 
-func (i *Input) Pause() error {
+func (ipt *Input) Pause() error {
 	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	defer tick.Stop()
 	select {
-	case i.pauseCh <- true:
+	case ipt.pauseCh <- true:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("pause %s failed", inputName)
 	}
 }
 
-func (i *Input) Resume() error {
+func (ipt *Input) Resume() error {
 	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	defer tick.Stop()
 	select {
-	case i.pauseCh <- false:
+	case ipt.pauseCh <- false:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)

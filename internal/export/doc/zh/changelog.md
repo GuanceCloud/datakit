@@ -1,6 +1,23 @@
 # 更新日志
 ---
 
+## 1.17.1(2023/10/26) {#cl-1.17.1}
+
+本次发布属于 Hotfix 发布，修复如下问题：
+
+### 问题修复 {#cl-1.17.1-fix}
+
+- 修复拨测数据无法上传的问题
+
+### 新加功能 {#cl-1.17.1-new}
+
+- 新增 [Protobuf 上传](datakit-conf.md#dataway-settings)协议支持（#1792）
+    - 注意：如果选择 Protobuf 协议，需 Kodo 升级到最新版本。
+- 新增通过 [eBPF 构建链路数据](../integrations/ebpftrace.md)，用来表示 Linux 进程/线程的调用关系（#1836）
+- Pipeline 新增函数 [`pt_name`](../developers/pipeline/pipeline-built-in-function.md#fn-pt-name)（#1937）
+
+---
+
 ## 1.17.0(2023/10/19) {#cl-1.17.0}
 本次发布属于迭代发布，主要有如下更新：
 
@@ -28,14 +45,17 @@
 - Oracle 采集器添加慢查询日志（#1906）
 - 优化采集器 point 实现（#1900）
 - [MongoDB](../integrations/mongodb.md) 采集器集成测试增加检测授权功能（#1885）
+- 优化 Dataway 发送的重试功能，额外放出可配置参数
 
 ---
 
 ## 1.16.1(2023/10/09) {#cl-1.16.1}
 
+本次发布属于 Hotfix 发布，修复如下问题：
+
 ### 问题修复 {#cl-1.16.1-fix}
 
-- 修复[K8s/容器采集器](../integrations/container.md) CPU 指标获取失败以及 containerd 下多行日志采集问题（#1895）
+- 修复 [K8s/容器采集器](../integrations/container.md) CPU 指标获取失败以及 containerd 下多行日志采集问题（#1895）
 - 修复 [Prom 采集器](../integrations/prom.md)内存占用过大问题（#1905）
 
 ### Breaking Changes {#cl-1.16.1-bc}

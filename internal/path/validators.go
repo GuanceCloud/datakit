@@ -9,7 +9,6 @@ package path
 import (
 	"errors"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -126,7 +125,7 @@ func GetFolderList(root string, deep int) (folders, files []string, err error) {
 }
 
 func GetSuffixFilesFromDirDeepOne(dir, suffixLower string) ([]string, error) {
-	fs, err := ioutil.ReadDir(dir)
+	fs, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}

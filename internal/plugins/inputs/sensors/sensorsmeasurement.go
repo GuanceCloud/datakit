@@ -6,18 +6,14 @@
 package sensors
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
+//nolint:unused
 type sensorsMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-}
-
-func (m *sensorsMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }
 
 //nolint:lll

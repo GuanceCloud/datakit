@@ -10,7 +10,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -137,7 +137,7 @@ func loadHistory() {
 		return
 	}
 
-	data, err := ioutil.ReadFile(filepath.Clean(histpath))
+	data, err := os.ReadFile(filepath.Clean(histpath))
 	if err != nil {
 		l.Warnf("read history failed: %s", err.Error())
 		return
@@ -164,7 +164,7 @@ func dumpHistory() {
 		history = history[len(history)-MaxHistory/2:] // trim older-histories
 	}
 
-	if err := ioutil.WriteFile(filepath.Join(homedir, ".dql_history"),
+	if err := os.WriteFile(filepath.Join(homedir, ".dql_history"),
 		[]byte(strings.Join(history, "\n")), os.ModePerm); err != nil {
 		l.Errorf("update history error: %s", err.Error())
 	}
@@ -384,9 +384,9 @@ func (dc *dqlCmd) doDQL(s string) ([]*queryResult, error) {
 		return nil, err
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		cp.Errorf("ioutil.ReadAll: %s\n", err.Error())
+		cp.Errorf("io.ReadAll: %s\n", err.Error())
 		return nil, err
 	}
 

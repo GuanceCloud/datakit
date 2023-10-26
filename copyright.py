@@ -37,7 +37,6 @@ PATH_EXCLUSION_REGEX = [
     'internal/win_utils/pdh',
     'internal/obfuscate',
     'internal/msgpack',
-    'internal/obfuscate',
     'internal/pipeline/grok',
     'internal/pipeline/core/parser/lex_test.go',
     'internal/pipeline/core/parser/strutil.go',

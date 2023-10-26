@@ -8,12 +8,12 @@ package httpapi
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/gin-gonic/gin"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
 
 type errMessage struct {
@@ -31,16 +31,16 @@ func apiGetDatakitLastError(c *gin.Context) {
 		return
 	}
 
-	io.DefaultFeeder().FeedLastError(em.ErrContent,
-		io.WithLastErrorInput(em.Input),
-		io.WithLastErrorSource(em.Source),
+	dkio.DefaultFeeder().FeedLastError(em.ErrContent,
+		dkio.WithLastErrorInput(em.Input),
+		dkio.WithLastErrorSource(em.Source),
 	)
 }
 
 func doAPIGetDatakitLastError(r *http.Request, w http.ResponseWriter) (*errMessage, error) {
 	var em errMessage
 
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		l.Errorf("Read body error: %s", err.Error())
 		return nil, err

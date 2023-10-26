@@ -13,29 +13,31 @@ import (
 )
 
 func TestAddTags(t *testing.T) {
-	ipt := NewInput()
+	ipt := defaultInput()
 	ipt.Tags["c"] = "d"
 	m := Measurement{
-		name:   "test_add_tags",
-		tags:   map[string]string{"a": "b"},
-		fields: map[string]interface{}{},
-		ts:     time.Time{},
+		Name:   "test_add_tags",
+		Tags:   map[string]string{"a": "b"},
+		Fields: map[string]interface{}{},
+		TS:     time.Time{},
 	}
-	ipt.addTags(&m)
-	assert.Equal(t, map[string]string{"a": "b", "c": "d"}, m.tags)
+	pt := m.Point()
+	ipt.addTags(pt)
+	assert.Equal(t, map[string]string{"a": "b", "c": "d"}, pt.MapTags())
 }
 
 func TestIgnoreTags(t *testing.T) {
-	ipt := NewInput()
+	ipt := defaultInput()
 	ipt.TagsIgnore = append(ipt.TagsIgnore, "c")
 	m := Measurement{
-		name:   "test_add_tags",
-		tags:   map[string]string{"a": "b", "c": "d"},
-		fields: map[string]interface{}{},
-		ts:     time.Time{},
+		Name:   "test_add_tags",
+		Tags:   map[string]string{"a": "b", "c": "d"},
+		Fields: map[string]interface{}{},
+		TS:     time.Time{},
 	}
-	ipt.ignoreTags(&m)
-	assert.Equal(t, map[string]string{"a": "b"}, m.tags)
+	pt := m.Point()
+	ipt.ignoreTags(pt)
+	assert.Equal(t, map[string]string{"a": "b"}, pt.MapTags())
 }
 
 func TestRenameTags(t *testing.T) {
@@ -49,10 +51,10 @@ func TestRenameTags(t *testing.T) {
 		{
 			name: "no conflict",
 			measurement: Measurement{
-				name:   "mock_measurement",
-				tags:   map[string]string{"a": "b", "c": "d"},
-				fields: map[string]interface{}{},
-				ts:     time.Now(),
+				Name:   "mock_measurement",
+				Tags:   map[string]string{"a": "b", "c": "d"},
+				Fields: map[string]interface{}{},
+				TS:     time.Now(),
 			},
 			tagsRename:   map[string]string{"a": "e"},
 			expectedTags: map[string]string{"e": "b", "c": "d"},
@@ -60,10 +62,10 @@ func TestRenameTags(t *testing.T) {
 		{
 			name: "don't overwrite",
 			measurement: Measurement{
-				name:   "mock_measurement",
-				tags:   map[string]string{"a": "b", "c": "d"},
-				fields: map[string]interface{}{},
-				ts:     time.Now(),
+				Name:   "mock_measurement",
+				Tags:   map[string]string{"a": "b", "c": "d"},
+				Fields: map[string]interface{}{},
+				TS:     time.Now(),
 			},
 			overwrite:    false,
 			tagsRename:   map[string]string{"a": "c"},
@@ -72,10 +74,10 @@ func TestRenameTags(t *testing.T) {
 		{
 			name: "overwrite",
 			measurement: Measurement{
-				name:   "mock_measurement",
-				tags:   map[string]string{"a": "b", "c": "d"},
-				fields: map[string]interface{}{},
-				ts:     time.Now(),
+				Name:   "mock_measurement",
+				Tags:   map[string]string{"a": "b", "c": "d"},
+				Fields: map[string]interface{}{},
+				TS:     time.Now(),
 			},
 			overwrite:    true,
 			tagsRename:   map[string]string{"a": "c"},
@@ -84,11 +86,14 @@ func TestRenameTags(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ipt := NewInput()
+			ipt := defaultInput()
 			ipt.Overwrite = tc.overwrite
 			ipt.TagsRename = tc.tagsRename
-			ipt.renameTags(&tc.measurement)
-			assert.Equal(t, tc.expectedTags, tc.measurement.tags)
+
+			pt := tc.measurement.Point()
+
+			ipt.renameTags(pt)
+			assert.Equal(t, tc.expectedTags, pt.MapTags())
 		})
 	}
 }

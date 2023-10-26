@@ -17,7 +17,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 var (
@@ -60,7 +59,7 @@ type Input struct {
 	DeprecatedConf
 
 	Feeder dkio.Feeder
-	Tagger dkpt.GlobalTagger
+	Tagger datakit.GlobalTagger
 
 	semStop *cliutils.Sem // start stop signal
 	pause   *atomic.Bool
@@ -87,28 +86,28 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return getCollectorMeasurement()
 }
 
-func (i *Input) ElectionEnabled() bool { return i.Election }
+func (ipt *Input) ElectionEnabled() bool { return ipt.Election }
 
-func (i *Input) Terminate() {
-	if i.semStop != nil {
-		i.semStop.Close()
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
 	}
 }
 
-func (i *Input) Pause() error {
+func (ipt *Input) Pause() error {
 	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	select {
-	case i.chPause <- true:
+	case ipt.chPause <- true:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("pause %s failed", inputName)
 	}
 }
 
-func (i *Input) Resume() error {
+func (ipt *Input) Resume() error {
 	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	select {
-	case i.chPause <- false:
+	case ipt.chPause <- false:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
@@ -124,7 +123,7 @@ func newInput() *Input {
 		LoggingSourceMultilineMap: make(map[string]string),
 		Election:                  true,
 		Feeder:                    dkio.DefaultFeeder(),
-		Tagger:                    dkpt.DefaultGlobalTagger(),
+		Tagger:                    datakit.DefaultGlobalTagger(),
 		pause:                     pause,
 		chPause:                   make(chan bool, inputs.ElectionPauseChannelLength),
 		semStop:                   cliutils.NewSem(),

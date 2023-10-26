@@ -35,10 +35,17 @@ func newCDNResolved(domain, cname, cdnName string, created time.Time) *cdnResolv
 }
 
 func (ipt *Input) handleProvider(p *point.Point) (*point.Point, error) {
-	providerType := "unknown"
-	providerName := "unknown"
-	tags := p.InfluxTags()
-	resourceDomain := tags["resource_url_host"]
+	var (
+		providerType = "unknown"
+		providerName = "unknown"
+	)
+
+	resourceDomain, ok := p.Get("resource_url_host").(string)
+	if !ok {
+		log.Warnf("invalid key resource_url_host(expect string) in point %s", p.Pretty())
+		return nil, fmt.Errorf("invalid key resource_url_host")
+	}
+
 	if resourceDomain != "" && isDomainName(resourceDomain) {
 		node := cdnCache.get(resourceDomain)
 		var (
@@ -84,8 +91,8 @@ func (ipt *Input) handleProvider(p *point.Point) (*point.Point, error) {
 			providerName = cdnName
 		}
 	}
-	p.MustAdd([]byte("provider_type"), providerType)
-	p.MustAdd([]byte("provider_name"), providerName)
+	p.MustAdd("provider_type", providerType)
+	p.MustAdd("provider_name", providerName)
 	return p, nil
 }
 

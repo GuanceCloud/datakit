@@ -14,6 +14,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	influxdb "github.com/influxdata/influxdb1-client/v2"
 )
 
@@ -184,6 +185,34 @@ func RandPoint(name string, maxTags, maxFields int) *influxdb.Point {
 			break
 		}
 	}
+
+	return pnt
+}
+
+func RandPointV2(name string, maxTags, maxFields int) *point.Point {
+	if len(name) == 0 {
+		name = RandString(15)
+	}
+
+	if maxTags <= 0 {
+		maxTags = 15
+	}
+
+	if maxFields <= 0 {
+		maxFields = 30
+	}
+
+	var pnt *point.Point
+
+	tags := RandTags(maxTags, 15, 45)
+	fields := RandFields(maxFields, 15)
+
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(time.Now()))
+
+	pnt = point.NewPointV2(name,
+		append(point.NewTags(tags), point.NewKVs(fields)...),
+		opts...)
 
 	return pnt
 }

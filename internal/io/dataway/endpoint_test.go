@@ -9,7 +9,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
@@ -22,12 +21,10 @@ import (
 	"github.com/GuanceCloud/cliutils/metrics"
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/GuanceCloud/cliutils/point"
-	"github.com/GuanceCloud/cliutils/testutil"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 func TestEndpointRetry(t *T.T) {
@@ -48,68 +45,46 @@ func TestEndpointRetry(t *T.T) {
 	t.Logf("resp: %+#v\nerr: %s", resp, err)
 }
 
-func TestRetryGetBodyNil(t *T.T) {
-	bodyText := `观测云提供快速实现系统可观测的解决方案，满足云、云原生、应用和业务上的监测需求。
-通过自定义监测方案，实现实时可交互仪表板、高效观测基础设施、全链路应用性能可观测等功能，保障系统稳定性`
-
-	reqCnt := 5
-
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		b, err := io.ReadAll(req.Body)
-		testutil.Ok(t, err)
-		testutil.Equals(t, bodyText, string(b))
-		t.Log(string(b))
-		reqCnt--
-		if reqCnt > 0 {
+func TestEndpointMetrics(t *T.T) {
+	t.Run("5xx-request", func(t *T.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
-		} else {
-			w.WriteHeader(http.StatusOK)
-			_, err := io.WriteString(w, "It works")
-			testutil.Ok(t, err)
+		}))
+
+		reg := prometheus.NewRegistry()
+		reg.MustRegister(Metrics()...)
+
+		t.Cleanup(func() {
+			ts.Close()
+			metricsReset()
+		})
+
+		api := "/some/path"
+		urlstr := fmt.Sprintf("%s%s?token=abc", ts.URL, api)
+		ep, err := newEndpoint(urlstr, withHTTPTrace(true))
+		assert.NoError(t, err)
+
+		req, err := http.NewRequest("POST", urlstr, nil)
+		assert.NoError(t, err)
+
+		_, err = ep.sendReq(req)
+		if err != nil {
+			t.Logf("%s", err)
 		}
-	}))
 
-	dw := fmt.Sprintf("%s?token=abc", ts.URL)
-	ep, err := newEndpoint(dw, withHTTPTrace(true),
-		withMaxRetryCount(reqCnt),
-		withRetryDelay(time.Millisecond*100),
-	)
-	assert.NoError(t, err)
+		mfs, err := reg.Gather()
+		assert.NoError(t, err)
 
-	req, err := http.NewRequest(http.MethodPost, dw, bufio.NewReader(strings.NewReader(bodyText)))
-	assert.NoError(t, err)
+		m := metrics.GetMetricOnLabels(mfs,
+			`datakit_io_http_retry_total`,
+			api,
+			http.StatusText(http.StatusInternalServerError))
 
-	// Because the body is not any of *bytes.Buffer, *bytes.Reader and *strings.Reader, but a *bufio.Reader,
-	// so req.GetBody is nil
-	testutil.Assert(t, nil == req.GetBody, "expect req.GetBody nil")
+		t.Logf("get metrics:\n%s", metrics.MetricFamily2Text(mfs))
 
-	resp, err := ep.sendReq(req)
-	testutil.Ok(t, err)
+		assert.Equal(t, float64(DefaultRetryCount), m.GetCounter().GetValue())
+	})
 
-	testutil.Equals(t, http.StatusOK, resp.StatusCode)
-}
-
-func TestEndpointFailedRequest(t *T.T) {
-	t.Skip() // only for feature test
-
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusInternalServerError)
-	}))
-
-	urlstr := fmt.Sprintf("%s?token=abc", ts.URL)
-	ep, err := newEndpoint(urlstr, withHTTPTrace(true))
-	assert.NoError(t, err)
-
-	req, err := http.NewRequest("POST", urlstr, nil)
-	assert.NoError(t, err)
-	for {
-		resp, err := ep.sendReq(req)
-		t.Logf("sendReq: %v, resp: %+#v", err, resp)
-		time.Sleep(time.Second)
-	}
-}
-
-func TestEndpoint(t *T.T) {
 	t.Run("new", func(t *T.T) {
 		ep, err := newEndpoint("https://openway.guance.com?token=tkn_for_testing", nil)
 
@@ -123,7 +98,7 @@ func TestEndpoint(t *T.T) {
 
 	t.Run("write-points-4xx", func(t *T.T) {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			body, err := ioutil.ReadAll(r.Body)
+			body, err := io.ReadAll(r.Body)
 			assert.NoError(t, err)
 
 			defer r.Body.Close()
@@ -158,12 +133,9 @@ test-2 f1=1i,f2=false 123`), x)
 
 		s := &writer{
 			category: point.Metric,
-			pts: []*dkpt.Point{
-				dkpt.MustNewPoint("test-1", nil, map[string]any{"f1": 1, "f2": false},
-					&dkpt.PointOption{Category: datakit.Metric, Time: time.Unix(0, 123)}),
-
-				dkpt.MustNewPoint("test-2", nil, map[string]any{"f1": 1, "f2": false},
-					&dkpt.PointOption{Category: datakit.Metric, Time: time.Unix(0, 123)}),
+			points: []*point.Point{
+				point.NewPointV2("test-1", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
+				point.NewPointV2("test-2", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
 			},
 		}
 
@@ -171,7 +143,7 @@ test-2 f1=1i,f2=false 123`), x)
 
 		mfs, err := reg.Gather()
 		require.NoError(t, err)
-		t.Logf("get metrics: %s", metrics.MetricFamily2Text(mfs))
+		t.Logf("get metrics:\n%s", metrics.MetricFamily2Text(mfs))
 
 		m := metrics.GetMetricOnLabels(mfs,
 			`datakit_io_dataway_api_latency_seconds`,
@@ -184,7 +156,7 @@ test-2 f1=1i,f2=false 123`), x)
 			`datakit_io_dataway_point_total`,
 			point.Metric.String(),
 			http.StatusText(http.StatusBadRequest))
-		assert.Equal(t, float64(2), m.GetCounter().GetValue())
+		assert.Equal(t, 2.0, m.GetCounter().GetValue())
 
 		m = metrics.GetMetricOnLabels(mfs,
 			`datakit_io_dataway_point_bytes_total`,
@@ -201,7 +173,7 @@ test-2 f1=1i,f2=false 123`), x)
 
 	t.Run("write-n-points-ok", func(t *T.T) {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			body, err := ioutil.ReadAll(r.Body)
+			body, err := io.ReadAll(r.Body)
 			defer r.Body.Close()
 			assert.NoError(t, err)
 
@@ -231,12 +203,9 @@ test-2 f1=1i,f2=false 123`), x)
 
 		w := &writer{
 			category: point.Metric,
-			pts: []*dkpt.Point{
-				dkpt.MustNewPoint("test-1", nil, map[string]any{"f1": 1, "f2": false},
-					&dkpt.PointOption{Category: datakit.Metric, Time: time.Unix(0, 123)}),
-
-				dkpt.MustNewPoint("test-2", nil, map[string]any{"f1": 1, "f2": false},
-					&dkpt.PointOption{Category: datakit.Metric, Time: time.Unix(0, 123)}),
+			points: []*point.Point{
+				point.NewPointV2("test-1", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
+				point.NewPointV2("test-2", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
 			},
 		}
 
@@ -258,7 +227,7 @@ test-2 f1=1i,f2=false 123`), x)
 			`datakit_io_dataway_point_total`,
 			point.Metric.String(),
 			http.StatusText(http.StatusOK))
-		assert.Equal(t, float64(2), m.GetCounter().GetValue())
+		assert.Equal(t, 2.0, m.GetCounter().GetValue())
 
 		m = metrics.GetMetricOnLabels(mfs,
 			`datakit_io_dataway_point_bytes_total`,
@@ -275,7 +244,7 @@ test-2 f1=1i,f2=false 123`), x)
 
 	t.Run("with-proxy", func(t *T.T) {
 		backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			body, err := ioutil.ReadAll(r.Body)
+			body, err := io.ReadAll(r.Body)
 			assert.NoError(t, err)
 
 			t.Logf("proxed request headers: %+#v", r.Header)
@@ -309,12 +278,9 @@ test-2 f1=1i,f2=false 123`), x)
 
 		w := &writer{
 			category: point.Metric,
-			pts: []*dkpt.Point{
-				dkpt.MustNewPoint("test-1", nil, map[string]any{"f1": 1, "f2": false},
-					&dkpt.PointOption{Category: datakit.Metric, Time: time.Unix(0, 123)}),
-
-				dkpt.MustNewPoint("test-2", nil, map[string]any{"f1": 1, "f2": false},
-					&dkpt.PointOption{Category: datakit.Metric, Time: time.Unix(0, 123)}),
+			points: []*point.Point{
+				point.NewPointV2("test-1", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
+				point.NewPointV2("test-2", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
 			},
 		}
 
@@ -339,7 +305,7 @@ test-2 f1=1i,f2=false 123`), x)
 			`datakit_io_dataway_point_total`,
 			point.Metric.String(),
 			http.StatusText(http.StatusOK))
-		assert.Equal(t, float64(2), m.GetCounter().GetValue())
+		assert.Equal(t, 2.0, m.GetCounter().GetValue())
 
 		m = metrics.GetMetricOnLabels(mfs,
 			`datakit_io_dataway_point_bytes_total`,
@@ -352,4 +318,69 @@ test-2 f1=1i,f2=false 123`), x)
 			metricsReset()
 		})
 	})
+}
+
+func TestRetryGetBodyNil(t *T.T) {
+	bodyText := `观测云提供快速实现系统可观测的解决方案，满足云、云原生、应用和业务上的监测需求。
+通过自定义监测方案，实现实时可交互仪表板、高效观测基础设施、全链路应用性能可观测等功能，保障系统稳定性`
+
+	reqCnt := 5
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		b, err := io.ReadAll(req.Body)
+		assert.NoError(t, err)
+		assert.Equal(t, bodyText, string(b))
+
+		t.Logf("body: %s, retry: %d", string(b), reqCnt)
+
+		reqCnt--
+		if reqCnt > 0 {
+			w.WriteHeader(http.StatusInternalServerError)
+		} else {
+			w.WriteHeader(http.StatusOK)
+			_, err := io.WriteString(w, "It works")
+			assert.NoError(t, err)
+		}
+	}))
+
+	time.Sleep(time.Second)
+
+	dw := fmt.Sprintf("%s?token=abc", ts.URL)
+	ep, err := newEndpoint(dw, withHTTPTrace(true),
+		withMaxRetryCount(reqCnt),
+		withRetryDelay(time.Millisecond*100),
+	)
+	assert.NoError(t, err)
+
+	req, err := http.NewRequest(http.MethodPost, dw, bufio.NewReader(strings.NewReader(bodyText)))
+	assert.NoError(t, err)
+
+	// Because the body is not any of *bytes.Buffer, *bytes.Reader and *strings.Reader, but a *bufio.Reader,
+	// so req.GetBody is nil
+	assert.Nil(t, req.GetBody, "expect req.GetBody nil")
+
+	resp, err := ep.sendReq(req)
+	assert.NoErrorf(t, err, "endpoint: %+#v", ep)
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
+func TestEndpointFailedRequest(t *T.T) {
+	t.Skip() // only for feature test
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+
+	urlstr := fmt.Sprintf("%s?token=abc", ts.URL)
+	ep, err := newEndpoint(urlstr, withHTTPTrace(true))
+	assert.NoError(t, err)
+
+	req, err := http.NewRequest("POST", urlstr, nil)
+	assert.NoError(t, err)
+	for {
+		resp, err := ep.sendReq(req)
+		t.Logf("sendReq: %v, resp: %+#v", err, resp)
+		time.Sleep(time.Second)
+	}
 }

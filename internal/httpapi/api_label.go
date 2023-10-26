@@ -7,7 +7,7 @@ package httpapi
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/gin-gonic/gin"
@@ -42,7 +42,7 @@ func apiCreateOrUpdateObjectLabel(c *gin.Context) {
 		return
 	}
 
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		l.Errorf("read response body %s", err)
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
@@ -82,7 +82,7 @@ func apiDeleteObjectLabel(c *gin.Context) {
 		return
 	}
 
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		l.Errorf("read response body %s", err)
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))

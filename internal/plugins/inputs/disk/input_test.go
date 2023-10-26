@@ -16,7 +16,7 @@ import (
 func TestCollect(t *testing.T) {
 	i := defaultInput()
 	for x := 0; x < 1; x++ {
-		if err := i.Collect(); err != nil {
+		if err := i.collect(); err != nil {
 			t.Error(err)
 		}
 		time.Sleep(time.Second * 1)
@@ -25,8 +25,8 @@ func TestCollect(t *testing.T) {
 		t.Error("Failed to collect, no data returned")
 	}
 	tmap := map[string]bool{}
-	for _, v := range i.collectCache {
-		tmap[v.Time().String()] = true
+	for _, pt := range i.collectCache {
+		tmap[pt.Time().String()] = true
 	}
 	if len(tmap) != 1 {
 		t.Error("Need to clear collectCache.")

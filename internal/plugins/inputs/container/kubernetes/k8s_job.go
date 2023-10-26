@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
 
@@ -151,8 +150,6 @@ func (m *jobMetadata) transformObject() pointKVs {
 
 type jobMetric struct{}
 
-func (*jobMetric) LineProto() (*dkpt.Point, error) { return nil, nil }
-
 //nolint:lll
 func (*jobMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
@@ -175,8 +172,6 @@ func (*jobMetric) Info() *inputs.MeasurementInfo {
 }
 
 type jobObject struct{}
-
-func (*jobObject) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*jobObject) Info() *inputs.MeasurementInfo {

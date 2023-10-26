@@ -9,19 +9,10 @@
 package dialtesting
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-type httpMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-}
-
-func (m *httpMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.LOpt())
-}
+type httpMeasurement struct{}
 
 //nolint:lll
 func (m *httpMeasurement) Info() *inputs.MeasurementInfo {
@@ -120,15 +111,7 @@ func (m *httpMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type tcpMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-}
-
-func (m *tcpMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.LOpt())
-}
+type tcpMeasurement struct{}
 
 //nolint:lll
 func (m *tcpMeasurement) Info() *inputs.MeasurementInfo {
@@ -195,15 +178,7 @@ func (m *tcpMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type icmpMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-}
-
-func (m *icmpMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.LOpt())
-}
+type icmpMeasurement struct{}
 
 //nolint:lll
 func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
@@ -322,15 +297,7 @@ func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type websocketMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-}
-
-func (m *websocketMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.LOpt())
-}
+type websocketMeasurement struct{}
 
 //nolint:lll
 func (m *websocketMeasurement) Info() *inputs.MeasurementInfo {

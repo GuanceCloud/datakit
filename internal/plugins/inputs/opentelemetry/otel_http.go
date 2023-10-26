@@ -8,11 +8,9 @@ package opentelemetry
 import (
 	"net/http"
 
+	"github.com/GuanceCloud/cliutils/point"
 	metrics "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/collector/metrics/v1"
 	trace "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/collector/trace/v1"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -109,7 +107,7 @@ func handleOTElMetrics(resp http.ResponseWriter, req *http.Request) {
 		}
 	}
 	if len(points) != 0 {
-		if err = dkio.Feed(inputName, datakit.Metric, points, nil); err != nil {
+		if err = iptGlobal.feeder.Feed(inputName, point.Metric, points, nil); err != nil {
 			log.Error(err.Error())
 		}
 	}

@@ -18,9 +18,10 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 type customTime struct {
@@ -556,10 +557,19 @@ func (ipt *Input) getPoint(data []byte, eventType string) ([]*point.Point, error
 		return nil, fmt.Errorf("unrecognized event payload: %v", eventType)
 	}
 	ipt.addExtraTags(tags)
-	pt, err := point.NewPoint(measurementName, tags, fields, point.LOptElection())
-	if err != nil {
-		return nil, err
+
+	opts := point.DefaultLoggingOptions()
+	opts = append(opts, point.WithTime(time.Now()))
+
+	if ipt.Election {
+		tags = inputs.MergeTagsWrapper(tags, ipt.Tagger.ElectionTags(), ipt.Tags, ipt.URL)
+	} else {
+		tags = inputs.MergeTagsWrapper(tags, ipt.Tagger.HostTags(), ipt.Tags, ipt.URL)
 	}
+
+	pt := point.NewPointV2(measurementName,
+		append(point.NewTags(tags), point.NewKVs(fields)...), opts...)
+
 	return []*point.Point{pt}, nil
 }
 
@@ -612,8 +622,14 @@ func (ipt *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		// Skip unwanted events.
 		return
 	}
-	if err := ipt.feed("gitlab_ci", datakit.Logging, pts, &iod.Option{}); err != nil {
-		ipt.feedLastError(inputName, err.Error())
+
+	if err := ipt.feeder.Feed("gitlab_ci", point.Logging, pts, &dkio.Option{}); err != nil {
+		l.Warnf("Feed failed: %s", err.Error())
+		ipt.feeder.FeedLastError(err.Error(),
+			dkio.WithLastErrorInput(inputName),
+			dkio.WithLastErrorCategory(point.Logging),
+		)
+
 		resp.WriteHeader(http.StatusInternalServerError)
 		ipt.reqMemo.remove(digest)
 		return

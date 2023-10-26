@@ -8,12 +8,13 @@ package logger
 
 import (
 	"fmt"
-	"io/ioutil"
+	"log"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/robfig/cron/v3"
 	"go.uber.org/zap"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
@@ -64,11 +65,11 @@ func SetGlobalRootLogger(fpath, level string, options int) error {
 }
 
 // InitRoot used to setup global root logger, include
-//	- log level
-//	- log path
-//		- set to disk file(with or without rotate)
-//		- set to some remtoe TCP/UDP server
-//	- a bounch of other OPT_XXXs
+//   - log level
+//   - log path
+//   - set to disk file(with or without rotate)
+//   - set to some remtoe TCP/UDP server
+//   - a bounch of other OPT_XXXs
 func InitRoot(opt *Option) error {
 	if opt == nil {
 		opt = defaultOption
@@ -128,7 +129,7 @@ func newRootLogger(fpath, level string, options int) (*zap.Logger, error) {
 			}
 
 			// create empty log file
-			if err := ioutil.WriteFile(fpath, nil, 0o600); err != nil {
+			if err := os.WriteFile(fpath, nil, 0o600); err != nil {
 				return nil, fmt.Errorf("WriteFile(%s): %w", fpath, err)
 			}
 		}
@@ -138,7 +139,6 @@ func newRootLogger(fpath, level string, options int) (*zap.Logger, error) {
 	if options&OPT_ROTATE != 0 &&
 		options&OPT_STDOUT == 0 && // can't rotate stdout
 		fpath != os.DevNull { // can't rotate(rename) /dev/null
-
 		return newCustomizeRootLogger(level, options, &lumberjack.Logger{
 			Filename:   fpath,
 			MaxSize:    MaxSize,
@@ -148,4 +148,33 @@ func newRootLogger(fpath, level string, options int) (*zap.Logger, error) {
 	}
 
 	return newNormalRootLogger(fpath, level, options)
+}
+
+// InitCustomizeRoot used to setup global root logger, include
+//   - log path
+//   - log maxsize
+//   - log compress
+
+func InitCustomizeRoot(opt *Option) (*zap.Logger, error) {
+	mtx.Lock()
+	defer mtx.Unlock()
+
+	lumberLog := &lumberjack.Logger{
+		Filename: opt.Path,
+		MaxSize:  opt.MaxSize,
+		Compress: opt.Compress,
+	}
+
+	c := cron.New(cron.WithSeconds())
+	if _, err := c.AddFunc("50 59 * * * *",
+		func() {
+			if err := lumberLog.Rotate(); err != nil {
+				log.Printf("lumberLog.Rotate: %s, ignored", err.Error())
+			}
+		}); err != nil {
+		return nil, err
+	}
+	c.Start()
+
+	return newOnlyMessageRootLogger(lumberLog)
 }

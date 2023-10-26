@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -20,7 +19,8 @@ import (
 	"strings"
 	"time"
 
-	lp "github.com/GuanceCloud/cliutils/lineproto"
+	"github.com/GuanceCloud/cliutils/pipeline/ptinput"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 	"github.com/GuanceCloud/platypus/pkg/token"
 	"github.com/gin-gonic/gin"
@@ -28,12 +28,9 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-
-	clipt "github.com/GuanceCloud/cliutils/point"
 )
 
 var dcaErrorMessage = map[string]string{
@@ -41,7 +38,7 @@ var dcaErrorMessage = map[string]string{
 }
 
 func getBody(c *gin.Context, data interface{}) error {
-	body, err := ioutil.ReadAll(c.Request.Body)
+	body, err := io.ReadAll(c.Request.Body)
 	defer c.Request.Body.Close() //nolint:errcheck
 	if err != nil {
 		return err
@@ -274,7 +271,7 @@ func dcaGetConfig(c *gin.Context) {
 		return
 	}
 
-	content, err := ioutil.ReadFile(filepath.Clean(path))
+	content, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		l.Errorf("Read config file %s error: %s", path, err.Error())
 		context.fail(dcaError{ErrorCode: "invalid.path", ErrorMsg: "invalid path"})
@@ -284,7 +281,7 @@ func dcaGetConfig(c *gin.Context) {
 }
 
 func dcaDeleteConfig(c *gin.Context) {
-	body, err := ioutil.ReadAll(c.Request.Body)
+	body, err := io.ReadAll(c.Request.Body)
 	defer c.Request.Body.Close() //nolint:errcheck
 
 	context := &dcaContext{c: c}
@@ -326,7 +323,7 @@ func dcaDeleteConfig(c *gin.Context) {
 
 // save config.
 func dcaSaveConfig(c *gin.Context) {
-	body, err := ioutil.ReadAll(c.Request.Body)
+	body, err := io.ReadAll(c.Request.Body)
 
 	defer c.Request.Body.Close() //nolint:errcheck
 
@@ -358,7 +355,7 @@ func dcaSaveConfig(c *gin.Context) {
 			var content []byte
 			var err error
 
-			if content, err = ioutil.ReadFile(param.Path); err != nil {
+			if content, err = os.ReadFile(param.Path); err != nil {
 				l.Errorf("Read file %s error: %s", param.Path, err.Error())
 				context.fail()
 				return
@@ -376,7 +373,7 @@ func dcaSaveConfig(c *gin.Context) {
 	}
 
 	// create and save
-	err = ioutil.WriteFile(param.Path, configContent, datakit.ConfPerm)
+	err = os.WriteFile(param.Path, configContent, datakit.ConfPerm)
 	if err != nil {
 		l.Errorf("Write file %s failed: %s", param.Path, err.Error())
 		context.fail()
@@ -467,7 +464,7 @@ func dcaGetFilter(c *gin.Context) {
 	context := getContext(c)
 	dataDir := datakit.DataDir
 	pullFilePath := filepath.Join(dataDir, ".pull")
-	pullFileBytes, err := ioutil.ReadFile(pullFilePath) //nolint: gosec
+	pullFileBytes, err := os.ReadFile(pullFilePath) //nolint: gosec
 	if err != nil {
 		context.success(filterInfo{Content: "", FilePath: ""})
 		return
@@ -580,7 +577,7 @@ type pipelineInfo struct {
 func dcaGetPipelines(c *gin.Context) {
 	context := getContext(c)
 
-	allFiles, err := ioutil.ReadDir(datakit.PipelineDir)
+	allFiles, err := os.ReadDir(datakit.PipelineDir)
 	if err != nil {
 		context.fail()
 		return
@@ -597,7 +594,7 @@ func dcaGetPipelines(c *gin.Context) {
 			}
 		} else {
 			pipelines = append(pipelines, pipelineInfo{Category: file.Name()})
-			allFiles, err := ioutil.ReadDir(filepath.Join(datakit.PipelineDir, file.Name()))
+			allFiles, err := os.ReadDir(filepath.Join(datakit.PipelineDir, file.Name()))
 			if err != nil {
 				context.fail()
 				return
@@ -644,7 +641,7 @@ func dcaGetPipelinesDetail(c *gin.Context) {
 
 	path := filepath.Join(datakit.PipelineDir, category, fileName)
 
-	contentBytes, err := ioutil.ReadFile(filepath.Clean(path))
+	contentBytes, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		l.Errorf("Read pipeline file %s failed: %s", path, err.Error())
 		context.fail(dcaError{ErrorCode: "param.invalid", ErrorMsg: fmt.Sprintf("param %s is not valid", fileName)})
@@ -720,7 +717,7 @@ func dcaSavePipeline(c *gin.Context, isUpdate bool) {
 		return
 	}
 
-	err = ioutil.WriteFile(filePath, []byte(pipeline.Content), datakit.ConfPerm)
+	err = os.WriteFile(filePath, []byte(pipeline.Content), datakit.ConfPerm)
 
 	if err != nil {
 		l.Errorf("Write pipeline file %s failed: %s", filePath, err.Error())
@@ -732,7 +729,7 @@ func dcaSavePipeline(c *gin.Context, isUpdate bool) {
 }
 
 func dcaDeletePipelines(c *gin.Context) {
-	body, err := ioutil.ReadAll(c.Request.Body)
+	body, err := io.ReadAll(c.Request.Body)
 	defer c.Request.Body.Close() //nolint:errcheck
 
 	context := &dcaContext{c: c}
@@ -774,20 +771,18 @@ func dcaDeletePipelines(c *gin.Context) {
 
 func pipelineTest(pipelineFile string, text string) (string, error) {
 	// TODO
-	pl, err := pipeline.NewPipelineFromFile(clipt.Logging, filepath.Join(datakit.PipelineDir, pipelineFile))
-	if err != nil {
-		return "", err
-	}
-	opt := &point.PointOption{
-		Category: datakit.Logging,
-		Time:     time.Now(),
-	}
-	pt, err := point.NewPoint("default", nil, map[string]interface{}{pipeline.FieldMessage: text}, opt)
+	pl, err := pipeline.NewPlScriptSampleFromFile(point.Logging, filepath.Join(datakit.PipelineDir, pipelineFile))
 	if err != nil {
 		return "", err
 	}
 
-	plpt, err := pl.Run(clipt.Logging, pt, nil, opt, nil)
+	kvs := point.NewTags(datakit.GlobalHostTags())
+	kvs = append(kvs, point.NewKVs(map[string]interface{}{pipeline.FieldMessage: text})...)
+	opt := point.DefaultLoggingOptions()
+	pt := point.NewPointV2("default", kvs, opt...)
+
+	plpt := ptinput.WrapPoint(point.Logging, pt)
+	err = pl.Run(plpt, nil, nil)
 	if err != nil {
 		return "", err
 	}
@@ -797,30 +792,20 @@ func pipelineTest(pipelineFile string, text string) (string, error) {
 		return "", nil
 	}
 
-	dkPt, err := plpt.DkPoint()
-	if err != nil {
-		return "", err
-	}
-
-	fields, err := dkPt.Fields()
-	if err != nil {
-		return "", err
-	}
-
-	tags := plpt.Tags()
-
 	if plpt.Dropped() {
 		l.Debug("the current log has been dropped by the pipeline script")
 		return "", nil
 	}
 
+	plpt.KeyTime2Time()
+
 	res := pipeline.Result{
 		Output: &pipeline.Output{
 			Drop:        plpt.Dropped(),
-			Measurement: dkPt.Name(),
-			Time:        dkPt.Time(),
-			Tags:        tags,
-			Fields:      fields,
+			Measurement: plpt.GetPtName(),
+			Time:        plpt.PtTime(),
+			Tags:        plpt.Tags(),
+			Fields:      plpt.Fields(),
 		},
 	}
 	if j, err := json.Marshal(res); err != nil {
@@ -856,9 +841,9 @@ func dcaTestPipelines(c *gin.Context) {
 		body.Category = "logging"
 	}
 
-	category := normalizeCategory(body.Category)
+	category := point.CatString(body.Category)
 
-	pls, errs := pipeline.NewPipelineMulti(category, body.Pipeline[body.Category], nil)
+	pls, errs := pipeline.NewPipelineMulti(category, body.Pipeline[body.Category], nil, nil)
 	if err, ok := errs[body.ScriptName]; ok && err != nil {
 		context.fail(dcaError{ErrorCode: "400", ErrorMsg: fmt.Sprintf("pipeline parse error: %s", err.Error())})
 		return
@@ -873,40 +858,40 @@ func dcaTestPipelines(c *gin.Context) {
 
 	var pts []*point.Point
 	var pointErr error
+
+	dec := point.GetDecoder(point.WithDecEncoding(point.LineProtocol))
+	defer point.PutDecoder(dec)
+
 	for _, data := range body.Data {
 		switch category {
-		case clipt.Logging:
-			pt, err := point.NewPoint(body.ScriptName, nil, map[string]interface{}{
+		case point.Logging:
+			kvs := point.NewTags(datakit.GlobalHostTags())
+			kvs = append(kvs, point.NewKVs(map[string]interface{}{
 				pipeline.FieldMessage: data,
-			}, &point.PointOption{
-				Category: category.URL(),
-				Time:     time.Now(),
-			})
-			if err != nil {
-				l.Warnf("make logging point error: %s", err.Error())
-				pointErr = err
-				break
-			}
-			pts = append(pts, pt)
-		case clipt.CustomObject,
-			clipt.DynamicDWCategory,
-			clipt.KeyEvent,
-			clipt.MetricDeprecated,
-			clipt.Metric,
-			clipt.Network,
-			clipt.Object,
-			clipt.Profiling,
-			clipt.RUM,
-			clipt.Security,
-			clipt.Tracing,
-			clipt.UnknownCategory:
-			ps, err := lp.ParsePoints([]byte(data), nil)
+			})...)
+			pts = append(pts, point.NewPointV2(
+				body.ScriptName, kvs, point.DefaultLoggingOptions()...))
+
+		case point.CustomObject,
+			point.DynamicDWCategory,
+			point.KeyEvent,
+			point.MetricDeprecated,
+			point.Metric,
+			point.Network,
+			point.Object,
+			point.Profiling,
+			point.RUM,
+			point.Security,
+			point.Tracing,
+			point.UnknownCategory:
+
+			arr, err := dec.Decode([]byte(data))
 			if err != nil {
 				l.Warnf("make point error: %s", err.Error())
 				pointErr = err
 				break
 			}
-			pts = append(pts, point.WrapPoint(ps)...)
+			pts = append(pts, arr...)
 		}
 	}
 
@@ -915,15 +900,11 @@ func dcaTestPipelines(c *gin.Context) {
 		return
 	}
 
-	opt := &point.PointOption{
-		Category: category.URL(),
-		Time:     time.Now(),
-	}
-
 	var runResult []*pipelineResult
 
 	for _, pt := range pts {
-		pt, err := pl.Run(category, pt, nil, opt, newPlTestSingal())
+		plpt := ptinput.WrapPoint(category, pt)
+		err := pl.Run(plpt, newPlTestSingal(), nil)
 		if err != nil {
 			plerr, ok := err.(*errchain.PlError) //nolint:errorlint
 			if !ok {
@@ -937,26 +918,19 @@ func dcaTestPipelines(c *gin.Context) {
 				RunError: plerr,
 			})
 		} else {
-			dropFlag := pt.Dropped()
-			if pt, err := pt.DkPoint(); err == nil {
-				fields, err := pt.Fields()
-				if err != nil {
-					l.Errorf("Fields: %s", err.Error())
-					context.fail(dcaError{ErrorCode: "500", ErrorMsg: fmt.Sprintf("fields failed: %s", err.Error())})
-					return
-				}
+			dropFlag := plpt.Dropped()
 
-				runResult = append(runResult, &pipelineResult{
-					Point: &PlRetPoint{
-						Dropped: dropFlag,
-						Name:    pt.Name(),
-						Tags:    pt.Tags(),
-						Fields:  fields,
-						Time:    pt.Time().Unix(),
-						TimeNS:  int64(pt.Time().Nanosecond()),
-					},
-				})
-			}
+			plpt.KeyTime2Time()
+			runResult = append(runResult, &pipelineResult{
+				Point: &PlRetPoint{
+					Dropped: dropFlag,
+					Name:    plpt.GetPtName(),
+					Tags:    plpt.Tags(),
+					Fields:  plpt.Fields(),
+					Time:    plpt.PtTime().Unix(),
+					TimeNS:  int64(plpt.PtTime().Nanosecond()),
+				},
+			})
 		}
 	}
 	context.success(&runResult)

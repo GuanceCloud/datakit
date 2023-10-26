@@ -15,7 +15,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptrace"
 	"net/url"
@@ -376,7 +375,7 @@ func (t *HTTPTask) Run() error {
 	}
 
 	t.reqCost = time.Since(t.reqStart)
-	t.respBody, err = ioutil.ReadAll(t.resp.Body)
+	t.respBody, err = io.ReadAll(t.resp.Body)
 	if err != nil {
 		goto result
 	}

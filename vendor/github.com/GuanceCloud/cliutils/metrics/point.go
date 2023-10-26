@@ -15,13 +15,16 @@ import (
 )
 
 // mergePts merge pts when:
-//  - they got same measurement name
-//  - they got same tag key and tag values
-//  - they got same time(nano-second)
 //
-//  NOTE: you should ensure that these time is equal, point's hash not
-//  covered the time field. For prometheus metrics, these time value are
-//  the same.
+//   - they got same measurement name
+//
+//   - they got same tag key and tag values
+//
+//   - they got same time(nano-second)
+//
+//     NOTE: you should ensure that these time is equal, point's hash not
+//     covered the time field. For prometheus metrics, these time value are
+//     the same.
 //
 // When point.Point are logging, due to the lack of `time-series',
 // we hava to merge multiple points' fields together to build a single point.
@@ -74,15 +77,15 @@ func doGatherPoints(reg prometheus.Gatherer) ([]*point.Point, error) {
 		for _, m := range mf.Metric {
 			var kvs point.KVs
 			for _, label := range m.GetLabel() {
-				kvs = append(kvs, point.NewKV([]byte(label.GetName()), label.GetValue(), point.WithKVTagSet(true)))
+				kvs = append(kvs, point.NewKV(label.GetName(), label.GetValue(), point.WithKVTagSet(true)))
 			}
 
 			switch *mf.Type {
 			case dto.MetricType_COUNTER:
-				kvs = append(kvs, point.NewKV([]byte(fieldName), m.GetCounter().GetValue()))
+				kvs = append(kvs, point.NewKV(fieldName, m.GetCounter().GetValue()))
 			case dto.MetricType_SUMMARY:
 				avg := uint64(m.GetSummary().GetSampleSum()) / m.GetSummary().GetSampleCount()
-				kvs = append(kvs, point.NewKV([]byte(fieldName), avg))
+				kvs = append(kvs, point.NewKV(fieldName, avg))
 
 			case dto.MetricType_GAUGE:
 				continue // TODO
@@ -101,7 +104,7 @@ func doGatherPoints(reg prometheus.Gatherer) ([]*point.Point, error) {
 			}
 
 			opts := append(point.DefaultMetricOptions(), point.WithTime(ts))
-			pts = append(pts, point.NewPointV2([]byte(name), kvs, opts...))
+			pts = append(pts, point.NewPointV2(name, kvs, opts...))
 		}
 	}
 

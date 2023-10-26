@@ -20,7 +20,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/prom"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
@@ -203,12 +202,10 @@ type caseSpec struct {
 
 func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 	for _, pt := range pts {
-		// fmt.Printf("pt = %s\n", pt.LineProto())
-
 		var opts []inputs.PointCheckOption
 		opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
 
-		measurement := string(pt.Name())
+		measurement := pt.Name()
 
 		switch measurement {
 		case inputName:
@@ -237,8 +234,8 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 
 			tags := pt.Tags()
 			for k, expect := range cs.ipt.Tags {
-				if v := tags.Get([]byte(k)); v != nil {
-					got := string(v.GetD())
+				if v := tags.Get(k); v != nil {
+					got := v.GetS()
 					if got != expect {
 						return fmt.Errorf("expect tag value %s, got %s", expect, got)
 					}
@@ -368,15 +365,7 @@ func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
 
 // Testing measurement
 
-type TestMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-}
-
-func (t *TestMeasurement) LineProto() (*dkpt.Point, error) {
-	return dkpt.NewPoint(t.name, t.tags, t.fields, dkpt.MOptElection())
-}
+type TestMeasurement struct{}
 
 func (t *TestMeasurement) Info() *inputs.MeasurementInfo {
 	measurement := &inputs.MeasurementInfo{
@@ -385,7 +374,7 @@ func (t *TestMeasurement) Info() *inputs.MeasurementInfo {
 		Tags:   map[string]interface{}{},
 	}
 
-	m := Measurement{}
+	m := docMeasurement{}
 	return mergeMeasurementInfo(measurement, m.Info())
 }
 
@@ -436,7 +425,7 @@ func getOptionalFields() []string {
 }
 
 func getOptionalTags() []string {
-	m := &Measurement{}
+	m := &docMeasurement{}
 	s := make([]string, 0)
 	for k := range m.Info().Tags {
 		s = append(s, k)

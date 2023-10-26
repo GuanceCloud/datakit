@@ -58,6 +58,8 @@ type cfg struct {
 	// some warnings will append to point.
 	precheck bool
 
+	keySorted bool
+
 	enableDotInKey, // enable dot(.) in tag/field key name
 	enableStrField, // enable string field value
 	// For uint64 field, if value < maxint64，convert to int64, or dropped if value > maxint64
@@ -133,6 +135,7 @@ func WithU64Field(on bool) Option        { return func(c *cfg) { c.enableU64Fiel
 func WithStrField(on bool) Option        { return func(c *cfg) { c.enableStrField = on } }
 func WithDotInKey(on bool) Option        { return func(c *cfg) { c.enableDotInKey = on } }
 func WithPrecheck(on bool) Option        { return func(c *cfg) { c.precheck = on } }
+func WithKeySorted(on bool) Option       { return func(c *cfg) { c.keySorted = on } }
 func WithTime(t time.Time) Option        { return func(c *cfg) { c.t = t } }
 
 func WithEncoding(enc Encoding) Option { return func(c *cfg) { c.enc = enc } }

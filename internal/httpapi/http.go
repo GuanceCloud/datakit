@@ -7,11 +7,9 @@
 package httpapi
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"html/template"
 	"io"
 	"net"
 	"net/http"
@@ -22,7 +20,6 @@ import (
 	// nolint:gosec
 	_ "net/http/pprof"
 	"os"
-	"runtime"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -36,9 +33,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
-	dkm "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 )
 
 var (
@@ -132,50 +127,6 @@ func Start(opts ...option) {
 			return nil
 		})
 	}
-}
-
-type welcome struct {
-	Version string
-	BuildAt string
-	Uptime  string
-	OS      string
-	Arch    string
-}
-
-func page404(c *gin.Context) {
-	w := &welcome{
-		Version: datakit.Version,
-		BuildAt: git.BuildAt,
-		OS:      runtime.GOOS,
-		Arch:    runtime.GOARCH,
-	}
-
-	c.Writer.Header().Set("Content-Type", "text/html")
-	t := template.New(``)
-	t, err := t.Parse(welcomeMsgTemplate)
-	if err != nil {
-		l.Error("parse welcome msg failed: %s", err.Error())
-		uhttp.HttpErr(c, err)
-		return
-	}
-
-	buf := &bytes.Buffer{}
-	w.Uptime = fmt.Sprintf("%v", time.Since(dkm.Uptime))
-	if err := t.Execute(buf, w); err != nil {
-		l.Error("build html failed: %s", err.Error())
-		uhttp.HttpErr(c, err)
-		return
-	}
-
-	apiCountVec.WithLabelValues("404-page",
-		c.Request.Method,
-		http.StatusText(http.StatusNotFound)).Inc()
-
-	apiReqSizeVec.WithLabelValues("404-page",
-		c.Request.Method,
-		http.StatusText(http.StatusNotFound)).Observe(float64(approximateRequestSize(c.Request)))
-
-	c.String(http.StatusNotFound, buf.String())
 }
 
 func setupGinLogger() (gl io.Writer) {

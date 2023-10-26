@@ -15,8 +15,6 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 )
 
-////////////////////////////////////////////////////////////////////////////////
-
 var (
 	DatakitLastErrURL string
 	feedErrInterval   = time.Second * 30
@@ -78,8 +76,6 @@ func ReportErrorf(inputName string, l *logger.Logger, format string, args ...int
 	}()
 }
 
-////////////////////////////////////////////////////////////////////////////////
-
 type DFEvent struct {
 	Name        string
 	EventPrefix string
@@ -89,12 +85,6 @@ type DFEvent struct {
 	Status  string `json:"df_status"`
 	Title   string `json:"df_title"`
 	Message string `json:"df_message"`
-
-	// Following is mandatory fields defined by DataFlux document, however found
-	//     them optional by test.
-	// DFDateRange int64  `json:"df_date_range"`
-	// DFSource    string `json:"df_source"`
-	// DFEventID   string `json:"df_event_id"`
 }
 
 const (
@@ -110,11 +100,8 @@ func FeedEvent(l *logger.Logger, event *DFEvent, urlPath string) {
 	fields["df_source"] = dfMonitor
 	fields["df_status"] = event.Status
 	fields["df_title"] = event.EventPrefix + event.Title + " : " + event.Message
-	// fields["df_date_range"] = event.DFDateRange
-	// fields["df_event_id"] = getEventID()
-	// fields["df_message"] = event.Message
 
-	pt := point.NewPointV2([]byte(event.Name),
+	pt := point.NewPointV2(event.Name,
 		append(point.NewTags(event.Tags), point.NewKVs(fields)...),
 		opts...)
 
@@ -122,12 +109,3 @@ func FeedEvent(l *logger.Logger, event *DFEvent, urlPath string) {
 		return
 	}
 }
-
-// Keep the function below for future potential use.
-// import github.com/google/uuid
-// func getEventID() string {
-// 	id := uuid.New()
-// 	return "event-" + strings.ReplaceAll(id.String(), "-", "")
-// }
-
-////////////////////////////////////////////////////////////////////////////////

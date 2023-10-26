@@ -15,14 +15,76 @@ import (
 
 type Encoding int
 
+const (
+	encProtobuf      = "protobuf"
+	encProtobufAlias = "v2"
+	encJSON          = "json"
+
+	encLineprotocolAlias = "v1"
+	encLineprotocol      = "line-protocol"
+
+	contentTypeJSON      = "application/json"
+	contentTypeProtobuf  = "application/protobuf; proto=com.guance.Point"
+	contentTypeLineproto = "application/line-protocol"
+)
+
+// EncodingStr convert encoding-string in configure file to
+// encoding enum.
+//
+// Here v1/v2 are alias for lineprotocol and protobuf, this makes
+// people easy to switch between lineprotocol and protobuf. For
+// json, you should not configure json encoding in production
+// environments(json do not classify int and float).
 func EncodingStr(s string) Encoding {
-	switch s {
-	case "protobuf":
+	switch strings.ToLower(s) {
+	case encProtobuf, encProtobufAlias:
 		return Protobuf
-	case "lineproto", "lineprotocol":
+	case encJSON:
+		return JSON
+	case encLineprotocol,
+		encLineprotocolAlias:
 		return LineProtocol
 	default:
 		return LineProtocol
+	}
+}
+
+func HTTPContentType(ct string) Encoding {
+	switch ct {
+	case contentTypeJSON:
+		return JSON
+	case contentTypeProtobuf:
+		return Protobuf
+	case contentTypeLineproto:
+		return LineProtocol
+	default: // default use line-protocol to be compatible with lagacy code
+		return LineProtocol
+	}
+}
+
+func (e Encoding) HTTPContentType() string {
+	switch e {
+	case JSON:
+		return contentTypeJSON
+	case Protobuf:
+		return contentTypeProtobuf
+	case LineProtocol:
+		return contentTypeLineproto
+	default: // default use line-protocol to be compatible with lagacy code
+		return contentTypeLineproto
+	}
+}
+
+func (e Encoding) String() string {
+	switch e {
+	case JSON:
+		return encJSON
+	case Protobuf:
+		return encProtobuf
+	case LineProtocol:
+		return encLineprotocol
+	default: // default use line-protocol to be compatible with lagacy code
+		return encLineprotocol
 	}
 }
 
@@ -43,10 +105,16 @@ func WithEncBatchSize(size int) EncoderOption {
 	return func(e *Encoder) { e.batchSize = size }
 }
 
+func WithEncBatchBytes(bytes int) EncoderOption {
+	return func(e *Encoder) { e.bytesSize = bytes }
+}
+
 type Encoder struct {
+	bytesSize,
 	batchSize int
-	fn        EncodeFn
-	enc       Encoding
+
+	fn  EncodeFn
+	enc Encoding
 }
 
 var encPool sync.Pool
@@ -142,7 +210,34 @@ func (e *Encoder) doEncode(pts []*Point) ([][]byte, error) {
 		batch   []*Point
 	)
 
-	if e.batchSize > 0 {
+	// nolint: gocritic
+	if e.bytesSize > 0 { // prefer byte size
+		curBytesBatchSize := 0
+		for _, pt := range pts {
+			batch = append(batch, pt)
+			curBytesBatchSize += pt.Size()
+
+			if curBytesBatchSize >= e.bytesSize {
+				payload, err := e.getPayload(batch)
+				if err != nil {
+					return nil, err
+				}
+				batches = append(batches, payload)
+
+				// reset
+				batch = batch[:0]
+				curBytesBatchSize = 0
+			}
+		}
+
+		if len(batch) > 0 { // tail
+			payload, err := e.getPayload(batch)
+			if err != nil {
+				return nil, err
+			}
+			batches = append(batches, payload)
+		}
+	} else if e.batchSize > 0 { // then point count
 		for _, pt := range pts {
 			batch = append(batch, pt)
 			if len(batch)%e.batchSize == 0 { // switch next batch

@@ -34,11 +34,11 @@ func formatPoint(pt *point.Point) error {
 	willAddTags := map[string]string{}
 
 	// Step 1: rename metric name.
-	if ptName := string(pt.Name()); ptName != inputName {
+	if ptName := pt.Name(); ptName != inputName {
 		newMetricName := inputName
 		for _, kv := range pt.Fields() {
-			key := ptName + "_" + string(kv.Key)
-			willRenameFields[string(kv.Key)] = key
+			key := ptName + "_" + kv.Key
+			willRenameFields[kv.Key] = key
 		}
 
 		rebuildPoint(pt, newMetricName, willRenameFields, willAddTags)
@@ -48,7 +48,7 @@ func formatPoint(pt *point.Point) error {
 
 	// Step 2: need add tag, need rename field(KV).
 	for _, kv := range pt.Fields() {
-		key := string(kv.Key)
+		key := kv.Key
 
 		tempField, tempTags, err := formatFieldName(key)
 		if err != nil {
@@ -176,21 +176,21 @@ func rebuildPoint(pt *point.Point, newMetricName string, willRenameFields, willA
 		ts := pt.Time()
 		opts := point.DefaultMetricOptions()
 		opts = append(opts, point.WithTime(ts))
-		*pt = *point.NewPointV2([]byte(newMetricName), kvs, opts...)
+		*pt = *point.NewPointV2(newMetricName, kvs, opts...)
 	}
 
 	for k, v := range willAddTags {
-		pt.MustAddTag([]byte(k), []byte(v))
+		pt.MustAddTag(k, v)
 	}
 	for oldKey, newKey := range willRenameFields {
 		// Add field(KV).
 		kv := &point.Field{
-			Key: []byte(newKey),
-			Val: pt.Fields().Get([]byte(oldKey)).Val,
+			Key: newKey,
+			Val: pt.Fields().Get(oldKey).Val,
 		}
 		pt.MustAddKV(kv)
 
 		// Delete old field(KV).
-		pt.Del([]byte(oldKey))
+		pt.Del(oldKey)
 	}
 }

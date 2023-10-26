@@ -79,7 +79,7 @@ func TestGatherServer(t *testing.T) {
 	}
 
 	metric := memcached.collectCache[0]
-	assert.Equal(t, string(metric.Name()), "memcached")
+	assert.Equal(t, metric.Name(), "memcached")
 	fields := metric.InfluxFields()
 	values := make(map[string]string)
 	for k, v := range fields {

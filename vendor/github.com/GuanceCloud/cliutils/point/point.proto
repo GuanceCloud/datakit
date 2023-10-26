@@ -28,6 +28,25 @@ message AnyDemo {
 	string demo = 1;
 }
 
+message BasicTypes {
+	oneof x {
+			int64  i   = 1 [json_name = "i"]; // signed int
+			uint64 u   = 2 [json_name = "u"]; // unsigned int
+			double f   = 3 [json_name = "f"]; // float64
+			bool   b   = 4 [json_name = "b"]; // bool
+			bytes  d   = 5 [json_name = "d"]; // bytes, for binary data
+			string s   = 6 [json_name = "s"]; // string, for string data
+	}
+}
+
+message Array {
+	repeated BasicTypes arr = 1;
+}
+
+message Map {
+	map<string, BasicTypes> map = 1;
+}
+
 enum KeyType {
 	X   = 0; // unknown
 	I   = 1;
@@ -36,6 +55,8 @@ enum KeyType {
 	B   = 4;
 	D   = 5;
 	NIL = 6;
+	S   = 7;
+	A   = 8;
 }
 
 enum MetricType {
@@ -47,7 +68,7 @@ enum MetricType {
 
 message Field {
 
-	bytes key = 1; // field name
+	string key = 1; // field name
 
 	// See https://developers.google.com/protocol-buffers/docs/proto3#json
 	oneof val {
@@ -55,13 +76,14 @@ message Field {
 			uint64 u   = 3 [json_name = "u"]; // unsigned int
 			double f   = 4 [json_name = "f"]; // float64
 			bool   b   = 5 [json_name = "b"]; // bool
-			bytes  d   = 6 [json_name = "d"]; // bytes, for string or binary data
+			bytes  d   = 6 [json_name = "d"]; // bytes, for binary data
+			string s   = 11 [json_name = "s"];// string, for string data
 
 			// XXX: not used
 			google.protobuf.Any a = 7 [json_name = "a"]; // any data
 	}
 
-	bool is_tag  = 8 [json_name = "is_tag"]; // the field is a tag?
+	bool is_tag  = 8 [json_name = "is_tag"]; // set field as a tag or not
 
 	MetricType type = 9;
 
@@ -76,7 +98,7 @@ message Warn {
 }
 
 message PBPoint {
-	bytes name            = 1;
+	string name           = 1;
 	repeated Field fields = 2;
 	int64 time            = 3;
 
@@ -86,7 +108,7 @@ message PBPoint {
 	repeated Debug debugs = 5;
 }
 
-// Batch of PBPoint.
+// batch of pbpoint.
 message PBPoints {
 	repeated PBPoint arr = 1;
 }

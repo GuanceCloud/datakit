@@ -17,7 +17,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
@@ -56,7 +55,7 @@ type Input struct {
 	chPause  chan bool
 	pause    bool
 
-	Tagger dkpt.GlobalTagger
+	Tagger datakit.GlobalTagger
 
 	urls []*url.URL
 
@@ -84,69 +83,57 @@ func (*Input) AvailableArchs() []string { return datakit.AllOSWithElection }
 
 func (*Input) Catalog() string { return catalog }
 
-func (i *Input) SetTags(m map[string]string) {
-	if i.Tags == nil {
-		i.Tags = make(map[string]string)
-	}
-
-	for k, v := range m {
-		if _, ok := i.Tags[k]; !ok {
-			i.Tags[k] = v
-		}
-	}
+func (ipt *Input) ElectionEnabled() bool {
+	return ipt.Election
 }
 
-func (i *Input) ElectionEnabled() bool {
-	return i.Election
-}
-
-func (i *Input) Run() {
-	if i.setup() {
+func (ipt *Input) Run() {
+	if ipt.setup() {
 		return
 	}
 
-	tick := time.NewTicker(i.Interval)
+	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
 
-	i.l.Info("etcd start")
+	ipt.l.Info("etcd start")
 
 	for {
-		if i.pause {
-			i.l.Debug("etcd paused")
+		if ipt.pause {
+			ipt.l.Debug("etcd paused")
 		} else {
-			if err := i.collect(); err != nil {
-				i.l.Warn(err)
+			if err := ipt.collect(); err != nil {
+				ipt.l.Warn(err)
 			}
 		}
 
 		select {
 		case <-datakit.Exit.Wait():
-			i.l.Info("etcd exit")
+			ipt.l.Info("etcd exit")
 			return
 
-		case <-i.semStop.Wait():
-			i.l.Info("etcd return")
+		case <-ipt.semStop.Wait():
+			ipt.l.Info("etcd return")
 			return
 
 		case <-tick.C:
 
-		case i.pause = <-i.chPause:
+		case ipt.pause = <-ipt.chPause:
 			// nil
 		}
 	}
 }
 
-func (i *Input) collect() error {
-	if !i.isInitialized {
-		if err := i.Init(); err != nil {
+func (ipt *Input) collect() error {
+	if !ipt.isInitialized {
+		if err := ipt.Init(); err != nil {
 			return err
 		}
 	}
 
-	ioname := inputName + "/" + i.Source
+	ioname := inputName + "/" + ipt.Source
 
 	start := time.Now()
-	pts, err := i.doCollect()
+	pts, err := ipt.doCollect()
 	if err != nil {
 		return err
 	}
@@ -154,11 +141,11 @@ func (i *Input) collect() error {
 		return fmt.Errorf("points got nil from doCollect")
 	}
 
-	err = i.Feeder.Feed(ioname, point.Metric, pts,
+	err = ipt.Feeder.Feed(ioname, point.Metric, pts,
 		&io.Option{CollectCost: time.Since(start)})
 	if err != nil {
-		i.l.Errorf("Feed: %s", err)
-		i.Feeder.FeedLastError(err.Error(),
+		ipt.l.Errorf("Feed: %s", err)
+		ipt.Feeder.FeedLastError(err.Error(),
 			io.WithLastErrorInput(inputName),
 			io.WithLastErrorSource(ioname),
 		)
@@ -166,23 +153,23 @@ func (i *Input) collect() error {
 	return nil
 }
 
-func (i *Input) doCollect() ([]*point.Point, error) {
-	i.l.Debugf("collect URLs %v", i.URLs)
+func (ipt *Input) doCollect() ([]*point.Point, error) {
+	ipt.l.Debugf("collect URLs %v", ipt.URLs)
 
-	pts, err := i.Collect()
+	pts, err := ipt.Collect()
 	if err != nil {
-		i.l.Errorf("Collect: %s", err)
+		ipt.l.Errorf("Collect: %s", err)
 
-		ioname := inputName + "/" + i.Source
-		i.Feeder.FeedLastError(err.Error(),
+		ioname := inputName + "/" + ipt.Source
+		ipt.Feeder.FeedLastError(err.Error(),
 			io.WithLastErrorInput(inputName),
 			io.WithLastErrorSource(ioname),
 		)
 
 		// Try testing the connect
-		for _, u := range i.urls {
+		for _, u := range ipt.urls {
 			if err := net.RawConnect(u.Hostname(), u.Port(), time.Second*3); err != nil {
-				i.l.Errorf("failed to connect to %s:%s, %s", u.Hostname(), u.Port(), err)
+				ipt.l.Errorf("failed to connect to %s:%s, %s", u.Hostname(), u.Port(), err)
 			}
 		}
 
@@ -197,30 +184,30 @@ func (i *Input) doCollect() ([]*point.Point, error) {
 }
 
 // Collect collects metrics from all URLs.
-func (i *Input) Collect() ([]*point.Point, error) {
-	if i.pm == nil {
+func (ipt *Input) Collect() ([]*point.Point, error) {
+	if ipt.pm == nil {
 		return nil, fmt.Errorf("i.pm is nil")
 	}
 	var points []*point.Point
-	for _, u := range i.URLs {
+	for _, u := range ipt.URLs {
 		uu, err := url.Parse(u)
 		if err != nil {
 			return nil, err
 		}
 		var pts []*point.Point
 		if uu.Scheme != "http" && uu.Scheme != "https" {
-			pts, err = i.CollectFromFile(u)
+			pts, err = ipt.CollectFromFile(u)
 		} else {
-			pts, err = i.CollectFromHTTP(u)
+			pts, err = ipt.CollectFromHTTP(u)
 		}
 		if err != nil {
 			return nil, err
 		}
 
 		// append tags to points
-		for k, v := range i.urlTags[u] {
+		for k, v := range ipt.urlTags[u] {
 			for _, pt := range pts {
-				pt.AddTag([]byte(k), []byte(v))
+				pt.AddTag(k, v)
 			}
 		}
 
@@ -230,30 +217,30 @@ func (i *Input) Collect() ([]*point.Point, error) {
 	return points, nil
 }
 
-func (i *Input) CollectFromHTTP(u string) ([]*point.Point, error) {
-	if i.pm == nil {
+func (ipt *Input) CollectFromHTTP(u string) ([]*point.Point, error) {
+	if ipt.pm == nil {
 		return nil, nil
 	}
-	return i.pm.CollectFromHTTPV2(u)
+	return ipt.pm.CollectFromHTTPV2(u)
 }
 
-func (i *Input) CollectFromFile(filepath string) ([]*point.Point, error) {
-	if i.pm == nil {
+func (ipt *Input) CollectFromFile(filepath string) ([]*point.Point, error) {
+	if ipt.pm == nil {
 		return nil, nil
 	}
-	return i.pm.CollectFromFileV2(filepath)
+	return ipt.pm.CollectFromFileV2(filepath)
 }
 
-func (i *Input) Terminate() {
-	if i.semStop != nil {
-		i.semStop.Close()
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
 	}
 }
 
-func (i *Input) setup() bool {
+func (ipt *Input) setup() bool {
 	// for etcd only.
-	i.Source = inputName
-	i.MeasurementName = inputName
+	ipt.Source = inputName
+	ipt.MeasurementName = inputName
 
 	for {
 		select {
@@ -264,7 +251,7 @@ func (i *Input) setup() bool {
 			// nil
 		}
 		time.Sleep(1 * time.Second) // sleep a while
-		if err := i.Init(); err != nil {
+		if err := ipt.Init(); err != nil {
 			continue
 		} else {
 			break
@@ -274,61 +261,62 @@ func (i *Input) setup() bool {
 	return false
 }
 
-func (i *Input) Pause() error {
+func (ipt *Input) Pause() error {
 	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	select {
-	case i.chPause <- true:
+	case ipt.chPause <- true:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("pause %s failed", inputName)
 	}
 }
 
-func (i *Input) Resume() error {
+func (ipt *Input) Resume() error {
 	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	select {
-	case i.chPause <- false:
+	case ipt.chPause <- false:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
 	}
 }
 
-func (i *Input) Init() error {
-	i.l = logger.SLogger(inputName + "/" + i.Source)
+func (ipt *Input) Init() error {
+	l = logger.SLogger(inputName)
+	ipt.l = logger.SLogger(inputName + "/" + ipt.Source)
 
-	for _, u := range i.URLs {
+	for _, u := range ipt.URLs {
 		uu, err := url.Parse(u)
 		if err != nil {
 			return err
 		}
-		i.urls = append(i.urls, uu)
+		ipt.urls = append(ipt.urls, uu)
 
-		if i.Election {
-			i.urlTags[u] = inputs.MergeTags(i.Tagger.ElectionTags(), i.Tags, u)
+		if ipt.Election {
+			ipt.urlTags[u] = inputs.MergeTags(ipt.Tagger.ElectionTags(), ipt.Tags, u)
 		} else {
-			i.urlTags[u] = inputs.MergeTags(i.Tagger.HostTags(), i.Tags, u)
+			ipt.urlTags[u] = inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, u)
 		}
 	}
 
 	opts := []iprom.PromOption{
-		iprom.WithLogger(i.l), // WithLogger must in the first
-		iprom.WithSource(i.Source),
-		iprom.WithMeasurementName(i.MeasurementName),
-		iprom.WithTLSOpen(i.TLSOpen),
-		iprom.WithCacertFile(i.CacertFile),
-		iprom.WithCertFile(i.CertFile),
-		iprom.WithKeyFile(i.KeyFile),
-		iprom.WithTagsIgnore(i.TagsIgnore),
+		iprom.WithLogger(ipt.l), // WithLogger must in the first
+		iprom.WithSource(ipt.Source),
+		iprom.WithMeasurementName(ipt.MeasurementName),
+		iprom.WithTLSOpen(ipt.TLSOpen),
+		iprom.WithCacertFile(ipt.CacertFile),
+		iprom.WithCertFile(ipt.CertFile),
+		iprom.WithKeyFile(ipt.KeyFile),
+		iprom.WithTagsIgnore(ipt.TagsIgnore),
 	}
 
 	pm, err := iprom.NewProm(opts...)
 	if err != nil {
-		i.l.Warnf("iprom.NewProm: %s, ignored", err)
+		ipt.l.Warnf("iprom.NewProm: %s, ignored", err)
 		return err
 	}
-	i.pm = pm
-	i.isInitialized = true
+	ipt.pm = pm
+	ipt.isInitialized = true
 
 	return nil
 }
@@ -347,7 +335,7 @@ func defaultInput() *Input {
 
 		semStop: cliutils.NewSem(),
 		Feeder:  io.DefaultFeeder(),
-		Tagger:  dkpt.DefaultGlobalTagger(),
+		Tagger:  datakit.DefaultGlobalTagger(),
 	}
 }
 

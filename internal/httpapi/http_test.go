@@ -13,7 +13,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -147,7 +147,7 @@ func TestRestartAPI(t *T.T) {
 			continue
 		}
 
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			t.Error(err)
 			continue
@@ -317,7 +317,7 @@ func TestTimeout(t *T.T) {
 
 			defer resp.Body.Close()
 
-			respBody, err := ioutil.ReadAll(resp.Body)
+			respBody, err := io.ReadAll(resp.Body)
 			if err != nil {
 				t.Errorf("cli.Do: %s", err)
 				return

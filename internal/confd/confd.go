@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,24 +17,24 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/pipeline/manager"
 	"github.com/GuanceCloud/confd/backends"
 	"github.com/r3labs/diff/v3"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
-	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/script"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 const (
-	ConfdBackPath    = "remote.conf"                             // Backup confd data.
-	PipelineBackPath = "pipeline_confd"                          // Backup pipeline data.
-	Lazy             = 2                                         // Delay execution time (seconds).
-	Timeout          = 20                                        // Confd Execute in case of blocking, Timeout seconds.
-	NameSpace        = "confd"                                   // Name space for pipeline.
-	OnlyOneBackend   = true                                      // Only one backend configuration takes effect.
-	AllowedBackends  = "nacos consul zookeeper etcdv3 redis aws" // Only some backend name allowed.
+	ConfdBackPath   = "remote.conf"                             // Backup confd data.
+	Lazy            = 2                                         // Delay execution time (seconds).
+	Timeout         = 20                                        // Confd Execute in case of blocking, Timeout seconds.
+	NameSpace       = "confd"                                   // Name space for pipeline.
+	OnlyOneBackend  = true                                      // Only one backend configuration takes effect.
+	AllowedBackends = "nacos consul zookeeper etcdv3 redis aws" // Only some backend name allowed.
 )
 
 // All confd backend list.
@@ -70,7 +69,7 @@ func startConfd() error {
 }
 
 func confdMain() error {
-	defer l.Error("退出 confdMain()")
+	defer l.Info("退出 confdMain()")
 
 	// Signal, if confd watchPrefix find New data. Like "confd" or "pipeline"
 	gotConfdCh = make(chan string, 10)
@@ -197,7 +196,7 @@ func creatClients() error {
 }
 
 func creatClient(cfg backends.Config) backends.StoreClient {
-	l.Info("before creat backend client: ", cfg.Backend)
+	l.Debug("before creat backend client: ", cfg.Backend)
 	var client backends.StoreClient
 	var err error
 	tick := time.NewTicker(time.Second * Timeout)
@@ -240,15 +239,15 @@ func creatClient(cfg backends.Config) backends.StoreClient {
 }
 
 func watchConfds() {
-	defer l.Error("退出 watchConfds()")
+	defer l.Debug("退出 watchConfds()")
 	stopCh := make(chan bool)
 	// defer close(stopCh)
 	go func() {
-		defer l.Error("退出 go func() {")
+		defer l.Debug("退出 go func() {")
 		<-datakit.Exit.Wait()
-		l.Info("watchConfd close by datakit.Exit.Wait")
+		l.Debug("watchConfd close by datakit.Exit.Wait")
 		close(stopCh)
-		l.Info("finish close(stopCh)")
+		l.Debug("finish close(stopCh)")
 	}()
 
 	// Get date one times when datakit start.
@@ -268,7 +267,7 @@ func watchConfds() {
 }
 
 func watchConfd(c *clientStruct, stopCh chan bool) {
-	defer l.Error("退出 watchConfd one() ", c.prefixKind)
+	defer l.Debug("退出 watchConfd one() ", c.prefixKind)
 
 	lastIndex := uint64(1)
 	for {
@@ -276,9 +275,9 @@ func watchConfd(c *clientStruct, stopCh chan bool) {
 		prefixString := prefix[prefixKind]
 
 		// Every time there is a watch hit, index returns the index number of the latest backend library operation.
-		l.Infof("before WatchPrefix : %v %v ", c.backend, c.prefixKind)
+		l.Debug("before WatchPrefix : %v %v ", c.backend, c.prefixKind)
 		index, err := c.client.WatchPrefix(prefixString, []string{prefixString}, lastIndex, stopCh)
-		l.Infof("watchPrefix back: %v %v %v %v", index, c.backend, c.prefixKind, err)
+		l.Debug("watchPrefix back: %v %v %v %v", index, c.backend, c.prefixKind, err)
 
 		select {
 		case <-stopCh:
@@ -309,12 +308,12 @@ func doConfdData() {
 	data := getConfdData()
 	handleConfdData(data)
 	// Execute collector comparison, addition, deletion and modification.
-	l.Info("before run CompareInputs from confd ")
+	l.Debug("before run CompareInputs from confd ")
 	inputs.CompareInputs(confdInputs, config.Cfg.DefaultEnabledInputs)
 
 	if !isFirst {
 		// First need not Reload.
-		l.Info("before ReloadTheNormalServer")
+		l.Debug("before ReloadTheNormalServer")
 		httpapi.ReloadTheNormalServer()
 	} else {
 		isFirst = false
@@ -337,7 +336,7 @@ func getConfdData() []map[string]string {
 			continue
 		}
 
-		l.Infof("before get values from: %v %v", prefixKind, clientStru.backend)
+		l.Debugf("before get values from: %v %v", prefixKind, clientStru.backend)
 		values, err := clientStru.client.GetValues([]string{prefix[prefixKind]})
 		if err != nil {
 			l.Errorf("get values from: %v %v %v", prefixKind, clientStru.backend, err)
@@ -388,7 +387,7 @@ func appendDataToConfdInputs(keyPath, value string) {
 		// Traverse like []inputs.Input.
 		for i := 0; i < len(oneKindInputs); i++ {
 			if haveSameInput(oneKindInputs[i], kind) {
-				l.Warn("has duplicate value: ", kind)
+				l.Debug("has duplicate value: ", kind)
 			} else {
 				confdInputs[kind] = append(confdInputs[kind], &inputs.ConfdInfo{Input: oneKindInputs[i]})
 			}
@@ -425,7 +424,7 @@ func handleDefaultEnabledInputs() {
 	}
 	if _, ok := confdInputs["dk"]; ok {
 		delete(confdInputs, "dk")
-		l.Warn("never modify dk input")
+		l.Debug("never modify dk input")
 	}
 }
 
@@ -444,11 +443,8 @@ func getPipelineData() {
 		dirCategory[dirName] = category
 	}
 
-	// Before save pipeline on disk。
-	pipelineBakPath := filepath.Join(datakit.InstallDir, PipelineBackPath)
-
 	// Build pipeline top folder. If exists, remove and rebuild.
-	err := datakit.RebuildFolder(pipelineBakPath, datakit.ConfPerm)
+	err := datakit.RebuildFolder(datakit.ConfdPipelineDir, datakit.ConfPerm)
 	if err != nil {
 		l.Errorf("%v", err)
 		return
@@ -456,7 +452,7 @@ func getPipelineData() {
 
 	// Traverse and build pipeline sub folder.
 	for dirName := range dirCategory {
-		fullDirName := filepath.Join(pipelineBakPath, dirName)
+		fullDirName := filepath.Join(datakit.ConfdPipelineDir, dirName)
 		err = datakit.RebuildFolder(fullDirName, datakit.ConfPerm)
 		if err != nil {
 			l.Errorf("%v", err)
@@ -471,7 +467,7 @@ func getPipelineData() {
 			continue
 		}
 
-		l.Infof("before get values from: %v %v", prefixKind, clientStru.backend)
+		l.Debugf("before get values from: %v %v", prefixKind, clientStru.backend)
 		values, err := clientStru.client.GetValues([]string{prefix[prefixKind]})
 		if err != nil {
 			l.Errorf("get values from: %v %v %v", prefixKind, clientStru.backend, err)
@@ -490,8 +486,12 @@ func getPipelineData() {
 	}
 
 	// Update pipeline script.
-	l.Info("before set pipelines from confd ")
-	plscript.LoadAllScripts2StoreFromPlStructPath(plscript.ConfdScriptNS, pipelineBakPath)
+	l.Debug("before set pipelines from confd ")
+
+	if managerwkr, ok := plval.GetManager(); ok && managerwkr != nil {
+		manager.LoadScripts2StoreFromPlStructPath(
+			managerwkr, manager.ConfdScriptNS, datakit.ConfdPipelineDir)
+	}
 }
 
 func storeDataToDisk(key, data string, dirCategory map[string]string) error {
@@ -509,7 +509,7 @@ func storeDataToDisk(key, data string, dirCategory map[string]string) error {
 	}
 
 	// Store pipeline script on disk.
-	fullDirName := filepath.Join(filepath.Join(datakit.InstallDir, PipelineBackPath), keys[3])
+	fullDirName := filepath.Join(datakit.ConfdPipelineDir, keys[3])
 	fullFileName := filepath.Join(fullDirName, keys[4])
 	err := datakit.SaveStringToFile(fullFileName, data)
 	if err != nil {
@@ -537,7 +537,7 @@ func backupConfdData() error {
 		}
 	}
 
-	if err := ioutil.WriteFile(confdBakPath, []byte(strings.Join(arr, "\n")), os.ModePerm); err != nil {
+	if err := os.WriteFile(confdBakPath, []byte(strings.Join(arr, "\n")), os.ModePerm); err != nil {
 		l.Errorf("os.WriteString(confdBakPath): %v", err)
 	}
 

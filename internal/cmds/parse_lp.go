@@ -7,7 +7,7 @@ package cmds
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/influxdata/influxdb1-client/models"
@@ -15,9 +15,9 @@ import (
 )
 
 func parseLineProto() error {
-	x, err := ioutil.ReadFile(*flagToolParseLineProtocol)
+	x, err := os.ReadFile(*flagToolParseLineProtocol)
 	if err != nil {
-		cp.Errorf("ioutil.ReadFile: %s\n", err.Error())
+		cp.Errorf("os.ReadFile: %s\n", err.Error())
 		return err
 	}
 

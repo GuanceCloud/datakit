@@ -5,6 +5,10 @@
 //go:build generator
 // +build generator
 
+//TODO 2023-02-23, netbsd/amd64 fails generating SQLite 3.41:
+//
+//	C front end 36/85: testdata/sqlite-src-3410000/ext/recover/sqlite3recover.c ... testdata/sqlite-src-3410000/ext/recover/sqlite3recover.c:2023:41: front-end: undefined: SQLITE_FCNTL_RESET_CACHE
+
 package main
 
 import (
@@ -164,7 +168,9 @@ var (
 		"-DHAVE_USLEEP",
 		"-DLONGDOUBLE_TYPE=double",
 		"-DSQLITE_CORE",
+		"-DSQLITE_DEFAULT_MEMSTATUS=0",
 		"-DSQLITE_ENABLE_COLUMN_METADATA",
+		"-DSQLITE_ENABLE_DBSTAT_VTAB",
 		"-DSQLITE_ENABLE_FTS5",
 		"-DSQLITE_ENABLE_GEOPOLY",
 		"-DSQLITE_ENABLE_MATH_FUNCTIONS",
@@ -208,8 +214,8 @@ var (
 		"-DHAVE_USLEEP",
 		"-DLONGDOUBLE_TYPE=double",
 		"-DSQLITE_CKSUMVFS_STATIC",
-		"-DSQLITE_CORE",                   // testfixture
-		"-DSQLITE_DEFAULT_MEMSTATUS=0",    // bug reported https://sqlite.org/forum/info/d8dfd4771689be35, fixed in https://sqlite.org/src/info/3c5e63c22ffbfeb6
+		"-DSQLITE_CORE", // testfixture
+		"-DSQLITE_DEFAULT_MEMSTATUS=1",
 		"-DSQLITE_DEFAULT_PAGE_SIZE=1024", // testfixture, hardcoded. See file_pages in autovacuum.test.
 		"-DSQLITE_ENABLE_BYTECODE_VTAB",   // testfixture
 		"-DSQLITE_ENABLE_COLUMN_METADATA",
@@ -264,12 +270,12 @@ var (
 		sz       int
 		dev      bool
 	}{
-		{sqliteDir, "https://www.sqlite.org/2022/sqlite-amalgamation-3400000.zip", 2457, false},
-		{sqliteSrcDir, "https://www.sqlite.org/2022/sqlite-src-3400000.zip", 12814, false},
+		{sqliteDir, "https://www.sqlite.org/2023/sqlite-amalgamation-3410200.zip", 2457, false},
+		{sqliteSrcDir, "https://www.sqlite.org/2023/sqlite-src-3410200.zip", 12814, false},
 	}
 
-	sqliteDir    = filepath.FromSlash("testdata/sqlite-amalgamation-3400000")
-	sqliteSrcDir = filepath.FromSlash("testdata/sqlite-src-3400000")
+	sqliteDir    = filepath.FromSlash("testdata/sqlite-amalgamation-3410200")
+	sqliteSrcDir = filepath.FromSlash("testdata/sqlite-src-3410200")
 )
 
 func download() {
@@ -526,8 +532,9 @@ func makeTestfixture(goos, goarch string, more []string) {
 		"ext/fts5/fts5_tcl.c",
 		"ext/fts5/fts5_test_mi.c",
 		"ext/fts5/fts5_test_tok.c",
-		"ext/misc/appendvfs.c",
 		"ext/misc/amatch.c",
+		"ext/misc/appendvfs.c",
+		"ext/misc/basexx.c",
 		"ext/misc/carray.c",
 		"ext/misc/cksumvfs.c",
 		"ext/misc/closure.c",
@@ -565,7 +572,6 @@ func makeTestfixture(goos, goarch string, more []string) {
 		"src/test4.c",
 		"src/test5.c",
 		"src/test6.c",
-		"src/test7.c",
 		"src/test8.c",
 		"src/test9.c",
 		"src/test_async.c",
@@ -594,7 +600,6 @@ func makeTestfixture(goos, goarch string, more []string) {
 		"src/test_quota.c",
 		"src/test_rtree.c",
 		"src/test_schema.c",
-		"src/test_server.c",
 		"src/test_superlock.c",
 		"src/test_syscall.c",
 		"src/test_tclsh.c",

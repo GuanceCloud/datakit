@@ -7,7 +7,6 @@ package cmds
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -65,5 +64,5 @@ func writeTelegrafSample(installDir string) error {
 		filePath = filepath.Join(installDir, dirName, "telegraf.conf.sample")
 	}
 
-	return ioutil.WriteFile(filePath, []byte(TelegrafConfTemplate), os.ModePerm)
+	return os.WriteFile(filePath, []byte(TelegrafConfTemplate), os.ModePerm)
 }

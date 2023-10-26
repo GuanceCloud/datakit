@@ -1,0 +1,20 @@
+linters:
+  disable-all: true
+  enable:
+    - errcheck    # errcheck is a program for checking for unchecked errors in go programs.
+    - gosimple    # simplify code
+    - govet       # report suspicious things
+    - ineffassign # Detects when assignments to existing variables are not used
+    - staticcheck
+    - typecheck
+    - unused      # Checks Go code for unused constants, variables, functions and types
+    - unconvert   # Remove unnecessary type conversions
+    - misspell    # Finds commonly misspelled English words in comments
+    - gofmt       # Gofmt checks whether code was gofmt-ed
+    - revive      # Revive is a replacement for golint, a coding style checker
+
+linters-settings:
+  revive:
+    rules:
+      - name: package-comments
+        disabled: true

@@ -12,18 +12,24 @@ import (
 	"strings"
 	"time"
 
+	plscript "github.com/GuanceCloud/cliutils/pipeline/manager"
+	"github.com/GuanceCloud/cliutils/pipeline/ptinput/plmap"
 	"github.com/GuanceCloud/cliutils/point"
-	influxdb "github.com/influxdata/influxdb1-client/v2"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/offload"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plmap"
-	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/script"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 )
 
-var ErrIOBusy = errors.New("io busy")
+var (
+	_         Feeder = new(ioFeeder)
+	ErrIOBusy        = errors.New("io busy")
+)
+
+type FeederOutputer interface {
+	Write(data *iodata) error
+	WriteLastError(err string, opts ...LastErrorOption)
+	Reader(c point.Category) <-chan *iodata
+}
 
 // DefaultFeeder get default feeder.
 func DefaultFeeder() Feeder {
@@ -35,7 +41,8 @@ type iodata struct {
 	category point.Category
 	from     string
 	opt      *Option
-	pts      []*dkpt.Point
+
+	points []*point.Point
 }
 
 // Option used to define various feed options.
@@ -51,8 +58,6 @@ type Option struct {
 	PlScript map[string]string // <measurement>: <script name>
 	PlOption *plscript.Option
 }
-
-////////////////////////////////////////////////////////////////////////////////
 
 type LastErrorOption func(*LastError)
 
@@ -94,35 +99,13 @@ func WithLastErrorCategory(cats ...point.Category) LastErrorOption {
 	}
 }
 
-////////////////////////////////////////////////////////////////////////////////
-
 type Feeder interface {
 	Feed(name string, category point.Category, pts []*point.Point, opt ...*Option) error
 	FeedLastError(err string, opts ...LastErrorOption)
 }
 
-////////////////////////////////////////////////////////////////////////////////
-
-var _ Feeder = new(ioFeeder)
-
 // default IO feed implements.
 type ioFeeder struct{}
-
-// Feed send collected point to io upload queue. Before sending to upload queue,
-// pipeline and filter are applied to pts.
-func (f *ioFeeder) Feed(name string, category point.Category, pts []*point.Point, opts ...*Option) error {
-	inputsFeedVec.WithLabelValues(name, category.String()).Inc()
-	inputsFeedPtsVec.WithLabelValues(name, category.String()).Add(float64(len(pts)))
-	inputsLastFeedVec.WithLabelValues(name, category.String()).Set(float64(time.Now().Unix()))
-	iopts := point2dkpt(pts...)
-
-	if len(opts) > 0 && opts[0] != nil {
-		inputsCollectLatencyVec.WithLabelValues(name, category.String()).Observe(float64(opts[0].CollectCost) / float64(time.Second))
-		return defIO.doFeed(iopts, category.URL(), name, opts[0])
-	} else {
-		return defIO.doFeed(iopts, category.URL(), name, nil)
-	}
-}
 
 // FeedLastError report any error message, these messages will show in monitor
 // and integration view.
@@ -134,46 +117,27 @@ func (*ioFeeder) FeedLastError(err string, opts ...LastErrorOption) {
 	}
 }
 
-////////////////////////////////////////////////////////////////////////////////
+// Feed send collected point to io upload queue. Before sending to upload queue,
+// pipeline and filter are applied to pts.
+func (f *ioFeeder) Feed(name string, category point.Category, pts []*point.Point, opts ...*Option) error {
+	inputsFeedVec.WithLabelValues(name, category.String()).Inc()
+	inputsFeedPtsVec.WithLabelValues(name, category.String()).Add(float64(len(pts)))
+	inputsLastFeedVec.WithLabelValues(name, category.String()).Set(float64(time.Now().Unix()))
 
-// point2dkpt convert point.Point to old io/point.Point.
-func point2dkpt(pts ...*point.Point) (res []*dkpt.Point) {
-	for _, pt := range pts {
-		pt, err := influxdb.NewPoint(string(pt.Name()), pt.InfluxTags(), pt.InfluxFields(), pt.Time())
-		if err != nil {
-			continue
-		}
-
-		res = append(res, &dkpt.Point{Point: pt})
+	if len(opts) > 0 && opts[0] != nil {
+		inputsCollectLatencyVec.WithLabelValues(name, category.String()).Observe(float64(opts[0].CollectCost) / float64(time.Second))
+		return defIO.doFeed(pts, category, name, opts[0])
+	} else {
+		return defIO.doFeed(pts, category, name, nil)
 	}
-
-	return res
 }
 
-// nolint: deadcode,unused
-// dkpt2point convert old io/point.Point to point.Point.
-func dkpt2point(pts ...*dkpt.Point) (res []*point.Point) {
-	for _, pt := range pts {
-		fs, err := pt.Fields()
-		if err != nil {
-			continue
-		}
-
-		pt := point.NewPointV2([]byte(pt.Name()),
-			append(point.NewTags(pt.Tags()), point.NewKVs(fs)...), nil)
-
-		res = append(res, pt)
-	}
-
-	return res
-}
-
-func plAggFeed(cat point.Category, name string, data any) error {
+func PLAggFeed(cat point.Category, name string, data any) error {
 	if data == nil {
 		return nil
 	}
 
-	pts, ok := data.([]*dkpt.Point)
+	pts, ok := data.([]*point.Point)
 	if !ok {
 		return fmt.Errorf("unsupported data type: %s", reflect.TypeOf(data))
 	}
@@ -208,7 +172,7 @@ func plAggFeed(cat point.Category, name string, data any) error {
 	if defIO.fo != nil {
 		return defIO.fo.Write(&iodata{
 			category: cat,
-			pts:      pts,
+			points:   pts,
 			from:     name,
 		})
 	} else {
@@ -218,83 +182,105 @@ func plAggFeed(cat point.Category, name string, data any) error {
 }
 
 // beforeFeed apply pipeline and filter handling on pts.
-func beforeFeed(from, category string, pts []*dkpt.Point, opt *Option) (
-	[]*dkpt.Point, map[point.Category][]*dkpt.Point, error,
-) {
-	switch category {
-	case datakit.Logging,
-		datakit.Tracing,
-		datakit.Object,
-		datakit.Network,
-		datakit.KeyEvent,
-		datakit.CustomObject,
-		datakit.RUM,
-		datakit.Security,
-		datakit.Profiling:
+func beforeFeed(from string,
+	cat point.Category,
+	pts []*point.Point,
+	opt *Option,
+) ([]*point.Point, map[point.Category][]*point.Point, int, error) {
+	switch cat {
+	case point.Logging,
+		point.Tracing,
+		point.Object,
+		point.Network,
+		point.KeyEvent,
+		point.CustomObject,
+		point.RUM,
+		point.Security,
+		point.Profiling:
 		if opt == nil {
 			opt = &Option{Blocking: true}
 		} else {
 			opt.Blocking = true
 		}
-	case datakit.Metric, datakit.MetricDeprecated:
+
+	case point.Metric, point.MetricDeprecated:
+	case point.DynamicDWCategory, point.UnknownCategory:
+
 	default:
-		return nil, nil, fmt.Errorf("invalid category `%s'", category)
+		return nil, nil, 0, fmt.Errorf("invalid category `%s'", cat)
 	}
 
-	// run pipeline
 	var plopt *plscript.Option
-	var scriptConfMap map[string]string
 	if opt != nil {
 		plopt = opt.PlOption
-		scriptConfMap = opt.PlScript
 	}
 
-	cat := point.CatURL(category)
-	result, err := pipeline.RunPl(cat, pts, plopt, scriptConfMap)
-	if err != nil {
+	var offloadCount int
+	var ptCreate map[point.Category][]*point.Point
+
+	after := pts
+
+	if result, err := pipeline.RunPl(cat, pts, plopt); err != nil {
 		log.Error(err)
-	}
+	} else {
+		offloadCount = len(result.PtsOffload())
 
-	offloadCount := len(result.PtsOffload())
-	if offloadCount > 0 {
-		err = offload.OffloadSend(cat, result.PtsOffload())
-		if err != nil {
-			log.Errorf("offload failed, total %d pts dropped: %v",
-				offloadCount, err)
+		if offloadCount > 0 {
+			if offload, ok := plval.GetOffload(); ok && offload != nil {
+				err = offload.Send(cat, result.PtsOffload())
+				if err != nil {
+					log.Errorf("offload failed, total %d pts dropped: %v",
+						offloadCount, err)
+				}
+			}
 		}
-	}
 
-	ptCreate := result.PtsCreated()
-	for k, v := range ptCreate {
-		ptCreate[k] = filter.FilterPts(k, v)
-		// run filters
-		if filtered := len(ptCreate[k]) - len(v); filtered > 0 {
-			inputsFilteredPtsVec.WithLabelValues(
-				"pipeline/create_point",
-				point.CatURL(category).String(),
-			).Add(float64(filtered))
+		ptCreate = result.PtsCreated()
+
+		for k, v := range ptCreate {
+			ptCreate[k] = filter.FilterPts(k, v)
+			// run filters
+			if filtered := len(ptCreate[k]) - len(v); filtered > 0 {
+				inputsFilteredPtsVec.WithLabelValues(
+					"pipeline/create_point",
+					cat.String(),
+				).Add(float64(filtered))
+			}
 		}
+
+		after = result.Pts()
 	}
 
 	// run filters
-	after := filter.FilterPts(cat, result.Pts())
+	after = filter.FilterPts(cat, after)
 	if filtered := len(pts) - len(after) - offloadCount; filtered > 0 {
 		inputsFilteredPtsVec.WithLabelValues(
 			from,
-			point.CatURL(category).String(), // /v1/write/metric -> metric
+			cat.String(), // /v1/write/metric -> metric
 		).Add(float64(filtered))
 	}
 
-	return after, ptCreate, nil
+	return after, ptCreate, offloadCount, nil
 }
 
-// beforeFeed apply pipeline and filter handling on pts.
-func (x *dkIO) doFeed(pts []*dkpt.Point, category, from string, opt *Option) error {
+func (x *dkIO) doFeed(pts []*point.Point,
+	category point.Category,
+	from string,
+	opt *Option,
+) error {
 	log.Debugf("io feed %s|%s", from, category)
-	after, plCreate, err := beforeFeed(from, category, pts, opt)
+
+	after, plCreate, offl, err := beforeFeed(from, category, pts, opt)
 	if err != nil {
 		return err
 	}
+
+	filtered := len(pts) - len(after) - offl
+
+	inputsFilteredPtsVec.WithLabelValues(
+		from,
+		category.String(),
+	).Add(float64(filtered))
 
 	// Maybe all points been filtered, but we still send the feeding into io.
 	// We can still see some inputs/data are sending to io in monitor. Do not
@@ -309,7 +295,7 @@ func (x *dkIO) doFeed(pts []*dkpt.Point, category, from string, opt *Option) err
 			inputsLastFeedVec.WithLabelValues(crName, crCat).Set(float64(time.Now().Unix()))
 			if err := x.fo.Write(&iodata{
 				category: cat,
-				pts:      v,
+				points:   v,
 				from:     "pipeline/create_point",
 			}); err != nil {
 				log.Warnf("send pts created by the script: %s", err.Error())
@@ -317,8 +303,8 @@ func (x *dkIO) doFeed(pts []*dkpt.Point, category, from string, opt *Option) err
 		}
 
 		return x.fo.Write(&iodata{
-			category: point.CatURL(category),
-			pts:      after,
+			category: category,
+			points:   after,
 			from:     from,
 			opt:      opt,
 		})
@@ -345,6 +331,7 @@ func FeedLastError(source, err string, cat ...point.Category) {
 // Feed send data to io module.
 //
 // Deprecated: inputs should use DefaultFeeder to get global default feeder.
+/*
 func Feed(name, category string, pts []*dkpt.Point, opt *Option) error {
 	catStr := point.CatURL(category).String()
 
@@ -359,5 +346,7 @@ func Feed(name, category string, pts []*dkpt.Point, opt *Option) error {
 		return nil
 	}
 
-	return defIO.doFeed(pts, category, name, opt)
-}
+	points := dkpt2point(pts...)
+
+	return defIO.doFeed(points, point.CatURL(category), name, opt)
+} */

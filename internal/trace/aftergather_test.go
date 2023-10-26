@@ -52,7 +52,7 @@ func TestBuildPoint(t *testing.T) {
 			t.Error(err.Error())
 			t.FailNow()
 		} else {
-			t.Log(pt.LPPoint().String())
+			t.Log(pt.Pretty())
 		}
 	}
 }

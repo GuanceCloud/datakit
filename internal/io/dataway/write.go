@@ -15,14 +15,10 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/failcache"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	pb "google.golang.org/protobuf/proto"
 )
 
-var (
-	seprator    = []byte("\n")
-	MaxKodoBody = 10 * 1000 * 1000
-)
+var MaxKodoBody = 10 * 1000 * 1000
 
 type WriteOption func(w *writer)
 
@@ -32,9 +28,9 @@ func WithCategory(cat point.Category) WriteOption {
 	}
 }
 
-func WithPoints(pts []*dkpt.Point) WriteOption {
+func WithPoints(points []*point.Point) WriteOption {
 	return func(w *writer) {
-		w.pts = pts
+		w.points = points
 	}
 }
 
@@ -68,13 +64,37 @@ func WithGzip(on bool) WriteOption {
 	}
 }
 
-type groupedPoints []*dkpt.Point
+func WithBatchSize(n int) WriteOption {
+	return func(w *writer) {
+		w.batchSize = n
+	}
+}
+
+func WithBatchBytesSize(n int) WriteOption {
+	return func(w *writer) {
+		w.batchBytesSize = n
+	}
+}
+
+func WithHTTPEncoding(t point.Encoding) WriteOption {
+	return func(w *writer) {
+		w.httpEncoding = t
+	}
+}
+
+type groupedPoints []*point.Point
 
 type writer struct {
 	category   point.Category
 	dynamicURL string
 
-	pts []*dkpt.Point
+	points []*point.Point
+
+	// if bothe batch limit set, prefer batchBytesSize.
+	batchBytesSize int // limit point pyaload bytes approximately
+	batchSize      int // limit point count
+
+	httpEncoding point.Encoding
 
 	gzip                 bool
 	cacheClean, cacheAll bool
@@ -93,23 +113,33 @@ func isGzip(data []byte) bool {
 	return data[0] == 0x1f && data[1] == 0x8b
 }
 
-func (dw *Dataway) cleanCache(w *writer, data []byte) error {
+func loadCache(data []byte) (*CacheData, error) {
 	pd := &CacheData{}
 	if err := pb.Unmarshal(data, pd); err != nil {
+		return nil, fmt.Errorf("loadCache: %w", err)
+	}
+
+	return pd, nil
+}
+
+func (dw *Dataway) cleanCache(w *writer, data []byte) error {
+	pd, err := loadCache(data)
+	if err != nil {
 		log.Warnf("pb.Unmarshal(%d bytes -> %s): %s, ignored", len(data), w.category, err)
 		return nil
 	}
 
 	cat := point.Category(pd.Category)
+	enc := point.Encoding(pd.PayloadType)
 
 	WithGzip(isGzip(pd.Payload))(w) // check if bytes is gzipped
 	WithCategory(cat)(w)            // use category in cached data
+	WithHTTPEncoding(enc)(w)
 
 	for _, ep := range dw.eps {
 		// If some of endpoint send ok, any failed write will cause re-write on these ok ones.
 		// So, do NOT configure multiple endpoint in dataway URL list.
-		if err := ep.writePointData(
-			&body{buf: pd.Payload}, w); err != nil {
+		if err := ep.writePointData(&body{buf: pd.Payload}, w); err != nil {
 			log.Warnf("cleanCache: %s", err)
 			return err
 		}
@@ -175,10 +205,10 @@ func HTTPHeaderGlobalTagValue(tfdata *filter.TFData, globalTags map[string]strin
 	return strings.Join(arr, ",")
 }
 
-func (dw *Dataway) groupPoints(cat point.Category, pts []*dkpt.Point) map[string]groupedPoints {
+func (dw *Dataway) groupPoints(cat point.Category, points []*point.Point) map[string]groupedPoints {
 	res := map[string]groupedPoints{}
-	for _, pt := range pts {
-		tfdata := filter.NewTFData(cat, pt)
+	for _, pt := range points {
+		tfdata := filter.NewTFDataFromPoint(cat, pt)
 
 		tv := HTTPHeaderGlobalTagValue(tfdata, dw.globalTags, dw.GlobalCustomerKeys)
 		if tv == "" {
@@ -198,6 +228,14 @@ func (dw *Dataway) Write(opts ...WriteOption) error {
 		if opt != nil {
 			opt(w)
 		}
+	}
+
+	// set content encoding(protobuf/line-protocol/json)
+	WithHTTPEncoding(dw.contentEncoding)(w)
+
+	// set raw body size limit
+	if dw.MaxRawBodySize > 0 {
+		WithBatchBytesSize(dw.MaxRawBodySize)(w)
 	}
 
 	if w.cacheClean {
@@ -225,20 +263,21 @@ func (dw *Dataway) Write(opts ...WriteOption) error {
 
 	// split single point array into multiple part according to
 	// different X-Global-Tags.
-	var groupedPts map[string]groupedPoints
+	var groupedPoints map[string]groupedPoints
 	if dw.EnableSinker && (len(dw.globalTags) > 0 || len(dw.GlobalCustomerKeys) > 0) {
-		groupedPts = dw.groupPoints(w.category, w.pts)
+		groupedPoints = dw.groupPoints(w.category, w.points)
 
-		if len(groupedPts) > 1 {
-			groupedRequestVec.WithLabelValues(w.category.String()).Add(float64(len(groupedPts) - 1))
+		if len(groupedPoints) > 1 { // grouped to 2 or more parts
+			groupedRequestVec.WithLabelValues(w.category.String()).Add(float64(len(groupedPoints) - 1))
 		}
 	}
 
-	if len(groupedPts) > 0 && len(dw.eps) > 0 {
+	if len(groupedPoints) > 0 && len(dw.eps) > 0 {
 		w.httpHeaders = map[string]string{}
-		for k, pts := range groupedPts {
+
+		for k, points := range groupedPoints {
 			w.httpHeaders[HeaderXGlobalTags] = k
-			w.pts = pts
+			w.points = points
 
 			// only apply to 1st dataway address
 			if err := dw.eps[0].writePoints(w); err != nil {

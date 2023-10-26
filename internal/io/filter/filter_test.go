@@ -10,13 +10,10 @@ import (
 	"testing"
 	"time"
 
-	lp "github.com/GuanceCloud/cliutils/lineproto"
 	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/GuanceCloud/cliutils/point"
-
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 type pullMock struct{ pullCount int }
@@ -80,15 +77,18 @@ test1,service=test1 f1="1",f2=2i,f3=3 125`,
 		t.Logf("%s: %s", k, v)
 	}
 
+	dec := point.GetDecoder(point.WithDecEncoding(point.LineProtocol))
+	defer point.PutDecoder(dec)
+
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			pts, err := lp.ParsePoints([]byte(tc.pts), nil)
+			pts, err := dec.Decode([]byte(tc.pts))
 			if err != nil {
 				t.Error(err)
 				return
 			}
 
-			after, _ := f.doFilter(tc.category, dkpt.WrapPoint(pts))
+			after, _ := f.doFilter(tc.category, pts)
 			tu.Assert(t, len(after) == tc.expectPts, "expect %d pts, got %d", tc.expectPts, len(after))
 		})
 	}

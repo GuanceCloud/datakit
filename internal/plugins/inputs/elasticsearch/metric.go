@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -21,19 +21,15 @@ type elasticsearchMeasurement struct {
 	election bool
 }
 
-func (m elasticsearchMeasurement) LineProto() (*dkpt.Point, error) {
-	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElectionV2(m.election))
-}
-
 // Point implement MeasurementV2.
 func (m *elasticsearchMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 
 	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+		opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
 	}
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
 }

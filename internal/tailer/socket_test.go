@@ -186,11 +186,11 @@ func Test_socketLogger_Start(t *testing.T) {
 	for _, pt := range pts {
 		bts, _ := pt.MarshalJSON()
 		t.Logf("pt :%s", string(bts))
-		source := string(pt.GetTag([]byte("log_source")))
+		source := pt.GetTag("log_source")
 		if source != "socket" {
 			t.Errorf("source is %s", source)
 		}
-		service := string(pt.GetTag([]byte("service")))
+		service := pt.GetTag("service")
 		if service != "test_service" {
 			t.Errorf("source is %s", service)
 		}

@@ -15,30 +15,29 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/load"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"go.uber.org/atomic"
+)
+
+const (
+	minInterval = time.Second
+	maxInterval = time.Minute
+	inputName   = "cpu"
+	metricName  = inputName
 )
 
 var (
 	_ inputs.ReadEnv   = (*Input)(nil)
 	_ inputs.Singleton = (*Input)(nil)
 	l                  = logger.DefaultSLogger(inputName)
-	g                  = datakit.G("inputs_cpu")
-)
-
-const (
-	minInterval = time.Second
-	maxInterval = time.Minute
-)
-
-const (
-	inputName  = "cpu"
-	metricName = inputName
+	g                  = datakit.G("inputs_" + inputName)
 )
 
 type Input struct {
@@ -51,50 +50,89 @@ type Input struct {
 	EnableTemperature bool `toml:"enable_temperature"`
 	EnableLoad5s      bool `toml:"enable_load5s"`
 
-	Interval datakit.Duration
+	Interval time.Duration
 	Tags     map[string]string
 
-	collectCache         []inputs.Measurement
-	collectCacheLast1Ptr *cpuMeasurement
+	semStop      *cliutils.Sem
+	collectCache []*point.Point
+	// collectCacheLast1Ptr *cpuMeasurement
+	feeder     dkio.Feeder
+	mergedTags map[string]string
+	tagger     datakit.GlobalTagger
 
 	lastStats map[string]cpu.TimesStat
 	load5s    atomic.Int32
 	lastLoad1 float64
 	ps        CPUStatInfo
-
-	semStop *cliutils.Sem // start stop signal
 }
 
-func (ipt *Input) Singleton() {}
+func (ipt *Input) Run() {
+	ipt.setup()
 
-func (ipt *Input) appendMeasurement(name string, tags map[string]string, fields map[string]interface{}, ts time.Time) {
-	tmp := &cpuMeasurement{name: name, tags: tags, fields: fields, ts: ts}
-	ipt.collectCache = append(ipt.collectCache, tmp)
-	ipt.collectCacheLast1Ptr = tmp
-}
+	if ipt.EnableLoad5s {
+		g.Go(func(ctx context.Context) error {
+			ipt.calLoad5s()
+			return nil
+		})
+	}
 
-func (*Input) Catalog() string {
-	return "host"
-}
+	if err := ipt.collect(); err != nil { // gather lastSats
+		l.Errorf("collect: %s", err.Error())
+	}
 
-func (*Input) SampleConfig() string {
-	return sampleCfg
-}
+	time.Sleep(ipt.Interval)
 
-func (*Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{
-		&cpuMeasurement{},
+	tick := time.NewTicker(ipt.Interval)
+	defer tick.Stop()
+
+	for {
+		start := time.Now()
+		if err := ipt.collect(); err != nil {
+			l.Errorf("collect: %s", err)
+			ipt.feeder.FeedLastError(err.Error(),
+				dkio.WithLastErrorInput(inputName),
+				dkio.WithLastErrorCategory(point.Metric),
+			)
+		}
+
+		if len(ipt.collectCache) > 0 {
+			if err := ipt.feeder.Feed(metricName, point.Metric, ipt.collectCache,
+				&dkio.Option{CollectCost: time.Since(start)}); err != nil {
+				ipt.feeder.FeedLastError(err.Error(),
+					dkio.WithLastErrorInput(inputName),
+					dkio.WithLastErrorCategory(point.Metric),
+				)
+				l.Errorf("feed measurement: %s", err)
+			}
+		}
+
+		select {
+		case <-tick.C:
+		case <-datakit.Exit.Wait():
+			l.Infof("%s input exit", inputName)
+			return
+		case <-ipt.semStop.Wait():
+			l.Infof("%s input return", inputName)
+			return
+		}
 	}
 }
 
-func (*Input) AvailableArchs() []string {
-	return []string{
-		datakit.OSLabelLinux, datakit.OSLabelWindows,
-		datakit.LabelK8s, datakit.LabelDocker,
-	}
+func (ipt *Input) setup() {
+	l = logger.SLogger(inputName)
+
+	l.Infof("%s input started", inputName)
+	ipt.Interval = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval)
+	ipt.mergedTags = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")
+	l.Debugf("merged tags: %+#v", ipt.mergedTags)
 }
 
-func (ipt *Input) Collect() error {
+func (ipt *Input) collect() error {
+	ipt.collectCache = make([]*point.Point, 0)
+	ts := time.Now()
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(ts))
+
 	// totalCPU only
 	cpuTimes, err := ipt.ps.CPUTimes(ipt.PerCPU, true)
 	if err != nil {
@@ -112,14 +150,10 @@ func (ipt *Input) Collect() error {
 		}
 	}
 
-	now := time.Now()
 	for _, cts := range cpuTimes {
-		tags := map[string]string{
-			"cpu": cts.CPU,
-		}
-		for k, v := range ipt.Tags {
-			tags[k] = v
-		}
+		var kvs point.KVs
+
+		kvs = kvs.Add("cpu", cts.CPU, true, true)
 
 		_, total := CPUActiveTotalTime(cts)
 
@@ -138,30 +172,33 @@ func (ipt *Input) Collect() error {
 		}
 		cpuUsage, _ := CalculateUsage(cts, lastCts, totalDelta)
 
-		fields := map[string]interface{}{
-			"usage_user":       cpuUsage.User,
-			"usage_system":     cpuUsage.System,
-			"usage_idle":       cpuUsage.Idle,
-			"usage_nice":       cpuUsage.Nice,
-			"usage_iowait":     cpuUsage.Iowait,
-			"usage_irq":        cpuUsage.Irq,
-			"usage_softirq":    cpuUsage.Softirq,
-			"usage_steal":      cpuUsage.Steal,
-			"usage_guest":      cpuUsage.Guest,
-			"usage_guest_nice": cpuUsage.GuestNice,
-			"usage_total":      cpuUsage.Total,
-		}
+		kvs = kvs.Add("usage_user", cpuUsage.User, false, true)
+		kvs = kvs.Add("usage_system", cpuUsage.System, false, true)
+		kvs = kvs.Add("usage_idle", cpuUsage.Idle, false, true)
+		kvs = kvs.Add("usage_nice", cpuUsage.Nice, false, true)
+		kvs = kvs.Add("usage_iowait", cpuUsage.Iowait, false, true)
+		kvs = kvs.Add("usage_irq", cpuUsage.Irq, false, true)
+		kvs = kvs.Add("usage_softirq", cpuUsage.Softirq, false, true)
+		kvs = kvs.Add("usage_steal", cpuUsage.Steal, false, true)
+		kvs = kvs.Add("usage_guest", cpuUsage.Guest, false, true)
+		kvs = kvs.Add("usage_guest_nice", cpuUsage.GuestNice, false, true)
+		kvs = kvs.Add("usage_total", cpuUsage.Total, false, true)
 
 		if ipt.EnableLoad5s {
-			fields["load5s"] = ipt.getLoad5s()
+			kvs = kvs.Add("load5s", ipt.getLoad5s(), false, true)
 		}
 
 		if len(coreTemp) > 0 && cts.CPU == "cpu-total" {
 			if v, ok := coreTemp[cts.CPU]; ok {
-				fields["core_temperature"] = v
+				kvs = kvs.Add("core_temperature", v, false, true)
 			}
 		}
-		ipt.appendMeasurement(inputName, tags, fields, now)
+
+		for k, v := range ipt.mergedTags {
+			kvs = kvs.AddTag(k, v)
+		}
+
+		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(inputName, kvs, opts...))
 	}
 	// last cputimes stats
 	ipt.lastStats = make(map[string]cpu.TimesStat)
@@ -173,56 +210,6 @@ func (ipt *Input) Collect() error {
 
 func (ipt *Input) getLoad5s() int {
 	return int(ipt.load5s.Load())
-}
-
-func (ipt *Input) Run() {
-	l = logger.SLogger(inputName)
-	l.Infof("cpu input started")
-
-	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
-
-	if ipt.EnableLoad5s {
-		g.Go(func(ctx context.Context) error {
-			ipt.calLoad5s()
-			return nil
-		})
-	}
-
-	if err := ipt.Collect(); err != nil { // gather lastSats
-		l.Errorf("Collect: %s", err.Error())
-	}
-
-	time.Sleep(ipt.Interval.Duration)
-
-	tick := time.NewTicker(ipt.Interval.Duration)
-	defer tick.Stop()
-
-	for {
-		start := time.Now()
-		if err := ipt.Collect(); err != nil {
-			l.Errorf("Collect: %s", err)
-			io.FeedLastError(inputName, err.Error())
-		}
-
-		if len(ipt.collectCache) > 0 {
-			if err := inputs.FeedMeasurement(metricName, datakit.Metric, ipt.collectCache,
-				&io.Option{CollectCost: time.Since((start))}); err != nil {
-				l.Errorf("FeedMeasurement: %s", err)
-			}
-		}
-		ipt.collectCache = make([]inputs.Measurement, 0)
-
-		select {
-		case <-tick.C:
-		case <-datakit.Exit.Wait():
-			l.Infof("cpu input exit")
-			return
-
-		case <-ipt.semStop.Wait():
-			l.Info("cpu input return")
-			return
-		}
-	}
 }
 
 // calLoad5s gets average load information every five seconds,
@@ -257,9 +244,25 @@ func (ipt *Input) calLoad5s() {
 	}
 }
 
+func (*Input) Singleton() {}
+
 func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
+	}
+}
+func (*Input) Catalog() string      { return "host" }
+func (*Input) SampleConfig() string { return sampleCfg }
+func (*Input) AvailableArchs() []string {
+	return []string{
+		datakit.OSLabelLinux, datakit.OSLabelWindows,
+		datakit.LabelK8s, datakit.LabelDocker,
+	}
+}
+
+func (*Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{
+		&docMeasurement{},
 	}
 }
 
@@ -267,7 +270,7 @@ func (ipt *Input) Terminate() {
 //
 //	ENV_INPUT_CPU_PERCPU : booler
 //	ENV_INPUT_CPU_ENABLE_TEMPERATURE : booler
-//	ENV_INPUT_CPU_INTERVAL : datakit.Duration
+//	ENV_INPUT_CPU_INTERVAL : time.Duration
 //	ENV_INPUT_CPU_DISABLE_TEMPERATURE_COLLECT : bool
 //	ENV_INPUT_CPU_ENABLE_LOAD5S : bool
 func (ipt *Input) ReadEnv(envs map[string]string) {
@@ -296,7 +299,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		}
 	}
 
-	//   ENV_INPUT_CPU_INTERVAL : datakit.Duration
+	//   ENV_INPUT_CPU_INTERVAL : time.Duration
 	//   ENV_INPUT_CPU_DISABLE_TEMPERATURE_COLLECT : bool
 	//   ENV_INPUT_CPU_ENABLE_LOAD5S : bool
 	if str, ok := envs["ENV_INPUT_CPU_INTERVAL"]; ok {
@@ -304,7 +307,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_CPU_INTERVAL to time.Duration: %s, ignore", err)
 		} else {
-			ipt.Interval.Duration = config.ProtectedInterval(minInterval,
+			ipt.Interval = config.ProtectedInterval(minInterval,
 				maxInterval,
 				da)
 		}
@@ -323,11 +326,13 @@ func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			ps:                &CPUInfo{},
-			Interval:          datakit.Duration{Duration: time.Second * 10},
+			Interval:          time.Second * 10,
 			EnableTemperature: true,
 
 			semStop: cliutils.NewSem(),
+			feeder:  dkio.DefaultFeeder(),
 			Tags:    make(map[string]string),
+			tagger:  datakit.DefaultGlobalTagger(),
 		}
 	})
 }

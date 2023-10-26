@@ -39,33 +39,33 @@ func getCollectorMeasurement() []inputs.Measurement {
 	return res
 }
 
-func (i *Input) setup() {
-	if i.DeprecatedDockerEndpoint != "" {
-		i.Endpoints = append(i.Endpoints, i.DeprecatedDockerEndpoint)
+func (ipt *Input) setup() {
+	if ipt.DeprecatedDockerEndpoint != "" {
+		ipt.Endpoints = append(ipt.Endpoints, ipt.DeprecatedDockerEndpoint)
 	}
-	if i.DeprecatedContainerdAddress != "" {
-		i.Endpoints = append(i.Endpoints, "unix://"+i.DeprecatedContainerdAddress)
+	if ipt.DeprecatedContainerdAddress != "" {
+		ipt.Endpoints = append(ipt.Endpoints, "unix://"+ipt.DeprecatedContainerdAddress)
 	}
-	i.Endpoints = unique(i.Endpoints)
-	l.Infof("endpoints: %v", i.Endpoints)
+	ipt.Endpoints = unique(ipt.Endpoints)
+	l.Infof("endpoints: %v", ipt.Endpoints)
 
 	getGlobalCustomerKeys = func() []string { return config.Cfg.Dataway.GlobalCustomerKeys }
 }
 
-func (i *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 
 	l.Info("container input started")
-	i.setup()
+	ipt.setup()
 
 	if datakit.Docker {
-		i.startDiscovery()
+		ipt.startDiscovery()
 	}
 
-	i.runCollect()
+	ipt.runCollect()
 }
 
-func (i *Input) runCollect() {
+func (ipt *Input) runCollect() {
 	objectTick := time.NewTicker(objectInterval)
 	defer objectTick.Stop()
 
@@ -73,22 +73,22 @@ func (i *Input) runCollect() {
 	defer metricTick.Stop()
 
 	loggingInterval := metricInterval
-	if i.LoggingSearchInterval > 0 {
-		loggingInterval = i.LoggingSearchInterval
+	if ipt.LoggingSearchInterval > 0 {
+		loggingInterval = ipt.LoggingSearchInterval
 	}
 	loggingTick := time.NewTicker(loggingInterval)
 	defer loggingTick.Stop()
 
-	collectors := i.newCollector()
-	electionCollectors := i.newElectionCollector()
+	collectors := ipt.newCollector()
+	electionCollectors := ipt.newElectionCollector()
 
 	firstCollectElection := true
 
 	// frist collect
-	i.collectLogging(collectors)
-	i.collectObject(collectors)
+	ipt.collectLogging(collectors)
+	ipt.collectObject(collectors)
 	time.Sleep(time.Second) // window time
-	i.collectMetric(collectors)
+	ipt.collectMetric(collectors)
 
 	for {
 		select {
@@ -96,38 +96,38 @@ func (i *Input) runCollect() {
 			l.Info("container exit")
 			return
 
-		case <-i.semStop.Wait():
+		case <-ipt.semStop.Wait():
 			l.Info("container terminate")
 			return
 
 		case <-metricTick.C:
-			i.collectMetric(collectors)
-			if !i.pause.Load() {
-				i.collectMetric(electionCollectors)
+			ipt.collectMetric(collectors)
+			if !ipt.pause.Load() {
+				ipt.collectMetric(electionCollectors)
 			}
 
 		case <-objectTick.C:
 			time.Sleep(time.Second) // window time
-			i.collectObject(collectors)
-			if !i.pause.Load() {
-				i.collectObject(electionCollectors)
+			ipt.collectObject(collectors)
+			if !ipt.pause.Load() {
+				ipt.collectObject(electionCollectors)
 			}
 
 		case <-loggingTick.C:
-			i.collectLogging(collectors)
-			if !i.pause.Load() {
-				i.collectLogging(electionCollectors)
+			ipt.collectLogging(collectors)
+			if !ipt.pause.Load() {
+				ipt.collectLogging(electionCollectors)
 			}
 
-		case pause := <-i.chPause:
-			i.pause.Store(pause)
+		case pause := <-ipt.chPause:
+			ipt.pause.Store(pause)
 
 			if !pause && firstCollectElection {
 				l.Info("first collect election metrics and objects")
 
-				i.collectMetric(electionCollectors)
+				ipt.collectMetric(electionCollectors)
 				time.Sleep(time.Second) // window time
-				i.collectObject(electionCollectors)
+				ipt.collectObject(electionCollectors)
 
 				firstCollectElection = false
 			}
@@ -135,35 +135,35 @@ func (i *Input) runCollect() {
 	}
 }
 
-func (i *Input) collectMetric(collectors []Collector) {
+func (ipt *Input) collectMetric(collectors []Collector) {
 	for _, c := range collectors {
 		fn := func(pts []*point.Point) error {
-			return i.Feeder.Feed(c.Name()+"-metric", point.Metric, pts, &io.Option{Blocking: true})
+			return ipt.Feeder.Feed(c.Name()+"-metric", point.Metric, pts, &io.Option{Blocking: true})
 		}
 		c.Metric(fn)
 	}
 }
 
-func (i *Input) collectObject(collectors []Collector) {
+func (ipt *Input) collectObject(collectors []Collector) {
 	for _, c := range collectors {
 		fn := func(pts []*point.Point) error {
-			return i.Feeder.Feed(c.Name()+"-object", point.Object, pts, &io.Option{Blocking: true})
+			return ipt.Feeder.Feed(c.Name()+"-object", point.Object, pts, &io.Option{Blocking: true})
 		}
 		c.Object(fn)
 	}
 }
 
-func (i *Input) collectLogging(collectors []Collector) {
+func (ipt *Input) collectLogging(collectors []Collector) {
 	for _, c := range collectors {
 		fn := func(pts []*point.Point) error {
-			return i.Feeder.Feed(c.Name()+"-logging", point.Logging, pts, &io.Option{Blocking: true})
+			return ipt.Feeder.Feed(c.Name()+"-logging", point.Logging, pts, &io.Option{Blocking: true})
 		}
 		c.Logging(fn)
 	}
 }
 
-func (i *Input) startDiscovery() {
-	discovery, err := newDiscovery(i)
+func (ipt *Input) startDiscovery() {
+	discovery, err := newDiscovery(ipt)
 	if err != nil {
 		l.Errorf("init the auto-discovery fail, err: %s", err)
 		return
@@ -176,16 +176,16 @@ func (i *Input) startDiscovery() {
 	})
 }
 
-func (i *Input) newCollector() []Collector {
+func (ipt *Input) newCollector() []Collector {
 	collectors := []Collector{}
-	collectors = append(collectors, newCollectorsFromContainerEndpoints(i)...)
+	collectors = append(collectors, newCollectorsFromContainerEndpoints(ipt)...)
 	return collectors
 }
 
-func (i *Input) newElectionCollector() []Collector {
+func (ipt *Input) newElectionCollector() []Collector {
 	collectors := []Collector{}
 	if datakit.Docker {
-		k8sCollectors, err := newCollectorsFromKubernetes(i)
+		k8sCollectors, err := newCollectorsFromKubernetes(ipt)
 		if err != nil {
 			l.Errorf("init the k8s fail, err: %s", err)
 		} else {

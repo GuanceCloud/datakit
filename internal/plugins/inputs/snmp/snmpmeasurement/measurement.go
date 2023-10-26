@@ -7,11 +7,9 @@
 package snmpmeasurement
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -38,14 +36,9 @@ func (m *SNMPObject) Point() *point.Point {
 	opts := point.DefaultObjectOptions()
 	opts = append(opts, point.WithTime(m.TS))
 
-	return point.NewPointV2([]byte(m.Name),
+	return point.NewPointV2(m.Name,
 		append(point.NewTags(m.Tags), point.NewKVs(m.Fields)...),
 		opts...)
-}
-
-func (m *SNMPObject) LineProto() (*dkpt.Point, error) {
-	// return dkpt.NewPoint(m.Name, m.Tags, m.Fields, dkpt.OOptElectionV2(m.Election))
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -89,14 +82,9 @@ func (m *SNMPMetric) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.TS))
 
-	return point.NewPointV2([]byte(m.Name),
+	return point.NewPointV2(m.Name,
 		append(point.NewTags(m.Tags), point.NewKVs(m.Fields)...),
 		opts...)
-}
-
-func (m *SNMPMetric) LineProto() (*dkpt.Point, error) {
-	// return dkpt.NewPoint(m.Name, m.Tags, m.Fields, dkpt.MOptElectionV2(m.Election))
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll

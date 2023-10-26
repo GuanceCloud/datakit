@@ -23,13 +23,13 @@ func TestInput(t *testing.T) {
 
 	cases := []struct {
 		name   string
-		inputs []*ExternalInput
+		inputs []*Input
 		notify chan interface{}
 	}{
 		{
 			name:   "non-daemon-input-election-for-3-instance",
 			notify: make(chan interface{}),
-			inputs: []*ExternalInput{
+			inputs: []*Input{
 				{
 					Name:           "ipt1-instance1",
 					Election:       true,
@@ -67,7 +67,7 @@ func TestInput(t *testing.T) {
 		{
 			name:   "daemon-input-election-for-3-instance",
 			notify: make(chan interface{}),
-			inputs: []*ExternalInput{
+			inputs: []*Input{
 				{
 					Name:     "ipt1-instance1",
 					Election: true,
@@ -115,7 +115,7 @@ func TestInput(t *testing.T) {
 		{
 			name:   "mix-input-for-3-instance(no-election)",
 			notify: make(chan interface{}),
-			inputs: []*ExternalInput{
+			inputs: []*Input{
 				{
 					Name:           "ipt1-instance1",
 					Interval:       interval,

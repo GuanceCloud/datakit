@@ -71,7 +71,7 @@ var (
   # more_tag = "some_other_value"
 `
 
-	pipeline = `
+	pScrpit = `
 grok(_,"%{TIMESTAMP_ISO8601:time} %{NOTSPACE:origin}\\s+%{GREEDYDATA:msg}")
 default_time(time, "+0")
 `

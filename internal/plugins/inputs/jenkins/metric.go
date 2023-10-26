@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -55,14 +54,9 @@ func (m *jenkinsPipelineMeasurement) Point() *point.Point {
 	opts := point.DefaultLoggingOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (*jenkinsPipelineMeasurement) LineProto() (*dkpt.Point, error) {
-	// return nil, nil
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -105,14 +99,9 @@ func (m *jenkinsJobMeasurement) Point() *point.Point {
 	opts := point.DefaultLoggingOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (*jenkinsJobMeasurement) LineProto() (*dkpt.Point, error) {
-	// return nil, nil
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -145,20 +134,20 @@ func (*jenkinsJobMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (n *Input) getPluginMetric() {
+func (ipt *Input) getPluginMetric() {
 	var metric Metric
-	err := n.requestJSON(fmt.Sprintf("/metrics/%s/metrics?pretty=true", n.Key), &metric)
+	err := ipt.requestJSON(fmt.Sprintf("/metrics/%s/metrics?pretty=true", ipt.Key), &metric)
 	if err != nil {
 		l.Error(err.Error())
-		n.lastErr = err
+		ipt.lastErr = err
 		return
 	}
 	ts := time.Now()
 	tags := map[string]string{
 		"metric_plugin_version": metric.Version,
-		"url":                   n.URL,
+		"url":                   ipt.URL,
 	}
-	for k, v := range n.Tags {
+	for k, v := range ipt.Tags {
 		tags[k] = v
 	}
 	fields := map[string]interface{}{}
@@ -177,14 +166,14 @@ func (n *Input) getPluginMetric() {
 	if len(fields) == 0 {
 		err = fmt.Errorf("jenkins empty field")
 		l.Error(err.Error())
-		n.lastErr = err
+		ipt.lastErr = err
 		return
 	}
 
-	if n.Election {
-		tags = inputs.MergeTags(n.Tagger.ElectionTags(), tags, n.URL)
+	if ipt.Election {
+		tags = inputs.MergeTags(ipt.Tagger.ElectionTags(), tags, ipt.URL)
 	} else {
-		tags = inputs.MergeTags(n.Tagger.HostTags(), tags, n.URL)
+		tags = inputs.MergeTags(ipt.Tagger.HostTags(), tags, ipt.URL)
 	}
 
 	measurement := &Measurement{
@@ -193,8 +182,8 @@ func (n *Input) getPluginMetric() {
 		tags:   tags,
 		ts:     ts,
 	}
-	n.collectCache = append(n.collectCache, measurement.Point())
-	l.Debug(n.collectCache[0])
+	ipt.collectCache = append(ipt.collectCache, measurement.Point())
+	l.Debug(ipt.collectCache[0])
 }
 
 type Measurement struct {
@@ -209,14 +198,9 @@ func (m *Measurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (m *Measurement) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll

@@ -7,7 +7,7 @@ package socket
 
 import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 
-func (i *Input) Dashboard(lang inputs.I18n) map[string]string {
+func (i *input) Dashboard(lang inputs.I18n) map[string]string {
 	switch lang {
 	case inputs.I18nZh:
 		return map[string]string{
@@ -22,11 +22,11 @@ func (i *Input) Dashboard(lang inputs.I18n) map[string]string {
 	}
 }
 
-func (i *Input) DashboardList() []string {
+func (i *input) DashboardList() []string {
 	return nil
 }
 
-func (i *Input) Monitor(lang inputs.I18n) map[string]string {
+func (i *input) Monitor(lang inputs.I18n) map[string]string {
 	switch lang {
 	case inputs.I18nZh:
 		return map[string]string{
@@ -41,6 +41,6 @@ func (i *Input) Monitor(lang inputs.I18n) map[string]string {
 	}
 }
 
-func (i *Input) MonitorList() []string {
+func (i *input) MonitorList() []string {
 	return nil
 }

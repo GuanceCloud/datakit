@@ -269,7 +269,7 @@ func ResetMetrics() {
 }
 
 // Labels export cache's labels used to query prometheus metrics.
-//func (c *DiskCache) Labels() []string {
+// func (c *DiskCache) Labels() []string {
 //	return c.labels
 //}
 

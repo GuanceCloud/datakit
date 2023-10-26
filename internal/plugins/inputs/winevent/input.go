@@ -20,8 +20,9 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"golang.org/x/sys/windows"
 )
@@ -56,7 +57,7 @@ func (ipt *Input) Run() {
 
 	ipt.subscription, err = ipt.evtSubscribe("", ipt.Query)
 	if err != nil {
-		io.FeedLastError(inputName, err.Error())
+		dkio.FeedLastError(inputName, err.Error())
 		return
 	}
 
@@ -79,18 +80,18 @@ func (ipt *Input) Run() {
 					continue
 				}
 				l.Error(err.Error())
-				io.FeedLastError(inputName, err.Error())
+				dkio.FeedLastError(inputName, err.Error())
 				return
 			}
 			for _, event := range events {
 				ipt.handleEvent(event)
 			}
 			if len(ipt.collectCache) > 0 {
-				err := inputs.FeedMeasurement(inputName, datakit.Logging,
-					ipt.collectCache, &io.Option{CollectCost: time.Since(start)})
+				err := ipt.feeder.Feed(inputName, point.Logging,
+					ipt.collectCache, &dkio.Option{CollectCost: time.Since(start)})
 				if err != nil {
 					l.Error(err.Error())
-					io.FeedLastError(inputName, err.Error())
+					dkio.FeedLastError(inputName, err.Error())
 				}
 				ipt.collectCache = ipt.collectCache[:0]
 			}
@@ -135,13 +136,17 @@ func (ipt *Input) handleEvent(event Event) {
 		"total_message":   string(msg),
 		"status":          ipt.getEventStatus(event.Level),
 	}
-	metric := &Measurement{
-		tags:   tags,
-		fields: fields,
-		ts:     ts,
-		name:   "windows_event",
-	}
-	ipt.collectCache = append(ipt.collectCache, metric)
+
+	opts := point.CommonLoggingOptions()
+	opts = append(opts, point.WithTime(ts))
+
+	tags = inputs.MergeTags(ipt.Tagger.HostTags(), tags, "")
+
+	pt := point.NewPointV2("windows_event",
+		append(point.NewTags(tags), point.NewKVs(fields)...),
+		opts...)
+
+	ipt.collectCache = append(ipt.collectCache, pt)
 }
 
 func (ipt *Input) getEventStatus(level int) string {
@@ -359,6 +364,8 @@ func init() { //nolint:gochecknoinits
 			Query: query,
 
 			semStop: cliutils.NewSem(),
+			feeder:  dkio.DefaultFeeder(),
+			Tagger:  datakit.DefaultGlobalTagger(),
 		}
 	})
 }

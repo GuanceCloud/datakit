@@ -7,7 +7,7 @@ package cmds
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
@@ -61,9 +61,9 @@ func doWorkspace(requrl string) ([]byte, error) {
 		return body, err
 	}
 
-	body, err = ioutil.ReadAll(resp.Body)
+	body, err = io.ReadAll(resp.Body)
 	if err != nil {
-		cp.Errorf("ioutil.ReadAll: %s\n", err.Error())
+		cp.Errorf("io.ReadAll: %s\n", err.Error())
 		return body, err
 	}
 	defer resp.Body.Close() //nolint:errcheck

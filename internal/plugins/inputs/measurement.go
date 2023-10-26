@@ -12,8 +12,6 @@ import (
 	"testing"
 
 	"github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 var (
@@ -83,7 +81,6 @@ const (
 )
 
 type Measurement interface {
-	LineProto() (*dkpt.Point, error)
 	Info() *MeasurementInfo
 }
 
@@ -176,31 +173,6 @@ func (m *MeasurementInfo) TagsMarkdownTable() string {
 		}
 	}
 	return strings.Join(rows, "\n")
-}
-
-func FeedMeasurement(name, category string, measurements []Measurement, opt *io.Option) error {
-	if len(measurements) == 0 {
-		return fmt.Errorf("no points")
-	}
-
-	pts, err := GetPointsFromMeasurement(measurements)
-	if err != nil {
-		return err
-	}
-
-	return io.Feed(name, category, pts, opt)
-}
-
-func GetPointsFromMeasurement(measurements []Measurement) ([]*dkpt.Point, error) {
-	var pts []*dkpt.Point
-	for _, m := range measurements {
-		if pt, err := m.LineProto(); err != nil {
-			l.Warnf("make point failed: %v, ignore", err)
-		} else {
-			pts = append(pts, pt)
-		}
-	}
-	return pts, nil
 }
 
 func NewTagInfo(desc string) *TagInfo {

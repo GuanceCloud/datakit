@@ -16,7 +16,6 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/go-redis/redis/v8"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -27,10 +26,6 @@ type replicaMeasurement struct {
 	fields   map[string]interface{}
 	resData  map[string]interface{}
 	election bool
-}
-
-func (m *replicaMeasurement) LineProto() (*dkpt.Point, error) {
-	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElectionV2(m.election))
 }
 
 //nolint:lll
@@ -59,17 +54,17 @@ func (m *replicaMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (i *Input) collectReplicaMeasurement() ([]*point.Point, error) {
+func (ipt *Input) collectReplicaMeasurement() ([]*point.Point, error) {
 	m := &replicaMeasurement{
-		client:   i.client,
+		client:   ipt.client,
 		resData:  make(map[string]interface{}),
 		tags:     make(map[string]string),
 		fields:   make(map[string]interface{}),
-		election: i.Election,
+		election: ipt.Election,
 	}
 
 	m.name = redisReplica
-	setHostTagIfNotLoopback(m.tags, i.Host)
+	setHostTagIfNotLoopback(m.tags, ipt.Host)
 
 	if err := m.getData(); err != nil {
 		return nil, err
@@ -82,12 +77,12 @@ func (i *Input) collectReplicaMeasurement() ([]*point.Point, error) {
 	var opts []point.Option
 
 	if m.election {
-		m.tags = inputs.MergeTagsWrapper(m.tags, i.Tagger.ElectionTags(), i.Tags, i.Host)
+		m.tags = inputs.MergeTagsWrapper(m.tags, ipt.Tagger.ElectionTags(), ipt.Tags, ipt.Host)
 	} else {
-		m.tags = inputs.MergeTagsWrapper(m.tags, i.Tagger.HostTags(), i.Tags, i.Host)
+		m.tags = inputs.MergeTagsWrapper(m.tags, ipt.Tagger.HostTags(), ipt.Tags, ipt.Host)
 	}
 
-	pt := point.NewPointV2([]byte(m.name),
+	pt := point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
 	collectCache = append(collectCache, pt)

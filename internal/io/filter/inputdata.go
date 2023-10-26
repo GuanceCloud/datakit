@@ -8,7 +8,6 @@ package filter
 import (
 	fp "github.com/GuanceCloud/cliutils/filter"
 	"github.com/GuanceCloud/cliutils/point"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 // Before checks, should adjust tags under some conditions.
@@ -22,15 +21,19 @@ func NewTFDataFromMap(data map[string]string) *TFData {
 	}
 }
 
-func NewTFData(category point.Category, pt *dkpt.Point) *TFData {
+func NewTFData(category point.Category, pt *point.Point) *TFData {
 	res := &TFData{
-		Tags: pt.Tags(),
+		Tags:   map[string]string{},
+		Fields: map[string]any{},
 	}
 
-	fields, err := pt.Fields()
-	if err == nil {
-		res.Fields = fields
-	} // ignore error here
+	for _, kv := range pt.KVs() {
+		if kv.IsTag {
+			res.Tags[kv.Key] = kv.GetS()
+		} else {
+			res.Fields[kv.Key] = kv.Raw()
+		}
+	}
 
 	// Before checks, should adjust tags under some conditions.
 	// Must stay the same 'switch' logic with kodo project function named 'getSourceValue' in source file apis/esFields.go.
@@ -59,6 +62,53 @@ func NewTFData(category point.Category, pt *dkpt.Point) *TFData {
 	}
 
 	res.Tags["category"] = category.String()
+
+	return res
+}
+
+func NewTFDataFromPoint(category point.Category, pt *point.Point) *TFData {
+	res := &TFData{
+		Tags: map[string]string{
+			"category": category.String(),
+		},
+		Fields: map[string]any{},
+	}
+
+	for _, t := range pt.Tags() {
+		res.Tags[t.Key] = t.GetS()
+	}
+
+	for _, t := range pt.Fields() {
+		if v := t.GetS(); v != "" {
+			res.Fields[t.Key] = v
+		}
+	}
+
+	// Before checks, should adjust tags under some conditions.
+	// Must stay the same 'switch' logic with kodo project function named 'getSourceValue' in source file apis/esFields.go.
+	switch category {
+	case
+		point.Logging,
+		point.Network,
+		point.KeyEvent,
+		point.RUM:
+		res.Tags["source"] = pt.Name() // set measurement name as tag `source'
+
+	case
+		point.Tracing,
+		point.Security,
+		point.Profiling:
+		// using measurement name as tag `service'.
+
+	case point.Metric, point.MetricDeprecated:
+		res.Tags["measurement"] = pt.Name() // set measurement name as tag `measurement'
+
+	case point.Object, point.CustomObject:
+		res.Tags["class"] = pt.Name() // set measurement name as tag `class'
+
+	case point.DynamicDWCategory, point.UnknownCategory:
+		// pass
+	}
 
 	return res
 }

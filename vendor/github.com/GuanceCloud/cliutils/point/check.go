@@ -6,10 +6,10 @@
 package point
 
 import (
-	"bytes"
 	"fmt"
 	"math"
 	"reflect"
+	"strings"
 )
 
 type checker struct {
@@ -37,7 +37,7 @@ func (c *checker) addWarn(t, msg string) {
 	})
 }
 
-func (c *checker) checkMeasurement(m []byte) []byte {
+func (c *checker) checkMeasurement(m string) string {
 	if len(m) == 0 {
 		c.addWarn(WarnInvalidMeasurement,
 			fmt.Sprintf("empty measurement, use %s", DefaultMeasurementName))
@@ -99,13 +99,13 @@ func (c *checker) checkKVs(kvs KVs) KVs {
 
 // Remove all `\` suffix on key/val
 // Replace all `\n` with ` `.
-func adjustKV(x []byte) []byte {
-	if bytes.HasSuffix(x, []byte(`\`)) {
-		x = trimSuffixAll(x, []byte(`\`))
+func adjustKV(x string) string {
+	if strings.HasSuffix(x, `\`) {
+		x = trimSuffixAll(x, `\`)
 	}
 
-	if bytes.Contains(x, []byte("\n")) {
-		x = bytes.ReplaceAll(x, []byte("\n"), []byte(" "))
+	if strings.Contains(x, "\n") {
+		x = strings.ReplaceAll(x, "\n", " ")
 	}
 
 	return x
@@ -129,37 +129,37 @@ func (c *checker) checkTag(f *Field) *Field {
 		f.Key = f.Key[:c.cfg.maxTagKeyLen]
 	}
 
-	if c.cfg.maxTagValLen > 0 && len(f.GetD()) > c.cfg.maxTagValLen {
+	if c.cfg.maxTagValLen > 0 && len(f.GetS()) > c.cfg.maxTagValLen {
 		c.addWarn(WarnMaxTagValueLen,
 			fmt.Sprintf("exceed max tag value length(%d), got %d, value truncated",
-				c.cfg.maxTagValLen, len(f.GetD())))
+				c.cfg.maxTagValLen, len(f.GetS())))
 
-		f.Val = &Field_D{D: f.GetD()[:c.cfg.maxTagValLen]}
+		f.Val = &Field_S{S: f.GetS()[:c.cfg.maxTagValLen]}
 	}
 
 	// check tag key '\', '\n'
-	if bytes.HasSuffix(f.Key, []byte(`\`)) || bytes.Contains(f.Key, []byte("\n")) {
+	if strings.HasSuffix(f.Key, `\`) || strings.Contains(f.Key, "\n") {
 		c.addWarn(WarnInvalidTagKey, fmt.Sprintf("invalid tag key `%s'", f.Key))
 
 		f.Key = adjustKV(f.Key)
 	}
 
 	// check tag value: '\', '\n'
-	if bytes.HasSuffix(f.GetD(), []byte(`\`)) || bytes.Contains(f.GetD(), []byte("\n")) {
-		c.addWarn(WarnInvalidTagValue, fmt.Sprintf("invalid tag value %q", f.GetD()))
+	if strings.HasSuffix(f.GetS(), `\`) || strings.Contains(f.GetS(), "\n") {
+		c.addWarn(WarnInvalidTagValue, fmt.Sprintf("invalid tag value %q", f.GetS()))
 
-		f.Val = &Field_D{D: adjustKV(f.GetD())}
+		f.Val = &Field_S{S: adjustKV(f.GetS())}
 	}
 
 	// replace `.' with `_' in tag keys
-	if bytes.Contains(f.Key, []byte(".")) && !c.cfg.enableDotInKey {
+	if strings.Contains(f.Key, ".") && !c.cfg.enableDotInKey {
 		c.addWarn(WarnInvalidTagKey, fmt.Sprintf("invalid tag key `%s': found `.'", f.Key))
 
-		f.Key = bytes.ReplaceAll(f.Key, []byte("."), []byte("_"))
+		f.Key = strings.ReplaceAll(f.Key, ".", "_")
 	}
 
-	if c.keyDisabled(NewTagKey(f.Key, nil)) {
-		c.addWarn(WarnTagDisabled, fmt.Sprintf("tag key `%s' disabled", string(f.Key)))
+	if c.keyDisabled(NewTagKey(f.Key, "")) {
+		c.addWarn(WarnTagDisabled, fmt.Sprintf("tag key `%s' disabled", f.Key))
 		return nil
 	}
 
@@ -173,14 +173,14 @@ func (c *checker) checkField(f *Field) *Field {
 
 		c.addWarn(WarnMaxFieldKeyLen,
 			fmt.Sprintf("exceed max field key length(%d), got %d, key truncated to %s",
-				c.cfg.maxFieldKeyLen, len(f.Key), string(f.Key)))
+				c.cfg.maxFieldKeyLen, len(f.Key), f.Key))
 	}
 
-	if bytes.Contains(f.Key, []byte(".")) && !c.cfg.enableDotInKey {
+	if strings.Contains(f.Key, ".") && !c.cfg.enableDotInKey {
 		c.addWarn(WarnDotInkey,
 			fmt.Sprintf("invalid field key `%s': found `.'", f.Key))
 
-		f.Key = bytes.ReplaceAll(f.Key, []byte("."), []byte("_"))
+		f.Key = strings.ReplaceAll(f.Key, ".", "_")
 	}
 
 	if c.keyDisabled(KVKey(f)) {
@@ -196,7 +196,7 @@ func (c *checker) checkField(f *Field) *Field {
 		} else {
 			if x.U > uint64(math.MaxInt64) {
 				c.addWarn(WarnMaxFieldValueInt,
-					fmt.Sprintf("too large int field: key=%s, value=%d(> %d)", string(f.Key), x.U, uint64(math.MaxInt64)))
+					fmt.Sprintf("too large int field: key=%s, value=%d(> %d)", f.Key, x.U, uint64(math.MaxInt64)))
 				return nil
 			} else {
 				// Force convert uint64 to int64: to disable line proto like
@@ -212,39 +212,58 @@ func (c *checker) checkField(f *Field) *Field {
 		return f
 
 	case nil:
-		c.addWarn(WarnNilField, fmt.Sprintf("nil field(%s)", string(f.Key)))
+		c.addWarn(WarnNilField, fmt.Sprintf("nil field(%s)", f.Key))
 		return f
 
 	case *Field_D: // same as []uint8
 
 		if !c.cfg.enableStrField {
 			c.addWarn(WarnInvalidFieldValueType,
-				fmt.Sprintf("field(%s) dropped with string value, when [DisableStringField] enabled", string(f.Key)))
+				fmt.Sprintf("field(%s) dropped with string value, when [DisableStringField] enabled", f.Key))
 			return nil
 		}
 
 		if c.cfg.maxFieldValLen > 0 && len(x.D) > c.cfg.maxFieldValLen {
 			c.addWarn(WarnMaxFieldValueLen,
 				fmt.Sprintf("field (%s) exceed max field value length(%d), got %d, value truncated",
-					string(f.Key), c.cfg.maxFieldValLen, len(x.D)))
+					f.Key, c.cfg.maxFieldValLen, len(x.D)))
 
 			f.Val = &Field_D{D: x.D[:c.cfg.maxFieldValLen]}
 		}
 
 		return f
 
+	case *Field_S: // same as Field_D
+
+		if !c.cfg.enableStrField {
+			c.addWarn(WarnInvalidFieldValueType,
+				fmt.Sprintf("field(%s) dropped with string value, when [DisableStringField] enabled", f.Key))
+			return nil
+		}
+
+		if c.cfg.maxFieldValLen > 0 && len(x.S) > c.cfg.maxFieldValLen {
+			c.addWarn(WarnMaxFieldValueLen,
+				fmt.Sprintf("field (%s) exceed max field value length(%d), got %d, value truncated",
+					f.Key, c.cfg.maxFieldValLen, len(x.S)))
+
+			f.Val = &Field_S{S: x.S[:c.cfg.maxFieldValLen]}
+		}
+
+		return f
+
 	default:
 		c.addWarn(WarnInvalidFieldValueType,
-			fmt.Sprintf("invalid field (%s), value: %s, type: %s", string(f.Key), f.Val, reflect.TypeOf(f.Val)))
+			fmt.Sprintf("invalid field (%s), value: %s, type: %s",
+				f.Key, f.Val, reflect.TypeOf(f.Val)))
 		return nil
 	}
 }
 
-func trimSuffixAll(s, sfx []byte) []byte {
-	var x []byte
+func trimSuffixAll(s, sfx string) string {
+	var x string
 	for {
-		x = bytes.TrimSuffix(s, sfx)
-		if bytes.Equal(x, s) {
+		x = strings.TrimSuffix(s, sfx)
+		if x == s {
 			break
 		}
 		s = x
@@ -262,7 +281,7 @@ func (c *checker) keyDisabled(k *Key) bool {
 	}
 
 	for _, item := range c.cfg.disabledKeys {
-		if bytes.Equal(k.key, item.key) {
+		if k.key == item.key {
 			return true
 		}
 	}

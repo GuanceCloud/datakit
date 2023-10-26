@@ -81,19 +81,19 @@ type Runtime struct {
 func (r *Runtime) toPoint(domain, hostName string, t time.Time) *point.Point {
 	var kvs point.KVs
 	kvs = make([]*point.Field, 0)
-	kvs = kvs.AddTag([]byte("runtime_java-version"), []byte(r.JavaVersion))
-	kvs = kvs.AddTag([]byte("runtime_user-name"), []byte(r.UserName))
-	kvs = kvs.AddTag([]byte("runtime_user-dir"), []byte(r.UserDir))
-	kvs = kvs.AddTag([]byte("domain"), []byte(domain))
-	kvs = kvs.AddTag([]byte("hostName"), []byte(hostName))
+	kvs = kvs.AddTag("runtime_java-version", r.JavaVersion)
+	kvs = kvs.AddTag("runtime_user-name", r.UserName)
+	kvs = kvs.AddTag("runtime_user-dir", r.UserDir)
+	kvs = kvs.AddTag("domain", domain)
+	kvs = kvs.AddTag("hostName", hostName)
 
-	kvs = kvs.Add([]byte("runtime_up-time"), r.Uptime, false, true)
-	kvs = kvs.Add([]byte("runtime_start-time"), r.StartTime, false, true)
+	kvs = kvs.Add("runtime_up-time", r.Uptime, false, true)
+	kvs = kvs.Add("runtime_start-time", r.StartTime, false, true)
 
 	opts := point.DefaultMetricOptions()
 
 	opts = append(opts, point.WithTime(t))
-	return point.NewPointV2([]byte(metricName), kvs, opts...)
+	return point.NewPointV2(metricName, kvs, opts...)
 }
 
 type OS struct {
@@ -130,7 +130,7 @@ func (o *OS) toPoint(domain, hostName string, t time.Time) *point.Point {
 	opts := point.DefaultMetricOptions()
 
 	opts = append(opts, point.WithTime(t))
-	return point.NewPointV2([]byte(metricName), append(point.NewTags(tags), point.NewKVs(fieds)...), opts...)
+	return point.NewPointV2(metricName, append(point.NewTags(tags), point.NewKVs(fieds)...), opts...)
 }
 
 type Disk struct {
@@ -160,7 +160,7 @@ func (d *Disk) toPoint(domain, hostName string, t time.Time) []*point.Point {
 
 		opts := point.DefaultMetricOptions()
 		opts = append(opts, point.WithTime(t))
-		p := point.NewPointV2([]byte(metricName), append(point.NewTags(tags), point.NewKVs(fieds)...), opts...)
+		p := point.NewPointV2(metricName, append(point.NewTags(tags), point.NewKVs(fieds)...), opts...)
 		pts = append(pts, p)
 	}
 
@@ -199,7 +199,7 @@ func (m *Memory) toPoint(domain, hostName string, t time.Time) []*point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(t))
 
-	p := point.NewPointV2([]byte(metricName), append(point.NewTags(tags), point.NewKVs(fieds)...), opts...)
+	p := point.NewPointV2(metricName, append(point.NewTags(tags), point.NewKVs(fieds)...), opts...)
 	pts = append(pts, p)
 
 	for _, gc := range m.GC {
@@ -215,7 +215,7 @@ func (m *Memory) toPoint(domain, hostName string, t time.Time) []*point.Point {
 		opts := point.DefaultMetricOptions()
 		opts = append(opts, point.WithTime(t))
 
-		p := point.NewPointV2([]byte(metricName), append(point.NewTags(gctags), point.NewKVs(gcfieds)...), opts...)
+		p := point.NewPointV2(metricName, append(point.NewTags(gctags), point.NewKVs(gcfieds)...), opts...)
 		pts = append(pts, p)
 	}
 
@@ -249,7 +249,7 @@ func (th *Thread) toPoint(domain, hostName string, t time.Time) *point.Point {
 	opts := point.DefaultMetricOptions()
 
 	opts = append(opts, point.WithTime(t))
-	return point.NewPointV2([]byte(metricName), append(point.NewTags(tags), point.NewKVs(fieds)...), opts...)
+	return point.NewPointV2(metricName, append(point.NewTags(tags), point.NewKVs(fieds)...), opts...)
 }
 
 // MessageXML MessageXML: 没有指标意义。

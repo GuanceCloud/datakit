@@ -126,8 +126,8 @@ func DefaultMainConfig() *MainConfig {
 	}
 
 	if runtime.GOOS == datakit.OSWindows {
-		conf.Logging.Log = filepath.Join(InstallDir, "log")
-		conf.Logging.GinLog = filepath.Join(InstallDir, "gin.log")
+		conf.Logging.LoggerCfg.Log = filepath.Join(InstallDir, "log")
+		conf.Logging.LoggerCfg.GinLog = filepath.Join(InstallDir, "gin.log")
 		conf.Logging.GinErrLog = filepath.Join(InstallDir, "gin_err.log")
 	}
 

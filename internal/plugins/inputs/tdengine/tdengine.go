@@ -20,13 +20,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/araddon/dateparse"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
-
-var globalTags map[string]string
 
 // restResult 请求 tdengine 返回的数据结构.
 type restResult struct {
@@ -52,21 +51,22 @@ type tdEngine struct {
 	basic    string
 	stop     chan struct{}
 	upstream bool
-	election bool
+
+	Ipt *Input
 }
 
-func newTDEngine(user, pw, adapter string, election bool) *tdEngine {
-	if !strings.HasPrefix(adapter, "http://") && !strings.HasPrefix(adapter, "https://") {
-		adapter = "http://" + adapter
+func newTDEngine(ipt *Input) *tdEngine {
+	if !strings.HasPrefix(ipt.AdapterEndpoint, "http://") && !strings.HasPrefix(ipt.AdapterEndpoint, "https://") {
+		ipt.AdapterEndpoint = "http://" + ipt.AdapterEndpoint
 	}
 	return &tdEngine{
-		user:     user,
-		pw:       pw,
-		adapter:  adapter,
-		basic:    UserToBase64(user, pw),
+		user:     ipt.User,
+		pw:       ipt.Password,
+		adapter:  ipt.AdapterEndpoint,
+		basic:    UserToBase64(ipt.User, ipt.Password),
 		stop:     make(chan struct{}),
 		upstream: true,
-		election: election,
+		Ipt:      ipt,
 	}
 }
 
@@ -83,12 +83,12 @@ func (t *tdEngine) CheckHealth(sql selectSQL) bool {
 	return err == nil // When err = nil, TD is health and can subsequent operations.
 }
 
-func (t *tdEngine) getSTablesNum() []inputs.Measurement {
+func (t *tdEngine) getSTablesNum() []*point.Point {
 	// show databases.
 	databases := t.getDatabase()
 
 	// show $database.stables.
-	measurements := make([]inputs.Measurement, 0)
+	pts := make([]*point.Point, 0)
 	for i := 0; i < len(databases); i++ {
 		msm := &Measurement{
 			name: "td_database",
@@ -96,9 +96,8 @@ func (t *tdEngine) getSTablesNum() []inputs.Measurement {
 				"database_name": databases[i].name,
 				"created_time":  databases[i].creatTime,
 			},
-			fields:   map[string]interface{}{},
-			ts:       time.Now(),
-			election: t.election,
+			fields: map[string]interface{}{},
+			ts:     time.Now(),
 		}
 		sql := "show " + databases[i].name + ".stables"
 		body, err := query(t.adapter, t.basic, "", []byte(sql))
@@ -110,19 +109,31 @@ func (t *tdEngine) getSTablesNum() []inputs.Measurement {
 		var res restResult
 		if err = json.Unmarshal(body, &res); err != nil {
 			l.Errorf("parse json error: %v", err)
-			return measurements
+			return pts
 		}
 
-		setGlobalTags(msm)
 		msm.fields["stable_count"] = res.Rows
-		measurements = append(measurements, msm)
+
+		opts := point.DefaultMetricOptions()
+		opts = append(opts, point.WithTime(msm.ts))
+
+		if t.Ipt.Election {
+			msm.tags = inputs.MergeTagsWrapper(msm.tags, t.Ipt.Tagger.ElectionTags(), t.Ipt.Tags, t.Ipt.AdapterEndpoint)
+		} else {
+			msm.tags = inputs.MergeTagsWrapper(msm.tags, t.Ipt.Tagger.HostTags(), t.Ipt.Tags, t.Ipt.AdapterEndpoint)
+		}
+
+		pt := point.NewPointV2(msm.name,
+			append(point.NewTags(msm.tags), point.NewKVs(msm.fields)...),
+			opts...)
+		pts = append(pts, pt)
 	}
 
-	return measurements
+	return pts
 }
 
 func (t *tdEngine) run() {
-	msmC := make(chan []inputs.Measurement, 100)
+	msmC := make(chan []*point.Point, 100)
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_tdengine"})
 	for _, m := range metrics {
 		func(metric metric) {
@@ -152,9 +163,9 @@ func (t *tdEngine) run() {
 								continue
 							}
 							if sql.plugInFun != nil {
-								msmC <- sql.plugInFun.resToMeasurement(metric.metricName, res, sql, t.election, t.adapter)
+								msmC <- sql.plugInFun.resToMeasurement(metric.metricName, res, sql, t.Ipt)
 							} else {
-								msmC <- makeMeasurements(metric.metricName, res, sql, t.election, t.adapter)
+								msmC <- makeMeasurements(metric.metricName, res, sql, t.Ipt)
 							}
 						}
 					}
@@ -192,7 +203,7 @@ func (t *tdEngine) run() {
 		case msm := <-msmC:
 			l.Debugf("measurements receive from channel and len =%d", len(msm))
 			if len(msm) > 0 && t.upstream {
-				if err := inputs.FeedMeasurement(inputName, datakit.Metric, msm, nil); err != nil {
+				if err := t.Ipt.feeder.Feed(inputName, point.Metric, msm, nil); err != nil {
 					l.Errorf("FeedMeasurement: %s", err)
 				}
 			}
@@ -279,9 +290,9 @@ func query(url string, basicAuth, token string, reqBody []byte) ([]byte, error) 
 	return body, nil
 }
 
-func makeMeasurements(subMetricName string, res restResult, sql selectSQL, election bool, u string) (measurements []inputs.Measurement) {
-	host := getHostTagIfNotLoopback(u)
-	measurements = make([]inputs.Measurement, 0, res.Rows)
+func makeMeasurements(subMetricName string, res restResult, sql selectSQL, ipt *Input) (pts []*point.Point) {
+	host := getHostTagIfNotLoopback(ipt.AdapterEndpoint)
+	pts = make([]*point.Point, 0, res.Rows)
 	if len(res.Data) == 0 {
 		return
 	}
@@ -291,7 +302,7 @@ func makeMeasurements(subMetricName string, res restResult, sql selectSQL, elect
 			tags:     map[string]string{},
 			fields:   make(map[string]interface{}),
 			ts:       time.Time{},
-			election: election,
+			election: ipt.Election,
 		}
 		if host != "" {
 			msm.tags["host"] = host
@@ -343,19 +354,23 @@ func makeMeasurements(subMetricName string, res restResult, sql selectSQL, elect
 		if sql.unit != "" {
 			msm.tags["unit"] = sql.unit
 		}
-		setGlobalTags(msm)
 		msm.name = metricName(subMetricName, sql.title)
-		measurements = append(measurements, msm)
-	}
-	return measurements
-}
 
-func setGlobalTags(msm *Measurement) {
-	if len(globalTags) != 0 {
-		for key, val := range globalTags {
-			msm.tags[key] = val
+		opts := point.DefaultMetricOptions()
+		opts = append(opts, point.WithTime(msm.ts))
+
+		if ipt.Election {
+			msm.tags = inputs.MergeTagsWrapper(msm.tags, ipt.Tagger.ElectionTags(), ipt.Tags, ipt.AdapterEndpoint)
+		} else {
+			msm.tags = inputs.MergeTagsWrapper(msm.tags, ipt.Tagger.HostTags(), ipt.Tags, ipt.AdapterEndpoint)
 		}
+
+		pt := point.NewPointV2(msm.name,
+			append(point.NewTags(msm.tags), point.NewKVs(msm.fields)...),
+			opts...)
+		pts = append(pts, pt)
 	}
+	return pts
 }
 
 func getHostTagIfNotLoopback(u string) string {

@@ -6,11 +6,9 @@
 package system
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -26,11 +24,6 @@ func (m *measurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{}
 }
 
-func (m *measurement) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
-	return nil, fmt.Errorf("not implement")
-}
-
 type conntrackMeasurement measurement
 
 // Point implement MeasurementV2.
@@ -38,14 +31,9 @@ func (m *conntrackMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (m *conntrackMeasurement) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -78,14 +66,9 @@ func (m *filefdMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (m *filefdMeasurement) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -110,7 +93,7 @@ func (m *systemMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
 }
@@ -138,11 +121,6 @@ func (m *systemMeasurement) Info() *inputs.MeasurementInfo {
 			"host": &inputs.TagInfo{Desc: "hostname"},
 		},
 	}
-}
-
-func (m *systemMeasurement) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
-	return nil, fmt.Errorf("not implement")
 }
 
 func newFieldInfoCount(desc string) *inputs.FieldInfo {

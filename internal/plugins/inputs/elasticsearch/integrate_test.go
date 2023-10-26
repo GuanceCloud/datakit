@@ -488,7 +488,7 @@ func assertMeasurements(pts []*point.Point, cs *caseSpec) error {
 	}
 
 	for _, pt := range pts {
-		name := string(pt.Name())
+		name := pt.Name()
 		if _, ok := pointMap[name]; ok {
 			continue
 		}
@@ -511,8 +511,8 @@ func assertMeasurements(pts []*point.Point, cs *caseSpec) error {
 
 			tags := pt.Tags()
 			for k, expect := range cs.ipt.Tags {
-				if v := tags.Get([]byte(k)); v != nil {
-					got := string(v.GetD())
+				if v := tags.Get(k); v != nil {
+					got := v.GetS()
 					if got != expect {
 						return fmt.Errorf("expect tag value %s, got %s", expect, got)
 					}

@@ -106,7 +106,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)
 
-		ipt.Tagger = testutils.NewTaggerHost()
+		ipt.tagger = testutils.NewTaggerHost()
 
 		cases = append(cases, &caseSpec{
 			t:      t,
@@ -152,11 +152,11 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 		opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
 		opts = append(opts, cs.opts...)
 
-		measurement := string(pt.Name())
+		measurement := pt.Name()
 
 		switch measurement {
 		case hostObjMeasurementName:
-			opts = append(opts, inputs.WithDoc(&hostMeasurement{}))
+			opts = append(opts, inputs.WithDoc(&docMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
 
@@ -181,8 +181,8 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 
 			tags := pt.Tags()
 			for k, expect := range cs.ipt.Tags {
-				if v := tags.Get([]byte(k)); v != nil {
-					got := string(v.GetD())
+				if v := tags.Get(k); v != nil {
+					got := v.GetS()
 					if got != expect {
 						return fmt.Errorf("expect tag value %s, got %s", expect, got)
 					}

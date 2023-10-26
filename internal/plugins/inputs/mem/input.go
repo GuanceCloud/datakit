@@ -13,237 +13,178 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
-	clipt "github.com/GuanceCloud/cliutils/point"
+	"github.com/GuanceCloud/cliutils/point"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-)
-
-var (
-	_ inputs.ReadEnv   = (*Input)(nil)
-	_ inputs.Singleton = (*Input)(nil)
 )
 
 const (
 	minInterval = time.Second
 	maxInterval = time.Minute
+	inputName   = "mem"
+	metricName  = inputName
 )
 
-const (
-	inputName  = "mem"
-	metricName = inputName
-	sampleCfg  = `
-[[inputs.mem]]
-  ##(optional) collect interval, default is 10 seconds
-  interval = '10s'
-
-[inputs.mem.tags]
-  # some_tag = "some_value"
-  # more_tag = "some_other_value"`
+var (
+	_ inputs.ReadEnv   = (*Input)(nil)
+	_ inputs.Singleton = (*Input)(nil)
+	l                  = logger.DefaultSLogger(inputName)
 )
-
-var l = logger.DefaultSLogger(inputName)
 
 type Input struct {
-	Interval     datakit.Duration
-	Tags         map[string]string
-	collectCache []inputs.Measurement
+	Interval time.Duration
+	Tags     map[string]string
+
+	mergedTags map[string]string
+
+	collectCache []*point.Point
 
 	vmStat   VMStat
 	platform string
 
-	semStop *cliutils.Sem // start stop signal
-}
+	feeder dkio.Feeder
+	tagger datakit.GlobalTagger
 
-func (ipt *Input) Singleton() {
-}
-
-type memMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-}
-
-func (m *memMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
-}
-
-// https://man7.org/linux/man-pages/man5/proc.5.html
-// nolint:lll
-func (m *memMeasurement) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{
-		Name: metricName,
-		Fields: map[string]interface{}{
-			"total":             NewFieldInfoB("Total amount of memory."),
-			"available":         NewFieldInfoB("Amount of available memory."),
-			"available_percent": NewFieldInfoP("Available memory percent."),
-			"used":              NewFieldInfoB("Amount of used memory."),
-			"used_percent":      NewFieldInfoP("Used memory percent."),
-			"active":            NewFieldInfoB("Memory that has been used more recently and usually not reclaimed unless absolutely necessary. (Darwin, Linux)"),
-			"free":              NewFieldInfoB("Amount of free memory. (Darwin, Linux)"),
-			"inactive":          NewFieldInfoB("Memory which has been less recently used.  It is more eligible to be reclaimed for other purposes. (Darwin, Linux)"),
-			"wired":             NewFieldInfoB("Wired. (Darwin)"),
-			"buffered":          NewFieldInfoB("Buffered. (Linux)"),
-			"cached":            NewFieldInfoB("In-memory cache for files read from the disk. (Linux)"),
-			"commit_limit":      NewFieldInfoB("This is the total amount of memory currently available to be allocated on the system. (Linux)"),
-			"committed_as":      NewFieldInfoB("The amount of memory presently allocated on the system. (Linux)"),
-			"dirty":             NewFieldInfoB("Memory which is waiting to get written back to the disk. (Linux)"),
-			"high_free":         NewFieldInfoB("Amount of free high memory. (Linux)"),
-			"high_total":        NewFieldInfoB("Total amount of high memory. (Linux)"),
-			"huge_pages_free":   NewFieldInfoC("The number of huge pages in the pool that are not yet allocated. (Linux)"),
-			"huge_pages_size":   NewFieldInfoB("The size of huge pages. (Linux)"),
-			"huge_page_total":   NewFieldInfoC("The size of the pool of huge pages. (Linux)"),
-			"low_free":          NewFieldInfoB("Amount of free low memory. (Linux)"),
-			"low_total":         NewFieldInfoB("Total amount of low memory. (Linux)"),
-			"mapped":            NewFieldInfoB("Files which have been mapped into memory, such as libraries. (Linux)"),
-			"page_tables":       NewFieldInfoB("Amount of memory dedicated to the lowest level of page tables. (Linux)"),
-			"shared":            NewFieldInfoB("Amount of shared memory. (Linux)"),
-			"slab":              NewFieldInfoB("In-kernel data structures cache. (Linux)"),
-			"sreclaimable":      NewFieldInfoB("Part of Slab, that might be reclaimed, such as caches. (Linux)"),
-			"sunreclaim":        NewFieldInfoB("Part of Slab, that cannot be reclaimed on memory pressure. (Linux)"),
-			"swap_cached":       NewFieldInfoB("Memory that once was swapped out, is swapped back in but still also is in the swap file. (Linux)"),
-			"swap_free":         NewFieldInfoB("Amount of swap space that is currently unused. (Linux)"),
-			"swap_total":        NewFieldInfoB("Total amount of swap space available. (Linux)"),
-			"vmalloc_chunk":     NewFieldInfoB("Largest contiguous block of vmalloc area which is free. (Linux)"),
-			"vmalloc_total":     NewFieldInfoB("Total size of vmalloc memory area. (Linux)"),
-			"vmalloc_used":      NewFieldInfoB("Amount of vmalloc area which is used. (Linux)"),
-			"write_back":        NewFieldInfoB("Memory which is actively being written back to the disk. (Linux)"),
-			"write_back_tmp":    NewFieldInfoB("Memory used by FUSE for temporary write back buffers. (Linux)"),
-		},
-		Tags: map[string]interface{}{
-			"host": &inputs.TagInfo{Desc: "System hostname."},
-		},
-	}
-}
-
-func (ipt *Input) Collect() error {
-	ipt.collectCache = make([]inputs.Measurement, 0)
-	vm, err := ipt.vmStat()
-	if err != nil {
-		return fmt.Errorf("error getting virtual memory info: %w", err)
-	}
-
-	fields := map[string]interface{}{
-		"total":             vm.Total,
-		"available":         vm.Available,
-		"used":              vm.Used,
-		"used_percent":      100 * float64(vm.Used) / float64(vm.Total),
-		"available_percent": 100 * float64(vm.Available) / float64(vm.Total),
-	}
-
-	switch ipt.platform {
-	case "darwin":
-		fields["active"] = vm.Active
-		fields["free"] = vm.Free
-		fields["inactive"] = vm.Inactive
-		fields["wired"] = vm.Wired
-	case "linux":
-		fields["active"] = vm.Active
-		fields["buffered"] = vm.Buffers
-		fields["cached"] = vm.Cached
-		fields["commit_limit"] = vm.CommitLimit
-		fields["committed_as"] = vm.CommittedAS
-		fields["dirty"] = vm.Dirty
-		fields["free"] = vm.Free
-		fields["high_free"] = vm.HighFree
-		fields["high_total"] = vm.HighTotal
-		fields["huge_pages_free"] = vm.HugePagesFree
-		fields["huge_pages_size"] = vm.HugePageSize
-		fields["huge_pages_total"] = vm.HugePagesTotal
-		fields["inactive"] = vm.Inactive
-		fields["low_free"] = vm.LowFree
-		fields["low_total"] = vm.LowTotal
-		fields["mapped"] = vm.Mapped
-		fields["page_tables"] = vm.PageTables
-		fields["shared"] = vm.Shared
-		fields["slab"] = vm.Slab
-		fields["sreclaimable"] = vm.SReclaimable
-		fields["sunreclaim"] = vm.SUnreclaim
-		fields["swap_cached"] = vm.SwapCached
-		fields["swap_free"] = vm.SwapFree
-		fields["swap_total"] = vm.SwapTotal
-		fields["vmalloc_chunk"] = vm.VMallocChunk
-		fields["vmalloc_total"] = vm.VMallocTotal
-		fields["vmalloc_used"] = vm.VMallocUsed
-		fields["write_back_tmp"] = vm.WritebackTmp
-		fields["write_back"] = vm.Writeback
-	}
-	tags := map[string]string{}
-	for k, v := range ipt.Tags {
-		tags[k] = v
-	}
-	ipt.collectCache = append(ipt.collectCache, &memMeasurement{
-		name:   inputName,
-		tags:   tags,
-		fields: fields,
-	})
-	return err
+	semStop *cliutils.Sem
 }
 
 func (ipt *Input) Run() {
-	l = logger.SLogger(inputName)
-	l.Infof("memory input started")
-	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
-	tick := time.NewTicker(ipt.Interval.Duration)
+	ipt.setup()
+
+	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
 
 	for {
 		start := time.Now()
-		if err := ipt.Collect(); err != nil {
-			l.Errorf("Collect: %s", err)
-			io.FeedLastError(inputName, err.Error(), clipt.Metric)
+		if err := ipt.collect(); err != nil {
+			l.Errorf("collect: %s", err)
+			ipt.feeder.FeedLastError(err.Error(),
+				dkio.WithLastErrorInput(inputName),
+				dkio.WithLastErrorCategory(point.Metric),
+			)
 		}
 
 		if len(ipt.collectCache) > 0 {
-			if err := inputs.FeedMeasurement(metricName, datakit.Metric, ipt.collectCache,
-				&io.Option{CollectCost: time.Since(start)}); err != nil {
-				l.Errorf("FeedMeasurement: %s", err)
+			if err := ipt.feeder.Feed(metricName, point.Metric, ipt.collectCache,
+				&dkio.Option{CollectCost: time.Since(start)}); err != nil {
+				ipt.feeder.FeedLastError(err.Error(),
+					dkio.WithLastErrorInput(inputName),
+					dkio.WithLastErrorCategory(point.Metric),
+				)
+				l.Errorf("feed measurement: %s", err)
 			}
 		}
 
 		select {
 		case <-tick.C:
 		case <-datakit.Exit.Wait():
-			l.Infof("memory input exit")
+			l.Infof("%s input exit", inputName)
 			return
-
 		case <-ipt.semStop.Wait():
-			l.Infof("memory input return")
+			l.Infof("%s input return", inputName)
 			return
 		}
 	}
 }
+
+func (ipt *Input) setup() {
+	l = logger.SLogger(inputName)
+	l.Infof("memory input started")
+	ipt.Interval = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval)
+
+	ipt.mergedTags = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")
+	l.Debugf("merged tags: %+#v", ipt.mergedTags)
+}
+
+func (ipt *Input) collect() error {
+	ipt.collectCache = make([]*point.Point, 0)
+	ts := time.Now()
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(ts))
+
+	vm, err := ipt.vmStat()
+	if err != nil {
+		return fmt.Errorf("error getting virtual memory info: %w", err)
+	}
+
+	var kvs point.KVs
+
+	kvs = kvs.Add("total", vm.Total, false, false)
+	kvs = kvs.Add("available", vm.Available, false, false)
+	kvs = kvs.Add("used", vm.Used, false, false)
+	kvs = kvs.Add("used_percent", 100*float64(vm.Used)/float64(vm.Total), false, false)
+	kvs = kvs.Add("available_percent", 100*float64(vm.Available)/float64(vm.Total), false, false)
+
+	switch ipt.platform {
+	case "darwin":
+		kvs = kvs.Add("active", vm.Active, false, false)
+		kvs = kvs.Add("free", vm.Free, false, false)
+		kvs = kvs.Add("inactive", vm.Inactive, false, false)
+		kvs = kvs.Add("wired", vm.Wired, false, false)
+	case "linux":
+		kvs = kvs.Add("active", vm.Active, false, false)
+		kvs = kvs.Add("buffered", vm.Buffers, false, false)
+		kvs = kvs.Add("cached", vm.Cached, false, false)
+		kvs = kvs.Add("commit_limit", vm.CommitLimit, false, false)
+		kvs = kvs.Add("committed_as", vm.CommittedAS, false, false)
+		kvs = kvs.Add("dirty", vm.Dirty, false, false)
+		kvs = kvs.Add("free", vm.Free, false, false)
+		kvs = kvs.Add("high_free", vm.HighFree, false, false)
+		kvs = kvs.Add("high_total", vm.HighTotal, false, false)
+		kvs = kvs.Add("huge_pages_free", vm.HugePagesFree, false, false)
+		kvs = kvs.Add("huge_pages_size", vm.HugePageSize, false, false)
+		kvs = kvs.Add("huge_pages_total", vm.HugePagesTotal, false, false)
+		kvs = kvs.Add("inactive", vm.Inactive, false, false)
+		kvs = kvs.Add("low_free", vm.LowFree, false, false)
+		kvs = kvs.Add("low_total", vm.LowTotal, false, false)
+		kvs = kvs.Add("mapped", vm.Mapped, false, false)
+		kvs = kvs.Add("page_tables", vm.PageTables, false, false)
+		kvs = kvs.Add("shared", vm.Shared, false, false)
+		kvs = kvs.Add("slab", vm.Slab, false, false)
+		kvs = kvs.Add("sreclaimable", vm.SReclaimable, false, false)
+		kvs = kvs.Add("sunreclaim", vm.SUnreclaim, false, false)
+		kvs = kvs.Add("swap_cached", vm.SwapCached, false, false)
+		kvs = kvs.Add("swap_free", vm.SwapFree, false, false)
+		kvs = kvs.Add("swap_total", vm.SwapTotal, false, false)
+		kvs = kvs.Add("vmalloc_chunk", vm.VMallocChunk, false, false)
+		kvs = kvs.Add("vmalloc_total", vm.VMallocTotal, false, false)
+		kvs = kvs.Add("vmalloc_used", vm.VMallocUsed, false, false)
+		kvs = kvs.Add("write_back_tmp", vm.WritebackTmp, false, false)
+		kvs = kvs.Add("write_back", vm.Writeback, false, false)
+	}
+
+	for k, v := range ipt.mergedTags {
+		kvs = kvs.AddTag(k, v)
+	}
+
+	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(inputName, kvs, opts...))
+
+	return nil
+}
+
+func (*Input) Singleton() {}
 
 func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
 	}
 }
-
-func (*Input) Catalog() string {
-	return "host"
-}
-
-func (*Input) SampleConfig() string {
-	return sampleCfg
-}
-
-func (*Input) AvailableArchs() []string {
-	return datakit.AllOS
-}
-
+func (*Input) Catalog() string          { return "host" }
+func (*Input) SampleConfig() string     { return sampleCfg }
+func (*Input) AvailableArchs() []string { return datakit.AllOS }
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
-		&memMeasurement{},
+		&docMeasurement{},
 	}
 }
 
 // ReadEnv support envs：
 //
 //	ENV_INPUT_MEM_TAGS : "a=b,c=d"
-//	ENV_INPUT_MEM_INTERVAL : datakit.Duration
+//	ENV_INPUT_MEM_INTERVAL : time.Duration
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	if tagsStr, ok := envs["ENV_INPUT_MEM_TAGS"]; ok {
 		tags := config.ParseGlobalTags(tagsStr)
@@ -252,13 +193,13 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		}
 	}
 
-	//   ENV_INPUT_MEM_INTERVAL : datakit.Duration
+	//   ENV_INPUT_MEM_INTERVAL : time.Duration
 	if str, ok := envs["ENV_INPUT_MEM_INTERVAL"]; ok {
 		da, err := time.ParseDuration(str)
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_MEM_INTERVAL to time.Duration: %s, ignore", err)
 		} else {
-			ipt.Interval.Duration = config.ProtectedInterval(minInterval,
+			ipt.Interval = config.ProtectedInterval(minInterval,
 				maxInterval,
 				da)
 		}
@@ -268,9 +209,12 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
+			feeder: dkio.DefaultFeeder(),
+			tagger: datakit.DefaultGlobalTagger(),
+
 			platform: runtime.GOOS,
 			vmStat:   VirtualMemoryStat,
-			Interval: datakit.Duration{Duration: time.Second * 10},
+			Interval: time.Second * 10,
 
 			semStop: cliutils.NewSem(),
 			Tags:    make(map[string]string),

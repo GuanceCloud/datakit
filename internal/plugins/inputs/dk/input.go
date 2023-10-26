@@ -17,7 +17,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
 )
@@ -88,8 +87,8 @@ type Input struct {
 	Interval     time.Duration     `toml:"interval"`
 	Tags         map[string]string `toml:"tags"`
 
-	Tagger dkpt.GlobalTagger `toml:"-"`
-	Feeder io.Feeder         `toml:"-"`
+	Tagger datakit.GlobalTagger `toml:"-"`
+	Feeder io.Feeder            `toml:"-"`
 
 	url  string
 	prom *prom.Prom
@@ -103,9 +102,9 @@ func (*Input) Singleton() {}
 //	ENV_INPUT_DK_ENABLE_ALL_METRICS(bool)
 //	ENV_INPUT_DK_ADD_METRICS(json-string-list)
 //	ENV_INPUT_DK_ONLY_METRICS(json-string-list)
-func (i *Input) ReadEnv(envs map[string]string) {
+func (ipt *Input) ReadEnv(envs map[string]string) {
 	if _, ok := envs["ENV_INPUT_DK_ENABLE_ALL_METRICS"]; ok {
-		i.MetricFilter = nil
+		ipt.MetricFilter = nil
 	}
 
 	if x := envs["ENV_INPUT_DK_ADD_METRICS"]; x != "" {
@@ -113,7 +112,7 @@ func (i *Input) ReadEnv(envs map[string]string) {
 		if err := json.Unmarshal([]byte(x), &arr); err != nil {
 			l.Warnf("json.Unmarshal: %s, ignored", err)
 		} else {
-			i.MetricFilter = append(i.MetricFilter, arr...)
+			ipt.MetricFilter = append(ipt.MetricFilter, arr...)
 		}
 	}
 
@@ -122,7 +121,7 @@ func (i *Input) ReadEnv(envs map[string]string) {
 		if err := json.Unmarshal([]byte(x), &arr); err != nil {
 			l.Warnf("json.Unmarshal: %s, ignored", err)
 		} else {
-			i.MetricFilter = arr
+			ipt.MetricFilter = arr
 		}
 	}
 }
@@ -135,45 +134,45 @@ func (*Input) Catalog() string {
 	return "host"
 }
 
-func (i *Input) SampleConfig() string {
+func (ipt *Input) SampleConfig() string {
 	return configSample
 }
 
-func (i *Input) setup(listen string) {
+func (ipt *Input) setup(listen string) {
 	// setup tags
-	for k, v := range i.Tagger.HostTags() {
-		if _, ok := i.Tags[k]; !ok { // add global tags if not exist.
+	for k, v := range ipt.Tagger.HostTags() {
+		if _, ok := ipt.Tags[k]; !ok { // add global tags if not exist.
 			l.Infof("add global tag %q:%q", k, v)
-			i.Tags[k] = v
+			ipt.Tags[k] = v
 		}
 	}
 
 	// 'url' not config.Cfg.HTTPAPI.Listen, we force redirect to current listen address
-	if u, err := url.Parse(i.url); err == nil {
+	if u, err := url.Parse(ipt.url); err == nil {
 		if u.Host != listen {
 			l.Infof("force redirect URL from %q to %q", u.Host, listen)
 			u.Host = listen
-			i.url = u.String()
+			ipt.url = u.String()
 		}
 	}
 }
 
-func (i *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(source)
 
-	i.Interval = config.ProtectedInterval(minInterval, maxInterval, i.Interval)
+	ipt.Interval = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval)
 
-	i.setup(config.Cfg.HTTPAPI.Listen)
+	ipt.setup(config.Cfg.HTTPAPI.Listen)
 
 	// init prom
 	for {
 		x, err := prom.NewProm(
 			prom.WithLogger(l),
 			prom.WithSource(source),
-			prom.WithMetricTypes(i.MetricTypes),
-			prom.WithMetricNameFilter(i.MetricFilter),
+			prom.WithMetricTypes(ipt.MetricTypes),
+			prom.WithMetricNameFilter(ipt.MetricFilter),
 			prom.WithMeasurementName(measurement),
-			prom.WithTags(i.Tags),
+			prom.WithTags(ipt.Tags),
 		)
 
 		if err != nil {
@@ -185,25 +184,25 @@ func (i *Input) Run() {
 				time.Sleep(time.Second)
 			}
 		} else {
-			i.prom = x
+			ipt.prom = x
 			break
 		}
 	}
 
-	tick := time.NewTicker(i.Interval)
+	tick := time.NewTicker(ipt.Interval)
 
 	for {
 		start := time.Now()
-		pts, err := i.prom.CollectFromHTTPV2(i.url)
+		pts, err := ipt.prom.CollectFromHTTPV2(ipt.url)
 		if err != nil {
 			l.Warnf("prom.CollectFromHTTPV2: %s, ignored", err.Error())
-			i.Feeder.FeedLastError(err.Error(),
+			ipt.Feeder.FeedLastError(err.Error(),
 				io.WithLastErrorInput(inputName),
 				io.WithLastErrorSource(source),
 				io.WithLastErrorCategory(point.Metric),
 			)
 		} else {
-			if err := i.Feeder.Feed(source, point.Metric,
+			if err := ipt.Feeder.Feed(source, point.Metric,
 				pts,
 				&io.Option{
 					CollectCost: time.Since(start),
@@ -230,7 +229,7 @@ func def() *Input {
 		url:      fmt.Sprintf("http://%s/metrics", defaultHost),
 		Interval: time.Second * 30,
 		Tags:     map[string]string{},
-		Tagger:   dkpt.DefaultGlobalTagger(),
+		Tagger:   datakit.DefaultGlobalTagger(),
 	}
 }
 

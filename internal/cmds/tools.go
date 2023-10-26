@@ -7,7 +7,6 @@ package cmds
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -107,7 +106,7 @@ func runToolFlags() error {
 
 		for k, v := range inputs.Inputs {
 			sample := v().SampleConfig()
-			if err := ioutil.WriteFile(filepath.Join(fpath, k+".conf"),
+			if err := os.WriteFile(filepath.Join(fpath, k+".conf"),
 				[]byte(sample), datakit.ConfPerm); err != nil {
 				panic(err)
 			}

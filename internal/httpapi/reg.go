@@ -28,7 +28,7 @@ var httpRouteList = make(map[string]*httpRouteInfo)
 func RegHTTPHandler(method, path string, handler http.HandlerFunc) {
 	method = strings.ToUpper(method)
 	if _, ok := httpRouteList[method+path]; ok {
-		l.Warnf("failed to register %s %s by handler %s to HTTP server because of exists",
+		l.Warnf("failed to register %s %q by handler %s to HTTP server: route exists",
 			method, path, getFunctionName(handler, '/'))
 	} else {
 		httpRouteList[method+path] = &httpRouteInfo{
@@ -42,7 +42,7 @@ func RegHTTPHandler(method, path string, handler http.HandlerFunc) {
 func RegHTTPRoute(method, path string, handler APIHandler) {
 	method = strings.ToUpper(method)
 	if _, ok := httpRouteList[method+path]; ok {
-		l.Warnf("failed to register %s@%s to router", path, method)
+		l.Warnf("failed to register %s@%s to router: route exist.", path, method)
 	} else {
 		httpRouteList[method+path] = &httpRouteInfo{
 			Method:  method,

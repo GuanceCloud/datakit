@@ -8,11 +8,16 @@ package tdengine
 import (
 	"encoding/json"
 	"os"
-	"reflect"
 	"testing"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+	"github.com/stretchr/testify/assert"
+
+	"github.com/GuanceCloud/cliutils/point"
+
+	"github.com/GuanceCloud/cliutils"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
 
 func Test_makeMeasurements(t *testing.T) {
@@ -26,10 +31,13 @@ func Test_makeMeasurements(t *testing.T) {
 		t.Logf("err=%v", err)
 		time1 = time.Now()
 	}
+
+	opts := append(point.DefaultMetricOptions(), point.WithTime(time1))
+
 	tests := []struct {
 		name             string
 		args             args
-		wantMeasurements []inputs.Measurement
+		wantMeasurements []*point.Point
 	}{
 		{
 			name: "case_all_type",
@@ -49,9 +57,9 @@ func Test_makeMeasurements(t *testing.T) {
 					},
 					Data: [][]interface{}{
 						{"zhangSan", 10, int64(10), true, 12.14, 15.16, "2022-06-20 13:52:09"},
-						{"liSi", 20, int64(20), false, 12.14, 15.16, "2022-06-20 13:52:19"},
-						{"wangWu", 40, int64(40), true, 12.14, 15.16, "2022-06-20 13:52:29"},
-						{"zhaoLiu", 50, int64(50), false, 12.14, 15.16, "2022-06-20 13:52:39"},
+						{"liSi", 20, int64(20), false, 12.14, 15.16, "2022-06-20 13:52:09"},
+						{"wangWu", 40, int64(40), true, 12.14, 15.16, "2022-06-20 13:52:09"},
+						{"zhaoLiu", 50, int64(50), false, 12.14, 15.16, "2022-06-20 13:52:09"},
 					},
 					Rows: 4,
 				},
@@ -65,80 +73,76 @@ func Test_makeMeasurements(t *testing.T) {
 					plugInFun: nil,
 				},
 			},
-			wantMeasurements: []inputs.Measurement{
-				&Measurement{
-					name: "metric_test_name",
-					tags: map[string]string{
+
+			wantMeasurements: []*point.Point{
+				point.NewPointV2("metric_test_name",
+					append(point.NewTags(map[string]string{
 						"column_bool":   "true",
 						"column_string": "zhangSan",
 						"unit":          "s",
-					},
-					fields: map[string]interface{}{
+					}), point.NewKVs(map[string]interface{}{
 						"column_int":     10,
 						"column_int64":   int64(10),
 						"column_float":   12.14,
 						"column_float64": 15.16,
-					},
-					ts: time1,
-				},
+					})...),
+					opts...),
 
-				&Measurement{
-					name: "metric_test_name",
-					tags: map[string]string{
+				point.NewPointV2(
+					"metric_test_name",
+					append(point.NewTags(map[string]string{
 						"column_bool":   "false",
 						"column_string": "liSi",
 						"unit":          "s",
-					},
-					fields: map[string]interface{}{
+					}), point.NewKVs(map[string]interface{}{
 						"column_int":     20,
 						"column_int64":   int64(20),
 						"column_float":   12.14,
 						"column_float64": 15.16,
-					},
-					ts: time1.Add(time.Second * 10),
-				},
+					})...),
+					opts...),
 
-				&Measurement{
-					name: "metric_test_name",
-					tags: map[string]string{
+				point.NewPointV2(
+					"metric_test_name",
+					append(point.NewTags(map[string]string{
 						"column_bool":   "true",
 						"column_string": "wangWu",
 						"unit":          "s",
-					},
-					fields: map[string]interface{}{
+					}), point.NewKVs(map[string]interface{}{
 						"column_int":     40,
 						"column_int64":   int64(40),
 						"column_float":   12.14,
 						"column_float64": 15.16,
-					},
-					ts: time1.Add(time.Second * 20),
-				},
+					})...),
+					opts...),
 
-				&Measurement{
-					name: "metric_test_name",
-					tags: map[string]string{
+				point.NewPointV2(
+					"metric_test_name",
+					append(point.NewTags(map[string]string{
 						"column_bool":   "false",
 						"column_string": "zhaoLiu",
 						"unit":          "s",
-					},
-					fields: map[string]interface{}{
+					}), point.NewKVs(map[string]interface{}{
 						"column_int":     50,
 						"column_int64":   int64(50),
 						"column_float":   12.14,
 						"column_float64": 15.16,
-					},
-					ts: time1.Add(time.Second * 30),
-				},
+					})...),
+					opts...),
 			},
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotMeasurements := makeMeasurements(tt.args.subMetricName, tt.args.res, tt.args.sql, false, "")
+			ipt := &Input{
+				semStop: cliutils.NewSem(),
+				feeder:  dkio.DefaultFeeder(),
+				Tagger:  datakit.DefaultGlobalTagger(),
+			}
+			gotMeasurements := makeMeasurements(tt.args.subMetricName, tt.args.res, tt.args.sql, ipt)
 			for i := 0; i < len(gotMeasurements); i++ {
-				if !reflect.DeepEqual(gotMeasurements[i], tt.wantMeasurements[i]) {
-					t.Errorf("makeMeasurements()[%d] = %v, want %v", i, gotMeasurements[i], tt.wantMeasurements[i])
-				}
+				assert.Equal(t, gotMeasurements[i].LineProto(), tt.wantMeasurements[i].LineProto())
 			}
 		})
 	}

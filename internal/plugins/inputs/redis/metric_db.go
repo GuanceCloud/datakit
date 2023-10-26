@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/GuanceCloud/cliutils/point"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -22,10 +21,6 @@ type dbMeasurement struct {
 	fields   map[string]interface{}
 	resData  map[string]interface{}
 	election bool
-}
-
-func (m *dbMeasurement) LineProto() (*dkpt.Point, error) {
-	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElectionV2(m.election))
 }
 
 func (m *dbMeasurement) Info() *inputs.MeasurementInfo {
@@ -62,15 +57,15 @@ func (m *dbMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (i *Input) collectDBMeasurement() ([]*point.Point, error) {
+func (ipt *Input) collectDBMeasurement() ([]*point.Point, error) {
 	// 获取数据
 	ctx := context.Background()
-	list, err := i.client.Info(ctx, "Keyspace").Result()
+	list, err := ipt.client.Info(ctx, "Keyspace").Result()
 	if err != nil {
 		return nil, err
 	}
 	// 拿到处理后的数据
-	info, err := i.ParseInfoData(list)
+	info, err := ipt.ParseInfoData(list)
 	if err != nil {
 		return nil, err
 	}
@@ -78,14 +73,14 @@ func (i *Input) collectDBMeasurement() ([]*point.Point, error) {
 }
 
 // ParseInfoData 解析数据并返回指定的数据.
-func (i *Input) ParseInfoData(list string) ([]*point.Point, error) {
+func (ipt *Input) ParseInfoData(list string) ([]*point.Point, error) {
 	rdr := strings.NewReader(list)
 	var collectCache []*point.Point
 	scanner := bufio.NewScanner(rdr)
-	dbIndexSlice := i.DBS
+	dbIndexSlice := ipt.DBS
 	// 配置定义了db，加入dbIndexSlice
-	if i.DB != -1 {
-		dbIndexSlice = append(dbIndexSlice, i.DB)
+	if ipt.DB != -1 {
+		dbIndexSlice = append(dbIndexSlice, ipt.DB)
 	}
 
 	// 遍历每一行数据
@@ -95,7 +90,7 @@ func (i *Input) ParseInfoData(list string) ([]*point.Point, error) {
 			tags:     make(map[string]string),
 			fields:   make(map[string]interface{}),
 			resData:  make(map[string]interface{}),
-			election: i.Election,
+			election: ipt.Election,
 		}
 		line := scanner.Text()
 
@@ -112,7 +107,7 @@ func (i *Input) ParseInfoData(list string) ([]*point.Point, error) {
 		// cmdstat_get:calls=2,usec=16,usec_per_call=8.00
 		db := parts[0]
 		m.name = redisDB
-		setHostTagIfNotLoopback(m.tags, i.Host)
+		setHostTagIfNotLoopback(m.tags, ipt.Host)
 		m.tags["db_name"] = db
 		itemStrs := strings.Split(parts[1], ",")
 
@@ -123,19 +118,19 @@ func (i *Input) ParseInfoData(list string) ([]*point.Point, error) {
 			m.resData[key] = val
 		}
 
-		if len(i.DBS) == 0 {
+		if len(ipt.DBS) == 0 {
 			if err := m.submit(); err != nil {
 				return nil, err
 			}
 			var opts []point.Option
 
 			if m.election {
-				m.tags = inputs.MergeTagsWrapper(m.tags, i.Tagger.ElectionTags(), i.Tags, i.Host)
+				m.tags = inputs.MergeTagsWrapper(m.tags, ipt.Tagger.ElectionTags(), ipt.Tags, ipt.Host)
 			} else {
-				m.tags = inputs.MergeTagsWrapper(m.tags, i.Tagger.HostTags(), i.Tags, i.Host)
+				m.tags = inputs.MergeTagsWrapper(m.tags, ipt.Tagger.HostTags(), ipt.Tags, ipt.Host)
 			}
 
-			pt := point.NewPointV2([]byte(m.name),
+			pt := point.NewPointV2(m.name,
 				append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 				opts...)
 			collectCache = append(collectCache, pt)
@@ -153,12 +148,12 @@ func (i *Input) ParseInfoData(list string) ([]*point.Point, error) {
 				var opts []point.Option
 
 				if m.election {
-					m.tags = inputs.MergeTagsWrapper(m.tags, i.Tagger.ElectionTags(), i.Tags, i.Host)
+					m.tags = inputs.MergeTagsWrapper(m.tags, ipt.Tagger.ElectionTags(), ipt.Tags, ipt.Host)
 				} else {
-					m.tags = inputs.MergeTagsWrapper(m.tags, i.Tagger.HostTags(), i.Tags, i.Host)
+					m.tags = inputs.MergeTagsWrapper(m.tags, ipt.Tagger.HostTags(), ipt.Tags, ipt.Host)
 				}
 
-				pt := point.NewPointV2([]byte(m.name),
+				pt := point.NewPointV2(m.name,
 					append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 					opts...)
 				collectCache = append(collectCache, pt)

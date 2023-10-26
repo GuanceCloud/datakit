@@ -14,7 +14,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 func TestInputFeedMetrics(t *T.T) {
@@ -23,12 +22,12 @@ func TestInputFeedMetrics(t *T.T) {
 		reg.MustRegister(Metrics()...)
 
 		cat := point.Metric
+		f := DefaultFeeder()
 
-		assert.NoError(t, Feed(t.Name(), cat.URL(), nil, nil))
+		assert.NoError(t, f.Feed(t.Name(), cat, nil, nil))
 
 		mfs, err := reg.Gather()
 		assert.NoError(t, err)
-		t.Logf("\n%s", metrics.MetricFamily2Text(mfs))
 
 		assert.Equal(t, 0.0, metrics.GetMetricOnLabels(mfs,
 			"datakit_io_feed_point_total", cat.String(), t.Name()).GetCounter().GetValue())
@@ -46,9 +45,11 @@ func TestInputFeedMetrics(t *T.T) {
 
 		cat := point.Metric
 
-		pts := dkpt.RandPoints(100)
+		pts := point.RandPoints(100)
 
-		assert.NoError(t, Feed(t.Name(), cat.URL(), pts, &Option{
+		feeder := DefaultFeeder()
+
+		assert.NoError(t, feeder.Feed(t.Name(), cat, pts, &Option{
 			CollectCost: time.Second,
 		}))
 
@@ -122,6 +123,44 @@ func TestFeedMetrics(t *T.T) {
 			lastErrVec.Reset()
 			inputsFeedVec.Reset()
 			inputsLastFeedVec.Reset()
+		})
+	})
+}
+
+func TestDropPtsMetric(t *T.T) {
+	t.Run(`metric-drop-pts-metric`, func(t *T.T) {
+		reg := prometheus.NewRegistry()
+		reg.MustRegister(Metrics()...)
+
+		var (
+			dwf = NewDatawayOutput(-1) // -1 cap make chanel blocking
+			r   = point.NewRander()
+		)
+
+		npts := 100
+
+		assert.ErrorIs(t, dwf.Write(&iodata{
+			from:     `metric-drop-pts-metric`,
+			category: point.Metric,
+			points:   r.Rand(npts),
+			opt:      &Option{Blocking: false},
+		}), ErrIOBusy)
+
+		mfs, err := reg.Gather()
+		require.NoError(t, err)
+
+		m := metrics.GetMetricOnLabels(mfs,
+			`datakit_io_feed_drop_point_total`,
+			point.Metric.String(),
+			`metric-drop-pts-metric`,
+		)
+
+		assert.Equalf(t, float64(npts),
+			m.GetCounter().GetValue(),
+			"metrics:\n%s", metrics.MetricFamily2Text(mfs))
+
+		t.Cleanup(func() {
+			feedDropPoints.Reset()
 		})
 	})
 }

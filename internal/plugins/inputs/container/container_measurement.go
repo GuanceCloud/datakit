@@ -6,15 +6,12 @@
 package container
 
 import (
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 const containerMeasurement = "docker_containers"
 
 type containerMetric struct{}
-
-func (*containerMetric) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*containerMetric) Info() *inputs.MeasurementInfo {
@@ -59,8 +56,6 @@ func (*containerMetric) Info() *inputs.MeasurementInfo {
 }
 
 type containerObject struct{}
-
-func (*containerObject) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*containerObject) Info() *inputs.MeasurementInfo {
@@ -108,8 +103,6 @@ func (*containerObject) Info() *inputs.MeasurementInfo {
 }
 
 type containerLog struct{}
-
-func (*containerLog) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*containerLog) Info() *inputs.MeasurementInfo {

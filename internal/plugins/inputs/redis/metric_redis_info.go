@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -25,11 +24,6 @@ type infoMeasurement struct {
 	resData     map[string]interface{}
 	election    bool
 	lastCollect *redisCPUUsage
-}
-
-// 生成行协议.
-func (m *infoMeasurement) LineProto() (*dkpt.Point, error) {
-	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElectionV2(m.election))
 }
 
 // 指定指标.

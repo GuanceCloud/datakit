@@ -25,7 +25,7 @@ min-complexity = 14.0
 [linters-settings.cyclo]
 min-complexity = 14.0
 
-[linters-settings.maligned]
+[linters-settings.fieldalignment]
 suggest-new = true
 
 [linters-settings.goconst]
@@ -100,7 +100,6 @@ disable = [
   "gocyclo",
 
   "dupl",     # 还不允许有相似代码
-  #"maligned", # deprecated: https://github.com/mdempsky/maligned
 
   "cyclop",
   "gomoddirectives", # used `replace' in go.mod
@@ -139,5 +138,6 @@ linters = [
 	"unused",
 	"deadcode",
 	"unparam",
+	"fieldalignment",
 	"maligned",
 	"varcheck"]

@@ -15,7 +15,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/netflow/common"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/netflow/goflowlib"
 )
@@ -25,7 +25,7 @@ import (
 func TestStartServerAndStopServer(t *testing.T) {
 	port := GetFreePort()
 	ipt := &Input{
-		tagger: dkpt.DefaultGlobalTagger(),
+		tagger: datakit.DefaultGlobalTagger(),
 		Listeners: []common.FlowOpt{
 			{
 				Type: common.TypeNetFlow5,
@@ -46,7 +46,7 @@ func TestStartServerAndStopServer(t *testing.T) {
 func TestServer_Stop(t *testing.T) {
 	port := GetFreePort()
 	ipt := &Input{
-		tagger: dkpt.DefaultGlobalTagger(),
+		tagger: datakit.DefaultGlobalTagger(),
 		Listeners: []common.FlowOpt{
 			{
 				Type: common.TypeNetFlow5,

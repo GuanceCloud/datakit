@@ -8,6 +8,7 @@ package point
 import (
 	"fmt"
 	"regexp"
+	"sort"
 	"time"
 
 	"github.com/influxdata/influxdb1-client/models"
@@ -115,13 +116,17 @@ func parseLPPoints(data []byte, c *cfg) ([]*Point, error) {
 
 		if c.extraTags != nil {
 			for _, t := range c.extraTags {
-				if !x.HasTag(t.Key) {
-					x.AddTag(string(t.Key), string(t.GetD()))
+				if !x.HasTag([]byte(t.Key)) {
+					x.AddTag(t.Key, t.GetS())
 				}
 			}
 		}
 
 		pt := FromModelsLP(x)
+
+		if c.keySorted {
+			sort.Sort(pt.kvs)
+		}
 
 		if c.callback != nil {
 			newPoint, err := c.callback(pt)
@@ -137,6 +142,11 @@ func parseLPPoints(data []byte, c *cfg) ([]*Point, error) {
 		pt = chk.check(pt)
 		pt.warns = chk.warns
 		chk.reset()
+
+		// re-sort again: check may update pt.kvs
+		if c.keySorted {
+			sort.Sort(pt.kvs)
+		}
 
 		res = append(res, pt)
 	}

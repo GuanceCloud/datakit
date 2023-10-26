@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/Shopify/sarama"
+	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
 
@@ -106,12 +107,11 @@ func TestCustom_Process(t *testing.T) {
 			}
 			pt := ps[0]
 			t.Logf("%v", pt)
-			if pt.Get([]byte("message")) == nil {
+			if pt.Get("message") == nil {
 				t.Errorf("not has tag: [message]")
 			}
-			if pt.GetTag([]byte("type")) == nil {
-				t.Errorf("not has tag: [type]")
-			}
+
+			assert.NotEmptyf(t, pt.GetTag("type"), "tag [type] missing")
 		})
 	}
 }

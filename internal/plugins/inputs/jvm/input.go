@@ -119,23 +119,23 @@ type Input struct {
 
 var log = logger.DefaultSLogger(inputName)
 
-func (i *Input) Run() {
+func (ipt *Input) Run() {
 	log = logger.SLogger(inputName)
-	if i.JolokiaAgent.Interval == "" {
-		i.JolokiaAgent.Interval = defaultInterval
+	if ipt.JolokiaAgent.Interval == "" {
+		ipt.JolokiaAgent.Interval = defaultInterval
 	}
 
-	i.JolokiaAgent.PluginName = inputName
+	ipt.JolokiaAgent.PluginName = inputName
 
-	i.JolokiaAgent.Tags = i.Tags
-	i.JolokiaAgent.Types = JvmTypeMap
-	i.JolokiaAgent.L = log
-	i.JolokiaAgent.Collect()
+	ipt.JolokiaAgent.Tags = ipt.Tags
+	ipt.JolokiaAgent.Types = JvmTypeMap
+	ipt.JolokiaAgent.L = log
+	ipt.JolokiaAgent.Collect()
 }
 
-func (i *Input) Catalog() string      { return inputName }
-func (i *Input) SampleConfig() string { return JvmConfigSample }
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (ipt *Input) Catalog() string      { return inputName }
+func (ipt *Input) SampleConfig() string { return JvmConfigSample }
+func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&JavaRuntimeMemt{},
 		&JavaMemoryMemt{},
@@ -146,7 +146,7 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func (i *Input) AvailableArchs() []string {
+func (ipt *Input) AvailableArchs() []string {
 	return datakit.AllOS
 }
 

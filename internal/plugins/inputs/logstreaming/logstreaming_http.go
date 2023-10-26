@@ -13,11 +13,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"time"
 
-	lp "github.com/GuanceCloud/cliutils/lineproto"
 	"github.com/GuanceCloud/cliutils/point"
-	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
@@ -81,14 +78,6 @@ func completeService(defaultService, service string) string {
 	return defaultService
 }
 
-func completePrecision(precision string) string {
-	if precision == "" {
-		return defaultPercision
-	}
-
-	return precision
-}
-
 func (ipt *Input) processLogBody(param *parameters) error {
 	var (
 		source = completeSource(param.queryValues.Get("source"))
@@ -115,36 +104,41 @@ func (ipt *Input) processLogBody(param *parameters) error {
 			break
 		}
 
-		var pts []*influxdb.Point
-		if pts, err = lp.ParsePoints(body, &lp.Option{
-			Time:      time.Now(),
-			ExtraTags: extraTags,
-			Strict:    true,
-			Precision: completePrecision(param.queryValues.Get("precision")),
-		}); err != nil {
-			log.Errorf("url %s handler err: %s", urlstr, err)
+		dec := point.GetDecoder(point.WithDecEncoding(point.LineProtocol))
+		defer point.PutDecoder(dec)
 
+		pts, err := dec.Decode(body,
+			append(point.DefaultLoggingOptions(),
+				point.WithExtraTags(extraTags),
+				point.WithPrecision(point.PrecStr(param.queryValues.Get("precision"))),
+			)...)
+		if err != nil {
+			log.Errorf("url %s handler err: %s", urlstr, err)
 			return err
 		}
+
 		if len(pts) == 0 {
 			log.Debugf("len(points) is zero, skip")
 
 			return nil
 		}
 
-		pts1 := point.WrapPoint(pts)
-		err = ipt.feeder.Feed(inputName, point.Logging, pts1, nil)
+		return ipt.feeder.Feed(inputName, point.Logging, pts, nil)
 
 	default:
 		scanner := bufio.NewScanner(param.body)
 		pts := make([]*point.Point, 0)
 		opts := point.DefaultLoggingOptions()
 		for scanner.Scan() {
-			fields := map[string]interface{}{
-				pipeline.FieldMessage: scanner.Text(),
-				pipeline.FieldStatus:  pipeline.DefaultStatus,
-			}
-			pts = append(pts, point.NewPointV2([]byte(source), append(point.NewTags(extraTags), point.NewKVs(fields)...), opts...))
+			var kvs point.KVs
+
+			kvs = kvs.Add(pipeline.FieldMessage, scanner.Text(), false, true)
+			kvs = kvs.Add(pipeline.FieldStatus, pipeline.DefaultStatus, false, true)
+
+			pts = append(pts,
+				point.NewPointV2(source,
+					kvs,
+					append(opts, point.WithExtraTags(extraTags))...))
 		}
 
 		if len(pts) == 0 {

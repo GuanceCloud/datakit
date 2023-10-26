@@ -20,7 +20,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -35,12 +34,12 @@ func (*Input) AvailableArchs() []string { return datakit.AllOSWithElection }
 
 func (*Input) PipelineConfig() map[string]string { return map[string]string{"rabbitmq": pipelineCfg} }
 
-func (n *Input) ElectionEnabled() bool {
-	return n.Election
+func (ipt *Input) ElectionEnabled() bool {
+	return ipt.Election
 }
 
 //nolint:lll
-func (n *Input) LogExamples() map[string]map[string]string {
+func (*Input) LogExamples() map[string]map[string]string {
 	return map[string]map[string]string{
 		"rabbitmq": {
 			"RabbitMQ log": `2021-05-26 14:20:06.105 [warning] <0.12897.46> rabbitmqctl node_health_check and its HTTP API counterpart are DEPRECATED. See https://www.rabbitmq.com/monitoring.html#health-checks for replacement options.`,
@@ -48,14 +47,14 @@ func (n *Input) LogExamples() map[string]map[string]string {
 	}
 }
 
-func (n *Input) GetPipeline() []*tailer.Option {
+func (ipt *Input) GetPipeline() []*tailer.Option {
 	return []*tailer.Option{
 		{
 			Source:  inputName,
 			Service: inputName,
 			Pipeline: func() string {
-				if n.Log != nil {
-					return n.Log.Pipeline
+				if ipt.Log != nil {
+					return ipt.Log.Pipeline
 				}
 				return ""
 			}(),
@@ -63,26 +62,26 @@ func (n *Input) GetPipeline() []*tailer.Option {
 	}
 }
 
-func (n *Input) RunPipeline() {
-	if n.Log == nil || len(n.Log.Files) == 0 {
+func (ipt *Input) RunPipeline() {
+	if ipt.Log == nil || len(ipt.Log.Files) == 0 {
 		return
 	}
 
 	opt := &tailer.Option{
 		Source:            "rabbitmq",
 		Service:           "rabbitmq",
-		Pipeline:          n.Log.Pipeline,
-		GlobalTags:        n.Tags,
-		CharacterEncoding: n.Log.CharacterEncoding,
-		MultilinePatterns: []string{n.Log.MultilineMatch},
-		Done:              n.semStop.Wait(),
+		Pipeline:          ipt.Log.Pipeline,
+		GlobalTags:        ipt.Tags,
+		CharacterEncoding: ipt.Log.CharacterEncoding,
+		MultilinePatterns: []string{ipt.Log.MultilineMatch},
+		Done:              ipt.semStop.Wait(),
 	}
 
 	var err error
-	n.tail, err = tailer.NewTailer(n.Log.Files, opt, n.Log.IgnoreStatus)
+	ipt.tail, err = tailer.NewTailer(ipt.Log.Files, opt, ipt.Log.IgnoreStatus)
 	if err != nil {
 		l.Errorf("NewTailer: %s", err)
-		n.feeder.FeedLastError(n.lastErr.Error(),
+		ipt.feeder.FeedLastError(ipt.lastErr.Error(),
 			dkio.WithLastErrorInput(inputName),
 		)
 		return
@@ -90,46 +89,46 @@ func (n *Input) RunPipeline() {
 
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_rabbitmq"})
 	g.Go(func(ctx context.Context) error {
-		n.tail.Start()
+		ipt.tail.Start()
 		return nil
 	})
 }
 
-func (n *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("rabbitmq start")
-	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
-	if err := n.setHostIfNotLoopback(); err != nil {
+	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
+	if err := ipt.setHostIfNotLoopback(); err != nil {
 		l.Errorf("failed to set host from url: %v", err)
 	}
-	client, err := n.createHTTPClient()
+	client, err := ipt.createHTTPClient()
 	if err != nil {
 		l.Errorf("[error] rabbitmq init client err:%s", err.Error())
 		return
 	}
-	n.client = client
+	ipt.client = client
 
-	tick := time.NewTicker(n.Interval.Duration)
+	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
 
 	for {
-		if !n.pause {
-			n.getMetric()
+		if !ipt.pause {
+			ipt.getMetric()
 
-			if n.lastErr != nil {
-				n.feeder.FeedLastError(n.lastErr.Error(),
+			if ipt.lastErr != nil {
+				ipt.feeder.FeedLastError(ipt.lastErr.Error(),
 					dkio.WithLastErrorInput(inputName),
 				)
-				n.lastErr = nil
+				ipt.lastErr = nil
 			}
 
-			if len(n.collectCache) > 0 {
-				if err := n.feeder.Feed(inputName, point.Metric, n.collectCache,
-					&dkio.Option{CollectCost: time.Since(n.start)}); err != nil {
+			if len(ipt.collectCache) > 0 {
+				if err := ipt.feeder.Feed(inputName, point.Metric, ipt.collectCache,
+					&dkio.Option{CollectCost: time.Since(ipt.start)}); err != nil {
 					l.Errorf("FeedMeasurement: %s", err.Error())
 				}
 
-				n.collectCache = n.collectCache[:0]
+				ipt.collectCache = ipt.collectCache[:0]
 			}
 		} else {
 			l.Debugf("not leader, skipped")
@@ -137,25 +136,25 @@ func (n *Input) Run() {
 
 		select {
 		case <-datakit.Exit.Wait():
-			n.exit()
+			ipt.exit()
 			l.Info("rabbitmq exit")
 			return
 
-		case <-n.semStop.Wait():
-			n.exit()
+		case <-ipt.semStop.Wait():
+			ipt.exit()
 			l.Info("rabbitmq return")
 			return
 
 		case <-tick.C:
 
-		case n.pause = <-n.pauseCh:
+		case ipt.pause = <-ipt.pauseCh:
 			// nil
 		}
 	}
 }
 
-func (n *Input) setHostIfNotLoopback() error {
-	uu, err := url.Parse(n.URL)
+func (ipt *Input) setHostIfNotLoopback() error {
+	uu, err := url.Parse(ipt.URL)
 	if err != nil {
 		return err
 	}
@@ -164,34 +163,34 @@ func (n *Input) setHostIfNotLoopback() error {
 		return err
 	}
 	if host != "localhost" && !net.ParseIP(host).IsLoopback() {
-		n.host = host
+		ipt.host = host
 	}
 	return nil
 }
 
-func (n *Input) exit() {
-	if n.tail != nil {
-		n.tail.Close()
+func (ipt *Input) exit() {
+	if ipt.tail != nil {
+		ipt.tail.Close()
 		l.Info("rabbitmq log exit")
 	}
 }
 
-func (n *Input) Terminate() {
-	if n.semStop != nil {
-		n.semStop.Close()
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
 	}
 }
 
 type MetricFunc func(n *Input)
 
-func (n *Input) getMetric() {
-	n.start = time.Now()
+func (ipt *Input) getMetric() {
+	ipt.start = time.Now()
 	getFunc := []MetricFunc{getOverview, getNode, getQueues, getExchange}
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_rabbitmq"})
 	for _, v := range getFunc {
 		func(gf MetricFunc) {
 			g.Go(func(ctx context.Context) error {
-				gf(n)
+				gf(ipt)
 				return nil
 			})
 		}(v)
@@ -201,7 +200,7 @@ func (n *Input) getMetric() {
 	}
 }
 
-func (n *Input) SampleMeasurement() []inputs.Measurement {
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&OverviewMeasurement{},
 		&QueueMeasurement{},
@@ -210,22 +209,22 @@ func (n *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func (n *Input) Pause() error {
+func (ipt *Input) Pause() error {
 	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	defer tick.Stop()
 	select {
-	case n.pauseCh <- true:
+	case ipt.pauseCh <- true:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("pause %s failed", inputName)
 	}
 }
 
-func (n *Input) Resume() error {
+func (ipt *Input) Resume() error {
 	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	defer tick.Stop()
 	select {
-	case n.pauseCh <- false:
+	case ipt.pauseCh <- false:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
@@ -239,7 +238,7 @@ func defaultInput() *Input {
 		Election: true,
 		semStop:  cliutils.NewSem(),
 		feeder:   dkio.DefaultFeeder(),
-		Tagger:   dkpt.DefaultGlobalTagger(),
+		Tagger:   datakit.DefaultGlobalTagger(),
 	}
 }
 

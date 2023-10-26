@@ -6,23 +6,10 @@
 package ssh
 
 import (
-	"time"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-type SSHMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
-}
-
-func (s *SSHMeasurement) LineProto() (*point.Point, error) {
-	data, err := point.NewPoint(s.name, s.tags, s.fields, point.MOpt())
-	return data, err
-}
+type SSHMeasurement struct{}
 
 //nolint:lll
 func (s *SSHMeasurement) Info() *inputs.MeasurementInfo {

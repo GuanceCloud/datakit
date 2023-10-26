@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/pipeline/manager"
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport"
@@ -27,7 +28,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
-	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/script"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	ssh2 "golang.org/x/crypto/ssh"
 )
@@ -311,9 +312,11 @@ func reloadCore(ctx context.Context) (int, error) {
 
 			case 3:
 				l.Info("before set pipelines")
-
-				plscript.LoadAllScripts2StoreFromPlStructPath(plscript.GitRepoScriptNS,
-					filepath.Join(datakit.GitReposRepoFullPath, "pipeline"))
+				if managerwkr, ok := plval.GetManager(); ok && managerwkr != nil {
+					manager.LoadScripts2StoreFromPlStructPath(managerwkr,
+						manager.GitRepoScriptNS,
+						filepath.Join(datakit.GitReposRepoFullPath, "pipeline"))
+				}
 
 			case 4:
 				l.Info("before RunInputs")

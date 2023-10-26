@@ -1,5 +1,6 @@
 lint: lint_deps
-	golangci-lint run --fix | tee lint.err # https://golangci-lint.run/usage/install/#local-installation
+	@golangci-lint --version
+	@golangci-lint run --fix | tee lint.err # https://golangci-lint.run/usage/install/#local-installation
 
 lint_deps: gofmt vet
 

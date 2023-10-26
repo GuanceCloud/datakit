@@ -42,26 +42,26 @@ import (
 //	ENV_INPUT_CONTAINER_LOGGING_MIN_FLUSH_INTERVAL: string ("10s")
 //	ENV_INPUT_CONTAINER_LOGGING_MAX_MULTILINE_LIFE_DURATION : string ("5s")
 //	ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES : booler
-func (i *Input) ReadEnv(envs map[string]string) {
+func (ipt *Input) ReadEnv(envs map[string]string) {
 	if endpointStr, ok := envs["ENV_INPUT_CONTAINER_ENDPOINTS"]; ok {
 		arrays := strings.Split(endpointStr, ",")
-		i.Endpoints = append(i.Endpoints, arrays...)
+		ipt.Endpoints = append(ipt.Endpoints, arrays...)
 	}
 
 	if endpoint, ok := envs["ENV_INPUT_CONTAINER_DOCKER_ENDPOINT"]; ok {
-		i.DeprecatedDockerEndpoint = endpoint
+		ipt.DeprecatedDockerEndpoint = endpoint
 	}
 
 	if address, ok := envs["ENV_INPUT_CONTAINER_CONTAINERD_ADDRESS"]; ok {
-		i.DeprecatedContainerdAddress = address
+		ipt.DeprecatedContainerdAddress = address
 	}
 
 	if str, ok := envs["ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP"]; ok {
-		i.LoggingExtraSourceMap = config.ParseGlobalTags(str)
+		ipt.LoggingExtraSourceMap = config.ParseGlobalTags(str)
 	}
 
 	if str, ok := envs["ENV_INPUT_CONTAINER_LOGGING_SOURCE_MULTILINE_MAP_JSON"]; ok {
-		if err := json.Unmarshal([]byte(str), &i.LoggingSourceMultilineMap); err != nil {
+		if err := json.Unmarshal([]byte(str), &ipt.LoggingSourceMultilineMap); err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_SOURCE_MULTILINE_MAP_JSON to map: %s, ignore", err)
 		}
 	}
@@ -71,7 +71,7 @@ func (i *Input) ReadEnv(envs map[string]string) {
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS to bool: %s, ignore", err)
 		} else {
-			i.EnableExtractK8sLabelAsTags = b
+			ipt.EnableExtractK8sLabelAsTags = b
 		}
 	}
 
@@ -80,7 +80,7 @@ func (i *Input) ReadEnv(envs map[string]string) {
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_CONTAINER_METRIC to bool: %s, ignore", err)
 		} else {
-			i.EnableContainerMetric = b
+			ipt.EnableContainerMetric = b
 		}
 	}
 
@@ -89,7 +89,7 @@ func (i *Input) ReadEnv(envs map[string]string) {
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_K8S_METRIC to bool: %s, ignore", err)
 		} else {
-			i.EnableK8sMetric = b
+			ipt.EnableK8sMetric = b
 		}
 	}
 
@@ -98,7 +98,7 @@ func (i *Input) ReadEnv(envs map[string]string) {
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_POD_METRIC to bool: %s, ignore", err)
 		} else {
-			i.EnablePodMetric = b
+			ipt.EnablePodMetric = b
 		}
 	}
 
@@ -107,7 +107,7 @@ func (i *Input) ReadEnv(envs map[string]string) {
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_K8S_EVENT to bool: %s, ignore", err)
 		} else {
-			i.EnableK8sEvent = b
+			ipt.EnableK8sEvent = b
 		}
 	}
 
@@ -116,7 +116,7 @@ func (i *Input) ReadEnv(envs map[string]string) {
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_ANNOTATIONS to bool: %s, ignore", err)
 		} else {
-			i.EnableAutoDiscoveryOfPrometheusServiceAnnotations = b
+			ipt.EnableAutoDiscoveryOfPrometheusServiceAnnotations = b
 		}
 	}
 	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_ANNOTATIONS"]; ok {
@@ -124,7 +124,7 @@ func (i *Input) ReadEnv(envs map[string]string) {
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_ANNOTATIONS to bool: %s, ignore", err)
 		} else {
-			i.EnableAutoDiscoveryOfPrometheusPodAnnotations = b
+			ipt.EnableAutoDiscoveryOfPrometheusPodAnnotations = b
 		}
 	}
 	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_MONITORS"]; ok {
@@ -132,7 +132,7 @@ func (i *Input) ReadEnv(envs map[string]string) {
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_MONITORS to bool: %s, ignore", err)
 		} else {
-			i.EnableAutoDiscoveryOfPrometheusPodMonitors = b
+			ipt.EnableAutoDiscoveryOfPrometheusPodMonitors = b
 		}
 	}
 	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_MONITORS"]; ok {
@@ -140,7 +140,7 @@ func (i *Input) ReadEnv(envs map[string]string) {
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_MONITORS to bool: %s, ignore", err)
 		} else {
-			i.EnableAutoDiscoveryOfPrometheusServiceMonitors = b
+			ipt.EnableAutoDiscoveryOfPrometheusServiceMonitors = b
 		}
 	}
 
@@ -149,12 +149,12 @@ func (i *Input) ReadEnv(envs map[string]string) {
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_DETECTION to bool: %s, ignore", err)
 		} else {
-			i.LoggingAutoMultilineDetection = b
+			ipt.LoggingAutoMultilineDetection = b
 		}
 	}
 
 	if str, ok := envs["ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_EXTRA_PATTERNS_JSON"]; ok {
-		if err := json.Unmarshal([]byte(str), &i.LoggingAutoMultilineExtraPatterns); err != nil {
+		if err := json.Unmarshal([]byte(str), &ipt.LoggingAutoMultilineExtraPatterns); err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_EXTRA_PATTERNS_JSON to map: %s, ignore", err)
 		}
 	}
@@ -162,37 +162,37 @@ func (i *Input) ReadEnv(envs map[string]string) {
 	if tagsStr, ok := envs["ENV_INPUT_CONTAINER_TAGS"]; ok {
 		tags := config.ParseGlobalTags(tagsStr)
 		for k, v := range tags {
-			i.Tags[k] = v
+			ipt.Tags[k] = v
 		}
 	}
 
 	if str, ok := envs["ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG"]; ok {
 		arrays := strings.Split(str, ",")
-		i.ContainerIncludeLog = append(i.ContainerIncludeLog, arrays...)
+		ipt.ContainerIncludeLog = append(ipt.ContainerIncludeLog, arrays...)
 	}
 
 	if str, ok := envs["ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG"]; ok {
 		arrays := strings.Split(str, ",")
-		i.ContainerExcludeLog = append(i.ContainerExcludeLog, arrays...)
+		ipt.ContainerExcludeLog = append(ipt.ContainerExcludeLog, arrays...)
 	}
 
 	if str, ok := envs["ENV_INPUT_CONTAINER_KUBERNETES_URL"]; ok {
-		i.K8sURL = str
+		ipt.K8sURL = str
 	}
 
 	if str, ok := envs["ENV_INPUT_CONTAINER_BEARER_TOKEN"]; ok {
-		i.K8sBearerToken = str
+		ipt.K8sBearerToken = str
 	}
 
 	if str, ok := envs["ENV_INPUT_CONTAINER_BEARER_TOKEN_STRING"]; ok {
-		i.K8sBearerTokenString = str
+		ipt.K8sBearerTokenString = str
 	}
 
 	if durStr, ok := envs["ENV_INPUT_CONTAINER_LOGGING_SEARCH_INTERVAL"]; ok {
 		if dur, err := time.ParseDuration(durStr); err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_SEARCH_INTERVAL to time.Duration: %s, ignore", err)
 		} else {
-			i.LoggingSearchInterval = dur
+			ipt.LoggingSearchInterval = dur
 		}
 	}
 
@@ -200,7 +200,7 @@ func (i *Input) ReadEnv(envs map[string]string) {
 		if dur, err := time.ParseDuration(durStr); err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_MIN_FLUSH_INTERVAL to time.Duration: %s, ignore", err)
 		} else {
-			i.LoggingMinFlushInterval = dur
+			ipt.LoggingMinFlushInterval = dur
 		}
 	}
 
@@ -208,7 +208,7 @@ func (i *Input) ReadEnv(envs map[string]string) {
 		if dur, err := timex.ParseDuration(durStr); err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_MAX_MULTILINE_LIFE_DURATION to time.Duration: %s, ignore", err)
 		} else {
-			i.LoggingMaxMultilineLifeDuration = dur
+			ipt.LoggingMaxMultilineLifeDuration = dur
 		}
 	}
 
@@ -217,7 +217,7 @@ func (i *Input) ReadEnv(envs map[string]string) {
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES to bool: %s, ignore", err)
 		} else {
-			i.LoggingRemoveAnsiEscapeCodes = b
+			ipt.LoggingRemoveAnsiEscapeCodes = b
 		}
 	}
 }

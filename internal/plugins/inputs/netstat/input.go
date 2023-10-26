@@ -20,61 +20,26 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/shirou/gopsutil/v3/net"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+)
+
+const (
+	minInterval    = time.Second
+	maxInterval    = time.Minute
+	inputName      = "netstat"
+	metricName     = inputName
+	inputNamePort  = "netstat_port"
+	metricNamePort = inputNamePort
 )
 
 var (
 	_ inputs.ReadEnv   = (*Input)(nil)
 	_ inputs.Singleton = (*Input)(nil)
-)
-
-const (
-	minInterval = time.Second
-	maxInterval = time.Minute
-)
-
-const (
-	inputName      = "netstat"
-	metricName     = inputName
-	inputNamePort  = "netstat_port"
-	metricNamePort = inputNamePort
-	// conf File samples, reflected in the document.
-	sampleCfg = `
-[[inputs.netstat]]
-  ##(Optional) Collect interval, default is 10 seconds
-  interval = '10s'
-
-  ## The ports you want display
-  ## Can add tags too
-  # [[inputs.netstat.addr_ports]]
-  #   ports = ["80","443"]
-
-  ## Groups of ports and add different tags to facilitate statistics
-  # [[inputs.netstat.addr_ports]]
-  #   ports = ["80","443"]
-  #   [inputs.netstat.addr_ports.tags]
-  #     service = "http"
-  # [[inputs.netstat.addr_ports]]
-  #   ports = ["9529"]
-  #   [inputs.netstat.addr_ports.tags]
-  #     service = "datakit"
-  #     foo = "bar"
-
-  ## Server may have multiple network cards
-  ## Display only some network cards
-  ## Can add tags too
-  # [[inputs.netstat.addr_ports]]
-  #   ports = ["1.1.1.1:80","2.2.2.2:80"]
-  #   ports_match is preferred if both ports and ports_match configured
-  #   ports_match = ["*:80","*:443"]
-
-[inputs.netstat.tags]
-  # some_tag = "some_value"
-  # more_tag = "some_other_value"`
+	l                  = logger.DefaultSLogger(inputName)
 )
 
 type portConf struct {
@@ -82,8 +47,6 @@ type portConf struct {
 	PortsMatch []string          `toml:"ports_match"` // monitor *:port, will shield Ports
 	Tags       map[string]string `toml:"tags"`
 }
-
-var l = logger.DefaultSLogger(inputName)
 
 type netInfo struct {
 	tcpEstablished int
@@ -102,29 +65,6 @@ type netInfo struct {
 	pid            int
 }
 
-func newNetInfo() *netInfo {
-	return &netInfo{}
-}
-
-func (n *netInfo) toMap() map[string]interface{} {
-	return map[string]interface{}{
-		"tcp_established": n.tcpEstablished,
-		"tcp_syn_sent":    n.tcpSynSent,
-		"tcp_syn_recv":    n.tcpSynRecv,
-		"tcp_fin_wait1":   n.tcpFinWait1,
-		"tcp_fin_wait2":   n.tcpFinWait2,
-		"tcp_time_wait":   n.tcpTimeWait,
-		"tcp_close":       n.tcpClose,
-		"tcp_close_wait":  n.tcpCloseWait,
-		"tcp_last_ack":    n.tcpLastAck,
-		"tcp_listen":      n.tcpListen,
-		"tcp_closing":     n.tcpClosing,
-		"tcp_none":        n.tcpNone,
-		"udp_socket":      n.udpSocket,
-		"pid":             n.pid,
-	}
-}
-
 type NetInfos struct {
 	typ       string
 	tags      map[string]string
@@ -133,81 +73,84 @@ type NetInfos struct {
 }
 
 type Input struct {
-	Interval         datakit.Duration
-	Tags             map[string]string // Indicator name
+	Interval  time.Duration
+	Tags      map[string]string // Indicator name
+	AddrPorts []*portConf       `toml:"addr_ports"` // the ip and port that must show
+
+	semStop          *cliutils.Sem // start stop signal
 	collectCache     []*point.Point
 	collectCachePort []*point.Point
 	platform         string
 	netConnections   NetConnections // A function Type, the instance of Input calls the function
-	semStop          *cliutils.Sem  // start stop signal
-	AddrPorts        []*portConf    `toml:"addr_ports"` // the ip and port that must show
 	netInfos         []*NetInfos    // cache metric,
 	feeder           dkio.Feeder
-	Tagger           dkpt.GlobalTagger
+	mergedTags       map[string]string
+	tagger           datakit.GlobalTagger
 }
 
-func (ipt *Input) Singleton() {}
+// Run Start the process of timing acquisition.
+// If this indicator is included in the list to be collected, it will only be called once.
+// The for{} loops every tick.
+func (ipt *Input) Run() {
+	ipt.setup()
 
-// netStat Measurement structure.
-type netStatMeasurement struct {
-	name   string                 // Indicator set name ，here is "netstat"
-	tags   map[string]string      // Indicator name
-	fields map[string]interface{} // Indicator measurement results
-	ts     time.Time
-}
+	tick := time.NewTicker(ipt.Interval)
+	defer tick.Stop()
 
-// Point implement MeasurementV2.
-func (m *netStatMeasurement) Point() *point.Point {
-	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
+	for {
+		start := time.Now()
 
-	return point.NewPointV2([]byte(m.name),
-		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
-		opts...)
-}
+		if err := ipt.collect(); err != nil {
+			l.Errorf("collect: %s", err)
+			ipt.feeder.FeedLastError(err.Error(),
+				dkio.WithLastErrorInput(inputName),
+			)
+		}
 
-// LineProto data formatting, submit through FeedMeasurement.
-func (*netStatMeasurement) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(n.name, n.tags, n.fields, point.MOpt())
-	return nil, fmt.Errorf("not implement")
-}
+		// If there is data in the collectCache, submit it
+		if len(ipt.collectCache) > 0 {
+			if err := ipt.feeder.Feed(metricName, point.Metric, ipt.collectCache,
+				&dkio.Option{CollectCost: time.Since(start)}); err != nil {
+				l.Errorf("feed measurement: %s", err)
+			}
+		}
 
-// Info , reflected in the document
-//
-//nolint:lll
-func (*netStatMeasurement) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{
-		Name: metricName,
-		Fields: map[string]interface{}{
-			"tcp_established": NewFieldInfoC("ESTABLISHED : The number of TCP state be open connection, data received to be delivered to the user. "),
-			"tcp_syn_sent":    NewFieldInfoC("SYN_SENT : The number of TCP state be waiting for a machine connection request after sending a connecting request."),
-			"tcp_syn_recv":    NewFieldInfoC("SYN_RECV : The number of TCP state be waiting for confirmation of connection acknowledgement after both sender and receiver has sent / received connection request."),
-			"tcp_fin_wait1":   NewFieldInfoC("FIN_WAIT1 : The number of TCP state be waiting for a connection termination request from remote TCP host or acknowledgment of connection termination request sent previously."),
-			"tcp_fin_wait2":   NewFieldInfoC("FIN_WAIT2 : The number of TCP state be waiting for connection termination request from remote TCP host."),
-			"tcp_time_wait":   NewFieldInfoC("TIME_WAIT : The number of TCP state be waiting sufficient time to pass to ensure remote TCP host received acknowledgement of its request for connection termination."),
-			"tcp_close":       NewFieldInfoC("CLOSE : The number of TCP state be waiting for a connection termination request acknowledgement from remote TCP host."),
-			"tcp_close_wait":  NewFieldInfoC("CLOSE_WAIT : The number of TCP state be waiting for a connection termination request from local user."),
-			"tcp_last_ack":    NewFieldInfoC("LAST_ACK : The number of TCP state be waiting for connection termination request acknowledgement previously sent to remote TCP host including its acknowledgement of connection termination request."),
-			"tcp_listen":      NewFieldInfoC("LISTEN : The number of TCP state be waiting for a connection request from any remote TCP host."),
-			"tcp_closing":     NewFieldInfoC("CLOSING : The number of TCP state be waiting for a connection termination request acknowledgement from remote TCP host."),
-			"tcp_none":        NewFieldInfoC("NONE"),
-			"udp_socket":      NewFieldInfoC("UDP : The number of UDP connection."),
-			"pid":             NewFieldInfoC("PID. Optional."),
-		},
+		// If there is data in the collectCachePort, submit it
+		if len(ipt.collectCachePort) > 0 {
+			if err := ipt.feeder.Feed(metricNamePort, point.Metric, ipt.collectCachePort,
+				&dkio.Option{CollectCost: time.Since(start)}); err != nil {
+				l.Errorf("feed measurement: %s", err)
+			}
+		}
 
-		Tags: map[string]interface{}{
-			"host":       &inputs.TagInfo{Desc: "Host name"},
-			"addr_port":  &inputs.TagInfo{Desc: "Addr and port. Optional."},
-			"ip_version": &inputs.TagInfo{Desc: "IP version, 4 for IPV4, 6 for IPV6, unknown for others"},
-		},
+		select {
+		case <-tick.C:
+		case <-datakit.Exit.Wait():
+			l.Infof("%s input exit", inputName)
+			return
+		case <-ipt.semStop.Wait():
+			l.Infof("%s input return", inputName)
+			return
+		}
 	}
 }
 
-// Collect Get, Aggregate, Calculate Data.
-func (ipt *Input) Collect() error {
+func (ipt *Input) setup() {
+	l = logger.SLogger(inputName)
+
+	l.Infof("%s input started", inputName)
+	ipt.Interval = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval)
+	ipt.mergedTags = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")
+	l.Debugf("merged tags: %+#v", ipt.mergedTags)
+}
+
+func (ipt *Input) collect() error {
 	ipt.netInfos = make([]*NetInfos, 0)
 	ipt.collectCache = make([]*point.Point, 0)
 	ipt.collectCachePort = make([]*point.Point, 0)
+	ts := time.Now()
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(ts))
 
 	// get data
 	netConns, err := ipt.netConnections()
@@ -222,54 +165,42 @@ func (ipt *Input) Collect() error {
 		ipt.handleNetConn(netConn)
 	}
 
-	now := time.Now()
-
 	// Append to the collectCache, the Run() function will handle it
 	for i := 0; i < len(ipt.netInfos); i++ {
 		netInfo := ipt.netInfos[i]
 		if netInfo.typ != "all" {
-			// tag of addr+port
-			portTags := map[string]string{"addr_port": netInfo.typ, "ip_version": netInfo.ipVersion}
-			// tags for these ports
+			var kvs point.KVs
+
+			for k, v := range netInfo.netInfo.toMap() {
+				kvs = kvs.Add(k, v, false, true)
+			}
+
+			kvs = kvs.Add("addr_port", netInfo.typ, true, true)
+			kvs = kvs.Add("ip_version", netInfo.ipVersion, true, true)
 			for k, v := range netInfo.tags {
-				portTags[k] = v
+				kvs = kvs.AddTag(k, v)
 			}
-			// tags for all
-			for k, v := range ipt.Tags {
-				portTags[k] = v
+			for k, v := range ipt.mergedTags {
+				kvs = kvs.AddTag(k, v)
 			}
 
-			portTags = inputs.MergeTags(ipt.Tagger.HostTags(), portTags, "")
-
-			metric := &netStatMeasurement{
-				name:   inputNamePort,
-				tags:   portTags,
-				fields: netInfo.netInfo.toMap(),
-				ts:     now,
-			}
-			ipt.collectCachePort = append(ipt.collectCachePort, metric.Point())
+			ipt.collectCachePort = append(ipt.collectCachePort, point.NewPointV2(inputNamePort, kvs, opts...))
 		} else { // netstat all
 			fields := netInfo.netInfo.toMap()
 			delete(fields, "pid")
 
-			// collectCache tags
-			tags := map[string]string{}
-			for k, v := range ipt.Tags {
-				tags[k] = v
+			var kvs point.KVs
+
+			for k, v := range fields {
+				kvs = kvs.Add(k, v, false, true)
 			}
 
-			tags["ip_version"] = netInfo.ipVersion
-
-			tags = inputs.MergeTags(ipt.Tagger.HostTags(), tags, "")
-
-			metric := &netStatMeasurement{
-				name: inputName,
-				tags: tags,
-				// "all" mean count by server
-				fields: fields,
-				ts:     now,
+			kvs = kvs.Add("ip_version", netInfo.ipVersion, true, true)
+			for k, v := range ipt.mergedTags {
+				kvs = kvs.AddTag(k, v)
 			}
-			ipt.collectCache = append(ipt.collectCache, metric.Point())
+
+			ipt.collectCache = append(ipt.collectCache, point.NewPointV2(inputName, kvs, opts...))
 		}
 	}
 
@@ -393,84 +324,42 @@ func (ipt *Input) addCounts(typ, key, addr string, pid int, port int, confIndex 
 	}
 }
 
-// Run Start the process of timing acquisition.
-// If this indicator is included in the list to be collected, it will only be called once.
-// The for{} loops every tick.
-func (ipt *Input) Run() {
-	l = logger.SLogger(inputName)
-	l.Infof("netStat input started")
+func newNetInfo() *netInfo {
+	return &netInfo{}
+}
 
-	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
-	tick := time.NewTicker(ipt.Interval.Duration)
-	defer tick.Stop()
-
-	for {
-		start := time.Now()
-
-		// Collect() to get data
-		if err := ipt.Collect(); err != nil {
-			l.Errorf("Collect: %s", err)
-			ipt.feeder.FeedLastError(err.Error(),
-				dkio.WithLastErrorInput(inputName),
-			)
-		}
-
-		// If there is data in the collectCache, submit it
-		if len(ipt.collectCache) > 0 {
-			if err := ipt.feeder.Feed(metricName, point.Metric, ipt.collectCache,
-				&dkio.Option{CollectCost: time.Since(start)}); err != nil {
-				l.Errorf("FeedMeasurement: %s", err)
-			}
-		}
-
-		// If there is data in the collectCachePort, submit it
-		if len(ipt.collectCachePort) > 0 {
-			if err := ipt.feeder.Feed(metricNamePort, point.Metric, ipt.collectCachePort,
-				&dkio.Option{CollectCost: time.Since(start)}); err != nil {
-				l.Errorf("FeedMeasurement: %s", err)
-			}
-		}
-
-		select {
-		case <-tick.C:
-
-		case <-datakit.Exit.Wait():
-			l.Infof("memory input exit")
-			return
-
-		case <-ipt.semStop.Wait():
-			l.Infof("memory input return")
-			return
-		}
+func (n *netInfo) toMap() map[string]interface{} {
+	return map[string]interface{}{
+		"tcp_established": n.tcpEstablished,
+		"tcp_syn_sent":    n.tcpSynSent,
+		"tcp_syn_recv":    n.tcpSynRecv,
+		"tcp_fin_wait1":   n.tcpFinWait1,
+		"tcp_fin_wait2":   n.tcpFinWait2,
+		"tcp_time_wait":   n.tcpTimeWait,
+		"tcp_close":       n.tcpClose,
+		"tcp_close_wait":  n.tcpCloseWait,
+		"tcp_last_ack":    n.tcpLastAck,
+		"tcp_listen":      n.tcpListen,
+		"tcp_closing":     n.tcpClosing,
+		"tcp_none":        n.tcpNone,
+		"udp_socket":      n.udpSocket,
+		"pid":             n.pid,
 	}
 }
 
-// Terminate Stop.
+func (*Input) Singleton() {}
+
 func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
 	}
 }
-
-// Catalog catalog.
-func (*Input) Catalog() string {
-	return "host"
-}
-
-// SampleConfig : conf File samples, reflected in the document.
-func (*Input) SampleConfig() string {
-	return sampleCfg
-}
-
-// AvailableArchs : OS support, reflected in the document.
-func (*Input) AvailableArchs() []string {
-	return datakit.AllOS
-}
-
-// SampleMeasurement Sample measurement results, reflected in the document.
+func (*Input) Catalog() string          { return "host" }
+func (*Input) SampleConfig() string     { return sampleCfg }
+func (*Input) AvailableArchs() []string { return datakit.AllOS }
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
-		&netStatMeasurement{},
+		&docMeasurement{},
 	}
 }
 
@@ -484,13 +373,13 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		}
 	}
 
-	// ENV_INPUT_NETSTAT_INTERVAL : datakit.Duration
+	// ENV_INPUT_NETSTAT_INTERVAL : time.Duration
 	if str, ok := envs["ENV_INPUT_NETSTAT_INTERVAL"]; ok {
 		da, err := time.ParseDuration(str)
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_NETSTAT_INTERVAL to time.Duration: %s, ignore", err)
 		} else {
-			ipt.Interval.Duration = config.ProtectedInterval(minInterval,
+			ipt.Interval = config.ProtectedInterval(minInterval,
 				maxInterval,
 				da)
 		}
@@ -515,12 +404,12 @@ func defaultInput() *Input {
 	return &Input{
 		netConnections: GetNetConnections,
 		platform:       runtime.GOOS,
-		Interval:       datakit.Duration{Duration: time.Second * 10},
+		Interval:       time.Second * 10,
 		semStop:        cliutils.NewSem(),
 		Tags:           make(map[string]string),
 		netInfos:       []*NetInfos{},
 		feeder:         dkio.DefaultFeeder(),
-		Tagger:         dkpt.DefaultGlobalTagger(),
+		tagger:         datakit.DefaultGlobalTagger(),
 	}
 }
 

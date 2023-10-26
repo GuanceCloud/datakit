@@ -15,34 +15,7 @@ import (
 )
 
 const (
-	inputName    = "consul"
-	configSample = `
-[[inputs.prom]]
-  url = "http://127.0.0.1:9107/metrics"
-  source = "consul"
-  metric_types = ["counter", "gauge"]
-  metric_name_filter = ["consul_raft_leader", "consul_raft_peers", "consul_serf_lan_members", "consul_catalog_service", "consul_catalog_service_node_healthy", "consul_health_node_status", "consul_serf_lan_member_status"]
-  measurement_prefix = ""
-  tags_ignore = ["check"]
-  interval = "10s"
-  
-  ## Stream Size. 
-  ## The source stream segmentation size.
-  ## Default 1, source stream undivided. 
-  # stream_size = 1
-
-[[inputs.prom.measurements]]
-  prefix = "consul_"
-  name = "consul"
-`
-	pipelineCfg = `
-add_pattern("_clog_date", "%{YEAR}-%{MONTHNUM}-%{MONTHDAY}T%{HOUR}:%{MINUTE}:%{SECOND}%{INT}")
-add_pattern("_clog_level", "(DEBUG|INFO|WARN|ERROR|FATAL)")
-add_pattern("_clog_character", "%{NOTSPACE}")
-add_pattern("_clog_message", "%{GREEDYDATA}")
-grok(_, '%{SYSLOGTIMESTAMP}%{SPACE}%{SYSLOGHOST}%{SPACE}consul\\[%{POSINT}\\]:%{SPACE}%{_clog_date:date}%{SPACE}\\[%{_clog_level:level}\\]%{SPACE}%{_clog_character:character}:%{SPACE}%{_clog_message:msg}')
-drop_origin_data()
-`
+	inputName = "consul"
 )
 
 type Input struct { // keep compatible with old version's conf
@@ -87,7 +60,7 @@ func (*Input) AvailableArchs() []string {
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
-		&ConsulMeasurement{},
+		&docMeasurement{},
 	}
 }
 

@@ -8,7 +8,6 @@ package installer
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -263,7 +262,7 @@ func injectCloudProvider(p string) error {
 		}
 
 		cfgpath := filepath.Join(datakit.ConfdDir, "host", "hostobject.conf")
-		if err := ioutil.WriteFile(cfgpath, conf, datakit.ConfPerm); err != nil {
+		if err := os.WriteFile(cfgpath, conf, datakit.ConfPerm); err != nil {
 			return err
 		}
 

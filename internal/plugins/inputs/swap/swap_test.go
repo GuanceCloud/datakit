@@ -6,6 +6,7 @@
 package swap
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/shirou/gopsutil/mem"
@@ -25,15 +26,19 @@ func TestCollec(t *testing.T) {
 	}
 
 	expected := map[string]interface{}{
-		"total":        uint64(111),
-		"used":         uint64(222),
+		"total":        int64(111),
+		"used":         int64(222),
 		"free":         uint(333),
 		"used_percent": float64(50),
-		"sin":          uint64(100),
-		"sout":         uint64(100),
+		"sin":          int64(100),
+		"sout":         int64(100),
 	}
 
-	actual := i.collectCacheLast1Ptr.(*swapMeasurement).fields
+	actual := i.collectCacheLast1Ptr.InfluxFields()
+
+	fmt.Println("actual =", actual)
+	fmt.Println("expected =", expected)
+
 	AssertFields(t, actual, expected)
 }
 

@@ -16,13 +16,12 @@ import (
 var (
 	inputsFeedVec,
 	inputsFeedPtsVec,
+	feedDropPoints,
 	errCountVec,
 	flushVec,
 	inputsFilteredPtsVec *prometheus.CounterVec
 
-	feedCost       prometheus.Summary
-	feedDropPoints prometheus.Counter
-
+	feedCost,
 	inputsCollectLatencyVec *prometheus.SummaryVec
 
 	queuePtsVec,
@@ -34,21 +33,30 @@ var (
 )
 
 func metricsSetup() {
-	feedCost = prometheus.NewSummary(
+	feedCost = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
 			Namespace: "datakit",
 			Subsystem: "io",
 			Name:      "feed_cost_seconds",
 			Help:      "IO feed waiting(on block mode) seconds",
 		},
+		[]string{
+			"category",
+			"from",
+		},
 	)
 
-	feedDropPoints = prometheus.NewCounter(
+	feedDropPoints = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "datakit",
 			Subsystem: "io",
 			Name:      "feed_drop_point_total",
 			Help:      "IO feed drop(on non-block mode) points",
+		},
+
+		[]string{
+			"category",
+			"from",
 		},
 	)
 

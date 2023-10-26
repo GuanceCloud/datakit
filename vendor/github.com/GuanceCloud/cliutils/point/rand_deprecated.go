@@ -86,19 +86,20 @@ func doRandomPBPoints(count int) (*PBPoints, error) {
 
 	for i := 0; i < count; i++ {
 		pts.Arr = append(pts.Arr, &PBPoint{
-			Name: []byte(cliutils.CreateRandomString(30)),
+			Name: cliutils.CreateRandomString(30),
 			Fields: []*Field{
-				{IsTag: true, Key: []byte(cliutils.CreateRandomString(10)), Val: &Field_D{[]byte(cliutils.CreateRandomString(37))}},
-				{IsTag: true, Key: []byte(cliutils.CreateRandomString(11)), Val: &Field_D{[]byte(cliutils.CreateRandomString(38))}},
-				{IsTag: true, Key: []byte(cliutils.CreateRandomString(12)), Val: &Field_D{[]byte(cliutils.CreateRandomString(39))}},
-				{IsTag: true, Key: []byte(cliutils.CreateRandomString(13)), Val: &Field_D{[]byte(cliutils.CreateRandomString(40))}},
+				{IsTag: true, Key: cliutils.CreateRandomString(10), Val: &Field_S{cliutils.CreateRandomString(37)}},
+				{IsTag: true, Key: cliutils.CreateRandomString(11), Val: &Field_S{cliutils.CreateRandomString(38)}},
+				{IsTag: true, Key: cliutils.CreateRandomString(12), Val: &Field_S{cliutils.CreateRandomString(39)}},
+				{IsTag: true, Key: cliutils.CreateRandomString(13), Val: &Field_S{cliutils.CreateRandomString(40)}},
 
-				{Key: []byte(cliutils.CreateRandomString(10)), Val: &Field_D{[]byte(cliutils.CreateRandomString(37))}},
-				{Key: []byte(cliutils.CreateRandomString(11)), Val: &Field_I{mrand.Int63()}},
-				{Key: []byte(cliutils.CreateRandomString(12)), Val: &Field_F{mrand.NormFloat64()}},
-				{Key: []byte(cliutils.CreateRandomString(13)), Val: &Field_B{false}},
-				{Key: []byte(cliutils.CreateRandomString(14)), Val: &Field_B{true}},
-				{Key: []byte(cliutils.CreateRandomString(15)), Val: &Field_A{A: func() *anypb.Any {
+				{Key: cliutils.CreateRandomString(9), Val: &Field_S{cliutils.CreateRandomString(37)}},
+				{Key: cliutils.CreateRandomString(10), Val: &Field_D{[]byte(cliutils.CreateRandomString(37))}},
+				{Key: cliutils.CreateRandomString(11), Val: &Field_I{mrand.Int63()}},
+				{Key: cliutils.CreateRandomString(12), Val: &Field_F{mrand.NormFloat64()}},
+				{Key: cliutils.CreateRandomString(13), Val: &Field_B{false}},
+				{Key: cliutils.CreateRandomString(14), Val: &Field_B{true}},
+				{Key: cliutils.CreateRandomString(15), Val: &Field_A{A: func() *anypb.Any {
 					x, err := anypb.New(&AnyDemo{Demo: "random point"})
 					if err != nil {
 						panic(fmt.Sprintf("anypb.New: %s", err))

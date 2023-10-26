@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
 
@@ -140,8 +139,6 @@ func (m *replicasetMetadata) transformObject() pointKVs {
 
 type replicasetMetric struct{}
 
-func (*replicasetMetric) LineProto() (*dkpt.Point, error) { return nil, nil }
-
 //nolint:lll
 func (*replicasetMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
@@ -165,8 +162,6 @@ func (*replicasetMetric) Info() *inputs.MeasurementInfo {
 }
 
 type replicasetObject struct{}
-
-func (*replicasetObject) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*replicasetObject) Info() *inputs.MeasurementInfo {

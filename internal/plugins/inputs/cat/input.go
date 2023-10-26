@@ -19,7 +19,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
@@ -134,7 +133,7 @@ func (ipt *Input) Run() {
 	}
 
 	afterGather := itrace.NewAfterGather(itrace.WithLogger(log),
-		itrace.WithPointOptions(point.WithExtraTags(dkpt.GlobalHostTags())),
+		itrace.WithPointOptions(point.WithExtraTags(datakit.GlobalHostTags())),
 		itrace.WithFeeder(ipt.feeder))
 
 	afterGatherRun = afterGather

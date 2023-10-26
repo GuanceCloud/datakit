@@ -159,6 +159,7 @@ func WithFlushInterval(d time.Duration) IOOption {
 func WithMaxCacheCount(count int) IOOption {
 	return func(x *dkIO) {
 		if count > 0 {
+			log.Debugf("set max cache count to %d", count)
 			x.maxCacheCount = count
 		}
 	}

@@ -10,7 +10,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -31,7 +30,7 @@ type datakitInfo struct {
 }
 
 func (info *datakitInfo) init() error {
-	tmpDir, err := ioutil.TempDir("", "datakit-info")
+	tmpDir, err := os.MkdirTemp("", "datakit-info")
 	if err != nil {
 		return fmt.Errorf("create temporary dir error: %w", err)
 	}
@@ -103,7 +102,7 @@ func (info *datakitInfo) collectSystemdLog() error {
 		return err
 	}
 
-	return ioutil.WriteFile(filepath.Join(sysLogDir, fmt.Sprintf("syslog-%d", time.Now().UnixMilli())), res, os.ModePerm)
+	return os.WriteFile(filepath.Join(sysLogDir, fmt.Sprintf("syslog-%d", time.Now().UnixMilli())), res, os.ModePerm)
 }
 
 func (info *datakitInfo) collectMetrics() error {
@@ -121,13 +120,13 @@ func (info *datakitInfo) collectMetrics() error {
 			return err
 		}
 		defer resp.Body.Close() //nolint:errcheck
-		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		bodyBytes, err := io.ReadAll(resp.Body)
 		if err != nil {
 			cp.Warnf("read metrics body error: %s\n", err.Error())
 			continue
 		}
 
-		err = ioutil.WriteFile(filepath.Join(metricsDir, fmt.Sprintf("metric-%d", time.Now().UnixMilli())), bodyBytes, os.ModePerm)
+		err = os.WriteFile(filepath.Join(metricsDir, fmt.Sprintf("metric-%d", time.Now().UnixMilli())), bodyBytes, os.ModePerm)
 
 		if err != nil {
 			cp.Warnf("write metric file error: %s\n", err.Error())
@@ -170,13 +169,13 @@ func (info *datakitInfo) collectProfile() error {
 
 		defer resp.Body.Close() //nolint:errcheck
 
-		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		bodyBytes, err := io.ReadAll(resp.Body)
 		if err != nil {
 			cp.Warnf("read profile data for %s error: %s\n", name, err.Error())
 			continue
 		}
 
-		err = ioutil.WriteFile(filepath.Join(profileDir, name), bodyBytes, os.ModePerm)
+		err = os.WriteFile(filepath.Join(profileDir, name), bodyBytes, os.ModePerm)
 
 		if err != nil {
 			cp.Warnf("write profile file %s error: %s\n", name, err.Error())
@@ -212,7 +211,7 @@ func (info *datakitInfo) collectEnv() error {
 	}
 
 	envsString := strings.Join(envs, "\n")
-	return ioutil.WriteFile(filepath.Join(info.tmpDir, "env.txt"), []byte(envsString), os.ModePerm)
+	return os.WriteFile(filepath.Join(info.tmpDir, "env.txt"), []byte(envsString), os.ModePerm)
 }
 
 func (info *datakitInfo) collectConfig() error {
@@ -432,7 +431,7 @@ func (info *datakitInfo) compressDir() (string, error) {
 }
 
 func (info *datakitInfo) copyDir(srcDir string, dstDir string, transform transformFunc) error {
-	files, err := ioutil.ReadDir(srcDir)
+	files, err := os.ReadDir(srcDir)
 	if err != nil {
 		return fmt.Errorf("error reading directory: %w", err)
 	}

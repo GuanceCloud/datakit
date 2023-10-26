@@ -6,18 +6,11 @@
 package dataway
 
 import (
-	"bytes"
 	"fmt"
+	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
-)
-
-type bodyPayload int
-
-const (
-	payloadLineProtocol bodyPayload = iota
-	// TODO: used to cache protobuf point.
 )
 
 type body struct {
@@ -25,73 +18,86 @@ type body struct {
 	rawLen  int
 	gzon    bool
 	npts    int
-	payload bodyPayload
+	payload point.Encoding
 }
 
 func (b *body) String() string {
 	return fmt.Sprintf("gzon: %v, pts: %d, buf bytes: %d", b.gzon, b.npts, len(b.buf))
 }
 
-// getBody buidl a body instance.
-func getBody(lines [][]byte, idxBegin, idxEnd, curPartSize int) (*body, error) {
-	out := &body{
-		buf:     bytes.Join(lines, seprator),
-		payload: payloadLineProtocol,
-		npts:    idxEnd - idxBegin,
+func (w *writer) buildPointsBody() ([]*body, error) {
+	var (
+		start   = time.Now()
+		nptsArr []int
+	)
+
+	// encode callback: to trace payload info.
+	encFn := func(n int, _ []byte) error {
+		nptsArr = append(nptsArr, n)
+		return nil
 	}
 
-	out.rawLen = len(out.buf)
-	gzbuf, err := datakit.GZip(out.buf)
+	enc := point.GetEncoder(
+		point.WithEncEncoding(w.httpEncoding),
+
+		// set batch size on point count
+		point.WithEncBatchSize(w.batchSize),
+		// or point's raw bytes(approximately)
+		point.WithEncBatchBytes(w.batchBytesSize),
+
+		point.WithEncFn(encFn),
+	)
+
+	defer func() {
+		buildBodyCostVec.WithLabelValues(
+			w.category.String(),
+			w.httpEncoding.String(),
+		).Observe(float64(time.Since(start)) / float64(time.Second))
+
+		point.PutEncoder(enc)
+	}()
+
+	batches, err := enc.Encode(w.points)
 	if err != nil {
-		log.Errorf("gz: %s", err.Error())
 		return nil, err
-	} else {
-		out.buf = gzbuf
-		out.gzon = true
 	}
 
-	return out, nil
-}
+	var arr []*body
 
-// buildBody convert pts to lineprotocol body.
-func buildBody(pts []*point.Point, max int) ([]*body, error) {
-	lines := [][]byte{}
-	curPartSize := 0
+	for idx, batch := range batches {
+		buildBodyBatchBytesVec.WithLabelValues(
+			w.category.String(),
+			w.httpEncoding.String(),
+		).Observe(float64(len(batch)))
 
-	var bodies []*body
-
-	idxBegin := 0
-	for idx, pt := range pts {
-		ptbytes := []byte(pt.String())
-
-		// 此处必须提前预判包是否会大于上限值，当新进来的 ptbytes 可能
-		// 会超过上限时，就应该及时将已有数据（肯定没超限）打包一下。
-		if curPartSize+len(lines)+len(ptbytes) >= max {
-			log.Debugf("merge %d points as body", len(lines))
-
-			if body, err := getBody(lines, idxBegin, idx, curPartSize); err != nil {
-				return nil, err
-			} else {
-				idxBegin = idx
-				bodies = append(bodies, body)
-				lines = lines[:0]
-				curPartSize = 0
-			}
+		gzbuf, err := datakit.GZip(batch)
+		if err != nil {
+			log.Errorf("datakit.GZip: %s", err.Error())
+			continue
 		}
 
-		// 如果上面有打包，这里将是一个新的包，否则 ptbytes 还是追加到
-		// 已有数据上。
-		lines = append(lines, ptbytes)
-		curPartSize += len(ptbytes)
-	}
+		body := &body{
+			buf:     gzbuf,
+			rawLen:  len(batch),
+			gzon:    true,
+			payload: w.httpEncoding,
+			npts:    -1,
+		}
 
-	if len(lines) > 0 { // 尾部 lines 单独打包一下
-		if body, err := getBody(lines, idxBegin, len(pts), curPartSize); err != nil {
-			return nil, err
+		if len(nptsArr) >= idx {
+			body.npts = nptsArr[idx]
 		} else {
-			return append(bodies, body), nil
+			log.Warnf("batch size not set, set %d points as single batch", len(w.points))
+			body.npts = len(w.points)
 		}
-	} else {
-		return bodies, nil
+
+		arr = append(arr, body)
 	}
+
+	buildBodyBatchCountVec.WithLabelValues(
+		w.category.String(),
+		w.httpEncoding.String(),
+	).Observe(float64(len(arr)))
+
+	return arr, nil
 }

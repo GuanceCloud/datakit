@@ -7,13 +7,13 @@
 package ipmi
 
 import (
-	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
-	"os/exec"
 	"runtime"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -22,72 +22,159 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-// Run Start the process of timing acquisition.
+const (
+	minInterval = time.Second
+	maxInterval = time.Minute
+	inputName   = "ipmi"
+	metricName  = inputName
+)
+
+var (
+	_ inputs.ReadEnv = (*Input)(nil)
+	l                = logger.DefaultSLogger(inputName)
+	g                = datakit.G("inputs_" + inputName)
+
+	_ inputs.ElectionInput = (*Input)(nil)
+)
+
+// be used for server drop warning.
+type ipmiServer struct {
+	server          string // ipmi server ip
+	activeTimestamp int64  // alive timestamp nanosecond time.Now().UnixNano()
+	isWarned        bool   // if be warned
+}
+
+type Input struct {
+	Interval         time.Duration
+	Tags             map[string]string
+	BinPath          string        `toml:"bin_path"`           // the file path of "ipmitool"
+	Envs             []string      `toml:"envs"`               // exec.Command ENV
+	IpmiServers      []string      `toml:"ipmi_servers"`       // the ips of ipmi serverbools
+	IpmiInterfaces   []string      `toml:"ipmi_interfaces"`    // the Interfaces of ipmi servers
+	IpmiUsers        []string      `toml:"ipmi_users"`         // the users name of ipmi servers
+	IpmiPasswords    []string      `toml:"ipmi_passwords"`     // the passwords of ipmi servers
+	HexKeys          []string      `toml:"hex_keys"`           // provide the hex key for the IMPI connection.
+	MetricVersions   []int         `toml:"metric_versions"`    // Schema Version: (defaults to version 1)
+	RegexpCurrent    []string      `toml:"regexp_current"`     // regexp
+	RegexpVoltage    []string      `toml:"regexp_voltage"`     // regexp
+	RegexpPower      []string      `toml:"regexp_power"`       // regexp
+	RegexpTemp       []string      `toml:"regexp_temp"`        // regexp
+	RegexpFanSpeed   []string      `toml:"regexp_fan_speed"`   // regexp
+	RegexpUsage      []string      `toml:"regexp_usage"`       // regexp
+	RegexpCount      []string      `toml:"regexp_count"`       // regexp
+	RegexpStatus     []string      `toml:"regexp_status"`      // regexp
+	Timeout          time.Duration `toml:"timeout"`            // exec timeout
+	DropWarningDelay time.Duration `toml:"drop_warning_delay"` // server drop warning delay, default:300s
+
+	semStop    *cliutils.Sem
+	feeder     dkio.Feeder
+	platform   string
+	mergedTags map[string]string
+	tagger     datakit.GlobalTagger
+
+	Election bool `toml:"election"`
+	pause    bool
+	pauseCh  chan bool
+
+	servers   []ipmiServer // List of active ipmi servers, alarm after service failure
+	serversMu sync.Mutex
+	start     time.Time
+}
+
 func (ipt *Input) Run() {
-	l = logger.SLogger(inputName)
-	l.Infof("input started")
-	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
+	ipt.setup()
 
-	ipt.getBytesFromIPMIs() // Not test model
-
-	tick := time.NewTicker(ipt.Interval.Duration)
+	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
-	dataCache := make([]dataStruct, 0)
-	warnLazyTimes := 3
 
 	for {
-		// Avoid false alarms when the input wins the election.
-		if !ipt.pause {
-			if warnLazyTimes > 0 {
-				warnLazyTimes--
-			} else {
-				l.Infof("is leader, check server drop warning")
-				ipt.handleServerDropWarn()
-			}
+		if ipt.pause {
+			l.Debug("%s election paused", inputName)
 		} else {
-			warnLazyTimes = 3
+			ipt.handleServerDropWarn()
+			ipt.start = time.Now()
+			if err := ipt.collect(); err != nil {
+				l.Errorf("collect: %s", err)
+			}
 		}
 
 		select {
-		case d := <-ipt.ipmiDataCh:
-			dataCache = append(dataCache, d)
 		case <-tick.C:
-			if len(dataCache) > 0 || len(ipt.collectCache) > 0 {
-				start := time.Now()
-
-				if err := ipt.handleData(dataCache); err != nil {
-					l.Errorf("Collect: %s", err)
-					ipt.Feeder.FeedLastError(err.Error(),
-						io.WithLastErrorInput(inputName),
-					)
-				}
-				// If there is data in the cache, submit it.
-				if len(ipt.collectCache) > 0 {
-					err := ipt.Feeder.Feed(inputName, point.Metric, ipt.collectCache,
-						&io.Option{CollectCost: time.Since(start)})
-					if err != nil {
-						l.Errorf("Feed: %V", err)
-						ipt.Feeder.FeedLastError(err.Error(),
-							io.WithLastErrorInput(inputName),
-						)
-					}
-				}
-				dataCache = make([]dataStruct, 0)
-				ipt.collectCache = make([]*point.Point, 0)
-			}
-		case ipt.pause = <-ipt.pauseCh:
 		case <-datakit.Exit.Wait():
-			l.Infof("memory input exit")
+			l.Infof("%s input exit", inputName)
 			return
 		case <-ipt.semStop.Wait():
-			l.Infof("memory input return")
+			l.Infof("%s input return", inputName)
 			return
 		}
 	}
+}
+
+func (ipt *Input) setup() {
+	l = logger.SLogger(inputName)
+
+	l.Infof("%s input started", inputName)
+	ipt.Interval = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval)
+	if ipt.Election {
+		ipt.mergedTags = inputs.MergeTags(ipt.tagger.ElectionTags(), ipt.Tags, "")
+	} else {
+		ipt.mergedTags = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")
+	}
+	l.Debugf("merged tags: %+#v", ipt.mergedTags)
+}
+
+func (ipt *Input) collect() error {
+	if err := ipt.checkConfig(); err != nil {
+		return err
+	}
+
+	wg := sync.WaitGroup{}
+	for i := 0; i < len(ipt.IpmiServers); i++ {
+		wg.Add(1)
+		func(idx int) {
+			g.Go(func(ctx context.Context) error {
+				defer wg.Done()
+				return ipt.doCollect(idx)
+			})
+		}(i)
+	}
+
+	wg.Wait()
+	return nil
+}
+
+func (ipt *Input) doCollect(idx int) error {
+	data, err := ipt.getBytes(idx)
+	if err != nil {
+		l.Errorf("getBytes %v", err)
+		return err
+	}
+
+	// Got data, delay warning.  (server, isActive, isOnlyAdd)
+	ipt.serverOnlineInfo(data.server, true, false)
+
+	pts, err := ipt.getPoints(data.data, data.metricVersion, data.server)
+	if err != nil {
+		l.Errorf("getPoints %v", err)
+		return err
+	}
+
+	if len(pts) > 0 {
+		if err := ipt.feeder.Feed(metricName, point.Metric, pts,
+			&dkio.Option{CollectCost: time.Since(ipt.start)}); err != nil {
+			ipt.feeder.FeedLastError(err.Error(),
+				dkio.WithLastErrorInput(inputName),
+				dkio.WithLastErrorCategory(point.Metric),
+			)
+			l.Errorf("feed measurement: %s", err)
+		}
+	}
+
+	return nil
 }
 
 func (ipt *Input) checkConfig() error {
@@ -113,100 +200,6 @@ func (ipt *Input) checkConfig() error {
 		}
 	}
 	return nil
-}
-
-func (ipt *Input) getBytesFromIPMIs() {
-	g := datakit.G("ipmi")
-	// Traversal get bytes data from all ipmi servers.
-	for i := 0; i < len(ipt.IpmiServers); i++ {
-		// only add a recorder. (server, isActive, isOnlyAdd)
-		ipt.serverOnlineInfo(ipt.IpmiServers[i], false, true)
-		func(index int) {
-			g.Go(func(ctx context.Context) error {
-				ipt.getBytesFromIPMI(index)
-				return nil
-			})
-		}(i)
-	}
-}
-
-func (ipt *Input) getBytesFromIPMI(index int) {
-	tick := time.NewTicker(ipt.Interval.Duration)
-	defer tick.Stop()
-
-	for {
-		if !ipt.pause {
-			l.Infof("is leader, ipmi gathering...")
-			data, err := ipt.getBytes(index)
-			if err != nil {
-				l.Errorf("getBytes error: %v", err)
-			} else {
-				ipt.ipmiDataCh <- *data
-			}
-		} else {
-			l.Infof("not leader, skip gather")
-		}
-
-		select {
-		case <-tick.C:
-		case ipt.pause = <-ipt.pauseCh:
-		case <-datakit.Exit.Wait():
-			l.Infof("memory input exit")
-			return
-		case <-ipt.semStop.Wait():
-			l.Infof("memory input return")
-			return
-		}
-	}
-}
-
-func (ipt *Input) getBytes(index int) (*dataStruct, error) {
-	if err := ipt.checkConfig(); err != nil {
-		return nil, err
-	}
-
-	// Get exec parameters.
-	opts, metricVersion, err := ipt.getParameters(index)
-	if err != nil {
-		l.Errorf("getParameters :%v", err)
-		return nil, err
-	}
-
-	l.Info("before get bytes, server: ", ipt.IpmiServers[index])
-	start := time.Now()
-
-	//nolint:gosec
-	c := exec.Command(ipt.BinPath, opts...)
-
-	// exec.Command ENV
-	if len(ipt.Envs) != 0 {
-		// In windows here will broken old PATH.
-		c.Env = ipt.Envs
-	}
-
-	var b bytes.Buffer
-	c.Stdout = &b
-	c.Stderr = &b
-	if err := c.Start(); err != nil {
-		l.Errorf("c.Start(): %v, %v", err, b.String())
-		return nil, err
-	}
-	err = c.Wait()
-	if err != nil {
-		l.Errorf("c.Wait(): %s, %v, %v", ipt.IpmiServers[index], err, b.String())
-		l.Info("env PATH: ", os.Getenv("PATH"))
-		l.Info("env LD_LIBRARY_PATH: ", os.Getenv("LD_LIBRARY_PATH"))
-		return nil, err
-	}
-
-	bytes := b.Bytes()
-	l.Infof("get bytes len: %v. consuming: %v", len(bytes), time.Since(start))
-
-	return &dataStruct{
-		server:        ipt.IpmiServers[index],
-		metricVersion: metricVersion,
-		data:          bytes,
-	}, err
 }
 
 // Get parameter that exec need.
@@ -268,71 +261,70 @@ func (ipt *Input) getParameters(i int) (opts []string, metricVersion int, err er
 	return opts, metricVersion, err
 }
 
-// Terminate Stop.
-func (ipt *Input) Terminate() {
-	if ipt.semStop != nil {
-		ipt.semStop.Close()
-	}
-}
-
-// Catalog Catalog.
-func (*Input) Catalog() string {
-	return inputName
-}
-
-// SampleConfig : conf File samples, reflected in the document.
-func (*Input) SampleConfig() string {
-	return sampleCfg
-}
-
-// AvailableArchs : OS support, reflected in the document.
-func (*Input) AvailableArchs() []string { return datakit.AllOSWithElection }
-
-// SampleMeasurement Sample measurement results, reflected in the document.
-func (*Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{
-		&ipmiMeasurement{},
-	}
-}
-
 // Add or update server info.
 func (ipt *Input) serverOnlineInfo(server string, isActive bool, isOnlyAdd bool) {
+	ipt.serversMu.Lock()
+	defer ipt.serversMu.Unlock()
 	for i := 0; i < len(ipt.servers); i++ {
 		if ipt.servers[i].server == server {
 			if isActive && !isOnlyAdd {
-				// Here is multi thread but different recorder，so need not mutex.
 				ipt.servers[i].isWarned = false                        // Set never warning
 				ipt.servers[i].activeTimestamp = time.Now().UnixNano() // Reset timestamp
 			}
 			return
 		}
 	}
-	// Here is single thread，so need not mutex.
 	// New, append, server not in ipt.servers.
 	ipt.servers = append(ipt.servers, ipmiServer{server, time.Now().UnixNano(), false})
 }
 
 func (ipt *Input) handleServerDropWarn() {
+	ipt.serversMu.Lock()
+	defer ipt.serversMu.Unlock()
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(ipt.start))
 	for i := 0; i < len(ipt.servers); i++ {
-		if time.Now().UnixNano() > ipt.servers[i].activeTimestamp+ipt.DropWarningDelay.Duration.Nanoseconds() &&
+		if time.Now().UnixNano() > ipt.servers[i].activeTimestamp+ipt.DropWarningDelay.Nanoseconds() &&
 			!ipt.servers[i].isWarned {
 			// This server time stamp out of delay time && no alarm has been given.
 			l.Warnf("before lost a server: %s", ipt.servers[i].server)
 
 			// Send warning.
-			tags := map[string]string{
-				"host": ipt.servers[i].server,
+			var kvs point.KVs
+			kvs = kvs.Add("host", ipt.servers[i].server, true, true)
+			kvs = kvs.Add("warning", 1, false, true)
+			for k, v := range ipt.mergedTags {
+				kvs = kvs.AddTag(k, v)
 			}
-			fields := map[string]interface{}{
-				"warning": 1,
+			pts := []*point.Point{point.NewPointV2(inputName, kvs, opts...)}
+			if err := ipt.feeder.Feed(metricName, point.Metric, pts,
+				&dkio.Option{CollectCost: time.Since(ipt.start)}); err != nil {
+				ipt.feeder.FeedLastError(err.Error(),
+					dkio.WithLastErrorInput(inputName),
+					dkio.WithLastErrorCategory(point.Metric),
+				)
+				l.Errorf("feed measurement: %s", err)
 			}
-			ipt.collectCache = append(ipt.collectCache, ipt.newPoint(tags, fields))
 
 			l.Warnf("lost a server: %s", ipt.servers[i].server)
 
 			// Set warned state. Do not warn and warn.
 			ipt.servers[i].isWarned = true
 		}
+	}
+}
+
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+	}
+}
+func (*Input) Catalog() string          { return inputName }
+func (*Input) SampleConfig() string     { return sampleCfg }
+func (*Input) AvailableArchs() []string { return datakit.AllOSWithElection }
+func (*Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{
+		&docMeasurement{},
 	}
 }
 
@@ -362,45 +354,231 @@ func (ipt *Input) Resume() error {
 	}
 }
 
-// Collect get data convert to metrics. In this input no real useful.
-func (ipt *Input) Collect() error {
-	ipt.collectCache = make([]*point.Point, 0)
-	dataCache := make([]dataStruct, 0)
-
-	for i := 0; i < len(ipt.IpmiServers); i++ {
-		data, err := ipt.getBytes(i)
-		if err != nil {
-			l.Errorf("getBytes error: %v", err)
-			return err
-		} else {
-			dataCache = append(dataCache, *data)
+// ReadEnv support envs：only for K8S.
+func (ipt *Input) ReadEnv(envs map[string]string) {
+	if tagsStr, ok := envs["ENV_INPUT_IPMI_TAGS"]; ok {
+		tags := config.ParseGlobalTags(tagsStr)
+		for k, v := range tags {
+			ipt.Tags[k] = v
 		}
 	}
 
-	if len(dataCache) > 0 {
-		_ = ipt.handleData(dataCache)
+	if str, ok := envs["ENV_INPUT_IPMI_INTERVAL"]; ok {
+		da, err := time.ParseDuration(str)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_IPMI_INTERVAL to time: %s, ignore", err)
+		} else {
+			ipt.Interval = config.ProtectedInterval(minInterval,
+				maxInterval,
+				da)
+		}
 	}
 
-	return nil
+	if str, ok := envs["ENV_INPUT_IPMI_TIMEOUT"]; ok {
+		da, err := time.ParseDuration(str)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_IPMI_TIMEOUT to time: %s, ignore", err)
+		} else {
+			ipt.Timeout = config.ProtectedInterval(minInterval,
+				maxInterval,
+				da)
+		}
+	}
+
+	if str, ok := envs["ENV_INPUT_IPMI_DEOP_WARNING_DELAY"]; ok {
+		da, err := time.ParseDuration(str)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_IPMI_DEOP_WARNING_DELAY to time: %s, ignore", err)
+		} else {
+			ipt.DropWarningDelay = config.ProtectedInterval(minInterval,
+				maxInterval,
+				da)
+		}
+	}
+
+	if str, ok := envs["ENV_INPUT_IPMI_BIN_PATH"]; ok {
+		str = strings.Trim(str, "\"")
+		str = strings.Trim(str, " ")
+		ipt.BinPath = str
+	}
+
+	if str, ok := envs["ENV_INPUT_IPMI_ENVS"]; ok {
+		var strs []string
+		err := json.Unmarshal([]byte(str), &strs)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_IPMI_ENVS: %s, ignore", err)
+		} else {
+			ipt.Envs = strs
+		}
+	}
+
+	if str, ok := envs["ENV_INPUT_IPMI_SERVERS"]; ok {
+		var strs []string
+		err := json.Unmarshal([]byte(str), &strs)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_IPMI_SERVERS: %s, ignore", err)
+		} else {
+			ipt.IpmiServers = strs
+		}
+	}
+
+	if str, ok := envs["ENV_INPUT_IPMI_INTERFACES"]; ok {
+		var strs []string
+		err := json.Unmarshal([]byte(str), &strs)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_IPMI_INTERFACES: %s, ignore", err)
+		} else {
+			ipt.IpmiInterfaces = strs
+		}
+	}
+
+	if str, ok := envs["ENV_INPUT_IPMI_USERS"]; ok {
+		var strs []string
+		err := json.Unmarshal([]byte(str), &strs)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_IPMI_USERS: %s, ignore", err)
+		} else {
+			ipt.IpmiUsers = strs
+		}
+	}
+
+	if str, ok := envs["ENV_INPUT_IPMI_PASSWORDS"]; ok {
+		var strs []string
+		err := json.Unmarshal([]byte(str), &strs)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_IPMI_PASSWORDS: %s, ignore", err)
+		} else {
+			ipt.IpmiPasswords = strs
+		}
+	}
+
+	if str, ok := envs["ENV_INPUT_IPMI_HEX_KEYS"]; ok {
+		var strs []string
+		err := json.Unmarshal([]byte(str), &strs)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_IPMI_HEX_KEYS: %s, ignore", err)
+		} else {
+			ipt.HexKeys = strs
+		}
+	}
+
+	if str, ok := envs["ENV_INPUT_IPMI_METRIC_VERSIONS"]; ok {
+		var ints []int
+		err := json.Unmarshal([]byte(str), &ints)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_IPMI_METRIC_VERSIONS: %s, ignore", err)
+		} else {
+			ipt.MetricVersions = ints
+		}
+	}
+
+	if str, ok := envs["ENV_INPUT_IPMI_HEX_KEYS"]; ok {
+		var strs []string
+		err := json.Unmarshal([]byte(str), &strs)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_IPMI_HEX_KEYS: %s, ignore", err)
+		} else {
+			ipt.HexKeys = strs
+		}
+	}
+
+	if str, ok := envs["ENV_INPUT_IPMI_REGEXP_CURRENT"]; ok {
+		var strs []string
+		err := json.Unmarshal([]byte(str), &strs)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_IPMI_REGEXP_CURRENT: %s, ignore", err)
+		} else {
+			ipt.RegexpCurrent = strs
+		}
+	}
+
+	if str, ok := envs["ENV_INPUT_IPMI_REGEXP_VOLTAGE"]; ok {
+		var strs []string
+		err := json.Unmarshal([]byte(str), &strs)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_IPMI_REGEXP_VOLTAGE: %s, ignore", err)
+		} else {
+			ipt.RegexpVoltage = strs
+		}
+	}
+
+	if str, ok := envs["ENV_INPUT_IPMI_REGEXP_POWER"]; ok {
+		var strs []string
+		err := json.Unmarshal([]byte(str), &strs)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_IPMI_REGEXP_POWER: %s, ignore", err)
+		} else {
+			ipt.RegexpPower = strs
+		}
+	}
+
+	if str, ok := envs["ENV_INPUT_IPMI_REGEXP_TEMP"]; ok {
+		var strs []string
+		err := json.Unmarshal([]byte(str), &strs)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_IPMI_REGEXP_TEMP: %s, ignore", err)
+		} else {
+			ipt.RegexpTemp = strs
+		}
+	}
+
+	if str, ok := envs["ENV_INPUT_IPMI_REGEXP_FAN_SPEED"]; ok {
+		var strs []string
+		err := json.Unmarshal([]byte(str), &strs)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_IPMI_REGEXP_FAN_SPEED: %s, ignore", err)
+		} else {
+			ipt.RegexpFanSpeed = strs
+		}
+	}
+
+	if str, ok := envs["ENV_INPUT_IPMI_REGEXP_USAGE"]; ok {
+		var strs []string
+		err := json.Unmarshal([]byte(str), &strs)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_IPMI_REGEXP_USAGE: %s, ignore", err)
+		} else {
+			ipt.RegexpUsage = strs
+		}
+	}
+
+	if str, ok := envs["ENV_INPUT_IPMI_REGEXP_COUNT"]; ok {
+		var strs []string
+		err := json.Unmarshal([]byte(str), &strs)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_IPMI_REGEXP_COUNT: %s, ignore", err)
+		} else {
+			ipt.RegexpCount = strs
+		}
+	}
+
+	if str, ok := envs["ENV_INPUT_IPMI_REGEXP_STATUS"]; ok {
+		var strs []string
+		err := json.Unmarshal([]byte(str), &strs)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_IPMI_REGEXP_STATUS: %s, ignore", err)
+		} else {
+			ipt.RegexpStatus = strs
+		}
+	}
 }
 
 func newDefaultInput() *Input {
 	ipt := &Input{
 		platform:       runtime.GOOS,
 		IpmiInterfaces: []string{"lan"},
-		Interval:       datakit.Duration{Duration: time.Second * 10},
+		Interval:       time.Second * 10,
 		semStop:        cliutils.NewSem(),
 
 		Tags:             make(map[string]string),
-		Timeout:          datakit.Duration{Duration: time.Second * 5},
+		Timeout:          time.Second * 5,
 		MetricVersions:   []int{1},
-		DropWarningDelay: datakit.Duration{Duration: time.Second * 300},
+		DropWarningDelay: time.Second * 300,
 		servers:          make([]ipmiServer, 0, 1),
 		pauseCh:          make(chan bool, inputs.ElectionPauseChannelLength),
 		Election:         true,
-		ipmiDataCh:       make(chan dataStruct, 1),
-		collectCache:     make([]*point.Point, 0),
-		Feeder:           io.DefaultFeeder(),
+		feeder:           dkio.DefaultFeeder(),
+		tagger:           datakit.DefaultGlobalTagger(),
 	}
 	return ipt
 }

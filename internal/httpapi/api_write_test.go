@@ -21,8 +21,8 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 func BenchmarkHandleWriteBody(b *testing.B) {
@@ -30,7 +30,32 @@ func BenchmarkHandleWriteBody(b *testing.B) {
 abc,t1=b,t2=d f1=123,f2=3.4,f3="strval" 1624550216`)
 
 	for n := 0; n < b.N; n++ {
-		if _, err := HandleWriteBody(body, false, point.WithPrecision(point.S)); err != nil {
+		if _, err := HandleWriteBody(body, point.LineProtocol, point.WithPrecision(point.S)); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkHandleProtobufWriteBody(b *testing.B) {
+	kvs := point.NewTags(map[string]string{
+		"t1": "b",
+		"t2": "d",
+	})
+	kvs = append(kvs, point.NewKVs(map[string]interface{}{
+		"f1": 123.0,
+		"f2": 3.4,
+		"f3": "strval",
+	})...)
+
+	pt := point.NewPointV2("abc", kvs, append(point.CommonLoggingOptions(), point.WithTime(
+		time.Unix(1624550216, 0)))...)
+
+	enc := point.GetEncoder(point.WithEncEncoding(point.Protobuf))
+	defer point.PutEncoder(enc)
+	pts, _ := enc.Encode([]*point.Point{pt})
+	body := pts[0]
+	for n := 0; n < b.N; n++ {
+		if _, err := HandleWriteBody(body, point.Protobuf, point.WithPrecision(point.S)); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -54,7 +79,7 @@ func BenchmarkHandleJSONWriteBody(b *testing.B) {
 			]`)
 
 	for n := 0; n < b.N; n++ {
-		if _, err := HandleWriteBody(body, true, point.WithPrecision(point.S)); err != nil {
+		if _, err := HandleWriteBody(body, point.JSON, point.WithPrecision(point.S)); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -66,7 +91,7 @@ func TestHandleBody(t *testing.T) {
 		body []byte
 		prec string
 		fail bool
-		js   bool
+		enc  point.Encoding
 		npts int
 
 		opts []point.Option
@@ -85,7 +110,7 @@ func TestHandleBody(t *testing.T) {
 				"tags": {"t1": "abc", "t2": "def"}
 			}
 			]`),
-			js:   true,
+			enc:  point.JSON,
 			npts: 1,
 		},
 
@@ -98,7 +123,7 @@ func TestHandleBody(t *testing.T) {
 			}
 			]`),
 			fail: true,
-			js:   true,
+			enc:  point.JSON,
 		},
 
 		{
@@ -110,7 +135,7 @@ func TestHandleBody(t *testing.T) {
 			}
 			]`),
 			fail: true,
-			js:   true,
+			enc:  point.JSON,
 		},
 
 		{
@@ -126,7 +151,7 @@ func TestHandleBody(t *testing.T) {
 				"time": 1624550216000000000
 			}
 			]`),
-			js:   true,
+			enc:  point.JSON,
 			npts: 2,
 		},
 
@@ -152,7 +177,7 @@ func TestHandleBody(t *testing.T) {
 			},
 
 			npts: 2,
-			js:   true,
+			enc:  point.JSON,
 		},
 
 		{
@@ -219,11 +244,11 @@ m1 f1=1i,f2="abc" 123`),
 
 	for i, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if tc.js {
+			if tc.enc == point.JSON {
 				return
 			}
 
-			pts, err := HandleWriteBody(tc.body, tc.js, tc.opts...)
+			pts, err := HandleWriteBody(tc.body, tc.enc, tc.opts...)
 
 			if tc.fail {
 				assert.Error(t, err, "case[%d] expect fail, but ok", i)
@@ -654,17 +679,17 @@ measurement-2,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 123`,
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			dkpt.ClearGlobalTags()
+			datakit.ClearGlobalTags()
 
 			if tc.globalHostTags != nil {
 				for k, v := range tc.globalHostTags {
-					dkpt.SetGlobalHostTags(k, v)
+					datakit.SetGlobalHostTags(k, v)
 				}
 			}
 
 			if tc.globalEnvTags != nil {
 				for k, v := range tc.globalEnvTags {
-					dkpt.SetGlobalElectionTags(k, v)
+					datakit.SetGlobalElectionTags(k, v)
 				}
 			}
 
@@ -694,7 +719,7 @@ measurement-2,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 123`,
 
 			body, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
-				t.Errorf("ioutil.ReadAll: %s", err)
+				t.Errorf("io.ReadAll: %s", err)
 				return
 			}
 

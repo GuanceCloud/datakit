@@ -61,18 +61,18 @@ var (
 )
 
 type Input struct {
-	external.ExternalInput
+	external.Input
 }
 
-func (i *Input) Run() {
+func (*Input) Run() {
 	l.Info("Only for measurement documentation information, should not be here.")
 }
 
-func (i *Input) Catalog() string { return catalogName }
+func (*Input) Catalog() string { return catalogName }
 
-func (i *Input) SampleConfig() string { return configSample }
+func (*Input) SampleConfig() string { return configSample }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&processMeasurement{},
 		&tablespaceMeasurement{},
@@ -80,13 +80,13 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func (i *Input) AvailableArchs() []string {
+func (*Input) AvailableArchs() []string {
 	return []string{datakit.OSLabelLinux, datakit.LabelElection}
 }
 
 func defaultInput() *Input {
 	return &Input{
-		ExternalInput: *external.NewExternalInput(),
+		Input: *external.NewInput(),
 	}
 }
 

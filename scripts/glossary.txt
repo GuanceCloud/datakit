@@ -33,6 +33,7 @@ datagram
 dnssec
 Dubbox
 eBPF
+ebpftrace
 ElasticSearch
 Fastjson
 Filebeat

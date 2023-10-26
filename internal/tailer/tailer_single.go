@@ -14,18 +14,17 @@ import (
 	"path/filepath"
 	"time"
 
-	pbpoint "github.com/GuanceCloud/cliutils/point"
+	"github.com/GuanceCloud/cliutils/pipeline/manager"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/pborman/ansi"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
-	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/diskcache"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/multiline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/register"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/script"
 	"google.golang.org/protobuf/proto"
 	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
@@ -516,7 +515,7 @@ func (t *Single) feedToRemote(pending []string) {
 }
 
 func (t *Single) feedToCache(pending []string) error {
-	res := []*pbpoint.Point{}
+	res := []*point.Point{}
 	// -1ns
 	timeNow := time.Now().Add(-time.Duration(len(pending)))
 
@@ -532,10 +531,9 @@ func (t *Single) feedToCache(pending []string) error {
 			pipeline.FieldStatus:  pipeline.DefaultStatus,
 		}
 
-		pt := pbpoint.NewPointV2(
-			[]byte(t.opt.Source),
-			append(pbpoint.NewTags(t.tags), pbpoint.NewKVs(fields)...),
-			pbpoint.WithTime(timeNow.Add(time.Duration(i))),
+		pt := point.NewPointV2(t.opt.Source,
+			append(point.NewTags(t.tags), point.NewKVs(fields)...),
+			point.WithTime(timeNow.Add(time.Duration(i))),
 		)
 		res = append(res, pt)
 	}
@@ -544,7 +542,7 @@ func (t *Single) feedToCache(pending []string) error {
 		return nil
 	}
 
-	encoder := pbpoint.GetEncoder(pbpoint.WithEncBatchSize(0), pbpoint.WithEncEncoding(pbpoint.Protobuf))
+	encoder := point.GetEncoder(point.WithEncBatchSize(0), point.WithEncEncoding(point.Protobuf))
 
 	ptsDatas, err := encoder.Encode(res)
 	if err != nil {
@@ -575,44 +573,48 @@ func (t *Single) feedToCache(pending []string) error {
 }
 
 func (t *Single) feedToIO(pending []string) {
-	res := []*point.Point{}
+	pts := []*point.Point{}
 	// -1ns
 	timeNow := time.Now().Add(-time.Duration(len(pending)))
 	for i, cnt := range pending {
 		t.readLines++
-		pt, err := point.NewPoint(
-			t.opt.Source,
-			t.tags,
-			map[string]interface{}{
-				"log_read_lines":      t.readLines,
-				"log_read_offset":     t.offset,
-				"log_read_time":       t.readTime.UnixNano(),
-				"message_length":      len(cnt),
-				pipeline.FieldMessage: cnt,
-				pipeline.FieldStatus:  pipeline.DefaultStatus,
-			},
-			&point.PointOption{Time: timeNow.Add(time.Duration(i)), Category: datakit.Logging, Strict: true},
-		)
-		if err != nil {
-			t.opt.log.Warn(err)
-			continue
+
+		fields := map[string]interface{}{
+			"log_read_lines":      t.readLines,
+			"log_read_offset":     t.offset,
+			"log_read_time":       t.readTime.UnixNano(),
+			"message_length":      len(cnt),
+			pipeline.FieldMessage: cnt,
+			pipeline.FieldStatus:  pipeline.DefaultStatus,
 		}
-		res = append(res, pt)
+		opts := append(point.DefaultLoggingOptions(), point.WithTime(timeNow.Add(time.Duration(i))))
+
+		pt := point.NewPointV2(
+			t.opt.Source,
+			append(point.NewTags(t.tags), point.NewKVs(fields)...),
+			opts...,
+		)
+		pts = append(pts, pt)
 	}
 
-	if len(res) == 0 {
+	if len(pts) == 0 {
 		return
 	}
 
-	if err := iod.Feed("logging/"+t.opt.Source, datakit.Logging, res, &iod.Option{
-		PlScript: map[string]string{t.opt.Source: t.opt.Pipeline},
-		PlOption: &script.Option{
-			DisableAddStatusField: t.opt.DisableAddStatusField,
-			IgnoreStatus:          t.opt.IgnoreStatus,
+	if err := t.opt.Feeder.Feed(
+		"logging/"+t.opt.Source,
+		point.Logging,
+		pts,
+		&dkio.Option{
+			PlScript: map[string]string{t.opt.Source: t.opt.Pipeline},
+			PlOption: &manager.Option{
+				DisableAddStatusField: t.opt.DisableAddStatusField,
+				IgnoreStatus:          t.opt.IgnoreStatus,
+			},
+			Blocking: t.opt.BlockingMode,
 		},
-		Blocking: t.opt.BlockingMode,
-	}); err != nil {
-		t.opt.log.Errorf("feed %d pts failed: %s, logging block-mode off, ignored", len(res), err)
+	); err != nil {
+		t.opt.log.Errorf("feed %d pts failed: %s, logging block-mode off, ignored", len(pts), err)
 	}
 }
 

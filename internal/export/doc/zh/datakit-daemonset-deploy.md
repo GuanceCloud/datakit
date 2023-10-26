@@ -211,6 +211,7 @@ spec:
 
 | 环境变量名称                              | 类型        | 默认值 | 必须   | 说明                                                                                                  |
 | ---------:                                | ----:       | ---:   | ------ | ----                                                                                                  |
+| `ENV_DISABLE_PROTECT_MODE`                | bool        | -      | 否     | 禁用「配置保护」模式              |
 | `ENV_DATAWAY`                             | string      | 无     | 是     | 配置 DataWay 地址，如 `https://openway.guance.com?token=xxx`                                          |
 | `ENV_DEFAULT_ENABLED_INPUTS`              | string-list | 无     | 否     | 默认开启[采集器列表](datakit-input-conf.md#default-enabled-inputs)，以英文逗号分割，如 `cpu,mem,disk` |
 | `ENV_ENABLE_INPUTS` :fontawesome-solid-x: | string-list | 无     | 否     | 同 ENV_DEFAULT_ENABLED_INPUTS，将废弃                                                                 |
@@ -225,31 +226,37 @@ spec:
     而 `ENV_GLOBAL_ELECTION_TAGS` 建议只添加不随主机切换而变迁的 tags，如集群名、项目名等。对于[参与选举的采集器](election.md#inputs)，只会添加 `ENV_GLOBAL_ELECTION_TAGS` 中指定的 tag，不会增加 `ENV_GLOBAL_HOST_TAGS` 中指定的 tag。
 
     不管是主机类全局 tag 还是环境类全局 tag，如果原始数据中已经有对应 tag，则不会追加已存在的 tag，我们认为应该沿用原始数据中的 tag。
+
+???+ attention "关于禁用保护模式（ENV_DISABLE_PROTECT_MODE）"
+
+    保护模式一旦被禁用，即可以设置一些危险的配置参数，Datakit 将接受任何配置参数。这些参数可能会导致 Datakit 一些功能异常，或者影响采集器的采集功能。比如 HTTP 发送 Body 设置太小，会影响数据上传功能；某些采集器的采集频率过高，可能影响被采集的实体。
 <!-- markdownlint-enable -->
 
 ### Dataway 配置相关环境变量 {#env-dataway}
 
-| 环境变量名称                   | 类型     | 默认值 | 必须   | 说明                                                                                                                                 |
-| ---------:                     | ----:    | ---:   | ------ | ----                                                                                                                                 |
-| `ENV_DATAWAY`                  | string   | 无     | 是     | 配置 DataWay 地址，如 `https://openway.guance.com?token=xxx`                                                                         |
-| `ENV_DATAWAY_TIMEOUT`          | duration | "30s"  | 否     | 配置 DataWay 请求超时                                                                                                                |
-| `ENV_DATAWAY_ENABLE_HTTPTRACE` | bool     | -      | 否     | 开启 DataWay 请求时 HTTP 层面的指标暴露                                                                                              |
-| `ENV_DATAWAY_HTTP_PROXY`       | string   | 无     | 否     | 设置 DataWay HTTP 代理                                                                                                               |
-| `ENV_DATAWAY_MAX_IDLE_CONNS`   | int      | 无     | 否     | 设置 DataWay HTTP 连接池大小（[:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0)）                                             |
-| `ENV_DATAWAY_IDLE_TIMEOUT`     | duration | "90s"  | 否     | 设置 DataWay HTTP Keep-Alive 时长（[:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0)）                                        |
-|  `ENV_DATAWAY_MAX_RETRY_COUNT` |      int |             4 | No       | 指定当把数据发送到观测云中心时，最多可以发送的次数，最小值为 1（失败后不重试），最大值为 10([:octicons-tag-24: Version-1.18.0](changelog.md#cl-1.18.0))        |
-|      `ENV_DATAWAY_RETRY_DELAY` | duration |       "200ms" | No       | 数据发送失败时，两次重试之间的时间间隔，支持的时间单位有： ns、us (或 µs)、 ms、 s、 m、 h([:octicons-tag-24: Version-1.18.0](changelog.md#cl-1.18.0)) |
+| 环境变量名称                    | 类型     | 默认值  | 必须   | 说明                                                                                                                                                    |
+| ---------:                      | ----:    | ---:    | ------ | ----                                                                                                                                                    |
+| `ENV_DATAWAY_CONTENT_ENCODING`  | string   | `v1`    | 否     | 设置上传时的 point 数据编码（可选列表：`v1` 即行协议，`v2` 即 Protobuf）                                                                                |
+| `ENV_DATAWAY`                   | string   | 无      | 是     | 配置 DataWay 地址，如 `https://openway.guance.com?token=xxx`                                                                                            |
+| `ENV_DATAWAY_TIMEOUT`           | duration | "30s"   | 否     | 配置 DataWay 请求超时                                                                                                                                   |
+| `ENV_DATAWAY_ENABLE_HTTPTRACE`  | bool     | -       | 否     | 开启 DataWay 请求时 HTTP 层面的指标暴露                                                                                                                 |
+| `ENV_DATAWAY_HTTP_PROXY`        | string   | 无      | 否     | 设置 DataWay HTTP 代理                                                                                                                                  |
+| `ENV_DATAWAY_MAX_IDLE_CONNS`    | int      | 无      | 否     | 设置 DataWay HTTP 连接池大小（[:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0)）                                                                |
+| `ENV_DATAWAY_IDLE_TIMEOUT`      | duration | "90s"   | 否     | 设置 DataWay HTTP Keep-Alive 时长（[:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0)）                                                           |
+| `ENV_DATAWAY_MAX_RETRY_COUNT`   | int      | 4       | No     | 指定当把数据发送到观测云中心时，最多可以发送的次数，最小值为 1（失败后不重试），最大值为 10([:octicons-tag-24: Version-1.17.0](changelog.md#cl-1.17.0)) |
+| `ENV_DATAWAY_RETRY_DELAY`       | duration | "200ms" | No     | 数据发送失败时，两次重试之间的时间间隔（[:octicons-tag-24: Version-1.17.0](changelog.md#cl-1.17.0)）                                                    |
+| `ENV_DATAWAY_MAX_RAW_BODY_SIZE` | int      | 10MB    | No     | 数据上传时单包（未压缩）大小                                                                                                                            |
 
 ### 日志配置相关环境变量 {#env-log}
 
-|                   环境变量名称 |     类型 |                        默认值 | 必须   | 说明                                          |
-|-------------------------:|-------:|---------------------------:| ------ |---------------------------------------------|
-|            `ENV_GIN_LOG` | string | */var/log/datakit/gin.log* | 否     | 如果改成 `stdout`，Datakit 自身 gin 日志将不写文件，而是终端输出 |
-|                `ENV_LOG` | string |     */var/log/datakit/log* | 否     | 如果改成 `stdout`，Datakit 自身日志将不写文件，而是终端输出      |
-|          `ENV_LOG_LEVEL` | string |                       info | 否     | 设置 Datakit 自身日志等级，可选 `info/debug`           |
-|  `ENV_DISABLE_LOG_COLOR` |   bool |                          - | 否     | 关闭日志颜色                                      |
-|  `ENV_LOG_ROTATE_BACKUP` |    int |                          5 | 否     | 设置最多保留日志分片的个数                               |
-| `ENV_LOG_ROTATE_SIZE_MB` |    int |                         32 | 否     | 日志自动切割的阈值（单位：MB），当日志文件大小达到设置的值时，自动切换新的文件    |
+| 环境变量名称               | 类型     | 默认值                       | 必须   | 说明                                                                           |
+| -------------------------: | -------: | ---------------------------: | ------ | ---------------------------------------------                                  |
+| `ENV_GIN_LOG`              | string   | */var/log/datakit/gin.log*   | 否     | 如果改成 `stdout`，Datakit 自身 gin 日志将不写文件，而是终端输出               |
+| `ENV_LOG`                  | string   | */var/log/datakit/log*       | 否     | 如果改成 `stdout`，Datakit 自身日志将不写文件，而是终端输出                    |
+| `ENV_LOG_LEVEL`            | string   | info                         | 否     | 设置 Datakit 自身日志等级，可选 `info/debug`（不区分大小写）                   |
+| `ENV_DISABLE_LOG_COLOR`    | bool     | -                            | 否     | 关闭日志颜色                                                                   |
+| `ENV_LOG_ROTATE_BACKUP`    | int      | 5                            | 否     | 设置最多保留日志分片的个数                                                     |
+| `ENV_LOG_ROTATE_SIZE_MB`   | int      | 32                           | 否     | 日志自动切割的阈值（单位：MB），当日志文件大小达到设置的值时，自动切换新的文件 |
 
 ### Datakit pprof 相关 {#env-pprof}
 

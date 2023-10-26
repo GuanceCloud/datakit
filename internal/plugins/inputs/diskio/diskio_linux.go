@@ -18,7 +18,7 @@ import (
 
 var udevPath = "/run/udev/data"
 
-func (i *Input) diskInfo(devName string) (map[string]string, error) {
+func (ipt *Input) diskInfo(devName string) (map[string]string, error) {
 	var err error
 	var stat unix.Stat_t
 
@@ -28,10 +28,10 @@ func (i *Input) diskInfo(devName string) (map[string]string, error) {
 		return nil, err
 	}
 
-	if i.infoCache == nil {
-		i.infoCache = map[string]diskInfoCache{}
+	if ipt.infoCache == nil {
+		ipt.infoCache = map[string]diskInfoCache{}
 	}
-	ic, ok := i.infoCache[devName]
+	ic, ok := ipt.infoCache[devName]
 
 	if ok && stat.Mtim.Nano() == ic.modifiedAt {
 		return ic.values, nil
@@ -43,7 +43,7 @@ func (i *Input) diskInfo(devName string) (map[string]string, error) {
 
 	di := map[string]string{}
 
-	i.infoCache[devName] = diskInfoCache{
+	ipt.infoCache[devName] = diskInfoCache{
 		modifiedAt:   stat.Mtim.Nano(),
 		udevDataPath: udevDataPath,
 		values:       di,

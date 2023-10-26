@@ -38,7 +38,7 @@ DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基
 
     ### 修改 HTTP 服务地址 {#update-http-server-host}
     
-    默认的 HTTP 服务地址是 `localhost:9529`，如果 9529 端口被占用，或希望从外部访问 DataKit 的 HTTP 服务（比如希望接收 [RUM](rum.md) 或 [Tracing](datakit-tracing.md) 数据），可将其修改成：
+    默认的 HTTP 服务地址是 `localhost:9529`，如果 9529 端口被占用，或希望从外部访问 DataKit 的 HTTP 服务（比如希望接收 [RUM](../integrations/rum.md) 或 [Tracing](../integrations/datakit-tracing.md) 数据），可将其修改成：
     
     ```toml
     [http_api]
@@ -248,7 +248,21 @@ $ systemctl status datakit
 
 参见[这里](election.md#config)
 
-### DataWay Sinker 配置 {#dataway-sink}
+### DataWay 参数配置 {#dataway-settings}
+
+Dataway 部分有如下几个配置可以配置，其它部分不建议改动：
+
+- `timeout`：上传观测云的超时时间，默认 30s
+- `max_retry_count`：设置 Dataway 发送的重试次数（默认 4 次）[:octicons-tag-24: Version-1.17.0](changelog.md#cl-1.17.0)
+- `retry_delay`：设置重试间隔基础步长，默认 200ms。所谓基础步长，即第一次 200ms，第二次 400ms，第三次 800ms，以此类推（以 $2^n$ 递增）[:octicons-tag-24: Version-1.17.0](changelog.md#cl-1.17.0)
+- `max_raw_body_size`：控制单个上传包的最大大小（压缩前），单位字节 [:octicons-tag-24: Version-1.17.1](changelog.md#cl-1.17.1)
+- `content_encoding`：可选择 v1 或 v2 [:octicons-tag-24: Version-1.17.1](changelog.md#cl-1.17.1)
+    - v1 即行协议（默认 v1）
+    - v2 即 Protobuf 协议，相比 v1，它各方面的性能都更优越。运行稳定后，后续将默认采用 v2
+
+Kubernetes 下部署相关配置参见[这里](datakit-daemonset-deploy.md#env-dataway)。
+
+### Sinker 配置 {#dataway-sink}
 
 参见[这里](../deployment/dataway-sink.md)
 

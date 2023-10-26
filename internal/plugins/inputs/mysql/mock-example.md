@@ -48,7 +48,7 @@ mysql-bin.000005 |  154
 通过定义如下函数，封装下所有 MySQL 查询：
 
 ```golang
-func (i *Input) q(s string) rows { }
+func (ipt *Input) q(s string) rows { }
 ```
 
 注意，此处没有错误返回，如遇错误，返回 `nil` 即可，或者往 IO 模块报告 last error。

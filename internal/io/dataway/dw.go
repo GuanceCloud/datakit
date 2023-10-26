@@ -84,9 +84,17 @@ type Dataway struct {
 	DeprecatedToken  string `toml:"token,omitempty"`
 	DeprecatedURL    string `toml:"url,omitempty"`
 
-	MaxIdleConnsPerHost int           `toml:"max_idle_conns_per_host,omitempty"`
-	MaxIdleConns        int           `toml:"max_idle_conns"`
-	IdleTimeout         time.Duration `toml:"idle_timeout"`
+	// limit HTTP underlying TCP connections.
+	MaxIdleConnsPerHost int `toml:"max_idle_conns_per_host,omitempty"`
+	MaxIdleConns        int `toml:"max_idle_conns"`
+
+	// limit body size before gzip.
+	MaxRawBodySize int `toml:"max_raw_body_size"`
+
+	ContentEncoding string `toml:"content_encoding"`
+	contentEncoding point.Encoding
+
+	IdleTimeout time.Duration `toml:"idle_timeout"`
 
 	Proxy bool `toml:"proxy,omitempty"`
 
@@ -176,6 +184,11 @@ func (dw *Dataway) GetTokens() []string {
 	return arr
 }
 
+const (
+	DefaultMaxRawBodySize = 10 * 1024 * 1024
+	MinimalRawBodySize    = 1 * 1024 * 1024
+)
+
 // TagHeaderValue create X-Global-Tags header value in the
 // form of key=val,key=val with ASC sorted.
 func TagHeaderValue(tags map[string]string) string {
@@ -192,6 +205,13 @@ func (dw *Dataway) doInit() error {
 	// 避免俩边配置了同样的 dataway, 造成数据混乱
 	if dw.DeprecatedURL != "" && len(dw.URLs) == 0 {
 		dw.URLs = []string{dw.DeprecatedURL}
+	}
+
+	dw.contentEncoding = point.EncodingStr(dw.ContentEncoding)
+
+	// set default raw body size to 10MB
+	if dw.MaxRawBodySize == 0 {
+		dw.MaxRawBodySize = DefaultMaxRawBodySize
 	}
 
 	if len(dw.URLs) == 0 {

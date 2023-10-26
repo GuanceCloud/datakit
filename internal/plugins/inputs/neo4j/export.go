@@ -8,7 +8,7 @@ package neo4j
 import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 
 //nolint:lll
-func (i *Input) Dashboard(lang inputs.I18n) map[string]string {
+func (*Input) Dashboard(lang inputs.I18n) map[string]string {
 	switch lang {
 	case inputs.I18nZh:
 		return map[string]string{
@@ -65,6 +65,6 @@ func (i *Input) Dashboard(lang inputs.I18n) map[string]string {
 	}
 }
 
-func (i *Input) DashboardList() []string {
+func (*Input) DashboardList() []string {
 	return nil
 }

@@ -8,6 +8,7 @@ package collectors
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 
@@ -37,19 +38,20 @@ type Option struct {
 }
 
 type Client struct {
-	client  *http.Client
-	Opt     *Option
-	Pts     []*point.Point
-	Ctx     *MetricContext
-	Tags    map[string]string
-	URLTags map[string]string
+	client     *http.Client
+	Opt        *Option
+	Pts        []*point.Point
+	Ctx        *MetricContext
+	MergedTags map[string]string
 
 	config *objects.CollectorConfig
+	ts     time.Time
 }
 
 func (c *Client) GetPts() error {
 	c.Pts = make([]*point.Point, 0)
 	c.Ctx = &MetricContext{}
+	c.ts = time.Now()
 
 	if err := c.nodeCollect(); err != nil {
 		return err

@@ -22,7 +22,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
@@ -71,13 +70,13 @@ type Input struct {
 
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
-	Tagger  dkpt.GlobalTagger
+	Tagger  datakit.GlobalTagger
 }
 
 var maxPauseCh = inputs.ElectionPauseChannelLength
 
-func (i *Input) ElectionEnabled() bool {
-	return i.Election
+func (ipt *Input) ElectionEnabled() bool {
+	return ipt.Election
 }
 
 func (*Input) Catalog() string { return "influxdb" }
@@ -88,14 +87,14 @@ func (*Input) AvailableArchs() []string { return datakit.AllOSWithElection }
 
 func (*Input) PipelineConfig() map[string]string { return nil }
 
-func (i *Input) GetPipeline() []*tailer.Option {
+func (ipt *Input) GetPipeline() []*tailer.Option {
 	return []*tailer.Option{
 		{
 			Source:  inputName,
 			Service: inputName,
 			Pipeline: func() string {
-				if i.Log != nil {
-					return i.Log.Pipeline
+				if ipt.Log != nil {
+					return ipt.Log.Pipeline
 				}
 				return ""
 			}(),
@@ -121,52 +120,52 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func (i *Input) RunPipeline() {
-	if i.Log == nil || len(i.Log.Files) == 0 {
+func (ipt *Input) RunPipeline() {
+	if ipt.Log == nil || len(ipt.Log.Files) == 0 {
 		return
 	}
 
 	opt := &tailer.Option{
 		Source:            inputName,
 		Service:           inputName,
-		Pipeline:          i.Log.Pipeline,
-		GlobalTags:        i.Tags,
-		IgnoreStatus:      i.Log.IgnoreStatus,
-		CharacterEncoding: i.Log.CharacterEncoding,
-		MultilinePatterns: []string{i.Log.MultilineMatch},
-		Done:              i.semStop.Wait(),
+		Pipeline:          ipt.Log.Pipeline,
+		GlobalTags:        ipt.Tags,
+		IgnoreStatus:      ipt.Log.IgnoreStatus,
+		CharacterEncoding: ipt.Log.CharacterEncoding,
+		MultilinePatterns: []string{ipt.Log.MultilineMatch},
+		Done:              ipt.semStop.Wait(),
 	}
 
 	var err error
-	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
+	ipt.tail, err = tailer.NewTailer(ipt.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
-		i.feeder.FeedLastError(err.Error(),
+		ipt.feeder.FeedLastError(err.Error(),
 			dkio.WithLastErrorInput(inputName),
 		)
 		return
 	}
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_influxdb"})
 	g.Go(func(ctx context.Context) error {
-		i.tail.Start()
+		ipt.tail.Start()
 		return nil
 	})
 }
 
-func (i *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 
 	l.Infof("influxdb input started")
 
-	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
+	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 	var tlsCfg *tls.Config
 
-	if i.TLSConf != nil {
+	if ipt.TLSConf != nil {
 		var err error
-		tlsCfg, err = i.TLSConf.TLSConfig()
+		tlsCfg, err = ipt.TLSConf.TLSConfig()
 		if err != nil {
 			l.Errorf("TLSConfig: %s", err)
-			i.feeder.FeedLastError(err.Error(),
+			ipt.feeder.FeedLastError(err.Error(),
 				dkio.WithLastErrorInput(inputName),
 			)
 			return
@@ -175,38 +174,38 @@ func (i *Input) Run() {
 		tlsCfg = nil
 	}
 
-	i.client = &http.Client{
+	ipt.client = &http.Client{
 		Transport: &http.Transport{
-			ResponseHeaderTimeout: i.Timeout.Duration,
+			ResponseHeaderTimeout: ipt.Timeout.Duration,
 			TLSClientConfig:       tlsCfg,
 		},
-		Timeout: i.Timeout.Duration,
+		Timeout: ipt.Timeout.Duration,
 	}
 
-	tick := time.NewTicker(i.Interval.Duration)
+	tick := time.NewTicker(ipt.Interval.Duration)
 
 	defer tick.Stop()
 	for {
-		if !i.pause {
+		if !ipt.pause {
 			start := time.Now()
-			if err := i.Collect(); err != nil {
+			if err := ipt.Collect(); err != nil {
 				l.Errorf("Collect: %s", err)
-				i.feeder.FeedLastError(err.Error(),
+				ipt.feeder.FeedLastError(err.Error(),
 					dkio.WithLastErrorInput(inputName),
 				)
 			}
 
-			if len(i.collectCache) > 0 {
-				if err := i.feeder.Feed(
-					inputName, point.Metric, i.collectCache,
+			if len(ipt.collectCache) > 0 {
+				if err := ipt.feeder.Feed(
+					inputName, point.Metric, ipt.collectCache,
 					&dkio.Option{CollectCost: time.Since(start)},
 				); err != nil {
 					l.Errorf("Feed failed: %v", err)
-					i.feeder.FeedLastError(err.Error(),
+					ipt.feeder.FeedLastError(err.Error(),
 						dkio.WithLastErrorInput(inputName),
 					)
 				}
-				i.collectCache = make([]*point.Point, 0)
+				ipt.collectCache = make([]*point.Point, 0)
 			}
 		} else {
 			l.Debugf("not leader, skipped")
@@ -214,55 +213,55 @@ func (i *Input) Run() {
 
 		select {
 		case <-datakit.Exit.Wait():
-			i.exit()
+			ipt.exit()
 			l.Infof("influxdb input exit")
 			return
 
-		case <-i.semStop.Wait():
-			i.exit()
+		case <-ipt.semStop.Wait():
+			ipt.exit()
 			l.Infof("influxdb input return")
 			return
 
 		case <-tick.C:
 
-		case i.pause = <-i.pauseCh:
+		case ipt.pause = <-ipt.pauseCh:
 			// nil
 		}
 	}
 }
 
-func (i *Input) exit() {
-	if i.tail != nil {
-		i.tail.Close()
+func (ipt *Input) exit() {
+	if ipt.tail != nil {
+		ipt.tail.Close()
 		l.Info("solr log exit")
 	}
 }
 
-func (i *Input) Terminate() {
-	if i.semStop != nil {
-		i.semStop.Close()
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
 	}
 }
 
-func (i *Input) Collect() error {
+func (ipt *Input) Collect() error {
 	ts := time.Now()
 
-	req, err := http.NewRequest("GET", i.URL, nil)
+	req, err := http.NewRequest("GET", ipt.URL, nil)
 	if err != nil {
 		return err
 	}
-	if i.Username != "" || i.Password != "" {
-		req.SetBasicAuth(i.Username, i.Password)
+	if ipt.Username != "" || ipt.Password != "" {
+		req.SetBasicAuth(ipt.Username, ipt.Password)
 	}
 
 	req.Header.Set("User-Agent", "Datakit/"+datakit.Version)
-	resp, err := i.client.Do(req)
+	resp, err := ipt.client.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close() //nolint:errcheck
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("influxdb: API responded with status-code %d, URL: %s, Resp: %s", resp.StatusCode, i.URL, resp.Body)
+		return fmt.Errorf("influxdb: API responded with status-code %d, URL: %s, Resp: %s", resp.StatusCode, ipt.URL, resp.Body)
 	}
 
 	data, err := ioutil.ReadAll(resp.Body)
@@ -286,14 +285,14 @@ func (i *Input) Collect() error {
 			if pt.Tags == nil {
 				pt.Tags = make(map[string]string)
 			}
-			for k, v := range i.Tags {
+			for k, v := range ipt.Tags {
 				pt.Tags[k] = v
 			}
 
-			if i.Election {
-				pt.Tags = inputs.MergeTags(i.Tagger.ElectionTags(), pt.Tags, i.URL)
+			if ipt.Election {
+				pt.Tags = inputs.MergeTags(ipt.Tagger.ElectionTags(), pt.Tags, ipt.URL)
 			} else {
-				pt.Tags = inputs.MergeTags(i.Tagger.HostTags(), pt.Tags, i.URL)
+				pt.Tags = inputs.MergeTags(ipt.Tagger.HostTags(), pt.Tags, ipt.URL)
 			}
 
 			metric := &measurement{
@@ -302,28 +301,28 @@ func (i *Input) Collect() error {
 				fields: pt.Values,
 				ts:     ts,
 			}
-			i.collectCache = append(i.collectCache, metric.Point())
+			ipt.collectCache = append(ipt.collectCache, metric.Point())
 		}
 	}
 	return nil
 }
 
-func (i *Input) Pause() error {
+func (ipt *Input) Pause() error {
 	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	defer tick.Stop()
 	select {
-	case i.pauseCh <- true:
+	case ipt.pauseCh <- true:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("pause %s failed", inputName)
 	}
 }
 
-func (i *Input) Resume() error {
+func (ipt *Input) Resume() error {
 	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	defer tick.Stop()
 	select {
-	case i.pauseCh <- false:
+	case ipt.pauseCh <- false:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
@@ -339,7 +338,7 @@ func defaultInput() *Input {
 
 		semStop: cliutils.NewSem(),
 		feeder:  dkio.DefaultFeeder(),
-		Tagger:  dkpt.DefaultGlobalTagger(),
+		Tagger:  datakit.DefaultGlobalTagger(),
 	}
 }
 

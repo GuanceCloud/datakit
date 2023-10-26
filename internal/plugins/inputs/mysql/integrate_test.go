@@ -25,7 +25,6 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpoint "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
@@ -244,16 +243,16 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 host = "%s"
 user = "datakit"
 pass = "%s"
-port = 0 
+port = 0
 innodb = true
 interval = "1s"
 dbm = true
 [dbm_metric]
   enabled = true
 [dbm_sample]
-  enabled = true  
+  enabled = true
 [dbm_activity]
-  enabled = true  
+  enabled = true
 [[custom_queries]]
   sql = "SELECT id, name, value FROM test.user;"
   metric = "mysql_custom"
@@ -361,16 +360,11 @@ type customMeasurement struct {
 	election bool
 }
 
-// 生成行协议.
-func (m *customMeasurement) LineProto() (*dkpoint.Point, error) {
-	return dkpoint.NewPoint(m.name, m.tags, m.fields, dkpoint.MOptElectionV2(m.election))
-}
-
 // Point implement MeasurementV2.
 func (m *customMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
 }
@@ -479,7 +473,7 @@ func assertMeasurements(pts []*point.Point, cs *caseSpec) error {
 	}
 
 	for _, pt := range pts {
-		name := string(pt.Name())
+		name := pt.Name()
 		if _, ok := pointMap[name]; ok {
 			continue
 		}
@@ -515,7 +509,7 @@ func assertMeasurements(pts []*point.Point, cs *caseSpec) error {
 
 			tags := pt.Tags()
 			for k := range cs.ipt.Tags {
-				if v := tags.Get([]byte(k)); v == nil {
+				if v := tags.Get(k); v == nil {
 					return fmt.Errorf("tag %s not found, got %v", k, tags)
 				}
 			}
@@ -545,7 +539,7 @@ func initMySQL(resource *dt.Resource, cs *caseSpec) error {
 	configConsumerSQL := `
 UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name LIKE 'events_statements_%';
 UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name = 'events_waits_current';
-		
+
 `
 
 	initSQL := createUserSQL + MySQLGrantSQL + configConsumerSQL
@@ -569,13 +563,13 @@ func initDbm(resource *dt.Resource, version byte) error {
 	case '5':
 		sql = `
 GRANT REPLICATION CLIENT ON *.* TO datakit@'%' WITH MAX_USER_CONNECTIONS 5;
-GRANT PROCESS ON *.* TO datakit@'%';		
+GRANT PROCESS ON *.* TO datakit@'%';
 `
 	case '8':
 		sql = `
 ALTER USER datakit@'%' WITH MAX_USER_CONNECTIONS 5;
 GRANT REPLICATION CLIENT ON *.* TO datakit@'%';
-GRANT PROCESS ON *.* TO datakit@'%';		
+GRANT PROCESS ON *.* TO datakit@'%';
 `
 	default:
 		return fmt.Errorf("invalid mysql version %s", string(version))
@@ -599,7 +593,7 @@ DELIMITER ;
 
 UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name LIKE 'events_statements_%';
 UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name = 'events_waits_current';
-	
+
 `
 
 	sqlCmd := fmt.Sprintf(`mysql -uroot -p%s -e "%s"`, MySQLPassword, sql)

@@ -7,13 +7,14 @@ package config
 
 import (
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/pipeline/offload"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/offload"
 )
 
 func TestLoadEnv(t *testing.T) {
@@ -76,6 +77,7 @@ func TestLoadEnv(t *testing.T) {
 					EnableHTTPTrace:     true,
 					IdleTimeout:         90 * time.Second,
 					HTTPTimeout:         30 * time.Second,
+					ContentEncoding:     "",
 					MaxRetryCount:       dataway.DefaultRetryCount,
 					RetryDelay:          dataway.DefaultRetryDelay,
 				}
@@ -275,7 +277,7 @@ func TestLoadEnv(t *testing.T) {
 		},
 
 		{
-			name: "test-ENV_DATAWAY*",
+			name: "test-disable-env_protected",
 			envs: map[string]string{
 				"ENV_DATAWAY":                         "http://host1.org,http://host2.com",
 				"ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST": "-1",
@@ -283,9 +285,57 @@ func TestLoadEnv(t *testing.T) {
 				"ENV_DATAWAY_ENABLE_HTTPTRACE":        "on",
 				"ENV_DATAWAY_MAX_IDLE_CONNS":          "100",
 				"ENV_DATAWAY_IDLE_TIMEOUT":            "100s",
+				"ENV_DATAWAY_CONTENT_ENCODING":        "v2",
 				"ENV_SINKER_GLOBAL_CUSTOMER_KEYS":     " , key1,key2 ,",
 				"ENV_DATAWAY_MAX_RETRY_COUNT":         "8",
 				"ENV_DATAWAY_RETRY_DELAY":             "5s",
+				"ENV_DATAWAY_MAX_RAW_BODY_SIZE":       strconv.Itoa(1024 * 32),
+				"ENV_DATAWAY_ENABLE_SINKER":           "set",
+
+				"ENV_DISABLE_PROTECT_MODE": "set",
+			},
+
+			expect: func() *Config {
+				cfg := DefaultConfig()
+
+				cfg.ProtectMode = false
+
+				cfg.Dataway = &dataway.Dataway{
+					URLs:                []string{"http://host1.org", "http://host2.com"},
+					MaxIdleConnsPerHost: 0,
+					MaxIdleConns:        100,
+					EnableHTTPTrace:     true,
+					IdleTimeout:         100 * time.Second,
+					HTTPTimeout:         time.Minute,
+					GlobalCustomerKeys:  []string{"key1", "key2"},
+					MaxRetryCount:       8,
+					RetryDelay:          time.Second * 5,
+					MaxRawBodySize:      1024 * 32,
+					ContentEncoding:     "v2",
+					EnableSinker:        true,
+				}
+
+				return cfg
+			}(),
+		},
+
+		{
+			name: "test-env_protected",
+			envs: map[string]string{
+				"ENV_DATAWAY":                         "http://host1.org,http://host2.com",
+				"ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST": "-1",
+				"ENV_DATAWAY_TIMEOUT":                 "1m",
+				"ENV_DATAWAY_ENABLE_HTTPTRACE":        "on",
+				"ENV_DATAWAY_MAX_IDLE_CONNS":          "100",
+				"ENV_DATAWAY_IDLE_TIMEOUT":            "100s",
+				"ENV_DATAWAY_CONTENT_ENCODING":        "v2",
+				"ENV_SINKER_GLOBAL_CUSTOMER_KEYS":     " , key1,key2 ,",
+				"ENV_DATAWAY_MAX_RETRY_COUNT":         "8",
+				"ENV_DATAWAY_RETRY_DELAY":             "5s",
+				"ENV_DATAWAY_MAX_RAW_BODY_SIZE":       strconv.Itoa(1024 * 32),
+				"ENV_DATAWAY_ENABLE_SINKER":           "set",
+
+				"ENV_DISABLE_PROTECT_MODE": "", // not-set
 			},
 
 			expect: func() *Config {
@@ -301,6 +351,48 @@ func TestLoadEnv(t *testing.T) {
 					GlobalCustomerKeys:  []string{"key1", "key2"},
 					MaxRetryCount:       8,
 					RetryDelay:          time.Second * 5,
+					MaxRawBodySize:      dataway.MinimalRawBodySize,
+					ContentEncoding:     "v2",
+					EnableSinker:        true,
+				}
+
+				return cfg
+			}(),
+		},
+
+		{
+			name: "test-ENV_DATAWAY*",
+			envs: map[string]string{
+				"ENV_DATAWAY":                         "http://host1.org,http://host2.com",
+				"ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST": "-1",
+				"ENV_DATAWAY_TIMEOUT":                 "1m",
+				"ENV_DATAWAY_ENABLE_HTTPTRACE":        "on",
+				"ENV_DATAWAY_MAX_IDLE_CONNS":          "100",
+				"ENV_DATAWAY_IDLE_TIMEOUT":            "100s",
+				"ENV_DATAWAY_CONTENT_ENCODING":        "v2",
+				"ENV_SINKER_GLOBAL_CUSTOMER_KEYS":     " , key1,key2 ,",
+				"ENV_DATAWAY_MAX_RETRY_COUNT":         "8",
+				"ENV_DATAWAY_RETRY_DELAY":             "5s",
+				"ENV_DATAWAY_MAX_RAW_BODY_SIZE":       strconv.Itoa(1024 * 1024 * 32),
+				"ENV_DATAWAY_ENABLE_SINKER":           "set",
+			},
+
+			expect: func() *Config {
+				cfg := DefaultConfig()
+
+				cfg.Dataway = &dataway.Dataway{
+					URLs:                []string{"http://host1.org", "http://host2.com"},
+					MaxIdleConnsPerHost: 0,
+					MaxIdleConns:        100,
+					EnableHTTPTrace:     true,
+					IdleTimeout:         100 * time.Second,
+					HTTPTimeout:         time.Minute,
+					GlobalCustomerKeys:  []string{"key1", "key2"},
+					MaxRetryCount:       8,
+					RetryDelay:          time.Second * 5,
+					MaxRawBodySize:      1024 * 1024 * 32,
+					ContentEncoding:     "v2",
+					EnableSinker:        true,
 				}
 
 				return cfg

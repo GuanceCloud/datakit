@@ -13,8 +13,8 @@ import (
 	"strconv"
 	"strings"
 
-	gcPoint "github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -100,10 +100,6 @@ type planObj struct {
 	sortRange           int64
 	sortRows            int64
 	sortScan            int64
-}
-
-func (m *dbmSampleMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.LOptElectionV2(m.election))
 }
 
 //nolint:lll
@@ -252,15 +248,15 @@ func (m *dbmSampleMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 // Point implement MeasurementV2.
-func (m *dbmSampleMeasurement) Point() *gcPoint.Point {
-	opts := gcPoint.DefaultLoggingOptions()
+func (m *dbmSampleMeasurement) Point() *point.Point {
+	opts := point.DefaultLoggingOptions()
 
 	if m.election {
-		opts = append(opts, gcPoint.WithExtraTags(point.GlobalElectionTags()))
+		opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
 	}
 
-	return gcPoint.NewPointV2([]byte(m.name),
-		append(gcPoint.NewTags(m.tags), gcPoint.NewKVs(m.fields)...),
+	return point.NewPointV2(m.name,
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
 }
 

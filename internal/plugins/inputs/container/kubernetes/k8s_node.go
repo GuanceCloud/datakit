@@ -12,12 +12,10 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-	"sigs.k8s.io/yaml"
-
 	apicorev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -162,8 +160,6 @@ func (m *nodeMetadata) transformObject() pointKVs {
 
 type nodeMetric struct{}
 
-func (*nodeMetric) LineProto() (*dkpt.Point, error) { return nil, nil }
-
 //nolint:lll
 func (*nodeMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
@@ -188,8 +184,6 @@ func (*nodeMetric) Info() *inputs.MeasurementInfo {
 }
 
 type nodeObject struct{}
-
-func (*nodeObject) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*nodeObject) Info() *inputs.MeasurementInfo {

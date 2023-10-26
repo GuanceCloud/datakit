@@ -7,7 +7,6 @@ package config
 
 import (
 	"io"
-	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -302,7 +301,7 @@ hostname = "should-not-set"`,
 		t.Run(tc.name, func(t *testing.T) {
 			c := DefaultConfig()
 
-			if err := ioutil.WriteFile(tomlfile, []byte(tc.raw), 0o600); err != nil {
+			if err := os.WriteFile(tomlfile, []byte(tc.raw), 0o600); err != nil {
 				t.Fatal(err)
 			}
 

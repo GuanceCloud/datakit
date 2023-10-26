@@ -23,7 +23,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
@@ -102,6 +101,7 @@ const (
 
 var (
 	log                                       = logger.DefaultSLogger(inputName)
+	iptGlobal                                 *Input
 	v3trace, v3metric, v3logging, v3profiling = "/v3/trace", "/v3/metric", "/v3/logging", "/v3/profiling"
 	address                                   = "localhost:11800"
 	plugins                                   []string
@@ -131,7 +131,7 @@ type Input struct {
 
 	feeder  dkio.Feeder
 	semStop *cliutils.Sem // start stop signal
-	Tagger  dkpt.GlobalTagger
+	Tagger  datakit.GlobalTagger
 }
 
 func (*Input) Catalog() string { return inputName }
@@ -146,6 +146,7 @@ func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 
 func (ipt *Input) RegHTTPHandler() {
 	log = logger.SLogger(inputName)
+	iptGlobal = ipt
 
 	var err error
 	if ipt.WPConfig != nil {
@@ -330,7 +331,7 @@ func defaultInput() *Input {
 	return &Input{
 		feeder:  dkio.DefaultFeeder(),
 		semStop: cliutils.NewSem(),
-		Tagger:  dkpt.DefaultGlobalTagger(),
+		Tagger:  datakit.DefaultGlobalTagger(),
 	}
 }
 

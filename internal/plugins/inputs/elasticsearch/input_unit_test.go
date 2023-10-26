@@ -331,20 +331,45 @@ func AssertContainsTaggedFields(t *testing.T,
 ) {
 	t.Helper()
 	for _, p := range collectCache {
-		if !reflect.DeepEqual(tags, p.InfluxTags()) {
+		gotTags := p.MapTags()
+
+		// for k, v := range gotTags {
+		// 	fmt.Printf("gotTags k = %s, v = %s\n", k, v)
+		// }
+
+		// fmt.Println("============")
+
+		// for k, v := range tags {
+		// 	fmt.Printf("tags k = %s, v = %s\n", k, v)
+		// }
+
+		if !reflect.DeepEqual(tags, gotTags) {
 			continue
 		}
 
-		if string(p.Name()) != measurement {
+		if p.Name() != measurement {
 			continue
 		}
-		if reflect.DeepEqual(fields, p.InfluxFields()) {
+
+		gotFields := p.InfluxFields()
+
+		// for k, v := range gotFields {
+		// 	fmt.Printf("gotFields k = %s, v = %s\n", k, v)
+		// }
+
+		// fmt.Println("============")
+
+		// for k, v := range fields {
+		// 	fmt.Printf("fields k = %s, v = %s\n", k, v)
+		// }
+
+		if reflect.DeepEqual(fields, gotFields) {
 			return
 		}
 	}
 
 	for _, p := range collectCache {
-		if string(p.Name()) == measurement {
+		if p.Name() == measurement {
 			t.Log("measurement", p.Name(), "tags", p.InfluxTags(), "fields", p.InfluxFields())
 		}
 	}
@@ -363,7 +388,7 @@ func AssertDoesNotContainsTaggedFields(t *testing.T,
 		if !reflect.DeepEqual(tags, p.Tags()) {
 			continue
 		}
-		if string(p.Name()) == measurement && reflect.DeepEqual(fields, p.Fields()) {
+		if p.Name() == measurement && reflect.DeepEqual(fields, p.Fields()) {
 			assert.Fail(t, fmt.Sprintf("found measurement %s with tagged fields (tags %v) which should not be there", measurement, tags))
 		}
 	}

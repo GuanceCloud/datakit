@@ -163,15 +163,3 @@ func TestOther(t *testing.T) {
 	assert.Equal(t, catalog, it.Catalog())
 	assert.Equal(t, datakit.AllOSWithElection, it.AvailableArchs())
 }
-
-func TestMan(t *testing.T) {
-	i := &Input{}
-	arr := i.SampleMeasurement()
-
-	for _, elem := range arr {
-		if _, err := elem.LineProto(); err != nil {
-			t.Error(err)
-		}
-		elem.Info()
-	}
-}

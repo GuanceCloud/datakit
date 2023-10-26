@@ -10,7 +10,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -70,12 +70,7 @@ func TestGetDecodeData(t *testing.T) {
 
 			var r []string
 			for _, pt := range pts {
-				fields, err := pt.Fields()
-				if err != nil {
-					t.Error(err)
-					return
-				}
-
+				fields := pt.InfluxFields()
 				r = append(r, fields["message"].(string))
 			}
 			assert.Equal(t, tc.expectError, err, "getDecodeData found error: %v", err)
@@ -306,7 +301,7 @@ func (c Client) PipelineDebug(in *pipelineDebugRequest) (int, http.Header, []byt
 		return 0, nil, nil, err
 	}
 	defer res.Body.Close() //nolint:errcheck
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return 0, nil, nil, err
 	}

@@ -10,11 +10,11 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"path/filepath"
 	"time"
 
+	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/script"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 )
 
 func handleInput(confdInputs map[string][]*ConfdInfo, handleList []handle, ctx context.Context) (errs []error) {
@@ -48,8 +48,10 @@ func handleInput(confdInputs map[string][]*ConfdInfo, handleList []handle, ctx c
 			case 3:
 				l.Info("before set pipelines")
 
-				plscript.LoadAllScripts2StoreFromPlStructPath(plscript.GitRepoScriptNS,
-					filepath.Join(datakit.GitReposRepoFullPath, "pipeline"))
+				if managerWkr, ok := plval.GetManager(); ok && managerWkr != nil {
+					plmanager.LoadScripts2StoreFromPlStructPath(managerWkr,
+						plmanager.ConfdScriptNS, datakit.ConfdPipelineDir)
+				}
 			}
 		}
 

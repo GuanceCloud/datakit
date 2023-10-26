@@ -6,15 +6,10 @@
 package kafka
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-type KafkaMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-}
+type KafkaMeasurement struct{}
 
 type KafkaControllerMment struct {
 	KafkaMeasurement
@@ -164,10 +159,6 @@ func (j *KafkaConnectMment) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (j *KafkaConnectMment) LineProto() (*point.Point, error) {
-	return point.NewPoint(j.name, j.tags, j.fields, point.MOptElection())
-}
-
 //nolint:lll
 var producerFields = map[string]interface{}{
 	"io_wait_ratio":                             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
@@ -242,10 +233,6 @@ func (j *KafkaProducerMment) Info() *inputs.MeasurementInfo {
 		Tags:   producerTags,
 		Desc:   "该指标集需在 Producer 实例上采集",
 	}
-}
-
-func (j *KafkaProducerMment) LineProto() (*point.Point, error) {
-	return point.NewPoint(j.name, j.tags, j.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -333,10 +320,6 @@ func (j *KafkaConsumerMment) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (j *KafkaConsumerMment) LineProto() (*point.Point, error) {
-	return point.NewPoint(j.name, j.tags, j.fields, point.MOptElection())
-}
-
 //nolint:lll
 var logFields = map[string]interface{}{
 	"OfflineLogDirectoryCount":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
@@ -358,10 +341,6 @@ func (j *KafkaLogMment) Info() *inputs.MeasurementInfo {
 		Fields: logFields,
 		Tags:   logTags,
 	}
-}
-
-func (j *KafkaLogMment) LineProto() (*point.Point, error) {
-	return point.NewPoint(j.name, j.tags, j.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -386,10 +365,6 @@ func (j *KafkaNetworkMment) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (j *KafkaNetworkMment) LineProto() (*point.Point, error) {
-	return point.NewPoint(j.name, j.tags, j.fields, point.MOptElection())
-}
-
 //nolint:lll
 var requestHandlerFields = map[string]interface{}{
 	"RequestHandlerAvgIdlePercent.RateUnit":          &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.String, Desc: ""},
@@ -411,10 +386,6 @@ func (j *KafkaRequestHandlerMment) Info() *inputs.MeasurementInfo {
 		Fields: requestHandlerFields,
 		Tags:   requestHandlerTags,
 	}
-}
-
-func (j *KafkaRequestHandlerMment) LineProto() (*point.Point, error) {
-	return point.NewPoint(j.name, j.tags, j.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -442,14 +413,6 @@ func (j *KafkaZooKeeperMment) Info() *inputs.MeasurementInfo {
 		Fields: zooKeeperFields,
 		Tags:   zooKeeperTags,
 	}
-}
-
-func (j *KafkaZooKeeperMment) LineProto() (*point.Point, error) {
-	return point.NewPoint(j.name, j.tags, j.fields, point.MOptElection())
-}
-
-func (j *KafkaMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(j.name, j.tags, j.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -815,10 +778,6 @@ var controllerTags = map[string]interface{}{
 	"jolokia_agent_url": inputs.TagInfo{Desc: "Jolokia agent url path"},
 }
 
-func (j *KafkaControllerMment) LineProto() (*point.Point, error) {
-	return point.NewPoint(j.name, j.tags, j.fields, point.MOptElection())
-}
-
 func (j *KafkaControllerMment) Info() *inputs.MeasurementInfo { //nolint:funlen
 	return &inputs.MeasurementInfo{
 		Name:   "kafka_controller",
@@ -866,10 +825,6 @@ var replicationFields = map[string]interface{}{
 	"UnderReplicatedPartitions.Value": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
 }
 
-func (j *KafkaReplicaMment) LineProto() (*point.Point, error) {
-	return point.NewPoint(j.name, j.tags, j.fields, point.MOptElection())
-}
-
 func (j *KafkaReplicaMment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "kafka_replica_manager",
@@ -909,20 +864,12 @@ var purgatoryFields = map[string]interface{}{
 	"topic.PurgatorySize":        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
 }
 
-func (j *KafkaPurgatoryMment) LineProto() (*point.Point, error) {
-	return point.NewPoint(j.name, j.tags, j.fields, point.MOptElection())
-}
-
 func (j *KafkaPurgatoryMment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "kafka_purgatory",
 		Fields: purgatoryFields,
 		Tags:   purgatoryTags,
 	}
-}
-
-func (j *KafkaRequestMment) LineProto() (*point.Point, error) {
-	return point.NewPoint(j.name, j.tags, j.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -1034,10 +981,6 @@ func (j *KafkaRequestMment) Info() *inputs.MeasurementInfo {
 		Fields: requestFields,
 		Tags:   requestTags,
 	}
-}
-
-func (j *KafkaTopicsMment) LineProto() (*point.Point, error) {
-	return point.NewPoint(j.name, j.tags, j.fields, point.MOptElection())
 }
 
 //nolint:lll
@@ -1199,10 +1142,6 @@ func (j *KafkaTopicsMment) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (j *KafkaTopicMment) LineProto() (*point.Point, error) {
-	return point.NewPoint(j.name, j.tags, j.fields, point.MOptElection())
-}
-
 //nolint:lll
 var topicFields = map[string]interface{}{
 	"BytesInPerSec.Count":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
@@ -1257,10 +1196,6 @@ func (j *KafkaTopicMment) Info() *inputs.MeasurementInfo {
 		Tags:   topicTags,
 		Fields: topicFields,
 	}
-}
-
-func (j *KafkaPartitionMment) LineProto() (*point.Point, error) {
-	return point.NewPoint(j.name, j.tags, j.fields, point.MOptElection())
 }
 
 //nolint:lll

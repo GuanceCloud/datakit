@@ -18,7 +18,7 @@ import (
 	"github.com/prometheus/common/expfmt"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -30,24 +30,24 @@ func (*Input) Catalog() string {
 	return inputName
 }
 
-func (n *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("cloudprober start")
-	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
-	client, err := n.createHTTPClient()
+	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
+	client, err := ipt.createHTTPClient()
 	if err != nil {
 		l.Errorf("[error] cloudprober init client err:%s", err.Error())
 		return
 	}
-	n.client = client
+	ipt.client = client
 
-	tick := time.NewTicker(n.Interval.Duration)
+	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
 
 	for {
-		n.getMetric()
-		if n.lastErr != nil {
-			iod.FeedLastError(inputName, n.lastErr.Error(), point.Metric)
+		ipt.getMetric()
+		if ipt.lastErr != nil {
+			dkio.FeedLastError(inputName, ipt.lastErr.Error(), point.Metric)
 		}
 
 		select {
@@ -56,51 +56,51 @@ func (n *Input) Run() {
 			l.Info("cloudprober exit")
 			return
 
-		case <-n.semStop.Wait():
+		case <-ipt.semStop.Wait():
 			l.Info("cloudprober return")
 			return
 		}
 	}
 }
 
-func (n *Input) Terminate() {
-	if n.semStop != nil {
-		n.semStop.Close()
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
 	}
 }
 
-func (n *Input) getMetric() {
-	resp, err := n.client.Get(n.URL)
+func (ipt *Input) getMetric() {
+	resp, err := ipt.client.Get(ipt.URL)
 	if err != nil {
-		l.Errorf("error making HTTP request to %s: %s", n.URL, err)
-		n.lastErr = err
+		l.Errorf("error making HTTP request to %s: %s", ipt.URL, err)
+		ipt.lastErr = err
 		return
 	}
 	defer resp.Body.Close() //nolint:errcheck
 
-	collector, err := n.parse(resp.Body)
+	pts, err := ipt.parse(resp.Body)
 	if err != nil {
-		n.lastErr = err
+		ipt.lastErr = err
 		l.Error(err.Error())
 		return
 	}
-	if err := inputs.FeedMeasurement(inputName,
-		datakit.Metric,
-		collector,
-		&iod.Option{CollectCost: time.Since(n.start)}); err != nil {
+
+	err = ipt.feeder.Feed(inputName, point.Metric, pts,
+		&dkio.Option{CollectCost: time.Since(ipt.start)})
+	if err != nil {
 		l.Error(err.Error())
-		n.lastErr = err
+		ipt.lastErr = err
 	}
 }
 
-func (n *Input) parse(reader io.Reader) ([]inputs.Measurement, error) {
+func (ipt *Input) parse(reader io.Reader) ([]*point.Point, error) {
 	var (
-		parse     expfmt.TextParser
-		collector []inputs.Measurement
+		parse expfmt.TextParser
+		pts   []*point.Point
 	)
 	Family, err := parse.TextToMetricFamilies(reader)
 	if err != nil {
-		return collector, err
+		return pts, err
 	}
 	for metricName, family := range Family {
 		for _, metric := range family.Metric {
@@ -109,7 +109,7 @@ func (n *Input) parse(reader io.Reader) ([]inputs.Measurement, error) {
 				fields: map[string]interface{}{},
 				ts:     datakit.TimestampMsToTime(metric.GetTimestampMs()),
 			}
-			for k, v := range n.Tags {
+			for k, v := range ipt.Tags {
 				measurement.tags[k] = v
 			}
 			for _, label := range metric.Label {
@@ -131,14 +131,23 @@ func (n *Input) parse(reader io.Reader) ([]inputs.Measurement, error) {
 			case "HISTOGRAM":
 				measurement.fields[metricName] = metric.Histogram.GetSampleCount()
 			}
-			collector = append(collector, measurement)
+
+			opts := point.DefaultMetricOptions()
+			opts = append(opts, point.WithTime(measurement.ts))
+
+			measurement.tags = inputs.MergeTags(ipt.Tagger.HostTags(), measurement.tags, ipt.URL)
+
+			pt := point.NewPointV2(measurement.name,
+				append(point.NewTags(measurement.tags), point.NewKVs(measurement.fields)...),
+				opts...)
+			pts = append(pts, pt)
 		}
 	}
-	return collector, nil
+	return pts, nil
 }
 
-func (n *Input) createHTTPClient() (*http.Client, error) {
-	tlsCfg, err := n.ClientConfig.TLSConfig()
+func (ipt *Input) createHTTPClient() (*http.Client, error) {
+	tlsCfg, err := ipt.ClientConfig.TLSConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +165,7 @@ func (*Input) AvailableArchs() []string {
 	return datakit.AllOS
 }
 
-func (n *Input) SampleMeasurement() []inputs.Measurement {
+func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&Measurement{},
 	}
@@ -167,7 +176,9 @@ func init() { //nolint:gochecknoinits
 		s := &Input{
 			Interval: datakit.Duration{Duration: time.Second * 5},
 
+			feeder:  dkio.DefaultFeeder(),
 			semStop: cliutils.NewSem(),
+			Tagger:  datakit.DefaultGlobalTagger(),
 		}
 		return s
 	})

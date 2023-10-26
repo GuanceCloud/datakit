@@ -8,7 +8,6 @@ package hostobject
 
 import (
 	"encoding/json"
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -25,14 +24,20 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+)
+
+const (
+	inputName              = "hostobject"
+	maxInterval            = 30 * time.Minute
+	minInterval            = 10 * time.Second
+	hostObjMeasurementName = "HOST"
 )
 
 var (
 	_ inputs.ReadEnv   = (*Input)(nil)
 	_ inputs.Singleton = (*Input)(nil)
-	l                  = logger.DefaultSLogger(InputName)
+	l                  = logger.DefaultSLogger(inputName)
 )
 
 type (
@@ -49,9 +54,9 @@ type Input struct {
 
 	Tags map[string]string `toml:"tags,omitempty"`
 
-	Interval                 *datakit.Duration `toml:"interval,omitempty"`
-	IgnoreInputsErrorsBefore *datakit.Duration `toml:"ignore_inputs_errors_before,omitempty"`
-	DeprecatedIOTimeout      *datakit.Duration `toml:"io_timeout,omitempty"`
+	Interval                 time.Duration `toml:"interval,omitempty"`
+	IgnoreInputsErrorsBefore time.Duration `toml:"ignore_inputs_errors_before,omitempty"`
+	DeprecatedIOTimeout      time.Duration `toml:"io_timeout,omitempty"`
 
 	EnableNetVirtualInterfaces bool     `toml:"enable_net_virtual_interfaces"`
 	IgnoreZeroBytesDisk        bool     `toml:"ignore_zero_bytes_disk"`
@@ -68,75 +73,138 @@ type Input struct {
 	lastDiskIOInfo diskIOInfo
 	lastNetIOInfo  netIOInfo
 
-	collectData *hostMeasurement
-
-	semStop *cliutils.Sem // start stop signal
-	feeder  dkio.Feeder
-	Tagger  dkpt.GlobalTagger
+	collectCache []*point.Point
+	semStop      *cliutils.Sem // start stop signal
+	feeder       dkio.Feeder
+	mergedTags   map[string]string
+	tagger       datakit.GlobalTagger
 
 	mfs []*dto.MetricFamily
 }
 
-func (ipt *Input) Singleton() {
-}
-
-func (ipt *Input) Catalog() string {
-	return InputCat
-}
-
-func (ipt *Input) SampleConfig() string {
-	return SampleConfig
-}
-
-const (
-	maxInterval            = 30 * time.Minute
-	minInterval            = 10 * time.Second
-	hostObjMeasurementName = "HOST"
-)
-
 func (ipt *Input) Run() {
-	l = logger.SLogger(InputName)
+	ipt.setup()
 
-	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
-	tick := time.NewTicker(ipt.Interval.Duration)
+	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
-
-	l.Debugf("starting %s(interval: %v)...", InputName, ipt.Interval)
 
 	for {
 		l.Debugf("start collecting...")
 		start := time.Now()
-		if err := ipt.doCollect(); err != nil {
+		if err := ipt.collect(); err != nil {
 			ipt.feeder.FeedLastError(err.Error(),
-				dkio.WithLastErrorInput(InputName),
+				dkio.WithLastErrorInput(inputName),
 				dkio.WithLastErrorCategory(point.Object),
 			)
-		} else if err := ipt.feeder.Feed(InputName,
-			point.Object, []*point.Point{ipt.collectData.Point()},
+		} else if err := ipt.feeder.Feed(inputName,
+			point.Object, ipt.collectCache,
 			&dkio.Option{CollectCost: time.Since(start)}); err != nil {
 			ipt.feeder.FeedLastError(err.Error(),
-				dkio.WithLastErrorInput(InputName),
+				dkio.WithLastErrorInput(inputName),
 				dkio.WithLastErrorCategory(point.Object),
 			)
 		}
 
 		select {
 		case <-datakit.Exit.Wait():
-			l.Infof("%s exit on sem", InputName)
+			l.Infof("%s exit on sem", inputName)
 			return
-
 		case <-ipt.semStop.Wait():
-			l.Infof("%s return on sem", InputName)
+			l.Infof("%s return on sem", inputName)
 			return
-
 		case <-tick.C:
 		}
 	}
 }
 
+func (ipt *Input) setup() {
+	l = logger.SLogger(inputName)
+
+	l.Infof("%s input started", inputName)
+	ipt.Interval = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval)
+	ipt.mergedTags = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")
+	l.Debugf("merged tags: %+#v", ipt.mergedTags)
+}
+
+func (ipt *Input) collect() error {
+	ipt.collectCache = make([]*point.Point, 0)
+	ts := time.Now()
+	opts := point.DefaultObjectOptions()
+	opts = append(opts, point.WithTime(ts))
+
+	var kvs point.KVs
+
+	if mfs, err := metrics.Gather(); err == nil {
+		ipt.mfs = mfs
+	}
+
+	message, err := ipt.getHostObjectMessage()
+	if err != nil {
+		return err
+	}
+
+	messageData, err := json.Marshal(message)
+	if err != nil {
+		l.Errorf("json marshal err:%s", err.Error())
+		return err
+	}
+
+	l.Debugf("messageData len: %d", len(messageData))
+
+	kvs = kvs.Add("message", string(messageData), false, true)
+	kvs = kvs.Add("start_time", message.Host.HostMeta.BootTime*1000, false, true)
+	kvs = kvs.Add("datakit_ver", datakit.Version, false, true)
+	kvs = kvs.Add("cpu_usage", message.Host.cpuPercent, false, true)
+	kvs = kvs.Add("mem_used_percent", message.Host.Mem.usedPercent, false, true)
+	kvs = kvs.Add("load", message.Host.load5, false, true)
+	kvs = kvs.Add("disk_used_percent", message.Host.diskUsedPercent, false, true)
+	kvs = kvs.Add("diskio_read_bytes_per_sec", message.Host.diskIOReadBytesPerSec, false, true)
+	kvs = kvs.Add("diskio_write_bytes_per_sec", message.Host.diskIOWriteBytesPerSec, false, true)
+	kvs = kvs.Add("net_recv_bytes_per_sec", message.Host.netRecvBytesPerSec, false, true)
+	kvs = kvs.Add("net_send_bytes_per_sec", message.Host.netSendBytesPerSec, false, true)
+	kvs = kvs.Add("logging_level", message.Host.loggingLevel, false, true)
+
+	kvs = kvs.Add("name", message.Host.HostMeta.HostName, true, true)
+	kvs = kvs.Add("os", message.Host.HostMeta.OS, true, true)
+
+	if !datakit.IsTestMode {
+		kvs = kvs.Add("Scheck", message.Collectors[0].Version, false, true)
+	}
+
+	// append extra cloud fields: all of them as tags
+	for k, v := range message.Host.cloudInfo {
+		switch tv := v.(type) {
+		case string:
+			if tv != Unavailable {
+				kvs = kvs.Add(k, tv, true, true)
+			}
+		default:
+			l.Warnf("ignore non-string cloud extra field: %s: %v, ignored", k, v)
+		}
+	}
+
+	for k, v := range ipt.mergedTags {
+		kvs = kvs.AddTag(k, v)
+	}
+
+	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(hostObjMeasurementName, kvs, opts...))
+
+	return nil
+}
+
+func (*Input) Singleton() {}
+
 func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
+	}
+}
+func (*Input) Catalog() string          { return "host" }
+func (*Input) SampleConfig() string     { return sampleCfg }
+func (*Input) AvailableArchs() []string { return datakit.AllOS }
+func (*Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{
+		&docMeasurement{},
 	}
 }
 
@@ -193,145 +261,10 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	} // ENV_CLOUD_PROVIDER
 }
 
-type hostMeasurement struct {
-	name   string
-	fields map[string]interface{}
-	tags   map[string]string
-	ts     time.Time
-}
-
-// Point implement MeasurementV2.
-func (m *hostMeasurement) Point() *point.Point {
-	opts := point.DefaultObjectOptions()
-	opts = append(opts, point.WithTime(m.ts))
-
-	return point.NewPointV2([]byte(m.name),
-		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
-		opts...)
-}
-
-//nolint:lll
-func (*hostMeasurement) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{
-		Name: hostObjMeasurementName,
-		Desc: "Host object metrics",
-		Tags: map[string]interface{}{
-			"host": &inputs.TagInfo{Desc: "Hostname. Required."},
-			"name": &inputs.TagInfo{Desc: "Hostname"},
-			"os":   &inputs.TagInfo{Desc: "Host OS type"},
-		},
-		Fields: map[string]interface{}{
-			"message":                    &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Summary of all host information"},
-			"start_time":                 &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationMS, Desc: "Host startup time (Unix timestamp)"},
-			"datakit_ver":                &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "collector version"},
-			"cpu_usage":                  &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent, Desc: "CPU usage"},
-			"mem_used_percent":           &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent, Desc: "memory usage"},
-			"load":                       &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "system load"},
-			"disk_used_percent":          &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent, Desc: "disk usage"},
-			"diskio_read_bytes_per_sec":  &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.BytesPerSec, Desc: "disk read rate"},
-			"diskio_write_bytes_per_sec": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.BytesPerSec, Desc: "disk write rate"},
-			"net_recv_bytes_per_sec":     &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.BytesPerSec, Desc: "network receive rate"},
-			"net_send_bytes_per_sec":     &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.BytesPerSec, Desc: "network send rate"},
-			"logging_level":              &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "log level"},
-		},
-	}
-}
-
-func (*hostMeasurement) LineProto() (*dkpt.Point, error) {
-	// return dkpt.NewPoint(hm.name, hm.tags, hm.fields, dkpt.OOpt())
-	return nil, fmt.Errorf("not implement")
-}
-
-func (ipt *Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{
-		&hostMeasurement{},
-	}
-}
-
-func (ipt *Input) AvailableArchs() []string {
-	return datakit.AllOS
-}
-
-func (ipt *Input) doCollect() error {
-	if mfs, err := metrics.Gather(); err == nil {
-		ipt.mfs = mfs
-	}
-
-	message, err := ipt.getHostObjectMessage()
-	if err != nil {
-		return err
-	}
-
-	messageData, err := json.Marshal(message)
-	if err != nil {
-		l.Errorf("json marshal err:%s", err.Error())
-		return err
-	}
-
-	l.Debugf("messageData len: %d", len(messageData))
-
-	ipt.collectData = &hostMeasurement{
-		name: hostObjMeasurementName,
-		fields: map[string]interface{}{
-			"message":                    string(messageData),
-			"start_time":                 message.Host.HostMeta.BootTime * 1000,
-			"datakit_ver":                datakit.Version,
-			"cpu_usage":                  message.Host.cpuPercent,
-			"mem_used_percent":           message.Host.Mem.usedPercent,
-			"load":                       message.Host.load5,
-			"disk_used_percent":          message.Host.diskUsedPercent,
-			"diskio_read_bytes_per_sec":  message.Host.diskIOReadBytesPerSec,
-			"diskio_write_bytes_per_sec": message.Host.diskIOWriteBytesPerSec,
-			"net_recv_bytes_per_sec":     message.Host.netRecvBytesPerSec,
-			"net_send_bytes_per_sec":     message.Host.netSendBytesPerSec,
-			"logging_level":              message.Host.loggingLevel,
-		},
-
-		tags: map[string]string{
-			"name": message.Host.HostMeta.HostName,
-			"os":   message.Host.HostMeta.OS,
-		},
-
-		ts: time.Now(),
-	}
-
-	if !datakit.IsTestMode {
-		ipt.collectData.fields["Scheck"] = message.Collectors[0].Version
-	}
-
-	// append extra cloud fields: all of them as tags
-	for k, v := range message.Host.cloudInfo {
-		switch tv := v.(type) {
-		case string:
-			if tv != Unavailable {
-				ipt.collectData.tags[k] = tv
-			}
-		default:
-			l.Warnf("ignore non-string cloud extra field: %s: %v, ignored", k, v)
-		}
-	}
-
-	// merge custom tags: if conflict with fields, ignore the tag
-	for k, v := range ipt.Tags {
-		// 添加的 tag key 不能存在已有的 field key 中
-		if _, ok := ipt.collectData.fields[k]; ok {
-			l.Warnf("ignore tag `%s', exists in field", k)
-			continue
-		}
-
-		// 用户 tag 无脑添加 tag(可能覆盖已有 tag)
-		ipt.collectData.tags[k] = v
-	}
-
-	ipt.collectData.tags = inputs.MergeTags(ipt.Tagger.HostTags(), ipt.collectData.tags, "")
-
-	return nil
-}
-
 func defaultInput() *Input {
 	return &Input{
-		Interval:                 &datakit.Duration{Duration: 5 * time.Minute},
-		IgnoreInputsErrorsBefore: &datakit.Duration{Duration: 30 * time.Second},
+		Interval:                 5 * time.Minute,
+		IgnoreInputsErrorsBefore: 30 * time.Second,
 		IgnoreZeroBytesDisk:      true,
 		diskIOCounters:           diskutil.IOCounters,
 		netIOCounters:            netutil.IOCounters,
@@ -339,16 +272,16 @@ func defaultInput() *Input {
 		semStop: cliutils.NewSem(),
 		feeder:  dkio.DefaultFeeder(),
 		Tags:    make(map[string]string),
-		Tagger:  dkpt.DefaultGlobalTagger(),
+		tagger:  datakit.DefaultGlobalTagger(),
 	}
 }
 
 func init() { //nolint:gochecknoinits
-	inputs.Add(InputName, func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		return defaultInput()
 	})
 }
 
 func SetLog() {
-	l = logger.SLogger(InputName)
+	l = logger.SLogger(inputName)
 }

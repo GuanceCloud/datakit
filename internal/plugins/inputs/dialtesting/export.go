@@ -10,7 +10,7 @@ package dialtesting
 
 import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 
-func (d *Input) Dashboard(lang inputs.I18n) map[string]string {
+func (ipt *Input) Dashboard(lang inputs.I18n) map[string]string {
 	switch lang {
 	case inputs.I18nZh:
 		return map[string]string{
@@ -55,11 +55,11 @@ func (d *Input) Dashboard(lang inputs.I18n) map[string]string {
 	}
 }
 
-func (d *Input) DashboardList() []string {
+func (ipt *Input) DashboardList() []string {
 	return nil
 }
 
-func (d *Input) Monitor(lang inputs.I18n) map[string]string {
+func (ipt *Input) Monitor(lang inputs.I18n) map[string]string {
 	switch lang {
 	case inputs.I18nZh:
 		return map[string]string{
@@ -74,6 +74,6 @@ func (d *Input) Monitor(lang inputs.I18n) map[string]string {
 	}
 }
 
-func (d *Input) MonitorList() []string {
+func (ipt *Input) MonitorList() []string {
 	return nil
 }

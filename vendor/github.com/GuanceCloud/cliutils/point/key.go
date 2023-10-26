@@ -6,7 +6,6 @@
 package point
 
 import (
-	"bytes"
 	"fmt"
 	"hash/fnv"
 	"sort"
@@ -15,36 +14,33 @@ import (
 
 // Key is the key-name and it's type composite.
 type Key struct {
-	key []byte // key-name + key-type
+	key string // key-name + key-type
+	t   KeyType
 	def any
 }
 
 // NewKey create Key.
-func NewKey(k []byte, t KeyType, defaultVal ...any) *Key {
+func NewKey(k string, t KeyType, defaultVal ...any) *Key {
 	var def any
 	if len(defaultVal) > 0 {
 		def = defaultVal[0]
 	}
 
 	return &Key{
-		key: append(k, uint8(t)),
+		key: k,
+		t:   t,
 		def: def,
 	}
 }
 
 // NewTagKey create tag key with type []byte.
-func NewTagKey(k []byte, defaultVal []byte) *Key {
+func NewTagKey(k string, defaultVal string) *Key {
 	return NewKey(k, KeyType_D, defaultVal)
 }
 
 // Key get key-name.
-func (k *Key) Key() []byte {
-	switch len(k.key) {
-	case 0, 1:
-		return nil
-	default:
-		return k.key[:len(k.key)-1]
-	}
+func (k *Key) Key() string {
+	return k.key
 }
 
 // Type get key-type.
@@ -68,9 +64,9 @@ func (k *Key) Default() any {
 
 // Keys is sorted Keys.
 type Keys struct {
-	hashCount,
-	hash uint64
-	arr []*Key
+	hashed bool
+	hash   uint64
+	arr    []*Key
 }
 
 func (x *Keys) Len() int { return len(x.arr) }
@@ -81,14 +77,14 @@ func (x *Keys) Swap(i, j int) {
 }
 
 func (x *Keys) Less(i, j int) bool {
-	return bytes.Compare(x.arr[i].key, x.arr[j].key) < 0
+	return strings.Compare(x.arr[i].key, x.arr[j].key) < 0
 }
 
 // Has test if k exist.
 func (x *Keys) Has(k *Key) bool {
 	// TODO: should replaced by sort.Search()
 	for _, item := range x.arr {
-		if bytes.Equal(k.key, item.key) {
+		if k.key == item.key {
 			return true
 		}
 	}
@@ -103,25 +99,22 @@ func (x *Keys) Add(k *Key) {
 	}
 
 	x.arr = append(x.arr, k)
-	sort.Sort(x)
-	x.hash = 0 // reset hash
+	x.hashed = false
 }
 
 // Del remove specific k.
 func (x *Keys) Del(k *Key) {
 	i := 0
 	for _, key := range x.arr {
-		if !bytes.Equal(key.key, k.key) {
+		if key.key != k.key {
 			x.arr[i] = key
 			i++
 		}
 	}
 
-	// len changed, reset hash.
-	if len(x.arr) != i {
-		x.hash = 0
+	if i != len(x.arr) {
+		x.hashed = false
 		x.arr = x.arr[:i]
-		sort.Sort(x)
 	}
 }
 
@@ -132,14 +125,15 @@ func (x *Keys) Pretty() string {
 		arr = append(arr, fmt.Sprintf("% 4s: %q", KeyType(k.key[len(k.key)-1]), k.key[:len(k.key)-1]))
 	}
 
-	arr = append(arr, fmt.Sprintf("-----\nhashed: %d", x.hashCount))
+	arr = append(arr, fmt.Sprintf("-----\nhashed: %v", x.hashed))
 
 	return strings.Join(arr, "\n")
 }
 
 // Hash calculate x's hash.
 func (x *Keys) Hash() uint64 {
-	if x.hash == 0 {
+	if !x.hashed {
+		sort.Sort(x)
 		h := fnv.New64a()
 		if _, err := h.Write(func() []byte {
 			var arr []byte
@@ -149,8 +143,9 @@ func (x *Keys) Hash() uint64 {
 			return arr
 		}()); err == nil {
 			x.hash = h.Sum64()
-			x.hashCount++
+			x.hashed = true
 		}
 	}
+
 	return x.hash
 }

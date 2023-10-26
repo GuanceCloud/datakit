@@ -7,7 +7,6 @@
 package promtail
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -17,7 +16,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -41,7 +39,7 @@ type Input struct {
 	Legacy bool              `toml:"legacy"`
 	Tags   map[string]string `toml:"tags"`
 	feeder dkio.Feeder
-	Tagger dkpt.GlobalTagger
+	Tagger datakit.GlobalTagger
 }
 
 type promtailSampleMeasurement struct {
@@ -58,14 +56,9 @@ func (m *promtailSampleMeasurement) Point() *point.Point {
 	opts := point.DefaultLoggingOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (*promtailSampleMeasurement) LineProto() (*dkpt.Point, error) {
-	// return nil, nil
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -183,7 +176,7 @@ func defaultInput() *Input {
 		Legacy: false,
 		Tags:   map[string]string{},
 		feeder: dkio.DefaultFeeder(),
-		Tagger: dkpt.DefaultGlobalTagger(),
+		Tagger: datakit.DefaultGlobalTagger(),
 	}
 }
 

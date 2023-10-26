@@ -8,12 +8,11 @@ package export
 // GuanceDocs export all markdown docs to docs.guance.com.
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
-	plfuncs "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput/funcs"
+	"github.com/GuanceCloud/cliutils/pipeline/ptinput/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -68,7 +67,7 @@ func (gd *GuanceDocs) Export() error {
 	}
 
 	for k, v := range gd.docs {
-		if err := ioutil.WriteFile(k, v, 0o600); err != nil {
+		if err := os.WriteFile(k, v, 0o600); err != nil {
 			return err
 		}
 		l.Debugf("write %q...", k)
@@ -117,12 +116,12 @@ func (gd *GuanceDocs) exportPipelineDocs(lang inputs.I18n) error {
 
 		doc := md
 		if f.Name() == "pipeline-built-in-function.md" {
-			var fndocs map[string]*plfuncs.PLDoc
+			var fndocs map[string]*funcs.PLDoc
 			switch lang {
 			case inputs.I18nZh:
-				fndocs = plfuncs.PipelineFunctionDocs
+				fndocs = funcs.PipelineFunctionDocs
 			case inputs.I18nEn:
-				fndocs = plfuncs.PipelineFunctionDocsEN
+				fndocs = funcs.PipelineFunctionDocsEN
 			}
 
 			doc, err = buildPipelineDocs(md, fndocs, gd.opt)

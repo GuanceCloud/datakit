@@ -7,8 +7,8 @@ package prom
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -26,7 +26,7 @@ func BearerToken(auth map[string]string, url string) (*http.Request, error) {
 		if !ok {
 			return nil, fmt.Errorf("invalid token")
 		}
-		tokenBytes, err := ioutil.ReadFile(filepath.Clean(tokenFile))
+		tokenBytes, err := os.ReadFile(filepath.Clean(tokenFile))
 		if err != nil {
 			return nil, fmt.Errorf("invalid token file")
 		}
