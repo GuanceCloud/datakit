@@ -14,6 +14,7 @@ New Relic 的 .Net Agent 是基于 .Net 技术框架的开源项目，可用于�
 
 ## 配置 {#config}
 
+<!-- markdownlint-disable MD046 -->
 === "主机安装"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
@@ -27,6 +28,7 @@ New Relic 的 .Net Agent 是基于 .Net 技术框架的开源项目，可用于�
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+<!-- markdownlint-enable -->
 
 完成配置后重启 `Datakit` 和 `IIS`
 
@@ -44,65 +46,65 @@ PS> iisreset
 
 #### 安装并配置 New Relic .NET Agent {#install-and-configure-new-relic-dotnet-agent}
 
-首先确认当前 `Windows OS` 安装的 `DotNet Framework` 版本：
-
-  运行 `cmd` 输入 `reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\NET Framework Setup\NDP"` 查看当前 `OS` 上安装的所有版本
+首先确认当前 `Windows OS` 安装的 `DotNet Framework` 版本，运行 `cmd` 输入 `reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\NET Framework Setup\NDP"` 查看当前 OS 上安装的所有版本。
 
 然后进行 New Relic Agent 的安装：
 
 - 可以[登陆个人 `New Relic` 账号](https://one.newrelic.com){:target="_blank"}进行安装：
 
-  进入账号后，单击左侧目录栏下的创建数据 `+ Add Data` 子目录，后在右侧的 `Data source` 子目录里的 `Application monitoring` 中选择 `.Net` 后安装指引进行安装。
+进入账号后，单击左侧目录栏下的创建数据 `+ Add Data` 子目录，后在右侧的 `Data source` 子目录里的 `Application monitoring` 中选择 `.Net` 后安装指引进行安装。
 
 - 也可以通过安装程序进行安装：
 
-  打开[下载目录下载](https://download.newrelic.com/dot_net_agent/6.x_release/){:target="_blank"} 下载 `dotnet agent` 版本 6.27.0 选择对应的安装程序。
+打开[下载目录下载](https://download.newrelic.com/dot_net_agent/6.x_release/){:target="_blank"} 下载 `dotnet agent` 版本 6.27.0 选择对应的安装程序。
 
 配置 `New Relic Agent`
 
 - 配置必要的环境变量
 
-  右键单击桌面左下角 `Windows` 徽标选择 系统，选择 高级系统设置，选择 环境变量 ，查看 系统变量 列表是否包含一下环境变量配置：
+右键单击桌面左下角 `Windows` 徽标选择 系统，选择 高级系统设置，选择 环境变量 ，查看 系统变量 列表是否包含一下环境变量配置：
 
+<!-- markdownlint-disable MD046 -->
     - `COR_ENABLE_PROFILING`: 数字值 1 默认开启
     - `COR_PROFILER`: 字符值，默认为系统自动填写的 `ID`
     - `CORECLR_ENABLE_PROFILING`: 数字值 1 默认开启
     - `NEW_RELIC_APP_NAME`: 字符值，填写被观测的 `APP` 名字 （可选）
     - `NEWRELIC_INSTALL_PATH`: `New Relic Agent` 安装路径
+<!-- markdownlint-enable -->
 
 - 通过配置文件配置 `New Relic`
 
-  打开 `New Relic Agent` 安装目录下的 `newrelic.config` 将以下示例中 `{示例值}` 替换为真实值，其他值按照示例中对照填写
+打开 `New Relic Agent` 安装目录下的 `newrelic.config` 将以下示例中 `{示例值}` 替换为真实值，其他值按照示例中对照填写
 
-  ```xml
-  <?xml version="1.0"?>
-  <!-- Copyright (c) 2008-2017 New Relic, Inc.  All rights reserved. -->
-  <!-- For more information see: https://newrelic.com/docs/dotnet/dotnet-agent-configuration -->
-  <configuration xmlns="urn:newrelic-config" agentEnabled="true" agentRunID="{agent id (可自己制定也可不填)}">
-    <service licenseKey="{真实的 license key}" ssl="true" host="{www.your-domain-name.com}" port="{Datakit 端口号}" />
-    <application>
-      <name>{被检测的 APP 名字}</name>
-    </application>
-    <log level="debug" />
-    <transactionTracer enabled="true" transactionThreshold="apdex_f" stackTraceThreshold="500" recordSql="obfuscated" explainEnabled="false" explainThreshold="500" />
-    <crossApplicationTracer enabled="true" />
-    <errorCollector enabled="true">
-      <ignoreErrors>
-        <exception>System.IO.FileNotFoundException</exception>
-        <exception>System.Threading.ThreadAbortException</exception>
-      </ignoreErrors>
-      <ignoreStatusCodes>
-        <code>401</code>
-        <code>404</code>
-      </ignoreStatusCodes>
-    </errorCollector>
-    <browserMonitoring autoInstrument="true" />
-    <threadProfiling>
-      <ignoreMethod>System.Threading.WaitHandle:InternalWaitOne</ignoreMethod>
-      <ignoreMethod>System.Threading.WaitHandle:WaitAny</ignoreMethod>
-    </threadProfiling>
-  </configuration>
-  ```
+```xml
+<?xml version="1.0"?>
+<!-- Copyright (c) 2008-2017 New Relic, Inc.  All rights reserved. -->
+<!-- For more information see: https://newrelic.com/docs/dotnet/dotnet-agent-configuration -->
+<configuration xmlns="urn:newrelic-config" agentEnabled="true" agentRunID="{agent id (可自己制定也可不填)}">
+  <service licenseKey="{真实的 license key}" ssl="true" host="{www.your-domain-name.com}" port="{Datakit 端口号}" />
+  <application>
+    <name>{被检测的 APP 名字}</name>
+  </application>
+  <log level="debug" />
+  <transactionTracer enabled="true" transactionThreshold="apdex_f" stackTraceThreshold="500" recordSql="obfuscated" explainEnabled="false" explainThreshold="500" />
+  <crossApplicationTracer enabled="true" />
+  <errorCollector enabled="true">
+    <ignoreErrors>
+      <exception>System.IO.FileNotFoundException</exception>
+      <exception>System.Threading.ThreadAbortException</exception>
+    </ignoreErrors>
+    <ignoreStatusCodes>
+      <code>401</code>
+      <code>404</code>
+    </ignoreStatusCodes>
+  </errorCollector>
+  <browserMonitoring autoInstrument="true" />
+  <threadProfiling>
+    <ignoreMethod>System.Threading.WaitHandle:InternalWaitOne</ignoreMethod>
+    <ignoreMethod>System.Threading.WaitHandle:WaitAny</ignoreMethod>
+  </threadProfiling>
+</configuration>
+```
 
 #### 配置主机 {#configure-host-for-newrelic}
 
