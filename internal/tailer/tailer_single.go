@@ -314,6 +314,7 @@ func (t *Single) forwardMessage() {
 		b.buf, readNum, err = t.read()
 		if err != nil {
 			t.opt.log.Warnf("failed to read data from file %s, error: %s", t.filename, err)
+			t.wait()
 			continue
 		}
 
