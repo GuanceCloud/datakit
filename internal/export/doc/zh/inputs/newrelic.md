@@ -147,7 +147,7 @@ PS> iisreset
 
 ### New Relic license key 在哪里？ {#where-license-key}
 
-如果是从 `New Relic` 官网指引安装，`license key` 将自动完成填写，如果是自行手动安装 `license key` 将在安装程序运行过程中要求填写，`license key` 在[创建账号](https://newrelic.com/signup?via=login){:target="_blank"}或者[创建数据](newrelic-dotnet.md#install-and-configure-new-relic-dotnet-agent)时会出现建议保存。
+如果是从 `New Relic` 官网指引安装，`license key` 将自动完成填写，如果是自行手动安装 `license key` 将在安装程序运行过程中要求填写，`license key` 在[创建账号](https://newrelic.com/signup?via=login){:target="_blank"}或者[创建数据](newrelic.md#install-and-configure-new-relic-dotnet-agent)时会出现建议保存。
 
 ### TLS 版本不兼容 {#tls-version}
 
