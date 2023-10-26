@@ -253,9 +253,9 @@ By default, DataKit collects stdout/stderr logs for all containers on your machi
 
     ``` toml
     ## When the container's image matches `hello*` , the container's log is collected
-    container_include_logging = ["image:hello*"]
+    container_include_log = ["image:hello*"]
     ## Ignore all containers
-    container_exclude_logging = ["image:*"]
+    container_exclude_log = ["image:*"]
     ```
 
     `container_include` and `container_exclude` must begin with `image` in the form of a [regular-like Glob wildcard](https://en.wikipedia.org/wiki/Glob_(programming)){:target="_blank"}： `"image:<glob rules>"`
@@ -303,7 +303,7 @@ By default, DataKit collects stdout/stderr logs for all containers on your machi
 
 ???+ attention
 
-    The priority of the global configuration `container_exclude_logging` is lower than the custom configuration `disable` within the container. For example, if `container_exclude_logging = ["image:*"]` is configured to exclude all logs, but there is a Pod Annotation as follows:
+    The priority of the global configuration `container_exclude_log` is lower than the custom configuration `disable` within the container. For example, if `container_exclude_log = ["image:*"]` is configured to exclude all logs, but there is a Pod Annotation as follows:
     
     ```json
     [
