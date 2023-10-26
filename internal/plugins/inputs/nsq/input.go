@@ -21,7 +21,6 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	timex "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
@@ -71,7 +70,7 @@ type Input struct {
 
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
-	Tagger  dkpt.GlobalTagger
+	Tagger  datakit.GlobalTagger
 }
 
 var maxPauseCh = inputs.ElectionPauseChannelLength
@@ -396,7 +395,7 @@ func defaultInput() *Input {
 		Election:         true,
 		semStop:          cliutils.NewSem(),
 		feeder:           dkio.DefaultFeeder(),
-		Tagger:           dkpt.DefaultGlobalTagger(),
+		Tagger:           datakit.DefaultGlobalTagger(),
 	}
 }
 

@@ -17,6 +17,9 @@ var (
 	groupedRequestVec *prometheus.CounterVec
 
 	flushFailCacheVec,
+	buildBodyCostVec,
+	buildBodyBatchBytesVec,
+	buildBodyBatchCountVec,
 	apiSumVec *prometheus.SummaryVec
 )
 
@@ -27,6 +30,9 @@ func Metrics() []prometheus.Collector {
 		bytesCounterVec,
 		apiSumVec,
 		httpRetry,
+		buildBodyCostVec,
+		buildBodyBatchBytesVec,
+		buildBodyBatchCountVec,
 		groupedRequestVec,
 		flushFailCacheVec,
 	}
@@ -38,8 +44,10 @@ func metricsReset() {
 	apiSumVec.Reset()
 
 	httpRetry.Reset()
-	httpRetry.Reset()
 	flushFailCacheVec.Reset()
+	buildBodyCostVec.Reset()
+	buildBodyBatchBytesVec.Reset()
+	buildBodyBatchCountVec.Reset()
 	groupedRequestVec.Reset()
 }
 
@@ -51,6 +59,9 @@ func doRegister() {
 
 		flushFailCacheVec,
 		httpRetry,
+		buildBodyCostVec,
+		buildBodyBatchBytesVec,
+		buildBodyBatchCountVec,
 		groupedRequestVec,
 	)
 }
@@ -65,6 +76,46 @@ func init() {
 			Help:      "IO flush fail-cache bytes(in gzip) summary",
 		},
 		[]string{"category"},
+	)
+
+	buildBodyCostVec = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Namespace: "datakit",
+			Subsystem: "io",
+			Name:      "build_body_cost_seconds",
+			Help:      "Build point HTTP body cost",
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.75: 0.0075,
+				0.95: 0.005,
+			},
+		},
+		[]string{"category", "encoding"},
+	)
+
+	buildBodyBatchCountVec = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Namespace: "datakit",
+			Subsystem: "io",
+			Name:      "build_body_batches",
+			Help:      "Batch HTTP body batches",
+		},
+		[]string{"category", "encoding"},
+	)
+
+	buildBodyBatchBytesVec = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Namespace: "datakit",
+			Subsystem: "io",
+			Name:      "build_body_batch_bytes",
+			Help:      "Batch HTTP body size",
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.75: 0.0075,
+				0.95: 0.005,
+			},
+		},
+		[]string{"category", "encoding"},
 	)
 
 	ptsCounterVec = prometheus.NewCounterVec(

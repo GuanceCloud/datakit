@@ -11,16 +11,16 @@ const (
 )
 
 var (
-	DefaultMeasurementName = []byte("__default")
+	DefaultMeasurementName = "__default"
 
-	KeyTime        = NewKey([]byte("time"), KeyType_I)
-	KeyMeasurement = NewKey([]byte("measurement"), KeyType_D)
-	KeySource      = NewKey([]byte("source"), KeyType_D)
-	KeyClass       = NewKey([]byte("class"), KeyType_D)
-	KeyDate        = NewKey([]byte("date"), KeyType_I)
+	KeyTime        = NewKey("time", KeyType_I)
+	KeyMeasurement = NewKey("measurement", KeyType_S)
+	KeySource      = NewKey("source", KeyType_S)
+	KeyClass       = NewKey("class", KeyType_S)
+	KeyDate        = NewKey("date", KeyType_I)
 
-	KeyName   = NewKey([]byte("name"), KeyType_D, []byte(defaultObjectName))
-	KeyStatus = NewKey([]byte("status"), KeyType_D, []byte(defaultLoggingStatus))
+	KeyName   = NewKey("name", KeyType_D, []byte(defaultObjectName))
+	KeyStatus = NewKey("status", KeyType_D, []byte(defaultLoggingStatus))
 )
 
 var (

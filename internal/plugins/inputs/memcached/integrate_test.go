@@ -374,12 +374,12 @@ func assertSelectedMeasurments(selected []string) func(pts []*point.Point, cs *c
 		newPts := []*point.Point{}
 		newPtsMap := map[string]*point.Point{}
 		for _, pt := range pts {
-			if prevPoint, ok := newPtsMap[string(pt.Name())]; !ok {
-				newPtsMap[string(pt.Name())] = pt
+			if prevPoint, ok := newPtsMap[pt.Name()]; !ok {
+				newPtsMap[pt.Name()] = pt
 			} else {
 				for k, v := range pt.InfluxFields() {
-					if !prevPoint.Fields().Has([]byte(k)) {
-						prevPoint.Add([]byte(k), v)
+					if !prevPoint.Fields().Has(k) {
+						prevPoint.Add(k, v)
 					}
 				}
 			}
@@ -390,7 +390,7 @@ func assertSelectedMeasurments(selected []string) func(pts []*point.Point, cs *c
 
 		pointMap := map[string]bool{}
 		for _, pt := range newPts {
-			name := string(pt.Name())
+			name := pt.Name()
 			if _, ok := pointMap[name]; ok {
 				continue
 			}
@@ -422,7 +422,7 @@ func assertSelectedMeasurments(selected []string) func(pts []*point.Point, cs *c
 
 				tags := pt.Tags()
 				for k := range cs.ipt.Tags {
-					if v := tags.Get([]byte(k)); v == nil {
+					if v := tags.Get(k); v == nil {
 						return fmt.Errorf("tag %s not found, got %v", k, tags)
 					}
 				}

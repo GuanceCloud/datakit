@@ -8,7 +8,7 @@ package httpapi
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -105,7 +105,7 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 }
 
 func getAPIDebugDialtestingRequest(req *http.Request) (*dialtestingDebugRequest, error) {
-	body, err := ioutil.ReadAll(req.Body)
+	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		return nil, uhttp.Error(ErrInvalidRequest, err.Error())
 	}

@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -22,10 +21,6 @@ type commandMeasurement struct {
 	ts       time.Time
 	resData  map[string]interface{}
 	election bool
-}
-
-func (m *commandMeasurement) LineProto() (*dkpt.Point, error) {
-	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElectionV2(m.election))
 }
 
 //nolint:lll
@@ -63,7 +58,7 @@ func (m *commandMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 // 解析返回结果.
-func (i *Input) parseCommandData(list string) ([]*point.Point, error) {
+func (ipt *Input) parseCommandData(list string) ([]*point.Point, error) {
 	var collectCache []*point.Point
 
 	rdr := strings.NewReader(list)
@@ -84,10 +79,10 @@ func (i *Input) parseCommandData(list string) ([]*point.Point, error) {
 			tags:     make(map[string]string),
 			fields:   make(map[string]interface{}),
 			resData:  make(map[string]interface{}),
-			election: i.Election,
+			election: ipt.Election,
 		}
-		setHostTagIfNotLoopback(m.tags, i.Host)
-		for key, value := range i.Tags {
+		setHostTagIfNotLoopback(m.tags, ipt.Host)
+		for key, value := range ipt.Tags {
 			m.tags[key] = value
 		}
 
@@ -115,12 +110,12 @@ func (i *Input) parseCommandData(list string) ([]*point.Point, error) {
 			var opts []point.Option
 
 			if m.election {
-				m.tags = inputs.MergeTags(i.Tagger.ElectionTags(), m.tags, i.Host)
+				m.tags = inputs.MergeTags(ipt.Tagger.ElectionTags(), m.tags, ipt.Host)
 			} else {
-				m.tags = inputs.MergeTags(i.Tagger.HostTags(), m.tags, i.Host)
+				m.tags = inputs.MergeTags(ipt.Tagger.HostTags(), m.tags, ipt.Host)
 			}
 
-			pt := point.NewPointV2([]byte(m.name),
+			pt := point.NewPointV2(m.name,
 				append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 				opts...)
 			collectCache = append(collectCache, pt)

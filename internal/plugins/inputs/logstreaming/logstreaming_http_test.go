@@ -97,19 +97,23 @@ this is message
 			checks:  otherCheckers,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ipt := &Input{
 				feeder: tt.fields.feeder,
 			}
+
 			if err := ipt.processLogBody(tt.args.param); (err != nil) != tt.wantErr {
 				t.Errorf("processLogBody() error = %v, wantErr %v", err, tt.wantErr)
 			}
+
 			pts, err := feeder.AnyPoints(time.Second * 2)
 			if err != nil {
 				t.Errorf("feeder err = %v", err)
 				return
 			}
+
 			for i, point := range pts {
 				msgs := inputs.CheckPoint(point, tt.checks...)
 				if len(msgs) != 0 {

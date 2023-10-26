@@ -25,7 +25,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -65,15 +64,15 @@ type Input struct {
 
 	feeder  dkio.Feeder
 	semStop *cliutils.Sem // start stop signal
-	Tagger  dkpt.GlobalTagger
+	Tagger  datakit.GlobalTagger
 }
 
-func (n *Input) ElectionEnabled() bool {
-	return n.Election
+func (ipt *Input) ElectionEnabled() bool {
+	return ipt.Election
 }
 
 //nolint:lll
-func (n *Input) LogExamples() map[string]map[string]string {
+func (ipt *Input) LogExamples() map[string]map[string]string {
 	return map[string]map[string]string{
 		inputName: {
 			"Apache error log":  `[Tue May 19 18:39:45.272121 2021] [access_compat:error] [pid 9802] [client ::1:50547] AH01797: client denied by server configuration: /Library/WebServer/Documents/server-status`,
@@ -94,14 +93,14 @@ func (*Input) SampleMeasurement() []inputs.Measurement { return []inputs.Measure
 
 func (*Input) PipelineConfig() map[string]string { return map[string]string{"apache": pipeline} }
 
-func (n *Input) GetPipeline() []*tailer.Option {
+func (ipt *Input) GetPipeline() []*tailer.Option {
 	return []*tailer.Option{
 		{
 			Source:  inputName,
 			Service: inputName,
 			Pipeline: func() string {
-				if n.Log != nil {
-					return n.Log.Pipeline
+				if ipt.Log != nil {
+					return ipt.Log.Pipeline
 				}
 				return ""
 			}(),
@@ -109,27 +108,27 @@ func (n *Input) GetPipeline() []*tailer.Option {
 	}
 }
 
-func (n *Input) RunPipeline() {
-	if n.Log == nil || len(n.Log.Files) == 0 {
+func (ipt *Input) RunPipeline() {
+	if ipt.Log == nil || len(ipt.Log.Files) == 0 {
 		return
 	}
 
 	opt := &tailer.Option{
 		Source:            inputName,
 		Service:           inputName,
-		Pipeline:          n.Log.Pipeline,
-		GlobalTags:        n.Tags,
-		IgnoreStatus:      n.Log.IgnoreStatus,
-		CharacterEncoding: n.Log.CharacterEncoding,
+		Pipeline:          ipt.Log.Pipeline,
+		GlobalTags:        ipt.Tags,
+		IgnoreStatus:      ipt.Log.IgnoreStatus,
+		CharacterEncoding: ipt.Log.CharacterEncoding,
 		MultilinePatterns: []string{`^\[\w+ \w+ \d+`},
-		Done:              n.semStop.Wait(),
+		Done:              ipt.semStop.Wait(),
 	}
 
 	var err error
-	n.tail, err = tailer.NewTailer(n.Log.Files, opt)
+	ipt.tail, err = tailer.NewTailer(ipt.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
-		n.feeder.FeedLastError(err.Error(),
+		ipt.feeder.FeedLastError(err.Error(),
 			dkio.WithLastErrorInput(inputName),
 			dkio.WithLastErrorCategory(point.Metric),
 		)
@@ -137,83 +136,83 @@ func (n *Input) RunPipeline() {
 	}
 
 	g.Go(func(ctx context.Context) error {
-		n.tail.Start()
+		ipt.tail.Start()
 		return nil
 	})
 }
 
-func (n *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("apache start")
-	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
+	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 
-	client, err := n.createHTTPClient()
+	client, err := ipt.createHTTPClient()
 	if err != nil {
 		l.Errorf("[error] apache init client err:%s", err.Error())
 		return
 	}
-	n.client = client
+	ipt.client = client
 
-	if err := n.setHost(); err != nil {
+	if err := ipt.setHost(); err != nil {
 		l.Errorf("failed to set host: %v", err)
 	}
 
-	tick := time.NewTicker(n.Interval.Duration)
+	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
 
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			n.exit()
+			ipt.exit()
 			l.Info("apache exit")
 			return
 
-		case <-n.semStop.Wait():
-			n.exit()
+		case <-ipt.semStop.Wait():
+			ipt.exit()
 			l.Info("apache return")
 			return
 
 		case <-tick.C:
-			if n.pause {
+			if ipt.pause {
 				l.Debugf("not leader, skipped")
 				continue
 			}
 
-			m, err := n.getMetric()
+			m, err := ipt.getMetric()
 			if err != nil {
-				n.feeder.FeedLastError(err.Error(),
+				ipt.feeder.FeedLastError(err.Error(),
 					dkio.WithLastErrorInput(inputName),
 					dkio.WithLastErrorCategory(point.Metric),
 				)
 			}
 
 			if m != nil {
-				if err := n.feeder.Feed(inputName, point.Metric, []*point.Point{m}, &dkio.Option{CollectCost: time.Since(n.start)}); err != nil {
-					l.Warnf("inputs.FeedMeasurement: %s, ignored", err.Error())
+				if err := ipt.feeder.Feed(inputName, point.Metric, []*point.Point{m}, &dkio.Option{CollectCost: time.Since(ipt.start)}); err != nil {
+					l.Warnf("Feed failed: %s, ignored", err.Error())
 				}
 			}
 
-		case n.pause = <-n.pauseCh:
+		case ipt.pause = <-ipt.pauseCh:
 			// nil
 		}
 	}
 }
 
-func (n *Input) exit() {
-	if n.tail != nil {
-		n.tail.Close()
+func (ipt *Input) exit() {
+	if ipt.tail != nil {
+		ipt.tail.Close()
 		l.Info("apache log exit")
 	}
 }
 
-func (n *Input) Terminate() {
-	if n.semStop != nil {
-		n.semStop.Close()
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
 	}
 }
 
-func (n *Input) createHTTPClient() (*http.Client, error) {
-	tlsCfg, err := n.ClientConfig.TLSConfig()
+func (ipt *Input) createHTTPClient() (*http.Client, error) {
+	tlsCfg, err := ipt.ClientConfig.TLSConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -228,39 +227,39 @@ func (n *Input) createHTTPClient() (*http.Client, error) {
 	return client, nil
 }
 
-func (n *Input) getMetric() (*point.Point, error) {
-	n.start = time.Now()
-	req, err := http.NewRequest("GET", n.URL, nil)
+func (ipt *Input) getMetric() (*point.Point, error) {
+	ipt.start = time.Now()
+	req, err := http.NewRequest("GET", ipt.URL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("error on new request to %s : %w", n.URL, err)
+		return nil, fmt.Errorf("error on new request to %s : %w", ipt.URL, err)
 	}
 
-	if len(n.Username) != 0 && len(n.Password) != 0 {
-		req.SetBasicAuth(n.Username, n.Password)
+	if len(ipt.Username) != 0 && len(ipt.Password) != 0 {
+		req.SetBasicAuth(ipt.Username, ipt.Password)
 	}
 
-	resp, err := n.client.Do(req)
+	resp, err := ipt.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("error on request to %s : %w", n.URL, err)
+		return nil, fmt.Errorf("error on request to %s : %w", ipt.URL, err)
 	}
 	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%s returned HTTP status %s", n.URL, resp.Status)
+		return nil, fmt.Errorf("%s returned HTTP status %s", ipt.URL, resp.Status)
 	}
-	return n.parse(resp.Body)
+	return ipt.parse(resp.Body)
 }
 
-func (n *Input) parse(body io.Reader) (*point.Point, error) {
+func (ipt *Input) parse(body io.Reader) (*point.Point, error) {
 	sc := bufio.NewScanner(body)
 
 	tags := map[string]string{
-		"url": n.URL,
+		"url": ipt.URL,
 	}
-	if n.host != "" {
-		tags["host"] = n.host
+	if ipt.host != "" {
+		tags["host"] = ipt.host
 	}
-	for k, v := range n.Tags {
+	for k, v := range ipt.Tags {
 		tags[k] = v
 	}
 	metric := &Measurement{
@@ -349,10 +348,10 @@ func (n *Input) parse(body io.Reader) (*point.Point, error) {
 		}
 	}
 
-	if n.Election {
-		tags = inputs.MergeTags(n.Tagger.ElectionTags(), tags, n.URL)
+	if ipt.Election {
+		tags = inputs.MergeTags(ipt.Tagger.ElectionTags(), tags, ipt.URL)
 	} else {
-		tags = inputs.MergeTags(n.Tagger.HostTags(), tags, n.URL)
+		tags = inputs.MergeTags(ipt.Tagger.HostTags(), tags, ipt.URL)
 	}
 
 	metric.tags = tags
@@ -360,8 +359,8 @@ func (n *Input) parse(body io.Reader) (*point.Point, error) {
 	return metric.Point(), nil
 }
 
-func (n *Input) setHost() error {
-	u, err := url.Parse(n.URL)
+func (ipt *Input) setHost() error {
+	u, err := url.Parse(ipt.URL)
 	if err != nil {
 		return err
 	}
@@ -373,27 +372,27 @@ func (n *Input) setHost() error {
 		host = h
 	}
 	if host != "localhost" && !net.ParseIP(host).IsLoopback() {
-		n.host = host
+		ipt.host = host
 	}
 	return nil
 }
 
-func (n *Input) Pause() error {
+func (ipt *Input) Pause() error {
 	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	defer tick.Stop()
 	select {
-	case n.pauseCh <- true:
+	case ipt.pauseCh <- true:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("pause %s failed", inputName)
 	}
 }
 
-func (n *Input) Resume() error {
+func (ipt *Input) Resume() error {
 	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	defer tick.Stop()
 	select {
-	case n.pauseCh <- false:
+	case ipt.pauseCh <- false:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
@@ -407,7 +406,7 @@ func defaultInput() *Input {
 		Election: true,
 		feeder:   dkio.DefaultFeeder(),
 		semStop:  cliutils.NewSem(),
-		Tagger:   dkpt.DefaultGlobalTagger(),
+		Tagger:   datakit.DefaultGlobalTagger(),
 	}
 }
 

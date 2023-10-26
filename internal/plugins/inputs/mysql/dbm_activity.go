@@ -11,8 +11,8 @@ import (
 	"sort"
 	"time"
 
-	gcPoint "github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -83,20 +83,16 @@ type dbmActivityMeasurement struct {
 	election bool
 }
 
-func (m *dbmActivityMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.LOptElection())
-}
-
 // Point implement MeasurementV2.
-func (m *dbmActivityMeasurement) Point() *gcPoint.Point {
-	opts := gcPoint.DefaultLoggingOptions()
+func (m *dbmActivityMeasurement) Point() *point.Point {
+	opts := point.DefaultLoggingOptions()
 
 	if m.election {
-		opts = append(opts, gcPoint.WithExtraTags(point.GlobalElectionTags()))
+		opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
 	}
 
-	return gcPoint.NewPointV2([]byte(m.name),
-		append(gcPoint.NewTags(m.tags), gcPoint.NewKVs(m.fields)...),
+	return point.NewPointV2(m.name,
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
 }
 
@@ -296,11 +292,11 @@ func (m *dbmActivityMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 // get mysql dbm activity.
-func (i *Input) metricCollectMysqlDbmActivity() ([]*gcPoint.Point, error) {
+func (ipt *Input) metricCollectMysqlDbmActivity() ([]*point.Point, error) {
 	ms := []inputs.MeasurementV2{}
 
 	// get connections
-	connections := getActiveConnections(i)
+	connections := getActiveConnections(ipt)
 	connectionsMap := map[string]int64{}
 	for _, connection := range connections {
 		key := connection.processlistDB.String + connection.processlistHost.String +
@@ -309,16 +305,16 @@ func (i *Input) metricCollectMysqlDbmActivity() ([]*gcPoint.Point, error) {
 	}
 
 	// get activity rows
-	activityRows := getActivityRows(i)
+	activityRows := getActivityRows(ipt)
 	activityRows = getNormalLizeActivityRows(activityRows)
 
 	for _, activity := range activityRows {
 		tags := map[string]string{
 			"service": "mysql",
-			"host":    i.Host,
+			"host":    ipt.Host,
 			"status":  "info",
 		}
-		for key, value := range i.Tags {
+		for key, value := range ipt.Tags {
 			tags[key] = value
 		}
 
@@ -373,7 +369,7 @@ func (i *Input) metricCollectMysqlDbmActivity() ([]*gcPoint.Point, error) {
 			name:     "mysql_dbm_activity",
 			tags:     tags,
 			fields:   fields,
-			election: i.Election,
+			election: ipt.Election,
 		}
 
 		ms = append(ms, m)
@@ -385,7 +381,7 @@ func (i *Input) metricCollectMysqlDbmActivity() ([]*gcPoint.Point, error) {
 		return pts, nil
 	}
 
-	return []*gcPoint.Point{}, nil
+	return []*point.Point{}, nil
 }
 
 type connectionRow struct {

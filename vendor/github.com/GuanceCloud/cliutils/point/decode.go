@@ -86,7 +86,6 @@ func (d *Decoder) Decode(data []byte, opts ...Option) ([]*Point, error) {
 		}
 
 		for _, x := range arr {
-
 			if x.Time > 0 { // check if precision attached
 				switch cfg.precision {
 				case US:
@@ -99,6 +98,11 @@ func (d *Decoder) Decode(data []byte, opts ...Option) ([]*Point, error) {
 					x.Time *= int64(time.Minute)
 				case H:
 					x.Time *= int64(time.Hour)
+
+				case NS:
+					// pass
+
+				case W, D: // not used
 
 				default:
 					// pass

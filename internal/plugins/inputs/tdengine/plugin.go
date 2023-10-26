@@ -8,6 +8,7 @@ package tdengine
 import (
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -18,7 +19,7 @@ tdPlugIn:
 最终返回 []inputs.Measurement.
 */
 type tdPlugIn interface {
-	resToMeasurement(subMetricName string, res restResult, sql selectSQL, election bool, u string) []inputs.Measurement
+	resToMeasurement(subMetricName string, res restResult, sql selectSQL, ipt *Input) []*point.Point
 }
 
 func metricName(subMetricName, sqlTitle string) string {
@@ -31,7 +32,7 @@ func metricName(subMetricName, sqlTitle string) string {
 
 type tablesCount struct{}
 
-func (*tablesCount) resToMeasurement(subMetricName string, res restResult, sql selectSQL, election bool, u string) []inputs.Measurement {
+func (*tablesCount) resToMeasurement(subMetricName string, res restResult, sql selectSQL, ipt *Input) []*point.Point {
 	// 获取 ntables index
 	var nodeIndex int
 	for i := 0; i < len(res.ColumnMeta); i++ {
@@ -64,19 +65,31 @@ func (*tablesCount) resToMeasurement(subMetricName string, res restResult, sql s
 		fields: map[string]interface{}{
 			"table_count": counts,
 		},
-		ts:       time.Now(),
-		election: election,
+		ts: time.Now(),
 	}
-	if host := getHostTagIfNotLoopback(u); host != "" {
+	if host := getHostTagIfNotLoopback(ipt.AdapterEndpoint); host != "" {
 		msm.tags["host"] = host
 	}
-	setGlobalTags(msm)
-	return []inputs.Measurement{msm}
+
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(msm.ts))
+
+	if ipt.Election {
+		msm.tags = inputs.MergeTagsWrapper(msm.tags, ipt.Tagger.ElectionTags(), ipt.Tags, ipt.AdapterEndpoint)
+	} else {
+		msm.tags = inputs.MergeTagsWrapper(msm.tags, ipt.Tagger.HostTags(), ipt.Tags, ipt.AdapterEndpoint)
+	}
+
+	pt := point.NewPointV2(msm.name,
+		append(point.NewTags(msm.tags), point.NewKVs(msm.fields)...),
+		opts...)
+
+	return []*point.Point{pt}
 }
 
 type databaseCount struct{}
 
-func (d *databaseCount) resToMeasurement(subMetricName string, res restResult, sql selectSQL, election bool, u string) []inputs.Measurement {
+func (d *databaseCount) resToMeasurement(subMetricName string, res restResult, sql selectSQL, ipt *Input) []*point.Point {
 	counts := res.Rows
 	name := metricName(subMetricName, sql.title)
 	msm := &Measurement{
@@ -85,12 +98,24 @@ func (d *databaseCount) resToMeasurement(subMetricName string, res restResult, s
 		fields: map[string]interface{}{
 			"database_count": counts,
 		},
-		ts:       time.Now(),
-		election: election,
+		ts: time.Now(),
 	}
-	if host := getHostTagIfNotLoopback(u); host != "" {
+	if host := getHostTagIfNotLoopback(ipt.AdapterEndpoint); host != "" {
 		msm.tags["host"] = host
 	}
-	setGlobalTags(msm)
-	return []inputs.Measurement{msm}
+
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(msm.ts))
+
+	if ipt.Election {
+		msm.tags = inputs.MergeTagsWrapper(msm.tags, ipt.Tagger.ElectionTags(), ipt.Tags, ipt.AdapterEndpoint)
+	} else {
+		msm.tags = inputs.MergeTagsWrapper(msm.tags, ipt.Tagger.HostTags(), ipt.Tags, ipt.AdapterEndpoint)
+	}
+
+	pt := point.NewPointV2(msm.name,
+		append(point.NewTags(msm.tags), point.NewKVs(msm.fields)...),
+		opts...)
+
+	return []*point.Point{pt}
 }

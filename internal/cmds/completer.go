@@ -7,7 +7,6 @@ package cmds
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -118,8 +117,8 @@ func setupCompleterScripts() {
 				continue
 			}
 
-			if err := ioutil.WriteFile(filepath.Join(dir, "datakit"), completerShell, os.ModePerm); err != nil {
-				cp.Errorf("ioutil.WriteFile: %s\n", err)
+			if err := os.WriteFile(filepath.Join(dir, "datakit"), completerShell, os.ModePerm); err != nil {
+				cp.Errorf("os.WriteFile: %s\n", err)
 				return
 			}
 		}

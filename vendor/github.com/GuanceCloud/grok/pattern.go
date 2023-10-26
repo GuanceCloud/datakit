@@ -89,8 +89,14 @@ func DenormalizePattern(input string, denormalized ...PatternStorageIface) (
 		// get the data type of the variable, if any
 		if len(names) > 2 {
 			switch names[2] {
-			case GTypeString, GTypeStr, GTypeFloat, GTypeInt, GTypeBool:
-				gPattern.varbType[alias] = names[2]
+			case GTypeString, GTypeStr:
+				gPattern.varbType[alias] = GTypeStr
+			case GTypeInt:
+				gPattern.varbType[alias] = GTypeInt
+			case GTypeFloat:
+				gPattern.varbType[alias] = GTypeFloat
+			case GTypeBool:
+				gPattern.varbType[alias] = GTypeBool
 			default:
 				return nil, fmt.Errorf("pattern: `%%{%s}`: invalid varb data type: `%s`",
 					pattern, names[2])
@@ -187,7 +193,7 @@ func LoadPatternsFromPath(path string) (map[string]string, error) {
 }
 
 // DenormalizePatternsFromMap denormalize pattern from map,
-// will return a valid pattern name:pattern map and an invalid pattern:error map.
+// will return a valid pattern:value map and an invalid pattern:error map.
 func DenormalizePatternsFromMap(m map[string]string, denormalized ...map[string]*GrokPattern) (map[string]*GrokPattern, map[string]string) {
 	patternDeps := map[string]*nodeP{}
 

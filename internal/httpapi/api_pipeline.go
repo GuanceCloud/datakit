@@ -10,23 +10,23 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
-	lp "github.com/GuanceCloud/cliutils/lineproto"
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
+	"github.com/GuanceCloud/cliutils/pipeline/manager"
+	"github.com/GuanceCloud/cliutils/pipeline/ptinput"
+	"github.com/GuanceCloud/cliutils/pipeline/ptinput/plmap"
 
-	clipt "github.com/GuanceCloud/cliutils/point"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 	"github.com/GuanceCloud/platypus/pkg/token"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plmap"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/transform"
 )
@@ -84,7 +84,7 @@ type pipelineResult struct {
 func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever ...interface{}) (interface{}, error) {
 	tid := req.Header.Get(uhttp.XTraceID)
 
-	body, err := ioutil.ReadAll(req.Body)
+	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		l.Errorf("[%s] %s", tid, err.Error())
 		return nil, uhttp.Error(ErrInvalidRequest, err.Error())
@@ -96,8 +96,8 @@ func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever 
 		return nil, uhttp.Error(ErrInvalidRequest, err.Error())
 	}
 
-	category := normalizeCategory(reqBody.Category)
-	if category == clipt.UnknownCategory {
+	category := point.CatString(reqBody.Category)
+	if category == point.UnknownCategory {
 		err := uhttp.Error(ErrInvalidCategory, "invalid category")
 		l.Errorf("[%s] %s", tid, err.Error())
 		return nil, err
@@ -126,8 +126,16 @@ func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever 
 		return nil, uhttp.Error(ErrInvalidData, err.Error())
 	}
 
+	var gtags [][2]string
+	for k, v := range datakit.GlobalHostTags() {
+		gtags = append(gtags, [2]string{k, v})
+	}
+	ptsLi := &pldebugFeed{}
+
+	buks := plmap.NewAggBuks(ptsLi.uploadfn, gtags)
+
 	// parse pipeline script
-	plRunner, err := parsePipeline(category, reqBody.ScriptName+".p", scriptContent)
+	plRunner, err := parsePipeline(category, reqBody.ScriptName+".p", scriptContent, buks)
 	if err != nil {
 		var plerrs []errchain.PlError
 		if plerr, ok := err.(*errchain.PlError); ok { //nolint:errorlint
@@ -158,21 +166,14 @@ func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever 
 		return nil, uhttp.Error(ErrInvalidData, err.Error())
 	}
 
-	opt := &point.PointOption{
-		Category: category.URL(),
-		Time:     time.Now(),
-	}
-
 	var runResult []pipelineResult
 
 	start := time.Now()
 
-	ptsLi := &pldebugFeed{}
-
-	buks := plmap.NewAggBuks(ptsLi.uploadfn)
 	for _, pt := range pts {
 		// run pipeline
-		pt, err := plRunner.Run(category, pt, nil, opt, newPlTestSingal(), buks)
+		plpt := ptinput.WrapPoint(category, pt)
+		err := plRunner.Run(plpt, newPlTestSingal(), nil)
 
 		if err != nil {
 			plerr, ok := err.(*errchain.PlError) //nolint:errorlint
@@ -189,47 +190,25 @@ func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever 
 			})
 		} else {
 			var cPts []*PlRetPoint
-			for _, pt := range pt.GetSubPoint() {
-				dkPt, err := pt.DkPoint()
-				if err != nil {
-					l.Errorf("Fields: %s", err.Error())
-					return nil, err
-				}
-				fields, err := dkPt.Fields()
-				if err != nil {
-					l.Errorf("Fields: %s", err.Error())
-					return nil, err
-				}
+			for _, pt := range plpt.GetSubPoint() {
 				cPts = append(cPts, &PlRetPoint{
 					Dropped: pt.Dropped(),
-					Name:    dkPt.Name(),
-					Tags:    dkPt.Tags(),
-					Fields:  fields,
-					Time:    dkPt.Time().Unix(),
-					TimeNS:  int64(dkPt.Time().Nanosecond()),
+					Name:    pt.GetPtName(),
+					Tags:    pt.Tags(),
+					Fields:  pt.Fields(),
+					Time:    pt.PtTime().Unix(),
+					TimeNS:  int64(pt.PtTime().Nanosecond()),
 				})
-			}
-
-			dkPt, err := pt.DkPoint()
-			if err != nil {
-				l.Errorf("Fields: %s", err.Error())
-				return nil, err
-			}
-
-			fields, err := dkPt.Fields()
-			if err != nil {
-				l.Errorf("Fields: %s", err.Error())
-				return nil, err
 			}
 
 			runResult = append(runResult, pipelineResult{
 				Point: &PlRetPoint{
-					Dropped: pt.Dropped(),
-					Name:    dkPt.Name(),
-					Tags:    dkPt.Tags(),
-					Fields:  fields,
-					Time:    dkPt.Time().Unix(),
-					TimeNS:  int64(dkPt.Time().Nanosecond()),
+					Dropped: plpt.Dropped(),
+					Name:    plpt.GetPtName(),
+					Tags:    plpt.Tags(),
+					Fields:  plpt.Fields(),
+					Time:    plpt.PtTime().Unix(),
+					TimeNS:  int64(plpt.PtTime().Nanosecond()),
 				},
 				CreatePoint: cPts,
 			})
@@ -239,16 +218,11 @@ func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever 
 	ptsLi.Lock()
 	defer ptsLi.Unlock()
 	for _, pt := range ptsLi.d {
-		fields, err := pt.Fields()
-		if err != nil {
-			l.Errorf("Fields: %s", err.Error())
-			return nil, err
-		}
 		runResult = append(runResult, pipelineResult{
 			Point: &PlRetPoint{
 				Name:   pt.Name(),
-				Tags:   pt.Tags(),
-				Fields: fields,
+				Tags:   pt.MapTags(),
+				Fields: pt.InfluxFields(),
 				Time:   pt.Time().Unix(),
 				TimeNS: int64(pt.Time().Nanosecond()),
 			},
@@ -257,7 +231,7 @@ func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever 
 
 	var benchmarkInfo string
 	if reqBody.Benchmark && len(pts) > 0 {
-		benchmarkInfo = benchPipeline(plRunner, category, pts[0], opt)
+		benchmarkInfo = benchPipeline(plRunner, category, pts[0])
 	}
 
 	return &pipelineDebugResponse{
@@ -267,8 +241,10 @@ func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever 
 	}, nil
 }
 
-func parsePipeline(category clipt.Category, scriptName string, scripts map[string]string) (*pipeline.Pipeline, error) {
-	success, faild := pipeline.NewPipelineMulti(category, scripts, nil)
+func parsePipeline(category point.Category, scriptName string,
+	scripts map[string]string, buks *plmap.AggBuckets,
+) (*manager.PlScript, error) {
+	success, faild := pipeline.NewPipelineMulti(category, scripts, nil, buks)
 	if err, ok := faild[scriptName]; ok && err != nil {
 		return nil, err
 	}
@@ -276,33 +252,6 @@ func parsePipeline(category clipt.Category, scriptName string, scripts map[strin
 		return nil, uhttp.Error(ErrInvalidPipeline, "invalid pipeline")
 	} else {
 		return pl, nil
-	}
-}
-
-func normalizeCategory(category string) clipt.Category {
-	switch category {
-	case datakit.Metric, datakit.MetricDeprecated, datakit.CategoryMetric:
-		return clipt.Metric
-	case datakit.Network, datakit.CategoryNetwork:
-		return clipt.Network
-	case datakit.KeyEvent, datakit.CategoryKeyEvent:
-		return clipt.KeyEvent
-	case datakit.Object, datakit.CategoryObject:
-		return clipt.Object
-	case datakit.CustomObject, datakit.CategoryCustomObject:
-		return clipt.CustomObject
-	case datakit.Tracing, datakit.CategoryTracing:
-		return clipt.Tracing
-	case datakit.RUM, datakit.CategoryRUM:
-		return clipt.RUM
-	case datakit.Security, datakit.CategorySecurity:
-		return clipt.Security
-	case datakit.Logging, datakit.CategoryLogging:
-		return clipt.Logging
-	case datakit.Profiling, datakit.CategoryProfiling:
-		return clipt.Profiling
-	default:
-		return clipt.UnknownCategory
 	}
 }
 
@@ -321,11 +270,12 @@ func pointName(category, name string) string {
 	}
 }
 
-func benchPipeline(runner *pipeline.Pipeline, cat clipt.Category, pt *point.Point, ptOPt *point.PointOption) string {
+func benchPipeline(runner *manager.PlScript, cat point.Category, pt *point.Point) string {
 	benchmarkResult := testing.Benchmark(func(b *testing.B) {
 		b.Helper()
 		for n := 0; n < b.N; n++ {
-			_, _ = runner.Run(cat, pt, nil, ptOPt, newPlTestSingal())
+			plpt := ptinput.WrapPoint(cat, pt)
+			_ = runner.Run(plpt, newPlTestSingal(), nil)
 		}
 	})
 	return benchmarkResult.String()
@@ -334,7 +284,7 @@ func benchPipeline(runner *pipeline.Pipeline, cat clipt.Category, pt *point.Poin
 //------------------------------------------------------------------------------
 // -- decoding functions' area start --
 
-func decodePipeline(category clipt.Category, scripts map[string]string) (map[string]string, error) {
+func decodePipeline(category point.Category, scripts map[string]string) (map[string]string, error) {
 	decodedScripts := map[string]string{}
 	for scriptName, scriptContent := range scripts {
 		scriptContent, err := decodeBase64Content(scriptContent, defaultEncode)
@@ -350,45 +300,47 @@ func decodePipeline(category clipt.Category, scripts map[string]string) (map[str
 	return decodedScripts, nil
 }
 
-func decodeDataAndConv2Point(category clipt.Category, name, encode string, data []string) ([]*point.Point, error) {
+func decodeDataAndConv2Point(category point.Category, name, encode string, data []string) ([]*point.Point, error) {
 	result := []*point.Point{}
 
-	opt := &point.PointOption{
-		Category: category.URL(),
-		Time:     time.Now(),
-	}
+	dec := point.GetDecoder(point.WithDecEncoding(point.LineProtocol))
+	defer point.PutDecoder(dec)
 
 	for _, line := range data {
 		line, err := decodeBase64Content(line, encode)
 		if err != nil {
 			return nil, err
 		}
+
 		if len(line) > DataByteSizeLimit {
 			return nil, fmt.Errorf("data size exceeds 32MB limit")
 		}
 		switch category { //nolint:exhaustive
-		case clipt.Logging:
-			pt, err := point.NewPoint(name, nil, map[string]interface{}{
+		case point.Logging:
+			kvs := point.NewKVs(map[string]interface{}{
 				pipeline.FieldMessage: line,
-			}, opt)
-			if err != nil {
-				return nil, err
-			}
+			})
+			opt := point.DefaultLoggingOptions()
+			pt := point.NewPointV2(name, kvs, opt...)
 			result = append(result, pt)
-		case clipt.Metric:
-			pts, err := lp.ParsePoints([]byte(line), &lp.Option{EnablePointInKey: true})
+
+		case point.Metric:
+
+			pts, err := dec.Decode([]byte(line), point.DefaultMetricOptions()...)
 			if err != nil {
 				return nil, err
 			}
-			newPts := point.WrapPoint(pts)
-			result = append(result, newPts...)
+
+			result = append(result, pts...)
+
 		default:
-			pts, err := lp.ParsePoints([]byte(line), nil)
+
+			pts, err := dec.Decode([]byte(line), point.CommonLoggingOptions()...)
 			if err != nil {
 				return nil, err
 			}
-			newPts := point.WrapPoint(pts)
-			result = append(result, newPts...)
+
+			result = append(result, pts...)
 		}
 	}
 	return result, nil
@@ -427,7 +379,7 @@ func GbToUtf8(s []byte, encoding string) ([]byte, error) {
 		t = simplifiedchinese.GB18030.NewDecoder()
 	}
 	reader := transform.NewReader(bytes.NewReader(s), t)
-	d, e := ioutil.ReadAll(reader)
+	d, e := io.ReadAll(reader)
 	if e != nil {
 		return nil, e
 	}
@@ -462,7 +414,7 @@ type pldebugFeed struct {
 	sync.Mutex
 }
 
-func (f *pldebugFeed) uploadfn(cat clipt.Category, name string, data any) error {
+func (f *pldebugFeed) uploadfn(cat point.Category, name string, data any) error {
 	f.Lock()
 	defer f.Unlock()
 

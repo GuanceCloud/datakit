@@ -37,8 +37,9 @@ var (
 	ErrReachLimit             = newErr(errors.New("reach max API limit"), http.StatusTooManyRequests)
 
 	// write body error.
-	ErrInvalidJSONPoint = newErr(errors.New("invalid json point"), http.StatusBadRequest)
-	ErrInvalidLinePoint = newErr(errors.New("invalid line point"), http.StatusBadRequest)
+	ErrInvalidJSONPoint     = newErr(errors.New("invalid json point"), http.StatusBadRequest)
+	ErrInvalidLinePoint     = newErr(errors.New("invalid line point"), http.StatusBadRequest)
+	ErrInvalidProtobufPoint = newErr(errors.New("invalid protobuf point"), http.StatusBadRequest)
 )
 
 func newErr(err error, code int) *uhttp.HttpError {

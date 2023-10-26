@@ -30,8 +30,6 @@ var welcomeMsgTemplate = `
                                   ReleaseAt: {{.BuildAt}}
                                      Uptime: {{.Uptime}}
 
-<li> <a href="/monitor"> 查看运行状态 </a> </li>
-
 		</pre>
 
 		<p>Welcome to use DataKit.</p>

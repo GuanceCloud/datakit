@@ -25,33 +25,32 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
 
 var _ inputs.ElectionInput = (*Input)(nil)
 
-func (i *Input) ElectionEnabled() bool {
-	return i.Election
+func (ipt *Input) ElectionEnabled() bool {
+	return ipt.Election
 }
 
-func (i *Input) Pause() error {
+func (ipt *Input) Pause() error {
 	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	defer tick.Stop()
 	select {
-	case i.pauseCh <- true:
+	case ipt.pauseCh <- true:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("pause %s failed", inputName)
 	}
 }
 
-func (i *Input) Resume() error {
+func (ipt *Input) Resume() error {
 	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	defer tick.Stop()
 	select {
-	case i.pauseCh <- false:
+	case ipt.pauseCh <- false:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
@@ -72,13 +71,13 @@ func (*Input) AvailableArchs() []string {
 
 func (*Input) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
-		inputName: pipeline,
+		inputName: pScrpit,
 	}
 	return pipelineMap
 }
 
 //nolint:lll
-func (i *Input) LogExamples() map[string]map[string]string {
+func (ipt *Input) LogExamples() map[string]map[string]string {
 	return map[string]map[string]string{
 		inputName: {
 			"SQLServer log": `2021-05-28 10:46:07.78 spid10s     0 transactions rolled back in database 'msdb' (4:0). This is an informational message only. No user action is required`,
@@ -87,9 +86,9 @@ func (i *Input) LogExamples() map[string]map[string]string {
 }
 
 // getCustomQueryMetrics collect custom SQL query metrics.
-func (i *Input) getCustomQueryMetrics() {
-	for _, customQuery := range i.CustomQuery {
-		res, err := i.query(customQuery.SQL)
+func (ipt *Input) getCustomQueryMetrics() {
+	for _, customQuery := range ipt.CustomQuery {
+		res, err := ipt.query(customQuery.SQL)
 		if err != nil {
 			l.Warnf("collect custom query [%s] failed: %s", customQuery.SQL, err.Error())
 			continue
@@ -99,7 +98,7 @@ func (i *Input) getCustomQueryMetrics() {
 			tags := map[string]string{}
 			fields := map[string]interface{}{}
 
-			setHostTagIfNotLoopback(tags, i.Host)
+			setHostTagIfNotLoopback(tags, ipt.Host)
 
 			for _, tag := range customQuery.Tags {
 				if _, ok := row[tag]; ok {
@@ -122,7 +121,7 @@ func (i *Input) getCustomQueryMetrics() {
 					name:     customQuery.Metric,
 					tags:     tags,
 					fields:   fields,
-					election: i.Election,
+					election: ipt.Election,
 				},
 			}
 
@@ -131,14 +130,14 @@ func (i *Input) getCustomQueryMetrics() {
 	}
 }
 
-func (i *Input) GetPipeline() []*tailer.Option {
+func (ipt *Input) GetPipeline() []*tailer.Option {
 	return []*tailer.Option{
 		{
 			Source:  inputName,
 			Service: inputName,
 			Pipeline: func() string {
-				if i.Log != nil {
-					return i.Log.Pipeline
+				if ipt.Log != nil {
+					return ipt.Log.Pipeline
 				}
 				return ""
 			}(),
@@ -146,13 +145,13 @@ func (i *Input) GetPipeline() []*tailer.Option {
 	}
 }
 
-func (i *Input) initDB() error {
-	connStr := fmt.Sprintf("sqlserver://%s:%s@%s?dial+timeout=3", url.PathEscape(i.User), url.PathEscape(i.Password), url.PathEscape(i.Host))
+func (ipt *Input) initDB() error {
+	connStr := fmt.Sprintf("sqlserver://%s:%s@%s?dial+timeout=3", url.PathEscape(ipt.User), url.PathEscape(ipt.Password), url.PathEscape(ipt.Host))
 	cfg, _, err := msdsn.Parse(connStr)
 	if err != nil {
 		return err
 	}
-	if i.AllowTLS10 {
+	if ipt.AllowTLS10 {
 		// Because go1.18 defaults client-sids's TLS minimum version to TLS 1.2,
 		// we need to configure MinVersion manually to enable TLS 1.0 and TLS 1.1.
 		cfg.TLSConfig.MinVersion = tls.VersionTLS10
@@ -165,31 +164,31 @@ func (i *Input) initDB() error {
 		return err
 	}
 
-	i.db = db
+	ipt.db = db
 	return nil
 }
 
-func (i *Input) RunPipeline() {
-	if i.Log == nil || len(i.Log.Files) == 0 {
+func (ipt *Input) RunPipeline() {
+	if ipt.Log == nil || len(ipt.Log.Files) == 0 {
 		return
 	}
 
 	opt := &tailer.Option{
 		Source:            inputName,
 		Service:           inputName,
-		Pipeline:          i.Log.Pipeline,
-		GlobalTags:        i.Tags,
-		IgnoreStatus:      i.Log.IgnoreStatus,
-		CharacterEncoding: i.Log.CharacterEncoding,
+		Pipeline:          ipt.Log.Pipeline,
+		GlobalTags:        ipt.Tags,
+		IgnoreStatus:      ipt.Log.IgnoreStatus,
+		CharacterEncoding: ipt.Log.CharacterEncoding,
 		MultilinePatterns: []string{`^\d{4}-\d{2}-\d{2}`},
-		Done:              i.semStop.Wait(),
+		Done:              ipt.semStop.Wait(),
 	}
 
 	var err error
-	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
+	ipt.tail, err = tailer.NewTailer(ipt.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
-		i.feeder.FeedLastError(err.Error(),
+		ipt.feeder.FeedLastError(err.Error(),
 			io.WithLastErrorInput(inputName),
 		)
 		return
@@ -197,33 +196,33 @@ func (i *Input) RunPipeline() {
 
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_sqlserver"})
 	g.Go(func(ctx context.Context) error {
-		i.tail.Start()
+		ipt.tail.Start()
 		return nil
 	})
 }
 
-func (i *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("sqlserver start")
 
-	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
+	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 
-	if i.Election {
-		i.opt = point.WithExtraTags(dkpt.GlobalElectionTags())
+	if ipt.Election {
+		ipt.opt = point.WithExtraTags(datakit.GlobalElectionTags())
 	} else {
-		i.opt = point.WithExtraTags(dkpt.GlobalHostTags())
+		ipt.opt = point.WithExtraTags(datakit.GlobalHostTags())
 	}
 
-	tick := time.NewTicker(i.Interval.Duration)
+	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
 
-	i.init()
+	ipt.init()
 
 	// Init DB until OK.
 	for {
-		if err := i.initDB(); err != nil {
+		if err := ipt.initDB(); err != nil {
 			l.Errorf("initDB: %s", err.Error())
-			i.feeder.FeedLastError(i.lastErr.Error(),
+			ipt.feeder.FeedLastError(ipt.lastErr.Error(),
 				io.WithLastErrorInput(inputName),
 			)
 		} else {
@@ -235,49 +234,49 @@ func (i *Input) Run() {
 		case <-datakit.Exit.Wait():
 			l.Info("sqlserver exit")
 			return
-		case i.pause = <-i.pauseCh:
+		case ipt.pause = <-ipt.pauseCh:
 			// nil
 		}
 	}
 
 	defer func() {
-		if err := i.db.Close(); err != nil {
+		if err := ipt.db.Close(); err != nil {
 			l.Warnf("Close: %s", err)
 		}
 
-		if i.tail != nil {
-			i.tail.Close()
+		if ipt.tail != nil {
+			ipt.tail.Close()
 		}
 	}()
 
 	for {
-		if i.pause {
+		if ipt.pause {
 			l.Debugf("not leader, skipped")
 		} else {
-			i.getMetric()
+			ipt.getMetric()
 			if len(collectCache) > 0 {
-				err := i.feeder.Feed(inputName, point.Metric, collectCache, &io.Option{CollectCost: time.Since(i.start)})
+				err := ipt.feeder.Feed(inputName, point.Metric, collectCache, &io.Option{CollectCost: time.Since(ipt.start)})
 				collectCache = collectCache[:0]
 				if err != nil {
-					i.lastErr = err
+					ipt.lastErr = err
 					l.Errorf(err.Error())
 				}
 			}
 
 			if len(loggingCollectCache) > 0 {
-				err := i.feeder.Feed(inputName, point.Logging, loggingCollectCache, &io.Option{CollectCost: time.Since(i.start)})
+				err := ipt.feeder.Feed(inputName, point.Logging, loggingCollectCache, &io.Option{CollectCost: time.Since(ipt.start)})
 				loggingCollectCache = loggingCollectCache[:0]
 				if err != nil {
-					i.lastErr = err
+					ipt.lastErr = err
 					l.Errorf(err.Error())
 				}
 			}
 
-			if i.lastErr != nil {
-				i.feeder.FeedLastError(i.lastErr.Error(),
+			if ipt.lastErr != nil {
+				ipt.feeder.FeedLastError(ipt.lastErr.Error(),
 					io.WithLastErrorInput(inputName),
 				)
-				i.lastErr = nil
+				ipt.lastErr = nil
 			}
 
 			select {
@@ -286,8 +285,8 @@ func (i *Input) Run() {
 				l.Info("sqlserver exit")
 				return
 
-			case <-i.semStop.Wait():
-				i.exit()
+			case <-ipt.semStop.Wait():
+				ipt.exit()
 				l.Info("sqlserver return")
 				return
 			}
@@ -295,30 +294,30 @@ func (i *Input) Run() {
 	}
 }
 
-func (i *Input) exit() {
-	if i.tail != nil {
-		i.tail.Close()
+func (ipt *Input) exit() {
+	if ipt.tail != nil {
+		ipt.tail.Close()
 		l.Info("sqlserver log exit")
 	}
 }
 
-func (i *Input) Terminate() {
-	if i.semStop != nil {
-		i.semStop.Close()
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
 	}
 }
 
-func (i *Input) getMetric() {
+func (ipt *Input) getMetric() {
 	now := time.Now()
 	collectInterval := 10 * time.Minute
-	if !i.start.IsZero() {
-		collectInterval = now.Sub(i.start)
+	if !ipt.start.IsZero() {
+		collectInterval = now.Sub(ipt.start)
 	}
-	i.start = now
+	ipt.start = now
 
 	// simple metric points
 	for _, v := range query {
-		i.handRow(v, now, false)
+		ipt.handRow(v, now, false)
 	}
 
 	// simple logging points
@@ -327,27 +326,27 @@ func (i *Input) getMetric() {
 			v = strings.ReplaceAll(v, "__COLLECT_INTERVAL_SECONDS__", fmt.Sprintf("%.0f", collectInterval.Seconds()))
 		}
 		if strings.Contains(v, "__DATABASE__") {
-			v = strings.ReplaceAll(v, "__DATABASE__", i.Database)
+			v = strings.ReplaceAll(v, "__DATABASE__", ipt.Database)
 		}
-		i.handRow(v, now, true)
+		ipt.handRow(v, now, true)
 	}
 
 	// collectFuncs collect metrics that can't be collected by simple SQL query.
-	for k, v := range i.collectFuncs {
+	for k, v := range ipt.collectFuncs {
 		if err := v(); err != nil {
 			l.Warnf("collect measurement [%s] error: %s", k, err.Error())
 		}
 	}
 
 	// custom query from the config
-	i.getCustomQueryMetrics()
+	ipt.getCustomQueryMetrics()
 }
 
-func (i *Input) handRow(query string, ts time.Time, isLogging bool) {
-	rows, err := i.db.Query(query)
+func (ipt *Input) handRow(query string, ts time.Time, isLogging bool) {
+	rows, err := ipt.db.Query(query)
 	if err != nil {
 		l.Error(err.Error())
-		i.lastErr = err
+		ipt.lastErr = err
 		return
 	}
 	defer rows.Close() //nolint:errcheck
@@ -360,7 +359,7 @@ func (i *Input) handRow(query string, ts time.Time, isLogging bool) {
 	OrderedColumns, err := rows.Columns()
 	if err != nil {
 		l.Error(err.Error())
-		i.lastErr = err
+		ipt.lastErr = err
 		return
 	}
 
@@ -381,13 +380,13 @@ func (i *Input) handRow(query string, ts time.Time, isLogging bool) {
 		err := rows.Scan(columnVars...)
 		if err != nil {
 			l.Error(err.Error())
-			i.lastErr = err
+			ipt.lastErr = err
 			return
 		}
 		measurement := ""
 		tags := make(map[string]string)
-		setHostTagIfNotLoopback(tags, i.Host)
-		for k, v := range i.Tags {
+		setHostTagIfNotLoopback(tags, ipt.Host)
+		for k, v := range ipt.Tags {
 			tags[k] = v
 		}
 		fields := make(map[string]interface{})
@@ -416,7 +415,7 @@ func (i *Input) handRow(query string, ts time.Time, isLogging bool) {
 		if len(fields) == 0 {
 			continue
 		}
-		if i.filterOutDBName(tags) {
+		if ipt.filterOutDBName(tags) {
 			continue
 		}
 
@@ -428,13 +427,13 @@ func (i *Input) handRow(query string, ts time.Time, isLogging bool) {
 			opts = point.DefaultMetricOptions()
 		}
 
-		if i.Election {
-			opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+		if ipt.Election {
+			opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
 		}
 
 		transformData(measurement, tags, fields)
 
-		point := point.NewPointV2([]byte(measurement),
+		point := point.NewPointV2(measurement,
 			append(point.NewTags(tags), point.NewKVs(fields)...), opts...)
 
 		if isLogging {
@@ -447,8 +446,8 @@ func (i *Input) handRow(query string, ts time.Time, isLogging bool) {
 
 // filterOutDBName filters out metrics according to their database_name tag.
 // Metrics with database_name tag specified in db_filter are filtered out and not fed to IO.
-func (i *Input) filterOutDBName(tags map[string]string) bool {
-	if len(i.dbFilterMap) == 0 {
+func (ipt *Input) filterOutDBName(tags map[string]string) bool {
+	if len(ipt.dbFilterMap) == 0 {
 		return false
 	}
 	db, has := tags["database_name"]
@@ -456,30 +455,30 @@ func (i *Input) filterOutDBName(tags map[string]string) bool {
 		return false
 	}
 
-	if _, filterOut := i.dbFilterMap[db]; filterOut {
+	if _, filterOut := ipt.dbFilterMap[db]; filterOut {
 		l.Debugf("filter out metric from db: %s", db)
 		return true
 	}
 	return false
 }
 
-func (i *Input) init() {
-	if len(i.Database) == 0 {
-		i.Database = "master"
+func (ipt *Input) init() {
+	if len(ipt.Database) == 0 {
+		ipt.Database = "master"
 	}
 
-	i.collectFuncs = map[string]func() error{
-		"sqlserver_database_files": i.getDatabaseFilesMetrics,
+	ipt.collectFuncs = map[string]func() error{
+		"sqlserver_database_files": ipt.getDatabaseFilesMetrics,
 	}
 
-	i.initDBFilterMap()
+	ipt.initDBFilterMap()
 }
 
-func (i *Input) getDatabaseFilesMetrics() error {
-	data, err := i.query(fmt.Sprintf(`use [%s];
+func (ipt *Input) getDatabaseFilesMetrics() error {
+	data, err := ipt.query(fmt.Sprintf(`use [%s];
 		select file_id,type as file_type,physical_name,state_desc,size,state
 		from sys.database_files
-	`, i.Database))
+	`, ipt.Database))
 	if err != nil {
 		return err
 	}
@@ -493,12 +492,12 @@ func (i *Input) getDatabaseFilesMetrics() error {
 		tags := make(map[string]string)
 		fields := make(map[string]interface{})
 
-		setHostTagIfNotLoopback(tags, i.Host)
-		for k, v := range i.Tags {
+		setHostTagIfNotLoopback(tags, ipt.Host)
+		for k, v := range ipt.Tags {
 			tags[k] = v
 		}
 
-		tags["database"] = i.Database
+		tags["database"] = ipt.Database
 
 		for k, v := range row {
 			switch k {
@@ -521,7 +520,7 @@ func (i *Input) getDatabaseFilesMetrics() error {
 			tags:     tags,
 			fields:   fields,
 			name:     info.Name,
-			election: i.Election,
+			election: ipt.Election,
 		}
 		collectCache = append(collectCache, m.Point())
 	}
@@ -529,8 +528,8 @@ func (i *Input) getDatabaseFilesMetrics() error {
 	return nil
 }
 
-func (i *Input) query(sql string) (resRows []map[string]*interface{}, err error) {
-	rows, err := i.db.Query(sql)
+func (ipt *Input) query(sql string) (resRows []map[string]*interface{}, err error) {
+	rows, err := ipt.db.Query(sql)
 	if err != nil {
 		return
 	}
@@ -567,16 +566,16 @@ func (i *Input) query(sql string) (resRows []map[string]*interface{}, err error)
 	return resRows, err
 }
 
-func (i *Input) initDBFilterMap() {
-	if i.dbFilterMap == nil {
-		i.dbFilterMap = make(map[string]struct{}, len(i.DBFilter))
+func (ipt *Input) initDBFilterMap() {
+	if ipt.dbFilterMap == nil {
+		ipt.dbFilterMap = make(map[string]struct{}, len(ipt.DBFilter))
 	}
-	for _, db := range i.DBFilter {
-		i.dbFilterMap[db] = struct{}{}
+	for _, db := range ipt.DBFilter {
+		ipt.dbFilterMap[db] = struct{}{}
 	}
 }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&SqlserverMeasurment{},
 		&Performance{},

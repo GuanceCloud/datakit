@@ -32,7 +32,8 @@ const configSample = `
   ##     log bash
   ## - "ebpf-conntrack":
   ##     add two tags "dst_nat_ip" and "dst_nat_port" to the network flow data
-  ##
+  ## - "ebpf-trace":
+  ##     param trace_server must be set simultaneously.
   enabled_plugins = [
     "ebpf-net",
   ]
@@ -45,6 +46,42 @@ const configSample = `
     "httpflow",
     # "httpflow-tls"
   ]
+
+  ## eBPF trace generation server center address.
+  trace_server = ""
+
+  ## trace all processes directly
+  ##
+  trace_all_process = false
+  
+  ## trace all processes containing any specified environment variable
+  trace_env_list = [
+    "DK_BPFTRACE_SERVICE",
+    "DD_SERVICE",
+    "OTEL_SERVICE_NAME",
+  ]
+  
+  ## deny tracking any process containing any specified environment variable
+  trace_env_blacklist = []
+  
+  ## trace all processes containing any specified process names,
+  ## can be used with trace_namedenyset
+  ##
+  trace_name_list = []
+  
+  ## deny tracking any process containing any specified process names
+  ##
+  trace_name_blacklist = [
+    
+    ## The following two processes are hard-coded to never be traced,
+    ## and do not need to be set:
+    ##
+    # "datakit",
+    # "datakit-ebpf",
+  ]
+
+  ## conv other trace id to datadog trace id (base 10, 64-bit) 
+  conv_to_ddtrace = false
 
   ## If the system does not enable ipv6, it needs to be changed to true
   ##
@@ -65,9 +102,9 @@ const configSample = `
 #############################
 ##  --hostname               : Host name, this parameter can change the value of the host tag when the collector uploads data, the priority is: specify this parameter >
 ##                             ENV_HOSTNAME value in datakit.conf (if it is not empty, this parameter will be added automatically at startup) >
-##                             collector Get it yourself (the default)
-##  --datakit-apiserver      : DataKit API Server address, default value 0.0.0.0:9529
-##  --log                    : Log output path, default <DataKitInstallDir>/externals/datakit-ebpf.log
-##  --log-level              : Log level, the default value is 'info'
-##  --service                : The default value is 'ebpf'
+##                             collector Get it yourself (the default).
+##  --datakit-apiserver      : DataKit API Server address, default value 0.0.0.0:9529 .
+##  --log                    : Log output path, default <DataKitInstallDir>/externals/datakit-ebpf.log.
+##  --log-level              : Log level, the default value is 'info'.
+##  --service                : The default value is 'ebpf'.
 `

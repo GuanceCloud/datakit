@@ -6,19 +6,16 @@
 package demo
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	"time"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 type demoMetric2 struct {
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	election bool
-}
-
-func (m *demoMetric2) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
+	Name   string
+	Tags   map[string]string
+	Fields map[string]interface{}
+	TS     time.Time
 }
 
 func (m *demoMetric2) Info() *inputs.MeasurementInfo {

@@ -15,8 +15,8 @@ import (
 	lp "github.com/GuanceCloud/cliutils/lineproto"
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 type IAPIWrite interface {
@@ -133,9 +133,9 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 		return nil, ErrEmptyBody
 	}
 
-	isjson := (strings.Contains(req.Header.Get("Content-Type"), "application/json"))
+	cntTyp := GetPointEncoding(req.Header)
 
-	pts, err := HandleWriteBody(body, isjson, opts...)
+	pts, err := HandleWriteBody(body, cntTyp, opts...)
 	if err != nil {
 		if errors.Is(err, point.ErrInvalidLineProtocol) {
 			return nil, uhttp.Errorf(ErrInvalidLinePoint, "%s: body(%d bytes)", err.Error(), len(body))
@@ -159,11 +159,11 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 	}
 
 	if !ignoreGlobalTags {
-		appendTags(pts, dkpt.GlobalHostTags())
+		appendTags(pts, datakit.GlobalHostTags())
 	}
 
 	if x := q.Get(ArgGlobalElectionTags); x != "" {
-		appendTags(pts, dkpt.GlobalElectionTags())
+		appendTags(pts, datakit.GlobalElectionTags())
 	}
 
 	l.Debugf("received %d(%s) points from %s, pipeline source: %v",
@@ -177,10 +177,13 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 	if strict {
 		for _, pt := range pts {
 			if arr := pt.Warns(); len(arr) > 0 {
-				if isjson {
+				switch cntTyp {
+				case point.JSON:
 					return nil, uhttp.Errorf(ErrInvalidJSONPoint, "%s: %s", arr[0].Type, arr[0].Msg)
-				} else {
+				case point.LineProtocol:
 					return nil, uhttp.Errorf(ErrInvalidLinePoint, "%s: %s", arr[0].Type, arr[0].Msg)
+				case point.Protobuf:
+					return nil, uhttp.Errorf(ErrInvalidProtobufPoint, "%s: %s", arr[0].Type, arr[0].Msg)
 				}
 			}
 		}
@@ -214,31 +217,70 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 func appendTags(pts []*point.Point, tags map[string]string) {
 	for k, v := range tags {
 		for _, pt := range pts {
-			pt.AddTag([]byte(k), []byte(v))
+			pt.AddTag(k, v)
 		}
 	}
 }
 
 func HandleWriteBody(body []byte,
-	isJSON bool,
+	encTyp point.Encoding,
 	opts ...point.Option,
 ) ([]*point.Point, error) {
-	switch isJSON {
-	case true:
+	switch encTyp {
+	case point.JSON:
 		dec := point.GetDecoder(point.WithDecEncoding(point.JSON))
 		defer point.PutDecoder(dec)
 
 		if pts, err := dec.Decode(body, opts...); err != nil {
+			l.Warnf("dec.Decode: %s", err.Error())
+
 			return nil, uhttp.Errorf(ErrInvalidJSONPoint, "%s", err)
 		} else {
 			return pts, nil
 		}
+	case point.Protobuf:
+		dec := point.GetDecoder(point.WithDecEncoding(point.Protobuf))
+		defer point.PutDecoder(dec)
 
+		pts, err := dec.Decode(body, opts...)
+		if err != nil {
+			l.Warnf("dec.Decode: %s", err.Error())
+			return nil, uhttp.Errorf(ErrInvalidProtobufPoint, "%s", err)
+		}
+		return pts, nil
+	case point.LineProtocol:
+		dec := point.GetDecoder(point.WithDecEncoding(point.LineProtocol))
+		defer point.PutDecoder(dec)
+
+		pts, err := dec.Decode(body, opts...)
+		if err != nil {
+			l.Warnf("dec.Decode: %s", err.Error())
+			return nil, uhttp.Errorf(ErrInvalidLinePoint, "%s", err)
+		}
+		return pts, nil
 	default:
 		dec := point.GetDecoder(point.WithDecEncoding(point.LineProtocol))
 		defer point.PutDecoder(dec)
 
-		return dec.Decode(body, opts...)
+		pts, err := dec.Decode(body, opts...)
+		if err != nil {
+			l.Warnf("dec.Decode: %s", err.Error())
+			return nil, uhttp.Errorf(ErrInvalidLinePoint, "%s", err)
+		}
+		return pts, nil
+	}
+}
+
+// GetPointEncoding performs additional processing of request headers
+// when processing "rum" data.
+func GetPointEncoding(hdr http.Header) point.Encoding {
+	cntTyp := hdr.Get("Content-Type")
+
+	switch {
+	case strings.Contains(cntTyp, "application/json"):
+		return point.JSON
+	default:
+		return point.HTTPContentType(cntTyp)
 	}
 }
 

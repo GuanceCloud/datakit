@@ -16,11 +16,11 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
+	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/script"
 )
 
 const (
@@ -89,9 +89,11 @@ func (sl *socketLogger) Start() {
 		sl.opt.log.Warnf("logging sockets is empty")
 		return
 	}
+
 	if sl.feeder == nil {
 		sl.feeder = dkio.DefaultFeeder()
 	}
+
 	for _, socket := range sl.opt.Sockets {
 		s, err := mkServer(socket)
 		if err != nil {
@@ -258,8 +260,7 @@ func (sl *socketLogger) feed(pending []string) {
 	for i, cnt := range taskCnt {
 		fieles := map[string]interface{}{pipeline.FieldMessage: cnt, pipeline.FieldStatus: pipeline.DefaultStatus}
 
-		pt := point.NewPointV2(
-			[]byte(sl.opt.Source),
+		pt := point.NewPointV2(sl.opt.Source,
 			append(point.NewTags(sl.tags), point.NewKVs(fieles)...),
 			point.WithTime(timeNow.Add(time.Duration(i))))
 
@@ -270,7 +271,7 @@ func (sl *socketLogger) feed(pending []string) {
 	if sl.opt.Pipeline != "" {
 		ioOpt = &dkio.Option{
 			PlScript: map[string]string{sl.opt.Source: sl.opt.Pipeline},
-			PlOption: &script.Option{
+			PlOption: &plmanager.Option{
 				DisableAddStatusField: sl.opt.DisableAddStatusField,
 				IgnoreStatus:          sl.ignorePatterns,
 			},

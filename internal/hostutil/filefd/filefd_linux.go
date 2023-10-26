@@ -11,7 +11,7 @@ package filefd
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -24,7 +24,7 @@ func parseFileFDStats(filename string) (map[string]string, error) {
 	}
 	defer file.Close() //nolint:errcheck,gosec
 
-	content, err := ioutil.ReadAll(file)
+	content, err := io.ReadAll(file)
 	if err != nil {
 		return nil, err
 	}

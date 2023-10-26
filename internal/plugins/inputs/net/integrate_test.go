@@ -129,6 +129,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 					"udp_outdatagrams",
 					"udp_outdatagrams/sec",
 					"udp_rcvbuferrors",
+					"udp_memerrors",
 					"udp_sndbuferrors",
 				),
 			},
@@ -148,7 +149,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		require.NoError(t, err)
 
 		// no election.
-		ipt.Tagger = testutils.NewTaggerHost()
+		ipt.tagger = testutils.NewTaggerHost()
 
 		cases = append(cases, &caseSpec{
 			t:      t,
@@ -194,11 +195,11 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 		opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
 		opts = append(opts, cs.opts...)
 
-		measurement := string(pt.Name())
+		measurement := pt.Name()
 
 		switch measurement {
 		case inputName:
-			opts = append(opts, inputs.WithDoc(&netMeasurement{}))
+			opts = append(opts, inputs.WithDoc(&docMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
 
@@ -223,8 +224,8 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 
 			tags := pt.Tags()
 			for k, expect := range cs.ipt.Tags {
-				if v := tags.Get([]byte(k)); v != nil {
-					got := string(v.GetD())
+				if v := tags.Get(k); v != nil {
+					got := v.GetS()
 					if got != expect {
 						return fmt.Errorf("expect tag value %s, got %s", expect, got)
 					}

@@ -10,7 +10,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 )
 
@@ -27,7 +27,7 @@ func (p *pos) String() string {
 }
 
 func posFromFile(fname string) (*pos, error) {
-	bin, err := ioutil.ReadFile(filepath.Clean(fname))
+	bin, err := os.ReadFile(filepath.Clean(fname))
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func (p *pos) dumpFile() error {
 	if data, err := p.MarshalBinary(); err != nil {
 		return err
 	} else {
-		return ioutil.WriteFile(p.fname, data, 0o600)
+		return os.WriteFile(p.fname, data, 0o600)
 	}
 }
 

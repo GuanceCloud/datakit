@@ -6,11 +6,9 @@
 package jvm
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -61,14 +59,9 @@ func (m *JvmMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (*JvmMeasurement) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
-	return nil, fmt.Errorf("not implement")
 }
 
 func (*JvmMeasurement) Info() *inputs.MeasurementInfo {
@@ -82,14 +75,9 @@ func (m *JavaRuntimeMemt) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (*JavaRuntimeMemt) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -118,14 +106,9 @@ func (m *JavaMemoryMemt) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (*JavaMemoryMemt) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -165,14 +148,9 @@ func (m *JavaGcMemt) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (*JavaGcMemt) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -204,14 +182,9 @@ func (m *JavaThreadMemt) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (*JavaThreadMemt) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -244,14 +217,9 @@ func (m *JavaClassLoadMemt) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (*JavaClassLoadMemt) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -283,14 +251,9 @@ func (m *JavaMemoryPoolMemt) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (*JavaMemoryPoolMemt) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll

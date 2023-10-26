@@ -12,7 +12,6 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 const packageName = "traps"
@@ -33,7 +32,7 @@ type TrapsServerOpt struct {
 	Election              bool
 	InputTags             map[string]string
 	Feeder                dkio.Feeder
-	Tagger                dkpt.GlobalTagger
+	Tagger                datakit.GlobalTagger
 	authoritativeEngineID string
 }
 

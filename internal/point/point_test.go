@@ -5,90 +5,81 @@
 
 package point
 
-import (
-	T "testing"
+// func TestPointHash(t *T.T) {
+// 	t.Run("basic", func(t *T.T) {
+// 		name := "abc"
+// 		tags := map[string]string{
+// 			"t1": "v1",
+// 			"t2": "v2",
+// 		}
 
-	"github.com/GuanceCloud/cliutils/point"
-	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
-)
+// 		fs := map[string]any{
+// 			"f1": 123,
+// 			"f2": 3.14,
+// 			"f3": false,
+// 			"f5": "foo bar",
+// 		}
 
-func TestPointHash(t *T.T) {
-	t.Run("basic", func(t *T.T) {
-		name := "abc"
-		tags := map[string]string{
-			"t1": "v1",
-			"t2": "v2",
-		}
+// 		pt1 := dkpt.MustNewPoint(name, tags, fs,
+// 			&dkpt.PointOption{
+// 				Category: datakit.Logging, // logging can accept string field on dkpt
+// 			})
+// 		pt2, err := point.NewPoint(name, tags, fs)
+// 		assert.NoError(t, err)
 
-		fs := map[string]any{
-			"f1": 123,
-			"f2": 3.14,
-			"f3": false,
-			"f5": "foo bar",
-		}
+// 		h1 := lineprotoHash(pt1)
+// 		h2 := pointHash(pt2)
 
-		pt1 := dkpt.MustNewPoint(name, tags, fs,
-			&dkpt.PointOption{
-				Category: datakit.Logging, // logging can accept string field on dkpt
-			})
-		pt2, err := point.NewPoint(name, tags, fs)
-		assert.NoError(t, err)
+// 		assert.Equal(t, h1, h2)
 
-		h1 := lineprotoHash(pt1)
-		h2 := pointHash(pt2)
+// 		t.Logf("hash: %d", h1)
+// 	})
+// }
 
-		assert.Equal(t, h1, h2)
+// func BenchmarkPointHash(b *T.B) {
+// 	name := "abc"
+// 	tags := map[string]string{
+// 		"t1": "v1",
+// 		"t2": "v2",
+// 	}
 
-		t.Logf("hash: %d", h1)
-	})
-}
+// 	fs := map[string]any{
+// 		"f1": 123,
+// 		"f2": 3.14,
+// 		"f3": false,
+// 		"f5": "foo bar",
+// 	}
 
-func BenchmarkPointHash(b *T.B) {
-	name := "abc"
-	tags := map[string]string{
-		"t1": "v1",
-		"t2": "v2",
-	}
+// 	lppt := dkpt.MustNewPoint(name, tags, fs,
+// 		&dkpt.PointOption{
+// 			Category: datakit.Logging, // logging can accept string field on dkpt
+// 		})
 
-	fs := map[string]any{
-		"f1": 123,
-		"f2": 3.14,
-		"f3": false,
-		"f5": "foo bar",
-	}
+// 	pt, err := point.NewPoint(name, tags, fs)
+// 	assert.NoError(b, err)
 
-	lppt := dkpt.MustNewPoint(name, tags, fs,
-		&dkpt.PointOption{
-			Category: datakit.Logging, // logging can accept string field on dkpt
-		})
+// 	b.Run("lineproto", func(b *T.B) {
+// 		for i := 0; i < b.N; i++ {
+// 			lineprotoHash(lppt)
+// 		}
+// 	})
 
-	pt, err := point.NewPoint(name, tags, fs)
-	assert.NoError(b, err)
+// 	b.Run("point", func(b *T.B) {
+// 		for i := 0; i < b.N; i++ {
+// 			pointHash(pt)
+// 		}
+// 	})
 
-	b.Run("lineproto", func(b *T.B) {
-		for i := 0; i < b.N; i++ {
-			lineprotoHash(lppt)
-		}
-	})
-
-	b.Run("point", func(b *T.B) {
-		for i := 0; i < b.N; i++ {
-			pointHash(pt)
-		}
-	})
-
-	// benchmark Result:
-	// =======
-	// goos: darwin
-	// goarch: arm64
-	// pkg: gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/point
-	// BenchmarkPointHash
-	// BenchmarkPointHash/lineproto
-	// BenchmarkPointHash/lineproto-10         	 1310508	       910.9 ns/op	     813 B/op	      20 allocs/op
-	// BenchmarkPointHash/point
-	// BenchmarkPointHash/point-10             	 1524051	       787.1 ns/op	     648 B/op	      23 allocs/op
-	// PASS
-	// ok  	gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/point	4.261s
-}
+// 	// benchmark Result:
+// 	// =======
+// 	// goos: darwin
+// 	// goarch: arm64
+// 	// pkg: gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/point
+// 	// BenchmarkPointHash
+// 	// BenchmarkPointHash/lineproto
+// 	// BenchmarkPointHash/lineproto-10         	 1310508	       910.9 ns/op	     813 B/op	      20 allocs/op
+// 	// BenchmarkPointHash/point
+// 	// BenchmarkPointHash/point-10             	 1524051	       787.1 ns/op	     648 B/op	      23 allocs/op
+// 	// PASS
+// 	// ok  	gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/point	4.261s
+// }

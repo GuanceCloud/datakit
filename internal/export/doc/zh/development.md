@@ -17,7 +17,7 @@ type Input struct {
     // 用户自定义 tag
     Tags map[string]string
     // (可选)采集到的指标缓存，在每个采集周期必须重新 make
-    collectCache []inputs.Measurement
+    collectCache []*point.Point
     // (可选)采集到的日志缓存，在每个采集周期必须重新 make
     loggingCache []*point.Point
     // 操作系统类型

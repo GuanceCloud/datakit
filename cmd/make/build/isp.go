@@ -9,8 +9,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/GuanceCloud/cliutils/pipeline/ptinput/ipdb"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ip2isp"
 )
 
 func BuildISP() {
@@ -22,7 +22,7 @@ func BuildISP() {
 		l.Warnf("os.Remove: %s, ignored", err.Error())
 	}
 
-	if err := ip2isp.MergeISP(inputIPDir, ip2ispFile); err != nil {
+	if err := ipdb.MergeISP(inputIPDir, ip2ispFile); err != nil {
 		l.Errorf("MergeIsp failed: %v", err)
 	} else {
 		l.Infof("merge ip2isp file in `%v`", ip2ispFile)
@@ -39,7 +39,7 @@ func BuildISP() {
 		l.Warnf("os.Remove: %s, ignored", err.Error())
 	}
 
-	if err := ip2isp.BuildContryCity(inputFile, outputFile); err != nil {
+	if err := ipdb.BuildContryCity(inputFile, outputFile); err != nil {
 		l.Errorf("BuildContryCity failed: %v", err)
 	} else {
 		l.Infof("contry and city list in file  `%v`", outputFile)

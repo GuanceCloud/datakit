@@ -9,7 +9,6 @@ package tdengine
 import (
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -242,8 +241,4 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 			"first_ep":      &inputs.TagInfo{Desc: "first endpoint"},
 		},
 	}
-}
-
-func (m *Measurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
 }

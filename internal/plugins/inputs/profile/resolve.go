@@ -17,10 +17,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/google/uuid"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 const (
@@ -438,11 +438,11 @@ func cache(req *http.Request, metadata *resolvedMetadata, fileSize int64) (strin
 	// 删除中划线 "runtime-id"
 	delete(pointFields, "runtime-id")
 
-	pt, err := point.NewPoint(inputName, pointTags, pointFields, &point.PointOption{
-		Time:     profileEnd, // use profileEnd as the creation time of point
-		Category: datakit.Profiling,
-		Strict:   false,
-	})
+	opts := point.CommonLoggingOptions()
+	opts = append(opts, point.WithTime(profileEnd))
+	pt := point.NewPointV2(inputName,
+		append(point.NewTags(pointTags), point.NewKVs(pointFields)...),
+		opts...)
 	if err != nil {
 		return "", 0, fmt.Errorf("build profile point fail: %w", err)
 	}
@@ -455,9 +455,11 @@ func cache(req *http.Request, metadata *resolvedMetadata, fileSize int64) (strin
 func sendToIO(profileID string) error {
 	pt := pointCache.drop(profileID)
 
+	lang, _ := pt.Get(TagLanguage).(string)
+
 	if pt != nil {
-		if err := dkio.Feed(inputName+"/"+pt.Tags()[TagLanguage],
-			datakit.Profiling,
+		if err := iptGlobal.feeder.Feed(inputName+"/"+lang,
+			point.Profiling,
 			[]*point.Point{pt},
 			&dkio.Option{CollectCost: time.Since(pt.Time())}); err != nil {
 			return err

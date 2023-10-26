@@ -11,13 +11,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/GuanceCloud/cliutils/pipeline/ptinput/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
-	plfuncs "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/all"
 )
@@ -83,7 +82,7 @@ func (i *Integration) Export() error {
 	}
 
 	for k, v := range i.docs {
-		if err := ioutil.WriteFile(k, v, 0o600); err != nil {
+		if err := os.WriteFile(k, v, 0o600); err != nil {
 			return err
 		}
 		l.Debugf("write %q...", k)
@@ -176,9 +175,9 @@ type plB64DocExporter struct {
 	protoPrefix,
 	descPrefix string
 
-	Version   string                    `json:"version"`
-	Docs      string                    `json:"docs"`
-	Functions map[string]*plfuncs.PLDoc `json:"functions"`
+	Version   string                  `json:"version"`
+	Docs      string                  `json:"docs"`
+	Functions map[string]*funcs.PLDoc `json:"functions"`
 }
 
 func newPLB64DocExporter(lang inputs.I18n) *plB64DocExporter {
@@ -190,7 +189,7 @@ func newPLB64DocExporter(lang inputs.I18n) *plB64DocExporter {
 			descPrefix:  "Function description: ",
 			Version:     git.Version,
 			Docs:        "Base64-encoded pipeline function documentation, including function prototypes, function descriptions, and usage examples.",
-			Functions:   plfuncs.PipelineFunctionDocsEN,
+			Functions:   funcs.PipelineFunctionDocsEN,
 		}
 
 	default: // zh
@@ -199,7 +198,7 @@ func newPLB64DocExporter(lang inputs.I18n) *plB64DocExporter {
 			descPrefix:  "函数说明：",
 			Version:     git.Version,
 			Docs:        "经过 base64 编码的 pipeline 函数文档，包括各函数原型、函数说明、使用示例",
-			Functions:   plfuncs.PipelineFunctionDocs,
+			Functions:   funcs.PipelineFunctionDocs,
 		}
 	}
 }

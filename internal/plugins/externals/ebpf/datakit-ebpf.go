@@ -1,5 +1,5 @@
-//go:build (linux && amd64 && ebpf) || (linux && arm64 && ebpf)
-// +build linux,amd64,ebpf linux,arm64,ebpf
+//go:build linux
+// +build linux
 
 package main
 
@@ -19,24 +19,25 @@ import (
 
 	_ "net/http/pprof" // nolint:gosec
 
-	"github.com/DataDog/ebpf"
-	"github.com/DataDog/ebpf/manager"
+	manager "github.com/DataDog/ebpf-manager"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
+	"github.com/cilium/ebpf"
 	"github.com/jessevdk/go-flags"
 	"github.com/shirou/gopsutil/process"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	dkbash "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/bashhistory"
-	dkct "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/conntrack"
-	dkdns "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/dnsflow"
+	dkbash "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/bashhistory"
+	dkct "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/conntrack"
+	dkdns "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/dnsflow"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/tracing"
 
-	dkhttpflow "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/httpflow"
+	dkl7flow "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/k8sinfo"
-	dknetflow "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/netflow"
-	dkout "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/output"
-	dksysmonitor "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/sysmonitor"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/k8sinfo"
+	dknetflow "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netflow"
+	dkout "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/output"
+	dksysmonitor "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/sysmonitor"
 
-	dkoffset "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/offset"
+	dkoffset "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/offset"
 )
 
 const (
@@ -48,14 +49,19 @@ var (
 	enableEbpfBash      = false
 	enableEbpfNet       = false
 	enableEbpfConntrack = false
+	enableTrace         = false
 
 	enableHTTPFlow    = false
 	enableHTTPFlowTLS = false
 
+	conv2ddID = false
+
 	ipv6Disabled = false
 )
 
-var pidFile = filepath.Join(datakit.InstallDir, "externals", "datakit-ebpf.pid")
+const InstallDir = "/usr/local/datakit"
+
+var pidFile = filepath.Join(InstallDir, "externals", "datakit-ebpf.pid")
 
 type Option struct {
 	DataKitAPIServer string `long:"datakit-apiserver" description:"DataKit API server" default:"0.0.0.0:9529"`
@@ -82,6 +88,14 @@ type Option struct {
 	PProfPort string `long:"pprof-port" description:"pprof port" default:""`
 
 	Service string `long:"service" description:"service" default:"ebpf"`
+
+	TraceServer        string `long:"trace-server" description:"eBPF trace generation server address"`
+	TraceAllProc       string `long:"trace-allprocess" description:"trace all processes directly" default:"false"`
+	TraceEnvList       string `long:"trace-env-list" description:"trace all processes containing any specified environment variable" default:""`
+	TraceNameList      string `long:"trace-name-list" description:"trace all processes containing any specified process names" default:""`
+	TraceEnvBlacklist  string `long:"trace-env-blacklist" description:"deny tracking any process containing any specified environment variable" default:""` //nolint:lll
+	TraceNameBlacklist string `long:"trace-name-blacklist" description:"deny tracking any process containing any specified process names" default:""`
+	ConvTraceToDD      string `long:"conv-to-ddtrace" description:"conv trace id to ddtrace" default:"false"`
 }
 
 //  Envs:
@@ -96,6 +110,7 @@ const (
 	inputNameBash = "ebpf-bash"
 
 	pluginNameConntrack = "ebpf-conntrack"
+	pluginNameTracing   = "ebpf-trace"
 
 	inputNameNetNet  = "ebpf-net/netflow"
 	inputNameNetDNS  = "ebpf-net/dnsflow"
@@ -107,9 +122,15 @@ var (
 	l        = logger.DefaultSLogger(inputName)
 )
 
+var envAssignAllowed = []string{
+	"DK_BPFTRACE_SERVICE",
+	"DD_SERVICE",
+	"OTEL_SERVICE_NAME",
+}
+
 var signaIterrrupt = make(chan os.Signal, 1)
 
-func main() {
+func main() { //nolint:funlen
 	signal.Notify(signaIterrrupt, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
 
 	opt, gTags, err := parseFlags()
@@ -129,9 +150,10 @@ func main() {
 	dumpStderr2File()
 
 	dkout.DataKitAPIServer = opt.DataKitAPIServer
+	dkout.DataKitTraceServer = opt.TraceServer
 
 	ebpfBashPostURL := fmt.Sprintf("http://%s%s?input="+url.QueryEscape(inputNameBash),
-		dkout.DataKitAPIServer, datakit.Logging)
+		dkout.DataKitAPIServer, point.Logging.URL())
 
 	logOpt := logger.Option{
 		Path:  opt.Log,
@@ -156,7 +178,7 @@ func main() {
 	dkdns.SetLogger(l)
 	dkoffset.SetLogger(l)
 	dkbash.SetLogger(l)
-	dkhttpflow.SetLogger(l)
+	dkl7flow.SetLogger(l)
 	dksysmonitor.SetLogger(l)
 
 	// duration is between 10s and 30min, if not, take the boundary value.
@@ -179,6 +201,71 @@ func main() {
 
 	// ebpf-net
 	if enableEbpfNet {
+		var traceAll bool
+		switch strings.ToLower(opt.TraceAllProc) {
+		case "true", "t", "yes", "y", "1":
+			traceAll = true
+		default:
+		}
+
+		envSet := map[string]bool{}
+		for _, e := range strings.Split(opt.TraceEnvList, ",") {
+			e = strings.TrimSpace(e)
+			if e != "" {
+				envSet[e] = true
+			}
+		}
+
+		for _, e := range strings.Split(opt.TraceEnvBlacklist, ",") {
+			e = strings.TrimSpace(e)
+			if e != "" {
+				envSet[e] = false
+			}
+		}
+
+		processSet := map[string]bool{}
+		processSet["datakit-ebpf"] = false
+		processSet["datakit"] = false
+
+		for _, p := range strings.Split(opt.TraceNameList, ",") {
+			p = strings.TrimSpace(p)
+			if p != "" {
+				processSet[p] = true
+			}
+		}
+
+		for _, p := range strings.Split(opt.TraceNameBlacklist, ",") {
+			p = strings.TrimSpace(p)
+			if p != "" {
+				processSet[p] = false
+			}
+		}
+
+		var enableTraceFilter bool
+		if enableTrace && opt.TraceServer != "" {
+			enableTraceFilter = true
+			l.Info("trace all processes: ", traceAll)
+			l.Info("service name environment variables: ", envAssignAllowed)
+			l.Info("enable trace environment variables: ", envSet)
+			l.Info("process name set: ", processSet)
+		}
+
+		procFilter := tracing.NewProcessFilter(
+			envAssignAllowed, envSet, processSet, traceAll, !enableTraceFilter,
+		)
+
+		schedTracer, err := dksysmonitor.NewProcessSchedTracer(procFilter)
+		if err != nil {
+			l.Error(err)
+			// feedLastErrorLoop(err, signaIterrrupt)
+		} else {
+			if err := schedTracer.Start(ctx); err != nil {
+				l.Error(err)
+				feedLastErrorLoop(err, signaIterrrupt)
+			}
+			defer schedTracer.Stop() //nolint:errcheck
+		}
+
 		dknetflow.SetEphemeralPortMin(opt.EphemeralPort)
 		l.Infof("ephemeral port start from: %d", opt.EphemeralPort)
 		offset, err := LoadOffset()
@@ -204,18 +291,14 @@ func main() {
 		} else {
 			go k8sinfo.AutoUpdate(ctx)
 			dknetflow.SetK8sNetInfo(k8sinfo)
-			dkhttpflow.SetK8sNetInfo(k8sinfo)
+			dkl7flow.SetK8sNetInfo(k8sinfo)
 			dkdns.SetK8sNetInfo(k8sinfo)
 		}
 
 		constEditor := dkoffset.NewConstEditor(offset)
 
-		httpConst, err := guessOffsetHTTP(offset)
-		if err != nil {
-			err = fmt.Errorf("get http offset failed: %w", err)
-			feedLastErrorLoop(err, signaIterrrupt)
-		}
-		constEditor = append(constEditor, httpConst...)
+		offsetSeq := dkoffset.GetTCPSeqOffset(offset)
+		constEditor = append(constEditor, dkoffset.NewConstEditorTCPSeq(offsetSeq)...)
 
 		// start conntrack
 		var ctMap *ebpf.Map
@@ -247,8 +330,18 @@ func main() {
 				ctMap = ctmap
 			}
 		}
-		netflowTracer := dknetflow.NewNetFlowTracer()
-		ebpfNetManger, err := dknetflow.NewNetFlowManger(constEditor, ctMap, netflowTracer.ClosedEventHandler)
+
+		var bmaps map[string]*ebpf.Map
+		if ctMap != nil {
+			if bmaps == nil {
+				bmaps = make(map[string]*ebpf.Map)
+			}
+			bmaps["bpfmap_conntrack_tuple"] = ctMap
+		}
+
+		netflowTracer := dknetflow.NewNetFlowTracer(procFilter)
+		ebpfNetManger, err := dknetflow.NewNetFlowManger(constEditor, bmaps,
+			netflowTracer.ClosedEventHandler)
 		if err != nil {
 			err = fmt.Errorf("new netflow manager: %w", err)
 			feedLastErrorLoop(err, signaIterrrupt)
@@ -274,12 +367,12 @@ func main() {
 		} else {
 			dnsTracer := dkdns.NewDNSFlowTracer()
 			go dnsTracer.Run(ctx, tp, gTags, dnsRecord, fmt.Sprintf("http://%s%s?input=",
-				dkout.DataKitAPIServer, datakit.Network)+url.QueryEscape(inputNameNetDNS))
+				dkout.DataKitAPIServer, point.Network.URL())+url.QueryEscape(inputNameNetDNS))
 		}
 
 		// run netflow
 		err = netflowTracer.Run(ctx, ebpfNetManger, fmt.Sprintf("http://%s%s?input=",
-			dkout.DataKitAPIServer, datakit.Network)+
+			dkout.DataKitAPIServer, point.Network.URL())+
 			url.QueryEscape(inputNameNetNet), gTags, interval)
 		if err != nil {
 			err = fmt.Errorf("run netflow: %w", err)
@@ -288,9 +381,29 @@ func main() {
 		}
 
 		if enableHTTPFlow {
-			tracer := dkhttpflow.NewHTTPFlowTracer(gTags, fmt.Sprintf("http://%s%s?input=",
-				dkout.DataKitAPIServer, datakit.Network)+url.QueryEscape(inputNameNetHTTP))
-			if err := tracer.Run(ctx, constEditor, ctMap, enableHTTPFlowTLS, interval); err != nil {
+			httpConst, err := guessOffsetHTTP(offset)
+			if err != nil {
+				err = fmt.Errorf("get http offset failed: %w", err)
+				feedLastErrorLoop(err, signaIterrrupt)
+			}
+			constEditor = append(constEditor, httpConst...)
+
+			bmaps, _ := schedTracer.GetGOSchedMap()
+			if ctMap != nil {
+				if bmaps == nil {
+					bmaps = make(map[string]*ebpf.Map)
+				}
+				bmaps["bpfmap_conntrack_tuple"] = ctMap
+			}
+			var traceSvc string
+			if dkout.DataKitTraceServer != "" {
+				traceSvc = fmt.Sprintf("http://%s%s", dkout.DataKitTraceServer, "/v1/bpftracing")
+			}
+			tracer := dkl7flow.NewHTTPFlowTracer(gTags, fmt.Sprintf("http://%s%s?input=",
+				dkout.DataKitAPIServer, point.Network.URL())+url.QueryEscape(inputNameNetHTTP),
+				traceSvc, conv2ddID, enableTrace, procFilter,
+			)
+			if err := tracer.Run(ctx, constEditor, bmaps, enableHTTPFlowTLS, interval); err != nil {
 				l.Error(err)
 			}
 		}
@@ -370,9 +483,25 @@ func getOffset(saved *dkoffset.OffsetGuessC) (*dkoffset.OffsetGuessC, error) {
 			}
 			l.Error(err)
 			continue
-		} else {
-			return status, nil
 		}
+
+		constEditor := dkoffset.NewConstEditor(status)
+
+		if enableTrace && enableHTTPFlow {
+			_, offsetSeq, err := dkoffset.GuessOffsetTCPSeq(constEditor)
+			if err != nil {
+				saved = nil
+				if i == loopCount-1 {
+					return nil, err
+				}
+				l.Error(err)
+				continue
+			}
+
+			dkoffset.SetTCPSeqOffset(status, offsetSeq)
+		}
+
+		return status, nil
 	}
 	return nil, err
 }
@@ -416,6 +545,8 @@ func parseFlags() (*Option, map[string]string, error) {
 			enableEbpfNet = true
 		case inputNameBash:
 			enableEbpfBash = true
+		case pluginNameTracing:
+			enableTrace = true
 		case pluginNameConntrack:
 			enableEbpfConntrack = true
 		}
@@ -454,6 +585,12 @@ func parseFlags() (*Option, map[string]string, error) {
 	default:
 	}
 
+	switch strings.ToLower(opt.ConvTraceToDD) {
+	case "true", "t", "yes", "y", "1":
+		conv2ddID = true
+	default:
+	}
+
 	optTags := strings.Split(opt.Tags, ";")
 	for _, item := range optTags {
 		tagArr := strings.Split(item, "=")
@@ -480,7 +617,7 @@ func parseFlags() (*Option, map[string]string, error) {
 	gTags["service"] = opt.Service
 
 	if opt.Log == "" {
-		opt.Log = filepath.Join(datakit.InstallDir, "externals", "datakit-ebpf.log")
+		opt.Log = filepath.Join(InstallDir, "externals", "datakit-ebpf.log")
 	}
 
 	return &opt, gTags, nil
@@ -579,7 +716,7 @@ const (
 )
 
 func dumpStderr2File() {
-	dirpath := filepath.Join(datakit.InstallDir, "externals")
+	dirpath := filepath.Join(InstallDir, "externals")
 	filepath := filepath.Join(dirpath, "datakit-ebpf.stderr")
 	if err := os.MkdirAll(dirpath, DirModeRW); err != nil {
 		l.Warn(err)
@@ -601,7 +738,7 @@ func dumpStderr2File() {
 }
 
 func DumpOffset(offset *dkoffset.OffsetGuessC) error {
-	dirpath := filepath.Join(datakit.InstallDir, "externals")
+	dirpath := filepath.Join(InstallDir, "externals")
 	filepath := filepath.Join(dirpath, "datakit-ebpf.offset")
 
 	offsetStr, err := dkoffset.DumpOffset(*offset)
@@ -621,7 +758,7 @@ func DumpOffset(offset *dkoffset.OffsetGuessC) error {
 }
 
 func LoadOffset() (*dkoffset.OffsetGuessC, error) {
-	dirpath := filepath.Join(datakit.InstallDir, "externals")
+	dirpath := filepath.Join(InstallDir, "externals")
 	filepath := filepath.Join(dirpath, "datakit-ebpf.offset")
 	offsetByte, err := os.ReadFile(filepath) //nolint:gosec
 	if err != nil {

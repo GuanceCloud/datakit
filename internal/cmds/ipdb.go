@@ -8,7 +8,7 @@ package cmds
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -46,7 +46,7 @@ func InstallIPDB(baseURL string, ipdbType string) (*ipdbInfo, error) {
 	if resp, err := http.Get(ipdbJSONURL); err != nil {
 		return nil, err
 	} else {
-		res, err := ioutil.ReadAll(resp.Body)
+		res, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return nil, err
 		}

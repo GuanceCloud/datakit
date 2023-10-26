@@ -10,6 +10,7 @@ import (
 	"math"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/gogo/protobuf/proto"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/prompb"
@@ -25,9 +26,9 @@ type Parser struct {
 
 // Parse parses given byte as protocol buffer. it performs necessary
 // metric filtering and prefixing, and returns parsed measurements.
-func (p *Parser) Parse(buf []byte) ([]inputs.Measurement, error) {
+func (p *Parser) Parse(buf []byte, ipt *Input) ([]*point.Point, error) {
 	var err error
-	var metrics []inputs.Measurement
+	var metrics []*point.Point
 	var req prompb.WriteRequest
 	if err := proto.Unmarshal(buf, &req); err != nil {
 		return nil, fmt.Errorf("unable to unmarshal request body: %w", err)
@@ -65,12 +66,20 @@ func (p *Parser) Parse(buf []byte) ([]inputs.Measurement, error) {
 				if s.Timestamp > 0 {
 					t = time.Unix(0, s.Timestamp*1000000)
 				}
-				m := &Measurement{
-					name:   measurementName,
-					tags:   tags,
-					fields: fields,
-					ts:     t,
+
+				opts := point.DefaultMetricOptions()
+				opts = append(opts, point.WithTime(t))
+
+				if ipt.Election {
+					tags = inputs.MergeTagsWrapper(tags, ipt.Tagger.ElectionTags(), ipt.Tags, "")
+				} else {
+					tags = inputs.MergeTagsWrapper(tags, ipt.Tagger.HostTags(), ipt.Tags, "")
 				}
+
+				m := point.NewPointV2(measurementName,
+					append(point.NewTags(tags), point.NewKVs(fields)...),
+					opts...)
+
 				metrics = append(metrics, m)
 			}
 		}

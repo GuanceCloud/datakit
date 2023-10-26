@@ -14,10 +14,10 @@ import (
 	"text/template"
 
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/pipeline/ptinput/funcs"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
-	plfuncs "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -167,7 +167,7 @@ func buildNonInputDocs(md []byte, opt *exportOptions) ([]byte, error) {
 // buildPipelineDocs render pipeline function docs.
 func buildPipelineDocs(
 	md []byte,
-	fndocs map[string]*plfuncs.PLDoc,
+	fndocs map[string]*funcs.PLDoc,
 	opt *exportOptions,
 ) ([]byte, error) {
 	arr := []string{}

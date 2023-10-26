@@ -15,7 +15,6 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/multiline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
@@ -268,15 +267,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-type loggingMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-}
-
-func (ipt *loggingMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(ipt.name, ipt.tags, ipt.fields, point.LOpt())
-}
+type loggingMeasurement struct{}
 
 //nolint:lll
 func (*loggingMeasurement) Info() *inputs.MeasurementInfo {

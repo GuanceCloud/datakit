@@ -9,7 +9,6 @@ package build
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -130,7 +129,7 @@ func prepare() {
 		l.Fatal(err)
 	}
 
-	if err := ioutil.WriteFile(filepath.Join(PubDir, ReleaseType, "version"),
+	if err := os.WriteFile(filepath.Join(PubDir, ReleaseType, "version"),
 		versionInfo,
 		os.ModePerm); err != nil {
 		l.Fatal(err)

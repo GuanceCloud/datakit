@@ -10,7 +10,6 @@ import (
 	"fmt"
 
 	"github.com/GuanceCloud/cliutils/point"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -26,16 +25,7 @@ const (
 	redisSlowlog     = "redis_slowlog"
 )
 
-type bigKeyMeasurement struct {
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	election bool
-}
-
-func (m *bigKeyMeasurement) LineProto() (*dkpt.Point, error) {
-	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElectionV2(m.election))
-}
+type bigKeyMeasurement struct{}
 
 //nolint:lll
 func (m *bigKeyMeasurement) Info() *inputs.MeasurementInfo {
@@ -73,16 +63,16 @@ func (m *bigKeyMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (i *Input) getKeys() ([]string, error) {
+func (ipt *Input) getKeys() ([]string, error) {
 	var res []string
-	for _, pattern := range i.Keys {
+	for _, pattern := range ipt.Keys {
 		var cursor uint64
 		for {
 			var keys []string
 			var err error
 			ctx := context.Background()
 
-			keys, cursor, err = i.client.Scan(ctx, cursor, pattern, 10).Result()
+			keys, cursor, err = ipt.client.Scan(ctx, cursor, pattern, 10).Result()
 			if err != nil {
 				l.Errorf("redis pattern key %s scan fail error %v", pattern, err)
 				return nil, err
@@ -98,7 +88,7 @@ func (i *Input) getKeys() ([]string, error) {
 }
 
 // 数据源获取数据.
-func (i *Input) getData(resKeys []string) ([]*point.Point, error) {
+func (ipt *Input) getData(resKeys []string) ([]*point.Point, error) {
 	var collectCache []*point.Point
 
 	for _, key := range resKeys {
@@ -108,14 +98,14 @@ func (i *Input) getData(resKeys []string) ([]*point.Point, error) {
 			name:     redisBigkey,
 			tags:     make(map[string]string),
 			fields:   make(map[string]interface{}),
-			election: i.Election,
+			election: ipt.Election,
 		}
 
-		for key, value := range i.Tags {
+		for key, value := range ipt.Tags {
 			m.tags[key] = value
 		}
 
-		m.tags["db_name"] = fmt.Sprintf("%d", i.DB)
+		m.tags["db_name"] = fmt.Sprintf("%d", ipt.DB)
 		m.tags["key"] = key
 		ctx := context.Background()
 		for _, op := range []string{
@@ -126,7 +116,7 @@ func (i *Input) getData(resKeys []string) ([]*point.Point, error) {
 			"PFCOUNT",
 			"STRLEN",
 		} {
-			if val, err := i.client.Do(ctx, op, key).Result(); err == nil && val != nil {
+			if val, err := ipt.client.Do(ctx, op, key).Result(); err == nil && val != nil {
 				found = true
 				m.fields["value_length"] = val
 				break
@@ -134,7 +124,7 @@ func (i *Input) getData(resKeys []string) ([]*point.Point, error) {
 		}
 
 		if !found {
-			if i.WarnOnMissingKeys {
+			if ipt.WarnOnMissingKeys {
 				l.Warnf("%s key not found in redis", key)
 			}
 
@@ -145,12 +135,12 @@ func (i *Input) getData(resKeys []string) ([]*point.Point, error) {
 			var opts []point.Option
 
 			if m.election {
-				m.tags = inputs.MergeTags(i.Tagger.ElectionTags(), m.tags, i.Host)
+				m.tags = inputs.MergeTags(ipt.Tagger.ElectionTags(), m.tags, ipt.Host)
 			} else {
-				m.tags = inputs.MergeTags(i.Tagger.HostTags(), m.tags, i.Host)
+				m.tags = inputs.MergeTags(ipt.Tagger.HostTags(), m.tags, ipt.Host)
 			}
 
-			pt := point.NewPointV2([]byte(m.name),
+			pt := point.NewPointV2(m.name,
 				append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 				opts...)
 			collectCache = append(collectCache, pt)

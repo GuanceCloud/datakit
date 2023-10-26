@@ -6,21 +6,13 @@
 package cpu
 
 import (
-	"time"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-type cpuMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
-}
+type docMeasurement struct{}
 
 //nolint:lll
-func (m *cpuMeasurement) Info() *inputs.MeasurementInfo {
+func (docMeasurement) Info() *inputs.MeasurementInfo {
 	// see https://man7.org/linux/man-pages/man5/proc.5.html
 	return &inputs.MeasurementInfo{
 		Name: metricName,
@@ -93,8 +85,4 @@ func (m *cpuMeasurement) Info() *inputs.MeasurementInfo {
 			"cpu":  &inputs.TagInfo{Desc: "CPU core ID. For `cpu-total`, it means *all-CPUs-in-one-tag*. If you want every CPU's metric, please enable `percpu` option in *cpu.conf* or set `ENV_INPUT_CPU_PERCPU` under K8s"},
 		},
 	}
-}
-
-func (m *cpuMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }

@@ -9,7 +9,6 @@ import (
 	"regexp"
 
 	common "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/common/v1"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 type getAttributeFunc func(key string, attributes []*common.KeyValue) (*common.KeyValue, bool)
@@ -124,7 +123,7 @@ func (a *attributes) splite() (map[string]string, map[string]interface{}) {
 	for _, v := range a.attrs {
 		switch v.Value.Value.(type) {
 		case *common.AnyValue_BytesValue, *common.AnyValue_StringValue:
-			if s := v.Value.GetStringValue(); len(s) > point.MaxTagValueLen {
+			if s := v.Value.GetStringValue(); len(s) > 1024 {
 				metrics[v.Key] = s
 			} else {
 				tags[v.Key] = s

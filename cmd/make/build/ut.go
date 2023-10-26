@@ -29,6 +29,9 @@ var hugePackages = map[string]bool{
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/kafkamq": true,
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/mysql":   true,
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/oracle":  true,
+
+	// disalbe parallel running
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway": true,
 }
 
 const envExcludeHugeIntegrationTesting = "UT_EXCLUDE_HUGE_INTEGRATION_TESTING"
@@ -250,9 +253,6 @@ func doWork(id int, j Job) {
 		"GO111MODULE=off",
 		"CGO_ENABLED=1",
 		"LOGGER_PATH=nul", // disable logging
-		"CGO_CFLAGS=-I/opt/ibm/clidriver/include",
-		"CGO_LDFLAGS=-L/opt/ibm/clidriver/lib",
-		"LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/ibm/clidriver/lib",
 	}...)
 
 	res, err := tcmd.CombinedOutput()
@@ -302,7 +302,7 @@ func doWork(id int, j Job) {
 		if len(coverage) != 0 {
 			f, err := strconv.ParseFloat(coverage[0:len(coverage)-1], 64)
 			if err != nil {
-				fmt.Printf("[E] invalid coverage: %s: %s\n", coverage, err)
+				fmt.Printf("[E] invalid coverage %q: %s: %s\n", j.Pkg, coverage, err)
 				return
 			}
 
@@ -310,11 +310,11 @@ func doWork(id int, j Job) {
 			coverTotal.Add(f)
 			mr.Coverage = f
 		} else {
-			fmt.Printf("[W] test ok, but no coverage: %s\n", j.Pkg)
+			fmt.Printf("[W] test ok, but no coverage: %q\n", j.Pkg)
 		}
 
 	default: // pass
-		fmt.Printf("[W] unknown coverage line: %s\n", coverageLine)
+		fmt.Printf("[W] unknown coverage line in package %q: %s\n", j.Pkg, coverageLine)
 	}
 
 	if err := testutils.Flush(mr); err != nil {

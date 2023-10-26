@@ -12,22 +12,22 @@ import (
 	"strings"
 )
 
-func (i *Input) parseURL() error {
-	u := i.Scheme + "://" + i.Host + ":" + fmt.Sprint(i.Port)
+func (ipt *Input) parseURL() error {
+	u := ipt.Scheme + "://" + ipt.Host + ":" + fmt.Sprint(ipt.Port)
 	if _, err := url.Parse(u); err != nil {
 		return fmt.Errorf("parse url %s failed: %w", u, err)
 	}
 
-	if i.Port < 1 || i.Port > 65535 {
-		return fmt.Errorf("parse port error: %d", i.Port)
+	if ipt.Port < 1 || ipt.Port > 65535 {
+		return fmt.Errorf("parse port error: %d", ipt.Port)
 	}
 
-	if i.AdditionalPort < 1 || i.AdditionalPort > 65535 {
-		return fmt.Errorf("parse additional port error: %d", i.AdditionalPort)
+	if ipt.AdditionalPort < 1 || ipt.AdditionalPort > 65535 {
+		return fmt.Errorf("parse additional port error: %d", ipt.AdditionalPort)
 	}
 
-	if !(i.Scheme == "http" || i.Scheme == "https") {
-		return fmt.Errorf("parse additional scheme error: %s", i.Scheme)
+	if !(ipt.Scheme == "http" || ipt.Scheme == "https") {
+		return fmt.Errorf("parse additional scheme error: %s", ipt.Scheme)
 	}
 
 	return nil

@@ -6,7 +6,6 @@
 package register
 
 import (
-	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -36,7 +35,7 @@ func TestNew(t *testing.T) {
 	})
 
 	t.Run("parse err", func(t *testing.T) {
-		file, err := ioutil.TempFile("", "")
+		file, err := os.CreateTemp("", "")
 		assert.NoError(t, err)
 		defer os.Remove(file.Name())
 
@@ -48,7 +47,7 @@ func TestNew(t *testing.T) {
 	})
 
 	t.Run("ok", func(t *testing.T) {
-		file, err := ioutil.TempFile("", "")
+		file, err := os.CreateTemp("", "")
 		assert.NoError(t, err)
 		defer os.Remove(file.Name())
 
@@ -103,7 +102,7 @@ func TestSetAndGet(t *testing.T) {
 
 func TestFlush(t *testing.T) {
 	// write file
-	file, err := ioutil.TempFile("", "")
+	file, err := os.CreateTemp("", "")
 	assert.NoError(t, err)
 	defer os.Remove(file.Name())
 
@@ -123,7 +122,7 @@ func TestFlush(t *testing.T) {
 	assert.NoError(t, err)
 
 	// verification
-	data, err := ioutil.ReadFile(file.Name())
+	data, err := os.ReadFile(file.Name())
 	assert.NoError(t, err)
 
 	out := strings.ReplaceAll(string(data), " ", "")
@@ -140,8 +139,8 @@ func TestParse(t *testing.T) {
 		fail bool
 	}{
 		{
-			in: `{ 
-				"history": { 
+			in: `{
+				"history": {
 					"key1": {
 						"source": "source01",
 						"offset": 100
@@ -150,7 +149,7 @@ func TestParse(t *testing.T) {
 						"source": "source02",
 						"offset": 200
 				        }
-				} 
+				}
 			}`,
 			out: &register{
 				Data: map[string]*MetaData{

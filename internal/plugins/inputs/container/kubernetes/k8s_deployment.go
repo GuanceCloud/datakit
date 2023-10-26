@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
 
@@ -162,8 +161,6 @@ func (m *deploymentMetadata) transformObject() pointKVs {
 
 type deploymentMetric struct{}
 
-func (*deploymentMetric) LineProto() (*dkpt.Point, error) { return nil, nil }
-
 //nolint:lll
 func (*deploymentMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
@@ -189,8 +186,6 @@ func (*deploymentMetric) Info() *inputs.MeasurementInfo {
 }
 
 type deploymentObject struct{}
-
-func (*deploymentObject) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*deploymentObject) Info() *inputs.MeasurementInfo {

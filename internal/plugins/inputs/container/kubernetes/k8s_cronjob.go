@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
 
@@ -120,8 +119,6 @@ func (m *cronjobMetadata) transformObject() pointKVs {
 
 type cronjobMetric struct{}
 
-func (*cronjobMetric) LineProto() (*dkpt.Point, error) { return nil, nil }
-
 //nolint:lll
 func (*cronjobMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
@@ -140,8 +137,6 @@ func (*cronjobMetric) Info() *inputs.MeasurementInfo {
 }
 
 type cronjobObject struct{}
-
-func (*cronjobObject) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*cronjobObject) Info() *inputs.MeasurementInfo {

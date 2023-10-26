@@ -196,11 +196,11 @@ type caseSpec struct {
 
 func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 	for _, pt := range pts {
-		measurement := string(pt.Name())
+		measurement := pt.Name()
 
 		switch measurement {
 		case "chrony":
-			msgs := inputs.CheckPoint(pt, inputs.WithDoc(&ChronyMeasurement{}), inputs.WithExtraTags(cs.ipt.Tags))
+			msgs := inputs.CheckPoint(pt, inputs.WithDoc(&docMeasurement{}), inputs.WithExtraTags(cs.ipt.Tags))
 
 			for _, msg := range msgs {
 				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
@@ -222,8 +222,8 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 
 			tags := pt.Tags()
 			for k, expect := range cs.ipt.Tags {
-				if v := tags.Get([]byte(k)); v != nil {
-					got := string(v.GetD())
+				if v := tags.Get(k); v != nil {
+					got := v.GetS()
 					if got != expect {
 						return fmt.Errorf("expect tag value %s, got %s", expect, got)
 					}

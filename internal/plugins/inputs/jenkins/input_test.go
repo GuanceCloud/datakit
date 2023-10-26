@@ -361,7 +361,7 @@ func TestGetPoint(t *testing.T) {
 						return
 					}
 					assert.Nil(t, err)
-					assert.Equal(t, tc.expectedTags, p.InfluxTags())
+					assert.Equal(t, tc.expectedTags, p.MapTags())
 					fields := p.InfluxFields()
 					assert.Nil(t, err)
 					assert.Equal(t, tc.expectedFields, fields)
@@ -407,8 +407,8 @@ func TestCIExtraTags(t *testing.T) {
 					p, err := i.getPoint(span)
 					assert.Nil(t, err)
 					for k, v := range tc.expectedExtraTags {
-						assert.Contains(t, p.InfluxTags(), k)
-						assert.True(t, p.InfluxTags()[k] == v)
+						assert.Contains(t, p.MapTags(), k)
+						assert.True(t, p.MapTags()[k] == v)
 					}
 				}
 			}

@@ -28,6 +28,12 @@ monitor   :
 
 UDP 指标需要操作系统有 `nc` 程序
 
+<!-- markdownlint-disable MD046 -->
+???+ attention
+
+    socket 采集器适合做内网的 TCP/UDP 端口检测，对于公网服务，建议使用[拨测功能](dialtesting.md)。如果服务地址指向本机，请关闭采集器的选举（`election: false`）功能，否则会导致无效采集。
+<!-- markdownlint-enable -->
+
 ### 采集器配置 {#input-config}
 
 <!-- markdownlint-disable MD046 -->

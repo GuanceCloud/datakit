@@ -9,7 +9,6 @@ import (
 	"crypto/md5" //nolint:gosec
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -67,5 +66,5 @@ func (f *filter) refresh(body []byte) error {
 }
 
 func dump(rules []byte, dir string) error {
-	return ioutil.WriteFile(filepath.Join(dir, ".pull"), rules, os.ModePerm)
+	return os.WriteFile(filepath.Join(dir, ".pull"), rules, os.ModePerm)
 }

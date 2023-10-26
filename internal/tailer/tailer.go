@@ -15,6 +15,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
 
 const (
@@ -89,6 +90,8 @@ type Option struct {
 
 	Done <-chan interface{}
 
+	Feeder dkio.Feeder
+
 	Mode Mode
 }
 
@@ -131,6 +134,10 @@ func (opt *Option) Init() error {
 
 	if opt.GlobalTags == nil {
 		opt.GlobalTags = make(map[string]string)
+	}
+
+	if opt.Feeder == nil {
+		opt.Feeder = dkio.DefaultFeeder()
 	}
 
 	opt.GlobalTags["service"] = opt.Service

@@ -6,9 +6,6 @@
 package dk
 
 import (
-	"fmt"
-
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -17,11 +14,6 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 type meas struct{}
-
-// LineProto not implemented.
-func (meas) LineProto() (*dkpt.Point, error) {
-	return nil, fmt.Errorf("dk not implement interface LineProto()")
-}
 
 //nolint:lll
 func (meas) Info() *inputs.MeasurementInfo {

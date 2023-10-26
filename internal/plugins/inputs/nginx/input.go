@@ -19,7 +19,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -97,8 +96,8 @@ default_time(time)
 `
 )
 
-func (n *Input) ElectionEnabled() bool {
-	return n.Election
+func (ipt *Input) ElectionEnabled() bool {
+	return ipt.Election
 }
 
 func (*Input) SampleConfig() string {
@@ -117,7 +116,7 @@ func (*Input) PipelineConfig() map[string]string {
 }
 
 //nolint:lll
-func (n *Input) LogExamples() map[string]map[string]string {
+func (ipt *Input) LogExamples() map[string]map[string]string {
 	return map[string]map[string]string{
 		"nginx": {
 			"Nginx error log1": `2021/04/21 09:24:04 [alert] 7#7: *168 write() to "/var/log/nginx/access.log" failed (28: No space left on device) while logging request, client: 120.204.196.129, server: localhost, request: "GET / HTTP/1.1", host: "47.98.103.73"`,
@@ -127,14 +126,14 @@ func (n *Input) LogExamples() map[string]map[string]string {
 	}
 }
 
-func (n *Input) GetPipeline() []*tailer.Option {
+func (ipt *Input) GetPipeline() []*tailer.Option {
 	return []*tailer.Option{
 		{
 			Source:  inputName,
 			Service: inputName,
 			Pipeline: func() string {
-				if n.Log != nil {
-					return n.Log.Pipeline
+				if ipt.Log != nil {
+					return ipt.Log.Pipeline
 				}
 				return ""
 			}(),
@@ -142,21 +141,21 @@ func (n *Input) GetPipeline() []*tailer.Option {
 	}
 }
 
-func (n *Input) RunPipeline() {
-	if n.Log == nil || len(n.Log.Files) == 0 {
+func (ipt *Input) RunPipeline() {
+	if ipt.Log == nil || len(ipt.Log.Files) == 0 {
 		return
 	}
 
 	opt := &tailer.Option{
 		Source:     inputName,
 		Service:    inputName,
-		Pipeline:   n.Log.Pipeline,
-		GlobalTags: n.Tags,
-		Done:       n.semStop.Wait(),
+		Pipeline:   ipt.Log.Pipeline,
+		GlobalTags: ipt.Tags,
+		Done:       ipt.semStop.Wait(),
 	}
 
 	var err error
-	n.tail, err = tailer.NewTailer(n.Log.Files, opt)
+	ipt.tail, err = tailer.NewTailer(ipt.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
 		return
@@ -164,89 +163,89 @@ func (n *Input) RunPipeline() {
 
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_nginx"})
 	g.Go(func(ctx context.Context) error {
-		n.tail.Start()
+		ipt.tail.Start()
 		return nil
 	})
 }
 
-func (n *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("nginx start")
 
-	tick := time.NewTicker(n.Interval.Duration)
+	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
 
 	for {
-		if n.pause {
+		if ipt.pause {
 			l.Debugf("not leader, skipped")
 		} else {
-			points, err := n.Collect()
+			points, err := ipt.Collect()
 			if err != nil {
 				l.Errorf("Collect failed: %v", err)
 			} else if len(points) > 0 {
-				if err := n.feeder.Feed(inputName, point.Metric, points, &io.Option{CollectCost: time.Since(n.start)}); err != nil {
+				if err := ipt.feeder.Feed(inputName, point.Metric, points, &io.Option{CollectCost: time.Since(ipt.start)}); err != nil {
 					l.Errorf(err.Error())
-					n.feeder.FeedLastError(err.Error(),
+					ipt.feeder.FeedLastError(err.Error(),
 						io.WithLastErrorInput(inputName),
 					)
 				} else {
-					n.collectCache = n.collectCache[:0]
+					ipt.collectCache = ipt.collectCache[:0]
 				}
 			}
 		}
 
 		select {
 		case <-datakit.Exit.Wait():
-			n.exit()
+			ipt.exit()
 			l.Info("nginx exit")
 			return
-		case <-n.semStop.Wait():
-			n.exit()
+		case <-ipt.semStop.Wait():
+			ipt.exit()
 			l.Info("nginx return")
 			return
 		case <-tick.C:
-		case n.pause = <-n.pauseCh:
+		case ipt.pause = <-ipt.pauseCh:
 		}
 	}
 }
 
-func (n *Input) exit() {
-	if n.tail != nil {
-		n.tail.Close()
+func (ipt *Input) exit() {
+	if ipt.tail != nil {
+		ipt.tail.Close()
 		l.Info("nginx log exit")
 	}
 }
 
-func (n *Input) Terminate() {
-	if n.semStop != nil {
-		n.semStop.Close()
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
 	}
 }
 
-func (n *Input) getMetric() {
-	n.start = time.Now()
-	if n.UseVts {
-		n.getVTSMetric()
+func (ipt *Input) getMetric() {
+	ipt.start = time.Now()
+	if ipt.UseVts {
+		ipt.getVTSMetric()
 	} else {
-		n.getStubStatusModuleMetric()
+		ipt.getStubStatusModuleMetric()
 	}
 }
 
-func (n *Input) createHTTPClient() (*http.Client, error) {
-	tlsCfg, err := n.ClientConfig.TLSConfig()
+func (ipt *Input) createHTTPClient() (*http.Client, error) {
+	tlsCfg, err := ipt.ClientConfig.TLSConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	if n.ResponseTimeout.Duration < time.Second {
-		n.ResponseTimeout.Duration = time.Second * 5
+	if ipt.ResponseTimeout.Duration < time.Second {
+		ipt.ResponseTimeout.Duration = time.Second * 5
 	}
 
 	client := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: tlsCfg,
 		},
-		Timeout: n.ResponseTimeout.Duration,
+		Timeout: ipt.ResponseTimeout.Duration,
 	}
 
 	return client, nil
@@ -256,7 +255,7 @@ func (*Input) AvailableArchs() []string {
 	return datakit.AllOSWithElection
 }
 
-func (n *Input) SampleMeasurement() []inputs.Measurement {
+func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&NginxMeasurement{},
 		&ServerZoneMeasurement{},
@@ -265,57 +264,57 @@ func (n *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func (n *Input) Pause() error {
+func (ipt *Input) Pause() error {
 	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	defer tick.Stop()
 	select {
-	case n.pauseCh <- true:
+	case ipt.pauseCh <- true:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("pause %s failed", inputName)
 	}
 }
 
-func (n *Input) Resume() error {
+func (ipt *Input) Resume() error {
 	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	defer tick.Stop()
 	select {
-	case n.pauseCh <- false:
+	case ipt.pauseCh <- false:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
 	}
 }
 
-func (n *Input) setup() error {
-	if n.Interval.Duration == 0 {
-		n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
+func (ipt *Input) setup() error {
+	if ipt.Interval.Duration == 0 {
+		ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 	}
 
-	if n.client == nil {
-		client, err := n.createHTTPClient()
+	if ipt.client == nil {
+		client, err := ipt.createHTTPClient()
 		if err != nil {
 			fmt.Printf("[error] nginx init client err:%s\n", err.Error())
 			return err
 		}
-		n.client = client
+		ipt.client = client
 	}
 
 	return nil
 }
 
-func (n *Input) Collect() ([]*point.Point, error) {
-	if err := n.setup(); err != nil {
+func (ipt *Input) Collect() ([]*point.Point, error) {
+	if err := ipt.setup(); err != nil {
 		return nil, err
 	}
 
-	n.getMetric()
+	ipt.getMetric()
 
-	if len(n.collectCache) == 0 {
+	if len(ipt.collectCache) == 0 {
 		return nil, fmt.Errorf("no points")
 	}
 
-	return n.collectCache, nil
+	return ipt.collectCache, nil
 }
 
 func defaultInput() *Input {
@@ -325,7 +324,7 @@ func defaultInput() *Input {
 		Election: true,
 		feeder:   io.DefaultFeeder(),
 		semStop:  cliutils.NewSem(),
-		Tagger:   dkpt.DefaultGlobalTagger(),
+		Tagger:   datakit.DefaultGlobalTagger(),
 	}
 }
 

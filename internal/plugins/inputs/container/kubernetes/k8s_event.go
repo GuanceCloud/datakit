@@ -11,7 +11,6 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	kubeapi "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -127,8 +126,6 @@ func (k *Kube) transformEvent(event *kubewatch.Event) []*point.Point {
 }
 
 type event struct{ *typed.PointKV }
-
-func (e *event) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*event) Info() *inputs.MeasurementInfo {

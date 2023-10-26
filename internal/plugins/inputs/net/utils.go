@@ -11,7 +11,6 @@ import (
 	"regexp"
 
 	psNet "github.com/shirou/gopsutil/net"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 type NetProto func(protocols []string) ([]psNet.ProtoCountersStat, error)
@@ -100,49 +99,4 @@ func FilterInterface(netio []psNet.IOCountersStat, interfaces []net.Interface,
 		}
 	}
 	return filteredInterfaces, err
-}
-
-func NewFieldsInfoIByte(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		Type:     inputs.Gauge,
-		DataType: inputs.Int,
-		Unit:     inputs.SizeByte,
-		Desc:     desc,
-	}
-}
-
-func NewFieldsInfoIBytePerSec(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		Type:     inputs.Gauge,
-		DataType: inputs.Int,
-		Unit:     inputs.BytesPerSec,
-		Desc:     desc,
-	}
-}
-
-func NewFieldsInfoCount(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		Type:     inputs.Gauge,
-		DataType: inputs.Int,
-		Unit:     inputs.NCount,
-		Desc:     desc,
-	}
-}
-
-func NewFieldsInfoCountPerSec(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		Type:     inputs.Gauge,
-		DataType: inputs.Int,
-		Unit:     inputs.NCount,
-		Desc:     desc,
-	}
-}
-
-func NewFieldsInfoMS(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		Type:     inputs.Gauge,
-		DataType: inputs.Int,
-		Unit:     inputs.DurationMS,
-		Desc:     desc,
-	}
 }

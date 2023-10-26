@@ -10,61 +10,39 @@ import (
 	"fmt"
 	"net"
 	"time"
+
+	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
 
-type TCPTask struct {
-	Host string
-	Port string
-
+type tcpTask struct {
 	reqCost    time.Duration
 	reqDNSCost time.Duration
-	reqError   string
 	timeout    time.Duration
+
+	Host string
+	Port string
 }
 
-func (t *TCPTask) GetResults() (tags map[string]string, fields map[string]interface{}) {
-	tags = map[string]string{
-		"dest_host": t.Host,
-		"dest_port": t.Port,
-		"proto":     "tcp",
-	}
+func (t *tcpTask) getResults() *point.Point {
+	var kvs point.KVs
+
+	kvs = kvs.MustAddTag("dest_host", t.Host)
+	kvs = kvs.MustAddTag("dest_port", t.Port)
+	kvs = kvs.MustAddTag("proto", "tcp")
 
 	responseTime := int64(t.reqCost) / 1000                     // us
 	responseTimeWithDNS := int64(t.reqCost+t.reqDNSCost) / 1000 // us
 
-	fields = map[string]interface{}{
-		"response_time":          responseTime,
-		"response_time_with_dns": responseTimeWithDNS,
-		"success":                int64(-1),
-	}
+	// fields
+	kvs = kvs.Add("response_time", responseTime, false, true)
+	kvs = kvs.Add("response_time_with_dns", responseTimeWithDNS, false, true)
+	kvs = kvs.Add("success", int64(1), false, true) // default set ok
 
-	message := map[string]interface{}{}
-
-	var reasons []string
-
-	if t.reqError != "" {
-		reasons = append(reasons, t.reqError)
-	}
-
-	if len(reasons) == 0 {
-		message["response_time_in_micros"] = responseTime
-	}
-
-	if t.reqError == "" && len(reasons) == 0 {
-		fields["success"] = int64(1)
-	}
-
-	return tags, fields
+	return point.NewPointV2("tcp", kvs, point.DefaultMetricOptions()...)
 }
 
-func (t *TCPTask) Clear() {
-	t.reqCost = 0
-	t.reqError = ""
-}
-
-func (t *TCPTask) Run() error {
-	t.Clear()
-
+func (t *tcpTask) run() error {
 	var d net.Dialer
 	ctx, cancel := context.WithTimeout(context.Background(), t.timeout)
 	defer cancel()
@@ -74,13 +52,11 @@ func (t *TCPTask) Run() error {
 	if hostIP == nil { // host name
 		start := time.Now()
 		if ips, err := net.LookupIP(t.Host); err != nil {
-			t.reqError = err.Error()
+			l.Errorf("LookupIP: %s", err)
 			return err
 		} else {
 			if len(ips) == 0 {
-				err := fmt.Errorf("invalid host: %s, found no ip record", t.Host)
-				t.reqError = err.Error()
-				return err
+				return fmt.Errorf("invalid host: %s, found no ip record", t.Host)
 			} else {
 				t.reqDNSCost = time.Since(start)
 				hostIP = ips[0]
@@ -91,33 +67,40 @@ func (t *TCPTask) Run() error {
 	tcpIPAddr := net.JoinHostPort(hostIP.String(), t.Port)
 
 	start := time.Now()
-	conn, err := d.DialContext(ctx, "tcp", tcpIPAddr)
-	if err != nil {
-		t.reqError = err.Error()
-		t.reqDNSCost = 0
+	if conn, err := d.DialContext(ctx, "tcp", tcpIPAddr); err != nil {
+		l.Errorf("DialContext: %s", err)
+		return err
 	} else {
 		t.reqCost = time.Since(start)
-		err := conn.Close()
-		if err != nil {
-			return fmt.Errorf("socket input close connection fail : %w", err)
-		}
+		return conn.Close()
 	}
-	return nil
 }
 
 // nolint
-func (i *Input) runTCP(t *TCPTask) error {
-	err := t.Run() //nolint:errcheck
-	// 无论成功或失败，都要记录测试结果
-	i.feedMeasurement(t)
+func (i *input) runTCP(t *tcpTask) *point.Point {
+	err := t.run()
+
+	pt := t.getResults()
+
 	if err != nil {
-		return err
+		l.Warnf("TCP run: %s, ignored", err)
+
+		pt.MustAdd("success", int64(-1))
+
+		i.feeder.FeedLastError(err.Error(),
+			io.WithLastErrorInput(inputName),
+			io.WithLastErrorCategory(point.Metric))
 	}
-	return nil
+
+	return pt
 }
 
-func (i *Input) feedMeasurement(t *TCPTask) {
-	tags, fields := t.GetResults()
-	ts := time.Now()
-	i.collectCache = append(i.collectCache, &TCPMeasurement{name: "tcp", tags: tags, fields: fields, ts: ts})
+func (i *input) collectTCP(destHost string, destPort string) *point.Point {
+	t := &tcpTask{
+		Host:    destHost,
+		Port:    destPort,
+		timeout: i.TCPTimeOut.Duration,
+	}
+
+	return i.runTCP(t)
 }

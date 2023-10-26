@@ -6,11 +6,9 @@
 package oracle
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -32,15 +30,9 @@ func (m *processMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-// 生成行协议.
-func (m *processMeasurement) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
-	return nil, fmt.Errorf("not implement")
 }
 
 // https://docs.oracle.com/en/database/oracle/oracle-database/19/refrn/V-PROCESS.html#GUID-BBE32620-1043-4345-9448-51DB21547FEB
@@ -78,15 +70,9 @@ func (m *tablespaceMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-// 生成行协议.
-func (m *tablespaceMeasurement) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElection())
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -121,15 +107,9 @@ func (m *systemMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-// 生成行协议.
-func (m *systemMeasurement) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(m.name, m.tags, m.fields, dkpt.MOpt())
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll

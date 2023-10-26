@@ -12,25 +12,9 @@ import (
 	"strings"
 
 	"github.com/GuanceCloud/cliutils/point"
-	influxdb "github.com/influxdata/influxdb1-client/v2"
-
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
-// Point2dkpt convert point.Point to old io/point.Point.
-func Point2dkpt(pts ...*point.Point) (res []*dkpt.Point) {
-	for _, pt := range pts {
-		pt, err := influxdb.NewPoint(string(pt.Name()), pt.InfluxTags(), pt.InfluxFields(), pt.Time())
-		if err != nil {
-			continue
-		}
-
-		res = append(res, &dkpt.Point{Point: pt})
-	}
-
-	return res
-}
-
+/*
 // Dkpt2point convert old io/point.Point to point.Point. nolint: deadcode,unused.
 func Dkpt2point(pts ...*dkpt.Point) (res []*point.Point) {
 	for _, pt := range pts {
@@ -39,7 +23,7 @@ func Dkpt2point(pts ...*dkpt.Point) (res []*point.Point) {
 			continue
 		}
 
-		pt := point.NewPointV2([]byte(pt.Name()),
+		pt := point.NewPointV2(pt.Name(),
 			append(point.NewTags(pt.Tags()), point.NewKVs(fs)...), nil)
 
 		res = append(res, pt)
@@ -56,7 +40,7 @@ func LineprotoTimeseries(pts []*dkpt.Point) int {
 	}
 
 	return len(set)
-}
+}*/
 
 // Timeseries get consuming time-series in Guancedb.
 func Timeseries(pts []*point.Point) int {
@@ -68,6 +52,7 @@ func Timeseries(pts []*point.Point) int {
 	return len(set)
 }
 
+/*
 func lineprotoHash(pt *dkpt.Point) uint64 {
 	arr := []string{pt.Name()}
 	for k, t := range pt.Tags() {
@@ -84,13 +69,12 @@ func lineprotoHash(pt *dkpt.Point) uint64 {
 	}
 
 	return arrhash(arr)
-}
+} */
 
 func pointHash(pt *point.Point) uint64 {
-	arr := []string{string(pt.Name())}
+	arr := []string{pt.Name()}
 	for _, kv := range pt.Tags() {
-		arr = append(arr, string(
-			append(append(kv.Key, byte('=')), kv.GetD()...)))
+		arr = append(arr, kv.Key+"="+kv.GetS())
 	}
 
 	for _, kv := range pt.Fields() {

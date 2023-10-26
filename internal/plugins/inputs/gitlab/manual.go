@@ -6,7 +6,6 @@
 package gitlab
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -17,12 +16,6 @@ type (
 	gitlabPipelineMeasurement struct{}
 	gitlabJobMeasurement      struct{}
 )
-
-func (g *gitlabPipelineMeasurement) LineProto() (*point.Point, error) { return nil, nil }
-func (g *gitlabJobMeasurement) LineProto() (*point.Point, error)      { return nil, nil }
-func (*gitlabMeasurement) LineProto() (*point.Point, error)           { return nil, nil }
-func (*gitlabBaseMeasurement) LineProto() (*point.Point, error)       { return nil, nil }
-func (*gitlabHTTPMeasurement) LineProto() (*point.Point, error)       { return nil, nil }
 
 //nolint:lll
 func (*gitlabMeasurement) Info() *inputs.MeasurementInfo {

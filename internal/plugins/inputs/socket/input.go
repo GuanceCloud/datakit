@@ -14,48 +14,112 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
-	clipt "github.com/GuanceCloud/cliutils/point"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-func (i *Input) SampleConfig() string {
-	return sample
+const (
+	KillGrace = 5 * time.Second
+	TCP       = "tcp"
+	UDP       = "udp"
+)
+
+var (
+	inputName   = "socket"
+	l           = logger.DefaultSLogger(inputName)
+	minInterval = time.Second * 10
+	maxInterval = time.Second * 60
+
+	// interface assert.
+	_ inputs.ElectionInput = (*input)(nil)
+)
+
+type input struct {
+	DestURL    []string         `toml:"dest_url"`
+	Interval   datakit.Duration `toml:"interval"` // 单位为秒
+	UDPTimeOut datakit.Duration `toml:"udp_timeout"`
+	TCPTimeOut datakit.Duration `toml:"tcp_timeout"`
+
+	collectCache []*point.Point
+	Tags         map[string]string `toml:"tags"`
+	semStop      *cliutils.Sem     // start stop signal
+	platform     string
+
+	Election bool `toml:"election"`
+	pause    bool
+	pauseCh  chan bool
+
+	feeder io.Feeder
+	tagger datakit.GlobalTagger
+
+	urlTags []map[string]string
 }
 
-func (i *Input) Catalog() string {
+func (i *input) Catalog() string {
 	return "socket"
 }
 
-func (i *Input) Run() {
+func (i *input) setup() {
 	l = logger.SLogger(inputName)
+
 	l.Infof("socket input started")
+
+	// setup tags of multiple dest URLs
+	for _, urlStr := range i.DestURL {
+		u, err := url.Parse(urlStr)
+		if err != nil {
+			l.Warnf("url.Parse %q failed: %s, ignored", u, err)
+			continue
+		}
+
+		var globalTags map[string]string
+		if i.Election {
+			globalTags = i.tagger.ElectionTags()
+			l.Infof("add global election tags %q", globalTags)
+		} else {
+			globalTags = i.tagger.HostTags()
+			l.Infof("add global host tags %q", globalTags)
+		}
+
+		i.urlTags = append(i.urlTags, inputs.MergeTags(globalTags, i.Tags, urlStr))
+	}
+}
+
+func (i *input) Run() {
+	i.setup()
+
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
 
 	for {
-		i.collectCache = make([]inputs.Measurement, 0)
+		if i.pause {
+			l.Debugf("election failed, skipped")
+		} else {
+			i.collectCache = i.collectCache[:0]
+			start := time.Now()
 
-		start := time.Now()
-		if err := i.Collect(); err != nil {
-			l.Errorf("Collect: %s", err)
-			io.FeedLastError(inputName, err.Error(), clipt.Metric)
-		}
+			i.Collect()
 
-		if len(i.collectCache) > 0 {
-			if err := inputs.FeedMeasurement(metricName,
-				datakit.Metric,
-				i.collectCache,
-				&io.Option{CollectCost: time.Since((start))}); err != nil {
-				l.Errorf("FeedMeasurement: %s", err)
+			if len(i.collectCache) > 0 {
+				if err := i.feeder.Feed(inputName,
+					point.Metric,
+					i.collectCache,
+					&io.Option{CollectCost: time.Since(start)}); err != nil {
+					l.Errorf("Feed: %s, ignored", err)
+				}
 			}
 		}
 
 		select {
 		case <-tick.C:
+
+		case i.pause = <-i.pauseCh:
+			l.Infof("set input %q paused?(%v)", inputName, i.pause)
+
 		case <-datakit.Exit.Wait():
 			l.Infof("socket input exit")
 			return
@@ -67,70 +131,81 @@ func (i *Input) Run() {
 	}
 }
 
-func (i *Input) Terminate() {
+func (i *input) Terminate() {
 	if i.semStop != nil {
 		i.semStop.Close()
 	}
 }
 
-func (*Input) AvailableArchs() []string {
+func (*input) AvailableArchs() []string {
 	return []string{datakit.OSLabelLinux, datakit.OSLabelMac}
 }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (i *input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&TCPMeasurement{},
 		&UDPMeasurement{},
 	}
 }
 
-func (i *Input) Collect() error {
+func (i *input) Collect() {
 	if len(i.DestURL) == 0 {
-		l.Warnf("input socket have no desturl")
+		l.Warnf("input socket have no URLs")
+		return
 	}
-	for _, cont := range i.DestURL {
-		resURL, err := url.Parse(cont)
+
+	for idx, u := range i.DestURL {
+		resURL, err := url.Parse(u)
 		if err != nil {
-			return fmt.Errorf("inpust socket parse dest_url error %w", err)
+			l.Errorf("url.Parse: %s, ignored", err.Error())
+			continue
 		}
 
 		switch resURL.Scheme {
 		case TCP:
-			err := i.CollectTCP(resURL.Hostname(), resURL.Port())
-			if err != nil {
-				return err
+			pt := i.collectTCP(resURL.Hostname(), resURL.Port())
+			if pt != nil {
+				for k, v := range i.urlTags[idx] {
+					pt.AddTag(k, v)
+				}
+
+				i.collectCache = append(i.collectCache, pt)
 			}
+
 		case UDP:
-			err := i.CollectUDP(resURL.Hostname(), resURL.Port())
-			if err != nil {
-				return err
+			pt := i.collectUDP(resURL.Hostname(), resURL.Port())
+			if pt != nil {
+				for k, v := range i.urlTags[idx] {
+					pt.AddTag(k, v)
+				}
+				i.collectCache = append(i.collectCache, pt)
 			}
+
 		default:
-			l.Warnf("input socket can not support proto : %s", resURL.Scheme)
+			l.Warnf("unknown scheme %q", resURL.Scheme)
+
+			i.feeder.FeedLastError(fmt.Sprintf("unknown scheme %q", resURL.Scheme),
+				io.WithLastErrorInput(inputName),
+				io.WithLastErrorCategory(point.Metric))
 		}
 	}
-	return nil
 }
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{
-			Interval:   datakit.Duration{Duration: time.Second * 30},
-			semStop:    cliutils.NewSem(),
-			platform:   runtime.GOOS,
+		return &input{
+			tagger: datakit.DefaultGlobalTagger(),
+			feeder: io.DefaultFeeder(),
+
+			Election: true,
+			pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
+
+			Interval: datakit.Duration{Duration: time.Second * 30},
+			semStop:  cliutils.NewSem(),
+			platform: runtime.GOOS,
+
 			UDPTimeOut: datakit.Duration{Duration: time.Second * 10},
 			TCPTimeOut: datakit.Duration{Duration: time.Second * 10},
 		}
 	})
-}
-
-func (i *Input) CollectTCP(destHost string, destPort string) error {
-	t := &TCPTask{}
-	t.Host = destHost
-	t.Port = destPort
-	t.timeout = i.TCPTimeOut.Duration
-	if err := i.runTCP(t); err != nil {
-		return err
-	}
-	return nil
 }

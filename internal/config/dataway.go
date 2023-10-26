@@ -32,6 +32,12 @@ func (c *Config) SetupDataway() error {
 
 	c.Dataway.Hostname = c.Hostname
 
+	if c.ProtectMode && c.Dataway.MaxRawBodySize < dataway.MinimalRawBodySize {
+		l.Infof("under protect mode, max-raw-body-size(%d) too small, reset to %d",
+			c.Dataway.MaxRawBodySize, dataway.MinimalRawBodySize)
+		c.Dataway.MaxRawBodySize = dataway.MinimalRawBodySize
+	}
+
 	l.Infof("setup dataway with global host tags %q, election tags %q",
 		c.GlobalHostTags, c.Election.Tags)
 

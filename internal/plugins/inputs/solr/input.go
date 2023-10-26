@@ -21,7 +21,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -107,28 +106,28 @@ type Input struct {
 
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
-	Tagger  dkpt.GlobalTagger
+	Tagger  datakit.GlobalTagger
 }
 
-func (i *Input) ElectionEnabled() bool {
-	return i.Election
+func (ipt *Input) ElectionEnabled() bool {
+	return ipt.Election
 }
 
-func (i *Input) appendM(p *point.Point) {
-	i.m.Lock()
-	i.collectCache = append(i.collectCache, p)
-	i.m.Unlock()
+func (ipt *Input) appendM(p *point.Point) {
+	ipt.m.Lock()
+	ipt.collectCache = append(ipt.collectCache, p)
+	ipt.m.Unlock()
 }
 
-func (i *Input) Catalog() string {
+func (*Input) Catalog() string {
 	return "db"
 }
 
-func (i *Input) SampleConfig() string {
+func (*Input) SampleConfig() string {
 	return sampleConfig
 }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&SolrCache{},
 		&SolrRequestTimes{},
@@ -136,27 +135,27 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func (i *Input) RunPipeline() {
-	if i.Log == nil || len(i.Log.Files) == 0 {
+func (ipt *Input) RunPipeline() {
+	if ipt.Log == nil || len(ipt.Log.Files) == 0 {
 		return
 	}
 
 	opt := &tailer.Option{
 		Source:            inputName,
 		Service:           inputName,
-		Pipeline:          i.Log.Pipeline,
-		GlobalTags:        i.Tags,
-		IgnoreStatus:      i.Log.IgnoreStatus,
-		CharacterEncoding: i.Log.CharacterEncoding,
-		MultilinePatterns: []string{i.Log.MultilineMatch},
-		Done:              i.semStop.Wait(),
+		Pipeline:          ipt.Log.Pipeline,
+		GlobalTags:        ipt.Tags,
+		IgnoreStatus:      ipt.Log.IgnoreStatus,
+		CharacterEncoding: ipt.Log.CharacterEncoding,
+		MultilinePatterns: []string{ipt.Log.MultilineMatch},
+		Done:              ipt.semStop.Wait(),
 	}
 
 	var err error
-	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
+	ipt.tail, err = tailer.NewTailer(ipt.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
-		i.feeder.FeedLastError(err.Error(),
+		ipt.feeder.FeedLastError(err.Error(),
 			dkio.WithLastErrorInput(inputName),
 		)
 		return
@@ -164,7 +163,7 @@ func (i *Input) RunPipeline() {
 
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_solr"})
 	g.Go(func(ctx context.Context) error {
-		i.tail.Start()
+		ipt.tail.Start()
 		return nil
 	})
 }
@@ -176,7 +175,7 @@ func (*Input) PipelineConfig() map[string]string {
 	return pipelineMap
 }
 
-func (i *Input) LogExamples() map[string]map[string]string {
+func (ipt *Input) LogExamples() map[string]map[string]string {
 	return map[string]map[string]string{
 		inputName: {
 			"Solr log": `2013-10-01 12:33:08.319 INFO (org.apache.solr.core.SolrCore) [collection1] webapp.reporter`,
@@ -184,14 +183,14 @@ func (i *Input) LogExamples() map[string]map[string]string {
 	}
 }
 
-func (i *Input) GetPipeline() []*tailer.Option {
+func (ipt *Input) GetPipeline() []*tailer.Option {
 	return []*tailer.Option{
 		{
 			Source:  inputName,
 			Service: inputName,
 			Pipeline: func() string {
-				if i.Log != nil {
-					return i.Log.Pipeline
+				if ipt.Log != nil {
+					return ipt.Log.Pipeline
 				}
 				return ""
 			}(),
@@ -199,84 +198,87 @@ func (i *Input) GetPipeline() []*tailer.Option {
 	}
 }
 
-func (i *Input) AvailableArchs() []string {
+func (ipt *Input) AvailableArchs() []string {
 	return datakit.AllOSWithElection
 }
 
-func (i *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("solr input started")
-	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
+	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 
-	tick := time.NewTicker(i.Interval.Duration)
+	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			i.exit()
+			ipt.exit()
 			l.Infof("solr input exit")
 			return
 
-		case <-i.semStop.Wait():
-			i.exit()
+		case <-ipt.semStop.Wait():
+			ipt.exit()
 			l.Infof("solr input return")
 			return
 
 		case <-tick.C:
-			if i.pause {
+			if ipt.pause {
 				l.Debugf("not leader, skipped")
 				continue
 			}
 			start := time.Now()
-			if err := i.Collect(); err == nil {
-				if err := i.feeder.Feed(inputName, point.Metric, i.collectCache,
-					&dkio.Option{CollectCost: time.Since((start))}); err != nil {
-					i.logError(err)
-					i.feeder.FeedLastError(err.Error(), dkio.WithLastErrorInput(inputName))
+			if err := ipt.Collect(); err == nil {
+				if err := ipt.feeder.Feed(
+					inputName,
+					point.Metric,
+					ipt.collectCache,
+					&dkio.Option{CollectCost: time.Since((start))},
+				); err != nil {
+					ipt.logError(err)
 				}
 			} else {
-				i.logError(err)
-				i.feeder.FeedLastError(err.Error(), dkio.WithLastErrorInput(inputName))
+				ipt.logError(err)
 			}
-			i.collectCache = make([]*point.Point, 0)
+			ipt.collectCache = make([]*point.Point, 0)
 
-		case i.pause = <-i.pauseCh:
+		case ipt.pause = <-ipt.pauseCh:
 			// nil
 		}
 	}
 }
 
-func (i *Input) exit() {
-	if i.tail != nil {
-		i.tail.Close()
+func (ipt *Input) exit() {
+	if ipt.tail != nil {
+		ipt.tail.Close()
 		l.Info("solr log exit")
 	}
 }
 
-func (i *Input) Terminate() {
-	if i.semStop != nil {
-		i.semStop.Close()
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
 	}
 }
 
-func (i *Input) Collect() error {
-	i.collectCache = make([]*point.Point, 0)
-	if i.client == nil {
-		i.client = createHTTPClient(i.HTTPTimeout)
+func (ipt *Input) Collect() error {
+	ipt.collectCache = make([]*point.Point, 0)
+	if ipt.client == nil {
+		ipt.client = createHTTPClient(ipt.HTTPTimeout)
 	}
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_solr"})
-	for _, s := range i.Servers {
+	for _, s := range ipt.Servers {
 		func(s string) {
 			g.Go(func(ctx context.Context) error {
 				ts := time.Now()
 				resp := Response{}
-				if err := i.gatherData(i, URLAll(s), &resp); err != nil {
-					return err
+				if err := ipt.gatherData(ipt, URLAll(s), &resp); err != nil {
+					ipt.logError(err)
+					return nil
 				}
 				for gKey, gValue := range resp.Metrics {
 					// common tags
 					commTag := map[string]string{}
-					for kTag, vTag := range i.Tags { // user-defined
+					for kTag, vTag := range ipt.Tags { // user-defined
 						commTag[kTag] = vTag
 					}
 					keySplit := strings.Split(gKey, ".")
@@ -298,20 +300,20 @@ func (i *Input) Collect() error {
 					for k, v := range gValue {
 						switch whichMesaurement(k) {
 						case "cache":
-							i.logError(i.gatherSolrCache(k, s, v, commTag, ts))
+							ipt.logError(ipt.gatherSolrCache(k, s, v, commTag, ts))
 						case "requesttimes":
-							i.logError(i.gatherSolrRequestTimes(k, s, v, commTag, ts))
+							ipt.logError(ipt.gatherSolrRequestTimes(k, s, v, commTag, ts))
 						case "searcher":
-							i.logError(i.gatherSolrSearcher(k, v, fieldSearcher))
+							ipt.logError(ipt.gatherSolrSearcher(k, v, fieldSearcher))
 						default:
 							continue
 						}
 					}
 
-					if i.Election {
-						tagsSearcher = inputs.MergeTags(i.Tagger.ElectionTags(), tagsSearcher, s)
+					if ipt.Election {
+						tagsSearcher = inputs.MergeTags(ipt.Tagger.ElectionTags(), tagsSearcher, s)
 					} else {
-						tagsSearcher = inputs.MergeTags(i.Tagger.HostTags(), tagsSearcher, s)
+						tagsSearcher = inputs.MergeTags(ipt.Tagger.HostTags(), tagsSearcher, s)
 					}
 
 					// append searcher stats
@@ -322,7 +324,7 @@ func (i *Input) Collect() error {
 							name:   metricNameSearcher,
 							ts:     ts,
 						}
-						i.appendM(metric.Point())
+						ipt.appendM(metric.Point())
 					}
 				}
 				return nil
@@ -333,31 +335,31 @@ func (i *Input) Collect() error {
 	return g.Wait()
 }
 
-func (i *Input) logError(err error) {
+func (ipt *Input) logError(err error) {
 	if err != nil {
 		l.Error(err)
-		i.feeder.FeedLastError(err.Error(),
+		ipt.feeder.FeedLastError(err.Error(),
 			dkio.WithLastErrorInput(inputName),
 		)
 	}
 }
 
-func (i *Input) Pause() error {
+func (ipt *Input) Pause() error {
 	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	defer tick.Stop()
 	select {
-	case i.pauseCh <- true:
+	case ipt.pauseCh <- true:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("pause %s failed", inputName)
 	}
 }
 
-func (i *Input) Resume() error {
+func (ipt *Input) Resume() error {
 	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	defer tick.Stop()
 	select {
-	case i.pauseCh <- false:
+	case ipt.pauseCh <- false:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
@@ -374,7 +376,7 @@ func defaultInput() *Input {
 
 		semStop: cliutils.NewSem(),
 		feeder:  dkio.DefaultFeeder(),
-		Tagger:  dkpt.DefaultGlobalTagger(),
+		Tagger:  datakit.DefaultGlobalTagger(),
 	}
 }
 

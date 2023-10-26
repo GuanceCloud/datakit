@@ -6,8 +6,7 @@
 package httpapi
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ip2isp"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput/funcs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 )
 
 func geoTags(srcip string) (tags map[string]string) {
@@ -24,7 +23,7 @@ func geoTags(srcip string) (tags map[string]string) {
 		return
 	}
 
-	ipInfo, err := funcs.Geo(srcip)
+	ipInfo, err := plval.Geo(srcip)
 
 	l.Debugf("ipinfo(%s): %+#v", srcip, ipInfo)
 
@@ -66,7 +65,7 @@ func geoTags(srcip string) (tags map[string]string) {
 		tags["ip"] = srcip
 	}
 
-	if isp := ip2isp.SearchISP(srcip); len(isp) > 0 {
+	if isp := plval.SearchISP(srcip); len(isp) > 0 {
 		tags["isp"] = isp
 	}
 

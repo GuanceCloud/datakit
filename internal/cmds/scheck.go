@@ -7,7 +7,7 @@ package cmds
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os/exec"
 	"runtime"
@@ -59,7 +59,7 @@ func installScheck() error {
 	cp.Infof("Download install script successfully.\n")
 
 	defer resp.Body.Close() //nolint:errcheck
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("read response body %w", err)
 	}

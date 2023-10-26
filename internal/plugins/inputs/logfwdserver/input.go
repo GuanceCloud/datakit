@@ -20,11 +20,11 @@ import (
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/network/ws"
+	"github.com/GuanceCloud/cliutils/point"
 	gws "github.com/gobwas/ws"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -48,6 +48,9 @@ type Input struct {
 
 	srv     *ws.Server
 	semStop *cliutils.Sem // start stop signal
+
+	feeder dkio.Feeder
+	Tagger datakit.GlobalTagger
 }
 
 var (
@@ -158,13 +161,23 @@ func (ipt *Input) setup() bool {
 		if tags["pod_name"] != "" {
 			name += fmt.Sprintf("(podname:%s)", tags["pod_name"])
 		}
-		if pts := makePts(msg.Source, []string{msg.Log}, tags); len(pts) > 0 {
-			if err := io.Feed(name, datakit.Logging, pts, &io.Option{
+
+		pts := makePts(msg.Source, []string{msg.Log}, tags)
+		if len(pts) == 0 {
+			return nil
+		}
+
+		err := ipt.feeder.Feed(
+			name,
+			point.Logging,
+			pts,
+			&dkio.Option{
 				PlScript: map[string]string{msg.Source: msg.Pipeline},
-			}); err != nil {
-				l.Errorf("logfwd failed to feed log, pod_name:%s filename:%s, err: %w", tags["pod_name"], tags["filename"], err)
-				return err
-			}
+			},
+		)
+		if err != nil {
+			l.Errorf("logfwd failed to feed log, pod_name:%s filename:%s, err: %w", tags["pod_name"], tags["filename"], err)
+			return err
 		}
 
 		return nil
@@ -187,30 +200,39 @@ func (ipt *Input) setup() bool {
 }
 
 func makePts(source string, cnt []string, tags map[string]string) []*point.Point {
-	ret := []*point.Point{}
+	pts := []*point.Point{}
 
+	now := time.Now()
 	for _, cnt := range cnt {
-		pt, err := point.NewPoint(source,
-			tags,
-			map[string]interface{}{
-				pipeline.FieldMessage: cnt,
-				pipeline.FieldStatus:  pipeline.DefaultStatus,
-			},
-			point.LOpt())
-		if err != nil {
-			l.Error(err)
-			continue
+		opts := point.DefaultLoggingOptions()
+		opts = append(opts, point.WithTime(now))
+
+		fields := map[string]interface{}{
+			pipeline.FieldMessage: cnt,
+			pipeline.FieldStatus:  pipeline.DefaultStatus,
 		}
-		ret = append(ret, pt)
+
+		pt := point.NewPointV2(
+			source,
+			append(point.NewTags(tags), point.NewKVs(fields)...),
+			opts...,
+		)
+		pts = append(pts, pt)
 	}
-	return ret
+	return pts
+}
+
+func defaultInput() *Input {
+	return &Input{
+		Tags:    make(map[string]string),
+		semStop: cliutils.NewSem(),
+		feeder:  dkio.DefaultFeeder(),
+		Tagger:  datakit.DefaultGlobalTagger(),
+	}
 }
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{
-			Tags:    make(map[string]string),
-			semStop: cliutils.NewSem(),
-		}
+		return defaultInput()
 	})
 }

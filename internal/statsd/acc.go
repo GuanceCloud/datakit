@@ -6,14 +6,12 @@
 package statsd
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -29,14 +27,9 @@ func (m *statsdMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (m *statsdMeasurement) LineProto() (*dkpt.Point, error) {
-	// return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOpt())
-	return nil, fmt.Errorf("not implement")
 }
 
 func (m *statsdMeasurement) Info() *inputs.MeasurementInfo {

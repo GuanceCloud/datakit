@@ -8,7 +8,7 @@ package dk
 import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 
 //nolint:lll
-func (i *Input) Dashboard(lang inputs.I18n) map[string]string {
+func (ipt *Input) Dashboard(lang inputs.I18n) map[string]string {
 	switch lang {
 	case inputs.I18nZh:
 		return map[string]string{
@@ -120,6 +120,6 @@ func (i *Input) Dashboard(lang inputs.I18n) map[string]string {
 	}
 }
 
-func (i *Input) DashboardList() []string {
+func (ipt *Input) DashboardList() []string {
 	return nil
 }

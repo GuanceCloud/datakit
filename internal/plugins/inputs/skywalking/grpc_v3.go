@@ -23,9 +23,7 @@ import (
 	loggingv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/logging/v3"
 	mgmtv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/management/v3"
 	mgmtv3old "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/management/v3/compat"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"google.golang.org/grpc"
@@ -51,7 +49,7 @@ func runGRPCV3(ipt *Input) {
 	agentv3.RegisterTraceSegmentReportServiceServer(skySvr, &TraceReportServerV3{})
 	eventv3.RegisterEventServiceServer(skySvr, &EventServerV3{})
 	agentv3.RegisterJVMMetricReportServiceServer(skySvr, &JVMMetricReportServerV3{ipt: ipt})
-	loggingv3.RegisterLogReportServiceServer(skySvr, &LoggingServerV3{})
+	loggingv3.RegisterLogReportServiceServer(skySvr, &LoggingServerV3{Ipt: ipt})
 	profilev3.RegisterProfileTaskServer(skySvr, &ProfileTaskServerV3{})
 	mgmtv3.RegisterManagementServiceServer(skySvr, &ManagementServerV3{})
 	configv3.RegisterConfigurationDiscoveryServiceServer(skySvr, &DiscoveryServerV3{})
@@ -331,9 +329,10 @@ func (r *JVMMetricReportServerV3) Collect(ctx context.Context, jvm *agentv3.JVMM
 
 type LoggingServerV3 struct {
 	loggingv3.UnsafeLogReportServiceServer
+	Ipt *Input
 }
 
-func (*LoggingServerV3) Collect(server loggingv3.LogReportService_CollectServer) error {
+func (ls *LoggingServerV3) Collect(server loggingv3.LogReportService_CollectServer) error {
 	for {
 		logData, err := server.Recv()
 		if err != nil {
@@ -349,7 +348,7 @@ func (*LoggingServerV3) Collect(server loggingv3.LogReportService_CollectServer)
 		if pt, err := processLogV3(logData); err != nil {
 			log.Error(err.Error())
 		} else {
-			if err = dkio.Feed(logData.Service, datakit.Logging, []*dkpt.Point{pt}, nil); err != nil {
+			if err = ls.Ipt.feeder.Feed(logData.Service, point.Logging, []*point.Point{pt}, nil); err != nil {
 				log.Error(err.Error())
 			}
 		}

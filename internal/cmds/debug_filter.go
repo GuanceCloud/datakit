@@ -8,16 +8,13 @@ package cmds
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"time"
 
 	fp "github.com/GuanceCloud/cliutils/filter"
 	"github.com/GuanceCloud/cliutils/point"
-	"github.com/influxdata/influxdb1-client/models"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 // https://stackoverflow.com/questions/7427262/how-to-read-a-file-into-a-variable-in-shell
@@ -31,7 +28,7 @@ func readFileOrData(s []byte) []byte {
 			return s
 		}
 
-		if data, err := ioutil.ReadFile(string(s)); err != nil {
+		if data, err := os.ReadFile(string(s)); err != nil {
 			return s
 		} else {
 			return data
@@ -52,7 +49,9 @@ func debugFilter(filterConf, data []byte) error {
 		return fmt.Errorf("invalid filter rule(json required): %w", err)
 	}
 
-	pts, err := models.ParsePointsWithPrecision(readFileOrData(data), time.Now(), "n")
+	dec := point.GetDecoder(point.WithDecEncoding(point.LineProtocol))
+	defer point.PutDecoder(dec)
+	pts, err := dec.Decode(readFileOrData(data))
 	if err != nil {
 		cp.Errorf("ParsePoints: %s\n", err.Error())
 		return err
@@ -67,11 +66,7 @@ func debugFilter(filterConf, data []byte) error {
 
 		var tfdatas []*filter.TFData
 		for _, pt := range pts {
-			tfdata := filter.NewTFData(
-				point.CatString(k),
-				&dkpt.Point{
-					Point: point.FromModelsLP(pt).LPPoint(),
-				})
+			tfdata := filter.NewTFData(point.CatString(k), pt)
 			if err != nil {
 				return err
 			}
@@ -82,7 +77,7 @@ func debugFilter(filterConf, data []byte) error {
 		for i, tfdata := range tfdatas {
 			if j := conds.Eval(tfdata); j >= 0 {
 				cp.Infof("Dropped\n\n")
-				cp.Output("\t%s\n\n", pts[i].String())
+				cp.Output("\t%s\n\n", pts[i].LineProto())
 				cp.Infof("By %dth rule(cost %s) from category %q:\n\n", j+1, time.Since(start), point.CatString(k))
 				cp.Output("\t%+s\n", v[j])
 			}

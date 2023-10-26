@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
 
@@ -249,8 +248,6 @@ func queryPodFromMetricsServer(ctx context.Context, client k8sClient, item *apic
 
 type podMetric struct{}
 
-func (*podMetric) LineProto() (*dkpt.Point, error) { return nil, nil }
-
 //nolint:lll
 func (*podMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
@@ -282,8 +279,6 @@ func (*podMetric) Info() *inputs.MeasurementInfo {
 }
 
 type podObject struct{}
-
-func (*podObject) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*podObject) Info() *inputs.MeasurementInfo {

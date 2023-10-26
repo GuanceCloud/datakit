@@ -9,7 +9,6 @@ import (
 	"regexp"
 
 	"github.com/shirou/gopsutil/disk"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 type DiskIO func(names ...string) (map[string]disk.IOCountersStat, error)
@@ -37,40 +36,4 @@ func (f *DevicesFilter) Match(s string) bool {
 		}
 	}
 	return false
-}
-
-func newFieldsInfoMS(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		Type:     inputs.Gauge,
-		DataType: inputs.Int,
-		Unit:     inputs.DurationMS,
-		Desc:     desc,
-	}
-}
-
-func newFieldsInfoBytes(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		Type:     inputs.Gauge,
-		DataType: inputs.Int,
-		Unit:     inputs.SizeByte,
-		Desc:     desc,
-	}
-}
-
-func newFieldsInfoBytesPerSec(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		Type:     inputs.Gauge,
-		DataType: inputs.Int,
-		Unit:     inputs.BytesPerSec,
-		Desc:     desc,
-	}
-}
-
-func newFieldsInfoCount(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		Type:     inputs.Gauge,
-		DataType: inputs.Int,
-		Unit:     inputs.NCount,
-		Desc:     desc,
-	}
 }

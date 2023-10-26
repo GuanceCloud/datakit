@@ -6,11 +6,9 @@
 package db2
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -49,13 +47,9 @@ func (m *instanceMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (m *instanceMeasurement) LineProto() (*dkpt.Point, error) {
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -83,13 +77,9 @@ func (m *databaseMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (m *databaseMeasurement) LineProto() (*dkpt.Point, error) {
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -131,13 +121,9 @@ func (m *bufferPoolMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (m *bufferPoolMeasurement) LineProto() (*dkpt.Point, error) {
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -185,13 +171,9 @@ func (m *tableSpaceMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (m *tableSpaceMeasurement) LineProto() (*dkpt.Point, error) {
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -223,13 +205,9 @@ func (m *transactionLogMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (m *transactionLogMeasurement) LineProto() (*dkpt.Point, error) {
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll

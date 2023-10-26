@@ -213,9 +213,7 @@ func Lex(input string) *Lexer {
 	return l
 }
 
-//
 // Lexer entry.
-//
 func lexStatements(l *Lexer) stateFn {
 	if strings.HasPrefix(l.input[l.pos:], lineComment) {
 		return lexLineComment
@@ -527,9 +525,7 @@ __goon:
 	return lexStatements
 }
 
-//
 // lexer tool functions.
-//
 func (l *Lexer) next() rune {
 	if int(l.pos) >= len(l.input) {
 		l.width = 0
@@ -648,9 +644,7 @@ func acceptRemainDuration(l *Lexer) bool {
 	return !isAlphaNumeric(l.next())
 }
 
-//
 // helpers.
-//
 func isAlphaNumeric(r rune) bool { return isAlpha(r) || isDigit(r) }
 func isAlpha(r rune) bool        { return r == '_' || ('a' <= r && r <= 'z') || ('A' <= r && r <= 'Z') }
 func isDigit(r rune) bool        { return '0' <= r && r <= '9' }

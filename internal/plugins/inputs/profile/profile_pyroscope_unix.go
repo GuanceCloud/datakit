@@ -606,8 +606,8 @@ func (report *pyroscopeDatakitReport) Put(ctx context.Context, putInput *storage
 			profiledatas:    profiledatas,
 			endPoint:        report.endPoint,
 			inputTags:       report.inputTags,
-			election:        false,
 			inputNameSuffix: "/pyroscope/" + spyName,
+			Input:           report.pyrs.input,
 		},
 		event,
 	); err != nil {

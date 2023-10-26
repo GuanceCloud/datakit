@@ -41,39 +41,39 @@ type kafkalog struct {
 	MultilineMatch    string   `toml:"multiline_match"`
 }
 
-func (i *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 
-	if i.Interval == "" { //nolint:typecheck
-		i.JolokiaAgent.Interval = defaultInterval
+	if ipt.Interval == "" { //nolint:typecheck
+		ipt.JolokiaAgent.Interval = defaultInterval
 	}
 
-	i.JolokiaAgent.L = l
-	i.JolokiaAgent.PluginName = inputName
-	i.JolokiaAgent.Tags = i.Tags
-	i.JolokiaAgent.Types = KafkaTypeMap
+	ipt.JolokiaAgent.L = l
+	ipt.JolokiaAgent.PluginName = inputName
+	ipt.JolokiaAgent.Tags = ipt.Tags
+	ipt.JolokiaAgent.Types = KafkaTypeMap
 
-	i.JolokiaAgent.Collect()
+	ipt.JolokiaAgent.Collect()
 }
 
-func (i *Input) RunPipeline() {
-	if i.Log == nil || len(i.Log.Files) == 0 {
+func (ipt *Input) RunPipeline() {
+	if ipt.Log == nil || len(ipt.Log.Files) == 0 {
 		return
 	}
 
 	opt := &tailer.Option{
 		Source:            inputName,
 		Service:           inputName,
-		Pipeline:          i.Log.Pipeline,
-		GlobalTags:        i.Tags,
-		IgnoreStatus:      i.Log.IgnoreStatus,
-		CharacterEncoding: i.Log.CharacterEncoding,
-		MultilinePatterns: []string{i.Log.MultilineMatch},
-		Done:              i.SemStop.Wait(), // nolint:typecheck
+		Pipeline:          ipt.Log.Pipeline,
+		GlobalTags:        ipt.Tags,
+		IgnoreStatus:      ipt.Log.IgnoreStatus,
+		CharacterEncoding: ipt.Log.CharacterEncoding,
+		MultilinePatterns: []string{ipt.Log.MultilineMatch},
+		Done:              ipt.SemStop.Wait(), // nolint:typecheck
 	}
 
 	var err error
-	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
+	ipt.tail, err = tailer.NewTailer(ipt.Log.Files, opt)
 	if err != nil {
 		l.Errorf("NewTailer: %s", err)
 		io.FeedLastError(inputName, err.Error())
@@ -82,7 +82,7 @@ func (i *Input) RunPipeline() {
 
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_kafka"})
 	g.Go(func(ctx context.Context) error {
-		i.tail.Start()
+		ipt.tail.Start()
 		return nil
 	})
 }
@@ -95,7 +95,7 @@ func (*Input) PipelineConfig() map[string]string {
 }
 
 //nolint:lll
-func (i *Input) LogExamples() map[string]map[string]string {
+func (ipt *Input) LogExamples() map[string]map[string]string {
 	return map[string]map[string]string{
 		inputName: {
 			"Kafka log": `[2020-07-07 15:04:29,333] DEBUG Progress event: HTTP_REQUEST_COMPLETED_EVENT, bytes: 0 (io.confluent.connect.s3.storage.S3OutputStream:286)`,
@@ -103,14 +103,14 @@ func (i *Input) LogExamples() map[string]map[string]string {
 	}
 }
 
-func (i *Input) GetPipeline() []*tailer.Option {
+func (ipt *Input) GetPipeline() []*tailer.Option {
 	return []*tailer.Option{
 		{
 			Source:  inputName,
 			Service: inputName,
 			Pipeline: func() string {
-				if i.Log != nil {
-					return i.Log.Pipeline
+				if ipt.Log != nil {
+					return ipt.Log.Pipeline
 				}
 				return ""
 			}(),

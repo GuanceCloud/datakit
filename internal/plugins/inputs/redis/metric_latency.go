@@ -11,10 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -25,10 +23,6 @@ type latencyMeasurement struct {
 	resData  map[string]interface{}
 	ts       time.Time
 	election bool
-}
-
-func (m *latencyMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
 }
 
 func (m *latencyMeasurement) Info() *inputs.MeasurementInfo {
@@ -71,9 +65,9 @@ func (m *latencyMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 // GetLatencyData 解析数据并返回指定的数据.
-func (i *Input) GetLatencyData() error {
+func (ipt *Input) GetLatencyData() error {
 	ctx := context.Background()
-	list := i.client.Do(ctx, "latency", "latest").String()
+	list := ipt.client.Do(ctx, "latency", "latest").String()
 
 	// [latency latest:  command 1640151523 324 1000] ]]
 	part := strings.Split(list, "[[")
@@ -100,10 +94,10 @@ func (i *Input) GetLatencyData() error {
 		tags:     make(map[string]string),
 		fields:   make(map[string]interface{}),
 		resData:  make(map[string]interface{}),
-		election: i.Election,
+		election: ipt.Election,
 	}
-	m.tags["server_addr"] = i.Addr
-	setHostTagIfNotLoopback(m.tags, i.Host)
+	m.tags["server_addr"] = ipt.Addr
+	setHostTagIfNotLoopback(m.tags, ipt.Host)
 	var pts []*point.Point
 	for index, info := range fieldName {
 		m.fields[info] = finalPart[index]
@@ -115,22 +109,21 @@ func (i *Input) GetLatencyData() error {
 	}
 	m.ts = time.Unix(startTime, 0)
 
-	pt, err := point.NewPoint(redisLatency, m.tags, m.fields,
-		&point.PointOption{Time: m.ts, Category: datakit.Logging, Strict: true})
-	if err != nil {
-		l.Warnf("make metric failed: %s", err.Error)
-		return err
-	}
+	opts := point.DefaultLoggingOptions()
+	opts = append(opts, point.WithTime(m.ts))
+	pt := point.NewPointV2(redisLatency,
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
 
-	if m.ts == i.latencyLastTime {
+	if m.ts == ipt.latencyLastTime {
 		return nil
 	}
 
 	pts = append(pts, pt)
-	err = io.Feed(m.name, datakit.Logging, pts, &io.Option{})
+	err = ipt.feeder.Feed(m.name, point.Logging, pts, &io.Option{})
 	if err != nil {
 		return err
 	}
-	i.latencyLastTime = m.ts
+	ipt.latencyLastTime = m.ts
 	return nil
 }

@@ -436,13 +436,13 @@ type caseSpec struct {
 
 func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 	for _, pt := range pts {
-		measurement := string(pt.Name())
+		measurement := pt.Name()
 		opts := []inputs.PointCheckOption{}
 
 		switch measurement {
 		case "coredns_acl":
 			opts = append(opts, cs.optsACL...)
-			opts = append(opts, inputs.WithDoc(&ACLMeasurement{}))
+			opts = append(opts, inputs.WithDoc(&aCLMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
 
@@ -457,7 +457,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			cs.mCount[measurement] = struct{}{}
 		case "coredns_cache":
 			opts = append(opts, cs.optsCache...)
-			opts = append(opts, inputs.WithDoc(&CacheMeasurement{}))
+			opts = append(opts, inputs.WithDoc(&cacheMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
 
@@ -472,7 +472,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			cs.mCount[measurement] = struct{}{}
 		case "coredns_dnssec":
 			opts = append(opts, cs.optsDNSSec...)
-			opts = append(opts, inputs.WithDoc(&DNSSecMeasurement{}))
+			opts = append(opts, inputs.WithDoc(&dnsSecMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
 
@@ -487,7 +487,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			cs.mCount[measurement] = struct{}{}
 		case "coredns_forward":
 			opts = append(opts, cs.optsForward...)
-			opts = append(opts, inputs.WithDoc(&ForwardMeasurement{}))
+			opts = append(opts, inputs.WithDoc(&forwardMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
 
@@ -502,7 +502,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			cs.mCount[measurement] = struct{}{}
 		case "coredns_grpc":
 			opts = append(opts, cs.optsGrpc...)
-			opts = append(opts, inputs.WithDoc(&GrpcMeasurement{}))
+			opts = append(opts, inputs.WithDoc(&grpcMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
 
@@ -517,7 +517,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			cs.mCount[measurement] = struct{}{}
 		case "coredns_hosts":
 			opts = append(opts, cs.optsHosts...)
-			opts = append(opts, inputs.WithDoc(&HostsMeasurement{}))
+			opts = append(opts, inputs.WithDoc(&hostsMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
 
@@ -532,7 +532,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			cs.mCount[measurement] = struct{}{}
 		case "coredns_template":
 			opts = append(opts, cs.optsTemplate...)
-			opts = append(opts, inputs.WithDoc(&TemplateMeasurement{}))
+			opts = append(opts, inputs.WithDoc(&templateMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
 
@@ -547,7 +547,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			cs.mCount[measurement] = struct{}{}
 		case "coredns":
 			opts = append(opts, cs.optsProm...)
-			opts = append(opts, inputs.WithDoc(&PromMeasurement{}))
+			opts = append(opts, inputs.WithDoc(&promMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
 
@@ -571,8 +571,8 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 
 			tags := pt.Tags()
 			for k, expect := range cs.ipt.Tags {
-				if v := tags.Get([]byte(k)); v != nil {
-					got := string(v.GetD())
+				if v := tags.Get(k); v != nil {
+					got := v.GetS()
 					if got != expect {
 						return fmt.Errorf("expect tag value %s, got %s", expect, got)
 					}

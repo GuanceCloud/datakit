@@ -14,7 +14,9 @@ import (
 )
 
 var (
-	normal = regexp.MustCompile(`%{(\w+(?::\w+(?::\w+)?)?)}`)
+	valid    = regexp.MustCompile(`^\w+([-.]\w+)*(:([-.\w]+)(:(string|float|int))?)?$`)
+	normal   = regexp.MustCompile(`%{([\w-.]+(?::[\w-.]+(?::[\w-.]+)?)?)}`)
+	symbolic = regexp.MustCompile(`\W`)
 )
 
 // A Config structure is used to configure a Grok parser.
@@ -31,6 +33,7 @@ type Config struct {
 type Grok struct {
 	rawPattern       map[string]string
 	config           *Config
+	aliases          map[string]string
 	compiledPatterns map[string]*gRegexp
 	patterns         map[string]*gPattern
 	patternsGuard    *sync.RWMutex
@@ -59,6 +62,7 @@ func New() (*Grok, error) {
 func NewWithConfig(config *Config) (*Grok, error) {
 	g := &Grok{
 		config:           config,
+		aliases:          map[string]string{},
 		compiledPatterns: map[string]*gRegexp{},
 		patterns:         map[string]*gPattern{},
 		rawPattern:       map[string]string{},
@@ -67,7 +71,10 @@ func NewWithConfig(config *Config) (*Grok, error) {
 	}
 
 	if !config.SkipDefaultPatterns {
-		g.AddPatternsFromMap(patterns)
+		err := g.AddPatternsFromMap(patterns)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if len(config.PatternsDir) > 0 {
@@ -104,8 +111,7 @@ func (g *Grok) AddPattern(name, pattern string) error {
 	defer g.patternsGuard.Unlock()
 
 	g.rawPattern[name] = pattern
-	g.buildPatterns()
-	return nil
+	return g.buildPatterns()
 }
 
 // AddPatternsFromMap loads a map of named patterns
@@ -126,6 +132,9 @@ func (g *Grok) addPatternsFromMap(m map[string]string) error {
 	for k, v := range m {
 		keys := []string{}
 		for _, key := range normal.FindAllStringSubmatch(v, -1) {
+			if !valid.MatchString(key[1]) {
+				return fmt.Errorf("invalid pattern %%{%s}", key[1])
+			}
 			names := strings.Split(key[1], ":")
 			syntax := names[0]
 			if g.patterns[syntax] == nil {
@@ -139,7 +148,10 @@ func (g *Grok) addPatternsFromMap(m map[string]string) error {
 	}
 	order, _ := sortGraph(patternDeps)
 	for _, key := range reverseList(order) {
-		g.addPattern(key, m[key])
+		err := g.addPattern(key, m[key])
+		if err != nil {
+			return fmt.Errorf("cannot add pattern %q: %v", key, err)
+		}
 	}
 
 	return nil
@@ -206,6 +218,7 @@ func (g *Grok) compiledParse(gr *gRegexp, text string) (map[string]string, error
 				if g.config.RemoveEmptyValues && match[i] == "" {
 					continue
 				}
+				name = g.nameToAlias(name)
 				captures[name] = match[i]
 			}
 		}
@@ -224,7 +237,7 @@ func (g *Grok) Parse(pattern, text string) (map[string]string, error) {
 	return g.compiledParse(gr, text)
 }
 
-// ParseTyped returns a inteface{} map with typed captured fields based on provided pattern over the text
+// ParseTyped returns a interface{} map with typed captured fields based on provided pattern over the text
 func (g *Grok) ParseTyped(pattern string, text string) (map[string]interface{}, error) {
 	gr, err := g.compile(pattern)
 	if err != nil {
@@ -238,17 +251,18 @@ func (g *Grok) ParseTyped(pattern string, text string) (map[string]interface{}, 
 				if g.config.RemoveEmptyValues == true && match[i] == "" {
 					continue
 				}
-				if segmentType, ok := gr.typeInfo[segmentName]; ok {
+				name := g.nameToAlias(segmentName)
+				if segmentType, ok := gr.typeInfo[name]; ok {
 					switch segmentType {
 					case "int":
-						captures[segmentName], _ = strconv.Atoi(match[i])
+						captures[name], _ = strconv.Atoi(match[i])
 					case "float":
-						captures[segmentName], _ = strconv.ParseFloat(match[i], 64)
+						captures[name], _ = strconv.ParseFloat(match[i], 64)
 					default:
 						return nil, fmt.Errorf("ERROR the value %s cannot be converted to %s", match[i], segmentType)
 					}
 				} else {
-					captures[segmentName] = match[i]
+					captures[name] = match[i]
 				}
 			}
 
@@ -274,6 +288,7 @@ func (g *Grok) ParseToMultiMap(pattern, text string) (map[string][]string, error
 				if g.config.RemoveEmptyValues == true && match[i] == "" {
 					continue
 				}
+				name = g.nameToAlias(name)
 				captures[name] = append(captures[name], match[i])
 			}
 		}
@@ -319,11 +334,15 @@ func (g *Grok) compile(pattern string) (*gRegexp, error) {
 func (g *Grok) denormalizePattern(pattern string, storedPatterns map[string]*gPattern) (string, semanticTypes, error) {
 	ti := semanticTypes{}
 	for _, values := range normal.FindAllStringSubmatch(pattern, -1) {
+		if !valid.MatchString(values[1]) {
+			return "", ti, fmt.Errorf("invalid pattern %%{%s}", values[1])
+		}
 		names := strings.Split(values[1], ":")
 
-		syntax, semantic := names[0], names[0]
+		syntax, semantic, alias := names[0], names[0], names[0]
 		if len(names) > 1 {
 			semantic = names[1]
+			alias = g.aliasizePatternName(semantic)
 		}
 
 		// Add type cast information only if type set, and not string
@@ -341,7 +360,7 @@ func (g *Grok) denormalizePattern(pattern string, storedPatterns map[string]*gPa
 		var buffer bytes.Buffer
 		if !g.config.NamedCapturesOnly || (g.config.NamedCapturesOnly && len(names) > 1) {
 			buffer.WriteString("(?P<")
-			buffer.WriteString(semantic)
+			buffer.WriteString(alias)
 			buffer.WriteString(">")
 			buffer.WriteString(storedPattern.expression)
 			buffer.WriteString(")")
@@ -364,6 +383,20 @@ func (g *Grok) denormalizePattern(pattern string, storedPatterns map[string]*gPa
 
 	return pattern, ti, nil
 
+}
+
+func (g *Grok) aliasizePatternName(name string) string {
+	alias := symbolic.ReplaceAllString(name, "_")
+	g.aliases[alias] = name
+	return alias
+}
+
+func (g *Grok) nameToAlias(name string) string {
+	alias, ok := g.aliases[name]
+	if ok {
+		return alias
+	}
+	return name
 }
 
 // ParseStream will match the given pattern on a line by line basis from the reader

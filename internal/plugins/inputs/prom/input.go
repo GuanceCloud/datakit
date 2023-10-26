@@ -18,7 +18,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
@@ -83,7 +82,7 @@ type Input struct {
 	chPause  chan bool
 	pause    bool
 
-	Tagger dkpt.GlobalTagger
+	Tagger datakit.GlobalTagger
 
 	urls []*url.URL
 
@@ -102,8 +101,8 @@ type Input struct {
 }
 
 type urlTags []struct {
-	key   []byte
-	value []byte
+	key,
+	value string
 }
 
 func (*Input) SampleConfig() string { return sampleCfg }
@@ -113,18 +112,6 @@ func (*Input) SampleMeasurement() []inputs.Measurement { return nil }
 func (*Input) AvailableArchs() []string { return datakit.AllOSWithElection }
 
 func (*Input) Catalog() string { return catalog }
-
-func (i *Input) SetTags(m map[string]string) {
-	if i.Tags == nil {
-		i.Tags = make(map[string]string)
-	}
-
-	for k, v := range m {
-		if _, ok := i.Tags[k]; !ok {
-			i.Tags[k] = v
-		}
-	}
-}
 
 func (i *Input) ElectionEnabled() bool {
 	return i.Election
@@ -185,7 +172,7 @@ func (i *Input) collect() error {
 					for _, pt := range pts {
 						// We need to feed each point separately because
 						// each point might have different measurement name.
-						if err := i.Feeder.Feed(string(pt.Name()), point.Logging, []*point.Point{pt},
+						if err := i.Feeder.Feed(pt.Name(), point.Logging, []*point.Point{pt},
 							&io.Option{CollectCost: time.Since(i.startTime), Blocking: true}); err != nil {
 							i.Feeder.FeedLastError(err.Error(),
 								io.WithLastErrorInput(inputName),
@@ -273,7 +260,7 @@ func (i *Input) collectFormURLs() error {
 				for _, pt := range pts {
 					// We need to feed each point separately because
 					// each point might have different measurement name.
-					if err := i.Feeder.Feed(string(pt.Name()), point.Logging, []*point.Point{pt},
+					if err := i.Feeder.Feed(pt.Name(), point.Logging, []*point.Point{pt},
 						&io.Option{CollectCost: time.Since(i.startTime)}); err != nil {
 						i.Feeder.FeedLastError(err.Error(),
 							io.WithLastErrorInput(inputName),
@@ -425,9 +412,8 @@ func (i *Input) Init() error {
 		tempTags := urlTags{}
 		for k, v := range temp {
 			tempTags = append(tempTags, struct {
-				key   []byte
-				value []byte
-			}{key: []byte(k), value: []byte(v)})
+				key, value string
+			}{key: k, value: v})
 		}
 		i.urlTags[u] = tempTags
 	}
@@ -489,7 +475,7 @@ func NewProm() *Input {
 
 		semStop: cliutils.NewSem(),
 		Feeder:  io.DefaultFeeder(),
-		Tagger:  dkpt.DefaultGlobalTagger(),
+		Tagger:  datakit.DefaultGlobalTagger(),
 	}
 }
 

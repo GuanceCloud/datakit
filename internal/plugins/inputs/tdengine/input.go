@@ -15,6 +15,7 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -86,13 +87,15 @@ type Input struct {
 	Election bool `toml:"election"`
 	pauseCh  chan bool
 	semStop  *cliutils.Sem // start stop signal
+	feeder   dkio.Feeder
+	Tagger   datakit.GlobalTagger
 }
 
-func (i *Input) ElectionEnabled() bool {
-	return i.Election
+func (ipt *Input) ElectionEnabled() bool {
+	return ipt.Election
 }
 
-func (i *Input) Catalog() string {
+func (*Input) Catalog() string {
 	return "db"
 }
 
@@ -100,13 +103,13 @@ func (*Input) AvailableArchs() []string {
 	return datakit.AllOSWithElection
 }
 
-func (i *Input) SampleConfig() string {
+func (*Input) SampleConfig() string {
 	return sampleConfig
 }
 
-func (i *Input) Terminate() {
-	if i.semStop != nil {
-		i.semStop.Close()
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
 	}
 }
 
@@ -115,7 +118,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 // PipelineConfig : implement interface PipelineInput.
-func (i *Input) PipelineConfig() map[string]string {
+func (ipt *Input) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
 		inputName: pipelineCfg,
 	}
@@ -123,35 +126,35 @@ func (i *Input) PipelineConfig() map[string]string {
 	return pipelineMap
 }
 
-func (i *Input) RunPipeline() {
-	if len(i.LogFiles) == 0 {
+func (ipt *Input) RunPipeline() {
+	if len(ipt.LogFiles) == 0 {
 		return
 	}
 
 	opt := &tailer.Option{
 		Source:     inputName,
 		Service:    inputName,
-		Pipeline:   i.Pipeline,
-		GlobalTags: i.Tags,
-		Done:       i.semStop.Wait(),
+		Pipeline:   ipt.Pipeline,
+		GlobalTags: ipt.Tags,
+		Done:       ipt.semStop.Wait(),
 	}
 
 	var err error
-	i.tail, err = tailer.NewTailer(i.LogFiles, opt)
+	ipt.tail, err = tailer.NewTailer(ipt.LogFiles, opt)
 	if err != nil {
 		l.Errorf("new tailer error: %v", err)
 		return
 	}
-	l.Info("tailer start, logFile=%+v", i.LogFiles)
+	l.Info("tailer start, logFile=%+v", ipt.LogFiles)
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_tdengine"})
 	g.Go(func(ctx context.Context) error {
-		i.tail.Start()
+		ipt.tail.Start()
 		return nil
 	})
 }
 
 //nolint:lll
-func (i *Input) LogExamples() map[string]map[string]string {
+func (ipt *Input) LogExamples() map[string]map[string]string {
 	return map[string]map[string]string{
 		inputName: {
 			"tdengine log 204": `08/22 13:44:34.290731 01081508 TAOS_ADAPTER info "| 204 |    1.641678ms |     172.16.5.29 | POST | /influxdb/v1/write?db=biz_ufssescxoxnuyzeypouezr_7d " model=web sessionID=48847`,
@@ -160,64 +163,62 @@ func (i *Input) LogExamples() map[string]map[string]string {
 	}
 }
 
-func (i *Input) GetPipeline() []*tailer.Option {
+func (ipt *Input) GetPipeline() []*tailer.Option {
 	return []*tailer.Option{
 		{
 			Source:  inputName,
 			Service: inputName,
 			Pipeline: func() string {
-				return i.Pipeline
+				return ipt.Pipeline
 			}(),
 		},
 	}
 }
 
-func (i *Input) exit() {
-	i.tdengine.Stop()
-	if i.tail != nil {
+func (ipt *Input) exit() {
+	ipt.tdengine.Stop()
+	if ipt.tail != nil {
 		// stop log 采集
 		l.Info("stop tailer")
-		i.tail.Close()
+		ipt.tail.Close()
 	}
 }
 
-func (i *Input) Pause() error {
+func (ipt *Input) Pause() error {
 	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	defer tick.Stop()
 	select {
-	case i.pauseCh <- true:
+	case ipt.pauseCh <- true:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("pause %s failed", inputName)
 	}
 }
 
-func (i *Input) Resume() error {
+func (ipt *Input) Resume() error {
 	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	defer tick.Stop()
 	select {
-	case i.pauseCh <- false:
+	case ipt.pauseCh <- false:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
 	}
 }
 
-func (i *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 
-	i.tdengine = newTDEngine(i.User, i.Password, i.AdapterEndpoint, i.Election)
-
-	globalTags = i.Tags
+	ipt.tdengine = newTDEngine(ipt)
 
 	// 1 checkHealth: show databases
-	if !i.tdengine.CheckHealth(checkHealthSQL) {
+	if !ipt.tdengine.CheckHealth(checkHealthSQL) {
 		return
 	}
 
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_tdengine"})
 	g.Go(func(ctx context.Context) error {
-		i.tdengine.run()
+		ipt.tdengine.run()
 		return nil
 	})
 	l.Infof("TDEngine input started")
@@ -225,15 +226,15 @@ func (i *Input) Run() {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			i.exit()
-			l.Infof("%s exit", i.inputName)
+			ipt.exit()
+			l.Infof("%s exit", ipt.inputName)
 			return
-		case <-i.semStop.Wait():
-			i.exit()
-			l.Infof("%s return", i.inputName)
+		case <-ipt.semStop.Wait():
+			ipt.exit()
+			l.Infof("%s return", ipt.inputName)
 			return
-		case f := <-i.pauseCh:
-			i.tdengine.upstream = !f
+		case f := <-ipt.pauseCh:
+			ipt.tdengine.upstream = !f
 		}
 	}
 }
@@ -246,6 +247,8 @@ func init() { //nolint:gochecknoinits
 			Election:  true,
 			pauseCh:   make(chan bool, inputs.ElectionPauseChannelLength),
 			semStop:   cliutils.NewSem(),
+			feeder:    dkio.DefaultFeeder(),
+			Tagger:    datakit.DefaultGlobalTagger(),
 		}
 	})
 }

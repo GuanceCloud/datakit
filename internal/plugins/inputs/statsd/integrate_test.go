@@ -23,7 +23,6 @@ import (
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/require"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
@@ -328,14 +327,9 @@ func (m *jvmMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (j *jvmMeasurement) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(j.name, j.tags, j.fields, point.MOpt())
-	return nil, fmt.Errorf("not implement")
 }
 
 // From: https://docs.datadoghq.com/tracing/metrics/runtime_metrics/java/#data-collected
@@ -395,7 +389,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 		var opts []inputs.PointCheckOption
 		opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
 
-		measurement := string(pt.Name())
+		measurement := pt.Name()
 
 		switch measurement {
 		case jvmMetricName:
@@ -426,8 +420,8 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 
 			tags := pt.Tags()
 			for k, expect := range cs.ipt.Tags {
-				if v := tags.Get([]byte(k)); v != nil {
-					got := string(v.GetD())
+				if v := tags.Get(k); v != nil {
+					got := v.GetS()
 					if got != expect {
 						return fmt.Errorf("expect tag value %s, got %s", expect, got)
 					}

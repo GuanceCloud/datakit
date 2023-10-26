@@ -24,117 +24,61 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/getdatassh"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-var _ inputs.ReadEnv = (*Input)(nil)
-
 const (
+	minInterval = time.Second
+	maxInterval = time.Minute
+	inputName   = "chrony"
+	metricName  = inputName
+
 	defaultInterval = time.Second * 10
-	minInterval     = time.Second * 10
-	maxInterval     = time.Minute
 	defaultTimeout  = time.Second * 5
 	minTimeout      = time.Second * 5
 	maxTimeout      = time.Second * 30
-
-	inputName  = "chrony"
-	metricName = "chrony"
-	sampleCfg  = `
-[[inputs.chrony]]
-  ## (Optional) Collect interval, default is 30 seconds
-  # interval = "30s"
-
-  ## (Optional) Exec chronyc timeout, default is 8 seconds
-  # timeout = "8s"
-
-  ## (Optional) The binPath of chrony
-  bin_path = "chronyc"
-
-  ## (Optional) Remote chrony servers
-  ## If use remote chrony servers, election must be true
-  ## If use remote chrony servers, bin_paths should be shielded
-  # remote_addrs = ["<ip>:22"]
-  # remote_users = ["<remote_login_name>"]
-  # remote_passwords = ["<remote_login_password>"]
-  ## If use remote_rsa_path, remote_passwords should be shielded
-  # remote_rsa_paths = ["/home/<your_name>/.ssh/id_rsa"]
-  # remote_command = "chronyc -n tracking"
-
-  ## Set true to enable election
-  election = false
-
-[inputs.chrony.tags]
-  # some_tag = "some_value"
-  # more_tag = "some_other_value"`
 )
 
-var l = logger.DefaultSLogger(inputName)
+var (
+	_ inputs.ReadEnv = (*Input)(nil)
+	l                = logger.DefaultSLogger(inputName)
 
-type Input struct {
-	Interval time.Duration `toml:"interval"`
-	Timeout  time.Duration `toml:"timeout"`
-	BinPath  string        `toml:"bin_path"`
-	datakit.SSHServers
-	Tags     map[string]string
-	Election bool `toml:"election"`
+	_ inputs.ElectionInput = (*Input)(nil)
+)
 
-	collectCache []*point.Point
-	platform     string
-	feeder       io.Feeder
+type (
+	urlTags map[string]string
+	Input   struct {
+		Interval time.Duration `toml:"interval"`
+		Timeout  time.Duration `toml:"timeout"`
+		BinPath  string        `toml:"bin_path"`
+		getdatassh.SSHServers
+		Tags map[string]string
 
-	semStop *cliutils.Sem
-	pause   bool
-	pauseCh chan bool
-}
+		semStop      *cliutils.Sem
+		collectCache []*point.Point
+		platform     string
+		feeder       dkio.Feeder
+		mergedTags   map[string]urlTags
+		tagger       datakit.GlobalTagger
 
-type ChronyMeasurement struct {
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	election bool
-}
-
-// LineProto data formatting, submit through FeedMeasurement.
-func (n *ChronyMeasurement) LineProto() (*dkpt.Point, error) {
-	return dkpt.NewPoint(n.name, n.tags, n.fields, dkpt.MOptElectionV2(n.election))
-}
-
-// Info for docs and integrate testing.
-// nolint:lll
-func (n *ChronyMeasurement) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{
-		Name: metricName,
-		Fields: map[string]interface{}{
-			"system_time":     &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.TimestampSec, Desc: "This is the current offset between the NTP clock and system clock."},
-			"last_offset":     &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.TimestampSec, Desc: "This is the estimated local offset on the last clock update."},
-			"rms_offset":      &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.TimestampSec, Desc: "This is a long-term average of the offset value."},
-			"frequency":       &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.PartPerMillion, Desc: "This is the rate by which the system clock would be wrong if *chronyd* was not correcting it."},
-			"residual_freq":   &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.PartPerMillion, Desc: "This shows the residual frequency for the currently selected reference source."},
-			"skew":            &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.PartPerMillion, Desc: "This is the estimated error bound on the frequency."},
-			"root_delay":      &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.TimestampSec, Desc: "This is the total of the network path delays to the stratum-1 computer from which the computer is ultimately synchronized."},
-			"root_dispersion": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.TimestampSec, Desc: "This is the total dispersion accumulated through all the computers back to the stratum-1 computer from which the computer is ultimately synchronized."},
-			"update_interval": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.TimestampSec, Desc: "This is the interval between the last two clock updates."},
-		},
-
-		Tags: map[string]interface{}{
-			"host":         &inputs.TagInfo{Desc: "Host name"},
-			"reference_id": &inputs.TagInfo{Desc: "This is the reference ID and name (or IP address) of the server to which the computer is currently synchronized."},
-			"stratum":      &inputs.TagInfo{Desc: "The stratum indicates how many hops away from a computer with an attached reference clock we are."},
-			"leap_status":  &inputs.TagInfo{Desc: "This is the leap status, which can be Normal, Insert second, Delete second or Not synchronized."},
-		},
+		Election bool `toml:"election"`
+		pause    bool
+		pauseCh  chan bool
 	}
-}
+)
 
 // Run Start the process of timing acquisition.
 // If this indicator is included in the list to be collected, it will only be called once.
 // The for{} loops every tick.
 func (ipt *Input) Run() {
-	l = logger.SLogger(inputName)
-	l.Infof("chrony input started")
-	ipt.Interval = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval)
-	ipt.Timeout = config.ProtectedInterval(minInterval, maxInterval, ipt.Timeout)
+	if err := ipt.setup(); err != nil {
+		l.Errorf("setup err: %v", err)
+		return
+	}
+
 	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
 
@@ -142,60 +86,51 @@ func (ipt *Input) Run() {
 		start := time.Now()
 
 		if ipt.pause {
-			l.Debugf("not leader, chrony skipped")
+			l.Debugf("not leader, %s skipped", inputName)
 		} else {
-			l.Debugf("is leader, chrony gathering...")
-
-			if err := ipt.Collect(); err != nil {
-				l.Errorf("Collect: %s", err)
+			if err := ipt.collect(); err != nil {
+				l.Errorf("collect: %s", err)
 				ipt.feeder.FeedLastError(err.Error(),
-					io.WithLastErrorInput(inputName),
+					dkio.WithLastErrorInput(inputName),
+					dkio.WithLastErrorCategory(point.Metric),
 				)
 			}
 
 			if len(ipt.collectCache) > 0 {
-				err := ipt.feeder.Feed(inputName, point.Metric, ipt.collectCache, &io.Option{CollectCost: time.Since(start)})
-				if err != nil {
-					l.Errorf("FeedMeasurement: %s", err.Error())
+				if err := ipt.feeder.Feed(metricName, point.Metric, ipt.collectCache,
+					&dkio.Option{CollectCost: time.Since(start)}); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
-						io.WithLastErrorInput(inputName),
+						dkio.WithLastErrorInput(inputName),
+						dkio.WithLastErrorCategory(point.Metric),
 					)
+					l.Errorf("feed measurement: %s", err)
 				}
-				ipt.collectCache = ipt.collectCache[:0]
 			}
 		}
 
 		select {
 		case <-tick.C:
-		case ipt.pause = <-ipt.pauseCh:
 		case <-datakit.Exit.Wait():
 			l.Infof("%s input exit", inputName)
 			return
 		case <-ipt.semStop.Wait():
 			l.Infof("%s input return", inputName)
 			return
+		case ipt.pause = <-ipt.pauseCh:
 		}
 	}
 }
 
-// Collect Get, Aggregate Data.
-func (ipt *Input) Collect() error {
-	ipt.collectCache = make([]*point.Point, 0)
+func (ipt *Input) setup() error {
+	l = logger.SLogger(inputName)
+
+	l.Infof("%s input started", inputName)
+	ipt.Interval = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval)
+	ipt.Timeout = config.ProtectedInterval(minInterval, maxInterval, ipt.Timeout)
 
 	if err := ipt.checkConf(); err != nil {
 		return err
 	}
-
-	data, err := ipt.getData()
-	if err != nil {
-		return err
-	}
-
-	pts, err := ipt.getPts(data)
-	if err != nil {
-		return err
-	}
-	ipt.collectCache = pts
 
 	return nil
 }
@@ -212,94 +147,112 @@ func (ipt *Input) checkConf() error {
 		if (len(ipt.RemoteUsers) == 0 || len(ipt.RemotePasswords) == 0) && len(ipt.RemoteRsaPaths) == 0 {
 			return fmt.Errorf("remote_users & remote_passwords & remote_rsa_paths all be null")
 		}
-		for _, v := range ipt.RemoteAddrs {
-			if !strings.HasPrefix(v, "http") {
-				v = "http://" + v
+		for _, u := range ipt.RemoteAddrs {
+			uu := u
+			if !strings.HasPrefix(u, "http") {
+				u = "http://" + u
 			}
-			_, err := url.Parse(v)
+			_, err := url.Parse(u)
 			if err != nil {
-				return fmt.Errorf("parse remote_addrs : %s, error : %w", v, err)
+				return fmt.Errorf("parse remote_addrs : %s, error : %w", u, err)
 			}
+
+			if ipt.Election {
+				ipt.mergedTags[uu] = inputs.MergeTags(ipt.tagger.ElectionTags(), ipt.Tags, u)
+			} else {
+				ipt.mergedTags[uu] = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, u)
+			}
+		}
+		l.Debugf("merged tags: %+#v", ipt.mergedTags)
+	} else {
+		if ipt.Election {
+			ipt.mergedTags["localhost"] = inputs.MergeTags(ipt.tagger.ElectionTags(), ipt.Tags, "")
+		} else {
+			ipt.mergedTags["localhost"] = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")
 		}
 	}
 	return nil
 }
 
-func (ipt *Input) getData() ([]datakit.SSHData, error) {
-	data := make([]datakit.SSHData, 0)
+func (ipt *Input) collect() error {
+	ipt.collectCache = make([]*point.Point, 0)
+
+	data, err := ipt.getData()
+	if err != nil {
+		return err
+	}
+
+	if err = ipt.getPts(data); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ipt *Input) getData() ([]*getdatassh.SSHData, error) {
+	// data := make([]*getdatassh.SSHData, 0)
 	if len(ipt.SSHServers.RemoteAddrs) > 0 {
 		// Remote servers
-		// use goroutine, send data through dataCh, with timeout
-		dataCh := make(chan datakit.SSHData, 1)
-		g := datakit.G("chrony")
-
-		g.Go(func(ctx context.Context) error {
-			return datakit.SSHGetData(dataCh, &ipt.SSHServers, ipt.Timeout)
-		})
-
-		// collect data
-		for v := range dataCh {
-			data = append(data, v)
-		}
+		return getdatassh.GetDataSSH(&ipt.SSHServers, ipt.Timeout)
 	} else if ipt.BinPath != "" {
-		// local server
-		v, err := ipt.getLocalBytes(ipt.BinPath)
-		if err != nil {
-			return nil, fmt.Errorf("get local data error : %w", err)
+		// Local server
+		ctx, cancel := context.WithTimeout(context.Background(), ipt.Timeout)
+		defer cancel()
+		//nolint:gosec
+		c := exec.CommandContext(ctx, ipt.BinPath, "-n", "tracking")
+
+		var b bytes.Buffer
+		c.Stdout = &b
+		c.Stderr = &b
+		if err := c.Start(); err != nil {
+			return nil, fmt.Errorf("c.Start(): %w, %v", err, b.String())
 		}
-		data = append(data, datakit.SSHData{Server: "localhost", Data: v})
+		err := c.Wait()
+		if err != nil {
+			return nil, fmt.Errorf("c.Wait(): %s, %w, %v", inputName, err, b.String())
+		}
+
+		bytes := b.Bytes()
+		l.Debugf("get bytes len: %v.", len(bytes))
+
+		return []*getdatassh.SSHData{{
+			Server: "localhost",
+			Data:   bytes,
+		}}, err
 	}
 
-	if len(data) == 0 {
-		return nil, fmt.Errorf("got no data")
-	} else {
-		return data, nil
-	}
+	return nil, fmt.Errorf("%s got no data", inputName)
 }
 
-// getBytes Get the result of binPath execution.
-func (ipt *Input) getLocalBytes(binPath string) ([]byte, error) {
-	c := exec.Command(binPath, "-n", "tracking")
-
-	var b bytes.Buffer
-	c.Stdout = &b
-	c.Stderr = &b
-	if err := c.Start(); err != nil {
-		return nil, err
-	}
-	err := datakit.WaitTimeout(c, ipt.Timeout)
-	return b.Bytes(), err
-}
-
-func (ipt *Input) getPts(data []datakit.SSHData) ([]*point.Point, error) {
-	pts := make([]*point.Point, 0)
-
+func (ipt *Input) getPts(data []*getdatassh.SSHData) error {
+	ts := time.Now()
 	opts := point.DefaultMetricOptions()
-	if ipt.Election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
-	} else {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalHostTags()))
-	}
+	opts = append(opts, point.WithTime(ts))
 
-	for _, v := range data {
-		fields, tags, err := getFields(string(v.Data))
+	for _, sshData := range data {
+		fields, tags, err := getFields(string(sshData.Data))
 		if err != nil {
-			return nil, err
+			return err
 		}
 
-		if v.Server != "localhost" {
-			tags["host"] = v.Server
+		var kvs point.KVs
+
+		for k, v := range fields {
+			kvs = kvs.Add(k, v, false, true)
 		}
 
-		for k, v := range ipt.Tags {
-			tags[k] = v
+		for k, v := range tags {
+			kvs = kvs.AddTag(k, v)
 		}
 
-		pt := point.NewPointV2([]byte(metricName), append(point.NewTags(tags), point.NewKVs(fields)...), opts...)
-		pts = append(pts, pt)
+		for k, v := range ipt.mergedTags[sshData.Server] {
+			kvs = kvs.AddTag(k, v)
+		}
+
+		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(inputName, kvs, opts...))
 	}
 
-	return pts, nil
+	return nil
 }
 
 // getFields get fields and tags from data.
@@ -359,39 +312,45 @@ func getFields(out string) (map[string]interface{}, map[string]string, error) {
 	return fields, tags, nil
 }
 
-// Terminate Stop.
-// TODO 请示 这种方法生成点，如何指定是Gauge？
 func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
 	}
 }
-
-// Catalog Catalog.
-func (*Input) Catalog() string {
-	return "chrony"
-}
-
-// SampleConfig : conf File samples, reflected in the document.
-func (*Input) SampleConfig() string {
-	return sampleCfg
-}
-
-// AvailableArchs : OS support, reflected in the document.
+func (*Input) Catalog() string          { return inputName }
+func (*Input) SampleConfig() string     { return sampleCfg }
 func (*Input) AvailableArchs() []string { return datakit.AllOSWithElection }
-
-func (*Input) AvailableArchsDCGM() []string {
-	return []string{datakit.OSLabelLinux, datakit.LabelK8s}
-}
-
-// SampleMeasurement Sample measurement results, reflected in the document.
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
-		&ChronyMeasurement{},
+		&docMeasurement{},
 	}
 }
 
-// CHRONY
+func (ipt *Input) ElectionEnabled() bool {
+	return ipt.Election
+}
+
+func (ipt *Input) Pause() error {
+	tick := time.NewTicker(inputs.ElectionPauseTimeout)
+	defer tick.Stop()
+	select {
+	case ipt.pauseCh <- true:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("pause %s failed", inputName)
+	}
+}
+
+func (ipt *Input) Resume() error {
+	tick := time.NewTicker(inputs.ElectionResumeTimeout)
+	defer tick.Stop()
+	select {
+	case ipt.pauseCh <- false:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("resume %s failed", inputName)
+	}
+}
 
 // ReadEnv support envs：only for K8S.
 func (ipt *Input) ReadEnv(envs map[string]string) {
@@ -478,33 +437,6 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 }
 
-// ElectionEnabled election.
-func (ipt *Input) ElectionEnabled() bool {
-	return ipt.Election
-}
-
-func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- true:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
-}
-
-func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
-}
-
 func newDefaultInput() *Input {
 	ipt := &Input{
 		Interval: defaultInterval,
@@ -513,10 +445,12 @@ func newDefaultInput() *Input {
 		Election: true,
 
 		platform: runtime.GOOS,
-		feeder:   io.DefaultFeeder(),
+		feeder:   dkio.DefaultFeeder(),
 
-		semStop: cliutils.NewSem(),
-		pauseCh: make(chan bool, inputs.ElectionPauseChannelLength),
+		semStop:    cliutils.NewSem(),
+		pauseCh:    make(chan bool, inputs.ElectionPauseChannelLength),
+		tagger:     datakit.DefaultGlobalTagger(),
+		mergedTags: make(map[string]urlTags),
 	}
 	return ipt
 }

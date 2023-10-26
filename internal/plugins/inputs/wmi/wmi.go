@@ -15,10 +15,10 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -116,21 +116,24 @@ func (ag *Instance) run(ctx context.Context) error {
 			}
 
 			pts := []*point.Point{}
+			now := time.Now()
 			for _, fields := range fieldsArr {
 				if ag.isTest() {
 					// pass
 				} else {
-					pt, err := point.NewPoint(inputName, tags, fields, point.MOpt())
-					if err != nil {
-						l.Warnf("point.NewPoint: %s, ignored", err)
-						continue
-					}
+					opts := point.DefaultMetricOptions()
+					opts = append(opts, point.WithTime(now))
+
+					pt := point.NewPointV2(inputName,
+						append(point.NewTags(tags), point.NewKVs(fields)...),
+						opts...)
+
 					pts = append(pts, pt)
 				}
 			}
 
-			if err := io.Feed(inputName, datakit.Metric, pts, nil); err != nil {
-				l.Warnf("point.NewPoint: %s, ignored", err)
+			if err := io.feeder.Feed(inputName, point.Metric, pts, nil); err != nil {
+				l.Warnf("feeder.Feed failed: %s, ignored", err)
 			}
 
 			query.lastTime = time.Now()
@@ -143,15 +146,17 @@ func (ag *Instance) run(ctx context.Context) error {
 	}
 }
 
-func NewAgent() *Instance {
+func defaultInput() *Instance {
 	ac := &Instance{}
 	ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
 	ac.semStop = cliutils.NewSem()
+	ac.feeder = dkio.DefaultFeeder()
+	ac.Tagger = datakit.DefaultGlobalTagger()
 	return ac
 }
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return NewAgent()
+		return defaultInput()
 	})
 }

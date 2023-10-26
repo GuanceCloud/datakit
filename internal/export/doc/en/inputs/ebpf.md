@@ -20,6 +20,10 @@ eBPF collector, collecting host network TCP, UDP connection information, Bash ex
 * `ebpf-conntrack`: [:octicons-tag-24: Version-1.8.0](../datakit/changelog.md#cl-1.8.0) · [:octicons-beaker-24: Experimental](../datakit/index.md#experimental)
     * Add two tags `dst_nat_ip` and `dst_nat_port` to the network flow data.
 
+
+- `ebpf-trace`:
+    - Application call relationship tracking.
+
 ## Preconditions {#requirements}
 
 For DataKit before v1.5.6, you need to execute the installation command to install:
@@ -136,7 +140,8 @@ setenforce 0
     | `ENV_INPUT_EBPF_IPV6_DISABLED`              | `ipv6_disabled`               | `false/true`               |
     | `ENV_INPUT_EBPF_EPHEMERAL_PORT`             | `ephemeral_port`              | `32768`                    |
     | `ENV_INPUT_EBPF_INTERVAL`                   | `interval`                    | `60s`                      |
-
+    | `ENV_INPUT_EBPF_TRACE_SERVER`               | `trace_server`                | `x.x.x.x:zzz`              |
+    | `ENV_INPUT_EBPF_CONV_TO_DDTRACE`            | `conv_to_ddtrace`             | `false`                    |
 
 ## Measurements {#measurements}
 

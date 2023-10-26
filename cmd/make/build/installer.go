@@ -7,7 +7,6 @@ package build
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -33,7 +32,7 @@ func generateInstallScript() error {
 		"install.ps1.template":  "install.ps1",
 		"datakit.yaml.template": "datakit.yaml",
 	} {
-		txt, err := ioutil.ReadFile(filepath.Clean(k))
+		txt, err := os.ReadFile(filepath.Clean(k))
 		if err != nil {
 			return err
 		}

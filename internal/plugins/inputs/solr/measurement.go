@@ -6,11 +6,9 @@
 package solr
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -19,15 +17,6 @@ type measurement struct {
 	tags   map[string]string
 	fields map[string]interface{}
 	ts     time.Time
-}
-
-func (m *measurement) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
-	return nil, fmt.Errorf("not implement")
-}
-
-func (m *measurement) Info() *inputs.MeasurementInfo {
-	return nil
 }
 
 // ----------------------- Solr v7.x + -----------------
@@ -40,14 +29,9 @@ func (m *SolrRequestTimes) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (m *SolrRequestTimes) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -89,14 +73,9 @@ func (m *SolrCache) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (m *SolrCache) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -138,14 +117,9 @@ func (m *SolrSearcher) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (m *SolrSearcher) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(m.name, m.tags, m.fields, point.MOptElectionV2(m.election))
-	return nil, fmt.Errorf("not implement")
 }
 
 func (m *SolrSearcher) Info() *inputs.MeasurementInfo {

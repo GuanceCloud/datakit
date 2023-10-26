@@ -85,8 +85,8 @@ func getCliPyScript(scriptRoot, scriptName string) string {
 	return os.Expand(pyCli, func(k string) string { return replacePair[k] })
 }
 
-func (pe *Input) start() error {
-	cli := getCliPyScript(pe.scriptRoot, pe.scriptName)
+func (ipt *Input) start() error {
+	cli := getCliPyScript(ipt.scriptRoot, ipt.scriptName)
 
 	pyTmpFle, err := ioutil.TempFile("", "pythond_")
 	if err != nil {
@@ -102,21 +102,21 @@ func (pe *Input) start() error {
 
 	l.Debugf("python tmp = %s, written: %d", pyTmpFle.Name(), n)
 
-	pe.cmd = exec.Command(pe.Cmd, pyTmpFle.Name(), fmt.Sprintf("--logname=%s", pe.Name)) //nolint:gosec
-	if pe.Envs != nil {
-		pe.cmd.Env = pe.Envs
+	ipt.cmd = exec.Command(ipt.Cmd, pyTmpFle.Name(), fmt.Sprintf("--logname=%s", ipt.Name)) //nolint:gosec
+	if ipt.Envs != nil {
+		ipt.cmd.Env = ipt.Envs
 	}
 
-	stdout, err := pe.cmd.StdoutPipe()
+	stdout, err := ipt.cmd.StdoutPipe()
 	if err != nil {
 		l.Errorf("cmd.StdoutPipe failed: %s", err.Error())
 		return err
 	}
-	pe.cmd.Stderr = pe.cmd.Stdout
+	ipt.cmd.Stderr = ipt.cmd.Stdout
 
-	l.Infof("starting cmd %s, envs: %+#v", pe.cmd.String(), pe.cmd.Env)
-	if err := pe.cmd.Start(); err != nil {
-		l.Errorf("start pythond input %s failed: %s", pe.Name, err.Error())
+	l.Infof("starting cmd %s, envs: %+#v", ipt.cmd.String(), ipt.cmd.Env)
+	if err := ipt.cmd.Start(); err != nil {
+		l.Errorf("start pythond input %s failed: %s", ipt.Name, err.Error())
 		return err
 	}
 
@@ -149,7 +149,7 @@ func (pe *Input) start() error {
 			case <-datakit.Exit.Wait():
 				return nil
 
-			case <-pe.semStop.Wait():
+			case <-ipt.semStop.Wait():
 				return nil
 			}
 		}
@@ -303,9 +303,9 @@ func getScriptNameRoot(dirs []string, ipd IPythond) (scriptName, scriptRoot stri
 
 //------------------------------------------------------------------------------
 
-func (pe *Input) Run() {
+func (ipt *Input) Run() {
 	setLog()
-	l.Infof("starting pythond input %s...", pe.Name)
+	l.Infof("starting pythond input %s...", ipt.Name)
 
 	onceReleasePrefiles.Do(func() {
 		if err := ReleaseFiles(); err != nil {
@@ -314,49 +314,49 @@ func (pe *Input) Run() {
 	})
 
 	// check
-	pe.Name = dkstring.TrimString(pe.Name)
-	if pe.Name == "" {
+	ipt.Name = dkstring.TrimString(ipt.Name)
+	if ipt.Name == "" {
 		l.Error("name should not be empty.")
 		return
 	}
-	if len(pe.Dirs) == 0 {
+	if len(ipt.Dirs) == 0 {
 		l.Error("dirs should not be empty.")
 		return
 	}
 
 	var err error
-	if pe.scriptName, pe.scriptRoot, err = getScriptNameRoot(pe.Dirs, &pythondImpl{}); err != nil {
+	if ipt.scriptName, ipt.scriptRoot, err = getScriptNameRoot(ipt.Dirs, &pythondImpl{}); err != nil {
 		l.Error(err)
 		return
 	}
 
-	l.Debugf("pe.scriptName = %v, pe.scriptRoot = %v", pe.scriptName, pe.scriptRoot)
+	l.Debugf("pe.scriptName = %v, pe.scriptRoot = %v", ipt.scriptName, ipt.scriptRoot)
 
 	for {
-		if err := pe.start(); err != nil { // start failed, retry
+		if err := ipt.start(); err != nil { // start failed, retry
 			time.Sleep(time.Second)
 			continue
 		}
 		break
 	}
 
-	if err := pe.MonitProc(); err != nil { // blocking here...
+	if err := ipt.MonitProc(); err != nil { // blocking here...
 		l.Errorf("datakit.MonitProc: %s", err.Error())
 	}
 }
 
-func (pe *Input) MonitProc() error {
+func (ipt *Input) MonitProc() error {
 	tick := time.NewTicker(time.Second)
 	defer tick.Stop()
 
-	if pe.cmd.Process == nil {
-		return fmt.Errorf("invalid proc %s", pe.Name)
+	if ipt.cmd.Process == nil {
+		return fmt.Errorf("invalid proc %s", ipt.Name)
 	}
 
 	for {
 		select {
 		case <-tick.C:
-			p, err := os.FindProcess(pe.cmd.Process.Pid)
+			p, err := os.FindProcess(ipt.cmd.Process.Pid)
 			if err != nil {
 				continue
 			}
@@ -371,13 +371,13 @@ func (pe *Input) MonitProc() error {
 			}
 
 		case <-datakit.Exit.Wait():
-			if err := pe.stop(); err != nil { // XXX: should we wait here?
+			if err := ipt.stop(); err != nil { // XXX: should we wait here?
 				return err
 			}
 			return nil
 
-		case <-pe.semStop.Wait():
-			if err := pe.stop(); err != nil { // XXX: should we wait here?
+		case <-ipt.semStop.Wait():
+			if err := ipt.stop(); err != nil { // XXX: should we wait here?
 				return err
 			}
 			return nil
@@ -385,14 +385,14 @@ func (pe *Input) MonitProc() error {
 	}
 }
 
-func (pe *Input) Terminate() {
-	if pe.semStop != nil {
-		pe.semStop.Close()
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
 	}
 }
 
-func (pe *Input) stop() error {
-	if err := pe.cmd.Process.Kill(); err != nil {
+func (ipt *Input) stop() error {
+	if err := ipt.cmd.Process.Kill(); err != nil {
 		l.Errorf("Input kill failed: %v", err)
 		return err
 	}

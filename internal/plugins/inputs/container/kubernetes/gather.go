@@ -135,7 +135,7 @@ func (k *Kube) addExtraTags(pts pointKVs) {
 func (k *Kube) addExtraTagsV2(pts []*point.Point) {
 	for _, pt := range pts {
 		for k, v := range k.cfg.ExtraTags {
-			pt.MustAddTag([]byte(k), []byte(v))
+			pt.MustAddTag(k, v)
 		}
 	}
 }
@@ -171,7 +171,7 @@ func transToPoint(pts pointKVs, opts []point.Option) []*point.Point {
 	var res []*point.Point
 	for _, pt := range pts {
 		r := point.NewPointV2(
-			[]byte(pt.Name()),
+			pt.Name(),
 			append(point.NewTags(pt.Tags()), point.NewKVs(pt.Fields())...),
 			opts...,
 		)

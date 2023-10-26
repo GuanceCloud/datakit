@@ -11,7 +11,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -505,9 +505,9 @@ func checkIsNewVersion(host, version string) error {
 			continue
 		}
 
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			l.Errorf("ioutil.ReadAll: %s", err)
+			l.Errorf("io.ReadAll: %s", err)
 		}
 
 		resp.Body.Close() //nolint:errcheck,gosec

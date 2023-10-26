@@ -70,6 +70,10 @@ func (x *hwcloud) getHwMetaData() *hwMetaData {
 
 func getNetWorkData() *netWorkData {
 	resp := metadataGet(netWorkDataURL)
+	if len(resp) == 0 {
+		return nil
+	}
+
 	model := &netWorkData{}
 	err := json.Unmarshal(resp, &model)
 	if err != nil {

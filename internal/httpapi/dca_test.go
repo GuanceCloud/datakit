@@ -313,7 +313,7 @@ func TestDcaSaveConfig(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, f.Name(), path)
 
-	confContent, err := ioutil.ReadFile(f.Name())
+	confContent, err := os.ReadFile(f.Name())
 	assert.NoError(t, err)
 	assert.Equal(t, config, string(confContent))
 
@@ -353,7 +353,7 @@ func TestGetConfig(t *testing.T) {
 
 	config := "[input]"
 
-	err = ioutil.WriteFile(f.Name(), []byte(config), os.ModePerm)
+	err = os.WriteFile(f.Name(), []byte(config), os.ModePerm)
 	assert.NoError(t, err)
 
 	req, _ = http.NewRequest("GET", "/v1/dca/getConfig?path="+f.Name(), nil)
@@ -409,7 +409,7 @@ func TestDcaGetPipelinesDetail(t *testing.T) {
 	pipelineContent := "this is demo pipeline"
 	fileName := filepath.Base(f.Name())
 
-	err = ioutil.WriteFile(f.Name(), []byte(pipelineContent), os.ModePerm)
+	err = os.WriteFile(f.Name(), []byte(pipelineContent), os.ModePerm)
 	assert.NoError(t, err)
 
 	testCases := []struct {
@@ -503,7 +503,7 @@ func TestDcaTestPipelines(t *testing.T) {
 
 		pipelineContent := "this is demo pipeline"
 
-		err = ioutil.WriteFile(f.Name(), []byte(pipelineContent), os.ModePerm)
+		err = os.WriteFile(f.Name(), []byte(pipelineContent), os.ModePerm)
 		assert.NoError(t, err)
 
 		body := strings.NewReader(tc.Body)
@@ -623,7 +623,7 @@ func TestDcaGetFilter(t *testing.T) {
 		"pull_interval": 10000000000,
 		"remote_pipelines": null
 	  }`
-	err = ioutil.WriteFile(pullFilePath, []byte(pullContent), os.ModePerm)
+	err = os.WriteFile(pullFilePath, []byte(pullContent), os.ModePerm)
 	if err != nil {
 		t.Fatal("create pull file error", err)
 	}

@@ -16,7 +16,6 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/GuanceCloud/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 const packageName = "filter"
@@ -100,7 +99,7 @@ func GetConds(filterArr []string) (fp.WhereConditions, error) {
 
 // CheckPointFiltered returns whether the point matches the fitler rule.
 // If returns true means they are matched.
-func CheckPointFiltered(conds fp.WhereConditions, category point.Category, pt *dkpt.Point) (bool, error) {
+func CheckPointFiltered(conds fp.WhereConditions, category point.Category, pt *point.Point) (bool, error) {
 	return filtered(conds, NewTFData(category, pt)), nil
 }
 
@@ -108,7 +107,7 @@ func filtered(conds fp.WhereConditions, data fp.KVs) bool {
 	return conds.Eval(data) >= 0
 }
 
-func (f *filter) doFilter(category point.Category, pts []*dkpt.Point) ([]*dkpt.Point, int) {
+func (f *filter) doFilter(category point.Category, pts []*point.Point) ([]*point.Point, int) {
 	l.Debugf("doFilter: %+#v", f)
 
 	start := time.Now()
@@ -125,7 +124,7 @@ func (f *filter) doFilter(category point.Category, pts []*dkpt.Point) ([]*dkpt.P
 		return pts, 0
 	}
 
-	var after []*dkpt.Point
+	var after []*point.Point
 
 	defer func() {
 		filterPtsVec.WithLabelValues(catStr, f.rawConditions[catStr], f.source).Add(float64(len(pts)))
@@ -142,14 +141,14 @@ func (f *filter) doFilter(category point.Category, pts []*dkpt.Point) ([]*dkpt.P
 		if !isFiltered { // Pick those points that not matched filter rules.
 			after = append(after, pt)
 		} else if datakit.LogSinkDetail {
-			l.Infof("(sink_detail) filtered point: (%s) (%s)", category, pt.String())
+			l.Infof("(sink_detail) filtered point: (%s) (%s)", category, pt.Pretty())
 		}
 	}
 
 	return after, len(conds)
 }
 
-func FilterPts(category point.Category, pts []*dkpt.Point) []*dkpt.Point {
+func FilterPts(category point.Category, pts []*point.Point) []*point.Point {
 	if defaultFilter == nil { // during testing, defaultFilter not initialized
 		return pts
 	}

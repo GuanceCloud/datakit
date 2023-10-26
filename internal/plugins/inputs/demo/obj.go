@@ -6,18 +6,16 @@
 package demo
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	"time"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 type demoObj struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-}
-
-func (m *demoObj) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.OOpt())
+	Name   string
+	Tags   map[string]string
+	Fields map[string]interface{}
+	TS     time.Time
 }
 
 //nolint:lll

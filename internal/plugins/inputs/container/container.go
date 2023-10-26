@@ -394,7 +394,7 @@ func transToPoint(pts []*typed.PointKV, opts []point.Option) []*point.Point {
 	var res []*point.Point
 	for _, pt := range pts {
 		r := point.NewPointV2(
-			[]byte(pt.Name()),
+			pt.Name(),
 			append(point.NewTags(pt.Tags()), point.NewKVs(pt.Fields())...),
 			opts...,
 		)

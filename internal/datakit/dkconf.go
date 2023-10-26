@@ -186,6 +186,13 @@ ulimit = 64000
   enable_httptrace = false   # enable trace HTTP metrics(connection/NDS/TLS and so on)
   idle_timeout     = "90s"   # not-set, default 90s
 
+  # HTTP body content type, other candidates are(case insensitive):
+  #  - v1: line-protocol
+  #  - v2: protobuf
+  content_encoding = "v1"
+
+  max_raw_body_size = 10485760 # max body size(before gizp) in bytes
+
   # Customer tag or field keys that will extract from exist points
   # to build the X-Global-Tags HTTP header value.
   global_customer_keys = []
@@ -254,7 +261,7 @@ ulimit = 64000
 ################################################
 [resource_limit]
 
-  # enable or disable resource limit 
+  # enable or disable resource limit
   enable = true
 
   # Linux only, cgroup path

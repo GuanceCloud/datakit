@@ -12,8 +12,15 @@ The socket collector is used to collect UDP/TCP port information.
 
 UDP metrics require the operating system to have `nc` programs.
 
+<!-- markdownlint-disable MD046 -->
+???+ attention
+
+    The socket collector are suitable for collecting local network TCP/UDP service. For public network, [Dialtesting](dialtest.md) is recommended. If the URLs point to localhost, please turn off the election flag(`election: false`).
+<!-- markdownlint-enable -->
+
 ## Configuration {#config}
 
+<!-- markdownlint-disable MD046 -->
 === "Host Installation"
 
     Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
@@ -27,6 +34,7 @@ UDP metrics require the operating system to have `nc` programs.
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
+<!-- markdownlint-enable -->
 
 ## Measurements {#requrements}
 

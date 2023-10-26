@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmpmeasurement"
 )
@@ -31,7 +31,7 @@ type TrapForwarder struct {
 	election  bool
 	inputTags map[string]string
 	feeder    dkio.Feeder
-	tagger    dkpt.GlobalTagger
+	tagger    datakit.GlobalTagger
 }
 
 // NewTrapForwarder creates a simple TrapForwarder instance.

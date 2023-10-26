@@ -16,160 +16,193 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
 )
 
 const (
+	minInterval             = time.Second
+	maxInterval             = time.Minute
 	inputName               = "neo4j"
-	catalog                 = inputName
+	source                  = inputName
 	defaultIntervalDuration = time.Second * 30
 
 	// defaultMaxFileSize is the default max response body size, in bytes.
-	// This field is used only when metrics are written to file, i.e. Output is configured.
+	// This field is used only when metrics are written to file, ipt.e. Output is configured.
 	// If the size of response body is over defaultMaxFileSize, metrics will be discarded.
 	// 32 MB.
 	defaultMaxFileSize int64 = 32 * 1024 * 1024
 )
 
 var (
+	l = logger.DefaultSLogger(inputName)
+
 	_ inputs.ElectionInput = (*Input)(nil)
 	_ inputs.InputV2       = (*Input)(nil)
 )
 
-type Input struct {
-	Interval         time.Duration `toml:"interval"`
-	Timeout          time.Duration `toml:"timeout"`
-	ConnectKeepAlive time.Duration `toml:"-"`
+type (
+	urlTags map[string]string
+	Input   struct {
+		Interval         time.Duration `toml:"interval"`
+		Timeout          time.Duration `toml:"timeout"`
+		ConnectKeepAlive time.Duration `toml:"-"`
 
-	URLs                   []string     `toml:"urls"`
-	IgnoreReqErr           bool         `toml:"ignore_req_err"`
-	MetricTypes            []string     `toml:"metric_types"`
-	MetricNameFilter       []string     `toml:"metric_name_filter"`
-	MetricNameFilterIgnore []string     `toml:"metric_name_filter_ignore"`
-	MeasurementPrefix      string       `toml:"measurement_prefix"`
-	MeasurementName        string       `toml:"measurement_name"`
-	Measurements           []iprom.Rule `toml:"measurements"`
-	Output                 string       `toml:"output"`
-	MaxFileSize            int64        `toml:"max_file_size"`
+		URLs                   []string     `toml:"urls"`
+		IgnoreReqErr           bool         `toml:"ignore_req_err"`
+		MetricTypes            []string     `toml:"metric_types"`
+		MetricNameFilter       []string     `toml:"metric_name_filter"`
+		MetricNameFilterIgnore []string     `toml:"metric_name_filter_ignore"`
+		MeasurementPrefix      string       `toml:"measurement_prefix"`
+		MeasurementName        string       `toml:"measurement_name"`
+		Measurements           []iprom.Rule `toml:"measurements"`
+		Output                 string       `toml:"output"`
+		MaxFileSize            int64        `toml:"max_file_size"`
 
-	TLSOpen    bool   `toml:"tls_open"`
-	UDSPath    string `toml:"uds_path"`
-	CacertFile string `toml:"tls_ca"`
-	CertFile   string `toml:"tls_cert"`
-	KeyFile    string `toml:"tls_key"`
+		TLSOpen    bool   `toml:"tls_open"`
+		UDSPath    string `toml:"uds_path"`
+		CacertFile string `toml:"tls_ca"`
+		CertFile   string `toml:"tls_cert"`
+		KeyFile    string `toml:"tls_key"`
 
-	TagsIgnore  []string            `toml:"tags_ignore"`
-	TagsRename  *iprom.RenameTags   `toml:"tags_rename"`
-	AsLogging   *iprom.AsLogging    `toml:"as_logging"`
-	IgnoreTagKV map[string][]string `toml:"ignore_tag_kv_match"`
-	HTTPHeaders map[string]string   `toml:"http_headers"`
+		TagsIgnore  []string            `toml:"tags_ignore"`
+		TagsRename  *iprom.RenameTags   `toml:"tags_rename"`
+		IgnoreTagKV map[string][]string `toml:"ignore_tag_kv_match"`
+		HTTPHeaders map[string]string   `toml:"http_headers"`
 
-	Tags               map[string]string `toml:"tags"`
-	DisableHostTag     bool              `toml:"disable_host_tag"`
-	DisableInstanceTag bool              `toml:"disable_instance_tag"`
-	DisableInfoTag     bool              `toml:"disable_info_tag"`
+		Tags               map[string]string `toml:"tags"`
+		DisableHostTag     bool              `toml:"disable_host_tag"`
+		DisableInstanceTag bool              `toml:"disable_instance_tag"`
+		DisableInfoTag     bool              `toml:"disable_info_tag"`
 
-	Auth map[string]string `toml:"auth"`
+		Auth map[string]string `toml:"auth"`
 
-	pm     *iprom.Prom
-	Feeder io.Feeder
+		semStop    *cliutils.Sem
+		feeder     io.Feeder
+		pm         *iprom.Prom
+		mergedTags map[string]urlTags
+		// urlTags    map[string]urlTags
+		tagger datakit.GlobalTagger
 
-	Election bool `toml:"election"`
-	chPause  chan bool
-	pause    bool
+		Election bool `toml:"election"`
+		pauseCh  chan bool
+		pause    bool
 
-	Tagger dkpt.GlobalTagger
+		urls []*url.URL
 
-	urls []*url.URL
-
-	semStop *cliutils.Sem // start stop signal
-
-	isInitialized bool
-
-	urlTags map[string]urlTags
-
-	l *logger.Logger
-}
-
-type urlTags []struct {
-	key   []byte
-	value []byte
-}
-
-func (*Input) SampleConfig() string { return sampleCfg }
-
-func (*Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{
-		&Measurement{},
+		l *logger.Logger
 	}
-}
+)
 
-func (*Input) AvailableArchs() []string { return datakit.AllOSWithElection }
-
-func (*Input) Catalog() string { return catalog }
-
-func (i *Input) SetTags(m map[string]string) {
-	if i.Tags == nil {
-		i.Tags = make(map[string]string)
+func (ipt *Input) Run() {
+	if err := ipt.setup(); err != nil {
+		l.Errorf("setup err: %v", err)
+		return
 	}
 
-	for k, v := range m {
-		if _, ok := i.Tags[k]; !ok {
-			i.Tags[k] = v
-		}
-	}
-}
-
-func (i *Input) ElectionEnabled() bool {
-	return i.Election
-}
-
-func (i *Input) Run() {
-	tick := time.NewTicker(i.Interval)
+	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
 
-	i.l.Info(inputName + " start")
+	ipt.l.Info(inputName + " start")
 
 	for {
-		if i.pause {
-			i.l.Debug(inputName + " paused")
+		if ipt.pause {
+			l.Debug("%s election paused", inputName)
 		} else {
-			if err := i.Collect(); err != nil {
-				i.l.Warn(err)
+			if err := ipt.collect(); err != nil {
+				ipt.l.Warn(err)
 			}
 		}
 
 		select {
-		case <-datakit.Exit.Wait():
-			i.l.Info(inputName + " exit")
-			return
-
-		case <-i.semStop.Wait():
-			i.l.Info(inputName + " return")
-			return
-
 		case <-tick.C:
-
-		case i.pause = <-i.chPause:
-			// nil
+		case <-datakit.Exit.Wait():
+			l.Infof("%s input exit", inputName)
+			return
+		case <-ipt.semStop.Wait():
+			l.Infof("%s input return", inputName)
+			return
+		case ipt.pause = <-ipt.pauseCh:
 		}
 	}
 }
 
-func (i *Input) Collect() error {
-	if !i.isInitialized {
-		if err := i.Init(); err != nil {
+func (ipt *Input) setup() error {
+	l = logger.SLogger(inputName)
+
+	l.Infof("%s input started", inputName)
+	ipt.Interval = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval)
+	// ipt.mergedTags = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")
+	// l.Debugf("merged tags: %+#v", ipt.mergedTags)
+
+	ipt.l = l
+
+	for _, u := range ipt.URLs {
+		uu, err := url.Parse(u)
+		if err != nil {
 			return err
+		}
+		ipt.urls = append(ipt.urls, uu)
+
+		// add extra `instance' tag, the tag take higher priority
+		// over global tags.
+		if !ipt.DisableInstanceTag {
+			if _, ok := ipt.Tags["instance"]; !ok {
+				ipt.Tags["instance"] = uu.Host
+			}
+		}
+
+		if ipt.Election {
+			ipt.mergedTags[u] = inputs.MergeTags(ipt.tagger.ElectionTags(), ipt.Tags, u)
+		} else {
+			ipt.mergedTags[u] = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, u)
 		}
 	}
 
+	opts := []iprom.PromOption{
+		iprom.WithLogger(ipt.l), // WithLogger must in the first
+		iprom.WithSource(inputName),
+		iprom.WithTimeout(ipt.Timeout),
+		iprom.WithKeepAlive(ipt.ConnectKeepAlive),
+		iprom.WithIgnoreReqErr(ipt.IgnoreReqErr),
+		iprom.WithMetricTypes(ipt.MetricTypes),
+		iprom.WithMetricNameFilter(ipt.MetricNameFilter),
+		iprom.WithMetricNameFilterIgnore(ipt.MetricNameFilterIgnore),
+		iprom.WithMeasurementPrefix(ipt.MeasurementPrefix),
+		iprom.WithMeasurementName(ipt.MeasurementName),
+		iprom.WithMeasurements(ipt.Measurements),
+		iprom.WithOutput(ipt.Output),
+		iprom.WithMaxFileSize(ipt.MaxFileSize),
+		iprom.WithTLSOpen(ipt.TLSOpen),
+		iprom.WithUDSPath(ipt.UDSPath),
+		iprom.WithCacertFile(ipt.CacertFile),
+		iprom.WithCertFile(ipt.CertFile),
+		iprom.WithKeyFile(ipt.KeyFile),
+		iprom.WithTagsIgnore(ipt.TagsIgnore),
+		iprom.WithTagsRename(ipt.TagsRename),
+		iprom.WithIgnoreTagKV(ipt.IgnoreTagKV),
+		iprom.WithHTTPHeaders(ipt.HTTPHeaders),
+		iprom.WithDisableInfoTag(ipt.DisableInfoTag),
+		iprom.WithAuth(ipt.Auth),
+	}
+
+	pm, err := iprom.NewProm(opts...)
+	if err != nil {
+		// ipt.l.Warnf("clickhouse.NewProm: %s, ignored", err)
+		return err
+	}
+	ipt.pm = pm
+
+	return nil
+}
+
+func (ipt *Input) collect() error {
 	start := time.Now()
-	pts, err := i.doCollect()
+	pts, err := ipt.doCollect()
 	if err != nil {
 		return err
 	}
@@ -177,58 +210,44 @@ func (i *Input) Collect() error {
 		return fmt.Errorf("points got nil from doCollect")
 	}
 
-	if i.AsLogging != nil && i.AsLogging.Enable {
-		// Feed measurement as logging.
-		for _, pt := range pts {
-			// We need to feed each point separately because
-			// each point might have different measurement name.
-			if err := i.Feeder.Feed(string(pt.Name()), point.Logging, []*point.Point{pt},
-				&io.Option{CollectCost: time.Since(start)}); err != nil {
-				i.Feeder.FeedLastError(err.Error(),
-					io.WithLastErrorInput(inputName),
-					io.WithLastErrorSource(catalog),
-				)
-			}
-		}
-	} else {
-		err := i.Feeder.Feed(inputName, point.Metric, pts,
-			&io.Option{CollectCost: time.Since(start)})
-		if err != nil {
-			i.l.Errorf("Feed: %s", err)
-			i.Feeder.FeedLastError(err.Error(),
-				io.WithLastErrorInput(inputName),
-				io.WithLastErrorSource(catalog),
-			)
-		}
+	err = ipt.feeder.Feed(inputName, point.Metric, pts,
+		&io.Option{CollectCost: time.Since(start)})
+	if err != nil {
+		ipt.l.Errorf("Feed: %s", err)
+		ipt.feeder.FeedLastError(err.Error(),
+			io.WithLastErrorInput(inputName),
+			io.WithLastErrorSource(source),
+		)
 	}
+
 	return nil
 }
 
-func (i *Input) doCollect() ([]*point.Point, error) {
-	i.l.Debugf("collect URLs %v", i.URLs)
+func (ipt *Input) doCollect() ([]*point.Point, error) {
+	ipt.l.Debugf("collect URLs %v", ipt.URLs)
 
 	// If Output is configured, data is written to local file specified by Output.
 	// Data will no more be written to datakit io.
-	if i.Output != "" {
-		err := i.WriteMetricText2File()
+	if ipt.Output != "" {
+		err := ipt.writeMetricText2File()
 		if err != nil {
-			i.l.Errorf("WriteMetricText2File: %s", err.Error())
+			ipt.l.Errorf("WriteMetricText2File: %s", err.Error())
 		}
 		return nil, nil
 	}
 
-	pts, err := i.collect()
+	pts, err := ipt.getPts()
 	if err != nil {
-		i.l.Errorf("Collect: %s", err)
-		i.Feeder.FeedLastError(err.Error(),
+		ipt.l.Errorf("getPts: %s", err)
+		ipt.feeder.FeedLastError(err.Error(),
 			io.WithLastErrorInput(inputName),
-			io.WithLastErrorSource(catalog),
+			io.WithLastErrorSource(source),
 		)
 
 		// Try testing the connect
-		for _, u := range i.urls {
+		for _, u := range ipt.urls {
 			if err := net.RawConnect(u.Hostname(), u.Port(), time.Second*3); err != nil {
-				i.l.Errorf("failed to connect to %s:%s, %s", u.Hostname(), u.Port(), err)
+				ipt.l.Errorf("failed to connect to %s:%s, %s", u.Hostname(), u.Port(), err)
 			}
 		}
 
@@ -243,12 +262,12 @@ func (i *Input) doCollect() ([]*point.Point, error) {
 }
 
 // collect metrics from all URLs.
-func (i *Input) collect() ([]*point.Point, error) {
-	if i.pm == nil {
-		return nil, fmt.Errorf("i.pm is nil")
+func (ipt *Input) getPts() ([]*point.Point, error) {
+	if ipt.pm == nil {
+		return nil, fmt.Errorf("ipt.pm is nil")
 	}
 	var points []*point.Point
-	for _, u := range i.URLs {
+	for _, u := range ipt.URLs {
 		uu, err := url.Parse(u)
 		if err != nil {
 			return nil, err
@@ -256,9 +275,9 @@ func (i *Input) collect() ([]*point.Point, error) {
 
 		var pts []*point.Point
 		if uu.Scheme != "http" && uu.Scheme != "https" {
-			pts, err = i.pm.CollectFromFileV2(u)
+			pts, err = ipt.pm.CollectFromFileV2(u)
 		} else {
-			pts, err = i.pm.CollectFromHTTPV2(u)
+			pts, err = ipt.pm.CollectFromHTTPV2(u)
 		}
 		if err != nil {
 			return nil, err
@@ -267,12 +286,12 @@ func (i *Input) collect() ([]*point.Point, error) {
 		for _, pt := range pts {
 			// some field name -> tag
 			if err := formatPoint(pt); err != nil {
-				i.l.Debugf("formatPoint err: %v", err)
+				ipt.l.Debugf("formatPoint err: %v", err)
 			}
 
-			// Append tags to points
-			for _, v := range i.urlTags[u] {
-				pt.AddTag(v.key, v.value)
+			// append tags to points
+			for k, v := range ipt.mergedTags[u] {
+				pt.AddTag(k, v)
 			}
 		}
 
@@ -282,149 +301,86 @@ func (i *Input) collect() ([]*point.Point, error) {
 	return points, nil
 }
 
-// WriteMetricText2File collects from all URLs and then
+// writeMetricText2File ... collects from all URLs and then
 // directly writes them to file specified by field Output.
-func (i *Input) WriteMetricText2File() error {
+func (ipt *Input) writeMetricText2File() error {
 	// Remove if file already exists.
-	if _, err := os.Stat(i.Output); err == nil {
-		if err := os.Remove(i.Output); err != nil {
+	if _, err := os.Stat(ipt.Output); err == nil {
+		if err := os.Remove(ipt.Output); err != nil {
 			return err
 		}
 	}
-	for _, u := range i.URLs {
-		if err := i.pm.WriteMetricText2File(u); err != nil {
+	for _, u := range ipt.URLs {
+		if err := ipt.pm.WriteMetricText2File(u); err != nil {
 			return err
 		}
-		stat, err := os.Stat(i.Output)
+		stat, err := os.Stat(ipt.Output)
 		if err != nil {
 			return err
 		}
-		if stat.Size() > i.MaxFileSize {
-			return fmt.Errorf("file size is too large, max: %d, got: %d", i.MaxFileSize, stat.Size())
+		if stat.Size() > ipt.MaxFileSize {
+			return fmt.Errorf("file size is too large, max: %d, got: %d", ipt.MaxFileSize, stat.Size())
 		}
 	}
 	return nil
 }
 
-func (i *Input) Terminate() {
-	if i.semStop != nil {
-		i.semStop.Close()
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+	}
+}
+func (*Input) Catalog() string          { return inputName }
+func (*Input) SampleConfig() string     { return sampleCfg }
+func (*Input) AvailableArchs() []string { return datakit.AllOSWithElection }
+func (*Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{
+		&docMeasurement{},
 	}
 }
 
-func (i *Input) Pause() error {
+func (ipt *Input) ElectionEnabled() bool {
+	return ipt.Election
+}
+
+func (ipt *Input) Pause() error {
 	tick := time.NewTicker(inputs.ElectionPauseTimeout)
+	defer tick.Stop()
 	select {
-	case i.chPause <- true:
+	case ipt.pauseCh <- true:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("pause %s failed", inputName)
 	}
 }
 
-func (i *Input) Resume() error {
+func (ipt *Input) Resume() error {
 	tick := time.NewTicker(inputs.ElectionResumeTimeout)
+	defer tick.Stop()
 	select {
-	case i.chPause <- false:
+	case ipt.pauseCh <- false:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
 	}
 }
 
-func (i *Input) Init() error {
-	i.l = logger.SLogger(inputName)
-
-	for _, u := range i.URLs {
-		uu, err := url.Parse(u)
-		if err != nil {
-			return err
-		}
-		i.urls = append(i.urls, uu)
-
-		// add extra `instance' tag, the tag take higher priority
-		// over global tags.
-		if !i.DisableInstanceTag {
-			if _, ok := i.Tags["instance"]; !ok {
-				i.Tags["instance"] = uu.Host
-			}
-		}
-
-		var globalTags map[string]string
-		if i.Election {
-			globalTags = i.Tagger.ElectionTags()
-			i.l.Infof("add global election tags %q", globalTags)
-		} else {
-			globalTags = i.Tagger.HostTags()
-			i.l.Infof("add global host tags %q", globalTags)
-		}
-
-		temp := inputs.MergeTags(globalTags, i.Tags, u)
-		tempTags := urlTags{}
-		for k, v := range temp {
-			tempTags = append(tempTags, struct {
-				key   []byte
-				value []byte
-			}{key: []byte(k), value: []byte(v)})
-		}
-		i.urlTags[u] = tempTags
-	}
-
-	opts := []iprom.PromOption{
-		iprom.WithLogger(i.l), // WithLogger must in the first
-		iprom.WithSource(catalog),
-		iprom.WithTimeout(i.Timeout),
-		iprom.WithKeepAlive(i.ConnectKeepAlive),
-		iprom.WithIgnoreReqErr(i.IgnoreReqErr),
-		iprom.WithMetricTypes(i.MetricTypes),
-		iprom.WithMetricNameFilter(i.MetricNameFilter),
-		iprom.WithMetricNameFilterIgnore(i.MetricNameFilterIgnore),
-		iprom.WithMeasurementPrefix(i.MeasurementPrefix),
-		iprom.WithMeasurementName(i.MeasurementName),
-		iprom.WithMeasurements(i.Measurements),
-		iprom.WithOutput(i.Output),
-		iprom.WithMaxFileSize(i.MaxFileSize),
-		iprom.WithTLSOpen(i.TLSOpen),
-		iprom.WithUDSPath(i.UDSPath),
-		iprom.WithCacertFile(i.CacertFile),
-		iprom.WithCertFile(i.CertFile),
-		iprom.WithKeyFile(i.KeyFile),
-		iprom.WithTagsIgnore(i.TagsIgnore),
-		iprom.WithTagsRename(i.TagsRename),
-		iprom.WithAsLogging(i.AsLogging),
-		iprom.WithIgnoreTagKV(i.IgnoreTagKV),
-		iprom.WithHTTPHeaders(i.HTTPHeaders),
-		iprom.WithDisableInfoTag(i.DisableInfoTag),
-		iprom.WithAuth(i.Auth),
-	}
-
-	pm, err := iprom.NewProm(opts...)
-	if err != nil {
-		i.l.Warnf(inputName+".NewProm: %s, ignored", err)
-		return err
-	}
-	i.pm = pm
-	i.isInitialized = true
-
-	return nil
-}
-
 var maxPauseCh = inputs.ElectionPauseChannelLength
 
 func NewInput() *Input {
 	return &Input{
-		chPause:     make(chan bool, maxPauseCh),
+		pauseCh:     make(chan bool, maxPauseCh),
 		MaxFileSize: defaultMaxFileSize,
 		Interval:    defaultIntervalDuration,
 		Timeout:     time.Second * 30,
 		Election:    true,
 		Tags:        make(map[string]string),
 
-		urlTags: map[string]urlTags{},
+		mergedTags: map[string]urlTags{},
 
 		semStop: cliutils.NewSem(),
-		Feeder:  io.DefaultFeeder(),
-		Tagger:  dkpt.DefaultGlobalTagger(),
+		feeder:  io.DefaultFeeder(),
+		tagger:  datakit.DefaultGlobalTagger(),
 		l:       logger.SLogger(inputName),
 	}
 }

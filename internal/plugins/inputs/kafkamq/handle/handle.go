@@ -9,10 +9,9 @@ package handle
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
-	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -181,17 +180,19 @@ func (h *Handle) sendToRemote(data []byte) {
 	}
 	defer resp.Body.Close() //nolint
 	if h.IsResponsePoint {
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			log.Errorf("read body err=%v", err)
 			return
 		}
-		isjson := strings.Contains(resp.Header.Get("Content-Type"), "application/json")
+
+		ct := httpapi.GetPointEncoding(resp.Header)
+
 		category := point.Tracing
 		if c, ok := categorys[resp.Header.Get("X-category")]; ok {
 			category = c
 		}
-		pts, err := httpapi.HandleWriteBody(body, isjson, point.WithPrecision(point.NS))
+		pts, err := httpapi.HandleWriteBody(body, ct, point.WithPrecision(point.NS))
 		if err != nil {
 			log.Errorf("from response body decode to point err=%v", err)
 			return

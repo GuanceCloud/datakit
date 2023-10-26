@@ -14,7 +14,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/netflow/common"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/netflow/config"
@@ -68,7 +67,7 @@ type Input struct {
 
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
-	tagger  dkpt.GlobalTagger
+	tagger  datakit.GlobalTagger
 }
 
 func setLogger() {
@@ -204,12 +203,12 @@ func NewNetflowServer(ipt *Input) (*Server, error) {
 }
 
 // Stop stops the Server.
-func (s *Server) stop() {
+func (svr *Server) stop() {
 	l.Infof("Stop NetFlow Server")
 
-	s.flowAgg.Stop()
+	svr.flowAgg.Stop()
 
-	for _, listener := range s.listeners {
+	for _, listener := range svr.listeners {
 		stopped := make(chan interface{})
 
 		go func() {
@@ -265,9 +264,9 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func (ipt *Input) Singleton() {}
+func (*Input) Singleton() {}
 
-func (ipt *Input) exit() {
+func (*Input) exit() {
 	StopServer()
 }
 
@@ -281,7 +280,7 @@ func defaultInput() *Input {
 	return &Input{
 		feeder:  dkio.DefaultFeeder(),
 		semStop: cliutils.NewSem(),
-		tagger:  dkpt.DefaultGlobalTagger(),
+		tagger:  datakit.DefaultGlobalTagger(),
 	}
 }
 

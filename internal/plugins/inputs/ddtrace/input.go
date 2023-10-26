@@ -20,7 +20,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
@@ -129,7 +128,7 @@ type Input struct {
 
 	feeder  dkio.Feeder
 	semStop *cliutils.Sem // start stop signal
-	Tagger  dkpt.GlobalTagger
+	Tagger  datakit.GlobalTagger
 }
 
 func (*Input) Catalog() string { return inputName }
@@ -330,7 +329,7 @@ func defaultInput() *Input {
 	return &Input{
 		feeder:  dkio.DefaultFeeder(),
 		semStop: cliutils.NewSem(),
-		Tagger:  dkpt.DefaultGlobalTagger(),
+		Tagger:  datakit.DefaultGlobalTagger(),
 	}
 }
 

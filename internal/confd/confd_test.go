@@ -11,12 +11,10 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/cpu"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/dk"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/ipmi"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/mem"
 )
 
 type args struct {
@@ -59,11 +57,9 @@ func checkGot(t *testing.T, confdInputs map[string][]*inputs.ConfdInfo, wants []
 		duration := time.Duration(1)
 		switch want.mapKey {
 		case "cpu":
-			duration = confdInputs[want.mapKey][want.sliceIdx].Input.(*cpu.Input).Interval.Duration
-		case "mem":
-			duration = confdInputs[want.mapKey][want.sliceIdx].Input.(*mem.Input).Interval.Duration
+			duration = confdInputs[want.mapKey][want.sliceIdx].Input.(*cpu.Input).Interval
 		case "ipmi":
-			duration = confdInputs[want.mapKey][want.sliceIdx].Input.(*ipmi.Input).Interval.Duration
+			duration = confdInputs[want.mapKey][want.sliceIdx].Input.(*ipmi.Input).Interval
 		case "dk":
 			duration = confdInputs[want.mapKey][want.sliceIdx].Input.(*dk.Input).Interval
 		}
@@ -186,15 +182,9 @@ func Test_handleConfdData(t *testing.T) {
 	inputs.Inputs = map[string]inputs.Creator{
 		"cpu": func() inputs.Input {
 			return &cpu.Input{
-				Interval:          datakit.Duration{Duration: time.Second * 10},
+				Interval:          time.Second * 10,
 				EnableTemperature: true,
 				Tags:              make(map[string]string),
-			}
-		},
-		"mem": func() inputs.Input {
-			return &mem.Input{
-				Interval: datakit.Duration{Duration: time.Second * 10},
-				Tags:     make(map[string]string),
 			}
 		},
 		"dk": func() inputs.Input {
@@ -205,7 +195,7 @@ func Test_handleConfdData(t *testing.T) {
 		},
 		"ipmi": func() inputs.Input {
 			return &ipmi.Input{
-				Interval: datakit.Duration{Duration: time.Second * 10},
+				Interval: time.Second * 10,
 				Tags:     make(map[string]string),
 			}
 		},
@@ -213,7 +203,6 @@ func Test_handleConfdData(t *testing.T) {
 
 	// Add all inputs kind. (not all, only test.)
 	inputs.AddInput("cpu", nil)
-	inputs.AddInput("mem", nil)
 	inputs.AddInput("ipmi", nil)
 	inputs.AddInput("dk", nil)
 

@@ -7,7 +7,7 @@ package prom
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	tu "github.com/GuanceCloud/cliutils/testutil"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 	"github.com/stretchr/testify/assert"
@@ -88,7 +87,7 @@ func (t *transportMock) RoundTrip(r *http.Request) (*http.Response, error) {
 		Request:    r,
 		StatusCode: t.statusCode,
 	}
-	res.Body = ioutil.NopCloser(strings.NewReader(t.body))
+	res.Body = io.NopCloser(strings.NewReader(t.body))
 	return res, nil
 }
 
@@ -133,7 +132,7 @@ func createOpts(in *optionMock) []PromOption {
 
 func newTestPoint(name string, tags map[string]string, fields map[string]interface{}) *point.Point {
 	opts := point.DefaultMetricOptions()
-	return point.NewPointV2([]byte(name),
+	return point.NewPointV2(name,
 		append(point.NewTags(tags), point.NewKVs(fields)...),
 		opts...)
 }
@@ -293,25 +292,17 @@ up 1
 
 			sort.Strings(arr)
 			sort.Strings(tc.expect)
+			assert.Len(t, arr, len(tc.expect))
 
-			if len(tc.expect) != len(arr) {
-				t.Errorf("the length of want != got.")
-			}
 			for i := range arr {
-				assert.Equal(t, strings.HasPrefix(arr[i], tc.expect[i]), true)
-				t.Logf(">>>\n%s\n%s", arr[i], tc.expect[i])
+				assert.Equal(t, strings.HasPrefix(arr[i], tc.expect[i]), true, "exp: %s\ngot: %s", tc.expect[i], arr[i])
 			}
 		})
 	}
 }
 
 func Test_BearerToken(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("./", "__tmp")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(tmpDir) // nolint:errcheck
-	f, err := ioutil.TempFile(tmpDir, "token")
+	f, err := os.CreateTemp(t.TempDir(), "token")
 	assert.NoError(t, err)
 	token_file := f.Name()
 	defer os.Remove(token_file) // nolint:errcheck
@@ -357,7 +348,7 @@ func Test_BearerToken(t *testing.T) {
 	}
 }
 
-func Test_Tls(t *testing.T) {
+func Test_TLS(t *testing.T) {
 	t.Run("enable-tls", func(t *testing.T) {
 		in := &optionMock{
 			tlsOpen: true,
@@ -372,12 +363,7 @@ func Test_Tls(t *testing.T) {
 	})
 
 	t.Run("tls with ca", func(t *testing.T) {
-		tmpDir, err := ioutil.TempDir("./", "__tmp")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer os.RemoveAll(tmpDir) // nolint:errcheck
-		f, err := ioutil.TempFile(tmpDir, "ca.crt")
+		f, err := os.CreateTemp(t.TempDir(), "ca.crt")
 		assert.NoError(t, err)
 		_, err = f.WriteString(caContent)
 		assert.NoError(t, err)
@@ -464,12 +450,7 @@ http_request_duration_seconds_count{status_code="404",method="GET"} 1
 up 1
 `
 
-	tmpDir, err := ioutil.TempDir("./", "__tmp")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(tmpDir) // nolint:errcheck
-	f, err := ioutil.TempFile(tmpDir, "output")
+	f, err := os.CreateTemp(t.TempDir(), "output")
 	assert.NoError(t, err)
 	outputFile, err := filepath.Abs(f.Name())
 	if err != nil {
@@ -490,7 +471,7 @@ up 1
 
 	assert.NoError(t, err)
 
-	fileContent, err := ioutil.ReadFile(outputFile)
+	fileContent, err := os.ReadFile(outputFile)
 
 	assert.NoError(t, err)
 
@@ -865,7 +846,9 @@ up 1
 			if err != nil {
 				t.Errorf("[%d] failed to init prom: %s", idx, err)
 			}
+
 			p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
+
 			points, err := p.CollectFromHTTPV2(tc.u)
 			if err != nil {
 				if tc.fail {
@@ -875,6 +858,7 @@ up 1
 				}
 				return
 			}
+
 			// Expect to fail but it didn't.
 			if tc.fail {
 				t.Errorf("[%d] expected to fail but it didn't", idx)
@@ -883,12 +867,15 @@ up 1
 			var got []string
 			for _, p := range points {
 				s := p.LineProto()
+
 				// remove timestamp
 				s = s[:strings.LastIndex(s, " ")]
 				got = append(got, s)
 			}
+
 			sort.Strings(got)
-			tu.Equals(t, strings.Join(tc.expected, "\n"), strings.Join(got, "\n"))
+			assert.Equal(t, tc.expected, got)
+
 			t.Logf("[%d] PASS", idx)
 		})
 	}
@@ -963,8 +950,8 @@ func TestGetTimestampS(t *testing.T) {
 		TimestampMs: &ts,
 	}
 	m2 := dto.Metric{}
-	tu.Equals(t, int64(1647959040000000000), getTimestampS(&m1, startTime).UnixNano())
-	tu.Equals(t, int64(1600000000000000000), getTimestampS(&m2, startTime).UnixNano())
+	assert.Equal(t, int64(1647959040000000000), getTimestampS(&m1, startTime).UnixNano())
+	assert.Equal(t, int64(1600000000000000000), getTimestampS(&m2, startTime).UnixNano())
 }
 
 func TestRenameTag(t *testing.T) {
@@ -1104,7 +1091,9 @@ http_request_duration_seconds_bucket{le="0.003",status_code="404",method="GET"} 
 				left = left[:strings.LastIndex(left, " ")]
 				right := pt.LineProto()
 				right = right[:strings.LastIndex(right, " ")]
-				tu.Equals(t, left, right)
+
+				assert.Equal(t, left, right)
+
 				t.Log(tc.expect[idx].LineProto())
 			}
 		})
@@ -1200,7 +1189,7 @@ otel_scope_info{otel_scope_name="otlp-server"} 1
 				got = append(got, s[:strings.LastIndex(s, " ")])
 			}
 			sort.Strings(got)
-			tu.Equals(t, strings.Join(tc.expected, "\n"), strings.Join(got, "\n"))
+			assert.Equal(t, tc.expected, got)
 			t.Logf("[%d] PASS", idx)
 		})
 	}
@@ -1304,7 +1293,7 @@ up 0
 				got = append(got, s[:strings.LastIndex(s, " ")])
 			}
 			sort.Strings(got)
-			tu.Equals(t, strings.Join(tc.expected, "\n"), strings.Join(got, "\n"))
+			assert.Equal(t, tc.expected, got)
 			t.Logf("[%d] PASS", idx)
 		})
 	}
@@ -1452,9 +1441,13 @@ up 1
 			if len(tc.expect) != len(arr) {
 				t.Errorf("the length of want != got.")
 			}
+
 			for i := range arr {
-				assert.Equal(t, strings.HasPrefix(arr[i], tc.expect[i]), true)
-				t.Logf(">>>\n%s\n%s", arr[i], tc.expect[i])
+				assert.Equal(t, strings.HasPrefix(arr[i], tc.expect[i]), true,
+					"exp: %s\ngot: %s",
+					tc.expect[i],
+					arr[i],
+				)
 			}
 		})
 	}
@@ -1563,9 +1556,13 @@ etcd_debugging_disk_backend_commit_rebalance_duration_seconds_count 24920
 			if len(tc.expect) != len(arr) {
 				t.Errorf("the length of want != got.")
 			}
+
 			for i := range arr {
-				assert.Equal(t, strings.HasPrefix(arr[i], tc.expect[i]), true)
-				t.Logf(">>>\n%s\n%s", arr[i], tc.expect[i])
+				assert.Equal(t, strings.HasPrefix(arr[i], tc.expect[i]), true,
+					"exp: %s\ngot: %s",
+					tc.expect[i],
+					arr[i],
+				)
 			}
 		})
 	}
@@ -1717,9 +1714,13 @@ up 1
 			if len(tc.expect) != len(arr) {
 				t.Errorf("the length of want != got.")
 			}
+
 			for i := range arr {
-				assert.Equal(t, strings.HasPrefix(arr[i], tc.expect[i]), true)
-				t.Logf(">>>\n%s\n%s", arr[i], tc.expect[i])
+				assert.Equal(t, strings.HasPrefix(arr[i], tc.expect[i]), true,
+					"exp: %s\ngot: %s",
+					tc.expect[i],
+					arr[i],
+				)
 			}
 		})
 	}
@@ -1929,12 +1930,10 @@ up 1
 			sort.Strings(arr)
 			sort.Strings(tc.expect)
 
-			if len(tc.expect) != len(arr) {
-				t.Errorf("the length of want != got.")
-			}
+			assert.Len(t, arr, len(tc.expect))
+
 			for i := range arr {
-				assert.Equal(t, strings.HasPrefix(arr[i], tc.expect[i]), true)
-				t.Logf(">>>\n%s\n%s", arr[i], tc.expect[i])
+				assert.Truef(t, strings.HasPrefix(arr[i], tc.expect[i]), "got: %s\nexp: %s", arr[i], tc.expect[i])
 			}
 		})
 	}
@@ -2010,15 +2009,17 @@ func TestIgnoreReqErrBatch(t *testing.T) {
 				if tc.fail {
 					t.Logf("[%d] returned an error as expected: %s", idx, err)
 				} else {
-					t.Errorf("[%d] failed: %s", idx, err)
+					assert.Errorf(t, err, "%d expect error %s", idx)
 				}
+
 				return
 			}
+
 			// Expect to fail but it didn't.
 			if tc.fail {
-				t.Errorf("[%d] expected to fail but it didn't", idx)
+				assert.Errorf(t, err, "%d expect error %s", idx)
 			}
-			t.Logf("[%d] PASS", idx)
+
 			wg.Wait()
 		})
 	}
@@ -2438,7 +2439,7 @@ up 1
 				got = append(got, s)
 			}
 			sort.Strings(got)
-			tu.Equals(t, strings.Join(tc.expected, "\n"), strings.Join(got, "\n"))
+			assert.Equal(t, tc.expected, got)
 			t.Logf("[%d] PASS", idx)
 		})
 	}
@@ -2723,8 +2724,8 @@ http_request_duration_seconds_bucket{le="0.003",status_code="404",method="GET"} 
 				left = left[:strings.LastIndex(left, " ")]
 				right := pt.LineProto()
 				right = right[:strings.LastIndex(right, " ")]
-				tu.Equals(t, left, right)
-				t.Log(tc.expect[idx].LineProto())
+
+				assert.Equal(t, left, right, "exp: %s", tc.expect[idx].LineProto())
 			}
 		})
 	}
@@ -2820,7 +2821,7 @@ process_runtime_jvm_buffer_count{pool="mapped - 'non-volatile memory'"} 0.0 1680
 				got = append(got, s[:strings.LastIndex(s, " ")])
 			}
 			sort.Strings(got)
-			tu.Equals(t, strings.Join(tc.expected, "\n"), strings.Join(got, "\n"))
+			assert.Equal(t, tc.expected, got)
 			t.Logf("[%d] PASS", idx)
 		})
 	}
@@ -2962,7 +2963,7 @@ up 0
 			if len(tc.expected) != len(got) {
 				t.Errorf("%s :the length of want != got.", tc.name)
 			}
-			tu.Equals(t, strings.Join(tc.expected, "\n"), strings.Join(got, "\n"))
+			assert.Equal(t, tc.expected, got)
 			t.Logf("[%d] PASS", idx)
 		})
 	}
@@ -3147,9 +3148,13 @@ up 1
 			if len(tc.expect) != len(arr) {
 				t.Errorf("the length of want != got.")
 			}
+
 			for i := range arr {
-				assert.Equal(t, strings.HasPrefix(arr[i], tc.expect[i]), true)
-				t.Logf(">>>\n%s\n%s", arr[i], tc.expect[i])
+				assert.Equal(t, strings.HasPrefix(arr[i], tc.expect[i]), true,
+					"exp: %s\ngot: %s",
+					tc.expect[i],
+					arr[i],
+				)
 			}
 		})
 	}
@@ -3294,8 +3299,11 @@ process_runtime_jvm_buffer_count{pool="mapped - 'non-volatile memory'"} 0.0 1680
 				t.Errorf("the length of want != got.")
 			}
 			for i := range arr {
-				assert.Equal(t, strings.HasPrefix(arr[i], tc.expect[i]), true)
-				t.Logf(">>>\n%s\n%s", arr[i], tc.expect[i])
+				assert.Equal(t, strings.HasPrefix(arr[i], tc.expect[i]), true,
+					"exp: %s\ngot: %s",
+					tc.expect[i],
+					arr[i],
+				)
 			}
 		})
 
@@ -3364,8 +3372,11 @@ process_runtime_jvm_buffer_count{pool="mapped - 'non-volatile memory'"} 0.0 1680
 				return
 			}
 			for i := range arr {
-				assert.Equal(t, strings.HasPrefix(arr[i], tc.expect[i]), true)
-				t.Logf(">>>\n%s\n%s", arr[i], tc.expect[i])
+				assert.Equal(t, strings.HasPrefix(arr[i], tc.expect[i]), true,
+					"exp: %s\ngot: %s",
+					tc.expect[i],
+					arr[i],
+				)
 			}
 		})
 	}
@@ -3512,8 +3523,7 @@ etcd_debugging_disk_backend_commit_rebalance_duration_seconds_count 24920
 				t.Errorf("the length of want != got.")
 			}
 			for i := range arr {
-				assert.Equal(t, strings.HasPrefix(arr[i], tc.expect[i]), true)
-				t.Logf(">>>\n%s\n%s", arr[i], tc.expect[i])
+				assert.Equal(t, strings.HasPrefix(arr[i], tc.expect[i]), true, "exp: %s\ngot: %s", tc.expect[i], arr[i])
 			}
 		})
 	}
@@ -3705,8 +3715,7 @@ up 1
 				t.Errorf("the length of want != got.")
 			}
 			for i := range arr {
-				assert.Equal(t, strings.HasPrefix(arr[i], tc.expect[i]), true)
-				t.Logf(">>>\n%s\n%s", arr[i], tc.expect[i])
+				assert.Equal(t, strings.HasPrefix(arr[i], tc.expect[i]), true, "exp:%s\not:%s", tc.expect[i], arr[i])
 			}
 		})
 	}

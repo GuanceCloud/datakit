@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -62,7 +61,7 @@ func NewRegisterFileIfNotExist(file string) (Register, error) {
 }
 
 func New(file string) (Register, error) {
-	b, err := ioutil.ReadFile(filepath.Clean(file))
+	b, err := os.ReadFile(filepath.Clean(file))
 	if err != nil {
 		return nil, err
 	}

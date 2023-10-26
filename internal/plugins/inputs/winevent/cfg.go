@@ -16,7 +16,9 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
 
 var (
@@ -48,9 +50,11 @@ type Input struct {
 
 	subscription EvtHandle
 	buf          []byte
-	collectCache []inputs.Measurement
+	collectCache []*point.Point
 
 	semStop *cliutils.Sem // start stop signal
+	feeder  dkio.Feeder
+	Tagger  datakit.GlobalTagger
 }
 
 type Event struct {

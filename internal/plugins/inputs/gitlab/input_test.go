@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"crypto/md5"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -19,7 +20,6 @@ import (
 	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 const (
@@ -708,9 +708,7 @@ func TestServeHTTP(t *testing.T) {
 
 func TestFailToFeed(t *testing.T) {
 	ipt := getInput(30 * time.Second)
-	ipt.feed = func(name, category string, pts []*dkpt.Point, opt *io.Option) error {
-		return fmt.Errorf("mock error")
-	}
+	ipt.feeder = NewMockedFeeder()
 	r := getPipelineRequest(pipelineJson1)
 	digest := md5.Sum([]byte(pipelineJson1))
 	w := newMockWriter()
@@ -751,7 +749,7 @@ func TestAddExtraTags(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ipt := newInput()
+			ipt := defaultInput()
 			ipt.CIExtraTags = tc.extra
 			tags := tc.existing
 			ipt.addExtraTags(tags)
@@ -761,11 +759,8 @@ func TestAddExtraTags(t *testing.T) {
 }
 
 func getInput(expired time.Duration) *Input {
-	ipt := newInput()
-	ipt.feed = func(name, category string, pts []*dkpt.Point, opt *io.Option) error {
-		return nil
-	}
-	ipt.feedLastError = func(inputName string, err string, cat ...point.Category) {}
+	ipt := defaultInput()
+	ipt.feeder = NewMockedFeederEmpty()
 	go ipt.reqMemo.memoMaintainer(expired)
 	return ipt
 }
@@ -781,3 +776,56 @@ func getJobRequest(reqBody string) *http.Request {
 	r.Header.Set(gitlabEventHeader, jobHook)
 	return r
 }
+
+////////////////////////////////////////////////////////////////////////////////
+
+var (
+	ErrTimeout = errors.New("timeout")
+	ErrBusy    = errors.New("busy")
+
+	chanCap = 128
+)
+
+var _ io.Feeder = new(MockedFeeder)
+
+type MockedFeeder struct {
+	ch chan []*point.Point
+
+	lastErrors [][2]string
+}
+
+func NewMockedFeeder() *MockedFeeder {
+	return &MockedFeeder{
+		ch: make(chan []*point.Point, chanCap),
+	}
+}
+
+func (f *MockedFeeder) Feed(name string, category point.Category, pts []*point.Point, opts ...*io.Option) error {
+	return fmt.Errorf("mock error")
+}
+
+func (f *MockedFeeder) FeedLastError(err string, opts ...io.LastErrorOption) {
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+type MockedFeederEmpty struct {
+	ch chan []*point.Point
+
+	lastErrors [][2]string
+}
+
+func NewMockedFeederEmpty() *MockedFeederEmpty {
+	return &MockedFeederEmpty{
+		ch: make(chan []*point.Point, chanCap),
+	}
+}
+
+func (f *MockedFeederEmpty) Feed(name string, category point.Category, pts []*point.Point, opts ...*io.Option) error {
+	return nil
+}
+
+func (f *MockedFeederEmpty) FeedLastError(err string, opts ...io.LastErrorOption) {
+}
+
+////////////////////////////////////////////////////////////////////////////////

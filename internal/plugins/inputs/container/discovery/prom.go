@@ -142,7 +142,7 @@ func newPromRunnerWithConfig(c *promConfig) (*promRunner, error) {
 	callbackFunc := func(pts []*point.Point) error {
 		if p.conf.AsLogging != nil && p.conf.AsLogging.Enable {
 			for _, pt := range pts {
-				err := p.feeder.Feed(string(pt.Name()), point.Logging, []*point.Point{pt},
+				err := p.feeder.Feed(pt.Name(), point.Logging, []*point.Point{pt},
 					&io.Option{CollectCost: time.Since(p.lastTime)},
 				)
 				if err != nil {

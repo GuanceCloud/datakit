@@ -8,14 +8,13 @@ package dataway
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 // DialtestingSender used for dialtesting collector.
@@ -35,10 +34,11 @@ func (d *DialtestingSender) Init(opt *DialtestingSenderOpt) error {
 	return d.ep.setupHTTP()
 }
 
-func (d *DialtestingSender) WriteData(url string, pts []*dkpt.Point) error {
+func (d *DialtestingSender) WriteData(url string, pts []*point.Point) error {
 	w := getWriter()
 	defer putWriter(w)
 
+	// TODO: can not set content encoding here, default use line-protocol
 	WithPoints(pts)(w)
 	WithDynamicURL(url)(w)
 	WithCategory(point.DynamicDWCategory)(w)
@@ -47,13 +47,14 @@ func (d *DialtestingSender) WriteData(url string, pts []*dkpt.Point) error {
 		return fmt.Errorf("endpoint is not set correctly")
 	}
 
-	if bodies, err := buildBody(w.pts, MaxKodoBody); err != nil {
-		return nil
-	} else {
-		for _, body := range bodies {
-			if err := d.ep.writeBody(w, body); err != nil {
-				return err
-			}
+	arr, err := w.buildPointsBody()
+	if err != nil {
+		return err
+	}
+
+	for _, body := range arr {
+		if err := d.ep.writeBody(w, body); err != nil {
+			return err
 		}
 	}
 
@@ -78,7 +79,7 @@ func (d *DialtestingSender) CheckToken(token, scheme, host string) (bool, error)
 		return false, err
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Error(err)
 		return false, err

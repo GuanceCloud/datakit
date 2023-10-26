@@ -27,7 +27,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 // --------------------------------------------------------------------
@@ -66,7 +65,7 @@ type JolokiaAgent struct {
 
 	SemStop *cliutils.Sem `toml:"-"` // start stop signal
 	Feeder  dkio.Feeder   `toml:"-"`
-	Tagger  dkpt.GlobalTagger
+	Tagger  datakit.GlobalTagger
 	g       *goroutine.Group
 }
 
@@ -84,7 +83,7 @@ func (j *JolokiaAgent) Collect() {
 		j.Feeder = dkio.DefaultFeeder()
 	}
 	if j.Tagger == nil {
-		j.Tagger = dkpt.DefaultGlobalTagger()
+		j.Tagger = datakit.DefaultGlobalTagger()
 	}
 	if j.g == nil {
 		j.g = goroutine.NewGroup(goroutine.Option{Name: "inputs_jolokia"})
@@ -234,14 +233,9 @@ func (m *JolokiaMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (*JolokiaMeasurement) LineProto() (*dkpt.Point, error) {
-	// return dkpt.NewPoint(j.name, j.tags, j.fields, dkpt.MOpt())
-	return nil, fmt.Errorf("not implement")
 }
 
 func (*JolokiaMeasurement) Info() *MeasurementInfo {

@@ -20,8 +20,8 @@ import (
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/stretchr/testify/assert"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
 )
 
@@ -42,7 +42,7 @@ neo4j_dbms_page_cache_usage_ratio 0.0
 		inp := NewInput()
 		inp.URLs = []string{srv.URL}
 
-		inp.Tagger = &taggerMock{
+		inp.tagger = &taggerMock{
 			hostTags: map[string]string{
 				"host":  "foo",
 				"hello": "world",
@@ -54,9 +54,9 @@ neo4j_dbms_page_cache_usage_ratio 0.0
 			},
 		}
 
-		inp.Init()
+		inp.setup()
 
-		pts, err := inp.collect()
+		pts, err := inp.getPts()
 		assert.NoError(t, err)
 
 		if len(pts) == 0 {
@@ -64,11 +64,11 @@ neo4j_dbms_page_cache_usage_ratio 0.0
 		}
 
 		for _, pt := range pts {
-			assert.True(t, pt.Tags().Has([]byte("instance")))
-			assert.True(t, pt.Tags().Has([]byte("project")))
-			assert.True(t, pt.Tags().Has([]byte("cluster")))
+			assert.True(t, pt.Tags().Has("instance"))
+			assert.True(t, pt.Tags().Has("project"))
+			assert.True(t, pt.Tags().Has("cluster"))
 
-			assert.Equal(t, float64(0.0), pt.Get([]byte("dbms_page_cache_usage_ratio")).(float64))
+			assert.Equal(t, float64(0.0), pt.Get("dbms_page_cache_usage_ratio").(float64))
 
 			t.Logf("%s", pt.Pretty())
 		}
@@ -91,9 +91,9 @@ neo4j_dbms_page_cache_usage_ratio 0.0
 		inp.URLs = []string{srv.URL}
 		inp.DisableInstanceTag = true
 
-		inp.Init()
+		inp.setup()
 
-		pts, err := inp.collect()
+		pts, err := inp.getPts()
 		assert.NoError(t, err)
 
 		if len(pts) == 0 {
@@ -101,7 +101,7 @@ neo4j_dbms_page_cache_usage_ratio 0.0
 		}
 
 		for _, pt := range pts {
-			assert.False(t, pt.Tags().Has([]byte("instance")))
+			assert.False(t, pt.Tags().Has("instance"))
 
 			t.Logf("%s", pt.Pretty())
 		}
@@ -123,9 +123,9 @@ neo4j_dbms_pool_bolt_total_size 0
 		inp := NewInput()
 		inp.URLs = []string{srv.URL}
 
-		inp.Init()
+		inp.setup()
 
-		pts, err := inp.collect()
+		pts, err := inp.getPts()
 		assert.NoError(t, err)
 
 		if len(pts) == 0 {
@@ -133,9 +133,9 @@ neo4j_dbms_pool_bolt_total_size 0
 		}
 
 		for _, pt := range pts {
-			assert.Equal(t, pt.GetTag([]byte("pool")), []byte("bolt"))
+			assert.Equal(t, pt.GetTag("pool"), "bolt")
 
-			assert.Equal(t, float64(0.0), pt.Get([]byte("dbms_pool_total_size")).(float64))
+			assert.Equal(t, float64(0.0), pt.Get("dbms_pool_total_size").(float64))
 
 			t.Logf("%s", pt.Pretty())
 		}
@@ -157,9 +157,9 @@ neo4j_database_system_pool_transaction_system_used_heap 0.0
 		inp := NewInput()
 		inp.URLs = []string{srv.URL}
 
-		inp.Init()
+		inp.setup()
 
-		pts, err := inp.collect()
+		pts, err := inp.getPts()
 		assert.NoError(t, err)
 
 		if len(pts) == 0 {
@@ -167,11 +167,11 @@ neo4j_database_system_pool_transaction_system_used_heap 0.0
 		}
 
 		for _, pt := range pts {
-			assert.Equal(t, pt.GetTag([]byte("db")), []byte("system"))
-			assert.Equal(t, pt.GetTag([]byte("pool")), []byte("transaction"))
-			assert.Equal(t, pt.GetTag([]byte("database")), []byte("system"))
+			assert.Equal(t, pt.GetTag("db"), "system")
+			assert.Equal(t, pt.GetTag("pool"), "transaction")
+			assert.Equal(t, pt.GetTag("database"), "system")
 
-			assert.Equal(t, float64(0.0), pt.Get([]byte("database_pool_used_heap")).(float64))
+			assert.Equal(t, float64(0.0), pt.Get("database_pool_used_heap").(float64))
 
 			t.Logf("%s", pt.Pretty())
 		}
@@ -193,9 +193,9 @@ neo4j_dbms_vm_gc_time_g1_young_generation_total 71.0
 		inp := NewInput()
 		inp.URLs = []string{srv.URL}
 
-		inp.Init()
+		inp.setup()
 
-		pts, err := inp.collect()
+		pts, err := inp.getPts()
 		assert.NoError(t, err)
 
 		if len(pts) == 0 {
@@ -203,9 +203,9 @@ neo4j_dbms_vm_gc_time_g1_young_generation_total 71.0
 		}
 
 		for _, pt := range pts {
-			assert.Equal(t, pt.GetTag([]byte("gc")), []byte("g1_young_generation"))
+			assert.Equal(t, pt.GetTag("gc"), "g1_young_generation")
 
-			assert.Equal(t, float64(71.0), pt.Get([]byte("dbms_vm_gc_time_total")).(float64))
+			assert.Equal(t, float64(71.0), pt.Get("dbms_vm_gc_time_total").(float64))
 
 			t.Logf("%s", pt.Pretty())
 		}
@@ -227,9 +227,9 @@ neo4j_neo4j_check_point_total_time_total 0.0
 		inp := NewInput()
 		inp.URLs = []string{srv.URL}
 
-		inp.Init()
+		inp.setup()
 
-		pts, err := inp.collect()
+		pts, err := inp.getPts()
 		assert.NoError(t, err)
 
 		if len(pts) == 0 {
@@ -237,9 +237,9 @@ neo4j_neo4j_check_point_total_time_total 0.0
 		}
 
 		for _, pt := range pts {
-			assert.Equal(t, pt.GetTag([]byte("db")), []byte("neo4j"))
+			assert.Equal(t, pt.GetTag("db"), "neo4j")
 
-			assert.Equal(t, float64(0.0), pt.Get([]byte("check_point_total_time_total")).(float64))
+			assert.Equal(t, float64(0.0), pt.Get("check_point_total_time_total").(float64))
 
 			t.Logf("%s", pt.Pretty())
 		}
@@ -261,9 +261,9 @@ neo4j_vm_memory_pool_g1_eden_space 0.0
 		inp := NewInput()
 		inp.URLs = []string{srv.URL}
 
-		inp.Init()
+		inp.setup()
 
-		pts, err := inp.collect()
+		pts, err := inp.getPts()
 		assert.NoError(t, err)
 
 		if len(pts) == 0 {
@@ -271,9 +271,9 @@ neo4j_vm_memory_pool_g1_eden_space 0.0
 		}
 
 		for _, pt := range pts {
-			assert.Equal(t, pt.GetTag([]byte("pool")), []byte("g1_eden_space"))
+			assert.Equal(t, pt.GetTag("pool"), "g1_eden_space")
 
-			assert.Equal(t, float64(0.0), pt.Get([]byte("vm_memory_pool")).(float64))
+			assert.Equal(t, float64(0.0), pt.Get("vm_memory_pool").(float64))
 
 			t.Logf("%s", pt.Pretty())
 		}
@@ -295,9 +295,9 @@ vm_memory_buffer_direct_capacity 221184.0
 		inp := NewInput()
 		inp.URLs = []string{srv.URL}
 
-		inp.Init()
+		inp.setup()
 
-		pts, err := inp.collect()
+		pts, err := inp.getPts()
 		assert.NoError(t, err)
 
 		if len(pts) == 0 {
@@ -305,9 +305,8 @@ vm_memory_buffer_direct_capacity 221184.0
 		}
 
 		for _, pt := range pts {
-			assert.Equal(t, pt.GetTag([]byte("bufferpool")), []byte("direct"))
-
-			assert.Equal(t, float64(221184.0), pt.Get([]byte("vm_memory_buffer_capacity")).(float64))
+			assert.Equal(t, pt.GetTag("bufferpool"), "direct")
+			assert.Equal(t, float64(221184.0), pt.Get("vm_memory_buffer_capacity").(float64))
 
 			t.Logf("%s", pt.Pretty())
 		}
@@ -347,13 +346,12 @@ func Test_collect(t *testing.T) {
 		pm                     *iprom.Prom
 		Feeder                 io.Feeder
 		Election               bool
-		chPause                chan bool
+		pauseCh                chan bool
 		pause                  bool
-		Tagger                 dkpt.GlobalTagger
+		Tagger                 datakit.GlobalTagger
 		urls                   []*url.URL
 		semStop                *cliutils.Sem
-		isInitialized          bool
-		urlTags                map[string]urlTags
+		mergedTags             map[string]urlTags
 		l                      *logger.Logger
 	}
 	tests := []struct {
@@ -383,15 +381,15 @@ func Test_collect(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.fields = fields{
 				Election:           true,
-				chPause:            make(chan bool, maxPauseCh),
+				pauseCh:            make(chan bool, maxPauseCh),
 				Tags:               make(map[string]string),
 				DisableInstanceTag: true,
-				urlTags:            map[string]urlTags{},
-				Tagger:             dkpt.DefaultGlobalTagger(),
+				mergedTags:         map[string]urlTags{},
+				Tagger:             datakit.DefaultGlobalTagger(),
 				l:                  logger.SLogger(inputName),
 			}
 
-			i := &Input{
+			inp := &Input{
 				Interval:               tt.fields.Interval,
 				Timeout:                tt.fields.Timeout,
 				ConnectKeepAlive:       tt.fields.ConnectKeepAlive,
@@ -412,7 +410,6 @@ func Test_collect(t *testing.T) {
 				KeyFile:                tt.fields.KeyFile,
 				TagsIgnore:             tt.fields.TagsIgnore,
 				TagsRename:             tt.fields.TagsRename,
-				AsLogging:              tt.fields.AsLogging,
 				IgnoreTagKV:            tt.fields.IgnoreTagKV,
 				HTTPHeaders:            tt.fields.HTTPHeaders,
 				Tags:                   tt.fields.Tags,
@@ -421,15 +418,14 @@ func Test_collect(t *testing.T) {
 				DisableInfoTag:         tt.fields.DisableInfoTag,
 				Auth:                   tt.fields.Auth,
 				pm:                     tt.fields.pm,
-				Feeder:                 tt.fields.Feeder,
+				feeder:                 tt.fields.Feeder,
 				Election:               tt.fields.Election,
-				chPause:                tt.fields.chPause,
+				pauseCh:                tt.fields.pauseCh,
 				pause:                  tt.fields.pause,
-				Tagger:                 tt.fields.Tagger,
+				tagger:                 tt.fields.Tagger,
 				urls:                   tt.fields.urls,
 				semStop:                tt.fields.semStop,
-				isInitialized:          tt.fields.isInitialized,
-				urlTags:                tt.fields.urlTags,
+				mergedTags:             tt.fields.mergedTags,
 				l:                      tt.fields.l,
 			}
 
@@ -439,12 +435,12 @@ func Test_collect(t *testing.T) {
 			t.Log(srv.URL)
 			defer srv.Close()
 
-			i.URLs = []string{srv.URL}
+			inp.URLs = []string{srv.URL}
 
-			err := i.Init()
+			err := inp.setup()
 			assert.NoError(t, err)
 
-			pts, err := i.collect()
+			pts, err := inp.getPts()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Input.collect() error = %v, wantErr %v", err, tt.wantErr)
 				return

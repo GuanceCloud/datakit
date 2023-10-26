@@ -19,11 +19,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/golang/snappy"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
-	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -52,47 +54,55 @@ type Input struct {
 	TagsRename      map[string]string `toml:"tags_rename"`
 	Overwrite       bool              `toml:"overwrite"`
 	Output          string            `toml:"output"`
+
+	Election bool // forever false
+
+	semStop *cliutils.Sem // start stop signal
+	feeder  dkio.Feeder
+	Tagger  datakit.GlobalTagger
+
 	Parser
 }
 
-func (h *Input) RegHTTPHandler() {
-	if h.Path == "" {
-		h.Path = defaultRemoteWritePath
+func (ipt *Input) RegHTTPHandler() {
+	l = logger.SLogger(inputName)
+	if ipt.Path == "" {
+		ipt.Path = defaultRemoteWritePath
 	}
-	for _, m := range h.Methods {
-		httpapi.RegHTTPHandler(m, h.Path, h.ServeHTTP)
+	for _, m := range ipt.Methods {
+		httpapi.RegHTTPHandler(m, ipt.Path, ipt.ServeHTTP)
 	}
 }
 
-func (h *Input) Catalog() string {
+func (*Input) Catalog() string {
 	return catalog
 }
 
-func (h *Input) Terminate() {
+func (*Input) Terminate() {
 	// do nothing
 }
 
-func (h *Input) Run() {
+func (ipt *Input) Run() {
 	l.Infof("%s input started...", inputName)
-	for i, m := range h.Methods {
-		h.Methods[i] = strings.ToUpper(m)
+	for i, m := range ipt.Methods {
+		ipt.Methods[i] = strings.ToUpper(m)
 	}
 }
 
 // ServeHTTP accepts prometheus remote writing, then parses received
 // metrics, and sends them to datakit io or local disk file.
-func (h *Input) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	handler := h.serveWrite
+func (ipt *Input) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+	handler := ipt.serveWrite
 
-	h.authenticateIfSet(handler, res, req)
+	ipt.authenticateIfSet(handler, res, req)
 }
 
-func (h *Input) authenticateIfSet(handler http.HandlerFunc, res http.ResponseWriter, req *http.Request) {
-	if h.BasicUsername != "" && h.BasicPassword != "" {
+func (ipt *Input) authenticateIfSet(handler http.HandlerFunc, res http.ResponseWriter, req *http.Request) {
+	if ipt.BasicUsername != "" && ipt.BasicPassword != "" {
 		reqUsername, reqPassword, ok := req.BasicAuth()
 		if !ok ||
-			subtle.ConstantTimeCompare([]byte(reqUsername), []byte(h.BasicUsername)) != 1 ||
-			subtle.ConstantTimeCompare([]byte(reqPassword), []byte(h.BasicPassword)) != 1 {
+			subtle.ConstantTimeCompare([]byte(reqUsername), []byte(ipt.BasicUsername)) != 1 ||
+			subtle.ConstantTimeCompare([]byte(reqPassword), []byte(ipt.BasicPassword)) != 1 {
 			http.Error(res, "Unauthorized.", http.StatusUnauthorized)
 			return
 		}
@@ -100,10 +110,10 @@ func (h *Input) authenticateIfSet(handler http.HandlerFunc, res http.ResponseWri
 	handler(res, req)
 }
 
-func (h *Input) serveWrite(res http.ResponseWriter, req *http.Request) {
+func (ipt *Input) serveWrite(res http.ResponseWriter, req *http.Request) {
 	t := time.Now()
 	// Check that the content length is not too large for us to handle.
-	if req.ContentLength > h.MaxBodySize {
+	if req.ContentLength > ipt.MaxBodySize {
 		if err := tooLarge(res); err != nil {
 			l.Debugf("error in too-large: %v", err)
 		}
@@ -111,7 +121,7 @@ func (h *Input) serveWrite(res http.ResponseWriter, req *http.Request) {
 	}
 
 	// Check if the requested HTTP method was specified in config.
-	if !h.isAcceptedMethod(req.Method) {
+	if !ipt.isAcceptedMethod(req.Method) {
 		if err := methodNotAllowed(res); err != nil {
 			l.Debugf("error in method-not-allowed: %v", err)
 		}
@@ -120,11 +130,11 @@ func (h *Input) serveWrite(res http.ResponseWriter, req *http.Request) {
 
 	var bytes []byte
 	var ok bool
-	switch strings.ToLower(h.DataSource) {
+	switch strings.ToLower(ipt.DataSource) {
 	case query:
-		bytes, ok = h.collectQuery(res, req)
+		bytes, ok = ipt.collectQuery(res, req)
 	default:
-		bytes, ok = h.collectBody(res, req)
+		bytes, ok = ipt.collectBody(res, req)
 	}
 	if !ok {
 		return
@@ -132,8 +142,8 @@ func (h *Input) serveWrite(res http.ResponseWriter, req *http.Request) {
 
 	// If h.Output is configured, data is written to disk file path specified by h.Output.
 	// Data will no more be written to datakit io.
-	if h.Output != "" {
-		err := h.writeFile(bytes)
+	if ipt.Output != "" {
+		err := ipt.writeFile(bytes)
 		if err != nil {
 			l.Warnf("fail to write data to file: %v", err)
 		}
@@ -141,7 +151,7 @@ func (h *Input) serveWrite(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	metrics, err := h.Parse(bytes)
+	metrics, err := ipt.Parse(bytes, ipt)
 	if err != nil {
 		l.Debugf("parse error: %s", err.Error())
 		if err := badRequest(res); err != nil {
@@ -151,34 +161,28 @@ func (h *Input) serveWrite(res http.ResponseWriter, req *http.Request) {
 	}
 
 	// Add HTTP header tags and custom tags.
-	for i := range metrics {
-		m, ok := metrics[i].(*Measurement)
-		if !ok {
-			l.Warnf("expect to be *Measurement")
-			return
-		}
-
-		for headerName, tagName := range h.HTTPHeaderTags {
+	for idx := range metrics {
+		for headerName, tagName := range ipt.HTTPHeaderTags {
 			headerValues := req.Header.Get(headerName)
 			if len(headerValues) > 0 {
-				m.tags[tagName] = headerValues
+				metrics[idx].AddTag(tagName, headerValues)
 			}
 		}
-		h.SetTags(m)
+		ipt.SetTags(metrics[idx])
 	}
 	if len(metrics) > 0 {
-		if err := inputs.FeedMeasurement(inputName,
-			datakit.Metric,
+		if err := ipt.feeder.Feed(inputName,
+			point.Metric,
 			metrics,
-			&iod.Option{CollectCost: time.Since(t)}); err != nil {
-			l.Warnf("inputs.FeedMeasurement: %s, ignored", err)
+			&dkio.Option{CollectCost: time.Since(t)}); err != nil {
+			l.Warnf("Feed failed: %s, ignored", err)
 		}
 	}
 	res.WriteHeader(http.StatusNoContent)
 }
 
-func (h *Input) isAcceptedMethod(method string) bool {
-	for _, m := range h.Methods {
+func (ipt *Input) isAcceptedMethod(method string) bool {
+	for _, m := range ipt.Methods {
 		if method == m {
 			return true
 		}
@@ -186,60 +190,70 @@ func (h *Input) isAcceptedMethod(method string) bool {
 	return false
 }
 
-func (h *Input) SetTags(m *Measurement) {
-	h.addTags(m)
-	h.ignoreTags(m)
-	h.ignoreTagsRegex(m)
-	h.renameTags(m)
+func (ipt *Input) SetTags(pt *point.Point) {
+	ipt.addTags(pt)
+	ipt.ignoreTags(pt)
+	ipt.ignoreTagsRegex(pt)
+	ipt.renameTags(pt)
 }
 
-func (h *Input) addTags(m *Measurement) {
-	for k, v := range h.Tags {
-		m.tags[k] = v
+func (ipt *Input) addTags(pt *point.Point) {
+	for k, v := range ipt.Tags {
+		pt.AddTag(k, v)
 	}
 }
 
-func (h *Input) ignoreTags(m *Measurement) {
-	for _, t := range h.TagsIgnore {
-		delete(m.tags, t)
+func (ipt *Input) ignoreTags(pt *point.Point) {
+	for _, t := range ipt.TagsIgnore {
+		pt.Del(t)
 	}
 }
 
-func (h *Input) ignoreTagsRegex(m *Measurement) {
-	if len(h.TagsIgnoreRegex) == 0 {
+func (ipt *Input) ignoreTagsRegex(pt *point.Point) {
+	if len(ipt.TagsIgnoreRegex) == 0 {
 		return
 	}
-	for tagKey := range m.tags {
-		for _, r := range h.TagsIgnoreRegex {
-			match, err := regexp.MatchString(r, tagKey)
+
+	for _, kv := range pt.KVs() {
+		if !kv.IsTag {
+			continue
+		}
+
+		for _, r := range ipt.TagsIgnoreRegex {
+			match, err := regexp.MatchString(r, kv.Key)
 			if err != nil {
 				continue
 			}
 			if match {
-				delete(m.tags, tagKey)
+				pt.Del(kv.Key)
 				break
 			}
 		}
 	}
 }
 
-func (h *Input) renameTags(m *Measurement) {
-	for oldKey, newKey := range h.TagsRename {
-		if _, has := m.tags[oldKey]; !has {
+func (ipt *Input) renameTags(pt *point.Point) {
+	for oldKey, newKey := range ipt.TagsRename {
+		valOld := pt.GetTag(oldKey)
+		if len(valOld) == 0 {
 			continue
 		}
-		_, has := m.tags[newKey]
-		if has && h.Overwrite || !has {
-			m.tags[newKey] = m.tags[oldKey]
-			delete(m.tags, oldKey)
+		has := true
+		if val := pt.GetTag(newKey); len(val) == 0 {
+			has = false
+		}
+		if has && ipt.Overwrite || !has {
+			pt.Del(oldKey)
+			pt.Del(newKey)
+			pt.AddTag(newKey, valOld)
 		}
 	}
 }
 
 // writeFile writes data to path specified by h.Output.
 // If file already exists, simply truncate it.
-func (h *Input) writeFile(data []byte) error {
-	fp := h.Output
+func (ipt *Input) writeFile(data []byte) error {
+	fp := ipt.Output
 	if !path.IsAbs(fp) {
 		dir := datakit.InstallDir
 		fp = filepath.Join(dir, fp)
@@ -257,7 +271,7 @@ func (h *Input) writeFile(data []byte) error {
 	return nil
 }
 
-func (h *Input) collectBody(res http.ResponseWriter, req *http.Request) ([]byte, bool) {
+func (ipt *Input) collectBody(res http.ResponseWriter, req *http.Request) ([]byte, bool) {
 	encoding := req.Header.Get("Content-Encoding")
 
 	switch encoding {
@@ -271,7 +285,7 @@ func (h *Input) collectBody(res http.ResponseWriter, req *http.Request) ([]byte,
 			return nil, false
 		}
 		defer r.Close() //nolint:errcheck
-		maxReader := http.MaxBytesReader(res, r, h.MaxBodySize)
+		maxReader := http.MaxBytesReader(res, r, ipt.MaxBodySize)
 		bytes, err := io.ReadAll(maxReader)
 		if err != nil {
 			if err := tooLarge(res); err != nil {
@@ -314,7 +328,7 @@ func (h *Input) collectBody(res http.ResponseWriter, req *http.Request) ([]byte,
 	}
 }
 
-func (h *Input) collectQuery(res http.ResponseWriter, req *http.Request) ([]byte, bool) {
+func (ipt *Input) collectQuery(res http.ResponseWriter, req *http.Request) ([]byte, bool) {
 	rawQuery := req.URL.RawQuery
 
 	query, err := url.QueryUnescape(rawQuery)
@@ -350,19 +364,19 @@ func badRequest(res http.ResponseWriter) error {
 	return err
 }
 
-func (h *Input) SampleConfig() string {
+func (ipt *Input) SampleConfig() string {
 	return sample
 }
 
-func (h *Input) SampleMeasurement() []inputs.Measurement {
+func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&Measurement{}}
 }
 
-func (h *Input) AvailableArchs() []string {
+func (ipt *Input) AvailableArchs() []string {
 	return datakit.AllOS
 }
 
-func NewInput() *Input {
+func defaultInput() *Input {
 	i := Input{
 		Methods:        []string{"POST", "PUT"},
 		DataSource:     body,
@@ -371,12 +385,15 @@ func NewInput() *Input {
 		HTTPHeaderTags: map[string]string{},
 		TagsIgnore:     []string{},
 		MaxBodySize:    defaultMaxBodySize,
+		semStop:        cliutils.NewSem(),
+		feeder:         dkio.DefaultFeeder(),
+		Tagger:         datakit.DefaultGlobalTagger(),
 	}
 	return &i
 }
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return NewInput()
+		return defaultInput()
 	})
 }

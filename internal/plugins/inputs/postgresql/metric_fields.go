@@ -10,7 +10,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -33,7 +33,7 @@ var relationMetrics = []struct {
 	JOIN pg_database pd ON (l.database = pd.oid)
 	JOIN pg_class pc ON (l.relation = pc.oid)
 	LEFT JOIN pg_namespace pn ON (pn.oid = pc.relnamespace)
-	WHERE %s 
+	WHERE %s
 		AND l.mode IS NOT NULL
 		AND pc.relname NOT LIKE 'pg^_%%%%' ESCAPE '^'
 	GROUP BY pd.datname, pc.relname, pn.nspname, locktype, mode
@@ -45,8 +45,8 @@ var relationMetrics = []struct {
 		name: "stat metrics",
 		query: `
 SELECT relname AS table,schemaname AS schema, *
-FROM pg_stat_user_tables 
-WHERE %s 
+FROM pg_stat_user_tables
+WHERE %s
 		`,
 		schemaField:     "schemaname",
 		measurementInfo: statMeasurement{}.Info(),
@@ -59,7 +59,7 @@ SELECT relname AS table,
 			indexrelname AS index,
 			idx_scan, idx_tup_read, idx_tup_fetch
 FROM pg_stat_user_indexes
-WHERE %s 
+WHERE %s
 		`,
 		schemaField:     "schemaname",
 		measurementInfo: indexMeasurement{}.Info(),
@@ -70,8 +70,8 @@ WHERE %s
 SELECT
 	N.nspname AS schema,
 	relname AS table,
-	pg_table_size(C.oid) as table_size, 
-	pg_indexes_size(C.oid) as index_size, 
+	pg_table_size(C.oid) as table_size,
+	pg_indexes_size(C.oid) as index_size,
 	pg_total_relation_size(C.oid) as total_size
 FROM pg_class C
 LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
@@ -90,7 +90,7 @@ SELECT relname AS table,
 			schemaname AS schema,
 			heap_blks_read, heap_blks_hit, idx_blks_read, idx_blks_hit, toast_blks_read, toast_blks_hit, tidx_blks_read, tidx_blks_hit
 FROM pg_statio_user_tables
-WHERE %s 
+WHERE %s
 		`,
 		schemaField:     "schemaname",
 		measurementInfo: statIOMeasurement{}.Info(),
@@ -105,19 +105,15 @@ type inputMeasurement struct {
 	election bool
 }
 
-func (m inputMeasurement) LineProto() (*dkpt.Point, error) {
-	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElectionV2(m.election))
-}
-
 // Point implement MeasurementV2.
 func (m *inputMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 
 	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+		opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
 	}
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
 }

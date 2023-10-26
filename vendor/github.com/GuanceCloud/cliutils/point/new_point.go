@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func NewPointV2(name []byte, kvs KVs, opts ...Option) *Point {
+func NewPointV2(name string, kvs KVs, opts ...Option) *Point {
 	c := GetCfg(opts...)
 	defer PutCfg(c)
 
@@ -32,16 +32,16 @@ func NewPoint(name string, tags map[string]string, fields map[string]any, opts .
 
 	kvs := NewKVs(fields)
 	for k, v := range tags {
-		kvs = kvs.Add([]byte(k), []byte(v), true, true) // force add these tags
+		kvs = kvs.MustAddTag(k, v) // force add these tags
 	}
 
 	c := GetCfg(opts...)
 	defer PutCfg(c)
 
-	return doNewPoint([]byte(name), kvs, c), nil
+	return doNewPoint(name, kvs, c), nil
 }
 
-func doNewPoint(name []byte, kvs KVs, c *cfg) *Point {
+func doNewPoint(name string, kvs KVs, c *cfg) *Point {
 	pt := &Point{
 		name: name,
 		kvs:  kvs,
@@ -50,12 +50,16 @@ func doNewPoint(name []byte, kvs KVs, c *cfg) *Point {
 	// add extra tags
 	if len(c.extraTags) > 0 {
 		for _, kv := range c.extraTags {
-			pt.AddTag(kv.Key, kv.GetD()) // NOTE: do-not-override exist keys
+			pt.AddTag(kv.Key, kv.GetS()) // NOTE: do-not-override exist keys
 		}
 	}
 
 	if c.enc == Protobuf {
 		pt.SetFlag(Ppb)
+	}
+
+	if c.keySorted {
+		sort.Sort(pt.kvs)
 	}
 
 	if c.precheck {
@@ -65,15 +69,18 @@ func doNewPoint(name []byte, kvs KVs, c *cfg) *Point {
 		pt.warns = chk.warns
 	}
 
+	// sort again: during check, kv maybe update
+	if c.keySorted {
+		sort.Sort(pt.kvs)
+	}
+
 	if !c.t.IsZero() {
-		pt.time = c.t
+		pt.time = c.t.Round(0) // trim monotonic clock
 	}
 
 	if pt.time.IsZero() {
-		pt.time = time.Now()
+		pt.time = time.Now().Round(0) // trim monotonic clock
 	}
-
-	sort.Sort(pt.kvs)
 
 	return pt
 }

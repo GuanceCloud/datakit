@@ -7,11 +7,9 @@
 package trace
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -28,11 +26,7 @@ func (m *TraceMeasurement) Point() *point.Point {
 	opts := append(point.CommonLoggingOptions(), point.WithTime(m.TS))
 	opts = append(opts, m.BuildPointOptions...)
 
-	return point.NewPointV2([]byte(m.Name), append(point.NewTags(m.Tags), point.NewKVs(m.Fields)...), opts...)
-}
-
-func (*TraceMeasurement) LineProto() (*dkpt.Point, error) {
-	return nil, fmt.Errorf("deprecated")
+	return point.NewPointV2(m.Name, append(point.NewTags(m.Tags), point.NewKVs(m.Fields)...), opts...)
 }
 
 func (m *TraceMeasurement) Info() *inputs.MeasurementInfo {

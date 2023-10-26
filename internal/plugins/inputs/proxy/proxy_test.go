@@ -8,17 +8,17 @@ package proxy
 import (
 	"testing"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
 func TestProxyServer(t *testing.T) {
 	var pts []*point.Point
 	for i := 0; i < 100; i++ {
-		pts = append(pts, &point.Point{Point: testutils.RandPoint("test_point", 10, 30)})
+		pts = append(pts, testutils.RandPointV2("test_point", 10, 30))
 	}
 
 	for _, pt := range pts {
-		log.Info(pt.String())
+		log.Info(pt.MustLPPoint().String())
 	}
 }

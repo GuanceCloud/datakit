@@ -8,6 +8,6 @@
 
 package diskio
 
-func (i *Input) diskInfo(devName string) (map[string]string, error) {
+func (*Input) diskInfo(devName string) (map[string]string, error) {
 	return nil, nil
 }

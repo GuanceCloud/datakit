@@ -9,7 +9,7 @@ import (
 	"crypto/rand"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"math"
 	"math/big"
@@ -69,7 +69,7 @@ func main() {
 			continue
 		}
 
-		_, err = ioutil.ReadAll(resp.Body)
+		_, err = io.ReadAll(resp.Body)
 		if err != nil {
 			log.Println(err)
 			continue

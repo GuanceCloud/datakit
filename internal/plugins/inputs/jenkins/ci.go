@@ -51,7 +51,7 @@ type ddTrace []*ddSpan
 
 type ddTraces []ddTrace
 
-func (n *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
+func (ipt *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	l.Debugf("Jenkins CI event server receives request: %s", req.URL.Path)
 	traces, err := decodeTraces(req)
 	if err != nil {
@@ -65,7 +65,7 @@ func (n *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 				l.Debugf("skip span with ci.status = %s", span.Meta["ci.status"])
 				continue
 			}
-			pt, err := n.getPoint(span)
+			pt, err := ipt.getPoint(span)
 			if err != nil {
 				l.Errorf(err.Error())
 				continue
@@ -80,8 +80,8 @@ func (n *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		l.Debugf("empty Jenkins CI point array")
 		return
 	}
-	if err := n.feeder.Feed("jenkins_ci", point.Logging, pts, &dkio.Option{}); err != nil {
-		n.feeder.FeedLastError(err.Error(),
+	if err := ipt.feeder.Feed("jenkins_ci", point.Logging, pts, &dkio.Option{}); err != nil {
+		ipt.feeder.FeedLastError(err.Error(),
 			dkio.WithLastErrorInput(inputName),
 			dkio.WithLastErrorSource("jenkins_ci"),
 		)
@@ -97,12 +97,12 @@ func decodeTraces(req *http.Request) (ddTraces, error) {
 	return traces, nil
 }
 
-func (n *Input) getPoint(span *ddSpan) (*point.Point, error) {
+func (ipt *Input) getPoint(span *ddSpan) (*point.Point, error) {
 	switch typeOf(span) {
 	case pipeline:
-		return n.getPipelinePoint(span)
+		return ipt.getPipelinePoint(span)
 	case job:
-		return n.getJobPoint(span)
+		return ipt.getJobPoint(span)
 	case stage, unknown:
 		// We don't need this type of span currently.
 		l.Debugf("received unneeded CI event type: %s, skipped", span.Meta["_dd.ci.level"])
@@ -126,15 +126,15 @@ func typeOf(span *ddSpan) ciEventType {
 	}
 }
 
-func (n *Input) getPipelinePoint(span *ddSpan) (*point.Point, error) {
+func (ipt *Input) getPipelinePoint(span *ddSpan) (*point.Point, error) {
 	measurementName := "jenkins_pipeline"
 	tags := getPipelineTags(span)
-	n.putExtraTags(tags)
+	ipt.putExtraTags(tags)
 
-	if n.Election {
-		tags = inputs.MergeTagsWrapper(tags, n.Tagger.ElectionTags(), n.Tags, n.URL)
+	if ipt.Election {
+		tags = inputs.MergeTagsWrapper(tags, ipt.Tagger.ElectionTags(), ipt.Tags, ipt.URL)
 	} else {
-		tags = inputs.MergeTagsWrapper(tags, n.Tagger.HostTags(), n.Tags, n.URL)
+		tags = inputs.MergeTagsWrapper(tags, ipt.Tagger.HostTags(), ipt.Tags, ipt.URL)
 	}
 
 	measurement := &jenkinsPipelineMeasurement{
@@ -146,15 +146,15 @@ func (n *Input) getPipelinePoint(span *ddSpan) (*point.Point, error) {
 	return measurement.Point(), nil
 }
 
-func (n *Input) getJobPoint(span *ddSpan) (*point.Point, error) {
+func (ipt *Input) getJobPoint(span *ddSpan) (*point.Point, error) {
 	measurementName := "jenkins_job"
 	tags := getJobTags(span)
-	n.putExtraTags(tags)
+	ipt.putExtraTags(tags)
 
-	if n.Election {
-		tags = inputs.MergeTagsWrapper(tags, n.Tagger.ElectionTags(), n.Tags, n.URL)
+	if ipt.Election {
+		tags = inputs.MergeTagsWrapper(tags, ipt.Tagger.ElectionTags(), ipt.Tags, ipt.URL)
 	} else {
-		tags = inputs.MergeTagsWrapper(tags, n.Tagger.HostTags(), n.Tags, n.URL)
+		tags = inputs.MergeTagsWrapper(tags, ipt.Tagger.HostTags(), ipt.Tags, ipt.URL)
 	}
 
 	measurement := &jenkinsJobMeasurement{
@@ -257,8 +257,8 @@ func extractProjectName(projectURL string) string {
 
 // putExtraTags puts extra tags specified in CIExtraTags into tags.
 // If a tag key already exists in tags, it will not be overwritten.
-func (n *Input) putExtraTags(tags map[string]string) {
-	for k, v := range n.CIExtraTags {
+func (ipt *Input) putExtraTags(tags map[string]string) {
+	for k, v := range ipt.CIExtraTags {
 		if _, has := tags[k]; has {
 			continue
 		}

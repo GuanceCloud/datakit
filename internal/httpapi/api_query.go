@@ -8,7 +8,7 @@ package httpapi
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/gin-gonic/gin"
@@ -98,7 +98,7 @@ func apiQueryRaw(c *gin.Context) {
 		l.Debugf("%s: %v", k, v)
 	}
 
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		l.Errorf("read response body %s", err)
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))

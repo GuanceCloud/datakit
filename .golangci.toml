@@ -75,7 +75,10 @@ line-length = 150
 tab-width = 2
 
 [linters-settings.staticcheck]
-checks = ["all", "-SA1019"] # disable `Deprecated warnings`
+checks = [
+	"all",
+	"-SA1019",  # disable `Deprecated warnings`
+]
 
 [linters]
 enable-all = true

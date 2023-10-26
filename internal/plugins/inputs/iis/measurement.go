@@ -6,18 +6,14 @@
 package iis
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
+//nolint:unused
 type measurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-}
-
-func (m *measurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }
 
 func (m *measurement) Info() *inputs.MeasurementInfo {
@@ -25,10 +21,6 @@ func (m *measurement) Info() *inputs.MeasurementInfo {
 }
 
 type IISAppPoolWas measurement
-
-func (m *IISAppPoolWas) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
-}
 
 //nolint:lll
 func (m *IISAppPoolWas) Info() *inputs.MeasurementInfo {
@@ -48,10 +40,6 @@ func (m *IISAppPoolWas) Info() *inputs.MeasurementInfo {
 }
 
 type IISWebService measurement
-
-func (m *IISWebService) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
-}
 
 //nolint:lll
 func (m *IISWebService) Info() *inputs.MeasurementInfo {

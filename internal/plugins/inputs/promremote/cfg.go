@@ -8,7 +8,7 @@ package promremote
 import (
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -95,14 +95,10 @@ const (
 const defaultMaxBodySize int64 = 500 * 1024 * 1024
 
 type Measurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
-}
-
-func (m *Measurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
+	Name   string
+	Tags   map[string]string
+	Fields map[string]interface{}
+	TS     time.Time
 }
 
 //nolint:lll
@@ -114,4 +110,13 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{},
 		Tags:   map[string]interface{}{},
 	}
+}
+
+func (m *Measurement) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(m.TS))
+
+	return point.NewPointV2(m.Name,
+		append(point.NewTags(m.Tags), point.NewKVs(m.Fields)...),
+		opts...)
 }

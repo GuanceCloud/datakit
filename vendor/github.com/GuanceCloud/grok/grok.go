@@ -80,7 +80,7 @@ func (g *GrokRegexp) RunWithTypeInfo(content interface{}, trimSpace bool) (map[s
 				dstV, err = cast.ToFloat64E(v)
 			case GTypeBool:
 				dstV, err = cast.ToBoolE(v)
-			case GTypeString, GTypeStr:
+			case GTypeStr:
 			default:
 				err = fmt.Errorf("unsupported data type: %s", varType)
 			}

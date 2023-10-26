@@ -14,9 +14,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	agentv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/language/agent/v3"
 	loggingv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/logging/v3"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"google.golang.org/protobuf/proto"
 )
@@ -141,7 +139,7 @@ func handleSkyLoggingV3(resp http.ResponseWriter, req *http.Request) {
 	if pt, err := processLogV3(logdata); err != nil {
 		log.Error(err.Error())
 	} else {
-		if err = dkio.Feed(logdata.Service, datakit.Logging, []*dkpt.Point{pt}, nil); err != nil {
+		if err = iptGlobal.feeder.Feed(logdata.Service, point.Logging, []*point.Point{pt}, nil); err != nil {
 			log.Error(err.Error())
 		}
 	}

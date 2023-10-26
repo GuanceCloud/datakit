@@ -21,7 +21,6 @@ import (
 	v2 "github.com/elastic/go-lumber/server/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -72,7 +71,7 @@ type Input struct {
 
 	semStop *cliutils.Sem // start stop signal
 	stopped bool
-	Tagger  dkpt.GlobalTagger
+	Tagger  datakit.GlobalTagger
 }
 
 // Make sure Input implements the inputs.InputV2 interface.
@@ -113,14 +112,9 @@ func (m *loggingMeasurement) Point() *point.Point {
 	opts := point.DefaultLoggingOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
-}
-
-func (*loggingMeasurement) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(ipt.name, ipt.tags, ipt.fields, point.LOpt())
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll
@@ -403,7 +397,7 @@ func defaultInput() *Input {
 		Tags:    make(map[string]string),
 		feeder:  io.DefaultFeeder(),
 		semStop: cliutils.NewSem(),
-		Tagger:  dkpt.DefaultGlobalTagger(),
+		Tagger:  datakit.DefaultGlobalTagger(),
 	}
 }
 

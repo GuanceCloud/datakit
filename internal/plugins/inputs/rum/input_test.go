@@ -11,64 +11,56 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GuanceCloud/cliutils/testutil"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestLimitReader_Close(t *testing.T) {
+func TestLimitReaderClose(t *testing.T) {
 	r := io.NopCloser(strings.NewReader("hello world!!!!!"))
 
 	lr := newLimitReader(r, 10)
 
 	c, err := io.ReadAll(lr)
 
-	t.Log(err, len(c), string(c), errors.Is(err, errLimitReader))
+	assert.Error(t, err)
+	assert.Len(t, c, 10)
+	assert.ErrorIs(t, err, errLimitReader)
 
-	testutil.NotOk(t, err, "")
-	testutil.Equals(t, 10, len(c))
-	testutil.Equals(t, true, errors.Is(err, errLimitReader))
+	t.Log(err, len(c), string(c), errors.Is(err, errLimitReader))
 }
 
 func TestLookupCDNName(t *testing.T) {
-	ok := isDomainName("xxxxx.xxxxxx")
-	testutil.Assert(t, ok, "")
+	assert.True(t, isDomainName("xxxxx.xxxxxx"))
 
 	_, _, err := lookupCDNName("xxxxx.xxxxxx")
-	t.Log(err)
-	testutil.NotOk(t, err, "")
+	assert.Error(t, err)
 
 	{
-		cname, cdn, err := lookupCDNName("www-static.qbox.me")
-		t.Log(cname, cdn)
-		testutil.Ok(t, err)
+		_, _, err := lookupCDNName("www-static.qbox.me")
+		assert.NoError(t, err)
 	}
 
 	{
-		cname, cdn, err := lookupCDNName("tbcache.com")
-		t.Log(cname, cdn)
-		testutil.Ok(t, err)
+		_, _, err := lookupCDNName("tbcache.com")
+		assert.NoError(t, err)
 	}
 
 	{
-		cname, cdn, err := lookupCDNName("go.dev")
-		t.Log(cname, cdn, err)
-		testutil.NotOk(t, err, "")
+		_, _, err := lookupCDNName("go.dev")
+		assert.Error(t, err)
 	}
 
 	{
-		cname, cdn, err := lookupCDNName("ucc.alicdn.com")
-		t.Log(cname, cdn)
-		testutil.Ok(t, err)
+		_, _, err := lookupCDNName("ucc.alicdn.com")
+		assert.NoError(t, err)
 	}
 
 	{
-		cname, cdn, err := lookupCDNName("static.guance.com")
-		t.Log(cname, cdn)
-		testutil.Ok(t, err)
+		_, _, err := lookupCDNName("static.guance.com")
+		assert.NoError(t, err)
 	}
 
 	{
-		cname, cdn, err := lookupCDNName("res.vmallres.com")
-		t.Log(cname, cdn)
-		testutil.Ok(t, err)
+		_, _, err := lookupCDNName("res.vmallres.com")
+		assert.NoError(t, err)
 	}
 }

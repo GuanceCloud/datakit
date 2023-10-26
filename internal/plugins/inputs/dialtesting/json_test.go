@@ -11,7 +11,7 @@ package dialtesting
 import (
 	"testing"
 
-	tu "github.com/GuanceCloud/cliutils/testutil"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestJSONTaskFile(t *testing.T) {
@@ -71,10 +71,10 @@ func TestJSONTaskFile(t *testing.T) {
 			i := defaultInput()
 			b, err := i.getLocalJSONTasks([]byte(tc.j))
 			if tc.fail {
-				tu.NotOk(t, err, "expect err, got none")
+				assert.Error(t, err)
 			}
-			tu.Ok(t, err)
-			t.Logf(string(b))
+
+			assert.NoErrorf(t, err, "get local task: %s", string(b))
 		})
 	}
 }

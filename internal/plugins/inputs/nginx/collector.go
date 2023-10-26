@@ -20,16 +20,16 @@ import (
 )
 
 // 默认 http stub status module 模块的数据.
-func (n *Input) getStubStatusModuleMetric() {
-	resp, err := n.client.Get(n.URL)
+func (ipt *Input) getStubStatusModuleMetric() {
+	resp, err := ipt.client.Get(ipt.URL)
 	if err != nil {
-		l.Errorf("error making HTTP request to %s: %s", n.URL, err)
-		n.lastErr = err
+		l.Errorf("error making HTTP request to %s: %s", ipt.URL, err)
+		ipt.lastErr = err
 		return
 	}
 	defer resp.Body.Close() //nolint:errcheck
 	if resp.StatusCode != http.StatusOK {
-		n.lastErr = fmt.Errorf("%s returned HTTP status %s", n.URL, resp.Status)
+		ipt.lastErr = fmt.Errorf("%s returned HTTP status %s", ipt.URL, resp.Status)
 		return
 	}
 	r := bufio.NewReader(resp.Body)
@@ -103,15 +103,15 @@ func (n *Input) getStubStatusModuleMetric() {
 		return
 	}
 
-	tags := getTags(n.URL)
-	for k, v := range n.Tags {
+	tags := getTags(ipt.URL)
+	for k, v := range ipt.Tags {
 		tags[k] = v
 	}
 
-	if n.Election {
-		tags = inputs.MergeTags(n.Tagger.ElectionTags(), tags, n.URL)
+	if ipt.Election {
+		tags = inputs.MergeTags(ipt.Tagger.ElectionTags(), tags, ipt.URL)
 	} else {
-		tags = inputs.MergeTags(n.Tagger.HostTags(), tags, n.URL)
+		tags = inputs.MergeTags(ipt.Tagger.HostTags(), tags, ipt.URL)
 	}
 
 	fields := map[string]interface{}{
@@ -129,32 +129,32 @@ func (n *Input) getStubStatusModuleMetric() {
 		fields: fields,
 		ts:     time.Now(),
 	}
-	n.collectCache = append(n.collectCache, metric.Point())
+	ipt.collectCache = append(ipt.collectCache, metric.Point())
 }
 
-func (n *Input) getVTSMetric() {
-	resp, err := n.client.Get(n.URL)
+func (ipt *Input) getVTSMetric() {
+	resp, err := ipt.client.Get(ipt.URL)
 	if err != nil {
-		l.Errorf("error making HTTP request to %s: %s", n.URL, err)
-		n.lastErr = err
+		l.Errorf("error making HTTP request to %s: %s", ipt.URL, err)
+		ipt.lastErr = err
 		return
 	}
 
 	defer resp.Body.Close() //nolint:errcheck
 	if resp.StatusCode != http.StatusOK {
-		l.Errorf("%s returned HTTP status %s", n.URL, resp.Status)
+		l.Errorf("%s returned HTTP status %s", ipt.URL, resp.Status)
 		return
 	}
 	contentType := strings.Split(resp.Header.Get("Content-Type"), ";")[0]
 	switch contentType {
 	case "application/json":
-		n.handVTSResponse(resp.Body)
+		ipt.handVTSResponse(resp.Body)
 	default:
-		l.Errorf("%s returned unexpected content type %s", n.URL, contentType)
+		l.Errorf("%s returned unexpected content type %s", ipt.URL, contentType)
 	}
 }
 
-func (n *Input) handVTSResponse(r io.Reader) {
+func (ipt *Input) handVTSResponse(r io.Reader) {
 	body, err := ioutil.ReadAll(r)
 	if err != nil {
 		l.Errorf(err.Error())
@@ -166,22 +166,22 @@ func (n *Input) handVTSResponse(r io.Reader) {
 		return
 	}
 	t := time.Unix(0, vtsResp.Now*1000000)
-	vtsResp.tags = getTags(n.URL)
+	vtsResp.tags = getTags(ipt.URL)
 
 	vtsResp.tags["host"] = vtsResp.HostName
 	vtsResp.tags["nginx_version"] = vtsResp.Version
 
-	for k, v := range n.Tags {
+	for k, v := range ipt.Tags {
 		vtsResp.tags[k] = v
 	}
 
-	n.makeConnectionsLine(vtsResp, t)
-	n.makeServerZoneLine(vtsResp, t)
-	n.makeUpstreamZoneLine(vtsResp, t)
-	n.makeCacheZoneLine(vtsResp, t)
+	ipt.makeConnectionsLine(vtsResp, t)
+	ipt.makeServerZoneLine(vtsResp, t)
+	ipt.makeUpstreamZoneLine(vtsResp, t)
+	ipt.makeCacheZoneLine(vtsResp, t)
 }
 
-func (n *Input) makeConnectionsLine(vtsResp NginxVTSResponse, t time.Time) {
+func (ipt *Input) makeConnectionsLine(vtsResp NginxVTSResponse, t time.Time) {
 	tags := map[string]string{}
 	for k, v := range vtsResp.tags {
 		tags[k] = v
@@ -197,10 +197,10 @@ func (n *Input) makeConnectionsLine(vtsResp NginxVTSResponse, t time.Time) {
 		"connection_waiting":  vtsResp.Connections.Waiting,
 	}
 
-	if n.Election {
-		tags = inputs.MergeTagsWrapper(tags, n.Tagger.ElectionTags(), n.Tags, n.URL)
+	if ipt.Election {
+		tags = inputs.MergeTagsWrapper(tags, ipt.Tagger.ElectionTags(), ipt.Tags, ipt.URL)
 	} else {
-		tags = inputs.MergeTagsWrapper(tags, n.Tagger.HostTags(), n.Tags, n.URL)
+		tags = inputs.MergeTagsWrapper(tags, ipt.Tagger.HostTags(), ipt.Tags, ipt.URL)
 	}
 
 	metric := &NginxMeasurement{
@@ -209,10 +209,10 @@ func (n *Input) makeConnectionsLine(vtsResp NginxVTSResponse, t time.Time) {
 		fields: fields,
 		ts:     t,
 	}
-	n.collectCache = append(n.collectCache, metric.Point())
+	ipt.collectCache = append(ipt.collectCache, metric.Point())
 }
 
-func (n *Input) makeServerZoneLine(vtsResp NginxVTSResponse, t time.Time) {
+func (ipt *Input) makeServerZoneLine(vtsResp NginxVTSResponse, t time.Time) {
 	tags := map[string]string{}
 	for k, v := range vtsResp.tags {
 		tags[k] = v
@@ -231,10 +231,10 @@ func (n *Input) makeServerZoneLine(vtsResp NginxVTSResponse, t time.Time) {
 			"response_5xx": v.Responses.FiveXx,
 		}
 
-		if n.Election {
-			tags = inputs.MergeTagsWrapper(tags, n.Tagger.ElectionTags(), n.Tags, n.URL)
+		if ipt.Election {
+			tags = inputs.MergeTagsWrapper(tags, ipt.Tagger.ElectionTags(), ipt.Tags, ipt.URL)
 		} else {
-			tags = inputs.MergeTagsWrapper(tags, n.Tagger.HostTags(), n.Tags, n.URL)
+			tags = inputs.MergeTagsWrapper(tags, ipt.Tagger.HostTags(), ipt.Tags, ipt.URL)
 		}
 
 		metric := &NginxMeasurement{
@@ -243,11 +243,11 @@ func (n *Input) makeServerZoneLine(vtsResp NginxVTSResponse, t time.Time) {
 			fields: fields,
 			ts:     t,
 		}
-		n.collectCache = append(n.collectCache, metric.Point())
+		ipt.collectCache = append(ipt.collectCache, metric.Point())
 	}
 }
 
-func (n *Input) makeUpstreamZoneLine(vtsResp NginxVTSResponse, t time.Time) {
+func (ipt *Input) makeUpstreamZoneLine(vtsResp NginxVTSResponse, t time.Time) {
 	tags := map[string]string{}
 	for k, v := range vtsResp.tags {
 		tags[k] = v
@@ -268,10 +268,10 @@ func (n *Input) makeUpstreamZoneLine(vtsResp NginxVTSResponse, t time.Time) {
 				"response_5xx": upstream.Responses.FiveXx,
 			}
 
-			if n.Election {
-				tags = inputs.MergeTagsWrapper(tags, n.Tagger.ElectionTags(), n.Tags, n.URL)
+			if ipt.Election {
+				tags = inputs.MergeTagsWrapper(tags, ipt.Tagger.ElectionTags(), ipt.Tags, ipt.URL)
 			} else {
-				tags = inputs.MergeTagsWrapper(tags, n.Tagger.HostTags(), n.Tags, n.URL)
+				tags = inputs.MergeTagsWrapper(tags, ipt.Tagger.HostTags(), ipt.Tags, ipt.URL)
 			}
 
 			metric := &UpstreamZoneMeasurement{
@@ -280,12 +280,12 @@ func (n *Input) makeUpstreamZoneLine(vtsResp NginxVTSResponse, t time.Time) {
 				fields: fields,
 				ts:     t,
 			}
-			n.collectCache = append(n.collectCache, metric.Point())
+			ipt.collectCache = append(ipt.collectCache, metric.Point())
 		}
 	}
 }
 
-func (n *Input) makeCacheZoneLine(vtsResp NginxVTSResponse, t time.Time) {
+func (ipt *Input) makeCacheZoneLine(vtsResp NginxVTSResponse, t time.Time) {
 	tags := map[string]string{}
 	for k, v := range vtsResp.tags {
 		tags[k] = v
@@ -308,10 +308,10 @@ func (n *Input) makeCacheZoneLine(vtsResp NginxVTSResponse, t time.Time) {
 			"responses_scarce":      cacheZone.Responses.Scarce,
 		}
 
-		if n.Election {
-			tags = inputs.MergeTagsWrapper(tags, n.Tagger.ElectionTags(), n.Tags, n.URL)
+		if ipt.Election {
+			tags = inputs.MergeTagsWrapper(tags, ipt.Tagger.ElectionTags(), ipt.Tags, ipt.URL)
 		} else {
-			tags = inputs.MergeTagsWrapper(tags, n.Tagger.HostTags(), n.Tags, n.URL)
+			tags = inputs.MergeTagsWrapper(tags, ipt.Tagger.HostTags(), ipt.Tags, ipt.URL)
 		}
 
 		metric := &CacheZoneMeasurement{
@@ -320,6 +320,6 @@ func (n *Input) makeCacheZoneLine(vtsResp NginxVTSResponse, t time.Time) {
 			fields: fields,
 			ts:     t,
 		}
-		n.collectCache = append(n.collectCache, metric.Point())
+		ipt.collectCache = append(ipt.collectCache, metric.Point())
 	}
 }

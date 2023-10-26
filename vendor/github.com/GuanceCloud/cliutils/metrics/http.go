@@ -57,9 +57,8 @@ func (ms *MetricServer) Start() error {
 // HTTPGinHandler wrap promhttp handler as gin hander. We can
 // attach url /metrics to a exist gin router like this:
 //
-//    router := gin.New()
-//    router.GET("/metrics", HTTPGinHandler(promhttp.HandlerOpts{}))
-//
+//	router := gin.New()
+//	router.GET("/metrics", HTTPGinHandler(promhttp.HandlerOpts{}))
 func HTTPGinHandler(opt promhttp.HandlerOpts) gin.HandlerFunc {
 	h := promhttp.HandlerFor(reg, opt)
 	return func(c *gin.Context) {

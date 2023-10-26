@@ -12,10 +12,10 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -46,12 +46,7 @@ var (
 `
 )
 
-type swapMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
-}
+type swapMeasurement struct{}
 
 func (m *swapMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
@@ -88,27 +83,31 @@ func (m *swapMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (m *swapMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
-}
-
 type Input struct {
 	Interval             datakit.Duration
 	Tags                 map[string]string
-	collectCache         []inputs.Measurement
-	collectCacheLast1Ptr inputs.Measurement
+	collectCache         []*point.Point
+	collectCacheLast1Ptr *point.Point
 	swapStat             SwapStat
 
 	semStop *cliutils.Sem // start stop signal
+	feeder  dkio.Feeder
+	Tagger  datakit.GlobalTagger
 }
 
 func (ipt *Input) Singleton() {
 }
 
 func (ipt *Input) appendMeasurement(name string, tags map[string]string, fields map[string]interface{}, ts time.Time) {
-	tmp := &swapMeasurement{name: name, tags: tags, fields: fields, ts: ts}
-	ipt.collectCache = append(ipt.collectCache, tmp)
-	ipt.collectCacheLast1Ptr = tmp
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(ts))
+
+	pt := point.NewPointV2(name,
+		append(point.NewTags(tags), point.NewKVs(fields)...),
+		opts...)
+
+	ipt.collectCache = append(ipt.collectCache, pt)
+	ipt.collectCacheLast1Ptr = pt
 }
 
 func (*Input) AvailableArchs() []string {
@@ -130,7 +129,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (ipt *Input) Collect() error {
-	ipt.collectCache = make([]inputs.Measurement, 0)
+	ipt.collectCache = make([]*point.Point, 0)
 	swap, err := ipt.swapStat()
 	ts := time.Now()
 	if err != nil {
@@ -166,13 +165,13 @@ func (ipt *Input) Run() {
 		case <-tick.C:
 			start := time.Now()
 			if err := ipt.Collect(); err == nil {
-				if errFeed := inputs.FeedMeasurement(metricName, datakit.Metric, ipt.collectCache,
-					&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
-					io.FeedLastError(inputName, errFeed.Error())
+				if errFeed := ipt.feeder.Feed(metricName, point.Metric, ipt.collectCache,
+					&dkio.Option{CollectCost: time.Since(start)}); errFeed != nil {
+					dkio.FeedLastError(inputName, errFeed.Error())
 					l.Error(errFeed)
 				}
 			} else {
-				io.FeedLastError(inputName, err.Error())
+				dkio.FeedLastError(inputName, err.Error())
 				l.Error(err)
 			}
 		case <-datakit.Exit.Wait():
@@ -224,6 +223,8 @@ func init() { //nolint:gochecknoinits
 			Interval: datakit.Duration{Duration: time.Second * 10},
 
 			semStop: cliutils.NewSem(),
+			feeder:  dkio.DefaultFeeder(),
+			Tagger:  datakit.DefaultGlobalTagger(),
 			Tags:    make(map[string]string),
 		}
 	})

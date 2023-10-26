@@ -103,8 +103,7 @@ func (s *stats) makePoint(addTags map[string]string) ([]*point.Point, error) {
 			}
 			fields := channelStats.ToMap()
 
-			pt := point.NewPointV2(
-				[]byte(nsqTopics),
+			pt := point.NewPointV2(nsqTopics,
 				append(point.NewTags(tags), point.NewKVs(fields)...),
 			)
 			pts = append(pts, pt)
@@ -132,8 +131,7 @@ func (s *stats) makePoint(addTags map[string]string) ([]*point.Point, error) {
 
 		fields := n.ToMap()
 
-		pt := point.NewPointV2(
-			[]byte(nsqNodes),
+		pt := point.NewPointV2(nsqNodes,
 			append(point.NewTags(tags), point.NewKVs(fields)...),
 		)
 		pts = append(pts, pt)

@@ -10,7 +10,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -26,8 +25,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ip2isp"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput/funcs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 )
 
 const iosDSYMFilePath = "Contents/Resources/DWARF"
@@ -175,7 +173,7 @@ func geoTags(srcip string, status *ipLocationStatus) (tags map[string]string) {
 		return
 	}
 
-	ipInfo, err := funcs.Geo(srcip)
+	ipInfo, err := plval.Geo(srcip)
 
 	log.Debugf("ipinfo(%s): %+#v", srcip, ipInfo)
 
@@ -204,7 +202,7 @@ func geoTags(srcip string, status *ipLocationStatus) (tags map[string]string) {
 		tags["ip"] = srcip
 	}
 
-	if isp := ip2isp.SearchISP(srcip); len(isp) > 0 {
+	if isp := plval.SearchISP(srcip); len(isp) > 0 {
 		tags["isp"] = isp
 	}
 
@@ -608,7 +606,7 @@ func loadZipFile(zipFile string) (map[string]*sourcemap.Consumer, error) {
 			}
 			defer file.Close() // nolint:errcheck
 
-			content, err := ioutil.ReadAll(file)
+			content, err := io.ReadAll(file)
 			if err != nil {
 				log.Debugf("ignore sourcemap %s, %s", f.Name, err.Error())
 				continue

@@ -7,11 +7,9 @@
 package metrics
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -50,13 +48,9 @@ func (m *NetflowMeasurement) Point() *point.Point {
 	opts := point.DefaultLoggingOptions()
 	opts = append(opts, point.WithTime(m.TS))
 
-	return point.NewPointV2([]byte(m.Name),
+	return point.NewPointV2(m.Name,
 		append(point.NewTags(m.Tags), point.NewKVs(m.Fields)...),
 		opts...)
-}
-
-func (*NetflowMeasurement) LineProto() (*dkpt.Point, error) {
-	return nil, fmt.Errorf("not implement")
 }
 
 //nolint:lll

@@ -7,17 +7,16 @@ package sqlserver
 
 import (
 	"testing"
-	T "testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/pipeline/manager"
+	"github.com/GuanceCloud/cliutils/pipeline/ptinput"
 	"github.com/GuanceCloud/cliutils/point"
 	_ "github.com/denisenkom/go-mssqldb"
 	"github.com/stretchr/testify/assert"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
-	pl "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
 )
 
-func TestCon(t *T.T) {
+func TestCon(t *testing.T) {
 	n := Input{
 		Host:     "10.100.64.109:1433",
 		User:     "_",
@@ -89,7 +88,7 @@ func TestFilterDBInstance(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *T.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			n := Input{}
 			n.DBFilter = tc.dbFilter
 			n.initDBFilterMap()
@@ -98,7 +97,7 @@ func TestFilterDBInstance(t *testing.T) {
 	}
 }
 
-func Test_setHostTagIfNotLoopback(t *T.T) {
+func Test_setHostTagIfNotLoopback(t *testing.T) {
 	type args struct {
 		tags      map[string]string
 		ipAndPort string
@@ -144,55 +143,78 @@ func Test_setHostTagIfNotLoopback(t *T.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *T.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			setHostTagIfNotLoopback(tt.args.tags, tt.args.ipAndPort)
 			assert.Equal(t, tt.expected, tt.args.tags)
 		})
 	}
 }
 
-func TestPipeline(t *T.T) {
+func TestPipeline(t *testing.T) {
 	source := `sqlserver`
-	t.Run("pl-sqlserver-logging", func(t *T.T) {
+
+	t.Run("pl-sqlserver-logging", func(t *testing.T) {
 		// sqlserver log examples
 		logs := []string{
 			`2020-01-01 00:00:01.00 spid28s     Server is listening on [ ::1 <ipv6> 1431] accept sockets 1.`,
 			`2020-01-01 00:00:02.00 Server      Common language runtime (CLR) functionality initialized.`,
 		}
 
-		expected := []*dkpt.Point{
-			dkpt.MustNewPoint(source, nil, map[string]any{
-				`message`: logs[0],
-				`msg`:     `Server is listening on [ ::1 <ipv6> 1431] accept sockets 1.`,
-				`origin`:  `spid28s`,
-				`status`:  `unknown`,
-			}, &dkpt.PointOption{Category: point.Logging.URL(), Time: time.Date(2020, 1, 1, 0, 0, 1, 0, time.UTC)}),
+		expected := []*point.Point{
+			func() *point.Point {
+				opts := point.CommonLoggingOptions()
+				opts = append(opts, point.WithTime(time.Date(2020, 1, 1, 0, 0, 1, 0, time.UTC)))
+				fields := map[string]any{
+					`message`: logs[0],
+					`msg`:     `Server is listening on [ ::1 <ipv6> 1431] accept sockets 1.`,
+					`origin`:  `spid28s`,
+					`status`:  `unknown`,
+				}
+				return point.NewPointV2(source,
+					point.NewKVs(fields),
+					opts...)
+			}(),
 
-			dkpt.MustNewPoint(source, nil, map[string]any{
-				`message`: logs[1],
-				`msg`:     `Common language runtime (CLR) functionality initialized.`,
-				`origin`:  `Server`,
-				`status`:  `unknown`,
-			}, &dkpt.PointOption{Category: point.Logging.URL(), Time: time.Date(2020, 1, 1, 0, 0, 2, 0, time.UTC)}),
+			func() *point.Point {
+				opts := point.CommonLoggingOptions()
+				opts = append(opts, point.WithTime(time.Date(2020, 1, 1, 0, 0, 2, 0, time.UTC)))
+				fields := map[string]any{
+					`message`: logs[1],
+					`msg`:     `Common language runtime (CLR) functionality initialized.`,
+					`origin`:  `Server`,
+					`status`:  `unknown`,
+				}
+				return point.NewPointV2(source,
+					point.NewKVs(fields),
+					opts...)
+			}(),
 		}
 
-		p, err := pl.NewPipeline(point.Logging, "", pipeline)
-		assert.NoError(t, err, "NewPipeline: %s", err)
+		pl, errs := manager.NewScripts(map[string]string{
+			"test.p": pScrpit,
+		}, nil, "", point.Logging)
+
+		if len(errs) > 0 {
+			t.Fatal(errs)
+		}
+
+		if len(pl) == 0 {
+			t.Fatal("no script")
+		}
+
+		p := pl["test.p"]
 
 		for idx, ln := range logs {
-			pt, err := dkpt.NewPoint(source,
-				nil,
-				map[string]any{"message": ln},
-				&dkpt.PointOption{Category: point.Logging.URL()})
+			kvs := point.NewKVs(map[string]any{"message": ln})
+			opt := point.DefaultLoggingOptions()
+			pt := point.NewPointV2(source, kvs, opt...)
+
+			ptD := ptinput.WrapPoint(point.Logging, pt)
+			err := p.Run(ptD, nil, nil)
 			assert.NoError(t, err)
+			assert.False(t, ptD.Dropped())
 
-			after, err := p.Run(point.Logging, pt, nil, &dkpt.PointOption{Category: point.Logging.URL()}, nil, nil)
-
-			assert.NoError(t, err)
-			assert.False(t, after.Dropped())
-
-			dkpt, _ := after.DkPoint()
-			assert.Equal(t, expected[idx].String(), dkpt.String())
+			assert.Equal(t, expected[idx].MustLPPoint().String(), ptD.Point().MustLPPoint().String())
 		}
 	})
 }

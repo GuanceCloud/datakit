@@ -7,7 +7,6 @@ package diskcache
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -37,7 +36,7 @@ func (l *flock) lock() error {
 	if _, err := os.Stat(l.file); err != nil {
 		goto write // file not exist
 	} else {
-		x, err := ioutil.ReadFile(l.file)
+		x, err := os.ReadFile(l.file)
 		if err != nil {
 			return err
 		}
@@ -64,14 +63,14 @@ func (l *flock) lock() error {
 	}
 
 write:
-	return ioutil.WriteFile(l.file, []byte(fmt.Sprintf("%d", curPid)), 0o600)
+	return os.WriteFile(l.file, []byte(fmt.Sprintf("%d", curPid)), 0o600)
 }
 
 func (l *flock) unlock() error {
 	l.mtx.Lock()
 	defer l.mtx.Unlock()
 
-	return ioutil.WriteFile(l.file, []byte(fmt.Sprintf("%d", -1)), 0o600)
+	return os.WriteFile(l.file, []byte(fmt.Sprintf("%d", -1)), 0o600)
 }
 
 func pidAlive(pid int) bool {

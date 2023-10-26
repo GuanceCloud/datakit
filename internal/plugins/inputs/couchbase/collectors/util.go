@@ -8,7 +8,7 @@ package collectors
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"strings"
 
 	"github.com/GuanceCloud/cliutils/point"
@@ -16,19 +16,21 @@ import (
 )
 
 func (c *Client) addPoint(measurementName, field string, val any, labels []string) {
-	fields := map[string]interface{}{field: val}
-	tags := c.getTags(labels)
-	for k, v := range c.Tags {
-		tags[k] = v
-	}
-	for k, v := range c.URLTags {
-		tags[k] = v
+	var kvs point.KVs
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(c.ts))
+
+	kvs = kvs.Add(field, val, false, true)
+
+	for k, v := range c.getTags(labels) {
+		kvs = kvs.AddTag(k, v)
 	}
 
-	pt := point.NewPointV2([]byte(measurementName),
-		append(point.NewTags(tags), point.NewKVs(fields)...),
-		point.DefaultMetricOptions()...)
+	for k, v := range c.MergedTags {
+		kvs = kvs.AddTag(k, v)
+	}
 
+	pt := point.NewPointV2(measurementName, kvs, opts...)
 	c.Pts = append(c.Pts, pt)
 }
 
@@ -66,7 +68,7 @@ func (c *Client) get(u string, v interface{}) error {
 		return fmt.Errorf("failed to Get %s : %w", u, err)
 	}
 
-	bts, err := ioutil.ReadAll(resp.Body)
+	bts, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("failed to read response body from %s : %w", u, err)
 	}

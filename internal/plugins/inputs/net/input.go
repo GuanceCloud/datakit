@@ -17,27 +17,24 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	psNet "github.com/shirou/gopsutil/net"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-)
-
-var (
-	_ inputs.ReadEnv   = (*Input)(nil)
-	_ inputs.Singleton = (*Input)(nil)
 )
 
 const (
 	minInterval = time.Second
 	maxInterval = time.Minute
+	inputName   = "net"
+	metricName  = inputName
 )
 
 var (
-	inputName     = "net"
-	netMetricName = "net"
-	l             = logger.DefaultSLogger(inputName)
+	_ inputs.ReadEnv   = (*Input)(nil)
+	_ inputs.Singleton = (*Input)(nil)
+	l                  = logger.DefaultSLogger(inputName)
 
 	linuxProtoRate = map[string]bool{
 		"insegs":       true,
@@ -45,161 +42,83 @@ var (
 		"indatagrams":  true,
 		"outdatagrams": true,
 	}
-	sampleCfg = `
-[[inputs.net]]
-  ##(optional) collect interval, default is 10 seconds
-  interval = '10s'
-  ##
-  ## By default, gathers stats from any up interface, but Linux does not contain virtual interfaces.
-  ## Setting interfaces using regular expressions will collect these expected interfaces.
-  ##
-  # interfaces = ['''eth[\w-]+''', '''lo''', ]
-  ##
-  ## Datakit does not collect network virtual interfaces under the linux system.
-  ## Setting enable_virtual_interfaces to true will collect virtual interfaces stats for linux.
-  ##
-  # enable_virtual_interfaces = true
-  ##
-  ## On linux systems also collects protocol stats.
-  ## Setting ignore_protocol_stats to true will skip reporting of protocol metrics.
-  ##
-  # ignore_protocol_stats = false
-  ##
-
-[inputs.net.tags]
-# some_tag = "some_value"
-# more_tag = "some_other_value"
-`
 )
 
-type netMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
-}
-
-// https://tools.ietf.org/html/rfc1213#page-48
-// https://www.kernel.org/doc/html/latest/networking/snmp_counter.html
-// https://sourceforge.net/p/net-tools/code/ci/master/tree/statistics.c#l178
-// nolint:lll
-func (m *netMeasurement) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{
-		Name: netMetricName,
-		Fields: map[string]interface{}{
-			"bytes_sent":       NewFieldsInfoIByte("The number of bytes sent by the interface."),
-			"bytes_sent/sec":   NewFieldsInfoIBytePerSec("The number of bytes sent by the interface per second."),
-			"bytes_recv":       NewFieldsInfoIByte("The number of bytes received by the interface."),
-			"bytes_recv/sec":   NewFieldsInfoIBytePerSec("The number of bytes received by the interface per second."),
-			"packets_sent":     NewFieldsInfoCount("The number of packets sent by the interface."),
-			"packets_sent/sec": NewFieldsInfoCountPerSec("The number of packets sent by the interface per second."),
-			"packets_recv":     NewFieldsInfoCount("The number of packets received by the interface."),
-			"packets_recv/sec": NewFieldsInfoCountPerSec("The number of packets received by the interface per second."),
-			"err_in":           NewFieldsInfoCount("The number of receive errors detected by the interface."),
-			"err_out":          NewFieldsInfoCount("The number of transmit errors detected by the interface."),
-			"drop_in":          NewFieldsInfoCount("The number of received packets dropped by the interface."),
-			"drop_out":         NewFieldsInfoCount("The number of transmitted packets dropped by the interface."),
-			// linux only
-			"tcp_insegs":           NewFieldsInfoCount("The number of packets received by the TCP layer."),
-			"tcp_insegs/sec":       NewFieldsInfoCountPerSec("The number of packets received by the TCP layer per second."),
-			"tcp_outsegs":          NewFieldsInfoCount("The number of packets sent by the TCP layer."),
-			"tcp_outsegs/sec":      NewFieldsInfoCountPerSec("The number of packets sent by the TCP layer per second."),
-			"tcp_activeopens":      NewFieldsInfoCount("It means the TCP layer sends a SYN, and come into the SYN-SENT state."),
-			"tcp_passiveopens":     NewFieldsInfoCount("It means the TCP layer receives a SYN, replies a SYN+ACK, come into the SYN-RCVD state."),
-			"tcp_estabresets":      NewFieldsInfoCount("The number of times TCP connections have made a direct transition to the CLOSED state from either the ESTABLISHED state or the CLOSE-WAIT state."),
-			"tcp_attemptfails":     NewFieldsInfoCount("The number of times TCP connections have made a direct transition to the CLOSED state from either the SYN-SENT state or the SYN-RCVD state, plus the number of times TCP connections have made a direct transition to the LISTEN state from the SYN-RCVD state."),
-			"tcp_outrsts":          NewFieldsInfoCount("The number of TCP segments sent containing the RST flag."),
-			"tcp_retranssegs":      NewFieldsInfoCount("The total number of segments re-transmitted - that is, the number of TCP segments transmitted containing one or more previously transmitted octets."),
-			"tcp_inerrs":           NewFieldsInfoCount("The number of incoming TCP segments in error."),
-			"tcp_incsumerrors":     NewFieldsInfoCount("The number of incoming TCP segments in checksum error."),
-			"tcp_rtoalgorithm":     NewFieldsInfoCount("The algorithm used to determine the timeout value used for retransmitting unacknowledged octets."),
-			"tcp_rtomin":           NewFieldsInfoMS("The minimum value permitted by a TCP implementation for the retransmission timeout, measured in milliseconds."),
-			"tcp_rtomax":           NewFieldsInfoMS("The maximum value permitted by a TCP implementation for the retransmission timeout, measured in milliseconds."),
-			"tcp_maxconn":          NewFieldsInfoCount("The limit on the total number of TCP connections the entity can support."),
-			"tcp_currestab":        NewFieldsInfoCount("The number of TCP connections for which the current state is either ESTABLISHED or CLOSE-WAIT."),
-			"udp_incsumerrors":     NewFieldsInfoCount("The number of incoming UDP datagram in checksum error.s"),
-			"udp_indatagrams":      NewFieldsInfoCount("The number of UDP datagram delivered to UDP users."),
-			"udp_indatagrams/sec":  NewFieldsInfoCountPerSec("The number of UDP datagram delivered to UDP users per second."),
-			"udp_outdatagrams":     NewFieldsInfoCount("The number of UDP datagram sent from this entity."),
-			"udp_outdatagrams/sec": NewFieldsInfoCountPerSec("The number of UDP datagram sent from this entity per second."),
-			"udp_rcvbuferrors":     NewFieldsInfoCount("The number of receive buffer errors."),
-			"udp_noports":          NewFieldsInfoCount("The number of packets to unknown port received."),
-			"udp_sndbuferrors":     NewFieldsInfoCount("The number of send buffer errors."),
-			"udp_inerrors":         NewFieldsInfoCount("The number of packet receive errors."),
-			"udp_ignoredmulti":     NewFieldsInfoCount(inputs.TODO),
-		},
-		Tags: map[string]interface{}{
-			"host":      &inputs.TagInfo{Desc: "System hostname."},
-			"interface": &inputs.TagInfo{Desc: "Network interface name."},
-		},
-	}
-}
-
-// Point implement MeasurementV2.
-func (m *netMeasurement) Point() *point.Point {
-	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
-
-	return point.NewPointV2([]byte(m.name),
-		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
-		opts...)
-}
-
-func (m *netMeasurement) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
-	return nil, fmt.Errorf("not implement")
-}
-
 type Input struct {
-	Interval                datakit.Duration
+	Interval                time.Duration
 	Interfaces              []string
 	EnableVirtualInterfaces bool
 	IgnoreProtocolStats     bool
 	Tags                    map[string]string
 
+	semStop        *cliutils.Sem
 	collectCache   []*point.Point
+	feeder         dkio.Feeder
 	lastStats      map[string]psNet.IOCountersStat
 	lastProtoStats []psNet.ProtoCountersStat
+	mergedTags     map[string]string
+	tagger         datakit.GlobalTagger
 
 	lastTime         time.Time
 	netIO            NetIO
 	netProto         NetProto
 	netVirtualIfaces NetVirtualIfaces
-
-	semStop *cliutils.Sem // start stop signal
-	feeder  dkio.Feeder
-	Tagger  dkpt.GlobalTagger
 }
 
-func (i *Input) Singleton() {
-}
+func (ipt *Input) Run() {
+	ipt.setup()
 
-func (i *Input) appendMeasurement(name string, tags map[string]string, fields map[string]interface{}, ts time.Time) {
-	metric := &netMeasurement{name: name, tags: tags, fields: fields, ts: ts}
-	i.collectCache = append(i.collectCache, metric.Point())
-}
+	tick := time.NewTicker(ipt.Interval)
+	defer tick.Stop()
 
-func (i *Input) AvailableArchs() []string {
-	return datakit.AllOS
-}
+	for {
+		start := time.Now()
+		if err := ipt.collect(); err != nil {
+			l.Errorf("collect: %s", err)
+			ipt.feeder.FeedLastError(err.Error(),
+				dkio.WithLastErrorInput(inputName),
+				dkio.WithLastErrorCategory(point.Metric),
+			)
+		}
 
-func (i *Input) Catalog() string {
-	return "host"
-}
+		if len(ipt.collectCache) > 0 {
+			if err := ipt.feeder.Feed(metricName, point.Metric, ipt.collectCache,
+				&dkio.Option{CollectCost: time.Since(start)}); err != nil {
+				ipt.feeder.FeedLastError(err.Error(),
+					dkio.WithLastErrorInput(inputName),
+					dkio.WithLastErrorCategory(point.Metric),
+				)
+				l.Errorf("feed measurement: %s", err)
+			}
+		}
 
-func (i *Input) SampleConfig() string {
-	return sampleCfg
-}
-
-func (i *Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{
-		&netMeasurement{},
+		select {
+		case <-tick.C:
+		case <-datakit.Exit.Wait():
+			l.Infof("%s input exit", inputName)
+			return
+		case <-ipt.semStop.Wait():
+			l.Infof("%s input return", inputName)
+			return
+		}
 	}
 }
 
-func (i *Input) Collect() error {
-	i.collectCache = make([]*point.Point, 0)
+func (ipt *Input) setup() {
+	l = logger.SLogger(inputName)
+
+	l.Infof("%s input started", inputName)
+	ipt.Interval = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval)
+	ipt.mergedTags = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")
+	l.Debugf("merged tags: %+#v", ipt.mergedTags)
+}
+
+func (ipt *Input) collect() error {
+	ipt.collectCache = make([]*point.Point, 0)
 	ts := time.Now()
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(ts))
+
 	netio, err := NetIOCounters()
 	if err != nil {
 		return fmt.Errorf("error getting net io info: %w", err)
@@ -211,46 +130,44 @@ func (i *Input) Collect() error {
 
 	filteredInterface, err := FilterInterface(netio,
 		interfaces,
-		i.Interfaces,
-		i.EnableVirtualInterfaces,
-		i.netVirtualIfaces)
+		ipt.Interfaces,
+		ipt.EnableVirtualInterfaces,
+		ipt.netVirtualIfaces)
 
 	for name, ioStat := range filteredInterface {
-		tags := map[string]string{
-			"interface": ioStat.Name,
-		}
-		for k, v := range i.Tags {
-			tags[k] = v
-		}
-		fields := map[string]interface{}{
-			"bytes_sent":   ioStat.BytesSent,
-			"bytes_recv":   ioStat.BytesRecv,
-			"packets_sent": ioStat.PacketsSent,
-			"packets_recv": ioStat.PacketsRecv,
-			"err_in":       ioStat.Errin,
-			"err_out":      ioStat.Errout,
-			"drop_in":      ioStat.Dropin,
-			"drop_out":     ioStat.Dropout,
-		}
-		if i.lastStats != nil {
-			if lastIOStat, ok := i.lastStats[name]; ok {
-				if ioStat.BytesSent >= lastIOStat.BytesSent && ts.Unix() > i.lastTime.Unix() {
-					fields["bytes_sent/sec"] = int64(ioStat.BytesSent-lastIOStat.BytesSent) / (ts.Unix() - i.lastTime.Unix())
-					fields["bytes_recv/sec"] = int64(ioStat.BytesRecv-lastIOStat.BytesRecv) / (ts.Unix() - i.lastTime.Unix())
-					fields["packets_sent/sec"] = int64(ioStat.PacketsSent-lastIOStat.PacketsSent) / (ts.Unix() - i.lastTime.Unix())
-					fields["packets_recv/sec"] = int64(ioStat.PacketsRecv-lastIOStat.PacketsRecv) / (ts.Unix() - i.lastTime.Unix())
+		var kvs point.KVs
+
+		kvs = kvs.Add("interface", ioStat.Name, true, true)
+		kvs = kvs.Add("bytes_sent", ioStat.BytesSent, false, true)
+		kvs = kvs.Add("bytes_recv", ioStat.BytesRecv, false, true)
+		kvs = kvs.Add("packets_sent", ioStat.PacketsSent, false, true)
+		kvs = kvs.Add("packets_recv", ioStat.PacketsRecv, false, true)
+		kvs = kvs.Add("err_in", ioStat.Errin, false, true)
+		kvs = kvs.Add("err_out", ioStat.Errout, false, true)
+		kvs = kvs.Add("drop_in", ioStat.Dropin, false, true)
+		kvs = kvs.Add("drop_out", ioStat.Dropout, false, true)
+
+		if ipt.lastStats != nil {
+			if lastIOStat, ok := ipt.lastStats[name]; ok {
+				if ioStat.BytesSent >= lastIOStat.BytesSent && ts.Unix() > ipt.lastTime.Unix() {
+					kvs = kvs.Add("bytes_sent/sec", int64(ioStat.BytesSent-lastIOStat.BytesSent)/(ts.Unix()-ipt.lastTime.Unix()), false, true)
+					kvs = kvs.Add("bytes_recv/sec", int64(ioStat.BytesRecv-lastIOStat.BytesRecv)/(ts.Unix()-ipt.lastTime.Unix()), false, true)
+					kvs = kvs.Add("packets_sent/sec", int64(ioStat.PacketsSent-lastIOStat.PacketsSent)/(ts.Unix()-ipt.lastTime.Unix()), false, true)
+					kvs = kvs.Add("packets_recv/sec", int64(ioStat.PacketsRecv-lastIOStat.PacketsRecv)/(ts.Unix()-ipt.lastTime.Unix()), false, true)
 				}
 			}
 		}
 
-		tags = inputs.MergeTags(i.Tagger.HostTags(), tags, "")
+		for k, v := range ipt.mergedTags {
+			kvs = kvs.AddTag(k, v)
+		}
 
-		i.appendMeasurement(netMetricName, tags, fields, ts)
+		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(inputName, kvs, opts...))
 	}
 	// Get system wide stats for network protocols tcp and udp
 	// Only supports linux
-	if !i.IgnoreProtocolStats {
-		netprotos, _ := i.netProto([]string{"tcp", "udp"}) // tcp udp only
+	if !ipt.IgnoreProtocolStats {
+		netprotos, _ := ipt.netProto([]string{"tcp", "udp"}) // tcp udp only
 		fields := make(map[string]interface{})
 		for _, proto := range netprotos {
 			for stat, value := range proto.Stats {
@@ -259,75 +176,53 @@ func (i *Input) Collect() error {
 				fields[name] = value
 			}
 		}
-		for _, proto := range i.lastProtoStats {
+		for _, proto := range ipt.lastProtoStats {
 			pname := strings.ToLower(proto.Protocol)
 			for stat, value := range proto.Stats {
 				sname := strings.ToLower(stat)
 				if _, ok := linuxProtoRate[sname]; ok {
-					if v, ok := fields[pname+"_"+sname]; ok && v.(int64) >= value && ts.Unix() > i.lastTime.Unix() {
-						fields[pname+"_"+sname+"/sec"] = (v.(int64) - value) / (ts.Unix() - i.lastTime.Unix())
+					if v, ok := fields[pname+"_"+sname]; ok && v.(int64) >= value && ts.Unix() > ipt.lastTime.Unix() {
+						fields[pname+"_"+sname+"/sec"] = (v.(int64) - value) / (ts.Unix() - ipt.lastTime.Unix())
 					}
 				}
 			}
 		}
-		tags := map[string]string{
-			"interface": "all",
-		}
-		for k, v := range i.Tags {
-			tags[k] = v
-		}
+
 		if len(fields) > 0 {
-			tags = inputs.MergeTags(i.Tagger.HostTags(), tags, "")
-			i.appendMeasurement(netMetricName, tags, fields, ts)
+			var kvs point.KVs
+
+			for k, v := range fields {
+				kvs = kvs.Add(k, v, false, true)
+			}
+
+			kvs = kvs.Add("interface", "all", true, true)
+			for k, v := range ipt.mergedTags {
+				kvs = kvs.AddTag(k, v)
+			}
+
+			ipt.collectCache = append(ipt.collectCache, point.NewPointV2(inputName, kvs))
 		}
-		i.lastProtoStats = netprotos
+
+		ipt.lastProtoStats = netprotos
 	}
-	i.lastStats = filteredInterface
-	i.lastTime = ts
+	ipt.lastStats = filteredInterface
+	ipt.lastTime = ts
 	return err
 }
 
-func (i *Input) Run() {
-	l = logger.SLogger(inputName)
-	l.Infof("net input started")
-	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
+func (*Input) Singleton() {}
 
-	tick := time.NewTicker(i.Interval.Duration)
-	defer tick.Stop()
-	for {
-		select {
-		case <-tick.C:
-			start := time.Now()
-			if err := i.Collect(); err == nil {
-				if err := i.feeder.Feed(netMetricName, point.Metric, i.collectCache,
-					&dkio.Option{CollectCost: time.Since(start)}); err != nil {
-					i.feeder.FeedLastError(err.Error(),
-						dkio.WithLastErrorInput(inputName),
-						dkio.WithLastErrorCategory(point.Metric),
-					)
-					l.Error(err)
-				}
-			} else {
-				i.feeder.FeedLastError(err.Error(),
-					dkio.WithLastErrorInput(inputName),
-					dkio.WithLastErrorCategory(point.Metric),
-				)
-				l.Error(err)
-			}
-		case <-datakit.Exit.Wait():
-			l.Info("net input exit")
-			return
-
-		case <-i.semStop.Wait():
-			l.Info("net input return")
-			return
-		}
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
 	}
 }
-
-func (i *Input) Terminate() {
-	if i.semStop != nil {
-		i.semStop.Close()
+func (*Input) Catalog() string          { return "host" }
+func (*Input) SampleConfig() string     { return sampleCfg }
+func (*Input) AvailableArchs() []string { return datakit.AllOS }
+func (*Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{
+		&docMeasurement{},
 	}
 }
 
@@ -336,15 +231,15 @@ func (i *Input) Terminate() {
 //	ENV_INPUT_NET_IGNORE_PROTOCOL_STATS : booler
 //	ENV_INPUT_NET_ENABLE_VIRTUAL_INTERFACES : booler
 //	ENV_INPUT_NET_TAGS : "a=b,c=d"
-//	ENV_INPUT_NET_INTERVAL : datakit.Duration
+//	ENV_INPUT_NET_INTERVAL : time.Duration
 //	ENV_INPUT_NET_INTERFACES : []string
-func (i *Input) ReadEnv(envs map[string]string) {
+func (ipt *Input) ReadEnv(envs map[string]string) {
 	if ignore, ok := envs["ENV_INPUT_NET_IGNORE_PROTOCOL_STATS"]; ok {
 		b, err := strconv.ParseBool(ignore)
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_NET_IGNORE_PROTOCOL_STATS to bool: %s, ignore", err)
 		} else {
-			i.IgnoreProtocolStats = b
+			ipt.IgnoreProtocolStats = b
 		}
 	}
 
@@ -353,25 +248,25 @@ func (i *Input) ReadEnv(envs map[string]string) {
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_NET_ENABLE_VIRTUAL_INTERFACES to bool: %s, ignore", err)
 		} else {
-			i.EnableVirtualInterfaces = b
+			ipt.EnableVirtualInterfaces = b
 		}
 	}
 
 	if tagsStr, ok := envs["ENV_INPUT_NET_TAGS"]; ok {
 		tags := config.ParseGlobalTags(tagsStr)
 		for k, v := range tags {
-			i.Tags[k] = v
+			ipt.Tags[k] = v
 		}
 	}
 
-	//   ENV_INPUT_NET_INTERVAL : datakit.Duration
+	//   ENV_INPUT_NET_INTERVAL : time.Duration
 	//   ENV_INPUT_NET_INTERFACES : []string
 	if str, ok := envs["ENV_INPUT_NET_INTERVAL"]; ok {
 		da, err := time.ParseDuration(str)
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_NET_INTERVAL to time.Duration: %s, ignore", err)
 		} else {
-			i.Interval.Duration = config.ProtectedInterval(minInterval,
+			ipt.Interval = config.ProtectedInterval(minInterval,
 				maxInterval,
 				da)
 		}
@@ -380,7 +275,7 @@ func (i *Input) ReadEnv(envs map[string]string) {
 	if str, ok := envs["ENV_INPUT_NET_INTERFACES"]; ok {
 		arrays := strings.Split(str, ",")
 		l.Debugf("add ENV_INPUT_NET_INTERFACES from ENV: %v", arrays)
-		i.Interfaces = append(i.Interfaces, arrays...)
+		ipt.Interfaces = append(ipt.Interfaces, arrays...)
 	}
 }
 
@@ -389,12 +284,12 @@ func defaultInput() *Input {
 		netIO:            NetIOCounters,
 		netProto:         psNet.ProtoCounters,
 		netVirtualIfaces: NetVirtualInterfaces,
-		Interval:         datakit.Duration{Duration: time.Second * 10},
+		Interval:         time.Second * 10,
 
 		semStop: cliutils.NewSem(),
 		Tags:    make(map[string]string),
 		feeder:  dkio.DefaultFeeder(),
-		Tagger:  dkpt.DefaultGlobalTagger(),
+		tagger:  datakit.DefaultGlobalTagger(),
 	}
 }
 

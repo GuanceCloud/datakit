@@ -13,52 +13,12 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 )
 
 //------------------------------------------------------------------------------
 
-var (
-	writeFileData          *FileDataStruct
-	readFileData           []byte
-	isFileExist            bool
-	readDirResult          []fs.FileInfo
-	pullPipelineUpdateTime int64
-	pullRelationUpdate     bool
-	pullRelationUpdateAt   int64
-
-	errGeneral                   = fmt.Errorf("test_specific_error")
-	errMarshal                   error
-	errUnMarshal                 error
-	errReadFile                  error
-	errWriteFile                 error
-	errReadDir                   error
-	errPullPipeline              error
-	errRemove                    error
-	errGetNamespacePipelineFiles error
-	errReadTarToMap              error
-	errWriteTarFromMap           error
-)
-
-func resetVars() {
-	writeFileData = nil
-	readFileData = []byte{}
-	isFileExist = false
-	readDirResult = []fs.FileInfo{}
-	pullPipelineUpdateTime = 0
-	pullRelationUpdate = false
-	pullPipelineUpdateTime = 0
-
-	errMarshal = nil
-	errUnMarshal = nil
-	errReadFile = nil
-	errWriteFile = nil
-	errReadDir = nil
-	errPullPipeline = nil
-	errRemove = nil
-	errGetNamespacePipelineFiles = nil
-	errReadTarToMap = nil
-	errWriteTarFromMap = nil
-}
+var errGeneral = fmt.Errorf("test_specific_error")
 
 type fileInfoStruct struct{}
 
@@ -89,66 +49,109 @@ func (fileInfoStruct) Sys() interface{} {
 // Make sure pipelineRemoteMockerTest implements the IPipelineRemote interface
 var _ IPipelineRemote = new(pipelineRemoteMockerTest)
 
-type pipelineRemoteMockerTest struct{}
+type pipelineRemoteMockerTest struct {
+	writeFileData          *FileDataStruct
+	readFileData           []byte
+	isFileExist            bool
+	readDirResult          []fs.FileInfo
+	pullPipelineUpdateTime int64
+	pullRelationUpdate     bool
+	pullRelationUpdateAt   int64
+
+	errMarshal                   error
+	errUnMarshal                 error
+	errReadFile                  error
+	errWriteFile                 error
+	errReadDir                   error
+	errPullPipeline              error
+	errRemove                    error
+	errGetNamespacePipelineFiles error
+	errReadTarToMap              error
+	errWriteTarFromMap           error
+}
+
+func newPipelineRemoteMock() *pipelineRemoteMockerTest {
+	mock := &pipelineRemoteMockerTest{}
+
+	mock.writeFileData = nil
+	mock.readFileData = []byte{}
+	mock.isFileExist = false
+	mock.readDirResult = []fs.FileInfo{}
+	mock.pullPipelineUpdateTime = 0
+	mock.pullRelationUpdate = false
+	mock.pullPipelineUpdateTime = 0
+	mock.errMarshal = nil
+	mock.errUnMarshal = nil
+	mock.errReadFile = nil
+	mock.errWriteFile = nil
+	mock.errReadDir = nil
+	mock.errPullPipeline = nil
+	mock.errRemove = nil
+	mock.errGetNamespacePipelineFiles = nil
+	mock.errReadTarToMap = nil
+	mock.errWriteTarFromMap = nil
+
+	return mock
+}
 
 type FileDataStruct struct {
 	FileName string
 	Bytes    []byte
 }
 
-func (*pipelineRemoteMockerTest) FileExist(filename string) bool {
-	return isFileExist
+func (mock *pipelineRemoteMockerTest) FileExist(filename string) bool {
+	return mock.isFileExist
 }
 
-func (*pipelineRemoteMockerTest) Marshal(v interface{}) ([]byte, error) {
-	if errMarshal != nil {
-		return nil, errMarshal
+func (mock *pipelineRemoteMockerTest) Marshal(v interface{}) ([]byte, error) {
+	if mock.errMarshal != nil {
+		return nil, mock.errMarshal
 	}
 
 	return json.Marshal(v)
 }
 
-func (*pipelineRemoteMockerTest) Unmarshal(data []byte, v interface{}) error {
-	if errUnMarshal != nil {
-		return errUnMarshal
+func (mock *pipelineRemoteMockerTest) Unmarshal(data []byte, v interface{}) error {
+	if mock.errUnMarshal != nil {
+		return mock.errUnMarshal
 	}
 
 	return json.Unmarshal(data, v)
 }
 
-func (*pipelineRemoteMockerTest) ReadFile(filename string) ([]byte, error) {
-	if errReadFile != nil {
-		return nil, errReadFile
+func (mock *pipelineRemoteMockerTest) ReadFile(filename string) ([]byte, error) {
+	if mock.errReadFile != nil {
+		return nil, mock.errReadFile
 	}
 
-	return readFileData, nil
+	return mock.readFileData, nil
 }
 
-func (*pipelineRemoteMockerTest) WriteFile(filename string, data []byte, perm fs.FileMode) error {
-	if errWriteFile != nil {
-		return errWriteFile
+func (mock *pipelineRemoteMockerTest) WriteFile(filename string, data []byte, perm fs.FileMode) error {
+	if mock.errWriteFile != nil {
+		return mock.errWriteFile
 	}
 
-	writeFileData = &FileDataStruct{
+	mock.writeFileData = &FileDataStruct{
 		FileName: filename,
 		Bytes:    data,
 	}
 	return nil
 }
 
-func (*pipelineRemoteMockerTest) ReadDir(dirname string) ([]fs.FileInfo, error) {
-	if errReadDir != nil {
-		return nil, errReadDir
+func (mock *pipelineRemoteMockerTest) ReadDir(dirname string) ([]fs.FileInfo, error) {
+	if mock.errReadDir != nil {
+		return nil, mock.errReadDir
 	}
 
-	return readDirResult, nil
+	return mock.readDirResult, nil
 }
 
-func (*pipelineRemoteMockerTest) PullPipeline(ts, relationTS int64) (mFiles, plRelation map[string]map[string]string,
+func (mock *pipelineRemoteMockerTest) PullPipeline(ts, relationTS int64) (mFiles, plRelation map[string]map[string]string,
 	defaultPl map[string]string, updateTime int64, relationUpdateAt int64, err error,
 ) {
-	if errPullPipeline != nil {
-		return nil, nil, nil, 0, 0, errPullPipeline
+	if mock.errPullPipeline != nil {
+		return nil, nil, nil, 0, 0, mock.errPullPipeline
 	}
 
 	return map[string]map[string]string{
@@ -163,29 +166,29 @@ func (*pipelineRemoteMockerTest) PullPipeline(ts, relationTS int64) (mFiles, plR
 			},
 		}, map[string]string{
 			"logging": "123.p",
-		}, pullPipelineUpdateTime, relationUpdateAt, nil
+		}, mock.pullPipelineUpdateTime, relationUpdateAt, nil
 }
 
 func (*pipelineRemoteMockerTest) GetTickerDurationAndBreak() (time.Duration, bool) {
 	return time.Second, true
 }
 
-func (*pipelineRemoteMockerTest) Remove(name string) error {
-	return errRemove
+func (mock *pipelineRemoteMockerTest) Remove(name string) error {
+	return mock.errRemove
 }
 
 func (*pipelineRemoteMockerTest) FeedLastError(inputName string, err string) {}
 
-func (*pipelineRemoteMockerTest) GetNamespacePipelineFiles(namespace string) ([]string, error) {
-	return nil, errGetNamespacePipelineFiles
+func (mock *pipelineRemoteMockerTest) GetNamespacePipelineFiles(namespace string) ([]string, error) {
+	return nil, mock.errGetNamespacePipelineFiles
 }
 
-func (*pipelineRemoteMockerTest) ReadTarToMap(srcFile string) (map[string]string, error) {
-	return nil, errReadTarToMap
+func (mock *pipelineRemoteMockerTest) ReadTarToMap(srcFile string) (map[string]string, error) {
+	return nil, mock.errReadTarToMap
 }
 
-func (*pipelineRemoteMockerTest) WriteTarFromMap(data map[string]string, dest string) error {
-	return errWriteTarFromMap
+func (mock *pipelineRemoteMockerTest) WriteTarFromMap(data map[string]string, dest string) error {
+	return mock.errWriteTarFromMap
 }
 
 //------------------------------------------------------------------------------
@@ -225,11 +228,12 @@ func TestPullMain(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			resetVars()
-			isFileExist = tc.fileExist
-			errReadFile = tc.failedReadFile
+			mock := newPipelineRemoteMock()
 
-			err := pullMain(tc.urls, &pipelineRemoteMockerTest{})
+			mock.isFileExist = tc.fileExist
+			mock.errReadFile = tc.failedReadFile
+
+			err := pullMain(tc.urls, mock)
 			assert.Equal(t, tc.expectError, err, "pullMain found error: %v", err)
 		})
 	}
@@ -237,6 +241,11 @@ func TestPullMain(t *testing.T) {
 
 // go test -v -timeout 30s -run ^TestDoPull$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/remote
 func TestDoPull(t *testing.T) {
+	err := plval.InitPlVal(nil, nil, nil, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	const dwURL = "https://openway.guance.com?token=tkn_123"
 	const configPath = "/usr/local/datakit/pipeline_remote/.config_fake"
 	const relationPath = "/usr/local/datakit/pipeline_remote/.relation_fake_dump.json"
@@ -338,22 +347,22 @@ func TestDoPull(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			fmt.Printf("TestDoPull: tc.name = %s\n", tc.name)
 
-			resetVars()
-			readFileData = tc.configContent
-			isFileExist = tc.fileExist
-			errMarshal = tc.failedMarshal
-			errReadFile = tc.failedReadFile
-			errReadDir = tc.failedReadDir
-			errPullPipeline = tc.failedPullPipeline
-			pullPipelineUpdateTime = tc.testPullPipelineUpdateTime
-			pullRelationUpdate = tc.testPullRelationUpdate
-			pullRelationUpdateAt = tc.testPullRelationUpdateAt
+			mock := newPipelineRemoteMock()
+			mock.readFileData = tc.configContent
+			mock.isFileExist = tc.fileExist
+			mock.errMarshal = tc.failedMarshal
+			mock.errReadFile = tc.failedReadFile
+			mock.errReadDir = tc.failedReadDir
+			mock.errPullPipeline = tc.failedPullPipeline
+			mock.pullPipelineUpdateTime = tc.testPullPipelineUpdateTime
+			mock.pullRelationUpdate = tc.testPullRelationUpdate
+			mock.pullRelationUpdateAt = tc.testPullRelationUpdateAt
 			if len(tc.testReadDirResult) > 0 {
-				readDirResult = tc.testReadDirResult
+				mock.readDirResult = tc.testReadDirResult
 			}
-			errRemove = tc.failedRemove
+			mock.errRemove = tc.failedRemove
 
-			err := doPull(tc.pathConfig, relationPath, tc.siteURL, &pipelineRemoteMockerTest{})
+			err := doPull(tc.pathConfig, relationPath, tc.siteURL, mock)
 			assert.Equal(t, tc.expectError, err, "doPull found error: %v", err)
 		})
 	}
@@ -398,11 +407,11 @@ func TestDumpFiles(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			resetVars()
-			errReadDir = tc.failedReadDir
-			errWriteTarFromMap = tc.failedWriteTarFromMap
+			mock := newPipelineRemoteMock()
+			mock.errReadDir = tc.failedReadDir
+			mock.errWriteTarFromMap = tc.failedWriteTarFromMap
 
-			err := dumpFiles(tc.files, nil, &pipelineRemoteMockerTest{})
+			err := dumpFiles(tc.files, nil, mock)
 			assert.Equal(t, tc.expectError, err, "dumpFiles found error: %v", err)
 		})
 	}
@@ -484,16 +493,16 @@ func TestGetPipelineRemoteConfig(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			isFirst = true // variable from package remote
 
-			resetVars()
-			readFileData = tc.configContent
-			isFileExist = tc.fileExist
-			errUnMarshal = tc.failedUnMarshal
-			errReadFile = tc.failedReadFile
-			errRemove = tc.failedRemove
-			errReadDir = tc.failedReadDir
-			errReadTarToMap = tc.failedReadTarToMap
+			mock := newPipelineRemoteMock()
+			mock.readFileData = tc.configContent
+			mock.isFileExist = tc.fileExist
+			mock.errUnMarshal = tc.failedUnMarshal
+			mock.errReadFile = tc.failedReadFile
+			mock.errRemove = tc.failedRemove
+			mock.errReadDir = tc.failedReadDir
+			mock.errReadTarToMap = tc.failedReadTarToMap
 
-			n, err := getPipelineRemoteConfig(tc.pathConfig, tc.siteURL, &pipelineRemoteMockerTest{})
+			n, err := getPipelineRemoteConfig(tc.pathConfig, tc.siteURL, mock)
 			assert.Equal(t, tc.expectError, err, "getPipelineRemoteConfig found error: %v", err)
 			assert.Equal(t, tc.expect, n, "getPipelineRemoteConfig not equal!")
 		})
@@ -550,13 +559,13 @@ func TestUpdatePipelineRemoteConfig(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			resetVars()
-			errMarshal = tc.failedMarshal
-			errWriteFile = tc.failedWriteFile
+			mock := newPipelineRemoteMock()
+			mock.errMarshal = tc.failedMarshal
+			mock.errWriteFile = tc.failedWriteFile
 
-			err := updatePipelineRemoteConfig(tc.pathConfig, tc.siteURL, tc.latestTime, &pipelineRemoteMockerTest{})
+			err := updatePipelineRemoteConfig(tc.pathConfig, tc.siteURL, tc.latestTime, mock)
 			assert.Equal(t, tc.expectError, err, "updatePipelineRemoteConfig found error: %v", err)
-			assert.Equal(t, tc.expect, writeFileData, "updatePipelineRemoteConfig not equal!")
+			assert.Equal(t, tc.expect, mock.writeFileData, "updatePipelineRemoteConfig not equal!")
 		})
 	}
 }

@@ -22,10 +22,10 @@ import (
 	"github.com/shirou/gopsutil/host"
 	pr "github.com/shirou/gopsutil/v3/process"
 	"github.com/tweekmonster/luser"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -58,11 +58,10 @@ type Input struct {
 
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
-	Tagger  dkpt.GlobalTagger
+	Tagger  datakit.GlobalTagger
 }
 
-func (p *Input) Singleton() {
-}
+func (*Input) Singleton() {}
 
 func (*Input) Catalog() string { return category }
 
@@ -74,39 +73,39 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&ProcessMetric{}, &ProcessObject{}}
 }
 
-func (p *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 
 	l.Info("process start...")
-	for _, x := range p.MatchedProcessNames {
+	for _, x := range ipt.MatchedProcessNames {
 		if re, err := regexp.Compile(x); err != nil {
 			l.Warnf("regexp.Compile(%s): %s, ignored", x, err)
 		} else {
 			l.Debugf("add regexp %s", x)
-			p.res = append(p.res, re)
+			ipt.res = append(ipt.res, re)
 		}
 	}
 
-	p.ObjectInterval.Duration = config.ProtectedInterval(minObjectInterval,
+	ipt.ObjectInterval.Duration = config.ProtectedInterval(minObjectInterval,
 		maxObjectInterval,
-		p.ObjectInterval.Duration)
+		ipt.ObjectInterval.Duration)
 
-	tick := time.NewTicker(p.ObjectInterval.Duration)
+	tick := time.NewTicker(ipt.ObjectInterval.Duration)
 	defer tick.Stop()
-	if p.OpenMetric {
+	if ipt.OpenMetric {
 		g := datakit.G("inputs_process")
 		g.Go(func(ctx context.Context) error {
-			p.MetricInterval.Duration = config.ProtectedInterval(minMetricInterval,
+			ipt.MetricInterval.Duration = config.ProtectedInterval(minMetricInterval,
 				maxMetricInterval,
-				p.MetricInterval.Duration)
+				ipt.MetricInterval.Duration)
 
 			procRecorder := newProcRecorder()
-			tick := time.NewTicker(p.MetricInterval.Duration)
+			tick := time.NewTicker(ipt.MetricInterval.Duration)
 			defer tick.Stop()
 			for {
-				processList := p.getProcesses(true)
+				processList := ipt.getProcesses(true)
 				tn := time.Now().UTC()
-				p.WriteMetric(processList, procRecorder, tn)
+				ipt.WriteMetric(processList, procRecorder, tn)
 				procRecorder.flush(processList, tn)
 				select {
 				case <-tick.C:
@@ -114,7 +113,7 @@ func (p *Input) Run() {
 					l.Info("process write metric exit")
 					return nil
 
-				case <-p.semStop.Wait():
+				case <-ipt.semStop.Wait():
 					l.Info("process write metric return")
 					return nil
 				}
@@ -124,9 +123,9 @@ func (p *Input) Run() {
 
 	procRecorder := newProcRecorder()
 	for {
-		processList := p.getProcesses(false)
+		processList := ipt.getProcesses(false)
 		tn := time.Now().UTC()
-		p.WriteObject(processList, procRecorder, tn)
+		ipt.WriteObject(processList, procRecorder, tn)
 		procRecorder.flush(processList, tn)
 		select {
 		case <-tick.C:
@@ -134,16 +133,16 @@ func (p *Input) Run() {
 			l.Info("process write object exit")
 			return
 
-		case <-p.semStop.Wait():
+		case <-ipt.semStop.Wait():
 			l.Info("process write object return")
 			return
 		}
 	}
 }
 
-func (p *Input) Terminate() {
-	if p.semStop != nil {
-		p.semStop.Close()
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
 	}
 }
 
@@ -156,14 +155,14 @@ func (p *Input) Terminate() {
 //		ENV_INPUT_HOST_PROCESSES_MIN_RUN_TIME : datakit.Duration
 //	 ENV_INPUT_HOST_PROCESSES_ENABLE_LISTEN_PORTS : booler
 //	 ENV_INPUT_HOST_PROCESSES_ENABLE_OPEN_FILES : booler
-func (p *Input) ReadEnv(envs map[string]string) {
+func (ipt *Input) ReadEnv(envs map[string]string) {
 	// deprecated
 	if open, ok := envs["ENV_INPUT_OPEN_METRIC"]; ok {
 		b, err := strconv.ParseBool(open)
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_OPEN_METRIC to bool: %s, ignore", err)
 		} else {
-			p.OpenMetric = b
+			ipt.OpenMetric = b
 		}
 	}
 
@@ -172,14 +171,14 @@ func (p *Input) ReadEnv(envs map[string]string) {
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_HOST_PROCESSES_OPEN_METRIC to bool: %s, ignore", err)
 		} else {
-			p.OpenMetric = b
+			ipt.OpenMetric = b
 		}
 	}
 
 	if tagsStr, ok := envs["ENV_INPUT_PROCESSES_TAGS"]; ok {
 		tags := config.ParseGlobalTags(tagsStr)
 		for k, v := range tags {
-			p.Tags[k] = v
+			ipt.Tags[k] = v
 		}
 	}
 
@@ -188,7 +187,7 @@ func (p *Input) ReadEnv(envs map[string]string) {
 	if str, ok := envs["ENV_INPUT_HOST_PROCESSES_PROCESS_NAME"]; ok {
 		arrays := strings.Split(str, ",")
 		l.Debugf("add PROCESS_NAME from ENV: %v", arrays)
-		p.MatchedProcessNames = append(p.MatchedProcessNames, arrays...)
+		ipt.MatchedProcessNames = append(ipt.MatchedProcessNames, arrays...)
 	}
 
 	if str, ok := envs["ENV_INPUT_HOST_PROCESSES_MIN_RUN_TIME"]; ok {
@@ -196,7 +195,7 @@ func (p *Input) ReadEnv(envs map[string]string) {
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_HOST_PROCESSES_MIN_RUN_TIME to time.Duration: %s, ignore", err)
 		} else {
-			p.RunTime.Duration = config.ProtectedInterval(minObjectInterval,
+			ipt.RunTime.Duration = config.ProtectedInterval(minObjectInterval,
 				maxObjectInterval,
 				da)
 		}
@@ -207,7 +206,7 @@ func (p *Input) ReadEnv(envs map[string]string) {
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_HOST_PROCESSES_ENABLE_LISTEN_PORTS to bool: %s, ignore", err)
 		} else {
-			p.ListenPorts = b
+			ipt.ListenPorts = b
 		}
 	}
 
@@ -216,17 +215,17 @@ func (p *Input) ReadEnv(envs map[string]string) {
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_HOST_PROCESSES_ENABLE_OPEN_FILES to bool: %s, ignore", err)
 		} else {
-			p.OpenFiles = b
+			ipt.OpenFiles = b
 		}
 	}
 }
 
-func (p *Input) matched(name string) bool {
-	if len(p.res) == 0 {
+func (ipt *Input) matched(name string) bool {
+	if len(ipt.res) == 0 {
 		return true
 	}
 
-	for _, re := range p.res {
+	for _, re := range ipt.res {
 		if re.MatchString(name) {
 			return true
 		}
@@ -235,11 +234,11 @@ func (p *Input) matched(name string) bool {
 	return false
 }
 
-func (p *Input) getProcesses(match bool) (processList []*pr.Process) {
+func (ipt *Input) getProcesses(match bool) (processList []*pr.Process) {
 	pses, err := pr.Processes()
 	if err != nil {
 		l.Warnf("get process err: %s", err.Error())
-		p.lastErr = err
+		ipt.lastErr = err
 		return
 	}
 
@@ -251,7 +250,7 @@ func (p *Input) getProcesses(match bool) (processList []*pr.Process) {
 		}
 
 		if match {
-			if !p.matched(name) {
+			if !ipt.matched(name) {
 				l.Warnf("%s not matched", name)
 				continue
 			}
@@ -266,7 +265,7 @@ func (p *Input) getProcesses(match bool) (processList []*pr.Process) {
 		}
 
 		tm := time.Unix(0, t*1000000) // 转纳秒
-		if time.Since(tm) > p.RunTime.Duration {
+		if time.Since(tm) > ipt.RunTime.Duration {
 			processList = append(processList, ps)
 		}
 	}
@@ -307,7 +306,7 @@ func getCreateTime(ps *pr.Process) int64 {
 	return start
 }
 
-func (p *Input) Parse(ps *pr.Process, procRec *procRecorder, tn time.Time) (username, state, name string, fields, message map[string]interface{}) {
+func (ipt *Input) Parse(ps *pr.Process, procRec *procRecorder, tn time.Time) (username, state, name string, fields, message map[string]interface{}) {
 	fields = map[string]interface{}{}
 	message = map[string]interface{}{}
 	name, err := ps.Name()
@@ -369,30 +368,30 @@ func (p *Input) Parse(ps *pr.Process, procRec *procRecorder, tn time.Time) (user
 		fields["threads"] = Threads
 	}
 
-	if runtime.GOOS == "linux" && p.OpenFiles {
-		OpenFiles, err := ps.OpenFiles()
+	if runtime.GOOS == "linux" && ipt.OpenFiles {
+		openFiles, err := ps.OpenFiles()
 		if err != nil {
 			l.Warnf("process:%s,pid:%d get openfile err:%s", name, ps.Pid, err.Error())
 		} else {
-			fields["open_files"] = len(OpenFiles)
+			fields["open_files"] = len(openFiles)
 		}
 	}
 
 	return username, state, name, fields, message
 }
 
-func (p *Input) WriteObject(processList []*pr.Process, procRec *procRecorder, tn time.Time) {
+func (ipt *Input) WriteObject(processList []*pr.Process, procRec *procRecorder, tn time.Time) {
 	var collectCache []*point.Point
 
 	for _, ps := range processList {
-		username, state, name, fields, message := p.Parse(ps, procRec, tn)
+		username, state, name, fields, message := ipt.Parse(ps, procRec, tn)
 		tags := map[string]string{
 			"username":     username,
 			"state":        state,
 			"name":         fmt.Sprintf("%s_%d", config.Cfg.Hostname, ps.Pid),
 			"process_name": name,
 		}
-		if p.ListenPorts {
+		if ipt.ListenPorts {
 			if listeningPorts, err := getListeningPortsJSON(ps); err != nil {
 				l.Warnf("getListeningPortsJSON: %v", err)
 			} else {
@@ -400,11 +399,11 @@ func (p *Input) WriteObject(processList []*pr.Process, procRec *procRecorder, tn
 			}
 		}
 
-		for k, v := range p.Tags {
+		for k, v := range ipt.Tags {
 			tags[k] = v
 		}
 
-		tags = inputs.MergeTags(p.Tagger.HostTags(), tags, "")
+		tags = inputs.MergeTags(ipt.Tagger.HostTags(), tags, "")
 
 		stateZombie := false
 		if state == "zombie" {
@@ -440,7 +439,7 @@ func (p *Input) WriteObject(processList []*pr.Process, procRec *procRecorder, tn
 
 		fields["cmdline"] = cmd
 
-		if p.isTest {
+		if ipt.isTest {
 			return
 		}
 
@@ -475,24 +474,24 @@ func (p *Input) WriteObject(processList []*pr.Process, procRec *procRecorder, tn
 		return
 	}
 
-	if err := p.feeder.Feed(inputName+"/object",
+	if err := ipt.feeder.Feed(inputName+"/object",
 		point.Object,
 		collectCache,
 		&dkio.Option{CollectCost: time.Since(tn)}); err != nil {
 		l.Errorf("FeedMeasurement err :%s", err.Error())
-		p.lastErr = err
+		ipt.lastErr = err
 	}
 
-	if p.lastErr != nil {
-		p.feeder.FeedLastError(p.lastErr.Error(),
+	if ipt.lastErr != nil {
+		ipt.feeder.FeedLastError(ipt.lastErr.Error(),
 			dkio.WithLastErrorInput(inputName),
 			dkio.WithLastErrorCategory(point.Object),
 		)
-		p.lastErr = nil
+		ipt.lastErr = nil
 	}
 }
 
-func (p *Input) WriteMetric(processList []*pr.Process, procRec *procRecorder, tn time.Time) {
+func (ipt *Input) WriteMetric(processList []*pr.Process, procRec *procRecorder, tn time.Time) {
 	var collectCache []*point.Point
 
 	for _, ps := range processList {
@@ -500,16 +499,16 @@ func (p *Input) WriteMetric(processList []*pr.Process, procRec *procRecorder, tn
 		if err != nil || cmd == "" {
 			continue
 		}
-		username, _, name, fields, _ := p.Parse(ps, procRec, tn)
+		username, _, name, fields, _ := ipt.Parse(ps, procRec, tn)
 		tags := map[string]string{
 			"username":     username,
 			"pid":          fmt.Sprintf("%d", ps.Pid),
 			"process_name": name,
 		}
-		for k, v := range p.Tags {
+		for k, v := range ipt.Tags {
 			tags[k] = v
 		}
-		tags = inputs.MergeTags(p.Tagger.HostTags(), tags, "")
+		tags = inputs.MergeTags(ipt.Tagger.HostTags(), tags, "")
 		metric := &ProcessMetric{
 			name:   inputName,
 			tags:   tags,
@@ -525,20 +524,20 @@ func (p *Input) WriteMetric(processList []*pr.Process, procRec *procRecorder, tn
 		return
 	}
 
-	if err := p.feeder.Feed(inputName+"/metric",
+	if err := ipt.feeder.Feed(inputName+"/metric",
 		point.Metric,
 		collectCache,
 		&dkio.Option{CollectCost: time.Since(tn)}); err != nil {
-		l.Errorf("FeedMeasurement err :%s", err.Error())
-		p.lastErr = err
+		l.Errorf("fedder.Feed :%s", err.Error())
+		ipt.lastErr = err
 	}
 
-	if p.lastErr != nil {
-		p.feeder.FeedLastError(p.lastErr.Error(),
+	if ipt.lastErr != nil {
+		ipt.feeder.FeedLastError(ipt.lastErr.Error(),
 			dkio.WithLastErrorInput(inputName),
 			dkio.WithLastErrorCategory(point.Metric),
 		)
-		p.lastErr = nil
+		ipt.lastErr = nil
 	}
 }
 
@@ -564,7 +563,7 @@ func defaultInput() *Input {
 		semStop: cliutils.NewSem(),
 		Tags:    make(map[string]string),
 		feeder:  dkio.DefaultFeeder(),
-		Tagger:  dkpt.DefaultGlobalTagger(),
+		Tagger:  datakit.DefaultGlobalTagger(),
 	}
 }
 

@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/GuanceCloud/cliutils/point"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -21,10 +20,6 @@ type clusterMeasurement struct {
 	fields   map[string]interface{}
 	resData  map[string]interface{}
 	election bool
-}
-
-func (m *clusterMeasurement) LineProto() (*dkpt.Point, error) {
-	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElectionV2(m.election))
 }
 
 //nolint:lll
@@ -112,14 +107,14 @@ func (m *clusterMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (i *Input) CollectClusterMeasurement() ([]*point.Point, error) {
+func (ipt *Input) CollectClusterMeasurement() ([]*point.Point, error) {
 	ctx := context.Background()
-	list, err := i.client.ClusterInfo(ctx).Result()
+	list, err := ipt.client.ClusterInfo(ctx).Result()
 	if err != nil {
 		l.Errorf("get clusterinfo error %v", err)
 		return nil, err
 	}
-	info, err := i.ParseClusterData(list)
+	info, err := ipt.ParseClusterData(list)
 	if err != nil {
 		l.Errorf("paserclusterdata error %v", err)
 		return nil, err
@@ -128,7 +123,7 @@ func (i *Input) CollectClusterMeasurement() ([]*point.Point, error) {
 }
 
 // ParseClusterData 解析数据并返回指定的数据.
-func (i *Input) ParseClusterData(list string) ([]*point.Point, error) {
+func (ipt *Input) ParseClusterData(list string) ([]*point.Point, error) {
 	rdr := strings.NewReader(list)
 	var collectCache []*point.Point
 	scanner := bufio.NewScanner(rdr)
@@ -140,7 +135,7 @@ func (i *Input) ParseClusterData(list string) ([]*point.Point, error) {
 			tags:     make(map[string]string),
 			fields:   make(map[string]interface{}),
 			resData:  make(map[string]interface{}),
-			election: i.Election,
+			election: ipt.Election,
 		}
 		line := scanner.Text()
 		// parts:[cluster_known_nodes 1]
@@ -151,7 +146,7 @@ func (i *Input) ParseClusterData(list string) ([]*point.Point, error) {
 		}
 
 		m.name = redisCluster
-		m.tags["server_addr"] = i.Addr
+		m.tags["server_addr"] = ipt.Addr
 		m.fields[parts[0]] = parts[1]
 		err := m.submit()
 		if err != nil {
@@ -160,12 +155,12 @@ func (i *Input) ParseClusterData(list string) ([]*point.Point, error) {
 		var opts []point.Option
 
 		if m.election {
-			m.tags = inputs.MergeTagsWrapper(m.tags, i.Tagger.ElectionTags(), i.Tags, i.Host)
+			m.tags = inputs.MergeTagsWrapper(m.tags, ipt.Tagger.ElectionTags(), ipt.Tags, ipt.Host)
 		} else {
-			m.tags = inputs.MergeTagsWrapper(m.tags, i.Tagger.HostTags(), i.Tags, i.Host)
+			m.tags = inputs.MergeTagsWrapper(m.tags, ipt.Tagger.HostTags(), ipt.Tags, ipt.Host)
 		}
 
-		pt := point.NewPointV2([]byte(m.name),
+		pt := point.NewPointV2(m.name,
 			append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 			opts...)
 		collectCache = append(collectCache, pt)

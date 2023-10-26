@@ -21,7 +21,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -34,7 +33,7 @@ func (*Input) Catalog() string {
 	return inputName
 }
 
-func (n *Input) LogExamples() map[string]map[string]string {
+func (*Input) LogExamples() map[string]map[string]string {
 	return map[string]map[string]string{
 		"jenkins": {
 			"Jenkins log": `2021-05-18 03:08:58.053+0000 [id=32]	INFO	jenkins.InitReactorRunner$1#onAttained: Started all plugins`,
@@ -49,14 +48,14 @@ func (*Input) PipelineConfig() map[string]string {
 	return pipelineMap
 }
 
-func (n *Input) GetPipeline() []*tailer.Option {
+func (ipt *Input) GetPipeline() []*tailer.Option {
 	return []*tailer.Option{
 		{
 			Source:  inputName,
 			Service: inputName,
 			Pipeline: func() string {
-				if n.Log != nil {
-					return n.Log.Pipeline
+				if ipt.Log != nil {
+					return ipt.Log.Pipeline
 				}
 				return ""
 			}(),
@@ -64,93 +63,93 @@ func (n *Input) GetPipeline() []*tailer.Option {
 	}
 }
 
-func (n *Input) setup() {
-	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
+func (ipt *Input) setup() {
+	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 
-	client, err := n.createHTTPClient()
+	client, err := ipt.createHTTPClient()
 	if err != nil {
 		l.Errorf("[error] jenkins init client err:%s", err.Error())
 		return
 	}
-	n.client = client
+	ipt.client = client
 
-	if n.EnableCIVisibility {
-		n.setupServer()
-		l.Infof("start listening to jenkins CI events at %s", n.CIEventPort)
+	if ipt.EnableCIVisibility {
+		ipt.setupServer()
+		l.Infof("start listening to jenkins CI events at %s", ipt.CIEventPort)
 	}
 }
 
-func (n *Input) setupServer() {
+func (ipt *Input) setupServer() {
 	router := gin.Default()
-	router.PUT("/v0.3/traces", gin.WrapH(n))
-	n.srv = &http.Server{
-		Addr:        n.CIEventPort,
+	router.PUT("/v0.3/traces", gin.WrapH(ipt))
+	ipt.srv = &http.Server{
+		Addr:        ipt.CIEventPort,
 		Handler:     router,
 		IdleTimeout: 120 * time.Second,
 	}
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_jenkins"})
 	g.Go(func(ctx context.Context) error {
-		if err := n.srv.ListenAndServe(); err != nil {
+		if err := ipt.srv.ListenAndServe(); err != nil {
 			l.Errorf("jenkins CI event server shutdown: %v", err)
 		}
 		return nil
 	})
 }
 
-func (n *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("jenkins start")
 
-	n.setup()
-	if !n.EnableCollect {
+	ipt.setup()
+	if !ipt.EnableCollect {
 		l.Info("metric collecting is disabled")
 	}
-	tick := time.NewTicker(n.Interval.Duration)
+	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
 	for {
 		select {
 		case <-tick.C:
-			if !n.EnableCollect {
+			if !ipt.EnableCollect {
 				continue
 			}
-			n.start = time.Now()
-			n.getPluginMetric()
-			if len(n.collectCache) > 0 {
-				err := n.feeder.Feed(inputName, point.Metric, n.collectCache,
-					&dkio.Option{CollectCost: time.Since(n.start)})
-				n.collectCache = n.collectCache[:0]
+			ipt.start = time.Now()
+			ipt.getPluginMetric()
+			if len(ipt.collectCache) > 0 {
+				err := ipt.feeder.Feed(inputName, point.Metric, ipt.collectCache,
+					&dkio.Option{CollectCost: time.Since(ipt.start)})
+				ipt.collectCache = ipt.collectCache[:0]
 				if err != nil {
-					n.lastErr = err
+					ipt.lastErr = err
 					l.Errorf(err.Error())
 					continue
 				}
 			}
-			if n.lastErr != nil {
-				n.feeder.FeedLastError(n.lastErr.Error(),
+			if ipt.lastErr != nil {
+				ipt.feeder.FeedLastError(ipt.lastErr.Error(),
 					dkio.WithLastErrorInput(inputName),
 				)
-				n.lastErr = nil
+				ipt.lastErr = nil
 			}
 		case <-datakit.Exit.Wait():
-			n.exit()
-			n.shutdownServer()
+			ipt.exit()
+			ipt.shutdownServer()
 			l.Info("jenkins exited")
 			return
 
-		case <-n.semStop.Wait():
-			n.exit()
-			n.shutdownServer()
+		case <-ipt.semStop.Wait():
+			ipt.exit()
+			ipt.shutdownServer()
 			l.Info("jenkins returned")
 			return
 		}
 	}
 }
 
-func (n *Input) shutdownServer() {
+func (ipt *Input) shutdownServer() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if n.srv != nil {
-		if err := n.srv.Shutdown(ctx); err != nil {
+	if ipt.srv != nil {
+		if err := ipt.srv.Shutdown(ctx); err != nil {
 			l.Errorf("jenkins CI event server failed to shutdown: %v", err)
 		} else {
 			l.Infof("jenkins CI event server is shutdown")
@@ -158,40 +157,40 @@ func (n *Input) shutdownServer() {
 	}
 }
 
-func (n *Input) exit() {
-	if n.tail != nil {
-		n.tail.Close()
+func (ipt *Input) exit() {
+	if ipt.tail != nil {
+		ipt.tail.Close()
 		l.Info("jenkins log exit")
 	}
 }
 
-func (n *Input) Terminate() {
-	if n.semStop != nil {
-		n.semStop.Close()
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
 	}
 }
 
-func (n *Input) RunPipeline() {
-	if n.Log == nil || len(n.Log.Files) == 0 {
+func (ipt *Input) RunPipeline() {
+	if ipt.Log == nil || len(ipt.Log.Files) == 0 {
 		return
 	}
 
 	opt := &tailer.Option{
 		Source:            inputName,
 		Service:           inputName,
-		Pipeline:          n.Log.Pipeline,
-		GlobalTags:        n.Tags,
-		IgnoreStatus:      n.Log.IgnoreStatus,
-		CharacterEncoding: n.Log.CharacterEncoding,
+		Pipeline:          ipt.Log.Pipeline,
+		GlobalTags:        ipt.Tags,
+		IgnoreStatus:      ipt.Log.IgnoreStatus,
+		CharacterEncoding: ipt.Log.CharacterEncoding,
 		MultilinePatterns: []string{`^\d{4}-\d{2}-\d{2}`},
-		Done:              n.semStop.Wait(),
+		Done:              ipt.semStop.Wait(),
 	}
 
 	var err error
-	n.tail, err = tailer.NewTailer(n.Log.Files, opt)
+	ipt.tail, err = tailer.NewTailer(ipt.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
-		n.feeder.FeedLastError(err.Error(),
+		ipt.feeder.FeedLastError(err.Error(),
 			dkio.WithLastErrorInput(inputName),
 		)
 		return
@@ -199,13 +198,13 @@ func (n *Input) RunPipeline() {
 
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_jenkins"})
 	g.Go(func(ctx context.Context) error {
-		n.tail.Start()
+		ipt.tail.Start()
 		return nil
 	})
 }
 
-func (n *Input) requestJSON(u string, target interface{}) error {
-	u = fmt.Sprintf("%s%s", n.URL, u)
+func (ipt *Input) requestJSON(u string, target interface{}) error {
+	u = fmt.Sprintf("%s%s", ipt.URL, u)
 
 	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
@@ -214,7 +213,7 @@ func (n *Input) requestJSON(u string, target interface{}) error {
 
 	// req.SetBasicAuth(n.Username, n.Password)
 
-	resp, err := n.client.Do(req)
+	resp, err := ipt.client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -227,21 +226,21 @@ func (n *Input) requestJSON(u string, target interface{}) error {
 	return json.NewDecoder(resp.Body).Decode(target)
 }
 
-func (n *Input) createHTTPClient() (*http.Client, error) {
-	tlsCfg, err := n.ClientConfig.TLSConfig()
+func (ipt *Input) createHTTPClient() (*http.Client, error) {
+	tlsCfg, err := ipt.ClientConfig.TLSConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	if n.ResponseTimeout.Duration < time.Second {
-		n.ResponseTimeout.Duration = time.Second * 5
+	if ipt.ResponseTimeout.Duration < time.Second {
+		ipt.ResponseTimeout.Duration = time.Second * 5
 	}
 
 	client := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: tlsCfg,
 		},
-		Timeout: n.ResponseTimeout.Duration,
+		Timeout: ipt.ResponseTimeout.Duration,
 	}
 
 	return client, nil
@@ -251,7 +250,7 @@ func (*Input) AvailableArchs() []string {
 	return datakit.AllOSWithElection
 }
 
-func (n *Input) SampleMeasurement() []inputs.Measurement {
+func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&Measurement{},
 		&jenkinsPipelineMeasurement{},
@@ -264,7 +263,7 @@ func defaultInput() *Input {
 		Interval: datakit.Duration{Duration: time.Second * 30},
 		semStop:  cliutils.NewSem(),
 		feeder:   dkio.DefaultFeeder(),
-		Tagger:   dkpt.DefaultGlobalTagger(),
+		Tagger:   datakit.DefaultGlobalTagger(),
 	}
 }
 

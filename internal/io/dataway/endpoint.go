@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptrace"
 	"net/url"
@@ -176,13 +175,11 @@ func newEndpoint(urlstr string, opts ...endPointOption) (*endPoint, error) {
 	}
 
 	ep := &endPoint{
-		categoryURL:   map[string]string{},
-		httpHeaders:   map[string]string{},
-		token:         u.Query().Get("token"),
-		host:          u.Host,
-		scheme:        u.Scheme,
-		maxRetryCount: DefaultRetryCount,
-		retryDelay:    DefaultRetryDelay,
+		categoryURL: map[string]string{},
+		httpHeaders: map[string]string{},
+		token:       u.Query().Get("token"),
+		host:        u.Host,
+		scheme:      u.Scheme,
 	}
 
 	// apply options
@@ -249,6 +246,12 @@ func (ep *endPoint) getHTTPCliOpts() *httpcli.Options {
 func (ep *endPoint) setupHTTP() error {
 	ep.httpCli = httpcli.Cli(ep.getHTTPCliOpts())
 	ep.httpCli.Timeout = ep.httpTimeout
+
+	// Do not override exit valid setting, but protect retry with valid default settings.
+	if ep.maxRetryCount <= 0 {
+		ep.maxRetryCount = DefaultRetryCount
+	}
+
 	return nil
 }
 
@@ -303,22 +306,22 @@ func (ep *endPoint) writeBody(w *writer, b *body) (err error) {
 }
 
 func (ep *endPoint) writePoints(w *writer) error {
-	var (
-		bodies []*body
-		err    error
-	)
-
-	bodies, err = buildBody(w.pts, MaxKodoBody)
+	arr, err := w.buildPointsBody()
 	if err != nil {
 		return err
 	}
 
-	for _, body := range bodies {
+	for idx, body := range arr {
 		if err := ep.writeBody(w, body); err != nil {
 			log.Warnf("send %d points to %q(gzip: %v) bytes failed: %q, ignored",
-				len(w.pts), w.category, w.gzip, err.Error())
+				len(w.points), w.category, w.gzip, err.Error())
+		} else {
+			log.Debugf("[ok] send %dth batch(%d points, batchSize: %d) to %q(gzip: %v) bytes",
+				idx, body.npts, w.batchSize, w.category, w.gzip)
 		}
 	}
+
+	log.Debugf("[ok] send %d points to %q", len(w.points), w.category)
 
 	return nil
 }
@@ -354,6 +357,10 @@ func (ep *endPoint) writePointData(b *body, w *writer) error {
 	}
 
 	defer func() {
+		if w.cacheClean { // ignore metrics on cache clean operation
+			return
+		}
+
 		// /v1/write/metric -> metric
 		cat := w.category.String()
 
@@ -367,23 +374,29 @@ func (ep *endPoint) writePointData(b *body, w *writer) error {
 		bytesCounterVec.WithLabelValues(cat, "raw", "total").Add(float64(b.rawLen))
 		bytesCounterVec.WithLabelValues(cat, "raw", httpCodeStr).Add(float64(b.rawLen))
 
-		ptsCounterVec.WithLabelValues(cat, "total").Add(float64(b.npts))
-		ptsCounterVec.WithLabelValues(cat, httpCodeStr).Add(float64(b.npts))
+		if b.npts > 0 {
+			ptsCounterVec.WithLabelValues(cat, "total").Add(float64(b.npts))
+			ptsCounterVec.WithLabelValues(cat, httpCodeStr).Add(float64(b.npts))
+		} else {
+			log.Warnf("npts not set, should not been here")
+		}
 	}()
 
 	req, err := http.NewRequest("POST", requrl, bytes.NewBuffer(b.buf))
 	if err != nil {
-		log.Error(err)
+		log.Error("new request to %s: %s", requrl, err)
 		return err
 	}
 
+	req.Header.Set("X-Points", fmt.Sprintf("%d", b.npts))
+	req.Header.Set("Content-Length", fmt.Sprintf("%d", len(b.buf)))
+	req.Header.Set("Content-Type", w.httpEncoding.HTTPContentType())
 	if w.gzip {
 		req.Header.Set("Content-Encoding", "gzip")
 	}
-	req.Header.Set("X-Points", fmt.Sprintf("%d", b.npts))
 
 	// Common HTTP headers appended, such as User-Agent, X-Global-Tags
-	log.Debugf("set %d endpoint http headers", len(ep.httpHeaders))
+	log.Debugf("set %d endpoint HTTP headers", len(ep.httpHeaders))
 	for k, v := range ep.httpHeaders {
 		req.Header.Set(k, v)
 	}
@@ -395,7 +408,6 @@ func (ep *endPoint) writePointData(b *body, w *writer) error {
 	}
 
 	resp, err := ep.sendReq(req)
-
 	// NOTE: resp maybe not nil, we need HTTP status info to fill HTTP metrics before exit.
 	if resp != nil {
 		httpCodeStr = http.StatusText(resp.StatusCode)
@@ -407,9 +419,9 @@ func (ep *endPoint) writePointData(b *body, w *writer) error {
 	}
 
 	defer resp.Body.Close() //nolint:errcheck
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Errorf("ioutil.ReadAll: %s", err)
+		log.Errorf("io.ReadAll: %s", err)
 		return err
 	}
 
@@ -517,6 +529,16 @@ func (ep *endPoint) sendReq(req *http.Request) (resp *http.Response, err error) 
 		}
 	}
 
+	delay := ep.retryDelay
+
+	// We must set retry > 0, or the request will fail immediately.
+	maxRetry := uint(ep.maxRetryCount)
+	if maxRetry == 0 {
+		maxRetry = DefaultRetryCount
+	}
+
+	log.Debugf("retry %q with delay %s on %d retrying", req.URL.String(), delay, maxRetry)
+
 	if err := retry.Do(
 		func() error {
 			defer func() {
@@ -542,14 +564,15 @@ func (ep *endPoint) sendReq(req *http.Request) (resp *http.Response, err error) 
 			return nil
 		},
 
-		retry.Attempts(uint(ep.maxRetryCount)),
-		retry.Delay(ep.retryDelay),
+		retry.Attempts(maxRetry),
+		retry.Delay(delay),
+
 		retry.OnRetry(func(n uint, err error) {
-			log.Warnf("on %dth retry, error: %s", n, err)
+			log.Warnf("on %dth retry for %s, error: %s", n, req.URL, err)
 			httpRetry.WithLabelValues(req.URL.Path, status).Inc()
 		}),
 	); err != nil {
-		return resp, err
+		return resp, fmt.Errorf("retry request err: %w", err)
 	}
 
 	return resp, err

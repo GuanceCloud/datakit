@@ -11,12 +11,12 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
+	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
+	"github.com/GuanceCloud/cliutils/pipeline/offload"
 	"github.com/GuanceCloud/cliutils/tracer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/operator"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/offload"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/resourcelimit"
 )
 
@@ -51,7 +51,7 @@ type Config struct {
 	DCAConfig *DCAConfig `toml:"dca"`
 
 	// pipeline
-	Pipeline *pipeline.PipelineCfg `toml:"pipeline"`
+	Pipeline *plmanager.PipelineCfg `toml:"pipeline"`
 
 	// logging config
 	LogDeprecated       string     `toml:"log,omitempty"`
@@ -158,7 +158,7 @@ func DefaultConfig() *Config {
 			WhiteList: []string{},
 		},
 
-		Pipeline: &pipeline.PipelineCfg{
+		Pipeline: &plmanager.PipelineCfg{
 			IPdbType:               "-",
 			RemotePullInterval:     "1m",
 			ReferTableURL:          "",

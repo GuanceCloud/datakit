@@ -11,7 +11,6 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/failcache"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 type consumer struct {
@@ -21,7 +20,7 @@ type consumer struct {
 
 	flushTiker *time.Ticker
 
-	pts       []*dkpt.Point
+	points    []*point.Point
 	lastFlush time.Time
 }
 
@@ -69,9 +68,9 @@ func (x *dkIO) runConsumer(cat point.Category) {
 			x.cacheData(c, d, true)
 
 		case <-c.flushTiker.C:
-			if len(c.pts) > 0 {
-				log.Debugf("on tick(%s) to flush %s(%d pts), last flush %s ago...",
-					x.flushInterval, c.category, len(c.pts), time.Since(c.lastFlush))
+			if len(c.points) > 0 {
+				log.Debugf("on tick(%s) to flush %s(%d points), last flush %s ago...",
+					x.flushInterval, c.category, len(c.points), time.Since(c.lastFlush))
 				x.flush(c)
 			}
 

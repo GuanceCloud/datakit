@@ -17,11 +17,9 @@ import (
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
-	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -87,11 +85,8 @@ type Input struct {
 
 	semStop *cliutils.Sem // start stop signal
 	reqMemo requestMemo
-
-	// For testing purpose.
-	feed func(name, category string, pts []*dkpt.Point, opt *iod.Option) error
-
-	feedLastError func(inputName string, err string, cat ...point.Category)
+	feeder  dkio.Feeder
+	Tagger  datakit.GlobalTagger
 }
 
 func (ipt *Input) ElectionEnabled() bool {
@@ -110,32 +105,6 @@ func (ipt *Input) RegHTTPHandler() {
 }
 
 var maxPauseCh = inputs.ElectionPauseChannelLength
-
-func newInput() *Input {
-	sem := cliutils.NewSem()
-	return &Input{
-		EnableCollect: true,
-		Tags:          make(map[string]string),
-		pauseCh:       make(chan bool, maxPauseCh),
-		Election:      true,
-		duration:      time.Second * 10,
-		httpClient:    &http.Client{Timeout: 5 * time.Second},
-
-		semStop: sem,
-
-		EnableCIVisibility: true,
-		CIExtraTags:        make(map[string]string),
-		reqMemo: requestMemo{
-			memoMap:     map[[16]byte]time.Time{},
-			hasReqCh:    make(chan hasRequest),
-			addReqCh:    make(chan [16]byte),
-			removeReqCh: make(chan [16]byte),
-			semStop:     sem,
-		},
-		feed:          iod.Feed,
-		feedLastError: iod.FeedLastError,
-	}
-}
 
 func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
@@ -219,12 +188,13 @@ func (ipt *Input) gather() {
 		return
 	}
 
-	if err := iod.Feed(inputName, datakit.Metric, pts, &iod.Option{CollectCost: time.Since(start)}); err != nil {
+	if err := ipt.feeder.Feed(inputName, point.Metric, pts,
+		&dkio.Option{CollectCost: time.Since(start)}); err != nil {
 		l.Error(err)
 	}
 }
 
-func (ipt *Input) gatherMetrics() ([]*dkpt.Point, error) {
+func (ipt *Input) gatherMetrics() ([]*point.Point, error) {
 	resp, err := ipt.httpClient.Get(ipt.URL)
 	if err != nil {
 		return nil, err
@@ -236,7 +206,7 @@ func (ipt *Input) gatherMetrics() ([]*dkpt.Point, error) {
 		return nil, err
 	}
 
-	var points []*dkpt.Point
+	var points []*point.Point
 
 	for _, m := range metrics {
 		measurement := inputName
@@ -254,12 +224,17 @@ func (ipt *Input) gatherMetrics() ([]*dkpt.Point, error) {
 			m.tags[k] = v
 		}
 
-		pt, err := dkpt.NewPoint(measurement, m.tags, m.fields, dkpt.MOptElectionV2(ipt.Election))
-		if err != nil {
-			l.Warn(err)
-			continue
+		if ipt.Election {
+			m.tags = inputs.MergeTags(ipt.Tagger.ElectionTags(), m.tags, ipt.URL)
+		} else {
+			m.tags = inputs.MergeTags(ipt.Tagger.HostTags(), m.tags, ipt.URL)
 		}
-		points = append(points, pt)
+
+		opts := point.DefaultMetricOptions()
+		opts = append(opts, point.WithTime(time.Now()))
+		points = append(points, point.NewPointV2(measurement,
+			append(point.NewTags(m.tags), point.NewKVs(m.fields)...), opts...),
+		)
 	}
 
 	return points, nil
@@ -297,8 +272,34 @@ func setHostTagIfNotLoopback(tags map[string]string, u string) {
 	}
 }
 
+func defaultInput() *Input {
+	sem := cliutils.NewSem()
+	return &Input{
+		EnableCollect: true,
+		Tags:          make(map[string]string),
+		pauseCh:       make(chan bool, maxPauseCh),
+		Election:      true,
+		duration:      time.Second * 10,
+		httpClient:    &http.Client{Timeout: 5 * time.Second},
+
+		semStop: sem,
+		feeder:  dkio.DefaultFeeder(),
+		Tagger:  datakit.DefaultGlobalTagger(),
+
+		EnableCIVisibility: true,
+		CIExtraTags:        make(map[string]string),
+		reqMemo: requestMemo{
+			memoMap:     map[[16]byte]time.Time{},
+			hasReqCh:    make(chan hasRequest),
+			addReqCh:    make(chan [16]byte),
+			removeReqCh: make(chan [16]byte),
+			semStop:     sem,
+		},
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return newInput()
+		return defaultInput()
 	})
 }

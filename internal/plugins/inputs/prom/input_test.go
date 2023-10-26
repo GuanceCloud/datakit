@@ -78,13 +78,13 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 		}
 
 		for _, pt := range pts {
-			assert.True(t, pt.Tags().Has([]byte("instance")))
-			assert.True(t, pt.Tags().Has([]byte("cause")))
+			assert.True(t, pt.Tags().Has("instance"))
+			assert.True(t, pt.Tags().Has("cause"))
 
-			assert.True(t, pt.Tags().Has([]byte("project")))
-			assert.True(t, pt.Tags().Has([]byte("cluster")))
+			assert.True(t, pt.Tags().Has("project"))
+			assert.True(t, pt.Tags().Has("cluster"))
 
-			assert.Equal(t, float64(0.0), pt.Get([]byte("metric_handler_errors_total")).(float64))
+			assert.Equal(t, float64(0.0), pt.Get("metric_handler_errors_total").(float64))
 
 			t.Logf("%s", pt.Pretty())
 		}
@@ -117,8 +117,8 @@ some_info{info1="data1"} 0
 		}
 
 		for _, pt := range pts {
-			assert.True(t, pt.Tags().Has([]byte("instance")))
-			assert.True(t, pt.Tags().Has([]byte("info1")))
+			assert.True(t, pt.Tags().Has("instance"))
+			assert.True(t, pt.Tags().Has("info1"))
 
 			t.Logf("%s", pt.Pretty())
 		}
@@ -131,8 +131,8 @@ some_info{info1="data1"} 0
 		assert.NoError(t, err)
 
 		for _, pt := range pts {
-			assert.True(t, pt.Tags().Has([]byte("instance")))
-			assert.False(t, pt.Tags().Has([]byte("info1")))
+			assert.True(t, pt.Tags().Has("instance"))
+			assert.False(t, pt.Tags().Has("info1"))
 
 			t.Logf("%s", pt.Pretty())
 		}
@@ -165,8 +165,8 @@ promhttp_metric_handler_errors_total{cause="encoding",ignore_me="some"} 0
 		}
 
 		for _, pt := range pts {
-			assert.True(t, pt.Tags().Has([]byte("instance")))
-			assert.False(t, pt.Tags().Has([]byte("ignore_me")))
+			assert.True(t, pt.Tags().Has("instance"))
+			assert.False(t, pt.Tags().Has("ignore_me"))
 
 			t.Logf("%s", pt.Pretty())
 		}
@@ -203,9 +203,9 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 		}
 
 		for _, pt := range pts {
-			assert.True(t, pt.Tags().Has([]byte("instance")))
-			assert.False(t, pt.Tags().Has([]byte("cause")))
-			assert.True(t, pt.Tags().Has([]byte("__cause")))
+			assert.True(t, pt.Tags().Has("instance"))
+			assert.False(t, pt.Tags().Has("cause"))
+			assert.True(t, pt.Tags().Has("__cause"))
 
 			t.Logf("%s", pt.Pretty())
 		}
@@ -241,10 +241,10 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 		}
 
 		for _, pt := range pts {
-			assert.True(t, pt.Tags().Has([]byte("instance")))
-			assert.True(t, pt.Tags().Has([]byte("cause")))
-			assert.True(t, pt.Tags().Has([]byte("service")))
-			assert.True(t, pt.Fields().Has([]byte("status")))
+			assert.True(t, pt.Tags().Has("instance"))
+			assert.True(t, pt.Tags().Has("cause"))
+			assert.True(t, pt.Tags().Has("service"))
+			assert.True(t, pt.Fields().Has("status"))
 
 			t.Logf("%s", pt.Pretty())
 		}
@@ -277,9 +277,9 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 		}
 
 		for _, pt := range pts {
-			assert.True(t, pt.Tags().Has([]byte("instance")))
-			assert.True(t, pt.Tags().Has([]byte("cause")))
-			assert.True(t, string(pt.Name()) == "some")
+			assert.True(t, pt.Tags().Has("instance"))
+			assert.True(t, pt.Tags().Has("cause"))
+			assert.Equal(t, pt.Name(), "some")
 
 			t.Logf("%s", pt.Pretty())
 		}
@@ -312,9 +312,9 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 		}
 
 		for _, pt := range pts {
-			assert.True(t, pt.Tags().Has([]byte("instance")))
-			assert.True(t, pt.Tags().Has([]byte("cause")))
-			assert.True(t, string(pt.Name()) == "some_promhttp")
+			assert.True(t, pt.Tags().Has("instance"))
+			assert.True(t, pt.Tags().Has("cause"))
+			assert.Equal(t, pt.Name(), "some_promhttp")
 
 			t.Logf("%s", pt.Pretty())
 		}
@@ -353,9 +353,9 @@ promtcp_metric_handler_errors_total{cause="encoding"} 0
 		}
 
 		for _, pt := range pts {
-			assert.True(t, pt.Tags().Has([]byte("instance")))
-			assert.True(t, pt.Tags().Has([]byte("cause")))
-			assert.True(t, string(pt.Name()) == "morp")
+			assert.True(t, pt.Tags().Has("instance"))
+			assert.True(t, pt.Tags().Has("cause"))
+			assert.Equal(t, pt.Name(), "morp")
 
 			t.Logf("%s", pt.Pretty())
 		}
@@ -388,8 +388,8 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 		}
 
 		for _, pt := range pts {
-			assert.False(t, pt.Tags().Has([]byte("instance")))
-			assert.True(t, pt.Tags().Has([]byte("cause")))
+			assert.False(t, pt.Tags().Has("instance"))
+			assert.True(t, pt.Tags().Has("cause"))
 
 			t.Logf("%s", pt.Pretty())
 		}
@@ -427,17 +427,17 @@ promhttp_metric_handler_errors_total{cause="encoding-3",some="foo-3"} 0
 		}
 
 		for _, pt := range pts {
-			causeKV := pt.Get([]byte("cause"))
+			causeKV := pt.Get("cause")
 			if causeKV != nil {
-				causeValue := string(causeKV.([]byte))
+				causeValue := causeKV.(string)
 				if causeValue == "encoding-1" || causeValue == "encoding-2" {
 					t.Errorf("got error KV %s:%s", "cause", causeValue)
 				}
 			}
 
-			someKV := pt.Get([]byte("some"))
+			someKV := pt.Get("some")
 			if someKV != nil {
-				someValue := string(someKV.([]byte))
+				someValue := someKV.(string)
 				if someValue == "foo-1" || someValue == "foo-3" {
 					t.Errorf("got error KV %s:%s", "some", someValue)
 				}
@@ -507,13 +507,12 @@ func TestInputBatch(t *T.T) {
 		}
 
 		for _, pt := range points {
-			assert.True(t, pt.Tags().Has([]byte("instance")))
-			assert.True(t, pt.Tags().Has([]byte("cause")))
+			assert.True(t, pt.Tags().Has("instance"))
+			assert.True(t, pt.Tags().Has("cause"))
+			assert.True(t, pt.Tags().Has("project"))
+			assert.True(t, pt.Tags().Has("cluster"))
 
-			assert.True(t, pt.Tags().Has([]byte("project")))
-			assert.True(t, pt.Tags().Has([]byte("cluster")))
-
-			assert.Equal(t, float64(0.0), pt.Get([]byte("metric_handler_errors_total")).(float64))
+			assert.Equal(t, float64(0.0), pt.Get("metric_handler_errors_total").(float64))
 
 			t.Logf("%s", pt.Pretty())
 		}
@@ -567,8 +566,8 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 		}
 
 		for _, pt := range points {
-			assert.True(t, pt.Tags().Has([]byte("instance")))
-			assert.True(t, pt.Tags().Has([]byte("info1")))
+			assert.True(t, pt.Tags().Has("instance"))
+			assert.True(t, pt.Tags().Has("info1"))
 
 			t.Logf("%s", pt.Pretty())
 		}
@@ -625,8 +624,8 @@ some_info{info1="data1"} 0
 		}
 
 		for _, pt := range points {
-			assert.True(t, pt.Tags().Has([]byte("instance")))
-			assert.False(t, pt.Tags().Has([]byte("info1")))
+			assert.True(t, pt.Tags().Has("instance"))
+			assert.False(t, pt.Tags().Has("info1"))
 
 			t.Logf("%s", pt.Pretty())
 		}
@@ -679,8 +678,8 @@ some_info{info1="data1"} 0
 		}
 
 		for _, pt := range points {
-			assert.True(t, pt.Tags().Has([]byte("instance")))
-			assert.False(t, pt.Tags().Has([]byte("ignore_me")))
+			assert.True(t, pt.Tags().Has("instance"))
+			assert.False(t, pt.Tags().Has("ignore_me"))
 
 			t.Logf("%s", pt.Pretty())
 		}
@@ -737,9 +736,9 @@ some_info{info1="data1"} 0
 		}
 
 		for _, pt := range points {
-			assert.True(t, pt.Tags().Has([]byte("instance")))
-			assert.False(t, pt.Tags().Has([]byte("cause")))
-			assert.True(t, pt.Tags().Has([]byte("__cause")))
+			assert.True(t, pt.Tags().Has("instance"))
+			assert.False(t, pt.Tags().Has("cause"))
+			assert.True(t, pt.Tags().Has("__cause"))
 
 			t.Logf("%s", pt.Pretty())
 		}
@@ -795,10 +794,10 @@ some_info{info1="data1"} 0
 		}
 
 		for _, pt := range points {
-			assert.True(t, pt.Tags().Has([]byte("instance")))
-			assert.True(t, pt.Tags().Has([]byte("cause")))
-			assert.True(t, pt.Tags().Has([]byte("service")))
-			assert.True(t, pt.Fields().Has([]byte("status")))
+			assert.True(t, pt.Tags().Has("instance"))
+			assert.True(t, pt.Tags().Has("cause"))
+			assert.True(t, pt.Tags().Has("service"))
+			assert.True(t, pt.Fields().Has("status"))
 
 			t.Logf("%s", pt.Pretty())
 		}
@@ -851,9 +850,9 @@ some_info{info1="data1"} 0
 		}
 
 		for _, pt := range points {
-			assert.True(t, pt.Tags().Has([]byte("instance")))
-			assert.True(t, pt.Tags().Has([]byte("cause")))
-			assert.True(t, string(pt.Name()) == "some")
+			assert.True(t, pt.Tags().Has("instance"))
+			assert.True(t, pt.Tags().Has("cause"))
+			assert.True(t, pt.Name() == "some")
 
 			t.Logf("%s", pt.Pretty())
 		}
@@ -906,9 +905,9 @@ some_info{info1="data1"} 0
 		}
 
 		for _, pt := range points {
-			assert.True(t, pt.Tags().Has([]byte("instance")))
-			assert.True(t, pt.Tags().Has([]byte("cause")))
-			assert.True(t, string(pt.Name()) == "some_promhttp")
+			assert.True(t, pt.Tags().Has("instance"))
+			assert.True(t, pt.Tags().Has("cause"))
+			assert.True(t, pt.Name() == "some_promhttp")
 
 			t.Logf("%s", pt.Pretty())
 		}
@@ -967,9 +966,9 @@ some_info{info1="data1"} 0
 		}
 
 		for _, pt := range points {
-			assert.True(t, pt.Tags().Has([]byte("instance")))
-			assert.True(t, pt.Tags().Has([]byte("cause")))
-			assert.True(t, string(pt.Name()) == "morp")
+			assert.True(t, pt.Tags().Has("instance"))
+			assert.True(t, pt.Tags().Has("cause"))
+			assert.True(t, pt.Name() == "morp")
 
 			t.Logf("%s", pt.Pretty())
 		}
@@ -1022,8 +1021,8 @@ some_info{info1="data1"} 0
 		}
 
 		for _, pt := range points {
-			assert.False(t, pt.Tags().Has([]byte("instance")))
-			assert.True(t, pt.Tags().Has([]byte("cause")))
+			assert.False(t, pt.Tags().Has("instance"))
+			assert.True(t, pt.Tags().Has("cause"))
 
 			t.Logf("%s", pt.Pretty())
 		}
@@ -1081,17 +1080,17 @@ some_info{info1="data1"} 0
 		}
 
 		for _, pt := range points {
-			causeKV := pt.Get([]byte("cause"))
+			causeKV := pt.Get("cause")
 			if causeKV != nil {
-				causeValue := string(causeKV.([]byte))
+				causeValue := causeKV.(string)
 				if causeValue == "encoding-1" || causeValue == "encoding-2" {
 					t.Errorf("got error KV %s:%s", "cause", causeValue)
 				}
 			}
 
-			someKV := pt.Get([]byte("some"))
+			someKV := pt.Get("some")
 			if someKV != nil {
-				someValue := string(someKV.([]byte))
+				someValue := someKV.(string)
 				if someValue == "foo-1" || someValue == "foo-3" {
 					t.Errorf("got error KV %s:%s", "some", someValue)
 				}

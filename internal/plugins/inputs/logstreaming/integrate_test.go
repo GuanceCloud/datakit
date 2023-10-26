@@ -204,7 +204,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 		var opts []inputs.PointCheckOption
 		// opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
 
-		measurement := string(pt.Name())
+		measurement := pt.Name()
 
 		switch measurement {
 		case defaultMeasurementName:

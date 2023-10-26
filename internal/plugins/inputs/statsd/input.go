@@ -16,7 +16,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	istatsd "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/statsd"
 )
@@ -95,7 +94,7 @@ type Input struct {
 
 	semStop    *cliutils.Sem // start stop signal
 	Feeder     dkio.Feeder
-	Tagger     dkpt.GlobalTagger
+	Tagger     datakit.GlobalTagger
 	taggerTags map[string]string
 	Col        *istatsd.Collector // The real collector
 
@@ -185,7 +184,7 @@ func (ipt *Input) Collect() error {
 		for _, v := range measurementInfos {
 			// append tags to points
 			for kk, vv := range ipt.taggerTags {
-				v.PT.AddTag([]byte(kk), []byte(vv))
+				v.PT.AddTag(kk, vv)
 			}
 
 			err = ipt.Feeder.Feed(v.FeedMetricName, point.Metric, []*point.Point{v.PT},
@@ -277,7 +276,7 @@ func DefaultInput() *Input {
 
 		semStop: cliutils.NewSem(),
 		Feeder:  dkio.DefaultFeeder(),
-		Tagger:  dkpt.DefaultGlobalTagger(),
+		Tagger:  datakit.DefaultGlobalTagger(),
 	}
 }
 

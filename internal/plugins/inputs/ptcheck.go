@@ -83,7 +83,7 @@ func WithExtraTags(tags map[string]string) PointCheckOption {
 func WithExpectPoint(pt *point.Point) PointCheckOption {
 	return func(c *ptChecker) {
 		c.expect = pt
-		c.expName = string(pt.Name())
+		c.expName = pt.Name()
 		c.expTags = pt.Tags()
 		c.expFields = pt.Fields()
 		c.expTime = pt.Time()
@@ -151,7 +151,7 @@ func CheckPoint(pt *point.Point, opts ...PointCheckOption) []string {
 		}
 	}
 
-	c.gotName = string(pt.Name())
+	c.gotName = pt.Name()
 	c.gotTags = pt.Tags()
 	c.gotFields = pt.Fields()
 	c.gotTime = pt.Time()
@@ -206,15 +206,15 @@ func (c *ptChecker) checkOnPoint(pt *point.Point) {
 }
 
 func (c *ptChecker) checkOnDoc(pt *point.Point) {
-	if !c.measurementCheckIgnored && c.mInfo.Name != string(pt.Name()) {
-		c.addMsg(fmt.Sprintf("measurement name not equal: %q <> %q", c.mInfo.Name, string(pt.Name())))
+	if !c.measurementCheckIgnored && c.mInfo.Name != pt.Name() {
+		c.addMsg(fmt.Sprintf("measurement name not equal: %q <> %q", c.mInfo.Name, pt.Name()))
 	}
 
 	// check tag key count
 	mGotTags := make(map[string]struct{})
-	for k := range c.gotTags.InfluxTags() {
-		if len(k) > 0 {
-			mGotTags[k] = struct{}{}
+	for _, t := range c.gotTags.InfluxTags() {
+		if len(t.Key) > 0 {
+			mGotTags[string(t.Key)] = struct{}{}
 		}
 	}
 	for _, v := range c.optionalTags {
@@ -289,7 +289,7 @@ func (c *ptChecker) checkOnDoc(pt *point.Point) {
 
 	// check all documented tags are exist in got tags.
 	for key := range c.mInfo.Tags {
-		if got := c.gotTags.Get([]byte(key)); got == nil {
+		if got := c.gotTags.Get(key); got == nil {
 			if !c.isOptionalTag(key) {
 				c.addMsg(fmt.Sprintf("tag %q not found", key))
 			}
@@ -298,7 +298,7 @@ func (c *ptChecker) checkOnDoc(pt *point.Point) {
 
 	// check all tag key are documented(exclude extra tags).
 	for _, kv := range c.gotTags {
-		key := string(kv.Key)
+		key := kv.Key
 		if _, ok := c.mInfo.Tags[key]; ok {
 			continue
 		}
@@ -320,7 +320,7 @@ func (c *ptChecker) checkOnDoc(pt *point.Point) {
 
 	// check field key and value
 	for key, info := range c.mInfo.Fields {
-		if got := c.gotFields.Get([]byte(key)); got == nil { // field not found in @pt
+		if got := c.gotFields.Get(key); got == nil { // field not found in @pt
 			if c.isOptionalField(key) {
 				continue
 			} else {
@@ -379,6 +379,8 @@ func typeEqual(expect string, f *point.Field) bool {
 	case *point.Field_B:
 		return expect == Bool
 	case *point.Field_D:
+		return expect == String
+	case *point.Field_S:
 		return expect == String
 	default:
 		return false

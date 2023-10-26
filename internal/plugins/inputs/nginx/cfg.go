@@ -14,7 +14,6 @@ import (
 	"github.com/influxdata/telegraf/plugins/common/tls"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
 
@@ -57,7 +56,7 @@ type Input struct {
 
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
-	Tagger  dkpt.GlobalTagger
+	Tagger  datakit.GlobalTagger
 }
 
 type NginxVTSResponse struct {

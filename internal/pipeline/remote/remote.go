@@ -18,13 +18,12 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
+	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/convertutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/relation"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/script"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/targzutil"
 )
 
@@ -88,7 +87,7 @@ type IPipelineRemote interface {
 }
 
 // Make sure pipelineRemoteImpl implements the IPipelineRemote interface.
-var _ IPipelineRemote = new(pipelineRemoteImpl)
+var _ IPipelineRemote = (*pipelineRemoteImpl)(nil)
 
 type pipelineRemoteImpl struct{}
 
@@ -105,15 +104,27 @@ func (*pipelineRemoteImpl) Unmarshal(data []byte, v interface{}) error {
 }
 
 func (*pipelineRemoteImpl) ReadFile(filename string) ([]byte, error) {
-	return ioutil.ReadFile(filename) //nolint:gosec
+	return os.ReadFile(filename) //nolint:gosec
 }
 
 func (*pipelineRemoteImpl) WriteFile(filename string, data []byte, perm fs.FileMode) error {
-	return ioutil.WriteFile(filename, data, perm)
+	return os.WriteFile(filename, data, perm)
 }
 
 func (*pipelineRemoteImpl) ReadDir(dirname string) ([]fs.FileInfo, error) {
-	return ioutil.ReadDir(dirname)
+	entries, err := os.ReadDir(dirname)
+	if err != nil {
+		return nil, err
+	}
+	infos := make([]fs.FileInfo, 0, len(entries))
+	for _, entry := range entries {
+		info, err := entry.Info()
+		if err != nil {
+			return nil, err
+		}
+		infos = append(infos, info)
+	}
+	return infos, nil
 }
 
 func (*pipelineRemoteImpl) PullPipeline(ts, relationTS int64) (
@@ -197,7 +208,17 @@ func doPull(pathConfig, pathRelation, siteURL string, ipr IPipelineRemote) error
 		return err
 	}
 
-	relationTS := relation.RelationRemoteUpdateAt()
+	managerWkr, ok := plval.GetManager()
+	if !ok || managerWkr == nil {
+		return nil
+	}
+
+	spRelation := managerWkr.GetScriptRelation()
+	if spRelation == nil {
+		return nil
+	}
+
+	relationTS := spRelation.UpdateAt()
 
 	mFiles, pRelation, defaultPl, updateTime, relationUpdateTime, err := ipr.PullPipeline(localTS, relationTS)
 	if err != nil {
@@ -211,7 +232,7 @@ func doPull(pathConfig, pathRelation, siteURL string, ipr IPipelineRemote) error
 		if updateTime == deleteAll {
 			l.Debug("deleteAll")
 
-			relation.UpdateRemoteDefaultPl(nil)
+			spRelation.UpdateDefaultPl(nil)
 
 			// remove lcoal files
 			if err := removeLocalRemote(ipr); err != nil {
@@ -229,7 +250,7 @@ func doPull(pathConfig, pathRelation, siteURL string, ipr IPipelineRemote) error
 			l.Debug("dumpFiles succeeded")
 
 			loadContentPipeline(mFiles)
-			relation.UpdateRemoteDefaultPl(defaultPl)
+			spRelation.UpdateDefaultPl(defaultPl)
 
 			err = updatePipelineRemoteConfig(pathConfig, siteURL, updateTime, ipr)
 			if err != nil {
@@ -247,7 +268,7 @@ func doPull(pathConfig, pathRelation, siteURL string, ipr IPipelineRemote) error
 		// 这种情况会将存储的 relation_update_at 置为 0
 
 		l.Info("update remote pipeline relation map")
-		relation.UpdateRemoteRelation(relationUpdateTime, pRelation)
+		spRelation.UpdateRelation(relationUpdateTime, pRelation)
 		if err := dumpRelation(pathRelation, pRelation); err != nil {
 			l.Debug(err)
 		}
@@ -273,7 +294,13 @@ func removeLocalRemote(ipr IPipelineRemote) error {
 			}
 		}
 	}
-	script.CleanAllScript(script.RemoteScriptNS)
+	managerWkr, ok := plval.GetManager()
+	if !ok || managerWkr == nil {
+		return nil
+	}
+
+	// cleanup all scripts
+	plmanager.LoadScripts(managerWkr, plmanager.RemoteScriptNS, nil, nil)
 	return nil
 }
 
@@ -395,14 +422,16 @@ func convertThreeMapToContentMap(in map[string]map[string]string, defaultPl map[
 }
 
 func loadContentPipeline(in map[string]map[string]string) {
-	for categoryShort, val := range in {
-		category, err := convertutil.GetMapCategoryShortToFull(categoryShort)
-		if err != nil {
-			l.Warnf("GetMapCategoryShortToFull failed: err = %s, categoryShort = %s", err, categoryShort)
-			continue
-		}
-
-		cat := point.CatURL(category)
-		script.ReloadAllRemoteDotPScript2StoreFromMap(cat, val)
+	managerWkr, ok := plval.GetManager()
+	if !ok || managerWkr == nil {
+		return
 	}
+
+	inS := map[point.Category]map[string]string{}
+
+	for categoryShort, val := range in {
+		cat := point.CatString(categoryShort)
+		inS[cat] = val
+	}
+	plmanager.LoadScripts(managerWkr, plmanager.RemoteScriptNS, inS, nil)
 }

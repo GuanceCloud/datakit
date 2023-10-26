@@ -3,13 +3,9 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-//go:build linux
-// +build linux
-
 package sensors
 
 import (
-	"log"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -17,6 +13,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/command"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
@@ -37,6 +34,7 @@ type Input struct {
 	Timeout  datakit.Duration  `toml:"timeout"`
 	Tags     map[string]string `toml:"tags"`
 
+	feeder  io.Feeder
 	semStop *cliutils.Sem // start stop signal
 }
 
@@ -109,8 +107,8 @@ func (ipt *Input) gather() error {
 	if cache, err := ipt.parse(string(output)); err != nil {
 		return err
 	} else {
-		return inputs.FeedMeasurement(inputName,
-			datakit.Metric,
+		return ipt.feeder.Feed(inputName,
+			point.Metric,
 			cache,
 			&io.Option{CollectCost: time.Since(start)})
 	}
@@ -125,21 +123,21 @@ func (ipt *Input) getCustomerTags() map[string]string {
 	return tags
 }
 
-func (ipt *Input) parse(output string) ([]inputs.Measurement, error) {
+func (ipt *Input) parse(output string) ([]*point.Point, error) {
 	var (
 		lines  = strings.Split(strings.TrimSpace(output), "\n")
 		tags   = ipt.getCustomerTags()
 		fields = make(map[string]interface{})
-		cache  []inputs.Measurement
+		cache  []*point.Point
 	)
 
 	for _, line := range lines {
 		if line == "" {
-			cache = append(cache, &sensorsMeasurement{
-				name:   inputName,
-				tags:   tags,
-				fields: fields,
-			})
+			cache = append(cache,
+				point.NewPointV2(inputName,
+					append(point.NewTags(tags), point.NewKVs(fields)...),
+					point.DefaultMetricOptions()...))
+
 			tags = ipt.getCustomerTags()
 			fields = make(map[string]interface{})
 			continue
@@ -154,11 +152,10 @@ func (ipt *Input) parse(output string) ([]inputs.Measurement, error) {
 		switch {
 		case strings.HasSuffix(line, ":"):
 			if len(fields) != 0 {
-				cache = append(cache, &sensorsMeasurement{
-					name:   inputName,
-					tags:   tags,
-					fields: fields,
-				})
+				cache = append(cache,
+					point.NewPointV2(inputName,
+						append(point.NewTags(tags), point.NewKVs(fields)...),
+						point.DefaultMetricOptions()...))
 
 				tmp := make(map[string]string)
 				for k, v := range tags {
@@ -170,7 +167,7 @@ func (ipt *Input) parse(output string) ([]inputs.Measurement, error) {
 			tags["feature"] = strings.ToLower(strings.ReplaceAll(strings.TrimSpace(parts[0]), " ", "_"))
 		case strings.HasPrefix(parts[0], " "):
 			if value, err := strconv.ParseFloat(strings.TrimSpace(parts[1]), 64); err != nil {
-				log.Println(err.Error())
+				l.Errorf("strconv.ParseFloat: %s", err.Error())
 
 				return nil, err
 			} else {
@@ -182,7 +179,10 @@ func (ipt *Input) parse(output string) ([]inputs.Measurement, error) {
 	}
 
 	if len(fields) != 0 {
-		cache = append(cache, &sensorsMeasurement{name: inputName, tags: tags, fields: fields})
+		cache = append(cache,
+			point.NewPointV2(inputName,
+				append(point.NewTags(tags), point.NewKVs(fields)...),
+				point.DefaultMetricOptions()...))
 	}
 
 	return cache, nil
@@ -194,6 +194,7 @@ func init() { //nolint:gochecknoinits
 			Path:     defPath,
 			Interval: defInterval,
 			Timeout:  defTimeout,
+			feeder:   io.DefaultFeeder(),
 
 			semStop: cliutils.NewSem(),
 		}

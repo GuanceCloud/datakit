@@ -19,10 +19,11 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/command"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	ipath "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/strarr"
@@ -84,7 +85,7 @@ var (
     # "key1" = "value1"
     # "key2" = "value2"
 `
-	l = logger.SLogger(inputName)
+	l = logger.DefaultSLogger(inputName)
 )
 
 type nvmeDevice struct {
@@ -107,6 +108,8 @@ type Input struct {
 	Tags             map[string]string `toml:"tags"`
 
 	semStop *cliutils.Sem // start stop signal
+	feeder  dkio.Feeder
+	Tagger  datakit.GlobalTagger
 }
 
 func (*Input) Catalog() string {
@@ -151,8 +154,9 @@ func (ipt *Input) Run() {
 		select {
 		case <-tick.C:
 			if err := ipt.gather(); err != nil {
-				l.Error(err.Error())
-				io.FeedLastError(inputName, err.Error())
+				l.Errorf("gagher: %s", err.Error())
+				dkio.FeedLastError(inputName, err.Error())
+				continue
 			}
 		case <-datakit.Exit.Wait():
 			l.Info("smart input exits")
@@ -278,11 +282,18 @@ func (ipt *Input) getAttributes(devices []string) error {
 			g.Go(func(ctx context.Context) error {
 				if sm, err := gatherDisk(ipt.getCustomerTags(), ipt.Timeout.Duration, ipt.UseSudo, ipt.SmartCtlPath,
 					ipt.NoCheck, device); err != nil {
-					return err
+					l.Errorf("gatherDisk: %s", err.Error())
+
+					dkio.FeedLastError(inputName, err.Error())
 				} else {
-					return inputs.FeedMeasurement(inputName, datakit.Metric, []inputs.Measurement{sm},
-						&io.Option{CollectCost: time.Since(start)})
+					opts := point.DefaultMetricOptions()
+					sm.tags = inputs.MergeTagsWrapper(sm.tags, ipt.Tagger.HostTags(), ipt.Tags, "")
+					pt := point.NewPointV2(sm.name,
+						append(point.NewTags(sm.tags), point.NewKVs(sm.fields)...), opts...)
+					return ipt.feeder.Feed(inputName, point.Metric, []*point.Point{pt}, &dkio.Option{CollectCost: time.Since(start)})
 				}
+
+				return nil
 			})
 		}(device)
 	}
@@ -300,26 +311,40 @@ func (ipt *Input) getVendorNVMeAttributes(devices []string) error {
 			if device.vendorID == intelVID {
 				func(device nvmeDevice) {
 					g.Go(func(ctx context.Context) error {
-						if sm, err := gatherIntelNVMeDisk(ipt.getCustomerTags(), ipt.Timeout.Duration, ipt.UseSudo,
-							ipt.NvmePath, device); err != nil {
-							return err
+						if sm, err := gatherIntelNVMeDisk(ipt.getCustomerTags(),
+							ipt.Timeout.Duration, ipt.UseSudo, ipt.NvmePath, device); err != nil {
+							l.Errorf("gatherIntelNVMeDisk: %s", err.Error())
+
+							dkio.FeedLastError(inputName, err.Error())
 						} else {
-							return inputs.FeedMeasurement(inputName, datakit.Metric, []inputs.Measurement{sm},
-								&io.Option{CollectCost: time.Since(start)})
+							opts := point.DefaultMetricOptions()
+							sm.tags = inputs.MergeTagsWrapper(sm.tags, ipt.Tagger.HostTags(), ipt.Tags, "")
+							pt := point.NewPointV2(sm.name,
+								append(point.NewTags(sm.tags), point.NewKVs(sm.fields)...),
+								opts...)
+							return ipt.feeder.Feed(inputName, point.Metric, []*point.Point{pt}, &dkio.Option{CollectCost: time.Since(start)})
 						}
+						return nil
 					})
 				}(device)
 			}
 		} else if strarr.Contains(ipt.EnableExtensions, "Intel") && device.vendorID == intelVID {
 			func(device nvmeDevice) {
 				g.Go(func(ctx context.Context) error {
-					if sm, err := gatherIntelNVMeDisk(ipt.getCustomerTags(), ipt.Timeout.Duration, ipt.UseSudo,
-						ipt.NvmePath, device); err != nil {
-						return err
+					if sm, err := gatherIntelNVMeDisk(ipt.getCustomerTags(),
+						ipt.Timeout.Duration, ipt.UseSudo, ipt.NvmePath, device); err != nil {
+						l.Errorf("gatherIntelNVMeDisk: %s", err.Error())
+						dkio.FeedLastError(inputName, err.Error())
 					} else {
-						return inputs.FeedMeasurement(inputName, datakit.Metric, []inputs.Measurement{sm},
-							&io.Option{CollectCost: time.Since(start)})
+						opts := point.DefaultMetricOptions()
+						sm.tags = inputs.MergeTagsWrapper(sm.tags, ipt.Tagger.HostTags(), ipt.Tags, "")
+						pt := point.NewPointV2(sm.name,
+							append(point.NewTags(sm.tags), point.NewKVs(sm.fields)...),
+							opts...)
+						return ipt.feeder.Feed(inputName, point.Metric, []*point.Point{pt}, &dkio.Option{CollectCost: time.Since(start)})
 					}
+
+					return nil
 				})
 			}(device)
 		}
@@ -371,6 +396,8 @@ func getDeviceInfoForNVMeDisks(devices []string, nvme string, timeout time.Durat
 		vid, sn, mn, err := gatherNVMeDeviceInfo(nvme, device, timeout, useSudo)
 		if err != nil {
 			l.Errorf("gatherNVMeDeviceInfo: %s", err)
+
+			dkio.FeedLastError(inputName, fmt.Sprintf("cannot find device info for %s device", device))
 			continue
 		}
 		newDevice := nvmeDevice{
@@ -614,6 +641,8 @@ func init() { //nolint:gochecknoinits
 			NoCheck:          "standby",
 
 			semStop: cliutils.NewSem(),
+			feeder:  dkio.DefaultFeeder(),
+			Tagger:  datakit.DefaultGlobalTagger(),
 		}
 	})
 }

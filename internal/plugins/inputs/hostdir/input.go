@@ -12,30 +12,39 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-func (i *Input) SampleConfig() string {
+func (*Input) SampleConfig() string {
 	return sample
 }
 
-func (i *Input) appendMeasurement(name string, tags map[string]string, fields map[string]interface{}, ts time.Time) {
-	tmp := &Measurement{name: name, tags: tags, fields: fields, ts: ts}
-	i.collectCache = append(i.collectCache, tmp)
+func (ipt *Input) appendMeasurement(name string, tags map[string]string, fields map[string]interface{}, ts time.Time) {
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(ts))
+
+	tags = inputs.MergeTags(ipt.Tagger.HostTags(), tags, "")
+
+	pt := point.NewPointV2(name,
+		append(point.NewTags(tags), point.NewKVs(fields)...),
+		opts...)
+
+	ipt.collectCache = append(ipt.collectCache, pt)
 }
 
-func (i *Input) Catalog() string {
+func (*Input) Catalog() string {
 	return "host"
 }
 
-func (i *Input) Collect() error {
+func (ipt *Input) collect() error {
 	timeNow := time.Now()
 	var tags map[string]string
-	path := i.Dir
-	if i.platform == datakit.OSWindows {
+	path := ipt.Dir
+	if ipt.platform == datakit.OSWindows {
 		filesystem, err := GetFileSystemType(path)
 		if err != nil {
 			return err
@@ -47,7 +56,7 @@ func (i *Input) Collect() error {
 		tags = map[string]string{
 			"file_mode":      dirMode,
 			"file_system":    filesystem,
-			"host_directory": i.Dir,
+			"host_directory": ipt.Dir,
 		}
 	} else {
 		filesystem, err := GetFileSystemType(path)
@@ -58,7 +67,7 @@ func (i *Input) Collect() error {
 		if err != nil {
 			return err
 		}
-		fileownership, err := GetFileOwnership(path, i.platform)
+		fileownership, err := GetFileOwnership(path, ipt.platform)
 		if err != nil {
 			fileownership = "N/A"
 		}
@@ -66,45 +75,45 @@ func (i *Input) Collect() error {
 			"file_mode":      dirMode,
 			"file_system":    filesystem,
 			"file_ownership": fileownership,
-			"host_directory": i.Dir,
+			"host_directory": ipt.Dir,
 		}
 	}
 
-	for k, v := range i.Tags {
+	for k, v := range ipt.Tags {
 		tags[k] = v
 	}
-	filesize, filecount, dircount := Startcollect(i.Dir, i.ExcludePatterns)
+	filesize, filecount, dircount := Startcollect(ipt.Dir, ipt.ExcludePatterns)
 	fields := map[string]interface{}{
 		"file_size":  filesize,
 		"file_count": filecount,
 		"dir_count":  dircount,
 	}
-	i.appendMeasurement(inputName, tags, fields, timeNow)
+	ipt.appendMeasurement(inputName, tags, fields, timeNow)
 	return nil
 }
 
-func (i *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("hostdir input started")
-	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
-	tick := time.NewTicker(i.Interval.Duration)
+	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
+	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
 
 	for {
-		i.collectCache = make([]inputs.Measurement, 0)
+		ipt.collectCache = make([]*point.Point, 0)
 
 		start := time.Now()
-		if err := i.Collect(); err != nil {
-			l.Errorf("Collect: %s", err)
+		if err := ipt.collect(); err != nil {
+			l.Errorf("collect failed: %s", err)
 			io.FeedLastError(inputName, err.Error())
 		}
 
-		if len(i.collectCache) > 0 {
-			if err := inputs.FeedMeasurement(metricName,
-				datakit.Metric,
-				i.collectCache,
+		if len(ipt.collectCache) > 0 {
+			if err := ipt.feeder.Feed(metricName,
+				point.Metric,
+				ipt.collectCache,
 				&io.Option{CollectCost: time.Since((start))}); err != nil {
-				l.Errorf("FeedMeasurement: %s", err)
+				l.Errorf("Feed failed: %s", err)
 			}
 		}
 
@@ -114,16 +123,16 @@ func (i *Input) Run() {
 			l.Infof("hostdir input exit")
 			return
 
-		case <-i.semStop.Wait():
+		case <-ipt.semStop.Wait():
 			l.Infof("hostdir input return")
 			return
 		}
 	}
 }
 
-func (i *Input) Terminate() {
-	if i.semStop != nil {
-		i.semStop.Close()
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
 	}
 }
 
@@ -144,6 +153,8 @@ func init() { //nolint:gochecknoinits
 			platform: runtime.GOOS,
 
 			semStop: cliutils.NewSem(),
+			feeder:  io.DefaultFeeder(),
+			Tagger:  datakit.DefaultGlobalTagger(),
 		}
 		return s
 	})

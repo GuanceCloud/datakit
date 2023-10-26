@@ -14,12 +14,9 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/client"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-
 	apicorev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -145,8 +142,6 @@ func transLabelKey(s string) string {
 }
 
 type count struct{}
-
-func (*count) LineProto() (*dkpt.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*count) Info() *inputs.MeasurementInfo {

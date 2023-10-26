@@ -144,20 +144,20 @@ func (*Input) AvailableArchs() []string {
 	return []string{datakit.OSLabelLinux, datakit.OSLabelMac, datakit.LabelK8s, datakit.LabelDocker}
 }
 
-func (d *Input) Terminate() {
-	if d.semStop != nil {
-		d.semStop.Close()
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
 	}
 }
 
-func (d *Input) setupWorker() {
+func (ipt *Input) setupWorker() {
 	once.Do(func() {
 		if dialWorker == nil {
 			var s sender
 			dialSender := &dataway.DialtestingSender{}
 
 			if err := dialSender.Init(&dataway.DialtestingSenderOpt{
-				HTTPTimeout: d.cli.Timeout,
+				HTTPTimeout: ipt.cli.Timeout,
 			}); err != nil {
 				l.Warnf("setup dialSender failed: %s", err.Error())
 			}
@@ -165,56 +165,56 @@ func (d *Input) setupWorker() {
 			s = &dwSender{dw: dialSender}
 			dialWorker = &worker{
 				sender:           s,
-				maxJobNumber:     d.MaxJobNumber,
-				maxJobChanNumber: d.MaxJobChanNumber,
+				maxJobNumber:     ipt.MaxJobNumber,
+				maxJobChanNumber: ipt.MaxJobChanNumber,
 			}
 			dialWorker.init()
 		}
 	})
 }
 
-func (d *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 
-	if d.MaxSendFailCount > 0 {
-		MaxSendFailCount = int(d.MaxSendFailCount)
+	if ipt.MaxSendFailCount > 0 {
+		MaxSendFailCount = int(ipt.MaxSendFailCount)
 	}
 
-	reqURL, err := url.Parse(d.Server)
+	reqURL, err := url.Parse(ipt.Server)
 	if err != nil {
 		l.Errorf(`%s`, err.Error())
 		return
 	}
 
-	l.Debugf(`%+#v, %+#v`, d.cli, d.TimeOut)
+	l.Debugf(`%+#v, %+#v`, ipt.cli, ipt.TimeOut)
 
-	if d.TimeOut == nil {
-		d.cli.Timeout = 30 * time.Second
+	if ipt.TimeOut == nil {
+		ipt.cli.Timeout = 30 * time.Second
 	} else {
-		d.cli.Timeout = d.TimeOut.Duration
+		ipt.cli.Timeout = ipt.TimeOut.Duration
 	}
 
-	d.setupWorker()
+	ipt.setupWorker()
 
 	// set default region name
-	d.regionName = d.RegionID
+	ipt.regionName = ipt.RegionID
 
 	switch reqURL.Scheme {
 	case "http", "https":
-		d.doServerTask() // task server
+		ipt.doServerTask() // task server
 
 	case "file":
-		d.doLocalTask(reqURL.Path)
+		ipt.doLocalTask(reqURL.Path)
 
 	case "":
-		d.doLocalTask(reqURL.String())
+		ipt.doLocalTask(reqURL.String())
 
 	default:
 		l.Warnf(`no invalid scheme: %s`, reqURL.Scheme)
 	}
 }
 
-func (d *Input) doServerTask() {
+func (ipt *Input) doServerTask() {
 	var f rtpanic.RecoverCallback
 	crashTimes := 0
 
@@ -230,13 +230,13 @@ func (d *Input) doServerTask() {
 			}
 		}
 
-		du, err := time.ParseDuration(d.PullInterval)
+		du, err := time.ParseDuration(ipt.PullInterval)
 		if err != nil {
-			l.Warnf("invalid frequency: %s, use default", d.PullInterval)
+			l.Warnf("invalid frequency: %s, use default", ipt.PullInterval)
 			du = time.Minute
 		}
 		if du > 24*time.Hour || du < time.Second*10 {
-			l.Warnf("invalid frequency: %s, use default", d.PullInterval)
+			l.Warnf("invalid frequency: %s, use default", ipt.PullInterval)
 			du = time.Minute
 		}
 
@@ -249,7 +249,7 @@ func (d *Input) doServerTask() {
 				l.Info("exit")
 				return
 
-			case <-d.semStop.Wait():
+			case <-ipt.semStop.Wait():
 				l.Info("exit")
 				return
 
@@ -257,19 +257,19 @@ func (d *Input) doServerTask() {
 				l.Debug("try pull tasks...")
 				startPullTime := time.Now()
 				isFirstPull := "0"
-				if d.pos == 0 {
+				if ipt.pos == 0 {
 					isFirstPull = "1"
 				}
-				j, err := d.pullTask()
+				j, err := ipt.pullTask()
 				if err != nil {
 					l.Warnf(`pullTask: %s, ignore`, err.Error())
 				} else {
 					l.Debug("try dispatch tasks...")
 					endPullTime := time.Now()
-					if err := d.dispatchTasks(j); err != nil {
+					if err := ipt.dispatchTasks(j); err != nil {
 						l.Warnf("dispatchTasks: %s, ignored", err.Error())
 					} else {
-						taskPullCostSummary.WithLabelValues(d.regionName, isFirstPull).
+						taskPullCostSummary.WithLabelValues(ipt.regionName, isFirstPull).
 							Observe(float64(endPullTime.Sub(startPullTime)) / float64(time.Second))
 					}
 				}
@@ -280,30 +280,30 @@ func (d *Input) doServerTask() {
 	f(nil, nil)
 }
 
-func (d *Input) doLocalTask(path string) {
+func (ipt *Input) doLocalTask(path string) {
 	data, err := ioutil.ReadFile(filepath.Clean(path))
 	if err != nil {
 		l.Errorf(`%s`, err.Error())
 		return
 	}
 
-	j, err := d.getLocalJSONTasks(data)
+	j, err := ipt.getLocalJSONTasks(data)
 	if err != nil {
 		l.Errorf(`%s`, err.Error())
 		return
 	}
 
-	if err := d.dispatchTasks(j); err != nil {
+	if err := ipt.dispatchTasks(j); err != nil {
 		l.Errorf("dispatchTasks: %s", err.Error())
 	}
 
 	<-datakit.Exit.Wait()
 }
 
-func (d *Input) newTaskRun(t dt.Task) (*dialer, error) {
-	regionName := d.RegionID
-	if len(d.regionName) > 0 {
-		regionName = d.regionName
+func (ipt *Input) newTaskRun(t dt.Task) (*dialer, error) {
+	regionName := ipt.RegionID
+	if len(ipt.regionName) > 0 {
+		regionName = ipt.regionName
 	}
 
 	switch t.Class() {
@@ -328,10 +328,10 @@ func (d *Input) newTaskRun(t dt.Task) (*dialer, error) {
 		return nil, fmt.Errorf("invalid task type")
 	}
 
-	l.Debugf("input tags: %+#v", d.Tags)
+	l.Debugf("input tags: %+#v", ipt.Tags)
 
-	dialer := newDialer(t, d.Tags)
-	dialer.done = d.semStop.Wait()
+	dialer := newDialer(t, ipt.Tags)
+	dialer.done = ipt.semStop.Wait()
 	dialer.regionName = regionName
 
 	func(id string) {
@@ -375,7 +375,7 @@ type taskPullResp struct {
 	Content map[string]interface{} `json:"content"`
 }
 
-func (d *Input) dispatchTasks(j []byte) error {
+func (ipt *Input) dispatchTasks(j []byte) error {
 	var resp taskPullResp
 
 	if err := json.Unmarshal(j, &resp); err != nil {
@@ -408,19 +408,19 @@ func (d *Input) dispatchTasks(j []byte) error {
 				switch v_ := v.(type) {
 				case bool:
 					if v_ {
-						d.Tags[k] = `true`
+						ipt.Tags[k] = `true`
 					} else {
-						d.Tags[k] = `false`
+						ipt.Tags[k] = `false`
 					}
 
 				case string:
 					if v_ != "name" && v_ != "status" {
-						d.Tags[k] = v_
+						ipt.Tags[k] = v_
 					} else {
 						l.Debugf("ignore tag %s:%s from region info", k, v_)
 					}
 					if k == "name" && len(v_) > 0 {
-						d.regionName = v_
+						ipt.regionName = v_
 					}
 				default:
 					l.Warnf("ignore key `%s' of type %s", k, reflect.TypeOf(v).String())
@@ -493,20 +493,20 @@ func (d *Input) dispatchTasks(j []byte) error {
 
 			l.Debugf("unmarshal task: %+#v", t)
 
-			taskSynchronizedCounter.WithLabelValues(d.regionName, t.Class()).Inc()
+			taskSynchronizedCounter.WithLabelValues(ipt.regionName, t.Class()).Inc()
 
 			// update dialer pos
 			ts := t.UpdateTimeUs()
-			if d.pos < ts {
-				d.pos = ts
-				l.Debugf("update position to %d", d.pos)
+			if ipt.pos < ts {
+				ipt.pos = ts
+				l.Debugf("update position to %d", ipt.pos)
 			}
 
-			l.Debugf(`%+#v id: %s`, d.curTasks[t.ID()], t.ID())
-			if dialer, ok := d.curTasks[t.ID()]; ok { // update task
+			l.Debugf(`%+#v id: %s`, ipt.curTasks[t.ID()], t.ID())
+			if dialer, ok := ipt.curTasks[t.ID()]; ok { // update task
 				if dialer.failCnt >= MaxFails {
 					l.Warnf(`failed %d times,ignore`, dialer.failCnt)
-					delete(d.curTasks, t.ID())
+					delete(ipt.curTasks, t.ID())
 					continue
 				}
 
@@ -515,7 +515,7 @@ func (d *Input) dispatchTasks(j []byte) error {
 				}
 
 				if strings.ToLower(t.Status()) == dt.StatusStop {
-					delete(d.curTasks, t.ID())
+					delete(ipt.curTasks, t.ID())
 				}
 			} else { // create new task
 				if strings.ToLower(t.Status()) == dt.StatusStop {
@@ -526,21 +526,21 @@ func (d *Input) dispatchTasks(j []byte) error {
 				time.Sleep(taskStartInterval)
 
 				l.Debugf(`create new task %+#v`, t)
-				dialer, err := d.newTaskRun(t)
+				dialer, err := ipt.newTaskRun(t)
 				if err != nil {
 					l.Errorf(`%s, ignore`, err.Error())
 				} else {
-					d.curTasks[t.ID()] = dialer
+					ipt.curTasks[t.ID()] = dialer
 				}
 			}
 		}
 	}
 
-	l.Debugf("current tasks: %+#v", d.curTasks)
+	l.Debugf("current tasks: %+#v", ipt.curTasks)
 	return nil
 }
 
-func (d *Input) getLocalJSONTasks(data []byte) ([]byte, error) {
+func (ipt *Input) getLocalJSONTasks(data []byte) ([]byte, error) {
 	var resp map[string][]interface{}
 	if err := json.Unmarshal(data, &resp); err != nil {
 		l.Error(err)
@@ -576,8 +576,8 @@ func (d *Input) getLocalJSONTasks(data []byte) ([]byte, error) {
 	return rs, nil
 }
 
-func (d *Input) pullTask() ([]byte, error) {
-	reqURL, err := url.Parse(d.Server)
+func (ipt *Input) pullTask() ([]byte, error) {
+	reqURL, err := url.Parse(ipt.Server)
 	if err != nil {
 		l.Errorf(`%s`, err.Error())
 		return nil, err
@@ -586,7 +586,7 @@ func (d *Input) pullTask() ([]byte, error) {
 	var res []byte
 	for i := 0; i <= 3; i++ {
 		var statusCode int
-		res, statusCode, err = d.pullHTTPTask(reqURL, d.pos)
+		res, statusCode, err = ipt.pullHTTPTask(reqURL, ipt.pos)
 		if statusCode/100 != 5 { // 500 err
 			break
 		}
@@ -612,9 +612,9 @@ func signReq(req *http.Request, ak, sk string) {
 	req.Header.Set("Authorization", fmt.Sprintf("DIAL_TESTING %s:%s", ak, reqSign))
 }
 
-func (d *Input) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, int, error) {
+func (ipt *Input) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, int, error) {
 	reqURL.Path = "/v1/task/pull"
-	reqURL.RawQuery = fmt.Sprintf("region_id=%s&since=%d", d.RegionID, sinceUs)
+	reqURL.RawQuery = fmt.Sprintf("region_id=%s&since=%d", ipt.RegionID, sinceUs)
 
 	req, err := http.NewRequest("GET", reqURL.String(), nil)
 	if err != nil {
@@ -626,9 +626,9 @@ func (d *Input) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, int, error
 	req.Header.Set("Date", time.Now().Format(http.TimeFormat))
 	req.Header.Set("Content-MD5", bodymd5)
 	req.Header.Set("Connection", "close")
-	signReq(req, d.AK, d.SK)
+	signReq(req, ipt.AK, ipt.SK)
 
-	resp, err := d.cli.Do(req)
+	resp, err := ipt.cli.Do(req)
 	if err != nil {
 		l.Errorf(`%s`, err.Error())
 		return nil, 5, err
@@ -645,10 +645,10 @@ func (d *Input) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, int, error
 	case 2: // ok
 		return body, resp.StatusCode / 100, nil
 	default:
-		l.Warnf("request %s failed(%s): %s", d.Server, resp.Status, string(body))
+		l.Warnf("request %s failed(%s): %s", ipt.Server, resp.Status, string(body))
 		if strings.Contains(string(body), `kodo.RegionNotFoundOrDisabled`) {
 			// stop all
-			d.stopAlltask()
+			ipt.stopAlltask()
 		}
 		return nil, resp.StatusCode / 100, fmt.Errorf("pull task failed")
 	}
@@ -659,28 +659,28 @@ func (d *Input) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, int, error
 // ENV_INPUT_DIALTESTING_SK: string
 // ENV_INPUT_DIALTESTING_REGION_ID: string
 // ENV_INPUT_DIALTESTING_SERVER: string.
-func (d *Input) ReadEnv(envs map[string]string) {
+func (ipt *Input) ReadEnv(envs map[string]string) {
 	if ak, ok := envs["ENV_INPUT_DIALTESTING_AK"]; ok {
-		d.AK = ak
+		ipt.AK = ak
 	}
 
 	if sk, ok := envs["ENV_INPUT_DIALTESTING_SK"]; ok {
-		d.SK = sk
+		ipt.SK = sk
 	}
 
 	if regionID, ok := envs["ENV_INPUT_DIALTESTING_REGION_ID"]; ok {
-		d.RegionID = regionID
+		ipt.RegionID = regionID
 	}
 
 	if server, ok := envs["ENV_INPUT_DIALTESTING_SERVER"]; ok {
-		d.Server = server
+		ipt.Server = server
 	}
 }
 
-func (d *Input) stopAlltask() {
-	for tid, dialer := range d.curTasks {
+func (ipt *Input) stopAlltask() {
+	for tid, dialer := range ipt.curTasks {
 		dialer.stop()
-		delete(d.curTasks, tid)
+		delete(ipt.curTasks, tid)
 	}
 }
 

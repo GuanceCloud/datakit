@@ -4,6 +4,7 @@ subdir=gen
 
 # Golang
 protoc --go_out=. point.proto
+#protoc-gen-go . point.proto
 
 rm -rf $subdir
 

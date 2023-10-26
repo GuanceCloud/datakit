@@ -8,9 +8,8 @@ package opentelemetry
 import (
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	metrics "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/metrics/v1"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
@@ -50,14 +49,15 @@ func (m *OTELMetrics) getPoints() []*point.Point {
 		} else {
 			tm = time.Unix(0, m.points[i].ts)
 		}
-		if pt, err := point.NewPoint("otel-service",
-			itrace.MergeTags(m.tags, m.points[i].tags),
-			itrace.MergeFields(m.fields, m.points[i].fields),
-			&point.PointOption{Time: tm, Category: datakit.Metric, Strict: true}); err != nil {
-			log.Debugf(err.Error())
-		} else {
-			pts = append(pts, pt)
-		}
+
+		opts := point.DefaultMetricOptions()
+		opts = append(opts, point.WithTime(tm))
+		newTags := itrace.MergeTags(m.tags, m.points[i].tags)
+		newFields := itrace.MergeFields(m.fields, m.points[i].fields)
+		pt := point.NewPointV2("otel-service",
+			append(point.NewTags(newTags), point.NewKVs(newFields)...),
+			opts...)
+		pts = append(pts, pt)
 	}
 
 	return pts

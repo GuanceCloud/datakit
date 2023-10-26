@@ -70,3 +70,25 @@ func newCustomizeRootLogger(level string, options int, ws io.Writer) (*zap.Logge
 	l := zap.New(core, zap.AddCaller())
 	return l, nil
 }
+
+func newOnlyMessageRootLogger(ws io.Writer) (*zap.Logger, error) {
+	// use lumberjack.Logger for rotate
+	w := zapcore.AddSync(ws)
+
+	cfg := zapcore.EncoderConfig{
+		MessageKey: NameKeyMsg,
+
+		EncodeLevel:  zapcore.CapitalLevelEncoder,
+		EncodeTime:   zapcore.ISO8601TimeEncoder,
+		EncodeCaller: zapcore.FullCallerEncoder,
+	}
+
+	enc := zapcore.NewConsoleEncoder(cfg)
+	lvl := zap.DebugLevel
+
+	core := zapcore.NewCore(enc, w, lvl)
+	// NOTE: why need add another option while
+	// zapcore.ShortCallerEncoder/FullCallerEncoder been set
+	l := zap.New(core, zap.AddCaller())
+	return l, nil
+}

@@ -6,14 +6,13 @@
 package skywalking
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 	commonv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/common/v3"
 	agentv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/language/agent/v3"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -54,14 +53,8 @@ type jvmMeasurement struct {
 
 // Point implement MeasurementV2.
 func (m *jvmMeasurement) Point() *point.Point {
-	opts := append(point.DefaultMetricOptions(), point.WithTime(m.ts), point.WithExtraTags(dkpt.GlobalHostTags()))
-
-	return point.NewPointV2([]byte(m.name), append(point.NewTags(m.tags), point.NewKVs(m.fields)...), opts...)
-}
-
-func (m *jvmMeasurement) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(m.name, m.tags, m.fields, &point.PointOption{Category: datakit.Metric, DisableGlobalTags: true})
-	return nil, fmt.Errorf("not implement")
+	opts := append(point.DefaultMetricOptions(), point.WithTime(m.ts), point.WithExtraTags(datakit.GlobalHostTags()))
+	return point.NewPointV2(m.name, append(point.NewTags(m.tags), point.NewKVs(m.fields)...), opts...)
 }
 
 func (*jvmMeasurement) Info() *inputs.MeasurementInfo {
@@ -255,14 +248,9 @@ type MetricMeasurement struct {
 
 // Point implement MeasurementV2.
 func (m *MetricMeasurement) Point() *point.Point {
-	opts := append(point.DefaultMetricOptions(), point.WithTime(m.ts), point.WithExtraTags(dkpt.GlobalHostTags()))
+	opts := append(point.DefaultMetricOptions(), point.WithTime(m.ts), point.WithExtraTags(datakit.GlobalHostTags()))
 
-	return point.NewPointV2([]byte(m.name), append(point.NewTags(m.tags), point.NewKVs(m.fields)...), opts...)
-}
-
-func (*MetricMeasurement) LineProto() (*dkpt.Point, error) {
-	// return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
-	return nil, fmt.Errorf("not implement")
+	return point.NewPointV2(m.name, append(point.NewTags(m.tags), point.NewKVs(m.fields)...), opts...)
 }
 
 func (*MetricMeasurement) Info() *inputs.MeasurementInfo {

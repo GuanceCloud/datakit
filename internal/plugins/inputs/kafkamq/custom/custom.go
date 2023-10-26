@@ -147,7 +147,7 @@ func (mq *Custom) Process(msg *sarama.ConsumerMessage) error {
 			return err
 		}
 
-		pt := point.NewPointV2([]byte(topic), append(point.NewTags(tags), point.NewKVs(fields)...), opts...)
+		pt := point.NewPointV2(topic, append(point.NewTags(tags), point.NewKVs(fields)...), opts...)
 
 		err = mq.feeder.Feed(topic, category, []*point.Point{pt}, &dkio.Option{PlScript: plMap})
 		if err != nil {

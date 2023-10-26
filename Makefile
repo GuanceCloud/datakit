@@ -33,8 +33,7 @@ CGO_FLAGS          = "-Wno-undef-prefix -Wno-deprecated-declarations" # to disab
 HL                 = \033[0;32m # high light
 NC                 = \033[0m    # no color
 RED                = \033[31m   # red
-CROSS_GCC_FULL     = "/opt/linaro/aarch64-linux-gnu/gcc-linaro-4.9-2016.02-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-gcc"
-CROSS_GPP_FULL     = "/opt/linaro/aarch64-linux-gnu/gcc-linaro-4.9-2016.02-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-g++"
+IBM_CLI_DRIVER     = /opt/ibm/clidriver
 
 SUPPORTED_GOLINT_VERSION         = 1.46.2
 SUPPORTED_GOLINT_VERSION_ANOTHER = v1.46.2
@@ -144,7 +143,7 @@ endef
 # pub used to publish datakit version(for release/testing/local)
 define publish
 	@echo "===== publishing $(1) $(NAME) ====="
-	GO111MODULE=off CGO_CFLAGS=$(CGO_FLAGS) CROSS_GCC=$(CROSS_GCC_FULL) CROSS_GPP=$(CROSS_GPP_FULL) go run -tags with_inputs cmd/make/make.go \
+	GO111MODULE=off CGO_CFLAGS=$(CGO_FLAGS) go run -tags with_inputs cmd/make/make.go \
 		-release $(1)            \
 		-upload-addr $(2)        \
 		-download-cdn $(3)       \
@@ -347,15 +346,13 @@ ut: deps
 			echo "######################"; \
 		fi
 
-lint: deps copyright_check md_lint
+code_lint:
 	@truncate -s 0 lint.err
 ifeq ($(AUTO_FIX),on)
 		@printf "$(HL)lint with auto fix...\n$(NC)"; \
-			CGO_CFLAGS=-I/opt/ibm/clidriver/include CGO_LDFLAGS=-L/opt/ibm/clidriver/lib \
 			$(GOLINT_BINARY) run --fix --allow-parallel-runners;
 else
 		@printf "$(HL)lint without auto fix...\n$(NC)"; \
-			CGO_CFLAGS=-I/opt/ibm/clidriver/include CGO_LDFLAGS=-L/opt/ibm/clidriver/lib \
 			$(GOLINT_BINARY) run --allow-parallel-runners;
 endif
 
@@ -363,6 +360,8 @@ endif
 		printf "$(RED)[FAIL] lint failed\n$(NC)" $$pkg; \
 		exit -1; \
 	fi
+
+lint: deps copyright_check md_lint code_lint
 
 prepare:
 	@mkdir -p internal/git

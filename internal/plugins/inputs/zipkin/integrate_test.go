@@ -9,7 +9,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -237,7 +236,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 		opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
 		opts = append(opts, cs.opts...)
 
-		measurement := string(pt.Name())
+		measurement := pt.Name()
 
 		switch measurement {
 		case inputName:
@@ -266,8 +265,8 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 
 			tags := pt.Tags()
 			for k, expect := range cs.ipt.Tags {
-				if v := tags.Get([]byte(k)); v != nil {
-					got := string(v.GetD())
+				if v := tags.Get(k); v != nil {
+					got := v.GetS()
 					if got != expect {
 						return fmt.Errorf("expect tag value %s, got %s", expect, got)
 					}
@@ -473,15 +472,15 @@ func (cs *caseSpec) getDockerFilePath() (dirName string, fileName string, err er
 		return
 	}
 
-	tmpDir, err := ioutil.TempDir("", "dockerfiles_")
+	tmpDir, err := os.MkdirTemp("", "dockerfiles_")
 	if err != nil {
-		cs.t.Logf("ioutil.TempDir failed: %s", err.Error())
+		cs.t.Logf("os.MkdirTempfailed: %s", err.Error())
 		return "", "", err
 	}
 
-	tmpFile, err := ioutil.TempFile(tmpDir, "dockerfile_")
+	tmpFile, err := os.CreateTemp(tmpDir, "dockerfile_")
 	if err != nil {
-		cs.t.Logf("ioutil.TempFile failed: %s", err.Error())
+		cs.t.Logf("os.MkdirTemp failed: %s", err.Error())
 		return "", "", err
 	}
 

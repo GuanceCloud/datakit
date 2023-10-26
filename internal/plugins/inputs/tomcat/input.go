@@ -10,7 +10,6 @@ import (
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -66,7 +65,7 @@ func (*Input) PipelineConfig() map[string]string {
 }
 
 //nolint:lll
-func (i *Input) LogExamples() map[string]map[string]string {
+func (ipt *Input) LogExamples() map[string]map[string]string {
 	return map[string]map[string]string{
 		inputName: {
 			"Tomcat access log":   `0:0:0:0:0:0:0:1 - admin [24/Feb/2015:15:57:10 +0530] "GET /manager/images/tomcat.gif HTTP/1.1" 200 2066`,
@@ -75,14 +74,14 @@ func (i *Input) LogExamples() map[string]map[string]string {
 	}
 }
 
-func (i *Input) GetPipeline() []*tailer.Option {
+func (ipt *Input) GetPipeline() []*tailer.Option {
 	return []*tailer.Option{
 		{
 			Source:  inputName,
 			Service: inputName,
 			Pipeline: func() string {
-				if i.Log != nil {
-					return i.Log.Pipeline
+				if ipt.Log != nil {
+					return ipt.Log.Pipeline
 				}
 				return ""
 			}(),
@@ -90,17 +89,17 @@ func (i *Input) GetPipeline() []*tailer.Option {
 	}
 }
 
-func (i *Input) RunPipeline() {
+func (ipt *Input) RunPipeline() {
 	l.Error("Collecting Tomcat in Jolokia way is deprecated. Exiting...")
 }
 
-func (i *Input) Run() {
+func (ipt *Input) Run() {
 	l.Error("Collecting Tomcat in Jolokia way is deprecated. Exiting...")
 }
 
-func (i *Input) Terminate() {
-	if i.SemStop != nil { // nolint:typecheck
-		i.SemStop.Close() // nolint:typecheck
+func (ipt *Input) Terminate() {
+	if ipt.SemStop != nil { // nolint:typecheck
+		ipt.SemStop.Close() // nolint:typecheck
 	}
 }
 
@@ -108,7 +107,7 @@ func defaultInput() *Input {
 	return &Input{
 		JolokiaAgent: inputs.JolokiaAgent{
 			SemStop: cliutils.NewSem(),
-			Tagger:  dkpt.DefaultGlobalTagger(),
+			Tagger:  datakit.DefaultGlobalTagger(),
 		},
 	}
 }

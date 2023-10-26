@@ -7,15 +7,10 @@
 package cat
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-type Measurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-}
+type Measurement struct{}
 
 func (m *Measurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
@@ -152,8 +147,4 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 			"os_version":           &inputs.TagInfo{Desc: "操作系统的内核版本"},
 		},
 	}
-}
-
-func (m *Measurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, nil)
 }

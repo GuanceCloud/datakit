@@ -48,9 +48,11 @@ type Logger struct {
 }
 
 type Option struct {
-	Path  string
-	Level string
-	Flags int
+	Path     string
+	Level    string
+	MaxSize  int
+	Flags    int
+	Compress bool
 }
 
 func Reset() {

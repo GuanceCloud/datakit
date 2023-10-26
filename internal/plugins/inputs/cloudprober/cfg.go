@@ -11,9 +11,10 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/influxdata/telegraf/plugins/common/tls"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -51,6 +52,8 @@ type Input struct {
 	lastErr error
 
 	semStop *cliutils.Sem // start stop signal
+	feeder  dkio.Feeder
+	Tagger  datakit.GlobalTagger
 }
 
 type Measurement struct {
@@ -60,8 +63,10 @@ type Measurement struct {
 	ts     time.Time
 }
 
-func (m *Measurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOptElection())
+func (m *Measurement) Point() *point.Point {
+	return point.NewPointV2(m.name,
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		point.DefaultMetricOptions()...)
 }
 
 func (m *Measurement) Info() *inputs.MeasurementInfo {

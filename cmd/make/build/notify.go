@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -90,9 +89,9 @@ func notify(tkn string, body io.Reader) {
 	defer resp.Body.Close() //nolint:errcheck
 
 	// TODO 校验 respbody 中的 errcode，如 310000
-	respbody, err := ioutil.ReadAll(resp.Body)
+	respbody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		l.Errorf("ioutil.ReadAll: %s", err)
+		l.Errorf("io.ReadAll: %s", err)
 		return
 	}
 

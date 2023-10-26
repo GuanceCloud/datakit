@@ -7,18 +7,10 @@
 package opentelemetry
 
 import (
-	"time"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-type Measurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time //nolint:unused
-}
+type Measurement struct{}
 
 //nolint:funlen
 func (m *Measurement) Info() *inputs.MeasurementInfo {
@@ -397,8 +389,4 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 			"os.type":                     &inputs.TagInfo{Desc: "操作系统类型"},
 		},
 	}
-}
-
-func (m *Measurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
 }

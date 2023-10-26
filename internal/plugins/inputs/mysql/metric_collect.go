@@ -58,37 +58,37 @@ func allNumeric(arr []string) bool {
 
 // collect metric
 
-func (i *Input) collectMysql() error {
+func (ipt *Input) collectMysql() error {
 	var err error
 
-	i.globalStatus = map[string]interface{}{}
-	i.globalVariables = map[string]interface{}{}
-	i.binlog = map[string]interface{}{}
+	ipt.globalStatus = map[string]interface{}{}
+	ipt.globalVariables = map[string]interface{}{}
+	ipt.binlog = map[string]interface{}{}
 
 	// We should first collect global MySQL metrics
-	if res := globalStatusMetrics(i.q("SHOW /*!50002 GLOBAL */ STATUS;")); res != nil {
-		i.globalStatus = res
+	if res := globalStatusMetrics(ipt.q("SHOW /*!50002 GLOBAL */ STATUS;")); res != nil {
+		ipt.globalStatus = res
 	} else {
 		l.Warn("collect_show_status_failed")
 	}
 
-	if res := globalVariablesMetrics(i.q("SHOW GLOBAL VARIABLES;")); res != nil {
-		i.globalVariables = res
+	if res := globalVariablesMetrics(ipt.q("SHOW GLOBAL VARIABLES;")); res != nil {
+		ipt.globalVariables = res
 
 		// Detect if binlog enabled
-		switch v := i.globalVariables["log_bin"].(type) {
+		switch v := ipt.globalVariables["log_bin"].(type) {
 		case string:
-			i.binLogOn = (v == "on" || v == "ON")
+			ipt.binLogOn = (v == "on" || v == "ON")
 		default:
-			i.binLogOn = false
+			ipt.binLogOn = false
 		}
 	} else {
 		l.Warn("collect_show_variables_failed")
 	}
 
-	if i.binLogOn {
-		if res := binlogMetrics(i.q("SHOW BINARY LOGS;")); res != nil {
-			i.binlog = res
+	if ipt.binLogOn {
+		if res := binlogMetrics(ipt.q("SHOW BINARY LOGS;")); res != nil {
+			ipt.binlog = res
 		} else {
 			l.Warn("collect_show_binlog_failed")
 		}
@@ -97,17 +97,17 @@ func (i *Input) collectMysql() error {
 	return err
 }
 
-func (i *Input) collectMysqlSchema() error {
-	i.mSchemaSize = map[string]interface{}{}
-	i.mSchemaQueryExecTime = map[string]interface{}{}
+func (ipt *Input) collectMysqlSchema() error {
+	ipt.mSchemaSize = map[string]interface{}{}
+	ipt.mSchemaQueryExecTime = map[string]interface{}{}
 
 	querySizePerschemaSQL := `
 		SELECT   table_schema, IFNULL(SUM(data_length+index_length)/1024/1024,0) AS total_mb
 		FROM     information_schema.tables
 		GROUP BY table_schema;
 	`
-	if res := getCleanSchemaData(i.q(querySizePerschemaSQL)); res != nil {
-		i.mSchemaSize = res
+	if res := getCleanSchemaData(ipt.q(querySizePerschemaSQL)); res != nil {
+		ipt.mSchemaSize = res
 	} else {
 		l.Warn("collect_schema_size_failed")
 	}
@@ -118,8 +118,8 @@ func (i *Input) collectMysqlSchema() error {
 	WHERE schema_name IS NOT NULL
 	GROUP BY schema_name;
 	`
-	if res := getCleanSchemaData(i.q(queryExecPerTimeSQL)); res != nil {
-		i.mSchemaQueryExecTime = res
+	if res := getCleanSchemaData(ipt.q(queryExecPerTimeSQL)); res != nil {
+		ipt.mSchemaQueryExecTime = res
 	} else {
 		l.Warn("collect_schema_failed")
 	}
@@ -127,86 +127,86 @@ func (i *Input) collectMysqlSchema() error {
 	return nil
 }
 
-func (i *Input) collectMysqlInnodb() error {
-	i.mInnodb = map[string]interface{}{}
+func (ipt *Input) collectMysqlInnodb() error {
+	ipt.mInnodb = map[string]interface{}{}
 
 	globalInnodbSQL := `SELECT NAME, COUNT FROM information_schema.INNODB_METRICS WHERE status='enabled'`
 
-	if res := getCleanInnodb(i.q(globalInnodbSQL)); res != nil {
-		i.mInnodb = res
+	if res := getCleanInnodb(ipt.q(globalInnodbSQL)); res != nil {
+		ipt.mInnodb = res
 	} else {
 		l.Warnf("collect_innodb_failed")
 	}
 
-	if res, err := i.getInnodbStatus(); err != nil {
+	if res, err := ipt.getInnodbStatus(); err != nil {
 		l.Warnf("collect_innodb_status_failed: %s", err.Error())
 	} else {
 		for k, v := range res {
-			i.mInnodb[k] = v
+			ipt.mInnodb[k] = v
 		}
 	}
 
 	// extract metric from i.globalStatus
-	for k, v := range i.globalStatus {
+	for k, v := range ipt.globalStatus {
 		prefix := "Innodb_"
 		if strings.HasPrefix(k, prefix) {
 			newKey := strings.TrimPrefix(k, prefix)
-			i.mInnodb[newKey] = v
+			ipt.mInnodb[newKey] = v
 		}
 	}
 
-	if hasKey(i.globalStatus, "Innodb_page_size") {
+	if hasKey(ipt.globalStatus, "Innodb_page_size") {
 		var bufferPoolPagesUsed int64
-		if innodbPageSize, ok := i.globalStatus["Innodb_page_size"].(int64); ok {
-			if hasKey(i.mInnodb, "buffer_pool_pages_total") && hasKey(i.mInnodb, "buffer_pool_pages_free") {
-				total, totalOK := i.mInnodb["buffer_pool_pages_total"].(int64)
-				free, freeOK := i.mInnodb["buffer_pool_pages_free"].(int64)
+		if innodbPageSize, ok := ipt.globalStatus["Innodb_page_size"].(int64); ok {
+			if hasKey(ipt.mInnodb, "buffer_pool_pages_total") && hasKey(ipt.mInnodb, "buffer_pool_pages_free") {
+				total, totalOK := ipt.mInnodb["buffer_pool_pages_total"].(int64)
+				free, freeOK := ipt.mInnodb["buffer_pool_pages_free"].(int64)
 				if totalOK && freeOK {
 					bufferPoolPagesUsed = total - free
 				}
 
-				if !hasKey(i.mInnodb, "buffer_pool_pages_utilization") && total != 0 {
-					i.mInnodb["buffer_pool_pages_utilization"] = float64(bufferPoolPagesUsed) / float64(total)
+				if !hasKey(ipt.mInnodb, "buffer_pool_pages_utilization") && total != 0 {
+					ipt.mInnodb["buffer_pool_pages_utilization"] = float64(bufferPoolPagesUsed) / float64(total)
 				}
 
-				if !hasKey(i.mInnodb, "buffer_pool_bytes_data") {
-					if hasKey(i.mInnodb, "buffer_pool_pages_data") {
-						data, ok := i.mInnodb["buffer_pool_pages_data"].(int64)
+				if !hasKey(ipt.mInnodb, "buffer_pool_bytes_data") {
+					if hasKey(ipt.mInnodb, "buffer_pool_pages_data") {
+						data, ok := ipt.mInnodb["buffer_pool_pages_data"].(int64)
 						if ok {
-							i.mInnodb["buffer_pool_bytes_data"] = data * innodbPageSize
+							ipt.mInnodb["buffer_pool_bytes_data"] = data * innodbPageSize
 						}
 					}
 				}
 
-				if !hasKey(i.mInnodb, "buffer_pool_bytes_dirty") {
-					if hasKey(i.mInnodb, "buffer_pool_pages_dirty") {
-						data, ok := i.mInnodb["buffer_pool_pages_dirty"].(int64)
+				if !hasKey(ipt.mInnodb, "buffer_pool_bytes_dirty") {
+					if hasKey(ipt.mInnodb, "buffer_pool_pages_dirty") {
+						data, ok := ipt.mInnodb["buffer_pool_pages_dirty"].(int64)
 						if ok {
-							i.mInnodb["buffer_pool_bytes_dirty"] = data * innodbPageSize
+							ipt.mInnodb["buffer_pool_bytes_dirty"] = data * innodbPageSize
 						}
 					}
 				}
 
-				if !hasKey(i.mInnodb, "buffer_pool_bytes_free") {
-					if hasKey(i.mInnodb, "buffer_pool_pages_free") {
-						data, ok := i.mInnodb["buffer_pool_pages_free"].(int64)
+				if !hasKey(ipt.mInnodb, "buffer_pool_bytes_free") {
+					if hasKey(ipt.mInnodb, "buffer_pool_pages_free") {
+						data, ok := ipt.mInnodb["buffer_pool_pages_free"].(int64)
 						if ok {
-							i.mInnodb["buffer_pool_bytes_free"] = data * innodbPageSize
+							ipt.mInnodb["buffer_pool_bytes_free"] = data * innodbPageSize
 						}
 					}
 				}
 
-				if !hasKey(i.mInnodb, "buffer_pool_bytes_total") {
-					if hasKey(i.mInnodb, "buffer_pool_pages_total") {
-						data, ok := i.mInnodb["buffer_pool_pages_total"].(int64)
+				if !hasKey(ipt.mInnodb, "buffer_pool_bytes_total") {
+					if hasKey(ipt.mInnodb, "buffer_pool_pages_total") {
+						data, ok := ipt.mInnodb["buffer_pool_pages_total"].(int64)
 						if ok {
-							i.mInnodb["buffer_pool_bytes_total"] = data * innodbPageSize
+							ipt.mInnodb["buffer_pool_bytes_total"] = data * innodbPageSize
 						}
 					}
 				}
 
-				if !hasKey(i.mInnodb, "buffer_pool_bytes_used") {
-					i.mInnodb["buffer_pool_bytes_used"] = bufferPoolPagesUsed * innodbPageSize
+				if !hasKey(ipt.mInnodb, "buffer_pool_bytes_used") {
+					ipt.mInnodb["buffer_pool_bytes_used"] = bufferPoolPagesUsed * innodbPageSize
 				}
 			}
 		}
@@ -218,9 +218,9 @@ func (i *Input) collectMysqlInnodb() error {
 var whiteSpaceReg = regexp.MustCompile(" +")
 
 //nolint:funlen
-func (i *Input) getInnodbStatus() (statusRes map[string]int64, err error) {
+func (ipt *Input) getInnodbStatus() (statusRes map[string]int64, err error) {
 	innodbStatusSQL := "SHOW /*!50000 ENGINE*/ INNODB STATUS"
-	if res, err := i.getQueryRows(innodbStatusSQL); err != nil {
+	if res, err := ipt.getQueryRows(innodbStatusSQL); err != nil {
 		return statusRes, err
 	} else {
 		if len(res.rows) == 0 {
@@ -571,8 +571,8 @@ type rowResponse struct {
 	rows        [][]*interface{}
 }
 
-func (i *Input) getQueryRows(sqlText string) (res rowResponse, err error) {
-	rows, err := i.db.Query(sqlText)
+func (ipt *Input) getQueryRows(sqlText string) (res rowResponse, err error) {
+	rows, err := ipt.db.Query(sqlText)
 	if err != nil {
 		return
 	}
@@ -615,8 +615,8 @@ func (i *Input) getQueryRows(sqlText string) (res rowResponse, err error) {
 	return res, err
 }
 
-func (i *Input) collectMysqlTableSchema() error {
-	i.mTableSchema = []map[string]interface{}{}
+func (ipt *Input) collectMysqlTableSchema() error {
+	ipt.mTableSchema = []map[string]interface{}{}
 
 	tableSchemaSQL := `
 	SELECT
@@ -634,9 +634,9 @@ func (i *Input) collectMysqlTableSchema() error {
     WHERE TABLE_SCHEMA NOT IN ('mysql', 'performance_schema', 'information_schema', 'sys')
 	`
 
-	if len(i.Tables) > 0 {
+	if len(ipt.Tables) > 0 {
 		var arr []string
-		for _, table := range i.Tables {
+		for _, table := range ipt.Tables {
 			arr = append(arr, fmt.Sprintf("'%s'", table))
 		}
 
@@ -644,28 +644,28 @@ func (i *Input) collectMysqlTableSchema() error {
 		tableSchemaSQL = fmt.Sprintf("%s and TABLE_NAME in (%s);", tableSchemaSQL, filterStr)
 	}
 
-	if res := getCleanTableSchema(i.q(tableSchemaSQL)); res != nil {
-		i.mTableSchema = res
+	if res := getCleanTableSchema(ipt.q(tableSchemaSQL)); res != nil {
+		ipt.mTableSchema = res
 	} else {
 		l.Warnf("collect_table_schema_failed")
-		if len(i.mTableSchema) > 0 {
-			i.mTableSchema = []map[string]interface{}{}
+		if len(ipt.mTableSchema) > 0 {
+			ipt.mTableSchema = []map[string]interface{}{}
 		}
 	}
 
 	return nil
 }
 
-func (i *Input) collectMysqlUserStatus() error {
-	i.mUserStatusName = map[string]interface{}{}
-	i.mUserStatusVariable = map[string]map[string]interface{}{}
-	i.mUserStatusConnection = map[string]map[string]interface{}{}
+func (ipt *Input) collectMysqlUserStatus() error {
+	ipt.mUserStatusName = map[string]interface{}{}
+	ipt.mUserStatusVariable = map[string]map[string]interface{}{}
+	ipt.mUserStatusConnection = map[string]map[string]interface{}{}
 
 	userSQL := `select DISTINCT(user) from mysql.user`
 
-	if len(i.Users) > 0 {
+	if len(ipt.Users) > 0 {
 		var arr []string
-		for _, user := range i.Users {
+		for _, user := range ipt.Users {
 			arr = append(arr, fmt.Sprintf("'%s'", user))
 		}
 
@@ -673,8 +673,8 @@ func (i *Input) collectMysqlUserStatus() error {
 		userSQL = fmt.Sprintf("%s where user in (%s);", userSQL, filterStr)
 	}
 
-	if res := getCleanUserStatusName(i.q(userSQL)); res != nil {
-		i.mUserStatusName = res
+	if res := getCleanUserStatusName(ipt.q(userSQL)); res != nil {
+		ipt.mUserStatusName = res
 	} else {
 		l.Warn("collect_user_name_failed")
 	}
@@ -690,34 +690,34 @@ func (i *Input) collectMysqlUserStatus() error {
 	where user = '%s';
     `
 
-	for user := range i.mUserStatusName {
-		if res := getCleanUserStatusVariable(i.q(fmt.Sprintf(userQuerySQL, user))); res != nil {
-			i.mUserStatusVariable = make(map[string]map[string]interface{})
-			i.mUserStatusVariable[user] = res
+	for user := range ipt.mUserStatusName {
+		if res := getCleanUserStatusVariable(ipt.q(fmt.Sprintf(userQuerySQL, user))); res != nil {
+			ipt.mUserStatusVariable = make(map[string]map[string]interface{})
+			ipt.mUserStatusVariable[user] = res
 		}
 
-		if res := getCleanUserStatusConnection(i.q(fmt.Sprintf(userConnSQL, user))); res != nil {
-			i.mUserStatusConnection = make(map[string]map[string]interface{})
-			i.mUserStatusConnection[user] = res
+		if res := getCleanUserStatusConnection(ipt.q(fmt.Sprintf(userConnSQL, user))); res != nil {
+			ipt.mUserStatusConnection = make(map[string]map[string]interface{})
+			ipt.mUserStatusConnection[user] = res
 		}
 	}
 
-	if len(i.mUserStatusVariable) == 0 {
+	if len(ipt.mUserStatusVariable) == 0 {
 		l.Warnf("collect_user_variable_failed")
 	}
 
-	if len(i.mUserStatusConnection) == 0 {
+	if len(ipt.mUserStatusConnection) == 0 {
 		l.Warnf("collect_user_connection_failed")
 	}
 
 	return nil
 }
 
-func (i *Input) collectMysqlCustomQueries() error {
-	i.mCustomQueries = map[string][]map[string]interface{}{}
+func (ipt *Input) collectMysqlCustomQueries() error {
+	ipt.mCustomQueries = map[string][]map[string]interface{}{}
 
-	for _, item := range i.Query {
-		arr := getCleanMysqlCustomQueries(i.q(item.SQL))
+	for _, item := range ipt.Query {
+		arr := getCleanMysqlCustomQueries(ipt.q(item.SQL))
 		if arr == nil {
 			continue
 		}
@@ -725,18 +725,18 @@ func (i *Input) collectMysqlCustomQueries() error {
 			hs := hashcode.GetMD5String32([]byte(item.SQL))
 			item.md5Hash = hs
 		}
-		i.mCustomQueries[item.md5Hash] = make([]map[string]interface{}, 0)
-		i.mCustomQueries[item.md5Hash] = arr
+		ipt.mCustomQueries[item.md5Hash] = make([]map[string]interface{}, 0)
+		ipt.mCustomQueries[item.md5Hash] = arr
 	}
 
 	return nil
 }
 
-func (i *Input) collectMysqlDbmMetric() error {
+func (ipt *Input) collectMysqlDbmMetric() error {
 	var err error
 	defer func() {
 		if err != nil {
-			i.dbmMetricRows = []dbmRow{}
+			ipt.dbmMetricRows = []dbmRow{}
 
 			// dbmCache cannot reset
 		}
@@ -751,17 +751,17 @@ func (i *Input) collectMysqlDbmMetric() error {
 		WHERE digest_text NOT LIKE 'EXPLAIN %' OR digest_text IS NULL
 		ORDER BY count_star DESC LIMIT 10000`
 
-	dbmRows := getCleanSummaryRows(i.q(statementSummarySQL))
+	dbmRows := getCleanSummaryRows(ipt.q(statementSummarySQL))
 	if dbmRows == nil {
 		err = fmt.Errorf("collect_summary_rows_failed")
 		return err
 	}
 
-	metricRows, newDbmCache := getMetricRows(dbmRows, &i.dbmCache)
-	i.dbmMetricRows = metricRows
+	metricRows, newDbmCache := getMetricRows(dbmRows, &ipt.dbmCache)
+	ipt.dbmMetricRows = metricRows
 
 	// save dbm rows
-	i.dbmCache = newDbmCache
+	ipt.dbmCache = newDbmCache
 
 	return err
 }
@@ -769,47 +769,47 @@ func (i *Input) collectMysqlDbmMetric() error {
 // mysql_dbm_sample
 //----------------------------------------------------------------------
 
-func (i *Input) collectMysqlDbmSample() error {
+func (ipt *Input) collectMysqlDbmSample() error {
 	var err error
 	defer func() {
 		if err != nil {
-			i.dbmSamplePlans = []planObj{}
+			ipt.dbmSamplePlans = []planObj{}
 		}
 	}()
 
-	if len(i.dbmSampleCache.globalStatusTable) == 0 {
-		if len(i.dbmSampleCache.version.version) == 0 {
+	if len(ipt.dbmSampleCache.globalStatusTable) == 0 {
+		if len(ipt.dbmSampleCache.version.version) == 0 {
 			const sqlSelect = "SELECT VERSION();"
-			version := getCleanMysqlVersion(i.q(sqlSelect))
+			version := getCleanMysqlVersion(ipt.q(sqlSelect))
 			if version == nil {
 				err = errors.New("version_nil")
 				return err
 			}
-			i.dbmSampleCache.version = *version
+			ipt.dbmSampleCache.version = *version
 		}
 
-		if i.dbmSampleCache.version.flavor == strMariaDB || !(i.dbmSampleCache.version.versionCompatible([]int{5, 7, 0})) {
-			i.dbmSampleCache.globalStatusTable = "information_schema.global_status"
+		if ipt.dbmSampleCache.version.flavor == strMariaDB || !(ipt.dbmSampleCache.version.versionCompatible([]int{5, 7, 0})) {
+			ipt.dbmSampleCache.globalStatusTable = "information_schema.global_status"
 		} else {
-			i.dbmSampleCache.globalStatusTable = "performance_schema.global_status"
+			ipt.dbmSampleCache.globalStatusTable = "performance_schema.global_status"
 		}
 	}
 
-	strategy, err := getSampleCollectionStrategy(i)
+	strategy, err := getSampleCollectionStrategy(ipt)
 	if err != nil {
 		return err
 	}
 
-	rows, err := getNewEventsStatements(i, strategy.table, 5000)
+	rows, err := getNewEventsStatements(ipt, strategy.table, 5000)
 	if err != nil {
 		return err
 	}
 
-	rows = filterValidStatementRows(i, rows)
+	rows = filterValidStatementRows(ipt, rows)
 
-	plans := collectPlanForStatements(i, rows)
+	plans := collectPlanForStatements(ipt, rows)
 	if len(plans) > 0 {
-		i.dbmSamplePlans = plans
+		ipt.dbmSamplePlans = plans
 	}
 
 	return nil

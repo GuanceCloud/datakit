@@ -16,7 +16,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"strings"
@@ -48,7 +48,7 @@ func startHTTP() {
 		func(c *gin.Context) {
 			time.Sleep(*flagDatawayLatency)
 
-			body, err := ioutil.ReadAll(c.Request.Body)
+			body, err := io.ReadAll(c.Request.Body)
 			if err != nil {
 				log.Println(err)
 				return
@@ -179,8 +179,8 @@ func main() {
 						continue
 					}
 
-					if body, err := ioutil.ReadAll(resp.Body); err != nil {
-						log.Printf("ioutil.ReadAll: %s", err)
+					if body, err := io.ReadAll(resp.Body); err != nil {
+						log.Printf("io.ReadAll: %s", err)
 					} else {
 						switch resp.StatusCode / 100 {
 						case 2:

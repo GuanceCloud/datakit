@@ -6,15 +6,12 @@
 package logstreaming
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 const defaultMeasurementName = "default"
 
 type logstreamingMeasurement struct{}
-
-func (*logstreamingMeasurement) LineProto() (*point.Point, error) { return nil, nil }
 
 //nolint:lll
 func (*logstreamingMeasurement) Info() *inputs.MeasurementInfo {

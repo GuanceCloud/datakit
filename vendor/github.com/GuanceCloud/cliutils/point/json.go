@@ -47,8 +47,8 @@ func (p *Point) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal(&JSONPoint{
-		Measurement: string(p.Name()),
-		Tags:        p.InfluxTags(),
+		Measurement: p.Name(),
+		Tags:        p.MapTags(),
 		Fields:      p.InfluxFields(),
 		Time:        p.time.UnixNano(),
 		// NOTE: warns & debugs skipped.

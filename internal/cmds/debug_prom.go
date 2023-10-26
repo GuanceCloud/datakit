@@ -7,7 +7,7 @@ package cmds
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -16,14 +16,11 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/influxdata/influxdb1-client/models"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/prom"
 	pr "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/promremote"
-	inpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/point"
 )
 
 const trueString = "true"
@@ -121,27 +118,19 @@ func showPromRemoteWriteInput(input *pr.Input) error {
 	if err != nil {
 		return err
 	}
-	data, err := ioutil.ReadAll(file)
+	data, err := io.ReadAll(file)
 	if err != nil {
 		return err
 	}
-	measurements, err := input.Parse(data)
-	if err != nil {
-		return err
-	}
-	var points []*dkpt.Point
-	for _, m := range measurements {
-		mm, ok := m.(*pr.Measurement)
-		if !ok {
-			return fmt.Errorf("expect to be *prom_remote_write.Measurement")
-		}
 
-		input.SetTags(mm)
-		p, err := mm.LineProto()
-		if err != nil {
-			return err
-		}
-		points = append(points, p)
+	measurements, err := input.Parse(data, input)
+	if err != nil {
+		return err
+	}
+	var points []*point.Point
+	for _, m := range measurements {
+		input.SetTags(m)
+		points = append(points, m)
 	}
 	return printResult(points)
 }
@@ -179,7 +168,6 @@ func showPromInput(input *prom.Input) error {
 		return err
 	}
 
-	var points []*dkpt.Point
 	var clipts []*point.Point
 	if input.Output != "" {
 		// If input.Output is configured, raw metric text is written to file.
@@ -197,19 +185,16 @@ func showPromInput(input *prom.Input) error {
 		return err
 	}
 
-	// Convert
-	points = inpt.Point2dkpt(clipts...)
-
-	return printResult(points)
+	return printResult(clipts)
 }
 
-func printResult(points []*dkpt.Point) error {
+func printResult(points []*point.Point) error {
 	fmt.Printf("\n================= Line Protocol Points ==================\n\n")
 	// measurements collected
 	measurements := make(map[string]string)
 	timeSeries := make(map[string]string)
-	for _, point := range points {
-		lp := point.String()
+	for _, pt := range points {
+		lp := pt.LineProto()
 		fmt.Printf(" %s\n", lp)
 
 		influxPoint, err := models.ParsePointsWithPrecision([]byte(lp), time.Now(), "n")
@@ -220,7 +205,7 @@ func printResult(points []*dkpt.Point) error {
 			return err
 		}
 		timeSeries[fmt.Sprint(influxPoint[0].HashID())] = trueString
-		name := point.Name()
+		name := pt.Name()
 		measurements[name] = trueString
 	}
 	mKeys := make([]string, len(measurements))

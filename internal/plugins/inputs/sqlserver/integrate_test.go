@@ -485,7 +485,7 @@ func assertSelectedMeasurments(selected []string) func(pts []*point.Point, cs *c
 	return func(pts []*point.Point, cs *caseSpec) error {
 		pointMap := map[string]bool{}
 		for _, pt := range pts {
-			name := string(pt.Name())
+			name := pt.Name()
 			if _, ok := pointMap[name]; ok {
 				continue
 			}
@@ -521,7 +521,7 @@ func assertSelectedMeasurments(selected []string) func(pts []*point.Point, cs *c
 
 				tags := pt.Tags()
 				for k := range cs.ipt.Tags {
-					if v := tags.Get([]byte(k)); v == nil {
+					if v := tags.Get(k); v == nil {
 						return fmt.Errorf("tag %s not found, got %v", k, tags)
 					}
 				}

@@ -15,9 +15,8 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -28,10 +27,6 @@ type slowlogMeasurement struct {
 	ts            time.Time
 	slowlogMaxLen int
 	election      bool
-}
-
-func (m *slowlogMeasurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.LOptElectionV2(m.election))
 }
 
 //nolint:lll
@@ -76,10 +71,10 @@ func (m *slowlogMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 // 数据源获取数据.
-func (i *Input) getSlowData() error {
-	maxSlowEntries := i.SlowlogMaxLen
+func (ipt *Input) getSlowData() error {
+	maxSlowEntries := ipt.SlowlogMaxLen
 	ctx := context.Background()
-	slowlogs, err := i.client.Do(ctx, "SLOWLOG", "GET", maxSlowEntries).Result()
+	slowlogs, err := ipt.client.Do(ctx, "SLOWLOG", "GET", maxSlowEntries).Result()
 	if err != nil {
 		l.Error("redis exec SLOWLOG `get`, happen error,", err)
 		return err
@@ -94,10 +89,10 @@ func (i *Input) getSlowData() error {
 		tags: func() map[string]string {
 			x := map[string]string{
 				"service": "redis",
-				"host":    i.Host,
+				"host":    ipt.Host,
 			}
 
-			for k, v := range i.Tags {
+			for k, v := range ipt.Tags {
 				x[k] = v
 			}
 			return x
@@ -105,9 +100,9 @@ func (i *Input) getSlowData() error {
 
 		fields: make(map[string]interface{}),
 
-		slowlogMaxLen: i.SlowlogMaxLen,
+		slowlogMaxLen: ipt.SlowlogMaxLen,
 
-		election: i.Election,
+		election: ipt.Election,
 	}
 
 	var pts []*point.Point
@@ -147,15 +142,15 @@ func (i *Input) getSlowData() error {
 		}
 
 		// Skip collected slowlog.
-		if !i.AllSlowLog {
-			if startTime < i.startUpUnix {
+		if !ipt.AllSlowLog {
+			if startTime < ipt.startUpUnix {
 				continue
 			}
 			hashRes := md5.Sum([]byte(strconv.FormatInt(startTime, 10) + string(rune(id)))) //nolint:gosec
-			if i.hashMap[int32(id%int64(i.SlowlogMaxLen))] == hashRes {
+			if ipt.hashMap[int32(id%int64(ipt.SlowlogMaxLen))] == hashRes {
 				continue // ignore old slow-logs
 			}
-			i.hashMap[int32(id%int64(i.SlowlogMaxLen))] = hashRes
+			ipt.hashMap[int32(id%int64(ipt.SlowlogMaxLen))] = hashRes
 		}
 
 		var command string
@@ -178,8 +173,11 @@ func (i *Input) getSlowData() error {
 			"status":         "WARNING",
 		}
 
-		pt, err := point.NewPoint(redisSlowlog, m.tags, m.fields,
-			&point.PointOption{Time: m.ts, Category: datakit.Logging, Strict: true})
+		opts := point.DefaultLoggingOptions()
+		opts = append(opts, point.WithTime(m.ts))
+		pt := point.NewPointV2(redisSlowlog,
+			append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+			opts...)
 		if err != nil {
 			l.Warnf("make metric failed: %s", err.Error)
 			return err
@@ -188,7 +186,7 @@ func (i *Input) getSlowData() error {
 		pts = append(pts, pt)
 	}
 
-	err = io.Feed(m.name, datakit.Logging, pts, &io.Option{})
+	err = ipt.feeder.Feed(m.name, point.Logging, pts, &io.Option{})
 	if err != nil {
 		return err
 	}

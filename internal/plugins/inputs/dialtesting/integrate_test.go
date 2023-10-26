@@ -421,7 +421,7 @@ func assertSelectedMeasurments(selected []string) func(pts []*point.Point, cs *c
 	return func(pts []*point.Point, cs *caseSpec) error {
 		pointMap := map[string]bool{}
 		for _, pt := range pts {
-			name := string(pt.Name())
+			name := pt.Name()
 			if _, ok := pointMap[name]; ok {
 				continue
 			}

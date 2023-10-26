@@ -8,34 +8,33 @@ package pipeline
 import (
 	"fmt"
 
+	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
+	"github.com/GuanceCloud/cliutils/pipeline/manager/relation"
+	"github.com/GuanceCloud/cliutils/pipeline/ptinput"
 	"github.com/GuanceCloud/cliutils/point"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/offload"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/ptinput"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/relation"
-	plscript "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/script"
+	plval "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 )
 
 type ScriptResult struct {
-	pts        []*dkpt.Point
-	ptsOffload []*dkpt.Point
-	ptsCreated map[point.Category][]*dkpt.Point
+	pts        []*point.Point
+	ptsOffload []*point.Point
+	ptsCreated map[point.Category][]*point.Point
 }
 
-func (r *ScriptResult) Pts() []*dkpt.Point {
+func (r *ScriptResult) Pts() []*point.Point {
 	return r.pts
 }
 
-func (r *ScriptResult) PtsOffload() []*dkpt.Point {
+func (r *ScriptResult) PtsOffload() []*point.Point {
 	return r.ptsOffload
 }
 
-func (r *ScriptResult) PtsCreated() map[point.Category][]*dkpt.Point {
+func (r *ScriptResult) PtsCreated() map[point.Category][]*point.Point {
 	return r.ptsCreated
 }
 
-func RunPl(category point.Category, pts []*dkpt.Point,
-	plOpt *plscript.Option, scriptMap map[string]string,
+func RunPl(category point.Category, pts []*point.Point,
+	plOpt *plmanager.Option,
 ) (reslt *ScriptResult, retErr error) {
 	defer func() {
 		if err := recover(); err != nil {
@@ -43,38 +42,43 @@ func RunPl(category point.Category, pts []*dkpt.Point,
 		}
 	}()
 
-	if plscript.ScriptCount(category) < 1 {
-		return &ScriptResult{
-			pts: pts,
-		}, nil
+	if sManager, ok := plval.GetManager(); ok && sManager != nil {
+		if sManager.ScriptCount(category) < 1 {
+			return &ScriptResult{
+				pts: pts,
+			}, nil
+		}
+	} else {
+		return nil, fmt.Errorf("script manager not ready")
 	}
 
-	ret := []*dkpt.Point{}
-	offl := []*dkpt.Point{}
-	ptOpt := &dkpt.PointOption{
-		DisableGlobalTags: true,
-		Category:          category.URL(),
-	}
+	ret := []*point.Point{}
+	offl := []*point.Point{}
 
-	if plOpt != nil {
-		ptOpt.MaxFieldValueLen = plOpt.MaxFieldValLen
-	}
-
-	subPt := make(map[point.Category][]*dkpt.Point)
+	subPt := make(map[point.Category][]*point.Point)
 	for _, pt := range pts {
-		script, inputData, ok := searchScript(category, pt, scriptMap)
+		var sMap map[string]string
+		if plOpt != nil {
+			sMap = plOpt.ScriptMap
+		}
+		script, ok := searchScript(category, pt, sMap)
 
-		if !ok || script == nil || inputData == nil {
+		if !ok || script == nil {
 			ret = append(ret, pt)
 			continue
 		}
 
-		if offload.Enabled() &&
-			script.NS() == plscript.RemoteScriptNS &&
+		if v, ok := plval.GetOffload(); ok && v != nil &&
+			script.NS() == plmanager.RemoteScriptNS &&
 			category == point.Logging {
 			offl = append(offl, pt)
 			continue
 		}
+
+		inputData := ptinput.WrapPoint(category, pt)
+
+		inputData.SetPlReferTables(inputData.GetPlReferTables())
+		inputData.SetIPDB(inputData.GetIPDB())
 
 		err := script.Run(inputData, nil, plOpt)
 		if err != nil {
@@ -86,11 +90,7 @@ func RunPl(category point.Category, pts []*dkpt.Point,
 		if pts := inputData.GetSubPoint(); len(pts) > 0 {
 			for _, pt := range pts {
 				if !pt.Dropped() {
-					if dkpt, err := pt.DkPoint(); err == nil {
-						subPt[pt.Category()] = append(subPt[pt.Category()], dkpt)
-					} else {
-						l.Warn(err)
-					}
+					subPt[pt.Category()] = append(subPt[pt.Category()], pt.Point())
 				}
 			}
 		}
@@ -99,11 +99,7 @@ func RunPl(category point.Category, pts []*dkpt.Point,
 			continue
 		}
 
-		if dkpt, err := inputData.DkPoint(); err != nil {
-			ret = append(ret, pt)
-		} else {
-			ret = append(ret, dkpt)
-		}
+		ret = append(ret, inputData.Point())
 	}
 
 	return &ScriptResult{
@@ -113,82 +109,27 @@ func RunPl(category point.Category, pts []*dkpt.Point,
 	}, nil
 }
 
-func searchScript(cat point.Category, pt *dkpt.Point, scriptMap map[string]string) (*plscript.PlScript, ptinput.PlInputPt, bool) {
+func searchScript(cat point.Category,
+	pt *point.Point, scriptMap map[string]string,
+) (*plmanager.PlScript, bool) {
 	if pt == nil {
-		return nil, nil, false
+		return nil, false
 	}
-	scriptName, plpt, ok := scriptName(cat, pt, scriptMap)
+	center, ok := plval.GetManager()
+	if !ok || center == nil {
+		return nil, false
+	}
+
+	relat := center.GetScriptRelation()
+	scriptName, ok := relation.ScriptName(relat, cat, pt, scriptMap)
 	if !ok {
-		return nil, nil, false
+		return nil, false
 	}
 
-	sc, ok := plscript.QueryScript(cat, scriptName)
+	sc, ok := center.QueryScript(cat, scriptName)
 	if ok {
-		if plpt == nil {
-			var err error
-			plpt, err = ptinput.WrapDeprecatedPoint(cat, pt)
-			if err != nil {
-				return nil, nil, false
-			}
-		}
-		return sc, plpt, true
+		return sc, true
 	} else {
-		return nil, nil, false
+		return nil, false
 	}
-}
-
-func scriptName(cat point.Category, pt *dkpt.Point, scriptMap map[string]string) (string, ptinput.PlInputPt, bool) {
-	if pt == nil {
-		return "", nil, false
-	}
-
-	var scriptName string
-	var plpt ptinput.PlInputPt
-	var err error
-
-	// built-in rules last
-	switch cat { //nolint:exhaustive
-	case point.RUM:
-		plpt, err = ptinput.WrapDeprecatedPoint(cat, pt)
-		if err != nil {
-			return "", nil, false
-		}
-		scriptName = _rumSName(plpt)
-	case point.Security:
-		plpt, err = ptinput.WrapDeprecatedPoint(cat, pt)
-		if err != nil {
-			return "", nil, false
-		}
-		scriptName = _securitySName(plpt)
-	case point.Tracing, point.Profiling:
-		plpt, err = ptinput.WrapDeprecatedPoint(cat, pt)
-		if err != nil {
-			return "", nil, false
-		}
-		scriptName = _apmSName(plpt)
-	default:
-		scriptName = _defaultCatSName(pt)
-	}
-
-	if scriptName == "" {
-		return "", plpt, false
-	}
-
-	// configuration first
-	if sName, ok := scriptMap[scriptName]; ok {
-		switch sName {
-		case "-":
-			return "", nil, false
-		case "":
-		default:
-			return sName, plpt, true
-		}
-	}
-
-	// remote relation sencond
-	if sName, ok := relation.QueryRemoteRelation(cat, scriptName); ok {
-		return sName, plpt, true
-	}
-
-	return scriptName + ".p", plpt, true
 }

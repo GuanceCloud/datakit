@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -109,7 +108,7 @@ func (dw *Dataway) Election(namespace, id string, reqBody io.Reader) ([]byte, er
 		return nil, err
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Error(err)
 		return nil, err
@@ -163,7 +162,7 @@ func (dw *Dataway) ElectionHeartbeat(namespace, id string, reqBody io.Reader) ([
 		return nil, err
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Error(err)
 		return nil, err
@@ -205,7 +204,7 @@ func (dw *Dataway) DatawayList() ([]string, int, error) {
 	}
 	defer resp.Body.Close() //nolint:errcheck
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, datawayListIntervalDefault, err
 	}

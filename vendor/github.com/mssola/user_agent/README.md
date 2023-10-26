@@ -1,7 +1,6 @@
-
 <p align="center">
-  <a href="https://travis-ci.org/mssola/user_agent" title="Travis CI status for the master branch"><img src="https://travis-ci.org/mssola/user_agent.svg?branch=master" alt="Build Status for master branch" /></a>
-  <a href="http://godoc.org/github.com/mssola/user_agent" title="godoc.org page"><img src="https://godoc.org/github.com/mssola/user_agent?status.png" alt="godoc.org page" /></a>
+  <a href="https://github.com/mssola/user_agent/actions/workflows/ci.yml" title="Travis CI status for the default branch"><img src="https://github.com/mssola/user_agent/actions/workflows/ci.yml/badge.svg" alt="Build Status for the default branch" /></a>
+  <a href="https://pkg.go.dev/github.com/mssola/user_agent" title="go.dev page"><img src="https://pkg.go.dev/badge/github.com/mssola/user_agent" alt="go.dev page" /></a>
   <a href="https://en.wikipedia.org/wiki/MIT_License" rel="nofollow"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-blue.svg" style="max-width:100%;"></a>
 </p>
 
@@ -22,22 +21,23 @@ func main() {
     // The "New" function will create a new UserAgent object and it will parse
     // the given string. If you need to parse more strings, you can re-use
     // this object and call: ua.Parse("another string")
-    ua := user_agent.New("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.97 Safari/537.11")
+    ua := user_agent.New("Mozilla/5.0 (Linux; U; Android 2.3.7; en-us; Nexus One Build/FRF91) AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/533.1")
 
-    fmt.Printf("%v\n", ua.Mobile())   // => false
+    fmt.Printf("%v\n", ua.Mobile())   // => true
     fmt.Printf("%v\n", ua.Bot())      // => false
     fmt.Printf("%v\n", ua.Mozilla())  // => "5.0"
+    fmt.Printf("%v\n", ua.Model())    // => "Nexus One"
 
-    fmt.Printf("%v\n", ua.Platform()) // => "X11"
-    fmt.Printf("%v\n", ua.OS())       // => "Linux x86_64"
+    fmt.Printf("%v\n", ua.Platform()) // => "Linux"
+    fmt.Printf("%v\n", ua.OS())       // => "Android 2.3.7"
 
     name, version := ua.Engine()
     fmt.Printf("%v\n", name)          // => "AppleWebKit"
-    fmt.Printf("%v\n", version)       // => "537.11"
+    fmt.Printf("%v\n", version)       // => "533.1"
 
     name, version = ua.Browser()
-    fmt.Printf("%v\n", name)          // => "Chrome"
-    fmt.Printf("%v\n", version)       // => "23.0.1271.97"
+    fmt.Printf("%v\n", name)          // => "Android"
+    fmt.Printf("%v\n", version)       // => "4.0"
 
     // Let's see an example with a bot.
 
@@ -52,7 +52,7 @@ func main() {
 ```
 
 If you want to read the full API documentation simply check
-[godoc](http://godoc.org/github.com/mssola/user_agent).
+[godoc](https://pkg.go.dev/github.com/mssola/user_agent).
 
 ## Installation
 
@@ -72,7 +72,7 @@ Read the [CHANGELOG.md](./CHANGELOG.md) file.
 ## License
 
 ```
-Copyright (c) 2012-2021 Miquel Sabaté Solà
+Copyright (c) 2012-2023 Miquel Sabaté Solà
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the

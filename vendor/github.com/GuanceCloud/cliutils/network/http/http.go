@@ -7,13 +7,13 @@
 package http
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
 // ReadBody will automatically unzip body.
 func ReadBody(req *http.Request) ([]byte, error) {
-	buf, err := ioutil.ReadAll(req.Body)
+	buf, err := io.ReadAll(req.Body)
 	if err != nil {
 		return nil, err
 	}

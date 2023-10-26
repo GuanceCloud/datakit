@@ -13,11 +13,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
 
 const (
-	successString  string = "succeeded!"
+	successString  string = "succe"
 	ncUnknownError string = "unknown fail reason or nc run time out"
 )
 
@@ -30,61 +32,66 @@ func findNc() (string, error) {
 	}
 }
 
-func (i *Input) CollectUDP(destHost string, destPort string) error {
+func (i *input) collectUDP(destHost string, destPort string) *point.Point {
 	ncPath, err := findNc()
 	if err != nil {
 		l.Warnf("input socket: %s", err)
-		return err
+
+		i.feeder.FeedLastError(err.Error(),
+			io.WithLastErrorInput(inputName),
+			io.WithLastErrorCategory(point.Metric))
+		return nil
 	}
 
 	// -vuz 1.1.1.1 5555
 	args := []string{"-vuz", destHost, destPort}
-	tags := map[string]string{
-		"dest_host": destHost,
-		"dest_port": destPort,
-		"proto":     "udp",
-	}
 
-	fields := map[string]interface{}{
-		"success": int64(-1),
-	}
+	var kvs point.KVs
+	kvs = kvs.MustAddTag("dest_host", destHost)
+	kvs = kvs.MustAddTag("dest_port", destPort)
+	kvs = kvs.MustAddTag("proto", "udp")
+
+	// default set failed
+	kvs = kvs.Add("success", -1, false, true)
+
 	// nolint
 	cmd := exec.Command(ncPath, args...)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &out
-	err = RunTimeout(cmd, i.UDPTimeOut.Duration)
+	err = runTimeout(cmd, i.UDPTimeOut.Duration)
 	if err != nil {
-		l.Warnf("error running nc or services port host or port error: nc %s", err)
+		i.feeder.FeedLastError(err.Error(),
+			io.WithLastErrorInput(inputName),
+			io.WithLastErrorCategory(point.Metric))
 	}
+
 	res := out.String()
 	if len(res) == 0 {
 		res = ncUnknownError
 	}
+
 	if i.platform == datakit.OSWindows {
 		if !strings.Contains(res, destPort+"(?)") {
-			fields["success"] = 1
+			kvs = kvs.Add("success", 1, false, true)
 		}
 	} else {
 		if strings.Contains(res, successString) {
-			fields["success"] = 1
+			kvs = kvs.Add("success", 1, false, true)
 		}
 	}
-	ts := time.Now()
-	tmp := &UDPMeasurement{name: "udp", tags: tags, fields: fields, ts: ts}
-	i.collectCache = append(i.collectCache, tmp)
 
-	return nil
+	return point.NewPointV2("udp", kvs, point.DefaultMetricOptions()...)
 }
 
-func RunTimeout(c *exec.Cmd, timeout time.Duration) error {
+func runTimeout(c *exec.Cmd, timeout time.Duration) error {
 	if err := c.Start(); err != nil {
 		return err
 	}
-	return WaitTimeout(c, timeout)
+	return waitTimeout(c, timeout)
 }
 
-func WaitTimeout(c *exec.Cmd, timeout time.Duration) error {
+func waitTimeout(c *exec.Cmd, timeout time.Duration) error {
 	var kill *time.Timer
 	term := time.AfterFunc(timeout, func() {
 		err := c.Process.Signal(syscall.SIGTERM)

@@ -8,7 +8,6 @@ package datakit
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -88,6 +87,7 @@ const (
 
 	StrGitRepos           = "gitrepos"
 	StrPipelineRemote     = "pipeline_remote"
+	StrPipelineConfd      = "pipeline_confd"
 	StrPipelineFileSuffix = ".p"
 	StrConfD              = "conf.d"
 	StrPythonD            = "python.d"
@@ -158,9 +158,10 @@ var (
 	UnknownOS   = []string{"unknown"}
 	UnknownArch = []string{"unknown"}
 
-	DataDir    = filepath.Join(InstallDir, "data")
-	DataRUMDir = filepath.Join(DataDir, "rum")
-	ConfdDir   = filepath.Join(InstallDir, StrConfD)
+	DataDir          = filepath.Join(InstallDir, "data")
+	DataRUMDir       = filepath.Join(DataDir, "rum")
+	ConfdDir         = filepath.Join(InstallDir, StrConfD)
+	ConfdPipelineDir = filepath.Join(InstallDir, StrPipelineConfd)
 
 	GitReposDir          = filepath.Join(InstallDir, StrGitRepos)
 	GitReposRepoName     string
@@ -377,7 +378,7 @@ func Quit() {
 }
 
 func PID() (int, error) {
-	if x, err := ioutil.ReadFile(filepath.Clean(pidFile)); err != nil {
+	if x, err := os.ReadFile(filepath.Clean(pidFile)); err != nil {
 		return -1, err
 	} else {
 		if pid, err := strconv.ParseInt(string(x), 10, 32); err != nil {
@@ -394,7 +395,7 @@ func SavePid() error {
 	}
 
 	pid := os.Getpid()
-	return ioutil.WriteFile(pidFile, []byte(fmt.Sprintf("%d", pid)), os.ModePerm)
+	return os.WriteFile(pidFile, []byte(fmt.Sprintf("%d", pid)), os.ModePerm)
 }
 
 func isRuning() bool {
@@ -402,7 +403,7 @@ func isRuning() bool {
 	var name string
 	var p *process.Process
 
-	cont, err := ioutil.ReadFile(filepath.Clean(pidFile))
+	cont, err := os.ReadFile(filepath.Clean(pidFile))
 	// pid文件不存在
 	if err != nil {
 		return false

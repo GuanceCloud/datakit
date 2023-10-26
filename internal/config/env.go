@@ -13,13 +13,35 @@ import (
 
 	fp "github.com/GuanceCloud/cliutils/filter"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/pipeline/offload"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/offload"
 )
 
 func (c *Config) loadDataway() {
+	if v := datakit.GetEnv("ENV_DATAWAY_CONTENT_ENCODING"); v != "" {
+		// NOTE: do not checking encoding here, invalid encoding will reset to line-protocol
+		l.Info("ENV_DATAWAY_CONTENT_ENCODING set to %q", v)
+		c.Dataway.ContentEncoding = v
+	}
+
+	if v := datakit.GetEnv("ENV_DATAWAY_MAX_RAW_BODY_SIZE"); v != "" {
+		value, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			l.Warnf("invalid ENV_DATAWAY_MAX_RAW_BODY_SIZE: %s", v)
+		} else {
+			l.Info("ENV_DATAWAY_MAX_RAW_BODY_SIZE set to %q", v)
+
+			if value < dataway.MinimalRawBodySize && c.ProtectMode {
+				l.Info("ENV_DATAWAY_MAX_RAW_BODY_SIZE(%q) too small, not applied", v)
+				c.Dataway.MaxRawBodySize = dataway.MinimalRawBodySize
+			} else {
+				c.Dataway.MaxRawBodySize = int(value)
+			}
+		}
+	}
+
 	// 多个 dataway 支持 ',' 分割
 	// c.Dataway should not nil
 	if v := datakit.GetEnv("ENV_DATAWAY"); v != "" {
@@ -224,6 +246,11 @@ func (c *Config) LoadEnvs() error {
 		c.IO = &IOConf{}
 	}
 
+	// first load protect mode settings, other settings depends on this flag.
+	if v := datakit.GetEnv("ENV_DISABLE_PROTECT_MODE"); v != "" {
+		c.ProtectMode = false
+	}
+
 	c.loadIOEnvs()
 
 	if v := datakit.GetEnv("ENV_IPDB"); v != "" {
@@ -425,10 +452,6 @@ func (c *Config) LoadEnvs() error {
 
 	if v := datakit.GetEnv("ENV_PPROF_LISTEN"); v != "" {
 		c.PProfListen = v
-	}
-
-	if v := datakit.GetEnv("ENV_DISABLE_PROTECT_MODE"); v != "" {
-		c.ProtectMode = false
 	}
 
 	for _, x := range []string{

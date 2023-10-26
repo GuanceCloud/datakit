@@ -8,7 +8,7 @@ package cmds
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	nhttp "net/http"
 	"runtime"
 	"strings"
@@ -168,7 +168,7 @@ func getVersion(addr string) (*version.VerInfo, error) {
 	}
 
 	defer resp.Body.Close() //nolint:errcheck
-	infobody, err := ioutil.ReadAll(resp.Body)
+	infobody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("http read body err=%w", err)
 	}

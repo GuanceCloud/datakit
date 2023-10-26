@@ -1,4 +1,4 @@
-// Copyright (C) 2012-2021 Miquel Sabaté Solà <mikisabate@gmail.com>
+// Copyright (C) 2012-2023 Miquel Sabaté Solà <mikisabate@gmail.com>
 // This file is licensed under the MIT license.
 // See the LICENSE file.
 
@@ -73,7 +73,7 @@ func (p *UserAgent) detectBrowser(sections []section) {
 					p.browser.Engine = "EdgeHTML"
 					p.browser.EngineVersion = ""
 				case "Edg":
-					if p.undecided != true {
+					if !p.undecided {
 						p.browser.Name = "Edge"
 						p.browser.Version = sections[slen-1].version
 						p.browser.Engine = "AppleWebKit"
@@ -82,22 +82,38 @@ func (p *UserAgent) detectBrowser(sections []section) {
 				case "OPR":
 					p.browser.Name = "Opera"
 					p.browser.Version = sections[slen-1].version
+				case "Mobile":
+					p.browser.Name = "Mobile App"
+					p.browser.Version = ""
 				default:
 					switch sections[slen-3].name {
 					case "YaBrowser":
 						p.browser.Name = "YaBrowser"
+						p.browser.Version = sections[slen-3].version
+					case "coc_coc_browser":
+						p.browser.Name = "Coc Coc"
 						p.browser.Version = sections[slen-3].version
 					default:
 						switch sections[slen-2].name {
 						case "Electron":
 							p.browser.Name = "Electron"
 							p.browser.Version = sections[slen-2].version
+						case "DuckDuckGo":
+							p.browser.Name = "DuckDuckGo"
+							p.browser.Version = sections[slen-2].version
+						case "PhantomJS":
+							p.browser.Name = "PhantomJS"
+							p.browser.Version = sections[slen-2].version
 						default:
 							switch sections[sectionIndex].name {
 							case "Chrome", "CriOS":
 								p.browser.Name = "Chrome"
+							case "HeadlessChrome":
+								p.browser.Name = "Headless Chrome"
 							case "Chromium":
 								p.browser.Name = "Chromium"
+							case "GSA":
+								p.browser.Name = "Google App"
 							case "FxiOS":
 								p.browser.Name = "Firefox"
 							default:

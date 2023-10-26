@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -61,7 +60,7 @@ func uploadLog(urls []string) error {
 
 	defer resp.Body.Close() //nolint:errcheck
 
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
@@ -94,7 +93,7 @@ func getLogFile() (string, error) {
 
 	defer file.Close() //nolint:gosec,errcheck
 
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "datakit-log")
+	tmpFile, err := os.CreateTemp(os.TempDir(), "datakit-log")
 	if err != nil {
 		return fileName, err
 	}

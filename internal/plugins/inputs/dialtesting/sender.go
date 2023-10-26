@@ -15,10 +15,8 @@ import (
 	"time"
 
 	pt "github.com/GuanceCloud/cliutils/point"
-	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 )
 
 // Sender is used to save points.
@@ -45,20 +43,11 @@ type dwSender struct {
 }
 
 func (s *dwSender) send(url string, point *pt.Point) error {
-	var dkPts []*dkpt.Point
-
 	if s.dw == nil {
 		return fmt.Errorf("sender dw is nil")
 	}
 
-	dkPoint, err := influxdb.NewPoint(string(point.Name()), point.InfluxTags(), point.InfluxFields(), point.Time())
-	if err != nil {
-		return fmt.Errorf("transform v2 point to dk piont error: %w", err)
-	}
-
-	dkPts = []*dkpt.Point{{Point: dkPoint}}
-
-	return s.dw.WriteData(url, dkPts)
+	return s.dw.WriteData(url, []*pt.Point{point})
 }
 
 func (s *dwSender) checkToken(token, scheme, host string) (bool, error) {

@@ -1,4 +1,4 @@
-// Copyright (C) 2012-2021 Miquel Sabaté Solà <mikisabate@gmail.com>
+// Copyright (C) 2012-2023 Miquel Sabaté Solà <mikisabate@gmail.com>
 // This file is licensed under the MIT license.
 // See the LICENSE file.
 
@@ -26,6 +26,7 @@ type UserAgent struct {
 	platform     string
 	os           string
 	localization string
+	model        string
 	browser      Browser
 	bot          bool
 	mobile       bool
@@ -103,7 +104,7 @@ func parseSection(ua string, index *int) (s section) {
 	// Discards any trailing data within square brackets
 	if *index < len(ua) && ua[*index] == '[' {
 		*index++
-		buffer = readUntil(ua, index, ']', true)
+		_ = readUntil(ua, index, ']', true)
 		*index++
 	}
 	return s
@@ -116,6 +117,7 @@ func (p *UserAgent) initialize() {
 	p.platform = ""
 	p.os = ""
 	p.localization = ""
+	p.model = ""
 	p.browser.Engine = ""
 	p.browser.EngineVersion = ""
 	p.browser.Name = ""
@@ -158,6 +160,7 @@ func (p *UserAgent) Parse(ua string) {
 
 		p.detectBrowser(sections)
 		p.detectOS(sections[0])
+		p.detectModel(sections[0])
 
 		if p.undecided {
 			p.checkBot(sections)

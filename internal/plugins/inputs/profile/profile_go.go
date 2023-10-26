@@ -202,8 +202,8 @@ func (g *GoProfiler) pullProfile() {
 						profiledatas:    []*profileData{pData},
 						endPoint:        g.url.String(),
 						inputTags:       g.tags,
-						election:        g.input.Election,
 						inputNameSuffix: "/go",
+						Input:           g.input,
 					},
 					event,
 				); err != nil {
@@ -225,8 +225,8 @@ func (g *GoProfiler) pullProfile() {
 				profiledatas:    deletaDatas,
 				endPoint:        g.url.String(),
 				inputTags:       g.tags,
-				election:        g.input.Election,
 				inputNameSuffix: "/go",
+				Input:           g.input,
 			},
 			event,
 		); err != nil {

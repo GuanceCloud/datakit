@@ -14,11 +14,11 @@ import (
 	"runtime"
 	"strings"
 
+	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/script"
 )
 
 var (
@@ -74,7 +74,7 @@ func LoadCfg(c *Config, mcp string) error {
 		return err
 	}
 
-	l.Debugf("apply main configure...")
+	l.Infof("apply main configure from %q...", mcp)
 
 	if err := c.ApplyMainConfig(); err != nil {
 		return err
@@ -185,7 +185,7 @@ func GetPipelinePath(category point.Category, pipeLineName string) (string, erro
 	}
 
 	{
-		files := script.SearchPlFilePathFromPlStructPath(datakit.GitReposRepoFullPath)
+		files := plmanager.SearchPlFilePathFromPlStructPath(datakit.GitReposRepoFullPath)
 		if f, ok := files[category]; ok {
 			if plPath, ok := f[pipeLineName]; ok {
 				if _, err := os.Stat(plPath); err != nil {
@@ -197,7 +197,7 @@ func GetPipelinePath(category point.Category, pipeLineName string) (string, erro
 		}
 	}
 
-	files := script.SearchPlFilePathFromPlStructPath(datakit.PipelineDir)
+	files := plmanager.SearchPlFilePathFromPlStructPath(datakit.PipelineDir)
 	if f, ok := files[category]; ok {
 		if plPath, ok := f[pipeLineName]; ok {
 			if _, err := os.Stat(plPath); err != nil {

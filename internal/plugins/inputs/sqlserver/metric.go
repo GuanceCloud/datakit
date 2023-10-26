@@ -7,7 +7,7 @@ package sqlserver
 
 import (
 	"github.com/GuanceCloud/cliutils/point"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -30,19 +30,15 @@ type MetricMeasurment struct {
 	Measurement
 }
 
-func (m *MetricMeasurment) LineProto() (*dkpt.Point, error) {
-	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.MOptElection())
-}
-
 // Point implement MeasurementV2.
 func (m *MetricMeasurment) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 
 	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+		opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
 	}
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
 }
@@ -51,19 +47,15 @@ type LoggingMeasurment struct {
 	Measurement
 }
 
-func (m *LoggingMeasurment) LineProto() (*dkpt.Point, error) {
-	return dkpt.NewPoint(m.name, m.tags, m.fields, dkpt.LOptElection())
-}
-
 // Point implement MeasurementV2.
 func (m *LoggingMeasurment) Point() *point.Point {
 	opts := point.DefaultLoggingOptions()
 
 	if m.election {
-		opts = append(opts, point.WithExtraTags(dkpt.GlobalElectionTags()))
+		opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
 	}
 
-	return point.NewPointV2([]byte(m.name),
+	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
 }

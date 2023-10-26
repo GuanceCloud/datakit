@@ -22,7 +22,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -103,28 +102,28 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func (i *Input) ElectionEnabled() bool {
-	return i.Election
+func (ipt *Input) ElectionEnabled() bool {
+	return ipt.Election
 }
 
-func (i *Input) Collect() error {
-	if len(i.Servers) == 0 && len(i.UnixSockets) == 0 {
-		return i.gatherServer(":11211", false)
+func (ipt *Input) Collect() error {
+	if len(ipt.Servers) == 0 && len(ipt.UnixSockets) == 0 {
+		return ipt.gatherServer(":11211", false)
 	}
 
 	g := goroutine.NewGroup(goroutine.Option{Name: goroutine.GetInputName(inputName)})
-	for _, serverAddress := range i.Servers {
+	for _, serverAddress := range ipt.Servers {
 		func(addr string) {
 			g.Go(func(ctx context.Context) error {
-				return i.gatherServer(addr, false)
+				return ipt.gatherServer(addr, false)
 			})
 		}(serverAddress)
 	}
 
-	for _, unixAddress := range i.UnixSockets {
+	for _, unixAddress := range ipt.UnixSockets {
 		func(unixAddr string) {
 			g.Go(func(ctx context.Context) error {
-				return i.gatherServer(unixAddr, true)
+				return ipt.gatherServer(unixAddr, true)
 			})
 		}(unixAddress)
 	}
@@ -132,13 +131,13 @@ func (i *Input) Collect() error {
 	return g.Wait()
 }
 
-func (i *Input) gatherServer(address string, unix bool) error {
+func (ipt *Input) gatherServer(address string, unix bool) error {
 	var conn net.Conn
 	var err error
 	if unix {
 		conn, err = net.DialTimeout("unix", address, defaultTimeout)
 		if err != nil {
-			i.feeder.FeedLastError(err.Error(),
+			ipt.feeder.FeedLastError(err.Error(),
 				dkio.WithLastErrorInput(inputName),
 			)
 			return err
@@ -152,7 +151,7 @@ func (i *Input) gatherServer(address string, unix bool) error {
 
 		conn, err = net.DialTimeout("tcp", address, defaultTimeout)
 		if err != nil {
-			i.feeder.FeedLastError(err.Error(),
+			ipt.feeder.FeedLastError(err.Error(),
 				dkio.WithLastErrorInput(inputName),
 			)
 			return err
@@ -165,17 +164,17 @@ func (i *Input) gatherServer(address string, unix bool) error {
 	}
 
 	tags := map[string]string{"server": address}
-	if i.Tags != nil {
-		for k, v := range i.Tags {
+	if ipt.Tags != nil {
+		for k, v := range ipt.Tags {
 			tags[k] = v
 		}
 	}
 
-	for k, v := range i.metricCollectorMap {
+	for k, v := range ipt.metricCollectorMap {
 		if points, err := v.collector(conn, v.metricInfo, tags); err != nil {
 			l.Warnf("collect stats %s failed: %s", k, err.Error())
 		} else {
-			i.collectCache = append(i.collectCache, points...)
+			ipt.collectCache = append(ipt.collectCache, points...)
 		}
 	}
 
@@ -228,12 +227,12 @@ func getResponseReader(conn net.Conn, command string) (reader *bufio.Reader, err
 }
 
 // collectStatsItems collect items stats.
-func (i *Input) collectStatsItems(conn net.Conn, info *inputs.MeasurementInfo, extraTags map[string]string) (pts []*point.Point, err error) {
+func (ipt *Input) collectStatsItems(conn net.Conn, info *inputs.MeasurementInfo, extraTags map[string]string) (pts []*point.Point, err error) {
 	reader, err := getResponseReader(conn, "stats items")
 	if err != nil {
 		return
 	}
-	return i.collectPoints(reader, info, extraTags,
+	return ipt.collectPoints(reader, info, extraTags,
 		func(key, value []byte) (slabID string, fields map[string]interface{}, err error) {
 			fields = make(map[string]interface{})
 			keyParts := bytes.SplitN(key, []byte(":"), 3)
@@ -254,12 +253,12 @@ func (i *Input) collectStatsItems(conn net.Conn, info *inputs.MeasurementInfo, e
 }
 
 // collectStatsSlabs collect slabs stats.
-func (i *Input) collectStatsSlabs(conn net.Conn, info *inputs.MeasurementInfo, extraTags map[string]string) (pts []*point.Point, err error) {
+func (ipt *Input) collectStatsSlabs(conn net.Conn, info *inputs.MeasurementInfo, extraTags map[string]string) (pts []*point.Point, err error) {
 	reader, err := getResponseReader(conn, "stats slabs")
 	if err != nil {
 		return
 	}
-	return i.collectPoints(reader, info, extraTags,
+	return ipt.collectPoints(reader, info, extraTags,
 		func(key, value []byte) (slabID string, fields map[string]interface{}, err error) {
 			fields = make(map[string]interface{})
 			keyParts := bytes.SplitN(key, []byte(":"), 2)
@@ -285,7 +284,7 @@ func (i *Input) collectStatsSlabs(conn net.Conn, info *inputs.MeasurementInfo, e
 		})
 }
 
-func (i *Input) collectPoints(
+func (ipt *Input) collectPoints(
 	reader *bufio.Reader,
 	info *inputs.MeasurementInfo,
 	extraTags map[string]string,
@@ -345,7 +344,7 @@ func (i *Input) collectPoints(
 			tags:   tags,
 			fields: fields,
 			ts:     time.Now(),
-			ipt:    i,
+			ipt:    ipt,
 		}
 
 		pts = append(pts, metric.Point())
@@ -354,13 +353,13 @@ func (i *Input) collectPoints(
 	return pts, err
 }
 
-func (i *Input) collectStats(conn net.Conn, info *inputs.MeasurementInfo, extraTags map[string]string) (pts []*point.Point, err error) {
+func (ipt *Input) collectStats(conn net.Conn, info *inputs.MeasurementInfo, extraTags map[string]string) (pts []*point.Point, err error) {
 	reader, err := getResponseReader(conn, "stats")
 	if err != nil {
 		return
 	}
 
-	return i.collectPoints(reader, info, extraTags,
+	return ipt.collectPoints(reader, info, extraTags,
 		func(key, value []byte) (slabID string, fields map[string]interface{}, err error) {
 			fields = make(map[string]interface{})
 			slabID = emptySlabID
@@ -379,36 +378,36 @@ const (
 	minInterval = 1 * time.Second
 )
 
-func (i *Input) init() {
+func (ipt *Input) init() {
 	l = logger.SLogger(inputName)
 
-	duration, err := time.ParseDuration(i.Interval)
+	duration, err := time.ParseDuration(ipt.Interval)
 	if err != nil {
 		l.Errorf("invalid interval, %w", err)
 	} else if duration <= 0 {
 		l.Error("invalid interval, cannot be less than zero")
 	}
 
-	i.duration = config.ProtectedInterval(minInterval, maxInterval, duration)
+	ipt.duration = config.ProtectedInterval(minInterval, maxInterval, duration)
 
-	i.metricCollectorMap = map[string]*collectItem{
+	ipt.metricCollectorMap = map[string]*collectItem{
 		"memcache": {
 			metricInfo: (&inputMeasurement{}).Info(),
-			collector:  i.collectStats,
+			collector:  ipt.collectStats,
 		},
 	}
 
-	for _, statType := range i.ExtraStats {
+	for _, statType := range ipt.ExtraStats {
 		switch statType {
 		case "items":
-			i.metricCollectorMap["items"] = &collectItem{
+			ipt.metricCollectorMap["items"] = &collectItem{
 				metricInfo: (&itemsMeasurement{}).Info(),
-				collector:  i.collectStatsItems,
+				collector:  ipt.collectStatsItems,
 			}
 		case "slabs":
-			i.metricCollectorMap["slabs"] = &collectItem{
+			ipt.metricCollectorMap["slabs"] = &collectItem{
 				metricInfo: (&slabsMeasurement{}).Info(),
-				collector:  i.collectStatsSlabs,
+				collector:  ipt.collectStatsSlabs,
 			}
 
 		default:
@@ -416,35 +415,35 @@ func (i *Input) init() {
 		}
 	}
 
-	if i.Election {
-		i.opt = point.WithExtraTags(dkpt.GlobalElectionTags())
+	if ipt.Election {
+		ipt.opt = point.WithExtraTags(datakit.GlobalElectionTags())
 	} else {
-		i.opt = point.WithExtraTags(dkpt.GlobalHostTags())
+		ipt.opt = point.WithExtraTags(datakit.GlobalHostTags())
 	}
 }
 
-func (i *Input) Run() {
-	i.init()
+func (ipt *Input) Run() {
+	ipt.init()
 
-	tick := time.NewTicker(i.duration)
+	tick := time.NewTicker(ipt.duration)
 
 	for {
 		start := time.Now()
-		if err := i.Collect(); err != nil {
+		if err := ipt.Collect(); err != nil {
 			l.Errorf("Collect: %s", err)
-			i.feeder.FeedLastError(err.Error(),
+			ipt.feeder.FeedLastError(err.Error(),
 				dkio.WithLastErrorInput(inputName),
 			)
 		}
 
-		if len(i.collectCache) > 0 {
-			if err := i.feeder.Feed(inputName, point.Metric, i.collectCache, &dkio.Option{CollectCost: time.Since(start)}); err != nil {
+		if len(ipt.collectCache) > 0 {
+			if err := ipt.feeder.Feed(inputName, point.Metric, ipt.collectCache, &dkio.Option{CollectCost: time.Since(start)}); err != nil {
 				l.Errorf("FeedMeasurement: %s", err.Error())
-				i.feeder.FeedLastError(err.Error(),
+				ipt.feeder.FeedLastError(err.Error(),
 					dkio.WithLastErrorInput(inputName),
 				)
 			}
-			i.collectCache = i.collectCache[:0]
+			ipt.collectCache = ipt.collectCache[:0]
 		}
 
 		select {
@@ -452,7 +451,7 @@ func (i *Input) Run() {
 			l.Info("memcached exit")
 			return
 
-		case <-i.semStop.Wait():
+		case <-ipt.semStop.Wait():
 			l.Info("memcached return")
 			return
 
@@ -461,9 +460,9 @@ func (i *Input) Run() {
 	}
 }
 
-func (i *Input) Terminate() {
-	if i.semStop != nil {
-		i.semStop.Close()
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
 	}
 }
 

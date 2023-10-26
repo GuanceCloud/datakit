@@ -110,7 +110,7 @@ func metaGet(metaURL string) (res string) {
 func clientDo(req *http.Request, metaURL string) []byte {
 	resp, err := cloudCli.Do(req)
 	if err != nil {
-		l.Warn(err)
+		l.Warn("%s, this maybe not a cloud node, ignored.", err)
 		return nil
 	}
 
@@ -130,7 +130,7 @@ func clientDo(req *http.Request, metaURL string) []byte {
 func metadataGet(metaURL string) []byte {
 	req, err := http.NewRequest("GET", metaURL, nil)
 	if err != nil {
-		l.Warn(err)
+		l.Errorf("http.NewRequest: %s", err)
 		return nil
 	}
 

@@ -16,9 +16,10 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -27,11 +28,11 @@ var (
 	l         = logger.DefaultSLogger("demo")
 	g         = goroutine.NewGroup(goroutine.Option{Name: "inputs_demo"})
 
-	_ inputs.ElectionInput = (*Input)(nil)
+	_ inputs.ElectionInput = (*input)(nil)
 )
 
-type Input struct {
-	collectCache []inputs.Measurement
+type input struct {
+	collectCache []*point.Point
 	Tags         map[string]string
 	chpause      chan bool
 	EatCPU       bool `toml:"eat_cpu"`
@@ -39,28 +40,29 @@ type Input struct {
 	paused       bool
 
 	semStop *cliutils.Sem // start stop signal
+	feeder  dkio.Feeder
+	Tagger  datakit.GlobalTagger
 }
 
-func (ipt *Input) ElectionEnabled() bool {
+func (ipt *input) ElectionEnabled() bool {
 	return ipt.Election
 }
 
-func (ipt *Input) Collect() error {
-	ipt.collectCache = []inputs.Measurement{
-		&demoMetric{
-			name: "demo",
-			tags: map[string]string{"tag_a": "a", "tag_b": "b"},
-			fields: map[string]interface{}{
-				"usage":       "12.3",
-				"disk_size":   5e9,
-				"mem_size":    1e9,
-				"some_string": "hello world",
-				"ok":          true,
-			},
-			ts:       time.Now(),
-			election: ipt.Election,
-		},
-	}
+func (ipt *input) collect() error {
+	var kvs point.KVs
+
+	kvs.Add("tag_a", "a", true, false)
+	kvs.Add("tag_b", "b", true, false)
+
+	kvs.Add("usage", "12.3", false, false)
+	kvs.Add("disk_size", 5e9, false, false)
+	kvs.Add("mem_size", 1e9, false, false)
+	kvs.Add("some_string", "hello world", false, false)
+	kvs.Add("ok", true, false, false)
+
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(time.Now()))
+	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(inputName, kvs, opts...))
 
 	// simulate long-time collect..
 	time.Sleep(time.Second)
@@ -68,7 +70,7 @@ func (ipt *Input) Collect() error {
 	return nil
 }
 
-func (ipt *Input) Run() {
+func (ipt *input) Run() {
 	l = logger.SLogger("demo")
 	tick := time.NewTicker(time.Second * 3)
 	defer tick.Stop()
@@ -97,18 +99,20 @@ func (ipt *Input) Run() {
 
 			l.Debugf("demo input gathering...")
 			start := time.Now()
-			if err := ipt.Collect(); err != nil {
+			if err := ipt.collect(); err != nil {
 				l.Error(err)
 			} else {
-				if err := inputs.FeedMeasurement(inputName, datakit.Metric, ipt.collectCache,
-					&io.Option{
-						CollectCost: time.Since(start),
-					}); err != nil {
-					l.Errorf("FeedMeasurement: %s", err.Error())
+				if err := ipt.feeder.Feed(inputName, point.Metric, ipt.collectCache,
+					&dkio.Option{CollectCost: time.Since(start)}); err != nil {
+					l.Errorf("Feed failed: %s", err.Error())
+
+					ipt.feeder.FeedLastError("mocked error from demo input",
+						dkio.WithLastErrorInput(inputName),
+						dkio.WithLastErrorCategory(point.Metric),
+					)
 				}
 
 				ipt.collectCache = ipt.collectCache[:0] // Do not forget to clean cache
-				io.FeedLastError(inputName, "mocked error from demo input")
 			}
 
 		case <-datakit.Exit.Wait():
@@ -122,18 +126,18 @@ func (ipt *Input) Run() {
 	}
 }
 
-func (ipt *Input) exit() {
+func (ipt *input) exit() {
 	close(ipt.chpause)
 }
 
-func (ipt *Input) Terminate() {
+func (ipt *input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
 	}
 }
 
-func (*Input) Catalog() string { return "testing" }
-func (*Input) SampleConfig() string {
+func (*input) Catalog() string { return "testing" }
+func (*input) SampleConfig() string {
 	return `
 [inputs.demo]
   ## 这里是一些测试配置
@@ -150,7 +154,7 @@ func (*Input) SampleConfig() string {
 `
 }
 
-func (*Input) SampleMeasurement() []inputs.Measurement {
+func (*input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&demoMetric{},
 		&demoMetric2{},
@@ -159,11 +163,11 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func (*Input) AvailableArchs() []string {
+func (*input) AvailableArchs() []string {
 	return datakit.AllOS
 }
 
-func (ipt *Input) Pause() error {
+func (ipt *input) Pause() error {
 	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	select {
 	case ipt.chpause <- true:
@@ -173,7 +177,7 @@ func (ipt *Input) Pause() error {
 	}
 }
 
-func (ipt *Input) Resume() error {
+func (ipt *input) Resume() error {
 	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	select {
 	case ipt.chpause <- false:
@@ -181,18 +185,6 @@ func (ipt *Input) Resume() error {
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
 	}
-}
-
-func init() { //nolint:gochecknoinits
-	inputs.Add(inputName, func() inputs.Input {
-		return &Input{
-			paused:  false,
-			chpause: make(chan bool, inputs.ElectionPauseChannelLength),
-
-			Election: true,
-			semStop:  cliutils.NewSem(),
-		}
-	})
 }
 
 func eatCPU(n int) {
@@ -203,4 +195,22 @@ func eatCPU(n int) {
 			}
 		})
 	}
+}
+
+func defaultInput() *input {
+	return &input{
+		paused:  false,
+		chpause: make(chan bool, inputs.ElectionPauseChannelLength),
+
+		Election: true,
+		semStop:  cliutils.NewSem(),
+		feeder:   dkio.DefaultFeeder(),
+		Tagger:   datakit.DefaultGlobalTagger(),
+	}
+}
+
+func init() { //nolint:gochecknoinits
+	inputs.Add(inputName, func() inputs.Input {
+		return defaultInput()
+	})
 }

@@ -10,8 +10,9 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -39,28 +40,19 @@ var (
 )
 
 type Input struct {
-	Dir string `toml:"dir"`
-	// file_size string
-	// file_count      string
+	Dir             string           `toml:"dir"`
 	ExcludePatterns []string         `toml:"exclude_patterns"`
 	Interval        datakit.Duration `toml:"interval"`
-	collectCache    []inputs.Measurement
+	collectCache    []*point.Point
 	Tags            map[string]string `toml:"tags"`
 	platform        string
 
 	semStop *cliutils.Sem // start stop signal
+	feeder  dkio.Feeder
+	Tagger  datakit.GlobalTagger
 }
 
-type Measurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
-}
-
-func (m *Measurement) LineProto() (*point.Point, error) {
-	return point.NewPoint(m.name, m.tags, m.fields, point.MOpt())
-}
+type Measurement struct{}
 
 func (m *Measurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{

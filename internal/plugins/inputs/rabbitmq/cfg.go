@@ -18,7 +18,6 @@ import (
 	"github.com/influxdata/telegraf/plugins/common/tls"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	dkpt "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -108,7 +107,7 @@ type Input struct {
 
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
-	Tagger  dkpt.GlobalTagger
+	Tagger  datakit.GlobalTagger
 }
 
 type rabbitmqlog struct {
@@ -243,8 +242,8 @@ type Queue struct {
 	IdleSince            string `json:"idle_since"`
 }
 
-func (n *Input) createHTTPClient() (*http.Client, error) {
-	tlsCfg, err := n.ClientConfig.TLSConfig()
+func (ipt *Input) createHTTPClient() (*http.Client, error) {
+	tlsCfg, err := ipt.ClientConfig.TLSConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -259,17 +258,17 @@ func (n *Input) createHTTPClient() (*http.Client, error) {
 	return client, nil
 }
 
-func (n *Input) requestJSON(u string, target interface{}) error {
-	u = fmt.Sprintf("%s%s", n.URL, u)
+func (ipt *Input) requestJSON(u string, target interface{}) error {
+	u = fmt.Sprintf("%s%s", ipt.URL, u)
 
 	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
 		return err
 	}
 
-	req.SetBasicAuth(n.Username, n.Password)
+	req.SetBasicAuth(ipt.Username, ipt.Password)
 
-	resp, err := n.client.Do(req)
+	resp, err := ipt.client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -314,8 +313,8 @@ func newByteFieldInfo(desc string) *inputs.FieldInfo {
 	}
 }
 
-func (n *Input) metricAppend(metric *point.Point) {
-	n.lock.Lock()
-	n.collectCache = append(n.collectCache, metric)
-	n.lock.Unlock()
+func (ipt *Input) metricAppend(metric *point.Point) {
+	ipt.lock.Lock()
+	ipt.collectCache = append(ipt.collectCache, metric)
+	ipt.lock.Unlock()
 }

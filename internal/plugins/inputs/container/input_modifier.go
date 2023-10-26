@@ -11,24 +11,24 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/multiline"
 )
 
-func (i *Input) setLoggingAutoMultilineToLogConfigs(configs logConfigs) {
-	if !i.LoggingAutoMultilineDetection {
+func (ipt *Input) setLoggingAutoMultilineToLogConfigs(configs logConfigs) {
+	if !ipt.LoggingAutoMultilineDetection {
 		return
 	}
 	for _, cfg := range configs {
 		if len(cfg.MultilinePatterns) != 0 {
 			continue
 		}
-		if len(i.LoggingAutoMultilineExtraPatterns) != 0 {
-			cfg.MultilinePatterns = i.LoggingAutoMultilineExtraPatterns
+		if len(ipt.LoggingAutoMultilineExtraPatterns) != 0 {
+			cfg.MultilinePatterns = ipt.LoggingAutoMultilineExtraPatterns
 		} else {
 			cfg.MultilinePatterns = multiline.GlobalPatterns
 		}
 	}
 }
 
-func (i *Input) setLoggingExtraSourceMapToLogConfigs(configs logConfigs) {
-	for re, newSource := range i.LoggingExtraSourceMap {
+func (ipt *Input) setLoggingExtraSourceMapToLogConfigs(configs logConfigs) {
+	for re, newSource := range ipt.LoggingExtraSourceMap {
 		for _, cfg := range configs {
 			match, err := regexp.MatchString(re, cfg.Source)
 			if err != nil {
@@ -43,8 +43,8 @@ func (i *Input) setLoggingExtraSourceMapToLogConfigs(configs logConfigs) {
 	}
 }
 
-func (i *Input) setLoggingSourceMultilineMapToLogConfigs(configs logConfigs) {
-	if len(i.LoggingSourceMultilineMap) == 0 {
+func (ipt *Input) setLoggingSourceMultilineMapToLogConfigs(configs logConfigs) {
+	if len(ipt.LoggingSourceMultilineMap) == 0 {
 		return
 	}
 	for _, cfg := range configs {
@@ -53,7 +53,7 @@ func (i *Input) setLoggingSourceMultilineMapToLogConfigs(configs logConfigs) {
 		}
 
 		source := cfg.Source
-		mult := i.LoggingSourceMultilineMap[source]
+		mult := ipt.LoggingSourceMultilineMap[source]
 		if mult != "" {
 			l.Debugf("replaced multiline '%s' with '%s' to source %s", cfg.Multiline, mult, source)
 			cfg.Multiline = mult

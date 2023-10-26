@@ -39,7 +39,7 @@ func (d *dialer) pointsFeed(urlStr string) {
 
 	fields["seq_number"] = d.seqNumber
 	opt := append(pt.DefaultLoggingOptions(), pt.WithTime(startTime))
-	data := pt.NewPointV2([]byte(d.task.MetricName()),
+	data := pt.NewPointV2(d.task.MetricName(),
 		append(pt.NewTags(tags), pt.NewKVs(fields)...), opt...)
 
 	dialWorker.addPoints(&jobData{
