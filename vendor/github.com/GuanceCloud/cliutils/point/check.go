@@ -249,6 +249,12 @@ func (c *checker) checkField(f *Field) *Field {
 			f.Val = &Field_S{S: x.S[:c.cfg.maxFieldValLen]}
 		}
 
+		if validStr := strings.ToValidUTF8(x.S, "?"); validStr != x.S {
+			c.addWarn(WarnInvalidUTF8String,
+				fmt.Sprintf("field (%s) is invalid UTF8 string(got %q), replace invalid rune with '?'", f.Key, x.S))
+			f.Val = &Field_S{S: validStr}
+		}
+
 		return f
 
 	default:
