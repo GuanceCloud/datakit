@@ -188,7 +188,6 @@ For string/bool/string-list/duration, it is recommended to use double quotation 
 
 | Environment Variable Name       | Type     | Default Value | Required | Description                                                                                                                                                             |
 | ---:                            | ---:     | ---:          | ---:     | ---:                                                                                                                                                                    |
-| `ENV_DATAWAY_CONTENT_ENCODING`  | string   | `v1`          | No       | Set the encoding of the point data at upload time (optional list: 'v1' is the line protocol, 'v2' is Protobuf)                                                          |
 | `ENV_DATAWAY_MAX_RAW_BODY_SIZE` | int      | 10MB          | No       | Set upload package size(before gzip)                                                                                                                                    |
 | `ENV_DATAWAY`                   | string   | No            | Yes      | Set DataWay address, such as `https://openway.guance.com?token=xxx`                                                                                                     |
 | `ENV_DATAWAY_TIMEOUT`           | duration | "30s"         | No       | Set DataWay request timeout                                                                                                                                             |
@@ -198,6 +197,7 @@ For string/bool/string-list/duration, it is recommended to use double quotation 
 | `ENV_DATAWAY_IDLE_TIMEOUT`      | duration | "90s"         | No       | Set DataWay HTTP Keep-Alive timeout([:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0))                                                                           |
 | `ENV_DATAWAY_MAX_RETRY_COUNT`   | int      | 4             | No       | Specify at most how many times the data sending operation will be performed when encounter failures([:octicons-tag-24: Version-1.18.0](changelog.md#cl-1.18.0))         |
 | `ENV_DATAWAY_RETRY_DELAY`       | duration | "200ms"       | No       | The interval between two data sending retry, valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"([:octicons-tag-24: Version-1.18.0](changelog.md#cl-1.18.0)) |
+<!-- | `ENV_DATAWAY_CONTENT_ENCODING`  | string   | `v1`          | No       | Set the encoding of the point data at upload time (optional list: 'v1' is the line protocol, 'v2' is Protobuf)                                                          | -->
 
 ### Log Configuration Related Environments {#env-log}
 

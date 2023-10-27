@@ -11,10 +11,12 @@ This release is a Hotfix release, which fixes the following issues:
 
 ### New featuress {#cl-1.17.1-new}
 
-- Add [option to switch](datakit-conf.md#dataway-settings) from line-protocol to protobuf(#1792)
-    - Note: If choose protobuf, make sure Kodo update to latest version.
 - eBPF can also [build APM data](../integrations/ebpftrace.md) to trace process/thread relationship under Linux(#1835)
 - Pipeline add new function [`pt_name`](../developers/pipeline/pipeline-built-in-function.md#fn-pt-name)(#1937)
+
+### Features Optimizations {#cl-1.17.1-opt}
+
+- Optimize point build to save CPU and memory(#1792)
 
 ---
 
