@@ -26,9 +26,17 @@ monitor   :
 
 如果数据量在 1e6 span/min，目前需要至少提供 4C 的 cpu 资源和 4G 的 mem 资源。
 
+`ebpftrace` 采集器用于接收和链接 eBPF span , 最终实现链路 trace_id 的生成，并建立 span 间的父子关系。
+
+请参考以下部署方式（如下图）： 需要使所有 `ebpf` 外部采集器的 [`ebpf-trace`](./ebpf.md#ebpf-trace) 插件生成的数据发送至**同一个开启 `ebpftracing` 采集器的 DataKit**上，该 DataKit 将会所有 eBPF 采集器生成的链路 eBPF span 数据进行再处理后统一上传至观测云。
+
+> 如果一个服务的三个应用 App 1 ～ 3 位于两个不同的节点，`ebpftrace` 目前根据 tcp seq 等来确认进程间的网络调用关系，需要对相关 eBPF span 进行链接以此生成 trace_id 和设置 parent_id。
+
+![img0](./imgs/tracing.png)
+
 ### 采集器配置 {#input-config}
 
-完成设置后需要将开启了 `ebpftrace` 采集器的 DataKit 本机或 K8s Service 的 `ip:port` 提供给 eBPF 采集器用于 eBPF Span 的传输。
+完成设置后需要将开启了 `ebpftrace` 采集器的 DataKit 或相关 K8s Service 的 `ip:port` 提供给 eBPF 采集器用于 eBPF Span 的传输。
 
 <!-- markdownlint-disable MD046 -->
 === "主机安装"
