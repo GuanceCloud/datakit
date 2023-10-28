@@ -187,28 +187,6 @@ func beforeFeed(from string,
 	pts []*point.Point,
 	opt *Option,
 ) ([]*point.Point, map[point.Category][]*point.Point, int, error) {
-	switch cat {
-	case point.Logging,
-		point.Tracing,
-		point.Object,
-		point.Network,
-		point.KeyEvent,
-		point.CustomObject,
-		point.RUM,
-		point.Security,
-		point.Profiling:
-		if opt == nil {
-			opt = &Option{Blocking: true}
-		} else {
-			opt.Blocking = true
-		}
-
-	case point.Metric, point.MetricDeprecated:
-	case point.DynamicDWCategory, point.UnknownCategory:
-
-	default:
-		return nil, nil, 0, fmt.Errorf("invalid category `%s'", cat)
-	}
 
 	var plopt *plscript.Option
 	if opt != nil {
@@ -263,12 +241,41 @@ func beforeFeed(from string,
 	return after, ptCreate, offloadCount, nil
 }
 
+// make sure non-metric feed are blocking!
+func forceBlocking(cat point.Category, from string, opt *Option) *Option {
+	switch cat {
+	case point.Logging,
+		point.Tracing,
+		point.Object,
+		point.Network,
+		point.KeyEvent,
+		point.CustomObject,
+		point.RUM,
+		point.Security,
+		point.Profiling:
+
+		if opt == nil {
+			log.Debugf("no feed option from %q on %q", from, cat.String())
+			opt = &Option{}
+		}
+
+		// force blocking!
+		opt.Blocking = true
+
+	case point.Metric, point.MetricDeprecated:
+	case point.DynamicDWCategory, point.UnknownCategory:
+	}
+
+	return opt
+}
+
 func (x *dkIO) doFeed(pts []*point.Point,
 	category point.Category,
 	from string,
 	opt *Option,
 ) error {
-	log.Debugf("io feed %s|%s", from, category)
+	log.Debugf("io feed %s on %s", from, category.String())
+	opt = forceBlocking(category, from, opt)
 
 	after, plCreate, offl, err := beforeFeed(from, category, pts, opt)
 	if err != nil {
