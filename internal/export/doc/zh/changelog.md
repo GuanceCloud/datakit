@@ -14,7 +14,7 @@
 - 新增通过 [eBPF 构建链路数据](../integrations/ebpftrace.md)，用来表示 Linux 进程/线程的调用关系（#1836）
 - Pipeline 新增函数 [`pt_name`](../developers/pipeline/pipeline-built-in-function.md#fn-pt-name)（#1937）
 
-### 功能优化 {#cl-1.17.0-opt}
+### 功能优化 {#cl-1.17.1-opt}
 
 - 优化 point 数据构建，提升内存使用效率（#1792）
 

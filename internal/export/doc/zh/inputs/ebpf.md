@@ -79,15 +79,29 @@ lsmod | grep nf_conntrack
 setenforce 0
 ```
 
-### `eBPF Tracing` 使用
+### `eBPF Tracing` 使用 {#ebpf-trace}
 
-`ebpf-trace` 使用 eBPF 技术获取网络数据，解析网络协议，并对进程的内核级线程/用户级线程（如 go 的 goroutine 实现）进行跟踪；
+`ebpf-trace` 使用 eBPF 技术获取并解析网络数据，并对进程的内核级线程/用户级线程（如 golang goroutine 实现）进行跟踪，并生成链路 eBPF span；
 
-通过 TCP 序列号关联进程间的网络调用，通过线程 ID 或协程 ID 等分析进程内的网络调用关系。
+如果在多个节点部署了该开启链路数据采集的 eBPF 采集器，则需要将所有 eBPF 的链路数据发往同一个开启了 [`ebpftrace`](./ebpftrace.md) 采集器插件的 DataKit。
 
-目前支持的用户级线程实现仅 golang goroutine，支持跟踪使用 go1.6 以上版本的编译出的可执行文件的进程，暂不需要调试信息和符号表。
+开启该采集器需要在配置文件中进行以下设置（以下配置项不包括如何进行跟踪）：
 
-该插件将根据采集到的 http 请求数据生成为链路 span，由于每条链路上的 span 可能分布在不同的节点上，需要将该数据发送至 DataKit 的 `ebpftrace` 采集器对分散的 span 进行链接并生成出完整的链路。
+```toml
+[[inputs.ebpf]]
+  enabled_plugins = [
+    "ebpf-net",
+    "ebpf-trace",
+    # "ebpf-conntrack"
+  ]
+
+  l7net_enabled = [
+    "httpflow",
+    # "httpflow-tls"
+  ]
+
+  trace_server = "x.x.x.x:9529"
+```
 
 有以下几种方法对其他进程进行链路跟踪：
 
@@ -100,6 +114,8 @@ setenforce 0
 - `DK_BPFTRACE_SERVICE`
 - `DD_SERVICE`
 - `OTEL_SERVICE_NAME`
+
+更多配置项细节见[环境变量和配置项](./ebpf.md#input-cfg-field-env)。
 
 ### 采集器配置 {#input-config}
 
@@ -125,6 +141,8 @@ setenforce 0
     - name: ENV_ENABLE_INPUTS
            value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container,ebpf
     ```
+
+### 环境变量与配置项 {#input-cfg-field-env}
 
 通过以下环境变量可以调整 Kubernetes 中 eBPF 采集配置：
 
