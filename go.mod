@@ -7,7 +7,7 @@ require (
 	github.com/DataDog/datadog-agent/pkg/obfuscate v0.47.1 // indirect
 	github.com/DataDog/datadog-go v4.8.3+incompatible
 	github.com/DataDog/gopsutil v1.2.1
-	github.com/GuanceCloud/cliutils v0.1.6-0.20231026062527-81bdc49e2618
+	github.com/GuanceCloud/cliutils v0.1.6-0.20231026155028-0157a154a8e7
 	github.com/GuanceCloud/confd v0.1.101
 	github.com/GuanceCloud/grok v1.1.3
 	github.com/GuanceCloud/platypus v0.2.9
@@ -93,11 +93,11 @@ require (
 	go.mercari.io/go-dnscache v0.0.0-20220124075326-2701c2ab5df5
 	go.uber.org/atomic v1.11.0
 	go.uber.org/zap v1.24.0
-	golang.org/x/crypto v0.12.0
-	golang.org/x/net v0.14.0
-	golang.org/x/sys v0.12.0
-	golang.org/x/term v0.11.0 // indirect
-	golang.org/x/text v0.12.0
+	golang.org/x/crypto v0.14.0
+	golang.org/x/net v0.16.0
+	golang.org/x/sys v0.13.0
+	golang.org/x/term v0.13.0 // indirect
+	golang.org/x/text v0.13.0
 	google.golang.org/grpc v1.51.0
 	gopkg.in/CodapeWild/dd-trace-go.v1 v1.35.18 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
@@ -314,11 +314,11 @@ require (
 	go.mongodb.org/mongo-driver v1.10.2
 	go.uber.org/multierr v1.9.0 // indirect
 	golang.org/x/arch v0.0.0-20210923205945-b76863e36670 // indirect
-	golang.org/x/mod v0.12.0 // indirect
+	golang.org/x/mod v0.13.0 // indirect
 	golang.org/x/oauth2 v0.5.0 // indirect
-	golang.org/x/sync v0.3.0 // indirect
+	golang.org/x/sync v0.4.0 // indirect
 	golang.org/x/time v0.3.0
-	golang.org/x/tools v0.12.1-0.20230815132531-74c255bcf846 // indirect
+	golang.org/x/tools v0.14.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20230110181048-76db0878b65f // indirect
