@@ -116,6 +116,7 @@ type Input struct {
 	inputName string
 
 	semStop *cliutils.Sem // start stop signal
+	Tagger  datakit.GlobalTagger
 }
 
 var l = logger.DefaultSLogger(inputName)
@@ -143,6 +144,8 @@ func (ipt *Input) Run() {
 		ignoreDuration = dur
 	}
 
+	mergedTags := inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")
+
 	opt := &tailer.Option{
 		Source:                ipt.Source,
 		Service:               ipt.Service,
@@ -152,7 +155,7 @@ func (ipt *Input) Run() {
 		FromBeginning:         ipt.FromBeginning,
 		CharacterEncoding:     ipt.CharacterEncoding,
 		IgnoreDeadLog:         ignoreDuration,
-		GlobalTags:            ipt.Tags,
+		GlobalTags:            mergedTags,
 		RemoveAnsiEscapeCodes: ipt.RemoveAnsiEscapeCodes,
 		BlockingMode:          ipt.BlockingMode,
 		Done:                  ipt.semStop.Wait(),
@@ -341,16 +344,16 @@ func init() { //nolint:gochecknoinits
 		return &Input{
 			Tags:      make(map[string]string),
 			inputName: inputName,
-
-			semStop: cliutils.NewSem(),
+			Tagger:    datakit.DefaultGlobalTagger(),
+			semStop:   cliutils.NewSem(),
 		}
 	})
 	inputs.Add(deprecatedInputName, func() inputs.Input {
 		return &Input{
 			Tags:      make(map[string]string),
 			inputName: deprecatedInputName,
-
-			semStop: cliutils.NewSem(),
+			Tagger:    datakit.DefaultGlobalTagger(),
+			semStop:   cliutils.NewSem(),
 		}
 	})
 }

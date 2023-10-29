@@ -12,6 +12,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/runtime"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	apicorev1 "k8s.io/api/core/v1"
 )
@@ -46,13 +47,15 @@ func (c *container) tailingLogs(ins *logInstance) {
 			l.Infof("container log %s redirect to host path %s", cfg.Path, cfg.TargetPath)
 		}
 
+		mergedTags := inputs.MergeTags(c.extraTags, cfg.Tags, "")
+
 		opt := &tailer.Option{
 			Source:                   cfg.Source,
 			Service:                  cfg.Service,
 			Pipeline:                 cfg.Pipeline,
 			CharacterEncoding:        cfg.CharacterEncoding,
 			MultilinePatterns:        cfg.MultilinePatterns,
-			GlobalTags:               cfg.Tags,
+			GlobalTags:               mergedTags,
 			BlockingMode:             c.ipt.LoggingBlockingMode,
 			MinFlushInterval:         c.ipt.LoggingMinFlushInterval,
 			MaxMultilineLifeDuration: c.ipt.LoggingMaxMultilineLifeDuration,

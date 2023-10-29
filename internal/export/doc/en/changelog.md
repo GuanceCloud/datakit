@@ -1,6 +1,18 @@
 # Changelog
 ---
 
+## 1.17.2(2023/10/27) {#cl-1.17.2}
+
+This release is a Hotfix release, which fixes the following issues:
+
+### Bug fix{#cl-1.17.2-fix}
+
+- Fix logging input that missing host global tags(#1942)
+- Fix RUM session replay uploading(#1943)
+- Fix point encoding error on non-UTF8 string
+
+---
+
 ## 1.17.1(2023/10/26) {#cl-1.17.1}
 
 This release is a Hotfix release, which fixes the following issues:

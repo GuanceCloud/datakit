@@ -14,12 +14,14 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
+	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/diskcache"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/metrics"
 	"github.com/gobwas/glob"
@@ -44,11 +46,11 @@ var (
 )
 
 const (
-	inputName         = "rum"
-	ReplayBodyMaxSize = 6 << 20 // 6Mib
-	ProxyErrorHeader  = "X-Proxy-Error"
-	// nolint: lll
-	sampleConfig = `
+	MiB                      = 1 << 20
+	inputName                = "rum"
+	ReplayBodyMaxSize        = MiB * 16 // 16Mib
+	defaultReplayCacheMaxMib = 20480    // 20 Gib
+	sampleConfig             = `
 [[inputs.rum]]
   ## profile Agent endpoints register by version respectively.
   ## Endpoints can be skipped listen by remove them from the list.
@@ -76,6 +78,18 @@ const (
   ## such as https://github.com/everettjf/atosl-rs
   atos_bin_path = "/usr/local/datakit/data/rum/tools/atosl"
 
+  # Provide a list to resolve CDN of your static resource.
+  # Below is the Datakit default built-in CDN list, you can uncomment that and change it to your cdn list,
+  # it's a JSON array like: [{"domain": "CDN domain", "name": "CDN human readable name", "website": "CDN official website"},...],
+  # domain field value can contains '*' as wildcard, for example: "kunlun*.com",
+  # it will match "kunluna.com", "kunlunab.com" and "kunlunabc.com" but not "kunlunab.c.com".
+  # cdn_map = '''
+  # [
+  #   {"domain":"15cdn.com","name":"腾正安全加速(原 15CDN)","website":"https://www.15cdn.com"},
+  #   {"domain":"tzcdn.cn","name":"腾正安全加速(原 15CDN)","website":"https://www.15cdn.com"}
+  # ]
+  # '''
+
   ## Threads config controls how many goroutines an agent cloud start to handle HTTP request.
   ## buffer is the size of jobs' buffering of worker channel.
   ## threads is the total number fo goroutines at running time.
@@ -90,17 +104,20 @@ const (
   #   path = "./rum_storage"
   #   capacity = 5120
 
-  # Provide a list to resolve CDN of your static resource.
-  # Below is the Datakit default built-in CDN list, you can uncomment that and change it to your cdn list,
-  # it's a JSON array like: [{"domain": "CDN domain", "name": "CDN human readable name", "website": "CDN official website"},...],
-  # domain field value can contains '*' as wildcard, for example: "kunlun*.com",
-  # it will match "kunluna.com", "kunlunab.com" and "kunlunabc.com" but not "kunlunab.c.com".
-  # cdn_map = '''
-  # [
-  #   {"domain":"15cdn.com","name":"腾正安全加速(原 15CDN)","website":"https://www.15cdn.com"},
-  #   {"domain":"tzcdn.cn","name":"腾正安全加速(原 15CDN)","website":"https://www.15cdn.com"}
-  # ]
-  # '''
+  ## session_replay config is used to control Session Replay uploading behavior.
+  ## cache_path set the disk directory where temporarily cache session replay data.
+  ## cache_capacity_mb specify the max storage space (in MiB) that session replay cache can use.
+  ## clear_cache_on_start set whether we should clear all previous session replay cache on restarting Datakit.
+  ## upload_workers set the count of session replay uploading workers.
+  ## send_timeout specify the http timeout when uploading session replay data to dataway.
+  ## send_retry_count set the max retry count when sending every session replay request.
+  # [inputs.rum.session_replay]
+  #   cache_path = "/usr/local/datakit/cache/session_replay"
+  #   cache_capacity_mb = 20480
+  #   clear_cache_on_start = false
+  #   upload_workers = 16
+  #   send_timeout = "75s"
+  #   send_retry_count = 3
 `
 )
 
@@ -115,9 +132,10 @@ const (
 )
 
 var (
-	log        = logger.DefaultSLogger(inputName)
-	wkpool     *workerpool.WorkerPool
-	localCache *storage.Storage
+	log                = logger.DefaultSLogger(inputName)
+	wkpool             *workerpool.WorkerPool
+	localCache         *storage.Storage
+	replayWorkersGroup *goroutine.Group
 )
 
 var kunlunCDNGlob = glob.MustCompile(`*.kunlun*.com`)
@@ -137,6 +155,31 @@ type Input struct {
 	CDNMap                 string                       `toml:"cdn_map"`
 	feeder                 dkio.Feeder
 	rumDataDir             string
+	SessionReplayCfg       *SessionReplayCfg `toml:"session_replay"`
+	replayUploadAPI        string
+	replayHTTPClient       *http.Client
+	replayDiskQueue        *diskcache.DiskCache
+}
+
+type SessionReplayCfg struct {
+	CachePath         string        `toml:"cache_path"`
+	CacheCapacity     int64         `toml:"cache_capacity_mb"`
+	ClearCacheOnStart bool          `toml:"clear_cache_on_start"`
+	UploadWorkers     int           `toml:"upload_workers"`
+	SendTimeout       time.Duration `toml:"send_timeout"`
+	SendRetryCount    int           `toml:"send_retry_count"`
+}
+
+func defaultSessionReplayCfg() *SessionReplayCfg {
+	cfg := &SessionReplayCfg{
+		CachePath:         filepath.Join(datakit.CacheDir, "session_replay"),
+		CacheCapacity:     defaultReplayCacheMaxMib,
+		ClearCacheOnStart: false,
+		UploadWorkers:     16,
+		SendTimeout:       time.Second * 75,
+		SendRetryCount:    3,
+	}
+	return cfg
 }
 
 type CDN struct {
@@ -188,40 +231,23 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&trace.TraceMeasurement{Name: inputName}}
 }
 
-type sessionReplayProxy struct {
-	proxy *httputil.ReverseProxy
-}
-
-func (s *sessionReplayProxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	if req.ContentLength > ReplayBodyMaxSize {
-		w.WriteHeader(http.StatusBadRequest)
-		_, _ = io.Copy(w, strings.NewReader(fmt.Sprintf("request body size [%d] exceeds the limit", req.ContentLength)))
-		return
+func (ipt *Input) uploadSessionReplay(msg []byte) error {
+	var reqPB RequestPB
+	if err := proto.Unmarshal(msg, &reqPB); err != nil {
+		return fmt.Errorf("unable to unmarshal protobuf msg [%v] from disk queue: %w", msg, err)
 	}
 
-	if req.Body != nil {
-		req.Body = http.MaxBytesReader(w, req.Body, ReplayBodyMaxSize)
-	}
-
-	body, err := io.ReadAll(req.Body)
+	req, err := http.NewRequest(http.MethodPost, ipt.replayUploadAPI, bytes.NewReader(reqPB.Body))
 	if err != nil {
-		if strings.Contains(err.Error(), "request body too large") {
-			w.WriteHeader(http.StatusBadRequest)
-		} else {
-			w.WriteHeader(http.StatusBadGateway)
-		}
-		_, _ = w.Write([]byte(err.Error()))
-		return
+		return fmt.Errorf("unbale to create http request: %w", err)
 	}
 
-	_ = req.Body.Close()
-
-	req.Body = io.NopCloser(bytes.NewReader(body))
+	for k, v := range reqPB.Header {
+		req.Header.Set(k, v)
+	}
 
 	if err := req.ParseMultipartForm(ReplayBodyMaxSize); err != nil {
-		w.WriteHeader(http.StatusBadGateway)
-		_, _ = w.Write([]byte(err.Error()))
-		return
+		return fmt.Errorf("unable to parse multipart form from session replay request: %w", err)
 	}
 
 	globalTags := config.Cfg.Dataway.GlobalTags()
@@ -247,61 +273,181 @@ func (s *sessionReplayProxy) ServeHTTP(w http.ResponseWriter, req *http.Request)
 	}
 	req.Header.Set(dataway.HeaderXGlobalTags, headerValue)
 
-	_ = req.Body.Close()
-	req.Body = io.NopCloser(bytes.NewReader(body))
+	var (
+		resp    *http.Response
+		lastErr error
+	)
 
-	s.proxy.ServeHTTP(w, req)
+	startTime := time.Now()
+	defer func() {
+		statusCode := "unknown"
+		if resp != nil {
+			statusCode = strconv.Itoa(resp.StatusCode)
+		}
+
+		replayUploadingDurationSummary.WithLabelValues(
+			tags["app_id"],
+			tags["env"],
+			tags["version"],
+			tags["service"],
+			statusCode).Observe(time.Since(startTime).Seconds())
+
+		if lastErr != nil || (resp != nil && resp.StatusCode/100 != 2) {
+			replayDroppedPointCount.WithLabelValues(tags["app_id"], tags["env"], tags["version"], tags["service"],
+				statusCode).Inc()
+		}
+	}()
+
+	for i := 0; i < ipt.SessionReplayCfg.SendRetryCount; i++ {
+		if lastErr = func() error {
+			req.Body = io.NopCloser(bytes.NewReader(reqPB.Body))
+
+			resp, err = ipt.replayHTTPClient.Do(req)
+			if err != nil {
+				return fmt.Errorf("at #%d try: unable to send session replay data to dataway: %w", i+1, err)
+			}
+			defer resp.Body.Close() // nolint:errcheck
+
+			if resp.StatusCode/100 == 5 {
+				errMsg, _ := io.ReadAll(resp.Body)
+				if len(errMsg) > 0 {
+					return fmt.Errorf("at #%d try: unable to send session replay data to dataway, http Status: %s, response: %s",
+						i+1, resp.Status, string(errMsg))
+				}
+				return fmt.Errorf("at #%d try: unable to send session replay data to dataway, http Status: %s", i+1, resp.Status)
+			}
+
+			if resp.StatusCode/100 > 2 {
+				log.Errorf("unable to send session replay data to dataway, http status: %s", resp.Status)
+			}
+
+			return nil
+		}(); lastErr == nil {
+			return nil
+		}
+	}
+	return lastErr
 }
 
-func replayUploadHandler() (http.Handler, error) {
-	endpoints := config.Cfg.Dataway.GetAvailableEndpoints()
+func (ipt *Input) initSessionReplayWorkers() error {
+	replayWorkersGroup = goroutine.NewGroup(goroutine.Option{Name: "session_replay_uploading"})
 
-	if len(endpoints) == 0 {
-		return nil, fmt.Errorf("no available dataway endpoint now")
-	}
-
-	var (
-		validURL *url.URL
-		lastErr  error
-	)
-	for _, ep := range endpoints {
-		replayURL := ep.GetCategoryURL()[datakit.SessionReplayUpload]
-		if replayURL == "" {
-			lastErr = fmt.Errorf("empty category url")
-			continue
-		}
-		parsedURL, err := url.Parse(replayURL)
-		if err == nil {
-			validURL = parsedURL
-			break
-		}
-		lastErr = err
-	}
-
-	if validURL == nil {
-		if lastErr != nil {
-			return nil, lastErr
-		}
-		return nil, fmt.Errorf("no available dataway endpoint")
-	}
-
-	return &sessionReplayProxy{
-		proxy: &httputil.ReverseProxy{
-			Director: func(req *http.Request) {
-				req.URL = validURL
-				req.Host = validURL.Host
-			},
-
-			ErrorHandler: func(w http.ResponseWriter, req *http.Request, err error) {
-				log.Errorf("rum session replay proxy receive an err: %s", err)
-				if strings.Contains(err.Error(), "request body too large") {
-					w.WriteHeader(http.StatusBadRequest)
-				} else {
-					w.WriteHeader(http.StatusBadGateway)
+	for i := 0; i < ipt.SessionReplayCfg.UploadWorkers; i++ {
+		replayWorkersGroup.Go(func(ctx context.Context) error {
+			for {
+				select {
+				case <-datakit.Exit.Wait():
+					log.Infof("session replay uploading worker exit now...")
+					return nil
+				case <-ctx.Done():
+					log.Infof("context canceld...")
+					return nil
+				default:
+					if err := ipt.replayDiskQueue.Get(ipt.uploadSessionReplay); err != nil {
+						if errors.Is(err, diskcache.ErrEOF) {
+							log.Debugf("disk queue is empty: %s", err)
+							time.Sleep(time.Millisecond * 1500)
+						} else {
+							log.Errorf("unable to get msg from disk cache: %s", err)
+							time.Sleep(time.Millisecond * 100)
+						}
+					}
 				}
-				_, _ = w.Write([]byte(err.Error()))
-			},
-		},
+			}
+		})
+	}
+	return nil
+}
+
+func (ipt *Input) initReplayHTTPClient() error {
+	endpoints := config.Cfg.Dataway.GetEndpoints()
+	if len(endpoints) == 0 {
+		return fmt.Errorf("no available dataway endpoint")
+	}
+
+	ep := endpoints[0]
+
+	ipt.replayHTTPClient = &http.Client{
+		Timeout:   ipt.SessionReplayCfg.SendTimeout,
+		Transport: ep.Transport(),
+	}
+
+	ipt.replayUploadAPI = ep.GetCategoryURL()[datakit.SessionReplayUpload]
+	return nil
+}
+
+func (ipt *Input) initDiskQueue() error {
+	if ipt.SessionReplayCfg.ClearCacheOnStart {
+		if err := os.RemoveAll(ipt.SessionReplayCfg.CachePath); err != nil {
+			return fmt.Errorf("unable to clear previous session replay cache: %w", err)
+		}
+	}
+
+	queue, err := diskcache.Open(
+		diskcache.WithPath(ipt.SessionReplayCfg.CachePath),
+		diskcache.WithCapacity(ipt.SessionReplayCfg.CacheCapacity*MiB),
+	)
+	if err != nil {
+		return fmt.Errorf("unable to init disk queue: %w", err)
+	}
+	ipt.replayDiskQueue = queue
+
+	return nil
+}
+
+func (ipt *Input) sessionReplayHandler() (f http.HandlerFunc, err error) {
+	if err := ipt.initReplayHTTPClient(); err != nil {
+		return nil, fmt.Errorf("unable to init session replay http client: %w", err)
+	}
+
+	if err := ipt.initDiskQueue(); err != nil {
+		return nil, fmt.Errorf("unable to init diskqueue: %w", err)
+	}
+
+	if err := ipt.initSessionReplayWorkers(); err != nil {
+		return nil, fmt.Errorf("unable to start session replay uploading workers: %w", err)
+	}
+
+	return func(w http.ResponseWriter, req *http.Request) {
+		body, err := io.ReadAll(req.Body)
+		if err != nil {
+			log.Errorf("unable to read request body: %s", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if len(body) > ReplayBodyMaxSize {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = io.WriteString(w, fmt.Sprintf("request body size [%d] exceeds the limit", req.ContentLength))
+			return
+		}
+
+		headers := make(map[string]string, len(req.Header))
+
+		for k, v := range req.Header {
+			if len(v) > 0 {
+				headers[k] = v[0]
+			} else {
+				headers[k] = ""
+			}
+		}
+
+		reqPB := &RequestPB{
+			Header: headers,
+			Body:   body,
+		}
+
+		pbData, err := proto.Marshal(reqPB)
+		if err != nil {
+			log.Errorf("unable to marshal request to protobuf: %s", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if err := ipt.replayDiskQueue.Put(pbData); err != nil {
+			log.Errorf("unable to cache request: %s", err)
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 	}, nil
 }
 
@@ -366,12 +512,12 @@ func (ipt *Input) RegHTTPHandler() {
 		log.Infof("### register RUM endpoint: %s", endpoint)
 	}
 
-	proxy, err := replayUploadHandler()
+	handler, err := ipt.sessionReplayHandler()
 	if err != nil {
 		log.Errorf("register rum replay upload proxy fail: %s", err)
 	} else {
 		for _, endpoint := range ipt.SessionReplayEndpoints {
-			httpapi.RegHTTPHandler(http.MethodPost, endpoint, proxy.ServeHTTP)
+			httpapi.RegHTTPHandler(http.MethodPost, endpoint, handler)
 			log.Infof("register RUM replay upload endpoint: %s", endpoint)
 		}
 	}
@@ -439,6 +585,8 @@ func (ipt *Input) Run() {
 		sourceMapCount,
 		loadedZipGauge,
 		sourceMapDurationSummary,
+		replayUploadingDurationSummary,
+		replayDroppedPointCount,
 	} {
 		if err := metrics.Register(m); err != nil {
 			log.Warnf("regist metrics failed: %s, ignored", err)
@@ -525,7 +673,7 @@ func (ipt *Input) Run() {
 	ipt.Terminate()
 }
 
-func (*Input) Terminate() {
+func (ipt *Input) Terminate() {
 	if wkpool != nil {
 		wkpool.Shutdown()
 		log.Debug("### workerpool closed")
@@ -535,6 +683,16 @@ func (*Input) Terminate() {
 			log.Error(err.Error())
 		}
 		log.Debug("### local storage closed")
+	}
+	if ipt.replayDiskQueue != nil {
+		if err := ipt.replayDiskQueue.Close(); err != nil {
+			log.Errorf("unable to close session replay disk queue: %s", err)
+		}
+	}
+	if replayWorkersGroup != nil {
+		if err := replayWorkersGroup.Wait(); err != nil {
+			log.Errorf("goroutine [%s] exit abnormal: %s", replayWorkersGroup.Name(), err)
+		}
 	}
 }
 
@@ -550,6 +708,7 @@ func defaultInput() *Input {
 			Action,
 			Telemetry,
 		},
+		SessionReplayCfg: defaultSessionReplayCfg(),
 	}
 }
 
