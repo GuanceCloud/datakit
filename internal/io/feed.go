@@ -187,7 +187,6 @@ func beforeFeed(from string,
 	pts []*point.Point,
 	opt *Option,
 ) ([]*point.Point, map[point.Category][]*point.Point, int, error) {
-
 	var plopt *plscript.Option
 	if opt != nil {
 		plopt = opt.PlOption

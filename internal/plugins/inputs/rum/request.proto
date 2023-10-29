@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package rum;
+
+option go_package="/rum";
+
+message RequestPB {
+  map<string, string> Header = 1;
+  bytes Body = 2;
+}

@@ -36,8 +36,9 @@ const (
 )
 
 const (
-	namespace = "datakit"
-	subSystem = "rum"
+	namespace              = "datakit"
+	subSystem              = "rum"
+	subSystemSessionReplay = "session_replay"
 )
 
 var ClientRealIPCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
@@ -74,6 +75,23 @@ var sourceMapDurationSummary = prometheus.NewSummaryVec(prometheus.SummaryOpts{
 },
 	[]string{"sdk_name", "app_id", "env", "version"},
 )
+
+var replayUploadingDurationSummary = prometheus.NewSummaryVec(prometheus.SummaryOpts{
+	Namespace:  namespace,
+	Subsystem:  subSystem,
+	Name:       "session_replay_upload_latency_seconds",
+	Help:       "statistics elapsed time in session replay uploading",
+	Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
+},
+	[]string{"app_id", "env", "version", "service", "status_code"},
+)
+
+var replayDroppedPointCount = prometheus.NewCounterVec(prometheus.CounterOpts{
+	Namespace: namespace,
+	Subsystem: subSystemSessionReplay,
+	Name:      "session_replay_dropped_total",
+	Help:      "statistics count of dropped session replay points since uploading fail",
+}, []string{"app_id", "env", "version", "service", "status_code"})
 
 type sourceMapStatus struct {
 	sdkName string

@@ -385,7 +385,7 @@ type uploadResponse struct {
 func profilingProxyURL() (*url.URL, *http.Transport, error) {
 	lastErr := fmt.Errorf("no dataway endpoint available now")
 
-	endpoints := config.Cfg.Dataway.GetAvailableEndpoints()
+	endpoints := config.Cfg.Dataway.GetEndpoints()
 
 	if len(endpoints) == 0 {
 		return nil, nil, lastErr

@@ -277,7 +277,7 @@ func (dw *Dataway) DeleteObjectLabels(tkn string, body []byte) (*http.Response, 
 	return ep.sendReq(req)
 }
 
-func (dw *Dataway) GetAvailableEndpoints() []*endPoint {
+func (dw *Dataway) GetEndpoints() []*endPoint {
 	return dw.eps
 }
 
