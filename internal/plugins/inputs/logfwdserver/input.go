@@ -20,6 +20,7 @@ import (
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/network/ws"
+	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
 	"github.com/GuanceCloud/cliutils/point"
 	gws "github.com/gobwas/ws"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -172,7 +173,9 @@ func (ipt *Input) setup() bool {
 			point.Logging,
 			pts,
 			&dkio.Option{
-				PlScript: map[string]string{msg.Source: msg.Pipeline},
+				PlOption: &plmanager.Option{
+					ScriptMap: map[string]string{msg.Source: msg.Pipeline},
+				},
 			},
 		)
 		if err != nil {

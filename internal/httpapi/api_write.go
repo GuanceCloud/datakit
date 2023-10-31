@@ -14,6 +14,7 @@ import (
 
 	lp "github.com/GuanceCloud/cliutils/lineproto"
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
+	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
@@ -191,7 +192,9 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 
 	feedOpt := &io.Option{Version: version}
 	if pipelineSource != "" {
-		feedOpt.PlScript = map[string]string{pipelineSource: pipelineSource + ".p"}
+		feedOpt.PlOption = &plmanager.Option{
+			ScriptMap: map[string]string{pipelineSource: pipelineSource + ".p"},
+		}
 	}
 
 	if err := h.feed(input, point.CatURL(categoryURL), pts, feedOpt); err != nil {

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
+	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/gin-gonic/gin/binding"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
@@ -152,7 +153,9 @@ func (ipt *Input) handleRUM(resp http.ResponseWriter, req *http.Request) {
 
 	feedOpt := &dkio.Option{Version: version}
 	if pipelineSource != "" {
-		feedOpt.PlScript = map[string]string{pipelineSource: pipelineSource + ".p"}
+		feedOpt.PlOption = &plmanager.Option{
+			ScriptMap: map[string]string{pipelineSource: pipelineSource + ".p"},
+		}
 	}
 	if err = ipt.feeder.Feed(inputName, point.RUM, pts, feedOpt); err != nil {
 		log.Error(err.Error())

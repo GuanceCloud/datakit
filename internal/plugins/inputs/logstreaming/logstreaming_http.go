@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 
+	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
@@ -155,7 +156,11 @@ func (ipt *Input) processLogBody(param *parameters) error {
 			}
 		}
 
-		err = ipt.feeder.Feed(source, point.Logging, pts, &dkio.Option{PlScript: scriptMap})
+		err = ipt.feeder.Feed(source, point.Logging, pts, &dkio.Option{
+			PlOption: &plmanager.Option{
+				ScriptMap: scriptMap,
+			},
+		})
 	}
 
 	return err

@@ -17,6 +17,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
 	"github.com/GuanceCloud/cliutils/point"
 	v2 "github.com/elastic/go-lumber/server/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -266,8 +267,10 @@ func (ipt *Input) feed(pending []*DataStruct) {
 	}
 	if len(pts) > 0 {
 		if err := ipt.feeder.Feed(inputName+"/"+ipt.Listen, point.Logging, pts, &io.Option{
-			PlScript: map[string]string{
-				ipt.Source: ipt.Pipeline,
+			PlOption: &plmanager.Option{
+				ScriptMap: map[string]string{
+					ipt.Source: ipt.Pipeline,
+				},
 			},
 		}); err != nil {
 			l.Error(err)
