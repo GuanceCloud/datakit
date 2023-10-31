@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/GuanceCloud/cliutils/logger"
+	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/Shopify/sarama"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
@@ -149,7 +150,11 @@ func (mq *Custom) Process(msg *sarama.ConsumerMessage) error {
 
 		pt := point.NewPointV2(topic, append(point.NewTags(tags), point.NewKVs(fields)...), opts...)
 
-		err = mq.feeder.Feed(topic, category, []*point.Point{pt}, &dkio.Option{PlScript: plMap})
+		err = mq.feeder.Feed(topic, category, []*point.Point{pt}, &dkio.Option{
+			PlOption: &plmanager.Option{
+				ScriptMap: plMap,
+			},
+		})
 		if err != nil {
 			log.Warnf("feed io err=%v", err)
 		}

@@ -96,10 +96,10 @@ func Start(opts ...Option) error {
 							point.Logging,
 							pts,
 							&dkio.Option{
-								PlScript: map[string]string{cfg.Source: cfg.Pipeline},
 								PlOption: &manager.Option{
 									DisableAddStatusField: cfg.DisableAddStatusField,
 									IgnoreStatus:          cfg.IgnoreStatus,
+									ScriptMap:             map[string]string{cfg.Source: cfg.Pipeline},
 								},
 								Blocking: cfg.Blocking,
 							},

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
+	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
 	"github.com/GuanceCloud/cliutils/point"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -135,7 +136,11 @@ func (ipt *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	}
 	l.Debugf("received %d logs from promtail, feeding to io...", len(pts))
 
-	if err := ipt.feeder.Feed(source, point.Logging, pts, &dkio.Option{PlScript: map[string]string{source: pipelinePath}}); err != nil {
+	if err := ipt.feeder.Feed(source, point.Logging, pts, &dkio.Option{
+		PlOption: &plmanager.Option{
+			ScriptMap: map[string]string{source: pipelinePath},
+		},
+	}); err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
 	} else {
 		resp.WriteHeader(http.StatusNoContent)

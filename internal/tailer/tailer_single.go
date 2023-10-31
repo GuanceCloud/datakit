@@ -607,10 +607,10 @@ func (t *Single) feedToIO(pending []string) {
 		point.Logging,
 		pts,
 		&dkio.Option{
-			PlScript: map[string]string{t.opt.Source: t.opt.Pipeline},
 			PlOption: &manager.Option{
 				DisableAddStatusField: t.opt.DisableAddStatusField,
 				IgnoreStatus:          t.opt.IgnoreStatus,
+				ScriptMap:             map[string]string{t.opt.Source: t.opt.Pipeline},
 			},
 			Blocking: t.opt.BlockingMode,
 		},

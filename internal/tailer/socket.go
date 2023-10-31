@@ -270,10 +270,10 @@ func (sl *socketLogger) feed(pending []string) {
 	var ioOpt *dkio.Option
 	if sl.opt.Pipeline != "" {
 		ioOpt = &dkio.Option{
-			PlScript: map[string]string{sl.opt.Source: sl.opt.Pipeline},
 			PlOption: &plmanager.Option{
 				DisableAddStatusField: sl.opt.DisableAddStatusField,
 				IgnoreStatus:          sl.ignorePatterns,
+				ScriptMap:             map[string]string{sl.opt.Source: sl.opt.Pipeline},
 			},
 		}
 	}

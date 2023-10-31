@@ -55,7 +55,6 @@ type Option struct {
 
 	Blocking bool
 
-	PlScript map[string]string // <measurement>: <script name>
 	PlOption *plscript.Option
 }
 
