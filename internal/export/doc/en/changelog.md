@@ -1,6 +1,17 @@
 # Changelog
 ---
 
+## 1.17.3(2023/10/31) {#cl-1.17.3}
+
+This release is a Hotfix release, which fixes the following issues:
+
+### Bug fix{#cl-1.17.3-fix}
+
+- Fix Pipeline not working for logging(#1954)
+- Fix eBPF not working under arm64(#1955)
+
+---
+
 ## 1.17.2(2023/10/27) {#cl-1.17.2}
 
 This release is a Hotfix release, which fixes the following issues:
