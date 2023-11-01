@@ -101,7 +101,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		opts         []inputs.PointCheckOption
 	}{
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/opentelemetry:otel-agent-golang",
+			name: "pubrepo.guance.com/image-repo-for-testing/opentelemetry:otel-agent-golang",
 			conf: `[grpc]
 			trace_enable = true
 			metric_enable = true

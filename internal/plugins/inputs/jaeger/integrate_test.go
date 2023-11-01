@@ -109,7 +109,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		opts []inputs.PointCheckOption
 	}{
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/jaeger:jaeger-agent-http",
+			name: "pubrepo.guance.com/image-repo-for-testing/jaeger:jaeger-agent-http",
 			conf: `endpoint = "/apis/traces"`,
 			mode: AGENT_HTTP,
 			opts: []inputs.PointCheckOption{
@@ -136,7 +136,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		},
 
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/jaeger:jaeger-agent-udp",
+			name: "pubrepo.guance.com/image-repo-for-testing/jaeger:jaeger-agent-udp",
 			conf: "", // set conf later.
 			mode: AGENT_UDP,
 			opts: []inputs.PointCheckOption{

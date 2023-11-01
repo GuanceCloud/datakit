@@ -105,7 +105,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		optsStatusInfo    []inputs.PointCheckOption
 	}{
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/clickhouse/clickhouse-server:22.8.15.23",
+			name: "pubrepo.guance.com/image-repo-for-testing/clickhouse/clickhouse-server:22.8.15.23",
 			// selfBuild: true,
 			conf: `
 source = "clickhouse"
@@ -138,7 +138,7 @@ urls = [""]
 			},
 		},
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/clickhouse/clickhouse-server:21.8.15.7",
+			name: "pubrepo.guance.com/image-repo-for-testing/clickhouse/clickhouse-server:21.8.15.7",
 			// selfBuild: true,
 			conf: `
 source = "clickhouse"

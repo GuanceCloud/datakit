@@ -101,7 +101,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		opts         []inputs.PointCheckOption
 	}{
 		{
-			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/skywalking:agent-java",
+			name:         "pubrepo.guance.com/image-repo-for-testing/skywalking:agent-java",
 			conf:         `address = "0.0.0.0:"`,
 			exposedPorts: []string{"8080/tcp"},
 			mPathCount: map[string]int{

@@ -104,7 +104,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		opts           []inputs.PointCheckOption
 	}{
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/python:3-alpine-datakit_framework",
+			name: "pubrepo.guance.com/image-repo-for-testing/python:3-alpine-datakit_framework",
 		},
 	}
 

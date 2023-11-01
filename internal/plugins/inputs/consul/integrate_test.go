@@ -103,7 +103,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		opts []inputs.PointCheckOption
 	}{
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/consul/consul:1.15.0",
+			name: "pubrepo.guance.com/image-repo-for-testing/consul/consul:1.15.0",
 			// selfBuild: true,
 			conf: `
 source = "consul"
@@ -125,7 +125,7 @@ url = ""
 			},
 		},
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/consul/consul:1.14.4",
+			name: "pubrepo.guance.com/image-repo-for-testing/consul/consul:1.14.4",
 			// selfBuild: true,
 			conf: `
 source = "consul"
@@ -143,7 +143,7 @@ url = ""`, // set conf URL later.
 			},
 		},
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/consul/consul:1.13.6",
+			name: "pubrepo.guance.com/image-repo-for-testing/consul/consul:1.13.6",
 			// selfBuild: true,
 			conf: `
 source = "consul"

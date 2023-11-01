@@ -103,7 +103,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		opts []inputs.PointCheckOption
 	}{
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/chrony/chrony:ssh",
+			name: "pubrepo.guance.com/image-repo-for-testing/chrony/chrony:ssh",
 			// selfBuild: true,
 			conf: `
 interval = "10s"

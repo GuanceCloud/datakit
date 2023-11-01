@@ -108,7 +108,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		optsMemoryPool       []inputs.PointCheckOption
 	}{
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/java:jvm-jolokia-8",
+			name: "pubrepo.guance.com/image-repo-for-testing/java:jvm-jolokia-8",
 			conf: `urls = [""]
 			interval   = "1s"
 			[[metric]]
@@ -159,7 +159,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		},
 
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/java:jvm-jolokia-11",
+			name: "pubrepo.guance.com/image-repo-for-testing/java:jvm-jolokia-11",
 			conf: `urls = [""]
 			interval   = "1s"
 			[[metric]]
@@ -210,7 +210,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		},
 
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/java:jvm-jolokia-17",
+			name: "pubrepo.guance.com/image-repo-for-testing/java:jvm-jolokia-17",
 			conf: `urls = [""]
 			interval   = "1s"
 			[[metric]]
@@ -261,7 +261,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		},
 
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/java:jvm-jolokia-20",
+			name: "pubrepo.guance.com/image-repo-for-testing/java:jvm-jolokia-20",
 			conf: `urls = [""]
 			interval   = "1s"
 			[[metric]]

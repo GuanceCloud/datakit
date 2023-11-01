@@ -31,7 +31,7 @@ const (
 	RegionID     = "regionID"
 	DialAK       = "dialak"
 	DialSK       = "dialsk"
-	RepoURL      = "pubrepo.jiagouyun.com/image-repo-for-testing/dialtesting/"
+	RepoURL      = "pubrepo.guance.com/image-repo-for-testing/dialtesting/"
 )
 
 type (

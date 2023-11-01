@@ -33,7 +33,7 @@ const (
 	User         = "elastic"
 	UserPassword = "Abc123!"
 
-	RepoURL = "pubrepo.jiagouyun.com/image-repo-for-testing/elasticsearch/"
+	RepoURL = "pubrepo.guance.com/image-repo-for-testing/elasticsearch/"
 )
 
 type (

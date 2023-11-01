@@ -93,7 +93,7 @@ $ helm uninstall datakit -n datakit
 | `kubeStateMetricsEnabled` | For large clusters where the Kubernetes State Metrics Check Core needs to be distributed on dedicated workers.                                                                             | `true`                                                                  |                      |
 | `MetricsServerEnabled`            | Kubernetes Metrics Server                                                                                                                                                          | `true`                                                                  |                      |
 | `iploc.enable` | Datakit install ipdb | `false` | |
-| `iploc.image` | Iploc image repository | `pubrepo.jiagouyun.com/datakit/iploc` | |
+| `iploc.image` | Iploc image repository | `pubrepo.guance.com/datakit/iploc` | |
 | `iploc.tag` | Iploc image tag | `1.0` | |
 
 

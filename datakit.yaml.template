@@ -179,7 +179,7 @@ spec:
         #- name: ENV_IPDB
         #  value: iploc
         # # ---iploc-end
-        image: pubrepo.jiagouyun.com/datakit/datakit:{{.Version}}
+        image: pubrepo.guance.com/datakit/datakit:{{.Version}}
         imagePullPolicy: Always
         name: datakit
         ports:
@@ -235,7 +235,7 @@ spec:
       #    command:
       #      - bash
       #      - -c
-      #    image: pubrepo.jiagouyun.com/datakit/iploc:1.0
+      #    image: pubrepo.guance.com/datakit/iploc:1.0
       #    imagePullPolicy: IfNotPresent
       #    name: init-volume
       #    resources: {}

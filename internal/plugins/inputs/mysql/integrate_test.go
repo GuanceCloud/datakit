@@ -29,7 +29,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
-const RepoURL = "pubrepo.jiagouyun.com/image-repo-for-testing/mysql/"
+const RepoURL = "pubrepo.guance.com/image-repo-for-testing/mysql/"
 
 var (
 	MySQLPassword = "Abc123!"

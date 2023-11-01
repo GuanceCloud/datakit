@@ -118,7 +118,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		optsTransactionLog []inputs.PointCheckOption
 	}{
 		{
-			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/db2:11.5.0.0a-datakit",
+			name:         "pubrepo.guance.com/image-repo-for-testing/db2:11.5.0.0a-datakit",
 			exposedPorts: []string{"50000/tcp"},
 			dbVolume:     "/tmp/db2_11.5.0.0a:/database",
 		},

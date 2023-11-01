@@ -272,7 +272,7 @@ helm uninstall datakit -n datakit
         # @param repository - string - required
         # Define the repository to use:
         #
-        repository: "pubrepo.jiagouyun.com/datakit/iploc"
+        repository: "pubrepo.guance.com/datakit/iploc"
 
         # @param tag - string - required
         # Define the Cluster-Agent version to use.

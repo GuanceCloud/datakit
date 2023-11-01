@@ -273,7 +273,7 @@ By default, DataKit collects stdout/stderr logs for all containers on your machi
 
     - A：`hello/hello-http:latest`
     - B：`world/world-http:latest`
-    - C：`registry.jiagouyun.com/datakit/datakit:1.2.0`
+    - C：`pubrepo.guance.com/datakit/datakit:1.2.0`
 
     If you want to collect only the logs of Pod A, configure  ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG.
 
@@ -351,7 +351,7 @@ To enable Datakit to collect the log file, `/mnt/container_logs` hostPath needs 
     spec:
       containers:
       - name: datakit
-        image: pubrepo.jiagouyun.com/datakit/datakit:1.16.0
+        image: pubrepo.guance.com/datakit/datakit:1.16.0
         volumeMounts:
         - mountPath: /mnt/container_logs
           name: container-logs

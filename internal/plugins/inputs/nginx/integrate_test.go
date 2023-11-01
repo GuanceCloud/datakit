@@ -124,7 +124,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// nginx:1.23.2
 		////////////////////////////////////////////////////////////////////////
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.23.2-alpine____http-stub-status-module",
+			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.23.2-alpine____http-stub-status-module",
 			conf: `url = ""
 			election = true`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
@@ -140,7 +140,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 		},
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.23.2-alpine____http-stub-status-module",
+			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.23.2-alpine____http-stub-status-module",
 			conf: `url = ""
 			election = false`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
@@ -156,7 +156,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// nginx:1.23.2-vts
 		////////////////////////////////////////////////////////////////////////
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.23.2-alpine____using-vts",
+			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.23.2-alpine____using-vts",
 			conf: `url = ""
 		use_vts = true
 		election = true`, // set conf URL later.
@@ -174,7 +174,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 		},
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.23.2-alpine____using-vts",
+			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.23.2-alpine____using-vts",
 			conf: `url = ""
 		use_vts = true
 		election = false`, // set conf URL later.
@@ -191,7 +191,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// nginx:1.22.1
 		////////////////////////////////////////////////////////////////////////
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.22.1-alpine____http-stub-status-module",
+			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.22.1-alpine____http-stub-status-module",
 			conf: `url = ""
 			election = true`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
@@ -207,7 +207,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 		},
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.22.1-alpine____http-stub-status-module",
+			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.22.1-alpine____http-stub-status-module",
 			conf: `url = ""
 			election = false`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
@@ -223,7 +223,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// nginx:1.22.1-vts
 		////////////////////////////////////////////////////////////////////////
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.22.1-alpine____using-vts",
+			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.22.1-alpine____using-vts",
 			conf: `url = ""
 		use_vts = true
 		election = true`, // set conf URL later.
@@ -241,7 +241,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 		},
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.22.1-alpine____using-vts",
+			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.22.1-alpine____using-vts",
 			conf: `url = ""
 		use_vts = true
 		election = false`, // set conf URL later.
@@ -258,7 +258,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// nginx:1.21.6
 		////////////////////////////////////////////////////////////////////////
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.21.6-alpine____http-stub-status-module",
+			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.21.6-alpine____http-stub-status-module",
 			conf: `url = ""
 			election = true`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
@@ -274,7 +274,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 		},
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.21.6-alpine____http-stub-status-module",
+			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.21.6-alpine____http-stub-status-module",
 			conf: `url = ""
 			election = false`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
@@ -290,7 +290,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// nginx:1.21.6-vts
 		////////////////////////////////////////////////////////////////////////
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.21.6-alpine____using-vts",
+			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.21.6-alpine____using-vts",
 			conf: `url = ""
 		use_vts = true
 		election = true`, // set conf URL later.
@@ -308,7 +308,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 		},
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.21.6-alpine____using-vts",
+			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.21.6-alpine____using-vts",
 			conf: `url = ""
 		use_vts = true
 		election = false`, // set conf URL later.
@@ -325,7 +325,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// nginx:1.18.0
 		////////////////////////////////////////////////////////////////////////
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.18.0-alpine____http-stub-status-module",
+			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.18.0-alpine____http-stub-status-module",
 			conf: `url = ""
 			election = true`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
@@ -341,7 +341,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 		},
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.18.0-alpine____http-stub-status-module",
+			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.18.0-alpine____http-stub-status-module",
 			conf: `url = ""
 			election = false`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
@@ -354,7 +354,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// nginx:1.18.0-vts
 		////////////////////////////////////////////////////////////////////////
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.18.0-alpine____using-vts",
+			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.18.0-alpine____using-vts",
 			conf: `url = ""
 		use_vts = true
 		election = true`, // set conf URL later.
@@ -372,7 +372,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 		},
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.18.0-alpine____using-vts",
+			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.18.0-alpine____using-vts",
 			conf: `url = ""
 		use_vts = true
 		election = false`, // set conf URL later.
@@ -389,7 +389,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// nginx:1.14.2
 		////////////////////////////////////////////////////////////////////////
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.14.2-alpine____http-stub-status-module",
+			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.14.2-alpine____http-stub-status-module",
 			conf: `url = ""
 			election = true`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
@@ -405,7 +405,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 		},
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.14.2-alpine____http-stub-status-module",
+			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.14.2-alpine____http-stub-status-module",
 			conf: `url = ""
 			election = false`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
@@ -421,7 +421,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// nginx:1.14.2-vts
 		////////////////////////////////////////////////////////////////////////
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.14.2-alpine____using-vts",
+			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.14.2-alpine____using-vts",
 			conf: `url = ""
 		use_vts = true
 		election = true`, // set conf URL later.
@@ -439,7 +439,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 		},
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.14.2-alpine____using-vts",
+			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.14.2-alpine____using-vts",
 			conf: `url = ""
 		use_vts = true
 		election = false`, // set conf URL later.
@@ -456,7 +456,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// nginx:1.8.0
 		////////////////////////////////////////////////////////////////////////
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.8.0-alpine____http-stub-status-module",
+			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.8.0-alpine____http-stub-status-module",
 			conf: `url = ""
 			election = true`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
@@ -472,7 +472,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 		},
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.8.0-alpine____http-stub-status-module",
+			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.8.0-alpine____http-stub-status-module",
 			conf: `url = ""
 			election = false`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
@@ -488,7 +488,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// nginx:1.8.0-vts
 		////////////////////////////////////////////////////////////////////////
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.8.0-alpine____using-vts",
+			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.8.0-alpine____using-vts",
 			conf: `url = ""
 		use_vts = true
 		election = true`, // set conf URL later.
@@ -506,7 +506,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 		},
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nginx:vts-1.8.0-alpine____using-vts",
+			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.8.0-alpine____using-vts",
 			conf: `url = ""
 		use_vts = true
 		election = false`, // set conf URL later.

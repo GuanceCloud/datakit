@@ -110,7 +110,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		optsProm     []inputs.PointCheckOption
 	}{
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/coredns/coredns:1.10.1",
+			name: "pubrepo.guance.com/image-repo-for-testing/coredns/coredns:1.10.1",
 			// selfBuild: true,
 			conf: `
 source = "coredns"
@@ -189,7 +189,7 @@ url = ""
 			},
 		},
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/coredns/coredns:1.9.4",
+			name: "pubrepo.guance.com/image-repo-for-testing/coredns/coredns:1.9.4",
 			// selfBuild: true,
 			conf: `
 source = "coredns"
@@ -268,7 +268,7 @@ url = ""
 			},
 		},
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/coredns/coredns:1.8.7",
+			name: "pubrepo.guance.com/image-repo-for-testing/coredns/coredns:1.8.7",
 			// selfBuild: true,
 			conf: `
 source = "coredns"

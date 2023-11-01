@@ -102,7 +102,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		optsInstance []inputs.PointCheckOption
 	}{
 		{
-			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/python:3-logstreaming",
+			name:         "pubrepo.guance.com/image-repo-for-testing/python:3-logstreaming",
 			exposedPorts: []string{"8000/tcp"},
 			optsInstance: []inputs.PointCheckOption{
 				inputs.WithIgnoreTags("key1", "key2"),

@@ -157,7 +157,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// filebeat:5.0.0
 		////////////////////////////////////////////////////////////////////////
 		{
-			name:    "pubrepo.jiagouyun.com/image-repo-for-testing/filebeat:5.0.0-logstash",
+			name:    "pubrepo.guance.com/image-repo-for-testing/filebeat:5.0.0-logstash",
 			verConf: VER_5,
 			conf:    `listen = "tcp://0.0.0.0:"`, // tcp://0.0.0.0:5044
 			opts: []inputs.PointCheckOption{
@@ -169,7 +169,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// filebeat:1.3.0
 		////////////////////////////////////////////////////////////////////////
 		{
-			name:    "pubrepo.jiagouyun.com/image-repo-for-testing/filebeat:1.3.0-logstash",
+			name:    "pubrepo.guance.com/image-repo-for-testing/filebeat:1.3.0-logstash",
 			verConf: VER_1,
 			conf:    `listen = "tcp://0.0.0.0:"`, // tcp://0.0.0.0:5044
 			opts: []inputs.PointCheckOption{
@@ -181,7 +181,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// filebeat:1.2.0
 		////////////////////////////////////////////////////////////////////////
 		{
-			name:    "pubrepo.jiagouyun.com/image-repo-for-testing/filebeat:1.2.0-logstash",
+			name:    "pubrepo.guance.com/image-repo-for-testing/filebeat:1.2.0-logstash",
 			verConf: VER_1,
 			conf:    `listen = "tcp://0.0.0.0:"`, // tcp://0.0.0.0:5044
 			opts: []inputs.PointCheckOption{
@@ -193,7 +193,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// filebeat:1.1.0
 		////////////////////////////////////////////////////////////////////////
 		{
-			name:    "pubrepo.jiagouyun.com/image-repo-for-testing/filebeat:1.1.0-logstash",
+			name:    "pubrepo.guance.com/image-repo-for-testing/filebeat:1.1.0-logstash",
 			verConf: VER_1,
 			conf:    `listen = "tcp://0.0.0.0:"`, // tcp://0.0.0.0:5044
 			opts: []inputs.PointCheckOption{
@@ -205,7 +205,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// filebeat:1.0.0
 		////////////////////////////////////////////////////////////////////////
 		{
-			name:    "pubrepo.jiagouyun.com/image-repo-for-testing/filebeat:1.0.0-logstash",
+			name:    "pubrepo.guance.com/image-repo-for-testing/filebeat:1.0.0-logstash",
 			verConf: VER_1,
 			conf:    `listen = "tcp://0.0.0.0:"`, // tcp://0.0.0.0:5044
 			opts: []inputs.PointCheckOption{
@@ -650,7 +650,7 @@ filebeat.prospectors:
 output.logstash:
   hosts: ["${DATAKIT_HOST}:${LISTEN_PORT}"]
 */
-const dockerFileLogstashV5 = `FROM pubrepo.jiagouyun.com/image-repo-for-testing/filebeat:${VERSION}
+const dockerFileLogstashV5 = `FROM pubrepo.guance.com/image-repo-for-testing/filebeat:${VERSION}
 
 RUN sed -i '$a filebeat.prospectors:' /usr/share/filebeat/filebeat.yml \
     && sed -i '$a - input_type: log' /usr/share/filebeat/filebeat.yml \
@@ -675,7 +675,7 @@ output:
 logging:
   to_syslog: false
 */
-const dockerFileLogstashV1 = `FROM pubrepo.jiagouyun.com/image-repo-for-testing/filebeat:${VERSION}
+const dockerFileLogstashV1 = `FROM pubrepo.guance.com/image-repo-for-testing/filebeat:${VERSION}
 
 RUN    touch /var/log/1.log /var/log/2.log \
     && echo "123" >> /var/log/1.log \
