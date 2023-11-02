@@ -180,9 +180,6 @@ func BuildPoint(dkspan *DatakitSpan, opts ...point.Option) (*point.Point, error)
 		TAG_SPAN_TYPE:   dkspan.SpanType,
 		TAG_SPAN_STATUS: dkspan.Status,
 	}
-	for k, v := range dkspan.Tags {
-		tags[replacer.Replace(k)] = v
-	}
 
 	fields := map[string]interface{}{
 		FIELD_TRACEID:  dkspan.TraceID,
@@ -194,6 +191,14 @@ func BuildPoint(dkspan *DatakitSpan, opts ...point.Option) (*point.Point, error)
 		FIELD_MESSAGE:  dkspan.Content,
 	}
 
+	for k, v := range dkspan.Tags {
+		sk := replacer.Replace(k)
+		if len(v) >= 1024 {
+			fields[sk] = v
+		} else {
+			tags[sk] = v
+		}
+	}
 	// trace-128-id replace trace-id.
 	if id, ok := dkspan.Tags[TRACE_128_BIT_ID]; ok {
 		fields[FIELD_TRACEID] = id
