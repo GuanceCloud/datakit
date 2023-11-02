@@ -1,6 +1,43 @@
 # 更新日志
 ---
 
+## 1.18.0(2023/11/02) {#cl-1.18.0}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.18.0-new}
+
+- 新增 OceanBase 采集（#1924）
+
+### 问题修复 {#cl-1.18.0-fix}
+
+- 修复 Tracing 数据中较大 Tag 值兼容，现已调至 32MB（#1932）
+- 修复 RUM session replay 脏数据问题（#1958）
+- 修复指标信息导出问题（#1953）
+- 修复 [v2 版本协议](datakit-conf.md##dataway-settings)构建错误为题
+
+### 功能优化 {#cl-1.18.0-opt}
+
+- 主机目录采集和磁盘采集中，新增挂载点等指标（#1941）
+- KafkaMQ 支持 OpenTelemetry Tracing 数据处理（#1887）
+- Bug Report 新增更多信息收集（#1908）
+- 完善 Prom 采集过程中自身指标暴露（#1951）
+- 更新默认 IP 库以支持 IPv6（#1957）
+- 更新镜像名下载地址为 `pubrepo.guance.com`（#1949）
+- 优化日志采集文件位置功能（#1961）
+- Kubernetes
+    - 支持 Node-Local Pod 信息采集，以缓解选举节点压力（#1960）
+    - 容器日志采集支持更多粒度的过滤（#1959）
+    - 增加 service 相关的指标采集（#1948）
+    - 支持筛选 PodMonitor 和 ServiceMonitor 上的 Label 功能（#1963）
+    - 支持将 Node Label 转换为 Node 对象的 Tag（#1962）
+
+### 兼容调整 {#cl-1.18.0-brk}
+
+- Kubernetes 不再采集 Job/CronJob 创建的 Pod 的 CPU/内存指标（#1964）
+
+---
+
 ## 1.17.3(2023/10/31) {#cl-1.17.3}
 
 本次发布属于 Hotfix 发布，修复如下问题：
@@ -21,7 +58,6 @@
 - 修复日志采集没有带 global host tag 的问题（#1942）
 - 优化 Session Replay 数据的处理（#1943）
 - 优化 Point 编码对非 UTF8 字符串的处理
-
 
 ---
 
