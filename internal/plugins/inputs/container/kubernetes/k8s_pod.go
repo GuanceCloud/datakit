@@ -27,7 +27,7 @@ const (
 
 //nolint:gochecknoinits
 func init() {
-	registerResource("pod", true, newPod)
+	registerResource("pod", true, true, newPod)
 	registerMeasurements(&podMetric{}, &podObject{})
 }
 
@@ -42,10 +42,11 @@ func newPod(client k8sClient) resource {
 
 func (p *pod) hasNext() bool { return p.continued != "" }
 
-func (p *pod) getMetadata(ctx context.Context, ns string) (metadata, error) {
+func (p *pod) getMetadata(ctx context.Context, ns, fieldSelector string) (metadata, error) {
 	opt := metav1.ListOptions{
-		Limit:    queryLimit,
-		Continue: p.continued,
+		Limit:         queryLimit,
+		Continue:      p.continued,
+		FieldSelector: fieldSelector,
 	}
 
 	list, err := p.client.GetPods(ns).List(ctx, opt)
@@ -93,6 +94,10 @@ func (m *podMetadata) transformMetric() pointKVs {
 				met.SetTag("daemonset", item.OwnerReferences[0].Name)
 			case "StatefulSet":
 				met.SetTag("statefulset", item.OwnerReferences[0].Name)
+			case "Job":
+				met.SetTag("Job", item.OwnerReferences[0].Name)
+			case "CronJob":
+				met.SetTag("CronJob", item.OwnerReferences[0].Name)
 			default:
 				// skip
 			}
@@ -100,11 +105,12 @@ func (m *podMetadata) transformMetric() pointKVs {
 
 		if setExtraK8sLabelAsTags() {
 			for k, v := range item.Labels {
-				met.SetTag(transLabelKey(k), v)
+				met.SetTag(replaceLabelKey(k), v)
 			}
 		}
 
-		if canCollectPodMetrics() {
+		// doesn't collect Job's pod-metrics
+		if canCollectPodMetrics() && !isBriefPod(&m.list.Items[idx]) {
 			p, err := queryPodFromMetricsServer(context.Background(), m.opt.client, &m.list.Items[idx])
 			if err != nil {
 				klog.Warnf("pod %s from metrics-server fail, err: %s, skip", item.Name, err)
@@ -125,6 +131,10 @@ func (m *podMetadata) transformObject() pointKVs {
 	var res pointKVs
 
 	for idx, item := range m.list.Items {
+		if isBriefPod(&m.list.Items[idx]) {
+			continue
+		}
+
 		obj := typed.NewPointKV(podObjectMeasurement)
 
 		obj.SetTag("name", fmt.Sprintf("%v", item.UID))
@@ -179,15 +189,14 @@ func (m *podMetadata) transformObject() pointKVs {
 		obj.SetField("message", typed.TrimString(obj.String(), maxMessageLength))
 		obj.DeleteField("annotations")
 		obj.DeleteField("yaml")
-		obj.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
 
 		if setExtraK8sLabelAsTags() {
 			for k, v := range item.Labels {
-				obj.SetTag(transLabelKey(k), v)
+				obj.SetTag(replaceLabelKey(k), v)
 			}
 		}
 
-		if canCollectPodMetrics() {
+		if canCollectPodMetrics() && !isBriefPod(&m.list.Items[idx]) {
 			p, err := queryPodFromMetricsServer(context.Background(), m.opt.client, &m.list.Items[idx])
 			if err != nil {
 				klog.Warnf("pod %s from metrics-server fail, err: %s, skip", item.Name, err)
@@ -202,6 +211,17 @@ func (m *podMetadata) transformObject() pointKVs {
 	}
 
 	return res
+}
+
+func isBriefPod(item *apicorev1.Pod) bool {
+	for _, owner := range item.OwnerReferences {
+		switch owner.Kind {
+		case "Job", "CronJob":
+			return true
+		default:
+		}
+	}
+	return false
 }
 
 func queryPodFromMetricsServer(ctx context.Context, client k8sClient, item *apicorev1.Pod) (*typed.PointKV, error) {

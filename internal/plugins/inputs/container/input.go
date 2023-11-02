@@ -33,8 +33,9 @@ type Input struct {
 	EnableK8sMetric             bool `toml:"enable_k8s_metric"`
 	EnablePodMetric             bool `toml:"enable_pod_metric"`
 	EnableK8sEvent              bool `toml:"enable_k8s_event"`
-	Election                    bool `toml:"election"`
+	EnableK8sNodeLocal          bool `toml:"enable_k8s_node_local"`
 	EnableExtractK8sLabelAsTags bool `toml:"extract_k8s_label_as_tags"`
+	Election                    bool `toml:"election"`
 
 	K8sURL                                            string `toml:"kubernetes_url"`
 	K8sBearerToken                                    string `toml:"bearer_token"`

@@ -15,6 +15,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
+func replaceLabelKey(s string) string {
+	return strings.ReplaceAll(s, ".", "_")
+}
+
 func queryPodOwner(pod *apicorev1.Pod) string {
 	if len(pod.OwnerReferences) != 0 {
 		switch pod.OwnerReferences[0].Kind {

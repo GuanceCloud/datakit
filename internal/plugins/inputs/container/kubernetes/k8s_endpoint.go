@@ -22,7 +22,7 @@ const (
 
 //nolint:gochecknoinits
 func init() {
-	registerResource("endpoint", true, newEndpoint)
+	registerResource("endpoint", true, false, newEndpoint)
 	registerMeasurements(&endpointMetric{})
 }
 
@@ -37,10 +37,11 @@ func newEndpoint(client k8sClient) resource {
 
 func (e *endpoint) hasNext() bool { return e.continued != "" }
 
-func (e *endpoint) getMetadata(ctx context.Context, ns string) (metadata, error) {
+func (e *endpoint) getMetadata(ctx context.Context, ns, fieldSelector string) (metadata, error) {
 	opt := metav1.ListOptions{
-		Limit:    queryLimit,
-		Continue: e.continued,
+		Limit:         queryLimit,
+		Continue:      e.continued,
+		FieldSelector: fieldSelector,
 	}
 
 	list, err := e.client.GetEndpoints(ns).List(ctx, opt)

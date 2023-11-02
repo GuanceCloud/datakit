@@ -177,7 +177,7 @@ func (t *Single) recordingCache() {
 	c := &register.MetaData{Source: t.opt.Source, Offset: t.offset}
 
 	if err := register.Set(getFileKey(t.filepath), c); err != nil {
-		t.opt.log.Warnf("recording cache %s err: %s", c, err)
+		t.opt.log.Debugf("recording cache %s err: %s", c, err)
 		return
 	}
 
@@ -192,7 +192,7 @@ func (t *Single) recordingLastCache() {
 	c := &register.MetaData{Source: t.opt.Source, Offset: t.offset}
 
 	if err := register.SetAndFlush(getFileKey(t.filepath), c); err != nil {
-		t.opt.log.Warnf("recording last cache %s err: %s", c, err)
+		t.opt.log.Debugf("recording last cache %s err: %s", c, err)
 		return
 	}
 

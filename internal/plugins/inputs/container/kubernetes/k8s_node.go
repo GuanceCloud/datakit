@@ -25,7 +25,7 @@ const (
 
 //nolint:gochecknoinits
 func init() {
-	registerResource("node", false, newNode)
+	registerResource("node", false, false, newNode)
 	registerMeasurements(&nodeMetric{}, &nodeObject{})
 }
 
@@ -40,10 +40,11 @@ func newNode(client k8sClient) resource {
 
 func (n *node) hasNext() bool { return n.continued != "" }
 
-func (n *node) getMetadata(ctx context.Context, _ string) (metadata, error) {
+func (n *node) getMetadata(ctx context.Context, _, fieldSelector string) (metadata, error) {
 	opt := metav1.ListOptions{
-		Limit:    queryLimit,
-		Continue: n.continued,
+		Limit:         queryLimit,
+		Continue:      n.continued,
+		FieldSelector: fieldSelector,
 	}
 
 	list, err := n.client.GetNodes().List(ctx, opt)
@@ -150,6 +151,12 @@ func (m *nodeMetadata) transformObject() pointKVs {
 		obj.SetField("message", typed.TrimString(obj.String(), maxMessageLength))
 		obj.DeleteField("annotations")
 		obj.DeleteField("yaml")
+
+		if setExtraK8sLabelAsTags() {
+			for k, v := range item.Labels {
+				obj.SetTag(replaceLabelKey(k), v)
+			}
+		}
 
 		obj.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
 		res = append(res, obj)

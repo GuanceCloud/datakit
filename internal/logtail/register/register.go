@@ -9,10 +9,11 @@ package register
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"sync"
+
+	"github.com/GuanceCloud/cliutils/logger"
 )
 
 const defaultFlushFactor = 32
@@ -35,52 +36,50 @@ type Register interface {
 type register struct {
 	Data map[string]*MetaData `json:"history"`
 
-	file        *os.File
+	file        string
 	count       int // set count
 	flushFactor int
 
 	mu sync.Mutex
 }
 
-func NewRegisterFileIfNotExist(file string) (Register, error) {
-	_, err := os.Stat(file)
+func MustNewRegisterFile(file string) (Register, error) {
+	return newRegister(file, true)
+}
+
+var l = logger.DefaultSLogger("register")
+
+func newRegister(file string, force bool) (*register, error) {
+	l = logger.SLogger("register")
+
+	var r *register
+	var err error
+
+	func() {
+		b, readErr := os.ReadFile(filepath.Clean(file))
+		if readErr != nil {
+			err = readErr
+			return
+		}
+		r, err = parse(b)
+	}()
+
 	if err != nil {
-		if os.IsNotExist(err) {
-			f, err := os.Create(filepath.Clean(file))
-			if err != nil {
-				return nil, err
-			}
-			file = f.Name()
-			_ = f.Close()
+		l.Warnf("init register error: %s", err)
+		if force {
+			l.Info("create new register file")
+			r = &register{}
 		} else {
 			return nil, err
 		}
 	}
 
-	return New(file)
-}
-
-func New(file string) (Register, error) {
-	b, err := os.ReadFile(filepath.Clean(file))
-	if err != nil {
-		return nil, err
-	}
-
-	r, err := parse(b)
-	if err != nil {
-		return nil, err
-	}
-
 	if r.Data == nil {
 		r.Data = make(map[string]*MetaData)
 	}
+	r.file = filepath.Clean(file)
 	r.flushFactor = defaultFlushFactor
 	r.mu = sync.Mutex{}
-
-	r.file, err = os.OpenFile(filepath.Clean(file), os.O_RDWR, 0o600)
-	if err != nil {
-		return nil, err
-	}
 
 	return r, nil
 }
@@ -93,26 +92,18 @@ func (r *register) Flush() error {
 }
 
 func (r *register) flush() error {
-	b, err := json.MarshalIndent(r, "", "    ")
-	if err != nil {
-		return fmt.Errorf("unable build matedata, err %w", err)
-	}
+	if r.count != 0 {
+		b, err := json.Marshal(r)
+		if err != nil {
+			return fmt.Errorf("unable build matedata, err %w", err)
+		}
 
-	if err := r.file.Truncate(0); err != nil {
-		return fmt.Errorf("truncate logtail.history error %w", err)
-	}
+		if err := os.WriteFile(r.file, b, 0o600); err != nil {
+			return fmt.Errorf("failed to write file, err %w", err)
+		}
 
-	// reset seek to begnning
-	_, err = r.file.Seek(0, io.SeekStart)
-	if err != nil {
-		return fmt.Errorf("failed to reset file to begnning, err %w", err)
+		r.count = 0
 	}
-	_, err = r.file.Write(b)
-	if err != nil {
-		return fmt.Errorf("failed to write file, err %w", err)
-	}
-
-	r.count = 0
 	return nil
 }
 

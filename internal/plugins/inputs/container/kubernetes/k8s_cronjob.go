@@ -25,7 +25,7 @@ const (
 
 //nolint:gochecknoinits
 func init() {
-	registerResource("cronjob", true, newCronjob)
+	registerResource("cronjob", true, false, newCronjob)
 	registerMeasurements(&cronjobMetric{}, &cronjobObject{})
 }
 
@@ -40,10 +40,11 @@ func newCronjob(client k8sClient) resource {
 
 func (c *cronjob) hasNext() bool { return c.continued != "" }
 
-func (c *cronjob) getMetadata(ctx context.Context, ns string) (metadata, error) {
+func (c *cronjob) getMetadata(ctx context.Context, ns, fieldSelector string) (metadata, error) {
 	opt := metav1.ListOptions{
-		Limit:    queryLimit,
-		Continue: c.continued,
+		Limit:         queryLimit,
+		Continue:      c.continued,
+		FieldSelector: fieldSelector,
 	}
 
 	list, err := c.client.GetCronJobs(ns).List(ctx, opt)

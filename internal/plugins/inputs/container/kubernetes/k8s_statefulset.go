@@ -24,7 +24,7 @@ const (
 
 //nolint:gochecknoinits
 func init() {
-	registerResource("statefulset", true, newStatefulset)
+	registerResource("statefulset", true, false, newStatefulset)
 	registerMeasurements(&statefulsetMetric{}, &statefulsetObject{})
 }
 
@@ -39,10 +39,11 @@ func newStatefulset(client k8sClient) resource {
 
 func (s *statefulset) hasNext() bool { return s.continued != "" }
 
-func (s *statefulset) getMetadata(ctx context.Context, ns string) (metadata, error) {
+func (s *statefulset) getMetadata(ctx context.Context, ns, fieldSelector string) (metadata, error) {
 	opt := metav1.ListOptions{
-		Limit:    queryLimit,
-		Continue: s.continued,
+		Limit:         queryLimit,
+		Continue:      s.continued,
+		FieldSelector: fieldSelector,
 	}
 
 	list, err := s.client.GetStatefulSets(ns).List(ctx, opt)

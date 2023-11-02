@@ -25,7 +25,7 @@ const (
 
 //nolint:gochecknoinits
 func init() {
-	registerResource("replicaset", true, newReplicaset)
+	registerResource("replicaset", true, false, newReplicaset)
 	registerMeasurements(&replicasetMetric{}, &replicasetObject{})
 }
 
@@ -40,10 +40,11 @@ func newReplicaset(client k8sClient) resource {
 
 func (r *replicaset) hasNext() bool { return r.continued != "" }
 
-func (r *replicaset) getMetadata(ctx context.Context, ns string) (metadata, error) {
+func (r *replicaset) getMetadata(ctx context.Context, ns, fieldSelector string) (metadata, error) {
 	opt := metav1.ListOptions{
-		Limit:    queryLimit,
-		Continue: r.continued,
+		Limit:         queryLimit,
+		Continue:      r.continued,
+		FieldSelector: fieldSelector,
 	}
 
 	list, err := r.client.GetReplicaSets(ns).List(ctx, opt)

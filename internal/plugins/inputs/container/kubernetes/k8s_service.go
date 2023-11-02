@@ -20,13 +20,14 @@ import (
 )
 
 const (
+	serviceMetricMeasurement = "kube_service"
 	serviceObjectMeasurement = "kubernetes_services"
 )
 
 //nolint:gochecknoinits
 func init() {
-	registerResource("service", true, newService)
-	registerMeasurements(&serviceObject{})
+	registerResource("service", true, false, newService)
+	registerMeasurements(&serviceMetric{}, &serviceObject{})
 }
 
 type service struct {
@@ -40,10 +41,11 @@ func newService(client k8sClient) resource {
 
 func (s *service) hasNext() bool { return s.continued != "" }
 
-func (s *service) getMetadata(ctx context.Context, ns string) (metadata, error) {
+func (s *service) getMetadata(ctx context.Context, ns, fieldSelector string) (metadata, error) {
 	opt := metav1.ListOptions{
-		Limit:    queryLimit,
-		Continue: s.continued,
+		Limit:         queryLimit,
+		Continue:      s.continued,
+		FieldSelector: fieldSelector,
 	}
 
 	list, err := s.client.GetServices(ns).List(ctx, opt)
@@ -60,7 +62,22 @@ type serviceMetadata struct {
 }
 
 func (m *serviceMetadata) transformMetric() pointKVs {
-	return nil
+	var res pointKVs
+
+	for _, item := range m.list.Items {
+		met := typed.NewPointKV(serviceMetricMeasurement)
+
+		met.SetTag("uid", fmt.Sprintf("%v", item.UID))
+		met.SetTag("service", item.Name)
+		met.SetTag("namespace", item.Namespace)
+
+		met.SetField("ports", len(item.Spec.Ports))
+
+		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
+		res = append(res, met)
+	}
+
+	return res
 }
 
 func (m *serviceMetadata) transformObject() pointKVs {
@@ -100,6 +117,25 @@ func (m *serviceMetadata) transformObject() pointKVs {
 	return res
 }
 
+type serviceMetric struct{}
+
+//nolint:lll
+func (*serviceMetric) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: serviceMetricMeasurement,
+		Desc: "The metric of the Kubernetes Service.",
+		Type: "metric",
+		Tags: map[string]interface{}{
+			"uid":       inputs.NewTagInfo("The UID of Service"),
+			"service":   inputs.NewTagInfo("Name must be unique within a namespace."),
+			"namespace": inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+		},
+		Fields: map[string]interface{}{
+			"ports": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.Count, Desc: "Total number of ports that are exposed by this service."},
+		},
+	}
+}
+
 type serviceObject struct{}
 
 //nolint:lll
@@ -113,7 +149,7 @@ func (*serviceObject) Info() *inputs.MeasurementInfo {
 			"uid":          inputs.NewTagInfo("The UID of Service"),
 			"service_name": inputs.NewTagInfo("Name must be unique within a namespace."),
 			"namespace":    inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
-			"type":         inputs.NewTagInfo("type determines how the Service is exposed. Defaults to ClusterIP. (ClusterIP/NodePort/LoadBalancer/ExternalName)"),
+			"type":         inputs.NewTagInfo("Type determines how the Service is exposed. Defaults to ClusterIP. (ClusterIP/NodePort/LoadBalancer/ExternalName)"),
 		},
 		Fields: map[string]interface{}{
 			"age":                     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},

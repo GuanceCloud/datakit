@@ -251,14 +251,40 @@ By default, DataKit collects stdout/stderr logs for all containers on your machi
 <!-- markdownlint-disable MD046 -->
 === "host installation"
 
-    ``` toml
-    ## When the container's image matches `hello*` , the container's log is collected
-    container_include_log = ["image:hello*"]
-    ## Ignore all containers
-    container_exclude_log = ["image:*"]
+    ```toml
+    ## Take image for example.
+    ## Capture a container's log when its image matches `datakit`.
+    container_include_log = ["image:datakit"]
+    ## Ignore all kodo containers
+    container_exclude_log = ["image:kodo"]
     ```
 
-    `container_include` and `container_exclude` must begin with `image` in the form of a [regular-like Glob wildcard](https://en.wikipedia.org/wiki/Glob_(programming)){:target="_blank"}： `"image:<glob rules>"`
+    `container_include` and `container_exclude` must start with an attribute field in a sort of [Glob wildcard for class regularity](https://en.wikipedia.org/wiki/Glob_(programming)){:target="_ blank"}: `"<field name>:<glob rule>"`
+
+    The following 4 field rules are now supported, all of which are infrastructure attribute fields:
+
+    - image : `image:pubrepo.guance.com/datakit/datakit:1.18.0`
+    - image_name : `image_name:pubrepo.guance.com/datakit/datakit`
+    - image_short_name : `image_short_name:datakit`
+    - namespace : `namespace:datakit-ns`
+
+    For the same type of rule (`image` or `namespace`), if both `include` and `exclude` exist, the condition that `include` holds and `exclude` does not hold needs to be satisfied. For example:
+    ```toml
+    ## This causes all containers to be filtered. If there is a container ``datakit`` that satisfies both ``include`` and ``exclude``, then it will be filtered out of log collection; if there is a container ``nginx`` that does not satisfy ``include`` in the first place, it will be filtered out of log collection.
+
+    container_include_log = ["image_name:datakit"]
+    container_exclude_log = ["image_name:*"]
+    ```
+
+    Any one of the field rules for multiple types matches and its logs are no longer captured. Example:
+    ```toml
+    ## The container only needs to match either `image_name` and `namespace` to stop collecting logs.
+
+    container_include_log = []
+    container_exclude_log = ["image_name:datakit", "namespace:datakit-ns"]
+    ```
+
+    The configuration rules for `container_include_log` and `container_exclude_log` are complex, and their simultaneous use can result in a variety of priority cases. It is recommended to use only `container_exclude_log`.
 
 
 <!-- markdownlint-disable MD046 -->
@@ -281,6 +307,14 @@ By default, DataKit collects stdout/stderr logs for all containers on your machi
     - env:
       - name: ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG
         value: image:hello*  # Specify the image name or its wildcard
+    ```
+
+    Or namespace:
+
+    ``` yaml
+    - env:
+      - name: ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG
+        value: namespace:foo  # Specify the namespace or its wildcard
     ```
 
 

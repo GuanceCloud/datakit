@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/runtime"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
@@ -28,18 +28,20 @@ type logConfig struct {
 	Pipeline          string            `json:"pipeline"`
 	Multiline         string            `json:"multiline_match"`
 	MultilinePatterns []string          `json:"-"`
+	FromBeginning     bool              `json:"-"`
 	Tags              map[string]string `json:"tags"`
 }
 
 type logConfigs []*logConfig
 
 type logInstance struct {
-	id            string
-	containerName string
-	image         string
-	logPath       string
-	configStr     string
-	configs       logConfigs
+	id                                  string
+	containerName                       string
+	image                               string
+	imageName, imageShortName, imageTag string
+	logPath                             string
+	configStr                           string
+	configs                             logConfigs
 
 	podName      string
 	podNamespace string
@@ -93,6 +95,18 @@ func (lc *logInstance) parseLogConfigs() error {
 		}
 	}
 	return nil
+}
+
+func (lc *logInstance) setFromBeginning(createAt int64) {
+	createTime := time.Unix(0, createAt)
+	// container createAt less than 2m
+	fromBeginning := time.Since(createTime) < time.Minute*2
+
+	if fromBeginning {
+		for _, cfg := range lc.configs {
+			cfg.FromBeginning = true
+		}
+	}
 }
 
 func (lc *logInstance) addStdout() {
@@ -160,14 +174,13 @@ func (lc *logInstance) setCustomerTags(m map[string]string, keys []string) {
 }
 
 func (lc *logInstance) tags() map[string]string {
-	imageName, shortName, imageTag := runtime.ParseImage(lc.image)
 	m := map[string]string{
 		"container_id":     lc.id,
 		"container_name":   lc.containerName,
 		"image":            lc.image,
-		"image_name":       imageName,
-		"image_short_name": shortName,
-		"image_tag":        imageTag,
+		"image_name":       lc.imageName,
+		"image_short_name": lc.imageShortName,
+		"image_tag":        lc.imageTag,
 	}
 
 	if lc.podName != "" {

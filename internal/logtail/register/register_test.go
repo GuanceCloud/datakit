@@ -14,23 +14,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewRegisterFileIfNotExist(t *testing.T) {
-	t.Run("create file", func(t *testing.T) {
-		filename := "nonexisting"
-		defer os.Remove(filename)
-
-		err := Init(filename)
-		assert.NoError(t, err)
-		assert.NotNil(t, globalRegister)
-	})
-}
-
-func TestNew(t *testing.T) {
-	// reset globalRegister
-	globalRegister = nil
-
+func TestNewRegister(t *testing.T) {
 	t.Run("nonexisting", func(t *testing.T) {
-		_, err := New("nonexisting")
+		_, err := newRegister("nonexisting", false)
 		assert.Error(t, err)
 	})
 
@@ -42,7 +28,7 @@ func TestNew(t *testing.T) {
 		_, err = file.WriteString("NO JSON")
 		assert.NoError(t, err)
 
-		_, err = New(file.Name())
+		_, err = newRegister(file.Name(), false)
 		assert.Error(t, err)
 	})
 
@@ -55,7 +41,7 @@ func TestNew(t *testing.T) {
 		_, err = file.WriteString(content)
 		assert.NoError(t, err)
 
-		_, err = New(file.Name())
+		_, err = newRegister(file.Name(), false)
 		assert.NoError(t, err)
 	})
 }
@@ -111,14 +97,14 @@ func TestFlush(t *testing.T) {
 	assert.NoError(t, err)
 
 	// new register
-	r, err := New(file.Name())
+	r, err := newRegister(file.Name(), false)
 	assert.NoError(t, err)
 
 	err = r.Set("key", &MetaData{Source: "source", Offset: 100})
 	assert.NoError(t, err)
 
 	// flush
-	err = r.(*register).Flush()
+	err = r.Flush()
 	assert.NoError(t, err)
 
 	// verification
