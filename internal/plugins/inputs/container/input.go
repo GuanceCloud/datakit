@@ -44,6 +44,7 @@ type Input struct {
 	EnableAutoDiscoveryOfPrometheusServiceAnnotations bool   `toml:"enable_auto_discovery_of_prometheus_service_annotations"`
 	EnableAutoDiscoveryOfPrometheusPodMonitors        bool   `toml:"enable_auto_discovery_of_prometheus_pod_monitors"`
 	EnableAutoDiscoveryOfPrometheusServiceMonitors    bool   `toml:"enable_auto_discovery_of_prometheus_service_monitors"`
+	autoDiscoveryOfPromStreamSize                     int
 
 	ContainerIncludeLog               []string          `toml:"container_include_log"`
 	ContainerExcludeLog               []string          `toml:"container_exclude_log"`

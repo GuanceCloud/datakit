@@ -30,6 +30,7 @@ import (
 // ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_ANNOTATIONS booler
 // ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_MONITORS        booler
 // ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_MONITORS    booler
+// ENV_INPUT_CONTAINER_AUTO_DISCOVERY_OF_PROM_STREAM_SIZE : int e.g. "10"
 // ENV_INPUT_CONTAINER_TAGS : "a=b,c=d"
 // ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG : []string
 // ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG : []string
@@ -121,6 +122,14 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		}
 	}
 
+	if sizeStr, ok := envs["ENV_INPUT_CONTAINER_AUTO_DISCOVERY_OF_PROM_STREAM_SIZE"]; ok {
+		size, err := strconv.ParseInt(sizeStr, 10, 64)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_AUTO_DISCOVERY_OF_PROM_STREAM_SIZE to int64: %s, ignore", err)
+		} else {
+			ipt.autoDiscoveryOfPromStreamSize = int(size)
+		}
+	}
 	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_ANNOTATIONS"]; ok {
 		b, err := strconv.ParseBool(enable)
 		if err != nil {

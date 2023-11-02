@@ -20,7 +20,7 @@ import (
 var (
 	defaultPrometheusioInterval         = time.Second * 60
 	defaultPrometheusioConnectKeepAlive = time.Second * 20
-	defaultStreamSize                   = 10
+	streamSize                          = 10
 )
 
 type promConfig struct {
@@ -188,7 +188,7 @@ func newPromRunnerWithConfig(c *promConfig) (*promRunner, error) {
 		iprom.WithTags(c.Tags),
 		iprom.WithDisableInfoTag(c.DisableInfoTag),
 		iprom.WithAuth(c.Auth),
-		iprom.WithMaxBatchCallback(defaultStreamSize, callbackFunc),
+		iprom.WithMaxBatchCallback(streamSize, callbackFunc),
 	}
 
 	pm, err := iprom.NewProm(opts...)
