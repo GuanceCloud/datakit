@@ -236,9 +236,9 @@ If the following information is reported, it is basically caused by the low glib
 externals/oracle: /lib64/libc.so.6: version  `GLIBC_2.14` not found (required by externals/oracle)
 ```
 
-- Oracle Collector is only available on Linux x64/ARM64 architecture DataKit and is not supported on other platforms.
+- Oracle Collector is only available on Linux x86_64/ARM64 architecture DataKit and is not supported on other platforms.
 
-This means that the Oracle collector can only run on x64/ARM64 Linux, and no other platform can run the current Oracle collector.
+This means that the Oracle collector can only run on x86_64/ARM64 Linux, and no other platform can run the current Oracle collector.
 
 ### :material-chat-question: Why can't see `oracle_system` measurements? {#faq-no-system}
 

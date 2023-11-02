@@ -358,6 +358,7 @@ require (
 	github.com/cilium/ebpf v0.11.0
 	github.com/grafana/pyroscope/ebpf v0.2.1
 	github.com/ibmdb/go_ibm_db v0.4.4
+	github.com/mattn/go-oci8 v0.1.1
 	github.com/netsampler/goflow2 v1.3.5
 	github.com/oklog/ulid v1.3.1
 	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63

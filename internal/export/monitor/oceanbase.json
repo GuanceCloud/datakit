@@ -1,0 +1,145 @@
+{
+  "checkers": [
+    {
+      "extend": {
+        "funcName": "",
+        "isNeedCreateIssue": false,
+        "issueLevelUUID": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "oceanbase",
+              "field": "ob_database_status",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "funcList": [],
+              "groupBy": [
+                "ob_host_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`oceanbase`:(LAST(`ob_database_status`)) BY `ob_host_name`",
+              "type": "simple"
+            },
+            "uuid": "e9015a96-a2b6-4b9e-8f2d-820792a6ef76"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "1"
+                ],
+                "operator": "!="
+              }
+            ],
+            "status": "critical"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "1"
+                ],
+                "operator": "!="
+              }
+            ],
+            "status": "error"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "1"
+                ],
+                "operator": "!="
+              }
+            ],
+            "status": "warning"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "atAccounts": [],
+        "atNoDataAccounts": [],
+        "channels": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "1"
+                  ],
+                  "operator": "!="
+                }
+              ],
+              "status": "critical"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "1"
+                  ],
+                  "operator": "!="
+                }
+              ],
+              "status": "error"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "1"
+                  ],
+                  "operator": "!="
+                }
+              ],
+              "status": "warning"
+            }
+          ]
+        },
+        "every": "5m",
+        "groupBy": [
+          "ob_host_name"
+        ],
+        "interval": 300,
+        "message": "<<.Monitor.message>>",
+        "noDataMessage": "",
+        "noDataTitle": "",
+        "recoverNeedPeriodCount": 2,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`oceanbase`:(LAST(`ob_database_status`)) BY `ob_host_name`",
+            "qtype": "dql"
+          }
+        ],
+        "title": "<<.Monitor.title>>",
+        "type": "simpleCheck"
+      },
+      "monitorName": "默认",
+      "secret": "",
+      "tagInfo": []
+    }
+  ]
+}

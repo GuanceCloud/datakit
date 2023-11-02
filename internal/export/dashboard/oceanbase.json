@@ -2,14 +2,13 @@
   "dashboardBindSet": [],
   "dashboardExtend": {
     "groupUnfoldStatus": {
-      "{{.Dashboard.category_bufferpool}}": true,
-      "{{.Dashboard.category_connections}}": true,
-      "{{.Dashboard.category_database}}": true,
-      "{{.Dashboard.category_locks}}": true,
+      "{{.Dashboard.category_alarm}}": true,
+      "{{.Dashboard.category_lock}}": true,
       "{{.Dashboard.category_log}}": true,
-      "{{.Dashboard.category_overview}}": true,
-      "{{.Dashboard.category_readwrite}}": true,
-      "{{.Dashboard.category_tablespace}}": true
+      "{{.Dashboard.category_memory}}": true,
+      "{{.Dashboard.category_plancache}}": true,
+      "{{.Dashboard.category_status}}": true,
+      "{{.Dashboard.category_workarea}}": true
     }
   },
   "dashboardMapping": [],
@@ -20,1531 +19,41 @@
     "charts": [
       {
         "extend": {
-          "fixedTime": "",
           "isRefresh": false,
+          "links": [],
           "settings": {
             "alias": [],
-            "chartType": "areaLine",
+            "backgroundStyle": {
+              "background-position": "center"
+            },
+            "changeWorkspace": false,
             "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareType": [],
-            "currentChartType": "sequence",
-            "density": "medium",
             "fixedTime": "",
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mainMeasurementQueryCode": "A",
-            "onlyShowGroupName": false,
-            "openCompare": false,
-            "openStack": false,
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "slimit": 20,
-            "stackType": "time",
-            "timeInterval": "auto",
-            "titleDesc": "",
-            "units": [],
-            "xAxisShowType": "time",
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
-        },
-        "group": {
-          "name": "{{.Dashboard.category_connections}}"
-        },
-        "name": "{{.Dashboard.connection_active}}",
-        "pos": {
-          "h": 10,
-          "w": 6,
-          "x": 0,
-          "y": 0
-        },
-        "queries": [
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "A",
-              "dataSource": "db2_instance",
-              "field": "connection_active",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "db2_server"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`db2_instance`:(LAST(`connection_active`)) BY `db2_server`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
-            "type": "sequence",
-            "unit": ""
-          }
-        ],
-        "type": "sequence"
-      },
-      {
-        "extend": {
-          "fixedTime": "",
-          "isRefresh": false,
-          "settings": {
-            "alias": [],
-            "chartType": "bar",
-            "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareType": [],
-            "currentChartType": "sequence",
-            "density": "medium",
-            "fixedTime": "",
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mainMeasurementQueryCode": "A",
-            "onlyShowGroupName": false,
-            "openCompare": false,
-            "openStack": false,
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "slimit": 20,
-            "stackType": "time",
-            "timeInterval": "auto",
-            "titleDesc": "",
-            "units": [],
-            "xAxisShowType": "time",
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
-        },
-        "group": {
-          "name": "{{.Dashboard.category_connections}}"
-        },
-        "name": "{{.Dashboard.application_active}}",
-        "pos": {
-          "h": 10,
-          "w": 6,
-          "x": 6,
-          "y": 0
-        },
-        "queries": [
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "A",
-              "dataSource": "db2_database",
-              "field": "application_active",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "db2_server"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`db2_database`:(LAST(`application_active`)) BY `db2_server`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
-            "type": "sequence",
-            "unit": ""
-          }
-        ],
-        "type": "sequence"
-      },
-      {
-        "extend": {
-          "fixedTime": "",
-          "isRefresh": false,
-          "settings": {
-            "alias": [],
-            "chartType": "line",
-            "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareType": [],
-            "currentChartType": "sequence",
-            "density": "medium",
-            "fixedTime": "",
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mainMeasurementQueryCode": "A",
-            "onlyShowGroupName": false,
-            "openCompare": false,
-            "openStack": false,
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "slimit": 20,
-            "stackType": "time",
-            "timeInterval": "auto",
-            "titleDesc": "",
-            "units": [
-              {
-                "key": "last(backup_latest)",
-                "name": "last(backup_latest)",
-                "unit": "",
-                "units": [
-                  "time",
-                  "s"
-                ]
-              }
-            ],
-            "xAxisShowType": "time",
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
-        },
-        "group": {
-          "name": "{{.Dashboard.category_database}}"
-        },
-        "name": "{{.Dashboard.backup_latest}}",
-        "pos": {
-          "h": 11,
-          "w": 8,
-          "x": 8,
-          "y": 0
-        },
-        "queries": [
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "A",
-              "dataSource": "db2_database",
-              "field": "backup_latest",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "db2_server"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`db2_database`:(LAST(`backup_latest`)) BY `db2_server`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
-            "type": "sequence",
-            "unit": ""
-          }
-        ],
-        "type": "sequence"
-      },
-      {
-        "extend": {
-          "fixedTime": "",
-          "isRefresh": false,
-          "settings": {
-            "alias": [],
-            "chartType": "line",
-            "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareType": [],
-            "currentChartType": "sequence",
-            "density": "medium",
-            "fixedTime": "",
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mainMeasurementQueryCode": "A",
-            "onlyShowGroupName": false,
-            "openCompare": false,
-            "openStack": false,
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "slimit": 20,
-            "stackType": "time",
-            "timeInterval": "auto",
-            "titleDesc": "",
-            "units": [],
-            "xAxisShowType": "time",
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
-        },
-        "group": {
-          "name": "{{.Dashboard.category_locks}}"
-        },
-        "name": "{{.Dashboard.lock_dead}}",
-        "pos": {
-          "h": 10,
-          "w": 12,
-          "x": 0,
-          "y": 0
-        },
-        "queries": [
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "A",
-              "dataSource": "db2_database",
-              "field": "lock_dead",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "db2_server"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`db2_database`:(LAST(`lock_dead`)) BY `db2_server`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
-            "type": "sequence",
-            "unit": ""
-          }
-        ],
-        "type": "sequence"
-      },
-      {
-        "extend": {
-          "fixedTime": "",
-          "isRefresh": false,
-          "settings": {
-            "alias": [],
-            "chartType": "line",
-            "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareType": [],
-            "currentChartType": "sequence",
-            "density": "medium",
-            "fixedTime": "",
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mainMeasurementQueryCode": "A",
-            "onlyShowGroupName": false,
-            "openCompare": false,
-            "openStack": false,
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "slimit": 20,
-            "stackType": "time",
-            "timeInterval": "auto",
-            "titleDesc": "",
-            "units": [],
-            "xAxisShowType": "time",
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
-        },
-        "group": {
-          "name": "{{.Dashboard.category_readwrite}}"
-        },
-        "name": "{{.Dashboard.reads_returned_modified}}",
-        "pos": {
-          "h": 12,
-          "w": 8,
-          "x": 0,
-          "y": 0
-        },
-        "queries": [
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "A",
-              "dataSource": "db2_database",
-              "field": "row_reads_total",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "db2_server"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`db2_database`:(LAST(`row_reads_total`)) BY `db2_server`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
-            "type": "sequence",
-            "unit": ""
-          },
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "B",
-              "dataSource": "db2_database",
-              "field": "row_returned_total",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "db2_server"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`db2_database`:(LAST(`row_returned_total`)) BY `db2_server`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
-            "type": "sequence",
-            "unit": ""
-          },
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "C",
-              "dataSource": "db2_database",
-              "field": "row_modified_total",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "db2_server"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`db2_database`:(LAST(`row_modified_total`)) BY `db2_server`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
-            "type": "sequence",
-            "unit": ""
-          }
-        ],
-        "type": "sequence"
-      },
-      {
-        "extend": {
-          "fixedTime": "",
-          "isRefresh": false,
-          "settings": {
-            "alias": [],
-            "chartType": "line",
-            "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareType": [],
-            "currentChartType": "sequence",
-            "density": "medium",
-            "fixedTime": "",
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mainMeasurementQueryCode": "A",
-            "onlyShowGroupName": false,
-            "openCompare": false,
-            "openStack": false,
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "slimit": 20,
-            "stackType": "time",
-            "timeInterval": "auto",
-            "titleDesc": "",
-            "units": [],
-            "xAxisShowType": "time",
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
-        },
-        "group": {
-          "name": "{{.Dashboard.category_database}}"
-        },
-        "name": "{{.Dashboard.status}}",
-        "pos": {
-          "h": 11,
-          "w": 8,
-          "x": 0,
-          "y": 0
-        },
-        "queries": [
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "A",
-              "dataSource": "db2_database",
-              "field": "status",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "db2_server"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`db2_database`:(LAST(`status`)) BY `db2_server`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
-            "type": "sequence",
-            "unit": ""
-          }
-        ],
-        "type": "sequence"
-      },
-      {
-        "extend": {
-          "fixedTime": "",
-          "isRefresh": false,
-          "settings": {
-            "alias": [],
-            "chartType": "areaLine",
-            "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareType": [],
-            "currentChartType": "sequence",
-            "density": "medium",
-            "fixedTime": "",
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mainMeasurementQueryCode": "A",
-            "onlyShowGroupName": false,
-            "openCompare": false,
-            "openStack": false,
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "slimit": 20,
-            "stackType": "time",
-            "timeInterval": "auto",
-            "titleDesc": "",
-            "units": [],
-            "xAxisShowType": "time",
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
-        },
-        "group": {
-          "name": "{{.Dashboard.category_log}}"
-        },
-        "name": "{{.Dashboard.log_used}}",
-        "pos": {
-          "h": 10,
-          "w": 8,
-          "x": 0,
-          "y": 0
-        },
-        "queries": [
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "A",
-              "dataSource": "db2_transaction_log",
-              "field": "log_used",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "db2_server"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`db2_transaction_log`:(LAST(`log_used`)) BY `db2_server`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
-            "type": "sequence",
-            "unit": ""
-          }
-        ],
-        "type": "sequence"
-      },
-      {
-        "extend": {
-          "fixedTime": "",
-          "isRefresh": false,
-          "settings": {
-            "alias": [],
-            "chartType": "line",
-            "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareType": [],
-            "currentChartType": "sequence",
-            "density": "medium",
-            "fixedTime": "",
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mainMeasurementQueryCode": "A",
-            "onlyShowGroupName": false,
-            "openCompare": false,
-            "openStack": false,
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "slimit": 20,
-            "stackType": "time",
-            "timeInterval": "auto",
-            "titleDesc": "",
-            "units": [],
-            "xAxisShowType": "time",
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
-        },
-        "group": {
-          "name": "{{.Dashboard.category_log}}"
-        },
-        "name": "{{.Dashboard.log_reads_writes}}",
-        "pos": {
-          "h": 10,
-          "w": 8,
-          "x": 8,
-          "y": 0
-        },
-        "queries": [
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "A",
-              "dataSource": "db2_transaction_log",
-              "field": "log_reads",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "db2_server"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`db2_transaction_log`:(LAST(`log_reads`)) BY `db2_server`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
-            "type": "sequence",
-            "unit": ""
-          },
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "B",
-              "dataSource": "db2_transaction_log",
-              "field": "log_writes",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "db2_server"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`db2_transaction_log`:(LAST(`log_writes`)) BY `db2_server`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
-            "type": "sequence",
-            "unit": ""
-          }
-        ],
-        "type": "sequence"
-      },
-      {
-        "extend": {
-          "fixedTime": "",
-          "isRefresh": false,
-          "settings": {
-            "alias": [],
-            "chartType": "line",
-            "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareType": [],
-            "currentChartType": "sequence",
-            "density": "medium",
-            "fixedTime": "",
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mainMeasurementQueryCode": "A",
-            "onlyShowGroupName": false,
-            "openCompare": false,
-            "openStack": false,
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "slimit": 20,
-            "stackType": "time",
-            "timeInterval": "auto",
-            "titleDesc": "",
-            "units": [
-              {
-                "key": "last(log_utilized)",
-                "name": "last(log_utilized)",
-                "unit": "",
-                "units": [
-                  "percent",
-                  "percent"
-                ]
-              }
-            ],
-            "xAxisShowType": "time",
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
-        },
-        "group": {
-          "name": "{{.Dashboard.category_log}}"
-        },
-        "name": "{{.Dashboard.log_utilized}}",
-        "pos": {
-          "h": 10,
-          "w": 8,
-          "x": 16,
-          "y": 0
-        },
-        "queries": [
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "A",
-              "dataSource": "db2_transaction_log",
-              "field": "log_utilized",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "db2_server"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`db2_transaction_log`:(LAST(`log_utilized`)) BY `db2_server`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
-            "type": "sequence",
-            "unit": ""
-          }
-        ],
-        "type": "sequence"
-      },
-      {
-        "extend": {
-          "fixedTime": "",
-          "isRefresh": false,
-          "settings": {
-            "alias": [],
-            "chartType": "line",
-            "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareType": [],
-            "currentChartType": "sequence",
-            "density": "medium",
-            "fixedTime": "",
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mainMeasurementQueryCode": "A",
-            "onlyShowGroupName": false,
-            "openCompare": false,
-            "openStack": false,
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "slimit": 20,
-            "stackType": "time",
-            "timeInterval": "auto",
-            "titleDesc": "",
-            "units": [],
-            "xAxisShowType": "time",
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
-        },
-        "group": {
-          "name": "{{.Dashboard.category_connections}}"
-        },
-        "name": "{{.Dashboard.connection_max}}",
-        "pos": {
-          "h": 10,
-          "w": 6,
-          "x": 12,
-          "y": 0
-        },
-        "queries": [
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "A",
-              "dataSource": "db2_database",
-              "field": "connection_max",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "db2_server"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`db2_database`:(LAST(`connection_max`)) BY `db2_server`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
-            "type": "sequence",
-            "unit": ""
-          }
-        ],
-        "type": "sequence"
-      },
-      {
-        "extend": {
-          "fixedTime": "",
-          "isRefresh": false,
-          "settings": {
-            "alias": [],
-            "chartType": "line",
-            "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareType": [],
-            "currentChartType": "sequence",
-            "density": "medium",
-            "fixedTime": "",
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mainMeasurementQueryCode": "A",
-            "onlyShowGroupName": false,
-            "openCompare": false,
-            "openStack": false,
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "slimit": 20,
-            "stackType": "time",
-            "timeInterval": "auto",
-            "titleDesc": "",
-            "units": [
-              {
-                "key": "last(lock_wait)",
-                "name": "last(lock_wait)",
-                "unit": "",
-                "units": [
-                  "time",
-                  "s"
-                ]
-              }
-            ],
-            "xAxisShowType": "time",
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
-        },
-        "group": {
-          "name": "{{.Dashboard.category_database}}"
-        },
-        "name": "{{.Dashboard.lock_wait}}",
-        "pos": {
-          "h": 11,
-          "w": 8,
-          "x": 16,
-          "y": 0
-        },
-        "queries": [
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "A",
-              "dataSource": "db2_database",
-              "field": "lock_wait",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "db2_server"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`db2_database`:(LAST(`lock_wait`)) BY `db2_server`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
-            "type": "sequence",
-            "unit": ""
-          }
-        ],
-        "type": "sequence"
-      },
-      {
-        "extend": {
-          "fixedTime": "",
-          "isRefresh": false,
-          "settings": {
-            "alias": [],
-            "chartType": "line",
-            "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareType": [],
-            "currentChartType": "sequence",
-            "density": "medium",
-            "fixedTime": "",
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mainMeasurementQueryCode": "A",
-            "onlyShowGroupName": false,
-            "openCompare": false,
-            "openStack": false,
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "slimit": 20,
-            "stackType": "time",
-            "timeInterval": "auto",
-            "titleDesc": "",
-            "units": [],
-            "xAxisShowType": "time",
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
-        },
-        "group": {
-          "name": "{{.Dashboard.category_locks}}"
-        },
-        "name": "{{.Dashboard.lock_timeouts}}",
-        "pos": {
-          "h": 10,
-          "w": 12,
-          "x": 12,
-          "y": 0
-        },
-        "queries": [
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "A",
-              "dataSource": "db2_database",
-              "field": "lock_timeouts",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "db2_server"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`db2_database`:(LAST(`lock_timeouts`)) BY `db2_server`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
-            "type": "sequence",
-            "unit": ""
-          }
-        ],
-        "type": "sequence"
-      },
-      {
-        "extend": {
-          "fixedTime": "",
-          "isRefresh": false,
-          "settings": {
-            "alias": [],
-            "chartType": "line",
-            "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareType": [],
-            "currentChartType": "sequence",
-            "density": "medium",
-            "fixedTime": "",
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mainMeasurementQueryCode": "A",
-            "onlyShowGroupName": false,
-            "openCompare": false,
-            "openStack": false,
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "slimit": 20,
-            "stackType": "time",
-            "timeInterval": "auto",
-            "titleDesc": "",
-            "units": [],
-            "xAxisShowType": "time",
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
-        },
-        "group": {
-          "name": "{{.Dashboard.category_bufferpool}}"
-        },
-        "name": "{{.Dashboard.bufferpool_reads_total}}",
-        "pos": {
-          "h": 10,
-          "w": 12,
-          "x": 0,
-          "y": 0
-        },
-        "queries": [
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "A",
-              "dataSource": "db2_buffer_pool",
-              "field": "bufferpool_reads_total",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "db2_server"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`db2_buffer_pool`:(LAST(`bufferpool_reads_total`)) BY `db2_server`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
-            "type": "sequence",
-            "unit": ""
-          }
-        ],
-        "type": "sequence"
-      },
-      {
-        "extend": {
-          "fixedTime": "",
-          "isRefresh": false,
-          "settings": {
-            "alias": [],
-            "chartType": "line",
-            "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareType": [],
-            "currentChartType": "sequence",
-            "density": "medium",
-            "fixedTime": "",
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mainMeasurementQueryCode": "A",
-            "onlyShowGroupName": false,
-            "openCompare": false,
-            "openStack": false,
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "slimit": 20,
-            "stackType": "time",
-            "timeInterval": "auto",
-            "titleDesc": "",
-            "units": [
-              {
-                "key": "last(bufferpool_hit_percent)",
-                "name": "last(bufferpool_hit_percent)",
-                "unit": "",
-                "units": [
-                  "percent",
-                  "percent"
-                ]
-              }
-            ],
-            "xAxisShowType": "time",
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
-        },
-        "group": {
-          "name": "{{.Dashboard.category_bufferpool}}"
-        },
-        "name": "{{.Dashboard.bufferpool_hit_percent}}",
-        "pos": {
-          "h": 10,
-          "w": 12,
-          "x": 12,
-          "y": 0
-        },
-        "queries": [
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "A",
-              "dataSource": "db2_buffer_pool",
-              "field": "bufferpool_hit_percent",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "db2_server"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`db2_buffer_pool`:(LAST(`bufferpool_hit_percent`)) BY `db2_server`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
-            "type": "sequence",
-            "unit": ""
-          }
-        ],
-        "type": "sequence"
-      },
-      {
-        "extend": {
-          "fixedTime": "",
-          "isRefresh": false,
-          "settings": {
-            "alias": [],
-            "bar": {
-              "direction": "horizontal",
-              "xAxisShowType": "groupBy"
-            },
-            "chartType": "bar",
-            "color": "#498bfe",
-            "colors": [],
-            "currentChartType": "toplist",
-            "fixedTime": "",
+            "globalUnit": [],
             "isTimeInterval": false,
             "levels": [],
-            "openCompare": false,
             "showFieldMapping": false,
-            "showTableHead": true,
-            "showTitle": true,
-            "showTopSize": true,
-            "table": {
-              "queryMode": "toGroupColumn"
-            },
-            "tableSortMetricName": "",
-            "tableSortType": "top",
+            "showTitle": false,
             "timeInterval": "default",
             "titleDesc": "",
-            "topSize": 10,
-            "units": [
-              {
-                "key": "last(tablespace_utilized)",
-                "name": "last(tablespace_utilized)",
-                "unit": "",
-                "units": [
-                  "percent",
-                  "percent"
-                ]
-              }
-            ]
+            "type": "center",
+            "unitType": "global",
+            "units": [],
+            "url": "https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/public/images/oceanbase.png"
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_tablespace}}"
+          "name": "{{.Dashboard.category_alarm}}"
         },
-        "name": "{{.Dashboard.tablespace_utilized}}",
+        "name": "brand",
         "pos": {
-          "h": 25,
-          "w": 12,
+          "h": 20,
+          "w": 4,
           "x": 0,
           "y": 0
         },
-        "queries": [
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "A",
-              "dataSource": "db2_table_space",
-              "field": "tablespace_utilized",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [
-                null,
-                "top:10"
-              ],
-              "groupBy": [
-                "tablespace_name"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`db2_table_space`:(LAST(`tablespace_utilized`)) BY `tablespace_name`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
-            "type": "toplist",
-            "unit": ""
-          }
-        ],
-        "type": "toplist"
+        "queries": [],
+        "type": "picture"
       },
       {
         "extend": {
@@ -1552,6 +61,7 @@
           "isRefresh": false,
           "settings": {
             "alias": [],
+            "changeWorkspace": false,
             "chartType": "areaLine",
             "colors": [],
             "compareColors": {
@@ -1576,6 +86,7 @@
             "currentChartType": "sequence",
             "density": "medium",
             "fixedTime": "",
+            "globalUnit": [],
             "isPercent": false,
             "isTimeInterval": true,
             "legendPostion": "none",
@@ -1585,6 +96,8 @@
             "onlyShowGroupName": false,
             "openCompare": false,
             "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
             "showFieldMapping": false,
             "showLine": false,
             "showTitle": true,
@@ -1592,147 +105,7 @@
             "stackType": "time",
             "timeInterval": "auto",
             "titleDesc": "",
-            "units": [
-              {
-                "key": "last(tablespace_usable)",
-                "name": "last(tablespace_usable)",
-                "unit": "",
-                "units": [
-                  "digital",
-                  "b"
-                ]
-              },
-              {
-                "key": "last(tablespace_used)",
-                "name": "last(tablespace_used)",
-                "unit": "",
-                "units": [
-                  "digital",
-                  "b"
-                ]
-              }
-            ],
-            "xAxisShowType": "time",
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
-        },
-        "group": {
-          "name": "{{.Dashboard.category_tablespace}}"
-        },
-        "name": "{{.Dashboard.tablespace_usable_used}}",
-        "pos": {
-          "h": 25,
-          "w": 12,
-          "x": 12,
-          "y": 0
-        },
-        "queries": [
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "A",
-              "dataSource": "db2_table_space",
-              "field": "tablespace_usable",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "db2_server"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`db2_table_space`:(LAST(`tablespace_usable`)) BY `db2_server`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
-            "type": "sequence",
-            "unit": ""
-          },
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "B",
-              "dataSource": "db2_table_space",
-              "field": "tablespace_used",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "db2_server"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`db2_table_space`:(LAST(`tablespace_used`)) BY `db2_server`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
-            "type": "sequence",
-            "unit": ""
-          }
-        ],
-        "type": "sequence"
-      },
-      {
-        "extend": {
-          "fixedTime": "",
-          "isRefresh": false,
-          "settings": {
-            "alias": [],
-            "chartType": "line",
-            "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareType": [],
-            "currentChartType": "sequence",
-            "density": "medium",
-            "fixedTime": "",
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mainMeasurementQueryCode": "A",
-            "onlyShowGroupName": false,
-            "openCompare": false,
-            "openStack": false,
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "slimit": 20,
-            "stackType": "time",
-            "timeInterval": "auto",
-            "titleDesc": "",
+            "unitType": "global",
             "units": [],
             "xAxisShowType": "time",
             "yAxixMaxVal": null,
@@ -1740,107 +113,13 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_connections}}"
+          "name": "{{.Dashboard.category_status}}"
         },
-        "name": "{{.Dashboard.application_executing}}",
+        "name": "{{.Dashboard.ob_database_status}}",
         "pos": {
           "h": 10,
-          "w": 6,
-          "x": 18,
-          "y": 0
-        },
-        "queries": [
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "A",
-              "dataSource": "db2_database",
-              "field": "application_executing",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "db2_server"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`db2_database`:(LAST(`application_executing`)) BY `db2_server`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
-            "type": "sequence",
-            "unit": ""
-          }
-        ],
-        "type": "sequence"
-      },
-      {
-        "extend": {
-          "fixedTime": "",
-          "isRefresh": false,
-          "settings": {
-            "alias": [],
-            "chartType": "line",
-            "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareType": [],
-            "currentChartType": "sequence",
-            "density": "medium",
-            "fixedTime": "",
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mainMeasurementQueryCode": "A",
-            "onlyShowGroupName": false,
-            "openCompare": false,
-            "openStack": false,
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "slimit": 20,
-            "stackType": "time",
-            "timeInterval": "auto",
-            "titleDesc": "",
-            "units": [],
-            "xAxisShowType": "time",
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
-        },
-        "group": {
-          "name": "{{.Dashboard.category_readwrite}}"
-        },
-        "name": "{{.Dashboard.bufferpool_column_reads_total}}",
-        "pos": {
-          "h": 12,
           "w": 8,
-          "x": 8,
+          "x": 0,
           "y": 0
         },
         "queries": [
@@ -1852,20 +131,20 @@
             "query": {
               "alias": "",
               "code": "A",
-              "dataSource": "db2_buffer_pool",
-              "field": "bufferpool_column_reads_total",
+              "dataSource": "oceanbase",
+              "field": "ob_database_status",
               "fieldFunc": "last",
               "fieldType": "float",
               "fill": null,
               "filters": [],
               "funcList": [],
               "groupBy": [
-                "db2_server"
+                "ob_host_name"
               ],
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`db2_buffer_pool`:(LAST(`bufferpool_column_reads_total`)) BY `db2_server`",
+              "q": "M::`oceanbase`:(LAST(`ob_database_status`)) BY `ob_host_name`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -1878,9 +157,9 @@
       {
         "extend": {
           "fixedTime": "",
-          "isRefresh": false,
           "settings": {
             "alias": [],
+            "changeWorkspace": false,
             "chartType": "line",
             "colors": [],
             "compareColors": {
@@ -1902,9 +181,9 @@
               "weekCompare": "rgba(11,11,12,0.3)"
             },
             "compareType": [],
-            "currentChartType": "sequence",
             "density": "medium",
             "fixedTime": "",
+            "globalUnit": [],
             "isPercent": false,
             "isTimeInterval": true,
             "legendPostion": "none",
@@ -1914,6 +193,8 @@
             "onlyShowGroupName": false,
             "openCompare": false,
             "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
             "showFieldMapping": false,
             "showLine": false,
             "showTitle": true,
@@ -1921,6 +202,7 @@
             "stackType": "time",
             "timeInterval": "auto",
             "titleDesc": "",
+            "unitType": "global",
             "units": [],
             "xAxisShowType": "time",
             "yAxixMaxVal": null,
@@ -1928,11 +210,11 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_readwrite}}"
+          "name": "{{.Dashboard.category_lock}}"
         },
-        "name": "{{.Dashboard.bufferpool_index_reads_total}}",
+        "name": "{{.Dashboard.ob_concurrent_limit_sql_count}}",
         "pos": {
-          "h": 12,
+          "h": 10,
           "w": 8,
           "x": 16,
           "y": 0
@@ -1946,20 +228,20 @@
             "query": {
               "alias": "",
               "code": "A",
-              "dataSource": "db2_buffer_pool",
-              "field": "bufferpool_index_reads_total",
+              "dataSource": "oceanbase",
+              "field": "ob_concurrent_limit_sql_count",
               "fieldFunc": "last",
               "fieldType": "float",
               "fill": null,
               "filters": [],
               "funcList": [],
               "groupBy": [
-                "db2_server"
+                "ob_host_name"
               ],
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`db2_buffer_pool`:(LAST(`bufferpool_index_reads_total`)) BY `db2_server`",
+              "q": "M::`oceanbase`:(LAST(`ob_concurrent_limit_sql_count`)) BY `ob_host_name`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -1972,9 +254,9 @@
       {
         "extend": {
           "fixedTime": "",
-          "isRefresh": false,
           "settings": {
             "alias": [],
+            "changeWorkspace": false,
             "chartType": "line",
             "colors": [],
             "compareColors": {
@@ -1996,9 +278,9 @@
               "weekCompare": "rgba(11,11,12,0.3)"
             },
             "compareType": [],
-            "currentChartType": "sequence",
             "density": "medium",
             "fixedTime": "",
+            "globalUnit": [],
             "isPercent": false,
             "isTimeInterval": true,
             "legendPostion": "none",
@@ -2008,6 +290,8 @@
             "onlyShowGroupName": false,
             "openCompare": false,
             "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
             "showFieldMapping": false,
             "showLine": false,
             "showTitle": true,
@@ -2015,6 +299,7 @@
             "stackType": "time",
             "timeInterval": "auto",
             "titleDesc": "",
+            "unitType": "global",
             "units": [],
             "xAxisShowType": "time",
             "yAxixMaxVal": null,
@@ -2022,14 +307,14 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_readwrite}}"
+          "name": "{{.Dashboard.category_lock}}"
         },
-        "name": "{{.Dashboard.bufferpool_xda_reads_total}}",
+        "name": "{{.Dashboard.ob_lock_count}}",
         "pos": {
           "h": 10,
-          "w": 12,
+          "w": 8,
           "x": 0,
-          "y": 12
+          "y": 0
         },
         "queries": [
           {
@@ -2040,20 +325,20 @@
             "query": {
               "alias": "",
               "code": "A",
-              "dataSource": "db2_buffer_pool",
-              "field": "bufferpool_xda_reads_total",
+              "dataSource": "oceanbase",
+              "field": "ob_lock_count",
               "fieldFunc": "last",
               "fieldType": "float",
               "fill": null,
               "filters": [],
               "funcList": [],
               "groupBy": [
-                "db2_server"
+                "ob_host_name"
               ],
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`db2_buffer_pool`:(LAST(`bufferpool_xda_reads_total`)) BY `db2_server`",
+              "q": "M::`oceanbase`:(LAST(`ob_lock_count`)) BY `ob_host_name`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -2066,9 +351,10 @@
       {
         "extend": {
           "fixedTime": "",
-          "isRefresh": false,
+          "isRefresh": true,
           "settings": {
             "alias": [],
+            "changeWorkspace": false,
             "chartType": "line",
             "colors": [],
             "compareColors": {
@@ -2093,6 +379,10 @@
             "currentChartType": "sequence",
             "density": "medium",
             "fixedTime": "",
+            "globalUnit": [
+              "time",
+              "s"
+            ],
             "isPercent": false,
             "isTimeInterval": true,
             "legendPostion": "none",
@@ -2102,6 +392,8 @@
             "onlyShowGroupName": false,
             "openCompare": false,
             "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
             "showFieldMapping": false,
             "showLine": false,
             "showTitle": true,
@@ -2109,6 +401,7 @@
             "stackType": "time",
             "timeInterval": "auto",
             "titleDesc": "",
+            "unitType": "global",
             "units": [],
             "xAxisShowType": "time",
             "yAxixMaxVal": null,
@@ -2116,14 +409,14 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_readwrite}}"
+          "name": "{{.Dashboard.category_lock}}"
         },
-        "name": "{{.Dashboard.bufferpool_data_reads_total}}",
+        "name": "{{.Dashboard.ob_lock_max_ctime}}",
         "pos": {
           "h": 10,
-          "w": 12,
-          "x": 12,
-          "y": 12
+          "w": 8,
+          "x": 8,
+          "y": 0
         },
         "queries": [
           {
@@ -2134,20 +427,1118 @@
             "query": {
               "alias": "",
               "code": "A",
-              "dataSource": "db2_buffer_pool",
-              "field": "bufferpool_data_reads_total",
+              "dataSource": "oceanbase",
+              "field": "ob_lock_max_ctime",
               "fieldFunc": "last",
               "fieldType": "float",
               "fill": null,
               "filters": [],
               "funcList": [],
               "groupBy": [
-                "db2_server"
+                "ob_host_name"
               ],
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`db2_buffer_pool`:(LAST(`bufferpool_data_reads_total`)) BY `db2_server`",
+              "q": "M::`oceanbase`:(LAST(`ob_lock_max_ctime`)) BY `ob_host_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "density": "medium",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.category_memory}}"
+        },
+        "name": "{{.Dashboard.ob_mem_sum_count}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "oceanbase",
+              "field": "ob_mem_sum_count",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "ob_host_name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`oceanbase`:(LAST(`ob_mem_sum_count`)) BY `ob_host_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "density": "medium",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.category_memory}}"
+        },
+        "name": "{{.Dashboard.ob_mem_sum_used}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "oceanbase",
+              "field": "ob_mem_sum_used",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "ob_host_name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`oceanbase`:(LAST(`ob_mem_sum_used`)) BY `ob_host_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "globalUnit": [
+              "percent",
+              "percent"
+            ],
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.category_memory}}"
+        },
+        "name": "{{.Dashboard.ob_memstore_active_rate}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 16,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "oceanbase",
+              "field": "ob_memstore_active_rate",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "ob_host_name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`oceanbase`:(LAST(`ob_memstore_active_rate`)) BY `ob_host_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "density": "medium",
+            "fixedTime": "",
+            "globalUnit": [
+              "percent",
+              "percent"
+            ],
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.category_plancache}}"
+        },
+        "name": "{{.Dashboard.ob_plancache_avg_hit_rate}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "oceanbase",
+              "field": "ob_plancache_avg_hit_rate",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "ob_host_name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`oceanbase`:(LAST(`ob_plancache_avg_hit_rate`)) BY `ob_host_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "globalUnit": [
+              "percent",
+              "percent"
+            ],
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.category_plancache}}"
+        },
+        "name": "{{.Dashboard.ob_plancache_mem_used_rate}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "oceanbase",
+              "field": "ob_plancache_mem_used_rate",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "ob_host_name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`oceanbase`:(LAST(`ob_plancache_mem_used_rate`)) BY `ob_host_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "density": "medium",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.category_plancache}}"
+        },
+        "name": "{{.Dashboard.ob_plancache_sum_plan_num}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 16,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "oceanbase",
+              "field": "ob_plancache_sum_plan_num",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "ob_host_name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`oceanbase`:(LAST(`ob_plancache_sum_plan_num`)) BY `ob_host_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "density": "medium",
+            "fixedTime": "",
+            "globalUnit": [
+              "percent",
+              "percent"
+            ],
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.category_status}}"
+        },
+        "name": "{{.Dashboard.ob_ps_hit_rate}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 16,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "oceanbase",
+              "field": "ob_ps_hit_rate",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "ob_host_name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`oceanbase`:(LAST(`ob_ps_hit_rate`)) BY `ob_host_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "globalUnit": [
+              "time",
+              "μs"
+            ],
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.category_status}}"
+        },
+        "name": "{{.Dashboard.ob_session_avg_wait_time}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "oceanbase",
+              "field": "ob_session_avg_wait_time",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "ob_host_name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`oceanbase`:(LAST(`ob_session_avg_wait_time`)) BY `ob_host_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "globalUnit": [
+              "digital",
+              "b"
+            ],
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.category_workarea}}"
+        },
+        "name": "{{.Dashboard.ob_workarea_global_mem_bound}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "oceanbase",
+              "field": "ob_workarea_global_mem_bound",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "ob_host_name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`oceanbase`:(LAST(`ob_workarea_global_mem_bound`)) BY `ob_host_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "globalUnit": [
+              "digital",
+              "b"
+            ],
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.category_workarea}}"
+        },
+        "name": "{{.Dashboard.ob_workarea_max_auto_workarea_size}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "oceanbase",
+              "field": "ob_workarea_max_auto_workarea_size",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "ob_host_name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`oceanbase`:(LAST(`ob_workarea_max_auto_workarea_size`)) BY `ob_host_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "line",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "density": "medium",
+            "fixedTime": "",
+            "globalUnit": [
+              "digital",
+              "b"
+            ],
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.category_workarea}}"
+        },
+        "name": "{{.Dashboard.ob_workarea_mem_target}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 16,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "oceanbase",
+              "field": "ob_workarea_mem_target",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "ob_host_name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`oceanbase`:(LAST(`ob_workarea_mem_target`)) BY `ob_host_name`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -2172,9 +1563,11 @@
               }
             ],
             "alias": [],
+            "changeWorkspace": false,
             "colors": [],
             "currentChartType": "alarm",
             "fixedTime": "",
+            "globalUnit": [],
             "inColumns": [
               {
                 "cellRenderer": "StatusCellRender",
@@ -2192,17 +1585,18 @@
             "showTitle": true,
             "timeInterval": "",
             "titleDesc": "",
+            "unitType": "global",
             "units": []
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_overview}}"
+          "name": "{{.Dashboard.category_alarm}}"
         },
         "name": "{{.Dashboard.alarm}}",
         "pos": {
-          "h": 17,
-          "w": 21,
-          "x": 3,
+          "h": 20,
+          "w": 20,
+          "x": 4,
           "y": 0
         },
         "queries": [
@@ -2219,7 +1613,7 @@
               "disableMultipleField": false,
               "field": null,
               "fieldFunc": "count",
-              "fieldType": "",
+              "fieldType": "keyword",
               "fields": [
                 {
                   "alias": "状态",
@@ -2239,7 +1633,7 @@
               "namespace": "event",
               "q": "E::`monitor`:(`df_status` AS `状态`, `df_title` AS `事件`)",
               "queryFuncs": [],
-              "search": "db2_status_exception",
+              "search": "oceanbase_status_exception",
               "type": "simple"
             },
             "type": "alarm",
@@ -2250,52 +1644,117 @@
       },
       {
         "extend": {
-          "isRefresh": false,
-          "links": [],
+          "fixedTime": "",
           "settings": {
+            "addColumns": [
+              {
+                "field": "message",
+                "headerName": "内容"
+              },
+              {
+                "field": "status",
+                "hide": true
+              },
+              {
+                "field": "__docid",
+                "hide": true
+              }
+            ],
             "alias": [],
-            "backgroundStyle": {
-              "background-position": "center"
-            },
             "changeWorkspace": false,
             "colors": [],
+            "currentChartType": "log",
             "fixedTime": "",
             "globalUnit": [],
+            "inColumns": [
+              {
+                "cellRenderer": "StatusCellRender",
+                "field": "time",
+                "filterParams": {},
+                "headerName": "时间",
+                "showTooltip": false
+              }
+            ],
+            "index": "default",
             "isTimeInterval": false,
             "levels": [],
             "showFieldMapping": false,
             "showTitle": true,
-            "timeInterval": "default",
+            "timeInterval": "",
             "titleDesc": "",
-            "type": "center",
             "unitType": "global",
             "units": [],
-            "url": "https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/public/images/db2.png"
+            "valColorMappings": [],
+            "valMappings": []
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_overview}}"
+          "name": "{{.Dashboard.category_log}}"
         },
-        "name": "brand",
+        "name": "{{.Dashboard.log_slow}}",
         "pos": {
-          "h": 17,
-          "w": 3,
+          "h": 19,
+          "w": 24,
           "x": 0,
           "y": 0
         },
-        "queries": [],
-        "type": "picture"
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "noTimeRange": false,
+            "qtype": "dql",
+            "query": {
+              "alias": "内容",
+              "code": "A",
+              "dataSource": "oceanbase_log",
+              "disableMultipleField": false,
+              "field": null,
+              "fieldFunc": "count",
+              "fieldType": "keyword",
+              "fields": [
+                {
+                  "alias": "内容",
+                  "field": "message"
+                },
+                {
+                  "field": "status",
+                  "hide": true
+                },
+                {
+                  "field": "__docid",
+                  "hide": true
+                }
+              ],
+              "fill": "",
+              "filters": [],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "highlight": true,
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`oceanbase_log`:(`message`, `status`, `__docid`) { `index` = 'default' }",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "log",
+            "unit": ""
+          }
+        ],
+        "type": "log"
       }
     ],
     "groups": [
-      "{{.Dashboard.category_overview}}",
-      "{{.Dashboard.category_database}}",
-      "{{.Dashboard.category_log}}",
-      "{{.Dashboard.category_connections}}",
-      "{{.Dashboard.category_bufferpool}}",
-      "{{.Dashboard.category_locks}}",
-      "{{.Dashboard.category_readwrite}}",
-      "{{.Dashboard.category_tablespace}}"
+      "{{.Dashboard.category_alarm}}",
+      "{{.Dashboard.category_status}}",
+      "{{.Dashboard.category_lock}}",
+      "{{.Dashboard.category_memory}}",
+      "{{.Dashboard.category_plancache}}",
+      "{{.Dashboard.category_workarea}}",
+      "{{.Dashboard.category_log}}"
     ],
     "type": "template",
     "vars": []
@@ -2303,5 +1762,5 @@
   "summary": "",
   "tagInfo": [],
   "thumbnail": "",
-  "title": "IBM Db2 监控视图"
+  "title": "Oceanbase 监控视图"
 }

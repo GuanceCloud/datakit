@@ -48,6 +48,19 @@ var externals = []*dkexternal{
 		},
 	},
 	{
+		name: "oceanbase",
+		lang: "go",
+
+		entry: "oceanbase.go",
+		osarchs: map[string]bool{
+			"linux/amd64": true,
+			"linux/arm64": true,
+		},
+
+		buildArgs: nil,
+		envs:      []string{},
+	},
+	{
 		// requirement: apt-get install gcc-multilib
 		name: "db2",
 		lang: "go",
@@ -148,7 +161,8 @@ func buildExternals(dir, goos, goarch string, standalone bool) error {
 			continue
 		}
 
-		if ex.name == "db2" {
+		switch ex.name {
+		case "db2":
 			// "CGO_CFLAGS=-I/opt/ibm/clidriver/include",
 			// "CGO_LDFLAGS=-L/opt/ibm/clidriver/lib",
 			// "LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/ibm/clidriver/lib",
@@ -165,6 +179,14 @@ func buildExternals(dir, goos, goarch string, standalone bool) error {
 			envs = append(envs, "LD_LIBRARY_PATH="+ldLibraryFullPath) //nolint:makezero
 
 			tags = "db2"
+
+		case "oceanbase":
+			str, err := exec.LookPath("docker")
+			if err != nil {
+				l.Warnf("WARNING: skip build %s because docker is NOT exist!", ex.name)
+				continue
+			}
+			l.Infof("Found docker in %s", str)
 		}
 
 		if goarch != runtime.GOARCH {
@@ -205,23 +227,91 @@ func buildExternals(dir, goos, goarch string, standalone bool) error {
 			args := []string{"go", "build"}
 			if len(tags) > 0 {
 				args = append(args, "-tags")
-				args = append(args, "tags")
+				args = append(args, tags)
 			}
 
+			entryPath := filepath.Join("internal", "plugins", "externals", ex.name, ex.entry)
+			l.Infof("entryPath = %s", entryPath)
+
+			outPath := filepath.Join(outdir, out)
+			l.Infof("outPath = %s", outPath)
+
 			moreBuild := []string{
-				"-o", filepath.Join(outdir, out),
+				"-o", outPath,
 				"-ldflags",
 				"-w -s",
-				filepath.Join("internal", "plugins", "externals", ex.name, ex.entry),
+				entryPath,
 			}
 			args = append(args, moreBuild...)
 
 			envs = append(envs, "GOOS="+goos, "GOARCH="+goarch) //nolint:makezero
 
-			msg, err := runEnv(args, envs)
-			if err != nil {
-				return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s",
-					args, envs, err, string(msg))
+			if ex.name == "oceanbase" {
+				// x86
+				// docker run --rm \
+				//   --name $DOCKER_IMAGE_NAME \
+				//   -e BUILD_PROJECT=oceanbase \
+				//   -e BUILD_ARCH=amd64 \
+				//   -e BUILD_SOURCE=internal/plugins/externals/oceanbase/oceanbase.go \
+				//   -e BUILD_DEST=dist/datakit-linux-amd64/externals/oceanbase \
+				//   -v /root/gopath/src:/tmp/gopath/src \
+				//   $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG
+
+				// arm
+				//  docker run --rm \
+				//    --name $DOCKER_IMAGE_NAME \
+				//    -e BUILD_PROJECT=oceanbase \
+				//    -e BUILD_ARCH=arm64 \
+				//    -e BUILD_SOURCE=internal/plugins/externals/oceanbase/oceanbase.go \
+				//    -e BUILD_DEST=dist/datakit-linux-arm64/externals/oceanbase \
+				//    -v /root/gopath/src:/tmp/gopath/src \
+				//    $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG
+
+				wd, err := os.Getwd()
+				if err != nil {
+					l.Errorf("os.Getwd() failed: %v", err)
+					return err
+				}
+				l.Infof("current directory: %s", wd)
+
+				projectPrefix := getProjectPrefix(wd)
+				if len(projectPrefix) == 0 {
+					l.Errorf("projectPrefix emptry")
+					return fmt.Errorf("path error")
+				}
+
+				distOut := getProjectSuffix(outPath)
+				if len(distOut) == 0 {
+					l.Errorf("distOut emptry")
+					return fmt.Errorf("path error")
+				}
+
+				if err := cleanDocker(); err != nil {
+					return err
+				}
+
+				args := []string{
+					"docker", "run", "--rm",
+					"--name", "builder-plus",
+					"-e", "BUILD_PROJECT=" + ex.name,
+					"-e", "BUILD_ARCH=" + goarch,
+					"-e", "BUILD_SOURCE=" + entryPath,
+					"-e", "BUILD_DEST=" + distOut,
+					"-v", projectPrefix + ":" + "/tmp/gopath/src",
+					"pubrepo.jiagouyun.com/image-repo-for-testing/builder-plus:1.0",
+				}
+				envs := []string{}
+				msg, err := runEnv(args, envs)
+				if err != nil {
+					return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s",
+						args, envs, err, string(msg))
+				}
+			} else {
+				msg, err := runEnv(args, envs)
+				if err != nil {
+					return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s",
+						args, envs, err, string(msg))
+				}
 			}
 
 		case "makefile", "Makefile":
@@ -256,4 +346,55 @@ func buildExternals(dir, goos, goarch string, standalone bool) error {
 	}
 
 	return nil
+}
+
+func getProjectPrefix(str string) string {
+	nIdx := strings.Index(str, "gitlab.jiagouyun.com/")
+	if nIdx == -1 {
+		return ""
+	}
+
+	return str[:nIdx]
+}
+
+func getProjectSuffix(str string) string {
+	projectName := "/datakit/"
+	nIdx := strings.Index(str, projectName)
+	if nIdx == -1 {
+		return ""
+	}
+
+	return str[nIdx+len(projectName):]
+}
+
+func cleanDocker() error {
+	stopDocker()
+
+	rmDocker()
+
+	return nil
+}
+
+func stopDocker() {
+	args := []string{
+		"docker", "stop", "builder-plus",
+	}
+
+	msg, err := runEnv(args, os.Environ())
+	if err != nil && !strings.Contains(string(msg), "No such container") {
+		l.Info(string(msg))
+		l.Warnf("stop docker failed: %v", err)
+	}
+}
+
+func rmDocker() {
+	args := []string{
+		"docker", "rm", "builder-plus",
+	}
+
+	msg, err := runEnv(args, os.Environ())
+	if err != nil && !strings.Contains(string(msg), "No such container") {
+		l.Info(string(msg))
+		l.Warnf("rm docker failed: %v", err)
+	}
 }

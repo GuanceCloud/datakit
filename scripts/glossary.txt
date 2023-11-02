@@ -136,6 +136,8 @@ Tablespace
 clidriver
 DIMM
 ODBC
+Memtable
+workarea
 
 # 缩写
 CNCF

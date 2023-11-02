@@ -434,7 +434,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			cs.mCount[oracleSystem] = struct{}{}
 
 		default: // TODO: check other measurement
-			panic("unknown measurement")
+			panic("unknown measurement: " + measurement)
 		}
 
 		// check if tag appended
@@ -609,9 +609,9 @@ func (cs *caseSpec) run() error {
 
 		select {
 		case <-tick.C:
-			panic("check oracle timeout: " + cs.name)
+			panic("check " + inputName + " timeout: " + cs.name)
 		case <-cs.done:
-			cs.t.Logf("check oracle all done!")
+			cs.t.Logf("check " + inputName + " all done!")
 			out = true
 		}
 	}
