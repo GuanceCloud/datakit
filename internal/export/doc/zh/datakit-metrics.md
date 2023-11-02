@@ -113,10 +113,10 @@ datakit_cpu_usage 4.9920266849857144
 |*internal/plugins/inputs*|COUNTER|`datakit_inputs_crash_total`|`input`|Input crash count|
 |*internal/plugins/inputs/rum*|COUNTER|`datakit_rum_locate_statistics_total`|`app_id,ip_status,locate_status`|locate by ip addr statistics|
 |*internal/plugins/inputs/rum*|COUNTER|`datakit_rum_source_map_total`|`app_id,sdk_name,status,remark`|source map result statistics|
-|*internal/plugins/inputs/rum*|GAUGE|`datakit_rum_loaded_zip_cnt`|`platform`|RUM source map currently loaded zip archive count|
+|*internal/plugins/inputs/rum*|GAUGE|`datakit_rum_loaded_zips`|`platform`|RUM source map currently loaded zip archive count|
 |*internal/plugins/inputs/rum*|SUMMARY|`datakit_rum_source_map_duration_seconds`|`sdk_name,app_id,env,version`|statistics elapsed time in RUM source map(unit: second)|
 |*internal/plugins/inputs/rum*|SUMMARY|`datakit_rum_session_replay_upload_latency_seconds`|`app_id,env,version,service,status_code`|statistics elapsed time in session replay uploading|
-|*internal/plugins/inputs/rum*|COUNTER|`datakit_session_replay_session_replay_dropped_total`|`app_id,env,version,service,status_code`|statistics count of dropped session replay points since uploading fail|
+|*internal/plugins/inputs/rum*|COUNTER|`datakit_rum_session_replay_dropped_total`|`app_id,env,version,service,status_code`|statistics count of dropped session replay points since uploading fail|
 |*internal/prom*|SUMMARY|`datakit_prom_collect_points`|`source`|Total number of prom collection points|
 |*internal/prom*|SUMMARY|`datakit_prom_http_get_bytes`|`source`|HTTP get bytes|
 |*internal/prom*|SUMMARY|`datakit_prom_http_latency_in_second`|`source`|HTTP latency(in second)|

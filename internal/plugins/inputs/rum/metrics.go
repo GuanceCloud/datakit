@@ -36,9 +36,8 @@ const (
 )
 
 const (
-	namespace              = "datakit"
-	subSystem              = "rum"
-	subSystemSessionReplay = "session_replay"
+	namespace = "datakit"
+	subSystem = "rum"
 )
 
 var ClientRealIPCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
@@ -60,7 +59,7 @@ var sourceMapCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 var loadedZipGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 	Namespace: namespace,
 	Subsystem: subSystem,
-	Name:      "loaded_zip_cnt",
+	Name:      "loaded_zips",
 	Help:      "RUM source map currently loaded zip archive count",
 },
 	[]string{"platform"},
@@ -88,7 +87,7 @@ var replayUploadingDurationSummary = prometheus.NewSummaryVec(prometheus.Summary
 
 var replayDroppedPointCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 	Namespace: namespace,
-	Subsystem: subSystemSessionReplay,
+	Subsystem: subSystem,
 	Name:      "session_replay_dropped_total",
 	Help:      "statistics count of dropped session replay points since uploading fail",
 }, []string{"app_id", "env", "version", "service", "status_code"})
