@@ -182,10 +182,14 @@ func (kc *kafkaConsumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim
 	ctx := context.Background()
 	for {
 		select {
-		case msg := <-claim.Messages():
+		case msg, ok := <-claim.Messages():
+			if !ok {
+				log.Infof("session was close")
+				return nil
+			}
 			session.MarkMessage(msg, "")
 			if msg == nil {
-				log.Infof("session was close")
+				log.Infof("message is nil,retrun")
 				return nil
 			}
 			log.Debugf("message: %s", string(msg.Value))
