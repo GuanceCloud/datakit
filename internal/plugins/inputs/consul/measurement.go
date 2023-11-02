@@ -15,6 +15,7 @@ type docMeasurement struct{}
 func (*docMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "consul",
+		Type: "metric",
 		//nolint:lll
 		Fields: map[string]interface{}{
 			"up":                           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Bool, Desc: "Was the last query of Consul successful."},

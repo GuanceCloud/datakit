@@ -16,6 +16,7 @@ func (docMeasurement) Info() *inputs.MeasurementInfo {
 	// see https://man7.org/linux/man-pages/man5/proc.5.html
 	return &inputs.MeasurementInfo{
 		Name: metricName,
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"usage_user": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,

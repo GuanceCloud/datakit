@@ -31,7 +31,7 @@ type metaInfoMeasurement struct {
 }
 
 //nolint:lll
-func exportMetaInfo() ([]byte, error) {
+func exportMetaInfo(ipts map[string]inputs.Creator) ([]byte, error) {
 	cp.Infof("set TODO as '%s'\n", inputs.TODO)
 
 	defaultMetaInfo := &outputMetaInfo{
@@ -58,8 +58,10 @@ func exportMetaInfo() ([]byte, error) {
 		ObjectMetaInfo: make(map[string]metaInfoMeasurement),
 	}
 
-	for k := range inputs.Inputs {
-		c, ok := inputs.Inputs[k]
+	for k := range ipts {
+		l.Debugf("export measurement info for %q...", k)
+
+		c, ok := ipts[k]
 		if !ok {
 			return nil, fmt.Errorf("input %s not found", k)
 		}
@@ -72,24 +74,23 @@ func exportMetaInfo() ([]byte, error) {
 			for _, m := range sampleMeasurements {
 				tmp := m.Info()
 				if tmp == nil {
+					l.Warnf("ignore measurement info from %q...", k)
 					continue
 				}
 
 				if tmp.Name == "" {
-					cp.Warnf("[W] ignore measurement from %s: empty measurement name: %+#v\n", k, tmp)
+					l.Warnf("ignore measurement from %s: empty measurement name: %+#v", k, tmp)
 					continue
 				}
 
 				if len(tmp.Fields) == 0 {
-					cp.Warnf("[W] ignore measurement from %s: no fields\n", k)
+					l.Warnf("ignore measurement from %s: no fields", k)
 					continue
 				}
 
 				switch tmp.Type {
-				case "logging":
-					continue
-
-				case "": // ignore
+				case "logging", "tracing":
+					l.Warnf("ignore %s from %s", tmp.Type, k)
 					continue
 
 				case "object":
@@ -103,6 +104,7 @@ func exportMetaInfo() ([]byte, error) {
 						}
 					}
 
+					l.Debugf("add measurement info for %q from %q...", tmp.Name, k)
 					defaultMetaInfo.ObjectMetaInfo[tmp.Name] = metaInfoMeasurement{
 						Desc:   tmp.Desc,
 						Type:   tmp.Type,
@@ -111,7 +113,7 @@ func exportMetaInfo() ([]byte, error) {
 						From:   k,
 					}
 
-				default:
+				case "metric", "":
 					if _, ok := defaultMetaInfo.MetricMetaInfo[tmp.Name]; ok {
 						if defaultMetaInfo.MetricMetaInfo[tmp.Name].From == k {
 							l.Warnf("original metric measurement %q, current measurement %q, measurement type: %q, measurement name: %q",
@@ -122,6 +124,7 @@ func exportMetaInfo() ([]byte, error) {
 						}
 					}
 
+					l.Debugf("add measurement info for %q from %q...", tmp.Name, k)
 					defaultMetaInfo.MetricMetaInfo[tmp.Name] = metaInfoMeasurement{
 						Desc:   tmp.Desc,
 						Type:   tmp.Type,
@@ -129,6 +132,10 @@ func exportMetaInfo() ([]byte, error) {
 						Fields: tmp.Fields,
 						From:   k,
 					}
+
+				default:
+					l.Warnf("error measurement type %s from %s", tmp.Type, k)
+					return nil, fmt.Errorf("error measurement type %s from %s", tmp.Type, k)
 				}
 			}
 

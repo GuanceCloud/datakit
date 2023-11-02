@@ -14,6 +14,7 @@ type docMeasurement struct{}
 func (*docMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricName,
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"total":             NewFieldInfoB("Total amount of memory."),
 			"available":         NewFieldInfoB("Amount of available memory."),

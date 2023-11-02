@@ -26,6 +26,7 @@ type IISAppPoolWas measurement
 func (m *IISAppPoolWas) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNameAppPoolWas,
+		Type: "metric",
 		Desc: "",
 		Tags: map[string]interface{}{
 			"host":     &inputs.TagInfo{Desc: "host name"},
@@ -45,6 +46,7 @@ type IISWebService measurement
 func (m *IISWebService) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNameWebService,
+		Type: "metric",
 		Desc: "",
 		Tags: map[string]interface{}{
 			"host":    &inputs.TagInfo{Desc: "host name"},

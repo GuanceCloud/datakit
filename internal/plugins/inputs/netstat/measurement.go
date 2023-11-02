@@ -17,6 +17,7 @@ type docMeasurement struct{}
 func (*docMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricName,
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"tcp_established": newFieldInfoC("ESTABLISHED : The number of TCP state be open connection, data received to be delivered to the user. "),
 			"tcp_syn_sent":    newFieldInfoC("SYN_SENT : The number of TCP state be waiting for a machine connection request after sending a connecting request."),

@@ -201,7 +201,7 @@ func (ipt *Input) Run() {
 				io.WithLastErrorSource(source),
 				io.WithLastErrorCategory(point.Metric),
 			)
-		} else {
+		} else if len(pts) > 0 {
 			if err := ipt.Feeder.Feed(source, point.Metric,
 				pts,
 				&io.Option{

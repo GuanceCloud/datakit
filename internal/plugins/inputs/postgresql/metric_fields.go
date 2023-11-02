@@ -122,6 +122,7 @@ func (m *inputMeasurement) Point() *point.Point {
 func (m inputMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: inputName,
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"numbackends":              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of active connections to this database."},
 			"xact_commit":              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of transactions that have been committed in this database."},
@@ -160,6 +161,7 @@ type lockMeasurement struct {
 func (m lockMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "postgresql_lock",
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"lock_count": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -186,6 +188,7 @@ type statMeasurement struct {
 func (m statMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "postgresql_stat",
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"seq_scan": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -288,6 +291,7 @@ type indexMeasurement struct {
 func (m indexMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "postgresql_index",
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"idx_scan": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -325,6 +329,7 @@ type sizeMeasurement struct {
 func (m sizeMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "postgresql_size",
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"table_size": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -361,6 +366,7 @@ type statIOMeasurement struct {
 func (m statIOMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "postgresql_statio",
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"heap_blks_read": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -427,6 +433,7 @@ type replicationMeasurement struct {
 func (m replicationMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "postgresql_replication",
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"replication_delay": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -456,6 +463,7 @@ type slruMeasurement struct {
 func (m slruMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "postgresql_slru",
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"blks_zeroed":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of blocks zeroed during initializations of `SLRU` (simple least-recently-used) cache."},
 			"blks_hit":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of times disk blocks were found already in the `SLRU` (simple least-recently-used.)"},
@@ -481,6 +489,7 @@ type bgwriterMeasurement struct {
 func (m bgwriterMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "postgresql_bgwriter",
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"checkpoints_timed":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of scheduled checkpoints that were performed."},
 			"checkpoints_req":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of requested checkpoints that were performed."},
@@ -508,6 +517,7 @@ type connectionMeasurement struct {
 func (m connectionMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "postgresql_connection",
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"max_connections":           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The maximum number of client connections allowed to this database."},
 			"percent_usage_connections": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of connections to this database as a fraction of the maximum number of allowed connections."},
@@ -527,6 +537,7 @@ type conflictMeasurement struct {
 func (m conflictMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "postgresql_conflict",
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"confl_tablespace": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of queries in this database that have been canceled due to dropped tablespaces. This will occur when a `temp_tablespace` is dropped while being used on a standby."},
 			"confl_lock":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of queries in this database that have been canceled due to dropped tablespaces. This will occur when a `temp_tablespace` is dropped while being used on a standby."},
@@ -549,6 +560,7 @@ type archiverMeasurement struct {
 func (m archiverMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "postgresql_archiver",
+		Type: "metric",
 		Fields: map[string]interface{}{
 			// archiver metric
 			"archived_count":        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of WAL files that have been successfully archived."},

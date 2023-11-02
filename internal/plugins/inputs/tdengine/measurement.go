@@ -23,6 +23,7 @@ type Measurement struct {
 func (m *Measurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: inputName,
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"master_uptime": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.DurationSecond,

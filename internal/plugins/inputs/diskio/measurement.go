@@ -16,6 +16,7 @@ type docMeasurement struct{}
 func (*docMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "diskio",
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"reads":            newFieldsInfoCount("The number of read requests."),
 			"writes":           newFieldsInfoCount("The number of write requests."),

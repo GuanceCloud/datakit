@@ -22,6 +22,7 @@ type smartMeasurement struct {
 func (s *smartMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: inputName,
+		Type: "metric",
 		Tags: map[string]interface{}{
 			"capacity":    &inputs.TagInfo{Desc: "disk capacity"},
 			"device":      &inputs.TagInfo{Desc: "device mount name"},

@@ -18,6 +18,7 @@ type docMeasurement struct{}
 func (*docMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricName,
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"bytes_sent":       newFieldsInfoIByte("The number of bytes sent by the interface."),
 			"bytes_sent/sec":   newFieldsInfoIBytePerSec("The number of bytes sent by the interface per second."),

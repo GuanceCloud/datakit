@@ -14,6 +14,7 @@ type Measurement struct{}
 
 func (m *Measurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
+		Type: "metric",
 		Name: inputName,
 		Fields: map[string]interface{}{
 			"runtime_up-time": &inputs.FieldInfo{

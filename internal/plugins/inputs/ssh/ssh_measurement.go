@@ -15,6 +15,7 @@ type SSHMeasurement struct{}
 func (s *SSHMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: inputName,
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"ssh_check":          &inputs.FieldInfo{DataType: inputs.Bool, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "ssh service status"},
 			"ssh_err":            &inputs.FieldInfo{DataType: inputs.String, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "fail reason of connect ssh service"},

@@ -98,6 +98,7 @@ func (m *ExchangeMeasurement) Point() *point.Point {
 func (m *ExchangeMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: ExchangeMetric,
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"message_ack_count":                    newCountFieldInfo("Number of messages in exchanges delivered to clients and acknowledged"),
 			"message_ack_rate":                     newRateFieldInfo("Rate of messages in exchanges delivered to clients and acknowledged per second"),

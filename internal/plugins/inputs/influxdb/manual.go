@@ -61,6 +61,7 @@ func (m *InfluxdbCqM) Point() *point.Point {
 func (m *InfluxdbCqM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "cq",
+		Type: "metric",
 		Tags: map[string]interface{}{
 			"host": &inputs.TagInfo{Desc: "System hostname."},
 		},
@@ -89,6 +90,7 @@ func (m *InfluxdbHttpdM) Point() *point.Point {
 func (m *InfluxdbHttpdM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "httpd",
+		Type: "metric",
 		Tags: map[string]interface{}{
 			"host": &inputs.TagInfo{Desc: "System hostname."},
 			"bind": &inputs.TagInfo{Desc: "Bind port."},
@@ -140,6 +142,7 @@ func (m *InfluxdbMemstatsM) Point() *point.Point {
 func (m *InfluxdbMemstatsM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "memstats",
+		Type: "metric",
 		Tags: map[string]interface{}{
 			"host": &inputs.TagInfo{Desc: "System hostname."},
 		},
@@ -194,6 +197,7 @@ func (m *InfluxdbQueryExecutorM) Point() *point.Point {
 func (m *InfluxdbQueryExecutorM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "queryExecutor",
+		Type: "metric",
 		Tags: map[string]interface{}{
 			"host": &inputs.TagInfo{Desc: "System hostname."},
 		},
@@ -225,6 +229,7 @@ func (m *InfluxdbRuntimeM) Point() *point.Point {
 func (m *InfluxdbRuntimeM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "runtime",
+		Type: "metric",
 		Tags: map[string]interface{}{
 			"host": &inputs.TagInfo{Desc: "System hostname."},
 		},
@@ -266,6 +271,7 @@ func (m *InfluxdbSubscriberM) Point() *point.Point {
 func (m *InfluxdbSubscriberM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "subscriber",
+		Type: "metric",
 		Tags: map[string]interface{}{
 			"host": &inputs.TagInfo{Desc: "System hostname."},
 		},
@@ -295,6 +301,7 @@ func (m *InfluxdbWriteM) Point() *point.Point {
 func (m *InfluxdbWriteM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "write",
+		Type: "metric",
 		Tags: map[string]interface{}{
 			"host": &inputs.TagInfo{Desc: "System hostname."},
 		},
@@ -330,6 +337,7 @@ func (m *InfluxdbDatabaseM) Point() *point.Point {
 func (m *InfluxdbDatabaseM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "database",
+		Type: "metric",
 		Tags: map[string]interface{}{
 			"host":     &inputs.TagInfo{Desc: "System hostname."},
 			"database": &inputs.TagInfo{Desc: "Database name."},
@@ -359,6 +367,7 @@ func (m *InfluxdbShardM) Point() *point.Point {
 func (m *InfluxdbShardM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "shard",
+		Type: "metric",
 		Tags: map[string]interface{}{
 			"host":             &inputs.TagInfo{Desc: "System hostname."},
 			"database":         &inputs.TagInfo{Desc: "Database name."},
@@ -403,6 +412,7 @@ func (m *InfluxdbTsm1EngineM) Point() *point.Point {
 func (m *InfluxdbTsm1EngineM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "tsm1_engine",
+		Type: "metric",
 		Tags: map[string]interface{}{
 			"host":             &inputs.TagInfo{Desc: "System hostname."},
 			"database":         &inputs.TagInfo{Desc: "Database name."},
@@ -470,6 +480,7 @@ func (m *InfluxdbTsm1CacheM) Point() *point.Point {
 func (m *InfluxdbTsm1CacheM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "tsm1_cache",
+		Type: "metric",
 		Tags: map[string]interface{}{
 			"host":             &inputs.TagInfo{Desc: "System hostname."},
 			"database":         &inputs.TagInfo{Desc: "Database name."},
@@ -512,6 +523,7 @@ func (m *InfluxdbTsm1FilestoreM) Point() *point.Point {
 func (m *InfluxdbTsm1FilestoreM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "tsm1_filestore",
+		Type: "metric",
 		Tags: map[string]interface{}{
 			"host":             &inputs.TagInfo{Desc: "System hostname."},
 			"database":         &inputs.TagInfo{Desc: "Database name."},
@@ -547,6 +559,7 @@ func (m *InfluxdbTsm1WalM) Point() *point.Point {
 func (m *InfluxdbTsm1WalM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "tsm1_wal",
+		Type: "metric",
 		Tags: map[string]interface{}{
 			"host":             &inputs.TagInfo{Desc: "System hostname."},
 			"database":         &inputs.TagInfo{Desc: "Database name."},

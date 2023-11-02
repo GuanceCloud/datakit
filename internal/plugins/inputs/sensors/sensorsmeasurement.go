@@ -20,6 +20,7 @@ type sensorsMeasurement struct {
 func (m *sensorsMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sensors",
+		Type: "metric",
 		Tags: map[string]interface{}{
 			"hostname": &inputs.TagInfo{Desc: "host name"},
 			"adapter":  &inputs.TagInfo{Desc: "device adapter"},

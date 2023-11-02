@@ -34,6 +34,7 @@ func (m *inputMeasurement) Point() *point.Point {
 func (*inputMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   inputName,
+		Type:   "metric",
 		Fields: memFields,
 		Tags:   map[string]interface{}{"server": inputs.NewTagInfo("The host name from which metrics are gathered")},
 	}
@@ -91,6 +92,7 @@ type itemsMeasurement struct {
 func (*itemsMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "memcached_items",
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"number":            &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of items presently stored in this slab class"},
 			"number_hot":        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of items presently stored in the HOT LRU"},
@@ -128,6 +130,7 @@ type slabsMeasurement struct {
 func (*slabsMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "memcached_slabs",
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"chunk_size":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of space each chunk uses"},
 			"chunks_per_page": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "How many chunks exist within one page"},
