@@ -19,6 +19,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pyroscope-io/pyroscope/pkg/util/file"
+	hostutil "github.com/shirou/gopsutil/host"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 
@@ -61,9 +63,15 @@ func (info *datakitInfo) collect() error {
 	}
 	num++
 
-	cp.Infof("%d. collect env\n", num)
-	if err := info.collectEnv(); err != nil {
-		cp.Warnf("collect env error: %s\n", err.Error())
+	cp.Infof("%d. collect data files\n", num)
+	if err := info.collectData(); err != nil {
+		cp.Warnf("collect data files error: %s\n", err.Error())
+	}
+	num++
+
+	cp.Infof("%d. collect basic information\n", num)
+	if err := info.collectInfo(); err != nil {
+		cp.Warnf("collect basic information error: %s\n", err.Error())
 	}
 	num++
 
@@ -185,7 +193,30 @@ func (info *datakitInfo) collectProfile() error {
 	return nil
 }
 
-func (info *datakitInfo) collectEnv() error {
+func (info *datakitInfo) collectInfo() error {
+	basicDir, err := info.makeDir("basic")
+	if err != nil {
+		return err
+	}
+
+	infoString := ""
+
+	// collect host info
+	if hostInfo, err := hostutil.Info(); err != nil {
+		cp.Warnf("fail to get host info: %s\n", err.Error())
+	} else {
+		hostInfoString := fmt.Sprintf(
+			"OS: %s\nPlatform: %s\nPlatformFamily: %s\nPlatformVersion: %s\nKernel: %s\nArch: %s\n",
+			hostInfo.OS,
+			hostInfo.Platform,
+			hostInfo.PlatformFamily,
+			hostInfo.PlatformVersion,
+			hostInfo.KernelVersion,
+			hostInfo.KernelArch)
+		infoString += fmt.Sprintf("[host info]\n%s\n", hostInfoString)
+	}
+
+	// collect env
 	envs := []string{}
 	for _, env := range os.Environ() {
 		if strings.HasPrefix(env, "ENV_") {
@@ -209,9 +240,9 @@ func (info *datakitInfo) collectEnv() error {
 			}
 		}
 	}
+	infoString += fmt.Sprintf("[environment variables]\n%s\n", strings.Join(envs, "\n"))
 
-	envsString := strings.Join(envs, "\n")
-	return os.WriteFile(filepath.Join(info.tmpDir, "env.txt"), []byte(envsString), os.ModePerm)
+	return os.WriteFile(filepath.Join(basicDir, "info"), []byte(infoString), os.ModePerm)
 }
 
 func (info *datakitInfo) collectConfig() error {
@@ -229,6 +260,22 @@ func (info *datakitInfo) collectConfig() error {
 	}
 
 	return nil
+}
+
+func (info *datakitInfo) collectData() error {
+	pullFilePath := filepath.Join(datakit.DataDir, ".pull")
+
+	if !file.Exists(pullFilePath) {
+		cp.Warnf(".pull file not found in data dir, ignore\n")
+		return nil
+	}
+
+	dataDir, err := info.makeDir("data")
+	if err != nil {
+		return err
+	}
+
+	return info.copyFile(pullFilePath, filepath.Join(dataDir, ".pull"), nil)
 }
 
 func (info *datakitInfo) escapeString(str string, kinds []string) string {
