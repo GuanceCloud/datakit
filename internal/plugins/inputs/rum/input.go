@@ -231,8 +231,28 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&trace.TraceMeasurement{Name: inputName}}
 }
 
-func (ipt *Input) uploadSessionReplay(msg []byte) error {
-	var reqPB RequestPB
+func (ipt *Input) uploadSessionReplay(msg []byte) (err error) {
+	var (
+		reqPB      RequestPB
+		resp       *http.Response
+		lastErr    error
+		appID      string
+		env        string
+		version    string
+		service    string
+		statusCode = "unknown"
+	)
+
+	defer func() {
+		if err != nil || (resp != nil && resp.StatusCode/100 != 2) {
+			replayDroppedPointCount.WithLabelValues(appID, env, version, service, statusCode).Inc()
+		}
+	}()
+
+	if len(msg) == 0 {
+		return fmt.Errorf("empty session replay cache data")
+	}
+
 	if err := proto.Unmarshal(msg, &reqPB); err != nil {
 		return fmt.Errorf("unable to unmarshal protobuf msg [%v] from disk queue: %w", msg, err)
 	}
@@ -267,35 +287,20 @@ func (ipt *Input) uploadSessionReplay(msg []byte) error {
 		}
 	}
 
+	appID = tags["app_id"]
+	env = tags["env"]
+	version = tags["version"]
+	service = tags["service"]
+
 	headerValue := dataway.HTTPHeaderGlobalTagValue(filter.NewTFDataFromMap(tags), globalTags, customTagKeys)
 	if headerValue == "" {
 		headerValue = config.Cfg.Dataway.GlobalTagsHTTPHeaderValue()
 	}
 	req.Header.Set(dataway.HeaderXGlobalTags, headerValue)
 
-	var (
-		resp    *http.Response
-		lastErr error
-	)
-
 	startTime := time.Now()
 	defer func() {
-		statusCode := "unknown"
-		if resp != nil {
-			statusCode = strconv.Itoa(resp.StatusCode)
-		}
-
-		replayUploadingDurationSummary.WithLabelValues(
-			tags["app_id"],
-			tags["env"],
-			tags["version"],
-			tags["service"],
-			statusCode).Observe(time.Since(startTime).Seconds())
-
-		if lastErr != nil || (resp != nil && resp.StatusCode/100 != 2) {
-			replayDroppedPointCount.WithLabelValues(tags["app_id"], tags["env"], tags["version"], tags["service"],
-				statusCode).Inc()
-		}
+		replayUploadingDurationSummary.WithLabelValues(appID, env, version, service, statusCode).Observe(time.Since(startTime).Seconds())
 	}()
 
 	for i := 0; i < ipt.SessionReplayCfg.SendRetryCount; i++ {
@@ -308,17 +313,22 @@ func (ipt *Input) uploadSessionReplay(msg []byte) error {
 			}
 			defer resp.Body.Close() // nolint:errcheck
 
-			if resp.StatusCode/100 == 5 {
-				errMsg, _ := io.ReadAll(resp.Body)
-				if len(errMsg) > 0 {
-					return fmt.Errorf("at #%d try: unable to send session replay data to dataway, http Status: %s, response: %s",
-						i+1, resp.Status, string(errMsg))
-				}
-				return fmt.Errorf("at #%d try: unable to send session replay data to dataway, http Status: %s", i+1, resp.Status)
+			statusCode = strconv.Itoa(resp.StatusCode)
+
+			errMsg := []byte(nil)
+			if resp.StatusCode/100 != 2 {
+				errMsg, _ = io.ReadAll(resp.Body)
 			}
 
-			if resp.StatusCode/100 > 2 {
-				log.Errorf("unable to send session replay data to dataway, http status: %s", resp.Status)
+			switch resp.StatusCode / 100 {
+			case 5:
+				return fmt.Errorf("at #%d try: unable to send session replay data to dataway, http Status: %s, response: %s",
+					i+1, resp.Status, string(errMsg))
+			case 2:
+				// ignore
+			default:
+				log.Errorf("at #%d try: unable to send session replay data to dataway, http status: %s, response: %s",
+					i+1, resp.Status, string(errMsg))
 			}
 
 			return nil
@@ -343,15 +353,25 @@ func (ipt *Input) initSessionReplayWorkers() error {
 					log.Infof("context canceld...")
 					return nil
 				default:
-					if err := ipt.replayDiskQueue.Get(ipt.uploadSessionReplay); err != nil {
-						if errors.Is(err, diskcache.ErrEOF) {
-							log.Debugf("disk queue is empty: %s", err)
-							time.Sleep(time.Millisecond * 1500)
-						} else {
-							log.Errorf("unable to get msg from disk cache: %s", err)
-							time.Sleep(time.Millisecond * 100)
+					func() {
+						var msgData []byte
+						if err := ipt.replayDiskQueue.Get(func(msg []byte) error {
+							msgData = msg
+							return nil
+						}); err != nil {
+							if errors.Is(err, diskcache.ErrEOF) {
+								log.Debugf("disk queue is empty: %s", err)
+								time.Sleep(time.Millisecond * 1500)
+							} else {
+								log.Errorf("unable to get msg from disk cache: %s", err)
+								time.Sleep(time.Millisecond * 100)
+							}
+							return
 						}
-					}
+						if err := ipt.uploadSessionReplay(msgData); err != nil {
+							log.Errorf("fail to send session replay: %s", err)
+						}
+					}()
 				}
 			}
 		})
@@ -386,6 +406,7 @@ func (ipt *Input) initDiskQueue() error {
 	queue, err := diskcache.Open(
 		diskcache.WithPath(ipt.SessionReplayCfg.CachePath),
 		diskcache.WithCapacity(ipt.SessionReplayCfg.CacheCapacity*MiB),
+		diskcache.WithNoFallbackOnError(true),
 	)
 	if err != nil {
 		return fmt.Errorf("unable to init disk queue: %w", err)

@@ -10,8 +10,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GuanceCloud/cliutils/testutil"
+	"github.com/stretchr/testify/assert"
 )
+
+func TestIsDomainName(t *testing.T) {
+	assert.False(t, isDomainName("127.0.0.1"))
+	assert.False(t, isDomainName("172.16.1.10"))
+	assert.False(t, isDomainName("114.114.114.114"))
+	assert.False(t, isDomainName("[::1]"))
+	assert.True(t, isDomainName("localhost"))
+	assert.True(t, isDomainName("xxxx.xxxxxxxxxxxxxxxxxxx"))
+	assert.True(t, isDomainName("cdn.cnbj1.fds.api.mi-img.com"))
+}
 
 func TestQueue(t *testing.T) {
 	q := NewQueue[string]()
@@ -24,41 +34,41 @@ func TestQueue(t *testing.T) {
 	q.Enqueue(d)
 	q.dump() // d c b a
 
-	testutil.Equals(t, 4, q.Size())
+	assert.Equal(t, 4, q.Size())
 
 	q.MoveToFront(q.RearNode()) // a d c b
 	q.MoveToFront(q.RearNode()) // b a d c
 	q.MoveToFront(q.RearNode()) // c b a d
 	q.dump()                    // c b a d
 
-	testutil.Equals(t, q.RearNode(), d)
-	testutil.Equals(t, 4, q.Size())
+	assert.Equal(t, q.RearNode(), d)
+	assert.Equal(t, 4, q.Size())
 
 	q.Remove(a) // c b d
 	q.dump()    // c b d
 
-	testutil.Equals(t, 3, q.Size())
-	testutil.Equals(t, d, q.Dequeue()) // c b
-	testutil.Equals(t, b, q.Dequeue()) // c
-	testutil.Equals(t, c, q.Dequeue()) // empty
-	q.Dequeue()                        // do nothing
-	q.Dequeue()                        // do nothing
-	q.dump()                           // empty
+	assert.Equal(t, 3, q.Size())
+	assert.Equal(t, d, q.Dequeue()) // c b
+	assert.Equal(t, b, q.Dequeue()) // c
+	assert.Equal(t, c, q.Dequeue()) // empty
+	q.Dequeue()                     // do nothing
+	q.Dequeue()                     // do nothing
+	q.dump()                        // empty
 
-	testutil.Assert(t, q.Empty(), "logic error, queue expected to be empty")
+	assert.True(t, q.Empty(), "logic error, queue expected to be empty")
 
 	e, f, g := NewQueueNode("eeee"), NewQueueNode("ffff"), NewQueueNode("gggg")
 	q.Enqueue(e)
-	testutil.Equals(t, 1, q.Size())
-	testutil.Equals(t, e, q.FrontNode())
-	testutil.Equals(t, e, q.RearNode())
+	assert.Equal(t, 1, q.Size())
+	assert.Equal(t, e, q.FrontNode())
+	assert.Equal(t, e, q.RearNode())
 
 	q.Enqueue(f)
 	q.Enqueue(g)
 	q.dump()
-	testutil.Equals(t, 3, q.Size())
-	testutil.Equals(t, g, q.FrontNode())
-	testutil.Equals(t, e, q.RearNode())
+	assert.Equal(t, 3, q.Size())
+	assert.Equal(t, g, q.FrontNode())
+	assert.Equal(t, e, q.RearNode())
 }
 
 func TestLruCDNCache(t *testing.T) {
@@ -111,14 +121,14 @@ func TestLruCDNCache(t *testing.T) {
 
 	node := cache.get("qiniu.com")
 	t.Logf("%+v\n", node.Data)
-	testutil.Assert(t, node != nil, "")
+	assert.True(t, node != nil, "")
 }
 
 func TestIsPrivateIP(t *testing.T) {
-	testutil.Assert(t, isPrivateIP(net.ParseIP("10.200.14.195")), "10.200.14.195 is a private ip")
-	testutil.Assert(t, isPrivateIP(net.ParseIP("127.0.0.1")), "127.0.0.1 is a private ip")
-	testutil.Assert(t, isPrivateIP(net.ParseIP("192.168.100.1")), "192.168.100.1 is a private ip")
-	testutil.Assert(t, isPrivateIP(net.ParseIP("172.16.2.14")), "172.16.2.14 is a private ip")
-	testutil.Assert(t, isPrivateIP(net.ParseIP("172.17.2.14")), "172.17.2.14 is a private ip")
-	testutil.Assert(t, !isPrivateIP(net.ParseIP("8.8.8.8")), "8.8.8.8 is not a private ip")
+	assert.True(t, isPrivateIP(net.ParseIP("10.200.14.195")), "10.200.14.195 is a private ip")
+	assert.True(t, isPrivateIP(net.ParseIP("127.0.0.1")), "127.0.0.1 is a private ip")
+	assert.True(t, isPrivateIP(net.ParseIP("192.168.100.1")), "192.168.100.1 is a private ip")
+	assert.True(t, isPrivateIP(net.ParseIP("172.16.2.14")), "172.16.2.14 is a private ip")
+	assert.True(t, isPrivateIP(net.ParseIP("172.17.2.14")), "172.17.2.14 is a private ip")
+	assert.True(t, !isPrivateIP(net.ParseIP("8.8.8.8")), "8.8.8.8 is not a private ip")
 }
