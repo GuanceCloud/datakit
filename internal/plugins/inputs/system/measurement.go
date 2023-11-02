@@ -40,6 +40,7 @@ func (m *conntrackMeasurement) Point() *point.Point {
 func (m *conntrackMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNameConntrack,
+		Type: "metric",
 		Desc: "Connection track metrics (Linux only).",
 		Fields: map[string]interface{}{
 			"entries":             newFieldInfoCount("Current number of connections."),
@@ -75,6 +76,7 @@ func (m *filefdMeasurement) Point() *point.Point {
 func (m *filefdMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNameFilefd,
+		Type: "metric",
 		Desc: "System file handle metrics (Linux only).",
 		Fields: map[string]interface{}{
 			"allocated":    newFieldInfoCount("The number of allocated file handles."),
@@ -102,6 +104,7 @@ func (m *systemMeasurement) Point() *point.Point {
 func (m *systemMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNameSystem,
+		Type: "metric",
 		Desc: "Basic information about system operation.",
 		Fields: map[string]interface{}{
 			"cpu_total_usage": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "The percentage of used CPU."},

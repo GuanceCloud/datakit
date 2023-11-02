@@ -16,6 +16,7 @@ type docMeasurement struct{}
 func (docMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricName,
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"system_time":     &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.TimestampSec, Desc: "This is the current offset between the NTP clock and system clock."},
 			"last_offset":     &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.TimestampSec, Desc: "This is the estimated local offset on the last clock update."},

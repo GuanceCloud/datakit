@@ -186,9 +186,12 @@ func (ipt *Input) getSlowData() error {
 		pts = append(pts, pt)
 	}
 
-	err = ipt.feeder.Feed(m.name, point.Logging, pts, &io.Option{})
-	if err != nil {
-		return err
+	if len(pts) > 0 {
+		err = ipt.feeder.Feed(m.name, point.Logging, pts, &io.Option{})
+		if err != nil {
+			return err
+		}
 	}
+
 	return nil
 }

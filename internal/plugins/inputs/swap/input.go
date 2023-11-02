@@ -51,6 +51,7 @@ type swapMeasurement struct{}
 func (m *swapMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricName,
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"total": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,

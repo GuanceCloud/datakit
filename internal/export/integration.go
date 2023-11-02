@@ -95,7 +95,7 @@ func (i *Integration) Check() error { return nil }
 
 // exportMisc export pipeline sample/docs(base64)/metric docs.
 func (i *Integration) exportMiscs(lang inputs.I18n) error {
-	if j, err := exportMetaInfo(); err != nil {
+	if j, err := exportMetaInfo(inputs.Inputs); err != nil {
 		return err
 	} else {
 		i.docs[filepath.Join(i.opt.topDir,

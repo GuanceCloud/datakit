@@ -188,9 +188,11 @@ func (ipt *Input) gather() {
 		return
 	}
 
-	if err := ipt.feeder.Feed(inputName, point.Metric, pts,
-		&dkio.Option{CollectCost: time.Since(start)}); err != nil {
-		l.Error(err)
+	if len(pts) > 0 {
+		if err := ipt.feeder.Feed(inputName, point.Metric, pts,
+			&dkio.Option{CollectCost: time.Since(start)}); err != nil {
+			l.Error(err)
+		}
 	}
 }
 

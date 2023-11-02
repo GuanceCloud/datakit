@@ -33,6 +33,7 @@ func (m *Measurement) Point() *point.Point {
 func (m *Measurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: inputName,
+		Type: "metric",
 		Desc: "采集到的指标，受 Apache 安装环境影响。具体以 `http://<your-apache-server>/server-status?auto` 页面展示的为准。",
 		Fields: map[string]interface{}{
 			"idle_workers":           newCountFieldInfo("The number of idle workers"),

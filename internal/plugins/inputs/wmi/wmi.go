@@ -131,11 +131,11 @@ func (ag *Instance) run(ctx context.Context) error {
 					pts = append(pts, pt)
 				}
 			}
-
-			if err := io.feeder.Feed(inputName, point.Metric, pts, nil); err != nil {
-				l.Warnf("feeder.Feed failed: %s, ignored", err)
+			if len(pts) > 0 {
+				if err := io.feeder.Feed(inputName, point.Metric, pts, nil); err != nil {
+					l.Warnf("feeder.Feed failed: %s, ignored", err)
+				}
 			}
-
 			query.lastTime = time.Now()
 		}
 

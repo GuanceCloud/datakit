@@ -17,6 +17,7 @@ type docMeasurement struct{}
 func (docMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricName,
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"current":           &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Ampere, Desc: "Current."},
 			"fan_speed":         &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.RotationRete, Desc: "Fan speed."},

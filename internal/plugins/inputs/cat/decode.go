@@ -135,11 +135,14 @@ func (ipt *Input) handleMsg(buf *bytes.Buffer) {
 	}
 	if dt.Name == "Status" {
 		pts := parseMetrics(ctx.mTree.heartbeats, ctx.mTree.domain, ctx.mTree.hostName)
-		err := ipt.feeder.Feed("cat", point.Metric, pts, &dkio.Option{})
-		if err != nil {
-			log.Error("io feed err=%v", err)
+		if len(pts) > 0 {
+			err := ipt.feeder.Feed("cat", point.Metric, pts, &dkio.Option{})
+			if err != nil {
+				log.Error("io feed err=%v", err)
+			}
+			log.Infof("feed %d metric pts", len(pts))
 		}
-		log.Infof("feed %d metric pts", len(pts))
+
 		return
 	}
 	dktraces := parseResourceSpans(ctx, dt)

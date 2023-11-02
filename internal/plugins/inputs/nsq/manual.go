@@ -20,6 +20,7 @@ type nsqTopicMeasurement struct{}
 func (*nsqTopicMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: nsqTopics,
+		Type: "metric",
 		Desc: "NSQ 集群所有 topic 的指标",
 		Tags: map[string]interface{}{
 			"topic":   inputs.NewTagInfo("topic 名称"),
@@ -43,6 +44,7 @@ type nsqNodesMeasurement struct{}
 func (*nsqNodesMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: nsqNodes,
+		Type: "metric",
 		Desc: "NSQ 集群所有 node 的指标",
 		Tags: map[string]interface{}{
 			"server_host": inputs.NewTagInfo("服务地址，即 `host:ip`"),

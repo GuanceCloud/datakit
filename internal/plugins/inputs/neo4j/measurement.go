@@ -14,6 +14,7 @@ type docMeasurement struct{}
 func (*docMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "neo4j",
+		Type:   "metric",
 		Fields: getFields(),
 		Tags: map[string]interface{}{
 			"host":       inputs.NewTagInfo("Host name."),

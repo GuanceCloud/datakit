@@ -370,6 +370,7 @@ type TestMeasurement struct{}
 func (t *TestMeasurement) Info() *inputs.MeasurementInfo {
 	measurement := &inputs.MeasurementInfo{
 		Name:   "couchdb",
+		Type:   "metric",
 		Fields: getExtraFields(),
 		Tags:   map[string]interface{}{},
 	}

@@ -84,12 +84,13 @@ func (ipt *Input) getMetric() {
 		l.Error(err.Error())
 		return
 	}
-
-	err = ipt.feeder.Feed(inputName, point.Metric, pts,
-		&dkio.Option{CollectCost: time.Since(ipt.start)})
-	if err != nil {
-		l.Error(err.Error())
-		ipt.lastErr = err
+	if len(pts) > 0 {
+		err = ipt.feeder.Feed(inputName, point.Metric, pts,
+			&dkio.Option{CollectCost: time.Since(ipt.start)})
+		if err != nil {
+			l.Error(err.Error())
+			ipt.lastErr = err
+		}
 	}
 }
 

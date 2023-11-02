@@ -15,6 +15,7 @@ type docMeasurement struct{}
 func (*docMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: hostObjMeasurementName,
+		Type: "object",
 		Desc: "Host object metrics",
 		Tags: map[string]interface{}{
 			"host": &inputs.TagInfo{Desc: "Hostname. Required."},

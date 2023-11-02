@@ -21,6 +21,7 @@ type (
 func (*gitlabMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "gitlab",
+		Type: "metric",
 		Desc: "GitLab 运行指标",
 		Tags: map[string]interface{}{
 			"action":           inputs.NewTagInfo("行为"),
@@ -57,6 +58,7 @@ func (*gitlabMeasurement) Info() *inputs.MeasurementInfo {
 func (*gitlabBaseMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "gitlab_base",
+		Type: "metric",
 		Desc: "GitLab 编程语言层面指标",
 		Tags: nil,
 		Fields: map[string]interface{}{
@@ -73,6 +75,7 @@ func (*gitlabBaseMeasurement) Info() *inputs.MeasurementInfo {
 func (*gitlabHTTPMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "gitlab_http",
+		Type: "metric",
 		Desc: "GitLab HTTP 相关指标",
 		Tags: map[string]interface{}{
 			"method": inputs.NewTagInfo("方法"),
@@ -90,6 +93,7 @@ func (*gitlabHTTPMeasurement) Info() *inputs.MeasurementInfo {
 func (g *gitlabPipelineMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "gitlab_pipeline",
+		Type: "metric",
 		Desc: "GitLab Pipeline Event 相关指标",
 		Fields: map[string]interface{}{
 			"pipeline_id":    &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Pipeline id"},
@@ -119,6 +123,7 @@ func (g *gitlabPipelineMeasurement) Info() *inputs.MeasurementInfo {
 func (g *gitlabJobMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "gitlab_job",
+		Type: "metric",
 		Desc: "GitLab Job Event 相关指标",
 		Fields: map[string]interface{}{
 			"build_id":             &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "build id"},
