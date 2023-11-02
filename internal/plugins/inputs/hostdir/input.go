@@ -13,36 +13,92 @@ import (
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-func (*Input) SampleConfig() string {
-	return sample
+const (
+	minInterval = time.Second
+	maxInterval = time.Minute
+	inputName   = "hostdir"
+	metricName  = inputName
+)
+
+var l = logger.DefaultSLogger(inputName)
+
+type Input struct {
+	Dir             string        `toml:"dir"`
+	ExcludePatterns []string      `toml:"exclude_patterns"`
+	Interval        time.Duration `toml:"interval"`
+	collectCache    []*point.Point
+	Tags            map[string]string `toml:"tags"`
+	platform        string
+
+	semStop    *cliutils.Sem // start stop signal
+	feeder     dkio.Feeder
+	mergedTags map[string]string
+	tagger     datakit.GlobalTagger
 }
 
-func (ipt *Input) appendMeasurement(name string, tags map[string]string, fields map[string]interface{}, ts time.Time) {
-	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(ts))
+func (ipt *Input) Run() {
+	ipt.setup()
 
-	tags = inputs.MergeTags(ipt.Tagger.HostTags(), tags, "")
+	tick := time.NewTicker(ipt.Interval)
+	defer tick.Stop()
 
-	pt := point.NewPointV2(name,
-		append(point.NewTags(tags), point.NewKVs(fields)...),
-		opts...)
+	for {
+		start := time.Now()
+		if err := ipt.collect(); err != nil {
+			l.Errorf("collect: %s", err)
+			ipt.feeder.FeedLastError(err.Error(),
+				dkio.WithLastErrorInput(inputName),
+				dkio.WithLastErrorCategory(point.Metric),
+			)
+		}
 
-	ipt.collectCache = append(ipt.collectCache, pt)
+		if len(ipt.collectCache) > 0 {
+			if err := ipt.feeder.Feed(metricName, point.Metric, ipt.collectCache,
+				&dkio.Option{CollectCost: time.Since(start)}); err != nil {
+				ipt.feeder.FeedLastError(err.Error(),
+					dkio.WithLastErrorInput(inputName),
+					dkio.WithLastErrorCategory(point.Metric),
+				)
+				l.Errorf("feed measurement: %s", err)
+			}
+		}
+
+		select {
+		case <-tick.C:
+		case <-datakit.Exit.Wait():
+			l.Infof("%s input exit", inputName)
+			return
+		case <-ipt.semStop.Wait():
+			l.Infof("%s input return", inputName)
+			return
+		}
+	}
 }
 
-func (*Input) Catalog() string {
-	return "host"
+func (ipt *Input) setup() {
+	l = logger.SLogger(inputName)
+
+	l.Infof("%s input started", inputName)
+	ipt.Interval = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval)
+	ipt.mergedTags = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")
+	l.Debugf("merged tags: %+#v", ipt.mergedTags)
 }
 
 func (ipt *Input) collect() error {
-	timeNow := time.Now()
-	var tags map[string]string
+	ipt.collectCache = make([]*point.Point, 0)
+	ts := time.Now()
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(ts))
+
+	var kvs point.KVs
+
 	path := ipt.Dir
 	if ipt.platform == datakit.OSWindows {
 		filesystem, err := GetFileSystemType(path)
@@ -53,11 +109,9 @@ func (ipt *Input) collect() error {
 		if err != nil {
 			return err
 		}
-		tags = map[string]string{
-			"file_mode":      dirMode,
-			"file_system":    filesystem,
-			"host_directory": ipt.Dir,
-		}
+		kvs = kvs.Add("file_mode", dirMode, true, true)
+		kvs = kvs.Add("file_system", filesystem, true, true)
+		kvs = kvs.Add("host_directory", ipt.Dir, true, true)
 	} else {
 		filesystem, err := GetFileSystemType(path)
 		if err != nil {
@@ -71,63 +125,29 @@ func (ipt *Input) collect() error {
 		if err != nil {
 			fileownership = "N/A"
 		}
-		tags = map[string]string{
-			"file_mode":      dirMode,
-			"file_system":    filesystem,
-			"file_ownership": fileownership,
-			"host_directory": ipt.Dir,
-		}
+		kvs = kvs.Add("file_mode", dirMode, true, true)
+		kvs = kvs.Add("file_system", filesystem, true, true)
+		kvs = kvs.Add("file_ownership", fileownership, true, true)
+		kvs = kvs.Add("host_directory", ipt.Dir, true, true)
 	}
 
-	for k, v := range ipt.Tags {
-		tags[k] = v
-	}
 	filesize, filecount, dircount := Startcollect(ipt.Dir, ipt.ExcludePatterns)
-	fields := map[string]interface{}{
-		"file_size":  filesize,
-		"file_count": filecount,
-		"dir_count":  dircount,
+	kvs = kvs.Add("file_size", filesize, false, true)
+	kvs = kvs.Add("file_count", filecount, false, true)
+	kvs = kvs.Add("dir_count", dircount, false, true)
+
+	err := getFileSystemInfo(path, filesize, filecount+dircount, &kvs)
+	if err != nil {
+		return err
 	}
-	ipt.appendMeasurement(inputName, tags, fields, timeNow)
+
+	for k, v := range ipt.mergedTags {
+		kvs = kvs.AddTag(k, v)
+	}
+
+	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(inputName, kvs, opts...))
+
 	return nil
-}
-
-func (ipt *Input) Run() {
-	l = logger.SLogger(inputName)
-	l.Infof("hostdir input started")
-	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
-	tick := time.NewTicker(ipt.Interval.Duration)
-	defer tick.Stop()
-
-	for {
-		ipt.collectCache = make([]*point.Point, 0)
-
-		start := time.Now()
-		if err := ipt.collect(); err != nil {
-			l.Errorf("collect failed: %s", err)
-			io.FeedLastError(inputName, err.Error())
-		}
-
-		if len(ipt.collectCache) > 0 {
-			if err := ipt.feeder.Feed(metricName,
-				point.Metric,
-				ipt.collectCache,
-				&io.Option{CollectCost: time.Since((start))}); err != nil {
-				l.Errorf("Feed failed: %s", err)
-			}
-		}
-
-		select {
-		case <-tick.C:
-		case <-datakit.Exit.Wait():
-			l.Infof("hostdir input exit")
-			return
-
-		case <-ipt.semStop.Wait():
-			l.Infof("hostdir input return")
-			return
-		}
-	}
 }
 
 func (ipt *Input) Terminate() {
@@ -135,11 +155,9 @@ func (ipt *Input) Terminate() {
 		ipt.semStop.Close()
 	}
 }
-
-func (*Input) AvailableArchs() []string {
-	return datakit.AllOS
-}
-
+func (*Input) Catalog() string          { return "host" }
+func (*Input) SampleConfig() string     { return sampleCfg }
+func (*Input) AvailableArchs() []string { return datakit.AllOS }
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&Measurement{},
@@ -148,14 +166,14 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		s := &Input{
-			Interval: datakit.Duration{Duration: time.Second * 5},
+		return &Input{
+			Interval: time.Second * 10,
 			platform: runtime.GOOS,
 
 			semStop: cliutils.NewSem(),
-			feeder:  io.DefaultFeeder(),
-			Tagger:  datakit.DefaultGlobalTagger(),
+			feeder:  dkio.DefaultFeeder(),
+			tagger:  datakit.DefaultGlobalTagger(),
+			Tags:    make(map[string]string),
 		}
-		return s
 	})
 }

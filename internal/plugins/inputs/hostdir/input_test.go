@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/GuanceCloud/cliutils"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
@@ -22,7 +23,7 @@ func TestInput_Collect(t *testing.T) {
 		platform: runtime.GOOS,
 		semStop:  cliutils.NewSem(),
 		feeder:   io.DefaultFeeder(),
-		Tagger:   datakit.DefaultGlobalTagger(),
+		tagger:   datakit.DefaultGlobalTagger(),
 	}
 	if err := i.collect(); err != nil {
 		t.Error(err)

@@ -15,6 +15,7 @@ type docMeasurement struct{}
 func (*docMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "disk",
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"total": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
@@ -62,9 +63,10 @@ func (*docMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
-			"host":   &inputs.TagInfo{Desc: "System hostname."},
-			"device": &inputs.TagInfo{Desc: "Disk device name."},
-			"fstype": &inputs.TagInfo{Desc: "File system name."},
+			"host":        &inputs.TagInfo{Desc: "System hostname."},
+			"device":      &inputs.TagInfo{Desc: "Disk device name. (on /dev/mapper return symbolic link, like `readlink /dev/mapper/*` result)"},
+			"fstype":      &inputs.TagInfo{Desc: "File system name."},
+			"mount_point": &inputs.TagInfo{Desc: "Mount point."},
 		},
 	}
 }
