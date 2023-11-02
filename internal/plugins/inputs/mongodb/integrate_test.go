@@ -7,9 +7,9 @@ package mongodb
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -46,6 +46,47 @@ adb.createUser({
     ]
   });
 */
+
+const (
+	jsFileName = "file.js"
+	jsDataDir  = "mongo-testing-initdb.d"
+	jsData     = `adb = db.getSiblingDB("admin")
+
+adb.auth("root", "example");
+
+adb.createUser({
+    "user": "datakit",
+    "pwd": "123456",
+    "roles": [
+      { role: "read", db: "admin" },
+      { role: "clusterMonitor", db: "admin" },
+      { role: "backup", db: "admin" },
+      { role: "read", db: "local" }
+    ]
+  });`
+)
+
+func releaseFiles(t *testing.T) {
+	t.Helper()
+
+	releaseDir := filepath.Join(os.TempDir(), jsDataDir)
+	releaseFullPath := filepath.Join(releaseDir, jsFileName)
+
+	t.Logf("releaseDir = %s", releaseDir)
+	t.Logf("releaseFullPath = %s", releaseFullPath)
+
+	// /tmp/mongo-testing-initdb.d
+	err := os.MkdirAll(releaseDir, os.ModePerm)
+	if err != nil {
+		t.Logf("os.MkdirAll() failed: %v", err)
+	}
+
+	// /tmp/mongo-testing-initdb.d/file.js
+	err = os.WriteFile(releaseFullPath, []byte(jsData), os.ModePerm)
+	if err != nil {
+		t.Logf("os.WriteFile() failed: %v", err)
+	}
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -125,6 +166,8 @@ func TestIntegrate(t *testing.T) {
 	if !testutils.CheckIntegrationTestingRunning() {
 		t.Skip()
 	}
+
+	releaseFiles(t)
 
 	testutils.PurgeRemoteByName(inputName)       // purge at first.
 	defer testutils.PurgeRemoteByName(inputName) // purge at last.
@@ -600,6 +643,8 @@ func (cs *caseSpec) run() error {
 
 	var resource *dockertest.Resource
 
+	mounts := filepath.Join(os.TempDir(), jsDataDir) + ":/docker-entrypoint-initdb.d"
+
 	if len(cs.dockerFileText) == 0 {
 		// Just run a container from existing docker image.
 		resource, err = p.RunWithOptions(
@@ -612,7 +657,7 @@ func (cs *caseSpec) run() error {
 				Cmd:        cs.cmd,
 
 				Mounts: []string{
-					"/tmp/mongo-testing-initdb.d:/docker-entrypoint-initdb.d",
+					mounts,
 				},
 
 				ExposedPorts: cs.exposedPorts,
@@ -638,7 +683,7 @@ func (cs *caseSpec) run() error {
 				Cmd:        cs.cmd,
 
 				Mounts: []string{
-					"/tmp/mongo-testing-initdb.d:/docker-entrypoint-initdb.d",
+					mounts,
 				},
 
 				ExposedPorts: cs.exposedPorts,
@@ -684,7 +729,7 @@ func (cs *caseSpec) run() error {
 	// wait data
 	start = time.Now()
 	cs.t.Logf("wait points...")
-	pts, err := cs.feeder.AnyPoints(30 * time.Minute)
+	pts, err := cs.feeder.AnyPoints(5 * time.Minute)
 	if err != nil {
 		return err
 	}
@@ -731,15 +776,15 @@ func (cs *caseSpec) getDockerFilePath() (dirName string, fileName string, err er
 		return
 	}
 
-	tmpDir, err := ioutil.TempDir("", "dockerfiles_")
+	tmpDir, err := os.MkdirTemp("", "dockerfiles_")
 	if err != nil {
-		cs.t.Logf("ioutil.TempDir failed: %s", err.Error())
+		cs.t.Logf("os.MkdirTemp() failed: %s", err.Error())
 		return "", "", err
 	}
 
-	tmpFile, err := ioutil.TempFile(tmpDir, "dockerfile_")
+	tmpFile, err := os.CreateTemp(tmpDir, "dockerfile_")
 	if err != nil {
-		cs.t.Logf("ioutil.TempFile failed: %s", err.Error())
+		cs.t.Logf("os.CreateTemp() failed: %s", err.Error())
 		return "", "", err
 	}
 
