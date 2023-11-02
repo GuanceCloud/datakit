@@ -21,6 +21,7 @@ type Config struct {
 	EnablePrometheusServiceAnnotations bool
 	EnablePrometheusPodMonitors        bool
 	EnablePrometheusServiceMonitors    bool
+	StreamSize                         int
 	ExtraTags                          map[string]string
 }
 
@@ -43,6 +44,11 @@ func NewDiscovery(client client.Client, cfg *Config, done <-chan interface{}) *D
 func (d *Discovery) Run() {
 	klog = logger.SLogger("k8s-discovery")
 	klog.Info("start")
+
+	if d.cfg.StreamSize != 0 {
+		streamSize = d.cfg.StreamSize
+	}
+	klog.Infof("stream size: %d", streamSize)
 
 	d.start()
 }
