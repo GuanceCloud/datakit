@@ -25,7 +25,7 @@ const (
 
 //nolint:gochecknoinits
 func init() {
-	registerResource("daemonset", true, newDaemonset)
+	registerResource("daemonset", true, false, newDaemonset)
 	registerMeasurements(&daemonsetMetric{}, &daemonsetObject{})
 }
 
@@ -40,10 +40,11 @@ func newDaemonset(client k8sClient) resource {
 
 func (d *daemonset) hasNext() bool { return d.continued != "" }
 
-func (d *daemonset) getMetadata(ctx context.Context, ns string) (metadata, error) {
+func (d *daemonset) getMetadata(ctx context.Context, ns, fieldSelector string) (metadata, error) {
 	opt := metav1.ListOptions{
-		Limit:    queryLimit,
-		Continue: d.continued,
+		Limit:         queryLimit,
+		Continue:      d.continued,
+		FieldSelector: fieldSelector,
 	}
 
 	list, err := d.client.GetDaemonSets(ns).List(ctx, opt)

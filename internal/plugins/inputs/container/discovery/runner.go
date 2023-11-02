@@ -226,6 +226,7 @@ func (d *Discovery) newPromForPodMonitors() []*promRunner {
 				runner.setTag("namespace", pod.Namespace)
 				runner.setTag("pod_name", pod.Name)
 				runner.setTags(d.cfg.ExtraTags)
+				runner.setTags(getTargetLabels(pod.Labels, item.Spec.PodTargetLabels))
 				runner.setCustomerTags(pod.Labels, config.Cfg.Dataway.GlobalCustomerKeys)
 
 				klog.Infof("create prom runner for PodMonitor %s pod %s, urls: %#v", item.Name, pod.Name, runner.conf.URLs)
@@ -309,6 +310,8 @@ func (d *Discovery) newPromForServiceMonitors() []*promRunner {
 					runner.setTag("namespace", pod.Namespace)
 					runner.setTag("pod_name", pod.Name)
 					runner.setTag("service_name", svc.Name)
+					runner.setTags(getTargetLabels(pod.Labels, item.Spec.PodTargetLabels))
+					runner.setTags(getTargetLabels(svc.Labels, item.Spec.TargetLabels))
 					runner.setTags(d.cfg.ExtraTags)
 					runner.setCustomerTags(pod.Labels, config.Cfg.Dataway.GlobalCustomerKeys)
 
@@ -432,4 +435,19 @@ func (d *Discovery) getDeploymentLabelSelector(namespace, deployment string) (*m
 func newPromRunnersForPod(pod *apicorev1.Pod, inputConfig string) ([]*promRunner, error) {
 	cfg := completePromConfig(inputConfig, pod)
 	return newPromRunnerWithTomlConfig(cfg)
+}
+
+func getTargetLabels(labels map[string]string, target []string) map[string]string {
+	if len(labels) == 0 || len(target) == 0 {
+		return nil
+	}
+	m := make(map[string]string)
+	for _, key := range target {
+		value, ok := labels[key]
+		if !ok {
+			continue
+		}
+		m[replaceLabelKey(key)] = value
+	}
+	return m
 }

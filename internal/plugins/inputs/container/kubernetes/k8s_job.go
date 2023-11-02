@@ -25,7 +25,7 @@ const (
 
 //nolint:gochecknoinits
 func init() {
-	registerResource("job", true, newJob)
+	registerResource("job", true, false, newJob)
 	registerMeasurements(&jobMetric{}, &jobObject{})
 }
 
@@ -40,10 +40,11 @@ func newJob(client k8sClient) resource {
 
 func (j *job) hasNext() bool { return j.continued != "" }
 
-func (j *job) getMetadata(ctx context.Context, ns string) (metadata, error) {
+func (j *job) getMetadata(ctx context.Context, ns, fieldSelector string) (metadata, error) {
 	opt := metav1.ListOptions{
-		Limit:    queryLimit,
-		Continue: j.continued,
+		Limit:         queryLimit,
+		Continue:      j.continued,
+		FieldSelector: fieldSelector,
 	}
 
 	list, err := j.client.GetJobs(ns).List(ctx, opt)

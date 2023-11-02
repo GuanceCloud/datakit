@@ -66,6 +66,7 @@ func setupMetrics() {
 		[]string{
 			"category",
 			"kind",
+			"fieldselector",
 		},
 	)
 

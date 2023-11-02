@@ -7,6 +7,7 @@ package container
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -20,6 +21,7 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	k8sclient "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/client"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/container/option"
 )
 
 type container struct {
@@ -27,13 +29,13 @@ type container struct {
 	runtime   runtime.ContainerRuntime
 	k8sClient k8sclient.Client
 
-	loggingFilter filter.Filter
-	logTable      *logTable
-	extraTags     map[string]string
+	loggingFilters []filter.Filter
+	logTable       *logTable
+	extraTags      map[string]string
 }
 
 func newContainer(ipt *Input, endpoint string, mountPoint string, k8sClient k8sclient.Client) (Collector, error) {
-	filter, err := newFilters(ipt.ContainerIncludeLog, ipt.ContainerExcludeLog)
+	filters, err := newFilters(ipt.ContainerIncludeLog, ipt.ContainerExcludeLog)
 	if err != nil {
 		return nil, err
 	}
@@ -54,28 +56,57 @@ func newContainer(ipt *Input, endpoint string, mountPoint string, k8sClient k8sc
 	tags := inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")
 
 	return &container{
-		ipt:           ipt,
-		runtime:       r,
-		k8sClient:     k8sClient,
-		loggingFilter: filter,
-		logTable:      newLogTable(),
-		extraTags:     tags,
+		ipt:            ipt,
+		runtime:        r,
+		k8sClient:      k8sClient,
+		loggingFilters: filters,
+		logTable:       newLogTable(),
+		extraTags:      tags,
 	}, nil
 }
 
-func (c *container) Metric(feed func(pts []*point.Point) error) {
+func (c *container) Metric(feed func(pts []*point.Point) error, opts ...option.CollectOption) {
 	if !c.ipt.EnableContainerMetric {
 		l.Info("collect container metric: off")
 		return
 	}
+
+	opt := option.DefaultOption()
+	for _, fn := range opts {
+		fn(opt)
+	}
+	if opt.OnlyElection {
+		return
+	}
+
 	c.gather("metric", feed)
 }
 
-func (c *container) Object(feed func(pts []*point.Point) error) {
+func (c *container) Object(feed func(pts []*point.Point) error, opts ...option.CollectOption) {
+	opt := option.DefaultOption()
+	for _, fn := range opts {
+		fn(opt)
+	}
+	if opt.OnlyElection {
+		return
+	}
+
 	c.gather("object", feed)
 }
 
 func (c *container) gather(category string, feed func(pts []*point.Point) error) {
+	var opts []point.Option
+
+	switch category {
+	case "metric":
+		opts = point.DefaultMetricOptions()
+	case "object":
+		opts = point.DefaultObjectOptions()
+	default:
+		// unreachable
+		return
+	}
+
 	wrapFeed := func(pts []*point.Point) error {
 		err := feed(pts)
 		if err == nil {
@@ -85,7 +116,7 @@ func (c *container) gather(category string, feed func(pts []*point.Point) error)
 	}
 
 	start := time.Now()
-	if err := c.gatherResource(category, wrapFeed); err != nil {
+	if err := c.gatherResource(category, opts, wrapFeed); err != nil {
 		l.Errorf("feed container-%s error: %s", category, err.Error())
 		c.ipt.Feeder.FeedLastError(err.Error(), dkio.WithLastErrorInput(inputName))
 	}
@@ -94,18 +125,7 @@ func (c *container) gather(category string, feed func(pts []*point.Point) error)
 
 const goroutineNum = 4
 
-func (c *container) gatherResource(category string, feed func(pts []*point.Point) error) error {
-	var opts []point.Option
-
-	switch category {
-	case "metric":
-		opts = point.DefaultMetricOptions()
-	case "object":
-		opts = point.DefaultObjectOptions()
-	default:
-		return nil
-	}
-
+func (c *container) gatherResource(category string, opts []point.Option, feed func(pts []*point.Point) error) error {
 	cList, err := c.runtime.ListContainers()
 	if err != nil {
 		l.Warn(err)
@@ -188,6 +208,8 @@ func (c *container) Logging(_ func([]*point.Point) error) {
 		instance.addStdout()
 		instance.fillLogType(info.RuntimeName)
 		instance.fillSource()
+		instance.setFromBeginning(info.CreatedAt)
+
 		instance.setTagsToLogConfigs(instance.tags())
 		instance.setTagsToLogConfigs(c.extraTags)
 		instance.setCustomerTags(instance.podLabels, getGlobalCustomerKeys())
@@ -210,10 +232,29 @@ func (c *container) shouldPullContainerLog(ins *logInstance) bool {
 	if ins.enabled() {
 		return true
 	}
-	if c.ignoreImageForLogging(ins.image) {
-		return false
+
+	ignored := c.ignoreContainerLogging(filterImage, ins.image) ||
+		c.ignoreContainerLogging(filterImageName, ins.imageName) ||
+		c.ignoreContainerLogging(filterImageShortName, ins.imageShortName) ||
+		c.ignoreContainerLogging(filterNamespace, ins.podNamespace)
+
+	return !ignored
+}
+
+func (c *container) ignoreContainerLogging(typ filterType, field string) (ignore bool) {
+	if field == "" {
+		return
 	}
-	return true
+	if len(c.loggingFilters) != len(supportedFilterTypes) {
+		return
+	}
+
+	if c.loggingFilters[typ] != nil {
+		ignore = !c.loggingFilters[typ].Match(field)
+		l.Debugf("container_log filtered status: %v, type %s, field %s", ignore, typ.String(), field)
+	}
+
+	return
 }
 
 func (c *container) transformPoint(info *runtime.Container) *typed.PointKV {
@@ -321,19 +362,6 @@ func (c *container) transformPoint(info *runtime.Container) *typed.PointKV {
 	return p
 }
 
-func newFilters(include, exclude []string) (filter.Filter, error) {
-	in := splitRules(include)
-	ex := splitRules(exclude)
-	return filter.NewIncludeExcludeFilter(in, ex)
-}
-
-func (c *container) ignoreImageForLogging(image string) (ignore bool) {
-	if c.loggingFilter == nil {
-		return
-	}
-	return !c.loggingFilter.Match(image)
-}
-
 func getPodNameForLabels(labels map[string]string) string {
 	return labels["io.kubernetes.pod.name"]
 }
@@ -359,26 +387,82 @@ func isPauseContainer(info *runtime.Container) bool {
 	return typ == "podsandbox"
 }
 
-// splitRules, return image name
-//
-//	e.g. in: ["image:img_*", "image:img01*", "xx:xx"] return: ["img_*", "img01*"]
-func splitRules(arr []string) (rules []string) {
-	for _, str := range arr {
-		if !strings.HasPrefix(str, "image:") {
+type filterType int
+
+const (
+	filterImage filterType = iota
+	filterImageName
+	filterImageShortName
+	filterNamespace
+)
+
+func (f filterType) String() string {
+	switch f {
+	case filterImage:
+		return "image"
+	case filterImageName:
+		return "image_name"
+	case filterImageShortName:
+		return "image_short_name"
+	case filterNamespace:
+		return "namespace"
+	default:
+		return "unknown"
+	}
+}
+
+var supportedFilterTypes = []filterType{filterImage, filterImageName, filterImageShortName, filterNamespace}
+
+func newFilters(include, exclude []string) ([]filter.Filter, error) {
+	in := splitRules(include)
+	ex := splitRules(exclude)
+
+	supportedFilterTypesLength := len(supportedFilterTypes)
+	if len(in) != supportedFilterTypesLength || len(ex) != supportedFilterTypesLength {
+		return nil, fmt.Errorf("unreachable, invalid filter type, expect len(%d), actual include: %d exclude: %d",
+			supportedFilterTypesLength, len(in), len(ex))
+	}
+
+	filters := make([]filter.Filter, supportedFilterTypesLength)
+
+	for _, typ := range supportedFilterTypes {
+		filter, err := filter.NewIncludeExcludeFilter(in[typ], ex[typ])
+		if err != nil {
+			l.Warnf("invalid container_log filter, err: %s, ignored", err)
 			continue
 		}
+		filters[typ] = filter
+	}
 
-		rule := strings.TrimPrefix(str, "image:")
-		if rule != "" {
+	return filters, nil
+}
+
+func splitRules(arr []string) [][]string {
+	rules := make([][]string, len(supportedFilterTypes))
+
+	split := func(str, prefix string) string {
+		if !strings.HasPrefix(str, prefix) {
+			return ""
+		}
+		content := strings.TrimPrefix(str, prefix)
+		rule := strings.TrimSpace(content)
+		if rule == "*" {
 			// trans to double star
-			if rule == "*" {
-				rules = append(rules, "**")
-				continue
+			return "**"
+		}
+		return rule
+	}
+
+	for _, str := range arr {
+		for _, typ := range supportedFilterTypes {
+			rule := split(strings.TrimSpace(str), typ.String()+":")
+			if rule != "" {
+				rules[typ] = append(rules[typ], rule)
 			}
-			rules = append(rules, rule)
 		}
 	}
-	return
+
+	return rules
 }
 
 func containerIsFromKubernetes(labels map[string]string) bool {

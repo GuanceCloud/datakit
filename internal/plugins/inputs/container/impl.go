@@ -22,6 +22,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/container/discovery"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/container/kubernetes"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/container/option"
 )
 
 var (
@@ -80,8 +81,6 @@ func (ipt *Input) runCollect() {
 	defer loggingTick.Stop()
 
 	collectors := ipt.newCollector()
-	electionCollectors := ipt.newElectionCollector()
-
 	firstCollectElection := true
 
 	// frist collect
@@ -102,22 +101,13 @@ func (ipt *Input) runCollect() {
 
 		case <-metricTick.C:
 			ipt.collectMetric(collectors)
-			if !ipt.pause.Load() {
-				ipt.collectMetric(electionCollectors)
-			}
 
 		case <-objectTick.C:
 			time.Sleep(time.Second) // window time
 			ipt.collectObject(collectors)
-			if !ipt.pause.Load() {
-				ipt.collectObject(electionCollectors)
-			}
 
 		case <-loggingTick.C:
 			ipt.collectLogging(collectors)
-			if !ipt.pause.Load() {
-				ipt.collectLogging(electionCollectors)
-			}
 
 		case pause := <-ipt.chPause:
 			ipt.pause.Store(pause)
@@ -125,9 +115,9 @@ func (ipt *Input) runCollect() {
 			if !pause && firstCollectElection {
 				l.Info("first collect election metrics and objects")
 
-				ipt.collectMetric(electionCollectors)
+				ipt.collectMetric(collectors, option.WithOnlyElection(true))
 				time.Sleep(time.Second) // window time
-				ipt.collectObject(electionCollectors)
+				ipt.collectObject(collectors, option.WithOnlyElection(true))
 
 				firstCollectElection = false
 			}
@@ -135,27 +125,36 @@ func (ipt *Input) runCollect() {
 	}
 }
 
-func (ipt *Input) collectMetric(collectors []Collector) {
+func (ipt *Input) collectMetric(collectors []Collector, opts ...option.CollectOption) {
 	for _, c := range collectors {
 		fn := func(pts []*point.Point) error {
+			if len(pts) == 0 {
+				return nil
+			}
 			return ipt.Feeder.Feed(c.Name()+"-metric", point.Metric, pts, &io.Option{Blocking: true})
 		}
-		c.Metric(fn)
+		c.Metric(fn, append(opts, option.WithPaused(ipt.pause.Load()), option.WithNodeLocal(ipt.EnableK8sNodeLocal))...)
 	}
 }
 
-func (ipt *Input) collectObject(collectors []Collector) {
+func (ipt *Input) collectObject(collectors []Collector, opts ...option.CollectOption) {
 	for _, c := range collectors {
 		fn := func(pts []*point.Point) error {
+			if len(pts) == 0 {
+				return nil
+			}
 			return ipt.Feeder.Feed(c.Name()+"-object", point.Object, pts, &io.Option{Blocking: true})
 		}
-		c.Object(fn)
+		c.Object(fn, append(opts, option.WithPaused(ipt.pause.Load()), option.WithNodeLocal(ipt.EnableK8sNodeLocal))...)
 	}
 }
 
 func (ipt *Input) collectLogging(collectors []Collector) {
 	for _, c := range collectors {
 		fn := func(pts []*point.Point) error {
+			if len(pts) == 0 {
+				return nil
+			}
 			return ipt.Feeder.Feed(c.Name()+"-logging", point.Logging, pts, &io.Option{Blocking: true})
 		}
 		c.Logging(fn)
@@ -176,14 +175,17 @@ func (ipt *Input) startDiscovery() {
 	})
 }
 
+type Collector interface {
+	Name() string
+	Metric(func(pts []*point.Point) error, ...option.CollectOption)
+	Object(func(pts []*point.Point) error, ...option.CollectOption)
+	Logging(func(pts []*point.Point) error)
+}
+
 func (ipt *Input) newCollector() []Collector {
 	collectors := []Collector{}
 	collectors = append(collectors, newCollectorsFromContainerEndpoints(ipt)...)
-	return collectors
-}
 
-func (ipt *Input) newElectionCollector() []Collector {
-	collectors := []Collector{}
 	if datakit.Docker {
 		k8sCollectors, err := newCollectorsFromKubernetes(ipt)
 		if err != nil {
@@ -192,14 +194,8 @@ func (ipt *Input) newElectionCollector() []Collector {
 			collectors = append(collectors, k8sCollectors)
 		}
 	}
-	return collectors
-}
 
-type Collector interface {
-	Name() string
-	Metric(func(pts []*point.Point) error)
-	Object(func(pts []*point.Point) error)
-	Logging(func(pts []*point.Point) error)
+	return collectors
 }
 
 func newCollectorsFromContainerEndpoints(ipt *Input) []Collector {

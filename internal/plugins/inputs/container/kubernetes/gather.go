@@ -13,19 +13,14 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
+	"k8s.io/apimachinery/pkg/api/errors"
 )
 
-func (k *Kube) gather(category string, feed func([]*point.Point) error) {
+func (k *Kube) gather(category string, feed func([]*point.Point) error, paused, nodeLocal bool) {
 	var mu sync.Mutex
-	counterWithName := make(map[string]map[string]int)
 
-	wrapFeed := func(pts []*point.Point) error {
-		err := feed(pts)
-		if err == nil {
-			collectPtsVec.WithLabelValues(category).Add(float64(len(pts)))
-		}
-		return err
-	}
+	counterWithName := make(map[string]map[string]int)
+	processor := k.composeProcessor(category, feed)
 
 	start := time.Now()
 
@@ -38,6 +33,15 @@ func (k *Kube) gather(category string, feed func([]*point.Point) error) {
 	g := goroutine.NewGroup(goroutine.Option{Name: "k8s-" + category})
 
 	for typee, constructor := range resources {
+		fieldSelector := ""
+
+		if paused && nodeLocal && !typee.nodeLocal {
+			continue
+		}
+		if nodeLocal && typee.nodeLocal {
+			fieldSelector = getFieldSelector(k.nodeName)
+		}
+
 		func(typ resourceType, newResource resourceConstructor) {
 			g.Go(func(_ context.Context) error {
 				namespaces := namespaces
@@ -45,29 +49,33 @@ func (k *Kube) gather(category string, feed func([]*point.Point) error) {
 					namespaces = []string{""}
 				}
 
-				counts := k.gatherResource(typ.name, newResource, namespaces, category, wrapFeed)
+				r := newResource(k.client)
+				counts := k.gatherResource(r, typ.name, fieldSelector, namespaces, processor)
 
 				mu.Lock()
 				counterWithName[typ.name] = counts
 				mu.Unlock()
 
-				collectResourcePtsVec.WithLabelValues(category, typ.name).Observe(float64(sum(counts)))
+				collectResourcePtsVec.WithLabelValues(category, typ.name, fieldSelector).Observe(float64(sum(counts)))
 				return nil
 			})
 		}(typee, constructor)
 	}
 
 	if err = g.Wait(); err != nil {
-		klog.Error(err.Error())
-
+		klog.Error("exception error: %s", err)
 		return
 	}
 
 	if category == "metric" {
 		pts := transToNamespacePoint(counterWithName)
-		k.addExtraTagsV2(pts)
-		if err := wrapFeed(pts); err != nil {
-			klog.Warn(err)
+		if len(pts) != 0 {
+			k.addExtraTagsV2(pts)
+			if err := feed(pts); err != nil {
+				klog.Warn(err)
+			} else {
+				collectPtsVec.WithLabelValues(category).Add(float64(len(pts)))
+			}
 		}
 	}
 
@@ -75,51 +83,15 @@ func (k *Kube) gather(category string, feed func([]*point.Point) error) {
 }
 
 func (k *Kube) gatherResource(
-	resourceName string,
-	newResource resourceConstructor,
+	r resource,
+	resourceName, fieldSelector string,
 	namespaces []string,
-	category string,
-	feed func([]*point.Point) error,
+	processor func(m metadata) (int, error),
 ) map[string]int {
 	counts := make(map[string]int)
 
-	var opts []point.Option
-	var transform func(m metadata) pointKVs
-
-	switch category {
-	case "metric":
-		opts = point.DefaultMetricOptions()
-		transform = func(m metadata) pointKVs {
-			return m.transformMetric()
-		}
-
-	case "object":
-		opts = point.DefaultObjectOptions()
-		transform = func(m metadata) pointKVs {
-			return m.transformObject()
-		}
-
-	default:
-		return nil
-	}
-
-	processor := func(m metadata) (int, error) {
-		pts := transform(m)
-		k.addExtraTags(pts)
-
-		points := transToPoint(pts, opts)
-		n := len(points)
-
-		if n != 0 {
-			return n, feed(points)
-		}
-		return 0, nil
-	}
-
-	r := newResource(k.client)
-
 	for _, ns := range namespaces {
-		count := gatherAndProcessResource(resourceName, r, ns, processor)
+		count := gatherAndProcessResource(r, resourceName, ns, fieldSelector, processor)
 		counts[ns] = count
 	}
 
@@ -140,11 +112,58 @@ func (k *Kube) addExtraTagsV2(pts []*point.Point) {
 	}
 }
 
-func gatherAndProcessResource(resourceName string, r resource, ns string, processor func(metadata) (int, error)) (count int) {
+func (k *Kube) composeProcessor(category string, feed func([]*point.Point) error) func(m metadata) (int, error) {
+	var opts []point.Option
+	var transform func(m metadata) pointKVs
+
+	switch category {
+	case "metric":
+		opts = point.DefaultMetricOptions()
+		transform = func(m metadata) pointKVs {
+			return m.transformMetric()
+		}
+
+	case "object":
+		opts = point.DefaultObjectOptions()
+		transform = func(m metadata) pointKVs {
+			return m.transformObject()
+		}
+	default:
+		// unreachable
+	}
+
+	fn := func(m metadata) (int, error) {
+		pts := transform(m)
+		k.addExtraTags(pts)
+
+		points := transToPoint(pts, opts)
+		n := len(points)
+		if n == 0 {
+			return 0, nil
+		}
+
+		if err := feed(points); err != nil {
+			return 0, err
+		}
+
+		collectPtsVec.WithLabelValues(category).Add(float64(n))
+		return n, nil
+	}
+
+	return fn
+}
+
+func gatherAndProcessResource(
+	r resource,
+	resourceName, ns, fieldSelector string,
+	processor func(metadata) (int, error),
+) (count int) {
 	for {
-		data, err := r.getMetadata(context.Background(), ns)
+		data, err := r.getMetadata(context.Background(), ns, fieldSelector)
 		if err != nil {
-			fetchErrorVec.WithLabelValues(ns, resourceName, err.Error()).Set(float64(time.Now().Unix()))
+			if !errors.IsNotFound(err) {
+				fetchErrorVec.WithLabelValues(ns, resourceName, err.Error()).Set(float64(time.Now().Unix()))
+			}
 			break
 		}
 
@@ -182,6 +201,10 @@ func transToPoint(pts pointKVs, opts []point.Option) []*point.Point {
 }
 
 func transToNamespacePoint(counterWithName map[string]map[string]int) []*point.Point {
+	if len(counterWithName) == 0 {
+		return nil
+	}
+
 	// counterWithName rotated
 	//    e.g. map["kube-system"]["pod"] = 10
 	counterWithNamespace := make(map[string]map[string]int)
@@ -189,6 +212,9 @@ func transToNamespacePoint(counterWithName map[string]map[string]int) []*point.P
 
 	for name, m := range counterWithName {
 		for namespace, count := range m {
+			if count == 0 {
+				continue
+			}
 			if counterWithNamespace[namespace] == nil {
 				counterWithNamespace[namespace] = make(map[string]int)
 			}
@@ -214,4 +240,8 @@ func sum(m map[string]int) int {
 		sum += v
 	}
 	return sum
+}
+
+func getFieldSelector(nodeName string) string {
+	return "spec.nodeName=" + nodeName
 }

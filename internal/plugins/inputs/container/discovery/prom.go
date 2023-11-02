@@ -140,6 +140,9 @@ func newPromRunnerWithConfig(c *promConfig) (*promRunner, error) {
 	}
 
 	callbackFunc := func(pts []*point.Point) error {
+		if len(pts) == 0 {
+			return nil
+		}
 		if p.conf.AsLogging != nil && p.conf.AsLogging.Enable {
 			for _, pt := range pts {
 				err := p.feeder.Feed(pt.Name(), point.Logging, []*point.Point{pt},

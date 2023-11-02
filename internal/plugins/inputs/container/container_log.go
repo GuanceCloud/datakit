@@ -55,6 +55,7 @@ func (c *container) tailingLogs(ins *logInstance) {
 			Pipeline:                 cfg.Pipeline,
 			CharacterEncoding:        cfg.CharacterEncoding,
 			MultilinePatterns:        cfg.MultilinePatterns,
+			FromBeginning:            cfg.FromBeginning,
 			GlobalTags:               mergedTags,
 			BlockingMode:             c.ipt.LoggingBlockingMode,
 			MinFlushInterval:         c.ipt.LoggingMinFlushInterval,
@@ -134,7 +135,9 @@ func (c *container) queryContainerLogInfo(info *runtime.Container) *logInstance 
 			ins.ownerKind, ins.ownerName = podInfo.owner()
 
 			// use Image from Pod Container
-			ins.image = podInfo.containerImage(ins.containerName)
+			if img := podInfo.containerImage(ins.containerName); img != "" {
+				ins.image = img
+			}
 
 			for _, volume := range podInfo.pod.Spec.Volumes {
 				if volume.EmptyDir == nil {
@@ -155,6 +158,8 @@ func (c *container) queryContainerLogInfo(info *runtime.Container) *logInstance 
 			ins.configStr = str
 		}
 	}
+
+	ins.imageName, ins.imageShortName, ins.imageTag = runtime.ParseImage(ins.image)
 
 	l.Debugf("container %s use config: %v", ins.containerName, ins)
 	return ins

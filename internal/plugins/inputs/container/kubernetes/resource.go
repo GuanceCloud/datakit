@@ -12,6 +12,7 @@ import (
 type resourceType struct {
 	name       string
 	namespaced bool
+	nodeLocal  bool
 }
 
 type resourceConstructor func(k8sClient) resource
@@ -19,7 +20,7 @@ type resourceConstructor func(k8sClient) resource
 var resources = map[resourceType]resourceConstructor{}
 
 type resource interface {
-	getMetadata(ctx context.Context, ns string) (metadata, error)
+	getMetadata(ctx context.Context, ns, fieldSelector string) (metadata, error)
 	hasNext() bool
 }
 
@@ -28,6 +29,6 @@ type metadata interface {
 	transformObject() pointKVs
 }
 
-func registerResource(name string, namespaced bool, rt resourceConstructor) {
-	resources[resourceType{name, namespaced}] = rt
+func registerResource(name string, namespaced, nodeLocal bool, rt resourceConstructor) {
+	resources[resourceType{name, namespaced, nodeLocal}] = rt
 }

@@ -9,6 +9,7 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"sync/atomic"
 
@@ -17,6 +18,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/client"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/container/option"
+
 	apicorev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -40,6 +43,7 @@ type Kube struct {
 	cfg    *Config
 	client k8sClient
 
+	nodeName        string
 	onWatchingEvent *atomic.Bool
 	paused          func() bool
 	done            <-chan interface{}
@@ -61,12 +65,18 @@ func NewKubeCollector(client client.Client, cfg *Config, paused func() bool, don
 		return nil, fmt.Errorf("invalid kubernetes collector config, cannot be nil")
 	}
 
+	nodeName, err := getLocalNodeName()
+	if err != nil {
+		return nil, err
+	}
+
 	getGlobalCustomerKeys = func() []string { return cfg.GlobalCustomerKeys }
 	setExtraK8sLabelAsTags = func() bool { return cfg.EnableExtractK8sLabelAsTags }
 
 	return &Kube{
 		cfg:             cfg,
 		client:          client,
+		nodeName:        nodeName,
 		paused:          paused,
 		done:            done,
 		onWatchingEvent: &atomic.Bool{},
@@ -77,21 +87,39 @@ func (*Kube) Name() string {
 	return name
 }
 
-func (k *Kube) Metric(feed func([]*point.Point) error) {
+func (k *Kube) Metric(feed func([]*point.Point) error, opts ...option.CollectOption) {
 	if !k.cfg.EnableK8sMetric {
 		return
 	}
-	k.gather("metric", feed)
+
+	c := option.DefaultOption()
+	for _, opt := range opts {
+		opt(c)
+	}
+	if c.Paused && !c.NodeLocal {
+		return
+	}
+
+	k.gather("metric", feed, c.Paused, c.NodeLocal)
 }
 
-func (k *Kube) Object(feed func([]*point.Point) error) {
+func (k *Kube) Object(feed func([]*point.Point) error, opts ...option.CollectOption) {
 	if !k.cfg.EnableK8sObject {
 		return
 	}
 
 	b := k.verifyMetricsServerAccess()
 	canCollectPodMetrics = func() bool { return b }
-	k.gather("object", feed)
+
+	c := option.DefaultOption()
+	for _, opt := range opts {
+		opt(c)
+	}
+	if c.Paused && !c.NodeLocal {
+		return
+	}
+
+	k.gather("object", feed, c.Paused, c.NodeLocal)
 }
 
 func (k *Kube) Logging(feed func([]*point.Point) error) {
@@ -137,8 +165,22 @@ func (k *Kube) getActiveNamespaces(ctx context.Context) ([]string, error) {
 	return ns, nil
 }
 
-func transLabelKey(s string) string {
+func replaceLabelKey(s string) string {
 	return strings.ReplaceAll(s, ".", "_")
+}
+
+func getLocalNodeName() (string, error) {
+	var e string
+	if os.Getenv("NODE_NAME") != "" {
+		e = os.Getenv("NODE_NAME")
+	}
+	if os.Getenv("ENV_K8S_NODE_NAME") != "" {
+		e = os.Getenv("ENV_K8S_NODE_NAME")
+	}
+	if e != "" {
+		return e, nil
+	}
+	return "", fmt.Errorf("invalid ENV_K8S_NODE_NAME environment, cannot be empty")
 }
 
 type count struct{}

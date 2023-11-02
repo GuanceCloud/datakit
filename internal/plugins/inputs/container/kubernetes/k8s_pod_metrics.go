@@ -30,7 +30,7 @@ func queryPodMetrics(ctx context.Context, client k8sClient, name string, namespa
 
 func parsePodMetrics(item *v1beta1.PodMetrics) (*podSrvMetric, error) {
 	if len(item.Containers) == 0 {
-		return nil, fmt.Errorf("unreachable, not found container in pod")
+		return nil, fmt.Errorf("not found container in pod")
 	}
 
 	cpu := item.Containers[0].Usage["cpu"]

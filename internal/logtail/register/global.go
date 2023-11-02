@@ -13,19 +13,16 @@ import (
 
 var (
 	globalRegister Register
-
-	initOnce sync.Once
-	//nolint
-	initErr error
-
-	assertTesting = false
+	initOnce       sync.Once
+	assertTesting  = false
 )
 
 func Init(file string) error {
+	var err error
 	initOnce.Do(func() {
-		globalRegister, initErr = NewRegisterFileIfNotExist(file)
+		globalRegister, err = MustNewRegisterFile(file)
 	})
-	return initErr
+	return err
 }
 
 func AssertTesting() {

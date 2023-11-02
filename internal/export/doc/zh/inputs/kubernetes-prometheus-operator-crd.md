@@ -20,7 +20,29 @@ Prometheus 有一套完善的 Kubernetes 应用指标采集方案，流程简述
 
 在此处，Datakit 扮演了第 3 步的角色，由 Datakit 来监听和发现 Prometheus-Operator CRD，并根据配置开启指标采集，最终上传到观测云。
 
-目前 Datakit 支持 Prometheus-Operator 两种 CRD 资源 —— `PodMonitor` 和 `ServiceMonitor`，以及其必要（require）配置。
+目前 Datakit 支持 Prometheus-Operator 两种 CRD 资源 —— `PodMonitor` 和 `ServiceMonitor`，以及其必要（require）配置，包括以下部分：
+
+```markdown
+- PodMonitor [monitoring.coreos.com/v1]
+    - podTargetLabels
+    - podMetricsEndpoints:
+        - interval
+            port
+            path
+    - namespaceSelector:
+        any
+        matchNames
+- ServiceMonitor:
+    - targetLabels
+    - podTargetLabels
+    - endpoints:
+        - interval
+            port
+            path
+    - namespaceSelector:
+        any
+        matchNames
+```
 
 ## 示例 {#example}
 

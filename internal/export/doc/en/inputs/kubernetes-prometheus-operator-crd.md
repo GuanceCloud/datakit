@@ -18,7 +18,30 @@ Prometheus has a complete Kubernetes application metrics collection scheme, and 
 
 Here, Datakit plays the role of step 3, in which Datakit monitors and discovers Prometheus-Operator CRD, starts metric collection according to configuration, and finally uploads it to Guance Cloud.
 
-Currently, Datakit supports Prometheus-Operator CRD resources —— `PodMonitor` and `ServiceMonitor` —— and their required configuration.
+Currently, Datakit supports Prometheus-Operator CRD resources —— `PodMonitor` and `ServiceMonitor` —— and their required configuration:
+
+```markdown
+- PodMonitor [monitoring.coreos.com/v1]
+    - podTargetLabels
+    - podMetricsEndpoints:
+        - interval
+            port
+            path
+    - namespaceSelector:
+        any
+        matchNames
+- ServiceMonitor:
+    - targetLabels
+    - podTargetLabels
+    - endpoints:
+        - interval
+            port
+            path
+    - namespaceSelector:
+        any
+        matchNames
+```
+
 
 ## Examples {#example}
 
