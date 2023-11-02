@@ -193,6 +193,7 @@ func BuildPoint(dkspan *DatakitSpan, opts ...point.Option) (*point.Point, error)
 		FIELD_DURATION: dkspan.Duration / int64(time.Microsecond),
 		FIELD_MESSAGE:  dkspan.Content,
 	}
+
 	// trace-128-id replace trace-id.
 	if id, ok := dkspan.Tags[TRACE_128_BIT_ID]; ok {
 		fields[FIELD_TRACEID] = id

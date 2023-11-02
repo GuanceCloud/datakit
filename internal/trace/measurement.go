@@ -23,7 +23,7 @@ type TraceMeasurement struct {
 
 // Point implement MeasurementV2.
 func (m *TraceMeasurement) Point() *point.Point {
-	opts := append(point.CommonLoggingOptions(), point.WithTime(m.TS))
+	opts := append(point.CommonLoggingOptions(), point.WithTime(m.TS), point.WithMaxTagValLen(32*1024*1024))
 	opts = append(opts, m.BuildPointOptions...)
 
 	return point.NewPointV2(m.Name, append(point.NewTags(m.Tags), point.NewKVs(m.Fields)...), opts...)

@@ -118,7 +118,7 @@ func (a *attributes) remove(key string) *attributes {
 }
 
 func (a *attributes) splite() (map[string]string, map[string]interface{}) {
-	tags := make(map[string]string)
+	shadowTags := make(map[string]string)
 	metrics := make(map[string]interface{})
 	for _, v := range a.attrs {
 		switch v.Value.Value.(type) {
@@ -126,7 +126,7 @@ func (a *attributes) splite() (map[string]string, map[string]interface{}) {
 			if s := v.Value.GetStringValue(); len(s) > 1024 {
 				metrics[v.Key] = s
 			} else {
-				tags[v.Key] = s
+				shadowTags[v.Key] = s
 			}
 		case *common.AnyValue_DoubleValue:
 			metrics[v.Key] = v.Value.GetDoubleValue()
@@ -135,5 +135,5 @@ func (a *attributes) splite() (map[string]string, map[string]interface{}) {
 		}
 	}
 
-	return tags, metrics
+	return shadowTags, metrics
 }
