@@ -99,6 +99,23 @@ Note: The pl script of metric should be placed in the `pipeline/metric/` directo
 
 Theoretically, each message body should be a log or a metric. If your message is multiple logs, you can use `spilt_json_body` to enable the global function of splitting arrays, you can also use `spilt_topic_map` to enable the function of splitting arrays for a single topic: When the data is an array and conforms to the json format, it can be set to true, and PL can be used to Arrays are sliced into individual log or metric data.
 
+### Consumer OpenTelemetry Data {#otel}
+
+Configuration:
+
+```toml
+## Receive and consume OTEL data from kafka.
+[inputs.kafkamq.otel]
+    dk_endpoint="http://localhost:9529"
+    trace_api="/otel/v1/trace"
+    metric_api="/otel/v1/metric"
+    trace_topics=["trace1","trace2"]
+    metric_topics=["otel-metric","otel-metric1"]
+```
+
+The `dk_endpoint` `trace_api` `metric_api` corresponds to the address of the DataKit and the API address of the OpenTelemetry collector.
+
+> Note: The messages subscribed to from Kafka are not directly parsed, but are directly sent to the `OpenTelemetry` collector, so it is necessary to open the [OpenTelemetry collector](openTelemetry. md). Currently, only the `x-protobuf` data stream format is supported.
 
 ### Example {#example}
 

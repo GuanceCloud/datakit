@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 )
 
 func TestInput_getKafkaVersion(t *testing.T) {
@@ -23,9 +23,9 @@ func TestInput_getKafkaVersion(t *testing.T) {
 		want   sarama.KafkaVersion
 	}{
 		{name: "case1", fields: fields{KafkaVersion: "2.0.0"}, want: sarama.V2_0_0_0},
-		{name: "case2", fields: fields{KafkaVersion: "2.12-2.8.1"}, want: sarama.V1_0_0_0},
+		{name: "case2", fields: fields{KafkaVersion: "2.12-2.8.1"}, want: sarama.V2_1_0_0},
 		{name: "case3", fields: fields{KafkaVersion: "0.8.2.0"}, want: sarama.V0_8_2_0},
-		{name: "case4", fields: fields{KafkaVersion: "0.7.0"}, want: sarama.V1_0_0_0},
+		{name: "case4", fields: fields{KafkaVersion: "0.7.0"}, want: sarama.V2_1_0_0},
 		{name: "case4", fields: fields{KafkaVersion: "2.8.0"}, want: sarama.V2_8_0_0},
 	}
 	for _, tt := range tests {

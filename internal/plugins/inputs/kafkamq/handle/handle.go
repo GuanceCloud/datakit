@@ -22,7 +22,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 
 	"github.com/GuanceCloud/cliutils/logger"
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 )
 
 var (

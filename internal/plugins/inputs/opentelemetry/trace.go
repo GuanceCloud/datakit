@@ -19,6 +19,7 @@ func parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
 	var dktraces itrace.DatakitTraces
 	spanIDs, parentIDs := getSpanIDsAndParentIDs(resspans)
 	for _, spans := range resspans {
+		log.Debugf("otel span: %s", spans.String())
 		resattrs := extractAtrributes(spans.Resource.Attributes)
 
 		var dktrace itrace.DatakitTrace
@@ -129,7 +130,8 @@ func byteToString(buf []byte) string {
 }
 
 func convert(id []byte) string {
-	if convertToDD {
+	switch {
+	case convertToDD:
 		if len(id) >= 8 {
 			bts := id[len(id)-8:]
 			num := binary.BigEndian.Uint64(bts[:8])
@@ -138,7 +140,13 @@ func convert(id []byte) string {
 			log.Debugf("traceid or spanid is %s ,can not convert to [8]byte", string(id))
 			return "0"
 		}
-	} else {
+	case convertToZhaoShang:
+		if len(id) > 8 {
+			return string(id)
+		} else {
+			return byteToString(id)
+		}
+	default:
 		return byteToString(id)
 	}
 }

@@ -12,7 +12,7 @@ import (
 	"net/url"
 
 	"github.com/GuanceCloud/cliutils/logger"
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 )
 
 var (

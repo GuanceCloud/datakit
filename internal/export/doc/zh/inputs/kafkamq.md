@@ -129,6 +129,24 @@ kafka 插件默认会将 `traces/JVM metrics/logging/Instance Properties/profile
 
 理论上每一个消息体应该是一条日志或者一个指标，如果您的消息是多条日志，可以使用 `spilt_json_body` 开启全局 JSON 切割数组功能，同时你也可以使用 `spilt_topic_map` 开启单个 Topic 的 JSON 切割数组功能，当数据是 JSON 数组，配合 PL 可以将数组切割成单个日志或者指标数据。
 
+### 消费 OpenTelemetry 数据 {#otel}
+
+配置说明：
+
+```toml
+## Receive and consume OTEL data from kafka.
+[inputs.kafkamq.otel]
+    dk_endpoint="http://localhost:9529"
+    trace_api="/otel/v1/trace" 
+    metric_api="/otel/v1/metric"
+    trace_topics=["trace1","trace2"]
+    metric_topics=["otel-metric","otel-metric1"]
+```
+
+配置文件中的 `dk_endpoint` `trace_api` `metric_api` 对应的是 DataKit 的地址和 OpenTelemetry 采集器的 API 地址。
+
+> 注意：从 Kafka 中订阅的消息并不会直接进行解析，而是 直接发送到 `OpenTelemetry` 采集器中，所以 必须打开 [OpenTelemetry 采集器](opentelemetry.md)，目前仅支持 `x-protobuf` 数据流格式。
+
 ### 示例 {#example}
 
 以一个简单的 metric 为例，介绍如何使用自定义配置订阅消息。

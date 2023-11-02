@@ -2,7 +2,6 @@ package oss
 
 import (
 	"bytes"
-	"context"
 	"crypto/md5"
 	"encoding/base64"
 	"encoding/json"
@@ -90,12 +89,6 @@ func (conn *Conn) init(config *Config, urlMaker *urlMaker, client *http.Client) 
 // Do sends request and returns the response
 func (conn Conn) Do(method, bucketName, objectName string, params map[string]interface{}, headers map[string]string,
 	data io.Reader, initCRC uint64, listener ProgressListener) (*Response, error) {
-	return conn.DoWithContext(nil, method, bucketName, objectName, params, headers, data, initCRC, listener)
-}
-
-// DoWithContext sends request and returns the response with context
-func (conn Conn) DoWithContext(ctx context.Context, method, bucketName, objectName string, params map[string]interface{}, headers map[string]string,
-	data io.Reader, initCRC uint64, listener ProgressListener) (*Response, error) {
 	urlParams := conn.getURLParams(params)
 	subResource := conn.getSubResource(params)
 	uri := conn.url.getURL(bucketName, objectName, urlParams)
@@ -107,17 +100,11 @@ func (conn Conn) DoWithContext(ctx context.Context, method, bucketName, objectNa
 		resource = conn.getResourceV4(bucketName, objectName, subResource)
 	}
 
-	return conn.doRequest(ctx, method, uri, resource, headers, data, initCRC, listener)
+	return conn.doRequest(method, uri, resource, headers, data, initCRC, listener)
 }
 
 // DoURL sends the request with signed URL and returns the response result.
 func (conn Conn) DoURL(method HTTPMethod, signedURL string, headers map[string]string,
-	data io.Reader, initCRC uint64, listener ProgressListener) (*Response, error) {
-	return conn.DoURLWithContext(nil, method, signedURL, headers, data, initCRC, listener)
-}
-
-// DoURLWithContext sends the request with signed URL and context and returns the response result.
-func (conn Conn) DoURLWithContext(ctx context.Context, method HTTPMethod, signedURL string, headers map[string]string,
 	data io.Reader, initCRC uint64, listener ProgressListener) (*Response, error) {
 	// Get URI from signedURL
 	uri, err := url.ParseRequestURI(signedURL)
@@ -136,9 +123,6 @@ func (conn Conn) DoURLWithContext(ctx context.Context, method HTTPMethod, signed
 		Host:       uri.Host,
 	}
 
-	if ctx != nil {
-		req = req.WithContext(ctx)
-	}
 	tracker := &readerTracker{completedBytes: 0}
 	fd, crc := conn.handleBody(req, data, initCRC, listener, tracker)
 	if fd != nil {
@@ -174,10 +158,9 @@ func (conn Conn) DoURLWithContext(ctx context.Context, method HTTPMethod, signed
 	resp, err := conn.client.Do(req)
 	if err != nil {
 		// Transfer failed
-		conn.config.WriteLog(Debug, "[Resp:%p]http error:%s\n", req, err.Error())
 		event = newProgressEvent(TransferFailedEvent, tracker.completedBytes, req.ContentLength, 0)
 		publishProgress(listener, event)
-
+		conn.config.WriteLog(Debug, "[Resp:%p]http error:%s\n", req, err.Error())
 		return nil, err
 	}
 
@@ -297,12 +280,10 @@ func (conn Conn) getResourceV4(bucketName, objectName, subResource string) strin
 	return fmt.Sprintf("/%s/%s", bucketName, subResource)
 }
 
-func (conn Conn) doRequest(ctx context.Context, method string, uri *url.URL, canonicalizedResource string, headers map[string]string,
+func (conn Conn) doRequest(method string, uri *url.URL, canonicalizedResource string, headers map[string]string,
 	data io.Reader, initCRC uint64, listener ProgressListener) (*Response, error) {
 	method = strings.ToUpper(method)
-	var req *http.Request
-	var err error
-	req = &http.Request{
+	req := &http.Request{
 		Method:     method,
 		URL:        uri,
 		Proto:      "HTTP/1.1",
@@ -311,9 +292,7 @@ func (conn Conn) doRequest(ctx context.Context, method string, uri *url.URL, can
 		Header:     make(http.Header),
 		Host:       uri.Host,
 	}
-	if ctx != nil {
-		req = req.WithContext(ctx)
-	}
+
 	tracker := &readerTracker{completedBytes: 0}
 	fd, crc := conn.handleBody(req, data, initCRC, listener, tracker)
 	if fd != nil {
@@ -362,10 +341,10 @@ func (conn Conn) doRequest(ctx context.Context, method string, uri *url.URL, can
 	resp, err := conn.client.Do(req)
 
 	if err != nil {
-		conn.config.WriteLog(Debug, "[Resp:%p]http error:%s\n", req, err.Error())
 		// Transfer failed
 		event = newProgressEvent(TransferFailedEvent, tracker.completedBytes, req.ContentLength, 0)
 		publishProgress(listener, event)
+		conn.config.WriteLog(Debug, "[Resp:%p]http error:%s\n", req, err.Error())
 		return nil, err
 	}
 
@@ -808,10 +787,9 @@ func (c *timeoutConn) SetWriteDeadline(t time.Time) error {
 
 // UrlMaker builds URL and resource
 const (
-	urlTypeCname     = 1
-	urlTypeIP        = 2
-	urlTypeAliyun    = 3
-	urlTypePathStyle = 4
+	urlTypeCname  = 1
+	urlTypeIP     = 2
+	urlTypeAliyun = 3
 )
 
 type urlMaker struct {
@@ -823,11 +801,6 @@ type urlMaker struct {
 
 // Init parses endpoint
 func (um *urlMaker) Init(endpoint string, isCname bool, isProxy bool) error {
-	return um.InitExt(endpoint, isCname, isProxy, false)
-}
-
-// InitExt parses endpoint
-func (um *urlMaker) InitExt(endpoint string, isCname bool, isProxy bool, isPathStyle bool) error {
 	if strings.HasPrefix(endpoint, "http://") {
 		um.Scheme = "http"
 		um.NetLoc = endpoint[len("http://"):]
@@ -860,8 +833,6 @@ func (um *urlMaker) InitExt(endpoint string, isCname bool, isProxy bool, isPathS
 		um.Type = urlTypeIP
 	} else if isCname {
 		um.Type = urlTypeCname
-	} else if isPathStyle {
-		um.Type = urlTypePathStyle
 	} else {
 		um.Type = urlTypeAliyun
 	}
@@ -910,7 +881,7 @@ func (um urlMaker) buildURL(bucket, object string) (string, string) {
 	if um.Type == urlTypeCname {
 		host = um.NetLoc
 		path = "/" + object
-	} else if um.Type == urlTypeIP || um.Type == urlTypePathStyle {
+	} else if um.Type == urlTypeIP {
 		if bucket == "" {
 			host = um.NetLoc
 			path = "/"
@@ -945,7 +916,7 @@ func (um urlMaker) buildURLV4(bucket, object string) (string, string) {
 	if um.Type == urlTypeCname {
 		host = um.NetLoc
 		path = "/" + object
-	} else if um.Type == urlTypeIP || um.Type == urlTypePathStyle {
+	} else if um.Type == urlTypeIP {
 		if bucket == "" {
 			host = um.NetLoc
 			path = "/"

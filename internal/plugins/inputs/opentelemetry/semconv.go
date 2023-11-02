@@ -55,4 +55,7 @@ var otelErrKeyToDkErrKey = map[string]string{
 	ExceptionStacktraceKey: itrace.FIELD_ERR_STACK,
 }
 
-var convertToDD = false
+var (
+	convertToZhaoShang = false
+	convertToDD        = false
+)
