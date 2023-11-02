@@ -135,6 +135,10 @@ github.com/GuanceCloud/tracing-protos/skywalking-gen-go/language/profile/v3/comp
 github.com/GuanceCloud/tracing-protos/skywalking-gen-go/logging/v3
 github.com/GuanceCloud/tracing-protos/skywalking-gen-go/management/v3
 github.com/GuanceCloud/tracing-protos/skywalking-gen-go/management/v3/compat
+# github.com/IBM/sarama v1.41.2
+## explicit; go 1.17
+github.com/IBM/sarama
+github.com/IBM/sarama/mocks
 # github.com/Microsoft/go-winio v0.6.1
 ## explicit; go 1.17
 github.com/Microsoft/go-winio
@@ -163,17 +167,13 @@ github.com/ProtonMail/go-crypto/openpgp/internal/ecc
 github.com/ProtonMail/go-crypto/openpgp/internal/encoding
 github.com/ProtonMail/go-crypto/openpgp/packet
 github.com/ProtonMail/go-crypto/openpgp/s2k
-# github.com/Shopify/sarama v1.38.1
-## explicit; go 1.17
-github.com/Shopify/sarama
-github.com/Shopify/sarama/mocks
 # github.com/StackExchange/wmi v1.2.1
 ## explicit; go 1.13
 github.com/StackExchange/wmi
 # github.com/acomagu/bufpipe v1.0.3
 ## explicit; go 1.12
 github.com/acomagu/bufpipe
-# github.com/aliyun/aliyun-oss-go-sdk v2.2.9+incompatible
+# github.com/aliyun/aliyun-oss-go-sdk v2.2.8+incompatible
 ## explicit
 github.com/aliyun/aliyun-oss-go-sdk/oss
 # github.com/antchfx/xmlquery v1.3.18
@@ -527,10 +527,10 @@ github.com/docker/go-units
 # github.com/dustin/go-humanize v1.0.1
 ## explicit; go 1.16
 github.com/dustin/go-humanize
-# github.com/eapache/go-resiliency v1.3.0
+# github.com/eapache/go-resiliency v1.4.0
 ## explicit; go 1.13
 github.com/eapache/go-resiliency/breaker
-# github.com/eapache/go-xerial-snappy v0.0.0-20230111030713-bf00bc1b83b6
+# github.com/eapache/go-xerial-snappy v0.0.0-20230731223053-c322873962e3
 ## explicit; go 1.17
 github.com/eapache/go-xerial-snappy
 # github.com/eapache/queue v1.1.0
@@ -1012,7 +1012,7 @@ github.com/jcmturner/dnsutils/v2
 ## explicit; go 1.7
 github.com/jcmturner/gofork/encoding/asn1
 github.com/jcmturner/gofork/x/crypto/pbkdf2
-# github.com/jcmturner/gokrb5/v8 v8.4.3
+# github.com/jcmturner/gokrb5/v8 v8.4.4
 ## explicit; go 1.16
 github.com/jcmturner/gokrb5/v8/asn1tools
 github.com/jcmturner/gokrb5/v8/client
@@ -1081,6 +1081,7 @@ github.com/kevinburke/ssh_config
 github.com/klauspost/compress
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
+github.com/klauspost/compress/gzip
 github.com/klauspost/compress/huff0
 github.com/klauspost/compress/internal/cpuinfo
 github.com/klauspost/compress/internal/snapref
@@ -1273,7 +1274,7 @@ github.com/philhofer/fwd
 ## explicit
 github.com/pierrec/lz4
 github.com/pierrec/lz4/internal/xxh32
-# github.com/pierrec/lz4/v4 v4.1.17
+# github.com/pierrec/lz4/v4 v4.1.18
 ## explicit; go 1.14
 github.com/pierrec/lz4/v4
 github.com/pierrec/lz4/v4/internal/lz4block

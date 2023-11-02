@@ -14,6 +14,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/kafkamq/custom"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/kafkamq/handle"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/kafkamq/jaeger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/kafkamq/opentelemetry"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/kafkamq/skywalking"
 )
 
@@ -92,6 +93,15 @@ const mqSampleConfig = `
     # debug = false
     # is_response_point = true
     # header_check = false
+  
+  ## Receive and consume OTEL data from kafka.
+  #[inputs.kafkamq.otel]
+    #dk_endpoint="http://localhost:9529"
+    #trace_api="/otel/v1/trace"
+    #metric_api="/otel/v1/metric"
+    #trace_topics=["trace1","trace2"]
+    #metric_topics=["otel-metric","otel-metric1"]
+
 
   ## todo: add other input-mq
 `
@@ -116,10 +126,11 @@ type Input struct {
 	TLSSaslPlainPassword string   `toml:"tls_sasl_plain_password"`
 	Offsets              int64    `toml:"offsets"`
 
-	SkyWalking *skywalking.SkyConsumer `toml:"skywalking"`    // 命名时 注意区分源
-	Jaeger     *jaeger.Consumer        `toml:"jaeger"`        // 命名时 注意区分源
-	Custom     *custom.Custom          `toml:"custom"`        // 自定义 topic
-	Handle     *handle.Handle          `toml:"remote_handle"` // 自定义 handle
+	SkyWalking *skywalking.SkyConsumer   `toml:"skywalking"`    // 命名时 注意区分源
+	Jaeger     *jaeger.Consumer          `toml:"jaeger"`        // 命名时 注意区分源
+	Custom     *custom.Custom            `toml:"custom"`        // 自定义 topic
+	Handle     *handle.Handle            `toml:"remote_handle"` // 自定义 handle
+	OTELHandle *opentelemetry.OTELHandle `toml:"otel"`          // 自定义 handle
 
 	kafka  *kafkaConsumer
 	feeder dkio.Feeder
@@ -178,6 +189,10 @@ func (ipt *Input) Run() {
 	if ipt.Handle != nil {
 		ipt.Handle.SetFeeder(ipt.feeder)
 		ipt.kafka.registerP(ipt.Handle)
+	}
+
+	if ipt.OTELHandle != nil {
+		ipt.kafka.registerP(ipt.OTELHandle)
 	}
 
 	go ipt.kafka.start()

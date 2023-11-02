@@ -9,7 +9,7 @@ package kafkamq
 import (
 	"os"
 
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 )
 
 var (

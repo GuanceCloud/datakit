@@ -158,6 +158,7 @@ type Input struct {
 	HTTPConfig          *httpConfig                  `toml:"http"`
 	GRPCConfig          *grpcConfig                  `toml:"grpc"`
 	CompatibleDDTrace   bool                         `toml:"compatible_ddtrace"`
+	CompatibleZhaoShang bool                         `toml:"compatible_zhaoshang"`
 	ExpectedHeaders     map[string]string            `toml:"expected_headers"`
 	KeepRareResource    bool                         `toml:"keep_rare_resource"`
 	CloseResource       map[string][]string          `toml:"close_resource"`
@@ -324,6 +325,7 @@ func (ipt *Input) Run() {
 	}
 	tags = ipt.Tags
 	convertToDD = ipt.CompatibleDDTrace
+	convertToZhaoShang = ipt.CompatibleZhaoShang
 	getAttribute = getAttrWrapper(ignoreTags)
 	extractAtrributes = extractAttrsWrapper(ignoreTags)
 

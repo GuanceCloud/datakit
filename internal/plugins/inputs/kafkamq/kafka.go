@@ -13,7 +13,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 	"golang.org/x/time/rate"
 )
 
