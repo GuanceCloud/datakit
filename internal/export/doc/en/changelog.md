@@ -14,7 +14,7 @@ This release is an iterative release with the following updates:
 - Fixed compatibility of large Tag values in Tracing data, now adjusted to 32MB(#1932)
 - Fix RUM session replay dirty data issue(#1958)
 - Fixed indicator information export issue(#1953)
-- Fix the [v2 version protocol](Datakit-conf.m ## datawawe-Settings) build error
+- Fix the [v2 version protocol](Datakit-conf.m#datawawe-Settings) build error
 
 ### Function optimization {#cl-1.18.0-opt}
 

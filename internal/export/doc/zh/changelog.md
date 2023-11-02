@@ -14,7 +14,7 @@
 - 修复 Tracing 数据中较大 Tag 值兼容，现已调至 32MB（#1932）
 - 修复 RUM session replay 脏数据问题（#1958）
 - 修复指标信息导出问题（#1953）
-- 修复 [v2 版本协议](datakit-conf.md##dataway-settings)构建错误为题
+- 修复 [v2 版本协议](datakit-conf.md#dataway-settings)构建错误为题
 
 ### 功能优化 {#cl-1.18.0-opt}
 
