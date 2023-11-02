@@ -102,7 +102,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// couchdb 3.3.2
 		////////////////////////////////////////////////////////////////////////
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/couchdb:3.3.2-prom",
+			name: "pubrepo.guance.com/image-repo-for-testing/couchdb:3.3.2-prom",
 			conf: `source = "couchdb"
 interval = "10s"
 		`,
@@ -116,7 +116,7 @@ interval = "10s"
 		// couchdb 3.2
 		////////////////////////////////////////////////////////////////////////
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/couchdb:3.2-prom",
+			name: "pubrepo.guance.com/image-repo-for-testing/couchdb:3.2-prom",
 			conf: `source = "couchdb"
 interval = "10s"
 [tags]

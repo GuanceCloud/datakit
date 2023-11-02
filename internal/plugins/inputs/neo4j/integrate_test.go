@@ -101,7 +101,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// neo4j 5.11.0
 		////////////////////////////////////////////////////////////////////////
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/neo4j:5.11.0-enterprise-prom",
+			name: "pubrepo.guance.com/image-repo-for-testing/neo4j:5.11.0-enterprise-prom",
 			conf: `interval = "10s"
 		`,
 			exposedPorts: []string{"2004/tcp"},
@@ -115,7 +115,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// neo4j 4.4.0
 		////////////////////////////////////////////////////////////////////////
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/neo4j:4.4.0-enterprise-prom",
+			name: "pubrepo.guance.com/image-repo-for-testing/neo4j:4.4.0-enterprise-prom",
 			conf: `interval = "10s"
 election = true
 [tags]
@@ -133,7 +133,7 @@ election = true
 		// neo4j 3.4.0
 		////////////////////////////////////////////////////////////////////////
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/neo4j:3.4.0-enterprise-prom",
+			name: "pubrepo.guance.com/image-repo-for-testing/neo4j:3.4.0-enterprise-prom",
 			conf: `interval = "10s"
 disable_host_tag = true
 disable_instance_tag = true

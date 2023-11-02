@@ -70,7 +70,7 @@ spec:
               value: "false"
           
         - name: datakit-profiler
-          image: pubrepo.jiagouyun.com/dataflux/pprof:0.1.0
+          image: pubrepo.guance.com/dataflux/pprof:0.1.0
           imagePullPolicy: IfNotPresent
           workingDir: /app/datakit-profiler
           env:

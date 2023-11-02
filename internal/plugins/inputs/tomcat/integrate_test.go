@@ -111,7 +111,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// Tomcat 8
 		////////////////////////////////////////////////////////////////////////
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/tomcat:8.5.90-ddtrace",
+			name: "pubrepo.guance.com/image-repo-for-testing/tomcat:8.5.90-ddtrace",
 			conf: `protocol = "udp"
 			service_address = ":"
 			metric_separator = "_"
@@ -212,7 +212,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// Tomcat 9
 		////////////////////////////////////////////////////////////////////////
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/tomcat:9.0.76-ddtrace",
+			name: "pubrepo.guance.com/image-repo-for-testing/tomcat:9.0.76-ddtrace",
 			conf: `protocol = "udp"
 			service_address = ":"
 			metric_separator = "_"
@@ -313,7 +313,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// Tomcat 10
 		////////////////////////////////////////////////////////////////////////
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/tomcat:10.1.10-ddtrace",
+			name: "pubrepo.guance.com/image-repo-for-testing/tomcat:10.1.10-ddtrace",
 			conf: `protocol = "udp"
 			service_address = ":"
 			metric_separator = "_"
@@ -414,7 +414,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// Tomcat 11
 		////////////////////////////////////////////////////////////////////////
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/tomcat:11.0.0-ddtrace",
+			name: "pubrepo.guance.com/image-repo-for-testing/tomcat:11.0.0-ddtrace",
 			conf: `protocol = "udp"
 			service_address = ":"
 			metric_separator = "_"

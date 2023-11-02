@@ -258,7 +258,7 @@ testing: deps
 testing_image:
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'registry.jiagouyun.com')
 	# we also publishing testing image to public image repo
-	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'pubrepo.jiagouyun.com')
+	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'pubrepo.guance.com')
 	$(call build_k8s_charts, 'datakit-testing', registry.jiagouyun.com)
 
 production_notify: deps
@@ -269,7 +269,7 @@ production: deps # stable release
 	$(call publish, production, $(PRODUCTION_UPLOAD_ADDR), $(PRODUCTION_DOWNLOAD_CDN), $(DEFAULT_ARCHS))
 
 production_image:
-	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'pubrepo.jiagouyun.com')
+	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'pubrepo.guance.com')
 	$(call build_k8s_charts, 'datakit', pubrepo.guance.com)
 
 production_mac: deps
@@ -293,8 +293,8 @@ pub_release_win_img:
 	# release to pub hub
 	@mkdir -p embed/windows-amd64
 	@wget --quiet -O - "https://$(PRODUCTION_UPLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
-	@sudo docker build -t pubrepo.jiagouyun.com/datakit/datakit-win:$(VERSION) -f ./Dockerfile_win .
-	@sudo docker push pubrepo.jiagouyun.com/datakit/datakit-win:$(VERSION)
+	@sudo docker build -t pubrepo.guance.com/datakit/datakit-win:$(VERSION) -f ./Dockerfile_win .
+	@sudo docker push pubrepo.guance.com/datakit/datakit-win:$(VERSION)
 
 # Config samples should only be published by production release,
 # because config samples in multiple testing releases may not be compatible to each other.

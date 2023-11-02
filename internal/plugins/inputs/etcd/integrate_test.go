@@ -108,7 +108,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// etcd 3.5.7
 		////////////////////////////////////////////////////////////////////////
 		{
-			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/bitnami/etcd:3.5.7",
+			name:         "pubrepo.guance.com/image-repo-for-testing/bitnami/etcd:3.5.7",
 			conf:         `interval = "10s"`, // set conf URL later.
 			exposedPorts: []string{"2379/tcp"},
 			opts: []inputs.PointCheckOption{
@@ -137,7 +137,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// etcd 3.4.24
 		////////////////////////////////////////////////////////////////////////
 		{
-			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/bitnami/etcd:3.4.24",
+			name:         "pubrepo.guance.com/image-repo-for-testing/bitnami/etcd:3.4.24",
 			conf:         `interval = "10s"`, // set conf URL later.
 			exposedPorts: []string{"2379/tcp"},
 			opts: []inputs.PointCheckOption{
@@ -166,7 +166,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// etcd 3.3.27
 		////////////////////////////////////////////////////////////////////////
 		{
-			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/bitnami/etcd:3.3.27",
+			name:         "pubrepo.guance.com/image-repo-for-testing/bitnami/etcd:3.3.27",
 			conf:         `interval = "10s"`, // set conf URL later.
 			exposedPorts: []string{"2379/tcp"},
 			opts: []inputs.PointCheckOption{

@@ -465,7 +465,7 @@ docker save -o datakit-arm64-{{.Version}}.tar pubrepo.guance.com/datakit/datakit
 mv datakit-arm64-{{.Version}}.tar /home/guance
 
 # 查看镜像架构是否正确
-docker image inspect pubrepo.jiagouyun.com/datakit/datakit:{{.Version}} |grep Architecture
+docker image inspect pubrepo.guance.com/datakit/datakit:{{.Version}} |grep Architecture
 
 ```
 

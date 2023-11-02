@@ -112,7 +112,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// nsq:v1.2.1
 		////////////////////////////////////////////////////////////////////////
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nsq:v1.2.1-datakit",
+			name: "pubrepo.guance.com/image-repo-for-testing/nsq:v1.2.1-datakit",
 			conf: `lookupd = ""
 			interval = "3s"
 			election = true`, // set conf URL later.
@@ -124,7 +124,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 		},
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nsq:v1.2.1-datakit",
+			name: "pubrepo.guance.com/image-repo-for-testing/nsq:v1.2.1-datakit",
 			conf: `lookupd = ""
 			interval = "3s"
 			election = false`, // set conf URL later.
@@ -135,7 +135,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// nsq:v1.1.0
 		////////////////////////////////////////////////////////////////////////
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nsq:v1.1.0-datakit",
+			name: "pubrepo.guance.com/image-repo-for-testing/nsq:v1.1.0-datakit",
 			conf: `lookupd = ""
 			interval = "3s"
 			election = true`, // set conf URL later.
@@ -147,7 +147,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 		},
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nsq:v1.1.0-datakit",
+			name: "pubrepo.guance.com/image-repo-for-testing/nsq:v1.1.0-datakit",
 			conf: `lookupd = ""
 			interval = "3s"
 			election = false`, // set conf URL later.
@@ -158,7 +158,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// nsq:v0.3.8
 		////////////////////////////////////////////////////////////////////////
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nsq:v0.3.8-datakit",
+			name: "pubrepo.guance.com/image-repo-for-testing/nsq:v0.3.8-datakit",
 			conf: `lookupd = ""
 			interval = "3s"
 			election = true`, // set conf URL later.
@@ -170,7 +170,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 		},
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/nsq:v0.3.8-datakit",
+			name: "pubrepo.guance.com/image-repo-for-testing/nsq:v0.3.8-datakit",
 			conf: `lookupd = ""
 			interval = "3s"
 			election = false`, // set conf URL later.

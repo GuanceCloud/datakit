@@ -102,7 +102,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		opts         []inputs.PointCheckOption
 	}{
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/zipkin:agent-go{}apiV1",
+			name: "pubrepo.guance.com/image-repo-for-testing/zipkin:agent-go{}apiV1",
 			conf: `pathV1 = "/api/v1/spans"
 			pathV2 = "/api/v2/spans"`,
 			urlPath: "/api/v1/spans",
@@ -127,7 +127,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		},
 
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/zipkin:agent-go{}apiV2",
+			name: "pubrepo.guance.com/image-repo-for-testing/zipkin:agent-go{}apiV2",
 			conf: `pathV1 = "/api/v1/spans"
 			pathV2 = "/api/v2/spans"`,
 			urlPath: "/api/v2/spans",

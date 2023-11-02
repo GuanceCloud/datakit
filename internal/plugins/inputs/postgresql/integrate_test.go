@@ -32,7 +32,7 @@ const (
 	Database     = "demo"
 	Table        = "demo"
 
-	RepoURL = "pubrepo.jiagouyun.com/image-repo-for-testing/postgres/"
+	RepoURL = "pubrepo.guance.com/image-repo-for-testing/postgres/"
 )
 
 type (

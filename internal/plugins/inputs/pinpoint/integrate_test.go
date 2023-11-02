@@ -101,7 +101,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		opts         []inputs.PointCheckOption
 	}{
 		{
-			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/pinpoint:agent-go",
+			name:         "pubrepo.guance.com/image-repo-for-testing/pinpoint:agent-go",
 			conf:         `address = "0.0.0.0:"`,
 			exposedPorts: []string{"8080/tcp"},
 			mPathCount: map[string]int{

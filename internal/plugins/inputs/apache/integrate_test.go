@@ -718,7 +718,7 @@ const dockerFileServerStatus = `FROM httpd:${VERSION}-alpine
 	&& sed -i '$a Allow from all' /usr/local/apache2/conf/httpd.conf \
 	&& sed -i '$a </Location>' /usr/local/apache2/conf/httpd.conf`
 
-const dockerFileServerStatusSelfBuild = `FROM pubrepo.jiagouyun.com/image-repo-for-testing/httpd:${VERSION}-alpine
+const dockerFileServerStatusSelfBuild = `FROM pubrepo.guance.com/image-repo-for-testing/httpd:${VERSION}-alpine
 
   RUN sed -i '$a <Location /server-status>' /usr/local/apache2/conf/httpd.conf \
 	&& sed -i '$a SetHandler server-status' /usr/local/apache2/conf/httpd.conf \

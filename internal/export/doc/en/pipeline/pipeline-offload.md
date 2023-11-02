@@ -50,5 +50,5 @@ There are several ways to deploy the data processor (DataKit) for receiving comp
 
   ```sh
   docker run --ulimit nofile=64000:64000  -e ENV_DATAWAY="https://openway.guance.com?token=<tkn_>" -e ENV_HTTP_LISTEN="0.0.0.0:9529" \
-  -p 9590:9529 -d pubrepo.jiagouyun.com/datakit/datakit:<version>
+  -p 9590:9529 -d pubrepo.guance.com/datakit/datakit:<version>
   ```

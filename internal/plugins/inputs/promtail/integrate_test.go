@@ -129,22 +129,22 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		},
 
 		{
-			name:    "pubrepo.jiagouyun.com/image-repo-for-testing/promtail:2.0.0-datakit",
+			name:    "pubrepo.guance.com/image-repo-for-testing/promtail:2.0.0-datakit",
 			verConf: VER_2,
 		},
 
 		{
-			name:    "pubrepo.jiagouyun.com/image-repo-for-testing/promtail:1.5.0-datakit",
+			name:    "pubrepo.guance.com/image-repo-for-testing/promtail:1.5.0-datakit",
 			verConf: VER_2,
 		},
 
 		{
-			name:    "pubrepo.jiagouyun.com/image-repo-for-testing/promtail:1.0.0-datakit",
+			name:    "pubrepo.guance.com/image-repo-for-testing/promtail:1.0.0-datakit",
 			verConf: VER_2,
 		},
 
 		{
-			name:    "pubrepo.jiagouyun.com/image-repo-for-testing/promtail:0.1.0-datakit",
+			name:    "pubrepo.guance.com/image-repo-for-testing/promtail:0.1.0-datakit",
 			conf:    `legacy = true`,
 			verConf: VER_1,
 		},
@@ -560,7 +560,7 @@ scrape_configs:
       __path__: /var/log/*log
 */
 //nolint:lll
-const dockerFileV1 = `FROM pubrepo.jiagouyun.com/image-repo-for-testing/promtail:${VERSION}
+const dockerFileV1 = `FROM pubrepo.guance.com/image-repo-for-testing/promtail:${VERSION}
 
 RUN    touch /var/log/1.log /var/log/2.log \
     && echo "123" >> /var/log/1.log \
@@ -589,7 +589,7 @@ scrape_configs:
       __path__: /var/log/*log
 */
 //nolint:lll
-const dockerFileV2 = `FROM pubrepo.jiagouyun.com/image-repo-for-testing/promtail:${VERSION}
+const dockerFileV2 = `FROM pubrepo.guance.com/image-repo-for-testing/promtail:${VERSION}
 
 RUN    touch /var/log/1.log /var/log/2.log \
     && echo "123" >> /var/log/1.log \

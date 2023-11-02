@@ -18,7 +18,7 @@ sudo docker run -d \
     -e ENV_UUID="<your-datakit-uuid>" \
     --privileged \
     --publish 9529:9529 \
-    pubrepo.jiagouyun.com/datakit/datakit:v1.1.6-rc1
+    pubrepo.guance.com/datakit/datakit:v1.1.6-rc1
 ```
 
 几点说明：

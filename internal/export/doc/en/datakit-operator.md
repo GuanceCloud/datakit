@@ -82,9 +82,9 @@ The default configuration is as follows:
         },
         "profiler": {
             "images": {
-                "java_profiler_image":   "pubrepo.jiagouyun.com/datakit-operator/async-profiler:0.1.0",
-                "python_profiler_image": "pubrepo.jiagouyun.com/datakit-operator/py-spy:0.1.0",
-                "golang_profiler_image": "pubrepo.jiagouyun.com/datakit-operator/go-pprof:0.1.0"
+                "java_profiler_image":   "pubrepo.guance.com/datakit-operator/async-profiler:0.1.0",
+                "python_profiler_image": "pubrepo.guance.com/datakit-operator/py-spy:0.1.0",
+                "golang_profiler_image": "pubrepo.guance.com/datakit-operator/go-pprof:0.1.0"
             },
             "envs": {
                 "DK_AGENT_HOST":  "datakit-service.datakit.svc",

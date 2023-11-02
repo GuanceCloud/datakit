@@ -76,7 +76,7 @@ spec:
               name: tmp
         
         - name: datakit-profiler
-          image: pubrepo.jiagouyun.com/dataflux/async-profiler:0.1.0
+          image: pubrepo.guance.com/dataflux/async-profiler:0.1.0
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - mountPath: /etc/localtime  # Synchronize Container Timezone with host

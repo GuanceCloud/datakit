@@ -105,7 +105,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		opts         []inputs.PointCheckOption
 	}{
 		{
-			name:         "pubrepo.jiagouyun.com/image-repo-for-testing/ddtrace:agent-java",
+			name:         "pubrepo.guance.com/image-repo-for-testing/ddtrace:agent-java",
 			conf:         `endpoints = ["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]`,
 			exposedPorts: []string{"8080/tcp"},
 			mPathCount: map[string]int{

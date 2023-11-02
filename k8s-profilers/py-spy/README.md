@@ -65,7 +65,7 @@ spec:
           imagePullPolicy: IfNotPresent
           
         - name: datakit-profiler
-          image: pubrepo.jiagouyun.com/dataflux/py-spy:0.1.0
+          image: pubrepo.guance.com/dataflux/py-spy:0.1.0
           imagePullPolicy: IfNotPresent
           workingDir: /app/datakit-profiler
           env:

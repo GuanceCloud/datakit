@@ -220,7 +220,7 @@ func buildCases(t *T.T) ([]*caseSpec, error) {
 	}{
 		{
 			name:    "remote",
-			repo:    "pubrepo.jiagouyun.com/image-repo-for-testing/flink/flinkprom",
+			repo:    "pubrepo.guance.com/image-repo-for-testing/flink/flinkprom",
 			repoTag: "1.12.0",
 			tty:     true,
 			conf: fmt.Sprintf(`
@@ -255,7 +255,7 @@ name = "flink_taskmanager"
 			},
 		}, {
 			name:    "remote",
-			repo:    "pubrepo.jiagouyun.com/image-repo-for-testing/flink/flinkprom",
+			repo:    "pubrepo.guance.com/image-repo-for-testing/flink/flinkprom",
 			repoTag: "1.17.0",
 			tty:     true,
 			conf: fmt.Sprintf(`

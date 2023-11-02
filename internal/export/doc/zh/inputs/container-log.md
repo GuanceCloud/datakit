@@ -269,7 +269,7 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
 
     - A：`hello/hello-http:latest`
     - B：`world/world-http:latest`
-    - C：`registry.jiagouyun.com/datakit/datakit:1.2.0`
+    - C：`pubrepo.guance.com/datakit/datakit:1.2.0`
 
     如果只希望采集 Pod A 的日志，那么配置 ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG 即可：
 
@@ -344,7 +344,7 @@ Datakit 需要挂载 `/mnt/container_logs` hostPath 才能使得正常采集，�
     spec:
       containers:
       - name: datakit
-        image: pubrepo.jiagouyun.com/datakit/datakit:1.16.0
+        image: pubrepo.guance.com/datakit/datakit:1.16.0
         volumeMounts:
         - mountPath: /mnt/container_logs
           name: container-logs

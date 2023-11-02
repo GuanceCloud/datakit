@@ -105,7 +105,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// snmp:v2
 		////////////////////////////////////////////////////////////////////////
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/snmp:inexio-snmpsim:v2",
+			name: "pubrepo.guance.com/image-repo-for-testing/snmp:inexio-snmpsim:v2",
 			conf: fmt.Sprintf(`specific_devices = ["%s"]
 	snmp_version = 2
 	v2_community_string = "recorded/cisco-catalyst-3750"
@@ -132,7 +132,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 		},
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/snmp:inexio-snmpsim:v2",
+			name: "pubrepo.guance.com/image-repo-for-testing/snmp:inexio-snmpsim:v2",
 			conf: fmt.Sprintf(`specific_devices = ["%s"]
 	snmp_version = 2
 	v2_community_string = "recorded/cisco-catalyst-3750"
@@ -161,7 +161,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// snmp:v3
 		////////////////////////////////////////////////////////////////////////
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/snmp:inexio-snmpsim:v3",
+			name: "pubrepo.guance.com/image-repo-for-testing/snmp:inexio-snmpsim:v3",
 			conf: fmt.Sprintf(`specific_devices = ["%s"]
 			snmp_version = 3
 			v3_user = "testing"
@@ -193,7 +193,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 		},
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/snmp:inexio-snmpsim:v3",
+			name: "pubrepo.guance.com/image-repo-for-testing/snmp:inexio-snmpsim:v3",
 			conf: fmt.Sprintf(`specific_devices = ["%s"]
 			snmp_version = 3
 			v3_user = "testing"

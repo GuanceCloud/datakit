@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	JiagouyunRepo     = "pubrepo.jiagouyun.com/image-repo-for-testing/"
+	JiagouyunRepo     = "pubrepo.guance.com/image-repo-for-testing/"
 	ZookeeperImage    = JiagouyunRepo + "wurstmeister/zookeeper"
 	ZookeeperVersion  = "latest"
 	zookeeperResource *dockertest.Resource

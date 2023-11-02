@@ -106,7 +106,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// jenkins:2.332.1
 		////////////////////////////////////////////////////////////////////////
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/jenkins:2.332.1-metrics",
+			name: "pubrepo.guance.com/image-repo-for-testing/jenkins:2.332.1-metrics",
 			conf: `enable_collect = true
 			url = ""
 			key = "6nCZ42W2cNnCO1oeM9Y41wEQ7GEyX1WTeK6aC1Q0vu43Kwqlebqcheek733Aq0sZ"
@@ -120,7 +120,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 		},
 		{
-			name: "pubrepo.jiagouyun.com/image-repo-for-testing/jenkins:2.332.1-metrics",
+			name: "pubrepo.guance.com/image-repo-for-testing/jenkins:2.332.1-metrics",
 			conf: `enable_collect = true
 			url = ""
 			key = "6nCZ42W2cNnCO1oeM9Y41wEQ7GEyX1WTeK6aC1Q0vu43Kwqlebqcheek733Aq0sZ"
