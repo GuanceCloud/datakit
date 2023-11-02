@@ -3,8 +3,11 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-// Package coracle contains collect Oracle code.
-package coracle
+//go:build linux
+// +build linux
+
+// Package coceanbase contains collect OceanBase code.
+package coceanbase
 
 import (
 	"bytes"
@@ -16,48 +19,18 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/jmoiron/sqlx"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/oracle/collect/ccommon"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/oceanbase/collect/ccommon"
 )
 
 const (
-	inputName = "oracle"
+	inputName = "oceanbase"
 
-	metricNameProcess    = "oracle_process"
-	metricNameTablespace = "oracle_tablespace"
-	metricNameSystem     = "oracle_system"
-	metricNameLogging    = "oracle_logging"
-
-	pdbName        = "pdb_name"
-	tablespaceName = "tablespace_name"
-	programName    = "program"
+	metricName = "oceanbase"
+	logName    = "oceanbase_log"
 )
 
 var (
-	l   = logger.DefaultSLogger(inputName)
-	dic = map[string]string{
-		"buffer_cache_hit_ratio":       "buffer_cachehit_ratio",
-		"cursor_cache_hit_ratio":       "cursor_cachehit_ratio",
-		"library_cache_hit_ratio":      "library_cachehit_ratio",
-		"shared_pool_free_%":           "shared_pool_free",
-		"physical_read_bytes_per_sec":  "physical_reads",
-		"physical_write_bytes_per_sec": "physical_writes",
-		"enqueue_timeouts_per_sec":     "enqueue_timeouts",
-
-		"gc_cr_block_received_per_second": "gc_cr_block_received",
-		"global_cache_blocks_corrupted":   "cache_blocks_corrupt",
-		"global_cache_blocks_lost":        "cache_blocks_lost",
-		"average_active_sessions":         "active_sessions",
-		"sql_service_response_time":       "service_response_time",
-		"user_rollbacks_per_sec":          "user_rollbacks",
-		"total_sorts_per_user_call":       "sorts_per_user_call",
-		"rows_per_sort":                   "rows_per_sort",
-		"disk_sort_per_sec":               "disk_sorts",
-		"memory_sorts_ratio":              "memory_sorts_ratio",
-		"database_wait_time_ratio":        "database_wait_time_ratio",
-		"session_limit_%":                 "session_limit_usage",
-		"session_count":                   "session_count",
-		"temp_space_used":                 "temp_space_used",
-	}
+	l = logger.DefaultSLogger(inputName)
 
 	_ ccommon.IInput = (*Input)(nil)
 )
@@ -73,6 +46,9 @@ type Input struct {
 	tags          map[string]string
 	election      bool
 	SlowQueryTime time.Duration
+	Tenant        string
+	Cluster       string
+	ConnectString string
 
 	db                    *sqlx.DB
 	intervalDuration      time.Duration
@@ -108,15 +84,18 @@ func NewInput(infoMsgs []string, opt *ccommon.Option) ccommon.IInput {
 	}
 
 	ipt := &Input{
-		interval:    opt.Interval,
-		user:        opt.Username,
-		password:    opt.Password,
-		desc:        opt.InstanceDesc,
-		host:        opt.Host,
-		port:        opt.Port,
-		serviceName: opt.ServiceName,
-		tags:        make(map[string]string),
-		election:    opt.Election,
+		interval:      opt.Interval,
+		user:          opt.Username,
+		password:      opt.Password,
+		desc:          opt.InstanceDesc,
+		host:          opt.Host,
+		port:          opt.Port,
+		serviceName:   opt.ServiceName,
+		tags:          make(map[string]string),
+		election:      opt.Election,
+		Tenant:        opt.Tenant,
+		Cluster:       opt.Cluster,
+		ConnectString: opt.ConnectString,
 	}
 
 	du, err := time.ParseDuration(opt.SlowQueryTime)
@@ -166,12 +145,9 @@ func NewInput(infoMsgs []string, opt *ccommon.Option) ccommon.IInput {
 		break
 	}
 
-	proMetric := newProcessMetrics(withInput(ipt), withMetricName(metricNameProcess))
-	tsMetric := newTablespaceMetrics(withInput(ipt), withMetricName(metricNameTablespace))
-	sysMetric := newSystemMetrics(withInput(ipt), withMetricName(metricNameSystem))
+	proMetric := newOBMetrics(withInput(ipt), withMetricName(metricName))
 
-	ipt.collectors = append(ipt.collectors, proMetric, tsMetric, sysMetric)
-	l.Infof("collectors len = %d", len(ipt.collectors))
+	ipt.collectors = append(ipt.collectors, proMetric)
 
 	ipt.datakitPostURL = ccommon.GetPostURL(
 		opt.Election,
@@ -181,7 +157,7 @@ func NewInput(infoMsgs []string, opt *ccommon.Option) ccommon.IInput {
 	l.Infof("Datakit post metric URL: %s", ipt.datakitPostURL)
 
 	if ipt.SlowQueryTime > 0 {
-		slowQueryLoggingR := newSlowQueryLogging(withInput(ipt), withMetricName(metricNameLogging))
+		slowQueryLoggingR := newSlowQueryLogging(withInput(ipt), withMetricName(logName))
 		ipt.collectorsLogging = append(ipt.collectorsLogging, slowQueryLoggingR)
 
 		ipt.datakitPostLoggingURL = ccommon.GetPostURL(
@@ -191,18 +167,36 @@ func NewInput(infoMsgs []string, opt *ccommon.Option) ccommon.IInput {
 		)
 	}
 
+	l.Infof("collectors len = %d", len(ipt.collectors))
+
 	return ipt
 }
 
-// ConnectDB establishes a connection to an Oracle instance and returns an open connection to the database.
+// ConnectDB establishes a connection to an Database instance and returns an open connection to the database.
 func (ipt *Input) ConnectDB() error {
-	db, err := sqlx.Open("godror",
-		fmt.Sprintf("%s/%s@%s:%s/%s",
-			ipt.user, ipt.password, ipt.host, ipt.port, ipt.serviceName))
-	if err == nil {
-		ipt.db = db
+	// dataSourceName := fmt.Sprintf("%s/%s@%s:%s/%s",
+	// 	ipt.user, ipt.password, ipt.host, ipt.port, ipt.serviceName)
+	// fmt.Println(dataSourceName)
+
+	// sqlconn := "datakit@oraclet#obcluster/123456@10.200.14.240:2883"
+
+	sqlconn := ipt.ConnectString
+	if len(sqlconn) == 0 {
+		sqlconn = fmt.Sprintf("%s@%s#%s/%s@%s:%s", ipt.user, ipt.Tenant, ipt.Cluster,
+			ipt.password, ipt.host, ipt.port)
+	}
+
+	db, err := sqlx.Open("oci8", sqlconn)
+	if err != nil {
+		l.Errorf("sqlx.Open failed: %v\n", err)
 		return err
 	}
+	if err := db.Ping(); err != nil {
+		l.Errorf("Ping failed: %v\n", err)
+		return err
+	}
+
+	ipt.db = db
 	return nil
 }
 
@@ -257,6 +251,63 @@ func collectAndReport(collectors *[]ccommon.DBMetricsCollector, reportURL string
 
 ////////////////////////////////////////////////////////////////////////////////
 
+func selectMapWrapper(ipt *Input, sqlText string) ([]map[string]interface{}, error) {
+	now := time.Now()
+	mRet, err := selectMap(ipt, sqlText)
+	l.Debugf("executed sql: %s, cost: %v, err: %v\n", sqlText, time.Since(now), err)
+	return mRet, err
+}
+
+func selectMap(ipt *Input, sqlText string) ([]map[string]interface{}, error) {
+	rows, err := ipt.db.Query(sqlText)
+	if err != nil {
+		l.Errorf("db.Query() failed: %v", err)
+		return nil, err
+	}
+	defer rows.Close() //nolint:errcheck
+
+	cols, err := rows.Columns()
+	if err != nil {
+		l.Errorf("rows.Columns() failed: %v", err)
+		return nil, err
+	}
+
+	mRet := make([]map[string]interface{}, 0)
+
+	for rows.Next() {
+		// Create a slice of interface{}'s to represent each column,
+		// and a second slice to contain pointers to each item in the columns slice.
+		columns := make([]interface{}, len(cols))
+		columnPointers := make([]interface{}, len(cols))
+		for i := range columns {
+			columnPointers[i] = &columns[i]
+		}
+
+		// Scan the result into the column pointers...
+		if err := rows.Scan(columnPointers...); err != nil {
+			return nil, err
+		}
+
+		// Create our map, and retrieve the value for each column from the pointers slice,
+		// storing it in the map with the name of the column as the key.
+		m := make(map[string]interface{})
+		for i, colName := range cols {
+			val := columnPointers[i].(*interface{})
+			m[colName] = *val
+		}
+
+		// Outputs: map[columnName:value columnName2:value2 columnName3:value3 ...]
+		mRet = append(mRet, m)
+	}
+
+	if err := rows.Err(); err != nil {
+		l.Errorf("rows.Err() failed: %v", err)
+		return nil, err
+	}
+
+	return mRet, nil
+}
+
 func selectWrapper[T any](ipt *Input, s T, sql string) error {
 	now := time.Now()
 
@@ -268,7 +319,7 @@ func selectWrapper[T any](ipt *Input, s T, sql string) error {
 		}
 	}
 
-	l.Debugf("executed sql: %s, cost: %v\n", sql, time.Since(now))
+	l.Debugf("executed sql: %s, cost: %v, err: %v\n", sql, time.Since(now), err)
 	return err
 }
 

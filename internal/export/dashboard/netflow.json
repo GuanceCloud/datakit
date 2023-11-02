@@ -62,7 +62,7 @@
           "h": 10,
           "w": 20,
           "x": 0,
-          "y": 28
+          "y": 0
         },
         "queries": [
           {
@@ -165,7 +165,7 @@
           "h": 16,
           "w": 20,
           "x": 0,
-          "y": 38
+          "y": 10
         },
         "queries": [
           {
@@ -233,7 +233,7 @@
           "h": 30,
           "w": 8,
           "x": 16,
-          "y": 86
+          "y": 0
         },
         "queries": [
           {
@@ -303,7 +303,7 @@
           "h": 26,
           "w": 4,
           "x": 20,
-          "y": 28
+          "y": 0
         },
         "queries": [
           {
@@ -390,7 +390,7 @@
           "h": 20,
           "w": 24,
           "x": 0,
-          "y": 118.5
+          "y": 0
         },
         "queries": [
           {
@@ -485,7 +485,7 @@
           "h": 27,
           "w": 10,
           "x": 14,
-          "y": 56.5
+          "y": 0
         },
         "queries": [
           {
@@ -567,7 +567,7 @@
           "h": 27,
           "w": 7,
           "x": 0,
-          "y": 56.5
+          "y": 0
         },
         "queries": [
           {
@@ -648,7 +648,7 @@
           "h": 27,
           "w": 7,
           "x": 7,
-          "y": 56.5
+          "y": 0
         },
         "queries": [
           {
@@ -729,7 +729,7 @@
           "h": 30,
           "w": 8,
           "x": 0,
-          "y": 86
+          "y": 0
         },
         "queries": [
           {
@@ -811,7 +811,7 @@
           "h": 30,
           "w": 8,
           "x": 8,
-          "y": 86
+          "y": 0
         },
         "queries": [
           {
@@ -891,10 +891,10 @@
         },
         "name": "{{.Dashboard.alarm}}",
         "pos": {
-          "h": 23,
-          "w": 24,
-          "x": 0,
-          "y": 2.5
+          "h": 18,
+          "w": 20,
+          "x": 4,
+          "y": 0
         },
         "queries": [
           {
@@ -938,6 +938,44 @@
           }
         ],
         "type": "alarm"
+      },
+      {
+        "extend": {
+          "isRefresh": false,
+          "links": [],
+          "settings": {
+            "alias": [],
+            "backgroundStyle": {
+              "background-position": "center"
+            },
+            "changeWorkspace": false,
+            "colors": [],
+            "fixedTime": "",
+            "globalUnit": [],
+            "isTimeInterval": false,
+            "levels": [],
+            "showFieldMapping": false,
+            "showTitle": false,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "type": "center",
+            "unitType": "global",
+            "units": [],
+            "url": "https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/public/images/netflow.png"
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.category_overview}}"
+        },
+        "name": "brand",
+        "pos": {
+          "h": 18,
+          "w": 4,
+          "x": 0,
+          "y": 0
+        },
+        "queries": [],
+        "type": "picture"
       }
     ],
     "groups": [
@@ -952,7 +990,6 @@
   },
   "summary": "",
   "tagInfo": [],
-  "tags": [],
   "thumbnail": "",
-  "title": "netflow"
+  "title": "NetFlow 监控视图"
 }

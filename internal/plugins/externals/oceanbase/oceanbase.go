@@ -11,10 +11,9 @@ package main
 import (
 	"fmt"
 
-	_ "github.com/godror/godror"
 	"github.com/jessevdk/go-flags"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/oracle/collect"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/oracle/collect/ccommon"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/oceanbase/collect"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/oceanbase/collect/ccommon"
 )
 
 var opt ccommon.Option
