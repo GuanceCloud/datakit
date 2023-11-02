@@ -144,6 +144,7 @@ func (ipt *Input) collect() error {
 			kvs = kvs.Add("inodes_total", wrapUint64(du.InodesTotal), false, true)  // Deprecated
 			kvs = kvs.Add("inodes_free", wrapUint64(du.InodesFree), false, true)    // Deprecated
 			kvs = kvs.Add("inodes_used", wrapUint64(du.InodesUsed), false, true)    // Deprecated
+			kvs = kvs.Add("mount_point", partitions[index].Mountpoint, true, true)
 		}
 
 		for k, v := range ipt.mergedTags {

@@ -19,7 +19,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/shirou/gopsutil/disk"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 )
@@ -153,4 +155,50 @@ func isreg(filename string, regslice []string) bool {
 		}
 	}
 	return flag
+}
+
+func getFileSystemInfo(path string, fileSize int, usedInode int, kvs *point.KVs) error {
+	usage, err := disk.Usage(path)
+	if err != nil {
+		return fmt.Errorf("error get disk usages: %w", err)
+	}
+
+	var usedPercent float64
+	if usage.Used+usage.Free > 0 {
+		usedPercent = float64(fileSize) /
+			(float64(usage.Used) + float64(usage.Free)) * 100
+	}
+	*kvs = kvs.Add("total", usage.Total, false, true)
+	*kvs = kvs.Add("free", usage.Free, false, true)
+	*kvs = kvs.Add("used_percent", usedPercent, false, true)
+
+	if runtime.GOOS != datakit.OSWindows {
+		var inodesUsedPercent float64
+		if usage.Used+usage.Free > 0 {
+			inodesUsedPercent = float64(usedInode) /
+				(float64(usage.InodesTotal)) * 100
+		}
+
+		*kvs = kvs.Add("inodes_total", usage.InodesTotal, false, true)
+		*kvs = kvs.Add("inodes_free", usage.InodesFree, false, true)
+		*kvs = kvs.Add("inodes_used", usedInode, false, true)
+		*kvs = kvs.Add("inodes_used_percent", inodesUsedPercent, false, true) // float64
+
+		partitions, err := disk.Partitions(true)
+		if err != nil {
+			return fmt.Errorf("error get disk partitions: %w", err)
+		}
+
+		mountpoint := ""
+		for _, partition := range partitions {
+			if strings.HasPrefix(path, partition.Mountpoint) && len(partition.Mountpoint) > len(mountpoint) {
+				mountpoint = partition.Mountpoint
+			}
+		}
+		if mountpoint != "" {
+			*kvs = kvs.Add("mount_point", mountpoint, true, true)
+		}
+	}
+
+	return nil
 }

@@ -11,10 +11,10 @@ import (
 	"runtime"
 	"strings"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-
 	//nolint
 	"github.com/shirou/gopsutil/disk"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 type PSDiskStats interface {
