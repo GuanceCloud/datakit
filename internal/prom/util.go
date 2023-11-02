@@ -476,3 +476,11 @@ func getTimestampS(m *dto.Metric, startTime time.Time) time.Time {
 	}
 	return startTime
 }
+
+func (p *Prom) getMode() string {
+	if p.opt.streamSize > 0 {
+		return "stream"
+	} else {
+		return "no_stream"
+	}
+}

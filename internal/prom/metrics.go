@@ -26,6 +26,7 @@ func metricsSetup() {
 		},
 		[]string{
 			"source",
+			"mode",
 		},
 	)
 
@@ -37,6 +38,7 @@ func metricsSetup() {
 			Help:      "HTTP get bytes",
 		}, []string{
 			"source",
+			"mode",
 		},
 	)
 
@@ -48,6 +50,7 @@ func metricsSetup() {
 			Help:      "HTTP latency(in second)",
 		}, []string{
 			"source",
+			"mode",
 		},
 	)
 
