@@ -245,8 +245,7 @@ spec:
 | `ENV_DATAWAY_MAX_RETRY_COUNT`   | int      | 4       | No     | 指定当把数据发送到观测云中心时，最多可以发送的次数，最小值为 1（失败后不重试），最大值为 10([:octicons-tag-24: Version-1.17.0](changelog.md#cl-1.17.0)) |
 | `ENV_DATAWAY_RETRY_DELAY`       | duration | "200ms" | No     | 数据发送失败时，两次重试之间的时间间隔（[:octicons-tag-24: Version-1.17.0](changelog.md#cl-1.17.0)）                                                    |
 | `ENV_DATAWAY_MAX_RAW_BODY_SIZE` | int      | 10MB    | No     | 数据上传时单包（未压缩）大小                                                                                                                            |
-
-<!-- | `ENV_DATAWAY_CONTENT_ENCODING`  | string   | `v1`    | 否     | 设置上传时的 point 数据编码（可选列表：`v1` 即行协议，`v2` 即 Protobuf）                                                                           | -->
+| `ENV_DATAWAY_CONTENT_ENCODING`  | string   | `v1`    | 否     | 设置上传时的 point 数据编码（可选列表：`v1` 即行协议，`v2` 即 Protobuf）                                                                                |
 
 ### 日志配置相关环境变量 {#env-log}
 
