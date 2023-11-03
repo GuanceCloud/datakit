@@ -104,6 +104,62 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		opts         []inputs.PointCheckOption
 	}{
 		////////////////////////////////////////////////////////////////////////
+		// rabbitmq:3.6.12
+		////////////////////////////////////////////////////////////////////////
+		{
+			name: "rabbitmq:3.6.12-management-alpine",
+			conf: `url = ""
+			username = "guest"
+			password = "guest"
+			interval = "1s"
+			insecure_skip_verify = false
+			election = true`, // set conf URL later.
+			exposedPorts: []string{"15672/tcp"},
+			opts: []inputs.PointCheckOption{
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+		},
+		{
+			name: "rabbitmq:3.6.12-management-alpine",
+			conf: `url = ""
+			username = "guest"
+			password = "guest"
+			interval = "1s"
+			insecure_skip_verify = false
+			election = false`, // set conf URL later.
+			exposedPorts: []string{"15672/tcp"},
+		},
+		////////////////////////////////////////////////////////////////////////
+		// rabbitmq:3.7.15
+		////////////////////////////////////////////////////////////////////////
+		{
+			name: "rabbitmq:3.7.15-management-alpine",
+			conf: `url = ""
+			username = "guest"
+			password = "guest"
+			interval = "1s"
+			insecure_skip_verify = false
+			election = true`, // set conf URL later.
+			exposedPorts: []string{"15672/tcp"},
+			opts: []inputs.PointCheckOption{
+				inputs.WithExtraTags(map[string]string{
+					"election": "1",
+				}),
+			},
+		},
+		{
+			name: "rabbitmq:3.7.15-management-alpine",
+			conf: `url = ""
+			username = "guest"
+			password = "guest"
+			interval = "1s"
+			insecure_skip_verify = false
+			election = false`, // set conf URL later.
+			exposedPorts: []string{"15672/tcp"},
+		},
+		////////////////////////////////////////////////////////////////////////
 		// rabbitmq:3.8
 		////////////////////////////////////////////////////////////////////////
 		{
@@ -496,9 +552,13 @@ func (cs *caseSpec) run() error {
 	}
 
 	cs.cr.AddField("point_latency", int64(time.Since(start)))
-	cs.cr.AddField("point_count", len(pts))
+	// cs.cr.AddField("point_count", len(pts))
 
-	cs.t.Logf("get %d points", len(pts))
+	for _, v := range pts {
+		cs.t.Logf("pt = %s", v.LineProto())
+	}
+
+	// cs.t.Logf("get %d points", len(pts))
 	cs.mCount = make(map[string]struct{})
 	if err := cs.checkPoint(pts); err != nil {
 		return err
