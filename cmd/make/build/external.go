@@ -41,11 +41,6 @@ var externals = []*dkexternal{
 			"linux/amd64": true,
 			"linux/arm64": true,
 		},
-
-		buildArgs: nil,
-		envs: []string{
-			"CGO_ENABLED=1",
-		},
 	},
 	{
 		name: "oceanbase",
@@ -56,9 +51,6 @@ var externals = []*dkexternal{
 			"linux/amd64": true,
 			"linux/arm64": true,
 		},
-
-		buildArgs: nil,
-		envs:      []string{},
 	},
 	{
 		// requirement: apt-get install gcc-multilib
@@ -68,11 +60,6 @@ var externals = []*dkexternal{
 		entry: "db2.go",
 		osarchs: map[string]bool{
 			"linux/amd64": true,
-		},
-
-		buildArgs: nil,
-		envs: []string{
-			"CGO_ENABLED=1",
 		},
 	},
 	{
@@ -162,43 +149,26 @@ func buildExternals(dir, goos, goarch string, standalone bool) error {
 		}
 
 		switch ex.name {
-		case "db2":
-			// "CGO_CFLAGS=-I/opt/ibm/clidriver/include",
-			// "CGO_LDFLAGS=-L/opt/ibm/clidriver/lib",
-			// "LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/ibm/clidriver/lib",
-
-			envs = append(envs, "CGO_CFLAGS=-I"+os.Getenv("IBM_CLI_DRIVER")+"/include") //nolint:makezero
-			envs = append(envs, "CGO_LDFLAGS=-L"+os.Getenv("IBM_CLI_DRIVER")+"/lib")    //nolint:makezero
-
-			ldLibraryFullPath := os.Getenv("IBM_CLI_DRIVER") + "/lib"
-			ldLibraryPath := os.Getenv("LD_LIBRARY_PATH")
-			if len(ldLibraryPath) > 0 {
-				ldLibraryFullPath = ldLibraryPath + ":" + ldLibraryFullPath
+		case "oceanbase", "db2", "oracle":
+			if env := os.Getenv("ENABLE_DOCKER_BUILD_INPUTS"); len(env) == 0 {
+				l.Warnf("WARNING: skip build %s because env not specified!", ex.name)
+				continue
 			}
 
-			envs = append(envs, "LD_LIBRARY_PATH="+ldLibraryFullPath) //nolint:makezero
-
-			tags = "db2"
-
-		case "oceanbase":
 			str, err := exec.LookPath("docker")
 			if err != nil {
 				l.Warnf("WARNING: skip build %s because docker is NOT exist!", ex.name)
 				continue
 			}
+
 			l.Infof("Found docker in %s", str)
 		}
 
 		if goarch != runtime.GOARCH {
-			switch ex.name {
+			switch ex.name { //nolint:gocritic
 			case "ebpf":
 				l.Warnf("skip, " + ex.name + " does not support cross compilation")
 				continue
-			case "oracle":
-				l.Infof("building " + ex.name + " by cross compilation...")
-
-				envs = append(envs, "CC="+os.Getenv("CROSS_GCC"))  //nolint:makezero
-				envs = append(envs, "CXX="+os.Getenv("CROSS_GPP")) //nolint:makezero
 			}
 		}
 
@@ -246,7 +216,8 @@ func buildExternals(dir, goos, goarch string, standalone bool) error {
 
 			envs = append(envs, "GOOS="+goos, "GOARCH="+goarch) //nolint:makezero
 
-			if ex.name == "oceanbase" {
+			switch ex.name {
+			case "oceanbase", "db2", "oracle":
 				// x86
 				// docker run --rm \
 				//   --name $DOCKER_IMAGE_NAME \
@@ -298,7 +269,7 @@ func buildExternals(dir, goos, goarch string, standalone bool) error {
 					"-e", "BUILD_SOURCE=" + entryPath,
 					"-e", "BUILD_DEST=" + distOut,
 					"-v", projectPrefix + ":" + "/tmp/gopath/src",
-					"pubrepo.jiagouyun.com/image-repo-for-testing/builder-plus:1.0",
+					"pubrepo.jiagouyun.com/image-repo-for-testing/builder-plus:1.1",
 				}
 				envs := []string{}
 				msg, err := runEnv(args, envs)
@@ -306,7 +277,8 @@ func buildExternals(dir, goos, goarch string, standalone bool) error {
 					return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s",
 						args, envs, err, string(msg))
 				}
-			} else {
+
+			default:
 				msg, err := runEnv(args, envs)
 				if err != nil {
 					return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s",
@@ -333,7 +305,7 @@ func buildExternals(dir, goos, goarch string, standalone bool) error {
 		default: // for python, just copy source code into build dir
 			buildArgs = append(buildArgs, filepath.Join(outdir, "externals")) //nolint:makezero
 			cmd := exec.Command(ex.buildCmd, buildArgs...)                    //nolint:gosec
-			if envs != nil {
+			if len(envs) > 0 {
 				cmd.Env = append(os.Environ(), envs...)
 			}
 

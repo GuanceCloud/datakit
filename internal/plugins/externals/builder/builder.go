@@ -21,16 +21,23 @@ func main() {
 	}
 
 	logOutput("=========================================")
-	logOutput("Start building project %s", buildInfo)
+	logOutput("Checking project %s", buildInfo)
 	logOutput("=========================================")
 
 	projects := []IProject{
 		&BuildOceanBaseX86{},
 		&BuildOceanBaseARM{},
+		&BuildDb2AMD64{},
+		&BuildOracleAMD64{},
+		&BuildOracleARM64{},
 	}
 
 	for _, project := range projects {
 		if project.Info() == buildInfo {
+			logOutput("=========================================")
+			logOutput("Start building project %s", buildInfo)
+			logOutput("=========================================")
+
 			if err := project.Before(); err != nil {
 				logOutput("Before() failed: %v", err)
 				return
@@ -59,6 +66,8 @@ const (
 	goOci8Path        = "/tmp/src/go-oci8"
 	projectPathPrefix = "/tmp/gopath/src/"
 	projectPath       = "gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	defaultCgoCflags  = "-g -O2"
+	defaultCgoLdflags = "-g -O2"
 )
 
 var (
@@ -81,6 +90,8 @@ func setup() error {
 	getBuildInfo()
 
 	logOutput("origin LD_LIBRARY_PATH = %s", ldPathOrigin)
+
+	setEnv("CGO_ENABLED", "1")
 
 	return nil
 }
@@ -200,6 +211,134 @@ func (bd *BuildOceanBaseARM) After() error {
 	return nil
 }
 
+func setOceanBaseEnvs(arch string) {
+	setEnv("PKG_CONFIG_PATH", goOci8Path)
+	setEnv("NLS_LANG", "AMERICAN_AMERICA.UTF8")
+
+	newLDPath := "/u01/obclient/lib"
+	if len(ldPathOrigin) > 0 {
+		newLDPath += ":"
+	}
+	newLDPath += ldPathOrigin
+
+	setEnv("LD_LIBRARY_PATH", newLDPath)
+	logOutput("LD_LIBRARY_PATH = %s", newLDPath)
+
+	if arch == "arm64" {
+		setEnv("CGO_LDFLAGS", defaultCgoLdflags+" -L/u01/obclient/lib -lobclnt")
+	}
+}
+
+func delOceanBaseEnvs(arch string) {
+	unSetEnv("PKG_CONFIG_PATH")
+	unSetEnv("NLS_LANG")
+	setEnv("LD_LIBRARY_PATH", ldPathOrigin)
+
+	if arch == "arm64" {
+		setEnv("CGO_LDFLAGS", defaultCgoLdflags)
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+var _ IProject = (*BuildDb2AMD64)(nil)
+
+//nolint:stylecheck
+type BuildDb2AMD64 struct{}
+
+func (bd *BuildDb2AMD64) Info() string {
+	return "db2/amd64"
+}
+
+func (bd *BuildDb2AMD64) Before() error {
+	setArchEnvs(mEnvs["BUILD_ARCH"])
+	setDb2Envs(mEnvs["BUILD_ARCH"])
+
+	return nil
+}
+
+func (bd *BuildDb2AMD64) Do() error {
+	return runBuild("db2")
+}
+
+func (bd *BuildDb2AMD64) After() error {
+	delDb2Envs(mEnvs["BUILD_ARCH"])
+	delArchEnvs()
+
+	return nil
+}
+
+//nolint:stylecheck
+func setDb2Envs(arch string) {
+	newLDPath := "/opt/ibm/clidriver/lib"
+	if len(ldPathOrigin) > 0 {
+		newLDPath += ":"
+	}
+	newLDPath += ldPathOrigin
+
+	setEnv("LD_LIBRARY_PATH", newLDPath)
+	logOutput("LD_LIBRARY_PATH = %s", newLDPath)
+
+	setEnv("CGO_CFLAGS", defaultCgoCflags+" -I/opt/ibm/clidriver/include")
+	setEnv("CGO_LDFLAGS", defaultCgoLdflags+" -L/opt/ibm/clidriver/lib")
+}
+
+//nolint:stylecheck
+func delDb2Envs(arch string) {
+	setEnv("LD_LIBRARY_PATH", ldPathOrigin)
+
+	setEnv("CGO_CFLAGS", defaultCgoCflags)
+	setEnv("CGO_LDFLAGS", defaultCgoLdflags)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+var _ IProject = (*BuildOracleAMD64)(nil)
+
+type BuildOracleAMD64 struct{}
+
+func (bd *BuildOracleAMD64) Info() string {
+	return "oracle/amd64"
+}
+
+func (bd *BuildOracleAMD64) Before() error {
+	setArchEnvs(mEnvs["BUILD_ARCH"])
+	return nil
+}
+
+func (bd *BuildOracleAMD64) Do() error {
+	return runBuild("")
+}
+
+func (bd *BuildOracleAMD64) After() error {
+	delArchEnvs()
+	return nil
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+var _ IProject = (*BuildOracleARM64)(nil)
+
+type BuildOracleARM64 struct{}
+
+func (bd *BuildOracleARM64) Info() string {
+	return "oracle/arm64"
+}
+
+func (bd *BuildOracleARM64) Before() error {
+	setArchEnvs(mEnvs["BUILD_ARCH"])
+	return nil
+}
+
+func (bd *BuildOracleARM64) Do() error {
+	return runBuild("")
+}
+
+func (bd *BuildOracleARM64) After() error {
+	delArchEnvs()
+	return nil
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 func logOutput(format string, v ...any) {
@@ -227,15 +366,6 @@ func runGoOci8Install() error {
 }
 
 func runCopyOceanBaseLibs(arch string) error {
-	// unalias cp
-	// {
-	// 	args := []string{
-	// 		"unalias",
-	// 		"cp",
-	// 	}
-	// 	_ = runEnv(args, os.Environ())
-	// }
-
 	// cp -rf /tmp/oceanbase_go/x86/u01/* /u01
 	{
 		var newArch string
@@ -299,35 +429,6 @@ func runBuild(tags string) error {
 	}
 
 	return nil
-}
-
-func setOceanBaseEnvs(arch string) {
-	setEnv("CGO_ENABLED", "1")
-	setEnv("PKG_CONFIG_PATH", goOci8Path)
-	setEnv("NLS_LANG", "AMERICAN_AMERICA.UTF8")
-
-	newLDPath := "/u01/obclient/lib"
-	if len(ldPathOrigin) > 0 {
-		newLDPath += ":"
-	}
-	newLDPath += ldPathOrigin
-
-	logOutput("LD_LIBRARY_PATH = %s", newLDPath)
-	setEnv("LD_LIBRARY_PATH", newLDPath)
-
-	if arch == "arm64" {
-		setEnv("CGO_LDFLAGS", "-g -O2 -L/u01/obclient/lib -lobclnt")
-	}
-}
-
-func delOceanBaseEnvs(arch string) {
-	unSetEnv("PKG_CONFIG_PATH")
-	unSetEnv("NLS_LANG")
-	setEnv("LD_LIBRARY_PATH", ldPathOrigin)
-
-	if arch == "arm64" {
-		setEnv("CGO_LDFLAGS", "-g -O2")
-	}
 }
 
 func setArchEnvs(arch string) {
