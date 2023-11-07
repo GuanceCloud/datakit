@@ -33,7 +33,6 @@ CGO_FLAGS          = "-Wno-undef-prefix -Wno-deprecated-declarations" # to disab
 HL                 = \033[0;32m # high light
 NC                 = \033[0m    # no color
 RED                = \033[31m   # red
-IBM_CLI_DRIVER     = /opt/ibm/clidriver
 
 SUPPORTED_GOLINT_VERSION         = 1.46.2
 SUPPORTED_GOLINT_VERSION_ANOTHER = v1.46.2

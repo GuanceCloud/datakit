@@ -142,9 +142,9 @@ func (ipt *Input) start() error {
 	return nil
 }
 
-// needElectionFlag decides if an external input start-up needs flag 'election = T/F'.
-func needElectionFlag(name string) bool {
-	list := []string{"oracle", "db2"}
+// NeedElectionFlag decides if an external input start-up needs flag 'election = T/F'.
+func NeedElectionFlag(name string) bool {
+	list := []string{"oracle", "db2", "oceanbase"}
 	for _, v := range list {
 		if name == v {
 			return true
@@ -171,7 +171,7 @@ func (ipt *Input) Run() {
 		ipt.Args = append(ipt.Args, []string{"--tags", tagsStr}...)
 	}
 
-	if needElectionFlag(ipt.Name) && config.Cfg.Election.Enable && ipt.Election {
+	if NeedElectionFlag(ipt.Name) && config.Cfg.Election.Enable && ipt.Election {
 		ipt.Args = append(ipt.Args, "--election")
 	}
 
