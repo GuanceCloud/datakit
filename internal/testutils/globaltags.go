@@ -5,6 +5,8 @@
 
 package testutils
 
+import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+
 type taggerMock struct {
 	hostTags, electionTags map[string]string
 }
@@ -39,4 +41,33 @@ func (m *taggerMock) HostTags() map[string]string {
 
 func (m *taggerMock) ElectionTags() map[string]string {
 	return m.electionTags
+}
+
+// DefaultMockTagger How to use?
+//
+//	return &Input{
+//		tagger:          testutils.DefaultMockTagger(),
+//	}
+//
+//	func (ipt *Input) setup() {
+//		if ipt.Election {
+//	        // got: map[string]string{"election": "TRUE"}
+//			ipt.mergedTags = inputs.MergeTags(ipt.tagger.ElectionTags(), ipt.Tags, "")
+//		} else {
+//	        // got: map[string]string{"host": "HOST"}
+//			ipt.mergedTags = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")
+//		}
+//	}
+func DefaultMockTagger() datakit.GlobalTagger {
+	return &mockTaggerImpl{}
+}
+
+type mockTaggerImpl struct{}
+
+func (g *mockTaggerImpl) HostTags() map[string]string {
+	return map[string]string{"host": "HOST"}
+}
+
+func (g *mockTaggerImpl) ElectionTags() map[string]string {
+	return map[string]string{"election": "TRUE"}
 }
