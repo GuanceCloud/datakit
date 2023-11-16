@@ -23,6 +23,29 @@ var jobOpt *JobOptions
 type JobOptions struct {
 	CPUMax float64 `toml:"cpu_max"`
 	MemMax int64   `toml:"mem_max_mb"`
+
+	cpuErr error
+	memErr error
+}
+
+func (opt *JobOptions) String() string {
+	if opt == nil {
+		return "not ready"
+	}
+
+	info := ""
+	if opt.cpuErr != nil {
+		info += fmt.Sprintf("cpu limit error: %s", opt.cpuErr.Error())
+	} else {
+		info += fmt.Sprintf("cpu limit: %.2f", opt.CPUMax)
+	}
+	if opt.memErr != nil {
+		info += fmt.Sprintf("; mem limit error: %s", opt.memErr.Error())
+	} else {
+		info += fmt.Sprintf("; mem limit: %dMB", opt.MemMax)
+	}
+
+	return info
 }
 
 func Run(opt *JobOptions) error {
@@ -60,7 +83,7 @@ func Run(opt *JobOptions) error {
 		cpuInfo.ControlFlags |= JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP
 
 		if err := SetInformationJobObject_CPURateControlInformation(handle, cpuInfo); err != nil {
-			return fmt.Errorf("set cpu limit error: %w", err)
+			jobOpt.cpuErr = fmt.Errorf("set cpu limit error: %w", err)
 		}
 	}
 
@@ -70,8 +93,12 @@ func Run(opt *JobOptions) error {
 		memInfo.BasicLimitInformation.LimitFlags |= JOB_OBJECT_LIMIT_PROCESS_MEMORY
 
 		if err := SetInformationJobObject_ExtendedLimitInformation(handle, memInfo); err != nil {
-			return fmt.Errorf("set mem limit error: %w", err)
+			jobOpt.memErr = fmt.Errorf("set mem limit error: %w", err)
 		}
+	}
+
+	if jobOpt.cpuErr != nil && jobOpt.memErr != nil {
+		return fmt.Errorf("set cpu/mem limit error: %w, %w", jobOpt.cpuErr, jobOpt.memErr)
 	}
 
 	processHandle, err := OpenProcess(
@@ -94,10 +121,5 @@ func Run(opt *JobOptions) error {
 }
 
 func Info() string {
-	if jobOpt == nil {
-		return "not ready"
-	}
-
-	return fmt.Sprintf("mem: %dMB, cpu: %.2f",
-		jobOpt.MemMax, jobOpt.CPUMax)
+	return jobOpt.String()
 }

@@ -63,8 +63,11 @@ func Run(c *ResourceLimitOptions) {
 
 	g.Go(func(ctx context.Context) error {
 		if err := run(c); err != nil {
-			l.Warnf("run resource limit error: %s", err.Error)
+			l.Errorf("run resource limit error: %s", err.Error())
+		} else {
+			l.Infof("resource limit: %s", Info())
 		}
+
 		return nil
 	})
 }
