@@ -421,7 +421,7 @@ func (c *Config) ApplyMainConfig() error {
 	c.setupGlobalTags()
 
 	if c.Dataway != nil && len(c.Dataway.URLs) > 0 {
-		if err := c.SetupDataway(); err != nil {
+		if err := c.setupDataway(); err != nil {
 			return err
 		}
 	} else {
@@ -434,10 +434,6 @@ func (c *Config) ApplyMainConfig() error {
 	if c.IO != nil {
 		if c.IO.MaxCacheCount < 1000 {
 			l.Warnf("io max cache count < 1000, got %d", c.IO.MaxCacheCount)
-		}
-
-		if c.IO.OutputFile == "" && c.OutputFileDeprecated != "" {
-			c.IO.OutputFile = c.OutputFileDeprecated
 		}
 	}
 

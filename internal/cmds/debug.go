@@ -19,8 +19,9 @@ func runDebugFlags() error {
 		if err := debugFilter([]byte(*flagDebugFilter),
 			[]byte(*flagDebugData)); err != nil {
 			cp.Errorf("[E] %s\n", err.Error())
+			return err
 		}
-		os.Exit(0)
+		return nil
 
 	case *flagDebugInputConf != "":
 
@@ -34,47 +35,49 @@ func runDebugFlags() error {
 
 		if err := debugInput(*flagDebugInputConf); err != nil {
 			cp.Errorf("[E] %s\n", err.Error())
+			return err
 		}
 
-		os.Exit(0)
+		return nil
 
 	case *flagDebugBugReport:
 		tryLoadMainCfg()
 		if err := bugReport(); err != nil {
 			cp.Errorf("[E] export DataKit info failed: %s\n", err.Error())
+			return err
 		}
-		os.Exit(0)
+		return nil
 
 	case *flagDebugGlobConf != "":
 		if err := globPath(*flagDebugGlobConf); err != nil {
 			cp.Errorf("[E] %s\n", err)
-			os.Exit(-1)
+			return err
 		}
-		os.Exit(0)
+		return nil
 
 	case *flagDebugRegexConf != "":
 		if err := regexMatching(*flagDebugRegexConf); err != nil {
 			cp.Errorf("[E] %s\n", err)
-			os.Exit(-1)
+			return err
 		}
-		os.Exit(0)
+		return nil
 
 	case *flagDebugPromConf != "":
 		if err := promDebugger(*flagDebugPromConf); err != nil {
 			cp.Errorf("[E] %s\n", err)
-			os.Exit(-1)
+			return err
 		}
-		os.Exit(0)
+		return nil
 
 	case *flagDebugLoadLog:
 		tryLoadMainCfg()
 		cp.Infof("Upload log start...\n")
 		if err := uploadLog(config.Cfg.Dataway.URLs); err != nil {
 			cp.Errorf("[E] upload log failed : %s\n", err.Error())
-			os.Exit(-1)
+			return err
 		}
 		cp.Infof("Upload ok.\n")
-		os.Exit(0)
+		return nil
 	}
 
 	return fmt.Errorf("unknown debug option: %s", os.Args[1])

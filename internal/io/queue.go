@@ -31,15 +31,14 @@ func (x *dkIO) cacheData(c *consumer, d *iodata, tryClean bool) {
 
 	log.Debugf("get iodata(%d points) from %s|%s", len(d.points), d.category, d.from)
 
-	if x.fd != nil && x.matchOutputFileInput(d.from) {
-		log.Debugf("write %d(%s) points to %s", len(d.points), d.from, x.outputFile)
-
-		if err := x.fileOutput(d); err != nil {
-			log.Errorf("fileOutput: %s", err)
+	if x.recorder != nil && x.recorder.Enabled {
+		if err := x.recorder.Record(d.points, d.category, d.from); err != nil {
+			log.Warnf("record %d points on %q from %q failed: %s", len(d.points), d.category, d.from, err)
+		} else {
+			log.Debugf("record %d points on %q from %q ok", len(d.points), d.category, d.from)
 		}
-
-		// do not send data to remote.
-		return
+	} else {
+		log.Debug("recorder disabled: %+#v", x.recorder)
 	}
 
 	c.points = append(c.points, d.points...)

@@ -184,13 +184,12 @@ func startIO() {
 		dkio.WithFeederOutputer(dkio.NewDatawayOutput(c.FeedChanSize)),
 		dkio.WithDataway(config.Cfg.Dataway),
 		dkio.WithMaxCacheCount(c.MaxCacheCount),
-		dkio.WithOutputFile(c.OutputFile),
-		dkio.WithOutputFileOnInputs(c.OutputFileInputs),
 		dkio.WithDiskCache(c.EnableCache),
 		dkio.WithDiskCacheSize(c.CacheSizeGB),
 		dkio.WithFilters(c.Filters),
 		dkio.WithCacheAll(c.CacheAll),
 		dkio.WithFlushWorkers(c.FlushWorkers),
+		dkio.WithRecorder(config.Cfg.Recorder),
 	}
 
 	du, err := time.ParseDuration(c.FlushInterval)

@@ -15,6 +15,7 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/pipeline/offload"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 )
@@ -250,7 +251,12 @@ func (c *Config) loadIOEnvs() {
 //nolint:funlen
 func (c *Config) LoadEnvs() error {
 	if c.IO == nil {
-		c.IO = &IOConf{}
+		c.IO = &io.IOConf{}
+	}
+
+	// first load protect mode settings, other settings depends on this flag.
+	if v := datakit.GetEnv("ENV_DISABLE_PROTECT_MODE"); v != "" {
+		c.ProtectMode = false
 	}
 
 	// first load protect mode settings, other settings depends on this flag.

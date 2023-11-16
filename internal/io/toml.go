@@ -3,10 +3,11 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package config
+package io
 
 import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 
+// IOConf configure io module in datakit.conf.
 type IOConf struct {
 	FeedChanSize int `toml:"feed_chan_size,omitzero"`
 
@@ -15,9 +16,6 @@ type IOConf struct {
 
 	FlushInterval string `toml:"flush_interval"`
 	FlushWorkers  int    `toml:"flush_workers"`
-
-	OutputFile       string   `toml:"output_file"`
-	OutputFileInputs []string `toml:"output_file_inputs"`
 
 	EnableCache        bool   `toml:"enable_cache"`
 	CacheAll           bool   `toml:"cache_all"`

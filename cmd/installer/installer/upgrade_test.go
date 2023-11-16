@@ -12,6 +12,7 @@ import (
 	bstoml "github.com/BurntSushi/toml"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/election"
 )
 
 func Test_setupDefaultInputs(t *T.T) {
@@ -153,7 +154,7 @@ func TestUpgradeMainConfig(t *T.T) {
 
 			expect: func() *config.Config {
 				c := config.DefaultConfig()
-				c.Election = &config.ElectionCfg{
+				c.Election = &election.ElectionCfg{
 					Namespace:          "ns-abc",
 					Enable:             true,
 					EnableNamespaceTag: true,
@@ -183,7 +184,7 @@ func TestUpgradeMainConfig(t *T.T) {
 
 			expect: func() *config.Config {
 				c := config.DefaultConfig()
-				c.Election = &config.ElectionCfg{
+				c.Election = &election.ElectionCfg{
 					Namespace:          "ns-abc",
 					Enable:             true,
 					EnableNamespaceTag: true,
@@ -249,7 +250,6 @@ func TestUpgradeMainConfig(t *T.T) {
 			old: func() *config.Config {
 				c := config.DefaultConfig()
 				c.IOCacheCountDeprecated = 10
-				c.OutputFileDeprecated = "/some/messy/file"
 				c.IntervalDeprecated = "100s"
 
 				return c
@@ -258,7 +258,6 @@ func TestUpgradeMainConfig(t *T.T) {
 			expect: func() *config.Config {
 				c := config.DefaultConfig()
 				c.IO.MaxCacheCount = 1000 // auto reset to 10000
-				c.IO.OutputFile = "/some/messy/file"
 				c.IO.FlushInterval = "100s"
 
 				return c

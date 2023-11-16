@@ -280,15 +280,7 @@ X-category=tracing
 datakit pipeline -P metric.p -T '{"time": 1666492218,"dimensions":{"bk_biz_id": 225,"ip": "172.253.64.45"},"metrics": {"cpu_usage_pct": 0.01}, "exemplar": null}'
 ```
 
-切割正确之后，可以查看行协议数据是否正确，暂时将 output_file 设置为本地文件：
-
-```shell
-vim conf/datakit.conf
-
-# 设置为本地文件，就不会输出到 io，测试结束之后赋值为空即可。
-output_file = "/usr/local/datakit/out.pts"
-# 查看文件 out.pts 是否正确
-```
+切割正确之后，通过在 *datakit.conf* 中开启[数据录制功能](../datakit/datakit-tools-how-to.md#enable-recorder)，可以查看数据是否正确。
 
 连接失败可能是版本问题，请在配置文件中正确填写 kafka 版本。目前支持的版本列表：[0.8.2] - [3.3.1]
 

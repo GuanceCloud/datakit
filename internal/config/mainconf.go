@@ -15,8 +15,11 @@ import (
 	"github.com/GuanceCloud/cliutils/pipeline/offload"
 	"github.com/GuanceCloud/cliutils/tracer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/election"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/operator"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/recorder"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/resourcelimit"
 )
 
@@ -64,8 +67,9 @@ type Config struct {
 
 	HTTPAPI *APIConfig `toml:"http_api"`
 
-	IO                     *IOConf `toml:"io"`
-	IOCacheCountDeprecated int     `toml:"io_cache_count,omitzero"`
+	Recorder               *recorder.Recorder `toml:"recorder"`
+	IO                     *io.IOConf         `toml:"io"`
+	IOCacheCountDeprecated int                `toml:"io_cache_count,omitzero"`
 
 	Dataway  *dataway.Dataway   `toml:"dataway"`
 	Operator *operator.Operator `toml:"-"`
@@ -86,7 +90,7 @@ type Config struct {
 	NamespaceDeprecated         string            `toml:"namespace,omitempty"` // 避免跟 k8s 的 namespace 概念混淆
 	GlobalEnvTagsDeprecated     map[string]string `toml:"global_env_tags,omitempty"`
 
-	Election *ElectionCfg `toml:"election"`
+	Election *election.ElectionCfg `toml:"election"`
 
 	// 是否已开启自动更新，通过 dk-install --ota 来开启
 	AutoUpdate bool `toml:"auto_update,omitempty"`
@@ -101,13 +105,15 @@ type Config struct {
 
 func DefaultConfig() *Config {
 	c := &Config{ //nolint:dupl
+		DefaultEnabledInputs: []string{},
 		GlobalHostTags:       map[string]string{},
 		GlobalTagsDeprecated: map[string]string{},
 
 		EnablePProf: true,
 		PProfListen: "localhost:6060",
+		DatakitUser: "root",
 
-		Election: &ElectionCfg{
+		Election: &election.ElectionCfg{
 			Enable:             false,
 			EnableNamespaceTag: false,
 			Namespace:          "default",
@@ -118,11 +124,10 @@ func DefaultConfig() *Config {
 			"ENV_HOSTNAME": "", // not set
 		}, // default nothing
 
-		IO: &IOConf{
-			FeedChanSize:     1,
-			MaxCacheCount:    1000,
-			FlushInterval:    "10s",
-			OutputFileInputs: []string{},
+		IO: &io.IOConf{
+			FeedChanSize:  1,
+			MaxCacheCount: 1000,
+			FlushInterval: "10s",
 
 			// Enable disk cache on datakit send fail.
 			EnableCache:        false,
@@ -132,13 +137,25 @@ func DefaultConfig() *Config {
 			Filters: nil,
 		},
 
+		Recorder: &recorder.Recorder{
+			Enabled:    false,
+			Path:       "",
+			Encoding:   "v2",
+			Duration:   time.Minute * 30,
+			Inputs:     []string{},
+			Categories: []string{},
+		},
+
 		Dataway: &dataway.Dataway{
-			URLs:          []string{"not-set"},
-			HTTPTimeout:   30 * time.Second,
-			IdleTimeout:   90 * time.Second,
-			MaxRetryCount: 4,
-			RetryDelay:    time.Millisecond * 200,
-			GZip:          true,
+			URLs:               []string{"https://openway.guance.com?token=tkn_xxxxxxxxxxx"},
+			HTTPTimeout:        30 * time.Second,
+			IdleTimeout:        90 * time.Second,
+			MaxRetryCount:      4,
+			RetryDelay:         time.Millisecond * 200,
+			MaxRawBodySize:     dataway.DefaultMaxRawBodySize,
+			GlobalCustomerKeys: []string{},
+			ContentEncoding:    "v1",
+			GZip:               true,
 		},
 		Operator: &operator.Operator{},
 
@@ -161,7 +178,7 @@ func DefaultConfig() *Config {
 		},
 
 		Pipeline: &plmanager.PipelineCfg{
-			IPdbType:               "-",
+			IPdbType:               "iploc",
 			RemotePullInterval:     "1m",
 			ReferTableURL:          "",
 			ReferTablePullInterval: "5m",

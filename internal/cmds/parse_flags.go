@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -19,6 +20,20 @@ import (
 )
 
 var (
+
+	//
+	// import exit point data.
+	//
+	fsImportName         = "import"
+	fsImport             = pflag.NewFlagSet(fsImportName, pflag.ContinueOnError)
+	flagImportPath       = fsImport.StringP("path", "P", filepath.Join(datakit.InstallDir, "recorder"), "point data path")
+	flagImportLogPath    = fsImport.String("log", commonLogFlag(), "log path")
+	flagImportDatawayURL = fsImport.StringSliceP("dataway", "D", nil, "dataway list")
+	fsImportUsage        = func() {
+		fmt.Printf("usage: datakit import [options]\n\n")
+		fmt.Printf("Import used to play recorded history data to Guance Cloud. Available options:\n\n")
+		fmt.Println(fsImport.FlagUsagesWrapped(0))
+	}
 
 	//
 	// doc related flags.
@@ -258,16 +273,17 @@ func printHelp() {
 
 	fmt.Fprintf(os.Stderr, "The commands are:\n\n")
 
-	fmt.Fprintf(os.Stderr, "\tservice    manage datakit service\n")
-	fmt.Fprintf(os.Stderr, "\tdql        query DQL for various usage\n")
-	fmt.Fprintf(os.Stderr, "\trun        select DataKit running mode(defaul running as service)\n")
-	fmt.Fprintf(os.Stderr, "\tpipeline   debug pipeline\n")
-	fmt.Fprintf(os.Stderr, "\tmonitor    show datakit running statistics\n")
-	fmt.Fprintf(os.Stderr, "\tinstall    install DataKit related packages and plugins\n")
 	fmt.Fprintf(os.Stderr, "\tcheck      methods of all check tools within DataKit\n")
 	fmt.Fprintf(os.Stderr, "\tdebug      methods of all debug tools within DataKit\n")
-	fmt.Fprintf(os.Stderr, "\ttool       methods of all tools within DataKit\n")
+	fmt.Fprintf(os.Stderr, "\tdql        query DQL for various usage\n")
 	fmt.Fprintf(os.Stderr, "\texport     export Datakit related resources\n")
+	fmt.Fprintf(os.Stderr, "\timport     import recorded data go Guance Cloud\n")
+	fmt.Fprintf(os.Stderr, "\tinstall    install DataKit related packages and plugins\n")
+	fmt.Fprintf(os.Stderr, "\tmonitor    show datakit running statistics\n")
+	fmt.Fprintf(os.Stderr, "\tpipeline   debug pipeline\n")
+	fmt.Fprintf(os.Stderr, "\trun        select DataKit running mode(defaul running as service)\n")
+	fmt.Fprintf(os.Stderr, "\tservice    manage datakit service\n")
+	fmt.Fprintf(os.Stderr, "\ttool       methods of all tools within DataKit\n")
 
 	// TODO: add more commands...
 
@@ -279,8 +295,12 @@ func runHelpFlags() {
 	switch len(os.Args) {
 	case 2: // only 'datakit help'
 		printHelp()
+
 	case 3: // need help for various commands
 		switch os.Args[2] {
+		case fsImportName:
+			fsImportUsage()
+
 		case fsDocName:
 			fsDocUsage()
 
@@ -337,6 +357,29 @@ func doParseAndRunFlags() {
 		}
 
 		switch os.Args[1] {
+		case fsImportName:
+			if len(os.Args) > 3 {
+				if err := fsImport.Parse(os.Args[2:]); err != nil {
+					cp.Errorf("Parse: %s\n", err)
+					fsImportUsage()
+					os.Exit(-1)
+				}
+				setCmdRootLog(*flagImportLogPath)
+
+				u, err := setupUploader()
+				if err != nil {
+					cp.Errorf("setupUploader: %s\n", err)
+					os.Exit(-1)
+				}
+
+				if err := runImport(u, time.Now().UnixNano()); err != nil {
+					cp.Errorf("%s\n", err)
+					os.Exit(-1)
+				}
+			}
+
+			os.Exit(0)
+
 		case fsRunName:
 
 			if len(os.Args) < 3 {
@@ -350,6 +393,7 @@ func doParseAndRunFlags() {
 				os.Exit(-1)
 			}
 
+			// NOTE: do not exit here, run under docker mode.
 			return
 
 		case fsCheckName:
@@ -371,6 +415,7 @@ func doParseAndRunFlags() {
 				cp.Errorf("%s\n", err)
 				os.Exit(-1)
 			}
+			os.Exit(0)
 
 		case fsDebugName:
 
@@ -391,6 +436,8 @@ func doParseAndRunFlags() {
 				cp.Errorf("%s\n", err)
 				os.Exit(-1)
 			}
+
+			os.Exit(0)
 
 		case fsDocName: // deprecated
 			fsDocUsage()
@@ -569,6 +616,7 @@ func doParseAndRunFlags() {
 		default:
 			cp.Errorf("unknown command `%s'\n", os.Args[1])
 			printHelp()
+			os.Exit(-1)
 		}
 	}
 }

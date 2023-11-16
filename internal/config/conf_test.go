@@ -11,18 +11,28 @@ import (
 	"testing"
 	"time"
 
-	tu "github.com/GuanceCloud/cliutils/testutil"
+	bstoml "github.com/BurntSushi/toml"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 )
 
-func TestInitCfg(t *testing.T) {
+// TestDefaultMainConf used to keep default config and default config sample equal.
+func TestDefaultMainConf(t *testing.T) {
 	c := DefaultConfig()
+	c.Ulimit = 0 // ulimit diff among OS platforms
 
-	tomlfile := ".main.toml"
-	defer os.Remove(tomlfile) //nolint:errcheck
-	tu.Equals(t, nil, c.InitCfg(tomlfile))
+	def := DefaultConfig()
+	_, err := bstoml.Decode(datakit.DatakitConfSample, &def)
+	require.NoError(t, err)
+
+	def.DefaultEnabledInputs = def.DefaultEnabledInputs[:0] // clear
+	def.GlobalHostTags = map[string]string{}                // clear:  host tags setted on default conf sample
+	def.Ulimit = 0
+
+	assert.Equal(t, c, def)
 }
 
 func TestEnableDefaultsInputs(t *testing.T) {
@@ -44,7 +54,7 @@ func TestEnableDefaultsInputs(t *testing.T) {
 	c := DefaultConfig()
 	for _, tc := range cases {
 		c.EnableDefaultsInputs(tc.list)
-		tu.Equals(t, len(c.DefaultEnabledInputs), len(tc.expect))
+		assert.Equal(t, len(c.DefaultEnabledInputs), len(tc.expect))
 	}
 }
 
@@ -160,11 +170,11 @@ func TestSetupGlobalTags(t *testing.T) {
 
 			// 这些预期的 tags 在 config 中必须存在
 			for k, v := range tc.expectEnvTags {
-				tu.Assert(t, v == c.Election.Tags[k], "[%s]`%s' != `%s'", k, v, c.Election.Tags[k])
+				assert.Truef(t, v == c.Election.Tags[k], "[%s]`%s' != `%s'", k, v, c.Election.Tags[k])
 			}
 
 			for k, v := range tc.expectHostTags {
-				tu.Assert(t, v == c.GlobalHostTags[k], "[%s]`%s' != `%s'", k, v, c.GlobalHostTags[k])
+				assert.Truef(t, v == c.GlobalHostTags[k], "[%s]`%s' != `%s'", k, v, c.GlobalHostTags[k])
 			}
 		})
 	}
@@ -211,7 +221,7 @@ func TestProtectedInterval(t *testing.T) {
 	for _, tc := range cases {
 		Cfg.ProtectMode = tc.enabled
 		x := ProtectedInterval(tc.min, tc.max, tc.in)
-		tu.Equals(t, x, tc.expect)
+		assert.Equal(t, x, tc.expect)
 	}
 }
 
@@ -307,10 +317,10 @@ hostname = "should-not-set"`,
 
 			err := c.LoadMainTOML(tomlfile)
 			if tc.fail {
-				tu.NotOk(t, err, "")
+				require.Error(t, err)
 				return
 			} else {
-				tu.Ok(t, err)
+				assert.NoError(t, err)
 			}
 
 			t.Logf("hostname: %s", c.Hostname)
@@ -389,7 +399,7 @@ func TestLoadDWRetry(t *testing.T) {
 	}
 }
 
-func TestSetupDataway(t *testing.T) {
+func Test_setupDataway(t *testing.T) {
 	cases := []struct {
 		name   string
 		dw     *dataway.Dataway
@@ -408,7 +418,7 @@ func TestSetupDataway(t *testing.T) {
 			c := DefaultConfig()
 			c.Dataway = tc.dw
 
-			err := c.SetupDataway()
+			err := c.setupDataway()
 			assert.Equal(t, tc.expect, err)
 		})
 	}

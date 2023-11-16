@@ -247,13 +247,7 @@ Script test command to see if cutting is correct:
 datakit pipeline -P metric.p -T '{"time": 1666492218,"dimensions":{"bk_biz_id": 225,"ip": "172.253.64.45"},"metrics": {"cpu_usage_pct": 0.01}, "exemplar": null}'
 ```
 
-Set outputfile to local to see if the line protocol format is correct:
-```shell
-vim conf/datakit.conf
-# If it is set to a local file, it will not be output to io, and it can be assigned to null after the test.
-output_file = "/usr/local/datakit/out.pts"
-# Check to see if the file out.pts is correct
-```
+We can setup [recorder](../datakit/datakit-tools-how-to.md#enable-recorder) in *datakit.conf* to check if data ok.
 
 Connection failure may be a version problem: Please fill in the kafka version correctly in the configuration file.
 

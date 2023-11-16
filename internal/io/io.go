@@ -8,7 +8,6 @@ package io
 
 import (
 	"context"
-	"os"
 	"runtime"
 	"sync"
 	"time"
@@ -19,6 +18,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/failcache"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/recorder"
 )
 
 var (
@@ -44,8 +44,7 @@ type dkIO struct {
 	withFilter,
 	withConsumer bool
 
-	outputFile       string
-	outputFileInputs []string
+	recorder *recorder.Recorder
 
 	flushInterval time.Duration
 	flushWorkers  int
@@ -55,17 +54,13 @@ type dkIO struct {
 	//////////////////////////
 	// inner fields
 	//////////////////////////
-	// chans map[string]chan *iodata
 	fo FeederOutputer
 
 	fcs map[string]failcache.Cache
 
 	lock sync.RWMutex
 
-	fd *os.File
-
-	droppedTotal   int64
-	outputFileSize int64
+	droppedTotal int64
 }
 
 func Start(opts ...IOOption) {

@@ -122,11 +122,6 @@ func upgradeMainConfig(c *config.Config) *config.Config {
 		c.IO.MaxCacheCount = 1000
 	}
 
-	if c.OutputFileDeprecated != "" {
-		c.IO.OutputFile = c.OutputFileDeprecated
-		c.OutputFileDeprecated = ""
-	}
-
 	if c.IntervalDeprecated != "" {
 		c.IO.FlushInterval = c.IntervalDeprecated
 		c.IntervalDeprecated = ""

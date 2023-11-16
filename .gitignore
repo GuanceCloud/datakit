@@ -6,6 +6,7 @@ __debug_bin
 .idea/
 .orig
 .pid
+bin
 .suite.json
 .vscode/
 *-packr.go

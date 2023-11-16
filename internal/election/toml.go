@@ -3,8 +3,9 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package config
+package election
 
+// ElectionCfg defined election configure in datakit.conf.
 type ElectionCfg struct {
 	Enable             bool `toml:"enable"`
 	EnableNamespaceTag bool `toml:"enable_namespace_tag"`

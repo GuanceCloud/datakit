@@ -162,6 +162,7 @@ var (
 	DataRUMDir       = filepath.Join(DataDir, "rum")
 	ConfdDir         = filepath.Join(InstallDir, StrConfD)
 	ConfdPipelineDir = filepath.Join(InstallDir, StrPipelineConfd)
+	RecorderDir      = filepath.Join(InstallDir, "recorder")
 
 	GitReposDir          = filepath.Join(InstallDir, StrGitRepos)
 	GitReposRepoName     string
@@ -284,6 +285,7 @@ func SetWorkDir(dir string) {
 	PythonDDir = filepath.Join(InstallDir, StrPythonD)
 	PythonCoreDir = filepath.Join(PythonDDir, StrPythonCore)
 	PipelineRemoteDir = filepath.Join(InstallDir, StrPipelineRemote)
+	RecorderDir = filepath.Join(InstallDir, "recorder")
 
 	InitDirs()
 }

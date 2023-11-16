@@ -28,6 +28,83 @@ DQL used to query data. If no option specified, query interactively. Other avail
   -V, --verbose        verbosity mode
 ```
 
+## 数据录制和回放 {#record-and-replay}
+
+[:octicons-tag-24: Version-1.18.0](changelog.md#cl-1.18.0)
+
+数据导入主要用于录入已有的采集数据，再做演示或测试的时候，可以不用额外采集。
+
+### 开启数据录制 {#enable-recorder}
+
+在 *datakit.conf* 中，可开启数据录制功能。开启之后，Datakit 会将数据录制到指定的目录，以便于后续导入：
+
+```toml
+[recorder]
+  enabled  = true
+  path     = "/path/to/recorder"     # 绝对路径，默认在 <Datakit 安装目录>/recorder 目录下
+  encoding = "v2"                    # 采用 protobuf-JSON 格式（xxx.pbjson），也可以选择 v1（xxx.lp），采用行协议形式（前者更便于阅读，且数据类型支持更全）
+  duration = "10m"                   # 录制时长，从 Datakit 启动后开始计时
+  inputs   = ["cpu", "mem"]          # 录制指定采集器的数据（以 monitor 中具体 feed 的名字为准），为空则表示录制所有采集器数据
+  categories = ["logging", "metric"] # 录制类型，为空则表示录制所有数据类型
+```
+
+录制开始后，目录结构大致如下（此处展示的是时序数据的 `pbjson` 格式）：
+
+```shell
+[ 416] /usr/local/datakit/recorder/
+├── [  64]  custom_object
+├── [  64]  dynamic_dw
+├── [  64]  keyevent
+├── [  64]  logging
+├── [  64]  network
+├── [  64]  object
+├── [  64]  profiling
+├── [  64]  rum
+├── [  64]  security
+├── [  64]  tracing
+└── [1.9K]  metric
+    ├── [1.2K]  cpu.1698217783322857000.pbjson
+    ├── [1.2K]  cpu.1698217793321744000.pbjson
+    ├── [1.2K]  cpu.1698217803322683000.pbjson
+    ├── [1.2K]  cpu.1698217813322834000.pbjson
+    └── [1.2K]  cpu.1698218363360258000.pbjson
+
+12 directories, 59 files
+```
+
+### 数据回放 {#do-replay}
+
+Datakit 录制完数据后，我们可以将该目录中的数据用 Git 或其它方式保存（**一定要确保好已有的目录结构**），然后，通过如下命令可以将这些数据导入到观测云：
+
+```shell
+$ datakit import -P /usr/local/datakit/recorder -D https://openway.guance.com?token=tkn_xxxxxxxxx
+
+> Uploading "/usr/local/datakit/recorder/metric/cpu.1698217783322857000.pbjson"(1 points) on metric...
++1h53m6.137855s ~ 2023-10-25 15:09:43.321559 +0800 CST
+> Uploading "/usr/local/datakit/recorder/metric/cpu.1698217793321744000.pbjson"(1 points) on metric...
++1h52m56.137881s ~ 2023-10-25 15:09:53.321533 +0800 CST
+> Uploading "/usr/local/datakit/recorder/metric/cpu.1698217803322683000.pbjson"(1 points) on metric...
++1h52m46.137991s ~ 2023-10-25 15:10:03.321423 +0800 CST
+...
+Total upload 75 kB bytes ok
+```
+
+虽然录制的数据中带了绝对时间戳（纳秒），播放的时候，Datakit 会自动将这些数据平移到当前时间（保留各个数据点之间的相对时间间隔），让它看起来像是新采集的数据一样。
+
+通过如下命令可以获取更多数据导入的帮助说明：
+
+```shell
+$ datakit help import
+
+usage: datakit import [options]
+
+Import used to play recorded history data to Guance Cloud. Available options:
+
+  -D, --dataway strings   dataway list
+      --log string        log path (default "/dev/null")
+  -P, --path string       point data path (default "/usr/local/datakit/recorder")
+```
+
 ## 查看 DataKit 运行情况 {#using-monitor}
 
 monitor 用法[参见这里](datakit-monitor.md)

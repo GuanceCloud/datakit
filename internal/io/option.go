@@ -6,7 +6,6 @@
 package io
 
 import (
-	"os"
 	"path/filepath"
 	"time"
 
@@ -15,6 +14,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/recorder"
 )
 
 // IOOption used to add various options to setup io module.
@@ -24,6 +24,19 @@ type IOOption func(x *dkIO)
 func WithFilter(on bool) IOOption {
 	return func(x *dkIO) {
 		x.withFilter = on
+	}
+}
+
+// WithRecorder setup record config for data points.
+func WithRecorder(r *recorder.Recorder) IOOption {
+	return func(x *dkIO) {
+		if r != nil && r.Enabled {
+			if r, err := recorder.SetupRecorder(r); err != nil {
+				log.Warnf("invalid recorder: %s, ignored", err)
+			} else {
+				x.recorder = r
+			}
+		}
 	}
 }
 
@@ -107,32 +120,6 @@ func WithDiskCache(on bool) IOOption {
 				x.fcs[c.String()] = cache
 			}
 		}
-	}
-}
-
-// WithOutputFile used to set a local file, the points will write
-// to the file(in the form line-protocol).
-func WithOutputFile(fpath string) IOOption {
-	return func(x *dkIO) {
-		if fpath == "" {
-			return
-		}
-
-		x.outputFile = fpath
-
-		// if file open failed, ignored.
-		f, err := os.OpenFile(filepath.Clean(fpath), os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o600)
-		if err != nil {
-			log.Warnf("OpenFile: %s, ignored", err)
-		}
-		x.fd = f
-	}
-}
-
-// WithOutputFileOnInputs set inputs that their point write to file.
-func WithOutputFileOnInputs(inputs []string) IOOption {
-	return func(x *dkIO) {
-		x.outputFileInputs = inputs
 	}
 }
 
