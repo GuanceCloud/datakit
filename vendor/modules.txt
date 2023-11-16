@@ -2199,6 +2199,9 @@ k8s.io/kube-openapi/pkg/schemamutation
 k8s.io/kube-openapi/pkg/spec3
 k8s.io/kube-openapi/pkg/util/proto
 k8s.io/kube-openapi/pkg/validation/spec
+# k8s.io/kubelet v0.0.0-00010101000000-000000000000 => k8s.io/kubelet v0.25.0
+## explicit; go 1.19
+k8s.io/kubelet/pkg/apis/stats/v1alpha1
 # k8s.io/metrics v0.20.5 => k8s.io/metrics v0.25.0
 ## explicit; go 1.19
 k8s.io/metrics/pkg/apis/metrics

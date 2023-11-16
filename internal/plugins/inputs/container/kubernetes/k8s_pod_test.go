@@ -24,6 +24,9 @@ func TestComposePodMetric(t *testing.T) {
 						Namespace: "pod-namespace-testing",
 						UID:       "pod-uid-testing",
 					},
+					Spec: apicorev1.PodSpec{
+						NodeName: "node-name-testing",
+					},
 				},
 			},
 		}
@@ -31,6 +34,7 @@ func TestComposePodMetric(t *testing.T) {
 		out := typed.NewPointKV(podMetricMeasurement)
 		out.SetTag("uid", "pod-uid-testing")
 		out.SetTag("pod", "pod-name-testing")
+		out.SetTag("node_name", "node-name-testing")
 		out.SetTag("namespace", "pod-namespace-testing")
 		out.SetField("ready", 0)
 

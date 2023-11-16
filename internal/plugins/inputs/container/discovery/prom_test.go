@@ -22,11 +22,11 @@ func TestNewPromRunnerWithToml(t *testing.T) {
     some_tag = "some_value"
     more_tag = "some_other_value"
 `
-		r, err := newPromRunnerWithTomlConfig(cfg)
+		r, err := parsePromConfigs(cfg)
 		assert.NoError(t, err)
 
 		assert.Equal(t, 1, len(r))
-		assert.Equal(t, "testing-prom", r[0].conf.Source)
+		assert.Equal(t, "testing-prom", r[0].Source)
 	})
 
 	t.Run("parse-prom-01", func(t *testing.T) {
@@ -44,11 +44,11 @@ func TestNewPromRunnerWithToml(t *testing.T) {
   source = "testing-prom-02"
   interval = "10s"
 `
-		r, err := newPromRunnerWithTomlConfig(cfg)
+		r, err := parsePromConfigs(cfg)
 		assert.NoError(t, err)
 
 		assert.Equal(t, 2, len(r))
-		assert.Equal(t, "testing-prom", r[0].conf.Source)
-		assert.Equal(t, "testing-prom-02", r[1].conf.Source)
+		assert.Equal(t, "testing-prom", r[0].Source)
+		assert.Equal(t, "testing-prom-02", r[1].Source)
 	})
 }

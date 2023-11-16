@@ -3320,6 +3320,8 @@ k8s.io/kube-openapi v0.0.0-20191107075043-30be4d16710a/go.mod h1:1TqjTSzOxsLGIKf
 k8s.io/kube-openapi v0.0.0-20220803162953-67bda5d908f1/go.mod h1:C/N6wCaBHeBHkHUesQOQy2/MZqGgMAFPqGsGQLdbZBU=
 k8s.io/kube-openapi v0.0.0-20220803164354-a70c9af30aea h1:3QOH5+2fGsY8e1qf+GIFpg+zw/JGNrgyZRQR7/m6uWg=
 k8s.io/kube-openapi v0.0.0-20220803164354-a70c9af30aea/go.mod h1:C/N6wCaBHeBHkHUesQOQy2/MZqGgMAFPqGsGQLdbZBU=
+k8s.io/kubelet v0.25.0 h1:eTS5B1u1o63ndExAHKLJytzz/GBy86ROcxYtu0VK3RA=
+k8s.io/kubelet v0.25.0/go.mod h1:J6aQxrZdSsGPrskYrhZdEn6PCnGha+GNvF0g9aWfQnw=
 k8s.io/kubernetes v1.13.0/go.mod h1:ocZa8+6APFNC2tX1DZASIbocyYT5jHzqFVsY5aoB7Jk=
 k8s.io/metrics v0.25.0 h1:z/tyqXUCxvmFsKIO7GH6ulvogYvGp+pDmlz5ANSQVPE=
 k8s.io/metrics v0.25.0/go.mod h1:HZZrbhuRX+fsDcRc3u59o2FbrKhqD67IGnoFECNmovc=

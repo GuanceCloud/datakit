@@ -11,6 +11,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/client"
 )
 
@@ -23,6 +24,8 @@ type Config struct {
 	EnablePrometheusServiceMonitors    bool
 	StreamSize                         int
 	ExtraTags                          map[string]string
+	CustomerKeys                       []string
+	Feeder                             io.Feeder
 }
 
 type Discovery struct {
@@ -45,10 +48,10 @@ func (d *Discovery) Run() {
 	klog = logger.SLogger("k8s-discovery")
 	klog.Info("start")
 
-	if d.cfg.StreamSize != 0 {
-		streamSize = d.cfg.StreamSize
+	if d.cfg.StreamSize == 0 {
+		d.cfg.StreamSize = 10
 	}
-	klog.Infof("stream size: %d", streamSize)
+	klog.Infof("stream size: %d", d.cfg.StreamSize)
 
 	d.start()
 }

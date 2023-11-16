@@ -53,7 +53,7 @@ type Input struct {
 	LoggingAutoMultilineDetection     bool              `toml:"logging_auto_multiline_detection"`
 	LoggingAutoMultilineExtraPatterns []string          `toml:"logging_auto_multiline_extra_patterns"`
 	LoggingSearchInterval             time.Duration     `toml:"logging_search_interval"`
-	LoggingMinFlushInterval           time.Duration     `toml:"logging_min_flush_nterval"`
+	DeprecatedLoggingMinFlushInterval time.Duration     `toml:"logging_min_flush_nterval"`
 	LoggingMaxMultilineLifeDuration   time.Duration     `toml:"logging_max_multiline_life_duration"`
 	LoggingRemoveAnsiEscapeCodes      bool              `toml:"logging_remove_ansi_escape_codes"`
 

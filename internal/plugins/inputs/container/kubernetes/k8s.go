@@ -72,6 +72,7 @@ func NewKubeCollector(client client.Client, cfg *Config, paused func() bool, don
 
 	getGlobalCustomerKeys = func() []string { return cfg.GlobalCustomerKeys }
 	setExtraK8sLabelAsTags = func() bool { return cfg.EnableExtractK8sLabelAsTags }
+	canCollectPodMetrics = func() bool { return cfg.EnablePodMetric }
 
 	return &Kube{
 		cfg:             cfg,
@@ -108,9 +109,6 @@ func (k *Kube) Object(feed func([]*point.Point) error, opts ...option.CollectOpt
 		return
 	}
 
-	b := k.verifyMetricsServerAccess()
-	canCollectPodMetrics = func() bool { return b }
-
 	c := option.DefaultOption()
 	for _, opt := range opts {
 		opt(c)
@@ -137,18 +135,6 @@ func (k *Kube) Logging(feed func([]*point.Point) error) {
 		k.onWatchingEvent.Store(false)
 		return nil
 	})
-}
-
-func (k *Kube) verifyMetricsServerAccess() bool {
-	if !k.cfg.EnablePodMetric {
-		return false
-	}
-	_, err := k.client.GetPodMetricses("datakit").List(context.TODO(), metav1.ListOptions{ResourceVersion: "0"})
-	if err != nil {
-		klog.Warnf("unable to access metrics-server, err: %s, skip collecting pod metrics. retry in 5 minutes", err)
-		return false
-	}
-	return true
 }
 
 func (k *Kube) getActiveNamespaces(ctx context.Context) ([]string, error) {

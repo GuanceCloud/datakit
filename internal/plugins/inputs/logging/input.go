@@ -178,7 +178,7 @@ func (ipt *Input) Run() {
 			l.Infof("source %s automatic-multiline on, patterns %v", ipt.Source, ipt.AutoMultilineExtraPatterns)
 		} else {
 			opt.MultilinePatterns = multiline.GlobalPatterns
-			l.Info("source %s automatic-multiline on, use default patterns", ipt.Source)
+			l.Infof("source %s automatic-multiline on, use default patterns", ipt.Source)
 		}
 	}
 

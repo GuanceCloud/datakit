@@ -21,9 +21,7 @@ import (
 const (
 	// 定期寻找符合条件的新文件.
 	scanNewFileInterval = time.Second * 10
-
-	defaultSource    = "default"
-	minflushInterval = time.Second * 5
+	defaultSource       = "default"
 )
 
 var l = logger.DefaultSLogger("socketLog")
@@ -85,7 +83,6 @@ type Option struct {
 	// 是否开启阻塞发送模式
 	BlockingMode bool
 
-	MinFlushInterval         time.Duration
 	MaxMultilineLifeDuration time.Duration
 
 	Done <-chan interface{}
@@ -126,10 +123,6 @@ func (opt *Option) Init() error {
 
 	if opt.InputName == "" {
 		opt.InputName = "logging/" + opt.Source
-	}
-
-	if opt.MinFlushInterval <= 0 {
-		opt.MinFlushInterval = minflushInterval
 	}
 
 	if opt.GlobalTags == nil {

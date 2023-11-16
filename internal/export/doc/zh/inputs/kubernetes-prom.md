@@ -155,7 +155,7 @@ metadata:
   namespace: ns-testing
   annotations:
     prometheus.io/scrape: "true"
-    prometheus.io/port: "8080"
+    prometheus.io/port: "80"
 spec:
   selector:
     app.kubernetes.io/name: proxy
@@ -168,10 +168,11 @@ spec:
 
 Datakit 会自动发现带有 `prometheus.io/scrape: "true"` 的 Service，并通过 `selector` 找到匹配的 Pod，构建 prom 采集：
 
-- `prometheus.io/scrape`：只采集为 "true "的 Service，必选项
-- `prometheus.io/port`：指定 metrics 端口，必选项
-- `prometheus.io/scheme`：根据 metrics endpoint 选择 `https` 和 `http`，默认是 `http`
-- `prometheus.io/path`：配置 metrics path，默认是 `/metrics`
+- `prometheus.io/scrape`：只采集为 "true "的 Service，必选项。
+- `prometheus.io/port`：指定 metrics 端口，必选项。注意这个端口必须在 Pod 存在否则会采集失败。
+- `prometheus.io/scheme`：根据 metrics endpoint 选择 `https` 和 `http`，默认是 `http`。
+- `prometheus.io/path`：配置 metrics path，默认是 `/metrics`。
+- `prometheus.io/param_measurement`：配置指标集名称，默认是当前 Pod 的父级 OwnerReference。
 
 采集目标的 IP 地址是 `PodIP`。
 
@@ -185,41 +186,77 @@ Datakit 会自动发现带有 `prometheus.io/scrape: "true"` 的 Service，并�
 
 ### 指标集和 tags {#measurement-and-tags}
 
-自动发现 Pod/Service Prometheus，其指标集名称是由 Datakit 解析 Pod OwnerReferences 所得，以下面这个 Pod 详情为例：
+自动发现 Pod/Service Prometheus，指标集命名有 3 种情况，按照优先级依次是：
 
-```yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  creationTimestamp: "2023-08-15T06:32:41Z"
-  generateName: prom-server-
-  labels:
-    app.kubernetes.io/name: proxy
-    pod-template-generation: "1"
-  name: prom-server-lsk4g
-  ownerReferences:
-  - apiVersion: apps/v1
-    kind: DaemonSet
-    name: prom-server
-```
+1. 手动配置指标集
 
-它的 Prometheus 数据指标集为 `prom-server`。
+    - 在 Pod/Service Annotations 配置 `prometheus.io/param_measurement`，其值为指定的指标集名称，例如：
 
-如果该 Pod 没有 OwnerReferences，会默认会将指标名称以下划线 `_` 进行切割，切割后的第一个字段作为指标集名称，剩下字段作为当前指标名称。
+    ```yaml
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: testing-prom
+      labels:
+        app.kubernetes.io/name: MyApp
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/param_measurement: "pod-measurement"
+    ```
 
-例如以下的 Prometheus 原数据：
+    它的 Prometheus 数据指标集为 `pod-measurement`。
 
-```not-set
-# TYPE promhttp_metric_handler_errors_total counter
-promhttp_metric_handler_errors_total{cause="encoding"} 0
-```
+    - 如果是 Prometheus 的 PodMonitor/ServiceMonitor CRDs，可以使用 `params` 指定 `measurement`，例如：
 
-以第一根下划线做区分，左边 `promhttp` 是指标集名称，右边 `metric_handler_errors_total` 是字段名。
+    ```yaml
+    # URL parameter of the scrape request
+    params:
+        measurement:
+        - new-measurement
+    ```
 
-Datakit 会添加额外 tag 用来在 Kubernetes 集群中定位这个资源：
+    它的 Prometheus 数据指标集为 `new-measurement`。
 
-- 对于 `Service` 会添加 `namespace` 和 `service_name` `pod_name` 三个 tag
-- 对于 `Pod` 会添加 `namespace` 和 `pod_name` 两个 tag
+2. Datakit 解析 Pod OwnerReferences 所得
+
+    大部分 Pod 都有 OwnerReferences，解析它的第一个 Owner 得到指标集名称，以下面这个 Pod 详情为例：
+
+    ```yaml
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      creationTimestamp: "2023-08-15T06:32:41Z"
+      generateName: prom-server-
+      labels:
+        app.kubernetes.io/name: proxy
+        pod-template-generation: "1"
+      name: prom-server-lsk4g
+      ownerReferences:
+      - apiVersion: apps/v1
+        kind: DaemonSet
+        name: prom-server
+    ```
+
+    它的 Prometheus 数据指标集为 `prom-server`。
+
+3. 由数据切割所得
+
+    如果该 Pod 没有 OwnerReferences，会默认会将指标名称以下划线 `_` 进行切割，切割后的第一个字段作为指标集名称，剩下字段作为当前指标名称。
+
+    例如以下的 Prometheus 原数据：
+
+    ```not-set
+    # TYPE promhttp_metric_handler_errors_total counter
+    promhttp_metric_handler_errors_total{cause="encoding"} 0
+    ```
+
+    以第一根下划线做区分，左边 `promhttp` 是指标集名称，右边 `metric_handler_errors_total` 是字段名。
+
+    Datakit 会添加额外 tag 用来在 Kubernetes 集群中定位这个资源：
+
+    - 对于 `Service` 会添加 `namespace` 和 `service_name` `pod_name` 三个 tag
+    - 对于 `Pod` 会添加 `namespace` 和 `pod_name` 两个 tag
 
 ## 延伸阅读 {#more-readings}
 

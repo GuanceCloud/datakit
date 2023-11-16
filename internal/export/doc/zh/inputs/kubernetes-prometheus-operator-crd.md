@@ -27,8 +27,9 @@ Prometheus 有一套完善的 Kubernetes 应用指标采集方案，流程简述
     - podTargetLabels
     - podMetricsEndpoints:
         - interval
-            port
-            path
+          port
+          path
+          params
     - namespaceSelector:
         any
         matchNames
@@ -37,8 +38,9 @@ Prometheus 有一套完善的 Kubernetes 应用指标采集方案，流程简述
     - podTargetLabels
     - endpoints:
         - interval
-            port
-            path
+          port
+          path
+          params
     - namespaceSelector:
         any
         matchNames
