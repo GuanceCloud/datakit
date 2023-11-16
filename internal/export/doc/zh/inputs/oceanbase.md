@@ -20,7 +20,7 @@ monitor   :
 
 ---
 
-支持采集 OceanBase 监控指标。目标只支持 [OceanBase 企业版](https://www.oceanbase.com/softwarecenter-enterprise){:target="_blank"}本的 Oracle 模式的采集。
+支持采集 OceanBase 监控指标。目标支持 [OceanBase 企业版](https://www.oceanbase.com/softwarecenter-enterprise){:target="_blank"}本的 Oracle 租户模式和 MySQL 租户模式的采集。
 
 已测试的版本：
 
@@ -31,6 +31,8 @@ monitor   :
 ### 前置条件 {#reqirement}
 
 - 创建监控账号
+
+Oracle 租户模式：
 
 ```sql
 -- Create the datakit user. Replace the password placeholder with a secure password.
@@ -50,6 +52,32 @@ GRANT SELECT ON GV$PS_STAT TO datakit;
 GRANT SELECT ON GV$SESSION_WAIT TO datakit;
 GRANT SELECT ON GV$SQL_AUDIT TO datakit;
 ```
+
+MySQL 租户模式：
+
+```sql
+CREATE USER 'datakit'@'localhost' IDENTIFIED BY '<UNIQUEPASSWORD>';
+
+-- MySQL 8.0+ create the datakit user with the caching_sha2_password method
+CREATE USER 'datakit'@'localhost' IDENTIFIED WITH caching_sha2_password by '<UNIQUEPASSWORD>';
+
+-- 授权
+GRANT PROCESS ON *.* TO 'datakit'@'localhost';
+GRANT SELECT ON *.* TO 'datakit'@'localhost';
+show databases like 'performance_schema';
+GRANT SELECT ON performance_schema.* TO 'datakit'@'localhost';
+GRANT SELECT ON mysql.user TO 'datakit'@'localhost';
+GRANT replication client on *.*  to 'datakit'@'localhost';
+```
+
+<!-- markdownlint-disable MD046 -->
+???+ attention
+
+    - 如用 `localhost` 时发现采集器有如下报错，需要将上述步骤的 `localhost` 换成 `::1` <br/>
+    `Error 1045: Access denied for user 'datakit'@'localhost' (using password: YES)`
+
+    - 以上创建、授权操作，均限定了 `datakit` 这个用户，只能在 MySQL 主机上（`localhost`）访问 MySQL。如果需要对 MySQL 进行远程采集，建议将 `localhost` 替换成 `%`（表示 DataKit 可以在任意机器上访问 MySQL），也可用特定的 DataKit 安装机器地址。
+<!-- markdownlint-enable -->
 
 - 安装依赖包
 
@@ -121,6 +149,17 @@ apt-get install -y libaio-dev libaio1
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+
+???+ tip
+
+    上述配置会以命令行形式展示在进程列表中（包括密码），如果想隐藏密码，可以通过将密码写进环境变量 `ENV_INPUT_OCEANBASE_PASSWORD` 形式实现，示例：
+
+    ```sh
+    export ENV_INPUT_OCEANBASE_PASSWORD='<SAFE_PASSWORD>'
+    ```
+
+    该环境变量在读取密码时有最高优先级，即只要出现该环境变量，那密码就以该环境变量中的值为准。
+
 <!-- markdownlint-enable -->
 
 ## 指标 {#metric}

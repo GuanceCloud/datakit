@@ -38,7 +38,7 @@ type IInput interface {
 }
 
 type DBMetricsCollector interface {
-	Collect() (*point.Point, error)
+	Collect() ([]*point.Point, error)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -57,9 +57,10 @@ type Option struct {
 	Election        bool   `long:"election" description:"whether election of this input is enabled"`
 	Database        string `long:"database" description:"database name"`
 	SlowQueryTime   string `long:"slow-query-time" description:"Slow query time defined" default:""`
-	Tenant          string `long:"tenant" description:"Tenant" default:"oraclet"`
-	Cluster         string `long:"cluster" description:"Cluster name" default:"obcluster"`
+	Tenant          string `long:"tenant" description:"Tenant" default:""`
+	Cluster         string `long:"cluster" description:"Cluster name" default:""`
 	ConnectString   string `long:"conn" description:"Connect string" default:""`
+	Mode            string `long:"mode" description:"Running mode" default:""`
 
 	Log      string   `long:"log" description:"log path"`
 	LogLevel string   `long:"log-level" description:"log file" default:"info"`

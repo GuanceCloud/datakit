@@ -12,10 +12,55 @@ import (
 	"database/sql"
 	"fmt"
 	"math"
+	"strings"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/oceanbase/collect/ccommon"
 )
+
+var (
+	errEmptyRow    = fmt.Errorf("empty row")
+	errUnknownMode = fmt.Errorf("unknown mode")
+)
+
+//nolint:stylecheck
+type TENANT_MODE int
+
+const (
+	modeDefault TENANT_MODE = iota
+	modeMySQL
+	modeOracle
+)
+
+var tenantMode = modeDefault
+
+func getTenantModeName() string {
+	//nolint:exhaustive
+	switch tenantMode {
+	case modeMySQL:
+		return "MySQL"
+	case modeOracle:
+		return "Oracle"
+	}
+
+	return "Unknown"
+}
+
+//nolint:stylecheck
+type DB_STATUS int
+
+const (
+	Down DB_STATUS = iota
+	OK
+)
+
+type dbState struct {
+	Hostname string
+	Version  string
+	Status   DB_STATUS
+}
+
+////////////////////////////////////////////////////////////////////////////////
 
 type obMetrics struct {
 	x collectParameters
@@ -35,7 +80,7 @@ func newOBMetrics(opts ...collectOption) *obMetrics {
 	return m
 }
 
-func (m *obMetrics) Collect() (*point.Point, error) {
+func (m *obMetrics) Collect() ([]*point.Point, error) {
 	l.Debug("Collect entry")
 
 	tf, err := m.collectOB()
@@ -57,7 +102,7 @@ func (m *obMetrics) Collect() (*point.Point, error) {
 		Tags:       m.x.Ipt.tags,
 		Host:       m.x.Ipt.host,
 	}
-	return ccommon.BuildPoint(l, opt), nil
+	return []*point.Point{ccommon.BuildPoint(l, opt)}, nil
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -121,7 +166,7 @@ case WHEN(NVL(SUM(TOTAL), 0))!=0 THEN
   round(SUM(ACTIVE) / SUM(TOTAL), 3)
 ELSE 0
 END
-result
+RESULT
 FROM GV$MEMSTORE`
 
 type obMemStore struct {
@@ -172,7 +217,7 @@ case WHEN(NVL(SUM(ACCESS_COUNT), 0))!=0 THEN
   round(SUM(HIT_COUNT) / SUM(ACCESS_COUNT), 3) 
 ELSE 0 
 END 
-result 
+RESULT 
 FROM GV$PS_STAT`
 
 type obPsStat struct {
@@ -196,83 +241,130 @@ type obSessionWait struct {
 func (m *obMetrics) collectOB() (*ccommon.TagField, error) {
 	tf := ccommon.NewTagField()
 
+	var dbs *dbState
+	var err error
+
+	if tenantMode == modeDefault {
+		return nil, errUnknownMode
+	}
+
+	l.Debugf("tenantMode = %s", getTenantModeName())
+
+	//nolint:exhaustive
+	switch tenantMode {
+	case modeMySQL:
+		dbs, err = getMySQLStatus(m.x.Ipt)
+		if err != nil {
+			l.Errorf("getMySQLStatus() failed: %v", err)
+			tf.AddField("ob_database_status", int(Down), nil)
+			return tf, nil
+		}
+
+	case modeOracle:
+		rows := []obInstance{}
+		if err := selectWrapper(m.x.Ipt, &rows, SQL_INSTANCE); err != nil {
+			tf.AddField("ob_database_status", int(Down), nil)
+			return tf, nil
+		}
+
+		var hostName, version []string
+		status := OK
+		for _, v := range rows {
+			hostName = append(hostName, v.Hostname.String)
+			version = append(version, v.Version.String)
+
+			switch v.DatabaseStatus.String {
+			case "active":
+			default:
+				status = Down
+			}
+		}
+
+		var ds dbState
+		ds.Hostname = strings.Join(hostName, ", ")
+		ds.Version = strings.Join(version, ", ")
+		ds.Status = status
+		dbs = &ds
+	}
+
+	tf.AddTag("ob_host_name", dbs.Hostname)
+	tf.AddTag("ob_version", dbs.Version)
+	tf.AddField("ob_database_status", int(dbs.Status), nil)
+
 	{
 		rows := []obLock{}
 		if err := selectWrapper(m.x.Ipt, &rows, SQL_LOCK); err != nil {
-			return nil, err
+			tf.AddField("ob_database_status", int(Down), nil)
+			return tf, nil
 		}
 		for _, v := range rows {
 			tf.AddField("ob_lock_count", v.Count.Int64, nil)
 			tf.AddField("ob_lock_max_ctime", v.MaxCtime.Int64, nil)
+			break
 		}
 	}
 
 	{
 		rows := []obConcurrentLimitSQL{}
 		if err := selectWrapper(m.x.Ipt, &rows, SQL_CONCURRENT_LIMIT_SQL); err != nil {
-			return nil, err
+			tf.AddField("ob_database_status", int(Down), nil)
+			return tf, nil
 		}
 		for _, v := range rows {
 			tf.AddField("ob_concurrent_limit_sql_count", v.Count.Int64, nil)
-		}
-	}
-
-	{
-		rows := []obInstance{}
-		if err := selectWrapper(m.x.Ipt, &rows, SQL_INSTANCE); err != nil {
-			return nil, err
-		}
-		for _, v := range rows {
-			tf.AddTag("ob_host_name", v.Hostname.String)
-			tf.AddTag("ob_version", v.Version.String)
-
-			switch v.DatabaseStatus.String { //nolint:gocritic
-			case "active":
-				tf.AddField("ob_database_status", 1, nil)
-			default:
-				l.Errorf("Database status error: %s", v.DatabaseStatus.String)
-				tf.AddField("ob_database_status", 0, nil)
-			}
+			break
 		}
 	}
 
 	{
 		rows := []obMemory{}
 		if err := selectWrapper(m.x.Ipt, &rows, SQL_MEMORY); err != nil {
-			return nil, err
+			tf.AddField("ob_database_status", int(Down), nil)
+			return tf, nil
 		}
 		for _, v := range rows {
 			tf.AddField("ob_mem_sum_count", v.SumCount.Int64, nil)
 			tf.AddField("ob_mem_sum_used", v.SumUsed.Int64, nil)
+			break
 		}
 	}
 
 	{
 		rows := []obMemStore{}
 		if err := selectWrapper(m.x.Ipt, &rows, SQL_MEMSTORE); err != nil {
-			return nil, err
+			tf.AddField("ob_database_status", int(Down), nil)
+			return tf, nil
 		}
 		for _, v := range rows {
 			tf.AddField("ob_memstore_active_rate", getThreeDecimal(v.ActiveRate.Float64)*100, nil)
+			break
 		}
 	}
 
 	{
 		rows := []obSQLWorkareaMemoryInfo{}
 		if err := selectWrapper(m.x.Ipt, &rows, SQL_OB_SQL_WORKAREA_MEMORY_INFO); err != nil {
-			return nil, err
+			tf.AddField("ob_database_status", int(Down), nil)
+			return tf, nil
 		}
 		for _, v := range rows {
 			tf.AddField("ob_workarea_max_auto_workarea_size", v.MaxAutoWorkareaSize.Int64, nil)
 			tf.AddField("ob_workarea_mem_target", v.MemTarget.Int64, nil)
 			tf.AddField("ob_workarea_global_mem_bound", v.GlobalMemBound.Int64, nil)
+			break
+		}
+		if len(rows) == 0 {
+			tf.AddField("ob_workarea_max_auto_workarea_size", 0, nil)
+			tf.AddField("ob_workarea_mem_target", 0, nil)
+			tf.AddField("ob_workarea_global_mem_bound", 0, nil)
 		}
 	}
 
 	{
 		rows := []obPlanCacheStat{}
 		if err := selectWrapper(m.x.Ipt, &rows, SQL_PLAN_CACHE_STAT); err != nil {
-			return nil, err
+			tf.AddField("ob_database_status", int(Down), nil)
+			return tf, nil
 		}
 		for _, v := range rows {
 			{
@@ -287,26 +379,30 @@ func (m *obMetrics) collectOB() (*ccommon.TagField, error) {
 			}
 			tf.AddField("ob_plancache_avg_hit_rate", getOneDecimal(v.AvgHitRate.Float64), nil)
 			tf.AddField("ob_plancache_sum_plan_num", v.SumPlanNum.Int64, nil)
+			break
 		}
 	}
 
 	{
 		rows := []obPsStat{}
 		if err := selectWrapper(m.x.Ipt, &rows, SQL_PS_STAT); err != nil {
-			return nil, err
+			tf.AddField("ob_database_status", int(Down), nil)
+			return tf, nil
 		}
 		for _, v := range rows {
 			tf.AddField("ob_ps_hit_rate", getThreeDecimal(v.HitRate.Float64)*100, nil)
+			break
 		}
 	}
 
 	{
 		rows := []obSessionWait{}
 		if err := selectWrapper(m.x.Ipt, &rows, SQL_SESSION_WAIT); err != nil {
-			return nil, err
+			return tf, nil
 		}
 		for _, v := range rows {
 			tf.AddField("ob_session_avg_wait_time", getOneDecimal(v.AvgWaitTimeMicro.Float64), nil)
+			break
 		}
 	}
 
