@@ -345,7 +345,7 @@ ut: deps
 			echo "######################"; \
 		fi
 
-code_lint:
+code_lint: deps copyright_check
 	@truncate -s 0 lint.err
 ifeq ($(AUTO_FIX),on)
 		@printf "$(HL)lint with auto fix...\n$(NC)"; \
@@ -360,7 +360,8 @@ endif
 		exit -1; \
 	fi
 
-lint: deps copyright_check md_lint code_lint
+# lint code and document
+lint: code_lint md_lint
 
 prepare:
 	@mkdir -p internal/git
