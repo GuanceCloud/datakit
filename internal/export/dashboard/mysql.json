@@ -41,7 +41,7 @@
             "showTitle": true,
             "showTopSize": 10,
             "stackType": "time",
-            "tableSortMetricName": "写入次数",
+            "tableSortMetricName": "{{.Dashboard.write_counts}}",
             "timeInterval": "default",
             "titleDesc": "",
             "units": [],
@@ -51,7 +51,7 @@
         "group": {
           "name": "InnoDB"
         },
-        "name": "每秒缓冲池内存读写请求",
+        "name": "{{.Dashboard.read_write_requests_per_sec}}",
         "pos": {
           "h": 8,
           "w": 8,
@@ -65,7 +65,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "写入次数",
+              "alias": "{{.Dashboard.write_counts}}",
               "code": "A",
               "dataSource": "mysql_innodb",
               "field": "buffer_pool_write_requests",
@@ -88,7 +88,7 @@
               ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql_innodb`:(fill(AVG(`buffer_pool_write_requests`), linear) AS `写入次数`) { `host` = '#{host}' } BY `host`\")",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql_innodb`:(fill(AVG(`buffer_pool_write_requests`), linear) AS `{{.Dashboard.write_counts}}`) { `host` = '#{host}' } BY `host`\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -106,7 +106,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "读取次数",
+              "alias": "{{.Dashboard.read_counts_alias}}",
               "code": "B",
               "dataSource": "mysql_innodb",
               "field": "buffer_pool_read_requests",
@@ -129,7 +129,7 @@
               ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql_innodb`:(fill(AVG(`buffer_pool_read_requests`), linear) AS `读取次数`) { `host` = '#{host}' } BY `host`\")",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql_innodb`:(fill(AVG(`buffer_pool_read_requests`), linear) AS `{{.Dashboard.read_counts_alias}}`) { `host` = '#{host}' } BY `host`\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -224,46 +224,46 @@
               {
                 "key": "delete",
                 "name": "delete",
-                "unit": "次",
+                "unit": "{{.Dashboard.time_unit}}",
                 "units": [
                   "custom",
-                  "次"
+                  "{{.Dashboard.time_unit}}"
                 ]
               },
               {
                 "key": "insert",
                 "name": "insert",
-                "unit": "次",
+                "unit": "{{.Dashboard.time_unit}}",
                 "units": [
                   "custom",
-                  "次"
+                  "{{.Dashboard.time_unit}}"
                 ]
               },
               {
                 "key": "replace",
                 "name": "replace",
-                "unit": "次",
+                "unit": "{{.Dashboard.time_unit}}",
                 "units": [
                   "custom",
-                  "次"
+                  "{{.Dashboard.time_unit}}"
                 ]
               },
               {
                 "key": "select",
                 "name": "select",
-                "unit": "次",
+                "unit": "{{.Dashboard.time_unit}}",
                 "units": [
                   "custom",
-                  "次"
+                  "{{.Dashboard.time_unit}}"
                 ]
               },
               {
                 "key": "update",
                 "name": "update",
-                "unit": "次",
+                "unit": "{{.Dashboard.time_unit}}",
                 "units": [
                   "custom",
-                  "次"
+                  "{{.Dashboard.time_unit}}"
                 ]
               }
             ],
@@ -274,7 +274,7 @@
         "group": {
           "name": "InnoDB"
         },
-        "name": "每秒 SQL 执行次数",
+        "name": "{{.Dashboard.sql_exec_times_per_sec}}",
         "pos": {
           "h": 8,
           "w": 8,
@@ -529,8 +529,8 @@
             "topSize": 10,
             "units": [
               {
-                "key": "接收字节数",
-                "name": "接收字节数",
+                "key": "{{.Dashboard.bytes_received}}",
+                "name": "{{.Dashboard.bytes_received}}",
                 "unit": "",
                 "units": [
                   "traffic",
@@ -538,8 +538,8 @@
                 ]
               },
               {
-                "key": "发送字节数",
-                "name": "发送字节数",
+                "key": "{{.Dashboard.bytes_sent}}",
+                "name": "{{.Dashboard.bytes_sent}}",
                 "unit": "",
                 "units": [
                   "traffic",
@@ -553,7 +553,7 @@
         "group": {
           "name": "InnoDB"
         },
-        "name": "网络流量",
+        "name": "{{.Dashboard.net_traffic}}",
         "pos": {
           "h": 8,
           "w": 8,
@@ -567,7 +567,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "发送字节数",
+              "alias": "{{.Dashboard.bytes_sent}}",
               "code": "A",
               "dataSource": "mysql",
               "field": "Bytes_sent",
@@ -590,7 +590,7 @@
               ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(fill(AVG(`Bytes_sent`), linear) AS `发送字节数`) { `host` = '#{host}' } BY `host`\")",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(fill(AVG(`Bytes_sent`), linear) AS `{{.Dashboard.bytes_sent}}`) { `host` = '#{host}' } BY `host`\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -608,7 +608,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "接收字节数",
+              "alias": "{{.Dashboard.bytes_received}}",
               "code": "B",
               "dataSource": "mysql",
               "field": "Bytes_received",
@@ -631,7 +631,7 @@
               ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(fill(AVG(`Bytes_received`), linear) AS `接收字节数`) { `host` = '#{host}' } BY `host`\")",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(fill(AVG(`Bytes_received`), linear) AS `{{.Dashboard.bytes_received}}`) { `host` = '#{host}' } BY `host`\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -679,7 +679,7 @@
             "showLineAxis": false,
             "showTitle": true,
             "stackType": "time",
-            "tableSortMetricName": "打开表数",
+            "tableSortMetricName": "{{.Dashboard.open_tables_alias}}",
             "timeInterval": "default",
             "titleDesc": "",
             "units": [],
@@ -689,7 +689,7 @@
         "group": {
           "name": "InnoDB"
         },
-        "name": "每秒打开的表数",
+        "name": "{{.Dashboard.tables_opened_per_sec}}",
         "pos": {
           "h": 8,
           "w": 12,
@@ -703,7 +703,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "打开表数",
+              "alias": "{{.Dashboard.open_tables_alias}}",
               "code": "A",
               "dataSource": "mysql",
               "field": "Open_tables",
@@ -726,7 +726,7 @@
               ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mysql`:(fill(AVG(`Open_tables`), linear) AS `打开表数`) { `host` = '#{host}' } BY `host`",
+              "q": "M::`mysql`:(fill(AVG(`Open_tables`), linear) AS `{{.Dashboard.open_tables_alias}}`) { `host` = '#{host}' } BY `host`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -769,7 +769,7 @@
             "showTopSize": 10,
             "showTopWithMetric": "mysql_innodb_buffer_pool_pages_free",
             "stackType": "time",
-            "tableSortMetricName": "剩余页数",
+            "tableSortMetricName": "{{.Dashboard.left_pages}}",
             "timeInterval": "default",
             "titleDesc": "",
             "topSize": 10,
@@ -780,7 +780,7 @@
         "group": {
           "name": "InnoDB"
         },
-        "name": "缓冲池页数",
+        "name": "{{.Dashboard.buffer_pool_pages}}",
         "pos": {
           "h": 8,
           "w": 8,
@@ -794,7 +794,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "总页数",
+              "alias": "{{.Dashboard.left_pages}}",
               "code": "A",
               "dataSource": "mysql_innodb",
               "field": "buffer_pool_pages_total",
@@ -817,7 +817,7 @@
               ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mysql_innodb`:(fill(AVG(`buffer_pool_pages_total`), linear) AS `总页数`) { `host` = '#{host}' } BY `host`",
+              "q": "M::`mysql_innodb`:(fill(AVG(`buffer_pool_pages_total`), linear) AS `{{.Dashboard.left_pages}}`) { `host` = '#{host}' } BY `host`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -830,7 +830,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "可用页数",
+              "alias": "{{.Dashboard.free_pages_alias}}",
               "code": "B",
               "dataSource": "mysql_innodb",
               "field": "buffer_pool_pages_free",
@@ -853,7 +853,7 @@
               ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mysql_innodb`:(fill(AVG(`buffer_pool_pages_free`), linear) AS `可用页数`) { `host` = '#{host}' } BY `host`",
+              "q": "M::`mysql_innodb`:(fill(AVG(`buffer_pool_pages_free`), linear) AS `{{.Dashboard.free_pages_alias}}`) { `host` = '#{host}' } BY `host`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -893,7 +893,7 @@
             "showLine": false,
             "showTitle": true,
             "stackType": "time",
-            "tableSortMetricName": "临时文件",
+            "tableSortMetricName": "{{.Dashboard.tempoary_files_alias}}",
             "timeInterval": "default",
             "titleDesc": "",
             "units": [],
@@ -903,7 +903,7 @@
         "group": {
           "name": "InnoDB"
         },
-        "name": "每秒自动创建的临时表数",
+        "name": "{{.Dashboard.temporay_tables_created_per_sec}}",
         "pos": {
           "h": 8,
           "w": 12,
@@ -917,7 +917,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "临时表",
+              "alias": "{{.Dashboard.tempoary_tables_alias}}",
               "code": "C",
               "dataSource": "mysql",
               "field": "Created_tmp_tables",
@@ -940,7 +940,7 @@
               ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(fill(AVG(`Created_tmp_tables`), linear) AS `临时表`) { `host` = '#{host}' } BY `host`\")",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(fill(AVG(`Created_tmp_tables`), linear) AS `{{.Dashboard.tempoary_tables_alias}}`) { `host` = '#{host}' } BY `host`\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -958,7 +958,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "磁盘临时表",
+              "alias": "{{.Dashboard.tempoary_disk_tables_alias}}",
               "code": "B",
               "dataSource": "mysql",
               "field": "Created_tmp_disk_tables",
@@ -981,7 +981,7 @@
               ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(fill(AVG(`Created_tmp_disk_tables`), linear) AS `磁盘临时表`) { `host` = '#{host}' } BY `host`\")",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(fill(AVG(`Created_tmp_disk_tables`), linear) AS `{{.Dashboard.tempoary_disk_tables_alias}}`) { `host` = '#{host}' } BY `host`\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -999,7 +999,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "临时文件",
+              "alias": "{{.Dashboard.tempoary_files_alias}}",
               "code": "A",
               "dataSource": "mysql",
               "field": "Created_tmp_disk_tables",
@@ -1022,7 +1022,7 @@
               ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(fill(AVG(`Created_tmp_disk_tables`), linear) AS `临时文件`) { `host` = '#{host}' } BY `host`\")",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(fill(AVG(`Created_tmp_disk_tables`), linear) AS `{{.Dashboard.tempoary_files_alias}}`) { `host` = '#{host}' } BY `host`\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -1066,7 +1066,7 @@
             "showLine": false,
             "showTitle": true,
             "stackType": "time",
-            "tableSortMetricName": "写页面数",
+            "tableSortMetricName": "{{.Dashboard.write_pages_alias}}",
             "timeInterval": "default",
             "titleDesc": "",
             "units": [],
@@ -1076,7 +1076,7 @@
         "group": {
           "name": "InnoDB"
         },
-        "name": "每秒读写页数",
+        "name": "{{.Dashboard.read_write_pages_per_sec}}",
         "pos": {
           "h": 8,
           "w": 8,
@@ -1090,7 +1090,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "读页面数",
+              "alias": "{{.Dashboard.read_pages_alias}}",
               "code": "B",
               "dataSource": "mysql_innodb",
               "field": "buffer_pages_read",
@@ -1113,7 +1113,7 @@
               ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql_innodb`:(fill(AVG(`buffer_pages_read`), linear) AS `读页面数`) { `host` = '#{host}' } BY `host`\")",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql_innodb`:(fill(AVG(`buffer_pages_read`), linear) AS `{{.Dashboard.read_pages_alias}}`) { `host` = '#{host}' } BY `host`\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -1131,7 +1131,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "写页面数",
+              "alias": "{{.Dashboard.write_pages_alias}}",
               "code": "A",
               "dataSource": "mysql_innodb",
               "field": "buffer_pages_written",
@@ -1154,7 +1154,7 @@
               ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql_innodb`:(fill(AVG(`buffer_pages_written`), linear) AS `写页面数`) { `host` = '#{host}' } BY `host`\")",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql_innodb`:(fill(AVG(`buffer_pages_written`), linear) AS `{{.Dashboard.write_pages_alias}}`) { `host` = '#{host}' } BY `host`\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -1176,8 +1176,8 @@
             "colors": [
               {
                 "color": "rgba(249,117,117,1)",
-                "key": "读取请求",
-                "name": "读取请求"
+                "key": "{{.Dashboard.disk_read}}",
+                "name": "{{.Dashboard.disk_read}}"
               }
             ],
             "currentChartType": "sequence",
@@ -1195,7 +1195,10 @@
             "showLine": false,
             "showTopSize": 10,
             "stackType": "time",
-            "tableSortMetricName": "读取请求",
+            "tableSortMetricName": "{{.Dashboard.disk_read}}",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "global",
             "units": [],
             "xAxisShowType": "time"
           }
@@ -1203,7 +1206,7 @@
         "group": {
           "name": "InnoDB"
         },
-        "name": "每秒缓冲池磁盘读请求",
+        "name": "{{.Dashboard.disk_read_per_sec}}",
         "pos": {
           "h": 8,
           "w": 8,
@@ -1217,7 +1220,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "读取请求",
+              "alias": "{{.Dashboard.disk_read}}",
               "code": "A",
               "dataSource": "mysql_innodb",
               "field": "buffer_pool_reads",
@@ -1238,7 +1241,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql_innodb`:(fill(AVG(`buffer_pool_reads`), linear) AS `读取请求`) { `host` = '#{host}' }\")",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql_innodb`:(fill(AVG(`buffer_pool_reads`), linear) AS `{{.Dashboard.disk_read}}`) { `host` = '#{host}' }\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -1263,8 +1266,8 @@
             "colors": [
               {
                 "color": "rgba(73,139,254,1)",
-                "key": "剩余页数",
-                "name": "剩余页数"
+                "key": "{{.Dashboard.left_pages}}",
+                "name": "{{.Dashboard.left_pages}}"
               }
             ],
             "compareTitle": "",
@@ -1292,7 +1295,7 @@
             "showTopSize": 10,
             "showTopWithMetric": "mysql_innodb_buffer_pool_pages_free",
             "stackType": "time",
-            "tableSortMetricName": "当前正在等待锁的数量",
+            "tableSortMetricName": "{{.Dashboard.wait_locks_alias}}",
             "timeInterval": "default",
             "titleDesc": "",
             "topSize": 10,
@@ -1301,9 +1304,9 @@
           }
         },
         "group": {
-          "name": "锁信息"
+          "name": "{{.Dashboard.lock_information}}"
         },
-        "name": "行锁数",
+        "name": "{{.Dashboard.row_locks}}",
         "pos": {
           "h": 8,
           "w": 8,
@@ -1317,7 +1320,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "当前正在等待锁的数量",
+              "alias": "{{.Dashboard.wait_locks_alias}}",
               "code": "A",
               "dataSource": "mysql_innodb",
               "field": "lock_row_lock_current_waits",
@@ -1340,7 +1343,7 @@
               ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql_innodb`:(fill(AVG(`lock_row_lock_current_waits`), linear) AS `当前正在等待锁的数量`) { `host` = '#{host}' } BY `host`\")",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql_innodb`:(fill(AVG(`lock_row_lock_current_waits`), linear) AS `{{.Dashboard.wait_locks_alias}}`) { `host` = '#{host}' } BY `host`\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -1358,7 +1361,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "等待锁总数",
+              "alias": "{{.Dashboard.wait_locks_total_alias}}",
               "code": "B",
               "dataSource": "mysql_innodb",
               "field": "lock_row_lock_waits",
@@ -1381,7 +1384,7 @@
               ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql_innodb`:(fill(AVG(`lock_row_lock_waits`), linear) AS `等待锁总数`) { `host` = '#{host}' } BY `host`\")",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql_innodb`:(fill(AVG(`lock_row_lock_waits`), linear) AS `{{.Dashboard.wait_locks_total_alias}}`) { `host` = '#{host}' } BY `host`\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -1435,8 +1438,8 @@
             "topSize": 10,
             "units": [
               {
-                "key": "等待锁平均耗时",
-                "name": "等待锁平均耗时",
+                "key": "{{.Dashboard.avg_wait_time_alias}}",
+                "name": "{{.Dashboard.avg_wait_time_alias}}",
                 "unit": "",
                 "units": [
                   "time",
@@ -1444,8 +1447,8 @@
                 ]
               },
               {
-                "key": "等待锁总时长",
-                "name": "等待锁总时长",
+                "key": "{{.Dashboard.avg_locks_time_alias}}",
+                "name": "{{.Dashboard.avg_locks_time_alias}}",
                 "unit": "",
                 "units": [
                   "time",
@@ -1453,8 +1456,8 @@
                 ]
               },
               {
-                "key": "等待锁最大耗时",
-                "name": "等待锁最大耗时",
+                "key": "{{.Dashboard.avg_locks_max_time_alias}}",
+                "name": "{{.Dashboard.avg_locks_max_time_alias}}",
                 "unit": "",
                 "units": [
                   "time",
@@ -1466,9 +1469,9 @@
           }
         },
         "group": {
-          "name": "锁信息"
+          "name": "{{.Dashboard.lock_information}}"
         },
-        "name": "行锁耗时",
+        "name": "{{.Dashboard.row_lock_time}}",
         "pos": {
           "h": 8,
           "w": 8,
@@ -1482,7 +1485,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "等待锁平均耗时",
+              "alias": "{{.Dashboard.avg_wait_time_alias}}",
               "children": [
                 {
                   "alias": "",
@@ -1554,7 +1557,7 @@
               "code": "D",
               "expression": "A/(B+0.0001)",
               "funcList": [],
-              "q": "eval(A/(B+0.0001), alias='等待锁平均耗时', A=\"NON_NEGATIVE_DERIVATIVE(\\\"M::`mysql_innodb`:(fill(AVG(`lock_row_lock_time`), linear)) { `host` = '#{host}' } BY `host`\\\")\", B=\"NON_NEGATIVE_DERIVATIVE(\\\"M::`mysql_innodb`:(fill(AVG(`lock_row_lock_waits`), linear)) { `host` = '#{host}' } BY `host`\\\")\")",
+              "q": "eval(A/(B+0.0001), alias='{{.Dashboard.avg_lock_wait_time}}', A=\"NON_NEGATIVE_DERIVATIVE(\\\"M::`mysql_innodb`:(fill(AVG(`lock_row_lock_time`), linear)) { `host` = '#{host}' } BY `host`\\\")\", B=\"NON_NEGATIVE_DERIVATIVE(\\\"M::`mysql_innodb`:(fill(AVG(`lock_row_lock_waits`), linear)) { `host` = '#{host}' } BY `host`\\\")\")",
               "type": "expression"
             },
             "type": "sequence",
@@ -1566,7 +1569,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "等待锁最大耗时",
+              "alias": "{{.Dashboard.avg_locks_max_time_alias}}",
               "code": "A",
               "dataSource": "mysql_innodb",
               "field": "lock_row_lock_time_max",
@@ -1589,7 +1592,7 @@
               ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql_innodb`:(fill(AVG(`lock_row_lock_time_max`), linear) AS `等待锁最大耗时`) { `host` = '#{host}' } BY `host`\")",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql_innodb`:(fill(AVG(`lock_row_lock_time_max`), linear) AS `{{.Dashboard.avg_locks_max_time_alias}}`) { `host` = '#{host}' } BY `host`\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -1607,7 +1610,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "等待锁总时长",
+              "alias": "{{.Dashboard.avg_locks_time_alias}}",
               "code": "C",
               "dataSource": "mysql_innodb",
               "field": "lock_row_lock_time",
@@ -1630,7 +1633,7 @@
               ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql_innodb`:(AVG(`lock_row_lock_time`) AS `等待锁总时长`) { `host` = '#{host}' } BY `host`\")",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql_innodb`:(AVG(`lock_row_lock_time`) AS `{{.Dashboard.avg_locks_time_alias}}`) { `host` = '#{host}' } BY `host`\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -1655,8 +1658,8 @@
             "colors": [
               {
                 "color": "rgba(73,139,254,1)",
-                "key": "剩余页数",
-                "name": "剩余页数"
+                "key": "{{.Dashboard.left_pages}}",
+                "name": "{{.Dashboard.left_pages}}"
               }
             ],
             "compareTitle": "",
@@ -1684,7 +1687,7 @@
             "showTopSize": 10,
             "showTopWithMetric": "mysql_innodb_buffer_pool_pages_free",
             "stackType": "time",
-            "tableSortMetricName": "不能立即获得锁的数量",
+            "tableSortMetricName": "{{.Dashboard.locks_waited_alias}}",
             "timeInterval": "default",
             "titleDesc": "",
             "topSize": 10,
@@ -1693,9 +1696,9 @@
           }
         },
         "group": {
-          "name": "锁信息"
+          "name": "{{.Dashboard.lock_information}}"
         },
-        "name": "每秒表锁数",
+        "name": "{{.Dashboard.table_locks_per_sec}}",
         "pos": {
           "h": 8,
           "w": 8,
@@ -1709,7 +1712,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "不能立即获得锁的数量",
+              "alias": "{{.Dashboard.locks_waited_alias}}",
               "code": "B",
               "dataSource": "mysql",
               "field": "Table_locks_waited",
@@ -1733,7 +1736,7 @@
               ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(fill(AVG(`Table_locks_waited`), linear) AS `不能立即获得锁的数量`) { `host` = '#{host}' } BY `host`\")",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(fill(AVG(`Table_locks_waited`), linear) AS `{{.Dashboard.locks_waited_alias}}`) { `host` = '#{host}' } BY `host`\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -1751,7 +1754,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "立即获得锁的数量",
+              "alias": "{{.Dashboard.locks_immediate_alias}}",
               "code": "A",
               "dataSource": "mysql",
               "field": "Table_locks_immediate",
@@ -1774,7 +1777,7 @@
               ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(fill(AVG(`Table_locks_immediate`), linear) AS `立即获得锁的数量`) { `host` = '#{host}' } BY `host`\")",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(fill(AVG(`Table_locks_immediate`), linear) AS `{{.Dashboard.locks_immediate_alias}}`) { `host` = '#{host}' } BY `host`\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -1811,9 +1814,9 @@
           }
         },
         "group": {
-          "name": "概览"
+          "name": "{{.Dashboard.overview}}"
         },
-        "name": "Schema大小",
+        "name": "{{.Dashboard.schema_size}}",
         "pos": {
           "h": 16,
           "w": 8,
@@ -1888,16 +1891,16 @@
             "showLine": true,
             "showLineAxis": true,
             "showTitle": true,
-            "tableSortMetricName": "当前打开的连接数",
+            "tableSortMetricName": "{{.Dashboard.open_connections_alias}}",
             "timeInterval": "default",
             "titleDesc": "",
             "units": []
           }
         },
         "group": {
-          "name": "概览"
+          "name": "{{.Dashboard.overview}}"
         },
-        "name": "连接数",
+        "name": "{{.Dashboard.connection_number}}",
         "pos": {
           "h": 8,
           "w": 8,
@@ -1911,7 +1914,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "当前打开的连接数",
+              "alias": "{{.Dashboard.open_connections_alias}}",
               "code": "C",
               "dataSource": "mysql",
               "field": "Threads_connected",
@@ -1934,7 +1937,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mysql`:(AVG(`Threads_connected`) AS `当前打开的连接数`) { `host` = '#{host}' }",
+              "q": "M::`mysql`:(AVG(`Threads_connected`) AS `{{.Dashboard.open_connections_alias}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -1976,7 +1979,7 @@
           }
         },
         "group": {
-          "name": "概览"
+          "name": "{{.Dashboard.overview}}"
         },
         "name": "QPS",
         "pos": {
@@ -2062,7 +2065,7 @@
           }
         },
         "group": {
-          "name": "概览"
+          "name": "{{.Dashboard.overview}}"
         },
         "name": "TPS",
         "pos": {
@@ -2078,7 +2081,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "每秒事务数",
+              "alias": "{{.Dashboard.transactions_per_sec_alias}}",
               "children": [
                 {
                   "alias": "",
@@ -2150,7 +2153,7 @@
               "code": "B",
               "expression": "A+B",
               "funcList": [],
-              "q": "eval(A+B, alias='每秒事务数', A=\"NON_NEGATIVE_DERIVATIVE(\\\"M::`mysql`:(AVG(`Handler_commit`)) { `host` = '#{host}' } BY `host`\\\")\", B=\"NON_NEGATIVE_DERIVATIVE(\\\"M::`mysql`:(AVG(`Handler_rollback`)) { `host` = '#{host}' } BY `host`\\\")\")",
+              "q": "eval(A+B, alias='{{.Dashboard.transactions_per_sec_alias}}', A=\"NON_NEGATIVE_DERIVATIVE(\\\"M::`mysql`:(AVG(`Handler_commit`)) { `host` = '#{host}' } BY `host`\\\")\", B=\"NON_NEGATIVE_DERIVATIVE(\\\"M::`mysql`:(AVG(`Handler_rollback`)) { `host` = '#{host}' } BY `host`\\\")\")",
               "type": "expression"
             },
             "type": "sequence",
@@ -2191,9 +2194,9 @@
           }
         },
         "group": {
-          "name": "概览"
+          "name": "{{.Dashboard.overview}}"
         },
-        "name": "慢查询",
+        "name": "{{.Dashboard.slow_query}}",
         "pos": {
           "h": 8,
           "w": 8,
@@ -2207,12 +2210,12 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "慢SQL",
+              "alias": "{{.Dashboard.slow_sql}}",
               "code": "A",
               "dataSource": "mysql",
               "field": "Slow_queries",
               "fieldFunc": "avg",
-              "fieldType": "integer",
+              "fieldType": "float",
               "fill": null,
               "filters": [
                 {
@@ -2230,7 +2233,7 @@
               ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(AVG(`Slow_queries`) AS `慢SQL`) { `host` = '#{host}' } BY `host`\")",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(AVG(`Slow_queries`) AS `{{.Dashboard.slow_sql}}`) { `host` = '#{host}' } BY `host`\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -2277,9 +2280,9 @@
           }
         },
         "group": {
-          "name": "概览"
+          "name": "{{.Dashboard.overview}}"
         },
-        "name": "每秒无索引join查询次数",
+        "name": "{{.Dashboard.non_index_join_per_sec}}",
         "pos": {
           "h": 8,
           "w": 8,
@@ -2363,9 +2366,9 @@
           }
         },
         "group": {
-          "name": "概览"
+          "name": "{{.Dashboard.overview}}"
         },
-        "name": "行锁等待时长",
+        "name": "{{.Dashboard.row_lock_wait_time}}",
         "pos": {
           "h": 8,
           "w": 8,
@@ -2379,7 +2382,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "等待锁平均耗时",
+              "alias": "{{.Dashboard.avg_lock_wait_time}}",
               "code": "D",
               "dataSource": "mysql_innodb",
               "field": "lock_row_lock_time",
@@ -2402,7 +2405,7 @@
               ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql_innodb`:(AVG(`lock_row_lock_time`) AS `等待锁平均耗时`) { `host` = '#{host}' } BY `host`\")",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql_innodb`:(AVG(`lock_row_lock_time`) AS `{{.Dashboard.avg_lock_wait_time}}`) { `host` = '#{host}' } BY `host`\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -2454,7 +2457,7 @@
             "showTopSize": false,
             "showTopWithMetric": "mysql_connection_errors_internal",
             "stackType": "time",
-            "tableSortMetricName": "尝试与服务器连接导致",
+            "tableSortMetricName": "{{.Dashboard.mysql_connect_error}}",
             "timeInterval": "default",
             "titleDesc": "",
             "topSize": 10,
@@ -2463,9 +2466,9 @@
           }
         },
         "group": {
-          "name": "概览"
+          "name": "{{.Dashboard.overview}}"
         },
-        "name": "异常连接数",
+        "name": "{{.Dashboard.abnormal_connection_number}}",
         "pos": {
           "h": 8,
           "w": 8,
@@ -2479,7 +2482,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "尝试连接到服务器失败的次数",
+              "alias": "{{.Dashboard.aborted_connections_alias}}",
               "code": "B",
               "dataSource": "mysql",
               "field": "Aborted_connects",
@@ -2502,7 +2505,7 @@
               ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(fill(AVG(`Aborted_connects`), linear) AS `尝试连接到服务器失败的次数`) { `host` = '#{host}' } BY `host`\")",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(fill(AVG(`Aborted_connects`), linear) AS `{{.Dashboard.aborted_connections_alias}}`) { `host` = '#{host}' } BY `host`\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -2520,7 +2523,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "由于客户端没有正确关闭连接而中止的连接数",
+              "alias": "{{.Dashboard.aborted_clients_alias}}",
               "code": "A",
               "dataSource": "mysql",
               "field": "Aborted_clients",
@@ -2543,7 +2546,7 @@
               ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(fill(AVG(`Aborted_clients`), linear) AS `由于客户端没有正确关闭连接而中止的连接数`) { `host` = '#{host}' } BY `host`\")",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mysql`:(fill(AVG(`Aborted_clients`), linear) AS `{{.Dashboard.aborted_clients_alias}}`) { `host` = '#{host}' } BY `host`\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -2577,8 +2580,8 @@
             "titleDesc": "",
             "units": [
               {
-                "key": "接收字节数",
-                "name": "接收字节数",
+                "key": "{{.Dashboard.bytes_received}}",
+                "name": "{{.Dashboard.bytes_received}}",
                 "unit": "",
                 "units": [
                   "digital",
@@ -2586,8 +2589,8 @@
                 ]
               },
               {
-                "key": "发送字节数",
-                "name": "发送字节数",
+                "key": "{{.Dashboard.bytes_sent}}",
+                "name": "{{.Dashboard.bytes_sent}}",
                 "unit": "",
                 "units": [
                   "digital",
@@ -2600,9 +2603,9 @@
           }
         },
         "group": {
-          "name": "活动用户信息"
+          "name": "{{.Dashboard.active_user_info}}"
         },
-        "name": "MySQL 活动用户信息列表",
+        "name": "{{.Dashboard.active_user_list}}",
         "pos": {
           "h": 18,
           "w": 12,
@@ -2698,7 +2701,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "接收字节数",
+              "alias": "{{.Dashboard.bytes_received}}",
               "code": "C",
               "dataSource": "mysql_user_status",
               "field": "bytes_received",
@@ -2725,7 +2728,7 @@
               ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mysql_user_status`:(AVG(`bytes_received`) AS `接收字节数`) { `host` = '#{host}' } BY `user`",
+              "q": "M::`mysql_user_status`:(AVG(`bytes_received`) AS `{{.Dashboard.bytes_received}}`) { `host` = '#{host}' } BY `user`",
               "queryFuncs": [],
               "type": "simple",
               "withLabels": []
@@ -2739,7 +2742,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "发送字节数",
+              "alias": "{{.Dashboard.bytes_sent}}",
               "code": "D",
               "dataSource": "mysql_user_status",
               "field": "bytes_sent",
@@ -2766,7 +2769,7 @@
               ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mysql_user_status`:(AVG(`bytes_sent`) AS `发送字节数`) { `host` = '#{host}' } BY `user`",
+              "q": "M::`mysql_user_status`:(AVG(`bytes_sent`) AS `{{.Dashboard.bytes_sent}}`) { `host` = '#{host}' } BY `user`",
               "queryFuncs": [],
               "type": "simple",
               "withLabels": []
@@ -2780,12 +2783,12 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "慢查询数量",
+              "alias": "{{.Dashboard.slow_queries}}",
               "code": "E",
               "dataSource": "mysql_user_status",
               "field": "slow_queries",
               "fieldFunc": "avg",
-              "fieldType": "integer",
+              "fieldType": "float",
               "fill": null,
               "fillNum": null,
               "filters": [
@@ -2807,7 +2810,7 @@
               ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mysql_user_status`:(AVG(`slow_queries`) AS `慢查询数量`) { `host` = '#{host}' } BY `user`",
+              "q": "M::`mysql_user_status`:(AVG(`slow_queries`) AS `{{.Dashboard.slow_queries}}`) { `host` = '#{host}' } BY `user`",
               "queryFuncs": [],
               "type": "simple",
               "withLabels": []
@@ -2821,7 +2824,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "缓存命中数",
+              "alias": "{{.Dashboard.cache_hits}}",
               "code": "F",
               "dataSource": "mysql_user_status",
               "field": "table_open_cache_hits",
@@ -2848,7 +2851,7 @@
               ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mysql_user_status`:(AVG(`table_open_cache_hits`) AS `缓存命中数`) { `host` = '#{host}' } BY `user`",
+              "q": "M::`mysql_user_status`:(AVG(`table_open_cache_hits`) AS `{{.Dashboard.cache_hits}}`) { `host` = '#{host}' } BY `user`",
               "queryFuncs": [],
               "type": "simple",
               "withLabels": []
@@ -2880,9 +2883,9 @@
           }
         },
         "group": {
-          "name": "活动用户信息"
+          "name": "{{.Dashboard.active_user_info}}"
         },
-        "name": "当前活动用户 Connections 分布",
+        "name": "{{.Dashboard.user_connection_distribution}}",
         "pos": {
           "h": 18,
           "w": 6,
@@ -2958,9 +2961,9 @@
           }
         },
         "group": {
-          "name": "活动用户信息"
+          "name": "{{.Dashboard.active_user_info}}"
         },
-        "name": "当前活动用户慢查询分布",
+        "name": "{{.Dashboard.user_slow_query_distribution}}",
         "pos": {
           "h": 18,
           "w": 6,
@@ -3032,7 +3035,7 @@
           }
         },
         "group": {
-          "name": "概览"
+          "name": "{{.Dashboard.overview}}"
         },
         "name": "img",
         "pos": {
@@ -3060,9 +3063,9 @@
           }
         },
         "group": {
-          "name": "概览"
+          "name": "{{.Dashboard.overview}}"
         },
-        "name": "说明",
+        "name": "{{.Dashboard.description}}",
         "pos": {
           "h": 12,
           "w": 15,
@@ -3073,7 +3076,7 @@
           {
             "name": "",
             "query": {
-              "content": "使用这个仪表板，您可以获得连接数、QPS、TPS、吞吐量、异常连接数、每秒无索引join 查询次数、Schema 大小、慢查询、行锁等待时长、活动用户信息、缓冲情况、锁信息等。\n\n了解更多关于MySQL集成的信息：\n[我们的官方集成文档](https://docs.guance.com/integrations/datastorage/mysql/)\n[监控MySQL性能指标](https://docs.guance.com/datakit/mysql/#measurement)"
+              "content": "{{.Dashboard.description_content}}"
             }
           }
         ],
@@ -3081,10 +3084,10 @@
       }
     ],
     "groups": [
-      "概览",
-      "活动用户信息",
+      "{{.Dashboard.overview}}",
+      "{{.Dashboard.active_user_info}}",
       "InnoDB",
-      "锁信息"
+      "{{.Dashboard.lock_information}}"
     ],
     "type": "template",
     "vars": [
@@ -3100,7 +3103,7 @@
         },
         "hide": 0,
         "isHiddenAsterisk": 0,
-        "name": "主机名",
+        "name": "{{.Dashboard.host_name}}",
         "seq": 0,
         "type": "QUERY",
         "valueSort": "default"
@@ -3109,7 +3112,6 @@
   },
   "summary": "",
   "tagInfo": [],
-  "tags": [],
   "thumbnail": "",
-  "title": "Mysql 监控视图"
+  "title": "{{.Dashboard.title}}"
 }

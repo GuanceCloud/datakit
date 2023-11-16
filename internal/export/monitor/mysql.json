@@ -1,0 +1,152 @@
+{
+  "checkers": [
+    {
+      "extend": {
+        "funcName": "",
+        "isNeedCreateIssue": false,
+        "issueLevelUUID": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "mysql_user_status",
+              "field": "slow_queries",
+              "fieldFunc": "count",
+              "fieldType": "keyword",
+              "funcList": [],
+              "groupBy": [
+                "host",
+                "server",
+                "user"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mysql_user_status`:(COUNT(`slow_queries`)) BY `host`, `server`, `user`",
+              "type": "simple"
+            },
+            "uuid": "47e1e6ec-bfba-46ee-b5f0-bb4921dbb432"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "10"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "critical"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "5",
+                  "10"
+                ],
+                "operator": "between"
+              }
+            ],
+            "status": "error"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "5"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "warning"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "atAccounts": [],
+        "atNoDataAccounts": [],
+        "channels": [],
+        "checkerOpt": {
+          "infoEvent": false,
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "10"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "critical"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "5",
+                    "10"
+                  ],
+                  "operator": "between"
+                }
+              ],
+              "status": "error"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "5"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "warning"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "host",
+          "server",
+          "user"
+        ],
+        "interval": 300,
+        "message": "<<.Monitor.message>>",
+        "noDataMessage": "",
+        "noDataTitle": "",
+        "recoverNeedPeriodCount": 2,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`mysql_user_status`:(COUNT(`slow_queries`)) BY `host`, `server`, `user`",
+            "qtype": "dql"
+          }
+        ],
+        "title": "<<.Monitor.title>>",
+        "type": "simpleCheck"
+      },
+      "monitorName": "<<.Monitor.default_monitor_name>>",
+      "secret": "",
+      "tagInfo": []
+    }
+  ]
+}
