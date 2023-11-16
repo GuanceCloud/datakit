@@ -325,9 +325,9 @@ type DurTiming struct {
 // DurStats stores information related to journaling statistics.
 type DurStats struct {
 	Commits            int64 `bson:"commits"`
-	JournaledMB        int64 `bson:"journaledMB"`
-	WriteToDataFilesMB int64 `bson:"writeToDataFilesMB"`
-	Compression        int64 `bson:"compression"`
+	JournaledMB        int64 `bson:"journaledMB,truncate"`
+	WriteToDataFilesMB int64 `bson:"writeToDataFilesMB,truncate"`
+	Compression        int64 `bson:"compression,truncate"`
 	CommitsInWriteLock int64 `bson:"commitsInWriteLock"`
 	EarlyCommits       int64 `bson:"earlyCommits"`
 	TimeMs             DurTiming

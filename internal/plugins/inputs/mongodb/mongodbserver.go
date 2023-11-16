@@ -42,11 +42,13 @@ func (svr *MongodbServer) getDefaultTags() map[string]string {
 func (svr *MongodbServer) gatherServerStats() (*ServerStatus, error) {
 	rslt := svr.cli.Database("admin").RunCommand(context.TODO(), bson.M{"serverStatus": 1})
 	if err := rslt.Err(); err != nil {
+		log.Errorf("rslt.Err() failed: %v", err)
 		return nil, err
 	}
 
 	svrStatus := &ServerStatus{}
 	if err := rslt.Decode(svrStatus); err != nil {
+		log.Errorf("rslt.Decode() failed: %v", err)
 		return nil, err
 	}
 
