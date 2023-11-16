@@ -43,7 +43,7 @@ require (
 	github.com/gobwas/ws v1.1.0
 	github.com/godror/godror v0.17.0
 	github.com/gogo/protobuf v1.3.2
-	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/golang/protobuf v1.5.3
 	github.com/golang/snappy v0.0.4
 	github.com/google/gopacket v1.1.19
 	github.com/google/pprof v0.0.0-20230705174524-200ffdc848b8
@@ -362,6 +362,7 @@ require (
 	github.com/netsampler/goflow2 v1.3.5
 	github.com/oklog/ulid v1.3.1
 	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63
+	k8s.io/kubelet v0.0.0-00010101000000-000000000000
 )
 
 require (

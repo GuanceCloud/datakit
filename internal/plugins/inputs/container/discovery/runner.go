@@ -10,9 +10,7 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
-	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	kubev1guancebeta1 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/typed/guance/v1beta1"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 	apicorev1 "k8s.io/api/core/v1"
@@ -31,24 +29,35 @@ func (d *Discovery) newPromFromPodAnnotations() []*promRunner {
 			continue
 		}
 
-		runner, err := newPromRunnerWithURLParams(
-			"k8s.pod/"+pod.Name,
-			queryPodOwner(pod),
-			pod.Status.PodIP, // podIP:port
+		measurementName := queryPodOwner(pod)
+		if meas := pod.Annotations[annotationPrometheusioParamMeasurement]; meas != "" {
+			measurementName = meas
+		}
+
+		// scheme://podIP:port/path?params
+		urlstr, err := joinPromURL(pod.Status.PodIP,
 			pod.Annotations[annotationPrometheusioPort],
 			pod.Annotations[annotationPrometheusioScheme],
 			pod.Annotations[annotationPrometheusioPath],
-		)
+			"")
 		if err != nil {
-			klog.Warnf("failed to new prom runner of pod %s, err: %s, skip", pod.Name, err)
+			klog.Warnf("failed to parse config of pod %s, err: %s, skip", pod.Name, err)
 			continue
 		}
 
-		runner.setTag("namespace", pod.Namespace)
-		runner.setTag("pod_name", pod.Name)
-		runner.setTags(d.cfg.ExtraTags)
-		runner.setCustomerTags(pod.Labels, config.Cfg.Dataway.GlobalCustomerKeys)
+		config := newPromConfig(withSource(fmt.Sprintf("k8s/pod-annotations(%s)", pod.Name)),
+			withMeasurementName(measurementName),
+			withURLs([]string{urlstr}),
+			withTag("namespace", pod.Namespace),
+			withTag("pod_name", pod.Name),
+			withTags(d.cfg.ExtraTags),
+			withCustomerTags(pod.Labels, d.cfg.CustomerKeys))
 
+		runner, err := newPromRunnerWithConfig(d, config)
+		if err != nil {
+			klog.Warnf("failed to create runner of pod %s, err: %s, skip", pod.Name, err)
+			continue
+		}
 		klog.Infof("create prom runner of pod %s, urls %s", pod.Name, runner.conf.URLs)
 		res = append(res, runner)
 	}
@@ -70,26 +79,40 @@ func (d *Discovery) newPromFromServiceAnnotations() []*promRunner {
 		pods := d.getLocalPodsFromLabelSelector("service-export-to-pod", defaultNamespace, selector)
 
 		for _, pod := range pods {
-			runner, err := newPromRunnerWithURLParams(
-				fmt.Sprintf("k8s.service(%s)-pod/%s", svc.Name, pod.Name),
-				queryPodOwner(pod),
-				pod.Status.PodIP, // podIP:port
+			measurementName := queryPodOwner(pod)
+			if meas := svc.Annotations[annotationPrometheusioParamMeasurement]; meas != "" {
+				measurementName = meas
+			}
+
+			// This port is an annotation(prometheus.io/port) for the Service.
+			// If this port does not match the Pod port, the collect will fail.
+
+			// scheme://podIP:svc-port/path?params
+			urlstr, err := joinPromURL(pod.Status.PodIP,
 				svc.Annotations[annotationPrometheusioPort],
 				svc.Annotations[annotationPrometheusioScheme],
 				svc.Annotations[annotationPrometheusioPath],
-			)
+				"")
 			if err != nil {
-				klog.Warnf("failed to new prom runner of service %s to pod %s, err: %s, skip", svc.Name, pod.Name, err)
+				klog.Warnf("failed to parse config of svc %s to pod %s, err: %s, skip", svc.Name, pod.Name, err)
 				continue
 			}
 
-			runner.setTag("namespace", pod.Namespace)
-			runner.setTag("service_name", svc.Name)
-			runner.setTag("pod_name", pod.Name)
-			runner.setTags(d.cfg.ExtraTags)
-			runner.setCustomerTags(pod.Labels, config.Cfg.Dataway.GlobalCustomerKeys)
+			config := newPromConfig(withSource(fmt.Sprintf("k8s/service-annotations(%s)/pod(%s)", svc.Name, pod.Name)),
+				withMeasurementName(measurementName),
+				withURLs([]string{urlstr}),
+				withTag("namespace", pod.Namespace),
+				withTag("service_name", svc.Name),
+				withTag("pod_name", pod.Name),
+				withTags(d.cfg.ExtraTags),
+				withCustomerTags(pod.Labels, d.cfg.CustomerKeys))
 
-			klog.Infof("created prom runner of service %s to pod %s, urls %s", svc.Name, pod.Name, runner.conf.URLs)
+			runner, err := newPromRunnerWithConfig(d, config)
+			if err != nil {
+				klog.Warnf("failed to create runner of svc %s pod %s, err: %s, skip", svc.Name, pod.Name, err)
+				continue
+			}
+			klog.Infof("created prom runner of svc %s to pod %s, urls %s", svc.Name, pod.Name, runner.conf.URLs)
 			res = append(res, runner)
 		}
 	}
@@ -103,22 +126,25 @@ func (d *Discovery) newPromFromPodAnnotationExport() []*promRunner {
 	pods := d.getLocalPodsFromLabelSelector("pod-export-config", defaultNamespace, nil)
 
 	for _, pod := range pods {
-		cfg, ok := pod.Annotations[annotationPromExport]
+		cfgStr, ok := pod.Annotations[annotationPromExport]
 		if !ok {
 			continue
 		}
 
-		runners, err := newPromRunnersForPod(pod, cfg)
+		runners, err := newPromRunnersForPod(d, pod, cfgStr)
 		if err != nil {
 			klog.Warnf("failed to new prom runner of pod %s export-config, err: %s, skip", pod.Name, err)
 			continue
 		}
 
 		for _, runner := range runners {
-			runner.setTag("namespace", pod.Namespace)
-			runner.setTag("pod_name", pod.Name)
-			runner.setTags(d.cfg.ExtraTags)
-			runner.setCustomerTags(pod.Labels, config.Cfg.Dataway.GlobalCustomerKeys)
+			if runner.conf == nil {
+				continue
+			}
+			withTag("namespace", pod.Namespace)(runner.conf)
+			withTag("pod_name", pod.Name)(runner.conf)
+			withTags(d.cfg.ExtraTags)(runner.conf)
+			withCustomerTags(pod.Labels, d.cfg.CustomerKeys)(runner.conf)
 
 			klog.Infof("created prom runner of pod-export-config %s, urls %s", pod.Name, runner.conf.URLs)
 			res = append(res, runner)
@@ -134,18 +160,20 @@ func (d *Discovery) newPromFromDatakitCRD() []*promRunner {
 	fn := func(ins kubev1guancebeta1.DatakitInstance, pod *apicorev1.Pod) {
 		klog.Debugf("find CRD inputConf, pod %s, namespace %s, conf: %s", pod.Name, pod.Namespace, ins.InputConf)
 
-		runners, err := newPromRunnersForPod(pod, ins.InputConf)
+		runners, err := newPromRunnersForPod(d, pod, ins.InputConf)
 		if err != nil {
 			klog.Warnf("failed to new prom runner of crd, err: %s, skip", err)
 			return
 		}
 
 		for _, runner := range runners {
-			runner.setTag("namespace", pod.Namespace)
-			runner.setTag("pod_name", pod.Name)
-			runner.setTags(d.cfg.ExtraTags)
-			runner.setCustomerTags(pod.Labels, config.Cfg.Dataway.GlobalCustomerKeys)
-
+			if runner.conf == nil {
+				continue
+			}
+			withTag("namespace", pod.Namespace)(runner.conf)
+			withTag("pod_name", pod.Name)(runner.conf)
+			withTags(d.cfg.ExtraTags)(runner.conf)
+			withCustomerTags(pod.Labels, d.cfg.CustomerKeys)(runner.conf)
 			res = append(res, runner)
 		}
 	}
@@ -168,10 +196,7 @@ func (d *Discovery) newPromForPodMonitors() []*promRunner {
 	}
 
 	for idx, item := range list.Items {
-		if item == nil {
-			continue
-		}
-		if len(item.Spec.PodMetricsEndpoints) == 0 {
+		if item == nil || len(item.Spec.PodMetricsEndpoints) == 0 {
 			continue
 		}
 
@@ -199,36 +224,37 @@ func (d *Discovery) newPromForPodMonitors() []*promRunner {
 					continue
 				}
 
-				u, err := getPromURL(pod.Status.PodIP, strconv.Itoa(port), metricsEndpoints.Scheme, metricsEndpoints.Path)
+				// scheme://podIP:port/path?params
+				urlstr, err := joinPromURL(pod.Status.PodIP,
+					strconv.Itoa(port),
+					metricsEndpoints.Scheme,
+					metricsEndpoints.Path,
+					url.Values(metricsEndpoints.Params).Encode())
 				if err != nil {
-					// unreachable
-					continue
-				}
-				u.RawQuery = url.Values(metricsEndpoints.Params).Encode()
-
-				conf := &promConfig{
-					Source:          fmt.Sprintf("k8s.podMonitor(%s)-pod/%s", item.Name, pod.Name),
-					URLs:            []string{u.String()},
-					MeasurementName: queryPodOwner(pod),
-				}
-				if val, err := time.ParseDuration(metricsEndpoints.Interval); err != nil {
-					conf.Interval = defaultPrometheusioInterval
-				} else {
-					conf.Interval = val
-				}
-
-				runner, err := newPromRunnerWithConfig(conf)
-				if err != nil {
-					klog.Warnf("failed to new prom runner of PodMonitor %s pod %s, err: %s", item.Name, pod.Name, err)
+					klog.Warnf("failed to parse config of pod %s, err: %s, skip", pod.Name, err)
 					continue
 				}
 
-				runner.setTag("namespace", pod.Namespace)
-				runner.setTag("pod_name", pod.Name)
-				runner.setTags(d.cfg.ExtraTags)
-				runner.setTags(getTargetLabels(pod.Labels, item.Spec.PodTargetLabels))
-				runner.setCustomerTags(pod.Labels, config.Cfg.Dataway.GlobalCustomerKeys)
+				measurementName := queryPodOwner(pod)
+				if meas := getParamMeasurement(metricsEndpoints.Params); meas != "" {
+					measurementName = meas
+				}
 
+				config := newPromConfig(withSource(fmt.Sprintf("k8s/pod-monitor(%s)/pod(%s)", item.Name, pod.Name)),
+					withMeasurementName(measurementName),
+					withURLs([]string{urlstr}),
+					withTag("namespace", pod.Namespace),
+					withTag("pod_name", pod.Name),
+					withTags(d.cfg.ExtraTags),
+					withTags(getTargetLabels(pod.Labels, item.Spec.PodTargetLabels)),
+					withCustomerTags(pod.Labels, d.cfg.CustomerKeys),
+					withInterval(metricsEndpoints.Interval))
+
+				runner, err := newPromRunnerWithConfig(d, config)
+				if err != nil {
+					klog.Warnf("failed to new prom runner of PodMonitor %s pod %s, err: %s, skip", item.Name, pod.Name, err)
+					continue
+				}
 				klog.Infof("create prom runner for PodMonitor %s pod %s, urls: %#v", item.Name, pod.Name, runner.conf.URLs)
 				res = append(res, runner)
 			}
@@ -283,38 +309,39 @@ func (d *Discovery) newPromForServiceMonitors() []*promRunner {
 						continue
 					}
 
-					u, err := getPromURL(pod.Status.PodIP, strconv.Itoa(port), endpoint.Scheme, endpoint.Path)
+					// scheme://podIP:port/path?params
+					urlstr, err := joinPromURL(pod.Status.PodIP,
+						strconv.Itoa(port),
+						endpoint.Scheme,
+						endpoint.Path,
+						url.Values(endpoint.Params).Encode())
 					if err != nil {
-						// unreachable
+						klog.Warnf("failed to parse config of svc %s to pod %s, err: %s, skip", svc.Name, pod.Name, err)
 						continue
 					}
-					u.RawQuery = url.Values(endpoint.Params).Encode()
 
-					conf := &promConfig{
-						Source:          fmt.Sprintf("k8s.serviceMonitor(%s)-service(%s)-pod/%s", item.Name, svc.Name, pod.Name),
-						URLs:            []string{u.String()},
-						MeasurementName: queryPodOwner(pod),
-					}
-					if val, err := time.ParseDuration(endpoint.Interval); err != nil {
-						conf.Interval = defaultPrometheusioInterval
-					} else {
-						conf.Interval = val
+					measurementName := queryPodOwner(pod)
+					if meas := getParamMeasurement(endpoint.Params); meas != "" {
+						measurementName = meas
 					}
 
-					runner, err := newPromRunnerWithConfig(conf)
+					config := newPromConfig(withSource(fmt.Sprintf("k8s/service-monitor(%s)/service(%s)/pod(%s)", item.Name, svc.Name, pod.Name)),
+						withMeasurementName(measurementName),
+						withURLs([]string{urlstr}),
+						withTag("namespace", pod.Namespace),
+						withTag("pod_name", pod.Name),
+						withTag("service_name", svc.Name),
+						withTags(d.cfg.ExtraTags),
+						withTags(getTargetLabels(pod.Labels, item.Spec.PodTargetLabels)),
+						withTags(getTargetLabels(svc.Labels, item.Spec.TargetLabels)),
+						withCustomerTags(pod.Labels, d.cfg.CustomerKeys),
+						withInterval(endpoint.Interval))
+
+					runner, err := newPromRunnerWithConfig(d, config)
 					if err != nil {
 						klog.Warnf("failed to new PromRunner of serviceMonitor %s service %s, err: %s", item.Name, service.Name, err)
 						continue
 					}
-
-					runner.setTag("namespace", pod.Namespace)
-					runner.setTag("pod_name", pod.Name)
-					runner.setTag("service_name", svc.Name)
-					runner.setTags(getTargetLabels(pod.Labels, item.Spec.PodTargetLabels))
-					runner.setTags(getTargetLabels(svc.Labels, item.Spec.TargetLabels))
-					runner.setTags(d.cfg.ExtraTags)
-					runner.setCustomerTags(pod.Labels, config.Cfg.Dataway.GlobalCustomerKeys)
-
 					klog.Infof("create prom runner for ServiceMonitor %s service %s, urls: %s", item.Name, service.Name, runner.conf.URLs)
 					res = append(res, runner)
 				}
@@ -386,7 +413,9 @@ func (d *Discovery) getLocalPodsFromLabelSelector(source, namespace string, sele
 		return
 	}
 	for idx := range list.Items {
-		res = append(res, &list.Items[idx])
+		if list.Items[idx].Status.Phase == apicorev1.PodRunning {
+			res = append(res, &list.Items[idx])
+		}
 	}
 	return
 }
@@ -432,9 +461,9 @@ func (d *Discovery) getDeploymentLabelSelector(namespace, deployment string) (*m
 	return deploymentObj.Spec.Selector, nil
 }
 
-func newPromRunnersForPod(pod *apicorev1.Pod, inputConfig string) ([]*promRunner, error) {
+func newPromRunnersForPod(discovery *Discovery, pod *apicorev1.Pod, inputConfig string) ([]*promRunner, error) {
 	cfg := completePromConfig(inputConfig, pod)
-	return newPromRunnerWithTomlConfig(cfg)
+	return newPromRunnerWithTomlConfig(discovery, cfg)
 }
 
 func getTargetLabels(labels map[string]string, target []string) map[string]string {
@@ -450,4 +479,14 @@ func getTargetLabels(labels map[string]string, target []string) map[string]strin
 		m[replaceLabelKey(key)] = value
 	}
 	return m
+}
+
+func getParamMeasurement(params map[string][]string) string {
+	meas, ok := params["measurement"]
+	if ok {
+		if len(meas) > 0 {
+			return meas[0]
+		}
+	}
+	return ""
 }

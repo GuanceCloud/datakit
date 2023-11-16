@@ -58,7 +58,6 @@ func (c *container) tailingLogs(ins *logInstance) {
 			FromBeginning:            cfg.FromBeginning,
 			GlobalTags:               mergedTags,
 			BlockingMode:             c.ipt.LoggingBlockingMode,
-			MinFlushInterval:         c.ipt.LoggingMinFlushInterval,
 			MaxMultilineLifeDuration: c.ipt.LoggingMaxMultilineLifeDuration,
 			RemoveAnsiEscapeCodes:    c.ipt.LoggingRemoveAnsiEscapeCodes,
 			Done:                     done,

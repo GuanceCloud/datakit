@@ -25,8 +25,9 @@ Currently, Datakit supports Prometheus-Operator CRD resources —— `PodMonitor
     - podTargetLabels
     - podMetricsEndpoints:
         - interval
-            port
-            path
+          port
+          path
+	  params
     - namespaceSelector:
         any
         matchNames
@@ -35,8 +36,9 @@ Currently, Datakit supports Prometheus-Operator CRD resources —— `PodMonitor
     - podTargetLabels
     - endpoints:
         - interval
-            port
-            path
+          port
+          path
+	  params
     - namespaceSelector:
         any
         matchNames

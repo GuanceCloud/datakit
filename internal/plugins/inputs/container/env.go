@@ -41,7 +41,6 @@ import (
 // ENV_INPUT_CONTAINER_LOGGING_SOURCE_MULTILINE_MAP_JSON : string (JSON map)
 // ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_DETECTION: booler
 // ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_EXTRA_PATTERNS_JSON : string (JSON string array)
-// ENV_INPUT_CONTAINER_LOGGING_MIN_FLUSH_INTERVAL: string ("10s")
 // ENV_INPUT_CONTAINER_LOGGING_MAX_MULTILINE_LIFE_DURATION : string ("5s")
 // ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES : booler.
 func (ipt *Input) ReadEnv(envs map[string]string) {
@@ -212,14 +211,6 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_SEARCH_INTERVAL to time.Duration: %s, ignore", err)
 		} else {
 			ipt.LoggingSearchInterval = dur
-		}
-	}
-
-	if durStr, ok := envs["ENV_INPUT_CONTAINER_LOGGING_MIN_FLUSH_INTERVAL"]; ok {
-		if dur, err := time.ParseDuration(durStr); err != nil {
-			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_MIN_FLUSH_INTERVAL to time.Duration: %s, ignore", err)
-		} else {
-			ipt.LoggingMinFlushInterval = dur
 		}
 	}
 

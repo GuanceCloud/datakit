@@ -45,8 +45,9 @@ type Single struct {
 	decoder *encoding.Decoder
 	mult    *multiline.Multiline
 
-	readBuff  []byte
-	readLines int64
+	flushScore int
+	readBuff   []byte
+	readLines  int64
 
 	offset   int64 // 必然只在同一个 goroutine 操作，不必使用 atomic
 	readTime time.Time
@@ -239,12 +240,18 @@ func (t *Single) forwardMessage() {
 		err     error
 
 		checkTicker = time.NewTicker(checkInterval)
-		flushTicker = time.NewTicker(t.opt.MinFlushInterval)
 	)
 	defer checkTicker.Stop()
-	defer flushTicker.Stop()
 
 	for {
+		if t.shoudFlush() {
+			if t.mult != nil && t.mult.BuffLength() > 0 {
+				t.feed([]string{t.mult.FlushString()})
+				forceFlushVec.WithLabelValues(t.opt.Source, t.filepath).Inc()
+			}
+			t.resetFlushScore()
+		}
+
 		select {
 		case <-datakit.Exit.Wait():
 			t.opt.log.Infof("exiting: file %s", t.filepath)
@@ -252,11 +259,6 @@ func (t *Single) forwardMessage() {
 		case <-t.opt.Done:
 			t.opt.log.Infof("exiting: file %s", t.filepath)
 			return
-
-		case <-flushTicker.C:
-			if t.mult != nil && t.mult.BuffLength() > 0 {
-				t.feed([]string{t.mult.FlushString()})
-			}
 
 		case <-checkTicker.C:
 			did, _ := DidRotate(t.file, t.offset)
@@ -325,10 +327,8 @@ func (t *Single) forwardMessage() {
 			continue
 		}
 		t.readTime = time.Now()
-		flushTicker.Reset(t.opt.MinFlushInterval)
 
 		lines = b.split()
-
 		switch t.opt.Mode {
 		case FileMode:
 			t.defaultHandler(lines)
@@ -342,6 +342,7 @@ func (t *Single) forwardMessage() {
 
 		// 数据处理完成，再记录 offset
 		t.offset += int64(readNum)
+		t.resetFlushScore()
 	}
 }
 
@@ -631,6 +632,15 @@ func (t *Single) read() ([]byte, int, error) {
 
 func (t *Single) wait() {
 	time.Sleep(defaultSleepDuration)
+	t.flushScore++
+}
+
+func (t *Single) shoudFlush() bool {
+	return t.flushScore > 5
+}
+
+func (t *Single) resetFlushScore() {
+	t.flushScore = 0
 }
 
 func (t *Single) buildTags(globalTags map[string]string) map[string]string {

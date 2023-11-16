@@ -178,7 +178,7 @@ Datakit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
 
 #### 使用说明 {#datakit-operator-inject-lib-usage}
 
-1. 在目标 Kubernetes 集群，[下载和安装 Datakit-Operator](datakit-operator.md#datakit-operator-inject-lib)
+1. 在目标 Kubernetes 集群，[下载和安装 Datakit-Operator](datakit-operator.md#datakit-operator-overview-and-install)
 2. 在 deployment 添加指定 Annotation，表示需要注入 `ddtrace` 文件。注意 Annotation 要添加在 template 中
     - key 是 `admission.datakit/%s-lib.version`，%s 需要替换成指定的语言，目前支持 `java`、`python` 和 `js`
     - value 是指定版本号。如果为空，将使用环境变量的默认镜像版本
@@ -243,7 +243,7 @@ datakit-lib-init
 
 #### 使用说明 {#datakit-operator-inject-logfwd-instructions}
 
-1. 在目标 Kubernetes 集群，[下载和安装 Datakit-Operator](datakit-operator.md#datakit-operator-inject-lib)
+1. 在目标 Kubernetes 集群，[下载和安装 Datakit-Operator](datakit-operator.md#datakit-operator-overview-and-install)
 2. 在 deployment 添加指定 Annotation，表示需要挂载 logfwd sidecar。注意 Annotation 要添加在 template 中
     - key 统一是 `admission.datakit/logfwd.instances`
     - value 是一个 JSON 字符串，是具体的 logfwd 配置，示例如下：

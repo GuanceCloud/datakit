@@ -11,10 +11,11 @@ import (
 )
 
 var (
-	fetchErrorVec         *prometheus.GaugeVec
-	collectCostVec        *prometheus.SummaryVec
-	collectPtsVec         *prometheus.CounterVec
-	collectResourcePtsVec *prometheus.SummaryVec
+	fetchErrorVec           *prometheus.GaugeVec
+	collectCostVec          *prometheus.SummaryVec
+	collectPtsVec           *prometheus.CounterVec
+	collectResourcePtsVec   *prometheus.SummaryVec
+	podMetricsQueryCountVec *prometheus.CounterVec
 )
 
 func setupMetrics() {
@@ -70,10 +71,23 @@ func setupMetrics() {
 		},
 	)
 
+	podMetricsQueryCountVec = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "kubernetes",
+			Name:      "pod_metrics_query_total",
+			Help:      "Kubernetes query pod metrics count",
+		},
+		[]string{
+			"target",
+		},
+	)
+
 	metrics.MustRegister(
 		fetchErrorVec,
 		collectCostVec,
 		collectPtsVec,
 		collectResourcePtsVec,
+		podMetricsQueryCountVec,
 	)
 }

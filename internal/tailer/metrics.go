@@ -11,10 +11,11 @@ import (
 )
 
 var (
-	multilineVec *prometheus.CounterVec
-	rotateVec    *prometheus.CounterVec
-	parseFailVec *prometheus.CounterVec
-	openfileVec  *prometheus.GaugeVec
+	multilineVec  *prometheus.CounterVec
+	rotateVec     *prometheus.CounterVec
+	forceFlushVec *prometheus.CounterVec
+	parseFailVec  *prometheus.CounterVec
+	openfileVec   *prometheus.GaugeVec
 )
 
 func setupMetrics() {
@@ -38,6 +39,19 @@ func setupMetrics() {
 			Subsystem: "tailer",
 			Name:      "file_rotate_total",
 			Help:      "Tailer rotate total",
+		},
+		[]string{
+			"source",
+			"filepath",
+		},
+	)
+
+	forceFlushVec = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "tailer",
+			Name:      "buffer_force_flush_total",
+			Help:      "Tailer force flush total",
 		},
 		[]string{
 			"source",

@@ -171,7 +171,7 @@ The following functions are currently supported:
 
 #### Usage {#datakit-operator-inject-lib-usage}
 
-1. On the target Kubernetes cluster, [download and install Datakit-Operator](datakit-operator.md#datakit-operator-inject-lib).
+1. On the target Kubernetes cluster, [download and install Datakit-Operator](datakit-operator.md#datakit-operator-overview-and-install).
 2. Add a specified Annotation in deployment, indicating the need to inject ddtrace files. Note that the Annotation needs to be added in the template.
     - The key is `admission.datakit/%s-lib.version`, where %s needs to be replaced with the specified language. Currently supports `java`, `python` and `js`.
     - The value is the specified version number. If left blank, the default image version of the environment variable will be used.
@@ -233,7 +233,7 @@ $ datakit-lib-init
 
 #### Instructions {#datakit-operator-inject-logfwd-instructions}
 
-1. On the target Kubernetes cluster, [download and install Datakit-Operator](datakit-operator.md#datakit-operator-inject-lib).
+1. On the target Kubernetes cluster, [download and install Datakit-Operator](datakit-operator.md#datakit-operator-overview-and-install).
 2. In the deployment, add the specified Annotation to indicate that a logfwd sidecar needs to be mounted. Note that the Annotation should be added in the template.
     - The key is uniformly `admission.datakit/logfwd.instances`.
     - The value is a JSON string of specific logfwd configuration, as shown below:

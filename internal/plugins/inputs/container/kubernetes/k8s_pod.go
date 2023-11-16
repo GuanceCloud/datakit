@@ -55,16 +55,25 @@ func (p *pod) getMetadata(ctx context.Context, ns, fieldSelector string) (metada
 	}
 
 	p.continued = list.Continue
-	return &podMetadata{p, list}, nil
+
+	var metricsCollect PodMetricsCollect = newPodMetricsFromAPIServer(p.client)
+	// use NodeLocal mode
+	if strings.HasPrefix(fieldSelector, "spec.nodeName") {
+		metricsCollect = newPodMetricsFromKubelet(p.client)
+	}
+
+	return &podMetadata{p, list, metricsCollect}, nil
 }
 
 type podMetadata struct {
-	opt  *pod
-	list *apicorev1.PodList
+	opt            *pod
+	list           *apicorev1.PodList
+	metricsCollect PodMetricsCollect
 }
 
 func (m *podMetadata) transformMetric() pointKVs {
 	var res pointKVs
+	nodeInfo := nodeCapacity{}
 
 	for idx, item := range m.list.Items {
 		met := typed.NewPointKV(podMetricMeasurement)
@@ -72,6 +81,7 @@ func (m *podMetadata) transformMetric() pointKVs {
 		met.SetTag("uid", fmt.Sprintf("%v", item.UID))
 		met.SetTag("pod", item.Name)
 		met.SetTag("namespace", item.Namespace)
+		met.SetTag("node_name", item.Spec.NodeName)
 
 		met.SetField("ready", 0)
 		// "scheduled", "volumes_persistentvolumeclaims_readonly","unschedulable"
@@ -109,11 +119,14 @@ func (m *podMetadata) transformMetric() pointKVs {
 			}
 		}
 
-		// doesn't collect Job's pod-metrics
-		if canCollectPodMetrics() && !isBriefPod(&m.list.Items[idx]) {
-			p, err := queryPodFromMetricsServer(context.Background(), m.opt.client, &m.list.Items[idx])
+		if canCollectPodMetrics() && shouldCollectPodMetric(&m.list.Items[idx]) && m.metricsCollect != nil {
+			if nodeInfo.nodeName != item.Spec.NodeName {
+				nodeInfo = getCapacityFromNode(context.Background(), m.opt.client, item.Spec.NodeName)
+			}
+
+			p, err := queryPodMetrics(context.Background(), m.metricsCollect, &m.list.Items[idx], nodeInfo)
 			if err != nil {
-				klog.Warnf("pod %s from metrics-server fail, err: %s, skip", item.Name, err)
+				klog.Warnf("pod %s metric-pt fail, err: %s, skip", item.Name, err)
 			} else {
 				met.SetTags(p.Tags())
 				met.SetFields(p.Fields())
@@ -129,12 +142,9 @@ func (m *podMetadata) transformMetric() pointKVs {
 
 func (m *podMetadata) transformObject() pointKVs {
 	var res pointKVs
+	nodeInfo := nodeCapacity{}
 
 	for idx, item := range m.list.Items {
-		if isBriefPod(&m.list.Items[idx]) {
-			continue
-		}
-
 		obj := typed.NewPointKV(podObjectMeasurement)
 
 		obj.SetTag("name", fmt.Sprintf("%v", item.UID))
@@ -196,10 +206,14 @@ func (m *podMetadata) transformObject() pointKVs {
 			}
 		}
 
-		if canCollectPodMetrics() && !isBriefPod(&m.list.Items[idx]) {
-			p, err := queryPodFromMetricsServer(context.Background(), m.opt.client, &m.list.Items[idx])
+		if canCollectPodMetrics() && shouldCollectPodMetric(&m.list.Items[idx]) && m.metricsCollect != nil {
+			if nodeInfo.nodeName != item.Spec.NodeName {
+				nodeInfo = getCapacityFromNode(context.Background(), m.opt.client, item.Spec.NodeName)
+			}
+
+			p, err := queryPodMetrics(context.Background(), m.metricsCollect, &m.list.Items[idx], nodeInfo)
 			if err != nil {
-				klog.Warnf("pod %s from metrics-server fail, err: %s, skip", item.Name, err)
+				klog.Warnf("pod %s object-pt fail, err: %s, skip", item.Name, err)
 			} else {
 				obj.SetTags(p.Tags())
 				obj.SetFields(p.Fields())
@@ -213,21 +227,21 @@ func (m *podMetadata) transformObject() pointKVs {
 	return res
 }
 
-func isBriefPod(item *apicorev1.Pod) bool {
+func shouldCollectPodMetric(item *apicorev1.Pod) bool {
 	for _, owner := range item.OwnerReferences {
 		switch owner.Kind {
 		case "Job", "CronJob":
-			return true
+			return false
 		default:
 		}
 	}
-	return false
+	return item.Status.Phase == apicorev1.PodRunning
 }
 
-func queryPodFromMetricsServer(ctx context.Context, client k8sClient, item *apicorev1.Pod) (*typed.PointKV, error) {
+func queryPodMetrics(ctx context.Context, collect PodMetricsCollect, item *apicorev1.Pod, node nodeCapacity) (*typed.PointKV, error) {
 	p := typed.NewPointKV("NULL")
 
-	podMet, err := queryPodMetrics(ctx, client, item.Name, item.Namespace)
+	podMet, err := collect.GetPodMetrics(ctx, item.Namespace, item.Name)
 	if err != nil {
 		return p, err
 	}
@@ -236,12 +250,11 @@ func queryPodFromMetricsServer(ctx context.Context, client k8sClient, item *apic
 	p.SetField("cpu_usage_millicores", podMet.cpuUsageMilliCores)
 	p.SetField("mem_usage", podMet.memoryUsageBytes)
 
-	cpuCapacityMillicores, memCapacity := getCapacityFromNode(ctx, client, item.Spec.NodeName)
-	p.SetField("cpu_capacity_millicores", cpuCapacityMillicores)
-	p.SetField("mem_capacity", memCapacity)
+	p.SetField("cpu_capacity_millicores", node.cpuCapacityMillicores)
+	p.SetField("mem_capacity", node.memCapacity)
 
-	if cpuCapacityMillicores != 0 {
-		cores := cpuCapacityMillicores / 1e3
+	if node.cpuCapacityMillicores != 0 {
+		cores := node.cpuCapacityMillicores / 1e3
 		x := podMet.cpuUsage / float64(cores)
 		if math.IsNaN(x) {
 			x = 0.0
@@ -249,8 +262,8 @@ func queryPodFromMetricsServer(ctx context.Context, client k8sClient, item *apic
 		p.SetField("cpu_usage_base100", x)
 	}
 
-	if memCapacity != 0 {
-		p.SetField("mem_used_percent", float64(podMet.memoryUsageBytes)/float64(memCapacity)*100)
+	if node.memCapacity != 0 {
+		p.SetField("mem_used_percent", float64(podMet.memoryUsageBytes)/float64(node.memCapacity)*100)
 	}
 
 	memLimit := getMemoryLimitFromResource(item.Spec.Containers)
@@ -278,6 +291,7 @@ func (*podMetric) Info() *inputs.MeasurementInfo {
 			"uid":         inputs.NewTagInfo("The UID of pod."),
 			"pod":         inputs.NewTagInfo("Name must be unique within a namespace."),
 			"namespace":   inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"node_name":   inputs.NewTagInfo("NodeName is a request to schedule this pod onto a specific node."),
 			"deployment":  inputs.NewTagInfo("The name of the Deployment which the object belongs to."),
 			"daemonset":   inputs.NewTagInfo("The name of the DaemonSet which the object belongs to."),
 			"statefulset": inputs.NewTagInfo("The name of the StatefulSet which the object belongs to."),

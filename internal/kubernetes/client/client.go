@@ -24,6 +24,7 @@ import (
 	extensionsv1beta1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/flowcontrol"
+	statsv1alpha1 "k8s.io/kubelet/pkg/apis/stats/v1alpha1"
 	metricsv1beta1 "k8s.io/metrics/pkg/client/clientset/versioned/typed/metrics/v1beta1"
 
 	clientsetscheme "k8s.io/client-go/kubernetes/scheme"
@@ -55,6 +56,9 @@ type Client interface {
 	// metrics-server
 	GetPodMetricses(ns string) metricsv1beta1.PodMetricsInterface
 	GetNodeMetricses(ns string) metricsv1beta1.NodeMetricsInterface
+
+	// kubelet
+	GetMetricsFromKubelet() (*statsv1alpha1.Summary, error)
 }
 
 const (
@@ -128,6 +132,7 @@ func NewKubernetesClientFromTLS(baseURL string, tlsconfig *net.TLSClientConfig) 
 
 type client struct {
 	clientset              *kubernetes.Clientset
+	kubeletClient          *kubeletClient
 	metricsV1beta1         *metricsv1beta1.MetricsV1beta1Client
 	guanceV1beta1          *guancev1beta1.GuanceV1Client
 	prometheusMonitoringV1 *prometheusclientv1.Clientset
@@ -157,8 +162,19 @@ func newKubernetesClient(restConfig *rest.Config) (*client, error) {
 		return nil, err
 	}
 
+	kubeletConfig := KubeletClientConfig{
+		Client:      restConfig,
+		Scheme:      "https",
+		DefaultPort: 10250,
+	}
+	kubeletClient, err := NewKubeletClientForConfig(&kubeletConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	return &client{
 		clientset:              clientset,
+		kubeletClient:          kubeletClient,
 		metricsV1beta1:         metricsClient,
 		guanceV1beta1:          guanceClient,
 		prometheusMonitoringV1: prometheusClient,
@@ -239,4 +255,8 @@ func (c *client) GetPodMetricses(ns string) metricsv1beta1.PodMetricsInterface {
 
 func (c *client) GetNodeMetricses(ns string) metricsv1beta1.NodeMetricsInterface {
 	return c.metricsV1beta1.NodeMetricses()
+}
+
+func (c *client) GetMetricsFromKubelet() (*statsv1alpha1.Summary, error) {
+	return c.kubeletClient.GetMetrics()
 }

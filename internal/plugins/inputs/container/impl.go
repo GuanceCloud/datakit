@@ -270,6 +270,8 @@ func newDiscovery(ipt *Input) (*discovery.Discovery, error) {
 		EnablePrometheusServiceMonitors:    ipt.EnableAutoDiscoveryOfPrometheusServiceMonitors,
 		StreamSize:                         ipt.autoDiscoveryOfPromStreamSize,
 		ExtraTags:                          tags,
+		CustomerKeys:                       config.Cfg.Dataway.GlobalCustomerKeys,
+		Feeder:                             ipt.Feeder,
 	}
 
 	return discovery.NewDiscovery(client, &cfg, ipt.semStop.Wait()), nil

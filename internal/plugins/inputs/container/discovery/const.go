@@ -11,10 +11,11 @@ const (
 	annotationPromExport  = "datakit/prom.instances"
 	annotationPromIPIndex = "datakit/prom.instances.ip_index"
 
-	annotationPrometheusioScrape = "prometheus.io/scrape"
-	annotationPrometheusioPort   = "prometheus.io/port"
-	annotationPrometheusioPath   = "prometheus.io/path"
-	annotationPrometheusioScheme = "prometheus.io/scheme"
+	annotationPrometheusioScrape           = "prometheus.io/scrape"
+	annotationPrometheusioPort             = "prometheus.io/port"
+	annotationPrometheusioPath             = "prometheus.io/path"
+	annotationPrometheusioScheme           = "prometheus.io/scheme"
+	annotationPrometheusioParamMeasurement = "prometheus.io/param_measurement"
 )
 
 var (

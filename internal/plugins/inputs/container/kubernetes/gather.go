@@ -194,7 +194,13 @@ func transToPoint(pts pointKVs, opts []point.Option) []*point.Point {
 			append(point.NewTags(pt.Tags()), point.NewKVs(pt.Fields())...),
 			opts...,
 		)
+
 		res = append(res, r)
+	}
+
+	// debugging
+	if pts[0].Name() == "kube_pod" {
+		klog.Infof("pod-data, time: %s, pointKVs: %s", time.Now().Format(time.RFC3339), pts)
 	}
 
 	return res
