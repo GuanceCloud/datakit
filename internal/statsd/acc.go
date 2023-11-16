@@ -36,16 +36,11 @@ func (m *statsdMeasurement) Info() *inputs.MeasurementInfo {
 	return nil
 }
 
-type measurementInfo struct {
-	FeedMetricName string
-	PT             *point.Point
-}
-
 type accumulator struct {
-	ref              *Collector
-	measurementInfos []*measurementInfo
-	feedMetricName   string
-	l                *logger.Logger
+	ref            *Collector
+	points         []*point.Point
+	feedMetricName string
+	l              *logger.Logger
 }
 
 func (a *accumulator) addFields(name string, fields map[string]interface{}, tags map[string]string, ts time.Time) {
@@ -110,10 +105,7 @@ func (a *accumulator) addFields(name string, fields map[string]interface{}, tags
 		ts:   ts,
 	}
 
-	a.measurementInfos = append(a.measurementInfos, &measurementInfo{
-		FeedMetricName: a.feedMetricName,
-		PT:             metric.Point(),
-	})
+	a.points = append(a.points, metric.Point())
 }
 
 func (a *accumulator) doFeedMetricName(tags map[string]string) {

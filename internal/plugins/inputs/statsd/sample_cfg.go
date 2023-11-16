@@ -7,6 +7,12 @@ package statsd
 
 const sampleConfig = `
 [[inputs.statsd]]
+  ## Collector alias.
+  # source = "statsd/-/-"
+
+  ## Collect interval, default is 10 seconds. (optional)
+  # interval = '10s'
+
   protocol = "udp"
 
   ## Address and port to host UDP listener on
@@ -54,8 +60,8 @@ const sampleConfig = `
   metric_mapping = [ ]
 
   ## Number of UDP messages allowed to queue up, once filled,
-  ## the statsd server will start dropping packets
-  allowed_pending_messages = 10000
+  ## the statsd server will start dropping packets, default is 128.
+  # allowed_pending_messages = 128
 
   ## Number of timing/histogram values to track per-measurement in the
   ## calculation of percentiles. Raising this limit increases the accuracy

@@ -51,6 +51,12 @@ For example, Tomcat or Kafka:
 
     The collector can now be turned on by [configMap injection collector configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
 
+<!-- markdownlint-disable MD046 -->
+???+ info
+
+    If find lot of Feed: io busy in the log, can configure interval='1s', minimum is 1s.
+<!-- markdownlint-enable -->
+
 ### Tag data sources {#config-tag}
 
 If you want to tag the hosts captured by DDTrace, you can do so by injecting tags:

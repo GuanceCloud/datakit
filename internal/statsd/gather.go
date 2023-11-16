@@ -8,9 +8,11 @@ package statsd
 import (
 	"fmt"
 	"time"
+
+	"github.com/GuanceCloud/cliutils/point"
 )
 
-func (col *Collector) GetPoints() ([]*measurementInfo, error) {
+func (col *Collector) GetPoints() ([]*point.Point, error) {
 	col.opts.l.Debugf("try locking...")
 	col.Lock()
 	defer col.Unlock()
@@ -83,14 +85,14 @@ func (col *Collector) GetPoints() ([]*measurementInfo, error) {
 		col.sets = make(map[string]cachedset)
 	}
 
-	measurementInfos := make([]*measurementInfo, 0)
-	if len(col.acc.measurementInfos) > 0 {
-		measurementInfos = append(measurementInfos, col.acc.measurementInfos...)
-		col.acc.measurementInfos = col.acc.measurementInfos[:0]
+	points := make([]*point.Point, 0)
+	if len(col.acc.points) > 0 {
+		points = append(points, col.acc.points...)
+		col.acc.points = col.acc.points[:0]
 	}
 	col.expireCachedMetrics()
 
-	return measurementInfos, nil
+	return points, nil
 }
 
 func (col *Collector) expireCachedMetrics() {

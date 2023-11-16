@@ -14,6 +14,7 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -21,8 +22,10 @@ import (
 )
 
 const (
+	minInterval                = time.Second
+	maxInterval                = time.Minute
 	defaultProtocol            = "udp"
-	defaultAllowPendingMessage = 10000
+	defaultAllowPendingMessage = 128
 	inputName                  = "statsd"
 	catalog                    = "statsd"
 	defaultIOName              = "statsd/-/-"
@@ -30,6 +33,8 @@ const (
 
 // Input statsd allows the importing of statsd and dogstatsd data.
 type Input struct {
+	Source   string        `toml:"source"`
+	Interval time.Duration `toml:"interval"`
 	// Protocol used on listener - udp or tcp
 	Protocol string `toml:"protocol"`
 
@@ -123,7 +128,8 @@ func (ipt *Input) setup() error {
 		return nil
 	}
 
-	ipt.l = logger.SLogger(defaultIOName)
+	ipt.Interval = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval)
+	ipt.l = logger.SLogger(ipt.Source)
 
 	if ipt.ParseDataDogTags {
 		ipt.DataDogExtensions = true
@@ -170,38 +176,49 @@ func (ipt *Input) setup() error {
 }
 
 func (ipt *Input) Collect() error {
-	start := time.Now()
-
-	measurementInfos, err := ipt.Col.GetPoints()
+	points, err := ipt.Col.GetPoints()
 	if err != nil {
 		ipt.Feeder.FeedLastError(err.Error(),
 			dkio.WithLastErrorInput(inputName),
-			dkio.WithLastErrorSource(defaultIOName),
+			dkio.WithLastErrorSource(ipt.Source),
 		)
 		ipt.l.Errorf("GetPoints: %v", err)
 	}
-	if len(measurementInfos) > 0 {
-		for _, v := range measurementInfos {
-			// append tags to points
-			for kk, vv := range ipt.taggerTags {
-				v.PT.AddTag(kk, vv)
-			}
 
-			err = ipt.Feeder.Feed(v.FeedMetricName, point.Metric, []*point.Point{v.PT},
-				&dkio.Option{CollectCost: time.Since(start)})
-			if err != nil {
-				ipt.l.Errorf("Feed: %v", err)
-				ipt.Feeder.FeedLastError(err.Error(),
-					dkio.WithLastErrorInput(inputName),
-					dkio.WithLastErrorSource(v.FeedMetricName),
-				)
-			}
-		}
+	if len(points) > 0 {
+		ipt.feedBatch(points)
 	} else {
-		ipt.l.Infof("GetPoints 0 pts")
+		ipt.l.Debug("GetPoints 0 pts")
 	}
 
 	return nil
+}
+
+func (ipt *Input) feedBatch(points []*point.Point) {
+	start := time.Now()
+
+	pts := []*point.Point{}
+	for i, v := range points {
+		for kk, vv := range ipt.taggerTags {
+			v.AddTag(kk, vv)
+		}
+		pts = append(pts, v)
+
+		// i >= len(points)-1 --> last batch
+		// len(pts) >= 1024 --> 1024 pts per batch
+		if i >= len(points)-1 || len(pts) >= 1024 {
+			if err := ipt.Feeder.Feed(ipt.Source, point.Metric, pts,
+				&dkio.Option{CollectCost: time.Since(start)}); err != nil {
+				ipt.l.Errorf("Feed: %v", err)
+				ipt.Feeder.FeedLastError(err.Error(),
+					dkio.WithLastErrorInput(inputName),
+					dkio.WithLastErrorSource(ipt.Source),
+				)
+			}
+
+			pts = []*point.Point{}
+		}
+	}
 }
 
 func (ipt *Input) Run() {
@@ -226,7 +243,7 @@ func (ipt *Input) Run() {
 
 	ipt.taggerTags = inputs.MergeTags(ipt.Tagger.HostTags(), ipt.taggerTags, "")
 
-	tick := time.NewTicker(time.Second * 10)
+	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
 
 	for {
@@ -262,6 +279,8 @@ func (ipt *Input) Terminate() {
 
 func DefaultInput() *Input {
 	return &Input{
+		Source:                 defaultIOName,
+		Interval:               time.Second * 10,
 		Protocol:               defaultProtocol,
 		ServiceAddress:         ":8125",
 		MaxTCPConnections:      250,
