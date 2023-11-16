@@ -116,167 +116,195 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 	arch="amd64"
 fi
 
+printf "* Detect OS/Arch ${os}/${arch}\n"
+
 # Select installer
 installer_base_url="https://{{.InstallBaseURL}}"
 
 if [ -n "$DK_INSTALLER_BASE_URL" ]; then
 	installer_base_url=$DK_INSTALLER_BASE_URL
-	printf "* base url = %s\n" "$installer_base_url"
+	printf "* Set installer_base_url => $DK_INSTALLER_BASE_URL\n"
 fi
 
 installer_file="installer-${os}-${arch}-{{.Version}}"
-
-# shellcheck disable=SC2059
-printf "Detect installer ${installer_file}\n"
+printf "* Detect installer ${installer_file}\n"
 
 installer_url="${installer_base_url}/${installer_file}"
 installer=/tmp/dk-installer
 
+verbose_mode=
+if [ -n "$DK_VERBOSE" ]; then
+	verbose_mode="-v"
+	printf "* Set verbose_mode => ON\n"
+fi
+
 dataway=
 if [ -n "$DK_DATAWAY" ]; then
 	dataway=$DK_DATAWAY
+	printf "* Set dataway => $DK_DATAWAY\n"
 fi
 
 lite=
 if [ -n "$DK_LITE" ]; then
 	lite=$DK_LITE
+	printf "* Set lite => ON\n"
 fi
 
 global_customer_keys=
 if [ -n "$DK_SINKER_GLOBAL_CUSTOMER_KEYS" ]; then
 	global_customer_keys=$DK_SINKER_GLOBAL_CUSTOMER_KEYS
+	printf "* Set global_customer_keys => ${DK_SINKER_GLOBAL_CUSTOMER_KEYS}\n"
 fi
 
 dataway_sinker=
 if [ -n "$DK_DATAWAY_ENABLE_SINKER" ]; then
 	dataway_sinker=1
+	printf "* Set dataway_sinker => ON\n"
 fi
 
 upgrade=
 if [ -n "$DK_UPGRADE" ]; then
 	upgrade=$DK_UPGRADE
+	printf "* Set upgrade => ON\n"
 fi
 
 upgrade_manager=0
 if [ -n "$DK_UPGRADE_MANAGER" ]; then
-    upgrade_manager=$DK_UPGRADE_MANAGER
+	upgrade_manager=$DK_UPGRADE_MANAGER
+	printf "* Set upgrade_manager => ON\n"
 fi
 
 upgrade_ip_whitelist=
 if [ -n "$DK_UPGRADE_IP_WHITELIST" ]; then
-    upgrade_ip_whitelist=$DK_UPGRADE_IP_WHITELIST
+	upgrade_ip_whitelist=$DK_UPGRADE_IP_WHITELIST
+	printf "* Set upgrade_ip_whitelist => ${DK_UPGRADE_IP_WHITELIST} \n"
 fi
 
 def_inputs=
 if [ -n "$DK_DEF_INPUTS" ]; then
 	def_inputs=$DK_DEF_INPUTS
+	printf "* Set def_inputs => ${DK_DEF_INPUTS} \n"
 fi
 
 install_rum_symbol_tools=0
 if [ -n "$DK_INSTALL_RUM_SYMBOL_TOOLS" ]; then
-  install_rum_symbol_tools=1
+	install_rum_symbol_tools=1
+	printf "* Set install_rum_symbol_tools => ON\n"
 fi
 
 http_public_apis=""
 if [ -n "$DK_HTTP_PUBLIC_APIS" ]; then
-  http_public_apis="$DK_HTTP_PUBLIC_APIS"
-fi
-
-http_disabled_apis=""
-if [ -n "$DK_HTTP_DISABLED_APIS"  ]; then
-  http_disabled_apis="$DK_HTTP_DISABLED_APIS"
+	http_public_apis="$DK_HTTP_PUBLIC_APIS"
+	printf "* Set http_public_apis => ${DK_HTTP_PUBLIC_APIS} \n"
 fi
 
 global_host_tags=
 if [ -n "$DK_GLOBAL_HOST_TAGS" ]; then
 	global_host_tags=$DK_GLOBAL_HOST_TAGS
+	printf "* Set global_host_tags => ${DK_GLOBAL_HOST_TAGS} \n"
 fi
 
 global_election_tags=
 if [ -n "$DK_GLOBAL_ELECTION_TAGS" ]; then
 	global_election_tags=$DK_GLOBAL_ELECTION_TAGS
+	printf "* Set global_election_tags => ${DK_GLOBAL_ELECTION_TAGS} \n"
 fi
 
 cloud_provider=
 if [ -n "$DK_CLOUD_PROVIDER" ]; then
 	cloud_provider=$DK_CLOUD_PROVIDER
+	printf "* Set cloud_provider => ${DK_CLOUD_PROVIDER} \n"
 fi
 
 namespace=
 if [ -n "$DK_NAMESPACE" ]; then
 	namespace=$DK_NAMESPACE
+	printf "* Set namespace => ${DK_NAMESPACE} \n"
 fi
 
 http_listen="localhost"
 if [ -n "$DK_HTTP_LISTEN" ]; then
 	http_listen=$DK_HTTP_LISTEN
+	printf "* Set http_listen => ${DK_HTTP_LISTEN} \n"
 fi
 
 http_port=9529
 if [ -n "$DK_HTTP_PORT" ]; then
 	http_port=$DK_HTTP_PORT
+	printf "* Set http_port => ${DK_HTTP_PORT} \n"
 fi
 
 install_only=0
 if [ -n "$DK_INSTALL_ONLY" ]; then
 	install_only=1
+	printf "* Set install_only => ON \n"
 fi
 
 dca_white_list=""
 if [ -n "$DK_DCA_WHITE_LIST" ]; then
 	dca_white_list=$DK_DCA_WHITE_LIST
+	printf "* Set dca_white_list => ${DK_DCA_WHITE_LIST} \n"
 fi
 
 dca_listen=""
 if [ -n "$DK_DCA_LISTEN" ]; then
 	dca_listen=$DK_DCA_LISTEN
+	printf "* Set dca_listen => ${DK_DCA_LISTEN} \n"
 fi
 
 dca_enable=""
 if [ -n "$DK_DCA_ENABLE" ]; then
+
 	dca_enable="$DK_DCA_ENABLE"
 	if [ -z "$dca_white_list" ]; then
 		printf "${RED}[E] DCA service is enabled, but white list is not set in DK_DCA_WHITE_LIST!${CLR}\n"
 		exit 1;
 	fi
+
+	printf "* Set dca_enable => ON \n"
 fi
 
 pprof_listen=""
 if [ -n "$DK_PPROF_LISTEN" ]; then
 	pprof_listen=$DK_PPROF_LISTEN
+	printf "* Set pprof_listen => ${DK_PPROF_LISTEN} \n"
 fi
 
 ipdb_type=""
 if [ -n "$DK_INSTALL_IPDB" ]; then
 	ipdb_type=$DK_INSTALL_IPDB
+	printf "* Set ipdb_type => ${DK_INSTALL_IPDB} \n"
 fi
 
 install_externals=""
 if [ -n "$DK_INSTALL_EXTERNALS" ]; then
 	install_externals=$DK_INSTALL_EXTERNALS
+	printf "* Set install_externals => ON \n"
 fi
 
 if [ -n "$HTTP_PROXY" ]; then
 	proxy=$HTTP_PROXY
+	printf "* Set HTTP proxy => $HTTP_PROXY \n"
 fi
 
 if [ -n "$HTTPS_PROXY" ]; then
 	proxy=$HTTPS_PROXY
+	printf "* Set HTTPS proxy => $HTTPS_PROXY \n"
 fi
 
 # check nginx proxy
 proxy_type=""
 if [ -n "$DK_PROXY_TYPE" ]; then
 	proxy_type=$DK_PROXY_TYPE
-	proxy_type=$(echo "$proxy_type" | tr '[:upper:]' '[:lower:]') # to lowercase
-	printf "\n* found Proxy Type: %s\n" "$proxy_type"
+	proxy_type=$(echo "$proxy_type" | tr '[:upper:]' '[:lower:]') # => lowercase
+	printf "* Set proxy type => $proxy_type\n"
 
 	if [ "$proxy_type" = "nginx" ]; then
 		# env DK_NGINX_IP has the highest priority on proxy level
 		if [ -n "$DK_NGINX_IP" ]; then
 			proxy=$DK_NGINX_IP
 			if [ "$proxy" != "" ]; then
-				printf "\n* got nginx Proxy: %s\n" "$proxy"
+				printf "\n* Set nginx proxy => $DK_NGINX_IP \n"
 
 				for i in $domain; do
 					updateHosts "$proxy" "$i"
@@ -290,31 +318,31 @@ fi
 env_hostname=
 if [ -n "$DK_HOSTNAME" ]; then
 	env_hostname=$DK_HOSTNAME
+	printf "* Set env_hostname => $DK_HOSTNAME \n"
 fi
 
 limit_cpumax=30
 if [ -n "$DK_LIMIT_CPUMAX" ]; then
 	limit_cpumax=$DK_LIMIT_CPUMAX
-fi
-
-limit_cpumin=5
-if [ -n "$DK_LIMIT_CPUMIN" ]; then
-	limit_cpumin=$DK_LIMIT_CPUMIN
+	printf "* Set limit_cpumax => $DK_LIMIT_CPUMAX \n"
 fi
 
 limit_memmax=4096
 if [ -n "$DK_LIMIT_MEMMAX" ]; then
 	limit_memmax=$DK_LIMIT_MEMMAX
+	printf "* Set limit_memmax => $DK_LIMIT_MEMMAX \n"
 fi
 
 limit_disabled=0
 if [ -n "$DK_LIMIT_DISABLED" ]; then
 	limit_disabled=1
+	printf "* Set limit_disabled => ON \n"
 fi
 
 install_log=/var/log/datakit/install.log
 if [ -n "$DK_INSTALL_LOG" ]; then
 	install_log=$DK_INSTALL_LOG
+	printf "* Set install_log => $DK_INSTALL_LOG \n"
 fi
 
 confd_backend=""
@@ -401,77 +429,91 @@ fi
 git_url=""
 if [ -n "$DK_GIT_URL" ]; then
 	git_url=$DK_GIT_URL
+	printf "* Set git_url => $DK_GIT_URL \n"
 fi
 
 git_key_path=""
 if [ -n "$DK_GIT_KEY_PATH" ]; then
 	git_key_path=$DK_GIT_KEY_PATH
+	printf "* Set git_key_path => $DK_GIT_KEY_PATH \n"
 fi
 
 git_key_pw=""
 if [ -n "$DK_GIT_KEY_PW" ]; then
 	git_key_pw=$DK_GIT_KEY_PW
+	printf "* Set git_key_pw => $DK_GIT_KEY_PW \n"
 fi
 
 git_branch=""
 if [ -n "$DK_GIT_BRANCH" ]; then
 	git_branch=$DK_GIT_BRANCH
+	printf "* Set git_branch => $DK_GIT_BRANCH \n"
 fi
 
 git_pull_interval=""
 if [ -n "$DK_GIT_INTERVAL" ]; then
 	git_pull_interval=$DK_GIT_INTERVAL
+	printf "* Set git_pull_interval => $DK_GIT_INTERVAL \n"
 fi
 
 enable_election=""
 if [ -n "$DK_ENABLE_ELECTION" ]; then
 	enable_election=$DK_ENABLE_ELECTION
+	printf "* Set enable_election => $DK_ENABLE_ELECTION \n"
 fi
 
 rum_origin_ip_header=""
 if [ -n "$DK_RUM_ORIGIN_IP_HEADER" ]; then
 	rum_origin_ip_header=$DK_RUM_ORIGIN_IP_HEADER
+	printf "* Set rum_origin_ip_header => $DK_RUM_ORIGIN_IP_HEADER \n"
 fi
 
 disable_404page=""
 if [ -n "$DK_DISABLE_404PAGE" ]; then
 	disable_404page=$DK_DISABLE_404PAGE
+	printf "* Set disable_404page => $DK_DISABLE_404PAGE \n"
 fi
 
 log_level=""
 if [ -n "$DK_LOG_LEVEL" ]; then
 	log_level=$DK_LOG_LEVEL
+	printf "* Set log_level => $DK_LOG_LEVEL \n"
 fi
 
 log=""
 if [ -n "$DK_LOG" ]; then
 	log=$DK_LOG
+	printf "* Set log => $DK_LOG \n"
 fi
 
 gin_log=""
 if [ -n "$DK_GIN_LOG" ]; then
 	gin_log=$DK_GIN_LOG
+	printf "* Set gin_log => $DK_GIN_LOG \n"
 fi
 
 user_name=""
 if [ -n "$DK_USER_NAME" ]; then
 	user_name=$DK_USER_NAME
+	printf "* Set user_name => $DK_USER_NAME \n"
 fi
+
+printf "* Apply all DK_* envs done.\n"
 
 ##################
 # Try install...
 ##################
 # shellcheck disable=SC2059
-printf "\n* Downloading installer ${installer}\n"
+printf "\n* Downloading installer ${installer} from ${installer_url}\n"
 
 rm -rf $installer
 
 if [ "$proxy" ]; then # add proxy for curl
 	# shellcheck disable=SC2086
-	curl -s -x "$proxy" --fail --progress-bar $installer_url > $installer
+	curl $verbose_mode -x "$proxy" --fail --progress-bar $installer_url > $installer
 else
 	# shellcheck disable=SC2086
-	curl --fail --progress-bar $installer_url > $installer
+	curl $verbose_mode --fail --progress-bar $installer_url > $installer
 fi
 
 # Set executable
@@ -530,7 +572,6 @@ $sudo_cmd $installer \
 		--git-branch="${git_branch}" \
 		--git-pull-interval="${git_pull_interval}" \
 		--limit-cpumax="${limit_cpumax}" \
-		--limit-cpumin="${limit_cpumin}" \
 		--limit-memmax="${limit_memmax}" \
 		--limit-disabled="${limit_disabled}" \
 		--enable-election="${enable_election}" \

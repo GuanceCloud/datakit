@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
-	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
@@ -69,8 +68,8 @@ func upgradeMainConfig(c *config.Config) *config.Config {
 		}
 	}
 
-	cp.Infof("Set log to %s\n", c.Logging.Log)
-	cp.Infof("Set gin log to %s\n", c.Logging.GinLog)
+	l.Infof("Set log to %s", c.Logging.Log)
+	l.Infof("Set gin log to %s", c.Logging.GinLog)
 
 	// upgrade logging settings
 	if c.LogDeprecated != "" {

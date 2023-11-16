@@ -110,12 +110,12 @@ func metaGet(metaURL string) (res string) {
 func clientDo(req *http.Request, metaURL string) []byte {
 	resp, err := cloudCli.Do(req)
 	if err != nil {
-		l.Warn("%s, this maybe not a cloud node, ignored.", err)
+		l.Warnf("this maybe not a cloud node: %q, ignored.", err.Error())
 		return nil
 	}
 
 	if resp.StatusCode != 200 {
-		l.Warnf("request %s: status code %d", metaURL, resp.StatusCode)
+		l.Warnf("request %q got status code %d", metaURL, resp.StatusCode)
 		return nil
 	}
 	defer resp.Body.Close() //nolint:errcheck

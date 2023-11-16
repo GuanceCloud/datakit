@@ -14,7 +14,6 @@ import (
 	"sort"
 	"strings"
 
-	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
@@ -73,8 +72,11 @@ var (
 	Proxy,
 	Dataway string
 
-	HTTPPublicAPIs        string
-	HTTPDisabledAPIs      string
+	HTTPPublicAPIs string
+
+	// Deprecated.
+	HTTPDisabledAPIs string
+
 	InstallRUMSymbolTools int
 
 	DCAWhiteList,
@@ -125,8 +127,10 @@ var (
 	SinkerGlobalCustomerKeys string
 
 	LimitDisabled int
-	LimitCPUMax,
-	LimitCPUMin float64
+
+	LimitCPUMax float64
+	LimitCPUMin float64 // deprecated
+
 	LimitMemMax int64
 )
 
@@ -136,7 +140,7 @@ func mergeDefaultInputs(defaultList, enabledList []string, appendDefault bool) [
 		return defaultList // no inputs enabled(disabled), enable all default inputs
 	}
 
-	cp.Infof("enabledList: %+#v\n", enabledList)
+	l.Infof("enabled input list: %+#v", enabledList)
 
 	res := []string{}
 	blackList := map[string]bool{}
@@ -153,7 +157,7 @@ func mergeDefaultInputs(defaultList, enabledList []string, appendDefault bool) [
 		res = append(res, elem) // may be 'foo' or '-foo'
 		if strings.HasPrefix(elem, "-") {
 			blackList[elem] = true
-			cp.Warnf("input %q disabled\n", elem)
+			l.Warnf("input %q disabled", elem)
 		} else {
 			whiteList[elem] = true
 		}
@@ -168,11 +172,10 @@ func mergeDefaultInputs(defaultList, enabledList []string, appendDefault bool) [
 	//
 	// merge default enabled inputs
 	//
-
 	if len(blackList) > 0 {
 		for _, elem := range defaultList {
 			if _, ok := blackList["-"+elem]; !ok { // not disabled, then enable it
-				cp.Infof("input %q enabled\n", elem)
+				l.Infof("input %q enabled", elem)
 				res = append(res, elem)
 			}
 		}
@@ -181,12 +184,12 @@ func mergeDefaultInputs(defaultList, enabledList []string, appendDefault bool) [
 	if len(whiteList) > 0 {
 		for _, elem := range defaultList {
 			if appendDefault {
-				cp.Infof("input %q enabled\n", elem)
+				l.Infof("input %q enabled", elem)
 				res = append(res, elem)
 			} else {
 				// disable them
 				if _, ok := whiteList[elem]; !ok { // not enabled, then disable it
-					cp.Warnf("input %q disabled\n", elem)
+					l.Warnf("input %q disabled", elem)
 					res = append(res, "-"+elem)
 				}
 			}
@@ -240,12 +243,12 @@ func writeDefInputToMainCfg(mc *config.Config, upgrade bool) {
 
 	if CloudProvider != "" {
 		if err := injectCloudProvider(CloudProvider); err != nil {
-			cp.Warnf("Failed to inject cloud-provider: %s\n", err.Error())
+			l.Warnf("Failed to inject cloud-provider: %s", err.Error())
 		} else {
-			cp.Infof("Set cloud provider to %s ok\n", CloudProvider)
+			l.Infof("Set cloud provider to %s ok", CloudProvider)
 		}
 	} else {
-		cp.Infof("Cloud provider not set\n")
+		l.Infof("Cloud provider not set")
 	}
 }
 
@@ -269,7 +272,7 @@ func injectCloudProvider(p string) error {
 	case "": // pass
 
 	default:
-		cp.Warnf("Unknown cloud provider %s, ignored\n", p)
+		l.Warnf("Unknown cloud provider %q, ignored", p)
 	}
 
 	return nil
