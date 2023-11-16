@@ -105,22 +105,26 @@ monitor   :
     }
   ],
   "TCP": [
-      {
-        "name": "tcp-test",
-        "host": "www.baidu.com",
-        "port": "80",
-        "status": "OK",
-        "frequency": "10s",
-        "success_when_logic": "or",
-        "success_when": [
-            {"response_time": {
-                "is_contain_dns": true,
-                "target": "10ms"
-            }}
-        ],
-        "update_time": 1641440314550918
-      }
-    ]
+    {
+      "name": "tcp-test",
+      "host": "www.baidu.com",
+      "port": "80",
+      "status": "OK",
+      "frequency": "10s",
+      "success_when_logic": "or",
+      "success_when": [
+        {
+          "response_time": [
+            {
+              "is_contain_dns": true,
+              "target": "10ms"
+            }
+          ]
+        }
+      ],
+      "update_time": 1641440314550918
+    }
+  ]
 }
 ```
 
@@ -487,6 +491,7 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 | `host`          | string | Y        | TCP 主机地址                           |
 | `port`             | string | Y        | TCP 端口                    |
 | `timeout`             | string | N        | TCP 连接超时时间                    |
+| `message`       | string | N        | TCP 发送的消息                |
 
 完整 JSON 结构如下：
 
@@ -497,11 +502,12 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
             "name": "tcp-test",
             "host": "www.baidu.com",
             "port": "80",
+            "message": "hello",
             "timeout": "10ms",
             "enable_traceroute": true,
             "post_url": "https://<your-dataway-host>?token=<your-token>",
             "status": "OK",
-            "frequency": "10s",
+            "frequency": "60s",
             "success_when_logic": "and",
             "success_when": [
                 {
@@ -509,6 +515,11 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
                         {
                             "is_contain_dns": true,
                             "target": "10ms"
+                        }
+                    ],
+                    "response_message": [
+                        {
+                            "is": "hello"
                         }
                     ],
                     "hops": [
@@ -542,6 +553,33 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
       {
         "is_contain_dns": true,
         "target": "10ms"
+      }
+    ]
+  }
+]
+```
+
+- 返回消息判定（`response_message`）
+
+`response_message` 为一个数组对象，每个对象参数如下：
+
+| 字段              | 类型   | 是否必须 | 说明                                                |
+| :---              | ---    | ---      | ---                                                 |
+| `is`              | string | N        | 返回的 message 是否等于该指定字段                   |
+| `is_not`          | string | N        | 返回的 message 是否不等于该指定字段                 |
+| `match_regex`     | string | N        | 返回的 message 是否含有该匹配正则表达式的子字符串   |
+| `not_match_regex` | string | N        | 返回的 message 是否不含有该匹配正则表达式的子字符串 |
+| `contains`        | string | N        | 返回的 message 是否含有该指定的子字符串             |
+| `not_contains`    | string | N        | 返回的 message 是否不含有该指定的子字符串           |
+
+如：
+
+```json
+"success_when": [
+  {
+    "response_message": [
+      {
+        "is": "reply",
       }
     ]
   }
