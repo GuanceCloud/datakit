@@ -25,6 +25,7 @@ datakit_cpu_usage 4.9920266849857144
 
 |POSITION|TYPE|NAME|LABELS|HELP|
 |---|---|---|---|---|
+|*internal/config*|GAUGE|`datakit_config_datakit_ulimit`|`status`|Datakit ulimit|
 |*internal/dnswatcher*|COUNTER|`datakit_dns_domain_total`|`N/A`|DNS watched domain counter|
 |*internal/dnswatcher*|COUNTER|`datakit_dns_ip_updated_total`|`domain`|Domain IP updated counter|
 |*internal/dnswatcher*|COUNTER|`datakit_dns_watch_run_total`|`interval`|Watch run counter|
@@ -48,7 +49,7 @@ datakit_cpu_usage 4.9920266849857144
 |*internal/httpcli*|SUMMARY|`datakit_httpcli_tls_handshake_seconds`|`from`|HTTP TLS handshake cost|
 |*internal/httpcli*|SUMMARY|`datakit_httpcli_http_connect_cost_seconds`|`from`|HTTP connect cost|
 |*internal/httpcli*|SUMMARY|`datakit_httpcli_got_first_resp_byte_cost_seconds`|`from`|Got first response byte cost|
-|*internal/io/dataway*|SUMMARY|`datakit_io_build_body_batch_bytes`|`category,encoding`|Batch HTTP body size|
+|*internal/io/dataway*|SUMMARY|`datakit_io_build_body_batch_bytes`|`category,encoding,gzip`|Batch HTTP body size|
 |*internal/io/dataway*|COUNTER|`datakit_io_dataway_point_total`|`category,status`|Dataway uploaded points, partitioned by category and send status(HTTP status)|
 |*internal/io/dataway*|COUNTER|`datakit_io_dataway_point_bytes_total`|`category,enc,status`|Dataway uploaded points bytes, partitioned by category and pint send status(HTTP status)|
 |*internal/io/dataway*|SUMMARY|`datakit_io_dataway_api_latency_seconds`|`api,status`|Dataway HTTP request latency partitioned by HTTP API(method@url) and HTTP status|
@@ -77,14 +78,13 @@ datakit_cpu_usage 4.9920266849857144
 |*internal/io*|GAUGE|`datakit_io_flush_workers`|`category`|IO flush workers|
 |*internal/io*|COUNTER|`datakit_io_flush_total`|`category`|IO flush total|
 |*internal/io*|GAUGE|`datakit_io_queue_points`|`category`|IO module queued(cached) points|
-|*internal/io*|GAUGE|`datakit_last_err`|`input,source,category,error`|Datakit errors(when error occurred), these errors come from inputs or any sub modules|
 |*internal/metrics*|GAUGE|`datakit_goroutines`|`N/A`|Goroutine count within Datakit|
 |*internal/metrics*|GAUGE|`datakit_heap_alloc_bytes`|`N/A`|Datakit memory heap bytes|
 |*internal/metrics*|GAUGE|`datakit_sys_alloc_bytes`|`N/A`|Datakit memory system bytes|
 |*internal/metrics*|GAUGE|`datakit_cpu_usage`|`N/A`|Datakit CPU usage(%)|
 |*internal/metrics*|GAUGE|`datakit_open_files`|`N/A`|Datakit open files(only available on Linux)|
 |*internal/metrics*|GAUGE|`datakit_cpu_cores`|`N/A`|Datakit CPU cores|
-|*internal/metrics*|GAUGE|`datakit_uptime_seconds`|`hostname,resource_limit,lite,version=?,build_at=?,branch=?,os_arch=?,docker=?,auto_update=?`|Datakit uptime|
+|*internal/metrics*|GAUGE|`datakit_uptime_seconds`|`hostname,resource_limit,lite,os_arch=?,docker=?,auto_update=?,version=?,build_at=?,branch=?`|Datakit uptime|
 |*internal/metrics*|GAUGE|`datakit_data_overuse`|`N/A`|Does current workspace's data(metric/logging) usage(if 0 not beyond, or with a unix timestamp when overuse occurred)|
 |*internal/metrics*|COUNTER|`datakit_process_ctx_switch_total`|`type`|Datakit process context switch count(Linux only)|
 |*internal/metrics*|COUNTER|`datakit_process_io_count_total`|`type`|Datakit process IO count|
@@ -92,7 +92,8 @@ datakit_cpu_usage 4.9920266849857144
 |*internal/plugins/inputs/container/kubernetes*|GAUGE|`datakit_kubernetes_fetch_error`|`namespace,resource,error`|Kubernetes resource fetch error|
 |*internal/plugins/inputs/container/kubernetes*|SUMMARY|`datakit_kubernetes_collect_cost_seconds`|`category`|Kubernetes resource collect cost|
 |*internal/plugins/inputs/container/kubernetes*|COUNTER|`datakit_kubernetes_collect_pts_total`|`category`|Kubernetes collect point total|
-|*internal/plugins/inputs/container/kubernetes*|SUMMARY|`datakit_kubernetes_collect_resource_pts_num`|`category,kind`|Kubernetes resource collect point count|
+|*internal/plugins/inputs/container/kubernetes*|SUMMARY|`datakit_kubernetes_collect_resource_pts_num`|`category,kind,fieldselector`|Kubernetes resource collect point count|
+|*internal/plugins/inputs/container/kubernetes*|COUNTER|`datakit_kubernetes_pod_metrics_query_total`|`target`|Kubernetes query pod metrics count|
 |*internal/plugins/inputs/container*|SUMMARY|`datakit_container_collect_cost_seconds`|`category`|Container collect cost|
 |*internal/plugins/inputs/container*|COUNTER|`datakit_container_collect_pts_total`|`category`|Container collect point total|
 |*internal/plugins/inputs/dialtesting*|GAUGE|`datakit_dialtesting_worker_job_chan_number`|`type`|The number of the channel for the jobs|
@@ -117,16 +118,19 @@ datakit_cpu_usage 4.9920266849857144
 |*internal/plugins/inputs/rum*|SUMMARY|`datakit_rum_source_map_duration_seconds`|`sdk_name,app_id,env,version`|statistics elapsed time in RUM source map(unit: second)|
 |*internal/plugins/inputs/rum*|SUMMARY|`datakit_rum_session_replay_upload_latency_seconds`|`app_id,env,version,service,status_code`|statistics elapsed time in session replay uploading|
 |*internal/plugins/inputs/rum*|COUNTER|`datakit_rum_session_replay_dropped_total`|`app_id,env,version,service,status_code`|statistics count of dropped session replay points since uploading fail|
-|*internal/prom*|SUMMARY|`datakit_prom_collect_points`|`source`|Total number of prom collection points|
-|*internal/prom*|SUMMARY|`datakit_prom_http_get_bytes`|`source`|HTTP get bytes|
-|*internal/prom*|SUMMARY|`datakit_prom_http_latency_in_second`|`source`|HTTP latency(in second)|
+|*internal/prom*|SUMMARY|`datakit_prom_collect_points`|`mode,source`|Total number of prom collection points|
+|*internal/prom*|SUMMARY|`datakit_prom_http_get_bytes`|`mode,source`|HTTP get bytes|
+|*internal/prom*|SUMMARY|`datakit_prom_http_latency_in_second`|`mode,source`|HTTP latency(in second)|
+|*internal/prom*|GAUGE|`datakit_prom_stream_size`|`mode,source`|Stream size|
 |*internal/tailer*|COUNTER|`datakit_tailer_collect_multiline_state_total`|`source,filepath,multilinestate`|Tailer multiline state total|
 |*internal/tailer*|COUNTER|`datakit_tailer_file_rotate_total`|`source,filepath`|Tailer rotate total|
+|*internal/tailer*|COUNTER|`datakit_tailer_buffer_force_flush_total`|`source,filepath`|Tailer force flush total|
 |*internal/tailer*|COUNTER|`datakit_tailer_parse_fail_total`|`source,filepath,mode`|Tailer parse fail total|
 |*internal/tailer*|GAUGE|`datakit_tailer_open_file_num`|`mode`|Tailer open file total|
 |*vendor/github.com/GuanceCloud/cliutils/diskcache*|COUNTER|`diskcache_put_bytes_total`|`path`|Cache Put() bytes count|
 |*vendor/github.com/GuanceCloud/cliutils/diskcache*|COUNTER|`diskcache_get_total`|`path`|Cache Get() count|
 |*vendor/github.com/GuanceCloud/cliutils/diskcache*|COUNTER|`diskcache_wakeup_total`|`path`|Wakeup count on sleeping write file|
+|*vendor/github.com/GuanceCloud/cliutils/diskcache*|COUNTER|`diskcache_seek_back_total`|`path`|Seek back when Get() got any error|
 |*vendor/github.com/GuanceCloud/cliutils/diskcache*|COUNTER|`diskcache_get_bytes_total`|`path`|Cache Get() bytes count|
 |*vendor/github.com/GuanceCloud/cliutils/diskcache*|GAUGE|`diskcache_capacity`|`path`|Current capacity(in bytes)|
 |*vendor/github.com/GuanceCloud/cliutils/diskcache*|GAUGE|`diskcache_max_data`|`path`|Max data to Put(in bytes), default 0|
@@ -138,7 +142,7 @@ datakit_cpu_usage 4.9920266849857144
 |*vendor/github.com/GuanceCloud/cliutils/diskcache*|SUMMARY|`diskcache_get_latency`|`path`|Get() time cost(micro-second)|
 |*vendor/github.com/GuanceCloud/cliutils/diskcache*|SUMMARY|`diskcache_put_latency`|`path`|Put() time cost(micro-second)|
 |*vendor/github.com/GuanceCloud/cliutils/diskcache*|COUNTER|`diskcache_dropped_bytes_total`|`path`|Dropped bytes during Put() when capacity reached.|
-|*vendor/github.com/GuanceCloud/cliutils/diskcache*|COUNTER|`diskcache_dropped_total`|`path`|Dropped files during Put() when capacity reached.|
+|*vendor/github.com/GuanceCloud/cliutils/diskcache*|COUNTER|`diskcache_dropped_total`|`path,reason`|Dropped files during Put() when capacity reached.|
 |*vendor/github.com/GuanceCloud/cliutils/diskcache*|COUNTER|`diskcache_rotate_total`|`path`|Cache rotate count, mean file rotate from data to data.0000xxx|
 |*vendor/github.com/GuanceCloud/cliutils/diskcache*|COUNTER|`diskcache_remove_total`|`path`|Removed file count, if some file read EOF, remove it from un-read list|
 |*vendor/github.com/GuanceCloud/cliutils/diskcache*|COUNTER|`diskcache_put_total`|`path`|Cache Put() count|
