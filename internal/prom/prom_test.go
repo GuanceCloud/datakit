@@ -1901,7 +1901,7 @@ up 1
 					return err
 				}
 
-				collectPointsTotalVec.WithLabelValues(p.opt.source, p.getMode()).Observe(float64(len(pts)))
+				collectPointsTotalVec.WithLabelValues(p.getMode(), p.opt.source).Observe(float64(len(pts)))
 
 				return p.opt.batchCallback(pts)
 			}
@@ -1997,7 +1997,7 @@ func TestIgnoreReqErrBatch(t *testing.T) {
 					return err
 				}
 
-				collectPointsTotalVec.WithLabelValues(p.opt.source, p.getMode()).Observe(float64(len(pts)))
+				collectPointsTotalVec.WithLabelValues(p.getMode(), p.opt.source).Observe(float64(len(pts)))
 
 				return p.opt.batchCallback(pts)
 			}
@@ -2404,7 +2404,7 @@ up 1
 					return err
 				}
 
-				collectPointsTotalVec.WithLabelValues(p.opt.source, p.getMode()).Observe(float64(len(pts)))
+				collectPointsTotalVec.WithLabelValues(p.getMode(), p.opt.source).Observe(float64(len(pts)))
 
 				return p.opt.batchCallback(pts)
 			}
@@ -2525,7 +2525,7 @@ up 1
 			return err
 		}
 
-		collectPointsTotalVec.WithLabelValues(p.opt.source, p.getMode()).Observe(float64(len(pts)))
+		collectPointsTotalVec.WithLabelValues(p.getMode(), p.opt.source).Observe(float64(len(pts)))
 
 		return p.opt.batchCallback(pts)
 	}
@@ -2701,7 +2701,7 @@ http_request_duration_seconds_bucket{le="0.003",status_code="404",method="GET"} 
 					return err
 				}
 
-				collectPointsTotalVec.WithLabelValues(p.opt.source, p.getMode()).Observe(float64(len(pts)))
+				collectPointsTotalVec.WithLabelValues(p.getMode(), p.opt.source).Observe(float64(len(pts)))
 
 				return p.opt.batchCallback(pts)
 			}
@@ -2793,7 +2793,7 @@ process_runtime_jvm_buffer_count{pool="mapped - 'non-volatile memory'"} 0.0 1680
 					return err
 				}
 
-				collectPointsTotalVec.WithLabelValues(p.opt.source, p.getMode()).Observe(float64(len(pts)))
+				collectPointsTotalVec.WithLabelValues(p.getMode(), p.opt.source).Observe(float64(len(pts)))
 
 				return p.opt.batchCallback(pts)
 			}
@@ -2935,7 +2935,7 @@ up 0
 					return err
 				}
 
-				collectPointsTotalVec.WithLabelValues(p.opt.source, p.getMode()).Observe(float64(len(pts)))
+				collectPointsTotalVec.WithLabelValues(p.getMode(), p.opt.source).Observe(float64(len(pts)))
 
 				return p.opt.batchCallback(pts)
 			}
@@ -3116,7 +3116,7 @@ up 1
 					return err
 				}
 
-				collectPointsTotalVec.WithLabelValues(p.opt.source, p.getMode()).Observe(float64(len(pts)))
+				collectPointsTotalVec.WithLabelValues(p.getMode(), p.opt.source).Observe(float64(len(pts)))
 
 				return p.opt.batchCallback(pts)
 			}
@@ -3341,7 +3341,7 @@ process_runtime_jvm_buffer_count{pool="mapped - 'non-volatile memory'"} 0.0 1680
 					return err
 				}
 
-				collectPointsTotalVec.WithLabelValues(p.opt.source, p.getMode()).Observe(float64(len(pts)))
+				collectPointsTotalVec.WithLabelValues(p.getMode(), p.opt.source).Observe(float64(len(pts)))
 
 				return p.opt.batchCallback(pts)
 			}
@@ -3490,7 +3490,7 @@ etcd_debugging_disk_backend_commit_rebalance_duration_seconds_count 24920
 					return err
 				}
 
-				collectPointsTotalVec.WithLabelValues(p.opt.source, p.getMode()).Observe(float64(len(pts)))
+				collectPointsTotalVec.WithLabelValues(p.getMode(), p.opt.source).Observe(float64(len(pts)))
 
 				return p.opt.batchCallback(pts)
 			}
@@ -3682,7 +3682,7 @@ up 1
 					return err
 				}
 
-				collectPointsTotalVec.WithLabelValues(p.opt.source, p.getMode()).Observe(float64(len(pts)))
+				collectPointsTotalVec.WithLabelValues(p.getMode(), p.opt.source).Observe(float64(len(pts)))
 
 				return p.opt.batchCallback(pts)
 			}

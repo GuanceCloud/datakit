@@ -171,7 +171,7 @@ func (p *Prom) GetReq(url string) (*http.Request, error) {
 func (p *Prom) Request(url string) (*http.Response, error) {
 	start := time.Now()
 	defer func() {
-		httpLatencyVec.WithLabelValues(p.opt.source, p.getMode()).Observe(float64(time.Since(start)) / float64(time.Second))
+		httpLatencyVec.WithLabelValues(p.getMode(), p.opt.source).Observe(float64(time.Since(start)) / float64(time.Second))
 	}()
 	req, err := p.GetReq(url)
 	if err != nil {
@@ -205,9 +205,10 @@ func (p *Prom) CollectFromHTTPV2(u string) ([]*point.Point, error) {
 		return nil, err
 	}
 	defer func() {
-		collectPointsTotalVec.WithLabelValues(p.opt.source, p.getMode()).Observe(float64(p.ptCount))
+		collectPointsTotalVec.WithLabelValues(p.getMode(), p.opt.source).Observe(float64(p.ptCount))
 		p.ptCount = 0
-		httpGetBytesVec.WithLabelValues(p.opt.source, p.getMode()).Observe(float64(wCounter.total))
+		httpGetBytesVec.WithLabelValues(p.getMode(), p.opt.source).Observe(float64(wCounter.total))
+		streamSizeVec.WithLabelValues(p.getMode(), p.opt.source).Set(float64(p.opt.streamSize))
 	}()
 	return pts, nil
 }
