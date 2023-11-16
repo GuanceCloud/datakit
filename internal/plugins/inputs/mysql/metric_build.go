@@ -283,6 +283,8 @@ func (ipt *Input) buildMysqlDbmMetric() ([]*gcPoint.Point, error) {
 
 		if len(row.schemaName) > 0 {
 			m.tags["schema_name"] = row.schemaName
+		} else {
+			m.tags["schema_name"] = "-"
 		}
 
 		if len(row.querySignature) > 0 {
