@@ -15,6 +15,32 @@ import (
 // Fn is the handler to eat cache from diskcache.
 type Fn func([]byte) error
 
+func (c *DiskCache) switchNextFile() error {
+	if c.curReadfile != "" {
+		if err := c.removeCurrentReadingFile(); err != nil {
+			return fmt.Errorf("removeCurrentReadingFile: %w", err)
+		}
+	}
+
+	// clear .pos
+	if !c.noPos {
+		if err := c.pos.reset(); err != nil {
+			return err
+		}
+	}
+
+	// reopen next file to read
+	return c.doSwitchNextFile()
+}
+
+func (c *DiskCache) skipBadFile() error {
+	defer func() {
+		droppedBatchVec.WithLabelValues(c.path, reasonBadDataFile).Inc()
+	}()
+
+	return c.switchNextFile()
+}
+
 // Get fetch new data from disk cache, then passing to fn
 // if any error occurred during call fn, the reading data is
 // dropped, and will not read again.
@@ -67,32 +93,26 @@ retry:
 	}
 
 	hdr := make([]byte, dataHeaderLen)
-	if n, err = c.rfd.Read(hdr); err != nil {
-		return fmt.Errorf("rfd.Read(%s): %w", c.curReadfile, err)
-	} else if n != dataHeaderLen {
-		return ErrBadHeader
-	}
-
-	nbytes = int(binary.LittleEndian.Uint32(hdr[0:]))
-
-	if uint32(nbytes) == EOFHint { // EOF
-		if err = c.removeCurrentReadingFile(); err != nil {
-			return fmt.Errorf("removeCurrentReadingFile: %w", err)
-		}
-
-		// clear .pos
-		if !c.noPos {
-			if err = c.pos.reset(); err != nil {
-				return err
-			}
-		}
-
-		// reopen next file to read
-		if err = c.switchNextFile(); err != nil {
+	if n, err = c.rfd.Read(hdr); err != nil || n != dataHeaderLen {
+		//
+		// On bad datafile, just ignore and delete the file.
+		//
+		if err = c.skipBadFile(); err != nil {
 			return err
 		}
 
-		goto retry // read next new file
+		goto retry // read next new file to save another Get() calling.
+	}
+
+	// how many bytes of current data?
+	nbytes = int(binary.LittleEndian.Uint32(hdr[0:]))
+
+	if uint32(nbytes) == EOFHint { // EOF
+		if err := c.switchNextFile(); err != nil {
+			return fmt.Errorf("switchNextFile: %w", err)
+		}
+
+		goto retry // read next new file to save another Get() calling.
 	}
 
 	databuf := make([]byte, nbytes)
@@ -110,9 +130,11 @@ retry:
 	if err = fn(databuf); err != nil {
 		// seek back
 		if !c.noFallbackOnError {
-			if _, err = c.rfd.Seek(-int64(dataHeaderLen+nbytes), io.SeekCurrent); err != nil {
-				return err
+			if _, serr := c.rfd.Seek(-int64(dataHeaderLen+nbytes), io.SeekCurrent); serr != nil {
+				return serr
 			}
+
+			seekBackVec.WithLabelValues(c.path).Inc()
 			goto __end // do not update .pos
 		}
 	}
@@ -121,8 +143,8 @@ __updatePos:
 	// update seek position
 	if !c.noPos {
 		c.pos.Seek += int64(dataHeaderLen + nbytes)
-		if err = c.pos.dumpFile(); err != nil {
-			return err
+		if derr := c.pos.dumpFile(); derr != nil {
+			return derr
 		}
 	}
 

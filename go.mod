@@ -7,13 +7,13 @@ require (
 	github.com/DataDog/datadog-agent/pkg/obfuscate v0.47.1 // indirect
 	github.com/DataDog/datadog-go v4.8.3+incompatible
 	github.com/DataDog/gopsutil v1.2.1
-	github.com/GuanceCloud/cliutils v0.1.6-0.20231026155028-0157a154a8e7
+	github.com/GuanceCloud/cliutils v0.1.6-0.20231116121653-2309188f035c
 	github.com/GuanceCloud/confd v0.1.101
 	github.com/GuanceCloud/grok v1.1.3
 	github.com/GuanceCloud/platypus v0.2.9
 	github.com/GuanceCloud/timeout v0.0.0-20230216045952-48442c6fb747
 	github.com/IBM/sarama v1.41.2
-	github.com/aliyun/aliyun-oss-go-sdk v2.2.8+incompatible
+	github.com/aliyun/aliyun-oss-go-sdk v3.0.1+incompatible
 	github.com/antchfx/xmlquery v1.3.18 // indirect
 	github.com/apache/thrift v0.16.0
 	github.com/araddon/dateparse v0.0.0-20201001162425-8aadafed4dc4
@@ -317,7 +317,7 @@ require (
 	golang.org/x/mod v0.13.0 // indirect
 	golang.org/x/oauth2 v0.5.0 // indirect
 	golang.org/x/sync v0.4.0 // indirect
-	golang.org/x/time v0.3.0
+	golang.org/x/time v0.4.0
 	golang.org/x/tools v0.14.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect
 	google.golang.org/appengine v1.6.7 // indirect

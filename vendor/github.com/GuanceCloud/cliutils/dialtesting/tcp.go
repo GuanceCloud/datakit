@@ -16,6 +16,8 @@ import (
 	"github.com/GuanceCloud/cliutils"
 )
 
+const defaultTCPTimeout = 30 * time.Second
+
 type TCPResponseTime struct {
 	IsContainDNS bool   `json:"is_contain_dns"`
 	Target       string `json:"target"`
@@ -24,13 +26,15 @@ type TCPResponseTime struct {
 }
 
 type TCPSuccess struct {
-	ResponseTime []*TCPResponseTime `json:"response_time,omitempty"`
-	Hops         []*ValueSuccess    `json:"hops,omitempty"`
+	ResponseTime    []*TCPResponseTime `json:"response_time,omitempty"`
+	Hops            []*ValueSuccess    `json:"hops,omitempty"`
+	ResponseMessage []*SuccessOption   `json:"response_message,omitempty"`
 }
 
 type TCPTask struct {
 	Host             string            `json:"host"`
 	Port             string            `json:"port"`
+	Message          string            `json:"message"`
 	Timeout          string            `json:"timeout"`
 	EnableTraceroute bool              `json:"enable_traceroute"`
 	TracerouteConfig *TracerouteOption `json:"traceroute_config"`
@@ -48,13 +52,14 @@ type TCPTask struct {
 	Labels           []string          `json:"labels,omitempty"`
 	UpdateTime       int64             `json:"update_time,omitempty"`
 
-	reqCost    time.Duration
-	reqDNSCost time.Duration
-	reqError   string
-	destIP     string
-	timeout    time.Duration
-	ticker     *time.Ticker
-	traceroute []*Route
+	reqCost         time.Duration
+	reqDNSCost      time.Duration
+	reqError        string
+	destIP          string
+	responseMessage string
+	timeout         time.Duration
+	ticker          *time.Ticker
+	traceroute      []*Route
 }
 
 func (t *TCPTask) InitDebug() error {
@@ -106,6 +111,13 @@ func (t *TCPTask) init(debug bool) error {
 		if checker.Hops != nil {
 			t.EnableTraceroute = true
 		}
+
+		for _, v := range checker.ResponseMessage {
+			err := genReg(v)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil
@@ -151,6 +163,17 @@ func (t *TCPTask) CheckResult() (reasons []string, succFlag bool) {
 			}
 		}
 
+		// check message
+		if chk.ResponseMessage != nil {
+			for _, v := range chk.ResponseMessage {
+				if err := v.check(t.responseMessage, "response message"); err != nil {
+					reasons = append(reasons, err.Error())
+				} else {
+					succFlag = true
+				}
+			}
+		}
+
 		// check traceroute
 		if t.EnableTraceroute {
 			hops := float64(len(t.traceroute))
@@ -189,6 +212,10 @@ func (t *TCPTask) GetResults() (tags map[string]string, fields map[string]interf
 		"response_time":          responseTime,
 		"response_time_with_dns": responseTimeWithDNS,
 		"success":                int64(-1),
+	}
+
+	if t.responseMessage != "" {
+		fields["response_message"] = t.responseMessage
 	}
 
 	if t.EnableTraceroute {
@@ -302,9 +329,22 @@ func (t *TCPTask) Run() error {
 		t.reqDNSCost = 0
 	} else {
 		t.reqCost = time.Since(start)
-		if err := conn.Close(); err != nil {
-			_ = err // pass
+		if t.Message != "" { // send message and get response
+			if err := conn.SetDeadline(time.Now().Add(defaultTCPTimeout)); err != nil {
+				t.reqError = err.Error()
+			} else if _, err := conn.Write([]byte(t.Message)); err != nil {
+				t.reqError = err.Error()
+			} else {
+				buf := make([]byte, 1024)
+				if n, err := conn.Read(buf); err != nil {
+					t.reqError = err.Error()
+				} else {
+					t.responseMessage = string(buf[:n])
+				}
+			}
 		}
+
+		_ = conn.Close() //nolint:errcheck
 	}
 
 	if t.EnableTraceroute {

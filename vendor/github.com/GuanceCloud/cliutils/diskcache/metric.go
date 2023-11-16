@@ -19,6 +19,7 @@ var (
 	getVec,
 	putBytesVec,
 	wakeupVec,
+	seekBackVec,
 	getBytesVec *prometheus.CounterVec
 
 	sizeVec,
@@ -69,7 +70,7 @@ func setupMetrics() {
 			Name:      "dropped_total",
 			Help:      "Dropped files during Put() when capacity reached.",
 		},
-		[]string{"path"},
+		[]string{"path", "reason"},
 	)
 
 	rotateVec = prometheus.NewCounterVec(
@@ -122,6 +123,15 @@ func setupMetrics() {
 			Namespace: ns,
 			Name:      "wakeup_total",
 			Help:      "Wakeup count on sleeping write file",
+		},
+		[]string{"path"},
+	)
+
+	seekBackVec = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: ns,
+			Name:      "seek_back_total",
+			Help:      "Seek back when Get() got any error",
 		},
 		[]string{"path"},
 	)
@@ -213,6 +223,7 @@ func setupMetrics() {
 		getVec,
 		putBytesVec,
 		wakeupVec,
+		seekBackVec,
 		getBytesVec,
 
 		openTimeVec,
@@ -237,6 +248,7 @@ func register(reg *prometheus.Registry) {
 		getVec,
 		putBytesVec,
 		wakeupVec,
+		seekBackVec,
 		getBytesVec,
 
 		capVec,
@@ -258,6 +270,7 @@ func ResetMetrics() {
 	getVec.Reset()
 	putBytesVec.Reset()
 	wakeupVec.Reset()
+	seekBackVec.Reset()
 	getBytesVec.Reset()
 	capVec.Reset()
 	batchSizeVec.Reset()
@@ -283,6 +296,7 @@ func Metrics() []prometheus.Collector {
 		getVec,
 		putBytesVec,
 		wakeupVec,
+		seekBackVec,
 		getBytesVec,
 
 		sizeVec,

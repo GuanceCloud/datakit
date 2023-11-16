@@ -182,7 +182,6 @@ func CORSMiddleware(c *gin.Context) {
 	if allowOrigin == "" {
 		allowOrigin = "*"
 	}
-
 	c.Writer.Header().Set("Access-Control-Allow-Origin", allowOrigin)
 	c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 	if requestHeaders != "" {
@@ -195,13 +194,52 @@ func CORSMiddleware(c *gin.Context) {
 	// The default value is only 5 seconds, so we explicitly set it to reduce the count of OPTIONS requests.
 	// see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Max-Age#directives
 	c.Writer.Header().Set("Access-Control-Max-Age", "7200")
-
 	if c.Request.Method == "OPTIONS" {
 		c.AbortWithStatus(http.StatusNoContent)
 		return
 	}
-
 	c.Next()
+}
+
+func CORSMiddlewareV2(allowedOrigins []string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		allowOrigin := c.GetHeader("origin")
+		requestHeaders := c.GetHeader("Access-Control-Request-Headers")
+		if allowOrigin == "" {
+			allowOrigin = "*"
+		}
+		if originIsAllowed(allowOrigin, allowedOrigins) {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", allowOrigin)
+			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+			if requestHeaders != "" {
+				c.Writer.Header().Set("Access-Control-Allow-Headers", defaultCORSHeader.Add(requestHeaders))
+			} else {
+				c.Writer.Header().Set("Access-Control-Allow-Headers", allowHeaders)
+			}
+			c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
+
+			// The default value is only 5 seconds, so we explicitly set it to reduce the count of OPTIONS requests.
+			// see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Max-Age#directives
+			c.Writer.Header().Set("Access-Control-Max-Age", "7200")
+		}
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusNoContent)
+			return
+		}
+		c.Next()
+	}
+}
+
+func originIsAllowed(origin string, allowedOrigins []string) bool {
+	if len(allowedOrigins) == 0 {
+		return true
+	}
+	for _, allowedOrigin := range allowedOrigins {
+		if origin == allowedOrigin {
+			return true
+		}
+	}
+	return false
 }
 
 func TraceIDMiddleware(c *gin.Context) {

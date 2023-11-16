@@ -55,7 +55,7 @@ func (c *DiskCache) loadUnfinishedFile() error {
 }
 
 // open next read file.
-func (c *DiskCache) switchNextFile() error {
+func (c *DiskCache) doSwitchNextFile() error {
 	c.rwlock.Lock()
 	defer c.rwlock.Unlock()
 

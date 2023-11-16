@@ -18,7 +18,6 @@ import (
 	"net/http"
 	"net/http/httptrace"
 	"net/url"
-	"regexp"
 	"strings"
 	"time"
 
@@ -626,26 +625,6 @@ func (t *HTTPTask) init(debug bool) error {
 	}
 
 	// TODO: more checking on task validity
-
-	return nil
-}
-
-func genReg(v *SuccessOption) error {
-	if v.MatchRegex != "" {
-		if re, err := regexp.Compile(v.MatchRegex); err != nil {
-			return err
-		} else {
-			v.matchRe = re
-		}
-	}
-
-	if v.NotMatchRegex != "" {
-		if re, err := regexp.Compile(v.NotMatchRegex); err != nil {
-			return err
-		} else {
-			v.notMatchRe = re
-		}
-	}
 
 	return nil
 }

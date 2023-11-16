@@ -29,6 +29,7 @@ type BucketProperties struct {
 	Location     string    `xml:"Location"`     // Bucket datacenter
 	CreationDate time.Time `xml:"CreationDate"` // Bucket create time
 	StorageClass string    `xml:"StorageClass"` // Bucket storage class
+	Region       string    `xml:"Region"`       // Bucket region
 }
 
 // ListCloudBoxResult defines the result object from ListBuckets request
@@ -137,8 +138,8 @@ type LifecycleFilter struct {
 // LifecycleFilterNot defines the rule's Filter Not propery
 type LifecycleFilterNot struct {
 	XMLName xml.Name `xml:"Not"`
-	Prefix  string   `xml:"Prefix,omitempty"` //Object prefix applicable to this exclusion rule
-	Tag     *Tag     `xml:"Tag,omitempty"`    //the tags applicable to this exclusion rule
+	Prefix  string   `xml:"Prefix"`        //Object prefix applicable to this exclusion rule
+	Tag     *Tag     `xml:"Tag,omitempty"` //the tags applicable to this exclusion rule
 }
 
 const iso8601DateFormat = "2006-01-02T15:04:05.000Z"
@@ -324,8 +325,9 @@ type GetBucketWebsiteResult WebsiteXML
 
 // CORSXML defines CORS configuration
 type CORSXML struct {
-	XMLName   xml.Name   `xml:"CORSConfiguration"`
-	CORSRules []CORSRule `xml:"CORSRule"` // CORS rules
+	XMLName      xml.Name   `xml:"CORSConfiguration"`
+	CORSRules    []CORSRule `xml:"CORSRule"`               // CORS rules
+	ResponseVary *bool      `xml:"ResponseVary,omitempty"` // return Vary or not
 }
 
 // CORSRule defines CORS rules
@@ -340,6 +342,9 @@ type CORSRule struct {
 
 // GetBucketCORSResult defines the result from GetBucketCORS request.
 type GetBucketCORSResult CORSXML
+
+// PutBucketCORS defines the PutBucketCORS config xml.
+type PutBucketCORS CORSXML
 
 // GetBucketInfoResult defines the result from GetBucketInfo request.
 type GetBucketInfoResult struct {
@@ -1616,10 +1621,10 @@ type Certificate struct {
 	ValidEndDate   string `xml:"ValidEndDate"`
 }
 
-//GetBucketResourceGroupResult define resource group for the bucket
+// GetBucketResourceGroupResult define resource group for the bucket
 type GetBucketResourceGroupResult BucketResourceGroupXml
 
-//PutBucketResourceGroup define the xml of bucket's resource group config
+// PutBucketResourceGroup define the xml of bucket's resource group config
 type PutBucketResourceGroup BucketResourceGroupXml
 
 // BucketResourceGroupXml define the information of the bucket's resource group
@@ -1662,4 +1667,29 @@ type RegionInfo struct {
 type RegionInfoList struct {
 	XMLName xml.Name     `xml:"RegionInfoList"`
 	Regions []RegionInfo `xml:"RegionInfo"`
+}
+
+//PutBucketResponseHeader define the xml of bucket's response header config
+type PutBucketResponseHeader ResponseHeaderXml
+
+//GetBucketResponseHeaderResult define the xml of bucket's response header result
+type GetBucketResponseHeaderResult ResponseHeaderXml
+
+type ResponseHeaderXml struct {
+	XMLName xml.Name             `xml:"ResponseHeaderConfiguration"`
+	Rule    []ResponseHeaderRule `xml:Rule,omitempty"` // rule
+}
+
+type ResponseHeaderRule struct {
+	Name        string                    `xml:"Name"`                  // rule name
+	Filters     ResponseHeaderRuleFilters `xml:"Filters,omitempty"`     // rule filters Operation
+	HideHeaders ResponseHeaderRuleHeaders `xml:"HideHeaders,omitempty"` // rule hide header
+}
+
+type ResponseHeaderRuleFilters struct {
+	Operation []string `xml:"Operation,omitempty"`
+}
+
+type ResponseHeaderRuleHeaders struct {
+	Header []string `xml:"Header,omitempty"`
 }
