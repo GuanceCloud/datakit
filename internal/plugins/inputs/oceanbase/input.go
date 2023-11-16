@@ -25,17 +25,20 @@ const (
 
   ## The "--inputs" line below should not be modified.
   args = [
-    '--interval'        , '1m'                        ,
-    '--host'            , '<your-oceanbase-host>'     ,
-    '--port'            , '2883'                      ,
-    '--tenant'          , 'oraclet'                   ,
-    '--cluster'         , 'obcluster'                 ,
-    '--username'        , '<oceanbase-user-name>'     ,
-    '--password'        , '<oceanbase-password>'      ,
-    '--service-name'    , '<oceanbase-service-name>'  ,
-    '--slow-query-time' , '0s'                        ,
+    '--interval'        , '1m'                              ,
+    '--host'            , '<your-oceanbase-host>'           ,
+    '--port'            , '2883'                            ,
+    '--tenant'          , 'oraclet'                         ,
+    '--cluster'         , 'obcluster'                       ,
+    '--username'        , '<oceanbase-user-name>'           ,
+    '--database'        , 'oceanbase'                       ,
+    '--mode'            , 'oracle'                          ,
+    '--service-name'    , '<oceanbase-service-name>'        ,
+    '--slow-query-time' , '0s'                              ,
+    '--log'             , '/var/log/datakit/oceanbase.log'  ,
   ]
   envs = [
+    'ENV_INPUT_OCEANBASE_PASSWORD=<oceanbase-password>',
     'LD_LIBRARY_PATH=/u01/obclient/lib:$LD_LIBRARY_PATH',
   ]
 
@@ -52,9 +55,11 @@ const (
   # *--tenant           : OceanBase tenant name (Default is oraclet).
   # *--cluster          : OceanBase cluster name (Default is obcluster).
   # *--username         : OceanBase username.
-  # *--password         : OceanBase password.
+  # *--database         : OceanBase database name. Generally, fill in 'oceanbase'.
+  # *--mode             : OceanBase tenant mode, fill in 'oracle' or 'mysql'.
   # *--service-name     : OceanBase service name.
   # *--slow-query-time  : OceanBase slow query time threshold defined. If larger than this, the executed sql will be reported.
+  # *--log              : Collector log path.
 `
 )
 

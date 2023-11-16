@@ -11,27 +11,30 @@ package coceanbase
 
 import (
 	"bytes"
+	"database/sql"
 	"fmt"
+	"net"
+	"net/url"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/oceanbase/collect/ccommon"
 )
 
 const (
-	inputName = "oceanbase"
-
+	inputName  = "oceanbase"
 	metricName = "oceanbase"
 	logName    = "oceanbase_log"
 )
 
 var (
-	l = logger.DefaultSLogger(inputName)
-
+	l                = logger.DefaultSLogger(inputName)
 	_ ccommon.IInput = (*Input)(nil)
 )
 
@@ -49,6 +52,8 @@ type Input struct {
 	Tenant        string
 	Cluster       string
 	ConnectString string
+	Database      string
+	Mode          string
 
 	db                    *sqlx.DB
 	intervalDuration      time.Duration
@@ -96,6 +101,23 @@ func NewInput(infoMsgs []string, opt *ccommon.Option) ccommon.IInput {
 		Tenant:        opt.Tenant,
 		Cluster:       opt.Cluster,
 		ConnectString: opt.ConnectString,
+		Database:      opt.Database,
+		Mode:          opt.Mode,
+	}
+
+	switch ipt.Mode {
+	case "mysql":
+		tenantMode = modeMySQL
+	case "oracle":
+		tenantMode = modeOracle
+	default:
+		l.Errorf("Unknown mode: %s", ipt.Mode)
+	}
+
+	// ENV_INPUT_OCEANBASE_PASSWORD
+	pwd := os.Getenv("ENV_INPUT_OCEANBASE_PASSWORD")
+	if len(pwd) > 0 {
+		ipt.password = pwd
 	}
 
 	du, err := time.ParseDuration(opt.SlowQueryTime)
@@ -174,19 +196,70 @@ func NewInput(infoMsgs []string, opt *ccommon.Option) ccommon.IInput {
 
 // ConnectDB establishes a connection to an Database instance and returns an open connection to the database.
 func (ipt *Input) ConnectDB() error {
+	// -usys@oraclet#obcluster
+	// -u用户名@租户名#集群名
+
 	// dataSourceName := fmt.Sprintf("%s/%s@%s:%s/%s",
 	// 	ipt.user, ipt.password, ipt.host, ipt.port, ipt.serviceName)
 	// fmt.Println(dataSourceName)
 
+	// mysql: root:passwd@tcp(0.0.0.0:3306)/user
 	// sqlconn := "datakit@oraclet#obcluster/123456@10.200.14.240:2883"
 
 	sqlconn := ipt.ConnectString
 	if len(sqlconn) == 0 {
-		sqlconn = fmt.Sprintf("%s@%s#%s/%s@%s:%s", ipt.user, ipt.Tenant, ipt.Cluster,
-			ipt.password, ipt.host, ipt.port)
+		user := ipt.user
+
+		if len(ipt.Tenant) > 0 {
+			user += ("@" + ipt.Tenant)
+		}
+
+		if len(ipt.Cluster) > 0 {
+			user += ("#" + ipt.Cluster)
+		}
+
+		var safeOutput string
+
+		//nolint:exhaustive
+		switch tenantMode {
+		case modeMySQL:
+			password := ipt.password
+			cfg := mysql.Config{
+				User:                 user,
+				Passwd:               password,
+				Net:                  "tcp",
+				Addr:                 net.JoinHostPort(ipt.host, ipt.port),
+				DBName:               ipt.Database,
+				AllowNativePasswords: true,
+			}
+			sqlconn = cfg.FormatDSN()
+
+			cfg.Passwd = "***"
+			safeOutput = cfg.FormatDSN()
+
+		case modeOracle:
+			password := url.QueryEscape(ipt.password)
+			sqlconn = user
+			safeOutput = user
+
+			sqlconn += fmt.Sprintf("/%s@%s:%s", password, ipt.host, ipt.port)
+			safeOutput += fmt.Sprintf("/%s@%s:%s", "***", ipt.host, ipt.port) // Used for output.
+		}
+
+		l.Infof("sqlconn = %s", safeOutput)
 	}
 
-	db, err := sqlx.Open("oci8", sqlconn)
+	var db *sqlx.DB
+	var err error
+
+	//nolint:exhaustive
+	switch tenantMode {
+	case modeMySQL:
+		db, err = sqlx.Open("mysql", sqlconn)
+	case modeOracle:
+		db, err = sqlx.Open("oci8", sqlconn)
+	}
+
 	if err != nil {
 		l.Errorf("sqlx.Open failed: %v\n", err)
 		return err
@@ -229,16 +302,18 @@ func collectAndReport(collectors *[]ccommon.DBMetricsCollector, reportURL string
 	ba := ccommon.NewByteArray()
 
 	for idx := range *collectors {
-		pt, err := (*collectors)[idx].Collect()
+		pts, err := (*collectors)[idx].Collect()
 		if err != nil {
 			ccommon.ReportErrorf(inputName, l, "Collect failed: %v", err)
 		} else {
-			if pt == nil {
+			if len(pts) == 0 {
 				continue
 			}
 
-			line := pt.LineProto()
-			ba.Add(line)
+			for _, pt := range pts {
+				line := pt.LineProto()
+				ba.Add(line)
+			}
 		}
 	}
 
@@ -254,19 +329,29 @@ func collectAndReport(collectors *[]ccommon.DBMetricsCollector, reportURL string
 func selectMapWrapper(ipt *Input, sqlText string) ([]map[string]interface{}, error) {
 	now := time.Now()
 	mRet, err := selectMap(ipt, sqlText)
-	l.Debugf("executed sql: %s, cost: %v, err: %v\n", sqlText, time.Since(now), err)
+	l.Debugf("executed sql: %s, cost: %v, length: %d, err: %v\n", sqlText, time.Since(now), len(mRet), err)
 	return mRet, err
 }
 
 func selectMap(ipt *Input, sqlText string) ([]map[string]interface{}, error) {
-	rows, err := ipt.db.Query(sqlText)
+	var err error
+	var rows *sql.Rows
+	var cols []string
+
+	defer func() {
+		if err != nil {
+			l.Errorf("SQL failed, err = %v, sql = %s", err, sqlText)
+		}
+	}()
+
+	rows, err = ipt.db.Query(sqlText)
 	if err != nil {
 		l.Errorf("db.Query() failed: %v", err)
 		return nil, err
 	}
 	defer rows.Close() //nolint:errcheck
 
-	cols, err := rows.Columns()
+	cols, err = rows.Columns()
 	if err != nil {
 		l.Errorf("rows.Columns() failed: %v", err)
 		return nil, err
@@ -284,7 +369,8 @@ func selectMap(ipt *Input, sqlText string) ([]map[string]interface{}, error) {
 		}
 
 		// Scan the result into the column pointers...
-		if err := rows.Scan(columnPointers...); err != nil {
+		if err = rows.Scan(columnPointers...); err != nil {
+			l.Errorf("Scan() failed: %v", err)
 			return nil, err
 		}
 
@@ -300,7 +386,7 @@ func selectMap(ipt *Input, sqlText string) ([]map[string]interface{}, error) {
 		mRet = append(mRet, m)
 	}
 
-	if err := rows.Err(); err != nil {
+	if err = rows.Err(); err != nil {
 		l.Errorf("rows.Err() failed: %v", err)
 		return nil, err
 	}
@@ -315,11 +401,15 @@ func selectWrapper[T any](ipt *Input, s T, sql string) error {
 	if err != nil && (strings.Contains(err.Error(), "ORA-01012") || strings.Contains(err.Error(), "database is closed")) {
 		if err := ipt.ConnectDB(); err != nil {
 			ipt.CloseDB()
-			return err
 		}
 	}
 
-	l.Debugf("executed sql: %s, cost: %v, err: %v\n", sql, time.Since(now), err)
+	if err != nil {
+		l.Errorf("executed sql: %s, cost: %v, err: %v\n", sql, time.Since(now), err)
+	} else {
+		l.Debugf("executed sql: %s, cost: %v, err: %v\n", sql, time.Since(now), err)
+	}
+
 	return err
 }
 

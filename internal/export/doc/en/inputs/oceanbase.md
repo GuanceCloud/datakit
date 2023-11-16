@@ -6,7 +6,7 @@
 
 ---
 
-Collecting OceanBase performance metrics. For now only supporting [OceanBase Enterprise](https://www.oceanbase.com/softwarecenter-enterprise){:target="_blank"} Oracle mode.
+Collecting OceanBase performance metrics. For now supporting [OceanBase Enterprise](https://www.oceanbase.com/softwarecenter-enterprise){:target="_blank"} Oracle and MySQL tenant mode.
 
 Already tested version:
 
@@ -15,6 +15,8 @@ Already tested version:
 ## Precondition {#reqirement}
 
 - Create a monitoring account
+
+Oracle tenant mode:
 
 ```sql
 -- Create the datakit user. Replace the password placeholder with a secure password.
@@ -34,6 +36,30 @@ GRANT SELECT ON GV$PS_STAT TO datakit;
 GRANT SELECT ON GV$SESSION_WAIT TO datakit;
 GRANT SELECT ON GV$SQL_AUDIT TO datakit;
 ```
+
+MySQL tenant mode:
+
+```sql
+CREATE USER 'datakit'@'localhost' IDENTIFIED BY '<UNIQUEPASSWORD>';
+
+-- MySQL 8.0+ create the datakit user with the caching_sha2_password method
+CREATE USER 'datakit'@'localhost' IDENTIFIED WITH caching_sha2_password by '<UNIQUEPASSWORD>';
+
+-- 授权
+GRANT PROCESS ON *.* TO 'datakit'@'localhost';
+GRANT SELECT ON *.* TO 'datakit'@'localhost';
+show databases like 'performance_schema';
+GRANT SELECT ON performance_schema.* TO 'datakit'@'localhost';
+GRANT SELECT ON mysql.user TO 'datakit'@'localhost';
+GRANT replication client on *.*  to 'datakit'@'localhost';
+```
+
+???+ attention
+
+    - Note that if you find the collector has the following error when using `localhost` , you need to replace the above `localhost` with `::1` <br/>
+    `Error 1045: Access denied for user 'datakit'@'localhost' (using password: YES)`
+
+    - All the above creation and authorization operations limit that the user `datakit` can only access MySQL on MySQL host (`localhost`). If MySQL is collected remotely, it is recommended to replace `localhost` with `%` (indicating that DataKit can access MySQL on any machine), or use a specific DataKit installation machine address.
 
 - Deploy dependency package
 
@@ -100,6 +126,16 @@ apt-get install -y libaio-dev libaio1
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
+
+???+ tip
+
+    The configuration above would shows in the process list(including password). If want to hide the password, can use the environment variable `ENV_INPUT_OCEANBASE_PASSWORD`, like below:
+
+    ```sh
+    export ENV_INPUT_OCEANBASE_PASSWORD='<SAFE_PASSWORD>'
+    ```
+
+    The environment variable has highest priority, which means if existed that environment variable, the value in the environment variable will always treated as the password.
 
 ## Measurements {#measurements}
 

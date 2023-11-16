@@ -9,7 +9,9 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 
 	"github.com/jessevdk/go-flags"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/oceanbase/collect"
@@ -19,15 +21,23 @@ import (
 var opt ccommon.Option
 
 func main() {
-	// input := bufio.NewScanner(os.Stdin)
-	// input.Scan()
-	// fmt.Println(input.Text())
+	input := bufio.NewScanner(os.Stdin)
+	input.Scan()
+	fmt.Println(input.Text())
 
 	if _, err := flags.Parse(&opt); err != nil {
 		fmt.Println("flags.Parse error:", err.Error())
 		return
 	}
 
+	switch opt.Mode {
+	case "mysql", "oracle":
+	default:
+		fmt.Println("Unknown running mode: ", opt.Mode)
+		return
+	}
+
+	collect.PrintInfof("args = %v", os.Args)
 	collect.PrintInfof("election: %t", opt.Election)
 
 	collect.PrintInfof("Datakit: host=%s, port=%d", opt.DatakitHTTPHost, opt.DatakitHTTPPort)
