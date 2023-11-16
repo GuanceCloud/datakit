@@ -194,6 +194,11 @@ ulimit = 64000
   #  - v2: protobuf
   content_encoding = "v1"
 
+  # Enable GZip to upload point data.
+  #
+  # do NOT disable gzip or your get large network payload.
+  gzip = true
+
   max_raw_body_size = 10485760 # max body size(before gizp) in bytes
 
   # Customer tag or field keys that will extract from exist points

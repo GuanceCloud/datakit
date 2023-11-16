@@ -69,6 +69,9 @@ type httpServer struct {
 func Start(opts ...option) {
 	l = logger.SLogger("http")
 
+	// register golang runtime metrics
+	metrics.MustAddGolangMetrics()
+
 	for _, opt := range opts {
 		if opt != nil {
 			opt(apiServer)
@@ -192,32 +195,21 @@ func setupRouter() *gin.Engine {
 		router.NoRoute(page404)
 	}
 
-	// if enableRequestLogger {
-	//	router.Use(uhttp.RequestLoggerMiddleware)
-	//}
-
 	applyHTTPRoute(router)
 
 	router.GET("/stats", rawHTTPWraper(reqLimiter, apiGetDatakitStats)) // Deprecated, use /metrics
 
-	// limit metrics
 	router.GET("/metrics", ginLimiter(reqLimiter), metrics.HTTPGinHandler(promhttp.HandlerOpts{}))
 
 	router.GET("/stats/:type", rawHTTPWraper(reqLimiter, apiGetDatakitStatsByType))
-	// router.GET("/stats/input", rawHTTPWraper(reqLimiter, apiGetInputStats))
-
 	router.GET("/restart", apiRestart)
-
 	router.GET("/v1/workspace", ginLimiter(reqLimiter), apiWorkspace)
 	router.GET("/v1/ping", rawHTTPWraper(reqLimiter, apiPing))
 	router.POST("/v1/lasterror", ginLimiter(reqLimiter), apiGetDatakitLastError)
-
 	router.POST("/v1/write/:category", rawHTTPWraper(reqLimiter, apiWrite, &apiWriteImpl{}))
-
 	router.POST("/v1/query/raw", ginLimiter(reqLimiter), apiQueryRaw)
 	router.POST("/v1/object/labels", ginLimiter(reqLimiter), apiCreateOrUpdateObjectLabel)
 	router.DELETE("/v1/object/labels", ginLimiter(reqLimiter), apiDeleteObjectLabel)
-
 	router.POST("/v1/pipeline/debug", rawHTTPWraper(reqLimiter, apiPipelineDebugHandler))
 	router.POST("/v1/dialtesting/debug", rawHTTPWraper(reqLimiter, apiDebugDialtestingHandler))
 
@@ -250,6 +242,7 @@ func getAPIWhiteListMiddleware() gin.HandlerFunc {
 func HTTPStart() {
 	refreshRebootSem()
 	l.Debugf("HTTP bind addr:%s", apiServer.apiConfig.Listen)
+
 	srv := &http.Server{
 		Addr:    apiServer.apiConfig.Listen,
 		Handler: setupRouter(),

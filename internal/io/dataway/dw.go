@@ -97,6 +97,7 @@ type Dataway struct {
 	IdleTimeout time.Duration `toml:"idle_timeout"`
 
 	Proxy bool `toml:"proxy,omitempty"`
+	GZip  bool `toml:"gzip"`
 
 	EnableHTTPTrace bool `toml:"enable_httptrace"`
 	EnableSinker    bool `toml:"enable_sinker"`

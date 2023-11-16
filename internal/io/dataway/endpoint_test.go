@@ -132,6 +132,7 @@ test-2 f1=1i,f2=false 123`), x)
 		assert.NoError(t, err)
 
 		s := &writer{
+			gzip:     true,
 			category: point.Metric,
 			points: []*point.Point{
 				point.NewPointV2("test-1", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
@@ -202,6 +203,7 @@ test-2 f1=1i,f2=false 123`), x)
 		reg.MustRegister(Metrics()...)
 
 		w := &writer{
+			gzip:     true,
 			category: point.Metric,
 			points: []*point.Point{
 				point.NewPointV2("test-1", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
@@ -277,6 +279,7 @@ test-2 f1=1i,f2=false 123`), x)
 		assert.NoError(t, err)
 
 		w := &writer{
+			gzip:     true,
 			category: point.Metric,
 			points: []*point.Point{
 				point.NewPointV2("test-1", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),

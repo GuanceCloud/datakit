@@ -17,6 +17,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
 )
@@ -97,6 +98,12 @@ type Input struct {
 // Singleton make the input only 1 instance when multiple instance configured.
 func (*Input) Singleton() {}
 
+// We should block these metrics to upload to workerspace, this may eat
+// too many time series.
+var alwaysBlockedMetrics = []string{
+	metrics.DatakitLastError,
+}
+
 // ReadEnv accept specific ENV settings to input.
 //
 //	ENV_INPUT_DK_ENABLE_ALL_METRICS(bool)
@@ -155,6 +162,9 @@ func (ipt *Input) setup(listen string) {
 			ipt.url = u.String()
 		}
 	}
+
+	// Always append the block list.
+	ipt.MetricFilter = append(ipt.MetricFilter, alwaysBlockedMetrics...)
 }
 
 func (ipt *Input) Run() {

@@ -54,6 +54,7 @@ func TestFailCache(t *T.T) {
 
 		dw := &Dataway{
 			URLs: []string{fmt.Sprintf("%s?token=tkn_11111111111111111111", ts.URL)},
+			GZip: true,
 		}
 
 		assert.NoError(t, dw.Init())
@@ -124,6 +125,7 @@ func TestWriteWithCache(t *T.T) {
 			URLs:            []string{fmt.Sprintf("%s?token=tkn_11111111111111111111", ts.URL)},
 			EnableHTTPTrace: true,
 			HTTPTimeout:     10 * time.Millisecond, // easy timeout
+			GZip:            true,
 		}
 		assert.NoError(t, dw.Init())
 
@@ -185,6 +187,7 @@ func TestWriteWithCache(t *T.T) {
 		dw := &Dataway{
 			URLs:            []string{fmt.Sprintf("%s?token=tkn_11111111111111111111", ts.URL)},
 			EnableHTTPTrace: true,
+			GZip:            true,
 		}
 		assert.NoError(t, dw.Init())
 
@@ -269,6 +272,7 @@ func TestWritePoints(t *T.T) {
 		dw := &Dataway{
 			URLs:         []string{fmt.Sprintf("%s?token=tkn_11111111111111111111", ts.URL)},
 			EnableSinker: true,
+			GZip:         true,
 		}
 		assert.NoError(t, dw.Init(
 			WithGlobalTags(map[string]string{
@@ -317,6 +321,7 @@ func TestWritePoints(t *T.T) {
 
 		dw := &Dataway{
 			URLs: []string{fmt.Sprintf("%s?token=tkn_11111111111111111111", ts.URL)},
+			GZip: true,
 		}
 		assert.NoError(t, dw.Init())
 
@@ -359,6 +364,7 @@ func TestWritePoints(t *T.T) {
 		dw := &Dataway{
 			URLs:            []string{fmt.Sprintf("%s?token=tkn_some", ts.URL)},
 			ContentEncoding: "protobuf",
+			GZip:            true,
 		}
 		assert.NoError(t, dw.Init())
 
@@ -400,6 +406,7 @@ func TestWritePoints(t *T.T) {
 			URLs:            []string{fmt.Sprintf("%s?token=tkn_some", ts.URL)},
 			ContentEncoding: "protobuf",
 			MaxRawBodySize:  512 * 1024,
+			GZip:            true,
 		}
 
 		assert.NoError(t, dw.Init())
@@ -426,6 +433,7 @@ func TestGroupPoint(t *T.T) {
 			},
 			GlobalCustomerKeys: []string{"namespace", "app"},
 			EnableSinker:       true,
+			GZip:               true,
 		}
 
 		assert.NoError(t, dw.Init(WithGlobalTags(map[string]string{
@@ -463,6 +471,7 @@ func TestGroupPoint(t *T.T) {
 
 			EnableSinker:       true,
 			GlobalCustomerKeys: []string{"namespace", "app"},
+			GZip:               true,
 		}
 
 		assert.NoError(t, dw.Init())
@@ -487,6 +496,7 @@ func TestGroupPoint(t *T.T) {
 			},
 			GlobalCustomerKeys: []string{"class"},
 			EnableSinker:       true,
+			GZip:               true,
 		}
 
 		assert.NoError(t, dw.Init())
@@ -526,6 +536,7 @@ func TestGroupPoint(t *T.T) {
 				"https://fake-dataway.com?token=tkn_xxxxxxxxxx",
 			},
 			EnableSinker: true,
+			GZip:         true,
 		}
 
 		assert.NoError(t, dw.Init())

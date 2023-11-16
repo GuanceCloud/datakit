@@ -11,6 +11,7 @@ import (
 	"github.com/GuanceCloud/cliutils/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
+	imetrics "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 )
 
 var (
@@ -93,9 +94,8 @@ func metricsSetup() {
 
 	lastErrVec = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Namespace: "datakit",
-			Name:      "last_err",
-			Help:      "Datakit errors(when error occurred), these errors come from inputs or any sub modules",
+			Name: imetrics.DatakitLastError,
+			Help: "Datakit errors(when error occurred), these errors come from inputs or any sub modules",
 		},
 		[]string{
 			"input",

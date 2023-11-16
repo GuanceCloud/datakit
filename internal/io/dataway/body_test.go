@@ -11,6 +11,7 @@ import (
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBuildBody(t *T.T) {
@@ -94,16 +95,15 @@ func TestBuildBody(t *T.T) {
 				assert.True(t, x.rawLen > 0)
 				assert.Equal(t, tc.enc, x.payload)
 
+				raw := x.buf
 				if x.gzon {
-					raw, err := uhttp.Unzip(x.buf)
-					if err != nil {
-						assert.NoError(t, err)
-					}
-
-					pts, err := dec.Decode(raw)
-					assert.NoErrorf(t, err, "decode %q failed", raw)
-					extractPts = append(extractPts, pts...)
+					raw, err = uhttp.Unzip(x.buf)
+					require.NoError(t, err)
 				}
+
+				pts, err := dec.Decode(raw)
+				assert.NoErrorf(t, err, "decode %q failed", raw)
+				extractPts = append(extractPts, pts...)
 			}
 
 			assert.Equal(t, len(tc.pts), len(extractPts))
@@ -145,16 +145,17 @@ func TestBuildBody(t *T.T) {
 				assert.True(t, x.rawLen > 0)
 				assert.Equal(t, tc.enc, x.payload)
 
+				raw := x.buf
 				if x.gzon {
-					raw, err := uhttp.Unzip(x.buf)
+					raw, err = uhttp.Unzip(x.buf)
 					if err != nil {
 						assert.NoError(t, err)
 					}
-
-					pts, err := dec.Decode(raw)
-					assert.NoErrorf(t, err, "decode %q failed", raw)
-					extractPts = append(extractPts, pts...)
 				}
+
+				pts, err := dec.Decode(raw)
+				assert.NoErrorf(t, err, "decode %q failed", raw)
+				extractPts = append(extractPts, pts...)
 			}
 
 			assert.Equal(t, len(tc.pts), len(extractPts))

@@ -26,6 +26,13 @@ func (c *Config) loadDataway() {
 		c.Dataway.ContentEncoding = v
 	}
 
+	if v := datakit.GetEnv("ENV_DATAWAY_DISABLE_GZIP"); v != "" {
+		// NOTE: list the entry here only for test.
+		// Do NOT enable this ENV, kodo only accept gzip /v1/write/ payload
+		l.Info("ENV_DATAWAY_GZIP disabled")
+		c.Dataway.GZip = false
+	}
+
 	if v := datakit.GetEnv("ENV_DATAWAY_MAX_RAW_BODY_SIZE"); v != "" {
 		value, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {

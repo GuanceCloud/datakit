@@ -233,6 +233,9 @@ func (dw *Dataway) Write(opts ...WriteOption) error {
 	// set content encoding(protobuf/line-protocol/json)
 	WithHTTPEncoding(dw.contentEncoding)(w)
 
+	// setup gzip on or off
+	WithGzip(dw.GZip)(w)
+
 	// set raw body size limit
 	if dw.MaxRawBodySize > 0 {
 		WithBatchBytesSize(dw.MaxRawBodySize)(w)

@@ -19,6 +19,14 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/resourcelimit"
 )
 
+const (
+	// DatakitLastError is the metric name that accept any error info
+	// during datakit running.
+	//
+	// NOTE: we should not upload the metric to datakit self metric uploading.
+	DatakitLastError = "datakit_last_err"
+)
+
 var (
 	Uptime      = time.Now()
 	BeyondUsage int64
