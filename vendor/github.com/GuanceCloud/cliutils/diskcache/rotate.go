@@ -103,12 +103,14 @@ func (c *DiskCache) removeCurrentReadingFile() error {
 		c.rfd = nil
 	}
 
-	if fi, err := os.Stat(c.curReadfile); err == nil {
-		c.size -= (fi.Size() - dataHeaderLen) // EOF bytes do not counted in size
-	}
+	if fi, err := os.Stat(c.curReadfile); err == nil { // file exist
+		if fi.Size() > dataHeaderLen {
+			c.size -= (fi.Size() - dataHeaderLen) // EOF bytes do not counted in size
+		}
 
-	if err := os.Remove(c.curReadfile); err != nil {
-		return fmt.Errorf("removeCurrentReadingFile: %s: %w", c.curReadfile, err)
+		if err := os.Remove(c.curReadfile); err != nil {
+			return fmt.Errorf("removeCurrentReadingFile: %q: %w", c.curReadfile, err)
+		}
 	}
 
 	if len(c.dataFiles) > 0 {

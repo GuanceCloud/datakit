@@ -100,3 +100,23 @@ func (v *ValueSuccess) check(val float64) error {
 
 	return nil
 }
+
+func genReg(v *SuccessOption) error {
+	if v.MatchRegex != "" {
+		if re, err := regexp.Compile(v.MatchRegex); err != nil {
+			return err
+		} else {
+			v.matchRe = re
+		}
+	}
+
+	if v.NotMatchRegex != "" {
+		if re, err := regexp.Compile(v.NotMatchRegex); err != nil {
+			return err
+		} else {
+			v.notMatchRe = re
+		}
+	}
+
+	return nil
+}

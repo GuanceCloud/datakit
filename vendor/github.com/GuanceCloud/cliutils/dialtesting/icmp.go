@@ -176,7 +176,9 @@ func (t *ICMPTask) CheckResult() (reasons []string, succFlag bool) {
 				checkVal = t.stdRoundTripTime
 			}
 
-			if err := vs.check(checkVal); err != nil {
+			if t.packetLossPercent == 100 {
+				reasons = append(reasons, "all packets lost")
+			} else if err := vs.check(checkVal); err != nil {
 				reasons = append(reasons,
 					fmt.Sprintf("ICMP round-trip(%s) check failed: %s", v.Func, err.Error()))
 			} else {

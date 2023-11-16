@@ -94,22 +94,26 @@ The following is a specific dialing test example:
     }
   ],
   "TCP": [
-      {
-        "name": "tcp-test",
-        "host": "www.baidu.com",
-        "port": "80",
-        "status": "OK",
-        "frequency": "10s",
-        "success_when_logic": "or",
-        "success_when": [
-            {"response_time": {
-                "is_contain_dns": true,
-                "target": "10ms"
-            }}
-        ],
-        "update_time": 1641440314550918
-      }
-    ]
+    {
+      "name": "tcp-test",
+      "host": "www.baidu.com",
+      "port": "80",
+      "status": "OK",
+      "frequency": "10s",
+      "success_when_logic": "or",
+      "success_when": [
+        {
+          "response_time": [
+            {
+              "is_contain_dns": true,
+              "target": "10ms"
+            }
+          ]
+        }
+      ],
+      "update_time": 1641440314550918
+    }
+  ]
 }
 ```
 
@@ -477,6 +481,7 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 | `host`          | string | Y        | TCP Host address                           |
 | `port`             | string | Y        | TCP Port                    |
 | `timeout`             | string | N        | TCP connection timeout                    |
+| `message`       | string | N        | TCP message sent |
 
 The complete JSON structure is as follows:
 
@@ -487,11 +492,12 @@ The complete JSON structure is as follows:
 			"name": "tcp-test",
 			"host": "www.baidu.com",
 			"port": "80",
+      "message": "hello",
 			"timeout": "10ms",
 			"enable_traceroute": true,
 			"post_url": "https://<your-dataway-host>?token=<your-token>",
 			"status": "OK",
-			"frequency": "10s",
+			"frequency": "60s",
 			"success_when_logic": "and",
 			"success_when": [
 				{
@@ -501,6 +507,11 @@ The complete JSON structure is as follows:
 							"target": "10ms"
 						}
 					],
+          "response_message": [
+              {
+                  "is": "hello"
+              }
+          ],
 					"hops": [
 						{
 							"op": "eq",
@@ -533,6 +544,33 @@ The complete JSON structure is as follows:
       {
         "is_contain_dns": true,
         "target": "10ms"
+      }
+    ]
+  }
+]
+```
+
+- Return a message decision (`response_message`）
+
+`response_message` is an array object with the following parameters for each object:
+
+| Field              | Type   | Whether Required | Description                                                |
+| :---              | ---    | ---      | ---                                                 |
+| `is`              | string | N        | Whether the returned message is equal to the specified field                   |
+| `is_not`          | string | N        | Whether the returned message is not equal to the specified field                 |
+| `match_regex`     | string | N        | Whether the returned message contains a substring of the matching regular expression   |
+| `not_match_regex` | string | N        | Whether the returned message does not contain a substring of the matching regular expression |
+| `contains`        | string | N        | Whether the returned message contains the specified substring             |
+| `not_contains`    | string | N        | Whether the returned message does not contain the specified substring           |
+
+for example:
+
+```json
+"success_when": [
+  {
+    "response_message": [
+      {
+        "is": "reply",
       }
     ]
   }
