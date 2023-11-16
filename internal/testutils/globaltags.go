@@ -5,7 +5,9 @@
 
 package testutils
 
-import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+import (
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+)
 
 type taggerMock struct {
 	hostTags, electionTags map[string]string

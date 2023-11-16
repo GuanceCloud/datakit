@@ -31,7 +31,7 @@ Already tested version:
 
 When collecting data under the master-slave architecture, please configure the host information of the slave node for data collection, and you can get the metric information related to the master-slave.
 
-Create Monitor User
+Create Monitor User (**optional**)
 
 redis6.0+ goes to the rediss-cli command line, create the user and authorize
 
@@ -141,7 +141,7 @@ The original log is:
 The list of cut fields is as follows:
 
 | Field Name  | Field Value                                 | Description                                  |
-| ----------- | ------------------------------------------- | -------------------------------------------- |
+| ---         | ---                                         | ---                                          |
 | `pid`       | `122`                                       | process id                                   |
 | `role`      | `M`                                         | role                                         |
 | `serverity` | `*`                                         | service                                      |

@@ -7,46 +7,30 @@ package redis
 
 import (
 	"bufio"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-type commandMeasurement struct {
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	ts       time.Time
-	resData  map[string]interface{}
-	election bool
-}
+type commandMeasurement struct{}
 
+// see also: https://redis.io/commands/info/
+//
 //nolint:lll
 func (m *commandMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "redis_command_stat",
 		Type: "metric",
 		Fields: map[string]interface{}{
-			"calls": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
-				Unit:     inputs.NCount,
-				Desc:     "The number of calls that reached command execution",
-			},
-			"usec": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
-				Unit:     inputs.DurationUS,
-				Desc:     "The total CPU time consumed by these commands",
-			},
-			"usec_per_call": &inputs.FieldInfo{
-				DataType: inputs.Float,
-				Type:     inputs.Gauge,
-				Unit:     inputs.DurationUS,
-				Desc:     "The average CPU consumed per command execution",
-			},
+			"calls":          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of calls that reached command execution."},
+			"usec":           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationUS, Desc: "The total CPU time consumed by these commands."},
+			"usec_per_call":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationUS, Desc: "The average CPU consumed per command execution."},
+			"rejected_calls": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of rejected calls (errors prior command execution)."},
+			"failed_calls":   &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of failed calls (errors within the command execution)."},
 		},
 		Tags: map[string]interface{}{
 			"host":         &inputs.TagInfo{Desc: "Hostname"},
@@ -57,88 +41,49 @@ func (m *commandMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-// 解析返回结果.
 func (ipt *Input) parseCommandData(list string) ([]*point.Point, error) {
-	var collectCache []*point.Point
+	collectCache := []*point.Point{}
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(time.Now()))
 
 	rdr := strings.NewReader(list)
 	scanner := bufio.NewScanner(rdr)
 	for scanner.Scan() {
+		var kvs point.KVs
+
 		line := scanner.Text()
 		if len(line) == 0 || line[0] == '#' {
 			continue
 		}
 
-		parts := strings.SplitN(line, ":", 2)
-		if len(parts) < 2 {
+		parts := strings.Split(line, ":")
+		if len(parts) != 2 {
 			continue
 		}
 
-		m := &commandMeasurement{
-			name:     "redis_command_stat",
-			tags:     make(map[string]string),
-			fields:   make(map[string]interface{}),
-			resData:  make(map[string]interface{}),
-			election: ipt.Election,
-		}
-		setHostTagIfNotLoopback(m.tags, ipt.Host)
-		for key, value := range ipt.Tags {
-			m.tags[key] = value
-		}
-
-		// cmdstat_get:calls=2,usec=16,usec_per_call=8.00
-		method := parts[0]
-
-		m.tags["method"] = method
+		// example data:
+		// cmdstat_client|list:calls=1,usec=25,usec_per_call=25.00,rejected_calls=0,failed_calls=0
+		kvs = kvs.AddTag("method", parts[0])
 
 		itemStrs := strings.Split(parts[1], ",")
 		for _, itemStr := range itemStrs {
 			item := strings.Split(itemStr, "=")
 
-			key := item[0]
-			val := strings.TrimSpace(item[1])
-
-			m.resData[key] = val
-		}
-
-		if err := m.submit(); err != nil {
-			return nil, err
-		}
-
-		if len(m.fields) > 0 {
-			m.ts = time.Now()
-			var opts []point.Option
-
-			if m.election {
-				m.tags = inputs.MergeTags(ipt.Tagger.ElectionTags(), m.tags, ipt.Host)
-			} else {
-				m.tags = inputs.MergeTags(ipt.Tagger.HostTags(), m.tags, ipt.Host)
+			f, err := strconv.ParseFloat(item[1], 64)
+			if err != nil {
+				continue
 			}
 
-			pt := point.NewPointV2(m.name,
-				append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
-				opts...)
-			collectCache = append(collectCache, pt)
+			kvs = kvs.Add(item[0], f, false, false)
+		}
+
+		if kvs.FieldCount() > 0 {
+			for k, v := range ipt.mergedTags {
+				kvs = kvs.AddTag(k, v)
+			}
+			collectCache = append(collectCache, point.NewPointV2(redisCommandStat, kvs, opts...))
 		}
 	}
 
 	return collectCache, nil
-}
-
-// 提交数据.
-func (m *commandMeasurement) submit() error {
-	metricInfo := m.Info()
-	for key, item := range metricInfo.Fields {
-		if value, ok := m.resData[key]; ok {
-			val, err := Conv(value, item.(*inputs.FieldInfo).DataType)
-			if err != nil {
-				l.Errorf("commandMeasurement metric %v value %v parse error %v", key, value, err)
-				return err
-			} else {
-				m.fields[key] = val
-			}
-		}
-	}
-
-	return nil
 }

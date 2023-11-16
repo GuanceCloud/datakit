@@ -52,6 +52,10 @@ const (
   ## Collect INFO COMMANDSTATS output as metrics.
   # command_stats = false
 
+  ## @param latency_percentiles - boolean - optional - default: false
+  ## Collect INFO LATENCYSTATS output as metrics.
+  # latency_percentiles = false
+
   ## Set true to enable election
   election = true
 

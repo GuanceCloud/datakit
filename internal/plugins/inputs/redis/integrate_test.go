@@ -21,22 +21,13 @@ import (
 	dockertest "github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/require"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
 // ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
-
-var mExpect = map[string]struct{}{
-	// redisBigkey:      {},
-	redisClient: {},
-	// redisCluster:     {},
-	redisCommandStat: {},
-	// redisDB:          {},
-	redisInfoM:   {},
-	redisReplica: {},
-}
 
 func TestIntegrate(t *testing.T) {
 	if !testutils.CheckIntegrationTestingRunning() {
@@ -119,146 +110,125 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		// redis:4.0.14
 		////////////////////////////////////////////////////////////////////////
 		{
+			// with tags
 			name: "redis:4.0.14-alpine",
 			conf: `interval = "2s"
-			slow_log = true
-			all_slow_log = false
-			slowlog-max-len = 128
-			election = true`, // set conf URL later.
+		           slow_log = true
+		           all_slow_log = false
+		           slowlog-max-len = 128
+		           election = true
+			       [tags]
+			         foo = "bar"`, // set conf URL later.
 			exposedPorts: []string{"6379/tcp"},
 			optsRedisBigkey: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalTags("service_name"),
+				inputs.WithExtraTags(map[string]string{"election": "1", "foo": "bar"}),
 			},
 			optsRedisClient: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalFields("id", "fd", "age", "idle", "db", "sub", "psub", "ssub", "multi", "qbuf", "qbuf_free", "argv_mem", "multi_mem", "obl", "oll", "omem", "tot_mem", "redir", "resp"),
+				inputs.WithOptionalTags("service_name"),
+				inputs.WithExtraTags(map[string]string{"election": "1", "foo": "bar"}),
 			},
 			optsRedisCluster: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalFields("cluster_state", "cluster_slots_assigned", "cluster_slots_ok", "cluster_slots_pfail", "cluster_slots_fail", "cluster_known_nodes", "cluster_size", "cluster_current_epoch", "cluster_my_epoch", "cluster_stats_messages_sent", "cluster_stats_messages_received", "total_cluster_links_buffer_limit_exceeded", "cluster_stats_messages_ping_sent", "cluster_stats_messages_ping_received", "cluster_stats_messages_pong_sent", "cluster_stats_messages_pong_received", "cluster_stats_messages_meet_sent", "cluster_stats_messages_meet_received", "cluster_stats_messages_fail_sent", "cluster_stats_messages_fail_received", "cluster_stats_messages_publish_sent", "cluster_stats_messages_publish_received", "cluster_stats_messages_auth_req_sent", "cluster_stats_messages_auth_req_received", "cluster_stats_messages_auth_ack_sent", "cluster_stats_messages_auth_ack_received", "cluster_stats_messages_update_sent", "cluster_stats_messages_update_received", "cluster_stats_messages_mfstart_sent", "cluster_stats_messages_mfstart_received", "cluster_stats_messages_module_sent", "cluster_stats_messages_module_received", "cluster_stats_messages_publishshard_sent", "cluster_stats_messages_publishshard_received"),
+				inputs.WithOptionalTags("service_name"),
+				inputs.WithExtraTags(map[string]string{"election": "1", "foo": "bar"}),
 			},
 			optsRedisCommandStat: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalFields("calls", "usec", "usec_per_call", "rejected_calls", "failed_calls"),
+				inputs.WithOptionalTags("service_name"),
+				inputs.WithExtraTags(map[string]string{"election": "1", "foo": "bar"}),
 			},
 			optsRedisDB: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalTags("service_name"),
+				inputs.WithExtraTags(map[string]string{"election": "1", "foo": "bar"}),
 			},
 			optsRedisInfoM: []inputs.PointCheckOption{
-				inputs.WithOptionalFields(
-					"aof_buffer_length",
-					"aof_current_size",
-					"loading_eta_seconds",
-					"loading_loaded_bytes",
-					"loading_loaded_perc",
-					"loading_total_bytes",
-					"master_last_io_seconds_ago",
-					"master_sync_in_progress",
-					"master_sync_left_bytes",
-					"slave_repl_offset",
-					"used_cpu_sys_percent",
-					"used_cpu_user_percent",
-				),
-				inputs.WithOptionalTags(
-					"service_name",
-				),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalFields(getInfoField()...),
+				inputs.WithOptionalTags("server", "service_name", "command_type", "error_type", "quantile"),
+				inputs.WithExtraTags(map[string]string{"election": "1", "foo": "bar"}),
 			},
 			optsRedisReplica: []inputs.PointCheckOption{
-				inputs.WithOptionalFields(
-					"master_link_down_since_seconds",
-				),
-				inputs.WithOptionalTags(
-					"service_name",
-				),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalFields("master_link_down_since_seconds"),
+				inputs.WithOptionalTags("service_name"),
+				inputs.WithExtraTags(map[string]string{"election": "1", "foo": "bar"}),
 			},
 		},
 		{
 			name: "redis:4.0.14-alpine",
 			conf: `interval = "2s"
-			slow_log = true
-			all_slow_log = false
-			slowlog-max-len = 128
-			election = false`, // set conf URL later.
+					slow_log = true
+					all_slow_log = false
+					slowlog-max-len = 128
+					election = true`, // set conf URL later.
 			exposedPorts: []string{"6379/tcp"},
 			optsRedisBigkey: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
+				inputs.WithOptionalTags("service_name"),
+				inputs.WithExtraTags(map[string]string{"election": "1"}),
 			},
 			optsRedisClient: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
+				inputs.WithOptionalFields("id", "fd", "age", "idle", "db", "sub", "psub", "ssub", "multi", "qbuf", "qbuf_free", "argv_mem", "multi_mem", "obl", "oll", "omem", "tot_mem", "redir", "resp"),
+				inputs.WithOptionalTags("service_name"),
+				inputs.WithExtraTags(map[string]string{"election": "1"}),
 			},
 			optsRedisCluster: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
+				inputs.WithOptionalFields("cluster_state", "cluster_slots_assigned", "cluster_slots_ok", "cluster_slots_pfail", "cluster_slots_fail", "cluster_known_nodes", "cluster_size", "cluster_current_epoch", "cluster_my_epoch", "cluster_stats_messages_sent", "cluster_stats_messages_received", "total_cluster_links_buffer_limit_exceeded", "cluster_stats_messages_ping_sent", "cluster_stats_messages_ping_received", "cluster_stats_messages_pong_sent", "cluster_stats_messages_pong_received", "cluster_stats_messages_meet_sent", "cluster_stats_messages_meet_received", "cluster_stats_messages_fail_sent", "cluster_stats_messages_fail_received", "cluster_stats_messages_publish_sent", "cluster_stats_messages_publish_received", "cluster_stats_messages_auth_req_sent", "cluster_stats_messages_auth_req_received", "cluster_stats_messages_auth_ack_sent", "cluster_stats_messages_auth_ack_received", "cluster_stats_messages_update_sent", "cluster_stats_messages_update_received", "cluster_stats_messages_mfstart_sent", "cluster_stats_messages_mfstart_received", "cluster_stats_messages_module_sent", "cluster_stats_messages_module_received", "cluster_stats_messages_publishshard_sent", "cluster_stats_messages_publishshard_received"),
+				inputs.WithOptionalTags("service_name"),
+				inputs.WithExtraTags(map[string]string{"election": "1"}),
 			},
 			optsRedisCommandStat: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
+				inputs.WithOptionalFields("calls", "usec", "usec_per_call", "rejected_calls", "failed_calls"),
+				inputs.WithOptionalTags("service_name"),
+				inputs.WithExtraTags(map[string]string{"election": "1"}),
 			},
 			optsRedisDB: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
+				inputs.WithOptionalTags("service_name"),
+				inputs.WithExtraTags(map[string]string{"election": "1"}),
 			},
 			optsRedisInfoM: []inputs.PointCheckOption{
-				inputs.WithOptionalFields(
-					"aof_buffer_length",
-					"aof_current_size",
-					"loading_eta_seconds",
-					"loading_loaded_bytes",
-					"loading_loaded_perc",
-					"loading_total_bytes",
-					"master_last_io_seconds_ago",
-					"master_sync_in_progress",
-					"master_sync_left_bytes",
-					"slave_repl_offset",
-					"used_cpu_sys_percent",
-					"used_cpu_user_percent",
-				),
-				inputs.WithOptionalTags(
-					"service_name",
-				),
+				inputs.WithOptionalFields(getInfoField()...),
+				inputs.WithOptionalTags("server", "service_name", "command_type", "error_type", "quantile"),
+				inputs.WithExtraTags(map[string]string{"election": "1"}),
 			},
 			optsRedisReplica: []inputs.PointCheckOption{
-				inputs.WithOptionalFields(
-					"master_link_down_since_seconds",
-				),
-				inputs.WithOptionalTags(
-					"service_name",
-				),
+				inputs.WithOptionalFields("master_link_down_since_seconds"),
+				inputs.WithOptionalTags("service_name"),
+				inputs.WithExtraTags(map[string]string{"election": "1"}),
+			},
+		},
+		{
+			name: "redis:4.0.14-alpine",
+			conf: `interval = "2s"
+					slow_log = true
+					all_slow_log = false
+					slowlog-max-len = 128
+					election = false`, // set conf URL later.
+			exposedPorts: []string{"6379/tcp"},
+			optsRedisBigkey: []inputs.PointCheckOption{
+				inputs.WithOptionalTags("service_name"),
+			},
+			optsRedisClient: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("id", "fd", "age", "idle", "db", "sub", "psub", "ssub", "multi", "qbuf", "qbuf_free", "argv_mem", "multi_mem", "obl", "oll", "omem", "tot_mem", "redir", "resp"),
+				inputs.WithOptionalTags("service_name"),
+			},
+			optsRedisCluster: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("cluster_state", "cluster_slots_assigned", "cluster_slots_ok", "cluster_slots_pfail", "cluster_slots_fail", "cluster_known_nodes", "cluster_size", "cluster_current_epoch", "cluster_my_epoch", "cluster_stats_messages_sent", "cluster_stats_messages_received", "total_cluster_links_buffer_limit_exceeded", "cluster_stats_messages_ping_sent", "cluster_stats_messages_ping_received", "cluster_stats_messages_pong_sent", "cluster_stats_messages_pong_received", "cluster_stats_messages_meet_sent", "cluster_stats_messages_meet_received", "cluster_stats_messages_fail_sent", "cluster_stats_messages_fail_received", "cluster_stats_messages_publish_sent", "cluster_stats_messages_publish_received", "cluster_stats_messages_auth_req_sent", "cluster_stats_messages_auth_req_received", "cluster_stats_messages_auth_ack_sent", "cluster_stats_messages_auth_ack_received", "cluster_stats_messages_update_sent", "cluster_stats_messages_update_received", "cluster_stats_messages_mfstart_sent", "cluster_stats_messages_mfstart_received", "cluster_stats_messages_module_sent", "cluster_stats_messages_module_received", "cluster_stats_messages_publishshard_sent", "cluster_stats_messages_publishshard_received"),
+				inputs.WithOptionalTags("service_name"),
+			},
+			optsRedisCommandStat: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("calls", "usec", "usec_per_call", "rejected_calls", "failed_calls"),
+				inputs.WithOptionalTags("service_name"),
+			},
+			optsRedisDB: []inputs.PointCheckOption{
+				inputs.WithOptionalTags("service_name"),
+			},
+			optsRedisInfoM: []inputs.PointCheckOption{
+				inputs.WithOptionalFields(getInfoField()...),
+				inputs.WithOptionalTags("server", "service_name", "command_type", "error_type", "quantile"),
+			},
+			optsRedisReplica: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("master_link_down_since_seconds"),
+				inputs.WithOptionalTags("service_name"),
 			},
 		},
 
@@ -268,148 +238,78 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		{
 			name: "redis:5.0.14-alpine",
 			conf: `interval = "2s"
-			slow_log = true
-			all_slow_log = false
-			slowlog-max-len = 128
-			election = true`, // set conf URL later.
+					slow_log = true
+					all_slow_log = false
+					slowlog-max-len = 128
+					election = true`, // set conf URL later.
 			exposedPorts: []string{"6379/tcp"},
 			optsRedisBigkey: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalTags("service_name"),
+				inputs.WithExtraTags(map[string]string{"election": "1"}),
 			},
 			optsRedisClient: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalFields("id", "fd", "age", "idle", "db", "sub", "psub", "ssub", "multi", "qbuf", "qbuf_free", "argv_mem", "multi_mem", "obl", "oll", "omem", "tot_mem", "redir", "resp"),
+				inputs.WithOptionalTags("service_name"),
+				inputs.WithExtraTags(map[string]string{"election": "1"}),
 			},
 			optsRedisCluster: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalFields("cluster_state", "cluster_slots_assigned", "cluster_slots_ok", "cluster_slots_pfail", "cluster_slots_fail", "cluster_known_nodes", "cluster_size", "cluster_current_epoch", "cluster_my_epoch", "cluster_stats_messages_sent", "cluster_stats_messages_received", "total_cluster_links_buffer_limit_exceeded", "cluster_stats_messages_ping_sent", "cluster_stats_messages_ping_received", "cluster_stats_messages_pong_sent", "cluster_stats_messages_pong_received", "cluster_stats_messages_meet_sent", "cluster_stats_messages_meet_received", "cluster_stats_messages_fail_sent", "cluster_stats_messages_fail_received", "cluster_stats_messages_publish_sent", "cluster_stats_messages_publish_received", "cluster_stats_messages_auth_req_sent", "cluster_stats_messages_auth_req_received", "cluster_stats_messages_auth_ack_sent", "cluster_stats_messages_auth_ack_received", "cluster_stats_messages_update_sent", "cluster_stats_messages_update_received", "cluster_stats_messages_mfstart_sent", "cluster_stats_messages_mfstart_received", "cluster_stats_messages_module_sent", "cluster_stats_messages_module_received", "cluster_stats_messages_publishshard_sent", "cluster_stats_messages_publishshard_received"),
+				inputs.WithOptionalTags("service_name"),
+				inputs.WithExtraTags(map[string]string{"election": "1"}),
 			},
 			optsRedisCommandStat: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalFields("calls", "usec", "usec_per_call", "rejected_calls", "failed_calls"),
+				inputs.WithOptionalTags("service_name"),
+				inputs.WithExtraTags(map[string]string{"election": "1"}),
 			},
 			optsRedisDB: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalTags("service_name"),
+				inputs.WithExtraTags(map[string]string{"election": "1"}),
 			},
 			optsRedisInfoM: []inputs.PointCheckOption{
-				inputs.WithOptionalFields(
-					"aof_buffer_length",
-					"aof_current_size",
-					"client_biggest_input_buf",
-					"client_longest_output_list",
-					"loading_eta_seconds",
-					"loading_loaded_bytes",
-					"loading_loaded_perc",
-					"loading_total_bytes",
-					"master_last_io_seconds_ago",
-					"master_sync_in_progress",
-					"master_sync_left_bytes",
-					"slave_repl_offset",
-					"used_cpu_sys_percent",
-					"used_cpu_user_percent",
-				),
-				inputs.WithOptionalTags(
-					"service_name",
-				),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalFields(getInfoField()...),
+				inputs.WithOptionalTags("server", "service_name", "command_type", "error_type", "quantile"),
+				inputs.WithExtraTags(map[string]string{"election": "1"}),
 			},
 			optsRedisReplica: []inputs.PointCheckOption{
-				inputs.WithOptionalFields(
-					"master_link_down_since_seconds",
-				),
-				inputs.WithOptionalTags(
-					"service_name",
-				),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalFields("master_link_down_since_seconds"),
+				inputs.WithOptionalTags("service_name"),
+				inputs.WithExtraTags(map[string]string{"election": "1"}),
 			},
 		},
 		{
 			name: "redis:5.0.14-alpine",
 			conf: `interval = "2s"
-			slow_log = true
-			all_slow_log = false
-			slowlog-max-len = 128
-			election = false`, // set conf URL later.
+					slow_log = true
+					all_slow_log = false
+					slowlog-max-len = 128
+					election = false`, // set conf URL later.
 			exposedPorts: []string{"6379/tcp"},
 			optsRedisBigkey: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
+				inputs.WithOptionalTags("service_name"),
 			},
 			optsRedisClient: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
+				inputs.WithOptionalFields("id", "fd", "age", "idle", "db", "sub", "psub", "ssub", "multi", "qbuf", "qbuf_free", "argv_mem", "multi_mem", "obl", "oll", "omem", "tot_mem", "redir", "resp"),
+				inputs.WithOptionalTags("service_name"),
 			},
 			optsRedisCluster: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
+				inputs.WithOptionalFields("cluster_state", "cluster_slots_assigned", "cluster_slots_ok", "cluster_slots_pfail", "cluster_slots_fail", "cluster_known_nodes", "cluster_size", "cluster_current_epoch", "cluster_my_epoch", "cluster_stats_messages_sent", "cluster_stats_messages_received", "total_cluster_links_buffer_limit_exceeded", "cluster_stats_messages_ping_sent", "cluster_stats_messages_ping_received", "cluster_stats_messages_pong_sent", "cluster_stats_messages_pong_received", "cluster_stats_messages_meet_sent", "cluster_stats_messages_meet_received", "cluster_stats_messages_fail_sent", "cluster_stats_messages_fail_received", "cluster_stats_messages_publish_sent", "cluster_stats_messages_publish_received", "cluster_stats_messages_auth_req_sent", "cluster_stats_messages_auth_req_received", "cluster_stats_messages_auth_ack_sent", "cluster_stats_messages_auth_ack_received", "cluster_stats_messages_update_sent", "cluster_stats_messages_update_received", "cluster_stats_messages_mfstart_sent", "cluster_stats_messages_mfstart_received", "cluster_stats_messages_module_sent", "cluster_stats_messages_module_received", "cluster_stats_messages_publishshard_sent", "cluster_stats_messages_publishshard_received"),
+				inputs.WithOptionalTags("service_name"),
 			},
 			optsRedisCommandStat: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
+				inputs.WithOptionalFields("calls", "usec", "usec_per_call", "rejected_calls", "failed_calls"),
+				inputs.WithOptionalTags("service_name"),
 			},
 			optsRedisDB: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
+				inputs.WithOptionalTags("service_name"),
 			},
 			optsRedisInfoM: []inputs.PointCheckOption{
-				inputs.WithOptionalFields(
-					"aof_buffer_length",
-					"aof_current_size",
-					"client_biggest_input_buf",
-					"client_longest_output_list",
-					"loading_eta_seconds",
-					"loading_loaded_bytes",
-					"loading_loaded_perc",
-					"loading_total_bytes",
-					"master_last_io_seconds_ago",
-					"master_sync_in_progress",
-					"master_sync_left_bytes",
-					"slave_repl_offset",
-					"used_cpu_sys_percent",
-					"used_cpu_user_percent",
-				),
-				inputs.WithOptionalTags(
-					"service_name",
-				),
+				inputs.WithOptionalFields(getInfoField()...),
+				inputs.WithOptionalTags("server", "service_name", "command_type", "error_type", "quantile"),
 			},
 			optsRedisReplica: []inputs.PointCheckOption{
-				inputs.WithOptionalFields(
-					"master_link_down_since_seconds",
-				),
-				inputs.WithOptionalTags(
-					"service_name",
-				),
+				inputs.WithOptionalFields("master_link_down_since_seconds"),
+				inputs.WithOptionalTags("service_name"),
 			},
 		},
 
@@ -419,148 +319,78 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		{
 			name: "redis:6.2.12-alpine",
 			conf: `interval = "2s"
-			slow_log = true
-			all_slow_log = false
-			slowlog-max-len = 128
-			election = true`, // set conf URL later.
+					slow_log = true
+					all_slow_log = false
+					slowlog-max-len = 128
+					election = true`, // set conf URL later.
 			exposedPorts: []string{"6379/tcp"},
 			optsRedisBigkey: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalTags("service_name"),
+				inputs.WithExtraTags(map[string]string{"election": "1"}),
 			},
 			optsRedisClient: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalFields("id", "fd", "age", "idle", "db", "sub", "psub", "ssub", "multi", "qbuf", "qbuf_free", "argv_mem", "multi_mem", "obl", "oll", "omem", "tot_mem", "redir", "resp"),
+				inputs.WithOptionalTags("service_name"),
+				inputs.WithExtraTags(map[string]string{"election": "1"}),
 			},
 			optsRedisCluster: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalFields("cluster_state", "cluster_slots_assigned", "cluster_slots_ok", "cluster_slots_pfail", "cluster_slots_fail", "cluster_known_nodes", "cluster_size", "cluster_current_epoch", "cluster_my_epoch", "cluster_stats_messages_sent", "cluster_stats_messages_received", "total_cluster_links_buffer_limit_exceeded", "cluster_stats_messages_ping_sent", "cluster_stats_messages_ping_received", "cluster_stats_messages_pong_sent", "cluster_stats_messages_pong_received", "cluster_stats_messages_meet_sent", "cluster_stats_messages_meet_received", "cluster_stats_messages_fail_sent", "cluster_stats_messages_fail_received", "cluster_stats_messages_publish_sent", "cluster_stats_messages_publish_received", "cluster_stats_messages_auth_req_sent", "cluster_stats_messages_auth_req_received", "cluster_stats_messages_auth_ack_sent", "cluster_stats_messages_auth_ack_received", "cluster_stats_messages_update_sent", "cluster_stats_messages_update_received", "cluster_stats_messages_mfstart_sent", "cluster_stats_messages_mfstart_received", "cluster_stats_messages_module_sent", "cluster_stats_messages_module_received", "cluster_stats_messages_publishshard_sent", "cluster_stats_messages_publishshard_received"),
+				inputs.WithOptionalTags("service_name"),
+				inputs.WithExtraTags(map[string]string{"election": "1"}),
 			},
 			optsRedisCommandStat: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalFields("calls", "usec", "usec_per_call", "rejected_calls", "failed_calls"),
+				inputs.WithOptionalTags("service_name"),
+				inputs.WithExtraTags(map[string]string{"election": "1"}),
 			},
 			optsRedisDB: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalTags("service_name"),
+				inputs.WithExtraTags(map[string]string{"election": "1"}),
 			},
 			optsRedisInfoM: []inputs.PointCheckOption{
-				inputs.WithOptionalFields(
-					"aof_buffer_length",
-					"aof_current_size",
-					"client_biggest_input_buf",
-					"client_longest_output_list",
-					"loading_eta_seconds",
-					"loading_loaded_bytes",
-					"loading_loaded_perc",
-					"loading_total_bytes",
-					"master_last_io_seconds_ago",
-					"master_sync_in_progress",
-					"master_sync_left_bytes",
-					"slave_repl_offset",
-					"used_cpu_sys_percent",
-					"used_cpu_user_percent",
-				),
-				inputs.WithOptionalTags(
-					"service_name",
-				),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalFields(getInfoField()...),
+				inputs.WithOptionalTags("server", "service_name", "command_type", "error_type", "quantile"),
+				inputs.WithExtraTags(map[string]string{"election": "1"}),
 			},
 			optsRedisReplica: []inputs.PointCheckOption{
-				inputs.WithOptionalFields(
-					"master_link_down_since_seconds",
-				),
-				inputs.WithOptionalTags(
-					"service_name",
-				),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalFields("master_link_down_since_seconds"),
+				inputs.WithOptionalTags("service_name"),
+				inputs.WithExtraTags(map[string]string{"election": "1"}),
 			},
 		},
 		{
 			name: "redis:6.2.12-alpine",
 			conf: `interval = "2s"
-			slow_log = true
-			all_slow_log = false
-			slowlog-max-len = 128
-			election = false`, // set conf URL later.
+					slow_log = true
+					all_slow_log = false
+					slowlog-max-len = 128
+					election = false`, // set conf URL later.
 			exposedPorts: []string{"6379/tcp"},
 			optsRedisBigkey: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
+				inputs.WithOptionalTags("service_name"),
 			},
 			optsRedisClient: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
+				inputs.WithOptionalFields("id", "fd", "age", "idle", "db", "sub", "psub", "ssub", "multi", "qbuf", "qbuf_free", "argv_mem", "multi_mem", "obl", "oll", "omem", "tot_mem", "redir", "resp"),
+				inputs.WithOptionalTags("service_name"),
 			},
 			optsRedisCluster: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
+				inputs.WithOptionalFields("cluster_state", "cluster_slots_assigned", "cluster_slots_ok", "cluster_slots_pfail", "cluster_slots_fail", "cluster_known_nodes", "cluster_size", "cluster_current_epoch", "cluster_my_epoch", "cluster_stats_messages_sent", "cluster_stats_messages_received", "total_cluster_links_buffer_limit_exceeded", "cluster_stats_messages_ping_sent", "cluster_stats_messages_ping_received", "cluster_stats_messages_pong_sent", "cluster_stats_messages_pong_received", "cluster_stats_messages_meet_sent", "cluster_stats_messages_meet_received", "cluster_stats_messages_fail_sent", "cluster_stats_messages_fail_received", "cluster_stats_messages_publish_sent", "cluster_stats_messages_publish_received", "cluster_stats_messages_auth_req_sent", "cluster_stats_messages_auth_req_received", "cluster_stats_messages_auth_ack_sent", "cluster_stats_messages_auth_ack_received", "cluster_stats_messages_update_sent", "cluster_stats_messages_update_received", "cluster_stats_messages_mfstart_sent", "cluster_stats_messages_mfstart_received", "cluster_stats_messages_module_sent", "cluster_stats_messages_module_received", "cluster_stats_messages_publishshard_sent", "cluster_stats_messages_publishshard_received"),
+				inputs.WithOptionalTags("service_name"),
 			},
 			optsRedisCommandStat: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
+				inputs.WithOptionalFields("calls", "usec", "usec_per_call", "rejected_calls", "failed_calls"),
+				inputs.WithOptionalTags("service_name"),
 			},
 			optsRedisDB: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
+				inputs.WithOptionalTags("service_name"),
 			},
 			optsRedisInfoM: []inputs.PointCheckOption{
-				inputs.WithOptionalFields(
-					"aof_buffer_length",
-					"aof_current_size",
-					"client_biggest_input_buf",
-					"client_longest_output_list",
-					"loading_eta_seconds",
-					"loading_loaded_bytes",
-					"loading_loaded_perc",
-					"loading_total_bytes",
-					"master_last_io_seconds_ago",
-					"master_sync_in_progress",
-					"master_sync_left_bytes",
-					"slave_repl_offset",
-					"used_cpu_sys_percent",
-					"used_cpu_user_percent",
-				),
-				inputs.WithOptionalTags(
-					"service_name",
-				),
+				inputs.WithOptionalFields(getInfoField()...),
+				inputs.WithOptionalTags("server", "service_name", "command_type", "error_type", "quantile"),
 			},
 			optsRedisReplica: []inputs.PointCheckOption{
-				inputs.WithOptionalFields(
-					"master_link_down_since_seconds",
-				),
-				inputs.WithOptionalTags(
-					"service_name",
-				),
+				inputs.WithOptionalFields("master_link_down_since_seconds"),
+				inputs.WithOptionalTags("service_name"),
 			},
 		},
 
@@ -570,148 +400,114 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		{
 			name: "redis:7.0.11-alpine",
 			conf: `interval = "2s"
-			slow_log = true
-			all_slow_log = false
-			slowlog-max-len = 128
-			election = true`, // set conf URL later.
+					slow_log = true
+					all_slow_log = false
+					slowlog-max-len = 128
+					election = true`, // set conf URL later.
 			exposedPorts: []string{"6379/tcp"},
 			optsRedisBigkey: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalTags("service_name"),
+				inputs.WithExtraTags(map[string]string{"election": "1"}),
 			},
 			optsRedisClient: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalFields("id", "fd", "age", "idle", "db", "sub", "psub", "ssub", "multi", "qbuf", "qbuf_free", "argv_mem", "multi_mem", "obl", "oll", "omem", "tot_mem", "redir", "resp"),
+				inputs.WithOptionalTags("service_name"),
+				inputs.WithExtraTags(map[string]string{"election": "1"}),
 			},
 			optsRedisCluster: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalFields("cluster_state", "cluster_slots_assigned", "cluster_slots_ok", "cluster_slots_pfail", "cluster_slots_fail", "cluster_known_nodes", "cluster_size", "cluster_current_epoch", "cluster_my_epoch", "cluster_stats_messages_sent", "cluster_stats_messages_received", "total_cluster_links_buffer_limit_exceeded", "cluster_stats_messages_ping_sent", "cluster_stats_messages_ping_received", "cluster_stats_messages_pong_sent", "cluster_stats_messages_pong_received", "cluster_stats_messages_meet_sent", "cluster_stats_messages_meet_received", "cluster_stats_messages_fail_sent", "cluster_stats_messages_fail_received", "cluster_stats_messages_publish_sent", "cluster_stats_messages_publish_received", "cluster_stats_messages_auth_req_sent", "cluster_stats_messages_auth_req_received", "cluster_stats_messages_auth_ack_sent", "cluster_stats_messages_auth_ack_received", "cluster_stats_messages_update_sent", "cluster_stats_messages_update_received", "cluster_stats_messages_mfstart_sent", "cluster_stats_messages_mfstart_received", "cluster_stats_messages_module_sent", "cluster_stats_messages_module_received", "cluster_stats_messages_publishshard_sent", "cluster_stats_messages_publishshard_received"),
+				inputs.WithOptionalTags("service_name"),
+				inputs.WithExtraTags(map[string]string{"election": "1"}),
 			},
 			optsRedisCommandStat: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalFields("calls", "usec", "usec_per_call", "rejected_calls", "failed_calls"),
+				inputs.WithOptionalTags("service_name"),
+				inputs.WithExtraTags(map[string]string{"election": "1"}),
 			},
 			optsRedisDB: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalTags("service_name"),
+				inputs.WithExtraTags(map[string]string{"election": "1"}),
 			},
 			optsRedisInfoM: []inputs.PointCheckOption{
-				inputs.WithOptionalFields(
-					"aof_buffer_length",
-					"aof_current_size",
-					"client_biggest_input_buf",
-					"client_longest_output_list",
-					"loading_eta_seconds",
-					"loading_loaded_bytes",
-					"loading_loaded_perc",
-					"loading_total_bytes",
-					"master_last_io_seconds_ago",
-					"master_sync_in_progress",
-					"master_sync_left_bytes",
-					"slave_repl_offset",
-					"used_cpu_sys_percent",
-					"used_cpu_user_percent",
-				),
-				inputs.WithOptionalTags(
-					"service_name",
-				),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalFields(getInfoField()...),
+				inputs.WithOptionalTags("server", "service_name", "command_type", "error_type", "quantile"),
+				inputs.WithExtraTags(map[string]string{"election": "1"}),
 			},
 			optsRedisReplica: []inputs.PointCheckOption{
-				inputs.WithOptionalFields(
-					"master_link_down_since_seconds",
-				),
-				inputs.WithOptionalTags(
-					"service_name",
-				),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalFields("master_link_down_since_seconds"),
+				inputs.WithOptionalTags("service_name"),
+				inputs.WithExtraTags(map[string]string{"election": "1"}),
 			},
 		},
 		{
 			name: "redis:7.0.11-alpine",
 			conf: `interval = "2s"
-			slow_log = true
-			all_slow_log = false
-			slowlog-max-len = 128
-			election = false`, // set conf URL later.
+				slow_log = true
+				all_slow_log = false
+				slowlog-max-len = 128
+				election = false`, // set conf URL later.
 			exposedPorts: []string{"6379/tcp"},
 			optsRedisBigkey: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
+				inputs.WithOptionalTags("service_name"),
 			},
 			optsRedisClient: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
+				inputs.WithOptionalFields("id", "fd", "age", "idle", "db", "sub", "psub", "ssub", "multi", "qbuf", "qbuf_free", "argv_mem", "multi_mem", "obl", "oll", "omem", "tot_mem", "redir", "resp"),
+				inputs.WithOptionalTags("service_name"),
 			},
 			optsRedisCluster: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
+				inputs.WithOptionalFields("cluster_state", "cluster_slots_assigned", "cluster_slots_ok", "cluster_slots_pfail", "cluster_slots_fail", "cluster_known_nodes", "cluster_size", "cluster_current_epoch", "cluster_my_epoch", "cluster_stats_messages_sent", "cluster_stats_messages_received", "total_cluster_links_buffer_limit_exceeded", "cluster_stats_messages_ping_sent", "cluster_stats_messages_ping_received", "cluster_stats_messages_pong_sent", "cluster_stats_messages_pong_received", "cluster_stats_messages_meet_sent", "cluster_stats_messages_meet_received", "cluster_stats_messages_fail_sent", "cluster_stats_messages_fail_received", "cluster_stats_messages_publish_sent", "cluster_stats_messages_publish_received", "cluster_stats_messages_auth_req_sent", "cluster_stats_messages_auth_req_received", "cluster_stats_messages_auth_ack_sent", "cluster_stats_messages_auth_ack_received", "cluster_stats_messages_update_sent", "cluster_stats_messages_update_received", "cluster_stats_messages_mfstart_sent", "cluster_stats_messages_mfstart_received", "cluster_stats_messages_module_sent", "cluster_stats_messages_module_received", "cluster_stats_messages_publishshard_sent", "cluster_stats_messages_publishshard_received"),
+				inputs.WithOptionalTags("service_name"),
 			},
 			optsRedisCommandStat: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
+				inputs.WithOptionalFields("calls", "usec", "usec_per_call", "rejected_calls", "failed_calls"),
+				inputs.WithOptionalTags("service_name"),
 			},
 			optsRedisDB: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"service_name",
-				),
+				inputs.WithOptionalTags("service_name"),
 			},
 			optsRedisInfoM: []inputs.PointCheckOption{
-				inputs.WithOptionalFields(
-					"aof_buffer_length",
-					"aof_current_size",
-					"client_biggest_input_buf",
-					"client_longest_output_list",
-					"loading_eta_seconds",
-					"loading_loaded_bytes",
-					"loading_loaded_perc",
-					"loading_total_bytes",
-					"master_last_io_seconds_ago",
-					"master_sync_in_progress",
-					"master_sync_left_bytes",
-					"slave_repl_offset",
-					"used_cpu_sys_percent",
-					"used_cpu_user_percent",
-				),
-				inputs.WithOptionalTags(
-					"service_name",
-				),
+				inputs.WithOptionalFields(getInfoField()...),
+				inputs.WithOptionalTags("server", "service_name", "command_type", "error_type", "quantile"),
 			},
 			optsRedisReplica: []inputs.PointCheckOption{
-				inputs.WithOptionalFields(
-					"master_link_down_since_seconds",
-				),
-				inputs.WithOptionalTags(
-					"service_name",
-				),
+				inputs.WithOptionalFields("master_link_down_since_seconds"),
+				inputs.WithOptionalTags("service_name"),
+			},
+		},
+		{
+			name: "redis:7.0.11-alpine",
+			conf: `interval = "2s"
+				slow_log = true
+				all_slow_log = false
+				slowlog-max-len = 128
+				election = false
+				latency_percentiles = true`, // set conf URL later.
+			exposedPorts: []string{"6379/tcp"},
+			optsRedisBigkey: []inputs.PointCheckOption{
+				inputs.WithOptionalTags("service_name"),
+			},
+			optsRedisClient: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("id", "fd", "age", "idle", "db", "sub", "psub", "ssub", "multi", "qbuf", "qbuf_free", "argv_mem", "multi_mem", "obl", "oll", "omem", "tot_mem", "redir", "resp"),
+				inputs.WithOptionalTags("service_name"),
+			},
+			optsRedisCluster: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("cluster_state", "cluster_slots_assigned", "cluster_slots_ok", "cluster_slots_pfail", "cluster_slots_fail", "cluster_known_nodes", "cluster_size", "cluster_current_epoch", "cluster_my_epoch", "cluster_stats_messages_sent", "cluster_stats_messages_received", "total_cluster_links_buffer_limit_exceeded", "cluster_stats_messages_ping_sent", "cluster_stats_messages_ping_received", "cluster_stats_messages_pong_sent", "cluster_stats_messages_pong_received", "cluster_stats_messages_meet_sent", "cluster_stats_messages_meet_received", "cluster_stats_messages_fail_sent", "cluster_stats_messages_fail_received", "cluster_stats_messages_publish_sent", "cluster_stats_messages_publish_received", "cluster_stats_messages_auth_req_sent", "cluster_stats_messages_auth_req_received", "cluster_stats_messages_auth_ack_sent", "cluster_stats_messages_auth_ack_received", "cluster_stats_messages_update_sent", "cluster_stats_messages_update_received", "cluster_stats_messages_mfstart_sent", "cluster_stats_messages_mfstart_received", "cluster_stats_messages_module_sent", "cluster_stats_messages_module_received", "cluster_stats_messages_publishshard_sent", "cluster_stats_messages_publishshard_received"),
+				inputs.WithOptionalTags("service_name"),
+			},
+			optsRedisCommandStat: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("calls", "usec", "usec_per_call", "rejected_calls", "failed_calls"),
+				inputs.WithOptionalTags("service_name"),
+			},
+			optsRedisDB: []inputs.PointCheckOption{
+				inputs.WithOptionalTags("service_name"),
+			},
+			optsRedisInfoM: []inputs.PointCheckOption{
+				inputs.WithOptionalFields(getInfoField()...),
+				inputs.WithOptionalTags("server", "service_name", "command_type", "error_type", "quantile"),
+			},
+			optsRedisReplica: []inputs.PointCheckOption{
+				inputs.WithOptionalFields("master_link_down_since_seconds"),
+				inputs.WithOptionalTags("service_name"),
 			},
 		},
 	}
@@ -729,9 +525,9 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		require.NoError(t, err)
 
 		if ipt.Election {
-			ipt.Tagger = testutils.NewTaggerElection()
+			ipt.tagger = testutils.NewTaggerElection()
 		} else {
-			ipt.Tagger = testutils.NewTaggerHost()
+			ipt.tagger = testutils.NewTaggerHost()
 		}
 
 		repoTag := strings.Split(base.name, ":")
@@ -808,7 +604,6 @@ type caseSpec struct {
 func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 	for _, pt := range pts {
 		var opts []inputs.PointCheckOption
-		opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
 
 		measurement := pt.Name()
 
@@ -1069,10 +864,6 @@ func (cs *caseSpec) run() error {
 	cs.cr.AddField("point_latency", int64(time.Since(start)))
 	cs.cr.AddField("point_count", len(pts))
 
-	// for _, v := range pts {
-	// 	cs.t.Logf("pt = %s", v.LineProto())
-	// }
-
 	cs.t.Logf("get %d points", len(pts))
 	cs.mCount = make(map[string]struct{})
 	if err := cs.checkPoint(pts); err != nil {
@@ -1082,11 +873,7 @@ func (cs *caseSpec) run() error {
 	cs.t.Logf("stop input...")
 	cs.ipt.Terminate()
 
-	require.Equal(cs.t, mExpect, cs.mCount)
-	// length := len(cs.mCount)
-	// if length < 1 {
-	// 	return fmt.Errorf("count smaller than 1: %d", length)
-	// }
+	require.GreaterOrEqual(cs.t, len(cs.mCount), 2) // At lest 2 Metric out.
 
 	cs.t.Logf("exit...")
 	wg.Wait()

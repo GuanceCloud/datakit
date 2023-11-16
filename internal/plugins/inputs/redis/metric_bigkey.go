@@ -8,6 +8,7 @@ package redis
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -54,10 +55,10 @@ func (m *bigKeyMeasurement) Info() *inputs.MeasurementInfo {
 			},
 			"service_name": &inputs.TagInfo{Desc: "Service name"},
 			"db_name": &inputs.TagInfo{
-				Desc: "db",
+				Desc: "DB name.",
 			},
 			"key": &inputs.TagInfo{
-				Desc: "monitor key",
+				Desc: "Monitor key",
 			},
 		},
 	}
@@ -77,6 +78,7 @@ func (ipt *Input) getKeys() ([]string, error) {
 				l.Errorf("redis pattern key %s scan fail error %v", pattern, err)
 				return nil, err
 			}
+			// keys: []string{"key1","key2"...}
 
 			res = append(res, keys...)
 			if cursor == 0 {
@@ -87,26 +89,17 @@ func (ipt *Input) getKeys() ([]string, error) {
 	return res, nil
 }
 
-// 数据源获取数据.
 func (ipt *Input) getData(resKeys []string) ([]*point.Point, error) {
-	var collectCache []*point.Point
+	collectCache := []*point.Point{}
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(time.Now()))
 
 	for _, key := range resKeys {
+		var kvs point.KVs
+		kvs = kvs.AddTag("db_name", fmt.Sprintf("%d", ipt.DB))
+		kvs = kvs.AddTag("key", key)
+
 		found := false
-
-		m := &commandMeasurement{
-			name:     redisBigkey,
-			tags:     make(map[string]string),
-			fields:   make(map[string]interface{}),
-			election: ipt.Election,
-		}
-
-		for key, value := range ipt.Tags {
-			m.tags[key] = value
-		}
-
-		m.tags["db_name"] = fmt.Sprintf("%d", ipt.DB)
-		m.tags["key"] = key
 		ctx := context.Background()
 		for _, op := range []string{
 			"HLEN",
@@ -117,8 +110,9 @@ func (ipt *Input) getData(resKeys []string) ([]*point.Point, error) {
 			"STRLEN",
 		} {
 			if val, err := ipt.client.Do(ctx, op, key).Result(); err == nil && val != nil {
+				// op:"STRLEN", key:"key1", val=interface{}(int64)5
 				found = true
-				m.fields["value_length"] = val
+				kvs = kvs.Add("value_length", val, false, true)
 				break
 			}
 		}
@@ -128,22 +122,14 @@ func (ipt *Input) getData(resKeys []string) ([]*point.Point, error) {
 				l.Warnf("%s key not found in redis", key)
 			}
 
-			m.fields["value_length"] = 0
+			kvs = kvs.Add("value_length", 0, false, true)
 		}
 
-		if len(m.fields) > 0 {
-			var opts []point.Option
-
-			if m.election {
-				m.tags = inputs.MergeTags(ipt.Tagger.ElectionTags(), m.tags, ipt.Host)
-			} else {
-				m.tags = inputs.MergeTags(ipt.Tagger.HostTags(), m.tags, ipt.Host)
+		if kvs.FieldCount() > 0 {
+			for k, v := range ipt.mergedTags {
+				kvs = kvs.AddTag(k, v)
 			}
-
-			pt := point.NewPointV2(m.name,
-				append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
-				opts...)
-			collectCache = append(collectCache, pt)
+			collectCache = append(collectCache, point.NewPointV2(redisBigkey, kvs, opts...))
 		}
 	}
 

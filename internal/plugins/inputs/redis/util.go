@@ -7,9 +7,9 @@ package redis
 
 import (
 	"math"
-	"net"
 
 	"github.com/spf13/cast"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -49,10 +49,4 @@ func IsSlicesHave(s []int, index int) bool {
 		}
 	}
 	return false
-}
-
-func setHostTagIfNotLoopback(tags map[string]string, host string) {
-	if host != "localhost" && !net.ParseIP(host).IsLoopback() {
-		tags["host"] = host
-	}
 }

@@ -10,173 +10,110 @@ import (
 	"context"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-type dbMeasurement struct {
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	resData  map[string]interface{}
-	election bool
-}
+type dbMeasurement struct{}
 
 func (m *dbMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: redisDB,
 		Type: "metric",
-		Tags: map[string]interface{}{
-			"db": &inputs.TagInfo{
-				Desc: "db name",
-			},
-			"host": &inputs.TagInfo{
-				Desc: "Hostname",
-			},
-			"server":       &inputs.TagInfo{Desc: "Server addr"},
-			"service_name": &inputs.TagInfo{Desc: "Service name"},
-		},
 		Fields: map[string]interface{}{
-			"keys": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
-				Desc:     "key",
-			},
-			"expires": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
-				Desc:     "过期时间",
-			},
-			"avg_ttl": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
-				Desc:     "avg ttl",
-			},
+			"keys":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Desc: "Key."},
+			"expires": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Desc: "expires time."},
+			"avg_ttl": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Desc: "Average ttl."},
+		},
+		Tags: map[string]interface{}{
+			"db":           &inputs.TagInfo{Desc: "DB name."},
+			"host":         &inputs.TagInfo{Desc: "Hostname."},
+			"server":       &inputs.TagInfo{Desc: "Server addr."},
+			"service_name": &inputs.TagInfo{Desc: "Service name."},
 		},
 	}
 }
 
 func (ipt *Input) collectDBMeasurement() ([]*point.Point, error) {
-	// 获取数据
 	ctx := context.Background()
-	list, err := ipt.client.Info(ctx, "Keyspace").Result()
+	list, err := ipt.client.Info(ctx, "keyspace").Result()
 	if err != nil {
 		return nil, err
 	}
-	// 拿到处理后的数据
-	info, err := ipt.ParseInfoData(list)
-	if err != nil {
-		return nil, err
-	}
-	return info, nil
+
+	return ipt.parseDBData(list)
 }
 
-// ParseInfoData 解析数据并返回指定的数据.
-func (ipt *Input) ParseInfoData(list string) ([]*point.Point, error) {
+func (ipt *Input) parseDBData(list string) ([]*point.Point, error) {
+	collectCache := []*point.Point{}
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(time.Now()))
+
 	rdr := strings.NewReader(list)
-	var collectCache []*point.Point
 	scanner := bufio.NewScanner(rdr)
 	dbIndexSlice := ipt.DBS
-	// 配置定义了db，加入dbIndexSlice
+	// config have "db"，join dbIndexSlice
 	if ipt.DB != -1 {
 		dbIndexSlice = append(dbIndexSlice, ipt.DB)
 	}
 
-	// 遍历每一行数据
+	// example data
+	// db0:keys=43706,expires=117,avg_ttl=30904274304765
 	for scanner.Scan() {
-		m := &dbMeasurement{
-			name:     redisClient,
-			tags:     make(map[string]string),
-			fields:   make(map[string]interface{}),
-			resData:  make(map[string]interface{}),
-			election: ipt.Election,
-		}
+		var kvs point.KVs
+
 		line := scanner.Text()
 
 		if len(line) == 0 || line[0] == '#' {
 			continue
 		}
 
-		// parts数据格式 [db0 keys=8,expires=0,avg_ttl=0]
-		parts := strings.SplitN(line, ":", 2)
-		if len(parts) < 2 {
+		// parts [db0 keys=43706,expires=117,avg_ttl=30904274304765]
+		parts := strings.Split(line, ":")
+		if len(parts) != 2 {
 			continue
 		}
-
-		// cmdstat_get:calls=2,usec=16,usec_per_call=8.00
 		db := parts[0]
-		m.name = redisDB
-		setHostTagIfNotLoopback(m.tags, ipt.Host)
-		m.tags["db_name"] = db
-		itemStrs := strings.Split(parts[1], ",")
 
+		kvs = kvs.AddTag("db_name", parts[0])
+
+		itemStrs := strings.Split(parts[1], ",")
 		for _, itemStr := range itemStrs {
 			item := strings.Split(itemStr, "=")
-			key := item[0]
-			val := strings.TrimSpace(item[1])
-			m.resData[key] = val
+
+			f, err := strconv.ParseFloat(item[1], 64)
+			if err != nil {
+				continue
+			}
+
+			kvs = kvs.Add(item[0], f, false, false)
 		}
 
 		if len(ipt.DBS) == 0 {
-			if err := m.submit(); err != nil {
-				return nil, err
+			if kvs.FieldCount() > 0 {
+				for k, v := range ipt.mergedTags {
+					kvs = kvs.AddTag(k, v)
+				}
+				collectCache = append(collectCache, point.NewPointV2(redisDB, kvs, opts...))
 			}
-			var opts []point.Option
-
-			if m.election {
-				m.tags = inputs.MergeTagsWrapper(m.tags, ipt.Tagger.ElectionTags(), ipt.Tags, ipt.Host)
-			} else {
-				m.tags = inputs.MergeTagsWrapper(m.tags, ipt.Tagger.HostTags(), ipt.Tags, ipt.Host)
-			}
-
-			pt := point.NewPointV2(m.name,
-				append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
-				opts...)
-			collectCache = append(collectCache, pt)
 		} else {
 			dbIndex, err := strconv.Atoi(db[2:])
-			// 解析db出错，把没出错的信息和错误返回
 			if err != nil {
 				return collectCache, err
 			}
 
 			if IsSlicesHave(dbIndexSlice, dbIndex) {
-				if err := m.submit(); err != nil {
-					return nil, err
+				if kvs.FieldCount() > 0 {
+					for k, v := range ipt.mergedTags {
+						kvs = kvs.AddTag(k, v)
+					}
+					collectCache = append(collectCache, point.NewPointV2(redisDB, kvs, opts...))
 				}
-				var opts []point.Option
-
-				if m.election {
-					m.tags = inputs.MergeTagsWrapper(m.tags, ipt.Tagger.ElectionTags(), ipt.Tags, ipt.Host)
-				} else {
-					m.tags = inputs.MergeTagsWrapper(m.tags, ipt.Tagger.HostTags(), ipt.Tags, ipt.Host)
-				}
-
-				pt := point.NewPointV2(m.name,
-					append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
-					opts...)
-				collectCache = append(collectCache, pt)
 			}
 		}
 	}
+
 	return collectCache, nil
-}
-
-// 提交数据.
-func (m *dbMeasurement) submit() error {
-	metricInfo := m.Info()
-	for key, item := range metricInfo.Fields {
-		if value, ok := m.resData[key]; ok {
-			val, err := Conv(value, item.(*inputs.FieldInfo).DataType)
-			if err != nil {
-				l.Errorf("dbMeasurement metric %v value %v parse error %v", key, value, err)
-				return err
-			} else {
-				m.fields[key] = val
-			}
-		}
-	}
-
-	return nil
 }
