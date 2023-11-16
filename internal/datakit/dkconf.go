@@ -33,6 +33,9 @@ pprof_listen = "localhost:6060" # pprof listen
 # collect data more frequently.
 protect_mode = true
 
+# The user name running datakit. Generally for audit purpose. Default is root.
+datakit_user = "root"
+
 ################################################
 # ulimit: set max open-files limit(Linux only)
 ################################################

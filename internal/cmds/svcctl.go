@@ -17,6 +17,7 @@ import (
 
 	"github.com/kardianos/service"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 )
@@ -63,7 +64,9 @@ func runServiceFlags() error {
 	}
 
 	if *flagServiceReinstall {
-		if err := reinstallDatakit(); err != nil {
+		tryLoadMainCfg()
+
+		if err := reinstallDatakit(config.Cfg.DatakitUser); err != nil {
 			cp.Errorf("[E] reinstall DataKit failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
@@ -200,8 +203,10 @@ func uninstallDatakit() error {
 	return service.Control(svc, "uninstall")
 }
 
-func reinstallDatakit() error {
-	svc, err := dkservice.NewService("")
+func reinstallDatakit(userName string) error {
+	l.Infof("reinstallDatakit with user: %s", userName)
+
+	svc, err := dkservice.NewService(userName)
 	if err != nil {
 		return err
 	}

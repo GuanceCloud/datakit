@@ -130,6 +130,7 @@ The environment variables supported by the installation script are as follows (s
 - `DK_GLOBAL_ELECTION_TAGS`: Support filling in the global election tag during the installation phase，format example: `project=my-porject,cluster=my-cluster` (support filling in the global election tag during the installation phase)
 - `DK_DEF_INPUTS`: List of collector names opened by default, format example: `cpu,mem,disk`. We can also ban some default inputs by putting a `-` prefix at input name, such as `-cpu,-mem,-disk`. But if mixed them, such as `cpu,mem,-disk,-system`, we only accept the banned list, the effect is only `disk` and `system` disabled, but others enabled.
 - `DK_CLOUD_PROVIDER`: Support filling in cloud vendors during installation (Currently support following clouds `aliyun/aws/tencent/hwcloud/azure`). **Deprecated:** Datakit can infer cloud type automatically.
+- `DK_USER_NAME`：Datakit service running user name. Default is `root`. More details is in *Attention* below.
 - `DK_LITE`： When installing the simplified DataKit, you can set this variable to `1`. ([:octicons-tag-24: Version-1.14.0](changelog.md#cl-1.14.0))
 
 ???+ tip "Disable all default inputs[:octicons-tag-24: Version-1.5.5](changelog.md#cl-1.5.5)"
@@ -143,6 +144,54 @@ The environment variables supported by the installation script are as follows (s
     ```
 
     Beside, if Datakit has been installed before, we must delete all default inputs *.conf* files manually. During installing, Datakit able to add new inputs configure, not cant delete them.
+
+???+ attention "Attention"
+
+    For privilege reason, using `DK_USER_NAME` with not `root` name could cause following collector unavailable:
+
+    - [eBPF](../integrations/ebpf.md){:target="_blank"}
+
+    In addition, the following items need to be noted.
+
+    - Manualy create user and group first, then start install. There are difference between Linux distro releases, below commands are for reference:
+
+        === "CentOS/RedHat"
+
+            ```sh
+            groupadd --system datakit
+
+            adduser --system --no-create-home datakit -g datakit
+
+            usermod -s /sbin/nologin datakit
+            ```
+
+        === "Ubuntu/Debian"
+
+            ```sh
+            groupadd --system datakit
+
+            adduser --system --no-create-home datakit
+            
+            usermod -a -G datakit datakit
+
+            usermod -s /usr/sbin/nologin datakit
+            ```
+
+        === "其它 Linux"
+
+            ```sh
+            groupadd --system datakit
+            
+            adduser --system --no-create-home datakit
+            
+            usermod -a -G datakit datakit
+            
+            usermod -s /bin/false datakit
+            ```
+
+        ```sh
+        DK_USER_NAME="datakit" DK_DATAWAY="..." bash -c ...
+        ```
 
 ### On DataKit's Own Log  {#env-logging}
 

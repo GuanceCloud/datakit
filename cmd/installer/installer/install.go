@@ -24,7 +24,7 @@ import (
 
 var InstallExternals = ""
 
-func Install(svc service.Service) {
+func Install(svc service.Service, userName string) {
 	svcStatus, err := svc.Status()
 	if err != nil {
 		if errors.Is(err, service.ErrNotInstalled) {
@@ -49,6 +49,7 @@ func Install(svc service.Service) {
 	}
 
 	mc := config.Cfg
+	mc.DatakitUser = userName
 
 	// prepare dataway info and check token format
 	if len(Dataway) != 0 {

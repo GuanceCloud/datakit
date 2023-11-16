@@ -7,14 +7,11 @@ package main
 
 import (
 	"net/http/httptest"
-	"runtime"
 	"testing"
 	"time"
 
 	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 func TestPromptFixVersionChecking(t *testing.T) {
@@ -58,45 +55,6 @@ func TestCheckIsVersion(t *testing.T) {
 			} else {
 				tu.Ok(t, err)
 			}
-		})
-	}
-}
-
-func Test_checkCmd(t *testing.T) {
-	cases := []struct {
-		name       string
-		candidates []string
-		expectOut  string
-		expect     error
-	}{
-		{
-			name:       "macos",
-			candidates: []string{"md5", "md6"},
-			expectOut:  "md5",
-		},
-		{
-			name:       "linux",
-			candidates: []string{"md5sum", "md6sum"},
-			expectOut:  "md5sum",
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			switch tc.name {
-			case "macos":
-				if runtime.GOOS != datakit.OSDarwin {
-					return
-				}
-			case "linux":
-				if runtime.GOOS != datakit.OSLinux {
-					return
-				}
-			}
-
-			out, err := checkCmd(tc.candidates...)
-			assert.Equal(t, tc.expect, err)
-			assert.Equal(t, tc.expectOut, out)
 		})
 	}
 }

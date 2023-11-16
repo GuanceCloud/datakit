@@ -95,7 +95,8 @@ type Config struct {
 
 	GitRepos *GitRepost `toml:"git_repos"`
 
-	Ulimit uint64 `toml:"ulimit"`
+	Ulimit      uint64 `toml:"ulimit"`
+	DatakitUser string `toml:"datakit_user"`
 }
 
 func DefaultConfig() *Config {

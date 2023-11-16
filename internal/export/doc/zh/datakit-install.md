@@ -137,7 +137,7 @@ NAME1="value1" NAME2="value2"
 - `DK_GLOBAL_HOST_TAGS`：支持安装阶段填写全局主机 tag，格式范例：`host=__datakit_hostname,host_ip=__datakit_ip`（多个 tag 之间以英文逗号分隔）
 - `DK_GLOBAL_ELECTION_TAGS`：支持安装阶段填写全局选举 tag，格式范例：`project=my-porject,cluster=my-cluster`（多个 tag 之间以英文逗号分隔）
 - `DK_CLOUD_PROVIDER`：支持安装阶段填写云厂商(目前支持如下几类云主机 `aliyun/aws/tencent/hwcloud/azure`)。**该功能已弃用**，Datakit 已经可以自动识别云主机类型。
-- `DK_USER_NAME`：Datakit 服务运行时的用户名。目前仅支持 `root` 和 `datakit`, 默认为 `root`。
+- `DK_USER_NAME`：Datakit 服务运行时的用户名。默认为 `root`。更详情的说明见下面的 “注意事项”。
 - `DK_DEF_INPUTS`：[默认开启的采集器](datakit-input-conf.md#default-enabled-inputs)配置。如果要禁用某些采集器，需手动将其屏蔽，比如，要禁用 `cpu` 和 `mem` 采集器，需这样指定：`-cpu,-mem`，即除了这两个采集器之外，其它默认采集器均开启。
 - `DK_LITE`：安装精简版 DataKit 时，可设置该变量为 `1`。([:octicons-tag-24: Version-1.14.0](changelog.md#cl-1.14.0))
 
@@ -153,6 +153,71 @@ NAME1="value1" NAME2="value2"
     ```
 
     另外，如果之前有安装过 Datakit，必须将之前的默认采集器配置都删除掉，因为 Datakit 在安装的过程中只能添加采集器配置，但不能删除采集器配置。
+
+???+ attention "注意事项"
+
+    由于权限问题，如果通过 `DK_USER_NAME` 修改 Datakit 服务运行时的用户名为非 `root`，那么以下采集器将不可使用：
+
+    - [eBPF](../integrations/ebpf.md){:target="_blank"}
+
+    另外，需要注意以下几项：
+
+    - 必须先手动创建好用户和用户组，用户名和用户组名称必须一致，再进行安装。不同 Linux 发行版创建的命令可能会有差异，以下命令仅供参考：
+
+        === "CentOS/RedHat"
+
+            ```sh
+            # 创建系统用户组 datakit
+            groupadd --system datakit
+
+            # 创建系统用户 datakit，并将用户 datakit 添加进组 datakit 中（这里用户名和组名都是 datakit）
+            adduser --system --no-create-home datakit -g datakit
+
+            # 禁止用户名 datakit 用于登录（用于 CentOS/RedHat 系 Linux）
+            usermod -s /sbin/nologin datakit
+            ```
+
+        === "Ubuntu/Debian"
+
+            ```sh
+            # 在 Ubuntu 上，同时创建用户并添加进用户组的命令可能会报错，这个时候需要分成两步
+
+            # 创建系统用户组 datakit
+            groupadd --system datakit
+
+            # 创建系统用户 datakit
+            adduser --system --no-create-home datakit
+            
+            # 将用户 datakit 添加进组 datakit
+            usermod -a -G datakit datakit
+
+            # 禁止用户名 datakit 用于登录（用于 Ubuntu/Debian 系 Linux）
+            usermod -s /usr/sbin/nologin datakit
+            ```
+
+        === "其它 Linux"
+
+            ```sh
+            # 在其它 Linux 上，同时创建用户并添加进用户组的命令可能会报错，这个时候需要分成两步
+
+            # 创建系统用户组 datakit
+            groupadd --system datakit
+            
+            # 创建系统用户 datakit
+            adduser --system --no-create-home datakit
+            
+            # 将用户 datakit 添加进组 datakit
+            usermod -a -G datakit datakit
+            
+            # 禁止用户名 datakit 用于登录（用于其它 Linux）
+            usermod -s /bin/false datakit
+            ```
+
+        ```sh
+        # 安装 Datakit
+        DK_USER_NAME="datakit" DK_DATAWAY="..." bash -c ...
+        ```
+
 <!-- markdownlint-enable -->
 
 ### DataKit 自身日志相关 {#env-logging}
