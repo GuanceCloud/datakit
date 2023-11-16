@@ -8,7 +8,84 @@ DataKit has built-in many different gadgets, which are convenient for everyone t
 datakit help
 ```
 
->Note: The specific help content will be different due to the differences of different platforms.
+> Note: The specific help content will be different due to the differences of different platforms.
+
+## Data Recording and Replay {#record-and-replay}
+
+[:octicons-tag-24: Version-1.18.0](changelog.md#cl-1.18.0)
+
+Data import is mainly used to add history data, which can be used for demonstration or testing.
+
+### Enable Data Recording {#enable-recorder}
+
+In *datakit.conf*, you can enable data recording. When enabled, Datakit records data to a specified directory:
+
+```toml
+[recorder]
+    enabled  = true
+    path = "/path/to/recorder"         # Absolute path, the default path is <Datakit installation directory >/recorder directory
+    encoding = "v2"                    # Use protobuf-JSON format (xxx.pbjson), or v1 (xxx.lp, aka line-protocol) can be selected(The former is easier to read, and the data type support is more complete).
+    duration = "10m"                   # Recording duration, starting after Datakit is started
+    inputs = ["cpu", "mem"]            # Record data for the specified inputs. All inputs are enabled if the list empty
+    categories = ["logging", "metric"] # Recording categories. All categories are enabled if the list empty
+```
+
+After restart Datakit, the recording directory structure seems like(here list the metric pbjson examples):
+
+```shell
+[ 416] /usr/local/datakit/recorder/
+├── [  64]  custom_object
+├── [  64]  dynamic_dw
+├── [  64]  keyevent
+├── [  64]  logging
+├── [  64]  network
+├── [  64]  object
+├── [  64]  profiling
+├── [  64]  rum
+├── [  64]  security
+├── [  64]  tracing
+└── [1.9K] metric
+    ├── [1.2 K] cpu.1698217783322857000.pbjson
+    ├── [1.2 K] cpu.1698217793321744000.pbjson
+    ├── [1.2 K] cpu.1698217803322683000.pbjson
+    ├── [1.2 K] cpu.1698217813322834000.pbjson
+    └── [1.2 K] cpu.1698218363360258000.pbjson
+
+12 directories, 59 files
+```
+
+### Data Replay {#do-replay}
+
+After Datakit has recorded the data, we can save the data in the directory in Git or some other way (** Do not to change the directory naming and structure under *recorder/* **), and then import the data into Guance Cloud with the following command:
+
+```shell
+$ datakit import -P /usr/local/datakit/recorder -D https://openway.guance.com?token=tkn_xxxxxxxxx
+
+> Uploading "/usr/local/datakit/recorder/metric/cpu.1698217783322857000.pbjson"(1 points) on metric...
++1h53m6.137855s ~ 2023-10-25 15:09:43.321559 +0800 CST
+> Uploading "/usr/local/datakit/recorder/metric/cpu.1698217793321744000.pbjson"(1 points) on metric...
++1h52m56.137881s ~ 2023-10-25 15:09:53.321533 +0800 CST
+> Uploading "/usr/local/datakit/recorder/metric/cpu.1698217803322683000.pbjson"(1 points) on metric...
++1h52m46.137991s ~ 2023-10-25 15:10:03.321423 +0800 CST
+...
+Total upload 75 kB bytes ok
+```
+
+Although the recorded data comes with an absolute timestamp (nanosecond), when replay, Datakit automatically offset history data's timestamp to the current time (and preserving the relative time interval between data points) to make it appear as if it were newly collected.
+
+You can run the following command to obtain more help about the `import` command:
+
+```shell
+$ datakit help import
+
+usage: datakit import [options]
+
+Import used to play recorded history data to Guance Cloud. Available options:
+
+-D, --dataway strings   dataway list
+--log string        log path (default "/dev/null")
+-P, --path string       point data path (default "/usr/local/datakit/recorder")
+```
 
 ## DataKit Automatic Command Completion {#completion}
 

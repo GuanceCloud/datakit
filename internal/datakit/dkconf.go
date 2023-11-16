@@ -115,8 +115,8 @@ ulimit = 64000
 
   # Start Datakit web server with HTTPS
   [http_api.tls]
-    cert = "path/to/certificate/file"
-    privkey = "path/to/private_key/file"
+    # cert = "path/to/certificate/file"
+    # privkey = "path/to/private_key/file"
 
 ################################################
 # io configures
@@ -129,12 +129,6 @@ ulimit = 64000
   max_cache_count = 1000
   flush_workers   = 0 # default to (cpu_core * 2 + 1)
   flush_interval  = "10s"
-
-  # We can write these data points into file in line-proto format(truncated at 32MB).
-  output_file = ""
-  # only these input data points write to file. If list empy and output_file set,
-  # all points are write to the file.
-  output_file_inputs = []
 
   # Disk cache on datakit upload failed
   enable_cache = false
@@ -163,6 +157,24 @@ ulimit = 64000
   #  tracing = [
   #    "{ service = re("abc.*") AND some_tag CONTAIN ['def_.*'] }",
   #  ]
+
+[recorder]
+  enabled = false
+  #path = "/path/to/point-data/dir"
+  encoding = "v2"  # use protobuf-json format
+  duration = "30m" # record for 30 minutes
+
+  # only record these inputs, if empty, record all
+  inputs = [
+    #"cpu",
+    #"mem",
+  ]
+
+  # only record these categoris, if empty, record all
+  category = [
+    #"logging",
+    #"object",
+  ]
 
 ################################################
 # Dataway configure
@@ -276,7 +288,7 @@ ulimit = 64000
   path = "/datakit"
 
   # set max CPU usage(%, max 100.0, no matter how many CPU cores here)
-  cpu_max = 30.0
+  cpu_max = 20.0
 
   # set max memory usage(MB)
   mem_max_mb = 4096

@@ -77,9 +77,11 @@ func TestLoadEnv(t *testing.T) {
 					EnableHTTPTrace:     true,
 					IdleTimeout:         90 * time.Second,
 					HTTPTimeout:         30 * time.Second,
-					ContentEncoding:     "",
+					ContentEncoding:     "v1",
 					MaxRetryCount:       dataway.DefaultRetryCount,
 					RetryDelay:          dataway.DefaultRetryDelay,
+					MaxRawBodySize:      dataway.DefaultMaxRawBodySize,
+					GlobalCustomerKeys:  []string{},
 					GZip:                true,
 				}
 
@@ -247,7 +249,7 @@ func TestLoadEnv(t *testing.T) {
 			},
 			expect: func() *Config {
 				cfg := DefaultConfig()
-				cfg.Pipeline.IPdbType = "-"
+				cfg.Pipeline.IPdbType = "iploc"
 				return cfg
 			}(),
 		},

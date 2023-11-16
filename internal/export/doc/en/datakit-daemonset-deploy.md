@@ -277,7 +277,6 @@ For string/bool/string-list/duration, it is recommended to use double quotation 
 ### IO Module Configuring Related Environment Variables {#env-io}
 
 | Environment Variable Name     | Type     | Default Value      | Required | Description                                                                        |
-| :---                          | :---     | :---               | :---     | :---                                                                               |
 | `ENV_IO_CONTENT_ENCODING`     | string   | `line-protocol`    | No       | Set uploading content encoding of point(candidates: `json/protobuf/line-protocol`) |
 | `ENV_IO_FILTERS`              | json     | None               | No       | Add [row protocol filter](datakit-filter)                                          |
 | `ENV_IO_FLUSH_INTERVAL`       | duration | 10s                | No       | IO transmission time frequency                                                     |

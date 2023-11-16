@@ -22,15 +22,15 @@ func runCheckFlags() error {
 		}
 
 		if err := checkConfig(confdir, ".conf"); err != nil {
-			os.Exit(-1)
+			return err
 		}
-		os.Exit(0)
+		return nil
 
 	case *flagCheckSample:
 		if err := checkSample(); err != nil {
-			os.Exit(-1)
+			return err
 		}
-		os.Exit(0)
+		return nil
 	}
 
 	return fmt.Errorf("unknown check option: %s", os.Args[2])
