@@ -29,7 +29,7 @@ ci_lint_and_ut:
   script:
     - nvm use v16.14.0
     - make clean
-    - make lint AUTO_FIX=off
+    - make code_lint AUTO_FIX=off
     - export UT_EXCLUDE_INTEGRATION_TESTING="on" # enable integration testing.
     - export UT_EXCLUDE_HUGE_INTEGRATION_TESTING="on" # enable huge integration testing.
     - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY"
