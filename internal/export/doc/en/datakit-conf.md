@@ -225,6 +225,7 @@ $ systemctl status datakit
 
     - resource restriction will only be turned on by default during [host installation](datakit-install.md).
     - resource limit only supports CPU usage and memory usage (mem + swap) controls, and only supports Linux and Windows ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.0)) operating systems.
+    - CPU usage controls is not supported in these windows systems: Windows 7, Windows Server 2008 R2, Windows Server 2008, Windows Vista, Windows Server 2003 and Windows XP.
 
 ???+ tip
 
