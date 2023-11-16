@@ -15,7 +15,6 @@ import (
 
 	"github.com/kardianos/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmds"
-	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
@@ -56,16 +55,16 @@ func Install(svc service.Service, userName string) {
 		var err error
 		mc.Dataway, err = getDataway()
 		if err != nil {
-			cp.Errorf("%s\n", err.Error())
+			l.Errorf("getDataway failed: %s", err.Error())
 			l.Fatal(err)
 		}
 
-		cp.Infof("Set dataway to %s\n", Dataway)
+		l.Infof("Set dataway to %s", Dataway)
 
 		mc.Dataway.GlobalCustomerKeys = dataway.ParseGlobalCustomerKeys(SinkerGlobalCustomerKeys)
 		mc.Dataway.EnableSinker = (EnableSinker != "")
 
-		cp.Infof("Set dataway global sinker customer keys: %v\n", mc.Dataway.GlobalCustomerKeys)
+		l.Infof("Set dataway global sinker customer keys: %+#v", mc.Dataway.GlobalCustomerKeys)
 	}
 
 	if OTA {
@@ -227,7 +226,7 @@ func Install(svc service.Service, userName string) {
 		l.Fatalf("failed to init datakit main config: %s", err.Error())
 	}
 
-	cp.Infof("Installing service %s...\n", dkservice.Name)
+	l.Infof("Installing service %q...", dkservice.Name)
 	if err := service.Control(svc, "install"); err != nil {
 		l.Warnf("uninstall service failed %s", err.Error()) //nolint:lll
 	}

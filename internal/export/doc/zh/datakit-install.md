@@ -307,16 +307,19 @@ NAME1="value1" NAME2="value2"
 
 ### 其它安装选项 {#env-others}
 
-- `DK_INSTALL_ONLY`：仅安装，不运行
-- `DK_HOSTNAME`：支持安装阶段自定义配置主机名
-- `DK_UPGRADE`：升级到最新版本（注：一旦开启该选项，除 `DK_UPGRADE_MANAGER` 外其它选项均无效）
-- `DK_UPGRADE_MANAGER`: 升级 Datakit 同时是否升级 **远程升级服务**，需要和 `DK_UPGRADE` 配合使用， 从 [1.5.9](changelog.md#cl-1.5.9) 版本开始支持
-- `DK_INSTALLER_BASE_URL`：可选择不同环境的安装脚本，默认为 `https://static.guance.com/datakit`
-- `DK_PROXY_TYPE`：代理类型。选项有：`datakit` 或 `nginx`，均为小写
-- `DK_NGINX_IP`：代理服务器 IP 地址（只需要填 IP 不需要填端口）。这个与上面的 "HTTP_PROXY" 和 "HTTPS_PROXY" 互斥，而且优先级最高，会覆盖以上两者
-- `DK_INSTALL_LOG`：设置安装程序日志路径，默认为当前目录下的 *install.log*，如果设置为 `stdout` 则输出到命令行终端
-- `HTTPS_PROXY`：通过 Datakit 代理安装
-- `DK_INSTALL_RUM_SYMBOL_TOOLS` 是否安装 RUM source map 工具集，从 Datakit [1.9.2](changelog.md#cl-1.9.2) 开始支持
+| 环境变量名                    | 取值示例           | 说明                                                                                                                             |
+| ----                          | ---                | ----                                                                                                                             |
+| `DK_INSTALL_ONLY`             | `on`               | 仅安装，不运行                                                                                                                   |
+| `DK_HOSTNAME`                 | `some-host-name`   | 支持安装阶段自定义配置主机名                                                                                                     |
+| `DK_UPGRADE`                  | `1`                | 升级到最新版本（注：一旦开启该选项，除 `DK_UPGRADE_MANAGER` 外其它选项均无效）                                                   |
+| `DK_UPGRADE_MANAGER`          | `on`               | 升级 Datakit 同时是否升级 **远程升级服务**，需要和 `DK_UPGRADE` 配合使用， 从 [1.5.9](changelog.md#cl-1.5.9) 版本开始支持        |
+| `DK_INSTALLER_BASE_URL`       | `https://your-url` | 可选择不同环境的安装脚本，默认为 `https://static.guance.com/datakit`                                                             |
+| `DK_PROXY_TYPE`               | -                  | 代理类型。选项有：`datakit` 或 `nginx`，均为小写                                                                                 |
+| `DK_NGINX_IP`                 | -                  | 代理服务器 IP 地址（只需要填 IP 不需要填端口）。这个与上面的 "HTTP_PROXY" 和 "HTTPS_PROXY" 互斥，而且优先级最高，会覆盖以上两者  |
+| `DK_INSTALL_LOG`              | -                  | 设置安装程序日志路径，默认为当前目录下的 *install.log*，如果设置为 `stdout` 则输出到命令行终端                                   |
+| `HTTPS_PROXY`                 | `IP:Port`          | 通过 Datakit 代理安装                                                                                                            |
+| `DK_INSTALL_RUM_SYMBOL_TOOLS` | `on`               | 是否安装 RUM source map 工具集，从 Datakit [1.9.2](changelog.md#cl-1.9.2) 开始支持                                               |
+| `DK_VERBOSE`                  | `on`               | 打开安装过程中的 verbose 选项（仅 Linux/Mac 支持），将输出更多调试信息[:octicons-tag-24: Version-1.19.0](changelog.md#cl-1.19.0) |
 
 ## FAQ {#faq}
 

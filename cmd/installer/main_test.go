@@ -14,10 +14,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func TestPromptFixVersionChecking(t *testing.T) {
-	promptFixVersionChecking()
-}
-
 func TestCheckIsVersion(t *testing.T) {
 	r := gin.New()
 	r.GET("/v1/ping", func(c *gin.Context) {
@@ -50,7 +46,6 @@ func TestCheckIsVersion(t *testing.T) {
 				tu.NotOk(t, err, "expect err, not nil")
 				t.Logf("expect err: %s", err)
 
-				promptFixVersionChecking()
 				return
 			} else {
 				tu.Ok(t, err)

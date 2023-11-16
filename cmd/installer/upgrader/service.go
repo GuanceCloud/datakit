@@ -15,7 +15,6 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/kardianos/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/upgrader/upgrader"
-	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
@@ -56,18 +55,18 @@ func StopUpgradeService(username string) {
 	svcStatus, err := serv.Status()
 	if err != nil {
 		if errors.Is(err, service.ErrNotInstalled) {
-			cp.Infof("%s service not installed before\n", upgrader.ServiceName)
+			l.Infof("%s service not installed before", upgrader.ServiceName)
 		} else {
 			l.Warnf("svc.Status: %s, ignored", err.Error())
 		}
 	} else {
 		switch svcStatus {
 		case service.StatusUnknown: // not installed
-			cp.Infof("%s service maybe not installed\n", upgrader.ServiceName)
+			l.Infof("%s service maybe not installed", upgrader.ServiceName)
 		case service.StatusStopped: // pass
-			cp.Infof("%s service stopped\n", upgrader.ServiceName)
+			l.Infof("%s service stopped", upgrader.ServiceName)
 		case service.StatusRunning:
-			cp.Infof("Stopping running %s...\n", upgrader.ServiceName)
+			l.Infof("Stopping running %s...", upgrader.ServiceName)
 			if err = serv.Stop(); err != nil {
 				l.Warnf("stop service failed %s, ignored", err.Error())
 			}
@@ -118,11 +117,11 @@ func InstallUpgradeService(username string, flagDKUpgrade bool, flagInstallOnly 
 		}
 
 		if flagInstallOnly != 0 {
-			cp.Warnf("Only install service %s, NOT started\n", upgrader.ServiceName)
+			l.Warnf("Only install service %s, NOT started", upgrader.ServiceName)
 		} else {
-			cp.Infof("Starting service %s...\n", upgrader.ServiceName)
+			l.Infof("Starting service %s...", upgrader.ServiceName)
 			if err = serv.Start(); err != nil {
-				cp.Warnf("Start service %s failed: %s\n", upgrader.ServiceName, err.Error())
+				l.Warnf("Start service %s failed: %s", upgrader.ServiceName, err.Error())
 			}
 		}
 	}
