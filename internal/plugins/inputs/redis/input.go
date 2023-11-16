@@ -16,6 +16,7 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/go-redis/redis/v8"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
@@ -47,26 +48,27 @@ type redislog struct {
 }
 
 type Input struct {
-	Username          string `toml:"username"`
-	Host              string `toml:"host"`
-	UnixSocketPath    string `toml:"unix_socket_path"`
-	Password          string `toml:"password"`
-	Timeout           string `toml:"connect_timeout"`
-	Service           string `toml:"service"`
-	Addr              string `toml:"-"`
-	Port              int    `toml:"port"`
-	DB                int    `toml:"db"`
-	SocketTimeout     int    `toml:"socket_timeout"`
-	SlowlogMaxLen     int    `toml:"slowlog-max-len"`
-	Interval          datakit.Duration
-	WarnOnMissingKeys bool              `toml:"warn_on_missing_keys"`
-	CommandStats      bool              `toml:"command_stats"`
-	Slowlog           bool              `toml:"slow_log"`
-	AllSlowLog        bool              `toml:"all_slow_log"`
-	Tags              map[string]string `toml:"tags"`
-	Keys              []string          `toml:"keys"`
-	DBS               []int             `toml:"dbs"`
-	Log               *redislog         `toml:"log"`
+	Username           string `toml:"username"`
+	Host               string `toml:"host"`
+	UnixSocketPath     string `toml:"unix_socket_path"`
+	Password           string `toml:"password"`
+	Timeout            string `toml:"connect_timeout"`
+	Service            string `toml:"service"`
+	Addr               string `toml:"-"`
+	Port               int    `toml:"port"`
+	DB                 int    `toml:"db"`
+	SocketTimeout      int    `toml:"socket_timeout"`
+	SlowlogMaxLen      int    `toml:"slowlog-max-len"`
+	Interval           time.Duration
+	WarnOnMissingKeys  bool              `toml:"warn_on_missing_keys"`
+	CommandStats       bool              `toml:"command_stats"`
+	LatencyPercentiles bool              `toml:"latency_percentiles"`
+	Slowlog            bool              `toml:"slow_log"`
+	AllSlowLog         bool              `toml:"all_slow_log"`
+	Tags               map[string]string `toml:"tags"`
+	Keys               []string          `toml:"keys"`
+	DBS                []int             `toml:"dbs"`
+	Log                *redislog         `toml:"log"`
 
 	MatchDeprecated   string   `toml:"match,omitempty"`
 	ServersDeprecated []string `toml:"servers,omitempty"`
@@ -83,14 +85,16 @@ type Input struct {
 	pause           bool
 	pauseCh         chan bool
 	hashMap         [][16]byte
-	latencyLastTime time.Time
-	cpuUsage        redisCPUUsage
+	latencyLastTime map[string]time.Time
+	// a pointer, set value in m.lastCollect.*=...
+	cpuUsage redisCPUUsage
 
 	semStop *cliutils.Sem // start stop signal
 
 	startUpUnix int64
 	feeder      dkio.Feeder
-	Tagger      datakit.GlobalTagger
+	mergedTags  map[string]string
+	tagger      datakit.GlobalTagger
 }
 
 type redisCPUUsage struct {
@@ -136,8 +140,8 @@ func (ipt *Input) initCfg() error {
 		return err
 	}
 
-	ipt.Tags["server"] = ipt.Addr
-	ipt.Tags["service_name"] = ipt.Service
+	ipt.mergedTags["server"] = ipt.Addr
+	ipt.mergedTags["service_name"] = ipt.Service
 
 	return nil
 }
@@ -195,7 +199,7 @@ func (ipt *Input) Collect() error {
 		}
 	}
 
-	if err := ipt.GetLatencyData(); err != nil {
+	if err := ipt.getLatencyData(); err != nil {
 		return err
 	}
 
@@ -203,50 +207,21 @@ func (ipt *Input) Collect() error {
 }
 
 func (ipt *Input) collectInfoMeasurement() ([]*point.Point, error) {
-	var collectCache []*point.Point
-
 	m := &infoMeasurement{
-		cli:         ipt.client,
-		resData:     make(map[string]interface{}),
-		tags:        make(map[string]string),
-		fields:      make(map[string]interface{}),
-		election:    ipt.Election,
-		lastCollect: &ipt.cpuUsage,
+		cli:                ipt.client,
+		tags:               make(map[string]string),
+		lastCollect:        &ipt.cpuUsage,
+		latencyPercentiles: ipt.LatencyPercentiles,
 	}
 
 	m.name = redisInfoM
 
-	setHostTagIfNotLoopback(m.tags, ipt.Host)
-	for key, value := range ipt.Tags {
-		m.tags[key] = value
+	m.tags = map[string]string{}
+	for k, v := range ipt.mergedTags {
+		m.tags[k] = v
 	}
 
-	// get data
-	if err := m.getData(); err != nil {
-		return nil, err
-	}
-
-	// build line data
-	if err := m.submit(); err != nil {
-		return nil, err
-	}
-
-	if len(m.fields) > 0 {
-		var opts []point.Option
-
-		if m.election {
-			m.tags = inputs.MergeTags(ipt.Tagger.ElectionTags(), m.tags, ipt.Host)
-		} else {
-			m.tags = inputs.MergeTags(ipt.Tagger.HostTags(), m.tags, ipt.Host)
-		}
-
-		pt := point.NewPointV2(m.name,
-			append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
-			opts...)
-		collectCache = append(collectCache, pt)
-	}
-
-	return collectCache, nil
+	return m.getData()
 }
 
 func (ipt *Input) collectBigKeyMeasurement() ([]*point.Point, error) {
@@ -258,7 +233,6 @@ func (ipt *Input) collectBigKeyMeasurement() ([]*point.Point, error) {
 	return ipt.getData(keys)
 }
 
-// 数据源获取数据.
 func (ipt *Input) collectClientMeasurement() ([]*point.Point, error) {
 	ctx := context.Background()
 	list, err := ipt.client.ClientList(ctx).Result()
@@ -270,7 +244,6 @@ func (ipt *Input) collectClientMeasurement() ([]*point.Point, error) {
 	return ipt.parseClientData(list)
 }
 
-// 数据源获取数据.
 func (ipt *Input) collectCommandMeasurement() ([]*point.Point, error) {
 	ctx := context.Background()
 	list, err := ipt.client.Info(ctx, "commandstats").Result()
@@ -317,11 +290,9 @@ func (ipt *Input) RunPipeline() {
 }
 
 func (ipt *Input) Run() {
-	l = logger.SLogger("redis")
-	ipt.startUpUnix = time.Now().Unix()
-	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
+	ipt.setup()
 
-	tick := time.NewTicker(ipt.Interval.Duration)
+	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
 
 	// Try init until ok.
@@ -352,7 +323,7 @@ func (ipt *Input) Run() {
 		ipt.collectReplicaMeasurement,
 	}
 
-	// 判断是否采集集群
+	// check if cluster
 	ctx := context.Background()
 	list1 := ipt.client.Do(ctx, "info", "cluster").String()
 	part := strings.Split(list1, ":")
@@ -393,6 +364,20 @@ func (ipt *Input) Run() {
 			// nil
 		}
 	}
+}
+
+func (ipt *Input) setup() {
+	ipt.startUpUnix = time.Now().Unix()
+
+	l = logger.SLogger(inputName)
+	l.Infof("%s input started", inputName)
+	ipt.Interval = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval)
+	if ipt.Election {
+		ipt.mergedTags = inputs.MergeTags(ipt.tagger.ElectionTags(), ipt.Tags, ipt.Host)
+	} else {
+		ipt.mergedTags = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, ipt.Host)
+	}
+	l.Debugf("merged tags: %+#v", ipt.mergedTags)
 }
 
 func (ipt *Input) exit() {
@@ -450,15 +435,20 @@ func (ipt *Input) Resume() error {
 }
 
 func defaultInput() *Input {
+	getClientFieldMap()
+	getInfoFieldMap()
+	getClusterFieldMap()
+
 	return &Input{
-		Timeout:  "10s",
-		pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
-		DB:       -1,
-		Tags:     make(map[string]string),
-		semStop:  cliutils.NewSem(),
-		Election: true,
-		feeder:   dkio.DefaultFeeder(),
-		Tagger:   datakit.DefaultGlobalTagger(),
+		Timeout:         "10s",
+		pauseCh:         make(chan bool, inputs.ElectionPauseChannelLength),
+		DB:              -1,
+		Tags:            make(map[string]string),
+		latencyLastTime: map[string]time.Time{},
+		semStop:         cliutils.NewSem(),
+		Election:        true,
+		feeder:          dkio.DefaultFeeder(),
+		tagger:          datakit.DefaultGlobalTagger(),
 	}
 }
 

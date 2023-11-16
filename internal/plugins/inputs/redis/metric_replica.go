@@ -13,20 +13,14 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	"github.com/go-redis/redis/v8"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-type replicaMeasurement struct {
-	client   *redis.Client
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	resData  map[string]interface{}
-	election bool
-}
+type replicaMeasurement struct{}
 
 //nolint:lll
 func (m *replicaMeasurement) Info() *inputs.MeasurementInfo {
@@ -34,16 +28,8 @@ func (m *replicaMeasurement) Info() *inputs.MeasurementInfo {
 		Name: redisReplica,
 		Type: "metric",
 		Fields: map[string]interface{}{
-			"repl_delay": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
-				Desc:     "replica delay",
-			},
-			"master_link_down_since_seconds": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
-				Desc:     "Number of seconds since the link is down",
-			},
+			"repl_delay":                     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Desc: "Replica delay"},
+			"master_link_down_since_seconds": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Desc: "Number of seconds since the link is down"},
 		},
 		Tags: map[string]interface{}{
 			"host":         &inputs.TagInfo{Desc: "Hostname"},
@@ -55,91 +41,86 @@ func (m *replicaMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 func (ipt *Input) collectReplicaMeasurement() ([]*point.Point, error) {
-	m := &replicaMeasurement{
-		client:   ipt.client,
-		resData:  make(map[string]interface{}),
-		tags:     make(map[string]string),
-		fields:   make(map[string]interface{}),
-		election: ipt.Election,
-	}
-
-	m.name = redisReplica
-	setHostTagIfNotLoopback(m.tags, ipt.Host)
-
-	if err := m.getData(); err != nil {
+	ctx := context.Background()
+	list, err := ipt.client.Info(ctx, "replication").Result()
+	if err != nil {
+		l.Error("redis exec `info replication`, happen error,", err)
 		return nil, err
 	}
 
-	if err := m.submit(); err != nil {
-		l.Errorf("submit: %s", err)
-	}
-	var collectCache []*point.Point
-	var opts []point.Option
-
-	if m.election {
-		m.tags = inputs.MergeTagsWrapper(m.tags, ipt.Tagger.ElectionTags(), ipt.Tags, ipt.Host)
-	} else {
-		m.tags = inputs.MergeTagsWrapper(m.tags, ipt.Tagger.HostTags(), ipt.Tags, ipt.Host)
-	}
-
-	pt := point.NewPointV2(m.name,
-		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
-		opts...)
-	collectCache = append(collectCache, pt)
-	return collectCache, nil
-}
-
-// 数据源获取数据.
-func (m *replicaMeasurement) getData() error {
-	ctx := context.Background()
-	list, err := m.client.Info(ctx, "commandstats").Result()
-	if err != nil {
-		l.Error("redis exec `commandstats`, happen error,", err)
-		return err
-	}
-
-	m.parseInfoData(list)
-
-	return nil
+	return ipt.parseReplicaData(list)
 }
 
 var slaveMatch = regexp.MustCompile(`^slave\d+`)
 
-// 解析返回.
-func (m *replicaMeasurement) parseInfoData(list string) {
-	var masterDownSeconds, masterOffset, slaveOffset float64
-	var masterStatus, slaveID, ip, port string
-	var err error
+// example data:
+//
+// # Replication
+// role:master
+// connected_slaves:2
+// slave0:ip=127.0.0.1,port=6232,state=online,offset=966,lag=0
+// slave1:ip=127.0.0.1,port=6233,state=online,offset=966,lag=0
+// master_failover_state:no-failover
+// master_replid:b4f438ca13f1ee505f8bf4f03ccab1f648126463
+// master_replid2:0000000000000000000000000000000000000000
+// master_repl_offset:966
+// second_repl_offset:-1
+// repl_backlog_active:1
+// repl_backlog_size:1048576
+// repl_backlog_first_byte_offset:1
+// repl_backlog_histlen:966.
+func (ipt *Input) parseReplicaData(list string) ([]*point.Point, error) {
+	collectCache := []*point.Point{}
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(time.Now()))
 
+	masterDownSeconds := map[string]float64{}
+	masterData := map[string]float64{}
+
+	// master
 	rdr := strings.NewReader(list)
 	scanner := bufio.NewScanner(rdr)
-
 	for scanner.Scan() {
 		line := scanner.Text()
-
 		if len(line) == 0 || line[0] == '#' {
 			continue
 		}
 
-		record := strings.SplitN(line, ":", 2)
-		if len(record) < 2 {
+		record := strings.Split(line, ":")
+		if len(record) != 2 {
 			continue
 		}
 
-		// cmdstat_get:calls=2,usec=16,usec_per_call=8.00
 		key, value := record[0], record[1]
 
 		if key == "master_repl_offset" {
-			masterOffset, _ = strconv.ParseFloat(value, 64)
+			masterData["master_repl_offset"], _ = strconv.ParseFloat(value, 64)
 		}
 
 		if key == "master_link_down_since_seconds" {
-			masterDownSeconds, _ = strconv.ParseFloat(value, 64)
+			masterDownSeconds["master_link_down_since_seconds"], _ = strconv.ParseFloat(value, 64)
+		}
+	}
+
+	// slaves
+	rdr = strings.NewReader(list)
+	scanner = bufio.NewScanner(rdr)
+	for scanner.Scan() {
+		var kvs point.KVs
+		slaveData := map[string]float64{}
+		var slaveID, ip, port string
+
+		line := scanner.Text()
+		if len(line) == 0 || line[0] == '#' {
+			continue
 		}
 
-		if key == "master_link_status" {
-			masterStatus = value
+		record := strings.Split(line, ":")
+		if len(record) != 2 {
+			continue
 		}
+
+		key, value := record[0], record[1]
 
 		if slaveMatch.MatchString(key) {
 			slaveID = strings.TrimPrefix(key, "slave")
@@ -168,44 +149,46 @@ func (m *replicaMeasurement) parseInfoData(list string) {
 				continue
 			}
 
-			if slaveOffset, err = strconv.ParseFloat(split[1], 64); err != nil {
+			temp, err := strconv.ParseFloat(split[1], 64)
+			if err != nil {
 				l.Warnf("ParseFloat: %s, slaveOffset expect to be int, got %s", err, split[1])
 				continue
 			}
+			slaveData["slave_offset"] = temp
+		}
+
+		var masterOffset, slaveOffset float64
+		var ok bool
+		if masterOffset, ok = masterData["master_repl_offset"]; !ok {
+			continue
+		}
+		if slaveOffset, ok = slaveData["slave_offset"]; !ok {
+			continue
 		}
 
 		delay := masterOffset - slaveOffset
 		addr := fmt.Sprintf("%s:%s", ip, port)
 		if addr != ":" {
-			m.tags["slave_addr"] = fmt.Sprintf("%s:%s", ip, port)
+			kvs = kvs.AddTag("slave_addr", fmt.Sprintf("%s:%s", ip, port))
 		}
 
-		m.tags["slave_id"] = slaveID
+		kvs = kvs.AddTag("slave_id", slaveID)
 
 		if delay >= 0 {
-			m.resData["repl_delay"] = delay
+			kvs = kvs.Add("repl_delay", delay, false, false)
 		}
 
-		if masterStatus != "" {
-			m.resData["master_link_down_since_seconds"] = masterDownSeconds
+		for k, v := range masterDownSeconds {
+			kvs = kvs.Add(k, v, false, false)
 		}
-	}
-}
 
-// 提交数据.
-func (m *replicaMeasurement) submit() error {
-	metricInfo := m.Info()
-	for key, item := range metricInfo.Fields {
-		if value, ok := m.resData[key]; ok {
-			val, err := Conv(value, item.(*inputs.FieldInfo).DataType)
-			if err != nil {
-				l.Errorf("infoMeasurement metric %v value %v parse error %v", key, value, err)
-				return err
-			} else {
-				m.fields[key] = val
+		if kvs.FieldCount() > 0 {
+			for k, v := range ipt.mergedTags {
+				kvs = kvs.AddTag(k, v)
 			}
+			collectCache = append(collectCache, point.NewPointV2(redisReplica, kvs, opts...))
 		}
 	}
 
-	return nil
+	return collectCache, nil
 }

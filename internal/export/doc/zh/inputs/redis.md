@@ -40,7 +40,7 @@ Redis 指标采集器，采集以下数据：
 ### 前置条件 {#reqirement}
 
 - 在采集主从架构下数据时，请配置从节点的主机信息进行数据采集，可以得到主从相关的指标信息。
-- 创建监控用户：redis 6.0+ 进入 `redis-cli` 命令行，创建用户并且授权：
+- 创建监控用户（**可选**）：redis 6.0+ 进入 `redis-cli` 命令行，创建用户并且授权：
 
 ```sql
 ACL SETUSER username >password
@@ -154,7 +154,7 @@ ACL SETUSER username on +ping
 切割后的字段列表如下：
 
 | 字段名      | 字段值                                      | 说明                         |
-| ---         | ---                                         | ---                          |
+| ---         | ---                                         | ---                         |
 | `pid`       | `122`                                       | 进程 id                      |
 | `role`      | `M`                                         | 角色                         |
 | `serverity` | `*`                                         | 服务                         |

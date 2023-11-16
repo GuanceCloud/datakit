@@ -20,14 +20,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-type slowlogMeasurement struct {
-	name          string
-	tags          map[string]string
-	fields        map[string]interface{}
-	ts            time.Time
-	slowlogMaxLen int
-	election      bool
-}
+type slowlogMeasurement struct{}
 
 //nolint:lll
 func (m *slowlogMeasurement) Info() *inputs.MeasurementInfo {
@@ -70,11 +63,9 @@ func (m *slowlogMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-// 数据源获取数据.
 func (ipt *Input) getSlowData() error {
-	maxSlowEntries := ipt.SlowlogMaxLen
 	ctx := context.Background()
-	slowlogs, err := ipt.client.Do(ctx, "SLOWLOG", "GET", maxSlowEntries).Result()
+	slowlogs, err := ipt.client.Do(ctx, "SLOWLOG", "GET", ipt.SlowlogMaxLen).Result()
 	if err != nil {
 		l.Error("redis exec SLOWLOG `get`, happen error,", err)
 		return err
@@ -84,30 +75,32 @@ func (ipt *Input) getSlowData() error {
 		return fmt.Errorf("unexpected slowlogs, expect []inerface{}, got type %s", reflect.TypeOf(slowlogs).String())
 	}
 
-	m := &slowlogMeasurement{
-		name: redisSlowlog,
-		tags: func() map[string]string {
-			x := map[string]string{
-				"service": "redis",
-				"host":    ipt.Host,
-			}
-
-			for k, v := range ipt.Tags {
-				x[k] = v
-			}
-			return x
-		}(),
-
-		fields: make(map[string]interface{}),
-
-		slowlogMaxLen: ipt.SlowlogMaxLen,
-
-		election: ipt.Election,
+	pts, err := ipt.parseSlowData(slowlogs)
+	if err != nil {
+		return err
 	}
 
-	var pts []*point.Point
+	if len(pts) > 0 {
+		err = ipt.feeder.Feed(redisSlowlog, point.Logging, pts, &io.Option{})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (ipt *Input) parseSlowData(slowlogs any) ([]*point.Point, error) {
+	collectCache := []*point.Point{}
+	opts := point.DefaultLoggingOptions()
+	opts = append(opts, point.WithTime(time.Now()))
 
 	for _, slowlog := range slowlogs.([]interface{}) {
+		var kvs point.KVs
+
+		kvs = kvs.AddTag("service", "redis")
+		kvs = kvs.AddTag("host", ipt.Host)
+
 		entry, ok := slowlog.([]interface{})
 		if !ok {
 			l.Warnf("unexpected slowlog, expect []inerface{}, got type %s, ignored", reflect.TypeOf(slowlog).String())
@@ -115,30 +108,28 @@ func (ipt *Input) getSlowData() error {
 		}
 
 		if entry == nil || len(entry) != 6 {
-			return fmt.Errorf("protocol error: slowlog expect 6 fields, got %+#v", entry)
+			return nil, fmt.Errorf("protocol error: slowlog expect 6 fields, got %+#v", entry)
 		}
 
 		var id int64
 		if x, ok := entry[0].(int64); ok {
 			id = x
 		} else {
-			return fmt.Errorf("id expect int64, got %s", reflect.TypeOf(entry[0]).String())
+			return nil, fmt.Errorf("id expect int64, got %s", reflect.TypeOf(entry[0]).String())
 		}
 
 		var startTime int64
 		if x, ok := entry[1].(int64); ok {
 			startTime = x
 		} else {
-			return fmt.Errorf("startTime expect int64, got %s", reflect.TypeOf(entry[1]).String())
+			return nil, fmt.Errorf("startTime expect int64, got %s", reflect.TypeOf(entry[1]).String())
 		}
-
-		m.ts = time.Now()
 
 		var duration int64
 		if x, ok := entry[2].(int64); ok {
 			duration = x
 		} else {
-			return fmt.Errorf("duration expect int64, got %s", reflect.TypeOf(entry[2]).String())
+			return nil, fmt.Errorf("duration expect int64, got %s", reflect.TypeOf(entry[2]).String())
 		}
 
 		// Skip collected slowlog.
@@ -165,33 +156,17 @@ func (ipt *Input) getSlowData() error {
 			command = strings.Join(arr, " ")
 		}
 
-		m.fields = map[string]interface{}{
-			"slowlog_micros": duration,
-			"slowlog_id":     id,
-			"command":        command,
-			"message":        command + " cost time " + strconv.FormatInt(duration, 10) + "us",
-			"status":         "WARNING",
-		}
+		kvs = kvs.Add("slowlog_micros", duration, false, false)
+		kvs = kvs.Add("slowlog_id", id, false, false)
+		kvs = kvs.Add("command", command, false, false)
+		kvs = kvs.Add("message", command+" cost time "+strconv.FormatInt(duration, 10)+"us", false, false)
+		kvs = kvs.Add("status", "WARNING", false, false)
 
-		opts := point.DefaultLoggingOptions()
-		opts = append(opts, point.WithTime(m.ts))
-		pt := point.NewPointV2(redisSlowlog,
-			append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
-			opts...)
-		if err != nil {
-			l.Warnf("make metric failed: %s", err.Error)
-			return err
+		for k, v := range ipt.mergedTags {
+			kvs = kvs.AddTag(k, v)
 		}
-
-		pts = append(pts, pt)
+		collectCache = append(collectCache, point.NewPointV2(redisSlowlog, kvs, opts...))
 	}
 
-	if len(pts) > 0 {
-		err = ipt.feeder.Feed(m.name, point.Logging, pts, &io.Option{})
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return collectCache, nil
 }
