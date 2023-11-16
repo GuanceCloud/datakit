@@ -222,10 +222,20 @@ func TestIntegrate(t *testing.T) {
 	}
 }
 
-func getConfAccessPoint(host, port string) []string {
-	// return []string{fmt.Sprintf("mongodb://root:example@%s", net.JoinHostPort(host, port))}
+func getConfAccessPointDatakit(host, port string) []string {
 	return []string{fmt.Sprintf("mongodb://datakit:123456@%s", net.JoinHostPort(host, port))}
 }
+
+func getConfAccessPointRoot(host, port string) []string {
+	return []string{fmt.Sprintf("mongodb://root:example@%s", net.JoinHostPort(host, port))}
+}
+
+type AccessType int
+
+const (
+	AccessDatakit AccessType = 0
+	AccessRoot    AccessType = 1
+)
 
 func buildCases(t *testing.T) ([]*caseSpec, error) {
 	t.Helper()
@@ -238,12 +248,55 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		dockerFileText   string // Empty if not build image.
 		exposedPorts     []string
 		cmd              []string
+		accessType       AccessType
 		optsDB           []inputs.PointCheckOption
 		optsDBStats      []inputs.PointCheckOption
 		optsDBColStats   []inputs.PointCheckOption
 		optsDBShardStats []inputs.PointCheckOption
 		optsDBTopStats   []inputs.PointCheckOption
 	}{
+		////////////////////////////////////////////////////////////////////////
+		// Mongo 2.8.0
+		////////////////////////////////////////////////////////////////////////
+		{
+			name:         "mongo:2.8.0",
+			conf:         confElection, // set conf URL later.
+			exposedPorts: []string{"27017/tcp"},
+			optsDB: []inputs.PointCheckOption{
+				ignoreFieldsOpts,
+				extraTagsElection,
+			},
+			optsDBStats: []inputs.PointCheckOption{
+				ignoreFieldsOpts,
+				extraTagsElection,
+			},
+			optsDBColStats: []inputs.PointCheckOption{
+				ignoreFieldsOpts,
+				extraTagsElection,
+			},
+			optsDBTopStats: []inputs.PointCheckOption{
+				ignoreFieldsOpts,
+				extraTagsElection,
+			},
+		},
+		{
+			name:         "mongo:2.8.0",
+			conf:         confNoElection, // set conf URL later.
+			exposedPorts: []string{"27017/tcp"},
+			optsDB: []inputs.PointCheckOption{
+				ignoreFieldsOpts,
+			},
+			optsDBStats: []inputs.PointCheckOption{
+				ignoreFieldsOpts,
+			},
+			optsDBColStats: []inputs.PointCheckOption{
+				ignoreFieldsOpts,
+			},
+			optsDBTopStats: []inputs.PointCheckOption{
+				ignoreFieldsOpts,
+			},
+		},
+
 		////////////////////////////////////////////////////////////////////////
 		// Mongo 3.0
 		////////////////////////////////////////////////////////////////////////
@@ -446,6 +499,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			dockerFileText: base.dockerFileText,
 			exposedPorts:   base.exposedPorts,
 			cmd:            base.cmd,
+			accessType:     base.accessType,
 
 			optsDB:           base.optsDB,
 			optsDBStats:      base.optsDBStats,
@@ -483,6 +537,7 @@ type caseSpec struct {
 	dockerFileText   string
 	exposedPorts     []string
 	serverPorts      []string
+	accessType       AccessType
 	optsDB           []inputs.PointCheckOption
 	optsDBStats      []inputs.PointCheckOption
 	optsDBColStats   []inputs.PointCheckOption
@@ -706,7 +761,13 @@ func (cs *caseSpec) run() error {
 	if err := cs.getMappingPorts(); err != nil {
 		return err
 	}
-	cs.ipt.Servers = getConfAccessPoint(r.Host, cs.serverPorts[0]) // set conf URL here.
+
+	switch cs.accessType {
+	case AccessDatakit:
+		cs.ipt.Servers = getConfAccessPointDatakit(r.Host, cs.serverPorts[0]) // set conf URL here.
+	case AccessRoot:
+		cs.ipt.Servers = getConfAccessPointRoot(r.Host, cs.serverPorts[0]) // set conf URL here.
+	}
 
 	cs.t.Logf("check service(%s:%v)...", r.Host, cs.serverPorts)
 
@@ -715,6 +776,38 @@ func (cs *caseSpec) run() error {
 	}
 
 	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
+
+	if cs.name == "mongo:2.8.0" {
+		tick := time.NewTicker(time.Second)
+		defer tick.Stop()
+		timeout := time.NewTicker(time.Minute)
+		defer timeout.Stop()
+
+		out := false
+
+		for {
+			if out {
+				break
+			}
+
+			select {
+			case <-tick.C:
+				code, err := cs.resource.Exec([]string{
+					"mongo",
+					"/docker-entrypoint-initdb.d/file.js",
+				}, dockertest.ExecOptions{})
+				cs.t.Logf("Exec() code = %d, err = %v", code, err)
+				if code == 0 && err == nil {
+					out = true
+				}
+			case <-timeout.C:
+				cs.t.Logf("ERROR: timeout: %s", cs.name)
+				out = true
+			default:
+				time.Sleep(time.Second)
+			}
+		}
+	}
 
 	var wg sync.WaitGroup
 

@@ -17,6 +17,7 @@ MongoDb database, Collection, MongoDb database cluster running status data Colle
     - [x] 5.0
     - [x] 4.0
     - [x] 3.0
+    - [x] 2.8.0
 
 - Developed and used MongoDB version `4.4.5`;
 - Write the configuration file in the corresponding directory and then start DataKit to complete the configuration;
