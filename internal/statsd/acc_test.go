@@ -106,7 +106,7 @@ func TestAddFields(t *testing.T) {
 	s.acc = acc
 
 	for _, tc := range cases {
-		acc.measurementInfos = acc.measurementInfos[:0] // clear cache
+		acc.points = acc.points[:0] // clear cache
 
 		s.opts.metricMapping = tc.mmap
 		s.opts.dropTags = tc.dropTags
@@ -114,12 +114,12 @@ func TestAddFields(t *testing.T) {
 
 		acc.addFields(tc.name, tc.fields, tc.tags, time.Now())
 
-		tu.Assert(t, len(acc.measurementInfos) == tc.expectPoint,
+		tu.Assert(t, len(acc.points) == tc.expectPoint,
 			"expect %d point, got %d: %+#v",
-			tc.expectPoint, len(acc.measurementInfos), acc.measurementInfos)
+			tc.expectPoint, len(acc.points), acc.points)
 
-		if len(acc.measurementInfos) > 0 {
-			t.Logf("%#v", acc.measurementInfos[len(acc.measurementInfos)-1])
+		if len(acc.points) > 0 {
+			t.Logf("%#v", acc.points[len(acc.points)-1])
 		}
 	}
 }

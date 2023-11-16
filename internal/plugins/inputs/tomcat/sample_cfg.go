@@ -9,6 +9,12 @@ const (
 	//nolint:lll
 	tomcatSampleCfg = `
 [[inputs.statsd]]
+  ## Collector alias.
+  # source = "statsd/tomcat/-"
+
+  ## Collect interval, default is 10 seconds. (optional)
+  # interval = '10s'
+
   protocol = "udp"
 
   ## Address and port to host UDP listener on

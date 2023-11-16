@@ -67,6 +67,12 @@ DD_JMXFETCH_STATSD_PORT=8125
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 <!-- markdownlint-enable -->
 
+<!-- markdownlint-disable MD046 -->
+???+ info
+
+    如果日志出现大量 Feed: io busy，可以配置 interval = '1s'，最低 1s。
+<!-- markdownlint-enable -->
+
 ### 标记数据源 {#config-mark}
 
 如果想标记 DDTrace 采集的主机，可以使用注入 tags 的方式进行标记：
