@@ -49,10 +49,6 @@ func New(endpoint, accessKeyID, accessKeySecret string, options ...ClientOption)
 
 	// URL parse
 	url := &urlMaker{}
-	err := url.Init(config.Endpoint, config.IsCname, config.IsUseProxy)
-	if err != nil {
-		return nil, err
-	}
 
 	// HTTP connect
 	conn := &Conn{config: config, url: url}
@@ -66,6 +62,11 @@ func New(endpoint, accessKeyID, accessKeySecret string, options ...ClientOption)
 	// Client options parse
 	for _, option := range options {
 		option(client)
+	}
+
+	err := url.InitExt(config.Endpoint, config.IsCname, config.IsUseProxy, config.IsPathStyle)
+	if err != nil {
+		return nil, err
 	}
 
 	if config.AuthVersion != AuthV1 && config.AuthVersion != AuthV2 && config.AuthVersion != AuthV4 {
@@ -951,6 +952,22 @@ func (client Client) SetBucketCORS(bucketName string, corsRules []CORSRule, opti
 	}
 	defer resp.Body.Close()
 	return CheckRespCode(resp.StatusCode, []int{http.StatusOK})
+}
+
+// SetBucketCORSV2 sets the bucket's CORS rules
+//
+// bucketName    the bucket name
+// putBucketCORS    the CORS rules to set.
+//
+// error    it's nil if no error, otherwise it's an error object.
+//
+func (client Client) SetBucketCORSV2(bucketName string, putBucketCORS PutBucketCORS, options ...Option) error {
+	bs, err := xml.Marshal(putBucketCORS)
+	if err != nil {
+		return err
+	}
+	err = client.SetBucketCORSXml(bucketName, string(bs), options...)
+	return err
 }
 
 func (client Client) SetBucketCORSXml(bucketName string, xmlBody string, options ...Option) error {
@@ -2536,6 +2553,85 @@ func (client Client) DeleteBucketStyle(bucketName, styleName string, options ...
 	return CheckRespCode(resp.StatusCode, []int{http.StatusNoContent})
 }
 
+// PutBucketResponseHeader set bucket response header
+// bucketName    the bucket name.
+// xmlData		 the resource group in xml format
+// error    it's nil if no error, otherwise it's an error object.
+func (client Client) PutBucketResponseHeader(bucketName string, responseHeader PutBucketResponseHeader, options ...Option) error {
+	bs, err := xml.Marshal(responseHeader)
+	if err != nil {
+		return err
+	}
+	err = client.PutBucketResponseHeaderXml(bucketName, string(bs), options...)
+	return err
+}
+
+// PutBucketResponseHeaderXml set bucket response header
+// bucketName    the bucket name.
+// xmlData		 the bucket response header in xml format
+// error    it's nil if no error, otherwise it's an error object.
+func (client Client) PutBucketResponseHeaderXml(bucketName, xmlData string, options ...Option) error {
+	buffer := new(bytes.Buffer)
+	buffer.Write([]byte(xmlData))
+	contentType := http.DetectContentType(buffer.Bytes())
+	headers := map[string]string{}
+	headers[HTTPHeaderContentType] = contentType
+	params := map[string]interface{}{}
+	params["responseHeader"] = nil
+	resp, err := client.do("PUT", bucketName, params, nil, buffer, options...)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	return CheckRespCode(resp.StatusCode, []int{http.StatusOK})
+}
+
+// GetBucketResponseHeader get bucket's response header.
+// bucketName    the bucket name.
+// GetBucketResponseHeaderResult  the response header result of bucket.
+// error    it's nil if no error, otherwise it's an error object.
+func (client Client) GetBucketResponseHeader(bucketName string, options ...Option) (GetBucketResponseHeaderResult, error) {
+	var out GetBucketResponseHeaderResult
+	body, err := client.GetBucketResponseHeaderXml(bucketName, options...)
+	if err != nil {
+		return out, err
+	}
+	err = xmlUnmarshal(strings.NewReader(body), &out)
+	return out, err
+}
+
+// GetBucketResponseHeaderXml get bucket's resource group
+// bucketName    the bucket name.
+// string  the response header result of bucket xml format.
+// error    it's nil if no error, otherwise it's an error object.
+func (client Client) GetBucketResponseHeaderXml(bucketName string, options ...Option) (string, error) {
+	params := map[string]interface{}{}
+	params["responseHeader"] = nil
+	resp, err := client.do("GET", bucketName, params, nil, nil, options...)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	out := string(body)
+	return out, err
+}
+
+// DeleteBucketResponseHeader delete response header from a bucket.
+// bucketName    the bucket name.
+// error    it's nil if no error, otherwise it's an error object.
+func (client Client) DeleteBucketResponseHeader(bucketName string, options ...Option) error {
+	params := map[string]interface{}{}
+	params["responseHeader"] = nil
+	resp, err := client.do("DELETE", bucketName, params, nil, nil, options...)
+
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	return CheckRespCode(resp.StatusCode, []int{http.StatusNoContent})
+}
+
 // DescribeRegions get describe regions
 // GetDescribeRegionsResult  the  result of bucket in xml format.
 // error    it's nil if no error, otherwise it's an error object.
@@ -2597,7 +2693,16 @@ func (client Client) LimitDownloadSpeed(downSpeed int) error {
 func UseCname(isUseCname bool) ClientOption {
 	return func(client *Client) {
 		client.Config.IsCname = isUseCname
-		client.Conn.url.Init(client.Config.Endpoint, client.Config.IsCname, client.Config.IsUseProxy)
+	}
+}
+
+// ForcePathStyle sets the flag of using Path Style. By default it's false.
+//
+// isPathStyle    true: the endpoint has the Path Style, false: the endpoint does not have Path Style. Default is false.
+//
+func ForcePathStyle(isPathStyle bool) ClientOption {
+	return func(client *Client) {
+		client.Config.IsPathStyle = isPathStyle
 	}
 }
 
@@ -2694,7 +2799,6 @@ func Proxy(proxyHost string) ClientOption {
 	return func(client *Client) {
 		client.Config.IsUseProxy = true
 		client.Config.ProxyHost = proxyHost
-		client.Conn.url.Init(client.Config.Endpoint, client.Config.IsCname, client.Config.IsUseProxy)
 	}
 }
 
@@ -2711,7 +2815,6 @@ func AuthProxy(proxyHost, proxyUser, proxyPassword string) ClientOption {
 		client.Config.IsAuthProxy = true
 		client.Config.ProxyUser = proxyUser
 		client.Config.ProxyPassword = proxyPassword
-		client.Conn.url.Init(client.Config.Endpoint, client.Config.IsCname, client.Config.IsUseProxy)
 	}
 }
 

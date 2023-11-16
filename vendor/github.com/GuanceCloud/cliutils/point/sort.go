@@ -13,6 +13,7 @@ import (
 func SortByTime(pts []*Point) {
 	slices.SortFunc(pts, func(l, r *Point) int {
 		diff := l.Time().Sub(r.Time())
+		// nolint: gocritic
 		if diff == 0 {
 			return 0
 		} else if diff > 0 {

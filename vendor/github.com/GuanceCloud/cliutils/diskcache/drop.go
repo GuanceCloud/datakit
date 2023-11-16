@@ -7,6 +7,11 @@ package diskcache
 
 import "os"
 
+const (
+	reasonExceedCapacity = "exceed-max-capacity"
+	reasonBadDataFile    = "bad-data-file"
+)
+
 func (c *DiskCache) dropBatch() error {
 	c.rwlock.Lock()
 	defer c.rwlock.Unlock()
@@ -34,7 +39,7 @@ func (c *DiskCache) dropBatch() error {
 
 		c.dataFiles = c.dataFiles[1:]
 
-		droppedBatchVec.WithLabelValues(c.path).Inc()
+		droppedBatchVec.WithLabelValues(c.path, reasonExceedCapacity).Inc()
 		droppedBytesVec.WithLabelValues(c.path).Add(float64(fi.Size()))
 		datafilesVec.WithLabelValues(c.path).Set(float64(len(c.dataFiles)))
 		sizeVec.WithLabelValues(c.path).Set(float64(c.size))
