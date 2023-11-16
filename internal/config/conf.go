@@ -410,17 +410,7 @@ func (c *Config) ApplyMainConfig() error {
 
 	l = logger.SLogger("config")
 
-	// Set up ulimit.
-	if err := setUlimit(c.Ulimit); err != nil {
-		return fmt.Errorf("fail to set ulimit to %d: %w", c.Ulimit, err)
-	} else {
-		soft, hard, err := getUlimit()
-		if err != nil {
-			l.Warnf("fail to get ulimit: %v", err)
-		} else {
-			l.Infof("ulimit set to softLimit = %d, hardLimit = %d", soft, hard)
-		}
-	}
+	c.setupUlimit()
 
 	if c.Hostname == "" {
 		if err := c.setHostname(); err != nil {
@@ -470,6 +460,31 @@ func (c *Config) ApplyMainConfig() error {
 	c.Operator = operator.NewOperatorClientFromEnv()
 
 	return nil
+}
+
+func (c *Config) setupUlimit() {
+	// Set up ulimit.
+	ulimitStatus := "ok"
+	ulimitVal := int64(c.Ulimit)
+
+	if err := setUlimit(uint64(ulimitVal)); err != nil {
+		l.Warnf("fail to set ulimit to %d: %v", c.Ulimit, err)
+		ulimitStatus = "fail"
+		ulimitVal = -1
+	}
+
+	if runtime.GOOS == "windows" {
+		ulimitStatus = "N/A"
+	}
+
+	setUlimitVec.WithLabelValues(ulimitStatus).Set(float64(ulimitVal))
+
+	soft, hard, err := getUlimit()
+	if err != nil {
+		l.Warnf("fail to get ulimit: %v", err)
+	} else {
+		l.Infof("ulimit set to softLimit = %d, hardLimit = %d", soft, hard)
+	}
 }
 
 func (c *Config) setHostname() error {
