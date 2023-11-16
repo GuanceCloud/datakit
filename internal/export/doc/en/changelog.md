@@ -1,6 +1,43 @@
 # Changelog
 ---
 
+## 1.19.0(2023/11/16) {#cl-1.19.0}
+This release is an iterative release with the following updates:
+
+### New addition {#cl-1.19.0-new}
+
+- Add [OceanBase](../integrations/oceanbase.Md) for MySQL(#1952)
+- Add [record/play](datakit-tools-how-to.md#record-and-replay) feature(#1738)
+
+### Fix {#cl-1.19.0-fix}
+
+- Fixed invalid resource limits for old Windows(#1987)
+- Fix dialtesting ICMP issues(#1998)
+
+### Function optimization {#cl-1.19.0-opt}
+
+- Optimized statsd collection(#1995)
+- Optimized Datakit installation script(#1979)
+- Optimize MySQL dashboard(#1974)
+- Add more Prometheus metrics, such as Golang runtime(#1971/#1969)
+- Update documents and unit test optimization(#1952/#1993)
+- Improved Redis collector and added more metrics(#1940)
+- Allow to add packet(ASCII text only) detection in TCP dial testing(#1934)
+- Optimized installation for non-root users:
+    - Ignore ulimit setup failure(#1991)
+    - Add documentation on features(eBPF) that run under non-root user(#1989)
+    - Update the requirements for non-root installation(#1990)
+- Add support for MongoDB old version 2.8.0(#1985)
+- Add support for RabbitMQ old versions (3.6.X/3.7.X)(#1944)
+- Add support to collecting Pod metrics via kubelet instead of Metric Server(#1972)
+- Add support to set measurement name on collecting Prometheus metrics under Kubernetes(#1970)
+
+### Compatible adjustment {#cl-1.19.0-brk}
+
+- Remove feature that write point data to Datakit local files(#1738)
+
+---
+
 ## 1.18.0(2023/11/02) {#cl-1.18.0}
 
 This release is an iterative release with the following updates:
