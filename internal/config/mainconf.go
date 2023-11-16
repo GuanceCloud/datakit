@@ -137,6 +137,7 @@ func DefaultConfig() *Config {
 			IdleTimeout:   90 * time.Second,
 			MaxRetryCount: 4,
 			RetryDelay:    time.Millisecond * 200,
+			GZip:          true,
 		},
 		Operator: &operator.Operator{},
 

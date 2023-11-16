@@ -115,7 +115,7 @@ func init() {
 				0.95: 0.005,
 			},
 		},
-		[]string{"category", "encoding"},
+		[]string{"category", "encoding", "gzip"},
 	)
 
 	ptsCounterVec = prometheus.NewCounterVec(

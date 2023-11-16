@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/diskcache"
-	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
 )
@@ -25,21 +24,19 @@ func TestDTSender(t *T.T) {
 
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, point.LineProtocol.HTTPContentType(), r.Header.Get("Content-Type"))
-			assert.Equal(t, "gzip", r.Header.Get("Content-Encoding"))
+			assert.Equal(t, "", r.Header.Get("Content-Encoding")) // default not gzip
 
 			body, err := io.ReadAll(r.Body)
-			assert.NoError(t, err)
-			x, err := uhttp.Unzip(body)
 			assert.NoError(t, err)
 
 			dec := point.GetDecoder(point.WithDecEncoding(point.LineProtocol))
 			defer point.PutDecoder(dec)
 
-			pts, err := dec.Decode(x)
+			pts, err := dec.Decode(body)
 			assert.NoError(t, err)
 			get = append(get, pts...)
 
-			t.Logf("body size: %d/%d, pts: %d", len(body), len(x), len(pts))
+			t.Logf("body size: %d, pts: %d", len(body), len(pts))
 		}))
 
 		time.Sleep(time.Second)

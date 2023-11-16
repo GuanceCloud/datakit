@@ -28,10 +28,11 @@ import (
 )
 
 var (
-	httpFailRatio      = 0 // %n
-	httpFailStart      time.Time
-	httpFailDuration   time.Duration
-	httpMockedFailResp *http.Response
+	httpFailRatio          = 0 // %n
+	doNotBuildPointRequest = false
+	httpFailStart          time.Time
+	httpFailDuration       time.Duration
+	httpMockedFailResp     *http.Response
 )
 
 // nolint: gochecknoinits
@@ -52,6 +53,10 @@ func init() {
 		if x, err := time.ParseDuration(v); err == nil {
 			httpFailDuration = x
 		}
+	}
+
+	if v := datakit.GetEnv("ENV_DEBUG_DO_NOT_BUILD_POINT_REQUEST"); v != "" {
+		doNotBuildPointRequest = true
 	}
 }
 

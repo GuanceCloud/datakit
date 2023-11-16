@@ -68,18 +68,26 @@ func (w *writer) buildPointsBody() ([]*body, error) {
 		buildBodyBatchBytesVec.WithLabelValues(
 			w.category.String(),
 			w.httpEncoding.String(),
+			fmt.Sprintf("%v", w.gzip),
 		).Observe(float64(len(batch)))
 
-		gzbuf, err := datakit.GZip(batch)
-		if err != nil {
-			log.Errorf("datakit.GZip: %s", err.Error())
-			continue
+		var (
+			buf = batch
+			err error
+		)
+
+		if w.gzip {
+			buf, err = datakit.GZip(batch)
+			if err != nil {
+				log.Errorf("datakit.GZip: %s", err.Error())
+				continue
+			}
 		}
 
 		body := &body{
-			buf:     gzbuf,
+			buf:     buf,
 			rawLen:  len(batch),
-			gzon:    true,
+			gzon:    w.gzip,
 			payload: w.httpEncoding,
 			npts:    -1,
 		}
@@ -91,7 +99,9 @@ func (w *writer) buildPointsBody() ([]*body, error) {
 			body.npts = len(w.points)
 		}
 
-		arr = append(arr, body)
+		if !doNotBuildPointRequest {
+			arr = append(arr, body)
+		}
 	}
 
 	buildBodyBatchCountVec.WithLabelValues(

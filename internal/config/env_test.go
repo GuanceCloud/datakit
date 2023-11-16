@@ -80,6 +80,7 @@ func TestLoadEnv(t *testing.T) {
 					ContentEncoding:     "",
 					MaxRetryCount:       dataway.DefaultRetryCount,
 					RetryDelay:          dataway.DefaultRetryDelay,
+					GZip:                true,
 				}
 
 				cfg.HTTPAPI.RUMOriginIPHeader = "not-set"
@@ -313,6 +314,7 @@ func TestLoadEnv(t *testing.T) {
 					MaxRawBodySize:      1024 * 32,
 					ContentEncoding:     "v2",
 					EnableSinker:        true,
+					GZip:                true,
 				}
 
 				return cfg
@@ -354,6 +356,7 @@ func TestLoadEnv(t *testing.T) {
 					MaxRawBodySize:      dataway.MinimalRawBodySize,
 					ContentEncoding:     "v2",
 					EnableSinker:        true,
+					GZip:                true,
 				}
 
 				return cfg
@@ -393,6 +396,7 @@ func TestLoadEnv(t *testing.T) {
 					MaxRawBodySize:      1024 * 1024 * 32,
 					ContentEncoding:     "v2",
 					EnableSinker:        true,
+					GZip:                true,
 				}
 
 				return cfg
@@ -426,6 +430,21 @@ func TestLoadEnv(t *testing.T) {
 				cfg.IO.FlushWorkers = 1
 				cfg.IO.CacheCleanInterval = "100s"
 				cfg.IO.CacheAll = true
+
+				return cfg
+			}(),
+		},
+
+		{
+			name: "disable-dw-gzip",
+			envs: map[string]string{
+				"ENV_DATAWAY_DISABLE_GZIP": "on",
+			},
+
+			expect: func() *Config {
+				cfg := DefaultConfig()
+
+				cfg.Dataway.GZip = false
 
 				return cfg
 			}(),
