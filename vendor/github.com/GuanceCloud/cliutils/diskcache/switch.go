@@ -23,6 +23,10 @@ func (c *DiskCache) loadUnfinishedFile() error {
 		return fmt.Errorf("posFromFile: %w", err)
 	}
 
+	if pos == nil {
+		return nil
+	}
+
 	// check file's healty
 	if _, err := os.Stat(string(pos.Name)); err != nil { // not exist
 		if err := c.pos.reset(); err != nil {

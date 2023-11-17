@@ -32,6 +32,10 @@ func posFromFile(fname string) (*pos, error) {
 		return nil, err
 	}
 
+	if len(bin) <= 8 {
+		return nil, nil
+	}
+
 	var p pos
 	if err := p.UnmarshalBinary(bin); err != nil {
 		return nil, err
