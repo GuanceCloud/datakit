@@ -48,7 +48,7 @@ java -jar agent-attach-java.jar [-options <dd options>]
                                 [-help]
 [-options]:
    this is dd-java-agnet.jar env, example:
-       dd.agent.port=9529,dd.agent.host=localhost,dd.service=serviceName,...
+       dd.agent.port=9529,dd.agent.host=localhost,dd.service.name=serviceName,...
 [-agent-jar]:
    default is: /usr/local/ddtrace/dd-java-agent.jar
 [-pid]:
@@ -57,17 +57,18 @@ java -jar agent-attach-java.jar [-options <dd options>]
    service name
 Note: -pid or -displayName must have a non empty !!!
 
-example command line:
-java -jar agent-attach-java.jar -options 'dd.service=test,dd.tag=v1'\
+Example command line:
+
+java -jar agent-attach-java.jar -options 'dd.service.name=test,dd.tag=v1'\
  -displayName tmall.jar \
  -agent-jar /usr/local/ddtrace/dd-java-agent.jar
 ```
 
 参数说明：
 
-- `-options` DDTrace 参数 ：`dd.agent.host=localhost,dd.agent.port=9529,dd.service=mytest ...`
+- `-options` DDTrace 参数 ：`dd.agent.host=localhost,dd.agent.port=9529,dd.service.name=mytest ...`
 - `-agent-jar` agent 路径 默认为：`/usr/local/ddtrace/dd-java-agent.jar`
-- `-pid` 进程 PID , PID 和 `displayName` 不可以同时为空，使用其中一个即可。
+- `-pid` 进程 PID , PID 和 `displayName` 不可以同时为空，使用其中一个即可
 - `-displayName` 进程名称 比如 `-displayName tmall.jar`
 - `-h or -help` 帮助
 
