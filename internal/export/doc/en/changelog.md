@@ -1,6 +1,16 @@
 # Changelog
 ---
 
+## 1.19.1(2023/11/17) {#cl-1.19.1}
+
+This release is a Hotfix release, which fixes the following issues:
+
+### Bug fix{#cl-1.19.1-fix}
+
+- Fix bug on open diskcache([issue](https://github.com/GuanceCloud/cliutils/pull/59){:target="_blank"})
+
+---
+
 ## 1.19.0(2023/11/16) {#cl-1.19.0}
 This release is an iterative release with the following updates:
 
