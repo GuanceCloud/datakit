@@ -112,7 +112,7 @@ java -javaagent:dd-java-agent.jar \
     -Ddd.profiling.enabled=true \
     -Ddd.logs.injection=true \
     -Ddd.trace.sample.rate=1 \
-    -Ddd.service=my-app \
+    -Ddd.service.name=my-app \
     -Ddd.env=staging \
     -Ddd.agent.host=localhost \
     -Ddd.agent.port=9529 \
@@ -128,7 +128,7 @@ java -javaagent:dd-java-agent.jar \
 
 - 关于 `dd-java-agent.jar` 包的下载，参见 [这里](ddtrace.md)
 - 建议给如下几个字段命名：
-    - `service` 用于表示该 JVM 数据来自哪个应用
+    - `service.name` 用于表示该 JVM 数据来自哪个应用
     - `env` 用于表示该 JVM 数据来自某个应用的哪个环境（如 `prod/testing/preprod` 等）
 
 - 此处几个选项的意义：
