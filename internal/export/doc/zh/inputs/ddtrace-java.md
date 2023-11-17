@@ -14,7 +14,7 @@
 ```shell
 java -javaagent:/path/to/dd-java-agent.jar \
          -Ddd.logs.injection=true \
-         -Ddd.service=my-app \
+         -Ddd.service.name=my-app \
          -Ddd.env=staging \
          -Ddd.version=1.0.0 \
          -Ddd.agent.host=localhost \
@@ -26,7 +26,7 @@ java -javaagent:/path/to/dd-java-agent.jar \
 
 - `dd.env`                           : 为服务设置环境变量，对应环境变量 DD_ENV。
 - `dd.version`                       : APP 版本号，对应环境变量 DD_VERSION。
-- `dd.service`                       : 设置服务名，对应环境变量 DD_SERVICE。
+- `dd.service.name`                  : 设置服务名，对应环境变量 DD_SERVICE。
 - `dd.trace.agent.timeout`           : 客户端网络发送超时默认 10s，对应环境变量 DD_TRACE_AGENT_TIMEOUT。
 - `dd.logs.injection`                : 是否开启 Java 应用日志注入，让日志与链路数据进行关联，默认为 true，对应环境变量 DD_LOGS_INJECTION。
 - `dd.tags`                          : 为每个 Span 添加默认 Tags，对应环境变量 DD_TAGS。
