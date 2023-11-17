@@ -26,7 +26,7 @@ Run Java Code
 
 ```shell
 java -javaagent:/<your-path>/dd-java-agent.jar \
-    -Ddd.service=profiling-demo \
+    -Ddd.service.name=profiling-demo \
     -Ddd.env=dev \
     -Ddd.version=1.2.3  \
     -Ddd.profiling.enabled=true  \

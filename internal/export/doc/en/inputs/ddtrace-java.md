@@ -13,7 +13,7 @@ You can run your java Code in a variety of ways, such as IDE, Maven, Gradle, or 
 ```shell
 java -javaagent:/path/to/dd-java-agent.jar \
 -Ddd.logs.injection=true \
--Ddd.service=my-app \
+-Ddd.service.name=my-app \
 -Ddd.env=staging \
 -Ddd.version=1.0.0 \
 -Ddd.agent.host=localhost \
@@ -25,7 +25,7 @@ java -javaagent:/path/to/dd-java-agent.jar \
 
 - dd.env: Set the environment variable for the service, corresponding to the environment variable DD_ENV.
 - dd.version: APP version number, corresponding to the environment variable DD_VERSION.
-- dd.service: Set the service name corresponding to the environment variable DD_SERVICE.
+- dd.service.name: Set the service name corresponding to the environment variable DD_SERVICE.
 - dd.trace.agent.timeout: The client network send timeout defaults to 10s, corresponding to the environment variable DD_TRACE_AGENT_TIMEOUT.
 - dd.logs.injection: Whether to start Java application log injection, so that the log can be associated with link data, the default is true, corresponding to the environment variable DD_LOGS_INJECTION.
 - dd.tags: Add the default Tags for each Span, corresponding to the environment variable DD_TAGS.

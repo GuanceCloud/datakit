@@ -41,7 +41,7 @@ java -jar agent-attach-java.jar [-options <dd options>]
                                 [-help]
 [-options]:
    this is dd-java-agnet.jar env, example:
-       dd.agent.port=9529,dd.agent.host=localhost,dd.service=serviceName,...
+       dd.agent.port=9529,dd.agent.host=localhost,dd.service.name=serviceName,...
 [-agent-jar]:
    default is: /usr/local/ddtrace/dd-java-agent.jar
 [-pid]:
@@ -51,25 +51,25 @@ java -jar agent-attach-java.jar [-options <dd options>]
 Note: -pid or -displayName must have a non empty !!!
 
 example command line:
-java -jar agent-attach-java.jar -options 'dd.service=test,dd.tag=v1'\
+java -jar agent-attach-java.jar -options 'dd.service.name=test,dd.tag=v1'\
  -displayName tmall.jar \
  -agent-jar /usr/local/ddtrace/dd-java-agent.jar
-
 ```
 
 Parameter Description:
-- "- options" ddtrace parameter: "dd. agent. host=localhost, dd. agent. port=9529, dd. service=mytest..."
-- "- agent jar" The default agent path is: `/usr/local/ddtrace/dd java agent jar`
-- "- pid "process pid, pid, and displayName cannot both be empty.". Just use one of them.
-- "- displayName" Process name such as - displayName tmall.jar
-- "- h or - help" Help
+
+- `-options` ddtrace parameter: `dd.agent.host=localhost,dd.agent.port=9529,dd.service.name=mytest ...`
+- "-agent-jar" The default agent path is: `/usr/local/ddtrace/dd-java-agent.jar`
+- "-pid "process PID, PID and `displayName` cannot both be empty. Just use one of them
+- "-displayName" Process name such as `-displayName tmall.jar`
+- "-h or -help" Help
 
 > Since there has been no tools. jar file since jdk9. So I brought the tools file under the project directory: 'lib/tools. jar' is from the jdk1.8 version.
 
-java run：
+Java run：
 
 ```shell
-java -jar agent-attach-java.jar
+$ java -jar agent-attach-java.jar
 ```
 
 ## Auto attach dd-java-agent.jar {#dynamic-inject-ddagent-java}
