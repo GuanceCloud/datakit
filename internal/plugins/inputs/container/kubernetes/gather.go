@@ -44,6 +44,8 @@ func (k *Kube) gather(category string, feed func([]*point.Point) error, paused, 
 
 		func(typ resourceType, newResource resourceConstructor) {
 			g.Go(func(_ context.Context) error {
+				startCollect := time.Now()
+
 				namespaces := namespaces
 				if !typ.namespaced {
 					namespaces = []string{""}
@@ -56,6 +58,7 @@ func (k *Kube) gather(category string, feed func([]*point.Point) error, paused, 
 				counterWithName[typ.name] = counts
 				mu.Unlock()
 
+				collectResourceCostVec.WithLabelValues(category, typee.name, fieldSelector).Observe(time.Since(startCollect).Seconds())
 				collectResourcePtsVec.WithLabelValues(category, typ.name, fieldSelector).Observe(float64(sum(counts)))
 				return nil
 			})
@@ -196,11 +199,6 @@ func transToPoint(pts pointKVs, opts []point.Option) []*point.Point {
 		)
 
 		res = append(res, r)
-	}
-
-	// debugging
-	if pts[0].Name() == "kube_pod" {
-		klog.Infof("pod-data, time: %s, pointKVs: %s", time.Now().Format(time.RFC3339), pts)
 	}
 
 	return res

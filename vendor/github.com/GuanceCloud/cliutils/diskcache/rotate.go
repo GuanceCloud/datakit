@@ -113,6 +113,8 @@ func (c *DiskCache) removeCurrentReadingFile() error {
 		}
 	}
 
+	c.curReadfile = ""
+
 	if len(c.dataFiles) > 0 {
 		c.dataFiles = c.dataFiles[1:] // first file removed
 	}

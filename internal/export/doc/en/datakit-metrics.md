@@ -84,13 +84,14 @@ We can also playing other metrics too(change the `grep` string), all available m
 |*internal/metrics*|GAUGE|`datakit_cpu_usage`|`N/A`|Datakit CPU usage(%)|
 |*internal/metrics*|GAUGE|`datakit_open_files`|`N/A`|Datakit open files(only available on Linux)|
 |*internal/metrics*|GAUGE|`datakit_cpu_cores`|`N/A`|Datakit CPU cores|
-|*internal/metrics*|GAUGE|`datakit_uptime_seconds`|`hostname,resource_limit,lite,os_arch=?,docker=?,auto_update=?,version=?,build_at=?,branch=?`|Datakit uptime|
+|*internal/metrics*|GAUGE|`datakit_uptime_seconds`|`hostname,resource_limit,lite,branch=?,os_arch=?,docker=?,auto_update=?,version=?,build_at=?`|Datakit uptime|
 |*internal/metrics*|GAUGE|`datakit_data_overuse`|`N/A`|Does current workspace's data(metric/logging) usage(if 0 not beyond, or with a unix timestamp when overuse occurred)|
 |*internal/metrics*|COUNTER|`datakit_process_ctx_switch_total`|`type`|Datakit process context switch count(Linux only)|
 |*internal/metrics*|COUNTER|`datakit_process_io_count_total`|`type`|Datakit process IO count|
 |*internal/metrics*|COUNTER|`datakit_process_io_bytes_total`|`type`|Datakit process IO bytes count|
 |*internal/plugins/inputs/container/kubernetes*|GAUGE|`datakit_kubernetes_fetch_error`|`namespace,resource,error`|Kubernetes resource fetch error|
-|*internal/plugins/inputs/container/kubernetes*|SUMMARY|`datakit_kubernetes_collect_cost_seconds`|`category`|Kubernetes resource collect cost|
+|*internal/plugins/inputs/container/kubernetes*|SUMMARY|`datakit_kubernetes_collect_cost_seconds`|`category`|Kubernetes collect cost|
+|*internal/plugins/inputs/container/kubernetes*|SUMMARY|`datakit_kubernetes_collect_resource_cost_seconds`|`category,kind,fieldselector`|Kubernetes collect resource cost|
 |*internal/plugins/inputs/container/kubernetes*|COUNTER|`datakit_kubernetes_collect_pts_total`|`category`|Kubernetes collect point total|
 |*internal/plugins/inputs/container/kubernetes*|SUMMARY|`datakit_kubernetes_collect_resource_pts_num`|`category,kind,fieldselector`|Kubernetes resource collect point count|
 |*internal/plugins/inputs/container/kubernetes*|COUNTER|`datakit_kubernetes_pod_metrics_query_total`|`target`|Kubernetes query pod metrics count|

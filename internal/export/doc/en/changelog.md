@@ -1,6 +1,17 @@
 # Changelog
 ---
 
+## 1.19.2(2023/11/20) {#cl-1.19.2}
+
+This release is a Hotfix release, which fixes the following issues:
+
+### Bug fix{#cl-1.19.2-fix}
+
+- Fix diskcache bug that drop data on session replay 
+- Add Prometheus metrics on collecting Kubernetes related data
+
+---
+
 ## 1.19.1(2023/11/17) {#cl-1.19.1}
 
 This release is a Hotfix release, which fixes the following issues:

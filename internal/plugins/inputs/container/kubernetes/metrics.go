@@ -13,6 +13,7 @@ import (
 var (
 	fetchErrorVec           *prometheus.GaugeVec
 	collectCostVec          *prometheus.SummaryVec
+	collectResourceCostVec  *prometheus.SummaryVec
 	collectPtsVec           *prometheus.CounterVec
 	collectResourcePtsVec   *prometheus.SummaryVec
 	podMetricsQueryCountVec *prometheus.CounterVec
@@ -38,10 +39,24 @@ func setupMetrics() {
 			Namespace: "datakit",
 			Subsystem: "kubernetes",
 			Name:      "collect_cost_seconds",
-			Help:      "Kubernetes resource collect cost",
+			Help:      "Kubernetes collect cost",
 		},
 		[]string{
 			"category",
+		},
+	)
+
+	collectResourceCostVec = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Namespace: "datakit",
+			Subsystem: "kubernetes",
+			Name:      "collect_resource_cost_seconds",
+			Help:      "Kubernetes collect resource cost",
+		},
+		[]string{
+			"category",
+			"kind",
+			"fieldselector",
 		},
 	)
 
@@ -86,6 +101,7 @@ func setupMetrics() {
 	metrics.MustRegister(
 		fetchErrorVec,
 		collectCostVec,
+		collectResourceCostVec,
 		collectPtsVec,
 		collectResourcePtsVec,
 		podMetricsQueryCountVec,
