@@ -482,12 +482,14 @@ Write-COutput green "* Apply all DK_* envs done."
 # Detect arch 32 or 64
 ##########################
 $arch="386"
-if ([Environment]::Is64BitProcess -or [Environment]::Is64BitOperatingSystem) {
+$arch_info = (Get-Process -Id $PID).StartInfo.EnvironmentVariables["PROCESSOR_ARCHITECTURE"];
+if ([Environment]::Is64BitProcess -or [Environment]::Is64BitOperatingSystem -or $arch_info -eq "AMD64") {
 	$arch = "amd64"
 }
 
 $installer_url = "$installer_base_url/installer-windows-$arch-{{.Version}}.exe"
 $installer=".dk-installer.exe"
+$ps1_script=".install.ps1"
 
 ##########################
 # try install...
@@ -581,4 +583,8 @@ $action -join " " | Invoke-Expression
 
 # remove installer and the script.
 Remove-Item -Force -ErrorAction SilentlyContinue $installer
-Remove-Item $PSCommandPath -Force
+if ($PSCommandPath) {
+	Remove-Item $PSCommandPath -Force
+} else {
+	Remove-Item $ps1_script -Force
+}
