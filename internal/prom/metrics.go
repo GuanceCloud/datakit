@@ -21,7 +21,7 @@ func metricsSetup() {
 	collectPointsTotalVec = p8s.NewSummaryVec(
 		p8s.SummaryOpts{
 			Namespace: "datakit",
-			Subsystem: "prom",
+			Subsystem: "input_prom",
 			Name:      "collect_points",
 			Help:      "Total number of prom collection points",
 		},
@@ -31,7 +31,7 @@ func metricsSetup() {
 	httpGetBytesVec = p8s.NewSummaryVec(
 		p8s.SummaryOpts{
 			Namespace: "datakit",
-			Subsystem: "prom",
+			Subsystem: "input_prom",
 			Name:      "http_get_bytes",
 			Help:      "HTTP get bytes",
 		},
@@ -41,7 +41,7 @@ func metricsSetup() {
 	httpLatencyVec = p8s.NewSummaryVec(
 		p8s.SummaryOpts{
 			Namespace: "datakit",
-			Subsystem: "prom",
+			Subsystem: "input_prom",
 			Name:      "http_latency_in_second",
 			Help:      "HTTP latency(in second)",
 		},
@@ -51,7 +51,7 @@ func metricsSetup() {
 	streamSizeVec = p8s.NewGaugeVec(
 		p8s.GaugeOpts{
 			Namespace: "datakit",
-			Subsystem: "prom",
+			Subsystem: "input_prom",
 			Name:      "stream_size",
 			Help:      "Stream size",
 		},
