@@ -10,6 +10,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	_ "github.com/godror/godror"
 	"github.com/jessevdk/go-flags"
@@ -29,6 +30,7 @@ func main() {
 		return
 	}
 
+	collect.PrintInfof("args = %v", os.Args)
 	collect.PrintInfof("election: %t", opt.Election)
 
 	collect.PrintInfof("Datakit: host=%s, port=%d", opt.DatakitHTTPHost, opt.DatakitHTTPPort)

@@ -38,7 +38,7 @@ type IInput interface {
 }
 
 type DBMetricsCollector interface {
-	Collect() (*point.Point, error)
+	Collect() ([]*point.Point, error)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -58,6 +58,7 @@ type Option struct {
 	Inputs          string `long:"inputs" description:"collectors should be enabled" default:"oracle"`
 	Database        string `long:"database" description:"database name"`
 	SlowQueryTime   string `long:"slow-query-time" description:"Slow query time defined" default:""`
+	CustomQueryFile string `long:"custom-query" description:"Custom query file path" default:""`
 
 	Log      string   `long:"log" description:"log path"`
 	LogLevel string   `long:"log-level" description:"log file" default:"info"`
@@ -99,52 +100,41 @@ func GetLastErrorURL(host string, port int) string {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-type BuildPointOpt struct {
-	TF         *TagField
-	MetricName string
-	Tags       map[string]string
-	Host       string
-}
-
-func BuildPoint(l *logger.Logger, opt *BuildPointOpt) *point.Point {
-	var err error
-	l.Debugf("got %d fields from metric %s", len(opt.TF.Fields), opt.MetricName)
-
+func BuildPointMetric(kvs point.KVs, metricName string, tags, hostTag map[string]string) *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(opt.TF.TS))
+	opts = append(opts, point.WithTime(time.Now()))
 
-	setHost := false
-	host := strings.ToLower(opt.Host)
-	switch host {
-	case "", "localhost":
-		setHost = true
-	default:
-		if net.ParseIP(host).IsLoopback() {
-			setHost = true
-		}
-	}
-	if setHost {
-		host, err = os.Hostname()
-		if err != nil {
-			l.Errorf("os.Hostname failed: %v", err)
-		}
+	for k, v := range tags {
+		kvs = kvs.AddTag(k, v)
 	}
 
-	newTags := MergeTags(opt.Tags, opt.TF.Tags, host)
-	return point.NewPointV2(opt.MetricName,
-		append(point.NewTags(newTags), point.NewKVs(opt.TF.Fields)...),
-		opts...)
+	for k, v := range hostTag {
+		kvs = kvs.MustAddTag(k, v)
+	}
+
+	return point.NewPointV2(metricName, kvs, opts...)
 }
 
-func BuildPointLogging(l *logger.Logger, opt *BuildPointOpt) *point.Point {
-	var err error
-	l.Debugf("got %d fields from logging %s", len(opt.TF.Fields), opt.MetricName)
+func BuildPointLogging(kvs point.KVs, metricName string, tags, hostTag map[string]string) *point.Point {
+	opts := point.CommonLoggingOptions()
+	opts = append(opts, point.WithTime(time.Now()))
 
-	opts := point.DefaultLoggingOptions()
-	opts = append(opts, point.WithTime(opt.TF.TS))
+	for k, v := range tags {
+		kvs = kvs.AddTag(k, v)
+	}
+
+	for k, v := range hostTag {
+		kvs = kvs.MustAddTag(k, v)
+	}
+
+	return point.NewPointV2(metricName, kvs, opts...)
+}
+
+func GetHostTag(l *logger.Logger, hostVar string) map[string]string {
+	var err error
 
 	setHost := false
-	host := strings.ToLower(opt.Host)
+	host := strings.ToLower(hostVar)
 	switch host {
 	case "", "localhost":
 		setHost = true
@@ -156,15 +146,17 @@ func BuildPointLogging(l *logger.Logger, opt *BuildPointOpt) *point.Point {
 	if setHost {
 		host, err = os.Hostname()
 		if err != nil {
-			l.Errorf("os.Hostname failed: %v", err)
+			l.Errorf("os.Hostname() failed: %v", err)
 		}
 	}
 
-	newTags := MergeTags(opt.Tags, opt.TF.Tags, host)
+	if len(host) == 0 {
+		return nil
+	}
 
-	return point.NewPointV2(opt.MetricName,
-		append(point.NewTags(newTags), point.NewKVs(opt.TF.Fields)...),
-		opts...)
+	return map[string]string{
+		"host": host,
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -251,53 +243,10 @@ func WriteData(l *logger.Logger, data []byte, urlPath string) error {
 		l.Debugf("post to %s ok", urlPath)
 		return nil
 	default:
+		l.Debugf("data = %s", string(data))
 		l.Errorf("post to %s failed(HTTP: %d): %s", urlPath, resp.StatusCode, string(body))
 		return fmt.Errorf("post datakit failed")
 	}
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-type TagField struct {
-	Tags   map[string]string      `json:"tags"`
-	Fields map[string]interface{} `json:"fields"`
-	TS     time.Time
-}
-
-func NewTagField() *TagField {
-	return &TagField{
-		Tags:   make(map[string]string),
-		Fields: make(map[string]interface{}),
-	}
-}
-
-func (tf *TagField) SetTS(t time.Time) {
-	if tf.TS.IsZero() {
-		tf.TS = t
-	}
-}
-
-func (tf *TagField) AddTag(key, val string) {
-	if _, ok := tf.Tags[key]; !ok {
-		tf.Tags[key] = val
-	}
-}
-
-func (tf *TagField) AddField(key string, val interface{}, dic map[string]string) {
-	if _, ok := tf.Fields[key]; !ok {
-		tf.Fields[key] = val
-
-		if dic != nil {
-			alias, ok := dic[key]
-			if ok {
-				tf.Fields[key] = alias // replace with dic.
-			}
-		}
-	}
-}
-
-func (tf *TagField) IsEmpty() bool {
-	return len(tf.Fields) == 0
 }
 
 ////////////////////////////////////////////////////////////////////////////////
