@@ -25,6 +25,7 @@ type APIConfig struct {
 	Timeout             string     `toml:"timeout"`
 	CloseIdleConnection bool       `toml:"close_idle_connection"`
 	TLSConf             *TLSConfig `toml:"tls"`
+	AllowedCORSOrigins  []string   `toml:"allowed_cors_origins"`
 }
 
 func (conf *APIConfig) HTTPSEnabled() bool {

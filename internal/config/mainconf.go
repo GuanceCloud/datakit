@@ -169,6 +169,7 @@ func DefaultConfig() *Config {
 			Timeout:             "30s",
 			CloseIdleConnection: false,
 			TLSConf:             &TLSConfig{},
+			AllowedCORSOrigins:  []string{},
 		},
 
 		DCAConfig: &DCAConfig{

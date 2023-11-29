@@ -188,7 +188,9 @@ func setupRouter() *gin.Engine {
 	}))
 
 	router.Use(gin.Recovery())
-	router.Use(uhttp.CORSMiddleware)
+
+	router.Use(uhttp.CORSMiddlewareV2(apiServer.apiConfig.AllowedCORSOrigins))
+
 	router.Use(dkHTTPTimeout())
 
 	if !apiServer.apiConfig.Disable404Page {
