@@ -131,8 +131,10 @@ apt-get install -y libaio-dev libaio1
 
     The configuration above would shows in the process list(including password). If want to hide the password, can use the environment variable `ENV_INPUT_OCEANBASE_PASSWORD`, like below:
 
-    ```sh
-    export ENV_INPUT_OCEANBASE_PASSWORD='<SAFE_PASSWORD>'
+    ```toml
+    envs = [
+        "ENV_INPUT_OCEANBASE_PASSWORD=<YOUR-SAFE-PASSWORD>"
+    ]
     ```
 
     The environment variable has highest priority, which means if existed that environment variable, the value in the environment variable will always treated as the password.
@@ -189,7 +191,9 @@ Change the string value after `--slow-query-time` from `0s` to the threshold tim
 
 ### :material-chat-question: How to view the running log of OceanBase Collector? {#faq-logging}
 
-Because the OceanBase collector is an external collector, its logs are stored separately in *[Datakit-install-path]/externals/oceanbase.log*.
+Because the OceanBase collector is an external collector, its logs by default are stored separately in *[Datakit-install-path]/externals/oceanbase.log*.
+
+In addition, the log path could modified by using `--log` parameter in configuration file.
 
 ### :material-chat-question: After OceanBase collection is configured, why is there no data displayed in monitor? {#faq-no-data}
 

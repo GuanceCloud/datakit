@@ -154,8 +154,10 @@ apt-get install -y libaio-dev libaio1
 
     上述配置会以命令行形式展示在进程列表中（包括密码），如果想隐藏密码，可以通过将密码写进环境变量 `ENV_INPUT_OCEANBASE_PASSWORD` 形式实现，示例：
 
-    ```sh
-    export ENV_INPUT_OCEANBASE_PASSWORD='<SAFE_PASSWORD>'
+    ```toml
+    envs = [
+        "ENV_INPUT_OCEANBASE_PASSWORD=<YOUR-SAFE-PASSWORD>"
+    ]
     ```
 
     该环境变量在读取密码时有最高优先级，即只要出现该环境变量，那密码就以该环境变量中的值为准。
@@ -215,7 +217,9 @@ Datakit 可以将执行超过用户自定义时间的 SQL 语句报告给观测�
 <!-- markdownlint-disable MD013 -->
 ### :material-chat-question: 如何查看 OceanBase 采集器的运行日志？ {#faq-logging}
 
-由于 OceanBase 采集器是外部采集器，其日志是单独存放在 *[Datakit 安装目录]/externals/oceanbase.log* 中。
+由于 OceanBase 采集器是外部采集器，其日志是默认单独存放在 *[Datakit 安装目录]/externals/oceanbase.log* 中。
+
+另外，可以在配置文件中通过 `--log` 参数来指定日志文件位置。
 
 ### :material-chat-question: 配置好 OceanBase 采集之后，为何 monitor 中无数据显示？ {#faq-no-data}
 

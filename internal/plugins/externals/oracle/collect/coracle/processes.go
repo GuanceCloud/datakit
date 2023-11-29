@@ -32,25 +32,10 @@ func newProcessMetrics(opts ...collectOption) *processMetrics {
 	return m
 }
 
-func (m *processMetrics) Collect() (*point.Point, error) {
+func (m *processMetrics) Collect() ([]*point.Point, error) {
 	l.Debug("Collect entry")
 
-	tf, err := m.processMemory()
-	if err != nil {
-		return nil, err
-	}
-
-	if tf.IsEmpty() {
-		return nil, fmt.Errorf("process empty data")
-	}
-
-	opt := &ccommon.BuildPointOpt{
-		TF:         tf,
-		MetricName: m.x.MetricName,
-		Tags:       m.x.Ipt.tags,
-		Host:       m.x.Ipt.host,
-	}
-	return ccommon.BuildPoint(l, opt), nil
+	return m.processMemory()
 }
 
 // PGA_QUERY is the get process info SQL query for Oracle 11g+.
@@ -89,8 +74,7 @@ type processesRowDB struct {
 	PGAMaxMem      float64        `db:"PGA_MAX_MEM"`
 }
 
-func (m *processMetrics) processMemory() (*ccommon.TagField, error) {
-	tf := ccommon.NewTagField()
+func (m *processMetrics) processMemory() ([]*point.Point, error) {
 	rows := []processesRowDB{}
 
 	err := selectWrapper(m.x.Ipt, &rows, PGA_QUERY)
@@ -107,24 +91,33 @@ func (m *processMetrics) processMemory() (*ccommon.TagField, error) {
 		}
 	}
 
+	var pts []*point.Point
+	hostTag := ccommon.GetHostTag(l, m.x.Ipt.host)
+
 	for _, r := range rows {
+		var kvs point.KVs
 		if r.PdbName.Valid {
-			tf.AddTag(pdbName, r.PdbName.String)
+			kvs = kvs.AddTag(pdbName, r.PdbName.String)
 		}
 
 		if r.Program.Valid {
-			tf.AddTag(programName, r.Program.String)
+			kvs = kvs.AddTag(programName, r.Program.String)
 		}
 
 		if r.PID > 0 {
-			tf.AddField("pid", r.PID, dic)
+			kvs = kvs.Add("pid", r.PID, false, false)
 		}
 
-		tf.AddField("pga_alloc_mem", r.PGAAllocMem, dic)
-		tf.AddField("pga_freeable_mem", r.PGAFreeableMem, dic)
-		tf.AddField("pga_max_mem", r.PGAMaxMem, dic)
-		tf.AddField("pga_used_mem", r.PGAUsedMem, dic)
+		kvs = kvs.Add("pga_alloc_mem", r.PGAAllocMem, false, false)
+		kvs = kvs.Add("pga_freeable_mem", r.PGAFreeableMem, false, false)
+		kvs = kvs.Add("pga_max_mem", r.PGAMaxMem, false, false)
+		kvs = kvs.Add("pga_used_mem", r.PGAUsedMem, false, false)
+
+		pts = append(pts, ccommon.BuildPointMetric(
+			kvs, m.x.MetricName,
+			m.x.Ipt.tags, hostTag,
+		))
 	}
 
-	return tf, nil
+	return pts, nil
 }

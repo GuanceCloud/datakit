@@ -120,14 +120,16 @@ func NewInput(infoMsgs []string, opt *ccommon.Option) ccommon.IInput {
 		ipt.password = pwd
 	}
 
-	du, err := time.ParseDuration(opt.SlowQueryTime)
-	if err != nil {
-		l.Errorf("bad slow query %s: %s, disable slow query", opt.SlowQueryTime, err.Error())
-	} else {
-		if du >= time.Millisecond {
-			ipt.SlowQueryTime = du
+	if len(opt.SlowQueryTime) > 0 {
+		du, err := time.ParseDuration(opt.SlowQueryTime)
+		if err != nil {
+			l.Warnf("bad slow query %s: %s, disable slow query", opt.SlowQueryTime, err.Error())
 		} else {
-			l.Warnf("slow query time %v less than 1 millisecond, skip", du)
+			if du >= time.Millisecond {
+				ipt.SlowQueryTime = du
+			} else {
+				l.Warnf("slow query time %v less than 1 millisecond, skip", du)
+			}
 		}
 	}
 

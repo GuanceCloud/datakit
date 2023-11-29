@@ -157,6 +157,7 @@ apt-get install -y libaio-dev libaio1
 ### 采集器配置 {#input-config}
 
 <!-- markdownlint-disable MD046 -->
+
 === "主机安装"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
@@ -170,6 +171,19 @@ apt-get install -y libaio-dev libaio1
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+
+???+ tip
+
+    上述配置会以命令行形式展示在进程列表中（包括密码），如果想隐藏密码，可以通过将密码写进环境变量 `ENV_INPUT_ORACLE_PASSWORD` 形式实现，示例：
+
+    ```toml
+    envs = [
+      "ENV_INPUT_ORACLE_PASSWORD=<YOUR-SAFE-PASSWORD>"
+    ] 
+    ```
+
+    该环境变量在读取密码时有最高优先级，即只要出现该环境变量，那密码就以该环境变量中的值为准。
+
 <!-- markdownlint-enable -->
 
 ## 指标 {#metric}
@@ -199,7 +213,7 @@ apt-get install -y libaio-dev libaio1
 
 ## 慢查询支持 {#slow}
 
-Datakit 可以将执行超过用户自定义时间的 SQL 语句报告给观测云，在日志中显示，来源名是 `oracle_logging`。
+Datakit 可以将执行超过用户自定义时间的 SQL 语句报告给观测云，在日志中显示，来源名是 `oracle_log`。
 
 该功能默认情况下是关闭的，用户可以在 Oracle 的配置文件中将其打开，方法如下：
 
@@ -222,12 +236,20 @@ Datakit 可以将执行超过用户自定义时间的 SQL 语句报告给观测�
     - 如果值是 `0s` 或空或小于 1 毫秒，则不会开启 Oracle 采集器的慢查询功能，即默认状态。
     - 没有执行完成的 SQL 语句不会被查询到。
 
+## 自定义查询支持 {#custom}
+
+<!-- markdownlint-disable MD051 -->
+支持自定义查询数据采集。具体用法与例子见上面 [采集器配置](#input-config) 里面的 `custom_queries`。
+<!-- markdownlint-enable -->
+
 ## FAQ {#faq}
 
 <!-- markdownlint-disable MD013 -->
 ### :material-chat-question: 如何查看 Oracle 采集器的运行日志？ {#faq-logging}
 
-由于 Oracle 采集器是外部采集器，其日志是单独存放在 *[Datakit 安装目录]/externals/oracle.log* 中。
+由于 Oracle 采集器是外部采集器，其日志是默认单独存放在 *[Datakit 安装目录]/externals/oracle.log* 中。
+
+另外，可以在配置文件中通过 `--log` 参数来指定日志文件位置。
 
 ### :material-chat-question: 配置好 Oracle 采集之后，为何 monitor 中无数据显示？ {#faq-no-data}
 
