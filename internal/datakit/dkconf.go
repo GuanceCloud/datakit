@@ -113,6 +113,9 @@ ulimit = 64000
   # If the list empty, all app's requests accepted.
   rum_app_id_white_list = []
 
+  # only these domains enable CORS. If list empty, all domains are enabled.
+  allowed_cors_origins = []
+
   # Start Datakit web server with HTTPS
   [http_api.tls]
     # cert = "path/to/certificate/file"
