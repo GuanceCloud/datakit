@@ -8,6 +8,7 @@ package resourcelimit
 
 import (
 	"context"
+	"errors"
 	"os"
 	"time"
 
@@ -19,8 +20,9 @@ import (
 var l = logger.DefaultSLogger("resourcelimit")
 
 var (
-	self             *process.Process
-	resourceLimitOpt *ResourceLimitOptions
+	self                 *process.Process
+	resourceLimitOpt     *ResourceLimitOptions
+	errProcessInitFailed = errors.New("process init failed")
 )
 
 const (
@@ -36,12 +38,12 @@ type ResourceLimitOptions struct {
 	Enable     bool `toml:"enable"`
 }
 
-//nolint:gochecknoinits
+//nolint:gochecknoinits,lll
 func init() {
 	var err error
 	self, err = process.NewProcess(int32(os.Getpid()))
 	if err != nil {
-		panic(err.Error())
+		l.Warnf("new process failed: %s, this probably happened in the pod environment when the hostIPC and hostPID fields of the pod spec are set to false", err.Error())
 	}
 }
 
@@ -73,14 +75,26 @@ func Run(c *ResourceLimitOptions) {
 }
 
 func MyMemPercent() (float32, error) {
+	if self == nil {
+		return 0, errProcessInitFailed
+	}
+
 	return self.MemoryPercent()
 }
 
 func MyCPUPercent(du time.Duration) (float64, error) {
+	if self == nil {
+		return 0, errProcessInitFailed
+	}
+
 	return self.Percent(du)
 }
 
 func MyCtxSwitch() *process.NumCtxSwitchesStat {
+	if self == nil {
+		return nil
+	}
+
 	if x, err := self.NumCtxSwitches(); err == nil {
 		return x
 	} else {
@@ -89,6 +103,10 @@ func MyCtxSwitch() *process.NumCtxSwitchesStat {
 }
 
 func MyIOCountersStat() *process.IOCountersStat {
+	if self == nil {
+		return nil
+	}
+
 	if x, err := self.IOCounters(); err == nil {
 		return x
 	} else {
