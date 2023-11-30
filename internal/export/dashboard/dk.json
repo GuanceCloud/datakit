@@ -2,11 +2,12 @@
   "dashboardBindSet": [],
   "dashboardExtend": {
     "groupUnfoldStatus": {
-      "Dataway": false,
+      "Dataway": true,
       "Goroutine": true,
       "HTTP request": false,
-      "HTTP-API": true,
+      "HTTP-API": false,
       "Pipeline": false,
+      "Proxy": false,
       "{{.Dashboard.group_blacklist}}": false,
       "{{.Dashboard.group_collectors}}": false,
       "{{.Dashboard.group_diskcache}}": false
@@ -78,7 +79,7 @@
           "h": 6,
           "w": 8,
           "x": 0,
-          "y": 37
+          "y": 0
         },
         "queries": [
           {
@@ -224,7 +225,7 @@
           "h": 6,
           "w": 6,
           "x": 0,
-          "y": 77
+          "y": 0
         },
         "queries": [
           {
@@ -365,7 +366,7 @@
           "h": 6,
           "w": 6,
           "x": 12,
-          "y": 77
+          "y": 0
         },
         "queries": [
           {
@@ -413,7 +414,7 @@
       {
         "extend": {
           "fixedTime": "",
-          "isRefresh": false,
+          "isRefresh": true,
           "settings": {
             "alias": [],
             "chartType": "areaLine",
@@ -456,7 +457,17 @@
             "stackType": "time",
             "timeInterval": "auto",
             "titleDesc": "",
-            "units": [],
+            "units": [
+              {
+                "key": "last(datakit_io_dataway_point_bytes_total)",
+                "name": "last(datakit_io_dataway_point_bytes_total)",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
             "xAxisShowType": "time",
             "yAxixMaxVal": null,
             "yAxixMinVal": null
@@ -470,7 +481,7 @@
           "h": 6,
           "w": 6,
           "x": 6,
-          "y": 77
+          "y": 0
         },
         "queries": [
           {
@@ -590,7 +601,7 @@
           "h": 10,
           "w": 5,
           "x": 0,
-          "y": 64.5
+          "y": 0
         },
         "queries": [
           {
@@ -728,7 +739,7 @@
           "h": 10,
           "w": 5,
           "x": 5,
-          "y": 64.5
+          "y": 0
         },
         "queries": [
           {
@@ -832,7 +843,7 @@
           "h": 6,
           "w": 12,
           "x": 0,
-          "y": 56
+          "y": 0
         },
         "queries": [
           {
@@ -946,7 +957,7 @@
           "h": 6,
           "w": 12,
           "x": 12,
-          "y": 56
+          "y": 0
         },
         "queries": [
           {
@@ -1100,10 +1111,10 @@
         },
         "name": "{{.Dashboard.alive_collectors}}",
         "pos": {
-          "h": 8,
+          "h": 7,
           "w": 12,
           "x": 0,
-          "y": 45.5
+          "y": 0
         },
         "queries": [
           {
@@ -1218,7 +1229,7 @@
           "h": 6,
           "w": 8,
           "x": 16,
-          "y": 85.5
+          "y": 0
         },
         "queries": [
           {
@@ -1367,10 +1378,10 @@
         },
         "name": "{{.Dashboard.pts_per_collect}}",
         "pos": {
-          "h": 8,
+          "h": 7,
           "w": 12,
           "x": 12,
-          "y": 45.5
+          "y": 0
         },
         "queries": [
           {
@@ -1524,7 +1535,7 @@
           "h": 6,
           "w": 8,
           "x": 0,
-          "y": 85.5
+          "y": 0
         },
         "queries": [
           {
@@ -1667,7 +1678,7 @@
           "h": 6,
           "w": 6,
           "x": 0,
-          "y": 28.5
+          "y": 22
         },
         "queries": [
           {
@@ -1768,7 +1779,7 @@
           "h": 6,
           "w": 8,
           "x": 8,
-          "y": 37
+          "y": 0
         },
         "queries": [
           {
@@ -1881,7 +1892,7 @@
           "h": 6,
           "w": 8,
           "x": 16,
-          "y": 37
+          "y": 0
         },
         "queries": [
           {
@@ -2025,7 +2036,7 @@
           "h": 6,
           "w": 6,
           "x": 18,
-          "y": 77
+          "y": 0
         },
         "queries": [
           {
@@ -2071,9 +2082,10 @@
       {
         "extend": {
           "fixedTime": "",
-          "isRefresh": false,
+          "isRefresh": true,
           "settings": {
             "alias": [],
+            "changeWorkspace": false,
             "chartType": "areaLine",
             "colors": [],
             "compareColors": {
@@ -2098,15 +2110,20 @@
             "currentChartType": "sequence",
             "density": "medium",
             "fixedTime": "",
+            "globalUnit": [],
             "isPercent": false,
+            "isSampling": true,
             "isTimeInterval": true,
             "legendPostion": "none",
             "legendValues": "",
             "levels": [],
             "mainMeasurementQueryCode": "A",
+            "maxPointCount": 360,
             "onlyShowGroupName": false,
             "openCompare": false,
             "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
             "showFieldMapping": false,
             "showLine": false,
             "showTitle": true,
@@ -2114,12 +2131,25 @@
             "stackType": "time",
             "timeInterval": "auto",
             "titleDesc": "",
+            "unitType": "custom",
             "units": [
               {
                 "key": "TTFB",
                 "name": "TTFB",
                 "unit": "",
-                "units": []
+                "units": [
+                  "time",
+                  "s"
+                ]
+              },
+              {
+                "key": "",
+                "name": "",
+                "unit": "",
+                "units": [
+                  "custom",
+                  ""
+                ]
               }
             ],
             "xAxisShowType": "time",
@@ -2135,7 +2165,7 @@
           "h": 5,
           "w": 8,
           "x": 16,
-          "y": 94
+          "y": 0
         },
         "queries": [
           {
@@ -2295,7 +2325,7 @@
           "h": 5,
           "w": 8,
           "x": 8,
-          "y": 94
+          "y": 0
         },
         "queries": [
           {
@@ -2343,9 +2373,10 @@
       {
         "extend": {
           "fixedTime": "",
-          "isRefresh": false,
+          "isRefresh": true,
           "settings": {
             "alias": [],
+            "changeWorkspace": false,
             "chartType": "areaLine",
             "colors": [],
             "compareColors": {
@@ -2370,15 +2401,20 @@
             "currentChartType": "sequence",
             "density": "medium",
             "fixedTime": "",
+            "globalUnit": [],
             "isPercent": false,
+            "isSampling": true,
             "isTimeInterval": true,
             "legendPostion": "none",
             "legendValues": "",
             "levels": [],
             "mainMeasurementQueryCode": "A",
+            "maxPointCount": 360,
             "onlyShowGroupName": false,
             "openCompare": false,
             "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
             "showFieldMapping": false,
             "showLine": false,
             "showTitle": true,
@@ -2386,19 +2422,11 @@
             "stackType": "time",
             "timeInterval": "auto",
             "titleDesc": "",
+            "unitType": "custom",
             "units": [
               {
-                "key": "DNS 解析耗时",
-                "name": "DNS 解析耗时",
-                "unit": "",
-                "units": [
-                  "time",
-                  "s"
-                ]
-              },
-              {
-                "key": "last(datakit_io_http_dns_cost_seconds_sum)",
-                "name": "last(datakit_io_http_dns_cost_seconds_sum)",
+                "key": "DNS",
+                "name": "DNS",
                 "unit": "",
                 "units": [
                   "time",
@@ -2419,7 +2447,7 @@
           "h": 5,
           "w": 8,
           "x": 0,
-          "y": 94
+          "y": 0
         },
         "queries": [
           {
@@ -2428,7 +2456,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "DNS解析耗时",
+              "alias": "DNS",
               "children": [
                 {
                   "alias": "",
@@ -2510,7 +2538,7 @@
               "code": "A",
               "expression": "A/B",
               "funcList": [],
-              "q": "eval(A/B, alias='DNS解析耗时', A=\"M::`dk`:(AVG(`datakit_httpcli_dns_cost_seconds_sum`)) { `host` = '#{host}' and `from` = 'dataway' } BY `from`\", B=\"M::`dk`:(AVG(`datakit_httpcli_dns_cost_seconds_count`)) { `host` = '#{host}' and `from` = 'dataway' } BY `from`\")",
+              "q": "eval(A/B, alias='DNS', A=\"M::`dk`:(AVG(`datakit_httpcli_dns_cost_seconds_sum`)) { `host` = '#{host}' and `from` = 'dataway' } BY `from`\", B=\"M::`dk`:(AVG(`datakit_httpcli_dns_cost_seconds_count`)) { `host` = '#{host}' and `from` = 'dataway' } BY `from`\")",
               "type": "expression"
             },
             "type": "sequence",
@@ -2567,7 +2595,7 @@
           "h": 10,
           "w": 4,
           "x": 16,
-          "y": 64.5
+          "y": 0
         },
         "queries": [
           {
@@ -2656,7 +2684,7 @@
           "h": 6,
           "w": 6,
           "x": 0,
-          "y": 6.5
+          "y": 0
         },
         "queries": [
           {
@@ -2742,7 +2770,7 @@
           "h": 10,
           "w": 4,
           "x": 20,
-          "y": 64.5
+          "y": 0
         },
         "queries": [
           {
@@ -2844,7 +2872,7 @@
           "h": 10,
           "w": 6,
           "x": 10,
-          "y": 64.5
+          "y": 0
         },
         "queries": [
           {
@@ -2994,7 +3022,7 @@
           "h": 6,
           "w": 8,
           "x": 8,
-          "y": 85.5
+          "y": 0
         },
         "queries": [
           {
@@ -3089,7 +3117,7 @@
           "h": 10,
           "w": 12,
           "x": 0,
-          "y": 18.5
+          "y": 12
         },
         "queries": [
           {
@@ -3186,7 +3214,7 @@
           "h": 9,
           "w": 6,
           "x": 0,
-          "y": 101.5
+          "y": 0
         },
         "queries": [
           {
@@ -3289,7 +3317,7 @@
           "h": 9,
           "w": 6,
           "x": 6,
-          "y": 101.5
+          "y": 0
         },
         "queries": [
           {
@@ -3392,7 +3420,7 @@
           "h": 9,
           "w": 6,
           "x": 18,
-          "y": 101.5
+          "y": 0
         },
         "queries": [
           {
@@ -3495,7 +3523,7 @@
           "h": 9,
           "w": 6,
           "x": 12,
-          "y": 101.5
+          "y": 0
         },
         "queries": [
           {
@@ -3598,7 +3626,7 @@
           "h": 6,
           "w": 6,
           "x": 6,
-          "y": 28.5
+          "y": 22
         },
         "queries": [
           {
@@ -3711,7 +3739,7 @@
           "h": 6,
           "w": 6,
           "x": 18,
-          "y": 28.5
+          "y": 22
         },
         "queries": [
           {
@@ -3824,7 +3852,7 @@
           "h": 6,
           "w": 6,
           "x": 12,
-          "y": 28.5
+          "y": 22
         },
         "queries": [
           {
@@ -3953,7 +3981,7 @@
           "h": 10,
           "w": 12,
           "x": 12,
-          "y": 18.5
+          "y": 12
         },
         "queries": [
           {
@@ -4060,7 +4088,7 @@
           "h": 6,
           "w": 12,
           "x": 12,
-          "y": 12.5
+          "y": 6
         },
         "queries": [
           {
@@ -4216,7 +4244,7 @@
           "h": 6,
           "w": 12,
           "x": 0,
-          "y": 12.5
+          "y": 6
         },
         "queries": [
           {
@@ -4363,7 +4391,7 @@
           "h": 6,
           "w": 6,
           "x": 6,
-          "y": 6.5
+          "y": 0
         },
         "queries": [
           {
@@ -4442,7 +4470,7 @@
           "h": 6,
           "w": 12,
           "x": 12,
-          "y": 6.5
+          "y": 0
         },
         "queries": [
           {
@@ -4485,6 +4513,380 @@
           }
         ],
         "type": "table"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isPercent": false,
+            "isSampling": true,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "maxPointCount": null,
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "Proxy"
+        },
+        "name": "{{.Dashboard.proxy_connect}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Total",
+              "code": "A",
+              "dataSource": "dk",
+              "field": "datakit_input_proxy_connect_total",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "7aa49090-8923-11ee-8740-579f38ee8e39",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "client_ip"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`dk`:(AVG(`datakit_input_proxy_connect_total`) AS `Total`) { `host` = '#{host}' } BY `client_ip`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isPercent": false,
+            "isSampling": true,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "maxPointCount": null,
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "{{.Dashboard.proxy_mitm_note}}",
+            "unitType": "global",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "Proxy"
+        },
+        "name": "{{.Dashboard.proxy_api_count}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Total",
+              "code": "A",
+              "dataSource": "dk",
+              "field": "datakit_input_proxy_api_total",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "7aa49090-8923-11ee-8740-579f38ee8e39",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "api",
+                "method"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`dk`:(AVG(`datakit_input_proxy_api_total`) AS `Total`) { `host` = '#{host}' } BY `api`, `method`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "fixedTime": "",
+            "globalUnit": [
+              "time",
+              "s"
+            ],
+            "isPercent": false,
+            "isSampling": true,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "B",
+            "maxPointCount": null,
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "{{.Dashboard.proxy_mitm_note}}",
+            "unitType": "global",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "Proxy"
+        },
+        "name": "{{.Dashboard.proxy_api_latency}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 16,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Latency",
+              "children": [
+                {
+                  "alias": "",
+                  "code": "A",
+                  "dataSource": "dk",
+                  "field": "datakit_input_proxy_api_latency_seconds_sum",
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "fill": null,
+                  "filters": [
+                    {
+                      "id": "0498fe60-89b7-11ee-8740-579f38ee8e39",
+                      "logic": "and",
+                      "name": "host",
+                      "op": "=",
+                      "type": "keyword",
+                      "value": "#{host}"
+                    }
+                  ],
+                  "funcList": [],
+                  "groupBy": [
+                    "api",
+                    "method",
+                    "status"
+                  ],
+                  "groupByTime": "",
+                  "indexFilter": "",
+                  "namespace": "metric",
+                  "q": "M::`dk`:(AVG(`datakit_input_proxy_api_latency_seconds_sum`)) { `host` = '#{host}' } BY `api`, `method`, `status`",
+                  "queryFuncs": [],
+                  "type": "simple"
+                },
+                {
+                  "alias": "",
+                  "code": "B",
+                  "dataSource": "dk",
+                  "field": "datakit_input_proxy_api_latency_seconds_count",
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "fill": null,
+                  "filters": [
+                    {
+                      "id": "09f844b0-89b7-11ee-8740-579f38ee8e39",
+                      "logic": "and",
+                      "name": "host",
+                      "op": "=",
+                      "type": "keyword",
+                      "value": "#{host}"
+                    }
+                  ],
+                  "funcList": [],
+                  "groupBy": [
+                    "api",
+                    "method",
+                    "status"
+                  ],
+                  "groupByTime": "",
+                  "indexFilter": "",
+                  "namespace": "metric",
+                  "q": "M::`dk`:(AVG(`datakit_input_proxy_api_latency_seconds_count`)) { `host` = '#{host}' } BY `api`, `method`, `status`",
+                  "queryFuncs": [],
+                  "type": "simple"
+                }
+              ],
+              "code": "B",
+              "expression": "A/B",
+              "funcList": [],
+              "q": "eval(A/B, alias='Latency', A=\"M::`dk`:(AVG(`datakit_input_proxy_api_latency_seconds_sum`)) { `host` = '#{host}' } BY `api`, `method`, `status`\", B=\"M::`dk`:(AVG(`datakit_input_proxy_api_latency_seconds_count`)) { `host` = '#{host}' } BY `api`, `method`, `status`\")",
+              "type": "expression"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
       }
     ],
     "groups": [
@@ -4496,7 +4898,8 @@
       "Dataway",
       "HTTP-API",
       "HTTP request",
-      "{{.Dashboard.group_diskcache}}"
+      "{{.Dashboard.group_diskcache}}",
+      "Proxy"
     ],
     "type": "template",
     "vars": [
@@ -4547,11 +4950,9 @@
   "summary": "",
   "tagInfo": [
     {
-      "id": "tag_492e8284594847e29cacefb73b0ef126",
       "name": "datakit"
     }
   ],
-  "tags": [],
   "thumbnail": "",
   "title": "dk-dashboard-template"
 }

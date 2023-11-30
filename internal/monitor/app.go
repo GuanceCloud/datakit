@@ -76,6 +76,7 @@ type monitorAPP struct {
 	maxRun                  int
 	refresh                 time.Duration
 	isURL                   string
+	proxy                   string
 	url                     string
 	onlyInputs, onlyModules []string
 }

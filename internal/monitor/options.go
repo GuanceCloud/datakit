@@ -7,11 +7,27 @@ package monitor
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 )
 
 type APPOption func(app *monitorAPP)
+
+func WithProxy(p string) APPOption {
+	return func(app *monitorAPP) {
+		if len(p) > 0 {
+			app.proxy = "invalid proxy URL"
+			if u, err := url.ParseRequestURI(p); err == nil {
+				if dataway.ProxyURLOK(u) {
+					app.proxy = p
+				}
+			}
+		}
+	}
+}
 
 func WithRefresh(r time.Duration) APPOption {
 	return func(app *monitorAPP) {

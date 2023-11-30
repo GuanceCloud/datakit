@@ -543,7 +543,7 @@ github.com/elastic/go-lumber/log
 github.com/elastic/go-lumber/protocol/v2
 github.com/elastic/go-lumber/server/internal
 github.com/elastic/go-lumber/server/v2
-# github.com/elazarl/goproxy v0.0.0-20210801061803-8e322dfb79c4
+# github.com/elazarl/goproxy v0.0.0-20231031074852-3ec07828be7a
 ## explicit
 github.com/elazarl/goproxy
 # github.com/emicklei/go-restful/v3 v3.9.0

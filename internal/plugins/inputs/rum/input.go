@@ -618,7 +618,7 @@ func (ipt *Input) Run() {
 	log.Infof("captured measurements are: %s", strings.Join(ipt.Measurements, ","))
 
 	if err := ipt.extractArchives(true); err != nil {
-		log.Errorf("init extract zip archives encounter err: %s", err)
+		log.Warnf("init extract zip archives encounter failed: %s, ignored", err)
 	}
 
 	if err := ipt.loadSourcemapFile(); err != nil {

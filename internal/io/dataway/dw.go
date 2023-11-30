@@ -99,8 +99,9 @@ type Dataway struct {
 	Proxy bool `toml:"proxy,omitempty"`
 	GZip  bool `toml:"gzip"`
 
-	EnableHTTPTrace bool `toml:"enable_httptrace"`
-	EnableSinker    bool `toml:"enable_sinker"`
+	EnableHTTPTrace    bool `toml:"enable_httptrace"`
+	EnableSinker       bool `toml:"enable_sinker"`
+	InsecureSkipVerify bool `toml:"tls_insecure"`
 
 	GlobalCustomerKeys []string `toml:"global_customer_keys"`
 
@@ -110,8 +111,6 @@ type Dataway struct {
 
 	globalTags                map[string]string
 	globalTagsHTTPHeaderValue string
-
-	// metrics
 }
 
 type dwopt func(*Dataway)
@@ -235,6 +234,7 @@ func (dw *Dataway) doInit() error {
 	for _, u := range dw.URLs {
 		ep, err := newEndpoint(u,
 			withProxy(dw.HTTPProxy),
+			withInsecureSkipVerify(dw.InsecureSkipVerify),
 			withAPIs(dwAPIs),
 			withHTTPHeaders(map[string]string{
 				HeaderXGlobalTags: dw.globalTagsHTTPHeaderValue,

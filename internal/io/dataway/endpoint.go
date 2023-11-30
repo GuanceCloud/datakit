@@ -7,6 +7,7 @@ package dataway
 
 import (
 	"bytes"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -81,6 +82,7 @@ type endPoint struct {
 	maxRetryCount                int
 	retryDelay                   time.Duration
 
+	insecureSkipVerify,
 	httpTrace bool
 }
 
@@ -100,6 +102,12 @@ func withAPIs(arr []string) endPointOption {
 func withHTTPTrace(on bool) endPointOption {
 	return func(ep *endPoint) {
 		ep.httpTrace = on
+	}
+}
+
+func withInsecureSkipVerify(on bool) endPointOption {
+	return func(ep *endPoint) {
+		ep.insecureSkipVerify = on
 	}
 }
 
@@ -234,18 +242,29 @@ func (ep *endPoint) getHTTPCliOpts() *httpcli.Options {
 		MaxIdleConnsPerHost: ep.maxHTTPIdleConnectionPerHost,
 		IdleConnTimeout:     ep.httpIdleTimeout,
 		DialContext:         dialContext,
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: ep.insecureSkipVerify, // nolint: gosec
+		},
 	}
 
 	if ep.proxy != "" { // set proxy
 		if u, err := url.ParseRequestURI(ep.proxy); err != nil {
 			log.Warnf("parse http proxy %q failed err: %s, ignored and no proxy set", ep.proxy, err.Error())
 		} else {
-			cliOpts.ProxyURL = u
-			log.Infof("set dataway proxy to %q ok", ep.proxy)
+			if ProxyURLOK(u) {
+				cliOpts.ProxyURL = u
+				log.Infof("set dataway proxy to %q ok", ep.proxy)
+			} else {
+				log.Warnf("invalid proxy URL: %s, ignored", u)
+			}
 		}
 	}
 
 	return cliOpts
+}
+
+func ProxyURLOK(u *url.URL) bool {
+	return u.Scheme == "https" || u.Scheme == "http"
 }
 
 func (ep *endPoint) setupHTTP() error {
@@ -553,8 +572,8 @@ func (ep *endPoint) sendReq(req *http.Request) (resp *http.Response, err error) 
 					}
 				}
 			}()
-			resp, err = ep.doSendReq(req)
 
+			resp, err = ep.doSendReq(req)
 			if err != nil {
 				status = "unknown"
 				return err
@@ -625,6 +644,13 @@ func (ep *endPoint) doSendReq(req *http.Request) (*http.Response, error) {
 
 	resp, err = ep.httpCli.Do(req)
 	if err != nil {
+		// To check if the error is a timeout.
+		if ue, ok := err.(*url.Error); ok { // nolint: errorlint
+			if ue.Timeout() {
+				httpCodeStr = "timeout"
+			}
+		}
+
 		return nil, fmt.Errorf("httpCli.Do: %w, resp: %+#v", err, resp)
 	}
 

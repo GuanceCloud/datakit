@@ -38,7 +38,7 @@ func (x *dkIO) cacheData(c *consumer, d *iodata, tryClean bool) {
 			log.Debugf("record %d points on %q from %q ok", len(d.points), d.category, d.from)
 		}
 	} else {
-		log.Debug("recorder disabled: %+#v", x.recorder)
+		log.Debugf("recorder disabled: %+#v", x.recorder)
 	}
 
 	c.points = append(c.points, d.points...)

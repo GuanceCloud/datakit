@@ -71,10 +71,11 @@ Logback
 logfwd
 logfwdserver
 Loki
-macOS
-mcache
 MkDocs
 MyISAM
+macOS
+mcache
+mitm
 mysqld
 Nacos
 nginx
@@ -151,6 +152,7 @@ OTLP
 RUM
 SAAS
 SNMP
+MITM
 
 # 合成词
 agentid

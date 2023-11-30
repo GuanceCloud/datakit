@@ -30,7 +30,7 @@ DQL used to query data. If no option specified, query interactively. Other avail
 
 ## 数据录制和回放 {#record-and-replay}
 
-[:octicons-tag-24: Version-1.18.0](changelog.md#cl-1.18.0)
+[:octicons-tag-24: Version-1.19.0](changelog.md#cl-1.19.0)
 
 数据导入主要用于录入已有的采集数据，再做演示或测试的时候，可以不用额外采集。
 
