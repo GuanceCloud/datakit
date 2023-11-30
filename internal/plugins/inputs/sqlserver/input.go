@@ -222,7 +222,7 @@ func (ipt *Input) Run() {
 	for {
 		if err := ipt.initDB(); err != nil {
 			l.Errorf("initDB: %s", err.Error())
-			ipt.feeder.FeedLastError(ipt.lastErr.Error(),
+			ipt.feeder.FeedLastError(err.Error(),
 				io.WithLastErrorInput(inputName),
 			)
 		} else {
