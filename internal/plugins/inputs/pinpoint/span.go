@@ -10,11 +10,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
-	"math/rand"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
+
+	"github.com/GuanceCloud/cliutils/point"
 
 	ppv1 "github.com/GuanceCloud/tracing-protos/pinpoint-gen-go/v1"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
@@ -57,179 +57,35 @@ func (md grpcMeta) Get(key string) string {
 	return ""
 }
 
-func ConvertPSpanToDKTrace(inputName string, x *ppv1.PSpan, meta metadata.MD) itrace.DatakitTrace {
-	root := &itrace.DatakitSpan{
-		TraceID:    getTraceID(x.TransactionId, meta),
-		SpanID:     strconv.FormatInt(x.SpanId, 10),
-		Service:    grpcMeta(meta).Get("applicationname"),
-		Source:     inputName,
-		SpanType:   itrace.SPAN_TYPE_ENTRY,
-		SourceType: getServiceType(x.ServiceType),
-		Tags:       make(map[string]string),
-		Metrics:    map[string]interface{}{itrace.FIELD_PRIORITY: itrace.PRIORITY_AUTO_KEEP},
-		Start:      x.StartTime * int64(time.Millisecond),
-		Duration:   int64(x.Elapsed) * int64(time.Millisecond),
-		Status:     itrace.STATUS_OK,
-	}
+func ConvertPSpanToDKTrace(x *ppv1.PSpan, meta metadata.MD) {
+	log.Debugf("ConvertPSpanToDKTrace x=%+v", x)
 
-	if x.ParentSpanId == -1 {
-		root.ParentID = "0"
-	} else {
-		root.ParentID = strconv.FormatInt(x.ParentSpanId, 10)
-	}
-	if x.AcceptEvent != nil {
-		root.Resource = x.AcceptEvent.Rpc
-		root.Operation = x.AcceptEvent.EndPoint
-	}
-	if x.Err != 0 {
-		root.Status = itrace.STATUS_ERR
-		root.Metrics[itrace.FIELD_ERR_MESSAGE] = x.ExceptionInfo.String()
-	}
-	for k, v := range tags {
-		root.Tags[k] = v
-	}
-	for _, anno := range x.Annotation {
-		root.Tags[getAnnotationKey(anno.Key)] = anno.Value.String()
-	}
-
-	if bts, err := json.Marshal(x); err == nil {
-		root.Content = string(bts)
-	}
-
+	root := creatRootSpan(x, meta)
+	// log.Debugf("root span=%s", root.LineProto())
 	trace := itrace.DatakitTrace{root}
 	if len(x.SpanEvent) != 0 {
-		// sort.Sort(PSpanEventList(x.SpanEvent))
-		etrace := expandSpanEventsToDKTrace(root, x.SpanEvent)
+		etrace := processEvents(root, x.SpanEvent, meta)
 		trace = append(trace, etrace...)
 	}
 
-	return trace
+	if spanSender != nil {
+		spanSender.Append(trace...)
+	}
 }
 
-func ConvertPSpanChunkToDKTrace(inputName string, x *ppv1.PSpanChunk, meta metadata.MD) itrace.DatakitTrace {
-	root := &itrace.DatakitSpan{
-		TraceID:    getTraceID(x.TransactionId, meta),
-		ParentID:   "0",
-		SpanID:     strconv.FormatInt(x.SpanId, 10),
-		Service:    grpcMeta(meta).Get("applicationname"),
-		Source:     inputName,
-		SpanType:   itrace.SPAN_TYPE_ENTRY,
-		SourceType: getServiceType(x.ApplicationServiceType),
-		Tags:       make(map[string]string),
-		Metrics:    map[string]interface{}{itrace.FIELD_PRIORITY: itrace.PRIORITY_AUTO_KEEP},
-		Start:      x.KeyTime * int64(time.Millisecond),
-		Duration:   int64(PSpanEventList(x.SpanEvent).Duration()) * int64(time.Millisecond),
-	}
-
-	if len(x.SpanEvent) != 0 {
-		root.Service = getServiceType(x.SpanEvent[0].ServiceType)
-		root.Resource, root.Operation = PSpanEventList(x.SpanEvent).APIInfo()
-	}
-	for k, v := range tags {
-		root.Tags[k] = v
-	}
-
-	if bts, err := json.Marshal(x); err == nil {
-		root.Content = string(bts)
-	}
-
-	trace := itrace.DatakitTrace{root}
-	if len(x.SpanEvent) != 0 {
-		// sort.Sort(PSpanEventList(x.SpanEvent))
-		etrace := expandSpanEventsToDKTrace(root, x.SpanEvent)
-		trace = append(trace, etrace...)
-	}
-
-	return trace
-}
-
-type PSpanEventList []*ppv1.PSpanEvent
-
-func (x PSpanEventList) Len() int { return len(x) }
-
-func (x PSpanEventList) Less(i, j int) bool {
-	return x[i].Depth < x[j].Depth && x[i].StartElapsed < x[j].StartElapsed
-}
-
-func (x PSpanEventList) Swap(i, j int) { x[i], x[j] = x[j], x[i] }
-
-func (x PSpanEventList) Duration() int32 {
-	var last int32
-	for i := range x {
-		if x[i].EndElapsed > last {
-			last = x[i].EndElapsed
+func ConvertPSpanChunkToDKTrace(x *ppv1.PSpanChunk, meta metadata.MD) {
+	log.Debugf("ConvertPSpanChunkToDKTrace x=%+v", x)
+	traceID := getTraceID(x.TransactionId, meta)
+	if len(x.GetSpanEvent()) > 2 {
+		startTime := x.SpanEvent[0].StartElapsed
+		for i := 1; i < len(x.SpanEvent)-1; i++ {
+			startTime += x.SpanEvent[i].StartElapsed
+			x.SpanEvent[i].StartElapsed = startTime
 		}
 	}
 
-	return last
-}
-
-func (x PSpanEventList) APIInfo() (res, opt string) {
-	res, opt, _ = findAPIInfo(x[0].ApiId)
-
-	return res, opt
-}
-
-func expandSpanEventsToDKTrace(root *itrace.DatakitSpan, events PSpanEventList) itrace.DatakitTrace {
-	if root == nil || len(events) == 0 {
-		return nil
-	}
-
-	var (
-		trace        itrace.DatakitTrace
-		parentSpanID = root.SpanID
-	)
-	for _, e := range events {
-		dkspan := &itrace.DatakitSpan{
-			TraceID:    root.TraceID,
-			ParentID:   parentSpanID,
-			SpanID:     strconv.FormatInt(rand.Int63(), 10), // nolint: gosec
-			Service:    getServiceType(e.ServiceType),
-			Source:     root.Source,
-			SpanType:   itrace.SPAN_TYPE_LOCAL,
-			SourceType: itrace.SPAN_SOURCE_CUSTOMER,
-			Tags:       make(map[string]string),
-			Metrics:    make(map[string]interface{}),
-			Start:      root.Start + int64(e.StartElapsed)*int64(time.Millisecond),
-			Duration:   int64(e.EndElapsed) * int64(time.Millisecond),
-			Status:     itrace.STATUS_OK,
-		}
-		parentSpanID = dkspan.SpanID
-
-		if dkspan.Duration == 0 {
-			dkspan.Duration = int64(500 * time.Microsecond)
-		}
-		if e.NextEvent != nil {
-			dkspan.SpanType = itrace.SPAN_TYPE_EXIT
-		}
-		if res, opt, ok := findAPIInfo(e.ApiId); ok {
-			dkspan.Resource = res
-			dkspan.Operation = opt
-		}
-		if e.ExceptionInfo != nil {
-			dkspan.Status = itrace.STATUS_ERR
-			dkspan.Metrics[itrace.FIELD_ERR_MESSAGE] = e.ExceptionInfo.String()
-		}
-		for _, anno := range e.Annotation {
-			if anno.Key == SQLAnnoKey {
-				if val := anno.Value.GetIntStringStringValue(); val != nil {
-					res, opt, ok := findAPIInfo(val.IntValue)
-					if ok {
-						dkspan.Resource = strings.ReplaceAll(res, "\n", " ")
-						dkspan.Operation = opt
-					}
-				}
-			}
-			dkspan.Tags[getAnnotationKey(anno.Key)] = anno.Value.String()
-		}
-		if bts, err := json.Marshal(e); err == nil {
-			dkspan.Content = string(bts)
-		}
-
-		trace = append(trace, dkspan)
-	}
-
-	return trace
+	// agentCache.SetEvent(traceID, x.SpanEvent, 0)
+	agentCache.SetSpanChunk(traceID, x, 0)
 }
 
 var emptyTrans = emptyTransaction{}
@@ -252,4 +108,103 @@ func getTraceID(transid *ppv1.PTransactionId, meta metadata.MD) string {
 	log.Debugf("### empty transaction id %s", transid.String())
 
 	return emptyTrans.NextID()
+}
+
+func creatRootSpan(pspan *ppv1.PSpan, meta metadata.MD) *itrace.DkSpan {
+	spanKV := point.KVs{}
+	spanKV = spanKV.Add(itrace.FieldTraceID, getTraceID(pspan.TransactionId, meta), false, false).
+		Add(itrace.FieldSpanid, strconv.FormatInt(pspan.SpanId, 10), false, false).
+		AddTag(itrace.TagService, grpcMeta(meta).Get("applicationname")).
+		AddTag(itrace.TagSource, "pinpointV2").
+		AddTag(itrace.TagSpanType, itrace.SpanTypeEntry).
+		AddTag(itrace.TagSourceType, getServiceType(pspan.ServiceType)).
+		Add(itrace.FieldPriority, itrace.PriorityAutoKeep, false, false).
+		Add(itrace.FieldStart, pspan.StartTime*int64(time.Microsecond), false, false).
+		Add(itrace.FieldDuration, int64(pspan.Elapsed)*int64(time.Microsecond), false, false)
+
+	if pspan.ParentSpanId == -1 {
+		spanKV = spanKV.Add(itrace.FieldParentID, "0", false, false)
+	} else {
+		spanKV = spanKV.Add(itrace.FieldParentID, strconv.FormatInt(pspan.ParentSpanId, 10), false, false)
+	}
+	if pspan.AcceptEvent != nil {
+		spanKV = spanKV.Add(itrace.FieldResource, pspan.AcceptEvent.Rpc, false, true).
+			Add(itrace.TagOperation, pspan.AcceptEvent.EndPoint, true, true)
+	}
+
+	if pspan.Err != 0 {
+		spanKV = spanKV.Add(itrace.TagSpanStatus, itrace.StatusErr, true, true).
+			Add(itrace.FieldErrMessage, pspan.ExceptionInfo.String(), false, false)
+	} else {
+		spanKV = spanKV.Add(itrace.TagSpanStatus, itrace.StatusOk, true, true)
+	}
+	for k, v := range tags {
+		spanKV = spanKV.AddTag(k, v)
+	}
+	for _, anno := range pspan.Annotation {
+		spanKV = spanKV.AddTag(getAnnotationKey(anno.Key), anno.Value.String())
+	}
+
+	if bts, err := json.Marshal(pspan); err == nil {
+		spanKV = spanKV.Add(itrace.FieldMessage, string(bts), false, false)
+	}
+	if vals := meta.Get("agentid"); len(vals) > 0 {
+		info := agentCache.GetAgentInfo(vals[0])
+		if info != nil {
+			maps := fromAgentTag(info)
+			for k, v := range maps {
+				// root.Tags[k] = v
+				spanKV = spanKV.AddTag(k, v)
+			}
+		}
+	}
+
+	return &itrace.DkSpan{Point: point.NewPointV2("pinpointV2", spanKV, point.DefaultLoggingOptions()...)}
+}
+
+func fromAgentTag(agentInfo *ppv1.PAgentInfo) map[string]string {
+	infoTags := make(map[string]string)
+	if v := agentInfo.GetHostname(); v != "" {
+		infoTags["hostname"] = v
+	}
+	if v := agentInfo.GetIp(); v != "" {
+		infoTags["ip"] = v
+	}
+	if v := agentInfo.GetPid(); v != 0 {
+		infoTags["pid"] = strconv.Itoa(int(v))
+	}
+	if v := agentInfo.GetPorts(); v != "" {
+		infoTags["ports"] = v
+	}
+
+	infoTags["container"] = strconv.FormatBool(agentInfo.GetContainer())
+
+	if v := agentInfo.GetAgentVersion(); v != "" {
+		infoTags["agentVersion"] = v
+	}
+
+	return infoTags
+}
+
+func linkSpan(parentID string, nextSpanID int64) []*itrace.DkSpan {
+	dktrace := make([]*itrace.DkSpan, 0)
+	spanItem, ok := agentCache.GetSpan(nextSpanID)
+	if !ok {
+		log.Debugf("can not get spanID=%d from cache", nextSpanID)
+		return dktrace
+	}
+
+	root := creatRootSpan(spanItem.Span, spanItem.Meta)
+	// 关键一步，重置 parentID， 才能让两个 span 关联起来。
+	// root.ParentID = parentID
+	root.MustAdd(itrace.FieldParentID, parentID)
+	// log.Debugf("link span root=%s", root.LineProto())
+	dktrace = append(dktrace, root)
+	if len(spanItem.Span.SpanEvent) > 0 {
+		etrace := processEvents(root, spanItem.Span.SpanEvent, spanItem.Meta)
+
+		dktrace = append(dktrace, etrace...)
+	}
+
+	return dktrace
 }

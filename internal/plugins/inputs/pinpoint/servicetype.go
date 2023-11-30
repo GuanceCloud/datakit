@@ -217,8 +217,9 @@ var (
 		9900: "PYTHON_REMOTE_METHOD",
 		// RPC Sandbox (9900 ~ 9999)
 	}
-	SQLAnnoKey  = int32(20)
-	Annotations = map[int32]string{
+	SQLAnnoKey     = int32(20)
+	HTTPURLAnnoKey = int32(40)
+	Annotations    = map[int32]string{
 		-1:       "args[0]",
 		-2:       "args[1]",
 		-3:       "args[2]",

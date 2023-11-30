@@ -6,14 +6,17 @@
 package ddtrace
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"mime"
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/tinylib/msgp/msgp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
@@ -31,6 +34,8 @@ const (
 	// keySamplingRateGlobal is a metric key holding the global sampling rate.
 	keySamplingRate = "_sample_rate"
 )
+
+var jsonIterator = jsoniter.ConfigFastest
 
 func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) {
 	if err != nil {
@@ -51,8 +56,6 @@ func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) 
 }
 
 func handleDDTraces(resp http.ResponseWriter, req *http.Request) {
-	log.Debugf("### receiving trace data from path: %s", req.URL.Path)
-
 	if req.Header.Get("Content-Length") == "0" || req.Header.Get("X-Datadog-Trace-Count") == "0" {
 		log.Debug("empty request body")
 		httpStatusRespFunc(resp, req, nil)
@@ -76,6 +79,7 @@ func handleDDTraces(resp http.ResponseWriter, req *http.Request) {
 		Media:   req.Header.Get("Content-Type"),
 		Body:    pbuf,
 	}
+	log.Debugf("param body len=%d", param.Body.Len())
 	if err = parseDDTraces(param); err != nil {
 		if errors.Is(err, msgp.ErrShortBytes) {
 			log.Warn(err.Error())
@@ -139,7 +143,7 @@ func decodeDDTraces(param *itrace.TraceParameters) (DDTraces, error) {
 	switch param.URLPath {
 	case v1:
 		var spans DDTrace
-		if err := json.NewDecoder(param.Body).Decode(&spans); err != nil {
+		if err := jsonIterator.Unmarshal(param.Body.Bytes(), &spans); err != nil {
 			return nil, err
 		}
 		traces = mergeSpans(spans)
@@ -165,10 +169,10 @@ func decodeRequest(param *itrace.TraceParameters, out *DDTraces) error {
 	case "application/msgpack":
 		_, err = out.UnmarshalMsg(param.Body.Bytes())
 	case "application/json", "text/json", "":
-		return json.NewDecoder(param.Body).Decode(out)
+		return jsonIterator.Unmarshal(param.Body.Bytes(), out)
 	default:
 		// do our best
-		if err1 := json.NewDecoder(param.Body).Decode(out); err1 != nil {
+		if err1 := jsonIterator.Unmarshal(param.Body.Bytes(), out); err1 != nil {
 			if _, err2 := out.UnmarshalMsg(param.Body.Bytes()); err2 != nil {
 				err = fmt.Errorf("### could not decode JSON (err:%s), nor Msgpack (err:%s)", err1.Error(), err2.Error()) // nolint:errorlint
 			}
@@ -225,45 +229,57 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			continue
 		}
 
-		dkspan := &itrace.DatakitSpan{
-			TraceID:    strconv.FormatUint(span.TraceID, traceBase),
-			ParentID:   strconv.FormatUint(span.ParentID, spanBase),
-			SpanID:     strconv.FormatUint(span.SpanID, spanBase),
-			Service:    span.Service,
-			Resource:   span.Resource,
-			Operation:  span.Name,
-			Source:     inputName,
-			SpanType:   itrace.FindSpanTypeInMultiServersIntSpanID(span.SpanID, span.ParentID, span.Service, spanIDs, parentIDs),
-			SourceType: itrace.GetSpanSourceType(span.Type),
-			Metrics:    make(map[string]interface{}),
-			Start:      span.Start,
-			Duration:   span.Duration,
+		var spanKV point.KVs
+		spanKV = spanKV.Add(itrace.FieldTraceID, strconv.FormatUint(span.TraceID, traceBase), false, false).
+			Add(itrace.FieldParentID, strconv.FormatUint(span.ParentID, spanBase), false, false).
+			Add(itrace.FieldSpanid, strconv.FormatUint(span.SpanID, spanBase), false, false).
+			AddTag(itrace.TagService, span.Service).
+			Add(itrace.FieldResource, strings.ReplaceAll(span.Resource, "\n", " "), false, false).
+			AddTag(itrace.TagOperation, span.Name).
+			AddTag(itrace.TagSource, inputName).
+			Add(itrace.TagSpanType,
+				itrace.FindSpanTypeInMultiServersIntSpanID(span.SpanID, span.ParentID, span.Service, spanIDs, parentIDs), true, false).
+			AddTag(itrace.TagSourceType, itrace.GetSpanSourceType(span.Type)).
+			Add(itrace.FieldStart, span.Start/int64(time.Microsecond), false, false).
+			Add(itrace.FieldDuration, span.Duration/int64(time.Microsecond), false, false)
+
+		if v, ok := span.Meta["runtime-id"]; ok {
+			spanKV = spanKV.AddTag("runtime_id", v)
+		}
+		if v, ok := span.Meta["trace_128_id"]; ok {
+			spanKV = spanKV.Add(itrace.FieldTraceID, v, false, true)
 		}
 
-		var err error
-		if dkspan.Tags, err = itrace.MergeInToCustomerTags(tags, span.Meta, ignoreTags, remapper); err != nil {
-			log.Debug(err.Error())
+		if mTags, err := itrace.MergeInToCustomerTags(tags, span.Meta, ignoreTags, remapper); err == nil {
+			for k, v := range mTags {
+				if len(v) > 1024 {
+					spanKV = spanKV.Add(k, v, false, false)
+				} else {
+					spanKV = spanKV.AddTag(k, v)
+				}
+			}
 		}
 
-		dkspan.Status = itrace.STATUS_OK
 		if span.Error != 0 {
-			dkspan.Status = itrace.STATUS_ERR
+			spanKV = spanKV.AddTag(itrace.TagSpanStatus, itrace.StatusErr)
+		} else {
+			spanKV = spanKV.AddTag(itrace.TagSpanStatus, itrace.StatusOk)
 		}
 
 		if priority, ok := span.Metrics[keyPriority]; ok {
-			dkspan.Metrics[itrace.FIELD_PRIORITY] = int(priority)
+			spanKV = spanKV.Add(itrace.FieldPriority, int(priority), false, false)
 		}
 		if rate, ok := span.Metrics[keySamplingRate]; ok {
-			dkspan.Metrics[itrace.FIELD_SAMPLE_RATE] = rate
+			spanKV = spanKV.Add(itrace.FieldSampleRate, rate, false, false)
 		}
 
-		if buf, err := json.Marshal(span); err != nil {
+		if buf, err := jsonIterator.Marshal(span); err != nil {
 			log.Warn(err.Error())
 		} else {
-			dkspan.Content = string(buf)
+			spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
 		}
-
-		dktrace = append(dktrace, dkspan)
+		pt := point.NewPointV2(inputName, spanKV, itrace.TraceOpts...)
+		dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 	}
 
 	return dktrace

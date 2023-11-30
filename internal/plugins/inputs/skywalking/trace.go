@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
+
 	commonv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/common/v3"
 	agentv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/language/agent/v3"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
@@ -23,76 +25,81 @@ func parseSegmentObjectV3(segment *agentv3.SegmentObject) itrace.DatakitTrace {
 			continue
 		}
 
-		dkspan := &itrace.DatakitSpan{
-			TraceID:    segment.TraceId,
-			SpanID:     fmt.Sprintf("%s%d", segment.TraceSegmentId, span.SpanId),
-			Service:    segment.Service,
-			Resource:   span.OperationName,
-			Operation:  span.OperationName,
-			Source:     inputName,
-			SourceType: itrace.SPAN_SOURCE_CUSTOMER,
-			Start:      span.StartTime * int64(time.Millisecond),
-			Duration:   (span.EndTime - span.StartTime) * int64(time.Millisecond),
-		}
+		spanKV := point.KVs{}
+		spanKV = spanKV.Add(itrace.FieldTraceID, segment.TraceId, false, false).
+			Add(itrace.FieldSpanid, fmt.Sprintf("%s%d", segment.TraceSegmentId, span.SpanId), false, false).
+			AddTag(itrace.TagService, segment.Service).
+			Add(itrace.FieldResource, span.OperationName, false, false).
+			AddTag(itrace.TagOperation, span.OperationName).
+			AddTag(itrace.TagSource, inputName).
+			AddTag(itrace.TagSourceType, itrace.SpanSourceCustomer).
+			Add(itrace.FieldStart, span.StartTime*int64(time.Microsecond), false, false).
+			Add(itrace.FieldDuration, (span.EndTime-span.StartTime)*int64(time.Microsecond), false, false)
 
 		if span.ParentSpanId < 0 {
 			if len(span.Refs) > 0 {
-				dkspan.ParentID = fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId, span.Refs[0].ParentSpanId)
+				spanKV = spanKV.Add(itrace.FieldParentID,
+					fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId, span.Refs[0].ParentSpanId), false, false)
+
 				if span.Refs[0].RefType == agentv3.RefType_CrossProcess && strings.Contains(span.Refs[0].ParentService, "_rum_") {
-					dktrace = append(dktrace, &itrace.DatakitSpan{
-						TraceID:    segment.TraceId,
-						ParentID:   "0",
-						SpanID:     dkspan.ParentID,
-						Service:    span.Refs[0].ParentService,
-						Resource:   span.Refs[0].ParentEndpoint,
-						Operation:  span.Refs[0].ParentEndpoint,
-						Source:     inputName,
-						SpanType:   itrace.SPAN_TYPE_ENTRY,
-						SourceType: itrace.SPAN_SOURCE_WEB,
-						Start:      dkspan.Start - int64(time.Millisecond),
-						Duration:   int64(time.Millisecond),
-						Status:     itrace.STATUS_OK,
-					})
+					childSpanKV := point.KVs{}
+					childSpanKV = childSpanKV.
+						Add(itrace.FieldTraceID, segment.TraceId, false, false).
+						Add(itrace.FieldParentID, "0", false, false).
+						Add(itrace.FieldSpanid, fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId, span.Refs[0].ParentSpanId), false, false).
+						AddTag(itrace.TagService, span.Refs[0].ParentService).
+						Add(itrace.FieldResource, span.Refs[0].ParentService, false, false).
+						AddTag(itrace.TagOperation, span.Refs[0].ParentService).
+						AddTag(itrace.TagSource, inputName).
+						AddTag(itrace.TagSpanType, itrace.SpanTypeEntry).
+						AddTag(itrace.TagSourceType, itrace.SpanSourceWeb).
+						Add(itrace.FieldStart, span.StartTime*int64(time.Microsecond)-int64(time.Microsecond), false, false).
+						Add(itrace.FieldDuration, int64(time.Microsecond), false, false)
+
+					childSpan := point.NewPointV2(inputName, childSpanKV, point.DefaultLoggingOptions()...)
+					dktrace = append(dktrace, &itrace.DkSpan{Point: childSpan})
+
 					if endpoint := span.Refs[0].GetNetworkAddressUsedAtPeer(); endpoint != "" {
-						dkspan.Tags = map[string]string{itrace.TAG_ENDPOINT: endpoint}
+						spanKV = spanKV.AddTag(itrace.TagEndpoint, endpoint)
 					}
 				}
 			} else {
-				dkspan.ParentID = "0"
+				spanKV = spanKV.Add(itrace.FieldParentID, "0", false, false)
 			}
 		} else {
 			if len(span.Refs) > 0 {
-				dkspan.ParentID = fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId, span.Refs[0].ParentSpanId)
+				spanKV = spanKV.Add(itrace.FieldParentID, fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId, span.Refs[0].ParentSpanId), false, false)
 			} else {
-				dkspan.ParentID = fmt.Sprintf("%s%d", segment.TraceSegmentId, span.ParentSpanId)
+				spanKV = spanKV.Add(itrace.FieldParentID, fmt.Sprintf("%s%d", segment.TraceSegmentId, span.ParentSpanId), false, false)
 			}
 		}
 
-		dkspan.Status = itrace.STATUS_OK
 		if span.IsError {
-			dkspan.Status = itrace.STATUS_ERR
+			spanKV = spanKV.AddTag(itrace.TagSpanStatus, itrace.StatusErr)
+		} else {
+			spanKV = spanKV.AddTag(itrace.TagSpanStatus, itrace.StatusOk)
 		}
 
 		switch span.SpanType {
 		case agentv3.SpanType_Entry:
-			dkspan.SpanType = itrace.SPAN_TYPE_ENTRY
+			spanKV = spanKV.AddTag(itrace.TagSpanType, itrace.SpanTypeEntry)
 		case agentv3.SpanType_Local:
-			dkspan.SpanType = itrace.SPAN_TYPE_LOCAL
+			spanKV = spanKV.AddTag(itrace.TagSpanType, itrace.SpanTypeLocal)
 		case agentv3.SpanType_Exit:
-			dkspan.SpanType = itrace.SPAN_TYPE_EXIT
+			spanKV = spanKV.AddTag(itrace.TagSpanType, itrace.SpanTypeExit)
 		default:
-			dkspan.SpanType = itrace.SPAN_TYPE_ENTRY
+			spanKV = spanKV.AddTag(itrace.TagSpanType, itrace.SpanTypeEntry)
 		}
 
 		for i := range plugins {
 			if value, ok := getTagValue(span.Tags, plugins[i]); ok {
-				dkspan.Service = value
-				dkspan.SpanType = itrace.SPAN_TYPE_ENTRY
-				dkspan.SourceType = mapToSpanSourceType(span.SpanLayer)
+				spanKV = spanKV.MustAddTag(itrace.TagService, value).
+					MustAddTag(itrace.TagSpanType, itrace.SpanTypeEntry).
+					MustAddTag(itrace.TagSourceType, mapToSpanSourceType(span.SpanLayer))
 				switch span.SpanLayer { // nolint: exhaustive
 				case agentv3.SpanLayer_Database, agentv3.SpanLayer_Cache:
 					if res, ok := getTagValue(span.Tags, "db.statement"); ok {
-						dkspan.Resource = res
+						spanKV = spanKV.Add(itrace.FieldResource, res, false, true)
 					}
 				case agentv3.SpanLayer_MQ:
 				case agentv3.SpanLayer_Http:
@@ -107,25 +114,28 @@ func parseSegmentObjectV3(segment *agentv3.SegmentObject) itrace.DatakitTrace {
 		for _, tag := range span.Tags {
 			sourceTags[tag.Key] = tag.Value
 		}
-		var err error
-		if dkspan.Tags, err = itrace.MergeInToCustomerTags(tags, sourceTags, ignoreTags, nil); err != nil {
-			log.Debug(err.Error())
+
+		mTags, err := itrace.MergeInToCustomerTags(tags, sourceTags, ignoreTags, nil)
+		if err == nil {
+			for k, v := range mTags {
+				spanKV = spanKV.AddTag(k, v)
+			}
 		}
+
 		if span.Peer != "" {
-			dkspan.Tags[itrace.TAG_ENDPOINT] = span.Peer
+			spanKV = spanKV.AddTag(itrace.TagEndpoint, span.Peer)
 		}
 
 		if buf, err := json.Marshal(span); err != nil {
 			log.Warn(err.Error())
 		} else {
-			dkspan.Content = string(buf)
+			spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
 		}
-
-		dktrace = append(dktrace, dkspan)
+		pt := point.NewPointV2(inputName, spanKV, itrace.TraceOpts...)
+		dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 	}
 	if len(dktrace) != 0 {
-		dktrace[0].Metrics = make(map[string]interface{})
-		dktrace[0].Metrics[itrace.FIELD_PRIORITY] = itrace.PRIORITY_AUTO_KEEP
+		dktrace[0].MustAdd(itrace.FieldPriority, itrace.PriorityAutoKeep)
 	}
 
 	return dktrace
@@ -148,20 +158,20 @@ func getTagValue(tags []*commonv3.KeyStringValuePair, key string) (value string,
 func mapToSpanSourceType(layer agentv3.SpanLayer) string {
 	switch layer {
 	case agentv3.SpanLayer_Database:
-		return itrace.SPAN_SOURCE_DB
+		return itrace.SpanSourceDb
 	case agentv3.SpanLayer_Cache:
-		return itrace.SPAN_SOURCE_CACHE
+		return itrace.SpanSourceCache
 	case agentv3.SpanLayer_RPCFramework:
-		return itrace.SPAN_SOURCE_FRAMEWORK
+		return itrace.SpanSourceFramework
 	case agentv3.SpanLayer_Http:
-		return itrace.SPAN_SOURCE_WEB
+		return itrace.SpanSourceWeb
 	case agentv3.SpanLayer_MQ:
-		return itrace.SPAN_SOURCE_MSGQUE
+		return itrace.SpanSourceMsgque
 	case agentv3.SpanLayer_FAAS:
-		return itrace.SPAN_SOURCE_APP
+		return itrace.SpanSourceApp
 	case agentv3.SpanLayer_Unknown:
-		return itrace.SPAN_SOURCE_CUSTOMER
+		return itrace.SpanSourceCustomer
 	default:
-		return itrace.SPAN_SOURCE_CUSTOMER
+		return itrace.SpanSourceCustomer
 	}
 }

@@ -263,7 +263,7 @@ func (ipt *Input) RegHTTPHandler() {
 	// add error status penetration
 	afterGather.AppendFilter(itrace.PenetrateErrorTracing)
 	// add rare resource keeper
-	if ipt.KeepRareResource {
+	if ipt.KeepRareResource && ipt.Sampler != nil {
 		keepRareResource := &itrace.KeepRareResource{}
 		keepRareResource.UpdateStatus(ipt.KeepRareResource, time.Hour)
 		afterGather.AppendFilter(keepRareResource.Keep)
@@ -271,11 +271,9 @@ func (ipt *Input) RegHTTPHandler() {
 	// add sampler
 	var sampler *itrace.Sampler
 	if ipt.Sampler != nil && (ipt.Sampler.SamplingRateGlobal >= 0 && ipt.Sampler.SamplingRateGlobal <= 1) {
-		sampler = ipt.Sampler
-	} else {
-		sampler = &itrace.Sampler{SamplingRateGlobal: 1}
+		sampler = ipt.Sampler.Init()
+		afterGather.AppendFilter(sampler.Sample)
 	}
-	afterGather.AppendFilter(sampler.Sample)
 
 	expectedHeaders := map[string][]string{"Content-Type": {"application/x-protobuf", "application/json"}}
 	for k, v := range ipt.ExpectedHeaders {

@@ -50,9 +50,9 @@ const (
 )
 
 var otelErrKeyToDkErrKey = map[string]string{
-	ExceptionTypeKey:       itrace.FIELD_ERR_TYPE,
-	ExceptionMessageKey:    itrace.FIELD_ERR_MESSAGE,
-	ExceptionStacktraceKey: itrace.FIELD_ERR_STACK,
+	ExceptionTypeKey:       itrace.FieldErrType,
+	ExceptionMessageKey:    itrace.FieldErrMessage,
+	ExceptionStacktraceKey: itrace.FieldErrStack,
 }
 
 var (

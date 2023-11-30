@@ -7,6 +7,7 @@ package opentelemetry
 
 import (
 	"regexp"
+	"strings"
 
 	common "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/common/v1"
 )
@@ -121,17 +122,18 @@ func (a *attributes) splite() (map[string]string, map[string]interface{}) {
 	shadowTags := make(map[string]string)
 	metrics := make(map[string]interface{})
 	for _, v := range a.attrs {
+		key := strings.ReplaceAll(v.Key, ".", "_")
 		switch v.Value.Value.(type) {
 		case *common.AnyValue_BytesValue, *common.AnyValue_StringValue:
 			if s := v.Value.GetStringValue(); len(s) > 1024 {
-				metrics[v.Key] = s
+				metrics[key] = s
 			} else {
-				shadowTags[v.Key] = s
+				shadowTags[key] = s
 			}
 		case *common.AnyValue_DoubleValue:
-			metrics[v.Key] = v.Value.GetDoubleValue()
+			metrics[key] = v.Value.GetDoubleValue()
 		case *common.AnyValue_IntValue:
-			metrics[v.Key] = v.Value.GetIntValue()
+			metrics[key] = v.Value.GetIntValue()
 		}
 	}
 

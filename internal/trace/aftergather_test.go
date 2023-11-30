@@ -45,21 +45,3 @@ func TestAfterGather(t *testing.T) {
 	}
 	wg.Wait()
 }
-
-func TestBuildPoint(t *testing.T) {
-	for i := 0; i < 100; i++ {
-		if pt, err := BuildPoint(randDatakitSpan(t)); err != nil {
-			t.Error(err.Error())
-			t.FailNow()
-		} else {
-			t.Log(pt.Pretty())
-		}
-	}
-}
-
-func TestBuildPointsBatch(t *testing.T) {
-	aga := NewAfterGather()
-	for i := 0; i < 100; i++ {
-		aga.BuildPointsBatch(DatakitTraces{randDatakitTrace(t, 10)})
-	}
-}

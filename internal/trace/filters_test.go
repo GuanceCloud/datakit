@@ -45,7 +45,7 @@ func TestCloseResource(t *testing.T) {
 
 				trace, _ := closer.Close(log, testcases[i])
 				if !expected[i](trace) {
-					t.Errorf("close resource %s failed trace:%v", testcases[i][0].Resource, trace)
+					t.Errorf("close resource %s failed trace:%v", testcases[i][0].GetFiledToString(FieldResource), trace)
 					t.FailNow() // nolint:govet,staticcheck
 				}
 			}
@@ -75,37 +75,26 @@ func TestRespectUserRule(t *testing.T) {
 			auto = append(auto, trace)
 		}
 	}
-
+	t.Logf("keep len=%d", len(keep))
 	for i := range keep {
 		for j := range keep[i] {
-			if p, ok := keep[i][j].Metrics[FIELD_PRIORITY]; ok {
-				var priority int
-				if priority, ok = p.(int); !ok {
-					t.Errorf("unexpected priority type")
-					t.FailNow()
-				}
-				if priority != PRIORITY_USER_KEEP && priority != PRIORITY_RULE_SAMPLER_KEEP {
-					t.Errorf("unexpected priority %d found", priority)
-					t.FailNow()
-				}
-				break
+			priority := keep[i][j].GetFiledToInt(FieldPriority)
+			if priority != PriorityUserKeep && priority != PriorityRuleSamplerKeep {
+				t.Errorf("unexpected priority %d found", priority)
+				t.FailNow()
 			}
+			break //nolint
 		}
 	}
+	t.Logf("auto len=%d", len(auto))
 	for i := range auto {
 		for j := range auto[i] {
-			if p, ok := auto[i][j].Metrics[FIELD_PRIORITY]; ok {
-				var priority int
-				if priority, ok = p.(int); !ok {
-					t.Errorf("unexpected priority type")
-					t.FailNow()
-				}
-				if priority != PRIORITY_AUTO_KEEP && priority != PRIORITY_AUTO_REJECT {
-					t.Errorf("unexpected priority %d found", priority)
-					t.FailNow()
-				}
-				break
+			priority := auto[i][j].GetFiledToInt(FieldPriority)
+			if priority != PriorityAutoKeep && priority != PriorityAutoReject {
+				t.Errorf("unexpected priority %d found", priority)
+				t.FailNow()
 			}
+			break //nolint
 		}
 	}
 }
@@ -128,9 +117,9 @@ func TestOmitStatusCode(t *testing.T) {
 
 	for i := range afterOmitStatusCode {
 		for j := range afterOmitStatusCode[i] {
-			switch afterOmitStatusCode[i][j].Tags[TAG_HTTP_STATUS_CODE] {
+			switch afterOmitStatusCode[i][j].GetFiledToString(TagHttpStatusCode) {
 			case "404", "500", "307":
-				t.Errorf("status code %s should be omitted", afterOmitStatusCode[i][j].Tags[TAG_HTTP_STATUS_CODE])
+				t.Errorf("status code %s should be omitted", afterOmitStatusCode[i][j].GetFiledToString(TagHttpStatusCode))
 				t.FailNow()
 			}
 		}
@@ -157,8 +146,8 @@ func TestPenetrateError(t *testing.T) {
 		iserr := false
 	FOUND_ERR:
 		for j := range afterErrPenetrate[i] {
-			switch afterErrPenetrate[i][j].Status {
-			case STATUS_ERR, STATUS_CRITICAL:
+			switch afterErrPenetrate[i][j].GetTag(TagSpanStatus) {
+			case StatusErr, StatusCritical:
 				iserr = true
 				break FOUND_ERR
 			}
@@ -219,7 +208,7 @@ func TestKeepRareResource(t *testing.T) {
 func TestSampler(t *testing.T) {
 	var origin DatakitTraces
 	for i := 0; i < 1000; i++ {
-		dktrace := randDatakitTrace(t, 1, randService(_services...), randResource(_resources...), randPriority(PRIORITY_AUTO_KEEP))
+		dktrace := randDatakitTrace(t, 1, randService(_services...), randResource(_resources...), randPriority(PriorityAutoKeep))
 		parentialize(dktrace)
 		origin = append(origin, dktrace)
 	}
