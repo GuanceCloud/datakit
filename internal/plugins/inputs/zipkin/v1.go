@@ -18,7 +18,6 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 
 	"github.com/apache/thrift/lib/go/thrift"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/zipkin/compiled/thrift-0.16.0/zipkincore"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
@@ -127,7 +126,7 @@ func thriftV1SpansToDkTrace(zpktrace []*zipkincore.Span) itrace.DatakitTrace {
 				spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
 			}
 		}
-		traceOpts := append(point.DefaultLoggingOptions(), point.WithExtraTags(datakit.DefaultGlobalTagger().HostTags()))
+
 		pt := point.NewPointV2(inputName, spanKV, traceOpts...)
 		dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 	}
