@@ -111,10 +111,10 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 			spanKV = spanKV.Add(itrace.FieldTraceID, strconv.FormatUint(uint64(span.TraceIdLow), 16), false, false)
 		}
 
-		spanKV.AddTag(itrace.TagSpanStatus, itrace.StatusOk)
+		spanKV = spanKV.AddTag(itrace.TagSpanStatus, itrace.StatusOk)
 		for _, tag := range span.Tags {
 			if tag.Key == "error" {
-				spanKV.MustAddTag(itrace.TagSpanStatus, itrace.StatusErr)
+				spanKV = spanKV.MustAddTag(itrace.TagSpanStatus, itrace.StatusErr)
 				break
 			}
 		}
