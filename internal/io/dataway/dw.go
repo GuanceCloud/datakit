@@ -23,7 +23,7 @@ import (
 const (
 	HeaderXGlobalTags = "X-Global-Tags"
 	DefaultRetryCount = 4
-	DefaultRetryDelay = time.Second * 1
+	DefaultRetryDelay = time.Second
 )
 
 type IDataway interface {
@@ -65,6 +65,20 @@ var (
 	log                        = logger.DefaultSLogger("dataway")
 	datawayListIntervalDefault = 60
 )
+
+func NewDefaultDataway() *Dataway {
+	return &Dataway{
+		URLs:               []string{"https://openway.guance.com?token=tkn_xxxxxxxxxxx"},
+		HTTPTimeout:        30 * time.Second,
+		IdleTimeout:        90 * time.Second,
+		MaxRawBodySize:     DefaultMaxRawBodySize,
+		GlobalCustomerKeys: []string{},
+		ContentEncoding:    "v1",
+		GZip:               true,
+		MaxRetryCount:      DefaultRetryCount,
+		RetryDelay:         DefaultRetryDelay,
+	}
+}
 
 type Dataway struct {
 	URLs []string `toml:"urls"`

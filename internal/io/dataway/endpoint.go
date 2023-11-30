@@ -289,9 +289,6 @@ func (ep *endPoint) writeBody(w *writer, b *body) (err error) {
 	// if send failed, do nothing.
 	if err = ep.writePointData(b, w); err != nil {
 		// 4xx error do not cache data.
-		// If the error is token-not-found or beyond-usage, datakit
-		// will write all data to disk, this may cause unexpected I/O cost
-		// on host.
 		if errors.Is(err, errWritePoints4XX) {
 			return
 		}
@@ -442,6 +439,10 @@ func (ep *endPoint) writePointData(b *body, w *writer) error {
 		return err
 	}
 
+	if resp == nil {
+		return errRequestTerminated
+	}
+
 	defer resp.Body.Close() //nolint:errcheck
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -517,9 +518,13 @@ func (ep *endPoint) datakitPull(args string) ([]byte, error) {
 
 	resp, err := ep.sendReq(req)
 	if err != nil {
-		log.Error(err.Error())
+		log.Error("datakitPull: %s", err.Error())
 
 		return nil, err
+	}
+
+	if resp == nil {
+		return nil, errRequestTerminated
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -573,8 +578,16 @@ func (ep *endPoint) sendReq(req *http.Request) (resp *http.Response, err error) 
 				}
 			}()
 
-			resp, err = ep.doSendReq(req)
-			if err != nil {
+			// Terminate retry on global exit.
+			select {
+			case <-datakit.Exit.Wait():
+				log.Info("retry abort on global exit")
+				return nil
+
+			default: // pass
+			}
+
+			if resp, err = ep.doSendReq(req); err != nil {
 				status = "unknown"
 				return err
 			}

@@ -9,4 +9,7 @@ import (
 	"errors"
 )
 
-var errWritePoints4XX = errors.New("write point 4xx")
+var (
+	errWritePoints4XX    = errors.New("write point 4xx")
+	errRequestTerminated = errors.New("no response and request maybe terminated")
+)
