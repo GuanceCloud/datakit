@@ -45,9 +45,11 @@ func (ipt *Input) getLatencyData() error {
 		return err
 	}
 
-	err = ipt.feeder.Feed(redisLatency, point.Logging, pts, &io.Option{})
-	if err != nil {
-		return err
+	if len(pts) > 0 {
+		err = ipt.feeder.Feed(redisLatency, point.Logging, pts, &io.Option{})
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
