@@ -412,6 +412,44 @@ In the container environment, the log `source` setting is a very important confi
 - Container name specified by Kubernetes: Obtained from the `io.kubernetes.container.name` label of the container.
 - `default`: Default `source`.
 
+### :material-chat-question: Wildcard Collection of Log Files in Containers {#config-logging-source}
+
+To collect log files within a container, you need to add a configuration in Annotations/Labels and specify the `path` as follows:
+
+```yaml
+[
+  {
+    "disable": false,
+    "type": "file",
+    "path":"/tmp/opt/log",
+    "source":  "logging-file",
+    "tags" : {
+      "some_tag": "some_value"
+    }
+  }
+]
+```
+
+The `path` configuration supports [glob rules](logging.md#glob-rules) for batch specification. For example, if you want to collect `/var/top/mysql/1.log` and `/var/opt/mysql/errors/2.log`, you can write it like this:
+
+```yaml
+[
+  {
+    "disable": false,
+    "type": "file",
+    "path":"/tmp/opt/**/*.log",
+    "source":  "logging-file",
+    "tags" : {
+      "some_tag": "some_value"
+    }
+  }
+]
+```
+
+The `path` configuration uses doublestar (`**`) to match multiple directories, and `*.log` will match all files ending with `.log`. This way, log files with different directories and names will be collected.
+
+Note that the mounting directory for the emptyDir volume must be higher than the directory to be matched. Taking the example of collecting `/tmp/opt/**/*.log`, you must mount `/tmp/opt` or a higher-level directory like `/tmp`, otherwise, the corresponding files will not be found.
+
 ## Extended Reading {#more-reading}
 
 - [Pipeline: Text Data Processing](../developers/pipeline/index.md)

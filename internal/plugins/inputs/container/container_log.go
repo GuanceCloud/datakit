@@ -37,29 +37,26 @@ func (c *container) tailingLogs(ins *logInstance) {
 			continue
 		}
 
-		if c.logTable.inTable(ins.id, cfg.Path) {
-			continue
-		}
-
 		path := cfg.Path
-		if cfg.TargetPath != "" {
-			path = cfg.TargetPath
-			l.Infof("container log %s redirect to host path %s", cfg.Path, cfg.TargetPath)
+		if cfg.HostFilePath != "" {
+			path = cfg.HostFilePath
+			l.Infof("container log %s redirect to host path %s", cfg.Path, cfg.HostFilePath)
 		}
 
 		mergedTags := inputs.MergeTags(c.extraTags, cfg.Tags, "")
 
 		opt := &tailer.Option{
-			Source:                   cfg.Source,
-			Service:                  cfg.Service,
-			Pipeline:                 cfg.Pipeline,
-			CharacterEncoding:        cfg.CharacterEncoding,
-			MultilinePatterns:        cfg.MultilinePatterns,
-			FromBeginning:            cfg.FromBeginning,
+			Source:            cfg.Source,
+			Service:           cfg.Service,
+			Pipeline:          cfg.Pipeline,
+			CharacterEncoding: cfg.CharacterEncoding,
+			MultilinePatterns: cfg.MultilinePatterns,
+			// FromBeginning:            cfg.FromBeginning,
 			GlobalTags:               mergedTags,
 			BlockingMode:             c.ipt.LoggingBlockingMode,
 			MaxMultilineLifeDuration: c.ipt.LoggingMaxMultilineLifeDuration,
 			RemoveAnsiEscapeCodes:    c.ipt.LoggingRemoveAnsiEscapeCodes,
+			MaxForceFlushLimit:       c.ipt.LoggingForceFlushLimit,
 			Done:                     done,
 		}
 
@@ -76,24 +73,38 @@ func (c *container) tailingLogs(ins *logInstance) {
 
 		path = logsJoinRootfs(path)
 
-		l.Infof("add container log collection with path %s(%s) from source %s", cfg.Path, path, opt.Source)
-
-		tail, err := tailer.NewTailerSingle(path, opt)
+		filelist, err := tailer.NewProvider().SearchFiles([]string{path}).Result()
 		if err != nil {
-			l.Errorf("failed to create container-log collection %s(%s) for %s, err: %s", cfg.Path, path, ins.containerName, err)
+			l.Warnf("failed to scan container-log collection %s(%s) for %s, err: %s", cfg.Path, path, ins.containerName, err)
 			continue
 		}
 
-		c.logTable.addToTable(ins.id, cfg.Path, done)
+		for _, file := range filelist {
+			if c.logTable.inTable(ins.id, file) {
+				continue
+			}
 
-		g.Go(func(ctx context.Context) error {
-			defer func() {
-				c.logTable.removePathFromTable(ins.id, path)
-				l.Infof("remove container log collection from source %s", opt.Source)
-			}()
-			tail.Run()
-			return nil
-		})
+			l.Infof("add container log collection with path %s from source %s", file, opt.Source)
+
+			tail, err := tailer.NewTailerSingle(file, opt)
+			if err != nil {
+				l.Errorf("failed to create container-log collection %s for %s, err: %s", file, ins.containerName, err)
+				continue
+			}
+
+			c.logTable.addToTable(ins.id, file, done)
+
+			func(file string) {
+				g.Go(func(ctx context.Context) error {
+					defer func() {
+						c.logTable.removePathFromTable(ins.id, file)
+						l.Infof("remove container log collection from source %s", opt.Source)
+					}()
+					tail.Run()
+					return nil
+				})
+			}(file)
+		}
 	}
 }
 

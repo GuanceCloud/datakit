@@ -19,20 +19,24 @@ func replaceLabelKey(s string) string {
 	return strings.ReplaceAll(s, ".", "_")
 }
 
-func queryPodOwner(pod *apicorev1.Pod) string {
+func queryPodOwner(pod *apicorev1.Pod) (kind string, name string) {
 	if len(pod.OwnerReferences) != 0 {
 		switch pod.OwnerReferences[0].Kind {
 		case "ReplicaSet":
 			if hash, ok := pod.Labels["pod-template-hash"]; ok {
-				return strings.TrimRight(pod.OwnerReferences[0].Name, "-"+hash)
+				kind = "deployment"
+				name = strings.TrimRight(pod.OwnerReferences[0].Name, "-"+hash)
+				return
 			}
 		case "DaemonSet", "StatefulSet":
-			return pod.OwnerReferences[0].Name
+			kind = strings.ToLower(pod.OwnerReferences[0].Name)
+			name = pod.OwnerReferences[0].Name
+			return
 		default:
 			// skip
 		}
 	}
-	return ""
+	return
 }
 
 func completePromConfig(config string, item *apicorev1.Pod) string {
@@ -56,7 +60,8 @@ func completePromConfig(config string, item *apicorev1.Pod) string {
 		podIP = item.Status.PodIPs[idx].IP
 	}()
 
-	ownerName := queryPodOwner(item)
+	ownerKind, ownerName := queryPodOwner(item)
+	config = strings.ReplaceAll(config, "$OWNERKIND", ownerKind)
 	config = strings.ReplaceAll(config, "$OWNER", ownerName)
 	config = strings.ReplaceAll(config, "$IP", podIP)
 	config = strings.ReplaceAll(config, "$NAMESPACE", item.Namespace)

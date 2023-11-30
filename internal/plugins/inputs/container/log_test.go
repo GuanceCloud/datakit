@@ -159,7 +159,7 @@ func TestParseLogConfigs(t *testing.T) {
 			},
 		},
 		// TODO
-		// test TargetPath
+		// test HostFilePath
 	}
 
 	for idx, tc := range cases {

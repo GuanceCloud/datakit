@@ -83,6 +83,8 @@ type Option struct {
 	// 是否开启阻塞发送模式
 	BlockingMode bool
 
+	MaxForceFlushLimit int
+
 	MaxMultilineLifeDuration time.Duration
 
 	Done <-chan interface{}
@@ -131,6 +133,10 @@ func (opt *Option) Init() error {
 
 	if opt.Feeder == nil {
 		opt.Feeder = dkio.DefaultFeeder()
+	}
+
+	if opt.MaxForceFlushLimit == 0 {
+		opt.MaxForceFlushLimit = 10
 	}
 
 	opt.GlobalTags["service"] = opt.Service
@@ -197,7 +203,13 @@ func (t *Tailer) Start() {
 	defer ticker.Stop()
 
 	for {
-		t.scan()
+		if t.scan() {
+			t.opt.log.Infof("all tailers end...")
+			_ = t.g.Wait()
+			t.opt.log.Info("all exit")
+			return
+		}
+
 		t.opt.log.Debugf("list of recivering: %v", t.getFileList())
 
 		select {
@@ -212,7 +224,7 @@ func (t *Tailer) Start() {
 	}
 }
 
-func (t *Tailer) scan() {
+func (t *Tailer) scan() (ended bool) {
 	filelist, err := NewProvider().SearchFiles(t.filePatterns).IgnoreFiles(t.ignorePatterns).Result()
 	if err != nil {
 		t.opt.log.Warn(err)
@@ -248,6 +260,8 @@ func (t *Tailer) scan() {
 			})
 		}(filename)
 	}
+
+	return false
 }
 
 func (t *Tailer) Close() {

@@ -402,6 +402,42 @@ Datakit 需要挂载 `/mnt/container_logs` hostPath 才能使得正常采集，�
 - 容器本身的名称：通过 `docker ps` 或 `crictl ps` 能看到的容器名
 - `default`: 默认的 `source`
 
+### :material-chat-question: 容器内日志文件的通配采集 {#config-logging-source}
+
+采集容器内的日志文件，需要在 Annotations/Labels 添加一个配置，并且写明 `path`，如下：
+
+```yaml
+  [
+    {
+      "disable": false,
+      "type": "file",
+      "path":"/tmp/opt/log",
+      "source":  "logging-file",
+      "tags" : {
+        "some_tag": "some_value"
+      }
+    }
+  ]
+```
+
+这个 `path` 配置项，支持 [glob 规则](logging.md#glob-rules)进行批量指定，例如要采集 `/var/top/mysql/1.log` 和 `/var/opt/mysql/errors/2.log`，可以写成下面这样：
+
+```yaml
+  [
+    {
+      "disable": false,
+      "type": "file",
+      "path":"/tmp/opt/**/*.log",
+      "source":  "logging-file",
+      "tags" : {
+        "some_tag": "some_value"
+      }
+    }
+```
+
+`path` 配置项，使用双星（doublestar）可以多级目录通配，`*.log` 会匹配所有以 `.log` 结尾的文件。这样两个不同目录、不同名称的日志文件都会被采集。
+
+注意，添加 emptyDir volume 的挂载目录，必须高于要通配的目录。还是以采集 `/tmp/opt/**/*.log` 为例，必须挂载 `/tmp/opt` 或更上层的 `/tmp`，否则会找不到对应文件。
 
 ## 延伸阅读 {#more-reading}
 
