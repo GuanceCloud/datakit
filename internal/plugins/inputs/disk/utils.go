@@ -65,7 +65,8 @@ func (dk *PSDisk) FilterUsage() ([]*disk.UsageStat, []*disk.PartitionStat, error
 			p.Device = p.Device[7:]
 		}
 
-		l.Debugf("disk---fstype:%s ,device:%s ,mountpoint:%s ", p.Fstype, p.Device, p.Mountpoint)
+		l.Debugf("disk fstype: %s, device: %s, mountpoint: %s", p.Fstype, p.Device, p.Mountpoint)
+
 		// nolint
 		if !strings.HasPrefix(p.Device, "/dev/") && runtime.GOOS != datakit.OSWindows && !excluded(p.Device, dk.ipt.ExtraDevice) {
 			continue // ignore the partition

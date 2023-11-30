@@ -217,7 +217,7 @@ func (ipt *Input) Run() {
 				&io.Option{
 					CollectCost: time.Since(start),
 				}); err != nil {
-				l.Warn("Feed: %s, ignored", err)
+				l.Warnf("Feed: %s, ignored", err)
 			}
 		}
 

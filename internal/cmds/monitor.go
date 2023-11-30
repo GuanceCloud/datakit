@@ -64,6 +64,7 @@ func runMonitorFlags() error {
 		monitor.WithOnlyModules(*flagMonitorModule),
 		monitor.WithRefresh(*flagMonitorRefreshInterval),
 		monitor.WithVerbose(*flagMonitorVerbose),
+		monitor.WithProxy(config.Cfg.Dataway.HTTPProxy),
 	)
 	return nil
 }

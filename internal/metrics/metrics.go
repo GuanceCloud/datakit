@@ -128,19 +128,19 @@ var (
 
 		// hostname and cgroup set after init(), so make it a non-const-label.
 		[]string{
+			"auto_update",
+			"docker",
 			"hostname",
-			"resource_limit",
 			"lite",
+			"resource_limit",
 		},
 
 		// these are const labels.
 		p8s.Labels{
-			"version":     datakit.Version,
-			"build_at":    git.BuildAt,
-			"branch":      git.Branch,
-			"os_arch":     fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
-			"docker":      fmt.Sprintf("%v", datakit.Docker),
-			"auto_update": fmt.Sprintf("%v", datakit.AutoUpdate),
+			"version":  datakit.Version,
+			"build_at": git.BuildAt,
+			"branch":   git.Branch,
+			"os_arch":  fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 		},
 	)
 
@@ -200,7 +200,13 @@ func (rc runtimeInfoCollector) Collect(ch chan<- p8s.Metric) {
 	ch <- p8s.MustNewConstMetric(riUptimeDesc,
 		p8s.GaugeValue,
 		float64(time.Since(Uptime)/time.Second),
-		datakit.DatakitHostName, resourcelimit.Info(), fmt.Sprintf("%v", datakit.Lite))
+		fmt.Sprintf("%v", datakit.AutoUpdate),
+		fmt.Sprintf("%v", datakit.Docker),
+		datakit.DatakitHostName,
+		fmt.Sprintf("%v", datakit.Lite),
+		resourcelimit.Info(),
+	)
+
 	ch <- p8s.MustNewConstMetric(riBeyondUsage, p8s.GaugeValue, float64(BeyondUsage))
 
 	if ri.numCtxSwitch != nil {
