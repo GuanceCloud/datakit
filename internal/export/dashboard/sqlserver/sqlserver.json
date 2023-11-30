@@ -1,6 +1,12 @@
 {
   "dashboardBindSet": [],
-  "dashboardExtend": {},
+  "dashboardExtend": {
+    "groupUnfoldStatus": {
+      "{{.Dashboard.group_locks}}": false,
+      "{{.Dashboard.group_sql_quality}}": false,
+      "{{.Dashboard.overview}}": true
+    }
+  },
   "dashboardMapping": [],
   "dashboardOwnerType": "node",
   "dashboardType": "CUSTOM",
@@ -13,26 +19,43 @@
       {
         "extend": {
           "fixedGroupByTime": null,
-          "fixedTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
           "settings": {
+            "alias": [],
+            "bgColor": "",
+            "changeWorkspace": false,
             "colors": [],
+            "compareType": "",
             "currentChartType": "singlestat",
             "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "isTimeInterval": false,
             "levels": [],
             "lineColor": "#3AB8FF",
             "mappings": [],
             "openCompare": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "sequenceChartType": "line",
             "showFieldMapping": false,
             "showLine": true,
             "showLineAxis": false,
+            "showTitle": true,
             "tableSortMetricName": "fill(last(cpu_count), <previous>)",
+            "timeInterval": "1s",
+            "titleDesc": "",
+            "unitType": "global",
             "units": []
           }
         },
         "group": {
-          "name": "基础监控"
+          "name": "{{.Dashboard.overview}}"
         },
-        "name": "CPU逻辑核心",
+        "name": "{{.Dashboard.cpu_count}}",
         "pos": {
           "h": 8,
           "w": 6,
@@ -52,7 +75,7 @@
               "density": "medium",
               "field": "cpu_count",
               "fieldFunc": "avg",
-              "fieldType": "integer",
+              "fieldType": "float",
               "fill": "previous",
               "filters": [
                 {
@@ -64,9 +87,7 @@
                   "value": "#{hostname}"
                 }
               ],
-              "funcList": [
-                "last"
-              ],
+              "funcList": [],
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
@@ -84,29 +105,35 @@
         "extend": {
           "fixedGroupByTime": null,
           "fixedTime": "",
-          "isRefresh": true,
+          "isRefresh": false,
           "settings": {
             "alias": [],
             "bgColor": "",
+            "changeWorkspace": false,
             "colors": [],
             "compareType": "",
             "currentChartType": "singlestat",
             "downsample": "last",
             "fixedTime": "",
             "fontColor": "",
+            "globalUnit": [],
+            "isSampling": true,
             "isTimeInterval": false,
             "levels": [],
             "lineColor": "#3AB8FF",
             "mappings": [],
             "openCompare": false,
+            "openThousandsSeparator": true,
             "precision": "2",
+            "sequenceChartType": "line",
             "showFieldMapping": false,
             "showLine": true,
             "showLineAxis": false,
             "showTitle": true,
             "tableSortMetricName": "总占用",
-            "timeInterval": "default",
+            "timeInterval": "auto",
             "titleDesc": "",
+            "unitType": "custom",
             "units": [
               {
                 "key": "总占用",
@@ -121,9 +148,9 @@
           }
         },
         "group": {
-          "name": "基础监控"
+          "name": "{{.Dashboard.overview}}"
         },
-        "name": "内存",
+        "name": "{{.Dashboard.memory}}",
         "pos": {
           "h": 8,
           "w": 6,
@@ -142,7 +169,7 @@
               "dataSource": "sqlserver",
               "field": "server_memory",
               "fieldFunc": "avg",
-              "fieldType": "integer",
+              "fieldType": "float",
               "fill": "linear",
               "filters": [
                 {
@@ -154,9 +181,7 @@
                   "value": "#{hostname}"
                 }
               ],
-              "funcList": [
-                "last"
-              ],
+              "funcList": [],
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
@@ -173,27 +198,68 @@
       {
         "extend": {
           "fixedGroupByTime": null,
-          "fixedTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
           "settings": {
+            "alias": [],
+            "changeWorkspace": false,
             "chartType": "areaLine",
             "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
             "currentChartType": "sequence",
             "density": "medium",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isPercent": false,
+            "isSampling": true,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
             "levels": [],
+            "mainMeasurementQueryCode": "C",
+            "maxPointCount": 360,
+            "onlyShowGroupName": false,
             "openCompare": false,
             "openStack": true,
+            "openThousandsSeparator": true,
+            "precision": "2",
             "showFieldMapping": false,
             "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
             "stackType": "time",
             "tableSortMetricName": "last(cntr_value)",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "global",
             "units": [],
-            "xAxisShowType": "time"
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
           }
         },
         "group": {
-          "name": "基础监控"
+          "name": "{{.Dashboard.overview}}"
         },
-        "name": "活跃事务数",
+        "name": "{{.Dashboard.active_txn}}",
         "pos": {
           "h": 8,
           "w": 12,
@@ -207,7 +273,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "活跃事务",
+              "alias": "{{.Dashboard.active_txn}}",
               "code": "C",
               "dataSource": "sqlserver_performance",
               "field": "cntr_value",
@@ -238,7 +304,7 @@
               ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`sqlserver_performance`:(fill(AVG(`cntr_value`), linear) AS `活跃事务`) { `sqlserver_host` = '#{hostname}' and `counter_name` = 'Active Transactions' } BY `instance`",
+              "q": "M::`sqlserver_performance`:(fill(AVG(`cntr_value`), linear) AS `{{.Dashboard.active_txn}}`) { `sqlserver_host` = '#{hostname}' and `counter_name` = 'Active Transactions' } BY `instance`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -250,22 +316,62 @@
       },
       {
         "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
           "settings": {
+            "alias": [],
+            "changeWorkspace": false,
             "chartType": "areaLine",
             "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
             "currentChartType": "sequence",
             "density": "high",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isPercent": false,
+            "isSampling": true,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
             "levels": [],
+            "mainMeasurementQueryCode": "B",
+            "maxPointCount": 720,
+            "onlyShowGroupName": false,
             "openCompare": false,
             "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
             "showFieldMapping": false,
             "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
             "stackType": "time",
             "tableSortMetricName": "已占用",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "custom",
             "units": [
               {
-                "key": "分配",
-                "name": "分配",
+                "key": "{{.Dashboard.active_mem}}",
+                "name": "{{.Dashboard.active_mem}}",
                 "unit": "",
                 "units": [
                   "digital",
@@ -273,13 +379,15 @@
                 ]
               }
             ],
-            "xAxisShowType": "time"
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
           }
         },
         "group": {
-          "name": "基础监控"
+          "name": "{{.Dashboard.overview}}"
         },
-        "name": "内存分配",
+        "name": "{{.Dashboard.active_mem}}",
         "pos": {
           "h": 8,
           "w": 12,
@@ -293,7 +401,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "分配",
+              "alias": "{{.Dashboard.active_mem}}",
               "code": "B",
               "dataSource": "sqlserver_performance",
               "field": "cntr_value",
@@ -324,7 +432,7 @@
               ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`sqlserver_performance`:(fill(AVG(`cntr_value`), linear) AS `分配`) { `sqlserver_host` = '#{hostname}' and `counter_name` = 'Active memory grant amount (KB)' } BY `instance`",
+              "q": "M::`sqlserver_performance`:(fill(AVG(`cntr_value`), linear) AS `{{.Dashboard.active_mem}}`) { `sqlserver_host` = '#{hostname}' and `counter_name` = 'Active memory grant amount (KB)' } BY `instance`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -337,33 +445,43 @@
       {
         "extend": {
           "fixedGroupByTime": null,
-          "fixedTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
           "settings": {
+            "alias": [],
+            "changeWorkspace": false,
             "colors": [],
             "currentChartType": "bar",
             "direction": "horizontal",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "isTimeInterval": false,
             "levels": [],
             "openCompare": false,
             "openStack": true,
+            "openThousandsSeparator": true,
+            "precision": "2",
             "showFieldMapping": false,
             "showLine": false,
+            "showTitle": true,
             "showTopSize": false,
             "showTopWithMetric": "",
             "stackContent": "index",
             "stackType": "time",
             "tableSortMetricName": "可疑suspect",
-            "timeInterval": {
-              "type": ""
-            },
+            "timeInterval": "1s",
+            "titleDesc": "",
             "topSize": 10,
+            "unitType": "global",
             "units": [],
             "xAxisShowType": "groupBy"
           }
         },
         "group": {
-          "name": "文件系统"
+          "name": "{{.Dashboard.file_system}}"
         },
-        "name": "逻辑库",
+        "name": "{{.Dashboard.logical_database}}",
         "pos": {
           "h": 8,
           "w": 12,
@@ -377,12 +495,12 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "还原中restoring",
+              "alias": "restoring",
               "code": "F",
               "dataSource": "sqlserver",
               "field": "db_restoring",
               "fieldFunc": "avg",
-              "fieldType": "integer",
+              "fieldType": "float",
               "fill": "linear",
               "filters": [
                 {
@@ -394,13 +512,11 @@
                   "value": "#{hostname}"
                 }
               ],
-              "funcList": [
-                "last"
-              ],
+              "funcList": [],
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`sqlserver`:(fill(AVG(`db_restoring`), linear) AS `还原中restoring`) { `sqlserver_host` = '#{hostname}' }",
+              "q": "M::`sqlserver`:(fill(AVG(`db_restoring`), linear) AS `restoring`) { `sqlserver_host` = '#{hostname}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -413,12 +529,12 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "可疑suspect",
+              "alias": "suspect",
               "code": "G",
               "dataSource": "sqlserver",
               "field": "db_suspect",
               "fieldFunc": "avg",
-              "fieldType": "integer",
+              "fieldType": "float",
               "fill": "linear",
               "filters": [
                 {
@@ -430,13 +546,11 @@
                   "value": "#{hostname}"
                 }
               ],
-              "funcList": [
-                "last"
-              ],
+              "funcList": [],
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`sqlserver`:(fill(AVG(`db_suspect`), linear) AS `可疑suspect`) { `sqlserver_host` = '#{hostname}' }",
+              "q": "M::`sqlserver`:(fill(AVG(`db_suspect`), linear) AS `suspect`) { `sqlserver_host` = '#{hostname}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -449,12 +563,12 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "在线online",
+              "alias": "online",
               "code": "B",
               "dataSource": "sqlserver",
               "field": "db_online",
               "fieldFunc": "avg",
-              "fieldType": "integer",
+              "fieldType": "float",
               "fill": "linear",
               "filters": [
                 {
@@ -466,13 +580,11 @@
                   "value": "#{hostname}"
                 }
               ],
-              "funcList": [
-                "last"
-              ],
+              "funcList": [],
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`sqlserver`:(fill(AVG(`db_online`), linear) AS `在线online`) { `sqlserver_host` = '#{hostname}' }",
+              "q": "M::`sqlserver`:(fill(AVG(`db_online`), linear) AS `online`) { `sqlserver_host` = '#{hostname}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -485,12 +597,12 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "恢复等待recovery_pending",
+              "alias": "recovery_pending",
               "code": "C",
               "dataSource": "sqlserver",
               "field": "db_recovery_pending",
               "fieldFunc": "avg",
-              "fieldType": "integer",
+              "fieldType": "float",
               "fill": "linear",
               "filters": [
                 {
@@ -502,13 +614,11 @@
                   "value": "#{hostname}"
                 }
               ],
-              "funcList": [
-                "last"
-              ],
+              "funcList": [],
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`sqlserver`:(fill(AVG(`db_recovery_pending`), linear) AS `恢复等待recovery_pending`) { `sqlserver_host` = '#{hostname}' }",
+              "q": "M::`sqlserver`:(fill(AVG(`db_recovery_pending`), linear) AS `recovery_pending`) { `sqlserver_host` = '#{hostname}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -521,12 +631,12 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "恢复中recovering",
+              "alias": "recovering",
               "code": "E",
               "dataSource": "sqlserver",
               "field": "db_recovering",
               "fieldFunc": "avg",
-              "fieldType": "integer",
+              "fieldType": "float",
               "fill": "linear",
               "filters": [
                 {
@@ -538,13 +648,11 @@
                   "value": "#{hostname}"
                 }
               ],
-              "funcList": [
-                "last"
-              ],
+              "funcList": [],
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`sqlserver`:(fill(AVG(`db_recovering`), linear) AS `恢复中recovering`) { `sqlserver_host` = '#{hostname}' }",
+              "q": "M::`sqlserver`:(fill(AVG(`db_recovering`), linear) AS `recovering`) { `sqlserver_host` = '#{hostname}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -557,12 +665,12 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "离线offline",
+              "alias": "offline",
               "code": "D",
               "dataSource": "sqlserver",
               "field": "db_offline",
               "fieldFunc": "avg",
-              "fieldType": "integer",
+              "fieldType": "float",
               "fill": "linear",
               "filters": [
                 {
@@ -574,13 +682,11 @@
                   "value": "#{hostname}"
                 }
               ],
-              "funcList": [
-                "last"
-              ],
+              "funcList": [],
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`sqlserver`:(fill(AVG(`db_offline`), linear) AS `离线offline`) { `sqlserver_host` = '#{hostname}' }",
+              "q": "M::`sqlserver`:(fill(AVG(`db_offline`), linear) AS `offline`) { `sqlserver_host` = '#{hostname}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -593,27 +699,68 @@
       {
         "extend": {
           "fixedGroupByTime": null,
-          "fixedTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
           "settings": {
+            "alias": [],
+            "changeWorkspace": false,
             "chartType": "areaLine",
             "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
             "currentChartType": "sequence",
             "density": "high",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isPercent": false,
+            "isSampling": true,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
             "levels": [],
+            "mainMeasurementQueryCode": "D",
+            "maxPointCount": 720,
+            "onlyShowGroupName": false,
             "openCompare": false,
             "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
             "showFieldMapping": false,
             "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
             "stackType": "time",
             "tableSortMetricName": "可疑suspect",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "global",
             "units": [],
-            "xAxisShowType": "time"
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
           }
         },
         "group": {
-          "name": "文件系统"
+          "name": "{{.Dashboard.file_system}}"
         },
-        "name": "逻辑库",
+        "name": "{{.Dashboard.logical_database}}",
         "pos": {
           "h": 8,
           "w": 12,
@@ -627,12 +774,12 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "离线offline",
+              "alias": "offline",
               "code": "D",
               "dataSource": "sqlserver",
               "field": "db_offline",
               "fieldFunc": "avg",
-              "fieldType": "integer",
+              "fieldType": "float",
               "fill": "linear",
               "filters": [
                 {
@@ -648,7 +795,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`sqlserver`:(fill(AVG(`db_offline`), linear) AS `离线offline`) { `sqlserver_host` = '#{hostname}' }",
+              "q": "M::`sqlserver`:(fill(AVG(`db_offline`), linear) AS `offline`) { `sqlserver_host` = '#{hostname}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -661,12 +808,12 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "在线online",
+              "alias": "online",
               "code": "B",
               "dataSource": "sqlserver",
               "field": "db_online",
               "fieldFunc": "avg",
-              "fieldType": "integer",
+              "fieldType": "float",
               "fill": "linear",
               "filters": [
                 {
@@ -682,7 +829,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`sqlserver`:(fill(AVG(`db_online`), linear) AS `在线online`) { `sqlserver_host` = '#{hostname}' }",
+              "q": "M::`sqlserver`:(fill(AVG(`db_online`), linear) AS `online`) { `sqlserver_host` = '#{hostname}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -695,12 +842,12 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "还原中restoring",
+              "alias": "restoring",
               "code": "F",
               "dataSource": "sqlserver",
               "field": "db_restoring",
               "fieldFunc": "avg",
-              "fieldType": "integer",
+              "fieldType": "float",
               "fill": "linear",
               "filters": [
                 {
@@ -716,7 +863,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`sqlserver`:(fill(AVG(`db_restoring`), linear) AS `还原中restoring`) { `sqlserver_host` = '#{hostname}' }",
+              "q": "M::`sqlserver`:(fill(AVG(`db_restoring`), linear) AS `restoring`) { `sqlserver_host` = '#{hostname}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -729,12 +876,12 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "可疑suspect",
+              "alias": "suspect",
               "code": "G",
               "dataSource": "sqlserver",
               "field": "db_suspect",
               "fieldFunc": "avg",
-              "fieldType": "integer",
+              "fieldType": "float",
               "fill": "linear",
               "filters": [
                 {
@@ -750,7 +897,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`sqlserver`:(fill(AVG(`db_suspect`), linear) AS `可疑suspect`) { `sqlserver_host` = '#{hostname}' }",
+              "q": "M::`sqlserver`:(fill(AVG(`db_suspect`), linear) AS `suspect`) { `sqlserver_host` = '#{hostname}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -763,12 +910,12 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "恢复等待recovery_pending",
+              "alias": "recovery_pending",
               "code": "C",
               "dataSource": "sqlserver",
               "field": "db_recovery_pending",
               "fieldFunc": "avg",
-              "fieldType": "integer",
+              "fieldType": "float",
               "fill": "linear",
               "filters": [
                 {
@@ -784,7 +931,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`sqlserver`:(fill(AVG(`db_recovery_pending`), linear) AS `恢复等待recovery_pending`) { `sqlserver_host` = '#{hostname}' }",
+              "q": "M::`sqlserver`:(fill(AVG(`db_recovery_pending`), linear) AS `recovery_pending`) { `sqlserver_host` = '#{hostname}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -797,12 +944,12 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "恢复中recovering",
+              "alias": "recovering",
               "code": "E",
               "dataSource": "sqlserver",
               "field": "db_recovering",
               "fieldFunc": "avg",
-              "fieldType": "integer",
+              "fieldType": "float",
               "fill": "linear",
               "filters": [
                 {
@@ -818,7 +965,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`sqlserver`:(fill(AVG(`db_recovering`), linear) AS `恢复中recovering`) { `sqlserver_host` = '#{hostname}' }",
+              "q": "M::`sqlserver`:(fill(AVG(`db_recovering`), linear) AS `recovering`) { `sqlserver_host` = '#{hostname}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -831,32 +978,74 @@
       {
         "extend": {
           "fixedGroupByTime": null,
-          "fixedTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
           "links": [],
           "settings": {
+            "alias": [
+              {
+                "alias": "{{.Dashboard.db_name}}",
+                "key": "database_name",
+                "name": "database_name"
+              },
+              {
+                "alias": "{{.Dashboard.file_type}}",
+                "key": "file_type",
+                "name": "file_type"
+              },
+              {
+                "alias": "{{.Dashboard.logical_filename}}",
+                "key": "logical_filename",
+                "name": "logical_filename"
+              },
+              {
+                "alias": "{{.Dashboard.physical_filename}}",
+                "key": "physical_filename",
+                "name": "physical_filename"
+              }
+            ],
+            "aliasVersion": 2,
+            "changeWorkspace": false,
             "colors": [],
             "currentChartType": "table",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "isTimeInterval": false,
+            "levels": [],
+            "mainMeasurementLimit": 20,
+            "mainMeasurementQueryCode": "A",
+            "mainMeasurementSort": "top",
+            "openThousandsSeparator": false,
             "pageSize": 0,
+            "precision": "2",
             "queryMode": "toGroupColumn",
             "showFieldMapping": false,
+            "showTitle": true,
+            "slimit": 20,
             "tableSortMetricName": "fill(last(read_bytes), <linear>)",
+            "timeInterval": "1s",
+            "titleDesc": "",
+            "unitType": "custom",
             "units": [
               {
-                "key": "文件增量",
-                "name": "文件增量",
+                "key": "{{.Dashboard.data_write}}",
+                "name": "{{.Dashboard.data_write}}",
                 "unit": "",
                 "units": [
                   "digital",
                   "B"
                 ]
               }
-            ]
+            ],
+            "valColorMappings": [],
+            "valMappings": []
           }
         },
         "group": {
-          "name": "文件系统"
+          "name": "{{.Dashboard.file_system}}"
         },
-        "name": "日志文件",
+        "name": "{{.Dashboard.log_file}}",
         "pos": {
           "h": 14,
           "w": 24,
@@ -870,12 +1059,12 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "文件增量",
+              "alias": "{{.Dashboard.data_write}}",
               "code": "A",
               "dataSource": "sqlserver_database_io",
               "field": "write_bytes",
               "fieldFunc": "avg",
-              "fieldType": "integer",
+              "fieldType": "float",
               "fill": "linear",
               "filters": [
                 {
@@ -903,10 +1092,7 @@
                   "value": "LOG"
                 }
               ],
-              "funcList": [
-                "last",
-                "top:100"
-              ],
+              "funcList": [],
               "groupBy": [
                 "database_name",
                 "file_type",
@@ -915,7 +1101,7 @@
               ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`sqlserver_database_io`:(fill(AVG(`write_bytes`), linear) AS `文件增量`) { `sqlserver_host` = '#{hostname}' and `database_name` != 'tempdb' and `file_type` = 'LOG' } BY `database_name`, `file_type`, `logical_filename`, `physical_filename`",
+              "q": "M::`sqlserver_database_io`:(fill(AVG(`write_bytes`), linear) AS `{{.Dashboard.data_write}}`) { `sqlserver_host` = '#{hostname}' and `database_name` != 'tempdb' and `file_type` = 'LOG' } BY `database_name`, `file_type`, `logical_filename`, `physical_filename`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -928,23 +1114,62 @@
       {
         "extend": {
           "fixedGroupByTime": null,
-          "fixedTime": null,
+          "fixedTime": "",
+          "isRefresh": true,
           "settings": {
+            "alias": [],
+            "changeWorkspace": false,
             "chartType": "areaLine",
             "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
             "currentChartType": "sequence",
             "density": "medium",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isPercent": false,
+            "isSampling": true,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
             "levels": [],
+            "mainMeasurementQueryCode": "B",
+            "maxPointCount": 360,
+            "onlyShowGroupName": false,
             "openCompare": false,
             "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
             "showFieldMapping": false,
             "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
             "stackType": "time",
             "tableSortMetricName": "fill(last(read_bytes), <linear>)",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "custom",
             "units": [
               {
-                "key": "写入量",
-                "name": "写入量",
+                "key": "non_negative_derivative({{.Dashboard.write_bytes}})",
+                "name": "non_negative_derivative({{.Dashboard.write_bytes}})",
                 "unit": "",
                 "units": [
                   "digital",
@@ -952,8 +1177,8 @@
                 ]
               },
               {
-                "key": "读取量",
-                "name": "读取量",
+                "key": "non_negative_derivative({{.Dashboard.read_bytes}})",
+                "name": "non_negative_derivative({{.Dashboard.read_bytes}})",
                 "unit": "",
                 "units": [
                   "digital",
@@ -961,13 +1186,15 @@
                 ]
               }
             ],
-            "xAxisShowType": "time"
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
           }
         },
         "group": {
-          "name": "文件系统"
+          "name": "{{.Dashboard.file_system}}"
         },
-        "name": "数据文件读写量",
+        "name": "{{.Dashboard.data_file_read_write}}",
         "pos": {
           "h": 9,
           "w": 12,
@@ -981,12 +1208,12 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "写入量",
+              "alias": "{{.Dashboard.write_bytes}}",
               "code": "B",
               "dataSource": "sqlserver_database_io",
               "field": "write_bytes",
               "fieldFunc": "sum",
-              "fieldType": "integer",
+              "fieldType": "float",
               "fill": "linear",
               "filters": [
                 {
@@ -1018,7 +1245,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`sqlserver_database_io`:(fill(SUM(`write_bytes`), linear) AS `写入量`) { `sqlserver_host` = '#{hostname}' and `file_type` = 'ROWS' and `database_name` != 'tempdb' }\")",
+              "q": "non_negative_derivative(\"M::`sqlserver_database_io`:(fill(SUM(`write_bytes`), linear) AS `{{.Dashboard.write_bytes}}`) { `sqlserver_host` = '#{hostname}' and `file_type` = 'ROWS' and `database_name` != 'tempdb' }\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -1036,12 +1263,12 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "读取量",
+              "alias": "{{.Dashboard.read_bytes}}",
               "code": "A",
               "dataSource": "sqlserver_database_io",
               "field": "read_bytes",
               "fieldFunc": "sum",
-              "fieldType": "integer",
+              "fieldType": "float",
               "fill": "linear",
               "filters": [
                 {
@@ -1073,7 +1300,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`sqlserver_database_io`:(fill(SUM(`read_bytes`), linear) AS `读取量`) { `sqlserver_host` = '#{hostname}' and `file_type` = 'ROWS' and `database_name` != 'tempdb' }\")",
+              "q": "non_negative_derivative(\"M::`sqlserver_database_io`:(fill(SUM(`read_bytes`), linear) AS `{{.Dashboard.read_bytes}}`) { `sqlserver_host` = '#{hostname}' and `file_type` = 'ROWS' and `database_name` != 'tempdb' }\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -1091,23 +1318,62 @@
       {
         "extend": {
           "fixedGroupByTime": null,
-          "fixedTime": null,
+          "fixedTime": "",
+          "isRefresh": true,
           "settings": {
+            "alias": [],
+            "changeWorkspace": false,
             "chartType": "areaLine",
             "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
             "currentChartType": "sequence",
             "density": "medium",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isPercent": false,
+            "isSampling": true,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
             "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "maxPointCount": 360,
+            "onlyShowGroupName": false,
             "openCompare": false,
             "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
             "showFieldMapping": false,
             "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
             "stackType": "time",
             "tableSortMetricName": "fill(last(read_bytes), <linear>)",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "custom",
             "units": [
               {
-                "key": "写入量",
-                "name": "写入量",
+                "key": "non_negative_derivative({{.Dashboard.write_bytes}})",
+                "name": "non_negative_derivative({{.Dashboard.write_bytes}})",
                 "unit": "",
                 "units": [
                   "digital",
@@ -1115,8 +1381,8 @@
                 ]
               },
               {
-                "key": "读取量",
-                "name": "读取量",
+                "key": "non_negative_derivative({{.Dashboard.read_bytes}})",
+                "name": "non_negative_derivative({{.Dashboard.read_bytes}})",
                 "unit": "",
                 "units": [
                   "digital",
@@ -1124,13 +1390,15 @@
                 ]
               }
             ],
-            "xAxisShowType": "time"
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
           }
         },
         "group": {
-          "name": "文件系统"
+          "name": "{{.Dashboard.file_system}}"
         },
-        "name": "日志文件读写量",
+        "name": "{{.Dashboard.log_file_read_write}}",
         "pos": {
           "h": 9,
           "w": 12,
@@ -1144,12 +1412,12 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "读取量",
+              "alias": "{{.Dashboard.read_bytes}}",
               "code": "A",
               "dataSource": "sqlserver_database_io",
               "field": "read_bytes",
               "fieldFunc": "sum",
-              "fieldType": "integer",
+              "fieldType": "float",
               "fill": null,
               "filters": [
                 {
@@ -1181,7 +1449,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`sqlserver_database_io`:(SUM(`read_bytes`) AS `读取量`) { `file_type` = 'LOG' and `database_name` != 'tempdb' }\")",
+              "q": "non_negative_derivative(\"M::`sqlserver_database_io`:(SUM(`read_bytes`) AS `{{.Dashboard.read_bytes}}`) { `file_type` = 'LOG' and `database_name` != 'tempdb' }\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -1199,12 +1467,12 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "写入量",
+              "alias": "{{.Dashboard.write_bytes}}",
               "code": "B",
               "dataSource": "sqlserver_database_io",
               "field": "write_bytes",
               "fieldFunc": "sum",
-              "fieldType": "integer",
+              "fieldType": "float",
               "fill": null,
               "filters": [
                 {
@@ -1236,7 +1504,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`sqlserver_database_io`:(SUM(`write_bytes`) AS `写入量`) { `file_type` = 'LOG' and `database_name` != 'tempdb' }\")",
+              "q": "non_negative_derivative(\"M::`sqlserver_database_io`:(SUM(`write_bytes`) AS `{{.Dashboard.write_bytes}}`) { `file_type` = 'LOG' and `database_name` != 'tempdb' }\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -1254,32 +1522,74 @@
       {
         "extend": {
           "fixedGroupByTime": null,
-          "fixedTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
           "links": [],
           "settings": {
+            "alias": [
+              {
+                "alias": "{{.Dashboard.db_name}}",
+                "key": "database_name",
+                "name": "database_name"
+              },
+              {
+                "alias": "{{.Dashboard.file_type}}",
+                "key": "file_type",
+                "name": "file_type"
+              },
+              {
+                "alias": "{{.Dashboard.logical_filename}}",
+                "key": "logical_filename",
+                "name": "logical_filename"
+              },
+              {
+                "alias": "{{.Dashboard.physical_filename}}",
+                "key": "physical_filename",
+                "name": "physical_filename"
+              }
+            ],
+            "aliasVersion": 2,
+            "changeWorkspace": false,
             "colors": [],
             "currentChartType": "table",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "isTimeInterval": false,
+            "levels": [],
+            "mainMeasurementLimit": 20,
+            "mainMeasurementQueryCode": "A",
+            "mainMeasurementSort": "top",
+            "openThousandsSeparator": false,
             "pageSize": 0,
+            "precision": "2",
             "queryMode": "toGroupColumn",
             "showFieldMapping": false,
+            "showTitle": true,
+            "slimit": 20,
             "tableSortMetricName": "fill(last(read_bytes), <linear>)",
+            "timeInterval": "1s",
+            "titleDesc": "",
+            "unitType": "custom",
             "units": [
               {
-                "key": "数据增量",
-                "name": "数据增量",
+                "key": "{{.Dashboard.data_write}}",
+                "name": "{{.Dashboard.data_write}}",
                 "unit": "",
                 "units": [
                   "digital",
                   "B"
                 ]
               }
-            ]
+            ],
+            "valColorMappings": [],
+            "valMappings": []
           }
         },
         "group": {
-          "name": "文件系统"
+          "name": "{{.Dashboard.file_system}}"
         },
-        "name": "数据文件",
+        "name": "{{.Dashboard.data_files}}",
         "pos": {
           "h": 14,
           "w": 24,
@@ -1293,12 +1603,12 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "数据增量",
+              "alias": "{{.Dashboard.data_write}}",
               "code": "A",
               "dataSource": "sqlserver_database_io",
               "field": "write_bytes",
               "fieldFunc": "avg",
-              "fieldType": "integer",
+              "fieldType": "float",
               "fill": "linear",
               "filters": [
                 {
@@ -1326,10 +1636,7 @@
                   "value": "ROWS"
                 }
               ],
-              "funcList": [
-                "last",
-                "top:100"
-              ],
+              "funcList": [],
               "groupBy": [
                 "database_name",
                 "file_type",
@@ -1338,7 +1645,7 @@
               ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`sqlserver_database_io`:(fill(AVG(`write_bytes`), linear) AS `数据增量`) { `sqlserver_host` = '#{hostname}' and `database_name` != 'tempdb' and `file_type` = 'ROWS' } BY `database_name`, `file_type`, `logical_filename`, `physical_filename`",
+              "q": "M::`sqlserver_database_io`:(fill(AVG(`write_bytes`), linear) AS `{{.Dashboard.data_write}}`) { `sqlserver_host` = '#{hostname}' and `database_name` != 'tempdb' and `file_type` = 'ROWS' } BY `database_name`, `file_type`, `logical_filename`, `physical_filename`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -1353,25 +1660,39 @@
           "fixedTime": "",
           "isRefresh": false,
           "settings": {
-            "alias": [],
+            "alias": [
+              {
+                "alias": "{{.Dashboard.db_name}}",
+                "key": "database_name",
+                "name": "database_name"
+              }
+            ],
+            "aliasVersion": 2,
+            "changeWorkspace": false,
             "colors": [],
             "currentChartType": "table",
             "fixedTime": "",
+            "globalUnit": [],
+            "isSampling": true,
             "isTimeInterval": false,
             "levels": [],
             "mainMeasurementLimit": 5,
             "mainMeasurementQueryCode": "A",
             "mainMeasurementSort": "top",
+            "openThousandsSeparator": false,
             "pageSize": 0,
+            "precision": "2",
             "queryMode": "toGroupColumn",
             "showFieldMapping": false,
             "showTitle": true,
-            "timeInterval": "default",
+            "slimit": 20,
+            "timeInterval": "auto",
             "titleDesc": "",
+            "unitType": "custom",
             "units": [
               {
-                "key": "数据量",
-                "name": "数据量",
+                "key": "{{.Dashboard.data_size}}",
+                "name": "{{.Dashboard.data_size}}",
                 "unit": "",
                 "units": [
                   "digital",
@@ -1379,8 +1700,8 @@
                 ]
               },
               {
-                "key": "日志量",
-                "name": "日志量",
+                "key": "{{.Dashboard.log_size}}",
+                "name": "{{.Dashboard.log_size}}",
                 "unit": "",
                 "units": [
                   "digital",
@@ -1393,9 +1714,9 @@
           }
         },
         "group": {
-          "name": "文件系统"
+          "name": "{{.Dashboard.file_system}}"
         },
-        "name": "库存储量",
+        "name": "{{.Dashboard.database_size}}",
         "pos": {
           "h": 13,
           "w": 24,
@@ -1409,7 +1730,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "数据量",
+              "alias": "{{.Dashboard.data_size}}",
               "code": "A",
               "dataSource": "sqlserver_database_size",
               "field": "data_size",
@@ -1425,7 +1746,7 @@
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`sqlserver_database_size`:(LAST(`data_size`) AS `数据量`) BY `database_name`",
+              "q": "M::`sqlserver_database_size`:(LAST(`data_size`) AS `{{.Dashboard.data_size}}`) BY `database_name`",
               "queryFuncs": [],
               "search": "",
               "type": "simple",
@@ -1440,7 +1761,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "日志量",
+              "alias": "{{.Dashboard.log_size}}",
               "code": "B",
               "dataSource": "sqlserver_database_size",
               "field": "log_size",
@@ -1456,7 +1777,7 @@
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`sqlserver_database_size`:(LAST(`log_size`) AS `日志量`) BY `database_name`",
+              "q": "M::`sqlserver_database_size`:(LAST(`log_size`) AS `{{.Dashboard.log_size}}`) BY `database_name`",
               "queryFuncs": [],
               "search": "",
               "type": "simple",
@@ -1475,6 +1796,7 @@
           "isRefresh": false,
           "settings": {
             "alias": [],
+            "changeWorkspace": false,
             "chartType": "areaLine",
             "colors": [],
             "compareColors": {
@@ -1499,27 +1821,38 @@
             "currentChartType": "sequence",
             "density": "medium",
             "fixedTime": "",
+            "globalUnit": [],
             "isPercent": false,
+            "isSampling": true,
             "isTimeInterval": true,
             "legendPostion": "none",
             "legendValues": "",
             "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "maxPointCount": 360,
+            "onlyShowGroupName": false,
             "openCompare": false,
             "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
             "showFieldMapping": false,
             "showLine": false,
             "showTitle": true,
+            "slimit": 20,
             "stackType": "time",
             "timeInterval": "auto",
             "titleDesc": "",
+            "unitType": "global",
             "units": [],
-            "xAxisShowType": "time"
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
           }
         },
         "group": {
-          "name": "锁信息"
+          "name": "{{.Dashboard.group_locks}}"
         },
-        "name": "库锁",
+        "name": "{{.Dashboard.db_locks}}",
         "pos": {
           "h": 10,
           "w": 8,
@@ -1533,12 +1866,12 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "库锁信息",
+              "alias": "{{.Dashboard.db_locks}}",
               "code": "A",
               "dataSource": "sqlserver_lock_database",
               "field": "resource_database_id",
               "fieldFunc": "count_distinct",
-              "fieldType": "integer",
+              "fieldType": "keyword",
               "fill": "previous",
               "filters": [
                 {
@@ -1557,7 +1890,7 @@
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DIFFERENCE(\"M::`sqlserver_lock_database`:(fill(COUNT_DISTINCT(`resource_database_id`), previous) AS `库锁信息`) { `request_type` != 'S' } BY `db_name`\")",
+              "q": "non_negative_difference(\"M::`sqlserver_lock_database`:(fill(COUNT_DISTINCT(`resource_database_id`), previous) AS `{{.Dashboard.db_locks}}`) { `request_type` != 'S' } BY `db_name`\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -1579,6 +1912,7 @@
           "isRefresh": false,
           "settings": {
             "alias": [],
+            "changeWorkspace": false,
             "chartType": "areaLine",
             "colors": [],
             "compareColors": {
@@ -1603,27 +1937,38 @@
             "currentChartType": "sequence",
             "density": "medium",
             "fixedTime": "",
+            "globalUnit": [],
             "isPercent": false,
+            "isSampling": true,
             "isTimeInterval": true,
             "legendPostion": "none",
             "legendValues": "",
             "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "maxPointCount": 360,
+            "onlyShowGroupName": false,
             "openCompare": false,
             "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
             "showFieldMapping": false,
             "showLine": false,
             "showTitle": true,
+            "slimit": 20,
             "stackType": "time",
             "timeInterval": "auto",
             "titleDesc": "",
+            "unitType": "global",
             "units": [],
-            "xAxisShowType": "time"
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
           }
         },
         "group": {
-          "name": "锁信息"
+          "name": "{{.Dashboard.group_locks}}"
         },
-        "name": "表锁信息",
+        "name": "{{.Dashboard.table_locks}}",
         "pos": {
           "h": 10,
           "w": 8,
@@ -1637,12 +1982,12 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "表锁",
+              "alias": "{{.Dashboard.table_locks}}",
               "code": "A",
               "dataSource": "sqlserver_lock_table",
               "field": "request_session_id",
               "fieldFunc": "count_distinct",
-              "fieldType": "integer",
+              "fieldType": "keyword",
               "fill": null,
               "filters": [
                 {
@@ -1669,7 +2014,7 @@
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`sqlserver_lock_table`:(COUNT_DISTINCT(`request_session_id`) AS `表锁`) { `request_mode` != 'S' and `request_mode` != 'IS' } BY `object_name`",
+              "q": "M::`sqlserver_lock_table`:(COUNT_DISTINCT(`request_session_id`) AS `{{.Dashboard.table_locks}}`) { `request_mode` != 'S' and `request_mode` != 'IS' } BY `object_name`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -1686,6 +2031,7 @@
           "isRefresh": false,
           "settings": {
             "alias": [],
+            "changeWorkspace": false,
             "chartType": "areaLine",
             "colors": [],
             "compareColors": {
@@ -1710,27 +2056,38 @@
             "currentChartType": "sequence",
             "density": "medium",
             "fixedTime": "",
+            "globalUnit": [],
             "isPercent": false,
+            "isSampling": true,
             "isTimeInterval": true,
             "legendPostion": "none",
             "legendValues": "",
             "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "maxPointCount": 360,
+            "onlyShowGroupName": false,
             "openCompare": false,
             "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
             "showFieldMapping": false,
             "showLine": false,
             "showTitle": true,
+            "slimit": 20,
             "stackType": "time",
             "timeInterval": "auto",
             "titleDesc": "",
+            "unitType": "global",
             "units": [],
-            "xAxisShowType": "time"
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
           }
         },
         "group": {
-          "name": "锁信息"
+          "name": "{{.Dashboard.group_locks}}"
         },
-        "name": "行锁",
+        "name": "{{.Dashboard.row_locks}}",
         "pos": {
           "h": 10,
           "w": 8,
@@ -1744,12 +2101,12 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "行锁",
+              "alias": "{{.Dashboard.row_locks}}",
               "code": "A",
               "dataSource": "sqlserver_lock_row",
               "field": "session_id",
               "fieldFunc": "count_distinct",
-              "fieldType": "long",
+              "fieldType": "keyword",
               "fill": "previous",
               "filters": [],
               "funcList": [],
@@ -1757,7 +2114,7 @@
               "groupByTime": "",
               "indexFilter": "default",
               "namespace": "logging",
-              "q": "NON_NEGATIVE_DIFFERENCE(\"L::`sqlserver_lock_row`:(fill(COUNT_DISTINCT(`session_id`), previous) AS `行锁`) { `index` = 'default' }\")",
+              "q": "non_negative_difference(\"L::`sqlserver_lock_row`:(fill(COUNT_DISTINCT(`session_id`), previous) AS `{{.Dashboard.row_locks}}`) { `index` = 'default' }\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -1789,25 +2146,27 @@
               },
               {
                 "field": "message",
-                "headerName": "SQL详情"
+                "headerName": "{{.Dashboard.sql_query}}"
               },
               {
                 "field": "total_logical_reads",
-                "headerName": " 总逻辑IO"
+                "headerName": " {{.Dashboard.total_logical_io}}"
               },
               {
                 "field": "execution_count",
-                "headerName": " 执行次数"
+                "headerName": " {{.Dashboard.exec_count}}"
               },
               {
                 "field": "avg_logical_io",
-                "headerName": " 平均逻辑IO"
+                "headerName": "{{.Dashboard.avg_logical_io}}"
               }
             ],
             "alias": [],
+            "changeWorkspace": false,
             "colors": [],
             "currentChartType": "log",
             "fixedTime": "",
+            "globalUnit": [],
             "inColumns": [
               {
                 "cellRenderer": "StatusCellRender",
@@ -1817,21 +2176,24 @@
                 "showTooltip": false
               }
             ],
+            "index": "default",
+            "isSampling": true,
             "isTimeInterval": false,
             "levels": [],
             "showFieldMapping": false,
             "showTitle": true,
             "timeInterval": "",
             "titleDesc": "",
+            "unitType": "global",
             "units": [],
             "valColorMappings": [],
             "valMappings": []
           }
         },
         "group": {
-          "name": "SQL质量"
+          "name": "{{.Dashboard.group_sql_quality}}"
         },
-        "name": "逻辑IO",
+        "name": "{{.Dashboard.logical_io}}",
         "pos": {
           "h": 18,
           "w": 24,
@@ -1863,22 +2225,22 @@
                   "hide": true
                 },
                 {
-                  "alias": "SQL详情",
+                  "alias": "{{.Dashboard.sql_query}}",
                   "field": "message",
                   "isEditAlias": false
                 },
                 {
-                  "alias": " 总逻辑IO",
+                  "alias": " {{.Dashboard.total_logical_io}}",
                   "field": "total_logical_reads",
                   "isEditAlias": false
                 },
                 {
-                  "alias": " 执行次数",
+                  "alias": " {{.Dashboard.exec_count}}",
                   "field": "execution_count",
                   "isEditAlias": false
                 },
                 {
-                  "alias": " 平均逻辑IO",
+                  "alias": "{{.Dashboard.avg_logical_io}}",
                   "field": "avg_logical_io",
                   "isEditAlias": false
                 }
@@ -1896,6 +2258,7 @@
               "funcList": [],
               "groupBy": [],
               "groupByTime": "",
+              "highlight": true,
               "indexFilter": "default",
               "namespace": "logging",
               "q": "L::`sqlserver_logical_io`:(`status`, `__docid`, `message`, `total_logical_reads`, `execution_count`, `avg_logical_io`) { `index` = 'default' }",
@@ -1924,25 +2287,27 @@
               },
               {
                 "field": "message",
-                "headerName": "SQL详情"
+                "headerName": "{{.Dashboard.sql_query}}"
               },
               {
                 "field": "total_worker_time",
-                "headerName": " CPU总执行时间"
+                "headerName": "{{.Dashboard.total_cpu_time}}"
               },
               {
                 "field": "execution_count",
-                "headerName": " 执行次数"
+                "headerName": " {{.Dashboard.exec_count}}"
               },
               {
                 "field": "avg_worker_time",
-                "headerName": " CPU平均执行时间"
+                "headerName": "{{.Dashboard.avg_cpu_time}}"
               }
             ],
             "alias": [],
+            "changeWorkspace": false,
             "colors": [],
             "currentChartType": "log",
             "fixedTime": "",
+            "globalUnit": [],
             "inColumns": [
               {
                 "cellRenderer": "StatusCellRender",
@@ -1952,12 +2317,15 @@
                 "showTooltip": false
               }
             ],
+            "index": "default",
+            "isSampling": true,
             "isTimeInterval": false,
             "levels": [],
             "showFieldMapping": false,
             "showTitle": true,
             "timeInterval": "",
             "titleDesc": "",
+            "unitType": "custom",
             "units": [
               {
                 "key": "total_worker_time",
@@ -1983,9 +2351,9 @@
           }
         },
         "group": {
-          "name": "SQL质量"
+          "name": "{{.Dashboard.group_sql_quality}}"
         },
-        "name": "CPU时间",
+        "name": "{{.Dashboard.cpu_time}}",
         "pos": {
           "h": 18,
           "w": 24,
@@ -2017,22 +2385,22 @@
                   "hide": true
                 },
                 {
-                  "alias": "SQL详情",
+                  "alias": "{{.Dashboard.sql_query}}",
                   "field": "message",
                   "isEditAlias": false
                 },
                 {
-                  "alias": " CPU总执行时间",
+                  "alias": "{{.Dashboard.total_cpu_time}}",
                   "field": "total_worker_time",
                   "isEditAlias": false
                 },
                 {
-                  "alias": " 执行次数",
+                  "alias": " {{.Dashboard.exec_count}}",
                   "field": "execution_count",
                   "isEditAlias": false
                 },
                 {
-                  "alias": " CPU平均执行时间",
+                  "alias": "{{.Dashboard.avg_cpu_time}}",
                   "field": "avg_worker_time",
                   "isEditAlias": false
                 }
@@ -2042,6 +2410,7 @@
               "funcList": [],
               "groupBy": [],
               "groupByTime": "",
+              "highlight": true,
               "indexFilter": "default",
               "namespace": "logging",
               "q": "L::`sqlserver_worker_time`:(`status`, `__docid`, `message`, `total_worker_time`, `execution_count`, `avg_worker_time`) { `index` = 'default' }",
@@ -2061,6 +2430,7 @@
           "isRefresh": false,
           "settings": {
             "alias": [],
+            "changeWorkspace": false,
             "chartType": "areaLine",
             "colors": [],
             "compareColors": {
@@ -2085,27 +2455,36 @@
             "currentChartType": "sequence",
             "density": "medium",
             "fixedTime": "",
+            "globalUnit": [],
             "isPercent": false,
+            "isSampling": true,
             "isTimeInterval": true,
             "legendPostion": "none",
             "legendValues": "",
             "levels": [],
+            "maxPointCount": 360,
+            "onlyShowGroupName": false,
             "openCompare": false,
             "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
             "showFieldMapping": false,
             "showLine": false,
             "showTitle": true,
             "stackType": "time",
             "timeInterval": "auto",
             "titleDesc": "",
+            "unitType": "global",
             "units": [],
-            "xAxisShowType": "time"
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
           }
         },
         "group": {
-          "name": "基础监控"
+          "name": "{{.Dashboard.overview}}"
         },
-        "name": "CPU使用",
+        "name": "{{.Dashboard.cpu_usage}}",
         "pos": {
           "h": 8,
           "w": 6,
@@ -2149,6 +2528,7 @@
           "isRefresh": false,
           "settings": {
             "alias": [],
+            "changeWorkspace": false,
             "chartType": "areaLine",
             "colors": [],
             "compareColors": {
@@ -2173,27 +2553,36 @@
             "currentChartType": "sequence",
             "density": "medium",
             "fixedTime": "",
+            "globalUnit": [],
             "isPercent": false,
+            "isSampling": true,
             "isTimeInterval": true,
             "legendPostion": "none",
             "legendValues": "",
             "levels": [],
+            "maxPointCount": 360,
+            "onlyShowGroupName": false,
             "openCompare": false,
             "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
             "showFieldMapping": false,
             "showLine": false,
             "showTitle": true,
             "stackType": "time",
             "timeInterval": "auto",
             "titleDesc": "",
+            "unitType": "global",
             "units": [],
-            "xAxisShowType": "time"
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
           }
         },
         "group": {
-          "name": "基础监控"
+          "name": "{{.Dashboard.overview}}"
         },
-        "name": "内存使用",
+        "name": "{{.Dashboard.mem_usage}}",
         "pos": {
           "h": 8,
           "w": 6,
@@ -2247,29 +2636,31 @@
               },
               {
                 "field": "db_name",
-                "headerName": " 死锁所在库"
+                "headerName": " {{.Dashboard.dead_locks_db_name}}"
               },
               {
                 "field": "blocking_session_id",
-                "headerName": " 阻塞源事物ID"
+                "headerName": " {{.Dashboard.dead_locks_session_id}}"
               },
               {
                 "field": "blocking_text",
-                "headerName": " 阻塞事物"
+                "headerName": " {{.Dashboard.dead_locks_blocking_text}}"
               },
               {
                 "field": "request_session_id",
-                "headerName": " 被阻塞事物ID"
+                "headerName": "{{.Dashboard.dead_locks_blocking_session_id}}"
               },
               {
                 "field": "requesting_text",
-                "headerName": " 被阻塞事物"
+                "headerName": "{{.Dashboard.dead_locks_request_text}}"
               }
             ],
             "alias": [],
+            "changeWorkspace": false,
             "colors": [],
             "currentChartType": "log",
             "fixedTime": "",
+            "globalUnit": [],
             "inColumns": [
               {
                 "cellRenderer": "StatusCellRender",
@@ -2279,21 +2670,24 @@
                 "showTooltip": false
               }
             ],
+            "index": "default",
+            "isSampling": true,
             "isTimeInterval": false,
             "levels": [],
             "showFieldMapping": false,
             "showTitle": true,
             "timeInterval": "",
             "titleDesc": "",
+            "unitType": "global",
             "units": [],
             "valColorMappings": [],
             "valMappings": []
           }
         },
         "group": {
-          "name": "锁信息"
+          "name": "{{.Dashboard.group_locks}}"
         },
-        "name": "死锁",
+        "name": "{{.Dashboard.dead_locks}}",
         "pos": {
           "h": 15,
           "w": 24,
@@ -2325,27 +2719,27 @@
                   "hide": true
                 },
                 {
-                  "alias": " 死锁所在库",
+                  "alias": " {{.Dashboard.dead_locks_db_name}}",
                   "field": "db_name",
                   "isEditAlias": false
                 },
                 {
-                  "alias": " 阻塞源事物ID",
+                  "alias": " {{.Dashboard.dead_locks_session_id}}",
                   "field": "blocking_session_id",
                   "isEditAlias": false
                 },
                 {
-                  "alias": " 阻塞事物",
+                  "alias": " {{.Dashboard.dead_locks_blocking_text}}",
                   "field": "blocking_text",
                   "isEditAlias": false
                 },
                 {
-                  "alias": " 被阻塞事物ID",
+                  "alias": "{{.Dashboard.dead_locks_blocking_session_id}}",
                   "field": "request_session_id",
                   "isEditAlias": false
                 },
                 {
-                  "alias": " 被阻塞事物",
+                  "alias": "{{.Dashboard.dead_locks_request_text}}",
                   "field": "requesting_text",
                   "isEditAlias": false
                 }
@@ -2355,6 +2749,7 @@
               "funcList": [],
               "groupBy": [],
               "groupByTime": "",
+              "highlight": true,
               "indexFilter": "default",
               "namespace": "logging",
               "q": "L::`sqlserver_lock_dead`:(`status`, `__docid`, `db_name`, `blocking_session_id`, `blocking_text`, `request_session_id`, `requesting_text`) { `index` = 'default' }",
@@ -2369,10 +2764,10 @@
       }
     ],
     "groups": [
-      "基础监控",
-      "文件系统",
-      "锁信息",
-      "SQL质量"
+      "{{.Dashboard.overview}}",
+      "{{.Dashboard.file_system}}",
+      "{{.Dashboard.group_locks}}",
+      "{{.Dashboard.group_sql_quality}}"
     ],
     "type": "template",
     "vars": [
@@ -2387,6 +2782,7 @@
           "value": "show_tag_value(from=['sqlserver'],keyin=['sqlserver_host'])"
         },
         "hide": 0,
+        "isHiddenAsterisk": 0,
         "name": "主机名",
         "seq": 0,
         "type": "QUERY",
@@ -2396,7 +2792,6 @@
   },
   "summary": "",
   "tagInfo": [],
-  "tags": [],
   "thumbnail": "",
-  "title": "SQL Server 监控视图-精简版"
+  "title": "{{.Dashboard.title}}"
 }
