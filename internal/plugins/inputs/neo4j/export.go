@@ -64,7 +64,3 @@ func (*Input) Dashboard(lang inputs.I18n) map[string]string {
 		return nil
 	}
 }
-
-func (*Input) DashboardList() []string {
-	return nil
-}

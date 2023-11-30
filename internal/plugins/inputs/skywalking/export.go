@@ -23,7 +23,3 @@ func (ipt *Input) Dashboard(lang inputs.I18n) map[string]string {
 		return nil
 	}
 }
-
-func (ipt *Input) DashboardList() []string {
-	return nil
-}

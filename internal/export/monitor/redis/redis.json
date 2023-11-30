@@ -1,0 +1,67 @@
+{
+  "checkers": [
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "redis",
+              "field": "blocked_clients",
+              "fieldFunc": "last",
+              "fieldType": "integer",
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`redis`:(LAST(`blocked_clients`))  by `host`",
+              "type": "simple"
+            },
+            "uuid": "166892fb-25c4-4244-9ba6-efa8b307da10"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "0"
+                  ],
+                  "operator": ">"
+                }
+              ],
+              "status": "critical"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "host"
+        ],
+        "interval": 900,
+        "message": "<<.Monitor.message>>",
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`redis`:(LAST(`blocked_clients`))  by `host`"
+          }
+        ],
+        "title": "<<.Monitor.title>>",
+        "type": "simpleCheck"
+      },
+      "monitorName": "<<.Monitor.monitor_name>>"
+    }
+  ]
+}

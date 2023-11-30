@@ -1,0 +1,151 @@
+{
+  "checkers": [
+    {
+      "extend": {
+        "funcName": "",
+        "isNeedCreateIssue": false,
+        "issueLevelUUID": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "postgresql_connection",
+              "field": "percent_usage_connections",
+              "fieldFunc": "max",
+              "fieldType": "float",
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "db",
+                "server"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`postgresql_connection`:(MAX(`percent_usage_connections`)) BY `db`, `server`",
+              "type": "simple"
+            },
+            "uuid": "9de6202c-4001-49c4-93e1-3af12dec0a8a"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "90"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "critical"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "80",
+                  "90"
+                ],
+                "operator": "between"
+              }
+            ],
+            "status": "error"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "50"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "warning"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "atAccounts": [],
+        "atNoDataAccounts": [],
+        "channels": [],
+        "checkerOpt": {
+          "infoEvent": false,
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "90"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "critical"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "80",
+                    "90"
+                  ],
+                  "operator": "between"
+                }
+              ],
+              "status": "error"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "50"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "warning"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "db",
+          "server"
+        ],
+        "interval": 300,
+        "message": "<<.Monitor.message>>",
+        "noDataMessage": "",
+        "noDataTitle": "",
+        "recoverNeedPeriodCount": 1,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`postgresql_connection`:(MAX(`percent_usage_connections`)) BY `db`, `server`",
+            "qtype": "dql"
+          }
+        ],
+        "title": "<<.Monitor.title>>",
+        "type": "simpleCheck"
+      },
+      "monitorName": "<<.Monitor.default_monitor_name>>",
+      "secret": "",
+      "tagInfo": []
+    }
+  ]
+}

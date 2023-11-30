@@ -1,0 +1,842 @@
+{
+  "checkers": [
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "mem",
+              "field": "used_percent",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`mem`:(LAST(`used_percent`)) BY `host`",
+              "type": "simple"
+            },
+            "uuid": "713bbfc3-a189-4a1a-8039-1776da67c5d0"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "80",
+                  "90"
+                ],
+                "operator": "between"
+              }
+            ],
+            "status": "warning"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "90"
+                ],
+                "operator": ">"
+              }
+            ],
+            "status": "critical"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "80",
+                    "90"
+                  ],
+                  "operator": "between"
+                }
+              ],
+              "status": "warning"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "90"
+                  ],
+                  "operator": ">"
+                }
+              ],
+              "status": "critical"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "host"
+        ],
+        "interval": 300,
+        "message": ">Level: {{status}}  \n>Host: {{host}}  \n>Content: Memory usage is {{ Result |  to_fixed(2) }}%.  \n>Suggest: Infrastructure-Process-Select Host-Memory Usage (rank), to see if it is caused by an exception.",
+        "recoverNeedPeriodCount": 1,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`mem`:(LAST(`used_percent`)) BY `host`"
+          }
+        ],
+        "title": "The memory usage of Host {{ host }} is too high.",
+        "type": "simpleCheck"
+      },
+      "monitorName": "Host Detection Library"
+    },
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "children": [
+                {
+                  "alias": "",
+                  "code": "A",
+                  "dataSource": "cpu",
+                  "field": "usage_idle",
+                  "fieldFunc": "last",
+                  "fieldType": "float",
+                  "filters": [],
+                  "groupBy": [
+                    "host"
+                  ],
+                  "groupByTime": "",
+                  "namespace": "metric",
+                  "q": "M::`cpu`:(LAST(`usage_idle`)) BY `host`",
+                  "queryFuncs": [],
+                  "type": "simple"
+                }
+              ],
+              "code": "Result",
+              "expression": "100 - A",
+              "funcList": [],
+              "q": "eval(100 - A, A=\"M::`cpu`:(LAST(`usage_idle`)) BY `host`\")",
+              "type": "expression"
+            },
+            "uuid": "d10d4505-aca8-48c5-b80a-2ce8f24b26cd"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "90"
+                ],
+                "operator": ">"
+              }
+            ],
+            "status": "critical"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "80",
+                  "90"
+                ],
+                "operator": "between"
+              }
+            ],
+            "status": "warning"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "90"
+                  ],
+                  "operator": ">"
+                }
+              ],
+              "status": "critical"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "80",
+                    "90"
+                  ],
+                  "operator": "between"
+                }
+              ],
+              "status": "warning"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "host"
+        ],
+        "interval": 300,
+        "message": ">Level: {{status}}  \n>Host: {{host}}  \n>Content: System CPU usage is {{ Result |  to_fixed(2) }}%.  \n>Suggest: Infrastructure-Process-Select Host-CPU Usage (rank), to see if it is caused by an exception.",
+        "recoverNeedPeriodCount": 1,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "eval(100 - A, A=\"M::`cpu`:(LAST(`usage_idle`)) BY `host`\")"
+          }
+        ],
+        "title": "The CPU usage of Host {{ host }} is too high.",
+        "type": "simpleCheck"
+      },
+      "monitorName": "Host Detection Library"
+    },
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "children": [
+                {
+                  "alias": "",
+                  "code": "A",
+                  "dataSource": "mem",
+                  "field": "available",
+                  "fieldFunc": "last",
+                  "fieldType": "integer",
+                  "groupBy": [
+                    "host"
+                  ],
+                  "groupByTime": "",
+                  "namespace": "metric",
+                  "q": "M::`mem`:(LAST(`available`)) BY `host`",
+                  "queryFuncs": [],
+                  "type": "simple"
+                }
+              ],
+              "code": "Result",
+              "expression": "A/1024/1024",
+              "funcList": [],
+              "q": "eval(A/1024/1024, A=\"M::`mem`:(LAST(`available`)) BY `host`\")",
+              "type": "expression"
+            },
+            "uuid": "65abbb09-1301-4ef7-b154-c81352c90373"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "100"
+                ],
+                "operator": "<="
+              }
+            ],
+            "status": "critical"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "100"
+                  ],
+                  "operator": "<="
+                }
+              ],
+              "status": "critical"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "host"
+        ],
+        "interval": 300,
+        "message": ">Level: {{status}}  \n>Host: {{host}}  \n>Content: Memory is {{ Result |  to_fixed(2) }}M. \n>Suggest: Infrastructure-Process-Select Host-Memory Usage (rank), to see if it is caused by an exception.",
+        "recoverNeedPeriodCount": 1,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "eval(A/1024/1024, A=\"M::`mem`:(LAST(`available`)) BY `host`\")"
+          }
+        ],
+        "title": "The memory of Host {{ host }} is less than 100M.",
+        "type": "simpleCheck"
+      },
+      "monitorName": "Host Detection Library"
+    },
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "system",
+              "field": "load5_per_core",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`system`:(LAST(`load5_per_core`)) BY `host`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "uuid": "f691f977-6b4c-401f-bb73-d8913faa47e1"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "2",
+                  "5"
+                ],
+                "operator": "between"
+              }
+            ],
+            "status": "warning"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "5"
+                ],
+                "operator": ">"
+              }
+            ],
+            "status": "critical"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "2",
+                    "5"
+                  ],
+                  "operator": "between"
+                }
+              ],
+              "status": "warning"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "5"
+                  ],
+                  "operator": ">"
+                }
+              ],
+              "status": "critical"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "host"
+        ],
+        "interval": 300,
+        "message": ">Level: {{status}}  \n>Host: {{host}}  \n>Content: Average system CPU load is {{ Result |  to_fixed(2) }}.  \n>Suggest: High load average, possibly caused by CPU-intensive application processes. If CPU usage is not high at the same time, it may be caused by I/O-intensive application processes.",
+        "recoverNeedPeriodCount": 1,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`system`:(LAST(`load5_per_core`)) BY `host`"
+          }
+        ],
+        "title": "The average CPU load of Host {{ host }} is too high.",
+        "type": "simpleCheck"
+      },
+      "monitorName": "Host Detection Library"
+    },
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "children": [
+                {
+                  "alias": "",
+                  "code": "A",
+                  "dataSource": "disk",
+                  "field": "used_percent",
+                  "fieldFunc": "last",
+                  "fieldType": "float",
+                  "filters": [],
+                  "groupBy": [
+                    "host",
+                    "device"
+                  ],
+                  "groupByTime": "",
+                  "namespace": "metric",
+                  "q": "M::`disk`:(LAST(`used_percent`)) BY `host`, `device`",
+                  "queryFuncs": [],
+                  "type": "simple"
+                }
+              ],
+              "code": "Result",
+              "expression": "100-A",
+              "funcList": [],
+              "q": "eval(100-A, A=\"M::`disk`:(LAST(`used_percent`)) BY `host`, `device`\")",
+              "type": "expression"
+            },
+            "uuid": "4c123741-2f0a-4c67-9887-fee9cb651835"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "10",
+                  "5"
+                ],
+                "operator": "between"
+              }
+            ],
+            "status": "warning"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "5"
+                ],
+                "operator": "<"
+              }
+            ],
+            "status": "critical"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "infoEvent": false,
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "10",
+                    "5"
+                  ],
+                  "operator": "between"
+                }
+              ],
+              "status": "warning"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "5"
+                  ],
+                  "operator": "<"
+                }
+              ],
+              "status": "critical"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "host",
+          "device"
+        ],
+        "interval": 300,
+        "message": ">Level: {{status}}  \n>Host: {{host}}  \n>Content: The remaining space of Disk {{device}} is {{ Result |  to_fixed(2) }}%.  \n>Suggest: The disk space is about to be exhausted, which will prevent normal data writing. Please clean up unnecessary files in time.",
+        "recoverNeedPeriodCount": 1,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "eval(100-A, A=\"M::`disk`:(LAST(`used_percent`)) BY `host`, `device`\")"
+          }
+        ],
+        "title": "The remaining disk space of Host {{ host }} is too low.",
+        "type": "simpleCheck"
+      },
+      "monitorName": "Host Detection Library"
+    },
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "swap",
+              "field": "used_percent",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`swap`:(LAST(`used_percent`)) BY `host`",
+              "type": "simple"
+            },
+            "uuid": "889b6426-b112-47ed-bf80-17ab7347c7f5"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "90"
+                ],
+                "operator": ">"
+              }
+            ],
+            "status": "critical"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "80",
+                  "90"
+                ],
+                "operator": "between"
+              }
+            ],
+            "status": "warning"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "90"
+                  ],
+                  "operator": ">"
+                }
+              ],
+              "status": "critical"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "80",
+                    "90"
+                  ],
+                  "operator": "between"
+                }
+              ],
+              "status": "warning"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "host"
+        ],
+        "interval": 300,
+        "message": ">Level: {{status}}  \n>Host: {{host}}  \n>Content: Memory swap usage is {{ Result |  to_fixed(2) }}%.  \n>Suggest: Exhaustion of memory swap may cause downtime risk. Please check whether the processes or applications with high memory usage is caused by an exception.",
+        "recoverNeedPeriodCount": 1,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`swap`:(LAST(`used_percent`)) BY `host`"
+          }
+        ],
+        "title": "The memory swap usage of Host {{ host }} is too high.",
+        "type": "simpleCheck"
+      },
+      "monitorName": "Host Detection Library"
+    },
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "children": [
+                {
+                  "alias": "",
+                  "code": "A",
+                  "dataSource": "disk",
+                  "field": "inodes_free",
+                  "fieldFunc": "last",
+                  "fieldType": "integer",
+                  "groupBy": [
+                    "host",
+                    "device"
+                  ],
+                  "groupByTime": "",
+                  "namespace": "metric",
+                  "q": "M::`disk`:(LAST(`inodes_free`)) BY `host`, `device`",
+                  "queryFuncs": [],
+                  "type": "simple"
+                },
+                {
+                  "alias": "",
+                  "code": "B",
+                  "dataSource": "disk",
+                  "field": "inodes_total",
+                  "fieldFunc": "last",
+                  "fieldType": "integer",
+                  "groupBy": [
+                    "host",
+                    "device"
+                  ],
+                  "groupByTime": "",
+                  "namespace": "metric",
+                  "q": "M::`disk`:(LAST(`inodes_total`)) BY `host`, `device`",
+                  "type": "simple"
+                }
+              ],
+              "code": "Result",
+              "expression": "A/B*100",
+              "funcList": [],
+              "q": "eval(A/B*100, A=\"M::`disk`:(LAST(`inodes_free`)) BY `host`, `device`\", B=\"M::`disk`:(LAST(`inodes_total`)) BY `host`, `device`\")",
+              "type": "expression"
+            },
+            "uuid": "b3cfb628-67c5-45c5-b502-41ffcef605c0"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "5"
+                ],
+                "operator": "<="
+              }
+            ],
+            "status": "critical"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "5"
+                  ],
+                  "operator": "<="
+                }
+              ],
+              "status": "critical"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "host",
+          "device"
+        ],
+        "interval": 300,
+        "message": ">Level: {{status}}  \n>Host: {{host}}  \n>Content: The remaining inode of the file system is {{ Result |  to_fixed(2) }}%.  \n>Suggest: If the inode of the file system is exhausted, data cannot be written. Please check whether a large number of small files occupy inode.",
+        "recoverNeedPeriodCount": 1,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "eval(A/B*100, A=\"M::`disk`:(LAST(`inodes_free`)) BY `host`, `device`\", B=\"M::`disk`:(LAST(`inodes_total`)) BY `host`, `device`\")"
+          }
+        ],
+        "title": "The remaining inode of the file system on Host {{ host }} is too low.",
+        "type": "simpleCheck"
+      },
+      "monitorName": "Host Detection Library"
+    },
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "cpu",
+              "field": "usage_iowait",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`cpu`:(LAST(`usage_iowait`)) BY `host`",
+              "type": "simple"
+            },
+            "uuid": "a4e4a3dd-0b1b-4cec-b90b-ae9a6f1c0c09"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "60"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "warning"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "60"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "warning"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "host"
+        ],
+        "interval": 300,
+        "message": ">Level: {{status}}  \n>Host: {{host}}  \n>Content: The system CPU IOwait is {{ Result |  to_fixed(2) }}%.  \n>Suggest: The CPU waits too long for I/O, and there may be frequent writes or I/O bottlenecks.",
+        "recoverNeedPeriodCount": 1,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`cpu`:(LAST(`usage_iowait`)) BY `host`"
+          }
+        ],
+        "title": "CPU IOwait of Host {{ host }} is too high.",
+        "type": "simpleCheck"
+      },
+      "monitorName": "Host Detection Library"
+    }
+  ]
+}

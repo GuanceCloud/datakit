@@ -40,17 +40,3 @@ func (ipt *Input) Monitor(lang inputs.I18n) map[string]string {
 		return nil
 	}
 }
-
-func (ipt *Input) MonitorList() []string {
-	return nil
-}
-
-func (ipt *Input) DashboardList() []string {
-	return []string{
-		"kubernetes",
-		"kubernetes_events",
-		"kubernetes_nodes_overview",
-		"kubernetes_pods_overview",
-		"kubernetes_service",
-	}
-}

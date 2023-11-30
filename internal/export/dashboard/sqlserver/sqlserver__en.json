@@ -1,0 +1,2402 @@
+{
+  "dashboardBindSet": [],
+  "dashboardExtend": {},
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "dashboardType": "CUSTOM",
+  "iconSet": {
+    "icon": "https://static-res.guance.com/dataflux-template/dashboard/sqlserver/icon.svg",
+    "url": "https://static-res.guance.com/dataflux-template/dashboard/sqlserver/sqlserver.png"
+  },
+  "main": {
+    "charts": [
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": null,
+          "settings": {
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "showFieldMapping": false,
+            "showLine": true,
+            "showLineAxis": false,
+            "tableSortMetricName": "fill(last(cpu_count), <previous>)",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "基础监控"
+        },
+        "name": "CPU逻辑核心",
+        "pos": {
+          "h": 8,
+          "w": 6,
+          "x": 0,
+          "y": 2.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "sqlserver",
+              "density": "medium",
+              "field": "cpu_count",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "previous",
+              "filters": [
+                {
+                  "id": "863d0020-c90b-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver`:(fill(AVG(`cpu_count`), previous)) { `sqlserver_host` = '#{hostname}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "colors": [],
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": true,
+            "showLineAxis": false,
+            "showTitle": true,
+            "tableSortMetricName": "总占用",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "总占用",
+                "name": "总占用",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "Kb"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": "基础监控"
+        },
+        "name": "内存",
+        "pos": {
+          "h": 8,
+          "w": 6,
+          "x": 6,
+          "y": 2.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "总占用",
+              "code": "A",
+              "dataSource": "sqlserver",
+              "field": "server_memory",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "393b5680-c90d-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver`:(fill(AVG(`server_memory`), linear) AS `总占用`) { `sqlserver_host` = '#{hostname}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": null,
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "levels": [],
+            "openCompare": false,
+            "openStack": true,
+            "showFieldMapping": false,
+            "showLine": false,
+            "stackType": "time",
+            "tableSortMetricName": "last(cntr_value)",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "基础监控"
+        },
+        "name": "活跃事务数",
+        "pos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 10.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "活跃事务",
+              "code": "C",
+              "dataSource": "sqlserver_performance",
+              "field": "cntr_value",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "fd200a80-c90f-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                },
+                {
+                  "id": "474cd750-c910-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "counter_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "Active Transactions"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "instance"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver_performance`:(fill(AVG(`cntr_value`), linear) AS `活跃事务`) { `sqlserver_host` = '#{hostname}' and `counter_name` = 'Active Transactions' } BY `instance`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "high",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "stackType": "time",
+            "tableSortMetricName": "已占用",
+            "units": [
+              {
+                "key": "分配",
+                "name": "分配",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "KB"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "基础监控"
+        },
+        "name": "内存分配",
+        "pos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 10.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "分配",
+              "code": "B",
+              "dataSource": "sqlserver_performance",
+              "field": "cntr_value",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "393b5680-c90d-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                },
+                {
+                  "id": "11ca4690-c914-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "counter_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "Active memory grant amount (KB)"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "instance"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver_performance`:(fill(AVG(`cntr_value`), linear) AS `分配`) { `sqlserver_host` = '#{hostname}' and `counter_name` = 'Active memory grant amount (KB)' } BY `instance`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": null,
+          "settings": {
+            "colors": [],
+            "currentChartType": "bar",
+            "direction": "horizontal",
+            "levels": [],
+            "openCompare": false,
+            "openStack": true,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTopSize": false,
+            "showTopWithMetric": "",
+            "stackContent": "index",
+            "stackType": "time",
+            "tableSortMetricName": "可疑suspect",
+            "timeInterval": {
+              "type": ""
+            },
+            "topSize": 10,
+            "units": [],
+            "xAxisShowType": "groupBy"
+          }
+        },
+        "group": {
+          "name": "文件系统"
+        },
+        "name": "逻辑库",
+        "pos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 21
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "还原中restoring",
+              "code": "F",
+              "dataSource": "sqlserver",
+              "field": "db_restoring",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "d4f596a0-c90b-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver`:(fill(AVG(`db_restoring`), linear) AS `还原中restoring`) { `sqlserver_host` = '#{hostname}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "bar",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "可疑suspect",
+              "code": "G",
+              "dataSource": "sqlserver",
+              "field": "db_suspect",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "d4f596a0-c90b-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver`:(fill(AVG(`db_suspect`), linear) AS `可疑suspect`) { `sqlserver_host` = '#{hostname}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "bar",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "在线online",
+              "code": "B",
+              "dataSource": "sqlserver",
+              "field": "db_online",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "d4f596a0-c90b-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver`:(fill(AVG(`db_online`), linear) AS `在线online`) { `sqlserver_host` = '#{hostname}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "bar",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "恢复等待recovery_pending",
+              "code": "C",
+              "dataSource": "sqlserver",
+              "field": "db_recovery_pending",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "d4f596a0-c90b-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver`:(fill(AVG(`db_recovery_pending`), linear) AS `恢复等待recovery_pending`) { `sqlserver_host` = '#{hostname}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "bar",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "恢复中recovering",
+              "code": "E",
+              "dataSource": "sqlserver",
+              "field": "db_recovering",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "d4f596a0-c90b-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver`:(fill(AVG(`db_recovering`), linear) AS `恢复中recovering`) { `sqlserver_host` = '#{hostname}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "bar",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "离线offline",
+              "code": "D",
+              "dataSource": "sqlserver",
+              "field": "db_offline",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "d4f596a0-c90b-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver`:(fill(AVG(`db_offline`), linear) AS `离线offline`) { `sqlserver_host` = '#{hostname}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "bar",
+            "unit": ""
+          }
+        ],
+        "type": "bar"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": null,
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "high",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "stackType": "time",
+            "tableSortMetricName": "可疑suspect",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "文件系统"
+        },
+        "name": "逻辑库",
+        "pos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 29
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "离线offline",
+              "code": "D",
+              "dataSource": "sqlserver",
+              "field": "db_offline",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "d4f596a0-c90b-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver`:(fill(AVG(`db_offline`), linear) AS `离线offline`) { `sqlserver_host` = '#{hostname}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "在线online",
+              "code": "B",
+              "dataSource": "sqlserver",
+              "field": "db_online",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "d4f596a0-c90b-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver`:(fill(AVG(`db_online`), linear) AS `在线online`) { `sqlserver_host` = '#{hostname}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "还原中restoring",
+              "code": "F",
+              "dataSource": "sqlserver",
+              "field": "db_restoring",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "d4f596a0-c90b-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver`:(fill(AVG(`db_restoring`), linear) AS `还原中restoring`) { `sqlserver_host` = '#{hostname}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "可疑suspect",
+              "code": "G",
+              "dataSource": "sqlserver",
+              "field": "db_suspect",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "d4f596a0-c90b-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver`:(fill(AVG(`db_suspect`), linear) AS `可疑suspect`) { `sqlserver_host` = '#{hostname}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "恢复等待recovery_pending",
+              "code": "C",
+              "dataSource": "sqlserver",
+              "field": "db_recovery_pending",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "d4f596a0-c90b-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver`:(fill(AVG(`db_recovery_pending`), linear) AS `恢复等待recovery_pending`) { `sqlserver_host` = '#{hostname}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "恢复中recovering",
+              "code": "E",
+              "dataSource": "sqlserver",
+              "field": "db_recovering",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "d4f596a0-c90b-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver`:(fill(AVG(`db_recovering`), linear) AS `恢复中recovering`) { `sqlserver_host` = '#{hostname}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": null,
+          "links": [],
+          "settings": {
+            "colors": [],
+            "currentChartType": "table",
+            "pageSize": 0,
+            "queryMode": "toGroupColumn",
+            "showFieldMapping": false,
+            "tableSortMetricName": "fill(last(read_bytes), <linear>)",
+            "units": [
+              {
+                "key": "文件增量",
+                "name": "文件增量",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": "文件系统"
+        },
+        "name": "日志文件",
+        "pos": {
+          "h": 14,
+          "w": 24,
+          "x": 0,
+          "y": 51
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "文件增量",
+              "code": "A",
+              "dataSource": "sqlserver_database_io",
+              "field": "write_bytes",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "07856340-c9c3-11eb-a8ba-a7e00f88f0ab",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                },
+                {
+                  "id": "4d5e3900-caa4-11eb-b432-8d60ab6af414",
+                  "logic": "and",
+                  "name": "database_name",
+                  "op": "!=",
+                  "type": "",
+                  "value": "tempdb"
+                },
+                {
+                  "id": "cc04b540-caa4-11eb-b432-8d60ab6af414",
+                  "logic": "and",
+                  "name": "file_type",
+                  "op": "=",
+                  "type": "",
+                  "value": "LOG"
+                }
+              ],
+              "funcList": [
+                "last",
+                "top:100"
+              ],
+              "groupBy": [
+                "database_name",
+                "file_type",
+                "logical_filename",
+                "physical_filename"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver_database_io`:(fill(AVG(`write_bytes`), linear) AS `文件增量`) { `sqlserver_host` = '#{hostname}' and `database_name` != 'tempdb' and `file_type` = 'LOG' } BY `database_name`, `file_type`, `logical_filename`, `physical_filename`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": null,
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "stackType": "time",
+            "tableSortMetricName": "fill(last(read_bytes), <linear>)",
+            "units": [
+              {
+                "key": "写入量",
+                "name": "写入量",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              },
+              {
+                "key": "读取量",
+                "name": "读取量",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "文件系统"
+        },
+        "name": "数据文件读写量",
+        "pos": {
+          "h": 9,
+          "w": 12,
+          "x": 0,
+          "y": 65
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "写入量",
+              "code": "B",
+              "dataSource": "sqlserver_database_io",
+              "field": "write_bytes",
+              "fieldFunc": "sum",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "07856340-c9c3-11eb-a8ba-a7e00f88f0ab",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                },
+                {
+                  "id": "cb80be70-c9c3-11eb-a8ba-a7e00f88f0ab",
+                  "logic": "and",
+                  "name": "file_type",
+                  "op": "=",
+                  "type": "",
+                  "value": "ROWS"
+                },
+                {
+                  "id": "78da9d40-c9c7-11eb-a8ba-a7e00f88f0ab",
+                  "logic": "and",
+                  "name": "database_name",
+                  "op": "!=",
+                  "type": "",
+                  "value": "tempdb"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`sqlserver_database_io`:(fill(SUM(`write_bytes`), linear) AS `写入量`) { `sqlserver_host` = '#{hostname}' and `file_type` = 'ROWS' and `database_name` != 'tempdb' }\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "读取量",
+              "code": "A",
+              "dataSource": "sqlserver_database_io",
+              "field": "read_bytes",
+              "fieldFunc": "sum",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "07856340-c9c3-11eb-a8ba-a7e00f88f0ab",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                },
+                {
+                  "id": "cb80be70-c9c3-11eb-a8ba-a7e00f88f0ab",
+                  "logic": "and",
+                  "name": "file_type",
+                  "op": "=",
+                  "type": "",
+                  "value": "ROWS"
+                },
+                {
+                  "id": "75b98720-c9c7-11eb-a8ba-a7e00f88f0ab",
+                  "logic": "and",
+                  "name": "database_name",
+                  "op": "!=",
+                  "type": "",
+                  "value": "tempdb"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`sqlserver_database_io`:(fill(SUM(`read_bytes`), linear) AS `读取量`) { `sqlserver_host` = '#{hostname}' and `file_type` = 'ROWS' and `database_name` != 'tempdb' }\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": null,
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "stackType": "time",
+            "tableSortMetricName": "fill(last(read_bytes), <linear>)",
+            "units": [
+              {
+                "key": "写入量",
+                "name": "写入量",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              },
+              {
+                "key": "读取量",
+                "name": "读取量",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "文件系统"
+        },
+        "name": "日志文件读写量",
+        "pos": {
+          "h": 9,
+          "w": 12,
+          "x": 12,
+          "y": 65
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "读取量",
+              "code": "A",
+              "dataSource": "sqlserver_database_io",
+              "field": "read_bytes",
+              "fieldFunc": "sum",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "36d70de0-cd85-11eb-943d-25cbe7ddd4f8",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": ""
+                },
+                {
+                  "id": "468e56d0-cd85-11eb-943d-25cbe7ddd4f8",
+                  "logic": "and",
+                  "name": "file_type",
+                  "op": "=",
+                  "type": "",
+                  "value": "LOG"
+                },
+                {
+                  "id": "4a1ed090-cd85-11eb-943d-25cbe7ddd4f8",
+                  "logic": "and",
+                  "name": "database_name",
+                  "op": "!=",
+                  "type": "",
+                  "value": "tempdb"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`sqlserver_database_io`:(SUM(`read_bytes`) AS `读取量`) { `file_type` = 'LOG' and `database_name` != 'tempdb' }\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "写入量",
+              "code": "B",
+              "dataSource": "sqlserver_database_io",
+              "field": "write_bytes",
+              "fieldFunc": "sum",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "36d70de0-cd85-11eb-943d-25cbe7ddd4f8",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": ""
+                },
+                {
+                  "id": "468e56d0-cd85-11eb-943d-25cbe7ddd4f8",
+                  "logic": "and",
+                  "name": "file_type",
+                  "op": "=",
+                  "type": "",
+                  "value": "LOG"
+                },
+                {
+                  "id": "4a1ed090-cd85-11eb-943d-25cbe7ddd4f8",
+                  "logic": "and",
+                  "name": "database_name",
+                  "op": "!=",
+                  "type": "",
+                  "value": "tempdb"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`sqlserver_database_io`:(SUM(`write_bytes`) AS `写入量`) { `file_type` = 'LOG' and `database_name` != 'tempdb' }\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": null,
+          "links": [],
+          "settings": {
+            "colors": [],
+            "currentChartType": "table",
+            "pageSize": 0,
+            "queryMode": "toGroupColumn",
+            "showFieldMapping": false,
+            "tableSortMetricName": "fill(last(read_bytes), <linear>)",
+            "units": [
+              {
+                "key": "数据增量",
+                "name": "数据增量",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": "文件系统"
+        },
+        "name": "数据文件",
+        "pos": {
+          "h": 14,
+          "w": 24,
+          "x": 0,
+          "y": 37
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "数据增量",
+              "code": "A",
+              "dataSource": "sqlserver_database_io",
+              "field": "write_bytes",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "07856340-c9c3-11eb-a8ba-a7e00f88f0ab",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                },
+                {
+                  "id": "4d5e3900-caa4-11eb-b432-8d60ab6af414",
+                  "logic": "and",
+                  "name": "database_name",
+                  "op": "!=",
+                  "type": "",
+                  "value": "tempdb"
+                },
+                {
+                  "id": "cc04b540-caa4-11eb-b432-8d60ab6af414",
+                  "logic": "and",
+                  "name": "file_type",
+                  "op": "=",
+                  "type": "",
+                  "value": "ROWS"
+                }
+              ],
+              "funcList": [
+                "last",
+                "top:100"
+              ],
+              "groupBy": [
+                "database_name",
+                "file_type",
+                "logical_filename",
+                "physical_filename"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver_database_io`:(fill(AVG(`write_bytes`), linear) AS `数据增量`) { `sqlserver_host` = '#{hostname}' and `database_name` != 'tempdb' and `file_type` = 'ROWS' } BY `database_name`, `file_type`, `logical_filename`, `physical_filename`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "colors": [],
+            "currentChartType": "table",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "mainMeasurementLimit": 5,
+            "mainMeasurementQueryCode": "A",
+            "mainMeasurementSort": "top",
+            "pageSize": 0,
+            "queryMode": "toGroupColumn",
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "数据量",
+                "name": "数据量",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "Mb"
+                ]
+              },
+              {
+                "key": "日志量",
+                "name": "日志量",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "Mb"
+                ]
+              }
+            ],
+            "valColorMappings": [],
+            "valMappings": []
+          }
+        },
+        "group": {
+          "name": "文件系统"
+        },
+        "name": "库存储量",
+        "pos": {
+          "h": 13,
+          "w": 24,
+          "x": 0,
+          "y": 74
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "数据量",
+              "code": "A",
+              "dataSource": "sqlserver_database_size",
+              "field": "data_size",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": "",
+              "fillNum": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "database_name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver_database_size`:(LAST(`data_size`) AS `数据量`) BY `database_name`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "日志量",
+              "code": "B",
+              "dataSource": "sqlserver_database_size",
+              "field": "log_size",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": "",
+              "fillNum": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "database_name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver_database_size`:(LAST(`log_size`) AS `日志量`) BY `database_name`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "table",
+            "unit": ""
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "锁信息"
+        },
+        "name": "库锁",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 89.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "库锁信息",
+              "code": "A",
+              "dataSource": "sqlserver_lock_database",
+              "field": "resource_database_id",
+              "fieldFunc": "count_distinct",
+              "fieldType": "integer",
+              "fill": "previous",
+              "filters": [
+                {
+                  "id": "4547aea0-648f-11ed-8401-2b5dc3d5f707",
+                  "logic": "and",
+                  "name": "request_type",
+                  "op": "!=",
+                  "type": "",
+                  "value": "S"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "db_name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DIFFERENCE(\"M::`sqlserver_lock_database`:(fill(COUNT_DISTINCT(`resource_database_id`), previous) AS `库锁信息`) { `request_type` != 'S' } BY `db_name`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_difference"
+                }
+              ],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "锁信息"
+        },
+        "name": "表锁信息",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 89.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "表锁",
+              "code": "A",
+              "dataSource": "sqlserver_lock_table",
+              "field": "request_session_id",
+              "fieldFunc": "count_distinct",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "641e50d0-6490-11ed-8401-2b5dc3d5f707",
+                  "logic": "and",
+                  "name": "request_mode",
+                  "op": "!=",
+                  "type": "",
+                  "value": "S"
+                },
+                {
+                  "id": "69ead7e0-6490-11ed-8401-2b5dc3d5f707",
+                  "logic": "and",
+                  "name": "request_mode",
+                  "op": "!=",
+                  "type": "",
+                  "value": "IS"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "object_name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver_lock_table`:(COUNT_DISTINCT(`request_session_id`) AS `表锁`) { `request_mode` != 'S' and `request_mode` != 'IS' } BY `object_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "锁信息"
+        },
+        "name": "行锁",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 16,
+          "y": 89.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "行锁",
+              "code": "A",
+              "dataSource": "sqlserver_lock_row",
+              "field": "session_id",
+              "fieldFunc": "count_distinct",
+              "fieldType": "long",
+              "fill": "previous",
+              "filters": [],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "NON_NEGATIVE_DIFFERENCE(\"L::`sqlserver_lock_row`:(fill(COUNT_DISTINCT(`session_id`), previous) AS `行锁`) { `index` = 'default' }\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_difference"
+                }
+              ],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "addColumns": [
+              {
+                "field": "status",
+                "hide": true
+              },
+              {
+                "field": "__docid",
+                "hide": true
+              },
+              {
+                "field": "message",
+                "headerName": "SQL详情"
+              },
+              {
+                "field": "total_logical_reads",
+                "headerName": " 总逻辑IO"
+              },
+              {
+                "field": "execution_count",
+                "headerName": " 执行次数"
+              },
+              {
+                "field": "avg_logical_io",
+                "headerName": " 平均逻辑IO"
+              }
+            ],
+            "alias": [],
+            "colors": [],
+            "currentChartType": "log",
+            "fixedTime": "",
+            "inColumns": [
+              {
+                "cellRenderer": "StatusCellRender",
+                "field": "time",
+                "filterParams": {},
+                "headerName": "时间",
+                "showTooltip": false
+              }
+            ],
+            "isTimeInterval": false,
+            "levels": [],
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "",
+            "titleDesc": "",
+            "units": [],
+            "valColorMappings": [],
+            "valMappings": []
+          }
+        },
+        "group": {
+          "name": "SQL质量"
+        },
+        "name": "逻辑IO",
+        "pos": {
+          "h": 18,
+          "w": 24,
+          "x": 0,
+          "y": 117
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "noTimeRange": false,
+            "qtype": "dql",
+            "query": {
+              "alias": "内容",
+              "code": "A",
+              "dataSource": "sqlserver_logical_io",
+              "disableMultipleField": false,
+              "field": null,
+              "fieldFunc": "count",
+              "fieldType": "text",
+              "fields": [
+                {
+                  "field": "status",
+                  "hide": true
+                },
+                {
+                  "field": "__docid",
+                  "hide": true
+                },
+                {
+                  "alias": "SQL详情",
+                  "field": "message",
+                  "isEditAlias": false
+                },
+                {
+                  "alias": " 总逻辑IO",
+                  "field": "total_logical_reads",
+                  "isEditAlias": false
+                },
+                {
+                  "alias": " 执行次数",
+                  "field": "execution_count",
+                  "isEditAlias": false
+                },
+                {
+                  "alias": " 平均逻辑IO",
+                  "field": "avg_logical_io",
+                  "isEditAlias": false
+                }
+              ],
+              "fill": null,
+              "filters": [
+                {
+                  "id": "9255e1b0-6559-11ed-9ec3-d39f70bac8d6",
+                  "logic": "and",
+                  "name": "",
+                  "op": "=",
+                  "value": ""
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`sqlserver_logical_io`:(`status`, `__docid`, `message`, `total_logical_reads`, `execution_count`, `avg_logical_io`) { `index` = 'default' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "log",
+            "unit": ""
+          }
+        ],
+        "type": "log"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "addColumns": [
+              {
+                "field": "status",
+                "hide": true
+              },
+              {
+                "field": "__docid",
+                "hide": true
+              },
+              {
+                "field": "message",
+                "headerName": "SQL详情"
+              },
+              {
+                "field": "total_worker_time",
+                "headerName": " CPU总执行时间"
+              },
+              {
+                "field": "execution_count",
+                "headerName": " 执行次数"
+              },
+              {
+                "field": "avg_worker_time",
+                "headerName": " CPU平均执行时间"
+              }
+            ],
+            "alias": [],
+            "colors": [],
+            "currentChartType": "log",
+            "fixedTime": "",
+            "inColumns": [
+              {
+                "cellRenderer": "StatusCellRender",
+                "field": "time",
+                "filterParams": {},
+                "headerName": "时间",
+                "showTooltip": false
+              }
+            ],
+            "isTimeInterval": false,
+            "levels": [],
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "total_worker_time",
+                "name": "total_worker_time",
+                "unit": "",
+                "units": [
+                  "time",
+                  "ms"
+                ]
+              },
+              {
+                "key": "avg_worker_time",
+                "name": "avg_worker_time",
+                "unit": "",
+                "units": [
+                  "time",
+                  "ms"
+                ]
+              }
+            ],
+            "valColorMappings": [],
+            "valMappings": []
+          }
+        },
+        "group": {
+          "name": "SQL质量"
+        },
+        "name": "CPU时间",
+        "pos": {
+          "h": 18,
+          "w": 24,
+          "x": 0,
+          "y": 135
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "noTimeRange": false,
+            "qtype": "dql",
+            "query": {
+              "alias": "内容",
+              "code": "A",
+              "dataSource": "sqlserver_worker_time",
+              "disableMultipleField": false,
+              "field": null,
+              "fieldFunc": "count",
+              "fieldType": "text",
+              "fields": [
+                {
+                  "field": "status",
+                  "hide": true
+                },
+                {
+                  "field": "__docid",
+                  "hide": true
+                },
+                {
+                  "alias": "SQL详情",
+                  "field": "message",
+                  "isEditAlias": false
+                },
+                {
+                  "alias": " CPU总执行时间",
+                  "field": "total_worker_time",
+                  "isEditAlias": false
+                },
+                {
+                  "alias": " 执行次数",
+                  "field": "execution_count",
+                  "isEditAlias": false
+                },
+                {
+                  "alias": " CPU平均执行时间",
+                  "field": "avg_worker_time",
+                  "isEditAlias": false
+                }
+              ],
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`sqlserver_worker_time`:(`status`, `__docid`, `message`, `total_worker_time`, `execution_count`, `avg_worker_time`) { `index` = 'default' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "log",
+            "unit": ""
+          }
+        ],
+        "type": "log"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "基础监控"
+        },
+        "name": "CPU使用",
+        "pos": {
+          "h": 8,
+          "w": 6,
+          "x": 12,
+          "y": 2.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "cpu",
+              "field": "usage_total",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`cpu`:(AVG(`usage_total`))",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "基础监控"
+        },
+        "name": "内存使用",
+        "pos": {
+          "h": 8,
+          "w": 6,
+          "x": 18,
+          "y": 2.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "mem",
+              "field": "used_percent",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "fillNum": 1,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`mem`:(AVG(`used_percent`))",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "addColumns": [
+              {
+                "field": "status",
+                "hide": true
+              },
+              {
+                "field": "__docid",
+                "hide": true
+              },
+              {
+                "field": "db_name",
+                "headerName": " 死锁所在库"
+              },
+              {
+                "field": "blocking_session_id",
+                "headerName": " 阻塞源事物ID"
+              },
+              {
+                "field": "blocking_text",
+                "headerName": " 阻塞事物"
+              },
+              {
+                "field": "request_session_id",
+                "headerName": " 被阻塞事物ID"
+              },
+              {
+                "field": "requesting_text",
+                "headerName": " 被阻塞事物"
+              }
+            ],
+            "alias": [],
+            "colors": [],
+            "currentChartType": "log",
+            "fixedTime": "",
+            "inColumns": [
+              {
+                "cellRenderer": "StatusCellRender",
+                "field": "time",
+                "filterParams": {},
+                "headerName": "时间",
+                "showTooltip": false
+              }
+            ],
+            "isTimeInterval": false,
+            "levels": [],
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "",
+            "titleDesc": "",
+            "units": [],
+            "valColorMappings": [],
+            "valMappings": []
+          }
+        },
+        "group": {
+          "name": "锁信息"
+        },
+        "name": "死锁",
+        "pos": {
+          "h": 15,
+          "w": 24,
+          "x": 0,
+          "y": 99.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "noTimeRange": false,
+            "qtype": "dql",
+            "query": {
+              "alias": "内容",
+              "code": "A",
+              "dataSource": "sqlserver_lock_dead",
+              "disableMultipleField": false,
+              "field": null,
+              "fieldFunc": "count",
+              "fieldType": "text",
+              "fields": [
+                {
+                  "field": "status",
+                  "hide": true
+                },
+                {
+                  "field": "__docid",
+                  "hide": true
+                },
+                {
+                  "alias": " 死锁所在库",
+                  "field": "db_name",
+                  "isEditAlias": false
+                },
+                {
+                  "alias": " 阻塞源事物ID",
+                  "field": "blocking_session_id",
+                  "isEditAlias": false
+                },
+                {
+                  "alias": " 阻塞事物",
+                  "field": "blocking_text",
+                  "isEditAlias": false
+                },
+                {
+                  "alias": " 被阻塞事物ID",
+                  "field": "request_session_id",
+                  "isEditAlias": false
+                },
+                {
+                  "alias": " 被阻塞事物",
+                  "field": "requesting_text",
+                  "isEditAlias": false
+                }
+              ],
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`sqlserver_lock_dead`:(`status`, `__docid`, `db_name`, `blocking_session_id`, `blocking_text`, `request_session_id`, `requesting_text`) { `index` = 'default' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "log",
+            "unit": ""
+          }
+        ],
+        "type": "log"
+      }
+    ],
+    "groups": [
+      "基础监控",
+      "文件系统",
+      "锁信息",
+      "SQL质量"
+    ],
+    "type": "template",
+    "vars": [
+      {
+        "code": "hostname",
+        "datasource": "dataflux",
+        "definition": {
+          "field": "",
+          "metric": "",
+          "object": "",
+          "tag": "",
+          "value": "show_tag_value(from=['sqlserver'],keyin=['sqlserver_host'])"
+        },
+        "hide": 0,
+        "name": "主机名",
+        "seq": 0,
+        "type": "QUERY",
+        "valueSort": "default"
+      }
+    ]
+  },
+  "summary": "",
+  "tagInfo": [],
+  "tags": [],
+  "thumbnail": "",
+  "title": "SQL Server 监控视图-精简版"
+}

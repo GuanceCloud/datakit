@@ -1,0 +1,1632 @@
+{
+  "dashboardExtend": {},
+  "dashboardMapping": [],
+  "dashboardType": "CUSTOM",
+  "main": {
+    "charts": [
+      {
+        "extend": {
+          "settings": {
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "showFieldMapping": false,
+            "showLine": true,
+            "showLineAxis": false,
+            "tableSortMetricName": "Connections",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "Overview"
+        },
+        "name": "Number of channels",
+        "pos": {
+          "h": 7,
+          "i": 1,
+          "w": 6,
+          "x": 6,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Connections",
+              "code": "A",
+              "dataSource": "rabbitmq_overview",
+              "field": "object_totals_channels",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "69df2860-a898-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_overview`:(AVG(`object_totals_channels`) AS `Number of connections`) { `host` = '#{host_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "settings": {
+            "chartType": "line",
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            }
+          }
+        },
+        "group": {
+          "name": "Overview"
+        },
+        "name": "Message",
+        "pos": {
+          "h": 10,
+          "i": 2,
+          "w": 8,
+          "x": 0,
+          "y": 7
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Number of messages published",
+              "code": "A",
+              "dataSource": "rabbitmq_overview",
+              "field": "message_publish_count",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "9c5ae4f0-a898-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_overview`:(AVG(`message_publish_count`) AS `Number of messages published`) { `host` = '#{host_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Number of messages redelivered",
+              "code": "D",
+              "dataSource": "rabbitmq_overview",
+              "field": "message_redeliver_count",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "afbff3a0-a898-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_overview`:(AVG(`message_redeliver_count`) AS `Number of messages redelivered`) { `host` = '#{host_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Number of confirmed clients",
+              "code": "C",
+              "dataSource": "rabbitmq_overview",
+              "field": "message_ack_count",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "aad9d4f0-a898-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_overview`:(AVG(`message_ack_count`) AS `Number of confirmed clients`) { `host` = '#{host_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Number of message deliveries",
+              "code": "B",
+              "dataSource": "rabbitmq_overview",
+              "field": "message_deliver_get_count",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a4cfcfb0-a898-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_overview`:(AVG(`message_deliver_get_count`) AS `Number of message deliveries`) { `host` = '#{host_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Number of messages not routable",
+              "code": "E",
+              "dataSource": "rabbitmq_overview",
+              "field": "message_return_unroutable_count",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "d64f03d0-a898-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_overview`:(AVG(`message_return_unroutable_count`) AS `Number of messages not routable`) { `host` = '#{host_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "settings": {
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "showFieldMapping": false,
+            "showLine": true,
+            "showLineAxis": false,
+            "tableSortMetricName": "Connections",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "Overview"
+        },
+        "name": "Connections",
+        "pos": {
+          "h": 7,
+          "i": 3,
+          "w": 6,
+          "x": 0,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Connections",
+              "code": "A",
+              "dataSource": "rabbitmq_overview",
+              "field": "object_totals_connections",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "5c85f3b0-a898-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_overview`:(AVG(`object_totals_connections`) AS `Number of connections`) { `host` = '#{host_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "settings": {
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "showFieldMapping": false,
+            "showLine": true,
+            "showLineAxis": false,
+            "tableSortMetricName": "Connections",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "Overview"
+        },
+        "name": "Number of queues",
+        "pos": {
+          "h": 7,
+          "i": 4,
+          "w": 6,
+          "x": 12,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Connections",
+              "code": "A",
+              "dataSource": "rabbitmq_overview",
+              "field": "object_totals_queues",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "740df820-a898-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_overview`:(AVG(`object_totals_queues`) AS `Number of connections`) { `host` = '#{host_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "settings": {
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "showFieldMapping": false,
+            "showLine": true,
+            "showLineAxis": false,
+            "tableSortMetricName": "Connections",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "Overview"
+        },
+        "name": "Number of consumers",
+        "pos": {
+          "h": 7,
+          "i": 5,
+          "w": 6,
+          "x": 18,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Connections",
+              "code": "A",
+              "dataSource": "rabbitmq_overview",
+              "field": "object_totals_consumers",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "bf30dd90-a64f-11eb-b7c4-b706c033c376",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_overview`:(AVG(`object_totals_consumers`) AS `Number of connections`) { `host` = '#{host_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "settings": {
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "showFieldMapping": false,
+            "showLine": true,
+            "showLineAxis": false,
+            "tableSortMetricName": "Message rate",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "Overview"
+        },
+        "name": "Queue message rate",
+        "pos": {
+          "h": 10,
+          "i": 6,
+          "w": 8,
+          "x": 8,
+          "y": 7
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Message rate",
+              "code": "A",
+              "dataSource": "rabbitmq_overview",
+              "field": "queue_totals_messages_rate",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "f79e3c90-a898-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_overview`:(AVG(`queue_totals_messages_rate`) AS `Message rate`) { `host` = '#{host_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "settings": {
+            "chartType": "doughnut",
+            "colors": [],
+            "currentChartType": "pie",
+            "showFieldMapping": false,
+            "showLegend": true,
+            "tableSortMetricName": "Number of confirmed clients",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "Overview"
+        },
+        "name": "Queue message",
+        "pos": {
+          "h": 10,
+          "i": 7,
+          "w": 8,
+          "x": 16,
+          "y": 7
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Number of messages to be confirmed",
+              "code": "B",
+              "dataSource": "rabbitmq_overview",
+              "field": "queue_totals_messages_unacknowledged_count",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "00e25e30-a899-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_overview`:(AVG(`queue_totals_messages_unacknowledged_count`) AS `Number of messages to be confirmed`) { `host` = '#{host_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "pie",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Number of messages to be consumed",
+              "code": "A",
+              "dataSource": "rabbitmq_overview",
+              "field": "queue_totals_messages_ready_count",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "053d2cd0-a899-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_overview`:(AVG(`queue_totals_messages_ready_count`) AS `Number of messages to be consumed`) { `host` = '#{host_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "pie",
+            "unit": ""
+          }
+        ],
+        "type": "pie"
+      },
+      {
+        "extend": {
+          "links": [],
+          "settings": {
+            "colors": [],
+            "currentChartType": "table",
+            "pageSize": 0,
+            "queryMode": "toGroupColumn",
+            "showFieldMapping": false,
+            "tableSortMetricName": "Socket used file descriptor",
+            "units": [
+              {
+                "key": "Maximum memory level",
+                "name": "Maximum memory level",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              },
+              {
+                "key": "Free disk",
+                "name": "Free disk",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              },
+              {
+                "key": "Memory used",
+                "name": "Memory used",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": "Switch / Queue / Node"
+        },
+        "name": "Queue",
+        "pos": {
+          "h": 10,
+          "i": 9,
+          "w": 24,
+          "x": 0,
+          "y": 22
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Number of consumers",
+              "code": "A",
+              "dataSource": "rabbitmq_queue",
+              "field": "consumer_utilisation",
+              "fieldFunc": "avg",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last",
+                "top:5"
+              ],
+              "groupBy": [
+                "node_name",
+                "queue_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_queue`:(AVG(`consumer_utilisation`) AS `Number of consumers`) { `host` = '#{host_name}' } by `node_name`,`queue_name`",
+              "queryFuncs": [],
+              "type": "dql"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Client acknowledgment message",
+              "code": "B",
+              "dataSource": "rabbitmq_queue",
+              "field": "message_ack_count",
+              "fieldFunc": "avg",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "node_name",
+                "queue_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_queue`:(AVG(`message_ack_count`) AS `Client acknowledgment message`) { `host` = '#{host_name}' } by `node_name`,`queue_name`",
+              "queryFuncs": [],
+              "type": "dql"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Number of delivered messages",
+              "code": "C",
+              "dataSource": "rabbitmq_queue",
+              "field": "message_deliver_count",
+              "fieldFunc": "avg",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "node_name",
+                "queue_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_queue`:(AVG(`message_deliver_count`) AS `Number of delivered messages`) { `host` = '#{host_name}' } by `node_name`,`queue_name`",
+              "queryFuncs": [],
+              "type": "dql"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Number of published messages",
+              "code": "D",
+              "dataSource": "rabbitmq_queue",
+              "field": "message_publish_count",
+              "fieldFunc": "avg",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "node_name",
+                "queue_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_queue`:(AVG(`message_publish_count`) AS `Number of published messages`) { `host` = '#{host_name}' } by `node_name`,`queue_name`",
+              "queryFuncs": [],
+              "type": "dql"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Number of messages redelivered",
+              "code": "E",
+              "dataSource": "rabbitmq_queue",
+              "field": "message_redeliver_count",
+              "fieldFunc": "avg",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "node_name",
+                "queue_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_queue`:(AVG(`message_redeliver_count`) AS `Number of messages redelivered`) { `host` = '#{host_name}' } by `node_name`,`queue_name`",
+              "queryFuncs": [],
+              "type": "dql"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Number of messages to be delivered",
+              "code": "F",
+              "dataSource": "rabbitmq_queue",
+              "field": "messages_ready",
+              "fieldFunc": "avg",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "node_name",
+                "queue_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_queue`:(AVG(`messages_ready`) AS `Number of messages to be delivered`) { `host` = '#{host_name}' } by `node_name`,`queue_name`",
+              "queryFuncs": [],
+              "type": "dql"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Messages to be confirmed",
+              "code": "G",
+              "dataSource": "rabbitmq_queue",
+              "field": "messages_unacknowledged",
+              "fieldFunc": "avg",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "node_name",
+                "queue_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_queue`:(AVG(`messages_unacknowledged`) AS `Messages to be confirmed`) { `host` = '#{host_name}' } by `node_name`,`queue_name`",
+              "queryFuncs": [],
+              "type": "dql"
+            },
+            "type": "table",
+            "unit": ""
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "extend": {
+          "links": [],
+          "settings": {
+            "colors": [],
+            "currentChartType": "table",
+            "pageSize": 0,
+            "queryMode": "toGroupColumn",
+            "showFieldMapping": false,
+            "tableSortMetricName": "Socket used file descriptor",
+            "units": [
+              {
+                "key": "Maximum memory level",
+                "name": "Maximum memory level",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              },
+              {
+                "key": "Free disk",
+                "name": "Free disk",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              },
+              {
+                "key": "Memory used",
+                "name": "Memory used",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": "Switch / Queue / Node"
+        },
+        "name": "Node",
+        "pos": {
+          "h": 10,
+          "i": 10,
+          "w": 24,
+          "x": 0,
+          "y": 12
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Free disk",
+              "code": "A",
+              "dataSource": "rabbitmq_node",
+              "field": "disk_free",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "2792fb00-a7e7-11eb-8d47-6938a96381f1",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last",
+                "top:5"
+              ],
+              "groupBy": [
+                "node_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_node`:(AVG(`disk_free`) AS `Free disk`) { `host` = '#{host_name}' } by `node_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "FD used",
+              "code": "B",
+              "dataSource": "rabbitmq_node",
+              "field": "fd_used",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "74830ba0-a899-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "node_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_node`:(AVG(`fd_used`) AS `FD used`) { `host` = '#{host_name}' } by `node_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Memory used",
+              "code": "C",
+              "dataSource": "rabbitmq_node",
+              "field": "mem_used",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "78f29ac0-a899-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "node_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_node`:(AVG(`mem_used`) AS `Memory used`) { `host` = '#{host_name}' } by `node_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "FD for Socket",
+              "code": "D",
+              "dataSource": "rabbitmq_node",
+              "field": "sockets_used",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "7c7a3ae0-a899-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "node_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_node`:(AVG(`sockets_used`) AS `FD for Socket`) { `host` = '#{host_name}' } by `node_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Runnable process",
+              "code": "E",
+              "dataSource": "rabbitmq_node",
+              "field": "run_queue",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "80ffea10-a899-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "node_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_node`:(AVG(`run_queue`) AS `Runnable process`) { `host` = '#{host_name}' } by `node_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Maximum memory level",
+              "code": "F",
+              "dataSource": "rabbitmq_node",
+              "field": "mem_limit",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "849e94a0-a899-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "node_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_node`:(AVG(`mem_limit`) AS `Maximum memory level`) { `host` = '#{host_name}' } by `node_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Alarm for disk free",
+              "code": "G",
+              "dataSource": "rabbitmq_node",
+              "field": "disk_free_alarm",
+              "fieldFunc": "avg",
+              "fieldType": "boolean",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "8879d300-a899-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "node_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_node`:(AVG(`disk_free_alarm`) AS `Alarm for disk free`) { `host` = '#{host_name}' } by `node_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Alarm for memory",
+              "code": "H",
+              "dataSource": "rabbitmq_node",
+              "field": "mem_alarm",
+              "fieldFunc": "avg",
+              "fieldType": "boolean",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "8b9da840-a899-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "node_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_node`:(AVG(`mem_alarm`) AS `Alarm for memory`) { `host` = '#{host_name}' } by `node_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Running node",
+              "code": "I",
+              "dataSource": "rabbitmq_node",
+              "field": "running",
+              "fieldFunc": "avg",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "node_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_node`:(AVG(`running`) AS `Running node`) { `host` = '#{host_name}' } by `node_name`",
+              "queryFuncs": [],
+              "type": "dql"
+            },
+            "type": "table",
+            "unit": ""
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "extend": {
+          "links": [],
+          "settings": {
+            "colors": [],
+            "currentChartType": "table",
+            "pageSize": 0,
+            "queryMode": "toGroupColumn",
+            "showFieldMapping": false,
+            "tableSortMetricName": "Socket used file descriptor",
+            "units": [
+              {
+                "key": "Maximum memory level",
+                "name": "Maximum memory level",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              },
+              {
+                "key": "Free disk",
+                "name": "Free disk",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              },
+              {
+                "key": "Memory used",
+                "name": "Memory used",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": "Switch / Queue / Node"
+        },
+        "name": "Switch",
+        "pos": {
+          "h": 12,
+          "i": 11,
+          "w": 24,
+          "x": 0,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Client confirmation",
+              "code": "A",
+              "dataSource": "rabbitmq_exchange",
+              "field": "message_ack_count",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "0064c4a0-a7e7-11eb-8d47-6938a96381f1",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last",
+                "top:5"
+              ],
+              "groupBy": [
+                "exchange_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_exchange`:(AVG(`message_ack_count`) AS `Client confirmation`) { `host` = '#{host_name}' } by `exchange_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Number of published messages",
+              "code": "B",
+              "dataSource": "rabbitmq_exchange",
+              "field": "message_publish_count",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a4a55f30-a7e6-11eb-8d47-6938a96381f1",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "exchange_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_exchange`:(AVG(`message_publish_count`) AS `Number of published messages`) { `host` = '#{host_name}' } by `exchange_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Number of messages delivered",
+              "code": "C",
+              "dataSource": "rabbitmq_exchange",
+              "field": "message_deliver_get_count",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1c0822d0-a899-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "exchange_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_exchange`:(AVG(`message_deliver_get_count`) AS `Number of messages delivered`) { `host` = '#{host_name}' } by `exchange_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Number of messages redelivered",
+              "code": "D",
+              "dataSource": "rabbitmq_exchange",
+              "field": "message_redeliver_count",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "211cf2a0-a899-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "exchange_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_exchange`:(AVG(`message_redeliver_count`) AS `Number of messages redelivered`) { `host` = '#{host_name}' } by `exchange_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Number of messages not routable",
+              "code": "E",
+              "dataSource": "rabbitmq_exchange",
+              "field": "message_return_unroutable_count",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "25811010-a899-11eb-9f18-59fa3e08f58d",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "exchange_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`rabbitmq_exchange`:(AVG(`message_return_unroutable_count`) AS `Number of messages not routable`) { `host` = '#{host_name}' } by `exchange_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          }
+        ],
+        "type": "table"
+      }
+    ],
+    "groups": [
+      "Overview",
+      "Switch / Queue / Node"
+    ],
+    "type": "template",
+    "vars": [
+      {
+        "code": "host_name",
+        "datasource": "ftinfluxdb",
+        "definition": {
+          "field": "",
+          "metric": "rabbitmq_overview",
+          "object": "",
+          "tag": "host",
+          "value": ""
+        },
+        "hide": 0,
+        "name": "Host Name",
+        "seq": 0,
+        "type": "TAG",
+        "valueSort": "default"
+      }
+    ]
+  },
+  "summary": "",
+  "tags": [],
+  "thumbnail": "",
+  "title": "rabbitmq"
+}

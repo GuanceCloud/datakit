@@ -1,0 +1,636 @@
+{
+  "dashboardBindSet": [],
+  "dashboardExtend": {},
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "dashboardType": "CUSTOM",
+  "iconSet": {},
+  "main": {
+    "charts": [
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "#C57ECD",
+                "key": "active",
+                "name": "active"
+              }
+            ],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "active/s",
+        "pos": {
+          "h": 8,
+          "i": "chrt_8481cfca47e34f03b4be266b23062dc4",
+          "w": 8,
+          "x": 16,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "active",
+              "code": "A",
+              "dataSource": "nginx",
+              "field": "connection_active",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "3b19df90-3860-11ec-a768-9128aba1a726",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`nginx`:(AVG(`connection_active`) AS `active`) { `host` = '#{host}' }\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "#FFBD5F",
+                "key": "handled",
+                "name": "handled"
+              }
+            ],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "handled/s",
+        "pos": {
+          "h": 8,
+          "i": "chrt_3948003a17ee4b9795df001387dc5633",
+          "w": 6,
+          "x": 0,
+          "y": 8
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "handled",
+              "code": "A",
+              "dataSource": "nginx",
+              "field": "connection_handled",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "95fc2b70-3860-11ec-a768-9128aba1a726",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`nginx`:(AVG(`connection_handled`) AS `handled`) { `host` = '#{host}' }\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "#8AE2DF",
+                "key": "reading",
+                "name": "reading"
+              }
+            ],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "reading/s",
+        "pos": {
+          "h": 8,
+          "i": "chrt_3a0162b89079407aa3d918d3c5b9e807",
+          "w": 6,
+          "x": 12,
+          "y": 8
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "reading",
+              "code": "A",
+              "dataSource": "nginx",
+              "field": "connection_reading",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "b482db80-7770-11ec-9c8b-396765a383d1",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`nginx`:(AVG(`connection_reading`) AS `reading`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "#498BFE",
+                "key": "accepts",
+                "name": "accepts"
+              }
+            ],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "accepts/s",
+        "pos": {
+          "h": 8,
+          "i": "chrt_08328ee8670a4fbd95438ab317feff57",
+          "w": 8,
+          "x": 8,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "accepts",
+              "code": "A",
+              "dataSource": "nginx",
+              "field": "connection_accepts",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "03c2ca70-7771-11ec-9c8b-396765a383d1",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`nginx`:(AVG(`connection_accepts`) AS `accepts`) { `host` = '#{host}' }\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "#A0DD86",
+                "key": "requests",
+                "name": "requests"
+              }
+            ],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "requests/s",
+        "pos": {
+          "h": 8,
+          "i": "chrt_25a41ba45fe74ea3b480227eb045e69a",
+          "w": 8,
+          "x": 0,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "requests",
+              "code": "A",
+              "dataSource": "nginx",
+              "field": "connection_requests",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "f1aafc40-7770-11ec-9c8b-396765a383d1",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`nginx`:(AVG(`connection_requests`) AS `requests`) { `host` = '#{host}' }\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "#FF92C6",
+                "key": "waiting",
+                "name": "waiting"
+              }
+            ],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "waiting/s",
+        "pos": {
+          "h": 8,
+          "i": "chrt_3298fe8c9d6b403c984c2d9ce6b306e8",
+          "w": 6,
+          "x": 6,
+          "y": 8
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "waiting",
+              "code": "A",
+              "dataSource": "nginx",
+              "field": "connection_waiting",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "ea08f1e0-7770-11ec-9c8b-396765a383d1",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`nginx`:(AVG(`connection_waiting`) AS `waiting`) { `host` = '#{host}' }\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "#00B2CE",
+                "key": "writing",
+                "name": "writing"
+              }
+            ],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "writing/s",
+        "pos": {
+          "h": 8,
+          "i": "chrt_8087b10166d74f3aab0f3be060e7746c",
+          "w": 6,
+          "x": 18,
+          "y": 8
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "writing",
+              "code": "A",
+              "dataSource": "nginx",
+              "field": "connection_writing",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "e26dc550-7770-11ec-9c8b-396765a383d1",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`nginx`:(AVG(`connection_writing`) AS `writing`) { `host` = '#{host}' }\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      }
+    ],
+    "groups": [],
+    "type": "template",
+    "vars": [
+      {
+        "code": "host",
+        "datasource": "ftinfluxdb",
+        "definition": {
+          "field": "",
+          "metric": "nginx",
+          "object": "",
+          "tag": "host",
+          "value": ""
+        },
+        "hide": 0,
+        "name": "Host",
+        "seq": 0,
+        "type": "TAG",
+        "valueSort": "default"
+      }
+    ]
+  },
+  "summary": "",
+  "tagInfo": [],
+  "tags": [],
+  "thumbnail": "",
+  "title": "Nginx"
+}

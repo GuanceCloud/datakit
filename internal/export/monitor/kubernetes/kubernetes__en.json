@@ -1,0 +1,361 @@
+{
+  "checkers": [
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "prom_state_metrics",
+              "field": "kube_pod_status_phase",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "filters": [
+                {
+                  "id": "ca200c10-c04f-11ec-91c9-6f9ff92cfa27",
+                  "logic": "and",
+                  "name": "phase",
+                  "op": "=",
+                  "type": "",
+                  "value": "Failed"
+                },
+                {
+                  "id": "7b2b6c10-c051-11ec-91c9-6f9ff92cfa27",
+                  "logic": "or",
+                  "name": "phase",
+                  "op": "=",
+                  "type": "",
+                  "value": "Pending"
+                },
+                {
+                  "id": "991f92f0-c051-11ec-91c9-6f9ff92cfa27",
+                  "logic": "and",
+                  "name": "phase",
+                  "op": "=",
+                  "type": "",
+                  "value": "Unknown"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "cluster_name",
+                "node",
+                "pod"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`prom_state_metrics`:(LAST(`kube_pod_status_phase`)) { `phase` = 'Failed' or `phase` = 'Pending' and `phase` = 'Unknown' } BY `cluster_name`, `node`, `pod`",
+              "type": "simple"
+            },
+            "uuid": "e0eb8c47-4349-4a89-8ad5-5e91c0a19e95"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "0"
+                ],
+                "operator": ">"
+              }
+            ],
+            "status": "critical"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "0"
+                  ],
+                  "operator": ">"
+                }
+              ],
+              "status": "critical"
+            }
+          ]
+        },
+        "every": "5m",
+        "groupBy": [
+          "cluster_name",
+          "node",
+          "pod"
+        ],
+        "interval": 300,
+        "message": ">Level: {{df_status}} \n>Cluster: {{ cluster_name }} \n>Node: {{ node}} \n>Content: Status of Pod {{pod}} is abnormal. \n>Suggest: Please log in to the cluster and check whether the Pod is abnormal.",
+        "recoverNeedPeriodCount": 1,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`prom_state_metrics`:(LAST(`kube_pod_status_phase`)) { `phase` = 'Failed' or `phase` = 'Pending' and `phase` = 'Unknown' } BY `cluster_name`, `node`, `pod`"
+          }
+        ],
+        "title": "Kubernetes cluster Pod {{ pod}} is abnormal.",
+        "type": "simpleCheck"
+      },
+      "monitorName": "Kubernetes Detection Library"
+    },
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "prom_state_metrics",
+              "field": "kube_pod_container_status_waiting_reason",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "funcList": [],
+              "groupBy": [
+                "cluster_name",
+                "node",
+                "pod"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`prom_state_metrics`:(LAST(`kube_pod_container_status_waiting_reason`)) BY `cluster_name`, `node`, `pod`",
+              "type": "simple"
+            },
+            "uuid": "13e50049-183c-4b6e-85fc-567d16afcb5f"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "0"
+                ],
+                "operator": ">"
+              }
+            ],
+            "status": "critical"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "0"
+                  ],
+                  "operator": ">"
+                }
+              ],
+              "status": "critical"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "cluster_name",
+          "node",
+          "pod"
+        ],
+        "interval": 300,
+        "message": ">Level: {{df_status}}  \n>Cluster: {{ cluster_name }} \n>Node: {{ node}} \n>Content: Pod {{pod}} started timed out and failed. \n>Suggest: Please log in to the cluster and check whether the Pod is abnormal.",
+        "recoverNeedPeriodCount": 1,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`prom_state_metrics`:(LAST(`kube_pod_container_status_waiting_reason`)) BY `cluster_name`, `node`, `pod`"
+          }
+        ],
+        "title": "Pod {{pod}} started timed out and failed.",
+        "type": "simpleCheck"
+      },
+      "monitorName": "Kubernetes Detection Library"
+    },
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "prom_state_metrics",
+              "field": "kube_pod_container_status_restarts_total",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "cluster_name",
+                "node",
+                "pod"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`prom_state_metrics`:(LAST(`kube_pod_container_status_restarts_total`)) BY `cluster_name`, `node`, `pod`",
+              "type": "simple"
+            },
+            "uuid": "c868238f-a97c-40e6-8ee7-d67f5c91f5d7"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "3"
+                ],
+                "operator": ">"
+              }
+            ],
+            "status": "error"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "3"
+                  ],
+                  "operator": ">"
+                }
+              ],
+              "status": "error"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "cluster_name",
+          "node",
+          "pod"
+        ],
+        "interval": 300,
+        "message": ">Level: {{df_status}}  \n>Cluster: {{ cluster_name }} \n>Node: {{ node}} \n>Content: Pod {{pod}} restarts frequently. \n>Suggest: Please log in to the cluster and check whether the Pod is abnormal.",
+        "recoverNeedPeriodCount": 1,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`prom_state_metrics`:(LAST(`kube_pod_container_status_restarts_total`)) BY `cluster_name`, `node`, `pod`"
+          }
+        ],
+        "title": "Pod {{pod}} restarts frequently.",
+        "type": "simpleCheck"
+      },
+      "monitorName": "Kubernetes Detection Library"
+    },
+    {
+      "extend": {
+        "funcName": "",
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "prom_state_metrics",
+              "field": "kube_job_status_failed",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "funcList": [],
+              "groupBy": [
+                "cluster_name",
+                "job_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`prom_state_metrics`:(LAST(`kube_job_status_failed`)) BY `cluster_name`, `job_name`",
+              "type": "simple"
+            },
+            "uuid": "139a9a2c-9b37-4f58-9858-cef83685bc34"
+          }
+        ],
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "0"
+                ],
+                "operator": ">"
+              }
+            ],
+            "status": "critical"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "0"
+                  ],
+                  "operator": ">"
+                }
+              ],
+              "status": "critical"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "cluster_name",
+          "job_name"
+        ],
+        "interval": 300,
+        "message": ">Level: {{df_status}}  \n>Cluster: {{ cluster_name }} \n>Node: {{ job_name}} \n>Content: Job execution failed. \n>Suggest: Please log in to the cluster and check whether the Job is abnormal.",
+        "recoverNeedPeriodCount": 1,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`prom_state_metrics`:(LAST(`kube_job_status_failed`)) BY `cluster_name`, `job_name`"
+          }
+        ],
+        "title": "Job execution failed.",
+        "type": "simpleCheck"
+      },
+      "monitorName": "Kubernetes Detection Library"
+    }
+  ]
+}

@@ -1,0 +1,1454 @@
+{
+  "dashboardExtend": {},
+  "dashboardMapping": [],
+  "dashboardType": "CUSTOM",
+  "iconSet": {},
+  "main": {
+    "charts": [
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "Total amount of memory used by Jenkins",
+                "name": "Total amount of memory used by Jenkins",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Used Memory",
+        "pos": {
+          "h": 11,
+          "i": 0,
+          "w": 8,
+          "x": 8,
+          "y": 24
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Total amount of memory used by Jenkins",
+              "code": "A",
+              "dataSource": "jenkins",
+              "field": "vm_memory_total_used ",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "e77bc0d0-d23c-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`vm_memory_total_used `) AS `Total amount of memory used by Jenkins`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "CPU usage of Jenkins",
+                "name": "CPU usage of Jenkins",
+                "unit": "",
+                "units": [
+                  "percent",
+                  "percent_decimal"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "CPU Usage",
+        "pos": {
+          "h": 11,
+          "i": 1,
+          "w": 8,
+          "x": 0,
+          "y": 24
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "CPU usage of Jenkins",
+              "code": "A",
+              "dataSource": "jenkins",
+              "field": "vm_cpu_load",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "291d0310-d23c-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`vm_cpu_load`) AS `CPU usage of Jenkins`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": null,
+          "settings": {
+            "bgColor": "",
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": true,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "0",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "Total number of threads in Jenkins JVM",
+                "name": "Total number of threads in Jenkins JVM",
+                "unit": "pcs",
+                "units": [
+                  "custom",
+                  "pcs"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Total number of threads in Jenkins JVM",
+        "pos": {
+          "h": 8,
+          "i": 2,
+          "w": 6,
+          "x": 12,
+          "y": 8
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Total number of threads in Jenkins JVM",
+              "code": "A",
+              "dataSource": "jenkins",
+              "field": "vm_count",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "9361fd50-d23e-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`vm_count`) AS `Total number of threads in Jenkins JVM`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": null,
+          "settings": {
+            "bgColor": "",
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": true,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "0",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "last(executor_count)",
+                "name": "last(executor_count)",
+                "unit": "pcs",
+                "units": [
+                  "custom",
+                  "pcs"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Total number of builds",
+        "pos": {
+          "h": 8,
+          "i": 3,
+          "w": 6,
+          "x": 0,
+          "y": 16
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "jenkins",
+              "field": "executor_count",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "ae7ee850-d23e-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`executor_count`)) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": null,
+          "settings": {
+            "bgColor": "",
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": true,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "0",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "Number of Projects",
+                "name": "Number of Projects",
+                "unit": "pcs",
+                "units": [
+                  "custom",
+                  "pcs"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Number of Projects",
+        "pos": {
+          "h": 8,
+          "i": 4,
+          "w": 6,
+          "x": 6,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Number of Projects",
+              "code": "A",
+              "dataSource": "jenkins",
+              "field": "project_count",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "2c1af970-d23f-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`project_count`) AS `Number of Projects`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "dql"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": null,
+          "settings": {
+            "bgColor": "",
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": true,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "0",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "Number of build nodes online",
+                "name": "Number of build nodes online",
+                "unit": "pcs",
+                "units": [
+                  "custom",
+                  "pcs"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Number of build nodes online",
+        "pos": {
+          "h": 8,
+          "i": 5,
+          "w": 6,
+          "x": 12,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Number of build nodes online",
+              "code": "B",
+              "dataSource": "jenkins",
+              "field": "node_online_count",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "dc387730-d265-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`node_online_count`) AS `Number of build nodes online`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": null,
+          "settings": {
+            "bgColor": "",
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": true,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "0",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "Number of plugins successfully started",
+                "name": "Number of plugins successfully started",
+                "unit": "pcs",
+                "units": [
+                  "custom",
+                  "pcs"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Number of plugins failed to start",
+        "pos": {
+          "h": 8,
+          "i": 6,
+          "w": 6,
+          "x": 6,
+          "y": 8
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Number of plugins successfully started",
+              "code": "B",
+              "dataSource": "jenkins",
+              "field": "plugins_failed",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a1af4870-d25e-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`plugins_failed`) AS `Number of plugins successfully started`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "Number of jobs in build queue",
+                "name": "Number of jobs in build queue",
+                "unit": "pcs",
+                "units": [
+                  "custom"
+                ]
+              },
+              {
+                "key": "Number of buildable jobs",
+                "name": "Number of buildable jobs",
+                "unit": "pcs",
+                "units": [
+                  "custom",
+                  "pcs"
+                ]
+              },
+              {
+                "key": "Number of stuck jobs",
+                "name": "Number of stuck jobs",
+                "unit": "pcs",
+                "units": [
+                  "custom",
+                  "pcs"
+                ]
+              },
+              {
+                "key": "Number of blocked jobs",
+                "name": "Number of blocked jobs",
+                "unit": "pcs",
+                "units": [
+                  "custom",
+                  "pcs"
+                ]
+              },
+              {
+                "key": "Number of pending jobs",
+                "name": "Number of pending jobs",
+                "unit": "pcs",
+                "units": [
+                  "custom",
+                  "pcs"
+                ]
+              },
+              {
+                "key": "Number of jobs",
+                "name": "Number of jobs",
+                "unit": "pcs",
+                "units": [
+                  "custom",
+                  "pcs"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Number of jobs in queue",
+        "pos": {
+          "h": 11,
+          "i": 7,
+          "w": 8,
+          "x": 16,
+          "y": 24
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Number of buildable jobs",
+              "code": "B",
+              "dataSource": "jenkins",
+              "field": "queue_buildable",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "9ed7ac80-d260-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`queue_buildable`) AS `Number of buildable jobs`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Number of stuck jobs",
+              "code": "E",
+              "dataSource": "jenkins",
+              "field": "queue_stuck",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a76ddae0-d260-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`queue_stuck`) AS `Number of stuck jobs`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Number of blocked jobs",
+              "code": "A",
+              "dataSource": "jenkins",
+              "field": "queue_blocked",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "9c0d1ad0-d260-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`queue_blocked`) AS `Number of blocked jobs`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Number of pending jobs",
+              "code": "C",
+              "dataSource": "jenkins",
+              "field": "queue_pending",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a1745060-d260-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`queue_pending`) AS `Number of pending jobs`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Number of jobs in build queue",
+              "code": "D",
+              "dataSource": "jenkins",
+              "field": "queue_size",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a4aaea50-d260-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`queue_size`) AS `Number of jobs in build queue`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "isRefresh": false,
+          "links": [],
+          "settings": {
+            "backgroundStyle": {
+              "background-size": "contain"
+            },
+            "colors": [],
+            "fixedTime": "",
+            "isTimeInterval": true,
+            "levels": [],
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "type": "contain",
+            "units": [],
+            "url": "https://df-showcase.oss-cn-shanghai.aliyuncs.com/dashboard/Jenkins.jpg"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Jenkins",
+        "pos": {
+          "h": 8,
+          "i": 8,
+          "w": 6,
+          "x": 0,
+          "y": 0
+        },
+        "queries": [],
+        "type": "picture"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "bgColor": "",
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": true,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "0",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "last(node_offline_count)",
+                "name": "last(node_offline_count)",
+                "unit": "pcs",
+                "units": [
+                  "custom",
+                  "pcs"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Number of build nodes offline",
+        "pos": {
+          "h": 8,
+          "i": 9,
+          "w": 6,
+          "x": 18,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "jenkins",
+              "field": "node_offline_count",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "84eb9f60-d26b-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "85ae5320-d26b-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "",
+                  "op": "=",
+                  "value": ""
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`node_offline_count`)) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "bgColor": "",
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": true,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "0",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "last(plugins_active)",
+                "name": "last(plugins_active)",
+                "unit": "pcs",
+                "units": [
+                  "custom",
+                  "pcs"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Number of plugins successfully started",
+        "pos": {
+          "h": 8,
+          "i": 10,
+          "w": 6,
+          "x": 0,
+          "y": 8
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "jenkins",
+              "field": "plugins_active",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "ec9be500-d26d-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`plugins_active`)) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "bgColor": "",
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": true,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "0",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "last(vm_blocked_count)",
+                "name": "last(vm_blocked_count)",
+                "unit": "pcs",
+                "units": [
+                  "custom",
+                  "pcs"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Number of blocked threads in Jenkins JVM",
+        "pos": {
+          "h": 8,
+          "i": 11,
+          "w": 6,
+          "x": 18,
+          "y": 8
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "jenkins",
+              "field": "vm_blocked_count",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "ab2bc4e0-d26e-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`vm_blocked_count`)) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": null,
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "Number of idle builds",
+                "name": "Number of idle builds",
+                "unit": "pcs",
+                "units": [
+                  "custom",
+                  "pcs"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Number of idle builds",
+        "pos": {
+          "h": 8,
+          "i": 12,
+          "w": 6,
+          "x": 12,
+          "y": 16
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "disabled": false,
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Number of idle builds",
+              "code": "A",
+              "dataSource": "jenkins",
+              "field": "executor_free_count",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "14725760-d270-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`executor_free_count`) AS `Number of idle builds`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": null,
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "Number of builds being executed",
+                "name": "Number of builds being executed",
+                "unit": "pcs",
+                "units": [
+                  "custom",
+                  "pcs"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Number of builds being executed",
+        "pos": {
+          "h": 8,
+          "i": 13,
+          "w": 6,
+          "x": 18,
+          "y": 16
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Number of builds being executed",
+              "code": "A",
+              "dataSource": "jenkins",
+              "field": "executor_in_use_count",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "f2c1c4c0-d26f-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`executor_in_use_count`) AS `Number of builds being executed`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": null,
+          "settings": {
+            "bgColor": "",
+            "colors": [],
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": true,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "0",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "last(job_count)",
+                "name": "last(job_count)",
+                "unit": "pcs",
+                "units": [
+                  "custom",
+                  "pcs"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Number of jobs",
+        "pos": {
+          "h": 8,
+          "i": 14,
+          "w": 6,
+          "x": 6,
+          "y": 16
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "jenkins",
+              "field": "job_count",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "642e0600-d270-11eb-a3a3-cf1f43030643",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`jenkins`:(AVG(`job_count`)) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      }
+    ],
+    "groups": [],
+    "type": "template",
+    "vars": [
+      {
+        "code": "host",
+        "datasource": "dataflux",
+        "definition": {
+          "field": "",
+          "metric": "",
+          "object": "",
+          "tag": "",
+          "value": "show_tag_value(from=['jenkins'], keyin=['host'])"
+        },
+        "hide": 0,
+        "name": "Host",
+        "seq": 0,
+        "type": "QUERY",
+        "valueSort": "default"
+      }
+    ]
+  },
+  "summary": "",
+  "tags": [],
+  "thumbnail": "",
+  "title": "jenkins"
+}
