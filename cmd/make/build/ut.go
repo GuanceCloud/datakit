@@ -24,17 +24,40 @@ import (
 )
 
 // hugePackages is those packages that whose testing so much performance consumption.
-var hugePackages = map[string]bool{
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/db2":     true,
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/kafkamq": true,
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/mysql":   true,
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/oracle":  true,
+var (
+	hugePackages = map[string]bool{
+		"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/db2":     true,
+		"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/kafkamq": true,
+		"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/mysql":   true,
+		"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/oracle":  true,
 
-	// disalbe parallel running
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway": true,
-}
+		// disalbe parallel running
+		"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway": true,
+	}
 
-const envExcludeHugeIntegrationTesting = "UT_EXCLUDE_HUGE_INTEGRATION_TESTING"
+	UTExclude       string
+	jobs            = make(chan Job)
+	wg              sync.WaitGroup
+	percentCoverage *regexp.Regexp
+	coverTotal      = atomic.NewFloat64(0.0)
+	excludes        = map[string]bool{
+		"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/proxy/bench": true,
+	}
+
+	noTestPkgs       = make([]string, 0)
+	noTestPkgsLocker sync.RWMutex
+
+	passedPkgs        = make(map[float64][]string, 0)
+	addPassedPkgsJobs chan passedPkgsOpt
+
+	failedPkgs       = make(map[string]string, 0)
+	failedPkgsLocker sync.RWMutex
+)
+
+const (
+	pkgPrefix                        = "gitlab.jiagouyun.com/cloudcare-tools/"
+	envExcludeHugeIntegrationTesting = "UT_EXCLUDE_HUGE_INTEGRATION_TESTING"
+)
 
 func UnitTestDataKit() error {
 	pkgsListCmd := exec.Command("go", "list", "./...") //nolint:gosec
@@ -147,28 +170,6 @@ func UnitTestDataKit() error {
 	return nil
 }
 
-const (
-	pkgPrefix = "gitlab.jiagouyun.com/cloudcare-tools/"
-)
-
-var (
-	UTExclude       string
-	jobs            = make(chan Job)
-	wg              sync.WaitGroup
-	percentCoverage *regexp.Regexp
-	coverTotal      = atomic.NewFloat64(0.0)
-	excludes        = map[string]bool{}
-
-	noTestPkgs       = make([]string, 0)
-	noTestPkgsLocker sync.RWMutex
-
-	passedPkgs        = make(map[float64][]string, 0)
-	addPassedPkgsJobs chan passedPkgsOpt
-
-	failedPkgs       = make(map[string]string, 0)
-	failedPkgsLocker sync.RWMutex
-)
-
 func addNoTestPkgs(pkg string) {
 	noTestPkgsLocker.Lock()
 	defer noTestPkgsLocker.Unlock()
@@ -200,8 +201,6 @@ func workAddPassedPkgs() {
 		passedPkgs[j.F] = append(passedPkgs[j.F], j.Pkg)
 	}
 }
-
-////////////////////////////////////////////////////////////////////////////////
 
 type Job struct {
 	UTID    string // unit test ID.

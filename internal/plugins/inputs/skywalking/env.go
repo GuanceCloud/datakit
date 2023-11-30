@@ -48,6 +48,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		"ENV_INPUT_SKYWALKING_HTTP_ENDPOINTS", "ENV_INPUT_SKYWALKING_GRPC_ENDPOINT", "ENV_INPUT_SKYWALKING_PLUGINS",
 		"ENV_INPUT_SKYWALKING_IGNORE_TAGS", "ENV_INPUT_SKYWALKING_KEEP_RARE_RESOURCE", "ENV_INPUT_SKYWALKING_CLOSE_RESOURCE",
 		"ENV_INPUT_SKYWALKING_SAMPLER", "ENV_INPUT_SKYWALKING_TAGS", "ENV_INPUT_SKYWALKING_THREADS", "ENV_INPUT_SKYWALKING_STORAGE",
+		"ENV_INPUT_SKYWALKING_DEL_MESSAGE",
 	} {
 		value, ok := envs[key]
 		if !ok {
@@ -119,6 +120,12 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
 			} else {
 				ipt.LocalCacheConfig = &storage
+			}
+		case "ENV_INPUT_SKYWALKING_DEL_MESSAGE":
+			if ok, err := strconv.ParseBool(value); err != nil {
+				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
+			} else {
+				ipt.DelMessage = ok
 			}
 		}
 	}

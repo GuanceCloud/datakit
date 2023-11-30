@@ -37,7 +37,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 
 	for _, key := range []string{
 		"ENV_INPUT_PINPOINT_ADDRESS", "ENV_INPUT_PINPOINT_KEEP_RARE_RESOURCE", "ENV_INPUT_PINPOINT_CLOSE_RESOURCE",
-		"ENV_INPUT_PINPOINT_SAMPLER", "ENV_INPUT_PINPOINT_TAGS", "ENV_INPUT_PINPOINT_STORAGE",
+		"ENV_INPUT_PINPOINT_SAMPLER", "ENV_INPUT_PINPOINT_TAGS", "ENV_INPUT_PINPOINT_STORAGE", "ENV_INPUT_PINPOINT_DEL_MESSAGE",
 	} {
 		value, ok := envs[key]
 		if !ok {
@@ -81,6 +81,12 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
 			} else {
 				ipt.LocalCacheConfig = &storage
+			}
+		case "ENV_INPUT_PINPOINT_DEL_MESSAGE":
+			if ok, err := strconv.ParseBool(value); err != nil {
+				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
+			} else {
+				ipt.DelMessage = ok
 			}
 		}
 	}

@@ -8,6 +8,7 @@ package rum
 import (
 	"archive/zip"
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -85,6 +86,34 @@ var (
 	IOSAddressRegexp = regexp.MustCompile(`(\S+)\s+(0x[0-9a-fA-F]+)\s+((0x[0-9a-fA-F]+)\s*\+\s*(\d+|0x[0-9a-fA-F]+))`)
 	replaceRegexp    = regexp.MustCompile(`@ .*:\d+:\d+`)
 )
+
+var errLimitReader = errors.New("limit reader err")
+
+type limitReader struct {
+	r io.ReadCloser
+}
+
+func newLimitReader(r io.ReadCloser, max int64) io.ReadCloser {
+	return &limitReader{
+		r: http.MaxBytesReader(nil, r, max),
+	}
+}
+
+func (l *limitReader) Read(p []byte) (int, error) {
+	n, err := l.r.Read(p)
+	if err != nil {
+		if err == io.EOF { //nolint:errorlint
+			return n, err
+		}
+		// wrap the errLimitReader
+		return n, fmt.Errorf("%w: %s", errLimitReader, err)
+	}
+	return n, nil
+}
+
+func (l *limitReader) Close() error {
+	return l.r.Close()
+}
 
 func (ipt *Input) getWebSourceMapDirs() map[string]struct{} {
 	sourceMapDirs := make(map[string]struct{}, 2)

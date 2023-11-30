@@ -12,6 +12,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	metrics "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/collector/metrics/v1"
 	trace "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/collector/trace/v1"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"google.golang.org/grpc"
 	_ "google.golang.org/grpc/encoding/gzip"
 )
@@ -25,7 +26,7 @@ func runGRPCV1(addr string, ipt *Input) {
 	}
 	log.Debugf("### opentelemetry grpc v1 listening on: %s", addr)
 
-	otelSvr = grpc.NewServer()
+	otelSvr = grpc.NewServer(itrace.DefaultGRPCServerOpts...)
 	trace.RegisterTraceServiceServer(otelSvr, &TraceServiceServer{})
 	metrics.RegisterMetricsServiceServer(otelSvr, &MetricsServiceServer{Ipt: ipt})
 

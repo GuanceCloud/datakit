@@ -155,7 +155,7 @@ func (m *DatabaseIO) Info() *inputs.MeasurementInfo {
 		Desc: "I/O statistics for data and log files,[detail](https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-io-virtual-file-stats-transact-sql?view=sql-server-ver15)",
 		Fields: map[string]interface{}{
 			"read_bytes":        newByteFieldInfo("Total number of bytes read on this file"),
-			"write_bytes":       newByteFieldInfo("Number of writes made on this file"),
+			"write_bytes":       newByteFieldInfo("Total number of bytes written to the file"),
 			"read_latency_ms":   newTimeFieldInfo("Total time, in milliseconds, that the users waited for reads issued on the file."),
 			"write_latency_ms":  newTimeFieldInfo("Total time, in milliseconds, that users waited for writes to be completed on the file"),
 			"reads":             newCountFieldInfo("Number of reads issued on the file."),

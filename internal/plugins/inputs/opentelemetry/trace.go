@@ -8,12 +8,17 @@ package opentelemetry
 import (
 	"encoding/binary"
 	"encoding/hex"
-	"encoding/json"
 	"strconv"
+	"time"
 
+	"google.golang.org/protobuf/encoding/protojson"
+
+	"github.com/GuanceCloud/cliutils/point"
 	trace "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/trace/v1"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
+
+var traceOpts = []point.Option{}
 
 func parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
 	var dktraces itrace.DatakitTraces
@@ -28,41 +33,39 @@ func parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
 
 			for _, span := range scopeSpans.Spans {
 				spattrs := extractAtrributes(span.Attributes)
-
-				dkspan := &itrace.DatakitSpan{
-					TraceID:   convert(span.GetTraceId()),
-					ParentID:  convert(span.GetParentSpanId()),
-					SpanID:    convert(span.GetSpanId()),
-					Resource:  span.Name,
-					Operation: span.Name,
-					Source:    inputName,
-					Tags:      make(map[string]string),
-					Metrics:   make(map[string]interface{}),
-					Start:     int64(span.StartTimeUnixNano),
-					Duration:  int64(span.EndTimeUnixNano - span.StartTimeUnixNano),
-					Status:    getDKSpanStatus(span.GetStatus()),
-				}
-				dkspan.SpanType = itrace.FindSpanTypeStrSpanID(dkspan.SpanID, dkspan.ParentID, spanIDs, parentIDs)
+				var spanKV point.KVs
+				spanKV = spanKV.Add(itrace.FieldTraceID, convert(span.GetTraceId()), false, false).
+					Add(itrace.FieldParentID, convert(span.GetParentSpanId()), false, false).
+					Add(itrace.FieldSpanid, convert(span.GetSpanId()), false, false).
+					Add(itrace.FieldResource, span.Name, false, false).
+					AddTag(itrace.TagOperation, span.Name).
+					AddTag(itrace.TagSource, inputName).
+					Add(itrace.FieldStart, int64(span.StartTimeUnixNano)/int64(time.Microsecond), false, false).
+					Add(itrace.FieldDuration, int64(span.EndTimeUnixNano-span.StartTimeUnixNano)/int64(time.Microsecond), false, false).
+					AddTag(itrace.TagSpanStatus, getDKSpanStatus(span.GetStatus())).
+					AddTag(itrace.TagSpanType,
+						itrace.FindSpanTypeStrSpanID(convert(span.GetSpanId()), convert(span.GetParentSpanId()), spanIDs, parentIDs))
 
 				attrs := newAttributes(resattrs).merge(scpattrs...).merge(spattrs...)
 				if kv, i := attrs.find(otelResourceServiceKey); i != -1 {
-					dkspan.Service = kv.Value.GetStringValue()
+					spanKV = spanKV.AddTag(itrace.TagService, kv.Value.GetStringValue())
 				}
+
 				if kv, i := attrs.find(otelResourceServiceVersionKey); i != -1 {
-					dkspan.Tags[itrace.TAG_VERSION] = kv.Value.GetStringValue()
+					spanKV = spanKV.AddTag(itrace.TagVersion, kv.Value.GetStringValue())
 				}
 				if kv, i := attrs.find(otelResourceProcessIDKey); i != -1 {
-					dkspan.Tags[itrace.TAG_PID] = kv.Value.GetStringValue()
+					spanKV = spanKV.AddTag(itrace.TagPid, kv.Value.GetStringValue())
 				}
 				if kv, i := attrs.find(otelResourceContainerNameKey); i != -1 {
-					dkspan.Tags[itrace.TAG_CONTAINER_HOST] = kv.Value.GetStringValue()
+					spanKV = spanKV.AddTag(itrace.TagContainerHost, kv.Value.GetStringValue())
 				}
 				if kv, i := attrs.find(otelHTTPMethodKey); i != -1 {
-					dkspan.Tags[itrace.TAG_HTTP_METHOD] = kv.Value.GetStringValue()
+					spanKV = spanKV.AddTag(itrace.TagHttpMethod, kv.Value.GetStringValue())
 					attrs.remove(otelHTTPMethodKey)
 				}
 				if kv, i := attrs.find(otelHTTPStatusCodeKey); i != -1 {
-					dkspan.Tags[itrace.TAG_HTTP_STATUS_CODE] = kv.Value.GetStringValue()
+					spanKV = spanKV.AddTag(itrace.TagHttpStatusCode, kv.Value.GetStringValue())
 					attrs.remove(otelHTTPStatusCodeKey)
 				}
 
@@ -70,7 +73,7 @@ func parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
 					if span.Events[i].Name == ExceptionEventName {
 						for o, d := range otelErrKeyToDkErrKey {
 							if attr, ok := getAttribute(o, span.Events[i].Attributes); ok {
-								dkspan.Metrics[d] = attr.Value.GetStringValue()
+								spanKV = spanKV.Add(d, attr.Value.GetStringValue(), false, false)
 							}
 						}
 						break
@@ -78,22 +81,31 @@ func parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
 				}
 
 				attrtags, attrfields := attrs.splite()
-				dkspan.Tags = itrace.MergeTags(tags, dkspan.Tags, attrtags)
-				dkspan.Metrics = itrace.MergeFields(dkspan.Metrics, attrfields)
-
-				dkspan.SourceType = getSourceType(dkspan.Tags)
-
-				if buf, err := json.Marshal(span); err != nil {
-					log.Warn(err.Error())
-				} else {
-					dkspan.Content = string(buf)
+				for k, v := range tags {
+					spanKV = spanKV.AddTag(k, v)
+				}
+				for k, v := range attrtags {
+					spanKV = spanKV.AddTag(k, v)
+				}
+				for k, v := range attrfields {
+					spanKV = spanKV.Add(k, v, false, false)
 				}
 
-				dktrace = append(dktrace, dkspan)
+				spanKV = spanKV.AddTag(itrace.TagSourceType, getSourceType(spanKV.Tags()))
+				if !delMessage {
+					if buf, err := protojson.Marshal(span); err != nil {
+						log.Warn(err.Error())
+					} else {
+						spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
+					}
+				}
+
+				pt := point.NewPointV2(inputName, spanKV, traceOpts...)
+				dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 			}
 		}
 		if len(dktrace) != 0 {
-			dktrace[0].Metrics[itrace.FIELD_PRIORITY] = itrace.PRIORITY_AUTO_KEEP
+			dktrace[0].Add(itrace.FieldPriority, itrace.PriorityAutoKeep)
 			dktraces = append(dktraces, dktrace)
 		}
 	}
@@ -153,32 +165,32 @@ func convert(id []byte) string {
 
 // getDKSpanStatus 从otel的status转成dk的span_status.
 func getDKSpanStatus(statuspb *trace.Status) string {
-	status := itrace.STATUS_INFO
+	status := itrace.StatusInfo
 	if statuspb == nil {
 		return status
 	}
 	switch statuspb.Code {
 	case trace.Status_STATUS_CODE_OK, trace.Status_STATUS_CODE_UNSET:
-		status = itrace.STATUS_OK
+		status = itrace.StatusOk
 	case trace.Status_STATUS_CODE_ERROR:
-		status = itrace.STATUS_ERR
+		status = itrace.StatusErr
 	default:
 	}
 
 	return status
 }
 
-func getSourceType(tags map[string]string) string {
-	for key := range tags {
-		switch key {
+func getSourceType(tags point.KVs) string {
+	for _, v := range tags {
+		switch v.Key {
 		case otelHTTPSchemeKey, otelHTTPMethodKey, otelRPCSystemKey:
-			return itrace.SPAN_SOURCE_WEB
+			return itrace.SpanSourceWeb
 		case otelDBSystemKey:
-			return itrace.SPAN_SOURCE_DB
+			return itrace.SpanSourceDb
 		case otelMessagingSystemKey:
-			return itrace.SPAN_SOURCE_MSGQUE
+			return itrace.SpanSourceMsgque
 		}
 	}
 
-	return itrace.SPAN_SOURCE_CUSTOMER
+	return itrace.SpanSourceCustomer
 }

@@ -8,8 +8,11 @@
 package external
 
 import (
+	"bytes"
+	"encoding/gob"
 	"fmt"
 	"math/rand"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
@@ -197,4 +200,51 @@ func TestInput(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+func TestInput_queryToBytes(t *testing.T) {
+	type fields struct {
+		Query []*customQuery
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   []byte
+	}{
+		{
+			name: "normal",
+			fields: fields{
+				Query: []*customQuery{
+					{
+						SQL:    "SELECT METRIC_ID, METRIC_NAME, VALUE, METRIC_UNIT FROM GV$SYSMETRIC ORDER BY BEGIN_TIME",
+						Metric: "oracle_custom",
+						Tags:   []string{"GROUP_ID"},
+						Fields: []string{"METRIC_ID, VALUE"},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ipt := &Input{
+				Query: tt.fields.Query,
+			}
+			got := ipt.queryToBytes()
+			out := bytesToQuery(got)
+			if !reflect.DeepEqual(out, ipt.Query) {
+				t.Errorf("Input.queryToBytes() = %v, want %v", out, ipt.Query)
+			}
+		})
+	}
+}
+
+func bytesToQuery(bys []byte) []*customQuery {
+	dec := gob.NewDecoder(bytes.NewReader(bys))
+	var query []*customQuery
+	if err := dec.Decode(&query); err != nil {
+		l.Errorf("dec.Decode() failed: %v", err)
+		return nil
+	}
+	return query
 }

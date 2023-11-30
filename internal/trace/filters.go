@@ -7,7 +7,6 @@ package trace
 
 import (
 	"fmt"
-	"math"
 	"regexp"
 	"sync"
 	"time"
@@ -41,11 +40,11 @@ func (cres *CloseResource) Close(log *logger.Logger, dktrace DatakitTrace) (Data
 
 	for i := range dktrace {
 		for service, resList := range cres.IgnoreResources {
-			if service == "*" || service == dktrace[i].Service {
+			if service == "*" || service == dktrace[i].GetTag(TagService) {
 				for j := range resList {
-					if resList[j].MatchString(dktrace[i].Resource) {
-						log.Debugf("close trace tid: %s from service: %s resource: %s send by source: %s",
-							dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource, dktrace[i].Source)
+					if resList[j].MatchString(dktrace[i].GetFiledToString(FieldResource)) {
+						log.Debugf("close trace tid: %s from  resource: %s ",
+							dktrace[i].GetFiledToString(FieldTraceID), dktrace[i].GetFiledToString(FieldResource))
 
 						return nil, true
 					}
@@ -83,39 +82,33 @@ func RespectUserRule(log *logger.Logger, dktrace DatakitTrace) (DatakitTrace, bo
 	}
 
 	for i := range dktrace {
-		if p, ok := dktrace[i].Metrics[FIELD_PRIORITY]; ok {
-			var priority int
-			if priority, ok = p.(int); !ok {
-				log.Debugf("wrong type for priority %v", p)
-				continue
-			}
-			switch priority {
-			case PRIORITY_USER_REJECT, PRIORITY_RULE_SAMPLER_REJECT:
-				log.Debugf("drop tid: %s service: %s resource: %s according to %s.",
-					dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource, priorityRules[priority])
+		priority := dktrace[i].GetFiledToInt(FieldPriority)
+		switch priority {
+		case PriorityUserReject, PriorityRuleSamplerReject:
+			log.Debugf("drop tid: %s service: %s resource: %s according to %s.",
+				dktrace[i].GetTag(TagService), dktrace[i].GetFiledToString(FieldResource), dktrace[i].Get(TagSourceType), priorityRules[priority])
 
-				return nil, true
-			case PRIORITY_USER_KEEP, PRIORITY_RULE_SAMPLER_KEEP:
-				log.Debugf("send tid: %s service: %s resource: %s according to %s.",
-					dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource, priorityRules[priority])
+			return nil, true
+		case PriorityUserKeep, PriorityRuleSamplerKeep:
+			log.Debugf("send tid: %s service: %s resource: %s according to %s.",
+				dktrace[i].GetTag(TagService), dktrace[i].GetFiledToString(FieldResource), dktrace[i].Get(TagSourceType), priorityRules[priority])
 
-				return dktrace, true
-			case PRIORITY_AUTO_REJECT, PRIORITY_AUTO_KEEP:
-				log.Debugf("keep tid: %s service: %s resource: %s according to %s.",
-					dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource, priorityRules[priority])
+			return dktrace, true
+		case PriorityAutoReject, PriorityAutoKeep:
+			log.Debugf("keep tid: %s service: %s resource: %s according to %s.",
+				dktrace[i].GetTag(TagService), dktrace[i].GetFiledToString(FieldResource), dktrace[i].Get(TagSourceType), priorityRules[priority])
 
-				return dktrace, false
-			default:
-				log.Infof("[note:] no proper priority number(%s) found, this may be a potential bug, tid: %s service: %s resource: %s",
-					priority, dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource)
+			return dktrace, false
+		default:
+			log.Debugf("[note:] no proper priority number(%d) found, this may be a potential bug, tid: %s service: %s resource: %s",
+				priority, dktrace[i].GetTag(TagService), dktrace[i].GetFiledToString(FieldResource), dktrace[i].Get(TagSourceType))
 
-				return dktrace, false
-			}
+			return dktrace, false
 		}
 	}
 
 	log.Infof("[note] no priority span found in trace, this may be a potential bug, tid: %s service: %s resource: %s",
-		dktrace[0].TraceID, dktrace[0].Service, dktrace[0].Resource)
+		dktrace[0].GetTag(TagService), dktrace[0].GetFiledToString(FieldResource), dktrace[0].Get(TagSourceType))
 
 	return dktrace, false
 }
@@ -126,11 +119,11 @@ func OmitHTTPStatusCodeFilterWrapper(statusCodeList []string) FilterFunc {
 	} else {
 		return func(log *logger.Logger, dktrace DatakitTrace) (DatakitTrace, bool) {
 			for i := range dktrace {
-				if dktrace[i].SourceType != SPAN_SOURCE_WEB {
+				if dktrace[i].GetTag(TagSourceType) != SpanSourceWeb {
 					continue
 				}
 				for j := range statusCodeList {
-					if statusCode, ok := dktrace[i].Tags[TAG_HTTP_STATUS_CODE]; ok && statusCode == statusCodeList[j] {
+					if statusCode := dktrace[i].Get(TagHttpStatusCode); statusCode == statusCodeList[j] {
 						log.Debugf("omit trace with status code: %s", statusCode)
 
 						return nil, true
@@ -149,9 +142,10 @@ func PenetrateErrorTracing(log *logger.Logger, dktrace DatakitTrace) (DatakitTra
 	}
 
 	for i := range dktrace {
-		switch dktrace[i].Status {
-		case STATUS_ERR, STATUS_CRITICAL:
-			log.Debugf("penetrate error trace tid: %s service: %s resource: %s", dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource)
+		switch dktrace[i].GetTag(TagSpanStatus) {
+		case StatusErr, StatusCritical:
+			log.Debugf("penetrate error trace tid: %s service: %s resource: %s",
+				dktrace[i].GetTag(TagService), dktrace[i].GetFiledToString(FieldResource), dktrace[i].Get(TagSourceType))
 
 			return dktrace, true
 		}
@@ -176,15 +170,17 @@ func (kprres *KeepRareResource) Keep(log *logger.Logger, dktrace DatakitTrace) (
 
 	var skip bool
 	for i := range dktrace {
-		if dktrace[i].SpanType == SPAN_TYPE_ENTRY {
-			sed := fmt.Sprintf("%s%s%s", dktrace[i].Service, dktrace[i].Resource, dktrace[i].Source)
+		if dktrace[i].Get(TagSpanType) == SpanTypeEntry {
+			sed := fmt.Sprintf("%s%s%s",
+				dktrace[i].GetTag(TagService), dktrace[i].GetFiledToString(FieldResource), dktrace[i].Get(TagSourceType))
 			if len(sed) == 0 {
 				break
 			}
 
 			checksum := hashcode.GenStringsHash(sed)
 			if v, ok := kprres.presentMap.Load(checksum); !ok || time.Since(v.(time.Time)) >= kprres.Duration {
-				log.Debugf("got rare trace from service: %s resource: %s send by %s", dktrace[i].Service, dktrace[i].Resource, dktrace[i].Source)
+				log.Debugf("got rare trace from service: %s resource: %s send by %s",
+					dktrace[i].GetTag(TagService), dktrace[i].GetFiledToString(FieldResource), dktrace[i].Get(TagSourceType))
 				skip = true
 			}
 			kprres.presentMap.Store(checksum, time.Now())
@@ -203,63 +199,26 @@ func (kprres *KeepRareResource) UpdateStatus(open bool, span time.Duration) {
 	}
 }
 
-// constants used for the Knuth hashing, same as dd-agent.
-const knuthFactor = uint64(1111111111111111111)
-
-func multiplicativeHashFunc(n uint64, rate float64) bool {
-	if rate < 1 {
-		return n*knuthFactor < uint64(math.MaxUint64*rate)
-	}
-
-	return true
-}
-
 type Sampler struct {
 	Priority           int     `toml:"priority" json:"priority"` // deprecated
 	SamplingRateGlobal float64 `toml:"sampling_rate" json:"sampling_rate"`
+	threshold          uint64
 }
 
 func (smp *Sampler) Sample(log *logger.Logger, dktrace DatakitTrace) (DatakitTrace, bool) {
 	if len(dktrace) == 0 {
 		return nil, true
 	}
-
-	for i := range dktrace {
-		if p, ok := dktrace[i].Metrics[FIELD_PRIORITY]; ok {
-			var priority int
-			if priority, ok = p.(int); !ok {
-				log.Debugf("wrong type for priority %v", p)
-				continue
-			}
-			switch priority {
-			case PRIORITY_AUTO_KEEP:
-				if multiplicativeHashFunc(UnifyToUint64ID(dktrace[i].TraceID), smp.SamplingRateGlobal) {
-					log.Debugf("keep tid: %s service: %s resource: %s according to PRIORITY_AUTO_KEEP and sampling ratio: %d%%",
-						dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource, int(smp.SamplingRateGlobal*100))
-
-					return dktrace, false
-				} else {
-					log.Debugf("drop tid: %s service: %s resource: %s according to PRIORITY_AUTO_KEEP and sampling ratio: %d%%",
-						dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource, int(smp.SamplingRateGlobal*100))
-
-					return nil, true
-				}
-			case PRIORITY_AUTO_REJECT:
-				log.Debugf("drop tid: %s service: %s resource: %s according to PRIORITY_AUTO_REJECT.",
-					dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource)
-
-				return nil, true
-			default:
-				log.Infof("[note] no proper priority(%s) rules selected, this may be a potential bug, tid: %s service: %s resource: %s",
-					priority, dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource)
-
-				return dktrace, false
-			}
-		}
+	traceID := UnifyToUint64ID(dktrace[0].GetFiledToString(FieldTraceID))
+	f := traceID%10000 <= smp.threshold
+	if f {
+		return dktrace, false
+	} else {
+		return nil, true
 	}
+}
 
-	log.Infof("[note] no priority span found in trace, this may be a potential bug, tid: %s service: %s resource: %s",
-		dktrace[0].TraceID, dktrace[0].Service, dktrace[0].Resource)
-
-	return dktrace, false
+func (smp *Sampler) Init() *Sampler {
+	smp.threshold = uint64(float64(10000) * smp.SamplingRateGlobal)
+	return smp
 }

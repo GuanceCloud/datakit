@@ -8,7 +8,9 @@ package coracle
 
 import (
 	"bytes"
+	"encoding/gob"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -25,7 +27,7 @@ const (
 	metricNameProcess    = "oracle_process"
 	metricNameTablespace = "oracle_tablespace"
 	metricNameSystem     = "oracle_system"
-	metricNameLogging    = "oracle_logging"
+	metricNameLogging    = "oracle_log"
 
 	pdbName        = "pdb_name"
 	tablespaceName = "tablespace_name"
@@ -33,32 +35,7 @@ const (
 )
 
 var (
-	l   = logger.DefaultSLogger(inputName)
-	dic = map[string]string{
-		"buffer_cache_hit_ratio":       "buffer_cachehit_ratio",
-		"cursor_cache_hit_ratio":       "cursor_cachehit_ratio",
-		"library_cache_hit_ratio":      "library_cachehit_ratio",
-		"shared_pool_free_%":           "shared_pool_free",
-		"physical_read_bytes_per_sec":  "physical_reads",
-		"physical_write_bytes_per_sec": "physical_writes",
-		"enqueue_timeouts_per_sec":     "enqueue_timeouts",
-
-		"gc_cr_block_received_per_second": "gc_cr_block_received",
-		"global_cache_blocks_corrupted":   "cache_blocks_corrupt",
-		"global_cache_blocks_lost":        "cache_blocks_lost",
-		"average_active_sessions":         "active_sessions",
-		"sql_service_response_time":       "service_response_time",
-		"user_rollbacks_per_sec":          "user_rollbacks",
-		"total_sorts_per_user_call":       "sorts_per_user_call",
-		"rows_per_sort":                   "rows_per_sort",
-		"disk_sort_per_sec":               "disk_sorts",
-		"memory_sorts_ratio":              "memory_sorts_ratio",
-		"database_wait_time_ratio":        "database_wait_time_ratio",
-		"session_limit_%":                 "session_limit_usage",
-		"session_count":                   "session_count",
-		"temp_space_used":                 "temp_space_used",
-	}
-
+	l                = logger.DefaultSLogger(inputName)
 	_ ccommon.IInput = (*Input)(nil)
 )
 
@@ -73,6 +50,7 @@ type Input struct {
 	tags          map[string]string
 	election      bool
 	SlowQueryTime time.Duration
+	Query         []*customQuery
 
 	db                    *sqlx.DB
 	intervalDuration      time.Duration
@@ -80,6 +58,20 @@ type Input struct {
 	collectorsLogging     []ccommon.DBMetricsCollector
 	datakitPostURL        string
 	datakitPostLoggingURL string
+
+	// collected metrics - mysql custom queries
+	mCustomQueries map[string][]map[string]interface{}
+}
+
+// customQuery contains custom sql query info.
+// Same as struct 'customQuery' in internal/plugins/inputs/external/external.go.
+type customQuery struct {
+	SQL    string   `toml:"sql"`
+	Metric string   `toml:"metric"`
+	Tags   []string `toml:"tags"`
+	Fields []string `toml:"fields"`
+
+	MD5Hash string
 }
 
 func NewInput(infoMsgs []string, opt *ccommon.Option) ccommon.IInput {
@@ -119,15 +111,28 @@ func NewInput(infoMsgs []string, opt *ccommon.Option) ccommon.IInput {
 		election:    opt.Election,
 	}
 
-	du, err := time.ParseDuration(opt.SlowQueryTime)
-	if err != nil {
-		l.Errorf("bad slow query %s: %s, disable slow query", opt.SlowQueryTime, err.Error())
-	} else {
-		if du >= time.Millisecond {
-			ipt.SlowQueryTime = du
+	// ENV_INPUT_ORACLE_PASSWORD
+	pwd := os.Getenv("ENV_INPUT_ORACLE_PASSWORD")
+	if len(pwd) > 0 {
+		ipt.password = pwd
+	}
+
+	if len(opt.SlowQueryTime) > 0 {
+		du, err := time.ParseDuration(opt.SlowQueryTime)
+		if err != nil {
+			l.Warnf("bad slow query %s: %s, disable slow query", opt.SlowQueryTime, err.Error())
 		} else {
-			l.Warnf("slow query time %v less than 1 millisecond, skip", du)
+			if du >= time.Millisecond {
+				ipt.SlowQueryTime = du
+			} else {
+				l.Warnf("slow query time %v larger than 1 millisecond, skip", du)
+			}
 		}
+	}
+
+	l.Infof("opt.CustomQueryFile = %s", opt.CustomQueryFile)
+	if len(opt.CustomQueryFile) > 0 {
+		ipt.Query = bytesToQuery(opt)
 	}
 
 	items := strings.Split(opt.Tags, ";")
@@ -169,8 +174,9 @@ func NewInput(infoMsgs []string, opt *ccommon.Option) ccommon.IInput {
 	proMetric := newProcessMetrics(withInput(ipt), withMetricName(metricNameProcess))
 	tsMetric := newTablespaceMetrics(withInput(ipt), withMetricName(metricNameTablespace))
 	sysMetric := newSystemMetrics(withInput(ipt), withMetricName(metricNameSystem))
+	customMetric := newCustomQueryCollector(withInput(ipt))
 
-	ipt.collectors = append(ipt.collectors, proMetric, tsMetric, sysMetric)
+	ipt.collectors = append(ipt.collectors, proMetric, tsMetric, sysMetric, customMetric)
 	l.Infof("collectors len = %d", len(ipt.collectors))
 
 	ipt.datakitPostURL = ccommon.GetPostURL(
@@ -194,6 +200,28 @@ func NewInput(infoMsgs []string, opt *ccommon.Option) ccommon.IInput {
 	return ipt
 }
 
+func bytesToQuery(opt *ccommon.Option) []*customQuery {
+	l.Debug("bytesToQuery entry")
+
+	fi, err := os.Open(opt.CustomQueryFile)
+	if err != nil {
+		l.Errorf("os.Open() failed: %v", err)
+		return nil
+	}
+
+	dec := gob.NewDecoder(fi)
+	var query []*customQuery
+	err = dec.Decode(&query)
+	if err != nil {
+		l.Errorf("dec.Decode() failed: %v", err)
+		return nil
+	}
+
+	l.Debugf("query = %#v", query)
+
+	return query
+}
+
 // ConnectDB establishes a connection to an Oracle instance and returns an open connection to the database.
 func (ipt *Input) ConnectDB() error {
 	db, err := sqlx.Open("godror",
@@ -204,6 +232,37 @@ func (ipt *Input) ConnectDB() error {
 		return err
 	}
 	return nil
+}
+
+func (ipt *Input) q(s string) rows {
+	rows, err := ipt.db.Query(s)
+	if err != nil {
+		l.Errorf(`query failed, sql (%q), error: %s, ignored`, s, err.Error())
+		return nil
+	}
+
+	if err := rows.Err(); err != nil {
+		closeRows(rows)
+		l.Errorf(`query row failed, sql (%q), error: %s, ignored`, s, err.Error())
+		return nil
+	}
+
+	return rows
+}
+
+// DB rows interface.
+type rows interface {
+	Next() bool
+	Scan(...interface{}) error
+	Close() error
+	Err() error
+	Columns() ([]string, error)
+}
+
+func closeRows(r rows) {
+	if err := r.Close(); err != nil {
+		l.Warnf("Close: %s, ignored", err)
+	}
 }
 
 // CloseDB cleans up database resources used.
@@ -235,27 +294,30 @@ func collectAndReport(collectors *[]ccommon.DBMetricsCollector, reportURL string
 	ba := ccommon.NewByteArray()
 
 	for idx := range *collectors {
-		pt, err := (*collectors)[idx].Collect()
+		pts, err := (*collectors)[idx].Collect()
 		if err != nil {
 			ccommon.ReportErrorf(inputName, l, "Collect failed: %v", err)
 		} else {
-			if pt == nil {
+			if len(pts) == 0 {
 				continue
 			}
 
-			line := pt.LineProto()
-			ba.Add(line)
+			for _, pt := range pts {
+				line := pt.LineProto()
+				l.Debugf("line = %s", line)
+				if len(line) > 0 {
+					ba.Add(line)
+				}
+			}
 		}
 	}
 
 	if ba.Len() > 0 {
 		if err := ccommon.WriteData(l, bytes.Join(ba.Get(), []byte("\n")), reportURL); err != nil {
-			l.Errorf("writeData failed: %v", err)
+			l.Errorf("WriteData failed: %v", err)
 		}
 	}
 }
-
-////////////////////////////////////////////////////////////////////////////////
 
 func selectWrapper[T any](ipt *Input, s T, sql string) error {
 	now := time.Now()
@@ -268,7 +330,22 @@ func selectWrapper[T any](ipt *Input, s T, sql string) error {
 		}
 	}
 
-	l.Debugf("executed sql: %s, cost: %v\n", sql, time.Since(now))
+	l.Debugf("(selectWrapper) executed sql: %s, cost: %v\n", sql, time.Since(now))
+	return err
+}
+
+func getWrapper[T any](ipt *Input, s T, sql string, binds ...interface{}) error {
+	now := time.Now()
+
+	err := ipt.db.Get(s, sql, binds...)
+	if err != nil && (strings.Contains(err.Error(), "ORA-01012") || strings.Contains(err.Error(), "database is closed")) {
+		if err := ipt.ConnectDB(); err != nil {
+			ipt.CloseDB()
+			return err
+		}
+	}
+
+	l.Debugf("(getWrapper) executed sql: %s, cost: %v\n", sql, time.Since(now))
 	return err
 }
 

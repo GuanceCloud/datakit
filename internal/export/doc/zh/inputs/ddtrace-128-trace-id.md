@@ -44,6 +44,13 @@ DDTrace agent 默认的 trace-id 是 64 位，Datakit 在接收到的链路数�
 
 在 观测云 链路中，所有的链路 id 都会成为 128 位的。
 
+修改采集器 `ddtrace.conf` 的配置：
+
+```toml
+# 放开注释，span_id 和 parent_id 都会转成 16 进制字符串。
+compatible_otel=true
+```
+
 ## OTEL 与 DDTrace 实现串联 {#otel-to-ddtrace}
 OTEL 的客户端发送 http 请求到 dd 的服务端：OTEL 默认会在请求头上带上 `traceparent:00-815cf7a2d315279413e6ceb43971225f-14f64a9c3fb05612-01` （W3C 规范） 依次为 version - trace-id - parent-id - trace-flags
 

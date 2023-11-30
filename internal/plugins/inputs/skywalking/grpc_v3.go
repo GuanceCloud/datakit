@@ -39,7 +39,7 @@ func runGRPCV3(ipt *Input) {
 	}
 	log.Debugf("### skywalking grpc v3 listening on: %s", ipt.Address)
 
-	skySvr = grpc.NewServer()
+	skySvr = grpc.NewServer(itrace.DefaultGRPCServerOpts...)
 	// register API version 8.3.0
 	agentv3old.RegisterTraceSegmentReportServiceServer(skySvr, &TraceReportServerV3Old{})
 	agentv3old.RegisterJVMMetricReportServiceServer(skySvr, &JVMMetricReportServerV3Old{ipt: ipt})

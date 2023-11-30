@@ -14,7 +14,7 @@ rules:
   resources: ["clusterroles"]
   verbs: ["get", "list", "watch"]
 - apiGroups: [""]
-  resources: ["nodes", "nodes/stats", "nodes/metrics", "nodes/spec", "nodes/proxy", "namespaces", "pods", "pods/log", "events", "services", "endpoints"]
+  resources: ["nodes", "nodes/stats", "namespaces", "pods", "pods/log", "events", "services", "endpoints"]
   verbs: ["get", "list", "watch"]
 - apiGroups: ["apps"]
   resources: ["deployments", "daemonsets", "statefulsets", "replicasets"]
@@ -146,13 +146,13 @@ spec:
               apiVersion: v1
               fieldPath: spec.nodeName
         - name: ENV_DATAWAY
-          value: https://openway.guance.com?token=<your-token> # 此处填上 dataway 真实地址
+          value: https://openway.guance.com?token=<YOUR-WORKSPACE-TOKEN> # Fill your real Dataway server and(or) workspace token
         - name: ENV_CLUSTER_NAME_K8S
-          value: <default>
-        - name: ENV_GLOBAL_TAGS
+          value: default
+        - name: ENV_GLOBAL_HOST_TAGS
           value: host=__datakit_hostname,host_ip=__datakit_ip
-        - name: ENV_ELECTION_TAGS
-          value: host=__datakit_hostname,host_ip=__datakit_ip
+        - name: ENV_GLOBAL_ELECTION_TAGS
+          value: ""                                            # Default not set
         - name: ENV_DEFAULT_ENABLED_INPUTS
           value: dk,cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container
         - name: ENV_ENABLE_ELECTION

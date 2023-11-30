@@ -12,8 +12,8 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/uber/jaeger-client-go/thrift"
 	"github.com/uber/jaeger-client-go/thrift-gen/jaeger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
@@ -79,6 +79,8 @@ type DkJaegerSpan struct {
 	*jaeger.Span
 }
 
+var traceOpts = []point.Option{}
+
 func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 	var (
 		project, version, env = getExpandInfo(batch)
@@ -90,29 +92,29 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 			continue
 		}
 
-		dkspan := &itrace.DatakitSpan{
-			ParentID:   strconv.FormatUint(uint64(span.ParentSpanId), 16),
-			SpanID:     strconv.FormatUint(uint64(span.SpanId), 16),
-			Service:    batch.Process.ServiceName,
-			Resource:   span.OperationName,
-			Operation:  span.OperationName,
-			Source:     inputName,
-			SourceType: itrace.SPAN_SOURCE_CUSTOMER,
-			SpanType:   itrace.FindSpanTypeIntSpanID(uint64(span.SpanId), uint64(span.ParentSpanId), spanIDs, parentIDs),
-			Start:      span.StartTime * int64(time.Microsecond),
-			Duration:   span.Duration * int64(time.Microsecond),
-		}
+		spanKV := point.KVs{}
+		spanKV = spanKV.Add(itrace.FieldParentID, strconv.FormatUint(uint64(span.ParentSpanId), 16), false, false).
+			Add(itrace.FieldSpanid, strconv.FormatUint(uint64(span.SpanId), 16), false, false).
+			AddTag(itrace.TagService, batch.Process.ServiceName).
+			Add(itrace.FieldResource, span.OperationName, false, false).
+			AddTag(itrace.TagOperation, span.OperationName).
+			AddTag(itrace.TagSource, inputName).
+			AddTag(itrace.TagSourceType, itrace.SpanSourceCustomer).
+			AddTag(itrace.TagSpanType, itrace.FindSpanTypeIntSpanID(uint64(span.SpanId), uint64(span.ParentSpanId), spanIDs, parentIDs)).
+			Add(itrace.FieldStart, span.StartTime, false, false).
+			Add(itrace.FieldDuration, span.Duration, false, false)
 
 		if span.TraceIdHigh != 0 {
-			dkspan.TraceID = fmt.Sprintf("%x%x", uint64(span.TraceIdHigh), uint64(span.TraceIdLow))
+			spanKV = spanKV.Add(itrace.FieldTraceID,
+				fmt.Sprintf("%x%x", uint64(span.TraceIdHigh), uint64(span.TraceIdLow)), false, false)
 		} else {
-			dkspan.TraceID = strconv.FormatUint(uint64(span.TraceIdLow), 16)
+			spanKV = spanKV.Add(itrace.FieldTraceID, strconv.FormatUint(uint64(span.TraceIdLow), 16), false, false)
 		}
 
-		dkspan.Status = itrace.STATUS_OK
+		spanKV.AddTag(itrace.TagSpanStatus, itrace.StatusOk)
 		for _, tag := range span.Tags {
 			if tag.Key == "error" {
-				dkspan.Status = itrace.STATUS_ERR
+				spanKV.MustAddTag(itrace.TagSpanStatus, itrace.StatusErr)
 				break
 			}
 		}
@@ -121,18 +123,20 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 		for _, tag := range span.Tags {
 			sourceTags[tag.Key] = tag.String()
 		}
-		var err error
-		if dkspan.Tags, err = itrace.MergeInToCustomerTags(tags, sourceTags, ignoreTags, nil); err != nil {
-			log.Debug(err.Error())
+
+		if mTags, err := itrace.MergeInToCustomerTags(tags, sourceTags, ignoreTags, nil); err == nil {
+			for k, v := range mTags {
+				spanKV = spanKV.AddTag(k, v)
+			}
 		}
 		if project != "" {
-			dkspan.Tags[itrace.PROJECT] = project
+			spanKV = spanKV.AddTag(itrace.Project, project)
 		}
 		if version != "" {
-			dkspan.Tags[itrace.TAG_VERSION] = version
+			spanKV = spanKV.AddTag(itrace.TagVersion, version)
 		}
 		if env != "" {
-			dkspan.Tags[itrace.TAG_ENV] = env
+			spanKV = spanKV.AddTag(itrace.TagEnv, env)
 		}
 
 		dkJSpan := &DkJaegerSpan{
@@ -142,17 +146,19 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 			ParentSpanId: uint64(span.ParentSpanId),
 			Span:         span,
 		}
-		if buf, err := json.Marshal(dkJSpan); err != nil {
-			log.Warn(err.Error())
-		} else {
-			dkspan.Content = string(buf)
+		if !delMessage {
+			if buf, err := json.Marshal(dkJSpan); err != nil {
+				log.Warn(err.Error())
+			} else {
+				spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
+			}
 		}
 
-		dktrace = append(dktrace, dkspan)
+		pt := point.NewPointV2(inputName, spanKV, traceOpts...)
+		dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 	}
 	if len(dktrace) != 0 {
-		dktrace[0].Metrics = make(map[string]interface{})
-		dktrace[0].Metrics[itrace.FIELD_PRIORITY] = itrace.PRIORITY_AUTO_KEEP
+		dktrace[0].Add(itrace.FieldPriority, itrace.PriorityAutoKeep)
 	}
 
 	return dktrace
@@ -183,11 +189,11 @@ func getExpandInfo(batch *jaeger.Batch) (project, version, env string) {
 		}
 
 		switch tag.Key {
-		case itrace.PROJECT:
+		case itrace.Project:
 			project = fmt.Sprintf("%v", getValueString(tag))
-		case itrace.VERSION:
+		case itrace.Version:
 			version = fmt.Sprintf("%v", getValueString(tag))
-		case itrace.ENV:
+		case itrace.Env:
 			env = fmt.Sprintf("%v", getValueString(tag))
 		}
 	}

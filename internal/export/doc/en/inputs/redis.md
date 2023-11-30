@@ -41,6 +41,22 @@ ACL SETUSER username on +@dangerous
 ACL SETUSER username on +ping
 ```
 
+- goes to the rediss-cli command line, authorization statistics hotkey information
+
+```sql
+CONFIG SET maxmemory-policy allkeys-lfu
+```
+
+- collect hotkey & `bigkey` remote, need install redis-cli (collect local need not install it)
+
+```shell
+# ubuntu 
+apt-get install redis-tools
+
+# centos
+yum install -y  redis
+```
+
 <!-- markdownlint-disable MD046 -->
 === "Host Installation"
 

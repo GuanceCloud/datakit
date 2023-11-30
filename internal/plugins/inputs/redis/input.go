@@ -26,8 +26,10 @@ import (
 )
 
 const (
-	maxInterval = 30 * time.Minute
-	minInterval = 15 * time.Second
+	maxInterval         = 60 * time.Minute
+	minInterval         = 15 * time.Second
+	defaultKeyInterval  = 5 * time.Minute
+	defaultKeyScanSleep = "0.1"
 )
 
 var (
@@ -48,32 +50,39 @@ type redislog struct {
 }
 
 type Input struct {
-	Username           string `toml:"username"`
-	Host               string `toml:"host"`
-	UnixSocketPath     string `toml:"unix_socket_path"`
-	Password           string `toml:"password"`
-	Timeout            string `toml:"connect_timeout"`
-	Service            string `toml:"service"`
-	Addr               string `toml:"-"`
-	Port               int    `toml:"port"`
-	DB                 int    `toml:"db"`
-	SocketTimeout      int    `toml:"socket_timeout"`
-	SlowlogMaxLen      int    `toml:"slowlog-max-len"`
-	Interval           time.Duration
-	WarnOnMissingKeys  bool              `toml:"warn_on_missing_keys"`
-	CommandStats       bool              `toml:"command_stats"`
-	LatencyPercentiles bool              `toml:"latency_percentiles"`
-	Slowlog            bool              `toml:"slow_log"`
-	AllSlowLog         bool              `toml:"all_slow_log"`
-	Tags               map[string]string `toml:"tags"`
-	Keys               []string          `toml:"keys"`
-	DBS                []int             `toml:"dbs"`
-	Log                *redislog         `toml:"log"`
+	Username           string        `toml:"username"`
+	Host               string        `toml:"host"`
+	UnixSocketPath     string        `toml:"unix_socket_path"`
+	Password           string        `toml:"password"`
+	Timeout            string        `toml:"connect_timeout"`
+	Service            string        `toml:"service"`
+	Addr               string        `toml:"-"`
+	Port               int           `toml:"port"`
+	DB                 int           `toml:"db"`
+	SocketTimeout      int           `toml:"socket_timeout"`
+	SlowlogMaxLen      int           `toml:"slowlog-max-len"`
+	Interval           time.Duration `toml:"interval"`
+	WarnOnMissingKeys  bool          `toml:"warn_on_missing_keys"`
+	CommandStats       bool          `toml:"command_stats"`
+	LatencyPercentiles bool          `toml:"latency_percentiles"`
+	Slowlog            bool          `toml:"slow_log"`
+	AllSlowLog         bool          `toml:"all_slow_log"`
+	Hotkey             bool          `toml:"hotkey"`
+	BigKey             bool          `toml:"bigkey"`
+	KeyInterval        time.Duration `toml:"key_interval"`
+	KeyTimeout         time.Duration `toml:"key_timeout"`
+	KeyScanSleep       string        `toml:"key_scan_sleep"`
+
+	Tags map[string]string `toml:"tags"`
+	Keys []string          `toml:"keys"`
+	DBS  []int             `toml:"dbs"`
+	Log  *redislog         `toml:"log"`
 
 	MatchDeprecated   string   `toml:"match,omitempty"`
 	ServersDeprecated []string `toml:"servers,omitempty"`
 
 	timeoutDuration time.Duration
+	keyDBS          []int
 
 	tail       *tailer.Tailer
 	start      time.Time
@@ -199,6 +208,14 @@ func (ipt *Input) Collect() error {
 		}
 	}
 
+	// Old way get big key
+	if len(ipt.Keys) > 0 {
+		err := ipt.collectBigKey()
+		if err != nil {
+			return err
+		}
+	}
+
 	if err := ipt.getLatencyData(); err != nil {
 		return err
 	}
@@ -222,15 +239,6 @@ func (ipt *Input) collectInfoMeasurement() ([]*point.Point, error) {
 	}
 
 	return m.getData()
-}
-
-func (ipt *Input) collectBigKeyMeasurement() ([]*point.Point, error) {
-	keys, err := ipt.getKeys()
-	if err != nil {
-		return nil, err
-	}
-
-	return ipt.getData(keys)
 }
 
 func (ipt *Input) collectClientMeasurement() ([]*point.Point, error) {
@@ -333,8 +341,13 @@ func (ipt *Input) Run() {
 		}
 	}
 
-	if len(ipt.Keys) > 0 {
-		ipt.collectors = append(ipt.collectors, ipt.collectBigKeyMeasurement)
+	ctxKey, cancelKey := context.WithCancel(context.Background())
+	defer cancelKey() // To kill all in goroutineHotkey & goroutineBigKey
+	if ipt.Hotkey {
+		ipt.goroutineHotkey(ctxKey)
+	}
+	if ipt.BigKey {
+		ipt.goroutineBigKey(ctxKey)
 	}
 
 	for {
@@ -372,12 +385,21 @@ func (ipt *Input) setup() {
 	l = logger.SLogger(inputName)
 	l.Infof("%s input started", inputName)
 	ipt.Interval = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval)
+	ipt.KeyInterval = config.ProtectedInterval(minInterval, maxInterval, ipt.KeyInterval)
+	ipt.KeyTimeout = config.ProtectedInterval(minInterval, ipt.KeyInterval, ipt.KeyTimeout)
 	if ipt.Election {
 		ipt.mergedTags = inputs.MergeTags(ipt.tagger.ElectionTags(), ipt.Tags, ipt.Host)
 	} else {
 		ipt.mergedTags = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, ipt.Host)
 	}
 	l.Debugf("merged tags: %+#v", ipt.mergedTags)
+
+	// config have "DB"，join DBS
+	if ipt.DB != -1 && !IsSlicesHave(ipt.DBS, ipt.DB) {
+		ipt.DBS = append(ipt.DBS, ipt.DB)
+	}
+
+	ipt.keyDBS = append(ipt.keyDBS, ipt.DBS...)
 }
 
 func (ipt *Input) exit() {
@@ -402,6 +424,7 @@ func (*Input) AvailableArchs() []string { return datakit.AllOSWithElection }
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&bigKeyMeasurement{},
+		&hotkeyMeasurement{},
 		&clientMeasurement{},
 		&clusterMeasurement{},
 		&commandMeasurement{},
@@ -444,6 +467,9 @@ func defaultInput() *Input {
 		pauseCh:         make(chan bool, inputs.ElectionPauseChannelLength),
 		DB:              -1,
 		Tags:            make(map[string]string),
+		KeyInterval:     defaultKeyInterval,
+		KeyTimeout:      defaultKeyInterval,
+		KeyScanSleep:    defaultKeyScanSleep,
 		latencyLastTime: map[string]time.Time{},
 		semStop:         cliutils.NewSem(),
 		Election:        true,

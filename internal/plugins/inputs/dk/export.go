@@ -61,6 +61,10 @@ func (ipt *Input) Dashboard(lang inputs.I18n) map[string]string {
 			"top_n_cpu_usage":             "Top(n) CPU%",
 			"top_n_mem_usage":             "Top(n) 内存占用",
 			"uptime":                      "启动时长",
+			"proxy_apis_note":             "需开启 MITM 模式",
+			"proxy_api_latency":           "代理 API 耗时",
+			"proxy_api_count":             "代理 API 次数",
+			"proxy_connect":               "代理 Connect 次数",
 		}
 	case inputs.I18nEn:
 		return map[string]string{
@@ -114,12 +118,12 @@ func (ipt *Input) Dashboard(lang inputs.I18n) map[string]string {
 			"top_n_cpu_usage":             "Top(n) CPU%",
 			"top_n_mem_usage":             "Top(n) Memory Usage",
 			"uptime":                      "Uptime",
+			"proxy_mitm_note":             "Must enable MITM mode",
+			"proxy_api_latency":           "Proxy API Latency",
+			"proxy_api_count":             "Proxy API Total",
+			"proxy_connect":               "Proxy Connect Total",
 		}
 	default:
 		return nil
 	}
-}
-
-func (ipt *Input) DashboardList() []string {
-	return nil
 }

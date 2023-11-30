@@ -101,8 +101,11 @@ func WithCacheAll(on bool) IOOption {
 func WithDiskCache(on bool) IOOption {
 	return func(x *dkIO) {
 		x.enableCache = on
+		if !on {
+			log.Infof("io diskcache not set")
+			return
+		}
 
-		// TODO: init disk cache for each categories
 		for _, c := range point.AllCategories() {
 			p := filepath.Join(datakit.CacheDir, c.String())
 			capacity := int64(x.cacheSizeGB * 1024 * 1024 * 1024)

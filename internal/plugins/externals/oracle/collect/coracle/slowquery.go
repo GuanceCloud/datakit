@@ -37,25 +37,9 @@ func newSlowQueryLogging(opts ...collectOption) *slowQueryLogging {
 	return m
 }
 
-func (m *slowQueryLogging) Collect() (*point.Point, error) {
+func (m *slowQueryLogging) Collect() ([]*point.Point, error) {
 	l.Debug("Collect entry")
-
-	tf, err := m.slowQuery()
-	if err != nil {
-		return nil, err
-	}
-
-	if tf == nil || tf.IsEmpty() {
-		return nil, nil
-	}
-
-	opt := &ccommon.BuildPointOpt{
-		TF:         tf,
-		MetricName: m.x.MetricName,
-		Tags:       m.x.Ipt.tags,
-		Host:       m.x.Ipt.host,
-	}
-	return ccommon.BuildPointLogging(l, opt), nil
+	return m.slowQuery()
 }
 
 // SLOW_QUERY is the get slow query info SQL query for Oracle.
@@ -241,7 +225,7 @@ type maxQueryRowDB struct {
 	MAX_LAST_ACTIVE_TIME sql.NullString `db:"MAX(LAST_ACTIVE_TIME)"`
 }
 
-func (m *slowQueryLogging) slowQuery() (*ccommon.TagField, error) {
+func (m *slowQueryLogging) slowQuery() ([]*point.Point, error) {
 	if len(m.lastActiveTime) == 0 {
 		rows := []maxQueryRowDB{}
 		err := selectWrapper(m.x.Ipt, &rows, SQL_QUERY_MAX_ACTIVE)
@@ -258,7 +242,6 @@ func (m *slowQueryLogging) slowQuery() (*ccommon.TagField, error) {
 		return nil, nil
 	}
 
-	tf := ccommon.NewTagField()
 	rows := []slowQueryRowDB{}
 
 	query := fmt.Sprintf(SLOW_QUERY, m.lastActiveTime)
@@ -271,8 +254,6 @@ func (m *slowQueryLogging) slowQuery() (*ccommon.TagField, error) {
 	if len(rows) == 0 {
 		return nil, nil
 	}
-
-	tf.AddField("status", "warning", nil)
 
 	mResults := make([]map[string]string, 0)
 
@@ -396,14 +377,25 @@ func (m *slowQueryLogging) slowQuery() (*ccommon.TagField, error) {
 		return nil, nil
 	}
 
-	jsn, err := json.Marshal(mResults)
-	if err != nil {
-		return nil, err
+	hostTag := ccommon.GetHostTag(l, m.x.Ipt.host)
+
+	var pts []*point.Point
+	for _, v := range mResults {
+		jsn, err := json.Marshal(v)
+		if err != nil {
+			return nil, err
+		}
+		var kvs point.KVs
+		kvs = kvs.Add("status", "warning", false, false)
+		kvs = kvs.Add("message", string(jsn), false, false)
+
+		pts = append(pts, ccommon.BuildPointLogging(
+			kvs, m.x.MetricName,
+			m.x.Ipt.tags, hostTag,
+		))
 	}
 
-	tf.AddField("message", string(jsn), nil)
-
-	return tf, nil
+	return pts, nil
 }
 
 func getOracleTimeString(in string) string {

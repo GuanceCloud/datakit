@@ -25,6 +25,26 @@ const (
   ## @param interval - number - optional - default: 15
   interval = "15s"
 
+  ## @param hotkey - boolean - optional - default: false
+  ## If you collet hotkey, set this to true
+  # hotkey = false
+
+  ## @param bigkey - boolean - optional - default: false
+  ## If you collet bigkey, set this to true
+  # bigkey = false
+
+  ## @param key_interval - number - optional - default: 5m
+  ## Interval of collet hotkey & bigkey
+  # key_interval = "5m"
+
+  ## @param key_timeout - number - optional - default: 5m
+  ## Timeout of collet hotkey & bigkey
+  # key_timeout = "5m"
+
+  ## @param key_scan_sleep - string - optional - default: "0.1"
+  ## Mean sleep 0.1 sec per 100 SCAN commands
+  # key_scan_sleep = "0.1"
+
   ## @param keys - list of strings - optional
   ## The length is 1 for strings.
   ## The length is zero for keys that have a type other than list, set, hash, or sorted set.

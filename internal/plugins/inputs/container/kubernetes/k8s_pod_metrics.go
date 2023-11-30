@@ -65,6 +65,12 @@ type podSrvMetric struct {
 	cpuUsage           float64
 	cpuUsageMilliCores int64
 	memoryUsageBytes   int64
+
+	networkRcvdBytes               int64
+	networkSentBytes               int64
+	ephemeralStorageUsedBytes      int64
+	ephemeralStorageAvailableBytes int64
+	ephemeralStorageCapacityBytes  int64
 }
 
 type PodMetricsCollect interface {
@@ -163,6 +169,17 @@ func hitPodMetrics(item *statsv1alpha1.Summary, namespace, name string) (*podSrv
 
 			if stats.Memory != nil && stats.Memory.WorkingSetBytes != nil {
 				metrics.memoryUsageBytes = int64(*stats.Memory.WorkingSetBytes)
+			}
+
+			if stats.Network != nil {
+				metrics.networkRcvdBytes = int64(*stats.Network.RxBytes)
+				metrics.networkSentBytes = int64(*stats.Network.TxBytes)
+			}
+
+			if stats.EphemeralStorage != nil {
+				metrics.ephemeralStorageUsedBytes = int64(*stats.EphemeralStorage.UsedBytes)
+				metrics.ephemeralStorageAvailableBytes = int64(*stats.EphemeralStorage.AvailableBytes)
+				metrics.ephemeralStorageCapacityBytes = int64(*stats.EphemeralStorage.CapacityBytes)
 			}
 
 			return metrics, nil

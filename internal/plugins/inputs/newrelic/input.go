@@ -189,13 +189,10 @@ func (ipt *Input) RegHTTPHandler() {
 		afterGather.AppendFilter(closeResource.Close)
 	}
 	// add sampler
-	var sampler *itrace.Sampler
 	if ipt.Sampler != nil && (ipt.Sampler.SamplingRateGlobal >= 0 && ipt.Sampler.SamplingRateGlobal <= 1) {
-		sampler = ipt.Sampler
-	} else {
-		sampler = &itrace.Sampler{SamplingRateGlobal: 1}
+		sampler := ipt.Sampler.Init()
+		afterGather.AppendFilter(sampler.Sample)
 	}
-	afterGather.AppendFilter(sampler.Sample)
 
 	log.Debugf("### register handlers %v for %s agent", ipt.Endpoints, inputName)
 	for _, endpoint := range ipt.Endpoints {
@@ -208,7 +205,7 @@ func (ipt *Input) RegHTTPHandler() {
 func (ipt *Input) Run() {
 	rand.Seed(time.Now().UnixNano())
 	tags = ipt.Tags
-
+	traceOpts = append(point.DefaultLoggingOptions(), point.WithExtraTags(datakit.DefaultGlobalTagger().HostTags()))
 	log.Debugf("### %s agent is running...", inputName)
 
 	select {

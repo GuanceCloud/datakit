@@ -17,40 +17,54 @@ const (
 	configSample = `
 [[inputs.external]]
   daemon = true
-  name   = 'oracle'
+  name   = "oracle"
   cmd    = "/usr/local/datakit/externals/oracle"
 
   ## Set true to enable election
   election = true
 
-  ## The "--inputs" line below should not be modified.
+  ## Modify below if necessary.
+  ## The password use environment variable named "ENV_INPUT_ORACLE_PASSWORD".
   args = [
-    '--interval'        , '1m'                        ,
-    '--host'            , '<your-oracle-host>'        ,
-    '--port'            , '1521'                      ,
-    '--username'        , '<oracle-user-name>'        ,
-    '--password'        , '<oracle-password>'         ,
-    '--service-name'    , '<oracle-service-name>'     ,
-    '--slow-query-time' , '0s'                        ,
+    "--interval"        , "1m"                           ,
+    "--host"            , "<your-oracle-host>"           ,
+    "--port"            , "1521"                         ,
+    "--username"        , "<oracle-user-name>"           ,
+    "--service-name"    , "<oracle-service-name>"        ,
+    "--slow-query-time" , "0s"                           ,
+    "--log"             , "/var/log/datakit/oracle.log"  ,
   ]
   envs = [
-    'LD_LIBRARY_PATH=/opt/oracle/instantclient:$LD_LIBRARY_PATH',
+    "ENV_INPUT_ORACLE_PASSWORD=<oracle-password>",
+    "LD_LIBRARY_PATH=/opt/oracle/instantclient:$LD_LIBRARY_PATH",
   ]
 
   [inputs.external.tags]
     # some_tag = "some_value"
     # more_tag = "some_other_value"
 
+  ## Run a custom SQL query and collect corresponding metrics.
+  # [[inputs.external.custom_queries]]
+  #   sql = '''
+  #     SELECT
+  #       GROUP_ID, METRIC_NAME, VALUE
+  #     FROM GV$SYSMETRIC
+  #   '''
+  #   metric = "oracle_custom"
+  #   tags = ["GROUP_ID", "METRIC_NAME"]
+  #   fields = ["VALUE"]
+
   #############################
-  # Parameter Description (Marked with * is mandatory field)
+  # Parameter Description (Marked with * is required field)
   #############################
-  # *--interval         : Collect interval (Default is 1m)
-  # *--host             : Oracle instance address (IP)
-  # *--port             : Oracle listen port (Default is 1521)
-  # *--username         : Oracle username
-  # *--password         : Oracle password
-  # *--service-name     : Oracle service name
-  # *--slow-query-time  : Oracle slow query time threshold defined. If larger than this, the executed sql will be reported.
+  # *--interval                   : Collect interval (Default is 1m).
+  # *--host                       : Oracle instance address (IP).
+  # *--port                       : Oracle listen port (Default is 1521).
+  # *--username                   : Oracle username.
+  # *--service-name               : Oracle service name.
+  # *--slow-query-time            : Oracle slow query time threshold defined. If larger than this, the executed sql will be reported.
+  # *--log                        : Collector log path.
+  # *ENV_INPUT_ORACLE_PASSWORD    : Oracle password.
 `
 )
 

@@ -137,7 +137,7 @@ Select the appropriate installation package based on the operating system and Or
 apt-get install -y libaio-dev libaio1
 ```
 
-## Configuration {#config}
+## Configuration {#input-config}
 
 === "Host Installation"
 
@@ -152,6 +152,18 @@ apt-get install -y libaio-dev libaio1
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
+
+???+ tip
+
+    The configuration above would shows in the process list(including password). If want to hide the password, can use the environment variable `ENV_INPUT_ORACLE_PASSWORD`, like below:
+
+    ```toml
+    envs = [
+      "ENV_INPUT_ORACLE_PASSWORD=<YOUR-SAFE-PASSWORD>"
+    ] 
+    ```
+
+    The environment variable has highest priority, which means if existed that environment variable, the value in the environment variable will always treated as the password.
 
 ## Measurements {#measurements}
 
@@ -178,9 +190,9 @@ For all of the following data collections, a global tag named `host` is appended
 
 {{ end }}
 
-## Long Running Queries {#slow}
+## Long running queries {#slow}
 
-Datakit could reports the SQLs, those executed time exceeded the threshold time defined by user, to Guance Cloud, displays in the `Logs` side bar, the source name is `oracle_logging`.
+Datakit could reports the SQLs, those executed time exceeded the threshold time defined by user, to Guance Cloud, displays in the `Logs` side bar, the source name is `oracle_log`.
 
 This function is disabled by default, user could enabling it by modify Datakit's Oracle configuraion like followings:
 
@@ -203,11 +215,17 @@ Change the string value after `--slow-query-time` from `0s` to the threshold tim
     - If the string value after `--slow-query-time` is `0s` or empty or less than 1 millsecond, this function is disabled, which is also the default state.
     - The SQL would not display here when NOT executed completed.
 
+## Custom Query {#custom}
+
+Support custom query collects. Guide and example is `custom_queries` in the [Configuration](#input-config) above.
+
 ## FAQ {#faq}
 
 ### :material-chat-question: How to view the running log of Oracle Collector? {#faq-logging}
 
-Because the Oracle collector is an external collector, its logs are stored separately in *[Datakit-install-path]/externals/oracle.log*.
+Because the Oracle collector is an external collector, its logs by default are stored separately in *[Datakit-install-path]/externals/oracle.log*.
+
+In addition, the log path could modified by using `--log` parameter in configuration file.
 
 ### :material-chat-question: After Oracle collection is configured, why is there no data displayed in monitor? {#faq-no-data}
 

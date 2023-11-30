@@ -64,6 +64,8 @@ type monitorAPP struct {
 
 	mfs map[string]*dto.MetricFamily
 
+	monitor monitorSource
+
 	inputsStats map[string]string
 
 	anyError error
@@ -76,6 +78,7 @@ type monitorAPP struct {
 	maxRun                  int
 	refresh                 time.Duration
 	isURL                   string
+	proxy                   string
 	url                     string
 	onlyInputs, onlyModules []string
 }
@@ -117,8 +120,9 @@ func (app *monitorAPP) refreshData() {
 
 		for {
 			app.anyError = nil
-
-			app.mfs, err = requestMetrics(app.url)
+			// app.monitor.FetchData()
+			// app.mfs, err = requestMetrics(app.url)
+			app.mfs, err = app.monitor.FetchData()
 			if err != nil {
 				app.anyError = fmt.Errorf("request stats failed: %w", err)
 			}

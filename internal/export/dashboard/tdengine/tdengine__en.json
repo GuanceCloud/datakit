@@ -1,0 +1,2856 @@
+{
+  "dashboardBindSet": [],
+  "dashboardExtend": {},
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "dashboardType": "CUSTOM",
+  "iconSet": {},
+  "main": {
+    "charts": [
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "colorLevel": 3,
+            "colors": [],
+            "currentChartType": "treemap",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levelArr": [],
+            "levels": [],
+            "mainMeasurementLimit": 10,
+            "mainMeasurementQueryCode": "A",
+            "mainMeasurementSort": "top",
+            "rangeColor": "",
+            "rangeColorKey": "light-blue",
+            "showFieldMapping": false,
+            "showLegend": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "Database"
+        },
+        "name": "超级表数量（不包括 Log）Top 10",
+        "pos": {
+          "h": 36,
+          "w": 11,
+          "x": 13,
+          "y": 35
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "表数量",
+              "code": "A",
+              "dataSource": "td_database",
+              "field": "tables_count",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "2594f1b0-ee08-11ec-b176-2bd260e1a0ab",
+                  "logic": "and",
+                  "name": "database_name",
+                  "op": "!=",
+                  "type": "",
+                  "value": "log"
+                },
+                {
+                  "id": "39f76840-f781-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "database_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_database`:(AVG(`tables_count`) AS `表数量`) { `database_name` != 'log' and `cluster_name` = '#{cluster_name}' } BY `database_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "treemap",
+            "unit": ""
+          }
+        ],
+        "type": "treemap"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "Database"
+        },
+        "name": "VGroup变化图",
+        "pos": {
+          "h": 20,
+          "w": 5,
+          "x": 8,
+          "y": 35
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "VGroup 总数",
+              "code": "A",
+              "dataSource": "td_cluster",
+              "field": "vgroups_total",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "fbb9b8d0-f780-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_cluster`:(AVG(`vgroups_total`) AS `VGroup 总数`) { `cluster_name` = '#{cluster_name}' }",
+              "queryFuncs": [],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "VGroup 存活数",
+              "code": "B",
+              "dataSource": "td_cluster",
+              "field": "vgroups_alive",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "6a79b3e0-f783-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_cluster`:(AVG(`vgroups_alive`) AS `VGroup 存活数`) { `cluster_name` = '#{cluster_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "settings": {
+            "colors": [],
+            "currentChartType": "table",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "pageSize": 0,
+            "queryMode": "toGroupColumn",
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "valColorMappings": [],
+            "valMappings": []
+          }
+        },
+        "group": {
+          "name": "集群状态"
+        },
+        "name": "Master 节点",
+        "pos": {
+          "h": 11,
+          "w": 8,
+          "x": 0,
+          "y": 10.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "id",
+              "code": "A",
+              "dataSource": "td_node",
+              "field": "id",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "18226220-ef88-11ec-ae9f-d7e4047cbb46",
+                  "logic": "and",
+                  "name": "role",
+                  "op": "=",
+                  "type": "",
+                  "value": "master"
+                },
+                {
+                  "id": "ade5b5f0-f780-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [
+                "last",
+                "top:5"
+              ],
+              "groupBy": [
+                "role",
+                "end_point"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_node`:(AVG(`id`) AS `id`) { `role` = 'master' and `cluster_name` = '#{cluster_name}' } BY `role`, `end_point`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "请求"
+        },
+        "name": "Requests Inserts",
+        "pos": {
+          "h": 12,
+          "w": 5,
+          "x": 0,
+          "y": 73.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "平均每秒插入次数",
+              "code": "A",
+              "dataSource": "td_request",
+              "field": "req_insert_rate",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "42ab7ee0-f781-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "dnode_ep"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_request`:(AVG(`req_insert_rate`) AS `平均每秒插入次数`) { `cluster_name` = '#{cluster_name}' } BY `dnode_ep`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "平均每秒批次",
+              "code": "B",
+              "dataSource": "td_request",
+              "field": "req_insert_batch_rate",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "44d4ee90-f781-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "dnode_ep"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_request`:(AVG(`req_insert_batch_rate`) AS `平均每秒批次`) { `cluster_name` = '#{cluster_name}' } BY `dnode_ep`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "查询频率",
+                "name": "查询频率",
+                "unit": "次/s",
+                "units": [
+                  "custom",
+                  "次/s"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "请求"
+        },
+        "name": "Request Select",
+        "pos": {
+          "h": 12,
+          "w": 5,
+          "x": 5,
+          "y": 73.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "查询次数",
+              "code": "A",
+              "dataSource": "td_request",
+              "field": "req_select",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "53cf5020-f781-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "dnode_ep"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_request`:(AVG(`req_select`) AS `查询次数`) { `cluster_name` = '#{cluster_name}' } BY `dnode_ep`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "查询频率",
+              "code": "B",
+              "dataSource": "td_request",
+              "field": "req_select_rate",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "55d11390-f781-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "dnode_ep"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_request`:(AVG(`req_select_rate`) AS `查询频率`) { `cluster_name` = '#{cluster_name}' } BY `dnode_ep`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [
+              {
+                "bgColor": "#498BFE",
+                "title": "",
+                "value": 80
+              },
+              {
+                "bgColor": "#FE4952",
+                "title": "",
+                "value": 90
+              }
+            ],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "CPU 系统使用率",
+                "name": "CPU 系统使用率",
+                "unit": "",
+                "units": [
+                  "percent",
+                  "percent"
+                ]
+              },
+              {
+                "key": "Engine 占用率",
+                "name": "Engine 占用率",
+                "unit": "",
+                "units": [
+                  "percent",
+                  "percent"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "资源使用情况"
+        },
+        "name": "CPU",
+        "pos": {
+          "h": 15,
+          "w": 8,
+          "x": 0,
+          "y": 104.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "CPU 系统使用率",
+              "code": "B",
+              "dataSource": "td_node_usage",
+              "field": "cpu_system",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "c7066650-f781-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "dnode_ep"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_node_usage`:(AVG(`cpu_system`) AS `CPU 系统使用率`) { `cluster_name` = '#{cluster_name}' } BY `dnode_ep`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "Engine 占用率",
+              "code": "C",
+              "dataSource": "td_node_usage",
+              "field": "cpu_engine",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "c919dd00-f781-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "dnode_ep"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_node_usage`:(AVG(`cpu_engine`) AS `Engine 占用率`) { `cluster_name` = '#{cluster_name}' } BY `dnode_ep`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "内存使用量",
+                "name": "内存使用量",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "MB"
+                ]
+              },
+              {
+                "key": "总内存",
+                "name": "总内存",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "MB"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "资源使用情况"
+        },
+        "name": "MEM",
+        "pos": {
+          "h": 15,
+          "w": 8,
+          "x": 0,
+          "y": 119.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "总内存",
+              "code": "A",
+              "dataSource": "td_node_usage",
+              "field": "mem_total",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "dcf4b7f0-f781-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "dnode_ep"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_node_usage`:(AVG(`mem_total`) AS `总内存`) { `cluster_name` = '#{cluster_name}' } BY `dnode_ep`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "内存使用量",
+              "code": "B",
+              "dataSource": "td_node_usage",
+              "field": "mem_engine",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "debc3180-f781-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "dnode_ep"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_node_usage`:(AVG(`mem_engine`) AS `内存使用量`) { `cluster_name` = '#{cluster_name}' } BY `dnode_ep`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "colors": [],
+            "currentChartType": "gauge",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [
+              {
+                "lineColor": "#498BFE",
+                "operation": "<=",
+                "value": [
+                  20
+                ]
+              },
+              {
+                "lineColor": "#41CEC7",
+                "operation": "<=",
+                "value": [
+                  90
+                ]
+              },
+              {
+                "lineColor": "#EA5E74",
+                "operation": "<=",
+                "value": [
+                  100
+                ]
+              }
+            ],
+            "max": 100,
+            "min": 0,
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "Taos Adapter 监控视图"
+        },
+        "name": "Adapter CPU 使用率",
+        "pos": {
+          "h": 14,
+          "w": 4,
+          "x": 4,
+          "y": 88
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "td_node_usage",
+              "field": "cpu_engine",
+              "fieldFunc": "max",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "b0aa37b0-f781-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "dnode_ep"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_node_usage`:(MAX(`cpu_engine`)) { `cluster_name` = '#{cluster_name}' } BY `dnode_ep`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "gauge",
+            "unit": ""
+          }
+        ],
+        "type": "gauge"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "磁盘总量",
+                "name": "磁盘总量",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "GB"
+                ]
+              },
+              {
+                "key": "磁盘使用量",
+                "name": "磁盘使用量",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "GB"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "资源使用情况"
+        },
+        "name": "Disk 用量",
+        "pos": {
+          "h": 15,
+          "w": 8,
+          "x": 8,
+          "y": 119.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "磁盘总量",
+              "code": "B",
+              "dataSource": "td_node_usage",
+              "field": "disk_total",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "e371f160-f781-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "dnode_ep"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_node_usage`:(AVG(`disk_total`) AS `磁盘总量`) { `cluster_name` = '#{cluster_name}' } BY `dnode_ep`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "磁盘使用量",
+              "code": "A",
+              "dataSource": "td_node_usage",
+              "field": "disk_used",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "e50b5610-f781-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "dnode_ep"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_node_usage`:(AVG(`disk_used`) AS `磁盘使用量`) { `cluster_name` = '#{cluster_name}' } BY `dnode_ep`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "#CE414F",
+                "key": "失败次数",
+                "name": "失败次数"
+              }
+            ],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "Taos Adapter 监控视图"
+        },
+        "name": "Request",
+        "pos": {
+          "h": 14,
+          "w": 8,
+          "x": 8,
+          "y": 88
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "总请求数",
+              "code": "A",
+              "dataSource": "td_adapter",
+              "field": "total_req_count",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "bb992320-f781-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_adapter`:(AVG(`total_req_count`) AS `总请求数`) { `cluster_name` = '#{cluster_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "失败次数",
+              "code": "B",
+              "dataSource": "td_adapter",
+              "field": "total_req_count",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1c557be0-f788-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                },
+                {
+                  "id": "1ebb5850-f788-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "status_code",
+                  "op": "=",
+                  "type": "",
+                  "value": "500"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_adapter`:(AVG(`total_req_count`) AS `失败次数`) { `cluster_name` = '#{cluster_name}' and `status_code` = '500' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "settings": {
+            "colors": [],
+            "currentChartType": "table",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "pageSize": 0,
+            "queryMode": "toGroupColumn",
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "valColorMappings": [],
+            "valMappings": []
+          }
+        },
+        "group": {
+          "name": "请求"
+        },
+        "name": "请求客户端 Top 5",
+        "pos": {
+          "h": 12,
+          "w": 6,
+          "x": 10,
+          "y": 73.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "请求次数",
+              "code": "A",
+              "dataSource": "td_adapter",
+              "field": "client_ip_count",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "6857f740-f781-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [
+                "last",
+                "top:5"
+              ],
+              "groupBy": [
+                "client_ip"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_adapter`:(AVG(`client_ip_count`) AS `请求次数`) { `cluster_name` = '#{cluster_name}' } BY `client_ip`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "settings": {
+            "bgColor": "",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "#498BFE",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "集群状态"
+        },
+        "name": "链接数",
+        "pos": {
+          "h": 8,
+          "w": 3,
+          "x": 12,
+          "y": 2.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "连接数",
+              "code": "A",
+              "dataSource": "td_cluster",
+              "field": "connections_total",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "9d849870-f780-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_cluster`:(AVG(`connections_total`) AS `连接数`) { `cluster_name` = '#{cluster_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "Database"
+        },
+        "name": "超级表 Log 变化图",
+        "pos": {
+          "h": 10,
+          "w": 4,
+          "x": 4,
+          "y": 35
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "表数量",
+              "code": "A",
+              "dataSource": "td_database",
+              "field": "tables_count",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "1138ffe0-ee08-11ec-b176-2bd260e1a0ab",
+                  "logic": "and",
+                  "name": "database_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "log"
+                },
+                {
+                  "id": "0f004300-f781-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_database`:(AVG(`tables_count`) AS `表数量`) { `database_name` = 'log' and `cluster_name` = '#{cluster_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "bgColor": "",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "Database"
+        },
+        "name": "Log 表总数",
+        "pos": {
+          "h": 10,
+          "w": 4,
+          "x": 0,
+          "y": 35
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "td_database",
+              "field": "tables_count",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "5e19f030-ee08-11ec-b176-2bd260e1a0ab",
+                  "logic": "and",
+                  "name": "database_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "log"
+                },
+                {
+                  "id": "088182f0-f781-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_database`:(AVG(`tables_count`)) { `database_name` = 'log' and `cluster_name` = '#{cluster_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "读",
+                "name": "读",
+                "unit": "",
+                "units": [
+                  "traffic",
+                  "KB/S"
+                ]
+              },
+              {
+                "key": "写",
+                "name": "写",
+                "unit": "",
+                "units": [
+                  "traffic",
+                  "KB/S"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "资源使用情况"
+        },
+        "name": "IO 磁盘读写",
+        "pos": {
+          "h": 15,
+          "w": 8,
+          "x": 8,
+          "y": 104.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "读",
+              "code": "A",
+              "dataSource": "td_node_usage",
+              "field": "io_read_taosd",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "ce565910-f781-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "dnode_ep"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_node_usage`:(AVG(`io_read_taosd`) AS `读`) { `cluster_name` = '#{cluster_name}' } BY `dnode_ep`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "写",
+              "code": "B",
+              "dataSource": "td_node_usage",
+              "field": "io_write_taosd",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "d0206ab0-f781-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "dnode_ep"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_node_usage`:(AVG(`io_write_taosd`) AS `写`) { `cluster_name` = '#{cluster_name}' } BY `dnode_ep`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "bgColor": "#FFFFFF",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "#498BFE",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "集群状态"
+        },
+        "name": "Version",
+        "pos": {
+          "h": 8,
+          "w": 3,
+          "x": 0,
+          "y": 2.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "td_cluster",
+              "field": "version",
+              "fieldFunc": "avg",
+              "fieldType": "string",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "6f72ecc0-f780-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_cluster`:(AVG(`version`)) { `cluster_name` = '#{cluster_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "colors": [],
+            "currentChartType": "gauge",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [
+              {
+                "lineColor": "#498BFE",
+                "operation": "<=",
+                "value": [
+                  20
+                ]
+              },
+              {
+                "lineColor": "#41CEC7",
+                "operation": "<=",
+                "value": [
+                  90
+                ]
+              },
+              {
+                "lineColor": "#AE2908",
+                "operation": "<=",
+                "value": [
+                  100
+                ]
+              }
+            ],
+            "max": 100,
+            "min": 0,
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "Taos Adapter 监控视图"
+        },
+        "name": "Adapter 内存使用率",
+        "pos": {
+          "h": 14,
+          "w": 4,
+          "x": 0,
+          "y": 88
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "内存使用率",
+              "code": "A",
+              "dataSource": "td_adapter",
+              "field": "mem_percent",
+              "fieldFunc": "max",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "7e2ec940-f781-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_adapter`:(MAX(`mem_percent`) AS `内存使用率`) { `cluster_name` = '#{cluster_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "gauge",
+            "unit": ""
+          }
+        ],
+        "type": "gauge"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "colors": [],
+            "currentChartType": "table",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "pageSize": 0,
+            "queryMode": "toGroupColumn",
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "valColorMappings": [],
+            "valMappings": []
+          }
+        },
+        "group": {
+          "name": "集群状态"
+        },
+        "name": "数据节点",
+        "pos": {
+          "h": 11,
+          "w": 7,
+          "x": 8,
+          "y": 10.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "vnode",
+              "code": "A",
+              "dataSource": "td_node",
+              "field": "vnodes",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "a7d87c60-f780-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [
+                "last",
+                "top:5"
+              ],
+              "groupBy": [
+                "end_point",
+                "status"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_node`:(AVG(`vnodes`) AS `vnode`) { `cluster_name` = '#{cluster_name}' } BY `end_point`, `status`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "bgColor": "",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "#498BFE",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "last(master_uptime)",
+                "name": "last(master_uptime)",
+                "unit": "",
+                "units": [
+                  "time",
+                  "s"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": "集群状态"
+        },
+        "name": "当前 master 当选时间",
+        "pos": {
+          "h": 8,
+          "w": 3,
+          "x": 3,
+          "y": 2.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "td_cluster",
+              "field": "master_uptime",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "7713bea0-f780-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_cluster`:(AVG(`master_uptime`)) { `cluster_name` = '#{cluster_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "settings": {
+            "bgColor": "",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "#498BFE",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "集群状态"
+        },
+        "name": "Table 个数",
+        "pos": {
+          "h": 8,
+          "w": 3,
+          "x": 9,
+          "y": 2.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "td_cluster",
+              "field": "table_count",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "98ab9920-f780-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_cluster`:(AVG(`table_count`)) { `cluster_name` = '#{cluster_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "bgColor": "",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "#498BFE",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "集群状态"
+        },
+        "name": "First EP",
+        "pos": {
+          "h": 8,
+          "w": 3,
+          "x": 6,
+          "y": 2.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "td_cluster",
+              "field": "first_ep",
+              "fieldFunc": "avg",
+              "fieldType": "string",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "7d5b9030-f780-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_cluster`:(AVG(`first_ep`)) { `cluster_name` = '#{cluster_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "总表数",
+                "name": "总表数",
+                "unit": "",
+                "units": []
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "集群状态"
+        },
+        "name": "Table 变化图",
+        "pos": {
+          "h": 30,
+          "w": 9,
+          "x": 15,
+          "y": 2.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "总表数",
+              "code": "A",
+              "dataSource": "td_cluster",
+              "field": "table_count",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "b6a4f020-f780-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_cluster`:(AVG(`table_count`) AS `总表数`) { `cluster_name` = '#{cluster_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "Database"
+        },
+        "name": "超级表数量",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 45
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "超级表数量",
+              "code": "A",
+              "dataSource": "td_database",
+              "field": "stable_count",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "01024820-f5e7-11ec-ab50-0749eac5b106",
+                  "logic": "and",
+                  "name": "stable_count",
+                  "op": ">=",
+                  "type": "integer",
+                  "value": "0"
+                },
+                {
+                  "id": "152411d0-f781-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "database_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_database`:(AVG(`stable_count`) AS `超级表数量`) { `stable_count` >= 0 and `cluster_name` = '#{cluster_name}' } BY `database_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": {
+            "key": "1h",
+            "text": "最近1小时"
+          },
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "#EA5E74",
+                "key": "请求失败数{\"status_code\": \"500\"}",
+                "name": "请求失败数{\"status_code\": \"500\"}"
+              },
+              {
+                "color": "#498BFE",
+                "key": "请求数{\"status_code\": \"200\"}",
+                "name": "请求数{\"status_code\": \"200\"}"
+              },
+              {
+                "color": "#498BFE",
+                "key": "请求失败数{\"status_code\": \"200\"}",
+                "name": "请求失败数{\"status_code\": \"200\"}"
+              },
+              {
+                "color": "#EA5E74",
+                "key": "请求数{\"status_code\": \"500\"}",
+                "name": "请求数{\"status_code\": \"500\"}"
+              },
+              {
+                "color": "#498BFE",
+                "key": "请求数{\"status_code\": \"204\"}",
+                "name": "请求数{\"status_code\": \"204\"}"
+              }
+            ],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "1h",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "Database"
+        },
+        "name": "请求状态图",
+        "pos": {
+          "h": 16,
+          "w": 13,
+          "x": 0,
+          "y": 55
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "请求失败数",
+              "code": "A",
+              "dataSource": "td_adapter",
+              "field": "req_fail",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "304bf950-f781-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "status_code"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_adapter`:(AVG(`req_fail`) AS `请求失败数`) { `cluster_name` = '#{cluster_name}' } BY `status_code`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "请求数",
+              "code": "B",
+              "dataSource": "td_adapter",
+              "field": "total_req_count",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "32d478f0-f781-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "status_code"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_adapter`:(AVG(`total_req_count`) AS `请求数`) { `cluster_name` = '#{cluster_name}' } BY `status_code`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "colors": [],
+            "currentChartType": "table",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "pageSize": 0,
+            "queryMode": "toGroupColumn",
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "valColorMappings": [],
+            "valMappings": []
+          }
+        },
+        "group": {
+          "name": "集群状态"
+        },
+        "name": "数据节点，虚拟节点，虚拟组信息",
+        "pos": {
+          "h": 11,
+          "w": 15,
+          "x": 0,
+          "y": 21.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "数据节点",
+              "code": "A",
+              "dataSource": "td_cluster",
+              "field": "dnodes_total",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "d21467f0-f780-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [
+                "last",
+                ":"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_cluster`:(AVG(`dnodes_total`) AS `数据节点`) { `cluster_name` = '#{cluster_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "数据节点存活",
+              "code": "B",
+              "dataSource": "td_cluster",
+              "field": "dnodes_alive",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "d41010e0-f780-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_cluster`:(AVG(`dnodes_alive`) AS `数据节点存活`) { `cluster_name` = '#{cluster_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "管理节点",
+              "code": "C",
+              "dataSource": "td_cluster",
+              "field": "mnodes_total",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "d5b18be0-f780-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_cluster`:(AVG(`mnodes_total`) AS `管理节点`) { `cluster_name` = '#{cluster_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "管理节点存活",
+              "code": "D",
+              "dataSource": "td_cluster",
+              "field": "mnodes_alive",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "d7800a50-f780-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_cluster`:(AVG(`mnodes_alive`) AS `管理节点存活`) { `cluster_name` = '#{cluster_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "虚拟组",
+              "code": "E",
+              "dataSource": "td_cluster",
+              "field": "vgroups_total",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "d9266750-f780-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_cluster`:(AVG(`vgroups_total`) AS `虚拟组`) { `cluster_name` = '#{cluster_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "虚拟组存活",
+              "code": "F",
+              "dataSource": "td_cluster",
+              "field": "vgroups_alive",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "ddd59780-f780-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_cluster`:(AVG(`vgroups_alive`) AS `虚拟组存活`) { `cluster_name` = '#{cluster_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "虚拟节点",
+              "code": "G",
+              "dataSource": "td_cluster",
+              "field": "vnodes_total",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "df84f530-f780-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_cluster`:(AVG(`vnodes_total`) AS `虚拟节点`) { `cluster_name` = '#{cluster_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "虚拟节点存活",
+              "code": "H",
+              "dataSource": "td_cluster",
+              "field": "vnodes_alive",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "e11447c0-f780-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_cluster`:(AVG(`vnodes_alive`) AS `虚拟节点存活`) { `cluster_name` = '#{cluster_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "流入",
+                "name": "流入",
+                "unit": "",
+                "units": [
+                  "traffic",
+                  "KB/S"
+                ]
+              },
+              {
+                "key": "流出",
+                "name": "流出",
+                "unit": "",
+                "units": [
+                  "traffic",
+                  "KB/S"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "资源使用情况"
+        },
+        "name": "网络 IO",
+        "pos": {
+          "h": 15,
+          "w": 8,
+          "x": 16,
+          "y": 104.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "流入",
+              "code": "A",
+              "dataSource": "td_node_usage",
+              "field": "net_in",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "d5e4b460-f781-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "dnode_ep"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_node_usage`:(AVG(`net_in`) AS `流入`) { `cluster_name` = '#{cluster_name}' } BY `dnode_ep`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "流出",
+              "code": "B",
+              "dataSource": "td_node_usage",
+              "field": "net_out",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "d7b99b70-f781-11ec-99cf-e79d38bf6994",
+                  "logic": "and",
+                  "name": "cluster_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "dnode_ep"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`td_node_usage`:(AVG(`net_out`) AS `流出`) { `cluster_name` = '#{cluster_name}' } BY `dnode_ep`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      }
+    ],
+    "groups": [
+      "集群状态",
+      "Database",
+      "请求",
+      "Taos Adapter 监控视图",
+      "资源使用情况"
+    ],
+    "type": "template",
+    "vars": [
+      {
+        "code": "cluster_name",
+        "datasource": "ftinfluxdb",
+        "definition": {
+          "defaultVal": {
+            "label": "*",
+            "value": "re(`.*`)"
+          },
+          "field": "",
+          "metric": "td_cluster",
+          "object": "",
+          "tag": "cluster_name",
+          "value": ""
+        },
+        "hide": 0,
+        "name": "集群名称",
+        "seq": 0,
+        "type": "TAG",
+        "valueSort": "default"
+      }
+    ]
+  },
+  "summary": "",
+  "tagInfo": [],
+  "tags": [],
+  "thumbnail": "",
+  "title": "TDengine 监控视图2"
+}

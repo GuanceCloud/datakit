@@ -15,6 +15,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
+
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
@@ -293,59 +295,59 @@ func randHexID(l int) string {
 	return strings.ToUpper((hex.EncodeToString(buf)))
 }
 
-func makeRootSpan(idLength int, service string, transaction *transaction) *itrace.DatakitSpan {
-	span := &itrace.DatakitSpan{
-		TraceID:    transaction.id(),
-		ParentID:   "0",
-		SpanID:     randHexID(idLength),
-		Service:    service,
-		Resource:   transaction.url(),
-		Operation:  transaction.url(),
-		Source:     inputName,
-		SpanType:   itrace.SPAN_TYPE_ENTRY,
-		SourceType: itrace.SPAN_SOURCE_WEB,
-		Start:      transaction.start() * int64(time.Microsecond),
-		Duration:   transaction.duration() * int64(time.Microsecond),
-		Status:     itrace.STATUS_OK,
-	}
+func makeRootSpan(idLength int, service string, transaction *transaction) *itrace.DkSpan {
+	spanKV := point.KVs{}
+	spanKV = spanKV.Add(itrace.FieldTraceID, transaction.id(), false, false).
+		Add(itrace.FieldParentID, "0", false, false).
+		Add(itrace.FieldSpanid, randHexID(idLength), false, false).
+		AddTag(itrace.TagService, service).
+		AddTag(itrace.TagOperation, transaction.url()).
+		Add(itrace.FieldResource, transaction.url(), false, false).
+		AddTag(itrace.TagSpanType, itrace.SpanTypeEntry).
+		AddTag(itrace.TagSource, inputName).
+		AddTag(itrace.TagSourceType, itrace.SpanSourceWeb).
+		Add(itrace.FieldStart, transaction.start()*int64(time.Microsecond), false, false).
+		Add(itrace.FieldDuration, transaction.duration()*int64(time.Microsecond), false, false).
+		AddTag(itrace.TagSpanStatus, itrace.StatusOk)
 
 	if uri, err := url.ParseRequestURI(transaction.url()); err == nil {
-		span.Tags = map[string]string{itrace.TAG_HTTP_URL: uri.String()}
+		// span.Tags = map[string]string{itrace.TagHttpUrl: uri.String()}
+		spanKV = spanKV.AddTag(itrace.TagHttpUrl, uri.String())
 	}
 	if len(tags) != 0 {
-		if span.Tags == nil {
-			span.Tags = make(map[string]string)
-		}
 		for k, v := range tags {
-			span.Tags[k] = v
+			spanKV = spanKV.AddTag(k, v)
 		}
 	}
 
 	if buf, err := json.Marshal(transaction.root()); err == nil {
-		span.Content = string(buf)
+		spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
 	} else {
 		log.Debug(err.Error())
 	}
 
-	return span
+	return &itrace.DkSpan{Point: point.NewPointV2(inputName, spanKV, point.DefaultLoggingOptions()...)}
 }
+
+var traceOpts = []point.Option{}
 
 func makeChildrenSpan(service string, rootStart int64, idLength int, traceID, parentID string, children []segment, out *itrace.DatakitTrace) {
 	for _, child := range children {
-		span := &itrace.DatakitSpan{
-			TraceID:    traceID,
-			ParentID:   parentID,
-			SpanID:     randHexID(idLength),
-			Service:    service,
-			Resource:   child.resource(),
-			Operation:  fmt.Sprintf("%s:%s", child.class(), child.method()),
-			Source:     inputName,
-			SpanType:   itrace.SPAN_TYPE_LOCAL,
-			SourceType: itrace.SPAN_SOURCE_WEB,
-			Start:      (rootStart + child.startElapsed()) * int64(time.Microsecond),
-			Duration:   (child.endElapsed() - child.startElapsed()) * int64(time.Microsecond),
-			Status:     itrace.STATUS_OK,
-		}
+		spanKV := point.KVs{}
+		spanID := randHexID(idLength)
+		spanKV = spanKV.Add(itrace.FieldTraceID, traceID, false, false).
+			Add(itrace.FieldParentID, parentID, false, false).
+			Add(itrace.FieldSpanid, spanID, false, false).
+			AddTag(itrace.TagService, service).
+			AddTag(itrace.TagOperation, fmt.Sprintf("%s:%s", child.class(), child.method())).
+			Add(itrace.FieldResource, child.resource(), false, false).
+			AddTag(itrace.TagSpanType, itrace.SpanTypeLocal).
+			AddTag(itrace.TagSource, inputName).
+			AddTag(itrace.TagSourceType, itrace.SpanSourceWeb).
+			Add(itrace.FieldStart, (rootStart+child.startElapsed())*int64(time.Microsecond), false, false).
+			Add(itrace.FieldDuration, (child.endElapsed()-child.startElapsed())*int64(time.Microsecond), false, false).
+			AddTag(itrace.TagSpanStatus, itrace.StatusOk)
+
 		if child.method() == "InvokeService" {
 			if len(child.children()) != 0 {
 				if uri, err := url.Parse(child.children()[0].meta().stringValue("uri")); err == nil {
@@ -354,17 +356,19 @@ func makeChildrenSpan(service string, rootStart int64, idLength int, traceID, pa
 			}
 		}
 		if sql := child.meta().stringValue("sql"); sql != "" {
-			span.Resource = sql
+			// span.Resource = sql
+			spanKV = spanKV.Add(itrace.FieldResource, sql, false, false)
 		}
 		if buf, err := json.Marshal(child); err == nil {
-			span.Content = string(buf)
+			spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
 		} else {
 			log.Debug(err.Error())
 		}
-		*out = append(*out, span)
+		pt := point.NewPointV2(inputName, spanKV, traceOpts...)
+		*out = append(*out, &itrace.DkSpan{Point: pt})
 
 		if len(child.children()) != 0 {
-			makeChildrenSpan(service, rootStart, idLength, traceID, span.SpanID, child.children(), out)
+			makeChildrenSpan(service, rootStart, idLength, traceID, spanID, child.children(), out)
 		}
 	}
 }
@@ -386,7 +390,9 @@ func transformToDkTrace(transaction *transaction) itrace.DatakitTrace {
 
 	root := makeRootSpan(l, service, transaction)
 	trace := &itrace.DatakitTrace{root}
-	makeChildrenSpan(service, transaction.start(), len(root.TraceID), root.TraceID, root.SpanID, transaction.root().children(), trace)
+	rootTraceID := root.GetFiledToString(itrace.FieldTraceID)
+	spanID := root.GetFiledToString(itrace.FieldSpanid)
+	makeChildrenSpan(service, transaction.start(), len(rootTraceID), rootTraceID, spanID, transaction.root().children(), trace)
 
 	return *trace
 }

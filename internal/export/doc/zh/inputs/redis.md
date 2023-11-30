@@ -48,6 +48,22 @@ ACL SETUSER username on +@dangerous
 ACL SETUSER username on +ping
 ```
 
+- 授权统计 hotkey 信息，进入 `redis-cli` 命令行：
+
+```sql
+CONFIG SET maxmemory-policy allkeys-lfu
+```
+
+- 远程采集 hotkey & `bigkey` 需要安装 redis-cli （本机采集时，redis-server 已经包含了 redis-cli）：
+
+```shell
+# ubuntu 
+apt-get install redis-tools
+
+# centos
+yum install -y  redis
+```
+
 ### 采集器配置 {#input-config}
 
 <!-- markdownlint-disable MD046 -->

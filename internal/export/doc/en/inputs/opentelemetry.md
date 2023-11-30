@@ -39,6 +39,7 @@ The purpose of this article is to introduce how to configure and enable OTEL dat
     | ----------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------- |
     | `ENV_INPUT_OTEL_IGNORE_TAGS`        | JSON string | `["block1", "block2"]`                                                                                   |
     | `ENV_INPUT_OTEL_KEEP_RARE_RESOURCE` | bool        | true                                                                                                     |
+    | `ENV_INPUT_OTEL_DEL_MESSAGE`        | bool        | true                                                                                                     |
     | `ENV_INPUT_OTEL_OMIT_ERR_STATUS`    | JSON string | `["404", "403", "400"]`                                                                                  |
     | `ENV_INPUT_OTEL_CLOSE_RESOURCE`     | JSON string | `{"service1":["resource1"], "service2":["resource2"], "service3":["resource3"]}`                         |
     | `ENV_INPUT_OTEL_SAMPLER`            | float       | 0.3                                                                                                      |

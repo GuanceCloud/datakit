@@ -15,7 +15,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
+
 	"github.com/apache/thrift/lib/go/thrift"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/zipkin/compiled/thrift-0.16.0/zipkincore"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
@@ -59,73 +62,77 @@ func thriftV1SpansToDkTrace(zpktrace []*zipkincore.Span) itrace.DatakitTrace {
 			continue
 		}
 
-		if span.ParentID == nil {
-			span.ParentID = new(int64)
-		}
 		service := getServiceFromZpkCoreV1Span(span)
-		dkspan := &itrace.DatakitSpan{
-			TraceID:    strconv.FormatInt(span.TraceID, 16),
-			ParentID:   "0",
-			SpanID:     strconv.FormatInt(span.ID, 16),
-			Service:    service,
-			Resource:   span.Name,
-			Operation:  span.Name,
-			Source:     inputName,
-			SpanType:   itrace.FindSpanTypeInMultiServersIntSpanID(uint64(span.ID), uint64(*span.ParentID), service, spanIDs, parentIDs),
-			SourceType: itrace.SPAN_SOURCE_CUSTOMER,
-		}
+		TraceID := strconv.FormatInt(span.TraceID, 16)
+		ParentID := strconv.FormatInt(span.GetParentID(), 16)
+		SpanID := strconv.FormatInt(span.ID, 16)
+		SpanType := itrace.FindSpanTypeInMultiServersIntSpanID(uint64(span.ID), uint64(span.GetParentID()), service, spanIDs, parentIDs)
+		SourceType := itrace.SpanSourceCustomer
 
-		if span.ParentID != nil {
-			dkspan.ParentID = strconv.FormatInt(*span.ParentID, 16)
-		}
-
+		start := int64(0)
 		if span.Timestamp != nil {
-			dkspan.Start = (*span.Timestamp) * int64(time.Microsecond)
+			start = (*span.Timestamp) * int64(time.Microsecond)
 		} else {
-			dkspan.Start = getStartTimestamp(span)
+			start = getStartTimestamp(span)
 		}
-
+		Duration := int64(0)
 		if span.Duration != nil {
-			dkspan.Duration = (*span.Duration) * int64(time.Microsecond)
+			Duration = (*span.Duration) * int64(time.Microsecond)
 		} else {
-			dkspan.Duration = getDurationThriftAno(span.Annotations)
+			Duration = getDurationThriftAno(span.Annotations)
 		}
 
-		dkspan.Status = itrace.STATUS_OK
+		Status := itrace.StatusOk
 		if _, ok := findZpkCoreV1BinaryAnnotation(span.BinaryAnnotations, "error"); ok {
-			dkspan.Status = itrace.STATUS_ERR
+			Status = itrace.StatusErr
+		}
+		res := span.Name
+		if resource, ok := findZpkCoreV1BinaryAnnotation(span.BinaryAnnotations, "path.http"); ok {
+			res = resource
 		}
 
-		if resource, ok := findZpkCoreV1BinaryAnnotation(span.BinaryAnnotations, "path.http"); ok {
-			dkspan.Resource = resource
-		}
+		spanKV := point.KVs{}
+		spanKV = spanKV.Add(itrace.FieldTraceID, TraceID, false, false).
+			Add(itrace.FieldParentID, ParentID, false, false).
+			Add(itrace.FieldSpanid, SpanID, false, false).
+			AddTag(itrace.TagService, service).
+			Add(itrace.FieldResource, res, false, false).
+			AddTag(itrace.TagOperation, span.Name).
+			AddTag(itrace.TagSpanType, SpanType).
+			AddTag(itrace.TagSource, inputName).
+			AddTag(itrace.TagSourceType, SourceType).
+			Add(itrace.FieldStart, start, false, false).
+			Add(itrace.FieldDuration, Duration, false, false).AddTag(itrace.TagSpanStatus, Status)
 
 		sourceTags := make(map[string]string)
 		for _, tag := range span.BinaryAnnotations {
 			sourceTags[tag.Key] = string(tag.Value)
 		}
-		var err error
-		if dkspan.Tags, err = itrace.MergeInToCustomerTags(tags, sourceTags, ignoreTags, nil); err != nil {
-			log.Debug(err.Error())
+
+		if mTags, err := itrace.MergeInToCustomerTags(tags, sourceTags, ignoreTags, nil); err == nil {
+			for k, v := range mTags {
+				spanKV = spanKV.AddTag(k, v)
+			}
 		}
 		if project, ok := findZpkCoreV1BinaryAnnotation(span.BinaryAnnotations, "project"); ok {
-			dkspan.Tags[itrace.TAG_PROJECT] = project
+			spanKV = spanKV.AddTag(itrace.TagProject, project)
 		}
 		if version, ok := findZpkCoreV1BinaryAnnotation(span.BinaryAnnotations, "version"); ok {
-			dkspan.Tags[itrace.TAG_VERSION] = version
+			spanKV = spanKV.AddTag(itrace.TagVersion, version)
 		}
-
-		if buf, err := json.Marshal(zipkinConvThriftToJSON(span)); err != nil {
-			log.Warn(err.Error())
-		} else {
-			dkspan.Content = string(buf)
+		if !delMessage {
+			if buf, err := json.Marshal(zipkinConvThriftToJSON(span)); err != nil {
+				log.Warn(err.Error())
+			} else {
+				spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
+			}
 		}
-
-		dktrace = append(dktrace, dkspan)
+		traceOpts := append(point.DefaultLoggingOptions(), point.WithExtraTags(datakit.DefaultGlobalTagger().HostTags()))
+		pt := point.NewPointV2(inputName, spanKV, traceOpts...)
+		dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 	}
 	if len(dktrace) != 0 {
-		dktrace[0].Metrics = make(map[string]interface{})
-		dktrace[0].Metrics[itrace.FIELD_PRIORITY] = itrace.PRIORITY_AUTO_KEEP
+		dktrace[0].MustAdd(itrace.FieldPriority, itrace.PriorityAutoKeep)
 	}
 
 	return dktrace
@@ -334,63 +341,68 @@ func jsonV1SpansToDkTrace(zpktrace []*ZipkinSpanV1) itrace.DatakitTrace {
 		}
 
 		service := getServiceFromZpkV1Span(span)
-		dkspan := &itrace.DatakitSpan{
-			TraceID:    span.TraceID,
-			ParentID:   span.ParentID,
-			SpanID:     span.ID,
-			Service:    service,
-			Resource:   span.Name,
-			Operation:  span.Name,
-			Source:     inputName,
-			SpanType:   itrace.FindSpanTypeInMultiServersStrSpanID(span.ID, span.ParentID, service, spanIDs, parentIDs),
-			SourceType: itrace.SPAN_SOURCE_CUSTOMER,
-			Start:      getFirstTimestamp(span),
-			Duration:   span.Duration * int64(time.Microsecond),
+		spanKV := point.KVs{}
+		spanKV = spanKV.Add(itrace.FieldTraceID, span.TraceID, false, false).
+			Add(itrace.FieldParentID, span.ParentID, false, false).
+			Add(itrace.FieldSpanid, span.ID, false, false).
+			AddTag(itrace.TagService, service).
+			AddTag(itrace.TagOperation, span.Name).
+			AddTag(itrace.TagSpanType, itrace.FindSpanTypeInMultiServersStrSpanID(span.ID, span.ParentID, service, spanIDs, parentIDs)).
+			AddTag(itrace.TagSource, inputName).
+			AddTag(itrace.TagSourceType, itrace.SpanSourceCustomer).
+			Add(itrace.FieldStart, getFirstTimestamp(span), false, false)
+
+		if isRootSpan(span.ParentID) {
+			spanKV = spanKV.Add(itrace.FieldParentID, "0", false, true)
 		}
 
-		if isRootSpan(dkspan.ParentID) {
-			dkspan.ParentID = "0"
+		if span.Duration == 0 {
+			spanKV = spanKV.Add(itrace.FieldDuration, getDurationByAno(span.Annotations), false, true)
+		} else {
+			spanKV = spanKV.Add(itrace.FieldDuration, span.Duration*int64(time.Microsecond), false, true)
 		}
 
-		if dkspan.Duration == 0 {
-			dkspan.Duration = getDurationByAno(span.Annotations)
-		}
-
-		dkspan.Status = itrace.STATUS_OK
 		if _, ok := findZpkV1BinaryAnnotation(span.BinaryAnnotations, "error"); ok {
-			dkspan.Status = itrace.STATUS_ERR
+			spanKV = spanKV.AddTag(itrace.TagSpanStatus, itrace.StatusErr)
+		} else {
+			spanKV = spanKV.AddTag(itrace.TagSpanStatus, itrace.StatusOk)
 		}
 
 		if resource, ok := findZpkV1BinaryAnnotation(span.BinaryAnnotations, "path.http"); ok {
-			dkspan.Resource = resource
+			spanKV = spanKV.Add(itrace.FieldResource, resource, false, false)
+		} else {
+			spanKV = spanKV.Add(itrace.FieldResource, span.Name, false, false)
 		}
 
 		sourceTags := make(map[string]string)
 		for _, tag := range span.BinaryAnnotations {
 			sourceTags[tag.Key] = tag.Value
 		}
-		var err error
-		if dkspan.Tags, err = itrace.MergeInToCustomerTags(tags, sourceTags, ignoreTags, nil); err != nil {
-			log.Debug(err.Error())
+
+		if mTags, err := itrace.MergeInToCustomerTags(tags, sourceTags, ignoreTags, nil); err == nil {
+			for k, v := range mTags {
+				spanKV = spanKV.AddTag(k, v)
+			}
 		}
 		if project, ok := findZpkV1BinaryAnnotation(span.BinaryAnnotations, "project"); ok {
-			dkspan.Tags[itrace.TAG_PROJECT] = project
+			spanKV = spanKV.AddTag(itrace.TagProject, project)
 		}
 		if version, ok := findZpkV1BinaryAnnotation(span.BinaryAnnotations, "version"); ok {
-			dkspan.Tags[itrace.TAG_VERSION] = version
+			spanKV = spanKV.AddTag(itrace.TagVersion, version)
+		}
+		if !delMessage {
+			if buf, err := json.Marshal(span); err != nil {
+				continue
+			} else {
+				spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
+			}
 		}
 
-		if buf, err := json.Marshal(span); err != nil {
-			continue
-		} else {
-			dkspan.Content = string(buf)
-		}
-
-		dktrace = append(dktrace, dkspan)
+		pt := point.NewPointV2(inputName, spanKV, traceOpts...)
+		dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 	}
 	if len(dktrace) != 0 {
-		dktrace[0].Metrics = make(map[string]interface{})
-		dktrace[0].Metrics[itrace.FIELD_PRIORITY] = itrace.PRIORITY_AUTO_KEEP
+		dktrace[0].MustAdd(itrace.FieldPriority, itrace.PriorityAutoKeep)
 	}
 
 	return dktrace
@@ -441,10 +453,10 @@ func getFirstTimestamp(zs *ZipkinSpanV1) int64 {
 	}
 
 	if isFound {
-		return ts * 1000
+		return ts
 	}
 
-	return time.Now().UnixNano()
+	return time.Now().UnixMicro()
 }
 
 func getDurationByAno(anos []*Annotation) int64 {

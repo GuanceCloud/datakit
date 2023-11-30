@@ -37,7 +37,7 @@ func TestHandleSourcemap(t *testing.T) {
 	// setup input
 	ipt := defaultInput()
 	ipt.rumDataDir = tmpDir
-	ipt.initMeasurementMap()
+	ipt.initConfig()
 
 	datakit.DataDir = path.Join(tmpDir, "data")
 

@@ -29,7 +29,7 @@ require (
 	github.com/docker/docker v20.10.8+incompatible
 	github.com/dustin/go-humanize v1.0.1
 	github.com/elastic/go-lumber v0.1.1
-	github.com/elazarl/goproxy v0.0.0-20210801061803-8e322dfb79c4
+	github.com/elazarl/goproxy v0.0.0-20231031074852-3ec07828be7a
 	github.com/fatih/color v1.13.0
 	github.com/gdamore/tcell/v2 v2.4.1-0.20210905002822-f057f0a857a1
 	github.com/gin-gonic/gin v1.9.0

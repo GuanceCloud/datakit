@@ -10,29 +10,24 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/diskcache"
+	"github.com/GuanceCloud/cliutils/filter"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/metrics"
 	"github.com/gobwas/glob"
 	"github.com/prometheus/client_golang/prometheus"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
@@ -48,7 +43,7 @@ var (
 const (
 	MiB                      = 1 << 20
 	inputName                = "rum"
-	ReplayBodyMaxSize        = MiB * 16 // 16Mib
+	ReplayBodyMaxSize        = MiB * 32 // 16Mib
 	defaultReplayCacheMaxMib = 20480    // 20 Gib
 	sampleConfig             = `
 [[inputs.rum]]
@@ -111,6 +106,8 @@ const (
   ## upload_workers set the count of session replay uploading workers.
   ## send_timeout specify the http timeout when uploading session replay data to dataway.
   ## send_retry_count set the max retry count when sending every session replay request.
+  ## filter_rules set the the filtering rules that matched session replay data will be dropped, 
+  ## all rules are of relationship OR, that is to day, the data match any one of them will be dropped.
   # [inputs.rum.session_replay]
   #   cache_path = "/usr/local/datakit/cache/session_replay"
   #   cache_capacity_mb = 20480
@@ -118,6 +115,10 @@ const (
   #   upload_workers = 16
   #   send_timeout = "75s"
   #   send_retry_count = 3
+  #   filter_rules = [
+  #       "{ service = 'xxx' or version IN [ 'v1', 'v2'] }",
+  #       "{ app_id = 'yyy' and env = 'production' }"
+  #   ]
 `
 )
 
@@ -161,27 +162,6 @@ type Input struct {
 	replayDiskQueue        *diskcache.DiskCache
 }
 
-type SessionReplayCfg struct {
-	CachePath         string        `toml:"cache_path"`
-	CacheCapacity     int64         `toml:"cache_capacity_mb"`
-	ClearCacheOnStart bool          `toml:"clear_cache_on_start"`
-	UploadWorkers     int           `toml:"upload_workers"`
-	SendTimeout       time.Duration `toml:"send_timeout"`
-	SendRetryCount    int           `toml:"send_retry_count"`
-}
-
-func defaultSessionReplayCfg() *SessionReplayCfg {
-	cfg := &SessionReplayCfg{
-		CachePath:         filepath.Join(datakit.CacheDir, "session_replay"),
-		CacheCapacity:     defaultReplayCacheMaxMib,
-		ClearCacheOnStart: false,
-		UploadWorkers:     16,
-		SendTimeout:       time.Second * 75,
-		SendRetryCount:    3,
-	}
-	return cfg
-}
-
 type CDN struct {
 	Domain  string `json:"domain"`
 	Name    string `json:"name"`
@@ -193,34 +173,6 @@ type CDNPool struct {
 	glob    map[*glob.Glob]CDN
 }
 
-var errLimitReader = errors.New("limit reader err")
-
-type limitReader struct {
-	r io.ReadCloser
-}
-
-func newLimitReader(r io.ReadCloser, max int64) io.ReadCloser {
-	return &limitReader{
-		r: http.MaxBytesReader(nil, r, max),
-	}
-}
-
-func (l *limitReader) Read(p []byte) (int, error) {
-	n, err := l.r.Read(p)
-	if err != nil {
-		if err == io.EOF { //nolint:errorlint
-			return n, err
-		}
-		// wrap the errLimitReader
-		return n, fmt.Errorf("%w: %s", errLimitReader, err)
-	}
-	return n, nil
-}
-
-func (l *limitReader) Close() error {
-	return l.r.Close()
-}
-
 func (*Input) Catalog() string { return inputName }
 
 func (*Input) AvailableArchs() []string { return datakit.AllOS }
@@ -229,247 +181,6 @@ func (*Input) SampleConfig() string { return sampleConfig }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&trace.TraceMeasurement{Name: inputName}}
-}
-
-func (ipt *Input) uploadSessionReplay(msg []byte) (err error) {
-	var (
-		reqPB      RequestPB
-		resp       *http.Response
-		lastErr    error
-		appID      string
-		env        string
-		version    string
-		service    string
-		statusCode = "unknown"
-	)
-
-	defer func() {
-		if err != nil || (resp != nil && resp.StatusCode/100 != 2) {
-			replayDroppedPointCount.WithLabelValues(appID, env, version, service, statusCode).Inc()
-		}
-	}()
-
-	if len(msg) == 0 {
-		return fmt.Errorf("empty session replay cache data")
-	}
-
-	if err := proto.Unmarshal(msg, &reqPB); err != nil {
-		return fmt.Errorf("unable to unmarshal protobuf msg [%v] from disk queue: %w", msg, err)
-	}
-
-	req, err := http.NewRequest(http.MethodPost, ipt.replayUploadAPI, bytes.NewReader(reqPB.Body))
-	if err != nil {
-		return fmt.Errorf("unbale to create http request: %w", err)
-	}
-
-	for k, v := range reqPB.Header {
-		req.Header.Set(k, v)
-	}
-
-	if err := req.ParseMultipartForm(ReplayBodyMaxSize); err != nil {
-		return fmt.Errorf("unable to parse multipart form from session replay request: %w", err)
-	}
-
-	globalTags := config.Cfg.Dataway.GlobalTags()
-	customTagKeys := config.Cfg.Dataway.CustomTagKeys()
-
-	tags := map[string]string{
-		"category": "session_replay",
-	}
-
-	for k, v := range req.MultipartForm.Value {
-		if _, ok := tags[k]; !ok {
-			if len(v) == 0 {
-				tags[k] = ""
-			} else {
-				tags[k] = v[0]
-			}
-		}
-	}
-
-	appID = tags["app_id"]
-	env = tags["env"]
-	version = tags["version"]
-	service = tags["service"]
-
-	headerValue := dataway.HTTPHeaderGlobalTagValue(filter.NewTFDataFromMap(tags), globalTags, customTagKeys)
-	if headerValue == "" {
-		headerValue = config.Cfg.Dataway.GlobalTagsHTTPHeaderValue()
-	}
-	req.Header.Set(dataway.HeaderXGlobalTags, headerValue)
-
-	startTime := time.Now()
-	defer func() {
-		replayUploadingDurationSummary.WithLabelValues(appID, env, version, service, statusCode).Observe(time.Since(startTime).Seconds())
-	}()
-
-	for i := 0; i < ipt.SessionReplayCfg.SendRetryCount; i++ {
-		if lastErr = func() error {
-			req.Body = io.NopCloser(bytes.NewReader(reqPB.Body))
-
-			resp, err = ipt.replayHTTPClient.Do(req)
-			if err != nil {
-				return fmt.Errorf("at #%d try: unable to send session replay data to dataway: %w", i+1, err)
-			}
-			defer resp.Body.Close() // nolint:errcheck
-
-			statusCode = strconv.Itoa(resp.StatusCode)
-
-			errMsg := []byte(nil)
-			if resp.StatusCode/100 != 2 {
-				errMsg, _ = io.ReadAll(resp.Body)
-			}
-
-			switch resp.StatusCode / 100 {
-			case 5:
-				return fmt.Errorf("at #%d try: unable to send session replay data to dataway, http Status: %s, response: %s",
-					i+1, resp.Status, string(errMsg))
-			case 2:
-				// ignore
-			default:
-				log.Errorf("at #%d try: unable to send session replay data to dataway, http status: %s, response: %s",
-					i+1, resp.Status, string(errMsg))
-			}
-
-			return nil
-		}(); lastErr == nil {
-			return nil
-		}
-	}
-	return lastErr
-}
-
-func (ipt *Input) initSessionReplayWorkers() error {
-	replayWorkersGroup = goroutine.NewGroup(goroutine.Option{Name: "session_replay_uploading"})
-
-	for i := 0; i < ipt.SessionReplayCfg.UploadWorkers; i++ {
-		replayWorkersGroup.Go(func(ctx context.Context) error {
-			for {
-				select {
-				case <-datakit.Exit.Wait():
-					log.Infof("session replay uploading worker exit now...")
-					return nil
-				case <-ctx.Done():
-					log.Infof("context canceld...")
-					return nil
-				default:
-					func() {
-						var msgData []byte
-						if err := ipt.replayDiskQueue.Get(func(msg []byte) error {
-							msgData = msg
-							return nil
-						}); err != nil {
-							if errors.Is(err, diskcache.ErrEOF) {
-								log.Debugf("disk queue is empty: %s", err)
-								time.Sleep(time.Millisecond * 1500)
-							} else {
-								log.Errorf("unable to get msg from disk cache: %s", err)
-								time.Sleep(time.Millisecond * 100)
-							}
-							return
-						}
-						if err := ipt.uploadSessionReplay(msgData); err != nil {
-							log.Errorf("fail to send session replay: %s", err)
-						}
-					}()
-				}
-			}
-		})
-	}
-	return nil
-}
-
-func (ipt *Input) initReplayHTTPClient() error {
-	endpoints := config.Cfg.Dataway.GetEndpoints()
-	if len(endpoints) == 0 {
-		return fmt.Errorf("no available dataway endpoint")
-	}
-
-	ep := endpoints[0]
-
-	ipt.replayHTTPClient = &http.Client{
-		Timeout:   ipt.SessionReplayCfg.SendTimeout,
-		Transport: ep.Transport(),
-	}
-
-	ipt.replayUploadAPI = ep.GetCategoryURL()[datakit.SessionReplayUpload]
-	return nil
-}
-
-func (ipt *Input) initDiskQueue() error {
-	if ipt.SessionReplayCfg.ClearCacheOnStart {
-		if err := os.RemoveAll(ipt.SessionReplayCfg.CachePath); err != nil {
-			return fmt.Errorf("unable to clear previous session replay cache: %w", err)
-		}
-	}
-
-	queue, err := diskcache.Open(
-		diskcache.WithPath(ipt.SessionReplayCfg.CachePath),
-		diskcache.WithCapacity(ipt.SessionReplayCfg.CacheCapacity*MiB),
-		diskcache.WithNoFallbackOnError(true),
-	)
-	if err != nil {
-		return fmt.Errorf("unable to init disk queue: %w", err)
-	}
-	ipt.replayDiskQueue = queue
-
-	return nil
-}
-
-func (ipt *Input) sessionReplayHandler() (f http.HandlerFunc, err error) {
-	if err := ipt.initReplayHTTPClient(); err != nil {
-		return nil, fmt.Errorf("unable to init session replay http client: %w", err)
-	}
-
-	if err := ipt.initDiskQueue(); err != nil {
-		return nil, fmt.Errorf("unable to init diskqueue: %w", err)
-	}
-
-	if err := ipt.initSessionReplayWorkers(); err != nil {
-		return nil, fmt.Errorf("unable to start session replay uploading workers: %w", err)
-	}
-
-	return func(w http.ResponseWriter, req *http.Request) {
-		body, err := io.ReadAll(req.Body)
-		if err != nil {
-			log.Errorf("unable to read request body: %s", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		if len(body) > ReplayBodyMaxSize {
-			w.WriteHeader(http.StatusBadRequest)
-			_, _ = io.WriteString(w, fmt.Sprintf("request body size [%d] exceeds the limit", req.ContentLength))
-			return
-		}
-
-		headers := make(map[string]string, len(req.Header))
-
-		for k, v := range req.Header {
-			if len(v) > 0 {
-				headers[k] = v[0]
-			} else {
-				headers[k] = ""
-			}
-		}
-
-		reqPB := &RequestPB{
-			Header: headers,
-			Body:   body,
-		}
-
-		pbData, err := proto.Marshal(reqPB)
-		if err != nil {
-			log.Errorf("unable to marshal request to protobuf: %s", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		if err := ipt.replayDiskQueue.Put(pbData); err != nil {
-			log.Errorf("unable to cache request: %s", err)
-			w.WriteHeader(http.StatusInternalServerError)
-		}
-	}, nil
 }
 
 func (ipt *Input) RegHTTPHandler() {
@@ -589,12 +300,25 @@ func (ipt *Input) loadCDNListConf() error {
 	return nil
 }
 
-func (ipt *Input) initMeasurementMap() {
+func (ipt *Input) initConfig() {
 	if ipt.measurementMap == nil {
 		ipt.measurementMap = make(map[string]struct{}, len(ipt.Measurements))
 		for _, measure := range ipt.Measurements {
 			ipt.measurementMap[measure] = struct{}{}
 		}
+	}
+
+	if ipt.SessionReplayCfg != nil && len(ipt.SessionReplayCfg.FilterRules) > 0 {
+		whereConditions := make([]filter.WhereConditions, 0, len(ipt.SessionReplayCfg.FilterRules))
+		for _, rule := range ipt.SessionReplayCfg.FilterRules {
+			cond, err := filter.GetConds(rule)
+			if err != nil {
+				log.Errorf("unable to parse session replay filter rule [%q]: %s", rule, err)
+				continue
+			}
+			whereConditions = append(whereConditions, cond)
+		}
+		ipt.SessionReplayCfg.whereConditions = whereConditions
 	}
 }
 
@@ -607,18 +331,22 @@ func (ipt *Input) Run() {
 		loadedZipGauge,
 		sourceMapDurationSummary,
 		replayUploadingDurationSummary,
-		replayDroppedPointCount,
+		replayFailureTotalCount,
+		replayFailureTotalBytes,
+		replayReadBodyDelaySeconds,
+		replayFilteredTotalCount,
+		replayFilteredTotalBytes,
 	} {
 		if err := metrics.Register(m); err != nil {
 			log.Warnf("regist metrics failed: %s, ignored", err)
 		}
 	}
 
-	ipt.initMeasurementMap()
+	ipt.initConfig()
 	log.Infof("captured measurements are: %s", strings.Join(ipt.Measurements, ","))
 
 	if err := ipt.extractArchives(true); err != nil {
-		log.Errorf("init extract zip archives encounter err: %s", err)
+		log.Warnf("init extract zip archives encounter failed: %s, ignored", err)
 	}
 
 	if err := ipt.loadSourcemapFile(); err != nil {

@@ -108,6 +108,10 @@ func (dw *Dataway) Election(namespace, id string, reqBody io.Reader) ([]byte, er
 		return nil, err
 	}
 
+	if resp == nil {
+		return nil, errRequestTerminated
+	}
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Error(err)
@@ -162,6 +166,10 @@ func (dw *Dataway) ElectionHeartbeat(namespace, id string, reqBody io.Reader) ([
 		return nil, err
 	}
 
+	if resp == nil {
+		return nil, errRequestTerminated
+	}
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Error(err)
@@ -202,6 +210,11 @@ func (dw *Dataway) DatawayList() ([]string, int, error) {
 	if err != nil {
 		return nil, datawayListIntervalDefault, err
 	}
+
+	if resp == nil {
+		return nil, -1, errRequestTerminated
+	}
+
 	defer resp.Body.Close() //nolint:errcheck
 
 	body, err := io.ReadAll(resp.Body)

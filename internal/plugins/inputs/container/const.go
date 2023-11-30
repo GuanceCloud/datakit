@@ -28,7 +28,7 @@ const sampleCfg = `
   enable_k8s_metric = true
   enable_pod_metric = false
   enable_k8s_event = true
-  enable_k8s_node_local = false
+  enable_k8s_node_local = true
   extract_k8s_label_as_tags = false
 
   ## Auto-Discovery of PrometheusMonitoring Annotations/CRDs

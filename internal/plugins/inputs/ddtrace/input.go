@@ -58,6 +58,9 @@ const (
   ## make span_id and parent_id to hex encoding.
   # compatible_otel=true
 
+  ## delete trace message
+  # del_message = true
+
   ## Ignore tracing resources map like service:[resources...].
   ## The service name is the full service name in current application.
   ## The resource list is regular expressions uses to block resource names.
@@ -106,6 +109,7 @@ var (
 	localCache         *storage.Storage
 	traceBase          = 10
 	spanBase           = 10
+	delMessage         bool
 )
 
 type Input struct {
@@ -118,6 +122,7 @@ type Input struct {
 	Endpoints        []string                     `toml:"endpoints"`
 	IgnoreTags       []string                     `toml:"ignore_tags"`
 	CompatibleOTEL   bool                         `toml:"compatible_otel"`
+	DelMessage       bool                         `toml:"del_message"`
 	KeepRareResource bool                         `toml:"keep_rare_resource"`
 	OmitErrStatus    []string                     `toml:"omit_err_status"`
 	CloseResource    map[string][]string          `toml:"close_resource"`
@@ -226,7 +231,7 @@ func (ipt *Input) RegHTTPHandler() {
 		afterGather.AppendFilter(itrace.OmitHTTPStatusCodeFilterWrapper(ipt.OmitErrStatus))
 	}
 	// add rare resource keeper
-	if ipt.KeepRareResource {
+	if ipt.KeepRareResource && ipt.Sampler != nil && ipt.Sampler.SamplingRateGlobal < 1 {
 		keepRareResource := &itrace.KeepRareResource{}
 		keepRareResource.UpdateStatus(ipt.KeepRareResource, time.Hour)
 		afterGather.AppendFilter(keepRareResource.Keep)
@@ -234,8 +239,9 @@ func (ipt *Input) RegHTTPHandler() {
 	// add penetration filter for rum
 	afterGather.AppendFilter(func(log *logger.Logger, dktrace itrace.DatakitTrace) (itrace.DatakitTrace, bool) {
 		for i := range dktrace {
-			if dktrace[i].Tags["_dd.origin"] == "rum" {
-				log.Debugf("penetrate rum trace, tid: %s service: %s resource: %s.", dktrace[i].TraceID, dktrace[i].Service, dktrace[i].Resource)
+			if dktrace[i].GetTag("_dd.origin") == "rum" {
+				log.Debugf("penetrate rum trace, tid: %s service: %s resource: %s.",
+					dktrace[i].Get(itrace.FieldTraceID), dktrace[i].GetTag(itrace.TagService), dktrace[i].GetTag(itrace.FieldResource))
 
 				return dktrace, true
 			}
@@ -243,14 +249,11 @@ func (ipt *Input) RegHTTPHandler() {
 
 		return dktrace, false
 	})
-	// add sampler
-	var sampler *itrace.Sampler
+
 	if ipt.Sampler != nil && (ipt.Sampler.SamplingRateGlobal >= 0 && ipt.Sampler.SamplingRateGlobal <= 1) {
-		sampler = ipt.Sampler
-	} else {
-		sampler = &itrace.Sampler{SamplingRateGlobal: 1}
+		sampler := ipt.Sampler.Init()
+		afterGather.AppendFilter(sampler.Sample)
 	}
-	afterGather.AppendFilter(sampler.Sample)
 
 	log.Debugf("### register handlers %v for %s agent", ipt.Endpoints, inputName)
 	var isReg bool
@@ -289,7 +292,8 @@ func (ipt *Input) Run() {
 	if ipt.CompatibleOTEL {
 		spanBase = 16
 	}
-
+	delMessage = ipt.DelMessage
+	traceOpts = append(point.DefaultLoggingOptions(), point.WithExtraTags(datakit.DefaultGlobalTagger().HostTags()))
 	log.Debugf("### %s agent is running...", inputName)
 
 	select {

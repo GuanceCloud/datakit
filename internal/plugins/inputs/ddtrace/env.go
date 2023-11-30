@@ -46,7 +46,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	for _, key := range []string{
 		"ENV_INPUT_DDTRACE_ENDPOINTS", "ENV_INPUT_DDTRACE_COMPATIBLE_OTEL", "ENV_INPUT_DDTRACE_IGNORE_TAGS", "ENV_INPUT_DDTRACE_KEEP_RARE_RESOURCE",
 		"ENV_INPUT_DDTRACE_OMIT_ERR_STATUS", "ENV_INPUT_DDTRACE_CLOSE_RESOURCE", "ENV_INPUT_DDTRACE_SAMPLER",
-		"ENV_INPUT_DDTRACE_TAGS", "ENV_INPUT_DDTRACE_THREADS", "ENV_INPUT_DDTRACE_STORAGE",
+		"ENV_INPUT_DDTRACE_TAGS", "ENV_INPUT_DDTRACE_THREADS", "ENV_INPUT_DDTRACE_STORAGE", "ENV_INPUT_DDTRACE_DEL_MESSAGE",
 	} {
 		value, ok := envs[key]
 		if !ok {
@@ -122,6 +122,12 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
 			} else {
 				ipt.LocalCacheConfig = &storage
+			}
+		case "ENV_INPUT_DDTRACE_DEL_MESSAGE":
+			if ok, err := strconv.ParseBool(value); err != nil {
+				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
+			} else {
+				ipt.DelMessage = ok
 			}
 		}
 	}

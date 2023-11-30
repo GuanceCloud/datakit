@@ -5,7 +5,11 @@
 
 package mysql
 
-import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+import (
+	"fmt"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+)
 
 func (*Input) Dashboard(lang inputs.I18n) map[string]string {
 	switch lang {
@@ -14,6 +18,8 @@ func (*Input) Dashboard(lang inputs.I18n) map[string]string {
 		return map[string]string{
 			"host_name":                        "主机名",
 			"title":                            "MySQL 监控视图",
+			"dbm_title":                        "MySQL DBM 监控视图",
+			"activity_title":                   "MySQL Activity 监控视图",
 			"overview":                         "概览",
 			"description":                      "说明",
 			"description_content":              `使用这个仪表板，您可以获得连接数、QPS、TPS、吞吐量、异常连接数、每秒无索引join 查询次数、Schema 大小、慢查询、行锁等待时长、活动用户信息、缓冲情况、锁信息等。\n\n了解更多关于MySQL集成的信息：\n[我们的官方集成文档](https://docs.guance.com/integrations/datastorage/mysql/)\n[监控MySQL性能指标](https://docs.guance.com/datakit/mysql/#measurement)`,
@@ -70,12 +76,46 @@ func (*Input) Dashboard(lang inputs.I18n) map[string]string {
 			"wait_locks_alias":                 "当前正在等待锁的数量",
 			"wait_locks_total_alias":           "等待锁总数",
 			"open_connections_alias":           "当前打开的连接数",
+			"dbm_info_text":                    fmt.Sprintf(`### 慢查询优化\n\n目前有两种方式可以进行优化慢查询操作\n\n1、通过开启**slow log 慢查询日志**，收集慢查询日志，人为对慢查询 SQL 执行 explain。\n\n2、利用观测云 通过 MySQL 开启 %s 采集数据库性能指标，同时会自动选取部分执行耗时较高的 SQL 语句，获取其执行计划，并采集实际执行过程中的各种性能指标。\n\n<font color='red'>当前 dashboard 属于方式2，通过开启 %s 采集数据库性能指标制作当前仪表盘。</font>`, "`dbm`", "`dbm`"),
+			"max_query_time":                   "慢查询最大耗时",
+			"max_insert_time":                  "慢插入最大耗时",
+			"sql_exec_times":                   "SQL 执行次数",
+			"exec_times_per_sql":               "单条 SQL 最大执行次数",
+			"max_lock_time":                    "最长锁时间",
+			"sql_cost":                         "SQL 耗时",
+			"sql_trend":                        "SQL 数趋势",
+			"sql_distribution":                 "SQL 语句分布",
+			"sql_cost_top_20":                  "SQL 耗时 TOP 20",
+			"running_sql":                      "正在执行的 SQL",
+			"max_event_exec_time":              "事件最大执行时间",
+			"event_type_distribution":          "事件类型分布",
+			"event_state_distribution":         "事件状态分布",
+			"event_command_distribution":       "事件 Command type 分布",
+			"total_count_alias":                "统计数量",
+			"process_id":                       "进程 ID",
+			"process_user":                     "用户",
+			"process_db":                       "数据库",
+			"lock_time":                        "锁时间",
+			"event_timer_wait":                 "事件执行时间",
+			"process_by_db":                    "进程统计",
+			"process_distribution":             "进程分布",
+			"event_top_50":                     "事件 TOP 50",
+			"cost":                             "耗时",
+			"sql_number":                       "SQL 数",
+			"no_index":                         "无索引",
+			"no_good_index":                    "使用索引",
+			"select_scan":                      "首表扫描数",
+			"select_full_join":                 "链表扫描数",
+			"query_count":                      "累计查询次数",
+			"create_time":                      "创建时间",
 		}
 	case inputs.I18nEn:
 		//nolint:lll
 		return map[string]string{
 			"host_name":                        "host",
-			"title":                            "MySQL-dashboard-template",
+			"title":                            "MySQL Monitor View",
+			"dbm_title":                        "MySQL DBM Monitor View",
+			"activity_title":                   "MySQL Activity Monitor View",
 			"overview":                         "Overview",
 			"description":                      "Description",
 			"description_content":              `Using this dashboard, you can obtain connection counts, QPS, TPS, throughput, abnormal connection counts, number of non-index join queries per second, schema size, slow queries, row lock wait time, active user information, buffering status, lock information, and more.\n\nLearn more about MySQL integration:\n[Our official integration documentation](https://docs.guance.com/integrations/datastorage/mysql/)\n[Monitor MySQL performance metrics](https://docs.guance.com/datakit/mysql/#measurement)`,
@@ -132,14 +172,42 @@ func (*Input) Dashboard(lang inputs.I18n) map[string]string {
 			"wait_locks_alias":                 "wait_locks",
 			"wait_locks_total_alias":           "wait_locks_total",
 			"open_connections_alias":           "open_connections",
+			"dbm_info_text":                    fmt.Sprintf(`### Slow query optimization\n\nThere are currently two ways to optimize slow query operations.\n\n1. By enabling **slow log** to collect slow query logs and manually performing explain on slow query SQL.\n2. Using Guance Cloud to enable %s in MySQL collector to collect database performance metrics, and automatically select some SQL statements with high execution time to obtain their execution plans and collect various performance metrics during the actual execution process.\n\n<font color='red'>The current dashboard belongs to method 2 by enabling %s to collect database performance metrics.</font>`, "`dbm`", "`dbm`"),
+			"max_query_time":                   "aximum time cost for slow query",
+			"max_insert_time":                  "Maximum time cost for slow insertion",
+			"sql_exec_times":                   "SQL execution times",
+			"exec_times_per_sql":               "Maximum execution times of a single SQL",
+			"max_lock_time":                    "Maximum lock time",
+			"sql_cost":                         "SQL cost",
+			"sql_trend":                        "Trend of SQL number",
+			"sql_distribution":                 "SQL distribution",
+			"sql_cost_top_20":                  "SQL cost TOP 20",
+			"running_sql":                      "Running SQL",
+			"max_event_exec_time":              "Maximum event execution time",
+			"event_type_distribution":          "Event type distribution",
+			"event_state_distribution":         "Event state distribution",
+			"event_command_distribution":       "Event Command type distribution",
+			"total_count_alias":                "total_count",
+			"process_id":                       "process ID",
+			"process_user":                     "user",
+			"process_db":                       "database",
+			"lock_time":                        "lock time",
+			"event_timer_wait":                 "event time",
+			"process_by_db":                    "Process by db",
+			"process_distribution":             "Processing SQL distribution",
+			"event_top_50":                     "Event TOP 50",
+			"cost":                             "cost",
+			"sql_number":                       "SQL number",
+			"no_index":                         "no index",
+			"no_good_index":                    "no good index",
+			"select_scan":                      "select scan",
+			"select_full_join":                 "select full join",
+			"query_count":                      "query count",
+			"create_time":                      "create time",
 		}
 	default:
 		return nil
 	}
-}
-
-func (*Input) DashboardList() []string {
-	return nil
 }
 
 func (*Input) Monitor(lang inputs.I18n) map[string]string {
@@ -161,8 +229,4 @@ func (*Input) Monitor(lang inputs.I18n) map[string]string {
 	default:
 		return nil
 	}
-}
-
-func (*Input) MonitorList() []string {
-	return nil
 }

@@ -156,6 +156,7 @@ var (
 	flagMonitorVerbose         = fsMonitor.BoolP("verbose", "V", false, "show all statistics info, default not show goroutine and inputs config info")
 	flagMonitorModule          = fsMonitor.StringP("module", "M", "", "show only specified module stats, seprated by ',', i.e., -M filter,inputs")
 	flagMonitorOnlyInputs      = fsMonitor.StringP("input", "I", "", "show only specified inputs stats, seprated by ',', i.e., -I cpu,mem")
+	flagMonitorFilePath        = fsMonitor.StringP("path", "P", "", "specify the metric file path")
 	fsMonitorUsage             = func() {
 		fmt.Printf("usage: datakit monitor [options]\n\n")
 		fmt.Printf("Monitor used to show datakit running statistics\n\n")

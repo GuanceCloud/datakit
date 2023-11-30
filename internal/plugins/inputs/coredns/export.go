@@ -22,10 +22,6 @@ func (i *Input) Dashboard(lang inputs.I18n) map[string]string {
 	}
 }
 
-func (i *Input) DashboardList() []string {
-	return nil
-}
-
 func (i *Input) Monitor(lang inputs.I18n) map[string]string {
 	switch lang {
 	case inputs.I18nZh:
@@ -39,8 +35,4 @@ func (i *Input) Monitor(lang inputs.I18n) map[string]string {
 	default:
 		return nil
 	}
-}
-
-func (i *Input) MonitorList() []string {
-	return nil
 }

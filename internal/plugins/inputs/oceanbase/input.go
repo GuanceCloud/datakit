@@ -17,29 +17,30 @@ const (
 	configSample = `
 [[inputs.external]]
   daemon = true
-  name   = 'oceanbase'
+  name   = "oceanbase"
   cmd    = "/usr/local/datakit/externals/oceanbase"
 
   ## Set true to enable election
   election = true
 
-  ## The "--inputs" line below should not be modified.
+  ## Modify below if necessary.
+  ## The password use environment variable named "ENV_INPUT_OCEANBASE_PASSWORD".
   args = [
-    '--interval'        , '1m'                              ,
-    '--host'            , '<your-oceanbase-host>'           ,
-    '--port'            , '2883'                            ,
-    '--tenant'          , 'oraclet'                         ,
-    '--cluster'         , 'obcluster'                       ,
-    '--username'        , '<oceanbase-user-name>'           ,
-    '--database'        , 'oceanbase'                       ,
-    '--mode'            , 'oracle'                          ,
-    '--service-name'    , '<oceanbase-service-name>'        ,
-    '--slow-query-time' , '0s'                              ,
-    '--log'             , '/var/log/datakit/oceanbase.log'  ,
+    "--interval"        , "1m"                              ,
+    "--host"            , "<your-oceanbase-host>"           ,
+    "--port"            , "2883"                            ,
+    "--tenant"          , "oraclet"                         ,
+    "--cluster"         , "obcluster"                       ,
+    "--username"        , "<oceanbase-user-name>"           ,
+    "--database"        , "oceanbase"                       ,
+    "--mode"            , "oracle"                          ,
+    "--service-name"    , "<oceanbase-service-name>"        ,
+    "--slow-query-time" , "0s"                              ,
+    "--log"             , "/var/log/datakit/oceanbase.log"  ,
   ]
   envs = [
-    'ENV_INPUT_OCEANBASE_PASSWORD=<oceanbase-password>',
-    'LD_LIBRARY_PATH=/u01/obclient/lib:$LD_LIBRARY_PATH',
+    "ENV_INPUT_OCEANBASE_PASSWORD=<oceanbase-password>",
+    "LD_LIBRARY_PATH=/u01/obclient/lib:$LD_LIBRARY_PATH",
   ]
 
   [inputs.external.tags]
@@ -49,17 +50,18 @@ const (
   #############################
   # Parameter Description (Marked with * is mandatory field)
   #############################
-  # *--interval         : Collect interval (Default is 1m).
-  # *--host             : OceanBase instance address (IP).
-  # *--port             : OceanBase listen port (Default is 2883).
-  # *--tenant           : OceanBase tenant name (Default is oraclet).
-  # *--cluster          : OceanBase cluster name (Default is obcluster).
-  # *--username         : OceanBase username.
-  # *--database         : OceanBase database name. Generally, fill in 'oceanbase'.
-  # *--mode             : OceanBase tenant mode, fill in 'oracle' or 'mysql'.
-  # *--service-name     : OceanBase service name.
-  # *--slow-query-time  : OceanBase slow query time threshold defined. If larger than this, the executed sql will be reported.
-  # *--log              : Collector log path.
+  # *--interval                      : Collect interval (Default is 1m).
+  # *--host                          : OceanBase instance address (IP).
+  # *--port                          : OceanBase listen port (Default is 2883).
+  # *--tenant                        : OceanBase tenant name (Default is oraclet).
+  # *--cluster                       : OceanBase cluster name (Default is obcluster).
+  # *--username                      : OceanBase username.
+  # *--database                      : OceanBase database name. Generally, fill in 'oceanbase'.
+  # *--mode                          : OceanBase tenant mode, fill in 'oracle' or 'mysql'.
+  # *--service-name                  : OceanBase service name.
+  # *--slow-query-time               : OceanBase slow query time threshold defined. If larger than this, the executed sql will be reported.
+  # *--log                           : Collector log path.
+  # *ENV_INPUT_OCEANBASE_PASSWORD    : OceanBase password.
 `
 )
 

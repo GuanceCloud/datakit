@@ -307,7 +307,7 @@ func preEnableHostobjectInput(cloud string) []byte {
 }
 
 func getDataway() (*dataway.Dataway, error) {
-	dw := &dataway.Dataway{}
+	dw := dataway.NewDefaultDataway()
 
 	if Dataway != "" {
 		dw.URLs = strings.Split(Dataway, ",")

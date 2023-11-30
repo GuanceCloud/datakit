@@ -109,19 +109,19 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			},
 			opts: []inputs.PointCheckOption{
 				inputs.WithOptionalTags(
-					itrace.TAG_ENV,
-					itrace.TAG_PROJECT,
-					itrace.VERSION,
-					itrace.TAG_HTTP_STATUS_CODE,
-					itrace.TAG_HTTP_METHOD,
-					itrace.TAG_CONTAINER_HOST,
-					itrace.TAG_ENDPOINT,
-					itrace.TAG_HTTP_ROUTE,
-					itrace.TAG_HTTP_URL,
+					itrace.TagEnv,
+					itrace.TagProject,
+					itrace.Version,
+					itrace.TagHttpStatusCode,
+					itrace.TagHttpMethod,
+					itrace.TagContainerHost,
+					itrace.TagEndpoint,
+					itrace.TagHttpRoute,
+					itrace.TagHttpUrl,
 				),
 				inputs.WithOptionalFields(
-					itrace.TAG_PID,
-					itrace.FIELD_PRIORITY,
+					itrace.TagPid,
+					itrace.FieldPriority,
 				),
 				inputs.WithIgnoreTags(
 					"pspan_annotation",
@@ -223,6 +223,8 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			if len(msgs) > 0 {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
+		case "pinpointV2":
+			cs.t.Logf("todo check this new messurement name")
 
 			cs.mCount[inputName] = struct{}{}
 

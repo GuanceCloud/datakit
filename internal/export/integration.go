@@ -21,6 +21,11 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/all"
 )
 
+const (
+	templateDashboardDir = "dashboard"
+	templateMonitordDir  = "monitor"
+)
+
 type Integration struct {
 	opt *exportOptions
 
@@ -48,17 +53,17 @@ func NewIntegration(opts ...option) *Integration {
 func (i *Integration) Export() error {
 	for _, lang := range i.opt.langs {
 		l.Infof("exporting monitor(%s)...", lang)
-		if err := i.exportMonitor(lang); err != nil {
+		if err := i.exportTemplate(templateMonitordDir, lang); err != nil {
+			return err
+		}
+
+		l.Infof("exporting dashboard(%s)...", lang)
+		if err := i.exportTemplate(templateDashboardDir, lang); err != nil {
 			return err
 		}
 
 		l.Infof("exporting integration(%s)...", lang)
 		if err := i.exportIntegration(lang); err != nil {
-			return err
-		}
-
-		l.Infof("exporting dashboard(%s)...", lang)
-		if err := i.exportDashboard(lang); err != nil {
 			return err
 		}
 
@@ -288,43 +293,19 @@ func (i *Integration) exportIntegration(lang inputs.I18n) error {
 	return nil
 }
 
-func (i *Integration) exportDashboard(lang inputs.I18n) error {
-	entryDir := filepath.Join("dashboard", lang.String())
-	dashboardEntries, err := AllDashboards.ReadDir(entryDir)
-	if err != nil {
-		return err
-	}
-
-	for _, e := range dashboardEntries {
-		if !e.IsDir() {
-			l.Debugf("ignore non-dir %q under %s", e.Name(), entryDir)
-			continue
-		}
-
-		l.Debugf("export dashboard %q", e.Name())
-		name := e.Name() // dashboard/{zh,en}/cpu/ -> cpu
-		if err := i.buildDashboard(name, lang); err != nil {
-			return err
-		}
-	}
-
-	// read xx.json under dashboard
-	templateDir := "dashboard"
-	templateEntry, err := AllDashboards.ReadDir(templateDir)
+// exportTemplate export dashboard or monitor template.
+func (i *Integration) exportTemplate(templateDir string, lang inputs.I18n) error {
+	templateEntry, err := AllTemplates.ReadDir(templateDir)
 	if err != nil {
 		return err
 	}
 
 	for _, e := range templateEntry {
-		if e.IsDir() {
-			l.Debugf("ignore dir %q under %s", e.Name(), templateDir)
+		if !e.IsDir() {
+			l.Debugf("ignore non-dir %q under %s", e.Name(), templateDir)
 			continue
 		}
-
-		l.Debugf("export dashboard %q", e.Name())
-
-		name := strings.Split(e.Name(), ".")[0] // cpu.json-> cpu
-		if err := i.buildDashboard(name, lang); err != nil {
+		if err := i.buildTemplate(templateDir, e.Name(), lang); err != nil {
 			return err
 		}
 	}
@@ -332,182 +313,86 @@ func (i *Integration) exportDashboard(lang inputs.I18n) error {
 	return nil
 }
 
-func (i *Integration) exportMonitor(lang inputs.I18n) error {
-	monitorEntries, err := AllMonitors.ReadDir(filepath.Join("monitor", lang.String()))
-	if err != nil {
-		return err
-	}
-
-	for _, e := range monitorEntries {
-		if !e.IsDir() {
-			continue
-		}
-
-		name := e.Name() // monitor/{zh,en}/cpu/ -> cpu
-		if err := i.buildMonitor(name, lang); err != nil {
-			return err
-		}
-	}
-
-	// read xx.json under monitor
-	templateDir := "monitor"
-	templateEntry, err := AllMonitors.ReadDir(templateDir)
-	if err != nil {
-		return err
-	}
-
-	for _, e := range templateEntry {
-		if e.IsDir() {
-			l.Debugf("ignore dir %q under %s", e.Name(), templateDir)
-			continue
-		}
-
-		l.Debugf("export monitor %q", e.Name())
-
-		name := strings.Split(e.Name(), ".")[0] // cpu.json-> cpu
-		if err := i.buildMonitor(name, lang); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// buildDashboard render all dashboard JSON.
-func (i *Integration) buildDashboard(name string, lang inputs.I18n) error {
+func (i *Integration) buildTemplate(templateDir, inputName string, lang inputs.I18n) error {
 	var (
-		dashboard   map[string]string
 		templateMap = map[string][]byte{}
-
-		p *Params
+		p           = &Params{}
 	)
 
-	// load default dashboard
-	if x, err := dashboardTryLoad(name, lang); err == nil && len(x) > 0 {
-		templateMap[name] = x
+	if templateDir == templateMonitordDir {
+		// For monitor json, we have to escape jinja2 template(also the format {{ xx }}),
+		// so we use customer delimeters for Go template.
+		p.delims = [2]string{"<<", ">>"}
 	}
 
-	// inputs may specified it's dashboard's specs.
-	if c, ok := inputs.Inputs[name]; ok && c != nil {
+	// inputs may specified its dashboard/monitor's specs.
+	if c, ok := inputs.Inputs[inputName]; ok && c != nil {
 		ipt := c()
 
-		switch i := ipt.(type) {
-		case inputs.Dashboard:
+		if i, ok := ipt.(inputs.Dashboard); ok {
+			p.Dashboard = i.Dashboard(lang)
+		}
 
-			l.Infof("rendering %q dashboard...", name)
-
-			dashboard = i.Dashboard(lang)
-			dl := []string{name}
-
-			// input may have multiple dashboards.
-			if arr := i.DashboardList(); len(arr) > 0 {
-				dl = arr
-			}
-
-			l.Infof("input %s got %d dashboard rendering", name, len(dl))
-
-			for _, elem := range dl {
-				l.Infof("rendering dashboard %q ...", elem)
-				if x, err := dashboardTryLoad(elem, lang); len(x) > 0 && err == nil {
-					templateMap[elem] = x
-				} else {
-					l.Warnf("dashboardTryLoad %s/%s failed: %s", elem, lang.String(), err)
-				}
-			}
-
-		default:
-			l.Warnf("input %s not implement Dashboard interfaces, ignored", name)
+		if i, ok := ipt.(inputs.Monitor); ok {
+			p.Monitor = i.Monitor(lang)
 		}
 	} else {
-		l.Warnf("input %q not exist", name)
+		l.Warnf("input %s not exist", inputName)
 	}
 
-	p = &Params{
-		Dashboard: dashboard,
+	// load all xx.json files under collector
+	templateFileEntry, err := AllTemplates.ReadDir(filepath.Join(templateDir, inputName))
+	if err != nil {
+		return err
 	}
 
-	l.Infof("build %d dashboards for %s...", len(templateMap), name)
+	for _, e := range templateFileEntry {
+		jsonFileName := e.Name()
+		if e.IsDir() || !strings.HasSuffix(jsonFileName, ".json") {
+			l.Debugf("ignore dir %s under collector %s", e.Name(), inputName)
+			continue
+		}
+
+		// such as mysql.json/mysql_dbm.json
+		fileParts := strings.Split(jsonFileName, ".")
+		if len(fileParts) != 2 {
+			l.Debugf("invalid file name %s for collector %s", jsonFileName, inputName)
+			continue
+		}
+
+		if !strings.HasSuffix(fileParts[0], fmt.Sprintf("__%s", inputs.I18nZh.String())) &&
+			!strings.HasSuffix(fileParts[0], fmt.Sprintf("__%s", inputs.I18nEn.String())) {
+			if content, err := AllTemplates.ReadFile(filepath.Join(templateDir, inputName, jsonFileName)); err == nil {
+				templateMap[fileParts[0]] = content
+			} else {
+				return err
+			}
+		} else if strings.HasSuffix(fileParts[0], fmt.Sprintf("__%s", lang.String())) {
+			if content, err := AllTemplates.ReadFile(filepath.Join(templateDir, inputName, jsonFileName)); err == nil {
+				fileName := strings.TrimSuffix(fileParts[0], fmt.Sprintf("__%s", lang.String()))
+				i.docs[filepath.Join(i.opt.topDir, templateDir, lang.String(), fileName, "meta.json")] = content
+			} else {
+				return err
+			}
+		}
+	}
+
+	l.Infof("build %s: %d templates for %s...", templateDir, len(templateMap), inputName)
 
 	for k, t := range templateMap {
-		l.Infof("render dashboard %s...", k)
+		l.Infof("render %s...", k)
 		buf, err := renderBuf(t, p)
 		if err != nil {
-			return fmt.Errorf("renderBuf: render dashboard on input %q[%q]: %w",
-				name, k, err)
+			return fmt.Errorf("renderBuf: render on input %q[%q]: %w",
+				inputName, k, err)
 		} else {
 			// check if JSON ok
 			if !json.Valid(buf) {
-				return fmt.Errorf("invalid dashboard JSON on input %q[%q]", name, k)
+				return fmt.Errorf("invalid JSON on input %q[%q]", inputName, k)
 			}
 
-			i.docs[filepath.Join(i.opt.topDir, "dashboard", lang.String(), name, "meta.json")] = buf
+			i.docs[filepath.Join(i.opt.topDir, templateDir, lang.String(), k, "meta.json")] = buf
 		}
-	}
-
-	return nil
-}
-
-func (i *Integration) buildMonitor(name string, lang inputs.I18n) error {
-	var (
-		monitor     map[string]string
-		templateMap = map[string][]byte{}
-		p           *Params
-	)
-
-	// load default monitor
-	if x, err := monitorTryLoad(name, lang); len(x) > 0 && err == nil {
-		templateMap[name] = x
-	}
-
-	if c, ok := inputs.Inputs[name]; ok && c != nil {
-		ipt := c()
-		switch i := ipt.(type) {
-		case inputs.Monitor:
-			monitor = i.Monitor(lang)
-			ml := []string{name}
-
-			// some inputs may got multiple monitors
-			if arr := i.MonitorList(); len(arr) > 0 {
-				ml = arr
-			}
-
-			l.Infof("input %s got %d monitor rendering", name, len(ml))
-
-			for _, elem := range i.MonitorList() {
-				l.Infof("rendering monitor %q ...", elem)
-				if x, err := monitorTryLoad(elem, lang); len(x) > 0 && err == nil {
-					templateMap[elem] = x
-				}
-			}
-
-		default:
-			l.Warnf("input %s not implement Monitor interfaces, ignored\n", name)
-		}
-	}
-
-	p = &Params{
-		Monitor: monitor,
-
-		// For monitor json, we have to escape jinja2 template(also the format {{ xx }}),
-		// so we use customer delimeters for Go template.
-		delims: [2]string{"<<", ">>"},
-	}
-
-	l.Infof("build %d monitors for %s...", len(templateMap), name)
-	for k, t := range templateMap {
-		l.Infof("render monitor %s...", k)
-		buf, err := renderBuf(t, p)
-		if err != nil {
-			l.Errorf("renderBuf: render monitor on input %q[%q]: %s, ignored", name, k, err)
-			return err
-		}
-
-		// check if JSON ok
-		if !json.Valid(buf) {
-			return fmt.Errorf("invalid monitor JSON on input %q[%q]", name, k)
-		}
-
-		i.docs[filepath.Join(i.opt.topDir, "monitor", lang.String(), name, "meta.json")] = buf
 	}
 
 	return nil

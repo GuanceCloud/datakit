@@ -1,0 +1,2054 @@
+{
+  "dashboardBindSet": [],
+  "dashboardExtend": {},
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "dashboardType": "CUSTOM",
+  "iconSet": {
+    "icon": "https://static-res.guance.com/dataflux-template/dashboard/zh/redis/icon.svg",
+    "url": "https://static-res.guance.com/dataflux-template/dashboard/zh/redis/redis.png"
+  },
+  "main": {
+    "charts": [
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareTitle": "",
+            "compareType": "",
+            "density": "medium",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isPercent": false,
+            "isSampling": true,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "maxPointCount": 360,
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "tableSortMetricName": "{{.Dashboard.used_cpu_sys}}",
+            "timeInterval": "10s",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.performance}}"
+        },
+        "name": "{{.Dashboard.used_cpu}}",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 0,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.used_cpu_sys}}",
+              "code": "A",
+              "dataSource": "redis_info",
+              "field": "used_cpu_sys",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "d0a0c740-146a-11ed-b5fb-4d46a10ff9ad",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "non_negative_difference(\"M::`redis_info`:(AVG(`used_cpu_sys`) AS `{{.Dashboard.used_cpu_sys}}`) { `host` = '#{host}' } BY `host`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_difference"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.used_cpu_user}}",
+              "code": "B",
+              "dataSource": "redis_info",
+              "field": "used_cpu_user",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "f2412d40-146a-11ed-b5fb-4d46a10ff9ad",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "non_negative_difference(\"M::`redis_info`:(AVG(`used_cpu_user`) AS `{{.Dashboard.used_cpu_user}}`) { `host` = '#{host}' } BY `host`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_difference"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isPercent": false,
+            "isSampling": true,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "maxPointCount": 360,
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "tableSortMetricName": "{{.Dashboard.keyspace_misses}}",
+            "timeInterval": "10s",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.overview}}"
+        },
+        "name": "{{.Dashboard.keyspace_misses}}",
+        "pos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 17
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.keyspace_misses}}",
+              "code": "A",
+              "dataSource": "redis_info",
+              "field": "keyspace_misses",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "b701b740-87b7-11eb-a503-75529ab0d97c",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`redis_info`:(AVG(`keyspace_misses`) AS `{{.Dashboard.keyspace_misses}}`) { `host` = '#{host}' } BY `host`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareTitle": "",
+            "compareType": "",
+            "density": "medium",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isPercent": false,
+            "isSampling": true,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "maxPointCount": 360,
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "tableSortMetricName": "{{.Dashboard.rejected_connections}}",
+            "timeInterval": "10s",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.overview}}"
+        },
+        "name": "{{.Dashboard.rejected_connections}}",
+        "pos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 25
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.rejected_connections}}",
+              "code": "A",
+              "dataSource": "redis_info",
+              "field": "rejected_connections",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "7b0a2740-87b7-11eb-a503-75529ab0d97c",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`redis_info`:(AVG(`rejected_connections`) AS `{{.Dashboard.rejected_connections}}`) { `host` = '#{host}' } BY `host`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isPercent": false,
+            "isSampling": true,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "maxPointCount": 360,
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "tableSortMetricName": "redis_used_memory",
+            "timeInterval": "10s",
+            "titleDesc": "",
+            "unitType": "custom",
+            "units": [
+              {
+                "key": "{{.Dashboard.used_memory}}",
+                "name": "{{.Dashboard.used_memory}}",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "b"
+                ]
+              }
+            ],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.performance}}"
+        },
+        "name": "{{.Dashboard.used_memory}}",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 16,
+          "y": 8
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.used_memory}}",
+              "code": "A",
+              "dataSource": "redis_info",
+              "field": "used_memory",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "41d7dd50-87ad-11eb-98f1-11984c8fe9fb",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`redis_info`:(AVG(`used_memory`) AS `{{.Dashboard.used_memory}}`) { `host` = '#{host}' } BY `host`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareTitle": "",
+            "compareType": "",
+            "density": "medium",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isPercent": false,
+            "isSampling": true,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "maxPointCount": 360,
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "tableSortMetricName": "{{.Dashboard.rdb_changes_since_last_save}}",
+            "timeInterval": "10s",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.persistence}}"
+        },
+        "name": "{{.Dashboard.rdb_changes_since_last_save}}",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 8,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.rdb_changes_since_last_save}}",
+              "code": "A",
+              "dataSource": "redis_info",
+              "field": "rdb_changes_since_last_save",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": "previous",
+              "filters": [
+                {
+                  "id": "bd8ba240-87b4-11eb-a503-75529ab0d97c",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`redis_info`:(fill(AVG(`rdb_changes_since_last_save`), previous) AS `{{.Dashboard.rdb_changes_since_last_save}}`) { `host` = '#{host}' } BY `host`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "density": "medium",
+            "downsample": "last",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isPercent": false,
+            "isSampling": true,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "lineColor": "#c23531",
+            "mainMeasurementQueryCode": "A",
+            "mappings": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "maxPointCount": 360,
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "tableSortMetricName": "{{.Dashboard.blocked_clients}}",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.performance}}"
+        },
+        "name": "{{.Dashboard.blocked_clients}}",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 16,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.blocked_clients}}",
+              "code": "A",
+              "dataSource": "redis_info",
+              "field": "blocked_clients",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "e82f7b90-87ad-11eb-98f1-11984c8fe9fb",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`redis_info`:(AVG(`blocked_clients`) AS `{{.Dashboard.blocked_clients}}`) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isPercent": false,
+            "isSampling": true,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "maxPointCount": 360,
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "tableSortMetricName": "redis_mem_fragmentation_ratio",
+            "timeInterval": "10s",
+            "titleDesc": "",
+            "unitType": "custom",
+            "units": [
+              {
+                "key": "{{.Dashboard.mem_fragmentation_ratio}}",
+                "name": "{{.Dashboard.mem_fragmentation_ratio}}",
+                "unit": "",
+                "units": [
+                  "percent",
+                  "percent"
+                ]
+              }
+            ],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.performance}}"
+        },
+        "name": "{{.Dashboard.mem_fragmentation_ratio}}",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 0,
+          "y": 8
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.mem_fragmentation_ratio}}",
+              "code": "A",
+              "dataSource": "redis_info",
+              "field": "mem_fragmentation_ratio",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "fa71d1a0-87ac-11eb-98f1-11984c8fe9fb",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`redis_info`:(AVG(`mem_fragmentation_ratio`) AS `{{.Dashboard.mem_fragmentation_ratio}}`) { `host` = '#{host}' } BY `host`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "changeWorkspace": false,
+            "colors": [],
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#c23531",
+            "mappings": [],
+            "openCompare": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "sequenceChartType": "line",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "1s",
+            "titleDesc": "",
+            "unitType": "custom",
+            "units": [
+              {
+                "key": "redis_latest_fork_usec",
+                "name": "redis_latest_fork_usec",
+                "unit": "毫秒"
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.overview}}"
+        },
+        "name": "{{.Dashboard.connected_clients}}",
+        "pos": {
+          "h": 10,
+          "w": 4,
+          "x": 0,
+          "y": 7
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "redis_info",
+              "field": "connected_clients",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "e27b0900-87b0-11eb-98f1-11984c8fe9fb",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`redis_info`:(LAST(`connected_clients`)) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareTitle": "",
+            "compareType": "",
+            "density": "medium",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isPercent": false,
+            "isSampling": true,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "maxPointCount": 360,
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "tableSortMetricName": "{{.Dashboard.keyspace_hits}}",
+            "timeInterval": "10s",
+            "titleDesc": "",
+            "unitType": "custom",
+            "units": [
+              {
+                "key": "{{.Dashboard.keyspace_hits}}",
+                "name": "{{.Dashboard.keyspace_hits}}",
+                "unit": "",
+                "units": [
+                  "percent",
+                  "percent_decimal"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.performance}}"
+        },
+        "name": "{{.Dashboard.keyspace_hits}}",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 8,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.keyspace_hits}}",
+              "code": "A",
+              "dataSource": "redis_info",
+              "field": "keyspace_hits",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "715e36e0-a897-11eb-bc0b-cfcc90dd3bbe",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`redis_info`:(AVG(`keyspace_hits`) AS `{{.Dashboard.keyspace_hits}}`) { `host` = '#{host}' } BY `host`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "changeWorkspace": false,
+            "chartType": "line",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "density": "medium",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "sequenceChartType": "line",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "stackType": "time",
+            "tableSortMetricName": "{{.Dashboard.rdb_last_bgsave_time_sec}}",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "custom",
+            "units": [
+              {
+                "key": "{{.Dashboard.rdb_last_bgsave_time_sec}}",
+                "name": "{{.Dashboard.rdb_last_bgsave_time_sec}}",
+                "unit": "",
+                "units": [
+                  "time",
+                  "s"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.persistence}}"
+        },
+        "name": "{{.Dashboard.rdb_last_bgsave_time_sec}}",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 16,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.rdb_last_bgsave_time_sec}}",
+              "code": "A",
+              "dataSource": "redis_info",
+              "field": "rdb_last_bgsave_time_sec",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "aae12a80-8f21-11ee-a614-056bae4f0072",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "labelOp": "",
+              "namespace": "metric",
+              "q": "M::`redis_info`:(AVG(`rdb_last_bgsave_time_sec`) AS `{{.Dashboard.rdb_last_bgsave_time_sec}}`) { `host` = '#{host}' } BY `host`",
+              "queryFuncs": [],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareTitle": "",
+            "compareType": "",
+            "density": "medium",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isPercent": false,
+            "isSampling": true,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "maxPointCount": 360,
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "tableSortMetricName": "{{.Dashboard.evicted_keys}}",
+            "timeInterval": "10s",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.performance}}"
+        },
+        "name": "{{.Dashboard.evicted_keys}}",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 8,
+          "y": 8
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.evicted_keys}}",
+              "code": "A",
+              "dataSource": "redis_info",
+              "field": "evicted_keys",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "9e7805d0-87ad-11eb-98f1-11984c8fe9fb",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`redis_info`:(AVG(`evicted_keys`) AS `{{.Dashboard.evicted_keys}}`) { `host` = '#{host}' } BY `host`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "changeWorkspace": false,
+            "colors": [],
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#c23531",
+            "mappings": [],
+            "openCompare": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "sequenceChartType": "line",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "1s",
+            "titleDesc": "",
+            "unitType": "custom",
+            "units": [
+              {
+                "key": "redis_latest_fork_usec",
+                "name": "redis_latest_fork_usec",
+                "unit": "毫秒"
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.overview}}"
+        },
+        "name": "{{.Dashboard.connected_slaves}}",
+        "pos": {
+          "h": 10,
+          "w": 4,
+          "x": 4,
+          "y": 7
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "redis_info",
+              "field": "connected_slaves",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "e27b0900-87b0-11eb-98f1-11984c8fe9fb",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`redis_info`:(AVG(`connected_slaves`)) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "changeWorkspace": false,
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "isTimeInterval": false,
+            "levels": [
+              {
+                "bgColor": "",
+                "fontColor": "",
+                "lineColor": "",
+                "operation": "=",
+                "value": [
+                  "true"
+                ]
+              },
+              {
+                "bgColor": "",
+                "fontColor": "",
+                "lineColor": "",
+                "operation": "!=",
+                "value": [
+                  "false"
+                ]
+              }
+            ],
+            "lineColor": "#c23531",
+            "mappings": [
+              {
+                "mappingVal": "{{.Dashboard.rdb_bgsave_in_progress_1}}",
+                "operation": "=",
+                "originalVal": [
+                  "true"
+                ]
+              },
+              {
+                "mappingVal": "{{.Dashboard.rdb_bgsave_in_progress_0}}",
+                "operation": "!=",
+                "originalVal": [
+                  "false"
+                ]
+              }
+            ],
+            "openCompare": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "sequenceChartType": "line",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "tableSortMetricName": "last(clients)",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.persistence}}"
+        },
+        "name": "{{.Dashboard.rdb_bgsave_in_progress}}",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 0,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "redis_info",
+              "field": "rdb_bgsave_in_progress",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "e27b0900-87b0-11eb-98f1-11984c8fe9fb",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`redis_info`:(AVG(`rdb_bgsave_in_progress`)) { `host` = '#{host}' } BY `host`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "changeWorkspace": false,
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#c23531",
+            "mappings": [],
+            "openCompare": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "sequenceChartType": "line",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "custom",
+            "units": [
+              {
+                "key": "max(age)",
+                "name": "max(age)",
+                "unit": "",
+                "units": [
+                  "time",
+                  "s"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.overview}}"
+        },
+        "name": "{{.Dashboard.max_client_age}}",
+        "pos": {
+          "h": 10,
+          "w": 4,
+          "x": 8,
+          "y": 7
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "redis_client",
+              "field": "age",
+              "fieldFunc": "max",
+              "fieldType": "float",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "8e8309e0-37c9-11ed-a3c5-0785364cf88c",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`redis_client`:(MAX(`age`)) { `host` = '#{host}' } BY `host`",
+              "queryFuncs": [],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "colorLevel": 3,
+            "colors": [],
+            "currentChartType": "treemap",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "isTimeInterval": false,
+            "levelArr": [],
+            "levels": [],
+            "mainMeasurementLimit": 20,
+            "mainMeasurementQueryCode": "A",
+            "mainMeasurementSort": "top",
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "rangeColor": "",
+            "rangeColorKey": "light-blue",
+            "showFieldMapping": false,
+            "showLabel": true,
+            "showLabelValue": true,
+            "showLegend": false,
+            "showPercent": false,
+            "showTitle": true,
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "custom",
+            "units": [
+              {
+                "key": "last(calls)",
+                "name": "last(calls)",
+                "unit": "次",
+                "units": [
+                  "custom",
+                  "次"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.overview}}"
+        },
+        "name": "{{.Dashboard.command_calls}}",
+        "pos": {
+          "h": 26,
+          "w": 12,
+          "x": 12,
+          "y": 7
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "redis_command_stat",
+              "field": "calls",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "8e8309e0-37c9-11ed-a3c5-0785364cf88c",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "method"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`redis_command_stat`:(AVG(`calls`)) { `host` = '#{host}' } BY `method`",
+              "queryFuncs": [],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "treemap",
+            "unit": ""
+          }
+        ],
+        "type": "treemap"
+      },
+      {
+        "extend": {
+          "isRefresh": false,
+          "links": [],
+          "settings": {
+            "alias": [],
+            "backgroundStyle": {
+              "background-size": "contain"
+            },
+            "colors": [],
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "type": "contain",
+            "units": [],
+            "url": "https://static.guance.com/zhuyun-docs/integration-doc-src/covers/redis.png"
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.overview}}"
+        },
+        "name": "redis",
+        "pos": {
+          "h": 7,
+          "w": 2,
+          "x": 0,
+          "y": 0
+        },
+        "queries": [],
+        "type": "picture"
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "colors": [],
+            "fixedTime": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "isTimeInterval": false,
+            "levels": [],
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.overview}}"
+        },
+        "name": "{{.Dashboard.readme}}",
+        "pos": {
+          "h": 7,
+          "w": 22,
+          "x": 2,
+          "y": 0
+        },
+        "queries": [
+          {
+            "name": "",
+            "query": {
+              "content": "{{.Dashboard.readme_note}}"
+            }
+          }
+        ],
+        "type": "text"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "changeWorkspace": false,
+            "colors": [],
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#c23531",
+            "mappings": [],
+            "openCompare": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "sequenceChartType": "line",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "1s",
+            "titleDesc": "",
+            "unitType": "custom",
+            "units": [
+              {
+                "key": "redis_latest_fork_usec",
+                "name": "redis_latest_fork_usec",
+                "unit": "毫秒"
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": "Bigkey Hotkey"
+        },
+        "name": "{{.Dashboard.keys_sampled}}",
+        "pos": {
+          "h": 10,
+          "w": 4,
+          "x": 0,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "redis_hotkey",
+              "field": "keys_sampled",
+              "fieldFunc": "last",
+              "fieldType": "long",
+              "fill": "",
+              "filters": [],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`redis_hotkey`:(LAST(`keys_sampled`)) { `index` = 'default' }",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "colors": [],
+            "currentChartType": "table",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "isTimeInterval": false,
+            "levels": [],
+            "mainMeasurementLimit": 20,
+            "mainMeasurementQueryCode": "A",
+            "mainMeasurementSort": "top",
+            "openThousandsSeparator": false,
+            "pageSize": 0,
+            "precision": "2",
+            "queryMode": "toGroupColumn",
+            "showFieldMapping": false,
+            "showTitle": true,
+            "slimit": 20,
+            "timeInterval": "1s",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": [],
+            "valColorMappings": [],
+            "valMappings": []
+          }
+        },
+        "group": {
+          "name": "Bigkey Hotkey"
+        },
+        "name": "Bigkey",
+        "pos": {
+          "h": 29,
+          "w": 10,
+          "x": 4,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "redis_bigkey",
+              "field": "value_length",
+              "fieldFunc": "last",
+              "fieldType": "long",
+              "fill": "",
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "key",
+                "key_type"
+              ],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`redis_bigkey`:(LAST(`value_length`)) { `index` = 'default' } BY `key`, `key_type`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "colors": [],
+            "currentChartType": "table",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "isTimeInterval": false,
+            "levels": [],
+            "mainMeasurementLimit": 20,
+            "mainMeasurementQueryCode": "A",
+            "mainMeasurementSort": "top",
+            "openThousandsSeparator": false,
+            "pageSize": 0,
+            "precision": "2",
+            "queryMode": "toGroupColumn",
+            "showFieldMapping": false,
+            "showTitle": true,
+            "slimit": 20,
+            "timeInterval": "1s",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": [],
+            "valColorMappings": [],
+            "valMappings": []
+          }
+        },
+        "group": {
+          "name": "Bigkey Hotkey"
+        },
+        "name": "Hotkey",
+        "pos": {
+          "h": 29,
+          "w": 10,
+          "x": 14,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "redis_hotkey",
+              "field": "key_count",
+              "fieldFunc": "last",
+              "fieldType": "long",
+              "fill": "",
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "key"
+              ],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`redis_hotkey`:(LAST(`key_count`)) { `index` = 'default' } BY `key`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          }
+        ],
+        "type": "table"
+      }
+    ],
+    "groups": [
+      "{{.Dashboard.overview}}",
+      "{{.Dashboard.performance}}",
+      "{{.Dashboard.persistence}}",
+      "Bigkey Hotkey"
+    ],
+    "type": "template",
+    "vars": [
+      {
+        "code": "host",
+        "datasource": "dataflux",
+        "definition": {
+          "defaultVal": {
+            "label": "",
+            "value": ""
+          },
+          "field": "",
+          "metric": "",
+          "object": "",
+          "tag": "",
+          "value": "show_tag_value(from=['redis_client'], keyin=['host'])[5m]"
+        },
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "name": "{{.Dashboard.host}}",
+        "seq": 0,
+        "type": "QUERY",
+        "valueSort": "default"
+      }
+    ]
+  },
+  "summary": "",
+  "tagInfo": [],
+  "thumbnail": "",
+  "title": "Redis-meta"
+}

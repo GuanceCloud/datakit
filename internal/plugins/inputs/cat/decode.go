@@ -172,6 +172,8 @@ func parseMetrics(heartbeats []*Heartbeat, domain, hostname string) []*point.Poi
 	return pts
 }
 
+var traceOpts = []point.Option{}
+
 func parseResourceSpans(ctx *Context, dt *Transaction) itrace.DatakitTraces {
 	var dktraces itrace.DatakitTraces
 	var dktrace itrace.DatakitTrace
@@ -182,50 +184,45 @@ func parseResourceSpans(ctx *Context, dt *Transaction) itrace.DatakitTraces {
 		root = tree.RootMessageID
 	}
 	parent := tree.parentMessageID
-	spanType := itrace.SPAN_TYPE_LOCAL
+	spanType := itrace.SpanTypeLocal
 	if parent == "" {
-		spanType = itrace.SPAN_TYPE_ENTRY
+		spanType = itrace.SpanTypeEntry
 		parent = "0"
 	}
 	status := SUCCESS
 	if dt.Status != "0" {
 		status = FAIL
 	}
-	dkspan := &itrace.DatakitSpan{
-		TraceID:    root,
-		ParentID:   parent,
-		SpanID:     tree.MessageID,
-		Service:    tree.domain,
-		Resource:   dt.Name,
-		Operation:  dt.Name,
-		Source:     inputName,
-		SourceType: dt.Type,
-		Tags:       make(map[string]string),
-		Start:      dt.durationStartInNano,
-		Duration:   dt.durationInNano,
-		Status:     status,
-	}
-	dkspan.Tags["host"] = tree.hostName
-	dkspan.Tags["address"] = tree.addr
-	dkspan.Tags["thread_group_name"] = tree.threadGroupName
-	dkspan.Tags["thread_id"] = tree.ThreadID
-	dkspan.Tags["thread_name"] = tree.threadName
-	setGlobalTags(dkspan)
-	dkspan.SpanType = spanType
 
-	dktrace = append(dktrace, dkspan)
+	spanKV := point.KVs{}
+	spanKV = spanKV.Add(itrace.FieldTraceID, root, false, false).
+		Add(itrace.FieldParentID, parent, false, false).
+		Add(itrace.FieldSpanid, tree.MessageID, false, false).
+		AddTag(itrace.TagService, tree.domain).
+		Add(itrace.FieldResource, dt.Name, false, false).
+		AddTag(itrace.TagOperation, dt.Name).
+		AddTag(itrace.TagSource, inputName).
+		AddTag(itrace.TagSourceType, dt.Type).
+		AddTag(itrace.TagSpanType, spanType).
+		Add(itrace.FieldStart, dt.durationStartInNano/1000, false, false).
+		Add(itrace.FieldDuration, dt.durationInNano/1000, false, false).
+		AddTag(itrace.TagSpanStatus, status).
+		AddTag(itrace.TagHost, tree.hostName).
+		AddTag("address", tree.addr).
+		AddTag("thread_group_name", tree.threadGroupName).
+		AddTag("thread_id", tree.ThreadID).
+		AddTag("thread_name", tree.threadName)
+
+	for k, v := range globalTags {
+		spanKV = spanKV.AddTag(k, v)
+	}
+
+	pt := point.NewPointV2(inputName, spanKV, traceOpts...)
+	dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 
 	dktraces = append(dktraces, dktrace)
 
 	return dktraces
-}
-
-func setGlobalTags(dkspan *itrace.DatakitSpan) {
-	if len(globalTags) > 0 {
-		for k, v := range globalTags {
-			dkspan.Tags[k] = v
-		}
-	}
 }
 
 func (c *Context) decodeMessage(buf *bytes.Buffer) *Transaction {

@@ -12,20 +12,18 @@ func (*Input) Dashboard(lang inputs.I18n) map[string]string {
 	case inputs.I18nZh:
 		return map[string]string{
 			//nolint:lll
-			// TODO
+			"title":     "Apache 监控视图55",
+			"host_name": "主机名",
 		}
 	case inputs.I18nEn:
 		return map[string]string{
 			//nolint:lll
-			// TODO
+			"title":     "Apache Monitor View55",
+			"host_name": "Host Name",
 		}
 	default:
 		return nil
 	}
-}
-
-func (*Input) DashboardList() []string {
-	return nil
 }
 
 func (*Input) Monitor(lang inputs.I18n) map[string]string {
@@ -41,8 +39,4 @@ func (*Input) Monitor(lang inputs.I18n) map[string]string {
 	default:
 		return nil
 	}
-}
-
-func (*Input) MonitorList() []string {
-	return nil
 }

@@ -1,0 +1,2797 @@
+{
+  "dashboardBindSet": [],
+  "dashboardExtend": {
+    "groupUnfoldStatus": {
+      "{{.Dashboard.group_locks}}": false,
+      "{{.Dashboard.group_sql_quality}}": false,
+      "{{.Dashboard.overview}}": true
+    }
+  },
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "dashboardType": "CUSTOM",
+  "iconSet": {
+    "icon": "https://static-res.guance.com/dataflux-template/dashboard/sqlserver/icon.svg",
+    "url": "https://static-res.guance.com/dataflux-template/dashboard/sqlserver/sqlserver.png"
+  },
+  "main": {
+    "charts": [
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "changeWorkspace": false,
+            "colors": [],
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "sequenceChartType": "line",
+            "showFieldMapping": false,
+            "showLine": true,
+            "showLineAxis": false,
+            "showTitle": true,
+            "tableSortMetricName": "fill(last(cpu_count), <previous>)",
+            "timeInterval": "1s",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.overview}}"
+        },
+        "name": "{{.Dashboard.cpu_count}}",
+        "pos": {
+          "h": 8,
+          "w": 6,
+          "x": 0,
+          "y": 2.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "sqlserver",
+              "density": "medium",
+              "field": "cpu_count",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": "previous",
+              "filters": [
+                {
+                  "id": "863d0020-c90b-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver`:(fill(AVG(`cpu_count`), previous)) { `sqlserver_host` = '#{hostname}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "changeWorkspace": false,
+            "colors": [],
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "sequenceChartType": "line",
+            "showFieldMapping": false,
+            "showLine": true,
+            "showLineAxis": false,
+            "showTitle": true,
+            "tableSortMetricName": "总占用",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "custom",
+            "units": [
+              {
+                "key": "总占用",
+                "name": "总占用",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "Kb"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.overview}}"
+        },
+        "name": "{{.Dashboard.memory}}",
+        "pos": {
+          "h": 8,
+          "w": 6,
+          "x": 6,
+          "y": 2.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "总占用",
+              "code": "A",
+              "dataSource": "sqlserver",
+              "field": "server_memory",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "393b5680-c90d-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver`:(fill(AVG(`server_memory`), linear) AS `总占用`) { `sqlserver_host` = '#{hostname}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isPercent": false,
+            "isSampling": true,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "C",
+            "maxPointCount": 360,
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": true,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "tableSortMetricName": "last(cntr_value)",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.overview}}"
+        },
+        "name": "{{.Dashboard.active_txn}}",
+        "pos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 10.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.active_txn}}",
+              "code": "C",
+              "dataSource": "sqlserver_performance",
+              "field": "cntr_value",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "fd200a80-c90f-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                },
+                {
+                  "id": "474cd750-c910-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "counter_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "Active Transactions"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "instance"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver_performance`:(fill(AVG(`cntr_value`), linear) AS `{{.Dashboard.active_txn}}`) { `sqlserver_host` = '#{hostname}' and `counter_name` = 'Active Transactions' } BY `instance`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "high",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isPercent": false,
+            "isSampling": true,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "B",
+            "maxPointCount": 720,
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "tableSortMetricName": "已占用",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "custom",
+            "units": [
+              {
+                "key": "{{.Dashboard.active_mem}}",
+                "name": "{{.Dashboard.active_mem}}",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "KB"
+                ]
+              }
+            ],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.overview}}"
+        },
+        "name": "{{.Dashboard.active_mem}}",
+        "pos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 10.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.active_mem}}",
+              "code": "B",
+              "dataSource": "sqlserver_performance",
+              "field": "cntr_value",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "393b5680-c90d-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                },
+                {
+                  "id": "11ca4690-c914-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "counter_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "Active memory grant amount (KB)"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "instance"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver_performance`:(fill(AVG(`cntr_value`), linear) AS `{{.Dashboard.active_mem}}`) { `sqlserver_host` = '#{hostname}' and `counter_name` = 'Active memory grant amount (KB)' } BY `instance`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "colors": [],
+            "currentChartType": "bar",
+            "direction": "horizontal",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "isTimeInterval": false,
+            "levels": [],
+            "openCompare": false,
+            "openStack": true,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "showTopSize": false,
+            "showTopWithMetric": "",
+            "stackContent": "index",
+            "stackType": "time",
+            "tableSortMetricName": "可疑suspect",
+            "timeInterval": "1s",
+            "titleDesc": "",
+            "topSize": 10,
+            "unitType": "global",
+            "units": [],
+            "xAxisShowType": "groupBy"
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.file_system}}"
+        },
+        "name": "{{.Dashboard.logical_database}}",
+        "pos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 21
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "restoring",
+              "code": "F",
+              "dataSource": "sqlserver",
+              "field": "db_restoring",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "d4f596a0-c90b-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver`:(fill(AVG(`db_restoring`), linear) AS `restoring`) { `sqlserver_host` = '#{hostname}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "bar",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "suspect",
+              "code": "G",
+              "dataSource": "sqlserver",
+              "field": "db_suspect",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "d4f596a0-c90b-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver`:(fill(AVG(`db_suspect`), linear) AS `suspect`) { `sqlserver_host` = '#{hostname}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "bar",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "online",
+              "code": "B",
+              "dataSource": "sqlserver",
+              "field": "db_online",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "d4f596a0-c90b-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver`:(fill(AVG(`db_online`), linear) AS `online`) { `sqlserver_host` = '#{hostname}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "bar",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "recovery_pending",
+              "code": "C",
+              "dataSource": "sqlserver",
+              "field": "db_recovery_pending",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "d4f596a0-c90b-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver`:(fill(AVG(`db_recovery_pending`), linear) AS `recovery_pending`) { `sqlserver_host` = '#{hostname}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "bar",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "recovering",
+              "code": "E",
+              "dataSource": "sqlserver",
+              "field": "db_recovering",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "d4f596a0-c90b-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver`:(fill(AVG(`db_recovering`), linear) AS `recovering`) { `sqlserver_host` = '#{hostname}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "bar",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "offline",
+              "code": "D",
+              "dataSource": "sqlserver",
+              "field": "db_offline",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "d4f596a0-c90b-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver`:(fill(AVG(`db_offline`), linear) AS `offline`) { `sqlserver_host` = '#{hostname}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "bar",
+            "unit": ""
+          }
+        ],
+        "type": "bar"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "high",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isPercent": false,
+            "isSampling": true,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "D",
+            "maxPointCount": 720,
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "tableSortMetricName": "可疑suspect",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.file_system}}"
+        },
+        "name": "{{.Dashboard.logical_database}}",
+        "pos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 29
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "offline",
+              "code": "D",
+              "dataSource": "sqlserver",
+              "field": "db_offline",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "d4f596a0-c90b-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver`:(fill(AVG(`db_offline`), linear) AS `offline`) { `sqlserver_host` = '#{hostname}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "online",
+              "code": "B",
+              "dataSource": "sqlserver",
+              "field": "db_online",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "d4f596a0-c90b-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver`:(fill(AVG(`db_online`), linear) AS `online`) { `sqlserver_host` = '#{hostname}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "restoring",
+              "code": "F",
+              "dataSource": "sqlserver",
+              "field": "db_restoring",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "d4f596a0-c90b-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver`:(fill(AVG(`db_restoring`), linear) AS `restoring`) { `sqlserver_host` = '#{hostname}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "suspect",
+              "code": "G",
+              "dataSource": "sqlserver",
+              "field": "db_suspect",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "d4f596a0-c90b-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver`:(fill(AVG(`db_suspect`), linear) AS `suspect`) { `sqlserver_host` = '#{hostname}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "recovery_pending",
+              "code": "C",
+              "dataSource": "sqlserver",
+              "field": "db_recovery_pending",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "d4f596a0-c90b-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver`:(fill(AVG(`db_recovery_pending`), linear) AS `recovery_pending`) { `sqlserver_host` = '#{hostname}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "recovering",
+              "code": "E",
+              "dataSource": "sqlserver",
+              "field": "db_recovering",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "d4f596a0-c90b-11eb-9222-db1a853be0ed",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver`:(fill(AVG(`db_recovering`), linear) AS `recovering`) { `sqlserver_host` = '#{hostname}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "links": [],
+          "settings": {
+            "alias": [
+              {
+                "alias": "{{.Dashboard.db_name}}",
+                "key": "database_name",
+                "name": "database_name"
+              },
+              {
+                "alias": "{{.Dashboard.file_type}}",
+                "key": "file_type",
+                "name": "file_type"
+              },
+              {
+                "alias": "{{.Dashboard.logical_filename}}",
+                "key": "logical_filename",
+                "name": "logical_filename"
+              },
+              {
+                "alias": "{{.Dashboard.physical_filename}}",
+                "key": "physical_filename",
+                "name": "physical_filename"
+              }
+            ],
+            "aliasVersion": 2,
+            "changeWorkspace": false,
+            "colors": [],
+            "currentChartType": "table",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "isTimeInterval": false,
+            "levels": [],
+            "mainMeasurementLimit": 20,
+            "mainMeasurementQueryCode": "A",
+            "mainMeasurementSort": "top",
+            "openThousandsSeparator": false,
+            "pageSize": 0,
+            "precision": "2",
+            "queryMode": "toGroupColumn",
+            "showFieldMapping": false,
+            "showTitle": true,
+            "slimit": 20,
+            "tableSortMetricName": "fill(last(read_bytes), <linear>)",
+            "timeInterval": "1s",
+            "titleDesc": "",
+            "unitType": "custom",
+            "units": [
+              {
+                "key": "{{.Dashboard.data_write}}",
+                "name": "{{.Dashboard.data_write}}",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "valColorMappings": [],
+            "valMappings": []
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.file_system}}"
+        },
+        "name": "{{.Dashboard.log_file}}",
+        "pos": {
+          "h": 14,
+          "w": 24,
+          "x": 0,
+          "y": 51
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.data_write}}",
+              "code": "A",
+              "dataSource": "sqlserver_database_io",
+              "field": "write_bytes",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "07856340-c9c3-11eb-a8ba-a7e00f88f0ab",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                },
+                {
+                  "id": "4d5e3900-caa4-11eb-b432-8d60ab6af414",
+                  "logic": "and",
+                  "name": "database_name",
+                  "op": "!=",
+                  "type": "",
+                  "value": "tempdb"
+                },
+                {
+                  "id": "cc04b540-caa4-11eb-b432-8d60ab6af414",
+                  "logic": "and",
+                  "name": "file_type",
+                  "op": "=",
+                  "type": "",
+                  "value": "LOG"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "database_name",
+                "file_type",
+                "logical_filename",
+                "physical_filename"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver_database_io`:(fill(AVG(`write_bytes`), linear) AS `{{.Dashboard.data_write}}`) { `sqlserver_host` = '#{hostname}' and `database_name` != 'tempdb' and `file_type` = 'LOG' } BY `database_name`, `file_type`, `logical_filename`, `physical_filename`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isPercent": false,
+            "isSampling": true,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "B",
+            "maxPointCount": 360,
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "tableSortMetricName": "fill(last(read_bytes), <linear>)",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "custom",
+            "units": [
+              {
+                "key": "non_negative_derivative({{.Dashboard.write_bytes}})",
+                "name": "non_negative_derivative({{.Dashboard.write_bytes}})",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              },
+              {
+                "key": "non_negative_derivative({{.Dashboard.read_bytes}})",
+                "name": "non_negative_derivative({{.Dashboard.read_bytes}})",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.file_system}}"
+        },
+        "name": "{{.Dashboard.data_file_read_write}}",
+        "pos": {
+          "h": 9,
+          "w": 12,
+          "x": 0,
+          "y": 65
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.write_bytes}}",
+              "code": "B",
+              "dataSource": "sqlserver_database_io",
+              "field": "write_bytes",
+              "fieldFunc": "sum",
+              "fieldType": "float",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "07856340-c9c3-11eb-a8ba-a7e00f88f0ab",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                },
+                {
+                  "id": "cb80be70-c9c3-11eb-a8ba-a7e00f88f0ab",
+                  "logic": "and",
+                  "name": "file_type",
+                  "op": "=",
+                  "type": "",
+                  "value": "ROWS"
+                },
+                {
+                  "id": "78da9d40-c9c7-11eb-a8ba-a7e00f88f0ab",
+                  "logic": "and",
+                  "name": "database_name",
+                  "op": "!=",
+                  "type": "",
+                  "value": "tempdb"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "non_negative_derivative(\"M::`sqlserver_database_io`:(fill(SUM(`write_bytes`), linear) AS `{{.Dashboard.write_bytes}}`) { `sqlserver_host` = '#{hostname}' and `file_type` = 'ROWS' and `database_name` != 'tempdb' }\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.read_bytes}}",
+              "code": "A",
+              "dataSource": "sqlserver_database_io",
+              "field": "read_bytes",
+              "fieldFunc": "sum",
+              "fieldType": "float",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "07856340-c9c3-11eb-a8ba-a7e00f88f0ab",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                },
+                {
+                  "id": "cb80be70-c9c3-11eb-a8ba-a7e00f88f0ab",
+                  "logic": "and",
+                  "name": "file_type",
+                  "op": "=",
+                  "type": "",
+                  "value": "ROWS"
+                },
+                {
+                  "id": "75b98720-c9c7-11eb-a8ba-a7e00f88f0ab",
+                  "logic": "and",
+                  "name": "database_name",
+                  "op": "!=",
+                  "type": "",
+                  "value": "tempdb"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "non_negative_derivative(\"M::`sqlserver_database_io`:(fill(SUM(`read_bytes`), linear) AS `{{.Dashboard.read_bytes}}`) { `sqlserver_host` = '#{hostname}' and `file_type` = 'ROWS' and `database_name` != 'tempdb' }\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isPercent": false,
+            "isSampling": true,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "maxPointCount": 360,
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "tableSortMetricName": "fill(last(read_bytes), <linear>)",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "custom",
+            "units": [
+              {
+                "key": "non_negative_derivative({{.Dashboard.write_bytes}})",
+                "name": "non_negative_derivative({{.Dashboard.write_bytes}})",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              },
+              {
+                "key": "non_negative_derivative({{.Dashboard.read_bytes}})",
+                "name": "non_negative_derivative({{.Dashboard.read_bytes}})",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.file_system}}"
+        },
+        "name": "{{.Dashboard.log_file_read_write}}",
+        "pos": {
+          "h": 9,
+          "w": 12,
+          "x": 12,
+          "y": 65
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.read_bytes}}",
+              "code": "A",
+              "dataSource": "sqlserver_database_io",
+              "field": "read_bytes",
+              "fieldFunc": "sum",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "36d70de0-cd85-11eb-943d-25cbe7ddd4f8",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": ""
+                },
+                {
+                  "id": "468e56d0-cd85-11eb-943d-25cbe7ddd4f8",
+                  "logic": "and",
+                  "name": "file_type",
+                  "op": "=",
+                  "type": "",
+                  "value": "LOG"
+                },
+                {
+                  "id": "4a1ed090-cd85-11eb-943d-25cbe7ddd4f8",
+                  "logic": "and",
+                  "name": "database_name",
+                  "op": "!=",
+                  "type": "",
+                  "value": "tempdb"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "non_negative_derivative(\"M::`sqlserver_database_io`:(SUM(`read_bytes`) AS `{{.Dashboard.read_bytes}}`) { `file_type` = 'LOG' and `database_name` != 'tempdb' }\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.write_bytes}}",
+              "code": "B",
+              "dataSource": "sqlserver_database_io",
+              "field": "write_bytes",
+              "fieldFunc": "sum",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "36d70de0-cd85-11eb-943d-25cbe7ddd4f8",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": ""
+                },
+                {
+                  "id": "468e56d0-cd85-11eb-943d-25cbe7ddd4f8",
+                  "logic": "and",
+                  "name": "file_type",
+                  "op": "=",
+                  "type": "",
+                  "value": "LOG"
+                },
+                {
+                  "id": "4a1ed090-cd85-11eb-943d-25cbe7ddd4f8",
+                  "logic": "and",
+                  "name": "database_name",
+                  "op": "!=",
+                  "type": "",
+                  "value": "tempdb"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "non_negative_derivative(\"M::`sqlserver_database_io`:(SUM(`write_bytes`) AS `{{.Dashboard.write_bytes}}`) { `file_type` = 'LOG' and `database_name` != 'tempdb' }\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "links": [],
+          "settings": {
+            "alias": [
+              {
+                "alias": "{{.Dashboard.db_name}}",
+                "key": "database_name",
+                "name": "database_name"
+              },
+              {
+                "alias": "{{.Dashboard.file_type}}",
+                "key": "file_type",
+                "name": "file_type"
+              },
+              {
+                "alias": "{{.Dashboard.logical_filename}}",
+                "key": "logical_filename",
+                "name": "logical_filename"
+              },
+              {
+                "alias": "{{.Dashboard.physical_filename}}",
+                "key": "physical_filename",
+                "name": "physical_filename"
+              }
+            ],
+            "aliasVersion": 2,
+            "changeWorkspace": false,
+            "colors": [],
+            "currentChartType": "table",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "isTimeInterval": false,
+            "levels": [],
+            "mainMeasurementLimit": 20,
+            "mainMeasurementQueryCode": "A",
+            "mainMeasurementSort": "top",
+            "openThousandsSeparator": false,
+            "pageSize": 0,
+            "precision": "2",
+            "queryMode": "toGroupColumn",
+            "showFieldMapping": false,
+            "showTitle": true,
+            "slimit": 20,
+            "tableSortMetricName": "fill(last(read_bytes), <linear>)",
+            "timeInterval": "1s",
+            "titleDesc": "",
+            "unitType": "custom",
+            "units": [
+              {
+                "key": "{{.Dashboard.data_write}}",
+                "name": "{{.Dashboard.data_write}}",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "valColorMappings": [],
+            "valMappings": []
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.file_system}}"
+        },
+        "name": "{{.Dashboard.data_files}}",
+        "pos": {
+          "h": 14,
+          "w": 24,
+          "x": 0,
+          "y": 37
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.data_write}}",
+              "code": "A",
+              "dataSource": "sqlserver_database_io",
+              "field": "write_bytes",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": "linear",
+              "filters": [
+                {
+                  "id": "07856340-c9c3-11eb-a8ba-a7e00f88f0ab",
+                  "logic": "and",
+                  "name": "sqlserver_host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{hostname}"
+                },
+                {
+                  "id": "4d5e3900-caa4-11eb-b432-8d60ab6af414",
+                  "logic": "and",
+                  "name": "database_name",
+                  "op": "!=",
+                  "type": "",
+                  "value": "tempdb"
+                },
+                {
+                  "id": "cc04b540-caa4-11eb-b432-8d60ab6af414",
+                  "logic": "and",
+                  "name": "file_type",
+                  "op": "=",
+                  "type": "",
+                  "value": "ROWS"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "database_name",
+                "file_type",
+                "logical_filename",
+                "physical_filename"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver_database_io`:(fill(AVG(`write_bytes`), linear) AS `{{.Dashboard.data_write}}`) { `sqlserver_host` = '#{hostname}' and `database_name` != 'tempdb' and `file_type` = 'ROWS' } BY `database_name`, `file_type`, `logical_filename`, `physical_filename`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [
+              {
+                "alias": "{{.Dashboard.db_name}}",
+                "key": "database_name",
+                "name": "database_name"
+              }
+            ],
+            "aliasVersion": 2,
+            "changeWorkspace": false,
+            "colors": [],
+            "currentChartType": "table",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "isTimeInterval": false,
+            "levels": [],
+            "mainMeasurementLimit": 5,
+            "mainMeasurementQueryCode": "A",
+            "mainMeasurementSort": "top",
+            "openThousandsSeparator": false,
+            "pageSize": 0,
+            "precision": "2",
+            "queryMode": "toGroupColumn",
+            "showFieldMapping": false,
+            "showTitle": true,
+            "slimit": 20,
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "custom",
+            "units": [
+              {
+                "key": "{{.Dashboard.data_size}}",
+                "name": "{{.Dashboard.data_size}}",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "Mb"
+                ]
+              },
+              {
+                "key": "{{.Dashboard.log_size}}",
+                "name": "{{.Dashboard.log_size}}",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "Mb"
+                ]
+              }
+            ],
+            "valColorMappings": [],
+            "valMappings": []
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.file_system}}"
+        },
+        "name": "{{.Dashboard.database_size}}",
+        "pos": {
+          "h": 13,
+          "w": 24,
+          "x": 0,
+          "y": 74
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.data_size}}",
+              "code": "A",
+              "dataSource": "sqlserver_database_size",
+              "field": "data_size",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": "",
+              "fillNum": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "database_name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver_database_size`:(LAST(`data_size`) AS `{{.Dashboard.data_size}}`) BY `database_name`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.log_size}}",
+              "code": "B",
+              "dataSource": "sqlserver_database_size",
+              "field": "log_size",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": "",
+              "fillNum": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "database_name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver_database_size`:(LAST(`log_size`) AS `{{.Dashboard.log_size}}`) BY `database_name`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "table",
+            "unit": ""
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isPercent": false,
+            "isSampling": true,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "maxPointCount": 360,
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.group_locks}}"
+        },
+        "name": "{{.Dashboard.db_locks}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 89.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.db_locks}}",
+              "code": "A",
+              "dataSource": "sqlserver_lock_database",
+              "field": "resource_database_id",
+              "fieldFunc": "count_distinct",
+              "fieldType": "keyword",
+              "fill": "previous",
+              "filters": [
+                {
+                  "id": "4547aea0-648f-11ed-8401-2b5dc3d5f707",
+                  "logic": "and",
+                  "name": "request_type",
+                  "op": "!=",
+                  "type": "",
+                  "value": "S"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "db_name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "non_negative_difference(\"M::`sqlserver_lock_database`:(fill(COUNT_DISTINCT(`resource_database_id`), previous) AS `{{.Dashboard.db_locks}}`) { `request_type` != 'S' } BY `db_name`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_difference"
+                }
+              ],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isPercent": false,
+            "isSampling": true,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "maxPointCount": 360,
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.group_locks}}"
+        },
+        "name": "{{.Dashboard.table_locks}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 89.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.table_locks}}",
+              "code": "A",
+              "dataSource": "sqlserver_lock_table",
+              "field": "request_session_id",
+              "fieldFunc": "count_distinct",
+              "fieldType": "keyword",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "641e50d0-6490-11ed-8401-2b5dc3d5f707",
+                  "logic": "and",
+                  "name": "request_mode",
+                  "op": "!=",
+                  "type": "",
+                  "value": "S"
+                },
+                {
+                  "id": "69ead7e0-6490-11ed-8401-2b5dc3d5f707",
+                  "logic": "and",
+                  "name": "request_mode",
+                  "op": "!=",
+                  "type": "",
+                  "value": "IS"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "object_name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`sqlserver_lock_table`:(COUNT_DISTINCT(`request_session_id`) AS `{{.Dashboard.table_locks}}`) { `request_mode` != 'S' and `request_mode` != 'IS' } BY `object_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isPercent": false,
+            "isSampling": true,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "maxPointCount": 360,
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.group_locks}}"
+        },
+        "name": "{{.Dashboard.row_locks}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 16,
+          "y": 89.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.row_locks}}",
+              "code": "A",
+              "dataSource": "sqlserver_lock_row",
+              "field": "session_id",
+              "fieldFunc": "count_distinct",
+              "fieldType": "keyword",
+              "fill": "previous",
+              "filters": [],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "non_negative_difference(\"L::`sqlserver_lock_row`:(fill(COUNT_DISTINCT(`session_id`), previous) AS `{{.Dashboard.row_locks}}`) { `index` = 'default' }\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_difference"
+                }
+              ],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "addColumns": [
+              {
+                "field": "status",
+                "hide": true
+              },
+              {
+                "field": "__docid",
+                "hide": true
+              },
+              {
+                "field": "message",
+                "headerName": "{{.Dashboard.sql_query}}"
+              },
+              {
+                "field": "total_logical_reads",
+                "headerName": " {{.Dashboard.total_logical_io}}"
+              },
+              {
+                "field": "execution_count",
+                "headerName": " {{.Dashboard.exec_count}}"
+              },
+              {
+                "field": "avg_logical_io",
+                "headerName": "{{.Dashboard.avg_logical_io}}"
+              }
+            ],
+            "alias": [],
+            "changeWorkspace": false,
+            "colors": [],
+            "currentChartType": "log",
+            "fixedTime": "",
+            "globalUnit": [],
+            "inColumns": [
+              {
+                "cellRenderer": "StatusCellRender",
+                "field": "time",
+                "filterParams": {},
+                "headerName": "时间",
+                "showTooltip": false
+              }
+            ],
+            "index": "default",
+            "isSampling": true,
+            "isTimeInterval": false,
+            "levels": [],
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": [],
+            "valColorMappings": [],
+            "valMappings": []
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.group_sql_quality}}"
+        },
+        "name": "{{.Dashboard.logical_io}}",
+        "pos": {
+          "h": 18,
+          "w": 24,
+          "x": 0,
+          "y": 117
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "noTimeRange": false,
+            "qtype": "dql",
+            "query": {
+              "alias": "内容",
+              "code": "A",
+              "dataSource": "sqlserver_logical_io",
+              "disableMultipleField": false,
+              "field": null,
+              "fieldFunc": "count",
+              "fieldType": "text",
+              "fields": [
+                {
+                  "field": "status",
+                  "hide": true
+                },
+                {
+                  "field": "__docid",
+                  "hide": true
+                },
+                {
+                  "alias": "{{.Dashboard.sql_query}}",
+                  "field": "message",
+                  "isEditAlias": false
+                },
+                {
+                  "alias": " {{.Dashboard.total_logical_io}}",
+                  "field": "total_logical_reads",
+                  "isEditAlias": false
+                },
+                {
+                  "alias": " {{.Dashboard.exec_count}}",
+                  "field": "execution_count",
+                  "isEditAlias": false
+                },
+                {
+                  "alias": "{{.Dashboard.avg_logical_io}}",
+                  "field": "avg_logical_io",
+                  "isEditAlias": false
+                }
+              ],
+              "fill": null,
+              "filters": [
+                {
+                  "id": "9255e1b0-6559-11ed-9ec3-d39f70bac8d6",
+                  "logic": "and",
+                  "name": "",
+                  "op": "=",
+                  "value": ""
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "highlight": true,
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`sqlserver_logical_io`:(`status`, `__docid`, `message`, `total_logical_reads`, `execution_count`, `avg_logical_io`) { `index` = 'default' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "log",
+            "unit": ""
+          }
+        ],
+        "type": "log"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "addColumns": [
+              {
+                "field": "status",
+                "hide": true
+              },
+              {
+                "field": "__docid",
+                "hide": true
+              },
+              {
+                "field": "message",
+                "headerName": "{{.Dashboard.sql_query}}"
+              },
+              {
+                "field": "total_worker_time",
+                "headerName": "{{.Dashboard.total_cpu_time}}"
+              },
+              {
+                "field": "execution_count",
+                "headerName": " {{.Dashboard.exec_count}}"
+              },
+              {
+                "field": "avg_worker_time",
+                "headerName": "{{.Dashboard.avg_cpu_time}}"
+              }
+            ],
+            "alias": [],
+            "changeWorkspace": false,
+            "colors": [],
+            "currentChartType": "log",
+            "fixedTime": "",
+            "globalUnit": [],
+            "inColumns": [
+              {
+                "cellRenderer": "StatusCellRender",
+                "field": "time",
+                "filterParams": {},
+                "headerName": "时间",
+                "showTooltip": false
+              }
+            ],
+            "index": "default",
+            "isSampling": true,
+            "isTimeInterval": false,
+            "levels": [],
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "",
+            "titleDesc": "",
+            "unitType": "custom",
+            "units": [
+              {
+                "key": "total_worker_time",
+                "name": "total_worker_time",
+                "unit": "",
+                "units": [
+                  "time",
+                  "ms"
+                ]
+              },
+              {
+                "key": "avg_worker_time",
+                "name": "avg_worker_time",
+                "unit": "",
+                "units": [
+                  "time",
+                  "ms"
+                ]
+              }
+            ],
+            "valColorMappings": [],
+            "valMappings": []
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.group_sql_quality}}"
+        },
+        "name": "{{.Dashboard.cpu_time}}",
+        "pos": {
+          "h": 18,
+          "w": 24,
+          "x": 0,
+          "y": 135
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "noTimeRange": false,
+            "qtype": "dql",
+            "query": {
+              "alias": "内容",
+              "code": "A",
+              "dataSource": "sqlserver_worker_time",
+              "disableMultipleField": false,
+              "field": null,
+              "fieldFunc": "count",
+              "fieldType": "text",
+              "fields": [
+                {
+                  "field": "status",
+                  "hide": true
+                },
+                {
+                  "field": "__docid",
+                  "hide": true
+                },
+                {
+                  "alias": "{{.Dashboard.sql_query}}",
+                  "field": "message",
+                  "isEditAlias": false
+                },
+                {
+                  "alias": "{{.Dashboard.total_cpu_time}}",
+                  "field": "total_worker_time",
+                  "isEditAlias": false
+                },
+                {
+                  "alias": " {{.Dashboard.exec_count}}",
+                  "field": "execution_count",
+                  "isEditAlias": false
+                },
+                {
+                  "alias": "{{.Dashboard.avg_cpu_time}}",
+                  "field": "avg_worker_time",
+                  "isEditAlias": false
+                }
+              ],
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "highlight": true,
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`sqlserver_worker_time`:(`status`, `__docid`, `message`, `total_worker_time`, `execution_count`, `avg_worker_time`) { `index` = 'default' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "log",
+            "unit": ""
+          }
+        ],
+        "type": "log"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isPercent": false,
+            "isSampling": true,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "maxPointCount": 360,
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.overview}}"
+        },
+        "name": "{{.Dashboard.cpu_usage}}",
+        "pos": {
+          "h": 8,
+          "w": 6,
+          "x": 12,
+          "y": 2.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "cpu",
+              "field": "usage_total",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`cpu`:(AVG(`usage_total`))",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isPercent": false,
+            "isSampling": true,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
+            "levels": [],
+            "maxPointCount": 360,
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.overview}}"
+        },
+        "name": "{{.Dashboard.mem_usage}}",
+        "pos": {
+          "h": 8,
+          "w": 6,
+          "x": 18,
+          "y": 2.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "mem",
+              "field": "used_percent",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "fill": null,
+              "fillNum": 1,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`mem`:(AVG(`used_percent`))",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "addColumns": [
+              {
+                "field": "status",
+                "hide": true
+              },
+              {
+                "field": "__docid",
+                "hide": true
+              },
+              {
+                "field": "db_name",
+                "headerName": " {{.Dashboard.dead_locks_db_name}}"
+              },
+              {
+                "field": "blocking_session_id",
+                "headerName": " {{.Dashboard.dead_locks_session_id}}"
+              },
+              {
+                "field": "blocking_text",
+                "headerName": " {{.Dashboard.dead_locks_blocking_text}}"
+              },
+              {
+                "field": "request_session_id",
+                "headerName": "{{.Dashboard.dead_locks_blocking_session_id}}"
+              },
+              {
+                "field": "requesting_text",
+                "headerName": "{{.Dashboard.dead_locks_request_text}}"
+              }
+            ],
+            "alias": [],
+            "changeWorkspace": false,
+            "colors": [],
+            "currentChartType": "log",
+            "fixedTime": "",
+            "globalUnit": [],
+            "inColumns": [
+              {
+                "cellRenderer": "StatusCellRender",
+                "field": "time",
+                "filterParams": {},
+                "headerName": "时间",
+                "showTooltip": false
+              }
+            ],
+            "index": "default",
+            "isSampling": true,
+            "isTimeInterval": false,
+            "levels": [],
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": [],
+            "valColorMappings": [],
+            "valMappings": []
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.group_locks}}"
+        },
+        "name": "{{.Dashboard.dead_locks}}",
+        "pos": {
+          "h": 15,
+          "w": 24,
+          "x": 0,
+          "y": 99.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "noTimeRange": false,
+            "qtype": "dql",
+            "query": {
+              "alias": "内容",
+              "code": "A",
+              "dataSource": "sqlserver_lock_dead",
+              "disableMultipleField": false,
+              "field": null,
+              "fieldFunc": "count",
+              "fieldType": "text",
+              "fields": [
+                {
+                  "field": "status",
+                  "hide": true
+                },
+                {
+                  "field": "__docid",
+                  "hide": true
+                },
+                {
+                  "alias": " {{.Dashboard.dead_locks_db_name}}",
+                  "field": "db_name",
+                  "isEditAlias": false
+                },
+                {
+                  "alias": " {{.Dashboard.dead_locks_session_id}}",
+                  "field": "blocking_session_id",
+                  "isEditAlias": false
+                },
+                {
+                  "alias": " {{.Dashboard.dead_locks_blocking_text}}",
+                  "field": "blocking_text",
+                  "isEditAlias": false
+                },
+                {
+                  "alias": "{{.Dashboard.dead_locks_blocking_session_id}}",
+                  "field": "request_session_id",
+                  "isEditAlias": false
+                },
+                {
+                  "alias": "{{.Dashboard.dead_locks_request_text}}",
+                  "field": "requesting_text",
+                  "isEditAlias": false
+                }
+              ],
+              "fill": null,
+              "filters": [],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "highlight": true,
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`sqlserver_lock_dead`:(`status`, `__docid`, `db_name`, `blocking_session_id`, `blocking_text`, `request_session_id`, `requesting_text`) { `index` = 'default' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "log",
+            "unit": ""
+          }
+        ],
+        "type": "log"
+      }
+    ],
+    "groups": [
+      "{{.Dashboard.overview}}",
+      "{{.Dashboard.file_system}}",
+      "{{.Dashboard.group_locks}}",
+      "{{.Dashboard.group_sql_quality}}"
+    ],
+    "type": "template",
+    "vars": [
+      {
+        "code": "hostname",
+        "datasource": "dataflux",
+        "definition": {
+          "field": "",
+          "metric": "",
+          "object": "",
+          "tag": "",
+          "value": "show_tag_value(from=['sqlserver'],keyin=['sqlserver_host'])"
+        },
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "name": "主机名",
+        "seq": 0,
+        "type": "QUERY",
+        "valueSort": "default"
+      }
+    ]
+  },
+  "summary": "",
+  "tagInfo": [],
+  "thumbnail": "",
+  "title": "{{.Dashboard.title}}"
+}

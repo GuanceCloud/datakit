@@ -146,17 +146,8 @@ func DefaultConfig() *Config {
 			Categories: []string{},
 		},
 
-		Dataway: &dataway.Dataway{
-			URLs:               []string{"https://openway.guance.com?token=tkn_xxxxxxxxxxx"},
-			HTTPTimeout:        30 * time.Second,
-			IdleTimeout:        90 * time.Second,
-			MaxRetryCount:      4,
-			RetryDelay:         time.Millisecond * 200,
-			MaxRawBodySize:     dataway.DefaultMaxRawBodySize,
-			GlobalCustomerKeys: []string{},
-			ContentEncoding:    "v1",
-			GZip:               true,
-		},
+		Dataway: dataway.NewDefaultDataway(),
+
 		Operator: &operator.Operator{},
 
 		ProtectMode: true,
@@ -169,6 +160,7 @@ func DefaultConfig() *Config {
 			Timeout:             "30s",
 			CloseIdleConnection: false,
 			TLSConf:             &TLSConfig{},
+			AllowedCORSOrigins:  []string{},
 		},
 
 		DCAConfig: &DCAConfig{

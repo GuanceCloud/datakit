@@ -230,6 +230,7 @@ func TestApiGetDatakitLastError(t *T.T) {
 }
 
 func TestCORS(t *T.T) {
+	apiServer.apiConfig.AllowedCORSOrigins = []string{}
 	router := setupRouter()
 
 	router.POST("/timeout", func(c *gin.Context) {})

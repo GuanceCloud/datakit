@@ -7,7 +7,9 @@
 package external
 
 import (
+	"bytes"
 	"context"
+	"encoding/gob"
 	"fmt"
 	"os"
 	"os/exec"
@@ -69,8 +71,9 @@ type Input struct {
 	Args     []string          `toml:"args"`
 	Tags     map[string]string `toml:"tags"`
 
-	cmd      *exec.Cmd     `toml:"-"`
-	duration time.Duration `toml:"-"`
+	cmd      *exec.Cmd      `toml:"-"`
+	duration time.Duration  `toml:"-"`
+	Query    []*customQuery `toml:"custom_queries"`
 
 	semStop        *cliutils.Sem // start stop signal
 	semStopProcess *cliutils.Sem
@@ -81,6 +84,16 @@ type Input struct {
 
 	pauseCh chan bool
 	pause   bool
+}
+
+// customQuery contains custom sql query info.
+type customQuery struct {
+	SQL    string   `toml:"sql"`
+	Metric string   `toml:"metric"`
+	Tags   []string `toml:"tags"`
+	Fields []string `toml:"fields"`
+
+	MD5Hash string
 }
 
 func NewInput() *Input {
@@ -129,6 +142,9 @@ func (ipt *Input) precheck() error {
 }
 
 func (ipt *Input) start() error {
+	ipt.getCustomQuery()
+
+	l.Debugf("starting %s cmd %s %s, envs: %+#v", ipt.Name, ipt.Cmd, strings.Join(ipt.Args, " "), ipt.Envs)
 	ipt.cmd = exec.Command(ipt.Cmd, ipt.Args...) //nolint:gosec
 	if ipt.Envs != nil {
 		ipt.cmd.Env = ipt.Envs
@@ -194,7 +210,7 @@ func (ipt *Input) Run() {
 				ipt.daemonRun()
 			} else {
 				// run as new process
-				l.Debugf("non-daemon starting %s cmd %s %s, envs: %+#v", ipt.Name, ipt.Cmd, strings.Join(ipt.Args, " "), ipt.Envs)
+				l.Debug("non-daemon starting")
 				_ = ipt.start() //nolint:errcheck
 			}
 		}
@@ -226,6 +242,44 @@ func (ipt *Input) Run() {
 	}
 }
 
+func (ipt *Input) queryToBytes() []byte {
+	var buffer bytes.Buffer
+	enc := gob.NewEncoder(&buffer)
+	if err := enc.Encode(ipt.Query); err != nil {
+		l.Errorf("Encode() error: %v", err)
+		return nil
+	}
+	return buffer.Bytes()
+}
+
+func (ipt *Input) getCustomQuery() {
+	if len(ipt.Query) == 0 {
+		l.Debug("ipt.Query empty")
+		return
+	}
+
+	tmpFile, err := os.CreateTemp(os.TempDir(), "custom_query")
+	if err != nil {
+		l.Errorf("os.CreateTemp() failed: %v", err)
+		return
+	}
+
+	bys := ipt.queryToBytes()
+	if len(bys) == 0 {
+		l.Debug("bytes empty")
+		return
+	}
+
+	cnt, err := tmpFile.Write(bys)
+	if err != nil {
+		l.Errorf("Write() failed: %v", err)
+		return
+	}
+	l.Infof("Wrote file %s, wrote %d bytes.", tmpFile.Name(), cnt)
+
+	ipt.Args = append(ipt.Args, "--custom-query", tmpFile.Name())
+}
+
 func (ipt *Input) daemonRun() {
 	if ipt.daemonStarted {
 		return
@@ -233,7 +287,7 @@ func (ipt *Input) daemonRun() {
 
 	// start failed, retry
 	for {
-		l.Debugf("daemon starting %s cmd %s %s, envs: %+#v", ipt.Name, ipt.Cmd, strings.Join(ipt.Args, " "), ipt.Envs)
+		l.Debug("daemon starting")
 		if err := ipt.start(); err != nil {
 			time.Sleep(time.Second)
 			continue

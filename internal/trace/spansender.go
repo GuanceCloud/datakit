@@ -19,7 +19,7 @@ type SpanSender struct {
 	duration        time.Duration
 	afterGatherFunc AfterGatherFunc
 	log             *logger.Logger
-	p               chan *DatakitSpan
+	p               chan *DkSpan
 	sig             chan struct{}
 }
 
@@ -33,7 +33,7 @@ func NewSpanSender(name string, capacity int, duration time.Duration, afterGathe
 		duration:        duration,
 		afterGatherFunc: afterGatherFunc,
 		log:             log,
-		p:               make(chan *DatakitSpan, capacity),
+		p:               make(chan *DkSpan, capacity),
 		sig:             make(chan struct{}),
 	}
 	if ss.log == nil {
@@ -52,7 +52,7 @@ func (ss *SpanSender) Start() {
 	})
 }
 
-func (ss *SpanSender) Append(dkspans ...*DatakitSpan) {
+func (ss *SpanSender) Append(dkspans ...*DkSpan) {
 	for i := range dkspans {
 		if len(ss.p) == cap(ss.p) {
 			ss.sig <- struct{}{}

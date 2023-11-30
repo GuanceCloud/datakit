@@ -12,7 +12,7 @@ before_script:
 
 variables:
   PROJECT: "datakit"
-  CI_VERSION: "1.19.2"
+  CI_VERSION: "1.20.0"
   TEST_VERSION: "1.999.0"
 
 stages:
@@ -25,7 +25,12 @@ ci_lint_and_ut:
   stage: deploy
   resource_group: production
   rules:
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event' 
+    # No pipeline when there is a MR whose title starts with Draft
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TITLE =~ /^(\[Draft\]|\(Draft\)|Draft:)/
+      when: never
+    # Trigger a pipeline in case of MR event, which means the MR is ready, since we did not go through the first case
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
   script:
     - nvm use v16.14.0
     - make clean

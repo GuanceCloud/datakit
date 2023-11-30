@@ -410,6 +410,10 @@ func (c *Config) LoadEnvs() error {
 		c.HTTPAPI.PublicAPIs = strings.Split(v, ",")
 	}
 
+	if v := datakit.GetEnv("ENV_HTTP_ALLOWED_CORS_ORIGINS"); v != "" {
+		c.HTTPAPI.AllowedCORSOrigins = strings.Split(v, ",")
+	}
+
 	// filters
 	if v := datakit.GetEnv("ENV_IO_FILTERS"); v != "" {
 		var x map[string]filter.FilterConditions

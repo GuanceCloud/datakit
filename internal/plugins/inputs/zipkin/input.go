@@ -48,6 +48,9 @@ const (
   ## to data center and do not consider samplers and filters.
   # keep_rare_resource = false
 
+  ## delete trace message
+  # del_message = true
+
   ## Ignore tracing resources map like service:[resources...].
   ## The service name is the full service name in current application.
   ## The resource list is regular expressions uses to block resource names.
@@ -94,6 +97,7 @@ var (
 	tags           map[string]string
 	wkpool         *workerpool.WorkerPool
 	localCache     *storage.Storage
+	delMessage     bool
 )
 
 type Input struct {
@@ -103,6 +107,7 @@ type Input struct {
 	PathV2           string                       `toml:"pathV2"`
 	IgnoreTags       []string                     `toml:"ignore_tags"`
 	KeepRareResource bool                         `toml:"keep_rare_resource"`
+	DelMessage       bool                         `toml:"del_message"`
 	CloseResource    map[string][]string          `toml:"close_resource"`
 	Sampler          *itrace.Sampler              `toml:"sampler"`
 	Tags             map[string]string            `toml:"tags"`
@@ -241,13 +246,10 @@ func (ipt *Input) RegHTTPHandler() {
 		afterGather.AppendFilter(keepRareResource.Keep)
 	}
 	// add sampler
-	var sampler *itrace.Sampler
 	if ipt.Sampler != nil && (ipt.Sampler.SamplingRateGlobal >= 0 && ipt.Sampler.SamplingRateGlobal <= 1) {
-		sampler = ipt.Sampler
-	} else {
-		sampler = &itrace.Sampler{SamplingRateGlobal: 1}
+		sampler := ipt.Sampler.Init()
+		afterGather.AppendFilter(sampler.Sample)
 	}
-	afterGather.AppendFilter(sampler.Sample)
 
 	if ipt.PathV1 == "" {
 		ipt.PathV1 = apiv1Path
@@ -274,6 +276,8 @@ func (ipt *Input) Run() {
 			ignoreTags = append(ignoreTags, rexp)
 		}
 	}
+	traceOpts = append(point.DefaultLoggingOptions(), point.WithExtraTags(datakit.DefaultGlobalTagger().HostTags()))
+	delMessage = ipt.DelMessage
 	tags = ipt.Tags
 
 	log.Debugf("### %s agent is running...", inputName)

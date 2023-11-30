@@ -29,7 +29,7 @@ func (d *Discovery) newPromFromPodAnnotations() []*promRunner {
 			continue
 		}
 
-		measurementName := queryPodOwner(pod)
+		measurementName := ""
 		if meas := pod.Annotations[annotationPrometheusioParamMeasurement]; meas != "" {
 			measurementName = meas
 		}
@@ -50,6 +50,7 @@ func (d *Discovery) newPromFromPodAnnotations() []*promRunner {
 			withURLs([]string{urlstr}),
 			withTag("namespace", pod.Namespace),
 			withTag("pod_name", pod.Name),
+			withTagIfNotEmpty(queryPodOwner(pod)),
 			withTags(d.cfg.ExtraTags),
 			withCustomerTags(pod.Labels, d.cfg.CustomerKeys))
 
@@ -79,7 +80,7 @@ func (d *Discovery) newPromFromServiceAnnotations() []*promRunner {
 		pods := d.getLocalPodsFromLabelSelector("service-export-to-pod", defaultNamespace, selector)
 
 		for _, pod := range pods {
-			measurementName := queryPodOwner(pod)
+			measurementName := ""
 			if meas := svc.Annotations[annotationPrometheusioParamMeasurement]; meas != "" {
 				measurementName = meas
 			}
@@ -104,6 +105,7 @@ func (d *Discovery) newPromFromServiceAnnotations() []*promRunner {
 				withTag("namespace", pod.Namespace),
 				withTag("service_name", svc.Name),
 				withTag("pod_name", pod.Name),
+				withTagIfNotEmpty(queryPodOwner(pod)),
 				withTags(d.cfg.ExtraTags),
 				withCustomerTags(pod.Labels, d.cfg.CustomerKeys))
 
@@ -143,6 +145,7 @@ func (d *Discovery) newPromFromPodAnnotationExport() []*promRunner {
 			}
 			withTag("namespace", pod.Namespace)(runner.conf)
 			withTag("pod_name", pod.Name)(runner.conf)
+			withTagIfNotEmpty(queryPodOwner(pod))(runner.conf)
 			withTags(d.cfg.ExtraTags)(runner.conf)
 			withCustomerTags(pod.Labels, d.cfg.CustomerKeys)(runner.conf)
 
@@ -172,6 +175,7 @@ func (d *Discovery) newPromFromDatakitCRD() []*promRunner {
 			}
 			withTag("namespace", pod.Namespace)(runner.conf)
 			withTag("pod_name", pod.Name)(runner.conf)
+			withTagIfNotEmpty(queryPodOwner(pod))(runner.conf)
 			withTags(d.cfg.ExtraTags)(runner.conf)
 			withCustomerTags(pod.Labels, d.cfg.CustomerKeys)(runner.conf)
 			res = append(res, runner)
@@ -235,7 +239,7 @@ func (d *Discovery) newPromForPodMonitors() []*promRunner {
 					continue
 				}
 
-				measurementName := queryPodOwner(pod)
+				measurementName := ""
 				if meas := getParamMeasurement(metricsEndpoints.Params); meas != "" {
 					measurementName = meas
 				}
@@ -245,6 +249,7 @@ func (d *Discovery) newPromForPodMonitors() []*promRunner {
 					withURLs([]string{urlstr}),
 					withTag("namespace", pod.Namespace),
 					withTag("pod_name", pod.Name),
+					withTagIfNotEmpty(queryPodOwner(pod)),
 					withTags(d.cfg.ExtraTags),
 					withTags(getTargetLabels(pod.Labels, item.Spec.PodTargetLabels)),
 					withCustomerTags(pod.Labels, d.cfg.CustomerKeys),
@@ -320,7 +325,7 @@ func (d *Discovery) newPromForServiceMonitors() []*promRunner {
 						continue
 					}
 
-					measurementName := queryPodOwner(pod)
+					measurementName := ""
 					if meas := getParamMeasurement(endpoint.Params); meas != "" {
 						measurementName = meas
 					}
@@ -331,6 +336,7 @@ func (d *Discovery) newPromForServiceMonitors() []*promRunner {
 						withTag("namespace", pod.Namespace),
 						withTag("pod_name", pod.Name),
 						withTag("service_name", svc.Name),
+						withTagIfNotEmpty(queryPodOwner(pod)),
 						withTags(d.cfg.ExtraTags),
 						withTags(getTargetLabels(pod.Labels, item.Spec.PodTargetLabels)),
 						withTags(getTargetLabels(svc.Labels, item.Spec.TargetLabels)),

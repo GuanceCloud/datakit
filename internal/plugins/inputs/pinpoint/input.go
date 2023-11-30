@@ -10,6 +10,8 @@ import (
 	"context"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/pinpoint/cache"
+
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
@@ -39,6 +41,9 @@ const (
   ## If some resources are rare enough(not presend in 1 hour), those resource will always send
   ## to data center and do not consider samplers and filters.
   # keep_rare_resource = false
+
+  ## delete trace message
+  # del_message = true
 
   ## Ignore tracing resources map like service:[resources...].
   ## The service name is the full service name in current application.
@@ -74,10 +79,12 @@ var (
 	log            = logger.DefaultSLogger(inputName)
 	afterGatherRun itrace.AfterGatherFunc
 	tags           map[string]string
-	agentMetaData  = &AgentMetaData{}
 	gsvr           *grpc.Server
 	localCache     *storage.Storage
 	spanSender     *itrace.SpanSender
+	metricFeeder   dkio.Feeder
+	delMessage     bool
+	traceOpts      = []point.Option{}
 )
 
 type Input struct {
@@ -85,6 +92,7 @@ type Input struct {
 	KeepRareResource bool                   `toml:"keep_rare_resource"`
 	CloseResource    map[string][]string    `toml:"close_resource"`
 	Sampler          *itrace.Sampler        `toml:"sampler"`
+	DelMessage       bool                   `toml:"del_message"`
 	Tags             map[string]string      `toml:"tags"`
 	LocalCacheConfig *storage.StorageConfig `toml:"storage"`
 
@@ -100,20 +108,20 @@ func (*Input) AvailableArchs() []string { return datakit.AllOS }
 func (*Input) SampleConfig() string { return sampleConfig }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{&itrace.TraceMeasurement{Name: inputName}}
+	return []inputs.Measurement{&itrace.TraceMeasurement{Name: inputName}, &Measurement{}}
 }
 
 func (ipt *Input) Run() {
 	log = logger.SLogger(inputName)
-	InitMetaCache()
-	metaCache.writeToFile()
+	agentCache = cache.NewAgentCache(ConvertPSpanToDKTrace)
 	var err error
 	if ipt.LocalCacheConfig != nil {
 		if localCache, err = storage.NewStorage(ipt.LocalCacheConfig, log); err != nil {
 			log.Errorf("### new local-cache failed: %s", err.Error())
 		}
 	}
-
+	traceOpts = append(point.DefaultLoggingOptions(), point.WithExtraTags(datakit.DefaultGlobalTagger().HostTags()))
+	delMessage = ipt.DelMessage
 	var afterGather *itrace.AfterGather
 	if localCache != nil && localCache.Enabled() {
 		afterGather = itrace.NewAfterGather(
@@ -146,13 +154,10 @@ func (ipt *Input) Run() {
 		afterGather.AppendFilter(keepRareResource.Keep)
 	}
 	// add sampler
-	var sampler *itrace.Sampler
 	if ipt.Sampler != nil && (ipt.Sampler.SamplingRateGlobal >= 0 && ipt.Sampler.SamplingRateGlobal <= 1) {
-		sampler = ipt.Sampler
-	} else {
-		sampler = &itrace.Sampler{SamplingRateGlobal: 1}
+		sampler := ipt.Sampler.Init()
+		afterGather.AppendFilter(sampler.Sample)
 	}
-	afterGather.AppendFilter(sampler.Sample)
 
 	if spanSender, err = itrace.NewSpanSender(inputName, 256, time.Second, afterGatherRun, log); err != nil {
 		log.Errorf("### SpanSender is essential for pinpoint agent and failed to initialize: %s", err.Error())
@@ -160,7 +165,9 @@ func (ipt *Input) Run() {
 		return
 	}
 	spanSender.Start()
-
+	if metricFeeder == nil {
+		metricFeeder = dkio.DefaultFeeder()
+	}
 	tags = ipt.Tags
 
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_pinpoint"})

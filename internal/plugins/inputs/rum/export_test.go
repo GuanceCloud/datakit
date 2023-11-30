@@ -25,13 +25,3 @@ func TestInput_Monitor(t *testing.T) {
 	assert.NotNil(t, ipt.Monitor(inputs.I18nEn))
 	assert.Nil(t, ipt.Monitor(inputs.I18n(-1)))
 }
-
-func TestInput_DashboardList(t *testing.T) {
-	ipt := defaultInput()
-	assert.Nil(t, ipt.DashboardList())
-}
-
-func TestInput_MonitorList(t *testing.T) {
-	ipt := defaultInput()
-	assert.Nil(t, ipt.MonitorList())
-}

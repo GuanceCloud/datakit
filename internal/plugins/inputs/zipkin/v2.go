@@ -11,9 +11,12 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/GuanceCloud/cliutils/point"
 	zpkmodel "github.com/openzipkin/zipkin-go/model"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
+
+var traceOpts = []point.Option{}
 
 func spanModeleV2ToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
 	var (
@@ -29,61 +32,55 @@ func spanModeleV2ToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
 			span.ParentID = new(zpkmodel.ID)
 		}
 		service := getServiceFromSpanModel(span)
-		dkspan := &itrace.DatakitSpan{
-			ParentID:   span.ParentID.String(),
-			SpanID:     span.ID.String(),
-			Service:    service,
-			Resource:   span.Name,
-			Operation:  span.Name,
-			Source:     inputName,
-			SpanType:   itrace.FindSpanTypeInMultiServersStrSpanID(span.ID.String(), span.ParentID.String(), service, spanIDs, parentIDs),
-			SourceType: itrace.SPAN_SOURCE_CUSTOMER,
-			Tags:       tags,
-			Start:      span.Timestamp.UnixNano(),
-			Duration:   int64(span.Duration),
-			Status:     itrace.STATUS_OK,
-		}
+		spanKV := point.KVs{}
+		spanKV = spanKV.
+			Add(itrace.FieldParentID, span.ParentID.String(), false, false).
+			Add(itrace.FieldSpanid, span.ID.String(), false, false).
+			AddTag(itrace.TagService, service).
+			Add(itrace.FieldResource, span.Name, false, false).
+			AddTag(itrace.TagOperation, span.Name).
+			AddTag(itrace.TagSpanType, itrace.FindSpanTypeInMultiServersStrSpanID(span.ID.String(), span.ParentID.String(), service, spanIDs, parentIDs)).
+			AddTag(itrace.TagSource, inputName).
+			AddTag(itrace.TagSourceType, itrace.SpanSourceCustomer).
+			Add(itrace.FieldStart, span.Timestamp.UnixMicro(), false, false).
+			Add(itrace.FieldDuration, int64(span.Duration)/1000, false, true).
+			AddTag(itrace.TagSpanStatus, itrace.StatusOk)
 
-		if isRootSpan(dkspan.ParentID) {
-			dkspan.ParentID = "0"
+		if isRootSpan(span.ParentID.String()) {
+			spanKV = spanKV.Add(itrace.FieldParentID, "0", false, true)
 		}
 
 		if span.TraceID.High != 0 {
-			dkspan.TraceID = fmt.Sprintf("%x%x", span.TraceID.High, span.TraceID.Low)
+			spanKV = spanKV.Add(itrace.FieldTraceID, fmt.Sprintf("%x%x", span.TraceID.High, span.TraceID.Low), false, true)
 		} else {
-			dkspan.TraceID = strconv.FormatUint(span.TraceID.Low, 16)
+			spanKV = spanKV.Add(itrace.FieldTraceID, strconv.FormatUint(span.TraceID.Low, 16), false, true)
 		}
 
 		for tag := range span.Tags {
-			if tag == itrace.STATUS_ERR {
-				dkspan.Status = itrace.STATUS_ERR
+			if tag == itrace.StatusErr {
+				spanKV = spanKV.MustAddTag(itrace.TagSpanStatus, itrace.StatusErr)
 				break
 			}
 		}
 
-		var err error
-		if dkspan.Tags, err = itrace.MergeInToCustomerTags(tags, span.Tags, ignoreTags, nil); err != nil {
-			log.Debug(err.Error())
+		if mTags, err := itrace.MergeInToCustomerTags(tags, span.Tags, ignoreTags, nil); err == nil {
+			for k, v := range mTags {
+				spanKV = spanKV.AddTag(k, v)
+			}
 		}
-		if span.RemoteEndpoint != nil {
-			if endpoint := span.RemoteEndpoint.IPv4.String(); len(endpoint) != 0 {
-				dkspan.Tags[itrace.TAG_ENDPOINT] = endpoint
-			} else if endpoint = span.RemoteEndpoint.IPv6.String(); len(endpoint) != 0 {
-				dkspan.Tags[itrace.TAG_ENDPOINT] = endpoint
+		if !delMessage {
+			if buf, err := json.Marshal(span); err != nil {
+				log.Warn(err.Error())
+			} else {
+				spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
 			}
 		}
 
-		if buf, err := json.Marshal(span); err != nil {
-			log.Warn(err.Error())
-		} else {
-			dkspan.Content = string(buf)
-		}
-
-		dktrace = append(dktrace, dkspan)
+		pt := point.NewPointV2(inputName, spanKV, traceOpts...)
+		dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 	}
 	if len(dktrace) != 0 {
-		dktrace[0].Metrics = make(map[string]interface{})
-		dktrace[0].Metrics[itrace.FIELD_PRIORITY] = itrace.PRIORITY_AUTO_KEEP
+		dktrace[0].MustAdd(itrace.FieldPriority, itrace.PriorityAutoKeep)
 	}
 
 	return dktrace

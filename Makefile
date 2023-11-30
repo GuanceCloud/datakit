@@ -346,7 +346,6 @@ ut: deps
 		fi
 
 code_lint: deps copyright_check
-	@truncate -s 0 lint.err
 ifeq ($(AUTO_FIX),on)
 		@printf "$(HL)lint with auto fix...\n$(NC)"; \
 			$(GOLINT_BINARY) run --fix --allow-parallel-runners;

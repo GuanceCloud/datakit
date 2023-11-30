@@ -54,10 +54,6 @@ func (ipt *Input) parseDBData(list string) ([]*point.Point, error) {
 	rdr := strings.NewReader(list)
 	scanner := bufio.NewScanner(rdr)
 	dbIndexSlice := ipt.DBS
-	// config have "db"，join dbIndexSlice
-	if ipt.DB != -1 {
-		dbIndexSlice = append(dbIndexSlice, ipt.DB)
-	}
 
 	// example data
 	// db0:keys=43706,expires=117,avg_ttl=30904274304765
@@ -70,12 +66,15 @@ func (ipt *Input) parseDBData(list string) ([]*point.Point, error) {
 			continue
 		}
 
-		// parts [db0 keys=43706,expires=117,avg_ttl=30904274304765]
 		parts := strings.Split(line, ":")
 		if len(parts) != 2 {
 			continue
 		}
 		db := parts[0]
+		dbIndex, err := strconv.Atoi(db[2:])
+		if err != nil {
+			return collectCache, err
+		}
 
 		kvs = kvs.AddTag("db_name", parts[0])
 
@@ -92,26 +91,20 @@ func (ipt *Input) parseDBData(list string) ([]*point.Point, error) {
 		}
 
 		if len(ipt.DBS) == 0 {
+			if !IsSlicesHave(ipt.keyDBS, dbIndex) {
+				ipt.keyDBS = append(ipt.keyDBS, dbIndex)
+			}
 			if kvs.FieldCount() > 0 {
 				for k, v := range ipt.mergedTags {
 					kvs = kvs.AddTag(k, v)
 				}
 				collectCache = append(collectCache, point.NewPointV2(redisDB, kvs, opts...))
 			}
-		} else {
-			dbIndex, err := strconv.Atoi(db[2:])
-			if err != nil {
-				return collectCache, err
+		} else if IsSlicesHave(dbIndexSlice, dbIndex) && kvs.FieldCount() > 0 {
+			for k, v := range ipt.mergedTags {
+				kvs = kvs.AddTag(k, v)
 			}
-
-			if IsSlicesHave(dbIndexSlice, dbIndex) {
-				if kvs.FieldCount() > 0 {
-					for k, v := range ipt.mergedTags {
-						kvs = kvs.AddTag(k, v)
-					}
-					collectCache = append(collectCache, point.NewPointV2(redisDB, kvs, opts...))
-				}
-			}
+			collectCache = append(collectCache, point.NewPointV2(redisDB, kvs, opts...))
 		}
 	}
 
