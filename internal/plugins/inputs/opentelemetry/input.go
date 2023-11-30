@@ -55,6 +55,9 @@ const (
   ## compatible ddtrace: It is possible to compatible OTEL Trace with DDTrace trace
   # compatible_ddtrace=false
 
+  ## delete trace message
+  # del_message = true
+
   ## Ignore tracing resources map like service:[resources...].
   ## The service name is the full service name in current application.
   ## The resource list is regular expressions uses to block resource names.
@@ -136,6 +139,7 @@ var (
 	localCache        *storage.Storage
 	otelSvr           *grpc.Server
 	iptGlobal         *Input
+	delMessage        bool
 )
 
 type httpConfig struct {
@@ -159,6 +163,7 @@ type Input struct {
 	GRPCConfig          *grpcConfig                  `toml:"grpc"`
 	CompatibleDDTrace   bool                         `toml:"compatible_ddtrace"`
 	CompatibleZhaoShang bool                         `toml:"compatible_zhaoshang"`
+	DelMessage          bool                         `toml:"del_message"`
 	ExpectedHeaders     map[string]string            `toml:"expected_headers"`
 	KeepRareResource    bool                         `toml:"keep_rare_resource"`
 	CloseResource       map[string][]string          `toml:"close_resource"`
@@ -321,6 +326,8 @@ func (ipt *Input) Run() {
 			ignoreTags = append(ignoreTags, rexp)
 		}
 	}
+	traceOpts = append(point.DefaultLoggingOptions(), point.WithExtraTags(datakit.DefaultGlobalTagger().HostTags()))
+	delMessage = ipt.DelMessage
 	tags = ipt.Tags
 	convertToDD = ipt.CompatibleDDTrace
 	convertToZhaoShang = ipt.CompatibleZhaoShang

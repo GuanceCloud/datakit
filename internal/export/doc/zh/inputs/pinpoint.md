@@ -60,6 +60,7 @@ Datakit 内置的 Pinpoint Agent 用于接收，运算，分析 Pinpoint Tracing
     | --------------------------------------- | ----------- | -------------------------------------------------------------------------------- |
     | `ENV_INPUT_PINPOINT_ADDRESS`            | string      | "127.0.0.1:9991"                                                                 |
     | `ENV_INPUT_PINPOINT_KEEP_RARE_RESOURCE` | bool        | true                                                                             |
+    | `ENV_INPUT_PINPOINT_DEL_MESSAGE`        | bool        | true                                                                             |
     | `ENV_INPUT_PINPOINT_CLOSE_RESOURCE`     | JSON string | `{"service1":["resource1"], "service2":["resource2"], "service3":["resource3"]}` |
     | `ENV_INPUT_PINPOINT_SAMPLER`            | string      | "0.3"                                                                            |
     | `ENV_INPUT_PINPOINT_TAGS`               | JSON string | `{"k1":"v1", "k2":"v2", "k3":"v3"}`                                              |

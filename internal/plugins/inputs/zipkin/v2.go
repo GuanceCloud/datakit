@@ -16,6 +16,8 @@ import (
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
+var traceOpts = []point.Option{}
+
 func spanModeleV2ToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
 	var (
 		dktrace            itrace.DatakitTrace
@@ -66,14 +68,15 @@ func spanModeleV2ToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
 				spanKV = spanKV.AddTag(k, v)
 			}
 		}
-
-		if buf, err := json.Marshal(span); err != nil {
-			log.Warn(err.Error())
-		} else {
-			spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
+		if !delMessage {
+			if buf, err := json.Marshal(span); err != nil {
+				log.Warn(err.Error())
+			} else {
+				spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
+			}
 		}
 
-		pt := point.NewPointV2(inputName, spanKV, itrace.TraceOpts...)
+		pt := point.NewPointV2(inputName, spanKV, traceOpts...)
 		dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 	}
 	if len(dktrace) != 0 {

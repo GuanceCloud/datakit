@@ -105,6 +105,7 @@ DDTrace Agent embedded in Datakit is used to receive, calculate and analyze Data
     | `ENV_INPUT_DDTRACE_ENDPOINTS`          | JSON string | `["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]`                               |
     | `ENV_INPUT_DDTRACE_IGNORE_TAGS`        | JSON string | `["block1", "block2"]`                                                           |
     | `ENV_INPUT_DDTRACE_COMPATIBLE_OTEL`    | bool        | true                                                                             |    
+    | `ENV_INPUT_DDTRACE_DEL_MESSAGE`        | bool        | true                                                                             | 
     | `ENV_INPUT_DDTRACE_KEEP_RARE_RESOURCE` | bool        | true                                                                             |
     | `ENV_INPUT_DDTRACE_OMIT_ERR_STATUS`    | JSON string | `["404", "403", "400"]`                                                          |
     | `ENV_INPUT_DDTRACE_CLOSE_RESOURCE`     | JSON string | `{"service1":["resource1"], "service2":["resource2"], "service3":["resource3"]}` |

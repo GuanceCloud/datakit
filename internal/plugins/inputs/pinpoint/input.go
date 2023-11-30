@@ -42,6 +42,9 @@ const (
   ## to data center and do not consider samplers and filters.
   # keep_rare_resource = false
 
+  ## delete trace message
+  # del_message = true
+
   ## Ignore tracing resources map like service:[resources...].
   ## The service name is the full service name in current application.
   ## The resource list is regular expressions uses to block resource names.
@@ -80,6 +83,8 @@ var (
 	localCache     *storage.Storage
 	spanSender     *itrace.SpanSender
 	metricFeeder   dkio.Feeder
+	delMessage     bool
+	traceOpts      = []point.Option{}
 )
 
 type Input struct {
@@ -87,6 +92,7 @@ type Input struct {
 	KeepRareResource bool                   `toml:"keep_rare_resource"`
 	CloseResource    map[string][]string    `toml:"close_resource"`
 	Sampler          *itrace.Sampler        `toml:"sampler"`
+	DelMessage       bool                   `toml:"del_message"`
 	Tags             map[string]string      `toml:"tags"`
 	LocalCacheConfig *storage.StorageConfig `toml:"storage"`
 
@@ -114,7 +120,8 @@ func (ipt *Input) Run() {
 			log.Errorf("### new local-cache failed: %s", err.Error())
 		}
 	}
-
+	traceOpts = append(point.DefaultLoggingOptions(), point.WithExtraTags(datakit.DefaultGlobalTagger().HostTags()))
+	delMessage = ipt.DelMessage
 	var afterGather *itrace.AfterGather
 	if localCache != nil && localCache.Enabled() {
 		afterGather = itrace.NewAfterGather(

@@ -79,6 +79,8 @@ type DkJaegerSpan struct {
 	*jaeger.Span
 }
 
+var traceOpts = []point.Option{}
+
 func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 	var (
 		project, version, env = getExpandInfo(batch)
@@ -144,12 +146,15 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 			ParentSpanId: uint64(span.ParentSpanId),
 			Span:         span,
 		}
-		if buf, err := json.Marshal(dkJSpan); err != nil {
-			log.Warn(err.Error())
-		} else {
-			spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
+		if !delMessage {
+			if buf, err := json.Marshal(dkJSpan); err != nil {
+				log.Warn(err.Error())
+			} else {
+				spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
+			}
 		}
-		pt := point.NewPointV2(inputName, spanKV, itrace.TraceOpts...)
+
+		pt := point.NewPointV2(inputName, spanKV, traceOpts...)
 		dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 	}
 	if len(dktrace) != 0 {

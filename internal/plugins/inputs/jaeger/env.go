@@ -45,7 +45,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	for _, key := range []string{
 		"ENV_INPUT_JAEGER_HTTP_ENDPOINT", "ENV_INPUT_JAEGER_UDP_ENDPOINT", "ENV_INPUT_JAEGER_IGNORE_TAGS",
 		"ENV_INPUT_JAEGER_KEEP_RARE_RESOURCE", "ENV_INPUT_JAEGER_CLOSE_RESOURCE", "ENV_INPUT_JAEGER_SAMPLER",
-		"ENV_INPUT_JAEGER_TAGS", "ENV_INPUT_JAEGER_THREADS", "ENV_INPUT_JAEGER_STORAGE",
+		"ENV_INPUT_JAEGER_TAGS", "ENV_INPUT_JAEGER_THREADS", "ENV_INPUT_JAEGER_STORAGE", "ENV_INPUT_JAEGER_DEL_MESSAGE",
 	} {
 		value, ok := envs[key]
 		if !ok {
@@ -105,6 +105,12 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
 			} else {
 				ipt.LocalCacheConfig = &storage
+			}
+		case "ENV_INPUT_JAEGER_DEL_MESSAGE":
+			if ok, err := strconv.ParseBool(value); err != nil {
+				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
+			} else {
+				ipt.DelMessage = ok
 			}
 		}
 	}

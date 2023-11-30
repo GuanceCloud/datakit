@@ -131,7 +131,7 @@ func (ipt *Input) Run() {
 	if len(ipt.Tags) > 0 {
 		globalTags = ipt.Tags
 	}
-
+	traceOpts = append(point.DefaultLoggingOptions(), point.WithExtraTags(datakit.DefaultGlobalTagger().HostTags()))
 	afterGather := itrace.NewAfterGather(itrace.WithLogger(log),
 		itrace.WithPointOptions(point.WithExtraTags(datakit.GlobalHostTags())),
 		itrace.WithFeeder(ipt.feeder))

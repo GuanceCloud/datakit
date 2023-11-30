@@ -62,6 +62,9 @@ const (
   ## to data center and do not consider samplers and filters.
   # keep_rare_resource = false
 
+  ## delete trace message
+  # del_message = true
+
   ## Ignore tracing resources map like service:[resources...].
   ## The service name is the full service name in current application.
   ## The resource list is regular expressions uses to block resource names.
@@ -111,6 +114,7 @@ var (
 	wkpool                                    *workerpool.WorkerPool
 	localCache                                *storage.Storage
 	skySvr                                    *grpc.Server
+	delMessage                                bool
 )
 
 type Input struct {
@@ -121,6 +125,7 @@ type Input struct {
 	Endpoints        []string                     `toml:"endpoints"`
 	Address          string                       `toml:"address"`
 	Plugins          []string                     `toml:"plugins"`
+	DelMessage       bool                         `toml:"del_message"`
 	IgnoreTags       []string                     `toml:"ignore_tags"`
 	KeepRareResource bool                         `toml:"keep_rare_resource"`
 	CloseResource    map[string][]string          `toml:"close_resource"`
@@ -276,8 +281,9 @@ func (ipt *Input) Run() {
 			ignoreTags = append(ignoreTags, rexp)
 		}
 	}
+	traceOpts = append(point.DefaultLoggingOptions(), point.WithExtraTags(datakit.DefaultGlobalTagger().HostTags()))
 	tags = ipt.Tags
-
+	delMessage = ipt.DelMessage
 	// start up grpc v3 routine
 	if len(ipt.Address) == 0 {
 		ipt.Address = address
