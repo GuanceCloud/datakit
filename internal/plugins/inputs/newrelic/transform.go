@@ -329,6 +329,8 @@ func makeRootSpan(idLength int, service string, transaction *transaction) *itrac
 	return &itrace.DkSpan{Point: point.NewPointV2(inputName, spanKV, point.DefaultLoggingOptions()...)}
 }
 
+var traceOpts = []point.Option{}
+
 func makeChildrenSpan(service string, rootStart int64, idLength int, traceID, parentID string, children []segment, out *itrace.DatakitTrace) {
 	for _, child := range children {
 		spanKV := point.KVs{}
@@ -362,7 +364,7 @@ func makeChildrenSpan(service string, rootStart int64, idLength int, traceID, pa
 		} else {
 			log.Debug(err.Error())
 		}
-		pt := point.NewPointV2(inputName, spanKV, itrace.TraceOpts...)
+		pt := point.NewPointV2(inputName, spanKV, traceOpts...)
 		*out = append(*out, &itrace.DkSpan{Point: pt})
 
 		if len(child.children()) != 0 {

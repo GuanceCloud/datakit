@@ -11,12 +11,14 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/GuanceCloud/cliutils/point"
 	"google.golang.org/protobuf/encoding/protojson"
 
+	"github.com/GuanceCloud/cliutils/point"
 	trace "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/trace/v1"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
+
+var traceOpts = []point.Option{}
 
 func parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
 	var dktraces itrace.DatakitTraces
@@ -90,12 +92,15 @@ func parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
 				}
 
 				spanKV = spanKV.AddTag(itrace.TagSourceType, getSourceType(spanKV.Tags()))
-				if buf, err := protojson.Marshal(span); err != nil {
-					log.Warn(err.Error())
-				} else {
-					spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
+				if !delMessage {
+					if buf, err := protojson.Marshal(span); err != nil {
+						log.Warn(err.Error())
+					} else {
+						spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
+					}
 				}
-				pt := point.NewPointV2(inputName, spanKV, itrace.TraceOpts...)
+
+				pt := point.NewPointV2(inputName, spanKV, traceOpts...)
 				dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 			}
 		}

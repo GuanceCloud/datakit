@@ -219,6 +219,8 @@ var remapper = itrace.KeyRemapper(map[string]string{
 	"error.msg":  "error_message",
 })
 
+var traceOpts = []point.Option{}
+
 func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 	var (
 		dktrace            itrace.DatakitTrace
@@ -272,13 +274,15 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 		if rate, ok := span.Metrics[keySamplingRate]; ok {
 			spanKV = spanKV.Add(itrace.FieldSampleRate, rate, false, false)
 		}
-
-		if buf, err := jsonIterator.Marshal(span); err != nil {
-			log.Warn(err.Error())
-		} else {
-			spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
+		if !delMessage {
+			if buf, err := jsonIterator.Marshal(span); err != nil {
+				log.Warn(err.Error())
+			} else {
+				spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
+			}
 		}
-		pt := point.NewPointV2(inputName, spanKV, itrace.TraceOpts...)
+
+		pt := point.NewPointV2(inputName, spanKV, traceOpts...)
 		dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 	}
 

@@ -109,11 +109,13 @@ func processEvents(root *itrace.DkSpan, events []*ppv1.PSpanEvent, meta metadata
 				}
 			}
 		}
-
-		if bts, err := json.Marshal(event); err == nil {
-			spanKV = spanKV.Add(itrace.FieldMessage, string(bts), false, false)
+		if !delMessage {
+			if bts, err := json.Marshal(event); err == nil {
+				spanKV = spanKV.Add(itrace.FieldMessage, string(bts), false, false)
+			}
 		}
-		pt := point.NewPointV2("pinpointV2", spanKV, point.DefaultLoggingOptions()...)
+
+		pt := point.NewPointV2("pinpointV2", spanKV, traceOpts...)
 		trace = append(trace, &itrace.DkSpan{Point: pt})
 	}
 	// 最后将 linkTrace 放进去，防止上面 for 循环过程中按照 depth 取出错误的Event。

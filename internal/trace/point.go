@@ -8,10 +8,7 @@ package trace
 
 import (
 	"github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
-
-var TraceOpts = append(point.DefaultLoggingOptions(), point.WithExtraTags(datakit.DefaultGlobalTagger().HostTags()))
 
 type DatakitTrace []*DkSpan
 

@@ -205,7 +205,7 @@ func (ipt *Input) RegHTTPHandler() {
 func (ipt *Input) Run() {
 	rand.Seed(time.Now().UnixNano())
 	tags = ipt.Tags
-
+	traceOpts = append(point.DefaultLoggingOptions(), point.WithExtraTags(datakit.DefaultGlobalTagger().HostTags()))
 	log.Debugf("### %s agent is running...", inputName)
 
 	select {

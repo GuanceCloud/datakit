@@ -58,6 +58,9 @@ const (
   ## make span_id and parent_id to hex encoding.
   # compatible_otel=true
 
+  ## delete trace message
+  # del_message = true
+
   ## Ignore tracing resources map like service:[resources...].
   ## The service name is the full service name in current application.
   ## The resource list is regular expressions uses to block resource names.
@@ -106,6 +109,7 @@ var (
 	localCache         *storage.Storage
 	traceBase          = 10
 	spanBase           = 10
+	delMessage         bool
 )
 
 type Input struct {
@@ -118,6 +122,7 @@ type Input struct {
 	Endpoints        []string                     `toml:"endpoints"`
 	IgnoreTags       []string                     `toml:"ignore_tags"`
 	CompatibleOTEL   bool                         `toml:"compatible_otel"`
+	DelMessage       bool                         `toml:"del_message"`
 	KeepRareResource bool                         `toml:"keep_rare_resource"`
 	OmitErrStatus    []string                     `toml:"omit_err_status"`
 	CloseResource    map[string][]string          `toml:"close_resource"`
@@ -287,7 +292,8 @@ func (ipt *Input) Run() {
 	if ipt.CompatibleOTEL {
 		spanBase = 16
 	}
-
+	delMessage = ipt.DelMessage
+	traceOpts = append(point.DefaultLoggingOptions(), point.WithExtraTags(datakit.DefaultGlobalTagger().HostTags()))
 	log.Debugf("### %s agent is running...", inputName)
 
 	select {

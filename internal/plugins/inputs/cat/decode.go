@@ -172,6 +172,8 @@ func parseMetrics(heartbeats []*Heartbeat, domain, hostname string) []*point.Poi
 	return pts
 }
 
+var traceOpts = []point.Option{}
+
 func parseResourceSpans(ctx *Context, dt *Transaction) itrace.DatakitTraces {
 	var dktraces itrace.DatakitTraces
 	var dktrace itrace.DatakitTrace
@@ -215,7 +217,7 @@ func parseResourceSpans(ctx *Context, dt *Transaction) itrace.DatakitTraces {
 		spanKV = spanKV.AddTag(k, v)
 	}
 
-	pt := point.NewPointV2(inputName, spanKV, itrace.TraceOpts...)
+	pt := point.NewPointV2(inputName, spanKV, traceOpts...)
 	dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 
 	dktraces = append(dktraces, dktrace)

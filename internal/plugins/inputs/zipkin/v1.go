@@ -18,6 +18,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 
 	"github.com/apache/thrift/lib/go/thrift"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/zipkin/compiled/thrift-0.16.0/zipkincore"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
@@ -119,13 +120,15 @@ func thriftV1SpansToDkTrace(zpktrace []*zipkincore.Span) itrace.DatakitTrace {
 		if version, ok := findZpkCoreV1BinaryAnnotation(span.BinaryAnnotations, "version"); ok {
 			spanKV = spanKV.AddTag(itrace.TagVersion, version)
 		}
-
-		if buf, err := json.Marshal(zipkinConvThriftToJSON(span)); err != nil {
-			log.Warn(err.Error())
-		} else {
-			spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
+		if !delMessage {
+			if buf, err := json.Marshal(zipkinConvThriftToJSON(span)); err != nil {
+				log.Warn(err.Error())
+			} else {
+				spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
+			}
 		}
-		pt := point.NewPointV2(inputName, spanKV, itrace.TraceOpts...)
+		traceOpts := append(point.DefaultLoggingOptions(), point.WithExtraTags(datakit.DefaultGlobalTagger().HostTags()))
+		pt := point.NewPointV2(inputName, spanKV, traceOpts...)
 		dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 	}
 	if len(dktrace) != 0 {
@@ -387,14 +390,15 @@ func jsonV1SpansToDkTrace(zpktrace []*ZipkinSpanV1) itrace.DatakitTrace {
 		if version, ok := findZpkV1BinaryAnnotation(span.BinaryAnnotations, "version"); ok {
 			spanKV = spanKV.AddTag(itrace.TagVersion, version)
 		}
-
-		if buf, err := json.Marshal(span); err != nil {
-			continue
-		} else {
-			spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
+		if !delMessage {
+			if buf, err := json.Marshal(span); err != nil {
+				continue
+			} else {
+				spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
+			}
 		}
 
-		pt := point.NewPointV2(inputName, spanKV, itrace.TraceOpts...)
+		pt := point.NewPointV2(inputName, spanKV, traceOpts...)
 		dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 	}
 	if len(dktrace) != 0 {

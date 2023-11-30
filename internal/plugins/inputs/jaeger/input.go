@@ -53,6 +53,9 @@ const (
   ## to data center and do not consider samplers and filters.
   # keep_rare_resource = false
 
+  ## delete trace message
+  # del_message = true
+
   ## Ignore tracing resources map like service:[resources...].
   ## The service name is the full service name in current application.
   ## The resource list is regular expressions uses to block resource names.
@@ -98,6 +101,7 @@ var (
 	tags           map[string]string
 	wkpool         *workerpool.WorkerPool
 	localCache     *storage.Storage
+	delMessage     bool
 )
 
 type Input struct {
@@ -108,6 +112,7 @@ type Input struct {
 	Endpoint         string                       `toml:"endpoint"`
 	Address          string                       `toml:"address"`
 	IgnoreTags       []string                     `toml:"ignore_tags"`
+	DelMessage       bool                         `toml:"del_message"`
 	KeepRareResource bool                         `toml:"keep_rare_resource"`
 	CloseResource    map[string][]string          `toml:"close_resource"`
 	Sampler          *itrace.Sampler              `toml:"sampler"`
@@ -238,7 +243,8 @@ func (ipt *Input) Run() {
 		}
 	}
 	tags = ipt.Tags
-
+	traceOpts = append(point.DefaultLoggingOptions(), point.WithExtraTags(datakit.DefaultGlobalTagger().HostTags()))
+	delMessage = ipt.DelMessage
 	if ipt.Address != "" {
 		log.Debugf("### %s UDP agent is starting...", inputName)
 		// itrace.StartTracingStatistic()
