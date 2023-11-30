@@ -63,3 +63,13 @@ func WithOnlyModules(str string) APPOption {
 		}
 	}
 }
+
+func WithSource(str string) APPOption {
+	return func(app *monitorAPP) {
+		if str != "" {
+			app.monitor = &FileMonitor{path: str}
+		} else {
+			app.monitor = &HTTPMonitor{url: app.url, isURL: app.isURL}
+		}
+	}
+}

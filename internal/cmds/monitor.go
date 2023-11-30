@@ -59,6 +59,7 @@ func runMonitorFlags() error {
 	}
 	monitor.Start(
 		monitor.WithHost(schema, to),
+		monitor.WithSource(*flagMonitorFilePath),
 		monitor.WithMaxTableWidth(*flagMonitorMaxTableWidth),
 		monitor.WithOnlyInputs(*flagMonitorOnlyInputs),
 		monitor.WithOnlyModules(*flagMonitorModule),
