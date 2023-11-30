@@ -4,7 +4,12 @@ package rum;
 
 option go_package="/rum";
 
+message ValuesSlice {
+  repeated string Values = 1;
+}
+
 message RequestPB {
   map<string, string> Header = 1;
   bytes Body = 2;
+  map<string, ValuesSlice> FormValues = 3;
 }
