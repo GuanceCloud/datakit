@@ -36,7 +36,7 @@ const (
 )
 
 const (
-	namespace = "datakit"
+	namespace = "datakit_input"
 	subSystem = "rum"
 )
 
@@ -85,12 +85,41 @@ var replayUploadingDurationSummary = prometheus.NewSummaryVec(prometheus.Summary
 	[]string{"app_id", "env", "version", "service", "status_code"},
 )
 
-var replayDroppedPointCount = prometheus.NewCounterVec(prometheus.CounterOpts{
+var replayFailureTotalCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 	Namespace: namespace,
 	Subsystem: subSystem,
-	Name:      "session_replay_dropped_total",
-	Help:      "statistics count of dropped session replay points since uploading fail",
+	Name:      "session_replay_upload_failure_total",
+	Help:      "statistics count of session replay points which which have unsuccessfully uploaded",
 }, []string{"app_id", "env", "version", "service", "status_code"})
+
+var replayFailureTotalBytes = prometheus.NewCounterVec(prometheus.CounterOpts{
+	Namespace: namespace,
+	Subsystem: subSystem,
+	Name:      "session_replay_upload_failure_bytes_total",
+	Help:      "statistics the total bytes of session replay points which have unsuccessfully uploaded",
+}, []string{"app_id", "env", "version", "service", "status_code"})
+
+var replayReadBodyDelaySeconds = prometheus.NewSummaryVec(prometheus.SummaryOpts{
+	Namespace:  namespace,
+	Subsystem:  subSystem,
+	Name:       "session_replay_read_body_delay_seconds",
+	Help:       "statistics the duration of reading session replay body",
+	Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
+}, []string{"app_id", "env", "version", "service"})
+
+var replayFilteredTotalCount = prometheus.NewCounterVec(prometheus.CounterOpts{
+	Namespace: namespace,
+	Subsystem: subSystem,
+	Name:      "session_replay_drop_total",
+	Help:      "statistics the total count of session replay points which have been filtered by rules",
+}, []string{"app_id", "env", "version", "service"})
+
+var replayFilteredTotalBytes = prometheus.NewCounterVec(prometheus.CounterOpts{
+	Namespace: namespace,
+	Subsystem: subSystem,
+	Name:      "session_replay_drop_bytes_total",
+	Help:      "statistics the total bytes of session replay points which have been filtered by rules",
+}, []string{"app_id", "env", "version", "service"})
 
 type sourceMapStatus struct {
 	sdkName string

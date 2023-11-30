@@ -390,3 +390,37 @@ DataKit 内置了一个主流 CDN 厂家信息列表，如果发现你所使用�
 
     RUM 配置文件默认位于 */usr/local/datakit/conf.d/rum/rum.conf*（Linux/macOS）和 *C:\\Program Files\\datakit\\conf.d\\rum*（Windows），具体根据你所使用的操作系统和 Datakit 安装位置确定。
 <!-- markdownlint-enable -->
+
+### RUM 会话重放数据的过滤 {#rum-session-replay-filter}
+
+从 Datakit [:octicons-tag-24: Version-1.20.0](../datakit/changelog.md#cl-1.20.0) 版本开始支持利用配置过滤掉不需要的会话重放数据，新增的配置项名称为 `filter_rules`， 格式类似如下（可以参考 `rum.conf.sample` RUM 示例配置文件）：
+
+```toml
+[inputs.rum.session_replay]
+#   cache_path = "/usr/local/datakit/cache/session_replay"
+#   cache_capacity_mb = 20480
+#   clear_cache_on_start = false
+#   upload_workers = 16
+#   send_timeout = "75s"
+#   send_retry_count = 3
+   filter_rules = [
+       "{ service = 'xxx' or version IN [ 'v1', 'v2'] }",
+       "{ app_id = 'yyy' and env = 'production' }"
+   ]
+```
+
+`filter_rules` 是一个规则数组，每一条规则之间是"或"的逻辑关系，也就是说某条会话重放数据只要命中其中任何一条规则就会被丢弃，只有全部规则都没命中才会被保留。过滤规则目前支持的字段如下表所示：
+
+| 字段名                 | 类型     | 说明                 | 示例              |
+|---------------------|--------|--------------------|-----------------|
+| `app_id`            | string | 应用 ID              | appid_123456789 |
+| `service`           | string | 服务名称               | user_center     |
+| `version`           | string | 服务版本               | v1.0.0          |
+| `env`               | string | 服务部署环境             | production      |
+| `sdk_name`          | string | RUM SDK 名称         | df_web_rum_sdk  |
+| `sdk_version`       | string | RUM SDK 版本         | 3.1.5           |
+| `source`            | string | 数据来源               | browser         |
+| `has_full_snapshot` | string | 是否是全量数据            | false           |
+| `raw_segment_size`  | int    | 原始会话重放数据的大小（单位：字节） | 656             |
+
+

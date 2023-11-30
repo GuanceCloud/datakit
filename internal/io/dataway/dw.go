@@ -23,7 +23,7 @@ import (
 const (
 	HeaderXGlobalTags = "X-Global-Tags"
 	DefaultRetryCount = 4
-	DefaultRetryDelay = time.Millisecond * 200
+	DefaultRetryDelay = time.Second * 1
 )
 
 type IDataway interface {

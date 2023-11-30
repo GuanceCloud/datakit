@@ -195,7 +195,7 @@ ulimit = 64000
   max_retry_count = 4
 
   # The interval between two retry operation, valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-  retry_delay = "200ms"
+  retry_delay = "1s"
 
   # HTTP Proxy(IP:Port)
   http_proxy = ""

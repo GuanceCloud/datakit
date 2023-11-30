@@ -176,7 +176,7 @@ func TestHandleSourcemapCheck(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	ipt.rumDataDir = tmpDir
-	ipt.initMeasurementMap()
+	ipt.initConfig()
 
 	mapfile, err := ioutil.ReadFile("testdata/mapfile.json")
 	assert.NoError(t, err)
@@ -285,7 +285,7 @@ func TestHandleSourcemapDelete(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	ipt.rumDataDir = tmpDir
-	ipt.initMeasurementMap()
+	ipt.initConfig()
 
 	mapfile, err := ioutil.ReadFile("testdata/mapfile.json")
 	assert.NoError(t, err)

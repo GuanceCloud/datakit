@@ -151,7 +151,7 @@ func DefaultConfig() *Config {
 			HTTPTimeout:        30 * time.Second,
 			IdleTimeout:        90 * time.Second,
 			MaxRetryCount:      4,
-			RetryDelay:         time.Millisecond * 200,
+			RetryDelay:         time.Second * 1,
 			MaxRawBodySize:     dataway.DefaultMaxRawBodySize,
 			GlobalCustomerKeys: []string{},
 			ContentEncoding:    "v1",
