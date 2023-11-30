@@ -239,7 +239,7 @@ Datakit 可以将执行超过用户自定义时间的 SQL 语句报告给观测�
 ## 自定义查询支持 {#custom}
 
 <!-- markdownlint-disable MD051 -->
-支持自定义查询数据采集。具体用法与例子见上面 [采集器配置](#input-config) 里面的 `custom_queries`。
+支持自定义查询数据采集。具体用法与例子见上面 [采集器配置](oracle.md#input-config) 里面的 `custom_queries`。
 <!-- markdownlint-enable -->
 
 ## FAQ {#faq}
