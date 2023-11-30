@@ -37,7 +37,10 @@ type input struct {
 	chpause      chan bool
 	EatCPU       bool `toml:"eat_cpu"`
 	Election     bool `toml:"election"`
-	paused       bool
+
+	RandomPoints int `toml:"random_points"`
+
+	paused bool
 
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
@@ -102,7 +105,7 @@ func (ipt *input) Run() {
 			if err := ipt.collect(); err != nil {
 				l.Error(err)
 			} else {
-				if err := ipt.feeder.Feed(inputName, point.Metric, ipt.collectCache,
+				if err := ipt.feeder.Feed(inputName, point.Logging, ipt.collectCache,
 					&dkio.Option{CollectCost: time.Since(start)}); err != nil {
 					l.Errorf("Feed failed: %s", err.Error())
 
@@ -147,6 +150,8 @@ func (*input) SampleConfig() string {
 
   ## Set true to enable election
   election = true
+
+  random_points = 100
 
 [inputs.demo.tags] # 所有采集器，都应该有 tags 配置项
   # tag_a = "val1"

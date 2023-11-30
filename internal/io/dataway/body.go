@@ -65,12 +65,6 @@ func (w *writer) buildPointsBody() ([]*body, error) {
 	var arr []*body
 
 	for idx, batch := range batches {
-		buildBodyBatchBytesVec.WithLabelValues(
-			w.category.String(),
-			w.httpEncoding.String(),
-			fmt.Sprintf("%v", w.gzip),
-		).Observe(float64(len(batch)))
-
 		var (
 			buf = batch
 			err error
@@ -102,6 +96,12 @@ func (w *writer) buildPointsBody() ([]*body, error) {
 		if !doNotBuildPointRequest {
 			arr = append(arr, body)
 		}
+
+		buildBodyBatchBytesVec.WithLabelValues(
+			w.category.String(),
+			w.httpEncoding.String(),
+			fmt.Sprintf("%v", w.gzip),
+		).Observe(float64(len(body.buf)))
 	}
 
 	buildBodyBatchCountVec.WithLabelValues(
