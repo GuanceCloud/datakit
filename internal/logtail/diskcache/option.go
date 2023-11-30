@@ -25,7 +25,7 @@ type config struct {
 
 func defaultConfig() *config {
 	return &config{
-		path:        "./logging",
+		path:        "./logtail",
 		capacity:    1024 * 5, // MiB
 		consumerNum: 8,
 		handle:      DecodeToPoint,
