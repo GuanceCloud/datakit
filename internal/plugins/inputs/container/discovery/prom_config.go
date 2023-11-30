@@ -78,6 +78,15 @@ func withInterval(interval string) promOption {
 	}
 }
 
+func withTagIfNotEmpty(key, value string) promOption {
+	return func(c *promConfig) {
+		if key == "" {
+			return
+		}
+		withTag(key, value)(c)
+	}
+}
+
 func withTag(key, value string) promOption {
 	return func(c *promConfig) {
 		if c.Tags == nil {

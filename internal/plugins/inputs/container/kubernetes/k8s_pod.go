@@ -124,7 +124,7 @@ func (m *podMetadata) transformMetric() pointKVs {
 				nodeInfo = getCapacityFromNode(context.Background(), m.opt.client, item.Spec.NodeName)
 			}
 
-			p, err := queryPodMetrics(context.Background(), m.metricsCollect, &m.list.Items[idx], nodeInfo)
+			p, err := queryPodMetrics(context.Background(), m.metricsCollect, &m.list.Items[idx], nodeInfo, "metric")
 			if err != nil {
 				klog.Warnf("pod %s metric-pt fail, err: %s, skip", item.Name, err)
 			} else {
@@ -211,7 +211,7 @@ func (m *podMetadata) transformObject() pointKVs {
 				nodeInfo = getCapacityFromNode(context.Background(), m.opt.client, item.Spec.NodeName)
 			}
 
-			p, err := queryPodMetrics(context.Background(), m.metricsCollect, &m.list.Items[idx], nodeInfo)
+			p, err := queryPodMetrics(context.Background(), m.metricsCollect, &m.list.Items[idx], nodeInfo, "object")
 			if err != nil {
 				klog.Warnf("pod %s object-pt fail, err: %s, skip", item.Name, err)
 			} else {
@@ -238,7 +238,13 @@ func shouldCollectPodMetric(item *apicorev1.Pod) bool {
 	return item.Status.Phase == apicorev1.PodRunning
 }
 
-func queryPodMetrics(ctx context.Context, collect PodMetricsCollect, item *apicorev1.Pod, node nodeCapacity) (*typed.PointKV, error) {
+func queryPodMetrics(
+	ctx context.Context,
+	collect PodMetricsCollect,
+	item *apicorev1.Pod,
+	node nodeCapacity,
+	category string,
+) (*typed.PointKV, error) {
 	p := typed.NewPointKV("NULL")
 
 	podMet, err := collect.GetPodMetrics(ctx, item.Namespace, item.Name)
@@ -276,6 +282,17 @@ func queryPodMetrics(ctx context.Context, collect PodMetricsCollect, item *apico
 	p.SetField("memory_capacity", p.GetField("mem_capacity"))
 	p.SetField("memory_used_percent", p.GetField("mem_used_percent"))
 
+	switch category {
+	case "metric":
+		p.SetField("network_bytes_rcvd", podMet.networkRcvdBytes)
+		p.SetField("network_bytes_sent", podMet.networkSentBytes)
+		p.SetField("ephemeral_storage_used_bytes", podMet.ephemeralStorageUsedBytes)
+		p.SetField("ephemeral_storage_available_bytes", podMet.ephemeralStorageAvailableBytes)
+		p.SetField("ephemeral_storage_capacity_bytes", podMet.ephemeralStorageCapacityBytes)
+	default:
+		// nil
+	}
+
 	return p, nil
 }
 
@@ -297,17 +314,22 @@ func (*podMetric) Info() *inputs.MeasurementInfo {
 			"statefulset": inputs.NewTagInfo("The name of the StatefulSet which the object belongs to."),
 		},
 		Fields: map[string]interface{}{
-			"ready":                       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Describes whether the pod is ready to serve requests."},
-			"cpu_usage":                   &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The sum of the cpu usage of all containers in this Pod."},
-			"cpu_usage_base100":           &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The normalized cpu usage, with a maximum of 100%. (Experimental)"},
-			"memory_usage_bytes":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The sum of the memory usage of all containers in this Pod (Deprecated use `mem_usage`)."},
-			"memory_capacity":             &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The total memory in the host machine (Deprecated use `mem_capacity`)."},
-			"memory_used_percent":         &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage usage of the memory (refer from `mem_used_percent`"},
-			"mem_usage":                   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The sum of the memory usage of all containers in this Pod."},
-			"mem_limit":                   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The sum of the memory limit of all containers in this Pod."},
-			"mem_capacity":                &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The total memory in the host machine."},
-			"mem_used_percent":            &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage usage of the memory is calculated based on the capacity of host machine."},
-			"mem_used_percent_base_limit": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage usage of the memory is calculated based on the limit."},
+			"ready":                             &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Describes whether the pod is ready to serve requests."},
+			"cpu_usage":                         &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The sum of the cpu usage of all containers in this Pod."},
+			"cpu_usage_base100":                 &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The normalized cpu usage, with a maximum of 100%. (Experimental)"},
+			"memory_usage_bytes":                &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The sum of the memory usage of all containers in this Pod (Deprecated use `mem_usage`)."},
+			"memory_capacity":                   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The total memory in the host machine (Deprecated use `mem_capacity`)."},
+			"memory_used_percent":               &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage usage of the memory (refer from `mem_used_percent`"},
+			"mem_usage":                         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The sum of the memory usage of all containers in this Pod."},
+			"mem_limit":                         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The sum of the memory limit of all containers in this Pod."},
+			"mem_capacity":                      &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The total memory in the host machine."},
+			"mem_used_percent":                  &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage usage of the memory is calculated based on the capacity of host machine."},
+			"mem_used_percent_base_limit":       &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage usage of the memory is calculated based on the limit."},
+			"network_bytes_rcvd":                &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "Cumulative count of bytes received."},
+			"network_bytes_sent":                &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "Cumulative count of bytes transmitted."},
+			"ephemeral_storage_used_bytes":      &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The bytes used for a specific task on the filesystem."},
+			"ephemeral_storage_available_bytes": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The storage space available (bytes) for the filesystem."},
+			"ephemeral_storage_capacity_bytes":  &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The total capacity (bytes) of the filesystems underlying storage."},
 		},
 	}
 }

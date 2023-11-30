@@ -26,7 +26,7 @@ func (p *Provider) SearchFiles(patterns []string) *Provider {
 
 	for _, pattern := range patterns {
 		info, err := os.Stat(pattern)
-		if err == nil && !info.IsDir() { // 是单个文件
+		if err == nil && !info.IsDir() { // Is file
 			p.list = append(p.list, pattern)
 			continue
 		}

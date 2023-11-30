@@ -130,18 +130,30 @@ func (t *Single) seekOffset() error {
 	var ret int64
 	var err error
 
-	if pos := t.getPosition(); pos != -1 {
-		ret, err = t.file.Seek(pos, io.SeekStart)
-		t.opt.log.Infof("set position %d for filename %s", pos, t.filepath)
-	} else {
+	func() {
+		if pos := t.getPosition(); pos != -1 {
+			ret, err = t.file.Seek(pos, io.SeekStart)
+			t.opt.log.Infof("set position %d for filename %s", pos, t.filepath)
+			return
+		}
+
 		if t.opt.FromBeginning {
 			ret, err = t.file.Seek(0, io.SeekStart)
 			t.opt.log.Infof("set start position for filename %s", t.filepath)
-		} else {
-			ret, err = t.file.Seek(0, io.SeekEnd)
-			t.opt.log.Infof("set end position for filename %s", t.filepath)
+			return
 		}
-	}
+
+		if stat, _err := os.Stat(t.filepath); _err == nil {
+			if stat.Size() <= 1024*1024*1 {
+				ret, err = t.file.Seek(0, io.SeekStart)
+				t.opt.log.Infof("set start position for filename %s, because file size < 10MiB", t.filepath)
+			}
+			return
+		}
+
+		ret, err = t.file.Seek(0, io.SeekEnd)
+		t.opt.log.Infof("set end position for filename %s", t.filepath)
+	}()
 
 	t.offset = ret
 	return err
@@ -636,7 +648,10 @@ func (t *Single) wait() {
 }
 
 func (t *Single) shoudFlush() bool {
-	return t.flushScore > 5
+	if t.opt.MaxForceFlushLimit == -1 {
+		return false
+	}
+	return t.flushScore >= t.opt.MaxForceFlushLimit
 }
 
 func (t *Single) resetFlushScore() {
@@ -648,9 +663,11 @@ func (t *Single) buildTags(globalTags map[string]string) map[string]string {
 	for k, v := range globalTags {
 		tags[k] = v
 	}
+
 	if _, ok := tags["filepath"]; !ok {
 		tags["filepath"] = t.filepath
 	}
+
 	if _, ok := tags["filename"]; !ok {
 		tags["filename"] = t.filename
 	}

@@ -29,6 +29,9 @@ type container struct {
 	runtime   runtime.ContainerRuntime
 	k8sClient k8sclient.Client
 
+	// adding labels to container logs
+	enableExtractK8sLabelAsTags bool
+
 	loggingFilters []filter.Filter
 	logTable       *logTable
 	extraTags      map[string]string
@@ -56,12 +59,13 @@ func newContainer(ipt *Input, endpoint string, mountPoint string, k8sClient k8sc
 	tags := inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")
 
 	return &container{
-		ipt:            ipt,
-		runtime:        r,
-		k8sClient:      k8sClient,
-		loggingFilters: filters,
-		logTable:       newLogTable(),
-		extraTags:      tags,
+		ipt:                         ipt,
+		runtime:                     r,
+		k8sClient:                   k8sClient,
+		enableExtractK8sLabelAsTags: ipt.EnableExtractK8sLabelAsTags,
+		loggingFilters:              filters,
+		logTable:                    newLogTable(),
+		extraTags:                   tags,
 	}, nil
 }
 
@@ -212,6 +216,9 @@ func (c *container) Logging(_ func([]*point.Point) error) {
 
 		instance.setTagsToLogConfigs(instance.tags())
 		instance.setTagsToLogConfigs(c.extraTags)
+		if c.enableExtractK8sLabelAsTags {
+			instance.setLabelsToLogConfigs(instance.podLabels)
+		}
 		instance.setCustomerTags(instance.podLabels, getGlobalCustomerKeys())
 
 		c.ipt.setLoggingExtraSourceMapToLogConfigs(instance.configs)
@@ -231,6 +238,10 @@ func (c *container) Name() string {
 func (c *container) shouldPullContainerLog(ins *logInstance) bool {
 	if ins.enabled() {
 		return true
+	}
+
+	if ins.ownerKind == "job" || ins.ownerKind == "cronjob" {
+		return false
 	}
 
 	ignored := c.ignoreContainerLogging(filterImage, ins.image) ||
@@ -476,11 +487,13 @@ func transToPoint(pts []*typed.PointKV, opts []point.Option) []*point.Point {
 	}
 
 	var res []*point.Point
+	t := time.Now()
+
 	for _, pt := range pts {
 		r := point.NewPointV2(
 			pt.Name(),
 			append(point.NewTags(pt.Tags()), point.NewKVs(pt.Fields())...),
-			opts...,
+			append(opts, point.WithTime(t))...,
 		)
 		res = append(res, r)
 	}

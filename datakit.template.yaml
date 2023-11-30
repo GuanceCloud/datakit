@@ -14,7 +14,7 @@ rules:
   resources: ["clusterroles"]
   verbs: ["get", "list", "watch"]
 - apiGroups: [""]
-  resources: ["nodes", "nodes/stats", "nodes/metrics", "nodes/spec", "nodes/proxy", "namespaces", "pods", "pods/log", "events", "services", "endpoints"]
+  resources: ["nodes", "nodes/stats", "namespaces", "pods", "pods/log", "events", "services", "endpoints"]
   verbs: ["get", "list", "watch"]
 - apiGroups: ["apps"]
   resources: ["deployments", "daemonsets", "statefulsets", "replicasets"]

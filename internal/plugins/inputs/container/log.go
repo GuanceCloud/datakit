@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -21,7 +22,7 @@ type logConfig struct {
 	Disable           bool              `json:"disable"`
 	Type              string            `json:"type"`
 	Path              string            `json:"path"`
-	TargetPath        string            `json:"-"`
+	HostFilePath      string            `json:"-"`
 	Source            string            `json:"source"`
 	Service           string            `json:"service"`
 	CharacterEncoding string            `json:"character_encoding"`
@@ -77,21 +78,21 @@ func (lc *logInstance) parseLogConfigs() error {
 				cfg.MultilinePatterns = []string{cfg.Multiline}
 			}
 
-			base := filepath.Base(cfg.Path)
-			dir := filepath.Dir(cfg.Path)
+			path := filepath.Clean(cfg.Path)
 
-			target, ok := lc.volMounts[filepath.Clean(dir)]
-			if !ok {
-				continue
-			}
-			cfg.TargetPath = filepath.Join(filepath.Clean(target), base)
+			for vol, hostdir := range lc.volMounts {
+				if strings.HasPrefix(path, vol) {
+					file := strings.TrimPrefix(path, vol)
+					cfg.HostFilePath = filepath.Join(hostdir, filepath.Clean(file))
 
-			// add target fileapath
-			if cfg.Tags == nil {
-				cfg.Tags = make(map[string]string)
+					// add target fileapath
+					if cfg.Tags == nil {
+						cfg.Tags = make(map[string]string)
+					}
+					cfg.Tags["inside_filepath"] = path
+					cfg.Tags["host_filepath"] = cfg.HostFilePath
+				}
 			}
-			cfg.Tags["filepath"] = cfg.Path
-			cfg.Tags["target_filepath"] = cfg.TargetPath
 		}
 	}
 	return nil
@@ -154,6 +155,24 @@ func (lc *logInstance) setTagsToLogConfigs(m map[string]string) {
 			}
 		}
 	}
+}
+
+func (lc *logInstance) setLabelsToLogConfigs(m map[string]string) {
+	for _, cfg := range lc.configs {
+		if cfg.Tags == nil {
+			cfg.Tags = make(map[string]string)
+		}
+		for k, v := range m {
+			key := replaceLabelKey(k)
+			if _, ok := cfg.Tags[key]; !ok {
+				cfg.Tags[key] = v
+			}
+		}
+	}
+}
+
+func replaceLabelKey(s string) string {
+	return strings.ReplaceAll(s, ".", "_")
 }
 
 func (lc *logInstance) setCustomerTags(m map[string]string, keys []string) {

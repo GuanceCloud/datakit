@@ -58,7 +58,7 @@ func (k *Kube) gather(category string, feed func([]*point.Point) error, paused, 
 				counterWithName[typ.name] = counts
 				mu.Unlock()
 
-				collectResourceCostVec.WithLabelValues(category, typee.name, fieldSelector).Observe(time.Since(startCollect).Seconds())
+				collectResourceCostVec.WithLabelValues(category, typ.name, fieldSelector).Observe(time.Since(startCollect).Seconds())
 				collectResourcePtsVec.WithLabelValues(category, typ.name, fieldSelector).Observe(float64(sum(counts)))
 				return nil
 			})
@@ -191,11 +191,13 @@ func transToPoint(pts pointKVs, opts []point.Option) []*point.Point {
 	}
 
 	var res []*point.Point
+	t := time.Now()
+
 	for _, pt := range pts {
 		r := point.NewPointV2(
 			pt.Name(),
 			append(point.NewTags(pt.Tags()), point.NewKVs(pt.Fields())...),
-			opts...,
+			append(opts, point.WithTime(t))...,
 		)
 
 		res = append(res, r)
