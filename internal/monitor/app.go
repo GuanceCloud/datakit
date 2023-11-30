@@ -64,6 +64,8 @@ type monitorAPP struct {
 
 	mfs map[string]*dto.MetricFamily
 
+	monitor monitorSource
+
 	inputsStats map[string]string
 
 	anyError error
@@ -118,8 +120,9 @@ func (app *monitorAPP) refreshData() {
 
 		for {
 			app.anyError = nil
-
-			app.mfs, err = requestMetrics(app.url)
+			// app.monitor.FetchData()
+			// app.mfs, err = requestMetrics(app.url)
+			app.mfs, err = app.monitor.FetchData()
 			if err != nil {
 				app.anyError = fmt.Errorf("request stats failed: %w", err)
 			}
