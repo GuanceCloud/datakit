@@ -91,10 +91,12 @@ func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces) {
 		afterFilters = dktraces
 	} else {
 		for k := range dktraces {
+			aga.log.Infof("len = %d spans", len(dktraces[k]))
 			var temp DatakitTrace
 			for i := range aga.filters {
 				var skip bool
 				if temp, skip = aga.filters[i](aga.log, dktraces[k]); skip {
+					aga.log.Infof("delete %d span", len(dktraces[k]))
 					break
 				}
 			}
@@ -106,8 +108,13 @@ func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces) {
 	if len(afterFilters) == 0 {
 		return
 	}
-
-	if pts := aga.BuildPointsBatch(afterFilters); len(pts) != 0 {
+	pts := make([]*point.Point, 0)
+	for _, filter := range afterFilters {
+		for _, span := range filter {
+			pts = append(pts, span.Point)
+		}
+	}
+	if len(pts) != 0 {
 		var (
 			start = time.Now()
 			opt   = &dkio.Option{Blocking: aga.ioBlockingMode}
@@ -115,19 +122,19 @@ func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces) {
 		)
 	IO_FEED_RETRY:
 		if err = aga.feeder.Feed(inputName, point.Tracing, pts, opt); err != nil {
-			aga.log.Warnf("io feed points failed: %s, ignored", err.Error())
 			if aga.retry > 0 && errors.Is(err, dkio.ErrIOBusy) {
 				time.Sleep(aga.retry)
 				goto IO_FEED_RETRY
 			}
 		} else {
-			aga.log.Debugf("### send %d points cost %dms with error: %v", len(pts), time.Since(start)/time.Millisecond, err)
+			aga.log.Debugf("### send %d points cost %dms", len(pts), time.Since(start)/time.Millisecond)
 		}
 	} else {
 		aga.log.Debug("BuildPointsBatch return empty points array")
 	}
 }
 
+/*
 // BuildPointsBatch builds points from whole trace.
 func (aga *AfterGather) BuildPointsBatch(dktraces DatakitTraces) []*point.Point {
 	var pts []*point.Point
@@ -143,6 +150,7 @@ func (aga *AfterGather) BuildPointsBatch(dktraces DatakitTraces) []*point.Point 
 
 	return pts
 }
+*/
 
 func NewAfterGather(options ...Option) *AfterGather {
 	aga := &AfterGather{log: logger.DefaultSLogger("after-gather")}
@@ -153,67 +161,4 @@ func NewAfterGather(options ...Option) *AfterGather {
 	return aga
 }
 
-func processUnknown(dkspan *DatakitSpan) {
-	if dkspan != nil {
-		if dkspan.Service == "" {
-			dkspan.Service = UNKNOWN_SERVICE
-		}
-		if dkspan.SourceType == "" {
-			dkspan.SourceType = SPAN_SOURCE_CUSTOMER
-		}
-		if dkspan.SpanType == "" {
-			dkspan.SpanType = SPAN_TYPE_UNKNOWN
-		}
-	}
-}
-
 var replacer = strings.NewReplacer(".", "_")
-
-// BuildPoint builds point from DatakitSpan.
-func BuildPoint(dkspan *DatakitSpan, opts ...point.Option) (*point.Point, error) {
-	processUnknown(dkspan)
-
-	tags := map[string]string{
-		TAG_SERVICE:     dkspan.Service,
-		TAG_OPERATION:   dkspan.Operation,
-		TAG_SOURCE_TYPE: dkspan.SourceType,
-		TAG_SPAN_TYPE:   dkspan.SpanType,
-		TAG_SPAN_STATUS: dkspan.Status,
-	}
-
-	fields := map[string]interface{}{
-		FIELD_TRACEID:  dkspan.TraceID,
-		FIELD_PARENTID: dkspan.ParentID,
-		FIELD_SPANID:   dkspan.SpanID,
-		FIELD_RESOURCE: dkspan.Resource,
-		FIELD_START:    dkspan.Start / int64(time.Microsecond),
-		FIELD_DURATION: dkspan.Duration / int64(time.Microsecond),
-		FIELD_MESSAGE:  dkspan.Content,
-	}
-
-	for k, v := range dkspan.Tags {
-		sk := replacer.Replace(k)
-		if len(v) >= 1024 {
-			fields[sk] = v
-		} else {
-			tags[sk] = v
-		}
-	}
-	// trace-128-id replace trace-id.
-	if id, ok := dkspan.Tags[TRACE_128_BIT_ID]; ok {
-		fields[FIELD_TRACEID] = id
-	}
-	for k, v := range dkspan.Metrics {
-		fields[replacer.Replace(k)] = v
-	}
-
-	tracing := &TraceMeasurement{
-		Name:              dkspan.Source,
-		Tags:              tags,
-		Fields:            fields,
-		TS:                time.Unix(0, dkspan.Start),
-		BuildPointOptions: opts,
-	}
-
-	return tracing.Point(), nil
-}

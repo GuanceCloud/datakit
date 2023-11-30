@@ -216,13 +216,10 @@ func (ipt *Input) RegHTTPHandler() {
 		afterGather.AppendFilter(keepRareResource.Keep)
 	}
 	// add sampler
-	var sampler *itrace.Sampler
 	if ipt.Sampler != nil && (ipt.Sampler.SamplingRateGlobal >= 0 && ipt.Sampler.SamplingRateGlobal <= 1) {
-		sampler = ipt.Sampler
-	} else {
-		sampler = &itrace.Sampler{SamplingRateGlobal: 1}
+		sampler := ipt.Sampler.Init()
+		afterGather.AppendFilter(sampler.Sample)
 	}
-	afterGather.AppendFilter(sampler.Sample)
 
 	log.Debugf("### register handler for %s of agent %s", ipt.Endpoint, inputName)
 	if ipt.Endpoint != "" {

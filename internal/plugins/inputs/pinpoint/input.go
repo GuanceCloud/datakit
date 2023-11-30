@@ -10,6 +10,8 @@ import (
 	"context"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/pinpoint/cache"
+
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
@@ -74,10 +76,10 @@ var (
 	log            = logger.DefaultSLogger(inputName)
 	afterGatherRun itrace.AfterGatherFunc
 	tags           map[string]string
-	agentMetaData  = &AgentMetaData{}
 	gsvr           *grpc.Server
 	localCache     *storage.Storage
 	spanSender     *itrace.SpanSender
+	metricFeeder   dkio.Feeder
 )
 
 type Input struct {
@@ -100,13 +102,12 @@ func (*Input) AvailableArchs() []string { return datakit.AllOS }
 func (*Input) SampleConfig() string { return sampleConfig }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{&itrace.TraceMeasurement{Name: inputName}}
+	return []inputs.Measurement{&itrace.TraceMeasurement{Name: inputName}, &Measurement{}}
 }
 
 func (ipt *Input) Run() {
 	log = logger.SLogger(inputName)
-	InitMetaCache()
-	metaCache.writeToFile()
+	agentCache = cache.NewAgentCache(ConvertPSpanToDKTrace)
 	var err error
 	if ipt.LocalCacheConfig != nil {
 		if localCache, err = storage.NewStorage(ipt.LocalCacheConfig, log); err != nil {
@@ -146,13 +147,10 @@ func (ipt *Input) Run() {
 		afterGather.AppendFilter(keepRareResource.Keep)
 	}
 	// add sampler
-	var sampler *itrace.Sampler
 	if ipt.Sampler != nil && (ipt.Sampler.SamplingRateGlobal >= 0 && ipt.Sampler.SamplingRateGlobal <= 1) {
-		sampler = ipt.Sampler
-	} else {
-		sampler = &itrace.Sampler{SamplingRateGlobal: 1}
+		sampler := ipt.Sampler.Init()
+		afterGather.AppendFilter(sampler.Sample)
 	}
-	afterGather.AppendFilter(sampler.Sample)
 
 	if spanSender, err = itrace.NewSpanSender(inputName, 256, time.Second, afterGatherRun, log); err != nil {
 		log.Errorf("### SpanSender is essential for pinpoint agent and failed to initialize: %s", err.Error())
@@ -160,7 +158,9 @@ func (ipt *Input) Run() {
 		return
 	}
 	spanSender.Start()
-
+	if metricFeeder == nil {
+		metricFeeder = dkio.DefaultFeeder()
+	}
 	tags = ipt.Tags
 
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_pinpoint"})

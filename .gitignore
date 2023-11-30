@@ -26,7 +26,7 @@ bin
 *.yaml
 *.zip
 test.*/
-
+ddtrace.test
 # to ignore all test generated files
 ag.sh
 agent_linux

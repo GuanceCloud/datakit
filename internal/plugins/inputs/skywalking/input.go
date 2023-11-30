@@ -245,13 +245,10 @@ func (ipt *Input) RegHTTPHandler() {
 		afterGather.AppendFilter(keepRareResource.Keep)
 	}
 	// add sampler
-	var sampler *itrace.Sampler
 	if ipt.Sampler != nil && (ipt.Sampler.SamplingRateGlobal >= 0 && ipt.Sampler.SamplingRateGlobal <= 1) {
-		sampler = ipt.Sampler
-	} else {
-		sampler = &itrace.Sampler{SamplingRateGlobal: 1}
+		sampler := ipt.Sampler.Init()
+		afterGather.AppendFilter(sampler.Sample)
 	}
-	afterGather.AppendFilter(sampler.Sample)
 
 	for _, v := range ipt.Endpoints {
 		log.Debugf("### register skywalking http v3: %s", v)
