@@ -10,7 +10,7 @@ This release is an iterative release with the following updates:
 - [Redis](../integrations/redis.md) collector added `hotkey` info(#2019)
 - Command `datakit monitor` add playing support for metrics from [Bug Report](why-no-data.m#bug-report)(#2001)
 - [Oracle](../integrations/oracle.md) collector added custom queries(#1929)
-- [Contaienr](../integrations/container.md) logging files support wildcard match(#2004)
+- [Container](../integrations/container.md) logging files support wildcard match(#2004)
 - Kubernetes Pod add `network` and `storage` info(#2022)
 - [RUM](../integrations/rum.md) added filtering for session replays data(#1945)
 
@@ -19,11 +19,11 @@ This release is an iterative release with the following updates:
 - Fixed cgroup panic error in some environments(#2003)
 - Fixed Windows installation script execution failure under PowerShell(#1997)
 - Fix disk cache default enabled bug(#2023)
-- Update naming for Prometheus metrics from Kubernetes Autodiscovery(#2015)
+- Update naming for Prometheus metrics from Kubernetes Auto-Discovery(#2015)
 
 ### Function optimization {#cl-1.20.0-opt}
 
-- Optimized built-in dashboard and monitor for MySQL/PostgreSQl/SQLServer(#2008/#2007/#2013/#2024)
+- Optimized built-in dashboard and monitor for MySQL/PostgreSQL/SQLServer(#2008/#2007/#2013/#2024)
 - Optimized Prom collector's metrics name(#2014)
 - Optimized Proxy collector and release basic benchmark(#1988)
 - Container loggging tags add support for Pod Labels(#2006)
