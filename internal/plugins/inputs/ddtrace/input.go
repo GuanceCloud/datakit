@@ -293,7 +293,7 @@ func (ipt *Input) Run() {
 		spanBase = 16
 	}
 	delMessage = ipt.DelMessage
-	traceOpts = append(point.DefaultLoggingOptions(), point.WithExtraTags(datakit.DefaultGlobalTagger().HostTags()))
+	traceOpts = append(point.DefaultLoggingOptions(), point.WithExtraTags(ipt.Tagger.HostTags()))
 	log.Debugf("### %s agent is running...", inputName)
 
 	select {

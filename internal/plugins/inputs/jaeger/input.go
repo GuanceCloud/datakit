@@ -243,7 +243,7 @@ func (ipt *Input) Run() {
 		}
 	}
 	tags = ipt.Tags
-	traceOpts = append(point.DefaultLoggingOptions(), point.WithExtraTags(datakit.DefaultGlobalTagger().HostTags()))
+	traceOpts = append(point.DefaultLoggingOptions(), point.WithExtraTags(ipt.Tagger.HostTags()))
 	delMessage = ipt.DelMessage
 	if ipt.Address != "" {
 		log.Debugf("### %s UDP agent is starting...", inputName)

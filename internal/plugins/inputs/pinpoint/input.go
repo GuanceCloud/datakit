@@ -120,7 +120,7 @@ func (ipt *Input) Run() {
 			log.Errorf("### new local-cache failed: %s", err.Error())
 		}
 	}
-	traceOpts = append(point.DefaultLoggingOptions(), point.WithExtraTags(datakit.DefaultGlobalTagger().HostTags()))
+	traceOpts = append(point.DefaultLoggingOptions(), point.WithExtraTags(ipt.Tagger.HostTags()))
 	delMessage = ipt.DelMessage
 	var afterGather *itrace.AfterGather
 	if localCache != nil && localCache.Enabled() {

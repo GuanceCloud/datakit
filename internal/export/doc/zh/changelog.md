@@ -9,7 +9,7 @@
 - [Redis](../integrations/redis.md) 采集器新增 hotkey 指标（#2019）
 - monitor 命令支持播放 [bug report](why-no-data.md#bug-report) 中的指标数据（#2001）
 - [Oracle](../integrations/oracle.md) 采集器增加自定义查询（#1929）
-- [Contaienr](../integrations/container.md) 容器内的日志文件支持通配采集（#2004）
+- [Container](../integrations/container.md) 容器内的日志文件支持通配采集（#2004）
 - Kubernetes Pod 指标支持 `network` 和 `storage` 字段采集（#2022）
 - [RUM](../integrations/rum.md) 新增配置支持对会话重放进行过滤（#1945）
 
@@ -18,11 +18,11 @@
 - 修复 cgroup 在某些而环境下出现的 panic 错误（#2003）
 - 修复 Windows 安装脚本在低版本 PowerShell 下执行失败（#1997）
 - 修复磁盘缓存默认开启问题（#2023）
-- 调整 Kubernetes Autodiscovery 的 Prom 指标集命名风格（#2015）
+- 调整 Kubernetes Auto-Discovery 的 Prom 指标集命名风格（#2015）
 
 ### 功能优化 {#cl-1.20.0-opt}
 
-- 优化内置采集器模板视图和监控器视图导出逻辑以及更新 MySQL/PostgreSQl/SQLServer 视图模板（#2008/#2007/#2013/#2024）
+- 优化内置采集器模板视图和监控器视图导出逻辑以及更新 MySQL/PostgreSQL/SQLServer 视图模板（#2008/#2007/#2013/#2024）
 - 优化 Prom 采集器自身指标名称（#2014）
 - 优化 Proxy 采集器，提供基本性能测试基准（#1988）
 - 容器日志采集支持添加所属 Pod 的 Labels（#2006）

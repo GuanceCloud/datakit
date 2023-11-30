@@ -281,7 +281,7 @@ func (ipt *Input) Run() {
 			ignoreTags = append(ignoreTags, rexp)
 		}
 	}
-	traceOpts = append(point.DefaultLoggingOptions(), point.WithExtraTags(datakit.DefaultGlobalTagger().HostTags()))
+	traceOpts = append(point.DefaultLoggingOptions(), point.WithExtraTags(ipt.Tagger.HostTags()))
 	tags = ipt.Tags
 	delMessage = ipt.DelMessage
 	// start up grpc v3 routine
