@@ -23,7 +23,7 @@ func TestList(t *T.T) {
 	})
 
 	t.Run("list-all-dashboard", func(t *T.T) {
-		dirs, err := AllDashboards.ReadDir("dashboard")
+		dirs, err := AllTemplates.ReadDir("dashboard")
 		assert.NoError(t, err)
 
 		t.Logf("get %d dirs", len(dirs))

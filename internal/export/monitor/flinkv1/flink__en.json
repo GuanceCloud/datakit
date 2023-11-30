@@ -1,0 +1,280 @@
+{
+  "checkers": [
+    {
+      "extend": {
+        "funcName": "",
+        "noDataPeriodCount": null,
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "children": [
+                {
+                  "alias": "",
+                  "code": "A",
+                  "dataSource": "flink_taskmanager",
+                  "field": "Status_JVM_Memory_Heap_Used",
+                  "fieldFunc": "last",
+                  "fieldType": "float",
+                  "groupBy": [
+                    "tm_id"
+                  ],
+                  "groupByTime": "",
+                  "namespace": "metric",
+                  "q": "M::`flink_taskmanager`:(LAST(`Status_JVM_Memory_Heap_Used`))  BY `tm_id`",
+                  "type": "simple"
+                },
+                {
+                  "alias": "",
+                  "code": "B",
+                  "dataSource": "flink_taskmanager",
+                  "field": "Status_JVM_Memory_Heap_Max",
+                  "fieldFunc": "last",
+                  "fieldType": "float",
+                  "groupBy": [
+                    "tm_id"
+                  ],
+                  "groupByTime": "",
+                  "namespace": "metric",
+                  "q": "M::`flink_taskmanager`:(LAST(`Status_JVM_Memory_Heap_Max`))  BY `tm_id`",
+                  "type": "simple"
+                }
+              ],
+              "code": "Result",
+              "expression": "A/B",
+              "funcList": [],
+              "q": "eval(A/B, A=\"M::`flink_taskmanager`:(LAST(`Status_JVM_Memory_Heap_Used`))  BY `tm_id`\", B=\"M::`flink_taskmanager`:(LAST(`Status_JVM_Memory_Heap_Max`))  BY `tm_id`\")",
+              "type": "expression"
+            },
+            "uuid": "cd6e9c2d-71bb-4cf2-b6c5-0f54257508e7"
+          }
+        ],
+        "recoverNeedPeriodCount": null,
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "0.95"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "critical"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "0.90"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "error"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "0.85"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "warning"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "0.95"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "critical"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "0.90"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "error"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "0.85"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "warning"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "tm_id"
+        ],
+        "interval": 900,
+        "message": ">Level: {{ df_status }}\n>Host: {{host}}  \n>Content: {{ df_monitor_checker_name }} exception occurs on Host {{ host }} , and the current TaskManager heap memory usage is {{ Result }}. \n>Suggest: Configure more memory for the JVM appropriately. ",
+        "noDataPeriodCount": 0,
+        "recoverNeedPeriodCount": 0,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "eval(A/B, A=\"M::`flink_taskmanager`:(LAST(`Status_JVM_Memory_Heap_Used`))  BY `tm_id`\", B=\"M::`flink_taskmanager`:(LAST(`Status_JVM_Memory_Heap_Max`))  BY `tm_id`\")"
+          }
+        ],
+        "title": "The TaskManager heap memory is insufficient on Host {{ host }} . ",
+        "type": "simpleCheck"
+      },
+      "monitorName": "Flink Detection Library"
+    },
+    {
+      "extend": {
+        "funcName": "",
+        "noDataPeriodCount": null,
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "flink_taskmanager_job",
+              "field": "task_Shuffle_Netty_Output_Buffers_outPoolUsage",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "funcList": [],
+              "groupBy": [
+                "task_id"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`flink_taskmanager_job`:(LAST(`task_Shuffle_Netty_Output_Buffers_outPoolUsage`))  BY `task_id`",
+              "type": "simple"
+            },
+            "uuid": "a682943b-1228-49f3-8331-8451dacfe4c5"
+          }
+        ],
+        "recoverNeedPeriodCount": null,
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "0.95"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "critical"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "0.90"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "error"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [],
+                "operator": ">="
+              }
+            ],
+            "status": "warning"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "0.95"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "critical"
+            },
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "0.90"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "error"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "task_id"
+        ],
+        "interval": 900,
+        "message": ">Level: {{ df_status }}\n>Host: {{host}}  \n>Content: {{ df_monitor_checker_name }} exception occurs on Host {{ host }} , and the current buffer usage in output buffer pool is {{ Result }}. \n>Suggest: The subtask is under back pressure, please check it in time.",
+        "noDataPeriodCount": 0,
+        "recoverNeedPeriodCount": 0,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`flink_taskmanager_job`:(LAST(`task_Shuffle_Netty_Output_Buffers_outPoolUsage`))  BY `task_id`"
+          }
+        ],
+        "title": "An exception occurred on Host {{ host }} that all buffers in output buffer pool were full.",
+        "type": "simpleCheck"
+      },
+      "monitorName": "Flink Detection Library"
+    }
+  ]
+}

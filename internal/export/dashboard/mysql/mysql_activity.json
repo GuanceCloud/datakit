@@ -1,0 +1,785 @@
+{
+  "dashboardBindSet": [],
+  "dashboardExtend": {},
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "dashboardType": "CUSTOM",
+  "iconSet": {
+    "icon": "https://static-res.guance.com/dataflux-template/dashboard/zh/mysql_activity/icon.svg",
+    "url": "https://static-res.guance.com/dataflux-template/dashboard/zh/mysql_activity/mysql_activity.png"
+  },
+  "main": {
+    "charts": [
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.running_sql}}",
+        "pos": {
+          "h": 8,
+          "w": 6,
+          "x": 0,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "mysql_dbm_activity",
+              "field": "*",
+              "fieldFunc": "count",
+              "fieldType": "",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "f2c11510-334a-11ed-988f-912dd8df7487",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "query_signature"
+              ],
+              "groupByTime": "",
+              "namespace": "logging",
+              "q": "SERIES_SUM(\"L::`mysql_dbm_activity`:(COUNT(`*`)) { `host` = '#{host}' } BY `query_signature`\")",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bar": {
+              "direction": "horizontal",
+              "xAxisShowType": "groupBy"
+            },
+            "chartType": "bar",
+            "color": "",
+            "colors": [],
+            "currentChartType": "toplist",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "openCompare": false,
+            "showFieldMapping": false,
+            "showTableHead": true,
+            "showTitle": true,
+            "showTopSize": true,
+            "table": {
+              "queryMode": "toGroupColumn"
+            },
+            "tableSortMetricName": "",
+            "tableSortType": "top",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "topSize": 10,
+            "units": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.process_distribution}}",
+        "pos": {
+          "h": 17,
+          "w": 12,
+          "x": 12,
+          "y": 16
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "mysql_dbm_activity",
+              "field": "*",
+              "fieldFunc": "count",
+              "fieldType": "",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "77936be0-334a-11ed-988f-912dd8df7487",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last",
+                "top:10"
+              ],
+              "groupBy": [
+                "processlist_db"
+              ],
+              "groupByTime": "",
+              "namespace": "logging",
+              "q": "L::`mysql_dbm_activity`:(COUNT(`*`)) { `host` = '#{host}' } BY `processlist_db`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "toplist",
+            "unit": ""
+          }
+        ],
+        "type": "toplist"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "areaLine",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "bottom",
+            "legendValues": [
+              "sum"
+            ],
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.process_by_db}}",
+        "pos": {
+          "h": 17,
+          "w": 12,
+          "x": 0,
+          "y": 16
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "mysql_dbm_activity",
+              "field": "processlist_command",
+              "fieldFunc": "count",
+              "fieldType": "keyword",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "21d04280-336a-11ed-a6f0-d37c49910681",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "processlist_db"
+              ],
+              "groupByTime": "",
+              "namespace": "logging",
+              "q": "L::`mysql_dbm_activity`:(COUNT(`processlist_command`)) { `host` = '#{host}' } BY `processlist_db`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "pie",
+            "colors": [],
+            "currentChartType": "pie",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "legendPostion": "bottom",
+            "levels": [],
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.event_type_distribution}}",
+        "pos": {
+          "h": 16,
+          "w": 6,
+          "x": 6,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.total_count_alias}}",
+              "code": "A",
+              "dataSource": "mysql_dbm_activity",
+              "field": "*",
+              "fieldFunc": "count",
+              "fieldType": "",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "29fa8fb0-336a-11ed-a6f0-d37c49910681",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "wait_event",
+                "processlist_host"
+              ],
+              "groupByTime": "",
+              "namespace": "logging",
+              "q": "L::`mysql_dbm_activity`:(COUNT(`*`) AS `{{.Dashboard.total_count_alias}}`) { `host` = '#{host}' } BY `wait_event`, `processlist_host`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "pie",
+            "unit": ""
+          }
+        ],
+        "type": "pie"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "doughnut",
+            "colors": [],
+            "currentChartType": "pie",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "legendPostion": "bottom",
+            "levels": [],
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.event_state_distribution}}",
+        "pos": {
+          "h": 16,
+          "w": 6,
+          "x": 12,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "mysql_dbm_activity",
+              "field": "wait_event",
+              "fieldFunc": "count",
+              "fieldType": "keyword",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "3336c210-336a-11ed-a6f0-d37c49910681",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "processlist_state",
+                "processlist_host"
+              ],
+              "groupByTime": "",
+              "namespace": "logging",
+              "q": "L::`mysql_dbm_activity`:(COUNT(`wait_event`)) { `host` = '#{host}' } BY `processlist_state`, `processlist_host`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "pie",
+            "unit": ""
+          }
+        ],
+        "type": "pie"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "chartType": "doughnut",
+            "colors": [],
+            "currentChartType": "pie",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "legendPostion": "bottom",
+            "levels": [],
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.event_command_distribution}}",
+        "pos": {
+          "h": 16,
+          "w": 6,
+          "x": 18,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "mysql_dbm_activity",
+              "field": "*",
+              "fieldFunc": "count",
+              "fieldType": "",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "3dbd9ce0-336a-11ed-a6f0-d37c49910681",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "processlist_command",
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "logging",
+              "q": "L::`mysql_dbm_activity`:(COUNT(`*`)) { `host` = '#{host}' } BY `processlist_command`, `host`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "pie",
+            "unit": ""
+          }
+        ],
+        "type": "pie"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "max(event_timer_wait)",
+                "name": "max(event_timer_wait)",
+                "unit": "",
+                "units": [
+                  "time",
+                  "ns"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.max_event_exec_time}}",
+        "pos": {
+          "h": 8,
+          "w": 6,
+          "x": 0,
+          "y": 8
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "mysql_dbm_activity",
+              "field": "event_timer_wait",
+              "fieldFunc": "max",
+              "fieldType": "long",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "9a5b29b0-33e0-11ed-a6f0-d37c49910681",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "logging",
+              "q": "L::`mysql_dbm_activity`:(MAX(`event_timer_wait`)) { `host` = '#{host}' }",
+              "queryFuncs": [],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [
+              {
+                "alias": "{{.Dashboard.process_id}}",
+                "key": "processlist_id",
+                "name": "processlist_id"
+              },
+              {
+                "alias": "{{.Dashboard.process_user}}",
+                "key": "processlist_user",
+                "name": "processlist_user"
+              },
+              {
+                "alias": "{{.Dashboard.process_db}}",
+                "key": "processlist_db",
+                "name": "processlist_db"
+              },
+              {
+                "alias": "{{.Dashboard.lock_time}}",
+                "key": "lock_time",
+                "name": "lock_time"
+              },
+              {
+                "alias": "{{.Dashboard.event_timer_wait}}",
+                "key": "event_timer_wait",
+                "name": "event_timer_wait"
+              }
+            ],
+            "aliasVersion": 2,
+            "changeWorkspace": false,
+            "colors": [],
+            "currentChartType": "table",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "isTimeInterval": false,
+            "levels": [],
+            "mainMeasurementLimit": 50,
+            "mainMeasurementQueryCode": "F",
+            "mainMeasurementSort": "top",
+            "openThousandsSeparator": false,
+            "pageSize": 0,
+            "precision": "2",
+            "queryMode": "toGroupColumn",
+            "showFieldMapping": false,
+            "showTitle": true,
+            "slimit": 20,
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "custom",
+            "units": [
+              {
+                "key": "lock_time",
+                "name": "lock_time",
+                "unit": "",
+                "units": [
+                  "time",
+                  "ns"
+                ]
+              },
+              {
+                "key": "event_timer_wait",
+                "name": "event_timer_wait",
+                "unit": "",
+                "units": [
+                  "time",
+                  "ns"
+                ]
+              }
+            ],
+            "valColorMappings": [],
+            "valMappings": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.event_top_50}}",
+        "pos": {
+          "h": 16,
+          "w": 24,
+          "x": 0,
+          "y": 33
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "lock_time",
+              "code": "F",
+              "dataSource": "mysql_dbm_activity",
+              "field": "lock_time",
+              "fieldFunc": "avg",
+              "fieldType": "long",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "1b8f6f70-3362-11ed-a6f0-d37c49910681",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "processlist_id",
+                "processlist_user",
+                "processlist_db"
+              ],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`mysql_dbm_activity`:(AVG(`lock_time`) AS `lock_time`) { `index` = 'default' and  `host` = '#{host}'  } BY `processlist_id`, `processlist_user`, `processlist_db`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "event_timer_wait",
+              "code": "H",
+              "dataSource": "mysql_dbm_activity",
+              "field": "event_timer_wait",
+              "fieldFunc": "avg",
+              "fieldType": "long",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "1b8f6f70-3362-11ed-a6f0-d37c49910681",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "processlist_id",
+                "processlist_user",
+                "processlist_db"
+              ],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`mysql_dbm_activity`:(AVG(`event_timer_wait`) AS `event_timer_wait`) { `index` = 'default' and  `host` = '#{host}'  } BY `processlist_id`, `processlist_user`, `processlist_db`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          }
+        ],
+        "type": "table"
+      }
+    ],
+    "groups": [],
+    "type": "template",
+    "vars": [
+      {
+        "code": "host",
+        "datasource": "dataflux",
+        "definition": {
+          "defaultVal": {
+            "label": "*",
+            "value": "re(`.*`)"
+          },
+          "field": "",
+          "metric": "",
+          "object": "",
+          "tag": "",
+          "value": "show_tag_value(from=['mysql'],keyin=['host'])"
+        },
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "name": "host",
+        "seq": 0,
+        "type": "QUERY",
+        "valueSort": "default"
+      }
+    ]
+  },
+  "summary": "",
+  "tagInfo": [
+    {
+      "name": "mysql"
+    }
+  ],
+  "thumbnail": "",
+  "title": "{{.Dashboard.activity_title}}"
+}

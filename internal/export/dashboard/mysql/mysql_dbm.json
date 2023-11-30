@@ -1,0 +1,1947 @@
+{
+  "dashboardBindSet": [],
+  "dashboardExtend": {},
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "dashboardType": "CUSTOM",
+  "iconSet": {
+    "icon": "https://static-res.guance.com/dataflux-template/dashboard/zh/mysql_dbm/icon.svg",
+    "url": "https://static-res.guance.com/dataflux-template/dashboard/zh/mysql_dbm/mysql_dbm.png"
+  },
+  "main": {
+    "charts": [
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isPercent": false,
+            "isSampling": true,
+            "isTimeInterval": true,
+            "legendPostion": "bottom",
+            "legendValues": [
+              "last",
+              "avg",
+              "max"
+            ],
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "maxPointCount": 360,
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "1s",
+            "titleDesc": "",
+            "unitType": "custom",
+            "units": [
+              {
+                "key": "{{.Dashboard.cost}}",
+                "name": "{{.Dashboard.cost}}",
+                "unit": "",
+                "units": [
+                  "time",
+                  "ns"
+                ]
+              }
+            ],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.sql_cost}}",
+        "pos": {
+          "h": 15,
+          "w": 8,
+          "x": 0,
+          "y": 12
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.cost}}",
+              "code": "A",
+              "dataSource": "mysql_dbm_metric",
+              "field": "sum_timer_wait",
+              "fieldFunc": "max",
+              "fieldType": "long",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "64799a20-fe5c-11ec-ab99-7dffa911a6a0",
+                  "logic": "and",
+                  "name": "server",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{server}"
+                },
+                {
+                  "id": "e1908370-fe61-11ec-9815-974c11ee19fa",
+                  "logic": "and",
+                  "name": "schema_name",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{schema}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "schema_name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`mysql_dbm_metric`:(MAX(`sum_timer_wait`) AS `{{.Dashboard.cost}}`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' ) } BY `schema_name`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "chartType": "areaLine",
+            "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isPercent": false,
+            "isSampling": true,
+            "isTimeInterval": true,
+            "legendPostion": "bottom",
+            "legendValues": [
+              "max",
+              "avg",
+              "sum"
+            ],
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "maxPointCount": 360,
+            "onlyShowGroupName": false,
+            "openCompare": false,
+            "openStack": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "slimit": 20,
+            "stackType": "time",
+            "timeInterval": "1s",
+            "titleDesc": "",
+            "unitType": "custom",
+            "units": [],
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.sql_trend}}",
+        "pos": {
+          "h": 15,
+          "w": 8,
+          "x": 8,
+          "y": 12
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.sql_number}}",
+              "code": "A",
+              "dataSource": "mysql_dbm_metric",
+              "field": "*",
+              "fieldFunc": "count",
+              "fieldType": "keyword",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "64799a20-fe5c-11ec-ab99-7dffa911a6a0",
+                  "logic": "and",
+                  "name": "server",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{server}"
+                },
+                {
+                  "id": "e1908370-fe61-11ec-9815-974c11ee19fa",
+                  "logic": "and",
+                  "name": "schema_name",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{schema}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "schema_name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`mysql_dbm_metric`:(COUNT(`*`) AS `{{.Dashboard.sql_number}}`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' ) } BY `schema_name`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "changeWorkspace": false,
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "isTimeInterval": false,
+            "levels": [
+              {
+                "bgColor": "#6CF02D",
+                "fontColor": "",
+                "lineColor": "",
+                "operation": "<",
+                "value": [
+                  "1"
+                ]
+              },
+              {
+                "bgColor": "#FFBD5F",
+                "fontColor": "",
+                "lineColor": "",
+                "operation": "<",
+                "value": [
+                  "3"
+                ]
+              },
+              {
+                "bgColor": "#F2A395",
+                "fontColor": "",
+                "lineColor": "",
+                "operation": "<",
+                "value": [
+                  "5"
+                ]
+              },
+              {
+                "bgColor": "#F0372D",
+                "fontColor": "",
+                "lineColor": "",
+                "operation": ">=",
+                "value": [
+                  "5"
+                ]
+              }
+            ],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "sequenceChartType": "line",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "unitType": "custom",
+            "units": [
+              {
+                "key": "耗时",
+                "name": "耗时",
+                "unit": "",
+                "units": [
+                  "time",
+                  "ns"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.max_query_time}}",
+        "pos": {
+          "h": 6,
+          "w": 4,
+          "x": 8,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "耗时",
+              "code": "A",
+              "dataSource": "mysql_dbm_metric",
+              "field": "sum_timer_wait",
+              "fieldFunc": "max",
+              "fieldType": "long",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "407c1d90-82c8-11ee-963b-0f032b713a0a",
+                  "logic": "and",
+                  "name": "server",
+                  "op": "=",
+                  "value": "#{server}"
+                },
+                {
+                  "id": "407c1d91-82c8-11ee-963b-0f032b713a0a",
+                  "logic": "and",
+                  "name": "schema_name",
+                  "op": "=",
+                  "value": "#{schema}"
+                },
+                {
+                  "id": "407c1d92-82c8-11ee-963b-0f032b713a0a",
+                  "logic": "and",
+                  "name": "message",
+                  "op": "=~",
+                  "value": "SELECT.*"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "schema_name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "labelOp": "",
+              "namespace": "logging",
+              "q": "L::`mysql_dbm_metric`:(MAX(`sum_timer_wait`) AS `耗时`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' and `message` = re('SELECT.*') ) } BY `schema_name`",
+              "queryFuncs": [],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "#2D8CF0",
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.sql_exec_times}}",
+        "pos": {
+          "h": 12,
+          "w": 4,
+          "x": 12,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "SQL 总数",
+              "code": "A",
+              "dataSource": "mysql_dbm_metric",
+              "field": "*",
+              "fieldFunc": "count",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "server",
+                  "op": "=",
+                  "value": "#{server}"
+                },
+                {
+                  "logic": "and",
+                  "name": "schema_name",
+                  "op": "=",
+                  "value": "#{schema}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "schema_name"
+              ],
+              "groupByTime": "",
+              "namespace": "logging",
+              "q": "L::`mysql_dbm_metric`:(COUNT(`*`) AS `SQL 总数`) { `server` = '#{server}' and `schema_name` = '#{schema}' } BY `schema_name`",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": false,
+            "levels": [
+              {
+                "bgColor": "#6DEFBD",
+                "fontColor": "",
+                "lineColor": "",
+                "operation": "<",
+                "value": [
+                  "10"
+                ]
+              },
+              {
+                "bgColor": "#F0452D",
+                "fontColor": "",
+                "lineColor": "",
+                "operation": ">=",
+                "value": [
+                  "50"
+                ]
+              },
+              {
+                "bgColor": "#F0E12D",
+                "fontColor": "",
+                "lineColor": "",
+                "operation": "between",
+                "value": [
+                  10,
+                  50
+                ]
+              }
+            ],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.exec_times_per_sql}}",
+        "pos": {
+          "h": 12,
+          "w": 4,
+          "x": 16,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "mysql_dbm_metric",
+              "field": "count_star",
+              "fieldFunc": "max",
+              "fieldType": "long",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "d7777a40-fe90-11ec-a45b-5d8f27e09109",
+                  "logic": "and",
+                  "name": "server",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{server}"
+                },
+                {
+                  "id": "ddf7c0f0-fe90-11ec-a45b-5d8f27e09109",
+                  "logic": "and",
+                  "name": "schema_name",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{schema}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "schema_name"
+              ],
+              "groupByTime": "",
+              "namespace": "logging",
+              "q": "L::`mysql_dbm_metric`:(MAX(`count_star`)) { `server` = '#{server}' and `schema_name` = '#{schema}' } BY `schema_name`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "isTimeInterval": false,
+            "levels": [
+              {
+                "bgColor": "#4CF6B5",
+                "fontColor": "",
+                "lineColor": "",
+                "operation": "<",
+                "value": [
+                  "50000000"
+                ]
+              },
+              {
+                "bgColor": "#F0D82D",
+                "fontColor": "",
+                "lineColor": "",
+                "operation": "between",
+                "value": [
+                  50000000,
+                  100000000
+                ]
+              },
+              {
+                "bgColor": "#F03C2D",
+                "fontColor": "",
+                "lineColor": "",
+                "operation": ">=",
+                "value": [
+                  "100000000"
+                ]
+              }
+            ],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "最长锁时间",
+                "name": "最长锁时间",
+                "unit": "",
+                "units": [
+                  "time",
+                  "ns"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.max_lock_time}}",
+        "pos": {
+          "h": 12,
+          "w": 4,
+          "x": 20,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "最长锁时间",
+              "code": "A",
+              "dataSource": "mysql_dbm_metric",
+              "field": "sum_lock_time",
+              "fieldFunc": "max",
+              "fieldType": "long",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "1284a380-2f13-11ed-8268-b3d23b9a20df",
+                  "logic": "and",
+                  "name": "server",
+                  "op": "=",
+                  "value": "#{server}"
+                },
+                {
+                  "id": "1284a381-2f13-11ed-8268-b3d23b9a20df",
+                  "logic": "and",
+                  "name": "schema_name",
+                  "op": "=",
+                  "value": "#{schema}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "schema_name"
+              ],
+              "groupByTime": "",
+              "namespace": "logging",
+              "q": "L::`mysql_dbm_metric`:(MAX(`sum_lock_time`) AS `最长锁时间`) { `server` = '#{server}' and `schema_name` = '#{schema}' } BY `schema_name`",
+              "queryFuncs": [],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": true,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "table",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "isTimeInterval": false,
+            "levels": [],
+            "mainMeasurementLimit": 20,
+            "mainMeasurementQueryCode": "A",
+            "mainMeasurementSort": "top",
+            "openCompare": false,
+            "openThousandsSeparator": false,
+            "pageSize": 0,
+            "precision": "2",
+            "queryMode": "toGroupColumn",
+            "showFieldMapping": false,
+            "showTitle": true,
+            "slimit": 20,
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "custom",
+            "units": [
+              {
+                "key": "{{.Dashboard.cost}}",
+                "name": "{{.Dashboard.cost}}",
+                "unit": "",
+                "units": [
+                  "time",
+                  "ns"
+                ]
+              },
+              {
+                "key": "{{.Dashboard.lock_time}}",
+                "name": "{{.Dashboard.lock_time}}",
+                "unit": "",
+                "units": [
+                  "time",
+                  "ns"
+                ]
+              },
+              {
+                "key": "{{.Dashboard.create_time}}",
+                "name": "{{.Dashboard.create_time}}",
+                "unit": "",
+                "units": [
+                  "timeStamp",
+                  "ms"
+                ]
+              }
+            ],
+            "valColorMappings": [
+              {
+                "field": "cost",
+                "fontColor": "#F04A2D",
+                "operation": ">=",
+                "value": [
+                  "3000000000"
+                ]
+              },
+              {
+                "field": "cost",
+                "fontColor": "#2DF06C",
+                "operation": "<",
+                "value": [
+                  "1000000000"
+                ]
+              },
+              {
+                "field": "cost",
+                "fontColor": "#F6D449",
+                "operation": "between",
+                "value": [
+                  1000000000,
+                  3000000000
+                ]
+              }
+            ],
+            "valMappings": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.sql_cost_top_20}}",
+        "pos": {
+          "h": 28,
+          "w": 24,
+          "x": 0,
+          "y": 27
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.cost}}",
+              "code": "C",
+              "dataSource": "mysql_dbm_metric",
+              "field": "sum_timer_wait",
+              "fieldFunc": "max",
+              "fieldType": "long",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "ed353a70-fe9a-11ec-aa1f-f51b8c6f8da4",
+                  "logic": "and",
+                  "name": "server",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{server}"
+                },
+                {
+                  "id": "f3bf6c30-fe9a-11ec-aa1f-f51b8c6f8da4",
+                  "logic": "and",
+                  "name": "schema_name",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{schema}"
+                },
+                {
+                  "id": "b9f160a0-00c3-11ed-b54c-0b0f40e15495",
+                  "logic": "and",
+                  "name": "message",
+                  "op": "!=~",
+                  "type": "text",
+                  "value": "set*"
+                },
+                {
+                  "id": "04311930-00c4-11ed-bb57-693194e29bc7",
+                  "logic": "and",
+                  "name": "message",
+                  "op": "!=~",
+                  "type": "text",
+                  "value": "show*"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "digest"
+              ],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`mysql_dbm_metric`:(MAX(`sum_timer_wait`) AS `{{.Dashboard.cost}}`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' and `message` != re('set*') and `message` != re('show*') ) } BY `digest`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "SQL",
+              "code": "A",
+              "dataSource": "mysql_dbm_metric",
+              "field": "message",
+              "fieldFunc": "count",
+              "fieldType": "keyword",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "fbcfefd0-fe9a-11ec-aa1f-f51b8c6f8da4",
+                  "logic": "and",
+                  "name": "server",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{server}"
+                },
+                {
+                  "id": "feba6590-fe9a-11ec-aa1f-f51b8c6f8da4",
+                  "logic": "and",
+                  "name": "schema_name",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{schema}"
+                },
+                {
+                  "id": "91d7aa10-00c9-11ed-adb9-0f50089ca679",
+                  "logic": "and",
+                  "name": "message",
+                  "op": "!=~",
+                  "type": "text",
+                  "value": "set*"
+                },
+                {
+                  "id": "a1266d30-00c9-11ed-adb9-0f50089ca679",
+                  "logic": "and",
+                  "name": "message",
+                  "op": "!=~",
+                  "type": "text",
+                  "value": "show*"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "digest"
+              ],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`mysql_dbm_metric`:(COUNT(`message`) AS `SQL`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' and `message` != re('set*') and `message` != re('show*') ) } BY `digest`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.lock_time}}",
+              "code": "B",
+              "dataSource": "mysql_dbm_metric",
+              "field": "sum_lock_time",
+              "fieldFunc": "last",
+              "fieldType": "long",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "fbcfefd0-fe9a-11ec-aa1f-f51b8c6f8da4",
+                  "logic": "and",
+                  "name": "server",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{server}"
+                },
+                {
+                  "id": "feba6590-fe9a-11ec-aa1f-f51b8c6f8da4",
+                  "logic": "and",
+                  "name": "schema_name",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{schema}"
+                },
+                {
+                  "id": "aa4839c0-00c9-11ed-adb9-0f50089ca679",
+                  "logic": "and",
+                  "name": "message",
+                  "op": "!=~",
+                  "type": "text",
+                  "value": "set*"
+                },
+                {
+                  "id": "b1a01bc0-00c9-11ed-adb9-0f50089ca679",
+                  "logic": "and",
+                  "name": "message",
+                  "op": "!=~",
+                  "type": "text",
+                  "value": "show*"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "digest"
+              ],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`mysql_dbm_metric`:(LAST(`sum_lock_time`) AS `{{.Dashboard.lock_time}}`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' and `message` != re('set*') and `message` != re('show*') ) } BY `digest`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.no_index}}",
+              "code": "E",
+              "dataSource": "mysql_dbm_metric",
+              "field": "sum_no_index_used",
+              "fieldFunc": "last",
+              "fieldType": "long",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "fbcfefd0-fe9a-11ec-aa1f-f51b8c6f8da4",
+                  "logic": "and",
+                  "name": "server",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{server}"
+                },
+                {
+                  "id": "feba6590-fe9a-11ec-aa1f-f51b8c6f8da4",
+                  "logic": "and",
+                  "name": "schema_name",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{schema}"
+                },
+                {
+                  "id": "ef1134f0-00e0-11ed-932d-db30ffb0306b",
+                  "logic": "and",
+                  "name": "message",
+                  "op": "!=~",
+                  "type": "text",
+                  "value": "set*"
+                },
+                {
+                  "id": "f53f3cf0-00e0-11ed-932d-db30ffb0306b",
+                  "logic": "and",
+                  "name": "message",
+                  "op": "!=~",
+                  "type": "text",
+                  "value": "show*"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "digest"
+              ],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`mysql_dbm_metric`:(LAST(`sum_no_index_used`) AS `{{.Dashboard.no_index}}`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' and `message` != re('set*') and `message` != re('show*') ) } BY `digest`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.no_good_index}}",
+              "code": "F",
+              "dataSource": "mysql_dbm_metric",
+              "field": "sum_no_good_index_used",
+              "fieldFunc": "last",
+              "fieldType": "long",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "fbcfefd0-fe9a-11ec-aa1f-f51b8c6f8da4",
+                  "logic": "and",
+                  "name": "server",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{server}"
+                },
+                {
+                  "id": "feba6590-fe9a-11ec-aa1f-f51b8c6f8da4",
+                  "logic": "and",
+                  "name": "schema_name",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{schema}"
+                },
+                {
+                  "id": "0310d5f0-00e1-11ed-932d-db30ffb0306b",
+                  "logic": "and",
+                  "name": "message",
+                  "op": "!=~",
+                  "type": "text",
+                  "value": "set*"
+                },
+                {
+                  "id": "0b930720-00e1-11ed-932d-db30ffb0306b",
+                  "logic": "and",
+                  "name": "message",
+                  "op": "!=~",
+                  "type": "text",
+                  "value": "show*"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "digest"
+              ],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`mysql_dbm_metric`:(LAST(`sum_no_good_index_used`) AS `{{.Dashboard.no_good_index}}`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' and `message` != re('set*') and `message` != re('show*') ) } BY `digest`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.select_scan}}",
+              "code": "D",
+              "dataSource": "mysql_dbm_metric",
+              "field": "sum_select_scan",
+              "fieldFunc": "last",
+              "fieldType": "long",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "fbcfefd0-fe9a-11ec-aa1f-f51b8c6f8da4",
+                  "logic": "and",
+                  "name": "server",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{server}"
+                },
+                {
+                  "id": "feba6590-fe9a-11ec-aa1f-f51b8c6f8da4",
+                  "logic": "and",
+                  "name": "schema_name",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{schema}"
+                },
+                {
+                  "id": "13540b30-00e1-11ed-932d-db30ffb0306b",
+                  "logic": "and",
+                  "name": "message",
+                  "op": "!=~",
+                  "type": "text",
+                  "value": "set*"
+                },
+                {
+                  "id": "1ba122a0-00e1-11ed-932d-db30ffb0306b",
+                  "logic": "and",
+                  "name": "message",
+                  "op": "!=~",
+                  "type": "text",
+                  "value": "show*"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "digest"
+              ],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`mysql_dbm_metric`:(LAST(`sum_select_scan`) AS `{{.Dashboard.select_scan}}`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' and `message` != re('set*') and `message` != re('show*') ) } BY `digest`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.select_full_join}}",
+              "code": "G",
+              "dataSource": "mysql_dbm_metric",
+              "field": "sum_select_full_join",
+              "fieldFunc": "last",
+              "fieldType": "long",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "fbcfefd0-fe9a-11ec-aa1f-f51b8c6f8da4",
+                  "logic": "and",
+                  "name": "server",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{server}"
+                },
+                {
+                  "id": "feba6590-fe9a-11ec-aa1f-f51b8c6f8da4",
+                  "logic": "and",
+                  "name": "schema_name",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{schema}"
+                },
+                {
+                  "id": "479ce6a0-00e1-11ed-932d-db30ffb0306b",
+                  "logic": "and",
+                  "name": "message",
+                  "op": "!=~",
+                  "type": "text",
+                  "value": "set*"
+                },
+                {
+                  "id": "4e3aee80-00e1-11ed-932d-db30ffb0306b",
+                  "logic": "and",
+                  "name": "message",
+                  "op": "!=~",
+                  "type": "text",
+                  "value": "show*"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "digest"
+              ],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`mysql_dbm_metric`:(LAST(`sum_select_full_join`) AS `{{.Dashboard.select_full_join}}`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' and `message` != re('set*') and `message` != re('show*') ) } BY `digest`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.query_count}}",
+              "code": "H",
+              "dataSource": "mysql_dbm_metric",
+              "field": "count_star",
+              "fieldFunc": "sum",
+              "fieldType": "long",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "fbcfefd0-fe9a-11ec-aa1f-f51b8c6f8da4",
+                  "logic": "and",
+                  "name": "server",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{server}"
+                },
+                {
+                  "id": "feba6590-fe9a-11ec-aa1f-f51b8c6f8da4",
+                  "logic": "and",
+                  "name": "schema_name",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{schema}"
+                },
+                {
+                  "id": "27aca1a0-00e1-11ed-932d-db30ffb0306b",
+                  "logic": "and",
+                  "name": "message",
+                  "op": "!=~",
+                  "type": "text",
+                  "value": "set*"
+                },
+                {
+                  "id": "32379b20-00e1-11ed-932d-db30ffb0306b",
+                  "logic": "and",
+                  "name": "message",
+                  "op": "!=~",
+                  "type": "text",
+                  "value": "show*"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "digest"
+              ],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`mysql_dbm_metric`:(SUM(`count_star`) AS `{{.Dashboard.query_count}}`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' and `message` != re('set*') and `message` != re('show*') ) } BY `digest`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.create_time}}",
+              "code": "I",
+              "dataSource": "mysql_dbm_metric",
+              "field": "create_time",
+              "fieldFunc": "last",
+              "fieldType": "long",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "fbcfefd0-fe9a-11ec-aa1f-f51b8c6f8da4",
+                  "logic": "and",
+                  "name": "server",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{server}"
+                },
+                {
+                  "id": "feba6590-fe9a-11ec-aa1f-f51b8c6f8da4",
+                  "logic": "and",
+                  "name": "schema_name",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{schema}"
+                },
+                {
+                  "id": "27aca1a0-00e1-11ed-932d-db30ffb0306b",
+                  "logic": "and",
+                  "name": "message",
+                  "op": "!=~",
+                  "type": "text",
+                  "value": "set*"
+                },
+                {
+                  "id": "32379b20-00e1-11ed-932d-db30ffb0306b",
+                  "logic": "and",
+                  "name": "message",
+                  "op": "!=~",
+                  "type": "text",
+                  "value": "show*"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "digest"
+              ],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`mysql_dbm_metric`:(LAST(`create_time`) AS `{{.Dashboard.create_time}}`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' and `message` != re('set*') and `message` != re('show*') ) } BY `digest`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "table",
+            "unit": ""
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "extend": {
+          "fixedGroupByTime": null,
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "changeWorkspace": false,
+            "colors": [],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "isTimeInterval": false,
+            "levels": [
+              {
+                "bgColor": "#6CF02D",
+                "fontColor": "",
+                "lineColor": "",
+                "operation": "<",
+                "value": [
+                  "1"
+                ]
+              },
+              {
+                "bgColor": "#FFBD5F",
+                "fontColor": "",
+                "lineColor": "",
+                "operation": "<",
+                "value": [
+                  "3"
+                ]
+              },
+              {
+                "bgColor": "#F2A395",
+                "fontColor": "",
+                "lineColor": "",
+                "operation": "<",
+                "value": [
+                  "5"
+                ]
+              },
+              {
+                "bgColor": "#F0372D",
+                "fontColor": "",
+                "lineColor": "",
+                "operation": ">=",
+                "value": [
+                  "5"
+                ]
+              }
+            ],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "sequenceChartType": "line",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "unitType": "custom",
+            "units": [
+              {
+                "key": "耗时",
+                "name": "耗时",
+                "unit": "",
+                "units": [
+                  "time",
+                  "ns"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.max_insert_time}}",
+        "pos": {
+          "h": 6,
+          "w": 4,
+          "x": 8,
+          "y": 6
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "耗时",
+              "code": "A",
+              "dataSource": "mysql_dbm_metric",
+              "field": "sum_timer_wait",
+              "fieldFunc": "max",
+              "fieldType": "long",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "c22512a0-c321-11ed-8804-53d59572ab71",
+                  "logic": "and",
+                  "name": "server",
+                  "op": "=",
+                  "value": "#{server}"
+                },
+                {
+                  "id": "c22512a1-c321-11ed-8804-53d59572ab71",
+                  "logic": "and",
+                  "name": "schema_name",
+                  "op": "=",
+                  "value": "#{schema}"
+                },
+                {
+                  "id": "c22512a2-c321-11ed-8804-53d59572ab71",
+                  "logic": "and",
+                  "name": "message",
+                  "op": "=~",
+                  "type": "keyword",
+                  "value": "INSERT.*"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "schema_name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`mysql_dbm_metric`:(MAX(`sum_timer_wait`) AS `耗时`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' and `message` = re('INSERT.*') ) } BY `schema_name`",
+              "queryFuncs": [],
+              "type": "simple",
+              "withLabels": []
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [
+              {
+                "alias": "INSERT",
+                "key": "inserts{\"schema_name\": \"ry-2022\"}",
+                "name": "inserts{\"schema_name\": \"ry-2022\"}"
+              },
+              {
+                "alias": "SELECT",
+                "key": "querys{\"schema_name\": \"ry-2022\"}",
+                "name": "querys{\"schema_name\": \"ry-2022\"}"
+              },
+              {
+                "alias": "OHTERS",
+                "key": "OTHERS{\"schema_name\": \"ry-2022\"}",
+                "name": "OTHERS{\"schema_name\": \"ry-2022\"}"
+              }
+            ],
+            "chartCombineDefaultColor": "#F56610",
+            "chartType": "pie",
+            "colors": [],
+            "currentChartType": "pie",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "legendPostion": "circle",
+            "levels": [],
+            "onlyShowGroupName": false,
+            "otherColor": "#F56610",
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.sql_distribution}}",
+        "pos": {
+          "h": 15,
+          "w": 8,
+          "x": 16,
+          "y": 12
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "querys",
+              "code": "A",
+              "dataSource": "mysql_dbm_metric",
+              "field": "*",
+              "fieldFunc": "count",
+              "fieldType": "",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "86c4da60-2f15-11ed-a038-5f87a76b293e",
+                  "logic": "and",
+                  "name": "message",
+                  "op": "=~",
+                  "type": "text",
+                  "value": "SELECT*"
+                },
+                {
+                  "id": "c597c4f0-2f15-11ed-a038-5f87a76b293e",
+                  "logic": "and",
+                  "name": "server",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{server}"
+                },
+                {
+                  "id": "cbee8aa0-2f15-11ed-a038-5f87a76b293e",
+                  "logic": "and",
+                  "name": "schema_name",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{schema}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "schema_name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`mysql_dbm_metric`:(COUNT(`*`) AS `querys`) { `index` = 'default' and ( `message` = re('SELECT*') and `server` = '#{server}' and `schema_name` = '#{schema}' ) } BY `schema_name`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "pie",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "inserts",
+              "code": "B",
+              "dataSource": "mysql_dbm_metric",
+              "field": "*",
+              "fieldFunc": "count",
+              "fieldType": "",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "86c4da60-2f15-11ed-a038-5f87a76b293e",
+                  "logic": "and",
+                  "name": "message",
+                  "op": "=~",
+                  "type": "text",
+                  "value": "INSERT*"
+                },
+                {
+                  "id": "d1cb8c70-2f15-11ed-a038-5f87a76b293e",
+                  "logic": "and",
+                  "name": "server",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{server}"
+                },
+                {
+                  "id": "d5e5f6b0-2f15-11ed-a038-5f87a76b293e",
+                  "logic": "and",
+                  "name": "schema_name",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{schema}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "schema_name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`mysql_dbm_metric`:(COUNT(`*`) AS `inserts`) { `index` = 'default' and ( `message` = re('INSERT*') and `server` = '#{server}' and `schema_name` = '#{schema}' ) } BY `schema_name`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "pie",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "updates",
+              "code": "C",
+              "dataSource": "mysql_dbm_metric",
+              "field": "*",
+              "fieldFunc": "count",
+              "fieldType": "",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "86c4da60-2f15-11ed-a038-5f87a76b293e",
+                  "logic": "and",
+                  "name": "message",
+                  "op": "=~",
+                  "type": "text",
+                  "value": "UPDATE*"
+                },
+                {
+                  "id": "d1cb8c70-2f15-11ed-a038-5f87a76b293e",
+                  "logic": "and",
+                  "name": "server",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{server}"
+                },
+                {
+                  "id": "d5e5f6b0-2f15-11ed-a038-5f87a76b293e",
+                  "logic": "and",
+                  "name": "schema_name",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{schema}"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "schema_name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`mysql_dbm_metric`:(COUNT(`*`) AS `updates`) { `index` = 'default' and ( `message` = re('UPDATE*') and `server` = '#{server}' and `schema_name` = '#{schema}' ) } BY `schema_name`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "pie",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "OTHERS",
+              "code": "D",
+              "dataSource": "mysql_dbm_metric",
+              "field": "*",
+              "fieldFunc": "count",
+              "fieldType": "",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "86c4da60-2f15-11ed-a038-5f87a76b293e",
+                  "logic": "and",
+                  "name": "message",
+                  "op": "!=~",
+                  "type": "text",
+                  "value": "UPDATE*"
+                },
+                {
+                  "id": "d1cb8c70-2f15-11ed-a038-5f87a76b293e",
+                  "logic": "and",
+                  "name": "server",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{server}"
+                },
+                {
+                  "id": "d5e5f6b0-2f15-11ed-a038-5f87a76b293e",
+                  "logic": "and",
+                  "name": "schema_name",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{schema}"
+                },
+                {
+                  "id": "354677b0-2f16-11ed-a038-5f87a76b293e",
+                  "logic": "and",
+                  "name": "message",
+                  "op": "!=~",
+                  "type": "text",
+                  "value": "INSERT*"
+                },
+                {
+                  "id": "4306f9b0-2f16-11ed-a038-5f87a76b293e",
+                  "logic": "and",
+                  "name": "message",
+                  "op": "!=~",
+                  "type": "text",
+                  "value": "SELECT*"
+                }
+              ],
+              "funcList": [
+                "last"
+              ],
+              "groupBy": [
+                "schema_name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`mysql_dbm_metric`:(COUNT(`*`) AS `OTHERS`) { `index` = 'default' and ( `message` != re('UPDATE*') and `server` = '#{server}' and `schema_name` = '#{schema}' and `message` != re('INSERT*') and `message` != re('SELECT*') ) } BY `schema_name`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "pie",
+            "unit": ""
+          }
+        ],
+        "type": "pie"
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "colors": [],
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "showFieldMapping": false,
+            "showTitle": false,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "新建图表",
+        "pos": {
+          "h": 12,
+          "w": 8,
+          "x": 0,
+          "y": 0
+        },
+        "queries": [
+          {
+            "name": "",
+            "query": {
+              "content": "{{.Dashboard.dbm_info_text}}"
+            }
+          }
+        ],
+        "type": "text"
+      }
+    ],
+    "groups": [],
+    "type": "template",
+    "vars": [
+      {
+        "code": "server",
+        "datasource": "dataflux",
+        "definition": {
+          "defaultVal": {
+            "label": "*",
+            "value": "re(`.*`)"
+          },
+          "field": "",
+          "metric": "",
+          "object": "",
+          "tag": "",
+          "value": "show_tag_value(from=['mysql_schema'],keyin=['server'])"
+        },
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "name": "server",
+        "seq": 0,
+        "type": "QUERY",
+        "valueSort": "default"
+      },
+      {
+        "code": "schema",
+        "datasource": "dataflux",
+        "definition": {
+          "defaultVal": {
+            "label": "*",
+            "value": "re(`.*`)"
+          },
+          "field": "",
+          "metric": "",
+          "object": "",
+          "tag": "",
+          "value": "show_tag_value(from=['mysql_schema'],keyin=['schema_name']){server='#{server}'}"
+        },
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "name": "schema",
+        "seq": 1,
+        "type": "QUERY",
+        "valueSort": "default"
+      }
+    ]
+  },
+  "summary": "",
+  "tagInfo": [
+    {
+      "name": "mysql"
+    }
+  ],
+  "thumbnail": "",
+  "title": "{{.Dashboard.dbm_title}}"
+}
