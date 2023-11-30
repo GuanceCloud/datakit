@@ -1,6 +1,39 @@
 # Changelog
 ---
 
+## 1.20.0(2023/11/30) {#cl-1.20.0}
+
+This release is an iterative release with the following updates:
+
+### New addition {#cl-1.20.0-new}
+
+- [Redis](../integrations/redis.md) collector added `hotkey` info(#2019)
+- Command `datakit monitor` add playing support for metrics from [Bug Report](why-no-data.m#bug-report)(#2001)
+- [Oracle](../integrations/oracle.md) collector added custom queries(#1929)
+- [Contaienr](../integrations/container.md) logging files support wildcard match(#2004)
+- Kubernetes Pod add `network` and `storage` info(#2022)
+- [RUM](../integrations/rum.md) added filtering for session replays data(#1945)
+
+### Fix {#cl-1.20.0-fix}
+
+- Fixed cgroup panic error in some environments(#2003)
+- Fixed Windows installation script execution failure under PowerShell(#1997)
+- Fix disk cache default enabled bug(#2023)
+- Update naming for Prometheus metrics from Kubernetes Autodiscovery(#2015)
+
+### Function optimization {#cl-1.20.0-opt}
+
+- Optimized built-in dashboard and monitor for MySQL/PostgreSQl/SQLServer(#2008/#2007/#2013/#2024)
+- Optimized Prom collector's metrics name(#2014)
+- Optimized Proxy collector and release basic benchmark(#1988)
+- Container loggging tags add support for Pod Labels(#2006)
+- Set `NODE_LOCAL` as the default mode when collecting Kubernetes data(and need additional settings for [RBAC](../integrations/container.md#rbac-nodes-stats))(#2025)
+- Optimized tracing handle(on memory usage)(#1966)
+- Update PinPoint collector(#1947)
+- Enable dropping `message` to save storage(#2021)
+
+---
+
 ## 1.19.2(2023/11/20) {#cl-1.19.2}
 
 This release is a Hotfix release, which fixes the following issues:
