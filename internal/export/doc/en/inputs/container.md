@@ -205,7 +205,7 @@ Containers will add Customer Labels of the Pods they belong to.
 
 ### NODE_LOCAL mode requires new RBAC permissions {#rbac-nodes-stats}
 
-The `ENV_INPUT_CONTAINER_ENABLE_K8S_NODE_LOCAL` mode is only recommended for DaemonSet deployment and requires access to kubelet, so the `nodes/state` permission needs to be added to RBAC. For example:
+The `ENV_INPUT_CONTAINER_ENABLE_K8S_NODE_LOCAL` mode is only recommended for DaemonSet deployment and requires access to kubelet, so the `nodes/stats` permission needs to be added to RBAC. For example:
 
 ```yaml
 apiVersion: rbac.authorization.k8s.io/v1

@@ -257,7 +257,7 @@ Dataway Sink [详见文档](../deployment/dataway-sink.md)。
 
 ### :material-chat-question: NODE_LOCAL 需要新的权限 {#rbac-nodes-stats}
 
-`ENV_INPUT_CONTAINER_ENABLE_K8S_NODE_LOCAL` 模式只推荐 DaemonSet 部署时使用，该模式需要访问 kubelet，所以需要在 RBAC 添加 `nodes/state` 权限。例如：
+`ENV_INPUT_CONTAINER_ENABLE_K8S_NODE_LOCAL` 模式只推荐 DaemonSet 部署时使用，该模式需要访问 kubelet，所以需要在 RBAC 添加 `nodes/stats` 权限。例如：
 
 ```yaml
 apiVersion: rbac.authorization.k8s.io/v1
