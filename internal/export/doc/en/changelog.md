@@ -30,7 +30,7 @@ This release is an iterative release with the following updates:
 - Set `NODE_LOCAL` as the default mode when collecting Kubernetes data(and need additional settings for [RBAC](../integrations/container.md#rbac-nodes-stats))(#2025)
 - Optimized tracing handle(on memory usage)(#1966)
 - Update PinPoint collector(#1947)
-- Enable dropping `message` to save storage(#2021)
+- Enable dropping `message` to save storage for APM(#2021)
 
 ---
 

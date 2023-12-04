@@ -29,7 +29,7 @@
 - 采集 Kubernetes 数据时默认使用 `NODE_LOCAL` 模式，需要添加额外的 [RBAC](../integrations/container.md#rbac-nodes-stats)（#2025）
 - 优化链路处理流程（#1966）
 - 重构 PinPoint 采集器，优化上下级关系 (#1947)
-- API 支持丢弃 `message` 字段以节约存储（#2021）
+- APM 支持丢弃 `message` 字段以节约存储（#2021）
 
 ---
 
@@ -104,7 +104,7 @@
 - 修复 Tracing 数据中较大 Tag 值兼容，现已调至 32MB（#1932）
 - 修复 RUM session replay 脏数据问题（#1958）
 - 修复指标信息导出问题（#1953）
-- 修复 [v2 版本协议](datakit-conf.md#dataway-settings)构建错误为题
+- 修复 [v2 版本协议](datakit-conf.md#dataway-settings)构建错误问题
 
 ### 功能优化 {#cl-1.18.0-opt}
 
