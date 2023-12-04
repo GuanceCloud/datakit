@@ -66,20 +66,23 @@ const (
 )
 
 type Input struct {
-	Region           string            `toml:"region,omitempty"`
-	RegionID         string            `toml:"region_id"`
-	Server           string            `toml:"server,omitempty"`
-	AK               string            `toml:"ak"`
-	SK               string            `toml:"sk"`
-	PullInterval     string            `toml:"pull_interval,omitempty"`
-	TimeOut          *datakit.Duration `toml:"time_out,omitempty"`            // second
-	MaxSendFailCount int32             `toml:"max_send_fail_count,omitempty"` // max send fail count
-	MaxJobNumber     int               `toml:"max_job_number,omitempty"`      // max job number in parallel
-	MaxJobChanNumber int               `toml:"max_job_chan_number,omitempty"` // max job chan number
-	Tags             map[string]string
+	Region               string            `toml:"region,omitempty"`
+	RegionID             string            `toml:"region_id"`
+	Server               string            `toml:"server,omitempty"`
+	AK                   string            `toml:"ak"`
+	SK                   string            `toml:"sk"`
+	PullInterval         string            `toml:"pull_interval,omitempty"`
+	TimeOut              *datakit.Duration `toml:"time_out,omitempty"`            // second
+	MaxSendFailCount     int32             `toml:"max_send_fail_count,omitempty"` // max send fail count
+	MaxJobNumber         int               `toml:"max_job_number,omitempty"`      // max job number in parallel
+	MaxJobChanNumber     int               `toml:"max_job_chan_number,omitempty"` // max job chan number
+	TaskExecTimeInterval string            `toml:"task_exec_time_interval,omitempty"`
 
-	semStop *cliutils.Sem // start stop signal
-	cli     *http.Client  // class string
+	Tags map[string]string
+
+	semStop              *cliutils.Sem // start stop signal
+	cli                  *http.Client  // class string
+	taskExecTimeInterval time.Duration
 
 	regionName string
 
@@ -108,6 +111,9 @@ const sample = `
   # The number of the workers.
   workers = 6
 
+  # Collect related metric when job execution time error interval is larger than task_exec_time_interval
+  task_exec_time_interval = "5s"
+ 
   # Stop the task when the task failed to send data to dataway over max_send_fail_count.
   max_send_fail_count = 16
 
@@ -178,6 +184,13 @@ func (ipt *Input) Run() {
 
 	if ipt.MaxSendFailCount > 0 {
 		MaxSendFailCount = int(ipt.MaxSendFailCount)
+	}
+
+	du, err := time.ParseDuration(ipt.TaskExecTimeInterval)
+	if err != nil {
+		l.Warnf("parse task_exec_time_interval(%s) error: %s", ipt.TaskExecTimeInterval, err.Error())
+	} else {
+		ipt.taskExecTimeInterval = du
 	}
 
 	reqURL, err := url.Parse(ipt.Server)
@@ -330,7 +343,7 @@ func (ipt *Input) newTaskRun(t dt.Task) (*dialer, error) {
 
 	l.Debugf("input tags: %+#v", ipt.Tags)
 
-	dialer := newDialer(t, ipt.Tags)
+	dialer := newDialer(t, ipt)
 	dialer.done = ipt.semStop.Wait()
 	dialer.regionName = regionName
 

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	pt "github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 func (d *dialer) pointsFeed(urlStr string) {
@@ -38,7 +39,8 @@ func (d *dialer) pointsFeed(urlStr string) {
 	}
 
 	fields["seq_number"] = d.seqNumber
-	opt := append(pt.DefaultLoggingOptions(), pt.WithTime(startTime))
+	tags["datakit_version"] = datakit.Version
+	opt := append(pt.DefaultLoggingOptions(), pt.WithTime(d.dialingTime))
 	data := pt.NewPointV2(d.task.MetricName(),
 		append(pt.NewTags(tags), pt.NewKVs(fields)...), opt...)
 
