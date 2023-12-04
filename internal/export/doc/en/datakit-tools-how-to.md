@@ -54,6 +54,12 @@ After restart Datakit, the recording directory structure seems like(here list th
 12 directories, 59 files
 ```
 
+<!-- markdownlint-disable MD046 -->
+???+ attention
+
+    After record your data, remember to disable the record config(`enable = false`), or every restart of Datakit will recording, and may cause enexpected disk usage.
+<!-- markdownlint-enable -->
+
 ### Data Replay {#do-replay}
 
 [:octicons-tag-24: Version-1.19.0](changelog.md#cl-1.19.0)

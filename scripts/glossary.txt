@@ -1,4 +1,6 @@
+##############################################
 # 专有名词
+##############################################
 Akka
 Aliyun
 Ansible
@@ -87,17 +89,18 @@ nullable
 OpenSSL
 OpenTelemetry
 OpenTracing
+POSTGRESQL
 Paho
 PostgreSQL
-POSTGRESQL
-pprof
-Prometheus
 PromQL
+Prometheus
 Promtail
 Protobuf
+Proxied
 PushGateway
 Pyroscope
 Pythond
+pprof
 RabbitMQ
 Redisson
 ReplicaSet
@@ -141,7 +144,9 @@ ODBC
 Memtable
 workarea
 
+##############################################
 # 缩写
+##############################################
 CNCF
 CUDA
 DCGM
@@ -155,7 +160,9 @@ SAAS
 SNMP
 MITM
 
+##############################################
 # 合成词
+##############################################
 agentid
 AGENTID
 agentname
@@ -209,6 +216,7 @@ unroutable
 wakeup
 wakeups
 dialtesting
+diskcache
 bboltdb
 unsynced
 defrag
@@ -218,10 +226,14 @@ goroutines
 mallocs
 mspan
 
+##############################################
 # 连词
+##############################################
 golangci
 
+##############################################
 # 极限词
+##############################################
 !github
 !java
 !json

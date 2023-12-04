@@ -72,6 +72,12 @@ DQL used to query data. If no option specified, query interactively. Other avail
 12 directories, 59 files
 ```
 
+<!-- markdownlint-disable MD046 -->
+???+ attention
+
+    数据录制完成后，记得关闭该功能（`enable = false`），否则每次 Datakit 启动都会启动录制，可能会消耗大量磁盘。
+<!-- markdownlint-enable -->
+
 ### 数据回放 {#do-replay}
 
 Datakit 录制完数据后，我们可以将该目录中的数据用 Git 或其它方式保存（**一定要确保好已有的目录结构**），然后，通过如下命令可以将这些数据导入到观测云：
