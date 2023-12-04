@@ -217,7 +217,7 @@ Change the string value after `--slow-query-time` from `0s` to the threshold tim
 
 ## Custom Query {#custom}
 
-Support custom query collects. Guide and example is `custom_queries` in the [Configuration](#input-config) above.
+Support custom query collects. Guide and example is `custom_queries` in the [Configuration](oracle.md#input-config) above.
 
 ## FAQ {#faq}
 

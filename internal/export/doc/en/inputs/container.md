@@ -13,7 +13,6 @@ Collect indicators, objects and log data of container and Kubernetes and report 
 - At present, container supported Docker/Containerd/CRI-O runtime
     - Docker v17.04 and above should be installed, Container v15.1 and above should be installed, CRI-O 1.20.1 and above should be installed.
 - Collecting Kubernetes data requires the DataKit to [be deployed as a DaemonSet](datakit-daemonset-deploy.md).
-- Collecting Kubernetes Pod metric data [requires Kubernetes to install the Metrics-Server component](https://github.com/kubernetes-sigs/metrics-server#installation){:target="_blank"}.
 
 ???+ info
 
@@ -205,7 +204,7 @@ Containers will add Customer Labels of the Pods they belong to.
 
 ### NODE_LOCAL mode requires new RBAC permissions {#rbac-nodes-stats}
 
-The `ENV_INPUT_CONTAINER_ENABLE_K8S_NODE_LOCAL` mode is only recommended for DaemonSet deployment and requires access to kubelet, so the `nodes/state` permission needs to be added to RBAC. For example:
+The `ENV_INPUT_CONTAINER_ENABLE_K8S_NODE_LOCAL` mode is only recommended for DaemonSet deployment and requires access to kubelet, so the `nodes/stats` permission needs to be added to RBAC. For example:
 
 ```yaml
 apiVersion: rbac.authorization.k8s.io/v1

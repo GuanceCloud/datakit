@@ -38,7 +38,6 @@ monitor:
 - 目前 container 支持 Docker、Containerd、CRI-O 容器运行时
     - 版本要求：Docker v17.04 及以上版本，Containerd v1.5.1 及以上，CRI-O 1.20.1 及以上
 - 采集 Kubernetes 数据需要 DataKit 以 [DaemonSet 方式部署](../datakit/datakit-daemonset-deploy.md)。
-- 采集 Kubernetes Pod 指标数据，[需要 Kubernetes 安装 Metrics-Server 组件](https://github.com/kubernetes-sigs/metrics-server#installation){:target="_blank"}。
 
 <!-- markdownlint-disable MD046 -->
 ???+ info
@@ -257,7 +256,7 @@ Dataway Sink [详见文档](../deployment/dataway-sink.md)。
 
 ### :material-chat-question: NODE_LOCAL 需要新的权限 {#rbac-nodes-stats}
 
-`ENV_INPUT_CONTAINER_ENABLE_K8S_NODE_LOCAL` 模式只推荐 DaemonSet 部署时使用，该模式需要访问 kubelet，所以需要在 RBAC 添加 `nodes/state` 权限。例如：
+`ENV_INPUT_CONTAINER_ENABLE_K8S_NODE_LOCAL` 模式只推荐 DaemonSet 部署时使用，该模式需要访问 kubelet，所以需要在 RBAC 添加 `nodes/stats` 权限。例如：
 
 ```yaml
 apiVersion: rbac.authorization.k8s.io/v1
