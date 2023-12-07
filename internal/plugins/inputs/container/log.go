@@ -11,7 +11,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
@@ -29,7 +28,6 @@ type logConfig struct {
 	Pipeline          string            `json:"pipeline"`
 	Multiline         string            `json:"multiline_match"`
 	MultilinePatterns []string          `json:"-"`
-	FromBeginning     bool              `json:"-"`
 	Tags              map[string]string `json:"tags"`
 }
 
@@ -96,18 +94,6 @@ func (lc *logInstance) parseLogConfigs() error {
 		}
 	}
 	return nil
-}
-
-func (lc *logInstance) setFromBeginning(createAt int64) {
-	createTime := time.Unix(0, createAt)
-	// container createAt less than 2m
-	fromBeginning := time.Since(createTime) < time.Minute*2
-
-	if fromBeginning {
-		for _, cfg := range lc.configs {
-			cfg.FromBeginning = true
-		}
-	}
 }
 
 func (lc *logInstance) addStdout() {

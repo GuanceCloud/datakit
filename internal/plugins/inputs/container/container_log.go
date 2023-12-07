@@ -46,18 +46,18 @@ func (c *container) tailingLogs(ins *logInstance) {
 		mergedTags := inputs.MergeTags(c.extraTags, cfg.Tags, "")
 
 		opt := &tailer.Option{
-			Source:            cfg.Source,
-			Service:           cfg.Service,
-			Pipeline:          cfg.Pipeline,
-			CharacterEncoding: cfg.CharacterEncoding,
-			MultilinePatterns: cfg.MultilinePatterns,
-			// FromBeginning:            cfg.FromBeginning,
-			GlobalTags:               mergedTags,
-			BlockingMode:             c.ipt.LoggingBlockingMode,
-			MaxMultilineLifeDuration: c.ipt.LoggingMaxMultilineLifeDuration,
-			RemoveAnsiEscapeCodes:    c.ipt.LoggingRemoveAnsiEscapeCodes,
-			MaxForceFlushLimit:       c.ipt.LoggingForceFlushLimit,
-			Done:                     done,
+			Source:                         cfg.Source,
+			Service:                        cfg.Service,
+			Pipeline:                       cfg.Pipeline,
+			CharacterEncoding:              cfg.CharacterEncoding,
+			MultilinePatterns:              cfg.MultilinePatterns,
+			GlobalTags:                     mergedTags,
+			BlockingMode:                   c.ipt.LoggingBlockingMode,
+			MaxMultilineLifeDuration:       c.ipt.LoggingMaxMultilineLifeDuration,
+			RemoveAnsiEscapeCodes:          c.ipt.LoggingRemoveAnsiEscapeCodes,
+			MaxForceFlushLimit:             c.ipt.LoggingForceFlushLimit,
+			FileFromBeginningThresholdSize: int64(c.ipt.LoggingFileFromBeginningThresholdSize),
+			Done:                           done,
 		}
 
 		switch cfg.Type {
@@ -76,6 +76,11 @@ func (c *container) tailingLogs(ins *logInstance) {
 		filelist, err := tailer.NewProvider().SearchFiles([]string{path}).Result()
 		if err != nil {
 			l.Warnf("failed to scan container-log collection %s(%s) for %s, err: %s", cfg.Path, path, ins.containerName, err)
+			continue
+		}
+
+		if len(filelist) == 0 {
+			l.Infof("container %s not found any log file for path %s, skip", ins.containerName, path)
 			continue
 		}
 

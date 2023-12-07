@@ -1,6 +1,16 @@
 # Changelog
 ---
 
+## 1.20.1(2023/12/07) {#cl-1.20.1}
+
+This release is a Hotfix release, which fixes the following issues:
+
+### Bug fix {#cl-1.20.1-fix}
+
+- Fixed DDTrace sampling bug
+- Fixed error_message lost information
+- Fixed Kubernetes Pod data collection bug
+
 ## 1.20.0(2023/11/30) {#cl-1.20.0}
 
 This release is an iterative release with the following updates:

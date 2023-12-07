@@ -108,7 +108,7 @@ func thriftV1SpansToDkTrace(zpktrace []*zipkincore.Span) itrace.DatakitTrace {
 			sourceTags[tag.Key] = string(tag.Value)
 		}
 
-		if mTags, err := itrace.MergeInToCustomerTags(tags, sourceTags, ignoreTags, nil); err == nil {
+		if mTags, err := itrace.MergeInToCustomerTags(tags, sourceTags, ignoreTags); err == nil {
 			for k, v := range mTags {
 				spanKV = spanKV.AddTag(k, v)
 			}
@@ -378,7 +378,7 @@ func jsonV1SpansToDkTrace(zpktrace []*ZipkinSpanV1) itrace.DatakitTrace {
 			sourceTags[tag.Key] = tag.Value
 		}
 
-		if mTags, err := itrace.MergeInToCustomerTags(tags, sourceTags, ignoreTags, nil); err == nil {
+		if mTags, err := itrace.MergeInToCustomerTags(tags, sourceTags, ignoreTags); err == nil {
 			for k, v := range mTags {
 				spanKV = spanKV.AddTag(k, v)
 			}

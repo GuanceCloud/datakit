@@ -82,7 +82,8 @@ func RespectUserRule(log *logger.Logger, dktrace DatakitTrace) (DatakitTrace, bo
 	}
 
 	for i := range dktrace {
-		priority := dktrace[i].GetFiledToInt(FieldPriority)
+		priority64 := dktrace[i].GetFiledToInt64(FieldPriority)
+		priority := int(priority64)
 		switch priority {
 		case PriorityUserReject, PriorityRuleSamplerReject:
 			log.Debugf("drop tid: %s service: %s resource: %s according to %s.",

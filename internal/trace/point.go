@@ -19,16 +19,6 @@ type DkSpan struct {
 	// todo 对于必填字段没有值 必须加上 unknown
 }
 
-func (ds *DkSpan) GetFiledToInt(key string) int {
-	val := ds.Get(key)
-	switch v := val.(type) {
-	case int:
-		return v
-	default:
-		return 1
-	}
-}
-
 func (ds *DkSpan) GetFiledToInt64(key string) int64 {
 	val := ds.Get(key)
 	switch val.(type) {

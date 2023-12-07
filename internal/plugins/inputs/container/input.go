@@ -46,17 +46,18 @@ type Input struct {
 	EnableAutoDiscoveryOfPrometheusServiceMonitors    bool   `toml:"enable_auto_discovery_of_prometheus_service_monitors"`
 	autoDiscoveryOfPromStreamSize                     int
 
-	ContainerIncludeLog               []string          `toml:"container_include_log"`
-	ContainerExcludeLog               []string          `toml:"container_exclude_log"`
-	LoggingExtraSourceMap             map[string]string `toml:"logging_extra_source_map"`
-	LoggingSourceMultilineMap         map[string]string `toml:"logging_source_multiline_map"`
-	LoggingAutoMultilineDetection     bool              `toml:"logging_auto_multiline_detection"`
-	LoggingAutoMultilineExtraPatterns []string          `toml:"logging_auto_multiline_extra_patterns"`
-	LoggingSearchInterval             time.Duration     `toml:"logging_search_interval"`
-	DeprecatedLoggingMinFlushInterval time.Duration     `toml:"logging_min_flush_interval"`
-	LoggingForceFlushLimit            int               `toml:"logging_force_flush_limit"`
-	LoggingMaxMultilineLifeDuration   time.Duration     `toml:"logging_max_multiline_life_duration"`
-	LoggingRemoveAnsiEscapeCodes      bool              `toml:"logging_remove_ansi_escape_codes"`
+	ContainerIncludeLog                   []string          `toml:"container_include_log"`
+	ContainerExcludeLog                   []string          `toml:"container_exclude_log"`
+	LoggingExtraSourceMap                 map[string]string `toml:"logging_extra_source_map"`
+	LoggingSourceMultilineMap             map[string]string `toml:"logging_source_multiline_map"`
+	LoggingAutoMultilineDetection         bool              `toml:"logging_auto_multiline_detection"`
+	LoggingAutoMultilineExtraPatterns     []string          `toml:"logging_auto_multiline_extra_patterns"`
+	LoggingSearchInterval                 time.Duration     `toml:"logging_search_interval"`
+	DeprecatedLoggingMinFlushInterval     time.Duration     `toml:"logging_min_flush_interval"`
+	LoggingForceFlushLimit                int               `toml:"logging_force_flush_limit"`
+	LoggingMaxMultilineLifeDuration       time.Duration     `toml:"logging_max_multiline_life_duration"`
+	LoggingFileFromBeginningThresholdSize int               `toml:"logging_file_from_beginning_threshold_size"`
+	LoggingRemoveAnsiEscapeCodes          bool              `toml:"logging_remove_ansi_escape_codes"`
 
 	CollectMetricInterval time.Duration `toml:"-"`
 
