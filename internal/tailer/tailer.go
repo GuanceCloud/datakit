@@ -83,7 +83,11 @@ type Option struct {
 	// 是否开启阻塞发送模式
 	BlockingMode bool
 
+	// 连续 N 次采集为空，就强制 flush 已有数据
 	MaxForceFlushLimit int
+
+	// 如果要采集的文件 size 小于此值，将使用 from_bgeinning，单位字节
+	FileFromBeginningThresholdSize int64
 
 	MaxMultilineLifeDuration time.Duration
 
@@ -137,6 +141,10 @@ func (opt *Option) Init() error {
 
 	if opt.MaxForceFlushLimit == 0 {
 		opt.MaxForceFlushLimit = 10
+	}
+
+	if opt.FileFromBeginningThresholdSize == 0 {
+		opt.FileFromBeginningThresholdSize = 1024 * 1024 * 1 // 1 MiB
 	}
 
 	opt.GlobalTags["service"] = opt.Service

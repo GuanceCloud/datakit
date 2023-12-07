@@ -63,7 +63,7 @@ func spanModeleV2ToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
 			}
 		}
 
-		if mTags, err := itrace.MergeInToCustomerTags(tags, span.Tags, ignoreTags, nil); err == nil {
+		if mTags, err := itrace.MergeInToCustomerTags(tags, span.Tags, ignoreTags); err == nil {
 			for k, v := range mTags {
 				spanKV = spanKV.AddTag(k, v)
 			}

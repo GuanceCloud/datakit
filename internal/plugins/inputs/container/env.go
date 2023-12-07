@@ -42,6 +42,7 @@ import (
 // ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_DETECTION: booler
 // ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_EXTRA_PATTERNS_JSON : string (JSON string array)
 // ENV_INPUT_CONTAINER_LOGGING_MAX_MULTILINE_LIFE_DURATION : string ("5s")
+// ENV_INPUT_CONTAINER_LOGGING_FILE_FROM_BEGINNING_THRESHOLD_SIZE : int.
 // ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES : booler.
 // ENV_INPUT_CONTAINER_TAGS : "a=b,c=d".
 func (ipt *Input) ReadEnv(envs map[string]string) {
@@ -68,48 +69,42 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	/// container and k8s
 	///
 	if str, ok := envs["ENV_INPUT_CONTAINER_ENABLE_CONTAINER_METRIC"]; ok {
-		b, err := strconv.ParseBool(str)
-		if err != nil {
+		if b, err := strconv.ParseBool(str); err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_CONTAINER_METRIC to bool: %s, ignore", err)
 		} else {
 			ipt.EnableContainerMetric = b
 		}
 	}
 	if str, ok := envs["ENV_INPUT_CONTAINER_ENABLE_POD_METRIC"]; ok {
-		b, err := strconv.ParseBool(str)
-		if err != nil {
+		if b, err := strconv.ParseBool(str); err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_POD_METRIC to bool: %s, ignore", err)
 		} else {
 			ipt.EnablePodMetric = b
 		}
 	}
 	if str, ok := envs["ENV_INPUT_CONTAINER_ENABLE_K8S_METRIC"]; ok {
-		b, err := strconv.ParseBool(str)
-		if err != nil {
+		if b, err := strconv.ParseBool(str); err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_K8S_METRIC to bool: %s, ignore", err)
 		} else {
 			ipt.EnableK8sMetric = b
 		}
 	}
 	if str, ok := envs["ENV_INPUT_CONTAINER_ENABLE_K8S_EVENT"]; ok {
-		b, err := strconv.ParseBool(str)
-		if err != nil {
+		if b, err := strconv.ParseBool(str); err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_K8S_EVENT to bool: %s, ignore", err)
 		} else {
 			ipt.EnableK8sEvent = b
 		}
 	}
 	if str, ok := envs["ENV_INPUT_CONTAINER_ENABLE_K8S_NODE_LOCAL"]; ok {
-		b, err := strconv.ParseBool(str)
-		if err != nil {
+		if b, err := strconv.ParseBool(str); err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_K8S_NODE_LOCAL to bool: %s, ignore", err)
 		} else {
 			ipt.EnableK8sNodeLocal = b
 		}
 	}
 	if str, ok := envs["ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS"]; ok {
-		b, err := strconv.ParseBool(str)
-		if err != nil {
+		if b, err := strconv.ParseBool(str); err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS to bool: %s, ignore", err)
 		} else {
 			ipt.EnableExtractK8sLabelAsTags = b
@@ -133,40 +128,35 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	/// k8s autodiscoery
 	///
 	if str, ok := envs["ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_ANNOTATIONS"]; ok {
-		b, err := strconv.ParseBool(str)
-		if err != nil {
+		if b, err := strconv.ParseBool(str); err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_ANNOTATIONS to bool: %s, ignore", err)
 		} else {
 			ipt.EnableAutoDiscoveryOfPrometheusServiceAnnotations = b
 		}
 	}
 	if str, ok := envs["ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_ANNOTATIONS"]; ok {
-		b, err := strconv.ParseBool(str)
-		if err != nil {
+		if b, err := strconv.ParseBool(str); err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_ANNOTATIONS to bool: %s, ignore", err)
 		} else {
 			ipt.EnableAutoDiscoveryOfPrometheusPodAnnotations = b
 		}
 	}
 	if str, ok := envs["ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_MONITORS"]; ok {
-		b, err := strconv.ParseBool(str)
-		if err != nil {
+		if b, err := strconv.ParseBool(str); err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_MONITORS to bool: %s, ignore", err)
 		} else {
 			ipt.EnableAutoDiscoveryOfPrometheusPodMonitors = b
 		}
 	}
 	if str, ok := envs["ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_MONITORS"]; ok {
-		b, err := strconv.ParseBool(str)
-		if err != nil {
+		if b, err := strconv.ParseBool(str); err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_MONITORS to bool: %s, ignore", err)
 		} else {
 			ipt.EnableAutoDiscoveryOfPrometheusServiceMonitors = b
 		}
 	}
 	if str, ok := envs["ENV_INPUT_CONTAINER_AUTO_DISCOVERY_OF_PROM_STREAM_SIZE"]; ok {
-		size, err := strconv.ParseInt(str, 10, 64)
-		if err != nil {
+		if size, err := strconv.ParseInt(str, 10, 64); err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_AUTO_DISCOVERY_OF_PROM_STREAM_SIZE to int64: %s, ignore", err)
 		} else {
 			ipt.autoDiscoveryOfPromStreamSize = int(size)
@@ -190,8 +180,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	/// logging configs
 	///
 	if str, ok := envs["ENV_INPUT_CONTAINER_LOGGING_FORCE_FLUSH_LIMIT"]; ok {
-		limit, err := strconv.ParseInt(str, 10, 64)
-		if err != nil {
+		if limit, err := strconv.ParseInt(str, 10, 64); err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_FORCE_FLUSH_LIMIT to int64: %s, ignore", err)
 		} else {
 			ipt.LoggingForceFlushLimit = int(limit)
@@ -203,8 +192,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		}
 	}
 	if str, ok := envs["ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_DETECTION"]; ok {
-		b, err := strconv.ParseBool(str)
-		if err != nil {
+		if b, err := strconv.ParseBool(str); err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_DETECTION to bool: %s, ignore", err)
 		} else {
 			ipt.LoggingAutoMultilineDetection = b
@@ -229,9 +217,15 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			ipt.LoggingMaxMultilineLifeDuration = dur
 		}
 	}
+	if str, ok := envs["ENV_INPUT_CONTAINER_LOGGING_FILE_FROM_BEGINNING_THRESHOLD_SIZE"]; ok {
+		if size, err := strconv.ParseInt(str, 10, 64); err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_FILE_FROM_BEGINNING_THRESHOLD_SIZE to int64: %s, ignore", err)
+		} else {
+			ipt.LoggingFileFromBeginningThresholdSize = int(size)
+		}
+	}
 	if str, ok := envs["ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES"]; ok {
-		b, err := strconv.ParseBool(str)
-		if err != nil {
+		if b, err := strconv.ParseBool(str); err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES to bool: %s, ignore", err)
 		} else {
 			ipt.LoggingRemoveAnsiEscapeCodes = b
