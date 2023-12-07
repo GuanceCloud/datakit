@@ -144,9 +144,10 @@ func (t *Single) seekOffset() error {
 		}
 
 		if stat, _err := os.Stat(t.filepath); _err == nil {
-			if stat.Size() <= 1024*1024*1 {
+			if stat.Size() < t.opt.FileFromBeginningThresholdSize {
 				ret, err = t.file.Seek(0, io.SeekStart)
-				t.opt.log.Infof("set start position for filename %s, because file size < 10MiB", t.filepath)
+				t.opt.log.Infof("set start position for filename %s, because file size < %sKiB",
+					t.opt.FileFromBeginningThresholdSize/1024)
 			}
 			return
 		}

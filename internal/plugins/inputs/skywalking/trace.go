@@ -117,7 +117,7 @@ func parseSegmentObjectV3(segment *agentv3.SegmentObject) itrace.DatakitTrace {
 			sourceTags[tag.Key] = tag.Value
 		}
 
-		mTags, err := itrace.MergeInToCustomerTags(tags, sourceTags, ignoreTags, nil)
+		mTags, err := itrace.MergeInToCustomerTags(tags, sourceTags, ignoreTags)
 		if err == nil {
 			for k, v := range mTags {
 				spanKV = spanKV.AddTag(k, v)

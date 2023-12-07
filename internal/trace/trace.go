@@ -13,7 +13,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -300,7 +299,7 @@ func UnifyToUint64ID(id string) uint64 {
 	return i
 }
 
-func MergeInToCustomerTags(dkTags, srcTags map[string]string, ignoreTags []*regexp.Regexp, remapper KeyRemapper) (map[string]string, error) {
+func MergeInToCustomerTags(dkTags, srcTags map[string]string, ignoreTags []*regexp.Regexp) (map[string]string, error) {
 	merged := make(map[string]string)
 	for k, v := range dkTags {
 		merged[k] = v
@@ -317,12 +316,7 @@ func MergeInToCustomerTags(dkTags, srcTags map[string]string, ignoreTags []*rege
 		}
 	}
 
-	var err error
-	if remapper != nil {
-		err = remapper.Remap(merged)
-	}
-
-	return merged, err
+	return merged, nil
 }
 
 // ParseTracerRequest parse the given http request to Content-Type and body buffer if no error
@@ -381,26 +375,4 @@ func MergeFields(input ...map[string]interface{}) map[string]interface{} {
 	}
 
 	return fields
-}
-
-type KeyRemapper map[string]string
-
-func (kr KeyRemapper) Remap(source interface{}) error {
-	m := reflect.ValueOf(source)
-	if m.Kind() != reflect.Map {
-		return errors.New("wrong source data type, expected map")
-	}
-
-	for old, newK := range kr {
-		oldk := reflect.ValueOf(old)
-		v := m.MapIndex(oldk)
-		if v.IsValid() {
-			m.SetMapIndex(oldk, reflect.Value{})
-		}
-		if len(newK) != 0 {
-			m.SetMapIndex(reflect.ValueOf(newK), v)
-		}
-	}
-
-	return nil
 }

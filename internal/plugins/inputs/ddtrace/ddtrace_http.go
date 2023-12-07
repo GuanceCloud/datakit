@@ -214,11 +214,6 @@ func mergeTraces(traces DDTraces) DDTraces {
 	return merged
 }
 
-var remapper = itrace.KeyRemapper(map[string]string{
-	"system.pid": "pid",
-	"error.msg":  "error_message",
-})
-
 var traceOpts = []point.Option{}
 
 func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
@@ -252,12 +247,19 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			spanKV = spanKV.Add(itrace.FieldTraceID, v, false, true)
 		}
 
-		if mTags, err := itrace.MergeInToCustomerTags(tags, span.Meta, ignoreTags, remapper); err == nil {
+		if mTags, err := itrace.MergeInToCustomerTags(tags, span.Meta, ignoreTags); err == nil {
 			for k, v := range mTags {
-				if len(v) > 1024 {
-					spanKV = spanKV.Add(k, v, false, false)
-				} else {
-					spanKV = spanKV.AddTag(k, v)
+				switch k {
+				case "system_pid":
+					spanKV = spanKV.Add("pid", v, false, true)
+				case "error_msg":
+					spanKV = spanKV.Add("error_message", v, false, true)
+				default:
+					if len(v) > 1024 {
+						spanKV = spanKV.Add(k, v, false, false)
+					} else {
+						spanKV = spanKV.AddTag(k, v)
+					}
 				}
 			}
 		}

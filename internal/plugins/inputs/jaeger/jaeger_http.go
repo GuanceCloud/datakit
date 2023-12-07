@@ -124,7 +124,7 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 			sourceTags[tag.Key] = tag.String()
 		}
 
-		if mTags, err := itrace.MergeInToCustomerTags(tags, sourceTags, ignoreTags, nil); err == nil {
+		if mTags, err := itrace.MergeInToCustomerTags(tags, sourceTags, ignoreTags); err == nil {
 			for k, v := range mTags {
 				spanKV = spanKV.AddTag(k, v)
 			}

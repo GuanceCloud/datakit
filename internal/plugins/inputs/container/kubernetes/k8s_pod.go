@@ -94,23 +94,9 @@ func (m *podMetadata) transformMetric() pointKVs {
 		}
 		met.SetField("ready", containerReadyCount)
 
-		if len(item.OwnerReferences) != 0 {
-			switch item.OwnerReferences[0].Kind {
-			case "ReplicaSet":
-				if hash, ok := item.Labels["pod-template-hash"]; ok {
-					met.SetTag("deployment", strings.TrimRight(item.OwnerReferences[0].Name, "-"+hash))
-				}
-			case "DaemonSet":
-				met.SetTag("daemonset", item.OwnerReferences[0].Name)
-			case "StatefulSet":
-				met.SetTag("statefulset", item.OwnerReferences[0].Name)
-			case "Job":
-				met.SetTag("Job", item.OwnerReferences[0].Name)
-			case "CronJob":
-				met.SetTag("CronJob", item.OwnerReferences[0].Name)
-			default:
-				// skip
-			}
+		ownerKind, ownerName := getOwner(item.OwnerReferences, item.Labels["pod-template-hash"])
+		if ownerKind != "" && ownerName != "" {
+			met.SetTag(ownerKind, ownerName)
 		}
 
 		if setExtraK8sLabelAsTags() {
@@ -200,6 +186,11 @@ func (m *podMetadata) transformObject() pointKVs {
 		obj.DeleteField("annotations")
 		obj.DeleteField("yaml")
 
+		ownerKind, ownerName := getOwner(item.OwnerReferences, item.Labels["pod-template-hash"])
+		if ownerKind != "" && ownerName != "" {
+			obj.SetTag(ownerKind, ownerName)
+		}
+
 		if setExtraK8sLabelAsTags() {
 			for k, v := range item.Labels {
 				obj.SetTag(replaceLabelKey(k), v)
@@ -225,6 +216,31 @@ func (m *podMetadata) transformObject() pointKVs {
 	}
 
 	return res
+}
+
+func getOwner(owners []metav1.OwnerReference, podTemplateHash string) (kind string, name string) {
+	if len(owners) != 0 {
+		switch owners[0].Kind {
+		case "ReplicaSet":
+			kind = "deployment"
+			name = strings.TrimRight(owners[0].Name, "-"+podTemplateHash)
+		case "DaemonSet":
+			kind = "daemonset"
+			name = owners[0].Name
+		case "StatefulSet":
+			kind = "statefulset"
+			name = owners[0].Name
+		case "Job":
+			kind = "job"
+			name = owners[0].Name
+		case "CronJob":
+			kind = "cronjob"
+			name = owners[0].Name
+		default:
+			// nil
+		}
+	}
+	return
 }
 
 func shouldCollectPodMetric(item *apicorev1.Pod) bool {

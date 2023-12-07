@@ -78,7 +78,7 @@ func TestRespectUserRule(t *testing.T) {
 	t.Logf("keep len=%d", len(keep))
 	for i := range keep {
 		for j := range keep[i] {
-			priority := keep[i][j].GetFiledToInt(FieldPriority)
+			priority := keep[i][j].GetFiledToInt64(FieldPriority)
 			if priority != PriorityUserKeep && priority != PriorityRuleSamplerKeep {
 				t.Errorf("unexpected priority %d found", priority)
 				t.FailNow()
@@ -89,7 +89,7 @@ func TestRespectUserRule(t *testing.T) {
 	t.Logf("auto len=%d", len(auto))
 	for i := range auto {
 		for j := range auto[i] {
-			priority := auto[i][j].GetFiledToInt(FieldPriority)
+			priority := auto[i][j].GetFiledToInt64(FieldPriority)
 			if priority != PriorityAutoKeep && priority != PriorityAutoReject {
 				t.Errorf("unexpected priority %d found", priority)
 				t.FailNow()
