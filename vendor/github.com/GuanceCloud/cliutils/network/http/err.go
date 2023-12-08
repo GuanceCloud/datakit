@@ -153,9 +153,7 @@ func HttpErr(c *gin.Context, err error) {
 	case errors.As(err, &e1):
 		e1.httpRespf(c, "")
 	case errors.As(err, &e2):
-		if e2.Args != nil {
-			e2.HttpError.httpRespf(c, e2.Fmt, e2.Args...)
-		}
+		e2.HttpError.httpRespf(c, e2.Fmt, e2.Args...)
 	default:
 		undefinedErr(err).httpRespf(c, "")
 	}
@@ -182,9 +180,7 @@ func (he *HttpError) httpRespf(c *gin.Context, format string, args ...interface{
 		HttpError: he,
 	}
 
-	if args != nil {
-		resp.Message = fmt.Sprintf(format, args...)
-	}
+	resp.Message = fmt.Sprintf(format, args...)
 
 	j, err := json.Marshal(&resp)
 	if err != nil {

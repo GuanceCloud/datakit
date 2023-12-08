@@ -28,12 +28,24 @@ func (fo *debugOutput) Write(data *iodata) error {
 		cp.Output("%s\n", pt.LineProto())
 	}
 
+	timeSeriesStr := ""
+	if data.category == point.Metric {
+		timeSeriesMap := make(map[string]interface{}, 0)
+
+		for _, pt := range data.points {
+			for _, v := range pt.TimeSeriesHash() {
+				timeSeriesMap[v] = struct{}{}
+			}
+		}
+		timeSeriesStr = fmt.Sprintf(", %d time series", len(timeSeriesMap))
+	}
+
 	now := time.Now()
 	date := fmt.Sprintf("%d/%02d/%02d %02d:%02d:%02d",
 		now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute(), now.Second())
 
-	cp.Infof("# [%s] %d points(%q) from %s, cost %s | Ctrl+c to exit.\n",
-		date, len(data.points), data.category.Alias(), data.from, data.opt.CollectCost)
+	cp.Infof("# [%s] %d points(%q)%s from %s, cost %s | Ctrl+c to exit.\n",
+		date, len(data.points), data.category.Alias(), timeSeriesStr, data.from, data.opt.CollectCost)
 
 	return nil
 }

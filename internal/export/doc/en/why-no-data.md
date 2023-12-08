@@ -78,12 +78,13 @@ disk,device=/dev/disk1s3,fstype=apfs free=503996416i,inodes_free=4921840i,inodes
 disk,device=/dev/disk3s5,fstype=apfs free=167050518528i,inodes_free=1631352720i,inodes_free_mb=1631i,inodes_total=1634318356i,inodes_total_mb=1634i,inodes_used=2965636i,inodes_used_mb=2i,inodes_used_percent=0.18146011694186712,total=494384795648i,used=327334277120i,used_percent=66.21042556354438 1685509141064280000
 disk,device=/dev/disk2s1,fstype=apfs free=3697000448i,inodes_free=36103520i,inodes_free_mb=36i,inodes_total=36103578i,inodes_total_mb=36i,inodes_used=58i,inodes_used_mb=0i,inodes_used_percent=0.00016064889745830732,total=5368664064i,used=1671663616i,used_percent=31.137422570532436 1685509141064285000
 disk,device=/dev/disk3s1,fstype=apfs free=167050518528i,inodes_free=1631352720i,inodes_free_mb=1631i,inodes_total=1631702197i,inodes_total_mb=1631i,inodes_used=349477i,inodes_used_mb=0i,inodes_used_percent=0.0214179401512444,total=494384795648i,used=327334277120i,used_percent=66.21042556354438 1685509141064289000
-# 10 points("M") from disk, cost 1.544792ms | Ctrl+c to exit.
+# 10 points("M"), 98 time series from disk, cost 1.544792ms | Ctrl+c to exit.
 ```
 
 Here Datakit will start input `disk` and print the collected points to terminal. At the buttom, there will show some result about these point:
 
 - Collected points and its category(Here we got 10 points of category `Metric`)
+- Time series number(only for `Metric`)
 - Input name, here is `disk`
 - Collect cost, here is *1.544ms*
 

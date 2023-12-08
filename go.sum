@@ -151,6 +151,8 @@ github.com/GuanceCloud/cliutils v0.1.6-0.20231117114415-029e6803b5f6 h1:FT0CveOR
 github.com/GuanceCloud/cliutils v0.1.6-0.20231117114415-029e6803b5f6/go.mod h1:6OvUzhBu4IkGEWRbWJO5ZhG+AU2T991zijQ2UNaPYx4=
 github.com/GuanceCloud/cliutils v0.1.6 h1:TkXS7sOad1RhlRUkQNaQ6HEfVtIeAk4F8yvhgrhQVqI=
 github.com/GuanceCloud/cliutils v0.1.6/go.mod h1:6OvUzhBu4IkGEWRbWJO5ZhG+AU2T991zijQ2UNaPYx4=
+github.com/GuanceCloud/cliutils v0.1.8 h1:Jp4RvqSEXRq9RBR589611HtrPhVYHT6+KuxdEIbcCVM=
+github.com/GuanceCloud/cliutils v0.1.8/go.mod h1:6OvUzhBu4IkGEWRbWJO5ZhG+AU2T991zijQ2UNaPYx4=
 github.com/GuanceCloud/confd v0.1.101 h1:yjHgfl6YzAlTbFOFMTE4ERpFJzIyovOW7ZFc2/ZssL0=
 github.com/GuanceCloud/confd v0.1.101/go.mod h1:o0opIwOX+yNwV9nh56x5ymFMJ+YBD8JuPxBJ7a1mEmo=
 github.com/GuanceCloud/dockertest/v3 v3.9.4 h1:ScSNhfA2HSNLfrYoNd1KSRxkrymlKiBE60g4f6eUoOk=
