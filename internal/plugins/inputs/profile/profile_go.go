@@ -317,12 +317,12 @@ func (g *GoProfiler) pullProfileData(path string, params url.Values) (*bytes.Buf
 	}
 
 	dst := new(bytes.Buffer)
-	n, err := io.Copy(dst, LimitReader(resp.Body, profileMaxSize))
+	n, err := io.Copy(dst, LimitReader(resp.Body, g.input.getBodySizeLimit()))
 	if err != nil {
 		return nil, err
 	}
 
-	if n >= profileMaxSize {
+	if n > g.input.getBodySizeLimit() {
 		return nil, fmt.Errorf("exceed body max size")
 	}
 

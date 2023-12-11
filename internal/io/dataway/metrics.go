@@ -23,6 +23,14 @@ var (
 	apiSumVec *prometheus.SummaryVec
 )
 
+func HTTPRetry() *prometheus.CounterVec {
+	return httpRetry
+}
+
+func APISumVec() *prometheus.SummaryVec {
+	return apiSumVec
+}
+
 // Metrics get all metrics aboud dataway.
 func Metrics() []prometheus.Collector {
 	return []prometheus.Collector{
