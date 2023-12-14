@@ -112,3 +112,16 @@ func (p *Point) hashstr() []byte {
 	}
 	return data
 }
+
+func (p *Point) TimeSeriesHash() []string {
+	fields := p.Fields()
+	ts := make([]string, len(fields))
+	hash := p.hashstr()
+
+	for idx, f := range fields {
+		hash := append(hash, []byte(f.Key)...)
+		ts[idx] = fmt.Sprintf("%x", md5.Sum(hash)) //nolint:gosec
+	}
+
+	return ts
+}

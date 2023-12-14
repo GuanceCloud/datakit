@@ -204,7 +204,9 @@ func printResult(points []*point.Point) error {
 		if err != nil {
 			return err
 		}
-		timeSeries[fmt.Sprint(influxPoint[0].HashID())] = trueString
+		for _, v := range pt.TimeSeriesHash() {
+			timeSeries[v] = trueString
+		}
 		name := pt.Name()
 		measurements[name] = trueString
 	}

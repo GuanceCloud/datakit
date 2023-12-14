@@ -563,19 +563,19 @@ func NewKV(k string, v any, opts ...KVOption) *Field {
 }
 
 // NewKVs create kvs slice from map structure.
-func NewKVs(kvs map[string]interface{}) (res KVs) {
-	for k, v := range kvs {
-		res = append(res, NewKV(k, v))
+func NewKVs(kvsMap map[string]interface{}) (kvs KVs) {
+	kvs = make(KVs, 0, len(kvsMap))
+	for k, v := range kvsMap {
+		kvs = append(kvs, NewKV(k, v))
 	}
-
-	return res
+	return kvs
 }
 
 // NewTags create tag kvs from map structure.
-func NewTags(tags map[string]string) (arr KVs) {
-	for k, v := range tags {
-		arr = append(arr, &Field{IsTag: true, Key: k, Val: &Field_S{S: v}})
+func NewTags(tagsMap map[string]string) (tags KVs) {
+	tags = make(KVs, 0, len(tagsMap))
+	for k, v := range tagsMap {
+		tags = append(tags, &Field{IsTag: true, Key: k, Val: &Field_S{S: v}})
 	}
-
-	return arr
+	return tags
 }

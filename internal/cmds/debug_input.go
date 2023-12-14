@@ -45,7 +45,7 @@ func debugInput(conf string) error {
 		for idx := range arr {
 			cp.Infof("running input %q(%dth)...\n", name, idx)
 
-			go func(i inputs.Input) {
+			go func(i inputs.Input, name string) {
 				defer wg.Done()
 
 				if x, ok := i.(inputs.HTTPInput); ok {
@@ -54,7 +54,7 @@ func debugInput(conf string) error {
 				}
 
 				i.Run()
-			}(arr[idx])
+			}(arr[idx], name)
 		}
 	}
 
