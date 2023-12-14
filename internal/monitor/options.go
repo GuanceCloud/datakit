@@ -48,7 +48,6 @@ func WithMaxRun(n int) APPOption {
 func WithHost(schema, ipaddr string) APPOption {
 	return func(app *monitorAPP) {
 		app.url = fmt.Sprintf("%s://%s/metrics", schema, ipaddr)
-		app.isURL = fmt.Sprintf("%s://%s/stats/input", schema, ipaddr)
 	}
 }
 
@@ -83,9 +82,9 @@ func WithOnlyModules(str string) APPOption {
 func WithSource(str string) APPOption {
 	return func(app *monitorAPP) {
 		if str != "" {
-			app.monitor = &FileMonitor{path: str}
+			app.src = &FileMonitor{path: str}
 		} else {
-			app.monitor = &HTTPMonitor{url: app.url, isURL: app.isURL}
+			app.src = &HTTPMonitor{url: app.url}
 		}
 	}
 }
