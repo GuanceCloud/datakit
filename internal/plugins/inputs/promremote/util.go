@@ -16,11 +16,19 @@ func (p *Parser) shouldFilterThroughMetricName(metric string) bool {
 	if len(p.MetricNameFilter) == 0 {
 		return true
 	}
-	for _, filter := range p.MetricNameFilter {
-		match, err := regexp.MatchString(filter, metric)
-		if err != nil {
-			continue
+	if len(p.metricNameReFilter) == 0 {
+		p.metricNameReFilter = make([]*regexp.Regexp, len(p.MetricNameFilter))
+		for i, filter := range p.MetricNameFilter {
+			if re, err := regexp.Compile(filter); err != nil {
+				l.Warnf("regexp.Compile('%s'): %s, ignored", filter, err)
+				return false
+			} else {
+				p.metricNameReFilter[i] = re
+			}
 		}
+	}
+	for _, filter := range p.metricNameReFilter {
+		match := filter.MatchString(metric)
 		if match {
 			return true
 		}
@@ -34,12 +42,20 @@ func (p *Parser) shouldFilterThroughMeasurementName(metric string) bool {
 	if len(p.MeasurementNameFilter) == 0 {
 		return true
 	}
-	measurementName, _ := p.getNamesByDefaultRule(metric)
-	for _, filter := range p.MeasurementNameFilter {
-		match, err := regexp.MatchString(filter, measurementName)
-		if err != nil {
-			continue
+	if len(p.measurementNameReFilter) == 0 {
+		p.measurementNameReFilter = make([]*regexp.Regexp, len(p.MeasurementNameFilter))
+		for i, filter := range p.MeasurementNameFilter {
+			if re, err := regexp.Compile(filter); err != nil {
+				l.Warnf("regexp.Compile('%s'): %s, ignored", filter, err)
+				return false
+			} else {
+				p.measurementNameReFilter[i] = re
+			}
 		}
+	}
+	measurementName, _ := p.getNamesByDefaultRule(metric)
+	for _, filter := range p.measurementNameReFilter {
+		match := filter.MatchString(measurementName)
 		if match {
 			return true
 		}

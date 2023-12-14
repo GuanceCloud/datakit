@@ -31,6 +31,10 @@ monitor   :
 ```yml
 remote_write:
  - url: "http://<datakit-ip>:9529/prom_remote_write"
+
+# If want add some tag
+# remote_write:
+# - url: "http://<datakit-ip>:9529/prom_remote_write?host=1.2.3.4&foo=bar" 
 ```
 
 ### 采集器配置 {#input-config}
@@ -62,18 +66,34 @@ remote_write:
   more_tag = "some_other_value"
 ```
 
-可以通过配置 `tags_ignore` 忽略指标上的某些标签，如下：
+注意：黑名单和白名单同时配置，黑白名单会全部失效。
+
+可以通过配置 `tags_ignore` 忽略指标上的某些标签（黑名单），如下：
 
 ```toml
   ## tags to ignore
   tags_ignore = ["xxxx"]
 ```
 
-可以通过配置 `tags_ignore_regex` 正则匹配并忽略指标上的标签，如下：
+可以通过配置 `tags_ignore_regex` 正则匹配并忽略指标上的标签（黑名单），如下：
 
 ```toml
   ## tags to ignore with regex
   tags_ignore_regex = ["xxxx"]
+```
+
+可以通过配置 `tags_only` 配置指标上的标签白名单，如下：
+
+```toml
+  ## tags white list
+  # tags_only = ["xxxx"]
+```
+
+可以通过配置 `tags_only_regex` 正则匹配指标上的标签白名单，如下：
+
+```toml
+  ## tags white list with regex
+  # tags_only_regex = ["xxxx"]
 ```
 
 可以通过配置 `tags_rename` 重命名指标已有的某些标签名，如下：

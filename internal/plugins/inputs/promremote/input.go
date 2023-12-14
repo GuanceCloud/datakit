@@ -51,6 +51,8 @@ type Input struct {
 	Tags            map[string]string `toml:"tags"`
 	TagsIgnore      []string          `toml:"tags_ignore"`
 	TagsIgnoreRegex []string          `toml:"tags_ignore_regex"`
+	TagsOnly        []string          `toml:"tags_only"`
+	TagsOnlyRegex   []string          `toml:"tags_only_regex"`
 	TagsRename      map[string]string `toml:"tags_rename"`
 	Overwrite       bool              `toml:"overwrite"`
 	Output          string            `toml:"output"`
@@ -160,6 +162,13 @@ func (ipt *Input) serveWrite(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	queryTags := map[string]string{}
+	for k, v := range req.URL.Query() {
+		if len(v) > 0 {
+			queryTags[k] = v[0]
+		}
+	}
+
 	// Add HTTP header tags and custom tags.
 	for idx := range metrics {
 		for headerName, tagName := range ipt.HTTPHeaderTags {
@@ -168,6 +177,11 @@ func (ipt *Input) serveWrite(res http.ResponseWriter, req *http.Request) {
 				metrics[idx].AddTag(tagName, headerValues)
 			}
 		}
+
+		for k, v := range queryTags {
+			metrics[idx].AddTag(k, v)
+		}
+
 		ipt.SetTags(metrics[idx])
 	}
 	if len(metrics) > 0 {
@@ -192,9 +206,15 @@ func (ipt *Input) isAcceptedMethod(method string) bool {
 
 func (ipt *Input) SetTags(pt *point.Point) {
 	ipt.addTags(pt)
-	ipt.ignoreTags(pt)
-	ipt.ignoreTagsRegex(pt)
 	ipt.renameTags(pt)
+
+	if (len(ipt.TagsIgnoreRegex) > 0 || len(ipt.TagsIgnore) > 0) && (len(ipt.TagsOnlyRegex) > 0 || len(ipt.TagsOnly) > 0) {
+		return // If both white list and black list, all list cancel.
+	} else {
+		ipt.ignoreTags(pt)
+		ipt.ignoreTagsRegex(pt)
+		ipt.onlyTags(pt)
+	}
 }
 
 func (ipt *Input) addTags(pt *point.Point) {
@@ -228,6 +248,46 @@ func (ipt *Input) ignoreTagsRegex(pt *point.Point) {
 				pt.Del(kv.Key)
 				break
 			}
+		}
+	}
+}
+
+func (ipt *Input) onlyTags(pt *point.Point) {
+	if len(ipt.TagsOnly) == 0 && len(ipt.TagsOnlyRegex) == 0 {
+		return
+	}
+
+	keys := map[string]bool{}
+	for _, kv := range pt.Tags() {
+		key := kv.Key
+		keys[key] = false
+
+		for _, r := range ipt.TagsOnlyRegex {
+			match, err := regexp.MatchString(r, key)
+			if err != nil {
+				continue
+			}
+			if match {
+				keys[key] = true
+				break
+			}
+		}
+
+		if keys[key] {
+			continue
+		}
+
+		for _, t := range ipt.TagsOnly {
+			if key == t {
+				keys[key] = true
+				break
+			}
+		}
+	}
+
+	for k, v := range keys {
+		if !v {
+			pt.Del(k)
 		}
 	}
 }

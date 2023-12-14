@@ -15,6 +15,10 @@ Turn on the Prometheus Remote Write feature and add the following configuration 
 ```yml
 remote_write:
  - url: "http://<datakit-ip>:9529/prom_remote_write"
+
+# If want add some tag
+# remote_write:
+# - url: "http://<datakit-ip>:9529/prom_remote_write?host=1.2.3.4&foo=bar" 
 ```
 
 ## Configuration {#config}
@@ -35,7 +39,7 @@ remote_write:
 
 ### Add, Ignore and Rename Tags {#tag-ops}
 
-You can label the collected metrics by configuring `tags`, as follows:
+We can label the collected metrics by configuring `tags`, as follows:
 
 ```toml
   ## custom tags
@@ -44,21 +48,37 @@ You can label the collected metrics by configuring `tags`, as follows:
   more_tag = "some_other_value"
 ```
 
-You can ignore some of the tags on the metric by configuring `tags_ignore`, as follows:
+If both blacklist and whitelist, all list will cancel.
+
+We can apply blacklist on the tag to ignore it: 
 
 ```toml
   ## tags to ignore
   tags_ignore = ["xxxx"]
 ```
 
-You can regularly match and ignore labels on metrics by configuring `tags_ignore_regex`, as follows:
+We can apply regex match blacklist on the tag to ignore it:
 
 ```toml
   ## tags to ignore with regex
   tags_ignore_regex = ["xxxx"]
 ```
 
-You can rename some of the tag names that an indicator already has by configuring `tags_rename`, as follows:
+We can apply whitelists on tags: 
+
+```toml
+  ## tags white list
+  # tags_only = ["xxxx"]
+```
+
+We can apply regex match whitelist on tags:
+
+```toml
+  ## tags white list with regex
+  # tags_only_regex = ["xxxx"]
+```
+
+We can rename some of the tag names that an indicator already has by configuring `tags_rename`, as follows:
 
 ```toml
   ## tags to rename
@@ -89,7 +109,7 @@ datakit service -R
 
 The *prom_remote_write* collector will then write the collected data to the local file indicated by the output.
 
-You can debug *prom_remote_write.conf* by executing the following command.
+We can debug *prom_remote_write.conf* by executing the following command.
 
 ```shell
 datakit debug --prom-conf prom_remote_write.conf

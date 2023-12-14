@@ -18,15 +18,15 @@ type option struct {
 	timeout   time.Duration
 	keepAlive time.Duration
 
-	ignoreReqErr           bool
-	metricTypes            []string
-	metricNameFilter       []string
-	metricNameFilterIgnore []string
-	measurementPrefix      string
-	measurementName        string
-	measurements           []Rule
-	output                 string
-	maxFileSize            int64
+	ignoreReqErr             bool
+	metricTypes              []string
+	metricNameReFilter       []*regexp.Regexp
+	metricNameReFilterIgnore []*regexp.Regexp
+	measurementPrefix        string
+	measurementName          string
+	measurements             []Rule
+	output                   string
+	maxFileSize              int64
 
 	tlsOpen    bool
 	udsPath    string
@@ -71,11 +71,33 @@ func WithKeepAlive(dura time.Duration) PromOption {
 func WithIgnoreReqErr(b bool) PromOption       { return func(opt *option) { opt.ignoreReqErr = b } }
 func WithMetricTypes(strs []string) PromOption { return func(opt *option) { opt.metricTypes = strs } }
 func WithMetricNameFilter(strs []string) PromOption {
-	return func(opt *option) { opt.metricNameFilter = strs }
+	return func(opt *option) {
+		opt.metricNameReFilter = make([]*regexp.Regexp, 0, len(strs))
+		for _, x := range strs {
+			if re, err := regexp.Compile(x); err != nil {
+				if opt.l != nil {
+					opt.l.Warnf("regexp.Compile('%s'): %s, ignored", x, err)
+				}
+			} else {
+				opt.metricNameReFilter = append(opt.metricNameReFilter, re)
+			}
+		}
+	}
 }
 
 func WithMetricNameFilterIgnore(strs []string) PromOption {
-	return func(opt *option) { opt.metricNameFilterIgnore = strs }
+	return func(opt *option) {
+		opt.metricNameReFilterIgnore = make([]*regexp.Regexp, 0, len(strs))
+		for _, x := range strs {
+			if re, err := regexp.Compile(x); err != nil {
+				if opt.l != nil {
+					opt.l.Warnf("regexp.Compile('%s'): %s, ignored", x, err)
+				}
+			} else {
+				opt.metricNameReFilterIgnore = append(opt.metricNameReFilterIgnore, re)
+			}
+		}
+	}
 }
 
 func WithMeasurementPrefix(str string) PromOption {
