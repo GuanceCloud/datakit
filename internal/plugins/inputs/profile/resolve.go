@@ -321,10 +321,6 @@ type resolvedMetadata struct {
 }
 
 func parseMetadata(req *http.Request) (*resolvedMetadata, int64, error) {
-	if err := req.ParseMultipartForm(profileMaxSize); err != nil {
-		return nil, 0, fmt.Errorf("unable to parse multipart: %w", err)
-	}
-
 	filesize := int64(0)
 	for _, files := range req.MultipartForm.File {
 		for _, f := range files {
@@ -372,15 +368,15 @@ func parseMetadata(req *http.Request) (*resolvedMetadata, int64, error) {
 	return nil, filesize, fmt.Errorf("the profiling data format not supported, check your datadog trace library version")
 }
 
-func cache(req *http.Request, metadata *resolvedMetadata, fileSize int64) (string, int64, error) {
+func mkPoint(req *http.Request, metadata *resolvedMetadata, fileSize int64) (string, int64, *point.Point, error) {
 	profileStart, err := resolveStartTime(metadata.formValue)
 	if err != nil {
-		return "", 0, fmt.Errorf("can not resolve profile start time: %w", err)
+		return "", 0, nil, fmt.Errorf("can not resolve profile start time: %w", err)
 	}
 
 	profileEnd, err := resolveEndTime(metadata.formValue)
 	if err != nil {
-		return "", 0, fmt.Errorf("can not resolve profile end time: %w", err)
+		return "", 0, nil, fmt.Errorf("can not resolve profile end time: %w", err)
 	}
 
 	startMicroSeconds, endMicroSeconds := profileStart.UnixMicro(), profileEnd.UnixMicro()
@@ -392,79 +388,60 @@ func cache(req *http.Request, metadata *resolvedMetadata, fileSize int64) (strin
 		runtime = tags.Get("runtime")
 	}
 
-	pointTags := map[string]string{
-		TagHost:        tags.Get("host"),
-		TagEndPoint:    req.URL.Path,
-		TagService:     tags.Get("service"),
-		TagOs:          tags.Get("runtime_os"),
-		TagRuntimeArch: tags.Get("runtime_arch"),
-		TagEnv:         tags.Get("env"),
-		TagVersion:     tags.Get("version"),
-		TagLanguage:    resolveLang(metadata.formValue, tags).String(),
-		TagRuntime:     runtime,
+	serviceName := tags.Get("service")
+	if serviceName == "" {
+		serviceName = "unnamed-service"
 	}
-	if pointTags[TagService] == "" {
-		pointTags[TagService] = "unnamed-service"
-	}
+
+	var kvs point.KVs
+	kvs = kvs.AddTag(TagHost, tags.Get("host"))
+	kvs = kvs.AddTag(TagEndPoint, req.URL.Path)
+	kvs = kvs.AddTag(TagService, serviceName)
+	kvs = kvs.AddTag(TagOs, tags.Get("runtime_os"))
+	kvs = kvs.AddTag(TagRuntimeArch, tags.Get("runtime_arch"))
+	kvs = kvs.AddTag(TagEnv, tags.Get("env"))
+	kvs = kvs.AddTag(TagVersion, tags.Get("version"))
+	kvs = kvs.AddTag(TagLanguage, resolveLang(metadata.formValue, tags).String())
+	kvs = kvs.AddTag(TagRuntime, runtime)
 
 	profileID := randomProfileID()
 
-	pointFields := map[string]interface{}{
-		FieldProfileID:  profileID,
-		FieldRuntimeID:  tags.Get("runtime-id"),
-		FieldPid:        tags.Get("pid"),
-		FieldFormat:     getForm("format", metadata.formValue),
-		FieldLibraryVer: tags.Get("profiler_version"),
-		FieldDatakitVer: datakit.Version,
-		FieldStart:      startMicroSeconds,
-		FieldEnd:        endMicroSeconds,
-		FieldDuration:   endMicroSeconds - startMicroSeconds, // unit: microsecond
-		FieldFileSize:   fileSize,
-	}
+	kvs = kvs.Add(FieldProfileID, profileID, false, false)
+	kvs = kvs.Add(FieldRuntimeID, tags.Get("runtime-id"), false, false)
+	kvs = kvs.Add(FieldPid, tags.Get("pid"), false, false)
+	kvs = kvs.Add(FieldFormat, getForm("format", metadata.formValue), false, false)
+	kvs = kvs.Add(FieldLibraryVer, tags.Get("profiler_version"), false, false)
+	kvs = kvs.Add(FieldDatakitVer, datakit.Version, false, false)
+	kvs = kvs.Add(FieldStart, startMicroSeconds, false, false)
+	kvs = kvs.Add(FieldEnd, endMicroSeconds, false, false)
+	kvs = kvs.Add(FieldDuration, endMicroSeconds-startMicroSeconds, false, false) // unit: microsecond
+	kvs = kvs.Add(FieldFileSize, fileSize, false, false)
 
 	// user custom tags
 	for tName, tVal := range tags {
-		if _, ok := pointTags[tName]; ok {
-			continue
-		}
-		if _, ok := pointFields[tName]; ok {
-			continue
-		}
 		// line protocol field name must not contain "."
 		tName = strings.ReplaceAll(tName, ".", "_")
-		pointFields[tName] = tVal
+		kvs = kvs.Add(tName, tVal, false, false)
 	}
-
-	// 删除中划线 "runtime-id"
-	delete(pointFields, "runtime-id")
 
 	opts := point.CommonLoggingOptions()
 	opts = append(opts, point.WithTime(profileEnd))
-	pt := point.NewPointV2(inputName,
-		append(point.NewTags(pointTags), point.NewKVs(pointFields)...),
-		opts...)
+	pt := point.NewPointV2(inputName, kvs, opts...)
 	if err != nil {
-		return "", 0, fmt.Errorf("build profile point fail: %w", err)
+		return "", 0, nil, fmt.Errorf("build profile point fail: %w", err)
 	}
 
-	pointCache.push(profileID, time.Now(), pt)
-
-	return profileID, profileStart.UnixNano(), nil
+	return profileID, profileStart.UnixNano(), pt, nil
 }
 
-func sendToIO(profileID string) error {
-	pt := pointCache.drop(profileID)
-
+func sendToIO(pt *point.Point) error {
 	lang, _ := pt.Get(TagLanguage).(string)
 
-	if pt != nil {
-		if err := iptGlobal.feeder.Feed(inputName+"/"+lang,
-			point.Profiling,
-			[]*point.Point{pt},
-			&dkio.Option{CollectCost: time.Since(pt.Time())}); err != nil {
-			return err
-		}
-		return nil
+	if err := iptGlobal.feeder.Feed(inputName+"/"+lang,
+		point.Profiling,
+		[]*point.Point{pt},
+		&dkio.Option{CollectCost: time.Since(pt.Time())}); err != nil {
+		return fmt.Errorf("unable to feed profiling point: %w", err)
 	}
-	return fmt.Errorf("cache中找不到对应的profile数据， profileID = [%s]", profileID)
+	return nil
 }
