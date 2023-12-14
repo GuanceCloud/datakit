@@ -182,7 +182,7 @@ func applyFlags() {
 		}
 
 		if err := build.PubDatakit(); err != nil {
-			l.Error(err)
+			l.Errorf("build.PubDatakit: %s", err)
 			build.NotifyFail(err.Error())
 		} else {
 			build.NotifyPubDone()
