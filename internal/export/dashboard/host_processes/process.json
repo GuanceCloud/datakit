@@ -36,7 +36,7 @@
         "group": {
           "name": null
         },
-        "name": "cpu usage",
+        "name": "{{.Dashboard.cpu_usage}}",
         "pos": {
           "h": 8,
           "i": "chrt_3df484624432430a9f83fb027ab07124",
@@ -125,7 +125,7 @@
         "group": {
           "name": null
         },
-        "name": "mem usage",
+        "name": "{{.Dashboard.mem_usage}}",
         "pos": {
           "h": 8,
           "i": "chrt_ac1727069fe943a1b8a3617f3c88a1d1",
@@ -206,7 +206,7 @@
             "showTitle": true,
             "stackType": "time",
             "timeInterval": "default",
-            "titleDesc": "",
+            "titleDesc": "{{.Dashboard.open_files_note}}",
             "units": [],
             "xAxisShowType": "time"
           }
@@ -214,7 +214,7 @@
         "group": {
           "name": null
         },
-        "name": "open files",
+        "name": "{{.Dashboard.open_files}}",
         "pos": {
           "h": 7,
           "i": "chrt_d11bd86afce3470093685ffc07c3423d",
@@ -313,7 +313,7 @@
         "group": {
           "name": null
         },
-        "name": "rss",
+        "name": "{{.Dashboard.rss}}",
         "pos": {
           "h": 9,
           "i": "chrt_164fc72c9ec0458a835a8f8284a46158",
@@ -412,7 +412,7 @@
         "group": {
           "name": null
         },
-        "name": "threads",
+        "name": "{{.Dashboard.threads}}",
         "pos": {
           "h": 7,
           "i": "chrt_10e85d6ed5b246e5a8d177990641d6dc",
@@ -506,7 +506,7 @@
         "group": {
           "name": null
         },
-        "name": "cpu usage top5",
+        "name": "{{.Dashboard.top_n_cpu_usage}}",
         "pos": {
           "h": 12,
           "i": "chrt_1b29b92263614bf48ce8c558d96a2edd",
@@ -639,7 +639,7 @@
         "group": {
           "name": null
         },
-        "name": "memory usage top5",
+        "name": "{{.Dashboard.top_n_memory_usage}}",
         "pos": {
           "h": 12,
           "i": "chrt_2adbaecbfb694f48821165e16a7b0f60",
@@ -751,7 +751,7 @@
           "value": "show_tag_value(from=['host_processes'], keyin=['host'])[5m]"
         },
         "hide": 0,
-        "name": "主机名",
+        "name": "{{.Dashboard.host_name}}",
         "seq": 0,
         "type": "QUERY",
         "valueSort": "default"
@@ -771,7 +771,7 @@
           "value": "show_tag_value(from=['host_processes'], keyin=['process_name']){host='#{host}'}[5m]"
         },
         "hide": 0,
-        "name": "进程名",
+        "name": "{{.Dashboard.process_name}}",
         "seq": 1,
         "type": "QUERY",
         "valueSort": "default"
@@ -782,7 +782,7 @@
   "tagInfo": [
     {
       "id": "tag_794ad04d7a8845f9836d21c4856684a2",
-      "name": "主机"
+      "name": "{{.Dashboard.host}}"
     }
   ],
   "tags": [],
