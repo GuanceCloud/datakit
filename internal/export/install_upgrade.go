@@ -17,14 +17,14 @@ var (
 Set-ExecutionPolicy Bypass -scope Process -Force;
 Import-Module bitstransfer;
 start-bitstransfer %s -source %s/install%s.ps1 -destination .install.ps1;
-powershell .install.ps1;`
+powershell ./.install.ps1;`
 
 	windowsUpgradeCmdTemplate = `Remove-Item -ErrorAction SilentlyContinue Env:DK_*;
 %s
 Set-ExecutionPolicy Bypass -scope Process -Force;
 Import-Module bitstransfer;
 start-bitstransfer %s -source %s/install%s.ps1 -destination .install.ps1;
-powershell .install.ps1;`
+powershell ./.install.ps1;`
 
 	unixInstallCmdTemplate = `%s %s -c "$(curl -L %s/install%s.sh)"`
 

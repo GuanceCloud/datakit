@@ -97,6 +97,7 @@ func notify(tkn string, body io.Reader) {
 
 	switch resp.StatusCode / 100 {
 	case 2:
+		l.Debugf("notify dingding ok(%q): %q", resp.Status, respbody)
 		return
 	default:
 		l.Error(fmt.Errorf(string(respbody)))
@@ -107,6 +108,8 @@ func NotifyStartPub() {
 	if NotifyToken == "" {
 		return
 	}
+
+	l.Debugf("NotifyStartPub...")
 	notify(NotifyToken, bytes.NewBufferString(CINotifyStartPubMsg))
 }
 
@@ -114,6 +117,8 @@ func NotifyStartPubEBpf() {
 	if NotifyToken == "" {
 		return
 	}
+
+	l.Debugf("NotifyStartPubEBpf...")
 	notify(NotifyToken, bytes.NewBufferString(CINotifyStartPubEBpfMsg))
 }
 
@@ -121,6 +126,8 @@ func NotifyStartBuild() {
 	if NotifyToken == "" {
 		return
 	}
+
+	l.Debugf("NotifyStartBuild...")
 	notify(NotifyToken, bytes.NewBufferString(CINotifyStartBuildMsg))
 }
 
@@ -141,6 +148,8 @@ func NotifyFail(msg string) {
 		"content": "%s 触发的 DataKit CI 失败:\n%s"
 	}
 }`, git.Uploader, msg)
+
+	l.Debugf("NotifyFail...")
 	notify(NotifyToken, bytes.NewBufferString(failNotify))
 }
 
@@ -148,6 +157,8 @@ func NotifyBuildDone() {
 	if NotifyToken == "" {
 		return
 	}
+
+	l.Debugf("NotifyBuildDone...")
 	notify(NotifyToken, bytes.NewBufferString(CIPassNotifyMsg))
 }
 
@@ -219,7 +230,7 @@ func NotifyPubDone() {
 			return x
 		}()
 
-		CINotifyNewVersion := fmt.Sprintf(`
+		notifyNewVersion := fmt.Sprintf(`
 {
 	"msgtype": "text",
 	"text": {
@@ -228,17 +239,21 @@ func NotifyPubDone() {
 }`, strings.Join(content, "\n"))
 
 		var buf bytes.Buffer
-		t, err := template.New("").Parse(CINotifyNewVersion)
+		t, err := template.New("").Parse(notifyNewVersion)
 		if err != nil {
-			l.Fatal(err)
+			l.Errorf("template.New", err)
 		}
 
 		if err := t.Execute(&buf, x); err != nil {
 			l.Fatal(err)
 		}
+
+		l.Debugf("NotifyPubDone...")
 		notify(NotifyToken, &buf)
 
 	case ReleaseProduction:
+
+		l.Debugf("NotifyPubDone for release...")
 		notify(NotifyToken, bytes.NewBufferString(CIOnlineNewVersion))
 	}
 }
@@ -261,7 +276,7 @@ func NotifyPubEBpfDone() {
 
 		content := func() []string {
 			x := []string{
-				fmt.Sprintf(`{{.Uploader}} 「私自」发布了 DataKit eBPF %d 个平台测试版({{.Version}})。`, len(curEBpfArchs)),
+				fmt.Sprintf(`{{.Uploader}} 发布了 DataKit eBPF %d 个平台测试版({{.Version}})。`, len(curEBpfArchs)),
 			}
 			for _, arch := range curEBpfArchs {
 				x = append(x, "--------------------------")
@@ -289,8 +304,12 @@ func NotifyPubEBpfDone() {
 		if err := t.Execute(&buf, x); err != nil {
 			l.Fatal(err)
 		}
+
+		l.Debugf("NotifyPubEBpfDone...")
 		notify(NotifyToken, &buf)
 	case ReleaseProduction:
+
+		l.Debugf("NotifyPubEBpfDone for release...")
 		notify(NotifyToken, bytes.NewBufferString(fmt.Sprintf(`
 		{
 			"msgtype": "text",
