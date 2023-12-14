@@ -26,28 +26,27 @@ If the account password access is turned on, the corresponding permissions need 
 
 - Create the role `monitor` and set the following permissions.
 
-```javascript
-  {
-    "applications": [],
-    "cluster": [
-        "monitor"
-    ],
-    "global": [],
-    "indices": [
-        {
-            "allow_restricted_indices": false,
-            "names": [
-                "all"
-            ],
-            "privileges": [
-                "manage_ilm",
-                "monitor"
-            ]
-        },
-    ],
-    "run_as": []
-  }
-
+```http
+POST /_security/role/monitor
+{
+  "applications": [],
+  "cluster": [
+      "monitor"
+  ],
+  "indices": [
+      {
+          "allow_restricted_indices": false,
+          "names": [
+              "*"
+          ],
+          "privileges": [
+              "manage_ilm",
+              "monitor"
+          ]
+      }
+  ],
+  "run_as": []
+}
 ```
 
 - Create a custom user and assign the newly created `monitor` role.

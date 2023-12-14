@@ -43,28 +43,27 @@ ElasticSearch 采集器主要采集节点运行情况、集群健康、JVM 性�
 
 - 创建角色 `monitor`，设置如下权限
 
-```json
-  {
-    "applications": [],
-    "cluster": [
-        "monitor"
-    ],
-    "global": [],
-    "indices": [
-        {
-            "allow_restricted_indices": false,
-            "names": [
-                "all"
-            ],
-            "privileges": [
-                "manage_ilm",
-                "monitor"
-            ]
-        },
-    ],
-    "run_as": []
-  }
-
+```http
+POST /_security/role/monitor
+{
+  "applications": [],
+  "cluster": [
+      "monitor"
+  ],
+  "indices": [
+      {
+          "allow_restricted_indices": false,
+          "names": [
+              "*"
+          ],
+          "privileges": [
+              "manage_ilm",
+              "monitor"
+          ]
+      }
+  ],
+  "run_as": []
+}
 ```
 
 - 创建自定义用户，并赋予新创建的 `monitor` 角色。
