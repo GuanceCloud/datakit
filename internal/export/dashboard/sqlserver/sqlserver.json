@@ -2783,7 +2783,7 @@
         },
         "hide": 0,
         "isHiddenAsterisk": 0,
-        "name": "主机名",
+        "name": "{{.Dashboard.host_name}}",
         "seq": 0,
         "type": "QUERY",
         "valueSort": "default"

@@ -44,25 +44,6 @@ var (
 	}
 
 	//
-	// export related flags.
-	//
-	fsExportName = "export"
-	fsExport     = pflag.NewFlagSet(fsExportName, pflag.ContinueOnError)
-
-	flagExportDocDir         = fsExport.String("export-doc-dir", "", "export all inputs and related docs to specified path")
-	flagExportIntegrationDir = fsExport.String("export-integration-dir", "", "export all integration related resource to specified path")
-
-	flagExportIgnore  = fsExport.String("ignore", "", "disable list, i.e., --ignore nginx,redis,mem")
-	flagExportLogPath = fsExport.String("log", commonLogFlag(), "log path")
-	flagExportTODO    = fsExport.String("TODO", "TODO", "set TODO placeholder")
-	flagExportVersion = fsExport.String("version", datakit.Version, "specify version string in document's header")
-	fsExportUsage     = func() {
-		fmt.Printf("usage: datakit export [options]\n\n")
-		fmt.Printf("Export used to output all resource related to Datakit. Available options:\n\n")
-		fmt.Println(fsExport.FlagUsagesWrapped(0))
-	}
-
-	//
 	// DQL related flags.
 	//
 	fsDQLName  = "dql"
@@ -277,7 +258,6 @@ func printHelp() {
 	fmt.Fprintf(os.Stderr, "\tcheck      methods of all check tools within DataKit\n")
 	fmt.Fprintf(os.Stderr, "\tdebug      methods of all debug tools within DataKit\n")
 	fmt.Fprintf(os.Stderr, "\tdql        query DQL for various usage\n")
-	fmt.Fprintf(os.Stderr, "\texport     export Datakit related resources\n")
 	fmt.Fprintf(os.Stderr, "\timport     import recorded data go Guance Cloud\n")
 	fmt.Fprintf(os.Stderr, "\tinstall    install DataKit related packages and plugins\n")
 	fmt.Fprintf(os.Stderr, "\tmonitor    show datakit running statistics\n")
@@ -304,9 +284,6 @@ func runHelpFlags() {
 
 		case fsDocName:
 			fsDocUsage()
-
-		case fsExportName:
-			fsExportUsage()
 
 		case fsPLName:
 			fsPLUsage()
@@ -443,28 +420,6 @@ func doParseAndRunFlags() {
 		case fsDocName: // deprecated
 			fsDocUsage()
 			os.Exit(-1)
-
-		case fsExportName:
-
-			if len(os.Args) < 2 {
-				fsExportUsage()
-				os.Exit(-1)
-			}
-
-			if err := fsExport.Parse(os.Args[2:]); err != nil {
-				cp.Errorf("Parse: %s\n", err)
-				fsExportUsage()
-				os.Exit(-1)
-			}
-
-			setCmdRootLog(*flagExportLogPath)
-
-			cp.Infof("exporting to %q,%q...\n", *flagExportDocDir, *flagExportIntegrationDir)
-			if err := runExportFlags(); err != nil {
-				cp.Errorf("%s\n", err)
-				os.Exit(-1)
-			}
-			os.Exit(0)
 
 		case fsDQLName:
 
