@@ -1,6 +1,37 @@
 # 更新日志
 ---
 
+## 1.21.0(2023/12/14)
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新增功能 {#cl-1.21.0-new}
+
+- 添加 [ECS Fargate 采集模式](../integrations/ecs-fargate.md)（#2018）
+- 添加 [Prometheus Remote](../integrations/prom_remote_write.md) 采集器 tag 白名单（#2031）
+
+### 问题修复 {#cl-1.21.0-fix}
+
+- 修复 [PostgreSQL](../integrations/postgresql.md) 采集器版本检测问题（#2040）
+- 修复 [ElasticSearch](../integrations/elasticsearch.md) 采集器帐号权限设置问题（#2036）
+- 修复 [Host Dir](../integrations/hostdir.md) 采集器采集磁盘根目录崩溃问题（#2037）
+
+### 优化 {#cl-1.21.0-opt}
+
+- 优化 DDTrace 采集器：[去除 `message.Mate` 中重复的标签](../integrations/ddtrace.md#tags)（#2010）
+- 优化容器内日志文件的路径搜寻策略（#2027）
+- [拨测采集器](../integrations/dialtesting.md)增加 `datakit_version` 字段以及采集时间设置为任务开始执行的时间（#2029）
+- 移除了 `datakit export` 命令优化二进制包大小（#2024）
+- [调试采集器配置](why-no-data.md#check-input-conf) 中增加采集点的时间线数量（#2016）
+- [Profile 采集](../integrations/profile.md)使用磁盘缓存实现异步化上报（#2041）
+- 更新一批采集器的内置视图和监控器
+
+### Breaking Changes {#cl-1.21.0-brk}
+
+- DDTrace 采集不再默认提取所有字段，这可能会导致某些页面自定义字段的数据缺失。可以通过编写 Pipeline 或者新的 JSON 查看语法（`message@json.meta.xxx`）来提取特定的字段
+
+---
+
 ## 1.20.1(2023/12/07) {#cl-1.20.1}
 
 本次发布属于 Hotfix 发布，修复如下问题：

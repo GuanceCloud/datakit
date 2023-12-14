@@ -147,7 +147,7 @@ const (
 	gather_top_stat = true
 	election = true
 [tags]
-	tag1 = "val1"`  // set conf URL later.
+	tag1 = "val1"` // set conf URL later.
 
 	confNoElection = `interval = "1s"
 	servers = ["mongodb://datakit:123456@"]
@@ -159,7 +159,7 @@ const (
 	gather_top_stat = true
 	election = false
 [tags]
-	tag1 = "val1"`  // set conf URL later.
+	tag1 = "val1"` // set conf URL later.
 )
 
 func TestIntegrate(t *testing.T) {
