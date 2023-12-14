@@ -504,19 +504,19 @@ func (ipt *Input) getReplicationMetrics() error {
 	cache, ok := ipt.metricQueryCache[ReplicationMetric]
 	if !ok {
 		query := ""
-		if V100.LessThan(*ipt.version) {
+		if V100.LessThan(*ipt.version) || V100.Equal(*ipt.version) {
 			query = `
 SELECT CASE WHEN pg_last_wal_receive_lsn() IS NULL OR pg_last_wal_receive_lsn() = pg_last_wal_replay_lsn()
 	THEN 0 ELSE GREATEST (0, EXTRACT (EPOCH FROM now() - pg_last_xact_replay_timestamp())) END AS replication_delay,
 	abs(pg_wal_lsn_diff(pg_last_wal_receive_lsn(), pg_last_wal_replay_lsn())) AS replication_delay_bytes
          WHERE (SELECT pg_is_in_recovery())
 `
-		} else if V91.LessThan(*ipt.version) {
+		} else if V91.LessThan(*ipt.version) || V91.Equal(*ipt.version) {
 			query = `
 SELECT CASE WHEN pg_last_xlog_receive_location() IS NULL OR pg_last_xlog_receive_location() = pg_last_xlog_replay_location()
 	THEN 0 ELSE GREATEST (0, EXTRACT (EPOCH FROM now() - pg_last_xact_replay_timestamp())) END AS replication_delay
 `
-			if V92.LessThan(*ipt.version) {
+			if V92.LessThan(*ipt.version) || V92.Equal(*ipt.version) {
 				query += `,
 	abs(pg_xlog_location_diff(pg_last_xlog_receive_location(), pg_last_xlog_replay_location())) AS replication_delay_bytes
 `
