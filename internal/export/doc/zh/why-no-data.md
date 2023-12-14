@@ -204,6 +204,12 @@ default_enabled_inputs = [
 
 这些前面带 `-` 的采集器，都是被禁用的。去掉前面的 `-` 或移除该项即可。
 
+### 采集器配置有误 {#iss-invalid-conf}
+
+Datakit 采集器使用 TOML 格式的配置文件，当配置文件不符合 TOML 规范，或者不符合程序字段定义的类型时（比如将整数配置成字符串等），会出现配置文件加载失败的问题，进而导致采集器不会开启。
+
+Datakit 内置了配置检测功能，参见[这里](datakit-tools-how-to.md#check-conf)。
+
 ### 配置方式有误 {#iss-config-mistaken}
 
 Datakit 中采集器配置有俩大类：

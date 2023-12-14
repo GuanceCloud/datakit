@@ -111,6 +111,12 @@ Import used to play recorded history data to Guance Cloud. Available options:
   -P, --path string       point data path (default "/usr/local/datakit/recorder")
 ```
 
+<!-- markdownlint-disable MD046 -->
+???+ attention
+
+    对 RUM 数据而言，如果回放的目标工作空间没有对应的 APP ID，则数据无法写入，可以在目标工作空间新建一个应用，将 APP ID 改成和录制数据中的一致，或者替换已有的录制数据中 APP ID 为目标工作空间中对应 RUM 应用的 APP ID。
+<!-- markdownlint-enable -->
+
 ## 查看 DataKit 运行情况 {#using-monitor}
 
 monitor 用法[参见这里](datakit-monitor.md)

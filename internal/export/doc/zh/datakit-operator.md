@@ -27,13 +27,10 @@ Datakit Operator 是 Datakit 在 Kubernetes 编排的联动项目，旨在协助
 下载 [*datakit-operator.yaml*](https://static.guance.com/datakit-operator/datakit-operator.yaml){:target="_blank"}，步骤如下：
 
 ``` shell
-kubectl create namespace datakit
-
-wget https://static.guance.com/datakit-operator/datakit-operator.yaml
-
-kubectl apply -f datakit-operator.yaml
-
-kubectl get pod -n datakit
+$ kubectl create namespace datakit
+$ wget https://static.guance.com/datakit-operator/datakit-operator.yaml
+$ kubectl apply -f datakit-operator.yaml
+$ kubectl get pod -n datakit
 
 NAME                               READY   STATUS    RESTARTS   AGE
 datakit-operator-f948897fb-5w5nm   1/1     Running   0          15s
@@ -48,7 +45,7 @@ datakit-operator-f948897fb-5w5nm   1/1     Running   0          15s
 
 ### 相关配置 {#datakit-operator-jsonconfig}
 
-[:octicons-tag-24: Datakit Operator v1.4.2]
+[:octicons-tag-24: Version-1.4.2](changelog.md#cl-1.4.2)
 
 Datakit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap 存放，以环境变量方式加载到容器中。
 
