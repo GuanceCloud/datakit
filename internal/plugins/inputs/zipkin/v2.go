@@ -79,9 +79,6 @@ func spanModeleV2ToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
 		pt := point.NewPointV2(inputName, spanKV, traceOpts...)
 		dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 	}
-	if len(dktrace) != 0 {
-		dktrace[0].MustAdd(itrace.FieldPriority, itrace.PriorityAutoKeep)
-	}
 
 	return dktrace
 }

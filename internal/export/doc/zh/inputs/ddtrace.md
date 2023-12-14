@@ -201,26 +201,34 @@ DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.p
   more_tag = "some_other_value"
 ```
 
-### 在代码中添加业务 tag {#add-tags}
+### 固定提取 tag {#add-tags}
 
-在应用代码中，可通过诸如 `span.SetTag(some-tag-key, some-tag-value)`（不同语言方式不同） 这样的方式来设置业务自定义 tag。对于这些业务自定义 tag，可通过在 ddtrace.conf 中配置 `customer_tags` 来识别并提取：
+从 DataKit 版本 [1.21.0](../changelog.md#cl-1.21.0) 开始，不在将 Span.Mate 中全部都提前到一级标签中。
+而是选择性提取，以下是可能会提取出的标签列表：
 
-```toml
-customer_tags = [
-  "order_id",
-  "task_id",
-  "some.key",  # 被重命名为 some_key
-]
-```
+| Mete               | tag               | 说明          |
+|:-------------------|:------------------|:------------|
+| http.url           | http_url          | HTTP 请求完整路径 |
+| http.hostname      | http_hostname     | hostname    |
+| http.route         | http_route        | 路由          |
+| http.status_code   | http_status_code  | 状态码         |
+| http.method        | http_method       | 请求方法        |
+| http.client_ip     | http_client_ip    | 客户端 IP      |
+| sampling.priority  | sampling_priority | 采样          |
+| span.kind          | span_kind         | span 类型     |
+| error              | error             | 是否错误        |
+| dd.version         | dd_version        | agent 版本    |
+| error.message      | error_message     | 错误信息        |
+| error.stack        | error_stack       | 堆栈信息        |
+| error_type         | error_type        | 错误类型        |
+| system.pid         | pid               | pid         |
+| error.msg          | error_message     | 错误信息        |
+| project            | project           | project     |
+| version            | version           | 版本          |
+| env                | env               | 环境          |
+| _dd.base_service   | _dd_base_service  | 上级服务        |
 
-注意，这些 tag-key 中不能包含英文字符 '.'，带 `.` 的 tag-key 会替换为 `_`。
-
-<!-- markdownlint-disable MD046 -->
-???+ attention "应用代码中添加业务 tag 注意事项"
-
-    - 在应用代码中添加了对应的 Tag 后，必须在 *ddtrace.conf* 的 `customer_tags` 中也同步添加对应的 Tag-Key 列表，否则 Datakit 不会对这些业务 Tag 进行提取
-    - 在开启了采样的情况下，部分添加了 Tag 的 Span 有可能被舍弃
-<!-- markdownlint-enable -->
+在观测云中的链路界面，不在列表中的标签也可以进行筛选。
 
 ## 链路字段 {#tracing}
 

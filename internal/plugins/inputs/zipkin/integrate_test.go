@@ -118,10 +118,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 					itrace.TagHttpRoute,
 					itrace.TagHttpUrl,
 				),
-				inputs.WithOptionalFields(
-					itrace.TagPid,
-					itrace.FieldPriority,
-				),
 				inputs.WithIgnoreUnexpectedTags(true),
 			},
 		},
@@ -142,10 +138,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 					itrace.TagProject,
 					itrace.TagHttpRoute,
 					itrace.TagHttpUrl,
-				),
-				inputs.WithOptionalFields(
-					itrace.TagPid,
-					itrace.FieldPriority,
 				),
 				inputs.WithIgnoreUnexpectedTags(true),
 			},

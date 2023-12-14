@@ -222,8 +222,7 @@ func (ipt *Input) RegHTTPHandler() {
 		closeResource.UpdateIgnResList(ipt.CloseResource)
 		afterGather.AppendFilter(closeResource.Close)
 	}
-	// add RespectUserRule filter to obey client priority rules.
-	afterGather.AppendFilter(itrace.RespectUserRule)
+
 	// add error status penetration
 	afterGather.AppendFilter(itrace.PenetrateErrorTracing)
 	// add omit certain error status list

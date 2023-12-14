@@ -118,7 +118,6 @@ func creatRootSpan(pspan *ppv1.PSpan, meta metadata.MD) *itrace.DkSpan {
 		AddTag(itrace.TagSource, "pinpointV2").
 		AddTag(itrace.TagSpanType, itrace.SpanTypeEntry).
 		AddTag(itrace.TagSourceType, getServiceType(pspan.ServiceType)).
-		Add(itrace.FieldPriority, itrace.PriorityAutoKeep, false, false).
 		Add(itrace.FieldStart, pspan.StartTime*int64(time.Microsecond), false, false).
 		Add(itrace.FieldDuration, int64(pspan.Elapsed)*int64(time.Microsecond), false, false)
 

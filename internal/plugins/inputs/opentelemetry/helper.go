@@ -121,6 +121,9 @@ func (a *attributes) remove(key string) *attributes {
 func (a *attributes) splite() (map[string]string, map[string]interface{}) {
 	shadowTags := make(map[string]string)
 	metrics := make(map[string]interface{})
+	if len(a.attrs) > 100 {
+		a.attrs = a.attrs[:100]
+	}
 	for _, v := range a.attrs {
 		key := strings.ReplaceAll(v.Key, ".", "_")
 		switch v.Value.Value.(type) {
