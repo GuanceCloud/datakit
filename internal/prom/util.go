@@ -61,12 +61,9 @@ func (p *Prom) validMetricType(familyType dto.MetricType) bool {
 
 func (p *Prom) validMetricName(name string) bool {
 	// blacklist first
-	if len(p.opt.metricNameFilterIgnore) > 0 {
-		for _, p := range p.opt.metricNameFilterIgnore {
-			match, err := regexp.MatchString(p, name)
-			if err != nil {
-				continue
-			}
+	if len(p.opt.metricNameReFilterIgnore) > 0 {
+		for _, p := range p.opt.metricNameReFilterIgnore {
+			match := p.MatchString(name)
 			if match {
 				return false
 			}
@@ -74,14 +71,11 @@ func (p *Prom) validMetricName(name string) bool {
 	}
 
 	// whitelist second
-	if len(p.opt.metricNameFilter) == 0 {
+	if len(p.opt.metricNameReFilter) == 0 {
 		return true
 	}
-	for _, p := range p.opt.metricNameFilter {
-		match, err := regexp.MatchString(p, name)
-		if err != nil {
-			continue
-		}
+	for _, p := range p.opt.metricNameReFilter {
+		match := p.MatchString(name)
 		if match {
 			return true
 		}

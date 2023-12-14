@@ -8,13 +8,13 @@ package promremote
 import (
 	"fmt"
 	"math"
+	"regexp"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/gogo/protobuf/proto"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/prompb"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 type Parser struct {
@@ -22,18 +22,27 @@ type Parser struct {
 	MeasurementNameFilter []string `toml:"measurement_name_filter"`
 	MeasurementPrefix     string   `toml:"measurement_prefix"`
 	MeasurementName       string   `toml:"measurement_name"`
+
+	metricNameReFilter      []*regexp.Regexp
+	measurementNameReFilter []*regexp.Regexp
 }
 
 // Parse parses given byte as protocol buffer. it performs necessary
 // metric filtering and prefixing, and returns parsed measurements.
 func (p *Parser) Parse(buf []byte, ipt *Input) ([]*point.Point, error) {
 	var err error
-	var metrics []*point.Point
+	var pts []*point.Point
 	var req prompb.WriteRequest
 	if err := proto.Unmarshal(buf, &req); err != nil {
 		return nil, fmt.Errorf("unable to unmarshal request body: %w", err)
 	}
 	now := time.Now()
+	t := time.Now()
+	_ = t
+	timeOpt := point.WithTime(now)
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, timeOpt)
+
 	for _, ts := range req.Timeseries {
 		tags := map[string]string{}
 
@@ -57,32 +66,29 @@ func (p *Parser) Parse(buf []byte, ipt *Input) ([]*point.Point, error) {
 		measurementName, metricName := p.getNames(metric)
 
 		for _, s := range ts.Samples {
-			fields := make(map[string]interface{})
 			if !math.IsNaN(s.Value) {
-				fields[metricName] = s.Value
-			}
-			if len(fields) > 0 {
-				t := now
+				var kvs point.KVs
+
+				kvs = kvs.Add(metricName, s.Value, false, true)
+
+				for k, v := range ipt.Tags {
+					kvs = kvs.MustAddTag(k, v)
+				}
+
+				for k, v := range tags {
+					kvs = kvs.MustAddTag(k, v)
+				}
+
 				if s.Timestamp > 0 {
 					t = time.Unix(0, s.Timestamp*1000000)
-				}
-
-				opts := point.DefaultMetricOptions()
-				opts = append(opts, point.WithTime(t))
-
-				if ipt.Election {
-					tags = inputs.MergeTagsWrapper(tags, ipt.Tagger.ElectionTags(), ipt.Tags, "")
+					opts[len(opts)-1] = point.WithTime(t)
 				} else {
-					tags = inputs.MergeTagsWrapper(tags, ipt.Tagger.HostTags(), ipt.Tags, "")
+					opts[len(opts)-1] = timeOpt
 				}
 
-				m := point.NewPointV2(measurementName,
-					append(point.NewTags(tags), point.NewKVs(fields)...),
-					opts...)
-
-				metrics = append(metrics, m)
+				pts = append(pts, point.NewPointV2(measurementName, kvs, opts...))
 			}
 		}
 	}
-	return metrics, err
+	return pts, err
 }
