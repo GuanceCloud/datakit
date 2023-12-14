@@ -11,13 +11,6 @@ import (
 	"testing"
 )
 
-func TestStartcollect(t *testing.T) {
-	str, _ := os.Getwd()
-	t.Log(str)
-	a, b, c := Startcollect(str, []string{})
-	t.Log(a, b, c)
-}
-
 func TestGetFileOwnership(t *testing.T) {
 	host := runtime.GOOS
 	str, _ := os.Getwd()
