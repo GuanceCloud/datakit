@@ -27,13 +27,11 @@ Prerequisites:
 Download [*datakit-operator.yaml*](https://static.guance.com/datakit-operator/datakit-operator.yaml), and follow these steps:
 
 ``` shell
-kubectl create namespace datakit
+$ kubectl create namespace datakit
+$ wget https://static.guance.com/datakit-operator/datakit-operator.yaml
+$ kubectl apply -f datakit-operator.yaml
+$ kubectl get pod -n datakit
 
-wget https://static.guance.com/datakit-operator/datakit-operator.yaml
-
-kubectl apply -f datakit-operator.yaml
-
-kubectl get pod -n datakit
 NAME                               READY   STATUS    RESTARTS   AGE
 datakit-operator-f948897fb-5w5nm   1/1     Running   0          15s
 ```
@@ -47,7 +45,7 @@ datakit-operator-f948897fb-5w5nm   1/1     Running   0          15s
 
 ### Relevant Configuration {#datakit-operator-jsonconfig}
 
-[:octicons-tag-24: Datakit Operator v1.4.2]
+[:octicons-tag-24: Version-1.4.2](changelog.md#cl-1.4.2)
 
 The configuration for the Datakit Operator is in JSON format and is stored as a separate ConfigMap in Kubernetes, which is loaded into the container as an environment variable.
 
