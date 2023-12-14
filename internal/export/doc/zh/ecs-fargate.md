@@ -30,7 +30,7 @@ ECS Fargate 的任务元数据端点（Task metadata Endpoint）只能在任务�
 - ecs:ListContainerInstances 列出集群的实例。
 - ecs:DescribeContainerInstances 描述实例以添加有关正在运行的资源和任务的指标。
 
-2. 在任务定义中，添加 Datakit 容器，示例配置项如下：
+1. 在任务定义中，添加 Datakit 容器，示例配置项如下：
 
 - 名称：`datakit`
 - 镜像：`pubrepo.guance.com/datakit/datakit:<指定版本>`
@@ -38,12 +38,12 @@ ECS Fargate 的任务元数据端点（Task metadata Endpoint）只能在任务�
 - 端口映射，容器端口：`9529（按需配置，默认是 9529）`
 - 资源分配限制：CPU `2`vCPU，内存限制 `4`GB
 
-3. 使用环境变量配置 Datakit，必要的环境变量如下：
+1. 使用环境变量配置 Datakit，必要的环境变量如下：
 
-- "ENV_ECS_FARGATE": "on"
-- "ENV_DATAWAY": "https://openway.guance.com?token=<your-token>"
-- "ENV_HTTP_LISTEN": "0.0.0.0:9529"
-- "ENV_DEFAULT_ENABLED_INPUTS": "dk,container,ddtrace"
+- `ENV_ECS_FARGATE`: `on`
+- `ENV_DATAWAY`: `https://openway.guance.com?token=<your-token>`
+- `ENV_HTTP_LISTEN`: `0.0.0.0:9529`
+- `ENV_DEFAULT_ENABLED_INPUTS`: `dk,container,ddtrace`
 
 这是一份运行的 Datakit 和 trace 的任务定义示例：
 
