@@ -191,8 +191,7 @@ DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.p
 
 ###  Tags {#tags}
 
-Starting from DataKit version [1.21.0](../changelog.md#cl-1.21.0), do not include All in Span.Mate are advanced to the first level label.
-But rather selective extraction, the following is a list of possible extracted labels:
+Starting from DataKit version [1.21.0](../datakit/changelog.md#cl-1.21.0), do not include All in Span.Mate are advanced to the first level label and only select following list labels:
 
 | Mete              | GuanCe tag        | doc           | 
 |:------------------|:------------------|:--------------|
