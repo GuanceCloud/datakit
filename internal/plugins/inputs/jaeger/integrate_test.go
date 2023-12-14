@@ -124,10 +124,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 					itrace.TagHttpRoute,
 					itrace.TagHttpUrl,
 				),
-				inputs.WithOptionalFields(
-					itrace.TagPid,
-					itrace.FieldPriority,
-				),
 				inputs.WithIgnoreTags(
 					testutils.RUNTIME_ID,
 				),
@@ -150,10 +146,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 					itrace.TagEndpoint,
 					itrace.TagHttpRoute,
 					itrace.TagHttpUrl,
-				),
-				inputs.WithOptionalFields(
-					itrace.TagPid,
-					itrace.FieldPriority,
 				),
 				inputs.WithIgnoreTags(
 					testutils.RUNTIME_ID,

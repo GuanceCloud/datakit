@@ -13,7 +13,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/GuanceCloud/cliutils/testutil"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestJson2StringMap(t *testing.T) {
@@ -54,27 +54,30 @@ func TestParseMetadata(t *testing.T) {
 	w := multipart.NewWriter(&buf)
 
 	f, err := w.CreateFormFile("event", "event.json")
-	testutil.Ok(t, err)
+	assert.NoError(t, err)
 
 	_, err = f.Write([]byte(eventJSON))
-	testutil.Ok(t, err)
+	assert.NoError(t, err)
 
 	err = w.Close()
-	testutil.Ok(t, err)
+	assert.NoError(t, err)
 
 	req, err := http.NewRequest("POST", "/profiling/v1/input", &buf)
-	testutil.Ok(t, err)
+	assert.NoError(t, err)
 
 	req.Header.Set("Content-Type", w.FormDataContentType())
 
+	err = req.ParseMultipartForm(defaultInput().getBodySizeLimit())
+	assert.NoError(t, err)
+
 	metadata, _, err := parseMetadata(req)
 
-	testutil.Ok(t, err)
+	assert.NoError(t, err)
 
 	for k, v := range metadata.tags {
 		t.Logf("%s : %s \n", k, v)
 	}
 
-	testutil.Equals(t, "bar", metadata.tags["foo"])
-	testutil.Equals(t, "hello-world", metadata.tags["foobar"])
+	assert.Equal(t, "bar", metadata.tags["foo"])
+	assert.Equal(t, "hello-world", metadata.tags["foobar"])
 }

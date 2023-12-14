@@ -14,6 +14,7 @@ import (
 	"github.com/GuanceCloud/mdcheck/check"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/make/build"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/all"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
@@ -47,6 +48,18 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&mdCheck, "mdcheck", "", "check markdown docs")
 	flag.StringVar(&mdAutofix, "mdcheck-autofix", "off", "check markdown docs with autofix")
 	flag.StringVar(&mdMetaDir, "meta-dir", "", "metadir used to check markdown meta")
+
+	//
+	// export related flags.
+	//
+	flag.BoolVar(&export, "export", false, "Export used to output all resource related to Datakit.")
+
+	flag.StringVar(&build.ExportDocDir, "export-doc-dir", "", "export all inputs and related docs to specified path")
+	flag.StringVar(&build.ExportIntegrationDir, "export-integration-dir", "", "export all integration related resource to specified path")
+
+	flag.StringVar(&build.ExportIgnore, "ignore", "", "disable list, i.e., --ignore nginx,redis,mem")
+	flag.StringVar(&build.ExportTODO, "TODO", "TODO", "set TODO placeholder")
+	flag.StringVar(&build.ExportVersion, "version", datakit.Version, "specify version string in document's header")
 }
 
 var (
@@ -57,6 +70,7 @@ var (
 	pkgeBPF       = false
 	buildISP      = false
 	ut            = false
+	export        = false
 	raceDetection = "off"
 	dwURL         = "not-set"
 
@@ -101,6 +115,14 @@ func applyFlags() {
 
 		if err := build.UnitTestDataKit(); err != nil {
 			l.Errorf("build.UnitTestDataKit: %s", err)
+			os.Exit(-1)
+		}
+		return
+	}
+
+	if export {
+		if err := build.BuildExport(); err != nil {
+			l.Errorf("build.BuildExport: %s", err)
 			os.Exit(-1)
 		}
 		return
@@ -182,7 +204,7 @@ func applyFlags() {
 		}
 
 		if err := build.PubDatakit(); err != nil {
-			l.Error(err)
+			l.Errorf("build.PubDatakit: %s", err)
 			build.NotifyFail(err.Error())
 		} else {
 			build.NotifyPubDone()

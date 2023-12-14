@@ -158,9 +158,10 @@ func (*jobMetric) Info() *inputs.MeasurementInfo {
 		Desc: "The metric of the Kubernetes Job.",
 		Type: "metric",
 		Tags: map[string]interface{}{
-			"uid":       inputs.NewTagInfo("The UID of Job."),
-			"job":       inputs.NewTagInfo("Name must be unique within a namespace."),
-			"namespace": inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"uid":              inputs.NewTagInfo("The UID of Job."),
+			"job":              inputs.NewTagInfo("Name must be unique within a namespace."),
+			"namespace":        inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"cluster_name_k8s": inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
 		},
 		Fields: map[string]interface{}{
 			"active":               &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of actively running pods."},
@@ -181,10 +182,11 @@ func (*jobObject) Info() *inputs.MeasurementInfo {
 		Desc: "The object of the Kubernetes Job.",
 		Type: "object",
 		Tags: map[string]interface{}{
-			"name":      inputs.NewTagInfo("The UID of Job."),
-			"uid":       inputs.NewTagInfo("The UID of Job."),
-			"job_name":  inputs.NewTagInfo("Name must be unique within a namespace."),
-			"namespace": inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"name":             inputs.NewTagInfo("The UID of Job."),
+			"uid":              inputs.NewTagInfo("The UID of Job."),
+			"job_name":         inputs.NewTagInfo("Name must be unique within a namespace."),
+			"namespace":        inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"cluster_name_k8s": inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
 		},
 		Fields: map[string]interface{}{
 			"age":             &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},

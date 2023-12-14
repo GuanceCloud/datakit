@@ -33,6 +33,7 @@ func (m *httpMeasurement) Info() *inputs.MeasurementInfo {
 			"proto":              &inputs.TagInfo{Desc: "The protocol of the HTTP, such as 'HTTP/1.1'"},
 			"method":             &inputs.TagInfo{Desc: "HTTP method, such as `GET`"},
 			"owner":              &inputs.TagInfo{Desc: "The owner name"}, // used for fees calculation
+			"datakit_version":    &inputs.TagInfo{Desc: "The DataKit version"},
 		},
 		Fields: map[string]interface{}{
 			"status_code": &inputs.FieldInfo{
@@ -118,18 +119,19 @@ func (m *tcpMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "tcp_dial_testing",
 		Tags: map[string]interface{}{
-			"name":      &inputs.TagInfo{Desc: "The name of the task"},
-			"dest_host": &inputs.TagInfo{Desc: "The name of the host to be monitored"},
-			"dest_port": &inputs.TagInfo{Desc: "The port of the TCP connection"},
-			"dest_ip":   &inputs.TagInfo{Desc: "The IP address"},
-			"country":   &inputs.TagInfo{Desc: "The name of the country"},
-			"province":  &inputs.TagInfo{Desc: "The name of the province"},
-			"city":      &inputs.TagInfo{Desc: "The name of the city"},
-			"internal":  &inputs.TagInfo{Desc: "The boolean value, true for domestic and false for overseas"},
-			"isp":       &inputs.TagInfo{Desc: "ISP, such as `chinamobile`, `chinaunicom`, `chinatelecom`"},
-			"status":    &inputs.TagInfo{Desc: "The status of the task, either 'OK' or 'FAIL'"},
-			"proto":     &inputs.TagInfo{Desc: "The protocol of the task"},
-			"owner":     &inputs.TagInfo{Desc: "The owner name"}, // used for fees calculation
+			"name":            &inputs.TagInfo{Desc: "The name of the task"},
+			"dest_host":       &inputs.TagInfo{Desc: "The name of the host to be monitored"},
+			"dest_port":       &inputs.TagInfo{Desc: "The port of the TCP connection"},
+			"dest_ip":         &inputs.TagInfo{Desc: "The IP address"},
+			"country":         &inputs.TagInfo{Desc: "The name of the country"},
+			"province":        &inputs.TagInfo{Desc: "The name of the province"},
+			"city":            &inputs.TagInfo{Desc: "The name of the city"},
+			"internal":        &inputs.TagInfo{Desc: "The boolean value, true for domestic and false for overseas"},
+			"isp":             &inputs.TagInfo{Desc: "ISP, such as `chinamobile`, `chinaunicom`, `chinatelecom`"},
+			"status":          &inputs.TagInfo{Desc: "The status of the task, either 'OK' or 'FAIL'"},
+			"proto":           &inputs.TagInfo{Desc: "The protocol of the task"},
+			"owner":           &inputs.TagInfo{Desc: "The owner name"}, // used for fees calculation
+			"datakit_version": &inputs.TagInfo{Desc: "The DataKit version"},
 		},
 		Fields: map[string]interface{}{
 			"message": &inputs.FieldInfo{
@@ -185,16 +187,17 @@ func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "icmp_dial_testing",
 		Tags: map[string]interface{}{
-			"name":      &inputs.TagInfo{Desc: "The name of the task"},
-			"dest_host": &inputs.TagInfo{Desc: "The name of the host to be monitored"},
-			"country":   &inputs.TagInfo{Desc: "The name of the country"},
-			"province":  &inputs.TagInfo{Desc: "The name of the province"},
-			"city":      &inputs.TagInfo{Desc: "The name of the city"},
-			"internal":  &inputs.TagInfo{Desc: "The boolean value, true for domestic and false for overseas"},
-			"isp":       &inputs.TagInfo{Desc: "ISP, such as `chinamobile`, `chinaunicom`, `chinatelecom`"},
-			"status":    &inputs.TagInfo{Desc: "The status of the task, either 'OK' or 'FAIL'"},
-			"proto":     &inputs.TagInfo{Desc: "The protocol of the task"},
-			"owner":     &inputs.TagInfo{Desc: "The owner name"}, // used for fees calculation
+			"name":            &inputs.TagInfo{Desc: "The name of the task"},
+			"dest_host":       &inputs.TagInfo{Desc: "The name of the host to be monitored"},
+			"country":         &inputs.TagInfo{Desc: "The name of the country"},
+			"province":        &inputs.TagInfo{Desc: "The name of the province"},
+			"city":            &inputs.TagInfo{Desc: "The name of the city"},
+			"internal":        &inputs.TagInfo{Desc: "The boolean value, true for domestic and false for overseas"},
+			"isp":             &inputs.TagInfo{Desc: "ISP, such as `chinamobile`, `chinaunicom`, `chinatelecom`"},
+			"status":          &inputs.TagInfo{Desc: "The status of the task, either 'OK' or 'FAIL'"},
+			"proto":           &inputs.TagInfo{Desc: "The protocol of the task"},
+			"owner":           &inputs.TagInfo{Desc: "The owner name"}, // used for fees calculation
+			"datakit_version": &inputs.TagInfo{Desc: "The DataKit version"},
 		},
 		Fields: map[string]interface{}{
 			"message": &inputs.FieldInfo{
@@ -304,16 +307,17 @@ func (m *websocketMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "websocket_dial_testing",
 		Tags: map[string]interface{}{
-			"name":     &inputs.TagInfo{Desc: "The name of the task"},
-			"url":      &inputs.TagInfo{Desc: "The URL string, such as `ws://www.abc.com`"},
-			"country":  &inputs.TagInfo{Desc: "The name of the country"},
-			"province": &inputs.TagInfo{Desc: "The name of the province"},
-			"city":     &inputs.TagInfo{Desc: "The name of the city"},
-			"internal": &inputs.TagInfo{Desc: "The boolean value, true for domestic and false for overseas"},
-			"isp":      &inputs.TagInfo{Desc: "ISP, such as `chinamobile`, `chinaunicom`, `chinatelecom`"},
-			"status":   &inputs.TagInfo{Desc: "The status of the task, either 'OK' or 'FAIL'"},
-			"proto":    &inputs.TagInfo{Desc: "The protocol of the task"},
-			"owner":    &inputs.TagInfo{Desc: "The owner name"}, // used for fees calculation
+			"name":            &inputs.TagInfo{Desc: "The name of the task"},
+			"url":             &inputs.TagInfo{Desc: "The URL string, such as `ws://www.abc.com`"},
+			"country":         &inputs.TagInfo{Desc: "The name of the country"},
+			"province":        &inputs.TagInfo{Desc: "The name of the province"},
+			"city":            &inputs.TagInfo{Desc: "The name of the city"},
+			"internal":        &inputs.TagInfo{Desc: "The boolean value, true for domestic and false for overseas"},
+			"isp":             &inputs.TagInfo{Desc: "ISP, such as `chinamobile`, `chinaunicom`, `chinatelecom`"},
+			"status":          &inputs.TagInfo{Desc: "The status of the task, either 'OK' or 'FAIL'"},
+			"proto":           &inputs.TagInfo{Desc: "The protocol of the task"},
+			"owner":           &inputs.TagInfo{Desc: "The owner name"}, // used for fees calculation
+			"datakit_version": &inputs.TagInfo{Desc: "The DataKit version"},
 		},
 		Fields: map[string]interface{}{
 			"message": &inputs.FieldInfo{

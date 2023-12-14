@@ -8,6 +8,7 @@ package container
 import (
 	"context"
 	"fmt"
+	"math"
 	"strings"
 	"sync"
 	"time"
@@ -31,10 +32,28 @@ type container struct {
 
 	// adding labels to container logs
 	enableExtractK8sLabelAsTags bool
+	enableCollectLogging        bool
 
 	loggingFilters []filter.Filter
 	logTable       *logTable
 	extraTags      map[string]string
+}
+
+func newECSFargate(ipt *Input, agentURL string) (Collector, error) {
+	r, err := runtime.NewECSFargateRuntime(agentURL)
+	if err != nil {
+		return nil, err
+	}
+
+	tags := inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")
+
+	return &container{
+		ipt:                         ipt,
+		runtime:                     r,
+		enableExtractK8sLabelAsTags: ipt.EnableExtractK8sLabelAsTags,
+		enableCollectLogging:        false,
+		extraTags:                   tags,
+	}, nil
 }
 
 func newContainer(ipt *Input, endpoint string, mountPoint string, k8sClient k8sclient.Client) (Collector, error) {
@@ -63,6 +82,7 @@ func newContainer(ipt *Input, endpoint string, mountPoint string, k8sClient k8sc
 		runtime:                     r,
 		k8sClient:                   k8sClient,
 		enableExtractK8sLabelAsTags: ipt.EnableExtractK8sLabelAsTags,
+		enableCollectLogging:        true,
 		loggingFilters:              filters,
 		logTable:                    newLogTable(),
 		extraTags:                   tags,
@@ -176,6 +196,10 @@ func (c *container) gatherResource(category string, opts []point.Option, feed fu
 }
 
 func (c *container) Logging(_ func([]*point.Point) error) {
+	if !c.enableCollectLogging {
+		return
+	}
+
 	cList, err := c.runtime.ListContainers()
 	if len(cList) == 0 && err != nil {
 		l.Warn("not found containers, err: %s", err)
@@ -310,7 +334,7 @@ func (c *container) transformPoint(info *runtime.Container) *typed.PointKV {
 			p.SetField("mem_used_percent_base_limit", float64(top.MemoryWorkingSet)/float64(top.MemoryLimit)*100)
 		}
 
-		if top.MemoryCapacity != 0 {
+		if top.MemoryCapacity != 0 && top.MemoryCapacity != math.MaxInt64 {
 			p.SetField("mem_capacity", top.MemoryCapacity)
 			p.SetField("mem_used_percent", float64(top.MemoryWorkingSet)/float64(top.MemoryCapacity)*100)
 		}
@@ -318,7 +342,7 @@ func (c *container) transformPoint(info *runtime.Container) *typed.PointKV {
 		p.SetField("network_bytes_rcvd", top.NetworkRcvd)
 		p.SetField("network_bytes_sent", top.NetworkSent)
 
-		// not supported containerd/CRI
+		// only supported docker
 		if top.BlockRead != 0 {
 			p.SetField("block_read_byte", top.BlockRead)
 		}
@@ -327,18 +351,11 @@ func (c *container) transformPoint(info *runtime.Container) *typed.PointKV {
 		}
 	}
 
-	if uid := getPodUIDForLabels(info.Labels); uid != "" {
-		p.SetTag("pod_uid", uid)
-	}
-
+	p.SetTagIfNotEmpty("pod_uid", getPodUIDForLabels(info.Labels))
 	podName := getPodNameForLabels(info.Labels)
-	if podName != "" {
-		p.SetTag("pod_name", podName)
-	}
+	p.SetTagIfNotEmpty("pod_name", podName)
 	namespace := getPodNamespaceForLabels(info.Labels)
-	if namespace != "" {
-		p.SetTag("namespace", namespace)
-	}
+	p.SetTagIfNotEmpty("namespace", namespace)
 
 	image := info.Image
 
@@ -369,8 +386,16 @@ func (c *container) transformPoint(info *runtime.Container) *typed.PointKV {
 	p.SetTag("image_short_name", shortName)
 	p.SetTag("image_tag", imageTag)
 
+	// only ecs fargate
+	p.SetTagIfNotEmpty("aws_ecs_cluster_name", getAWSClusterNameForLabels(info.Labels))
+	p.SetTagIfNotEmpty("task_family", getTaskFamilyForLabels(info.Labels))
+	p.SetTagIfNotEmpty("task_version", getTaskVersionForLabels(info.Labels))
+	p.SetTagIfNotEmpty("task_arn", getTaskARNForLabels(info.Labels))
+
 	return p
 }
+
+/// get container info for k8s
 
 func getPodNameForLabels(labels map[string]string) string {
 	return labels["io.kubernetes.pod.name"]
@@ -395,6 +420,34 @@ func getDockerTypeForLabels(labels map[string]string) string {
 func isPauseContainer(info *runtime.Container) bool {
 	typ := getDockerTypeForLabels(info.Labels)
 	return typ == "podsandbox"
+}
+
+/// get task info for ecs fargate
+
+func getAWSClusterNameForLabels(labels map[string]string) string {
+	return trimClusterName(labels["com.amazonaws.ecs.cluster"])
+}
+
+func getTaskFamilyForLabels(labels map[string]string) string {
+	return labels["com.amazonaws.ecs.task-definition-family"]
+}
+
+func getTaskVersionForLabels(labels map[string]string) string {
+	return labels["com.amazonaws.ecs.task-definition-version"]
+}
+
+func getTaskARNForLabels(labels map[string]string) string {
+	return labels["com.amazonaws.ecs.task-arn"]
+}
+
+func trimClusterName(s string) string {
+	// e.g. arn:aws-cn:ecs:cn-north-1:123123123:cluster/datakit-dev-cluster
+	flag := "cluster/"
+	index := strings.LastIndex(s, flag)
+	if index == -1 {
+		return ""
+	}
+	return s[index+len(flag):]
 }
 
 type filterType int

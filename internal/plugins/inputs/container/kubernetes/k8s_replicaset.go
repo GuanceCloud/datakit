@@ -151,6 +151,7 @@ func (*replicasetMetric) Info() *inputs.MeasurementInfo {
 			"replicaset_name":  inputs.NewTagInfo("Name must be unique within a namespace."),
 			"replica_set_name": inputs.NewTagInfo("Name must be unique within a namespace. (Deprecated)"),
 			"namespace":        inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"cluster_name_k8s": inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
 		},
 		Fields: map[string]interface{}{
 			"replicas":               &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The most recently observed number of replicas."},
@@ -178,6 +179,7 @@ func (*replicasetObject) Info() *inputs.MeasurementInfo {
 			"namespace":        inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 			"deployment":       inputs.NewTagInfo("The name of the Deployment which the object belongs to."),
 			"statefulset":      inputs.NewTagInfo("The name of the StatefulSet which the object belongs to."),
+			"cluster_name_k8s": inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
 		},
 		Fields: map[string]interface{}{
 			"age":                &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},

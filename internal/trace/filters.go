@@ -76,44 +76,6 @@ func (cres *CloseResource) UpdateIgnResList(ignResList map[string][]string) {
 	}
 }
 
-func RespectUserRule(log *logger.Logger, dktrace DatakitTrace) (DatakitTrace, bool) {
-	if len(dktrace) == 0 {
-		return nil, true
-	}
-
-	for i := range dktrace {
-		priority64 := dktrace[i].GetFiledToInt64(FieldPriority)
-		priority := int(priority64)
-		switch priority {
-		case PriorityUserReject, PriorityRuleSamplerReject:
-			log.Debugf("drop tid: %s service: %s resource: %s according to %s.",
-				dktrace[i].GetTag(TagService), dktrace[i].GetFiledToString(FieldResource), dktrace[i].Get(TagSourceType), priorityRules[priority])
-
-			return nil, true
-		case PriorityUserKeep, PriorityRuleSamplerKeep:
-			log.Debugf("send tid: %s service: %s resource: %s according to %s.",
-				dktrace[i].GetTag(TagService), dktrace[i].GetFiledToString(FieldResource), dktrace[i].Get(TagSourceType), priorityRules[priority])
-
-			return dktrace, true
-		case PriorityAutoReject, PriorityAutoKeep:
-			log.Debugf("keep tid: %s service: %s resource: %s according to %s.",
-				dktrace[i].GetTag(TagService), dktrace[i].GetFiledToString(FieldResource), dktrace[i].Get(TagSourceType), priorityRules[priority])
-
-			return dktrace, false
-		default:
-			log.Debugf("[note:] no proper priority number(%d) found, this may be a potential bug, tid: %s service: %s resource: %s",
-				priority, dktrace[i].GetTag(TagService), dktrace[i].GetFiledToString(FieldResource), dktrace[i].Get(TagSourceType))
-
-			return dktrace, false
-		}
-	}
-
-	log.Infof("[note] no priority span found in trace, this may be a potential bug, tid: %s service: %s resource: %s",
-		dktrace[0].GetTag(TagService), dktrace[0].GetFiledToString(FieldResource), dktrace[0].Get(TagSourceType))
-
-	return dktrace, false
-}
-
 func OmitHTTPStatusCodeFilterWrapper(statusCodeList []string) FilterFunc {
 	if len(statusCodeList) == 0 {
 		return NoneFilter

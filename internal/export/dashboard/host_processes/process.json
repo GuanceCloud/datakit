@@ -4,18 +4,13 @@
   "dashboardMapping": [],
   "dashboardOwnerType": "node",
   "dashboardType": "CUSTOM",
-  "iconSet": {
-    "icon": "https://static-res.guance.com/dataflux-template/dashboard/mem/icon.svg",
-    "url": "https://static-res.guance.com/dataflux-template/dashboard/mem/mem.png"
-  },
+  "iconSet": {},
   "main": {
     "charts": [
       {
         "extend": {
           "fixedTime": "",
-          "isRefresh": true,
           "settings": {
-            "alias": [],
             "chartType": "areaLine",
             "colors": [],
             "compareTitle": "",
@@ -25,45 +20,28 @@
             "fixedTime": "",
             "isPercent": false,
             "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
             "levels": [],
-            "mark": {
-              "axis": "x",
-              "data": [],
-              "type": "area"
-            },
             "openCompare": false,
             "openStack": false,
             "showFieldMapping": false,
             "showLine": false,
             "showTitle": true,
             "stackType": "time",
-            "tableSortMetricName": "15-minutes Load",
             "timeInterval": "default",
             "titleDesc": "",
-            "units": [
-              {
-                "key": "memory usage",
-                "name": "memory usage",
-                "unit": "",
-                "units": [
-                  "percent",
-                  "percent"
-                ]
-              }
-            ],
+            "units": [],
             "xAxisShowType": "time"
           }
         },
         "group": {
           "name": null
         },
-        "name": "memory usage",
+        "name": "{{.Dashboard.cpu_usage}}",
         "pos": {
           "h": 8,
-          "w": 8,
-          "x": 0,
+          "i": "chrt_3df484624432430a9f83fb027ab07124",
+          "w": 5,
+          "x": 14,
           "y": 0
         },
         "queries": [
@@ -73,28 +51,36 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "memory usage",
-              "code": "B",
-              "dataSource": "mem",
-              "field": "used_percent",
+              "alias": "cpu usage",
+              "code": "A",
+              "dataSource": "host_processes",
+              "field": "cpu_usage_top",
               "fieldFunc": "avg",
               "fieldType": "float",
               "fill": null,
               "filters": [
                 {
-                  "id": "06cbfc20-5966-11eb-a841-7bbd77278e92",
+                  "id": "0cb5df70-8e26-11ec-964b-c1eb1a70f290",
                   "logic": "and",
                   "name": "host",
                   "op": "=",
                   "type": "",
                   "value": "#{host}"
+                },
+                {
+                  "id": "3f8af080-8e2f-11ec-964b-c1eb1a70f290",
+                  "logic": "and",
+                  "name": "process_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{process_name}"
                 }
               ],
               "funcList": [],
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mem`:(AVG(`used_percent`) AS `memory usage`) { `host` = '#{host}' }",
+              "q": "M::`host_processes`:(AVG(`cpu_usage_top`) AS `cpu usage`) { `host` = '#{host}' and `process_name` = '#{process_name}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -107,11 +93,15 @@
       {
         "extend": {
           "fixedTime": "",
-          "isRefresh": true,
           "settings": {
-            "alias": [],
             "chartType": "areaLine",
-            "colors": [],
+            "colors": [
+              {
+                "color": "#FF77AA",
+                "key": "mem usage",
+                "name": "mem usage"
+              }
+            ],
             "compareTitle": "",
             "compareType": "",
             "currentChartType": "sequence",
@@ -119,45 +109,28 @@
             "fixedTime": "",
             "isPercent": false,
             "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
             "levels": [],
-            "mark": {
-              "axis": "x",
-              "data": [],
-              "type": "area"
-            },
             "openCompare": false,
             "openStack": false,
             "showFieldMapping": false,
             "showLine": false,
             "showTitle": true,
             "stackType": "time",
-            "tableSortMetricName": "15-minutes Load",
             "timeInterval": "default",
             "titleDesc": "",
-            "units": [
-              {
-                "key": "memory buffered",
-                "name": "memory buffered",
-                "unit": "",
-                "units": [
-                  "digital",
-                  "B"
-                ]
-              }
-            ],
+            "units": [],
             "xAxisShowType": "time"
           }
         },
         "group": {
           "name": null
         },
-        "name": "memory buffered",
+        "name": "{{.Dashboard.mem_usage}}",
         "pos": {
           "h": 8,
-          "w": 8,
-          "x": 8,
+          "i": "chrt_ac1727069fe943a1b8a3617f3c88a1d1",
+          "w": 5,
+          "x": 19,
           "y": 0
         },
         "queries": [
@@ -167,28 +140,36 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "memory buffered",
-              "code": "B",
-              "dataSource": "mem",
-              "field": "buffered",
+              "alias": "mem usage",
+              "code": "A",
+              "dataSource": "host_processes",
+              "field": "mem_used_percent",
               "fieldFunc": "avg",
-              "fieldType": "integer",
+              "fieldType": "float",
               "fill": null,
               "filters": [
                 {
-                  "id": "06cbfc20-5966-11eb-a841-7bbd77278e92",
+                  "id": "0cb5df70-8e26-11ec-964b-c1eb1a70f290",
                   "logic": "and",
                   "name": "host",
                   "op": "=",
                   "type": "",
                   "value": "#{host}"
+                },
+                {
+                  "id": "45b41680-8e2f-11ec-964b-c1eb1a70f290",
+                  "logic": "and",
+                  "name": "process_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{process_name}"
                 }
               ],
               "funcList": [],
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mem`:(AVG(`buffered`) AS `memory buffered`) { `host` = '#{host}' }",
+              "q": "M::`host_processes`:(AVG(`mem_used_percent`) AS `mem usage`) { `host` = '#{host}' and `process_name` = '#{process_name}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -201,11 +182,15 @@
       {
         "extend": {
           "fixedTime": "",
-          "isRefresh": true,
           "settings": {
-            "alias": [],
             "chartType": "areaLine",
-            "colors": [],
+            "colors": [
+              {
+                "color": "#41CEC7",
+                "key": "open files",
+                "name": "open files"
+              }
+            ],
             "compareTitle": "",
             "compareType": "",
             "currentChartType": "sequence",
@@ -213,45 +198,28 @@
             "fixedTime": "",
             "isPercent": false,
             "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
             "levels": [],
-            "mark": {
-              "axis": "x",
-              "data": [],
-              "type": "area"
-            },
             "openCompare": false,
             "openStack": false,
             "showFieldMapping": false,
             "showLine": false,
             "showTitle": true,
             "stackType": "time",
-            "tableSortMetricName": "15-minutes Load",
             "timeInterval": "default",
-            "titleDesc": "",
-            "units": [
-              {
-                "key": "memory total",
-                "name": "memory total",
-                "unit": "",
-                "units": [
-                  "digital",
-                  "B"
-                ]
-              }
-            ],
+            "titleDesc": "{{.Dashboard.open_files_note}}",
+            "units": [],
             "xAxisShowType": "time"
           }
         },
         "group": {
           "name": null
         },
-        "name": "memory total",
+        "name": "{{.Dashboard.open_files}}",
         "pos": {
-          "h": 8,
-          "w": 8,
-          "x": 0,
+          "h": 7,
+          "i": "chrt_d11bd86afce3470093685ffc07c3423d",
+          "w": 5,
+          "x": 14,
           "y": 8
         },
         "queries": [
@@ -261,28 +229,36 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "memory total",
+              "alias": "open files",
               "code": "A",
-              "dataSource": "mem",
-              "field": "total",
+              "dataSource": "host_processes",
+              "field": "open_files",
               "fieldFunc": "avg",
               "fieldType": "integer",
               "fill": null,
               "filters": [
                 {
-                  "id": "11327b20-a24b-11eb-97ce-f7340894110b",
+                  "id": "0cb5df70-8e26-11ec-964b-c1eb1a70f290",
                   "logic": "and",
                   "name": "host",
                   "op": "=",
                   "type": "",
                   "value": "#{host}"
+                },
+                {
+                  "id": "4bd35170-8e2f-11ec-964b-c1eb1a70f290",
+                  "logic": "and",
+                  "name": "process_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{process_name}"
                 }
               ],
               "funcList": [],
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mem`:(AVG(`total`) AS `memory total`) { `host` = '#{host}' }",
+              "q": "M::`host_processes`:(AVG(`open_files`) AS `open files`) { `host` = '#{host}' and `process_name` = '#{process_name}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -295,11 +271,15 @@
       {
         "extend": {
           "fixedTime": "",
-          "isRefresh": true,
           "settings": {
-            "alias": [],
             "chartType": "areaLine",
-            "colors": [],
+            "colors": [
+              {
+                "color": "#C57ECD",
+                "key": "rss",
+                "name": "rss"
+              }
+            ],
             "compareTitle": "",
             "compareType": "",
             "currentChartType": "sequence",
@@ -307,27 +287,19 @@
             "fixedTime": "",
             "isPercent": false,
             "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
             "levels": [],
-            "mark": {
-              "axis": "x",
-              "data": [],
-              "type": "area"
-            },
             "openCompare": false,
             "openStack": false,
             "showFieldMapping": false,
             "showLine": false,
             "showTitle": true,
             "stackType": "time",
-            "tableSortMetricName": "15-minutes Load",
             "timeInterval": "default",
             "titleDesc": "",
             "units": [
               {
-                "key": "memory cached",
-                "name": "memory cached",
+                "key": "rss",
+                "name": "rss",
                 "unit": "",
                 "units": [
                   "digital",
@@ -341,11 +313,205 @@
         "group": {
           "name": null
         },
-        "name": "memory cached",
+        "name": "{{.Dashboard.rss}}",
         "pos": {
-          "h": 8,
-          "w": 8,
-          "x": 16,
+          "h": 9,
+          "i": "chrt_164fc72c9ec0458a835a8f8284a46158",
+          "w": 10,
+          "x": 14,
+          "y": 15
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "rss",
+              "code": "A",
+              "dataSource": "host_processes",
+              "field": "rss",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "0cb5df70-8e26-11ec-964b-c1eb1a70f290",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "524bf700-8e2f-11ec-964b-c1eb1a70f290",
+                  "logic": "and",
+                  "name": "process_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{process_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`host_processes`:(AVG(`rss`) AS `rss`) { `host` = '#{host}' and `process_name` = '#{process_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "chartType": "areaLine",
+            "colors": [
+              {
+                "color": "#A0DD86",
+                "key": "threads",
+                "name": "threads"
+              }
+            ],
+            "compareTitle": "",
+            "compareType": "",
+            "currentChartType": "sequence",
+            "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "levels": [],
+            "openCompare": false,
+            "openStack": false,
+            "showFieldMapping": false,
+            "showLine": false,
+            "showTitle": true,
+            "stackType": "time",
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [
+              {
+                "key": "rss",
+                "name": "rss",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "xAxisShowType": "time"
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.threads}}",
+        "pos": {
+          "h": 7,
+          "i": "chrt_10e85d6ed5b246e5a8d177990641d6dc",
+          "w": 5,
+          "x": 19,
+          "y": 8
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "threads",
+              "code": "A",
+              "dataSource": "host_processes",
+              "field": "threads",
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "0cb5df70-8e26-11ec-964b-c1eb1a70f290",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "59ebb770-8e2f-11ec-964b-c1eb1a70f290",
+                  "logic": "and",
+                  "name": "process_name",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{process_name}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`host_processes`:(AVG(`threads`) AS `threads`) { `host` = '#{host}' and `process_name` = '#{process_name}' }",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "sequence",
+            "unit": ""
+          }
+        ],
+        "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "settings": {
+            "colors": [],
+            "currentChartType": "table",
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "pageSize": 0,
+            "queryMode": "toGroupColumn",
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": [],
+            "valColorMappings": [
+              {
+                "field": "cpu",
+                "fontColor": "#FF2244",
+                "operation": ">",
+                "value": [
+                  "90"
+                ]
+              },
+              {
+                "field": "memory",
+                "fontColor": "#FF2244",
+                "operation": ">",
+                "value": [
+                  "90"
+                ]
+              }
+            ],
+            "valMappings": []
+          }
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.top_n_cpu_usage}}",
+        "pos": {
+          "h": 12,
+          "i": "chrt_1b29b92263614bf48ce8c558d96a2edd",
+          "w": 14,
+          "x": 0,
           "y": 0
         },
         "queries": [
@@ -355,16 +521,16 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "memory cached",
-              "code": "C",
-              "dataSource": "mem",
-              "field": "cached",
+              "alias": "cpu",
+              "code": "A",
+              "dataSource": "host_processes",
+              "field": "cpu_usage_top",
               "fieldFunc": "avg",
-              "fieldType": "integer",
+              "fieldType": "float",
               "fill": null,
               "filters": [
                 {
-                  "id": "04cb9840-5966-11eb-a841-7bbd77278e92",
+                  "id": "6a186200-8e30-11ec-964b-c1eb1a70f290",
                   "logic": "and",
                   "name": "host",
                   "op": "=",
@@ -372,93 +538,40 @@
                   "value": "#{host}"
                 }
               ],
-              "funcList": [],
-              "groupBy": [],
+              "funcList": [
+                "last",
+                "top:5"
+              ],
+              "groupBy": [
+                "host",
+                "process_name",
+                "pid"
+              ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mem`:(AVG(`cached`) AS `memory cached`) { `host` = '#{host}' }",
+              "q": "M::`host_processes`:(AVG(`cpu_usage_top`) AS `cpu`) { `host` = '#{host}' } BY `host`, `process_name`, `pid`",
               "queryFuncs": [],
               "type": "simple"
             },
-            "type": "sequence",
+            "type": "table",
             "unit": ""
-          }
-        ],
-        "type": "sequence"
-      },
-      {
-        "extend": {
-          "fixedTime": "",
-          "isRefresh": true,
-          "settings": {
-            "alias": [],
-            "chartType": "areaLine",
-            "colors": [],
-            "compareTitle": "",
-            "compareType": "",
-            "currentChartType": "sequence",
-            "density": "medium",
-            "fixedTime": "",
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mark": {
-              "axis": "x",
-              "data": [],
-              "type": "area"
-            },
-            "openCompare": false,
-            "openStack": false,
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "stackType": "time",
-            "tableSortMetricName": "15-minutes Load",
-            "timeInterval": "default",
-            "titleDesc": "",
-            "units": [
-              {
-                "key": "memory free",
-                "name": "memory free",
-                "unit": "",
-                "units": [
-                  "digital",
-                  "B"
-                ]
-              }
-            ],
-            "xAxisShowType": "time"
-          }
-        },
-        "group": {
-          "name": null
-        },
-        "name": "memory free",
-        "pos": {
-          "h": 8,
-          "w": 8,
-          "x": 8,
-          "y": 8
-        },
-        "queries": [
+          },
           {
             "color": "",
             "datasource": "dataflux",
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "memory free",
+              "alias": "memory",
               "code": "B",
-              "dataSource": "mem",
-              "field": "free",
+              "dataSource": "host_processes",
+              "field": "mem_used_percent",
               "fieldFunc": "avg",
-              "fieldType": "integer",
+              "fieldType": "float",
               "fill": null,
               "filters": [
                 {
-                  "id": "06cbfc20-5966-11eb-a841-7bbd77278e92",
+                  "id": "6d010300-8e30-11ec-964b-c1eb1a70f290",
                   "logic": "and",
                   "name": "host",
                   "op": "=",
@@ -466,169 +579,73 @@
                   "value": "#{host}"
                 }
               ],
-              "funcList": [],
-              "groupBy": [],
-              "groupByTime": "",
-              "namespace": "metric",
-              "q": "M::`mem`:(AVG(`free`) AS `memory free`) { `host` = '#{host}' }",
-              "queryFuncs": [],
-              "type": "simple"
-            },
-            "type": "sequence",
-            "unit": ""
-          }
-        ],
-        "type": "sequence"
-      },
-      {
-        "extend": {
-          "fixedTime": "",
-          "isRefresh": false,
-          "settings": {
-            "alias": [],
-            "chartType": "areaLine",
-            "colors": [],
-            "compareTitle": "",
-            "compareType": "",
-            "currentChartType": "sequence",
-            "density": "medium",
-            "fixedTime": "",
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mark": {
-              "axis": "x",
-              "data": [],
-              "type": "area"
-            },
-            "openCompare": false,
-            "openStack": false,
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "stackType": "time",
-            "tableSortMetricName": "15-minutes Load",
-            "timeInterval": "default",
-            "titleDesc": "",
-            "units": [
-              {
-                "key": "used",
-                "name": "used",
-                "unit": "",
-                "units": [
-                  "digital",
-                  "B"
-                ]
-              }
-            ],
-            "xAxisShowType": "time"
-          }
-        },
-        "group": {
-          "name": null
-        },
-        "name": "memory used",
-        "pos": {
-          "h": 8,
-          "w": 8,
-          "x": 16,
-          "y": 8
-        },
-        "queries": [
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "memory used",
-              "code": "B",
-              "dataSource": "mem",
-              "field": "used",
-              "fieldFunc": "avg",
-              "fieldType": "integer",
-              "fill": null,
-              "filters": [
-                {
-                  "id": "06cbfc20-5966-11eb-a841-7bbd77278e92",
-                  "logic": "and",
-                  "name": "host",
-                  "op": "=",
-                  "type": "",
-                  "value": "#{host}"
-                }
+              "funcList": [
+                "last"
               ],
-              "funcList": [],
-              "groupBy": [],
+              "groupBy": [
+                "host",
+                "process_name",
+                "pid"
+              ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mem`:(AVG(`used`) AS `memory used`) { `host` = '#{host}' }",
+              "q": "M::`host_processes`:(AVG(`mem_used_percent`) AS `memory`) { `host` = '#{host}' } BY `host`, `process_name`, `pid`",
               "queryFuncs": [],
               "type": "simple"
             },
-            "type": "sequence",
+            "type": "table",
             "unit": ""
           }
         ],
-        "type": "sequence"
+        "type": "table"
       },
       {
         "extend": {
           "fixedTime": "",
-          "isRefresh": true,
           "settings": {
-            "alias": [],
-            "chartType": "areaLine",
             "colors": [],
-            "compareTitle": "",
-            "compareType": "",
-            "currentChartType": "sequence",
-            "density": "medium",
+            "currentChartType": "table",
             "fixedTime": "",
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
+            "isTimeInterval": false,
             "levels": [],
-            "mark": {
-              "axis": "x",
-              "data": [],
-              "type": "area"
-            },
-            "openCompare": false,
-            "openStack": false,
+            "pageSize": 0,
+            "queryMode": "toGroupColumn",
             "showFieldMapping": false,
-            "showLine": false,
             "showTitle": true,
-            "stackType": "time",
-            "tableSortMetricName": "15-minutes Load",
             "timeInterval": "default",
             "titleDesc": "",
-            "units": [
+            "units": [],
+            "valColorMappings": [
               {
-                "key": "memory available",
-                "name": "memory available",
-                "unit": "",
-                "units": [
-                  "digital",
-                  "B"
+                "field": "memory",
+                "fontColor": "#FF2244",
+                "operation": ">",
+                "value": [
+                  "90"
+                ]
+              },
+              {
+                "field": "cpu",
+                "fontColor": "#FF2244",
+                "operation": ">",
+                "value": [
+                  "90"
                 ]
               }
             ],
-            "xAxisShowType": "time"
+            "valMappings": []
           }
         },
         "group": {
           "name": null
         },
-        "name": "memory available",
+        "name": "{{.Dashboard.top_n_memory_usage}}",
         "pos": {
-          "h": 8,
-          "w": 8,
+          "h": 12,
+          "i": "chrt_2adbaecbfb694f48821165e16a7b0f60",
+          "w": 14,
           "x": 0,
-          "y": 16
+          "y": 12
         },
         "queries": [
           {
@@ -637,16 +654,16 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "memory available",
+              "alias": "memory",
               "code": "A",
-              "dataSource": "mem",
-              "field": "available",
+              "dataSource": "host_processes",
+              "field": "mem_used_percent",
               "fieldFunc": "avg",
-              "fieldType": "integer",
+              "fieldType": "float",
               "fill": null,
               "filters": [
                 {
-                  "id": "11327b20-a24b-11eb-97ce-f7340894110b",
+                  "id": "83065480-8e2f-11ec-964b-c1eb1a70f290",
                   "logic": "and",
                   "name": "host",
                   "op": "=",
@@ -654,93 +671,40 @@
                   "value": "#{host}"
                 }
               ],
-              "funcList": [],
-              "groupBy": [],
+              "funcList": [
+                "last",
+                "top:5"
+              ],
+              "groupBy": [
+                "host",
+                "process_name",
+                "pid"
+              ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mem`:(AVG(`available`) AS `memory available`) { `host` = '#{host}' }",
+              "q": "M::`host_processes`:(AVG(`mem_used_percent`) AS `memory`) { `host` = '#{host}' } BY `host`, `process_name`, `pid`",
               "queryFuncs": [],
               "type": "simple"
             },
-            "type": "sequence",
+            "type": "table",
             "unit": ""
-          }
-        ],
-        "type": "sequence"
-      },
-      {
-        "extend": {
-          "fixedTime": "",
-          "isRefresh": true,
-          "settings": {
-            "alias": [],
-            "chartType": "areaLine",
-            "colors": [],
-            "compareTitle": "",
-            "compareType": "",
-            "currentChartType": "sequence",
-            "density": "medium",
-            "fixedTime": "",
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mark": {
-              "axis": "x",
-              "data": [],
-              "type": "area"
-            },
-            "openCompare": false,
-            "openStack": false,
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "stackType": "time",
-            "tableSortMetricName": "15-minutes Load",
-            "timeInterval": "default",
-            "titleDesc": "",
-            "units": [
-              {
-                "key": "memory shared",
-                "name": "memory shared",
-                "unit": "",
-                "units": [
-                  "digital",
-                  "B"
-                ]
-              }
-            ],
-            "xAxisShowType": "time"
-          }
-        },
-        "group": {
-          "name": null
-        },
-        "name": "memory shared",
-        "pos": {
-          "h": 8,
-          "w": 8,
-          "x": 8,
-          "y": 16
-        },
-        "queries": [
+          },
           {
             "color": "",
             "datasource": "dataflux",
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "memory shared",
-              "code": "A",
-              "dataSource": "mem",
-              "field": "shared",
+              "alias": "cpu",
+              "code": "B",
+              "dataSource": "host_processes",
+              "field": "cpu_usage_top",
               "fieldFunc": "avg",
-              "fieldType": "integer",
+              "fieldType": "float",
               "fill": null,
               "filters": [
                 {
-                  "id": "11327b20-a24b-11eb-97ce-f7340894110b",
+                  "id": "83065480-8e2f-11ec-964b-c1eb1a70f290",
                   "logic": "and",
                   "name": "host",
                   "op": "=",
@@ -748,113 +712,25 @@
                   "value": "#{host}"
                 }
               ],
-              "funcList": [],
-              "groupBy": [],
-              "groupByTime": "",
-              "namespace": "metric",
-              "q": "M::`mem`:(AVG(`shared`) AS `memory shared`) { `host` = '#{host}' }",
-              "queryFuncs": [],
-              "type": "simple"
-            },
-            "type": "sequence",
-            "unit": ""
-          }
-        ],
-        "type": "sequence"
-      },
-      {
-        "extend": {
-          "fixedTime": "",
-          "isRefresh": true,
-          "settings": {
-            "alias": [],
-            "chartType": "areaLine",
-            "colors": [],
-            "compareTitle": "",
-            "compareType": "",
-            "currentChartType": "sequence",
-            "density": "medium",
-            "fixedTime": "",
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mark": {
-              "axis": "x",
-              "data": [],
-              "type": "area"
-            },
-            "openCompare": false,
-            "openStack": false,
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "stackType": "time",
-            "tableSortMetricName": "15-minutes Load",
-            "timeInterval": "default",
-            "titleDesc": "",
-            "units": [
-              {
-                "key": "memory active",
-                "name": "memory active",
-                "unit": "",
-                "units": [
-                  "digital",
-                  "B"
-                ]
-              }
-            ],
-            "xAxisShowType": "time"
-          }
-        },
-        "group": {
-          "name": null
-        },
-        "name": "memory active",
-        "pos": {
-          "h": 8,
-          "w": 8,
-          "x": 16,
-          "y": 16
-        },
-        "queries": [
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "memory active",
-              "code": "A",
-              "dataSource": "mem",
-              "field": "active",
-              "fieldFunc": "avg",
-              "fieldType": "integer",
-              "fill": null,
-              "filters": [
-                {
-                  "id": "11327b20-a24b-11eb-97ce-f7340894110b",
-                  "logic": "and",
-                  "name": "host",
-                  "op": "=",
-                  "type": "",
-                  "value": "#{host}"
-                }
+              "funcList": [
+                "last"
               ],
-              "funcList": [],
-              "groupBy": [],
+              "groupBy": [
+                "host",
+                "process_name",
+                "pid"
+              ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mem`:(AVG(`active`) AS `memory active`) { `host` = '#{host}' }",
+              "q": "M::`host_processes`:(AVG(`cpu_usage_top`) AS `cpu`) { `host` = '#{host}' } BY `host`, `process_name`, `pid`",
               "queryFuncs": [],
               "type": "simple"
             },
-            "type": "sequence",
+            "type": "table",
             "unit": ""
           }
         ],
-        "type": "sequence"
+        "type": "table"
       }
     ],
     "groups": [],
@@ -864,15 +740,39 @@
         "code": "host",
         "datasource": "dataflux",
         "definition": {
+          "defaultVal": {
+            "label": "*",
+            "value": "re(`.*`)"
+          },
           "field": "",
           "metric": "",
           "object": "",
           "tag": "",
-          "value": "show_tag_value(from=['mem'], keyin=['host'])[5m]"
+          "value": "show_tag_value(from=['host_processes'], keyin=['host'])[5m]"
         },
         "hide": 0,
-        "name": "Host Name",
+        "name": "{{.Dashboard.host_name}}",
         "seq": 0,
+        "type": "QUERY",
+        "valueSort": "default"
+      },
+      {
+        "code": "process_name",
+        "datasource": "dataflux",
+        "definition": {
+          "defaultVal": {
+            "label": "*",
+            "value": "re(`.*`)"
+          },
+          "field": "",
+          "metric": "",
+          "object": "",
+          "tag": "",
+          "value": "show_tag_value(from=['host_processes'], keyin=['process_name']){host='#{host}'}[5m]"
+        },
+        "hide": 0,
+        "name": "{{.Dashboard.process_name}}",
+        "seq": 1,
         "type": "QUERY",
         "valueSort": "default"
       }
@@ -881,11 +781,11 @@
   "summary": "",
   "tagInfo": [
     {
-      "id": "tag_58e73116f7874c8ab3071d5515b73905",
-      "name": "Host"
+      "id": "tag_794ad04d7a8845f9836d21c4856684a2",
+      "name": "{{.Dashboard.host}}"
     }
   ],
   "tags": [],
   "thumbnail": "",
-  "title": "Memory New"
+  "title": "Processes"
 }

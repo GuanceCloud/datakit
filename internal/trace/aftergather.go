@@ -96,7 +96,6 @@ func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces) {
 			for i := range aga.filters {
 				var skip bool
 				if temp, skip = aga.filters[i](aga.log, dktraces[k]); skip {
-					aga.log.Infof("delete %d span", len(dktraces[k]))
 					break
 				}
 			}
@@ -133,24 +132,6 @@ func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces) {
 		aga.log.Debug("BuildPointsBatch return empty points array")
 	}
 }
-
-/*
-// BuildPointsBatch builds points from whole trace.
-func (aga *AfterGather) BuildPointsBatch(dktraces DatakitTraces) []*point.Point {
-	var pts []*point.Point
-	for i := range dktraces {
-		for j := range dktraces[i] {
-			if pt, err := BuildPoint(dktraces[i][j], aga.pointOptions...); err != nil {
-				aga.log.Warnf("build point error: %s", err.Error())
-			} else {
-				pts = append(pts, pt)
-			}
-		}
-	}
-
-	return pts
-}
-*/
 
 func NewAfterGather(options ...Option) *AfterGather {
 	aga := &AfterGather{log: logger.DefaultSLogger("after-gather")}

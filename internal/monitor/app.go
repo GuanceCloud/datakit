@@ -64,7 +64,7 @@ type monitorAPP struct {
 
 	mfs map[string]*dto.MetricFamily
 
-	monitor monitorSource
+	src monitorSource
 
 	inputsStats map[string]string
 
@@ -73,13 +73,14 @@ type monitorAPP struct {
 	start time.Time
 
 	// options
-	verbose                 bool
-	maxTableWidth           int
-	maxRun                  int
-	refresh                 time.Duration
-	isURL                   string
+	verbose       bool
+	maxTableWidth int
+	maxRun        int
+	refresh       time.Duration
+
+	url string
+
 	proxy                   string
-	url                     string
 	onlyInputs, onlyModules []string
 }
 
@@ -120,17 +121,10 @@ func (app *monitorAPP) refreshData() {
 
 		for {
 			app.anyError = nil
-			// app.monitor.FetchData()
-			// app.mfs, err = requestMetrics(app.url)
-			app.mfs, err = app.monitor.FetchData()
+			app.mfs, err = app.src.FetchData()
 			if err != nil {
 				app.anyError = fmt.Errorf("request stats failed: %w", err)
 			}
-
-			// app.inputsStats, err = requestInputInfo(app.isURL)
-			// if err != nil {
-			//	app.anyError = fmt.Errorf("request input stats failed: %w", err)
-			//}
 
 			app.render()
 			app.app = app.app.Draw() // NOTE: cause DATA RACE

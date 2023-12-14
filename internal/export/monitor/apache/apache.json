@@ -10,7 +10,7 @@
             "query": {
               "alias": "",
               "code": "Result",
-              "dataSource": "nginx",
+              "dataSource": "apache",
               "field": "*",
               "fieldFunc": "count",
               "fieldType": "",
@@ -23,16 +23,16 @@
               "groupByTime": "",
               "indexFilter": "default",
               "namespace": "logging",
-              "q": "L::`nginx`:(COUNT(`*`)) { `index` = 'default' and  `status` IN ['error']  } BY `service`, `host`",
+              "q": "L::`apache`:(COUNT(`*`)) { `index` = 'default' and  `http_code` >= 500  } BY `service`, `host`",
               "search": "",
               "treeFilters": {
-                "status": [
-                  "error"
+                "http_code": [
+                  ">=500"
                 ]
               },
               "type": "simple"
             },
-            "uuid": "7979da13-6a40-4427-b4ff-61d3edb8bf4b"
+            "uuid": "2904c397-fd6c-44e8-8b29-c62f4e89d8a3"
           }
         ],
         "rules": [
@@ -133,20 +133,20 @@
           "host"
         ],
         "interval": 300,
-        "message": ">等级：{{status}}  \n>主机：{{host}}  \n>内容：Nginx 5XX 错误数为 {{ Result |  to_fixed(2) }}%  \n>建议：检查Nginx日志查看详细信息",
+        "message": "><<.Monitor.level>>：{{status}}  \n><<.Monitor.host>>：{{host}}  \n><<.Monitor.content>>：<<.Monitor.content_info>> {{ Result |  to_fixed(2) }}%  \n><<.Monitor.suggestion>>：<<.Monitor.suggestion_info>>",
         "noDataMessage": "",
         "noDataTitle": "",
         "recoverNeedPeriodCount": 2,
         "targets": [
           {
             "alias": "Result",
-            "dql": "L::`nginx`:(COUNT(`*`)) { `index` = 'default' and  `status` IN ['error']  } BY `service`, `host`"
+            "dql": "L::`apache`:(COUNT(`*`)) { `index` = 'default' and  `http_code` >= 500  } BY `service`, `host`"
           }
         ],
-        "title": "Nginx 5XX 错误数过多",
+        "title": "<<.Monitor.title>>",
         "type": "loggingCheck"
       },
-      "monitorName": "默认"
+      "monitorName": "<<.Monitor.monitorName>>"
     }
   ]
 }

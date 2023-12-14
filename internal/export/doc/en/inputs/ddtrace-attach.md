@@ -1,11 +1,5 @@
 # Auto Attach DDTrace-Java Agent
 
------
-
-*Author： 宋龙奇*
-
----
-
 This Java tool is mainly used to inject DDTrace-java agent into the currently running Java process without manually configuring and restarting the host Java process.
 
 <div class="grid cards" markdown>
@@ -23,11 +17,56 @@ Attach after the JVM is started and load through the Attach API. This method wil
 
 ## download {#download}
 
-build from source code:
+JDK versions 1.8 and above cannot be used interchangeably.
+
+If using a released version, please use the corresponding [releases version](https://github.com/GuanceCloud/agent-attach-java/releases){:target="_blank"}
+
+Download source and build：
 
 ```shell
 git clone https://github.com/GuanceCloud/agent-attach-java
+```
+
+If it is JDK version 1.8, modify the configuration file pom.xml:
+
+```xml
+    <configuration>
+      <source>1.8</source>
+      <target>1.8</target>
+    </configuration>
+
+    <dependency>
+      <groupId>io.earcam.wrapped</groupId>
+      <artifactId>com.sun.tools.attach</artifactId>
+      <version>1.8.0_jdk8u131-b11</version>
+      <scope>compile</scope>
+      <type>jar</type>
+    </dependency>
+```
+
+If the version is JDK 9, 11, 17, use the following configuration pom.xml:
+
+```xml
+<!--Modify the target version to the specified version-->
+    <configuration>
+        <source>11</source>
+        <target>11</target>
+    </configuration>
+
+    <dependency>
+      <groupId>com.sun</groupId>
+      <artifactId>tools</artifactId>
+      <version>1.8.0</version>
+      <scope>system</scope>
+      <systemPath>${project.basedir}/lib/tools.jar</systemPath>
+    </dependency>
+```
+
+```shell
 mvn package
+# 使用 target/agent-attach-java-jar-with-dependencies.jar
+rm -f target/agent-attach-java.jar
+mv target/agent-attach-java-jar-with-dependencies.jar agent-attach-java.jar
 ```
 
 use -h ：
@@ -93,6 +132,57 @@ You must use [Extended DDTrace] (ddtrace-ext-java.md), otherwise the automatic i
 ```shell
 java -jar agent-attach-java.jar \
  -options "dd.agent.port=9529" \
- -displayName "tmall.jar"
+ -displayName "tmall.jar" \
  -agent-jar /usr/local/datakit/data/dd-java-agent.jar
 ```
+
+
+## FAQ {#faq}
+
+<!-- markdownlint-disable MD013 -->
+### :material-chat-question: NoClassDefFoundError VirtualMachine？ {#NoClassDefFound}
+<!-- markdownlint-enable -->
+
+Error messages:
+
+```text
+Exception in thread "main" java.lang.NoClassDefFoundError: com/sun/tools/attach/VirtualMachine
+        at com.guance.javaagent.JavaAgentLoader.loadAgent(JavaAgentLoader.java:35)
+        at com.guance.javaagent.MyMainClass.main(MyMainClass.java:19)
+Caused by: java.lang.ClassNotFoundException: com.sun.tools.attach.VirtualMachine
+        at java.net.URLClassLoader.findClass(URLClassLoader.java:382)
+        at java.lang.ClassLoader.loadClass(ClassLoader.java:424)
+        at sun.misc.Launcher$AppClassLoader.loadClass(Launcher.java:349)
+        at java.lang.ClassLoader.loadClass(ClassLoader.java:357)
+        ... 2 more
+```
+
+This is due to the lack of tools.jar package. Use the correct pom.xml configuration file or download the corresponding version.
+
+
+<!-- markdownlint-disable MD013 -->
+### :material-chat-question: UnsupportedClassVersionError？ {#UnsupportedClass}
+<!-- markdownlint-enable -->
+
+Error messages:
+
+```text
+Error: A JNI error has occurred, please check your installation and try again
+Exception in thread "main" java.lang.UnsupportedClassVersionError: com/guance/javaagent/MyMainClass has been compiled by a more recent version of the Java Runtime (class file version 55.0), this version of the Java Runtime only recognizes class file versions up to 52.0
+        at java.lang.ClassLoader.defineClass1(Native Method)
+        at java.lang.ClassLoader.defineClass(ClassLoader.java:763)
+        at java.security.SecureClassLoader.defineClass(SecureClassLoader.java:142)
+        at java.net.URLClassLoader.defineClass(URLClassLoader.java:468)
+        at java.net.URLClassLoader.access$100(URLClassLoader.java:74)
+        at java.net.URLClassLoader$1.run(URLClassLoader.java:369)
+        at java.net.URLClassLoader$1.run(URLClassLoader.java:363)
+        at java.security.AccessController.doPrivileged(Native Method)
+        at java.net.URLClassLoader.findClass(URLClassLoader.java:362)
+        at java.lang.ClassLoader.loadClass(ClassLoader.java:424)
+        at sun.misc.Launcher$AppClassLoader.loadClass(Launcher.java:349)
+        at java.lang.ClassLoader.loadClass(ClassLoader.java:357)
+        at sun.launcher.LauncherHelper.checkAndLoadMain(LauncherHelper.java:495)
+```
+
+This is because the compile time version is too low and the runtime version is too high. 
+Replace the version or use the current version to recompile.

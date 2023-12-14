@@ -45,7 +45,7 @@
         "group": {
           "name": null
         },
-        "name": "active/s",
+        "name": "{{.Dashboard.active_per_sec}}",
         "pos": {
           "h": 8,
           "i": "chrt_8481cfca47e34f03b4be266b23062dc4",
@@ -132,7 +132,7 @@
         "group": {
           "name": null
         },
-        "name": "handled/s",
+        "name": "{{.Dashboard.handled_per_sec}}",
         "pos": {
           "h": 8,
           "i": "chrt_3948003a17ee4b9795df001387dc5633",
@@ -219,7 +219,7 @@
         "group": {
           "name": null
         },
-        "name": "reading/s",
+        "name": "{{.Dashboard.reading_per_sec}}",
         "pos": {
           "h": 8,
           "i": "chrt_3a0162b89079407aa3d918d3c5b9e807",
@@ -300,7 +300,7 @@
         "group": {
           "name": null
         },
-        "name": "accepts/s",
+        "name": "{{.Dashboard.accepts_per_sec}}",
         "pos": {
           "h": 8,
           "i": "chrt_08328ee8670a4fbd95438ab317feff57",
@@ -386,7 +386,7 @@
         "group": {
           "name": null
         },
-        "name": "requests/s",
+        "name": "{{.Dashboard.request_per_sec}}",
         "pos": {
           "h": 8,
           "i": "chrt_25a41ba45fe74ea3b480227eb045e69a",
@@ -472,7 +472,7 @@
         "group": {
           "name": null
         },
-        "name": "waiting/s",
+        "name": "{{.Dashboard.waiting_per_sec}}",
         "pos": {
           "h": 8,
           "i": "chrt_3298fe8c9d6b403c984c2d9ce6b306e8",
@@ -558,7 +558,7 @@
         "group": {
           "name": null
         },
-        "name": "writing/s",
+        "name": "{{.Dashboard.writing_per_sec}}",
         "pos": {
           "h": 8,
           "i": "chrt_8087b10166d74f3aab0f3be060e7746c",
@@ -625,7 +625,7 @@
         },
         "hide": 0,
         "isHiddenAsterisk": 0,
-        "name": "主机",
+        "name": "{{.Dashboard.host_name}}",
         "seq": 0,
         "type": "TAG",
         "valueSort": "default"
@@ -636,5 +636,5 @@
   "tagInfo": [],
   "tags": [],
   "thumbnail": "",
-  "title": "Nginx 监控视图"
+  "title": "{{.Dashboard.title}}"
 }

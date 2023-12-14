@@ -49,9 +49,9 @@
           }
         },
         "group": {
-          "name": "General"
+          "name": "{{.Dashboard.general}}"
         },
-        "name": "workers",
+        "name": "{{.Dashboard.workers}}",
         "pos": {
           "h": 8,
           "i": "chrt_6a2c3bacbbf949d79a4110e7d565d412",
@@ -176,9 +176,9 @@
           }
         },
         "group": {
-          "name": "General"
+          "name": "{{.Dashboard.general}}"
         },
-        "name": "network request count/s",
+        "name": "{{.Dashboard.network_request_count}}",
         "pos": {
           "h": 8,
           "i": "chrt_c1050e1b737b46e9a94b7ddc9c5d3c46",
@@ -274,9 +274,9 @@
           }
         },
         "group": {
-          "name": "General"
+          "name": "{{.Dashboard.general}}"
         },
-        "name": "cpu load",
+        "name": "{{.Dashboard.cpu_load}}",
         "pos": {
           "h": 8,
           "i": "chrt_254b561f4bee4165a2b98e6b3266864d",
@@ -377,9 +377,9 @@
           }
         },
         "group": {
-          "name": "General"
+          "name": "{{.Dashboard.general}}"
         },
-        "name": "network request bytes/s",
+        "name": "{{.Dashboard.network_request_bytes}}",
         "pos": {
           "h": 8,
           "i": "chrt_5fe5bd8cd42a48a786e25bbd83577613",
@@ -475,9 +475,9 @@
           }
         },
         "group": {
-          "name": "ScoreBoard"
+          "name": "{{.Dashboard.score_board}}"
         },
-        "name": "closing connection",
+        "name": "{{.Dashboard.closing_connection}}",
         "pos": {
           "h": 9,
           "i": "chrt_4dcddea252d84fc8812230e1f318d7f9",
@@ -568,9 +568,9 @@
           }
         },
         "group": {
-          "name": "ScoreBoard"
+          "name": "{{.Dashboard.score_board}}"
         },
-        "name": "waiting for connection",
+        "name": "{{.Dashboard.waiting_for_connection}}",
         "pos": {
           "h": 9,
           "i": "chrt_ee4e85ffb36741fcb46fd86f87a87ee5",
@@ -661,9 +661,9 @@
           }
         },
         "group": {
-          "name": "ScoreBoard"
+          "name": "{{.Dashboard.score_board}}"
         },
-        "name": "dns lookup",
+        "name": "{{.Dashboard.dns_lookup}}",
         "pos": {
           "h": 9,
           "i": "chrt_bd2096bfebc74ec6a8da6674c08d1237",
@@ -754,9 +754,9 @@
           }
         },
         "group": {
-          "name": "ScoreBoard"
+          "name": "{{.Dashboard.score_board}}"
         },
-        "name": "gracefully finishing",
+        "name": "{{.Dashboard.gracefully_finishing}}",
         "pos": {
           "h": 9,
           "i": "chrt_71ad9c6c885e4a92af14378d5fc87487",
@@ -847,9 +847,9 @@
           }
         },
         "group": {
-          "name": "ScoreBoard"
+          "name": "{{.Dashboard.score_board}}"
         },
-        "name": "keepalive",
+        "name": "{{.Dashboard.keepalive}}",
         "pos": {
           "h": 9,
           "i": "chrt_a1d3ca6fa2fe465a81b635f2c8bf2835",
@@ -940,9 +940,9 @@
           }
         },
         "group": {
-          "name": "ScoreBoard"
+          "name": "{{.Dashboard.score_board}}"
         },
-        "name": "logging",
+        "name": "{{.Dashboard.logging}}",
         "pos": {
           "h": 9,
           "i": "chrt_12b733ef9a364d20a36baf9446a60ac0",
@@ -1033,9 +1033,9 @@
           }
         },
         "group": {
-          "name": "ScoreBoard"
+          "name": "{{.Dashboard.score_board}}"
         },
-        "name": "sending reply",
+        "name": "{{.Dashboard.sending_reply}}",
         "pos": {
           "h": 9,
           "i": "chrt_9f8a8de279684101b92319fe1689c3af",
@@ -1126,9 +1126,9 @@
           }
         },
         "group": {
-          "name": "ScoreBoard"
+          "name": "{{.Dashboard.score_board}}"
         },
-        "name": "starting up",
+        "name": "{{.Dashboard.starting_up}}",
         "pos": {
           "h": 9,
           "i": "chrt_bb94c9a7c00b46aa85c2581f5b33b557",
@@ -1219,9 +1219,9 @@
           }
         },
         "group": {
-          "name": "ScoreBoard"
+          "name": "{{.Dashboard.score_board}}"
         },
-        "name": "reading request",
+        "name": "{{.Dashboard.reading_request}}",
         "pos": {
           "h": 9,
           "i": "chrt_e0e83100bb7e4ed7a1059cf8e2311991",
@@ -1312,9 +1312,9 @@
           }
         },
         "group": {
-          "name": "ScoreBoard"
+          "name": "{{.Dashboard.score_board}}"
         },
-        "name": "open slot",
+        "name": "{{.Dashboard.open_slot}}",
         "pos": {
           "h": 9,
           "i": "chrt_bfcb8edf6e454fe38db27bfab09c246a",
@@ -1405,9 +1405,9 @@
           }
         },
         "group": {
-          "name": "ScoreBoard"
+          "name": "{{.Dashboard.score_board}}"
         },
-        "name": "idle cleanup",
+        "name": "{{.Dashboard.idle_cleanup}}",
         "pos": {
           "h": 9,
           "i": "chrt_5bde47c6bd5143e69ab59bfe500b3a36",
@@ -1455,8 +1455,8 @@
       }
     ],
     "groups": [
-      "ScoreBoard",
-      "General"
+      "{{.Dashboard.score_board}}",
+      "{{.Dashboard.general}}"
     ],
     "type": "template",
     "vars": [

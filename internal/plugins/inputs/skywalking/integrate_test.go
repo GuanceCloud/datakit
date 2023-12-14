@@ -110,7 +110,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			opts: []inputs.PointCheckOption{
 				inputs.WithOptionalFields(
 					itrace.TagPid,
-					itrace.FieldPriority,
 					"cpu_usage_percent",
 					"heap_max",
 					"heap_used",

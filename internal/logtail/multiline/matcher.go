@@ -39,6 +39,8 @@ var GlobalPatterns = []string{
 	`^[A-Za-z_]+ \d+, \d+ \d+:\d+:\d+ (AM|PM)`,
 	// 2021-01-31 - with stricter matching around the months/days
 	`^\d{4}-(0?[1-9]|1[012])-(0?[1-9]|[12][0-9]|3[01])`,
+	// gin log, [GIN] 2006/01/02 - 08:53:39
+	`^\[GIN\] \d+/\d+/\d+ - \d+:\d+:\d+`,
 }
 
 type scoredPattern struct {

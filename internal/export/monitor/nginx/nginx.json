@@ -10,20 +10,29 @@
             "query": {
               "alias": "",
               "code": "Result",
-              "dataSource": "kafka_topics",
-              "field": "FailedFetchRequestsPerSec.Count",
-              "fieldFunc": "avg",
-              "fieldType": "float",
+              "dataSource": "nginx",
+              "field": "*",
+              "fieldFunc": "count",
+              "fieldType": "",
+              "filters": [],
               "funcList": [],
               "groupBy": [
+                "service",
                 "host"
               ],
               "groupByTime": "",
-              "namespace": "metric",
-              "q": "M::`kafka_topics`:(AVG(`FailedFetchRequestsPerSec.Count`)) BY `host`",
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`nginx`:(COUNT(`*`)) { `index` = 'default' and  `status` IN ['error']  } BY `service`, `host`",
+              "search": "",
+              "treeFilters": {
+                "status": [
+                  "error"
+                ]
+              },
               "type": "simple"
             },
-            "uuid": "e67e1bc7-be20-4c25-be08-fd8547304f1c"
+            "uuid": "7979da13-6a40-4427-b4ff-61d3edb8bf4b"
           }
         ],
         "rules": [
@@ -33,7 +42,7 @@
               {
                 "alias": "Result",
                 "operands": [
-                  "10"
+                  "100"
                 ],
                 "operator": ">="
               }
@@ -46,7 +55,7 @@
               {
                 "alias": "Result",
                 "operands": [
-                  "5"
+                  "50"
                 ],
                 "operator": ">="
               }
@@ -59,14 +68,15 @@
               {
                 "alias": "Result",
                 "operands": [
-                  "3"
+                  "25"
                 ],
                 "operator": ">="
               }
             ],
             "status": "warning"
           }
-        ]
+        ],
+        "uiType": "tree"
       },
       "is_disable": false,
       "jsonScript": {
@@ -74,6 +84,7 @@
         "atNoDataAccounts": [],
         "channels": [],
         "checkerOpt": {
+          "infoEvent": false,
           "rules": [
             {
               "conditionLogic": "and",
@@ -81,7 +92,7 @@
                 {
                   "alias": "Result",
                   "operands": [
-                    "10"
+                    "100"
                   ],
                   "operator": ">="
                 }
@@ -94,7 +105,7 @@
                 {
                   "alias": "Result",
                   "operands": [
-                    "5"
+                    "50"
                   ],
                   "operator": ">="
                 }
@@ -107,7 +118,7 @@
                 {
                   "alias": "Result",
                   "operands": [
-                    "3"
+                    "25"
                   ],
                   "operator": ">="
                 }
@@ -116,25 +127,26 @@
             }
           ]
         },
-        "every": "5m",
+        "every": "1m",
         "groupBy": [
+          "service",
           "host"
         ],
         "interval": 300,
-        "message": ">等级：{{df_status}}  \n>事件：{{ df_dimension_tags }}\n>监控器：{{ df_monitor_checker_name }}\n>告警策略：{{ df_monitor_name }}\n>事件状态： {{ df_status }}\n>内容：kafka请求失败数过高\n>建议：登录集群查看  是否有异常",
+        "message": "><<.Monitor.level>>：{{status}}  \n><<.Monitor.hostname>>：{{host}}  \n><<.Monitor.content>>：<<.Monitor.content_info>> {{ Result |  to_fixed(2) }}%  \n><<.Monitor.suggestion>>：<<.Monitor.suggestion_info>>",
         "noDataMessage": "",
         "noDataTitle": "",
         "recoverNeedPeriodCount": 2,
         "targets": [
           {
             "alias": "Result",
-            "dql": "M::`kafka_topics`:(AVG(`FailedFetchRequestsPerSec.Count`)) BY `host`"
+            "dql": "L::`nginx`:(COUNT(`*`)) { `index` = 'default' and  `status` IN ['error']  } BY `service`, `host`"
           }
         ],
-        "title": "kafka请求失败数过高",
-        "type": "simpleCheck"
+        "title": "<<.Monitor.title>>",
+        "type": "loggingCheck"
       },
-      "monitorName": "默认"
+      "monitorName": "<<.Monitor.monitorName>>"
     }
   ]
 }

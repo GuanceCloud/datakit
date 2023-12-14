@@ -77,9 +77,7 @@ const (
 	FieldDuration   = "duration"
 	FieldMessage    = "message"
 	FieldParentID   = "parent_id"
-	FieldPriority   = "priority"
 	FieldResource   = "resource"
-	FieldSampleRate = "sample_rate"
 	FieldSpanid     = "span_id"
 	FieldStart      = "start"
 	FieldTraceID    = "trace_id"
@@ -162,14 +160,6 @@ var (
 		"template":  SpanSourceCustomer,
 		"test":      SpanSourceCustomer,
 		"worker":    SpanSourceCustomer,
-	}
-	priorityRules = map[int]string{
-		PriorityRuleSamplerReject: "PRIORITY_RULE_SAMPLER_REJECT",
-		PriorityUserReject:        "PRIORITY_USER_REJECT",
-		PriorityAutoReject:        "PRIORITY_AUTO_REJECT",
-		PriorityAutoKeep:          "PRIORITY_AUTO_KEEP",
-		PriorityUserKeep:          "PRIORITY_USER_KEEP",
-		PriorityRuleSamplerKeep:   "PRIORITY_RULE_SAMPLER_KEEP",
 	}
 
 	DefaultGRPCServerOpts = []grpc.ServerOption{

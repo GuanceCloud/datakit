@@ -23,7 +23,6 @@ usage() {
 	echo "" 1>&2;
 	echo "  ./export.sh -V string: Set version, such as 1.2.3" 1>&2;
 	echo "              -D string: Set workdir, such as my-test" 1>&2;
-	echo "              -B: Do not build datakit" 1>&2;
 	echo "              -E: Only exported docs, do not run mkdocs" 1>&2;
 	echo "              -L: Specify language(zh/en)" 1>&2;
 	echo "              -p: Specify local port(default 8000)" 1>&2;
@@ -33,7 +32,7 @@ usage() {
 	exit 1;
 }
 
-while getopts "V:D:L:p:b:BEh" arg; do
+while getopts "V:D:L:p:b:Eh" arg; do
 	case "${arg}" in
 		V)
 			version="${OPTARG}"
@@ -51,10 +50,6 @@ while getopts "V:D:L:p:b:BEh" arg; do
 
 		E)
 			export_only=true;
-			;;
-
-		B)
-			no_build=true;
 			;;
 
 		h)
@@ -87,41 +82,16 @@ if [ -z $version ]; then
 fi
 
 ######################################
-# select datakit binary
-######################################
-arch=$(uname -m)
-if [[ "$arch" == "x86_64" ]]; then
-	arch=amd64
-else
-	arch=arm64
-fi
-
-if [[ "$OSTYPE" == "darwin"* ]]; then
-	os="darwin"
-	datakit=dist/datakit-${os}-${arch}/datakit
-elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-	os="linux"
-	datakit=dist/datakit-${os}-${arch}/datakit
-else              # if under windows(amd64):
-	datakit=datakit # windows 下应该设置了对应的 $PATH
-fi
-
-if [[ ! $no_build ]]; then
-	printf "${GREEN}> Building datakit...${CLR}\n"
-	make || exit -1
-fi
-
-######################################
 # export all docs to temp dir
 ######################################
 printf "${GREEN}> Export to %s, %s${CLR}\n" $guance_doc_dir $integration_dir
 export_log=.export.log
 truncate -s 0 $export_log
-LOGGER_PATH=$export_log $datakit export \
-	--export-doc-dir $guance_doc_dir/docs \
-	--export-integration-dir $integration_dir \
-	--ignore demo \
-	--version "${version}"
+LOGGER_PATH=$export_log go run -tags with_inputs cmd/make/make.go -export \
+	-export-doc-dir $guance_doc_dir/docs \
+	-export-integration-dir $integration_dir \
+	-ignore demo \
+	-version "${version}"
 
 if [ $? -ne 0 ]; then
 	printf "${RED}[E] Export docs failed, see $export_log for details.${CLR}\n"

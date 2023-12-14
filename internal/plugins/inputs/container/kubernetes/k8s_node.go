@@ -174,8 +174,9 @@ func (*nodeMetric) Info() *inputs.MeasurementInfo {
 		Desc: "The metric of the Kubernetes Node.",
 		Type: "metric",
 		Tags: map[string]interface{}{
-			"uid":  inputs.NewTagInfo("The UID of Node."),
-			"node": inputs.NewTagInfo("Name must be unique within a namespace"),
+			"uid":              inputs.NewTagInfo("The UID of Node."),
+			"node":             inputs.NewTagInfo("Name must be unique within a namespace"),
+			"cluster_name_k8s": inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
 		},
 		Fields: map[string]interface{}{
 			"cpu_allocatable":               &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "The allocatable CPU of a node that is available for scheduling."},
@@ -199,13 +200,14 @@ func (*nodeObject) Info() *inputs.MeasurementInfo {
 		Desc: "The object of the Kubernetes Node.",
 		Type: "object",
 		Tags: map[string]interface{}{
-			"name":        inputs.NewTagInfo("The UID of Node."),
-			"uid":         inputs.NewTagInfo("The UID of Node."),
-			"node_name":   inputs.NewTagInfo("Name must be unique within a namespace."),
-			"namespace":   inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
-			"internal_ip": inputs.NewTagInfo("Node internal IP"),
-			"role":        inputs.NewTagInfo("Node role. (master/node)"),
-			"status":      inputs.NewTagInfo("NodePhase is the recently observed lifecycle phase of the node. (Pending/Running/Terminated)"),
+			"name":             inputs.NewTagInfo("The UID of Node."),
+			"uid":              inputs.NewTagInfo("The UID of Node."),
+			"node_name":        inputs.NewTagInfo("Name must be unique within a namespace."),
+			"namespace":        inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"internal_ip":      inputs.NewTagInfo("Node internal IP"),
+			"role":             inputs.NewTagInfo("Node role. (master/node)"),
+			"status":           inputs.NewTagInfo("NodePhase is the recently observed lifecycle phase of the node. (Pending/Running/Terminated)"),
+			"cluster_name_k8s": inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
 		},
 		Fields: map[string]interface{}{
 			"age":             &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},

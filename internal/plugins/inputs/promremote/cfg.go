@@ -62,11 +62,18 @@ const (
   # basic_username = ""
   # basic_password = ""
 
-  ## tags to ignore
+  ## If both black list and white list, all list will cancel.
+  ## tags to ignore (black list)
   # tags_ignore = ["xxxx"]
 
-  ## tags to ignore with regex
-  tags_ignore_regex = ["xxxx"]
+  ## tags to ignore with regex (black list)
+  # tags_ignore_regex = ["xxxx"]
+
+  ## tags white list
+  # tags_only = ["xxxx"]
+
+  ## tags white list with regex
+  # tags_only_regex = ["xxxx"]
 
   ## Indicate whether tags_rename overwrites existing key if tag with the new key name already exists.
   overwrite = false

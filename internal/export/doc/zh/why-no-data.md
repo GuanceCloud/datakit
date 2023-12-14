@@ -204,6 +204,12 @@ default_enabled_inputs = [
 
 这些前面带 `-` 的采集器，都是被禁用的。去掉前面的 `-` 或移除该项即可。
 
+### 采集器配置有误 {#iss-invalid-conf}
+
+Datakit 采集器使用 TOML 格式的配置文件，当配置文件不符合 TOML 规范，或者不符合程序字段定义的类型时（比如将整数配置成字符串等），会出现配置文件加载失败的问题，进而导致采集器不会开启。
+
+Datakit 内置了配置检测功能，参见[这里](datakit-tools-how-to.md#check-conf)。
+
 ### 配置方式有误 {#iss-config-mistaken}
 
 Datakit 中采集器配置有俩大类：
@@ -387,12 +393,13 @@ disk,device=/dev/disk1s3,fstype=apfs free=503996416i,inodes_free=4921840i,inodes
 disk,device=/dev/disk3s5,fstype=apfs free=167050518528i,inodes_free=1631352720i,inodes_free_mb=1631i,inodes_total=1634318356i,inodes_total_mb=1634i,inodes_used=2965636i,inodes_used_mb=2i,inodes_used_percent=0.18146011694186712,total=494384795648i,used=327334277120i,used_percent=66.21042556354438 1685509141064280000
 disk,device=/dev/disk2s1,fstype=apfs free=3697000448i,inodes_free=36103520i,inodes_free_mb=36i,inodes_total=36103578i,inodes_total_mb=36i,inodes_used=58i,inodes_used_mb=0i,inodes_used_percent=0.00016064889745830732,total=5368664064i,used=1671663616i,used_percent=31.137422570532436 1685509141064285000
 disk,device=/dev/disk3s1,fstype=apfs free=167050518528i,inodes_free=1631352720i,inodes_free_mb=1631i,inodes_total=1631702197i,inodes_total_mb=1631i,inodes_used=349477i,inodes_used_mb=0i,inodes_used_percent=0.0214179401512444,total=494384795648i,used=327334277120i,used_percent=66.21042556354438 1685509141064289000
-# 10 points("M") from disk, cost 1.544792ms | Ctrl+c to exit.
+# 10 points("M"), 98 time series from disk, cost 1.544792ms | Ctrl+c to exit.
 ```
 
 该命令会启动采集器，并将采集器采集到的数据在终端打印出来。底部会显示：
 
 - 采集的点数以及其类型（此处 `M` 表示时序数据）
+- 时间线数量（仅时序数据）
 - 采集器名称（此处为 `disk`）
 - 采集耗时
 

@@ -188,22 +188,35 @@ DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.p
 
 ### Add a Business Tag to your Code {#add-tags}
 
-In the application code, you can set the business custom tag in a way such as `span.SetTag(some-tag-key, some-tag-value)` (different languages have different ways). For these business custom tags, you can identify and extract them by configuring `customer_tags` in ddtrace.conf:
 
-```toml
-customer_tags = [
-  "order_id",
-  "task_id",
-  "some.key",  # renamed some_key
-]
-```
+###  Tags {#tags}
 
-Note that these tag-keys cannot contain the English character '.', and the tag-key with  `.` will be replaced with  `_`.
+Starting from DataKit version [1.21.0](../changelog.md#cl-1.21.0), do not include All in Span.Mate are advanced to the first level label.
+But rather selective extraction, the following is a list of possible extracted labels:
 
-???+ attention "Considerations for adding business tags to application code"
+| Mete              | GuanCe tag        | doc           | 
+|:------------------|:------------------|:--------------|
+| http.url          | http_url          | HTTP url      |
+| http.hostname     | http_hostname     | hostname      |
+| http.route        | http_route        | route         |
+| http.status_code  | http_status_code  | status code   |
+| http.method       | http_method       | method        |
+| http.client_ip    | http_client_ip    | client IP     |
+| sampling.priority | sampling_priority | sample        |
+| span.kind         | span_kind         | span kind     |
+| error             | error             | is error      |
+| dd.version        | dd_version        | agent version |
+| error.message     | error_message     | error message |
+| error.stack       | error_stack       | error stack   |
+| error_type        | error_type        | error trye    |
+| system.pid        | pid               | pid           |
+| error.msg         | error_message     | error message |
+| project           | project           | project       |
+| version           | version           | version       |
+| env               | env               | env           |
+| _dd.base_service  | _dd_base_service  | base service  |
 
-    - After the corresponding tags are added in the application code, the corresponding tag-key list must also be added simultaneously in `customer_tags` of ddtrace.conf, otherwise DataKit will not extract these business tags
-    - Some span with tag added may be discarded when sampling is turned on
+In the link interface of the observation cloud, tags that are not in the list can also be filtered.
 
 ## Measurements {#measurements}
 

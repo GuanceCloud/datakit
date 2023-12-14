@@ -37,6 +37,11 @@ func (*containerMetric) Info() *inputs.MeasurementInfo {
 			"deployment":                inputs.NewTagInfo("The name of the Deployment which the object belongs to."),
 			"daemonset":                 inputs.NewTagInfo("The name of the DaemonSet which the object belongs to."),
 			"statefulset":               inputs.NewTagInfo("The name of the StatefulSet which the object belongs to."),
+			"cluster_name_k8s":          inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
+			"aws_ecs_cluster_name":      inputs.NewTagInfo("Cluster name of the AWS ECS."),
+			"task_family":               inputs.NewTagInfo("The task family of the AWS fargate."),
+			"task_version":              inputs.NewTagInfo("The task version of the AWS fargate."),
+			"task_arn":                  inputs.NewTagInfo("The task arn of the AWS Fargate."),
 		},
 		Fields: map[string]interface{}{
 			"cpu_usage":                   &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage usage of CPU on system host."},
@@ -83,6 +88,11 @@ func (*containerObject) Info() *inputs.MeasurementInfo {
 			"deployment":                inputs.NewTagInfo("The name of the Deployment which the object belongs to."),
 			"daemonset":                 inputs.NewTagInfo("The name of the DaemonSet which the object belongs to."),
 			"statefulset":               inputs.NewTagInfo("The name of the StatefulSet which the object belongs to."),
+			"cluster_name_k8s":          inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
+			"aws_ecs_cluster_name":      inputs.NewTagInfo("Cluster name of the AWS ECS."),
+			"task_family":               inputs.NewTagInfo("The task family of the AWS fargate."),
+			"task_version":              inputs.NewTagInfo("The task version of the AWS fargate."),
+			"task_arn":                  inputs.NewTagInfo("The task arn of the AWS Fargate."),
 		},
 		Fields: map[string]interface{}{
 			"age":                         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},

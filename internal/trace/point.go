@@ -21,6 +21,7 @@ type DkSpan struct {
 
 func (ds *DkSpan) GetFiledToInt64(key string) int64 {
 	val := ds.Get(key)
+
 	switch val.(type) {
 	case int, int8, int32, int64:
 		return val.(int64)

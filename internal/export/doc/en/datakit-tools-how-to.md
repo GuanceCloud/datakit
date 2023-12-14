@@ -95,6 +95,12 @@ Import used to play recorded history data to Guance Cloud. Available options:
 -P, --path string       point data path (default "/usr/local/datakit/recorder")
 ```
 
+<!-- markdownlint-disable MD046 -->
+???+ attention
+
+    For RUM, if the APP ID not exist in destination workspace, the replay will fail. We have to create a new RUM Application, set it's APP ID the same as recorded data, or replace APP ID in recorded data to the new APP ID in destination workspace.
+<!-- markdownlint-enable -->
+
 ## DataKit Automatic Command Completion {#completion}
 
 > DataKit 1.2. 12 supported this completion, and only two Linux distributions, Ubuntu and CentOS, were tested. Other Windows and Mac are not supported.

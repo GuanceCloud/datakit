@@ -7,6 +7,10 @@
 package hostdir
 
 import (
+	"fmt"
+	"io/fs"
+	"path/filepath"
+	"regexp"
 	"runtime"
 	"time"
 
@@ -18,6 +22,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+	dktime "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
 )
 
 const (
@@ -37,6 +42,8 @@ type Input struct {
 	Tags            map[string]string `toml:"tags"`
 	platform        string
 
+	regSlice   []*regexp.Regexp
+	start      time.Time
 	semStop    *cliutils.Sem // start stop signal
 	feeder     dkio.Feeder
 	mergedTags map[string]string
@@ -46,11 +53,13 @@ type Input struct {
 func (ipt *Input) Run() {
 	ipt.setup()
 
-	tick := time.NewTicker(ipt.Interval)
+	tick := dktime.NewAlignedTicker(ipt.Interval)
 	defer tick.Stop()
 
+	l.Infof("%s input started at timestamp: %d", inputName, time.Now().UnixNano())
+
 	for {
-		start := time.Now()
+		ipt.start = time.Now()
 		if err := ipt.collect(); err != nil {
 			l.Errorf("collect: %s", err)
 			ipt.feeder.FeedLastError(err.Error(),
@@ -61,7 +70,7 @@ func (ipt *Input) Run() {
 
 		if len(ipt.collectCache) > 0 {
 			if err := ipt.feeder.Feed(metricName, point.Metric, ipt.collectCache,
-				&dkio.Option{CollectCost: time.Since(start)}); err != nil {
+				&dkio.Option{CollectCost: time.Since(ipt.start)}); err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
 					dkio.WithLastErrorInput(inputName),
 					dkio.WithLastErrorCategory(point.Metric),
@@ -85,18 +94,67 @@ func (ipt *Input) Run() {
 func (ipt *Input) setup() {
 	l = logger.SLogger(inputName)
 
-	l.Infof("%s input started", inputName)
 	ipt.Interval = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval)
 	ipt.mergedTags = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")
 	l.Debugf("merged tags: %+#v", ipt.mergedTags)
+
+	for _, v := range ipt.ExcludePatterns {
+		reg, err := regexp.Compile(`^.+\.` + v + `$`)
+		if err != nil {
+			l.Errorf("error regexp: %s", `^.+\.`+v+`$`)
+		} else {
+			ipt.regSlice = append(ipt.regSlice, reg)
+		}
+	}
 }
 
 func (ipt *Input) collect() error {
 	ipt.collectCache = make([]*point.Point, 0)
-	ts := time.Now()
-	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(ts))
 
+	var (
+		filesize  int64
+		filecount int64
+		dircount  int64
+	)
+	err := filepath.WalkDir(ipt.Dir, func(name string, di fs.DirEntry, err error) error {
+		select {
+		case <-datakit.Exit.Wait():
+			return fmt.Errorf("input is exit")
+		case <-ipt.semStop.Wait():
+			return fmt.Errorf("input is return")
+		default:
+		}
+
+		if err != nil {
+			return err
+		}
+
+		info, err := di.Info()
+		if err != nil {
+			return err
+		}
+
+		if info.IsDir() {
+			dircount++
+		} else {
+			for _, reg := range ipt.regSlice {
+				if len(reg.FindAllStringSubmatch(name, 1)) != 0 {
+					return nil
+				}
+			}
+			filecount++
+		}
+		filesize += info.Size()
+
+		return nil
+	})
+	if err != nil {
+		l.Errorf("walk dir %s", err)
+		return err
+	}
+
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(ipt.start))
 	var kvs point.KVs
 
 	path := ipt.Dir
@@ -131,13 +189,11 @@ func (ipt *Input) collect() error {
 		kvs = kvs.Add("host_directory", ipt.Dir, true, true)
 	}
 
-	filesize, filecount, dircount := Startcollect(ipt.Dir, ipt.ExcludePatterns)
 	kvs = kvs.Add("file_size", filesize, false, true)
-	kvs = kvs.Add("file_count", filecount, false, true)
+	kvs = kvs.Add("file_count", filecount+dircount, false, true)
 	kvs = kvs.Add("dir_count", dircount, false, true)
 
-	err := getFileSystemInfo(path, filesize, filecount+dircount, &kvs)
-	if err != nil {
+	if err = getFileSystemInfo(path, filesize, filecount+dircount, &kvs); err != nil {
 		return err
 	}
 

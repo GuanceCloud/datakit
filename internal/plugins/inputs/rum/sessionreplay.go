@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/diskcache"
@@ -317,20 +316,23 @@ func (ipt *Input) uploadSessionReplay(msg []byte) (err error) {
 
 	startTime := time.Now()
 	defer func() {
-		replayUploadingDurationSummary.WithLabelValues(appID, env, version, service, statusCode).Observe(time.Since(startTime).Seconds())
+		reqCost := time.Since(startTime).Seconds()
+		replayUploadingDurationSummary.WithLabelValues(appID, env, version, service, statusCode).Observe(reqCost)
+		dataway.APISumVec().WithLabelValues(req.URL.Path, statusCode).Observe(reqCost)
 	}()
 
 	for i := 0; i < ipt.SessionReplayCfg.SendRetryCount; i++ {
-		if lastErr = func() error {
+		lastErr = func(idx int) error {
 			req.Body = io.NopCloser(bytes.NewReader(reqPB.Body))
 
 			resp, err = ipt.replayHTTPClient.Do(req)
 			if err != nil {
-				return fmt.Errorf("at #%d try: unable to send session replay data to dataway: %w", i+1, err)
+				statusCode = "unknown"
+				return fmt.Errorf("at #%d try: unable to send session replay data to dataway: %w", idx+1, err)
 			}
 			defer resp.Body.Close() // nolint:errcheck
 
-			statusCode = strconv.Itoa(resp.StatusCode)
+			statusCode = http.StatusText(resp.StatusCode)
 
 			errMsg := []byte(nil)
 			if resp.StatusCode/100 != 2 {
@@ -340,16 +342,23 @@ func (ipt *Input) uploadSessionReplay(msg []byte) (err error) {
 			switch resp.StatusCode / 100 {
 			case 5:
 				return fmt.Errorf("at #%d try: unable to send session replay data to dataway, http Status: %s, response: %s",
-					i+1, resp.Status, string(errMsg))
+					idx+1, resp.Status, string(errMsg))
 			case 2:
 				// ignore
 			default:
 				log.Errorf("at #%d try: unable to send session replay data to dataway, http status: %s, response: %s",
-					i+1, resp.Status, string(errMsg))
+					idx+1, resp.Status, string(errMsg))
 			}
 
 			return nil
-		}(); lastErr == nil {
+		}(i)
+
+		// Log IO retry metrics
+		if i > 0 {
+			dataway.HTTPRetry().WithLabelValues(req.URL.Path, statusCode).Inc()
+		}
+
+		if lastErr == nil {
 			return nil
 		}
 	}

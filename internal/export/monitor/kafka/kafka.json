@@ -10,29 +10,20 @@
             "query": {
               "alias": "",
               "code": "Result",
-              "dataSource": "apache",
-              "field": "*",
-              "fieldFunc": "count",
-              "fieldType": "",
-              "filters": [],
+              "dataSource": "kafka_topics",
+              "field": "FailedFetchRequestsPerSec.Count",
+              "fieldFunc": "avg",
+              "fieldType": "float",
               "funcList": [],
               "groupBy": [
-                "service",
                 "host"
               ],
               "groupByTime": "",
-              "indexFilter": "default",
-              "namespace": "logging",
-              "q": "L::`apache`:(COUNT(`*`)) { `index` = 'default' and  `http_code` >= 500  } BY `service`, `host`",
-              "search": "",
-              "treeFilters": {
-                "http_code": [
-                  ">=500"
-                ]
-              },
+              "namespace": "metric",
+              "q": "M::`kafka_topics`:(AVG(`FailedFetchRequestsPerSec.Count`)) BY `host`",
               "type": "simple"
             },
-            "uuid": "2904c397-fd6c-44e8-8b29-c62f4e89d8a3"
+            "uuid": "e67e1bc7-be20-4c25-be08-fd8547304f1c"
           }
         ],
         "rules": [
@@ -42,7 +33,7 @@
               {
                 "alias": "Result",
                 "operands": [
-                  "100"
+                  "10"
                 ],
                 "operator": ">="
               }
@@ -55,7 +46,7 @@
               {
                 "alias": "Result",
                 "operands": [
-                  "50"
+                  "5"
                 ],
                 "operator": ">="
               }
@@ -68,15 +59,14 @@
               {
                 "alias": "Result",
                 "operands": [
-                  "25"
+                  "3"
                 ],
                 "operator": ">="
               }
             ],
             "status": "warning"
           }
-        ],
-        "uiType": "tree"
+        ]
       },
       "is_disable": false,
       "jsonScript": {
@@ -84,7 +74,6 @@
         "atNoDataAccounts": [],
         "channels": [],
         "checkerOpt": {
-          "infoEvent": false,
           "rules": [
             {
               "conditionLogic": "and",
@@ -92,7 +81,7 @@
                 {
                   "alias": "Result",
                   "operands": [
-                    "100"
+                    "10"
                   ],
                   "operator": ">="
                 }
@@ -105,7 +94,7 @@
                 {
                   "alias": "Result",
                   "operands": [
-                    "50"
+                    "5"
                   ],
                   "operator": ">="
                 }
@@ -118,7 +107,7 @@
                 {
                   "alias": "Result",
                   "operands": [
-                    "25"
+                    "3"
                   ],
                   "operator": ">="
                 }
@@ -127,26 +116,25 @@
             }
           ]
         },
-        "every": "1m",
+        "every": "5m",
         "groupBy": [
-          "service",
           "host"
         ],
         "interval": 300,
-        "message": ">等级：{{status}}  \n>主机：{{host}}  \n>内容：Apache 5XX 错误数为 {{ Result |  to_fixed(2) }}%  \n>建议：检查 Apache 日志查看详细信息",
+        "message": "><<.Monitor.level>>：{{df_status}}  \n><<.Monitor.event>>：{{ df_dimension_tags }}\n><<.Monitor.monitor>>：{{ df_monitor_checker_name }}\n><<.Monitor.alarm_policy>>：{{ df_monitor_name }}\n><<.Monitor.event_status>>： {{ df_status }}\n><<.Monitor.content>>：<<.Monitor.content_info>>\n><<.Monitor.suggestion>>：<<.Monitor.suggestion_info>>",
         "noDataMessage": "",
         "noDataTitle": "",
         "recoverNeedPeriodCount": 2,
         "targets": [
           {
             "alias": "Result",
-            "dql": "L::`apache`:(COUNT(`*`)) { `index` = 'default' and  `http_code` >= 500  } BY `service`, `host`"
+            "dql": "M::`kafka_topics`:(AVG(`FailedFetchRequestsPerSec.Count`)) BY `host`"
           }
         ],
-        "title": "apache 5XX 错误数过多",
-        "type": "loggingCheck"
+        "title": "<<.Monitor.title>>",
+        "type": "simpleCheck"
       },
-      "monitorName": "默认"
+      "monitorName": "<<.Monitor.default_monitor_name>>"
     }
   ]
 }

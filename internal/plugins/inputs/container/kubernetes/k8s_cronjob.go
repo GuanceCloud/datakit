@@ -127,9 +127,10 @@ func (*cronjobMetric) Info() *inputs.MeasurementInfo {
 		Desc: "The metric of the Kubernetes CronJob.",
 		Type: "metric",
 		Tags: map[string]interface{}{
-			"uid":       inputs.NewTagInfo("The UID of CronJob."),
-			"cronjob":   inputs.NewTagInfo("Name must be unique within a namespace."),
-			"namespace": inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"uid":              inputs.NewTagInfo("The UID of CronJob."),
+			"cronjob":          inputs.NewTagInfo("Name must be unique within a namespace."),
+			"namespace":        inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"cluster_name_k8s": inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
 		},
 		Fields: map[string]interface{}{
 			"spec_suspend": &inputs.FieldInfo{DataType: inputs.Bool, Unit: inputs.UnknownUnit, Desc: "This flag tells the controller to suspend subsequent executions."},
@@ -146,10 +147,11 @@ func (*cronjobObject) Info() *inputs.MeasurementInfo {
 		Desc: "The object of the Kubernetes CronJob.",
 		Type: "object",
 		Tags: map[string]interface{}{
-			"name":          inputs.NewTagInfo("The UID of CronJob."),
-			"uid":           inputs.NewTagInfo("The UID of CronJob."),
-			"cron_job_name": inputs.NewTagInfo("Name must be unique within a namespace."),
-			"namespace":     inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"name":             inputs.NewTagInfo("The UID of CronJob."),
+			"uid":              inputs.NewTagInfo("The UID of CronJob."),
+			"cron_job_name":    inputs.NewTagInfo("Name must be unique within a namespace."),
+			"namespace":        inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"cluster_name_k8s": inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
 		},
 		Fields: map[string]interface{}{
 			"age":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},
