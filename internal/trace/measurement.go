@@ -54,7 +54,6 @@ func (m *TraceMeasurement) Info() *inputs.MeasurementInfo {
 			FieldDuration: &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationUS, Desc: "Duration of span"},
 			FieldMessage:  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Origin content of span"},
 			FieldParentID: &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Parent span ID of current span"},
-			TagPid:        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Application process id. Available in DDTrace, OpenTelemetry. Optional."},
 			FieldResource: &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Resource name produce current span"},
 			FieldSpanid:   &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Span id"},
 			FieldStart:    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.TimestampUS, Desc: "start time of span."},

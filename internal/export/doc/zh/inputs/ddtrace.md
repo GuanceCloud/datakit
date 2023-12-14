@@ -203,8 +203,7 @@ DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.p
 
 ### 固定提取 tag {#add-tags}
 
-从 DataKit 版本 [1.21.0](../changelog.md#cl-1.21.0) 开始，不在将 Span.Mate 中全部都提前到一级标签中。
-而是选择性提取，以下是可能会提取出的标签列表：
+从 DataKit 版本 [1.21.0](../datakit/changelog.md#cl-1.21.0) 开始，不在将 Span.Mate 中全部都提前到一级标签中，而是选择性提取，以下是可能会提取出的标签列表：
 
 | Mete               | tag               | 说明          |
 |:-------------------|:------------------|:------------|
