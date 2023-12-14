@@ -101,7 +101,8 @@ func (app *monitorAPP) renderBasicInfoTable(mfs map[string]*dto.MetricFamily) {
 	}
 
 	table.SetCell(row, 0, tview.NewTableCell("From").SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
-	table.SetCell(row, 1, tview.NewTableCell(app.url).SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignLeft))
+	table.SetCell(row, 1, tview.NewTableCell(app.src.URL()).SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignLeft))
+	row++
 
 	// show proxy info
 	proxyBy := "no-proxy"

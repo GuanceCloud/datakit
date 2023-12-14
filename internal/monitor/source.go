@@ -17,11 +17,11 @@ import (
 
 type monitorSource interface {
 	FetchData() (map[string]*dto.MetricFamily, error)
+	URL() string
 }
 
 type HTTPMonitor struct {
-	url   string
-	isURL string
+	url string
 }
 
 type FileMonitor struct {
@@ -33,6 +33,14 @@ type FileMonitor struct {
 
 func (m *HTTPMonitor) FetchData() (map[string]*dto.MetricFamily, error) {
 	return requestMetrics(m.url)
+}
+
+func (m *HTTPMonitor) URL() string {
+	return m.url
+}
+
+func (m *FileMonitor) URL() string {
+	return m.path
 }
 
 func (m *FileMonitor) FetchData() (map[string]*dto.MetricFamily, error) {
