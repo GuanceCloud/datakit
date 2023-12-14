@@ -42,14 +42,14 @@
           }
         },
         "group": {
-          "name": "Overview"
+          "name": "{{.Dashboard.overview}}"
         },
-        "name": "Number of partitions",
+        "name": "{{.Dashboard.partitions}}",
         "pos": {
           "h": 8,
           "w": 4,
           "x": 8,
-          "y": 2.5
+          "y": 13
         },
         "queries": [
           {
@@ -121,8 +121,8 @@
             "titleDesc": "",
             "units": [
               {
-                "key": "Total time",
-                "name": "Total time",
+                "key": "{{.Dashboard.total_time}}",
+                "name": "{{.Dashboard.total_time}}",
                 "unit": "",
                 "units": [
                   "time",
@@ -130,8 +130,8 @@
                 ]
               },
               {
-                "key": "Message conversion time",
-                "name": "Message conversion time",
+                "key": "{{.Dashboard.message_conversion_time}}",
+                "name": "{{.Dashboard.message_conversion_time}}",
                 "unit": "",
                 "units": [
                   "time",
@@ -139,8 +139,8 @@
                 ]
               },
               {
-                "key": "Request queue time",
-                "name": "Request queue time",
+                "key": "{{.Dashboard.request_queue_time}}",
+                "name": "{{.Dashboard.request_queue_time}}",
                 "unit": "",
                 "units": [
                   "time",
@@ -148,8 +148,8 @@
                 ]
               },
               {
-                "key": "Response queue time",
-                "name": "Response queue time",
+                "key": "{{.Dashboard.response_queue_time}}",
+                "name": "{{.Dashboard.response_queue_time}}",
                 "unit": "",
                 "units": [
                   "time",
@@ -161,14 +161,14 @@
           }
         },
         "group": {
-          "name": "Overview"
+          "name": "{{.Dashboard.overview}}"
         },
-        "name": "Queue processing time",
+        "name": "{{.Dashboard.total_time}}",
         "pos": {
           "h": 9,
           "w": 8,
           "x": 0,
-          "y": 10.5
+          "y": 21
         },
         "queries": [
           {
@@ -177,7 +177,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "Total time",
+              "alias": "{{.Dashboard.total_time}}",
               "code": "D",
               "dataSource": "kafka_request",
               "field": "TotalTimeMs.Count",
@@ -196,7 +196,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`kafka_request`:(AVG(`TotalTimeMs.Count`) AS `Total time`) { `host` = '#{host}' }",
+              "q": "M::`kafka_request`:(AVG(`TotalTimeMs.Count`) AS `{{.Dashboard.total_time}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "dql",
               "withLabels": []
@@ -210,7 +210,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "Message conversion time",
+              "alias": "{{.Dashboard.message_conversion_time}}",
               "code": "A",
               "dataSource": "kafka_request",
               "field": "MessageConversionsTimeMs.Count",
@@ -229,7 +229,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`kafka_request`:(AVG(`MessageConversionsTimeMs.Count`) AS `Message conversion time`) { `host` = '#{host}' }",
+              "q": "M::`kafka_request`:(AVG(`MessageConversionsTimeMs.Count`) AS `{{.Dashboard.message_conversion_time}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "dql",
               "withLabels": []
@@ -243,7 +243,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "Request queue time",
+              "alias": "{{.Dashboard.request_queue_time}}",
               "code": "B",
               "dataSource": "kafka_request",
               "field": "RequestQueueTimeMs.Count",
@@ -262,7 +262,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`kafka_request`:(AVG(`RequestQueueTimeMs.Count`) AS `Request queue time`) { `host` = '#{host}' }",
+              "q": "M::`kafka_request`:(AVG(`RequestQueueTimeMs.Count`) AS `{{.Dashboard.request_queue_time}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "dql",
               "withLabels": []
@@ -276,7 +276,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "Response queue time",
+              "alias": "{{.Dashboard.response_queue_time}}",
               "code": "C",
               "dataSource": "kafka_request",
               "field": "ResponseSendTimeMs.Count",
@@ -295,7 +295,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`kafka_request`:(AVG(`ResponseSendTimeMs.Count`) AS `Response queue time`) { `host` = '#{host}' }",
+              "q": "M::`kafka_request`:(AVG(`ResponseSendTimeMs.Count`) AS `{{.Dashboard.response_queue_time}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "dql",
               "withLabels": []
@@ -345,12 +345,12 @@
         "group": {
           "name": "Topic"
         },
-        "name": "Message conversion",
+        "name": "{{.Dashboard.message_conversion}}",
         "pos": {
           "h": 9,
           "w": 8,
           "x": 16,
-          "y": 22
+          "y": 32.5
         },
         "queries": [
           {
@@ -359,7 +359,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "Fetch message conversion per second",
+              "alias": "{{.Dashboard.fetch_message_conversion_per_sec}}",
               "code": "A",
               "dataSource": "kafka_topics",
               "field": "FetchMessageConversionsPerSec.Count",
@@ -378,7 +378,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`kafka_topics`:(AVG(`FetchMessageConversionsPerSec.Count`) AS `Fetch message conversion per second`) { `host` = '#{host}' }\")",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`kafka_topics`:(AVG(`FetchMessageConversionsPerSec.Count`) AS `{{.Dashboard.fetch_message_conversion_per_sec}}`) { `host` = '#{host}' }\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -397,7 +397,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "Produce message conversion per second",
+              "alias": "{{.Dashboard.produce_message_conversion_per_sec}}",
               "code": "B",
               "dataSource": "kafka_topics",
               "field": "ProduceMessageConversionsPerSec.Count",
@@ -416,7 +416,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`kafka_topics`:(AVG(`ProduceMessageConversionsPerSec.Count`) AS `Produce message conversion per second`) { `host` = '#{host}' }\")",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`kafka_topics`:(AVG(`ProduceMessageConversionsPerSec.Count`) AS `{{.Dashboard.produce_message_conversion_per_sec}}`) { `host` = '#{host}' }\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -453,8 +453,8 @@
             "tableSortMetricName": "kafka_topics_BytesInPerSec.Count",
             "units": [
               {
-                "key": "Inflow",
-                "name": "Inflow",
+                "key": "{{.Dashboard.inflow}}",
+                "name": "{{.Dashboard.inflow}}",
                 "unit": "",
                 "units": [
                   "traffic",
@@ -462,8 +462,8 @@
                 ]
               },
               {
-                "key": "Outflow",
-                "name": "Outflow",
+                "key": "{{.Dashboard.outflow}}",
+                "name": "{{.Dashboard.outflow}}",
                 "unit": "",
                 "units": [
                   "traffic",
@@ -477,12 +477,12 @@
         "group": {
           "name": "Topic"
         },
-        "name": "Network Traffic",
+        "name": "{{.Dashboard.network_traffic}}",
         "pos": {
           "h": 9,
           "w": 8,
           "x": 16,
-          "y": 31
+          "y": 41.5
         },
         "queries": [
           {
@@ -491,7 +491,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "Inflow",
+              "alias": "{{.Dashboard.inflow}}",
               "code": "A",
               "dataSource": "kafka_topics",
               "field": "BytesInPerSec.Count",
@@ -512,7 +512,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`kafka_topics`:(AVG(`BytesInPerSec.Count`) AS `Inflow`) { `host` = '#{host}' }\")",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`kafka_topics`:(AVG(`BytesInPerSec.Count`) AS `{{.Dashboard.inflow}}`) { `host` = '#{host}' }\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -530,7 +530,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "Outflow",
+              "alias": "{{.Dashboard.outflow}}",
               "code": "B",
               "dataSource": "kafka_topics",
               "field": "BytesOutPerSec.Count",
@@ -551,7 +551,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`kafka_topics`:(AVG(`BytesOutPerSec.Count`) AS `Outflow`) { `host` = '#{host}' }\")",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`kafka_topics`:(AVG(`BytesOutPerSec.Count`) AS `{{.Dashboard.outflow}}`) { `host` = '#{host}' }\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -590,7 +590,7 @@
             "showLine": false,
             "showTitle": true,
             "stackType": "time",
-            "tableSortMetricName": "Total Fetch requests per second",
+            "tableSortMetricName": "{{.Dashboard.total_fetch_requests_per_sec}}",
             "timeInterval": "default",
             "titleDesc": "",
             "units": [],
@@ -600,12 +600,12 @@
         "group": {
           "name": "Topic"
         },
-        "name": "Total requests",
+        "name": "{{.Dashboard.total_requests}}",
         "pos": {
           "h": 9,
           "w": 8,
           "x": 0,
-          "y": 22
+          "y": 32.5
         },
         "queries": [
           {
@@ -614,7 +614,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "Total Produce requests per second",
+              "alias": "{{.Dashboard.total_produce_requests_per_sec}}",
               "code": "B",
               "dataSource": "kafka_topics",
               "field": "TotalProduceRequestsPerSec.Count",
@@ -635,7 +635,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`kafka_topics`:(AVG(`TotalProduceRequestsPerSec.Count`) AS `Total Produce requests per second`) { `host` = '#{host}' }\")",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`kafka_topics`:(AVG(`TotalProduceRequestsPerSec.Count`) AS `{{.Dashboard.total_produce_requests_per_sec}}`) { `host` = '#{host}' }\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -655,7 +655,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "Total Fetch requests per second",
+              "alias": "{{.Dashboard.total_fetch_requests_per_sec}}",
               "code": "A",
               "dataSource": "kafka_topics",
               "field": "TotalFetchRequestsPerSec.Count",
@@ -674,7 +674,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`kafka_topics`:(AVG(`TotalFetchRequestsPerSec.Count`) AS `Total Fetch requests per second`) { `host` = '#{host}' }\")",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`kafka_topics`:(AVG(`TotalFetchRequestsPerSec.Count`) AS `{{.Dashboard.total_fetch_requests_per_sec}}`) { `host` = '#{host}' }\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -714,7 +714,7 @@
             "showLine": false,
             "showTitle": true,
             "stackType": "time",
-            "tableSortMetricName": "Number of failed Fetch requests per second",
+            "tableSortMetricName": "{{.Dashboard.failed_fetch_requests_per_sec}}",
             "timeInterval": "default",
             "titleDesc": "",
             "units": [],
@@ -724,12 +724,12 @@
         "group": {
           "name": "Topic"
         },
-        "name": "Failed request",
+        "name": "{{.Dashboard.failed_request}}",
         "pos": {
           "h": 9,
           "w": 8,
           "x": 8,
-          "y": 22
+          "y": 32.5
         },
         "queries": [
           {
@@ -738,7 +738,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "Number of Fetch failures per second",
+              "alias": "{{.Dashboard.failed_fetch_requests_per_sec}}",
               "code": "A",
               "dataSource": "kafka_topics",
               "field": "FailedFetchRequestsPerSec.Count",
@@ -757,7 +757,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`kafka_topics`:(AVG(`FailedFetchRequestsPerSec.Count`) AS `Number of Fetch failures per second`) { `host` = '#{host}' }\")",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`kafka_topics`:(AVG(`FailedFetchRequestsPerSec.Count`) AS `{{.Dashboard.fetch_failed_per_sec}}`) { `host` = '#{host}' }\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -776,7 +776,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "Number of failed Produce requests per second",
+              "alias": "{{.Dashboard.failed_produce_requests_per_sec}}",
               "code": "B",
               "dataSource": "kafka_topics",
               "field": "FailedProduceRequestsPerSec.Count",
@@ -795,7 +795,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`kafka_topics`:(AVG(`FailedProduceRequestsPerSec.Count`) AS `Number of failed Produce requests per second`) { `host` = '#{host}' }\")",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`kafka_topics`:(AVG(`FailedProduceRequestsPerSec.Count`) AS `{{.Dashboard.failed_produce_requests_per_sec}}`) { `host` = '#{host}' }\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -821,8 +821,8 @@
             "colors": [
               {
                 "color": "rgba(65,206,199,1)",
-                "key": "Average number of expansions per second",
-                "name": "Average number of expansions per second"
+                "key": "{{.Dashboard.avg_expansions_per_sec}}",
+                "name": "{{.Dashboard.avg_expansions_per_sec}}"
               }
             ],
             "compareTitle": "",
@@ -841,7 +841,7 @@
             "showLine": false,
             "showTitle": true,
             "stackType": "time",
-            "tableSortMetricName": "Average number of expansions per second",
+            "tableSortMetricName": "{{.Dashboard.avg_expansions_per_sec}}",
             "timeInterval": "default",
             "titleDesc": "",
             "units": [],
@@ -849,14 +849,14 @@
           }
         },
         "group": {
-          "name": "Replica Management"
+          "name": "{{.Dashboard.replica_management}}"
         },
-        "name": "Replica scaling",
+        "name": "{{.Dashboard.replica_scaling}}",
         "pos": {
           "h": 9,
           "w": 6,
           "x": 6,
-          "y": 42.5
+          "y": 53
         },
         "queries": [
           {
@@ -865,7 +865,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "Average number of expansions per second",
+              "alias": "{{.Dashboard.avg_expansions_per_sec}}",
               "code": "A",
               "dataSource": "kafka_replica_manager",
               "field": "IsrExpandsPerSec.Count",
@@ -886,7 +886,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`kafka_replica_manager`:(AVG(`IsrExpandsPerSec.Count`) AS `Average number of expansions per second`) { `host` = '#{host}' }",
+              "q": "M::`kafka_replica_manager`:(AVG(`IsrExpandsPerSec.Count`) AS `{{.Dashboard.avg_expansions_per_sec}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -899,7 +899,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "Average number of shrinks per second",
+              "alias": "{{.Dashboard.avg_shrinks_per_sec}}",
               "code": "B",
               "dataSource": "kafka_replica_manager",
               "field": "IsrShrinksPerSec.Count",
@@ -920,7 +920,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`kafka_replica_manager`:(AVG(`IsrShrinksPerSec.Count`) AS `Average number of shrinks per second`) { `host` = '#{host}' }",
+              "q": "M::`kafka_replica_manager`:(AVG(`IsrShrinksPerSec.Count`) AS `{{.Dashboard.avg_shrinks_per_sec}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -940,8 +940,8 @@
             "colors": [
               {
                 "color": "rgba(65,206,199,1)",
-                "key": "Minimum number of failed ISR partitions",
-                "name": "Minimum number of failed ISR partitions"
+                "key": "{{.Dashboard.min_failed_ISR_partitions}}",
+                "name": "{{.Dashboard.min_failed_ISR_partitions}}"
               }
             ],
             "compareTitle": "",
@@ -968,14 +968,14 @@
           }
         },
         "group": {
-          "name": "Replica Management"
+          "name": "{{.Dashboard.replica_management}}"
         },
-        "name": "Invalid Replication",
+        "name": "{{.Dashboard.invalid_replication}}",
         "pos": {
           "h": 9,
           "w": 6,
           "x": 12,
-          "y": 42.5
+          "y": 53
         },
         "queries": [
           {
@@ -984,7 +984,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "Number of failed replica partitions",
+              "alias": "{{.Dashboard.failed_replica_partitions}}",
               "code": "B",
               "dataSource": "kafka_replica_manager",
               "field": "UnderReplicatedPartitions.Value",
@@ -1003,7 +1003,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`kafka_replica_manager`:(AVG(`UnderReplicatedPartitions.Value`) AS `Number of failed replica partitions`) { `host` = '#{host}' }",
+              "q": "M::`kafka_replica_manager`:(AVG(`UnderReplicatedPartitions.Value`) AS `{{.Dashboard.failed_replica_partitions}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "dql",
               "withLabels": []
@@ -1017,7 +1017,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "Below the minimum number of ISR partitions",
+              "alias": "{{.Dashboard.below_min_ISR_partitions}}",
               "code": "A",
               "dataSource": "kafka_replica_manager",
               "field": "UnderMinIsrPartitionCount.Value",
@@ -1036,7 +1036,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`kafka_replica_manager`:(AVG(`UnderMinIsrPartitionCount.Value`) AS `Below the minimum number of ISR partitions`) { `host` = '#{host}' }",
+              "q": "M::`kafka_replica_manager`:(AVG(`UnderMinIsrPartitionCount.Value`) AS `{{.Dashboard.below_min_ISR_partitions}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "dql",
               "withLabels": []
@@ -1052,7 +1052,7 @@
             "query": {
               "fields": [
                 {
-                  "alias": "Minimum number of failed ISR partitions",
+                  "alias": "{{.Dashboard.min_failed_ISR_partitions}}",
                   "args": [
                     {
                       "name": "UnderMinIsrPartitionCount.Value"
@@ -1061,7 +1061,7 @@
                   "funcName": "Last"
                 },
                 {
-                  "alias": "Number of failed replica partitions",
+                  "alias": "{{.Dashboard.failed_replica_partitions}}",
                   "args": [
                     {
                       "name": "UnderReplicatedPartitions.Value"
@@ -1109,20 +1109,20 @@
             "showFieldMapping": false,
             "showLine": false,
             "stackType": "time",
-            "tableSortMetricName": "Number of offline replication",
+            "tableSortMetricName": "{{.Dashboard.offline_replication}}",
             "units": [],
             "xAxisShowType": "time"
           }
         },
         "group": {
-          "name": "Replica Management"
+          "name": "{{.Dashboard.replica_management}}"
         },
-        "name": "Number of offline replication",
+        "name": "{{.Dashboard.offline_replication}}",
         "pos": {
           "h": 9,
           "w": 6,
           "x": 18,
-          "y": 42.5
+          "y": 53
         },
         "queries": [
           {
@@ -1131,7 +1131,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "Number of offline replication",
+              "alias": "{{.Dashboard.offline_replication}}",
               "code": "A",
               "dataSource": "kafka_replica_manager",
               "field": "OfflineReplicaCount.Value",
@@ -1152,7 +1152,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`kafka_replica_manager`:(AVG(`OfflineReplicaCount.Value`) AS `Number of offline replication`) { `host` = '#{host}' }",
+              "q": "M::`kafka_replica_manager`:(AVG(`OfflineReplicaCount.Value`) AS `{{.Dashboard.offline_replication}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -1172,8 +1172,8 @@
             "colors": [
               {
                 "color": "rgba(65,206,199,1)",
-                "key": "Number of partitions of Broker",
-                "name": "Number of partitions of Broker"
+                "key": "{{.Dashboard.broker_partitions}}",
+                "name": "{{.Dashboard.broker_partitions}}"
               }
             ],
             "compareTitle": "",
@@ -1192,7 +1192,7 @@
             "showLine": false,
             "showTitle": true,
             "stackType": "time",
-            "tableSortMetricName": "Number of partitions of Broker",
+            "tableSortMetricName": "{{.Dashboard.broker_partitions}}",
             "timeInterval": "default",
             "titleDesc": "",
             "units": [],
@@ -1200,14 +1200,14 @@
           }
         },
         "group": {
-          "name": "Replica Management"
+          "name": "{{.Dashboard.replica_management}}"
         },
-        "name": "Total Replications",
+        "name": "{{.Dashboard.total_replications}}",
         "pos": {
           "h": 9,
           "w": 6,
           "x": 0,
-          "y": 42.5
+          "y": 53
         },
         "queries": [
           {
@@ -1216,7 +1216,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "Number of partitions",
+              "alias": "{{.Dashboard.partitions}}",
               "code": "A",
               "dataSource": "kafka_replica_manager",
               "field": "PartitionCount.Value",
@@ -1235,7 +1235,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`kafka_replica_manager`:(AVG(`PartitionCount.Value`) AS `Number of partitions`) { `host` = '#{host}' }",
+              "q": "M::`kafka_replica_manager`:(AVG(`PartitionCount.Value`) AS `{{.Dashboard.partitions}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "dql",
               "withLabels": []
@@ -1249,7 +1249,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "Number of Replications of Leader",
+              "alias": "{{.Dashboard.leader_replications}}",
               "code": "B",
               "dataSource": "kafka_replica_manager",
               "field": "LeaderCount.Value",
@@ -1270,7 +1270,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`kafka_replica_manager`:(AVG(`LeaderCount.Value`) AS `Number of Replications of Leader`) { `host` = '#{host}' }",
+              "q": "M::`kafka_replica_manager`:(AVG(`LeaderCount.Value`) AS `{{.Dashboard.leader_replications}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -1312,12 +1312,12 @@
         "group": {
           "name": "Purgatory"
         },
-        "name": "Delete records",
+        "name": "{{.Dashboard.delete_records}}",
         "pos": {
           "h": 8,
           "w": 6,
           "x": 0,
-          "y": 67.5
+          "y": 78
         },
         "queries": [
           {
@@ -1389,12 +1389,12 @@
         "group": {
           "name": "Purgatory"
         },
-        "name": "Heartbeat detection",
+        "name": "{{.Dashboard.heartbeat_detection}}",
         "pos": {
           "h": 8,
           "w": 6,
           "x": 6,
-          "y": 67.5
+          "y": 78
         },
         "queries": [
           {
@@ -1465,7 +1465,7 @@
           "h": 8,
           "w": 6,
           "x": 12,
-          "y": 67.5
+          "y": 78
         },
         "queries": [
           {
@@ -1537,12 +1537,12 @@
         "group": {
           "name": "Purgatory"
         },
-        "name": "Producer",
+        "name": "{{.Dashboard.producer}}",
         "pos": {
           "h": 8,
           "w": 6,
           "x": 18,
-          "y": 67.5
+          "y": 78
         },
         "queries": [
           {
@@ -1614,14 +1614,14 @@
           }
         },
         "group": {
-          "name": "Overview"
+          "name": "{{.Dashboard.overview}}"
         },
-        "name": "Invalid replica partition",
+        "name": "{{.Dashboard.invalid_replica_partition}}",
         "pos": {
           "h": 8,
           "w": 4,
           "x": 12,
-          "y": 2.5
+          "y": 13
         },
         "queries": [
           {
@@ -1696,14 +1696,14 @@
           }
         },
         "group": {
-          "name": "Overview"
+          "name": "{{.Dashboard.overview}}"
         },
         "name": "Topic",
         "pos": {
           "h": 8,
           "w": 4,
           "x": 4,
-          "y": 2.5
+          "y": 13
         },
         "queries": [
           {
@@ -1776,7 +1776,7 @@
             "showLineAxis": false,
             "showTitle": true,
             "stackType": "time",
-            "tableSortMetricName": "Event Queue",
+            "tableSortMetricName": "{{.Dashboard.event_queue}}",
             "timeInterval": "default",
             "titleDesc": "",
             "units": [],
@@ -1784,14 +1784,14 @@
           }
         },
         "group": {
-          "name": "Overview"
+          "name": "{{.Dashboard.overview}}"
         },
-        "name": "Queue information",
+        "name": "{{.Dashboard.queue_information}}",
         "pos": {
           "h": 9,
           "w": 8,
           "x": 8,
-          "y": 10.5
+          "y": 21
         },
         "queries": [
           {
@@ -1800,7 +1800,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "Total queue",
+              "alias": "{{.Dashboard.total_queue}}",
               "code": "A",
               "dataSource": "kafka_controller",
               "field": "TotalQueueSize.Value",
@@ -1821,7 +1821,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`kafka_controller`:(AVG(`TotalQueueSize.Value`) AS `Total queue`) { `host` = '#{host}' }",
+              "q": "M::`kafka_controller`:(AVG(`TotalQueueSize.Value`) AS `{{.Dashboard.total_queue}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -1834,7 +1834,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "Event Queue",
+              "alias": "{{.Dashboard.event_queue}}",
               "code": "B",
               "dataSource": "kafka_controller",
               "field": "EventQueueSize.Value",
@@ -1855,7 +1855,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`kafka_controller`:(AVG(`EventQueueSize.Value`) AS `Event Queue`) { `host` = '#{host}' }",
+              "q": "M::`kafka_controller`:(AVG(`EventQueueSize.Value`) AS `{{.Dashboard.event_queue}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -1896,8 +1896,8 @@
             "titleDesc": "",
             "units": [
               {
-                "key": "Producer request time",
-                "name": "Producer request time",
+                "key": "{{.Dashboard.producer_request_time}}",
+                "name": "{{.Dashboard.producer_request_time}}",
                 "unit": "",
                 "units": [
                   "time",
@@ -1909,14 +1909,14 @@
           }
         },
         "group": {
-          "name": "Performance monitoring"
+          "name": "{{.Dashboard.performance_monitoring}}"
         },
-        "name": "Producer request time",
+        "name": "{{.Dashboard.producer_request_time}}",
         "pos": {
           "h": 11,
           "w": 8,
           "x": 0,
-          "y": 54
+          "y": 64.5
         },
         "queries": [
           {
@@ -1925,7 +1925,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "Producer request time",
+              "alias": "{{.Dashboard.producer_request_time}}",
               "code": "A",
               "dataSource": "kafka_request",
               "field": "TotalTimeMs.Mean",
@@ -1954,7 +1954,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`kafka_request`:(AVG(`TotalTimeMs.Mean`) AS `Producer request time`) { `request` = 'Produce' and `host` = '#{host}' }",
+              "q": "M::`kafka_request`:(AVG(`TotalTimeMs.Mean`) AS `{{.Dashboard.producer_request_time}}`) { `request` = 'Produce' and `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -1998,8 +1998,8 @@
             "titleDesc": "",
             "units": [
               {
-                "key": "Consumer request time",
-                "name": "Consumer request time",
+                "key": "{{.Dashboard.consumer_request_time}}",
+                "name": "{{.Dashboard.consumer_request_time}}",
                 "unit": "",
                 "units": [
                   "time",
@@ -2011,14 +2011,14 @@
           }
         },
         "group": {
-          "name": "Performance monitoring"
+          "name": "{{.Dashboard.performance_monitoring}}"
         },
-        "name": "Consumer request time",
+        "name": "{{.Dashboard.consumer_request_time}}",
         "pos": {
           "h": 11,
           "w": 8,
           "x": 8,
-          "y": 54
+          "y": 64.5
         },
         "queries": [
           {
@@ -2027,7 +2027,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "Consumer request time",
+              "alias": "{{.Dashboard.consumer_request_time}}",
               "code": "A",
               "dataSource": "kafka_request",
               "field": "TotalTimeMs.Mean",
@@ -2056,7 +2056,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`kafka_request`:(AVG(`TotalTimeMs.Mean`) AS `Consumer request time`) { `request` = 'FetchConsumer' and `host` = '#{host}' }",
+              "q": "M::`kafka_request`:(AVG(`TotalTimeMs.Mean`) AS `{{.Dashboard.consumer_request_time}}`) { `request` = 'FetchConsumer' and `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -2095,13 +2095,13 @@
             "showLine": false,
             "showTitle": true,
             "stackType": "time",
-            "tableSortMetricName": "Request time from node",
+            "tableSortMetricName": "{{.Dashboard.node_request_time}}",
             "timeInterval": "default",
             "titleDesc": "",
             "units": [
               {
-                "key": "Request time from node",
-                "name": "Request time from node",
+                "key": "{{.Dashboard.node_request_time}}",
+                "name": "{{.Dashboard.node_request_time}}",
                 "unit": "",
                 "units": [
                   "time",
@@ -2113,14 +2113,14 @@
           }
         },
         "group": {
-          "name": "Performance monitoring"
+          "name": "{{.Dashboard.performance_monitoring}}"
         },
-        "name": "Request time from node",
+        "name": "{{.Dashboard.node_request_time}}",
         "pos": {
           "h": 11,
           "w": 8,
           "x": 16,
-          "y": 54
+          "y": 64.5
         },
         "queries": [
           {
@@ -2129,7 +2129,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "Request time from node",
+              "alias": "{{.Dashboard.node_request_time}}",
               "code": "A",
               "dataSource": "kafka_request",
               "field": "TotalTimeMs.Count",
@@ -2150,7 +2150,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`kafka_request`:(AVG(`TotalTimeMs.Count`) AS `Request time from node`) { `host` = '#{host}' }",
+              "q": "M::`kafka_request`:(AVG(`TotalTimeMs.Count`) AS `{{.Dashboard.node_request_time}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple",
               "withLabels": []
@@ -2163,27 +2163,58 @@
       },
       {
         "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
           "settings": {
+            "alias": [],
             "chartType": "areaLine",
             "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
             "currentChartType": "sequence",
             "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
             "levels": [],
             "mark": {
               "axis": "x",
               "data": [],
               "type": "area"
             },
+            "onlyShowGroupName": false,
             "openCompare": false,
             "openStack": false,
             "showFieldMapping": false,
             "showLine": false,
+            "showTitle": true,
             "stackType": "time",
             "tableSortMetricName": "last(BytesInPerSec.Count)",
+            "timeInterval": "auto",
+            "titleDesc": "",
             "units": [
               {
-                "key": "Inflow",
-                "name": "Inflow",
+                "key": "{{.Dashboard.inflow}}",
+                "name": "{{.Dashboard.inflow}}",
                 "unit": "",
                 "units": [
                   "traffic",
@@ -2191,18 +2222,20 @@
                 ]
               }
             ],
-            "xAxisShowType": "time"
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
           }
         },
         "group": {
           "name": "Topic"
         },
-        "name": "Network incoming traffic-Topic",
+        "name": "{{.Dashboard.network_incoming_traffic_topic}}",
         "pos": {
           "h": 9,
           "w": 8,
           "x": 0,
-          "y": 31
+          "y": 41.5
         },
         "queries": [
           {
@@ -2211,12 +2244,12 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "Inflow",
+              "alias": "{{.Dashboard.inflow}}",
               "code": "B",
-              "dataSource": "kafka_topic",
+              "dataSource": "kafka_topics",
               "field": "BytesInPerSec.Count",
               "fieldFunc": "avg",
-              "fieldType": "integer",
+              "fieldType": "float",
               "fill": null,
               "filters": [
                 {
@@ -2230,17 +2263,12 @@
               ],
               "funcList": [],
               "groupBy": [
-                "topic"
+                "host"
               ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`kafka_topic`:(AVG(`BytesInPerSec.Count`) AS `Inflow`) { `host` = '#{host}' } BY `topic`\")",
-              "queryFuncs": [
-                {
-                  "args": [],
-                  "name": "non_negative_derivative"
-                }
-              ],
+              "q": "M::`kafka_topics`:(AVG(`BytesInPerSec.Count`) AS `{{.Dashboard.inflow}}`) { `host` = '#{host}' } BY `host`",
+              "queryFuncs": [],
               "type": "simple"
             },
             "type": "sequence",
@@ -2251,27 +2279,58 @@
       },
       {
         "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
           "settings": {
+            "alias": [],
             "chartType": "areaLine",
             "colors": [],
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "monthCompare": "rgba(213,217,226,0.12)",
+              "weekCompare": "rgba(213,217,226,0.25)"
+            },
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "monthCompare": "rgba(11,11,12,0.12)",
+              "weekCompare": "rgba(11,11,12,0.3)"
+            },
+            "compareType": [],
             "currentChartType": "sequence",
             "density": "medium",
+            "fixedTime": "",
+            "isPercent": false,
+            "isTimeInterval": true,
+            "legendPostion": "none",
+            "legendValues": "",
             "levels": [],
             "mark": {
               "axis": "x",
               "data": [],
               "type": "area"
             },
+            "onlyShowGroupName": false,
             "openCompare": false,
             "openStack": false,
             "showFieldMapping": false,
             "showLine": false,
+            "showTitle": true,
             "stackType": "time",
             "tableSortMetricName": "last(BytesInPerSec.Count)",
+            "timeInterval": "auto",
+            "titleDesc": "",
             "units": [
               {
-                "key": "Outflow",
-                "name": "Outflow",
+                "key": "{{.Dashboard.outflow}}",
+                "name": "{{.Dashboard.outflow}}",
                 "unit": "",
                 "units": [
                   "traffic",
@@ -2279,18 +2338,20 @@
                 ]
               }
             ],
-            "xAxisShowType": "time"
+            "xAxisShowType": "time",
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null
           }
         },
         "group": {
           "name": "Topic"
         },
-        "name": "Network outgoing traffic-Topic",
+        "name": "{{.Dashboard.network_outgoing_traffic_topic}}",
         "pos": {
           "h": 9,
           "w": 8,
           "x": 8,
-          "y": 31
+          "y": 41.5
         },
         "queries": [
           {
@@ -2299,12 +2360,12 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "Outflow",
+              "alias": "{{.Dashboard.outflow}}",
               "code": "B",
-              "dataSource": "kafka_topic",
-              "field": "BytesOutPerSec.Count",
+              "dataSource": "kafka_topics",
+              "field": "BytesInPerSec.Count",
               "fieldFunc": "avg",
-              "fieldType": "integer",
+              "fieldType": "float",
               "fill": null,
               "filters": [
                 {
@@ -2318,11 +2379,11 @@
               ],
               "funcList": [],
               "groupBy": [
-                "topic"
+                "host"
               ],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`kafka_topic`:(AVG(`BytesOutPerSec.Count`) AS `Outflow`) { `host` = '#{host}' } BY `topic`\")",
+              "q": "non_negative_derivative(\"M::`kafka_topics`:(AVG(`BytesInPerSec.Count`) AS `{{.Dashboard.outflow}}`) { `host` = '#{host}' } BY `host`\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -2369,14 +2430,14 @@
           }
         },
         "group": {
-          "name": "Overview"
+          "name": "{{.Dashboard.overview}}"
         },
-        "name": "Number of Controller",
+        "name": "{{.Dashboard.controller}}",
         "pos": {
           "h": 8,
           "w": 4,
           "x": 0,
-          "y": 2.5
+          "y": 13
         },
         "queries": [
           {
@@ -2451,14 +2512,14 @@
           }
         },
         "group": {
-          "name": "Overview"
+          "name": "{{.Dashboard.overview}}"
         },
-        "name": "Minimum number of partitions",
+        "name": "{{.Dashboard.min_partitions}}",
         "pos": {
           "h": 8,
           "w": 4,
           "x": 16,
-          "y": 2.5
+          "y": 13
         },
         "queries": [
           {
@@ -2533,14 +2594,14 @@
           }
         },
         "group": {
-          "name": "Overview"
+          "name": "{{.Dashboard.overview}}"
         },
-        "name": "Number of offline directories",
+        "name": "{{.Dashboard.offline_directories}}",
         "pos": {
           "h": 8,
           "w": 4,
           "x": 20,
-          "y": 2.5
+          "y": 13
         },
         "queries": [
           {
@@ -2613,7 +2674,7 @@
             "showLineAxis": false,
             "showTitle": true,
             "stackType": "time",
-            "tableSortMetricName": "Event Queue",
+            "tableSortMetricName": "{{.Dashboard.event_queue}}",
             "timeInterval": "default",
             "titleDesc": "",
             "units": [],
@@ -2621,14 +2682,14 @@
           }
         },
         "group": {
-          "name": "Overview"
+          "name": "{{.Dashboard.overview}}"
         },
-        "name": "Election",
+        "name": "{{.Dashboard.election}}",
         "pos": {
           "h": 9,
           "w": 8,
           "x": 16,
-          "y": 10.5
+          "y": 21
         },
         "queries": [
           {
@@ -2637,7 +2698,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "Number of Leader Elections",
+              "alias": "{{.Dashboard.leader_election}}",
               "code": "A",
               "dataSource": "kafka_controller",
               "field": "LeaderElectionRateAndTimeMs.Count",
@@ -2658,7 +2719,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`kafka_controller`:(AVG(`LeaderElectionRateAndTimeMs.Count`) AS `Number of Leader Elections`) { `host` = '#{host}' }",
+              "q": "M::`kafka_controller`:(AVG(`LeaderElectionRateAndTimeMs.Count`) AS `{{.Dashboard.leader_election}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -2671,7 +2732,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "Number of Unclean Leader Elections",
+              "alias": "{{.Dashboard.unclear_leader_election}}",
               "code": "B",
               "dataSource": "kafka_controller",
               "field": "UncleanLeaderElectionsPerSec.Count",
@@ -2692,7 +2753,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`kafka_controller`:(AVG(`UncleanLeaderElectionsPerSec.Count`) AS `Number of Unclean Leader Elections`) { `host` = '#{host}' }",
+              "q": "M::`kafka_controller`:(AVG(`UncleanLeaderElectionsPerSec.Count`) AS `{{.Dashboard.unclear_leader_election}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -2701,14 +2762,162 @@
           }
         ],
         "type": "sequence"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "addColumns": [
+              {
+                "field": "message",
+                "headerName": "{{.Dashboard.message}}"
+              },
+              {
+                "field": "status",
+                "hide": true
+              },
+              {
+                "field": "__docid",
+                "hide": true
+              }
+            ],
+            "alias": [],
+            "colors": [],
+            "currentChartType": "log",
+            "fixedTime": "",
+            "inColumns": [
+              {
+                "cellRenderer": "StatusCellRender",
+                "field": "time",
+                "filterParams": {},
+                "headerName": "{{.Dashboard.time}}",
+                "showTooltip": false
+              }
+            ],
+            "index": "default",
+            "isTimeInterval": false,
+            "levels": [],
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "",
+            "titleDesc": "",
+            "units": [],
+            "valColorMappings": [],
+            "valMappings": []
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.log}}"
+        },
+        "name": "{{.Dashboard.create_chart}}",
+        "pos": {
+          "h": 17,
+          "w": 24,
+          "x": 0,
+          "y": 88.5
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "noTimeRange": false,
+            "qtype": "dql",
+            "query": {
+              "alias": "{{.Dashboard.message}}",
+              "code": "A",
+              "dataSource": "kafka",
+              "disableMultipleField": false,
+              "field": null,
+              "fieldFunc": "count",
+              "fieldType": "text",
+              "fields": [
+                {
+                  "alias": "{{.Dashboard.message}}",
+                  "field": "message"
+                },
+                {
+                  "field": "status",
+                  "hide": true
+                },
+                {
+                  "field": "__docid",
+                  "hide": true
+                }
+              ],
+              "fill": "",
+              "filters": [
+                {
+                  "id": "204bce90-1639-11ee-bc97-1578a8bd4960",
+                  "logic": "and",
+                  "name": "host",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{host}"
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "highlight": true,
+              "indexFilter": "default",
+              "namespace": "logging",
+              "q": "L::`kafka`:(`message`, `status`, `__docid`) { `index` = 'default' and  `host` = '#{host}'  }",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "log",
+            "unit": ""
+          }
+        ],
+        "type": "log"
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "colors": [],
+            "fixedTime": "",
+            "isTimeInterval": false,
+            "levels": [],
+            "showFieldMapping": false,
+            "showTitle": true,
+            "timeInterval": "default",
+            "titleDesc": "",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "{{.Dashboard.introduction}}"
+        },
+        "name": "{{.Dashboard.description}}",
+        "pos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 2.5
+        },
+        "queries": [
+          {
+            "name": "",
+            "query": {
+              "content": "{{.Dashboard.description_content}}"
+            }
+          }
+        ],
+        "type": "text"
       }
     ],
     "groups": [
-      "Overview",
+      "{{.Dashboard.introduction}}",
+      "{{.Dashboard.overview}}",
       "Topic",
-      "Replica Management",
-      "Performance monitoring",
-      "Purgatory"
+      "{{.Dashboard.replica_management}}",
+      "{{.Dashboard.performance_monitoring}}",
+      "Purgatory",
+      "{{.Dashboard.log}}"
     ],
     "type": "template",
     "vars": [
@@ -2727,7 +2936,8 @@
           "value": "show_tag_value(from=['kafka_controller'], keyin=['host'])"
         },
         "hide": 0,
-        "name": "Host Name",
+        "isHiddenAsterisk": 0,
+        "name": "{{.Dashboard.host_name}}",
         "seq": 0,
         "type": "QUERY",
         "valueSort": ""
@@ -2738,5 +2948,5 @@
   "tagInfo": [],
   "tags": [],
   "thumbnail": "",
-  "title": "Kafka Monitor View"
+  "title": "{{.Dashboard.title}}"
 }
