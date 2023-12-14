@@ -1,6 +1,37 @@
 # Changelog
 ---
 
+## 1.21.0 (2023/12/14)
+
+This release is an iteration release, with the following updates:
+
+### New Features {#cl-1.21.0-new}
+
+- Added [ECS Fargate Collection Mode](../integrations/ecs-fargate.md) (#2018)
+- Added tag whitelist for [Prometheus Remote](../integrations/prom_remote_write.md) collector (#2031)
+
+### Bug Fixes {#cl-1.21.0-fix}
+
+- Fixed version detection issue of [PostgreSQL](../integrations/postgresql.md) collector (#2040)
+- Fixed account permission setting issue of [ElasticSearch](../integrations/elasticsearch.md) collector (#2036)
+- Fixed directory crash issue of [Host Dir](../integrations/hostdir.md) collector (#2037)
+
+### Improvements {#cl-1.21.0-opt}
+
+- DDTrace collector [removed duplicate tags in `message.Mate`](../integrations/ddtrace.md#tags) (#2010)
+- Optimized path search strategy for logs inside containers (#2027)
+- Added `datakit_version` field and set collection time to the start time of the task for [dial testing](../integrations/dialtesting.md) collector (#2029)
+- Removed `datakit export` command to decrease Datakit binary package size (#2024)
+- Added [time series count](why-no-data.md#check-input-conf) for debugging collector configuration (#2016)
+- [Profile collection](../integrations/profile.md) now uses disk caching to implement asynchronous reporting (#2041)
+- Updated a batch of built-in dashboard and monitors for collectors
+
+### Breaking Changes {#cl-1.21.0-brk}
+
+- DDTrace collector no longer extracts all fields by default, which may result in missing data for some page's custom fields. Specific fields can be extracted by writing a Pipeline or using the new JSON lookup syntax (`message@json.meta.xxx`).
+
+---
+
 ## 1.20.1(2023/12/07) {#cl-1.20.1}
 
 This release is a Hotfix release, which fixes the following issues:
