@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/GuanceCloud/cliutils/logger"
 )
 
 // StatInfo represents each group statistic info.
@@ -25,6 +27,8 @@ type StatInfo struct {
 var (
 	stat = make(map[string]*StatInfo)
 	mu   sync.Mutex
+
+	log = logger.DefaultSLogger("goroutine")
 )
 
 // Option provides the setup of a group.
@@ -35,8 +39,15 @@ type Option struct {
 	PanicTimeout time.Duration
 }
 
+var defaultPanicCallback = func(buf []byte) bool {
+	log.Errorf("recover panic: %s", string(buf))
+	return true
+}
+
 // NewGroup create a custom group.
 func NewGroup(option Option) *Group {
+	log = logger.SLogger("goroutine")
+
 	name := "default"
 	if len(option.Name) > 0 {
 		name = option.Name
@@ -46,6 +57,10 @@ func NewGroup(option Option) *Group {
 		panicCb:      option.PanicCb,
 		panicTimes:   option.PanicTimes,
 		panicTimeout: option.PanicTimeout,
+	}
+
+	if g.panicCb == nil {
+		g.panicCb = defaultPanicCallback
 	}
 
 	goroutineGroups.Inc()

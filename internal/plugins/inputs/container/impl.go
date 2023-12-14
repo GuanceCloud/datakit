@@ -59,7 +59,7 @@ func (ipt *Input) Run() {
 	l.Info("container input started")
 	ipt.setup()
 
-	if datakit.Docker {
+	if datakit.Docker && config.IsKubernetes() {
 		ipt.startDiscovery()
 	}
 
@@ -186,7 +186,7 @@ func (ipt *Input) newCollector() []Collector {
 	collectors := []Collector{}
 	collectors = append(collectors, newCollectorsFromContainerEndpoints(ipt)...)
 
-	if datakit.Docker {
+	if datakit.Docker && config.IsKubernetes() {
 		k8sCollectors, err := newCollectorsFromKubernetes(ipt)
 		if err != nil {
 			l.Errorf("init the k8s fail, err: %s", err)
@@ -200,6 +200,35 @@ func (ipt *Input) newCollector() []Collector {
 
 func newCollectorsFromContainerEndpoints(ipt *Input) []Collector {
 	var collectors []Collector
+
+	if config.IsECSFargate() {
+		var baseURL string
+
+		v4 := config.ECSFargateBaseURIV4()
+		if v4 != "" {
+			baseURL = v4
+			l.Infof("connect ecsfargate v4 with url %s", v4)
+		} else {
+			v3 := config.ECSFargateBaseURIV3()
+			if v3 != "" {
+				baseURL = v3
+				l.Infof("connect ecsfargate v3 with url %s", v4)
+			}
+		}
+
+		if baseURL != "" {
+			collector, err := newECSFargate(ipt, baseURL)
+			if err != nil {
+				l.Errorf("unable to connect ecsfargate url %s, err: %s", baseURL, err)
+			}
+			collectors = append(collectors, collector)
+		} else {
+			l.Errorf("unexpected ecsfargate url, version only be v3 or v4")
+		}
+
+		return collectors
+	}
+
 	for _, endpoint := range ipt.Endpoints {
 		if err := checkEndpoint(endpoint); err != nil {
 			l.Warnf("%s, skip", err)
@@ -209,7 +238,7 @@ func newCollectorsFromContainerEndpoints(ipt *Input) []Collector {
 		var client k8sclient.Client
 		var err error
 
-		if datakit.Docker {
+		if datakit.Docker && config.IsKubernetes() {
 			client, err = newKubernetesClient(ipt)
 			if err != nil {
 				l.Warnf("unable to connect k8s client, err: %s, skip", err)
@@ -236,6 +265,9 @@ func newCollectorsFromKubernetes(ipt *Input) (Collector, error) {
 	}
 
 	tags := inputs.MergeTags(ipt.Tagger.ElectionTags(), ipt.Tags, "")
+	if name := getClusterNameK8s(); name != "" {
+		tags["cluster_name_k8s"] = name
+	}
 
 	cfg := kubernetes.Config{
 		NodeName:                    config.Cfg.Hostname,
@@ -317,6 +349,10 @@ func unique(slice []string) []string {
 		}
 	}
 	return list
+}
+
+func getClusterNameK8s() string {
+	return os.Getenv("ENV_CLUSTER_NAME_K8S")
 }
 
 func checkEndpoint(endpoint string) error {

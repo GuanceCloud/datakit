@@ -76,7 +76,12 @@ func (lc *logInstance) parseLogConfigs() error {
 				cfg.MultilinePatterns = []string{cfg.Multiline}
 			}
 
+			if cfg.Path == "" {
+				continue
+			}
+
 			path := filepath.Clean(cfg.Path)
+			foundHostPath := false
 
 			for vol, hostdir := range lc.volMounts {
 				if strings.HasPrefix(path, vol) {
@@ -89,7 +94,13 @@ func (lc *logInstance) parseLogConfigs() error {
 					}
 					cfg.Tags["inside_filepath"] = path
 					cfg.Tags["host_filepath"] = cfg.HostFilePath
+
+					foundHostPath = true
 				}
+			}
+
+			if !foundHostPath {
+				return fmt.Errorf("unexpected log path %s, no matched mounts found", cfg.Path)
 			}
 		}
 	}

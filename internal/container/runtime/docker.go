@@ -154,7 +154,8 @@ func (d *dockerClient) ContainerTop(id string) (*ContainerTop, error) {
 		return nil, fmt.Errorf("unexpected pid %d for container %s", status.Pid, status.Name)
 	}
 
-	top := ContainerTop{ID: id, Pid: status.Pid}
+	pid := status.Pid
+	top := ContainerTop{ID: id, Pid: pid}
 
 	stats, err := d.ContainerStats(id)
 	if err != nil {
@@ -163,22 +164,40 @@ func (d *dockerClient) ContainerTop(id string) (*ContainerTop, error) {
 
 	// cpu usage
 	top.CPUUsage = calculateCPUPercentUnix(stats)
+
+	// cpu cores
+	top.CPUCores = int(stats.CPUStats.OnlineCPUs)
+
 	// memory usage and menory limit
 	top.MemoryWorkingSet = calculateMemUsageUnixNoCache(stats.MemoryStats)
 	top.MemoryLimit = int64(stats.MemoryStats.Limit)
+
 	// block io
 	top.BlockRead, top.BlockWrite = calculateBlockIO(stats.BlkioStats)
-	// cpu cores
-	if err := top.readCPUCores(d.procMountPoint); err != nil {
-		return nil, err
-	}
-	// memory capacity
-	if err := top.readMemoryCapacity(d.procMountPoint); err != nil {
-		return nil, err
-	}
+
 	// network
-	if err := top.readNetworkStat(d.procMountPoint); err != nil {
-		return nil, err
+	var rx, tx int64
+
+	if len(stats.Networks) != 0 {
+		var rx, tx uint64
+		for name, network := range stats.Networks {
+			if name == "lo" {
+				continue
+			}
+
+			rx += network.RxBytes
+			tx += network.TxBytes
+		}
+	} else {
+		rx, tx, _ = getNetworkStat(d.procMountPoint, pid)
+	}
+
+	top.NetworkRcvd = rx
+	top.NetworkSent = tx
+
+	// memory capacity
+	if hostMemory, err := getHostMemory(d.procMountPoint); err == nil {
+		top.MemoryCapacity = hostMemory
 	}
 
 	return &top, nil

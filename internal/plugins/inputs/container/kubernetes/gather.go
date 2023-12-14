@@ -66,7 +66,7 @@ func (k *Kube) gather(category string, feed func([]*point.Point) error, paused, 
 	}
 
 	if err = g.Wait(); err != nil {
-		klog.Error("exception error: %s", err)
+		klog.Errorf("exception error: %s", err)
 		return
 	}
 

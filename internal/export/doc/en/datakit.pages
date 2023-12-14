@@ -10,6 +10,7 @@ nav:
     - 'K8s Installation': datakit-daemonset-deploy.md
     - 'Offline Installation': datakit-offline-install.md
     - 'Batch Installation': datakit-batch-deploy.md
+    - 'ECS Fargate Integration': ecs-fargate.md
 
   - 'Using DataKit': 
     - Service Management: datakit-service-how-to.md

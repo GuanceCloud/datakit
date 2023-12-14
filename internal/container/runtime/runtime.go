@@ -67,32 +67,30 @@ type ContainerTop struct {
 	BlockWrite  int64
 }
 
-func (t *ContainerTop) readCPUCores(procMountPoint string) error {
+func getCPUCores(procMountPoint string) (int, error) {
 	cpuinfo, err := newCPUInfo(procMountPoint)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	t.CPUCores = cpuinfo.cores()
-	return nil
+	return cpuinfo.cores(), nil
 }
 
 const skipLoopback = true
 
-func (t *ContainerTop) readNetworkStat(procMountPoint string) error {
-	networkStat, err := newNetworkStat(procMountPoint, t.Pid)
+func getNetworkStat(procMountPoint string, pid int) (rx int64, tx int64, err error) {
+	networkStat, err := newNetworkStat(procMountPoint, pid)
 	if err != nil {
-		return err
+		return 0, 0, err
 	}
-	t.NetworkRcvd = networkStat.rxBytes(skipLoopback)
-	t.NetworkSent = networkStat.txBytes(skipLoopback)
-	return nil
+	rx = networkStat.rxBytes(skipLoopback)
+	tx = networkStat.txBytes(skipLoopback)
+	return
 }
 
-func (t *ContainerTop) readMemoryCapacity(procMountPoint string) error {
+func getHostMemory(procMountPoint string) (int64, error) {
 	meminfo, err := newMemInfo(procMountPoint)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	t.MemoryCapacity = meminfo.total()
-	return nil
+	return meminfo.total(), nil
 }
