@@ -133,7 +133,7 @@
           "host"
         ],
         "interval": 300,
-        "message": ">等级：{{status}}  \n>主机：{{host}}  \n>内容：Nginx 5XX 错误数为 {{ Result |  to_fixed(2) }}%  \n>建议：检查Nginx日志查看详细信息",
+        "message": "><<.Monitor.level>>：{{status}}  \n><<.Monitor.hostname>>：{{host}}  \n><<.Monitor.content>>：<<.Monitor.content_info>> {{ Result |  to_fixed(2) }}%  \n><<.Monitor.suggestion>>：<<.Monitor.suggestion_info>>",
         "noDataMessage": "",
         "noDataTitle": "",
         "recoverNeedPeriodCount": 2,
@@ -143,10 +143,10 @@
             "dql": "L::`nginx`:(COUNT(`*`)) { `index` = 'default' and  `status` IN ['error']  } BY `service`, `host`"
           }
         ],
-        "title": "Nginx 5XX 错误数过多",
+        "title": "<<.Monitor.title>>",
         "type": "loggingCheck"
       },
-      "monitorName": "默认"
+      "monitorName": "<<.Monitor.monitorName>>"
     }
   ]
 }
