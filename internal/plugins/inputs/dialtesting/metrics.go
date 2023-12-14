@@ -12,13 +12,14 @@ import (
 )
 
 var (
-	taskGauge                  *prometheus.GaugeVec
-	taskDatawaySendFailedGauge *prometheus.GaugeVec
-	taskPullCostSummary        *prometheus.SummaryVec
-	taskSynchronizedCounter    *prometheus.CounterVec
-	taskCheckCostSummary       *prometheus.SummaryVec
-	taskRunCostSummary         *prometheus.SummaryVec
-	taskInvalidCounter         *prometheus.CounterVec
+	taskGauge                   *prometheus.GaugeVec
+	taskDatawaySendFailedGauge  *prometheus.GaugeVec
+	taskPullCostSummary         *prometheus.SummaryVec
+	taskSynchronizedCounter     *prometheus.CounterVec
+	taskCheckCostSummary        *prometheus.SummaryVec
+	taskRunCostSummary          *prometheus.SummaryVec
+	taskInvalidCounter          *prometheus.CounterVec
+	taskExecTimeIntervalSummary *prometheus.SummaryVec
 
 	workerJobChanGauge     *prometheus.GaugeVec
 	workerJobGauge         prometheus.Gauge
@@ -97,6 +98,15 @@ func metricsSetup() {
 		},
 		[]string{"region", "protocol"},
 	)
+	taskExecTimeIntervalSummary = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Namespace: "datakit",
+			Subsystem: "dialtesting",
+			Name:      "task_exec_time_interval_seconds",
+			Help:      "Task execution time interval",
+		},
+		[]string{"region", "protocol"},
+	)
 
 	workerJobChanGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -158,6 +168,7 @@ func init() {
 		taskPullCostSummary,
 		taskCheckCostSummary,
 		taskRunCostSummary,
+		taskExecTimeIntervalSummary,
 		taskInvalidCounter,
 		workerCachePointsGauge,
 		workerJobChanGauge,

@@ -25,9 +25,11 @@ type dialer struct {
 
 	ticker *time.Ticker
 
-	initTime time.Time
-	testCnt  int64
-	class    string
+	initTime             time.Time
+	dialingTime          time.Time // time to run dialtesting test
+	taskExecTimeInterval time.Duration
+	testCnt              int64
+	class                string
 
 	tags     map[string]string
 	updateCh chan dt.Task
@@ -60,7 +62,7 @@ func (d *dialer) stop() {
 	}
 }
 
-func newDialer(t dt.Task, ts map[string]string) *dialer {
+func newDialer(t dt.Task, ipt *Input) *dialer {
 	var info *inputs.MeasurementInfo
 	switch t.Class() {
 	case dt.ClassHTTP:
@@ -74,12 +76,13 @@ func newDialer(t dt.Task, ts map[string]string) *dialer {
 	}
 
 	return &dialer{
-		task:            t,
-		updateCh:        make(chan dt.Task),
-		initTime:        time.Now(),
-		tags:            ts,
-		measurementInfo: info,
-		class:           t.Class(),
+		task:                 t,
+		updateCh:             make(chan dt.Task),
+		initTime:             time.Now(),
+		tags:                 ipt.Tags,
+		measurementInfo:      info,
+		class:                t.Class(),
+		taskExecTimeInterval: ipt.taskExecTimeInterval,
 	}
 }
 
@@ -96,6 +99,11 @@ func (d *dialer) run() error {
 	if err := d.task.Init(); err != nil {
 		l.Errorf(`task init error: %s`, err.Error())
 		return err
+	}
+
+	taskInterval, err := time.ParseDuration(d.task.GetFrequency())
+	if err != nil {
+		return fmt.Errorf("invalid task frequency(%s): %w", d.task.GetFrequency(), err)
 	}
 
 	d.ticker = d.task.Ticker()
@@ -155,9 +163,16 @@ func (d *dialer) run() error {
 		case dt.ClassHeadless:
 			return fmt.Errorf("headless task deprecated")
 		default:
-			startTime := time.Now()
+			now := time.Now()
+			if !d.dialingTime.IsZero() && d.taskExecTimeInterval > 0 {
+				interval := now.Sub(d.dialingTime) - taskInterval
+				if interval > d.taskExecTimeInterval {
+					taskExecTimeIntervalSummary.WithLabelValues(d.regionName, d.class).Observe(float64(interval) / float64(time.Second))
+				}
+			}
+			d.dialingTime = now
 			_ = d.task.Run() //nolint:errcheck
-			taskRunCostSummary.WithLabelValues(d.regionName, d.class).Observe(float64(time.Since(startTime)) / float64(time.Second))
+			taskRunCostSummary.WithLabelValues(d.regionName, d.class).Observe(float64(time.Since(d.dialingTime)) / float64(time.Second))
 		}
 
 		// dialtesting start
