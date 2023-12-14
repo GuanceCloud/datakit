@@ -48,9 +48,10 @@ ci_testing_only:
   only:
     - /^ut-.*$/
   script:
+    - export UT_EXCLUDE_INTEGRATION_TESTING="off" # enable integration test
+    - export UT_EXCLUDE_HUGE_INTEGRATION_TESTING="off" # enable huge integration testing.
     - make clean
     - nvm use v16.14.0
-    - make lint AUTO_FIX=off
     - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY"
     - make # try build basic binaries
   tags:
