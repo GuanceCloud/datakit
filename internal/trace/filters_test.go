@@ -54,51 +54,6 @@ func TestCloseResource(t *testing.T) {
 	wg.Wait()
 }
 
-func TestRespectUserRule(t *testing.T) {
-	testcases := make(DatakitTraces, 100)
-	for i := 0; i < 100; i++ {
-		trace := randDatakitTrace(t, 10, randService(_services...), randResource(_resources...), randPriority(_all_priorities...))
-		parentialize(trace)
-		testcases[i] = trace
-	}
-
-	var (
-		keep, auto DatakitTraces
-		log        = logger.DefaultSLogger("filters-test")
-	)
-	for i := range testcases {
-		if trace, ok := RespectUserRule(log, testcases[i]); ok {
-			if trace != nil {
-				keep = append(keep, trace)
-			}
-		} else {
-			auto = append(auto, trace)
-		}
-	}
-	t.Logf("keep len=%d", len(keep))
-	for i := range keep {
-		for j := range keep[i] {
-			priority := keep[i][j].GetFiledToInt64(FieldPriority)
-			if priority != PriorityUserKeep && priority != PriorityRuleSamplerKeep {
-				t.Errorf("unexpected priority %d found", priority)
-				t.FailNow()
-			}
-			break //nolint
-		}
-	}
-	t.Logf("auto len=%d", len(auto))
-	for i := range auto {
-		for j := range auto[i] {
-			priority := auto[i][j].GetFiledToInt64(FieldPriority)
-			if priority != PriorityAutoKeep && priority != PriorityAutoReject {
-				t.Errorf("unexpected priority %d found", priority)
-				t.FailNow()
-			}
-			break //nolint
-		}
-	}
-}
-
 func TestOmitStatusCode(t *testing.T) {
 	testcases := make(DatakitTraces, 100)
 	for i := 0; i < 100; i++ {
@@ -208,7 +163,7 @@ func TestKeepRareResource(t *testing.T) {
 func TestSampler(t *testing.T) {
 	var origin DatakitTraces
 	for i := 0; i < 1000; i++ {
-		dktrace := randDatakitTrace(t, 1, randService(_services...), randResource(_resources...), randPriority(PriorityAutoKeep))
+		dktrace := randDatakitTrace(t, 1, randService(_services...), randResource(_resources...))
 		parentialize(dktrace)
 		origin = append(origin, dktrace)
 	}

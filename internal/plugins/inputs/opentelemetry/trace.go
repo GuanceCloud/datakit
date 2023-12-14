@@ -62,11 +62,11 @@ func parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
 				}
 				if kv, i := attrs.find(otelHTTPMethodKey); i != -1 {
 					spanKV = spanKV.AddTag(itrace.TagHttpMethod, kv.Value.GetStringValue())
-					attrs.remove(otelHTTPMethodKey)
+					attrs = attrs.remove(otelHTTPMethodKey)
 				}
 				if kv, i := attrs.find(otelHTTPStatusCodeKey); i != -1 {
-					spanKV = spanKV.AddTag(itrace.TagHttpStatusCode, kv.Value.GetStringValue())
-					attrs.remove(otelHTTPStatusCodeKey)
+					spanKV = spanKV.Add(itrace.TagHttpStatusCode, kv.Value.GetIntValue(), false, false)
+					attrs = attrs.remove(otelHTTPStatusCodeKey)
 				}
 
 				for i := range span.Events {
@@ -105,7 +105,6 @@ func parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
 			}
 		}
 		if len(dktrace) != 0 {
-			dktrace[0].Add(itrace.FieldPriority, itrace.PriorityAutoKeep)
 			dktraces = append(dktraces, dktrace)
 		}
 	}

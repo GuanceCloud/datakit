@@ -31,8 +31,6 @@ const (
 const (
 	// KeySamplingPriority is the key of the sampling priority value in the metrics map of the root span.
 	keyPriority = "_sampling_priority_v1"
-	// keySamplingRateGlobal is a metric key holding the global sampling rate.
-	keySamplingRate = "_sample_rate"
 )
 
 var jsonIterator = jsoniter.ConfigFastest
@@ -226,6 +224,10 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			continue
 		}
 
+		if priority, ok := span.Metrics[keyPriority]; ok && (priority == -1 || priority == -3) {
+			log.Debugf("drop this traceID=%s service=%s", span.TraceID, span.Service)
+			continue
+		}
 		var spanKV point.KVs
 		spanKV = spanKV.Add(itrace.FieldTraceID, strconv.FormatUint(span.TraceID, traceBase), false, false).
 			Add(itrace.FieldParentID, strconv.FormatUint(span.ParentID, spanBase), false, false).
@@ -241,26 +243,25 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			Add(itrace.FieldDuration, span.Duration/int64(time.Microsecond), false, false)
 
 		if v, ok := span.Meta["runtime-id"]; ok {
-			spanKV = spanKV.AddTag("runtime_id", v)
+			spanKV = spanKV.AddTag("runtime_id", v).AddTag("runtime-id", v)
 		}
 		if v, ok := span.Meta["trace_128_id"]; ok {
 			spanKV = spanKV.Add(itrace.FieldTraceID, v, false, true)
 		}
 
-		if mTags, err := itrace.MergeInToCustomerTags(tags, span.Meta, ignoreTags); err == nil {
-			for k, v := range mTags {
-				switch k {
-				case "system_pid":
-					spanKV = spanKV.Add("pid", v, false, true)
-				case "error_msg":
-					spanKV = spanKV.Add("error_message", v, false, true)
-				default:
-					if len(v) > 1024 {
-						spanKV = spanKV.Add(k, v, false, false)
-					} else {
-						spanKV = spanKV.AddTag(k, v)
-					}
+		for k, v := range tags {
+			spanKV = spanKV.AddTag(k, v)
+		}
+
+		for k, v := range span.Meta {
+			if replace, ok := ddTags[k]; ok {
+				if len(v) > 1024 {
+					spanKV = spanKV.Add(replace, v, false, false)
+				} else {
+					spanKV = spanKV.AddTag(replace, v)
 				}
+				// 从 message 中删除 key.
+				delete(span.Meta, k)
 			}
 		}
 
@@ -270,12 +271,6 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			spanKV = spanKV.AddTag(itrace.TagSpanStatus, itrace.StatusOk)
 		}
 
-		if priority, ok := span.Metrics[keyPriority]; ok {
-			spanKV = spanKV.Add(itrace.FieldPriority, int(priority), false, false)
-		}
-		if rate, ok := span.Metrics[keySamplingRate]; ok {
-			spanKV = spanKV.Add(itrace.FieldSampleRate, rate, false, false)
-		}
 		if !delMessage {
 			if buf, err := jsonIterator.Marshal(span); err != nil {
 				log.Warn(err.Error())

@@ -55,12 +55,10 @@ func (m *TraceMeasurement) Info() *inputs.MeasurementInfo {
 			FieldMessage:  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Origin content of span"},
 			FieldParentID: &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Parent span ID of current span"},
 			TagPid:        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Application process id. Available in DDTrace, OpenTelemetry. Optional."},
-			FieldPriority: &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "Optional."},
 			FieldResource: &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Resource name produce current span"},
-			// FIELD_SAMPLE_RATE_GLOBAL: &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "global sample ratio"},
-			FieldSpanid:  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Span id"},
-			FieldStart:   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.TimestampUS, Desc: "start time of span."},
-			FieldTraceID: &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Trace id"},
+			FieldSpanid:   &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Span id"},
+			FieldStart:    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.TimestampUS, Desc: "start time of span."},
+			FieldTraceID:  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Trace id"},
 		},
 	}
 }

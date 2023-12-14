@@ -253,12 +253,6 @@ func randSpanStatus(status ...string) randSpanOption {
 	}
 }
 
-func randPriority(priorities ...int) randSpanOption {
-	return func(dkspan *DkSpan) {
-		dkspan.MustAdd(FieldPriority, testutils.RandWithinInts(priorities))
-	}
-}
-
 func randTags() randSpanOption {
 	return func(dkspan *DkSpan) {
 		if dkspan != nil {
