@@ -13,6 +13,7 @@ func (*Input) Dashboard(lang inputs.I18n) map[string]string {
 		return map[string]string{
 			"title":                          "SQL Server 监控视图",
 			"overview":                       "基础监控",
+			"host_name":                      "主机名",
 			"cpu_count":                      "CPU 逻辑核心",
 			"memory":                         "内存",
 			"cpu_usage":                      "CPU 使用率",
@@ -60,6 +61,7 @@ func (*Input) Dashboard(lang inputs.I18n) map[string]string {
 			"title":                          "SQL Server Monitor View",
 			"overview":                       "overview",
 			"cpu_count":                      "CPU logical core",
+			"host_name":                      "host name",
 			"memory":                         "memory",
 			"cpu_usage":                      "CPU usage",
 			"mem_usage":                      "memory usage",
