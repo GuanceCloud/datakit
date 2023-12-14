@@ -99,9 +99,10 @@ func (*endpointMetric) Info() *inputs.MeasurementInfo {
 		Desc: "The metric of the Kubernetes Endpoints.",
 		Type: "metric",
 		Tags: map[string]interface{}{
-			"uid":       inputs.NewTagInfo("The UID of Endpoint."),
-			"endpoint":  inputs.NewTagInfo("Name must be unique within a namespace."),
-			"namespace": inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"uid":              inputs.NewTagInfo("The UID of Endpoint."),
+			"endpoint":         inputs.NewTagInfo("Name must be unique within a namespace."),
+			"namespace":        inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"cluster_name_k8s": inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
 		},
 		Fields: map[string]interface{}{
 			"address_available": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Number of addresses available in endpoint."},

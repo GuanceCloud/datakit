@@ -18,6 +18,7 @@ ConfigMag
 Corefile # CoreDNS
 Couchbase
 DBCP
+ddtrace
 DDTrace
 DKProto
 DKSpan
@@ -26,6 +27,7 @@ DataDog
 Datakit
 Dataway
 DialTesting
+diskcache
 Distro
 Dubbo
 cgroup
@@ -37,6 +39,7 @@ Dubbox
 eBPF
 ebpftrace
 ElasticSearch
+fargate
 Fastjson
 Filebeat
 filesystems
@@ -73,6 +76,7 @@ Log4j
 Logback
 logfwd
 logfwdserver
+logstreaming
 Loki
 MkDocs
 MyISAM

@@ -7,6 +7,7 @@ package runtime
 
 import (
 	"fmt"
+	"path/filepath"
 	"time"
 
 	"github.com/GuanceCloud/kubernetes/pkg/kubelet/cri/remote"
@@ -72,7 +73,6 @@ func (ct *criClient) ListContainers() ([]*Container, error) {
 			RuntimeVersion: ct.runtimeVersion,
 			Image:          c.GetImage().GetImage(),
 			State:          "Running",
-			Mounts:         make(map[string]string),
 		}
 
 		status, err := ct.ContainerStatus(c.GetId())
@@ -82,6 +82,7 @@ func (ct *criClient) ListContainers() ([]*Container, error) {
 			container.Pid = status.Pid
 			container.LogPath = status.LogPath
 			container.Envs = status.Envs
+			container.Mounts = status.Mounts
 			if status.Image != "" {
 				container.Image = status.Image
 			}
@@ -104,14 +105,21 @@ func (ct *criClient) ContainerStatus(id string) (*ContainerStatus, error) {
 		return nil, fmt.Errorf("parse cri info fail, err: %w", err)
 	}
 
-	return &ContainerStatus{
+	status := &ContainerStatus{
 		ID:      id,
 		Name:    resp.GetStatus().GetMetadata().GetName(),
 		Pid:     info.getPid(),
 		LogPath: resp.GetStatus().GetLogPath(),
 		Image:   resp.GetStatus().GetImage().GetImage(),
 		Envs:    info.getConfigEnvs(),
-	}, nil
+		Mounts:  make(map[string]string),
+	}
+
+	for _, mount := range resp.GetStatus().GetMounts() {
+		status.Mounts[filepath.Clean(mount.GetContainerPath())] = mount.GetHostPath()
+	}
+
+	return status, nil
 }
 
 // ContainerTop return container stats info.
@@ -127,7 +135,8 @@ func (ct *criClient) ContainerTop(id string) (*ContainerTop, error) {
 		return nil, fmt.Errorf("unexpected pid %d for container %s", status.Pid, status.Name)
 	}
 
-	top := ContainerTop{ID: id, Pid: status.Pid}
+	pid := status.Pid
+	top := ContainerTop{ID: id, Pid: pid}
 
 	stats, err := ct.srv.ContainerStats(id)
 	if err != nil {
@@ -157,17 +166,21 @@ func (ct *criClient) ContainerTop(id string) (*ContainerTop, error) {
 	if available := stats.GetMemory().GetAvailableBytes().GetValue(); available != 0 {
 		top.MemoryLimit = top.MemoryWorkingSet + int64(available)
 	}
+
 	// cpu cores
-	if err := top.readCPUCores(ct.procMountPoint); err != nil {
-		return nil, err
+	if cores, err := getCPUCores(ct.procMountPoint); err == nil {
+		top.CPUCores = cores
 	}
+
 	// memory capacity
-	if err := top.readMemoryCapacity(ct.procMountPoint); err != nil {
-		return nil, err
+	if hostMemory, err := getHostMemory(ct.procMountPoint); err == nil {
+		top.MemoryCapacity = hostMemory
 	}
+
 	// network
-	if err := top.readNetworkStat(ct.procMountPoint); err != nil {
-		return nil, err
+	if rx, tx, err := getNetworkStat(ct.procMountPoint, pid); err == nil {
+		top.NetworkRcvd = rx
+		top.NetworkSent = tx
 	}
 
 	return &top, nil

@@ -8,16 +8,12 @@ package container
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/runtime"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
-	apicorev1 "k8s.io/api/core/v1"
 )
-
-const emptyDirMountToHost = "/var/lib/kubelet/pods/%s/volumes/kubernetes.io~empty-dir/%s/"
 
 func (c *container) cleanMissingContainerLog(newIDs []string) {
 	missingIDs := c.logTable.findDifferences(newIDs)
@@ -153,17 +149,6 @@ func (c *container) queryContainerLogInfo(info *runtime.Container) *logInstance 
 			if img := podInfo.containerImage(ins.containerName); img != "" {
 				ins.image = img
 			}
-
-			for _, volume := range podInfo.pod.Spec.Volumes {
-				if volume.EmptyDir == nil {
-					continue
-				}
-
-				mountPath := findContainerVolumeMount(podInfo.pod.Spec.Containers, volume.Name)
-				if mountPath != "" {
-					ins.volMounts[filepath.Clean(mountPath)] = fmt.Sprintf(emptyDirMountToHost, string(podInfo.pod.UID), volume.Name)
-				}
-			}
 		}
 	}
 
@@ -178,15 +163,4 @@ func (c *container) queryContainerLogInfo(info *runtime.Container) *logInstance 
 
 	l.Debugf("container %s use config: %v", ins.containerName, ins)
 	return ins
-}
-
-func findContainerVolumeMount(containers []apicorev1.Container, mountName string) string {
-	for _, container := range containers {
-		for _, mount := range container.VolumeMounts {
-			if mount.Name == mountName {
-				return mount.MountPath
-			}
-		}
-	}
-	return ""
 }

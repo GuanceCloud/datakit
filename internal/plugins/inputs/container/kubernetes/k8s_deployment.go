@@ -169,9 +169,10 @@ func (*deploymentMetric) Info() *inputs.MeasurementInfo {
 		Desc: "The metric of the Kubernetes Deployment.",
 		Type: "metric",
 		Tags: map[string]interface{}{
-			"uid":        inputs.NewTagInfo("The UID of Deployment."),
-			"deployment": inputs.NewTagInfo("Name must be unique within a namespace."),
-			"namespace":  inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"uid":              inputs.NewTagInfo("The UID of Deployment."),
+			"deployment":       inputs.NewTagInfo("Name must be unique within a namespace."),
+			"namespace":        inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"cluster_name_k8s": inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
 		},
 		Fields: map[string]interface{}{
 			"replicas":                      &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Total number of non-terminated pods targeted by this deployment (their labels match the selector)."},
@@ -195,10 +196,11 @@ func (*deploymentObject) Info() *inputs.MeasurementInfo {
 		Desc: "The object of the Kubernetes Deployment.",
 		Type: "object",
 		Tags: map[string]interface{}{
-			"name":            inputs.NewTagInfo("The UID of Deployment."),
-			"uid":             inputs.NewTagInfo("The UID of Deployment."),
-			"deployment_name": inputs.NewTagInfo("Name must be unique within a namespace."),
-			"namespace":       inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"name":             inputs.NewTagInfo("The UID of Deployment."),
+			"uid":              inputs.NewTagInfo("The UID of Deployment."),
+			"deployment_name":  inputs.NewTagInfo("Name must be unique within a namespace."),
+			"namespace":        inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"cluster_name_k8s": inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
 		},
 		Fields: map[string]interface{}{
 			"age":                           &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},

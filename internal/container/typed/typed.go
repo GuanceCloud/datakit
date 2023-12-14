@@ -32,6 +32,12 @@ func (p *PointKV) Fields() map[string]interface{} { return p.fields }
 
 func (p *PointKV) SetTag(key, value string) { p.tags[key] = value }
 
+func (p *PointKV) SetTagIfNotEmpty(key, value string) {
+	if value != "" {
+		p.SetTag(key, value)
+	}
+}
+
 func (p *PointKV) GetTag(key string) string { return p.tags[key] }
 
 func (p *PointKV) SetTags(m map[string]string) {

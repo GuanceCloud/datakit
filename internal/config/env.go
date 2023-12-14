@@ -164,11 +164,6 @@ func (c *Config) loadElectionEnvs() {
 		c.Election.Tags["election_namespace"] = c.Election.Namespace
 	}
 
-	if v := datakit.GetEnv("ENV_CLUSTER_NAME_K8S"); v != "" {
-		c.Election.Tags["cluster_name_k8s"] = v
-		c.GlobalHostTags["cluster_name_k8s"] = v
-	}
-
 	for _, x := range []string{
 		"ENV_GLOBAL_ELECTION_TAGS",
 		"ENV_GLOBAL_ENV_TAGS", // Deprecated

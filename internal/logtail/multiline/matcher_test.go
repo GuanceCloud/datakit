@@ -117,6 +117,24 @@ func TestMatch(t *testing.T) {
 			},
 			topScore: 0,
 		},
+		{
+			name: "gin-log",
+			ins: []in{
+				{
+					`[GIN] 2023/12/12 - 08:49:17 | 200 | 1.006238387s |       127.0.0.1 | GET     "/metrics"`,
+					true,
+				},
+				{
+					`[GIN] 2023/12/12 - 08:49:20 | 400 | 1.006238387s |       127.0.0.1 | GET     "/metrics"`,
+					true,
+				},
+				{
+					"Mon Jan 02 15:04:05 +0800 2022  INFO  cmd/main.go  Running",
+					true,
+				},
+			},
+			topScore: 2,
+		},
 	}
 
 	for _, tc := range cases {

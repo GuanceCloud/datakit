@@ -126,9 +126,10 @@ func (*serviceMetric) Info() *inputs.MeasurementInfo {
 		Desc: "The metric of the Kubernetes Service.",
 		Type: "metric",
 		Tags: map[string]interface{}{
-			"uid":       inputs.NewTagInfo("The UID of Service"),
-			"service":   inputs.NewTagInfo("Name must be unique within a namespace."),
-			"namespace": inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"uid":              inputs.NewTagInfo("The UID of Service"),
+			"service":          inputs.NewTagInfo("Name must be unique within a namespace."),
+			"namespace":        inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"cluster_name_k8s": inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
 		},
 		Fields: map[string]interface{}{
 			"ports": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.Count, Desc: "Total number of ports that are exposed by this service."},
@@ -145,11 +146,12 @@ func (*serviceObject) Info() *inputs.MeasurementInfo {
 		Desc: "The object of the Kubernetes Service.",
 		Type: "object",
 		Tags: map[string]interface{}{
-			"name":         inputs.NewTagInfo("The UID of Service"),
-			"uid":          inputs.NewTagInfo("The UID of Service"),
-			"service_name": inputs.NewTagInfo("Name must be unique within a namespace."),
-			"namespace":    inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
-			"type":         inputs.NewTagInfo("Type determines how the Service is exposed. Defaults to ClusterIP. (ClusterIP/NodePort/LoadBalancer/ExternalName)"),
+			"name":             inputs.NewTagInfo("The UID of Service"),
+			"uid":              inputs.NewTagInfo("The UID of Service"),
+			"service_name":     inputs.NewTagInfo("Name must be unique within a namespace."),
+			"namespace":        inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"type":             inputs.NewTagInfo("Type determines how the Service is exposed. Defaults to ClusterIP. (ClusterIP/NodePort/LoadBalancer/ExternalName)"),
+			"cluster_name_k8s": inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
 		},
 		Fields: map[string]interface{}{
 			"age":                     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},

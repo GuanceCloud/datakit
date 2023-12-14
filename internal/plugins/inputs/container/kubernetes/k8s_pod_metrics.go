@@ -172,14 +172,24 @@ func hitPodMetrics(item *statsv1alpha1.Summary, namespace, name string) (*podSrv
 			}
 
 			if stats.Network != nil {
-				metrics.networkRcvdBytes = int64(*stats.Network.RxBytes)
-				metrics.networkSentBytes = int64(*stats.Network.TxBytes)
+				if stats.Network.RxBytes != nil {
+					metrics.networkRcvdBytes = int64(*stats.Network.RxBytes)
+				}
+				if stats.Network.TxBytes != nil {
+					metrics.networkSentBytes = int64(*stats.Network.TxBytes)
+				}
 			}
 
 			if stats.EphemeralStorage != nil {
-				metrics.ephemeralStorageUsedBytes = int64(*stats.EphemeralStorage.UsedBytes)
-				metrics.ephemeralStorageAvailableBytes = int64(*stats.EphemeralStorage.AvailableBytes)
-				metrics.ephemeralStorageCapacityBytes = int64(*stats.EphemeralStorage.CapacityBytes)
+				if stats.EphemeralStorage.UsedBytes != nil {
+					metrics.ephemeralStorageUsedBytes = int64(*stats.EphemeralStorage.UsedBytes)
+				}
+				if stats.EphemeralStorage.AvailableBytes != nil {
+					metrics.ephemeralStorageAvailableBytes = int64(*stats.EphemeralStorage.AvailableBytes)
+				}
+				if stats.EphemeralStorage.CapacityBytes != nil {
+					metrics.ephemeralStorageCapacityBytes = int64(*stats.EphemeralStorage.CapacityBytes)
+				}
 			}
 
 			return metrics, nil
