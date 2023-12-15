@@ -7,7 +7,7 @@
 
 ### 新增功能 {#cl-1.21.0-new}
 
-- 添加 [ECS Fargate 采集模式](../integrations/ecs-fargate.md)（#2018）
+- 添加 [ECS Fargate 采集模式](ecs-fargate.md)（#2018）
 - 添加 [Prometheus Remote](../integrations/prom_remote_write.md) 采集器 tag 白名单（#2031）
 
 ### 问题修复 {#cl-1.21.0-fix}

@@ -7,7 +7,7 @@ This release is an iteration release, with the following updates:
 
 ### New Features {#cl-1.21.0-new}
 
-- Added [ECS Fargate Collection Mode](../integrations/ecs-fargate.md) (#2018)
+- Added [ECS Fargate Collection Mode](ecs-fargate.md) (#2018)
 - Added tag whitelist for [Prometheus Remote](../integrations/prom_remote_write.md) collector (#2031)
 
 ### Bug Fixes {#cl-1.21.0-fix}
