@@ -73,7 +73,7 @@ func (m *MockCollectService) Query(query string) (Rows, error) {
 	return rows, nil
 }
 
-func (m *MockCollectService) Stop() error { return nil }
+func (m *MockCollectService) Stop() {}
 func (m *MockCollectService) Start() error {
 	if m.startError == 1 {
 		return mockError{}
@@ -87,7 +87,7 @@ type MockCollectRows struct {
 	columnError int
 }
 
-func (m *MockCollectRows) Close() error { return nil }
+func (m *MockCollectRows) Close() {}
 func (m *MockCollectRows) Columns() ([]string, error) {
 	if m.columnError == 1 {
 		return nil, mockError{}

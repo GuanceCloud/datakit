@@ -143,7 +143,7 @@ default_time(time)
 `
 
 type Rows interface {
-	Close() error
+	Close()
 	Columns() ([]string, error)
 	Next() bool
 	Scan(...interface{}) error
@@ -151,7 +151,7 @@ type Rows interface {
 
 type Service interface {
 	Start() error
-	Stop() error
+	Stop()
 	Query(string) (Rows, error)
 	SetAddress(string)
 	GetColumnMap(scanner, []string) (map[string]*interface{}, error)
@@ -1125,11 +1125,7 @@ func NewInput(service Service) *Input {
 }
 
 func defaultInput() *Input {
-	return NewInput(&SQLService{
-		MaxIdle:     1,
-		MaxOpen:     1,
-		MaxLifetime: time.Duration(0),
-	})
+	return NewInput(&SQLService{})
 }
 
 func init() { //nolint:gochecknoinits

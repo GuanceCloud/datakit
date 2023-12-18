@@ -118,7 +118,7 @@ const (
   # bind_host = "0.0.0.0"
   # port = 9162
   # stop_timeout = 3    # stop timeout in seconds.
-` // sampleCfg
+`  // sampleCfg
 
 	defaultPort              = uint16(161)
 	defaultWorkers           = 100
