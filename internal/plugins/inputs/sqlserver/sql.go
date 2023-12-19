@@ -974,7 +974,6 @@ WITH CTE_SID ( BSID, SID, sql_handle )
 `
 
 	sqlServerLockDead = `
-	use __DATABASE__;
 
   SELECT
 	  'sqlserver_lock_dead' as [measurement],
@@ -987,7 +986,7 @@ WITH CTE_SID ( BSID, SID, sql_handle )
     h2.TEXT AS blocking_text,
 		h2.TEXT AS message,
     tl.request_mode
-    FROM sys.dm_tran_locks AS tl
+  FROM sys.dm_tran_locks AS tl
     INNER JOIN sys.databases db ON db.database_id = tl.resource_database_id
     INNER JOIN sys.dm_os_waiting_tasks AS wt ON tl.lock_owner_address = wt.resource_address
     INNER JOIN sys.partitions AS p ON p.hobt_id = tl.resource_associated_entity_id
@@ -995,6 +994,10 @@ WITH CTE_SID ( BSID, SID, sql_handle )
     INNER JOIN sys.dm_exec_connections ec2 ON ec2.session_id = wt.blocking_session_id
     CROSS APPLY sys.dm_exec_sql_text(ec1.most_recent_sql_handle) AS h1
     CROSS APPLY sys.dm_exec_sql_text(ec2.most_recent_sql_handle) AS h2
+	WHERE
+		tl.request_session_id <> @@SPID 
+		AND tl.request_mode <> 'SCH_M'
+		AND tl.request_session_id IS NOT NULL;
 `
 
 	sqlServerLogicIO = `
