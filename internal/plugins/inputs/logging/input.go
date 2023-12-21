@@ -144,8 +144,6 @@ func (ipt *Input) Run() {
 		ignoreDuration = dur
 	}
 
-	mergedTags := inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")
-
 	opt := &tailer.Option{
 		Source:                ipt.Source,
 		Service:               ipt.Service,
@@ -155,7 +153,7 @@ func (ipt *Input) Run() {
 		FromBeginning:         ipt.FromBeginning,
 		CharacterEncoding:     ipt.CharacterEncoding,
 		IgnoreDeadLog:         ignoreDuration,
-		GlobalTags:            mergedTags,
+		GlobalTags:            inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, ""),
 		RemoveAnsiEscapeCodes: ipt.RemoveAnsiEscapeCodes,
 		BlockingMode:          ipt.BlockingMode,
 		Done:                  ipt.semStop.Wait(),

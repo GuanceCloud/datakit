@@ -24,7 +24,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -177,10 +177,10 @@ func (ipt *Input) RunPipeline() {
 		Source:            inputName,
 		Service:           inputName,
 		Pipeline:          ipt.Log.Pipeline,
-		GlobalTags:        ipt.Tags,
 		IgnoreStatus:      ipt.Log.IgnoreStatus,
 		CharacterEncoding: ipt.Log.CharacterEncoding,
 		MultilinePatterns: []string{`^\d{4}-\d{2}-\d{2}`},
+		GlobalTags:        inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, ""),
 		Done:              ipt.semStop.Wait(),
 	}
 
@@ -189,7 +189,7 @@ func (ipt *Input) RunPipeline() {
 	if err != nil {
 		l.Error(err)
 		ipt.feeder.FeedLastError(err.Error(),
-			io.WithLastErrorInput(inputName),
+			dkio.WithLastErrorInput(inputName),
 		)
 		return
 	}
@@ -223,7 +223,7 @@ func (ipt *Input) Run() {
 		if err := ipt.initDB(); err != nil {
 			l.Errorf("initDB: %s", err.Error())
 			ipt.feeder.FeedLastError(err.Error(),
-				io.WithLastErrorInput(inputName),
+				dkio.WithLastErrorInput(inputName),
 			)
 		} else {
 			break
@@ -255,7 +255,7 @@ func (ipt *Input) Run() {
 		} else {
 			ipt.getMetric()
 			if len(collectCache) > 0 {
-				err := ipt.feeder.Feed(inputName, point.Metric, collectCache, &io.Option{CollectCost: time.Since(ipt.start)})
+				err := ipt.feeder.Feed(inputName, point.Metric, collectCache, &dkio.Option{CollectCost: time.Since(ipt.start)})
 				collectCache = collectCache[:0]
 				if err != nil {
 					ipt.lastErr = err
@@ -264,7 +264,7 @@ func (ipt *Input) Run() {
 			}
 
 			if len(loggingCollectCache) > 0 {
-				err := ipt.feeder.Feed(inputName, point.Logging, loggingCollectCache, &io.Option{CollectCost: time.Since(ipt.start)})
+				err := ipt.feeder.Feed(inputName, point.Logging, loggingCollectCache, &dkio.Option{CollectCost: time.Since(ipt.start)})
 				loggingCollectCache = loggingCollectCache[:0]
 				if err != nil {
 					ipt.lastErr = err
@@ -274,7 +274,7 @@ func (ipt *Input) Run() {
 
 			if ipt.lastErr != nil {
 				ipt.feeder.FeedLastError(ipt.lastErr.Error(),
-					io.WithLastErrorInput(inputName),
+					dkio.WithLastErrorInput(inputName),
 				)
 				ipt.lastErr = nil
 			}
@@ -614,7 +614,8 @@ func defaultInput() *Input {
 		pauseCh:     make(chan bool, inputs.ElectionPauseChannelLength),
 		semStop:     cliutils.NewSem(),
 		dbFilterMap: make(map[string]struct{}, 0),
-		feeder:      io.DefaultFeeder(),
+		feeder:      dkio.DefaultFeeder(),
+		tagger:      datakit.DefaultGlobalTagger(),
 	}
 }
 

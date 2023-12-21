@@ -16,11 +16,11 @@ import (
 
 	"github.com/GuanceCloud/cliutils/pipeline/manager"
 	"github.com/GuanceCloud/cliutils/point"
-	"github.com/pborman/ansi"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/ansi"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/diskcache"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/multiline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/register"
@@ -732,16 +732,11 @@ func (b *buffer) split() []string {
 	return res
 }
 
-func removeAnsiEscapeCodes(oldtext string, run bool) string {
+func removeAnsiEscapeCodes(text string, run bool) string {
 	if !run {
-		return oldtext
+		return text
 	}
-	newtext, err := ansi.Strip([]byte(oldtext))
-	if err != nil {
-		// l.Debugf("remove ansi code error: %w", err)
-		return oldtext
-	}
-	return string(newtext)
+	return ansi.Strip(text)
 }
 
 var (

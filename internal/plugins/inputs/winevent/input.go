@@ -29,17 +29,11 @@ import (
 
 var statusList = []string{"info", "critical", "error", "warning", "info"}
 
-func (*Input) SampleConfig() string {
-	return sample
-}
+func (*Input) SampleConfig() string { return sample }
 
-func (*Input) Catalog() string {
-	return "windows"
-}
+func (*Input) Catalog() string { return "windows" }
 
-// RunPipeline TODO.
-func (*Input) RunPipeline() {
-}
+func (*Input) RunPipeline() { /*nil*/ }
 
 func (*Input) AvailableArchs() []string {
 	return []string{datakit.OSLabelWindows}

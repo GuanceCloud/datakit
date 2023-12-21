@@ -59,13 +59,9 @@ type iisLog struct {
 	Pipeline string   `toml:"pipeline"`
 }
 
-func (*Input) Catalog() string {
-	return "iis"
-}
+func (*Input) Catalog() string { return "iis" }
 
-func (*Input) SampleConfig() string {
-	return sampleConfig
-}
+func (*Input) SampleConfig() string { return sampleConfig }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
@@ -84,7 +80,7 @@ func (ipt *Input) RunPipeline() {
 		Source:     "iis",
 		Service:    "iis",
 		Pipeline:   ipt.Log.Pipeline,
-		GlobalTags: ipt.Tags,
+		GlobalTags: inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, ""),
 		Done:       ipt.semStop.Wait(),
 	}
 

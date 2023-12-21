@@ -1260,9 +1260,6 @@ github.com/oschwald/maxminddb-golang
 github.com/outcaste-io/ristretto
 github.com/outcaste-io/ristretto/z
 github.com/outcaste-io/ristretto/z/simd
-# github.com/pborman/ansi v1.0.0
-## explicit
-github.com/pborman/ansi
 # github.com/pelletier/go-toml/v2 v2.0.6
 ## explicit; go 1.16
 github.com/pelletier/go-toml/v2

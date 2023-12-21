@@ -241,6 +241,7 @@ type Input struct {
 	pauseCh  chan bool
 
 	feeder dkio.Feeder
+	tagger datakit.GlobalTagger
 
 	semStop *cliutils.Sem // start stop signal
 }
@@ -292,6 +293,7 @@ func defaultInput() *Input {
 		Election:                   true,
 		semStop:                    cliutils.NewSem(),
 		feeder:                     dkio.DefaultFeeder(),
+		tagger:                     datakit.DefaultGlobalTagger(),
 	}
 }
 
@@ -498,10 +500,10 @@ func (ipt *Input) RunPipeline() {
 		Source:            inputName,
 		Service:           inputName,
 		Pipeline:          ipt.Log.Pipeline,
-		GlobalTags:        ipt.Tags,
 		IgnoreStatus:      ipt.Log.IgnoreStatus,
 		CharacterEncoding: ipt.Log.CharacterEncoding,
 		MultilinePatterns: []string{ipt.Log.MultilineMatch},
+		GlobalTags:        inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, ""),
 		Done:              ipt.semStop.Wait(),
 	}
 
