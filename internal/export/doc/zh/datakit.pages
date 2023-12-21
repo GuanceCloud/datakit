@@ -18,7 +18,6 @@ nav:
     - '更新': datakit-update.md
     - 'DQL 查询': datakit-dql-how-to.md
     - '其它命令': datakit-tools-how-to.md
-    - '虚拟互联网接入': aliyun-access.md
     - '故障排查':
       - '无数据排查': why-no-data.md
       - 'Datakit Metrics': datakit-metrics.md
