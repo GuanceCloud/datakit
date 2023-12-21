@@ -102,7 +102,7 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
               "tags" : {
                 "some_tag": "some_value"
               }
-          }]"
+          }]
     spec:
       containers:
       - name: log-output
@@ -347,7 +347,7 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
           "disable": true,
           "source":  "logging-output"
       }
-    ]"
+    ]
     ```
 
     这份配置距离容器更近，优先级更高。配置的 `disable=fasle` 表明要采集日志文件，把上面的全局配置覆盖了。
