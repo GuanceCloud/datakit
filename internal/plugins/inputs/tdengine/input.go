@@ -135,7 +135,7 @@ func (ipt *Input) RunPipeline() {
 		Source:     inputName,
 		Service:    inputName,
 		Pipeline:   ipt.Pipeline,
-		GlobalTags: ipt.Tags,
+		GlobalTags: inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, ""),
 		Done:       ipt.semStop.Wait(),
 	}
 

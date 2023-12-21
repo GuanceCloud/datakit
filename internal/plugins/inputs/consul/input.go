@@ -31,10 +31,6 @@ type Input struct { // keep compatible with old version's conf
 
 var _ inputs.InputV2 = (*Input)(nil)
 
-func (*Input) Terminate() {
-	// do nothing
-}
-
 func (ipt *Input) LogExamples() map[string]map[string]string {
 	return map[string]map[string]string{
 		inputName: {
@@ -43,26 +39,23 @@ func (ipt *Input) LogExamples() map[string]map[string]string {
 	}
 }
 
-func (*Input) Catalog() string {
-	return inputName
-}
+func (*Input) Run() { /*nil*/ }
 
-func (*Input) SampleConfig() string {
-	return configSample
-}
+func (*Input) Catalog() string { return inputName }
 
-func (*Input) Run() {
-}
+func (*Input) Terminate() { /*do nothing*/ }
 
-func (*Input) AvailableArchs() []string {
-	return datakit.AllOSWithElection
-}
+func (*Input) SampleConfig() string { return configSample }
+
+func (*Input) AvailableArchs() []string { return datakit.AllOSWithElection }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&docMeasurement{},
 	}
 }
+
+func (*Input) RunPipeline() { /*nil*/ }
 
 func (*Input) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
@@ -84,9 +77,6 @@ func (ipt *Input) GetPipeline() []*tailer.Option {
 			}(),
 		},
 	}
-}
-
-func (*Input) RunPipeline() {
 }
 
 func init() { //nolint:gochecknoinits

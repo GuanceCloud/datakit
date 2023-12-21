@@ -71,9 +71,9 @@ func (ipt *Input) RunPipeline() {
 		Source:            "rabbitmq",
 		Service:           "rabbitmq",
 		Pipeline:          ipt.Log.Pipeline,
-		GlobalTags:        ipt.Tags,
 		CharacterEncoding: ipt.Log.CharacterEncoding,
 		MultilinePatterns: []string{ipt.Log.MultilineMatch},
+		GlobalTags:        inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, ""),
 		Done:              ipt.semStop.Wait(),
 	}
 

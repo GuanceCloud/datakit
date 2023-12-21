@@ -139,6 +139,7 @@ type Input struct {
 
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
+	tagger  datakit.GlobalTagger
 	opt     point.Option
 
 	collectFuncs map[string]func() error

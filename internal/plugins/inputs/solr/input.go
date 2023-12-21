@@ -144,10 +144,10 @@ func (ipt *Input) RunPipeline() {
 		Source:            inputName,
 		Service:           inputName,
 		Pipeline:          ipt.Log.Pipeline,
-		GlobalTags:        ipt.Tags,
 		IgnoreStatus:      ipt.Log.IgnoreStatus,
 		CharacterEncoding: ipt.Log.CharacterEncoding,
 		MultilinePatterns: []string{ipt.Log.MultilineMatch},
+		GlobalTags:        inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, ""),
 		Done:              ipt.semStop.Wait(),
 	}
 

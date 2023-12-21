@@ -204,7 +204,9 @@ type Input struct {
 	pause    bool
 	pauseCh  chan bool
 
-	feeder   io.Feeder
+	feeder io.Feeder
+	tagger datakit.GlobalTagger
+
 	version  *semver.Version
 	isAurora bool
 	semStop  *cliutils.Sem // start stop signal
@@ -812,10 +814,10 @@ func (ipt *Input) RunPipeline() {
 		Source:            inputName,
 		Service:           inputName,
 		Pipeline:          ipt.Log.Pipeline,
-		GlobalTags:        ipt.Tags,
 		IgnoreStatus:      ipt.Log.IgnoreStatus,
 		CharacterEncoding: ipt.Log.CharacterEncoding,
 		MultilinePatterns: []string{ipt.Log.MultilineMatch},
+		GlobalTags:        inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, ""),
 		Done:              ipt.semStop.Wait(),
 	}
 
@@ -1118,6 +1120,7 @@ func NewInput(service Service) *Input {
 		pauseCh:  make(chan bool, maxPauseCh),
 		Election: true,
 		feeder:   io.DefaultFeeder(),
+		tagger:   datakit.DefaultGlobalTagger(),
 		semStop:  cliutils.NewSem(),
 	}
 	input.service = service

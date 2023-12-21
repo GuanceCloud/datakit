@@ -20,7 +20,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -98,7 +98,9 @@ type Input struct {
 
 	start  time.Time
 	db     *sql.DB
-	feeder io.Feeder
+	feeder dkio.Feeder
+	tagger datakit.GlobalTagger
+
 	// response   []map[string]interface{}
 	tail       *tailer.Tailer
 	collectors []func() ([]*gcPoint.Point, error)
@@ -422,7 +424,7 @@ func (ipt *Input) resetLastError() {
 func (ipt *Input) handleLastError() {
 	if len(ipt.lastErrors) > 0 {
 		ipt.feeder.FeedLastError(strings.Join(ipt.lastErrors, "; "),
-			io.WithLastErrorInput(inputName),
+			dkio.WithLastErrorInput(inputName),
 		)
 	}
 }
@@ -519,8 +521,8 @@ func (ipt *Input) Collect() (map[gcPoint.Category][]*gcPoint.Point, error) {
 		if err != nil {
 			l.Errorf("mysql dmb collect error: %v", err)
 			ipt.feeder.FeedLastError(err.Error(),
-				io.WithLastErrorInput(inputName),
-				io.WithLastErrorCategory(gcPoint.Metric),
+				dkio.WithLastErrorInput(inputName),
+				dkio.WithLastErrorCategory(gcPoint.Metric),
 			)
 		}
 	}
@@ -539,19 +541,13 @@ func (ipt *Input) RunPipeline() {
 		return
 	}
 
-	tags := make(map[string]string)
-
-	for k, v := range ipt.Tags {
-		tags[k] = v
-	}
-
 	opt := &tailer.Option{
 		Source:            "mysql",
 		Service:           "mysql",
 		Pipeline:          ipt.Log.Pipeline,
-		GlobalTags:        tags,
 		CharacterEncoding: ipt.Log.CharacterEncoding,
 		MultilinePatterns: []string{ipt.Log.MultilineMatch},
+		GlobalTags:        inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, ""),
 		Done:              ipt.semStop.Wait(),
 	}
 	var err error
@@ -559,8 +555,8 @@ func (ipt *Input) RunPipeline() {
 	if err != nil {
 		l.Error(err)
 		ipt.feeder.FeedLastError(err.Error(),
-			io.WithLastErrorInput(inputName),
-			io.WithLastErrorCategory(gcPoint.Metric),
+			dkio.WithLastErrorInput(inputName),
+			dkio.WithLastErrorCategory(gcPoint.Metric),
 		)
 		return
 	}
@@ -583,8 +579,8 @@ func (ipt *Input) Run() {
 	for {
 		if err := ipt.initCfg(); err != nil {
 			ipt.feeder.FeedLastError(err.Error(),
-				io.WithLastErrorInput(inputName),
-				io.WithLastErrorCategory(gcPoint.Metric),
+				dkio.WithLastErrorInput(inputName),
+				dkio.WithLastErrorCategory(gcPoint.Metric),
 			)
 		} else {
 			break
@@ -620,19 +616,19 @@ func (ipt *Input) Run() {
 			if err != nil {
 				l.Warnf("i.Collect failed: %v", err)
 				ipt.feeder.FeedLastError(err.Error(),
-					io.WithLastErrorInput(inputName),
-					io.WithLastErrorCategory(gcPoint.Metric),
+					dkio.WithLastErrorInput(inputName),
+					dkio.WithLastErrorCategory(gcPoint.Metric),
 				)
 			}
 
 			for category, pts := range mpts {
 				if len(pts) > 0 {
 					if err := ipt.feeder.Feed(inputName, category, pts,
-						&io.Option{CollectCost: time.Since(ipt.start)}); err != nil {
-						l.Warnf("io.Feed failed: %v", err)
+						&dkio.Option{CollectCost: time.Since(ipt.start)}); err != nil {
+						l.Warnf("dkio.Feed failed: %v", err)
 						ipt.feeder.FeedLastError(err.Error(),
-							io.WithLastErrorInput(inputName),
-							io.WithLastErrorCategory(gcPoint.Metric),
+							dkio.WithLastErrorInput(inputName),
+							dkio.WithLastErrorCategory(gcPoint.Metric),
 						)
 					}
 				}
@@ -720,7 +716,8 @@ func defaultInput() *Input {
 		Timeout:  "10s",
 		pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
 		Election: true,
-		feeder:   io.DefaultFeeder(),
+		feeder:   dkio.DefaultFeeder(),
+		tagger:   datakit.DefaultGlobalTagger(),
 		semStop:  cliutils.NewSem(),
 	}
 }

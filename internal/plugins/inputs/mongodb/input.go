@@ -189,10 +189,10 @@ func (ipt *Input) RunPipeline() {
 		Source:            inputName,
 		Service:           inputName,
 		Pipeline:          ipt.MgoDBLog.Pipeline,
-		GlobalTags:        ipt.Tags,
 		IgnoreStatus:      ipt.MgoDBLog.IgnoreStatus,
 		CharacterEncoding: ipt.MgoDBLog.CharacterEncoding,
 		MultilinePatterns: []string{ipt.MgoDBLog.MultilineMatch},
+		GlobalTags:        inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, ""),
 		Done:              ipt.semStop.Wait(),
 	}
 
