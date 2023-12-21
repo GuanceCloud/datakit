@@ -71,10 +71,6 @@ func (p *Parser) Parse(buf []byte, ipt *Input) ([]*point.Point, error) {
 
 				kvs = kvs.Add(metricName, s.Value, false, true)
 
-				for k, v := range ipt.Tags {
-					kvs = kvs.MustAddTag(k, v)
-				}
-
 				for k, v := range tags {
 					kvs = kvs.MustAddTag(k, v)
 				}
