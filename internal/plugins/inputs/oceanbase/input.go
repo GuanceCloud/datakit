@@ -47,6 +47,17 @@ const (
     # some_tag = "some_value"
     # more_tag = "some_other_value"
 
+  ## Run a custom SQL query and collect corresponding metrics.
+  # [[inputs.external.custom_queries]]
+  #   sql = '''
+  #     SELECT
+  #       GROUP_ID, METRIC_NAME, VALUE
+  #     FROM GV$SYSMETRIC
+  #   '''
+  #   metric = "oceanbase_custom"
+  #   tags = ["GROUP_ID", "METRIC_NAME"]
+  #   fields = ["VALUE"]
+
   #############################
   # Parameter Description (Marked with * is mandatory field)
   #############################
