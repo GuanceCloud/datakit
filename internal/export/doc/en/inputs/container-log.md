@@ -107,7 +107,7 @@ Below is a complete example:
               "tags" : {
                 "some_tag": "some_value"
               }
-          }]"
+          }]
     spec:
       containers:
       - name: log-output
@@ -354,7 +354,7 @@ By default, DataKit collects stdout/stderr logs for all containers on your machi
           "disable": true,
           "source":  "logging-output"
       }
-    ]"
+    ]
     ```
     
     This configuration is closer to the container and has a higher priority. The `disable=false` in the configuration indicates that log files should be collected, overriding the global configuration.
