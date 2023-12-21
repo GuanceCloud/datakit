@@ -18,10 +18,11 @@ nav:
     - 'Update': datakit-update.md
     - 'DQL Query': datakit-dql-how-to.md
     - 'Other Commands': datakit-tools-how-to.md
-    - 'Virtual Internet Access': aliyun-access.md
     - 'Trouble Shooting':
-        - 'No data collected': why-no-data.md
-        - 'Datakit Metrics': datakit-metrics.md
+      - 'No data collected': why-no-data.md
+      - 'Datakit Metrics': datakit-metrics.md
+    - 'Virtual Internet Access':
+      - 'Alibaba Cloud': aliyun-access.md
 
   - 'DataKit Configuration': 
     - 'Major Configuration': datakit-conf.md
