@@ -1,6 +1,16 @@
 # Changelog
 ---
 
+## 1.21.1(2023/12/21) {#cl-1.21.1}
+
+This release is a Hotfix release, which fixes the following issues:
+
+- Fixed issue of Prometheus Remote Write not adding Datakit host tags to keep compatibility with older configurations(#2055)
+- Fixed issue of default log collection in a batch of middleware not including host tags
+- Fixed issue on remove color characters within Chinese characters while collecting logging
+
+---
+
 ## 1.21.0 (2023/12/14)
 
 This release is an iteration release, with the following updates:
