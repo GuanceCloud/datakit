@@ -59,9 +59,10 @@ type Input struct {
 
 	Election bool // forever false
 
-	semStop *cliutils.Sem // start stop signal
-	feeder  dkio.Feeder
-	Tagger  datakit.GlobalTagger
+	semStop    *cliutils.Sem // start stop signal
+	feeder     dkio.Feeder
+	mergedTags map[string]string
+	tagger     datakit.GlobalTagger
 
 	Parser
 }
@@ -85,6 +86,7 @@ func (*Input) Terminate() {
 }
 
 func (ipt *Input) Run() {
+	ipt.mergedTags = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")
 	l.Infof("%s input started...", inputName)
 	for i, m := range ipt.Methods {
 		ipt.Methods[i] = strings.ToUpper(m)
@@ -182,8 +184,13 @@ func (ipt *Input) serveWrite(res http.ResponseWriter, req *http.Request) {
 			metrics[idx].AddTag(k, v)
 		}
 
+		for k, v := range ipt.mergedTags {
+			metrics[idx].AddTag(k, v)
+		}
+
 		ipt.SetTags(metrics[idx])
 	}
+
 	if len(metrics) > 0 {
 		if err := ipt.feeder.Feed(inputName,
 			point.Metric,
@@ -447,7 +454,7 @@ func defaultInput() *Input {
 		MaxBodySize:    defaultMaxBodySize,
 		semStop:        cliutils.NewSem(),
 		feeder:         dkio.DefaultFeeder(),
-		Tagger:         datakit.DefaultGlobalTagger(),
+		tagger:         datakit.DefaultGlobalTagger(),
 	}
 	return &i
 }
