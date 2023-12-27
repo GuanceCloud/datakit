@@ -217,6 +217,8 @@ func (dw *Dataway) groupPoints(cat point.Category, points []*point.Point) map[st
 		res[tv] = append(res[tv], pt)
 	}
 
+	groupedRequestVec.WithLabelValues(cat.String()).Observe(float64(len(res)))
+
 	return res
 }
 
@@ -269,10 +271,6 @@ func (dw *Dataway) Write(opts ...WriteOption) error {
 	var groupedPoints map[string]groupedPoints
 	if dw.EnableSinker && (len(dw.globalTags) > 0 || len(dw.GlobalCustomerKeys) > 0) {
 		groupedPoints = dw.groupPoints(w.category, w.points)
-
-		if len(groupedPoints) > 1 { // grouped to 2 or more parts
-			groupedRequestVec.WithLabelValues(w.category.String()).Add(float64(len(groupedPoints) - 1))
-		}
 	}
 
 	if len(groupedPoints) > 0 && len(dw.eps) > 0 {

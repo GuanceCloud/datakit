@@ -13,13 +13,13 @@ import (
 var (
 	ptsCounterVec,
 	bytesCounterVec,
-	httpRetry,
-	groupedRequestVec *prometheus.CounterVec
+	httpRetry *prometheus.CounterVec
 
 	flushFailCacheVec,
 	buildBodyCostVec,
 	buildBodyBatchBytesVec,
 	buildBodyBatchCountVec,
+	groupedRequestVec,
 	apiSumVec *prometheus.SummaryVec
 )
 
@@ -166,12 +166,18 @@ func init() {
 		[]string{"api", "status"},
 	)
 
-	groupedRequestVec = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
+	groupedRequestVec = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
 			Namespace: "datakit",
 			Subsystem: "io",
-			Name:      "grouped_request_total",
+			Name:      "grouped_request",
 			Help:      "Grouped requests under sinker",
+
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.9:  0.01,
+				0.99: 0.001,
+			},
 		},
 		[]string{
 			"category",

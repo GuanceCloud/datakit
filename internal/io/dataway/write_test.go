@@ -427,6 +427,7 @@ func TestWritePoints(t *T.T) {
 
 func TestGroupPoint(t *T.T) {
 	t.Run("basic", func(t *T.T) {
+		metricsReset()
 		dw := &Dataway{
 			URLs: []string{
 				"https://fake-dataway.com?token=tkn_xxxxxxxxxx",
@@ -461,9 +462,16 @@ func TestGroupPoint(t *T.T) {
 		assert.Len(t, res["tag1=new-value,tag2=value2"], 1)
 		assert.Len(t, res["tag1=value1,tag2=new-value"], 1)
 		assert.Len(t, res["tag1=value1,tag2=value2"], 2)
+
+		reg := prometheus.NewRegistry()
+		reg.MustRegister(Metrics()...)
+		mfs, err := reg.Gather()
+		assert.NoError(t, err)
+		t.Logf("metrics:\n%s", metrics.MetricFamily2Text(mfs))
 	})
 
 	t.Run("no-global-tags", func(t *T.T) {
+		metricsReset()
 		dw := &Dataway{
 			URLs: []string{
 				"https://fake-dataway.com?token=tkn_xxxxxxxxxx",
@@ -487,9 +495,16 @@ func TestGroupPoint(t *T.T) {
 		res := dw.groupPoints(point.Logging, pts)
 		assert.Len(t, res["namespace=ns1"], 1)
 		assert.Len(t, res[""], 4)
+
+		reg := prometheus.NewRegistry()
+		reg.MustRegister(Metrics()...)
+		mfs, err := reg.Gather()
+		assert.NoError(t, err)
+		t.Logf("metrics:\n%s", metrics.MetricFamily2Text(mfs))
 	})
 
 	t.Run("no-global-tags-on-object", func(t *T.T) {
+		metricsReset()
 		dw := &Dataway{
 			URLs: []string{
 				"https://fake-dataway.com?token=tkn_xxxxxxxxxx",
@@ -528,9 +543,16 @@ func TestGroupPoint(t *T.T) {
 		}
 
 		assert.Len(t, res["class=some"], 5)
+
+		reg := prometheus.NewRegistry()
+		reg.MustRegister(Metrics()...)
+		mfs, err := reg.Gather()
+		assert.NoError(t, err)
+		t.Logf("metrics:\n%s", metrics.MetricFamily2Text(mfs))
 	})
 
 	t.Run("no-global-tags-no-customer-tag-keys", func(t *T.T) {
+		metricsReset()
 		dw := &Dataway{
 			URLs: []string{
 				"https://fake-dataway.com?token=tkn_xxxxxxxxxx",
@@ -559,5 +581,12 @@ func TestGroupPoint(t *T.T) {
 
 		res := dw.groupPoints(point.Object, pts)
 		assert.Len(t, res[""], 5)
+
+		metricsReset()
+		reg := prometheus.NewRegistry()
+		reg.MustRegister(Metrics()...)
+		mfs, err := reg.Gather()
+		assert.NoError(t, err)
+		t.Logf("metrics:\n%s", metrics.MetricFamily2Text(mfs))
 	})
 }
