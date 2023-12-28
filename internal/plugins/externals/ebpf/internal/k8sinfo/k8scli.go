@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -103,7 +104,7 @@ func (c *K8sClient) GetEndpointNet(ns string) (map[string]*K8sEndpointsNet, erro
 					ep.IPPort[v.IP] = append(ep.IPPort[v.IP],
 						Port{
 							Port:     uint32(p.Port),
-							Protocol: string(p.Protocol),
+							Protocol: strings.ToLower(string(p.Protocol)),
 						},
 					)
 				}
@@ -297,4 +298,56 @@ func MatchLabel(selector, labels map[string]string) bool {
 	}
 
 	return true
+}
+
+func NewK8sInfoFromENV() (*K8sNetInfo, error) {
+	var k8sURL string
+	k8sBearerTokenPath := ""
+	k8sBearerTokenStr := ""
+
+	if v, ok := os.LookupEnv("K8S_URL"); ok && v != "" {
+		k8sURL = v
+	} else {
+		k8sURL = "https://kubernetes.default:443"
+	}
+
+	// net.LookupHost()
+
+	if v, ok := os.LookupEnv("K8S_BEARER_TOKEN_STRING"); ok && v != "" {
+		k8sBearerTokenStr = v
+	}
+
+	if v, ok := os.LookupEnv("K8S_BEARER_TOKEN_PATH"); ok && v != "" {
+		k8sBearerTokenPath = v
+	}
+
+	if k8sBearerTokenPath == "" && k8sBearerTokenStr == "" {
+		//nolint:gosec
+		k8sBearerTokenPath = "/run/secrets/kubernetes.io/serviceaccount/token"
+	}
+
+	var cli *K8sClient
+	var err error
+	if k8sBearerTokenPath != "" {
+		cli, err = NewK8sClientFromBearerToken(k8sURL,
+			k8sBearerTokenPath)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		cli, err = NewK8sClientFromBearerTokenString(k8sURL,
+			k8sBearerTokenStr)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if cli == nil {
+		return nil, fmt.Errorf("new k8s client")
+	}
+	kinfo, err := NewK8sNetInfo(cli)
+	if err != nil {
+		return nil, err
+	}
+
+	return kinfo, err
 }

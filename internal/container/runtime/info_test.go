@@ -66,7 +66,7 @@ func TestParseCriInfo(t *testing.T) {
 	}
 
 	t.Run("parse-info", func(t *testing.T) {
-		res, err := parseCriInfo(in)
+		res, err := ParseCriInfo(in)
 		assert.NoError(t, err)
 
 		assert.Equal(t, out, res)

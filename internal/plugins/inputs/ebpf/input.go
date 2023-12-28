@@ -39,6 +39,7 @@ var (
 		"ebpf-net":       true,
 		"ebpf-conntrack": true,
 		"ebpf-trace":     true,
+		"bpf-netlog":     true,
 	}
 )
 
@@ -51,6 +52,10 @@ type K8sConf struct {
 type Input struct {
 	external.Input
 	K8sConf
+
+	NetlogBlacklist  string `toml:"netlog_blacklist"`
+	NetlogMetricOnly bool   `toml:"netlog_metric_only"`
+
 	EnabledPlugins []string `toml:"enabled_plugins"`
 	L7NetDisabled  []string `toml:"l7net_disabled"`
 	L7NetEnabled   []string `toml:"l7net_enabled"`
@@ -145,6 +150,10 @@ loop:
 		ipt.Input.Envs = append(ipt.Input.Envs,
 			fmt.Sprintf("K8S_BEARER_TOKEN_STRING=%s", ipt.K8sConf.K8sBearerTokenStr))
 	}
+	if ipt.NetlogBlacklist != "" {
+		ipt.Input.Envs = append(ipt.Input.Envs,
+			fmt.Sprintf("NETLOG_BLACKLIST=%s", ipt.NetlogBlacklist))
+	}
 
 	if ipt.L7NetDisabled == nil && ipt.L7NetEnabled == nil {
 		ipt.L7NetEnabled = []string{"httpflow"}
@@ -171,6 +180,11 @@ loop:
 	if ipt.Interval != "" {
 		ipt.Input.Args = append(ipt.Input.Args,
 			"--interval", ipt.Interval)
+	}
+
+	if !ipt.NetlogMetricOnly {
+		ipt.Input.Args = append(ipt.Input.Args,
+			"--netlog-metric-only", "false")
 	}
 
 	if ipt.TraceServer != "" {
@@ -258,6 +272,10 @@ func (*Input) AvailableArchs() []string {
 // ENV_INPUT_EBPF_IPV6_DISABLED   : bool
 // ENV_INPUT_EBPF_EPHEMERAL_PORT  : int32
 // ENV_INPUT_EBPF_INTERVAL        : string
+// ENV_INPUT_EBPF_PPROF_PORT      : int32
+//
+// ENV_NETLOG_BLACKLIST           : string
+// ENV_NETLOG_METRIC_ONLY         : bool
 //
 // ENV_INPUT_EBPF_TRACE_ALL_PROCESS    : bool
 // ENV_INPUT_EBPF_CONV_TO_DDTRACE      : bool
@@ -267,6 +285,10 @@ func (*Input) AvailableArchs() []string {
 // ENV_INPUT_EBPF_TRACE_NAME_LIST      : string
 // ENV_INPUT_EBPF_TRACE_NAME_BLACKLIST : string.
 func (ipt *Input) ReadEnv(envs map[string]string) {
+	if v, ok := envs["ENV_INPUT_EBPF_PPROF_PORT"]; ok {
+		ipt.Input.Args = append(ipt.Input.Args, []string{"--pprof-port", v}...)
+	}
+
 	if pluginList, ok := envs["ENV_INPUT_EBPF_ENABLED_PLUGINS"]; ok {
 		l.Debugf("add enabled_plugins from ENV: %v", pluginList)
 		ipt.EnabledPlugins = strings.Split(pluginList, ",")
@@ -299,7 +321,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 
 	if v, ok := envs["ENV_INPUT_EBPF_IPV6_DISABLED"]; ok {
 		switch v {
-		case "", "f", "false", "FALSE", "False", "0":
+		case "", "f", "false", "FALSE", "False", "0": //nolint:goconst
 			ipt.IPv6Disabled = false
 		default:
 			ipt.IPv6Disabled = true
@@ -339,15 +361,29 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			ipt.Conv2DD = true
 		}
 	}
+
+	if v, ok := envs["ENV_NETLOG_BLACKLIST"]; ok {
+		ipt.NetlogBlacklist = v
+	}
+
+	if v, ok := envs["ENV_NETLOG_METRIC_ONLY"]; ok {
+		switch v {
+		case "", "f", "false", "FALSE", "False", "0":
+			ipt.NetlogMetricOnly = false
+		default:
+			ipt.NetlogMetricOnly = true
+		}
+	}
 }
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		ret := &Input{
-			semStop:        cliutils.NewSem(),
-			EnabledPlugins: []string{},
-			Input:          *external.NewInput(),
-			EphemeralPort:  -1,
+			semStop:          cliutils.NewSem(),
+			EnabledPlugins:   []string{},
+			Input:            *external.NewInput(),
+			EphemeralPort:    -1,
+			NetlogMetricOnly: true,
 		}
 		ret.Input.Election = false
 		return ret

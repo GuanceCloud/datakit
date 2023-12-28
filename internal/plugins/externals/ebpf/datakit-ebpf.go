@@ -28,11 +28,12 @@ import (
 	dkbash "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/bashhistory"
 	dkct "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/conntrack"
 	dkdns "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/dnsflow"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/k8sinfo"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l4log"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/tracing"
 
 	dkl7flow "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/k8sinfo"
 	dknetflow "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netflow"
 	dkout "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/output"
 	dksysmonitor "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/sysmonitor"
@@ -48,6 +49,7 @@ const (
 var (
 	enableEbpfBash      = false
 	enableEbpfNet       = false
+	enableBpfNetlog     = false
 	enableEbpfConntrack = false
 	enableTrace         = false
 
@@ -55,6 +57,8 @@ var (
 	enableHTTPFlowTLS = false
 
 	conv2ddID = false
+
+	netlogMetricOnly = true
 
 	ipv6Disabled = false
 )
@@ -75,8 +79,9 @@ type Option struct {
 	Log      string `long:"log" description:"log path"`
 	LogLevel string `long:"log-level" description:"log file" default:"info"`
 
-	Tags    string `long:"tags" description:"additional tags in 'a=b,c=d,...' format"`
-	Enabled string `long:"enabled" description:"enabled plugins list in 'a,b,...' format"`
+	Tags             string `long:"tags" description:"additional tags in 'a=b,c=d,...' format"`
+	Enabled          string `long:"enabled" description:"enabled plugins list in 'a,b,...' format"`
+	NetlogMetricOnly string `long:"netlog-metric-only" description:"netlog metric only" default:"true"`
 
 	EphemeralPort int32 `long:"ephemeral_port" default:"0"`
 
@@ -106,8 +111,9 @@ type Option struct {
 const (
 	inputName = "ebpf"
 
-	inputNameNet  = "ebpf-net"
-	inputNameBash = "ebpf-bash"
+	inputNameNet    = "ebpf-net"
+	inputNameBash   = "ebpf-bash"
+	inputNameNetlog = "bpf-netlog"
 
 	pluginNameConntrack = "ebpf-conntrack"
 	pluginNameTracing   = "ebpf-trace"
@@ -180,6 +186,7 @@ func main() { //nolint:funlen
 	dkbash.SetLogger(l)
 	dkl7flow.SetLogger(l)
 	dksysmonitor.SetLogger(l)
+	l4log.SetLogger(l)
 
 	// duration is between 10s and 30min, if not, take the boundary value.
 	if tmp, err := time.ParseDuration(opt.Interval); err == nil {
@@ -199,11 +206,22 @@ func main() { //nolint:funlen
 
 	l.Info("datakit-ebpf starting ...")
 
+	k8sinfo, err := k8sinfo.NewK8sInfoFromENV()
+	if err != nil {
+		l.Warn(err)
+	} else {
+		k8sinfo.AutoUpdate(ctx)
+		dknetflow.SetK8sNetInfo(k8sinfo)
+		dkl7flow.SetK8sNetInfo(k8sinfo)
+		dkdns.SetK8sNetInfo(k8sinfo)
+		l4log.SetK8sNetInfo(k8sinfo)
+	}
+
 	// ebpf-net
 	if enableEbpfNet {
 		var traceAll bool
 		switch strings.ToLower(opt.TraceAllProc) {
-		case "true", "t", "yes", "y", "1":
+		case "true", "t", "yes", "y", "1": //nolint:goconst
 			traceAll = true
 		default:
 		}
@@ -284,15 +302,6 @@ func main() { //nolint:funlen
 		err = DumpOffset(offset)
 		if err != nil {
 			l.Warn(err)
-		}
-		k8sinfo, err := newK8sInfoFromENV()
-		if err != nil {
-			l.Warn(err)
-		} else {
-			go k8sinfo.AutoUpdate(ctx)
-			dknetflow.SetK8sNetInfo(k8sinfo)
-			dkl7flow.SetK8sNetInfo(k8sinfo)
-			dkdns.SetK8sNetInfo(k8sinfo)
 		}
 
 		constEditor := dkoffset.NewConstEditor(offset)
@@ -421,7 +430,19 @@ func main() { //nolint:funlen
 		}
 	}
 
-	if enableEbpfBash || enableEbpfNet {
+	if enableBpfNetlog {
+		l.Info(" >>> datakit bpf-netlog tracer(ebpf) starting ...")
+		blacklist := getNetlogBlacklistEnv()
+		l4log.ConfigFunc(!netlogMetricOnly, true)
+
+		go l4log.NetLog(ctx, gTags, fmt.Sprintf("http://%s%s?input=",
+			dkout.DataKitAPIServer, point.Logging.URL())+url.QueryEscape(inputNameNetlog),
+			fmt.Sprintf("http://%s%s?input=",
+				dkout.DataKitAPIServer, point.Network.URL())+url.QueryEscape(inputNameNetlog),
+			blacklist,
+		)
+	}
+	if enableEbpfBash || enableEbpfNet || enableBpfNetlog {
 		<-signaIterrrupt
 	}
 
@@ -549,6 +570,8 @@ func parseFlags() (*Option, map[string]string, error) {
 			enableTrace = true
 		case pluginNameConntrack:
 			enableEbpfConntrack = true
+		case inputNameNetlog:
+			enableBpfNetlog = true
 		}
 	}
 
@@ -591,6 +614,12 @@ func parseFlags() (*Option, map[string]string, error) {
 	default:
 	}
 
+	switch strings.ToLower(opt.NetlogMetricOnly) {
+	case "", "f", "false", "FALSE", "False", "0":
+		netlogMetricOnly = false
+	default:
+	}
+
 	optTags := strings.Split(opt.Tags, ";")
 	for _, item := range optTags {
 		tagArr := strings.Split(item, "=")
@@ -623,56 +652,11 @@ func parseFlags() (*Option, map[string]string, error) {
 	return &opt, gTags, nil
 }
 
-func newK8sInfoFromENV() (*k8sinfo.K8sNetInfo, error) {
-	var k8sURL string
-	k8sBearerTokenPath := ""
-	k8sBearerTokenStr := ""
-
-	if v, ok := os.LookupEnv("K8S_URL"); ok && v != "" {
-		k8sURL = v
-	} else {
-		k8sURL = "https://kubernetes.default:443"
+func getNetlogBlacklistEnv() string {
+	if v, ok := os.LookupEnv("NETLOG_BLACKLIST"); ok && v != "" {
+		return v
 	}
-
-	// net.LookupHost()
-
-	if v, ok := os.LookupEnv("K8S_BEARER_TOKEN_STRING"); ok && v != "" {
-		k8sBearerTokenStr = v
-	}
-
-	if v, ok := os.LookupEnv("K8S_BEARER_TOKEN_PATH"); ok && v != "" {
-		k8sBearerTokenPath = v
-	}
-
-	if k8sBearerTokenPath == "" && k8sBearerTokenStr == "" {
-		//nolint:gosec
-		k8sBearerTokenPath = "/run/secrets/kubernetes.io/serviceaccount/token"
-	}
-
-	var cli *k8sinfo.K8sClient
-	var err error
-	if k8sBearerTokenPath != "" {
-		cli, err = k8sinfo.NewK8sClientFromBearerToken(k8sURL,
-			k8sBearerTokenPath)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		cli, err = k8sinfo.NewK8sClientFromBearerTokenString(k8sURL,
-			k8sBearerTokenStr)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if cli == nil {
-		return nil, fmt.Errorf("new k8s client")
-	}
-	kinfo, err := k8sinfo.NewK8sNetInfo(cli)
-	if err != nil {
-		return nil, err
-	}
-
-	return kinfo, err
+	return ""
 }
 
 func quit() {

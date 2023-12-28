@@ -2,9 +2,18 @@
 package spanid
 
 import (
+	"bytes"
+	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
+	"io"
 	"strconv"
+	"sync"
+	"time"
+
+	expRand "golang.org/x/exp/rand"
+
+	"github.com/oklog/ulid"
 )
 
 const (
@@ -80,4 +89,56 @@ func (id ID128) Byte() []byte {
 
 func (id ID128) Zero() bool {
 	return id.Low == 0 && id.High == 0
+}
+
+type ULID struct {
+	// 使用 ulid 是期望其作为 id 时能尽可能的按时间索引
+	_rand io.Reader
+	sync.Mutex
+}
+
+func NewULID() (*ULID, error) {
+	b := make([]byte, 8)
+	if _, err := rand.Read(b); err != nil {
+		return nil, err
+	}
+	v := binary.LittleEndian.Uint64(b)
+	r := expRand.New(expRand.NewSource(v))
+	r.Seed(v)
+
+	return &ULID{
+		_rand: r,
+	}, nil
+}
+
+func (dkid *ULID) ID() (*ID128, bool) {
+	dkid.Lock()
+	defer dkid.Unlock()
+	if dkid._rand != nil {
+		id, err := ulid.New(uint64(time.Now().UnixMilli()), dkid._rand)
+		if err != nil {
+			return nil, false
+		}
+		i := [16]byte(id)
+		return &ID128{
+			Low:  binary.LittleEndian.Uint64(i[:8]),
+			High: binary.BigEndian.Uint64(i[8:]),
+		}, true
+	} else {
+		b := make([]byte, 25)
+		_, err := rand.Read(b)
+		if err != nil {
+			return nil, false
+		}
+
+		id, err := ulid.New(uint64(time.Now().UnixMilli()), bytes.NewReader(b))
+		if err != nil {
+			return nil, false
+		}
+		i := [16]byte(id)
+		return &ID128{
+			Low:  binary.LittleEndian.Uint64(i[:8]),
+			High: binary.BigEndian.Uint64(i[8:]),
+		}, true
+	}
 }

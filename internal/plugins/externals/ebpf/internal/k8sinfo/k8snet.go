@@ -133,18 +133,24 @@ func (kinfo *K8sNetInfo) AutoUpdate(ctx context.Context) {
 		kinfo.autoUpdate = true
 	}
 
+	ch := make(chan struct{})
 	go func() {
 		ticker := time.NewTicker(time.Second * 30)
+		first := true
 		for {
+			_ = kinfo.Update()
+			if first {
+				first = false
+				close(ch)
+			}
 			select {
 			case <-ticker.C:
-				// TODO: log error
-				_ = kinfo.Update()
 			case <-ctx.Done():
 				return
 			}
 		}
 	}()
+	<-ch
 }
 
 // QueryPodInfo returns pod name, svc name, namespace, deployment,port, err).
@@ -157,12 +163,7 @@ func (kinfo *K8sNetInfo) QueryPodInfo(ip string, port uint32, protocol string) (
 	pP := Port{
 		Port: port,
 	}
-	switch protocol {
-	case "tcp":
-		pP.Protocol = "TCP"
-	case "udp":
-		pP.Protocol = "UDP"
-	}
+
 	if p, ok := kinfo.poNetInfoPort[ip]; ok {
 		// It may be a HostNetwork ip pod, which needs port assistance to determine
 		if v, ok := p[pP]; ok {
@@ -178,6 +179,29 @@ func (kinfo *K8sNetInfo) QueryPodInfo(ip string, port uint32, protocol string) (
 	return "", "", "", "", fmt.Errorf("no match pod")
 }
 
+func (kinfo *K8sNetInfo) QueryPodName(ip string, port uint32, protocol string) string {
+	kinfo.RLock()
+	defer kinfo.RUnlock()
+
+	pP := Port{
+		Port: port,
+	}
+
+	if p, ok := kinfo.poNetInfoPort[ip]; ok {
+		// It may be a HostNetwork ip pod, which needs port assistance to determine
+		if v, ok := p[pP]; ok {
+			return v.Name
+		}
+	}
+
+	// The pod that sends the request as the client, without (host network ip)
+	if v, ok := kinfo.poNetInfoIP[ip]; ok {
+		return v.Name
+	}
+
+	return ""
+}
+
 // QuerySvcInfo returns (svc name, namespace, error).
 func (kinfo *K8sNetInfo) QuerySvcInfo(ip string, port uint32, protocol string) (string, string, string, error) {
 	kinfo.RLock()
@@ -188,12 +212,6 @@ func (kinfo *K8sNetInfo) QuerySvcInfo(ip string, port uint32, protocol string) (
 
 	pP := Port{
 		Port: port,
-	}
-	switch protocol {
-	case "tcp":
-		pP.Protocol = "TCP"
-	case "udp":
-		pP.Protocol = "UDP"
 	}
 
 	if svc, ok := kinfo.svcNetInfoNodePort[pP]; ok {
@@ -222,12 +240,7 @@ func (kinfo *K8sNetInfo) IsServer(srcIP string, srcPort uint32, protocol string)
 	pP := Port{
 		Port: srcPort,
 	}
-	switch protocol {
-	case "tcp":
-		pP.Protocol = "TCP"
-	case "udp":
-		pP.Protocol = "UDP"
-	}
+
 	// ip + port
 	if p, ok := kinfo.poNetInfoPort[srcIP]; ok {
 		if _, ok := p[pP]; ok {

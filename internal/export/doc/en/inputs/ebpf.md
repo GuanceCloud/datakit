@@ -24,6 +24,10 @@ eBPF collector, collecting host network TCP, UDP connection information, Bash ex
 - `ebpf-trace`:
     - Application call relationship tracking.
 
+- `bpf-netlog`:
+   - Data category: `Logging`, `Network`
+   - This plugin implements `ebpf-net`’s `netflow/httpflow`
+
 ## Preconditions {#requirements}
 
 For DataKit before v1.5.6, you need to execute the installation command to install:
@@ -133,15 +137,108 @@ setenforce 0
     
     The ebpf collection configuration in Kubernetes can be adjusted by the following environment variables:
     
-    | Environment Variable Name                                    | Corresponding Configuration Parameter Item                 | Parameter Example                    |
-    | :---                                        | ---                           | ---                        |
-    | `ENV_INPUT_EBPF_ENABLED_PLUGINS`            | `enabled_plugins`             | `ebpf-net,ebpf-bash,ebpf-conntrack`       |
-    | `ENV_INPUT_EBPF_L7NET_ENABLED`              | `l7net_enabled`               | `httpflow,httpflow-tls`    |
-    | `ENV_INPUT_EBPF_IPV6_DISABLED`              | `ipv6_disabled`               | `false/true`               |
-    | `ENV_INPUT_EBPF_EPHEMERAL_PORT`             | `ephemeral_port`              | `32768`                    |
-    | `ENV_INPUT_EBPF_INTERVAL`                   | `interval`                    | `60s`                      |
-    | `ENV_INPUT_EBPF_TRACE_SERVER`               | `trace_server`                | `x.x.x.x:zzz`              |
-    | `ENV_INPUT_EBPF_CONV_TO_DDTRACE`            | `conv_to_ddtrace`             | `false`                    |
+    | Environment Variable Name        | Corresponding Configuration Parameter Item | Parameter Example                                  |
+    | :------------------------------- | ------------------------------------------ | -------------------------------------------------- |
+    | `ENV_INPUT_EBPF_ENABLED_PLUGINS` | `enabled_plugins`                          | `ebpf-net,ebpf-bash,ebpf-conntrack`                |
+    | `ENV_INPUT_EBPF_L7NET_ENABLED`   | `l7net_enabled`                            | `httpflow,httpflow-tls`                            |
+    | `ENV_INPUT_EBPF_IPV6_DISABLED`   | `ipv6_disabled`                            | `false/true`                                       |
+    | `ENV_INPUT_EBPF_EPHEMERAL_PORT`  | `ephemeral_port`                           | `32768`                                            |
+    | `ENV_INPUT_EBPF_INTERVAL`        | `interval`                                 | `60s`                                              |
+    | `ENV_INPUT_EBPF_TRACE_SERVER`    | `trace_server`                             | `x.x.x.x:zzz`                                      |
+    | `ENV_INPUT_EBPF_CONV_TO_DDTRACE` | `conv_to_ddtrace`                          | `false`                                            |
+    | `ENV_NETLOG_BLACKLIST`           | `netlog_blacklist`                         | `ip_saddr=='127.0.0.1' \|\| ip_daddr=='127.0.0.1'` |
+    | `ENV_NETLOG_METRIC_ONLY`         | `netlog_metric_only`                       | `false`                                            |
+
+### The blacklist function of the `netlog` plug-in
+
+Filter rule example:
+
+Single rule:
+
+The following rules filter network data with ip `1.1.1.1` and port 80. (Line breaks allowed after operator)
+
+```py
+(ip_saddr == "1.1.1.1" || ip_saddr == "1.1.1.1") &&
+      (src_port == 80 || dst_port == 80)
+```
+
+Multiple rules:
+
+Use `;` or `\n` to separate the rules. If any rule is met, the data will be filtered.
+
+```py
+udp
+ip_saddr == "1.1.1.1" && (src_port == 80 || dst_port == 80);
+ip_saddr == "10.10.0.1" && (src_port == 80 || dst_port == 80)
+
+ipnet_contains("127.0.0.0/8", ip_saddr); ipv6
+```
+
+Data available for filtering:
+
+This filter is used to filter network data. Comparable data is as follows:
+
+| key name      | type | description                                                                             |
+| ------------- | ---- | --------------------------------------------------------------------------------------- |
+| `tcp`         | bool | Whether it is `TCP` protocol                                                            |
+| `udp`         | bool | Whether it is `UDP` protocol                                                            |
+| `ipv4`        | bool | Whether it is `IPv4` protocol                                                           |
+| `ipv6`        | bool | Whether it is `IPv6` protocol                                                           |
+| `src_port`    | int  | Source port (based on the observed network card/host/container as the reference system) |
+| `dst_port`    | int  | target port                                                                             |
+| `ip_saddr`    | str  | Source `IPv4` network address                                                           |
+| `ip_saddr`    | str  | Target `IPv4` network address                                                           |
+| `ip6_saddr`   | str  | Source `IPv6` network address                                                           |
+| `ip6_daddr`   | str  | Destination `IPv6` network address                                                      |
+| `k8s_src_pod` | str  | source `pod` name                                                                       |
+| `k8s_dst_pod` | str  | target `pod` name                                                                       |
+
+Operator:
+
+Operators from highest to lowest:
+
+| Priority | Op     | Name                        | Binding Direction |
+| -------- | ------ | --------------------------- | ----------------- |
+| 1        | `()`   | parentheses                 | left              |
+| 2        | `! `   | Logical NOT, unary operator | Right             |
+| 3        | `!=`   | Not equal to                | Left              |
+| 3        | `>=`   | Greater than or equal to    | Left              |
+| 3        | `>`    | greater than                | left              |
+| 3        | `==`   | equal to                    | left              |
+| 3        | `<=`   | Less than or equal to       | Left              |
+| 3        | `<`    | less than                   | left              |
+| 4        | `&&`   | Logical AND                 | Left              |
+| 4        | `\|\|` | Logical OR                  | Left              |
+
+function:
+
+1. **ipnet_contains**
+
+     Function signature: `fn ipnet_contains(ipnet: str, ipaddr: str) bool`
+
+     Description: Determine whether the address is within the specified network segment
+
+     Example:
+
+     ```py
+     ipnet_contains("127.0.0.0/8", ip_saddr)
+     ```
+
+     If the `ip_saddr` value is "127.0.0.1", then this rule returns `true` and the TCP connection packet/UDP packet will be filtered.
+
+2. **has_prefix**
+
+     Function signature: `fn has_prefix(s: str, prefix: str) bool`
+
+     Description: Specifies whether the field contains a certain prefix
+
+     Example:
+
+     ```py
+     has_prefix(k8s_src_pod, "datakit-") || has_prefix(k8s_dst_pod, "datakit-")
+     ```
+
+     This rule returns `true` if the pod name is `datakit-kfez321`.
 
 ## Measurements {#measurements}
 

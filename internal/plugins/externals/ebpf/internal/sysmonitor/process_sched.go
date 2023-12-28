@@ -275,7 +275,7 @@ func (tracer *SchedTracer) ProcessSchedHandler(cpu int, data []byte,
 		}
 
 		if err := tracer.goProbeRegister(p); err != nil {
-			l.Warn(err)
+			l.Debug(err)
 		}
 	case SchedExit:
 		if tracer.processFilter != nil {
