@@ -1,3 +1,15 @@
+---
+title     : 'Redis'
+summary   : 'Collect Redis metrics and logs'
+__int_icon      : 'icon/redis'
+dashboard :
+  - desc  : 'Redis'
+    path  : 'dashboard/en/redis'
+monitor:
+  - desc: 'Redis'
+    path: 'monitor/en/redis'
+---
+
 <!-- markdownlint-disable MD025 -->
 # Redis
 <!-- markdownlint-enable -->
@@ -57,6 +69,8 @@ apt-get install redis-tools
 yum install -y  redis
 ```
 
+### Collector Configuration {#input-config}
+
 <!-- markdownlint-disable MD046 -->
 === "Host Installation"
 
@@ -79,7 +93,7 @@ yum install -y  redis
     If it is Alibaba Cloud Redis and the corresponding username and PASSWORD are set, the `<PASSWORD>` should be set to `your-user:your-password`, such as `datakit:Pa55W0rd`.
 <!-- markdownlint-enable -->
 
-### Log Collection {#redis-logging}
+### Log Collection Configuration {#logging-config}
 
 To collect Redis logs, you need to open the log file `redis.config` output configuration in Redis:
 
@@ -89,15 +103,17 @@ To collect Redis logs, you need to open the log file `redis.config` output confi
     files = ["/var/log/redis/*.log"]
 ```
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     When configuring log collection, you need to install the DataKit on the same host as the Redis service, or otherwise mount the log on the DataKit machine.
     
     In K8s, Redis logs can be exposed to stdout, and DataKit can automatically find its corresponding log.
+<!-- markdownlint-enable -->
 
 ## Metrics {#metric}
 
-For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.redis.tags]`:
+For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.{{.InputName}}.tags]`:
 
 ``` toml
  [inputs.redis.tags]
@@ -110,7 +126,7 @@ For all of the following data collections, a global tag named `host` is appended
 
 {{if eq $m.Type "metric"}}
 
-#### `{{$m.Name}}`
+### `{{$m.Name}}`
 
 {{$m.Desc}}
 
@@ -126,13 +142,12 @@ For all of the following data collections, a global tag named `host` is appended
 
 ## Logging {#logging}
 
-[:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6)
-
+<!-- markdownlint-disable MD024 -->
 {{ range $i, $m := .Measurements }}
 
 {{if eq $m.Type "logging"}}
 
-#### `{{$m.Name}}`
+### `{{$m.Name}}`
 
 {{$m.Desc}}
 
