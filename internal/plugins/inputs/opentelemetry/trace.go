@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"time"
 
+	common "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/common/v1"
+
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/GuanceCloud/cliutils/point"
@@ -25,14 +27,16 @@ func parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
 	spanIDs, parentIDs := getSpanIDsAndParentIDs(resspans)
 	for _, spans := range resspans {
 		log.Debugf("otel span: %s", spans.String())
-		resattrs := extractAtrributes(spans.Resource.Attributes)
+		serviceName := "unknown_service"
+		for _, v := range spans.Resource.Attributes {
+			if v.Key == otelResourceServiceKey {
+				serviceName = v.Value.GetStringValue()
+			}
+		}
 
 		var dktrace itrace.DatakitTrace
 		for _, scopeSpans := range spans.ScopeSpans {
-			scpattrs := extractAtrributes(scopeSpans.Scope.Attributes)
-
 			for _, span := range scopeSpans.Spans {
-				spattrs := extractAtrributes(span.Attributes)
 				var spanKV point.KVs
 				spanKV = spanKV.Add(itrace.FieldTraceID, convert(span.GetTraceId()), false, false).
 					Add(itrace.FieldParentID, convert(span.GetParentSpanId()), false, false).
@@ -40,33 +44,14 @@ func parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
 					Add(itrace.FieldResource, span.Name, false, false).
 					AddTag(itrace.TagOperation, span.Name).
 					AddTag(itrace.TagSource, inputName).
+					AddTag(itrace.TagService, serviceName).
 					Add(itrace.FieldStart, int64(span.StartTimeUnixNano)/int64(time.Microsecond), false, false).
 					Add(itrace.FieldDuration, int64(span.EndTimeUnixNano-span.StartTimeUnixNano)/int64(time.Microsecond), false, false).
 					AddTag(itrace.TagSpanStatus, getDKSpanStatus(span.GetStatus())).
 					AddTag(itrace.TagSpanType,
 						itrace.FindSpanTypeStrSpanID(convert(span.GetSpanId()), convert(span.GetParentSpanId()), spanIDs, parentIDs))
-
-				attrs := newAttributes(resattrs).merge(scpattrs...).merge(spattrs...)
-				if kv, i := attrs.find(otelResourceServiceKey); i != -1 {
-					spanKV = spanKV.AddTag(itrace.TagService, kv.Value.GetStringValue())
-				}
-
-				if kv, i := attrs.find(otelResourceServiceVersionKey); i != -1 {
-					spanKV = spanKV.AddTag(itrace.TagVersion, kv.Value.GetStringValue())
-				}
-				if kv, i := attrs.find(otelResourceProcessIDKey); i != -1 {
-					spanKV = spanKV.AddTag(itrace.TagPid, kv.Value.GetStringValue())
-				}
-				if kv, i := attrs.find(otelResourceContainerNameKey); i != -1 {
-					spanKV = spanKV.AddTag(itrace.TagContainerHost, kv.Value.GetStringValue())
-				}
-				if kv, i := attrs.find(otelHTTPMethodKey); i != -1 {
-					spanKV = spanKV.AddTag(itrace.TagHttpMethod, kv.Value.GetStringValue())
-					attrs = attrs.remove(otelHTTPMethodKey)
-				}
-				if kv, i := attrs.find(otelHTTPStatusCodeKey); i != -1 {
-					spanKV = spanKV.Add(itrace.TagHttpStatusCode, kv.Value.GetIntValue(), false, false)
-					attrs = attrs.remove(otelHTTPStatusCodeKey)
+				for k, v := range tags { // span.attribute 优先级大于全局tag。
+					spanKV = spanKV.MustAddTag(k, v)
 				}
 
 				for i := range span.Events {
@@ -79,18 +64,15 @@ func parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
 						break
 					}
 				}
+				if kind, ok := spanKinds[int32(span.GetKind())]; ok {
+					spanKV = spanKV.AddTag("span_kind", kind)
+				}
+				attrs := make([]*common.KeyValue, 0)
+				spanKV, attrs = attributesToKVS(spanKV, attrs, spans.Resource.GetAttributes())
+				spanKV, attrs = attributesToKVS(spanKV, attrs, scopeSpans.Scope.GetAttributes())
+				spanKV, attrs = attributesToKVS(spanKV, attrs, span.GetAttributes())
 
-				attrtags, attrfields := attrs.splite()
-				for k, v := range tags {
-					spanKV = spanKV.AddTag(k, v)
-				}
-				for k, v := range attrtags {
-					spanKV = spanKV.AddTag(k, v)
-				}
-				for k, v := range attrfields {
-					spanKV = spanKV.Add(k, v, false, false)
-				}
-
+				span.Attributes = attrs
 				spanKV = spanKV.AddTag(itrace.TagSourceType, getSourceType(spanKV.Tags()))
 				if !delMessage {
 					if buf, err := protojson.Marshal(span); err != nil {

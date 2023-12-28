@@ -39,7 +39,7 @@ func TestReadEnv(t *testing.T) {
 			name: "dd_env_tc_1",
 			envs: map[string]string{
 				"ENV_INPUT_DDTRACE_ENDPOINTS":          `["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]`,
-				"ENV_INPUT_DDTRACE_IGNORE_TAGS":        `["block1", "block2"]`,
+				"ENV_INPUT_DDTRACE_CUSTOMER_TAGS":      `["block1", "block2"]`,
 				"ENV_INPUT_DDTRACE_COMPATIBLE_OTEL":    `false`,
 				"ENV_INPUT_DDTRACE_KEEP_RARE_RESOURCE": `true`,
 				"ENV_INPUT_DDTRACE_OMIT_ERR_STATUS":    `["404", "403", "400"]`,
@@ -51,7 +51,7 @@ func TestReadEnv(t *testing.T) {
 			},
 			expected: &Input{
 				Endpoints:        []string{"/v0.3/traces", "/v0.4/traces", "/v0.5/traces"},
-				IgnoreTags:       []string{"block1", "block2"},
+				CustomerTags:     []string{"block1", "block2"},
 				KeepRareResource: true,
 				CompatibleOTEL:   false,
 				OmitErrStatus:    []string{"404", "403", "400"},

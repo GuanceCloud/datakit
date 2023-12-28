@@ -39,9 +39,10 @@ const (
 	inputName    = "opentelemetry"
 	sampleConfig = `
 [[inputs.opentelemetry]]
-  ## ignore_tags will work as a blacklist to prevent tags send to data center.
-  ## Every value in this list is a valid string of regular expression.
-  # ignore_tags = ["block1", "block2"]
+  ## customer_tags will work as a whitelist to prevent tags send to data center.
+  ## All . will replace to _ ,like this :
+  ## "project.name" to send to GuanCe center is "project_name"
+  # customer_tags = ["sink_project", "custom.otel.tag"]
 
   ## Keep rare tracing resources list switch.
   ## If some resources are rare enough(not presend in 1 hour), those resource will always send
@@ -158,7 +159,7 @@ type grpcConfig struct {
 type Input struct {
 	Pipelines           map[string]string            `toml:"pipelines"`             // deprecated
 	IgnoreAttributeKeys []string                     `toml:"ignore_attribute_keys"` // deprecated
-	IgnoreTags          []string                     `toml:"ignore_tags"`
+	CustomerTags        []string                     `toml:"customer_tags"`
 	HTTPConfig          *httpConfig                  `toml:"http"`
 	GRPCConfig          *grpcConfig                  `toml:"grpc"`
 	CompatibleDDTrace   bool                         `toml:"compatible_ddtrace"`
@@ -319,13 +320,10 @@ func (ipt *Input) Run() {
 
 		return
 	}
-	for _, v := range ipt.IgnoreTags {
-		if rexp, err := regexp.Compile(v); err != nil {
-			log.Debug(err.Error())
-		} else {
-			ignoreTags = append(ignoreTags, rexp)
-		}
+	if len(ipt.CustomerTags) > 0 {
+		AddCustomTags(ipt.CustomerTags)
 	}
+
 	traceOpts = append(point.DefaultLoggingOptions(), point.WithExtraTags(ipt.Tagger.HostTags()))
 	delMessage = ipt.DelMessage
 	tags = ipt.Tags

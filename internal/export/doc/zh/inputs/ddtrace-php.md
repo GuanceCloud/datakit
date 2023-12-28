@@ -57,7 +57,7 @@ env[DD_AGENT_HOST] = $SOME_ENV
 ; process as DD_SERVICE
 env[DD_SERVICE] = my-app
 ; Or using the equivalent INI setting
-php_value datadog.service my-app
+php_value[datadog.service] = my-app
 ```
 
 还可以在 server config, virtual host, directory, or .htaccess 文件中使用 SetEnv。

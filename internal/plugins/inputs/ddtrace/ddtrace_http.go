@@ -242,8 +242,11 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			Add(itrace.FieldStart, span.Start/int64(time.Microsecond), false, false).
 			Add(itrace.FieldDuration, span.Duration/int64(time.Microsecond), false, false)
 
-		if v, ok := span.Meta["runtime-id"]; ok {
-			spanKV = spanKV.AddTag("runtime_id", v).AddTag("runtime-id", v)
+		// runtime_id 作为链路和 profiling 关联的字段，由于历史问题，需要增加一个冗余字段。
+		runTimeIDKey := "runtime-id"
+		if v, ok := span.Meta[runTimeIDKey]; ok {
+			spanKV = spanKV.AddTag("runtime_id", v).AddTag(runTimeIDKey, v)
+			delete(span.Meta, runTimeIDKey)
 		}
 		if v, ok := span.Meta["trace_128_bit_id"]; ok {
 			spanKV = spanKV.Add(itrace.FieldTraceID, v, false, true)
@@ -256,9 +259,9 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 		for k, v := range span.Meta {
 			if replace, ok := ddTags[k]; ok {
 				if len(v) > 1024 {
-					spanKV = spanKV.Add(replace, v, false, false)
+					spanKV = spanKV.Add(replace, v, false, true)
 				} else {
-					spanKV = spanKV.AddTag(replace, v)
+					spanKV = spanKV.MustAddTag(replace, v)
 				}
 				// 从 message 中删除 key.
 				delete(span.Meta, k)

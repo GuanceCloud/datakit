@@ -44,7 +44,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	log = logger.SLogger(inputName)
 
 	for _, key := range []string{
-		"ENV_INPUT_DDTRACE_ENDPOINTS", "ENV_INPUT_DDTRACE_COMPATIBLE_OTEL", "ENV_INPUT_DDTRACE_IGNORE_TAGS", "ENV_INPUT_DDTRACE_KEEP_RARE_RESOURCE",
+		"ENV_INPUT_DDTRACE_ENDPOINTS", "ENV_INPUT_DDTRACE_COMPATIBLE_OTEL", "ENV_INPUT_DDTRACE_CUSTOMER_TAGS", "ENV_INPUT_DDTRACE_KEEP_RARE_RESOURCE",
 		"ENV_INPUT_DDTRACE_OMIT_ERR_STATUS", "ENV_INPUT_DDTRACE_CLOSE_RESOURCE", "ENV_INPUT_DDTRACE_SAMPLER",
 		"ENV_INPUT_DDTRACE_TAGS", "ENV_INPUT_DDTRACE_THREADS", "ENV_INPUT_DDTRACE_STORAGE", "ENV_INPUT_DDTRACE_DEL_MESSAGE",
 	} {
@@ -66,12 +66,12 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			} else {
 				ipt.CompatibleOTEL = ok
 			}
-		case "ENV_INPUT_DDTRACE_IGNORE_TAGS":
+		case "ENV_INPUT_DDTRACE_CUSTOMER_TAGS":
 			var list []string
 			if err := json.Unmarshal([]byte(value), &list); err != nil {
 				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
 			} else {
-				ipt.IgnoreTags = list
+				ipt.CustomerTags = list
 			}
 		case "ENV_INPUT_DDTRACE_KEEP_RARE_RESOURCE":
 			if ok, err := strconv.ParseBool(value); err != nil {

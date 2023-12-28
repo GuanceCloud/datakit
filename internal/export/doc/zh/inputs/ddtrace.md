@@ -116,7 +116,7 @@ DDTrace 是 DataDog 开源的 APM 产品，Datakit 内嵌的 DDTrace Agent 用�
     | 环境变量名                             | 类型        | 示例                                                                             |
     | -------------------------------------- | ----------- | -------------------------------------------------------------------------------- |
     | `ENV_INPUT_DDTRACE_ENDPOINTS`          | JSON string | `["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]`                               |
-    | `ENV_INPUT_DDTRACE_IGNORE_TAGS`        | JSON string | `["block1", "block2"]`                                                           |
+    | `ENV_INPUT_DDTRACE_CUSTOMER_TAGS`      | JSON string | `["sink_project", "custom_dd_tag"]`                                              |
     | `ENV_INPUT_DDTRACE_KEEP_RARE_RESOURCE` | bool        | true                                                                             |
     | `ENV_INPUT_DDTRACE_COMPATIBLE_OTEL`    | bool        | true                                                                             |
     | `ENV_INPUT_DDTRACE_DEL_MESSAGE`        | bool        | true                                                                             |
@@ -203,31 +203,38 @@ DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.p
 
 ### 固定提取 tag {#add-tags}
 
-从 DataKit 版本 [1.21.0](../datakit/changelog.md#cl-1.21.0) 开始，不在将 Span.Mate 中全部都提前到一级标签中，而是选择性提取，以下是可能会提取出的标签列表：
+从 DataKit 版本 [1.21.0](../datakit/changelog.md#cl-1.21.0) 开始，黑名单功能废弃，并且不在将 Span.Mate 中全部都提前到一级标签中，而是选择性提取。
 
-| Mete               | tag               | 说明          |
-|:-------------------|:------------------|:------------|
-| http.url           | http_url          | HTTP 请求完整路径 |
-| http.hostname      | http_hostname     | hostname    |
-| http.route         | http_route        | 路由          |
-| http.status_code   | http_status_code  | 状态码         |
-| http.method        | http_method       | 请求方法        |
-| http.client_ip     | http_client_ip    | 客户端 IP      |
-| sampling.priority  | sampling_priority | 采样          |
-| span.kind          | span_kind         | span 类型     |
-| error              | error             | 是否错误        |
-| dd.version         | dd_version        | agent 版本    |
-| error.message      | error_message     | 错误信息        |
-| error.stack        | error_stack       | 堆栈信息        |
-| error_type         | error_type        | 错误类型        |
-| system.pid         | pid               | pid         |
-| error.msg          | error_message     | 错误信息        |
-| project            | project           | project     |
-| version            | version           | 版本          |
-| env                | env               | 环境          |
-| _dd.base_service   | _dd_base_service  | 上级服务        |
+以下是可能会提取出的标签列表：
+
+| Mete              | tag               | 说明             |
+|:------------------|:------------------|:---------------|
+| http.url          | http_url          | HTTP 请求完整路径    |
+| http.hostname     | http_hostname     | hostname       |
+| http.route        | http_route        | 路由             |
+| http.status_code  | http_status_code  | 状态码            |
+| http.method       | http_method       | 请求方法           |
+| http.client_ip    | http_client_ip    | 客户端 IP         |
+| sampling.priority | sampling_priority | 采样             |
+| span.kind         | span_kind         | span 类型        |
+| error             | error             | 是否错误           |
+| dd.version        | dd_version        | agent 版本       |
+| error.message     | error_message     | 错误信息           |
+| error.stack       | error_stack       | 堆栈信息           |
+| error_type        | error_type        | 错误类型           |
+| system.pid        | pid               | pid            |
+| error.msg         | error_message     | 错误信息           |
+| project           | project           | project        |
+| version           | version           | 版本             |
+| env               | env               | 环境             |
+| host              | host              | tag 中的主机名      |
+| pod_name          | pod_name          | tag 中的 pod 名称  |
+| _dd.base_service  | _dd_base_service  | 上级服务           |
 
 在观测云中的链路界面，不在列表中的标签也可以进行筛选。
+
+从 DataKit 版本 [1.22.0](../datakit/changelog.md#cl-1.22.0) 恢复白名单功能，如果有必须要提取到一级标签列表中的标签，可以在 `customer_tags` 中配置。
+配置的白名单标签如果是原生的 `message.meta` 中，会使用 `.` 作为分隔符，采集器会进行转换将 `.` 替换成 `_` 。
 
 ## 链路字段 {#tracing}
 

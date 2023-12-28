@@ -123,9 +123,6 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 					itrace.TagHttpRoute,
 					itrace.TagHttpUrl,
 				),
-				inputs.WithIgnoreTags(
-					testutils.RUNTIME_ID,
-				),
 				inputs.WithIgnoreUnexpectedTags(true),
 			},
 		},
