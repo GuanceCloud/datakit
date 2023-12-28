@@ -127,16 +127,16 @@ const sampleConfig = `
 
   ## Set local true to collect the metrics of the current node only.
   # Or you can set local false to collect the metrics of all nodes in the cluster.
-  local = true
+  local = false
 
   ## Set true to collect the health metric of the cluster.
-  cluster_health = false
+  cluster_health = true
 
   ## Set cluster health level, either indices or cluster.
   # cluster_health_level = "indices"
 
   ## Whether to collect the stats of the cluster.
-  cluster_stats = false
+  cluster_stats = true 
 
   ## Set true to collect cluster stats only from the master node.
   cluster_stats_only_from_master = true
