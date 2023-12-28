@@ -16,9 +16,9 @@ Turn on the Prometheus Remote Write feature and add the following configuration 
 remote_write:
  - url: "http://<datakit-ip>:9529/prom_remote_write"
 
-# If want add some tag
+# If want add some tag, ( __source will not in tag, only show in Datakit expose metrics)
 # remote_write:
-# - url: "http://<datakit-ip>:9529/prom_remote_write?host=1.2.3.4&foo=bar" 
+# - url: "http://<datakit-ip>:9529/prom_remote_write?host=1.2.3.4&foo=bar&__source=<your_source>" 
 ```
 
 ## Configuration {#config}

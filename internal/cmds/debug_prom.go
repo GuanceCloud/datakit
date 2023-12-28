@@ -15,7 +15,9 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/gogo/protobuf/proto"
 	"github.com/influxdata/influxdb1-client/models"
+	"github.com/prometheus/prometheus/prompb"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -123,16 +125,17 @@ func showPromRemoteWriteInput(input *pr.Input) error {
 		return err
 	}
 
-	measurements, err := input.Parse(data, input)
+	var req prompb.WriteRequest
+	if err := proto.Unmarshal(data, &req); err != nil {
+		return fmt.Errorf("unable to unmarshal request body: %w", err)
+	}
+
+	measurements, err := input.Parse(req.Timeseries, input, nil)
 	if err != nil {
 		return err
 	}
-	var points []*point.Point
-	for _, m := range measurements {
-		input.SetTags(m)
-		points = append(points, m)
-	}
-	return printResult(points)
+
+	return printResult(measurements)
 }
 
 func getPromInput(configPath string) (*prom.Input, error) {
