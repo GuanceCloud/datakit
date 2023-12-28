@@ -1,5 +1,18 @@
+---
+title     : 'MySQL'
+summary   : 'Collect MySQL metrics and logs'
+__int_icon      : 'icon/mysql'
+dashboard :
+  - desc  : 'MySQL'
+    path  : 'dashboard/en/mysql'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
 
+<!-- markdownlint-disable MD025 -->
 # MySQL
+<!-- markdownlint-enable -->
 
 ---
 
@@ -14,7 +27,9 @@ MySQL metrics collection, which collects the following data:
 - InnoDB related metrics
 - Support custom query data collection
 
-## Preconditions {#requirements}
+## Configuration {#config}
+
+### Preconditions {#requirements}
 
 - MySQL version 5.7+
 - Create a monitoring account (in general, you need to log in with MySQL `root` account to create MySQL users)
@@ -36,94 +51,24 @@ GRANT SELECT ON performance_schema.* TO 'datakit'@'localhost';
 GRANT SELECT ON mysql.user TO 'datakit'@'localhost';
 GRANT replication client on *.*  to 'datakit'@'localhost';
 ```
+<!-- markdownlint-disable MD046 -->
+???+ attention
 
-All the above creation and authorization operations limit that the user `datakit` can only access MySQL on MySQL host (`localhost`). If MySQL is collected remotely, it is recommended to replace `localhost` with `%` (indicating that DataKit can access MySQL on any machine), or use a specific DataKit installation machine address.
+    - All the above creation and authorization operations limit that the user `datakit` can only access MySQL on MySQL host (`localhost`). If MySQL is collected remotely, it is recommended to replace `localhost` with `%` (indicating that DataKit can access MySQL on any machine), or use a specific DataKit installation machine address.
 
-> Note that if you find the collector has the following error when using `localhost` , you need to replace the above `localhost` with `::1`
+    - Note that if you find the collector has the following error when using `localhost` , you need to replace the above `localhost` with `::1`<br/>
+    `Error 1045: Access denied for user 'datakit'@'localhost' (using password: YES)`
+<!-- markdownlint-enable -->
 
-```
-Error 1045: Access denied for user 'datakit'@'::1' (using password: YES)
-```
+### Collector Configuration {#input-config}
 
-## Configuration {#config}
-
+<!-- markdownlint-disable MD046 -->
 === "Host Installation"
 
-    Go to the `conf.d/db` directory under the DataKit installation directory, copy `mysql.conf.sample` and name it `mysql.conf`. Examples are as follows:
+    Go to the `conf.d/db` directory under the DataKit installation directory, copy `mysql.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
     
     ```toml
-        
-    [[inputs.mysql]]
-      host = "localhost"
-      user = "datakit"
-      pass = "<PASS>"
-      port = 3306
-      # sock = "<SOCK>"
-      # charset = "utf8"
-    
-      ## @param connect_timeout - number - optional - default: 10s
-      # connect_timeout = "10s"
-    
-      ## Deprecated
-      # service = "<SERVICE>"
-    
-      interval = "10s"
-    
-      ## @param inno_db
-      innodb = true
-    
-      ## table_schema
-      tables = []
-    
-      ## user
-      users = []
-    
-      ## Start database performance index collection
-      # dbm = false
-    
-      # [inputs.mysql.log]
-      # #required, glob logfiles
-      # files = ["/var/log/mysql/*.log"]
-    
-      ## glob filteer
-      #ignore = [""]
-    
-      ## optional encodings:
-      ##    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
-      #character_encoding = ""
-    
-      ## The pattern should be a regexp. Note the use of '''this regexp'''
-      ## regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
-      #multiline_match = '''^(# Time|\d{4}-\d{2}-\d{2}|\d{6}\s+\d{2}:\d{2}:\d{2}).*'''
-    
-      ## grok pipeline script path
-      #pipeline = "mysql.p"
-    
-      ## Set true to enable election
-      election = true
-    
-      # [[inputs.mysql.custom_queries]]
-      #   sql = "SELECT foo, COUNT(*) FROM table.events GROUP BY foo"
-      #   metric = "xxxx"
-      #   tagKeys = ["column1", "column1"]
-      #   fieldKeys = ["column3", "column1"]
-      
-      ## Monitoring metric configuration
-      [inputs.mysql.dbm_metric]
-        enabled = true
-      
-      ## Monitoring sampling configuration
-      [inputs.mysql.dbm_sample]
-        enabled = true  
-    
-      ## Waiting for event collection
-      [inputs.mysql.dbm_activity]
-        enabled = true  
-    
-      [inputs.mysql.tags]
-        # some_tag = "some_value"
-        # more_tag = "some_other_value"
-    
+    {{ CodeBlock .InputSample 4 }}
     ```
     
     Once configured, [restart DataKit](../datakit/datakit-service-how-to.md#manage-service).
@@ -131,18 +76,9 @@ Error 1045: Access denied for user 'datakit'@'::1' (using password: YES)
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
-
+<!-- markdownlint-enable -->
 
 ---
-
-For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.mysql.tags]`:
-
-```toml
- [inputs.mysql.tags]
-  # some_tag = "some_value"
-  # more_tag = "some_other_value"
-  # ...
-```
 
 ### Binlog Start {#binlog}
 
@@ -245,7 +181,7 @@ Create a separate stored procedure for the database that needs to collect execut
 
 ```sql
 DELIMITER $$
-CREATE PROCEDURE <数据库名称>.explain_statement(IN query TEXT)
+CREATE PROCEDURE <db_name>.explain_statement(IN query TEXT)
     SQL SECURITY DEFINER
 BEGIN
     SET @explain := CONCAT('EXPLAIN FORMAT=json ', query);
@@ -254,7 +190,7 @@ BEGIN
     DEALLOCATE PREPARE stmt;
 END $$
 DELIMITER ;
-GRANT EXECUTE ON PROCEDURE <数据库名称>.explain_statement TO datakit@'%';
+GRANT EXECUTE ON PROCEDURE <db_name>.explain_statement TO datakit@'%';
 ```
 
 - `consumers` configuration
@@ -281,13 +217,23 @@ UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name LIKE 'eve
 UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name = 'events_waits_current';
 ```
 
-### Measurements {#measurement}
+## Metric {#metric}
 
+All the following data collection will add a global tag named `host` by default (the tag value is the host name of DataKit). You can also specify other tags through `[inputs.{{.InputName}}.tags]` in the configuration:
+
+```toml
+ [inputs.{{.InputName}}.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
+  # ...
+```
+
+<!-- markdownlint-disable MD024 -->
 {{ range $i, $m := .Measurements }}
 
 {{if eq $m.Type "metric"}}
 
-#### `{{$m.Name}}`
+### `{{$m.Name}}`
 
 {{$m.Desc}}
 
@@ -304,7 +250,7 @@ UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name = 'events
 
 
 
-### Log {#logging}
+## Log {#logging}
 
 [:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6)
 
@@ -312,7 +258,7 @@ UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name = 'events
 
 {{if eq $m.Type "logging"}}
 
-#### `{{$m.Name}}`
+### `{{$m.Name}}`
 
 {{$m.Desc}}
 
@@ -325,9 +271,9 @@ UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name = 'events
 {{$m.FieldsMarkdownTable}} {{end}}
 
 {{ end }}
+<!-- markdownlint-enable -->
 
-
-## MySQL Run Log {#mysql-logging}
+### MySQL Run Log {#mysql-logging}
 
 If you need to collect MySQL log, open the log-related configuration in the configuration. If you need to open MySQL slow query log, you need to open the slow query log. Execute the following statements in MySQL.
 
@@ -352,7 +298,7 @@ MySQL logs are divided into normal logs and slow logs.
 
 Original log:
 
-```
+``` log
 2017-12-29T12:33:33.095243Z         2 Query     SELECT TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE CREATE_OPTIONS LIKE '%partitioned%';
 ```
 
@@ -368,7 +314,7 @@ The list of cut fields is as follows:
 
 Original log:
 
-```
+``` log
 # Time: 2019-11-27T10:43:13.460744Z
 # User@Host: root[root] @ localhost [1.2.3.4]  Id:    35
 # Query_time: 0.214922  Lock_time: 0.000184 Rows_sent: 248832  Rows_examined: 72
@@ -397,6 +343,7 @@ The list of cut fields is as follows:
 
 ## FAQ {#faq}
 
+<!-- markdownlint-disable MD013 -->
 ### :material-chat-question: Why the measurement `mysql_user_status` is not collected for Aliyun RDS? {#faq-user-no-data}
 
 The measurment is collected from MySQL `performance_schema`. You should check if it is enabled by the SQL below：
@@ -413,3 +360,5 @@ show variables like "performance_schema";
 ```
 
 If the value is `OFF`, please refer to the [document](https://help.aliyun.com/document_detail/41726.html?spm=a2c4g.276975.0.i9) to enable it.
+
+<!-- markdownlint-enable -->
