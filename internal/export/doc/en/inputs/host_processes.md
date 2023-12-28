@@ -1,5 +1,19 @@
+---
+title     : 'Process'
+summary   : 'Collect host process and it's metrics'
+__int_icon      : 'icon/process'
+dashboard :
+  - desc  : 'process'
+    path  : 'dashboard/en/process'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
 
+<!-- markdownlint-disable MD025 -->
 # Process
+<!-- markdownlint-enable -->
+
 ---
 
 {{.AvailableArchs}}
@@ -8,11 +22,17 @@
 
 The process collector can monitor various running processes in the system, acquire and analyze various metrics when the process is running, Including memory utilization rate, CPU time occupied, current state of the process, port of process monitoring, etc. According to various index information of process running, users can configure relevant alarms in Guance Cloud, so that users can know the state of the process, and maintain the failed process in time when the process fails.
 
+<!-- markdownlint-disable MD046 -->
+
 ???+ attention
 
     Process collectors (whether objects or metrics) may consume a lot on macOS, causing CPU to soar, so you can turn them off manually. At present, the default collector still turns on the process object collector (it runs once every 5min by default).
 
-## Preconditions {#requirements}
+<!-- markdownlint-enable -->
+
+## Configuration {#config}
+
+### Preconditions {#requirements}
 
 - The process collector does not collect process metrics by default. To collect metrics-related data, set `open_metric` to `true` in `host_processes.conf`. For example:
                               
@@ -22,7 +42,9 @@ The process collector can monitor various running processes in the system, acqui
 	 open_metric = true
 ```
 
-## Configuration {#config}
+### Collector Configuration {#input-config}
+
+<!-- markdownlint-disable MD046 -->
 
 === "Host Installation"
 
@@ -47,7 +69,9 @@ The process collector can monitor various running processes in the system, acqui
     | `ENV_INPUT_HOST_PROCESSES_ENABLE_LISTEN_PORTS` | `enable_listen_ports`   | `true`/`false`                                                     |
     | `ENV_INPUT_HOST_PROCESSES_ENABLE_OPEN_FILES` | `enable_open_files`   |`true`/`false`                                                      |
 
-## Measurements {#measurement}
+<!-- markdownlint-enable -->
+
+## Metric {#metric}
 
 For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.host_processes.tags]`:
 
@@ -58,13 +82,14 @@ For all of the following data collections, a global tag named `host` is appended
   # ...
 ```
 
-### Metrics {#metrics}
+<!-- markdownlint-disable MD024 -->
+
 
 {{ range $i, $m := .Measurements }}
 
 {{if eq $m.Type "metric"}}
 
-#### `{{$m.Name}}`
+### `{{$m.Name}}`
 
 {{$m.Desc}}
 
@@ -79,13 +104,13 @@ For all of the following data collections, a global tag named `host` is appended
 {{ end }}
 
 
-### Objects {#objects}
+## Object {#object}
 
 {{ range $i, $m := .Measurements }}
 
 {{if eq $m.Type "object"}}
 
-#### `{{$m.Name}}`
+### `{{$m.Name}}`
 
 {{$m.Desc}}
 
@@ -98,3 +123,5 @@ For all of the following data collections, a global tag named `host` is appended
 {{$m.FieldsMarkdownTable}} {{end}}
 
 {{ end }}
+
+<!-- markdownlint-enable -->
