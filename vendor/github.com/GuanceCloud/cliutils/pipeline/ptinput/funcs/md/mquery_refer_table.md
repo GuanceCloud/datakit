@@ -2,7 +2,7 @@
 
 函数原型：`fn mquery_refer_table(table_name: str, keys: list, values: list)`
 
-函数说明：通过指定多个 key 查询外部引用表，并将查询结果的首行的所有列追加到 field 中。
+函数说明：通过指定多个 key 查询外部引用表，并将查询结果的首行的所有列追加到 field 中。该函数不适用于中心 Pipeline。
 
 参数：
 

@@ -2,7 +2,7 @@
 
 Function prototype: `fn mquery_refer_table(table_name: str, keys: list, values: list)`
 
-Function description: Query the external reference table by specifying multiple keys, and append all columns of the first row of the query result to field.
+Function description: Query the external reference table by specifying multiple keys, and append all columns of the first row of the query result to field. This function does not work with central Pipeline.
 
 Function parameters:
 

@@ -82,6 +82,13 @@ func (p *Pipeline) Run(cat point.Category, pt *point.Point, plOpt *plmanager.Opt
 
 	plpt := ptinput.WrapPoint(cat, pt)
 
+	if v, ok := plval.GetRefTb(); ok {
+		plpt.SetPlReferTables(v.Tables())
+	}
+	if v, ok := plval.GetIPDB(); ok {
+		plpt.SetIPDB(v)
+	}
+
 	if len(buks) > 0 {
 		p.Script.SetAggBuks(buks[0])
 	}

@@ -2,7 +2,7 @@
 
 Function prototype: `fn create_point(name, tags, fields, ts = 0, category = "M", after_use = "")`
 
-Function description: Create new data and output
+Function description: Create new data and output. This function does not work with central Pipeline.
 
 Function parameters:
 

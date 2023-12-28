@@ -4,7 +4,7 @@
 
 Function prototype: `fn agg_metric(bucket: str, new_field: str, agg_fn: str, agg_by: []string, agg_field: str, category: str = "M")`
 
-Function description: According to the field name in the input data, the value is automatically taken as the label of the aggregated data, and the aggregated data is stored in the corresponding bucket.
+Function description: According to the field name in the input data, the value is automatically taken as the label of the aggregated data, and the aggregated data is stored in the corresponding bucket. This function does not work with central Pipeline.
 
 Function parameters:
 
@@ -19,39 +19,31 @@ Example:
 
 Take `logging` category data as an example:
 
-multiple logs：
-```
-1
-```
+Multiple inputs in a row:
 
-```
-2
-```
-
-```
-3
-```
+- Sample log one: `{"a": 1}`
+- Sample log two: `{"a": 2}`
 
 script:
 
 ```python
-agg_create("cpu_agg_info", interval=10, const_tags={"tag1":"value_user_define_tag"})
+agg_create("cpu_agg_info", on_interval="10s", const_tags={"tag1":"value_user_define_tag"})
 
 set_tag("tag1", "value1")
 
-field1 = _
+field1 = load_json(_)
 
-cast(field1, "int")
+field1 = field1["a"]
 
 agg_metric("cpu_agg_info", "agg_field_1", "sum", ["tag1", "host"], "field1")
 ```
 
 metric output:
 
-```
+```json
 {
     "host": "your_hostname",
     "tag1": "value1",
-    "agg_field_1": 6,
+    "agg_field_1": 3
 }
 ```

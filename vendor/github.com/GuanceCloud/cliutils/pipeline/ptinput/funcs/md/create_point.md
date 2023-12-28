@@ -2,7 +2,7 @@
 
 函数原型：`fn create_point(name, tags, fields, ts = 0, category = "M", after_use = "")`
 
-函数说明：创建新的数据并输出
+函数说明：创建新的数据并输出。该函数不适用于中心 Pipeline。
 
 函数参数：
 
