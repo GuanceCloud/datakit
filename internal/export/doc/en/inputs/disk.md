@@ -1,19 +1,35 @@
-
-# Disk
+---
+title     : 'Disk'
+summary   : 'Collect metrics of disk'
+__int_icon      : 'icon/disk'
+dashboard :
+  - desc  : 'disk'
+    path  : 'dashboard/en/disk'
+monitor   :
+  - desc  : 'host detection library'
+    path  : 'monitor/en/host'
 ---
 
-:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple: :material-kubernetes: :material-docker:
+<!-- markdownlint-disable MD025 -->
+# Disk
+<!-- markdownlint-enable -->
+
+<!-- markdownlint-enable -->
+
+---
+
+{{.AvailableArchs}}
 
 ---
 
 Disk collector is used to collect disk information, such as disk storage space, inodes usage, etc.
 
-## Preconditions {#requirements}
-
-None
-
-
 ## Configuration {#config}
+
+After successfully installing and starting DataKit, the disk collector will be enabled by default without the need for manual activation.
+
+<!-- markdownlint-disable MD046 -->
+
 
 === "Host Installation"
 
@@ -39,7 +55,9 @@ None
     | `ENV_INPUT_DISK_ONLY_PHYSICAL_DEVICE` | `only_physical_device` | Ignore non-physical disks (such as network disk, NFS, etc., only collect local hard disk/CD ROM/USB disk, etc.) and give a string value at will|
     | `ENV_INPUT_DISK_INTERVAL`             | `interval`             | `10s`                                                                                    |
 
-## Measurements {#measurements}
+<!-- markdownlint-enable -->
+
+## Metric {#metric}
 
 For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.disk.tags]`:
 

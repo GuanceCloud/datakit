@@ -1,4 +1,18 @@
+---
+title     : 'Disk IO'
+summary   : 'Collect metrics of disk io'
+__int_icon      : 'icon/diskio'
+dashboard :
+  - desc  : 'Disk IO'
+    path  : 'dashboard/en/diskio'
+monitor   :
+  - desc  : 'host detection library'
+    path  : 'monitor/en/host'
+---
+
+<!-- markdownlint-disable MD025 -->
 # DiskIO
+<!-- markdownlint-enable -->
 
 ---
 
@@ -8,7 +22,11 @@
 
 Diskio collector is used to collect the index of disk flow and time.
 
-## Preconditions {#requests}
+## Configuration {#config}
+
+After successfully installing and starting DataKit, the DiskIO collector will be enabled by default without the need for manual activation.
+
+### Precondition {#requests}
 
 For some older versions of Windows operating systems, if you encounter an error with Datakit: **"The system cannot find the file specified."**
 
@@ -20,7 +38,9 @@ diskperf -Y
 
 The Datakit service needs to be restarted after successful execution.
 
-## Configuration {#config}
+### Collector Configuration {#input-config}
+
+<!-- markdownlint-disable MD046 -->
 
 === "Host Installation"
 
@@ -45,7 +65,9 @@ The Datakit service needs to be restarted after successful execution.
     | `ENV_INPUT_DISKIO_DEVICE_TAGS`        | `device_tags`        | `"ID_FS_TYPE", "ID_FS_USAGE"`, separated by English commas                 |
     | `ENV_INPUT_DISKIO_NAME_TEMPLATES`     | `name_templates`     | `"$ID_FS_LABEL", "$DM_VG_NAME/$DM_LV_NAME"`, separated by English commas   |
 
-## Measurements {#measurements}
+<!-- markdownlint-enable -->
+
+## Metric {#metric}
 
 For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or it can be named by `[[inputs.diskio.tags]]` alternative host in the configuration.
 
@@ -63,7 +85,7 @@ For all of the following data collections, a global tag named `host` is appended
 
 {{ end }}
 
-## Extended measurements {#extend}
+### Extended Metric {#extend}
 
 [:octicons-tag-24: Version-1.5.7](../datakit/changelog.md#cl-1.5.7)
 
@@ -137,7 +159,7 @@ Average:     dev253-1      0.00      0.00      0.00      0.00      0.00      0.0
 
 ```
 
-**Python script**
+### Collect Scripts {#py-script}
 
 Create file *<DataKit Dir\>/python.d/diskio/diskio.py* and add the following content:
 
@@ -232,7 +254,7 @@ class DiskIO(DataKitFramework):
 
 After saving the file, restart DataKit and you will be able to see the corresponding metrics on the Guance platform shortly.
 
-**Metric list**
+### Metric List {#ext-metrics}
 
 The `sar` command can obtain many useful [disk metrics](https://man7.org/linux/man-pages/man1/sar.1.html){:target="_blank"}. The above script only collect `await` and `svctm`. If you need to collect additional metrics, you can modify the script accordingly.
 
