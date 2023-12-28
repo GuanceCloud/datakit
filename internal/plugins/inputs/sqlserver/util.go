@@ -6,14 +6,23 @@
 // Package sqlserver collects SQL Server metrics.
 package sqlserver
 
-import "net"
+import (
+	"net"
+	"strings"
+)
 
 func setHostTagIfNotLoopback(tags map[string]string, ipAndPort string) {
+	// default port
+	if !strings.Contains(ipAndPort, ":") {
+		ipAndPort += ":1433"
+	}
+
 	host, _, err := net.SplitHostPort(ipAndPort)
 	if err != nil {
-		l.Errorf("split host and port: %v", err)
+		l.Debugf("split host and port: %v", err)
 		return
 	}
+
 	if host != "localhost" && !net.ParseIP(host).IsLoopback() {
 		tags["host"] = host
 	}
