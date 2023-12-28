@@ -144,15 +144,24 @@ func (ipt *Input) precheck() error {
 func (ipt *Input) start() error {
 	ipt.getCustomQuery()
 
-	l.Debugf("starting %s cmd %s %s, envs: %+#v", ipt.Name, ipt.Cmd, strings.Join(ipt.Args, " "), ipt.Envs)
+	l.Infof("starting %s cmd %s %s, envs: %+#v", ipt.Name, ipt.Cmd, strings.Join(ipt.Args, " "), ipt.Envs)
 	ipt.cmd = exec.Command(ipt.Cmd, ipt.Args...) //nolint:gosec
 	if ipt.Envs != nil {
 		ipt.cmd.Env = ipt.Envs
 	}
 
-	if err := ipt.cmd.Start(); err != nil {
-		l.Errorf("start external input %s failed: %s", ipt.Name, err.Error())
-		return err
+	if !ipt.Daemon {
+		res, err := ipt.cmd.CombinedOutput()
+		if err == nil {
+			l.Debugf("command output: %s", string(res))
+		} else {
+			return fmt.Errorf("command failed: %w, %s", err, res)
+		}
+	} else {
+		if err := ipt.cmd.Start(); err != nil {
+			l.Errorf("start external input %s failed: %s", ipt.Name, err.Error())
+			return err
+		}
 	}
 
 	return nil
@@ -211,7 +220,9 @@ func (ipt *Input) Run() {
 			} else {
 				// run as new process
 				l.Debug("non-daemon starting")
-				_ = ipt.start() //nolint:errcheck
+				if err := ipt.start(); err != nil {
+					l.Warnf("exec cmd[%s] failed: %s\n", ipt.Cmd, err.Error())
+				}
 			}
 		}
 
