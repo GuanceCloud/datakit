@@ -15,7 +15,6 @@ var (
 	collectCostVec          *prometheus.SummaryVec
 	collectResourceCostVec  *prometheus.SummaryVec
 	collectPtsVec           *prometheus.CounterVec
-	collectResourcePtsVec   *prometheus.SummaryVec
 	podMetricsQueryCountVec *prometheus.CounterVec
 )
 
@@ -72,20 +71,6 @@ func setupMetrics() {
 		},
 	)
 
-	collectResourcePtsVec = prometheus.NewSummaryVec(
-		prometheus.SummaryOpts{
-			Namespace: "datakit",
-			Subsystem: "kubernetes",
-			Name:      "collect_resource_pts_num",
-			Help:      "Kubernetes resource collect point count",
-		},
-		[]string{
-			"category",
-			"kind",
-			"fieldselector",
-		},
-	)
-
 	podMetricsQueryCountVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "datakit",
@@ -103,7 +88,6 @@ func setupMetrics() {
 		collectCostVec,
 		collectResourceCostVec,
 		collectPtsVec,
-		collectResourcePtsVec,
 		podMetricsQueryCountVec,
 	)
 }

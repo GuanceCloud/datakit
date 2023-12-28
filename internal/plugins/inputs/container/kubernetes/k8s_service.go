@@ -33,11 +33,14 @@ func init() {
 type service struct {
 	client    k8sClient
 	continued string
+	counter   map[string]int
 }
 
 func newService(client k8sClient) resource {
-	return &service{client: client}
+	return &service{client: client, counter: make(map[string]int)}
 }
+
+func (s *service) count() []pointV2 { return buildCountPoints("service", s.counter) }
 
 func (s *service) hasNext() bool { return s.continued != "" }
 
@@ -54,11 +57,12 @@ func (s *service) getMetadata(ctx context.Context, ns, fieldSelector string) (me
 	}
 
 	s.continued = list.Continue
-	return &serviceMetadata{list}, nil
+	return &serviceMetadata{s, list}, nil
 }
 
 type serviceMetadata struct {
-	list *apicorev1.ServiceList
+	parent *service
+	list   *apicorev1.ServiceList
 }
 
 func (m *serviceMetadata) transformMetric() pointKVs {
@@ -75,6 +79,8 @@ func (m *serviceMetadata) transformMetric() pointKVs {
 
 		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
 		res = append(res, met)
+
+		m.parent.counter[item.Namespace]++
 	}
 
 	return res

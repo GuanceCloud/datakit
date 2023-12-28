@@ -31,11 +31,14 @@ func init() {
 type statefulset struct {
 	client    k8sClient
 	continued string
+	counter   map[string]int
 }
 
 func newStatefulset(client k8sClient) resource {
-	return &statefulset{client: client}
+	return &statefulset{client: client, counter: make(map[string]int)}
 }
+
+func (s *statefulset) count() []pointV2 { return buildCountPoints("statefulset", s.counter) }
 
 func (s *statefulset) hasNext() bool { return s.continued != "" }
 
@@ -52,11 +55,12 @@ func (s *statefulset) getMetadata(ctx context.Context, ns, fieldSelector string)
 	}
 
 	s.continued = list.Continue
-	return &statefulsetMetadata{list}, nil
+	return &statefulsetMetadata{s, list}, nil
 }
 
 type statefulsetMetadata struct {
-	list *apiappsv1.StatefulSetList
+	parent *statefulset
+	list   *apiappsv1.StatefulSetList
 }
 
 func (m *statefulsetMetadata) transformMetric() pointKVs {
@@ -81,6 +85,8 @@ func (m *statefulsetMetadata) transformMetric() pointKVs {
 
 		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
 		res = append(res, met)
+
+		m.parent.counter[item.Namespace]++
 	}
 
 	return res

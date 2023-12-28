@@ -32,11 +32,14 @@ func init() {
 type replicaset struct {
 	client    k8sClient
 	continued string
+	counter   map[string]int
 }
 
 func newReplicaset(client k8sClient) resource {
-	return &replicaset{client: client}
+	return &replicaset{client: client, counter: make(map[string]int)}
 }
+
+func (r *replicaset) count() []pointV2 { return buildCountPoints("replicaset", r.counter) }
 
 func (r *replicaset) hasNext() bool { return r.continued != "" }
 
@@ -53,11 +56,12 @@ func (r *replicaset) getMetadata(ctx context.Context, ns, fieldSelector string) 
 	}
 
 	r.continued = list.Continue
-	return &replicasetMetadata{list}, nil
+	return &replicasetMetadata{r, list}, nil
 }
 
 type replicasetMetadata struct {
-	list *apiappsv1.ReplicaSetList
+	parent *replicaset
+	list   *apiappsv1.ReplicaSetList
 }
 
 func (m *replicasetMetadata) transformMetric() pointKVs {
@@ -82,6 +86,8 @@ func (m *replicasetMetadata) transformMetric() pointKVs {
 
 		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
 		res = append(res, met)
+
+		m.parent.counter[item.Namespace]++
 	}
 
 	return res

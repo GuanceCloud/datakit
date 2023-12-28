@@ -32,11 +32,14 @@ func init() {
 type node struct {
 	client    k8sClient
 	continued string
+	counter   map[string]int
 }
 
 func newNode(client k8sClient) resource {
-	return &node{client: client}
+	return &node{client: client, counter: make(map[string]int)}
 }
+
+func (n *node) count() []pointV2 { return buildCountPoints("node", n.counter) }
 
 func (n *node) hasNext() bool { return n.continued != "" }
 
@@ -53,11 +56,12 @@ func (n *node) getMetadata(ctx context.Context, _, fieldSelector string) (metada
 	}
 
 	n.continued = list.Continue
-	return &nodeMetadata{list}, nil
+	return &nodeMetadata{n, list}, nil
 }
 
 type nodeMetadata struct {
-	list *apicorev1.NodeList
+	parent *node
+	list   *apicorev1.NodeList
 }
 
 func (m *nodeMetadata) transformMetric() pointKVs {
@@ -68,7 +72,6 @@ func (m *nodeMetadata) transformMetric() pointKVs {
 
 		met.SetTag("uid", fmt.Sprintf("%v", item.UID))
 		met.SetTag("node", item.Name)
-		met.SetTag("namespace", item.Namespace)
 		// "resource", "unit"
 
 		t := item.Status.Allocatable["cpu"]
@@ -99,6 +102,8 @@ func (m *nodeMetadata) transformMetric() pointKVs {
 		res = append(res, met)
 	}
 
+	m.parent.counter[""] += len(m.list.Items)
+
 	return res
 }
 
@@ -111,7 +116,6 @@ func (m *nodeMetadata) transformObject() pointKVs {
 		obj.SetTag("name", fmt.Sprintf("%v", item.UID))
 		obj.SetTag("uid", fmt.Sprintf("%v", item.UID))
 		obj.SetTag("node_name", item.Name)
-		obj.SetTag("namespace", item.Namespace)
 		obj.SetTag("status", fmt.Sprintf("%v", item.Status.Phase))
 
 		obj.SetTag("role", "node")
@@ -203,7 +207,6 @@ func (*nodeObject) Info() *inputs.MeasurementInfo {
 			"name":             inputs.NewTagInfo("The UID of Node."),
 			"uid":              inputs.NewTagInfo("The UID of Node."),
 			"node_name":        inputs.NewTagInfo("Name must be unique within a namespace."),
-			"namespace":        inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 			"internal_ip":      inputs.NewTagInfo("Node internal IP"),
 			"role":             inputs.NewTagInfo("Node role. (master/node)"),
 			"status":           inputs.NewTagInfo("NodePhase is the recently observed lifecycle phase of the node. (Pending/Running/Terminated)"),

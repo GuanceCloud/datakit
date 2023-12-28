@@ -32,11 +32,14 @@ func init() {
 type job struct {
 	client    k8sClient
 	continued string
+	counter   map[string]int
 }
 
 func newJob(client k8sClient) resource {
-	return &job{client: client}
+	return &job{client: client, counter: make(map[string]int)}
 }
+
+func (j *job) count() []pointV2 { return buildCountPoints("job", j.counter) }
 
 func (j *job) hasNext() bool { return j.continued != "" }
 
@@ -53,11 +56,12 @@ func (j *job) getMetadata(ctx context.Context, ns, fieldSelector string) (metada
 	}
 
 	j.continued = list.Continue
-	return &jobMetadata{list}, nil
+	return &jobMetadata{j, list}, nil
 }
 
 type jobMetadata struct {
-	list *apibatchv1.JobList
+	parent *job
+	list   *apibatchv1.JobList
 }
 
 func (m *jobMetadata) transformMetric() pointKVs {
@@ -94,6 +98,8 @@ func (m *jobMetadata) transformMetric() pointKVs {
 
 		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
 		res = append(res, met)
+
+		m.parent.counter[item.Namespace]++
 	}
 
 	return res

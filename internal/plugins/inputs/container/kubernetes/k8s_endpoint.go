@@ -29,11 +29,14 @@ func init() {
 type endpoint struct {
 	client    k8sClient
 	continued string
+	counter   map[string]int
 }
 
 func newEndpoint(client k8sClient) resource {
-	return &endpoint{client: client}
+	return &endpoint{client: client, counter: make(map[string]int)}
 }
+
+func (e *endpoint) count() []pointV2 { return buildCountPoints("endpoint", e.counter) }
 
 func (e *endpoint) hasNext() bool { return e.continued != "" }
 
@@ -50,11 +53,12 @@ func (e *endpoint) getMetadata(ctx context.Context, ns, fieldSelector string) (m
 	}
 
 	e.continued = list.Continue
-	return &endpointMetadata{list}, nil
+	return &endpointMetadata{e, list}, nil
 }
 
 type endpointMetadata struct {
-	list *apicorev1.EndpointsList
+	parent *endpoint
+	list   *apicorev1.EndpointsList
 }
 
 func (m *endpointMetadata) transformMetric() pointKVs {
@@ -81,6 +85,8 @@ func (m *endpointMetadata) transformMetric() pointKVs {
 
 		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
 		res = append(res, met)
+
+		m.parent.counter[item.Namespace]++
 	}
 
 	return res

@@ -32,11 +32,15 @@ func init() {
 type cronjob struct {
 	client    k8sClient
 	continued string
+	//    e.g. map["kube-system"]= 10
+	counter map[string]int
 }
 
 func newCronjob(client k8sClient) resource {
-	return &cronjob{client: client}
+	return &cronjob{client: client, counter: make(map[string]int)}
 }
+
+func (c *cronjob) count() []pointV2 { return buildCountPoints("cronjob", c.counter) }
 
 func (c *cronjob) hasNext() bool { return c.continued != "" }
 
@@ -53,11 +57,12 @@ func (c *cronjob) getMetadata(ctx context.Context, ns, fieldSelector string) (me
 	}
 
 	c.continued = list.Continue
-	return &cronjobMetadata{list}, nil
+	return &cronjobMetadata{c, list}, nil
 }
 
 type cronjobMetadata struct {
-	list *apibatchv1.CronJobList
+	parent *cronjob
+	list   *apibatchv1.CronJobList
 }
 
 func (m *cronjobMetadata) transformMetric() pointKVs {
@@ -76,6 +81,8 @@ func (m *cronjobMetadata) transformMetric() pointKVs {
 
 		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
 		res = append(res, met)
+
+		m.parent.counter[item.Namespace]++
 	}
 
 	return res

@@ -236,6 +236,7 @@ func (c *container) Logging(_ func([]*point.Point) error) {
 		instance.addStdout()
 		instance.fillLogType(info.RuntimeName)
 		instance.fillSource()
+		instance.checkTagsKey()
 
 		instance.setTagsToLogConfigs(instance.tags())
 		instance.setTagsToLogConfigs(c.extraTags)

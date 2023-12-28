@@ -127,9 +127,6 @@ func (d *dockerClient) ContainerStatus(id string) (*ContainerStatus, error) {
 	}
 
 	for _, mount := range inspect.Mounts {
-		if mount.Driver != "local" {
-			continue
-		}
 		status.Mounts[filepath.Clean(mount.Destination)] = mount.Source
 	}
 
