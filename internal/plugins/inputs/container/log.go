@@ -100,7 +100,7 @@ func (lc *logInstance) parseLogConfigs() error {
 			}
 
 			if !foundHostPath {
-				return fmt.Errorf("unexpected log path %s, no matched mounts found", cfg.Path)
+				return fmt.Errorf("unexpected log path %s, no matched mounts(%d) found", cfg.Path, len(lc.volMounts))
 			}
 		}
 	}
@@ -138,6 +138,21 @@ func (lc *logInstance) fillSource() {
 			continue
 		}
 		cfg.Source = lc.containerName
+	}
+}
+
+func (lc *logInstance) checkTagsKey() {
+	for _, cfg := range lc.configs {
+		for k, v := range cfg.Tags {
+			if idx := strings.Index(k, "."); idx == -1 {
+				continue
+			}
+			newkey := replaceLabelKey(k)
+			if _, ok := cfg.Tags[newkey]; !ok {
+				cfg.Tags[newkey] = v
+				delete(cfg.Tags, k)
+			}
+		}
 	}
 }
 
@@ -183,7 +198,8 @@ func (lc *logInstance) setCustomerTags(m map[string]string, keys []string) {
 		}
 		for _, key := range keys {
 			if v, ok := m[key]; ok {
-				cfg.Tags[key] = v
+				newkey := replaceLabelKey(key)
+				cfg.Tags[newkey] = v
 			}
 		}
 	}

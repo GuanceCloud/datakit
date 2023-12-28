@@ -177,6 +177,37 @@ func (c *Config) loadElectionEnvs() {
 	}
 }
 
+func (c *Config) loadRecorderEnvs() {
+	if v := datakit.GetEnv("ENV_ENABLE_RECORDER"); v == "" {
+		return
+	}
+
+	c.Recorder.Enabled = true
+
+	if v := datakit.GetEnv("ENV_RECORDER_PATH"); v != "" {
+		c.Recorder.Path = v
+	}
+
+	if v := datakit.GetEnv("ENV_RECORDER_ENCODING"); v != "" {
+		c.Recorder.Encoding = v
+	}
+
+	if v := datakit.GetEnv("ENV_RECORDER_DURATION"); v != "" {
+		du, err := time.ParseDuration(v)
+		if err == nil {
+			c.Recorder.Duration = du
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_RECORDER_INPUTS"); v != "" {
+		c.Recorder.Inputs = strings.Split(v, ",")
+	}
+
+	if v := datakit.GetEnv("ENV_RECORDER_CATEGORIES"); v != "" {
+		c.Recorder.Categories = strings.Split(v, ",")
+	}
+}
+
 func (c *Config) loadIOEnvs() {
 	if v := datakit.GetEnv("ENV_IO_MAX_CACHE_COUNT"); v != "" {
 		val, err := strconv.ParseInt(v, 10, 64)
@@ -296,6 +327,8 @@ func (c *Config) LoadEnvs() error {
 	}
 
 	c.loadIOEnvs()
+
+	c.loadRecorderEnvs()
 
 	if v := datakit.GetEnv("ENV_IPDB"); v != "" {
 		switch v {

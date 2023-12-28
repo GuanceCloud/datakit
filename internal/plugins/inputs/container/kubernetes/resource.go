@@ -21,6 +21,7 @@ var resources = map[resourceType]resourceConstructor{}
 
 type resource interface {
 	getMetadata(ctx context.Context, ns, fieldSelector string) (metadata, error)
+	count() []pointV2
 	hasNext() bool
 }
 

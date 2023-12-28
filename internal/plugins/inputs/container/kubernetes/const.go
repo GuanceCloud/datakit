@@ -6,6 +6,7 @@
 package kubernetes
 
 import (
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -19,6 +20,8 @@ var (
 )
 
 type pointKVs []*typed.PointKV
+
+type pointV2 = *point.Point
 
 func Measurements() []inputs.Measurement {
 	return measurements

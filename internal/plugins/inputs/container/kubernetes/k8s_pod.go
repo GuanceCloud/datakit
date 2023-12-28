@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
@@ -34,10 +35,33 @@ func init() {
 type pod struct {
 	client    k8sClient
 	continued string
+	//    e.g. map["kube-system"]["node_name"] = 10
+	counter map[string]map[string]int
 }
 
 func newPod(client k8sClient) resource {
-	return &pod{client: client}
+	return &pod{client: client, counter: make(map[string]map[string]int)}
+}
+
+func (p *pod) count() []pointV2 {
+	var pts []pointV2
+	t := time.Now()
+
+	for ns, nodes := range p.counter {
+		for node, cnt := range nodes {
+			pt := point.NewPointV2(
+				"kubernetes",
+				point.KVs{
+					point.NewKV("namespace", ns, point.WithKVTagSet(true)),
+					point.NewKV("node_name", node, point.WithKVTagSet(true)),
+					point.NewKV("pod", cnt),
+				},
+				append(point.DefaultMetricOptions(), point.WithTime(t))...,
+			)
+			pts = append(pts, pt)
+		}
+	}
+	return pts
 }
 
 func (p *pod) hasNext() bool { return p.continued != "" }
@@ -66,7 +90,7 @@ func (p *pod) getMetadata(ctx context.Context, ns, fieldSelector string) (metada
 }
 
 type podMetadata struct {
-	opt            *pod
+	parent         *pod
 	list           *apicorev1.PodList
 	metricsCollect PodMetricsCollect
 }
@@ -80,6 +104,7 @@ func (m *podMetadata) transformMetric() pointKVs {
 
 		met.SetTag("uid", fmt.Sprintf("%v", item.UID))
 		met.SetTag("pod", item.Name)
+		met.SetTag("pod_name", item.Name)
 		met.SetTag("namespace", item.Namespace)
 		met.SetTag("node_name", item.Spec.NodeName)
 
@@ -94,6 +119,15 @@ func (m *podMetadata) transformMetric() pointKVs {
 		}
 		met.SetField("ready", containerReadyCount)
 
+		cpuLimit := getMaxCPULimitFromResource(item.Spec.Containers)
+		if cpuLimit != 0 {
+			met.SetField("cpu_limit_millicores", cpuLimit)
+		}
+		memLimit := getMemoryLimitFromResource(item.Spec.Containers)
+		if memLimit != 0 {
+			met.SetField("mem_limit", memLimit)
+		}
+
 		ownerKind, ownerName := getOwner(item.OwnerReferences, item.Labels["pod-template-hash"])
 		if ownerKind != "" && ownerName != "" {
 			met.SetTag(ownerKind, ownerName)
@@ -105,9 +139,12 @@ func (m *podMetadata) transformMetric() pointKVs {
 			}
 		}
 
-		if canCollectPodMetrics() && shouldCollectPodMetric(&m.list.Items[idx]) && m.metricsCollect != nil {
+		if canCollectPodMetrics() &&
+			shouldCollectPodMetric(&m.list.Items[idx]) &&
+			m.metricsCollect != nil &&
+			m.parent != nil {
 			if nodeInfo.nodeName != item.Spec.NodeName {
-				nodeInfo = getCapacityFromNode(context.Background(), m.opt.client, item.Spec.NodeName)
+				nodeInfo = getCapacityFromNode(context.Background(), m.parent.client, item.Spec.NodeName)
 			}
 
 			p, err := queryPodMetrics(context.Background(), m.metricsCollect, &m.list.Items[idx], nodeInfo, "metric")
@@ -121,6 +158,11 @@ func (m *podMetadata) transformMetric() pointKVs {
 
 		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
 		res = append(res, met)
+
+		if m.parent.counter[item.Namespace] == nil {
+			m.parent.counter[item.Namespace] = make(map[string]int)
+		}
+		m.parent.counter[item.Namespace][item.Spec.NodeName]++
 	}
 
 	return res
@@ -199,7 +241,7 @@ func (m *podMetadata) transformObject() pointKVs {
 
 		if canCollectPodMetrics() && shouldCollectPodMetric(&m.list.Items[idx]) && m.metricsCollect != nil {
 			if nodeInfo.nodeName != item.Spec.NodeName {
-				nodeInfo = getCapacityFromNode(context.Background(), m.opt.client, item.Spec.NodeName)
+				nodeInfo = getCapacityFromNode(context.Background(), m.parent.client, item.Spec.NodeName)
 			}
 
 			p, err := queryPodMetrics(context.Background(), m.metricsCollect, &m.list.Items[idx], nodeInfo, "object")
@@ -284,13 +326,12 @@ func queryPodMetrics(
 		p.SetField("cpu_usage_base100", x)
 	}
 
-	if node.memCapacity != 0 {
-		p.SetField("mem_used_percent", float64(podMet.memoryUsageBytes)/float64(node.memCapacity)*100)
+	if memLimit := getMemoryLimitFromResource(item.Spec.Containers); memLimit != 0 {
+		p.SetField("mem_used_percent_base_limit", float64(podMet.memoryUsageBytes)/float64(memLimit)*100)
 	}
 
-	memLimit := getMemoryLimitFromResource(item.Spec.Containers)
-	if memLimit != 0 {
-		p.SetField("mem_used_percent_base_limit", float64(podMet.memoryUsageBytes)/float64(memLimit)*100)
+	if node.memCapacity != 0 {
+		p.SetField("mem_used_percent", float64(podMet.memoryUsageBytes)/float64(node.memCapacity)*100)
 	}
 
 	// maintain compatibility
@@ -323,6 +364,7 @@ func (*podMetric) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"uid":              inputs.NewTagInfo("The UID of pod."),
 			"pod":              inputs.NewTagInfo("Name must be unique within a namespace."),
+			"pod_name":         inputs.NewTagInfo("Renamed from 'pod'."),
 			"namespace":        inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 			"node_name":        inputs.NewTagInfo("NodeName is a request to schedule this pod onto a specific node."),
 			"deployment":       inputs.NewTagInfo("The name of the Deployment which the object belongs to."),
@@ -334,6 +376,7 @@ func (*podMetric) Info() *inputs.MeasurementInfo {
 			"ready":                             &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Describes whether the pod is ready to serve requests."},
 			"cpu_usage":                         &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The sum of the cpu usage of all containers in this Pod."},
 			"cpu_usage_base100":                 &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The normalized cpu usage, with a maximum of 100%. (Experimental)"},
+			"cpu_usage_millicores":              &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationMS, Desc: "Total CPU usage (sum of all cores) averaged over the sample window."},
 			"memory_usage_bytes":                &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The sum of the memory usage of all containers in this Pod (Deprecated use `mem_usage`)."},
 			"memory_capacity":                   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The total memory in the host machine (Deprecated use `mem_capacity`)."},
 			"memory_used_percent":               &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage usage of the memory (refer from `mem_used_percent`"},

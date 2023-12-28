@@ -34,6 +34,7 @@ func TestComposePodMetric(t *testing.T) {
 		out := typed.NewPointKV(podMetricMeasurement)
 		out.SetTag("uid", "pod-uid-testing")
 		out.SetTag("pod", "pod-name-testing")
+		out.SetTag("pod_name", "pod-name-testing")
 		out.SetTag("node_name", "node-name-testing")
 		out.SetTag("namespace", "pod-namespace-testing")
 		out.SetField("ready", 0)
@@ -41,7 +42,8 @@ func TestComposePodMetric(t *testing.T) {
 		outPts := pointKVs{out}
 
 		p := &podMetadata{
-			list: in,
+			parent: &pod{client: nil, counter: make(map[string]map[string]int)},
+			list:   in,
 		}
 		res := p.transformMetric()
 

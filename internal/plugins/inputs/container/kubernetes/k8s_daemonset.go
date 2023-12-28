@@ -32,11 +32,14 @@ func init() {
 type daemonset struct {
 	client    k8sClient
 	continued string
+	counter   map[string]int
 }
 
 func newDaemonset(client k8sClient) resource {
-	return &daemonset{client: client}
+	return &daemonset{client: client, counter: make(map[string]int)}
 }
+
+func (d *daemonset) count() []pointV2 { return buildCountPoints("daemonset", d.counter) }
 
 func (d *daemonset) hasNext() bool { return d.continued != "" }
 
@@ -53,11 +56,12 @@ func (d *daemonset) getMetadata(ctx context.Context, ns, fieldSelector string) (
 	}
 
 	d.continued = list.Continue
-	return &daemonsetMetadata{list}, nil
+	return &daemonsetMetadata{d, list}, nil
 }
 
 type daemonsetMetadata struct {
-	list *apiappsv1.DaemonSetList
+	parent *daemonset
+	list   *apiappsv1.DaemonSetList
 }
 
 func (m *daemonsetMetadata) transformMetric() pointKVs {
@@ -80,6 +84,8 @@ func (m *daemonsetMetadata) transformMetric() pointKVs {
 
 		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
 		res = append(res, met)
+
+		m.parent.counter[item.Namespace]++
 	}
 
 	return res

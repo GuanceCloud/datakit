@@ -32,11 +32,14 @@ func init() {
 type deployment struct {
 	client    k8sClient
 	continued string
+	counter   map[string]int
 }
 
 func newDeployment(client k8sClient) resource {
-	return &deployment{client: client}
+	return &deployment{client: client, counter: make(map[string]int)}
 }
+
+func (d *deployment) count() []pointV2 { return buildCountPoints("deployment", d.counter) }
 
 func (d *deployment) hasNext() bool { return d.continued != "" }
 
@@ -53,11 +56,12 @@ func (d *deployment) getMetadata(ctx context.Context, ns, fieldSelector string) 
 	}
 
 	d.continued = list.Continue
-	return &deploymentMetadata{list}, nil
+	return &deploymentMetadata{d, list}, nil
 }
 
 type deploymentMetadata struct {
-	list *apiappsv1.DeploymentList
+	parent *deployment
+	list   *apiappsv1.DeploymentList
 }
 
 func (m *deploymentMetadata) transformMetric() pointKVs {
@@ -93,6 +97,8 @@ func (m *deploymentMetadata) transformMetric() pointKVs {
 
 		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
 		res = append(res, met)
+
+		m.parent.counter[item.Namespace]++
 	}
 
 	return res
