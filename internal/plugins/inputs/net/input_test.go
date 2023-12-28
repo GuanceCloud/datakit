@@ -127,12 +127,10 @@ func TestFilterInterface(t *testing.T) {
 
 func TestVirtualInterfaces(t *testing.T) {
 	if runtime.GOOS == "linux" {
-		if _, err := VirtualInterfaces(); err != nil {
+		if v, err := VirtualInterfaces(); err != nil {
 			t.Error(err)
-		}
-		vIface, _ := VirtualInterfaces("abc\ndef\n")
-		for iName := range map[string]bool{"abc": true, "def": true} {
-			if _, ok := vIface[iName]; !ok {
+		} else {
+			if _, ok := v["lo"]; !ok {
 				t.Error("error: get virtual interface")
 			}
 		}

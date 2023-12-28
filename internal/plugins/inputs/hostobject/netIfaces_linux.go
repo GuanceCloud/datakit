@@ -9,28 +9,25 @@
 package hostobject
 
 import (
-	"os/exec"
-	"strings"
+	"fmt"
+	"os"
 )
 
+const vnicDevPath = "/sys/devices/virtual/net/"
+
 // NetVirtualInterfaces returns virtual network card existing in the system.
-func NetVirtualInterfaces(mockData ...string) (map[string]bool, error) {
+func NetVirtualInterfaces() (map[string]bool, error) {
 	cardVirtual := make(map[string]bool)
-	var data string
-	// mock data
-	if len(mockData) == 1 {
-		data = mockData[0]
-	} else {
-		b, err := exec.Command("ls", "/sys/devices/virtual/net/").CombinedOutput()
-		if err != nil {
-			return nil, err
-		}
-		data = string(b)
+
+	v, err := os.ReadDir(vnicDevPath)
+	if err != nil {
+		return nil, fmt.Errorf("read dir %s` failed: %w",
+			vnicDevPath, err)
 	}
 
-	for _, v := range strings.Split(data, "\n") {
-		if len(v) > 0 {
-			cardVirtual[v] = true
+	for _, v := range v {
+		if v.IsDir() {
+			cardVirtual[v.Name()] = true
 		}
 	}
 
