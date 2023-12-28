@@ -2,7 +2,7 @@
 
 Function prototype: `fn query_refer_table(table_name: str, key: str, value)`
 
-Function description: Query the external reference table through the specified key, and append all the columns of the first row of the query result to field.
+Function description: Query the external reference table through the specified key, and append all the columns of the first row of the query result to field. This function does not work with central Pipeline.
 
 Function parameters:
 

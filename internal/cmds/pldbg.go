@@ -231,7 +231,7 @@ func plScriptTmpStore(category point.Category) (*manager.ScriptStore, map[string
 		plPath := filepath.Join(datakit.PipelineRemoteDir, plremote.GetConentFileName())
 		if tarMap, err := targzutil.ReadTarToMap(plPath); err == nil {
 			allCategory := plremote.ConvertContentMapToThreeMap(tarMap)
-			scripts := allCategory[datakit.CategoryDirName()[category.String()]]
+			scripts := allCategory[category.String()]
 			scriptsPath := map[string]string{}
 			for k := range scripts {
 				scriptsPath[k] = filepath.Join(plPath, category.String(), k)

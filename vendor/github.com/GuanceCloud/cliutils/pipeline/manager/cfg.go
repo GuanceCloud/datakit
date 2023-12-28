@@ -57,8 +57,9 @@ func InitIPdb(dataDir string, pipelineCfg *PipelineCfg) (ipdb.IPdb, error) {
 		ipdbInstance = &geoip.Geoip{}
 		ipdbInstance.Init(dataDir, pipelineCfg.IPdbAttr)
 	default:
-		l.Warnf("invalid ipdb_type %s", pipelineCfg.IPdbType)
+		l.Warnf("invalid ipdb_type %s, use default iploc", pipelineCfg.IPdbType)
 		ipdbInstance = &iploc.IPloc{}
+		ipdbInstance.Init(dataDir, pipelineCfg.IPdbAttr)
 	}
 
 	return ipdbInstance, nil

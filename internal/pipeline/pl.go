@@ -77,8 +77,12 @@ func RunPl(category point.Category, pts []*point.Point,
 
 		inputData := ptinput.WrapPoint(category, pt)
 
-		inputData.SetPlReferTables(inputData.GetPlReferTables())
-		inputData.SetIPDB(inputData.GetIPDB())
+		if v, ok := plval.GetRefTb(); ok {
+			inputData.SetPlReferTables(v.Tables())
+		}
+		if v, ok := plval.GetIPDB(); ok {
+			inputData.SetIPDB(v)
+		}
 
 		err := script.Run(inputData, nil, plOpt)
 		if err != nil {
