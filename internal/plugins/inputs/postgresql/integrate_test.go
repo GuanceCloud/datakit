@@ -103,10 +103,7 @@ interval = "2s"
 `, c.User, c.Password, c.Host, c.Port, Database, Table)
 		},
 		serviceReady: func(ipt *Input) error {
-			service := &SQLService{
-				MaxIdle: 1,
-				MaxOpen: 1,
-			}
+			service := &SQLService{}
 			service.SetAddress(ipt.Address)
 			service.Start()
 
@@ -121,17 +118,21 @@ interval = "2s"
 			}
 			rows.Close()
 
-			rows, err = service.Query("begin")
+			conn, err := service.pool.Acquire(context.Background())
 			if err != nil {
 				return err
 			}
-			rows.Close()
+			rows1, err := conn.Query(context.Background(), "begin")
+			if err != nil {
+				return err
+			}
+			rows1.Close()
 
-			rows, err = service.Query(fmt.Sprintf("lock table %s in share mode nowait", Table))
+			rows1, err = conn.Query(context.Background(), fmt.Sprintf("lock table %s in share mode nowait", Table))
 			if err != nil {
 				return err
 			}
-			rows.Close()
+			rows1.Close()
 
 			// stop service when test is done
 			go func() {
@@ -433,9 +434,7 @@ func buildCases(t *testing.T, configs []caseItem) ([]*caseSpec, error) {
 					host := net.JoinHostPort(testutils.GetRemote().Host, fmt.Sprint(port))
 					address := fmt.Sprintf("postgres://%s:%s@%s?sslmode=disable", User, UserPassword, host)
 					service := &SQLService{Address: address}
-					service.Start()
-					defer service.Stop() //nolint:errcheck
-
+					defer service.Stop()
 					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 					defer cancel()
 					ticker := time.NewTicker(time.Second)
@@ -445,6 +444,11 @@ func buildCases(t *testing.T, configs []caseItem) ([]*caseSpec, error) {
 						case <-ctx.Done():
 							return false
 						case <-ticker.C:
+							err := service.Start()
+							if err != nil {
+								t.Logf("service start error: %s", err.Error())
+								continue
+							}
 							rows, err := service.Query(fmt.Sprintf("create database %s", Database))
 							if err != nil {
 								t.Logf("service check failed: %s, try again", err.Error())

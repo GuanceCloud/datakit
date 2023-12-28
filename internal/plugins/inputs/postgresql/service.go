@@ -6,11 +6,12 @@
 package postgresql
 
 import (
-	"database/sql"
-	"time"
+	"context"
+	"fmt"
 
 	"github.com/coreos/go-semver/semver"
-	_ "github.com/lib/pq"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 var (
@@ -26,74 +27,73 @@ var (
 	V140 = semver.New("14.0.0")
 )
 
-type DB interface {
-	SetMaxOpenConns(int)
-	SetMaxIdleConns(int)
-	SetConnMaxLifetime(time.Duration)
-	Close() error
-	Query(query string, args ...interface{}) (*sql.Rows, error)
+type SQLService struct {
+	Address string
+
+	pool *pgxpool.Pool
 }
 
-type SQLService struct {
-	Address     string
-	MaxIdle     int
-	MaxOpen     int
-	MaxLifetime time.Duration
-	DB          DB
-	Open        func(string, string) (DB, error)
+type pgxRow struct {
+	pgx.Rows
+}
+
+func (r *pgxRow) Columns() ([]string, error) {
+	columns := []string{}
+	if r.Rows != nil {
+		for _, f := range r.Rows.FieldDescriptions() {
+			columns = append(columns, f.Name)
+		}
+	}
+	return columns, nil
 }
 
 func (p *SQLService) Start() (err error) {
-	open := p.Open
-	if open == nil {
-		open = func(dbType, connStr string) (DB, error) {
-			db, err := sql.Open(dbType, connStr)
-			return db, err
-		}
-	}
-	const localhost = "host=localhost sslmode=disable"
-
-	if p.Address == "" || p.Address == "localhost" {
-		p.Address = localhost
+	if p.pool != nil {
+		p.pool.Close()
 	}
 
-	if p.DB, err = open("postgres", p.Address); err != nil {
-		l.Error("connect error: ", p.Address)
-		return err
+	config, err := pgxpool.ParseConfig(p.Address)
+	if err != nil {
+		return fmt.Errorf("parse config error: %w", err)
+	}
+	config.MaxConns = 5
+	pool, err := pgxpool.NewWithConfig(context.Background(), config)
+	if err != nil {
+		return fmt.Errorf("new pool error: %w", err)
 	}
 
-	p.DB.SetMaxOpenConns(p.MaxIdle)
-	p.DB.SetMaxIdleConns(p.MaxIdle)
-	p.DB.SetConnMaxLifetime(p.MaxLifetime)
-
+	p.pool = pool
 	return nil
 }
 
-func (p *SQLService) Stop() error {
-	if p.DB != nil {
-		if err := p.DB.Close(); err != nil {
-			l.Warnf("Close: %s", err)
-		}
+func (p *SQLService) Stop() {
+	if p.pool != nil {
+		p.pool.Close()
 	}
-	return nil
 }
 
 func (p *SQLService) Query(query string) (Rows, error) {
-	rows, err := p.DB.Query(query)
+	if p.pool == nil {
+		return nil, fmt.Errorf("pool is nil")
+	}
 
+	rows, err := p.pool.Query(context.Background(), query)
 	if err != nil {
 		return nil, err
-	} else {
-		if err := rows.Err(); err != nil {
-			l.Errorf("rows.Err: %s", err)
-		}
-
-		return rows, nil
+	} else if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows.Err: %w", err)
 	}
+	return &pgxRow{rows}, nil
 }
 
 func (p *SQLService) SetAddress(address string) {
-	p.Address = address
+	const localhost = "host=localhost sslmode=disable"
+
+	if address == "" || address == "localhost" {
+		p.Address = localhost
+	} else {
+		p.Address = address
+	}
 }
 
 func (p *SQLService) GetColumnMap(row scanner, columns []string) (map[string]*interface{}, error) {
