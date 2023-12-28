@@ -6,26 +6,14 @@
 package promremote
 
 import (
-	"regexp"
 	"strings"
 )
 
-// shouldFilterThroughMetricName checks whether a metric name should be filtered by checking whether it matches any regex
+// Checks whether a metric name should be filtered by checking whether it matches any regex
 // specified in p.MetricNameFilter. It passes if metric name filter is empty.
-func (p *Parser) shouldFilterThroughMetricName(metric string) bool {
-	if len(p.MetricNameFilter) == 0 {
-		return true
-	}
+func (p *Parser) shouldFilterMetricName(metric string) bool {
 	if len(p.metricNameReFilter) == 0 {
-		p.metricNameReFilter = make([]*regexp.Regexp, len(p.MetricNameFilter))
-		for i, filter := range p.MetricNameFilter {
-			if re, err := regexp.Compile(filter); err != nil {
-				l.Warnf("regexp.Compile('%s'): %s, ignored", filter, err)
-				return false
-			} else {
-				p.metricNameReFilter[i] = re
-			}
-		}
+		return true
 	}
 	for _, filter := range p.metricNameReFilter {
 		match := filter.MatchString(metric)
@@ -37,25 +25,13 @@ func (p *Parser) shouldFilterThroughMetricName(metric string) bool {
 	return false
 }
 
-// shouldFilterThroughMeasurementName checks if by default rule, the measurement name we've gotten should be filtered through.
-func (p *Parser) shouldFilterThroughMeasurementName(metric string) bool {
-	if len(p.MeasurementNameFilter) == 0 {
+// Checks if by default rule, the measurement name we've gotten should be filtered through.
+func (p *Parser) shouldFilterMeasurementName(metric string) bool {
+	if len(p.measurementNameReFilter) == 0 {
 		return true
 	}
-	if len(p.measurementNameReFilter) == 0 {
-		p.measurementNameReFilter = make([]*regexp.Regexp, len(p.MeasurementNameFilter))
-		for i, filter := range p.MeasurementNameFilter {
-			if re, err := regexp.Compile(filter); err != nil {
-				l.Warnf("regexp.Compile('%s'): %s, ignored", filter, err)
-				return false
-			} else {
-				p.measurementNameReFilter[i] = re
-			}
-		}
-	}
-	measurementName, _ := p.getNamesByDefaultRule(metric)
 	for _, filter := range p.measurementNameReFilter {
-		match := filter.MatchString(measurementName)
+		match := filter.MatchString(metric)
 		if match {
 			return true
 		}

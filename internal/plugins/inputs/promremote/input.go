@@ -17,12 +17,16 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/gogo/protobuf/proto"
 	"github.com/golang/snappy"
+	"github.com/prometheus/prometheus/prompb"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
@@ -59,10 +63,12 @@ type Input struct {
 
 	Election bool // forever false
 
-	semStop    *cliutils.Sem // start stop signal
-	feeder     dkio.Feeder
-	mergedTags map[string]string
-	tagger     datakit.GlobalTagger
+	semStop      *cliutils.Sem // start stop signal
+	feeder       dkio.Feeder
+	mergedTags   map[string]string
+	tagger       datakit.GlobalTagger
+	tagsIgnoreRe []*regexp.Regexp
+	tagsOnlyRe   []*regexp.Regexp
 
 	Parser
 }
@@ -86,10 +92,47 @@ func (*Input) Terminate() {
 }
 
 func (ipt *Input) Run() {
-	ipt.mergedTags = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")
+	ipt.setup()
+
 	l.Infof("%s input started...", inputName)
 	for i, m := range ipt.Methods {
 		ipt.Methods[i] = strings.ToUpper(m)
+	}
+}
+
+func (ipt *Input) setup() {
+	ipt.mergedTags = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")
+
+	for _, filter := range ipt.MetricNameFilter {
+		if re, err := regexp.Compile(filter); err != nil {
+			l.Warnf("regexp.Compile('%s'): %s, ignored", filter, err)
+		} else {
+			ipt.metricNameReFilter = append(ipt.metricNameReFilter, re)
+		}
+	}
+
+	for _, filter := range ipt.MeasurementNameFilter {
+		if re, err := regexp.Compile(filter); err != nil {
+			l.Warnf("regexp.Compile('%s'): %s, ignored", filter, err)
+		} else {
+			ipt.measurementNameReFilter = append(ipt.measurementNameReFilter, re)
+		}
+	}
+
+	for _, filter := range ipt.TagsIgnoreRegex {
+		if re, err := regexp.Compile(filter); err != nil {
+			l.Warnf("regexp.Compile('%s'): %s, ignored", filter, err)
+		} else {
+			ipt.tagsIgnoreRe = append(ipt.tagsIgnoreRe, re)
+		}
+	}
+
+	for _, filter := range ipt.TagsOnlyRegex {
+		if re, err := regexp.Compile(filter); err != nil {
+			l.Warnf("regexp.Compile('%s'): %s, ignored", filter, err)
+		} else {
+			ipt.tagsOnlyRe = append(ipt.tagsOnlyRe, re)
+		}
 	}
 }
 
@@ -114,8 +157,15 @@ func (ipt *Input) authenticateIfSet(handler http.HandlerFunc, res http.ResponseW
 	handler(res, req)
 }
 
+var reqPool = sync.Pool{
+	New: func() interface{} {
+		return new(prompb.WriteRequest)
+	},
+}
+
 func (ipt *Input) serveWrite(res http.ResponseWriter, req *http.Request) {
-	t := time.Now()
+	start := time.Now()
+
 	// Check that the content length is not too large for us to handle.
 	if req.ContentLength > ipt.MaxBodySize {
 		if err := tooLarge(res); err != nil {
@@ -155,7 +205,31 @@ func (ipt *Input) serveWrite(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	metrics, err := ipt.Parse(bytes, ipt)
+	additionalTags := map[string]string{}
+	// Add query tags.
+	for k, v := range req.URL.Query() {
+		if len(v) > 0 {
+			additionalTags[k] = v[0]
+		}
+	}
+	// Add HTTP header tags and custom tags.
+	for headerName, tagName := range ipt.HTTPHeaderTags {
+		headerValues := req.Header.Get(headerName)
+		if len(headerValues) > 0 {
+			additionalTags[tagName] = headerValues
+		}
+	}
+
+	promReq := reqPool.Get().(*prompb.WriteRequest)
+	if err := proto.Unmarshal(bytes, promReq); err != nil {
+		l.Errorf("unable to unmarshal request body: %w", err)
+	}
+	defer func() {
+		promReq.Reset()
+		reqPool.Put(promReq)
+	}()
+
+	pts, err := ipt.Parse(promReq.Timeseries, ipt, additionalTags)
 	if err != nil {
 		l.Debugf("parse error: %s", err.Error())
 		if err := badRequest(res); err != nil {
@@ -164,41 +238,15 @@ func (ipt *Input) serveWrite(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	queryTags := map[string]string{}
-	for k, v := range req.URL.Query() {
-		if len(v) > 0 {
-			queryTags[k] = v[0]
-		}
-	}
-
-	// Add HTTP header tags and custom tags.
-	for idx := range metrics {
-		for headerName, tagName := range ipt.HTTPHeaderTags {
-			headerValues := req.Header.Get(headerName)
-			if len(headerValues) > 0 {
-				metrics[idx].AddTag(tagName, headerValues)
-			}
-		}
-
-		for k, v := range queryTags {
-			metrics[idx].AddTag(k, v)
-		}
-
-		for k, v := range ipt.mergedTags {
-			metrics[idx].AddTag(k, v)
-		}
-
-		ipt.SetTags(metrics[idx])
-	}
-
-	if len(metrics) > 0 {
+	if len(pts) > 0 {
 		if err := ipt.feeder.Feed(inputName,
 			point.Metric,
-			metrics,
-			&dkio.Option{CollectCost: time.Since(t)}); err != nil {
+			pts,
+			&dkio.Option{CollectCost: time.Since(start)}); err != nil {
 			l.Warnf("Feed failed: %s, ignored", err)
 		}
 	}
+
 	res.WriteHeader(http.StatusNoContent)
 }
 
@@ -209,112 +257,6 @@ func (ipt *Input) isAcceptedMethod(method string) bool {
 		}
 	}
 	return false
-}
-
-func (ipt *Input) SetTags(pt *point.Point) {
-	ipt.addTags(pt)
-	ipt.renameTags(pt)
-
-	if (len(ipt.TagsIgnoreRegex) > 0 || len(ipt.TagsIgnore) > 0) && (len(ipt.TagsOnlyRegex) > 0 || len(ipt.TagsOnly) > 0) {
-		return // If both white list and black list, all list cancel.
-	} else {
-		ipt.ignoreTags(pt)
-		ipt.ignoreTagsRegex(pt)
-		ipt.onlyTags(pt)
-	}
-}
-
-func (ipt *Input) addTags(pt *point.Point) {
-	for k, v := range ipt.Tags {
-		pt.AddTag(k, v)
-	}
-}
-
-func (ipt *Input) ignoreTags(pt *point.Point) {
-	for _, t := range ipt.TagsIgnore {
-		pt.Del(t)
-	}
-}
-
-func (ipt *Input) ignoreTagsRegex(pt *point.Point) {
-	if len(ipt.TagsIgnoreRegex) == 0 {
-		return
-	}
-
-	for _, kv := range pt.KVs() {
-		if !kv.IsTag {
-			continue
-		}
-
-		for _, r := range ipt.TagsIgnoreRegex {
-			match, err := regexp.MatchString(r, kv.Key)
-			if err != nil {
-				continue
-			}
-			if match {
-				pt.Del(kv.Key)
-				break
-			}
-		}
-	}
-}
-
-func (ipt *Input) onlyTags(pt *point.Point) {
-	if len(ipt.TagsOnly) == 0 && len(ipt.TagsOnlyRegex) == 0 {
-		return
-	}
-
-	keys := map[string]bool{}
-	for _, kv := range pt.Tags() {
-		key := kv.Key
-		keys[key] = false
-
-		for _, r := range ipt.TagsOnlyRegex {
-			match, err := regexp.MatchString(r, key)
-			if err != nil {
-				continue
-			}
-			if match {
-				keys[key] = true
-				break
-			}
-		}
-
-		if keys[key] {
-			continue
-		}
-
-		for _, t := range ipt.TagsOnly {
-			if key == t {
-				keys[key] = true
-				break
-			}
-		}
-	}
-
-	for k, v := range keys {
-		if !v {
-			pt.Del(k)
-		}
-	}
-}
-
-func (ipt *Input) renameTags(pt *point.Point) {
-	for oldKey, newKey := range ipt.TagsRename {
-		valOld := pt.GetTag(oldKey)
-		if len(valOld) == 0 {
-			continue
-		}
-		has := true
-		if val := pt.GetTag(newKey); len(val) == 0 {
-			has = false
-		}
-		if has && ipt.Overwrite || !has {
-			pt.Del(oldKey)
-			pt.Del(newKey)
-			pt.AddTag(newKey, valOld)
-		}
-	}
 }
 
 // writeFile writes data to path specified by h.Output.
@@ -408,6 +350,51 @@ func (ipt *Input) collectQuery(res http.ResponseWriter, req *http.Request) ([]by
 	}
 
 	return []byte(query), true
+}
+
+func (ipt *Input) tagFilter(name string) bool {
+	switch {
+	// If both blacklist and whitelist, all list will cancel.
+	case (len(ipt.TagsIgnoreRegex) > 0 || len(ipt.TagsIgnore) > 0) && (len(ipt.TagsOnlyRegex) > 0 || len(ipt.TagsOnly) > 0):
+		return true
+
+	case len(ipt.TagsIgnoreRegex) > 0 || len(ipt.TagsIgnore) > 0:
+		for _, t := range ipt.TagsIgnore {
+			if name == t {
+				return false
+			}
+		}
+		for _, r := range ipt.TagsIgnoreRegex {
+			match, err := regexp.MatchString(r, name)
+			if err != nil {
+				continue
+			}
+			if match {
+				return false
+			}
+		}
+		return true
+
+	case len(ipt.TagsOnlyRegex) > 0 || len(ipt.TagsOnly) > 0:
+		for _, t := range ipt.TagsOnly {
+			if name == t {
+				return true
+			}
+		}
+		for _, r := range ipt.TagsOnlyRegex {
+			match, err := regexp.MatchString(r, name)
+			if err != nil {
+				continue
+			}
+			if match {
+				return true
+			}
+		}
+		return false
+
+	default:
+		return true
+	}
 }
 
 func tooLarge(res http.ResponseWriter) error {
