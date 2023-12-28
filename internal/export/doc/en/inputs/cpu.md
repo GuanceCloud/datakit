@@ -1,5 +1,18 @@
+---
+title     : 'CPU'
+summary   : 'Collect metric of cpu'
+__int_icon      : 'icon/cpu'
+dashboard :
+  - desc  : 'CPU'
+    path  : 'dashboard/en/cpu'
+monitor   :
+  - desc  : 'host detection library'
+    path  : 'monitor/en/host'
+---
 
+<!-- markdownlint-disable MD025 -->
 # CPU
+<!-- markdownlint-enable -->
 ---
 
 {{.AvailableArchs}}
@@ -8,11 +21,11 @@
 
 The CPU collector is used to collect the CPU utilization rate of the system.
 
-## Precondition {#requirement}
+## Configuration {#config}
 
-None.
+After successfully installing and starting DataKit, the CPU collector will be enabled by default without the need for manual activation.
 
-## Configuration  {#input-config}
+<!-- markdownlint-disable MD046 -->
 
 === "host installation"
 
@@ -37,9 +50,11 @@ None.
     | `ENV_INPUT_CPU_DISABLE_TEMPERATURE_COLLECT` | `disable_temperature_collect` | `false/true`. Any string is considered ` true `, and if it is not defined, it is ` false `.                     |
     | `ENV_INPUT_CPU_ENABLE_LOAD5S`               | `enable_load5s`               | `false/true`. Any string is considered ` true `, and if it is not defined, it is ` false `. |
 
+<!-- markdownlint-enable -->
+
 ---
 
-## Measurements {#measurements}
+## Metric {#metric}
 
 For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration through `[inputs.cpu.tags]`:
 
