@@ -1,6 +1,35 @@
 # Changelog
 ---
 
+## 1.22.0 (2023/12/28)
+
+### New Features {#cl-1.22.0-new}
+
+- Added [OceanBase](../integrations/oceanbase.md) custom SQL collection(#2046)
+- Added blacklist/whitelist for [Prometheus Remote](../integrations/prom_remote_write.md)(#2053)
+- Added `node_name` tag to Kubernetes resource count collection (only supported for Pod resources)(#2057)
+- Added `cpu_limit_millicores/mem_limit/mem_used_percent_base_limit` fields to Kubernetes Pod metrics
+- Added `bpf-netlog` plugin to eBPF collector(#2017)
+
+### Bug Fixes {#cl-1.22.0-fix}
+
+- Fixed zombie process issue with [`external`](../integrations/external.md) collector(#2063)
+- Fixed conflicts with container log tags(#2066)
+- Fixed failure to retrieve virtual NIC information(#2050)
+- Fixed issues with Pipeline Refer Table and IPDB(#2045)
+
+### Improvements {#cl-1.22.0-opt}
+
+- Improved field/tag extraction(whitelist) for DDTrace and OTEL(#2056)
+- Improved SQL retrieval for [SQLServer](../integrations/sqlserver.md) collector's `sqlserver_lock_dead` metric(#2049)
+- Update SDK for [PostgreSQL](../integrations/postgresql.md) collector(#2044)
+- Update default configuration for [ElasticSearch](../integrations/elasticsearch.md) collector(#2048)
+- Added additional ENV configuration options during K8s installation(#2025)
+- Optimized datakit exported Prometheus metrics
+- Updated integration documentation for some collectors
+
+---
+
 ## 1.21.1(2023/12/21) {#cl-1.21.1}
 
 This release is a Hotfix release, which fixes the following issues:

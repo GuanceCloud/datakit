@@ -1,6 +1,35 @@
 # 更新日志
 ---
 
+## 1.22.0(2023/12/28)
+
+### 新增功能 {#cl-1.22.0-new}
+
+- 新增 [OceanBase](../integrations/oceanbase.md) 自定义 SQL 采集（#2046）
+- 新增 [Prometheus Remote](../integrations/prom_remote_write.md) 黑名单/白名单（#2053）
+- Kubernetes 资源数量采集添加 `node_name` tag（仅支持 Pod 资源）（#2057）
+- Kubernetes Pod 指标新增 `cpu_limit_millicores/mem_limit/mem_used_percent_base_limit` 字段
+- eBPF 采集器新增 `bpf-netlog` 插件 (#2017)
+
+### 问题修复 {#cl-1.22.0-fix}
+
+- 修复 [`external`](../integrations/external.md) 采集器僵尸进程问题（#2063）
+- 修复容器日志 tags 冲突问题（#2066）
+- 修复虚拟网卡信息获取失败问题 (#2050)
+- 修复 Pipeline Refer table 和 IPDB 功能失效问题 (#2045)
+
+### 优化 {#cl-1.22.0-opt}
+
+- 优化 DDTrace 和 OTEL 字段提取白名单功能 （#2056）
+- 优化 [SQLServer](../integrations/sqlserver.md) 采集器的 `sqlserver_lock_dead` 指标获取 SQL（#2049）
+- 优化 [PostgreSQL](../integrations/postgresql.md) 采集器的连接库（#2044）
+- 优化 [ElasticSearch](../integrations/elasticsearch.md) 采集器的配置文件，设置 `local` 默认为 `false`（#2048）
+- K8s 安装时增加更多 ENV 配置项（#2025）
+- 优化 Datakit 自身指标暴露
+- 更新部分采集器集成文档
+
+---
+
 ## 1.21.1(2023/12/21) {#cl-1.21.1}
 本次发布属于 Hotfix 发布，修复如下问题：
 
