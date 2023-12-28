@@ -1,5 +1,19 @@
+---
+title     : 'Kafka'
+summary   : 'Collect metrics of Kafka'
+__int_icon      : 'icon/kafka'
+dashboard :
+  - desc  : 'Kafka'
+    path  : 'dashboard/en/kafka'
+monitor   :
+  - desc  : 'Kafka'
+    path  : 'monitor/en/kafka'
+---
 
+<!-- markdownlint-disable MD025 -->
 # Kafka
+<!-- markdownlint-enable -->
+
 ---
 
 {{.AvailableArchs}}
@@ -8,7 +22,9 @@
 
 Collect Kafka indicators and logs and report them to Guance Cloud to help you monitor and analyze various abnormal situations of Kafka.
 
-## Preconditions {#requirements}
+## Config {#config}
+
+### Requirements {#requirements}
 
 Install or download [Jolokia](https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-jvm/1.6.2/jolokia-jvm-1.6.2-agent.jar){:target="_blank"}. The downloaded Jolokia jar package is already available in the `data` directory under the DataKit installation directory.
 
@@ -24,6 +40,8 @@ Alternatively, you can start Jolokia separately and point it to the Kafka proces
 java -jar </path/to/jolokia-jvm-agent.jar> --host 127.0.0.1 --port=8080 start <Kafka-PID>
 ```
 
+<!-- markdownlint-disable MD046 -->
+
 ???+ attention
 
     Jolokia not allows change port number in the running state. If found command with `--port` can't change the port, this indicates Jolokia is still in running.
@@ -35,6 +53,8 @@ java -jar </path/to/jolokia-jvm-agent.jar> --host 127.0.0.1 --port=8080 start <K
     Exit Jolokia command: `java -jar </path/to/jolokia-jvm-agent.jar> --quiet stop <Kafka-PID>`
 
     For more Jolokia command information can refer to [here](https://jolokia.org/reference/html/agents.html#jvm-agent){:target="_blank"}.
+
+<!-- markdownlint-enable -->
 
 After Kafka service is started, if you need to collect Producer/Consumer/Connector indicators, you need to configure Jolokia for them respectively.
 
@@ -68,8 +88,9 @@ And remove comments from the fields in the collect producer metrics section:
 
 Restart Datakit, which then collects metrics for the Producer instance.
 
-## Configuration {#config}
+### Collector Configuration {#input-config}
 
+<!-- markdownlint-disable MD046 -->
 === "Host Installation"
 
     Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
@@ -83,13 +104,14 @@ Restart Datakit, which then collects metrics for the Producer instance.
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
+<!-- markdownlint-enable -->
 
-## Measurements {#measurements}
+## Metric {#metric}
 
-For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.kafka.tags]`:
+For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.{{.InputName}}.tags]`:
 
 ``` toml
- [inputs.kafka.tags]
+ [inputs.{{.InputName}}.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...
@@ -111,7 +133,7 @@ For all of the following data collections, a global tag named `host` is appended
 
 ## Log Collection {#logging}
 
-To collect kafka's log, open `files` in kafka.conf and write to the absolute path of the kafka log file. For example:
+To collect kafka's log, open `files` in {{.InputName}}.conf and write to the absolute path of the kafka log file. For example:
 
 ```toml
 [[inputs.kafka]]
