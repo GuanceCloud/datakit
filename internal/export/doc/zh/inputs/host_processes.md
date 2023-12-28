@@ -1,5 +1,5 @@
 ---
-title     : 'Process'
+title     : '进程'
 summary   : '采集进程的指标和对象数据'
 __int_icon      : 'icon/process'
 dashboard :
