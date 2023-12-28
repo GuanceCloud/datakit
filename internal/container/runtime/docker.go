@@ -87,7 +87,7 @@ func (d *dockerClient) ListContainers() ([]*Container, error) {
 	for _, c := range cList {
 		container := &Container{
 			ID:             c.ID,
-			Name:           getDockerContainerName(c.Names),
+			Name:           GetDockerContainerName(c.Names),
 			CreatedAt:      time.Unix(c.Created, 0).UnixNano(),
 			Labels:         copyMap(c.Labels),
 			RuntimeName:    d.runtimeName,
@@ -283,7 +283,7 @@ func calculateBlockIO(blkio types.BlkioStats) (int64, int64) {
 	return blkRead, blkWrite
 }
 
-func getDockerContainerName(names []string) string {
+func GetDockerContainerName(names []string) string {
 	if len(names) > 0 {
 		return strings.TrimPrefix(names[0], "/")
 	}

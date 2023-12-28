@@ -34,9 +34,14 @@ const configSample = `
   ##     add two tags "dst_nat_ip" and "dst_nat_port" to the network flow data
   ## - "ebpf-trace":
   ##     param trace_server must be set simultaneously.
+  ## - "bpf-netlog":
+  ##     contains L4-network log (bpf_net_l4_log), L7-network log (bpf_net_l7_log), 
+  ##              L4-network(netflow), L7-network(httpflow, dnsflow) collection
   enabled_plugins = [
     "ebpf-net",
   ]
+
+
 
   ## If you enable the ebpf-net plugin, you can configure:
   ##  - "httpflow" (* enabled by default)
@@ -47,6 +52,14 @@ const configSample = `
     # "httpflow-tls"
   ]
 
+  ## netlog blacklist
+  ##
+  # netlog_blacklist = "ip_saddr=='127.0.0.1' || ip_daddr=='127.0.0.1'"
+
+  ## bpf-netlog plugin collection metric only
+  ##
+  # netlog_metric_only = false
+  
   ## eBPF trace generation server center address.
   trace_server = ""
 

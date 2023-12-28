@@ -26,6 +26,7 @@ const (
 	NoValue           = "N/A"
 	DirectionOutgoing = "outgoing"
 	DirectionIncoming = "incoming"
+	DirectionUnknown  = "unknown"
 )
 
 var ephemeralPortMin int32 = 0 // 10_001

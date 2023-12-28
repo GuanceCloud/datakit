@@ -147,6 +147,8 @@ github.com/GuanceCloud/confd v0.1.101 h1:yjHgfl6YzAlTbFOFMTE4ERpFJzIyovOW7ZFc2/Z
 github.com/GuanceCloud/confd v0.1.101/go.mod h1:o0opIwOX+yNwV9nh56x5ymFMJ+YBD8JuPxBJ7a1mEmo=
 github.com/GuanceCloud/dockertest/v3 v3.9.4 h1:ScSNhfA2HSNLfrYoNd1KSRxkrymlKiBE60g4f6eUoOk=
 github.com/GuanceCloud/dockertest/v3 v3.9.4/go.mod h1:LDdHEB2bc9HxRQuXuMJOqesEasilevqVsFd5rnVb07I=
+github.com/GuanceCloud/gopacket v0.0.1 h1:3hb9ssiAiQxOvSliaLZNz5DJ2GzJGbFAlo3BocDM0/8=
+github.com/GuanceCloud/gopacket v0.0.1/go.mod h1:iJ8V8n6KS+z2U1A8pUwu8bW5SyEMkXJB8Yo/Vo+TKTo=
 github.com/GuanceCloud/grok v1.1.3 h1:0Phqza1ChCro6r9YG6AfpBB7GM0aYSXFRREFmbjF5AI=
 github.com/GuanceCloud/grok v1.1.3/go.mod h1:AHkJZYf7Qbo1FTZT6htdyScpICpgnkQ5+Hc0EmA88vM=
 github.com/GuanceCloud/kubernetes v0.0.0-20230801080916-ca299820872b h1:9pkl38Cro+7xCCruRvPh9z1L6DwX8xo2N4RDgHGUmtg=
@@ -1163,8 +1165,6 @@ github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/
 github.com/google/gofuzz v1.1.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
 github.com/google/gofuzz v1.2.0 h1:xRy4A+RhZaiKjJ1bPfwQ8sedCA+YS2YcCHW6ec7JMi0=
 github.com/google/gofuzz v1.2.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
-github.com/google/gopacket v1.1.19 h1:ves8RnFZPGiFnTS0uPQStjwru6uO6h+nlr9j6fL7kF8=
-github.com/google/gopacket v1.1.19/go.mod h1:iJ8V8n6KS+z2U1A8pUwu8bW5SyEMkXJB8Yo/Vo+TKTo=
 github.com/google/martian v2.1.0+incompatible/go.mod h1:9I4somxYTbIHy5NJKHRl3wXiIaQGbYVAs8BPL6v8lEs=
 github.com/google/martian/v3 v3.0.0/go.mod h1:y5Zk1BBys9G+gd6Jrk0W3cC1+ELVxBWuIGO+w/tUAp0=
 github.com/google/martian/v3 v3.1.0/go.mod h1:y5Zk1BBys9G+gd6Jrk0W3cC1+ELVxBWuIGO+w/tUAp0=

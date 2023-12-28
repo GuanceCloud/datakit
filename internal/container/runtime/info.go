@@ -35,9 +35,9 @@ func (c *criInfo) getConfigEnvs() map[string]string {
 	return m
 }
 
-// parseCriInfo return CRI info struct,
+// ParseCriInfo return CRI info struct,
 // https://github.com/cri-o/cri-o/issues/3604
-func parseCriInfo(in string) (*criInfo, error) {
+func ParseCriInfo(in string) (*criInfo, error) {
 	if in == "" {
 		return nil, fmt.Errorf("info cannot be empty")
 	}

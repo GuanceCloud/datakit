@@ -45,7 +45,6 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/protobuf v1.5.3
 	github.com/golang/snappy v0.0.4
-	github.com/google/gopacket v1.1.19
 	github.com/google/pprof v0.0.0-20230705174524-200ffdc848b8
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/websocket v1.5.0
@@ -292,7 +291,7 @@ require (
 	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/vishvananda/netlink v1.2.1-beta.2.0.20230807190133-6afddb37c1f0 // indirect
-	github.com/vishvananda/netns v0.0.4 // indirect
+	github.com/vishvananda/netns v0.0.4
 	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
 	github.com/weaveworks/common v0.0.0-20210419092856-009d1eebd624 // indirect
 	github.com/weaveworks/promrus v1.2.0 // indirect
@@ -355,6 +354,7 @@ require (
 require (
 	github.com/DataDog/ebpf-manager v0.2.16
 	github.com/cilium/ebpf v0.11.0
+	github.com/google/gopacket v0.0.0-00010101000000-000000000000
 	github.com/grafana/pyroscope/ebpf v0.2.1
 	github.com/ibmdb/go_ibm_db v0.4.4
 	github.com/mattn/go-oci8 v0.1.1
@@ -375,6 +375,7 @@ require (
 
 replace (
 	github.com/c-bata/go-prompt => github.com/coanor/go-prompt v0.2.6
+	github.com/google/gopacket => github.com/GuanceCloud/gopacket v0.0.1
 	github.com/iovisor/gobpf => github.com/DataDog/gobpf v0.0.0-20210322155958-9866ef4cd22c
 	github.com/kardianos/service => github.com/GuanceCloud/service v1.2.1-rc3
 	github.com/ory/dockertest/v3 v3.9.1 => github.com/GuanceCloud/dockertest/v3 v3.9.4
@@ -383,7 +384,6 @@ replace (
 	github.com/prometheus/prometheus => github.com/prometheus/prometheus v1.8.2-0.20210720084720-59d02b5ef003
 	github.com/pyroscope-io/pyroscope v0.36.0 => github.com/GuanceCloud/pyroscope v0.36.1
 	github.com/weaveworks/common => github.com/pyh4/common v0.0.0-20220923021349-874c8cc0db2c
-
 	k8s.io/api => k8s.io/api v0.25.0
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.25.0
 	k8s.io/apimachinery => k8s.io/apimachinery v0.26.0-alpha.0

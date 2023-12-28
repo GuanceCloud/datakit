@@ -23,6 +23,8 @@ type BaseKey struct {
 
 	DNATAddr string
 	DNATPort uint32
+
+	NetNS string
 }
 
 type aggKey struct {
@@ -78,6 +80,8 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 		"dst_ip_type": key.dType,
 
 		"pid": strconv.FormatInt(int64(key.pid), 10),
+
+		"netns": key.NetNS,
 	}
 
 	if key.DNATAddr != "" && key.DNATPort != 0 {
@@ -193,6 +197,7 @@ func (agg *FlowAgg) Append(info ConnectionInfo, stats ConnFullStats) error {
 		key.DNATAddr = U32BEToIP(info.NATDaddr, isV6).String()
 	}
 
+	key.NetNS = strconv.FormatUint(uint64(info.Netns), 10)
 	// sport, dport
 	key.SPort = info.Sport
 	key.DPort = info.Dport

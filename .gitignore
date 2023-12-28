@@ -99,3 +99,4 @@ testing_metrics
 y.output
 .docs/
 *.sqlite
+datakit*.tar

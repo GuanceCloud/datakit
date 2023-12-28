@@ -100,7 +100,7 @@ func (ct *criClient) ContainerStatus(id string) (*ContainerStatus, error) {
 		return nil, fmt.Errorf("query cri status fail, err: %w", err)
 	}
 
-	info, err := parseCriInfo(resp.GetInfo()["info"])
+	info, err := ParseCriInfo(resp.GetInfo()["info"])
 	if err != nil {
 		return nil, fmt.Errorf("parse cri info fail, err: %w", err)
 	}

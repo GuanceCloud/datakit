@@ -70,6 +70,8 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 
 		"src_ip_type": key.sType,
 		"dst_ip_type": key.dType,
+
+		"netns": key.NetNS,
 	}
 
 	if key.DNATAddr != "" && key.DNATPort != 0 {
@@ -147,6 +149,7 @@ func (agg *FlowAgg) Append(httpFinReq *HTTPReqFinishedInfo) error {
 
 	var key aggKey
 
+	key.NetNS = strconv.FormatUint(uint64(httpFinReq.ConnInfo.Netns), 10)
 	key.processName = httpFinReq.ConnInfo.ProcessName
 	key.pid = int64(httpFinReq.ConnInfo.Pid)
 
