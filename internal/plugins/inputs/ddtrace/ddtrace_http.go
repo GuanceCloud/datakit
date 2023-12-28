@@ -245,7 +245,7 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 		if v, ok := span.Meta["runtime-id"]; ok {
 			spanKV = spanKV.AddTag("runtime_id", v).AddTag("runtime-id", v)
 		}
-		if v, ok := span.Meta["trace_128_id"]; ok {
+		if v, ok := span.Meta["trace_128_bit_id"]; ok {
 			spanKV = spanKV.Add(itrace.FieldTraceID, v, false, true)
 		}
 
