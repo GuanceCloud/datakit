@@ -29,6 +29,8 @@ const (
 	CategoryMetric  = "metric"
 	CategoryEvent   = "keyevent"
 	CategoryLogging = "logging"
+
+	LocalHost = "localhost"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -61,6 +63,7 @@ type Option struct {
 	Cluster         string `long:"cluster" description:"Cluster name" default:""`
 	ConnectString   string `long:"conn" description:"Connect string" default:""`
 	Mode            string `long:"mode" description:"Running mode" default:""`
+	CustomQueryFile string `long:"custom-query" description:"Custom query file path" default:""`
 
 	Log      string   `long:"log" description:"log path"`
 	LogLevel string   `long:"log-level" description:"log file" default:"info"`
@@ -150,7 +153,7 @@ func BuildPointLogging(l *logger.Logger, opt *BuildPointOpt) *point.Point {
 	setHost := false
 	host := strings.ToLower(opt.Host)
 	switch host {
-	case "", "localhost":
+	case "", LocalHost:
 		setHost = true
 	default:
 		if net.ParseIP(host).IsLoopback() {
@@ -169,6 +172,50 @@ func BuildPointLogging(l *logger.Logger, opt *BuildPointOpt) *point.Point {
 	return point.NewPointV2(opt.MetricName,
 		append(point.NewTags(newTags), point.NewKVs(opt.TF.Fields)...),
 		opts...)
+}
+
+func BuildPointMetric(kvs point.KVs, metricName string, tags, hostTag map[string]string) *point.Point {
+	opts := point.DefaultMetricOptions()
+	opts = append(opts, point.WithTime(time.Now()))
+
+	for k, v := range tags {
+		kvs = kvs.AddTag(k, v)
+	}
+
+	for k, v := range hostTag {
+		kvs = kvs.MustAddTag(k, v)
+	}
+
+	return point.NewPointV2(metricName, kvs, opts...)
+}
+
+func GetHostTag(l *logger.Logger, hostVar string) map[string]string {
+	var err error
+
+	setHost := false
+	host := strings.ToLower(hostVar)
+	switch host {
+	case "", LocalHost:
+		setHost = true
+	default:
+		if net.ParseIP(host).IsLoopback() {
+			setHost = true
+		}
+	}
+	if setHost {
+		host, err = os.Hostname()
+		if err != nil {
+			l.Errorf("os.Hostname() failed: %v", err)
+		}
+	}
+
+	if len(host) == 0 {
+		return nil
+	}
+
+	return map[string]string{
+		"host": host,
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -207,7 +254,7 @@ func MergeTags(global, origin map[string]string, remote string) map[string]strin
 		}
 	}
 
-	if host != "localhost" && !net.ParseIP(host).IsLoopback() {
+	if host != LocalHost && !net.ParseIP(host).IsLoopback() {
 		out["host"] = host
 	}
 

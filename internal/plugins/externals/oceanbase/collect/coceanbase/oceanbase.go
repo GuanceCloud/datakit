@@ -12,6 +12,7 @@ package coceanbase
 import (
 	"bytes"
 	"database/sql"
+	"encoding/gob"
 	"fmt"
 	"net"
 	"net/url"
@@ -54,6 +55,7 @@ type Input struct {
 	ConnectString string
 	Database      string
 	Mode          string
+	Query         []*customQuery
 
 	db                    *sqlx.DB
 	intervalDuration      time.Duration
@@ -61,6 +63,20 @@ type Input struct {
 	collectorsLogging     []ccommon.DBMetricsCollector
 	datakitPostURL        string
 	datakitPostLoggingURL string
+
+	// collected metrics - mysql custom queries
+	mCustomQueries map[string][]map[string]interface{}
+}
+
+// customQuery contains custom sql query info.
+// Same as struct 'customQuery' in internal/plugins/inputs/external/external.go.
+type customQuery struct {
+	SQL    string   `toml:"sql"`
+	Metric string   `toml:"metric"`
+	Tags   []string `toml:"tags"`
+	Fields []string `toml:"fields"`
+
+	MD5Hash string
 }
 
 func NewInput(infoMsgs []string, opt *ccommon.Option) ccommon.IInput {
@@ -133,6 +149,11 @@ func NewInput(infoMsgs []string, opt *ccommon.Option) ccommon.IInput {
 		}
 	}
 
+	l.Infof("opt.CustomQueryFile = %s", opt.CustomQueryFile)
+	if len(opt.CustomQueryFile) > 0 {
+		ipt.Query = bytesToQuery(opt)
+	}
+
 	items := strings.Split(opt.Tags, ";")
 	for _, item := range items {
 		tagArr := strings.Split(item, "=")
@@ -170,8 +191,9 @@ func NewInput(infoMsgs []string, opt *ccommon.Option) ccommon.IInput {
 	}
 
 	proMetric := newOBMetrics(withInput(ipt), withMetricName(metricName))
+	customMetric := newCustomQueryCollector(withInput(ipt))
 
-	ipt.collectors = append(ipt.collectors, proMetric)
+	ipt.collectors = append(ipt.collectors, proMetric, customMetric)
 
 	ipt.datakitPostURL = ccommon.GetPostURL(
 		opt.Election,
@@ -194,6 +216,28 @@ func NewInput(infoMsgs []string, opt *ccommon.Option) ccommon.IInput {
 	l.Infof("collectors len = %d", len(ipt.collectors))
 
 	return ipt
+}
+
+func bytesToQuery(opt *ccommon.Option) []*customQuery {
+	l.Debug("bytesToQuery entry")
+
+	fi, err := os.Open(opt.CustomQueryFile)
+	if err != nil {
+		l.Errorf("os.Open() failed: %v", err)
+		return nil
+	}
+
+	dec := gob.NewDecoder(fi)
+	var query []*customQuery
+	err = dec.Decode(&query)
+	if err != nil {
+		l.Errorf("dec.Decode() failed: %v", err)
+		return nil
+	}
+
+	l.Debugf("query = %#v", query)
+
+	return query
 }
 
 // ConnectDB establishes a connection to an Database instance and returns an open connection to the database.
@@ -282,6 +326,36 @@ func (ipt *Input) CloseDB() {
 			l.Warnf("failed to close "+inputName+" connection | server=[%s]: %s", ipt.host, err.Error())
 		}
 	}
+}
+
+func (ipt *Input) q(s string) rows {
+	rows, err := ipt.db.Query(s)
+	if err != nil {
+		l.Errorf(`query failed, sql (%q), error: %s, ignored`, s, err.Error())
+		return nil
+	}
+
+	if err := rows.Err(); err != nil {
+		closeRows(rows)
+		l.Errorf(`query row failed, sql (%q), error: %s, ignored`, s, err.Error())
+		return nil
+	}
+
+	return rows
+}
+
+func closeRows(r rows) {
+	if err := r.Close(); err != nil {
+		l.Warnf("Close: %s, ignored", err)
+	}
+}
+
+type rows interface {
+	Next() bool
+	Scan(...interface{}) error
+	Close() error
+	Err() error
+	Columns() ([]string, error)
 }
 
 // Run start collecting.
