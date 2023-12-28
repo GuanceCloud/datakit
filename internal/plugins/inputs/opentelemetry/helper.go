@@ -9,6 +9,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/GuanceCloud/cliutils/point"
+
 	common "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/common/v1"
 )
 
@@ -110,14 +112,6 @@ func (a *attributes) find(key string) (*common.KeyValue, int) {
 	return nil, -1
 }
 
-func (a *attributes) remove(key string) *attributes {
-	if _, i := a.find(key); i != -1 {
-		a.attrs = append(a.attrs[:i], a.attrs[i+1:]...)
-	}
-
-	return a
-}
-
 func (a *attributes) splite() (map[string]string, map[string]interface{}) {
 	shadowTags := make(map[string]string)
 	metrics := make(map[string]interface{})
@@ -141,4 +135,26 @@ func (a *attributes) splite() (map[string]string, map[string]interface{}) {
 	}
 
 	return shadowTags, metrics
+}
+
+func attributesToKVS(spanKV point.KVs, otherAttrs, atts []*common.KeyValue) (point.KVs, []*common.KeyValue) {
+	for _, v := range atts {
+		if replaceKey, ok := OTELAttributes[v.Key]; ok {
+			switch v.Value.Value.(type) {
+			case *common.AnyValue_BytesValue, *common.AnyValue_StringValue:
+				if s := v.Value.GetStringValue(); len(s) > 1024 {
+					spanKV = spanKV.Add(replaceKey, s, false, true)
+				} else {
+					spanKV = spanKV.MustAddTag(replaceKey, s)
+				}
+			case *common.AnyValue_DoubleValue:
+				spanKV = spanKV.Add(replaceKey, v.Value.GetDoubleValue(), false, true)
+			case *common.AnyValue_IntValue:
+				spanKV = spanKV.Add(replaceKey, v.Value.GetIntValue(), false, true)
+			}
+		} else {
+			otherAttrs = append(otherAttrs, v)
+		}
+	}
+	return spanKV, otherAttrs
 }

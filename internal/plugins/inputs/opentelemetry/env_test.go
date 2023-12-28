@@ -38,7 +38,7 @@ func TestReadEnv(t *testing.T) {
 		{
 			name: "otel_env_tc_1",
 			envs: map[string]string{
-				"ENV_INPUT_OTEL_IGNORE_TAGS":        `["block1", "block2"]`,
+				"ENV_INPUT_OTEL_CUSTOMER_TAGS":      `["block1", "block2"]`,
 				"ENV_INPUT_OTEL_KEEP_RARE_RESOURCE": "true",
 				"ENV_INPUT_OTEL_OMIT_ERR_STATUS":    `["404", "403", "400"]`,
 				"ENV_INPUT_OTEL_CLOSE_RESOURCE":     `{"service1":["resource1"], "service2":["resource2"], "service3":["resource3"]}`,
@@ -51,7 +51,7 @@ func TestReadEnv(t *testing.T) {
 				"ENV_INPUT_OTEL_EXPECTED_HEADERS":   `{"ex_version": "1.2.3", "ex_name": "env_resource_name"}`,
 			},
 			expected: &Input{
-				IgnoreTags:       []string{"block1", "block2"},
+				CustomerTags:     []string{"block1", "block2"},
 				KeepRareResource: true,
 				OmitErrStatus:    []string{"404", "403", "400"},
 				CloseResource:    map[string][]string{"service1": {"resource1"}, "service2": {"resource2"}, "service3": {"resource3"}},

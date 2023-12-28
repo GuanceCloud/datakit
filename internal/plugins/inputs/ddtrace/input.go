@@ -11,7 +11,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"regexp"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -41,9 +40,10 @@ const (
   ## NOTE: DO NOT EDIT.
   endpoints = ["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]
 
-  ## ignore_tags will work as a blacklist to prevent tags send to data center.
-  ## Every value in this list is a valid string of regular expression.
-  # ignore_tags = ["block1", "block2"]
+  ## customer_tags will work as a whitelist to prevent tags send to data center.
+  ## All . will replace to _ ,like this :
+  ## "project.name" to send to GuanCe center is "project_name"
+  # customer_tags = ["sink_project", "custom_dd_tag"]
 
   ## Keep rare tracing resources list switch.
   ## If some resources are rare enough(not presend in 1 hour), those resource will always send
@@ -103,7 +103,6 @@ var (
 	v1, v2, v3, v4, v5 = "/v0.1/spans", "/v0.2/traces", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces"
 	info, stats        = "/info", "/v0.6/stats"
 	afterGatherRun     itrace.AfterGatherHandler
-	ignoreTags         []*regexp.Regexp
 	tags               map[string]string
 	wkpool             *workerpool.WorkerPool
 	localCache         *storage.Storage
@@ -118,9 +117,8 @@ type Input struct {
 	TraceSampleConf  interface{}                  `toml:"sample_config"`            // deprecated *itrace.TraceSampleConfig
 	IgnoreResources  []string                     `toml:"ignore_resources"`         // deprecated []string
 	Pipelines        map[string]string            `toml:"pipelines"`                // deprecated
-	CustomerTags     []string                     `toml:"customer_tags"`            // deprecated
+	CustomerTags     []string                     `toml:"customer_tags"`
 	Endpoints        []string                     `toml:"endpoints"`
-	IgnoreTags       []string                     `toml:"ignore_tags"`
 	CompatibleOTEL   bool                         `toml:"compatible_otel"`
 	DelMessage       bool                         `toml:"del_message"`
 	KeepRareResource bool                         `toml:"keep_rare_resource"`
@@ -280,16 +278,12 @@ func (ipt *Input) RegHTTPHandler() {
 }
 
 func (ipt *Input) Run() {
-	for _, v := range ipt.IgnoreTags {
-		if rexp, err := regexp.Compile(v); err != nil {
-			log.Debug(err.Error())
-		} else {
-			ignoreTags = append(ignoreTags, rexp)
-		}
-	}
 	tags = ipt.Tags
 	if ipt.CompatibleOTEL {
 		spanBase = 16
+	}
+	if len(ipt.CustomerTags) != 0 {
+		setCustomTags(ipt.CustomerTags)
 	}
 	delMessage = ipt.DelMessage
 	traceOpts = append(point.DefaultLoggingOptions(), point.WithExtraTags(ipt.Tagger.HostTags()))

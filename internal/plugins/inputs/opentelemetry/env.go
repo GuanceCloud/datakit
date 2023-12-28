@@ -20,7 +20,7 @@ import (
 var _ inputs.ReadEnv = &Input{}
 
 // ReadEnv load config from environment values
-// ENV_INPUT_OTEL_IGNORE_TAGS : JSON string
+// ENV_INPUT_OTEL_CUSTOMER_TAGS : JSON string
 // ENV_INPUT_OTEL_KEEP_RARE_RESOURCE : bool
 // ENV_INPUT_OTEL_OMIT_ERR_STATUS : JSON string
 // ENV_INPUT_OTEL_CLOSE_RESOURCE : JSON string
@@ -47,7 +47,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	log = logger.SLogger(inputName)
 
 	for _, key := range []string{
-		"ENV_INPUT_OTEL_IGNORE_TAGS", "ENV_INPUT_OTEL_KEEP_RARE_RESOURCE", "ENV_INPUT_OTEL_OMIT_ERR_STATUS",
+		"ENV_INPUT_OTEL_CUSTOMER_TAGS", "ENV_INPUT_OTEL_KEEP_RARE_RESOURCE", "ENV_INPUT_OTEL_OMIT_ERR_STATUS",
 		"ENV_INPUT_OTEL_CLOSE_RESOURCE", "ENV_INPUT_OTEL_SAMPLER", "ENV_INPUT_OTEL_TAGS",
 		"ENV_INPUT_OTEL_THREADS", "ENV_INPUT_OTEL_STORAGE", "ENV_INPUT_OTEL_HTTP",
 		"ENV_INPUT_OTEL_GRPC", "ENV_INPUT_OTEL_EXPECTED_HEADERS", "ENV_INPUT_OTEL_DEL_MESSAGE",
@@ -57,12 +57,12 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			continue
 		}
 		switch key {
-		case "ENV_INPUT_OTEL_IGNORE_TAGS":
+		case "ENV_INPUT_OTEL_CUSTOMER_TAGS":
 			var list []string
 			if err := json.Unmarshal([]byte(value), &list); err != nil {
 				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
 			} else {
-				ipt.IgnoreTags = list
+				ipt.CustomerTags = list
 			}
 		case "ENV_INPUT_OTEL_KEEP_RARE_RESOURCE":
 			if ok, err := strconv.ParseBool(value); err != nil {

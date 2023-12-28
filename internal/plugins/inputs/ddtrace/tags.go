@@ -6,6 +6,8 @@
 // Package ddtrace tags.
 package ddtrace
 
+import "strings"
+
 // ddTags DDtrace.
 var ddTags = map[string]string{
 	"http.url":          "http_url",
@@ -28,5 +30,13 @@ var ddTags = map[string]string{
 	"project":           "project",
 	"version":           "version",
 	"env":               "env",
+	"host":              "host",
+	"pod_name":          "pod_name",
 	"_dd.base_service":  "base_service",
+}
+
+func setCustomTags(customTags []string) {
+	for _, tag := range customTags {
+		ddTags[tag] = strings.ReplaceAll(tag, ".", "_")
+	}
 }

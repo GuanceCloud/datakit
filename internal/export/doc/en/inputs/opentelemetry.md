@@ -37,7 +37,7 @@ The purpose of this article is to introduce how to configure and enable OTEL dat
 
     | Envrionment Variable Name           | Type        | Example                                                                                                  |
     | ----------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------- |
-    | `ENV_INPUT_OTEL_IGNORE_TAGS`        | JSON string | `["block1", "block2"]`                                                                                   |
+    | `ENV_INPUT_OTEL_CUSTOMER_TAGS`      | JSON string | `["sink_project", "custom.tag"]`                                                                         |
     | `ENV_INPUT_OTEL_KEEP_RARE_RESOURCE` | bool        | true                                                                                                     |
     | `ENV_INPUT_OTEL_DEL_MESSAGE`        | bool        | true                                                                                                     |
     | `ENV_INPUT_OTEL_OMIT_ERR_STATUS`    | JSON string | `["404", "403", "400"]`                                                                                  |
@@ -104,6 +104,78 @@ Datakit only accepts OTLP data. OTLP has clear data types: `gRPC`, `http/protobu
 -Dotel.exporter.otlp.traces.endpoint=http://datakit-endpoint:9529/otel/v1/trace \
 -Dotel.exporter.otlp.metrics.endpoint=http://datakit-endpoint:9529/otel/v1/metric
 ```
+
+### Tag {#tag}
+
+Starting from DataKit version [1.22.0](../datakit/changelog.md#cl-1.22.0) ,`ignore_tags` is deprecated.
+Add a fixed tags, only those in this list will be extracted into the tag. The following is the fixed list:
+
+| Attributes            | tag                   |
+|:----------------------|:----------------------|
+| http.url              | http_url              |
+| http.hostname         | http_hostname         |
+| http.route            | http_route            |
+| http.status_code      | http_status_code      |
+| http.request.method   | http_request_method   |
+| http.method           | http_method           |
+| http.client_ip        | http_client_ip        |
+| http.scheme           | http_scheme           |
+| url.full              | url_full              |
+| url.scheme            | url_scheme            |
+| url.path              | url_path              |
+| url.query             | url_query             |
+| span_kind             | span_kind             |
+| db.system             | db_system             |
+| db.operation          | db_operation          |
+| db.name               | db_name               |
+| db.statement          | db_statement          |
+| server.address        | server_address        |
+| net.host.name         | net_host_name         |
+| server.port           | server_port           |
+| net.host.port         | net_host_port         |
+| network.peer.address  | network_peer_address  |
+| network.peer.port     | network_peer_port     |
+| network.transport     | network_transport     |
+| messaging.system      | messaging_system      |
+| messaging.operation   | messaging_operation   |
+| messaging.message     | messaging_message     |
+| messaging.destination | messaging_destination |
+| rpc.service           | rpc_service           |
+| rpc.system            | rpc_system            |
+| error                 | error                 |
+| error.message         | error_message         |
+| error.stack           | error_stack           |
+| error.type            | error_type            |
+| error.msg             | error_message         |
+| project               | project               |
+| version               | version               |
+| env                   | env                   |
+| host                  | host                  |
+| pod_name              | pod_name              |
+
+If you want to add custom labels, you can use environment variables:
+
+```shell
+-Dotel.resource.attributes=username=myName,env=1.1.0
+```
+
+And modify the whitelist in the configuration file so that a custom label can appear in the first level label of the observation cloud link details.
+
+```toml
+customer_tags = ["sink_project", "username","env"]
+```
+
+### Kind {#kind}
+
+All `Span` has `span_kind` tag,
+
+- `unspecified`: unspecified.
+- `internal`: internal span.
+- `server`:  WEB server or RPC server.
+- `client`:  HTTP client or RPC client.
+- `producer`:  message producer.
+- `consumer`:  message consumer.
+
 
 ### Best Practices {#bp}
 
