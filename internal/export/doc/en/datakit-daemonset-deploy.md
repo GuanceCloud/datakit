@@ -277,8 +277,8 @@ For string/bool/string-list/duration, it is recommended to use double quotation 
 ### IO Module Configuring Related Environment Variables {#env-io}
 
 | Environment Variable Name     | Type     | Default Value      | Required | Description                                                                        |
-| `ENV_IO_CONTENT_ENCODING`     | string   | `line-protocol`    | No       | Set uploading content encoding of point(candidates: `json/protobuf/line-protocol`) |
 | `ENV_IO_FILTERS`              | json     | None               | No       | Add [row protocol filter](datakit-filter)                                          |
+| `ENV_IO_FEED_CHAN_SIZE`       | int      | 1                  | No       | IO channel capacity([:octicons-tag-24: Version-1.22.0](changelog.md#cl-1.22.0))    |
 | `ENV_IO_FLUSH_INTERVAL`       | duration | 10s                | No       | IO transmission time frequency                                                     |
 | `ENV_IO_FLUSH_WORKERS`        | int      | `cpu_core * 2 + 1` | No       | IO flush workers([:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9))         |
 | `ENV_IO_MAX_CACHE_COUNT`      | int      | 1000               | No       | Send buffer size                                                                   |

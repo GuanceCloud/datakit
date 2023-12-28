@@ -232,6 +232,16 @@ func (c *Config) loadIOEnvs() {
 		}
 	}
 
+	if v := datakit.GetEnv("ENV_IO_FEED_CHAN_SIZE"); v != "" {
+		n, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			l.Warnf("invalid env key ENV_IO_FEED_CHAN_SIZE, value %s, err: %s ignored", v, err)
+		} else {
+			l.Infof("set ENV_IO_FEED_CHAN_SIZE to %d", n)
+			c.IO.FeedChanSize = int(n)
+		}
+	}
+
 	if v := datakit.GetEnv("ENV_IO_CACHE_CLEAN_INTERVAL"); v != "" {
 		du, err := time.ParseDuration(v)
 		if err != nil {
@@ -239,6 +249,32 @@ func (c *Config) loadIOEnvs() {
 		} else {
 			l.Infof("set ENV_IO_CACHE_CLEAN_INTERVAL to %s", du)
 			c.IO.CacheCleanInterval = v
+		}
+	}
+
+	// filters
+	if v := datakit.GetEnv("ENV_IO_FILTERS"); v != "" {
+		var x map[string]filter.FilterConditions
+
+		if err := json.Unmarshal([]byte(v), &x); err != nil {
+			l.Warnf("json.Unmarshal: %s, ignored", err)
+		} else {
+			for k, arr := range x {
+				for _, c := range arr {
+					arr, err := fp.GetConds(c)
+					if err != nil {
+						l.Warnf("parse filter condition failed %q: %q, ignored", k, c)
+					}
+
+					if len(arr) == 0 {
+						l.Warnf("empty filter conditions %q", c)
+					} else {
+						l.Infof("filter condition ok %q", c)
+					}
+				}
+			}
+
+			c.IO.Filters = x
 		}
 	}
 }
@@ -407,32 +443,6 @@ func (c *Config) LoadEnvs() error {
 
 	if v := datakit.GetEnv("ENV_HTTP_ALLOWED_CORS_ORIGINS"); v != "" {
 		c.HTTPAPI.AllowedCORSOrigins = strings.Split(v, ",")
-	}
-
-	// filters
-	if v := datakit.GetEnv("ENV_IO_FILTERS"); v != "" {
-		var x map[string]filter.FilterConditions
-
-		if err := json.Unmarshal([]byte(v), &x); err != nil {
-			l.Warnf("json.Unmarshal: %s, ignored", err)
-		} else {
-			for k, arr := range x {
-				for _, c := range arr {
-					arr, err := fp.GetConds(c)
-					if err != nil {
-						l.Warnf("parse filter condition failed %q: %q, ignored", k, c)
-					}
-
-					if len(arr) == 0 {
-						l.Warnf("empty filter conditions %q", c)
-					} else {
-						l.Infof("filter condition ok %q", c)
-					}
-				}
-			}
-
-			c.IO.Filters = x
-		}
 	}
 
 	// DCA settings
