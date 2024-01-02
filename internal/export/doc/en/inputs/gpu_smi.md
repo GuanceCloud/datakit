@@ -1,78 +1,86 @@
+---
+title     : 'GPU'
+summary   : 'Collect NVIDIA GPU metrics and logs'
+__int_icon      : 'icon/gpu_smi'
+dashboard :
+  - desc  : 'N/A'
+    path  : '-'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
 
+<!-- markdownlint-disable MD025 -->
 # GPU
-
----
-## SMI Metrics {#SMI-tag}
+<!-- markdownlint-enable -->
 ---
 
-- Operating system support: :fontawesome-brands-linux: :fontawesome-brands-windows: :material-kubernetes:
+{{.AvailableArchs}}
 
 SMI metric display: including GPU card temperature, clock, GPU occupancy rate, memory occupancy rate, memory occupancy of each running program in GPU, etc.
 
-### Use SMI Metric Preconditions {#SMI-precondition}
+## Configuration {#config}
 
-#### Install Driver and CUDA Kit {#SMI-install-driver}
+### Install Driver and CUDA Kit {#install-driver}
+
 See  [https://www.nvidia.com/Download/index.aspx]( https://www.nvidia.com/Download/index.aspx)
 
+### Collector Configuration {#input-config}
 
+<!-- markdownlint-disable MD046 -->
+=== "Host Installation"
 
+    Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
 
-### SMI Metrics Configuration {#SMI-input-config}
+    ```toml
+    {{ CodeBlock .InputSample 4 }}
+    ```
 
-Go to the `conf.d/gpu_smi` directory under the DataKit installation directory, copy `gpu_smi.conf.sample` and name it `gpu_smi.conf`. Examples are as follows:
+    ???+ attention
 
-```toml
+        1. Datakit can remotely collect GPU server indicators through SSH (when remote collection is enabled, the local configuration will be invalid).
+        1. The number of `remote_addrs` configured can be more than the number of `remote_users` `remote_passwords` `remote_rsa_paths`.If not enough, it will match the first value.
+        1. Can be collected through `remote_addrs`+`remote_users`+`remote_passwords`.
+        1. It can also be collected through `remote_addrs`+`remote_users`+`remote_rsa_paths`. (`remote_passwords` will be invalid after configuring the RSA public key).
+        1. After turning on remote collection, elections must be turned on. (Prevent multiple Datakits from uploading duplicate data).
+        1. For security reasons, you can change the SSH port number or create a dedicated account for GPU remote collection.
 
-[[inputs.gpu_smi]]
-  ##the binPath of gpu-smi 
-  ##if nvidia GPU
-  #(example & default) bin_paths = ["/usr/bin/nvidia-smi"]
-  #(example windows) bin_paths = ["nvidia-smi"]
-  ##if lluvatar GPU
-  #(example) bin_paths = ["/usr/local/corex/bin/ixsmi"]
-  #(example) envs = [ "LD_LIBRARY_PATH=/usr/local/corex/lib/:$LD_LIBRARY_PATH" ]
+    After configuration, [restart DataKit](../datakit/datakit-service-how-to.md#manage-service).
 
-  ##(optional) exec gpu-smi envs, default is []
-  #envs = [ "LD_LIBRARY_PATH=/usr/local/corex/lib/:$LD_LIBRARY_PATH" ]
-  ##(optional) exec gpu-smi timeout, default is 5 seconds
-  timeout = "5s"
-  ##(optional) collect interval, default is 10 seconds
-  interval = "10s"
-  ##(optional) Feed how much log data for ProcessInfos, default is 10. (0: 0 ,-1: all)
-  process_info_max_len = 10
-  ##(optional) gpu drop card warning delay, default is 300 seconds
-  gpu_drop_warning_delay = "300s"
+=== "Kubernetes"
 
-[inputs.gpu_smi.tags]
-  # some_tag = "some_value"
-  # more_tag = "some_other_value"
-```
+    Supports modifying configuration parameters as environment variables (effective only when the DataKit is running in K8s daemonset mode, which is not supported for host-deployed DataKit):
 
-After configuration, restart DataKit.
+    | Environment Variable Name               | Corresponding Configuration Parameter Item         | Parameter Example                                                    |
+    | :-----------------------------          | ---                      | ---                                                          |
+    | `ENV_INPUT_GPUSMI_TAGS`                 | `tags`                   | `tag1=value1,tag2=value2` If there is a tag with the same name in the configuration file, it will be overwritten. |
+    | `ENV_INPUT_GPUSMI_INTERVAL`             | `interval`               | `10s`                                                        |
+    | `ENV_INPUT_GPUSMI_BIN_PATHS`            | `bin_paths`              | `["/usr/bin/nvidia-smi"]`                                    |
+    | `ENV_INPUT_GPUSMI_TIMEOUT`              | `timeout`                | `"5s"`                                                       |
+    | `ENV_INPUT_GPUSMI_PROCESS_INFO_MAX_LEN` | `process_info_max_len`   | `10`                                                         |
+    | `ENV_INPUT_GPUSMI_DROP_WARNING_DELAY`   | `gpu_drop_warning_delay` | `"300s"`                                                     |
+    | `ENV_INPUT_GPUSMI_ENVS`                 | `envs`                   | `["LD_LIBRARY_PATH=/usr/local/corex/lib/:$LD_LIBRARY_PATH"]` |
+    | `ENV_INPUT_GPUSMI_REMOTE_ADDRS`         | `remote_addrs`           | `["192.168.1.1:22"]`                                         |
+    | `ENV_INPUT_GPUSMI_REMOTE_USERS`         | `remote_users`           | `["remote_login_name"]`                                      |
+    | `ENV_INPUT_GPUSMI_REMOTE_RSA_PATHS`     | `remote_rsa_paths`       | `["/home/your_name/.ssh/id_rsa"]`                            |
+    | `ENV_INPUT_GPUSMI_REMOTE_COMMAND`       | `remote_command`         | `"nvidia-smi -x -q"`          
 
-Supports modifying configuration parameters as environment variables (effective only when the DataKit is running in K8s daemonset mode, which is not supported for host-deployed DataKit):
+<!-- markdownlint-enable -->
 
-| Environment Variable Name      | Corresponding Configuration Parameter Item | Parameter Example                                                                                                  |
-| :---                           | ---                                        | ---                                                                                                                |
-| `ENV_INPUT_GPUSMI_TAGS`        | `tags`                                     | `tag1=value1,tag2=value2`; If there is a tag with the same name in the configuration file, it will be overwritten. |
-| `ENV_INPUT_GPUSMI_INTERVAL`    | `interval`                                 | `10s`                                                                                                              |
+## Metric {#metric}
 
-### SMI Measurements {#SMI-measurements}
-
-For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.gpu_smi.tags]`:
+For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.{{.InputName}}.tags]`:
 
 ``` toml
- [inputs.gpu_smi.tags]
+ [inputs.{{.InputName}}.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...
 ```
 
-
-
 {{ range $i, $m := .Measurements }}
 
-#### `{{$m.Name}}`
+### `{{$m.Name}}`
 
 -  Tags
 
@@ -84,48 +92,19 @@ For all of the following data collections, a global tag named `host` is appended
 
 {{ end }}
 
-
-### GPU Card Dropping && Card Loading Information {#SMI-drop-card}
-
-| Time                  | Information Description|UUID                                    |
-|---------------------|--------------------|------------------------------------------|
-| 09/13 09:56:54.567  | Warning! GPU drop! | GPU-06e04616-0ed5-4069-5ebc-345349a0d4f3 |
-| 09/13 15:04:17.321  | Info! GPU online!  | GPU-06e04616-0ed5-4069-5ebc-345349a0d4f3 |
-
-
-### GPU Process Ranking {#SMI-process-list}
-
-| Time                 | UUID       | Process Program Name  | General Packet Radio Service Memory (MB)                                   |
-|--------------------|------------|--------|-----------------------------------------------|
-| 09/13 14:56:46.955 |GPU-06e04616-0ed5-4069-5ebc-345349a0d4f3|ProcessName=Xorg|UsedMemory= 59 MiB|
-| 09/13 14:56:46.955 |GPU-06e04616-0ed5-4069-5ebc-345349a0d4f3|ProcessName=firefox|UsedMemory= 1 MiB|
-
-Observation skills
-```
-
- [Log] -> [Shortcut Filter] -> [Edit] -> [Search or Add Fields] Select [uuid] and [pci_bus_id] -> [Close].
- There will be more [uuid] and [pci_bus_id] filters in the [shortcut filter] column, so you can only look at the list information of single card process.
-
-```
-
-
----
-## DCGM Metrics {#DCGM-tag}
----
+## DCGM Metrics Collection {#dcgm}
 
 - Operating system support: :fontawesome-brands-linux: :material-kubernetes:
 
 DCGM indicator display: including GPU card temperature, clock, GPU occupancy rate, memory occupancy rate, etc.
 
-### DCGM Metrics Preconditions {#DCGM-precondition}
+### DCGM Configuration {#dcgm-config}
 
-#### Install dcgm-exporter {#DCGM-install-driver}
+#### DCGM Metrics Preconditions {#dcgm-precondition}
 
-Reference website [https://github.com/NVIDIA/dcgm-exporter]( https://github.com/NVIDIA/dcgm-exporter)
+Install `dcgm-exporter`, refer to [here](https://github.com/NVIDIA/dcgm-exporter){:target="_blank"}
 
-
-
-### DCGM Metrics Configuration {#DCGM-input-config}
+#### DCGM Metrics Configuration {#dcgm-input-config}
 
 Go to the `conf.d/Prom` directory under the DataKit installation directory, copy `prom.conf.sample` and name it `prom.conf`. Examples are as follows:
 
@@ -236,13 +215,10 @@ Go to the `conf.d/Prom` directory under the DataKit installation directory, copy
   # more_tag = "some_other_value"
 ```
 
-After configuration, restart DataKit.
+After configuration, [restart DataKit](../datakit/datakit-service-how-to.md#manage-service).
 
-### DCGM Measurements {#DCGM-measurements}
+### DCGM Metrics {#dcgm-metric}
 
-gpu_dcgm
-
-### Metrics List {#DCGM-measurements-list}
 | Metrics | Description | Data Type |
 | --- | --- | --- |
 |  DCGM_FI_DEV_DEC_UTIL                |  gauge, Decoder utilization (in %).                                | int |
@@ -258,16 +234,3 @@ gpu_dcgm
 |  DCGM_FI_DEV_SM_CLOCK                |  gauge, SM clock frequency (in MHz).                               | int |
 |  DCGM_FI_DEV_VGPU_LICENSE_STATUS     |  gauge, vGPU License status                                        | int |
 |  DCGM_FI_DEV_XID_ERRORS              |  gauge, Value of the last XID error encountered.                   | int |
-
-
----
-## Card Drop Alarm Notification Configuration {#warning-config-tag}
----
-
-```
-
- [Monitor] -> [Monitor] -> [New Monitor] Select [Threshold Detection] -> Enter [Rule Name]
- Select [Log] for [Metrics] -> [gpu_smi] for [Measurement] -> [status_gpu] for column 4 -> [Max] for column 5 -> [host]+[uuid] for by [detection dimension]
- Enter [999] in [Urgent] enter [999] -> Enter [2] in [Important] -> Enter [999] in [Warning]
-
-```
