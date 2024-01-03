@@ -87,6 +87,7 @@ fi
 printf "${GREEN}> Export to %s, %s${CLR}\n" $guance_doc_dir $integration_dir
 export_log=.export.log
 truncate -s 0 $export_log
+cp scripts/glossary.txt $guance_doc_dir/checking/glossary.datakit.txt # add glossary of datakit
 LOGGER_PATH=$export_log go run -tags with_inputs cmd/make/make.go -export \
 	-export-doc-dir $guance_doc_dir/docs \
 	-export-integration-dir $integration_dir \
