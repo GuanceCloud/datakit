@@ -6,6 +6,17 @@
 
 ---
 
+## Changelog
+
+### v1.4.3(2023/12/21)
+
+Bug fix:
+
+- Fixed the issue where using wildcard paths in logfiles when injecting logfwd would cause a mount error.
+- Fixed a critical issue where injecting logfwd into a Pod with 2 or more containers would fail and affect the original Pod startup.
+
+---
+
 ## Overview and Installation {#datakit-operator-overview-and-install}
 
 Datakit Operator is a collaborative project between Datakit and Kubernetes orchestration. It aims to assist the deployment of Datakit as well as other functions such as verification and injection.
@@ -171,7 +182,7 @@ The following functions are currently supported:
 
 1. On the target Kubernetes cluster, [download and install Datakit-Operator](datakit-operator.md#datakit-operator-overview-and-install).
 2. Add a specified Annotation in deployment, indicating the need to inject ddtrace files. Note that the Annotation needs to be added in the template.
-    - The key is `admission.datakit/%s-lib.version`, where %s needs to be replaced with the specified language. Currently supports `java`, `python` and `js`.
+    - The key is `admission.datakit/%s-lib.version`, where `%s` needs to be replaced with the specified language. Currently supports `java`, `python` and `js`.
     - The value is the specified version number. If left blank, the default image version of the environment variable will be used.
 
 #### Example {#datakit-operator-inject-lib-example}
@@ -214,10 +225,11 @@ Verify as follows:
 
 ```shell
 $ kubectl get pod
-$ NAME                                   READY   STATUS    RESTARTS      AGE
+NAME                                   READY   STATUS    RESTARTS      AGE
 nginx-deployment-7bd8dd85f-fzmt2       1/1     Running   0             4s
+
 $ kubectl get pod nginx-deployment-7bd8dd85f-fzmt2 -o=jsonpath={.spec.initContainers\[\*\].name}
-$ datakit-lib-init
+datakit-lib-init
 ```
 
 ### Injecting Logfwd Program and Enabling Log Collection {#datakit-operator-inject-logfwd}
@@ -232,7 +244,7 @@ $ datakit-lib-init
 #### Instructions {#datakit-operator-inject-logfwd-instructions}
 
 1. On the target Kubernetes cluster, [download and install Datakit-Operator](datakit-operator.md#datakit-operator-overview-and-install).
-2. In the deployment, add the specified Annotation to indicate that a logfwd sidecar needs to be mounted. Note that the Annotation should be added in the template.
+1. In the deployment, add the specified Annotation to indicate that a logfwd sidecar needs to be mounted. Note that the Annotation should be added in the template.
     - The key is uniformly `admission.datakit/logfwd.instances`.
     - The value is a JSON string of specific logfwd configuration, as shown below:
 
@@ -306,16 +318,18 @@ Creating Resources Using yaml File:
 
 ```shell
 $ kubectl apply -f logging.yaml
+...
 ```
 
 Verify as follows:
 
 ```shell
 $ kubectl get pod
-$ NAME                                   READY   STATUS    RESTARTS      AGE
+NAME                                   READY   STATUS    RESTARTS      AGE
 logging-deployment-5d48bf9995-vt6bb       1/1     Running   0             4s
+
 $ kubectl get pod logging-deployment-5d48bf9995-vt6bb -o=jsonpath={.spec.containers\[\*\].name}
-$ log-container datakit-logfwd
+log-container datakit-logfwd
 ```
 
 Finally, you can check whether the logs have been collected on the Observability Cloud Log Platform.

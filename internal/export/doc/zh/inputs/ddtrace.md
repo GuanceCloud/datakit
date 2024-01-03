@@ -127,6 +127,61 @@ DDTrace 是 DataDog 开源的 APM 产品，Datakit 内嵌的 DDTrace Agent 用�
     | `ENV_INPUT_DDTRACE_THREADS`            | JSON string | `{"buffer":1000, "threads":100}`                                                 |
     | `ENV_INPUT_DDTRACE_STORAGE`            | JSON string | `{"storage":"./ddtrace_storage", "capacity": 5120}`                              |
 
+
+### 注入 Pod 和 Node 信息 {#add-pod-node-info}
+
+当应用在 Kubernetes 等容器环境部署时，我们可以在在最终的 Span 数据上追加 Pod/Node 信息，通过修改应用的 Yaml 即可，下面是一个 Kubernetes Deployment 的 yaml 示例：
+
+```yaml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  selector:
+    matchLabels:
+      app: my-app
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: my-app
+        service: my-service
+    spec:
+      containers:
+        - name: my-app
+          image: my-app:v0.0.1
+          env:
+            - name: POD_NAME    # <------
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: DD_SERVICE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['service']
+            - name: DD_TAGS
+              value: pod_name:$(POD_NAME),host:$(NODE_NAME)
+```
+
+注意，此处要先定义 `POD_NAME` 和 `NODE_NAME`，然后再将它们嵌入到到 DDTrace 专用的环境变量中。
+
+应用启动后，进入对应的 Pod，我们可以验证 ENV 是否生效：
+
+```shell
+$ env | grep DD_
+...
+```
+
+一旦注入成功，在最终的 Span 数据中，我们就能看到该 Span 所处的 Pod 以及 Node 名称。
+
+---
+
 ???+ attention
 
     - 不要修改这里的 `endpoints` 列表（除非明确知道配置逻辑和效果）。

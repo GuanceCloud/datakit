@@ -63,6 +63,7 @@ This release is an iteration release, with the following updates:
 - Removed `datakit export` command to decrease Datakit binary package size (#2024)
 - Added [time series count](why-no-data.md#check-input-conf) for debugging collector configuration (#2016)
 - [Profile collection](../integrations/profile.md) now uses disk caching to implement asynchronous reporting (#2041)
+- Update install script under Windows (#2026)
 - Updated a batch of built-in dashboard and monitors for collectors
 
 ### Breaking Changes {#cl-1.21.0-brk}

@@ -6,6 +6,17 @@
 
 ---
 
+## 更新历史
+
+### v1.4.3(2023/12/21)
+
+改动如下：
+
+- 修复在注入 logfwd 时，如果 logfiles 写通配路径会导致 mount 错误的问题
+- 修复在注入 logfwd 时，如果该 Pod 有 2 个及以上的容器，会注入失败并影响原 Pod 启动的严重问题
+
+---
+
 ## 概述和安装 {#datakit-operator-overview-and-install}
 
 Datakit Operator 是 Datakit 在 Kubernetes 编排的联动项目，旨在协助 Datakit 更方便的部署，以及其他诸如验证、注入的功能。
@@ -176,8 +187,8 @@ Datakit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
 #### 使用说明 {#datakit-operator-inject-lib-usage}
 
 1. 在目标 Kubernetes 集群，[下载和安装 Datakit-Operator](datakit-operator.md#datakit-operator-overview-and-install)
-2. 在 deployment 添加指定 Annotation，表示需要注入 `ddtrace` 文件。注意 Annotation 要添加在 template 中
-    - key 是 `admission.datakit/%s-lib.version`，%s 需要替换成指定的语言，目前支持 `java`、`python` 和 `js`
+1. 在 deployment 添加指定 Annotation，表示需要注入 `ddtrace` 文件。注意 Annotation 要添加在 template 中
+    - key 是 `admission.datakit/%s-lib.version`，`%s` 需要替换成指定的语言，目前支持 `java`、`python` 和 `js`
     - value 是指定版本号。如果为空，将使用环境变量的默认镜像版本
 
 #### 用例 {#datakit-operator-inject-lib-example}
@@ -213,18 +224,19 @@ spec:
 使用 yaml 文件创建资源：
 
 ```shell
-kubectl apply -f nginx.yaml
+$ kubectl apply -f nginx.yaml
+...
 ```
 
 验证如下：
 
 ```shell
-kubectl get pod
+$ kubectl get pod
 
 NAME                                   READY   STATUS    RESTARTS      AGE
 nginx-deployment-7bd8dd85f-fzmt2       1/1     Running   0             4s
 
-kubectl get pod nginx-deployment-7bd8dd85f-fzmt2 -o=jsonpath={.spec.initContainers\[\*\].name}
+$ kubectl get pod nginx-deployment-7bd8dd85f-fzmt2 -o=jsonpath={.spec.initContainers\[\*\].name}
 
 datakit-lib-init
 ```
@@ -314,17 +326,20 @@ spec:
 使用 yaml 文件创建资源：
 
 ```shell
-kubectl apply -f logging.yaml
+$ kubectl apply -f logging.yaml
+...
 ```
 
 验证如下：
 
 ```shell
 $ kubectl get pod
-$ NAME                                   READY   STATUS    RESTARTS      AGE
+
+NAME                                   READY   STATUS    RESTARTS      AGE
 logging-deployment-5d48bf9995-vt6bb       1/1     Running   0             4s
+
 $ kubectl get pod logging-deployment-5d48bf9995-vt6bb -o=jsonpath={.spec.containers\[\*\].name}
-$ log-container datakit-logfwd
+log-container datakit-logfwd
 ```
 
 最终可以在观测云日志平台查看日志是否采集。
@@ -392,8 +407,10 @@ spec:
 
 ```shell
 $ kubectl apply -f deployment-movies-java.yaml
+
 $ kubectl get pods | grep movies-java
 movies-java-784f4bb8c7-59g6s   2/2     Running   0          47s
+
 $ kubectl describe pod movies-java-784f4bb8c7-59g6s | grep datakit-profiler
       /app/datakit-profiler from datakit-profiler-volume (rw)
   datakit-profiler:
@@ -414,10 +431,10 @@ $ kubectl describe pod movies-java-784f4bb8c7-59g6s | grep datakit-profiler
 
     可以通过修改 `datakit-operator.yaml` 配置文件中的 `datakit-operator-config` 下的环境变量来配置 profiling 的行为。
     
-    | 环境变量 | 说明 | 默认值 |
-    |----|--|-----|
-    |  `DK_PROFILE_SCHEDULE`  | profiling 的运行计划，使用与 Linux [Crontab](https://man7.org/linux/man-pages/man5/crontab.5.html){:target="_blank"} 相同的语法，如 `*/10 * * * *` |  `0 * * * *`（每小时调度一次）   |
-    | `DK_PROFILE_DURATION`   | 每次 profiling 持续的时间，单位秒 |   240（4 分钟） |
+    | 环境变量              | 说明                                                                                                                                               | 默认值                        |
+    | ----                  | --                                                                                                                                                 | -----                         |
+    | `DK_PROFILE_SCHEDULE` | profiling 的运行计划，使用与 Linux [Crontab](https://man7.org/linux/man-pages/man5/crontab.5.html){:target="_blank"} 相同的语法，如 `*/10 * * * *` | `0 * * * *`（每小时调度一次） |
+    | `DK_PROFILE_DURATION` | 每次 profiling 持续的时间，单位秒                                                                                                                  | 240（4 分钟）                 |
 
 
 ???+ note
@@ -480,10 +497,10 @@ spec:
 
 ```shell
 $ kubectl apply -f deployment-movies-python.yaml
-$
+
 $ kubectl get pods | grep movies-python
 movies-python-78b6cf55f-ptzxf   2/2     Running   0          64s
-$ 
+ 
 $ kubectl describe pod movies-python-78b6cf55f-ptzxf | grep datakit-profiler
       /app/datakit-profiler from datakit-profiler-volume (rw)
   datakit-profiler:
@@ -504,10 +521,10 @@ $ kubectl describe pod movies-python-78b6cf55f-ptzxf | grep datakit-profiler
 
     可以通过修改 `datakit-operator.yaml` 配置文件中的 ConfigMap `datakit-operator-config`  下的环境变量来配置 profiling 的行为。
 
-    | 环境变量 | 说明 | 默认值 |
-    |----|--|-----|
-    |  `DK_PROFILE_SCHEDULE`  | profiling 的运行计划，使用与 Linux [Crontab](https://man7.org/linux/man-pages/man5/crontab.5.html){:target="_blank"} 相同的语法，如 `*/10 * * * *` |  `0 * * * *`（每小时调度一次）   |
-    | `DK_PROFILE_DURATION`   | 每次 profiling 持续的时间，单位秒 |   240（4 分钟） |
+    | 环境变量              | 说明                                                                                                                                               | 默认值                        |
+    | ----                  | --                                                                                                                                                 | -----                         |
+    | `DK_PROFILE_SCHEDULE` | profiling 的运行计划，使用与 Linux [Crontab](https://man7.org/linux/man-pages/man5/crontab.5.html){:target="_blank"} 相同的语法，如 `*/10 * * * *` | `0 * * * *`（每小时调度一次） |
+    | `DK_PROFILE_DURATION` | 每次 profiling 持续的时间，单位秒                                                                                                                  | 240（4 分钟）                 |
 
 
 ???+ note
