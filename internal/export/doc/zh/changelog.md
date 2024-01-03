@@ -62,6 +62,7 @@
 - 移除了 `datakit export` 命令优化二进制包大小（#2024）
 - [调试采集器配置](why-no-data.md#check-input-conf) 中增加采集点的时间线数量（#2016）
 - [Profile 采集](../integrations/profile.md)使用磁盘缓存实现异步化上报（#2041）
+- 优化 Windows 下 Datakit 安装脚本（#2026）
 - 更新一批采集器的内置视图和监控器
 
 ### Breaking Changes {#cl-1.21.0-brk}

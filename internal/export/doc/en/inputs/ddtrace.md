@@ -114,6 +114,60 @@ DDTrace Agent embedded in Datakit is used to receive, calculate and analyze Data
     | `ENV_INPUT_DDTRACE_THREADS`            | JSON string | `{"buffer":1000, "threads":100}`                                                 |
     | `ENV_INPUT_DDTRACE_STORAGE`            | JSON string | `{"storage":"./ddtrace_storage", "capacity": 5120}`                              |
 
+### Add Pod and Node tags {#add-pod-node-info}
+
+When your service deployed on Kubernetes, we can add Pod/Node tags to Span, edit your Pod yaml, here is a Deployment yaml example:
+
+```yaml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  selector:
+    matchLabels:
+      app: my-app
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: my-app
+        service: my-service
+    spec:
+      containers:
+        - name: my-app
+          image: my-app:v0.0.1
+          env:
+            - name: POD_NAME    # <------
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: DD_SERVICE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['service']
+            - name: DD_TAGS
+              value: pod_name:$(POD_NAME),host:$(NODE_NAME)
+```
+
+Here we must define `POD_NAME` and `NODE_NAME` before reference them in dedicated environment keys of DDTrace:
+
+After your Pod started, enter the Pod, we can check if environment applied:
+
+```shell
+$ env | grep DD_
+...
+```
+
+Once environment set, the Pod/Node name will attached to related Span tags.
+
+---
+
 ???+ attention
 
     - Don't modify the `endpoints` list here.
