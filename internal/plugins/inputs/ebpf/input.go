@@ -64,6 +64,10 @@ type Input struct {
 	Conv2DD         bool   `toml:"conv_to_ddtrace"`
 	TraceAllProcess bool   `toml:"trace_all_process"`
 
+	CPULimit string `toml:"cpu_limit"`
+	MemLimit string `toml:"mem_limit"`
+	NetLimit string `toml:"net_limit"`
+
 	TraceENVList       []string `toml:"trace_env_list"`
 	TraceENVBlacklist  []string `toml:"trace_env_blacklist"`
 	TraceNameList      []string `toml:"trace_name_list"`
@@ -219,6 +223,21 @@ loop:
 			"--conv-to-ddtrace", "true")
 	}
 
+	if ipt.CPULimit != "" {
+		ipt.Input.Args = append(ipt.Input.Args,
+			"--res-cpu", ipt.CPULimit)
+	}
+
+	if ipt.MemLimit != "" {
+		ipt.Input.Args = append(ipt.Input.Args,
+			"--res-mem", ipt.MemLimit)
+	}
+
+	if ipt.NetLimit != "" {
+		ipt.Input.Args = append(ipt.Input.Args,
+			"--res-net", ipt.NetLimit)
+	}
+
 	if len(ipt.EnabledPlugins) == 0 {
 		ipt.EnabledPlugins = []string{"ebpf-net"}
 	}
@@ -276,6 +295,10 @@ func (*Input) AvailableArchs() []string {
 //
 // ENV_NETLOG_BLACKLIST           : string
 // ENV_NETLOG_METRIC_ONLY         : bool
+//
+// ENV_INPUT_EBPF_CPU_LIMIT : string
+// ENV_INPUT_EBPF_MEM_LIMIT : string
+// ENV_INPUT_EBPF_NET_LIMIT : string
 //
 // ENV_INPUT_EBPF_TRACE_ALL_PROCESS    : bool
 // ENV_INPUT_EBPF_CONV_TO_DDTRACE      : bool
@@ -373,6 +396,16 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		default:
 			ipt.NetlogMetricOnly = true
 		}
+	}
+
+	if v, ok := envs["ENV_INPUT_EBPF_CPU_LIMIT"]; ok {
+		ipt.CPULimit = v
+	}
+	if v, ok := envs["ENV_INPUT_EBPF_MEM_LIMIT"]; ok {
+		ipt.MemLimit = v
+	}
+	if v, ok := envs["ENV_INPUT_EBPF_NET_LIMIT"]; ok {
+		ipt.NetLimit = v
 	}
 }
 

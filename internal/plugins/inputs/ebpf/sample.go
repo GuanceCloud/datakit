@@ -16,6 +16,14 @@ const configSample = `
   ]
   envs = []
 
+  ## Resource limits.
+  ## The collector automatically exits when the limit is exceeded.
+  ## Can configure the number of cpu cores, memory size and network bandwidth.
+  ##
+  # cpu_limit = "2.0"
+  # mem_limit = "4GiB"
+  # net_limit = "100MiB/s"
+
   ## automatically takes effect when running DataKit in 
   ## Kubernetes daemonset mode
   ##
@@ -40,8 +48,6 @@ const configSample = `
   enabled_plugins = [
     "ebpf-net",
   ]
-
-
 
   ## If you enable the ebpf-net plugin, you can configure:
   ##  - "httpflow" (* enabled by default)

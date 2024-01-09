@@ -101,6 +101,10 @@ type Option struct {
 	TraceEnvBlacklist  string `long:"trace-env-blacklist" description:"deny tracking any process containing any specified environment variable" default:""` //nolint:lll
 	TraceNameBlacklist string `long:"trace-name-blacklist" description:"deny tracking any process containing any specified process names" default:""`
 	ConvTraceToDD      string `long:"conv-to-ddtrace" description:"conv trace id to ddtrace" default:"false"`
+
+	ResLimitCPU       string `long:"res-cpu" description:"set max cpu resource limit" default:""`
+	ResLimitMem       string `long:"res-mem" description:"set max memory resource limit" default:""`
+	ResLimitBandwidth string `long:"res-net" description:"set max net bandwidth resource limit" default:""`
 }
 
 //  Envs:
@@ -172,6 +176,42 @@ func main() { //nolint:funlen
 	}
 
 	l = logger.SLogger(inputName)
+
+	var reLimiter *dksysmonitor.ResourceLimiter
+	{
+		var bandwidth, mem, cpu float64
+		if opt.ResLimitBandwidth != "" {
+			bandwidth = dksysmonitor.GetBandwidth(opt.ResLimitBandwidth)
+		}
+		if opt.ResLimitMem != "" {
+			mem = dksysmonitor.GetBytes(opt.ResLimitMem)
+		}
+		if opt.ResLimitCPU != "" {
+			cpu, _ = strconv.ParseFloat(opt.ResLimitCPU, 64)
+		}
+
+		if proc, err := dksysmonitor.SelfProcess(); err != nil {
+			l.Errorf("get self process: %s", err.Error())
+		} else {
+			l.Infof("set bandwidth limit %s, %.3fMiB/s", opt.ResLimitBandwidth, bandwidth/(1024*1024))
+			l.Infof("set memory limit %s, %.3fMiB", opt.ResLimitMem, mem/(1024*1024))
+			l.Infof("set cpu limit %s, %.3fs", opt.ResLimitCPU, cpu)
+			reLimiter = dksysmonitor.NewResLimiter(proc, cpu, mem, bandwidth)
+			go func() {
+				if ch, err := reLimiter.MonitorResource(); err != nil {
+					l.Error(err)
+					<-signaIterrrupt
+				} else {
+					select {
+					case <-ch:
+						l.Error("resource limit exceed")
+						os.Exit(125)
+					case <-signaIterrrupt:
+					}
+				}
+			}()
+		}
+	}
 
 	if opt.PProfPort != "" {
 		go func() {
