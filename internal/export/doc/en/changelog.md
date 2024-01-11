@@ -1,7 +1,43 @@
 # Changelog
 ---
 
+## 1.23.0(2024/01/11) {#cl-1.23.0}
+
+This release is an iteration release, with the following updates:
+
+### New Features {#cl-1.23.0-new}
+
+- Support configuring any collector's configure via environment variable (`ENV_DATAKIT_INPUTS`) for Kubernetes deployment (#2068)
+- Container collector now supports more fine-grained configuration by converting Kubernetes object labels to tags (#2064)
+    - `ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS_V2_FOR_METRIC`: support converting labels to tags for metric data 
+    - `ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS_V2`: support converting labels to tags for non-metric data (e.g. objects/logging)
+
+### Bug Fixes {#cl-1.23.0-fix}
+
+- Fixed errors with `deployment` and `daemonset` fields in container collector (#2081)
+- Fixed issue where container log collection would lose the last few lines of logs when a container briefly ran and exited (#2082)
+- Fixed slow query SQL time error in [Oracle](../integrations/oracle.md) collector (#2079)
+- Fixed issue with `instance` setting in Prom collector (#2084)
+
+### Enhancements {#cl-1.23.0-opt}
+
+- Enhanced Prometheus Remote Write collection (#2069)
+- eBPF collection now supports setting resource usage (#2075)
+- Optimized profiling data collection (#2083)
+- [MongoDB](../integrations/mongodb.md) collector now supports separate configuration for username and password (#2073)
+- [SQLServer](../integrations/sqlserver.md) collector now supports configuring instance name (#2074)
+- Optimized dashboard and monitors of [ElasticSearch](../integrations/elasticsearch.md) collector (#2058)
+- [KafkaMQ](../integrations/kafkamq.md) collector now supports multi-threaded mode (#2051)
+- [SkyWalking](../integrations/skywalking.md) collector now supports Meter data type (#2078)
+- Updated some collector documentation and other bug fixes (#2074/#2067)
+- Optimized upgrade command for Proxy installation (#2033)
+- Optimized resource limitation when installing as non-root user (#2011)
+
+---
+
 ## 1.22.0 (2023/12/28) {#cl-1.22.0}
+
+This release is an iteration release, with the following updates:
 
 ### New Features {#cl-1.22.0-new}
 

@@ -12,7 +12,7 @@ before_script:
 
 variables:
   PROJECT: "datakit"
-  CI_VERSION: "1.22.0"
+  CI_VERSION: "1.23.0"
   TEST_VERSION: "1.999.0"
 
 stages:
@@ -34,7 +34,7 @@ ci_lint_and_ut:
   script:
     - nvm use v16.14.0
     - make clean
-    - make code_lint AUTO_FIX=off
+    - make lint AUTO_FIX=off
     - export UT_EXCLUDE_INTEGRATION_TESTING="on" # disable integration testing.
     - export UT_EXCLUDE_HUGE_INTEGRATION_TESTING="on" # enable huge integration testing.
     - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY"
