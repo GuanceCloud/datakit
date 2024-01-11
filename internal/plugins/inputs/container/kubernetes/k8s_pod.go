@@ -150,7 +150,11 @@ func (m *podMetadata) newMetric(conf *Config) pointKVs {
 			}
 		}
 
-		met.SetLabelAsTags(item.Labels, conf.LabelAsTagsForMetric.All, conf.LabelAsTagsForMetric.Keys)
+		if conf.EnableExtractK8sLabelAsTagsV1 {
+			met.SetLabelAsTags(item.Labels, true /*all labels*/, nil)
+		} else {
+			met.SetLabelAsTags(item.Labels, conf.LabelAsTagsForMetric.All, conf.LabelAsTagsForMetric.Keys)
+		}
 		res = append(res, met)
 
 		if m.parent.counter[item.Namespace] == nil {
@@ -241,7 +245,11 @@ func (m *podMetadata) newObject(conf *Config) pointKVs {
 			}
 		}
 
-		obj.SetLabelAsTags(item.Labels, conf.LabelAsTagsForNonMetric.All, conf.LabelAsTagsForNonMetric.Keys)
+		if conf.EnableExtractK8sLabelAsTagsV1 {
+			obj.SetLabelAsTags(item.Labels, true /*all labels*/, nil)
+		} else {
+			obj.SetLabelAsTags(item.Labels, conf.LabelAsTagsForNonMetric.All, conf.LabelAsTagsForNonMetric.Keys)
+		}
 		res = append(res, obj)
 	}
 

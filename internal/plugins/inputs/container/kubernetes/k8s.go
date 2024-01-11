@@ -28,13 +28,14 @@ var klog = logger.DefaultSLogger("k8s")
 type k8sClient client.Client
 
 type Config struct {
-	NodeName        string
-	NodeLocal       bool
-	EnableK8sMetric bool
-	EnableK8sObject bool
-	EnableK8sEvent  bool
-	EnablePodMetric bool
-	ExtraTags       map[string]string
+	NodeName                      string
+	NodeLocal                     bool
+	EnableK8sMetric               bool
+	EnableK8sObject               bool
+	EnableK8sEvent                bool
+	EnablePodMetric               bool
+	EnableExtractK8sLabelAsTagsV1 bool
+	ExtraTags                     map[string]string
 
 	LabelAsTagsForMetric    LabelsOption
 	LabelAsTagsForNonMetric LabelsOption
