@@ -65,7 +65,7 @@ Datakit 内嵌的 Jaeger Agent 用于接收，运算，分析 Jaeger Tracing 协
 endpoint 代表 Jaeger HTTP Agent 路由
 
 ```toml
-[[inputs.jaeger]]
+[[inputs.{{.InputName}}]]
   # Jaeger endpoint for receiving tracing span over HTTP.
   # Default value set as below. DO NOT MODIFY THE ENDPOINT if not necessary.
   endpoint = "/apis/traces"
@@ -79,7 +79,7 @@ endpoint 代表 Jaeger HTTP Agent 路由
 修改 Jaeger Client 的 Agent UDP Host:Port 为下面配置中指定的 address：
 
 ```toml
-[[inputs.jaeger]]
+[[inputs.{{.InputName}}]]
   # Jaeger agent host:port address for UDP transport.
   address = "127.0.0.1:6831"
 ```
@@ -248,7 +248,7 @@ func foo() {
 }
 ```
 
-## 链路字段 {#tracing}
+## 指标 {#metric}
 
 {{range $i, $m := .Measurements}}
 

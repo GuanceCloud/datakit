@@ -29,7 +29,7 @@ func (m *IISAppPoolWas) Info() *inputs.MeasurementInfo {
 		Type: "metric",
 		Desc: "",
 		Tags: map[string]interface{}{
-			"host":     &inputs.TagInfo{Desc: "host name"},
+			"host":     &inputs.TagInfo{Desc: "Host name"},
 			"app_pool": &inputs.TagInfo{Desc: "IIS app pool"},
 		},
 		Fields: map[string]interface{}{
@@ -49,7 +49,7 @@ func (m *IISWebService) Info() *inputs.MeasurementInfo {
 		Type: "metric",
 		Desc: "",
 		Tags: map[string]interface{}{
-			"host":    &inputs.TagInfo{Desc: "host name"},
+			"host":    &inputs.TagInfo{Desc: "Host name"},
 			"website": &inputs.TagInfo{Desc: "IIS web site"},
 		},
 		Fields: map[string]interface{}{
