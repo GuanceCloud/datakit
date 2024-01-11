@@ -59,7 +59,6 @@ require (
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/kardianos/service v1.2.1
 	github.com/klauspost/compress v1.16.7
-	github.com/lib/pq v1.10.2
 	github.com/mssola/user_agent v0.6.0 // indirect
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 	github.com/openzipkin/zipkin-go v0.2.2
@@ -357,6 +356,7 @@ require (
 	github.com/google/gopacket v0.0.0-00010101000000-000000000000
 	github.com/grafana/pyroscope/ebpf v0.2.1
 	github.com/ibmdb/go_ibm_db v0.4.4
+	github.com/jackc/pgx/v5 v5.5.1
 	github.com/mattn/go-oci8 v0.1.1
 	github.com/netsampler/goflow2 v1.3.5
 	github.com/oklog/ulid v1.3.1
@@ -369,7 +369,6 @@ require (
 	github.com/avvmoto/buf-readerat v0.0.0-20171115124131-a17c8cb89270 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
-	github.com/jackc/pgx/v5 v5.5.1 // indirect
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
 	github.com/libp2p/go-reuseport v0.3.0 // indirect
 	github.com/outcaste-io/ristretto v0.2.1 // indirect
@@ -382,6 +381,7 @@ replace (
 	github.com/google/gopacket => github.com/GuanceCloud/gopacket v0.0.1
 	github.com/iovisor/gobpf => github.com/DataDog/gobpf v0.0.0-20210322155958-9866ef4cd22c
 	github.com/kardianos/service => github.com/GuanceCloud/service v1.2.1-rc3
+
 	github.com/ory/dockertest/v3 v3.9.1 => github.com/GuanceCloud/dockertest/v3 v3.9.4
 	github.com/prometheus/client_model => github.com/GuanceCloud/client_model v0.0.0-20230418154757-93bd4e878a5e
 	github.com/prometheus/common => github.com/GuanceCloud/promcommon v0.0.0-20230828165048-8a8ac696e616
